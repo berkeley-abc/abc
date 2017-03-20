@@ -1,6 +1,7 @@
 SRC +=    src/base/wlc/wlcAbs.c \
     src/base/wlc/wlcAbs2.c \
     src/base/wlc/wlcAbc.c \
+    src/base/wlc/wlcPth.c \
     src/base/wlc/wlcBlast.c \
     src/base/wlc/wlcCom.c \
     src/base/wlc/wlcGraft.c \

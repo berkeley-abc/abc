@@ -180,8 +180,32 @@ struct Wlc_Par_t_
     int                    fCheckCombUnsat;    // Check if ABS becomes comb. unsat
     int                    fAbs2;              // Use UFAR style createAbs
     int                    fProofUsePPI;       // Use PPI values in PBR
+    int                    fUseBmc3;           // Run BMC3 in parallel 
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
+};
+
+typedef struct Wla_Man_t_ Wla_Man_t;
+struct Wla_Man_t_
+{
+    Wlc_Ntk_t * p;
+    Wlc_Par_t * pPars;
+    Vec_Vec_t * vClauses;
+    Vec_Int_t * vBlacks;
+    Abc_Cex_t * pCex;
+    Gia_Man_t * pGia;
+    Vec_Bit_t * vUnmark;
+    void      * pPdrPars;
+    void      * pThread;
+
+    int nIters;
+    int nTotalCla;
+    int nDisj;
+    int nNDisj;
+
+    abctime tPdr;
+    abctime tCbr;
+    abctime tPbr;
 };
 
 static inline int          Wlc_NtkObjNum( Wlc_Ntk_t * p )                           { return p->iObj - 1;                                                      }

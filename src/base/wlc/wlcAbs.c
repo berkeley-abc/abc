@@ -37,34 +37,16 @@ extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPu
 extern int           IPdr_ManCheckCombUnsat( Pdr_Man_t * p );
 extern int           IPdr_ManReduceClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses );
 extern void          IPdr_ManPrintClauses( Vec_Vec_t * vClauses, int kStart, int nRegs );
+extern void          Wla_ManJoinThread( Wla_Man_t * pWla, int RunId );
+extern void          Wla_ManConcurrentBmc3( Wla_Man_t * pWla, Aig_Man_t * pAig, Abc_Cex_t ** ppCex );
+extern int           Wla_CallBackToStop( int RunId );
+extern int           Wla_GetGlobalRunId();
 
 typedef struct Int_Pair_t_       Int_Pair_t;
 struct Int_Pair_t_
 {
     int first;
     int second;
-};
-
-typedef struct Wla_Man_t_ Wla_Man_t;
-struct Wla_Man_t_
-{
-    Wlc_Ntk_t * p;
-    Wlc_Par_t * pPars;
-    Pdr_Par_t * pPdrPars;
-    Vec_Vec_t * vClauses;
-    Vec_Int_t * vBlacks;
-    Abc_Cex_t * pCex;
-    Gia_Man_t * pGia;
-    Vec_Bit_t * vUnmark;
-
-    int nIters;
-    int nTotalCla;
-    int nDisj;
-    int nNDisj;
-
-    abctime tPdr;
-    abctime tCbr;
-    abctime tPbr;
 };
 
 int IntPairPtrCompare ( Int_Pair_t ** a, Int_Pair_t ** b )
@@ -1251,53 +1233,69 @@ Aig_Man_t * Wla_ManBitBlast( Wla_Man_t * pWla, Wlc_Ntk_t * pAbs )
     return pAig;
 }
 
+int Wla_ManCheckCombUnsat( Wla_Man_t * pWla, Aig_Man_t * pAig )
+{
+    Pdr_Man_t * pPdr;
+    Pdr_Par_t * pPdrPars = (Pdr_Par_t *)pWla->pPdrPars;
+    abctime clk;
+    int RetValue = -1;
+
+    if ( Aig_ManAndNum( pAig ) <= 20000 )
+    { 
+        Aig_Man_t * pAigScorr;
+        Ssw_Pars_t ScorrPars, * pScorrPars = &ScorrPars;
+        int nAnds;
+
+        clk = Abc_Clock();
+
+        Ssw_ManSetDefaultParams( pScorrPars );
+        pScorrPars->fStopWhenGone = 1;
+        pScorrPars->nFramesK = 1;
+        pAigScorr = Ssw_SignalCorrespondence( pAig, pScorrPars );
+        assert ( pAigScorr );
+        nAnds = Aig_ManAndNum( pAigScorr); 
+        Aig_ManStop( pAigScorr );
+
+        if ( nAnds == 0 )
+        {
+            if ( pWla->pPars->fVerbose )
+                Abc_PrintTime( 1, "SCORR proved UNSAT. Time", Abc_Clock() - clk );
+            return 1;
+        }
+        else if ( pWla->pPars->fVerbose )
+        {
+            Abc_Print( 1, "SCORR failed with %d ANDs. ", nAnds);
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
+    }
+
+    clk = Abc_Clock();
+
+    pPdrPars->fVerbose = 0;
+    pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
+    RetValue = IPdr_ManCheckCombUnsat( pPdr );
+    Pdr_ManStop( pPdr );
+    pPdrPars->fVerbose = pWla->pPars->fPdrVerbose;
+
+    pWla->tPdr += Abc_Clock() - clk;
+
+    return RetValue;
+}
+
 int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
 {
     abctime clk;
     Pdr_Man_t * pPdr;
+    Pdr_Par_t * pPdrPars = (Pdr_Par_t *)pWla->pPdrPars;
+    Abc_Cex_t * pBmcCex = NULL;
     int RetValue = -1;
+    int RunId = Wla_GetGlobalRunId();
 
     if ( pWla->vClauses && pWla->pPars->fCheckCombUnsat )
     {
-        if ( Aig_ManAndNum( pAig ) <= 20000 )
-        { 
-            Aig_Man_t * pAigScorr;
-            Ssw_Pars_t ScorrPars, * pScorrPars = &ScorrPars;
-            int nAnds;
-
-            clk = Abc_Clock();
-
-            Ssw_ManSetDefaultParams( pScorrPars );
-            pScorrPars->fStopWhenGone = 1;
-            pScorrPars->nFramesK = 1;
-            pAigScorr = Ssw_SignalCorrespondence( pAig, pScorrPars );
-            assert ( pAigScorr );
-            nAnds = Aig_ManAndNum( pAigScorr); 
-            Aig_ManStop( pAigScorr );
-
-            if ( nAnds == 0 )
-            {
-                if ( pWla->pPars->fVerbose )
-                    Abc_PrintTime( 1, "SCORR proved UNSAT. Time", Abc_Clock() - clk );
-                return 1;
-            }
-            else if ( pWla->pPars->fVerbose )
-            {
-                Abc_Print( 1, "SCORR failed with %d ANDs. ", nAnds);
-                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-            }
-        }
-
         clk = Abc_Clock();
 
-        pWla->pPdrPars->fVerbose = 0;
-        pPdr = Pdr_ManStart( pAig, pWla->pPdrPars, NULL );
-        RetValue = IPdr_ManCheckCombUnsat( pPdr );
-        Pdr_ManStop( pPdr );
-        pWla->pPdrPars->fVerbose = pWla->pPars->fPdrVerbose;
-
-        pWla->tPdr += Abc_Clock() - clk;
-
+        RetValue = Wla_ManCheckCombUnsat( pWla, pAig );
         if ( RetValue == 1 )
         {
             if ( pWla->pPars->fVerbose )
@@ -1309,8 +1307,16 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
             Abc_PrintTime( 1, "Check comb. unsat failed. Time", Abc_Clock() - clk );
     }
 
+    if ( pWla->pPars->fUseBmc3 )
+    {
+        pPdrPars->RunId = RunId;
+        pPdrPars->pFuncStop = Wla_CallBackToStop;
+
+        Wla_ManConcurrentBmc3( pWla, Aig_ManDupSimple(pAig), &pBmcCex );
+    }
+
     clk = Abc_Clock();
-    pPdr = Pdr_ManStart( pAig, pWla->pPdrPars, NULL );
+    pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
     if ( pWla->vClauses ) {
         assert( Vec_VecSize( pWla->vClauses) >= 2 ); 
         IPdr_ManRestore( pPdr, pWla->vClauses, NULL );
@@ -1322,8 +1328,19 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
     pWla->vClauses = IPdr_ManSaveClauses( pPdr, 0 );
     Pdr_ManStop( pPdr );
 
-    pWla->pCex = pAig->pSeqModel;
-    pAig->pSeqModel = NULL;
+
+    if ( pWla->pPars->fUseBmc3 )
+        Wla_ManJoinThread( pWla, RunId );
+
+    if ( pBmcCex )
+    {
+        pWla->pCex = pBmcCex ;
+    }
+    else
+    {
+        pWla->pCex = pAig->pSeqModel;
+        pAig->pSeqModel = NULL;
+    }
 
     // consider outcomes
     if ( pWla->pCex == NULL ) 
@@ -1418,7 +1435,7 @@ Wla_Man_t * Wla_ManStart( Wlc_Ntk_t * pNtk, Wlc_Par_t * pPars )
         pPdrPars->fSkipDown  = 0;   // use 'pdr -nc' (improved generalization)
         pPdrPars->nRestLimit = 500; // reset queue or proof-obligations when it gets larger than this
     } 
-    p->pPdrPars = pPdrPars;
+    p->pPdrPars = (void *)pPdrPars;
 
     p->nIters = 1;
     p->nTotalCla = 0;

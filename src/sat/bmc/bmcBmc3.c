@@ -1533,6 +1533,12 @@ clkOther += Abc_Clock() - clk2;
                     Abc_Print( 1, "Reached timeout (%d seconds).\n",  pPars->nTimeOut );
                 goto finish;
             }
+            if ( p->pPars->pFuncStop && p->pPars->pFuncStop(p->pPars->RunId) )
+            {
+                if ( !pPars->fSilent )
+                    Abc_Print( 1, "Bmc3 got callbacks.\n" );
+                goto finish;
+            }
             // skip solved outputs
             if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
                 continue;
