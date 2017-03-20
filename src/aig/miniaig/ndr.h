@@ -160,15 +160,15 @@ static inline void          Ndr_DataPush( Ndr_Data_t * p, int Type, int Entry ) 
 
 // iterates over primary inputs of a module
 #define Ndr_ModForEachPi( p, Mod, Obj )                               \
-    Ndr_ModForEachObj( p, 0, Obj ) if ( !Ndr_ObjIsType(p, Obj, ABC_OPER_CI) ) {} else
+    Ndr_ModForEachObj( p, Mod, Obj ) if ( !Ndr_ObjIsType(p, Obj, ABC_OPER_CI) ) {} else
 
 // iteraots over primary outputs of a module
 #define Ndr_ModForEachPo( p, Mod, Obj )                               \
-    Ndr_ModForEachObj( p, 0, Obj ) if ( !Ndr_ObjIsType(p, Obj, ABC_OPER_CO) ) {} else
+    Ndr_ModForEachObj( p, Mod, Obj ) if ( !Ndr_ObjIsType(p, Obj, ABC_OPER_CO) ) {} else
 
 // iterates over internal nodes of a module
 #define Ndr_ModForEachNode( p, Mod, Obj )                             \
-    Ndr_ModForEachObj( p, 0, Obj ) if ( Ndr_ObjIsType(p, Obj, ABC_OPER_CI) || Ndr_ObjIsType(p, Obj, ABC_OPER_CO) ) {} else
+    Ndr_ModForEachObj( p, Mod, Obj ) if ( Ndr_ObjIsType(p, Obj, ABC_OPER_CI) || Ndr_ObjIsType(p, Obj, ABC_OPER_CO) ) {} else
 
 // iterates over target signals of a module
 #define Ndr_ModForEachTarget( p, Mod, Obj )                           \
