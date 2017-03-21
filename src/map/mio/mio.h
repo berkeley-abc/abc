@@ -136,6 +136,7 @@ extern float             Mio_LibraryReadAreaInv    ( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadAreaBuf    ( Mio_Library_t * pLib );
 extern float             Mio_LibraryReadAreaNand2  ( Mio_Library_t * pLib );
 extern int               Mio_LibraryReadGateNameMax( Mio_Library_t * pLib );
+extern void              Mio_LibrarySetName        ( Mio_Library_t * pLib, char * pName );
 extern char *            Mio_GateReadName          ( Mio_Gate_t * pGate );      
 extern char *            Mio_GateReadOutName       ( Mio_Gate_t * pGate );      
 extern double            Mio_GateReadArea          ( Mio_Gate_t * pGate );      

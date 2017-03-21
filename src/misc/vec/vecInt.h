@@ -71,6 +71,8 @@ struct Vec_Int_t_
     for ( i = 0; (i+2 < Vec_IntSize(vVec)) && (((Entry1) = Vec_IntEntry(vVec, i)), 1) && (((Entry2) = Vec_IntEntry(vVec, i+1)), 1) && (((Entry3) = Vec_IntEntry(vVec, i+2)), 1); i += 3 )
 #define Vec_IntForEachEntryThisNext( vVec, This, Next, i )                                  \
     for ( i = 0, (This) = (Next) = (Vec_IntSize(vVec) ? Vec_IntEntry(vVec, 0) : -1); (i+1 < Vec_IntSize(vVec)) && (((Next) = Vec_IntEntry(vVec, i+1)), 1); i += 2, (This) = (Next) )
+#define Vec_IntForEachEntryInVec( vVec2, vVec, Entry, i )                                   \
+    for ( i = 0; (i < Vec_IntSize(vVec)) && (((Entry) = Vec_IntEntry(vVec2, Vec_IntEntry(vVec, i))), 1); i++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

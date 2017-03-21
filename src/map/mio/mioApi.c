@@ -64,6 +64,7 @@ float             Mio_LibraryReadDelayAigNode  ( Mio_Library_t * pLib )  { retur
 float             Mio_LibraryReadAreaInv       ( Mio_Library_t * pLib )  { return (float)(pLib->pGateInv?   pLib->pGateInv->dArea   : 0.0); }
 float             Mio_LibraryReadAreaBuf       ( Mio_Library_t * pLib )  { return (float)(pLib->pGateBuf?   pLib->pGateBuf->dArea   : 0.0); }
 float             Mio_LibraryReadAreaNand2     ( Mio_Library_t * pLib )  { return (float)(pLib->pGateNand2? pLib->pGateNand2->dArea : 0.0); }
+void              Mio_LibrarySetName           ( Mio_Library_t * pLib, char * pName ) { ABC_FREE(pLib->pName); pLib->pName = pName;         }
 
 /**Function*************************************************************
 

@@ -96,13 +96,7 @@ Acb_Ntk_t * Acb_NtkFromNdr( char * pFileName, void * pModule, Abc_Nam_t * pNames
         ObjId  = Acb_ObjAlloc( pNtk, ABC_OPER_CI, 0, 0 );
         Vec_IntWriteEntry( vMap, NameId, ObjId );
         Acb_ObjSetName( pNtk, ObjId, NameId );
-    }
-    Ndr_ModForEachPi( p, Mod, Obj )
-    {
-        NameId = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
-        ObjId  = Acb_ObjAlloc( pNtk, ABC_OPER_CI, 0, 0 );
-        Vec_IntWriteEntry( vMap, NameId, ObjId );
-        Acb_ObjSetName( pNtk, ObjId, NameId );
+        Acb_ObjSetWeight( pNtk, ObjId, vWeights ? Vec_IntEntry(vWeights, NameId) : 0 );
     }
     Ndr_ModForEachTarget( p, Mod, Obj )
     {

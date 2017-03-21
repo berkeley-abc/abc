@@ -3123,7 +3123,6 @@ Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops )
     Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; balance; dc2; map -a" );
     pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
-    Abc_NtkDelete( pNtk );
     vRes = Vec_WecStart( Abc_NtkPiNum(pNtkNew) + Abc_NtkNodeNum(pNtkNew) + Abc_NtkPoNum(pNtkNew) );
     Abc_NtkForEachPi( pNtkNew, pObj, i )
         pObj->iTemp = iNode++;
@@ -3131,6 +3130,7 @@ Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops )
     {
         Vec_Int_t * vNode = Vec_WecEntry(vRes, iNode);
         Vec_IntPush( vNode, Abc_GateToType(pObj) );
+        Vec_IntPush( vNode, iNode );
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Vec_IntPush( vNode, pFanin->iTemp );
         pObj->iTemp = iNode++;

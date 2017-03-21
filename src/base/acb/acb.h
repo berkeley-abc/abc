@@ -259,8 +259,8 @@ static inline int            Acb_ObjRangeSign( Acb_Ntk_t * p, int i )        { r
 static inline int            Acb_ObjTravId( Acb_Ntk_t * p, int i )           { return Vec_IntGetEntry(&p->vObjTrav, i);                                                     }
 static inline int            Acb_ObjIsTravIdCur( Acb_Ntk_t * p, int i )      { return Acb_ObjTravId(p, i) == p->nObjTravs;                                                  }
 static inline int            Acb_ObjIsTravIdPrev( Acb_Ntk_t * p, int i )     { return Acb_ObjTravId(p, i) == p->nObjTravs-1;                                                }
-static inline int            Acb_ObjSetTravIdCur( Acb_Ntk_t * p, int i )     { int r = Acb_ObjIsTravIdCur(p, i);   Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs);   return r; }
-static inline int            Acb_ObjSetTravIdPrev( Acb_Ntk_t * p, int i )    { int r = Acb_ObjSetTravIdPrev(p, i); Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs-1); return r; }
+static inline int            Acb_ObjSetTravIdCur( Acb_Ntk_t * p, int i )     { int r = Acb_ObjIsTravIdCur(p, i);  Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs);   return r; }
+static inline int            Acb_ObjSetTravIdPrev( Acb_Ntk_t * p, int i )    { int r = Acb_ObjIsTravIdPrev(p, i); Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs-1); return r; }
 static inline int            Acb_NtkTravId( Acb_Ntk_t * p )                  { return p->nObjTravs;                                                                         }
 static inline void           Acb_NtkIncTravId( Acb_Ntk_t * p )               { if ( !Acb_NtkHasObjTravs(p) ) Acb_NtkCleanObjTravs(p); p->nObjTravs++;                       }
 
@@ -280,17 +280,26 @@ static inline void           Acb_NtkIncTravId( Acb_Ntk_t * p )               { i
     for ( i = 0; (i < Acb_NtkCiNum(p))  && (((iObj) = Acb_NtkCi(p, i)), 1); i++ ) 
 #define Acb_NtkForEachCo( p, iObj, i )                                    \
     for ( i = 0; (i < Acb_NtkCoNum(p))  && (((iObj) = Acb_NtkCo(p, i)), 1); i++ ) 
+#define Acb_NtkForEachCoDriver( p, iObj, i )                              \
+    for ( i = 0; (i < Acb_NtkCoNum(p))  && (((iObj) = Acb_ObjFanin(p, Acb_NtkCo(p, i), 0)), 1); i++ ) 
+
+#define Acb_NtkForEachCiVec( vVec, p, iObj, i )                           \
+    for ( i = 0; (i < Vec_IntSize(vVec))  && (((iObj) = Acb_NtkCi(p, Vec_IntEntry(vVec,i))), 1); i++ ) 
+#define Acb_NtkForEachCoVec( vVec, p, iObj, i )                           \
+    for ( i = 0; (i < Vec_IntSize(vVec))  && (((iObj) = Acb_NtkCo(p, Vec_IntEntry(vVec,i))), 1); i++ ) 
+#define Acb_NtkForEachCoDriverVec( vVec, p, iObj, i )                     \
+    for ( i = 0; (i < Vec_IntSize(vVec))  && (((iObj) = Acb_ObjFanin(p, Acb_NtkCo(p, Vec_IntEntry(vVec,i)), 0)), 1); i++ ) 
 
 #define Acb_NtkForEachBoxSeq( p, iObj, i )                                \
     for ( i = 0; (i < Acb_NtkSeqNum(p))  && (((iObj) = Acb_NtkBoxSeq(p, i)), 1); i++ ) 
 #define Acb_NtkForEachCioOrder( p, iObj, i )                              \
     for ( i = 0; (i < Acb_NtkCioOrderNum(p))  && (((iObj) = Acb_NtkCioOrder(p, i)), 1); i++ ) 
 
-#define Acb_NtkForEachCoDriver( p, iObj, i )                              \
-    for ( i = 0; (i < Acb_NtkCoNum(p))  && (((iObj) = Acb_ObjFanin(p, Acb_NtkCo(p, i), 0)), 1); i++ ) 
 
 #define Acb_NtkForEachObj( p, i )                                         \
     for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Acb_ObjType(p, i) ) {} else   
+#define Acb_NtkForEachNode( p, i )                                         \
+    for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Acb_ObjType(p, i) || Acb_ObjIsCio(p, i) ) {} else   
 #define Acb_NtkForEachObjType( p, Type, i )                               \
     for ( i = 1; i < Vec_StrSize(&p->vObjType) && (((Type) = Acb_ObjType(p, i)), 1); i++ ) if ( !Type ) {} else
 #define Acb_NtkForEachBox( p, i )                                         \
