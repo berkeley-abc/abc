@@ -196,6 +196,10 @@ struct sat_solver_t
     // CNF loading
     void *      pCnfMan;           // external CNF manager
     int(*pCnfFunc)(void * p, int); // external callback
+
+    // termination callback
+    int         RunId;          // SAT id in this run
+    int(*pFuncStop)(int);       // callback to terminate
 };
 
 static inline clause * clause_read( sat_solver * s, cla h )          

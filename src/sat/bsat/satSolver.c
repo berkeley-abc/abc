@@ -1956,6 +1956,8 @@ int sat_solver_solve_internal(sat_solver* s)
             break;
         if ( s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit )
             break;
+        if ( s->pFuncStop && s->pFuncStop(s->RunId) )
+            break;
     }
     if (s->verbosity >= 1)
         printf("==============================================================================\n");
