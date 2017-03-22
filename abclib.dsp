@@ -787,10 +787,6 @@ SOURCE=.\src\base\wlc\wlcAbs.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\wlc\wlcPth.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\wlc\wlcAbs2.c
 # End Source File
 # Begin Source File
@@ -812,6 +808,10 @@ SOURCE=.\src\base\wlc\wlcJson.c
 # Begin Source File
 
 SOURCE=.\src\base\wlc\wlcNtk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wlc\wlcPth.c
 # End Source File
 # Begin Source File
 
@@ -1072,6 +1072,14 @@ SOURCE=.\src\base\acb\acbCom.c
 # Begin Source File
 
 SOURCE=.\src\base\acb\acbFunc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\acb\acbMfs.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\acb\acbUtil.c
 # End Source File
 # End Group
 # End Group
@@ -5684,6 +5692,10 @@ SOURCE=.\src\proof\ssc\sscUtil.c
 # Begin Source File
 
 SOURCE=.\src\proof\acec\acec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\proof\acec\acec2Booth.c
 # End Source File
 # Begin Source File
 

@@ -64,6 +64,8 @@ struct Acb_Ntk_t_
     int             nRegs;      // flop count
     int             nFaninMax;  // default fanin count
     int             nObjTravs;  // trav ID
+    int             LevelMax;   // max level
+    int             nPaths;     // the number of paths
     // stucture
     Vec_Str_t       vObjType;   // type     
     Vec_Int_t       vObjFans;   // fanin offsets
@@ -82,6 +84,10 @@ struct Acb_Ntk_t_
     Vec_Int_t       vAttrSto;   // attribute storage
     Vec_Int_t       vNtkObjs;   // instances
     Vec_Int_t       vTargets;   // targets
+    Vec_Int_t       vLevelD;    // level
+    Vec_Int_t       vLevelR;    // level
+    Vec_Int_t       vPathD;     // path
+    Vec_Int_t       vPathR;     // path
     // other
     Vec_Int_t       vArray0;
     Vec_Int_t       vArray1;
@@ -166,11 +172,12 @@ static inline void           Acb_NtkSetRegNum( Acb_Ntk_t * p, int nRegs )    { p
 static inline int            Acb_NtkPiNum( Acb_Ntk_t * p )                   { return Acb_NtkCiNum(p) - Acb_NtkRegNum(p);                                                  }
 static inline int            Acb_NtkPoNum( Acb_Ntk_t * p )                   { return Acb_NtkCoNum(p) - Acb_NtkRegNum(p);                                                  }
 static inline int            Acb_NtkCioOrderNum( Acb_Ntk_t * p )             { return Vec_IntSize(&p->vOrder);                                                             }
-static inline int            Acb_NtkObjNum( Acb_Ntk_t * p )                  { return Vec_StrSize(&p->vObjType)-1;                                                         }
 static inline int            Acb_NtkObjNumAlloc( Acb_Ntk_t * p )             { return Vec_StrCap(&p->vObjType)-1;                                                          }
+static inline int            Acb_NtkObjNum( Acb_Ntk_t * p )                  { return Vec_StrSize(&p->vObjType)-1;                                                         }
+static inline int            Acb_NtkObjNumMax( Acb_Ntk_t * p )               { return Vec_StrSize(&p->vObjType);                                                           }
 static inline int            Acb_NtkTypeNum( Acb_Ntk_t * p, int Type )       { return Vec_StrCountEntry(&p->vObjType, (char)Type);                                         }
-static inline int            Acb_NtkBoxNum( Acb_Ntk_t * p )                  { return Acb_NtkTypeNum(p, ABC_OPER_BOX);                                                      }
-static inline int            Acb_NtkNodeNum( Acb_Ntk_t * p )                 { return Vec_StrCountLarger(&p->vObjType, (char)ABC_OPER_BOX);                                 }
+static inline int            Acb_NtkBoxNum( Acb_Ntk_t * p )                  { return Acb_NtkTypeNum(p, ABC_OPER_BOX);                                                     }
+static inline int            Acb_NtkNodeNum( Acb_Ntk_t * p )                 { return Vec_StrCountLarger(&p->vObjType, (char)ABC_OPER_BOX);                                }
 static inline int            Acb_NtkSeqNum( Acb_Ntk_t * p )                  { return Vec_IntSize(&p->vSeq);                                                               }
 
 static inline void           Acb_NtkCleanObjCopies( Acb_Ntk_t * p )          { Vec_IntFill(&p->vObjCopy,  Vec_StrCap(&p->vObjType), -1);                                   }
@@ -181,6 +188,10 @@ static inline void           Acb_NtkCleanObjNames( Acb_Ntk_t * p )           { V
 static inline void           Acb_NtkCleanObjRanges( Acb_Ntk_t * p )          { Vec_IntFill(&p->vObjRange, Vec_StrCap(&p->vObjType),  0);                                   }
 static inline void           Acb_NtkCleanObjTravs( Acb_Ntk_t * p )           { Vec_IntFill(&p->vObjTrav,  Vec_StrCap(&p->vObjType),  0);                                   }
 static inline void           Acb_NtkCleanObjAttrs( Acb_Ntk_t * p )           { Vec_IntFill(&p->vObjAttr,  Vec_StrCap(&p->vObjType),  0); Vec_IntFill(&p->vAttrSto, 1, -1); }
+static inline void           Acb_NtkCleanObjLevelD( Acb_Ntk_t * p )          { Vec_IntFill(&p->vLevelD,   Vec_StrCap(&p->vObjType),  0);                                   }
+static inline void           Acb_NtkCleanObjLevelR( Acb_Ntk_t * p )          { Vec_IntFill(&p->vLevelR,   Vec_StrCap(&p->vObjType),  0);                                   }
+static inline void           Acb_NtkCleanObjPathD( Acb_Ntk_t * p )           { Vec_IntFill(&p->vPathD,    Vec_StrCap(&p->vObjType),  0);                                   }
+static inline void           Acb_NtkCleanObjPathR( Acb_Ntk_t * p )           { Vec_IntFill(&p->vPathR,    Vec_StrCap(&p->vObjType),  0);                                   }
 
 static inline int            Acb_NtkHasObjCopies( Acb_Ntk_t * p )            { return Vec_IntSize(&p->vObjCopy)  > 0; }
 static inline int            Acb_NtkHasObjFuncs( Acb_Ntk_t * p )             { return Vec_IntSize(&p->vObjFunc)  > 0; }
@@ -190,6 +201,10 @@ static inline int            Acb_NtkHasObjNames( Acb_Ntk_t * p )             { r
 static inline int            Acb_NtkHasObjRanges( Acb_Ntk_t * p )            { return Vec_IntSize(&p->vObjRange) > 0; }
 static inline int            Acb_NtkHasObjTravs( Acb_Ntk_t * p )             { return Vec_IntSize(&p->vObjTrav)  > 0; }
 static inline int            Acb_NtkHasObjAttrs( Acb_Ntk_t * p )             { return Vec_IntSize(&p->vObjAttr)  > 0; }
+static inline int            Acb_NtkHasObjLevelD( Acb_Ntk_t * p )            { return Vec_IntSize(&p->vLevelD)   > 0; }
+static inline int            Acb_NtkHasObjLevelR( Acb_Ntk_t * p )            { return Vec_IntSize(&p->vLevelR)   > 0; }
+static inline int            Acb_NtkHasObjPathD( Acb_Ntk_t * p )             { return Vec_IntSize(&p->vPathD)    > 0; }
+static inline int            Acb_NtkHasObjPathR( Acb_Ntk_t * p )             { return Vec_IntSize(&p->vPathR)    > 0; }
 
 static inline void           Acb_NtkFreeObjCopies( Acb_Ntk_t * p )           { Vec_IntErase(&p->vObjCopy);            }
 static inline void           Acb_NtkFreeObjFuncs( Acb_Ntk_t * p )            { Vec_IntErase(&p->vObjFunc);            }
@@ -199,6 +214,10 @@ static inline void           Acb_NtkFreeObjNames( Acb_Ntk_t * p )            { V
 static inline void           Acb_NtkFreeObjRanges( Acb_Ntk_t * p )           { Vec_IntErase(&p->vObjRange);           }
 static inline void           Acb_NtkFreeObjTravs( Acb_Ntk_t * p )            { Vec_IntErase(&p->vObjTrav);            }
 static inline void           Acb_NtkFreeObjAttrs( Acb_Ntk_t * p )            { Vec_IntErase(&p->vObjAttr);            }
+static inline void           Acb_NtkFreeObjLevelD( Acb_Ntk_t * p )           { Vec_IntErase(&p->vLevelD);             }
+static inline void           Acb_NtkFreeObjLevelR( Acb_Ntk_t * p )           { Vec_IntErase(&p->vLevelR);             }
+static inline void           Acb_NtkFreeObjPathD( Acb_Ntk_t * p )            { Vec_IntErase(&p->vPathD);              }
+static inline void           Acb_NtkFreeObjPathR( Acb_Ntk_t * p )            { Vec_IntErase(&p->vPathR);              }
 
 static inline Acb_ObjType_t  Acb_ObjType( Acb_Ntk_t * p, int i )             { assert(i>0); return (Acb_ObjType_t)(int)(unsigned char)Vec_StrEntry(&p->vObjType, i);        }
 static inline void           Acb_ObjCleanType( Acb_Ntk_t * p, int i )        { assert(i>0); Vec_StrWriteEntry( &p->vObjType, i, (char)ABC_OPER_NONE );                      }
@@ -233,6 +252,10 @@ static inline int            Acb_ObjAttr( Acb_Ntk_t * p, int i )             { a
 static inline int            Acb_ObjAttrSize( Acb_Ntk_t * p, int i )         { assert(i>=0); return Acb_ObjAttr(p, i) ? Vec_IntEntry(&p->vAttrSto, Acb_ObjAttr(p, i)) : 0;  }
 static inline int *          Acb_ObjAttrArray( Acb_Ntk_t * p, int i )        { assert(i>=0); return Acb_ObjAttr(p, i) ? Vec_IntEntryP(&p->vAttrSto, Acb_ObjAttr(p, i)+1) : NULL; }
 static inline int            Acb_ObjAttrValue( Acb_Ntk_t * p, int i, int x ) { int k, s = Acb_ObjAttrSize(p, i), * a = Acb_ObjAttrArray(p, i); for ( k = 0; k < s; k += 2)  if (a[k] == x) return a[k+1]; return 0; }
+static inline int            Acb_ObjLevelD( Acb_Ntk_t * p, int i )           { assert(i>0); return Vec_IntEntry(&p->vLevelD, i);                                            }
+static inline int            Acb_ObjLevelR( Acb_Ntk_t * p, int i )           { assert(i>0); return Vec_IntEntry(&p->vLevelR, i);                                            }
+static inline int            Acb_ObjPathD( Acb_Ntk_t * p, int i )            { assert(i>0); return Vec_IntEntry(&p->vPathD, i);                                             }
+static inline int            Acb_ObjPathR( Acb_Ntk_t * p, int i )            { assert(i>0); return Vec_IntEntry(&p->vPathR, i);                                             }
 
 static inline void           Acb_ObjSetCopy( Acb_Ntk_t * p, int i, int x )   { assert(Acb_ObjCopy(p, i) == -1); Vec_IntSetEntry( &p->vObjCopy, i, x );                      }
 static inline void           Acb_ObjSetFunc( Acb_Ntk_t * p, int i, int x )   { assert(Acb_ObjFunc(p, i) ==  0); Vec_IntSetEntry( &p->vObjFunc, i, x );                      }
@@ -240,6 +263,14 @@ static inline void           Acb_ObjSetWeight( Acb_Ntk_t * p, int i, int x ) { a
 static inline void           Acb_ObjSetTruth( Acb_Ntk_t * p, int i, word x ) { assert(Acb_ObjTruth(p, i) ==  0);Vec_WrdSetEntry( &p->vObjTruth, i, x );                     }
 static inline void           Acb_ObjSetName( Acb_Ntk_t * p, int i, int x )   { assert(Acb_ObjName(p, i) ==  0); Vec_IntSetEntry( &p->vObjName, i, x );                      }
 static inline void           Acb_ObjSetAttrs( Acb_Ntk_t * p, int i, int * a, int s )  { assert(Acb_ObjAttr(p, i) == 0); if ( !a ) return; Vec_IntSetEntry(&p->vObjAttr, i, Vec_IntSize(&p->vAttrSto)); Vec_IntPush(&p->vAttrSto, s); Vec_IntPushArray(&p->vAttrSto, a, s);  }
+static inline int            Acb_ObjSetLevelD( Acb_Ntk_t * p, int i, int x ) { Vec_IntSetEntry( &p->vLevelD, i, x );  return x;                                             }
+static inline int            Acb_ObjSetLevelR( Acb_Ntk_t * p, int i, int x ) { Vec_IntSetEntry( &p->vLevelR, i, x );  return x;                                             }
+static inline int            Acb_ObjSetPathD( Acb_Ntk_t * p, int i, int x )  { Vec_IntSetEntry( &p->vPathD, i, x );   return x;                                             }
+static inline int            Acb_ObjSetPathR( Acb_Ntk_t * p, int i, int x )  { Vec_IntSetEntry( &p->vPathR, i, x );   return x;                                             }
+static inline int            Acb_ObjUpdateLevelD( Acb_Ntk_t * p, int i, int x ) { Vec_IntUpdateEntry( &p->vLevelD, i, x );  return x;                                       }
+static inline int            Acb_ObjUpdateLevelR( Acb_Ntk_t * p, int i, int x ) { Vec_IntUpdateEntry( &p->vLevelR, i, x );  return x;                                       }
+static inline int            Acb_ObjAddToPathD( Acb_Ntk_t * p, int i, int x )  { Vec_IntAddToEntry( &p->vPathD, i, x );   return x;                                         }
+static inline int            Acb_ObjAddToPathR( Acb_Ntk_t * p, int i, int x )  { Vec_IntAddToEntry( &p->vPathR, i, x );   return x;                                         }
 
 static inline int            Acb_ObjNtkId( Acb_Ntk_t * p, int i )            { assert(i>0); return Acb_ObjIsBox(p, i) ? Acb_ObjFanin(p, i, Acb_ObjFaninNum(p, i)) : 0;      }
 static inline Acb_Ntk_t *    Acb_ObjNtk( Acb_Ntk_t * p, int i )              { assert(i>0); return Acb_NtkNtk(p, Acb_ObjNtkId(p, i));                                       }
@@ -282,6 +313,8 @@ static inline void           Acb_NtkIncTravId( Acb_Ntk_t * p )               { i
     for ( i = 0; (i < Acb_NtkCoNum(p))  && (((iObj) = Acb_NtkCo(p, i)), 1); i++ ) 
 #define Acb_NtkForEachCoDriver( p, iObj, i )                              \
     for ( i = 0; (i < Acb_NtkCoNum(p))  && (((iObj) = Acb_ObjFanin(p, Acb_NtkCo(p, i), 0)), 1); i++ ) 
+#define Acb_NtkForEachCoAndDriver( p, iObj, iDriver, i )                  \
+    for ( i = 0; (i < Acb_NtkCoNum(p))  && (((iObj) = Acb_NtkCo(p, i)), 1)  && (((iDriver) = Acb_ObjFanin(p, iObj, 0)), 1); i++ ) 
 
 #define Acb_NtkForEachCiVec( vVec, p, iObj, i )                           \
     for ( i = 0; (i < Vec_IntSize(vVec))  && (((iObj) = Acb_NtkCi(p, Vec_IntEntry(vVec,i))), 1); i++ ) 
@@ -298,8 +331,12 @@ static inline void           Acb_NtkIncTravId( Acb_Ntk_t * p )               { i
 
 #define Acb_NtkForEachObj( p, i )                                         \
     for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Acb_ObjType(p, i) ) {} else   
-#define Acb_NtkForEachNode( p, i )                                         \
+#define Acb_NtkForEachObjReverse( p, i )                                  \
+    for ( i = Vec_StrSize(&p->vObjType)-1; i > 0; i-- ) if ( !Acb_ObjType(p, i) ) {} else   
+#define Acb_NtkForEachNode( p, i )                                        \
     for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Acb_ObjType(p, i) || Acb_ObjIsCio(p, i) ) {} else   
+#define Acb_NtkForEachNodeReverse( p, i )                                 \
+    for ( i = Vec_StrSize(&p->vObjType)-1; i > 0; i-- ) if ( !Acb_ObjType(p, i) || Acb_ObjIsCio(p, i) ) {} else   
 #define Acb_NtkForEachObjType( p, Type, i )                               \
     for ( i = 1; i < Vec_StrSize(&p->vObjType) && (((Type) = Acb_ObjType(p, i)), 1); i++ ) if ( !Type ) {} else
 #define Acb_NtkForEachBox( p, i )                                         \
@@ -309,6 +346,9 @@ static inline void           Acb_NtkIncTravId( Acb_Ntk_t * p )               { i
     for ( k = 0; k < Acb_ObjFaninNum(p, iObj) && ((iFanin = Acb_ObjFanin(p, iObj, k)), 1); k++ )
 #define Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )            \
     for ( k = 0, pFanins = Acb_ObjFanins(p, iObj); k < pFanins[0] && ((iFanin = pFanins[k+1]), 1); k++ )
+
+#define Acb_ObjForEachFanout( p, iObj, iFanout, k )                       \
+    Vec_IntForEachEntry( Vec_WecEntry(&p->vFanouts, iObj), iFanout, k ) if ( !Acb_ObjType(p, iFanout) ) {} else 
 
 #define Acb_ObjForEachFon( p, iObj, iFon )                                \
     for ( assert(Acb_ObjIsBox(p, iObj)), iFon = iObj + 1; iFon < Acb_NtkObjNum(p) && Acb_ObjIsFon(p, iFon); iFon++ ) 
@@ -446,6 +486,10 @@ static inline void Acb_NtkFree( Acb_Ntk_t * p )
     Vec_IntErase( &p->vAttrSto );    
     Vec_IntErase( &p->vNtkObjs );    
     Vec_IntErase( &p->vTargets );    
+    Vec_IntErase( &p->vLevelD );    
+    Vec_IntErase( &p->vLevelR );    
+    Vec_IntErase( &p->vPathD );    
+    Vec_IntErase( &p->vPathR );    
     // other
     Vec_IntErase( &p->vArray0 );    
     Vec_IntErase( &p->vArray1 );    

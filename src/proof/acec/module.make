@@ -15,4 +15,5 @@ SRC +=    src/proof/acec/acecCl.c \
     src/proof/acec/acecSt.c \
     src/proof/acec/acecTree.c \
     src/proof/acec/acecUtil.c \
+    src/proof/acec/acec2Mult.c \
     src/proof/acec/acecXor.c      
