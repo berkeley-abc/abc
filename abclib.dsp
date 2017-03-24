@@ -5695,7 +5695,7 @@ SOURCE=.\src\proof\acec\acec.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\proof\acec\acec2Booth.c
+SOURCE=.\src\proof\acec\acec2Mult.c
 # End Source File
 # Begin Source File
 

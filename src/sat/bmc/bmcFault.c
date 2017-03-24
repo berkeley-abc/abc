@@ -1069,7 +1069,7 @@ Vec_Int_t * Gia_ManGetTestPatterns( char * pFileName )
             continue;
         if ( c != '0' && c != '1' )
         {
-            printf( "Wring symbol (%c) in the input file.\n", c );
+            printf( "Wrong symbol (%c) in the input file.\n", c );
             Vec_IntFreeP( &vTests );
             break;
         }

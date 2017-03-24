@@ -88,9 +88,13 @@ struct Acb_Ntk_t_
     Vec_Int_t       vLevelR;    // level
     Vec_Int_t       vPathD;     // path
     Vec_Int_t       vPathR;     // path
+    Vec_Wec_t       vClauses;
+    Vec_Wec_t       vCnfs;
+    Vec_Int_t       vCover;
     // other
     Vec_Int_t       vArray0;
     Vec_Int_t       vArray1;
+    Vec_Int_t       vArray2;
 };
 
 // design
@@ -239,6 +243,7 @@ static inline int            Acb_ObjFanOffset( Acb_Ntk_t * p, int i )        { a
 static inline int *          Acb_ObjFanins( Acb_Ntk_t * p, int i )           { return Vec_IntEntryP(&p->vFanSto, Acb_ObjFanOffset(p, i));                                   }
 static inline int            Acb_ObjFanin( Acb_Ntk_t * p, int i, int k )     { return Acb_ObjFanins(p, i)[k+1];                                                             }
 static inline int            Acb_ObjFaninNum( Acb_Ntk_t * p, int i )         { return Acb_ObjFanins(p, i)[0];                                                               }
+static inline int            Acb_ObjFanoutNum( Acb_Ntk_t * p, int i )        { return Vec_IntSize( Vec_WecEntry(&p->vFanouts, i) );                                         }
 static inline int            Acb_ObjFanin0( Acb_Ntk_t * p, int i )           { return Acb_ObjFanins(p, i)[1];                                                               }
 static inline int            Acb_ObjCioId( Acb_Ntk_t * p, int i )            { return Acb_ObjFanins(p, i)[2];                                                               }
  
@@ -272,28 +277,31 @@ static inline int            Acb_ObjUpdateLevelR( Acb_Ntk_t * p, int i, int x ) 
 static inline int            Acb_ObjAddToPathD( Acb_Ntk_t * p, int i, int x )  { Vec_IntAddToEntry( &p->vPathD, i, x );   return x;                                         }
 static inline int            Acb_ObjAddToPathR( Acb_Ntk_t * p, int i, int x )  { Vec_IntAddToEntry( &p->vPathR, i, x );   return x;                                         }
 
-static inline int            Acb_ObjNtkId( Acb_Ntk_t * p, int i )            { assert(i>0); return Acb_ObjIsBox(p, i) ? Acb_ObjFanin(p, i, Acb_ObjFaninNum(p, i)) : 0;      }
-static inline Acb_Ntk_t *    Acb_ObjNtk( Acb_Ntk_t * p, int i )              { assert(i>0); return Acb_NtkNtk(p, Acb_ObjNtkId(p, i));                                       }
-static inline int            Acb_ObjIsSeq( Acb_Ntk_t * p, int i )            { assert(i>0); return Acb_ObjIsBox(p, i) ? Acb_ObjNtk(p, i)->fSeq : Acb_TypeIsSeq(Acb_ObjType(p, i));  }
+static inline int            Acb_ObjNtkId( Acb_Ntk_t * p, int i )                   { assert(i>0); return Acb_ObjIsBox(p, i) ? Acb_ObjFanin(p, i, Acb_ObjFaninNum(p, i)) : 0;      }
+static inline Acb_Ntk_t *    Acb_ObjNtk( Acb_Ntk_t * p, int i )                     { assert(i>0); return Acb_NtkNtk(p, Acb_ObjNtkId(p, i));                                       }
+static inline int            Acb_ObjIsSeq( Acb_Ntk_t * p, int i )                   { assert(i>0); return Acb_ObjIsBox(p, i) ? Acb_ObjNtk(p, i)->fSeq : Acb_TypeIsSeq(Acb_ObjType(p, i));  }
 
-static inline int            Acb_ObjRangeId( Acb_Ntk_t * p, int i )          { return Acb_NtkHasObjRanges(p) ? Vec_IntGetEntry(&p->vObjRange, i) : 0;                       }
-static inline int            Acb_ObjRange( Acb_Ntk_t * p, int i )            { return Abc_Lit2Var( Acb_ObjRangeId(p, i) );                                                  }
-static inline int            Acb_ObjLeft( Acb_Ntk_t * p, int i )             { return Acb_NtkRangeLeft(p, Acb_ObjRange(p, i));                                              }
-static inline int            Acb_ObjRight( Acb_Ntk_t * p, int i )            { return Acb_NtkRangeRight(p, Acb_ObjRange(p, i));                                             }
-static inline int            Acb_ObjSigned( Acb_Ntk_t * p, int i )           { return Abc_LitIsCompl(Acb_ObjRangeId(p, i));                                                 }
-static inline int            Acb_ObjRangeSize( Acb_Ntk_t * p, int i )        { return Acb_NtkRangeSize(p, Acb_ObjRange(p, i));                                              }
+static inline int            Acb_ObjRangeId( Acb_Ntk_t * p, int i )                 { return Acb_NtkHasObjRanges(p) ? Vec_IntGetEntry(&p->vObjRange, i) : 0;                       }
+static inline int            Acb_ObjRange( Acb_Ntk_t * p, int i )                   { return Abc_Lit2Var( Acb_ObjRangeId(p, i) );                                                  }
+static inline int            Acb_ObjLeft( Acb_Ntk_t * p, int i )                    { return Acb_NtkRangeLeft(p, Acb_ObjRange(p, i));                                              }
+static inline int            Acb_ObjRight( Acb_Ntk_t * p, int i )                   { return Acb_NtkRangeRight(p, Acb_ObjRange(p, i));                                             }
+static inline int            Acb_ObjSigned( Acb_Ntk_t * p, int i )                  { return Abc_LitIsCompl(Acb_ObjRangeId(p, i));                                                 }
+static inline int            Acb_ObjRangeSize( Acb_Ntk_t * p, int i )               { return Acb_NtkRangeSize(p, Acb_ObjRange(p, i));                                              }
 static inline void           Acb_ObjSetRangeSign( Acb_Ntk_t * p, int i, int x )     { assert(Acb_NtkHasObjRanges(p));  Vec_IntSetEntry(&p->vObjRange, i, x);                }
 static inline void           Acb_ObjSetRange( Acb_Ntk_t * p, int i, int x )         { assert(Acb_NtkHasObjRanges(p));  Vec_IntSetEntry(&p->vObjRange, i, Abc_Var2Lit(x,0)); }
 static inline void           Acb_ObjHashRange( Acb_Ntk_t * p, int i, int l, int r ) { Acb_ObjSetRange( p, i, Acb_NtkHashRange(p, l, r) );                                   }
-static inline int            Acb_ObjRangeSign( Acb_Ntk_t * p, int i )        { return Abc_Var2Lit( Acb_ObjRangeSize(p, i), Acb_ObjSigned(p, i) );                           }
+static inline int            Acb_ObjRangeSign( Acb_Ntk_t * p, int i )               { return Abc_Var2Lit( Acb_ObjRangeSize(p, i), Acb_ObjSigned(p, i) );                           }
 
-static inline int            Acb_ObjTravId( Acb_Ntk_t * p, int i )           { return Vec_IntGetEntry(&p->vObjTrav, i);                                                     }
-static inline int            Acb_ObjIsTravIdCur( Acb_Ntk_t * p, int i )      { return Acb_ObjTravId(p, i) == p->nObjTravs;                                                  }
-static inline int            Acb_ObjIsTravIdPrev( Acb_Ntk_t * p, int i )     { return Acb_ObjTravId(p, i) == p->nObjTravs-1;                                                }
-static inline int            Acb_ObjSetTravIdCur( Acb_Ntk_t * p, int i )     { int r = Acb_ObjIsTravIdCur(p, i);  Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs);   return r; }
-static inline int            Acb_ObjSetTravIdPrev( Acb_Ntk_t * p, int i )    { int r = Acb_ObjIsTravIdPrev(p, i); Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs-1); return r; }
-static inline int            Acb_NtkTravId( Acb_Ntk_t * p )                  { return p->nObjTravs;                                                                         }
-static inline void           Acb_NtkIncTravId( Acb_Ntk_t * p )               { if ( !Acb_NtkHasObjTravs(p) ) Acb_NtkCleanObjTravs(p); p->nObjTravs++;                       }
+static inline int            Acb_ObjTravId( Acb_Ntk_t * p, int i )                  { return Vec_IntGetEntry(&p->vObjTrav, i);                                                     }
+static inline int            Acb_ObjTravIdDiff( Acb_Ntk_t * p, int i )              { return p->nObjTravs - Vec_IntGetEntry(&p->vObjTrav, i);                                      }
+static inline int            Acb_ObjIsTravIdCur( Acb_Ntk_t * p, int i )             { return Acb_ObjTravId(p, i) == p->nObjTravs;                                                  }
+static inline int            Acb_ObjIsTravIdPrev( Acb_Ntk_t * p, int i )            { return Acb_ObjTravId(p, i) == p->nObjTravs-1;                                                }
+static inline int            Acb_ObjIsTravIdDiff( Acb_Ntk_t * p, int i, int d )     { return Acb_ObjTravId(p, i) == p->nObjTravs-d;                                                }
+static inline int            Acb_ObjSetTravIdCur( Acb_Ntk_t * p, int i )            { int r = Acb_ObjIsTravIdCur(p, i);  Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs);   return r; }
+static inline int            Acb_ObjSetTravIdPrev( Acb_Ntk_t * p, int i )           { int r = Acb_ObjIsTravIdPrev(p, i); Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs-1); return r; }
+static inline int            Acb_ObjSetTravIdDiff( Acb_Ntk_t * p, int i, int d )    { int r = Acb_ObjTravIdDiff(p, i);   Vec_IntWriteEntry(&p->vObjTrav, i, p->nObjTravs-d); return r; }
+static inline int            Acb_NtkTravId( Acb_Ntk_t * p )                         { return p->nObjTravs;                                                                         }
+static inline void           Acb_NtkIncTravId( Acb_Ntk_t * p )                      { if ( !Acb_NtkHasObjTravs(p) ) Acb_NtkCleanObjTravs(p); p->nObjTravs++;                       }
 
 ////////////////////////////////////////////////////////////////////////
 ///                          ITERATORS                               ///
@@ -493,6 +501,7 @@ static inline void Acb_NtkFree( Acb_Ntk_t * p )
     // other
     Vec_IntErase( &p->vArray0 );    
     Vec_IntErase( &p->vArray1 );    
+    Vec_IntErase( &p->vArray2 );    
     ABC_FREE( p );
 }
 static inline int Acb_NtkNewStrId( Acb_Ntk_t * pNtk, const char * format, ...  )
@@ -663,8 +672,9 @@ static inline int Acb_NtkMemory( Acb_Ntk_t * p )
     nMem += (int)Vec_IntMemory(&p->vNtkObjs );  
     nMem += (int)Vec_IntMemory(&p->vTargets );  
     // other
+    nMem += (int)Vec_IntMemory(&p->vArray0 );
     nMem += (int)Vec_IntMemory(&p->vArray1 );
-    nMem += (int)Vec_IntMemory(&p->vArray1 );
+    nMem += (int)Vec_IntMemory(&p->vArray2 );
     return nMem;
 }
 static inline void Acb_NtkPrintStats( Acb_Ntk_t * p )
