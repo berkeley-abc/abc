@@ -285,6 +285,155 @@ Wlc_Ntk_t * Wlc_NtkGraftMulti( Wlc_Ntk_t * p, int fVerbose )
     return pNew;
 }
 
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Generate simulation vectors.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sbc_Mult( word a, word b, word r[2] )
+{
+    word pL  = (a & 0xFFFFFFFF) * (b & 0xFFFFFFFF);
+    word pM1 = (a & 0xFFFFFFFF) * (b >> 32);
+    word pM2 = (a >> 32) * (b & 0xFFFFFFFF);
+    word pH  = (a >> 32) * (b >> 32);
+    word Car = (pM1 & 0xFFFFFFFF) + (pM2 & 0xFFFFFFFF) + (pL >> 32);
+    r[0] = pL;
+    r[1] = pH + (pM1 >> 32) + (pM2 >> 32) + (Car >> 32);
+}
+void Sbc_SimMult( word A[64], word B[64], word R[64][2] )
+{
+    word a, b, r[2]; int i, k;
+    for ( i = 0; i < 64; i++ )
+        A[i] = B[i] = R[0][i] = R[1][i] = 0;
+    Gia_ManRandom(1);
+    for ( i = 0; i < 64; i++ )
+    {
+        a = Gia_ManRandom(0);
+        b = Gia_ManRandom(0);        
+        Sbc_Mult( a, b, r );
+        for ( k = 0; k < 64; k++ )
+        {
+            if ( (a >> k) & 1 )     A[k] |= (1 << i);
+            if ( (b >> k) & 1 )     B[k] |= (1 << i);
+            if ( (r[0] >> k) & 1 )  R[0][k] |= (1 << i);
+            if ( (r[1] >> k) & 1 )  R[1][k] |= (1 << i);
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Sbc_ManDetectMult( Gia_Man_t * p, Vec_Int_t * vIns )
+{
+    int nWords = 1;
+    Vec_Int_t * vNodes = Vec_IntStart( Vec_IntSize(vIns) );
+    Gia_Obj_t * pObj; int i, Entry, nIns = Vec_IntSize(vIns)/2;
+    word A[64], B[64], R[64][2], * pInfoObj;
+
+    // alloc simulation info
+    Vec_Mem_t * vTtMem = Vec_MemAlloc( nWords, 10 );
+    Vec_MemHashAlloc( vTtMem, 10000 );
+    Vec_WrdFreeP( &p->vSims );
+    p->vSims = Vec_WrdStart( Gia_ManObjNum(p) * nWords );
+    p->nSimWords = nWords;
+
+    // prepare simulation manager
+    pInfoObj = Wlc_ObjSim( p, 0 );
+    Vec_MemHashInsert( vTtMem, pInfoObj );
+    Gia_ObjSetTravIdCurrentId( p, 0 );
+    Gia_ManForEachCi( p, pObj, i )
+        Gia_ObjSetTravIdCurrent( p, pObj );
+    // set internal nodes
+    assert( Vec_IntSize(vIns) % 2 );
+    Sbc_SimMult( A, B, R );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachObjVec( vIns, p, pObj, i )
+    {
+        Gia_ObjSetTravIdCurrent( p, pObj );
+        pInfoObj = Wlc_ObjSim( p, Gia_ObjId(p, pObj) );
+        *pInfoObj = i < nIns ? A[i] : B[nIns-i];
+    }
+    // perform simulation
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+            continue;
+        if ( Gia_ObjIsAnd(pObj) )
+            Wlc_ObjSimAnd( p, i );
+        else if ( Gia_ObjIsCo(pObj) )
+            Wlc_ObjSimCo( p, i );
+        else assert( 0 );
+
+        // mark each first node
+        pInfoObj = Wlc_ObjSim( p, i );
+        Entry = *Vec_MemHashLookup( vTtMem, pInfoObj );
+        if ( Entry > 0 )
+        {
+            if ( Vec_IntEntry(vNodes, Entry) == 0 ) // new
+                Vec_IntWriteEntry( vNodes, Entry, Abc_Var2Lit(i, 0) );
+            continue;
+        }
+        Abc_TtNot( pInfoObj, nWords );
+        Entry = *Vec_MemHashLookup( vTtMem, pInfoObj );
+        Abc_TtNot( pInfoObj, nWords );
+        if ( Entry > 0 )
+        {
+            if ( Vec_IntEntry(vNodes, Entry) == 0 ) // new
+                Vec_IntWriteEntry( vNodes, Entry, Abc_Var2Lit(i, 1) );
+            continue;
+        }
+    }
+    // cleanup
+    Vec_MemHashFree( vTtMem );
+    Vec_MemFreeP( &vTtMem );
+    Vec_WrdFreeP( &p->vSims );
+    p->nSimWords = 0;
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Sbc_ManDetectMultTest( Gia_Man_t * p )
+{
+    extern Vec_Int_t * Sdb_StoComputeCutsDetect( Gia_Man_t * pGia );
+
+    Vec_Int_t * vIns = Sdb_StoComputeCutsDetect( p );
+    Vec_Int_t * vNodes = Sbc_ManDetectMult( p, vIns );
+
+    Vec_IntPrint( vNodes );
+
+    Vec_IntFree( vNodes );
+    Vec_IntFree( vIns );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

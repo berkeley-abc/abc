@@ -189,6 +189,7 @@ unsigned Extra_TruthCanonNPN2( unsigned uTruth, int nVars, Vec_Int_t * vRes )
         for ( k = 0; k < nPerms; k++ )
         {
             uPerm = Extra_TruthPermute( uPhase, pPerms[k], nVars, 0 );
+            if ( !(uPerm & 1) )
             Vec_IntPushUnique( vRes, uPerm );
             if ( uTruthMin > uPerm )
                 uTruthMin = uPerm;
@@ -197,6 +198,7 @@ unsigned Extra_TruthCanonNPN2( unsigned uTruth, int nVars, Vec_Int_t * vRes )
         for ( k = 0; k < nPerms; k++ )
         {
             uPerm = Extra_TruthPermute( uPhase, pPerms[k], nVars, 0 );
+            if ( !(uPerm & 1) )
             Vec_IntPushUnique( vRes, uPerm );
             if ( uTruthMin > uPerm )
                 uTruthMin = uPerm;
@@ -233,8 +235,12 @@ void Acec_MultFuncTest4()
     Vec_Int_t * vRes = Vec_IntAlloc( 1000 );
     int i, Entry;
 
-    unsigned Truth = 0x35C0;
+    unsigned Truth = 0xF3C0;
+//    unsigned Truth = 0xF335;
+//    unsigned Truth = 0xFD80;
     //unsigned Truth = 0xD728;
+    //unsigned Truth = 0x35C0;
+    //unsigned Truth = 0xACC0;
     unsigned Canon = Extra_TruthCanonNPN2( Truth, 4, vRes );
 
     Extra_PrintHex( stdout, (unsigned*)&Truth, 4 );  printf( "\n" );
