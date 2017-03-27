@@ -5672,7 +5672,7 @@ usage:
 int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkOptMfse( Abc_Ntk_t * pNtk, Acb_Par_t * pPars );
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtkNew, * pNtk = Abc_FrameReadNtk(pAbc);
     Acb_Par_t Pars, * pPars = &Pars; int c;
     Acb_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
@@ -5771,6 +5771,19 @@ int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command can only be applied to a logic network.\n" );
         return 1;
     }
+    pPars->nLutSize = Abc_NtkGetFaninMax( pNtk );
+    if ( pPars->nLutSize > 6 )
+    {
+        Abc_Print( -1, "Command is only applicable to LUT size no more than 6.\n" );
+        return 1;
+    }
+    pNtkNew = Abc_NtkOptMfse( pNtk, pPars );
+    if ( pNtkNew == NULL )
+    {
+        Abc_Print( -1, "Command \"mfse\" has failed.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkNew );
     return 0;
 
 usage:

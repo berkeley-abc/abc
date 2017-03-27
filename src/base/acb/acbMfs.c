@@ -95,7 +95,7 @@ Vec_Wec_t * Acb_DeriveCnfForWindow( Acb_Ntk_t * p, Vec_Int_t * vWin, int PivotVa
         if ( Abc_LitIsCompl(iObj) && i < PivotVar )
             continue;
         vCnfBase = (Vec_Str_t *)Vec_WecEntry( vCnfs, iObj );
-        if ( vCnfBase != NULL )
+        if ( Vec_StrSize(vCnfBase) > 0 )
             continue;
         if ( vCnf == NULL )
             vCnf = Vec_StrAlloc( 1000 );

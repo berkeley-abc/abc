@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -438,6 +439,37 @@ char * Abc_SopCreateFromIsop( Mem_Flex_t * pMan, int nVars, Vec_Int_t * vCover )
             else if ( Literal != 0 )
                 assert( 0 );
         }
+    }
+    return pSop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Creates the cover from the ISOP computed from TT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_SopCreateFromTruthIsop( Mem_Flex_t * pMan, int nVars, word * pTruth, Vec_Int_t * vCover )
+{
+    char * pSop = NULL;
+    assert( nVars <= 6 );
+    if ( pTruth[0] == 0 )
+        pSop = Abc_SopRegister( pMan, " 0\n" );
+    else if ( ~pTruth[0] == 0 )
+        pSop = Abc_SopRegister( pMan, " 1\n" );
+    else
+    {
+        int RetValue = Kit_TruthIsop( (unsigned *)pTruth, nVars, vCover, 1 );
+        assert( nVars > 0 );
+        assert( RetValue == 0 || RetValue == 1 );
+        pSop = Abc_SopCreateFromIsop( pMan, nVars, vCover );
+        if ( RetValue )
+            Abc_SopComplement( pSop );
     }
     return pSop;
 }

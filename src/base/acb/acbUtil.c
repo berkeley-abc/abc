@@ -362,6 +362,7 @@ void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp
         Acb_ObjAddFanin( p, Pivot, iFanin );
     Acb_ObjAddFanout( p, Pivot );
     Acb_NtkUpdateTiming( p, Pivot );
+    Vec_IntErase( Vec_WecEntry(&p->vCnfs, Pivot) );
 }
 
 

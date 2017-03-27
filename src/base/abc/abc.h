@@ -897,6 +897,7 @@ extern ABC_DLL char *             Abc_SopCreateInv( Mem_Flex_t * pMan );
 extern ABC_DLL char *             Abc_SopCreateBuf( Mem_Flex_t * pMan );
 extern ABC_DLL char *             Abc_SopCreateFromTruth( Mem_Flex_t * pMan, int nVars, unsigned * pTruth );
 extern ABC_DLL char *             Abc_SopCreateFromIsop( Mem_Flex_t * pMan, int nVars, Vec_Int_t * vCover );
+extern ABC_DLL char *             Abc_SopCreateFromTruthIsop( Mem_Flex_t * pMan, int nVars, word * pTruth, Vec_Int_t * vCover );
 extern ABC_DLL int                Abc_SopGetCubeNum( char * pSop );
 extern ABC_DLL int                Abc_SopGetLitNum( char * pSop );
 extern ABC_DLL int                Abc_SopGetVarNum( char * pSop );

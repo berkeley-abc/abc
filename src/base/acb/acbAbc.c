@@ -86,15 +86,23 @@ Abc_Ntk_t * Acb_NtkToAbc( Abc_Ntk_t * pNtk, Acb_Ntk_t * p )
     int i, k, iObj, iFanin;
     Abc_Ntk_t * pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     Mem_Flex_t * pMan = (Mem_Flex_t *)pNtkNew->pManFunc;
+    Vec_Int_t * vCover = Vec_IntAlloc( 1000 );
     Acb_NtkCleanObjCopies( p );
     Acb_NtkForEachCi( p, iObj, i )
         Acb_ObjSetCopy( p, iObj, Abc_ObjId(Abc_NtkCi(pNtkNew, i)) );
     Acb_NtkForEachNode( p, iObj )
     {
         Abc_Obj_t * pObjNew = Abc_NtkCreateNode( pNtkNew );
+        pObjNew->pData = Abc_SopCreateFromTruthIsop( pMan, Acb_ObjFaninNum(p, iObj), Acb_ObjTruthP(p, iObj), vCover );
+        Acb_ObjSetCopy( p, iObj, Abc_ObjId(pObjNew) );
+    }
+    Vec_IntFree( vCover );
+    Acb_NtkForEachNode( p, iObj )
+    {
+        Abc_Obj_t * pObjNew = Abc_NtkObj(pNtkNew, Acb_ObjCopy(p, iObj));
         Acb_ObjForEachFanin( p, iObj, iFanin, k )
             Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Acb_ObjCopy(p, iFanin)) );
-        pObjNew->pData = Abc_SopCreateFromTruth( pMan, Acb_ObjFaninNum(p, iObj), (unsigned *)Acb_ObjTruthP(p, iObj) );
+        assert( Abc_SopGetVarNum((char *)pObjNew->pData) == Abc_ObjFaninNum(pObjNew) );
     }
     Acb_NtkForEachCoDriver( p, iFanin, i )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), Abc_NtkObj(pNtkNew, Acb_ObjCopy(p, iFanin)) );
@@ -222,7 +230,7 @@ Abc_Ntk_t * Abc_NtkOptMfse( Abc_Ntk_t * pNtk, Acb_Par_t * pPars )
     extern void Acb_NtkOpt( Acb_Ntk_t * p, Acb_Par_t * pPars );
     Abc_Ntk_t * pNtkNew;
     Acb_Ntk_t * p = Acb_NtkFromAbc( pNtk );
-    Acb_NtkOpt( p, pPars );
+    //Acb_NtkOpt( p, pPars );
     pNtkNew = Acb_NtkToAbc( pNtk, p );
     Acb_ManFree( p->pDesign );
     return pNtkNew;

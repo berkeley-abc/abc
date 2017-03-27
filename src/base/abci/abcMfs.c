@@ -216,21 +216,8 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
         vArray = Sfm_NodeReadFanins( p, pNode->iTemp );
         Vec_IntForEachEntry( vArray, Fanin, k )
             Abc_ObjAddFanin( pNode, Abc_NtkObj(pNtk, Vec_IntEntry(vMap, Fanin)) );
-        // update function
         pTruth = Sfm_NodeReadTruth( p, pNode->iTemp );
-        if ( pTruth[0] == 0 )
-            pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 0\n" );
-        else if ( ~pTruth[0] == 0 )
-            pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtk->pManFunc, " 1\n" );
-        else
-        {
-            int RetValue = Kit_TruthIsop( (unsigned *)pTruth, Vec_IntSize(vArray), vCover, 1 );
-            assert( Vec_IntSize(vArray) > 0 );
-            assert( RetValue == 0 || RetValue == 1 );
-            pNode->pData = Abc_SopCreateFromIsop( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), vCover );
-            if ( RetValue )
-                Abc_SopComplement( (char *)pNode->pData );
-        }
+        pNode->pData = Abc_SopCreateFromTruthIsop( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), pTruth, vCover );
         assert( Abc_SopGetVarNum((char *)pNode->pData) == Vec_IntSize(vArray) );
     }
     Vec_IntFree( vCover );
