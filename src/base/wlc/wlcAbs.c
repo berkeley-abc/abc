@@ -213,7 +213,7 @@ void Wlc_NtkAbsAnalyzeRefine( Wlc_Ntk_t * p, Vec_Int_t * vBlacks, Vec_Bit_t * vU
     Vec_IntFree( vSuppRefs );
 }
 
-static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num_sel_pis, int num_other_pis, Vec_Bit_t * vMark, int sel_pi_first, int nConfLimit, Wlc_Par_t * pPars ) 
+static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int first_sel_pi, int num_sel_pis, Vec_Bit_t * vMark, int nConfLimit, Wlc_Par_t * pPars ) 
 {
     Vec_Int_t * vCores = NULL;
     Aig_Man_t * pAigFrames = Gia_ManToAigSimple( pFrames );
@@ -249,7 +249,6 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int num
         int status;
         Vec_Int_t* vLits = Vec_IntAlloc(100);
         Vec_Int_t* vMapVar2Sel = Vec_IntStart( pCnf->nVars );
-        int first_sel_pi = sel_pi_first ? 0 : num_other_pis;
         for ( i = 0; i < num_sel_pis; ++i ) 
         {
             int cur_pi = first_sel_pi + i;
@@ -604,9 +603,9 @@ static int Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Abc_Cex_t * pCe
     pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0, pPars->fProofUsePPI );
 
     if ( !pPars->fProofUsePPI )
-        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), num_ppis, vChoiceMark, 0, 0, pPars );
+        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, num_ppis, Vec_IntSize( vBlacks ), vChoiceMark, 0, pPars );
     else
-        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, Vec_IntSize( vBlacks ), 0, vChoiceMark, 0, 0, pPars );
+        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, 0, Vec_IntSize( vBlacks ), vChoiceMark, 0, pPars );
 
     Wlc_NtkFree( pNtkWithChoices );
     Gia_ManStop( pGiaFrames );

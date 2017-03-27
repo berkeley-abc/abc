@@ -309,20 +309,6 @@ int IPdr_ManRebuildClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses )
         Abc_Print( 1, " %d", Vec_PtrSize( vArrayK ) );
     Abc_Print( 1, "\n" );
 
-    /*
-    for ( i = 1; i < Vec_VecSize(p->vClauses); ++i )
-        IPdr_ManSetSolver( p, i, 0 );
-
-    p->iUseFrame = Vec_VecSize(p->vClauses) - 1;
-    RetValue = Pdr_ManPushClauses( p );
-
-    if ( RetValue == 1 )
-    {
-        Abc_Print( 1, "Found an invariant!\n");
-        return 1;
-    }
-    */
-
     Vec_VecFree( vClauses );
     return 0;
 }
