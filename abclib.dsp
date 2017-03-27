@@ -1079,6 +1079,10 @@ SOURCE=.\src\base\acb\acbMfs.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\acb\acbPar.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\acb\acbUtil.c
 # End Source File
 # End Group

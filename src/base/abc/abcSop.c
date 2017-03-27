@@ -378,6 +378,8 @@ char * Abc_SopCreateFromTruth( Mem_Flex_t * pMan, int nVars, unsigned * pTruth )
 {
     char * pSop, * pCube;
     int nMints, Counter, i, k;
+    if ( nVars == 0 )
+        return pTruth[0] ? Abc_SopCreateConst1(pMan) : Abc_SopCreateConst0(pMan);
     // count the number of true minterms
     Counter = 0;
     nMints = (1 << nVars);

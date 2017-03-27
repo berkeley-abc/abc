@@ -193,7 +193,7 @@ void Cnf_DataFree( Cnf_Dat_t * p )
 
 /**Function*************************************************************
 
-  Synopsis    [Writes CNF into a file.]
+  Synopsis    []
 
   Description []
                
@@ -215,26 +215,26 @@ void Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus )
     for ( v = 0; v < p->nLiterals; v++ )
         p->pClauses[0][v] += 2*nVarsPlus;
 }
-
-/**Function*************************************************************
-
-  Synopsis    [Writes CNF into a file.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Cnf_DataFlipLastLiteral( Cnf_Dat_t * p )
+Vec_Int_t * Cnf_DataCollectFlipLits( Cnf_Dat_t * p, int iFlipVar )
 {
-    p->pClauses[0][p->nLiterals-1] = lit_neg( p->pClauses[0][p->nLiterals-1] );
+    Vec_Int_t * vLits = Vec_IntAlloc( 100 ); int v;
+    assert( p->pMan == NULL );
+    for ( v = 0; v < p->nLiterals; v++ )
+        if ( Abc_Lit2Var(p->pClauses[0][v]) == iFlipVar )
+            Vec_IntPush( vLits, v );
+    return vLits;
+}
+void Cnf_DataLiftAndFlipLits( Cnf_Dat_t * p, int nVarsPlus, Vec_Int_t * vLits )
+{
+    int i, iLit;
+    assert( p->pMan == NULL );
+    Vec_IntForEachEntry( vLits, iLit, i )
+        p->pClauses[0][iLit] = Abc_LitNot(p->pClauses[0][iLit]) + 2*nVarsPlus;
 }
 
 /**Function*************************************************************
 
-  Synopsis    [Writes CNF into a file.]
+  Synopsis    []
 
   Description []
                

@@ -244,6 +244,7 @@ static inline int *          Acb_ObjFanins( Acb_Ntk_t * p, int i )           { r
 static inline int            Acb_ObjFanin( Acb_Ntk_t * p, int i, int k )     { return Acb_ObjFanins(p, i)[k+1];                                                             }
 static inline int            Acb_ObjFaninNum( Acb_Ntk_t * p, int i )         { return Acb_ObjFanins(p, i)[0];                                                               }
 static inline int            Acb_ObjFanoutNum( Acb_Ntk_t * p, int i )        { return Vec_IntSize( Vec_WecEntry(&p->vFanouts, i) );                                         }
+static inline Vec_Int_t *    Acb_ObjFanoutVec( Acb_Ntk_t * p, int i )        { return Vec_WecEntry( &p->vFanouts, i );                                                      }
 static inline int            Acb_ObjFanin0( Acb_Ntk_t * p, int i )           { return Acb_ObjFanins(p, i)[1];                                                               }
 static inline int            Acb_ObjCioId( Acb_Ntk_t * p, int i )            { return Acb_ObjFanins(p, i)[2];                                                               }
  
@@ -251,6 +252,7 @@ static inline int            Acb_ObjCopy( Acb_Ntk_t * p, int i )             { a
 static inline int            Acb_ObjFunc( Acb_Ntk_t * p, int i )             { assert(i>0); assert( Acb_NtkHasObjFuncs(p) );  return Vec_IntGetEntry(&p->vObjFunc, i);      }
 static inline int            Acb_ObjWeight( Acb_Ntk_t * p, int i )           { assert(i>0); assert( Acb_NtkHasObjWeights(p) );return Vec_IntGetEntry(&p->vObjWeight, i);    }
 static inline word           Acb_ObjTruth( Acb_Ntk_t * p, int i )            { assert(i>0); assert( Acb_NtkHasObjTruths(p) ); return Vec_WrdGetEntry(&p->vObjTruth, i);     }
+static inline word *         Acb_ObjTruthP( Acb_Ntk_t * p, int i )           { assert(i>0); assert( Acb_NtkHasObjTruths(p) ); return Vec_WrdEntryP(&p->vObjTruth, i);       }
 static inline int            Acb_ObjName( Acb_Ntk_t * p, int i )             { assert(i>0); assert( Acb_NtkHasObjNames(p) );  return Vec_IntGetEntry(&p->vObjName, i);      }
 static inline char *         Acb_ObjNameStr( Acb_Ntk_t * p, int i )          { assert(i>0); return Acb_NtkStr(p, Acb_ObjName(p, i));                                        }
 static inline int            Acb_ObjAttr( Acb_Ntk_t * p, int i )             { assert(i>=0); return Acb_NtkHasObjAttrs(p) ? Vec_IntGetEntry(&p->vObjAttr, i) : 0;           }
@@ -396,6 +398,16 @@ static inline void Acb_ObjSetNtkId( Acb_Ntk_t * p, int iObj, int iNtk ) // shoul
     int * pFanins = Acb_ObjFanins( p, iObj );
     assert( pFanins[ 1 + pFanins[0] ] == -1 );
     pFanins[ 1 + pFanins[0] ] = iNtk;
+}
+static inline void Acb_ObjRemoveFanins( Acb_Ntk_t * p, int iObj )
+{
+    int i, * pFanins = Acb_ObjFanins( p, iObj );
+    for ( i = 1; i <= pFanins[0]; i++ )
+    {
+        assert( pFanins[i] > 0 );
+        pFanins[i] = -1;
+    }
+    pFanins[0] = 0;
 }
 static inline int Acb_ObjAlloc( Acb_Ntk_t * p, Acb_ObjType_t Type, int nFans, int nFons )
 {
@@ -925,110 +937,10 @@ static inline void Acb_ManPrintStats( Acb_Man_t * p, int nModules, int fVerbose 
 }
 
 
-/**Function*************************************************************
 
-  Synopsis    [Name handling.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-/*
-static inline void Acb_NtkAddMissingFonNames( Acb_Ntk_t * p, char * pPref )
-{
-    int iFon, NameId, Index;
-    // populate map
-    Acb_ManCleanMap( p->pDesign );
-    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
-        if ( NameId )
-            Acb_ManSetMap( p->pDesign, NameId, iFon );
-    // check remaining ones
-    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
-    {
-        if ( NameId )
-            continue;
-        NameId = Acb_NtkNewStrId(p, "%s%d", pPref, iFon);
-        for ( Index = 1; Acb_ManGetMap(p->pDesign, NameId); Index++ )
-            NameId = Acb_NtkNewStrId(p, "%s%d_%d", pPref, iFon, Index);
-        Acb_FonSetName( p, iFon, NameId );
-        Acb_ManSetMap( p->pDesign, NameId, iFon );
-    }
-}
-static inline void Acb_NtkCreateFonNames( Acb_Ntk_t * p, char * pPref )
-{
-    int i, iObj, iFon;//, NameId;
-    Acb_NtkCleanFonNames( p );
-    Acb_NtkForEachPiFon( p, iObj, iFon, i )
-        if ( !Acb_FonName(p, iFon) )
-            Acb_FonSetName( p, iFon, Acb_ObjName(p, iObj) );
-    Acb_NtkForEachPoDriverFon( p, iObj, iFon, i )
-        if ( Acb_FonIsReal(iFon) && !Acb_FonName(p, iFon) )
-            Acb_FonSetName( p, iFon, Acb_ObjName(p, iObj) );
-//    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
-//        if ( NameId == 0 )
-//            Vec_IntWriteEntry( &p->vFonName, iFon, Acb_NtkNewStrId(p, "%s%d", pPref, iFon) );
-    Acb_NtkAddMissingFonNames( p, pPref );
-}
-static inline void Acb_NtkMissingFonNames( Acb_Ntk_t * p, char * pPref )
-{
-    int i, iObj, iFon;//, NameId;
-    Acb_NtkForEachPiFon( p, iObj, iFon, i )
-        if ( !Acb_FonName(p, iFon) )
-            Acb_FonSetName( p, iFon, Acb_ObjName(p, iObj) );
-    Acb_NtkForEachPoDriverFon( p, iObj, iFon, i )
-        if ( Acb_FonIsReal(iFon) && !Acb_FonName(p, iFon) )
-            Acb_FonSetName( p, iFon, Acb_ObjName(p, iObj) );
-//    Vec_IntForEachEntryStart( &p->vFonName, NameId, iFon, 1 )
-//        if ( NameId == 0 )
-//            Acb_FonSetName( p, iFon, Acb_NtkNewStrId(p, "%s%d", pPref, iFon) );
-    Acb_NtkAddMissingFonNames( p, pPref );
-}
-*/
-
-
-/*=== acbBlast.c =============================================================*/
-extern Gia_Man_t *   Acb_ManBlast( Acb_Man_t * p, int fBarBufs, int fSeq, int fVerbose );
-extern Acb_Man_t *   Acb_ManInsertGia( Acb_Man_t * p, Gia_Man_t * pGia );
-extern Acb_Man_t *   Acb_ManInsertAbc( Acb_Man_t * p, void * pAbc );
-/*=== acbCba.c ===============================================================*/
-extern Acb_Man_t *   Acb_ManReadCba( char * pFileName );
-extern void          Acb_ManWriteCba( char * pFileName, Acb_Man_t * p );
-/*=== acbCom.c ===============================================================*/
-/*=== acbNtk.c ===============================================================*/
-extern void          Acb_NtkPrintStatsFull( Acb_Ntk_t * p, int fDistrib, int fVerbose );
-extern void          Acb_NtkPrintNodes( Acb_Ntk_t * p, int Type );
-extern void          Acb_NtkPrintDistribOld( Acb_Ntk_t * p );
-extern void          Acb_ManPrintDistrib( Acb_Man_t * p );
-//extern void           Acb_ManPrepareTypeNames( Acb_Man_t * p );
-extern void          Acb_NtkObjOrder( Acb_Ntk_t * p, Vec_Int_t * vObjs, Vec_Int_t * vNameIds );
-extern int           Acb_NtkCiFonNum( Acb_Ntk_t * p );
-extern int           Acb_NtkCoFinNum( Acb_Ntk_t * p );
-extern int           Acb_NtkCheckComboLoop( Acb_Ntk_t * p );
-extern int           Acb_ManIsTopoOrder( Acb_Man_t * p );
-extern Vec_Int_t *   Acb_NtkCollectDfs( Acb_Ntk_t * p );
-extern Acb_Man_t *   Acb_ManCollapse( Acb_Man_t * p );
-extern Acb_Man_t *   Acb_ManExtractGroup( Acb_Man_t * p, Vec_Int_t * vObjs );
-extern Acb_Man_t *   Acb_ManDeriveFromGia( Acb_Man_t * p, Gia_Man_t * pGia, int fUseXor );
-extern Acb_Man_t *   Acb_ManInsertGroup( Acb_Man_t * p, Vec_Int_t * vObjs, Acb_Ntk_t * pSyn );
-/*=== acbReadBlif.c ==========================================================*/
-extern Acb_Man_t *   Prs_ManBuildCbaBlif( char * pFileName, Vec_Ptr_t * vDes );
-extern void          Prs_ManReadBlifTest( char * pFileName );
-extern Acb_Man_t *   Acb_ManReadBlif( char * pFileName );
-/*=== acbReadVer.c ===========================================================*/
-extern Acb_Man_t *   Prs_ManBuildCbaVerilog( char * pFileName, Vec_Ptr_t * vDes );
-extern void          Prs_ManReadVerilogTest( char * pFileName );
-extern Acb_Man_t *   Acb_ManReadVerilog( char * pFileName );
-/*=== acbWriteBlif.c =========================================================*/
-extern void          Prs_ManWriteBlif( char * pFileName, Vec_Ptr_t * p );
-extern void          Acb_ManWriteBlif( char * pFileName, Acb_Man_t * p );
-/*=== acbWriteVer.c ==========================================================*/
-extern void          Acb_ManCreatePrimMap( char ** pMap );
-extern char *        Acb_ManGetSliceName( Acb_Ntk_t * p, int iFon, int RangeId );
-extern void          Prs_ManWriteVerilog( char * pFileName, Vec_Ptr_t * p );
-extern void          Acb_ManWriteVerilog( char * pFileName, Acb_Man_t * p, int fInlineConcat );
+/*=== acbUtil.c =============================================================*/
+extern void Acb_NtkUpdateTiming( Acb_Ntk_t * p, int iObj );
+extern void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp );
 
 ABC_NAMESPACE_HEADER_END
 

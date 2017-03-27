@@ -42,13 +42,24 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Acb_ObjAddFanout( Acb_Ntk_t * p, int iObj )
+{
+    int k, iFanin, * pFanins; 
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
+        Vec_IntPush( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+}
+void Acb_ObjRemoveFanout( Acb_Ntk_t * p, int iObj )
+{
+    int k, iFanin, * pFanins; 
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
+        Vec_IntRemove( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+}
 void Acb_NtkCreateFanout( Acb_Ntk_t * p )
 {
-    int k, iObj, iFanin, * pFanins; 
+    int iObj; 
     Vec_WecInit( &p->vFanouts, Acb_NtkObjNumMax(p) );
     Acb_NtkForEachObj( p, iObj )
-        Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
-            Vec_IntPush( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+        Acb_ObjAddFanout( p, iObj );
 }
 
 /**Function*************************************************************
@@ -263,12 +274,11 @@ int Acb_NtkComputePathsR( Acb_Ntk_t * p, Vec_Int_t * vTfi )
 
 int Acb_NtkComputePaths( Acb_Ntk_t * p )
 {
-    int LevelD = Acb_NtkComputeLevelD( p, NULL );
-    int LevelR = Acb_NtkComputeLevelR( p, NULL );
-    int PathD  = Acb_NtkComputePathsD( p, NULL );
-    int PathR  = Acb_NtkComputePathsR( p, NULL );
-    assert( PathD  == PathR );
-    return PathR;
+    Acb_NtkComputeLevelD( p, NULL );
+    Acb_NtkComputeLevelR( p, NULL );
+    Acb_NtkComputePathsD( p, NULL );
+    Acb_NtkComputePathsR( p, NULL );
+    return p->nPaths;
 }
 
 void Abc_NtkComputePaths( Abc_Ntk_t * p )
@@ -310,10 +320,10 @@ void Acb_NtkUpdateTiming( Acb_Ntk_t * p, int iObj )
         // assuming that level of the new nodes is up to date
         Vec_Int_t * vTfi = Acb_ObjCollectTfi( p, iObj, 1 );
         Vec_Int_t * vTfo = Acb_ObjCollectTfo( p, iObj, 1 );
-        int nLevelD = Acb_NtkComputeLevelD( p, vTfo );
-        int nLevelR = Acb_NtkComputeLevelR( p, vTfi );
-        int nPathD = Acb_NtkComputePathsD( p, vTfo );
-        int nPathR = Acb_NtkComputePathsR( p, vTfi );
+        Acb_NtkComputeLevelD( p, vTfo );
+        Acb_NtkComputeLevelR( p, vTfi );
+        Acb_NtkComputePathsD( p, vTfo );
+        Acb_NtkComputePathsR( p, vTfi );
         Vec_IntForEachEntry( vTfi, Entry, i )
             Acb_ObjUpdateTiming( p, Entry );
         Vec_IntForEachEntry( vTfo, Entry, i )
@@ -321,13 +331,37 @@ void Acb_NtkUpdateTiming( Acb_Ntk_t * p, int iObj )
     }
     else
     {
-        int LevelD = Acb_NtkComputeLevelD( p, NULL );
-        int LevelR = Acb_NtkComputeLevelR( p, NULL );
-        int PathD  = Acb_NtkComputePathsD( p, NULL );
-        int PathR  = Acb_NtkComputePathsR( p, NULL );
+        Acb_NtkComputeLevelD( p, NULL );
+        Acb_NtkComputeLevelR( p, NULL );
+        Acb_NtkComputePathsD( p, NULL );
+        Acb_NtkComputePathsR( p, NULL );
         Acb_NtkForEachNode( p, Entry )
             Acb_ObjUpdateTiming( p, Entry );
     }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp )
+{
+    int i, iFanin;
+    Vec_WrdSetEntry( &p->vObjTruth, Pivot, uTruth );
+    Acb_ObjRemoveFanout( p, Pivot );
+    Acb_ObjRemoveFanins( p, Pivot );
+    Vec_IntForEachEntry( vSupp, iFanin, i )
+        Acb_ObjAddFanin( p, Pivot, iFanin );
+    Acb_ObjAddFanout( p, Pivot );
+    Acb_NtkUpdateTiming( p, Pivot );
 }
 
 

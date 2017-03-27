@@ -855,7 +855,7 @@ int Sdb_StoDiffExactlyOne3( Vec_Wec_t * vCuts, int Limit, int * pCut, int * pCou
 }
 Vec_Int_t * Sdb_StoFindAll( Vec_Wec_t * vCuts )
 {
-    int i, k, Entry, iNew = -1;
+    int i, k, Entry;
     Vec_Int_t * vCut, * vAll = Vec_IntAlloc( 100 );  
     Vec_WecForEachLevel( vCuts, vCut, i )
         Vec_IntForEachEntry( vCut, Entry, k )
