@@ -842,7 +842,7 @@ static inline void Vec_IntRemap( Vec_Int_t * p, Vec_Int_t * vMap )
 void Acb_NtkOptNode( Acb_Ntk_t * p, int Pivot, int nTabooMax, int nDivMax, int nTfoLevs, int nFanMax, int nLutSize )
 {
     Cnf_Dat_t * pCnf;
-    Vec_Int_t * vWin, * vSupp;
+    Vec_Int_t * vWin, * vSupp = NULL;
     sat_solver * pSat1 = NULL, * pSat2 = NULL, * pSat3 = NULL;
     int c, nSuppNew, PivotVar, nDivs = 0;
     int pTaboo[16], nTaboo = Acb_NtkCollectTaboo( p, Pivot, nTabooMax, pTaboo );

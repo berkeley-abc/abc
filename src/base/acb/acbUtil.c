@@ -244,7 +244,7 @@ int Acb_ObjComputePathR( Acb_Ntk_t * p, int iObj )
 }
 int Acb_NtkComputePathsR( Acb_Ntk_t * p, Vec_Int_t * vTfi )
 {
-    int i, iObj, Level = p->LevelMax, Path = 0;
+    int i, iObj, Path = 0;
     if ( vTfi == NULL )
     {
         Acb_NtkCleanObjPathR( p );
