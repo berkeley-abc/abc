@@ -30,6 +30,7 @@ ABC_NAMESPACE_IMPL_START
 extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
 extern int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube );
 extern int Pdr_ManPushClauses( Pdr_Man_t * p );
+extern Pdr_Set_t * Pdr_ManReduceClause( Pdr_Man_t * p, int k, Pdr_Set_t * pCube );
 extern int Gia_ManToBridgeAbort( FILE * pFile, int Size, unsigned char * pBuffer );
 extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, int iPoProved );
 
@@ -37,6 +38,66 @@ extern int Gia_ManToBridgeResult( FILE * pFile, int Result, Abc_Cex_t * pCex, in
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+Vec_Ptr_t * IPdr_ManPushClausesK( Pdr_Man_t * p, int k )
+{
+    Pdr_Set_t * pTemp, * pCubeK, * pCubeK1;
+    Vec_Ptr_t * vArrayK, * vArrayK1;
+    int i, j, m, RetValue;
+
+    assert( Vec_VecSize(p->vClauses) == k + 1 );
+    vArrayK = Vec_VecEntry( p->vClauses, k );
+    Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
+    vArrayK1 = Vec_PtrAlloc( 100 );
+    Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
+    {
+        // remove cubes in the same frame that are contained by pCubeK
+        Vec_PtrForEachEntryStart( Pdr_Set_t *, vArrayK, pTemp, m, j+1 )
+        {
+            if ( !Pdr_SetContains( pTemp, pCubeK ) ) // pCubeK contains pTemp
+                continue;
+            Pdr_SetDeref( pTemp );
+            Vec_PtrWriteEntry( vArrayK, m, Vec_PtrEntryLast(vArrayK) );
+            Vec_PtrPop(vArrayK);
+            m--;
+        }
+
+        // check if the clause can be moved to the next frame
+        RetValue = Pdr_ManCheckCube( p, k, pCubeK, NULL, 0, 0, 1 );
+        assert( RetValue != -1 );
+        if ( !RetValue )
+            continue;
+
+        {
+            Pdr_Set_t * pCubeMin;
+            pCubeMin = Pdr_ManReduceClause( p, k, pCubeK );
+            if ( pCubeMin != NULL )
+            {
+                //                Abc_Print( 1, "%d ", pCubeK->nLits - pCubeMin->nLits );
+                Pdr_SetDeref( pCubeK );
+                pCubeK = pCubeMin;
+            }
+        }
+
+        // check if the clause subsumes others
+        Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK1, pCubeK1, i )
+        {
+            if ( !Pdr_SetContains( pCubeK1, pCubeK ) ) // pCubeK contains pCubeK1
+                continue;
+            Pdr_SetDeref( pCubeK1 );
+            Vec_PtrWriteEntry( vArrayK1, i, Vec_PtrEntryLast(vArrayK1) );
+            Vec_PtrPop(vArrayK1);
+            i--;
+        }
+        // add the last clause
+        Vec_PtrPush( vArrayK1, pCubeK );
+        Vec_PtrWriteEntry( vArrayK, j, Vec_PtrEntryLast(vArrayK) );
+        Vec_PtrPop(vArrayK);
+        j--;
+    }
+
+    return vArrayK1;
+}
 
 /**Function*************************************************************
 
@@ -151,7 +212,7 @@ Vec_Vec_t * IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast )
   SeeAlso     []
 
 ***********************************************************************/
-sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k, int nTotal )
+sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k, int fSetPropOutput )
 {
     sat_solver * pSat;
     Vec_Ptr_t * vArrayK;
@@ -167,7 +228,7 @@ sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k, int nTotal )
     Vec_IntPush( p->vActVars, 0 );
 
     // set the property output
-    if ( k < nTotal - 1 )
+    if ( fSetPropOutput )
         Pdr_ManSetPropertyOutput( p, k );
 
     if (k == 0)
@@ -191,6 +252,80 @@ sat_solver * IPdr_ManSetSolver( Pdr_Man_t * p, int k, int nTotal )
   SeeAlso     []
 
 ***********************************************************************/
+int IPdr_ManRebuildClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses )
+{
+    Vec_Ptr_t * vArrayK;
+    Pdr_Set_t * pCube;
+    int i, j;
+    int RetValue = -1;
+    int nCubes = 0;
+
+    assert( Vec_VecSize(vClauses) >= 2 );
+    assert( Vec_VecSize(p->vClauses) == 0 ); 
+    Vec_VecExpand( p->vClauses, 1 );
+
+    IPdr_ManSetSolver( p, 0, 1 );
+
+    // push clauses from R0 to R1
+    Vec_VecForEachLevelStart( vClauses, vArrayK, i, 1 )
+    {
+        Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, j )
+        {
+            ++nCubes;
+            RetValue = Pdr_ManCheckCube( p, 0, pCube, NULL, 0, 0, 1 );
+
+            assert( RetValue != -1 );
+
+            if ( RetValue == 0 )
+            {
+                Abc_Print( 1, "Cube[%d][%d] cannot be pushed from R0 to R1.\n", i, j );
+                Pdr_SetDeref( pCube );
+                continue;
+            }
+
+            Vec_VecPush( p->vClauses, 1, pCube );
+        }
+    }
+    Abc_Print( 1, "RebuildClauses: %d out of %d cubes reused in R1.\n", Vec_PtrSize(Vec_VecEntry(p->vClauses, 1)), nCubes );
+    IPdr_ManSetSolver( p, 1, 0 );
+
+    for ( i = 1; i < Vec_VecSize( vClauses ) - 1; ++i )
+    {
+        vArrayK = IPdr_ManPushClausesK( p, i );
+        if ( Vec_PtrSize(vArrayK) == 0 )
+        {
+            Abc_Print( 1, "RebuildClauses: stopped at frame %d.\n", i );
+            break;
+        }
+
+        Vec_PtrGrow( (Vec_Ptr_t *)(p->vClauses), i + 2 );
+        p->vClauses->nSize = i + 2;
+        p->vClauses->pArray[i+1] = vArrayK;
+        IPdr_ManSetSolver( p, i + 1, 0 );
+    }
+
+    Abc_Print( 1, "After rebuild:" );
+    Vec_VecForEachLevel( p->vClauses, vArrayK, i )
+        Abc_Print( 1, " %d", Vec_PtrSize( vArrayK ) );
+    Abc_Print( 1, "\n" );
+
+    /*
+    for ( i = 1; i < Vec_VecSize(p->vClauses); ++i )
+        IPdr_ManSetSolver( p, i, 0 );
+
+    p->iUseFrame = Vec_VecSize(p->vClauses) - 1;
+    RetValue = Pdr_ManPushClauses( p );
+
+    if ( RetValue == 1 )
+    {
+        Abc_Print( 1, "Found an invariant!\n");
+        return 1;
+    }
+    */
+
+    Vec_VecFree( vClauses );
+    return 0;
+}
 
 int IPdr_ManRestoreAbsFlops( Pdr_Man_t * p )
 {
@@ -206,7 +341,7 @@ int IPdr_ManRestoreAbsFlops( Pdr_Man_t * p )
     return 0;
 }
 
-int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap )
+int IPdr_ManRestoreClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap )
 {
     int i;
 
@@ -225,7 +360,7 @@ int IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap )
     }
 
     for ( i = 0; i < Vec_VecSize(p->vClauses); ++i )
-        IPdr_ManSetSolver( p, i, Vec_VecSize( p->vClauses ) );
+        IPdr_ManSetSolver( p, i, i < Vec_VecSize( p->vClauses ) - 1 );
 
     return 0;
 }
@@ -697,7 +832,7 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
             Pdr_ManStop( p );
 
             p = Pdr_ManStart( pAig, pPars, NULL );
-            IPdr_ManRestore( p, vClausesSaved, NULL );
+            IPdr_ManRestoreClauses( p, vClausesSaved, NULL );
 
             pPars->nFrameMax = pPars->nFrameMax << 1;
 

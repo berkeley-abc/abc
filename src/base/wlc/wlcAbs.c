@@ -32,7 +32,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 extern Vec_Vec_t *   IPdr_ManSaveClauses( Pdr_Man_t * p, int fDropLast );
-extern int           IPdr_ManRestore( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap );
+extern int           IPdr_ManRestoreClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses, Vec_Int_t * vMap );
+extern int           IPdr_ManRebuildClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses );
 extern int           IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses );
 extern int           IPdr_ManCheckCombUnsat( Pdr_Man_t * p );
 extern int           IPdr_ManReduceClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses );
@@ -1319,7 +1320,8 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
     pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
     if ( pWla->vClauses ) {
         assert( Vec_VecSize( pWla->vClauses) >= 2 ); 
-        IPdr_ManRestore( pPdr, pWla->vClauses, NULL );
+        IPdr_ManRestoreClauses( pPdr, pWla->vClauses, NULL );
+        //IPdr_ManRebuildClauses( pPdr, pWla->vClauses );
     }
 
     RetValue = IPdr_ManSolveInt( pPdr, pWla->pPars->fCheckClauses, pWla->pPars->fPushClauses );
