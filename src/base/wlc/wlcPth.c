@@ -40,6 +40,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern Abc_Ntk_t *   Abc_NtkFromAigPhase( Aig_Man_t * pAig );
 extern int           Abc_NtkDarBmc3( Abc_Ntk_t * pAbcNtk, Saig_ParBmc_t * pBmcPars, int fOrDecomp );
+extern int           Wla_ManShrinkAbs( Wla_Man_t * pWla, int nFrames );
 
 static volatile int  g_nRunIds = 0;             // the number of the last prover instance
 int Wla_CallBackToStop( int RunId ) { assert( RunId <= g_nRunIds ); return RunId < g_nRunIds; }
@@ -55,6 +56,7 @@ void Wla_ManConcurrentBmc3( Wla_Man_t * pWla, Aig_Man_t * pAig, Abc_Cex_t ** ppC
 // information given to the thread
 typedef struct Bmc3_ThData_t_
 {
+    Wla_Man_t *  pWla;
     Aig_Man_t *  pAig;
     Abc_Cex_t ** ppCex;
     int          RunId;
@@ -84,12 +86,16 @@ void * Wla_Bmc3Thread ( void * pArg )
 {
     int status;
     int RetValue = -1;
+    int nFramesNoChangeLim = 10;
     Bmc3_ThData_t * pData = (Bmc3_ThData_t *)pArg;
     Abc_Ntk_t * pAbcNtk = Abc_NtkFromAigPhase( pData->pAig );
     Saig_ParBmc_t BmcPars, *pBmcPars = &BmcPars;
     Saig_ParBmcSetDefaultParams( pBmcPars );
     pBmcPars->pFuncStop = Wla_CallBackToStop;
     pBmcPars->RunId = pData->RunId;
+
+    if ( pData->pWla->nIters > 1 && pData->pWla->pPars->fShrinkAbs )
+        pBmcPars->nFramesMax = pData->pWla->iCexFrame + nFramesNoChangeLim;
 
     RetValue = Abc_NtkDarBmc3( pAbcNtk, pBmcPars, 0 );
 
@@ -106,10 +112,24 @@ void * Wla_Bmc3Thread ( void * pArg )
         ++g_nRunIds;
         status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
     }
-    else
+    else if ( RetValue == -1 )
     {
-        if ( pData->fVerbose )
+        if ( pData->RunId < g_nRunIds && pData->fVerbose )
             Abc_Print( 1, "Bmc3 was cancelled. RunId=%d.\n", pData->RunId );
+
+        if ( pData->RunId == g_nRunIds )
+        {
+            RetValue = Wla_ManShrinkAbs( pData->pWla, pData->pWla->iCexFrame + nFramesNoChangeLim );
+            pData->pWla->iCexFrame += nFramesNoChangeLim; 
+            
+            if ( RetValue )
+            {
+                pData->pWla->fNewAbs = 1;
+                status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
+                ++g_nRunIds;
+                status = pthread_mutex_unlock(&g_mutex);  assert( status == 0 );
+            }
+        }
     }
 
     // free memory
@@ -132,6 +152,7 @@ void Wla_ManConcurrentBmc3( Wla_Man_t * pWla, Aig_Man_t * pAig, Abc_Cex_t ** ppC
     pWla->pThread = (void *)ABC_CALLOC( pthread_t, 1 );
 
     pData = ABC_CALLOC( Bmc3_ThData_t, 1 );
+    pData->pWla = pWla;
     pData->pAig = pAig;
     pData->ppCex = ppCex;
     pData->RunId = g_nRunIds;

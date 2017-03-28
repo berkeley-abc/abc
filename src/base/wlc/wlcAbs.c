@@ -619,12 +619,11 @@ static Wlc_Ntk_t * Wlc_NtkAbs2( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_Int_t
     return pNew;
 }
 
-static Vec_Int_t * Wlc_NtkProofReduce( Wlc_Ntk_t * p, Wlc_Par_t * pPars, int nFrames, Vec_Int_t * vWhites )
+static Vec_Bit_t * Wlc_NtkProofReduce( Wlc_Ntk_t * p, Wlc_Par_t * pPars, int nFrames, Vec_Int_t * vWhites )
 {
     Gia_Man_t * pGiaFrames;
     Wlc_Ntk_t * pNtkWithChoices = NULL; 
     Vec_Int_t * vCoreSels;
-    Vec_Int_t * vCoreWhites = NULL;
     Vec_Bit_t * vChoiceMark; 
     int first_sel_pi;
     int i, Entry;
@@ -642,16 +641,15 @@ static Vec_Int_t * Wlc_NtkProofReduce( Wlc_Ntk_t * p, Wlc_Par_t * pPars, int nFr
 
     Wlc_NtkFree( pNtkWithChoices );
     Gia_ManStop( pGiaFrames );
-    Vec_BitFree( vChoiceMark );
  
-    vCoreWhites = Vec_IntAlloc( Vec_IntSize(vWhites) );
+    Vec_BitReset( vChoiceMark );
     Vec_IntForEachEntry( vCoreSels, Entry, i )
-        Vec_IntPush( vCoreWhites, Vec_IntEntry( vWhites, Entry ) );
+        Vec_BitWriteEntry( vChoiceMark, Entry, 1 );
 
-    Abc_Print( 1, "ProofReduce: remove %d out of %d white boxes.\n", Vec_IntSize(vWhites) - Vec_IntSize(vCoreWhites), Vec_IntSize(vWhites) );
+    Abc_Print( 1, "ProofReduce: remove %d out of %d white boxes.\n", Vec_IntSize(vWhites) - Vec_BitCount(vChoiceMark), Vec_IntSize(vWhites) );
 
     Vec_IntFree( vCoreSels );
-    return vCoreWhites;
+    return vChoiceMark;
 }
 
 static int Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Abc_Cex_t * pCex, Vec_Int_t * vBlacks, Vec_Int_t ** pvRefine )
@@ -1280,6 +1278,26 @@ Vec_Int_t * Wla_ManCollectWhites( Wla_Man_t * pWla )
     return vWhites;
 }
 
+int Wla_ManShrinkAbs( Wla_Man_t * pWla, int nFrames )
+{
+    int i, Entry;
+    int RetValue = 0;
+
+    Vec_Int_t * vWhites = Wla_ManCollectWhites( pWla );
+    Vec_Bit_t * vCoreMarks = Wlc_NtkProofReduce( pWla->p, pWla->pPars, nFrames, vWhites );
+
+    RetValue = Vec_IntSize( vWhites ) != Vec_BitCount( vCoreMarks );
+
+    Vec_IntForEachEntry( vWhites, Entry, i )
+        if ( !Vec_BitEntry( vCoreMarks, i ) )
+            Vec_BitWriteEntry( pWla->vUnmark, Entry, 0 );
+
+    Vec_IntFree( vWhites );
+    Vec_BitFree( vCoreMarks );
+
+    return RetValue;
+}
+
 Wlc_Ntk_t * Wla_ManCreateAbs( Wla_Man_t * pWla )
 {
     Wlc_Ntk_t * pAbs;
@@ -1287,8 +1305,8 @@ Wlc_Ntk_t * Wla_ManCreateAbs( Wla_Man_t * pWla )
     // get abstracted GIA and the set of pseudo-PIs (vBlacks)
     if ( pWla->vBlacks == NULL )
     {
-       pWla->vBlacks = Wlc_NtkGetBlacks( pWla->p, pWla->pPars );
-       pWla->vSignals = Vec_IntDup( pWla->vBlacks );
+        pWla->vBlacks = Wlc_NtkGetBlacks( pWla->p, pWla->pPars );
+        pWla->vSignals = Vec_IntDup( pWla->vBlacks );
     }
     else
     {
@@ -1421,8 +1439,13 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
     pPdr = Pdr_ManStart( pAig, pPdrPars, NULL );
     if ( pWla->vClauses ) {
         assert( Vec_VecSize( pWla->vClauses) >= 2 ); 
-        IPdr_ManRestoreClauses( pPdr, pWla->vClauses, NULL );
-        //IPdr_ManRebuildClauses( pPdr, pWla->vClauses );
+        
+        if ( pWla->fNewAbs )
+            IPdr_ManRebuildClauses( pPdr, pWla->vClauses );
+        else
+            IPdr_ManRestoreClauses( pPdr, pWla->vClauses, NULL );
+
+        pWla->fNewAbs = 0;
     }
 
     RetValue = IPdr_ManSolveInt( pPdr, pWla->pPars->fCheckClauses, pWla->pPars->fPushClauses );
@@ -1464,6 +1487,14 @@ void Wla_ManRefine( Wla_Man_t * pWla )
     abctime clk;
     int nNodes;
     Vec_Int_t * vRefine = NULL;
+
+    if ( pWla->fNewAbs )
+    {
+        assert( pWla->pCex == NULL );
+        Gia_ManStop( pWla->pGia ); pWla->pGia = NULL;
+        return;
+    }
+
     // perform refinement
     if ( pWla->pPars->fHybrid || !pWla->pPars->fProofRefine )
     {
@@ -1519,11 +1550,13 @@ void Wla_ManRefine( Wla_Man_t * pWla )
     if ( pWla->pCex->iFrame > 0 )
     {
         Vec_Int_t * vWhites = Wla_ManCollectWhites( pWla );
-        Vec_Int_t * vCore = Wlc_NtkProofReduce( pWla->p, pWla->pPars, pWla->pCex->iFrame, vWhites );
+        Vec_Bit_t * vCore = Wlc_NtkProofReduce( pWla->p, pWla->pPars, pWla->pCex->iFrame, vWhites );
         Vec_IntFree( vWhites );
-        Vec_IntFree( vCore );
+        Vec_BitFree( vCore );
     }
     */
+
+    pWla->iCexFrame = pWla->pCex->iFrame;
 
     Vec_IntFree( vRefine );
     Gia_ManStop( pWla->pGia ); pWla->pGia = NULL;
@@ -1551,10 +1584,13 @@ Wla_Man_t * Wla_ManStart( Wlc_Ntk_t * pNtk, Wlc_Par_t * pPars )
     } 
     p->pPdrPars = (void *)pPdrPars;
 
-    p->nIters = 1;
+    p->iCexFrame = 0;
+    p->fNewAbs   = 0;
+
+    p->nIters    = 1;
     p->nTotalCla = 0;
-    p->nDisj = 0;
-    p->nNDisj = 0;
+    p->nDisj     = 0;
+    p->nNDisj    = 0;
 
     return p;
 }

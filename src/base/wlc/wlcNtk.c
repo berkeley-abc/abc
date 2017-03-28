@@ -125,6 +125,7 @@ void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
     pPars->fAbs2         =            0;   // Use UFAR style createAbs
     pPars->fProofUsePPI  =            0;   // Use PPI values in PBR
     pPars->fUseBmc3      =            0;   // Run BMC3 in parallel
+    pPars->fShrinkAbs    =            0;   // Shrink Abs with BMC
     pPars->fVerbose      =            0;   // verbose output`
     pPars->fPdrVerbose   =            0;   // show verbose PDR output
 }
