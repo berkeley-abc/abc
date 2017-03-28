@@ -213,7 +213,7 @@ void Wlc_NtkAbsAnalyzeRefine( Wlc_Ntk_t * p, Vec_Int_t * vBlacks, Vec_Bit_t * vU
     Vec_IntFree( vSuppRefs );
 }
 
-static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int first_sel_pi, int num_sel_pis, Vec_Bit_t * vMark, int nConfLimit, Wlc_Par_t * pPars ) 
+static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int first_sel_pi, int num_sel_pis, Vec_Bit_t * vMark, int nConfLimit, Wlc_Par_t * pPars, int fSetPO ) 
 {
     Vec_Int_t * vCores = NULL;
     Aig_Man_t * pAigFrames = Gia_ManToAigSimple( pFrames );
@@ -238,12 +238,30 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int fir
             assert(pCnf->pVarNums[pObj->Id] >= 0);
             Vec_IntPush(vLits, toLitCond(pCnf->pVarNums[pObj->Id], 0));
         }
-        ret = sat_solver_addclause(pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits));
-        if (!ret) 
-            Abc_Print( 1, "UNSAT after adding PO clauses.\n" );
+        if ( !fSetPO )
+        {
+            ret = sat_solver_addclause(pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits));
+            if (!ret) 
+                Abc_Print( 1, "UNSAT after adding PO clauses.\n" );
+        }
+        else
+        {
+            int Lit;
+            for ( i = 0; i < Vec_IntSize(vLits); ++i )
+            {
+                if ( i == Vec_IntSize(vLits) - 1 )
+                    Lit = Vec_IntEntry( vLits, i );
+                else
+                    Lit = lit_neg(Vec_IntEntry( vLits, i ));
+                ret = sat_solver_addclause(pSat, &Lit, &Lit + 1);
+                if (!ret) 
+                    Abc_Print( 1, "UNSAT after adding PO clauses.\n" );
+            }
+        }
 
         Vec_IntFree(vLits);
     }
+    
     // main procedure
     {
         int status;
@@ -627,6 +645,7 @@ static Vec_Bit_t * Wlc_NtkProofReduce( Wlc_Ntk_t * p, Wlc_Par_t * pPars, int nFr
     Vec_Bit_t * vChoiceMark; 
     int first_sel_pi;
     int i, Entry;
+    abctime clk = Abc_Clock();
 
     assert( vWhites && Vec_IntSize(vWhites) );
     pNtkWithChoices = Wlc_NtkIntroduceChoices( p, vWhites );
@@ -637,7 +656,7 @@ static Vec_Bit_t * Wlc_NtkProofReduce( Wlc_Ntk_t * p, Wlc_Par_t * pPars, int nFr
     vChoiceMark = Vec_BitStart( Vec_IntSize( vWhites ) );      
     Vec_IntForEachEntry( vWhites, Entry, i )
         Vec_BitWriteEntry( vChoiceMark, i, 1 );
-    vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, nFrames, first_sel_pi, Vec_IntSize( vWhites ), vChoiceMark, 0, pPars );
+    vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, nFrames, first_sel_pi, Vec_IntSize( vWhites ), vChoiceMark, 0, pPars, 1 );
 
     Wlc_NtkFree( pNtkWithChoices );
     Gia_ManStop( pGiaFrames );
@@ -646,7 +665,8 @@ static Vec_Bit_t * Wlc_NtkProofReduce( Wlc_Ntk_t * p, Wlc_Par_t * pPars, int nFr
     Vec_IntForEachEntry( vCoreSels, Entry, i )
         Vec_BitWriteEntry( vChoiceMark, Entry, 1 );
 
-    Abc_Print( 1, "ProofReduce: remove %d out of %d white boxes.\n", Vec_IntSize(vWhites) - Vec_BitCount(vChoiceMark), Vec_IntSize(vWhites) );
+    Abc_Print( 1, "ProofReduce: remove %d out of %d white boxes.", Vec_IntSize(vWhites) - Vec_BitCount(vChoiceMark), Vec_IntSize(vWhites) );
+    Abc_PrintTime( 1, " Time", Abc_Clock() - clk );
 
     Vec_IntFree( vCoreSels );
     return vChoiceMark;
@@ -682,9 +702,9 @@ static int Wlc_NtkProofRefine( Wlc_Ntk_t * p, Wlc_Par_t * pPars, Abc_Cex_t * pCe
     pGiaFrames = Wlc_NtkUnrollWithCex( pNtkWithChoices, pCex, Wlc_NtkNumPiBits( p ), Vec_IntSize( vBlacks ), &num_ppis, 0, pPars->fProofUsePPI );
 
     if ( !pPars->fProofUsePPI )
-        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, num_ppis, Vec_IntSize( vBlacks ), vChoiceMark, 0, pPars );
+        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, num_ppis, Vec_IntSize( vBlacks ), vChoiceMark, 0, pPars, 0 );
     else
-        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, 0, Vec_IntSize( vBlacks ), vChoiceMark, 0, pPars );
+        vCoreSels = Wlc_NtkGetCoreSels( pGiaFrames, pCex->iFrame+1, 0, Vec_IntSize( vBlacks ), vChoiceMark, 0, pPars, 0 );
 
     Wlc_NtkFree( pNtkWithChoices );
     Gia_ManStop( pGiaFrames );
