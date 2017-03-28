@@ -251,7 +251,7 @@ void Cnf_DataPrint( Cnf_Dat_t * p, int fReadable )
     for ( i = 0; i < p->nClauses; i++ )
     {
         for ( pLit = p->pClauses[i], pStop = p->pClauses[i+1]; pLit < pStop; pLit++ )
-            fprintf( pFile, "%d ", fReadable? Cnf_Lit2Var2(*pLit) : Cnf_Lit2Var(*pLit) );
+            fprintf( pFile, "%s%d ", Abc_LitIsCompl(*pLit) ? "-":"", fReadable? Abc_Lit2Var(*pLit) : Abc_Lit2Var(*pLit)+1 );
         fprintf( pFile, "\n" );
     }
     fprintf( pFile, "\n" );

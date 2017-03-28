@@ -46,15 +46,25 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 Acb_Ntk_t * Acb_NtkFromAbc( Abc_Ntk_t * p )
 {
+    int fTrack = 1;
     Acb_Man_t * pMan = Acb_ManAlloc( Abc_NtkSpec(p), 1, NULL, NULL, NULL, NULL );
     int i, k, NameId = Abc_NamStrFindOrAdd( pMan->pStrs, Abc_NtkName(p), NULL );
     Acb_Ntk_t * pNtk = Acb_NtkAlloc( pMan, NameId, Abc_NtkCiNum(p), Abc_NtkCoNum(p), Abc_NtkObjNum(p) );
     Abc_Obj_t * pObj, * pFanin;
     assert( Abc_NtkIsSopLogic(p) );
+    pNtk->nFaninMax = 6;
+    if ( fTrack ) Vec_IntFill( &pNtk->vArray2, Abc_NtkObjNumMax(p), -1 );
     Abc_NtkForEachCi( p, pObj, i )
+    {
         pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_CI, 0, 0 );
+        if ( fTrack ) Vec_IntWriteEntry( &pNtk->vArray2, pObj->iTemp, Abc_ObjId(pObj) );
+    }
     Abc_NtkForEachNode( p, pObj, i )
+    {
         pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_LUT, Abc_ObjFaninNum(pObj), 0 );
+        if ( fTrack ) Vec_IntWriteEntry( &pNtk->vArray2, pObj->iTemp, Abc_ObjId(pObj) );
+//        printf( "%d -> %d\n%s", i, pObj->iTemp, (char *)pObj->pData );
+    }
     Abc_NtkForEachCo( p, pObj, i )
         pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_CO, 1, 0 );
     Abc_NtkForEachNode( p, pObj, i )
@@ -199,8 +209,8 @@ void Acb_ParSetDefault( Acb_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Acb_Par_t) );
     pPars->nLutSize     =    4;    // LUT size
-    pPars->nTfoLevMax   =    3;    // the maximum fanout levels
-    pPars->nTfiLevMax   =    3;    // the maximum fanin levels
+    pPars->nTfoLevMax   =    1;    // the maximum fanout levels
+    pPars->nTfiLevMax   =    2;    // the maximum fanin levels
     pPars->nFanoutMax   =   10;    // the maximum number of fanouts
     pPars->nDivMax      =   16;    // the maximum divisor count
     pPars->nTabooMax    =    4;    // the minimum MFFC size
@@ -208,7 +218,7 @@ void Acb_ParSetDefault( Acb_Par_t * pPars )
     pPars->nBTLimit     =    0;    // the maximum number of conflicts in one SAT run
     pPars->nNodesMax    =    0;    // the maximum number of nodes to try
     pPars->iNodeOne     =    0;    // one particular node to try
-    pPars->fArea        =    0;    // performs optimization for area
+    pPars->fArea        =    1;    // performs optimization for area
     pPars->fMoreEffort  =    0;    // enables using more effort
     pPars->fVerbose     =    0;    // enable basic stats
     pPars->fVeryVerbose =    0;    // enable detailed stats
@@ -230,7 +240,7 @@ Abc_Ntk_t * Abc_NtkOptMfse( Abc_Ntk_t * pNtk, Acb_Par_t * pPars )
     extern void Acb_NtkOpt( Acb_Ntk_t * p, Acb_Par_t * pPars );
     Abc_Ntk_t * pNtkNew;
     Acb_Ntk_t * p = Acb_NtkFromAbc( pNtk );
-    //Acb_NtkOpt( p, pPars );
+    Acb_NtkOpt( p, pPars );
     pNtkNew = Acb_NtkToAbc( pNtk, p );
     Acb_ManFree( p->pDesign );
     return pNtkNew;
