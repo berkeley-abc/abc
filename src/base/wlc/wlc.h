@@ -192,6 +192,7 @@ struct Wla_Man_t_
     Wlc_Par_t * pPars;
     Vec_Vec_t * vClauses;
     Vec_Int_t * vBlacks;
+    Vec_Int_t * vSignals;
     Abc_Cex_t * pCex;
     Gia_Man_t * pGia;
     Vec_Bit_t * vUnmark;
