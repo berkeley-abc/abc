@@ -86,7 +86,7 @@ void * Wla_Bmc3Thread ( void * pArg )
 {
     int status;
     int RetValue = -1;
-    int nFramesNoChangeLim = 10;
+    int nFramesNoChangeLim = 3;
     Bmc3_ThData_t * pData = (Bmc3_ThData_t *)pArg;
     Abc_Ntk_t * pAbcNtk = Abc_NtkFromAigPhase( pData->pAig );
     Saig_ParBmc_t BmcPars, *pBmcPars = &BmcPars;

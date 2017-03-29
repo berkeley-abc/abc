@@ -272,7 +272,9 @@ int IPdr_ManRebuildClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses )
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, j )
         {
             ++nCubes;
+
             RetValue = Pdr_ManCheckCube( p, 0, pCube, NULL, 0, 0, 1 );
+            Vec_IntWriteEntry( p->vActVars, 0, 0 );
 
             assert( RetValue != -1 );
 
@@ -288,7 +290,9 @@ int IPdr_ManRebuildClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses )
     }
     Abc_Print( 1, "RebuildClauses: %d out of %d cubes reused in R1.\n", Vec_PtrSize(Vec_VecEntry(p->vClauses, 1)), nCubes );
     IPdr_ManSetSolver( p, 1, 0 );
+    Vec_VecFree( vClauses );
 
+    /*
     for ( i = 1; i < Vec_VecSize( vClauses ) - 1; ++i )
     {
         vArrayK = IPdr_ManPushClausesK( p, i );
@@ -308,8 +312,8 @@ int IPdr_ManRebuildClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses )
     Vec_VecForEachLevel( p->vClauses, vArrayK, i )
         Abc_Print( 1, " %d", Vec_PtrSize( vArrayK ) );
     Abc_Print( 1, "\n" );
+    */
 
-    Vec_VecFree( vClauses );
     return 0;
 }
 
