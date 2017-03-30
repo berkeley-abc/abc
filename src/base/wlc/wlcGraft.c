@@ -302,11 +302,12 @@ Wlc_Ntk_t * Wlc_NtkGraftMulti( Wlc_Ntk_t * p, int fVerbose )
 ***********************************************************************/
 void Sbc_Mult( word a, word b, word r[2] )
 {
-    word pL  = (a & 0xFFFFFFFF) * (b & 0xFFFFFFFF);
-    word pM1 = (a & 0xFFFFFFFF) * (b >> 32);
-    word pM2 = (a >> 32) * (b & 0xFFFFFFFF);
+    word Msk = 0xFFFFFFFF;
+    word pL  = (a & Msk) * (b & Msk);
+    word pM1 = (a & Msk) * (b >> 32);
+    word pM2 = (a >> 32) * (b & Msk);
     word pH  = (a >> 32) * (b >> 32);
-    word Car = (pM1 & 0xFFFFFFFF) + (pM2 & 0xFFFFFFFF) + (pL >> 32);
+    word Car = (pM1 & Msk) + (pM2 & Msk) + (pL >> 32);
     r[0] = a * b;
     r[1] = pH + (pM1 >> 32) + (pM2 >> 32) + (Car >> 32);
 }
@@ -318,8 +319,8 @@ void Sbc_SimMult( word A[64], word B[64], word R[128], int nIns )
     Gia_ManRandom(1);
     for ( i = 0; i < 64; i++ )
     {
-        a = Mask & Gia_ManRandomW(0);
-        b = Mask & Gia_ManRandomW(0);        
+        a = i ? (Mask & Gia_ManRandomW(0)) : 0;
+        b = i ? (Mask & Gia_ManRandomW(0)) : 0;        
         Sbc_Mult( a, b, r );
         for ( k = 0; k < 64; k++ )
         {
@@ -348,18 +349,21 @@ void Sbc_SimMult( word A[64], word B[64], word R[128], int nIns )
 Vec_Int_t * Sbc_ManDetectMult( Gia_Man_t * p, Vec_Int_t * vIns )
 {
     int nWords = 1;
-    Vec_Int_t * vNodes = Vec_IntStart( Vec_IntSize(vIns) );
+    Vec_Int_t * vGia2Out = Vec_IntStartFull( Gia_ManObjNum(p) );
     Gia_Obj_t * pObj; int i, Entry, nIns = Vec_IntSize(vIns)/2;
-    word A[64], B[64], R[128], Z = 0, * pInfoObj;
+    word A[64], B[64], R[128], * pInfoObj; word Temp;
 
     // create hash table
     Vec_Mem_t * vTtMem = Vec_MemAlloc( nWords, 10 );
     Vec_MemHashAlloc( vTtMem, 1000 );
-    Vec_MemHashInsert( vTtMem, &Z );
     Sbc_SimMult( A, B, R, nIns );
     for ( i = 0; i < 2*nIns; i++ )
+    {
         Vec_MemHashInsert( vTtMem, R+i );
-    assert( Vec_MemEntryNum(vTtMem) == 2*nIns+1 );
+        //printf( "Out %2d : ", i );
+        //Extra_PrintHex( stdout, (unsigned *)(R+i), 6 ); printf( "\n" );
+    }
+    assert( Vec_MemEntryNum(vTtMem) == 2*nIns );
 
     // alloc simulation info
     Vec_WrdFreeP( &p->vSims );
@@ -370,7 +374,10 @@ Vec_Int_t * Sbc_ManDetectMult( Gia_Man_t * p, Vec_Int_t * vIns )
     Gia_ManIncrementTravId( p );
     Gia_ObjSetTravIdCurrentId( p, 0 );
     Gia_ManForEachCi( p, pObj, i )
+    {
         Gia_ObjSetTravIdCurrent( p, pObj );
+        //Wlc_ObjSimPi( p, Gia_ObjId(p, pObj) );
+    }
 
     // assign inputs
     assert( Vec_IntSize(vIns) % 2 == 0 );
@@ -386,45 +393,57 @@ Vec_Int_t * Sbc_ManDetectMult( Gia_Man_t * p, Vec_Int_t * vIns )
     {
         if ( Gia_ObjIsTravIdCurrent(p, pObj) )
             continue;
+
         if ( Gia_ObjIsAnd(pObj) )
             Wlc_ObjSimAnd( p, i );
         else if ( Gia_ObjIsCo(pObj) )
             Wlc_ObjSimCo( p, i );
         else assert( 0 );
 
-        // mark each first node
+        // mark direct polarity
         pInfoObj = Wlc_ObjSim( p, i );
         Entry = *Vec_MemHashLookup( vTtMem, pInfoObj );
-        if ( Entry > 0 )
+        if ( Entry >= 0 )
         {
-            if ( Vec_IntEntry(vNodes, Entry-1) == 0 ) // new
-                Vec_IntWriteEntry( vNodes, Entry-1, Abc_Var2Lit(i, 0) );
+            Vec_IntWriteEntry( vGia2Out, i, Abc_Var2Lit(Entry, 0) );
             continue;
         }
+
+        // mark negated polarity
+        Temp = *pInfoObj;
         Abc_TtNot( pInfoObj, nWords );
         Entry = *Vec_MemHashLookup( vTtMem, pInfoObj );
         Abc_TtNot( pInfoObj, nWords );
-        if ( Entry > 0 )
+        assert( Temp == *pInfoObj );
+        if ( Entry >= 0 )
         {
-            if ( Vec_IntEntry(vNodes, Entry-1) == 0 ) // new
-                Vec_IntWriteEntry( vNodes, Entry-1, Abc_Var2Lit(i, 1) );
+            Vec_IntWriteEntry( vGia2Out, i, Abc_Var2Lit(Entry, 1) );
             continue;
         }
     }
+
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        pInfoObj = Wlc_ObjSim( p, Gia_ObjId(p, pObj) );
+        //printf( "Out %2d : Driver = %5d(%d)", i, Gia_ObjFaninId0p(p, pObj), Gia_ObjFaninC0(pObj) );
+        //Extra_PrintHex( stdout, (unsigned *)pInfoObj, 6 ); printf( "\n" );
+    }
+
     // cleanup
     Vec_MemHashFree( vTtMem );
     Vec_MemFreeP( &vTtMem );
-    Vec_WrdFreeP( &p->vSims );
-    p->nSimWords = 0;
-    return vNodes;
+    //Vec_WrdFreeP( &p->vSims );
+    //p->nSimWords = 0;
+    return vGia2Out;
 }
-Vec_Int_t * Sbc_ManWlcNodes( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGiaLits )
+Vec_Int_t * Sbc_ManWlcNodes2( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGiaLits )
 {
     Wlc_Obj_t * pObj;  int i, k, iGiaLit, iFirst, nBits;
     Vec_Int_t * vRes = Vec_IntAlloc( 100 );
     Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
     Vec_IntForEachEntry( vGiaLits, iGiaLit, i )
-        Vec_IntWriteEntry( vMap, Abc_Lit2Var(iGiaLit), Abc_Var2Lit(i, Abc_LitIsCompl(iGiaLit)) );
+        if ( iGiaLit != -1 )
+            Vec_IntWriteEntry( vMap, Abc_Lit2Var(iGiaLit), Abc_Var2Lit(i, Abc_LitIsCompl(iGiaLit)) );
     Wlc_NtkForEachObj( pNtk, pObj, i )
     {
         iFirst = Vec_IntEntry( &pNtk->vCopies, i );
@@ -442,6 +461,7 @@ Vec_Int_t * Sbc_ManWlcNodes( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGiaLi
         }
     }
     Vec_IntFree( vMap );
+    Vec_IntSort( vRes, 0 );
     // consider the last one
     pObj   = Wlc_NtkObj( pNtk, Vec_IntEntryLast(vRes) );
     iFirst = Vec_IntEntry( &pNtk->vCopies, Wlc_ObjId(pNtk, pObj) );
@@ -453,8 +473,57 @@ Vec_Int_t * Sbc_ManWlcNodes( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGiaLi
         int iLitOutP = Vec_IntFind( vGiaLits, iLitGia );
         int iLitOutN = Vec_IntFind( vGiaLits, Abc_LitNot(iLitGia) );
         printf( "Matching bit %d with output %d / %d.\n", k, iLitOutP, iLitOutN );
+        // print simulation signature
+        {
+            word * pInfoObj = Wlc_ObjSim( p, Abc_Lit2Var(iLitGia) );
+            Extra_PrintHex( stdout, (unsigned *)pInfoObj, 6 ); printf( "\n" );
+        }
     }
     return vRes;
+}
+int Sbc_ManWlcNodes( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGia2Out, int nOuts )
+{
+    Wlc_Obj_t * pObj;  
+    int i, k, iLitGia, iLitOut, iFirst, nBits, iObjFound = -1;
+    Vec_Int_t * vMatched = Vec_IntAlloc( 100 );
+    Wlc_NtkForEachObj( pNtk, pObj, i )
+    {
+        iFirst = Vec_IntEntry( &pNtk->vCopies, i );
+        nBits  = Wlc_ObjRange(pObj);
+        Vec_IntClear( vMatched );
+        for ( k = 0; k < nBits; k++ )
+        {
+            iLitGia = Vec_IntEntry( &pNtk->vBits, iFirst + k );
+            iLitOut = Vec_IntEntry( vGia2Out, Abc_Lit2Var(iLitGia) );
+            if ( iLitOut == -1 )
+                continue;
+            iLitOut = Abc_LitNotCond( iLitOut, Abc_LitIsCompl(iLitGia) );
+            printf( "Matched node %5d (%10s) bit %3d (out of %3d) with output %3d(%d).\n", 
+                i, Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), k, nBits, Abc_Lit2Var(iLitOut), Abc_LitIsCompl(iLitOut) );
+            Vec_IntPushOrder( vMatched, Abc_Lit2Var(iLitOut) );
+        }
+        if ( Vec_IntSize(vMatched) > 0 )
+            printf( "\n" );
+        if ( Vec_IntSize(vMatched) == nOuts )
+        {
+            if ( iObjFound == -1 )
+                iObjFound = i;
+            printf( "Found object %d with all bits matched.\n", i );
+            /*
+            for ( k = nBits-2; k < nBits; k++ )
+            {
+                iLitGia = Vec_IntEntry( &pNtk->vBits, iFirst + k );
+                {
+                    word * pInfoObj = Wlc_ObjSim( p, Abc_Lit2Var(iLitGia) );
+                    Extra_PrintHex( stdout, (unsigned *)pInfoObj, 6 ); printf( "\n" );
+                }
+            }
+            */
+            break;
+        }
+    }
+    Vec_IntFree( vMatched );
+    return iObjFound;
 }
 
 /**Function*************************************************************
@@ -472,7 +541,8 @@ void Sbc_ManDetectMultTest( Wlc_Ntk_t * pNtk, int fVerbose )
 {
     extern Vec_Int_t * Sdb_StoComputeCutsDetect( Gia_Man_t * pGia );
     Gia_Man_t * p = Wlc_NtkBitBlast( pNtk, NULL, -1, 0, 0, 0, 0, 1 );
-    Vec_Int_t * vIns, * vNodes, * vNodesNew;
+    Vec_Int_t * vIns, * vGia2Out;
+    int iObjFound = -1;
 //    Gia_Obj_t * pObj; int i;
 //    Gia_ManForEachCo( p, pObj, i )
 //        printf( "Output %2d - driver %5d (%d)\n", i, Gia_ObjFaninId0p(p, pObj), Gia_ObjFaninC0(pObj) );
@@ -484,20 +554,11 @@ void Sbc_ManDetectMultTest( Wlc_Ntk_t * pNtk, int fVerbose )
         return;
     }
 
-    vNodes = Sbc_ManDetectMult( p, vIns );
-    if ( vNodes == NULL || Vec_IntSize(vNodes) == 0 )
-    {
-        printf( "Output identification did not work out.\n" );
-        return;
-    }
-    Vec_IntPrint( vNodes );
+    vGia2Out = Sbc_ManDetectMult( p, vIns );
 
-    vNodesNew = Sbc_ManWlcNodes( pNtk, p, vNodes );
+    iObjFound = Sbc_ManWlcNodes( pNtk, p, vGia2Out, Vec_IntSize(vIns) );
 
-    Vec_IntPrint( vNodesNew );
-
-    Vec_IntFree( vNodes );
-    Vec_IntFree( vNodesNew );
+    Vec_IntFree( vGia2Out );
     Vec_IntFree( vIns );
 
     Gia_ManStop( p );
