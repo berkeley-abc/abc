@@ -86,7 +86,7 @@ void * Wla_Bmc3Thread ( void * pArg )
 {
     int status;
     int RetValue = -1;
-    int nFramesNoChangeLim = 3;
+    int nFramesNoChangeLim = 10;
     Bmc3_ThData_t * pData = (Bmc3_ThData_t *)pArg;
     Abc_Ntk_t * pAbcNtk = Abc_NtkFromAigPhase( pData->pAig );
     Saig_ParBmc_t BmcPars, *pBmcPars = &BmcPars;
@@ -94,7 +94,7 @@ void * Wla_Bmc3Thread ( void * pArg )
     pBmcPars->pFuncStop = Wla_CallBackToStop;
     pBmcPars->RunId = pData->RunId;
 
-    if ( pData->pWla->nIters > 1 && pData->pWla->pPars->fShrinkAbs )
+    if ( pData->pWla->pPars->fShrinkAbs )
         pBmcPars->nFramesMax = pData->pWla->iCexFrame + nFramesNoChangeLim;
 
     RetValue = Abc_NtkDarBmc3( pAbcNtk, pBmcPars, 0 );
@@ -117,7 +117,7 @@ void * Wla_Bmc3Thread ( void * pArg )
         if ( pData->RunId < g_nRunIds && pData->fVerbose )
             Abc_Print( 1, "Bmc3 was cancelled. RunId=%d.\n", pData->RunId );
 
-        if ( pData->RunId == g_nRunIds )
+        if ( pData->pWla->nIters > 1 && pData->RunId == g_nRunIds )
         {
             RetValue = Wla_ManShrinkAbs( pData->pWla, pData->pWla->iCexFrame + nFramesNoChangeLim );
             pData->pWla->iCexFrame += nFramesNoChangeLim; 

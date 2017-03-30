@@ -1545,7 +1545,9 @@ void Wla_ManRefine( Wla_Man_t * pWla )
 
     if ( pWla->fNewAbs )
     {
-        assert( pWla->pCex == NULL );
+        if ( pWla->pCex )
+            Abc_CexFree( pWla->pCex );
+        pWla->pCex = NULL;
         Gia_ManStop( pWla->pGia ); pWla->pGia = NULL;
         return;
     }

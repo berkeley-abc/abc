@@ -160,7 +160,8 @@ int IPdr_ManCheckClauses( Pdr_Man_t * p )
                 printf( "Cube[%d][%d] not inductive!\n", k, j );
             }
 
-            assert( RetValue == 1 );
+            if ( RetValue == -1 )
+                return -1;
         }
     }
 
