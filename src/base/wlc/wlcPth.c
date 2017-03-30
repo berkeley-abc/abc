@@ -122,7 +122,7 @@ void * Wla_Bmc3Thread ( void * pArg )
             RetValue = Wla_ManShrinkAbs( pData->pWla, pData->pWla->iCexFrame + nFramesNoChangeLim );
             pData->pWla->iCexFrame += nFramesNoChangeLim; 
             
-            if ( RetValue )
+            if ( RetValue == 1 )
             {
                 pData->pWla->fNewAbs = 1;
                 status = pthread_mutex_lock(&g_mutex);  assert( status == 0 );
