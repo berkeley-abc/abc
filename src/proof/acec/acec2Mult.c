@@ -880,7 +880,7 @@ int Sdb_StoDiffExactlyOne2( Vec_Int_t * vAll, int * pCut )
 }
 Vec_Int_t * Sdb_StoFindInputs( Vec_Wec_t * vCuts, int Front )
 {
-    int fVerbose = 1;
+    int fVerbose = 0;
     Vec_Int_t * vCut, * vCounts;
     Vec_Int_t * vRes = Vec_IntAlloc( 100 );
     Vec_Int_t * vResA = Vec_IntAlloc( 100 );
@@ -906,6 +906,8 @@ Vec_Int_t * Sdb_StoFindInputs( Vec_Wec_t * vCuts, int Front )
     Vec_IntForEachEntry( vCounts, Entry, k )
         if ( Entry )
             MinValue = Abc_MinInt( MinValue, Entry );
+    if ( MinValue == ABC_INFINITY )
+        return vRes;
     Min = Vec_IntFind( vCounts, MinValue );
     Vec_IntPush( vResA, Min );
     Vec_IntWriteEntry( vCounts, Min, 0 );
