@@ -1511,7 +1511,7 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
         assert( Vec_VecSize( pWla->vClauses) >= 2 ); 
         
         if ( pWla->fNewAbs )
-            IPdr_ManRebuildClauses( pPdr, pWla->vClauses );
+            IPdr_ManRebuildClauses( pPdr, pWla->pPars->fShrinkScratch ? NULL : pWla->vClauses );
         else
             IPdr_ManRestoreClauses( pPdr, pWla->vClauses, NULL );
 

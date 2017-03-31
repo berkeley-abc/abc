@@ -126,6 +126,7 @@ void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
     pPars->fProofUsePPI  =            0;   // Use PPI values in PBR
     pPars->fUseBmc3      =            0;   // Run BMC3 in parallel
     pPars->fShrinkAbs    =            0;   // Shrink Abs with BMC
+    pPars->fShrinkScratch=            0;   // Restart pdr from scratch after shrinking
     pPars->fVerbose      =            0;   // verbose output`
     pPars->fPdrVerbose   =            0;   // show verbose PDR output
 }

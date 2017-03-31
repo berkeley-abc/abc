@@ -261,6 +261,9 @@ int IPdr_ManRebuildClauses( Pdr_Man_t * p, Vec_Vec_t * vClauses )
     int RetValue = -1;
     int nCubes = 0;
 
+    if ( vClauses == NULL )
+        return RetValue;
+
     assert( Vec_VecSize(vClauses) >= 2 );
     assert( Vec_VecSize(p->vClauses) == 0 ); 
     Vec_VecExpand( p->vClauses, 1 );

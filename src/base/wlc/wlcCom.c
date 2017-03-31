@@ -464,7 +464,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Wlc_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFILabrcdipqmsuxvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AMXFILabrcdipqmstuxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -567,6 +567,9 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fShrinkAbs ^= 1;
             break;
+        case 't':
+            pPars->fShrinkScratch ^= 1;
+            break;
         case 'u':
             pPars->fCheckCombUnsat ^= 1;
             break;
@@ -590,7 +593,7 @@ int Abc_CommandPdrAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_NtkPdrAbs( pNtk, pPars );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%pdra [-AMXFIL num] [-abrcdipqmxsuvwh]\n" );
+    Abc_Print( -2, "usage: %%pdra [-AMXFIL num] [-abrcdipqmxstuvwh]\n" );
     Abc_Print( -2, "\t         abstraction for word-level networks\n" );
     Abc_Print( -2, "\t-A num : minimum bit-width of an adder/subtractor to abstract [default = %d]\n", pPars->nBitsAdd );
     Abc_Print( -2, "\t-M num : minimum bit-width of a multiplier to abstract [default = %d]\n",        pPars->nBitsMul );
@@ -606,6 +609,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle using another way of creating abstractions [default = %s]\n",    pPars->fAbs2? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle using PPI values in proof-based refinement [default = %s]\n",    pPars->fProofUsePPI? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle shrinking abstractions with BMC [default = %s]\n",               pPars->fShrinkAbs? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle restarting pdr from scratch after shrinking abstractions with BMC [default = %s]\n",               pPars->fShrinkScratch? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle checking combinationally unsat [default = %s]\n",                pPars->fCheckCombUnsat? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle pushing clauses in the reloaded trace [default = %s]\n",         pPars->fPushClauses? "yes": "no" );
     Abc_Print( -2, "\t-q     : toggle running bmc3 in parallel for CEX [default = %s]\n",              pPars->fUseBmc3? "yes": "no" );
