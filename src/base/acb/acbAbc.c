@@ -209,11 +209,11 @@ void Acb_ParSetDefault( Acb_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Acb_Par_t) );
     pPars->nLutSize     =    4;    // LUT size
-    pPars->nTfoLevMax   =    1;    // the maximum fanout levels
+    pPars->nTfoLevMax   =    2;    // the maximum fanout levels
     pPars->nTfiLevMax   =    2;    // the maximum fanin levels
-    pPars->nFanoutMax   =   10;    // the maximum number of fanouts
-    pPars->nDivMax      =   16;    // the maximum divisor count
-    pPars->nTabooMax    =    4;    // the minimum MFFC size
+    pPars->nFanoutMax   =   20;    // the maximum number of fanouts
+    pPars->nDivMax      =   24;    // the maximum divisor count
+    pPars->nTabooMax    =    1;    // the minimum MFFC size
     pPars->nGrowthLevel =    0;    // the maximum allowed growth in level
     pPars->nBTLimit     =    0;    // the maximum number of conflicts in one SAT run
     pPars->nNodesMax    =    0;    // the maximum number of nodes to try

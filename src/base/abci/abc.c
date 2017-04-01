@@ -5777,6 +5777,7 @@ int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Command is only applicable to LUT size no more than 6.\n" );
         return 1;
     }
+    Abc_NtkToSop( pNtk, -1, ABC_INFINITY );
     pNtkNew = Abc_NtkOptMfse( pNtk, pPars );
     if ( pNtkNew == NULL )
     {
