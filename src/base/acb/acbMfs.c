@@ -894,7 +894,7 @@ void Acb_WinPrint( Acb_Ntk_t * p, Vec_Int_t * vWin, int Pivot, int nDivs )
     printf( "\n" );
 }
 
-Vec_Int_t * Acb_NtkFindSupp( Acb_Ntk_t * p, sat_solver * pSat2, int nVars, int nDivs )
+Vec_Int_t * Acb_NtkFindSupp2( Acb_Ntk_t * p, sat_solver * pSat2, int nVars, int nDivs )
 {
     int nSuppNew;
     Vec_Int_t * vSupp = Vec_IntStartNatural( nDivs );
@@ -1019,7 +1019,7 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot, int Next )
     p->timeSol += Abc_Clock() - clk;
     // check for one-node implementation
     clk = Abc_Clock();
-    vSupp = Acb_NtkFindSupp( p->pNtk, p->pSat[1], pCnf->nVars, nDivs );
+    vSupp = Acb_NtkFindSupp2( p->pNtk, p->pSat[1], pCnf->nVars, nDivs );
     p->timeSat += Abc_Clock() - clk;
     if ( Vec_IntSize(vSupp) <= p->pPars->nLutSize )
     {
