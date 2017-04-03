@@ -308,14 +308,38 @@ void Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vSupp )
     Acb_ObjAddFaninFanout( p, Pivot );
     Acb_ObjComputeLevelD( p, Pivot );
 }
-void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp )
+void Acb_NtkResetNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp )
 {
+    // remember old fanins
+    int k, iFanin, * pFanins; 
+    Vec_Int_t * vFanins = Vec_IntAlloc( 6 );
+    assert( !Acb_ObjIsCio(p, Pivot) );
+    Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
+        Vec_IntPush( vFanins, iFanin );
+    // update function
     Vec_WrdSetEntry( &p->vObjTruth, Pivot, uTruth );
     Vec_IntErase( Vec_WecEntry(&p->vCnfs, Pivot) );
+    // remove old fanins
     Acb_ObjRemoveFaninFanout( p, Pivot );
     Acb_ObjRemoveFanins( p, Pivot );
-    Acb_ObjAddFanins( p, Pivot, vSupp );
-    Acb_ObjAddFaninFanout( p, Pivot );
+    // add new fanins
+    if ( vSupp != NULL )
+    {
+        assert( Acb_ObjFanoutNum(p, Pivot) > 0 );
+        Acb_ObjAddFanins( p, Pivot, vSupp );
+        Acb_ObjAddFaninFanout( p, Pivot );
+    }
+    else if ( Acb_ObjFanoutNum(p, Pivot) == 0 )
+        Acb_ObjCleanType( p, Pivot );
+    // delete dangling fanins
+    Vec_IntForEachEntry( vFanins, iFanin, k )
+        if ( !Acb_ObjIsCio(p, iFanin) && Acb_ObjFanoutNum(p, iFanin) == 0 )
+            Acb_NtkResetNode( p, iFanin, 0, NULL );
+    Vec_IntFree( vFanins );
+}
+void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp )
+{
+    Acb_NtkResetNode( p, Pivot, uTruth, vSupp );
     if ( p->vQue == NULL )
         Acb_NtkUpdateLevelD( p, Pivot );
     else

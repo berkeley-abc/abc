@@ -215,14 +215,14 @@ void Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus )
     for ( v = 0; v < p->nLiterals; v++ )
         p->pClauses[0][v] += 2*nVarsPlus;
 }
-Vec_Int_t * Cnf_DataCollectFlipLits( Cnf_Dat_t * p, int iFlipVar )
+void Cnf_DataCollectFlipLits( Cnf_Dat_t * p, int iFlipVar, Vec_Int_t * vFlips )
 {
-    Vec_Int_t * vLits = Vec_IntAlloc( 100 ); int v;
+    int v;
     assert( p->pMan == NULL );
+    Vec_IntClear( vFlips );
     for ( v = 0; v < p->nLiterals; v++ )
         if ( Abc_Lit2Var(p->pClauses[0][v]) == iFlipVar )
-            Vec_IntPush( vLits, v );
-    return vLits;
+            Vec_IntPush( vFlips, v );
 }
 void Cnf_DataLiftAndFlipLits( Cnf_Dat_t * p, int nVarsPlus, Vec_Int_t * vLits )
 {

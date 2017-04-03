@@ -503,7 +503,10 @@ static inline void Acb_ObjRemoveFaninFanout( Acb_Ntk_t * p, int iObj )
 {
     int k, iFanin, * pFanins; 
     Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
-        Vec_IntRemove( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+    {
+        int RetValue = Vec_IntRemove( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+        assert( RetValue );
+    }
 }
 static inline void Acb_NtkCreateFanout( Acb_Ntk_t * p )
 {

@@ -5676,30 +5676,19 @@ int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
     Acb_Par_t Pars, * pPars = &Pars; int c;
     Acb_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MDOFLCavwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOWFLCavwh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'M':
+        case 'I':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
-            pPars->nTabooMax = atoi(argv[globalUtilOptind]);
+            pPars->nTfiLevMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nTabooMax < 0 )
-                goto usage;
-            break;
-        case 'D':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nDivMax = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nDivMax < 0 )
+            if ( pPars->nTfiLevMax < 0 )
                 goto usage;
             break;
         case 'O':
@@ -5711,6 +5700,17 @@ int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nTfoLevMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nTfoLevMax < 0 )
+                goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nWinNodeMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nWinNodeMax < 0 )
                 goto usage;
             break;
         case 'F':
@@ -5788,11 +5788,11 @@ int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfse [-MDOFLC <num>] [-avwh]\n" );
+    Abc_Print( -2, "usage: mfse [-IOWFLC <num>] [-avwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
-    Abc_Print( -2, "\t-M <num> : the max number of fanin nodes to skip (num >= 1) [default = %d]\n",            pPars->nTabooMax );
-    Abc_Print( -2, "\t-D <num> : the max number of divisors [default = %d]\n",                                  pPars->nDivMax );
+    Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (2 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
+    Abc_Print( -2, "\t-W <num> : the max number of nodes in the window (1 <= num) [default = %d]\n",            pPars->nWinNodeMax );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n",                pPars->nFanoutMax );
     Abc_Print( -2, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );

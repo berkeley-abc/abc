@@ -42,8 +42,7 @@ struct Acb_Par_t_
     int             nTfoLevMax;    // the maximum fanout levels
     int             nTfiLevMax;    // the maximum fanin levels
     int             nFanoutMax;    // the maximum number of fanouts
-    int             nDivMax;       // the maximum divisor count
-    int             nTabooMax;     // the minimum MFFC size
+    int             nWinNodeMax;   // the maximum number of nodes in the window
     int             nGrowthLevel;  // the maximum allowed growth in level
     int             nBTLimit;      // the maximum number of conflicts in one SAT run
     int             nNodesMax;     // the maximum number of nodes to try

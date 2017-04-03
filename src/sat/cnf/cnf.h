@@ -156,7 +156,7 @@ extern Cnf_Dat_t *     Cnf_DataAlloc( Aig_Man_t * pAig, int nVars, int nClauses,
 extern Cnf_Dat_t *     Cnf_DataDup( Cnf_Dat_t * p );
 extern void            Cnf_DataFree( Cnf_Dat_t * p );
 extern void            Cnf_DataLift( Cnf_Dat_t * p, int nVarsPlus );
-extern Vec_Int_t *     Cnf_DataCollectFlipLits( Cnf_Dat_t * p, int iFlipVar );
+extern void            Cnf_DataCollectFlipLits( Cnf_Dat_t * p, int iFlipVar, Vec_Int_t * vFlips );
 extern void            Cnf_DataLiftAndFlipLits( Cnf_Dat_t * p, int nVarsPlus, Vec_Int_t * vLits );
 extern void            Cnf_DataPrint( Cnf_Dat_t * p, int fReadable );
 extern void            Cnf_DataWriteIntoFile( Cnf_Dat_t * p, char * pFileName, int fReadable, Vec_Int_t * vForAlls, Vec_Int_t * vExists );
