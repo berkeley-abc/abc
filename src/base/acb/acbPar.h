@@ -46,6 +46,7 @@ struct Acb_Par_t_
     int             nGrowthLevel;  // the maximum allowed growth in level
     int             nBTLimit;      // the maximum number of conflicts in one SAT run
     int             nNodesMax;     // the maximum number of nodes to try
+    int             fUseAshen;     // user Ashenhurst decomposition
     int             iNodeOne;      // one particular node to try
     int             fArea;         // performs optimization for area
     int             fMoreEffort;   // performs high-affort minimization

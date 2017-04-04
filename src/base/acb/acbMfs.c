@@ -430,15 +430,15 @@ void Acb_NtkPrintVec( Acb_Ntk_t * p, Vec_Int_t * vVec, char * pName )
     int i;
     printf( "%s: ", pName );
     for ( i = 0; i < vVec->nSize; i++ )
-        printf( "%d ", Vec_IntEntry(&p->vArray2, vVec->pArray[i]) );
+        printf( "%d ", vVec->pArray[i] );
     printf( "\n" );
 }
 void Acb_NtkPrintNode( Acb_Ntk_t * p, int Node )
 {
     int k, iFanin, * pFanins;
-    printf( "Node %d : ", Vec_IntEntry(&p->vArray2, Node) );
+    printf( "Node %d : ", Node );
     Acb_ObjForEachFaninFast( p, Node, pFanins, iFanin, k )
-        printf( "%d ", Vec_IntEntry(&p->vArray2, iFanin) );
+        printf( "%d ", iFanin );
     printf( "\n" );
 }
 void Acb_NtkPrintVec2( Acb_Ntk_t * p, Vec_Int_t * vVec, char * pName )
@@ -579,7 +579,6 @@ void Acb_ObjMarkTfo2( Acb_Ntk_t * p, Vec_Int_t * vMarked )
 int Acb_ObjLabelTfo_rec( Acb_Ntk_t * p, int iObj, int nTfoLevMax, int nFanMax, int fFirst )
 {
     int iFanout, i, Diff, fHasNone = 0;
-//printf( "Visiting %d\n", Vec_IntEntry(&p->vArray2, iObj) );
     if ( (Diff = Acb_ObjTravIdDiff(p, iObj)) <= 2 )
         return Diff;
     Acb_ObjSetTravIdDiff( p, iObj, 2 );
@@ -871,15 +870,15 @@ static inline void Vec_IntRemap( Vec_Int_t * p, Vec_Int_t * vMap )
 static inline void Acb_WinPrint( Acb_Ntk_t * p, Vec_Int_t * vWin, int Pivot, int nDivs )
 {
     int i, Node;
-    printf( "Window for node %d with %d divisors:\n", Vec_IntEntry(&p->vArray2, Pivot), nDivs );
+    printf( "Window for node %d with %d divisors:\n", Pivot, nDivs );
     Vec_IntForEachEntry( vWin, Node, i )
     {
         if ( i == nDivs )
             printf( " | " );
         if ( Abc_Lit2Var(Node) == Pivot )
-            printf( "(%d) ", Vec_IntEntry(&p->vArray2, Pivot) );
+            printf( "(%d) ", Pivot );
         else
-            printf( "%s%d ", Abc_LitIsCompl(Node) ? "*":"", Vec_IntEntry(&p->vArray2, Abc_Lit2Var(Node)) );
+            printf( "%s%d ", Abc_LitIsCompl(Node) ? "*":"", Abc_Lit2Var(Node) );
     }
     printf( "\n" );
 }
@@ -1316,7 +1315,7 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
     p->timeWin  += Abc_Clock() - clk;
     PivotVar = Vec_IntFind( vWin, Abc_Var2Lit(Pivot, 0) );
     if ( p->pPars->fVerbose )
-    printf( "Node %d: Window contains %d objects and %d divisors.  ", Vec_IntEntry(&p->pNtk->vArray2, Pivot), Vec_IntSize(vWin), nDivs );
+    printf( "Node %d: Window contains %d objects and %d divisors.  ", Pivot, Vec_IntSize(vWin), nDivs );
 //    Acb_WinPrint( p->pNtk, vWin, Pivot, nDivs );
 //    Acb_NtkPrintVecWin( p->pNtk, vWin, "Win" );
     if ( Vec_IntSize(vWin) > p->pPars->nWinNodeMax )
@@ -1445,7 +1444,7 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
     }
 
 //#if 0
-    if ( Acb_NtkObjMffcEstimate(p->pNtk, Pivot) >= 2 )// && Pivot != 70 )
+    if ( p->pPars->fUseAshen && Acb_NtkObjMffcEstimate(p->pNtk, Pivot) >= 2 )// && Pivot != 70 )
     {
         p->nTwoNodes++;
         // derive SAT solver
@@ -1614,7 +1613,7 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
         while ( Vec_QueTopPriority(pNtk->vQue) > 0 )
         {
             int iObj = Vec_QuePop(pNtk->vQue);
-            if ( Acb_ObjLevelD(pNtk, iObj) == 1 )
+            if ( !Acb_ObjType(pNtk, iObj) )
                 continue;
             //if ( iObj != 28 )
             //    continue;

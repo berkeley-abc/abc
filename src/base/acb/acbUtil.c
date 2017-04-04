@@ -133,13 +133,14 @@ int Acb_NtkComputeLevelR( Acb_Ntk_t * p, Vec_Int_t * vTfi )
 {
     // it is assumed that vTfi contains CI nodes
     int i, iObj, Level = 0;
-    if ( !Acb_NtkHasObjLevelD( p ) )
-        Acb_NtkCleanObjLevelD( p );
+    if ( !Acb_NtkHasObjLevelR( p ) )
+        Acb_NtkCleanObjLevelR( p );
     Vec_IntForEachEntryReverse( vTfi, iObj, i )
         Acb_ObjComputeLevelR( p, iObj );
     Acb_NtkForEachCi( p, iObj, i )
         Level = Abc_MaxInt( Level, Acb_ObjLevelR(p, iObj) );
-    assert( p->LevelMax == Level );
+//    assert( p->LevelMax == Level );
+    p->LevelMax = Level;
     return Level;
 }
 
@@ -176,16 +177,38 @@ int Acb_ObjComputePathD( Acb_Ntk_t * p, int iObj )
             Path += Acb_ObjPathD(p, iFanin);
     return Acb_ObjSetPathD( p, iObj, Path );
 }
-int Acb_NtkComputePathsD( Acb_Ntk_t * p, Vec_Int_t * vTfo )
+int Acb_NtkComputePathsD( Acb_Ntk_t * p, Vec_Int_t * vTfo, int fReverse )
 {
     int i, iObj, Path = 0;
-    // it is assumed that vTfo contains CO nodes
+    //Vec_IntPrint( vTfo );
+    if ( !Acb_NtkHasObjPathD( p ) )
+        Acb_NtkCleanObjPathD( p );
+    // it is assumed that vTfo contains CI nodes
     //assert( Acb_ObjSlack(p, Vec_IntEntry(vTfo, 0)) );
-    Vec_IntForEachEntryReverse( vTfo, iObj, i )
-        if ( !Acb_ObjSlack(p, iObj) )
-            Acb_ObjComputePathD( p, iObj );
-        else
-            Acb_ObjSetPathD( p, iObj, 0 );
+    if ( fReverse )
+    {
+        Vec_IntForEachEntryReverse( vTfo, iObj, i )
+        {
+            if ( Acb_ObjIsCi(p, iObj) )
+                Acb_ObjSetPathD( p, iObj, Acb_ObjSlack(p, iObj) == 0 );
+            else if ( Acb_ObjSlack(p, iObj) )
+                Acb_ObjSetPathD( p, iObj, 0 );
+            else
+                Acb_ObjComputePathD( p, iObj );
+        }
+    }
+    else
+    {
+        Vec_IntForEachEntry( vTfo, iObj, i )
+        {
+            if ( Acb_ObjIsCi(p, iObj) )
+                Acb_ObjSetPathD( p, iObj, Acb_ObjSlack(p, iObj) == 0 );
+            else if ( Acb_ObjSlack(p, iObj) )
+                Acb_ObjSetPathD( p, iObj, 0 );
+            else
+                Acb_ObjComputePathD( p, iObj );
+        }
+    }
     Acb_NtkForEachCo( p, iObj, i )
         Path += Acb_ObjPathD(p, iObj);
     p->nPaths = Path;
@@ -201,30 +224,69 @@ int Acb_ObjComputePathR( Acb_Ntk_t * p, int iObj )
             Path += Acb_ObjPathR(p, iFanout);
     return Acb_ObjSetPathR( p, iObj, Path );
 }
-int Acb_NtkComputePathsR( Acb_Ntk_t * p, Vec_Int_t * vTfi )
+int Acb_NtkComputePathsR( Acb_Ntk_t * p, Vec_Int_t * vTfi, int fReverse )
 {
     int i, iObj, Path = 0;
-    // it is assumed that vTfi contains CI nodes
+    if ( !Acb_NtkHasObjPathR( p ) )
+        Acb_NtkCleanObjPathR( p );
+    // it is assumed that vTfi contains CO nodes
     //assert( Acb_ObjSlack(p, Vec_IntEntry(vTfi, 0)) );
-    Vec_IntForEachEntryReverse( vTfi, iObj, i )
-        if ( !Acb_ObjSlack(p, iObj) )
-            Acb_ObjComputePathR( p, iObj );
-        else
-            Acb_ObjSetPathR( p, iObj, 0 );
+    if ( fReverse )
+    {
+        Vec_IntForEachEntryReverse( vTfi, iObj, i )
+        {
+            if ( Acb_ObjIsCo(p, iObj) )
+                Acb_ObjSetPathR( p, iObj, Acb_ObjSlack(p, iObj) == 0 );
+            else if ( Acb_ObjSlack(p, iObj) )
+                Acb_ObjSetPathR( p, iObj, 0 );
+            else
+                Acb_ObjComputePathR( p, iObj );
+        }
+    }
+    else
+    {
+        Vec_IntForEachEntry( vTfi, iObj, i )
+        {
+            if ( Acb_ObjIsCo(p, iObj) )
+                Acb_ObjSetPathR( p, iObj, Acb_ObjSlack(p, iObj) == 0 );
+            else if ( Acb_ObjSlack(p, iObj) )
+                Acb_ObjSetPathR( p, iObj, 0 );
+            else
+                Acb_ObjComputePathR( p, iObj );
+        }
+    }
     Acb_NtkForEachCi( p, iObj, i )
         Path += Acb_ObjPathR(p, iObj);
-    assert( p->nPaths == Path );
+//    assert( p->nPaths == Path );
+    p->nPaths = Path;
     return Path;
+}
+
+void Acb_NtkPrintPaths( Acb_Ntk_t * p )
+{
+    int iObj;
+    Acb_NtkForEachObj( p, iObj )
+    {
+        printf( "Obj = %5d : ", iObj );
+        printf( "PathD = %5d  ", Acb_ObjPathD(p, iObj) );
+        printf( "PathR = %5d  ", Acb_ObjPathR(p, iObj) );
+        printf( "Paths = %5d  ", Acb_ObjPathD(p, iObj) + Acb_ObjPathR(p, iObj) );
+        printf( "\n" );
+    }
 }
 
 int Acb_NtkComputePaths( Acb_Ntk_t * p )
 {
+    int LevelD, LevelR;
     Vec_Int_t * vTfi = Acb_ObjCollectTfi( p, -1, 1 );
     Vec_Int_t * vTfo = Acb_ObjCollectTfo( p, -1, 1 );
-    Acb_NtkComputeLevelD( p, vTfi );
-    Acb_NtkComputeLevelR( p, vTfo );
-    Acb_NtkComputePathsD( p, vTfi );
-    Acb_NtkComputePathsR( p, vTfo );
+    Acb_NtkComputeLevelD( p, vTfo );
+    LevelD = p->LevelMax;
+    Acb_NtkComputeLevelR( p, vTfi );
+    LevelR = p->LevelMax;
+    assert( LevelD == LevelR );
+    Acb_NtkComputePathsD( p, vTfo, 1 );
+    Acb_NtkComputePathsR( p, vTfi, 1 );
     return p->nPaths;
 }
 void Abc_NtkComputePaths( Abc_Ntk_t * p )
@@ -232,7 +294,9 @@ void Abc_NtkComputePaths( Abc_Ntk_t * p )
     extern Acb_Ntk_t * Acb_NtkFromAbc( Abc_Ntk_t * p );
     Acb_Ntk_t * pNtk = Acb_NtkFromAbc( p );
     Acb_NtkCreateFanout( pNtk );
+    Acb_NtkCleanObjCounts( pNtk );
     printf( "Computed %d paths.\n", Acb_NtkComputePaths(pNtk) );
+    Acb_NtkPrintPaths( pNtk );
     Acb_ManFree( pNtk->pDesign );
 }
 
@@ -251,6 +315,8 @@ void Abc_NtkComputePaths( Abc_Ntk_t * p )
 void Acb_ObjUpdatePriority( Acb_Ntk_t * p, int iObj )
 {
     int nPaths;
+    if ( Acb_ObjIsCio(p, iObj) || Acb_ObjLevelD(p, iObj) == 1 )
+        return;
     if ( p->vQue == NULL )
     {
         Acb_NtkCleanObjCounts( p );
@@ -258,35 +324,63 @@ void Acb_ObjUpdatePriority( Acb_Ntk_t * p, int iObj )
         Vec_QueSetPriority( p->vQue, Vec_FltArrayP(&p->vCounts) );
     }
     nPaths = Acb_ObjPathD(p, iObj) + Acb_ObjPathR(p, iObj);
-    if ( nPaths == 0 )
-        return;
     Acb_ObjSetCounts( p, iObj, (float)nPaths );
     if ( Vec_QueIsMember( p->vQue, iObj ) )
+    {
+//printf( "Updating object %d with count %d\n", iObj, nPaths );
         Vec_QueUpdate( p->vQue, iObj );
-    else
+    }
+    else if ( nPaths )
+    {
+//printf( "Adding object %d with count %d\n", iObj, nPaths );
         Vec_QuePush( p->vQue, iObj );
+    }
 }
 void Acb_NtkUpdateTiming( Acb_Ntk_t * p, int iObj )
 {
     int i, Entry, LevelMax = p->LevelMax;
-    // assuming that level of the new nodes is up to date
+    int LevelD, LevelR, nPaths1, nPaths2;
+    // assuming that direct level of the new nodes (including iObj) is up to date
     Vec_Int_t * vTfi = Acb_ObjCollectTfi( p, iObj, 1 );
     Vec_Int_t * vTfo = Acb_ObjCollectTfo( p, iObj, 1 );
+    if ( iObj > 0 )
+    {
+        assert( Vec_IntEntryLast(vTfi) == iObj );
+        assert( Vec_IntEntryLast(vTfo) == iObj );
+        Vec_IntPop( vTfo );
+    }
     Acb_NtkComputeLevelD( p, vTfo );
+    LevelD = p->LevelMax;
     Acb_NtkComputeLevelR( p, vTfi );
+    LevelR = p->LevelMax;
+    assert( LevelD == LevelR );
     if ( iObj > 0 && LevelMax > p->LevelMax ) // reduced level
     {
+        iObj = -1;
         vTfi = Acb_ObjCollectTfi( p, -1, 1 );
         vTfo = Acb_ObjCollectTfo( p, -1, 1 );   
         Vec_QueClear( p->vQue );
         // add backup here
     }
-    Acb_NtkComputePathsD( p, vTfo );
-    Acb_NtkComputePathsR( p, vTfi );
+    if ( iObj > 0 )
+    Acb_NtkComputePathsD( p, vTfi, 0 );
+    Acb_NtkComputePathsD( p, vTfo, 1 );
+    nPaths1 = p->nPaths;
+    if ( iObj > 0 )
+    Acb_NtkComputePathsR( p, vTfo, 0 );
+    Acb_NtkComputePathsR( p, vTfi, 1 );
+    nPaths2 = p->nPaths;
+    assert( nPaths1 == nPaths2 );
     Vec_IntForEachEntry( vTfi, Entry, i )
         Acb_ObjUpdatePriority( p, Entry );
+    if ( iObj > 0 )
     Vec_IntForEachEntry( vTfo, Entry, i )
         Acb_ObjUpdatePriority( p, Entry );
+
+//    printf( "Updating timing for object %d.\n", iObj );
+//    Acb_NtkPrintPaths( p );
+//    while ( (Entry = (int)Vec_QueTopPriority(p->vQue)) > 0 )
+//        printf( "Obj = %5d : Prio = %d.\n", Vec_QuePop(p->vQue), Entry );
 }
 
 /**Function*************************************************************
@@ -341,6 +435,7 @@ void Acb_NtkResetNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp 
 void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp )
 {
     Acb_NtkResetNode( p, Pivot, uTruth, vSupp );
+    Acb_ObjComputeLevelD( p, Pivot );
     if ( p->vQue == NULL )
         Acb_NtkUpdateLevelD( p, Pivot );
     else

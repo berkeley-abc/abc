@@ -5676,7 +5676,7 @@ int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
     Acb_Par_t Pars, * pPars = &Pars; int c;
     Acb_ParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IOWFLCavwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOWFLCadvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5749,6 +5749,9 @@ int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fArea ^= 1;
             break;
+        case 'd':
+            pPars->fUseAshen ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -5788,7 +5791,7 @@ int Abc_CommandMfse( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfse [-IOWFLC <num>] [-avwh]\n" );
+    Abc_Print( -2, "usage: mfse [-IOWFLC <num>] [-advwh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
     Abc_Print( -2, "\t-I <num> : the number of levels in the TFI cone (2 <= num) [default = %d]\n",             pPars->nTfiLevMax );
     Abc_Print( -2, "\t-O <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n",             pPars->nTfoLevMax );
@@ -5797,6 +5800,7 @@ usage:
     Abc_Print( -2, "\t-L <num> : the max increase in node level after resynthesis (0 <= num) [default = %d]\n", pPars->nGrowthLevel );
     Abc_Print( -2, "\t-C <num> : the max number of conflicts in one SAT run (0 = no limit) [default = %d]\n",   pPars->nBTLimit );
     Abc_Print( -2, "\t-a       : toggle minimizing area [default = %s]\n",                                      pPars->fArea? "area": "delay" );
+    Abc_Print( -2, "\t-d       : toggle using Ashenhurst decomposition [default = %s]\n",                       pPars->fUseAshen? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
@@ -12380,6 +12384,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        extern void Cba_PrsReadBlifTest();
 //        Cba_PrsReadBlifTest();
     }
+    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
