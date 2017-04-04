@@ -31,7 +31,9 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline int Acb_ObjIsCritFanin( Acb_Ntk_t * p, int i, int f )  { return !Acb_ObjIsCi(p, f) && Acb_ObjLevelR(p, i) + Acb_ObjLevelD(p, f) == p->LevelMax; }
+static inline int Acb_ObjIsDelayCriticalFanin( Acb_Ntk_t * p, int i, int f )  { return !Acb_ObjIsCi(p, f) && Acb_ObjLevelR(p, i) + Acb_ObjLevelD(p, f) == p->LevelMax; }
+static inline int Acb_ObjIsAreaCritical( Acb_Ntk_t * p, int f )               { return !Acb_ObjIsCi(p, f) && Acb_ObjFanoutNum(p, f) == 1;                              }
+static inline int Acb_ObjIsCritical( Acb_Ntk_t * p, int i, int f, int fDel )  { return fDel ? Acb_ObjIsDelayCriticalFanin(p, i, f) : Acb_ObjIsAreaCritical(p, f);      }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -87,10 +89,22 @@ int Acb_DeriveCnfFromTruth( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t
         return nCubes;
     }
 }
+
+void Acb_DeriveCnfForWindowOne( Acb_Ntk_t * p, int iObj )
+{
+    Vec_Wec_t * vCnfs = &p->vCnfs;
+    Vec_Str_t * vCnfBase = Acb_ObjCnfs( p, iObj );
+    assert( Vec_StrSize(vCnfBase) == 0 ); // unassigned
+    assert( Vec_WecSize(vCnfs) == Acb_NtkObjNumMax(p) );
+    Acb_DeriveCnfFromTruth( Acb_ObjTruth(p, iObj), Acb_ObjFaninNum(p, iObj), &p->vCover, &p->vCnf );
+    Vec_StrGrow( vCnfBase, Vec_StrSize(&p->vCnf) );
+    memcpy( Vec_StrArray(vCnfBase), Vec_StrArray(&p->vCnf), Vec_StrSize(&p->vCnf) );
+    vCnfBase->nSize = Vec_StrSize(&p->vCnf);
+}
 Vec_Wec_t * Acb_DeriveCnfForWindow( Acb_Ntk_t * p, Vec_Int_t * vWin, int PivotVar )
 {
     Vec_Wec_t * vCnfs = &p->vCnfs;
-    Vec_Str_t * vCnfBase, * vCnf = NULL; int i, iObj;
+    Vec_Str_t * vCnfBase; int i, iObj;
     assert( Vec_WecSize(vCnfs) == Acb_NtkObjNumMax(p) );
     Vec_IntForEachEntry( vWin, iObj, i )
     {
@@ -100,14 +114,8 @@ Vec_Wec_t * Acb_DeriveCnfForWindow( Acb_Ntk_t * p, Vec_Int_t * vWin, int PivotVa
         vCnfBase = Acb_ObjCnfs( p, iObj );
         if ( Vec_StrSize(vCnfBase) > 0 )
             continue;
-        if ( vCnf == NULL )
-            vCnf = Vec_StrAlloc( 1000 );
-        Acb_DeriveCnfFromTruth( Acb_ObjTruth(p, iObj), Acb_ObjFaninNum(p, iObj), &p->vCover, vCnf );
-        Vec_StrGrow( vCnfBase, Vec_StrSize(vCnf) );
-        memcpy( Vec_StrArray(vCnfBase), Vec_StrArray(vCnf), Vec_StrSize(vCnf) );
-        vCnfBase->nSize = Vec_StrSize(vCnf);
+        Acb_DeriveCnfForWindowOne( p, iObj );
     }
-    Vec_StrFreeP( &vCnf );
     return vCnfs;
 }
 
@@ -150,6 +158,34 @@ int Acb_NtkCountRoots( Vec_Int_t * vWinObjs, int PivotVar )
     Vec_IntForEachEntryStart( vWinObjs, iObjLit, i, PivotVar + 1 )
         nRoots += Abc_LitIsCompl(iObjLit);
     return nRoots;
+}
+void Acb_DeriveCnfForNode( Acb_Ntk_t * p, int iObj, sat_solver * pSat, int OutVar )
+{
+    Vec_Wec_t * vCnfs = &p->vCnfs;
+    Vec_Int_t * vFaninVars = &p->vCover;
+    Vec_Int_t * vClas = Vec_IntAlloc( 100 );
+    Vec_Int_t * vLits = Vec_IntAlloc( 100 );
+    int k, iFanin, * pFanins, Prev, This;
+    // collect SAT variables
+    Vec_IntClear( vFaninVars );
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
+    {
+        assert( Acb_ObjFunc(p, iFanin) >= 0 );
+        Vec_IntPush( vFaninVars, Acb_ObjFunc(p, iFanin) );
+    }
+    Vec_IntPush( vFaninVars, OutVar );
+    // derive CNF for the node
+    Acb_TranslateCnf( vClas, vLits, (Vec_Str_t *)Vec_WecEntry(vCnfs, iObj), vFaninVars, -1 );
+    // add clauses
+    Prev = 0;
+    Vec_IntForEachEntry( vClas, This, k )
+    {
+        if ( !sat_solver_addclause( pSat, Vec_IntArray(vLits) + Prev, Vec_IntArray(vLits) + This ) )
+            printf( "Error: SAT solver became UNSAT at a wrong place (while adding new CNF).\n" );
+        Prev = This;
+    }
+    Vec_IntFree( vClas );
+    Vec_IntFree( vLits );
 }
 Cnf_Dat_t * Acb_NtkWindow2Cnf( Acb_Ntk_t * p, Vec_Int_t * vWinObjs, int Pivot )
 {
@@ -265,7 +301,7 @@ int Acb_NtkWindow2Solver( sat_solver * pSat, Cnf_Dat_t * pCnf, Vec_Int_t * vFlip
     int nGroups = nTimes <= 2 ? nTimes-1 : 2;
     int nRounds = nTimes <= 2 ? nTimes-1 : nTimes;
     assert( sat_solver_nvars(pSat) == 0 );
-    sat_solver_setnvars( pSat, nTimes * pCnf->nVars + nGroups * nDivs + 1 );
+    sat_solver_setnvars( pSat, nTimes * pCnf->nVars + nGroups * nDivs + 2 );
     assert( nTimes == 1 || nTimes == 2 || nTimes == 6 );
     for ( n = 0; n < nTimes; n++ )
     {
@@ -308,14 +344,17 @@ int Acb_NtkWindow2Solver( sat_solver * pSat, Cnf_Dat_t * pCnf, Vec_Int_t * vFlip
   SeeAlso     []
 
 ***********************************************************************/
-word Acb_ComputeFunction( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivVars )
+word Acb_ComputeFunction( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_t * vDivVars, int fCompl )
 {
     int fExpand = 0;
     word uCube, uTruth = 0;
     Vec_Int_t * vTempLits = Vec_IntAlloc( 100 );
     int status, i, iVar, iLit, nFinal, * pFinal, pLits[2];
     assert( FreeVar < sat_solver_nvars(pSat) );
-    pLits[0] = Abc_Var2Lit( PivotVar, 0 ); // F = 1
+//    if ( fCompl )
+//        pLits[0] = Abc_Var2Lit( sat_solver_nvars(pSat)-2, 0 ); // F = 1
+//    else
+        pLits[0] = Abc_Var2Lit( PivotVar, fCompl ); // F = 1
     pLits[1] = Abc_Var2Lit( FreeVar, 0 );  // iNewLit
     while ( 1 ) 
     {
@@ -366,6 +405,7 @@ word Acb_ComputeFunction( sat_solver * pSat, int PivotVar, int FreeVar, Vec_Int_
             return uTruth;
         }
     }
+    Vec_IntFree( vTempLits );
     assert( 0 ); 
     return ~(word)0;
 }
@@ -451,11 +491,11 @@ Vec_Int_t * Acb_NtkDivisors( Acb_Ntk_t * p, int Pivot, int nTfiLevMin, int fDela
         // start from critical fanins
         assert( Acb_ObjLevelD( p, Pivot ) > 1 );
         Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
-            if ( Acb_ObjIsCritFanin( p, Pivot, iFanin ) )
+            if ( Acb_ObjIsDelayCriticalFanin( p, Pivot, iFanin ) )
                 Acb_NtkDivisors_rec( p, iFanin, nTfiLevMin, vDivs );
         // add non-critical fanins
         Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
-            if ( !Acb_ObjIsCritFanin( p, Pivot, iFanin ) )
+            if ( !Acb_ObjIsDelayCriticalFanin( p, Pivot, iFanin ) )
                 if ( !Acb_ObjSetTravIdCur(p, iFanin) )
                     Vec_IntPush( vDivs, iFanin );
     }
@@ -468,6 +508,18 @@ Vec_Int_t * Acb_NtkDivisors( Acb_Ntk_t * p, int Pivot, int nTfiLevMin, int fDela
         Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
             if ( !Acb_ObjSetTravIdCur(p, iFanin) )
                 Vec_IntPush( vDivs, iFanin );
+/*
+        // start from critical fanins
+        assert( Acb_ObjLevelD( p, Pivot ) > 1 );
+        Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
+            if ( Acb_ObjIsAreaCritical( p, iFanin ) )
+                Acb_NtkDivisors_rec( p, iFanin, nTfiLevMin, vDivs );
+        // add non-critical fanins
+        Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
+            if ( !Acb_ObjIsAreaCritical( p, iFanin ) )
+                if ( !Acb_ObjSetTravIdCur(p, iFanin) )
+                    Vec_IntPush( vDivs, iFanin );
+*/
     }
     return vDivs;
 }
@@ -483,23 +535,34 @@ Vec_Int_t * Acb_NtkDivisors( Acb_Ntk_t * p, int Pivot, int nTfiLevMin, int fDela
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_ObjMarkTfo_rec( Acb_Ntk_t * p, int iObj, int nTfoLevMax, int nFanMax )
+void Acb_ObjMarkTfo_rec( Acb_Ntk_t * p, int iObj, int nTfoLevMax, int nFanMax, Vec_Int_t * vMarked )
 {
     int iFanout, i;
     if ( Acb_ObjSetTravIdCur(p, iObj) )
         return;
+    Vec_IntPush( vMarked, iObj );
     if ( Acb_ObjLevelD(p, iObj) > nTfoLevMax || Acb_ObjFanoutNum(p, iObj) > nFanMax )
         return;
     Acb_ObjForEachFanout( p, iObj, iFanout, i )
-        Acb_ObjMarkTfo_rec( p, iFanout, nTfoLevMax, nFanMax );
+        Acb_ObjMarkTfo_rec( p, iFanout, nTfoLevMax, nFanMax, vMarked );
 }
-void Acb_ObjMarkTfo( Acb_Ntk_t * p, Vec_Int_t * vDivs, int Pivot, int nTfoLevMax, int nFanMax )
+Vec_Int_t * Acb_ObjMarkTfo( Acb_Ntk_t * p, Vec_Int_t * vDivs, int Pivot, int nTfoLevMax, int nFanMax )
 {
+    Vec_Int_t * vMarked = Vec_IntAlloc( 1000 );
     int i, iObj;
     Acb_NtkIncTravId( p );
     Acb_ObjSetTravIdCur( p, Pivot );
+    Vec_IntPush( vMarked, Pivot );
     Vec_IntForEachEntry( vDivs, iObj, i )
-        Acb_ObjMarkTfo_rec( p, iObj, nTfoLevMax, nFanMax );
+        Acb_ObjMarkTfo_rec( p, iObj, nTfoLevMax, nFanMax, vMarked );
+    return vMarked;
+}
+void Acb_ObjMarkTfo2( Acb_Ntk_t * p, Vec_Int_t * vMarked )
+{
+    int i, Node;
+    Acb_NtkIncTravId( p );
+    Vec_IntForEachEntry( vMarked, Node, i )
+        Acb_ObjSetTravIdCur( p, Node );
 }
 
 /**Function*************************************************************
@@ -529,7 +592,7 @@ int Acb_ObjLabelTfo_rec( Acb_Ntk_t * p, int iObj, int nTfoLevMax, int nFanMax, i
         return Acb_ObjTravIdDiff(p, iObj);
     }
     Acb_ObjForEachFanout( p, iObj, iFanout, i )
-        if ( !fFirst || Acb_ObjIsCritFanin(p, iFanout, iObj) )
+        if ( !fFirst || Acb_ObjIsDelayCriticalFanin(p, iFanout, iObj) )
             fHasNone |= 2 == Acb_ObjLabelTfo_rec( p, iFanout, nTfoLevMax, nFanMax, 0 );
     if ( fHasNone && Diff == 3 )  // belongs to TFO of TFI
         Acb_ObjSetTravIdDiff( p, iObj, 1 ); // root
@@ -570,7 +633,7 @@ void Acb_ObjDeriveTfo_rec( Acb_Ntk_t * p, int iObj, Vec_Int_t * vTfo, Vec_Int_t 
     }
     assert( Diff == 1 );
     Acb_ObjForEachFanout( p, iObj, iFanout, i )
-        if ( !fFirst || Acb_ObjIsCritFanin(p, iFanout, iObj) )
+        if ( !fFirst || Acb_ObjIsDelayCriticalFanin(p, iFanout, iObj) )
             Acb_ObjDeriveTfo_rec( p, iFanout, vTfo, vRoots, 0 );
     Vec_IntPush( vTfo, iObj );
 }
@@ -736,12 +799,12 @@ Vec_Int_t * Acb_NtkWindow( Acb_Ntk_t * p, int Pivot, int nTfiLevs, int nTfoLevs,
     int fVerbose = 0;
     //int nTfiLevMin = Acb_ObjLevelD(p, Pivot) - nTfiLevs;
     int nTfoLevMax = Acb_ObjLevelD(p, Pivot) + nTfoLevs;
-    Vec_Int_t * vWin, * vDivs, * vTfo, * vRoots, * vSide, * vTfi;
+    Vec_Int_t * vWin, * vDivs, * vMarked, * vTfo, * vRoots, * vSide, * vTfi;
     // collect divisors by traversing limited TFI
     vDivs = Acb_NtkDivisors( p, Pivot, nTfiLevs, fDelay );
     if ( fVerbose ) Acb_NtkPrintVec( p, vDivs, "vDivs" );
     // mark limited TFO of the divisors
-    Acb_ObjMarkTfo( p, vDivs, Pivot, nTfoLevMax, nFanMax );
+    vMarked = Acb_ObjMarkTfo( p, vDivs, Pivot, nTfoLevMax, nFanMax );
     // collect TFO and roots
     Acb_ObjDeriveTfo( p, Pivot, nTfoLevMax, nFanMax, &vTfo, &vRoots, fDelay );
     if ( fVerbose ) Acb_NtkPrintVec( p, vTfo, "vTfo" );
@@ -750,7 +813,9 @@ Vec_Int_t * Acb_NtkWindow( Acb_Ntk_t * p, int Pivot, int nTfiLevs, int nTfoLevs,
     vSide = Acb_NtkCollectTfoSideInputs( p, Pivot, vTfo );
     if ( fVerbose ) Acb_NtkPrintVec( p, vSide, "vSide" );
     // mark limited TFO of the divisors
-    Acb_ObjMarkTfo( p, vDivs, Pivot, nTfoLevMax, nFanMax );
+    //Acb_ObjMarkTfo( p, vDivs, Pivot, nTfoLevMax, nFanMax );
+    Acb_ObjMarkTfo2( p, vMarked );
+    Vec_IntFree( vMarked );
     // collect new TFI
     vTfi = Acb_NtkCollectNewTfi( p, Pivot, vDivs, vSide, pnDivs );
     if ( fVerbose ) Acb_NtkPrintVec( p, vTfi, "vTfi" );
@@ -803,7 +868,7 @@ static inline void Vec_IntRemap( Vec_Int_t * p, Vec_Int_t * vMap )
         p->pArray[i] = Vec_IntEntry(vMap, p->pArray[i]);
 }
 
-void Acb_WinPrint( Acb_Ntk_t * p, Vec_Int_t * vWin, int Pivot, int nDivs )
+static inline void Acb_WinPrint( Acb_Ntk_t * p, Vec_Int_t * vWin, int Pivot, int nDivs )
 {
     int i, Node;
     printf( "Window for node %d with %d divisors:\n", Vec_IntEntry(&p->vArray2, Pivot), nDivs );
@@ -819,6 +884,30 @@ void Acb_WinPrint( Acb_Ntk_t * p, Vec_Int_t * vWin, int Pivot, int nDivs )
     printf( "\n" );
 }
 
+static inline void Acb_NtkOrderByRefCount( Acb_Ntk_t * p, Vec_Int_t * vSupp )
+{
+    int i, j, best_i, nSize = Vec_IntSize(vSupp);
+    int * pArray = Vec_IntArray(vSupp);
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( Acb_ObjFanoutNum(p, pArray[j]) > Acb_ObjFanoutNum(p, pArray[best_i]) )
+                best_i = j;
+        ABC_SWAP( int, pArray[i], pArray[best_i] );
+    }
+}
+
+static inline void Acb_NtkRemapIntoSatVariables( Acb_Ntk_t * p, Vec_Int_t * vSupp )
+{
+    int k, iFanin;
+    Vec_IntForEachEntry( vSupp, iFanin, k )
+    {
+        assert( Acb_ObjFunc(p, iFanin) >= 0 );
+        Vec_IntWriteEntry( vSupp, k, Acb_ObjFunc(p, iFanin) );
+    }
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -830,51 +919,14 @@ void Acb_WinPrint( Acb_Ntk_t * p, Vec_Int_t * vWin, int Pivot, int nDivs )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkReorderFanins( Acb_Ntk_t * p, int Pivot, Vec_Int_t * vSupp, int nDivs, Vec_Int_t * vWin )
-{
-    Vec_Int_t * vDivs = &p->vCover;
-    int * pArrayS = Vec_IntArray( vSupp );
-    int * pArrayD = NULL;
-    int k, j, iFanin, * pFanins, iThis = 0, iThat = -1;
-    // collect divisors
-    Vec_IntClear( vDivs );
-    for ( k = nDivs - 1; k >= 0; k-- )
-        Vec_IntPush( vDivs, Abc_Lit2Var(Vec_IntEntry(vWin, k)) );
-    pArrayD = Vec_IntArray( vDivs );
-    // reorder divisors
-    //Vec_IntPrint( vSupp );
-    Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
-        if ( (iThat = Vec_IntFind(vDivs, iFanin)) >= 0 )
-        {
-            assert( iThis <= iThat );
-            for ( j = iThat; j > iThis; j-- )
-            {
-                ABC_SWAP( int, pArrayS[j], pArrayS[j-1] );
-                ABC_SWAP( int, pArrayD[j], pArrayD[j-1] );
-            }
-            iThis++;
-        }
-    return;
-    Vec_IntPrint( vSupp );
-    Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
-        printf( "%d ", iFanin );
-    printf( "    " );
-    Vec_IntForEachEntryStop( vSupp, iThat, k, Acb_ObjFaninNum(p, Pivot) )
-        printf( "%d ", Abc_Lit2Var(Vec_IntEntry(vWin, iThat)) );
-    printf( "\n" );
-}
-
 int Acb_NtkFindSupp1( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, int nDivs, Vec_Int_t * vWin, Vec_Int_t * vSupp )
 {
     int nSuppNew, status, k, iFanin, * pFanins;
     Vec_IntClear( vSupp );
     Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
-    {
-        int iVar = Acb_ObjFunc(p, iFanin);
-        assert( iVar >= 0 && iVar < nDivs );
-        Vec_IntPush( vSupp, iVar );
-    }
-    //Acb_NtkReorderFanins( p, Pivot, vSupp, nDivs, vWin );
+        Vec_IntPush( vSupp, iFanin );
+    Acb_NtkOrderByRefCount( p, vSupp );
+    Acb_NtkRemapIntoSatVariables( p, vSupp );
     Vec_IntVars2Lits( vSupp, 2*nVars, 0 );
     status = sat_solver_solve( pSat, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0, 0, 0, 0 );
     if ( status != l_False )
@@ -896,16 +948,16 @@ int Acb_NtkFindSupp2( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
     if ( fDelay )
     {
         // add non-timing-critical fanins
-        int nNonCrits, k2, iFanin2, * pFanins2;
+        int nNonCrits, k2, iFanin2 = 0, * pFanins2;
         assert( Acb_ObjLevelD( p, Pivot ) > 1 );
         Vec_IntClear( vSupp );
         Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
-            if ( !Acb_ObjIsCritFanin( p, Pivot, iFanin ) )
+            if ( !Acb_ObjIsDelayCriticalFanin( p, Pivot, iFanin ) )
                 Vec_IntPush( vSupp, iFanin );
         nNonCrits = Vec_IntSize(vSupp);
         // add fanins of timing critical fanins
         Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
-            if ( Acb_ObjIsCritFanin( p, Pivot, iFanin ) )
+            if ( Acb_ObjIsDelayCriticalFanin( p, Pivot, iFanin ) )
                 Acb_ObjForEachFaninFast( p, iFanin, pFanins2, iFanin2, k2 )
                     Vec_IntPushUnique( vSupp, iFanin2 );
         assert( nNonCrits < Vec_IntSize(vSupp) );
@@ -914,7 +966,7 @@ int Acb_NtkFindSupp2( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
         // translate to SAT vars
         Vec_IntForEachEntry( vSupp, iFanin, k )
         {
-            assert( Acb_ObjFunc(p, iFanin2) >= 0 );
+            assert( Acb_ObjFunc(p, iFanin) >= 0 );
             Vec_IntWriteEntry( vSupp, k, Acb_ObjFunc(p, iFanin) );
         }
         // solve for these fanins
@@ -931,24 +983,20 @@ int Acb_NtkFindSupp2( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
     // iterate through different fanout free cones
     Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
     {
-        if ( Acb_ObjIsCi(p, iFanin) || Acb_ObjFanoutNum(p, iFanin) != 1 )
+        if ( !Acb_ObjIsAreaCritical(p, iFanin) )
             continue;
         // collect fanins of the root node
         Vec_IntClear( vSupp );
         Acb_ObjForEachFaninFast( p, Pivot, pFanins2, iFanin2, k2 )
             if ( iFanin != iFanin2 )
                 Vec_IntPush( vSupp, iFanin2 );
-        // collect fanins fo the selected node
+        // collect fanins of the selected node
         Acb_ObjForEachFaninFast( p, iFanin, pFanins2, iFanin2, k2 )
             Vec_IntPushUnique( vSupp, iFanin2 );
         // sort fanins by level
         Vec_IntSelectSortCost( Vec_IntArray(vSupp), Vec_IntSize(vSupp), &p->vLevelD );
-        // translate to SAT vars
-        Vec_IntForEachEntry( vSupp, iFanin2, k2 )
-        {
-            assert( Acb_ObjFunc(p, iFanin2) >= 0 );
-            Vec_IntWriteEntry( vSupp, k2, Acb_ObjFunc(p, iFanin2) );
-        }
+        //Acb_NtkOrderByRefCount( p, vSupp );
+        Acb_NtkRemapIntoSatVariables( p, vSupp );
         // solve for these fanins
         Vec_IntVars2Lits( vSupp, 2*nVars, 0 );
         status = sat_solver_solve( pSat, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0, 0, 0, 0 );
@@ -974,11 +1022,11 @@ int Acb_NtkFindSupp3( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
     // iterate through pairs of fanins with one fanouts
     Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
     {
-        if ( Acb_ObjIsCi(p, iFanin) || Acb_ObjFanoutNum(p, iFanin) != 1 )
+        if ( !Acb_ObjIsAreaCritical(p, iFanin) )
             continue;
         Acb_ObjForEachFaninFast( p, Pivot, pFanins2, iFanin2, k2 )
         {
-            if ( Acb_ObjIsCi(p, iFanin2) || Acb_ObjFanoutNum(p, iFanin2) != 1 || k2 == k )
+            if ( !Acb_ObjIsAreaCritical(p, iFanin2) || k2 == k )
                 continue;
             // iFanin and iFanin2 have 1 fanout
             assert( iFanin != iFanin2 );
@@ -1017,15 +1065,20 @@ int Acb_NtkFindSupp3( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
             nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
             Vec_IntShrink( vSupp, nSuppNew );
             Vec_IntLits2Vars( vSupp, -6*nVars );
-            Vec_IntSort( vSupp, 0 );
+            Vec_IntSort( vSupp, 1 );
             // count how many belong to H; the rest belong to G
             NodeMark = 0;
             Vec_IntForEachEntry( vSupp, iFanin3, k3 )
-                if ( iFanin3 < nDivs )
-                    NodeMark++;
-                else 
+                if ( iFanin3 >= nDivs )
                     Vec_IntWriteEntry( vSupp, k3, iFanin3 - nDivs );
-            //assert( NodeMark > 0 );
+                else 
+                    NodeMark++;
+            if ( NodeMark == 0 )
+            {
+                //printf( "Obj %d: Special case 1 (vars = %d)\n", Pivot, Vec_IntSize(vSupp) );
+                continue;
+            }
+            assert( NodeMark > 0 );
             if ( Vec_IntSize(vSupp) - NodeMark <= nLutSize )
                 return NodeMark;
         }
@@ -1034,11 +1087,11 @@ int Acb_NtkFindSupp3( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
     // iterate through fanins with one fanout and their fanins with one fanout
     Acb_ObjForEachFaninFast( p, Pivot, pFanins, iFanin, k )
     {
-        if ( Acb_ObjIsCi(p, iFanin) || Acb_ObjFanoutNum(p, iFanin) != 1 )
+        if ( !Acb_ObjIsAreaCritical(p, iFanin) )
             continue;
         Acb_ObjForEachFaninFast( p, iFanin, pFanins2, iFanin2, k2 )
         {
-            if ( Acb_ObjIsCi(p, iFanin2) || Acb_ObjFanoutNum(p, iFanin2) != 1 )
+            if ( !Acb_ObjIsAreaCritical(p, iFanin2) )
                 continue;
             // iFanin and iFanin2 have 1 fanout
             assert( iFanin != iFanin2 );
@@ -1064,7 +1117,6 @@ int Acb_NtkFindSupp3( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
 
             // sort fanins by level
             //Vec_IntSelectSortCost( Vec_IntArray(vSupp) + NodeMark, Vec_IntSize(vSupp) - NodeMark, &p->vLevelD );
-
             //Sat_SolverWriteDimacs( pSat, NULL, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0 );
             // solve for these fanins
             status = sat_solver_solve( pSat, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0, 0, 0, 0 );
@@ -1074,15 +1126,19 @@ int Acb_NtkFindSupp3( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
             nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
             Vec_IntShrink( vSupp, nSuppNew );
             Vec_IntLits2Vars( vSupp, -6*nVars );
-            // sort by size
-            Vec_IntSort( vSupp, 0 );
+            Vec_IntSort( vSupp, 1 );
             // count how many belong to H; the rest belong to G
             NodeMark = 0;
             Vec_IntForEachEntry( vSupp, iFanin3, k3 )
-                if ( iFanin3 < nDivs )
-                    NodeMark++;
-                else 
+                if ( iFanin3 >= nDivs )
                     Vec_IntWriteEntry( vSupp, k3, iFanin3 - nDivs );
+                else 
+                    NodeMark++;
+            if ( NodeMark == 0 )
+            {
+                //printf( "Obj %d: Special case 2 (vars = %d)\n", Pivot, Vec_IntSize(vSupp) );
+                continue;
+            }
             assert( NodeMark > 0 );
             if ( Vec_IntSize(vSupp) - NodeMark <= nLutSize )
                 return NodeMark;
@@ -1091,7 +1147,6 @@ int Acb_NtkFindSupp3( Acb_Ntk_t * p, int Pivot, sat_solver * pSat, int nVars, in
 
     return 0;
 }
-
 
 /**Function*************************************************************
 
@@ -1112,12 +1167,14 @@ struct Acb_Mfs_t_
     sat_solver *    pSat[3];     // SAT solvers
     Vec_Int_t *     vSupp;       // support
     Vec_Int_t *     vFlip;       // support
+    Vec_Int_t *     vValues;     // support
     int             nNodes;      // nodes
     int             nWins;       // windows
     int             nWinsAll;    // windows
     int             nDivsAll;    // windows
     int             nChanges[8]; // changes
     int             nOvers;      // overflows
+    int             nTwoNodes;   // two nodes
     abctime         timeTotal;
     abctime         timeCnf;
     abctime         timeSol;
@@ -1137,22 +1194,118 @@ Acb_Mfs_t * Acb_MfsStart( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
     p->pSat[2]    = sat_solver_new();
     p->vSupp      = Vec_IntAlloc(100);
     p->vFlip      = Vec_IntAlloc(100);
+    p->vValues    = Vec_IntAlloc(100);
     return p;
 }
 void Acb_MfsStop( Acb_Mfs_t * p )
 {
     Vec_IntFree( p->vFlip );
     Vec_IntFree( p->vSupp );
+    Vec_IntFree( p->vValues );
     sat_solver_delete( p->pSat[0] );
     sat_solver_delete( p->pSat[1] );
     sat_solver_delete( p->pSat[2] );
     ABC_FREE( p );
 }
+static inline int Acb_NtkObjMffcEstimate( Acb_Ntk_t * pNtk, int iObj )
+{
+    int k, iFanin, * pFanins, Count = 0, iFaninCrit = -1;
+    Acb_ObjForEachFaninFast( pNtk, iObj, pFanins, iFanin, k )
+        if ( Acb_ObjIsAreaCritical(pNtk, iFanin) )
+            iFaninCrit = iFanin, Count++;
+    if ( Count != 1 )
+        return Count;
+    Acb_ObjForEachFaninFast( pNtk, iFaninCrit, pFanins, iFanin, k )
+        if ( Acb_ObjIsAreaCritical(pNtk, iFanin) )
+            Count++;
+    return Count;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acb_NtkOptNodeAnalyze( Acb_Mfs_t * p, int PivotVar, int nDivs, int nValues, int * pValues, Vec_Int_t * vSupp )
+{
+    word OnSet[64] = {0};
+    word OffSet[64] = {0};
+    word Diffs[64] = {0};
+    int s, nScope = 1 + 2*nDivs, d, i;
+    int f, nFrames = nValues / nScope;
+    int start = nDivs < 64 ? 0 : nDivs - 64;
+    int stop  = nDivs < 64 ? nDivs : 64;
+    assert( nValues % nScope == 0 );
+    assert( nFrames <= 16 );
+    for ( f = 0; f < nFrames; f++ )
+    {
+        int * pStart  = pValues + f * nScope;
+        int * pOnSet  = pStart + 1 + (pStart[0] ? 0 : nDivs);
+        int * pOffSet = pStart + 1 + (pStart[0] ? nDivs : 0);
+
+        printf( "%2d:", f );
+        for ( s = start; s < stop; s++ )
+            printf( "%d", pOnSet[s] );
+        printf( "\n" );
+
+        printf( "%2d:", f );
+        for ( s = start; s < stop; s++ )
+            printf( "%d", pOffSet[s] );
+        printf( "\n" );
+
+        for ( s = start; s < stop; s++ )
+        {
+            if ( pOnSet[s] )   OnSet[f]  |= (((word)1) << (s-start));
+            if ( pOffSet[s] )  OffSet[f] |= (((word)1) << (s-start));
+        }
+    }
+    d = 0;
+    for ( f = 0; f < nFrames; f++ )
+    for ( s = 0; s < nFrames; s++ )
+    {
+        for ( i = 0; i < d; i++ )
+            if ( Diffs[i] == (OnSet[f] ^ OffSet[s]) )
+                break;
+        if ( i < d )
+            continue;
+        if ( d < 64 )
+            Diffs[d++] = OnSet[f] ^ OffSet[s];
+    }
+
+    printf( "Divisors = %d.  Frames = %d.  Patterns = %d.\n", nDivs, nFrames, d );
+    printf( "   " );
+    for ( s = start; s < stop; s++ )
+        printf( "%d", s / 10 );
+    printf( "\n" );
+    printf( "   " );
+    for ( s = start; s < stop; s++ )
+        printf( "%d", s % 10 );
+    printf( "\n" );
+    printf( "   " );
+    for ( s = start; s < stop; s++ )
+        printf( "%c", Vec_IntFind(vSupp, s) >= 0 ? 'a' + Vec_IntFind(vSupp, s) : ' ' );
+    printf( "\n" );
+    for ( s = 0; s < d; s++ )
+    {
+        printf( "%2d:", s );
+        for ( f = 0; f < stop; f++ )
+            printf( "%c", ((Diffs[s] >> f) & 1) ? '*' : ' ' );
+        printf( "\n" );
+    }
+}
+
 int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
 {
     Cnf_Dat_t * pCnf = NULL; abctime clk;
     Vec_Int_t * vWin = NULL; word uTruth;
     int Result, PivotVar, nDivs = 0, RetValue = 0, c;
+    assert( Acb_ObjFanoutNum(p->pNtk, Pivot) > 0 );
     p->nWins++;
 
     // compute divisors and window for this target node with these taboo nodes
@@ -1210,9 +1363,32 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
     // try to remove useless fanins
     if ( p->pPars->fArea )
     {
+        int fEnableProfile = 0;
+        if ( fEnableProfile )
+        {
+            // alloc
+            if ( p->pSat[1]->user_values.cap == 0 )
+                veci_new(&p->pSat[1]->user_values);
+            else
+                p->pSat[1]->user_values.size = 0;
+            if ( p->pSat[1]->user_vars.cap == 0 )
+                veci_new(&p->pSat[1]->user_vars);
+            else
+                p->pSat[1]->user_vars.size = 0;
+            // set variables
+            veci_push(&p->pSat[1]->user_vars, PivotVar);
+            for ( c = 0; c < nDivs; c++ )
+                veci_push(&p->pSat[1]->user_vars, c);
+            for ( c = 0; c < nDivs; c++ )
+                veci_push(&p->pSat[1]->user_vars, c+pCnf->nVars);
+        }
+
+        // perform solving
         clk = Abc_Clock();
         Result = Acb_NtkFindSupp1( p->pNtk, Pivot, p->pSat[1], pCnf->nVars, nDivs, vWin, p->vSupp );
         p->timeSat += Abc_Clock() - clk;
+        // undo variables
+        p->pSat[1]->user_vars.size = 0;
         if ( Result )
         {
             if ( Vec_IntSize(p->vSupp) == 0 )
@@ -1222,7 +1398,39 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
             assert( Vec_IntSize(p->vSupp) < p->pPars->nLutSize );
             if ( p->pPars->fVerbose )
             printf( "Found %d inputs: ", Vec_IntSize(p->vSupp) );
-            uTruth = Acb_ComputeFunction( p->pSat[0], PivotVar, sat_solver_nvars(p->pSat[0])-1, p->vSupp );
+            uTruth = Acb_ComputeFunction( p->pSat[0], PivotVar, sat_solver_nvars(p->pSat[0])-1, p->vSupp, 0 );
+            if ( p->pPars->fVerbose )
+            Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
+            if ( p->pPars->fVerbose )
+            printf( "\n" );
+            // create support in terms of nodes
+            Vec_IntRemap( p->vSupp, vWin );
+            Vec_IntLits2Vars( p->vSupp, 0 );
+            Acb_NtkUpdateNode( p->pNtk, Pivot, uTruth, p->vSupp );
+            RetValue = 1;
+            goto cleanup;
+        }
+        if ( fEnableProfile )
+        {
+            // analyze the resulting values
+            Acb_NtkOptNodeAnalyze( p, PivotVar, nDivs, p->pSat[1]->user_values.size, p->pSat[1]->user_values.ptr, p->vSupp );
+            p->pSat[1]->user_values.size = 0;
+        }
+    }
+
+    if ( Acb_NtkObjMffcEstimate(p->pNtk, Pivot) >= 1 )
+    {
+        // check for one-node implementation
+        clk = Abc_Clock();
+        Result = Acb_NtkFindSupp2( p->pNtk, Pivot, p->pSat[1], pCnf->nVars, nDivs, vWin, p->vSupp, p->pPars->nLutSize, !p->pPars->fArea );
+        p->timeSat += Abc_Clock() - clk;
+        if ( Result )
+        {
+            p->nChanges[2]++;
+            assert( Vec_IntSize(p->vSupp) <= p->pPars->nLutSize );
+            if ( p->pPars->fVerbose )
+            printf( "Found %d inputs: ", Vec_IntSize(p->vSupp) );
+            uTruth = Acb_ComputeFunction( p->pSat[0], PivotVar, sat_solver_nvars(p->pSat[0])-1, p->vSupp, 0 );
             if ( p->pPars->fVerbose )
             Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
             if ( p->pPars->fVerbose )
@@ -1236,65 +1444,115 @@ int Acb_NtkOptNode( Acb_Mfs_t * p, int Pivot )
         }
     }
 
-    // check for one-node implementation
-    clk = Abc_Clock();
-    Result = Acb_NtkFindSupp2( p->pNtk, Pivot, p->pSat[1], pCnf->nVars, nDivs, vWin, p->vSupp, p->pPars->nLutSize, !p->pPars->fArea );
-    p->timeSat += Abc_Clock() - clk;
-    if ( Result )
+//#if 0
+    if ( Acb_NtkObjMffcEstimate(p->pNtk, Pivot) >= 2 )// && Pivot != 70 )
     {
-        p->nChanges[2]++;
-        assert( Vec_IntSize(p->vSupp) <= p->pPars->nLutSize );
-        if ( p->pPars->fVerbose )
-        printf( "Found %d inputs: ", Vec_IntSize(p->vSupp) );
-        uTruth = Acb_ComputeFunction( p->pSat[0], PivotVar, sat_solver_nvars(p->pSat[0])-1, p->vSupp );
-        if ( p->pPars->fVerbose )
-        Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
-        if ( p->pPars->fVerbose )
-        printf( "\n" );
-        // create support in terms of nodes
-        Vec_IntRemap( p->vSupp, vWin );
-        Vec_IntLits2Vars( p->vSupp, 0 );
-        Acb_NtkUpdateNode( p->pNtk, Pivot, uTruth, p->vSupp );
-        RetValue = 1;
-        goto cleanup;
+        p->nTwoNodes++;
+        // derive SAT solver
+        clk = Abc_Clock();
+        Acb_NtkWindow2Solver( p->pSat[2], pCnf, p->vFlip, PivotVar, nDivs, 6 );
+        p->timeSol += Abc_Clock() - clk;
+
+        // check for two-node implementation
+        clk = Abc_Clock();
+        Result = Acb_NtkFindSupp3( p->pNtk, Pivot, p->pSat[2], pCnf->nVars, nDivs, vWin, p->vSupp, p->pPars->nLutSize, !p->pPars->fArea );
+        p->timeSat += Abc_Clock() - clk;
+        if ( Result )
+        {
+            int fVerbose = 1;
+            int i, k, Lit, Var, Var2, status, NodeNew, fBecameUnsat = 0, fCompl = 0;
+            assert( Result                       <  p->pPars->nLutSize );
+            assert( Vec_IntSize(p->vSupp)-Result <= p->pPars->nLutSize );
+            if ( fVerbose || p->pPars->fVerbose )
+            printf( "Obj %5d: Found %d Hvars and %d Gvars: ", Pivot, Result, Vec_IntSize(p->vSupp)-Result );
+            // p->vSupp contains G variables (Vec_IntSize(p->vSupp)-Result) followed by H variables (Result)
+            //sat_solver_restart( p->pSat[1] );
+            //Acb_NtkWindow2Solver( p->pSat[1], pCnf, p->vFlip, PivotVar, nDivs, 2 );
+
+            // constrain H-variables to be equal
+            Vec_IntForEachEntryStart( p->vSupp, Var, i, Vec_IntSize(p->vSupp)-Result ) // H variables
+            {
+                assert( Var >= 0 && Var < nDivs );
+                assert( Var + 2*pCnf->nVars < sat_solver_nvars(p->pSat[1]) );
+                Lit = Abc_Var2Lit( Var + 2*pCnf->nVars, 0 ); // HVars are the same
+                if ( !sat_solver_addclause( p->pSat[1], &Lit, &Lit + 1 ) )
+                { if ( fVerbose || p->pPars->fVerbose ) printf( "Error: SAT solver became UNSAT at a wrong place (place 2).  " ); fBecameUnsat = 1; }
+            }
+            // find one satisfying assighment
+            status = sat_solver_solve( p->pSat[1], NULL, NULL, 0, 0, 0, 0 );
+            assert( status == l_True );
+            // get assignment of the function
+            fCompl = !sat_solver_var_value( p->pSat[1], PivotVar );
+            // constrain second set of G-vars to have values equal to the assignment
+            Vec_IntForEachEntryStop( p->vSupp, Var, i, Vec_IntSize(p->vSupp)-Result ) // G variables
+            {
+                // check if this is a C-var
+                Vec_IntForEachEntryStart( p->vSupp, Var2, k, Vec_IntSize(p->vSupp)-Result ) // G variables
+                    if ( Var == Var2 )
+                        break;
+                if ( k < Vec_IntSize(p->vSupp) ) // do not constrain a C-var
+                {
+                    if ( fVerbose || p->pPars->fVerbose )
+                    printf( "Found C-var in object %d.  ", Pivot );
+                    continue;
+                }
+                assert( Var >= 0 && Var < nDivs );
+                Lit = sat_solver_var_literal( p->pSat[1], Var + pCnf->nVars );
+                if ( !sat_solver_addclause( p->pSat[1], &Lit, &Lit + 1 ) )
+                { if ( fVerbose || p->pPars->fVerbose ) printf( "Error: SAT solver became UNSAT at a wrong place (place 1).  " ); fBecameUnsat = 1; }
+            }
+            if ( fBecameUnsat )
+            {
+                StrCount++;
+                if ( fVerbose || p->pPars->fVerbose )
+                printf( " Quitting.\n" );
+                goto cleanup;
+            }
+            // consider only G variables
+            p->vSupp->nSize -= Result;
+            // truth table
+            uTruth = Acb_ComputeFunction( p->pSat[1], PivotVar, sat_solver_nvars(p->pSat[1])-1, p->vSupp, fCompl );
+            if ( fVerbose || p->pPars->fVerbose )
+            Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
+            if ( uTruth == 0 || ~uTruth == 0 )
+            {
+                if ( fVerbose || p->pPars->fVerbose )
+                printf( " Quitting.\n" );
+                goto cleanup;
+            }
+            p->nChanges[3]++;
+            // create new node
+            Vec_IntRemap( p->vSupp, vWin );
+            Vec_IntLits2Vars( p->vSupp, 0 );
+            NodeNew = Acb_NtkCreateNode( p->pNtk, uTruth, p->vSupp );
+            Acb_DeriveCnfForWindowOne( p->pNtk, NodeNew );
+            Acb_DeriveCnfForNode( p->pNtk, NodeNew, p->pSat[0], sat_solver_nvars(p->pSat[0])-2 );
+            p->vSupp->nSize += Result;
+            // collect new variables
+            Vec_IntForEachEntryStart( p->vSupp, Var, i, Vec_IntSize(p->vSupp)-Result )
+                Vec_IntWriteEntry( p->vSupp, i-(Vec_IntSize(p->vSupp)-Result), Var );
+            Vec_IntShrink( p->vSupp, Result );
+            Vec_IntPush( p->vSupp, sat_solver_nvars(p->pSat[0])-2 );
+            // truth table
+            uTruth = Acb_ComputeFunction( p->pSat[0], PivotVar, sat_solver_nvars(p->pSat[0])-1, p->vSupp, 0 );
+            // create new fanins of the node
+            if ( fVerbose || p->pPars->fVerbose )
+            printf( "  " );
+            if ( fVerbose || p->pPars->fVerbose )
+            Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
+            if ( fVerbose || p->pPars->fVerbose )
+            printf( "\n" );
+            // create support in terms of nodes
+            Vec_IntPop( p->vSupp );
+            Vec_IntRemap( p->vSupp, vWin );
+            Vec_IntLits2Vars( p->vSupp, 0 );
+            Vec_IntPush( p->vSupp, NodeNew );
+            Acb_NtkUpdateNode( p->pNtk, Pivot, uTruth, p->vSupp );
+            RetValue = 2;
+            goto cleanup;
+        }
     }
-
-#if 0
-    // derive SAT solver
-    clk = Abc_Clock();
-    Acb_NtkWindow2Solver( p->pSat[2], pCnf, p->vFlip, PivotVar, nDivs, 6 );
-    p->timeSol += Abc_Clock() - clk;
-
-    // check for two-node implementation
-    clk = Abc_Clock();
-    Result = Acb_NtkFindSupp3( p->pNtk, Pivot, p->pSat[2], pCnf->nVars, nDivs, vWin, p->vSupp, p->pPars->nLutSize, !p->pPars->fArea );
-    p->timeSat += Abc_Clock() - clk;
-    if ( Result )
-    {
-        p->nChanges[3]++;
-        assert( Result                       <  p->pPars->nLutSize );
-        assert( Vec_IntSize(p->vSupp)-Result <= p->pPars->nLutSize );
-        //if ( p->pPars->fVerbose )
-        printf( "Found %d Hvars and %d Gvars: ", Result, Vec_IntSize(p->vSupp)-Result );
-
-        /*
-        uTruth = Acb_ComputeFunction( p->pSat[1], PivotVar, sat_solver_nvars(p->pSat[1])-1, vSupp );
-        if ( p->pPars->fVerbose )
-        Extra_PrintHex( stdout, (unsigned *)&uTruth, Vec_IntSize(p->vSupp) ); 
-        if ( p->pPars->fVerbose )
-        printf( "\n" );
-        // create support in terms of nodes
-        Vec_IntRemap( p->vSupp, vWin );
-        Vec_IntLits2Vars( vSupp, 0 );
-        Acb_NtkUpdateNode( p->pNtk, Pivot, uTruth, p->vSupp );
-        RetValue = 1;
-        */
-
-        //if ( p->pPars->fVerbose )
-        printf( "\n" );
-        goto cleanup;
-    }
-#endif
+//#endif
 
     if ( p->pPars->fVerbose )
     printf( "\n" );
@@ -1311,7 +1569,6 @@ cleanup:
     Vec_IntFreeP( &vWin );
     return RetValue;
 }
-
 
 /**Function*************************************************************
 
@@ -1330,30 +1587,34 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
     //if ( pPars->fVerbose )
         printf( "%s-optimization parameters: TfiLev(I) = %d  TfoLev(O) = %d  WinMax(W) = %d  LutSize = %d\n", 
             pMan->pPars->fArea ? "Area" : "Delay", pMan->pPars->nTfiLevMax, pMan->pPars->nTfoLevMax, pMan->pPars->nWinNodeMax, pMan->pPars->nLutSize );
-    Acb_NtkCreateFanout( pMan->pNtk );  // fanout data structure
-    Acb_NtkCleanObjFuncs( pMan->pNtk ); // SAT variables
-    Acb_NtkCleanObjCnfs( pMan->pNtk );  // CNF representations
+    Acb_NtkCreateFanout( pNtk );  // fanout data structure
+    Acb_NtkCleanObjFuncs( pNtk ); // SAT variables
+    Acb_NtkCleanObjCnfs( pNtk );  // CNF representations
     if ( pMan->pPars->fArea )
     {
-        int iObj;
-        Acb_NtkUpdateLevelD( pMan->pNtk, -1 ); // compute forward logic level
-        Acb_NtkForEachNode( pMan->pNtk, iObj )
-        {
-            pMan->nNodes++;
-            assert( Acb_ObjFanoutNum(pMan->pNtk, iObj) > 0 );
-            //if ( iObj != 7 )
-            //    continue;
-            while ( Acb_NtkOptNode(pMan, iObj) && Acb_ObjFaninNum(pMan->pNtk, iObj) );
-//            Acb_NtkOptNode( pMan, iObj );
-        }
+        int n = 0, iObj, RetValue, nNodes = Acb_NtkObjNumMax(pNtk);
+        Vec_Bit_t * vVisited = Vec_BitStart( Acb_NtkObjNumMax(pNtk) );
+        Acb_NtkUpdateLevelD( pNtk, -1 ); // compute forward logic level
+        for ( n = 2; n >= 0; n-- )
+            Acb_NtkForEachNode( pNtk, iObj )
+                if ( iObj < nNodes && !Vec_BitEntry(vVisited, iObj) && Acb_NtkObjMffcEstimate(pNtk, iObj) >= n )
+                {
+                    pMan->nNodes++;
+                    //if ( iObj != 7 )
+                    //    continue;
+                    //Acb_NtkOptNode( pMan, iObj );
+                    while ( (RetValue = Acb_NtkOptNode(pMan, iObj)) && Acb_ObjFaninNum(pNtk, iObj) );                    
+                    Vec_BitWriteEntry( vVisited, iObj, 1 );
+                }
+        Vec_BitFree( vVisited );
     }
     else
     {
-        Acb_NtkUpdateTiming( pMan->pNtk, -1 ); // compute delay information
-        while ( Vec_QueTopPriority(pMan->pNtk->vQue) > 0 )
+        Acb_NtkUpdateTiming( pNtk, -1 ); // compute delay information
+        while ( Vec_QueTopPriority(pNtk->vQue) > 0 )
         {
-            int iObj = Vec_QuePop(pMan->pNtk->vQue);
-            if ( Acb_ObjLevelD(pMan->pNtk, iObj) == 1 )
+            int iObj = Vec_QuePop(pNtk->vQue);
+            if ( Acb_ObjLevelD(pNtk, iObj) == 1 )
                 continue;
             //if ( iObj != 28 )
             //    continue;
@@ -1363,10 +1624,10 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
     //if ( pPars->fVerbose )
     {
         pMan->timeTotal = Abc_Clock() - pMan->timeTotal;
-        printf( "Node = %d  Win = %d (Ave = %d)  DivAve = %d   Change = %d  C = %d  N1 = %d  N2 = %d  N3 = %d   Over = %d  Str = %d\n", 
+        printf( "Node = %d  Win = %d (Ave = %d)  DivAve = %d   Change = %d  C = %d  N1 = %d  N2 = %d  N3 = %d   Over = %d  Str = %d  2Node = %d.\n", 
             pMan->nNodes, pMan->nWins, pMan->nWinsAll/Abc_MaxInt(1, pMan->nWins), pMan->nDivsAll/Abc_MaxInt(1, pMan->nWins),
             pMan->nChanges[0] + pMan->nChanges[1] + pMan->nChanges[2] + pMan->nChanges[3],
-            pMan->nChanges[0], pMan->nChanges[1], pMan->nChanges[2], pMan->nChanges[3], pMan->nOvers, StrCount );
+            pMan->nChanges[0], pMan->nChanges[1], pMan->nChanges[2], pMan->nChanges[3], pMan->nOvers, StrCount, pMan->nTwoNodes );
         ABC_PRTP( "Windowing  ", pMan->timeWin,    pMan->timeTotal );
         ABC_PRTP( "CNF compute", pMan->timeCnf,    pMan->timeTotal );
         ABC_PRTP( "Make solver", pMan->timeSol,    pMan->timeTotal );
@@ -1377,6 +1638,7 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
         fflush( stdout );
     }
     Acb_MfsStop( pMan );
+    StrCount = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////

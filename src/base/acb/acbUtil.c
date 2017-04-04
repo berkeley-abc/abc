@@ -300,13 +300,14 @@ void Acb_NtkUpdateTiming( Acb_Ntk_t * p, int iObj )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vSupp )
+int Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vSupp )
 {
     int Pivot = Acb_ObjAlloc( p, ABC_OPER_LUT, Vec_IntSize(vSupp), 0 );
     Acb_ObjSetTruth( p, Pivot, uTruth );
     Acb_ObjAddFanins( p, Pivot, vSupp );
     Acb_ObjAddFaninFanout( p, Pivot );
     Acb_ObjComputeLevelD( p, Pivot );
+    return Pivot;
 }
 void Acb_NtkResetNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp )
 {
