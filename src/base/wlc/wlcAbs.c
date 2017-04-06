@@ -1724,9 +1724,7 @@ int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars )
         printf( "\n" );
     printf( "Abstraction " );
     if ( RetValue == 0 )
-    {
         printf( "resulted in a real CEX" );
-    }
     else if ( RetValue == 1 )
         printf( "is successfully proved" );
     else 
