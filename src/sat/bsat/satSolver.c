@@ -1334,6 +1334,9 @@ void sat_solver_delete(sat_solver* s)
     veci_delete(&s->temp_clause);
     veci_delete(&s->conf_final);
 
+    veci_delete(&s->user_vars);
+    veci_delete(&s->user_values);
+
     // delete arrays
     if (s->reasons != 0){
         int i;
@@ -1963,6 +1966,13 @@ int sat_solver_solve_internal(sat_solver* s)
         printf("==============================================================================\n");
 
     sat_solver_canceluntil(s,s->root_level);
+    // save variable values
+    if ( status == l_True && s->user_vars.size )
+    {
+        int v;
+        for ( v = 0; v < s->user_vars.size; v++ )
+            veci_push(&s->user_values, sat_solver_var_value(s, s->user_vars.ptr[v]));
+    }
     return status;
 }
 
@@ -2186,6 +2196,7 @@ int sat_solver_minimize_assumptions( sat_solver* s, int * pLits, int nLits, int 
         s->nConfLimit = nConfLimit;
         status = sat_solver_solve_internal( s );
         s->nConfLimit = Temp;
+        //printf( "%c", status == l_False ? 'u' : 's' );
         return (int)(status != l_False); // return 1 if the problem is not UNSAT
     }
     assert( nLits >= 2 );

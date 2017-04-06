@@ -124,6 +124,10 @@ static inline void Hsh_IntManStop( Hsh_IntMan_t * p )
     Vec_WrdFree( p->vObjs );
     ABC_FREE( p );
 }
+static inline int Hsh_IntManEntryNum( Hsh_IntMan_t * p )
+{
+    return Vec_WrdSize(p->vObjs);
+}
 
 /**Function*************************************************************
 
@@ -164,7 +168,7 @@ static inline int Hsh_IntManAdd( Hsh_IntMan_t * p, int iData )
         Vec_IntFill( p->vTable, Abc_PrimeCudd(2*Vec_IntSize(p->vTable)), -1 );
         for ( i = 0; i < Vec_WrdSize(p->vObjs); i++ )
         {
-            pPlace = Vec_IntEntryP( p->vTable, Hsh_IntManHash(Hsh_IntData(p, i), p->nSize, Vec_IntSize(p->vTable)) );
+            pPlace = Vec_IntEntryP( p->vTable, Hsh_IntManHash(Hsh_IntData(p, Hsh_IntObj(p, i)->iData), p->nSize, Vec_IntSize(p->vTable)) );
             Hsh_IntObj(p, i)->iNext = *pPlace;  *pPlace = i;
         }
     }

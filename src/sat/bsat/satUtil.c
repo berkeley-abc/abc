@@ -85,7 +85,7 @@ void Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumpBegin, 
             nUnits++;
 
     // start the file
-    pFile = fopen( pFileName, "wb" );
+    pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     if ( pFile == NULL )
     {
         printf( "Sat_SolverWriteDimacs(): Cannot open the ouput file.\n" );
@@ -121,7 +121,7 @@ void Sat_SolverWriteDimacs( sat_solver * p, char * pFileName, lit* assumpBegin, 
     }
 
     fprintf( pFile, "\n" );
-    fclose( pFile );
+    if ( pFileName ) fclose( pFile );
 } 
 void Sat_Solver2WriteDimacs( sat_solver2 * p, char * pFileName, lit* assumpBegin, lit* assumpEnd, int incrementVars )
 {

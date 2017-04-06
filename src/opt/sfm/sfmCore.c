@@ -73,8 +73,8 @@ void Sfm_ParSetDefault( Sfm_Par_t * pPars )
 void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
 {
     p->timeOther = p->timeTotal - p->timeWin - p->timeDiv - p->timeCnf - p->timeSat;
-    printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d. SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
-        Sfm_NtkNodeNum(p), p->nNodesTried, p->nRemoves + p->nResubs, p->nTotalDivs, p->nSatCalls, p->nTimeOuts, p->nMaxDivs );
+    printf( "Nodes = %d. Try = %d. Resub = %d. Div = %d (ave = %d). SAT calls = %d. Timeouts = %d. MaxDivs = %d.\n",
+        Sfm_NtkNodeNum(p), p->nNodesTried, p->nRemoves + p->nResubs, p->nTotalDivs, p->nTotalDivs/Abc_MaxInt(1, p->nNodesTried), p->nSatCalls, p->nTimeOuts, p->nMaxDivs );
 
     printf( "Attempts :   " );
     printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );

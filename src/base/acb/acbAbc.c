@@ -44,29 +44,54 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Acb_Ntk_t * Acb_NtkFromAbc( Abc_Ntk_t * p )
+Acb_Ntk_t * Acb_NtkFromAbc2( Abc_Ntk_t * p )
 {
-    int fTrack = 1;
     Acb_Man_t * pMan = Acb_ManAlloc( Abc_NtkSpec(p), 1, NULL, NULL, NULL, NULL );
     int i, k, NameId = Abc_NamStrFindOrAdd( pMan->pStrs, Abc_NtkName(p), NULL );
     Acb_Ntk_t * pNtk = Acb_NtkAlloc( pMan, NameId, Abc_NtkCiNum(p), Abc_NtkCoNum(p), Abc_NtkObjNum(p) );
     Abc_Obj_t * pObj, * pFanin;
     assert( Abc_NtkIsSopLogic(p) );
     pNtk->nFaninMax = 6;
-    if ( fTrack ) Vec_IntFill( &pNtk->vArray2, Abc_NtkObjNumMax(p), -1 );
     Abc_NtkForEachCi( p, pObj, i )
-    {
         pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_CI, 0, 0 );
-        if ( fTrack ) Vec_IntWriteEntry( &pNtk->vArray2, pObj->iTemp, Abc_ObjId(pObj) );
-    }
     Abc_NtkForEachNode( p, pObj, i )
-    {
         pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_LUT, Abc_ObjFaninNum(pObj), 0 );
-        if ( fTrack ) Vec_IntWriteEntry( &pNtk->vArray2, pObj->iTemp, Abc_ObjId(pObj) );
-//        printf( "%d -> %d\n%s", i, pObj->iTemp, (char *)pObj->pData );
-    }
     Abc_NtkForEachCo( p, pObj, i )
         pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_CO, 1, 0 );
+    Abc_NtkForEachNode( p, pObj, i )
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Acb_ObjAddFanin( pNtk, pObj->iTemp, pFanin->iTemp );
+    Abc_NtkForEachCo( p, pObj, i )
+        Acb_ObjAddFanin( pNtk, pObj->iTemp, Abc_ObjFanin(pObj, 0)->iTemp );
+    Acb_NtkCleanObjTruths( pNtk );
+    Abc_NtkForEachNode( p, pObj, i )
+        Acb_ObjSetTruth( pNtk, pObj->iTemp, Abc_SopToTruth((char *)pObj->pData, Abc_ObjFaninNum(pObj)) );
+    Acb_NtkSetRegNum( pNtk, Abc_NtkLatchNum(p) );
+    Acb_NtkAdd( pMan, pNtk );
+    return pNtk;
+}
+Acb_Ntk_t * Acb_NtkFromAbc( Abc_Ntk_t * p )
+{
+    Acb_Man_t * pMan = Acb_ManAlloc( Abc_NtkSpec(p), 1, NULL, NULL, NULL, NULL );
+    int i, k, NameId = Abc_NamStrFindOrAdd( pMan->pStrs, Abc_NtkName(p), NULL );
+    Acb_Ntk_t * pNtk = Acb_NtkAlloc( pMan, NameId, Abc_NtkCiNum(p), Abc_NtkCoNum(p), Abc_NtkObjNumMax(p)-1 );
+    Abc_Obj_t * pObj, * pFanin;
+    assert( Abc_NtkIsSopLogic(p) );
+    pNtk->nFaninMax = 6;
+    for ( i = 1; i < Abc_NtkObjNumMax(p); i++ )
+    {
+        pObj = Abc_NtkObj( p, i );
+        if ( pObj == NULL )
+            Acb_ObjAlloc( pNtk, ABC_OPER_NONE, 0, 0 );
+        else if ( Abc_ObjIsCi(pObj) )
+            pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_CI, 0, 0 );
+        else if ( Abc_ObjIsCo(pObj) )
+            pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_CO, 1, 0 );
+        else if ( Abc_ObjIsNode(pObj) )
+            pObj->iTemp = Acb_ObjAlloc( pNtk, ABC_OPER_LUT, Abc_ObjFaninNum(pObj), 0 );
+        else assert( 0 );
+        assert( pObj == NULL || pObj->iTemp == (int)Abc_ObjId(pObj) );
+    }
     Abc_NtkForEachNode( p, pObj, i )
         Abc_ObjForEachFanin( pObj, pFanin, k )
             Acb_ObjAddFanin( pNtk, pObj->iTemp, pFanin->iTemp );
@@ -209,16 +234,16 @@ void Acb_ParSetDefault( Acb_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(Acb_Par_t) );
     pPars->nLutSize     =    4;    // LUT size
-    pPars->nTfoLevMax   =    1;    // the maximum fanout levels
-    pPars->nTfiLevMax   =    2;    // the maximum fanin levels
-    pPars->nFanoutMax   =   10;    // the maximum number of fanouts
-    pPars->nDivMax      =   16;    // the maximum divisor count
-    pPars->nTabooMax    =    4;    // the minimum MFFC size
+    pPars->nTfoLevMax   =    2;    // the maximum fanout levels
+    pPars->nTfiLevMax   =    3;    // the maximum fanin levels
+    pPars->nFanoutMax   =   20;    // the maximum number of fanouts
+    pPars->nWinNodeMax  =  100;    // the maximum number of nodes in the window
     pPars->nGrowthLevel =    0;    // the maximum allowed growth in level
     pPars->nBTLimit     =    0;    // the maximum number of conflicts in one SAT run
     pPars->nNodesMax    =    0;    // the maximum number of nodes to try
     pPars->iNodeOne     =    0;    // one particular node to try
     pPars->fArea        =    1;    // performs optimization for area
+    pPars->fUseAshen    =    0;    // use Ashenhurst decomposition
     pPars->fMoreEffort  =    0;    // enables using more effort
     pPars->fVerbose     =    0;    // enable basic stats
     pPars->fVeryVerbose =    0;    // enable detailed stats

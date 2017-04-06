@@ -193,6 +193,10 @@ struct sat_solver_t
 
     veci        temp_clause;    // temporary storage for a CNF clause
 
+    // assignment storage
+    veci        user_vars;      // variable IDs
+    veci        user_values;    // values of these variables
+
     // CNF loading
     void *      pCnfMan;           // external CNF manager
     int(*pCnfFunc)(void * p, int); // external callback
