@@ -558,19 +558,24 @@ Wlc_Ntk_t * Wlc_NtkIntroduceChoices( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_
     return pNew;
 }
 
-static int Wlc_NtkCexIsReal( Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex ) 
+static Abc_Cex_t * Wlc_NtkCexIsReal( Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex ) 
 {
     Gia_Man_t * pGiaOrig = Wlc_NtkBitBlast( pOrig, NULL, -1, 0, 0, 0, 0, 0 );
     int f, i;
     Gia_Obj_t * pObj, * pObjRi;
+    Abc_Cex_t * pCexReal = Abc_CexAlloc( Gia_ManRegNum(pGiaOrig), Gia_ManPiNum(pGiaOrig), pCex->iFrame + 1 );
 
     Gia_ManConst0(pGiaOrig)->Value = 0;
     Gia_ManForEachRi( pGiaOrig, pObj, i )
         pObj->Value = 0;
     for ( f = 0; f <= pCex->iFrame; f++ ) 
     {
-        for( i = 0; i < Gia_ManPiNum( pGiaOrig ); i++ ) 
+        for( i = 0; i < Gia_ManPiNum( pGiaOrig ); i++ )
+        { 
             Gia_ManPi(pGiaOrig, i)->Value = Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i);
+            if ( Gia_ManPi(pGiaOrig, i)->Value )
+                Abc_InfoSetBit(pCexReal->pData, pCexReal->nRegs + pCexReal->nPis*f + i);
+        }
         Gia_ManForEachRiRo( pGiaOrig, pObjRi, pObj, i )
             pObj->Value = pObjRi->Value;
         Gia_ManForEachAnd( pGiaOrig, pObj, i )
@@ -582,14 +587,15 @@ static int Wlc_NtkCexIsReal( Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex )
             if (pObj->Value==1) {
                 Abc_Print( 1, "CEX is real on the original model.\n" );
                 Gia_ManStop(pGiaOrig);
-                return 1;
+                return pCexReal;
             }
         }
     }
 
     // Abc_Print( 1, "CEX is spurious.\n" );
     Gia_ManStop(pGiaOrig);
-    return 0;
+    Abc_CexFree(pCexReal);
+    return NULL;
 }
 
 static Wlc_Ntk_t * Wlc_NtkAbs2( Wlc_Ntk_t * pNtk, Vec_Int_t * vBlacks, Vec_Int_t ** pvFlops )
@@ -1472,12 +1478,13 @@ int Wla_ManCheckCombUnsat( Wla_Man_t * pWla, Aig_Man_t * pAig )
     return RetValue;
 }
 
-int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
+int Wla_ManSolveInt( Wla_Man_t * pWla, Aig_Man_t * pAig )
 {
     abctime clk;
     Pdr_Man_t * pPdr;
     Pdr_Par_t * pPdrPars = (Pdr_Par_t *)pWla->pPdrPars;
     Abc_Cex_t * pBmcCex = NULL;
+    Abc_Cex_t * pCexReal = NULL;
     int RetValue = -1;
     int RunId = Wla_GetGlobalRunId();
 
@@ -1546,8 +1553,13 @@ int Wla_ManSolve( Wla_Man_t * pWla, Aig_Man_t * pAig )
     }
 
     // verify CEX
-    if ( Wlc_NtkCexIsReal( pWla->p, pWla->pCex ) )
+    pCexReal = Wlc_NtkCexIsReal( pWla->p, pWla->pCex );
+    if ( pCexReal )
+    {
+        Abc_CexFree( pWla->pCex );
+        pWla->pCex = pCexReal; 
         return 0;
+    }
 
     return -1;
 }
@@ -1678,17 +1690,14 @@ void Wla_ManStop( Wla_Man_t * p )
     ABC_FREE( p );
 }
 
-int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
+int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars )
 {
     abctime clk = Abc_Clock();
     abctime tTotal;
-    Wla_Man_t * pWla = NULL;
     Wlc_Ntk_t * pAbs = NULL;
     Aig_Man_t * pAig = NULL;
-    
-    int RetValue = -1;
 
-    pWla = Wla_ManStart( p, pPars );
+    int RetValue = -1;
 
     // perform refinement iterations
     for ( pWla->nIters = 1; pWla->nIters < pPars->nIterMax; ++pWla->nIters )
@@ -1701,7 +1710,7 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         pAig = Wla_ManBitBlast( pWla, pAbs );
         Wlc_NtkFree( pAbs );
 
-        RetValue = Wla_ManSolve( pWla, pAig );
+        RetValue = Wla_ManSolveInt( pWla, pAig );
         Aig_ManStop( pAig );
 
         if ( RetValue != -1 )
@@ -1715,7 +1724,9 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         printf( "\n" );
     printf( "Abstraction " );
     if ( RetValue == 0 )
+    {
         printf( "resulted in a real CEX" );
+    }
     else if ( RetValue == 1 )
         printf( "is successfully proved" );
     else 
@@ -1734,6 +1745,19 @@ int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         ABC_PRTP( "Misc.        ", tTotal - pWla->tPdr - pWla->tCbr - pWla->tPbr,   tTotal );
         ABC_PRTP( "Total        ", tTotal,                              tTotal );
     }
+
+    return RetValue;
+} 
+
+int Wlc_NtkPdrAbs( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
+{
+    Wla_Man_t * pWla = NULL;
+    
+    int RetValue = -1;
+
+    pWla = Wla_ManStart( p, pPars );
+
+    RetValue = Wla_ManSolve( pWla, pPars );
 
     Wla_ManStop( pWla );
     
