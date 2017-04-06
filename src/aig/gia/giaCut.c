@@ -631,7 +631,7 @@ void Gia_StoComputeCuts( Gia_Man_t * pGia )
         printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
         printf( "\n" );
         printf( "The number of nodes with cut count over the limit (%d cuts) = %d nodes (out of %d).  ", 
-            p->nCutSize, p->nCutsOver, Gia_ManAndNum(pGia) );
+            p->nCutNum, p->nCutsOver, Gia_ManAndNum(pGia) );
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
     Gia_StoFree( p );
