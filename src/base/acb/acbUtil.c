@@ -55,11 +55,15 @@ void Acb_ObjCollectTfi_rec( Acb_Ntk_t * p, int iObj, int fTerm )
 }
 Vec_Int_t * Acb_ObjCollectTfi( Acb_Ntk_t * p, int iObj, int fTerm )
 {
-    int i;
+    int i, Node;
     Vec_IntClear( &p->vArray0 );
     Acb_NtkIncTravId( p );
     if ( iObj > 0 )
+    {
+        Vec_IntForEachEntry( &p->vSuppOld, Node, i )
+            Acb_ObjCollectTfi_rec( p, Node, fTerm );
         Acb_ObjCollectTfi_rec( p, iObj, fTerm );
+    }
     else
         Acb_NtkForEachCo( p, iObj, i )
             Acb_ObjCollectTfi_rec( p, iObj, fTerm );
@@ -267,10 +271,12 @@ void Acb_NtkPrintPaths( Acb_Ntk_t * p )
     int iObj;
     Acb_NtkForEachObj( p, iObj )
     {
-        printf( "Obj = %5d : ", iObj );
-        printf( "PathD = %5d  ", Acb_ObjPathD(p, iObj) );
-        printf( "PathR = %5d  ", Acb_ObjPathR(p, iObj) );
-        printf( "Paths = %5d  ", Acb_ObjPathD(p, iObj) + Acb_ObjPathR(p, iObj) );
+        printf( "Obj = %5d :   ",   iObj );
+        printf( "LevelD = %5d  ",   Acb_ObjLevelD(p, iObj) );
+        printf( "LevelR = %5d    ", Acb_ObjLevelR(p, iObj) );
+        printf( "PathD = %5d  ",    Acb_ObjPathD(p, iObj) );
+        printf( "PathR = %5d    ",  Acb_ObjPathR(p, iObj) );
+        printf( "Paths = %5d  ",    Acb_ObjPathD(p, iObj) * Acb_ObjPathR(p, iObj) );
         printf( "\n" );
     }
 }
@@ -323,7 +329,7 @@ void Acb_ObjUpdatePriority( Acb_Ntk_t * p, int iObj )
         p->vQue = Vec_QueAlloc( 1000 );
         Vec_QueSetPriority( p->vQue, Vec_FltArrayP(&p->vCounts) );
     }
-    nPaths = Acb_ObjPathD(p, iObj) + Acb_ObjPathR(p, iObj);
+    nPaths = Acb_ObjPathD(p, iObj) * Acb_ObjPathR(p, iObj);
     Acb_ObjSetCounts( p, iObj, (float)nPaths );
     if ( Vec_QueIsMember( p->vQue, iObj ) )
     {
@@ -394,6 +400,14 @@ void Acb_NtkUpdateTiming( Acb_Ntk_t * p, int iObj )
   SeeAlso     []
 
 ***********************************************************************/
+void Acb_NtkPrintNode( Acb_Ntk_t * p, int iObj )
+{
+    int k, iFanin, * pFanins; 
+    printf( "Node %5d : ", iObj );
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
+        printf( "%d ", iFanin );
+    printf( "LevelD = %d. LevelR = %d.\n", Acb_ObjLevelD(p, iObj), Acb_ObjLevelR(p, iObj) );
+}
 int Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vSupp )
 {
     int Pivot = Acb_ObjAlloc( p, ABC_OPER_LUT, Vec_IntSize(vSupp), 0 );
@@ -432,14 +446,28 @@ void Acb_NtkResetNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp 
             Acb_NtkResetNode( p, iFanin, 0, NULL );
     Vec_IntFree( vFanins );
 }
+void Acb_NtkSaveSupport( Acb_Ntk_t * p, int iObj )
+{
+    int k, iFanin, * pFanins; 
+    Vec_IntClear( &p->vSuppOld );
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
+        Vec_IntPush( &p->vSuppOld, iFanin );
+}
 void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp )
 {
+    int Level = Acb_ObjLevelD(p, Pivot);
+    Acb_NtkSaveSupport( p, Pivot );
+    //Acb_NtkPrintNode( p, Pivot );
     Acb_NtkResetNode( p, Pivot, uTruth, vSupp );
     Acb_ObjComputeLevelD( p, Pivot );
+    //assert( Level > Acb_ObjLevelD(p, Pivot) );
+    //Acb_NtkPrintNode( p, Pivot );
     if ( p->vQue == NULL )
         Acb_NtkUpdateLevelD( p, Pivot );
     else
-        Acb_NtkUpdateTiming( p, Pivot );
+//        Acb_NtkUpdateTiming( p, Pivot );
+        Acb_NtkUpdateTiming( p, -1 );
+    Vec_IntClear( &p->vSuppOld );
 }
 
 ////////////////////////////////////////////////////////////////////////

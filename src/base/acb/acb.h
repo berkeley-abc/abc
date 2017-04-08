@@ -92,6 +92,7 @@ struct Acb_Ntk_t_
     Vec_Wec_t       vFanouts;   // fanouts
     Vec_Wec_t       vCnfs;      // CNF
     Vec_Str_t       vCnf;       // CNF
+    Vec_Int_t       vSuppOld;   // previous support
     // other
     Vec_Que_t *     vQue;       // temporary
     Vec_Int_t       vCover;     // temporary
@@ -574,6 +575,7 @@ static inline void Acb_NtkFree( Acb_Ntk_t * p )
     Vec_WecErase( &p->vFanouts );
     Vec_WecErase( &p->vCnfs );    
     Vec_StrErase( &p->vCnf );    
+    Vec_IntErase( &p->vSuppOld );    
     // other
     Vec_QueFreeP( &p->vQue );
     Vec_IntErase( &p->vCover );    
@@ -972,6 +974,7 @@ extern int         Acb_NtkComputeLevelD( Acb_Ntk_t * p, Vec_Int_t * vTfo );
 extern void        Acb_NtkUpdateLevelD( Acb_Ntk_t * p, int iObj );
 extern void        Acb_NtkUpdateTiming( Acb_Ntk_t * p, int iObj );
 
+extern void        Acb_NtkPrintNode( Acb_Ntk_t * p, int iObj );
 extern int         Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vSupp );
 extern void        Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp );
 

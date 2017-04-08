@@ -218,7 +218,7 @@ void Gia_ShowPath( Gia_Man_t * p, char * pFileName )
         {
             if ( (int)Gia_ObjLevel(p, pNode) != Level || !Vec_BitEntry(vPath, i) )
                 continue;
-            fprintf( pFile, "  Node%d [label = \"%d:%d\"", i, i, Gia_ObjIsAnd(pNode)? Gia_ObjLutSize(p, i) : 0 ); 
+            fprintf( pFile, "  Node%d [label = \"%d:%d\"", i, Vec_IntSize(p->vIdsOrig)?Vec_IntEntry(p->vIdsOrig,i):i, Gia_ObjIsAnd(pNode)?Gia_ObjLutSize(p, i):0 ); 
             fprintf( pFile, ", shape = ellipse" );
             if ( pNode->fMark0 )
                 fprintf( pFile, ", style = filled" );
