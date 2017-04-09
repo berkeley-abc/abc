@@ -140,7 +140,24 @@ static inline int Hsh_IntManEntryNum( Hsh_IntMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Hsh_IntManHash( unsigned * pData, int nSize, int nTableSize )
+// https://en.wikipedia.org/wiki/Jenkins_hash_function
+static inline int Hsh_IntManHash( unsigned * pData, int nSize, int nTableSize ) 
+{
+    int i = 0; unsigned hash = 0;
+    unsigned char * pDataC = (unsigned char *)pData;
+    nSize <<= 2;
+    while ( i != nSize ) 
+    {
+        hash += pDataC[i++];
+        hash += hash << 10;
+        hash ^= hash >> 6;
+    }
+    hash += hash << 3;
+    hash ^= hash >> 11;
+    hash += hash << 15;
+    return (int)(hash % nTableSize);
+}
+static inline int Hsh_IntManHash2( unsigned * pData, int nSize, int nTableSize )
 {
     static int s_Primes[7] = { 4177, 5147, 5647, 6343, 7103, 7873, 8147 };
     unsigned char * pDataC = (unsigned char *)pData;

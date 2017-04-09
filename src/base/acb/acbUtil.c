@@ -455,7 +455,7 @@ void Acb_NtkSaveSupport( Acb_Ntk_t * p, int iObj )
 }
 void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp )
 {
-    int Level = Acb_ObjLevelD(p, Pivot);
+    //int Level = Acb_ObjLevelD(p, Pivot);
     Acb_NtkSaveSupport( p, Pivot );
     //Acb_NtkPrintNode( p, Pivot );
     Acb_NtkResetNode( p, Pivot, uTruth, vSupp );
