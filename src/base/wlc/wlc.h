@@ -185,6 +185,8 @@ struct Wlc_Par_t_
     int                    fShrinkScratch;     // Restart pdr from scratch after shrinking
     int                    fVerbose;           // verbose output
     int                    fPdrVerbose;        // verbose output
+    int                    RunId;              // id in this run 
+    int                    (*pFuncStop)(int);  // callback to terminate
 };
 
 typedef struct Wla_Man_t_ Wla_Man_t;

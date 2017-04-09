@@ -1659,6 +1659,8 @@ Wla_Man_t * Wla_ManStart( Wlc_Ntk_t * pNtk, Wlc_Par_t * pPars )
     Pdr_ManSetDefaultParams( pPdrPars );
     pPdrPars->fVerbose   = pPars->fPdrVerbose;
     pPdrPars->fVeryVerbose = 0;
+    pPdrPars->pFuncStop  = pPars->pFuncStop;
+    pPdrPars->RunId      = pPars->RunId;
     if ( pPars->fPdra )
     {
         pPdrPars->fUseAbs    = 1;   // use 'pdr -t'  (on-the-fly abstraction)
@@ -1713,7 +1715,7 @@ int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars )
         RetValue = Wla_ManSolveInt( pWla, pAig );
         Aig_ManStop( pAig );
 
-        if ( RetValue != -1 )
+        if ( RetValue != -1 || pPars->pFuncStop( pPars->RunId) )
             break;
 
         Wla_ManRefine( pWla );
