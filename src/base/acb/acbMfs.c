@@ -433,14 +433,6 @@ void Acb_NtkPrintVec( Acb_Ntk_t * p, Vec_Int_t * vVec, char * pName )
         printf( "%d ", vVec->pArray[i] );
     printf( "\n" );
 }
-void Acb_NtkPrintNode( Acb_Ntk_t * p, int Node )
-{
-    int k, iFanin, * pFanins;
-    printf( "Node %d : ", Node );
-    Acb_ObjForEachFaninFast( p, Node, pFanins, iFanin, k )
-        printf( "%d ", iFanin );
-    printf( "\n" );
-}
 void Acb_NtkPrintVec2( Acb_Ntk_t * p, Vec_Int_t * vVec, char * pName )
 {
     int i;
@@ -486,7 +478,8 @@ Vec_Int_t * Acb_NtkDivisors( Acb_Ntk_t * p, int Pivot, int nTfiLevMin, int fDela
     int k, iFanin, * pFanins;
     Vec_Int_t * vDivs = Vec_IntAlloc( 100 );
     Acb_NtkIncTravId( p );
-    if ( fDelay ) // delay-oriented
+//    if ( fDelay ) // delay-oriented
+    if ( 0 ) // delay-oriented
     {
         // start from critical fanins
         assert( Acb_ObjLevelD( p, Pivot ) > 1 );
@@ -805,7 +798,7 @@ Vec_Int_t * Acb_NtkWindow( Acb_Ntk_t * p, int Pivot, int nTfiLevs, int nTfoLevs,
     // mark limited TFO of the divisors
     vMarked = Acb_ObjMarkTfo( p, vDivs, Pivot, nTfoLevMax, nFanMax );
     // collect TFO and roots
-    Acb_ObjDeriveTfo( p, Pivot, nTfoLevMax, nFanMax, &vTfo, &vRoots, fDelay );
+    Acb_ObjDeriveTfo( p, Pivot, nTfoLevMax, nFanMax, &vTfo, &vRoots, 0 );//fDelay );
     if ( fVerbose ) Acb_NtkPrintVec( p, vTfo, "vTfo" );
     if ( fVerbose ) Acb_NtkPrintVec( p, vRoots, "vRoots" );
     // collect side inputs of the TFO
@@ -1599,8 +1592,8 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
                 if ( iObj < nNodes && !Vec_BitEntry(vVisited, iObj) && Acb_NtkObjMffcEstimate(pNtk, iObj) >= n )
                 {
                     pMan->nNodes++;
-                    //if ( iObj != 7 )
-                    //    continue;
+                    if ( iObj != 103 )
+                        continue;
                     //Acb_NtkOptNode( pMan, iObj );
                     while ( (RetValue = Acb_NtkOptNode(pMan, iObj)) && Acb_ObjFaninNum(pNtk, iObj) );                    
                     Vec_BitWriteEntry( vVisited, iObj, 1 );
@@ -1609,14 +1602,16 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
     }
     else
     {
+        int Value;
         Acb_NtkUpdateTiming( pNtk, -1 ); // compute delay information
-        while ( Vec_QueTopPriority(pNtk->vQue) > 0 )
+        while ( (Value = (int)Vec_QueTopPriority(pNtk->vQue)) > 0 )
         {
             int iObj = Vec_QuePop(pNtk->vQue);
             if ( !Acb_ObjType(pNtk, iObj) )
                 continue;
-            //if ( iObj != 28 )
-            //    continue;
+            if ( iObj != 103 )
+                continue;
+            //printf( "Trying node %4d (%4d) ", iObj, Value );
             Acb_NtkOptNode( pMan, iObj ); 
         }
     }

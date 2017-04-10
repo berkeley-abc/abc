@@ -1028,11 +1028,15 @@ Gia_Man_t * Abc_NtkAigToGia( Abc_Ntk_t * p, int fGiaSimple )
         }
         pNode->iTemp = Abc_LitNotCond( pHopObj->iData, Hop_IsComplement( (Hop_Obj_t *)pNode->pData ) );
     }
-    Vec_PtrFree( vNodes );
     // create primary outputs
     Abc_NtkForEachCo( p, pNode, i )
         Gia_ManAppendCo( pNew, Abc_ObjFanin0(pNode)->iTemp );
     Gia_ManSetRegNum( pNew, Abc_NtkLatchNum(p) );
+    // copy original IDs
+    pNew->vIdsOrig = Vec_IntStart( Gia_ManObjNum(pNew) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
+        Vec_IntWriteEntry( pNew->vIdsOrig, Abc_Lit2Var(pNode->iTemp), Abc_ObjId(pNode) );
+    Vec_PtrFree( vNodes );
     // finish mapping 
     assert( Gia_ManObjNum(pNew) <= nObjs );
     assert( pNew->vMapping == NULL );
