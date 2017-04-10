@@ -1717,7 +1717,7 @@ int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars )
         RetValue = Wla_ManSolveInt( pWla, pAig );
         Aig_ManStop( pAig );
 
-        if ( RetValue != -1 || pPars->pFuncStop( pPars->RunId) )
+        if ( RetValue != -1 || (pPars->pFuncStop && pPars->pFuncStop( pPars->RunId)) )
             break;
 
         Wla_ManRefine( pWla );
