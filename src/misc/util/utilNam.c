@@ -131,11 +131,15 @@ void Abc_NamStop( Abc_Nam_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NamPrint( Abc_Nam_t * p )
+void Abc_NamPrint( Abc_Nam_t * p, char * pFileName )
 {
+    FILE * pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
     int h, i;
+    if ( pFile == NULL ) { printf( "Count node open file %s\n", pFileName ); return; }
     Vec_IntForEachEntryStart( &p->vInt2Handle, h, i, 1 )
-        Abc_Print( 1, "%d=\n%s\n", i, Abc_NamHandleToStr(p, h) );
+        fprintf( pFile, "%8d = %s\n", i, Abc_NamHandleToStr(p, h) );
+    if ( pFile != stdout )
+        fclose(pFile);
 }
 
 /**Function*************************************************************
@@ -274,6 +278,22 @@ int Abc_NamStrHash( const char * pStr, const char * pLim, int nTableSize )
                 uHash ^= pStr[i] * s_FPrimes[i & 0x7F];
     }
     return uHash % nTableSize;
+}
+// https://en.wikipedia.org/wiki/Jenkins_hash_function
+int Abc_NamStrHash2( const char * pStr, const char * pLim, int nTableSize ) 
+{
+    int nSize = pLim ? pLim - pStr : -1;
+    int i = 0; unsigned hash = 0;
+    while ( i != nSize && pStr[i] ) 
+    {
+        hash += pStr[i++];
+        hash += hash << 10;
+        hash ^= hash >> 6;
+    }
+    hash += hash << 3;
+    hash ^= hash >> 11;
+    hash += hash << 15;
+    return (int)(hash % nTableSize);
 }
 
 /**Function*************************************************************
