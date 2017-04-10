@@ -587,6 +587,8 @@ static Abc_Cex_t * Wlc_NtkCexIsReal( Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex )
             if (pObj->Value==1) {
                 Abc_Print( 1, "CEX is real on the original model.\n" );
                 Gia_ManStop(pGiaOrig);
+                pCexReal->iFrame = f;
+                pCexReal->iPo = i;
                 return pCexReal;
             }
         }
