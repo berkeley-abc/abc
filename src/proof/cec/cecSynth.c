@@ -372,6 +372,58 @@ int Cec_SequentialSynthesisPart( Gia_Man_t * p, Cec_ParSeq_t * pPars )
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Gia_ManTestOnePair_rec( sat_solver * pSat, Gia_Man_t * p, int iObj, Vec_Int_t * vSatVar )
+{
+    Gia_Obj_t * pObj; 
+    int iVar, iVar0, iVar1;
+    if ( Vec_IntEntry(vSatVar, iObj) >= 0 )
+        return Vec_IntEntry(vSatVar, iObj);
+    iVar = sat_solver_addvar(pSat);
+    Vec_IntWriteEntry( vSatVar, iObj, iVar );
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        iVar0 = Gia_ManTestOnePair_rec( pSat, p, Gia_ObjFaninId0(pObj, iObj), vSatVar );
+        iVar1 = Gia_ManTestOnePair_rec( pSat, p, Gia_ObjFaninId1(pObj, iObj), vSatVar );
+        sat_solver_add_and( pSat, iVar, iVar0, iVar1, Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
+    }
+    return iVar;
+}
+int Gia_ManTestOnePair( Gia_Man_t * p, int iObj1, int iObj2, int fPhase )
+{
+    int Lits[2] = {1}, status;
+    sat_solver * pSat = sat_solver_new();
+    Vec_Int_t * vSatVar = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Vec_IntWriteEntry( vSatVar, 0, sat_solver_addvar(pSat) );
+    sat_solver_addclause( pSat, Lits, Lits + 1 );
+    Gia_ManTestOnePair_rec( pSat, p, iObj1, vSatVar );
+    Gia_ManTestOnePair_rec( pSat, p, iObj2, vSatVar );
+    Lits[0] = Abc_Var2Lit( Vec_IntEntry(vSatVar, iObj1), 1 );
+    Lits[1] = Abc_Var2Lit( Vec_IntEntry(vSatVar, iObj2), fPhase );
+    status = sat_solver_solve( pSat, Lits, Lits + 2, 0, 0, 0, 0 );
+    if ( status == l_False )
+    {
+        Lits[0] = Abc_LitNot( Lits[0] );
+        Lits[1] = Abc_LitNot( Lits[1] );
+        status = sat_solver_solve( pSat, Lits, Lits + 2, 0, 0, 0, 0 );
+    }
+    Vec_IntFree( vSatVar );
+    sat_solver_delete( pSat );
+    return status;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

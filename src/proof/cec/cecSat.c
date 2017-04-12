@@ -61,6 +61,7 @@ struct Cec2_Man_t_
     Vec_Int_t *      vObjSatPairs;   // nodes
     Vec_Int_t *      vCexTriples;    // nodes
     // statistics
+    int              nPatterns;
     int              nSatSat;
     int              nSatUnsat;
     int              nSatUndec;
@@ -100,7 +101,7 @@ void Cec2_SetDefaultParams( Cec2_Par_t * p )
     p->nItersMax      =      10;    // max number of iterations
     p->nConfLimit     =    1000;    // conflict limit at a node
     p->fIsMiter       =       0;    // this is a miter
-    p->fUseCones      =       0;     // use logic cones
+    p->fUseCones      =       0;    // use logic cones
     p->fVeryVerbose   =       0;    // verbose stats
     p->fVerbose       =       0;    // verbose stats
 }  
@@ -487,18 +488,18 @@ void Cec2_ManSaveCis( Gia_Man_t * p )
         Gia_ManForEachCiId( p, Id, i )
             Vec_WrdPush( p->vSimsPi, Cec2_ObjSim(p, Id)[w] );
 }
-void Cec2_ManSimulate( Gia_Man_t * p, Vec_Int_t * vTriples, Cec2_Man_t * pMan )
+int Cec2_ManSimulate( Gia_Man_t * p, Vec_Int_t * vTriples, Cec2_Man_t * pMan )
 {
     extern void Cec2_ManSimClassRefineOne( Gia_Man_t * p, int iRepr );
     abctime clk = Abc_Clock();
     Gia_Obj_t * pObj; 
-    int i, iRepr, iObj, Entry;
+    int i, iRepr, iObj, Entry, Count = 0;
     //Cec2_ManSaveCis( p );
     Gia_ManForEachAnd( p, pObj, i )
         Cec2_ObjSimAnd( p, i );
     pMan->timeSim += Abc_Clock() - clk;
     if ( p->pReprs == NULL )
-        return;
+        return 0;
     if ( vTriples )
     {
         Vec_IntForEachEntryTriple( vTriples, iRepr, iObj, Entry, i )
@@ -508,13 +509,17 @@ void Cec2_ManSimulate( Gia_Man_t * p, Vec_Int_t * vTriples, Cec2_Man_t * pMan )
             int iPat     = Abc_Lit2Var(Entry);
             int fPhase   = Abc_LitIsCompl(Entry);
             if ( (fPhase ^ Abc_InfoHasBit((unsigned *)pSim0, iPat)) == Abc_InfoHasBit((unsigned *)pSim1, iPat) )
-                printf( "ERROR:  Pattern %d did not disprove pair %d and %d.\n", iPat, iRepr, iObj );
+            {
+                //printf( "ERROR:  Pattern %d did not disprove pair %d and %d.\n", iPat, iRepr, iObj );
+                Count++;
+            }
         }
     }
     clk = Abc_Clock();
     Gia_ManForEachClass0( p, i )
         Cec2_ManSimClassRefineOne( p, i );
     pMan->timeRefine += Abc_Clock() - clk;
+    return Count;
 }
 void Cec2_ManSimAlloc( Gia_Man_t * p, int nWords )
 {
@@ -677,6 +682,7 @@ Cec2_Man_t * Cec2_ManCreate( Gia_Man_t * pAig, Cec2_Par_t * pPars )
     p->vSatVars     = Vec_IntAlloc( 100 );
     p->vObjSatPairs = Vec_IntAlloc( 100 );
     p->vCexTriples  = Vec_IntAlloc( 100 );
+    p->pSat->opts.conf_limit = pPars->nConfLimit;
     // remember pointer to the solver in the AIG manager
     pAig->pData     = p->pSat;
     return p;
@@ -849,12 +855,13 @@ int Cec2_ManSweepNode( Cec2_Man_t * p, int iObj )
     if ( status == SATOKO_SAT )
     {
         p->nSatSat++;
+        p->nPatterns++;
         p->pAig->iPatsPi = (p->pAig->iPatsPi == 64 * p->pAig->nSimWords - 1) ? 1 : p->pAig->iPatsPi + 1;
         assert( p->pAig->iPatsPi > 0 && p->pAig->iPatsPi < 64 * p->pAig->nSimWords );
         Vec_IntForEachEntryDouble( p->vObjSatPairs, IdAig, IdSat, i )
             Cec2_ObjSimSetInputBit( p->pAig, IdAig, var_polarity(p->pSat, IdSat) == LIT_TRUE );
-        RetValue = 0;
         p->timeSatSat += Abc_Clock() - clk;
+        RetValue = 0;
     }
     else if ( status == SATOKO_UNSAT )
     {
@@ -862,14 +869,15 @@ int Cec2_ManSweepNode( Cec2_Man_t * p, int iObj )
         pObj->Value = Abc_LitNotCond( pRepr->Value, fCompl );
         Gia_ObjSetProved( p->pAig, iObj );
         p->timeSatUnsat += Abc_Clock() - clk;
+        RetValue = 1;
     }
     else 
     {
         p->nSatUndec++;
         assert( status == SATOKO_UNDEC );
         Gia_ObjSetFailed( p->pAig, iObj );
-        assert( 0 );
         p->timeSatUndec += Abc_Clock() - clk;
+        RetValue = 2;
     }
     if ( p->pPars->fUseCones )
         return RetValue;
@@ -895,6 +903,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
     int i, Iter, fDisproved = 1;
 
     // check if any output trivially fails under all-0 pattern
+    Gia_ManRandomW( 1 );
     Gia_ManSetPhase( p );
     if ( pPars->fIsMiter ) 
     {
@@ -902,7 +911,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
             if ( pObj->fPhase )
             {
                 p->pCexSeq = Cec2_ManDeriveCex( p, i, -1 );
-                return 0;
+                goto finalize;
             }
     }
 
@@ -911,7 +920,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
     Cec2_ManSimulateCis( p );
     Cec2_ManSimulate( p, NULL, pMan );
     if ( pPars->fIsMiter && !Cec2_ManSimulateCos(p) ) // cex detected
-        return 0;
+        goto finalize;
     Cec2_ManCreateClasses( p, pMan );
     Cec2_ManPrintStats( p, pPars, pMan );
 
@@ -921,7 +930,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
         Cec2_ManSimulateCis( p );
         Cec2_ManSimulate( p, NULL, pMan );
         if ( pPars->fIsMiter && !Cec2_ManSimulateCos(p) ) // cex detected
-            return 0;
+            goto finalize;
         Cec2_ManPrintStats( p, pPars, pMan );
     }
     // perform sweeping
@@ -929,14 +938,12 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
     for ( Iter = 0; fDisproved && Iter < pPars->nItersMax; Iter++ )
     {
         fDisproved = 0;
+        pMan->nPatterns = 0;
         Cec2_ManSimulateCis( p );
         Vec_IntClear( pMan->vCexTriples );
         Gia_ManForEachAnd( p, pObj, i )
         {
-            pObj->fMark1 = Gia_ObjFanin0(pObj)->fMark1 || Gia_ObjFanin1(pObj)->fMark1;
-            if ( pObj->fMark1 ) // skip nodes in the TFO of a disproved one
-                continue;
-            if ( ~pObj->Value ) // skip swept nodes
+            if ( ~pObj->Value || Gia_ObjFailed(p, i) ) // skip swept nodes and failed nodes
                 continue;
             if ( !~Gia_ObjFanin0(pObj)->Value || !~Gia_ObjFanin1(pObj)->Value ) // skip fanouts of non-swept nodes
                 continue;
@@ -952,7 +959,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
             }
             assert( Vec_IntSize(&pMan->pNew->vCopies) == Gia_ManObjNum(pMan->pNew) );
             pRepr = Gia_ObjReprObj( p, i );
-            if ( pRepr == NULL || pRepr->fMark1 || !~pRepr->Value )
+            if ( pRepr == NULL || !~pRepr->Value )
                 continue;
             if ( Abc_Lit2Var(pObj->Value) == Abc_Lit2Var(pRepr->Value) )
             {
@@ -964,18 +971,13 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
                 continue;
             pObj->Value = ~0;
             Vec_IntPushThree( pMan->vCexTriples, Gia_ObjId(p, pRepr), i, Abc_Var2Lit(p->iPatsPi, pObj->fPhase ^ pRepr->fPhase) );
-            // mark nodes as disproved
             fDisproved = 1;
-            //if ( Iter > 5 )
-                continue;
-            if ( Gia_ObjIsAnd(pRepr) )
-                pRepr->fMark1 = 1;
-            pObj->fMark1 = 1;
         }
         if ( fDisproved )
         {
-            //printf( "The number of pattern = %d.\n", p->iPatsPi );
-            Cec2_ManSimulate( p, pMan->vCexTriples, pMan );
+            int Fails = Cec2_ManSimulate( p, pMan->vCexTriples, pMan );
+            if ( Fails && pPars->fVerbose )
+                printf( "Failed to resimulate %d times with pattern = %d  (total = %d).\n", Fails, pMan->nPatterns, pPars->nSimWords * 64 );
             if ( pPars->fIsMiter && !Cec2_ManSimulateCos(p) ) // cex detected
                 break;
         }
@@ -993,6 +995,7 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
         (*ppNew)->pName = Abc_UtilStrsav( p->pName );
         (*ppNew)->pSpec = Abc_UtilStrsav( p->pSpec );
     }
+finalize:
     Cec2_ManDestroy( pMan );
     //Gia_ManEquivPrintClasses( p, 1, 0 );
     return p->pCexSeq ? 0 : 1;
