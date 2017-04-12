@@ -65,6 +65,7 @@ extern int         sat_solver_nconflicts(sat_solver* s);
 extern double      sat_solver_memory(sat_solver* s);
 extern int         sat_solver_count_assigned(sat_solver* s);
 
+extern int         sat_solver_addvar(sat_solver* s);
 extern void        sat_solver_setnvars(sat_solver* s,int n);
 extern int         sat_solver_get_var_value(sat_solver* s, int v);
 extern void        sat_solver_set_var_activity(sat_solver* s, int * pVars, int nVars);

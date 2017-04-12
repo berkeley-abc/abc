@@ -39,6 +39,16 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef struct Hsh_Int1Man_t_ Hsh_Int1Man_t;
+struct Hsh_Int1Man_t_
+{
+    Vec_Int_t *  vData;       // stored data
+    Vec_Int_t *  vNext;       // next items
+    Vec_Int_t *  vTable;      // hash table
+};
+
+
+
 typedef struct Hsh_IntObj_t_ Hsh_IntObj_t;
 struct Hsh_IntObj_t_
 {
@@ -96,6 +106,131 @@ static inline Hsh_VecObj_t *  Hsh_VecObj( Hsh_VecMan_t * p, int i )  { return i 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Hashing data entries composed of nSize integers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Hsh_Int1Man_t * Hsh_Int1ManStart( int nEntries )
+{
+    Hsh_Int1Man_t * p;
+    p = ABC_CALLOC( Hsh_Int1Man_t, 1 );
+    p->vData  = Vec_IntAlloc( nEntries );
+    p->vNext  = Vec_IntAlloc( nEntries );
+    p->vTable = Vec_IntStartFull( Abc_PrimeCudd(nEntries) );
+    return p;
+}
+static inline void Hsh_Int1ManStop( Hsh_Int1Man_t * p )
+{
+    Vec_IntFree( p->vData );
+    Vec_IntFree( p->vNext );
+    Vec_IntFree( p->vTable );
+    ABC_FREE( p );
+}
+static inline int Hsh_Int1ManEntryNum( Hsh_Int1Man_t * p )
+{
+    return Vec_IntSize(p->vData);
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Hashing individual integers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// https://en.wikipedia.org/wiki/Jenkins_hash_function
+static inline int Hsh_Int1ManHash( int Data, int nTableSize ) 
+{
+    unsigned i, hash = 0;
+    unsigned char * pDataC = (unsigned char *)&Data;
+    for ( i = 0; i < 4; i++ )
+    {
+        hash += pDataC[i];
+        hash += hash << 10;
+        hash ^= hash >> 6;
+    }
+    hash += hash << 3;
+    hash ^= hash >> 11;
+    hash += hash << 15;
+    return (int)(hash % nTableSize);
+}
+static inline int * Hsh_Int1ManLookupInt( Hsh_Int1Man_t * p, int Data )
+{
+    int Item, * pPlace = Vec_IntEntryP( p->vTable, Hsh_Int1ManHash(Data, Vec_IntSize(p->vTable)) );
+    for ( Item = *pPlace; Item >= 0; Item = Vec_IntEntry(p->vNext, Item) )
+        if ( Vec_IntEntry(p->vData, Item) == (int)Data )
+            return pPlace;
+    assert( Item == -1 );
+    return pPlace;
+}
+static inline int Hsh_Int1ManLookup( Hsh_Int1Man_t * p, int Data )
+{
+    return *Hsh_Int1ManLookupInt(p, Data);
+}
+static inline int Hsh_Int1ManAdd( Hsh_Int1Man_t * p, int Data )
+{
+    int i, Entry, * pPlace;
+    if ( Vec_IntSize(p->vData) > Vec_IntSize(p->vTable) )
+    {
+        Vec_IntFill( p->vTable, Abc_PrimeCudd(2*Vec_IntSize(p->vTable)), -1 );
+        Vec_IntForEachEntry( p->vData, Entry, i )
+        {
+            pPlace = Vec_IntEntryP( p->vTable, Hsh_Int1ManHash(Entry, Vec_IntSize(p->vTable)) );
+            Vec_IntWriteEntry( p->vNext, i, *pPlace ); *pPlace = i;
+        }
+    }
+    pPlace = Hsh_Int1ManLookupInt( p, Data );
+    if ( *pPlace == -1 )
+    {
+        *pPlace = Vec_IntSize(p->vData);
+        Vec_IntPush( p->vData, Data );
+        Vec_IntPush( p->vNext, -1 );
+    }
+    return *pPlace;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Test procedure.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Hsh_Int1ManHashArrayTest()
+{
+    Hsh_Int1Man_t * p = Hsh_Int1ManStart( 10 );
+
+    printf( "Entry = %d.   Hashed = %d.\n", 5, Hsh_Int1ManAdd(p, 5 ) );
+    printf( "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 ) );
+    printf( "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 ) );
+    printf( "Entry = %d.   Hashed = %d.\n", 7, Hsh_Int1ManAdd(p, 7 ) );
+    printf( "Entry = %d.   Hashed = %d.\n", 8, Hsh_Int1ManAdd(p, 8 ) );
+    printf( "Entry = %d.   Hashed = %d.\n", 5, Hsh_Int1ManAdd(p, 5 ) );
+    printf( "Entry = %d.   Hashed = %d.\n", 3, Hsh_Int1ManAdd(p, 3 ) );
+    printf( "Entry = %d.   Hashed = %d.\n", 4, Hsh_Int1ManAdd(p, 4 ) );
+
+    printf( "Size = %d.\n", Hsh_Int1ManEntryNum(p) );
+
+    Hsh_Int1ManStop( p );
+}
+
 
 /**Function*************************************************************
 

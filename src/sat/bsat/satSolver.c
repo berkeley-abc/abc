@@ -1246,6 +1246,11 @@ sat_solver* zsat_solver_new_seed(double seed)
     return s;
 }
 
+int sat_solver_addvar(sat_solver* s)
+{
+    sat_solver_setnvars(s, s->size+1);
+    return s->size-1;
+}
 void sat_solver_setnvars(sat_solver* s,int n)
 {
     int var;
