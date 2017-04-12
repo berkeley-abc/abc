@@ -101,7 +101,7 @@ void Cec2_SetDefaultParams( Cec2_Par_t * p )
     p->nItersMax      =      10;    // max number of iterations
     p->nConfLimit     =    1000;    // conflict limit at a node
     p->fIsMiter       =       0;    // this is a miter
-    p->fUseCones      =       0;    // use logic cones
+    p->fUseCones      =       1;    // use logic cones
     p->fVeryVerbose   =       0;    // verbose stats
     p->fVerbose       =       0;    // verbose stats
 }  
@@ -968,7 +968,11 @@ int Cec2_ManPerformSweeping( Gia_Man_t * p, Cec2_Par_t * pPars, Gia_Man_t ** ppN
                 continue;
             }
             if ( Cec2_ManSweepNode(pMan, i) )
+            {
+                if ( Gia_ObjProved(p, i) )
+                    pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
                 continue;
+            }
             pObj->Value = ~0;
             Vec_IntPushThree( pMan->vCexTriples, Gia_ObjId(p, pRepr), i, Abc_Var2Lit(p->iPatsPi, pObj->fPhase ^ pRepr->fPhase) );
             fDisproved = 1;
@@ -1011,6 +1015,7 @@ Gia_Man_t * Cec2_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars0 )
 //    pPars->nSimRounds = pPars0->nRounds;    // simulation rounds
 //    pPars->nItersMax  = pPars0->nItersMax;  // max number of iterations
     pPars->nConfLimit = pPars0->nBTLimit;   // conflict limit at a node
+    pPars->fUseCones  = pPars0->fUseCones;
     pPars->fVerbose   = pPars0->fVerbose;
 //    Gia_ManComputeGiaEquivs( p, 100000, 0 );
 //    Gia_ManEquivPrintClasses( p, 1, 0 );

@@ -108,6 +108,7 @@ struct Cec_ParFra_t_
     int              fColorDiff;    // miter with separate outputs
     int              fSatSweeping;  // enable SAT sweeping
     int              fRunCSat;      // enable another solver
+    int              fUseCones;     // use cones
     int              fUseOrigIds;   // enable recording of original IDs
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats

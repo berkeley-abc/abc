@@ -138,6 +138,7 @@ void Cec_ManFraSetDefaultParams( Cec_ParFra_t * p )
     p->fDualOut       =       0;  // miter with separate outputs
     p->fColorDiff     =       0;  // miter with separate outputs
     p->fSatSweeping   =       0;  // enable SAT sweeping
+    p->fUseCones      =       0;  // use cones
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
     p->iOutFail       =      -1;  // the failed output
