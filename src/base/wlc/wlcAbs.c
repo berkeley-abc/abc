@@ -587,6 +587,8 @@ static Abc_Cex_t * Wlc_NtkCexIsReal( Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex )
             if (pObj->Value==1) {
                 Abc_Print( 1, "CEX is real on the original model.\n" );
                 Gia_ManStop(pGiaOrig);
+                pCexReal->iFrame = f;
+                pCexReal->iPo = i;
                 return pCexReal;
             }
         }
@@ -1659,6 +1661,8 @@ Wla_Man_t * Wla_ManStart( Wlc_Ntk_t * pNtk, Wlc_Par_t * pPars )
     Pdr_ManSetDefaultParams( pPdrPars );
     pPdrPars->fVerbose   = pPars->fPdrVerbose;
     pPdrPars->fVeryVerbose = 0;
+    pPdrPars->pFuncStop  = pPars->pFuncStop;
+    pPdrPars->RunId      = pPars->RunId;
     if ( pPars->fPdra )
     {
         pPdrPars->fUseAbs    = 1;   // use 'pdr -t'  (on-the-fly abstraction)
@@ -1713,7 +1717,7 @@ int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars )
         RetValue = Wla_ManSolveInt( pWla, pAig );
         Aig_ManStop( pAig );
 
-        if ( RetValue != -1 )
+        if ( RetValue != -1 || (pPars->pFuncStop && pPars->pFuncStop( pPars->RunId)) )
             break;
 
         Wla_ManRefine( pWla );
