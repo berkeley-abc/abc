@@ -446,6 +446,7 @@ void satoko_mark_cone(satoko_t *s, int * pvars, int n_vars)
         s->marks = vec_char_init(solver_varnum(s), 0);
     for (i = 0; i < n_vars; i++) {
         var_set_mark(s, pvars[i]);
+        vec_sdbl_assign(s->activity, pvars[i], 0);
         if (!heap_in_heap(s->var_order, pvars[i]))
             heap_insert(s->var_order, pvars[i]);
     }
