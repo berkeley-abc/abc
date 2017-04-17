@@ -175,6 +175,7 @@ struct Wlc_Par_t_
     int                    fPushClauses;       // Push clauses in the reloaded trace
     int                    fMFFC;              // Refine the entire MFFC of a PPI
     int                    fPdra;              // Use pdr -nct
+    int                    fLoadTrace;         // Load previous traces if any
     int                    fProofRefine;       // Use proof-based refinement
     int                    fHybrid;            // Use a hybrid of CBR and PBR
     int                    fCheckCombUnsat;    // Check if ABS becomes comb. unsat

@@ -119,6 +119,7 @@ void Wlc_ManSetDefaultParams( Wlc_Par_t * pPars )
     pPars->fPushClauses  =            0;   // Push clauses in the reloaded trace                    
     pPars->fMFFC         =            1;   // Refine the entire MFFC of a PPI 
     pPars->fPdra         =            0;   // Use pdr -nct 
+    pPars->fLoadTrace    =            1;   // Load previous PDR traces 
     pPars->fProofRefine  =            0;   // Use proof-based refinement
     pPars->fHybrid       =            1;   // Use a hybrid of CBR and PBR
     pPars->fCheckCombUnsat =          0;   // Check if ABS becomes comb. unsat

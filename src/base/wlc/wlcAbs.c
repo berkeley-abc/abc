@@ -1530,7 +1530,8 @@ int Wla_ManSolveInt( Wla_Man_t * pWla, Aig_Man_t * pAig )
     RetValue = IPdr_ManSolveInt( pPdr, pWla->pPars->fCheckClauses, pWla->pPars->fPushClauses );
     pPdr->tTotal += Abc_Clock() - clk;
     pWla->tPdr += pPdr->tTotal;
-    pWla->vClauses = IPdr_ManSaveClauses( pPdr, 0 );
+    if ( pWla->pPars->fLoadTrace)
+        pWla->vClauses = IPdr_ManSaveClauses( pPdr, 0 );
     Pdr_ManStop( pPdr );
 
 
