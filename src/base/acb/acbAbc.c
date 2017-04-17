@@ -271,6 +271,28 @@ Abc_Ntk_t * Abc_NtkOptMfse( Abc_Ntk_t * pNtk, Acb_Par_t * pPars )
     return pNtkNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkOptPush( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose )
+{
+    extern void Acb_NtkPushLogic( Acb_Ntk_t * p, int nLutSize, int fVerbose );
+    Abc_Ntk_t * pNtkNew;
+    Acb_Ntk_t * p = Acb_NtkFromAbc( pNtk );
+    Acb_NtkPushLogic( p, nLutSize, fVerbose );
+    pNtkNew = Acb_NtkToAbc( pNtk, p );
+    Acb_ManFree( p->pDesign );
+    return pNtkNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

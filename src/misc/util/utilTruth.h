@@ -2209,7 +2209,51 @@ static inline int Abc_Tt6EsopVerify( word t, int nVars )
 
 /**Function*************************************************************
 
-  Synopsis    [Check if the function is decomposable with the given pair.]
+  Synopsis    [Check if the function is output-decomposable with the given var.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtCheckOutAnd( word t, int i, word * pOut )
+{
+    word c0 = Abc_Tt6Cofactor0( t, i );
+    word c1 = Abc_Tt6Cofactor1( t, i );
+    assert( c0 == c1 );
+    if ( c0 == 0 ) //  F = i * G
+    {
+        if ( pOut ) *pOut = c1;
+        return 0;
+    }
+    if ( c1 == 0 ) //  F = ~i * G
+    {
+        if ( pOut ) *pOut = c0;
+        return 1;
+    }
+    if ( ~c0 == 0 ) //  F = ~i + G
+    {
+        if ( pOut ) *pOut = c1;
+        return 2;
+    }
+    if ( ~c1 == 0 ) //  F = i + G
+    {
+        if ( pOut ) *pOut = c0;
+        return 3;
+    }
+    if ( c0 == ~c1 ) //  F = i # G
+    {
+        if ( pOut ) *pOut = c0;
+        return 4;
+    }
+    return -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check if the function is input-decomposable with the given pair.]
 
   Description []
 
