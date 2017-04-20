@@ -44,8 +44,8 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Acb_ObjPushToFanout( Acb_Ntk_t * p, int iObj, int iFaninIndex, int iFanout )
 {
-    word c0, uTruthObjNew, uTruthObj = Acb_ObjTruth( p, iObj ), Gate;
-    word c1, uTruthFanNew, uTruthFan = Acb_ObjTruth( p, iFanout );
+    word c0, uTruthObjNew = 0, uTruthObj = Acb_ObjTruth( p, iObj ), Gate;
+    word c1, uTruthFanNew = 0, uTruthFan = Acb_ObjTruth( p, iFanout );
     int DecType = Abc_TtCheckOutAnd( uTruthObj, iFaninIndex, &uTruthObjNew );
     int iFanin = Acb_ObjFanin( p, iObj, iFaninIndex );
     int iFanoutObjIndex = Acb_ObjWhatFanin( p, iFanout, iObj );
@@ -94,8 +94,8 @@ void Acb_ObjPushToFanout( Acb_Ntk_t * p, int iObj, int iFaninIndex, int iFanout 
 ***********************************************************************/
 void Acb_ObjPushToFanin( Acb_Ntk_t * p, int iObj, int iFaninIndex2, int iFanin )
 {
-    word uTruthObjNew, uTruthObj = Acb_ObjTruth( p, iObj );
-    word uTruthFanNew, uTruthFan = Acb_ObjTruth( p, iFanin );
+    word uTruthObjNew = 0, uTruthObj = Acb_ObjTruth( p, iObj );
+    word uTruthFanNew = 0, uTruthFan = Acb_ObjTruth( p, iFanin );
     int iFaninIndex = Acb_ObjWhatFanin( p, iObj, iFanin );
     int DecType = Abc_TtCheckDsdAnd( uTruthObj, iFaninIndex, iFaninIndex2, &uTruthObjNew );
     int iFanin2 = Acb_ObjFanin( p, iObj, iFaninIndex2 );
