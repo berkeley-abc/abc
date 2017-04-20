@@ -1378,6 +1378,13 @@ static inline void Abc_TtMoveVar( word * pF, int nVars, int * V2P, int * P2V, in
     P2V[jVar] ^= P2V[iVar];
     P2V[iVar] ^= P2V[jVar];
 }
+static inline word Abc_Tt6RemoveVar( word t, int iVar )
+{
+    assert( !Abc_Tt6HasVar(t, iVar) );
+    while ( iVar < 5 )
+        t = Abc_Tt6SwapAdjacent( t, iVar++ );
+    return t;
+}
 
 /**Function*************************************************************
 
@@ -2222,7 +2229,7 @@ static inline int Abc_TtCheckOutAnd( word t, int i, word * pOut )
 {
     word c0 = Abc_Tt6Cofactor0( t, i );
     word c1 = Abc_Tt6Cofactor1( t, i );
-    assert( c0 == c1 );
+    assert( c0 != c1 );
     if ( c0 == 0 ) //  F = i * G
     {
         if ( pOut ) *pOut = c1;

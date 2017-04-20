@@ -256,7 +256,8 @@ static inline int *          Acb_ObjFanins( Acb_Ntk_t * p, int i )              
 static inline int            Acb_ObjFanin( Acb_Ntk_t * p, int i, int k )             { return Acb_ObjFanins(p, i)[k+1];                                                                     }
 static inline int            Acb_ObjFaninNum( Acb_Ntk_t * p, int i )                 { return Acb_ObjFanins(p, i)[0];                                                                       }
 static inline int            Acb_ObjFanoutNum( Acb_Ntk_t * p, int i )                { return Vec_IntSize( Vec_WecEntry(&p->vFanouts, i) );                                                 }
-static inline Vec_Int_t *    Acb_ObjFanoutVec( Acb_Ntk_t * p, int i )                { return Vec_WecEntry( &p->vFanouts, i );                                                              }
+static inline Vec_Int_t *    Acb_ObjFanoutVec( Acb_Ntk_t * p, int i )                { assert(i>0); return Vec_WecEntry( &p->vFanouts, i );                                                 }
+static inline int            Acb_ObjFanout( Acb_Ntk_t * p, int i, int k )            { return Vec_IntEntry( Acb_ObjFanoutVec(p, i), k );                                                    }
 static inline int            Acb_ObjFanin0( Acb_Ntk_t * p, int i )                   { return Acb_ObjFanins(p, i)[1];                                                                       }
 static inline int            Acb_ObjCioId( Acb_Ntk_t * p, int i )                    { return Acb_ObjFanins(p, i)[2];                                                                       }
  
@@ -276,7 +277,6 @@ static inline int            Acb_ObjLevelR( Acb_Ntk_t * p, int i )              
 static inline int            Acb_ObjPathD( Acb_Ntk_t * p, int i )                    { assert(i>0); return Vec_IntEntry(&p->vPathD, i);                                                     }
 static inline int            Acb_ObjPathR( Acb_Ntk_t * p, int i )                    { assert(i>0); return Vec_IntEntry(&p->vPathR, i);                                                     }
 static inline float          Acb_ObjCounts( Acb_Ntk_t * p, int i )                   { assert(i>0); return Vec_FltEntry(&p->vCounts, i);                                                    }
-static inline Vec_Int_t *    Acb_ObjFanout( Acb_Ntk_t * p, int i )                   { assert(i>0); return Vec_WecEntry(&p->vFanouts, i);                                                   }
 static inline Vec_Str_t *    Acb_ObjCnfs( Acb_Ntk_t * p, int i )                     { assert(i>0); return (Vec_Str_t *)Vec_WecEntry(&p->vCnfs, i);                                         }
 
 static inline void           Acb_ObjSetCopy( Acb_Ntk_t * p, int i, int x )           { assert(Acb_ObjCopy(p, i) == -1); Vec_IntWriteEntry( &p->vObjCopy, i, x );                            }
@@ -361,6 +361,8 @@ static inline void           Acb_NtkIncTravId( Acb_Ntk_t * p )                  
     for ( i = Vec_StrSize(&p->vObjType)-1; i > 0; i-- ) if ( !Acb_ObjType(p, i) ) {} else   
 #define Acb_NtkForEachNode( p, i )                                        \
     for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Acb_ObjType(p, i) || Acb_ObjIsCio(p, i) ) {} else   
+#define Acb_NtkForEachNodeSupp( p, i, nSuppSize )                         \
+    for ( i = 1; i < Vec_StrSize(&p->vObjType); i++ ) if ( !Acb_ObjType(p, i) || Acb_ObjIsCio(p, i) || Acb_ObjFaninNum(p, i) != nSuppSize ) {} else   
 #define Acb_NtkForEachNodeReverse( p, i )                                 \
     for ( i = Vec_StrSize(&p->vObjType)-1; i > 0; i-- ) if ( !Acb_ObjType(p, i) || Acb_ObjIsCio(p, i) ) {} else   
 #define Acb_NtkForEachObjType( p, Type, i )                               \
@@ -403,11 +405,34 @@ static inline int Acb_ObjFonNum( Acb_Ntk_t * p, int iObj )
         Count++;
     return Count;
 }
+static inline int Acb_ObjWhatFanin( Acb_Ntk_t * p, int iObj, int iFaninGiven )
+{
+    int k, iFanin, * pFanins;
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
+        if ( iFanin == iFaninGiven )
+            return k;
+    return -1;
+}
 static inline void Acb_ObjAddFanin( Acb_Ntk_t * p, int iObj, int iFanin )
 {
     int * pFanins = Acb_ObjFanins( p, iObj );
     assert( pFanins[ 1 + pFanins[0] ] == -1 );
     pFanins[ 1 + pFanins[0]++ ] = iFanin;
+}
+static inline void Acb_ObjDeleteFaninIndex( Acb_Ntk_t * p, int iObj, int iFaninIndex )
+{
+    int i, * pFanins = Acb_ObjFanins( p, iObj );
+    pFanins[0]--;
+    for ( i = iFaninIndex; i < pFanins[0]; i++ )
+        pFanins[ 1 + i ] = pFanins[ 2 + i ];
+    pFanins[ 1 + pFanins[0] ] = -1;
+}
+static inline void Acb_ObjDeleteFanin( Acb_Ntk_t * p, int iObj, int iFanin )
+{
+    int * pFanins = Acb_ObjFanins( p, iObj );
+    int iFaninIndex = Acb_ObjWhatFanin( p, iObj, iFanin );
+    assert( pFanins[ 1 + iFaninIndex ] == iFanin );
+    Acb_ObjDeleteFaninIndex( p, iObj, iFaninIndex );
 }
 static inline void Acb_ObjAddFanins( Acb_Ntk_t * p, int iObj, Vec_Int_t * vFanins )
 {
@@ -495,11 +520,22 @@ static inline void Acb_ObjDelete( Acb_Ntk_t * p, int iObj )
     Acb_ObjForEachFon( p, iObj, i )
         Acb_ObjCleanType( p, i );
 }
+static inline void Acb_ObjAddFaninFanoutOne( Acb_Ntk_t * p, int iObj, int iFanin )
+{
+    Vec_IntPush( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+    Acb_ObjAddFanin( p, iObj, iFanin );
+}
 static inline void Acb_ObjAddFaninFanout( Acb_Ntk_t * p, int iObj )
 {
     int k, iFanin, * pFanins; 
     Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
         Vec_IntPush( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+}
+static inline void Acb_ObjRemoveFaninFanoutOne( Acb_Ntk_t * p, int iObj, int iFanin )
+{
+    int RetValue = Vec_IntRemove( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+    assert( RetValue );
+    Acb_ObjDeleteFanin( p, iObj, iFanin );
 }
 static inline void Acb_ObjRemoveFaninFanout( Acb_Ntk_t * p, int iObj )
 {
@@ -509,6 +545,19 @@ static inline void Acb_ObjRemoveFaninFanout( Acb_Ntk_t * p, int iObj )
         int RetValue = Vec_IntRemove( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
         assert( RetValue );
     }
+}
+static inline void Acb_ObjPatchFanin( Acb_Ntk_t * p, int iObj, int iFanin, int iFaninNew )
+{
+    int i, RetValue, * pFanins = Acb_ObjFanins( p, iObj );
+    assert( iFanin != iFaninNew );
+    for ( i = 0; i < pFanins[0]; i++ )
+        if ( pFanins[ 1 + i ] == iFanin )
+            pFanins[ 1 + i ] = iFaninNew;
+    if ( !Acb_NtkHasObjFanout(p) )
+        return;
+    RetValue = Vec_IntRemove( Vec_WecEntry(&p->vFanouts, iFanin), iObj );
+    assert( RetValue );
+    Vec_IntPush( Vec_WecEntry(&p->vFanouts, iFaninNew), iObj );
 }
 static inline void Acb_NtkCreateFanout( Acb_Ntk_t * p )
 {
