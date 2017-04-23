@@ -5863,6 +5863,7 @@ int Abc_CommandLogicPush( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command can only be applied to a logic network.\n" );
         return 1;
     }
+    nLutSize = Abc_MaxInt( nLutSize, Abc_NtkGetFaninMax(pNtk) );
     Abc_NtkToSop( pNtk, -1, ABC_INFINITY );
     pNtkRes = Abc_NtkOptPush( pNtk, nLutSize, fVerbose );
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );

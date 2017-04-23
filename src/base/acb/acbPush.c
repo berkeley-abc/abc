@@ -262,11 +262,19 @@ void Acb_ObjRemoveBufInv( Acb_Ntk_t * p, int iObj )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Acb_ObjFindPushableIndex( Acb_Ntk_t * p, int iObj, int iFanIndex )
+static inline int Acb_ObjFindFaninPushableIndex( Acb_Ntk_t * p, int iObj, int iFanIndex )
 {
     int k, iFanin, * pFanins;
     Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
         if ( k != iFanIndex && Abc_TtCheckDsdAnd(Acb_ObjTruth(p, iObj), k, iFanIndex, NULL) >= 0 )
+            return k;
+    return -1;
+}
+static inline int Acb_ObjFindFanoutPushableIndex( Acb_Ntk_t * p, int iObj )
+{
+    int k, iFanin, * pFanins;
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, iFanin, k )
+        if ( Abc_TtCheckOutAnd(Acb_ObjTruth(p, iObj), k, NULL) >= 0 )
             return k;
     return -1;
 }
@@ -283,10 +291,22 @@ int Acb_ObjPushToFanins( Acb_Ntk_t * p, int iObj, int nLutSize )
             continue;
         if ( Acb_ObjFaninNum(p, iFanin) == nLutSize )
             continue;
-        if ( (k2 = Acb_ObjFindPushableIndex(p, iObj, k)) == -1 )
+        if ( (k2 = Acb_ObjFindFaninPushableIndex(p, iObj, k)) == -1 )
             continue;
+        //printf( "Object %4d : Pushing fanin %d (%d) into fanin %d.\n", iObj, Acb_ObjFanin(p, iObj, k2), k2, iFanin );
         Acb_ObjPushToFanin( p, iObj, k2, iFanin );
         return 1;
+    }
+    if ( Acb_ObjFaninNum(p, iObj) == 2 && Acb_ObjFanoutNum(p, iObj) == 1 )
+    {
+        int iFanout = Acb_ObjFanout( p, iObj, 0 );
+        if ( !Acb_ObjIsCo(p, iFanout) && Acb_ObjFaninNum(p, iFanout) < nLutSize )
+        {
+            k2 = Acb_ObjFindFanoutPushableIndex( p, iObj );
+            //printf( "Object %4d : Pushing fanin %d (%d) into fanout %d.\n", iObj, Acb_ObjFanin(p, iObj, k2), k2, iFanout );
+            Acb_ObjPushToFanout( p, iObj, k2, iFanout );
+            return 1;
+        }
     }
     return 0;
 }
