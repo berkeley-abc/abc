@@ -167,7 +167,7 @@ Vec_Wec_t * Eso_ManCoverDerive( Eso_Man_t * p, Vec_Ptr_t * vCover )
             }
         }
     }
-    assert( Abc_MaxInt(Vec_WecSize(vRes), 8) == Vec_WecCap(vRes) );
+    //assert( Abc_MaxInt(Vec_WecSize(vRes), 8) == Vec_WecCap(vRes) );
     return vRes;
 }
 Gia_Man_t * Eso_ManCoverConvert( Eso_Man_t * p, Vec_Ptr_t * vCover )

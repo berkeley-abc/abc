@@ -18385,7 +18385,7 @@ int Abc_CommandDsdFilter( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fInvMarks )
         If_DsdManInvertMarks( pDsd, fVerbose );
 #ifdef ABC_USE_CUDD
-    else
+    else if ( nLimit == 0 )
         Id_DsdManTuneThresh( pDsd, fUnate, fThresh, fThreshHeuristic, fVerbose );
 #endif
     return 0;
