@@ -199,8 +199,8 @@ static inline void Sat_MemAlloc_( Sat_Mem_t * p, int nPageSize )
     p->uPageMask    = (unsigned)((1 << nPageSize) - 1);
     p->nPagesAlloc  = 256;
     p->pPages       = ABC_CALLOC( int *, p->nPagesAlloc );
-    p->pPages[0]    = ABC_ALLOC( int, (((unsigned)1) << p->nPageSize) );
-    p->pPages[1]    = ABC_ALLOC( int, (((unsigned)1) << p->nPageSize) );
+    p->pPages[0]    = ABC_ALLOC( int, (int)(1 << p->nPageSize) );
+    p->pPages[1]    = ABC_ALLOC( int, (int)(1 << p->nPageSize) );
     p->iPage[0]     = 0;
     p->iPage[1]     = 1;
     Sat_MemWriteLimit( p->pPages[0], 2 );
@@ -315,7 +315,7 @@ static inline int Sat_MemAppend( Sat_Mem_t * p, int * pArray, int nSize, int lrn
             p->nPagesAlloc *= 2;
         }
         if ( p->pPages[p->iPage[lrn]] == NULL )
-            p->pPages[p->iPage[lrn]] = ABC_ALLOC( int, (((unsigned)1) << p->nPageSize) );
+            p->pPages[p->iPage[lrn]] = ABC_ALLOC( int, (int)(1 << p->nPageSize) );
         pPage = p->pPages[p->iPage[lrn]];
         Sat_MemWriteLimit( pPage, 2 );
     }
