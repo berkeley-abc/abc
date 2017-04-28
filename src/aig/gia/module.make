@@ -76,6 +76,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaStg.c \
     src/aig/gia/giaStr.c \
     src/aig/gia/giaSupMin.c \
+    src/aig/gia/giaSupp.c \
     src/aig/gia/giaSweep.c \
     src/aig/gia/giaSweeper.c \
     src/aig/gia/giaSwitch.c \
