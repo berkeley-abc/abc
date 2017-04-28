@@ -312,16 +312,16 @@ static inline void Abc_Print( int level, const char * format, ... )
             printf( "Warning: " );
     }else{
         if ( level == ABC_ERROR )
-            Gia_ManToBridgeText( stdout, strlen("Error: "), (unsigned char*)"Error: " );
+            Gia_ManToBridgeText( stdout, (int)strlen("Error: "), (unsigned char*)"Error: " );
         else if ( level == ABC_WARNING )
-            Gia_ManToBridgeText( stdout, strlen("Warning: "), (unsigned char*)"Warning: " );
+            Gia_ManToBridgeText( stdout, (int)strlen("Warning: "), (unsigned char*)"Warning: " );
     }
 
     va_start( args, format );
     if ( Abc_FrameIsBridgeMode() )
     {
         char * tmp = vnsprintf( format, args );
-        Gia_ManToBridgeText( stdout, strlen(tmp), (unsigned char*)tmp );
+        Gia_ManToBridgeText( stdout, (int)strlen(tmp), (unsigned char*)tmp );
         free( tmp );
     }
     else
