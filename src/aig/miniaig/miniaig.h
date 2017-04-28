@@ -171,9 +171,9 @@ static void Mini_AigDump( Mini_Aig_t * p, char * pFileName )
         printf( "Cannot open file for writing \"%s\".\n", pFileName );
         return;
     }
-    RetValue = fwrite( &p->nSize, sizeof(int), 1, pFile );
-    RetValue = fwrite( &p->nRegs, sizeof(int), 1, pFile );
-    RetValue = fwrite( p->pArray, sizeof(int), p->nSize, pFile );
+    RetValue = (int)fwrite( &p->nSize, sizeof(int), 1, pFile );
+    RetValue = (int)fwrite( &p->nRegs, sizeof(int), 1, pFile );
+    RetValue = (int)fwrite( p->pArray, sizeof(int), p->nSize, pFile );
     fclose( pFile );
 }
 static Mini_Aig_t * Mini_AigLoad( char * pFileName )
@@ -187,12 +187,12 @@ static Mini_Aig_t * Mini_AigLoad( char * pFileName )
         printf( "Cannot open file for reading \"%s\".\n", pFileName );
         return NULL;
     }
-    RetValue = fread( &nSize, sizeof(int), 1, pFile );
+    RetValue = (int)fread( &nSize, sizeof(int), 1, pFile );
     p = MINI_AIG_CALLOC( Mini_Aig_t, 1 );
     p->nSize = p->nCap = nSize;
     p->pArray = MINI_AIG_ALLOC( int, p->nCap );
-    RetValue = fread( &p->nRegs, sizeof(int), 1, pFile );
-    RetValue = fread( p->pArray, sizeof(int), p->nSize, pFile );
+    RetValue = (int)fread( &p->nRegs, sizeof(int), 1, pFile );
+    RetValue = (int)fread( p->pArray, sizeof(int), p->nSize, pFile );
     fclose( pFile );
     return p;
 }
