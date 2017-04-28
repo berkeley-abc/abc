@@ -220,7 +220,7 @@ static inline void Ndr_DataPushString( Ndr_Data_t * p, int Type, char * pFunc )
 { 
     if ( !pFunc )
         return;
-    Ndr_DataPushArray( p, Type, (strlen(pFunc) + 4) / 4, (int *)pFunc );
+    Ndr_DataPushArray( p, Type, ((int)strlen(pFunc) + 4) / 4, (int *)pFunc );
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -457,8 +457,8 @@ static inline void * Ndr_ModuleRead( char * pFileName )
     p->nSize = p->nCap = nFileSize / 5;
     p->pHead = malloc( p->nCap );
     p->pBody = malloc( p->nCap * 4 );
-    RetValue = fread( p->pBody, 4, p->nCap, pFile );
-    RetValue = fread( p->pHead, 1, p->nCap, pFile );
+    RetValue = (int)fread( p->pBody, 4, p->nCap, pFile );
+    RetValue = (int)fread( p->pHead, 1, p->nCap, pFile );
     assert( p->nSize == (int)p->pBody[0] );
     fclose( pFile );
     return p;
@@ -468,8 +468,8 @@ static inline void Ndr_ModuleWrite( char * pFileName, void * pModule )
     Ndr_Data_t * p = (Ndr_Data_t *)pModule; int RetValue;
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ); return; }
-    RetValue = fwrite( p->pBody, 4, p->pBody[0], pFile );
-    RetValue = fwrite( p->pHead, 1, p->pBody[0], pFile );
+    RetValue = (int)fwrite( p->pBody, 4, p->pBody[0], pFile );
+    RetValue = (int)fwrite( p->pHead, 1, p->pBody[0], pFile );
     fclose( pFile );
 }
 

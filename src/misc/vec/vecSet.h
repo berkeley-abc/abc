@@ -120,7 +120,7 @@ static inline void Vec_SetAlloc_( Vec_Set_t * p, int nPageSize )
     p->uPageMask    = (unsigned)((1 << nPageSize) - 1);
     p->nPagesAlloc  = 256;
     p->pPages       = ABC_CALLOC( word *, p->nPagesAlloc );
-    p->pPages[0]    = ABC_ALLOC( word, (1 << p->nPageSize) );
+    p->pPages[0]    = ABC_ALLOC( word, (int)(((word)1) << p->nPageSize) );
     p->pPages[0][0] = ~0;
     p->pPages[0][1] = ~0;
     Vec_SetWriteLimit( p->pPages[0], 2 );
@@ -195,7 +195,7 @@ static inline double Vec_ReportMemory( Vec_Set_t * p )
 {
     double Mem = sizeof(Vec_Set_t);
     Mem += p->nPagesAlloc * sizeof(void *);
-    Mem += sizeof(word) * (1 << p->nPageSize) * (1 + p->iPage);
+    Mem += sizeof(word) * (int)(((word)1) << p->nPageSize) * (1 + p->iPage);
     return Mem;
 }
 
@@ -224,7 +224,7 @@ static inline int Vec_SetAppend( Vec_Set_t * p, int * pArray, int nSize )
             p->nPagesAlloc *= 2;
         }
         if ( p->pPages[p->iPage] == NULL )
-            p->pPages[p->iPage] = ABC_ALLOC( word, (1 << p->nPageSize) );
+            p->pPages[p->iPage] = ABC_ALLOC( word, (int)(((word)1) << p->nPageSize) );
         Vec_SetWriteLimit( p->pPages[p->iPage], 2 );
         p->pPages[p->iPage][1] = ~0;
     }
@@ -252,7 +252,7 @@ static inline void * Vec_SetFetch( Vec_Set_t * p, int nBytes )
 }
 static inline char * Vec_SetStrsav( Vec_Set_t * p, char * pName )
 {
-    char * pStr = (char *)Vec_SetFetch( p, strlen(pName) + 1 );
+    char * pStr = (char *)Vec_SetFetch( p, (int)strlen(pName) + 1 );
     strcpy( pStr, pName );
     return pStr;
 }
