@@ -1470,6 +1470,10 @@ typedef struct Gia_ManMin_t_ Gia_ManMin_t;
 extern Gia_ManMin_t *      Gia_ManSuppStart( Gia_Man_t * pGia );
 extern void                Gia_ManSuppStop( Gia_ManMin_t * p );
 extern int                 Gia_ManSupportAnd( Gia_ManMin_t * p, int iLit0, int iLit1 );
+typedef struct Gia_Man2Min_t_ Gia_Man2Min_t;
+extern Gia_Man2Min_t *     Gia_Man2SuppStart( Gia_Man_t * pGia );
+extern void                Gia_Man2SuppStop( Gia_Man2Min_t * p );
+extern int                 Gia_Man2SupportAnd( Gia_Man2Min_t * p, int iLit0, int iLit1 );
 /*=== giaSweep.c ============================================================*/
 extern Gia_Man_t *         Gia_ManFraigSweepSimple( Gia_Man_t * p, void * pPars );
 extern Gia_Man_t *         Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose, int fVerbEquivs );
