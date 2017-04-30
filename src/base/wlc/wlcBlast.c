@@ -868,14 +868,14 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs, int fBooth, int fNoCleanup )
+Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs, int fBooth, int fNoCleanup, int fCreateMiter )
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
     int fSkipBitRange = 0;
     Tim_Man_t * pManTime = NULL;
     Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
-    Wlc_Obj_t * pObj;
+    Wlc_Obj_t * pObj, * pObj2;
     Vec_Int_t * vBits = &p->vBits, * vTemp0, * vTemp1, * vTemp2, * vRes, * vAddOutputs = NULL, * vAddObjs = NULL;
     int nBits = Wlc_NtkPrepareBits( p );
     int nRange, nRange0, nRange1, nRange2;
@@ -1363,38 +1363,91 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
     Vec_IntFree( vTemp2 );
     Vec_IntFree( vRes );
     // create COs
-    Wlc_NtkForEachCo( p, pObj, i )
+    if ( fCreateMiter )
     {
-        // skip all outputs except the given ones
-        if ( iOutput >= 0 && (i < iOutput || i >= iOutput + nOutputRange) )
-            continue;
-        // create additional PO literals
-        if ( vAddOutputs && pObj->fIsFi )
+        int nPairs = 0, nBits = 0;
+        assert( Wlc_NtkPoNum(p) % 2 == 0 );
+        Wlc_NtkForEachCo( p, pObj, i )
         {
-            Vec_IntForEachEntry( vAddOutputs, iLit, k )
-                Gia_ManAppendCo( pNew, iLit );
-            printf( "Created %d additional POs for %d interesting internal word-level variables.\n", Vec_IntSize(vAddOutputs), Vec_IntSize(vAddObjs) );
-            Vec_IntFreeP( &vAddOutputs );
+            if ( pObj->fIsFi )
+            {
+                nRange = Wlc_ObjRange( pObj );
+                pFans0 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
+                if ( Wlc_ObjRangeIsReversed(pObj) )
+                {
+                    for ( k = 0; k < nRange; k++ )
+                        Gia_ManAppendCo( pNew, pFans0[nRange-1-k] );
+                }
+                else
+                {
+                    for ( k = 0; k < nRange; k++ )
+                        Gia_ManAppendCo( pNew, pFans0[k] );
+                }
+                nFFins += nRange;
+                continue;
+            }
+            pObj2   = Wlc_NtkCo( p, ++i );
+            nRange1 = Wlc_ObjRange( pObj );
+            nRange2 = Wlc_ObjRange( pObj2 );
+            assert( nRange1 == nRange2 );
+            pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
+            pFans2  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj2)) );
+            if ( Wlc_ObjRangeIsReversed(pObj) )
+            {
+                for ( k = 0; k < nRange1; k++ )
+                {
+                    Gia_ManAppendCo( pNew, pFans1[nRange1-1-k] );
+                    Gia_ManAppendCo( pNew, pFans2[nRange2-1-k] );
+                }
+            }
+            else
+            {
+                for ( k = 0; k < nRange1; k++ )
+                {
+                    Gia_ManAppendCo( pNew, pFans1[k] );
+                    Gia_ManAppendCo( pNew, pFans2[k] );
+                }
+            }
+            nPairs++;
+            nBits += nRange1;
         }
-        nRange = Wlc_ObjRange( pObj );
-        pFans0 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
-        if ( fVerbose )
-            printf( "%s(%d) ", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Gia_ManCoNum(pNew) );
-        if ( Wlc_ObjRangeIsReversed(pObj) )
-        {
-            for ( k = 0; k < nRange; k++ )
-                Gia_ManAppendCo( pNew, pFans0[nRange-1-k] );
-        }
-        else
-        {
-            for ( k = 0; k < nRange; k++ )
-                Gia_ManAppendCo( pNew, pFans0[k] );
-        }
-        if ( pObj->fIsFi )
-            nFFins += nRange;
+        printf( "Derived a dual-output miter with %d pairs of bits belonging to %d pairs of word-level outputs.\n", nBits, nPairs );
     }
-    if ( fVerbose )
-        printf( "\n" );
+    else
+    {
+        Wlc_NtkForEachCo( p, pObj, i )
+        {
+            // skip all outputs except the given ones
+            if ( iOutput >= 0 && (i < iOutput || i >= iOutput + nOutputRange) )
+                continue;
+            // create additional PO literals
+            if ( vAddOutputs && pObj->fIsFi )
+            {
+                Vec_IntForEachEntry( vAddOutputs, iLit, k )
+                    Gia_ManAppendCo( pNew, iLit );
+                printf( "Created %d additional POs for %d interesting internal word-level variables.\n", Vec_IntSize(vAddOutputs), Vec_IntSize(vAddObjs) );
+                Vec_IntFreeP( &vAddOutputs );
+            }
+            nRange = Wlc_ObjRange( pObj );
+            pFans0 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
+            if ( fVerbose )
+                printf( "%s(%d) ", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Gia_ManCoNum(pNew) );
+            if ( Wlc_ObjRangeIsReversed(pObj) )
+            {
+                for ( k = 0; k < nRange; k++ )
+                    Gia_ManAppendCo( pNew, pFans0[nRange-1-k] );
+            }
+            else
+            {
+                for ( k = 0; k < nRange; k++ )
+                    Gia_ManAppendCo( pNew, pFans0[k] );
+            }
+            if ( pObj->fIsFi )
+                nFFins += nRange;
+        }
+        if ( fVerbose )
+            printf( "\n" );
+    }
     //Vec_IntErase( vBits );
     //Vec_IntErase( &p->vCopies );
     // set the number of registers

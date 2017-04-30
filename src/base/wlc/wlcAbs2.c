@@ -328,7 +328,7 @@ int Wlc_NtkAbsCore2( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
 
         // get abstracted GIA and the set of pseudo-PIs (vPisNew)
         pAbs = Wlc_NtkAbs( p, pPars, vUnmark, &vPisNew, pPars->fVerbose );
-        pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0, 0 );
+        pGia = Wlc_NtkBitBlast( pAbs, NULL, -1, 0, 0, 0, 0, 0, 0 );
 
         // if the abstraction has flops with DC-init state,
         // new PIs were introduced by bit-blasting at the end of the PI list
