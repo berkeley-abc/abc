@@ -3109,7 +3109,7 @@ int Abc_GateToType( Abc_Obj_t * pObj )
     if ( !strncmp(pGateName, "or",   2) )  return ABC_OPER_BIT_OR;
     if ( !strncmp(pGateName, "nor",  3) )  return ABC_OPER_BIT_NOR;
     if ( !strncmp(pGateName, "xor",  3) )  return ABC_OPER_BIT_XOR;
-    if ( !strncmp(pGateName, "nxor", 4) )  return ABC_OPER_BIT_NXOR;
+    if ( !strncmp(pGateName, "xnor", 4) )  return ABC_OPER_BIT_NXOR;
     assert( 0 );
     return -1;
 }
