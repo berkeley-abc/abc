@@ -4153,7 +4153,7 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Abc_NtkNodeNum(pNtk) == 0 )
+    if ( Abc_NtkNodeNum(pNtk) == 0 || Abc_NtkPiNum(pNtk) == 0 )
     {
         Abc_Print( -1, "The network does not have internal nodes.\n" );
         return 1;

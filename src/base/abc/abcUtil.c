@@ -3110,6 +3110,8 @@ int Abc_GateToType( Abc_Obj_t * pObj )
     if ( !strncmp(pGateName, "nor",  3) )  return ABC_OPER_BIT_NOR;
     if ( !strncmp(pGateName, "xor",  3) )  return ABC_OPER_BIT_XOR;
     if ( !strncmp(pGateName, "xnor", 4) )  return ABC_OPER_BIT_NXOR;
+    if ( !strncmp(pGateName, "zero", 4) )  return ABC_OPER_CONST_F;
+    if ( !strncmp(pGateName, "one",  3) )  return ABC_OPER_CONST_T;
     assert( 0 );
     return -1;
 }
@@ -3139,6 +3141,81 @@ Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops )
         Vec_IntPushTwo( Vec_WecEntry(vRes, iNode++), ABC_OPER_BIT_BUF, Abc_ObjFanin0(pObj)->iTemp );
     assert( Vec_WecSize(vRes) == iNode );
     return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkClpOneGia_rec( Gia_Man_t * pNew, Abc_Obj_t * pNode )
+{
+    int iLit0, iLit1;
+    if ( Abc_NodeIsTravIdCurrent(pNode) || Abc_ObjFaninNum(pNode) == 0 || Abc_ObjIsCi(pNode) )
+        return pNode->iTemp;
+    assert( Abc_ObjIsNode( pNode ) );
+    Abc_NodeSetTravIdCurrent( pNode );
+    iLit0 = Abc_NtkClpOneGia_rec( pNew, Abc_ObjFanin0(pNode) );
+    iLit1 = Abc_NtkClpOneGia_rec( pNew, Abc_ObjFanin1(pNode) );
+    iLit0 = Abc_LitNotCond( iLit0, Abc_ObjFaninC0(pNode) );
+    iLit1 = Abc_LitNotCond( iLit1, Abc_ObjFaninC1(pNode) );
+    return (pNode->iTemp = Gia_ManHashAnd(pNew, iLit0, iLit1));
+}
+Gia_Man_t * Abc_NtkStrashToGia( Abc_Ntk_t * pNtk )
+{
+    int i, iLit;
+    Abc_Obj_t * pNode;
+    Gia_Man_t * pNew, * pTemp;
+    assert( Abc_NtkIsStrash(pNtk) );
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        pNode->iTemp = -1;
+    // start new manager
+    pNew = Gia_ManStart( Abc_NtkObjNum(pNtk) );
+    pNew->pName = Abc_UtilStrsav( pNtk->pName );
+    pNew->pSpec = Abc_UtilStrsav( pNtk->pSpec );
+    Gia_ManHashStart( pNew );
+    // primary inputs
+    Abc_AigConst1(pNtk)->iTemp = 1;
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        pNode->iTemp = Gia_ManAppendCi(pNew);
+    // create the first cone
+    Abc_NtkIncrementTravId( pNtk );
+    Abc_NtkForEachCo( pNtk, pNode, i )
+    {
+        iLit = Abc_NtkClpOneGia_rec( pNew, Abc_ObjFanin0(pNode) );
+        iLit = Abc_LitNotCond( iLit, Abc_ObjFaninC0(pNode) );
+        Gia_ManAppendCo( pNew, iLit );
+    }
+    // perform cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+Gia_Man_t * Abc_SopSynthesizeOne( Vec_Ptr_t * vSops )
+{
+    Abc_Ntk_t * pNtkNew, * pNtk;
+    char * pSop = (char *)Vec_PtrEntry(vSops, 0);
+    assert( Vec_PtrSize(vSops) == 1 );
+    if ( strlen(pSop) == 3 )
+    {
+        Gia_Man_t * pNew = Gia_ManStart( 1 );
+        pNew->pName = Abc_UtilStrsav( "top" );
+        //Gia_ManAppendCi( pNew );
+        assert( pSop[1] == '0' || pSop[1] == '1' );
+        Gia_ManAppendCo( pNew, pSop[1] == '1' );
+        return pNew;
+    }
+    pNtk = Abc_NtkCreateFromSops( "top", vSops );
+    Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; dc2" );
+    pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
+    return Abc_NtkStrashToGia( pNtkNew );
 }
 
 ////////////////////////////////////////////////////////////////////////
