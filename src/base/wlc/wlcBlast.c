@@ -1211,6 +1211,31 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
             for ( k = 1; k < nRange; k++ )
                 Vec_IntPush( vRes, 0 );
         }
+        else if ( pObj->Type == WLC_OBJ_COMP_NOTEQU && Wlc_ObjFaninNum(pObj) > 2 )
+        {
+            // find the max range
+            int a, b, iRes = 1, nRangeMax = Abc_MaxInt( nRange0, nRange1 );
+            for ( k = 2; k < Wlc_ObjFaninNum(pObj); k++ )
+                nRangeMax = Abc_MaxInt( nRangeMax, Wlc_ObjRange( Wlc_NtkObj(p, Wlc_ObjFaninId(pObj, k)) ) );
+            // create pairwise distinct
+            for ( a = 0; a < Wlc_ObjFaninNum(pObj); a++ )
+            for ( b = a+1; b < Wlc_ObjFaninNum(pObj); b++ )
+            {
+                int nRange0 = Wlc_ObjRange( Wlc_NtkObj(p, Wlc_ObjFaninId(pObj, a)) );
+                int nRange1 = Wlc_ObjRange( Wlc_NtkObj(p, Wlc_ObjFaninId(pObj, b)) );
+                int * pFans0 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId(pObj, a)) );
+                int * pFans1 = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId(pObj, b)) );
+                int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, 0 );
+                int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, 0 );
+                int iLit = 0;
+                for ( k = 0; k < nRangeMax; k++ )
+                    iLit = Gia_ManHashOr( pNew, iLit, Gia_ManHashXor(pNew, pArg0[k], pArg1[k]) ); 
+                iRes = Gia_ManHashAnd( pNew, iRes, iLit ); 
+            }
+            Vec_IntFill( vRes, 1, iRes );
+            for ( k = 1; k < nRange; k++ )
+                Vec_IntPush( vRes, 0 );
+        }
         else if ( pObj->Type == WLC_OBJ_COMP_EQU || pObj->Type == WLC_OBJ_COMP_NOTEQU )
         {
             int iLit = 0, nRangeMax = Abc_MaxInt( nRange0, nRange1 );

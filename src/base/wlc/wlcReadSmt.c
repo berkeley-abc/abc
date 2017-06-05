@@ -331,7 +331,7 @@ static inline int Smt_PrsCreateNode( Wlc_Ntk_t * pNtk, int Type, int fSigned, in
           Type == WLC_OBJ_LOGIC_OR ||      // 29: logic OR
           Type == WLC_OBJ_LOGIC_XOR ||     // 30: logic XOR
           Type == WLC_OBJ_COMP_EQU ||      // 31: compare equal
-          Type == WLC_OBJ_COMP_NOTEQU ||   // 32: compare not equal
+//          Type == WLC_OBJ_COMP_NOTEQU ||   // 32: compare not equal -- bug fix
           Type == WLC_OBJ_COMP_LESS ||     // 33: compare less
           Type == WLC_OBJ_COMP_MORE ||     // 34: compare more
           Type == WLC_OBJ_COMP_LESSEQU ||  // 35: compare less or equal
