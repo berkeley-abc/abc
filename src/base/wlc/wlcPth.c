@@ -40,7 +40,7 @@ ABC_NAMESPACE_IMPL_START
 
 extern Abc_Ntk_t *   Abc_NtkFromAigPhase( Aig_Man_t * pAig );
 extern int           Abc_NtkDarBmc3( Abc_Ntk_t * pAbcNtk, Saig_ParBmc_t * pBmcPars, int fOrDecomp );
-extern int           Wla_ManShrinkAbs( Wla_Man_t * pWla, int nFrames );
+extern int           Wla_ManShrinkAbs( Wla_Man_t * pWla, int nFrames, int RunId );
 
 static volatile int  g_nRunIds = 0;             // the number of the last prover instance
 int Wla_CallBackToStop( int RunId ) { assert( RunId <= g_nRunIds ); return RunId < g_nRunIds; }
@@ -119,7 +119,7 @@ void * Wla_Bmc3Thread ( void * pArg )
 
         if ( pData->pWla->nIters > 1 && pData->RunId == g_nRunIds )
         {
-            RetValue = Wla_ManShrinkAbs( pData->pWla, pData->pWla->iCexFrame + nFramesNoChangeLim );
+            RetValue = Wla_ManShrinkAbs( pData->pWla, pData->pWla->iCexFrame + nFramesNoChangeLim, pData->RunId );
             pData->pWla->iCexFrame += nFramesNoChangeLim; 
             
             if ( RetValue == 1 )
