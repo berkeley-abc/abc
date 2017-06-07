@@ -58,8 +58,8 @@ static DdNode * cuddBddPermuteRecur ARGS( ( DdManager * manager, DdHashTable * t
 static DdNode * extraBddAndPermute( DdHashTable * table, DdManager * ddF, DdNode * bF, DdManager * ddG, DdNode * bG, int * pPermute );
 
 // file "cuddUtils.c"
-static void ddSupportStep(DdNode *f, int *support);
-static void ddClearFlag(DdNode *f);
+void ddSupportStep2(DdNode *f, int *support);
+void ddClearFlag2(DdNode *f);
 
 static DdNode* extraZddPrimes( DdManager *dd, DdNode* F );
 
@@ -547,8 +547,8 @@ Extra_SupportArray(
         support[i] = 0;
     
     /* Compute support and clean up markers. */
-    ddSupportStep(Cudd_Regular(f),support);
-    ddClearFlag(Cudd_Regular(f));
+    ddSupportStep2(Cudd_Regular(f),support);
+    ddClearFlag2(Cudd_Regular(f));
 
     return(support);
 
@@ -584,9 +584,9 @@ Extra_VectorSupportArray(
 
     /* Compute support and clean up markers. */
     for ( i = 0; i < n; i++ )
-        ddSupportStep( Cudd_Regular(F[i]), support );
+        ddSupportStep2( Cudd_Regular(F[i]), support );
     for ( i = 0; i < n; i++ )
-        ddClearFlag( Cudd_Regular(F[i]) );
+        ddClearFlag2( Cudd_Regular(F[i]) );
 
     return support;
 }
@@ -782,8 +782,8 @@ DdNode * Extra_bddSupportNegativeCube( DdManager * dd, DdNode * f )
     }
 
     /* Compute support and clean up markers. */
-    ddSupportStep( Cudd_Regular( f ), support );
-    ddClearFlag( Cudd_Regular( f ) );
+    ddSupportStep2( Cudd_Regular( f ), support );
+    ddClearFlag2( Cudd_Regular( f ) );
 
     /* Transform support from array to cube. */
     do
@@ -1689,8 +1689,8 @@ extraTransferPermuteRecur(
   SeeAlso     [ddClearFlag]
 
 ******************************************************************************/
-static void
-ddSupportStep(
+void
+ddSupportStep2(
   DdNode * f,
   int * support)
 {
@@ -1699,8 +1699,8 @@ ddSupportStep(
     }
 
     support[f->index] = 1;
-    ddSupportStep(cuddT(f),support);
-    ddSupportStep(Cudd_Regular(cuddE(f)),support);
+    ddSupportStep2(cuddT(f),support);
+    ddSupportStep2(Cudd_Regular(cuddE(f)),support);
     /* Mark as visited. */
     f->next = Cudd_Not(f->next);
     return;
@@ -1720,8 +1720,8 @@ ddSupportStep(
   SeeAlso     [ddSupportStep ddDagInt]
 
 ******************************************************************************/
-static void
-ddClearFlag(
+void
+ddClearFlag2(
   DdNode * f)
 {
     if (!Cudd_IsComplement(f->next)) {
@@ -1732,8 +1732,8 @@ ddClearFlag(
     if (cuddIsConstant(f)) {
     return;
     }
-    ddClearFlag(cuddT(f));
-    ddClearFlag(Cudd_Regular(cuddE(f)));
+    ddClearFlag2(cuddT(f));
+    ddClearFlag2(Cudd_Regular(cuddE(f)));
     return;
 
 } /* end of ddClearFlag */

@@ -298,8 +298,8 @@ void Abc_EnumPrint( Vec_Int_t * vGates, int i, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  Abc_DataHasBit( word * p, word i )  { return (p[(i)>>6] & (1<<((i) & 63))) > 0; }
-static inline void Abc_DataXorBit( word * p, word i )  { p[(i)>>6] ^= (1<<((i) & 63));             }
+static inline int  Abc_DataHasBit( word * p, word i )  { return (p[(i)>>6] & (((word)1)<<((i) & 63))) > 0; }
+static inline void Abc_DataXorBit( word * p, word i )  { p[(i)>>6] ^= (((word)1)<<((i) & 63));             }
 
 /**Function*************************************************************
 

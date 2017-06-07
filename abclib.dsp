@@ -1083,6 +1083,10 @@ SOURCE=.\src\base\acb\acbPar.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\acb\acbPush.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\acb\acbSets.c
 # End Source File
 # Begin Source File
@@ -4800,6 +4804,10 @@ SOURCE=.\src\aig\gia\giaStr.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaSupMin.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaSupp.c
 # End Source File
 # Begin Source File
 

@@ -191,11 +191,11 @@ static void Mini_LutDump( Mini_Lut_t * p, char * pFileName )
         printf( "Cannot open file for writing \"%s\".\n", pFileName );
         return;
     }
-    RetValue = fwrite( &p->nSize,   sizeof(int), 1, pFile );
-    RetValue = fwrite( &p->nRegs,   sizeof(int), 1, pFile );
-    RetValue = fwrite( &p->LutSize, sizeof(int), 1, pFile );
-    RetValue = fwrite( p->pArray,   sizeof(int), p->nSize * p->LutSize, pFile );
-    RetValue = fwrite( p->pTruths,  sizeof(int), p->nSize * Mini_LutWordNum(p->LutSize), pFile );
+    RetValue = (int)fwrite( &p->nSize,   sizeof(int), 1, pFile );
+    RetValue = (int)fwrite( &p->nRegs,   sizeof(int), 1, pFile );
+    RetValue = (int)fwrite( &p->LutSize, sizeof(int), 1, pFile );
+    RetValue = (int)fwrite( p->pArray,   sizeof(int), p->nSize * p->LutSize, pFile );
+    RetValue = (int)fwrite( p->pTruths,  sizeof(int), p->nSize * Mini_LutWordNum(p->LutSize), pFile );
     fclose( pFile );
 }
 static Mini_Lut_t * Mini_LutLoad( char * pFileName )
@@ -209,15 +209,15 @@ static Mini_Lut_t * Mini_LutLoad( char * pFileName )
         printf( "Cannot open file for reading \"%s\".\n", pFileName );
         return NULL;
     }
-    RetValue = fread( &nSize, sizeof(int), 1, pFile );
+    RetValue = (int)fread( &nSize, sizeof(int), 1, pFile );
     p = MINI_LUT_CALLOC( Mini_Lut_t, 1 );
     p->nSize   = p->nCap = nSize;
-    RetValue = fread( &p->nRegs,   sizeof(int), 1, pFile );
-    RetValue = fread( &p->LutSize, sizeof(int), 1, pFile );
+    RetValue = (int)fread( &p->nRegs,   sizeof(int), 1, pFile );
+    RetValue = (int)fread( &p->LutSize, sizeof(int), 1, pFile );
     p->pArray  = MINI_LUT_ALLOC( int,      p->nCap * p->LutSize );
     p->pTruths = MINI_LUT_ALLOC( unsigned, p->nCap * Mini_LutWordNum(p->LutSize) );
-    RetValue = fread( p->pArray,   sizeof(int), p->nCap * p->LutSize, pFile );
-    RetValue = fread( p->pTruths,  sizeof(int), p->nCap * Mini_LutWordNum(p->LutSize), pFile );
+    RetValue = (int)fread( p->pArray,   sizeof(int), p->nCap * p->LutSize, pFile );
+    RetValue = (int)fread( p->pTruths,  sizeof(int), p->nCap * Mini_LutWordNum(p->LutSize), pFile );
     fclose( pFile );
     return p;
 }

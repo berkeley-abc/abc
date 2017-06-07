@@ -159,8 +159,8 @@ Iter 12 ->  3674160   Time =    70.48 sec
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  Abc_DataHasBit( word * p, word i )  { return (p[(i)>>6] & (1<<((i) & 63))) > 0; }
-static inline void Abc_DataXorBit( word * p, word i )  { p[(i)>>6] ^= (1<<((i) & 63));             }
+static inline int  Abc_DataHasBit( word * p, word i )  { return (p[(i)>>6] & (((word)1)<<((i) & 63))) > 0; }
+static inline void Abc_DataXorBit( word * p, word i )  { p[(i)>>6] ^= (((word)1)<<((i) & 63));             }
 static inline int  Abc_DataGetCube( word w, int i )         { return (w >> (5*i)) & 31;            }
 static inline word Abc_DataXorCube( word w, int i, int c )  { return w ^ (((word)c) << (5*i));     }
 static inline word Abc_CubeGenerateSign( char * pState )

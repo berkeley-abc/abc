@@ -671,7 +671,7 @@ static inline void Vec_StrPrintNumStar( Vec_Str_t * p, int Num, int nDigits )
 ***********************************************************************/
 static inline void Vec_StrPrintStr( Vec_Str_t * p, const char * pStr )
 {
-    int i, Length = strlen(pStr);
+    int i, Length = (int)strlen(pStr);
     for ( i = 0; i < Length; i++ )
         Vec_StrPush( p, pStr[i] );
 }

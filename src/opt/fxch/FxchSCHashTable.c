@@ -195,7 +195,8 @@ int Fxch_SCHashTableInsert( Fxch_SCHashTable_t* pSCHashTable,
     }
     else if ( pBin->Size == pBin->Cap )
     {
-        pBin->Cap = 2 * pBin->Size;
+        assert(pBin->Cap <= 0xAAAA);
+        pBin->Cap = ( pBin->Cap >> 1 ) * 3;
         pBin->vSCData = ABC_REALLOC( Fxch_SubCube_t, pBin->vSCData, pBin->Cap );
     }
 

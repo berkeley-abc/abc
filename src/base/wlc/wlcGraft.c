@@ -210,7 +210,7 @@ Wlc_Ntk_t * Wlc_NtkGraftMulti( Wlc_Ntk_t * p, int fVerbose )
     Gia_Obj_t * pObj;
     Vec_Int_t * vObjsLHS = Wlc_NtkCollectObjs( p, 0, &nMultiLHS );
     Vec_Int_t * vObjsRHS = Wlc_NtkCollectObjs( p, 1, &nMultiRHS );
-    Gia_Man_t * pGia = Wlc_NtkBitBlast( p, NULL, -1, 0, 0, 0, 0, 1 );
+    Gia_Man_t * pGia = Wlc_NtkBitBlast( p, NULL, -1, 0, 0, 0, 0, 1, 0 );
     Vec_Mem_t * vTtMem = Vec_MemAlloc( nWords, 10 );
     Vec_MemHashAlloc( vTtMem, 10000 );
 
@@ -540,7 +540,7 @@ int Sbc_ManWlcNodes( Wlc_Ntk_t * pNtk, Gia_Man_t * p, Vec_Int_t * vGia2Out, int 
 void Sbc_ManDetectMultTest( Wlc_Ntk_t * pNtk, int fVerbose )
 {
     extern Vec_Int_t * Sdb_StoComputeCutsDetect( Gia_Man_t * pGia );
-    Gia_Man_t * p = Wlc_NtkBitBlast( pNtk, NULL, -1, 0, 0, 0, 0, 1 );
+    Gia_Man_t * p = Wlc_NtkBitBlast( pNtk, NULL, -1, 0, 0, 0, 0, 1, 0 );
     Vec_Int_t * vIns, * vGia2Out;
     int iObjFound = -1;
 //    Gia_Obj_t * pObj; int i;

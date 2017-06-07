@@ -1498,7 +1498,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFromIfGetConfig( Vec_Int_t * vConfigs, If_Man_t * pIfMan, If_Cut_t * pCutBest, int fCompl )
+void Gia_ManFromIfGetConfig( Vec_Int_t * vConfigs, If_Man_t * pIfMan, If_Cut_t * pCutBest, int iLit, Vec_Str_t * vConfigsStr )
 {
     If_Obj_t * pIfObj;
     word * pPerm = If_DsdManGetFuncConfig( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) ); // cell input -> DSD input
@@ -1537,10 +1537,33 @@ void Gia_ManFromIfGetConfig( Vec_Int_t * vConfigs, If_Man_t * pIfMan, If_Cut_t *
     }
     // remember complementation
     assert( nTtBitNum + nPermBitNum < 32 * nIntNum );
-    if ( Abc_LitIsCompl(If_CutDsdLit(pIfMan, pCutBest)) ^ pCutBest->fCompl ^ fCompl )
+    if ( Abc_LitIsCompl(If_CutDsdLit(pIfMan, pCutBest)) ^ pCutBest->fCompl ^ Abc_LitIsCompl(iLit) )
         Abc_TtSetBit( pArray, nTtBitNum + nPermBitNum );
     // update count
     Vec_IntAddToEntry( vConfigs, 0, 1 );
+    // write configs
+    if ( vConfigsStr )
+    {
+        Vec_StrPrintF( vConfigsStr, "%d", Abc_Lit2Var(iLit) );
+        Vec_StrPush( vConfigsStr, ' ' );
+        for ( i = 0; i < nTtBitNum; i++ )
+            Vec_StrPush( vConfigsStr, (char)(Abc_TtGetBit(pArray, i) ? '1' : '0') );
+        Vec_StrPush( vConfigsStr, ' ' );
+        Vec_StrPush( vConfigsStr, ' ' );
+        for ( v = 0; v < nVarNum; v++ )
+        {
+            for ( i = 0; i < nPermBitOne; i++ )
+            {
+                Vec_StrPush( vConfigsStr, (char)(Abc_TtGetBit(pArray, nTtBitNum + v * nPermBitOne + i) ? '1' : '0') );
+                if ( i == 0 ) 
+                    Vec_StrPush( vConfigsStr, ' ' );
+            }
+            Vec_StrPush( vConfigsStr, ' ' );
+            Vec_StrPush( vConfigsStr, ' ' );
+        }
+        Vec_StrPush( vConfigsStr, (char)(Abc_TtGetBit(pArray, nTtBitNum + nPermBitNum) ? '1' : '0') );
+        Vec_StrPush( vConfigsStr, '\n' );
+    }
 }
 int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t * pTemp, If_Cut_t * pCutBest, Ifn_Ntk_t * pNtkCell, int nLutMax, Vec_Int_t * vLeaves, Vec_Int_t * vLits, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vConfigs )
 {
@@ -1730,11 +1753,13 @@ int Gia_ManFromIfLogicAndVars( Gia_Man_t * pNew, If_Man_t * pIfMan, If_Cut_t * p
 ***********************************************************************/
 Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
 {
+    int fWriteConfigs = 1;
     Gia_Man_t * pNew, * pHashed = NULL;
     If_Cut_t * pCutBest;
     If_Obj_t * pIfObj, * pIfLeaf;
     Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL, * vConfigs = NULL;
     Vec_Int_t * vLeaves, * vLeaves2, * vCover, * vLits;
+    Vec_Str_t * vConfigsStr = NULL;
     Ifn_Ntk_t * pNtkCell = NULL;
     sat_solver * pSat = NULL;
     int i, k, Entry;
@@ -1757,6 +1782,8 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         vConfigs = Vec_IntAlloc( 1000 );
         Vec_IntPush( vConfigs, 0 );
         Vec_IntPush( vConfigs, nConfigInts );
+        if ( fWriteConfigs )
+            vConfigsStr = Vec_StrAlloc( 1000 );
     }
     // create new manager
     pNew = Gia_ManStart( If_ManObjNum(pIfMan) );
@@ -1840,7 +1867,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                 pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruth, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
                 if ( vConfigs && Vec_IntSize(vLeaves) > 1 && !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(pIfObj->iCopy))) && pIfObj->iCopy > 1 )
-                    Gia_ManFromIfGetConfig( vConfigs, pIfMan, pCutBest, Abc_LitIsCompl(pIfObj->iCopy) );
+                    Gia_ManFromIfGetConfig( vConfigs, pIfMan, pCutBest, pIfObj->iCopy, vConfigsStr );
             }
             else
             {
@@ -1920,6 +1947,27 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         Gia_Obj_t * pObj;
         Gia_ManForEachCi( pNew, pObj, i )
            assert( !Gia_ObjIsLut(pNew, Gia_ObjId(pNew, pObj)) );
+    }
+    // dump configuration strings
+    if ( vConfigsStr )
+    {
+        FILE * pFile; int status;
+        char * pStr, Buffer[1000] = {0};
+        char * pNameGen = pIfMan->pName? Extra_FileNameGeneric( pIfMan->pName ) : "nameless_";
+        sprintf( Buffer, "%s_configs.txt", pNameGen );
+        ABC_FREE( pNameGen );
+        pFile = fopen( Buffer, "wb" );
+        if ( pFile == NULL )
+        {
+            printf( "Cannot open file \"%s\".\n", Buffer );
+            return pNew;
+        }
+        Vec_StrPush( vConfigsStr, '\0' );
+        pStr = Vec_StrArray(vConfigsStr);
+        status = fwrite( pStr, strlen(pStr), 1, pFile );
+        Vec_StrFree( vConfigsStr );
+        fclose( pFile );
+        printf( "Finished dumping configs into file \"%s\".\n", Buffer );
     }
     return pNew;
 }

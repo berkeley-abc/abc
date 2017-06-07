@@ -1576,7 +1576,7 @@ cleanup:
 void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
 {
     Acb_Mfs_t * pMan = Acb_MfsStart( pNtk, pPars );
-    //if ( pPars->fVerbose )
+    if ( pPars->fVerbose )
         printf( "%s-optimization parameters: TfiLev(I) = %d  TfoLev(O) = %d  WinMax(W) = %d  LutSize = %d\n", 
             pMan->pPars->fArea ? "Area" : "Delay", pMan->pPars->nTfiLevMax, pMan->pPars->nTfoLevMax, pMan->pPars->nWinNodeMax, pMan->pPars->nLutSize );
     Acb_NtkCreateFanout( pNtk );  // fanout data structure
@@ -1592,8 +1592,8 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
                 if ( iObj < nNodes && !Vec_BitEntry(vVisited, iObj) && Acb_NtkObjMffcEstimate(pNtk, iObj) >= n )
                 {
                     pMan->nNodes++;
-                    if ( iObj != 103 )
-                        continue;
+                    //if ( iObj != 103 )
+                    //    continue;
                     //Acb_NtkOptNode( pMan, iObj );
                     while ( (RetValue = Acb_NtkOptNode(pMan, iObj)) && Acb_ObjFaninNum(pNtk, iObj) );                    
                     Vec_BitWriteEntry( vVisited, iObj, 1 );
@@ -1609,13 +1609,13 @@ void Acb_NtkOpt( Acb_Ntk_t * pNtk, Acb_Par_t * pPars )
             int iObj = Vec_QuePop(pNtk->vQue);
             if ( !Acb_ObjType(pNtk, iObj) )
                 continue;
-            if ( iObj != 103 )
-                continue;
+            //if ( iObj != 103 )
+            //    continue;
             //printf( "Trying node %4d (%4d) ", iObj, Value );
             Acb_NtkOptNode( pMan, iObj ); 
         }
     }
-    //if ( pPars->fVerbose )
+    if ( pPars->fVerbose )
     {
         pMan->timeTotal = Abc_Clock() - pMan->timeTotal;
         printf( "Node = %d  Win = %d (Ave = %d)  DivAve = %d   Change = %d  C = %d  N1 = %d  N2 = %d  N3 = %d   Over = %d  Str = %d  2Node = %d.\n", 
