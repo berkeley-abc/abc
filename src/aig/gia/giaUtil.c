@@ -2050,6 +2050,31 @@ void Gia_AigerWriteLut( Gia_Man_t * p, char * pFileName )
     Vec_WrdFree( vTruths );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_DumpLutSizeDistrib( Gia_Man_t * p, char * pFileName )
+{
+    FILE * pTable = fopen( pFileName, "a+" );
+    int i, Counts[10] = {0};
+    Gia_ManForEachLut( p, i )
+        if ( Gia_ObjLutSize(p, i) > 0 && Gia_ObjLutSize(p, i) < 10 )
+            Counts[ Gia_ObjLutSize(p, i) ]++;
+    fprintf( pTable, "%s", p->pName );
+    for ( i = 1; i < 10; i++ )
+        fprintf( pTable, " %d", Counts[i] );
+    fprintf( pTable, "\n" );
+    fclose( pTable );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

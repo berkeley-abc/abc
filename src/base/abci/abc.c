@@ -43670,8 +43670,15 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Jf_ManTestCnf( pAbc->pGia );
 //    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
-    Gia_StoComputeCuts( pAbc->pGia );
+//    Gia_StoComputeCuts( pAbc->pGia );
 //    printf( "\nThis command is currently disabled.\n\n" );
+    {
+        char Buffer[10];
+        extern void Gia_DumpLutSizeDistrib( Gia_Man_t * p, char * pFileName );
+        sprintf( Buffer, "stats%d.txt", nFrames );
+        if ( pAbc->pGia )
+            Gia_DumpLutSizeDistrib( pAbc->pGia, Buffer );
+    }
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );
