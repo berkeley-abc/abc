@@ -637,7 +637,7 @@ void Sle_ManDeriveCnf( Sle_Man_t * p, int nBTLimit, int fDynamic )
     sat_solver_set_runtime_limit( p->pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
     sat_solver_set_random( p->pSat, 1 );
     sat_solver_set_polarity( p->pSat, Vec_IntArray(p->vPolars), Vec_IntSize(p->vPolars) );
-    sat_solver_set_var_activity( p->pSat, NULL, p->nVarsTotal );
+    //sat_solver_set_var_activity( p->pSat, NULL, p->nVarsTotal );
 
     // set drivers to be mapped
     Gia_ManForEachCoDriverId( p->pGia, iObj, i )

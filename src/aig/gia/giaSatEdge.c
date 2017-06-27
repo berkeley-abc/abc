@@ -459,7 +459,7 @@ void Seg_ManComputeDelay( Gia_Man_t * pGia, int DelayInit, int nFanouts, int fTw
     sat_solver_set_runtime_limit( p->pSat, nTimeOut ? nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
     sat_solver_set_random( p->pSat, 1 );
     sat_solver_set_polarity( p->pSat, Vec_IntArray(p->vPolars), Vec_IntSize(p->vPolars) );
-    sat_solver_set_var_activity( p->pSat, NULL, p->nVars );
+    //sat_solver_set_var_activity( p->pSat, NULL, p->nVars );
     // increment delay gradually
     for ( Delay = p->DelayMax; Delay >= 0; Delay-- )
     {
