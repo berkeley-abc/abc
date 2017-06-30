@@ -387,6 +387,7 @@ static inline void Amap_ManMatchGetFlows( Amap_Man_t * p, Amap_Mat_t * pM )
     Amap_Mat_t * pMFanin;
     Amap_Obj_t * pFanin;
     Amap_Gat_t * pGate;
+    float AddOn; 
     int i;
     pGate = Amap_LibGate( p->pLib, pM->pSet->iGate );
     assert( pGate->nPins == pM->pCut->nFans );
@@ -399,10 +400,15 @@ static inline void Amap_ManMatchGetFlows( Amap_Man_t * p, Amap_Mat_t * pM )
         pMFanin = &pFanin->Best;
         pM->Delay = Abc_MaxInt( pM->Delay, pMFanin->Delay );
         pM->AveFan += Amap_ObjRefsTotal(pFanin);
-        if ( Amap_ObjRefsTotal(pFanin) == 0 )
-            pM->Area += pMFanin->Area;
-        else
-            pM->Area += pMFanin->Area / pFanin->EstRefs;
+//        if ( Amap_ObjRefsTotal(pFanin) == 0 )
+//            pM->Area += pMFanin->Area;
+//        else
+//            pM->Area += pMFanin->Area / pFanin->EstRefs;
+        AddOn = Amap_ObjRefsTotal(pFanin) == 0 ? pMFanin->Area : pMFanin->Area / pFanin->EstRefs; 
+        if ( pM->Area >= (float)1e32 || AddOn >= (float)1e32 )
+            pM->Area = (float)1e32;
+        else 
+            pM->Area += AddOn;
     }
     pM->AveFan /= pGate->nPins;
     pM->Delay += 1.0;
