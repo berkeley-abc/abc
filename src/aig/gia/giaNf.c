@@ -1147,7 +1147,11 @@ void Nf_ManCutMatchOne( Nf_Man_t * p, int iObj, int * pCut, int * pCutSet )
                 if ( pD->D < SCL_INFINITY && pA->D < SCL_INFINITY && ArrivalD + pC->iDelays[k] > Required )
                     break;
                 Delay = Abc_MaxInt( Delay, ArrivalD + pC->iDelays[k] );
-                AreaF += pBestF[iFanin]->M[fComplF][0].F;
+                //AreaF += pBestF[iFanin]->M[fComplF][0].F;
+                if ( AreaF >= (float)1e32 || pBestF[iFanin]->M[fComplF][0].F >= (float)1e32 )
+                    AreaF = (float)1e32;
+                else 
+                    AreaF += pBestF[iFanin]->M[fComplF][0].F;
             }
         }
         if ( k < nFans )

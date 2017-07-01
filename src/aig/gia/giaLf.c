@@ -1154,7 +1154,11 @@ static inline void Lf_CutParams( Lf_Man_t * p, Lf_Cut_t * pCut, int Required, fl
             else
             {
                 Index = (int)(pBest->Delay[1] + 1 <= Required && Required != ABC_INFINITY);
-                pCut->Flow += pBest->Flow[Index];
+                //pCut->Flow += pBest->Flow[Index];
+                if ( pCut->Flow >= (float)1e32 || pBest->Flow[Index] >= (float)1e32 )
+                    pCut->Flow = (float)1e32;
+                else 
+                    pCut->Flow += pBest->Flow[Index];
             }
             Delay = pBest->Delay[Index];
         }

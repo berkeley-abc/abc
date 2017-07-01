@@ -57,7 +57,7 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
         return;
     Len = strlen(command);
     strcpy( Buffer, command );
-    if ( Buffer[Len-1] == '\n' )
+    if ( Len > 0 && Buffer[Len-1] == '\n' )
         Buffer[Len-1] = 0;
     if ( strlen(Buffer) > 3 &&
          strncmp(Buffer,"set",3) && 
