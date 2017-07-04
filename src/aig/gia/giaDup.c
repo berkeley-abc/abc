@@ -718,6 +718,31 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
         pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
     return pNew;
 }
+Gia_Man_t * Gia_ManDup2( Gia_Man_t * p1, Gia_Man_t * p2 )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Gia_ManCiNum(p1) == Gia_ManCiNum(p2) );
+    assert( Gia_ManCoNum(p1) == Gia_ManCoNum(p2) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p1) + Gia_ManObjNum(p2) );
+    Gia_ManHashStart( pNew );
+    Gia_ManConst0(p1)->Value = 0;
+    Gia_ManConst0(p2)->Value = 0;
+    Gia_ManForEachCi( p1, pObj, i )
+        pObj->Value = Gia_ManCi(p2, i)->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p1, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachAnd( p2, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p1, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachCo( p2, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p1) );
+    Gia_ManHashStop( pNew );
+    return pNew;
+}
 Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
 {
     Gia_Man_t * pNew = Gia_ManDup(p);

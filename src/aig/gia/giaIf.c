@@ -2118,6 +2118,13 @@ void Gia_ManTransferPacking( Gia_Man_t * p, Gia_Man_t * pGia )
 }
 void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
 {
+    if ( pGia->vCiArrs || pGia->vCoReqs || pGia->vCoArrs )
+    {
+        p->vCiArrs     = pGia->vCiArrs;     pGia->vCiArrs    = NULL;
+        p->vCoReqs     = pGia->vCoReqs;     pGia->vCoReqs    = NULL;
+        p->vCoArrs     = pGia->vCoArrs;     pGia->vCoArrs    = NULL;
+        p->And2Delay   = pGia->And2Delay;
+    }
     if ( pGia->vInArrs || pGia->vOutReqs )
     {
         p->vInArrs     = pGia->vInArrs;     pGia->vInArrs     = NULL;
@@ -2146,6 +2153,70 @@ void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_FrameMiniAigSetCiArrivals( Abc_Frame_t * pAbc, int * pArrivals )
+{
+    Gia_Man_t * pGia;
+    if ( pArrivals == NULL )
+        { printf( "Arrival times are not given.\n" ); return; }
+    if ( pAbc == NULL )
+        { printf( "ABC framework is not initialized by calling Abc_Start().\n" ); return; }
+    pGia = Abc_FrameReadGia( pAbc );
+    if ( pGia == NULL )
+        { printf( "Current network in ABC framework is not defined.\n" ); return; }
+    Vec_IntFreeP( &pGia->vCiArrs );
+    pGia->vCiArrs = Vec_IntAllocArrayCopy( pArrivals, Gia_ManCiNum(pGia) );
+}
+void Abc_FrameMiniAigSetCoRequireds( Abc_Frame_t * pAbc, int * pRequireds )
+{
+    Gia_Man_t * pGia;
+    if ( pRequireds == NULL )
+        { printf( "Required times are not given.\n" ); return; }
+    if ( pAbc == NULL )
+        { printf( "ABC framework is not initialized by calling Abc_Start().\n" ); return; }
+    pGia = Abc_FrameReadGia( pAbc );
+    if ( pGia == NULL )
+        { printf( "Current network in ABC framework is not defined.\n" ); return; }
+    Vec_IntFreeP( &pGia->vCoReqs );
+    pGia->vCoReqs = Vec_IntAllocArrayCopy( pRequireds, Gia_ManCoNum(pGia) );
+}
+int * Abc_FrameMiniAigReadCoArrivals( Abc_Frame_t * pAbc )
+{
+    Vec_Int_t * vArrs; int * pArrs;
+    Gia_Man_t * pGia;
+    if ( pAbc == NULL )
+        { printf( "ABC framework is not initialized by calling Abc_Start()\n" ); return NULL; }
+    pGia = Abc_FrameReadGia( pAbc );
+    if ( pGia == NULL )
+        { printf( "Current network in ABC framework is not defined.\n" ); return NULL; }
+    if ( pGia->vCoArrs == NULL )
+        { printf( "Current network in ABC framework has no CO arrival times.\n" ); return NULL; }
+    vArrs = Vec_IntDup( pGia->vCoArrs );
+    pArrs = Vec_IntReleaseArray( vArrs );
+    Vec_IntFree( vArrs );
+    return pArrs;
+}
+void Abc_FrameMiniAigSetAndGateDelay( Abc_Frame_t * pAbc, int Delay )
+{
+    Gia_Man_t * pGia;
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pGia = Abc_FrameReadGia( pAbc );
+    if ( pGia == NULL )
+        printf( "Current network in ABC framework is not defined.\n" );
+    pGia->And2Delay = Delay;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Interface of LUT mapping package.]
 
   Description []
@@ -2159,9 +2230,23 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
 {
     extern void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose );
     Gia_Man_t * pNew;
-    If_Man_t * pIfMan;
+    If_Man_t * pIfMan; int i, Entry;
     assert( pPars->pTimesArr == NULL );
     assert( pPars->pTimesReq == NULL );
+    if ( p->vCiArrs )
+    {
+        assert( Vec_IntSize(p->vCiArrs) == Gia_ManCiNum(p) );
+        pPars->pTimesArr = ABC_CALLOC( float, Gia_ManCiNum(p) );
+        Vec_IntForEachEntry( p->vCiArrs, Entry, i )
+            pPars->pTimesArr[i] = (float)Entry;
+    }
+    if ( p->vCoReqs )
+    {
+        assert( Vec_IntSize(p->vCoReqs) == Gia_ManCoNum(p) );
+        pPars->pTimesReq = ABC_CALLOC( float, Gia_ManCoNum(p) );
+        Vec_IntForEachEntry( p->vCoReqs, Entry, i )
+            pPars->pTimesReq[i] = (float)Entry;
+    }
     ABC_FREE( p->pCellStr );
     Vec_IntFreeP( &p->vConfigs );
     // disable cut minimization when GIA strucure is needed
@@ -2202,6 +2287,14 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         pNew = Gia_ManFromIfAig( pIfMan );
     else
         pNew = Gia_ManFromIfLogic( pIfMan );
+    if ( p->vCiArrs || p->vCoReqs )
+    {
+        If_Obj_t * pIfObj;
+        Vec_IntFreeP( &p->vCoArrs );
+        p->vCoArrs = Vec_IntAlloc( Gia_ManCoNum(p) );
+        If_ManForEachCo( pIfMan, pIfObj, i )
+            Vec_IntPush( p->vCoArrs, (int)If_ObjArrTime(If_ObjFanin0(pIfObj)) );
+    }
     If_ManStop( pIfMan );
     // transfer name
     assert( pNew->pName == NULL );

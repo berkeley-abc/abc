@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "base/main/mainInt.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -27,11 +28,165 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static inline char * If_UtilStrsav( char *s ) {  return !s ? s : strcpy(ABC_ALLOC(char, strlen(s)+1), s);  }
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the description of LUTs from the LUT library file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_LibLut_t * If_LibLutReadString( char * pStr )
+{
+    If_LibLut_t * p;
+    Vec_Ptr_t * vStrs;
+    char * pToken, * pBuffer, * pStrNew, * pStrMem;
+    int i, k, j;
+
+    if ( pStr == NULL || pStr[0] == 0 )
+        return NULL;
+
+    vStrs = Vec_PtrAlloc( 1000 );
+    pStrNew = pStrMem = Abc_UtilStrsav( pStr );
+    while ( *pStrNew )
+    {
+        Vec_PtrPush( vStrs, pStrNew );
+        while ( *pStrNew != '\n' )
+            pStrNew++;
+        while ( *pStrNew == '\n' )
+            *pStrNew++ = '\0';
+    }
+
+    p = ABC_ALLOC( If_LibLut_t, 1 );
+    memset( p, 0, sizeof(If_LibLut_t) );
+
+    i = 1;
+    //while ( fgets( pBuffer, 1000, pFile ) != NULL )
+    Vec_PtrForEachEntry( char *, vStrs, pBuffer, j )
+    {
+        if ( pBuffer[0] == 0 )
+            continue;
+        pToken = strtok( pBuffer, " \t\n" );
+        if ( pToken == NULL )
+            continue;
+        if ( pToken[0] == '#' )
+            continue;
+        if ( i != atoi(pToken) )
+        {
+            Abc_Print( 1, "Error in the LUT library string.\n" );
+            ABC_FREE( p->pName );
+            ABC_FREE( p );
+            ABC_FREE( pStrMem );
+            Vec_PtrFree( vStrs );
+            return NULL;
+        }
+
+        // read area
+        pToken = strtok( NULL, " \t\n" );
+        p->pLutAreas[i] = (float)atof(pToken);
+
+        // read delays
+        k = 0;
+        while ( (pToken = strtok( NULL, " \t\n" )) )
+            p->pLutDelays[i][k++] = (float)atof(pToken);
+
+        // check for out-of-bound
+        if ( k > i )
+        {
+            Abc_Print( 1, "LUT %d has too many pins (%d). Max allowed is %d.\n", i, k, i );
+            ABC_FREE( p->pName );
+            ABC_FREE( p );
+            ABC_FREE( pStrMem );
+            Vec_PtrFree( vStrs );
+            return NULL;
+        }
+
+        // check if var delays are specified
+        if ( k > 1 )
+            p->fVarPinDelays = 1;
+
+        if ( i == IF_MAX_LUTSIZE )
+        {
+            Abc_Print( 1, "Skipping LUTs of size more than %d.\n", i );
+            ABC_FREE( p->pName );
+            ABC_FREE( p );
+            ABC_FREE( pStrMem );
+            Vec_PtrFree( vStrs );
+            return NULL;
+        }
+        i++;
+    }
+    p->LutMax = i-1;
+
+    // check the library
+    if ( p->fVarPinDelays )
+    {
+        for ( i = 1; i <= p->LutMax; i++ )
+            for ( k = 0; k < i; k++ )
+            {
+                if ( p->pLutDelays[i][k] <= 0.0 )
+                    Abc_Print( 0, "Pin %d of LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
+                        k, i, p->pLutDelays[i][k] );
+                if ( k && p->pLutDelays[i][k-1] > p->pLutDelays[i][k] )
+                    Abc_Print( 0, "Pin %d of LUT %d has delay %f. Pin %d of LUT %d has delay %f. Pin delays should be in non-decreasing order. Technology mapping may not work correctly.\n", 
+                        k-1, i, p->pLutDelays[i][k-1], 
+                        k, i, p->pLutDelays[i][k] );
+            }
+    }
+    else
+    {
+        for ( i = 1; i <= p->LutMax; i++ )
+        {
+            if ( p->pLutDelays[i][0] <= 0.0 )
+                Abc_Print( 0, "LUT %d has delay %f. Pin delays should be non-negative numbers. Technology mapping may not work correctly.\n", 
+                    i, p->pLutDelays[i][0] );
+        }
+    }
+
+    // cleanup
+    ABC_FREE( pStrMem );
+    Vec_PtrFree( vStrs );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Sets the library associated with the string.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_FrameSetLutLibrary( Abc_Frame_t * pAbc, char * pLutLibString )
+{
+    If_LibLut_t * pLib = If_LibLutReadString( pLutLibString );
+    if ( pLib == NULL )
+    {
+        fprintf( stdout, "Reading LUT library from string has failed.\n" );
+        return 0;
+    }
+    // replace the current library
+    If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLut() );
+    Abc_FrameSetLibLut( pLib );
+    return 1;
+}
+int Abc_FrameSetLutLibraryTest( Abc_Frame_t * pAbc )
+{
+    char * pStr = "1 1.00  1000\n2 1.00  1000 1200\n3 1.00  1000 1200 1400\n4 1.00  1000 1200 1400 1600\n5 1.00  1000 1200 1400 1600 1800\n6 1.00  1000 1200 1400 1600 1800 2000\n\n\n";
+    Abc_FrameSetLutLibrary( pAbc, pStr );
+    return 1;
+}
+
 
 /**Function*************************************************************
 
@@ -60,7 +215,7 @@ If_LibLut_t * If_LibLutRead( char * FileName )
 
     p = ABC_ALLOC( If_LibLut_t, 1 );
     memset( p, 0, sizeof(If_LibLut_t) );
-    p->pName = If_UtilStrsav( FileName );
+    p->pName = Abc_UtilStrsav( FileName );
 
     i = 1;
     while ( fgets( pBuffer, 1000, pFile ) != NULL )
@@ -159,7 +314,7 @@ If_LibLut_t * If_LibLutDup( If_LibLut_t * p )
     If_LibLut_t * pNew;
     pNew = ABC_ALLOC( If_LibLut_t, 1 );
     *pNew = *p;
-    pNew->pName = If_UtilStrsav( pNew->pName );
+    pNew->pName = Abc_UtilStrsav( pNew->pName );
     return pNew;
 }
 

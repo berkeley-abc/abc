@@ -392,6 +392,13 @@ Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p, int fStrict )
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
+    // set arrival times for the input of the new AIG
+    if ( p->vCiArrs )
+    {
+        int Id, And2Delay = p->And2Delay ? p->And2Delay : 1;
+        Gia_ManForEachCiId( pNew, Id, i )
+            Vec_IntWriteEntry( pNew->vLevels, Id, Vec_IntEntry(p->vCiArrs, i)/And2Delay );
+    }
     // create internal nodes
     Gia_ManHashStart( pNew );
     Gia_ManForEachBuf( p, pObj, i )
@@ -430,11 +437,14 @@ Gia_Man_t * Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fStrict, int fVer
     Gia_Man_t * pNew, * pNew1, * pNew2;
     if ( fVerbose )      Gia_ManPrintStats( p, NULL );
     pNew = fSimpleAnd ? Gia_ManDup( p ) : Gia_ManDupMuxes( p, 2 );
+    Gia_ManTransferTiming( pNew, p );
     if ( fVerbose )      Gia_ManPrintStats( pNew, NULL );
     pNew1 = Gia_ManBalanceInt( pNew, fStrict );
+    Gia_ManTransferTiming( pNew1, pNew );
     if ( fVerbose )      Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
     pNew2 = Gia_ManDupNoMuxes( pNew1 );
+    Gia_ManTransferTiming( pNew2, pNew1 );
     if ( fVerbose )      Gia_ManPrintStats( pNew2, NULL );
     Gia_ManStop( pNew1 );
     return pNew2;
@@ -1032,33 +1042,47 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
 {
     Gia_Man_t * pNew0, * pNew, * pNew1, * pNew2;
     Vec_Int_t * vCiLevels;
+    // set arrival times for the input of the new AIG
+    if ( p->vCiArrs )
+    {
+        int i, Id, And2Delay = p->And2Delay ? p->And2Delay : 1;
+        Vec_IntFreeP( &p->vLevels );
+        p->vLevels = Vec_IntStart( Gia_ManObjNum(p) );
+        Gia_ManForEachCiId( p, Id, i )
+            Vec_IntWriteEntry( p->vLevels, Id, Vec_IntEntry(p->vCiArrs, i)/And2Delay );
+    }
     // determine CI levels
     if ( p->pManTime && p->vLevels == NULL )
         Gia_ManLevelWithBoxes( p );
     vCiLevels = Gia_ManGetCiLevels( p );
     // get the starting manager
-    pNew0 = Gia_ManHasMapping(p) ? (Gia_Man_t *)Dsm_ManDeriveGia(p, 0) : p;
+    pNew0 = Gia_ManHasMapping(p) ? (Gia_Man_t *)Dsm_ManDeriveGia(p, 0) : Gia_ManDup(p);
+    Gia_ManTransferTiming( pNew0, p );
     if ( fVerbose )     Gia_ManPrintStats( pNew0, NULL );
     // derive internal manager
     pNew = fSimpleAnd ? Gia_ManDup( pNew0 ) : Gia_ManDupMuxes( pNew0, 2 );
+    Gia_ManTransferTiming( pNew, pNew0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
     if ( pNew0 != p ) Gia_ManStop( pNew0 );
     // perform the operation
     pNew1 = Dam_ManAreaBalanceInt( pNew, vCiLevels, nNewNodesMax, fVerbose, fVeryVerbose );
+    Gia_ManTransferTiming( pNew1, pNew );
     if ( fVerbose )     Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
     Vec_IntFreeP( &vCiLevels );
     // derive the final result
     pNew2 = Gia_ManDupNoMuxes( pNew1 );
+    Gia_ManTransferTiming( pNew2, pNew1 );
     if ( fVerbose )     Gia_ManPrintStats( pNew2, NULL );
     Gia_ManStop( pNew1 );
     // normalize if needed
     if ( !Gia_ManIsNormalized(pNew2) )
     {
         pNew2 = Gia_ManDupNormalize( pNew1 = pNew2, 0 );
+        Gia_ManTransferTiming( pNew2, pNew1 );
         Gia_ManStop( pNew1 );
     }
-    Gia_ManTransferTiming( pNew2, p );
+    //Gia_ManTransferTiming( pNew2, p );
     return pNew2;
 }
 

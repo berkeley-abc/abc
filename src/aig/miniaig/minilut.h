@@ -123,9 +123,9 @@ static int      Mini_LutNodeConst1()                           { return 1;      
 
 static int      Mini_LutNodeNum( Mini_Lut_t * p )              { return p->nSize;             }
 static int      Mini_LutNodeIsConst( Mini_Lut_t * p, int Id )  { assert( Id >= 0 ); return Id == 0 || Id == 1; }
-static int      Mini_LutNodeIsPi( Mini_Lut_t * p, int Id )     { assert( Id >= 0 ); return Id > 0 && Mini_LutNodeFanin( p, Id, 0 ) == MINI_LUT_NULL; }
-static int      Mini_LutNodeIsPo( Mini_Lut_t * p, int Id )     { assert( Id >= 0 ); return Id > 0 && Mini_LutNodeFanin( p, Id, 0 ) != MINI_LUT_NULL && Mini_LutNodeFanin( p, Id, 1 ) == MINI_LUT_NULL2; }
-static int      Mini_LutNodeIsNode( Mini_Lut_t * p, int Id )   { assert( Id >= 0 ); return Id > 0 && Mini_LutNodeFanin( p, Id, 0 ) != MINI_LUT_NULL && Mini_LutNodeFanin( p, Id, 1 ) != MINI_LUT_NULL2; }
+static int      Mini_LutNodeIsPi( Mini_Lut_t * p, int Id )     { assert( Id >= 0 ); return Id > 1 && Mini_LutNodeFanin( p, Id, 0 ) == MINI_LUT_NULL; }
+static int      Mini_LutNodeIsPo( Mini_Lut_t * p, int Id )     { assert( Id >= 0 ); return Id > 1 && Mini_LutNodeFanin( p, Id, 0 ) != MINI_LUT_NULL && Mini_LutNodeFanin( p, Id, 1 ) == MINI_LUT_NULL2; }
+static int      Mini_LutNodeIsNode( Mini_Lut_t * p, int Id )   { assert( Id >= 0 ); return Id > 1 && Mini_LutNodeFanin( p, Id, 0 ) != MINI_LUT_NULL && Mini_LutNodeFanin( p, Id, 1 ) != MINI_LUT_NULL2; }
 
 static int      Mini_LutSize( Mini_Lut_t * p )                 { return p->LutSize;           }
 

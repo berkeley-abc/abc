@@ -20,7 +20,7 @@
 
 #include "gia.h"
 #include "opt/dau/dau.h"
-#include "base/main/main.h"
+#include "base/main/mainInt.h"
 #include "misc/util/utilTruth.h"
 #include "aig/miniaig/miniaig.h"
 #include "aig/miniaig/minilut.h"
@@ -57,7 +57,7 @@ int Gia_ObjFromMiniFanin1Copy( Gia_Man_t * pGia, Vec_Int_t * vCopies, Mini_Aig_t
     int Lit = Mini_AigNodeFanin1( p, Id );
     return Abc_LitNotCond( Vec_IntEntry(vCopies, Abc_Lit2Var(Lit)), Abc_LitIsCompl(Lit) );
 }
-Gia_Man_t * Gia_ManFromMiniAig( Mini_Aig_t * p )
+Gia_Man_t * Gia_ManFromMiniAig( Mini_Aig_t * p, Vec_Int_t ** pvCopies )
 {
     Gia_Man_t * pGia, * pTemp;
     Vec_Int_t * vCopies;
@@ -85,9 +85,14 @@ Gia_Man_t * Gia_ManFromMiniAig( Mini_Aig_t * p )
     }
     Gia_ManHashStop( pGia );
     assert( Vec_IntSize(vCopies) == nNodes );
-    Vec_IntFree( vCopies );
+    if ( pvCopies )
+        *pvCopies = vCopies;
+    else
+        Vec_IntFree( vCopies );
     Gia_ManSetRegNum( pGia, Mini_AigRegNum(p) );
     pGia = Gia_ManCleanup( pTemp = pGia );
+    if ( pvCopies )
+        Gia_ManDupRemapLiterals( *pvCopies, pTemp );
     Gia_ManStop( pTemp );
     return pGia;
 }
@@ -141,8 +146,11 @@ void Abc_FrameGiaInputMiniAig( Abc_Frame_t * pAbc, void * p )
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
         printf( "ABC framework is not initialized by calling Abc_Start()\n" );
-    pGia = Gia_ManFromMiniAig( (Mini_Aig_t *)p );
+    Gia_ManStopP( &pAbc->pGiaMiniAig );
+    Vec_IntFreeP( &pAbc->vCopyMiniAig );
+    pGia = Gia_ManFromMiniAig( (Mini_Aig_t *)p, &pAbc->vCopyMiniAig );
     Abc_FrameUpdateGia( pAbc, pGia );
+    pAbc->pGiaMiniAig = Gia_ManDup( pGia );
 //    Gia_ManDelete( pGia );
 }
 void * Abc_FrameGiaOutputMiniAig( Abc_Frame_t * pAbc )
@@ -170,7 +178,7 @@ void * Abc_FrameGiaOutputMiniAig( Abc_Frame_t * pAbc )
 Gia_Man_t * Gia_ManReadMiniAig( char * pFileName )
 {
     Mini_Aig_t * p = Mini_AigLoad( pFileName );
-    Gia_Man_t * pGia = Gia_ManFromMiniAig( p );
+    Gia_Man_t * pGia = Gia_ManFromMiniAig( p, NULL );
     ABC_FREE( pGia->pName );
     pGia->pName = Extra_FileNameGeneric( pFileName ); 
     Mini_AigStop( p );
@@ -197,7 +205,7 @@ void Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManFromMiniLut( Mini_Lut_t * p )
+Gia_Man_t * Gia_ManFromMiniLut( Mini_Lut_t * p, Vec_Int_t ** pvCopies )
 {
     Gia_Man_t * pGia, * pTemp;
     Vec_Int_t * vCopies;
@@ -239,9 +247,14 @@ Gia_Man_t * Gia_ManFromMiniLut( Mini_Lut_t * p )
     Vec_IntFree( vLits );
     Gia_ManHashStop( pGia );
     assert( Vec_IntSize(vCopies) == nNodes );
-    Vec_IntFree( vCopies );
+    if ( pvCopies )
+        *pvCopies = vCopies;
+    else
+        Vec_IntFree( vCopies );
     Gia_ManSetRegNum( pGia, Mini_LutRegNum(p) );
     pGia = Gia_ManCleanup( pTemp = pGia );
+    if ( pvCopies )
+        Gia_ManDupRemapLiterals( *pvCopies, pTemp );
     Gia_ManStop( pTemp );
     return pGia;
 }
@@ -357,19 +370,24 @@ void Abc_FrameGiaInputMiniLut( Abc_Frame_t * pAbc, void * p )
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
         printf( "ABC framework is not initialized by calling Abc_Start()\n" );
-    pGia = Gia_ManFromMiniLut( (Mini_Lut_t *)p );
+    pGia = Gia_ManFromMiniLut( (Mini_Lut_t *)p, NULL );
     Abc_FrameUpdateGia( pAbc, pGia );
 //    Gia_ManDelete( pGia );
 }
 void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc )
 {
+    Mini_Lut_t * pRes = NULL;
     Gia_Man_t * pGia;
     if ( pAbc == NULL )
         printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    Gia_ManStopP( &pAbc->pGiaMiniLut );
+    Vec_IntFreeP( &pAbc->vCopyMiniLut );
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
         printf( "Current network in ABC framework is not defined.\n" );
-    return Gia_ManToMiniLut( pGia );
+    pRes = Gia_ManToMiniLut( pGia );
+    pAbc->pGiaMiniLut = Gia_ManFromMiniLut( pRes, &pAbc->vCopyMiniLut );
+    return pRes;
 }
 
 /**Function*************************************************************
@@ -386,7 +404,7 @@ void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc )
 Gia_Man_t * Gia_ManReadMiniLut( char * pFileName )
 {
     Mini_Lut_t * p = Mini_LutLoad( pFileName );
-    Gia_Man_t * pGia = Gia_ManFromMiniLut( p );
+    Gia_Man_t * pGia = Gia_ManFromMiniLut( p, NULL );
     ABC_FREE( pGia->pName );
     pGia->pName = Extra_FileNameGeneric( pFileName ); 
     Mini_LutStop( p );
@@ -398,6 +416,102 @@ void Gia_ManWriteMiniLut( Gia_Man_t * pGia, char * pFileName )
     Mini_LutDump( p, pFileName );
     Mini_LutStop( p );
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Gia_ManMapMiniLut2MiniAig( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * p2, Vec_Int_t * vMap1, Vec_Int_t * vMap2 )
+{
+    int * pRes = ABC_FALLOC( int, Vec_IntSize(vMap2) );
+    Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
+    int i, Entry, iRepr, fCompl, iLit;
+    Gia_Obj_t * pObj;
+    Gia_ManSetPhase( p1 );
+    Gia_ManSetPhase( p2 );
+    Vec_IntForEachEntry( vMap1, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        pObj = Gia_ManObj( p1, Abc_Lit2Var(Entry) );
+        if ( ~pObj->Value == 0 )
+            continue;
+        fCompl = Abc_LitIsCompl(Entry) ^ pObj->fPhase;
+        iRepr = Gia_ObjReprSelf(p, Abc_Lit2Var(pObj->Value));
+        Vec_IntWriteEntry( vMap, iRepr, Abc_Var2Lit(i, fCompl) );
+    }
+    Vec_IntForEachEntry( vMap2, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        pObj = Gia_ManObj( p2, Abc_Lit2Var(Entry) );
+        if ( ~pObj->Value == 0 )
+            continue;
+        fCompl = Abc_LitIsCompl(Entry) ^ pObj->fPhase;
+        iRepr = Gia_ObjReprSelf(p, Abc_Lit2Var(pObj->Value));
+        if ( (iLit = Vec_IntEntry(vMap, iRepr)) == -1 )
+            continue;
+        pRes[i] = Abc_LitNotCond( iLit, fCompl ^ Abc_LitIsCompl(iLit) );
+    }
+    Vec_IntFill( vMap, Gia_ManCoNum(p1), -1 );
+    Vec_IntForEachEntry( vMap1, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        pObj = Gia_ManObj( p1, Abc_Lit2Var(Entry) );
+        if ( !Gia_ObjIsCo(pObj) )
+            continue;
+        Vec_IntWriteEntry( vMap, Gia_ObjCioId(pObj), i );
+    }
+    Vec_IntForEachEntry( vMap2, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        pObj = Gia_ManObj( p2, Abc_Lit2Var(Entry) );
+        if ( !Gia_ObjIsCo(pObj) )
+            continue;
+        assert( pRes[i] == -1 );
+        pRes[i] = Abc_Var2Lit( Vec_IntEntry(vMap, Gia_ObjCioId(pObj)), 0 );
+        assert( pRes[i] != -1 );
+    }
+    Vec_IntFree( vMap );
+    return pRes;
+}
+int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
+{
+    int fVerbose = 0;
+    int nConfs = 1000;
+    Gia_Man_t * pGia, * pTemp;
+    int * pRes = NULL;
+    if ( pAbc->pGiaMiniAig == NULL )
+        printf( "GIA derived from MiniAig is not available.\n" );
+    if ( pAbc->pGiaMiniLut == NULL )
+        printf( "GIA derived from MiniLut is not available.\n" );
+    if ( pAbc->pGiaMiniAig == NULL || pAbc->pGiaMiniLut == NULL )
+        return NULL;
+    pGia = Gia_ManDup2( pAbc->pGiaMiniAig, pAbc->pGiaMiniLut );
+    //Gia_AigerWrite( pGia, "aig_m_lut.aig", 0, 0 );
+    // compute equivalences in this AIG
+    pTemp = Gia_ManComputeGiaEquivs( pGia, nConfs, fVerbose );
+    Gia_ManStop( pTemp );
+    //if ( fVerbose )
+    //    Abc_PrintTime( 1, "Equivalence computation time", Abc_Clock() - clk );
+    //if ( fVerbose )
+    //    Gia_ManPrintStats( pGia, NULL );
+    //Vec_IntPrint( pAbc->vCopyMiniAig );
+    //Vec_IntPrint( pAbc->vCopyMiniLut );
+    pRes = Gia_ManMapMiniLut2MiniAig( pGia, pAbc->pGiaMiniAig, pAbc->pGiaMiniLut, pAbc->vCopyMiniAig, pAbc->vCopyMiniLut );
+    Gia_ManStop( pGia );
+    return pRes;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

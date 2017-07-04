@@ -227,6 +227,12 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     Vec_IntFreeP( &p->pAbcWlcInv );
     Abc_NamDeref( s_GlobalFrame->pJsonStrs );
     Vec_WecFreeP(&s_GlobalFrame->vJsonObjs );    
+
+    Gia_ManStopP( &p->pGiaMiniAig );
+    Gia_ManStopP( &p->pGiaMiniLut );
+    Vec_IntFreeP( &p->vCopyMiniAig );
+    Vec_IntFreeP( &p->vCopyMiniLut );
+
     ABC_FREE( p );
     s_GlobalFrame = NULL;
 }

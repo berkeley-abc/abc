@@ -163,6 +163,10 @@ struct Gia_Man_t_
     Gia_Man_t *    pAigExtra;     // combinational logic of holes
     Vec_Flt_t *    vInArrs;       // PI arrival times
     Vec_Flt_t *    vOutReqs;      // PO required times
+    Vec_Int_t *    vCiArrs;       // CI arrival times
+    Vec_Int_t *    vCoReqs;       // CO required times
+    Vec_Int_t *    vCoArrs;       // CO arrival times
+    int            And2Delay;     // delay of the AND gate 
     float          DefInArrs;     // default PI arrival times
     float          DefOutReqs;    // default PO required times
     Vec_Int_t *    vSwitching;    // switching activity
@@ -1207,6 +1211,7 @@ extern Gia_Man_t *         Gia_ManDupLastPis( Gia_Man_t * p, int nLastPis );
 extern Gia_Man_t *         Gia_ManDupFlip( Gia_Man_t * p, int * pInitState );
 extern Gia_Man_t *         Gia_ManDupCycled( Gia_Man_t * pAig, Abc_Cex_t * pCex, int nFrames );
 extern Gia_Man_t *         Gia_ManDup( Gia_Man_t * p );  
+extern Gia_Man_t *         Gia_ManDup2( Gia_Man_t * p1, Gia_Man_t * p2 );
 extern Gia_Man_t *         Gia_ManDupWithAttributes( Gia_Man_t * p );  
 extern Gia_Man_t *         Gia_ManDupZero( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm );

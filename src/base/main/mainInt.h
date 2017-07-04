@@ -137,6 +137,10 @@ struct Abc_Frame_t_
 #ifdef ABC_USE_CUDD
     DdManager *     dd;            // temporary BDD package
 #endif
+    Gia_Man_t *     pGiaMiniAig; 
+    Gia_Man_t *     pGiaMiniLut; 
+    Vec_Int_t *     vCopyMiniAig;
+    Vec_Int_t *     vCopyMiniLut;
 };
 
 typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );

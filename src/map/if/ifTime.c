@@ -315,6 +315,9 @@ void If_ManComputeRequired( If_Man_t * p )
     If_ManMarkMapping( p );
     if ( p->pManTim == NULL )
     {
+        // get the global required times
+        p->RequiredGlo = If_ManDelayMax( p, 0 );
+
         // consider the case when the required times are given
         if ( p->pPars->pTimesReq && !p->pPars->fAreaOnly )
         {
@@ -340,9 +343,6 @@ void If_ManComputeRequired( If_Man_t * p )
         }
         else
         {
-            // get the global required times
-            p->RequiredGlo = If_ManDelayMax( p, 0 );
-
             // find new delay target
             if ( p->pPars->nRelaxRatio && p->pPars->DelayTargetNew == 0 )
                 p->pPars->DelayTargetNew = p->RequiredGlo * (100.0 + p->pPars->nRelaxRatio) / 100.0; 
