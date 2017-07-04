@@ -103,7 +103,7 @@ ABC_NAMESPACE_HEADER_START
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_PTRDIFF_T;
-#elif     defined(LIN64)
+#elif     defined(LIN64) || defined(__x86_64__)
 typedef long ABC_PTRDIFF_T;
 #elif     defined(NT64)
 typedef long long ABC_PTRDIFF_T;
@@ -120,7 +120,7 @@ typedef int ABC_PTRDIFF_T;
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_PTRUINT_T;
-#elif     defined(LIN64)
+#elif     defined(LIN64) || defined(__x86_64__)
 typedef unsigned long ABC_PTRUINT_T;
 #elif     defined(NT64)
 typedef unsigned long long ABC_PTRUINT_T;
@@ -137,7 +137,7 @@ typedef unsigned int ABC_PTRUINT_T;
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_PTRINT_T;
-#elif     defined(LIN64)
+#elif     defined(LIN64) || defined(__x86_64__)
 typedef long ABC_PTRINT_T;
 #elif     defined(NT64)
 typedef long long ABC_PTRINT_T;
@@ -152,7 +152,7 @@ typedef int ABC_PTRINT_T;
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_INT64_T;
-#elif     defined(LIN64)
+#elif     defined(LIN64) || defined(__x86_64__)
 typedef long ABC_INT64_T;
 #elif     defined(NT64) || defined(LIN)
 typedef long long ABC_INT64_T;
@@ -167,7 +167,7 @@ typedef signed __int64 ABC_INT64_T;
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_UINT64_T;
-#elif     defined(LIN64)
+#elif     defined(LIN64) || defined(__x86_64__)
 typedef unsigned long ABC_UINT64_T;
 #elif     defined(NT64) || defined(LIN)
 typedef unsigned long long ABC_UINT64_T;
