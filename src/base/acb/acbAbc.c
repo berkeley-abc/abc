@@ -192,7 +192,7 @@ Acb_Ntk_t * Acb_NtkFromNdr( char * pFileName, void * pModule, Abc_Nam_t * pNames
         NameId = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
         nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         Type   = Ndr_ObjReadBody( p, Obj, NDR_OPERTYPE );
-        ObjId  = Acb_ObjAlloc( pNtk, Type, nArray, 0 );
+        ObjId  = Acb_ObjAlloc( pNtk, (Acb_ObjType_t) Type, nArray, 0 );
         Vec_IntWriteEntry( vMap, NameId, ObjId );
         Acb_ObjSetName( pNtk, ObjId, NameId );
     }
