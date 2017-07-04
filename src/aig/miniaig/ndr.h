@@ -33,7 +33,7 @@
 
 #include "abcOper.h"
 
-//ABC_NAMESPACE_HEADER_START 
+ABC_NAMESPACE_HEADER_START 
 
 #ifdef _WIN32
 #define inline __inline
@@ -390,11 +390,11 @@ static inline void Ndr_ModuleWriteVerilog( char * pFileName, void * pModule, cha
 // creating a new module (returns pointer to the memory buffer storing the module info)
 static inline void * Ndr_ModuleCreate( int Name )
 {
-    Ndr_Data_t * p = malloc( sizeof(Ndr_Data_t) );
+    Ndr_Data_t * p = ABC_ALLOC( Ndr_Data_t, 1 );
     p->nSize = 0;
     p->nCap  = 16;
-    p->pHead = malloc( p->nCap );
-    p->pBody = malloc( p->nCap * 4 );
+    p->pHead = ABC_ALLOC( unsigned char, p->nCap );
+    p->pBody = ABC_ALLOC( unsigned int, p->nCap * 4 );
     Ndr_DataPush( p, NDR_MODULE, 0 );
     Ndr_DataPush( p, NDR_NAME, Name );
     Ndr_DataAddTo( p, 0, p->nSize );
@@ -453,10 +453,10 @@ static inline void * Ndr_ModuleRead( char * pFileName )
     assert( nFileSize % 5 == 0 );
     rewind( pFile );
     // create structure
-    p = malloc( sizeof(Ndr_Data_t) );
+    p = ABC_ALLOC( Ndr_Data_t, 1 );
     p->nSize = p->nCap = nFileSize / 5;
-    p->pHead = malloc( p->nCap );
-    p->pBody = malloc( p->nCap * 4 );
+    p->pHead = ABC_ALLOC( unsigned char, p->nCap );
+    p->pBody = ABC_ALLOC( unsigned int, p->nCap * 4 );
     RetValue = (int)fread( p->pBody, 4, p->nCap, pFile );
     RetValue = (int)fread( p->pHead, 1, p->nCap, pFile );
     assert( p->nSize == (int)p->pBody[0] );
@@ -511,7 +511,7 @@ static inline void Ndr_ModuleTest()
 }
 
 
-//ABC_NAMESPACE_HEADER_END
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

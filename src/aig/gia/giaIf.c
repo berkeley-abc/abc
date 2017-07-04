@@ -1953,7 +1953,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     {
         FILE * pFile; int status;
         char * pStr, Buffer[1000] = {0};
-        char * pNameGen = pIfMan->pName? Extra_FileNameGeneric( pIfMan->pName ) : "nameless_";
+        const char * pNameGen = pIfMan->pName? Extra_FileNameGeneric( pIfMan->pName ) : "nameless_";
         sprintf( Buffer, "%s_configs.txt", pNameGen );
         ABC_FREE( pNameGen );
         pFile = fopen( Buffer, "wb" );
