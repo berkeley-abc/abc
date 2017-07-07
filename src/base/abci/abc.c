@@ -31846,7 +31846,7 @@ int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
     Dch_ManSetDefaultParams( pPars );
     pPars->nBTLimit = 100;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSKRfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSKRfrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31908,6 +31908,9 @@ int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             pPars->fLightSynth ^= 1;
             break;
+        case 'r':
+            pPars->fSkipRedSupp ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -31927,7 +31930,7 @@ int Abc_CommandAbc9Synch2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &synch2 [-WCSKR num] [-fvh]\n" );
+    Abc_Print( -2, "usage: &synch2 [-WCSKR num] [-frvh]\n" );
     Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
     Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
@@ -31935,6 +31938,7 @@ usage:
     Abc_Print( -2, "\t-K num : the target LUT size for downstream mapping [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-R num : the delay relaxation ratio (num >= 0) [default = %d]\n",   nRelaxRatio );
     Abc_Print( -2, "\t-f     : toggle using lighter logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle skipping choices with redundant support [default = %s]\n", pPars->fSkipRedSupp? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -33891,9 +33895,9 @@ usage:
 int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pFileSpec = NULL;
-    int c, nBTLimit = 1000, nTimeLim = 0, fSeq = 0, fVerbose = 0;
+    int c, nBTLimit = 1000, nTimeLim = 0, fSeq = 0, fDumpFiles = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTsdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33922,6 +33926,9 @@ int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             fSeq ^= 1;
             break;
+        case 'd':
+            fDumpFiles ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -33937,15 +33944,16 @@ int Abc_CommandAbc9Verify( Abc_Frame_t * pAbc, int argc, char ** argv )
         Extra_FileNameCorrectPath( pFileSpec );
         printf( "Taking spec from file \"%s\".\n", pFileSpec );
     }
-    Gia_ManVerifyWithBoxes( pAbc->pGia, nBTLimit, nTimeLim, fSeq, fVerbose, pFileSpec );
+    Gia_ManVerifyWithBoxes( pAbc->pGia, nBTLimit, nTimeLim, fSeq, fDumpFiles, fVerbose, pFileSpec );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &verify [-CT num] [-svh] <file>\n" );
+    Abc_Print( -2, "usage: &verify [-CT num] [-sdvh] <file>\n" );
     Abc_Print( -2, "\t         performs verification of combinational design\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",  nTimeLim );
     Abc_Print( -2, "\t-s     : toggle using sequential verification [default = %s]\n",  fSeq? "yes":"no");
+    Abc_Print( -2, "\t-d     : toggle dumping AIGs to be compared [default = %s]\n",    fDumpFiles? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                 fVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : optional file name with the spec [default = not used]\n" );

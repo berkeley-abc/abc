@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "giaAig.h"
 #include "misc/tim/tim.h"
+#include "misc/extra/extra.h"
 #include "proof/cec/cec.h"
 #include "proof/fra/fra.h"
 
@@ -892,7 +893,7 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fVerbose, char * pFileSpec )
+int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fDumpFiles, int fVerbose, char * pFileSpec )
 {
     int Status   = -1;
     Gia_Man_t * pSpec, * pGia0, * pGia1, * pMiter;
@@ -954,6 +955,17 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
         else
             pGia1 = Gia_ManDup( pGia );
         Vec_IntFreeP( &vBoxPres );
+    }
+    if ( fDumpFiles )
+    {
+        char pFileName0[1000], pFileName1[1000];
+        char * pNameGeneric = Extra_FileNameGeneric( pFileSpec ? pFileSpec : pGia->pSpec );
+        sprintf( pFileName0, "%s_spec.aig", pNameGeneric );
+        sprintf( pFileName1, "%s_impl.aig", pNameGeneric );
+        Gia_AigerWrite( pGia0, pFileName0, 0, 0 );
+        Gia_AigerWrite( pGia1, pFileName1, 0, 0 );
+        ABC_FREE( pNameGeneric );
+        printf( "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
     }
     // compute the miter
     if ( fSeq )
