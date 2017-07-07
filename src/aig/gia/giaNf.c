@@ -1990,7 +1990,7 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
             assert( pMb->fBest );
             assert( pMb->D <= Required );
             //assert( Scl_Flt2Int(pMb->F) == (int)AreaAft );
-            assert( AreaBef >= AreaAft );
+            //assert( AreaBef >= AreaAft );
             *pM = *pMb;
             // update timing
             pCell = Nf_ManCell( p, pMb->Gate );
