@@ -213,7 +213,6 @@ Gia_Man_t * Gia_ManFromMiniLut( Mini_Lut_t * p, Vec_Int_t ** pvCopies )
     Vec_Int_t * vLits = Vec_IntAlloc( 100 );
     int i, k, Fan, iGiaLit, nNodes;
     int LutSize = Abc_MaxInt( 2, Mini_LutSize(p) );
-    assert( LutSize <= 6 );
     // get the number of nodes
     nNodes = Mini_LutNodeNum(p);
     // create ABC network
@@ -234,11 +233,12 @@ Gia_Man_t * Gia_ManFromMiniLut( Mini_Lut_t * p, Vec_Int_t ** pvCopies )
         else if ( Mini_LutNodeIsNode( p, i ) )
         {
             unsigned * puTruth = Mini_LutNodeTruth( p, i );
-            word Truth = LutSize == 6 ? *(word *)puTruth : ((word)*puTruth << 32) | (word)*puTruth; 
+            word Truth = ((word)*puTruth << 32) | (word)*puTruth; 
+            word * pTruth = LutSize < 6 ? &Truth : (word *)puTruth;
             Vec_IntClear( vLits );
             Mini_LutForEachFanin( p, i, Fan, k )
                 Vec_IntPush( vLits, Vec_IntEntry(vCopies, Fan) );
-            iGiaLit = Dsm_ManTruthToGia( pGia, &Truth, vLits, vCover );
+            iGiaLit = Dsm_ManTruthToGia( pGia, pTruth, vLits, vCover );
         }
         else assert( 0 );
         Vec_IntPush( vCopies, iGiaLit );
@@ -301,14 +301,15 @@ Vec_Bit_t * Gia_ManFindComplLuts( Gia_Man_t * pGia )
 Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
 {
     Mini_Lut_t * p;
-    Vec_Wrd_t * vTruths;
     Vec_Bit_t * vMarks;
     Gia_Obj_t * pObj, * pFanin;
-    int i, k, iFanin, LutSize, pVars[16];
-    word Truth;
+    Vec_Int_t * vLeaves = Vec_IntAlloc( 16 );
+    int i, k, iFanin, LutSize, nWords, Count = 0, pVars[16];
+    word * pTruth;
     assert( Gia_ManHasMapping(pGia) );
     LutSize = Gia_ManLutSizeMax( pGia );
     LutSize = Abc_MaxInt( LutSize, 2 );
+    nWords  = Abc_Truth6WordNum( LutSize );
     assert( LutSize >= 2 );
     // create the manager
     p = Mini_LutStart( LutSize );
@@ -317,21 +318,39 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
     Gia_ManForEachCi( pGia, pObj, i )
         pObj->Value = Mini_LutCreatePi(p);
     // create internal nodes
-    vTruths = Vec_WrdStart( Gia_ManObjNum(pGia) );
     vMarks = Gia_ManFindComplLuts( pGia );
+    Gia_ObjComputeTruthTableStart( pGia, LutSize );
     Gia_ManForEachLut( pGia, i )
     {
-        pObj = Gia_ManObj( pGia, i );
-        Gia_LutForEachFaninObj( pGia, i, pFanin, k )
-            pVars[k] = pFanin->Value;
-        Truth = Gia_LutComputeTruth6( pGia, i, vTruths );
-        Truth = Vec_BitEntry(vMarks, i) ? ~Truth : Truth;
+        Vec_IntClear( vLeaves );
         Gia_LutForEachFanin( pGia, i, iFanin, k )
+            Vec_IntPush( vLeaves, iFanin );
+        if ( Vec_IntSize(vLeaves) > 6 )
+        {
+            int Extra = Vec_IntSize(vLeaves) - 7;
+            for ( k = Extra; k >= 0; k-- )
+                Vec_IntPush( vLeaves, Vec_IntEntry(vLeaves, k) );
+            for ( k = Extra; k >= 0; k-- )
+                Vec_IntDrop( vLeaves, k );
+            assert( Vec_IntSize(vLeaves) == Gia_ObjLutSize(pGia, i) );
+        }
+        Gia_ManForEachObjVec( vLeaves, pGia, pFanin, k )
+            pVars[k] = pFanin->Value;
+        pObj = Gia_ManObj( pGia, i );
+        pTruth = Gia_ObjComputeTruthTableCut( pGia, pObj, vLeaves );
+        if ( Vec_BitEntry(vMarks, i) )
+            Abc_TtNot( pTruth, nWords );
+        Vec_IntForEachEntry( vLeaves, iFanin, k )
             if ( Vec_BitEntry(vMarks, iFanin) )
-                Truth = Abc_Tt6Flip( Truth, k );
-        pObj->Value = Mini_LutCreateNode( p, Gia_ObjLutSize(pGia, i), pVars, (unsigned *)&Truth );
+                Abc_TtFlip( pTruth, nWords, k );
+        pObj->Value = Mini_LutCreateNode( p, Gia_ObjLutSize(pGia, i), pVars, (unsigned *)pTruth );
     }
-    Vec_WrdFree( vTruths );
+    Vec_IntFree( vLeaves );
+    // create inverter truth table
+    Vec_WrdClear( pGia->vTtMemory );
+    for ( i = 0; i < nWords; i++ )
+        Vec_WrdPush( pGia->vTtMemory, ABC_CONST(0x5555555555555555) );
+    pTruth = Vec_WrdArray( pGia->vTtMemory );
     // create primary outputs
     Gia_ManForEachCo( pGia, pObj, i )
     {
@@ -341,16 +360,18 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
             pObj->Value = Mini_LutCreatePo( p, Gia_ObjFanin0(pObj)->Value );
         else // add inverter LUT
         {
-            word TruthInv = ABC_CONST(0x5555555555555555);
             int Fanin = Gia_ObjFanin0(pObj)->Value;
-            int LutInv = Mini_LutCreateNode( p, 1, &Fanin, (unsigned *)&TruthInv );
+            int LutInv = Mini_LutCreateNode( p, 1, &Fanin, (unsigned *)pTruth );
             pObj->Value = Mini_LutCreatePo( p, LutInv );
+            Count++;
         }
     }
     Vec_BitFree( vMarks );
+    Gia_ObjComputeTruthTableStop( pGia );
     // set registers
     Mini_LutSetRegNum( p, Gia_ManRegNum(pGia) );
     //Mini_LutPrintStats( p );
+    //printf( "Added %d inverters.\n", Count );
     return p;
 }
 
