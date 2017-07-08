@@ -109,6 +109,28 @@ int Wlc_NtkMuxTree_rec( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vD
     iLit1 = Wlc_NtkMuxTree_rec( pNew, pCtrl, nCtrl-1, vData, Shift + (1<<(nCtrl-1)) );
     return Gia_ManHashMux( pNew, pCtrl[nCtrl-1], iLit1, iLit0 );
 }
+int Wlc_NtkMuxTree2_nb( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData, Vec_Int_t * vAnds )
+{
+    int iLitOr = 0, iLitAnd, m;
+    assert( Vec_IntSize(vData) == (1 << nCtrl) );
+    assert( Vec_IntSize(vAnds) == (1 << nCtrl) );
+    for ( m = 0; m < (1 << nCtrl); m++ )
+    {
+        iLitAnd = Gia_ManHashAnd( pNew, Vec_IntEntry(vAnds, m), Vec_IntEntry(vData, m) );
+        iLitOr  = Gia_ManHashOr( pNew, iLitOr, iLitAnd );
+    }
+    return iLitOr;
+}
+int Wlc_NtkMuxTree2( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData, Vec_Int_t * vAnds, Vec_Int_t * vTemp )
+{
+    int m, iLit;
+    assert( Vec_IntSize(vData) == (1 << nCtrl) );
+    assert( Vec_IntSize(vAnds) == (1 << nCtrl) );
+    Vec_IntClear( vTemp );
+    Vec_IntForEachEntry( vAnds, iLit, m )
+        Vec_IntPush( vTemp, Abc_LitNot( Gia_ManHashAnd(pNew, iLit, Vec_IntEntry(vData, m)) ) );
+    return Abc_LitNot( Gia_ManHashAndMulti(pNew, vTemp) );
+}
 
 /**Function*************************************************************
 
@@ -868,7 +890,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs, int fBooth, int fNoCleanup, int fCreateMiter )
+Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, int nOutputRange, int fGiaSimple, int fAddOutputs, int fBooth, int fNoCleanup, int fCreateMiter, int fDecMuxes )
 {
     int fVerbose = 0;
     int fUseOldMultiplierBlasting = 0;
@@ -1061,6 +1083,17 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
             Wlc_ObjForEachFanin( pObj, iFanin, k )
                 if ( k > 0 )
                     fSigned &= Wlc_NtkObj(p, iFanin)->Signed;
+            Vec_IntClear( vTemp1 );
+            if ( fDecMuxes )
+            {
+                for ( k = 0; k < (1 << nRange0); k++ )
+                {
+                    int iLitAnd = 1;
+                    for ( b = 0; b < nRange0; b++ )
+                        iLitAnd = Gia_ManHashAnd( pNew, iLitAnd, Abc_LitNotCond(pFans0[b], ((k >> b) & 1) == 0) );
+                    Vec_IntPush( vTemp1, iLitAnd );
+                }
+            }
             for ( b = 0; b < nRange; b++ )
             {
                 Vec_IntClear( vTemp0 );
@@ -1074,7 +1107,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
                         else // Statement 2
                             Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (Wlc_NtkObj(p, iFanin)->Signed? pFans1[nRange1-1] : 0) );
                     }
-                Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
+                if ( fDecMuxes )
+                    Vec_IntPush( vRes, Wlc_NtkMuxTree2(pNew, pFans0, nRange0, vTemp0, vTemp1, vTemp2) );
+                else
+                    Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
             }
         }
         else if ( pObj->Type == WLC_OBJ_SHIFT_R || pObj->Type == WLC_OBJ_SHIFT_RA ||

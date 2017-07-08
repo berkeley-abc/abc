@@ -885,9 +885,9 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     Vec_Int_t * vBoxIds = NULL;
     Gia_Man_t * pNew = NULL;
-    int c, iOutput = -1, nOutputRange = 2, fGiaSimple = 0, fAddOutputs = 0, fMulti = 0, fBooth = 0, fCreateMiter = 0, fVerbose  = 0;
+    int c, iOutput = -1, nOutputRange = 2, fGiaSimple = 0, fAddOutputs = 0, fMulti = 0, fBooth = 0, fCreateMiter = 0, fDecMuxes = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORcombdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORcombdsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -928,6 +928,9 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fCreateMiter ^= 1;
             break;
+        case 's':
+            fDecMuxes ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -954,7 +957,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // transform
-    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, iOutput, nOutputRange, fGiaSimple, fAddOutputs, fBooth, 0, fCreateMiter );
+    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, iOutput, nOutputRange, fGiaSimple, fAddOutputs, fBooth, 0, fCreateMiter, fDecMuxes );
     Vec_IntFreeP( &vBoxIds );
     if ( pNew == NULL )
     {
@@ -964,7 +967,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-OR num] [-combdvh]\n" );
+    Abc_Print( -2, "usage: %%blast [-OR num] [-combdsvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-O num : zero-based index of the first word-level PO to bit-blast [default = %d]\n", iOutput );
     Abc_Print( -2, "\t-R num : the total number of word-level POs to bit-blast [default = %d]\n", nOutputRange );
@@ -973,6 +976,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n", fMulti? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggle generating radix-4 Booth multipliers [default = %s]\n", fBooth? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fCreateMiter? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle creating decoded MUXes [default = %s]\n", fDecMuxes? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
