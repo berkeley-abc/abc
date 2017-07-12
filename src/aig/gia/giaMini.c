@@ -479,7 +479,7 @@ int * Gia_ManMapMiniLut2MiniAig( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * p2, 
         iRepr = Gia_ObjReprSelf(p, Abc_Lit2Var(pObj->Value));
         if ( (iLit = Vec_IntEntry(vMap, iRepr)) == -1 )
             continue;
-        pRes[i] = Abc_LitNotCond( iLit, fCompl ^ Abc_LitIsCompl(iLit) );
+        pRes[i] = Abc_LitNotCond( iLit, fCompl );
     }
     Vec_IntFill( vMap, Gia_ManCoNum(p1), -1 );
     Vec_IntForEachEntry( vMap1, Entry, i )
@@ -505,6 +505,35 @@ int * Gia_ManMapMiniLut2MiniAig( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * p2, 
     Vec_IntFree( vMap );
     return pRes;
 }
+void Gia_ManNameMapVerify( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * p2, Vec_Int_t * vMap1, Vec_Int_t * vMap2, int * pMap )
+{
+    int iLut, iObj1, iObj2, nSize = Vec_IntSize(vMap2);
+    Gia_Obj_t * pObjAig, * pObjLut;
+    Gia_ManSetPhase( p1 );
+    Gia_ManSetPhase( p2 );
+    for ( iLut = 0; iLut < nSize; iLut++ )
+        if ( pMap[iLut] >= 0 )
+        {
+            int iObj   = Abc_Lit2Var( pMap[iLut] );
+            int fCompl = Abc_LitIsCompl( pMap[iLut] );
+            int iLitAig = Vec_IntEntry( vMap1, iObj );
+            int iLitLut = Vec_IntEntry( vMap2, iLut );
+            pObjAig = Gia_ManObj( p1, Abc_Lit2Var(iLitAig) );
+            if ( Gia_ObjIsCo(pObjAig) )
+                continue;
+            if ( ~pObjAig->Value == 0 )
+                continue;
+            pObjLut = Gia_ManObj( p2, Abc_Lit2Var(iLitLut) );
+            if ( ~pObjLut->Value == 0 )
+                continue;
+            iObj1 = Gia_ObjReprSelf(p, Abc_Lit2Var(pObjAig->Value));
+            iObj2 = Gia_ObjReprSelf(p, Abc_Lit2Var(pObjLut->Value));
+            if ( iObj1 != iObj2 )
+                printf( "Found functional mismatch for LutId %d and AigId %d.\n", iLut, iObj );
+            if ( (pObjLut->fPhase ^ Abc_LitIsCompl(iLitLut)) != (pObjAig->fPhase ^ Abc_LitIsCompl(iLitAig) ^ fCompl) )
+                printf( "Found phase mismatch for LutId %d and AigId %d.\n", iLut, iObj );
+        }
+}
 int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
 {
     int fVerbose = 0;
@@ -529,6 +558,7 @@ int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
     //Vec_IntPrint( pAbc->vCopyMiniAig );
     //Vec_IntPrint( pAbc->vCopyMiniLut );
     pRes = Gia_ManMapMiniLut2MiniAig( pGia, pAbc->pGiaMiniAig, pAbc->pGiaMiniLut, pAbc->vCopyMiniAig, pAbc->vCopyMiniLut );
+    //Gia_ManNameMapVerify( pGia, pAbc->pGiaMiniAig, pAbc->pGiaMiniLut, pAbc->vCopyMiniAig, pAbc->vCopyMiniLut, pRes );
     Gia_ManStop( pGia );
     return pRes;
 }
