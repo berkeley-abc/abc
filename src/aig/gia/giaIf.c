@@ -2118,11 +2118,12 @@ void Gia_ManTransferPacking( Gia_Man_t * p, Gia_Man_t * pGia )
 }
 void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
 {
-    if ( pGia->vCiArrs || pGia->vCoReqs || pGia->vCoArrs )
+    if ( pGia->vCiArrs || pGia->vCoReqs || pGia->vCoArrs || pGia->vCoAttrs )
     {
         p->vCiArrs     = pGia->vCiArrs;     pGia->vCiArrs    = NULL;
         p->vCoReqs     = pGia->vCoReqs;     pGia->vCoReqs    = NULL;
         p->vCoArrs     = pGia->vCoArrs;     pGia->vCoArrs    = NULL;
+        p->vCoAttrs    = pGia->vCoAttrs;    pGia->vCoAttrs   = NULL;
         p->And2Delay   = pGia->And2Delay;
     }
     if ( pGia->vInArrs || pGia->vOutReqs )
@@ -2277,6 +2278,12 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     if ( p->pManTime )
         pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, pPars->fDelayOpt || pPars->fDelayOptLut || pPars->fDsdBalance || pPars->fUserRecLib || pPars->fUserSesLib );
 //    Tim_ManPrint( pIfMan->pManTim );
+    if ( p->vCoAttrs )
+    {
+        assert( If_ManCoNum(pIfMan) == Vec_IntSize(p->vCoAttrs) );
+        Vec_IntForEachEntry( p->vCoAttrs, Entry, i )
+            If_ObjFanin0( If_ManCo(pIfMan, i) )->fSpec = (Entry != 0);
+    }
     if ( !If_ManPerformMapping( pIfMan ) )
     {
         If_ManStop( pIfMan );

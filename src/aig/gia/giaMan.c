@@ -131,6 +131,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vCiArrs );
     Vec_IntFreeP( &p->vCoReqs );
     Vec_IntFreeP( &p->vCoArrs );
+    Vec_IntFreeP( &p->vCoAttrs );
     Gia_ManStopP( &p->pAigExtra );
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );

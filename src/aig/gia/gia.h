@@ -166,6 +166,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vCiArrs;       // CI arrival times
     Vec_Int_t *    vCoReqs;       // CO required times
     Vec_Int_t *    vCoArrs;       // CO arrival times
+    Vec_Int_t *    vCoAttrs;      // CO attributes
     int            And2Delay;     // delay of the AND gate 
     float          DefInArrs;     // default PI arrival times
     float          DefOutReqs;    // default PO required times
