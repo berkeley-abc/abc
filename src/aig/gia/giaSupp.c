@@ -394,8 +394,8 @@ Gia_Man2Min_t * Gia_Man2SuppStart( Gia_Man_t * pGia )
 }
 void Gia_Man2SuppStop( Gia_Man2Min_t * p )
 {
-    printf( "Total calls = %8d.  Supps = %6d.  Sims = %6d.   SAT = %6d.  UNSAT = %6d.\n", 
-        p->nCalls, p->nSupps, p->nSims, p->nSatSat, p->nSatUnsat );
+//    printf( "Total calls = %8d.  Supps = %6d.  Sims = %6d.   SAT = %6d.  UNSAT = %6d.\n", 
+//        p->nCalls, p->nSupps, p->nSims, p->nSatSat, p->nSatUnsat );
     Vec_IntFreeP( &p->vCis[0] );
     Vec_IntFreeP( &p->vCis[1] );
     Vec_IntFreeP( &p->vObjs[0] );
@@ -740,7 +740,7 @@ int Gia_Min2ManSolve( Gia_Man2Min_t * p )
         for ( n = 0; n < 2; n++ )
             Vec_IntForEachEntry( p->vCis[n], iTemp, i )
                 Gia_Min2SimSetInputBit( p, iTemp, var_polarity(p->pSat, Gia_Min2ObjSatId(p->pGia, Gia_ManObj(p->pGia, iTemp))) == LIT_TRUE, p->iPattern );
-        assert( Gia_Min2ManSimulate(p) == 0 );
+        //assert( Gia_Min2ManSimulate(p) == 0 );
         p->iPattern = p->iPattern == 63 ? 1 : p->iPattern + 1;
         p->nSatSat++;
     }
