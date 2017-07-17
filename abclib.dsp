@@ -2034,54 +2034,6 @@ SOURCE=.\src\sat\bmc\bmcUnroll.c
 
 # PROP Default_Filter ""
 # End Group
-# Begin Group "xsat"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsat.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatBQueue.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatClause.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatCnfReader.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatHeap.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatMemory.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatSolver.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatSolver.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatSolverAPI.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatUtils.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\sat\xsat\xsatWatchList.h
-# End Source File
-# End Group
 # Begin Group "satoko"
 
 # PROP Default_Filter ""
@@ -2168,6 +2120,54 @@ SOURCE=.\src\sat\satoko\utils\vec\vec_uint.h
 # Begin Source File
 
 SOURCE=.\src\sat\satoko\watch_list.h
+# End Source File
+# End Group
+# Begin Group "xsat"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsat.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatBQueue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatClause.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatCnfReader.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatHeap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatMemory.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatSolver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatSolverAPI.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatUtils.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\xsat\xsatWatchList.h
 # End Source File
 # End Group
 # End Group
