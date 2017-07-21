@@ -581,6 +581,9 @@ void Abc_FrameDeleteAllNetworks( Abc_Frame_t * p )
     // set the current network empty
     p->pNtkCur = NULL;
 //    fprintf( p->Out, "All networks have been deleted.\n" );
+    Gia_ManStopP( &p->pGia );
+    Gia_ManStopP( &p->pGia2 );
+    Gia_ManStopP( &p->pGiaBest );
 }
 
 /**Function*************************************************************

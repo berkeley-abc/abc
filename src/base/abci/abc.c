@@ -435,6 +435,7 @@ static int Abc_CommandAbc9Sopb               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Dsdb               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Flow               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Flow2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Flow3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iff                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1092,6 +1093,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdb",         Abc_CommandAbc9Dsdb,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&flow",         Abc_CommandAbc9Flow,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&flow2",        Abc_CommandAbc9Flow2,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&flow3",        Abc_CommandAbc9Flow3,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iff",          Abc_CommandAbc9Iff,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
@@ -34609,6 +34611,102 @@ usage:
     Abc_Print( -2, "\t-t     : toggle minimizing average (not maximum) level [default = %s]\n", fMinAve? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle using \"mfs2\" in the script [default = %s]\n", fUseMfs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Flow3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManPerformFlow3( int nLutSize, int nCutNum, int fBalance, int fMinAve, int fUseMfs, int fUseLutLib, int fVerbose );
+    int nLutSize    =  6;
+    int nCutNum     =  8;
+    int fBalance    =  0;
+    int fMinAve     =  0;
+    int fUseMfs     =  1;
+    int fUseLutLib  =  0;
+    int c, fVerbose =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCbtmlvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+         case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutNum < 0 )
+                goto usage;
+            break;
+        case 'b':
+            fBalance ^= 1;
+            break;
+        case 't':
+            fMinAve ^= 1;
+            break;
+        case 'm':
+            fUseMfs ^= 1;
+            break;
+        case 'l':
+            fUseLutLib ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Flow3(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( fUseLutLib && Abc_FrameReadLibLut() == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Flow3(): Please enter LUT library using \'read_lut\'.\n" );
+        return 1;
+    }
+    Gia_ManPerformFlow3( nLutSize, nCutNum, fBalance, fMinAve, fUseMfs, fUseLutLib, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &flow3 [-KC num] [-btmlvh]\n" );
+    Abc_Print( -2, "\t         integration optimization and mapping flow\n" );
+    Abc_Print( -2, "\t-K num : the number of LUT inputs (LUT size) [default = %d]\n",           nLutSize );
+    Abc_Print( -2, "\t-C num : the number of cuts at a node [default = %d]\n",                  nCutNum );
+    Abc_Print( -2, "\t-b     : toggle using SOP balancing during synthesis [default = %s]\n",   fBalance? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle minimizing average (not maximum) level [default = %s]\n", fMinAve? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle using \"mfs2\" in the script [default = %s]\n",           fUseMfs? "yes": "no" );
+    Abc_Print( -2, "\t-l     : toggle using previously entered LUT library [default = %s]\n",   fUseLutLib? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",           fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

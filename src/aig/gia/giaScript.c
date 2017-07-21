@@ -719,6 +719,60 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPerformFlow3( int nLutSize, int nCutNum, int fBalance, int fMinAve, int fUseMfs, int fUseLutLib, int fVerbose )
+{
+    char Comm1[200], Comm2[200], Comm3[200];
+    if ( fUseLutLib )
+        sprintf( Comm1, "&st; &if -C %d;       &save; &st; &syn2; &if -C %d;       &save; &load", nCutNum, nCutNum );
+    else
+        sprintf( Comm1, "&st; &if -C %d -K %d; &save; &st; &syn2; &if -C %d -K %d; &save; &load", nCutNum, nLutSize, nCutNum, nLutSize );
+    if ( fUseLutLib )
+        sprintf( Comm2, "&st; &if -%s -K 6; &dch -f; &if -C %d;       %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum,           fUseMfs ? "&mfs; ":"" );
+    else
+        sprintf( Comm2, "&st; &if -%s -K 6; &dch -f; &if -C %d -K %d; %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
+    if ( fUseLutLib )
+        sprintf( Comm3, "&st; &if -%s -K 6; &synch2; &if -C %d;       %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum,           fUseMfs ? "&mfs; ":"" );
+    else
+        sprintf( Comm3, "&st; &if -%s -K 6; &synch2; &if -C %d -K %d; %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
+
+    if ( fVerbose ) printf( "Trying simple synthesis with %s...\n", Abc_NtkRecIsRunning3() ? "LMS" : "SOP balancing" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+
+    if ( Gia_ManAndNum( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) ) < 200000 )
+    {
+        if ( fVerbose ) printf( "Trying medium synthesis...\n" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
+        if ( fVerbose )
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    }
+
+    if ( Gia_ManAndNum( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) ) < 10000 )
+    {
+        if ( fVerbose ) printf( "Trying harder synthesis...\n" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
+        if ( fVerbose )
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    }
+
+    if ( fVerbose ) printf( "Final result...\n" );
+    if ( fVerbose )
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
