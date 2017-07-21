@@ -592,6 +592,10 @@ void Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars )
 void Extra_PrintHexadecimalString( char * pString, unsigned Sign[], int nVars )
 {
     int nDigits, Digit, k;
+    if ( nVars == 0 && !(Sign[0] & 1) ) { sprintf(pString, "0"); return; } // const0
+    if ( nVars == 0 &&  (Sign[0] & 1) ) { sprintf(pString, "1"); return; } // const1
+    if ( nVars == 1 &&  (Sign[0] & 1) ) { sprintf(pString, "1"); return; } // inverter
+    if ( nVars == 1 && !(Sign[0] & 1) ) { sprintf(pString, "2"); return; } // buffer
     // write the number into the file
     nDigits = (1 << nVars) / 4;
     for ( k = nDigits - 1; k >= 0; k-- )
