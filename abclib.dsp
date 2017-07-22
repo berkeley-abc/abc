@@ -1947,6 +1947,10 @@ SOURCE=.\src\sat\bmc\bmcBmci.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcBmcS.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcCexCare.c
 # End Source File
 # Begin Source File
