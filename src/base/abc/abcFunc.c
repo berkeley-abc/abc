@@ -216,7 +216,7 @@ char * Abc_ConvertBddToSop( Mem_Flex_t * pMan, DdManager * dd, DdNode * bFuncOn,
     int fVerify = 0;
     char * pSop;
     DdNode * bFuncNew, * bCover, * zCover, * zCover0, * zCover1;
-    int nCubes, nCubes0, nCubes1, fPhase;
+    int nCubes = 0, nCubes0, nCubes1, fPhase = 0;
 
     assert( bFuncOn == bFuncOnDc || Cudd_bddLeq( dd, bFuncOn, bFuncOnDc ) );
     if ( Cudd_IsConstant(bFuncOn) || Cudd_IsConstant(bFuncOnDc) )

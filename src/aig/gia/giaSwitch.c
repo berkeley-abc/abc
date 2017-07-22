@@ -146,7 +146,7 @@ void Gia_ManSwiDelete( Gia_ManSwi_t * p )
 ***********************************************************************/
 static inline void Gia_ManSwiSimInfoRandom( Gia_ManSwi_t * p, unsigned * pInfo, int nProbNum )
 {
-    unsigned Mask;
+    unsigned Mask = 0;
     int w, i;
     if ( nProbNum == -1 )
     { // 3/8 = 1/4 + 1/8
@@ -185,7 +185,7 @@ static inline void Gia_ManSwiSimInfoRandom( Gia_ManSwi_t * p, unsigned * pInfo, 
 ***********************************************************************/
 static inline void Gia_ManSwiSimInfoRandomShift( Gia_ManSwi_t * p, unsigned * pInfo, int nProbNum )
 {
-    unsigned Mask;
+    unsigned Mask = 0;
     int w, i;
     if ( nProbNum == -1 )
     { // 3/8 = 1/4 + 1/8

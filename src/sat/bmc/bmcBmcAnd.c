@@ -466,7 +466,7 @@ Gia_Man_t * Gia_ManBmcDupCone( Gia_Man_t * p, Vec_Int_t * vIns, Vec_Int_t * vNod
 ***********************************************************************/
 int Gia_ManBmcAssignVarIds( Bmc_Mna_t * p, Vec_Int_t * vIns, Vec_Int_t * vUsed, Vec_Int_t * vOuts )
 {
-    int i, iObj, VarC0 = p->nSatVars++;
+    int i, iObj = 0, VarC0 = p->nSatVars++;
     Vec_IntForEachEntry( vIns, iObj, i )
         if ( Vec_IntEntry( p->vId2Var, iObj ) == 0 )
             Vec_IntWriteEntry( p->vId2Var, iObj, p->nSatVars++ );
@@ -504,7 +504,7 @@ void Gia_ManBmcAddCnf( Bmc_Mna_t * p, Gia_Man_t * pGia, Vec_Int_t * vIns, Vec_In
     Cnf_Dat_t * pCnf = Cnf_Derive( pAig, Aig_ManCoNum(pAig) );
     Vec_Int_t * vUsed, * vMap;
     Gia_Obj_t * pObj;
-    int i, iObj, VarC0;
+    int i, iObj = 0, VarC0;
     // collect used variables
     vUsed = Vec_IntAlloc( pCnf->nVars - Vec_IntSize(vIns) - Vec_IntSize(vOuts) );
     Gia_ManForEachAnd( pNew, pObj, i )

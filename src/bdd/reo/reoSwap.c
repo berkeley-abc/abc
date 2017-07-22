@@ -54,8 +54,8 @@ double reoReorderSwapAdjacentVars( reo_man * p, int lev0, int fMovingUp )
         reo_unit * pNewPlane20R;
     reo_unit * pUnitE, * pUnitER, * pUnitT;
     // the nodes below lev1
-    reo_unit * pNew1E, * pNew1T, * pNew2E, * pNew2T;
-    reo_unit * pNew1ER, * pNew2ER;
+    reo_unit * pNew1E = NULL, * pNew1T = NULL, * pNew2E = NULL, * pNew2T = NULL;
+    reo_unit * pNew1ER = NULL, * pNew2ER = NULL;
     // the old linked lists
     reo_unit * pListOld0 = p->pPlanes[lev0].pHead;
     reo_unit * pListOld1 = p->pPlanes[lev1].pHead;

@@ -220,7 +220,7 @@ Abc_Obj_t * Abc_NtkDsdConstructNode( Dsd_Manager_t * pManDsd, Dsd_Node_t * pNode
     DdManager * ddNew = (DdManager *)pNtkNew->pManFunc;
     Dsd_Node_t * pFaninDsd;
     Abc_Obj_t * pNodeNew, * pFanin;
-    DdNode * bLocal, * bTemp, * bVar;
+    DdNode * bLocal = NULL, * bTemp, * bVar;
     Dsd_Type_t Type;
     int i, nDecs;
 

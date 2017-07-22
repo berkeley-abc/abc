@@ -106,7 +106,7 @@ If_Man_t * Nwk_ManToIf( Aig_Man_t * p, If_Par_t * pPars, Vec_Ptr_t * vAigToIf )
     Vec_Int_t * vSwitching = NULL, * vSwitching2 = NULL;
     float * pSwitching = NULL, * pSwitching2 = NULL;
     If_Man_t * pIfMan;
-    If_Obj_t * pIfObj;
+    If_Obj_t * pIfObj = NULL;
     Aig_Obj_t * pNode, * pFanin, * pPrev;
     int i;
     abctime clk = Abc_Clock();
@@ -276,9 +276,9 @@ Nwk_Man_t * Nwk_ManFromIf( If_Man_t * pIfMan, Aig_Man_t * p, Vec_Ptr_t * vAigToI
 {
     Vec_Ptr_t * vIfToAig;
     Nwk_Man_t * pNtk;
-    Nwk_Obj_t * pObjNew;
+    Nwk_Obj_t * pObjNew = NULL;
     Aig_Obj_t * pObj, * pObjRepr;
-    If_Obj_t * pIfObj;
+    If_Obj_t * pIfObj = NULL;
     If_Cut_t * pCutBest;
     int i, k, nLeaves, * ppLeaves;
     assert( Aig_ManCiNum(p) == If_ManCiNum(pIfMan) );

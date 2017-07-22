@@ -1285,7 +1285,7 @@ int Tas_ManPropagate( Tas_Man_t * p, int Level )
 int Tas_ManSolve_rec( Tas_Man_t * p, int Level )
 { 
     Tas_Que_t * pQue = &(p->pClauses);
-    Gia_Obj_t * pVar, * pDecVar = NULL;
+    Gia_Obj_t * pVar = NULL, * pDecVar = NULL;
     int hClause, hLearn0, hLearn1;
     int iPropHead, iJustHead, iJustTail;
     // propagate assignments

@@ -1005,7 +1005,7 @@ void If_Dec5PerformTest()
     word z, t, t1;
 //    s = If_Dec5PerformEx();
 //    t = If_Dec6Truth( s );
-    t = 0xB0F3B0FFB0F3B0FF;
+    t = ABC_CONST(0xB0F3B0FFB0F3B0FF);
 
     Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); printf("\n");
 

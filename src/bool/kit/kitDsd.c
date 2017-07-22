@@ -1840,7 +1840,7 @@ int Kit_DsdFindLargeBox( Kit_DsdNtk_t * pNtk, int Size )
 int Kit_DsdCountAigNodes_rec( Kit_DsdNtk_t * pNtk, int Id )
 {
     Kit_DsdObj_t * pObj;
-    unsigned iLit, i, RetValue;
+    unsigned iLit, i, RetValue = 0;
     pObj = Kit_DsdNtkObj( pNtk, Id );
     if ( pObj == NULL )
         return 0;

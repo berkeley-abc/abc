@@ -61,7 +61,7 @@ Gia_Man_t * Gia_ManFromMiniAig( Mini_Aig_t * p, Vec_Int_t ** pvCopies )
 {
     Gia_Man_t * pGia, * pTemp;
     Vec_Int_t * vCopies;
-    int i, iGiaLit, nNodes;
+    int i, iGiaLit = 0, nNodes;
     // get the number of nodes
     nNodes = Mini_AigNodeNum(p);
     // create ABC network

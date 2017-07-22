@@ -1678,7 +1678,7 @@ int If_DsdManAddDsd_rec( char * pStr, char ** p, int * pMatches, If_DsdMan_t * p
     }
     if ( **p == '(' || **p == '[' || **p == '<' || **p == '{' ) // and/or/xor
     {
-        int Type, nLits = 0, pLits[DAU_MAX_VAR];
+        int Type = 0, nLits = 0, pLits[DAU_MAX_VAR];
         char * q = pStr + pMatches[ *p - pStr ];
         if ( **p == '(' )
             Type = DAU_DSD_AND;

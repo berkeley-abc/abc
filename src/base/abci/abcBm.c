@@ -872,7 +872,7 @@ int Abc_NtkMiterSatBm( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nIn
 {
     static sat_solver * pSat = NULL;
     lbool   status;
-    int RetValue;
+    int RetValue = 0;
     abctime clk;    
 
     extern int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars );
@@ -970,7 +970,7 @@ int Abc_NtkBmSat( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Vec_Ptr_t * iMatchPairs,
 
     Abc_Ntk_t * pMiter = NULL;
     Abc_Ntk_t * pCnf;
-    int RetValue;
+    int RetValue = 0;
 
     // get the miter of the two networks
     if( mode == 0 )

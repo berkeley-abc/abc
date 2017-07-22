@@ -441,7 +441,7 @@ void Ivy_ObjReplace( Ivy_Man_t * p, Ivy_Obj_t * pObjOld, Ivy_Obj_t * pObjNew, in
 ***********************************************************************/
 void Ivy_NodeFixBufferFanins( Ivy_Man_t * p, Ivy_Obj_t * pNode, int fUpdateLevel )
 {
-    Ivy_Obj_t * pFanReal0, * pFanReal1, * pResult;
+    Ivy_Obj_t * pFanReal0, * pFanReal1, * pResult = NULL;
     if ( Ivy_ObjIsPo(pNode) )
     {
         if ( !Ivy_ObjIsBuf(Ivy_ObjFanin0(pNode)) )

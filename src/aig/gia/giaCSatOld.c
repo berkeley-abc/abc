@@ -585,7 +585,7 @@ int Cbs0_ManPropagate( Cbs0_Man_t * p )
 ***********************************************************************/
 int Cbs0_ManSolve_rec( Cbs0_Man_t * p )
 {
-    Gia_Obj_t * pVar, * pDecVar;
+    Gia_Obj_t * pVar = NULL, * pDecVar;
     int iPropHead, iJustHead, iJustTail;
     // propagate assignments
     assert( !Cbs0_QueIsEmpty(&p->pProp) );

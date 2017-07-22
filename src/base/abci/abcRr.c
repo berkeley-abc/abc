@@ -384,7 +384,7 @@ p->timeProve += Abc_Clock() - clk;
 ***********************************************************************/
 int Abc_NtkRRUpdate( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode, Abc_Obj_t * pFanin, Abc_Obj_t * pFanout )
 {
-    Abc_Obj_t * pNodeNew, * pFanoutNew;
+    Abc_Obj_t * pNodeNew = NULL, * pFanoutNew = NULL;
     assert( pFanout == NULL );
     assert( !Abc_ObjIsComplement(pNode) );
     assert( !Abc_ObjIsComplement(pFanin) );

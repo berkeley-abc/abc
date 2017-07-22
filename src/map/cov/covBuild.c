@@ -102,7 +102,7 @@ Abc_Obj_t * Abc_NtkCovDeriveCube( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, Min_Cub
 ***********************************************************************/
 Abc_Obj_t * Abc_NtkCovDeriveNode_rec( Cov_Man_t * p, Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int Level )
 {
-    Min_Cube_t * pCover, * pCube;
+    Min_Cube_t * pCover = NULL, * pCube;
     Abc_Obj_t * pFaninNew, * pNodeNew, * pFanin;
     Vec_Int_t * vSupp;
     int Entry, nCubes, i;
@@ -400,7 +400,7 @@ Abc_Obj_t * Abc_NtkCovDerive_rec( Cov_Man_t * p, Abc_Ntk_t * pNtkNew, Abc_Obj_t 
     Abc_Obj_t * pNodeNew, * pFanin;
     Vec_Int_t * vSupp;
     Vec_Str_t * vCover;
-    int i, Entry, nCubes, Type;
+    int i, Entry, nCubes, Type = 0;
     // skip if already computed
     if ( pObj->pCopy )
         return pObj->pCopy;

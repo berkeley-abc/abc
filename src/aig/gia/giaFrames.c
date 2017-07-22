@@ -438,7 +438,7 @@ void * Gia_ManUnrollAdd( void * pMan, int fMax )
 {
     Gia_ManUnr_t * p = (Gia_ManUnr_t *)pMan;
     Gia_Obj_t * pObj;
-    int f, i, Lit, Beg, End;
+    int f, i, Lit = 0, Beg, End;
     // create PIs on demand
     if ( p->pPars->fSaveLastLit ) 
         for ( i = 0; i < Gia_ManPiNum(p->pAig); i++ )

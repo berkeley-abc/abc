@@ -60,7 +60,7 @@ Abc_Obj_t * Abc_NodeFanin1Copy( Abc_Ntk_t * pNtk, Vec_Int_t * vCopies, Mini_Aig_
 Abc_Ntk_t * Abc_NtkFromMiniAig( Mini_Aig_t * p )
 {
     Abc_Ntk_t * pNtk;
-    Abc_Obj_t * pObj;
+    Abc_Obj_t * pObj = NULL;
     Vec_Int_t * vCopies;
     int i, nNodes;
     // get the number of nodes
@@ -123,7 +123,7 @@ int Abc_NodeFanin1Copy2( Abc_Obj_t * pObj )
 Mini_Aig_t * Abc_NtkToMiniAig( Abc_Ntk_t * pNtk )
 {
     Mini_Aig_t * p;
-    Abc_Obj_t * pObj;
+    Abc_Obj_t * pObj = NULL;
     int i;
     assert( Abc_NtkIsStrash(pNtk) );
     // create the manager

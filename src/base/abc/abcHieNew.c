@@ -1131,7 +1131,7 @@ extern int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk );
 void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
 { 
     Au_Obj_t * pObj, * pTerm;
-    int i, k, Lit;
+    int i, k, Lit = 0;
     Au_NtkForEachPi( p, pTerm, i )
         assert( Au_ObjCopy(pTerm) >= 0 );
     if ( strcmp(Au_NtkName(p), "ref_egcd") == 0 )

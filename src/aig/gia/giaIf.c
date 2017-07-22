@@ -773,7 +773,7 @@ static inline If_Obj_t * If_ManFanin1Copy( If_Man_t * pIfMan, Gia_Obj_t * pObj )
 If_Man_t * Gia_ManToIf( Gia_Man_t * p, If_Par_t * pPars )
 {
     If_Man_t * pIfMan;
-    If_Obj_t * pIfObj;
+    If_Obj_t * pIfObj = NULL;
     Gia_Obj_t * pObj;
     int i;
     // create levels with choices
@@ -1500,7 +1500,7 @@ int Gia_ManFromIfLogicFindLut( If_Man_t * pIfMan, Gia_Man_t * pNew, If_Cut_t * p
 ***********************************************************************/
 void Gia_ManFromIfGetConfig( Vec_Int_t * vConfigs, If_Man_t * pIfMan, If_Cut_t * pCutBest, int iLit, Vec_Str_t * vConfigsStr )
 {
-    If_Obj_t * pIfObj;
+    If_Obj_t * pIfObj = NULL;
     word * pPerm = If_DsdManGetFuncConfig( pIfMan->pIfDsdMan, If_CutDsdLit(pIfMan, pCutBest) ); // cell input -> DSD input
     char * pCutPerm = If_CutDsdPerm( pIfMan, pCutBest ); // DSD input -> cut input
     word * pArray;  int v, i, Lit, Var;
@@ -2296,7 +2296,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         pNew = Gia_ManFromIfLogic( pIfMan );
     if ( p->vCiArrs || p->vCoReqs )
     {
-        If_Obj_t * pIfObj;
+        If_Obj_t * pIfObj = NULL;
         Vec_IntFreeP( &p->vCoArrs );
         p->vCoArrs = Vec_IntAlloc( Gia_ManCoNum(p) );
         If_ManForEachCo( pIfMan, pIfObj, i )

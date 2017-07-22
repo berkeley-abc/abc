@@ -190,7 +190,7 @@ Vec_Int_t * Amap_CreateRulesVector_rec( Amap_Lib_t * p, Vec_Ptr_t * vVecNods, in
 ***********************************************************************/
 Vec_Int_t * Amap_CreateRulesFromDsd_rec( Amap_Lib_t * pLib, Kit_DsdNtk_t * p, int iLit )
 {
-    Vec_Int_t * vRes;
+    Vec_Int_t * vRes = NULL;
     Vec_Ptr_t * vVecNods;
     Vec_Int_t * vNodsFanin;
     Kit_DsdObj_t * pObj;

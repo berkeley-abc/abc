@@ -860,7 +860,7 @@ int Cbs_ManPropagate( Cbs_Man_t * p, int Level )
 int Cbs_ManSolve_rec( Cbs_Man_t * p, int Level )
 { 
     Cbs_Que_t * pQue = &(p->pClauses);
-    Gia_Obj_t * pVar, * pDecVar;
+    Gia_Obj_t * pVar = NULL, * pDecVar;
     int hClause, hLearn0, hLearn1;
     int iPropHead, iJustHead, iJustTail;
     // propagate assignments

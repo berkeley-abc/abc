@@ -977,9 +977,9 @@ int If_CluCountCofs( word * pF, int nVars, int nBSsize, int iShift, word pCofs[3
 // return the number of cofactors w.r.t. the topmost vars (nBSsize)
 int If_CluCountCofs4( word * pF, int nVars, int nBSsize, word pCofs[6][CLU_WRD_MAX/4] )
 {
-    word iCofs[128], iCof, Result0 = 0, Result1 = 0;
+    word iCofs[128] = {0}, iCof, Result0 = 0, Result1 = 0;
     int nMints = (1 << nBSsize);
-    int i, c, nCofs;
+    int i, c, nCofs = 0;
     assert( pCofs );
     assert( nBSsize >= 2 && nBSsize <= 6 && nBSsize < nVars );
     if ( nVars - nBSsize < 6 )

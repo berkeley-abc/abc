@@ -218,7 +218,7 @@ void * Mpm_ManFromIfLogic( Mpm_Man_t * pMan )
     Vec_Int_t * vMapping, * vMapping2, * vPacking = NULL;
     Vec_Int_t * vLeaves, * vLeaves2, * vCover;
     word uTruth, * pTruth = &uTruth;
-    int i, k, Entry, iLitNew;
+    int i, k, Entry, iLitNew = 0;
 //    assert( !pMan->pPars->fDeriveLuts || pMan->pPars->fTruth );
     // start mapping and packing
     vMapping  = Vec_IntStart( Mig_ManObjNum(pMan->pMig) );

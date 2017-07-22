@@ -1005,7 +1005,7 @@ int If_CutDelayRecCost3( If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pObj )
 {
     Lms_Man_t * p = s_pMan3;
     char pCanonPerm[LMS_VAR_MAX];
-    unsigned uCanonPhase;
+    unsigned uCanonPhase = 0;
     // make sure the cut functions match the library
     assert( p->nVars == (int)pCut->nLimit );
     // if this assertion fires, it means that LMS manager was used for library construction
@@ -1032,7 +1032,7 @@ Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut,
 {
     Lms_Man_t * p = s_pMan3;
     char pCanonPerm[LMS_VAR_MAX];
-    unsigned uCanonPhase;
+    unsigned uCanonPhase = 0;
     Hop_Obj_t * pFan0, * pFan1, * pHopObj;
     Gia_Man_t * pGia = p->pGia;
     Gia_Obj_t * pGiaPo, * pGiaTemp = NULL;

@@ -516,7 +516,7 @@ Gia_Man_t * Gia_ManRemoveEnables( Gia_Man_t * p )
     Vec_Ptr_t * vCtrls, * vDatas;
     Vec_Int_t * vFlopClasses;
     Gia_Man_t * pNew, * pAux; 
-    Gia_Obj_t * pFlopIn, * pFlopOut, * pDriver, * pFan0, * pFan1, * pCtrl, * pData, * pObj;
+    Gia_Obj_t * pFlopIn, * pFlopOut, * pDriver, * pFan0, * pFan1, * pCtrl = NULL, * pData, * pObj;
     int i, iClass, fCompl, Counter = 0;
     vCtrls = Vec_PtrAlloc( 100 );
     Vec_PtrPush( vCtrls, NULL );

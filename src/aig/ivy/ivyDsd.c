@@ -219,8 +219,8 @@ int Ivy_TruthDsd( unsigned uTruth, Vec_Int_t * vTree )
 int Ivy_TruthDecompose_rec( unsigned uTruth, Vec_Int_t * vTree )
 {
     Ivy_Dec_t Node;
-    int Supp[5], Vars0[5], Vars1[5], Vars2[5], * pVars;
-    int nSupp, Count0, Count1, Count2, nVars, RetValue, fCompl, i;
+    int Supp[5], Vars0[5], Vars1[5], Vars2[5], * pVars = NULL;
+    int nSupp, Count0, Count1, Count2, nVars = 0, RetValue, fCompl = 0, i;
     unsigned uTruthCof, uCof0, uCof1;
 
     // get constant confactors

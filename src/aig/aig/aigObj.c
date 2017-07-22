@@ -392,7 +392,7 @@ void Aig_ObjPrint( Aig_Man_t * p, Aig_Obj_t * pObj )
 ***********************************************************************/
 void Aig_NodeFixBufferFanins( Aig_Man_t * p, Aig_Obj_t * pObj, int fUpdateLevel )
 {
-    Aig_Obj_t * pFanReal0, * pFanReal1, * pResult;
+    Aig_Obj_t * pFanReal0, * pFanReal1, * pResult = NULL;
     p->nBufFixes++;
     if ( Aig_ObjIsCo(pObj) )
     {

@@ -57,7 +57,7 @@ int Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsL
 {
     sat_solver * pSat;
     lbool   status;
-    int RetValue;
+    int RetValue = 0;
     abctime clk;
  
     if ( pNumConfs )
@@ -677,7 +677,7 @@ int Abc_NodeAddClauses( sat_solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t
 {
     Abc_Obj_t * pFanin;
     int i, c, nFanins;
-    int RetValue;
+    int RetValue = 0;
     char * pCube;
 
     nFanins = Abc_ObjFaninNum( pNode );
@@ -767,7 +767,7 @@ int Abc_NodeAddClauses( sat_solver * pSat, char * pSop0, char * pSop1, Abc_Obj_t
 int Abc_NodeAddClausesTop( sat_solver * pSat, Abc_Obj_t * pNode, Vec_Int_t * vVars )
 {
     Abc_Obj_t * pFanin;
-    int RetValue;
+    int RetValue = 0;
 
     pFanin = Abc_ObjFanin0(pNode);
     if ( Abc_ObjFaninC0(pNode) )

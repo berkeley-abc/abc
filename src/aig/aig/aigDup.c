@@ -46,7 +46,7 @@ ABC_NAMESPACE_IMPL_START
 Aig_Man_t * Aig_ManDupSimple( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i;
     assert( p->pManTime == NULL );
     // create the new manager
@@ -107,7 +107,7 @@ Aig_Man_t * Aig_ManDupSimple( Aig_Man_t * p )
 Aig_Man_t * Aig_ManDupSimpleWithHints( Aig_Man_t * p, Vec_Int_t * vHints )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i, Entry;
     assert( p->nAsserts == 0 || p->nConstrs == 0 );
     // create the new manager
@@ -184,7 +184,7 @@ Aig_Obj_t * Aig_ManDupSimpleDfs_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t 
 Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i;
     assert( p->pManTime == NULL );
     // create the new manager
@@ -240,7 +240,7 @@ Aig_Man_t * Aig_ManDupSimpleDfs( Aig_Man_t * p )
 Aig_Man_t * Aig_ManDupSimpleDfsPart( Aig_Man_t * p, Vec_Ptr_t * vPis, Vec_Ptr_t * vPos )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -277,7 +277,7 @@ Aig_Man_t * Aig_ManDupSimpleDfsPart( Aig_Man_t * p, Vec_Ptr_t * vPis, Vec_Ptr_t 
 Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i, nNodes;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -345,7 +345,7 @@ Aig_Man_t * Aig_ManDupOrdered( Aig_Man_t * p )
 Aig_Man_t * Aig_ManDupCof( Aig_Man_t * p, int iInput, int Value )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i;
     assert( p->pManTime == NULL );
     // create the new manager
@@ -413,7 +413,7 @@ Aig_Man_t * Aig_ManDupCof( Aig_Man_t * p, int iInput, int Value )
 Aig_Man_t * Aig_ManDupTrim( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i, nNodes;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -462,7 +462,7 @@ Aig_Man_t * Aig_ManDupTrim( Aig_Man_t * p )
 Aig_Man_t * Aig_ManDupExor( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -563,7 +563,7 @@ Aig_Obj_t * Aig_ManDupDfs_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * pObj
 Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i, nNodes;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -626,7 +626,7 @@ Aig_Man_t * Aig_ManDupDfs( Aig_Man_t * p )
 Vec_Ptr_t * Aig_ManOrderPios( Aig_Man_t * p, Aig_Man_t * pOrder )
 {
     Vec_Ptr_t * vPios;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     assert( Aig_ManCiNum(p) == Aig_ManCiNum(pOrder) );
     assert( Aig_ManCoNum(p) == Aig_ManCoNum(pOrder) );
@@ -694,7 +694,7 @@ Aig_Obj_t * Aig_ManDupDfsGuided_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t 
 Aig_Man_t * Aig_ManDupDfsGuided( Aig_Man_t * p, Vec_Ptr_t * vPios )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i, nNodes;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -764,7 +764,7 @@ Aig_Man_t * Aig_ManDupLevelized( Aig_Man_t * p )
 {
     Vec_Vec_t * vLevels;
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj, * pObjNew;
+    Aig_Obj_t * pObj, * pObjNew = NULL;
     int i, k;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -835,7 +835,7 @@ Aig_Man_t * Aig_ManDupLevelized( Aig_Man_t * p )
 Aig_Man_t * Aig_ManDupWithoutPos( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     // create the new manager
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -871,7 +871,7 @@ Aig_Man_t * Aig_ManDupWithoutPos( Aig_Man_t * p )
 Aig_Man_t * Aig_ManDupFlopsOnly( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     pNew = Aig_ManDupWithoutPos( p );
     Saig_ManForEachLi( p, pObj, i )
@@ -920,7 +920,7 @@ static inline Aig_Obj_t * Aig_ObjChild1Repres( Aig_Man_t * p, Aig_Obj_t * pObj )
 Aig_Man_t * Aig_ManDupRepres( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     // start the HOP package
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -995,7 +995,7 @@ Aig_Obj_t * Aig_ManDupRepres_rec( Aig_Man_t * pNew, Aig_Man_t * p, Aig_Obj_t * p
 Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     // start the HOP package
     pNew = Aig_ManStart( Aig_ManObjNumMax(p) );
@@ -1049,7 +1049,7 @@ Aig_Man_t * Aig_ManDupRepresDfs( Aig_Man_t * p )
 Aig_Man_t * Aig_ManCreateMiter( Aig_Man_t * p1, Aig_Man_t * p2, int Oper )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     assert( Aig_ManRegNum(p1) == 0 );
     assert( Aig_ManRegNum(p2) == 0 );
@@ -1152,7 +1152,7 @@ Aig_Man_t * Aig_ManDupOrpos( Aig_Man_t * p, int fAddRegs )
 Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs )
 {
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     assert( Aig_ManRegNum(p) > 0 );
     assert( iPoNum < Aig_ManCoNum(p)-Aig_ManRegNum(p) );
@@ -1199,7 +1199,7 @@ Aig_Man_t * Aig_ManDupOneOutput( Aig_Man_t * p, int iPoNum, int fAddRegs )
 Aig_Man_t * Aig_ManDupUnsolvedOutputs( Aig_Man_t * p, int fAddRegs )
 { 
     Aig_Man_t * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i, nOuts = 0;
     assert( Aig_ManRegNum(p) > 0 );
     if ( p->nConstrs > 0 )
@@ -1255,7 +1255,7 @@ Aig_Man_t * Aig_ManDupUnsolvedOutputs( Aig_Man_t * p, int fAddRegs )
 Aig_Man_t * Aig_ManDupArray( Vec_Ptr_t * vArray )
 {
     Aig_Man_t * p, * pNew;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i, k;
     if ( Vec_PtrSize(vArray) == 0 )
         return NULL;
@@ -1303,7 +1303,7 @@ Aig_Man_t * Aig_ManDupNodes( Aig_Man_t * pMan, Vec_Ptr_t * vArray )
 {
     Aig_Man_t * pNew;
     Vec_Ptr_t * vObjs;
-    Aig_Obj_t * pObj;
+    Aig_Obj_t * pObj = NULL;
     int i;
     if ( Vec_PtrSize(vArray) == 0 )
         return NULL;

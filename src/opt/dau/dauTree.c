@@ -560,7 +560,7 @@ int Dss_NtkCreate_rec( char * pStr, char ** p, int * pMatches, Dss_Ntk_t * pNtk,
         Dss_Obj_t * pObj;
         Vec_Int_t * vFaninLits = Vec_IntAlloc( 10 );
         char * q = pStr + pMatches[ *p - pStr ];
-        int Type;
+        int Type = 0;
         if ( **p == '(' )
             Type = DAU_DSD_AND;
         else if ( **p == '[' )

@@ -828,7 +828,7 @@ static inline void Ga2_ManAddToAbsOneDynamic( Ga2_Man_t * p, Gia_Obj_t * pObj, i
     Vec_Int_t * vLeaves;
     Gia_Obj_t * pLeaf;
     unsigned uTruth;
-    int i, Lit;
+    int i, Lit = 0;
 
     assert( Ga2_ObjIsAbs0(p, pObj) );
     assert( Gia_ObjIsConst0(pObj) || Gia_ObjIsRo(p->pGia, pObj) || Gia_ObjIsAnd(pObj) );

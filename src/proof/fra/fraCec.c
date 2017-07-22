@@ -53,7 +53,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
 
         sat_solver2 * pSat;
         Cnf_Dat_t * pCnf;
-        int status, RetValue;
+        int status, RetValue = 0;
         abctime clk = Abc_Clock();
         Vec_Int_t * vCiIds;
 
@@ -165,7 +165,7 @@ int Fra_FraigSat( Aig_Man_t * pMan, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimi
     {
         sat_solver * pSat;
         Cnf_Dat_t * pCnf;
-        int status, RetValue;
+        int status, RetValue = 0;
         abctime clk = Abc_Clock();
         Vec_Int_t * vCiIds;
 

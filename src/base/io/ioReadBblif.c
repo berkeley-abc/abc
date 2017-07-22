@@ -55,7 +55,7 @@ ABC_NAMESPACE_IMPL_START
 Abc_Ntk_t * Bbl_ManToAbc( Bbl_Man_t * p )
 {
     Abc_Ntk_t * pNtk;
-    Abc_Obj_t * pObjNew;
+    Abc_Obj_t * pObjNew = NULL;
     Bbl_Obj_t * pObj, * pFanin;
     Vec_Ptr_t * vCopy;
     // start the network
@@ -160,7 +160,7 @@ Abc_Ntk_t * Bbl_ManToAig( Bbl_Man_t * p )
     extern Abc_Obj_t * Dec_GraphToAig( Abc_Ntk_t * pNtk, Dec_Graph_t * pFForm, Vec_Ptr_t * vFaninAigs );
     int fVerbose = 0;
     Abc_Ntk_t * pNtk;
-    Abc_Obj_t * pObjNew;
+    Abc_Obj_t * pObjNew = NULL;
     Bbl_Obj_t * pObj, * pFanin;
     Vec_Ptr_t * vCopy, * vNodes, * vFaninAigs;
     Dec_Graph_t ** pFForms;

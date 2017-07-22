@@ -100,7 +100,7 @@ Aig_Man_t * Nwk_ManStrash( Nwk_Man_t * pNtk )
 {
     Vec_Ptr_t * vObjs;
     Aig_Man_t * pMan;
-    Aig_Obj_t * pObjNew;
+    Aig_Obj_t * pObjNew = NULL;
     Nwk_Obj_t * pObj;
     int i, Level;
     pMan = Aig_ManStart( Nwk_ManGetAigNodeNum(pNtk) );
