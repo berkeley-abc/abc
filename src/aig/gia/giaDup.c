@@ -2794,6 +2794,67 @@ Gia_Man_t * Gia_ManTransformTwoWord2DualOutput( Gia_Man_t * p )
     return pNew;
 }
 
+void Gia_ManCollectOneSide_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( !Gia_ObjIsAnd(pObj) )
+        return;
+    Gia_ManCollectOneSide_rec( p, Gia_ObjFanin0(pObj), vNodes );
+    Gia_ManCollectOneSide_rec( p, Gia_ObjFanin1(pObj), vNodes );
+    Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+}
+Vec_Int_t * Gia_ManCollectOneSide( Gia_Man_t * p, int iSide )
+{
+    Gia_Obj_t * pObj; int i;
+    Vec_Int_t * vNodes = Vec_IntAlloc( Gia_ManAndNum(p) );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachPo( p, pObj, i )
+        if ( (i & 1) == iSide )
+            Gia_ManCollectOneSide_rec( p, Gia_ObjFanin0(pObj), vNodes );
+    return vNodes;
+}
+Gia_Man_t * Gia_ManTransformDualOutput( Gia_Man_t * p )
+{
+    Vec_Int_t * vNodes0 = Gia_ManCollectOneSide( p, 0 );
+    Vec_Int_t * vNodes1 = Gia_ManCollectOneSide( p, 1 );
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj, * pObj2;
+    int i, fSwap = 0;
+    assert( Gia_ManRegNum(p) == 0 );
+    assert( (Gia_ManPoNum(p) & 1) == 0 );
+    if ( Vec_IntSize(vNodes0) > Vec_IntSize(vNodes1) )
+    {
+        ABC_SWAP( Vec_Int_t *, vNodes0, vNodes1 );
+        fSwap = 1;
+    }
+    assert( Vec_IntSize(vNodes0) <= Vec_IntSize(vNodes1) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachObjVec( vNodes0, p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachObjVec( vNodes1, p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Vec_IntFree( vNodes0 );
+    Vec_IntFree( vNodes1 );
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        pObj2 = Gia_ManPo( p, i^fSwap );
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj2) );
+    }
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Performs 'zero' and 'undc' operation.]

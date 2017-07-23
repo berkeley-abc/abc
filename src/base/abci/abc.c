@@ -1241,12 +1241,9 @@ void Abc_End( Abc_Frame_t * pAbc )
         Sdm_ManQuit();
     }
     Abc_NtkFraigStoreClean();
-    if ( Abc_FrameGetGlobalFrame()->pGia )
-        Gia_ManStop( Abc_FrameGetGlobalFrame()->pGia );
-    if ( Abc_FrameGetGlobalFrame()->pGia2 )
-        Gia_ManStop( Abc_FrameGetGlobalFrame()->pGia2 );
-    if ( Abc_FrameGetGlobalFrame()->pGiaBest )
-        Gia_ManStop( Abc_FrameGetGlobalFrame()->pGiaBest );
+    Gia_ManStopP( &pAbc->pGia );
+    Gia_ManStopP( &pAbc->pGia2 );
+    Gia_ManStopP( &pAbc->pGiaBest );
     if ( Abc_NtkRecIsRunning3() )
         Abc_NtkRecStop3();
 }
@@ -12457,7 +12454,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
-//    Acb_DataReadTest();
+//    Psl_FileTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -32152,9 +32149,10 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fTrans   = 0;
     int fTransX  = 0;
     int fConvert = 0;
+    int fTransZ  = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Idstxyvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Idstxyzvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32184,6 +32182,9 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'y':
             fConvert ^= 1;
             break;
+        case 'z':
+            fTransZ ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -32193,7 +32194,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( fTrans || fTransX || fConvert )
+    if ( fTrans || fTransX || fTransZ || fConvert )
     {
         if ( pAbc->pGia == NULL )
         {
@@ -32214,6 +32215,12 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             pAux = Gia_ManTransformMiter2( pAbc->pGia );
             Abc_Print( 1, "The miter (current AIG) is transformed by XORing POs of two word-level outputs.\n" );
+        }
+        else if ( fTransZ ) 
+        {
+            extern Gia_Man_t * Gia_ManTransformDualOutput( Gia_Man_t * p );
+            pAux = Gia_ManTransformDualOutput( pAbc->pGia );
+            Abc_Print( 1, "The dual-output miter (current AIG) is transformed by ordering sides.\n" );
         }
         else
         {
@@ -32260,7 +32267,7 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &miter [-I num] [-dstxyvh] <file>\n" );
+    Abc_Print( -2, "usage: &miter [-I num] [-dstxyzvh] <file>\n" );
     Abc_Print( -2, "\t         creates miter of two designs (current AIG vs. <file>)\n" );
     Abc_Print( -2, "\t-I num : the number of last PIs to replicate [default = %d]\n", nInsDup );
     Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
@@ -32268,6 +32275,7 @@ usage:
     Abc_Print( -2, "\t-t     : toggle XORing POs of dual-output miter [default = %s]\n", fTrans? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle XORing POs of two-word miter [default = %s]\n", fTransX? "yes": "no" );
     Abc_Print( -2, "\t-y     : toggle convering two-word miter into dual-output miter [default = %s]\n", fConvert? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle odering sides of the dual-output miter [default = %s]\n", fTransZ? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : AIGER file with the design to miter\n");
