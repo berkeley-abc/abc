@@ -584,6 +584,8 @@ void Abc_FrameDeleteAllNetworks( Abc_Frame_t * p )
     Gia_ManStopP( &p->pGia );
     Gia_ManStopP( &p->pGia2 );
     Gia_ManStopP( &p->pGiaBest );
+    Gia_ManStopP( &p->pGiaBest2 );
+    Gia_ManStopP( &p->pGiaSaved );
 }
 
 /**Function*************************************************************

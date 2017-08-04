@@ -360,7 +360,11 @@ static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Get                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Put                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Save               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Save2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SaveAig            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Load               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Load2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9LoadAig            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Read               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadBlif           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadCBlif          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1016,7 +1020,11 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&get",          Abc_CommandAbc9Get,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&put",          Abc_CommandAbc9Put,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&save",         Abc_CommandAbc9Save,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&save2",        Abc_CommandAbc9Save2,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&saveaig",      Abc_CommandAbc9SaveAig,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&load",         Abc_CommandAbc9Load,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&load2",        Abc_CommandAbc9Load2,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&loadaig",      Abc_CommandAbc9LoadAig,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&r",            Abc_CommandAbc9Read,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read",         Abc_CommandAbc9Read,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_blif",    Abc_CommandAbc9ReadBlif,     0 );
@@ -1244,6 +1252,8 @@ void Abc_End( Abc_Frame_t * pAbc )
     Gia_ManStopP( &pAbc->pGia );
     Gia_ManStopP( &pAbc->pGia2 );
     Gia_ManStopP( &pAbc->pGiaBest );
+    Gia_ManStopP( &pAbc->pGiaBest2 );
+    Gia_ManStopP( &pAbc->pGiaSaved );
     if ( Abc_NtkRecIsRunning3() )
         Abc_NtkRecStop3();
 }
@@ -28557,6 +28567,101 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Save2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fArea = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fArea ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "GIA has no mapping.\n" );
+        return 1;
+    }
+    if ( !Gia_ManCompareWithBest( pAbc->pGiaBest2, pAbc->pGia, &pAbc->nBestLuts2, &pAbc->nBestEdges2, &pAbc->nBestLevels2, fArea ) )
+        return 0;
+    // save the design as best
+    Gia_ManStopP( &pAbc->pGiaBest2 );
+    pAbc->pGiaBest2 = Gia_ManDupWithAttributes( pAbc->pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &save2 [-ah]\n" );
+    Abc_Print( -2, "\t        compares and possibly saves AIG with mapping\n" );
+    Abc_Print( -2, "\t-a    : toggle using area as the primary metric [default = %s]\n", fArea? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SaveAig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    // save the design as best
+    Gia_ManStopP( &pAbc->pGiaSaved );
+    pAbc->pGiaSaved = Gia_ManDupWithAttributes( pAbc->pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &saveaig [-ah]\n" );
+    Abc_Print( -2, "\t        saves the current AIG into the internal storage\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Load( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
@@ -28583,7 +28688,97 @@ int Abc_CommandAbc9Load( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &load [-h]\n" );
-    Abc_Print( -2, "\t        loads previously saved AIG with mapping" );
+    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save" );
+    Abc_Print( -2, "\t        (after loading the previously saved AIG can be loaded again)" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Load2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    // restore from best
+    if ( pAbc->pGiaBest2 == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Load2(): There is no best design saved.\n" );
+        return 1;
+    }
+    Gia_ManStopP( &pAbc->pGia );
+    pAbc->pGia = pAbc->pGiaBest2;
+    pAbc->pGiaBest2 = NULL;
+    pAbc->nBestLuts2 = 0;
+    pAbc->nBestEdges2 = 0;
+    pAbc->nBestLevels2 = 0;
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &load2 [-h]\n" );
+    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save2" );
+    Abc_Print( -2, "\t        (after loading the previously saved AIG cannot be loaded again)" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9LoadAig( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    // restore from best
+    if ( pAbc->pGiaSaved == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9LoadAig(): There is no design saved.\n" );
+        return 1;
+    }
+    Gia_ManStopP( &pAbc->pGia );
+    pAbc->pGia = Gia_ManDupWithAttributes( pAbc->pGiaSaved );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &loadaig [-h]\n" );
+    Abc_Print( -2, "\t        loads AIG previously saved by &saveaig" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }

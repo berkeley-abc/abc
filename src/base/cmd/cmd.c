@@ -1078,12 +1078,6 @@ int CmdCommandEmpty( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    if ( pAbc->pNtkCur == NULL )
-    {
-        fprintf( pAbc->Out, "Empty network.\n" );
-        return 0;
-    }
-
     Abc_FrameDeleteAllNetworks( pAbc );
     Abc_FrameRestart( pAbc );
     return 0;

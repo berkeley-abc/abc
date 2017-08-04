@@ -106,9 +106,14 @@ struct Abc_Frame_t_
     Gia_Man_t *     pGia;          // alternative current network as a light-weight AIG
     Gia_Man_t *     pGia2;         // copy of the above
     Gia_Man_t *     pGiaBest;      // copy of the above
+    Gia_Man_t *     pGiaBest2;     // copy of the above
+    Gia_Man_t *     pGiaSaved;     // copy of the above
     int             nBestLuts;     // best LUT count
     int             nBestEdges;    // best edge count
     int             nBestLevels;   // best level count
+    int             nBestLuts2;     // best LUT count
+    int             nBestEdges2;    // best edge count
+    int             nBestLevels2;   // best level count
     Abc_Cex_t *     pCex;          // a counter-example to fail the current network
     Abc_Cex_t *     pCex2;         // copy of the above
     Vec_Ptr_t *     vCexVec;       // a vector of counter-examples if more than one PO fails
