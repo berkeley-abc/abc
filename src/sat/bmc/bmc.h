@@ -97,6 +97,8 @@ struct Bmc_AndPar_t_
     int         iFrame;         // explored up to this frame
     int         nFailOuts;      // the number of failed outputs
     int         nDropOuts;      // the number of dropped outputs
+    
+    void (*pFuncOnFrameDone)(int, int, int); // callback on each frame status (frame, po, statuss)
 };
   
 typedef struct Bmc_BCorePar_t_ Bmc_BCorePar_t;

@@ -40000,6 +40000,8 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->iFrame        =    0;  // explored up to this frame
     pPars->nFailOuts     =    0;  // the number of failed outputs
     pPars->nDropOuts     =    0;  // the number of dropped outputs
+    pPars->pFuncOnFrameDone = pAbc->pFuncOnFrameDone; // frame done callback
+
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "CFTvwh" ) ) != EOF )
     {

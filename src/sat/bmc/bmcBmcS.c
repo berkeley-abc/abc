@@ -551,6 +551,9 @@ int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         if ( pCnf == NULL )
         {
             Bmcs_ManPrintFrame( p, f, nClauses, clkStart );
+            if( pPars->pFuncOnFrameDone)
+                for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
+                    pPars->pFuncOnFrameDone(f, i, 0);
             continue;
         }
         nClauses += pCnf->nClauses;
@@ -571,6 +574,8 @@ int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             if ( status == SATOKO_UNSAT )
             {
                 Bmcs_ManPrintFrame( p, f, nClauses, clkStart );
+                if( pPars->pFuncOnFrameDone)
+                    pPars->pFuncOnFrameDone(f, i, 0);
                 continue;
             }
             if ( status == SATOKO_SAT )
@@ -586,6 +591,8 @@ int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                     fflush( stdout );
                     pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f );
                 }
+                if( pPars->pFuncOnFrameDone)
+                    pPars->pFuncOnFrameDone(f, i, 1);
             }
             break;
         }
