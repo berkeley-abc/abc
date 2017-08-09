@@ -545,6 +545,7 @@ static inline int Mf_CutComputeTruth6( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_t 
     t1 = Abc_Tt6Expand( t1, pCut1->pLeaves, pCut1->nLeaves, pCutR->pLeaves, pCutR->nLeaves );
     t =  fIsXor ? t0 ^ t1 : t0 & t1;
     if ( (fCompl = (int)(t & 1)) ) t = ~t;
+    if ( !p->pPars->fCnfObjIds )
     pCutR->nLeaves = Abc_Tt6MinBase( &t, pCutR->pLeaves, pCutR->nLeaves );
     assert( (int)(t & 1) == 0 );
     truthId        = Vec_MemHashInsert(p->vTtMem, &t);

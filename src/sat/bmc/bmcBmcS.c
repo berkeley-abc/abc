@@ -18,9 +18,10 @@
 
 ***********************************************************************/
 
-#include "sat/cnf/cnf.h"
-#include "sat/bsat/satStore.h"
 #include "bmc.h"
+#include "sat/cnf/cnf.h"
+#include "sat/satoko/satoko.h"
+#include "sat/satoko/solver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -174,6 +175,426 @@ Gia_Man_t * Bmc_SuperBuildTents( Gia_Man_t * p, Vec_Int_t ** pvMap )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Count tents.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCountTents_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vRoots )
+{
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        Gia_ManCountTents_rec( p, Gia_ObjFaninId0(pObj, iObj), vRoots );
+        Gia_ManCountTents_rec( p, Gia_ObjFaninId1(pObj, iObj), vRoots );
+    }
+    else if ( Gia_ObjIsRo(p, pObj) )
+        Vec_IntPush( vRoots, Gia_ObjFaninId0p(p, Gia_ObjRoToRi(p, pObj)) );
+    else if ( !Gia_ObjIsPi(p, pObj) )
+        assert( 0 );
+}
+int Gia_ManCountTents( Gia_Man_t * p )
+{
+    Vec_Int_t * vRoots;
+    Gia_Obj_t * pObj;  
+    int t, i, iObj, nSizeCurr = 0;
+    assert( Gia_ManPoNum(p) > 0 );
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrentId( p, 0 );
+    vRoots = Vec_IntAlloc( 100 );
+    Gia_ManForEachPo( p, pObj, i )
+        Vec_IntPush( vRoots, Gia_ObjFaninId0p(p, pObj) );
+    for ( t = 0; nSizeCurr < Vec_IntSize(vRoots); t++ )
+    {
+        int nSizePrev = nSizeCurr;
+        nSizeCurr = Vec_IntSize(vRoots);
+        Vec_IntForEachEntryStartStop( vRoots, iObj, i, nSizePrev, nSizeCurr )
+            Gia_ManCountTents_rec( p, iObj, vRoots );
+    }
+    Vec_IntFree( vRoots );
+    return t;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count tents.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCountRanks_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vRoots, Vec_Int_t * vRanks, Vec_Int_t * vCands, int Rank )
+{
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+    {
+        if ( Vec_IntEntry(vRanks, iObj) < Rank )
+            Vec_IntWriteEntry( vCands, iObj, 1 );
+        return;
+    }
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    Vec_IntWriteEntry( vRanks, iObj, Rank );
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        Gia_ManCountRanks_rec( p, Gia_ObjFaninId0(pObj, iObj), vRoots, vRanks, vCands, Rank );
+        Gia_ManCountRanks_rec( p, Gia_ObjFaninId1(pObj, iObj), vRoots, vRanks, vCands, Rank );
+    }
+    else if ( Gia_ObjIsRo(p, pObj) )
+        Vec_IntPush( vRoots, Gia_ObjFaninId0p(p, Gia_ObjRoToRi(p, pObj)) );
+    else if ( !Gia_ObjIsPi(p, pObj) )
+        assert( 0 );
+}
+int Gia_ManCountRanks( Gia_Man_t * p )
+{
+    Vec_Int_t * vRoots;
+    Vec_Int_t * vRanks = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Vec_Int_t * vCands = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj;  
+    int t, i, iObj, nSizeCurr = 0;
+    assert( Gia_ManPoNum(p) > 0 );
+    Gia_ManIncrementTravId( p );
+    Gia_ObjSetTravIdCurrentId( p, 0 );
+    vRoots = Vec_IntAlloc( 100 );
+    Gia_ManForEachPo( p, pObj, i )
+        Vec_IntPush( vRoots, Gia_ObjFaninId0p(p, pObj) );
+    for ( t = 0; nSizeCurr < Vec_IntSize(vRoots); t++ )
+    {
+        int nSizePrev = nSizeCurr;
+        nSizeCurr = Vec_IntSize(vRoots);
+        Vec_IntForEachEntryStartStop( vRoots, iObj, i, nSizePrev, nSizeCurr )
+            Gia_ManCountRanks_rec( p, iObj, vRoots, vRanks, vCands, t );
+    }
+    Vec_IntWriteEntry( vCands, 0, 0 );
+    printf( "Tents = %6d.   Cands = %6d.  %10.2f %%\n", t, Vec_IntSum(vCands), 100.0*Vec_IntSum(vCands)/Gia_ManCandNum(p) );
+    Vec_IntFree( vRoots );
+    Vec_IntFree( vRanks );
+    Vec_IntFree( vCands );
+    return t;
+}
+
+
+
+typedef struct Bmcs_Man_t_ Bmcs_Man_t;
+struct Bmcs_Man_t_
+{
+    int                   nFrames;   // the limit on the number of frames
+    int                   nConfs;    // the max number of conflicts at a target
+    int                   TimeOut;   // the max number of conflicts for all targets
+    int                   fVerbose;  // enables verbose output
+    Gia_Man_t *           pGia;      // user's AIG
+    Gia_Man_t *           pFrames;   // unfolded AIG (pFrames->vCopies point to pClean)
+    Gia_Man_t *           pClean;    // incremental AIG (pClean->Value point to pFrames)
+    Vec_Ptr_t             vGia2Fr;   // copies of GIA in each timeframe
+    Vec_Int_t             vFr2Sat;   // mapping of objects in pFrames into SAT variables
+    Vec_Int_t             vCiMap;    // maps CIs of pFrames into CIs/frames of GIA
+    satoko_t *            pSat;      // SAT solver
+    int                   nSatVars;  // number of SAT variables used
+};
+
+static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f % Vec_PtrSize(&p->vGia2Fr)); }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, int nFrames, int nConfs, int TimeOut, int fVerbose )
+{
+    Bmcs_Man_t * p = (Bmcs_Man_t *)ABC_CALLOC( Bmcs_Man_t, 1 ); 
+    int i, Lit = Abc_Var2Lit( 0, 1 );
+    satoko_opts_t opts;
+    satoko_default_opts(&opts);
+    opts.conf_limit = nConfs;
+    assert( Gia_ManRegNum(pGia) > 0 );
+    p->nFrames  = nFrames;
+    p->nConfs   = nConfs;
+    p->TimeOut  = TimeOut;
+    p->fVerbose = fVerbose;
+    p->pGia     = pGia;
+    p->pFrames  = Gia_ManStart( 3*Gia_ManObjNum(pGia) );  Gia_ManHashStart(p->pFrames);
+    p->pClean   = NULL;
+    Vec_PtrFill( &p->vGia2Fr, Gia_ManCountTents(pGia)+1, NULL );
+    for ( i = 0; i < Vec_PtrSize(&p->vGia2Fr); i++ )
+        Vec_PtrWriteEntry( &p->vGia2Fr, i, ABC_FALLOC(int, Gia_ManObjNum(pGia)) );
+    Vec_IntGrow( &p->vFr2Sat, 3*Gia_ManCiNum(pGia) );  
+    Vec_IntPush( &p->vFr2Sat, 0 );
+    Vec_IntGrow( &p->vCiMap, 3*Gia_ManCiNum(pGia) );
+    p->pSat     = satoko_create();  satoko_configure(p->pSat, &opts);
+    p->nSatVars = 1;
+    satoko_add_clause( p->pSat, &Lit, 1 );  
+    return p;
+}
+void Bmcs_ManStop( Bmcs_Man_t * p )
+{
+    Gia_ManStopP( &p->pFrames );
+    Gia_ManStopP( &p->pClean );
+    Vec_PtrFreeData( &p->vGia2Fr );
+    Vec_PtrErase( &p->vGia2Fr );
+    Vec_IntErase( &p->vFr2Sat );
+    Vec_IntErase( &p->vCiMap );
+    satoko_destroy( p->pSat );
+    ABC_FREE( p );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Incremental unfolding.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmcs_ManUnfold_rec( Bmcs_Man_t * p, int iObj, int f )
+{
+    Gia_Obj_t * pObj; 
+    int iLit = 0, * pCopies = Bmcs_ManCopies( p, f );
+    if ( pCopies[iObj] >= 0 )
+        return pCopies[iObj];
+    pObj = Gia_ManObj( p->pGia, iObj );
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        if ( Gia_ObjIsPi(p->pGia, pObj) )
+        {
+            Vec_IntPushTwo( &p->vCiMap, Gia_ObjCioId(pObj), f );
+            iLit = Gia_ManAppendCi( p->pFrames );
+        }
+        else if ( f > 0 )
+        {
+            pObj = Gia_ObjRoToRi( p->pGia, pObj );
+            iLit = Bmcs_ManUnfold_rec( p, Gia_ObjFaninId0p(p->pGia, pObj), f-1 );
+            iLit = Abc_LitNotCond( iLit, Gia_ObjFaninC0(pObj) );
+        }
+    }
+    else if ( Gia_ObjIsAnd(pObj) )
+    {
+        iLit = Bmcs_ManUnfold_rec( p, Gia_ObjFaninId0(pObj, iObj), f );
+        iLit = Abc_LitNotCond( iLit, Gia_ObjFaninC0(pObj) );
+        if ( iLit > 0 )
+        {
+            int iNew;
+            iNew = Bmcs_ManUnfold_rec( p, Gia_ObjFaninId1(pObj, iObj), f );
+            iNew = Abc_LitNotCond( iNew, Gia_ObjFaninC1(pObj) );
+            iLit = Gia_ManHashAnd( p->pFrames, iLit, iNew );
+        }
+    }
+    else assert( 0 );
+    return (pCopies[iObj] = iLit);
+}
+int Bmcs_ManCollect_rec( Bmcs_Man_t * p, int iObj )
+{
+    Gia_Obj_t * pObj; 
+    int iSatVar, iLitClean = Gia_ObjCopyArray( p->pFrames, iObj );
+    if ( iLitClean >= 0 )
+        return iLitClean;
+    pObj = Gia_ManObj( p->pFrames, iObj );
+    iSatVar = Vec_IntEntry( &p->vFr2Sat, iObj );
+    if ( iSatVar > 0 || Gia_ObjIsCi(pObj) )
+        iLitClean = Gia_ManAppendCi( p->pClean );
+    else if ( Gia_ObjIsAnd(pObj) )
+    {
+        int iLit0 = Bmcs_ManCollect_rec( p, Gia_ObjFaninId0(pObj, iObj) );
+        int iLit1 = Bmcs_ManCollect_rec( p, Gia_ObjFaninId1(pObj, iObj) );
+        iLit0 = Abc_LitNotCond( iLit0, Gia_ObjFaninC0(pObj) );
+        iLit1 = Abc_LitNotCond( iLit1, Gia_ObjFaninC1(pObj) );
+        iLitClean = Gia_ManAppendAnd( p->pClean, iLit0, iLit1 );
+    }
+    else assert( 0 );
+    assert( !Abc_LitIsCompl(iLitClean) );
+    Gia_ManObj( p->pClean, Abc_Lit2Var(iLitClean) )->Value = iObj;
+    Gia_ObjSetCopyArray( p->pFrames, iObj, iLitClean );
+    return iLitClean;
+}
+Gia_Man_t * Bmcs_ManUnfold( Bmcs_Man_t * p, int f )
+{
+    Gia_Man_t * pNew = NULL; Gia_Obj_t * pObj;
+    int i, iLitFrame, iLitClean, fTrivial = 1;
+    int nFrameObjs = Gia_ManObjNum(p->pFrames);
+    // unfold this timeframe
+    int * pCopies = Bmcs_ManCopies( p, f );
+    memset( pCopies, 0xFF, sizeof(int)*Gia_ManObjNum(p->pGia) );  
+    pCopies[0] = 0;
+    assert( Gia_ManPoNum(p->pFrames) == f * Gia_ManPoNum(p->pGia) );
+    Gia_ManForEachPo( p->pGia, pObj, i )
+    {
+        iLitFrame = Bmcs_ManUnfold_rec( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
+        iLitFrame = Abc_LitNotCond( iLitFrame, Gia_ObjFaninC0(pObj) );
+        pCopies[Gia_ObjId(p->pGia, pObj)] = Gia_ManAppendCo( p->pFrames, iLitFrame );
+        fTrivial &= (iLitFrame == 0);
+    }
+    if ( fTrivial )
+        return NULL;
+    // create a clean copy of the new nodes of this timeframe
+    Vec_IntFillExtra( &p->vFr2Sat, Gia_ManObjNum(p->pFrames), -1 );
+    Vec_IntFillExtra( &p->pFrames->vCopies, Gia_ManObjNum(p->pFrames), -1 );
+    assert( Vec_IntCountEntry(&p->pFrames->vCopies, -1) == Vec_IntSize(&p->pFrames->vCopies) );
+    Gia_ManStopP( &p->pClean );
+    p->pClean = Gia_ManStart( Gia_ManObjNum(p->pFrames) - nFrameObjs + 1000 );
+    Gia_ObjSetCopyArray( p->pFrames, 0, 0 );
+    for ( i = 0; i < Gia_ManPoNum(p->pGia); i++ )
+    {
+        pObj = Gia_ManCo( p->pFrames, f * Gia_ManPoNum(p->pGia) + i );
+        iLitClean = Bmcs_ManCollect_rec( p, Gia_ObjFaninId0p(p->pFrames, pObj) );
+        iLitClean = Abc_LitNotCond( iLitClean, Gia_ObjFaninC0(pObj) );
+        iLitClean = Gia_ManAppendCo( p->pClean, iLitClean );
+        Gia_ManObj( p->pClean, Abc_Lit2Var(iLitClean) )->Value = Gia_ObjId(p->pFrames, pObj);
+        Gia_ObjSetCopyArray( p->pFrames, Gia_ObjId(p->pFrames, pObj), iLitClean );
+    }
+    pNew = p->pClean; p->pClean = NULL;
+    Gia_ManForEachObj( pNew, pObj, i )
+        Gia_ObjSetCopyArray( p->pFrames, pObj->Value, -1 );
+    return pNew;
+}
+Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f )
+{
+    Gia_Man_t * pNew = Bmcs_ManUnfold( p, f );
+    Cnf_Dat_t * pCnf;
+    Gia_Obj_t * pObj; 
+    int i, iVar, * pMap;
+    if ( pNew == NULL )
+        return NULL;
+    pCnf = Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
+    pMap = ABC_FALLOC( int, Gia_ManObjNum(pNew) );
+    pMap[0] = 0;
+    Gia_ManForEachObj1( pNew, pObj, i )
+    {
+        if ( pCnf->pObj2Count[i] <= 0 && !Gia_ObjIsCi(pObj) )
+            continue;
+        iVar = Vec_IntEntry( &p->vFr2Sat, pObj->Value );
+        if ( iVar == -1 )
+            Vec_IntWriteEntry( &p->vFr2Sat, pObj->Value, (iVar = p->nSatVars++) );
+        pMap[i] = iVar;
+    }
+    Gia_ManStop( pNew );
+    for ( i = 0; i < pCnf->nLiterals; i++ )
+        pCnf->pClauses[0][i] = Abc_Lit2LitV( pMap, pCnf->pClauses[0][i] );
+    ABC_FREE( pMap );
+    return pCnf;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, abctime clkStart )
+{
+    int fUnfinished = 0;
+    if ( !p->fVerbose )
+        return;
+    Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
+    Abc_Print( 1, "Var =%8.0f. ",  (double)solver_varnum(p->pSat) );
+    Abc_Print( 1, "Cla =%9.0f. ",  (double)nClauses );
+    Abc_Print( 1, "Conf =%7.0f. ", (double)satoko_stats(p->pSat).n_conflicts );
+    Abc_Print( 1, "%4.0f MB",      1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
+    Abc_Print( 1, "%9.2f sec  ",   (float)(Abc_Clock() - clkStart)/(float)(CLOCKS_PER_SEC) );
+    printf( "\n" );
+    fflush( stdout );
+}
+Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f )
+{
+    Abc_Cex_t * pCex = Abc_CexMakeTriv( Gia_ManRegNum(p->pGia), Gia_ManPiNum(p->pGia), Gia_ManPoNum(p->pGia), f*Gia_ManPoNum(p->pGia)+i );
+    Gia_Obj_t * pObj;  int k;
+    Gia_ManForEachPi( p->pFrames, pObj, k )
+    {
+        int iSatVar = Vec_IntEntry( &p->vFr2Sat, Gia_ObjId(p->pFrames, pObj) );
+        if ( iSatVar > 0 && var_polarity(p->pSat, iSatVar) == LIT_TRUE )
+        {
+            int iCiId   = Vec_IntEntry( &p->vCiMap, 2*k+0 );
+            int iFrame  = Vec_IntEntry( &p->vCiMap, 2*k+1 );
+            Abc_InfoSetBit( pCex->pData, Gia_ManRegNum(p->pGia) + iFrame * Gia_ManPiNum(p->pGia) + iCiId );
+        }
+    }
+    return pCex;
+}
+int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+{
+    abctime clkStart = Abc_Clock();
+    Bmcs_Man_t * p = Bmcs_ManStart( pGia, pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->fVerbose );
+    int f, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0;
+    for ( f = 0; (!pPars->nFramesMax || f < pPars->nFramesMax) && i == Gia_ManPoNum(pGia); f++ )
+    {
+        Cnf_Dat_t * pCnf = Bmcs_ManAddNewCnf( p, f );
+        if ( pCnf == NULL )
+        {
+            Bmcs_ManPrintFrame( p, f, nClauses, clkStart );
+            continue;
+        }
+        nClauses += pCnf->nClauses;
+        for ( i = 0; i < pCnf->nClauses; i++ )
+            if ( !satoko_add_clause( p->pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+                assert( 0 );
+        Cnf_DataFree( pCnf );
+        assert( Gia_ManPoNum(p->pFrames) == (f + 1) * Gia_ManPoNum(pGia) );
+        for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
+        {
+            int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, f * Gia_ManPoNum(pGia) + i) );
+            int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
+            if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
+                break;
+            satoko_assump_push( p->pSat, iLit );
+            status = satoko_solve( p->pSat );
+            satoko_assump_pop( p->pSat );
+            if ( status == SATOKO_UNSAT )
+            {
+                Bmcs_ManPrintFrame( p, f, nClauses, clkStart );
+                continue;
+            }
+            if ( status == SATOKO_SAT )
+            {
+                RetValue = 0;
+                pPars->iFrame = f;
+                pPars->nFailOuts++;
+                if ( !pPars->fNotVerbose )
+                {
+                    int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
+                    Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
+                        nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
+                    fflush( stdout );
+                    pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f );
+                }
+            }
+            break;
+        }
+    }
+    Bmcs_ManStop( p );
+    if ( RetValue == -1 && !pPars->fNotVerbose )
+        printf( "No output failed in %d frames.  ", f );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    return RetValue;
 }
 
 ////////////////////////////////////////////////////////////////////////

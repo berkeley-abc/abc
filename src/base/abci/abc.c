@@ -481,6 +481,7 @@ static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SplitProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SBmc               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ChainBmc           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BCore              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ICheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1143,6 +1144,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&splitprove",   Abc_CommandAbc9SplitProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&bmcs",         Abc_CommandAbc9SBmc,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&chainbmc",     Abc_CommandAbc9ChainBmc,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bcore",        Abc_CommandAbc9BCore,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&icheck",       Abc_CommandAbc9ICheck,       0 );
@@ -39960,6 +39962,110 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dumping unfolded timeframes [default = %s]\n",          pPars->fDumpFrames?  "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle synthesizing unrolled timeframes [default = %s]\n",     pPars->fUseSynth?    "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using old CNF computation [default = %s]\n",            pPars->fUseOldCnf?   "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
+    Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
+    Bmc_AndPar_t Pars, * pPars = &Pars; int c;
+    memset( pPars, 0, sizeof(Bmc_AndPar_t) );
+    pPars->nStart        =    0;  // starting timeframe
+    pPars->nFramesMax    =  100;  // maximum number of timeframes
+    pPars->nFramesAdd    =    0;  // the number of additional frames
+    pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
+    pPars->nTimeOut      =    0;  // timeout in seconds
+    pPars->nLutSize      =    0;  // max LUT size for CNF computation
+    pPars->fLoadCnf      =    0;  // dynamic CNF loading
+    pPars->fDumpFrames   =    0;  // dump unrolled timeframes
+    pPars->fUseSynth     =    0;  // use synthesis
+    pPars->fUseOldCnf    =    0;  // use old CNF construction
+    pPars->fVerbose      =    0;  // verbose
+    pPars->fVeryVerbose  =    0;  // very verbose
+    pPars->fNotVerbose   =    0;  // skip line-by-line print-out
+    pPars->iFrame        =    0;  // explored up to this frame
+    pPars->nFailOuts     =    0;  // the number of failed outputs
+    pPars->nDropOuts     =    0;  // the number of dropped outputs
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CFTvwh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nConfLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nConfLimit < 0 )
+                goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesMax < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nTimeOut < 0 )
+                goto usage;
+            break;
+        case 'v':
+            pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SBmc(): There is no AIG.\n" );
+        return 0;
+    }
+    pAbc->Status  = Bmcs_ManPerform( pAbc->pGia, pPars );
+    pAbc->nFrames = pPars->iFrame;
+    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &bmcs [-CFT num] [-vwh]\n" );
+    Abc_Print( -2, "\t         performs bounded model checking\n" );
+    Abc_Print( -2, "\t-C num : the SAT solver conflict limit [default = %d]\n",               pPars->nConfLimit );
+    Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",            pPars->nFramesMax );
+    Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
