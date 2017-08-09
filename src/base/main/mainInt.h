@@ -54,6 +54,8 @@ ABC_NAMESPACE_HEADER_START
 ///                    STRUCTURE DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+typedef void (*Abc_Frame_Callback_BmcFrameDone_Func)(int frame, int po, int status);
+
 struct Abc_Frame_t_
 {
     // general info
@@ -146,6 +148,8 @@ struct Abc_Frame_t_
     Gia_Man_t *     pGiaMiniLut; 
     Vec_Int_t *     vCopyMiniAig;
     Vec_Int_t *     vCopyMiniLut;
+
+    Abc_Frame_Callback_BmcFrameDone_Func pFuncOnFrameDone;
 };
 
 typedef void (*Abc_Frame_Initialization_Func)( Abc_Frame_t * pAbc );
