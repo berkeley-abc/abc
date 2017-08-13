@@ -39986,7 +39986,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_AndPar_t Pars, * pPars = &Pars; int c;
     memset( pPars, 0, sizeof(Bmc_AndPar_t) );
     pPars->nStart        =    0;  // starting timeframe
-    pPars->nFramesMax    =  100;  // maximum number of timeframes
+    pPars->nFramesMax    =    0;  // maximum number of timeframes
     pPars->nFramesAdd    =    0;  // the number of additional frames
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->nTimeOut      =    0;  // timeout in seconds

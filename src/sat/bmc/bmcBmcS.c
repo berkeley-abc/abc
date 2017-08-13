@@ -473,7 +473,7 @@ Gia_Man_t * Bmcs_ManUnfold( Bmcs_Man_t * p, int f )
     // create a clean copy of the new nodes of this timeframe
     Vec_IntFillExtra( &p->vFr2Sat, Gia_ManObjNum(p->pFrames), -1 );
     Vec_IntFillExtra( &p->pFrames->vCopies, Gia_ManObjNum(p->pFrames), -1 );
-    assert( Vec_IntCountEntry(&p->pFrames->vCopies, -1) == Vec_IntSize(&p->pFrames->vCopies) );
+    //assert( Vec_IntCountEntry(&p->pFrames->vCopies, -1) == Vec_IntSize(&p->pFrames->vCopies) );
     Gia_ManStopP( &p->pClean );
     p->pClean = Gia_ManStart( Gia_ManObjNum(p->pFrames) - nFrameObjs + 1000 );
     Gia_ObjSetCopyArray( p->pFrames, 0, 0 );
