@@ -828,6 +828,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         ThData[i].pSat = NULL;
         ThData[i].fWorking = 1;
     }
+    p->pSat = NULL;
     Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
         printf( "No output failed in %d frames.  ", f );
