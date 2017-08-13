@@ -1551,7 +1551,7 @@ static inline int Mf_CutAreaDerefed2( Mf_Man_t * p, int * pCut )
 {
     int Ela1, iObj, i;
     Vec_IntClear( &p->vTemp );
-    Ela1 = Mf_CutRef2_rec( p, pCut, &p->vTemp, 5 );
+    Ela1 = Mf_CutRef2_rec( p, pCut, &p->vTemp, 10 );
     Vec_IntForEachEntry( &p->vTemp, iObj, i )
         Mf_ObjMapRefDec( p, iObj );
     return Ela1;
