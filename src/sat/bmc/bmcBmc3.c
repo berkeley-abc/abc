@@ -21,6 +21,8 @@
 #include "proof/fra/fra.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
+#include "sat/satoko/satoko.h"
+#include "sat/satoko/solver.h"
 #include "misc/vec/vecHsh.h"
 #include "misc/vec/vecWec.h"
 #include "bmc.h"
@@ -60,6 +62,7 @@ struct Gia_ManBmc_t_
     int               nLitUseless; // useless literals
     // SAT solver
     sat_solver *      pSat;        // SAT solver
+    satoko_t *        pSat2;       // SAT solver
     int               nSatVars;    // SAT variables
     int               nObjNums;    // SAT objects
     int               nWordNum;    // unsigned words for ternary simulation
@@ -714,7 +717,7 @@ Vec_Int_t * Saig_ManBmcComputeMappingRefs( Aig_Man_t * p, Vec_Int_t * vMap )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
+Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne, int nConfLimit, int fUseSatoko )
 {
     Gia_ManBmc_t * p;
     Aig_Obj_t * pObj;
@@ -743,8 +746,21 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne )
     p->vVisited = Vec_WecAlloc( 100 );
     // create solver
     p->nSatVars = 1;
-    p->pSat     = sat_solver_new();
-    sat_solver_setnvars( p->pSat, 1000 );
+    if ( fUseSatoko )
+    {
+        satoko_opts_t opts;
+        satoko_default_opts(&opts);
+        opts.conf_limit = nConfLimit;
+        p->pSat2 = satoko_create();  
+        satoko_configure(p->pSat2, &opts);
+        for ( i = 0; i < 1000; i++ )
+            satoko_add_variable( p->pSat2, 0 );
+    }
+    else
+    {
+        p->pSat  = sat_solver_new();
+        sat_solver_setnvars( p->pSat, 1000 );
+    }
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
     // terminary simulation 
     p->nWordNum = Abc_BitWordNum( 2 * Aig_ManObjNumMax(pAig) );
@@ -777,10 +793,15 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
 {
     if ( p->pPars->fVerbose )
     {
-        int nUsedVars = sat_solver_count_usedvars(p->pSat);
+        int nUsedVars = p->pSat ? sat_solver_count_usedvars(p->pSat) : 0;
         Abc_Print( 1, "LStart(P) = %d  LDelta(Q) = %d  LRatio(R) = %d  ReduceDB = %d  Vars = %d  Used = %d (%.2f %%)\n", 
-            p->pSat->nLearntStart, p->pSat->nLearntDelta, p->pSat->nLearntRatio, 
-            p->pSat->nDBreduces, p->pSat->size, nUsedVars, 100.0*nUsedVars/p->pSat->size );
+            p->pSat ? p->pSat->nLearntStart     : 0, 
+            p->pSat ? p->pSat->nLearntDelta     : 0, 
+            p->pSat ? p->pSat->nLearntRatio     : 0, 
+            p->pSat ? p->pSat->nDBreduces       : 0, 
+            p->pSat ? sat_solver_nvars(p->pSat) : solver_varnum(p->pSat2), 
+            nUsedVars, 
+            100.0*nUsedVars/(p->pSat ? sat_solver_nvars(p->pSat) : solver_varnum(p->pSat2)) );
         Abc_Print( 1, "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  UniProps = %d.\n", 
             p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nUniProps );
     }
@@ -799,7 +820,8 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
     Vec_IntFree( p->vId2Num );
     Vec_VecFree( (Vec_Vec_t *)p->vId2Var );
     Vec_PtrFreeFree( p->vTerInfo );
-    sat_solver_delete( p->pSat );
+    if ( p->pSat )  sat_solver_delete( p->pSat );
+    if ( p->pSat2 ) satoko_destroy( p->pSat2 );
     ABC_FREE( p->pTime4Outs );
     Vec_IntFree( p->vData );
     Hsh_IntManStop( p->vHash );
@@ -989,8 +1011,16 @@ static inline void Saig_ManBmcAddClauses( Gia_ManBmc_t * p, int uTruth, int Lits
                 }
                 CutLit = CutLit / 3;
             }
-            if ( !sat_solver_addclause( p->pSat, ClaLits, ClaLits+nClaLits ) )
-                assert( 0 );
+            if ( p->pSat2 )
+            {
+                if ( !satoko_add_clause( p->pSat2, ClaLits, nClaLits ) )
+                    assert( 0 );
+            }
+            else
+            {
+                if ( !sat_solver_addclause( p->pSat, ClaLits, ClaLits+nClaLits ) )
+                    assert( 0 );
+            }
         }
     }
 }
@@ -1237,8 +1267,16 @@ int Saig_ManBmcCreateCnf( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
             Saig_ManBmcCreateCnf_rec( p, pTemp, iFrame-f );
     Lit = Saig_ManBmcLiteral( p, pObj, iFrame );
     // extend the SAT solver
-    if ( p->nSatVars > sat_solver_nvars(p->pSat) )
-        sat_solver_setnvars( p->pSat, p->nSatVars );
+    if ( p->pSat2 )
+    {
+        for ( i = solver_varnum(p->pSat2); i < p->nSatVars; i++ )
+            satoko_add_variable( p->pSat2, 0 );
+    }
+    else
+    {
+        if ( p->nSatVars > sat_solver_nvars(p->pSat) )
+            sat_solver_setnvars( p->pSat, p->nSatVars );
+    }
     return Lit;
 }
 
@@ -1349,8 +1387,16 @@ Abc_Cex_t * Saig_ManGenerateCex( Gia_ManBmc_t * p, int f, int i )
         Saig_ManForEachPi( p->pAig, pObjPi, k )
         {
             int iLit = Saig_ManBmcLiteral( p, pObjPi, j );
-            if ( iLit != ~0 && sat_solver_var_value(p->pSat, lit_var(iLit)) )
-                Abc_InfoSetBit( pCex->pData, iBit + k );
+            if ( p->pSat2 )
+            {
+                if ( iLit != ~0 && var_polarity(p->pSat2, lit_var(iLit)) == LIT_TRUE )
+                    Abc_InfoSetBit( pCex->pData, iBit + k );
+            }
+            else
+            {
+                if ( iLit != ~0 && sat_solver_var_value(p->pSat, lit_var(iLit)) )
+                    Abc_InfoSetBit( pCex->pData, iBit + k );
+            }
         }
     return pCex;
 }
@@ -1373,7 +1419,20 @@ int Saig_ManCallSolver( Gia_ManBmc_t * p, int Lit )
         return l_False;
     if ( Lit == 1 )
         return l_True;
-    return sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)p->pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    if ( p->pSat2 )
+    {
+        int status;
+        satoko_assump_push( p->pSat2, Lit );
+        status = satoko_solve( p->pSat2 );
+        satoko_assump_pop( p->pSat2 );
+        if ( status == SATOKO_UNSAT )
+            return l_False;
+        if ( status == SATOKO_SAT )
+            return l_True;
+        return l_Undef;
+    }
+    else
+        return sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)p->pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 }
 
 /**Function*************************************************************
@@ -1409,15 +1468,18 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     nTimeToStopNG = pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     nTimeToStop   = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
     // create BMC manager
-    p = Saig_Bmc3ManStart( pAig, pPars->nTimeOutOne );
+    p = Saig_Bmc3ManStart( pAig, pPars->nTimeOutOne, pPars->nConfLimit, pPars->fUseSatoko );
     p->pPars = pPars;
-    p->pSat->nLearntStart = p->pPars->nLearnedStart;
-    p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
-    p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
-    p->pSat->nLearntMax   = p->pSat->nLearntStart;
-    p->pSat->fNoRestarts  = p->pPars->fNoRestarts;
-    p->pSat->RunId        = p->pPars->RunId;
-    p->pSat->pFuncStop    = p->pPars->pFuncStop;
+    if ( p->pSat )
+    {
+        p->pSat->nLearntStart = p->pPars->nLearnedStart;
+        p->pSat->nLearntDelta = p->pPars->nLearnedDelta;
+        p->pSat->nLearntRatio = p->pPars->nLearnedPerce;
+        p->pSat->nLearntMax   = p->pSat->nLearntStart;
+        p->pSat->fNoRestarts  = p->pPars->fNoRestarts;
+        p->pSat->RunId        = p->pPars->RunId;
+        p->pSat->pFuncStop    = p->pPars->pFuncStop;
+    }
     if ( pPars->fSolveAll && p->vCexes == NULL )
         p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
     if ( pPars->fVerbose )
@@ -1430,7 +1492,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     } 
     pPars->nFramesMax = pPars->nFramesMax ? pPars->nFramesMax : ABC_INFINITY;
     // set runtime limit
-    if ( nTimeToStop )
+    if ( nTimeToStop && p->pSat )
         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     // perform frames
     Aig_ManRandom( 1 );
@@ -1553,7 +1615,7 @@ clk2 = Abc_Clock();
 clkOther += Abc_Clock() - clk2;
             // solve this output
             fUnfinished = 0;
-            sat_solver_compress( p->pSat );
+            if ( p->pSat ) sat_solver_compress( p->pSat );
             if ( p->pTime4Outs )
             {
                 assert( p->pTime4Outs[i] > 0 );
@@ -1582,18 +1644,24 @@ nTimeUnsat += clkSatRun;
                 {
                     // add final unit clause
                     Lit = lit_neg( Lit );
-                    status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+                    if ( p->pSat2 )
+                        status = satoko_add_clause( p->pSat2, &Lit, 1 );
+                    else
+                        status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
                     assert( status );
                     // add learned units
-                    for ( k = 0; k < veci_size(&p->pSat->unit_lits); k++ )
+                    if ( p->pSat )
                     {
-                        Lit = veci_begin(&p->pSat->unit_lits)[k];
-                        status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-                        assert( status );
+                        for ( k = 0; k < veci_size(&p->pSat->unit_lits); k++ )
+                        {
+                            Lit = veci_begin(&p->pSat->unit_lits)[k];
+                            status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+                            assert( status );
+                        }
+                        veci_resize(&p->pSat->unit_lits, 0);
+                        // propagate units
+                        sat_solver_compress( p->pSat );
                     }
-                    veci_resize(&p->pSat->unit_lits, 0);
-                    // propagate units
-                    sat_solver_compress( p->pSat );
                 }
                 if ( p->pPars->fUseBridge )
                     Gia_ManReportProgress( stdout, i, f );
@@ -1609,13 +1677,13 @@ nTimeSat += clkSatRun;
                     {
                         Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
                         Abc_Print( 1, "Var =%8.0f. ",  (double)p->nSatVars );
-                        Abc_Print( 1, "Cla =%9.0f. ",  (double)p->pSat->stats.clauses );
-                        Abc_Print( 1, "Conf =%7.0f. ", (double)p->pSat->stats.conflicts );
+                        Abc_Print( 1, "Cla =%9.0f. ",  (double)(p->pSat ? p->pSat->stats.clauses   : vec_uint_size(p->pSat2->originals)) );
+                        Abc_Print( 1, "Conf =%7.0f. ", (double)(p->pSat ? p->pSat->stats.conflicts : satoko_stats(p->pSat2).n_conflicts) );
 //                        Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
-                        Abc_Print( 1, "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
+                        Abc_Print( 1, "Uni =%7.0f. ",(double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
 //                        ABC_PRT( "Time", Abc_Clock() - clk );
                         Abc_Print( 1, "%4.0f MB",      4.25*(f+1)*p->nObjNums /(1<<20) );
-                        Abc_Print( 1, "%4.0f MB",      1.0*sat_solver_memory(p->pSat)/(1<<20) );
+                        Abc_Print( 1, "%4.0f MB",      1.0*(p->pSat ? sat_solver_memory(p->pSat) : 0)/(1<<20) );
                         Abc_Print( 1, "%9.2f sec  ",   (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
 //                        Abc_Print( 1, "\n" );
 //                        ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
@@ -1654,7 +1722,7 @@ nTimeSat += clkSatRun;
                 // reset the timeout
                 pPars->timeLastSolved = Abc_Clock();
                 nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
-                if ( nTimeToStop )
+                if ( nTimeToStop && p->pSat )
                     sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
 
                 // check if other outputs failed under the same counter-example
@@ -1667,8 +1735,16 @@ nTimeSat += clkSatRun;
                         continue;
                     // check if this output is solved
                     Lit = Saig_ManBmcCreateCnf( p, pObj, f );
-                    if ( sat_solver_var_value(p->pSat, lit_var(Lit)) == Abc_LitIsCompl(Lit) )
-                        continue;
+                    if ( p->pSat2 )
+                    {
+                        if ( (var_polarity(p->pSat2, lit_var(Lit)) == LIT_TRUE) == Abc_LitIsCompl(Lit) )
+                            continue;
+                    }
+                    else
+                    {
+                        if ( sat_solver_var_value(p->pSat, lit_var(Lit)) == Abc_LitIsCompl(Lit) )
+                            continue;
+                    }
                     // write entry
                     pPars->nFailOuts++;
                     if ( !pPars->fNotVerbose )
@@ -1704,7 +1780,7 @@ nTimeUndec += clkSatRun;
         }
         if ( pPars->fVerbose ) 
         {
-            if ( fFirst == 1 && f > 0 && p->pSat->stats.conflicts > 1 )
+            if ( fFirst == 1 && f > 0 && (p->pSat ? p->pSat->stats.conflicts : 0) > 1 )
             {
                 fFirst = 0;
 //                Abc_Print( 1, "Outputs of frames up to %d are trivially UNSAT.\n", f );
@@ -1712,10 +1788,10 @@ nTimeUndec += clkSatRun;
             Abc_Print( 1, "%4d %s : ", f, fUnfinished ? "-" : "+" );
             Abc_Print( 1, "Var =%8.0f. ", (double)p->nSatVars );
 //            Abc_Print( 1, "Used =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
-            Abc_Print( 1, "Cla =%9.0f. ", (double)p->pSat->stats.clauses );
-            Abc_Print( 1, "Conf =%7.0f. ",(double)p->pSat->stats.conflicts );
+            Abc_Print( 1, "Cla =%9.0f. ", (double)(p->pSat ? p->pSat->stats.clauses   : vec_uint_size(p->pSat2->originals)) );
+            Abc_Print( 1, "Conf =%7.0f. ",(double)(p->pSat ? p->pSat->stats.conflicts : satoko_stats(p->pSat2).n_conflicts) );
 //            Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
-            Abc_Print( 1, "Uni =%7.0f. ",(double)sat_solver_count_assigned(p->pSat) );
+            Abc_Print( 1, "Uni =%7.0f. ", (double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
             if ( pPars->fSolveAll )
                 Abc_Print( 1, "CEX =%5d. ", pPars->nFailOuts );
             if ( pPars->nTimeOutOne )
@@ -1723,9 +1799,9 @@ nTimeUndec += clkSatRun;
 //            ABC_PRT( "Time", Abc_Clock() - clk );
 //            Abc_Print( 1, "%4.0f MB",     4.0*Vec_IntSize(p->vVisited) /(1<<20) );
             Abc_Print( 1, "%4.0f MB",     4.0*(f+1)*p->nObjNums /(1<<20) );
-            Abc_Print( 1, "%4.0f MB",     1.0*sat_solver_memory(p->pSat)/(1<<20) );
+            Abc_Print( 1, "%4.0f MB",     1.0*(p->pSat ? sat_solver_memory(p->pSat) : 0)/(1<<20) );
 //            Abc_Print( 1, " %6d %6d ",   p->nLitUsed, p->nLitUseless );
-            Abc_Print( 1, "%9.2f sec ",  1.0*(Abc_Clock() - clkTotal)/CLOCKS_PER_SEC );
+            Abc_Print( 1, "%9.2f sec ",   1.0*(Abc_Clock() - clkTotal)/CLOCKS_PER_SEC );
 //            Abc_Print( 1, "\n" );
 //            ABC_PRMn( "Id2Var", (f+1)*p->nObjNums*4 );
 //            ABC_PRMn( "SAT", 42 * p->pSat->size + 16 * (int)p->pSat->stats.clauses + 4 * (int)p->pSat->stats.clauses_literals );

@@ -1783,7 +1783,7 @@ void sat_solver2_verify( sat_solver2* s )
         if ( k == (int)c->size )
         {
             Abc_Print(1, "Clause %d is not satisfied.   ", c->Id );
-            clause_print( c );
+            clause_print_( c );
             sat_solver2_find_clause( s, clause_handle(&s->clauses, c), 1 );
             Counter++;
         }

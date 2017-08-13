@@ -146,7 +146,7 @@ static inline void     clause_set_id( clause * c, int id )          { c->lits[c-
 static inline int      clause_size( clause * c )                    { return c->size;                              }
 static inline lit *    clause_begin( clause * c )                   { return c->lits;                              }
 static inline lit *    clause_end( clause * c )                     { return c->lits + c->size;                    }
-static inline void     clause_print( clause * c )               
+static inline void     clause_print_( clause * c )               
 { 
     int i;
     printf( "{ " );
