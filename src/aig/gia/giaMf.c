@@ -1543,7 +1543,7 @@ int Mf_CutRef2_rec( Mf_Man_t * p, int * pCut, Vec_Int_t * vTemp, int Limit )
     {
         Vec_IntPush( vTemp, pCut[i] );
         if ( !Mf_ObjMapRefInc(p, pCut[i]) && Mf_ManObj(p, pCut[i])->iCutSet )
-            Count += Mf_CutRef2_rec( p, Mf_ObjCutBest(p, pCut[i]), vTemp, Limit );
+            Count += Mf_CutRef2_rec( p, Mf_ObjCutBest(p, pCut[i]), vTemp, Limit-1 );
     }
     return Count;
 }
