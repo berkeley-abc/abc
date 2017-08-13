@@ -71,6 +71,7 @@ struct Mf_Man_t_
     Vec_Mem_t *     vTtMem;         // truth tables
     Vec_Int_t       vCnfSizes;      // handles to CNF
     Vec_Int_t       vCnfMem;        // memory for CNF
+    Vec_Int_t       vTemp;          // temporary array
     int             iCur;           // current position
     int             Iter;           // mapping iterations
     int             fUseEla;        // use exact area
@@ -1412,6 +1413,7 @@ void Mf_ManFree( Mf_Man_t * p )
     ABC_FREE( p->vCnfSizes.pArray );
     ABC_FREE( p->vCnfMem.pArray );
     ABC_FREE( p->vPages.pArray );
+    ABC_FREE( p->vTemp.pArray );
     ABC_FREE( p->pLfObjs );
     ABC_FREE( p );
 }
@@ -1533,6 +1535,28 @@ void Mf_ManComputeCuts( Mf_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Mf_CutRef2_rec( Mf_Man_t * p, int * pCut, Vec_Int_t * vTemp, int Limit )
+{
+    int i, Count = Mf_CutArea(p, Mf_CutSize(pCut), Mf_CutFunc(pCut));
+    if ( Limit == 0 ) return Count;
+    for ( i = 1; i <= Mf_CutSize(pCut); i++ )
+    {
+        Vec_IntPush( vTemp, pCut[i] );
+        if ( !Mf_ObjMapRefInc(p, pCut[i]) && Mf_ManObj(p, pCut[i])->iCutSet )
+            Count += Mf_CutRef2_rec( p, Mf_ObjCutBest(p, pCut[i]), vTemp, Limit );
+    }
+    return Count;
+}
+static inline int Mf_CutAreaDerefed2( Mf_Man_t * p, int * pCut )
+{
+    int Ela1, iObj, i;
+    Vec_IntClear( &p->vTemp );
+    Ela1 = Mf_CutRef2_rec( p, pCut, &p->vTemp, 5 );
+    Vec_IntForEachEntry( &p->vTemp, iObj, i )
+        Mf_ObjMapRefDec( p, iObj );
+    return Ela1;
+}
+
 int Mf_CutRef_rec( Mf_Man_t * p, int * pCut )
 {
     int i, Count = Mf_CutArea(p, Mf_CutSize(pCut), Mf_CutFunc(pCut));
@@ -1584,7 +1608,7 @@ static inline void Mf_ObjComputeBestCut( Mf_Man_t * p, int iObj )
     {
         assert( !Mf_CutIsTriv(pCut, iObj) );
         assert( Mf_CutSize(pCut) <= p->pPars->nLutSize );
-        Flow = p->fUseEla ? Mf_CutAreaDerefed(p, pCut) : Mf_CutFlow(p, pCut, &Time);
+        Flow = p->fUseEla ? Mf_CutAreaDerefed2(p, pCut) : Mf_CutFlow(p, pCut, &Time);
         if ( pCutBest == NULL || FlowBest > Flow + MF_EPSILON || (FlowBest > Flow - MF_EPSILON && TimeBest > Time) )
             pCutBest = pCut, FlowBest = Flow, TimeBest = Time;
     }
