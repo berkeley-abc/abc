@@ -166,7 +166,7 @@ static inline void var_clean_mark(solver_t *s, unsigned var)
 //===------------------------------------------------------------------------===
 // Inline lit functions
 //===------------------------------------------------------------------------===
-static inline unsigned lit_neg(unsigned lit)
+static inline unsigned lit_compl(unsigned lit)
 {
     return lit ^ 1;
 }
@@ -238,7 +238,7 @@ static inline void solver_set_stop(solver_t *s, int * pstop)
 //===------------------------------------------------------------------------===
 // Inline clause functions
 //===------------------------------------------------------------------------===
-static inline struct clause *clause_read(solver_t *s, unsigned cref)
+static inline struct clause *clause_fetch(solver_t *s, unsigned cref)
 {
     return cdb_handler(s->all_clauses, cref);
 }
@@ -253,15 +253,15 @@ static inline void clause_watch(solver_t *s, unsigned cref)
     w2.cref = cref;
     w1.blocker = clause->data[1].lit;
     w2.blocker = clause->data[0].lit;
-    watch_list_push(vec_wl_at(s->watches, lit_neg(clause->data[0].lit)), w1, (clause->size == 2));
-    watch_list_push(vec_wl_at(s->watches, lit_neg(clause->data[1].lit)), w2, (clause->size == 2));
+    watch_list_push(vec_wl_at(s->watches, lit_compl(clause->data[0].lit)), w1, (clause->size == 2));
+    watch_list_push(vec_wl_at(s->watches, lit_compl(clause->data[1].lit)), w2, (clause->size == 2));
 }
 
 static inline void clause_unwatch(solver_t *s, unsigned cref)
 {
     struct clause *clause = cdb_handler(s->all_clauses, cref);
-    watch_list_remove(vec_wl_at(s->watches, lit_neg(clause->data[0].lit)), cref, (clause->size == 2));
-    watch_list_remove(vec_wl_at(s->watches, lit_neg(clause->data[1].lit)), cref, (clause->size == 2));
+    watch_list_remove(vec_wl_at(s->watches, lit_compl(clause->data[0].lit)), cref, (clause->size == 2));
+    watch_list_remove(vec_wl_at(s->watches, lit_compl(clause->data[1].lit)), cref, (clause->size == 2));
 }
 
 ABC_NAMESPACE_HEADER_END

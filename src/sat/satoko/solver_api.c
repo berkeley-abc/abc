@@ -202,7 +202,7 @@ int satoko_simplify(solver_t * s)
         return SATOKO_OK;
 
     vec_uint_foreach(s->originals, cref, i) {
-        struct clause *clause = clause_read(s, cref);
+        struct clause *clause = clause_fetch(s, cref);
 
     if (clause_is_satisfied(s, clause)) {
             clause->f_mark = 1;
@@ -252,7 +252,7 @@ int satoko_add_clause(solver_t *s, int *lits, int size)
     j = 0;
     prev_lit = UNDEF;
     for (i = 0; i < (unsigned)size; i++) {
-        if ((unsigned)lits[i] == lit_neg(prev_lit) || lit_value(s, lits[i]) == LIT_TRUE)
+        if ((unsigned)lits[i] == lit_compl(prev_lit) || lit_value(s, lits[i]) == LIT_TRUE)
             return SATOKO_OK;
         else if ((unsigned)lits[i] != prev_lit && var_value(s, lit2var(lits[i])) == VAR_UNASSING) {
             prev_lit = lits[i];
@@ -404,9 +404,9 @@ void satoko_rollback(satoko_t *s)
     cl_to_remove = satoko_alloc(struct clause *, n_originals + n_learnts);
     /* Mark clauses */
     vec_uint_foreach_start(s->originals, cref, i, s->book_cl_orig)
-        cl_to_remove[i] = clause_read(s, cref);
+        cl_to_remove[i] = clause_fetch(s, cref);
     vec_uint_foreach_start(s->learnts, cref, i, s->book_cl_lrnt)
-        cl_to_remove[n_originals + i] = clause_read(s, cref);
+        cl_to_remove[n_originals + i] = clause_fetch(s, cref);
     for (i = 0; i < n_originals + n_learnts; i++) {
         clause_unwatch(s, cdb_cref(s->all_clauses, (unsigned *)cl_to_remove[i]));
         cl_to_remove[i]->f_mark = 1;
@@ -487,12 +487,12 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
     
     array = vec_uint_data(s->originals);
     for (i = 0; i < vec_uint_size(s->originals); i++)
-        clause_dump(file, clause_read(s, array[i]), !zero_var);
+        clause_dump(file, clause_fetch(s, array[i]), !zero_var);
     
     if (wrt_lrnt) {
         array = vec_uint_data(s->learnts);
         for (i = 0; i < n_lrnts; i++)
-            clause_dump(file, clause_read(s, array[i]), !zero_var);
+            clause_dump(file, clause_fetch(s, array[i]), !zero_var);
     }
 
 }

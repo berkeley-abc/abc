@@ -39,7 +39,7 @@ static inline int lit_is_removable(solver_t* s, unsigned lit, unsigned min_level
     while (vec_uint_size(s->stack)) {
         unsigned i;
         unsigned var = vec_uint_pop_back(s->stack);
-        struct clause *c = clause_read(s, var_reason(s, var));
+        struct clause *c = clause_fetch(s, var_reason(s, var));
         unsigned *lits = &(c->data[0].lit);
 
         assert(var_reason(s, var) != UNDEF);
@@ -106,7 +106,7 @@ static inline void clause_bin_resolution(solver_t *s, vec_uint_t *clause_lits)
     unsigned *lits = vec_uint_data(clause_lits);
     unsigned counter, sz, i;
     unsigned lit;
-    unsigned neg_lit = lit_neg(lits[0]);
+    unsigned neg_lit = lit_compl(lits[0]);
     struct watcher *w;
 
     s->cur_stamp++;
@@ -267,7 +267,7 @@ static inline void solver_analyze(solver_t *s, unsigned cref, vec_uint_t *learnt
         unsigned j;
 
         assert(cref != UNDEF);
-        clause = clause_read(s, cref);
+        clause = clause_fetch(s, cref);
         lits = &(clause->data[0].lit);
 
         if (p != UNDEF && clause->size == 2 && lit_value(s, lits[0]) == LIT_FALSE) {
@@ -295,7 +295,7 @@ static inline void solver_analyze(solver_t *s, unsigned cref, vec_uint_t *learnt
             var_act_bump(s, var);
             if (var_dlevel(s, var) == solver_dlevel(s)) {
                 n_paths++;
-                if (var_reason(s, var) != UNDEF && clause_read(s, var_reason(s, var))->f_learnt)
+                if (var_reason(s, var) != UNDEF && clause_fetch(s, var_reason(s, var))->f_learnt)
                     vec_uint_push_back(s->last_dlevel, var);
             } else
                 vec_uint_push_back(learnt, lits[j]);
@@ -309,14 +309,14 @@ static inline void solver_analyze(solver_t *s, unsigned cref, vec_uint_t *learnt
         n_paths--;
     } while (n_paths > 0);
 
-    vec_uint_data(learnt)[0] = lit_neg(p);
+    vec_uint_data(learnt)[0] = lit_compl(p);
     clause_minimize(s, learnt);
     *bt_level = solver_calc_bt_level(s, learnt);
     *lbd = clause_clac_lbd(s, vec_uint_data(learnt), vec_uint_size(learnt));
 
     if (vec_uint_size(s->last_dlevel) > 0) {
         vec_uint_foreach(s->last_dlevel, var, i) {
-            if (clause_read(s, var_reason(s, var))->lbd < *lbd)
+            if (clause_fetch(s, var_reason(s, var))->lbd < *lbd)
                 var_act_bump(s, var);
         }
         vec_uint_clear(s->last_dlevel);
@@ -376,10 +376,10 @@ static inline void solver_analyze_final(solver_t *s, unsigned lit)
             unsigned reason = var_reason(s, var);
             if (reason == UNDEF) {
                 assert(var_dlevel(s, var) > 0);
-                vec_uint_push_back(s->final_conflict, lit_neg(vec_uint_at(s->trail, i)));
+                vec_uint_push_back(s->final_conflict, lit_compl(vec_uint_at(s->trail, i)));
             } else {
                 unsigned j;
-                struct clause *clause = clause_read(s, reason);
+                struct clause *clause = clause_fetch(s, reason);
                 for (j = (clause->size == 2 ? 0 : 1); j < clause->size; j++) {
                     if (lit_dlevel(s, clause->data[j].lit) > 0)
                         vec_char_assign(s->seen, lit2var(clause->data[j].lit), 1);
@@ -433,7 +433,7 @@ static inline void solver_reduce_cdb(solver_t *s)
 
     learnts_cls = satoko_alloc(struct clause *, n_learnts);
     vec_uint_foreach_start(s->learnts, cref, i, s->book_cl_lrnt)
-        learnts_cls[i] = clause_read(s, cref);
+        learnts_cls[i] = clause_fetch(s, cref);
 
     limit = (unsigned)(n_learnts * s->opts.learnt_ratio);
 
@@ -488,7 +488,7 @@ unsigned solver_clause_create(solver_t *s, vec_uint_t *lits, unsigned f_learnt)
 
     n_words = 3 + f_learnt + vec_uint_size(lits);
     cref = cdb_append(s->all_clauses, n_words);
-    clause = clause_read(s, cref);
+    clause = clause_fetch(s, cref);
     clause->f_learnt = f_learnt;
     clause->f_mark = 0;
     clause->f_reallocd = 0;
@@ -569,11 +569,11 @@ unsigned solver_propagate(solver_t *s)
                 continue;
             }
 
-            clause = clause_read(s, i->cref);
+            clause = clause_fetch(s, i->cref);
             lits = &(clause->data[0].lit);
 
             // Make sure the false literal is data[1]:
-            neg_lit = lit_neg(p);
+            neg_lit = lit_compl(p);
             if (lits[0] == neg_lit)
                 stk_swap(unsigned, lits[0], lits[1]);
             assert(lits[1] == neg_lit);
@@ -591,7 +591,7 @@ unsigned solver_propagate(solver_t *s)
                     if (lit_value(s, lits[k]) != LIT_FALSE) {
                         lits[1] = lits[k];
                         lits[k] = neg_lit;
-                        watch_list_push(vec_wl_at(s->watches, lit_neg(lits[1])), w, 0);
+                        watch_list_push(vec_wl_at(s->watches, lit_compl(lits[1])), w, 0);
                         goto next;
                     }
                 }
@@ -663,7 +663,7 @@ char solver_search(solver_t *s)
                 if (lit_value(s, lit) == LIT_TRUE) {
                     vec_uint_push_back(s->trail_lim, vec_uint_size(s->trail));
                 } else if (lit_value(s, lit) == LIT_FALSE) {
-                    solver_analyze_final(s, lit_neg(lit));
+                    solver_analyze_final(s, lit_compl(lit));
                     return SATOKO_UNSAT;
                 } else {
                     next_lit = lit;
@@ -693,7 +693,7 @@ void solver_debug_check(solver_t *s, int result)
     printf("Checking for trail(%u) inconsistencies...", vec_uint_size(s->trail));
     array = vec_uint_data(s->trail);
     for (i = 1; i < vec_uint_size(s->trail); i++)
-        if (array[i - 1] == lit_neg(array[i])) {
+        if (array[i - 1] == lit_compl(array[i])) {
             printf("Inconsistent trail: %u %u\n", array[i - 1], array[i]);
             return;
         }
@@ -702,7 +702,7 @@ void solver_debug_check(solver_t *s, int result)
     printf("Checking clauses... \n");
     vec_uint_foreach(s->originals, cref, i) {
         unsigned j;
-        struct clause *clause = clause_read(s, cref);
+        struct clause *clause = clause_fetch(s, cref);
         for (j = 0; j < clause->size; j++) {
             if (vec_uint_find(s->trail, clause->data[j].lit)) {
                 break;
