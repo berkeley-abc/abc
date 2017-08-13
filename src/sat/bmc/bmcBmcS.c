@@ -23,11 +23,40 @@
 #include "sat/satoko/satoko.h"
 #include "sat/satoko/solver.h"
 
+#ifdef ABC_USE_PTHREADS
+
+#ifdef _WIN32
+#include "../lib/pthread.h"
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+typedef struct Bmcs_Man_t_ Bmcs_Man_t;
+struct Bmcs_Man_t_
+{
+    Bmc_AndPar_t *  pPars;     // parameters
+    Gia_Man_t *     pGia;      // user's AIG
+    Gia_Man_t *     pFrames;   // unfolded AIG (pFrames->vCopies point to pClean)
+    Gia_Man_t *     pClean;    // incremental AIG (pClean->Value point to pFrames)
+    Vec_Ptr_t       vGia2Fr;   // copies of GIA in each timeframe
+    Vec_Int_t       vFr2Sat;   // mapping of objects in pFrames into SAT variables
+    Vec_Int_t       vCiMap;    // maps CIs of pFrames into CIs/frames of GIA
+    satoko_t *      pSat;      // SAT solver
+    satoko_t *      pSats[3];  // concurrent SAT solvers
+    int             nSatVars;  // number of SAT variables used
+    int             fStopNow;  // signal when it is time to stop
+};
+
+static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f % Vec_PtrSize(&p->vGia2Fr)); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -291,26 +320,6 @@ int Gia_ManCountRanks( Gia_Man_t * p )
 }
 
 
-
-typedef struct Bmcs_Man_t_ Bmcs_Man_t;
-struct Bmcs_Man_t_
-{
-    int                   nFrames;   // the limit on the number of frames
-    int                   nConfs;    // the max number of conflicts at a target
-    int                   TimeOut;   // the max number of conflicts for all targets
-    int                   fVerbose;  // enables verbose output
-    Gia_Man_t *           pGia;      // user's AIG
-    Gia_Man_t *           pFrames;   // unfolded AIG (pFrames->vCopies point to pClean)
-    Gia_Man_t *           pClean;    // incremental AIG (pClean->Value point to pFrames)
-    Vec_Ptr_t             vGia2Fr;   // copies of GIA in each timeframe
-    Vec_Int_t             vFr2Sat;   // mapping of objects in pFrames into SAT variables
-    Vec_Int_t             vCiMap;    // maps CIs of pFrames into CIs/frames of GIA
-    satoko_t *            pSat;      // SAT solver
-    int                   nSatVars;  // number of SAT variables used
-};
-
-static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f % Vec_PtrSize(&p->vGia2Fr)); }
-
 /**Function*************************************************************
 
   Synopsis    []
@@ -322,30 +331,43 @@ static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_P
   SeeAlso     []
 
 ***********************************************************************/
-Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, int nFrames, int nConfs, int TimeOut, int fVerbose )
+Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
-    Bmcs_Man_t * p = (Bmcs_Man_t *)ABC_CALLOC( Bmcs_Man_t, 1 ); 
+    Bmcs_Man_t * p = ABC_CALLOC( Bmcs_Man_t, 1 ); 
     int i, Lit = Abc_Var2Lit( 0, 1 );
     satoko_opts_t opts;
     satoko_default_opts(&opts);
-    opts.conf_limit = nConfs;
+    opts.conf_limit = pPars->nConfLimit;
     assert( Gia_ManRegNum(pGia) > 0 );
-    p->nFrames  = nFrames;
-    p->nConfs   = nConfs;
-    p->TimeOut  = TimeOut;
-    p->fVerbose = fVerbose;
-    p->pGia     = pGia;
-    p->pFrames  = Gia_ManStart( 3*Gia_ManObjNum(pGia) );  Gia_ManHashStart(p->pFrames);
-    p->pClean   = NULL;
+    p->pPars   = pPars;
+    p->pGia    = pGia;
+    p->pFrames = Gia_ManStart( 3*Gia_ManObjNum(pGia) );  Gia_ManHashStart(p->pFrames);
+    p->pClean  = NULL;
     Vec_PtrFill( &p->vGia2Fr, Gia_ManCountTents(pGia)+1, NULL );
     for ( i = 0; i < Vec_PtrSize(&p->vGia2Fr); i++ )
         Vec_PtrWriteEntry( &p->vGia2Fr, i, ABC_FALLOC(int, Gia_ManObjNum(pGia)) );
     Vec_IntGrow( &p->vFr2Sat, 3*Gia_ManCiNum(pGia) );  
     Vec_IntPush( &p->vFr2Sat, 0 );
     Vec_IntGrow( &p->vCiMap, 3*Gia_ManCiNum(pGia) );
+#ifdef ABC_USE_PTHREADS
+    for ( i = 0; i < 3; i++ )
+    {
+        // modify parameters to get different SAT solver instances
+        opts.f_rst = 0.8 - i * 0.1;
+        opts.b_rst = 1.4 - i * 0.1;
+        opts.garbage_max_ratio = (float) 0.3 + i * 0.1;
+        // create SAT solvers
+        p->pSats[i] = satoko_create();  satoko_configure(p->pSats[i], &opts);
+        p->nSatVars = 1;
+        satoko_add_clause( p->pSats[i], &Lit, 1 );  
+        solver_set_stop( p->pSats[i], &p->fStopNow );
+    }
+    p->pSat     = p->pSats[0];
+#else
     p->pSat     = satoko_create();  satoko_configure(p->pSat, &opts);
     p->nSatVars = 1;
     satoko_add_clause( p->pSat, &Lit, 1 );  
+#endif // pthreads are used
     return p;
 }
 void Bmcs_ManStop( Bmcs_Man_t * p )
@@ -356,7 +378,10 @@ void Bmcs_ManStop( Bmcs_Man_t * p )
     Vec_PtrErase( &p->vGia2Fr );
     Vec_IntErase( &p->vFr2Sat );
     Vec_IntErase( &p->vCiMap );
-    satoko_destroy( p->pSat );
+    if ( p->pSat )     satoko_destroy( p->pSat );
+    if ( p->pSats[0] ) satoko_destroy( p->pSats[0] );
+    if ( p->pSats[1] ) satoko_destroy( p->pSats[1] );
+    if ( p->pSats[2] ) satoko_destroy( p->pSats[2] );
     ABC_FREE( p );
 }
 
@@ -510,15 +535,17 @@ Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f )
   SeeAlso     []
 
 ***********************************************************************/
-void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, abctime clkStart )
+void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctime clkStart )
 {
     int fUnfinished = 0;
-    if ( !p->fVerbose )
+    if ( !p->pPars->fVerbose )
         return;
     Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
     Abc_Print( 1, "Var =%8.0f. ",  (double)solver_varnum(p->pSat) );
     Abc_Print( 1, "Cla =%9.0f. ",  (double)nClauses );
     Abc_Print( 1, "Conf =%7.0f. ", (double)satoko_stats(p->pSat).n_conflicts );
+    if ( p->pPars->nProcs > 1 )
+        Abc_Print( 1, "S = %3d. ",     Solver );
     Abc_Print( 1, "%4.0f MB",      1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
     Abc_Print( 1, "%9.2f sec  ",   (float)(Abc_Clock() - clkStart)/(float)(CLOCKS_PER_SEC) );
     printf( "\n" );
@@ -531,7 +558,7 @@ Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f )
     Gia_ManForEachPi( p->pFrames, pObj, k )
     {
         int iSatVar = Vec_IntEntry( &p->vFr2Sat, Gia_ObjId(p->pFrames, pObj) );
-        if ( iSatVar > 0 && var_polarity(p->pSat, iSatVar) == LIT_TRUE )
+        if ( iSatVar > 0 && var_polarity(p->pSat, iSatVar) == LIT_TRUE ) // 1 bit
         {
             int iCiId   = Vec_IntEntry( &p->vCiMap, 2*k+0 );
             int iFrame  = Vec_IntEntry( &p->vCiMap, 2*k+1 );
@@ -540,17 +567,18 @@ Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f )
     }
     return pCex;
 }
-int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     abctime clkStart = Abc_Clock();
-    Bmcs_Man_t * p = Bmcs_ManStart( pGia, pPars->nFramesMax, pPars->nConfLimit, pPars->nTimeOut, pPars->fVerbose );
+    Bmcs_Man_t * p = Bmcs_ManStart( pGia, pPars );
     int f, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0;
-    for ( f = 0; (!pPars->nFramesMax || f < pPars->nFramesMax) && i == Gia_ManPoNum(pGia); f++ )
+    Abc_CexFreeP( &pGia->pCexSeq );
+    for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
     {
         Cnf_Dat_t * pCnf = Bmcs_ManAddNewCnf( p, f );
         if ( pCnf == NULL )
         {
-            Bmcs_ManPrintFrame( p, f, nClauses, clkStart );
+            Bmcs_ManPrintFrame( p, f, nClauses, -1, clkStart );
             if( pPars->pFuncOnFrameDone)
                 for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
                     pPars->pFuncOnFrameDone(f, i, 0);
@@ -573,7 +601,7 @@ int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             satoko_assump_pop( p->pSat );
             if ( status == SATOKO_UNSAT )
             {
-                Bmcs_ManPrintFrame( p, f, nClauses, clkStart );
+                Bmcs_ManPrintFrame( p, f, nClauses, -1, clkStart );
                 if( pPars->pFuncOnFrameDone)
                     pPars->pFuncOnFrameDone(f, i, 0);
                 continue;
@@ -582,6 +610,7 @@ int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             {
                 RetValue = 0;
                 pPars->iFrame = f;
+                pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f );
                 pPars->nFailOuts++;
                 if ( !pPars->fNotVerbose )
                 {
@@ -589,19 +618,244 @@ int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                     Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
                         nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
                     fflush( stdout );
-                    pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f );
                 }
                 if( pPars->pFuncOnFrameDone)
                     pPars->pFuncOnFrameDone(f, i, 1);
             }
             break;
         }
+        if ( i < Gia_ManPoNum(pGia) )
+            break;
     }
     Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
         printf( "No output failed in %d frames.  ", f );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     return RetValue;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#ifndef ABC_USE_PTHREADS
+
+int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars ) { return Bmcs_ManPerformOne(pGia, pPars); }
+
+#else // pthreads are used
+
+
+#define PAR_THR_MAX 100
+typedef struct Par_ThData_t_
+{
+    satoko_t *  pSat;
+    int         iLit;
+    int         iThread;
+    int         fWorking;
+    int         status;
+} Par_ThData_t;
+
+void * Bmcs_ManWorkerThread( void * pArg )
+{
+    Par_ThData_t * pThData = (Par_ThData_t *)pArg;
+    volatile int * pPlace = &pThData->fWorking;
+    while ( 1 )
+    {
+        while ( *pPlace == 0 );
+        assert( pThData->fWorking );
+        if ( pThData->pSat == NULL )
+        {
+            pthread_exit( NULL );
+            assert( 0 );
+            return NULL;
+        }
+
+        satoko_assump_push( pThData->pSat, pThData->iLit );
+        pThData->status = satoko_solve( pThData->pSat );
+        satoko_assump_pop( pThData->pSat );
+
+        //printf( "Thread %d finished with status %d\n", pThData->iThread, pThData->status );
+
+        pThData->fWorking = 0;
+    }
+    assert( 0 );
+    return NULL;
+}
+
+void Bmcs_ManPerform_Add( satoko_t * pSat, Cnf_Dat_t * pCnf )
+{
+    int i;
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !satoko_add_clause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+            assert( 0 );
+}
+
+int Bmcs_ManPerform_Solve( Bmcs_Man_t * p, int iLit, pthread_t * WorkerThread, Par_ThData_t * ThData, int nProcs, int * pSolver )
+{
+    int i, status = -1;
+    // set new problem
+    for ( i = 0; i < nProcs; i++ )
+    {
+        ThData[i].iLit = iLit;
+        assert( ThData[i].fWorking == 0 );
+    }
+    // start solvers on a new problem
+    for ( i = 0; i < nProcs; i++ )
+        ThData[i].fWorking = 1;
+    // check if any of the solvers finished
+    while ( i == nProcs )
+    {
+        for ( i = 0; i < nProcs; i++ )
+        {
+            if ( ThData[i].fWorking )
+                continue;
+            // set stop request
+            p->fStopNow = 1;
+            // remember status
+            status = ThData[i].status;
+            if ( status == 0 ) // SAT
+            {
+                assert( p->pSat == NULL );
+                p->pSat = p->pSats[i];
+            }
+            //printf( "Solver %d returned status %d.\n", i, status );
+            *pSolver = i;
+            break;
+        }
+    }
+    // wait till threads finish
+    while ( i < nProcs )
+    {
+        for ( i = 0; i < nProcs; i++ )
+            if ( ThData[i].fWorking )
+                break;
+    }
+    for ( i = 0; i < nProcs; i++ )
+    {
+        ThData[i].iLit = -1;
+        assert( ThData[i].fWorking == 0 );
+    }
+    // reset stop request
+    p->fStopNow = 0;
+    return status;
+}
+
+int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
+{
+    abctime clkStart = Abc_Clock();
+    pthread_t WorkerThread[PAR_THR_MAX];
+    Par_ThData_t ThData[PAR_THR_MAX];
+    Bmcs_Man_t * p = Bmcs_ManStart( pGia, pPars );
+    int f, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0, Solver = 0;
+    Abc_CexFreeP( &pGia->pCexSeq );
+    // start threads
+    for ( i = 0; i < pPars->nProcs; i++ )
+    {
+        ThData[i].pSat     = p->pSats[i];
+        ThData[i].iLit     = -1;
+        ThData[i].iThread  =  i;
+        ThData[i].fWorking =  0;
+        ThData[i].status   = -1;
+        status = pthread_create( WorkerThread + i, NULL, Bmcs_ManWorkerThread, (void *)(ThData + i) );  assert( status == 0 );
+    }
+    // solve properties in each timeframe
+    for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
+    {
+        Cnf_Dat_t * pCnf = Bmcs_ManAddNewCnf( p, f );
+        if ( pCnf == NULL )
+        {
+            Bmcs_ManPrintFrame( p, f, nClauses, 0, clkStart );
+            if( pPars->pFuncOnFrameDone )
+                for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
+                    pPars->pFuncOnFrameDone(f, i, 0);
+            continue;
+        }
+        // load CNF into solvers
+        nClauses += pCnf->nClauses;
+        for ( i = 0; i < 3; i++ )
+            Bmcs_ManPerform_Add( p->pSats[i], pCnf );
+        Cnf_DataFree( pCnf );
+        // solve outputs
+        assert( Gia_ManPoNum(p->pFrames) == (f + 1) * Gia_ManPoNum(pGia) );
+        for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
+        {
+            int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, f * Gia_ManPoNum(pGia) + i) );
+            int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
+            if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
+                break;
+            status = Bmcs_ManPerform_Solve( p, iLit, WorkerThread, ThData, pPars->nProcs, &Solver );
+            if ( status == SATOKO_UNSAT )
+            {
+                Bmcs_ManPrintFrame( p, f, nClauses, Solver, clkStart );
+                if( pPars->pFuncOnFrameDone )
+                    pPars->pFuncOnFrameDone(f, i, 0);
+                continue;
+            }
+            if ( status == SATOKO_SAT )
+            {
+                RetValue = 0;
+                pPars->iFrame = f;
+                pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f );
+                pPars->nFailOuts++;
+                if ( !pPars->fNotVerbose )
+                {
+                    int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
+                    Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
+                        nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
+                    fflush( stdout );
+                }
+                if( pPars->pFuncOnFrameDone )
+                    pPars->pFuncOnFrameDone(f, i, 1);
+            }
+            break;
+        }
+        if ( i < Gia_ManPoNum(pGia) )
+            break;
+    }
+    // stop threads
+    for ( i = 0; i < pPars->nProcs; i++ )
+    {
+        assert( !ThData[i].fWorking );
+        ThData[i].pSat = NULL;
+        ThData[i].fWorking = 1;
+    }
+    Bmcs_ManStop( p );
+    if ( RetValue == -1 && !pPars->fNotVerbose )
+        printf( "No output failed in %d frames.  ", f );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    return RetValue;
+}
+
+#endif // pthreads are used
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars ) 
+{ 
+    assert( pPars->nProcs < PAR_THR_MAX );
+    if ( pPars->nProcs == 1 )
+        return Bmcs_ManPerformOne( pGia, pPars );
+    else
+        return Bmcs_ManPerformMulti( pGia, pPars );
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -87,6 +87,7 @@ struct Bmc_AndPar_t_
     int         nConfLimit;     // maximum number of conflicts at a node
     int         nTimeOut;       // timeout in seconds
     int         nLutSize;       // LUT size for cut computation
+    int         nProcs;         // the number of parallel solvers
     int         fLoadCnf;       // dynamic CNF loading
     int         fDumpFrames;    // dump unrolled timeframes
     int         fUseSynth;      // use synthesis

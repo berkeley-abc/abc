@@ -39850,6 +39850,7 @@ int Abc_CommandAbc9Bmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->nTimeOut      =    0;  // timeout in seconds
     pPars->nLutSize      =    6;  // max LUT size for CNF computation
+    pPars->nProcs        =    1;  // the number of parallel solvers
     pPars->fLoadCnf      =    0;  // dynamic CNF loading
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
     pPars->fUseSynth     =    0;  // use synthesis
@@ -39990,6 +39991,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->nTimeOut      =    0;  // timeout in seconds
     pPars->nLutSize      =    0;  // max LUT size for CNF computation
+    pPars->nProcs        =    1;  // the number of parallel solvers
     pPars->fLoadCnf      =    0;  // dynamic CNF loading
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
     pPars->fUseSynth     =    0;  // use synthesis
@@ -40003,10 +40005,21 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncOnFrameDone = pAbc->pFuncOnFrameDone; // frame done callback
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CFTvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCFTvwh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nProcs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nProcs < 0 )
+                goto usage;
+            break;
         case 'C':
             if ( globalUtilOptind >= argc )
             {
@@ -40063,8 +40076,9 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmcs [-CFT num] [-vwh]\n" );
+    Abc_Print( -2, "usage: &bmcs [-PCFT num] [-vwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
+    Abc_Print( -2, "\t-P num : the number of parallel solvers [default = %d]\n",              pPars->nProcs );
     Abc_Print( -2, "\t-C num : the SAT solver conflict limit [default = %d]\n",               pPars->nConfLimit );
     Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",            pPars->nFramesMax );
     Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
