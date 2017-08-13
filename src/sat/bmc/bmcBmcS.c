@@ -40,6 +40,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+#define PAR_THR_MAX 100
+
 typedef struct Bmcs_Man_t_ Bmcs_Man_t;
 struct Bmcs_Man_t_
 {
@@ -50,8 +52,7 @@ struct Bmcs_Man_t_
     Vec_Ptr_t       vGia2Fr;   // copies of GIA in each timeframe
     Vec_Int_t       vFr2Sat;   // mapping of objects in pFrames into SAT variables
     Vec_Int_t       vCiMap;    // maps CIs of pFrames into CIs/frames of GIA
-    satoko_t *      pSat;      // SAT solver
-    satoko_t *      pSats[3];  // concurrent SAT solvers
+    satoko_t *      pSats[PAR_THR_MAX];  // concurrent SAT solvers
     int             nSatVars;  // number of SAT variables used
     int             fStopNow;  // signal when it is time to stop
 };
@@ -349,39 +350,32 @@ Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     Vec_IntGrow( &p->vFr2Sat, 3*Gia_ManCiNum(pGia) );  
     Vec_IntPush( &p->vFr2Sat, 0 );
     Vec_IntGrow( &p->vCiMap, 3*Gia_ManCiNum(pGia) );
-#ifdef ABC_USE_PTHREADS
-    for ( i = 0; i < 3; i++ )
+    for ( i = 0; i < pPars->nProcs; i++ )
     {
-        // modify parameters to get different SAT solver instances
-        opts.f_rst = 0.8 - i * 0.1;
-        opts.b_rst = 1.4 - i * 0.1;
-        opts.garbage_max_ratio = (float) 0.3 + i * 0.1;
+        // modify parameters to get different SAT solvers
+        opts.f_rst = 0.8 - i * 0.05;
+        opts.b_rst = 1.4 - i * 0.05;
+        opts.garbage_max_ratio = (float) 0.3 + i * 0.05;
         // create SAT solvers
         p->pSats[i] = satoko_create();  satoko_configure(p->pSats[i], &opts);
         p->nSatVars = 1;
         satoko_add_clause( p->pSats[i], &Lit, 1 );  
         solver_set_stop( p->pSats[i], &p->fStopNow );
     }
-    p->pSat     = p->pSats[0];
-#else
-    p->pSat     = satoko_create();  satoko_configure(p->pSat, &opts);
-    p->nSatVars = 1;
-    satoko_add_clause( p->pSat, &Lit, 1 );  
-#endif // pthreads are used
     return p;
 }
 void Bmcs_ManStop( Bmcs_Man_t * p )
 {
+    int i;
     Gia_ManStopP( &p->pFrames );
     Gia_ManStopP( &p->pClean );
     Vec_PtrFreeData( &p->vGia2Fr );
     Vec_PtrErase( &p->vGia2Fr );
     Vec_IntErase( &p->vFr2Sat );
     Vec_IntErase( &p->vCiMap );
-    if ( p->pSat )     satoko_destroy( p->pSat );
-    if ( p->pSats[0] ) satoko_destroy( p->pSats[0] );
-    if ( p->pSats[1] ) satoko_destroy( p->pSats[1] );
-    if ( p->pSats[2] ) satoko_destroy( p->pSats[2] );
+    for ( i = 0; i < p->pPars->nProcs; i++ )
+        if ( p->pSats[i] ) 
+            satoko_destroy( p->pSats[i] );
     ABC_FREE( p );
 }
 
@@ -541,9 +535,9 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
     if ( !p->pPars->fVerbose )
         return;
     Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
-    Abc_Print( 1, "Var =%8.0f. ",  (double)solver_varnum(p->pSat) );
+    Abc_Print( 1, "Var =%8.0f. ",  (double)solver_varnum(p->pSats[0]) );
     Abc_Print( 1, "Cla =%9.0f. ",  (double)nClauses );
-    Abc_Print( 1, "Conf =%7.0f. ", (double)satoko_stats(p->pSat).n_conflicts );
+    Abc_Print( 1, "Conf =%7.0f. ", (double)satoko_stats(p->pSats[0]).n_conflicts );
     if ( p->pPars->nProcs > 1 )
         Abc_Print( 1, "S = %3d. ",     Solver );
     Abc_Print( 1, "%4.0f MB",      1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
@@ -551,14 +545,14 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
     printf( "\n" );
     fflush( stdout );
 }
-Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f )
+Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f, int s )
 {
     Abc_Cex_t * pCex = Abc_CexMakeTriv( Gia_ManRegNum(p->pGia), Gia_ManPiNum(p->pGia), Gia_ManPoNum(p->pGia), f*Gia_ManPoNum(p->pGia)+i );
     Gia_Obj_t * pObj;  int k;
     Gia_ManForEachPi( p->pFrames, pObj, k )
     {
         int iSatVar = Vec_IntEntry( &p->vFr2Sat, Gia_ObjId(p->pFrames, pObj) );
-        if ( iSatVar > 0 && var_polarity(p->pSat, iSatVar) == LIT_TRUE ) // 1 bit
+        if ( iSatVar > 0 && var_polarity(p->pSats[s], iSatVar) == LIT_TRUE ) // 1 bit
         {
             int iCiId   = Vec_IntEntry( &p->vCiMap, 2*k+0 );
             int iFrame  = Vec_IntEntry( &p->vCiMap, 2*k+1 );
@@ -566,6 +560,13 @@ Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f )
         }
     }
     return pCex;
+}
+void Bmcs_ManAddCnf( satoko_t * pSat, Cnf_Dat_t * pCnf )
+{
+    int i;
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !satoko_add_clause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+            assert( 0 );
 }
 int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
@@ -585,9 +586,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             continue;
         }
         nClauses += pCnf->nClauses;
-        for ( i = 0; i < pCnf->nClauses; i++ )
-            if ( !satoko_add_clause( p->pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
-                assert( 0 );
+        Bmcs_ManAddCnf( p->pSats[0], pCnf );
         Cnf_DataFree( pCnf );
         assert( Gia_ManPoNum(p->pFrames) == (f + 1) * Gia_ManPoNum(pGia) );
         for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
@@ -596,9 +595,9 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
             if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
                 break;
-            satoko_assump_push( p->pSat, iLit );
-            status = satoko_solve( p->pSat );
-            satoko_assump_pop( p->pSat );
+            satoko_assump_push( p->pSats[0], iLit );
+            status = satoko_solve( p->pSats[0] );
+            satoko_assump_pop( p->pSats[0] );
             if ( status == SATOKO_UNSAT )
             {
                 Bmcs_ManPrintFrame( p, f, nClauses, -1, clkStart );
@@ -610,7 +609,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             {
                 RetValue = 0;
                 pPars->iFrame = f;
-                pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f );
+                pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f, 0 );
                 pPars->nFailOuts++;
                 if ( !pPars->fNotVerbose )
                 {
@@ -654,7 +653,6 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars ) { return Bmcs
 #else // pthreads are used
 
 
-#define PAR_THR_MAX 100
 typedef struct Par_ThData_t_
 {
     satoko_t *  pSat;
@@ -691,14 +689,6 @@ void * Bmcs_ManWorkerThread( void * pArg )
     return NULL;
 }
 
-void Bmcs_ManPerform_Add( satoko_t * pSat, Cnf_Dat_t * pCnf )
-{
-    int i;
-    for ( i = 0; i < pCnf->nClauses; i++ )
-        if ( !satoko_add_clause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
-            assert( 0 );
-}
-
 int Bmcs_ManPerform_Solve( Bmcs_Man_t * p, int iLit, pthread_t * WorkerThread, Par_ThData_t * ThData, int nProcs, int * pSolver )
 {
     int i, status = -1;
@@ -722,11 +712,6 @@ int Bmcs_ManPerform_Solve( Bmcs_Man_t * p, int iLit, pthread_t * WorkerThread, P
             p->fStopNow = 1;
             // remember status
             status = ThData[i].status;
-            if ( status == 0 ) // SAT
-            {
-                assert( p->pSat == NULL );
-                p->pSat = p->pSats[i];
-            }
             //printf( "Solver %d returned status %d.\n", i, status );
             *pSolver = i;
             break;
@@ -781,8 +766,8 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         }
         // load CNF into solvers
         nClauses += pCnf->nClauses;
-        for ( i = 0; i < 3; i++ )
-            Bmcs_ManPerform_Add( p->pSats[i], pCnf );
+        for ( i = 0; i < pPars->nProcs; i++ )
+            Bmcs_ManAddCnf( p->pSats[i], pCnf );
         Cnf_DataFree( pCnf );
         // solve outputs
         assert( Gia_ManPoNum(p->pFrames) == (f + 1) * Gia_ManPoNum(pGia) );
@@ -804,7 +789,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             {
                 RetValue = 0;
                 pPars->iFrame = f;
-                pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f );
+                pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f, Solver );
                 pPars->nFailOuts++;
                 if ( !pPars->fNotVerbose )
                 {
@@ -828,7 +813,6 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         ThData[i].pSat = NULL;
         ThData[i].fWorking = 1;
     }
-    p->pSat = NULL;
     Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
         printf( "No output failed in %d frames.  ", f );
