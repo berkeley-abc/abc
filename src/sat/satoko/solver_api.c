@@ -303,7 +303,7 @@ int satoko_solve(solver_t *s)
 
     while (status == SATOKO_UNDEC) {
         status = solver_search(s);
-        if (solver_check_limits(s) == 0)
+        if (solver_check_limits(s) == 0 || solver_stop(s))
             break;
     }
     if (s->opts.verbose)

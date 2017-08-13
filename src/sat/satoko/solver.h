@@ -102,6 +102,9 @@ struct solver_t_ {
 
     /* Temporary data used for solving cones */
     vec_char_t *marks;
+    
+    /* Callback to stop the solver */
+    int * pstop;
 
     struct satoko_stats stats;
     struct satoko_opts opts;
@@ -222,6 +225,14 @@ static inline int solver_varnum(solver_t *s)
 static inline int solver_has_marks(solver_t *s)
 {
     return (int)(s->marks != NULL);
+}
+static inline int solver_stop(solver_t *s)
+{
+    return s->pstop && *s->pstop;
+}
+static inline void solver_set_stop(solver_t *s, int * pstop)
+{
+    s->pstop = pstop;
 }
 
 //===------------------------------------------------------------------------===

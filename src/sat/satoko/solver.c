@@ -639,7 +639,7 @@ char solver_search(solver_t *s)
             /* No conflict */
             unsigned next_lit;
 
-            if (solver_rst(s) || solver_check_limits(s) == 0) {
+            if (solver_rst(s) || solver_check_limits(s) == 0 || solver_stop(s)) {
                 b_queue_clean(s->bq_lbd);
                 solver_cancel_until(s, 0);
                 return SATOKO_UNDEC;
