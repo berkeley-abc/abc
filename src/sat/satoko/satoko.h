@@ -92,6 +92,7 @@ extern void satoko_assump_push(satoko_t *s, int);
 extern void satoko_assump_pop(satoko_t *s);
 extern int  satoko_simplify(satoko_t *);
 extern int  satoko_solve(satoko_t *);
+extern int  satoko_solve_with_assumptions(satoko_t *s, int * plits, int nlits);
 extern void satoko_mark_cone(satoko_t *, int *, int);
 extern void satoko_unmark_cone(satoko_t *, int *, int);
 

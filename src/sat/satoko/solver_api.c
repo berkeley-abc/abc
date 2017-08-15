@@ -313,6 +313,21 @@ int satoko_solve(solver_t *s)
     return status;
 }
 
+int satoko_solve_with_assumptions(solver_t *s, int * plits, int nlits)
+{
+    int i, status;
+    for ( i = 0; i < nlits; i++ )
+        satoko_assump_push( s, plits[i] );
+    status = satoko_solve( s );
+    for ( i = 0; i < nlits; i++ )
+        satoko_assump_pop( s );
+    if ( status == SATOKO_UNSAT )
+        return 1;
+    if ( status == SATOKO_SAT )
+        return 0;
+    return -1;
+}
+
 int satoko_final_conflict(solver_t *s, unsigned *out)
 {
     if (vec_uint_size(s->final_conflict) == 0)

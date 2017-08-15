@@ -222,6 +222,19 @@ static inline int solver_varnum(solver_t *s)
 {
     return vec_char_size(s->assigns);
 }
+static inline int solver_clausenum(solver_t *s)
+{
+    return vec_uint_size(s->originals);
+}
+static inline int solver_learntnum(solver_t *s)
+{
+    return vec_uint_size(s->learnts);
+}
+static inline int solver_conflictnum(solver_t *s)
+{
+    return satoko_stats(s).n_conflicts;
+}
+
 static inline int solver_has_marks(solver_t *s)
 {
     return (int)(s->marks != NULL);
@@ -233,6 +246,10 @@ static inline int solver_stop(solver_t *s)
 static inline void solver_set_stop(solver_t *s, int * pstop)
 {
     s->pstop = pstop;
+}
+static inline int solver_read_cex_varvalue(solver_t *s, int ivar)
+{
+    return var_polarity(s, ivar) == LIT_TRUE;
 }
 
 //===------------------------------------------------------------------------===
