@@ -57,7 +57,8 @@ struct Bmcs_Man_t_
     int             fStopNow;  // signal when it is time to stop
 };
 
-static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f % Vec_PtrSize(&p->vGia2Fr)); }
+//static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f % Vec_PtrSize(&p->vGia2Fr)); }
+static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f); }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -344,9 +345,10 @@ Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     p->pGia    = pGia;
     p->pFrames = Gia_ManStart( 3*Gia_ManObjNum(pGia) );  Gia_ManHashStart(p->pFrames);
     p->pClean  = NULL;
-    Vec_PtrFill( &p->vGia2Fr, Gia_ManCountTents(pGia)+1, NULL );
-    for ( i = 0; i < Vec_PtrSize(&p->vGia2Fr); i++ )
-        Vec_PtrWriteEntry( &p->vGia2Fr, i, ABC_FALLOC(int, Gia_ManObjNum(pGia)) );
+//    Vec_PtrFill( &p->vGia2Fr, Gia_ManCountTents(pGia)+1, NULL );
+//    for ( i = 0; i < Vec_PtrSize(&p->vGia2Fr); i++ )
+//        Vec_PtrWriteEntry( &p->vGia2Fr, i, ABC_FALLOC(int, Gia_ManObjNum(pGia)) );
+    Vec_PtrGrow( &p->vGia2Fr, 1000 );  
     Vec_IntGrow( &p->vFr2Sat, 3*Gia_ManCiNum(pGia) );  
     Vec_IntPush( &p->vFr2Sat, 0 );
     Vec_IntGrow( &p->vCiMap, 3*Gia_ManCiNum(pGia) );
@@ -456,9 +458,12 @@ Gia_Man_t * Bmcs_ManUnfold( Bmcs_Man_t * p, int f )
     Gia_Man_t * pNew = NULL; Gia_Obj_t * pObj;
     int i, iLitFrame, iLitClean, fTrivial = 1;
     int nFrameObjs = Gia_ManObjNum(p->pFrames);
+    int * pCopies;
     // unfold this timeframe
-    int * pCopies = Bmcs_ManCopies( p, f );
-    memset( pCopies, 0xFF, sizeof(int)*Gia_ManObjNum(p->pGia) );  
+    Vec_PtrPush( &p->vGia2Fr, ABC_FALLOC(int, Gia_ManObjNum(p->pGia)) );
+    assert( Vec_PtrSize(&p->vGia2Fr) == f+1 );
+    pCopies = Bmcs_ManCopies( p, f );
+    //memset( pCopies, 0xFF, sizeof(int)*Gia_ManObjNum(p->pGia) );  
     pCopies[0] = 0;
     assert( Gia_ManPoNum(p->pFrames) == f * Gia_ManPoNum(p->pGia) );
     Gia_ManForEachPo( p->pGia, pObj, i )
@@ -600,7 +605,8 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             satoko_assump_pop( p->pSats[0] );
             if ( status == SATOKO_UNSAT )
             {
-                Bmcs_ManPrintFrame( p, f, nClauses, -1, clkStart );
+                if ( i == Gia_ManPoNum(pGia)-1 )
+                    Bmcs_ManPrintFrame( p, f, nClauses, -1, clkStart );
                 if( pPars->pFuncOnFrameDone)
                     pPars->pFuncOnFrameDone(f, i, 0);
                 continue;
@@ -780,7 +786,8 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             status = Bmcs_ManPerform_Solve( p, iLit, WorkerThread, ThData, pPars->nProcs, &Solver );
             if ( status == SATOKO_UNSAT )
             {
-                Bmcs_ManPrintFrame( p, f, nClauses, Solver, clkStart );
+                if ( i == Gia_ManPoNum(pGia)-1 )
+                    Bmcs_ManPrintFrame( p, f, nClauses, Solver, clkStart );
                 if( pPars->pFuncOnFrameDone )
                     pPars->pFuncOnFrameDone(f, i, 0);
                 continue;
