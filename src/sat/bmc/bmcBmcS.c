@@ -23,18 +23,20 @@
 #include "sat/satoko/satoko.h"
 #include "sat/satoko/solver.h"
 
+
 //#define ABC_USE_EXT_SOLVERS 1
 
 #ifdef ABC_USE_EXT_SOLVERS
-#include "extsat/bmc/bmcApi.h"
+    #include "extsat/bmc/bmcApi.h"
 #else
-#define bmc_sat_solver                     satoko_t
-#define bmc_sat_solver_start(type)         satoko_create()
-#define bmc_sat_solver_stop                satoko_destroy
-#define bmc_sat_solver_addclause           satoko_add_clause
-#define bmc_sat_solver_solve               satoko_solve_with_assumptions
-#define bmc_sat_solver_read_cex_varvalue   solver_read_cex_varvalue
-#define bmc_sat_solver_setstop             solver_set_stop
+    #define bmc_sat_solver                     satoko_t
+    #define bmc_sat_solver_start(type)         satoko_create()
+    #define bmc_sat_solver_stop                satoko_destroy
+    #define bmc_sat_solver_addclause           satoko_add_clause
+    #define bmc_sat_solver_addvar(s)           satoko_add_variable(s, 0)
+    #define bmc_sat_solver_solve               satoko_solve_with_assumptions
+    #define bmc_sat_solver_read_cex_varvalue   solver_read_cex_varvalue
+    #define bmc_sat_solver_setstop             solver_set_stop
 #endif
 
 
@@ -62,16 +64,17 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Bmcs_Man_t_ Bmcs_Man_t;
 struct Bmcs_Man_t_
 {
-    Bmc_AndPar_t *    pPars;     // parameters
-    Gia_Man_t *       pGia;      // user's AIG
-    Gia_Man_t *       pFrames;   // unfolded AIG (pFrames->vCopies point to pClean)
-    Gia_Man_t *       pClean;    // incremental AIG (pClean->Value point to pFrames)
-    Vec_Ptr_t         vGia2Fr;   // copies of GIA in each timeframe
-    Vec_Int_t         vFr2Sat;   // mapping of objects in pFrames into SAT variables
-    Vec_Int_t         vCiMap;    // maps CIs of pFrames into CIs/frames of GIA
+    Bmc_AndPar_t *    pPars;               // parameters
+    Gia_Man_t *       pGia;                // user's AIG
+    Gia_Man_t *       pFrames;             // unfolded AIG (pFrames->vCopies point to pClean)
+    Gia_Man_t *       pClean;              // incremental AIG (pClean->Value point to pFrames)
+    Vec_Ptr_t         vGia2Fr;             // copies of GIA in each timeframe
+    Vec_Int_t         vFr2Sat;             // mapping of objects in pFrames into SAT variables
+    Vec_Int_t         vCiMap;              // maps CIs of pFrames into CIs/frames of GIA
     bmc_sat_solver *  pSats[PAR_THR_MAX];  // concurrent SAT solvers
-    int               nSatVars;  // number of SAT variables used
-    int               fStopNow;  // signal when it is time to stop
+    int               nSatVars;            // number of SAT variables used
+    int               nSatVarsOld;         // number of SAT variables used
+    int               fStopNow;            // signal when it is time to stop
 };
 
 //static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f % Vec_PtrSize(&p->vGia2Fr)); }
@@ -377,6 +380,7 @@ Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         opts.garbage_max_ratio = (float) 0.3 + i * 0.05;
         // create SAT solvers
         p->pSats[i] = bmc_sat_solver_start( i );  
+        bmc_sat_solver_addvar( p->pSats[i] );
         bmc_sat_solver_addclause( p->pSats[i], &Lit, 1 );  
         bmc_sat_solver_setstop( p->pSats[i], &p->fStopNow );
 #ifndef ABC_USE_EXT_SOLVERS
@@ -527,6 +531,7 @@ Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f, int nFramesAdd )
     int i, iVar, * pMap;
     if ( pNew == NULL )
         return NULL;
+    p->nSatVarsOld = p->nSatVars;
     pCnf = Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
     pMap = ABC_FALLOC( int, Gia_ManObjNum(pNew) );
     pMap[0] = 0;
@@ -589,9 +594,12 @@ Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f, int s )
     }
     return pCex;
 }
-void Bmcs_ManAddCnf( bmc_sat_solver * pSat, Cnf_Dat_t * pCnf )
+void Bmcs_ManAddCnf( Bmcs_Man_t * p, bmc_sat_solver * pSat, Cnf_Dat_t * pCnf )
 {
     int i;
+    for ( i = p->nSatVarsOld; i < p->nSatVars; i++ )
+        bmc_sat_solver_addvar( pSat );
+    p->nSatVarsOld = p->nSatVars;
     for ( i = 0; i < pCnf->nClauses; i++ )
         if ( !bmc_sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
             assert( 0 );
@@ -615,7 +623,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             continue;
         }
         nClauses += pCnf->nClauses;
-        Bmcs_ManAddCnf( p->pSats[0], pCnf );
+        Bmcs_ManAddCnf( p, p->pSats[0], pCnf );
         Cnf_DataFree( pCnf );
         assert( Gia_ManPoNum(p->pFrames) == (f + pPars->nFramesAdd) * Gia_ManPoNum(pGia) );
         for ( k = 0; k < pPars->nFramesAdd; k++ )
@@ -799,7 +807,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         // load CNF into solvers
         nClauses += pCnf->nClauses;
         for ( i = 0; i < pPars->nProcs; i++ )
-            Bmcs_ManAddCnf( p->pSats[i], pCnf );
+            Bmcs_ManAddCnf( p, p->pSats[i], pCnf );
         Cnf_DataFree( pCnf );
         // solve outputs
         assert( Gia_ManPoNum(p->pFrames) == (f + pPars->nFramesAdd) * Gia_ManPoNum(pGia) );

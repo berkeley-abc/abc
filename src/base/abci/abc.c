@@ -40082,7 +40082,12 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9SBmc(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Bmcs(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( pPars->nProcs > 3 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Bmcs(): Currently this command can run at most 3 concurrent solvers.\n" );
         return 0;
     }
     pAbc->Status  = Bmcs_ManPerform( pAbc->pGia, pPars );
