@@ -23,16 +23,33 @@
 #include "sat/satoko/satoko.h"
 #include "sat/satoko/solver.h"
 
+//#define ABC_USE_EXT_SOLVERS 1
+
+#ifdef ABC_USE_EXT_SOLVERS
+#include "extsat/bmc/bmcApi.h"
+#else
+#define bmc_sat_solver                     satoko_t
+#define bmc_sat_solver_start(type)         satoko_create()
+#define bmc_sat_solver_stop                satoko_destroy
+#define bmc_sat_solver_addclause           satoko_add_clause
+#define bmc_sat_solver_solve               satoko_solve_with_assumptions
+#define bmc_sat_solver_read_cex_varvalue   solver_read_cex_varvalue
+#define bmc_sat_solver_setstop             solver_set_stop
+#endif
+
+
+
 #ifdef ABC_USE_PTHREADS
 
 #ifdef _WIN32
-#include "../lib/pthread.h"
+    #include "../lib/pthread.h"
 #else
-#include <pthread.h>
-#include <unistd.h>
+    #include <pthread.h>
+    #include <unistd.h>
 #endif
 
 #endif
+
 
 ABC_NAMESPACE_IMPL_START
 
@@ -45,16 +62,16 @@ ABC_NAMESPACE_IMPL_START
 typedef struct Bmcs_Man_t_ Bmcs_Man_t;
 struct Bmcs_Man_t_
 {
-    Bmc_AndPar_t *  pPars;     // parameters
-    Gia_Man_t *     pGia;      // user's AIG
-    Gia_Man_t *     pFrames;   // unfolded AIG (pFrames->vCopies point to pClean)
-    Gia_Man_t *     pClean;    // incremental AIG (pClean->Value point to pFrames)
-    Vec_Ptr_t       vGia2Fr;   // copies of GIA in each timeframe
-    Vec_Int_t       vFr2Sat;   // mapping of objects in pFrames into SAT variables
-    Vec_Int_t       vCiMap;    // maps CIs of pFrames into CIs/frames of GIA
-    satoko_t *      pSats[PAR_THR_MAX];  // concurrent SAT solvers
-    int             nSatVars;  // number of SAT variables used
-    int             fStopNow;  // signal when it is time to stop
+    Bmc_AndPar_t *    pPars;     // parameters
+    Gia_Man_t *       pGia;      // user's AIG
+    Gia_Man_t *       pFrames;   // unfolded AIG (pFrames->vCopies point to pClean)
+    Gia_Man_t *       pClean;    // incremental AIG (pClean->Value point to pFrames)
+    Vec_Ptr_t         vGia2Fr;   // copies of GIA in each timeframe
+    Vec_Int_t         vFr2Sat;   // mapping of objects in pFrames into SAT variables
+    Vec_Int_t         vCiMap;    // maps CIs of pFrames into CIs/frames of GIA
+    bmc_sat_solver *  pSats[PAR_THR_MAX];  // concurrent SAT solvers
+    int               nSatVars;  // number of SAT variables used
+    int               fStopNow;  // signal when it is time to stop
 };
 
 //static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f % Vec_PtrSize(&p->vGia2Fr)); }
@@ -359,11 +376,14 @@ Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         opts.b_rst = 1.4 - i * 0.05;
         opts.garbage_max_ratio = (float) 0.3 + i * 0.05;
         // create SAT solvers
-        p->pSats[i] = satoko_create();  satoko_configure(p->pSats[i], &opts);
-        p->nSatVars = 1;
-        satoko_add_clause( p->pSats[i], &Lit, 1 );  
-        solver_set_stop( p->pSats[i], &p->fStopNow );
+        p->pSats[i] = bmc_sat_solver_start( i );  
+        bmc_sat_solver_addclause( p->pSats[i], &Lit, 1 );  
+        bmc_sat_solver_setstop( p->pSats[i], &p->fStopNow );
+#ifndef ABC_USE_EXT_SOLVERS
+        satoko_configure(p->pSats[i], &opts);
+#endif
     }
+    p->nSatVars = 1;
     return p;
 }
 void Bmcs_ManStop( Bmcs_Man_t * p )
@@ -377,7 +397,7 @@ void Bmcs_ManStop( Bmcs_Man_t * p )
     Vec_IntErase( &p->vCiMap );
     for ( i = 0; i < p->pPars->nProcs; i++ )
         if ( p->pSats[i] ) 
-            satoko_destroy( p->pSats[i] );
+            bmc_sat_solver_stop( p->pSats[i] );
     ABC_FREE( p );
 }
 
@@ -543,11 +563,11 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
     if ( !p->pPars->fVerbose )
         return;
     Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
-    Abc_Print( 1, "Var =%8.0f. ",  (double)solver_varnum(p->pSats[0]) );
-    Abc_Print( 1, "Cla =%9.0f. ",  (double)nClauses );
-    Abc_Print( 1, "Conf =%7.0f. ", (double)satoko_stats(p->pSats[0]).n_conflicts );
+    Abc_Print( 1, "Var =%8.0f. ",  (double)p->nSatVars ); // solver_varnum(p->pSats[0])
+    Abc_Print( 1, "Cla =%9.0f. ",  (double)nClauses );    // solver_clausenum(p->pSats[0])
+    Abc_Print( 1, "Conf =%7.0f. ", (double)0 );           // solver_conflictnum(p->pSats[0])
     if ( p->pPars->nProcs > 1 )
-        Abc_Print( 1, "S = %3d. ",     Solver );
+        Abc_Print( 1, "S = %3d. ", Solver );
     Abc_Print( 1, "%4.0f MB",      1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
     Abc_Print( 1, "%9.2f sec  ",   (float)(Abc_Clock() - clkStart)/(float)(CLOCKS_PER_SEC) );
     printf( "\n" );
@@ -560,7 +580,7 @@ Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f, int s )
     Gia_ManForEachPi( p->pFrames, pObj, k )
     {
         int iSatVar = Vec_IntEntry( &p->vFr2Sat, Gia_ObjId(p->pFrames, pObj) );
-        if ( iSatVar > 0 && var_polarity(p->pSats[s], iSatVar) == LIT_TRUE ) // 1 bit
+        if ( iSatVar > 0 && bmc_sat_solver_read_cex_varvalue(p->pSats[s], iSatVar) ) // 1 bit
         {
             int iCiId   = Vec_IntEntry( &p->vCiMap, 2*k+0 );
             int iFrame  = Vec_IntEntry( &p->vCiMap, 2*k+1 );
@@ -569,18 +589,18 @@ Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f, int s )
     }
     return pCex;
 }
-void Bmcs_ManAddCnf( satoko_t * pSat, Cnf_Dat_t * pCnf )
+void Bmcs_ManAddCnf( bmc_sat_solver * pSat, Cnf_Dat_t * pCnf )
 {
     int i;
     for ( i = 0; i < pCnf->nClauses; i++ )
-        if ( !satoko_add_clause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+        if ( !bmc_sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
             assert( 0 );
 }
 int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     abctime clkStart = Abc_Clock();
     Bmcs_Man_t * p = Bmcs_ManStart( pGia, pPars );
-    int f, k, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0;
+    int f, k = 0, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0;
     Abc_CexFreeP( &pGia->pCexSeq );
     for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f += pPars->nFramesAdd )
     {
@@ -606,10 +626,8 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                 int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
                 if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
                     break;
-                satoko_assump_push( p->pSats[0], iLit );
-                status = satoko_solve( p->pSats[0] );
-                satoko_assump_pop( p->pSats[0] );
-                if ( status == SATOKO_UNSAT )
+                status = bmc_sat_solver_solve( p->pSats[0], &iLit, 1 );
+                if ( status == 1 ) // unsat
                 {
                     if ( i == Gia_ManPoNum(pGia)-1 )
                         Bmcs_ManPrintFrame( p, f+k, nClauses, -1, clkStart );
@@ -617,7 +635,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                         pPars->pFuncOnFrameDone(f+k, i, 0);
                     continue;
                 }
-                if ( status == SATOKO_SAT )
+                if ( status == 0 ) // sat
                 {
                     RetValue = 0;
                     pPars->iFrame = f+k;
@@ -670,7 +688,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars ) { return Bmcs
 
 typedef struct Par_ThData_t_
 {
-    satoko_t *  pSat;
+    bmc_sat_solver *  pSat;
     int         iLit;
     int         iThread;
     int         fWorking;
@@ -692,9 +710,7 @@ void * Bmcs_ManWorkerThread( void * pArg )
             return NULL;
         }
 
-        satoko_assump_push( pThData->pSat, pThData->iLit );
-        pThData->status = satoko_solve( pThData->pSat );
-        satoko_assump_pop( pThData->pSat );
+        pThData->status = bmc_sat_solver_solve( pThData->pSat, &pThData->iLit, 1 );
 
         //printf( "Thread %d finished with status %d\n", pThData->iThread, pThData->status );
 
@@ -755,7 +771,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     pthread_t WorkerThread[PAR_THR_MAX];
     Par_ThData_t ThData[PAR_THR_MAX];
     Bmcs_Man_t * p = Bmcs_ManStart( pGia, pPars );
-    int f, k, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0, Solver = 0;
+    int f, k = 0, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0, Solver = 0;
     Abc_CexFreeP( &pGia->pCexSeq );
     // start threads
     for ( i = 0; i < pPars->nProcs; i++ )
@@ -796,7 +812,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                 if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
                     break;
                 status = Bmcs_ManPerform_Solve( p, iLit, WorkerThread, ThData, pPars->nProcs, &Solver );
-                if ( status == SATOKO_UNSAT )
+                if ( status == 1 ) // unsat
                 {
                     if ( i == Gia_ManPoNum(pGia)-1 )
                         Bmcs_ManPrintFrame( p, f+k, nClauses, Solver, clkStart );
@@ -804,7 +820,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                         pPars->pFuncOnFrameDone(f+k, i, 0);
                     continue;
                 }
-                if ( status == SATOKO_SAT )
+                if ( status == 0 ) // sat
                 {
                     RetValue = 0;
                     pPars->iFrame = f+k;
