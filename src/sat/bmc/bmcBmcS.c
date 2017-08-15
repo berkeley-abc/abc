@@ -453,25 +453,27 @@ int Bmcs_ManCollect_rec( Bmcs_Man_t * p, int iObj )
     Gia_ObjSetCopyArray( p->pFrames, iObj, iLitClean );
     return iLitClean;
 }
-Gia_Man_t * Bmcs_ManUnfold( Bmcs_Man_t * p, int f )
+Gia_Man_t * Bmcs_ManUnfold( Bmcs_Man_t * p, int f, int nFramesAdd )
 {
     Gia_Man_t * pNew = NULL; Gia_Obj_t * pObj;
-    int i, iLitFrame, iLitClean, fTrivial = 1;
-    int nFrameObjs = Gia_ManObjNum(p->pFrames);
-    int * pCopies;
-    // unfold this timeframe
-    Vec_PtrPush( &p->vGia2Fr, ABC_FALLOC(int, Gia_ManObjNum(p->pGia)) );
-    assert( Vec_PtrSize(&p->vGia2Fr) == f+1 );
-    pCopies = Bmcs_ManCopies( p, f );
-    //memset( pCopies, 0xFF, sizeof(int)*Gia_ManObjNum(p->pGia) );  
-    pCopies[0] = 0;
+    int i, k, iLitFrame, iLitClean, fTrivial = 1;
+    int * pCopies, nFrameObjs = Gia_ManObjNum(p->pFrames);
     assert( Gia_ManPoNum(p->pFrames) == f * Gia_ManPoNum(p->pGia) );
-    Gia_ManForEachPo( p->pGia, pObj, i )
+    for ( k = 0; k < nFramesAdd; k++ )
     {
-        iLitFrame = Bmcs_ManUnfold_rec( p, Gia_ObjFaninId0p(p->pGia, pObj), f );
-        iLitFrame = Abc_LitNotCond( iLitFrame, Gia_ObjFaninC0(pObj) );
-        pCopies[Gia_ObjId(p->pGia, pObj)] = Gia_ManAppendCo( p->pFrames, iLitFrame );
-        fTrivial &= (iLitFrame == 0);
+        // unfold this timeframe
+        Vec_PtrPush( &p->vGia2Fr, ABC_FALLOC(int, Gia_ManObjNum(p->pGia)) );
+        assert( Vec_PtrSize(&p->vGia2Fr) == f+k+1 );
+        pCopies = Bmcs_ManCopies( p, f+k );
+        //memset( pCopies, 0xFF, sizeof(int)*Gia_ManObjNum(p->pGia) );  
+        pCopies[0] = 0;
+        Gia_ManForEachPo( p->pGia, pObj, i )
+        {
+            iLitFrame = Bmcs_ManUnfold_rec( p, Gia_ObjFaninId0p(p->pGia, pObj), f+k );
+            iLitFrame = Abc_LitNotCond( iLitFrame, Gia_ObjFaninC0(pObj) );
+            pCopies[Gia_ObjId(p->pGia, pObj)] = Gia_ManAppendCo( p->pFrames, iLitFrame );
+            fTrivial &= (iLitFrame == 0);
+        }
     }
     if ( fTrivial )
         return NULL;
@@ -482,9 +484,10 @@ Gia_Man_t * Bmcs_ManUnfold( Bmcs_Man_t * p, int f )
     Gia_ManStopP( &p->pClean );
     p->pClean = Gia_ManStart( Gia_ManObjNum(p->pFrames) - nFrameObjs + 1000 );
     Gia_ObjSetCopyArray( p->pFrames, 0, 0 );
+    for ( k = 0; k < nFramesAdd; k++ )
     for ( i = 0; i < Gia_ManPoNum(p->pGia); i++ )
     {
-        pObj = Gia_ManCo( p->pFrames, f * Gia_ManPoNum(p->pGia) + i );
+        pObj = Gia_ManCo( p->pFrames, (f+k) * Gia_ManPoNum(p->pGia) + i );
         iLitClean = Bmcs_ManCollect_rec( p, Gia_ObjFaninId0p(p->pFrames, pObj) );
         iLitClean = Abc_LitNotCond( iLitClean, Gia_ObjFaninC0(pObj) );
         iLitClean = Gia_ManAppendCo( p->pClean, iLitClean );
@@ -496,9 +499,9 @@ Gia_Man_t * Bmcs_ManUnfold( Bmcs_Man_t * p, int f )
         Gia_ObjSetCopyArray( p->pFrames, pObj->Value, -1 );
     return pNew;
 }
-Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f )
+Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f, int nFramesAdd )
 {
-    Gia_Man_t * pNew = Bmcs_ManUnfold( p, f );
+    Gia_Man_t * pNew = Bmcs_ManUnfold( p, f, nFramesAdd );
     Cnf_Dat_t * pCnf;
     Gia_Obj_t * pObj; 
     int i, iVar, * pMap;
@@ -577,64 +580,70 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
     abctime clkStart = Abc_Clock();
     Bmcs_Man_t * p = Bmcs_ManStart( pGia, pPars );
-    int f, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0;
+    int f, k, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0;
     Abc_CexFreeP( &pGia->pCexSeq );
-    for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
+    for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f += pPars->nFramesAdd )
     {
-        Cnf_Dat_t * pCnf = Bmcs_ManAddNewCnf( p, f );
+        Cnf_Dat_t * pCnf = Bmcs_ManAddNewCnf( p, f, pPars->nFramesAdd );
         if ( pCnf == NULL )
         {
             Bmcs_ManPrintFrame( p, f, nClauses, -1, clkStart );
             if( pPars->pFuncOnFrameDone)
+                for ( k = 0; k < pPars->nFramesAdd; k++ )
                 for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
-                    pPars->pFuncOnFrameDone(f, i, 0);
+                    pPars->pFuncOnFrameDone(f+k, i, 0);
             continue;
         }
         nClauses += pCnf->nClauses;
         Bmcs_ManAddCnf( p->pSats[0], pCnf );
         Cnf_DataFree( pCnf );
-        assert( Gia_ManPoNum(p->pFrames) == (f + 1) * Gia_ManPoNum(pGia) );
-        for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
+        assert( Gia_ManPoNum(p->pFrames) == (f + pPars->nFramesAdd) * Gia_ManPoNum(pGia) );
+        for ( k = 0; k < pPars->nFramesAdd; k++ )
         {
-            int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, f * Gia_ManPoNum(pGia) + i) );
-            int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
-            if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
-                break;
-            satoko_assump_push( p->pSats[0], iLit );
-            status = satoko_solve( p->pSats[0] );
-            satoko_assump_pop( p->pSats[0] );
-            if ( status == SATOKO_UNSAT )
+            for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
             {
-                if ( i == Gia_ManPoNum(pGia)-1 )
-                    Bmcs_ManPrintFrame( p, f, nClauses, -1, clkStart );
-                if( pPars->pFuncOnFrameDone)
-                    pPars->pFuncOnFrameDone(f, i, 0);
-                continue;
-            }
-            if ( status == SATOKO_SAT )
-            {
-                RetValue = 0;
-                pPars->iFrame = f;
-                pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f, 0 );
-                pPars->nFailOuts++;
-                if ( !pPars->fNotVerbose )
+                int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, (f+k) * Gia_ManPoNum(pGia) + i) );
+                int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
+                if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
+                    break;
+                satoko_assump_push( p->pSats[0], iLit );
+                status = satoko_solve( p->pSats[0] );
+                satoko_assump_pop( p->pSats[0] );
+                if ( status == SATOKO_UNSAT )
                 {
-                    int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
-                    Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
-                        nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
-                    fflush( stdout );
+                    if ( i == Gia_ManPoNum(pGia)-1 )
+                        Bmcs_ManPrintFrame( p, f+k, nClauses, -1, clkStart );
+                    if( pPars->pFuncOnFrameDone)
+                        pPars->pFuncOnFrameDone(f+k, i, 0);
+                    continue;
                 }
-                if( pPars->pFuncOnFrameDone)
-                    pPars->pFuncOnFrameDone(f, i, 1);
+                if ( status == SATOKO_SAT )
+                {
+                    RetValue = 0;
+                    pPars->iFrame = f+k;
+                    pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f+k, 0 );
+                    pPars->nFailOuts++;
+                    if ( !pPars->fNotVerbose )
+                    {
+                        int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
+                        Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
+                            nOutDigits, i, f+k, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
+                        fflush( stdout );
+                    }
+                    if( pPars->pFuncOnFrameDone)
+                        pPars->pFuncOnFrameDone(f+k, i, 1);
+                }
+                break;
             }
-            break;
+            if ( i < Gia_ManPoNum(pGia) || f+k == pPars->nFramesMax-1 )
+                break;
         }
-        if ( i < Gia_ManPoNum(pGia) )
+        if ( k < pPars->nFramesAdd )
             break;
     }
     Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
-        printf( "No output failed in %d frames.  ", f );
+        printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     return RetValue;
 }
@@ -746,7 +755,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     pthread_t WorkerThread[PAR_THR_MAX];
     Par_ThData_t ThData[PAR_THR_MAX];
     Bmcs_Man_t * p = Bmcs_ManStart( pGia, pPars );
-    int f, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0, Solver = 0;
+    int f, k, i = Gia_ManPoNum(pGia), status, RetValue = -1, nClauses = 0, Solver = 0;
     Abc_CexFreeP( &pGia->pCexSeq );
     // start threads
     for ( i = 0; i < pPars->nProcs; i++ )
@@ -759,15 +768,16 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         status = pthread_create( WorkerThread + i, NULL, Bmcs_ManWorkerThread, (void *)(ThData + i) );  assert( status == 0 );
     }
     // solve properties in each timeframe
-    for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
+    for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f += pPars->nFramesAdd )
     {
-        Cnf_Dat_t * pCnf = Bmcs_ManAddNewCnf( p, f );
+        Cnf_Dat_t * pCnf = Bmcs_ManAddNewCnf( p, f, pPars->nFramesAdd );
         if ( pCnf == NULL )
         {
             Bmcs_ManPrintFrame( p, f, nClauses, 0, clkStart );
             if( pPars->pFuncOnFrameDone )
+                for ( k = 0; k < pPars->nFramesAdd; k++ )
                 for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
-                    pPars->pFuncOnFrameDone(f, i, 0);
+                    pPars->pFuncOnFrameDone(f+k, i, 0);
             continue;
         }
         // load CNF into solvers
@@ -776,41 +786,46 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             Bmcs_ManAddCnf( p->pSats[i], pCnf );
         Cnf_DataFree( pCnf );
         // solve outputs
-        assert( Gia_ManPoNum(p->pFrames) == (f + 1) * Gia_ManPoNum(pGia) );
-        for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
+        assert( Gia_ManPoNum(p->pFrames) == (f + pPars->nFramesAdd) * Gia_ManPoNum(pGia) );
+        for ( k = 0; k < pPars->nFramesAdd; k++ )
         {
-            int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, f * Gia_ManPoNum(pGia) + i) );
-            int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
-            if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
-                break;
-            status = Bmcs_ManPerform_Solve( p, iLit, WorkerThread, ThData, pPars->nProcs, &Solver );
-            if ( status == SATOKO_UNSAT )
+            for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
             {
-                if ( i == Gia_ManPoNum(pGia)-1 )
-                    Bmcs_ManPrintFrame( p, f, nClauses, Solver, clkStart );
-                if( pPars->pFuncOnFrameDone )
-                    pPars->pFuncOnFrameDone(f, i, 0);
-                continue;
-            }
-            if ( status == SATOKO_SAT )
-            {
-                RetValue = 0;
-                pPars->iFrame = f;
-                pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f, Solver );
-                pPars->nFailOuts++;
-                if ( !pPars->fNotVerbose )
+                int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, (f+k) * Gia_ManPoNum(pGia) + i) );
+                int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
+                if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
+                    break;
+                status = Bmcs_ManPerform_Solve( p, iLit, WorkerThread, ThData, pPars->nProcs, &Solver );
+                if ( status == SATOKO_UNSAT )
                 {
-                    int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
-                    Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
-                        nOutDigits, i, f, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
-                    fflush( stdout );
+                    if ( i == Gia_ManPoNum(pGia)-1 )
+                        Bmcs_ManPrintFrame( p, f+k, nClauses, Solver, clkStart );
+                    if( pPars->pFuncOnFrameDone )
+                        pPars->pFuncOnFrameDone(f+k, i, 0);
+                    continue;
                 }
-                if( pPars->pFuncOnFrameDone )
-                    pPars->pFuncOnFrameDone(f, i, 1);
+                if ( status == SATOKO_SAT )
+                {
+                    RetValue = 0;
+                    pPars->iFrame = f+k;
+                    pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f+k, Solver );
+                    pPars->nFailOuts++;
+                    if ( !pPars->fNotVerbose )
+                    {
+                        int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
+                        Abc_Print( 1, "Output %*d was asserted in frame %2d (solved %*d out of %*d outputs).  ",  
+                            nOutDigits, i, f+k, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
+                        fflush( stdout );
+                    }
+                    if( pPars->pFuncOnFrameDone )
+                        pPars->pFuncOnFrameDone(f+k, i, 1);
+                }
+                break;
             }
-            break;
+            if ( i < Gia_ManPoNum(pGia) || f+k == pPars->nFramesMax-1 )
+                break;
         }
-        if ( i < Gia_ManPoNum(pGia) )
+        if ( k < pPars->nFramesAdd )
             break;
     }
     // stop threads
@@ -822,7 +837,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     }
     Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
-        printf( "No output failed in %d frames.  ", f );
+        printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     return RetValue;
 }

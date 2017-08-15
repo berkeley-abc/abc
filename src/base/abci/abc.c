@@ -39991,7 +39991,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     memset( pPars, 0, sizeof(Bmc_AndPar_t) );
     pPars->nStart        =    0;  // starting timeframe
     pPars->nFramesMax    =    0;  // maximum number of timeframes
-    pPars->nFramesAdd    =    0;  // the number of additional frames
+    pPars->nFramesAdd    =    1;  // the number of additional frames
     pPars->nConfLimit    =    0;  // maximum number of conflicts at a node
     pPars->nTimeOut      =    0;  // timeout in seconds
     pPars->nLutSize      =    0;  // max LUT size for CNF computation
@@ -40009,7 +40009,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncOnFrameDone = pAbc->pFuncOnFrameDone; // frame done callback
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PCFTvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCFATvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40046,6 +40046,17 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nFramesMax < 0 )
                 goto usage;
             break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nFramesAdd = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nFramesAdd < 0 )
+                goto usage;
+            break;
         case 'T':
             if ( globalUtilOptind >= argc )
             {
@@ -40080,11 +40091,12 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmcs [-PCFT num] [-vwh]\n" );
+    Abc_Print( -2, "usage: &bmcs [-PCFAT num] [-vwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-P num : the number of parallel solvers [default = %d]\n",              pPars->nProcs );
     Abc_Print( -2, "\t-C num : the SAT solver conflict limit [default = %d]\n",               pPars->nConfLimit );
     Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",            pPars->nFramesMax );
+    Abc_Print( -2, "\t-A num : the number of additional frames to unroll [default = %d]\n",   pPars->nFramesAdd );
     Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
