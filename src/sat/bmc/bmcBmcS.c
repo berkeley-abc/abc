@@ -81,6 +81,10 @@ struct Bmcs_Man_t_
     int               nSatVars;            // number of SAT variables used
     int               nSatVarsOld;         // number of SAT variables used
     int               fStopNow;            // signal when it is time to stop
+    abctime           timeUnf;             // runtime of unfolding
+    abctime           timeCnf;             // runtime of CNF generation
+    abctime           timeSat;             // runtime of the solvers
+    abctime           timeOth;             // other runtime
 };
 
 //static inline int * Bmcs_ManCopies( Bmcs_Man_t * p, int f ) { return (int*)Vec_PtrEntry(&p->vGia2Fr, f % Vec_PtrSize(&p->vGia2Fr)); }
@@ -533,12 +537,15 @@ Gia_Man_t * Bmcs_ManUnfold( Bmcs_Man_t * p, int f, int nFramesAdd )
 }
 Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f, int nFramesAdd )
 {
+    abctime clk = Abc_Clock();
     Gia_Man_t * pNew = Bmcs_ManUnfold( p, f, nFramesAdd );
     Cnf_Dat_t * pCnf;
     Gia_Obj_t * pObj; 
     int i, iVar, * pMap;
+    p->timeUnf += Abc_Clock() - clk;
     if ( pNew == NULL )
         return NULL;
+    clk = Abc_Clock();
     pCnf = Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
     pMap = ABC_FALLOC( int, Gia_ManObjNum(pNew) );
     pMap[0] = 0;
@@ -555,6 +562,7 @@ Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f, int nFramesAdd )
     for ( i = 0; i < pCnf->nLiterals; i++ )
         pCnf->pClauses[0][i] = Abc_Lit2LitV( pMap, pCnf->pClauses[0][i] );
     ABC_FREE( pMap );
+    p->timeCnf += Abc_Clock() - clk;
     return pCnf;
 }
 
@@ -579,7 +587,7 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
     Abc_Print( 1, "Var =%8.0f.  ",  (double)solver_varnum(p->pSats[0]) ); 
     Abc_Print( 1, "Cla =%9.0f.  ",  (double)solver_clausenum(p->pSats[0]) );  
     Abc_Print( 1, "Learn =%9.0f.  ",(double)solver_learntnum(p->pSats[0]) );  
-    Abc_Print( 1, "Conf =%7.0f.  ", (double)solver_conflictnum(p->pSats[0]) );  
+    Abc_Print( 1, "Conf =%9.0f.  ", (double)solver_conflictnum(p->pSats[0]) );  
 #else
     Abc_Print( 1, "Var =%8.0f.  ",  (double)p->nSatVars ); 
     Abc_Print( 1, "Cla =%9.0f.  ",  (double)nClauses );  
@@ -590,6 +598,17 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
     Abc_Print( 1, "%9.2f sec  ",    (float)(Abc_Clock() - clkStart)/(float)(CLOCKS_PER_SEC) );
     printf( "\n" );
     fflush( stdout );
+}
+void Bmcs_ManPrintTime( Bmcs_Man_t * p )
+{
+    abctime clkTotal = p->timeUnf + p->timeCnf + p->timeSat + p->timeOth;
+    if ( !p->pPars->fVerbose )
+        return;
+    ABC_PRTP( "Unfolding     ", p->timeUnf,  clkTotal );
+    ABC_PRTP( "CNF generation", p->timeCnf,  clkTotal );
+    ABC_PRTP( "SAT solving   ", p->timeSat,  clkTotal );
+    ABC_PRTP( "Other         ", p->timeOth,  clkTotal );
+    ABC_PRTP( "TOTAL         ", clkTotal  ,  clkTotal );
 }
 Abc_Cex_t * Bmcs_ManGenerateCex( Bmcs_Man_t * p, int i, int f, int s )
 {
@@ -643,11 +662,13 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         {
             for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
             {
+                abctime clk = Abc_Clock();
                 int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, (f+k) * Gia_ManPoNum(pGia) + i) );
                 int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
                 if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
                     break;
                 status = bmc_sat_solver_solve( p->pSats[0], &iLit, 1 );
+                p->timeSat += Abc_Clock() - clk;
                 if ( status == l_False ) // unsat
                 {
                     if ( i == Gia_ManPoNum(pGia)-1 )
@@ -680,6 +701,8 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         if ( k < pPars->nFramesAdd )
             break;
     }
+    p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSat;
+    Bmcs_ManPrintTime( p );
     Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
         printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
@@ -873,6 +896,8 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         ThData[i].pSat = NULL;
         ThData[i].fWorking = 1;
     }
+    p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSat;
+    Bmcs_ManPrintTime( p );
     Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
         printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
