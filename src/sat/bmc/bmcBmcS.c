@@ -575,7 +575,7 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
     if ( !p->pPars->fVerbose )
         return;
     Abc_Print( 1, "%4d %s : ", f,   fUnfinished ? "-" : "+" );
-#ifdef ABC_USE_EXT_SOLVERS
+#ifndef ABC_USE_EXT_SOLVERS
     Abc_Print( 1, "Var =%8.0f.  ",  (double)solver_varnum(p->pSats[0]) ); 
     Abc_Print( 1, "Cla =%9.0f.  ",  (double)solver_clausenum(p->pSats[0]) );  
     Abc_Print( 1, "Learn =%9.0f.  ",(double)solver_learntnum(p->pSats[0]) );  
