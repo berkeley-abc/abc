@@ -386,14 +386,14 @@ Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         opts.garbage_max_ratio = (float) 0.3 + i * 0.05;
         // create SAT solvers
         p->pSats[i] = bmc_sat_solver_start( i );  
-        bmc_sat_solver_addvar( p->pSats[i] );
-        bmc_sat_solver_addclause( p->pSats[i], &Lit, 1 );  
-        bmc_sat_solver_setstop( p->pSats[i], &p->fStopNow );
 #ifdef ABC_USE_EXT_SOLVERS
         p->pSats[i]->SolverType = i;
 #else
         satoko_configure(p->pSats[i], &opts);
 #endif
+        bmc_sat_solver_addvar( p->pSats[i] );
+        bmc_sat_solver_addclause( p->pSats[i], &Lit, 1 );  
+        bmc_sat_solver_setstop( p->pSats[i], &p->fStopNow );
     }
     p->nSatVars = 1;
     return p;
