@@ -28,13 +28,19 @@
 
 #ifdef ABC_USE_EXT_SOLVERS
     #include "extsat/bmc/bmcApi.h"
+    #define l_Undef -1
+    #define l_True   1
+    #define l_False  0
 #else
+    #define l_Undef  0
+    #define l_True   1
+    #define l_False -1
     #define bmc_sat_solver                     satoko_t
     #define bmc_sat_solver_start(type)         satoko_create()
     #define bmc_sat_solver_stop                satoko_destroy
     #define bmc_sat_solver_addclause           satoko_add_clause
     #define bmc_sat_solver_addvar(s)           satoko_add_variable(s, 0)
-    #define bmc_sat_solver_solve               satoko_solve_with_assumptions
+    #define bmc_sat_solver_solve               satoko_solve_assumptions
     #define bmc_sat_solver_read_cex_varvalue   solver_read_cex_varvalue
     #define bmc_sat_solver_setstop             solver_set_stop
 #endif
@@ -635,7 +641,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                 if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
                     break;
                 status = bmc_sat_solver_solve( p->pSats[0], &iLit, 1 );
-                if ( status == 1 ) // unsat
+                if ( status == l_False ) // unsat
                 {
                     if ( i == Gia_ManPoNum(pGia)-1 )
                         Bmcs_ManPrintFrame( p, f+k, nClauses, -1, clkStart );
@@ -643,7 +649,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                         pPars->pFuncOnFrameDone(f+k, i, 0);
                     continue;
                 }
-                if ( status == 0 ) // sat
+                if ( status == l_True ) // sat
                 {
                     RetValue = 0;
                     pPars->iFrame = f+k;
@@ -820,7 +826,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                 if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
                     break;
                 status = Bmcs_ManPerform_Solve( p, iLit, WorkerThread, ThData, pPars->nProcs, &Solver );
-                if ( status == 1 ) // unsat
+                if ( status == l_False ) // unsat
                 {
                     if ( i == Gia_ManPoNum(pGia)-1 )
                         Bmcs_ManPrintFrame( p, f+k, nClauses, Solver, clkStart );
@@ -828,7 +834,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                         pPars->pFuncOnFrameDone(f+k, i, 0);
                     continue;
                 }
-                if ( status == 0 ) // sat
+                if ( status == l_True ) // sat
                 {
                     RetValue = 0;
                     pPars->iFrame = f+k;
