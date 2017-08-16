@@ -575,10 +575,15 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
     if ( !p->pPars->fVerbose )
         return;
     Abc_Print( 1, "%4d %s : ", f,   fUnfinished ? "-" : "+" );
+#ifdef ABC_USE_EXT_SOLVERS
     Abc_Print( 1, "Var =%8.0f.  ",  (double)solver_varnum(p->pSats[0]) ); 
     Abc_Print( 1, "Cla =%9.0f.  ",  (double)solver_clausenum(p->pSats[0]) );  
     Abc_Print( 1, "Learn =%9.0f.  ",(double)solver_learntnum(p->pSats[0]) );  
     Abc_Print( 1, "Conf =%7.0f.  ", (double)solver_conflictnum(p->pSats[0]) );  
+#else
+    Abc_Print( 1, "Var =%8.0f.  ",  (double)p->nSatVars ); 
+    Abc_Print( 1, "Cla =%9.0f.  ",  (double)nClauses );  
+#endif
     if ( p->pPars->nProcs > 1 )
         Abc_Print( 1, "S = %3d. ",  Solver );
     Abc_Print( 1, "%4.0f MB",       1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
