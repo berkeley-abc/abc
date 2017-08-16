@@ -218,6 +218,13 @@ int satoko_simplify(solver_t * s)
     return SATOKO_OK;
 }
 
+void satoko_setnvars(solver_t *s, int nvars)
+{
+    int i;
+    for (i = solver_varnum(s); i < nvars; i++)
+        satoko_add_variable(s, 0);
+}
+
 int satoko_add_variable(solver_t *s, char sign)
 {
     unsigned var = vec_act_size(s->activity);
@@ -305,6 +312,10 @@ int satoko_solve(solver_t *s)
         status = solver_search(s);
         if (solver_check_limits(s) == 0 || solver_stop(s))
             break;
+        if (s->nRuntimeLimit && Abc_Clock() > s->nRuntimeLimit)
+            break;
+        if (s->pFuncStop && s->pFuncStop(s->RunId))
+            break;
     }
     if (s->opts.verbose)
         print_stats(s);
@@ -313,7 +324,7 @@ int satoko_solve(solver_t *s)
     return status;
 }
 
-int satoko_solve_with_assumptions(solver_t *s, int * plits, int nlits)
+int satoko_solve_assumptions(solver_t *s, int * plits, int nlits)
 {
     int i, status;
     for ( i = 0; i < nlits; i++ )
@@ -321,20 +332,21 @@ int satoko_solve_with_assumptions(solver_t *s, int * plits, int nlits)
     status = satoko_solve( s );
     for ( i = 0; i < nlits; i++ )
         satoko_assump_pop( s );
-    if ( status == SATOKO_UNSAT )
-        return 1;
-    if ( status == SATOKO_SAT )
-        return 0;
-    return -1;
+    return status;
 }
 
-int satoko_final_conflict(solver_t *s, unsigned *out)
+int satoko_solve_assumptions_limit(satoko_t *s, int * plits, int nlits, int nconflim)
 {
-    if (vec_uint_size(s->final_conflict) == 0)
-        return -1;
-    out = satoko_alloc(unsigned, vec_uint_size(s->final_conflict));
-    memcpy(out, vec_uint_data(s->final_conflict),
-           sizeof(unsigned) * vec_uint_size(s->final_conflict));
+    int temp = s->opts.conf_limit, status;
+    s->opts.conf_limit = nconflim;
+    status = satoko_solve_assumptions(s, plits, nlits);
+    s->opts.conf_limit = temp;
+    return status;
+}
+
+int satoko_final_conflict(solver_t *s, int **out)
+{
+    *out = (int *)vec_uint_data(s->final_conflict);
     return vec_uint_size(s->final_conflict);
 }
 

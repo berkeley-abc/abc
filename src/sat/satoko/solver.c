@@ -639,7 +639,8 @@ char solver_search(solver_t *s)
             /* No conflict */
             unsigned next_lit;
 
-            if (solver_rst(s) || solver_check_limits(s) == 0 || solver_stop(s)) {
+            if (solver_rst(s) || solver_check_limits(s) == 0 || solver_stop(s) || 
+                (s->nRuntimeLimit && (s->stats.n_conflicts & 63) == 0 && Abc_Clock() > s->nRuntimeLimit)) {
                 b_queue_clean(s->bq_lbd);
                 solver_cancel_until(s, 0);
                 return SATOKO_UNDEC;
@@ -648,7 +649,7 @@ char solver_search(solver_t *s)
                 satoko_simplify(s);
 
             /* Reduce the set of learnt clauses */
-            if (s->opts.learnt_ratio &&
+            if (s->opts.learnt_ratio && vec_uint_size(s->learnts) > 100 &&
                 s->stats.n_conflicts >= s->n_confl_bfr_reduce) {
                 s->RC1 = (s->stats.n_conflicts / s->RC2) + 1;
                 solver_reduce_cdb(s);

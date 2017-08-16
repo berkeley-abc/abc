@@ -103,8 +103,11 @@ struct solver_t_ {
     /* Temporary data used for solving cones */
     vec_char_t *marks;
     
-    /* Callback to stop the solver */
-    int * pstop;
+    /* Callbacks to stop the solver */
+    abctime nRuntimeLimit;
+    int    *pstop;
+    int     RunId;           
+    int   (*pFuncStop)(int);  
 
     struct satoko_stats stats;
     struct satoko_opts opts;
@@ -250,6 +253,12 @@ static inline void solver_set_stop(solver_t *s, int * pstop)
 static inline int solver_read_cex_varvalue(solver_t *s, int ivar)
 {
     return var_polarity(s, ivar) == LIT_TRUE;
+}
+static abctime solver_set_runtime_limit(solver_t* s, abctime Limit)
+{
+    abctime nRuntimeLimit = s->nRuntimeLimit;
+    s->nRuntimeLimit = Limit;
+    return nRuntimeLimit;
 }
 
 //===------------------------------------------------------------------------===

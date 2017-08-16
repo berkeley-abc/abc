@@ -86,13 +86,15 @@ extern void satoko_reset(satoko_t *);
 extern void satoko_default_opts(satoko_opts_t *);
 extern void satoko_configure(satoko_t *, satoko_opts_t *);
 extern int  satoko_parse_dimacs(char *, satoko_t **);
+extern void satoko_setnvars(satoko_t *, int);
 extern int  satoko_add_variable(satoko_t *, char);
 extern int  satoko_add_clause(satoko_t *, int *, int);
 extern void satoko_assump_push(satoko_t *s, int);
 extern void satoko_assump_pop(satoko_t *s);
 extern int  satoko_simplify(satoko_t *);
 extern int  satoko_solve(satoko_t *);
-extern int  satoko_solve_with_assumptions(satoko_t *s, int * plits, int nlits);
+extern int  satoko_solve_assumptions(satoko_t *s, int * plits, int nlits);
+extern int  satoko_solve_assumptions_limit(satoko_t *s, int * plits, int nlits, int nconflim);
 extern void satoko_mark_cone(satoko_t *, int *, int);
 extern void satoko_unmark_cone(satoko_t *, int *, int);
 
@@ -101,14 +103,12 @@ extern void satoko_bookmark(satoko_t *);
 extern void satoko_unbookmark(satoko_t *);
 /* If problem is unsatisfiable under assumptions, this function is used to
  * obtain the final conflict clause expressed in the assumptions.
- *
- *  - It receives as inputs the solver and a pointer to a array where clause
- * will be copied. The memory is allocated by the solver, but must be freed by
- * the caller.
+ *  - It receives as inputs the solver and a pointer to an array where clause
+ * is stored. The memory for the clause is managed by the solver.
  *  - The return value is either the size of the array or -1 in case the final
  * conflict cluase was not generated.
  */
-extern int satoko_final_conflict(satoko_t *, unsigned *);
+extern int satoko_final_conflict(satoko_t *, int **);
 
 /* Procedure to dump a DIMACS file.
  * - It receives as input the solver, a file name string and two integers.
