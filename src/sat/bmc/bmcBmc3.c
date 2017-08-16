@@ -753,13 +753,12 @@ Gia_ManBmc_t * Saig_Bmc3ManStart( Aig_Man_t * pAig, int nTimeOutOne, int nConfLi
         opts.conf_limit = nConfLimit;
         p->pSat2 = satoko_create();  
         satoko_configure(p->pSat2, &opts);
-        for ( i = 0; i < 1000; i++ )
-            satoko_add_variable( p->pSat2, 0 );
+        satoko_setnvars(p->pSat2, 1000);
     }
     else
     {
         p->pSat  = sat_solver_new();
-        sat_solver_setnvars( p->pSat, 1000 );
+        sat_solver_setnvars(p->pSat, 1000);
     }
     Cnf_ReadMsops( &p->pSopSizes, &p->pSops );
     // terminary simulation 
@@ -1268,15 +1267,9 @@ int Saig_ManBmcCreateCnf( Gia_ManBmc_t * p, Aig_Obj_t * pObj, int iFrame )
     Lit = Saig_ManBmcLiteral( p, pObj, iFrame );
     // extend the SAT solver
     if ( p->pSat2 )
-    {
-        for ( i = solver_varnum(p->pSat2); i < p->nSatVars; i++ )
-            satoko_add_variable( p->pSat2, 0 );
-    }
+        satoko_setnvars( p->pSat2, p->nSatVars );
     else
-    {
-        if ( p->nSatVars > sat_solver_nvars(p->pSat) )
-            sat_solver_setnvars( p->pSat, p->nSatVars );
-    }
+        sat_solver_setnvars( p->pSat, p->nSatVars );
     return Lit;
 }
 
@@ -1389,7 +1382,7 @@ Abc_Cex_t * Saig_ManGenerateCex( Gia_ManBmc_t * p, int f, int i )
             int iLit = Saig_ManBmcLiteral( p, pObjPi, j );
             if ( p->pSat2 )
             {
-                if ( iLit != ~0 && var_polarity(p->pSat2, lit_var(iLit)) == LIT_TRUE )
+                if ( iLit != ~0 && solver_read_cex_varvalue(p->pSat2, lit_var(iLit)) )
                     Abc_InfoSetBit( pCex->pData, iBit + k );
             }
             else
@@ -1420,17 +1413,7 @@ int Saig_ManCallSolver( Gia_ManBmc_t * p, int Lit )
     if ( Lit == 1 )
         return l_True;
     if ( p->pSat2 )
-    {
-        int status;
-        satoko_assump_push( p->pSat2, Lit );
-        status = satoko_solve( p->pSat2 );
-        satoko_assump_pop( p->pSat2 );
-        if ( status == SATOKO_UNSAT )
-            return l_False;
-        if ( status == SATOKO_SAT )
-            return l_True;
-        return l_Undef;
-    }
+        return satoko_solve_assumptions_limit( p->pSat2, &Lit, 1, p->pPars->nConfLimit );
     else
         return sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)p->pPars->nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
 }
@@ -1480,6 +1463,11 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
         p->pSat->RunId        = p->pPars->RunId;
         p->pSat->pFuncStop    = p->pPars->pFuncStop;
     }
+    else
+    {
+        p->pSat2->RunId        = p->pPars->RunId;
+        p->pSat2->pFuncStop    = p->pPars->pFuncStop;
+    }
     if ( pPars->fSolveAll && p->vCexes == NULL )
         p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
     if ( pPars->fVerbose )
@@ -1492,8 +1480,13 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     } 
     pPars->nFramesMax = pPars->nFramesMax ? pPars->nFramesMax : ABC_INFINITY;
     // set runtime limit
-    if ( nTimeToStop && p->pSat )
-        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+    if ( nTimeToStop )
+    {
+        if ( p->pSat2 )
+            solver_set_runtime_limit( p->pSat2, nTimeToStop );
+        else
+            sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+    }
     // perform frames
     Aig_ManRandom( 1 );
     pPars->timeLastSolved = Abc_Clock();
@@ -1620,7 +1613,10 @@ clkOther += Abc_Clock() - clk2;
             {
                 assert( p->pTime4Outs[i] > 0 );
                 clkOne = Abc_Clock();
-                sat_solver_set_runtime_limit( p->pSat, p->pTime4Outs[i] + Abc_Clock() );
+                if ( p->pSat2 )
+                    solver_set_runtime_limit( p->pSat2, p->pTime4Outs[i] + Abc_Clock() );
+                else
+                    sat_solver_set_runtime_limit( p->pSat, p->pTime4Outs[i] + Abc_Clock() );
             }
 clk2 = Abc_Clock();
             status = Saig_ManCallSolver( p, Lit );
@@ -1677,8 +1673,8 @@ nTimeSat += clkSatRun;
                     {
                         Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
                         Abc_Print( 1, "Var =%8.0f. ",  (double)p->nSatVars );
-                        Abc_Print( 1, "Cla =%9.0f. ",  (double)(p->pSat ? p->pSat->stats.clauses   : vec_uint_size(p->pSat2->originals)) );
-                        Abc_Print( 1, "Conf =%7.0f. ", (double)(p->pSat ? p->pSat->stats.conflicts : satoko_stats(p->pSat2).n_conflicts) );
+                        Abc_Print( 1, "Cla =%9.0f. ",  (double)(p->pSat ? p->pSat->stats.clauses   : solver_clausenum(p->pSat2)) );
+                        Abc_Print( 1, "Conf =%7.0f. ", (double)(p->pSat ? p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) );
 //                        Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
                         Abc_Print( 1, "Uni =%7.0f. ",(double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
 //                        ABC_PRT( "Time", Abc_Clock() - clk );
@@ -1722,8 +1718,13 @@ nTimeSat += clkSatRun;
                 // reset the timeout
                 pPars->timeLastSolved = Abc_Clock();
                 nTimeToStop = Saig_ManBmcTimeToStop( pPars, nTimeToStopNG );
-                if ( nTimeToStop && p->pSat )
-                    sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+                if ( nTimeToStop )
+                {
+                    if ( p->pSat2 )
+                        solver_set_runtime_limit( p->pSat2, nTimeToStop );
+                    else
+                        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+                }
 
                 // check if other outputs failed under the same counter-example
                 Saig_ManForEachPo( pAig, pObj, k )
@@ -1737,7 +1738,7 @@ nTimeSat += clkSatRun;
                     Lit = Saig_ManBmcCreateCnf( p, pObj, f );
                     if ( p->pSat2 )
                     {
-                        if ( (var_polarity(p->pSat2, lit_var(Lit)) == LIT_TRUE) == Abc_LitIsCompl(Lit) )
+                        if ( solver_read_cex_varvalue(p->pSat2, lit_var(Lit)) == Abc_LitIsCompl(Lit) )
                             continue;
                     }
                     else
@@ -1780,7 +1781,7 @@ nTimeUndec += clkSatRun;
         }
         if ( pPars->fVerbose ) 
         {
-            if ( fFirst == 1 && f > 0 && (p->pSat ? p->pSat->stats.conflicts : 0) > 1 )
+            if ( fFirst == 1 && f > 0 && (p->pSat ? p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) > 1 )
             {
                 fFirst = 0;
 //                Abc_Print( 1, "Outputs of frames up to %d are trivially UNSAT.\n", f );
@@ -1788,8 +1789,8 @@ nTimeUndec += clkSatRun;
             Abc_Print( 1, "%4d %s : ", f, fUnfinished ? "-" : "+" );
             Abc_Print( 1, "Var =%8.0f. ", (double)p->nSatVars );
 //            Abc_Print( 1, "Used =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
-            Abc_Print( 1, "Cla =%9.0f. ", (double)(p->pSat ? p->pSat->stats.clauses   : vec_uint_size(p->pSat2->originals)) );
-            Abc_Print( 1, "Conf =%7.0f. ",(double)(p->pSat ? p->pSat->stats.conflicts : satoko_stats(p->pSat2).n_conflicts) );
+            Abc_Print( 1, "Cla =%9.0f. ", (double)(p->pSat ? p->pSat->stats.clauses   : solver_clausenum(p->pSat2)) );
+            Abc_Print( 1, "Conf =%7.0f. ",(double)(p->pSat ? p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) );
 //            Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
             Abc_Print( 1, "Uni =%7.0f. ", (double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
             if ( pPars->fSolveAll )
