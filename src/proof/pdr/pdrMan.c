@@ -421,12 +421,12 @@ Abc_Cex_t * Pdr_ManDeriveCex( Pdr_Man_t * p )
         for ( i = pObl->pState->nLits; i < pObl->pState->nTotal; i++ )
         {
             Lit = pObl->pState->Lits[i];
-            if ( lit_sign(Lit) )
+            if ( Abc_LitIsCompl(Lit) )
                 continue;
-            if ( lit_var(Lit) >= pCex->nPis ) // allows PPI literals to be thrown away
+            if ( Abc_Lit2Var(Lit) >= pCex->nPis ) // allows PPI literals to be thrown away
                 continue;
-            assert( lit_var(Lit) < pCex->nPis );
-            Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + lit_var(Lit) );
+            assert( Abc_Lit2Var(Lit) < pCex->nPis );
+            Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + Abc_Lit2Var(Lit) );
         }
     assert( f == nFrames );
     if ( !Saig_ManVerifyCex(p->pAig, pCex) )
@@ -470,9 +470,9 @@ Abc_Cex_t * Pdr_ManDeriveCexAbs( Pdr_Man_t * p )
         for ( i = pObl->pState->nLits; i < pObl->pState->nTotal; i++ )
         {
             Lit = pObl->pState->Lits[i]; 
-            if ( lit_var(Lit) < nPis ) // PI literal
+            if ( Abc_Lit2Var(Lit) < nPis ) // PI literal
                 continue;
-            Flop = lit_var(Lit) - nPis;
+            Flop = Abc_Lit2Var(Lit) - nPis;
             if ( Vec_IntEntry(p->vMapFf2Ppi, Flop) >= 0 ) // already used PPI literal
                 continue;
             Vec_IntWriteEntry( p->vMapFf2Ppi, Flop, Vec_IntSize(p->vMapPpi2Ff) );
@@ -502,13 +502,13 @@ Abc_Cex_t * Pdr_ManDeriveCexAbs( Pdr_Man_t * p )
             for ( i = pObl->pState->nLits; i < pObl->pState->nTotal; i++ )
             {
                 Lit = pObl->pState->Lits[i];
-                if ( lit_sign(Lit) )
+                if ( Abc_LitIsCompl(Lit) )
                     continue;
-                if ( lit_var(Lit) < nPis ) // PI literal
-                    Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + lit_var(Lit) );
+                if ( Abc_Lit2Var(Lit) < nPis ) // PI literal
+                    Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + Abc_Lit2Var(Lit) );
                 else
                 {
-                    int iPPI = nPis + Vec_IntEntry(p->vMapFf2Ppi, lit_var(Lit) - nPis);
+                    int iPPI = nPis + Vec_IntEntry(p->vMapFf2Ppi, Abc_Lit2Var(Lit) - nPis);
                     assert( iPPI < pCex->nPis );
                     Abc_InfoSetBit( pCex->pData, pCex->nRegs + f * pCex->nPis + iPPI );
                 }

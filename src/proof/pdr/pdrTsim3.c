@@ -233,7 +233,7 @@ Abc_Print( 1, " in frame %d.\n", k );
 
     // read solver
     pSat = Pdr_ManFetchSolver( p->pMan, k );
-    LitAux = toLit( Pdr_ManFreeVar(p->pMan, k) );
+    LitAux = Abc_Var2Lit( Pdr_ManFreeVar(p->pMan, k), 0 );
     // add the clause (complemented cube) in terms of next state variables
     if ( pCube == NULL ) // the target is the property output
     {

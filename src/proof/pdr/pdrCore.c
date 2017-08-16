@@ -107,13 +107,13 @@ Pdr_Set_t * Pdr_ManReduceClause( Pdr_Man_t * p, int k, Pdr_Set_t * pCube )
     assert( Vec_IntSize(vLits) < pCube->nLits );
     // if the cube overlaps with init, add any literal
     Vec_IntForEachEntry( vLits, Entry, i )
-        if ( lit_sign(Entry) == 0 ) // positive literal
+        if ( Abc_LitIsCompl(Entry) == 0 ) // positive literal
             break;
     if ( i == Vec_IntSize(vLits) ) // only negative literals
     {
         // add the first positive literal
         for ( i = 0; i < pCube->nLits; i++ )
-            if ( lit_sign(pCube->Lits[i]) == 0 ) // positive literal
+            if ( Abc_LitIsCompl(pCube->Lits[i]) == 0 ) // positive literal
             {
                 Vec_IntPush( vLits, pCube->Lits[i] );
                 break;
@@ -524,6 +524,7 @@ static inline int Vec_IntSelectSortPrioReverseLit( int * pArray, int nSize, Vec_
 ***********************************************************************/
 int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppCubeMin )
 {
+#if 0
     int fUseMinAss = 0;
     sat_solver * pSat = Pdr_ManFetchSolver( p, k );
     int Order = Vec_IntSelectSortPrioReverseLit( pCube->Lits, pCube->nLits, p->vPrio );
@@ -661,6 +662,7 @@ int Pdr_ManGeneralize2( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** pp
     *ppCubeMin = Pdr_SetCreateSubset( pCube, Vec_IntArray(vLits1), Vec_IntSize(vLits1) );
     assert( !Pdr_SetIsInit(*ppCubeMin, -1) );
     Order = 0;
+#endif
     return 0;
 }
 

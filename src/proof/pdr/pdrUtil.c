@@ -234,7 +234,7 @@ void Pdr_SetPrint( FILE * pFile, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCoun
     {
         if ( p->Lits[i] == -1 )
             continue;
-        pBuff[lit_var(p->Lits[i])] = (lit_sign(p->Lits[i])? '0':'1');
+        pBuff[Abc_Lit2Var(p->Lits[i])] = (Abc_LitIsCompl(p->Lits[i])? '0':'1');
     }
     if ( vFlopCounts )
     {
@@ -351,7 +351,7 @@ void Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vF
     {
         if ( p->Lits[i] == -1 )
             continue;
-        pBuff[lit_var(p->Lits[i])] = (lit_sign(p->Lits[i])? '0':'1');
+        pBuff[Abc_Lit2Var(p->Lits[i])] = (Abc_LitIsCompl(p->Lits[i])? '0':'1');
     }
     if ( vFlopCounts )
     {
@@ -465,7 +465,7 @@ int Pdr_SetIsInit( Pdr_Set_t * pCube, int iRemove )
         assert( pCube->Lits[i] != -1 );
         if ( i == iRemove )
             continue;
-        if ( lit_sign( pCube->Lits[i] ) == 0 )
+        if ( Abc_LitIsCompl( pCube->Lits[i] ) == 0 )
             return 0;
     }
     return 1;

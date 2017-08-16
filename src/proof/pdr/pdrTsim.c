@@ -289,14 +289,14 @@ void Pdr_ManDeriveResult( Aig_Man_t * pAig, Vec_Int_t * vCiObjs, Vec_Int_t * vCi
     {
         if ( Saig_ObjIsPi(pAig, pObj) )
         {
-            Lit = toLitCond( Aig_ObjCioId(pObj), (Vec_IntEntry(vCiVals, i) == 0) );
+            Lit = Abc_Var2Lit( Aig_ObjCioId(pObj), (Vec_IntEntry(vCiVals, i) == 0) );
             Vec_IntPush( vPiLits, Lit );
             continue;
         }
         assert( Saig_ObjIsLo(pAig, pObj) );
         if ( Aig_ObjIsTravIdCurrent(pAig, pObj) )
             continue;
-        Lit = toLitCond( Aig_ObjCioId(pObj) - Saig_ManPiNum(pAig), (Vec_IntEntry(vCiVals, i) == 0) );
+        Lit = Abc_Var2Lit( Aig_ObjCioId(pObj) - Saig_ManPiNum(pAig), (Vec_IntEntry(vCiVals, i) == 0) );
         Vec_IntPush( vRes, Lit );
     }
     if ( Vec_IntSize(vRes) == 0 )

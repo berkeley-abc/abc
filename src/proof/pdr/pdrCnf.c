@@ -86,7 +86,7 @@ static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pOb
         sat_solver_setnvars( pSat, iVarNew + 1 );
         if ( k == 0 && Saig_ObjIsLo(p->pAig, pObj) ) // initialize the register output
         {
-            int Lit = toLitCond( iVarNew, 1 );
+            int Lit = Abc_Var2Lit( iVarNew, 1 );
             int RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
             assert( RetValue == 1 );
             (void) RetValue;
@@ -136,11 +136,11 @@ int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level, int Pol )
             for ( i = iClaBeg; i < iClaEnd; i++ )
             {
                 Vec_IntClear( vLits );
-                Vec_IntPush( vLits, toLitCond( iVarThis, lit_sign(p->pCnf2->pClauses[i][0]) ) );
+                Vec_IntPush( vLits, Abc_Var2Lit( iVarThis, Abc_LitIsCompl(p->pCnf2->pClauses[i][0]) ) );
                 for ( pLit = p->pCnf2->pClauses[i]+1; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
                 {
-                    iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)), Level+1, 3 );
-                    Vec_IntPush( vLits, toLitCond( iVar, lit_sign(*pLit) ) );
+                    iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, Abc_Lit2Var(*pLit)), Level+1, 3 );
+                    Vec_IntPush( vLits, Abc_Var2Lit( iVar, Abc_LitIsCompl(*pLit) ) );
                 }
                 RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
                 assert( RetValue );
@@ -154,11 +154,11 @@ int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level, int Pol )
             if ( 2 - !Abc_LitIsCompl(p->pCnf2->pClauses[i][0]) == (Pol & ~PolPres) ) // taking opposite literal
             {
                 Vec_IntClear( vLits );
-                Vec_IntPush( vLits, toLitCond( iVarThis, Abc_LitIsCompl(p->pCnf2->pClauses[i][0]) ) );
+                Vec_IntPush( vLits, Abc_Var2Lit( iVarThis, Abc_LitIsCompl(p->pCnf2->pClauses[i][0]) ) );
                 for ( pLit = p->pCnf2->pClauses[i]+1; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
                 {
-                    iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)), Level+1, ((unsigned)p->pCnf2->pClaPols[i] >> (2*(pLit-p->pCnf2->pClauses[i]-1))) & 3 );
-                    Vec_IntPush( vLits, toLitCond( iVar, lit_sign(*pLit) ) );
+                    iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, Abc_Lit2Var(*pLit)), Level+1, ((unsigned)p->pCnf2->pClaPols[i] >> (2*(pLit-p->pCnf2->pClauses[i]-1))) & 3 );
+                    Vec_IntPush( vLits, Abc_Var2Lit( iVar, Abc_LitIsCompl(*pLit) ) );
                 }
                 RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
                 assert( RetValue );
@@ -187,7 +187,7 @@ static inline int Pdr_ObjSatVar2FindOrAdd( Pdr_Man_t * p, int k, Aig_Obj_t * pOb
         sat_solver_setnvars( pSat, iVarNew + 1 );
         if ( k == 0 && Saig_ObjIsLo(p->pAig, pObj) ) // initialize the register output
         {
-            int Lit = toLitCond( iVarNew, 1 );
+            int Lit = Abc_Var2Lit( iVarNew, 1 );
             int RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
             assert( RetValue == 1 );
             (void) RetValue;
@@ -213,11 +213,11 @@ int Pdr_ObjSatVar2( Pdr_Man_t * p, int k, Aig_Obj_t * pObj, int Level, int Pol )
     for ( i = iClaBeg; i < iClaEnd; i++ )
     {
         Vec_IntClear( vLits );
-        Vec_IntPush( vLits, toLitCond( iVarThis, lit_sign(p->pCnf2->pClauses[i][0]) ) );
+        Vec_IntPush( vLits, Abc_Var2Lit( iVarThis, Abc_LitIsCompl(p->pCnf2->pClauses[i][0]) ) );
         for ( pLit = p->pCnf2->pClauses[i]+1; pLit < p->pCnf2->pClauses[i+1]; pLit++ )
         {
-            iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, lit_var(*pLit)), Level+1, Pol );
-            Vec_IntPush( vLits, toLitCond( iVar, lit_sign(*pLit) ) );
+            iVar = Pdr_ObjSatVar2( p, k, Aig_ManObj(p->pAig, Abc_Lit2Var(*pLit)), Level+1, Pol );
+            Vec_IntPush( vLits, Abc_Var2Lit( iVar, Abc_LitIsCompl(*pLit) ) );
         }
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits)+Vec_IntSize(vLits) );
         assert( RetValue );

@@ -896,7 +896,7 @@ int IPdr_ManCheckCubeReduce( Pdr_Man_t * p, Vec_Ptr_t * vClauses, Pdr_Set_t * pC
 
     if ( pCube == NULL ) // solve the property
     {
-        Lit = toLit( Pdr_ObjSatVar(p, 1, 2, Aig_ManCo(p->pAig, p->iOutCur)) ); // pos literal (property fails)
+        Lit = Abc_Var2Lit( Pdr_ObjSatVar(p, 1, 2, Aig_ManCo(p->pAig, p->iOutCur)), 0 ); // pos literal (property fails)
         RetValue = sat_solver_addclause( pSat, &Lit, &Lit+1 );
         assert( RetValue == 1 );
 

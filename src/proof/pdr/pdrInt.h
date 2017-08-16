@@ -28,10 +28,34 @@
 #include "aig/saig/saig.h"
 #include "misc/vec/vecWec.h"
 #include "sat/cnf/cnf.h"
-#include "sat/bsat/satSolver.h"
 #include "pdr.h" 
 #include "misc/hash/hashInt.h"
 #include "aig/gia/giaAig.h"
+
+//#define PDR_USE_SATOKO 1
+
+#ifndef PDR_USE_SATOKO
+    #include "sat/bsat/satSolver.h"
+#else
+    #include "sat/satoko/satoko.h"
+    #include "sat/satoko/solver.h"
+    #define l_Undef  0
+    #define l_True   1
+    #define l_False -1
+    #define sat_solver                       satoko_t
+    #define sat_solver_new                   satoko_create
+    #define sat_solver_delete                satoko_destroy
+    #define zsat_solver_new_seed(s)          satoko_create()
+    #define zsat_solver_restart_seed(s,a)    satoko_reset(s)
+    #define sat_solver_nvars                 solver_varnum
+    #define sat_solver_setnvars              satoko_setnvars
+    #define sat_solver_addclause(s,b,e)      satoko_add_clause(s,b,e-b)
+    #define sat_solver_final                 satoko_final_conflict
+    #define sat_solver_solve(s,b,e,c,x,y,z)  satoko_solve_assumptions_limit(s,b,e-b,(int)c)
+    #define sat_solver_var_value             solver_read_cex_varvalue
+    #define sat_solver_set_runtime_limit     solver_set_runtime_limit
+    #define sat_solver_compress(s)             
+#endif
 
 ABC_NAMESPACE_HEADER_START
 

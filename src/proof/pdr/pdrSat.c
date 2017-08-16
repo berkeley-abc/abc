@@ -120,11 +120,11 @@ Vec_Int_t * Pdr_ManLitsToCube( Pdr_Man_t * p, int k, int * pArray, int nArray )
     Vec_IntClear( p->vLits );
     for ( i = 0; i < nArray; i++ )
     {
-        RegId = Pdr_ObjRegNum( p, k, lit_var(pArray[i]) );
+        RegId = Pdr_ObjRegNum( p, k, Abc_Lit2Var(pArray[i]) );
         if ( RegId == -1 )
             continue;
         assert( RegId >= 0 && RegId < Aig_ManRegNum(p->pAig) );
-        Vec_IntPush( p->vLits, toLitCond(RegId, !lit_sign(pArray[i])) );
+        Vec_IntPush( p->vLits, Abc_Var2Lit(RegId, !Abc_LitIsCompl(pArray[i])) );
     }
     assert( Vec_IntSize(p->vLits) >= 0 && Vec_IntSize(p->vLits) <= nArray );
     return p->vLits;
@@ -153,12 +153,12 @@ Vec_Int_t * Pdr_ManCubeToLits( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, int fCom
         if ( pCube->Lits[i] == -1 )
             continue;
         if ( fNext )
-            pObj = Saig_ManLi( p->pAig, lit_var(pCube->Lits[i]) );
+            pObj = Saig_ManLi( p->pAig, Abc_Lit2Var(pCube->Lits[i]) );
         else
-            pObj = Saig_ManLo( p->pAig, lit_var(pCube->Lits[i]) );
-        iVar = Pdr_ObjSatVar( p, k, fNext ? 2 - lit_sign(pCube->Lits[i]) : 3, pObj ); assert( iVar >= 0 );
+            pObj = Saig_ManLo( p->pAig, Abc_Lit2Var(pCube->Lits[i]) );
+        iVar = Pdr_ObjSatVar( p, k, fNext ? 2 - Abc_LitIsCompl(pCube->Lits[i]) : 3, pObj ); assert( iVar >= 0 );
         iVarMax = Abc_MaxInt( iVarMax, iVar );
-        Vec_IntPush( p->vLits, toLitCond( iVar, fCompl ^ lit_sign(pCube->Lits[i]) ) );
+        Vec_IntPush( p->vLits, Abc_Var2Lit( iVar, fCompl ^ Abc_LitIsCompl(pCube->Lits[i]) ) );
     }
 //    sat_solver_setnvars( Pdr_ManSolver(p, k), iVarMax + 1 );
     p->tCnf += Abc_Clock() - clk;
@@ -192,7 +192,7 @@ void Pdr_ManSetPropertyOutput( Pdr_Man_t * p, int k )
         // skip timedout outputs
         if ( p->pPars->vOutMap && Vec_IntEntry(p->pPars->vOutMap, i) == -1 )
             continue;
-        Lit = toLitCond( Pdr_ObjSatVar(p, k, 1, pObj), 1 ); // neg literal
+        Lit = Abc_Var2Lit( Pdr_ObjSatVar(p, k, 1, pObj), 1 ); // neg literal
         RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
         assert( RetValue == 1 );
     }
@@ -300,7 +300,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     if ( pCube == NULL ) // solve the property
     {
         clk = Abc_Clock();
-        Lit = toLit( Pdr_ObjSatVar(p, k, 2, Aig_ManCo(p->pAig, p->iOutCur)) ); // pos literal (property fails)
+        Lit = Abc_Var2Lit( Pdr_ObjSatVar(p, k, 2, Aig_ManCo(p->pAig, p->iOutCur)), 0 ); // pos literal (property fails)
         Limit = sat_solver_set_runtime_limit( pSat, Pdr_ManTimeLimit(p) );
         RetValue = sat_solver_solve( pSat, &Lit, &Lit + 1, nConfLimit, 0, 0, 0 );
         sat_solver_set_runtime_limit( pSat, Limit );
@@ -316,7 +316,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
             // add the cube in terms of current state variables
             vLits = Pdr_ManCubeToLits( p, k, pCube, 1, 0 );
             // add activation literal
-            Lit = toLit( Pdr_ManFreeVar(p, k) );
+            Lit = Abc_Var2Lit( Pdr_ManFreeVar(p, k), 0 );
             // add activation literal
             Vec_IntPush( vLits, Lit );
             RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
@@ -325,7 +325,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
             // create assumptions
             vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 1 );
             // add activation literal
-            Vec_IntPush( vLits, lit_neg(Lit) );
+            Vec_IntPush( vLits, Abc_LitNot(Lit) );
         }
         else
             vLits = Pdr_ManCubeToLits( p, k, pCube, 0, 1 );
@@ -376,7 +376,7 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
     if ( fLitUsed )
     {
         int RetValue;
-        Lit = lit_neg(Lit);
+        Lit = Abc_LitNot(Lit);
         RetValue = sat_solver_addclause( pSat, &Lit, &Lit + 1 );
         assert( RetValue == 1 );
         sat_solver_compress( pSat );
