@@ -389,7 +389,9 @@ Bmcs_Man_t * Bmcs_ManStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         bmc_sat_solver_addvar( p->pSats[i] );
         bmc_sat_solver_addclause( p->pSats[i], &Lit, 1 );  
         bmc_sat_solver_setstop( p->pSats[i], &p->fStopNow );
-#ifndef ABC_USE_EXT_SOLVERS
+#ifdef ABC_USE_EXT_SOLVERS
+        p->pSats[i]->SolverType = i;
+#else
         satoko_configure(p->pSats[i], &opts);
 #endif
     }
@@ -537,7 +539,6 @@ Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f, int nFramesAdd )
     int i, iVar, * pMap;
     if ( pNew == NULL )
         return NULL;
-    p->nSatVarsOld = p->nSatVars;
     pCnf = Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
     pMap = ABC_FALLOC( int, Gia_ManObjNum(pNew) );
     pMap[0] = 0;
@@ -606,7 +607,6 @@ void Bmcs_ManAddCnf( Bmcs_Man_t * p, bmc_sat_solver * pSat, Cnf_Dat_t * pCnf )
     int i;
     for ( i = p->nSatVarsOld; i < p->nSatVars; i++ )
         bmc_sat_solver_addvar( pSat );
-    p->nSatVarsOld = p->nSatVars;
     for ( i = 0; i < pCnf->nClauses; i++ )
         if ( !bmc_sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
             assert( 0 );
@@ -631,6 +631,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         }
         nClauses += pCnf->nClauses;
         Bmcs_ManAddCnf( p, p->pSats[0], pCnf );
+        p->nSatVarsOld = p->nSatVars;
         Cnf_DataFree( pCnf );
         assert( Gia_ManPoNum(p->pFrames) == (f + pPars->nFramesAdd) * Gia_ManPoNum(pGia) );
         for ( k = 0; k < pPars->nFramesAdd; k++ )
@@ -815,6 +816,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         nClauses += pCnf->nClauses;
         for ( i = 0; i < pPars->nProcs; i++ )
             Bmcs_ManAddCnf( p, p->pSats[i], pCnf );
+        p->nSatVarsOld = p->nSatVars;
         Cnf_DataFree( pCnf );
         // solve outputs
         assert( Gia_ManPoNum(p->pFrames) == (f + pPars->nFramesAdd) * Gia_ManPoNum(pGia) );
