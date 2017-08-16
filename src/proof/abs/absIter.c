@@ -58,7 +58,7 @@ int Gia_IterTryImprove( Gia_Man_t * p, int nTimeOut, int iFrame0 )
     int nBTLimitAll =            0;
     int fVerbose    =            0;
     int RetValue, iFrame; 
-    RetValue = Saig_BmcPerform( pAig, nStart, nFrames, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fVerbose, 0, &iFrame, 1 );
+    RetValue = Saig_BmcPerform( pAig, nStart, nFrames, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fVerbose, 0, &iFrame, 1, 0 );
     assert( RetValue == 0 || RetValue == -1 );
     Aig_ManStop( pAig );
     Gia_ManStop( pAbs );

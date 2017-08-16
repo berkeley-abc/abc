@@ -20,6 +20,8 @@
 
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
+#include "sat/satoko/satoko.h"
+#include "sat/satoko/solver.h"
 #include "proof/ssw/ssw.h"
 #include "bmc.h"
 
@@ -49,6 +51,7 @@ struct Saig_Bmc_t_
     Vec_Ptr_t *           vAig2Frm;       // mapping of AIG nodees into Frames nodes
     // SAT solver
     sat_solver *          pSat;           // SAT solver
+    satoko_t *            pSat2;          // SAT solver
     int                   nSatVars;       // the number of used SAT variables
     Vec_Int_t *           vObj2Var;       // mapping of frames objects in CNF variables
     int                   nStitchVars;
@@ -277,7 +280,7 @@ void Abs_ManFreeAray( Vec_Ptr_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose )
+Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fUseSatoko )
 {
     Saig_Bmc_t * p;
     Aig_Obj_t * pObj;
@@ -303,14 +306,27 @@ Saig_Bmc_t * Saig_BmcManStart( Aig_Man_t * pAig, int nFramesMax, int nNodesMax, 
         Saig_BmcObjSetFrame( p, pObj, 0, Aig_ManConst0(p->pFrm) ); 
     // create SAT solver
     p->nSatVars     = 1;
-    p->pSat         = sat_solver_new();
-    p->pSat->nLearntStart = 10000;//p->pPars->nLearnedStart;
-    p->pSat->nLearntDelta =  5000;//p->pPars->nLearnedDelta;
-    p->pSat->nLearntRatio =    75;//p->pPars->nLearnedPerce;
-    p->pSat->nLearntMax   = p->pSat->nLearntStart;
-    sat_solver_setnvars( p->pSat, 2000 );
     Lit = toLit( p->nSatVars );
-    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+    if ( fUseSatoko )
+    {
+        satoko_opts_t opts;
+        satoko_default_opts(&opts);
+        opts.conf_limit = nConfMaxOne;
+        p->pSat2 = satoko_create();  
+        satoko_configure(p->pSat2, &opts);
+        satoko_setnvars(p->pSat2, 2000);
+        satoko_add_clause( p->pSat2, &Lit, 1 );
+    }
+    else
+    {
+        p->pSat = sat_solver_new();
+        p->pSat->nLearntStart = 10000;//p->pPars->nLearnedStart;
+        p->pSat->nLearntDelta =  5000;//p->pPars->nLearnedDelta;
+        p->pSat->nLearntRatio =    75;//p->pPars->nLearnedPerce;
+        p->pSat->nLearntMax   = p->pSat->nLearntStart;
+        sat_solver_setnvars( p->pSat, 2000 );
+        sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+    }
     Saig_BmcSetSatNum( p, Aig_ManConst1(p->pFrm), p->nSatVars++ );
     // other data structures
     p->vTargets     = Vec_PtrAlloc( 1000 );
@@ -336,7 +352,8 @@ void Saig_BmcManStop( Saig_Bmc_t * p )
     Aig_ManStop( p->pFrm  );
     Vec_VecFree( (Vec_Vec_t *)p->vAig2Frm );
     Vec_IntFree( p->vObj2Var );
-    sat_solver_delete( p->pSat );
+    if ( p->pSat )  sat_solver_delete( p->pSat );
+    if ( p->pSat2 ) satoko_destroy( p->pSat2 );
     Vec_PtrFree( p->vTargets );
     Vec_IntFree( p->vVisited );
     ABC_FREE( p );
@@ -575,17 +592,42 @@ void Saig_BmcLoadCnf( Saig_Bmc_t * p, Cnf_Dat_t * pCnf )
         // add clauses connecting existing variables
         Lits[0] = toLitCond( VarNumOld, 0 );
         Lits[1] = toLitCond( VarNumNew, 1 );
-        if ( !sat_solver_addclause( p->pSat, Lits, Lits+2 ) )
-            assert( 0 );
+        if ( p->pSat2 )
+        {
+            if ( !satoko_add_clause( p->pSat2, Lits, 2 ) )
+                assert( 0 );
+        }
+        else
+        {
+            if ( !sat_solver_addclause( p->pSat, Lits, Lits+2 ) )
+                assert( 0 );
+        }
         Lits[0] = toLitCond( VarNumOld, 1 );
         Lits[1] = toLitCond( VarNumNew, 0 );
-        if ( !sat_solver_addclause( p->pSat, Lits, Lits+2 ) )
-            assert( 0 );
+        if ( p->pSat2 )
+        {
+            if ( !satoko_add_clause( p->pSat2, Lits, 2 ) )
+                assert( 0 );
+        }
+        else
+        {
+            if ( !sat_solver_addclause( p->pSat, Lits, Lits+2 ) )
+                assert( 0 );
+        }
     }
     // add CNF to the SAT solver
-    for ( i = 0; i < pCnf->nClauses; i++ )
-        if ( !sat_solver_addclause( p->pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
-            break;
+    if ( p->pSat2 )
+    {
+        for ( i = 0; i < pCnf->nClauses; i++ )
+            if ( !satoko_add_clause( p->pSat2, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+                break;
+    }
+    else
+    {
+        for ( i = 0; i < pCnf->nClauses; i++ )
+            if ( !sat_solver_addclause( p->pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+                break;
+    }
     if ( i < pCnf->nClauses )
         printf( "SAT solver became UNSAT after adding clauses.\n" );
 }
@@ -648,7 +690,7 @@ Abc_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
             iVarNum = Saig_BmcSatNum( p, pObjFrm );
             if ( iVarNum == 0 )
                 continue;
-            if ( sat_solver_var_value( p->pSat, iVarNum ) )
+            if ( p->pSat2 ? solver_read_cex_varvalue(p->pSat2, iVarNum) : sat_solver_var_value(p->pSat, iVarNum) )
                 Abc_InfoSetBit( pCex->pData, pCex->nRegs + Saig_ManPiNum(p->pAig) * f + i );
         }
     }
@@ -678,7 +720,7 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p, int nStart, int * pnOutsSolved )
     Aig_Obj_t * pObj;
     int i, k, VarNum, Lit, status, RetValue;
     assert( Vec_PtrSize(p->vTargets) > 0 );
-    if ( p->pSat->qtail != p->pSat->qhead )
+    if ( p->pSat && p->pSat->qtail != p->pSat->qhead )
     {
         RetValue = sat_solver_simplify(p->pSat);
         assert( RetValue != 0 );
@@ -687,27 +729,36 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p, int nStart, int * pnOutsSolved )
     {
         if ( ((*pnOutsSolved)++ / Saig_ManPoNum(p->pAig)) < nStart )
             continue;
-        if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
+        if ( p->nConfMaxAll && (p->pSat ? p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) > p->nConfMaxAll )
             return l_Undef;
         VarNum = Saig_BmcSatNum( p, Aig_Regular(pObj) );
         Lit = toLitCond( VarNum, Aig_IsComplement(pObj) );
-        RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)p->nConfMaxOne, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+        if ( p->pSat2 )
+            RetValue = satoko_solve_assumptions_limit( p->pSat2, &Lit, 1, p->nConfMaxOne );
+        else
+            RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, (ABC_INT64_T)p->nConfMaxOne, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
         if ( RetValue == l_False ) // unsat
         {
             // add final unit clause
             Lit = lit_neg( Lit );
-            status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-            assert( status );
-            // add learned units
-            for ( k = 0; k < veci_size(&p->pSat->unit_lits); k++ )
-            {
-                Lit = veci_begin(&p->pSat->unit_lits)[k];
+            if ( p->pSat2 )
+                status = satoko_add_clause( p->pSat2, &Lit, 1 );
+            else
                 status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-                assert( status );
+            assert( status );
+            if ( p->pSat )
+            {
+                // add learned units
+                for ( k = 0; k < veci_size(&p->pSat->unit_lits); k++ )
+                {
+                    Lit = veci_begin(&p->pSat->unit_lits)[k];
+                    status = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+                    assert( status );
+                }
+                veci_resize(&p->pSat->unit_lits, 0);
+                // propagate units
+                sat_solver_compress( p->pSat );
             }
-            veci_resize(&p->pSat->unit_lits, 0);
-            // propagate units
-            sat_solver_compress( p->pSat );
             continue;
         }
         if ( RetValue == l_Undef ) // undecided
@@ -758,7 +809,7 @@ void Saig_BmcAddTargetsAsPos( Saig_Bmc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent )
+int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax, int nTimeOut, int nConfMaxOne, int nConfMaxAll, int fVerbose, int fVerbOverwrite, int * piFrames, int fSilent, int fUseSatoko )
 {
     Saig_Bmc_t * p;
     Aig_Man_t * pNew;
@@ -782,10 +833,15 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
             nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll );
     } 
     nFramesMax = nFramesMax ? nFramesMax : ABC_INFINITY;
-    p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose );
+    p = Saig_BmcManStart( pAig, nFramesMax, nNodesMax, nConfMaxOne, nConfMaxAll, fVerbose, fUseSatoko );
     // set runtime limit
     if ( nTimeOut )
-        sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+    {
+        if ( p->pSat2 )
+            solver_set_runtime_limit( p->pSat2, nTimeToStop );
+        else
+            sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
+    }
     for ( Iter = 0; ; Iter++ )
     {
         clk2 = Abc_Clock();
@@ -810,7 +866,8 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         if ( fVerbose )
         {
             printf( "%4d : F =%5d. O =%4d.  And =%8d. Var =%8d. Conf =%7d. ", 
-                Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, (int)p->pSat->stats.conflicts );   
+                Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, 
+                p->pSat ? (int)p->pSat->stats.conflicts : solver_conflictnum(p->pSat2) );   
             printf( "%4.0f MB",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
             printf( "%9.2f sec", (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
             printf( "\n" );
@@ -865,7 +922,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         {
             if ( p->iFrameLast >= p->nFramesMax )
                 printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
-            else if ( p->nConfMaxAll && p->pSat->stats.conflicts > p->nConfMaxAll )
+            else if ( p->nConfMaxAll && (p->pSat ? (int)p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) > p->nConfMaxAll )
                 printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
             else if ( nTimeOut && Abc_Clock() > nTimeToStop )
                 printf( "Reached timeout (%d seconds).\n", nTimeOut );

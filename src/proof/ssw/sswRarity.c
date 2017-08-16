@@ -1011,7 +1011,7 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
         if ( fTryBmc )
         {
             Aig_Man_t * pNewAig = Saig_ManDupWithPhase( pAig, p->vInits );
-            Saig_BmcPerform( pNewAig, 0, 100, 2000, 3, 0, 0, 1 /*fVerbose*/, 0, &iFrameFail, 0 );
+            Saig_BmcPerform( pNewAig, 0, 100, 2000, 3, 0, 0, 1 /*fVerbose*/, 0, &iFrameFail, 0, 0 );
 //            if ( pNewAig->pSeqModel != NULL )
 //                Abc_Print( 1, "BMC has found a counter-example in frame %d.\n", iFrameFail );
             Aig_ManStop( pNewAig );

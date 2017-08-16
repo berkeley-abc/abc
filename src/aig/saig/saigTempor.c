@@ -223,7 +223,7 @@ Aig_Man_t * Saig_ManTempor( Aig_Man_t * pAig, int nFrames, int TimeOut, int nCon
     // run BMC2
     if ( fUseBmc )
     {
-        RetValue = Saig_BmcPerform( pAig, 0, nFrames, 2000, TimeOut, nConfLimit, 0, fVerbose, 0, &nFramesFinished, 0 );
+        RetValue = Saig_BmcPerform( pAig, 0, nFrames, 2000, TimeOut, nConfLimit, 0, fVerbose, 0, &nFramesFinished, 0, 0 );
         if ( RetValue == 0 )
         {
             Vec_IntFreeP( &vTransSigs );

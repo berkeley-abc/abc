@@ -21,6 +21,8 @@
 #include "proof/fra/fra.h"
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
+#include "sat/satoko/satoko.h"
+#include "sat/satoko/solver.h"
 #include "bmc.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -171,6 +173,26 @@ ABC_NAMESPACE_IMPL_END
 
 ABC_NAMESPACE_IMPL_START
 
+/**Function*************************************************************
+
+  Synopsis    [Returns a counter-example.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Sat2_SolverGetModel( satoko_t * p, int * pVars, int nVars )
+{
+    int * pModel;
+    int i;
+    pModel = ABC_CALLOC( int, nVars+1 );
+    for ( i = 0; i < nVars; i++ )
+        pModel[i] = solver_read_cex_varvalue(p, pVars[i]);
+    return pModel;    
+}
  
 /**Function*************************************************************
 
@@ -183,10 +205,11 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit )
+int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLimit, int fRewrite, int fVerbose, int * piFrame, int nCofFanLit, int fUseSatoko )
 {
     extern Aig_Man_t * Gia_ManCofactorAig( Aig_Man_t * p, int nFrames, int nCofFanLit );
-    sat_solver * pSat;
+    sat_solver * pSat = NULL;
+    satoko_t * pSat2 = NULL;
     Cnf_Dat_t * pCnf;
     Aig_Man_t * pFrames, * pAigTemp;
     Aig_Obj_t * pObj;
@@ -241,12 +264,25 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
     pCnf = Cnf_Derive( pFrames, Aig_ManCoNum(pFrames) );  
 //if ( s_fInterrupt )
 //return -1;
-    pSat = sat_solver_new();
-    sat_solver_setnvars( pSat, pCnf->nVars );
-    for ( i = 0; i < pCnf->nClauses; i++ )
+    if ( fUseSatoko )
     {
-        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
-            assert( 0 );
+        satoko_opts_t opts;
+        satoko_default_opts(&opts);
+        opts.conf_limit = nConfLimit;
+        pSat2 = satoko_create();  
+        satoko_configure(pSat2, &opts);
+        satoko_setnvars(pSat2, pCnf->nVars);
+        for ( i = 0; i < pCnf->nClauses; i++ )
+            if ( !satoko_add_clause( pSat2, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+                assert( 0 );
+    }
+    else
+    {
+        pSat = sat_solver_new();
+        sat_solver_setnvars( pSat, pCnf->nVars );
+        for ( i = 0; i < pCnf->nClauses; i++ )
+            if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+                assert( 0 );
     }
     if ( fVerbose )
     {
@@ -254,7 +290,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         ABC_PRT( "Time", Abc_Clock() - clk );
         fflush( stdout );
     }
-    status = sat_solver_simplify(pSat);
+    status = pSat ? sat_solver_simplify(pSat) : 1;
     if ( status == 0 )
     {
         if ( fVerbose )
@@ -268,8 +304,6 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
         abctime clkPart = Abc_Clock();
         Aig_ManForEachCo( pFrames, pObj, i )
         {
-//if ( s_fInterrupt )
-//return -1;
             Lit = toLitCond( pCnf->pVarNums[pObj->Id], 0 );
             if ( fVerbose )
             {
@@ -277,12 +311,17 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
                     i % Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
             }
             clk = Abc_Clock();
-            status = sat_solver_solve( pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+            if ( pSat2 )
+                status = satoko_solve_assumptions_limit( pSat2, &Lit, 1, nConfLimit );
+            else
+                status = sat_solver_solve( pSat, &Lit, &Lit + 1, (ABC_INT64_T)nConfLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
             if ( fVerbose && (i % Saig_ManPoNum(pAig) == Saig_ManPoNum(pAig) - 1) )
             {
                 printf( "Solved %2d outputs of frame %3d.  ", 
                     Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
-                printf( "Conf =%8.0f. Imp =%11.0f. ", (double)pSat->stats.conflicts, (double)pSat->stats.propagations );
+                printf( "Conf =%8.0f. Imp =%11.0f. ", 
+                    (double)(pSat ? pSat->stats.conflicts    : solver_conflictnum(pSat2)), 
+                    (double)(pSat ? pSat->stats.propagations : satoko_stats(pSat2).n_propagations) );
                 ABC_PRT( "T", Abc_Clock() - clkPart );
                 clkPart = Abc_Clock();
                 fflush( stdout );
@@ -303,7 +342,7 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
             else if ( status == l_True )
             {
                 Vec_Int_t * vCiIds = Cnf_DataCollectPiSatNums( pCnf, pFrames );
-                int * pModel = Sat_SolverGetModel( pSat, vCiIds->pArray, vCiIds->nSize );
+                int * pModel = pSat2 ? Sat2_SolverGetModel(pSat2, vCiIds->pArray, vCiIds->nSize) : Sat_SolverGetModel(pSat, vCiIds->pArray, vCiIds->nSize);
                 pModel[Aig_ManCiNum(pFrames)] = pObj->Id;
                 pAig->pSeqModel = Fra_SmlCopyCounterExample( pAig, pFrames, pModel );
                 ABC_FREE( pModel );
@@ -323,7 +362,8 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
             }
         }
     }
-    sat_solver_delete( pSat );
+    if ( pSat )  sat_solver_delete( pSat );
+    if ( pSat2 ) satoko_destroy( pSat2 );
     Cnf_DataFree( pCnf );
     Aig_ManStop( pFrames );
     return RetValue;
