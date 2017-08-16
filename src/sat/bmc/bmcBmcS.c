@@ -573,14 +573,15 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
     int fUnfinished = 0;
     if ( !p->pPars->fVerbose )
         return;
-    Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
-    Abc_Print( 1, "Var =%8.0f. ",  (double)p->nSatVars ); // solver_varnum(p->pSats[0])
-    Abc_Print( 1, "Cla =%9.0f. ",  (double)nClauses );    // solver_clausenum(p->pSats[0])
-    Abc_Print( 1, "Conf =%7.0f. ", (double)0 );           // solver_conflictnum(p->pSats[0])
+    Abc_Print( 1, "%4d %s : ", f,   fUnfinished ? "-" : "+" );
+    Abc_Print( 1, "Var =%8.0f.  ",  (double)solver_varnum(p->pSats[0]) ); 
+    Abc_Print( 1, "Cla =%9.0f.  ",  (double)solver_clausenum(p->pSats[0]) );  
+    Abc_Print( 1, "Learn =%9.0f.  ",(double)solver_learntnum(p->pSats[0]) );  
+    Abc_Print( 1, "Conf =%7.0f.  ", (double)solver_conflictnum(p->pSats[0]) );  
     if ( p->pPars->nProcs > 1 )
-        Abc_Print( 1, "S = %3d. ", Solver );
-    Abc_Print( 1, "%4.0f MB",      1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
-    Abc_Print( 1, "%9.2f sec  ",   (float)(Abc_Clock() - clkStart)/(float)(CLOCKS_PER_SEC) );
+        Abc_Print( 1, "S = %3d. ",  Solver );
+    Abc_Print( 1, "%4.0f MB",       1.0*((int)Gia_ManMemory(p->pFrames) + Vec_IntMemory(&p->vFr2Sat))/(1<<20) );
+    Abc_Print( 1, "%9.2f sec  ",    (float)(Abc_Clock() - clkStart)/(float)(CLOCKS_PER_SEC) );
     printf( "\n" );
     fflush( stdout );
 }
