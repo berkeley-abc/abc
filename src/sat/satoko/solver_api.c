@@ -531,10 +531,14 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
         return;
     }
     fprintf(file, "p cnf %d %d\n", n_vars, wrt_lrnt ? n_orig + n_lrnts : n_orig);
-    for (i = 0; i < vec_char_size(s->assigns); i++)
-        if ( var_value(s, i) != VAR_UNASSING )
-            fprintf(file, "%d %d\n", var_value(s, i) == LIT_FALSE ? -(int)(i + !zero_var) : i + !zero_var, zero_var ? : 0);
-    
+    for (i = 0; i < vec_char_size(s->assigns); i++) {
+        if ( var_value(s, i) != VAR_UNASSING ) {
+            if (zero_var)
+                fprintf(file, "%d\n", var_value(s, i) == LIT_FALSE ? -(int)(i) : i);
+            else
+                fprintf(file, "%d 0\n", var_value(s, i) == LIT_FALSE ? -(int)(i + 1) : i + 1);
+        }
+    }
     array = vec_uint_data(s->originals);
     for (i = 0; i < vec_uint_size(s->originals); i++)
         clause_dump(file, clause_fetch(s, array[i]), !zero_var);
