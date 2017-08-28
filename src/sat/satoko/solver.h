@@ -99,6 +99,7 @@ struct solver_t_ {
     unsigned book_cdb;     /* Bookmark clause database size */
     unsigned book_vars;    /* Bookmark number of variables */
     unsigned book_trail;   /* Bookmark trail size */
+    // unsigned book_qhead;   /* Bookmark propagation queue head */
 
     /* Temporary data used for solving cones */
     vec_char_t *marks;
@@ -118,7 +119,11 @@ extern unsigned solver_clause_create(solver_t *, vec_uint_t *, unsigned);
 extern char solver_search(solver_t *);
 extern void solver_cancel_until(solver_t *, unsigned);
 extern unsigned solver_propagate(solver_t *);
+
+/* Debuging */
 extern void solver_debug_check(solver_t *, int);
+extern void solver_debug_check_trail(solver_t *);
+extern void solver_debug_check_clauses(solver_t *);
 
 //===------------------------------------------------------------------------===
 // Inline var/lit functions

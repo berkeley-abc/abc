@@ -362,14 +362,16 @@ static inline void solver_handle_conflict(solver_t *s, unsigned confl_cref)
 
 static inline void solver_analyze_final(solver_t *s, unsigned lit)
 {
-    int i;
+    unsigned i;
 
+    // printf("[Satoko] Analize final..\n");
+    // printf("[Satoko] Conflicting lit: %d\n", lit);
     vec_uint_clear(s->final_conflict);
     vec_uint_push_back(s->final_conflict, lit);
     if (solver_dlevel(s) == 0)
         return;
     vec_char_assign(s->seen, lit2var(lit), 1);
-    for (i = (int) vec_uint_size(s->trail) - 1; i >= (int) vec_uint_at(s->trail_lim, 0); i--) {
+    for (i = vec_uint_size(s->trail); i --> vec_uint_at(s->trail_lim, 0);) {
         unsigned var = lit2var(vec_uint_at(s->trail, i));
 
         if (vec_char_at(s->seen, var)) {
@@ -385,10 +387,11 @@ static inline void solver_analyze_final(solver_t *s, unsigned lit)
                         vec_char_assign(s->seen, lit2var(clause->data[j].lit), 1);
                 }
             }
-        vec_char_assign(s->seen, var, 0);
+            vec_char_assign(s->seen, var, 0);
         }
     }
     vec_char_assign(s->seen, lit2var(lit), 0);
+    // solver_debug_check_unsat(s);
 }
 
 static inline void solver_garbage_collect(solver_t *s)
@@ -511,12 +514,12 @@ unsigned solver_clause_create(solver_t *s, vec_uint_t *lits, unsigned f_learnt)
 
 void solver_cancel_until(solver_t *s, unsigned level)
 {
-    int i;
+    unsigned i;
 
     if (solver_dlevel(s) <= level)
         return;
-    for (i = (int) vec_uint_size(s->trail) - 1; i >= (int) vec_uint_at(s->trail_lim, level); i--) {
-        unsigned var = lit2var(vec_uint_at(s->trail, (unsigned) i));
+    for (i = vec_uint_size(s->trail); i --> vec_uint_at(s->trail_lim, level);) {
+        unsigned var = lit2var(vec_uint_at(s->trail, i));
 
         vec_char_assign(s->polarity, var, vec_char_at(s->assigns, var));
         vec_char_assign(s->assigns, var, VAR_UNASSING);
@@ -636,6 +639,7 @@ char solver_search(solver_t *s)
                 b_queue_clean(s->bq_lbd);
             solver_handle_conflict(s, confl_cref);
         } else {
+            // solver_debug_check_clauses(s);
             /* No conflict */
             unsigned next_lit;
 
@@ -675,8 +679,10 @@ char solver_search(solver_t *s)
             if (next_lit == UNDEF) {
                 s->stats.n_decisions++;
                 next_lit = solver_decide(s);
-                if (next_lit == UNDEF)
+                if (next_lit == UNDEF) {
+                    // solver_debug_check(s, SATOKO_SAT);
                     return SATOKO_SAT;
+                }
             }
             solver_new_decision(s, next_lit);
         }
@@ -684,23 +690,66 @@ char solver_search(solver_t *s)
 }
 
 //===------------------------------------------------------------------------===
-// Debug procedure
+// Debug procedures
 //===------------------------------------------------------------------------===
+void solver_debug_check_trail(solver_t *s)
+{
+    unsigned i;
+    unsigned *array;
+    vec_uint_t *trail_dup = vec_uint_alloc(0);
+    fprintf(stdout, "[Satoko] Checking for trail(%u) inconsistencies...\n", vec_uint_size(s->trail));
+    vec_uint_duplicate(trail_dup, s->trail);
+    vec_uint_sort(trail_dup, 1);
+    array = vec_uint_data(trail_dup);
+    for (i = 1; i < vec_uint_size(trail_dup); i++) {
+        if (array[i - 1] == lit_compl(array[i])) {
+            fprintf(stdout, "[Satoko] Inconsistent trail: %u %u\n", array[i - 1], array[i]);
+            assert(0);
+            return;
+        }
+    }
+    for (i = 0; i < vec_uint_size(trail_dup); i++) {
+        if (var_value(s, lit2var(array[i])) != lit_polarity(array[i])) {
+            fprintf(stdout, "[Satoko] Inconsistent trail assignment: %u, %u\n", vec_char_at(s->assigns, lit2var(array[i])), array[i]);
+            assert(0);
+            return;
+        }
+    }
+    fprintf(stdout, "[Satoko] Trail OK.\n");
+    vec_uint_print(trail_dup);
+    vec_uint_free(trail_dup);
+
+}
+
+void solver_debug_check_clauses(solver_t *s)
+{
+    unsigned cref, i;
+
+    fprintf(stdout, "[Satoko] Checking clauses (%d)...\n", vec_uint_size(s->originals));
+    vec_uint_foreach(s->originals, cref, i) {
+        unsigned j;
+        struct clause *clause = clause_fetch(s, cref);
+        for (j = 0; j < clause->size; j++) {
+            if (vec_uint_find(s->trail, lit_compl(clause->data[j].lit))) {
+                continue;
+            }
+            break;
+        }
+        if (j == clause->size) {
+            vec_uint_print(s->trail);
+            fprintf(stdout, "[Satoko] FOUND UNSAT CLAUSE]: (%d) ", i);
+            clause_print(clause);
+            assert(0);
+        }
+    }
+    fprintf(stdout, "[Satoko] All SAT - OK\n");
+}
+
 void solver_debug_check(solver_t *s, int result)
 {
     unsigned cref, i;
-    unsigned *array;
-
-    printf("Checking for trail(%u) inconsistencies...", vec_uint_size(s->trail));
-    array = vec_uint_data(s->trail);
-    for (i = 1; i < vec_uint_size(s->trail); i++)
-        if (array[i - 1] == lit_compl(array[i])) {
-            printf("Inconsistent trail: %u %u\n", array[i - 1], array[i]);
-            return;
-        }
-    printf(" TRAIL OK\n");
-
-    printf("Checking clauses... \n");
+    solver_debug_check_trail(s);
+    fprintf(stdout, "[Satoko] Checking clauses (%d)... \n", vec_uint_size(s->originals));
     vec_uint_foreach(s->originals, cref, i) {
         unsigned j;
         struct clause *clause = clause_fetch(s, cref);
@@ -710,10 +759,12 @@ void solver_debug_check(solver_t *s, int result)
             }
         }
         if (result == SATOKO_SAT && j == clause->size) {
-            printf("FOUND UNSAT CLAUSE!!!!\n");
+            fprintf(stdout, "[Satoko] FOUND UNSAT CLAUSE: (%d) ", i);
             clause_print(clause);
+            assert(0);
         }
     }
+    fprintf(stdout, "[Satoko] All SAT - OK\n");
 }
 
 ABC_NAMESPACE_IMPL_END
