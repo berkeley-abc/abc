@@ -38,7 +38,6 @@
     #include "sat/bsat/satSolver.h"
 #else
     #include "sat/satoko/satoko.h"
-    #include "sat/satoko/solver.h"
     #define l_Undef  0
     #define l_True   1
     #define l_False -1
@@ -47,13 +46,13 @@
     #define sat_solver_delete                satoko_destroy
     #define zsat_solver_new_seed(s)          satoko_create()
     #define zsat_solver_restart_seed(s,a)    satoko_reset(s)
-    #define sat_solver_nvars                 solver_varnum
+    #define sat_solver_nvars                 satoko_varnum
     #define sat_solver_setnvars              satoko_setnvars
     #define sat_solver_addclause(s,b,e)      satoko_add_clause(s,b,e-b)
     #define sat_solver_final                 satoko_final_conflict
     #define sat_solver_solve(s,b,e,c,x,y,z)  satoko_solve_assumptions_limit(s,b,e-b,(int)c)
-    #define sat_solver_var_value             solver_read_cex_varvalue
-    #define sat_solver_set_runtime_limit     solver_set_runtime_limit
+    #define sat_solver_var_value             satoko_read_cex_varvalue
+    #define sat_solver_set_runtime_limit     satoko_set_runtime_limit
     #define sat_solver_compress(s)             
 #endif
 

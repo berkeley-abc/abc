@@ -21,7 +21,6 @@
 #include "bmc.h"
 #include "sat/cnf/cnf.h"
 #include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
 
 
 //#define ABC_USE_EXT_SOLVERS 1
@@ -41,8 +40,8 @@
     #define bmc_sat_solver_addclause           satoko_add_clause
     #define bmc_sat_solver_addvar(s)           satoko_add_variable(s, 0)
     #define bmc_sat_solver_solve               satoko_solve_assumptions
-    #define bmc_sat_solver_read_cex_varvalue   solver_read_cex_varvalue
-    #define bmc_sat_solver_setstop             solver_set_stop
+    #define bmc_sat_solver_read_cex_varvalue   satoko_read_cex_varvalue
+    #define bmc_sat_solver_setstop             satoko_set_stop
 #endif
 
 
@@ -546,7 +545,7 @@ Cnf_Dat_t * Bmcs_ManAddNewCnf( Bmcs_Man_t * p, int f, int nFramesAdd )
     if ( pNew == NULL )
         return NULL;
     clk = Abc_Clock();
-    pCnf = Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
+    pCnf = (Cnf_Dat_t *) Mf_ManGenerateCnf( pNew, 8, 1, 0, 0, 0 );
     pMap = ABC_FALLOC( int, Gia_ManObjNum(pNew) );
     pMap[0] = 0;
     Gia_ManForEachObj1( pNew, pObj, i )
@@ -584,10 +583,10 @@ void Bmcs_ManPrintFrame( Bmcs_Man_t * p, int f, int nClauses, int Solver, abctim
         return;
     Abc_Print( 1, "%4d %s : ", f,   fUnfinished ? "-" : "+" );
 #ifndef ABC_USE_EXT_SOLVERS
-    Abc_Print( 1, "Var =%8.0f.  ",  (double)solver_varnum(p->pSats[0]) ); 
-    Abc_Print( 1, "Cla =%9.0f.  ",  (double)solver_clausenum(p->pSats[0]) );  
-    Abc_Print( 1, "Learn =%9.0f.  ",(double)solver_learntnum(p->pSats[0]) );  
-    Abc_Print( 1, "Conf =%9.0f.  ", (double)solver_conflictnum(p->pSats[0]) );  
+    Abc_Print( 1, "Var =%8.0f.  ",  (double)satoko_varnum(p->pSats[0]) ); 
+    Abc_Print( 1, "Cla =%9.0f.  ",  (double)satoko_clausenum(p->pSats[0]) );  
+    Abc_Print( 1, "Learn =%9.0f.  ",(double)satoko_learntnum(p->pSats[0]) );  
+    Abc_Print( 1, "Conf =%9.0f.  ", (double)satoko_conflictnum(p->pSats[0]) );  
 #else
     Abc_Print( 1, "Var =%8.0f.  ",  (double)p->nSatVars ); 
     Abc_Print( 1, "Cla =%9.0f.  ",  (double)nClauses );  

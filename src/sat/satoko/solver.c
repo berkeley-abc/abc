@@ -43,8 +43,8 @@ static inline int lit_is_removable(solver_t* s, unsigned lit, unsigned min_level
         unsigned *lits = &(c->data[0].lit);
 
         assert(var_reason(s, var) != UNDEF);
-        if (c->size == 2 && lit_value(s, lits[0]) == LIT_FALSE) {
-            assert(lit_value(s, lits[1]) == LIT_TRUE);
+        if (c->size == 2 && lit_value(s, lits[0]) == SATOKO_LIT_FALSE) {
+            assert(lit_value(s, lits[1]) == SATOKO_LIT_TRUE);
             stk_swap(unsigned, lits[0], lits[1]);
         }
 
@@ -117,7 +117,7 @@ static inline void clause_bin_resolution(solver_t *s, vec_uint_t *clause_lits)
     watch_list_foreach_bin(s->watches, w, neg_lit) {
         unsigned imp_lit = w->blocker;
         if (vec_uint_at(s->stamps, lit2var(imp_lit)) == s->cur_stamp &&
-            lit_value(s, imp_lit) == LIT_TRUE) {
+            lit_value(s, imp_lit) == SATOKO_LIT_TRUE) {
             counter++;
             vec_uint_assign(s->stamps, lit2var(imp_lit), (s->cur_stamp - 1));
         }
@@ -186,7 +186,7 @@ static inline unsigned solver_decide(solver_t *s)
 {
     unsigned next_var = UNDEF;
 
-    while (next_var == UNDEF || var_value(s, next_var) != VAR_UNASSING) {
+    while (next_var == UNDEF || var_value(s, next_var) != SATOKO_VAR_UNASSING) {
         if (heap_size(s->var_order) == 0) {
             next_var = UNDEF;
             return UNDEF;
@@ -195,14 +195,14 @@ static inline unsigned solver_decide(solver_t *s)
         if (solver_has_marks(s) && !var_mark(s, next_var))
             next_var = UNDEF;
     }
-    return var2lit(next_var, var_polarity(s, next_var));
+    return var2lit(next_var, satoko_var_polarity(s, next_var));
 }
 
 static inline void solver_new_decision(solver_t *s, unsigned lit)
 {
     if (solver_has_marks(s) && !var_mark(s, lit2var(lit)))
         return;
-    assert(var_value(s, lit2var(lit)) == VAR_UNASSING);
+    assert(var_value(s, lit2var(lit)) == SATOKO_VAR_UNASSING);
     vec_uint_push_back(s->trail_lim, vec_uint_size(s->trail));
     solver_enqueue(s, lit, UNDEF);
 }
@@ -270,8 +270,8 @@ static inline void solver_analyze(solver_t *s, unsigned cref, vec_uint_t *learnt
         clause = clause_fetch(s, cref);
         lits = &(clause->data[0].lit);
 
-        if (p != UNDEF && clause->size == 2 && lit_value(s, lits[0]) == LIT_FALSE) {
-            assert(lit_value(s, lits[1]) == LIT_TRUE);
+        if (p != UNDEF && clause->size == 2 && lit_value(s, lits[0]) == SATOKO_LIT_FALSE) {
+            assert(lit_value(s, lits[1]) == SATOKO_LIT_TRUE);
             stk_swap(unsigned, lits[0], lits[1] );
         }
 
@@ -522,7 +522,7 @@ void solver_cancel_until(solver_t *s, unsigned level)
         unsigned var = lit2var(vec_uint_at(s->trail, i));
 
         vec_char_assign(s->polarity, var, vec_char_at(s->assigns, var));
-        vec_char_assign(s->assigns, var, VAR_UNASSING);
+        vec_char_assign(s->assigns, var, SATOKO_VAR_UNASSING);
         vec_uint_assign(s->reasons, var, UNDEF);
         if (!heap_in_heap(s->var_order, var))
             heap_insert(s->var_order, var);
@@ -550,9 +550,9 @@ unsigned solver_propagate(solver_t *s)
         watch_list_foreach_bin(s->watches, i, p) {
             if (solver_has_marks(s) && !var_mark(s, lit2var(i->blocker)))
                 continue;
-            if (var_value(s, lit2var(i->blocker)) == VAR_UNASSING)
+            if (var_value(s, lit2var(i->blocker)) == SATOKO_VAR_UNASSING)
                 solver_enqueue(s, i->blocker, i->cref);
-            else if (lit_value(s, i->blocker) == LIT_FALSE)
+            else if (lit_value(s, i->blocker) == SATOKO_LIT_FALSE)
                 return i->cref;
         }
 
@@ -567,7 +567,7 @@ unsigned solver_propagate(solver_t *s)
                 *j++ = *i++;
                 continue;
             }
-            if (lit_value(s, i->blocker) == LIT_TRUE) {
+            if (lit_value(s, i->blocker) == SATOKO_LIT_TRUE) {
                 *j++ = *i++;
                 continue;
             }
@@ -585,13 +585,13 @@ unsigned solver_propagate(solver_t *s)
             w.blocker = lits[0];
 
             /* If 0th watch is true, then clause is already satisfied. */
-            if (lits[0] != i->blocker && lit_value(s, lits[0]) == LIT_TRUE)
+            if (lits[0] != i->blocker && lit_value(s, lits[0]) == SATOKO_LIT_TRUE)
                 *j++ = w;
             else {
                 /* Look for new watch */
                 unsigned k;
                 for (k = 2; k < clause->size; k++) {
-                    if (lit_value(s, lits[k]) != LIT_FALSE) {
+                    if (lit_value(s, lits[k]) != SATOKO_LIT_FALSE) {
                         lits[1] = lits[k];
                         lits[k] = neg_lit;
                         watch_list_push(vec_wl_at(s->watches, lit_compl(lits[1])), w, 0);
@@ -602,7 +602,7 @@ unsigned solver_propagate(solver_t *s)
                 *j++ = w;
 
                 /* Clause becomes unit under this assignment */
-                if (lit_value(s, lits[0]) == LIT_FALSE) {
+                if (lit_value(s, lits[0]) == SATOKO_LIT_FALSE) {
                     conf_cref = i->cref;
                     s->i_qhead = vec_uint_size(s->trail);
                     i++;
@@ -665,9 +665,9 @@ char solver_search(solver_t *s)
             next_lit = UNDEF;
             while (solver_dlevel(s) < vec_uint_size(s->assumptions)) {
                 unsigned lit = vec_uint_at(s->assumptions, solver_dlevel(s));
-                if (lit_value(s, lit) == LIT_TRUE) {
+                if (lit_value(s, lit) == SATOKO_LIT_TRUE) {
                     vec_uint_push_back(s->trail_lim, vec_uint_size(s->trail));
-                } else if (lit_value(s, lit) == LIT_FALSE) {
+                } else if (lit_value(s, lit) == SATOKO_LIT_FALSE) {
                     solver_analyze_final(s, lit_compl(lit));
                     return SATOKO_UNSAT;
                 } else {

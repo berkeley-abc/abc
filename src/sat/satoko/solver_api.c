@@ -27,7 +27,7 @@ static inline void solver_rebuild_order(solver_t *s)
     vec_uint_t *vars = vec_uint_alloc(vec_char_size(s->assigns));
 
     for (var = 0; var < vec_char_size(s->assigns); var++)
-        if (var_value(s, var) == VAR_UNASSING)
+        if (var_value(s, var) == SATOKO_VAR_UNASSING)
             vec_uint_push_back(vars, var);
     heap_build(s->var_order, vars);
     vec_uint_free(vars);
@@ -38,7 +38,7 @@ static inline int clause_is_satisfied(solver_t *s, struct clause *clause)
     unsigned i;
     unsigned *lits = &(clause->data[0].lit);
     for (i = 0; i < clause->size; i++)
-        if (lit_value(s, lits[i]) == LIT_TRUE)
+        if (lit_value(s, lits[i]) == SATOKO_LIT_TRUE)
             return SATOKO_OK;
     return SATOKO_ERR;
 }
@@ -226,7 +226,7 @@ int satoko_simplify(solver_t * s)
 void satoko_setnvars(solver_t *s, int nvars)
 {
     int i;
-    for (i = solver_varnum(s); i < nvars; i++)
+    for (i = satoko_varnum(s); i < nvars; i++)
         satoko_add_variable(s, 0);
 }
 
@@ -237,7 +237,7 @@ int satoko_add_variable(solver_t *s, char sign)
     vec_wl_push(s->watches);
     vec_act_push_back(s->activity, 0);
     vec_uint_push_back(s->levels, 0);
-    vec_char_push_back(s->assigns, VAR_UNASSING);
+    vec_char_push_back(s->assigns, SATOKO_VAR_UNASSING);
     vec_char_push_back(s->polarity, sign);
     vec_uint_push_back(s->reasons, UNDEF);
     vec_uint_push_back(s->stamps, 0);
@@ -258,15 +258,15 @@ int satoko_add_clause(solver_t *s, int *lits, int size)
     qsort((void *) lits, size, sizeof(unsigned), stk_uint_compare);
     max_var = lit2var(lits[size - 1]);
     while (max_var >= vec_act_size(s->activity))
-        satoko_add_variable(s, LIT_FALSE);
+        satoko_add_variable(s, SATOKO_LIT_FALSE);
 
     vec_uint_clear(s->temp_lits);
     j = 0;
     prev_lit = UNDEF;
     for (i = 0; i < (unsigned)size; i++) {
-        if ((unsigned)lits[i] == lit_compl(prev_lit) || lit_value(s, lits[i]) == LIT_TRUE)
+        if ((unsigned)lits[i] == lit_compl(prev_lit) || lit_value(s, lits[i]) == SATOKO_LIT_TRUE)
             return SATOKO_OK;
-        else if ((unsigned)lits[i] != prev_lit && var_value(s, lit2var(lits[i])) == VAR_UNASSING) {
+        else if ((unsigned)lits[i] != prev_lit && var_value(s, lit2var(lits[i])) == SATOKO_VAR_UNASSING) {
             prev_lit = lits[i];
             vec_uint_push_back(s->temp_lits, lits[i]);
         }
@@ -287,7 +287,7 @@ int satoko_add_clause(solver_t *s, int *lits, int size)
 
 void satoko_assump_push(solver_t *s, int lit)
 {
-    assert(lit2var(lit) < solver_varnum(s));
+    assert(lit2var(lit) < satoko_varnum(s));
     // printf("[Satoko] Push assumption: %d\n", lit);
     vec_uint_push_back(s->assumptions, lit);
 }
@@ -337,8 +337,8 @@ int satoko_solve_assumptions(solver_t *s, int * plits, int nlits)
 {
     int i, status;
     // printf("\n[Satoko] Solve with assumptions.. (%d)\n", vec_uint_size(s->assumptions));
-    // printf("[Satoko]   + Variables: %d\n", solver_varnum(s));
-    // printf("[Satoko]   + Clauses: %d\n", solver_clausenum(s));
+    // printf("[Satoko]   + Variables: %d\n", satoko_varnum(s));
+    // printf("[Satoko]   + Clauses: %d\n", satoko_clausenum(s));
     // printf("[Satoko]   + Trail size: %d\n", vec_uint_size(s->trail));
     // printf("[Satoko]   + Queue head: %d\n", s->i_qhead);
     // solver_debug_check_trail(s);
@@ -365,9 +365,14 @@ int satoko_final_conflict(solver_t *s, int **out)
     return vec_uint_size(s->final_conflict);
 }
 
-satoko_stats_t satoko_stats(satoko_t *s)
+satoko_stats_t * satoko_stats(satoko_t *s)
 {
-    return s->stats;
+    return &s->stats;
+}
+
+satoko_opts_t * satoko_options(satoko_t *s)
+{
+    return &s->opts;
 }
 
 void satoko_bookmark(satoko_t *s)
@@ -493,7 +498,7 @@ void satoko_mark_cone(satoko_t *s, int * pvars, int n_vars)
 {
     int i;
     if (!solver_has_marks(s))
-        s->marks = vec_char_init(solver_varnum(s), 0);
+        s->marks = vec_char_init(satoko_varnum(s), 0);
     for (i = 0; i < n_vars; i++) {
         var_set_mark(s, pvars[i]);
         vec_sdbl_assign(s->activity, pvars[i], 0);
@@ -532,11 +537,11 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
     }
     fprintf(file, "p cnf %d %d\n", n_vars, wrt_lrnt ? n_orig + n_lrnts : n_orig);
     for (i = 0; i < vec_char_size(s->assigns); i++) {
-        if ( var_value(s, i) != VAR_UNASSING ) {
+        if ( var_value(s, i) != SATOKO_VAR_UNASSING ) {
             if (zero_var)
-                fprintf(file, "%d\n", var_value(s, i) == LIT_FALSE ? -(int)(i) : i);
+                fprintf(file, "%d\n", var_value(s, i) == SATOKO_LIT_FALSE ? -(int)(i) : i);
             else
-                fprintf(file, "%d 0\n", var_value(s, i) == LIT_FALSE ? -(int)(i + 1) : i + 1);
+                fprintf(file, "%d 0\n", var_value(s, i) == SATOKO_LIT_FALSE ? -(int)(i + 1) : i + 1);
         }
     }
     array = vec_uint_data(s->originals);
@@ -552,5 +557,56 @@ void satoko_write_dimacs(satoko_t *s, char *fname, int wrt_lrnt, int zero_var)
 
 }
 
+int satoko_varnum(satoko_t *s)
+{
+    return vec_char_size(s->assigns);
+}
+
+int satoko_clausenum(satoko_t *s)
+{
+    return vec_uint_size(s->originals);
+}
+
+int satoko_learntnum(satoko_t *s)
+{
+    return vec_uint_size(s->learnts);
+}
+
+int satoko_conflictnum(satoko_t *s)
+{
+    return satoko_stats(s)->n_conflicts;
+}
+
+void satoko_set_stop(satoko_t *s, int * pstop)
+{
+    s->pstop = pstop;
+}
+
+void satoko_set_stop_func(satoko_t *s, int (*fnct)(int))
+{
+    s->pFuncStop = fnct;
+}
+
+void satoko_set_runid(satoko_t *s, int id)
+{
+    s->RunId = id;
+}
+
+int satoko_read_cex_varvalue(satoko_t *s, int ivar)
+{
+    return satoko_var_polarity(s, ivar) == SATOKO_LIT_TRUE;
+}
+
+abctime satoko_set_runtime_limit(satoko_t* s, abctime Limit)
+{
+    abctime nRuntimeLimit = s->nRuntimeLimit;
+    s->nRuntimeLimit = Limit;
+    return nRuntimeLimit;
+}
+
+char satoko_var_polarity(satoko_t *s, unsigned var)
+{
+    return vec_char_at(s->polarity, var);
+}
 
 ABC_NAMESPACE_IMPL_END

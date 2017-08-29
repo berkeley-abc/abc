@@ -20,7 +20,6 @@
 
 #include "bmc.h"
 #include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -53,9 +52,9 @@ static inline int Bmc_MeshUVar( int Me[102][102], int x, int y ) { return Me[x][
 ***********************************************************************/
 static inline int Bmc_MeshVarValue( satoko_t * p, int v )
 {
-//    int value = var_value(p, v) != VAR_UNASSING ? var_value(p, v) : var_polarity(p, v);
-//    return value == LIT_TRUE;
-    return var_polarity(p, v) == LIT_TRUE;
+//    int value = var_value(p, v) != SATOKO_VAR_UNASSING ? var_value(p, v) : satoko_var_polarity(p, v);
+//    return value == SATOKO_LIT_TRUE;
+    return satoko_var_polarity(p, v) == SATOKO_LIT_TRUE;
 }
 
 /**Function*************************************************************
@@ -360,7 +359,7 @@ void Bmc_MeshTest( Gia_Man_t * p, int X, int Y, int T, int fVerbose )
         }
         printf( "Satisfying solution found. " );
 /*
-        iVar = solver_varnum(pSat);
+        iVar = satoko_varnum(pSat);
         for ( i = 0; i < iVar; i++ )
             if ( Bmc_MeshVarValue(pSat, i) )
                 printf( "%d ", i );

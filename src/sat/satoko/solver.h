@@ -30,11 +30,7 @@
 #include "misc/util/abc_global.h"
 ABC_NAMESPACE_HEADER_START
 
-enum {
-    LIT_FALSE = 1,
-    LIT_TRUE = 0,
-    VAR_UNASSING = 3
-};
+
 
 #define UNDEF 0xFFFFFFFF
 
@@ -145,11 +141,6 @@ static inline char var_value(solver_t *s, unsigned var)
     return vec_char_at(s->assigns, var);
 }
 
-static inline char var_polarity(solver_t *s, unsigned var)
-{
-    return vec_char_at(s->polarity, var);
-}
-
 static inline unsigned var_dlevel(solver_t *s, unsigned var)
 {
     return vec_uint_at(s->levels, var);
@@ -226,44 +217,14 @@ static inline int solver_enqueue(solver_t *s, unsigned lit, unsigned reason)
     return SATOKO_OK;
 }
 
-static inline int solver_varnum(solver_t *s)
-{
-    return vec_char_size(s->assigns);
-}
-static inline int solver_clausenum(solver_t *s)
-{
-    return vec_uint_size(s->originals);
-}
-static inline int solver_learntnum(solver_t *s)
-{
-    return vec_uint_size(s->learnts);
-}
-static inline int solver_conflictnum(solver_t *s)
-{
-    return satoko_stats(s).n_conflicts;
-}
-
-static inline int solver_has_marks(solver_t *s)
+static inline int solver_has_marks(satoko_t *s)
 {
     return (int)(s->marks != NULL);
 }
-static inline int solver_stop(solver_t *s)
+
+static inline int solver_stop(satoko_t *s)
 {
     return s->pstop && *s->pstop;
-}
-static inline void solver_set_stop(solver_t *s, int * pstop)
-{
-    s->pstop = pstop;
-}
-static inline int solver_read_cex_varvalue(solver_t *s, int ivar)
-{
-    return var_polarity(s, ivar) == LIT_TRUE;
-}
-static abctime solver_set_runtime_limit(solver_t* s, abctime Limit)
-{
-    abctime nRuntimeLimit = s->nRuntimeLimit;
-    s->nRuntimeLimit = Limit;
-    return nRuntimeLimit;
 }
 
 //===------------------------------------------------------------------------===

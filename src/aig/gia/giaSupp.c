@@ -20,7 +20,6 @@
 
 #include "gia.h"
 #include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -389,7 +388,7 @@ Gia_Man2Min_t * Gia_Man2SuppStart( Gia_Man_t * pGia )
     p->vFanins   = Vec_PtrAlloc( 100 );
     p->vSatVars  = Vec_IntAlloc( 100 );
     p->iPattern  = 1;
-    p->pSat->opts.learnt_ratio = 0; // prevent garbage collection
+    satoko_options(p->pSat)->learnt_ratio = 0; // prevent garbage collection
     return p;
 }
 void Gia_Man2SuppStop( Gia_Man2Min_t * p )
@@ -725,7 +724,7 @@ int Gia_Min2ManSolve( Gia_Man2Min_t * p )
 //        assert( iTemp == -1 );
     Vec_IntFillExtra( &p->pGia->vCopies, Gia_ManObjNum(p->pGia), -1 );
     Vec_IntClear( p->vSatVars );
-    assert( solver_varnum(p->pSat) == 0 );
+    assert( satoko_varnum(p->pSat) == 0 );
     iVar0 = Gia_Min2ObjGetCnfVar( p, iObj0 );
     iVar1 = Gia_Min2ObjGetCnfVar( p, iObj1 );
     satoko_assump_push( p->pSat, Abc_Var2Lit(iVar0, Abc_LitIsCompl(p->iLits[0])) );
@@ -739,7 +738,7 @@ int Gia_Min2ManSolve( Gia_Man2Min_t * p )
         assert( Gia_Min2ManSimulate(p) == 1 );
         for ( n = 0; n < 2; n++ )
             Vec_IntForEachEntry( p->vCis[n], iTemp, i )
-                Gia_Min2SimSetInputBit( p, iTemp, var_polarity(p->pSat, Gia_Min2ObjSatId(p->pGia, Gia_ManObj(p->pGia, iTemp))) == LIT_TRUE, p->iPattern );
+                Gia_Min2SimSetInputBit( p, iTemp, satoko_var_polarity(p->pSat, Gia_Min2ObjSatId(p->pGia, Gia_ManObj(p->pGia, iTemp))) == SATOKO_LIT_TRUE, p->iPattern );
         //assert( Gia_Min2ManSimulate(p) == 0 );
         p->iPattern = p->iPattern == 63 ? 1 : p->iPattern + 1;
         p->nSatSat++;

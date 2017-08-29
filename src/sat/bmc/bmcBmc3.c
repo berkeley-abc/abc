@@ -22,7 +22,6 @@
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
 #include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
 #include "misc/vec/vecHsh.h"
 #include "misc/vec/vecWec.h"
 #include "bmc.h"
@@ -798,9 +797,9 @@ void Saig_Bmc3ManStop( Gia_ManBmc_t * p )
             p->pSat ? p->pSat->nLearntDelta     : 0, 
             p->pSat ? p->pSat->nLearntRatio     : 0, 
             p->pSat ? p->pSat->nDBreduces       : 0, 
-            p->pSat ? sat_solver_nvars(p->pSat) : solver_varnum(p->pSat2), 
+            p->pSat ? sat_solver_nvars(p->pSat) : satoko_varnum(p->pSat2), 
             nUsedVars, 
-            100.0*nUsedVars/(p->pSat ? sat_solver_nvars(p->pSat) : solver_varnum(p->pSat2)) );
+            100.0*nUsedVars/(p->pSat ? sat_solver_nvars(p->pSat) : satoko_varnum(p->pSat2)) );
         Abc_Print( 1, "Buffs = %d. Dups = %d.   Hash hits = %d.  Hash misses = %d.  UniProps = %d.\n", 
             p->nBufNum, p->nDupNum, p->nHashHit, p->nHashMiss, p->nUniProps );
     }
@@ -1382,7 +1381,7 @@ Abc_Cex_t * Saig_ManGenerateCex( Gia_ManBmc_t * p, int f, int i )
             int iLit = Saig_ManBmcLiteral( p, pObjPi, j );
             if ( p->pSat2 )
             {
-                if ( iLit != ~0 && solver_read_cex_varvalue(p->pSat2, lit_var(iLit)) )
+                if ( iLit != ~0 && satoko_read_cex_varvalue(p->pSat2, lit_var(iLit)) )
                     Abc_InfoSetBit( pCex->pData, iBit + k );
             }
             else
@@ -1465,8 +1464,8 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     }
     else
     {
-        p->pSat2->RunId        = p->pPars->RunId;
-        p->pSat2->pFuncStop    = p->pPars->pFuncStop;
+        satoko_set_runid(p->pSat2, p->pPars->RunId);
+        satoko_set_stop_func(p->pSat2, p->pPars->pFuncStop);
     }
     if ( pPars->fSolveAll && p->vCexes == NULL )
         p->vCexes = Vec_PtrStart( Saig_ManPoNum(pAig) );
@@ -1483,7 +1482,7 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     if ( nTimeToStop )
     {
         if ( p->pSat2 )
-            solver_set_runtime_limit( p->pSat2, nTimeToStop );
+            satoko_set_runtime_limit( p->pSat2, nTimeToStop );
         else
             sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     }
@@ -1614,7 +1613,7 @@ clkOther += Abc_Clock() - clk2;
                 assert( p->pTime4Outs[i] > 0 );
                 clkOne = Abc_Clock();
                 if ( p->pSat2 )
-                    solver_set_runtime_limit( p->pSat2, p->pTime4Outs[i] + Abc_Clock() );
+                    satoko_set_runtime_limit( p->pSat2, p->pTime4Outs[i] + Abc_Clock() );
                 else
                     sat_solver_set_runtime_limit( p->pSat, p->pTime4Outs[i] + Abc_Clock() );
             }
@@ -1673,8 +1672,8 @@ nTimeSat += clkSatRun;
                     {
                         Abc_Print( 1, "%4d %s : ", f,  fUnfinished ? "-" : "+" );
                         Abc_Print( 1, "Var =%8.0f. ",  (double)p->nSatVars );
-                        Abc_Print( 1, "Cla =%9.0f. ",  (double)(p->pSat ? p->pSat->stats.clauses   : solver_clausenum(p->pSat2)) );
-                        Abc_Print( 1, "Conf =%7.0f. ", (double)(p->pSat ? p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) );
+                        Abc_Print( 1, "Cla =%9.0f. ",  (double)(p->pSat ? p->pSat->stats.clauses   : satoko_clausenum(p->pSat2)) );
+                        Abc_Print( 1, "Conf =%7.0f. ", (double)(p->pSat ? p->pSat->stats.conflicts : satoko_conflictnum(p->pSat2)) );
 //                        Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
                         Abc_Print( 1, "Uni =%7.0f. ",(double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
 //                        ABC_PRT( "Time", Abc_Clock() - clk );
@@ -1721,7 +1720,7 @@ nTimeSat += clkSatRun;
                 if ( nTimeToStop )
                 {
                     if ( p->pSat2 )
-                        solver_set_runtime_limit( p->pSat2, nTimeToStop );
+                        satoko_set_runtime_limit( p->pSat2, nTimeToStop );
                     else
                         sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
                 }
@@ -1738,7 +1737,7 @@ nTimeSat += clkSatRun;
                     Lit = Saig_ManBmcCreateCnf( p, pObj, f );
                     if ( p->pSat2 )
                     {
-                        if ( solver_read_cex_varvalue(p->pSat2, lit_var(Lit)) == Abc_LitIsCompl(Lit) )
+                        if ( satoko_read_cex_varvalue(p->pSat2, lit_var(Lit)) == Abc_LitIsCompl(Lit) )
                             continue;
                     }
                     else
@@ -1781,7 +1780,7 @@ nTimeUndec += clkSatRun;
         }
         if ( pPars->fVerbose ) 
         {
-            if ( fFirst == 1 && f > 0 && (p->pSat ? p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) > 1 )
+            if ( fFirst == 1 && f > 0 && (p->pSat ? p->pSat->stats.conflicts : satoko_conflictnum(p->pSat2)) > 1 )
             {
                 fFirst = 0;
 //                Abc_Print( 1, "Outputs of frames up to %d are trivially UNSAT.\n", f );
@@ -1789,8 +1788,8 @@ nTimeUndec += clkSatRun;
             Abc_Print( 1, "%4d %s : ", f, fUnfinished ? "-" : "+" );
             Abc_Print( 1, "Var =%8.0f. ", (double)p->nSatVars );
 //            Abc_Print( 1, "Used =%8.0f. ", (double)sat_solver_count_usedvars(p->pSat) );
-            Abc_Print( 1, "Cla =%9.0f. ", (double)(p->pSat ? p->pSat->stats.clauses   : solver_clausenum(p->pSat2)) );
-            Abc_Print( 1, "Conf =%7.0f. ",(double)(p->pSat ? p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) );
+            Abc_Print( 1, "Cla =%9.0f. ", (double)(p->pSat ? p->pSat->stats.clauses   : satoko_clausenum(p->pSat2)) );
+            Abc_Print( 1, "Conf =%7.0f. ",(double)(p->pSat ? p->pSat->stats.conflicts : satoko_conflictnum(p->pSat2)) );
 //            Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
             Abc_Print( 1, "Uni =%7.0f. ", (double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
             if ( pPars->fSolveAll )

@@ -21,7 +21,6 @@
 #include "gia.h"
 #include "sat/cnf/cnf.h"
 #include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -133,7 +132,7 @@ int Gia_ManSatokoCallOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutput )
     if ( pSat )
     {
         status = satoko_solve( pSat );
-        Cost = (unsigned)pSat->stats.n_conflicts;
+        Cost = satoko_stats(pSat)->n_conflicts;
         satoko_destroy( pSat );
     }
     else 

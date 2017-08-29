@@ -25,6 +25,12 @@ enum {
     SATOKO_UNSAT = -1
 };
 
+enum {
+    SATOKO_LIT_FALSE = 1,
+    SATOKO_LIT_TRUE = 0,
+    SATOKO_VAR_UNASSING = 3
+};
+
 struct solver_t_;
 typedef struct solver_t_ satoko_t;
 
@@ -120,7 +126,20 @@ extern int satoko_final_conflict(satoko_t *, int **);
  *   file will not be a DIMACS. (value 1 will use 0 as ID).
  */
 extern void satoko_write_dimacs(satoko_t *, char *, int, int);
-extern satoko_stats_t satoko_stats(satoko_t *);
+extern satoko_stats_t * satoko_stats(satoko_t *);
+extern satoko_opts_t * satoko_options(satoko_t *);
+
+extern int satoko_varnum(satoko_t *);
+extern int satoko_clausenum(satoko_t *);
+extern int satoko_learntnum(satoko_t *);
+extern int satoko_conflictnum(satoko_t *);
+extern void satoko_set_stop(satoko_t *, int *);
+extern void satoko_set_stop_func(satoko_t *s, int (*fnct)(int));
+extern void satoko_set_runid(satoko_t *, int);
+extern int satoko_read_cex_varvalue(satoko_t *, int);
+extern abctime satoko_set_runtime_limit(satoko_t *, abctime);
+extern char satoko_var_polarity(satoko_t *, unsigned);
+
 
 ABC_NAMESPACE_HEADER_END
 #endif /* satoko__satoko_h */

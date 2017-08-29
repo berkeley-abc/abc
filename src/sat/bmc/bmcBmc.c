@@ -22,7 +22,6 @@
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
 #include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
 #include "bmc.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -190,7 +189,7 @@ int * Sat2_SolverGetModel( satoko_t * p, int * pVars, int nVars )
     int i;
     pModel = ABC_CALLOC( int, nVars+1 );
     for ( i = 0; i < nVars; i++ )
-        pModel[i] = solver_read_cex_varvalue(p, pVars[i]);
+        pModel[i] = satoko_read_cex_varvalue(p, pVars[i]);
     return pModel;    
 }
  
@@ -320,8 +319,8 @@ int Saig_ManBmcSimple( Aig_Man_t * pAig, int nFrames, int nSizeMax, int nConfLim
                 printf( "Solved %2d outputs of frame %3d.  ", 
                     Saig_ManPoNum(pAig), i / Saig_ManPoNum(pAig) );
                 printf( "Conf =%8.0f. Imp =%11.0f. ", 
-                    (double)(pSat ? pSat->stats.conflicts    : solver_conflictnum(pSat2)), 
-                    (double)(pSat ? pSat->stats.propagations : satoko_stats(pSat2).n_propagations) );
+                    (double)(pSat ? pSat->stats.conflicts    : satoko_conflictnum(pSat2)), 
+                    (double)(pSat ? pSat->stats.propagations : satoko_stats(pSat2)->n_propagations) );
                 ABC_PRT( "T", Abc_Clock() - clkPart );
                 clkPart = Abc_Clock();
                 fflush( stdout );

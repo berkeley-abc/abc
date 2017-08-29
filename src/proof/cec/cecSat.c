@@ -21,7 +21,6 @@
 #include "aig/gia/gia.h"
 #include "misc/util/utilTruth.h"
 #include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
 #include "cec.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -660,6 +659,7 @@ Cec2_Man_t * Cec2_ManCreate( Gia_Man_t * pAig, Cec2_Par_t * pPars )
 {
     Cec2_Man_t * p;
     Gia_Obj_t * pObj; int i;
+    satoko_opts_t Pars;
     //assert( Gia_ManRegNum(pAig) == 0 );
     p = ABC_CALLOC( Cec2_Man_t, 1 );
     memset( p, 0, sizeof(Cec2_Man_t) );
@@ -675,6 +675,7 @@ Cec2_Man_t * Cec2_ManCreate( Gia_Man_t * pAig, Cec2_Par_t * pPars )
     Gia_ManHashAlloc( p->pNew );
     Vec_IntFill( &p->pNew->vCopies, Gia_ManObjNum(p->pNew), -1 );
     // SAT solving
+    memset( &Pars, 0, sizeof(satoko_opts_t) );
     p->pSat         = satoko_create();
     p->vFrontier    = Vec_PtrAlloc( 1000 );
     p->vFanins      = Vec_PtrAlloc( 100 );
@@ -682,7 +683,8 @@ Cec2_Man_t * Cec2_ManCreate( Gia_Man_t * pAig, Cec2_Par_t * pPars )
     p->vSatVars     = Vec_IntAlloc( 100 );
     p->vObjSatPairs = Vec_IntAlloc( 100 );
     p->vCexTriples  = Vec_IntAlloc( 100 );
-    p->pSat->opts.conf_limit = pPars->nConfLimit;
+    Pars.conf_limit = pPars->nConfLimit;
+    satoko_configure(p->pSat, &Pars);
     // remember pointer to the solver in the AIG manager
     pAig->pData     = p->pSat;
     return p;
@@ -742,7 +744,7 @@ int Cec2_ManVerify_rec( Gia_Man_t * p, int iObj, satoko_t * pSat )
         return pObj->fMark1;
     Gia_ObjSetTravIdCurrentId(p, iObj);
     if ( Gia_ObjIsCi(pObj) )
-        return pObj->fMark1 = var_polarity(pSat, Cec2_ObjSatId(p, pObj)) == LIT_TRUE;
+        return pObj->fMark1 = satoko_var_polarity(pSat, Cec2_ObjSatId(p, pObj)) == SATOKO_LIT_TRUE;
     assert( Gia_ObjIsAnd(pObj) );
     Value0 = Cec2_ManVerify_rec( p, Gia_ObjFaninId0(pObj, iObj), pSat ) ^ Gia_ObjFaninC0(pObj);
     Value1 = Cec2_ManVerify_rec( p, Gia_ObjFaninId1(pObj, iObj), pSat ) ^ Gia_ObjFaninC1(pObj);
@@ -750,8 +752,8 @@ int Cec2_ManVerify_rec( Gia_Man_t * p, int iObj, satoko_t * pSat )
 }
 void Cec2_ManVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase, satoko_t * pSat )
 {
-//    int val0 = var_polarity(pSat, Cec2_ObjSatId(p, Gia_ManObj(p, iObj0))) == LIT_TRUE;
-//    int val1 = var_polarity(pSat, Cec2_ObjSatId(p, Gia_ManObj(p, iObj1))) == LIT_TRUE;
+//    int val0 = satoko_var_polarity(pSat, Cec2_ObjSatId(p, Gia_ManObj(p, iObj0))) == SATOKO_LIT_TRUE;
+//    int val1 = satoko_var_polarity(pSat, Cec2_ObjSatId(p, Gia_ManObj(p, iObj1))) == SATOKO_LIT_TRUE;
     int Value0, Value1;
     Gia_ManIncrementTravId( p );
     Value0 = Cec2_ManVerify_rec( p, iObj0, pSat );
@@ -805,7 +807,7 @@ int Cec2_ManSolveTwo( Cec2_Man_t * p, int iObj0, int iObj1, int fPhase )
     if (iObj1 < iObj0) 
         iObj1 ^= iObj0, iObj0 ^= iObj1, iObj1 ^= iObj0;
     assert( iObj0 < iObj1 );
-    assert( p->pPars->fUseCones || solver_varnum(p->pSat) == 0 );
+    assert( p->pPars->fUseCones || satoko_varnum(p->pSat) == 0 );
     if ( !iObj0 && Cec2_ObjSatId(p->pNew, Gia_ManConst0(p->pNew)) == -1 )
         Cec2_ObjSetSatId( p->pNew, Gia_ManConst0(p->pNew), satoko_add_variable(p->pSat, 0) );
     iVar0 = Cec2_ObjGetCnfVar( p, iObj0 );
@@ -859,7 +861,7 @@ int Cec2_ManSweepNode( Cec2_Man_t * p, int iObj )
         p->pAig->iPatsPi = (p->pAig->iPatsPi == 64 * p->pAig->nSimWords - 1) ? 1 : p->pAig->iPatsPi + 1;
         assert( p->pAig->iPatsPi > 0 && p->pAig->iPatsPi < 64 * p->pAig->nSimWords );
         Vec_IntForEachEntryDouble( p->vObjSatPairs, IdAig, IdSat, i )
-            Cec2_ObjSimSetInputBit( p->pAig, IdAig, var_polarity(p->pSat, IdSat) == LIT_TRUE );
+            Cec2_ObjSimSetInputBit( p->pAig, IdAig, satoko_var_polarity(p->pSat, IdSat) == SATOKO_LIT_TRUE );
         p->timeSatSat += Abc_Clock() - clk;
         RetValue = 0;
     }
@@ -884,7 +886,7 @@ int Cec2_ManSweepNode( Cec2_Man_t * p, int iObj )
     clk = Abc_Clock();
     satoko_rollback( p->pSat );
     p->timeExtra += Abc_Clock() - clk;
-    p->pSat->stats.n_conflicts = 0;
+    satoko_stats(p->pSat)->n_conflicts = 0;
     return RetValue;
 }
 void Cec2_ManPrintStats( Gia_Man_t * p, Cec2_Par_t * pPars, Cec2_Man_t * pMan )

@@ -21,7 +21,6 @@
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
 #include "sat/satoko/satoko.h"
-#include "sat/satoko/solver.h"
 #include "proof/ssw/ssw.h"
 #include "bmc.h"
 
@@ -690,7 +689,7 @@ Abc_Cex_t * Saig_BmcGenerateCounterExample( Saig_Bmc_t * p )
             iVarNum = Saig_BmcSatNum( p, pObjFrm );
             if ( iVarNum == 0 )
                 continue;
-            if ( p->pSat2 ? solver_read_cex_varvalue(p->pSat2, iVarNum) : sat_solver_var_value(p->pSat, iVarNum) )
+            if ( p->pSat2 ? satoko_read_cex_varvalue(p->pSat2, iVarNum) : sat_solver_var_value(p->pSat, iVarNum) )
                 Abc_InfoSetBit( pCex->pData, pCex->nRegs + Saig_ManPiNum(p->pAig) * f + i );
         }
     }
@@ -729,7 +728,7 @@ int Saig_BmcSolveTargets( Saig_Bmc_t * p, int nStart, int * pnOutsSolved )
     {
         if ( ((*pnOutsSolved)++ / Saig_ManPoNum(p->pAig)) < nStart )
             continue;
-        if ( p->nConfMaxAll && (p->pSat ? p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) > p->nConfMaxAll )
+        if ( p->nConfMaxAll && (p->pSat ? p->pSat->stats.conflicts : satoko_conflictnum(p->pSat2)) > p->nConfMaxAll )
             return l_Undef;
         VarNum = Saig_BmcSatNum( p, Aig_Regular(pObj) );
         Lit = toLitCond( VarNum, Aig_IsComplement(pObj) );
@@ -838,7 +837,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
     if ( nTimeOut )
     {
         if ( p->pSat2 )
-            solver_set_runtime_limit( p->pSat2, nTimeToStop );
+            satoko_set_runtime_limit( p->pSat2, nTimeToStop );
         else
             sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     }
@@ -867,7 +866,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         {
             printf( "%4d : F =%5d. O =%4d.  And =%8d. Var =%8d. Conf =%7d. ", 
                 Iter, p->iFrameLast, p->iOutputLast, Aig_ManNodeNum(p->pFrm), p->nSatVars, 
-                p->pSat ? (int)p->pSat->stats.conflicts : solver_conflictnum(p->pSat2) );   
+                p->pSat ? (int)p->pSat->stats.conflicts : satoko_conflictnum(p->pSat2) );   
             printf( "%4.0f MB",     4.0*(p->iFrameLast+1)*p->nObjs/(1<<20) );
             printf( "%9.2f sec", (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
             printf( "\n" );
@@ -922,7 +921,7 @@ int Saig_BmcPerform( Aig_Man_t * pAig, int nStart, int nFramesMax, int nNodesMax
         {
             if ( p->iFrameLast >= p->nFramesMax )
                 printf( "Reached limit on the number of timeframes (%d).\n", p->nFramesMax );
-            else if ( p->nConfMaxAll && (p->pSat ? (int)p->pSat->stats.conflicts : solver_conflictnum(p->pSat2)) > p->nConfMaxAll )
+            else if ( p->nConfMaxAll && (p->pSat ? (int)p->pSat->stats.conflicts : satoko_conflictnum(p->pSat2)) > p->nConfMaxAll )
                 printf( "Reached global conflict limit (%d).\n", p->nConfMaxAll );
             else if ( nTimeOut && Abc_Clock() > nTimeToStop )
                 printf( "Reached timeout (%d seconds).\n", nTimeOut );
