@@ -701,11 +701,11 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             break;
     }
     p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSat;
-    Bmcs_ManPrintTime( p );
-    Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
         printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    Bmcs_ManPrintTime( p );
+    Bmcs_ManStop( p );
     return RetValue;
 }
 
