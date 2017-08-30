@@ -851,11 +851,13 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         {
             for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
             {
+                abctime clk = Abc_Clock();
                 int iObj = Gia_ObjId( p->pFrames, Gia_ManCo(p->pFrames, (f+k) * Gia_ManPoNum(pGia) + i) );
                 int iLit = Abc_Var2Lit( Vec_IntEntry(&p->vFr2Sat, iObj), 0 );
                 if ( pPars->nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= pPars->nTimeOut )
                     break;
                 status = Bmcs_ManPerform_Solve( p, iLit, WorkerThread, ThData, pPars->nProcs, &Solver );
+                p->timeSat += Abc_Clock() - clk;
                 if ( status == l_False ) // unsat
                 {
                     if ( i == Gia_ManPoNum(pGia)-1 )
@@ -896,11 +898,11 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         ThData[i].fWorking = 1;
     }
     p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSat;
-    Bmcs_ManPrintTime( p );
-    Bmcs_ManStop( p );
     if ( RetValue == -1 && !pPars->fNotVerbose )
         printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    Bmcs_ManPrintTime( p );
+    Bmcs_ManStop( p );
     return RetValue;
 }
 
