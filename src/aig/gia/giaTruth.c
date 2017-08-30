@@ -433,6 +433,8 @@ void Gia_ObjCollectInternalCut( Gia_Man_t * p, int iRoot, Vec_Int_t * vLeaves )
     assert( Gia_ObjIsAnd(Gia_ManObj(p, iRoot)) );
     Vec_IntForEachEntry( vLeaves, iObj, i )
     {
+        if ( Gia_ObjHasNumId(p, iObj) ) // if cuts have repeated variables, skip 
+            continue;
         assert( !Gia_ObjHasNumId(p, iObj) );
         Gia_ObjSetNumId( p, iObj, -i );
     }
