@@ -2191,16 +2191,13 @@ int sat_solver_solve_lexsat( sat_solver* s, int * pLits, int nLits )
 // of assumptions after minimization. The set of assumptions is returned in pLits.
 int sat_solver_minimize_assumptions( sat_solver* s, int * pLits, int nLits, int nConfLimit )
 {
-    int i, k, nLitsL, nLitsR, nResL, nResR;
+    int i, k, nLitsL, nLitsR, nResL, nResR, status;
     if ( nLits == 1 )
     {
         // since the problem is UNSAT, we will try to solve it without assuming the last literal
         // if the result is UNSAT, the last literal can be dropped; otherwise, it is needed
-        int status = l_False;
-        int Temp = s->nConfLimit; 
-        s->nConfLimit = nConfLimit;
+        if ( nConfLimit ) s->nConfLimit = s->stats.conflicts + nConfLimit;
         status = sat_solver_solve_internal( s );
-        s->nConfLimit = Temp;
         //printf( "%c", status == l_False ? 'u' : 's' );
         return (int)(status != l_False); // return 1 if the problem is not UNSAT
     }
@@ -2215,8 +2212,17 @@ int sat_solver_minimize_assumptions( sat_solver* s, int * pLits, int nLits, int 
                 sat_solver_pop(s);
             return sat_solver_minimize_assumptions( s, pLits, i+1, nConfLimit );
         }
+    // solve with these assumptions
+    if ( nConfLimit ) s->nConfLimit = s->stats.conflicts + nConfLimit;
+    status = sat_solver_solve_internal( s );
+    if ( status == l_False ) // these are enough
+    {
+        for ( i = 0; i < nLitsL; i++ )
+            sat_solver_pop(s);
+        return sat_solver_minimize_assumptions( s, pLits, nLitsL, nConfLimit );
+    }
     // solve for the right lits
-    nResL = sat_solver_minimize_assumptions( s, pLits + nLitsL, nLitsR, nConfLimit );
+    nResL = nLitsR == 1 ? 1 : sat_solver_minimize_assumptions( s, pLits + nLitsL, nLitsR, nConfLimit );
     for ( i = 0; i < nLitsL; i++ )
         sat_solver_pop(s);
     // swap literals
@@ -2238,8 +2244,17 @@ int sat_solver_minimize_assumptions( sat_solver* s, int * pLits, int nLits, int 
                 sat_solver_pop(s);
             return sat_solver_minimize_assumptions( s, pLits, i+1, nConfLimit );
         }
+    // solve with these assumptions
+    if ( nConfLimit ) s->nConfLimit = s->stats.conflicts + nConfLimit;
+    status = sat_solver_solve_internal( s );
+    if ( status == l_False ) // these are enough
+    {
+        for ( i = 0; i < nResL; i++ )
+            sat_solver_pop(s);
+        return nResL;
+    }
     // solve for the left lits
-    nResR = sat_solver_minimize_assumptions( s, pLits + nResL, nLitsL, nConfLimit );
+    nResR = nLitsL == 1 ? 1 : sat_solver_minimize_assumptions( s, pLits + nResL, nLitsL, nConfLimit );
     for ( i = 0; i < nResL; i++ )
         sat_solver_pop(s);
     return nResL + nResR;
