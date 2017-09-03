@@ -290,6 +290,7 @@ void satoko_assump_push(solver_t *s, int lit)
     assert(lit2var(lit) < satoko_varnum(s));
     // printf("[Satoko] Push assumption: %d\n", lit);
     vec_uint_push_back(s->assumptions, lit);
+    vec_char_assign(s->polarity, lit2var(lit), lit_polarity(lit));
 }
 
 void satoko_assump_pop(solver_t *s)
