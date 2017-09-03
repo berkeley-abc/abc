@@ -101,6 +101,7 @@ extern int  satoko_simplify(satoko_t *);
 extern int  satoko_solve(satoko_t *);
 extern int  satoko_solve_assumptions(satoko_t *s, int * plits, int nlits);
 extern int  satoko_solve_assumptions_limit(satoko_t *s, int * plits, int nlits, int nconflim);
+extern int  satoko_minimize_assumptions(satoko_t *s, int * plits, int nlits, int nconflim);
 extern void satoko_mark_cone(satoko_t *, int *, int);
 extern void satoko_unmark_cone(satoko_t *, int *, int);
 

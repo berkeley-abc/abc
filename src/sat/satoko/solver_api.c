@@ -287,7 +287,7 @@ int satoko_add_clause(solver_t *s, int *lits, int size)
 
 void satoko_assump_push(solver_t *s, int lit)
 {
-    assert(lit2var(lit) < satoko_varnum(s));
+    assert(lit2var(lit) < (unsigned)satoko_varnum(s));
     // printf("[Satoko] Push assumption: %d\n", lit);
     vec_uint_push_back(s->assumptions, lit);
     vec_char_assign(s->polarity, lit2var(lit), lit_polarity(lit));
@@ -354,10 +354,64 @@ int satoko_solve_assumptions(solver_t *s, int * plits, int nlits)
 int satoko_solve_assumptions_limit(satoko_t *s, int * plits, int nlits, int nconflim)
 {
     int temp = s->opts.conf_limit, status;
-    s->opts.conf_limit = nconflim;
+    s->opts.conf_limit = s->stats.n_conflicts + nconflim;
     status = satoko_solve_assumptions(s, plits, nlits);
     s->opts.conf_limit = temp;
     return status;
+}
+int satoko_minimize_assumptions(satoko_t * s, int * plits, int nlits, int nconflim)
+{
+    int i, nlitsL, nlitsR, nresL, nresR, status;
+    if ( nlits == 1 )
+    {
+        // since the problem is UNSAT, we try to solve it without assuming the last literal
+        // if the result is UNSAT, the last literal can be dropped; otherwise, it is needed
+        status = satoko_solve_assumptions_limit( s, NULL, 0, nconflim );
+        return (int)(status != SATOKO_UNSAT); // return 1 if the problem is not UNSAT
+    }
+    assert( nlits >= 2 );
+    nlitsL = nlits / 2;
+    nlitsR = nlits - nlitsL;
+    // assume the left lits
+    for ( i = 0; i < nlitsL; i++ )
+        satoko_assump_push(s, plits[i]);
+    // solve with these assumptions
+    status = satoko_solve_assumptions_limit( s, NULL, 0, nconflim );
+    if ( status == SATOKO_UNSAT ) // these are enough
+    {
+        for ( i = 0; i < nlitsL; i++ )
+            satoko_assump_pop(s);
+        return satoko_minimize_assumptions( s, plits, nlitsL, nconflim );
+    }
+    // these are not enoguh
+    // solve for the right lits
+    nresL = nlitsR == 1 ? 1 : satoko_minimize_assumptions( s, plits + nlitsL, nlitsR, nconflim );
+    for ( i = 0; i < nlitsL; i++ )
+        satoko_assump_pop(s);
+    // swap literals
+    vec_uint_clear(s->temp_lits);
+    for ( i = 0; i < nlitsL; i++ )
+        vec_uint_push_back(s->temp_lits, plits[i]);
+    for ( i = 0; i < nresL; i++ )
+        plits[i] = plits[nlitsL+i];
+    for ( i = 0; i < nlitsL; i++ )
+        plits[nresL+i] = vec_uint_at(s->temp_lits, i);
+    // assume the right lits
+    for ( i = 0; i < nresL; i++ )
+        satoko_assump_push(s, plits[i]);
+    // solve with these assumptions
+    status = satoko_solve_assumptions_limit( s, NULL, 0, nconflim );
+    if ( status == SATOKO_UNSAT ) // these are enough
+    {
+        for ( i = 0; i < nresL; i++ )
+            satoko_assump_pop(s);
+        return nresL;
+    }
+    // solve for the left lits
+    nresR = nlitsL == 1 ? 1 : satoko_minimize_assumptions( s, plits + nresL, nlitsL, nconflim );
+    for ( i = 0; i < nresL; i++ )
+        satoko_assump_pop(s);
+    return nresL + nresR;
 }
 
 int satoko_final_conflict(solver_t *s, int **out)
