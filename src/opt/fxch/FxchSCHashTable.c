@@ -102,6 +102,9 @@ Fxch_SCHashTable_t* Fxch_SCHashTableCreate( Fxch_Man_t* pFxchMan,
 
 void Fxch_SCHashTableDelete( Fxch_SCHashTable_t* pSCHashTable )
 {
+    unsigned i;
+    for ( i = 0; i <= pSCHashTable->SizeMask; i++ )
+        ABC_FREE( pSCHashTable->pBins[i].vSCData );
     Vec_IntErase( &pSCHashTable->vSubCube0 );
     Vec_IntErase( &pSCHashTable->vSubCube1 );
     ABC_FREE( pSCHashTable->pBins );
