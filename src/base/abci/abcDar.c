@@ -3773,6 +3773,35 @@ Abc_Ntk_t * Abc_NtkInterOne( Abc_Ntk_t * pNtkOn, Abc_Ntk_t * pNtkOff, int fRelat
     Aig_ManStop( pManAig );
     return pNtkAig;
 }
+Gia_Man_t * Gia_ManInterOne( Gia_Man_t * pNtkOn, Gia_Man_t * pNtkOff, int fVerbose )
+{
+    extern Aig_Man_t * Aig_ManInter( Aig_Man_t * pManOn, Aig_Man_t * pManOff, int fRelation, int fVerbose );
+    Gia_Man_t * pNtkAig;
+    Aig_Man_t * pManOn, * pManOff, * pManAig;
+    assert( Gia_ManCiNum(pNtkOn)  == Gia_ManCiNum(pNtkOff) );
+    assert( Gia_ManCoNum(pNtkOn)  == 1 );
+    assert( Gia_ManCoNum(pNtkOff) == 1 );
+    // create internal AIGs
+    pManOn = Gia_ManToAigSimple( pNtkOn );
+    if ( pManOn == NULL )
+        return NULL;
+    pManOff = Gia_ManToAigSimple( pNtkOff );
+    if ( pManOff == NULL )
+        return NULL;
+    // derive the interpolant
+    pManAig = Aig_ManInter( pManOn, pManOff, 0, fVerbose );
+    if ( pManAig == NULL )
+    {
+        Abc_Print( 1, "Interpolant computation failed.\n" );
+        return NULL;
+    }
+    Aig_ManStop( pManOn );
+    Aig_ManStop( pManOff );
+    // create logic network
+    pNtkAig = Gia_ManFromAigSimple( pManAig );
+    Aig_ManStop( pManAig );
+    return pNtkAig;
+}
 
 /**Function*************************************************************
 

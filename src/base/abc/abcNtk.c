@@ -2239,6 +2239,55 @@ Abc_Ntk_t * Abc_NtkCreateFromSops( char * pName, Vec_Ptr_t * vSops )
     return pNtk;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreateFromGias( char * pName, Vec_Ptr_t * vGias )
+{
+    Gia_Man_t * pGia = (Gia_Man_t *)Vec_PtrEntry(vGias, 0);
+    Abc_Ntk_t * pNtk = Abc_NtkAlloc( ABC_NTK_STRASH, ABC_FUNC_AIG, 1 );
+    Abc_Obj_t * pAbcObj, * pAbcObjPo;
+    Gia_Obj_t * pObj; int i, k;
+    pNtk->pName = Extra_UtilStrsav( pName );
+    for ( k = 0; k < Gia_ManCiNum(pGia); k++ )
+        Abc_NtkCreatePi( pNtk );
+    Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i )
+    {
+        assert( Gia_ManCoNum(pGia) == 1 );
+        Gia_ManCleanValue(pGia);
+        Gia_ManForEachCi( pGia, pObj, k )
+            pObj->Value = Abc_ObjId( Abc_NtkCi(pNtk, k) );
+        Gia_ManForEachAnd( pGia, pObj, k )
+        {
+            Abc_Obj_t * pAbcObj0 = Abc_NtkObj( pNtk, Gia_ObjFanin0(pObj)->Value );
+            Abc_Obj_t * pAbcObj1 = Abc_NtkObj( pNtk, Gia_ObjFanin1(pObj)->Value );
+            pAbcObj0 = Abc_ObjNotCond( pAbcObj0, Gia_ObjFaninC0(pObj) );
+            pAbcObj1 = Abc_ObjNotCond( pAbcObj1, Gia_ObjFaninC1(pObj) );
+            pAbcObj  = Abc_AigAnd( (Abc_Aig_t *)pNtk->pManFunc, pAbcObj0, pAbcObj1 );
+            pObj->Value = Abc_ObjId( pAbcObj ); 
+        }
+        pObj = Gia_ManCo(pGia, 0);
+        if ( Gia_ObjFaninId0p(pGia, pObj) == 0 )
+            pAbcObj = Abc_ObjNot( Abc_AigConst1(pNtk) );
+        else
+            pAbcObj = Abc_NtkObj( pNtk, Gia_ObjFanin0(pObj)->Value );
+        pAbcObj = Abc_ObjNotCond( pAbcObj, Gia_ObjFaninC0(pObj) );
+        pAbcObjPo = Abc_NtkCreatePo( pNtk );
+        Abc_ObjAddFanin( pAbcObjPo, pAbcObj );
+    }
+    Abc_NtkAddDummyPiNames( pNtk );
+    Abc_NtkAddDummyPoNames( pNtk );
+    return pNtk;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

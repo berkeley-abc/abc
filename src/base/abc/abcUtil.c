@@ -3142,6 +3142,45 @@ Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops )
     assert( Vec_WecSize(vRes) == iNode );
     return vRes;
 }
+Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias )
+{
+    Vec_Wec_t * vRes = NULL;
+    Abc_Ntk_t * pNtk = Abc_NtkCreateFromGias( "top", vGias );
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pFanin;
+    int i, k, iNode = 0;
+    Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "dc2; map -a" );
+    pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
+    vRes = Vec_WecStart( Abc_NtkPiNum(pNtkNew) + Abc_NtkNodeNum(pNtkNew) + Abc_NtkPoNum(pNtkNew) );
+    Abc_NtkForEachPi( pNtkNew, pObj, i )
+        pObj->iTemp = iNode++;
+    Abc_NtkForEachNode( pNtkNew, pObj, i )
+    {
+        Vec_Int_t * vNode = Vec_WecEntry(vRes, iNode);
+        Vec_IntPush( vNode, Abc_GateToType(pObj) );
+        Vec_IntPush( vNode, iNode );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Vec_IntPush( vNode, pFanin->iTemp );
+        pObj->iTemp = iNode++;
+    }
+    Abc_NtkForEachPo( pNtkNew, pObj, i )
+        Vec_IntPushTwo( Vec_WecEntry(vRes, iNode++), ABC_OPER_BIT_BUF, Abc_ObjFanin0(pObj)->iTemp );
+    assert( Vec_WecSize(vRes) == iNode );
+    return vRes;
+}
+Gia_Man_t * Abc_GiaSynthesizeInter( Gia_Man_t * p )
+{
+    Abc_Ntk_t * pNtkNew, * pNtk;
+    Vec_Ptr_t * vGias = Vec_PtrAlloc( 1 );
+    Vec_PtrPush( vGias, p );
+    pNtk = Abc_NtkCreateFromGias( "top", vGias );
+    Vec_PtrFree( vGias );
+    Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "ps; balance; collapse; ps; muxes; strash; ps; dc2; ps" );
+    pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
+    return Abc_NtkClpGia( pNtkNew );
+}
 
 /**Function*************************************************************
 
@@ -3197,11 +3236,10 @@ Gia_Man_t * Abc_NtkStrashToGia( Abc_Ntk_t * pNtk )
     Gia_ManStop( pTemp );
     return pNew;
 }
-Gia_Man_t * Abc_SopSynthesizeOne( Vec_Ptr_t * vSops )
+Gia_Man_t * Abc_SopSynthesizeOne( char * pSop )
 {
     Abc_Ntk_t * pNtkNew, * pNtk;
-    char * pSop = (char *)Vec_PtrEntry(vSops, 0);
-    assert( Vec_PtrSize(vSops) == 1 );
+    Vec_Ptr_t * vSops;
     if ( strlen(pSop) == 3 )
     {
         Gia_Man_t * pNew = Gia_ManStart( 1 );
@@ -3211,9 +3249,12 @@ Gia_Man_t * Abc_SopSynthesizeOne( Vec_Ptr_t * vSops )
         Gia_ManAppendCo( pNew, pSop[1] == '1' );
         return pNew;
     }
+    vSops = Vec_PtrAlloc( 1 );
+    Vec_PtrPush( vSops, pSop );
     pNtk = Abc_NtkCreateFromSops( "top", vSops );
+    Vec_PtrFree( vSops );
     Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; dc2" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; balance; dc2" );
     pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
     return Abc_NtkStrashToGia( pNtkNew );
 }

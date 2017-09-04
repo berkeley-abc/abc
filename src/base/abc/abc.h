@@ -602,6 +602,7 @@ extern ABC_DLL int                Abc_NtkCheckUniqueCioNames( Abc_Ntk_t * pNtk )
 /*=== abcCollapse.c ==========================================================*/
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkCollapseSat( Abc_Ntk_t * pNtk, int nCubeLim, int nBTLimit, int nCostMax, int fCanon, int fReverse, int fCnfShared, int fVerbose );
+extern ABC_DLL Gia_Man_t *        Abc_NtkClpGia( Abc_Ntk_t * pNtk );
 /*=== abcCut.c ==========================================================*/
 extern ABC_DLL void *             Abc_NodeGetCutsRecursive( void * p, Abc_Obj_t * pObj, int fDag, int fTree );
 extern ABC_DLL void *             Abc_NodeGetCuts( void * p, Abc_Obj_t * pObj, int fDag, int fTree );
@@ -787,6 +788,7 @@ extern ABC_DLL void               Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemove
 extern ABC_DLL void               Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops, char * pFlopPermFile );
 extern ABC_DLL void               Abc_NtkUnpermute( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkCreateFromSops( char * pName, Vec_Ptr_t * vSops );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkCreateFromGias( char * pName, Vec_Ptr_t * vGias );
 /*=== abcObj.c ==========================================================*/
 extern ABC_DLL Abc_Obj_t *        Abc_ObjAlloc( Abc_Ntk_t * pNtk, Abc_ObjType_t Type );
 extern ABC_DLL void               Abc_ObjRecycle( Abc_Obj_t * pObj );

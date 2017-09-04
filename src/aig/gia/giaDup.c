@@ -764,6 +764,27 @@ Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
         pNew->pCellStr = Abc_UtilStrsav( p->pCellStr );
     return pNew;
 }
+Gia_Man_t * Gia_ManDupRemovePis( Gia_Man_t * p, int nRemPis )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) && Gia_ObjCioId(pObj) < Gia_ManCiNum(p)-nRemPis )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
 
 /**Function*************************************************************
 

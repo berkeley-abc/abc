@@ -9883,7 +9883,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandExpand( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Abc_NtkClpGia( Abc_Ntk_t * pNtk );
     extern void Abc_NtkExpandCubes( Abc_Ntk_t * pNtk, Gia_Man_t * pGia, int fVerbose );
     Abc_Ntk_t * pStrash, * pNtk2, * pNtk = Abc_FrameReadNtk(pAbc);
     Gia_Man_t * pGia; int c, fVerbose = 0;

@@ -1019,10 +1019,11 @@ void * Inta_ManInterpolate( Inta_Man_t * p, Sto_Man_t * pCnf, abctime TimeToStop
     if ( fVerbose )
     {
 //        ABC_PRT( "Interpo", Abc_Clock() - clkTotal );
-    printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f MB\n", 
+    printf( "Vars = %d. Roots = %d. Learned = %d. Resol steps = %d.  Ave = %.2f.  Mem = %.2f MB  ", 
         p->pCnf->nVars, p->pCnf->nRoots, p->pCnf->nClauses-p->pCnf->nRoots, p->Counter,  
         1.0*(p->Counter-p->pCnf->nRoots)/(p->pCnf->nClauses-p->pCnf->nRoots), 
         1.0*Sto_ManMemoryReport(p->pCnf)/(1<<20) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
 p->timeTotal += Abc_Clock() - clkTotal;
     }
 
