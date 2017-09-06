@@ -1198,7 +1198,7 @@ static inline int Prs_ManReadArguments( Prs_Man_t * p )
 // 0 = reached end-of-file; 1 = successfully parsed; 2 = recognized as primitive; 3 = failed and skipped; 4 = error (failed and could not skip)
 static inline int Prs_ManReadModule( Prs_Man_t * p )
 {
-    int iToken, Status, fAlways = 0;
+    int iToken, Status = -1, fAlways = 0;
     if ( p->pNtk != NULL )                  return Prs_ManErrorSet(p, "Parsing previous module is unfinished.", 4);
     if ( Prs_ManUtilSkipSpaces(p) )
     { 
