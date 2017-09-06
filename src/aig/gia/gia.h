@@ -1214,6 +1214,7 @@ extern Gia_Man_t *         Gia_ManDupCycled( Gia_Man_t * pAig, Abc_Cex_t * pCex,
 extern Gia_Man_t *         Gia_ManDup( Gia_Man_t * p );  
 extern Gia_Man_t *         Gia_ManDup2( Gia_Man_t * p1, Gia_Man_t * p2 );
 extern Gia_Man_t *         Gia_ManDupWithAttributes( Gia_Man_t * p );  
+extern Gia_Man_t *         Gia_ManDupRemovePis( Gia_Man_t * p, int nRemPis );
 extern Gia_Man_t *         Gia_ManDupZero( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm );
 extern Gia_Man_t *         Gia_ManDupPermFlop( Gia_Man_t * p, Vec_Int_t * vFfPerm );
@@ -1229,8 +1230,10 @@ extern Gia_Man_t *         Gia_ManDupTimes( Gia_Man_t * p, int nTimes );
 extern Gia_Man_t *         Gia_ManDupDfs( Gia_Man_t * p );  
 extern Gia_Man_t *         Gia_ManDupCofactorVar( Gia_Man_t * p, int iVar, int Value );  
 extern Gia_Man_t *         Gia_ManDupCofactorObj( Gia_Man_t * p, int iObj, int Value );  
+extern Gia_Man_t *         Gia_ManDupMux( int iVar, Gia_Man_t * pCof1, Gia_Man_t * pCof0 );
 extern Gia_Man_t *         Gia_ManDupBlock( Gia_Man_t * p, int nBlock );
 extern Gia_Man_t *         Gia_ManDupExist( Gia_Man_t * p, int iVar );
+extern Gia_Man_t *         Gia_ManDupUniv( Gia_Man_t * p, int iVar );
 extern Gia_Man_t *         Gia_ManDupDfsSkip( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern Gia_Man_t *         Gia_ManDupDfsNode( Gia_Man_t * p, Gia_Obj_t * pObj );
