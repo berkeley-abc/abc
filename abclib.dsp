@@ -2174,6 +2174,114 @@ SOURCE=.\src\sat\xsat\xsatUtils.h
 SOURCE=.\src\sat\xsat\xsatWatchList.h
 # End Source File
 # End Group
+# Begin Group "glucose"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\AbcGlucose.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\AbcGlucose.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\AbcGlucoseCmd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Alg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Alloc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\BoundedQueue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Constants.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Dimacs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Glucose.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Heap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\IntTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Map.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Options.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Options.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\ParseUtils.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\pstdint.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Queue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\SimpSolver.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\SimpSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Solver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\SolverTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Sort.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\System.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\System.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\Vec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose\XAlloc.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 
