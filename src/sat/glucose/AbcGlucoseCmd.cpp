@@ -80,6 +80,7 @@ int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv )
     int verb = 0;
     int nConfls = 0;
 
+    ExtSat_Pars pPars;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Cpvh" ) ) != EOF )
     {
@@ -109,7 +110,7 @@ int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    ExtSat_Pars pPars = ExtSat_CreatePars(pre,verb,0,nConfls);
+    pPars = ExtSat_CreatePars(pre,verb,0,nConfls);
 
     if ( argc == globalUtilOptind + 1 )
     {
