@@ -354,7 +354,7 @@ int satoko_solve_assumptions(solver_t *s, int * plits, int nlits)
 int satoko_solve_assumptions_limit(satoko_t *s, int * plits, int nlits, int nconflim)
 {
     int temp = s->opts.conf_limit, status;
-    s->opts.conf_limit = s->stats.n_conflicts + nconflim;
+    s->opts.conf_limit = nconflim ? s->stats.n_conflicts + nconflim : 0;
     status = satoko_solve_assumptions(s, plits, nlits);
     s->opts.conf_limit = temp;
     return status;
