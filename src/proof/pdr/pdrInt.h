@@ -32,7 +32,7 @@
 #include "misc/hash/hashInt.h"
 #include "aig/gia/giaAig.h"
 
-#define PDR_USE_SATOKO 1
+//#define PDR_USE_SATOKO 1
 
 #ifndef PDR_USE_SATOKO
     #include "sat/bsat/satSolver.h"
