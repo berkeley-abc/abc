@@ -330,6 +330,14 @@ static inline int sat_solver_count_usedvars(sat_solver* s)
         }
     return nVars;
 }
+static void sat_solver_set_runid( sat_solver *s, int id )               
+{ 
+    s->RunId      = id;  
+}
+static void sat_solver_set_stop_func( sat_solver *s, int (*fnct)(int) ) 
+{ 
+    s->pFuncStop = fnct; 
+}
 
 static inline int sat_solver_add_const( sat_solver * pSat, int iVar, int fCompl )
 {

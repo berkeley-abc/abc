@@ -370,8 +370,8 @@ static inline sat_solver * Pdr_ManNewSolver1( sat_solver * pSat, Pdr_Man_t * p, 
     }
     pSat = (sat_solver *)Cnf_DataWriteIntoSolverInt( pSat, p->pCnf1, 1, fInit );
     sat_solver_set_runtime_limit( pSat, p->timeToStop );
-    pSat->RunId = p->pPars->RunId;
-    pSat->pFuncStop = p->pPars->pFuncStop;
+    sat_solver_set_runid( pSat, p->pPars->RunId );
+    sat_solver_set_stop_func( pSat, p->pPars->pFuncStop );
     return pSat;
 }
 
@@ -420,8 +420,8 @@ static inline sat_solver * Pdr_ManNewSolver2( sat_solver * pSat, Pdr_Man_t * p, 
 //    pSat = sat_solver_new();
     sat_solver_setnvars( pSat, 500 );
     sat_solver_set_runtime_limit( pSat, p->timeToStop );
-    pSat->RunId = p->pPars->RunId;
-    pSat->pFuncStop = p->pPars->pFuncStop;
+    sat_solver_set_runid( pSat, p->pPars->RunId );
+    sat_solver_set_stop_func( pSat, p->pPars->pFuncStop );
     return pSat;
 }
 

@@ -224,8 +224,8 @@ static Vec_Int_t * Wlc_NtkGetCoreSels( Gia_Man_t * pFrames, int nFrames, int fir
     sat_solver_setnvars(pSat, pCnf->nVars);
     if ( RunId >= 0 )
     {
-        pSat->RunId = RunId;
-        pSat->pFuncStop = Wla_CallBackToStop;
+        sat_solver_set_runid( pSat, RunId );
+        sat_solver_set_stop_func( pSat, Wla_CallBackToStop );
     }
 
     for (i = 0; i < pCnf->nClauses; i++) 

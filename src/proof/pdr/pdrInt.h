@@ -32,7 +32,7 @@
 #include "misc/hash/hashInt.h"
 #include "aig/gia/giaAig.h"
 
-//#define PDR_USE_SATOKO 1
+#define PDR_USE_SATOKO 1
 
 #ifndef PDR_USE_SATOKO
     #include "sat/bsat/satSolver.h"
@@ -53,6 +53,8 @@
     #define sat_solver_solve(s,b,e,c,x,y,z)  satoko_solve_assumptions_limit(s,b,e-b,(int)c)
     #define sat_solver_var_value             satoko_read_cex_varvalue
     #define sat_solver_set_runtime_limit     satoko_set_runtime_limit
+    #define sat_solver_set_runid             satoko_set_runid           
+    #define sat_solver_set_stop_func         satoko_set_stop_func          
     #define sat_solver_compress(s)             
 #endif
 
