@@ -1557,6 +1557,42 @@ Gia_Man_t * Gia_ManDupCofactorVar( Gia_Man_t * p, int iVar, int Value )
     Gia_ManStop( pTemp );
     return pNew;
 }
+Gia_Man_t * Gia_ManDupMux( int iVar, Gia_Man_t * pCof1, Gia_Man_t * pCof0 )
+{
+    Gia_Man_t * pGia[2] = {pCof0, pCof1};
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, n;
+    assert( Gia_ManRegNum(pCof0) == 0 );
+    assert( Gia_ManRegNum(pCof1) == 0 );
+    assert( Gia_ManCoNum(pCof0) == 1 );
+    assert( Gia_ManCoNum(pCof1) == 1 );
+    assert( Gia_ManCiNum(pCof1) == Gia_ManCiNum(pCof0) );
+    assert( iVar >= 0 && iVar < Gia_ManCiNum(pCof1) );
+    pNew = Gia_ManStart( Gia_ManObjNum(pCof1) + Gia_ManObjNum(pCof0) );
+    pNew->pName = Abc_UtilStrsav( pCof1->pName );
+    pNew->pSpec = Abc_UtilStrsav( pCof1->pSpec );
+    Gia_ManHashAlloc( pNew );
+    for ( n = 0; n < 2; n++ )
+    {
+        Gia_ManFillValue( pGia[n] );
+        Gia_ManConst0(pGia[n])->Value = 0;
+        Gia_ManForEachCi( pGia[n], pObj, i )
+            pObj->Value = n ? Gia_ManCi(pGia[0], i)->Value : Gia_ManAppendCi(pNew);
+        Gia_ManForEachCo( pGia[n], pObj, i )
+            Gia_ManDupCofactorVar_rec( pNew, pGia[n], Gia_ObjFanin0(pObj) );
+    }
+    Gia_ManForEachCo( pGia[0], pObj, i )
+    {
+        int Ctrl = Gia_ManCi(pGia[0], iVar)->Value;
+        int Lit1 = Gia_ObjFanin0Copy(Gia_ManCo(pGia[1], i));
+        int Lit0 = Gia_ObjFanin0Copy(pObj);
+        Gia_ManAppendCo( pNew, Gia_ManHashMux( pNew, Ctrl, Lit1, Lit0 ) );
+    }
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
 
 /**Function*************************************************************
 
