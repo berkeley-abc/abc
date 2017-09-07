@@ -93,6 +93,7 @@ struct Bmc_AndPar_t_
     int         fDumpFrames;    // dump unrolled timeframes
     int         fUseSynth;      // use synthesis
     int         fUseOldCnf;     // use old CNF construction
+    int         fUseGlucose;    // use Glucose 3.0 as the default solver
     int         fVerbose;       // verbose 
     int         fVeryVerbose;   // very verbose 
     int         fNotVerbose;    // skip line-by-line print-out 

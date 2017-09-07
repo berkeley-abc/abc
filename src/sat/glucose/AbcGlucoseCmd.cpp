@@ -72,15 +72,12 @@ void Glucose_End( Abc_Frame_t * pAbc )
 ***********************************************************************/
 int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Glucose_SolveCnf( char * pFilename, ExtSat_Pars * pPars );
-    extern int  Glucose_SolveAig( Gia_Man_t * p, ExtSat_Pars * pPars );
-
-    int c = 0;
-    int pre = 1;
-    int verb = 0;
+    int c       = 0;
+    int pre     = 1;
+    int verb    = 0;
     int nConfls = 0;
 
-    ExtSat_Pars pPars;
+    Glucose_Pars pPars;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Cpvh" ) ) != EOF )
     {
@@ -110,7 +107,7 @@ int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    pPars = ExtSat_CreatePars(pre,verb,0,nConfls);
+    pPars = Glucose_CreatePars(pre,verb,0,nConfls);
 
     if ( argc == globalUtilOptind + 1 )
     {

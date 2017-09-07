@@ -39998,6 +39998,7 @@ usage:
 int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Bmcs_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
+    extern int Bmcg_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
     Bmc_AndPar_t Pars, * pPars = &Pars; int c;
     memset( pPars, 0, sizeof(Bmc_AndPar_t) );
     pPars->nStart        =    0;  // starting timeframe
@@ -40011,6 +40012,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->fDumpFrames   =    0;  // dump unrolled timeframes
     pPars->fUseSynth     =    0;  // use synthesis
     pPars->fUseOldCnf    =    0;  // use old CNF construction
+    pPars->fUseGlucose   =    0;  // use Glucose 3.0
     pPars->fVerbose      =    0;  // verbose
     pPars->fVeryVerbose  =    0;  // very verbose
     pPars->fNotVerbose   =    0;  // skip line-by-line print-out
@@ -40020,7 +40022,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->pFuncOnFrameDone = pAbc->pFuncOnFrameDone; // frame done callback
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PCFATvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCFATgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40079,6 +40081,9 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nTimeOut < 0 )
                 goto usage;
             break;
+        case 'g':
+            pPars->fUseGlucose ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -40096,24 +40101,25 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Bmcs(): There is no AIG.\n" );
         return 0;
     }
-    if ( pPars->nProcs > 3 )
+    if ( pPars->nProcs > 4 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Bmcs(): Currently this command can run at most 3 concurrent solvers.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Bmcs(): Currently this command can run at most 4 concurrent solvers.\n" );
         return 0;
     }
-    pAbc->Status  = Bmcs_ManPerform( pAbc->pGia, pPars );
+    pAbc->Status  = pPars->fUseGlucose ? Bmcg_ManPerform(pAbc->pGia, pPars) : Bmcs_ManPerform(pAbc->pGia, pPars);
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmcs [-PCFAT num] [-vwh]\n" );
+    Abc_Print( -2, "usage: &bmcs [-PCFAT num] [-gvwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-P num : the number of parallel solvers [default = %d]\n",              pPars->nProcs );
     Abc_Print( -2, "\t-C num : the SAT solver conflict limit [default = %d]\n",               pPars->nConfLimit );
     Abc_Print( -2, "\t-F num : the maximum number of timeframes [default = %d]\n",            pPars->nFramesMax );
     Abc_Print( -2, "\t-A num : the number of additional frames to unroll [default = %d]\n",   pPars->nFramesAdd );
     Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
+    Abc_Print( -2, "\t-g     : toggle using Glucose 3.0 [default = %s]\n",                    pPars->fUseGlucose?  "Glucose" : "Satoko" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

@@ -4,6 +4,7 @@ SRC +=    src/sat/bmc/bmcBCore.c \
     src/sat/bmc/bmcBmc3.c \
     src/sat/bmc/bmcBmcAnd.c \
     src/sat/bmc/bmcBmci.c \
+    src/sat/bmc/bmcBmcG.c \
     src/sat/bmc/bmcBmcS.c \
     src/sat/bmc/bmcCexCare.c \
     src/sat/bmc/bmcCexCut.c \

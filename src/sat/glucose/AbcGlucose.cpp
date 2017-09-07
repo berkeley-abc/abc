@@ -81,12 +81,11 @@ int glucose_solver_addclause(Glucose::Solver* S, int * plits, int nlits)
     return S->addClause(lits); // returns 0 if the problem is UNSAT
 }
 
-int glucose_solver_setcallback(Glucose::Solver* S, void * pman, int(*pfunc)(void*, int, int*))
+void glucose_solver_setcallback(Glucose::Solver* S, void * pman, int(*pfunc)(void*, int, int*))
 {
     S->pCnfMan = pman;
     S->pCnfFunc = pfunc;
     S->nCallConfl = 1000;
-    return 0;
 }
 
 int glucose_solver_solve(Glucose::Solver* S, int * plits, int nlits)
@@ -141,6 +140,73 @@ void glucose_print_stats(Solver& s, abctime clk)
 
 /**Function*************************************************************
 
+  Synopsis    [Wrapper APIs to calling from ABC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bmcg_sat_solver * bmcg_sat_solver_start() 
+{
+    return (bmcg_sat_solver *)glucose_solver_start();
+}
+void bmcg_sat_solver_stop(bmcg_sat_solver* s)
+{
+    glucose_solver_stop((Glucose::Solver*)s);
+}
+
+int bmcg_sat_solver_addclause(bmcg_sat_solver* s, int * plits, int nlits)
+{
+    return glucose_solver_addclause((Glucose::Solver*)s,plits,nlits);
+}
+
+void bmcg_sat_solver_setcallback(bmcg_sat_solver* s, void * pman, int(*pfunc)(void*, int, int*))
+{
+    glucose_solver_setcallback((Glucose::Solver*)s,pman,pfunc);
+}
+
+int bmcg_sat_solver_solve(bmcg_sat_solver* s, int * plits, int nlits)
+{
+    return glucose_solver_solve((Glucose::Solver*)s,plits,nlits);
+}
+
+int bmcg_sat_solver_addvar(bmcg_sat_solver* s)
+{
+    return glucose_solver_addvar((Glucose::Solver*)s);
+}
+
+int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
+{
+    return glucose_solver_read_cex_varvalue((Glucose::Solver*)s, ivar);
+}
+
+void bmcg_sat_solver_setstop(bmcg_sat_solver* s, int * pstop)
+{
+    glucose_solver_setstop((Glucose::Solver*)s, pstop);
+}
+
+int bmcg_sat_solver_varnum(bmcg_sat_solver* s)
+{
+    return ((Glucose::Solver*)s)->nVars();
+}
+int bmcg_sat_solver_clausenum(bmcg_sat_solver* s)
+{
+    return ((Glucose::Solver*)s)->nClauses();
+}
+int bmcg_sat_solver_learntnum(bmcg_sat_solver* s)
+{
+    return ((Glucose::Solver*)s)->nLearnts();
+}
+int bmcg_sat_solver_conflictnum(bmcg_sat_solver* s)
+{
+    return ((Glucose::Solver*)s)->conflicts;
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []
@@ -150,9 +216,10 @@ void glucose_print_stats(Solver& s, abctime clk)
   SeeAlso     []
 
 ***********************************************************************/
-void Glucose_SolveCnf( char * pFilename, ExtSat_Pars * pPars )
+void Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars )
 {
     abctime clk = Abc_Clock();
+
     SimpSolver  S;
     S.verbosity = pPars->verb;
     S.setConfBudget( pPars->nConfls > 0 ? (int64_t)pPars->nConfls : -1 );
@@ -161,10 +228,13 @@ void Glucose_SolveCnf( char * pFilename, ExtSat_Pars * pPars )
     parse_DIMACS(in, S);
     gzclose(in);
 
-    printf("c ============================[ Problem Statistics ]=============================\n");
-    printf("c |                                                                             |\n");
-    printf("c |  Number of variables:  %12d                                         |\n", S.nVars());
-    printf("c |  Number of clauses:    %12d                                         |\n", S.nClauses());
+    if ( pPars->verb )
+    {
+        printf("c ============================[ Problem Statistics ]=============================\n");
+        printf("c |                                                                             |\n");
+        printf("c |  Number of variables:  %12d                                         |\n", S.nVars());
+        printf("c |  Number of clauses:    %12d                                         |\n", S.nClauses());
+    }
     
     if ( pPars->pre ) S.eliminate(true);
 
@@ -172,7 +242,7 @@ void Glucose_SolveCnf( char * pFilename, ExtSat_Pars * pPars )
     lbool ret = S.solveLimited(dummy);
     if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
     printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
-    Abc_PrintTime( 1, "    Time", Abc_Clock() - clk );
+    Abc_PrintTime( 1, "      Time", Abc_Clock() - clk );
 }
 
 /**Function*************************************************************
@@ -188,7 +258,7 @@ void Glucose_SolveCnf( char * pFilename, ExtSat_Pars * pPars )
 ***********************************************************************/
 Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& S )
 {
-    abctime clk = Abc_Clock();
+    //abctime clk = Abc_Clock();
     int * pLit, * pStop, i;
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 1/*fAddOrCla*/, 0, 0/*verbose*/ );
     for ( i = 0; i < pCnf->nClauses; i++ )
@@ -211,7 +281,7 @@ Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& S )
     return vCnfIds;
 }
 
-int Glucose_SolveAig(Gia_Man_t * p, ExtSat_Pars * pPars)
+int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
 {  
     abctime clk = Abc_Clock();
 
@@ -241,7 +311,7 @@ int Glucose_SolveAig(Gia_Man_t * p, ExtSat_Pars * pPars)
 
     if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
     printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
-    Abc_PrintTime( 1, "    Time", Abc_Clock() - clk );
+    Abc_PrintTime( 1, "      Time", Abc_Clock() - clk );
 
     // port counterexample
     if (ret == l_True)
