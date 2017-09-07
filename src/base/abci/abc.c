@@ -24739,7 +24739,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Saig_ParBmcSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTHGCDJIPQRLWaxdursvzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFTHGCDJIPQRLWaxdursgvzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -24911,6 +24911,9 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fUseSatoko ^= 1;
             break;
+        case 'g':
+            pPars->fUseGlucose ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -24977,7 +24980,7 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bmc3 [-SFTHGCDJIPQR num] [-LW file] [-axdursvzh]\n" );
+    Abc_Print( -2, "usage: bmc3 [-SFTHGCDJIPQR num] [-LW file] [-axdursgvzh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking with dynamic unrolling\n" );
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n",      pPars->nFramesMax );
@@ -24999,6 +25002,7 @@ usage:
     Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n",   fOrDecomp? "yes": "not" );
     Abc_Print( -2, "\t-r     : toggle disabling periodic restarts [default = %s]\n",              pPars->fNoRestarts? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle using Satoko instead of build-in MiniSAT [default = %s]\n", pPars->fUseSatoko? "yes": "no" );
+    Abc_Print( -2, "\t-g     : toggle using Glucose instead of build-in MiniSAT [default = %s]\n",pPars->fUseGlucose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                           pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",  pPars->fNotVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

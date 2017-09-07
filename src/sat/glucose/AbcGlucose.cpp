@@ -188,6 +188,21 @@ void bmcg_sat_solver_setstop(bmcg_sat_solver* s, int * pstop)
     glucose_solver_setstop((Gluco::Solver*)s, pstop);
 }
 
+abctime bmcg_sat_solver_set_runtime_limit(bmcg_sat_solver* s, abctime Limit)
+{
+    abctime nRuntimeLimit = ((Gluco::Solver*)s)->nRuntimeLimit;
+    ((Gluco::Solver*)s)->nRuntimeLimit = Limit;
+    return nRuntimeLimit;
+}
+
+void bmcg_sat_solver_set_conflict_budget(bmcg_sat_solver* s, int Limit)
+{
+    if ( Limit > 0 ) 
+        ((Gluco::Solver*)s)->setConfBudget( (int64_t)Limit );
+    else 
+        ((Gluco::Solver*)s)->budgetOff();
+}
+
 int bmcg_sat_solver_varnum(bmcg_sat_solver* s)
 {
     return ((Gluco::Solver*)s)->nVars();

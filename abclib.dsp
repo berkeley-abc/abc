@@ -1943,6 +1943,10 @@ SOURCE=.\src\sat\bmc\bmcBmcAnd.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcBmcG.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcBmci.c
 # End Source File
 # Begin Source File

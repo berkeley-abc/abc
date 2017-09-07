@@ -1250,6 +1250,7 @@ printf("c ==================================[ Search Statistics (every %6d confl
     while (status == l_Undef){
       status = search(0); // the parameter is useless in glucose, kept to allow modifications
         if (!withinBudget() || terminate_search_early || (pstop && *pstop)) break;
+        if (nRuntimeLimit && Abc_Clock() > nRuntimeLimit)                   break;
         curr_restarts++;
     }
 
