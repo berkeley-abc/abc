@@ -77,8 +77,8 @@ static DoubleOption  opt_restart_inc       (_cat, "rinc",        "Restart interv
 static DoubleOption  opt_garbage_frac      (_cat, "gc-frac",     "The fraction of wasted memory allowed before a garbage collection is triggered",           0.20, DoubleRange(0, false, HUGE_VAL, false));
 
 
-BoolOption    opt_certified      (_certified, "certified",         "Certified UNSAT using DRUP format", false );
-StringOption  opt_certified_file (_certified, "certified-output",  "Certified UNSAT output file",       "NULL");
+BoolOption    opt_certified_      (_certified, "certified",         "Certified UNSAT using DRUP format", false );
+StringOption  opt_certified_file_ (_certified, "certified-output",  "Certified UNSAT output file",       "NULL");
 
 
 //=================================================================================================
@@ -118,7 +118,7 @@ Solver::Solver() :
   , rnd_init_act     (opt_rnd_init_act)
   , garbage_frac     (opt_garbage_frac)
   , certifiedOutput  (NULL)
-  , certifiedUNSAT   (opt_certified) 
+  , certifiedUNSAT   (opt_certified_) 
     // Statistics: (formerly in 'SolverStats')
     //
   ,  nbRemovedClauses(0),nbReducedClauses(0), nbDL2(0),nbBin(0),nbUn(0) , nbReduceDB(0)
@@ -157,10 +157,10 @@ Solver::Solver() :
 
 
   if(certifiedUNSAT) {
-    if(!strcmp(opt_certified_file,"NULL")) {
+    if(!strcmp(opt_certified_file_,"NULL")) {
       certifiedOutput =  fopen("/dev/stdout", "wb");
     } else {
-      certifiedOutput =  fopen(opt_certified_file, "wb");           
+      certifiedOutput =  fopen(opt_certified_file_, "wb");           
     }
     //    fprintf(certifiedOutput,"o proof DRUP\n");
   }
