@@ -31,7 +31,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose/Vec.h"
 #include "sat/glucose/ParseUtils.h"
 
-namespace Glucose {
+namespace Gluco {
 
 //==================================================================================================
 // Top-level option parse/help functions:

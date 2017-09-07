@@ -38,7 +38,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose/Map.h"
 #include "sat/glucose/Alloc.h"
 
-namespace Glucose {
+namespace Gluco {
 
 //=================================================================================================
 // Variables, literals, lifted booleans, clauses:
@@ -88,9 +88,9 @@ const Lit lit_Error = { -1 };  // }
 //       does enough constant propagation to produce sensible code, and this appears to be somewhat
 //       fragile unfortunately.
 
-#define l_True  (Glucose::lbool((uint8_t)0)) // gcc does not do constant propagation if these are real constants.
-#define l_False (Glucose::lbool((uint8_t)1))
-#define l_Undef (Glucose::lbool((uint8_t)2))
+#define l_True  (Gluco::lbool((uint8_t)0)) // gcc does not do constant propagation if these are real constants.
+#define l_False (Gluco::lbool((uint8_t)1))
+#define l_Undef (Gluco::lbool((uint8_t)2))
 
 class lbool {
     uint8_t value;

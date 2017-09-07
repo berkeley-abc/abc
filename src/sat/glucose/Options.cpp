@@ -21,9 +21,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose/Options.h"
 #include "sat/glucose/ParseUtils.h"
 
-using namespace Glucose;
+using namespace Gluco;
 
-void Glucose::parseOptions(int& argc, char** argv, bool strict)
+void Gluco::parseOptions(int& argc, char** argv, bool strict)
 {
     int i, j;
     for (i = j = 1; i < argc; i++){
@@ -54,9 +54,9 @@ void Glucose::parseOptions(int& argc, char** argv, bool strict)
 }
 
 
-void Glucose::setUsageHelp      (const char* str){ Option::getUsageString() = str; }
-void Glucose::setHelpPrefixStr  (const char* str){ Option::getHelpPrefixString() = str; }
-void Glucose::printUsageAndExit (int argc, char** argv, bool verbose)
+void Gluco::setUsageHelp      (const char* str){ Option::getUsageString() = str; }
+void Gluco::setHelpPrefixStr  (const char* str){ Option::getHelpPrefixString() = str; }
+void Gluco::printUsageAndExit (int argc, char** argv, bool verbose)
 {
     const char* usage = Option::getUsageString();
     if (usage != NULL)

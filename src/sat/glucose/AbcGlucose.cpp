@@ -29,7 +29,7 @@
 #include "aig/gia/gia.h"
 #include "sat/cnf/cnf.h"
 
-using namespace Glucose;
+using namespace Gluco;
 
 ABC_NAMESPACE_IMPL_START
 
@@ -54,19 +54,19 @@ extern "C" {
   SeeAlso     []
 
 ***********************************************************************/
-Glucose::Solver * glucose_solver_start()
+Gluco::Solver * glucose_solver_start()
 {
     Solver * S = new Solver;
     S->setIncrementalMode();
     return S;
 }
 
-void glucose_solver_stop(Glucose::Solver* S)
+void glucose_solver_stop(Gluco::Solver* S)
 {
     delete S;
 }
 
-int glucose_solver_addclause(Glucose::Solver* S, int * plits, int nlits)
+int glucose_solver_addclause(Gluco::Solver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
     for ( int i = 0; i < nlits; i++,plits++)
@@ -81,14 +81,14 @@ int glucose_solver_addclause(Glucose::Solver* S, int * plits, int nlits)
     return S->addClause(lits); // returns 0 if the problem is UNSAT
 }
 
-void glucose_solver_setcallback(Glucose::Solver* S, void * pman, int(*pfunc)(void*, int, int*))
+void glucose_solver_setcallback(Gluco::Solver* S, void * pman, int(*pfunc)(void*, int, int*))
 {
     S->pCnfMan = pman;
     S->pCnfFunc = pfunc;
     S->nCallConfl = 1000;
 }
 
-int glucose_solver_solve(Glucose::Solver* S, int * plits, int nlits)
+int glucose_solver_solve(Gluco::Solver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
     for (int i=0;i<nlits;i++,plits++)
@@ -97,22 +97,22 @@ int glucose_solver_solve(Glucose::Solver* S, int * plits, int nlits)
         p.x = *plits;
         lits.push(p);
     }
-    Glucose::lbool res = S->solveLimited(lits);
+    Gluco::lbool res = S->solveLimited(lits);
     return (res == l_True ? 1 : res == l_False ? -1 : 0);
 }
 
-int glucose_solver_addvar(Glucose::Solver* S)
+int glucose_solver_addvar(Gluco::Solver* S)
 {
     S->newVar();
     return S->nVars() - 1;
 }
 
-int glucose_solver_read_cex_varvalue(Glucose::Solver* S, int ivar)
+int glucose_solver_read_cex_varvalue(Gluco::Solver* S, int ivar)
 {
     return S->model[ivar] == l_True;
 }
 
-void glucose_solver_setstop(Glucose::Solver* S, int * pstop)
+void glucose_solver_setstop(Gluco::Solver* S, int * pstop)
 {
     S->pstop = pstop;
 }
@@ -155,54 +155,54 @@ bmcg_sat_solver * bmcg_sat_solver_start()
 }
 void bmcg_sat_solver_stop(bmcg_sat_solver* s)
 {
-    glucose_solver_stop((Glucose::Solver*)s);
+    glucose_solver_stop((Gluco::Solver*)s);
 }
 
 int bmcg_sat_solver_addclause(bmcg_sat_solver* s, int * plits, int nlits)
 {
-    return glucose_solver_addclause((Glucose::Solver*)s,plits,nlits);
+    return glucose_solver_addclause((Gluco::Solver*)s,plits,nlits);
 }
 
 void bmcg_sat_solver_setcallback(bmcg_sat_solver* s, void * pman, int(*pfunc)(void*, int, int*))
 {
-    glucose_solver_setcallback((Glucose::Solver*)s,pman,pfunc);
+    glucose_solver_setcallback((Gluco::Solver*)s,pman,pfunc);
 }
 
 int bmcg_sat_solver_solve(bmcg_sat_solver* s, int * plits, int nlits)
 {
-    return glucose_solver_solve((Glucose::Solver*)s,plits,nlits);
+    return glucose_solver_solve((Gluco::Solver*)s,plits,nlits);
 }
 
 int bmcg_sat_solver_addvar(bmcg_sat_solver* s)
 {
-    return glucose_solver_addvar((Glucose::Solver*)s);
+    return glucose_solver_addvar((Gluco::Solver*)s);
 }
 
 int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
 {
-    return glucose_solver_read_cex_varvalue((Glucose::Solver*)s, ivar);
+    return glucose_solver_read_cex_varvalue((Gluco::Solver*)s, ivar);
 }
 
 void bmcg_sat_solver_setstop(bmcg_sat_solver* s, int * pstop)
 {
-    glucose_solver_setstop((Glucose::Solver*)s, pstop);
+    glucose_solver_setstop((Gluco::Solver*)s, pstop);
 }
 
 int bmcg_sat_solver_varnum(bmcg_sat_solver* s)
 {
-    return ((Glucose::Solver*)s)->nVars();
+    return ((Gluco::Solver*)s)->nVars();
 }
 int bmcg_sat_solver_clausenum(bmcg_sat_solver* s)
 {
-    return ((Glucose::Solver*)s)->nClauses();
+    return ((Gluco::Solver*)s)->nClauses();
 }
 int bmcg_sat_solver_learntnum(bmcg_sat_solver* s)
 {
-    return ((Glucose::Solver*)s)->nLearnts();
+    return ((Gluco::Solver*)s)->nLearnts();
 }
 int bmcg_sat_solver_conflictnum(bmcg_sat_solver* s)
 {
-    return ((Glucose::Solver*)s)->conflicts;
+    return ((Gluco::Solver*)s)->conflicts;
 }
 
 /**Function*************************************************************

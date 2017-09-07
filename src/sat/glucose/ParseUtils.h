@@ -27,7 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "misc/zlib/zlib.h"
 
-namespace Glucose {
+namespace Gluco {
 
 //-------------------------------------------------------------------------------------------------
 // A simple buffered character stream class:

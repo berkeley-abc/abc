@@ -25,7 +25,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <stdio.h>
 #include <stdlib.h>
 
-using namespace Glucose;
+using namespace Gluco;
 
 // TODO: split the memory reading functions into two: one for reading high-watermark of RSS, and
 // one for reading the current virtual memory size.
@@ -67,14 +67,14 @@ static inline int memReadPeak(void)
     return peak_kb;
 }
 
-double Glucose::memUsed() { return (double)memReadStat(0) * (double)getpagesize() / (1024*1024); }
-double Glucose::memUsedPeak() { 
+double Gluco::memUsed() { return (double)memReadStat(0) * (double)getpagesize() / (1024*1024); }
+double Gluco::memUsedPeak() { 
     double peak = memReadPeak() / 1024;
     return peak == 0 ? memUsed() : peak; }
 
 #elif defined(__FreeBSD__)
 
-double Glucose::memUsed(void) {
+double Gluco::memUsed(void) {
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
     return (double)ru.ru_maxrss / 1024; }
@@ -84,12 +84,12 @@ double MiniSat::memUsedPeak(void) { return memUsed(); }
 #elif defined(__APPLE__)
 #include <malloc/malloc.h>
 
-double Glucose::memUsed(void) {
+double Gluco::memUsed(void) {
     malloc_statistics_t t;
     malloc_zone_statistics(NULL, &t);
     return (double)t.max_size_in_use / (1024*1024); }
 
 #else
-double Glucose::memUsed() { 
+double Gluco::memUsed() { 
     return 0; }
 #endif

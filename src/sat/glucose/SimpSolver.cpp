@@ -22,7 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose/SimpSolver.h"
 #include "sat/glucose/System.h"
 
-using namespace Glucose;
+using namespace Gluco;
 
 //=================================================================================================
 // Options:

@@ -27,7 +27,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose/IntTypes.h"
 #include "sat/glucose/XAlloc.h"
 
-namespace Glucose {
+namespace Gluco {
 
 //=================================================================================================
 // Automatically resizable arrays
