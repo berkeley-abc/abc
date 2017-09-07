@@ -78,6 +78,7 @@ struct satoko_stats {
     long n_propagations;
     long n_inspects;
     long n_conflicts;
+    long n_conflicts_all;
 
     long n_original_lits;
     long n_learnt_lits;

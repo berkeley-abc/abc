@@ -1716,8 +1716,9 @@ nTimeSat += clkSatRun;
                         Abc_Print( 1, "Cla =%9.0f. ",  (double)(p->pSat ? p->pSat->stats.clauses   : p->pSat3 ? bmcg_sat_solver_clausenum(p->pSat3)   : satoko_clausenum(p->pSat2)) );
                         Abc_Print( 1, "Conf =%7.0f. ", (double)(p->pSat ? p->pSat->stats.conflicts : p->pSat3 ? bmcg_sat_solver_conflictnum(p->pSat3) : satoko_conflictnum(p->pSat2)) );
 //                        Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
-                        Abc_Print( 1, "Uni =%7.0f. ",(double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
+//                        Abc_Print( 1, "Uni =%7.0f. ",(double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
 //                        ABC_PRT( "Time", Abc_Clock() - clk );
+                        Abc_Print( 1, "Learn =%7.0f. ", (double)(p->pSat ? p->pSat->stats.learnts : p->pSat3 ? bmcg_sat_solver_learntnum(p->pSat3) : satoko_learntnum(p->pSat2)) );
                         Abc_Print( 1, "%4.0f MB",      4.25*(f+1)*p->nObjNums /(1<<20) );
                         Abc_Print( 1, "%4.0f MB",      1.0*(p->pSat ? sat_solver_memory(p->pSat) : 0)/(1<<20) );
                         Abc_Print( 1, "%9.2f sec  ",   (float)(Abc_Clock() - clkTotal)/(float)(CLOCKS_PER_SEC) );
@@ -1839,7 +1840,8 @@ nTimeUndec += clkSatRun;
             Abc_Print( 1, "Cla =%9.0f. ", (double)(p->pSat ? p->pSat->stats.clauses   : p->pSat3 ? bmcg_sat_solver_clausenum(p->pSat3)   : satoko_clausenum(p->pSat2))   );
             Abc_Print( 1, "Conf =%7.0f. ",(double)(p->pSat ? p->pSat->stats.conflicts : p->pSat3 ? bmcg_sat_solver_conflictnum(p->pSat3) : satoko_conflictnum(p->pSat2)) );
 //            Abc_Print( 1, "Imp =%10.0f. ", (double)p->pSat->stats.propagations );
-            Abc_Print( 1, "Uni =%7.0f. ", (double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
+//            Abc_Print( 1, "Uni =%7.0f. ", (double)(p->pSat ? sat_solver_count_assigned(p->pSat) : 0) );
+            Abc_Print( 1, "Learn =%7.0f. ", (double)(p->pSat ? p->pSat->stats.learnts : p->pSat3 ? bmcg_sat_solver_learntnum(p->pSat3) : satoko_learntnum(p->pSat2)) );
             if ( pPars->fSolveAll )
                 Abc_Print( 1, "CEX =%5d. ", pPars->nFailOuts );
             if ( pPars->nTimeOutOne )

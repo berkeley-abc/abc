@@ -631,6 +631,7 @@ char solver_search(solver_t *s)
         unsigned confl_cref = solver_propagate(s);
         if (confl_cref != UNDEF) {
             s->stats.n_conflicts++;
+            s->stats.n_conflicts_all++;
             if (solver_dlevel(s) == 0)
                 return SATOKO_UNSAT;
             /* Restart heuristic */
