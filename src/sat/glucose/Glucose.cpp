@@ -95,6 +95,7 @@ Solver::Solver() :
     , verbEveryConflicts(10000)
     , terminate_search_early(false)
     , pstop(NULL)
+    , nRuntimeLimit(0)
 
     , verbosity      (0)
     , showModel      (0)
