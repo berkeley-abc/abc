@@ -682,6 +682,7 @@ int Bmcs_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                     pPars->iFrame = f+k;
                     pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f+k, 0 );
                     pPars->nFailOuts++;
+                    Bmcs_ManPrintFrame( p, f+k, nClauses, -1, clkStart );
                     if ( !pPars->fNotVerbose )
                     {
                         int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
@@ -872,6 +873,7 @@ int Bmcs_ManPerformMulti( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                     pPars->iFrame = f+k;
                     pGia->pCexSeq = Bmcs_ManGenerateCex( p, i, f+k, Solver );
                     pPars->nFailOuts++;
+                    Bmcs_ManPrintFrame( p, f+k, nClauses, Solver, clkStart );
                     if ( !pPars->fNotVerbose )
                     {
                         int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );

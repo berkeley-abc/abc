@@ -337,7 +337,7 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         if ( pCnf == NULL )
         {
             Bmcg_ManPrintFrame( p, f, nClauses, -1, clkStart );
-            if( pPars->pFuncOnFrameDone)
+            if( pPars->pFuncOnFrameDone )
                 for ( k = 0; k < pPars->nFramesAdd; k++ )
                 for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
                     pPars->pFuncOnFrameDone(f+k, i, 0);
@@ -372,6 +372,7 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                     pPars->iFrame = f+k;
                     pGia->pCexSeq = Bmcg_ManGenerateCex( p, i, f+k, 0 );
                     pPars->nFailOuts++;
+                    Bmcg_ManPrintFrame( p, f+k, nClauses, -1, clkStart );
                     if ( !pPars->fNotVerbose )
                     {
                         int nOutDigits = Abc_Base10Log( Gia_ManPoNum(pGia) );
@@ -379,7 +380,7 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
                             nOutDigits, i, f+k, nOutDigits, pPars->nFailOuts, nOutDigits, Gia_ManPoNum(pGia) );
                         fflush( stdout );
                     }
-                    if( pPars->pFuncOnFrameDone)
+                    if( pPars->pFuncOnFrameDone )
                         pPars->pFuncOnFrameDone(f+k, i, 1);
                 }
                 break;
