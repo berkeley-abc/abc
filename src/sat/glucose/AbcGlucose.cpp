@@ -121,8 +121,8 @@ void glucose_print_stats(Solver& s, abctime clk)
 {
     double cpu_time = (double)(unsigned)clk / CLOCKS_PER_SEC;
     double mem_used = memUsed();
-    printf("c restarts              : %d (%d conflicts on average)\n",         (int)s.starts, s.starts > 0 ? s.conflicts/s.starts : 0);
-    printf("c blocked restarts      : %d (multiple: %d) \n",                   (int)s.nbstopsrestarts,s.nbstopsrestartssame);
+    printf("c restarts              : %d (%d conflicts on average)\n",         (int)s.starts, s.starts > 0 ? (int)(s.conflicts/s.starts) : 0);
+    printf("c blocked restarts      : %d (multiple: %d) \n",                   (int)s.nbstopsrestarts, (int)s.nbstopsrestartssame);
     printf("c last block at restart : %d\n",                                   (int)s.lastblockatrestart);
     printf("c nb ReduceDB           : %-12d\n",                                (int)s.nbReduceDB);
     printf("c nb removed Clauses    : %-12d\n",                                (int)s.nbRemovedClauses);

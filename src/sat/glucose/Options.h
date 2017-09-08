@@ -62,7 +62,7 @@ class Option
     struct OptionLt {
         bool operator()(const Option* x, const Option* y) {
             int test1 = strcmp(x->category, y->category);
-            return test1 < 0 || test1 == 0 && strcmp(x->type_name, y->type_name) < 0;
+            return test1 < 0 || (test1 == 0 && strcmp(x->type_name, y->type_name) < 0);
         }
     };
 
@@ -284,15 +284,15 @@ class Int64Option : public Option
         if (range.begin == INT64_MIN)
             fprintf(stderr, "imin");
         else
-            fprintf(stderr, "%4d", range.begin);
+            fprintf(stderr, "%4d", (int)range.begin);
 
         fprintf(stderr, " .. ");
         if (range.end == INT64_MAX)
             fprintf(stderr, "imax");
         else
-            fprintf(stderr, "%4d", range.end);
+            fprintf(stderr, "%4d", (int)range.end);
 
-        fprintf(stderr, "] (default: %d)\n", value);
+        fprintf(stderr, "] (default: %d)\n", (int)value);
         if (verbose){
             fprintf(stderr, "\n        %s\n", description);
             fprintf(stderr, "\n");
