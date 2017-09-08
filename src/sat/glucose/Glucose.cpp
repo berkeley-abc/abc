@@ -93,11 +93,11 @@ Solver::Solver() :
     , pCnfFunc(NULL)
     , nCallConfl(1000)
     , terminate_search_early(false)
-    , verbEveryConflicts(10000)
     , pstop(NULL)
     , nRuntimeLimit(0)
 
     , verbosity      (0)
+    , verbEveryConflicts(10000)
     , showModel      (0)
     , K              (opt_K)
     , R              (opt_R)
