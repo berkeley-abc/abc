@@ -42,7 +42,6 @@ struct Bmcg_Man_t_
     Vec_Int_t         vCiMap;              // maps CIs of pFrames into CIs/frames of GIA
     bmcg_sat_solver * pSats[PAR_THR_MAX];  // concurrent SAT solvers
     int               nSatVars;            // number of SAT variables used
-    int               nSatVarsOld;         // number of SAT variables used
     int               fStopNow;            // signal when it is time to stop
     abctime           timeUnf;             // runtime of unfolding
     abctime           timeCnf;             // runtime of CNF generation
@@ -90,7 +89,7 @@ Bmcg_Man_t * Bmcg_ManStart( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 //        p->pSats[i]->SolverType = i;
         bmcg_sat_solver_addvar( p->pSats[i] );
         bmcg_sat_solver_addclause( p->pSats[i], &Lit, 1 );  
-        bmcg_sat_solver_setstop( p->pSats[i], &p->fStopNow );
+        bmcg_sat_solver_set_stop( p->pSats[i], &p->fStopNow );
     }
     p->nSatVars = 1;
     return p;
@@ -166,7 +165,7 @@ int Bmcg_ManCollect_rec( Bmcg_Man_t * p, int iObj )
         return iLitClean;
     pObj = Gia_ManObj( p->pFrames, iObj );
     iSatVar = Vec_IntEntry( &p->vFr2Sat, iObj );
-    if ( iSatVar > 0 || Gia_ObjIsCi(pObj) )
+    if ( (iSatVar > 0 && !bmcg_sat_solver_var_is_elim(p->pSats[0], iSatVar)) || Gia_ObjIsCi(pObj) )
         iLitClean = Gia_ManAppendCi( p->pClean );
     else if ( Gia_ObjIsAnd(pObj) )
     {
@@ -319,11 +318,12 @@ Abc_Cex_t * Bmcg_ManGenerateCex( Bmcg_Man_t * p, int i, int f, int s )
 void Bmcg_ManAddCnf( Bmcg_Man_t * p, bmcg_sat_solver * pSat, Cnf_Dat_t * pCnf )
 {
     int i;
-    for ( i = p->nSatVarsOld; i < p->nSatVars; i++ )
-        bmcg_sat_solver_addvar( pSat );
+    bmcg_sat_solver_set_nvars( pSat, p->nSatVars );
     for ( i = 0; i < pCnf->nClauses; i++ )
         if ( !bmcg_sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
             assert( 0 );
+    if ( p->pPars->fUseEliminate )
+        bmcg_sat_solver_eliminate( pSat, 0 );
 }
 int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
@@ -345,7 +345,6 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         }
         nClauses += pCnf->nClauses;
         Bmcg_ManAddCnf( p, p->pSats[0], pCnf );
-        p->nSatVarsOld = p->nSatVars;
         Cnf_DataFree( pCnf );
         assert( Gia_ManPoNum(p->pFrames) == (f + pPars->nFramesAdd) * Gia_ManPoNum(pGia) );
         for ( k = 0; k < pPars->nFramesAdd; k++ )

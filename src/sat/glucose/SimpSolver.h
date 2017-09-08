@@ -167,7 +167,7 @@ class SimpSolver : public Solver {
 // Implementation of inline methods:
 
 
-inline bool SimpSolver::isEliminated (Var v) const { return eliminated[v] != 0; }
+inline bool SimpSolver::isEliminated (Var v) const { return eliminated.size() ? eliminated[v] != 0 : 0; }
 inline void SimpSolver::updateElimHeap(Var v) {
     assert(use_simplification);
     // if (!frozen[v] && !isEliminated(v) && value(v) == l_Undef)

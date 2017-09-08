@@ -54,19 +54,19 @@ extern "C" {
   SeeAlso     []
 
 ***********************************************************************/
-Gluco::Solver * glucose_solver_start()
+Gluco::SimpSolver * glucose_solver_start()
 {
-    Solver * S = new Solver;
+    SimpSolver * S = new SimpSolver;
     S->setIncrementalMode();
     return S;
 }
 
-void glucose_solver_stop(Gluco::Solver* S)
+void glucose_solver_stop(Gluco::SimpSolver* S)
 {
     delete S;
 }
 
-int glucose_solver_addclause(Gluco::Solver* S, int * plits, int nlits)
+int glucose_solver_addclause(Gluco::SimpSolver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
     for ( int i = 0; i < nlits; i++,plits++)
@@ -81,14 +81,14 @@ int glucose_solver_addclause(Gluco::Solver* S, int * plits, int nlits)
     return S->addClause(lits); // returns 0 if the problem is UNSAT
 }
 
-void glucose_solver_setcallback(Gluco::Solver* S, void * pman, int(*pfunc)(void*, int, int*))
+void glucose_solver_setcallback(Gluco::SimpSolver* S, void * pman, int(*pfunc)(void*, int, int*))
 {
     S->pCnfMan = pman;
     S->pCnfFunc = pfunc;
     S->nCallConfl = 1000;
 }
 
-int glucose_solver_solve(Gluco::Solver* S, int * plits, int nlits)
+int glucose_solver_solve(Gluco::SimpSolver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
     for (int i=0;i<nlits;i++,plits++)
@@ -97,22 +97,22 @@ int glucose_solver_solve(Gluco::Solver* S, int * plits, int nlits)
         p.x = *plits;
         lits.push(p);
     }
-    Gluco::lbool res = S->solveLimited(lits);
+    Gluco::lbool res = S->solveLimited(lits, 0);
     return (res == l_True ? 1 : res == l_False ? -1 : 0);
 }
 
-int glucose_solver_addvar(Gluco::Solver* S)
+int glucose_solver_addvar(Gluco::SimpSolver* S)
 {
     S->newVar();
     return S->nVars() - 1;
 }
 
-int glucose_solver_read_cex_varvalue(Gluco::Solver* S, int ivar)
+int glucose_solver_read_cex_varvalue(Gluco::SimpSolver* S, int ivar)
 {
     return S->model[ivar] == l_True;
 }
 
-void glucose_solver_setstop(Gluco::Solver* S, int * pstop)
+void glucose_solver_setstop(Gluco::SimpSolver* S, int * pstop)
 {
     S->pstop = pstop;
 }
@@ -155,69 +155,92 @@ bmcg_sat_solver * bmcg_sat_solver_start()
 }
 void bmcg_sat_solver_stop(bmcg_sat_solver* s)
 {
-    glucose_solver_stop((Gluco::Solver*)s);
+    glucose_solver_stop((Gluco::SimpSolver*)s);
 }
 
 int bmcg_sat_solver_addclause(bmcg_sat_solver* s, int * plits, int nlits)
 {
-    return glucose_solver_addclause((Gluco::Solver*)s,plits,nlits);
+    return glucose_solver_addclause((Gluco::SimpSolver*)s,plits,nlits);
 }
 
 void bmcg_sat_solver_setcallback(bmcg_sat_solver* s, void * pman, int(*pfunc)(void*, int, int*))
 {
-    glucose_solver_setcallback((Gluco::Solver*)s,pman,pfunc);
+    glucose_solver_setcallback((Gluco::SimpSolver*)s,pman,pfunc);
 }
 
 int bmcg_sat_solver_solve(bmcg_sat_solver* s, int * plits, int nlits)
 {
-    return glucose_solver_solve((Gluco::Solver*)s,plits,nlits);
+    return glucose_solver_solve((Gluco::SimpSolver*)s,plits,nlits);
+}
+
+int bmcg_sat_solver_final(bmcg_sat_solver* s, int ** ppArray)
+{
+    *ppArray = (int *)(Lit *)((Gluco::SimpSolver*)s)->conflict;
+    return ((Gluco::SimpSolver*)s)->conflict.size();
 }
 
 int bmcg_sat_solver_addvar(bmcg_sat_solver* s)
 {
-    return glucose_solver_addvar((Gluco::Solver*)s);
+    return glucose_solver_addvar((Gluco::SimpSolver*)s);
+}
+
+void bmcg_sat_solver_set_nvars( bmcg_sat_solver* s, int nvars )
+{
+    int i;
+    for ( i = bmcg_sat_solver_varnum(s); i < nvars; i++ )
+        bmcg_sat_solver_addvar(s);
+}
+
+int bmcg_sat_solver_eliminate( bmcg_sat_solver* s, int turn_off_elim )
+{
+    return ((Gluco::SimpSolver*)s)->eliminate(turn_off_elim != 0);
+}
+
+int bmcg_sat_solver_var_is_elim( bmcg_sat_solver* s, int v )
+{
+    return ((Gluco::SimpSolver*)s)->isEliminated(v);
 }
 
 int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
 {
-    return glucose_solver_read_cex_varvalue((Gluco::Solver*)s, ivar);
+    return glucose_solver_read_cex_varvalue((Gluco::SimpSolver*)s, ivar);
 }
 
-void bmcg_sat_solver_setstop(bmcg_sat_solver* s, int * pstop)
+void bmcg_sat_solver_set_stop(bmcg_sat_solver* s, int * pstop)
 {
-    glucose_solver_setstop((Gluco::Solver*)s, pstop);
+    glucose_solver_setstop((Gluco::SimpSolver*)s, pstop);
 }
 
 abctime bmcg_sat_solver_set_runtime_limit(bmcg_sat_solver* s, abctime Limit)
 {
-    abctime nRuntimeLimit = ((Gluco::Solver*)s)->nRuntimeLimit;
-    ((Gluco::Solver*)s)->nRuntimeLimit = Limit;
+    abctime nRuntimeLimit = ((Gluco::SimpSolver*)s)->nRuntimeLimit;
+    ((Gluco::SimpSolver*)s)->nRuntimeLimit = Limit;
     return nRuntimeLimit;
 }
 
 void bmcg_sat_solver_set_conflict_budget(bmcg_sat_solver* s, int Limit)
 {
     if ( Limit > 0 ) 
-        ((Gluco::Solver*)s)->setConfBudget( (int64_t)Limit );
+        ((Gluco::SimpSolver*)s)->setConfBudget( (int64_t)Limit );
     else 
-        ((Gluco::Solver*)s)->budgetOff();
+        ((Gluco::SimpSolver*)s)->budgetOff();
 }
 
 int bmcg_sat_solver_varnum(bmcg_sat_solver* s)
 {
-    return ((Gluco::Solver*)s)->nVars();
+    return ((Gluco::SimpSolver*)s)->nVars();
 }
 int bmcg_sat_solver_clausenum(bmcg_sat_solver* s)
 {
-    return ((Gluco::Solver*)s)->nClauses();
+    return ((Gluco::SimpSolver*)s)->nClauses();
 }
 int bmcg_sat_solver_learntnum(bmcg_sat_solver* s)
 {
-    return ((Gluco::Solver*)s)->nLearnts();
+    return ((Gluco::SimpSolver*)s)->nLearnts();
 }
 int bmcg_sat_solver_conflictnum(bmcg_sat_solver* s)
 {
-    return ((Gluco::Solver*)s)->conflicts;
+    return ((Gluco::SimpSolver*)s)->conflicts;
 }
 
 /**Function*************************************************************
