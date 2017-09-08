@@ -60,6 +60,7 @@ public:
     bool terminate_search_early;         // used to stop the solver early if it as instructed by an external caller
     int * pstop;                         // another callback
     uint64_t nRuntimeLimit;              // runtime limit
+    vec<int> user_vec;
 
     // Problem specification:
     //
@@ -229,7 +230,7 @@ protected:
     vec<char>           polarity;         // The preferred polarity of each variable.
     vec<char>           decision;         // Declares if a variable is eligible for selection in the decision heuristic.
     vec<Lit>            trail;            // Assignment stack; stores all assigments made in the order they were made.
-        vec<int>            nbpos;
+    vec<int>            nbpos;
     vec<int>            trail_lim;        // Separator indices for different decision levels in 'trail'.
     vec<VarData>        vardata;          // Stores reason and level for each variable.
     int                 qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).

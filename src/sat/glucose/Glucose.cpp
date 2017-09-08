@@ -224,6 +224,12 @@ bool Solver::addClause_(vec<Lit>& ps)
     assert(decisionLevel() == 0);
     if (!ok) return false;
 
+    if ( 0 ) {
+        for ( int i = 0; i < ps.size(); i++ )
+            printf( "%d ", ps[i] );
+        printf( "\n" );
+    }
+
     // Check if clause is satisfied and remove false/duplicate literals:
     sort(ps);
 
@@ -797,25 +803,18 @@ CRef Solver::propagate()
         vec<Watcher>&  ws  = watches[p];
         Watcher        *i, *j, *end;
         num_props++;
-
         
-            // First, Propagate binary clauses 
+        // First, Propagate binary clauses 
         vec<Watcher>&  wbin  = watchesBin[p];
-        
         for(int k = 0;k<wbin.size();k++) {
-          
           Lit imp = wbin[k].blocker;
-          
           if(value(imp) == l_False) {
             return wbin[k].cref;
           }
-          
           if(value(imp) == l_Undef) {
             uncheckedEnqueue(imp,wbin[k].cref);
           }
         }
-    
-
 
         for (i = j = (Watcher*)ws, end = i + ws.size();  i != end;){
             // Try to avoid inspecting the clause:
@@ -836,7 +835,6 @@ CRef Solver::propagate()
             Lit     first = c[0];
             Watcher w     = Watcher(cr, first);
             if (first != blocker && value(first) == l_True){
-              
               *j++ = w; continue; }
 
             // Look for new watch:
@@ -912,40 +910,35 @@ struct reduceDB_lt {
     // Main criteria... Like in MiniSat we keep all binary clauses
     if(ca[x].size()> 2 && ca[y].size()==2) return 1;
     
-    if(ca[y].size()>2 && ca[x].size()==2) return 0;
+    if(ca[y].size()> 2 && ca[x].size()==2) return 0;
     if(ca[x].size()==2 && ca[y].size()==2) return 0;
     
     // Second one  based on literal block distance
     if(ca[x].lbd()> ca[y].lbd()) return 1;
     if(ca[x].lbd()< ca[y].lbd()) return 0;    
     
-    
     // Finally we can use old activity or size, we choose the last one
-        return ca[x].activity() < ca[y].activity();
-        //return x->size() < y->size();
-
-        //return ca[x].size() > 2 && (ca[y].size() == 2 || ca[x].activity() < ca[y].activity()); } 
+    return ca[x].activity() < ca[y].activity();
+    //return x->size() < y->size();
+    //return ca[x].size() > 2 && (ca[y].size() == 2 || ca[x].activity() < ca[y].activity()); } 
     }    
 };
 
 void Solver::reduceDB()
-{
- 
-  int     i, j;
+{ 
+  int i, j;
   nbReduceDB++;
   sort(learnts, reduceDB_lt(ca));
 
   // We have a lot of "good" clauses, it is difficult to compare them. Keep more !
   if(ca[learnts[learnts.size() / RATIOREMOVECLAUSES]].lbd()<=3) nbclausesbeforereduce +=specialIncReduceDB; 
   // Useless :-)
-  if(ca[learnts.last()].lbd()<=5)  nbclausesbeforereduce +=specialIncReduceDB; 
-  
+  if(ca[learnts.last()].lbd()<=5)  nbclausesbeforereduce +=specialIncReduceDB;   
   
   // Don't delete binary or locked clauses. From the rest, delete clauses from the first half
   // Keep clauses which seem to be usefull (their lbd was reduce during this sequence)
 
   int limit = learnts.size() / 2;
-
   for (i = j = 0; i < learnts.size(); i++){
     Clause& c = ca[learnts[i]];
     if (c.lbd()>2 && c.size() > 2 && c.canBeDel() &&  !locked(c) && (i < limit)) {
@@ -965,12 +958,9 @@ void Solver::reduceDB()
 
 void Solver::removeSatisfied(vec<CRef>& cs)
 {
-  
     int i, j;
     for (i = j = 0; i < cs.size(); i++){
         Clause& c = ca[cs[i]];
-
-
         if (satisfied(c)) 
             removeClause(cs[i]);
         else

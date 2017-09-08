@@ -245,6 +245,49 @@ int bmcg_sat_solver_conflictnum(bmcg_sat_solver* s)
     return ((Gluco::Solver*)s)->conflicts;
 }
 
+int bmcg_sat_solver_minimize_assumptions(bmcg_sat_solver * s, int * plits, int nlits)
+{
+    vec<int>*array = &((Gluco::Solver*)s)->user_vec;
+    int i, nlitsL, nlitsR, nresL, nresR, status;
+    if ( nlits == 1 )
+    {
+        // since the problem is UNSAT, we try to solve it without assuming the last literal
+        // if the result is UNSAT, the last literal can be dropped; otherwise, it is needed
+        status = bmcg_sat_solver_solve( s, NULL, 0 );
+        return status != -1; // return 1 if the problem is not UNSAT
+    }
+    assert( nlits >= 2 );
+    nlitsL = nlits / 2;
+    nlitsR = nlits - nlitsL;
+    // solve with these assumptions
+    status = bmcg_sat_solver_solve( s, plits, nlitsL );
+    if ( status == -1 ) // these are enough
+        return bmcg_sat_solver_minimize_assumptions( s, plits, nlitsL );
+    // these are not enough
+    // solve for the right lits
+// assume left bits
+    nresL = nlitsR == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nlitsL, nlitsR );
+// unassume left bits
+    // swap literals
+    array->clear();
+    for ( i = 0; i < nlitsL; i++ )
+        array->push(plits[i]);
+    for ( i = 0; i < nresL; i++ )
+        plits[i] = plits[nlitsL+i];
+    for ( i = 0; i < nlitsL; i++ )
+        plits[nresL+i] = (*array)[i];
+    // solve with these assumptions
+// assume right bits
+    status = bmcg_sat_solver_solve( s, plits, nresL );
+    if ( status == -1 ) // these are enough
+// unassume right bits
+        return nresL;
+    // solve for the left lits
+    nresR = nlitsL == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nresL, nlitsL );
+// unassume right bits
+    return nresL + nresR;
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -298,7 +341,7 @@ void Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars )
 ***********************************************************************/
 Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& S )
 {
-    //abctime clk = Abc_Clock();
+    abctime clk = Abc_Clock();
     int * pLit, * pStop, i;
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 1/*fAddOrCla*/, 0, 0/*verbose*/ );
     for ( i = 0; i < pCnf->nClauses; i++ )
@@ -315,12 +358,104 @@ Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& S )
         S.addClause(lits);
     }
     Vec_Int_t * vCnfIds = Vec_IntAllocArrayCopy(pCnf->pVarNums,pCnf->nVars);
+    printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    Cnf_DataFree(pCnf);
+    return vCnfIds;
+}
+
+// procedure below does not work because glucose_solver_addclause() expects Solver
+Vec_Int_t * Glucose_SolverFromAig2( Gia_Man_t * p, SimpSolver& S ) 
+{
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 1/*fAddOrCla*/, 0, 0/*verbose*/ );
+    for ( int i = 0; i < pCnf->nClauses; i++ )
+        if ( !glucose_solver_addclause( &S, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+            assert( 0 );
+    Vec_Int_t * vCnfIds = Vec_IntAllocArrayCopy(pCnf->pVarNums,pCnf->nVars);
     //printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
     //Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Cnf_DataFree(pCnf);
     return vCnfIds;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Glucose_GenerateSop( Gia_Man_t * p )
+{
+    bmcg_sat_solver * pSat[2] = { bmcg_sat_solver_start(), bmcg_sat_solver_start() };
+
+    // generate CNF for the on-set and off-set
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 0/*fAddOrCla*/, 0, 0/*verbose*/ );
+    int i,n,nVars = Gia_ManCiNum(p);
+    int iFirstVar = pCnf->nVars - nVars;
+    assert( Gia_ManCoNum(p) == 1 );
+    for ( n = 0; n < 2; n++ )
+    {
+        int Lit = Abc_Var2Lit( 1, !n );  // output variable is 1
+        for ( i = 0; i < pCnf->nClauses; i++ )
+            if ( !bmcg_sat_solver_addclause( pSat[n], pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+                assert( 0 );
+        if ( !bmcg_sat_solver_addclause( pSat[n], &Lit, 1 ) )
+            assert( 0 );
+    }
+    Cnf_DataFree( pCnf );
+
+    // generate assignments
+    Vec_Int_t * vLits = Vec_IntAlloc( nVars );
+    Vec_Str_t * vCube = Vec_StrAlloc( nVars + 4 );
+    while ( 1 )
+    {
+        // generate onset minterm
+        int status = bmcg_sat_solver_solve( pSat[1], NULL, 0 );
+        if ( status == -1 )
+            break;
+        assert( status == 1 );
+        Vec_IntClear( vLits );
+        for ( i = 0; i < nVars; i++ )
+            Vec_IntPush( vLits, Abc_Var2Lit(iFirstVar+i, !bmcg_sat_solver_read_cex_varvalue(pSat[1], iFirstVar+i)) );
+        // expand it against offset
+        status = bmcg_sat_solver_solve( pSat[0], Vec_IntArray(vLits), Vec_IntSize(vLits) );
+        assert( status == -1 );
+        int * pFinal, nFinal = bmcg_sat_solver_final( pSat[0], &pFinal );
+        // print cube
+        Vec_StrFill( vCube, nVars, '-' );
+        Vec_StrPrintF( vCube, " 1\n\0" );
+        for ( i = 0; i < nFinal; i++ )
+            Vec_StrWriteEntry( vCube, Abc_Lit2Var(pFinal[i]) - iFirstVar, (char)('0' + Abc_LitIsCompl(pFinal[i])) );
+        printf( "%s", Vec_StrArray(vCube) );
+        // add blocking clause
+        if ( !bmcg_sat_solver_addclause( pSat[1], pFinal, nFinal ) )
+            break;
+    }
+    Vec_IntFree( vLits );
+    Vec_StrFree( vCube );
+
+    bmcg_sat_solver_stop( pSat[0] );
+    bmcg_sat_solver_stop( pSat[1] );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
 {  
     abctime clk = Abc_Clock();
@@ -329,6 +464,7 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
     S.verbosity = pPars->verb;
     S.verbEveryConflicts = 50000;
     S.showModel = false;
+    //S.verbosity = 2;
     S.setConfBudget( pPars->nConfls > 0 ? (int64_t)pPars->nConfls : -1 );
 
     S.parsing = 1;
@@ -347,7 +483,7 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
         S.eliminate(true);
     
     vec<Lit> dummy;
-    lbool ret = S.solveLimited(dummy);
+    lbool ret = S.solveLimited(dummy, 0);
 
     if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
     printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
