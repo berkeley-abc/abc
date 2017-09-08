@@ -241,15 +241,16 @@ bool SimpSolver::merge(const Clause& _ps, const Clause& _qs, Var v, vec<Lit>& ou
     const Clause& ps  =  ps_smallest ? _qs : _ps;
     const Clause& qs  =  ps_smallest ? _ps : _qs;
 
-    int i;
+    int i, j;
     for (i = 0; i < qs.size(); i++){
         if (var(qs[i]) != v){
-            for (int j = 0; j < ps.size(); j++)
-                if (var(ps[j]) == var(qs[i]))
+            for (j = 0; j < ps.size(); j++)
+                if (var(ps[j]) == var(qs[i])) {
                     if (ps[j] == ~qs[i])
                         return false;
                     else
                         goto next;
+                }
             out_clause.push(qs[i]);
         }
         next:;
@@ -279,11 +280,12 @@ bool SimpSolver::merge(const Clause& _ps, const Clause& _qs, Var v, int& size)
     for (int i = 0; i < qs.size(); i++){
         if (var(__qs[i]) != v){
             for (int j = 0; j < ps.size(); j++)
-                if (var(__ps[j]) == var(__qs[i]))
+                if (var(__ps[j]) == var(__qs[i])) {
                     if (__ps[j] == ~__qs[i])
                         return false;
                     else
                         goto next;
+                }
             size++;
         }
         next:;
