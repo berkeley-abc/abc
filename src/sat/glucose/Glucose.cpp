@@ -226,7 +226,7 @@ bool Solver::addClause_(vec<Lit>& ps)
 
     if ( 0 ) {
         for ( int i = 0; i < ps.size(); i++ )
-            printf( "%d ", ps[i] );
+            printf( "%d ", toInt(ps[i]) );
         printf( "\n" );
     }
 
