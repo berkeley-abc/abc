@@ -1026,7 +1026,7 @@ extern ABC_DLL int                Abc_NodeIsExorType( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeIsMuxType( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeIsMuxControlType( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeRecognizeMux( Abc_Obj_t * pNode, Abc_Obj_t ** ppNodeT, Abc_Obj_t ** ppNodeE );
-extern ABC_DLL int                Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc, Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2 );
+extern ABC_DLL int                Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc, Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2, int fCheck );
 extern ABC_DLL void               Abc_NodeCollectFanins( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern ABC_DLL void               Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkCollectLatches( Abc_Ntk_t * pNtk );

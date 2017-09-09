@@ -1519,9 +1519,8 @@ Abc_Obj_t * Abc_NodeRecognizeMux( Abc_Obj_t * pNode, Abc_Obj_t ** ppNodeT, Abc_O
 
 ***********************************************************************/
 int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc, 
-    Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2 )
+    Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2, int fCheck )
 {
-    int fCheck = 1;
     FILE * pFile;
     Abc_Ntk_t * pNtk1, * pNtk2, * pNtkTemp;
     int util_optind = 0;

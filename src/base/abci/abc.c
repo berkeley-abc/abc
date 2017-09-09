@@ -8288,7 +8288,7 @@ int Abc_CommandMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
         return 1;
 
     if ( fIgnoreNames )
@@ -11888,7 +11888,7 @@ int Abc_CommandInter( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
         return 1;
     if ( nArgcNew == 0 )
     {
@@ -21509,7 +21509,7 @@ int Abc_CommandSynch( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
         if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
         {
@@ -22251,7 +22251,7 @@ int Abc_CommandCec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
         return 1;
 
     if ( fIgnoreNames )
@@ -22425,7 +22425,7 @@ int Abc_CommandDCec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
     }
 
@@ -22483,7 +22483,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fDelete1, fDelete2;
     char ** pArgvNew;
     int nArgcNew;
-    int c;
+    int c, fCheck = 1;
     int fIgnoreNames;
 
     extern int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * p );
@@ -22494,7 +22494,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     pSecPar->TimeLimit = 0;
     fIgnoreNames = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FTarmfnwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FTarmfncvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22535,11 +22535,14 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'n':
             fIgnoreNames ^= 1;
             break;
-        case 'w':
-            pSecPar->fVeryVerbose ^= 1;
+        case 'c':
+            fCheck ^= 1;
             break;
         case 'v':
             pSecPar->fVerbose ^= 1;
+            break;
+        case 'w':
+            pSecPar->fVeryVerbose ^= 1;
             break;
         default:
             goto usage;
@@ -22548,7 +22551,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, fCheck ) )
         return 1;
     if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
     {
@@ -22582,7 +22585,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsec [-F num] [-T num] [-armfnwvh] <file1> <file2>\n" );
+    Abc_Print( -2, "usage: dsec [-F num] [-T num] [-armfncvwh] <file1> <file2>\n" );
     Abc_Print( -2, "\t         performs inductive sequential equivalence checking\n" );
     Abc_Print( -2, "\t-F num : the limit on the depth of induction [default = %d]\n", pSecPar->nFramesMax );
     Abc_Print( -2, "\t-T num : the approximate runtime limit (in seconds) [default = %d]\n", pSecPar->TimeLimit );
@@ -22590,7 +22593,8 @@ usage:
     Abc_Print( -2, "\t-r     : toggles forward retiming at the beginning [default = %s]\n", pSecPar->fRetimeFirst? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles min-register retiming [default = %s]\n", pSecPar->fRetimeRegs? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggles the internal use of fraiging [default = %s]\n", pSecPar->fFraiging? "yes": "no" );
-    Abc_Print( -2, "\t-n     : toggle how CIs/COs are matched (by name or by order) [default = %s]\n", fIgnoreNames? "by order": "by name" );
+    Abc_Print( -2, "\t-n     : toggles how CIs/COs are matched (by name or by order) [default = %s]\n", fIgnoreNames? "by order": "by name" );
+    Abc_Print( -2, "\t-c     : toggles performing internal netlist check [default = %s]\n", fCheck? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n", pSecPar->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggles additional verbose output [default = %s]\n", pSecPar->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -22935,7 +22939,7 @@ int Abc_CommandAbSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pArgvNew = argv + globalUtilOptind;
         nArgcNew = argc - globalUtilOptind;
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
         if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
         {
@@ -23060,7 +23064,7 @@ int Abc_CommandSimSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pArgvNew = argv + globalUtilOptind;
         nArgcNew = argc - globalUtilOptind;
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
         if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
         {
@@ -23168,7 +23172,7 @@ int Abc_CommandMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         pArgvNew = argv + globalUtilOptind;
         nArgcNew = argc - globalUtilOptind;
-        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+        if ( !Abc_NtkPrepareTwoNtks( stdout, pNtk, pArgvNew, nArgcNew, &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
             return 1;
         if ( Abc_NtkLatchNum(pNtk1) == 0 || Abc_NtkLatchNum(pNtk2) == 0 )
         {
@@ -26260,7 +26264,7 @@ int Abc_CommandBm( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew , &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew , &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
         return 1;
 
     if( (unsigned)Abc_NtkPiNum(pNtk1) != (unsigned)Abc_NtkPiNum(pNtk2) || (unsigned)Abc_NtkPoNum(pNtk1) != (unsigned)Abc_NtkPoNum(pNtk2) )
@@ -26339,7 +26343,7 @@ int Abc_CommandBm2( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew , &pNtk1, &pNtk2, &fDelete1, &fDelete2 ) )
+    if ( !Abc_NtkPrepareTwoNtks( pErr, pNtk, pArgvNew, nArgcNew , &pNtk1, &pNtk2, &fDelete1, &fDelete2, 1 ) )
         return 1;
 
     if( (unsigned)Abc_NtkPiNum(pNtk1) != (unsigned)Abc_NtkPiNum(pNtk2) ||
