@@ -40124,7 +40124,7 @@ int Abc_CommandAbc9SBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmcs [-PCFAT num] [-gvwh]\n" );
+    Abc_Print( -2, "usage: &bmcs [-PCFAT num] [-gevwh]\n" );
     Abc_Print( -2, "\t         performs bounded model checking\n" );
     Abc_Print( -2, "\t-P num : the number of parallel solvers [default = %d]\n",              pPars->nProcs );
     Abc_Print( -2, "\t-C num : the SAT solver conflict limit [default = %d]\n",               pPars->nConfLimit );
@@ -40132,7 +40132,7 @@ usage:
     Abc_Print( -2, "\t-A num : the number of additional frames to unroll [default = %d]\n",   pPars->nFramesAdd );
     Abc_Print( -2, "\t-T num : approximate timeout in seconds [default = %d]\n",              pPars->nTimeOut );
     Abc_Print( -2, "\t-g     : toggle using Glucose 3.0 [default = %s]\n",                    pPars->fUseGlucose?  "Glucose" : "Satoko" );
-//    Abc_Print( -2, "\t-e     : toggle using variable eliminatation [default = %s]\n",         pPars->fUseEliminate?"yes": "no" );
+    Abc_Print( -2, "\t-e     : toggle using variable eliminatation [default = %s]\n",         pPars->fUseEliminate?"yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         pPars->fVerbose?     "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing information about unfolding [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
