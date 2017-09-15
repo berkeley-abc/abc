@@ -122,6 +122,10 @@ ifneq ($(findstring Darwin, $(shell uname)), Darwin)
    LIBS += -lrt
 endif
 
+ifdef ABC_USE_LIBSTDCXX
+   LIBS += -lstdc++
+   $(info $(MSG_PREFIX)Using explicit -lstdc++)
+endif
 
 $(info $(MSG_PREFIX)Using CFLAGS=$(CFLAGS))
 CXXFLAGS += $(CFLAGS)
