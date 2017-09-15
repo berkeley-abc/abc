@@ -442,6 +442,7 @@ static int Abc_CommandAbc9Flow2              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Flow3              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Iff                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Iiff               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9If2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Jf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Kf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1105,6 +1106,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&flow3",        Abc_CommandAbc9Flow3,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if",           Abc_CommandAbc9If,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&iff",          Abc_CommandAbc9Iff,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&iiff",         Abc_CommandAbc9Iiff,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&if2",          Abc_CommandAbc9If2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&jf",           Abc_CommandAbc9Jf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&kf",           Abc_CommandAbc9Kf,           0 );
@@ -35577,6 +35579,84 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9Iiff( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManIiffTest( Gia_Man_t * pGia, int nLutSize, int nNumCuts, int fUseGates, int fUseCells, int fVerbose );
+    int nLutSize  =  8;
+    int nNumCuts  = 12;
+    int fUseGates =  0;
+    int fUseCells =  0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCgcvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nNumCuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'g':
+            fUseGates ^= 1;
+            break;
+        case 'c':
+            fUseCells ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iiff(): There is no AIG to map.\n" );
+        return 1;
+    }
+    Gia_ManIiffTest( pAbc->pGia, nLutSize, nNumCuts, fUseGates, fUseCells, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &iiff [-KC num] [-gcvh]\n" );
+    Abc_Print( -2, "\t           performs techology mapping\n" );
+    Abc_Print( -2, "\t-K num   : the maximum LUT size [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-C num   : the maximum cut count [default = %d]\n", nNumCuts );
+    Abc_Print( -2, "\t-g       : toggle using gates [default = %s]\n", fUseGates? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle using cells [default = %s]\n", fUseCells? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9If2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Mpm_ManCellMapping( Gia_Man_t * p, Mpm_Par_t * pPars, void * pMio );
@@ -35745,7 +35825,6 @@ usage:
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
 }
-
 
 /**Function*************************************************************
 

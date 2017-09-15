@@ -4759,6 +4759,10 @@ SOURCE=.\src\aig\gia\giaIff.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaIiff.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaIso.c
 # End Source File
 # Begin Source File
