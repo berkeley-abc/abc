@@ -51,13 +51,13 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time )
     int i, ThisSize, Length, LengthStart;
     if ( Vec_PtrSize(p->vSolvers) < 2 )
     {
-        printf( "Frame " );
-        printf( "Clauses                                                     " );
-        printf( "Max Queue " );
-        printf( "Flops " );
-        printf( "Cex      " );
-        printf( "Time" );
-        printf( "\n" );
+        Abc_Print(1, "Frame " );
+        Abc_Print(1, "Clauses                                                     " );
+        Abc_Print(1, "Max Queue " );
+        Abc_Print(1, "Flops " );
+        Abc_Print(1, "Cex      " );
+        Abc_Print(1, "Time" );
+        Abc_Print(1, "\n" );
         return;
     }
     if ( Abc_FrameIsBatchMode() && !fClose )
@@ -272,10 +272,10 @@ void Pdr_ManPrintClauses( Pdr_Man_t * p, int kStart )
 void Pdr_SetPrintOne( Pdr_Set_t * p )
 {
     int i;
-    printf( "Clause: {" );
+    Abc_Print(1, "Clause: {" );
     for ( i = 0; i < p->nLits; i++ )
-        printf( " %s%d", Abc_LitIsCompl(p->Lits[i])? "!":"", Abc_Lit2Var(p->Lits[i]) );
-    printf( " }\n" );
+        Abc_Print(1, " %s%d", Abc_LitIsCompl(p->Lits[i])? "!":"", Abc_Lit2Var(p->Lits[i]) );
+    Abc_Print(1, " }\n" );
 }
 
 /**Function*************************************************************
@@ -327,7 +327,7 @@ Aig_Man_t * Pdr_ManDupAigWithClauses( Aig_Man_t * p, Vec_Ptr_t * vCubes )
     Aig_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     // check the resulting network
     if ( !Aig_ManCheck(pNew) )
-        printf( "Aig_ManDupSimple(): The check has failed.\n" );
+        Abc_Print(1, "Aig_ManDupSimple(): The check has failed.\n" );
     return pNew;
 }
 void Pdr_ManDumpAig( Aig_Man_t * p, Vec_Ptr_t * vCubes )
@@ -335,7 +335,7 @@ void Pdr_ManDumpAig( Aig_Man_t * p, Vec_Ptr_t * vCubes )
     Aig_Man_t * pNew = Pdr_ManDupAigWithClauses( p, vCubes );
     Ioa_WriteAiger( pNew, "aig_with_clauses.aig", 0, 0 );
     Aig_ManStop( pNew );
-    printf( "Dumped modified AIG into file \"aig_with_clauses.aig\".\n" );
+    Abc_Print(1, "Dumped modified AIG into file \"aig_with_clauses.aig\".\n" );
 }
 
 /**Function*************************************************************
@@ -588,7 +588,7 @@ int Pdr_ManDeriveMarkNonInductive( Pdr_Man_t * p, Vec_Ptr_t * vCubes )
         else
             Counter++;
     }
-    //printf( "Clauses = %d.\n", Counter );
+    //Abc_Print(1, "Clauses = %d.\n", Counter );
     //sat_solver_delete( pSat );
     return fChanges;
 }
@@ -692,12 +692,12 @@ Vec_Str_t * Pdr_InvPrintStr( Vec_Int_t * vInv, Vec_Int_t * vCounts )
 }
 void Pdr_InvPrint( Vec_Int_t * vInv, int fVerbose )
 {
-    printf( "Invariant contains %d clauses with %d literals and %d flops (out of %d).\n", Vec_IntEntry(vInv, 0), Vec_IntSize(vInv)-Vec_IntEntry(vInv, 0)-2, Pdr_InvUsedFlopNum(vInv), Vec_IntEntryLast(vInv) );
+    Abc_Print(1, "Invariant contains %d clauses with %d literals and %d flops (out of %d).\n", Vec_IntEntry(vInv, 0), Vec_IntSize(vInv)-Vec_IntEntry(vInv, 0)-2, Pdr_InvUsedFlopNum(vInv), Vec_IntEntryLast(vInv) );
     if ( fVerbose )
     {
         Vec_Int_t * vCounts = Pdr_InvCounts( vInv );
         Vec_Str_t * vStr = Pdr_InvPrintStr( vInv, vCounts );
-        printf( "%s", Vec_StrArray( vStr ) );
+        Abc_Print(1, "%s", Vec_StrArray( vStr ) );
         Vec_IntFree( vCounts );
         Vec_StrFree( vStr );
     }
@@ -743,7 +743,7 @@ int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver 
             if ( status == l_True ) // sat - property fails
             {
                 if ( fVerbose )
-                    printf( "Coverage check failed for output %d.\n", i );
+                    Abc_Print(1, "Coverage check failed for output %d.\n", i );
                 nFailedOuts++;
                 if ( fSkip )
                 {
@@ -767,14 +767,14 @@ int Pdr_InvCheck_int( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose, sat_solver 
         // if it does not intersect, then it is redundant and can be skipped
         status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), nBTLimit, 0, 0, 0 );
         if ( status != l_True && fVerbose )
-            printf( "Finished checking clause %d (out of %d)...\r", i, pList[0] );
+            Abc_Print(1, "Finished checking clause %d (out of %d)...\r", i, pList[0] );
         if ( status == l_Undef ) // timeout
             break;
         if ( status == l_False ) // unsat -- correct
             continue;
         assert( status == l_True );
         if ( fVerbose )
-            printf( "Inductiveness check failed for clause %d.\n", i );
+            Abc_Print(1, "Inductiveness check failed for clause %d.\n", i );
         nFailed++;
         if ( fSkip )
         {
@@ -892,14 +892,14 @@ Vec_Int_t * Pdr_InvMinimize( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
         if ( fCannot )
             continue;
         if ( fVerbose )
-        printf( "Removing clause %d.\n", i );
+        Abc_Print(1, "Removing clause %d.\n", i );
         Vec_BitWriteEntry( vRemoved, i, 1 );
         nRemoved++;
     }
     if ( nRemoved )
-        printf( "Invariant minimization reduced %d clauses (out of %d).  ", nRemoved, nCubes );
+        Abc_Print(1, "Invariant minimization reduced %d clauses (out of %d).  ", nRemoved, nCubes );
     else
-        printf( "Invariant minimization did not change the invariant.  " ); 
+        Abc_Print(1, "Invariant minimization did not change the invariant.  " ); 
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     // cleanup cover
     if ( !fFailed && nRemoved > 0 ) // finished without timeout and removed some cubes
@@ -941,7 +941,7 @@ Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
             else
             {
                 if ( fVerbose )
-                printf( "Removing lit %d from clause %d.\n", k, i );
+                Abc_Print(1, "Removing lit %d from clause %d.\n", k, i );
                 nRemoved++;
             }
             sat_solver_delete( pSat );
@@ -952,9 +952,9 @@ Vec_Int_t * Pdr_InvMinimizeLits( Gia_Man_t * p, Vec_Int_t * vInv, int fVerbose )
     Cnf_DataFree( pCnf );
     //sat_solver_delete( pSat );
     if ( nRemoved )
-        printf( "Invariant minimization reduced %d literals (out of %d).  ", nRemoved, nLits );
+        Abc_Print(1, "Invariant minimization reduced %d literals (out of %d).  ", nRemoved, nLits );
     else
-        printf( "Invariant minimization did not change the invariant.  " ); 
+        Abc_Print(1, "Invariant minimization did not change the invariant.  " ); 
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     if ( nRemoved > 0 ) // finished without timeout and removed some lits
     {

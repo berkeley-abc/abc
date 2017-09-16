@@ -312,6 +312,7 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
     Gia_Man_t * p = NULL;
     unsigned char * pBufferPivot, * pBufferEnd = pBuffer + Size;
     int i, nInputs, nFlops, nGates, nProps;
+    int verFairness, nFairness, nConstraints;
     unsigned iFan0, iFan1;
 
     nInputs = Gia_AigerReadUnsigned( &pBuffer );
@@ -370,6 +371,16 @@ Gia_Man_t *  Gia_ManFromBridgeReadBody( int Size, unsigned char * pBuffer, Vec_I
         // complement property output!!!
         Gia_ManAppendCo( p, Abc_LitNot(iFan0) );
     }
+
+    verFairness = Gia_AigerReadUnsigned( &pBuffer );
+    assert( verFairness == 1 );
+
+    nFairness = Gia_AigerReadUnsigned( &pBuffer );
+    assert( nFairness == 0 );
+
+    nConstraints = Gia_AigerReadUnsigned( &pBuffer );
+    assert( nConstraints == 0);
+
     // make sure the end of buffer is reached
     assert( pBufferEnd == pBuffer );
 
