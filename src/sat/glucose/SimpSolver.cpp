@@ -607,7 +607,7 @@ void SimpSolver::extendModel()
 
 bool SimpSolver::eliminate(bool turn_off_elim)
 {
-    abctime clk = Abc_Clock();
+    //abctime clk = Abc_Clock();
     if (!simplify())
         return false;
     else if (!use_simplification)
