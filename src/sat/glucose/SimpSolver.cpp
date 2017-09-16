@@ -691,6 +691,7 @@ bool SimpSolver::eliminate(bool turn_off_elim)
         printf("c |  Eliminated clauses:     %10.2f Mb                                                                |\n", 
                double(elimclauses.size() * sizeof(uint32_t)) / (1024*1024));
 
+    printf( "c Simplication removed %d variables and %d clauses.  ", eliminated_vars, elimclauses.size() );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return ok;
 }
@@ -704,7 +705,6 @@ void SimpSolver::cleanUpClauses()
         if (ca[clauses[i]].mark() == 0)
             clauses[j++] = clauses[i];
     clauses.shrink(i - j);
-    printf( "Simplication removed %d variables and %d clauses.  ", eliminated_vars, i - j );
 }
 
 
