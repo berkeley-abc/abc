@@ -28,6 +28,7 @@
 
 #include "aig/gia/gia.h"
 #include "sat/cnf/cnf.h"
+#include "misc/extra/extra.h"
 
 using namespace Gluco;
 
@@ -46,7 +47,6 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////
 
 #ifdef USE_SIMP_SOLVER
-
     
 /**Function*************************************************************
 
@@ -547,7 +547,57 @@ void glucose_print_stats(SimpSolver& s, abctime clk)
   SeeAlso     []
 
 ***********************************************************************/
-void Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars )
+void Glucose_ReadDimacs( char * pFileName, SimpSolver& s )
+{
+    vec<Lit> * lits = &s.user_lits;
+    char * pBuffer = Extra_FileReadContents( pFileName );
+    char * pTemp; int fComp, Var, VarMax = 0;
+    lits->clear();
+    for ( pTemp = pBuffer; *pTemp; pTemp++ )
+    {
+        if ( *pTemp == 'c' || *pTemp == 'p' ) {
+            while ( *pTemp != '\n' )
+                pTemp++;
+            continue;
+        }
+        while ( *pTemp == ' ' || *pTemp == '\t' || *pTemp == '\r' || *pTemp == '\n' )
+            pTemp++;
+        fComp = 0;
+        if ( *pTemp == '-' )
+            fComp = 1, pTemp++;
+        if ( *pTemp == '+' )
+            pTemp++;
+        Var = atoi( pTemp );
+        if ( Var == 0 ) {
+            if ( lits->size() > 0 ) {
+                s.addVar( VarMax );
+                s.addClause(*lits);
+                lits->clear();
+            }
+        }
+        else {
+            Var--;
+            VarMax = Abc_MaxInt( VarMax, Var );
+            lits->push( toLit(Abc_Var2Lit(Var, fComp)) );
+        }
+        while ( *pTemp >= '0' && *pTemp <= '9' )
+            pTemp++;
+    }
+    ABC_FREE( pBuffer );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Glucose_SolveCnf( char * pFileName, Glucose_Pars * pPars )
 {
     abctime clk = Abc_Clock();
 
@@ -555,9 +605,10 @@ void Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars )
     S.verbosity = pPars->verb;
     S.setConfBudget( pPars->nConfls > 0 ? (int64_t)pPars->nConfls : -1 );
 
-    gzFile in = gzopen(pFilename, "rb");
-    parse_DIMACS(in, S);
-    gzclose(in);
+//    gzFile in = gzopen(pFilename, "rb");
+//    parse_DIMACS(in, S);
+//    gzclose(in);
+    Glucose_ReadDimacs( pFileName, S );
 
     if ( pPars->verb )
     {
@@ -570,7 +621,7 @@ void Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars )
     if ( pPars->pre ) S.eliminate(true);
 
     vec<Lit> dummy;
-    lbool ret = S.solveLimited(dummy);
+    lbool ret = S.solveLimited(dummy, 0);
     if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
     printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
     Abc_PrintTime( 1, "      Time", Abc_Clock() - clk );
@@ -587,23 +638,17 @@ void Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& S )
+Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& s )
 {
     abctime clk = Abc_Clock();
-    int * pLit, * pStop, i;
+    vec<Lit> * lits = &s.user_lits;
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 1/*fAddOrCla*/, 0, 0/*verbose*/ );
-    for ( i = 0; i < pCnf->nClauses; i++ )
+    for ( int i = 0; i < pCnf->nClauses; i++ )
     {
-        vec<Lit> lits;
-        for ( pLit = pCnf->pClauses[i], pStop = pCnf->pClauses[i+1]; pLit < pStop; pLit++ )
-        {
-            int Lit = *pLit;
-            int parsed_lit = (Lit & 1)? -(Lit >> 1)-1 : (Lit >> 1)+1;
-            int var = abs(parsed_lit)-1;
-            while (var >= S.nVars()) S.newVar();
-            lits.push( (parsed_lit > 0) ? mkLit(var) : ~mkLit(var) );
-        }
-        S.addClause(lits);
+        lits->clear();
+        for ( int * pLit = pCnf->pClauses[i]; pLit < pCnf->pClauses[i+1]; pLit++ )
+            lits->push( toLit(*pLit) ), s.addVar( *pLit >> 1 );
+        s.addClause(*lits);
     }
     Vec_Int_t * vCnfIds = Vec_IntAllocArrayCopy(pCnf->pVarNums,pCnf->nVars);
     printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );

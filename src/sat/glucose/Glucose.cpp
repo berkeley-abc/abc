@@ -209,7 +209,7 @@ Var Solver::newVar(bool sign, bool dvar)
     //activity .push(0);
     activity .push(rnd_init_act ? drand(random_seed) * 0.00001 : 0);
     seen     .push(0);
-    permDiff  .push(0);
+    permDiff .push(0);
     polarity .push(sign);
     decision .push();
     trail    .capacity(v+1);
@@ -226,7 +226,7 @@ bool Solver::addClause_(vec<Lit>& ps)
 
     if ( 0 ) {
         for ( int i = 0; i < ps.size(); i++ )
-            printf( "%d ", toInt(ps[i]) );
+            printf( "%s%d ", (toInt(ps[i]) & 1) ? "-":"", toInt(ps[i]) >> 1 );
         printf( "\n" );
     }
 

@@ -61,10 +61,12 @@ public:
     int * pstop;                         // another callback
     uint64_t nRuntimeLimit;              // runtime limit
     vec<int> user_vec;
+    vec<Lit> user_lits;
 
     // Problem specification:
     //
     Var     newVar    (bool polarity = true, bool dvar = true); // Add a new variable with parameters specifying variable mode.
+    void    addVar    (Var v);                                  // Add enough variables to make sure there is variable v.
 
     bool    addClause (const vec<Lit>& ps);                     // Add a clause to the solver. 
     bool    addEmptyClause();                                   // Add the empty clause, making the solver contradictory.
@@ -129,7 +131,7 @@ public:
 
     // Memory managment:
     //
-    /*virtual*/ void garbageCollect(); // virtuality causes segfault for some reason
+    virtual void garbageCollect(); // virtuality causes segfault for some reason
     void    checkGarbage(double gf);
     void    checkGarbage();
 
@@ -393,7 +395,7 @@ inline bool     Solver::addEmptyClause  ()                      { add_tmp.clear(
 inline bool     Solver::addClause       (Lit p)                 { add_tmp.clear(); add_tmp.push(p); return addClause_(add_tmp); }
 inline bool     Solver::addClause       (Lit p, Lit q)          { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); return addClause_(add_tmp); }
 inline bool     Solver::addClause       (Lit p, Lit q, Lit r)   { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); add_tmp.push(r); return addClause_(add_tmp); }
- inline bool     Solver::locked          (const Clause& c) const { 
+inline bool     Solver::locked          (const Clause& c) const { 
    if(c.size()>2) 
      return value(c[0]) == l_True && reason(var(c[0])) != CRef_Undef && ca.lea(reason(var(c[0]))) == &c; 
    return 
@@ -444,11 +446,12 @@ inline bool     Solver::solve         (const vec<Lit>& assumps){ budgetOff(); as
 inline lbool    Solver::solveLimited  (const vec<Lit>& assumps){ assumps.copyTo(assumptions); return solve_(); }
 inline bool     Solver::okay          ()      const   { return ok; }
 
-inline void     Solver::toDimacs     (const char* file){ vec<Lit> as; toDimacs(file, as); }
-inline void     Solver::toDimacs     (const char* file, Lit p){ vec<Lit> as; as.push(p); toDimacs(file, as); }
-inline void     Solver::toDimacs     (const char* file, Lit p, Lit q){ vec<Lit> as; as.push(p); as.push(q); toDimacs(file, as); }
-inline void     Solver::toDimacs     (const char* file, Lit p, Lit q, Lit r){ vec<Lit> as; as.push(p); as.push(q); as.push(r); toDimacs(file, as); }
+inline void     Solver::toDimacs      (const char* file){ vec<Lit> as; toDimacs(file, as); }
+inline void     Solver::toDimacs      (const char* file, Lit p){ vec<Lit> as; as.push(p); toDimacs(file, as); }
+inline void     Solver::toDimacs      (const char* file, Lit p, Lit q){ vec<Lit> as; as.push(p); as.push(q); toDimacs(file, as); }
+inline void     Solver::toDimacs      (const char* file, Lit p, Lit q, Lit r){ vec<Lit> as; as.push(p); as.push(q); as.push(r); toDimacs(file, as); }
 
+inline void     Solver::addVar(Var v) { while (v >= nVars()) newVar(); }
 
 //=================================================================================================
 // Debug etc:

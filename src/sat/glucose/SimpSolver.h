@@ -40,6 +40,7 @@ class SimpSolver : public Solver {
     // Problem specification:
     //
     Var     newVar    (bool polarity = true, bool dvar = true);
+    void    addVar    (Var v);               
     bool    addClause (const vec<Lit>& ps);
     bool    addEmptyClause();                // Add the empty clause to the solver.
     bool    addClause (Lit p);               // Add a unit clause to the solver.
@@ -192,6 +193,8 @@ inline bool SimpSolver::solve        (const vec<Lit>& assumps, bool do_simp, boo
 
 inline lbool SimpSolver::solveLimited (const vec<Lit>& assumps, bool do_simp, bool turn_off_simp){ 
     assumps.copyTo(assumptions); return solve_(do_simp, turn_off_simp); }
+
+inline void SimpSolver::addVar(Var v) { while (v >= nVars()) newVar(); }
 
 //=================================================================================================
 }
