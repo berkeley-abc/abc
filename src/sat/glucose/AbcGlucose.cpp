@@ -39,10 +39,15 @@ extern "C" {
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+//#define USE_SIMP_SOLVER 1
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifdef USE_SIMP_SOLVER
+
+    
 /**Function*************************************************************
 
   Synopsis    []
@@ -117,26 +122,6 @@ void glucose_solver_setstop(Gluco::SimpSolver* S, int * pstop)
     S->pstop = pstop;
 }
 
-void glucose_print_stats(Solver& s, abctime clk)
-{
-    double cpu_time = (double)(unsigned)clk / CLOCKS_PER_SEC;
-    double mem_used = memUsed();
-    printf("c restarts              : %d (%d conflicts on average)\n",         (int)s.starts, s.starts > 0 ? (int)(s.conflicts/s.starts) : 0);
-    printf("c blocked restarts      : %d (multiple: %d) \n",                   (int)s.nbstopsrestarts, (int)s.nbstopsrestartssame);
-    printf("c last block at restart : %d\n",                                   (int)s.lastblockatrestart);
-    printf("c nb ReduceDB           : %-12d\n",                                (int)s.nbReduceDB);
-    printf("c nb removed Clauses    : %-12d\n",                                (int)s.nbRemovedClauses);
-    printf("c nb learnts DL2        : %-12d\n",                                (int)s.nbDL2);
-    printf("c nb learnts size 2     : %-12d\n",                                (int)s.nbBin);
-    printf("c nb learnts size 1     : %-12d\n",                                (int)s.nbUn);
-    printf("c conflicts             : %-12d  (%.0f /sec)\n",                   (int)s.conflicts,    s.conflicts   /cpu_time);
-    printf("c decisions             : %-12d  (%4.2f %% random) (%.0f /sec)\n", (int)s.decisions,    (float)s.rnd_decisions*100 / (float)s.decisions, s.decisions   /cpu_time);
-    printf("c propagations          : %-12d  (%.0f /sec)\n",                   (int)s.propagations, s.propagations/cpu_time);
-    printf("c conflict literals     : %-12d  (%4.2f %% deleted)\n",            (int)s.tot_literals, (s.max_literals - s.tot_literals)*100 / (double)s.max_literals);
-    printf("c nb reduced Clauses    : %-12d\n", (int)s.nbReducedClauses);
-    if (mem_used != 0) printf("Memory used           : %.2f MB\n", mem_used);
-    //printf("c CPU time              : %.2f sec\n", cpu_time);
-}
 
 /**Function*************************************************************
 
@@ -286,6 +271,269 @@ int bmcg_sat_solver_minimize_assumptions(bmcg_sat_solver * s, int * plits, int n
     nresR = nlitsL == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nresL, nlitsL );
 // unassume right bits
     return nresL + nresR;
+}
+
+
+#else
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gluco::Solver * glucose_solver_start()
+{
+    Solver * S = new Solver;
+    S->setIncrementalMode();
+    return S;
+}
+
+void glucose_solver_stop(Gluco::Solver* S)
+{
+    delete S;
+}
+
+int glucose_solver_addclause(Gluco::Solver* S, int * plits, int nlits)
+{
+    vec<Lit> lits;
+    for ( int i = 0; i < nlits; i++,plits++)
+    {
+        // note: Glucose uses the same var->lit conventiaon as ABC
+        while ((*plits)/2 >= S->nVars()) S->newVar();
+        assert((*plits)/2 < S->nVars()); // NOTE: since we explicitely use new function bmc_add_var
+        Lit p;
+        p.x = *plits;
+        lits.push(p);
+    }
+    return S->addClause(lits); // returns 0 if the problem is UNSAT
+}
+
+void glucose_solver_setcallback(Gluco::Solver* S, void * pman, int(*pfunc)(void*, int, int*))
+{
+    S->pCnfMan = pman;
+    S->pCnfFunc = pfunc;
+    S->nCallConfl = 1000;
+}
+
+int glucose_solver_solve(Gluco::Solver* S, int * plits, int nlits)
+{
+    vec<Lit> lits;
+    for (int i=0;i<nlits;i++,plits++)
+    {
+        Lit p;
+        p.x = *plits;
+        lits.push(p);
+    }
+    Gluco::lbool res = S->solveLimited(lits);
+    return (res == l_True ? 1 : res == l_False ? -1 : 0);
+}
+
+int glucose_solver_addvar(Gluco::Solver* S)
+{
+    S->newVar();
+    return S->nVars() - 1;
+}
+
+int glucose_solver_read_cex_varvalue(Gluco::Solver* S, int ivar)
+{
+    return S->model[ivar] == l_True;
+}
+
+void glucose_solver_setstop(Gluco::Solver* S, int * pstop)
+{
+    S->pstop = pstop;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Wrapper APIs to calling from ABC.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+bmcg_sat_solver * bmcg_sat_solver_start() 
+{
+    return (bmcg_sat_solver *)glucose_solver_start();
+}
+void bmcg_sat_solver_stop(bmcg_sat_solver* s)
+{
+    glucose_solver_stop((Gluco::Solver*)s);
+}
+
+int bmcg_sat_solver_addclause(bmcg_sat_solver* s, int * plits, int nlits)
+{
+    return glucose_solver_addclause((Gluco::Solver*)s,plits,nlits);
+}
+
+void bmcg_sat_solver_setcallback(bmcg_sat_solver* s, void * pman, int(*pfunc)(void*, int, int*))
+{
+    glucose_solver_setcallback((Gluco::Solver*)s,pman,pfunc);
+}
+
+int bmcg_sat_solver_solve(bmcg_sat_solver* s, int * plits, int nlits)
+{
+    return glucose_solver_solve((Gluco::Solver*)s,plits,nlits);
+}
+
+int bmcg_sat_solver_final(bmcg_sat_solver* s, int ** ppArray)
+{
+    *ppArray = (int *)(Lit *)((Gluco::Solver*)s)->conflict;
+    return ((Gluco::Solver*)s)->conflict.size();
+}
+
+int bmcg_sat_solver_addvar(bmcg_sat_solver* s)
+{
+    return glucose_solver_addvar((Gluco::Solver*)s);
+}
+
+void bmcg_sat_solver_set_nvars( bmcg_sat_solver* s, int nvars )
+{
+    int i;
+    for ( i = bmcg_sat_solver_varnum(s); i < nvars; i++ )
+        bmcg_sat_solver_addvar(s);
+}
+
+int bmcg_sat_solver_eliminate( bmcg_sat_solver* s, int turn_off_elim )
+{
+    return 1; 
+//    return ((Gluco::Solver*)s)->eliminate(turn_off_elim != 0);
+}
+
+int bmcg_sat_solver_var_is_elim( bmcg_sat_solver* s, int v )
+{
+    return 0; 
+//    return ((Gluco::Solver*)s)->isEliminated(v);
+}
+
+int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
+{
+    return glucose_solver_read_cex_varvalue((Gluco::Solver*)s, ivar);
+}
+
+void bmcg_sat_solver_set_stop(bmcg_sat_solver* s, int * pstop)
+{
+    glucose_solver_setstop((Gluco::Solver*)s, pstop);
+}
+
+abctime bmcg_sat_solver_set_runtime_limit(bmcg_sat_solver* s, abctime Limit)
+{
+    abctime nRuntimeLimit = ((Gluco::Solver*)s)->nRuntimeLimit;
+    ((Gluco::Solver*)s)->nRuntimeLimit = Limit;
+    return nRuntimeLimit;
+}
+
+void bmcg_sat_solver_set_conflict_budget(bmcg_sat_solver* s, int Limit)
+{
+    if ( Limit > 0 ) 
+        ((Gluco::Solver*)s)->setConfBudget( (int64_t)Limit );
+    else 
+        ((Gluco::Solver*)s)->budgetOff();
+}
+
+int bmcg_sat_solver_varnum(bmcg_sat_solver* s)
+{
+    return ((Gluco::Solver*)s)->nVars();
+}
+int bmcg_sat_solver_clausenum(bmcg_sat_solver* s)
+{
+    return ((Gluco::Solver*)s)->nClauses();
+}
+int bmcg_sat_solver_learntnum(bmcg_sat_solver* s)
+{
+    return ((Gluco::Solver*)s)->nLearnts();
+}
+int bmcg_sat_solver_conflictnum(bmcg_sat_solver* s)
+{
+    return ((Gluco::Solver*)s)->conflicts;
+}
+
+int bmcg_sat_solver_minimize_assumptions(bmcg_sat_solver * s, int * plits, int nlits)
+{
+    vec<int>*array = &((Gluco::Solver*)s)->user_vec;
+    int i, nlitsL, nlitsR, nresL, nresR, status;
+    if ( nlits == 1 )
+    {
+        // since the problem is UNSAT, we try to solve it without assuming the last literal
+        // if the result is UNSAT, the last literal can be dropped; otherwise, it is needed
+        status = bmcg_sat_solver_solve( s, NULL, 0 );
+        return status != -1; // return 1 if the problem is not UNSAT
+    }
+    assert( nlits >= 2 );
+    nlitsL = nlits / 2;
+    nlitsR = nlits - nlitsL;
+    // solve with these assumptions
+    status = bmcg_sat_solver_solve( s, plits, nlitsL );
+    if ( status == -1 ) // these are enough
+        return bmcg_sat_solver_minimize_assumptions( s, plits, nlitsL );
+    // these are not enough
+    // solve for the right lits
+// assume left bits
+    nresL = nlitsR == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nlitsL, nlitsR );
+// unassume left bits
+    // swap literals
+    array->clear();
+    for ( i = 0; i < nlitsL; i++ )
+        array->push(plits[i]);
+    for ( i = 0; i < nresL; i++ )
+        plits[i] = plits[nlitsL+i];
+    for ( i = 0; i < nlitsL; i++ )
+        plits[nresL+i] = (*array)[i];
+    // solve with these assumptions
+// assume right bits
+    status = bmcg_sat_solver_solve( s, plits, nresL );
+    if ( status == -1 ) // these are enough
+// unassume right bits
+        return nresL;
+    // solve for the left lits
+    nresR = nlitsL == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nresL, nlitsL );
+// unassume right bits
+    return nresL + nresR;
+}
+
+#endif
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void glucose_print_stats(SimpSolver& s, abctime clk)
+{
+    double cpu_time = (double)(unsigned)clk / CLOCKS_PER_SEC;
+    double mem_used = memUsed();
+    printf("c restarts              : %d (%d conflicts on average)\n",         (int)s.starts, s.starts > 0 ? (int)(s.conflicts/s.starts) : 0);
+    printf("c blocked restarts      : %d (multiple: %d) \n",                   (int)s.nbstopsrestarts, (int)s.nbstopsrestartssame);
+    printf("c last block at restart : %d\n",                                   (int)s.lastblockatrestart);
+    printf("c nb ReduceDB           : %-12d\n",                                (int)s.nbReduceDB);
+    printf("c nb removed Clauses    : %-12d\n",                                (int)s.nbRemovedClauses);
+    printf("c nb learnts DL2        : %-12d\n",                                (int)s.nbDL2);
+    printf("c nb learnts size 2     : %-12d\n",                                (int)s.nbBin);
+    printf("c nb learnts size 1     : %-12d\n",                                (int)s.nbUn);
+    printf("c conflicts             : %-12d  (%.0f /sec)\n",                   (int)s.conflicts,    s.conflicts   /cpu_time);
+    printf("c decisions             : %-12d  (%4.2f %% random) (%.0f /sec)\n", (int)s.decisions,    (float)s.rnd_decisions*100 / (float)s.decisions, s.decisions   /cpu_time);
+    printf("c propagations          : %-12d  (%.0f /sec)\n",                   (int)s.propagations, s.propagations/cpu_time);
+    printf("c conflict literals     : %-12d  (%4.2f %% deleted)\n",            (int)s.tot_literals, (s.max_literals - s.tot_literals)*100 / (double)s.max_literals);
+    printf("c nb reduced Clauses    : %-12d\n", (int)s.nbReducedClauses);
+    if (mem_used != 0) printf("Memory used           : %.2f MB\n", mem_used);
+    //printf("c CPU time              : %.2f sec\n", cpu_time);
 }
 
 /**Function*************************************************************
