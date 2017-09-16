@@ -54,6 +54,7 @@ SimpSolver::SimpSolver() :
   , merges             (0)
   , asymm_lits         (0)
   , eliminated_vars    (0)
+  , eliminated_clauses (0)
   , elimorder          (1)
   , use_simplification (true)
   , occurs             (ClauseDeleted(ca))
@@ -523,10 +524,12 @@ bool SimpSolver::eliminateVar(Var v)
         for (i = 0; i < neg.size(); i++)
             mkElimClause(elimclauses, v, ca[neg[i]]);
         mkElimClause(elimclauses, mkLit(v));
+        eliminated_clauses += neg.size();
     }else{
         for (i = 0; i < pos.size(); i++)
             mkElimClause(elimclauses, v, ca[pos[i]]);
         mkElimClause(elimclauses, ~mkLit(v));
+        eliminated_clauses += pos.size();
     }
 
 
@@ -690,9 +693,6 @@ bool SimpSolver::eliminate(bool turn_off_elim)
     if (verbosity >= 1 && elimclauses.size() > 0)
         printf("c |  Eliminated clauses:     %10.2f Mb                                                                |\n", 
                double(elimclauses.size() * sizeof(uint32_t)) / (1024*1024));
-
-    printf( "c Simplication removed %d variables and %d clauses.  ", eliminated_vars, elimclauses.size() );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     return ok;
 }
 

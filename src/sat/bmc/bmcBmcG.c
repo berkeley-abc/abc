@@ -42,9 +42,12 @@ struct Bmcg_Man_t_
     Vec_Int_t         vCiMap;              // maps CIs of pFrames into CIs/frames of GIA
     bmcg_sat_solver * pSats[PAR_THR_MAX];  // concurrent SAT solvers
     int               nSatVars;            // number of SAT variables used
+    int               nOldFrPis;           // number of primary inputs
+    int               nOldFrPos;           // number of primary output
     int               fStopNow;            // signal when it is time to stop
     abctime           timeUnf;             // runtime of unfolding
     abctime           timeCnf;             // runtime of CNF generation
+    abctime           timeSmp;             // runtime of CNF simplification
     abctime           timeSat;             // runtime of the solvers
     abctime           timeOth;             // other runtime
 };
@@ -165,7 +168,7 @@ int Bmcg_ManCollect_rec( Bmcg_Man_t * p, int iObj )
         return iLitClean;
     pObj = Gia_ManObj( p->pFrames, iObj );
     iSatVar = Vec_IntEntry( &p->vFr2Sat, iObj );
-    if ( (iSatVar > 0 && !bmcg_sat_solver_var_is_elim(p->pSats[0], iSatVar)) || Gia_ObjIsCi(pObj) )
+    if ( iSatVar > 0 || Gia_ObjIsCi(pObj) )
         iLitClean = Gia_ManAppendCi( p->pClean );
     else if ( Gia_ObjIsAnd(pObj) )
     {
@@ -277,7 +280,7 @@ void Bmcg_ManPrintFrame( Bmcg_Man_t * p, int f, int nClauses, int Solver, abctim
     Abc_Print( 1, "%4d %s : ", f,   fUnfinished ? "-" : "+" );
 //    Abc_Print( 1, "Var =%8.0f.  ",  (double)p->nSatVars ); 
 //    Abc_Print( 1, "Cla =%9.0f.  ",  (double)nClauses );  
-    Abc_Print( 1, "Var =%8.0f.  ",  (double)bmcg_sat_solver_varnum(p->pSats[0]) ); 
+    Abc_Print( 1, "Var =%8.0f.  ",  (double)(bmcg_sat_solver_varnum(p->pSats[0])-bmcg_sat_solver_elim_varnum(p->pSats[0])) ); 
     Abc_Print( 1, "Cla =%9.0f.  ",  (double)bmcg_sat_solver_clausenum(p->pSats[0]) );  
     Abc_Print( 1, "Learn =%9.0f.  ",(double)bmcg_sat_solver_learntnum(p->pSats[0]) );  
     Abc_Print( 1, "Conf =%9.0f.  ", (double)bmcg_sat_solver_conflictnum(p->pSats[0]) );  
@@ -290,11 +293,12 @@ void Bmcg_ManPrintFrame( Bmcg_Man_t * p, int f, int nClauses, int Solver, abctim
 }
 void Bmcg_ManPrintTime( Bmcg_Man_t * p )
 {
-    abctime clkTotal = p->timeUnf + p->timeCnf + p->timeSat + p->timeOth;
+    abctime clkTotal = p->timeUnf + p->timeCnf + p->timeSmp + p->timeSat + p->timeOth;
     if ( !p->pPars->fVerbose )
         return;
     ABC_PRTP( "Unfolding     ", p->timeUnf,  clkTotal );
     ABC_PRTP( "CNF generation", p->timeCnf,  clkTotal );
+    ABC_PRTP( "CNF simplify  ", p->timeSmp,  clkTotal );
     ABC_PRTP( "SAT solving   ", p->timeSat,  clkTotal );
     ABC_PRTP( "Other         ", p->timeOth,  clkTotal );
     ABC_PRTP( "TOTAL         ", clkTotal  ,  clkTotal );
@@ -317,13 +321,38 @@ Abc_Cex_t * Bmcg_ManGenerateCex( Bmcg_Man_t * p, int i, int f, int s )
 }
 void Bmcg_ManAddCnf( Bmcg_Man_t * p, bmcg_sat_solver * pSat, Cnf_Dat_t * pCnf )
 {
-    int i;
+    int i, iSatVar;
+    abctime clk = Abc_Clock();
     bmcg_sat_solver_set_nvars( pSat, p->nSatVars );
+    if ( p->pPars->fUseEliminate )
+    {
+        for ( i = p->nOldFrPis; i < Gia_ManPiNum(p->pFrames); i++ )
+        {
+            Gia_Obj_t * pObj = Gia_ManPi( p->pFrames, i );
+            int iSatVar = Vec_IntEntry( &p->vFr2Sat, Gia_ObjId(p->pFrames, pObj) );
+            if ( iSatVar > 0 )
+                bmcg_sat_solver_var_set_frozen( pSat, iSatVar, 1 );
+        }
+        for ( i = p->nOldFrPos; i < Gia_ManPoNum(p->pFrames); i++ )
+        {
+            Gia_Obj_t * pObj = Gia_ManPo( p->pFrames, i );
+            int iSatVar = Vec_IntEntry( &p->vFr2Sat, Gia_ObjId(p->pFrames, pObj) );
+            if ( iSatVar > 0 )
+                bmcg_sat_solver_var_set_frozen( pSat, iSatVar, 1 );
+        }
+        p->nOldFrPis = Gia_ManPiNum(p->pFrames);
+        p->nOldFrPos = Gia_ManPoNum(p->pFrames);
+    }
     for ( i = 0; i < pCnf->nClauses; i++ )
         if ( !bmcg_sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
             assert( 0 );
-    if ( p->pPars->fUseEliminate )
-        bmcg_sat_solver_eliminate( pSat, 0 );
+    if ( !p->pPars->fUseEliminate )
+        return;
+    bmcg_sat_solver_eliminate( pSat, 0 );
+    Vec_IntForEachEntry( &p->vFr2Sat, iSatVar, i )
+        if ( iSatVar > 0 && bmcg_sat_solver_var_is_elim(pSat, iSatVar) )
+            Vec_IntWriteEntry( &p->vFr2Sat, i, -1 );
+    p->timeSmp += Abc_Clock() - clk;
 }
 int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 {
@@ -391,7 +420,7 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
         if ( k < pPars->nFramesAdd )
             break;
     }
-    p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSat;
+    p->timeOth = Abc_Clock() - clkStart - p->timeUnf - p->timeCnf - p->timeSmp - p->timeSat;
     if ( RetValue == -1 && !pPars->fNotVerbose )
         printf( "No output failed in %d frames.  ", f + (k < pPars->nFramesAdd ? k+1 : 0) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );

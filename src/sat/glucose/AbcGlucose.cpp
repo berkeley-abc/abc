@@ -40,7 +40,7 @@ extern "C" {
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-//#define USE_SIMP_SOLVER 1
+#define USE_SIMP_SOLVER 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -186,6 +186,17 @@ int bmcg_sat_solver_var_is_elim( bmcg_sat_solver* s, int v )
 {
 //    return 0; 
     return ((Gluco::SimpSolver*)s)->isEliminated(v);
+}
+
+void bmcg_sat_solver_var_set_frozen( bmcg_sat_solver* s, int v, int freeze )
+{
+    ((Gluco::SimpSolver*)s)->setFrozen(v, freeze != 0);
+}
+
+int bmcg_sat_solver_elim_varnum(bmcg_sat_solver* s)
+{
+//    return 0; 
+    return ((Gluco::SimpSolver*)s)->eliminated_vars;
 }
 
 int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
@@ -407,13 +418,24 @@ void bmcg_sat_solver_set_nvars( bmcg_sat_solver* s, int nvars )
 int bmcg_sat_solver_eliminate( bmcg_sat_solver* s, int turn_off_elim )
 {
     return 1; 
-//    return ((Gluco::Solver*)s)->eliminate(turn_off_elim != 0);
+//    return ((Gluco::SimpSolver*)s)->eliminate(turn_off_elim != 0);
 }
 
 int bmcg_sat_solver_var_is_elim( bmcg_sat_solver* s, int v )
 {
     return 0; 
-//    return ((Gluco::Solver*)s)->isEliminated(v);
+//    return ((Gluco::SimpSolver*)s)->isEliminated(v);
+}
+
+void bmcg_sat_solver_var_set_frozen( bmcg_sat_solver* s, int v, int freeze )
+{
+//    ((Gluco::SimpSolver*)s)->setFrozen(v, freeze);
+}
+
+int bmcg_sat_solver_elim_varnum(bmcg_sat_solver* s)
+{
+    return 0;
+//    return ((Gluco::SimpSolver*)s)->eliminated_vars;
 }
 
 int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
@@ -618,7 +640,12 @@ void Glucose_SolveCnf( char * pFileName, Glucose_Pars * pPars )
         printf("c |  Number of clauses:    %12d                                         |\n", S.nClauses());
     }
     
-    if ( pPars->pre ) S.eliminate(true);
+    if ( pPars->pre ) 
+    {
+        S.eliminate(true);
+        printf( "c Simplication removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
 
     vec<Lit> dummy;
     lbool ret = S.solveLimited(dummy, 0);
@@ -773,7 +800,11 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
     }
 
     if (pPars->pre) 
+    {
         S.eliminate(true);
+        printf( "c Simplication removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    }
     
     vec<Lit> dummy;
     lbool ret = S.solveLimited(dummy, 0);
