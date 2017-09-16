@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "sat/cnf/cnf.h"
+#include "misc/extra/extra.h"
 #include "sat/satoko/satoko.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -79,22 +80,6 @@ Vec_Int_t * Gia_ManCollectVars( int Root, Vec_Int_t * vMapping, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-satoko_t * Gia_ManSatokoInit( Cnf_Dat_t * pCnf, satoko_opts_t * opts )
-{
-    satoko_t * pSat = satoko_create();
-    int i;
-    //sat_solver_setnvars( pSat, p->nVars );
-    for ( i = 0; i < pCnf->nClauses; i++ )
-    {
-        if ( !satoko_add_clause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
-        {
-            satoko_destroy( pSat );
-            return NULL;
-        }
-    }
-    satoko_configure(pSat, opts);
-    return pSat;
-}
 void Gia_ManSatokoReport( int iOutput, int status, abctime clk )
 {
     if ( iOutput >= 0 )
@@ -111,6 +96,95 @@ void Gia_ManSatokoReport( int iOutput, int status, abctime clk )
 
     Abc_PrintTime( 1, "Time", clk );
 }
+satoko_t * Gia_ManSatokoFromDimacs( char * pFileName, satoko_opts_t * opts )
+{
+    satoko_t * pSat = satoko_create();
+    char * pBuffer = Extra_FileReadContents( pFileName );
+    Vec_Int_t * vLits = Vec_IntAlloc( 100 );
+    char * pTemp; int fComp, Var, VarMax = 0;
+    for ( pTemp = pBuffer; *pTemp; pTemp++ )
+    {
+        if ( *pTemp == 'c' || *pTemp == 'p' ) 
+        {
+            while ( *pTemp != '\n' )
+                pTemp++;
+            continue;
+        }
+        while ( *pTemp == ' ' || *pTemp == '\t' || *pTemp == '\r' || *pTemp == '\n' )
+            pTemp++;
+        fComp = 0;
+        if ( *pTemp == '-' )
+            fComp = 1, pTemp++;
+        if ( *pTemp == '+' )
+            pTemp++;
+        Var = atoi( pTemp );
+        if ( Var == 0 ) {
+            if ( Vec_IntSize(vLits) > 0 ) 
+            {
+                satoko_setnvars( pSat, VarMax+1 );
+                if ( !satoko_add_clause( pSat, Vec_IntArray(vLits), Vec_IntSize(vLits) ) )
+                {
+                    satoko_destroy(pSat);
+                    Vec_IntFree( vLits );
+                    ABC_FREE( pBuffer );
+                    return NULL;
+                }
+                Vec_IntClear( vLits );
+            }
+        }
+        else 
+        {
+            Var--;
+            VarMax = Abc_MaxInt( VarMax, Var );
+            Vec_IntPush( vLits, Abc_Var2Lit(Var, fComp) );
+        }
+        while ( *pTemp >= '0' && *pTemp <= '9' )
+            pTemp++;
+    }
+    ABC_FREE( pBuffer );
+    Vec_IntFree( vLits );
+    return pSat;
+}
+void Gia_ManSatokoDimacs( char * pFileName, satoko_opts_t * opts )
+{
+    abctime clk = Abc_Clock();  
+    int status = SATOKO_UNSAT;
+    satoko_t * pSat = Gia_ManSatokoFromDimacs( pFileName, opts );
+    if ( pSat )
+    {
+        status = satoko_solve( pSat );
+        satoko_destroy( pSat );
+    }
+    Gia_ManSatokoReport( -1, status, Abc_Clock() - clk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+satoko_t * Gia_ManSatokoInit( Cnf_Dat_t * pCnf, satoko_opts_t * opts )
+{
+    satoko_t * pSat = satoko_create();
+    int i;
+    //sat_solver_setnvars( pSat, p->nVars );
+    for ( i = 0; i < pCnf->nClauses; i++ )
+    {
+        if ( !satoko_add_clause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+        {
+            satoko_destroy( pSat );
+            return NULL;
+        }
+    }
+    satoko_configure(pSat, opts);
+    return pSat;
+}
 satoko_t * Gia_ManSatokoCreate( Gia_Man_t * p, satoko_opts_t * opts )
 {
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8, 0, 1, 0, 0 );
@@ -126,8 +200,7 @@ int Gia_ManSatokoCallOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutput )
 {
     abctime clk = Abc_Clock();
     satoko_t * pSat;
-    int status, Cost = 0;
-
+    int status = SATOKO_UNSAT, Cost = 0;
     pSat = Gia_ManSatokoCreate( p, opts );
     if ( pSat )
     {
@@ -135,9 +208,6 @@ int Gia_ManSatokoCallOne( Gia_Man_t * p, satoko_opts_t * opts, int iOutput )
         Cost = satoko_stats(pSat)->n_conflicts;
         satoko_destroy( pSat );
     }
-    else 
-        status = SATOKO_UNSAT;
-
     Gia_ManSatokoReport( iOutput, status, Abc_Clock() - clk );
     return Cost;
 }

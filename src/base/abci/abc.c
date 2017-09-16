@@ -23795,6 +23795,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Satoko( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Gia_ManSatokoDimacs( char * pFileName, satoko_opts_t * opts );
     extern void Gia_ManSatokoCall( Gia_Man_t * p, satoko_opts_t * opts, int fSplit, int fIncrem );
     int c, fSplit = 0, fIncrem = 0;
 
@@ -23832,6 +23833,11 @@ int Abc_CommandAbc9Satoko( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( argc == globalUtilOptind + 1 )
+    {
+        Gia_ManSatokoDimacs( argv[globalUtilOptind], &opts );
+        return 0;
+    }
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Satoko(): There is no AIG.\n" );
@@ -23841,12 +23847,14 @@ int Abc_CommandAbc9Satoko( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &satoko [-C num] [-sivh]\n" );
-    Abc_Print( -2, "\t-C num : limit on the number of conflicts [default = %d]\n", opts.conf_limit );
-    Abc_Print( -2, "\t-s     : split multi-output miter into individual outputs [default = %s]\n", fSplit? "yes": "no" );
-    Abc_Print( -2, "\t-i     : split multi-output miter and solve incrementally [default = %s]\n", fIncrem? "yes": "no" );
-    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: &satoko [-C num] [-sivh] <file.cnf>\n" );
+    Abc_Print( -2, "\t             run Satoko by Bruno Schmitt\n" );
+    Abc_Print( -2, "\t-C num     : limit on the number of conflicts [default = %d]\n", opts.conf_limit );
+    Abc_Print( -2, "\t-s         : split multi-output miter into individual outputs [default = %s]\n", fSplit? "yes": "no" );
+    Abc_Print( -2, "\t-i         : split multi-output miter and solve incrementally [default = %s]\n", fIncrem? "yes": "no" );
+    Abc_Print( -2, "\t-v         : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
+    Abc_Print( -2, "\t<file.cnf> : (optional) CNF file to solve\n");
+    Abc_Print( -2, "\t-h         : print the command usage\n");
     return 1;
 }
 

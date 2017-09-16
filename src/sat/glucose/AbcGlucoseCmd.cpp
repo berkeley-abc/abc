@@ -50,7 +50,7 @@ extern "C" {
 
 void Glucose_Init(Abc_Frame_t *pAbc)
 {
-    Cmd_CommandAdd( pAbc, "ABC9", "&gluco",  Abc_CommandGlucose,  0 );
+    Cmd_CommandAdd( pAbc, "ABC9", "&glucose",  Abc_CommandGlucose,  0 );
 }
 
 void Glucose_End( Abc_Frame_t * pAbc )
@@ -127,8 +127,8 @@ int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
     
 usage:
-    Abc_Print( -2, "usage: &gluco [-C num] [-pvh] <file.cnf>\n" );
-    Abc_Print( -2, "\t             run glucose\n" );
+    Abc_Print( -2, "usage: &glucose [-C num] [-pvh] <file.cnf>\n" );
+    Abc_Print( -2, "\t             run Glucose 3.0 by Gilles Audemard and Laurent Simon\n" );
     Abc_Print( -2, "\t-C num     : conflict limit [default = %d]\n",  nConfls );
     Abc_Print( -2, "\t-p         : enable preprocessing [default = %d]\n",pre);
     Abc_Print( -2, "\t-v         : verbosity [default = %d]\n",verb);
