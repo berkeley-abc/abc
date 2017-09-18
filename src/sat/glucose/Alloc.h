@@ -58,6 +58,7 @@ class RegionAllocator
 
     Ref      alloc     (int size); 
     void     free_     (int size)    { wasted_ += size; }
+    void     clear     ()            { sz = 0; wasted_=0; }
 
     // Deref, Load Effective Address (LEA), Inverse of LEA (AEL):
     T&       operator[](Ref r)       { assert(r >= 0 && r < sz); return memory[r]; }

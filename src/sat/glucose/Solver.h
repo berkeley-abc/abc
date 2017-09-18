@@ -131,6 +131,7 @@ public:
 
     // Memory managment:
     //
+    virtual void reset();
     virtual void garbageCollect(); // virtuality causes segfault for some reason
     void    checkGarbage(double gf);
     void    checkGarbage();

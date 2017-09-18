@@ -751,3 +751,24 @@ void SimpSolver::garbageCollect()
                ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
     to.moveTo(ca);
 }
+
+void SimpSolver::reset() 
+{
+    Solver::reset();
+    grow = opt_grow;
+    asymm_lits = eliminated_vars = bwdsub_assigns = n_touched = 0;
+    elimclauses.clear(false);
+    touched.clear(false);
+    occurs.clear(false);
+    n_occ.clear(false);
+    elim_heap.clear(false);
+    subsumption_queue.clear(false);
+    frozen.clear(false);
+    eliminated.clear(false);
+    vec<Lit> dummy(1,lit_Undef);
+    ca.extra_clause_field = true; // NOTE: must happen before allocating the dummy clause below.
+    bwdsub_tmpunit        = ca.alloc(dummy);
+    remove_satisfied      = false;
+}
+
+

@@ -66,6 +66,7 @@ class SimpSolver : public Solver {
 
     // Memory managment:
     //
+    virtual void reset();
     virtual void garbageCollect();
 
 

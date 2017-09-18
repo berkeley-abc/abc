@@ -1428,3 +1428,66 @@ void Solver::garbageCollect()
                ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
     to.moveTo(ca);
 }
+
+void Solver::reset() 
+{
+    // Reset everything
+    ok = true;
+    K = (double)opt_K;
+    R = (double)opt_R;
+    firstReduceDB = opt_first_reduce_db;
+    var_decay = (double)opt_var_decay;
+    //max_var_decay = opt_max_var_decay;
+    solves = starts = decisions = propagations = conflicts = conflictsRestarts = 0;
+    curRestart = 1;
+    cla_inc = var_inc = 1;
+    watches.clear(false); // We don't free the memory, new calls should be of the same size order.
+    watchesBin.clear(false); 
+    //unaryWatches.clear(false);
+    qhead = 0;
+    simpDB_assigns = -1;
+    simpDB_props = 0;
+    order_heap.clear(false);
+    progress_estimate = 0;
+    //lastLearntClause = CRef_Undef;
+    conflict_budget = -1;
+    propagation_budget = -1;
+    nbVarsInitialFormula = INT32_MAX;
+    totalTime4Sat = 0.;
+    totalTime4Unsat = 0.;
+    nbSatCalls = nbUnsatCalls = 0;
+    MYFLAG = 0;
+    lbdQueue.clear(false);
+    lbdQueue.initSize(sizeLBDQueue);
+    trailQueue.clear(false);
+    trailQueue.initSize(sizeTrailQueue);
+    sumLBD = 0;
+    nbclausesbeforereduce = firstReduceDB;
+    //stats.clear();
+    //stats.growTo(coreStatsSize, 0);
+    clauses.clear(false);
+    learnts.clear(false);
+    //permanentLearnts.clear(false);
+    //unaryWatchedClauses.clear(false);
+    model.clear(false);
+    conflict.clear(false);
+    activity.clear(false);
+    assigns.clear(false);
+    polarity.clear(false);
+    //forceUNSAT.clear(false);
+    decision.clear(false);
+    trail.clear(false);
+    nbpos.clear(false);
+    trail_lim.clear(false);
+    vardata.clear(false);
+    assumptions.clear(false);
+    permDiff.clear(false);
+    lastDecisionLevel.clear(false);
+    ca.clear();
+    seen.clear(false);
+    analyze_stack.clear(false);
+    analyze_toclear.clear(false);
+    add_tmp.clear(false);
+    assumptionPositions.clear(false);
+    initialPositions.clear(false);
+}
