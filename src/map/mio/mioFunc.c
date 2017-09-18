@@ -268,6 +268,11 @@ int Mio_GateParseFormula( Mio_Gate_t * pGate )
     // derive truth table
     if ( nPins <= 6 )
         pGate->uTruth = Exp_Truth6( nPins, pGate->vExpr, NULL );
+    else if ( nPins <= 8 )
+    {
+        pGate->pTruth = ABC_CALLOC( word, 4 );
+        Exp_Truth8( nPins, pGate->vExpr, NULL, pGate->pTruth );
+    }
 
 /*
     // verify

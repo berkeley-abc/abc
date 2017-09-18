@@ -417,6 +417,88 @@ static inline void Abc_TtConst1( word * pIn1, int nWords )
     for ( w = 0; w < nWords; w++ )
         pIn1[w] = ~(word)0;
 }
+ 
+/**Function*************************************************************
+
+  Synopsis    [Compares Cof0 and Cof1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtCompare1VarCofs( word * pTruth, int nWords, int iVar )
+{
+    if ( nWords == 1 )
+    {
+        word Cof0 = pTruth[0] & s_Truths6Neg[iVar];
+        word Cof1 = (pTruth[0] >> (1 << iVar)) & s_Truths6Neg[iVar];
+        if ( Cof0 != Cof1 )
+            return Cof0 < Cof1 ? -1 : 1;
+        return 0;
+    }
+    if ( iVar <= 5 )
+    {
+        word Cof0, Cof1;
+        int w, shift = (1 << iVar);
+        for ( w = 0; w < nWords; w++ )
+        {
+            Cof0 = pTruth[w] & s_Truths6Neg[iVar];
+            Cof1 = (pTruth[w] >> shift) & s_Truths6Neg[iVar];
+            if ( Cof0 != Cof1 )
+                return Cof0 < Cof1 ? -1 : 1;
+        }
+        return 0;
+    }
+    // if ( iVar > 5 )
+    {
+        word * pLimit = pTruth + nWords;
+        int i, iStep = Abc_TtWordNum(iVar);
+        assert( nWords >= 2 );
+        for ( ; pTruth < pLimit; pTruth += 2*iStep )
+            for ( i = 0; i < iStep; i++ )
+                if ( pTruth[i] != pTruth[i + iStep] )
+                    return pTruth[i] < pTruth[i + iStep] ? -1 : 1;
+        return 0;
+    }    
+}
+static inline int Abc_TtCompare1VarCofsRev( word * pTruth, int nWords, int iVar )
+{
+    if ( nWords == 1 )
+    {
+        word Cof0 = pTruth[0] & s_Truths6Neg[iVar];
+        word Cof1 = (pTruth[0] >> (1 << iVar)) & s_Truths6Neg[iVar];
+        if ( Cof0 != Cof1 )
+            return Cof0 < Cof1 ? -1 : 1;
+        return 0;
+    }
+    if ( iVar <= 5 )
+    {
+        word Cof0, Cof1;
+        int w, shift = (1 << iVar);
+        for ( w = nWords - 1; w >= 0; w-- )
+        {
+            Cof0 = pTruth[w] & s_Truths6Neg[iVar];
+            Cof1 = (pTruth[w] >> shift) & s_Truths6Neg[iVar];
+            if ( Cof0 != Cof1 )
+                return Cof0 < Cof1 ? -1 : 1;
+        }
+        return 0;
+    }
+    // if ( iVar > 5 )
+    {
+        word * pLimit = pTruth + nWords;
+        int i, iStep = Abc_TtWordNum(iVar);
+        assert( nWords >= 2 );
+        for ( pLimit -= 2*iStep; pLimit >= pTruth; pLimit -= 2*iStep )
+            for ( i = iStep - 1; i >= 0; i-- )
+                if ( pLimit[i] != pLimit[i + iStep] )
+                    return pLimit[i] < pLimit[i + iStep] ? -1 : 1;
+        return 0;
+    }    
+}
 
 /**Function*************************************************************
 

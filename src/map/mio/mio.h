@@ -198,6 +198,7 @@ extern Mio_Gate_t **     Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, fl
 extern Mio_Cell_t *      Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGates, int fVerbose );
 extern Mio_Cell_t *      Mio_CollectRootsNewDefault( int nInputs, int * pnGates, int fVerbose );
 extern Mio_Cell2_t *     Mio_CollectRootsNewDefault2( int nInputs, int * pnGates, int fVerbose );
+extern int               Mio_CollectRootsNewDefault3( int nInputs, Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths );
 extern word              Mio_DeriveTruthTable6( Mio_Gate_t * pGate );
 extern void              Mio_DeriveTruthTable( Mio_Gate_t * pGate, unsigned uTruthsIn[][2], int nSigns, int nInputs, unsigned uTruthRes[] );
 extern void              Mio_DeriveGateDelays( Mio_Gate_t * pGate, 

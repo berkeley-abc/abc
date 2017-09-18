@@ -790,6 +790,55 @@ Mio_Cell2_t * Mio_CollectRootsNewDefault2( int nInputs, int * pnGates, int fVerb
   SeeAlso     []
 
 ***********************************************************************/
+int Mio_CollectRootsNewDefault3( int nInputs, Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths )
+{
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    int i, iGate = 0, nGates = pLib ? Mio_LibraryReadGateNum( pLib ) : 0;
+    Mio_Gate_t * pGate0, ** ppGates; word * pTruth;
+    if ( pLib == NULL )
+        return 0;
+    ppGates = ABC_CALLOC( Mio_Gate_t *, nGates );
+    Mio_LibraryForEachGate( pLib, pGate0 )
+        ppGates[pGate0->Cell] = pGate0;
+    *pvNames  = Vec_PtrAlloc( nGates );
+    *pvTruths = Vec_WrdStart( nGates * 4 );
+    for ( i = 0; i < nGates; i++ )
+    {
+        pGate0 = ppGates[i];
+        if ( pGate0->nInputs > nInputs || pGate0->pTwin ) // skip large and multi-output
+            continue;
+        Vec_PtrPush( *pvNames, pGate0->pName );
+        pTruth = Vec_WrdEntryP( *pvTruths, iGate++*4 );
+        if ( pGate0->nInputs <= 6 )
+            pTruth[0] = pTruth[1] = pTruth[2] = pTruth[3] = pGate0->uTruth;
+        else if ( pGate0->nInputs == 7 )
+        {
+            pTruth[0] = pTruth[2] = pGate0->pTruth[0];
+            pTruth[1] = pTruth[3] = pGate0->pTruth[1];
+        }
+        else if ( pGate0->nInputs == 8 )
+            memcpy( pTruth, pGate0->pTruth, 4*sizeof(word) );
+    }
+    assert( iGate == nGates );
+    assert( Vec_WrdEntry(*pvTruths,  0) ==        0 );
+    assert( Vec_WrdEntry(*pvTruths,  4) == ~(word)0 );
+    assert( Vec_WrdEntry(*pvTruths,  8) ==  s_Truths6[0] );
+    assert( Vec_WrdEntry(*pvTruths, 12) == ~s_Truths6[0] );
+    ABC_FREE( ppGates );
+    return nGates;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Derives the truth table of the gate.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 word Mio_DeriveTruthTable6( Mio_Gate_t * pGate )
 {
     static unsigned uTruths6[6][2] = {
