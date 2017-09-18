@@ -71,6 +71,11 @@ void glucose_solver_stop(Gluco::SimpSolver* S)
     delete S;
 }
 
+void glucose_solver_reset(Gluco::SimpSolver* S)
+{
+    S->reset();
+}
+
 int glucose_solver_addclause(Gluco::SimpSolver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
@@ -142,6 +147,11 @@ void bmcg_sat_solver_stop(bmcg_sat_solver* s)
 {
     glucose_solver_stop((Gluco::SimpSolver*)s);
 }
+void bmcg_sat_solver_reset(bmcg_sat_solver* s)
+{
+    glucose_solver_reset((Gluco::SimpSolver*)s);
+}
+
 
 int bmcg_sat_solver_addclause(bmcg_sat_solver* s, int * plits, int nlits)
 {

@@ -33,6 +33,11 @@
 
 ABC_NAMESPACE_HEADER_START
 
+#define GLUCOSE_UNSAT -1
+#define GLUCOSE_SAT    1
+#define GLUCOSE_UNDEC  0
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -67,6 +72,7 @@ typedef void bmcg_sat_solver;
 
 extern bmcg_sat_solver * bmcg_sat_solver_start();
 extern void              bmcg_sat_solver_stop( bmcg_sat_solver* s );
+extern void              bmcg_sat_solver_reset( bmcg_sat_solver* s );
 extern int               bmcg_sat_solver_addclause( bmcg_sat_solver* s, int * plits, int nlits );
 extern void              bmcg_sat_solver_setcallback( bmcg_sat_solver* s, void * pman, int(*pfunc)(void*, int, int*) );
 extern int               bmcg_sat_solver_solve( bmcg_sat_solver* s, int * plits, int nlits );
