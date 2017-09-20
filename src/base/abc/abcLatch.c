@@ -738,8 +738,8 @@ int Abc_NtkVerifyCex( Abc_Ntk_t * pNtk, Abc_Cex_t * p )
     Abc_NtkCleanMarkC( pNtk );
     Abc_AigConst1(pNtk)->fMarkC = 1;
     // initialize flops
-//    Abc_NtkForEachLatch( pNtk, pObj, i )
-//        Abc_ObjFanout0(pObj)->fMarkC = Abc_InfoHasBit(p->pData, iBit++);
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        Abc_ObjFanout0(pObj)->fMarkC = Abc_InfoHasBit(p->pData, iBit++);
     // simulate timeframes
     iBit = p->nRegs;
     for ( i = 0; i <= p->iFrame; i++ )

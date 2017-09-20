@@ -90,8 +90,8 @@ int Gia_ManFindFailedPoCex( Gia_Man_t * pAig, Abc_Cex_t * p, int nOutputs )
     int RetValue, i, k, iBit = 0;
     assert( Gia_ManPiNum(pAig) == p->nPis );
     Gia_ManCleanMark0(pAig);
-//    Gia_ManForEachRo( pAig, pObj, i )
-//       pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
+    Gia_ManForEachRo( pAig, pObj, i )
+        pObj->fMark0 = Abc_InfoHasBit(p->pData, iBit++);
     iBit = p->nRegs;
     for ( i = 0; i <= p->iFrame; i++ )
     {
