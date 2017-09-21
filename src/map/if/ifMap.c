@@ -312,12 +312,14 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             }
             // run user functions
             pCut->fUseless = 0;
-            if ( p->pPars->pFuncCell )
+            if ( p->pPars->pFuncCell || p->pPars->pFuncCell2 )
             {
                 assert( p->pPars->fUseTtPerm == 0 );
                 assert( pCut->nLimit >= 4 && pCut->nLimit <= 16 );
                 if ( p->pPars->fUseDsd )
                     pCut->fUseless = If_DsdManCheckDec( p->pIfDsdMan, If_CutDsdLit(p, pCut) );
+                else if ( p->pPars->pFuncCell2 )
+                    pCut->fUseless = !p->pPars->pFuncCell2( p, (word *)If_CutTruth(p, pCut), pCut->nLeaves, NULL, NULL );
                 else
                     pCut->fUseless = !p->pPars->pFuncCell( p, If_CutTruth(p, pCut), Abc_MaxInt(6, pCut->nLeaves), pCut->nLeaves, p->pPars->pLutStruct );
                 p->nCutsUselessAll += pCut->fUseless;

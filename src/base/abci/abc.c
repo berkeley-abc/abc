@@ -35596,12 +35596,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Iiff( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManIiffTest( Gia_Man_t * pGia, int nLutSize, int nNumCuts, int fUseGates, int fUseCells, int fVerbose );
-    int nLutSize  =  8;
-    int nNumCuts  = 12;
-    int fUseGates =  0;
-    int fUseCells =  0;
-    int c, fVerbose = 0;
+    extern Gia_Man_t * Gia_ManIiffTest( char * pFileName, Gia_Man_t * pGia, int nLutSize, int nNumCuts, int fUseGates, int fUseCells, int fVerbose );
+    char * pFileName = NULL;
+    int nLutSize     =  8;
+    int nNumCuts     = 12;
+    int fUseGates    =  0;
+    int fUseCells    =  0;
+    int c, fVerbose  =  0;
+    Gia_Man_t * pNew;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCgcvh" ) ) != EOF )
     {
@@ -35640,23 +35642,32 @@ int Abc_CommandAbc9Iiff( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Iiff(): There is no AIG to map.\n" );
         return 1;
     }
-    Gia_ManIiffTest( pAbc->pGia, nLutSize, nNumCuts, fUseGates, fUseCells, fVerbose );
+    pNew = Gia_ManIiffTest( pFileName, pAbc->pGia, nLutSize, nNumCuts, fUseGates, fUseCells, fVerbose );
+    if ( pNew == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iiff(): Mapping has failed.\n" );
+        return 1;
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &iiff [-KC num] [-gcvh]\n" );
+    Abc_Print( -2, "usage: &iiff [-KC num] [-gcvh] <file>\n" );
     Abc_Print( -2, "\t           performs techology mapping\n" );
-    Abc_Print( -2, "\t-K num   : the maximum LUT size [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-K num   : the maximum LUT size [default = %d]\n",  nLutSize );
     Abc_Print( -2, "\t-C num   : the maximum cut count [default = %d]\n", nNumCuts );
-    Abc_Print( -2, "\t-g       : toggle using gates [default = %s]\n", fUseGates? "yes": "no" );
-    Abc_Print( -2, "\t-c       : toggle using cells [default = %s]\n", fUseCells? "yes": "no" );
+    Abc_Print( -2, "\t-g       : toggle using gates [default = %s]\n",    fUseGates? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle using cells [default = %s]\n",    fUseCells? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t<file>   : (optional) output file name\n");
     return 1;
 }
 

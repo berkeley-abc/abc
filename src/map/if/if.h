@@ -167,8 +167,10 @@ struct If_Par_t_
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times
     int (* pFuncCost)  (If_Man_t *, If_Cut_t *);  // procedure to compute the user's cost of a cut
-    int (* pFuncUser)  (If_Man_t *, If_Obj_t *, If_Cut_t *);        //  procedure called for each cut when cut computation is finished
-    int (* pFuncCell)  (If_Man_t *, unsigned *, int, int, char *);  //  procedure called for cut functions
+    int (* pFuncUser)  (If_Man_t *, If_Obj_t *, If_Cut_t *);            //  procedure called for each cut when cut computation is finished
+    int (* pFuncCell)  (If_Man_t *, unsigned *, int, int, char *);      //  procedure called for cut functions
+    int (* pFuncCell2) (If_Man_t *, word *, int, Vec_Str_t *, char **); //  procedure called for cut functions
+    int (* pFuncWrite) (If_Man_t *);                                    //  procedure called for cut functions
     void *             pReoMan;       // reordering manager
 };
 

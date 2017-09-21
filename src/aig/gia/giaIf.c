@@ -2275,6 +2275,8 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         else
             Abc_Print( 0, "Switching activity computation for designs with boxes is disabled.\n" );
     }
+    if ( pPars->pReoMan )
+        pIfMan->pUserMan = pPars->pReoMan;
     if ( p->pManTime )
         pIfMan->pManTim = Tim_ManDup( (Tim_Man_t *)p->pManTime, pPars->fDelayOpt || pPars->fDelayOptLut || pPars->fDsdBalance || pPars->fUserRecLib || pPars->fUserSesLib );
 //    Tim_ManPrint( pIfMan->pManTim );
@@ -2302,6 +2304,8 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         If_ManForEachCo( pIfMan, pIfObj, i )
             Vec_IntPush( p->vCoArrs, (int)If_ObjArrTime(If_ObjFanin0(pIfObj)) );
     }
+    if ( pPars->pFuncWrite )
+        pPars->pFuncWrite( pIfMan );
     If_ManStop( pIfMan );
     // transfer name
     assert( pNew->pName == NULL );

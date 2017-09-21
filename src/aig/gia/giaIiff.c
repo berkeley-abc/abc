@@ -42,8 +42,9 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManIiffTest( Gia_Man_t * pGia, int nLutSize, int nNumCuts, int fUseGates, int fUseCells, int fVerbose )
+Gia_Man_t * Gia_ManIiffTest( char * pFileName, Gia_Man_t * pGia, int nLutSize, int nNumCuts, int fUseGates, int fUseCells, int fVerbose )
 {
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////
