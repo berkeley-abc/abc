@@ -222,6 +222,10 @@ extern void              Mio_LibraryMatchesStop( Mio_Library_t * pLib );
 extern void              Mio_LibraryMatchesStart( Mio_Library_t * pLib, int fPinFilter, int fPinPerm, int fPinQuick );
 extern void              Mio_LibraryMatchesFetch( Mio_Library_t * pLib, Vec_Mem_t ** pvTtMem, Vec_Wec_t ** pvTt2Match, Mio_Cell2_t ** ppCells, int * pnCells, int fPinFilter, int fPinPerm, int fPinQuick );
 
+extern void              Mio_LibraryMatches2Stop( Mio_Library_t * pLib );
+extern void              Mio_LibraryMatches2Start( Mio_Library_t * pLib );
+extern void              Mio_LibraryMatches2Fetch( Mio_Library_t * pLib, Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Mem_t ** pvTtMem, Vec_Int_t ** pvTt2Match, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs );
+
 /*=== sclUtil.c =========================================================*/
 extern Mio_Library_t *   Abc_SclDeriveGenlibSimple( void * pScl );
 extern Mio_Library_t *   Abc_SclDeriveGenlib( void * pScl, void * pMio, float Slew, float Gain, int nGatesMin, int fVerbose );

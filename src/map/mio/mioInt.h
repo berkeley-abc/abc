@@ -84,6 +84,12 @@ struct  Mio_LibraryStruct_t_
     Vec_Wec_t *        vTt2Match;   // matches for truth tables
     Mio_Cell2_t *      pCells;      // library gates
     int                nCells;      // library gate count
+    Vec_Ptr_t *        vNames;
+    Vec_Wrd_t *        vTruths; 
+    Vec_Mem_t *        vTtMem_; 
+    Vec_Int_t *        vTt2Match_; 
+    Vec_Int_t *        vTt2Match4;
+    Vec_Int_t *        vConfigs;
 }; 
 
 struct  Mio_GateStruct_t_

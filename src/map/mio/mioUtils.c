@@ -54,6 +54,7 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
     if ( pLib == NULL )
         return;
     Mio_LibraryMatchesStop( pLib );
+    Mio_LibraryMatches2Stop( pLib );
     // free the bindings of nodes to gates from this library for all networks
     Abc_FrameUnmapAllNetworks( Abc_FrameGetGlobalFrame() );
     // free the library
@@ -1689,6 +1690,49 @@ void Mio_LibraryMatchesFetch( Mio_Library_t * pLib, Vec_Mem_t ** pvTtMem, Vec_We
     *pvTt2Match = pLib->vTt2Match;  // matches for truth tables
     *ppCells    = pLib->pCells;     // library gates
     *pnCells    = pLib->nCells;     // library gate count
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_LibraryMatches2Stop( Mio_Library_t * pLib )
+{
+    if ( !pLib->vNames )
+        return;
+    Vec_PtrFree( pLib->vNames );
+    Vec_WrdFree( pLib->vTruths );
+    Vec_MemHashFree( pLib->vTtMem_ );
+    Vec_MemFree( pLib->vTtMem_ );
+    Vec_IntFree( pLib->vTt2Match_ );
+    Vec_IntFree( pLib->vTt2Match4 );
+    Vec_IntFree( pLib->vConfigs );
+}
+void Mio_LibraryMatches2Start( Mio_Library_t * pLib )
+{
+    extern int Gia_ManDeriveMatches( Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Mem_t ** pvTtMem, Vec_Int_t ** pvTt2Match, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs );
+    if ( pLib->vNames )
+        return;
+    if ( pLib->vTtMem )
+        Mio_LibraryMatches2Stop( pLib );
+    Gia_ManDeriveMatches( &pLib->vNames, &pLib->vTruths, &pLib->vTtMem_, &pLib->vTt2Match_, &pLib->vTt2Match4, &pLib->vConfigs );
+}
+void Mio_LibraryMatches2Fetch( Mio_Library_t * pLib, Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Mem_t ** pvTtMem, Vec_Int_t ** pvTt2Match, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs )
+{
+    Mio_LibraryMatches2Start( pLib );
+    *pvNames     = pLib->vNames;    
+    *pvTruths    = pLib->vTruths;    
+    *pvTtMem     = pLib->vTtMem_;    
+    *pvTt2Match  = pLib->vTt2Match_;    
+    *pvTt2Match4 = pLib->vTt2Match4;    
+    *pvConfigs   = pLib->vConfigs;    
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -1856,7 +1856,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             {
                 pIfObj->iCopy = Gia_ManFromIfLogicCofVars( pNew, pIfMan, pCutBest, vLeaves, vLeaves2, vCover, vMapping, vMapping2 );
             }
-            else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd || pIfMan->pPars->fUseTtPerm )
+            else if ( (pIfMan->pPars->fDeriveLuts && pIfMan->pPars->fTruth) || pIfMan->pPars->fUseDsd || pIfMan->pPars->fUseTtPerm || pIfMan->pPars->pFuncCell2 )
             {
                 word * pTruth = If_CutTruthW(pIfMan, pCutBest);
                 if ( pIfMan->pPars->fUseTtPerm )
@@ -2251,7 +2251,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     ABC_FREE( p->pCellStr );
     Vec_IntFreeP( &p->vConfigs );
     // disable cut minimization when GIA strucure is needed
-    if ( !pPars->fDelayOpt && !pPars->fDelayOptLut && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fUserSesLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm )
+    if ( !pPars->fDelayOpt && !pPars->fDelayOptLut && !pPars->fDsdBalance && !pPars->fUserRecLib && !pPars->fUserSesLib && !pPars->fDeriveLuts && !pPars->fUseDsd && !pPars->fUseTtPerm && !pPars->pFuncCell2 )
         pPars->fCutMin = 0;
     // translate into the mapper
     pIfMan = Gia_ManToIf( p, pPars );    
@@ -2291,6 +2291,8 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         If_ManStop( pIfMan );
         return NULL;
     }
+    if ( pPars->pFuncWrite )
+        pPars->pFuncWrite( pIfMan );
     // transform the result of mapping into the new network
     if ( pIfMan->pPars->fDelayOpt || pIfMan->pPars->fDsdBalance || pIfMan->pPars->fUserRecLib || pIfMan->pPars->fUserSesLib )
         pNew = Gia_ManFromIfAig( pIfMan );
@@ -2304,8 +2306,6 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         If_ManForEachCo( pIfMan, pIfObj, i )
             Vec_IntPush( p->vCoArrs, (int)If_ObjArrTime(If_ObjFanin0(pIfObj)) );
     }
-    if ( pPars->pFuncWrite )
-        pPars->pFuncWrite( pIfMan );
     If_ManStop( pIfMan );
     // transfer name
     assert( pNew->pName == NULL );
