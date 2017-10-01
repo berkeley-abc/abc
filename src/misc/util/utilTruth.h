@@ -332,6 +332,12 @@ static inline void Abc_TtMux( word * pOut, word * pCtrl, word * pIn1, word * pIn
     for ( w = 0; w < nWords; w++ )
         pOut[w] = (pCtrl[w] & pIn1[w]) | (~pCtrl[w] & pIn0[w]);
 }
+static inline void Abc_TtMaj( word * pOut, word * pIn0, word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = (pIn0[w] & pIn1[w]) | (pIn0[w] & pIn2[w]) | (pIn1[w] & pIn2[w]);
+}
 static inline int Abc_TtIntersect( word * pIn1, word * pIn2, int nWords, int fCompl )
 {
     int w;
@@ -417,7 +423,24 @@ static inline void Abc_TtConst1( word * pIn1, int nWords )
     for ( w = 0; w < nWords; w++ )
         pIn1[w] = ~(word)0;
 }
- 
+static inline void Abc_TtIthVar( word * pOut, int iVar, int nVars )
+{
+    int k, nWords = Abc_TtWordNum( nVars );
+    if ( iVar < 6 )
+    {
+        for ( k = 0; k < nWords; k++ )
+            pOut[k] = s_Truths6[iVar];
+    }
+    else
+    {
+        for ( k = 0; k < nWords; k++ )
+            if ( k & (1 << (iVar-6)) )
+                pOut[k] = ~(word)0;
+            else
+                pOut[k] = 0;
+    }
+}
+
 /**Function*************************************************************
 
   Synopsis    [Compares Cof0 and Cof1.]
@@ -2339,6 +2362,145 @@ static inline int Abc_TtCheckOutAnd( word t, int i, word * pOut )
     }
     return -1;
 }
+static inline int Abc_TtCheckOutAnd7( word * t, int i, word * pOut )
+{
+    assert( i < 7 );
+    if ( i == 6 )
+    {
+        word c0 = t[0];
+        word c1 = t[1];
+        assert( c0 != c1 );
+        if ( c0 == 0 ) //  F = i * G
+        {
+            if ( pOut ) pOut[0] = pOut[1] = c1;
+            return 0;
+        }
+        if ( c1 == 0 ) //  F = ~i * G
+        {
+            if ( pOut ) pOut[0] = pOut[1] = c0;
+            return 1;
+        }
+        if ( ~c0 == 0 ) //  F = ~i + G
+        {
+            if ( pOut ) pOut[0] = pOut[1] = c1;
+            return 2;
+        }
+        if ( ~c1 == 0 ) //  F = i + G
+        {
+            if ( pOut ) pOut[0] = pOut[1] = c0;
+            return 3;
+        }
+        if ( c0 == ~c1 ) //  F = i # G
+        {
+            if ( pOut ) pOut[0] = pOut[1] = c0;
+            return 4;
+        }
+    }
+    else
+    {
+        int k, Res[2];
+        for ( k = 0; k < 2; k++ )
+            if ( (Res[k] = Abc_TtCheckOutAnd(t[k], i, pOut+k)) == -1 || Res[0] != Res[k] )
+                return -1;
+        return Res[0];
+    }
+    return -1;
+}
+static inline int Abc_TtCheckOutAnd8( word * t, int i, word * pOut )
+{
+    assert( i < 8 );
+    if ( i == 7 )
+    {
+        word * c0 = t;
+        word * c1 = t + 2;
+        assert( c0[0] != c1[0] || c0[1] != c1[1] );
+        if ( c0[0] == 0 && c0[1] == 0 ) //  F = i * G
+        {
+            if ( pOut ) pOut[0] = pOut[2] = c1[0], pOut[1] = pOut[3] = c1[1];
+            return 0;
+        }
+        if ( c1[0] == 0 && c1[1] == 0 ) //  F = ~i * G
+        {
+            if ( pOut ) pOut[0] = pOut[2] = c0[0], pOut[1] = pOut[3] = c0[1];
+            return 1;
+        }
+        if ( ~c0[0] == 0 && ~c0[1] == 0 ) //  F = ~i + G
+        {
+            if ( pOut ) pOut[0] = pOut[2] = c1[0], pOut[1] = pOut[3] = c1[1];
+            return 2;
+        }
+        if ( ~c1[0] == 0 && ~c1[1] == 0 ) //  F = i + G
+        {
+            if ( pOut ) pOut[0] = pOut[2] = c0[0], pOut[1] = pOut[3] = c0[1];
+            return 3;
+        }
+        if ( c0[0] == ~c1[0] && c0[1] == ~c1[1] ) //  F = i # G
+        {
+            if ( pOut ) pOut[0] = pOut[2] = c0[0], pOut[1] = pOut[3] = c0[1];
+            return 4;
+        }
+    }
+    else if ( i == 6 )
+    {
+        int k, Res[2];
+        for ( k = 0; k < 2; k++ )
+            if ( (Res[k] = Abc_TtCheckOutAnd7(t+2*k, i, pOut+2*k)) == -1 || Res[0] != Res[k] )
+                return -1;
+        return Res[0];
+    }
+    else
+    {
+        int k, Res[4];
+        for ( k = 0; k < 4; k++ )
+            if ( (Res[k] = Abc_TtCheckOutAnd(t[k], i, pOut+k)) == -1 || Res[0] != Res[k] )
+                return -1;
+        return Res[0];
+    }
+    return -1;
+}
+static inline word Abc_TtCheckDecOutOne7( word * t, int * piVar, int * pType )
+{
+    int v, Type, Type2; word Out;
+    for ( v = 6; v >= 0; v-- )
+        if ( (Type = Abc_TtCheckOutAnd7(t, v, NULL)) != -1 )
+        {
+            Abc_TtSwapVars( t, 7, v, 6 );
+            Type2 = Abc_TtCheckOutAnd7(t, 6, &Out);
+            assert( Type == Type2 );
+            *piVar = v;
+            *pType = Type;
+            return Out;
+        }
+    return 0;
+}
+static inline word Abc_TtCheckDecOutOne8( word * t, int * piVar1, int * piVar2, int * pType1, int * pType2 )
+{
+    int v, Type1, Type12, Type2, Type22; word Out[2], Out2;
+    for ( v = 7; v >= 0; v-- )
+        if ( (Type1 = Abc_TtCheckOutAnd8(t, v, NULL)) != -1 )
+        {
+            Abc_TtSwapVars( t, 8, v, 7 );
+            Type12 = Abc_TtCheckOutAnd8(t, 7, Out);
+            assert( Type1 == Type12 );
+            *piVar1 = v;
+            *piVar2 = Type1;
+            break;
+        }
+    if ( v == -1 )
+        return 0;
+    for ( v = 6; v >= 0; v-- )
+        if ( (Type2 = Abc_TtCheckOutAnd7(Out, v, NULL)) != -1 && Abc_Lit2Var(Type2) == Abc_Lit2Var(Type1) )
+        {
+            Abc_TtSwapVars( Out, 7, v, 6 );
+            Type22 = Abc_TtCheckOutAnd7(t, 6, &Out2);
+            assert( Type2 == Type22 );
+            *piVar2 = v;
+            *pType2 = Type2;
+            assert( *piVar2 < *piVar1 );
+            return Out2;
+        }
+    return 0;
+}
 
 /**Function*************************************************************
 
@@ -2535,6 +2697,57 @@ static inline void Unm_ManCheckTest()
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Truth table evaluation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word Abc_TtEvalLut6( word Ins[6], word Lut, int nVars )
+{
+    word Cube, Res = 0; int k, i;
+    for ( k = 0; k < (1<<nVars); k++ )
+    {
+        if ( ((Lut >> k) & 1) == 0 )
+            continue;
+        Cube = ~(word)0;
+        for ( i = 0; i < nVars; i++ )
+            Cube &= ((k >> i) & 1) ? Ins[i] : ~Ins[i];
+    }
+    return Res;
+}
+static inline unsigned Abc_TtEvalLut5( unsigned Ins[5], int Lut, int nVars )
+{
+    unsigned Cube, Res = 0; int k, i;
+    for ( k = 0; k < (1<<nVars); k++ )
+    {
+        if ( ((Lut >> k) & 1) == 0 )
+            continue;
+        Cube = ~(unsigned)0;
+        for ( i = 0; i < nVars; i++ )
+            Cube &= ((k >> i) & 1) ? Ins[i] : ~Ins[i];
+    }
+    return Res;
+}
+static inline int Abc_TtEvalLut4( int Ins[4], int Lut, int nVars )
+{
+    int Cube, Res = 0; int k, i;
+    for ( k = 0; k < (1<<nVars); k++ )
+    {
+        if ( ((Lut >> k) & 1) == 0 )
+            continue;
+        Cube = ~(int)0;
+        for ( i = 0; i < nVars; i++ )
+            Cube &= ((k >> i) & 1) ? Ins[i] : ~Ins[i];
+    }
+    return Res & ~(~0 << (1<<nVars));
+}
 
 
 /**Function*************************************************************

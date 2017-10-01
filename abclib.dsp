@@ -2019,6 +2019,10 @@ SOURCE=.\src\sat\bmc\bmcLoad.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\bmc\bmcMaj.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\bmc\bmcMaxi.c
 # End Source File
 # Begin Source File

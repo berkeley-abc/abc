@@ -149,6 +149,7 @@ static int Abc_CommandExact                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBmsStart               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmsStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmsPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMajExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -815,6 +816,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_start",  Abc_CommandBmsStart,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_stop",   Abc_CommandBmsStop,          0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_ps",     Abc_CommandBmsPs,            0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "majexact",   Abc_CommandMajExact,         0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -8054,6 +8056,79 @@ usage:
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Mathias Soeken from EPFL in July 2016.\n" );
     Abc_Print( -2, "\t           The author can be contacted as mathias.soeken at epfl.ch\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fVerbose );
+    int c, nVars = 3, nNodes = 1, fUseConst = 0, fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMcvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nNodes = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nNodes < 0 )
+                goto usage;
+            break;
+        case 'c':
+            fUseConst ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( (nVars & 1) == 0 )
+    {
+        Abc_Print( -1, "Cannot sythesize MAJ gate with an even number of inputs (%d).\n", nVars );
+        return 1;
+    }
+    Maj_ManExactSynthesis( nVars, nNodes, fUseConst, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: majexact [-NM <num>] [-cvh]\n" );
+    Abc_Print( -2, "\t           exactly synthesizes N-input MAJ using MAJ3 gates\n" );
+    Abc_Print( -2, "\t-N <num> : the number of input variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-M <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
+    Abc_Print( -2, "\t-c       : toggle using constant fanins [default = %s]\n", fUseConst ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
     return 1;
 }
 
