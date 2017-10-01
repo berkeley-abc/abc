@@ -8072,17 +8072,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fVerbose );
-    int c, nVars = 3, nNodes = 1, fUseConst = 0, fVerbose = 1;
+    extern void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose );
+    int c, nVars = 3, nNodes = 1, fUseConst = 0, fUseLine = 0, fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INfcvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'N':
+        case 'I':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
             nVars = atoi(argv[globalUtilOptind]);
@@ -8090,10 +8090,10 @@ int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nVars < 0 )
                 goto usage;
             break;
-        case 'M':
+        case 'N':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
                 goto usage;
             }
             nNodes = atoi(argv[globalUtilOptind]);
@@ -8101,8 +8101,11 @@ int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nNodes < 0 )
                 goto usage;
             break;
-        case 'c':
+        case 'f':
             fUseConst ^= 1;
+            break;
+        case 'c':
+            fUseLine ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -8118,15 +8121,16 @@ int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Cannot sythesize MAJ gate with an even number of inputs (%d).\n", nVars );
         return 1;
     }
-    Maj_ManExactSynthesis( nVars, nNodes, fUseConst, fVerbose );
+    Maj_ManExactSynthesis( nVars, nNodes, fUseConst, fUseLine, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: majexact [-NM <num>] [-cvh]\n" );
-    Abc_Print( -2, "\t           exactly synthesizes N-input MAJ using MAJ3 gates\n" );
-    Abc_Print( -2, "\t-N <num> : the number of input variables [default = %d]\n", nVars );
-    Abc_Print( -2, "\t-M <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
-    Abc_Print( -2, "\t-c       : toggle using constant fanins [default = %s]\n", fUseConst ? "yes" : "no" );
+    Abc_Print( -2, "usage: majexact [-IN <num>] [-fcvh]\n" );
+    Abc_Print( -2, "\t           exact synthesis of multi-input MAJ using MAJ3 gates\n" );
+    Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
+    Abc_Print( -2, "\t-f       : toggle using constant fanins [default = %s]\n", fUseConst ? "yes" : "no" );
+    Abc_Print( -2, "\t-c       : toggle using cascade topology [default = %s]\n", fUseLine ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     return 1;

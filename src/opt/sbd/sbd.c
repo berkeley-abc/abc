@@ -43,14 +43,14 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int Sbd_CountConfigVars( Vec_Int_t * vSet, int nVars )
+int Sbd_CountConfigVars( Vec_Int_t * vSet, int nVars, int Degree )
 {
     int i, k, Entry = 0, Entry2, Count = 0, Below;
     int Prev = Vec_IntEntry( vSet, 0 );
     Vec_IntForEachEntryStart( vSet, Entry, i, 1 )
     {
-        assert( 2*Prev >= Entry );
-        if ( 2*Prev == Entry )
+        assert( Degree*Prev >= Entry );
+        if ( Degree*Prev == Entry )
         {
             Prev = Entry;
             continue;
@@ -58,19 +58,24 @@ int Sbd_CountConfigVars( Vec_Int_t * vSet, int nVars )
         Below = nVars; 
         Vec_IntForEachEntryStart( vSet, Entry2, k, i )
             Below += Entry2;
-        Count += Below * (2*Prev - 1);
+        Count += Below * (Degree*Prev - 1);
         Prev = Entry;
     }
-    Count += nVars * 2*Prev;
+    Count += nVars * Degree*Prev;
     return Vec_IntSum(vSet) < nVars - 1 ? 0 : Count;
 }
 void Sbd_CountTopos()
 {
-    Hsh_VecMan_t * p = Hsh_VecManStart( 100000 ); // hash table for arrays
+    int nInputs  =  9;
+    int nNodes   = 10;
+    int Degree   =  3;
+    int fVerbose =  1;
+    Hsh_VecMan_t * p = Hsh_VecManStart( 10000 ); // hash table for arrays
     Vec_Int_t * vSet = Vec_IntAlloc( 100 );
     int i, k, e, Start, Stop;
+    printf( "Counting topologies for %d inputs and %d degree-%d nodes.\n", nInputs, nNodes, Degree );
     Start = Hsh_VecManAdd( p, vSet );
-    for ( i = 1; i < 9; i++ )
+    for ( i = 1; i <= nNodes; i++ )
     {
         Stop = Hsh_VecSize( p );
         for ( e = Start; e < Stop; e++ )
@@ -81,7 +86,7 @@ void Sbd_CountTopos()
             for ( k = 0; k < Vec_IntSize(vSet); k++ )
             {
                 // skip if the number of entries on this level is equal to the number of fanins on the previous level
-                if ( k ? (Vec_IntEntry(vSet, k) == 2*Vec_IntEntry(vSet, k-1)) : (Vec_IntEntry(vSet, 0) > 0) )
+                if ( k ? (Vec_IntEntry(vSet, k) == Degree*Vec_IntEntry(vSet, k-1)) : (Vec_IntEntry(vSet, 0) > 0) )
                     continue;
                 Vec_IntAddToEntry( vSet, k, 1 );
                 Hsh_VecManAdd( p, vSet );
@@ -90,15 +95,16 @@ void Sbd_CountTopos()
             Vec_IntPush( vSet, 1 );
             Hsh_VecManAdd( p, vSet );
         }
-        printf( "%2d : This = %8d  All = %8d\n", i, Hsh_VecSize(p) - Stop, Hsh_VecSize(p) );
-        if ( 0 )
+        printf( "Nodes = %2d : This = %8d  All = %8d\n", i, Hsh_VecSize(p) - Stop, Hsh_VecSize(p) );
+        if ( fVerbose )
         {
             for ( e = Stop; e < Hsh_VecSize(p); e++ )
             {
                 Vec_Int_t * vTemp = Hsh_VecReadEntry( p, e );
-                printf( "Params = %3d.  ", Sbd_CountConfigVars(vTemp, 5) );
+                printf( "Params = %3d.  ", Sbd_CountConfigVars(vTemp, nInputs, Degree) );
                 Vec_IntPrint( vTemp );
             }
+            printf( "\n" );
         }
         Start = Stop;
     }

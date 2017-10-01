@@ -41,6 +41,7 @@ struct Maj_Man_t_
     int               nWords;    // the truth table size in 64-bit words
     int               iVar;      // the next available SAT variable
     int               fUseConst; // use constant fanins
+    int               fUseLine;  // use cascade topology
     Vec_Wrd_t *       vInfo;     // Const0 + Const1 + nVars + nNodes + Maj(nVars)
     int               VarMarks[MAJ_NOBJS][3][MAJ_NOBJS]; // variable marks
     int               VarVals[MAJ_NOBJS+2]; // values of the first 2 + nVars variables
@@ -103,6 +104,13 @@ int Maj_ManMarkup( Maj_Man_t * p )
     {
         for ( k = 0; k < 3; k++ )
         {
+            if ( p->fUseLine && k == 0 )
+            {
+                j = i-1;
+                Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
+                p->VarMarks[i][k][j] = p->iVar++;
+                continue;
+            }
             for ( j = (p->fUseConst && k == 2) ? 0 : 2; j < i - k; j++ )
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
@@ -119,19 +127,20 @@ int Maj_ManMarkup( Maj_Man_t * p )
         for ( j = 0; j < p->nObjs; j++ )
         {
             for ( k = 0; k < 3; k++ )
-                printf( "%2d ", p->VarMarks[i][k][j] );
+                printf( "%3d ", p->VarMarks[i][k][j] );
             printf( "\n" );
         }
     }
     return p->iVar;
 }
-Maj_Man_t * Maj_ManAlloc( int nVars, int nNodes, int fUseConst )
+Maj_Man_t * Maj_ManAlloc( int nVars, int nNodes, int fUseConst, int fUseLine )
 {
     Maj_Man_t * p = ABC_CALLOC( Maj_Man_t, 1 );
     p->nVars      = nVars;
     p->nNodes     = nNodes;
     p->nObjs      = 2 + nVars + nNodes;
     p->fUseConst  = fUseConst;
+    p->fUseLine   = fUseLine;
     p->nWords     = Abc_TtWordNum(nVars);
     p->vOutLits   = Vec_WecStart( p->nObjs );
     p->iVar       = Maj_ManMarkup( p );
@@ -207,10 +216,11 @@ void Maj_ManPrintSolution( Maj_Man_t * p )
 {
     int i, k, iVar;
     printf( "Realization of %d-input majority using %d MAJ3 gates:\n", p->nVars, p->nNodes );
-    for ( i = p->nVars + 2; i < p->nObjs; i++ )
+//    for ( i = p->nVars + 2; i < p->nObjs; i++ )
+    for ( i = p->nObjs - 1; i >= p->nVars + 2; i-- )
     {
         printf( "%02d = MAJ(", i-2 );
-        for ( k = 0; k < 3; k++ )
+        for ( k = 2; k >= 0; k-- )
         {
             iVar = Maj_ManFindFanin( p, i, k );
             if ( iVar >= 2 && iVar < p->nVars + 2 )
@@ -335,11 +345,11 @@ int Maj_ManAddCnf( Maj_Man_t * p, int iMint )
     p->iVar += 4*p->nNodes;
     return 1;
 }
-void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fVerbose )
+void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose )
 {
     int i, iMint = 0;
     abctime clkTotal = Abc_Clock();
-    Maj_Man_t * p = Maj_ManAlloc( nVars, nNodes, fUseConst );
+    Maj_Man_t * p = Maj_ManAlloc( nVars, nNodes, fUseConst, fUseLine );
     int status = Maj_ManAddCnfStart( p );
     assert( status );
     printf( "Running exact synthesis for %d-input majority with %d MAJ3 gates...\n", p->nVars, p->nNodes );
@@ -355,7 +365,7 @@ void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fVerbose )
             Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
             printf( "  Var =%5d  ", p->iVar );
             printf( "Cla =%6d  ", bmcg_sat_solver_clausenum(p->pSat) );
-            printf( "Conf =%8d  ", bmcg_sat_solver_conflictnum(p->pSat) );
+            printf( "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         if ( status == GLUCOSE_UNSAT )
