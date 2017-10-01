@@ -1751,6 +1751,22 @@ static inline int Abc_TtFindFirstBit2( word * pIn, int nWords )
             return 64*w + Abc_Tt6FirstBit(pIn[w]);
     return -1;
 }
+static inline int Abc_TtFindLastBit( word * pIn, int nVars )
+{
+    int w, nWords = Abc_TtWordNum(nVars);
+    for ( w = nWords - 1; w >= 0; w-- )
+        if ( pIn[w] )
+            return 64*w + Abc_Tt6LastBit(pIn[w]);
+    return -1;
+}
+static inline int Abc_TtFindLastBit2( word * pIn, int nWords )
+{
+    int w;
+    for ( w = nWords - 1; w >= 0; w-- )
+        if ( pIn[w] )
+            return 64*w + Abc_Tt6LastBit(pIn[w]);
+    return -1;
+}
 static inline int Abc_TtFindFirstDiffBit( word * pIn1, word * pIn2, int nVars )
 {
     int w, nWords = Abc_TtWordNum(nVars);
@@ -1767,20 +1783,28 @@ static inline int Abc_TtFindFirstDiffBit2( word * pIn1, word * pIn2, int nWords 
             return 64*w + Abc_Tt6FirstBit(pIn1[w] ^ pIn2[w]);
     return -1;
 }
+static inline int Abc_TtFindLastDiffBit( word * pIn1, word * pIn2, int nVars )
+{
+    int w, nWords = Abc_TtWordNum(nVars);
+    for ( w = nWords - 1; w >= 0; w-- )
+        if ( pIn1[w] ^ pIn2[w] )
+            return 64*w + Abc_Tt6LastBit(pIn1[w] ^ pIn2[w]);
+    return -1;
+}
+static inline int Abc_TtFindLastDiffBit2( word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = nWords - 1; w >= 0; w-- )
+        if ( pIn1[w] ^ pIn2[w] )
+            return 64*w + Abc_Tt6LastBit(pIn1[w] ^ pIn2[w]);
+    return -1;
+}
 static inline int Abc_TtFindFirstZero( word * pIn, int nVars )
 {
     int w, nWords = Abc_TtWordNum(nVars);
     for ( w = 0; w < nWords; w++ )
         if ( ~pIn[w] )
             return 64*w + Abc_Tt6FirstBit(~pIn[w]);
-    return -1;
-}
-static inline int Abc_TtFindLastBit( word * pIn, int nVars )
-{
-    int w, nWords = Abc_TtWordNum(nVars);
-    for ( w = nWords - 1; w >= 0; w-- )
-        if ( pIn[w] )
-            return 64*w + Abc_Tt6LastBit(pIn[w]);
     return -1;
 }
 static inline int Abc_TtFindLastZero( word * pIn, int nVars )

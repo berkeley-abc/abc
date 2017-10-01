@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "bmc.h"
+#include "misc/extra/extra.h"
 #include "misc/util/utilTruth.h"
 #include "sat/glucose/AbcGlucose.h"
 
@@ -174,6 +175,7 @@ static inline int Maj_ManFindFanin( Maj_Man_t * p, int i, int k )
 }
 static inline int Maj_ManEval( Maj_Man_t * p )
 {
+    static int Flag = 0;
     int i, k, iMint; word * pFanins[3];
     for ( i = p->nVars + 2; i < p->nObjs; i++ )
     {
@@ -181,7 +183,12 @@ static inline int Maj_ManEval( Maj_Man_t * p )
             pFanins[k] = Maj_ManTruth( p, Maj_ManFindFanin(p, i, k) );
         Abc_TtMaj( Maj_ManTruth(p, i), pFanins[0], pFanins[1], pFanins[2], p->nWords );
     }
-    iMint = Abc_TtFindFirstDiffBit( Maj_ManTruth(p, p->nObjs-1), Maj_ManTruth(p, p->nObjs), p->nWords );
+    if ( Flag && p->nVars >= 6 )
+        iMint = Abc_TtFindLastDiffBit( Maj_ManTruth(p, p->nObjs-1), Maj_ManTruth(p, p->nObjs), p->nVars );
+    else
+        iMint = Abc_TtFindFirstDiffBit( Maj_ManTruth(p, p->nObjs-1), Maj_ManTruth(p, p->nObjs), p->nVars );
+    //Flag ^= 1;
+    assert( iMint < (1 << p->nVars) );
     return iMint;
 }
 
@@ -290,7 +297,6 @@ int Maj_ManAddCnf( Maj_Man_t * p, int iMint )
         int iBaseSatVarI = p->iVar + 4*(i - p->nVars - 2);
         for ( k = 0; k < 3; k++ )
         {
-            int nLits2 = 0;
             for ( j = 0; j < p->nObjs; j++ ) if ( p->VarMarks[i][k][j] )
             {
                 int iBaseSatVarJ = p->iVar + 4*(j - p->nVars - 2);
@@ -346,9 +352,10 @@ void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fVerbose )
         if ( fVerbose )
         {
             printf( "Iter %3d : ", i );
-            printf( "Vars = %5d  ", p->iVar );
-            printf( "Clauses = %5d  ", bmcg_sat_solver_clausenum(p->pSat) );
-            printf( "Conflicts = %7d  ", bmcg_sat_solver_conflictnum(p->pSat) );
+            Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
+            printf( "  Var =%5d  ", p->iVar );
+            printf( "Cla =%6d  ", bmcg_sat_solver_clausenum(p->pSat) );
+            printf( "Conf =%8d  ", bmcg_sat_solver_conflictnum(p->pSat) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
         if ( status == GLUCOSE_UNSAT )
