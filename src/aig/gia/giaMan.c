@@ -34,6 +34,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern void Gia_ManDfsSlacksPrint( Gia_Man_t * p );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -555,6 +557,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 */
         Gia_ManPrintTents( p );
     }
+    if ( pPars->fSlacks )
+        Gia_ManDfsSlacksPrint( p );
 }
 
 /**Function*************************************************************
@@ -792,6 +796,322 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
         OtherClasses2, 100.0 * OtherClasses2 / (nTotal+1) );
     ABC_FREE( pLutClass );
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collects internal nodes and boxes in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDfsCollect_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vObjs )
+{
+    if ( Gia_ObjIsTravIdCurrent( p, pObj ) )
+        return;
+    Gia_ObjSetTravIdCurrent( p, pObj );
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+        if ( pManTime )
+        {
+            int i, iFirst, nTerms, iBox;
+            iBox = Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) );
+            if ( iBox >= 0 ) // pObj is a box input
+            {
+                // mark box outputs
+                iFirst = Tim_ManBoxOutputFirst( pManTime, iBox );
+                nTerms = Tim_ManBoxOutputNum( pManTime, iBox );
+                for ( i = 0; i < nTerms; i++ )
+                {
+                    pObj = Gia_ManCi( p, iFirst + i );
+                    Gia_ObjSetTravIdCurrent( p, pObj );
+                }
+                // traverse box inputs
+                iFirst = Tim_ManBoxInputFirst( pManTime, iBox );
+                nTerms = Tim_ManBoxInputNum( pManTime, iBox );
+                for ( i = 0; i < nTerms; i++ )
+                {
+                    pObj = Gia_ManCo( p, iFirst + i );
+                    Gia_ManDfsCollect_rec( p, pObj, vObjs );
+                }
+                // save the box
+                Vec_IntPush( vObjs, -iBox-1 );
+            }
+        }
+        return;
+    }
+    else if ( Gia_ObjIsCo(pObj) )
+    {
+        Gia_ManDfsCollect_rec( p, Gia_ObjFanin0(pObj), vObjs );
+    }
+    else if ( Gia_ObjIsAnd(pObj) )
+    { 
+        int iFan, k, iObj = Gia_ObjId(p, pObj);
+        if ( Gia_ManHasMapping(p) )
+        {
+            assert( Gia_ObjIsLut(p, iObj) );
+            Gia_LutForEachFanin( p, iObj, iFan, k )
+                Gia_ManDfsCollect_rec( p, Gia_ManObj(p, iFan), vObjs );
+        }
+        else
+        {
+            Gia_ManDfsCollect_rec( p, Gia_ObjFanin0(pObj), vObjs );
+            Gia_ManDfsCollect_rec( p, Gia_ObjFanin1(pObj), vObjs );
+        }
+        // save the object
+        Vec_IntPush( vObjs, iObj );
+    }
+    else if ( !Gia_ObjIsConst0(pObj) )
+        assert( 0 );
+}
+Vec_Int_t * Gia_ManDfsCollect( Gia_Man_t * p )
+{
+    Vec_Int_t * vObjs = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj; int i;
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManDfsCollect_rec( p, pObj, vObjs );
+    Gia_ManForEachCi( p, pObj, i )
+        Gia_ManDfsCollect_rec( p, pObj, vObjs );
+    return vObjs;
+} 
+
+/**Function*************************************************************
+
+  Synopsis    [Compute arrival/required times.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManDfsArrivals( Gia_Man_t * p, Vec_Int_t * vObjs )
+{
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    Vec_Int_t * vTimes = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj; int j, Entry, k, iFan;
+    Vec_IntWriteEntry( vTimes, 0, 0 );
+    if ( pManTime ) 
+    {
+        Tim_ManIncrementTravId( pManTime );
+        Gia_ManForEachCi( p, pObj, j )
+            if ( j < Tim_ManPiNum(pManTime) )
+            {
+                float arrTime = Tim_ManGetCiArrival( pManTime, j );
+                Vec_IntWriteEntry( vTimes, Gia_ObjId(p, pObj), (int)arrTime );
+            }
+    }
+    else
+    {
+        Gia_ManForEachCi( p, pObj, j )
+            Vec_IntWriteEntry( vTimes, Gia_ObjId(p, pObj), 0 );
+    }
+    Vec_IntForEachEntry( vObjs, Entry, j )
+    {
+        if ( Entry < 0 ) // box
+        {
+            int Time0, iFirst, nTerms, iBox = -Entry-1;
+            assert( iBox >= 0 );
+            // set arrivals for box inputs
+            iFirst = Tim_ManBoxInputFirst( pManTime, iBox );
+            nTerms = Tim_ManBoxInputNum( pManTime, iBox );
+            for ( k = 0; k < nTerms; k++ )
+            {
+                pObj  = Gia_ManCo( p, iFirst + k );
+                Time0 = Vec_IntEntry( vTimes, Gia_ObjFaninId0p(p, pObj) );
+                assert( Time0 >= 0 );
+                Tim_ManSetCoArrival( pManTime, Gia_ObjCioId(pObj), Time0 );
+            }
+            // derive arrivals for box outputs
+            iFirst = Tim_ManBoxOutputFirst( pManTime, iBox );
+            nTerms = Tim_ManBoxOutputNum( pManTime, iBox );
+            for ( k = 0; k < nTerms; k++ )
+            {
+                pObj  = Gia_ManCi( p, iFirst + k );
+                Time0 = Tim_ManGetCiArrival( pManTime, Gia_ObjCioId(pObj) );
+                assert( Time0 >= 0 );
+                Vec_IntWriteEntry( vTimes, Gia_ObjId(p, pObj), Time0 );
+            }
+        }
+        else if ( Entry > 0 ) // node
+        {
+            int Time0, Time1, TimeMax = 0;
+            if ( Gia_ManHasMapping(p) )
+            {
+                assert( Gia_ObjIsLut(p, Entry) );
+                Gia_LutForEachFanin( p, Entry, iFan, k )
+                {
+                    Time0 = Vec_IntEntry( vTimes, iFan );
+                    assert( Time0 >= 0 );
+                    TimeMax = Abc_MaxInt( TimeMax, Time0 );
+                }
+            }
+            else
+            {
+                pObj  = Gia_ManObj( p, Entry );
+                Time0 = Vec_IntEntry( vTimes, Gia_ObjFaninId0(pObj, Entry) );
+                Time1 = Vec_IntEntry( vTimes, Gia_ObjFaninId1(pObj, Entry) );
+                assert( Time0 >= 0 && Time1 >= 0 );
+                TimeMax = Abc_MaxInt( Time0, Time1 );
+            }
+            Vec_IntWriteEntry( vTimes, Entry, TimeMax + 10 );
+        }
+        else assert( 0 );
+    }
+    return vTimes;
+}
+static inline void Gia_ManDfsUpdateRequired( Vec_Int_t * vTimes, int iObj, int Req )
+{
+    int *pTime = Vec_IntEntryP( vTimes, iObj );
+    if (*pTime == -1 || *pTime > Req)
+        *pTime = Req;
+}
+Vec_Int_t * Gia_ManDfsRequireds( Gia_Man_t * p, Vec_Int_t * vObjs, int ReqTime )
+{
+    Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
+    Vec_Int_t * vTimes = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj; 
+    int j, Entry, k, iFan, Req;
+    Vec_IntWriteEntry( vTimes, 0, 0 );
+    if ( pManTime ) 
+    {
+        int nCoLimit = Gia_ManCoNum(p) - Tim_ManPoNum(pManTime);
+        Tim_ManIncrementTravId( pManTime );
+        //Tim_ManInitPoRequiredAll( pManTime, (float)ReqTime );
+        Gia_ManForEachCo( p, pObj, j )
+            if ( j >= nCoLimit )
+            {
+                Tim_ManSetCoRequired( pManTime, j, ReqTime );
+                Gia_ManDfsUpdateRequired( vTimes, Gia_ObjFaninId0p(p, pObj), ReqTime );
+            }
+    }
+    else
+    {
+        Gia_ManForEachCo( p, pObj, j )
+            Gia_ManDfsUpdateRequired( vTimes, Gia_ObjFaninId0p(p, pObj), ReqTime );
+    }
+    Vec_IntForEachEntryReverse( vObjs, Entry, j )
+    {
+        if ( Entry < 0 ) // box
+        {
+            int iFirst, nTerms, iBox = -Entry-1;
+            assert( iBox >= 0 );
+            // set requireds for box outputs
+            iFirst = Tim_ManBoxOutputFirst( pManTime, iBox );
+            nTerms = Tim_ManBoxOutputNum( pManTime, iBox );
+            for ( k = 0; k < nTerms; k++ )
+            {
+                pObj = Gia_ManCi( p, iFirst + k );
+                Req  = Vec_IntEntry( vTimes, Gia_ObjId(p, pObj) );
+                Req  = Req == -1 ? ReqTime : Req; // dangling box output
+                assert( Req >= 0 );
+                Tim_ManSetCiRequired( pManTime, Gia_ObjCioId(pObj), Req );
+            }
+            // derive requireds for box inputs
+            iFirst = Tim_ManBoxInputFirst( pManTime, iBox );
+            nTerms = Tim_ManBoxInputNum( pManTime, iBox );
+            for ( k = 0; k < nTerms; k++ )
+            {
+                pObj = Gia_ManCo( p, iFirst + k );
+                Req  = Tim_ManGetCoRequired( pManTime, Gia_ObjCioId(pObj) );
+                assert( Req >= 0 );
+                Gia_ManDfsUpdateRequired( vTimes, Gia_ObjFaninId0p(p, pObj), Req );
+            }
+        }
+        else if ( Entry > 0 ) // node
+        {
+            Req = Vec_IntEntry(vTimes, Entry) - 10;
+            assert( Req >= 0 );
+            if ( Gia_ManHasMapping(p) )
+            {
+                assert( Gia_ObjIsLut(p, Entry) );
+                Gia_LutForEachFanin( p, Entry, iFan, k )
+                    Gia_ManDfsUpdateRequired( vTimes, iFan, Req );
+            }
+            else
+            {
+                pObj  = Gia_ManObj( p, Entry );
+                Gia_ManDfsUpdateRequired( vTimes, Gia_ObjFaninId0(pObj, Entry), Req );
+                Gia_ManDfsUpdateRequired( vTimes, Gia_ObjFaninId1(pObj, Entry), Req );
+            }
+        }
+        else assert( 0 );
+    }
+    return vTimes;
+}
+Vec_Int_t * Gia_ManDfsSlacks( Gia_Man_t * p )
+{
+    Vec_Int_t * vSlack = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Vec_Int_t * vObjs  = Gia_ManDfsCollect( p );
+    if ( Vec_IntSize(vObjs) > 0 )
+    {
+        Vec_Int_t * vArrs  = Gia_ManDfsArrivals( p, vObjs );
+        int Required       = Vec_IntFindMax( vArrs );
+        Vec_Int_t * vReqs  = Gia_ManDfsRequireds( p, vObjs, Required );
+        int i, Arr, Req, Arrivals = ABC_INFINITY;
+        Vec_IntForEachEntry( vReqs, Req, i )
+            if ( Req != -1 )
+                Arrivals = Abc_MinInt( Arrivals, Req );
+        //if ( Arrivals != 0 )
+        //    printf( "\nGlobal timing check has failed.\n\n" );
+        //assert( Arrivals == 0 );
+        Vec_IntForEachEntryTwo( vArrs, vReqs, Arr, Req, i )
+        {
+            if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) )
+                continue;
+            if ( Gia_ManHasMapping(p) && !Gia_ObjIsLut(p, i) )
+                continue;
+            assert( Arr <= Req );
+            Vec_IntWriteEntry( vSlack, i, Req - Arr );
+        }
+        Vec_IntFree( vArrs );
+        Vec_IntFree( vReqs );
+    }
+    Vec_IntFree( vObjs );
+    return vSlack;
+}
+void Gia_ManDfsSlacksPrint( Gia_Man_t * p )
+{
+    Vec_Int_t * vCounts, * vSlacks = Gia_ManDfsSlacks( p );
+    int i, Entry, nRange, nTotal;
+    if ( Vec_IntSize(vSlacks) == 0 )
+    {
+        printf( "Network contains no internal objects.\n" );
+        Vec_IntFree( vSlacks );
+        return;
+    }
+    // compute slacks
+    Vec_IntForEachEntry( vSlacks, Entry, i )
+        if ( Entry != -1 )
+            Vec_IntWriteEntry( vSlacks, i, Entry/10 );
+    nRange = Vec_IntFindMax( vSlacks );
+    // count items
+    vCounts = Vec_IntStart( nRange + 1 );
+    Vec_IntForEachEntry( vSlacks, Entry, i )
+        if ( Entry != -1 )
+            Vec_IntAddToEntry( vCounts, Entry, 1 );
+    // print slack ranges
+    nTotal = Vec_IntSum( vCounts );
+    assert( nTotal > 0 );
+    Vec_IntForEachEntry( vCounts, Entry, i )
+    {
+        printf( "Slack range %3d = ", i );
+        printf( "[%4d, %4d)   ", 10*i, 10*(i+1) );
+        printf( "Nodes = %5d  ", Entry );
+        printf( "(%6.2f %%) ", 100.0*Entry/nTotal );
+        printf( "\n" );
+    }
+    Vec_IntFree( vSlacks );
+    Vec_IntFree( vCounts );
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
