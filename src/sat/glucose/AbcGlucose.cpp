@@ -251,46 +251,47 @@ int bmcg_sat_solver_conflictnum(bmcg_sat_solver* s)
     return ((Gluco::SimpSolver*)s)->conflicts;
 }
 
-int bmcg_sat_solver_minimize_assumptions(bmcg_sat_solver * s, int * plits, int nlits)
+int bmcg_sat_solver_minimize_assumptions( bmcg_sat_solver * s, int * plits, int nlits, int pivot )
 {
     vec<int>*array = &((Gluco::SimpSolver*)s)->user_vec;
     int i, nlitsL, nlitsR, nresL, nresR, status;
-    if ( nlits == 1 )
+    assert( pivot >= 0 );
+//    assert( nlits - pivot >= 2 );
+    assert( nlits - pivot >= 1 );
+    if ( nlits - pivot == 1 )
     {
         // since the problem is UNSAT, we try to solve it without assuming the last literal
         // if the result is UNSAT, the last literal can be dropped; otherwise, it is needed
-        status = bmcg_sat_solver_solve( s, NULL, 0 );
-        return status != -1; // return 1 if the problem is not UNSAT
+        status = bmcg_sat_solver_solve( s, plits, pivot );
+        return status != GLUCOSE_UNSAT; // return 1 if the problem is not UNSAT
     }
-    assert( nlits >= 2 );
-    nlitsL = nlits / 2;
-    nlitsR = nlits - nlitsL;
+    assert( nlits - pivot >= 2 );
+    nlitsL = (nlits - pivot) / 2;
+    nlitsR = (nlits - pivot) - nlitsL;
+    assert( nlitsL + nlitsR == nlits - pivot );
     // solve with these assumptions
-    status = bmcg_sat_solver_solve( s, plits, nlitsL );
-    if ( status == -1 ) // these are enough
-        return bmcg_sat_solver_minimize_assumptions( s, plits, nlitsL );
+    status = bmcg_sat_solver_solve( s, plits, pivot + nlitsL );
+    if ( status == GLUCOSE_UNSAT ) // these are enough
+        return bmcg_sat_solver_minimize_assumptions( s, plits, pivot + nlitsL, pivot );
     // these are not enough
     // solve for the right lits
-// assume left bits
-    nresL = nlitsR == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nlitsL, nlitsR );
-// unassume left bits
+//    nResL = nLitsR == 1 ? 1 : sat_solver_minimize_assumptions( s, pLits + nLitsL, nLitsR, nConfLimit );
+    nresL = nlitsR == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits, nlits, pivot + nlitsL );
     // swap literals
     array->clear();
     for ( i = 0; i < nlitsL; i++ )
-        array->push(plits[i]);
+        array->push(plits[pivot + i]);
     for ( i = 0; i < nresL; i++ )
-        plits[i] = plits[nlitsL+i];
+        plits[pivot + i] = plits[pivot + nlitsL + i];
     for ( i = 0; i < nlitsL; i++ )
-        plits[nresL+i] = (*array)[i];
+        plits[pivot + nresL + i] = (*array)[i];
     // solve with these assumptions
-// assume right bits
-    status = bmcg_sat_solver_solve( s, plits, nresL );
-    if ( status == -1 ) // these are enough
-// unassume right bits
+    status = bmcg_sat_solver_solve( s, plits, pivot + nresL );
+    if ( status == GLUCOSE_UNSAT ) // these are enough
         return nresL;
     // solve for the left lits
-    nresR = nlitsL == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nresL, nlitsL );
-// unassume right bits
+//    nResR = nLitsL == 1 ? 1 : sat_solver_minimize_assumptions( s, pLits + nResL, nLitsL, nConfLimit );
+    nresR = nlitsL == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits, pivot + nresL + nlitsL, pivot + nresL );
     return nresL + nresR;
 }
 
@@ -490,46 +491,47 @@ int bmcg_sat_solver_conflictnum(bmcg_sat_solver* s)
     return ((Gluco::Solver*)s)->conflicts;
 }
 
-int bmcg_sat_solver_minimize_assumptions(bmcg_sat_solver * s, int * plits, int nlits)
+int bmcg_sat_solver_minimize_assumptions( bmcg_sat_solver * s, int * plits, int nlits, int pivot )
 {
     vec<int>*array = &((Gluco::Solver*)s)->user_vec;
     int i, nlitsL, nlitsR, nresL, nresR, status;
-    if ( nlits == 1 )
+    assert( pivot >= 0 );
+//    assert( nlits - pivot >= 2 );
+    assert( nlits - pivot >= 1 );
+    if ( nlits - pivot == 1 )
     {
         // since the problem is UNSAT, we try to solve it without assuming the last literal
         // if the result is UNSAT, the last literal can be dropped; otherwise, it is needed
-        status = bmcg_sat_solver_solve( s, NULL, 0 );
-        return status != -1; // return 1 if the problem is not UNSAT
+        status = bmcg_sat_solver_solve( s, plits, pivot );
+        return status != GLUCOSE_UNSAT; // return 1 if the problem is not UNSAT
     }
-    assert( nlits >= 2 );
-    nlitsL = nlits / 2;
-    nlitsR = nlits - nlitsL;
+    assert( nlits - pivot >= 2 );
+    nlitsL = (nlits - pivot) / 2;
+    nlitsR = (nlits - pivot) - nlitsL;
+    assert( nlitsL + nlitsR == nlits - pivot );
     // solve with these assumptions
-    status = bmcg_sat_solver_solve( s, plits, nlitsL );
-    if ( status == -1 ) // these are enough
-        return bmcg_sat_solver_minimize_assumptions( s, plits, nlitsL );
+    status = bmcg_sat_solver_solve( s, plits, pivot + nlitsL );
+    if ( status == GLUCOSE_UNSAT ) // these are enough
+        return bmcg_sat_solver_minimize_assumptions( s, plits, pivot + nlitsL, pivot );
     // these are not enough
     // solve for the right lits
-// assume left bits
-    nresL = nlitsR == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nlitsL, nlitsR );
-// unassume left bits
+//    nResL = nLitsR == 1 ? 1 : sat_solver_minimize_assumptions( s, pLits + nLitsL, nLitsR, nConfLimit );
+    nresL = nlitsR == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits, nlits, pivot + nlitsL );
     // swap literals
     array->clear();
     for ( i = 0; i < nlitsL; i++ )
-        array->push(plits[i]);
+        array->push(plits[pivot + i]);
     for ( i = 0; i < nresL; i++ )
-        plits[i] = plits[nlitsL+i];
+        plits[pivot + i] = plits[pivot + nlitsL + i];
     for ( i = 0; i < nlitsL; i++ )
-        plits[nresL+i] = (*array)[i];
+        plits[pivot + nresL + i] = (*array)[i];
     // solve with these assumptions
-// assume right bits
-    status = bmcg_sat_solver_solve( s, plits, nresL );
-    if ( status == -1 ) // these are enough
-// unassume right bits
+    status = bmcg_sat_solver_solve( s, plits, pivot + nresL );
+    if ( status == GLUCOSE_UNSAT ) // these are enough
         return nresL;
     // solve for the left lits
-    nresR = nlitsL == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits + nresL, nlitsL );
-// unassume right bits
+//    nResR = nLitsL == 1 ? 1 : sat_solver_minimize_assumptions( s, pLits + nResL, nLitsL, nConfLimit );
+    nresR = nlitsL == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits, pivot + nresL + nlitsL, pivot + nresL );
     return nresL + nresR;
 }
 
@@ -723,11 +725,13 @@ Vec_Int_t * Glucose_SolverFromAig2( Gia_Man_t * p, SimpSolver& S )
 ***********************************************************************/
 void Glucose_GenerateSop( Gia_Man_t * p )
 {
+    int fCreatePrime = 1;
+
     bmcg_sat_solver * pSat[2] = { bmcg_sat_solver_start(), bmcg_sat_solver_start() };
 
     // generate CNF for the on-set and off-set
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 0/*fAddOrCla*/, 0, 0/*verbose*/ );
-    int i,n,nVars = Gia_ManCiNum(p);
+    int i,n,nVars = Gia_ManCiNum(p), Count = 0;
     int iFirstVar = pCnf->nVars - nVars;
     assert( Gia_ManCoNum(p) == 1 );
     for ( n = 0; n < 2; n++ )
@@ -744,26 +748,39 @@ void Glucose_GenerateSop( Gia_Man_t * p )
     // generate assignments
     Vec_Int_t * vLits = Vec_IntAlloc( nVars );
     Vec_Str_t * vCube = Vec_StrAlloc( nVars + 4 );
+    Vec_StrFill( vCube, nVars, '-' );
+    Vec_StrPrintF( vCube, " 1\n\0" );
     while ( 1 )
     {
+        int * pFinal, nFinal;
         // generate onset minterm
         int status = bmcg_sat_solver_solve( pSat[1], NULL, 0 );
-        if ( status == -1 )
+        if ( status == GLUCOSE_UNSAT )
             break;
-        assert( status == 1 );
+        assert( status == GLUCOSE_SAT );
         Vec_IntClear( vLits );
         for ( i = 0; i < nVars; i++ )
             Vec_IntPush( vLits, Abc_Var2Lit(iFirstVar+i, !bmcg_sat_solver_read_cex_varvalue(pSat[1], iFirstVar+i)) );
-        // expand it against offset
-        status = bmcg_sat_solver_solve( pSat[0], Vec_IntArray(vLits), Vec_IntSize(vLits) );
-        assert( status == -1 );
-        int * pFinal, nFinal = bmcg_sat_solver_final( pSat[0], &pFinal );
+        // expand against offset
+        if ( fCreatePrime )
+        {
+            nFinal = bmcg_sat_solver_minimize_assumptions( pSat[0], Vec_IntArray(vLits), Vec_IntSize(vLits), 0 );
+            Vec_IntShrink( vLits, nFinal );
+            pFinal = Vec_IntArray( vLits );
+            for ( i = 0; i < nFinal; i++ )
+                pFinal[i] = Abc_LitNot(pFinal[i]);
+        }
+        else
+        {
+            status = bmcg_sat_solver_solve( pSat[0], Vec_IntArray(vLits), Vec_IntSize(vLits) );
+            assert( status == GLUCOSE_UNSAT );
+            nFinal = bmcg_sat_solver_final( pSat[0], &pFinal );
+        }
         // print cube
         Vec_StrFill( vCube, nVars, '-' );
-        Vec_StrPrintF( vCube, " 1\n\0" );
         for ( i = 0; i < nFinal; i++ )
             Vec_StrWriteEntry( vCube, Abc_Lit2Var(pFinal[i]) - iFirstVar, (char)('0' + Abc_LitIsCompl(pFinal[i])) );
-        printf( "%s", Vec_StrArray(vCube) );
+        printf( "%4d : %s", Count++, Vec_StrArray(vCube) );
         // add blocking clause
         if ( !bmcg_sat_solver_addclause( pSat[1], pFinal, nFinal ) )
             break;

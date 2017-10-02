@@ -503,6 +503,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
                 printf( "%s (line %d): Input cube length (%d) differs from the number of inputs (%d).\n",
                     Extra_FileReaderGetFileName(p), iLine, (int)strlen(pCubeIn), nInputs );
                 Abc_NtkDelete( pNtk );
+                ABC_FREE( ppSops );
                 return NULL;
             }
             if ( (int)strlen(pCubeOut) != nOutputs )
