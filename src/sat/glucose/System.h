@@ -22,7 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #define Glucose_System_h
 
 #if defined(__linux__)
-#include <fpu_control.h>
+//#include <fpu_control.h>
 #endif
 
 #include "sat/glucose/IntTypes.h"
