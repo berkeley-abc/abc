@@ -480,6 +480,7 @@ cuddDynamicAllocNode(
 
     node = table->nextFree;
     table->nextFree = node->next;
+    node->Id = 0;
     return (node);
 
 } /* end of cuddDynamicAllocNode */
