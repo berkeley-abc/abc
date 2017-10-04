@@ -1705,34 +1705,42 @@ void Mio_LibraryMatchesFetch( Mio_Library_t * pLib, Vec_Mem_t ** pvTtMem, Vec_We
 ***********************************************************************/
 void Mio_LibraryMatches2Stop( Mio_Library_t * pLib )
 {
+    int i;
     if ( !pLib->vNames )
         return;
     Vec_PtrFree( pLib->vNames );
     Vec_WrdFree( pLib->vTruths );
-    Vec_MemHashFree( pLib->vTtMem_ );
-    Vec_MemFree( pLib->vTtMem_ );
-    Vec_IntFree( pLib->vTt2Match_ );
     Vec_IntFree( pLib->vTt2Match4 );
     Vec_IntFree( pLib->vConfigs );
+    for ( i = 0; i < 3; i++ )
+    {
+        Vec_MemHashFree( pLib->vTtMem2[i] );
+        Vec_MemFree( pLib->vTtMem2[i] );
+        Vec_IntFree( pLib->vTt2Match2[i] );
+    }
 }
 void Mio_LibraryMatches2Start( Mio_Library_t * pLib )
 {
-    extern int Gia_ManDeriveMatches( Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Mem_t ** pvTtMem, Vec_Int_t ** pvTt2Match, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs );
+    extern int Gia_ManDeriveMatches( Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs, Vec_Mem_t * pvTtMem2[3], Vec_Int_t * pvTt2Match2[3] );
     if ( pLib->vNames )
         return;
     if ( pLib->vTtMem )
         Mio_LibraryMatches2Stop( pLib );
-    Gia_ManDeriveMatches( &pLib->vNames, &pLib->vTruths, &pLib->vTtMem_, &pLib->vTt2Match_, &pLib->vTt2Match4, &pLib->vConfigs );
+    Gia_ManDeriveMatches( &pLib->vNames, &pLib->vTruths, &pLib->vTt2Match4, &pLib->vConfigs, pLib->vTtMem2, pLib->vTt2Match2 );
 }
-void Mio_LibraryMatches2Fetch( Mio_Library_t * pLib, Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Mem_t ** pvTtMem, Vec_Int_t ** pvTt2Match, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs )
+void Mio_LibraryMatches2Fetch( Mio_Library_t * pLib, Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs, Vec_Mem_t * pvTtMem2[3], Vec_Int_t * pvTt2Match2[3] )
 {
+    int i;
     Mio_LibraryMatches2Start( pLib );
     *pvNames     = pLib->vNames;    
     *pvTruths    = pLib->vTruths;    
-    *pvTtMem     = pLib->vTtMem_;    
-    *pvTt2Match  = pLib->vTt2Match_;    
     *pvTt2Match4 = pLib->vTt2Match4;    
     *pvConfigs   = pLib->vConfigs;    
+    for ( i = 0; i < 3; i++ )
+    {
+        pvTtMem2[i]  = pLib->vTtMem2[i];    
+        pvTt2Match2[i] = pLib->vTt2Match2[i];   
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

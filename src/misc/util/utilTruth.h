@@ -2743,6 +2743,7 @@ static inline word Abc_TtEvalLut6( word Ins[6], word Lut, int nVars )
         Cube = ~(word)0;
         for ( i = 0; i < nVars; i++ )
             Cube &= ((k >> i) & 1) ? Ins[i] : ~Ins[i];
+        Res |= Cube;
     }
     return Res;
 }
@@ -2756,6 +2757,7 @@ static inline unsigned Abc_TtEvalLut5( unsigned Ins[5], int Lut, int nVars )
         Cube = ~(unsigned)0;
         for ( i = 0; i < nVars; i++ )
             Cube &= ((k >> i) & 1) ? Ins[i] : ~Ins[i];
+        Res |= Cube;
     }
     return Res;
 }
@@ -2769,6 +2771,7 @@ static inline int Abc_TtEvalLut4( int Ins[4], int Lut, int nVars )
         Cube = ~(int)0;
         for ( i = 0; i < nVars; i++ )
             Cube &= ((k >> i) & 1) ? Ins[i] : ~Ins[i];
+        Res |= Cube;
     }
     return Res & ~(~0 << (1<<nVars));
 }

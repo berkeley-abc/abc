@@ -86,10 +86,10 @@ struct  Mio_LibraryStruct_t_
     int                nCells;      // library gate count
     Vec_Ptr_t *        vNames;
     Vec_Wrd_t *        vTruths; 
-    Vec_Mem_t *        vTtMem_; 
-    Vec_Int_t *        vTt2Match_; 
     Vec_Int_t *        vTt2Match4;
     Vec_Int_t *        vConfigs;
+    Vec_Mem_t *        vTtMem2[3]; 
+    Vec_Int_t *        vTt2Match2[3];
 }; 
 
 struct  Mio_GateStruct_t_

@@ -44,7 +44,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManDeriveMatches( Mio_Library_t * pLib, Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Mem_t ** pvTtMem, Vec_Int_t ** pvTt2Match, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs )
+int Gia_ManDeriveMatches( Vec_Ptr_t ** pvNames, Vec_Wrd_t ** pvTruths, Vec_Int_t ** pvTt2Match4, Vec_Int_t ** pvConfigs, Vec_Mem_t * pvTtMem2[3], Vec_Int_t * pvTt2Match2[3] )
 {
     return 0;
 }
