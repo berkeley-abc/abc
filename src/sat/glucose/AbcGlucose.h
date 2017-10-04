@@ -91,6 +91,8 @@ extern int               bmcg_sat_solver_varnum( bmcg_sat_solver* s );
 extern int               bmcg_sat_solver_clausenum( bmcg_sat_solver* s );
 extern int               bmcg_sat_solver_learntnum( bmcg_sat_solver* s );
 extern int               bmcg_sat_solver_conflictnum( bmcg_sat_solver* s );
+extern int               bmcg_sat_solver_minimize_assumptions( bmcg_sat_solver * s, int * plits, int nlits, int pivot );
+extern int               bmcg_sat_solver_add_and( bmcg_sat_solver * s, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1, int fCompl );
 
 extern void              Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars );
 extern int               Glucose_SolveAig( Gia_Man_t * p, Glucose_Pars * pPars );
