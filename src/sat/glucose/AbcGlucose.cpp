@@ -805,7 +805,7 @@ void Glucose_GenerateSop( Gia_Man_t * p )
 
     // generate CNF for the on-set and off-set
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 0/*fAddOrCla*/, 0, 0/*verbose*/ );
-    int i,n,nVars = Gia_ManCiNum(p), Lit, Count = 0;
+    int i,n,nVars = Gia_ManCiNum(p), Lit;//, Count = 0;
     int iFirstVar = pCnf->nVars - nVars;
     assert( Gia_ManCoNum(p) == 1 );
     for ( n = 0; n < 2; n++ )
@@ -867,7 +867,7 @@ int Gia_ManSatAndCollect_rec( Gia_Man_t * p, int iObj, int(*pFuncCiToKeep)(int),
         Gia_ManSatAndCollect_rec( p, Gia_ObjFaninId0(pObj, iObj), pFuncCiToKeep, vCiSatVarsToKeep, vObjsUsed );
         Gia_ManSatAndCollect_rec( p, Gia_ObjFaninId1(pObj, iObj), pFuncCiToKeep, vCiSatVarsToKeep, vObjsUsed );
     }
-    else if ( pFuncCiToKeep(Gia_ObjCioId(pObj)) )
+    else if ( pFuncCiToKeep && pFuncCiToKeep(Gia_ObjCioId(pObj)) )
         Vec_IntPush( vCiSatVarsToKeep, iVar );
     return iVar;
 }                             
@@ -875,6 +875,7 @@ void Gia_ManQuantLoadCnf( Gia_Man_t * p, Vec_Int_t * vObjsUsed, bmcg_sat_solver 
 {
     Gia_Obj_t * pObj; int i;
     bmcg_sat_solver_set_nvars( pSats[0], Vec_IntSize(vObjsUsed) );
+    if ( pSats[1] )
     bmcg_sat_solver_set_nvars( pSats[1], Vec_IntSize(vObjsUsed) );
     Gia_ManForEachObjVec( vObjsUsed, p, pObj, i ) 
         if ( Gia_ObjIsAnd(pObj) )
@@ -884,6 +885,7 @@ void Gia_ManQuantLoadCnf( Gia_Man_t * p, Vec_Int_t * vObjsUsed, bmcg_sat_solver 
             int iVar0 = Gia_ObjCopyArray(p, Gia_ObjFaninId0(pObj, iObj));
             int iVar1 = Gia_ObjCopyArray(p, Gia_ObjFaninId1(pObj, iObj));
             bmcg_sat_solver_add_and( pSats[0], iVar, iVar0, iVar1, Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
+            if ( pSats[1] )
             bmcg_sat_solver_add_and( pSats[1], iVar, iVar0, iVar1, Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
         }
 }
@@ -906,10 +908,8 @@ int Gia_ManFactorSop( Gia_Man_t * p, Vec_Int_t * vCiObjIds, Vec_Str_t * vSop, in
     Gia_ManStop( pMan );
     return Result;
 }
-int Glucose_QuantifyAig( Gia_Man_t * p, int iLit, int(*pFuncCiToKeep)(int), int fHash )
+int bmcg_sat_solver_quantify( bmcg_sat_solver * pSats[2], Gia_Man_t * p, int iLit, int(*pFuncCiToKeep)(int), int fHash )
 {
-    bmcg_sat_solver * pSats[2] = { bmcg_sat_solver_start(), bmcg_sat_solver_start() };
-
     Vec_Int_t * vCiSatVarsToKeep = Vec_IntAlloc( 100 );
     Vec_Int_t * vObjsUsed  = Vec_IntAlloc( 100 );
     Vec_Int_t * vVarMap = NULL; Vec_Str_t * vSop = NULL; 
@@ -959,8 +959,6 @@ cleanup:
     Vec_IntFree( vObjsUsed );
     Vec_IntFreeP( &vVarMap );
     Vec_StrFreeP( &vSop );
-    bmcg_sat_solver_stop( pSats[0] );
-    bmcg_sat_solver_stop( pSats[1] );
 
     return Abc_LitNotCond( Result, Abc_LitIsCompl(iLit) );
 }
@@ -971,10 +969,79 @@ int Gia_ManCiIsToKeep( int i )
 }
 void Glucose_QuantifyAigTest( Gia_Man_t * p )
 {
-    int iRes = Glucose_QuantifyAig( p, Gia_ObjFaninLit0p(p, Gia_ManPo(p, 0)), Gia_ManCiIsToKeep, 0 );
+    bmcg_sat_solver * pSats[2] = { bmcg_sat_solver_start(), bmcg_sat_solver_start() };
+
+    int iRes = bmcg_sat_solver_quantify( pSats, p, Gia_ObjFaninLit0p(p, Gia_ManPo(p, 0)), Gia_ManCiIsToKeep, 0 );
     Gia_ManAppendCo( p, iRes );
+
+    bmcg_sat_solver_stop( pSats[0] );
+    bmcg_sat_solver_stop( pSats[1] );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Checks equivalence or intersection of two nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int bmcg_sat_solver_equiv_overlap_check( bmcg_sat_solver * pSat, Gia_Man_t * p, int iLit0, int iLit1, int fEquiv )
+{
+    bmcg_sat_solver * pSats[2] = { pSat, NULL };
+    Vec_Int_t * vObjsUsed = Vec_IntAlloc( 100 ); 
+    int i, iVar, iSatVar[2], iSatLit[2], Lits[2], status;
+    if ( Vec_IntSize(&p->vCopies) == 0 )
+        Gia_ManCleanCopyArray(p);
+    Vec_IntPush( vObjsUsed, 0 );
+    iSatVar[0] = Gia_ManSatAndCollect_rec( p, Abc_Lit2Var(iLit0), NULL, NULL, vObjsUsed );
+    iSatVar[1] = Gia_ManSatAndCollect_rec( p, Abc_Lit2Var(iLit1), NULL, NULL, vObjsUsed );
+    iSatLit[0] = Abc_Var2Lit( iSatVar[0], Abc_LitIsCompl(iLit0) );
+    iSatLit[1] = Abc_Var2Lit( iSatVar[1], Abc_LitIsCompl(iLit1) );
+    Gia_ManQuantLoadCnf( p, vObjsUsed, pSats );
+    Vec_IntForEachEntry( vObjsUsed, iVar, i )
+        Gia_ObjSetCopyArray( p, iVar, -1 );
+    Vec_IntFree( vObjsUsed );
+    if ( fEquiv )
+    {
+        Lits[0] = iSatLit[0];
+        Lits[1] = Abc_LitNot(iSatLit[1]);
+        status  = bmcg_sat_solver_solve( pSats[0], Lits, 2 );
+        if ( status == GLUCOSE_UNSAT )
+        {
+            Lits[0] = Abc_LitNot(iSatLit[0]);
+            Lits[1] = iSatLit[1];
+            status  = bmcg_sat_solver_solve( pSats[0], Lits, 2 );
+        }
+        return status == GLUCOSE_UNSAT;
+    }
+    else
+    {
+        Lits[0] = iSatLit[0];
+        Lits[1] = iSatLit[1];
+        status  = bmcg_sat_solver_solve( pSats[0], Lits, 2 );
+        return status == GLUCOSE_SAT;
+    }
+}
+void Glucose_CheckTwoNodesTest( Gia_Man_t * p )
+{
+    int n, Res;
+    bmcg_sat_solver * pSat = bmcg_sat_solver_start();
+    for ( n = 0; n < 2; n++ )
+    {
+        Res = bmcg_sat_solver_equiv_overlap_check( 
+            pSat, p, 
+            Gia_ObjFaninLit0p(p, Gia_ManPo(p, 0)), 
+            Gia_ObjFaninLit0p(p, Gia_ManPo(p, 1)), 
+            n );
+        bmcg_sat_solver_reset( pSat );
+        printf( "%s %s.\n", n ? "Equivalence" : "Overlap", Res ? "holds" : "fails" );
+    }
+    bmcg_sat_solver_stop( pSat );
+}
 
 /**Function*************************************************************
 
