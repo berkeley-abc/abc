@@ -798,6 +798,13 @@ int Gia_ManHashAndMulti( Gia_Man_t * p, Vec_Int_t * vLits )
     assert( Vec_IntSize(vLits) == 1 );
     return Vec_IntEntry(vLits, 0);
 }
+int Gia_ManHashAndMulti2( Gia_Man_t * p, Vec_Int_t * vLits )
+{
+    int i, iLit, iRes = 1;
+    Vec_IntForEachEntry( vLits, iLit, i )
+        iRes = Gia_ManHashAnd( p, iRes, iLit );
+    return iRes;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

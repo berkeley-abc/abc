@@ -1353,6 +1353,7 @@ extern void                Gia_ManHashProfile( Gia_Man_t * p );
 extern int                 Gia_ManHashLookupInt( Gia_Man_t * p, int iLit0, int iLit1 );
 extern int                 Gia_ManHashLookup( Gia_Man_t * p, Gia_Obj_t * p0, Gia_Obj_t * p1 );
 extern int                 Gia_ManHashAndMulti( Gia_Man_t * p, Vec_Int_t * vLits );
+extern int                 Gia_ManHashAndMulti2( Gia_Man_t * p, Vec_Int_t * vLits );
 /*=== giaIf.c ===========================================================*/
 extern void                Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile );
 extern void                Gia_ManPrintPackingStats( Gia_Man_t * p );
