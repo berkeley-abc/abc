@@ -150,6 +150,7 @@ static int Abc_CommandBmsStart               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBmsStop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandBmsPs                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMajExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTwoExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -817,6 +818,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_stop",   Abc_CommandBmsStop,          0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_ps",     Abc_CommandBmsPs,            0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "majexact",   Abc_CommandMajExact,         0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "twoexact",   Abc_CommandTwoExact,         0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -8147,6 +8149,83 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fVerbose );
+    int c, nVars = 4, nNodes = 3, fVerbose = 1; char * pTtStr = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nNodes = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nNodes < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind + 1 )
+        pTtStr = argv[globalUtilOptind];
+    if ( pTtStr == NULL )
+    {
+        Abc_Print( -1, "Truth table should be given on the command line.\n" );
+        return 1;
+    }
+    if ( nVars > 10 )
+    {
+        Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
+        return 1;
+    }
+    Exa_ManExactSynthesis( pTtStr, nVars, nNodes, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: twoexact [-IN <num>] [-fcvh] <hex>\n" );
+    Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
+    Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandLogic( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
@@ -12546,7 +12625,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
-//    Psl_FileTest();
+    Gia_TruthTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );

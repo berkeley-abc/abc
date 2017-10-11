@@ -1063,7 +1063,7 @@ static inline int Abc_TtReadHex( word * pTruth, char * pString )
         }
     }
     // determine the number of variables
-    nVars = 2 + Abc_Base2Log( nDigits );
+    nVars = 2 + (nDigits == 1 ? 0 : Abc_Base2Log(nDigits));
     // clean storage
     for ( k = Abc_TtWordNum(nVars) - 1; k >= 0; k-- )
         pTruth[k] = 0;
