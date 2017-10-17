@@ -525,9 +525,9 @@ void Gia_QbfPrint( Qbf_Man_t * p, Vec_Int_t * vValues, int Iter )
     printf( "%5d : ", Iter );
     assert( Vec_IntSize(vValues) == p->nVars );
     Vec_IntPrintBinary( vValues ); printf( "  " );
-    printf( "Var = %6d  ",  p->pSatSynG ? bmcg_sat_solver_varnum(p->pSatSynG)      : sat_solver_nvars(p->pSatSyn)      );
-    printf( "Cla = %6d  ",  p->pSatSynG ? bmcg_sat_solver_clausenum(p->pSatSynG)   : sat_solver_nclauses(p->pSatSyn)   );
-    printf( "Conf = %6d  ", p->pSatSynG ? bmcg_sat_solver_conflictnum(p->pSatSynG) : sat_solver_nconflicts(p->pSatSyn) );
+    printf( "Var =%7d  ",  p->pSatSynG ? bmcg_sat_solver_varnum(p->pSatSynG)      : sat_solver_nvars(p->pSatSyn)      );
+    printf( "Cla =%7d  ",  p->pSatSynG ? bmcg_sat_solver_clausenum(p->pSatSynG)   : sat_solver_nclauses(p->pSatSyn)   );
+    printf( "Conf =%9d  ", p->pSatSynG ? bmcg_sat_solver_conflictnum(p->pSatSynG) : sat_solver_nconflicts(p->pSatSyn) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
 }
 
