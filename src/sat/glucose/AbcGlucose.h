@@ -4,7 +4,7 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName [SAT solver Glucose 3.0.]
+  PackageName [SAT solver Glucose 3.0 by Gilles Audemard and Laurent Simon.]
 
   Synopsis    [Interface to Glucose.]
 
