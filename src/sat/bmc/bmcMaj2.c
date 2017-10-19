@@ -43,6 +43,9 @@ struct Maj_Man_t_
     int               iVar;      // the next available SAT variable
     int               fUseConst; // use constant fanins
     int               fUseLine;  // use cascade topology
+    int               fUseRand;  // use random topology
+    int               nRands;    // number of random connections
+    int               fVerbose;  // verbose flag
     Vec_Wrd_t *       vInfo;     // Const0 + Const1 + nVars + nNodes + Maj(nVars)
     int               VarMarks[MAJ_NOBJS][3][MAJ_NOBJS]; // variable marks
     int               VarVals[MAJ_NOBJS+2]; // values of the first 2 + nVars variables
@@ -87,11 +90,79 @@ static Vec_Wrd_t * Maj_ManTruthTables( Maj_Man_t * p )
     //Dau_DsdPrintFromTruth( Maj_ManTruth(p, p->nObjs), p->nVars );
     return vInfo;
 }
+static void Maj_ManConnect( int VarCons[MAJ_NOBJS][3], int nVars, int nObjs, int nRands, int fVerbose )
+{
+    int i, v, r, x;
+    srand(clock());
+    for ( i = nObjs-2; i >= nVars + 2; i-- )
+    {
+        while ( 1 )
+        {
+            int Index = 1 + (rand() % (nObjs-1-i));
+            for ( v = 2; v >= 0; v-- )
+//            for ( v = 0; v < 3; v++ )
+                if ( VarCons[i+Index][v] == 0 )
+                {
+                    VarCons[i+Index][v] = i;
+                    if ( fVerbose )
+                    printf( "%d -> %d  ", i, i+Index );
+                    break;
+                }
+            if ( v >= 0 )
+                break;
+        }
+    }
+    for ( r = 0; r < nRands; r++ )
+    {
+        i = nVars+2 + (rand() % ((nObjs-1)-(nVars+2)));
+        for ( x = 0; x < 100; x++ )
+        {
+            int Index = 1 + (rand() % (nObjs-1-i));
+            for ( v = 2; v >= 0; v-- )
+//            for ( v = 0; v < 3; v++ )
+            {
+                if ( VarCons[i+Index][v] == i )
+                {
+                    v = -1;
+                    break;
+                }
+                if ( VarCons[i+Index][v] == 0 )
+                {
+                    VarCons[i+Index][v] = i;
+                    if ( fVerbose )
+                    printf( "+%d -> %d  ", i, i+Index );
+                    break;
+                }
+            }
+            if ( v >= 0 )
+                break;
+        }
+        if ( x == 100 )
+            r--;
+    }
+    if ( fVerbose )
+    printf( "\n" );
+}
+static void Maj_ManConnect2( int VarCons[MAJ_NOBJS][3], int nVars, int nObjs, int nRands )
+{
+    VarCons[8+2][2]  = 7+2;
+    VarCons[10+2][2] = 9+2;
+    VarCons[11+2][2] = 7+2;
+    VarCons[11+2][1] = 8+2;
+    VarCons[12+2][2] = 9+2;
+    VarCons[12+2][1] = 10+2;
+    VarCons[13+2][2] = 11+2;
+    VarCons[13+2][1] = 12+2;
+}
 static int Maj_ManMarkup( Maj_Man_t * p )
 {
-    int i, k, j;
+    int VarCons[MAJ_NOBJS][3] = {{0}};
+    int i, k, j, m;
     p->iVar = 1;
     assert( p->nObjs <= MAJ_NOBJS );
+    // create connections
+    if ( p->fUseRand )
+        Maj_ManConnect( VarCons, p->nVars, p->nObjs, p->nRands, p->fVerbose );
     // make exception for the first node
     i = p->nVars + 2;
     for ( k = 0; k < 3; k++ )
@@ -112,7 +183,15 @@ static int Maj_ManMarkup( Maj_Man_t * p )
                 p->VarMarks[i][k][j] = p->iVar++;
                 continue;
             }
-            for ( j = (p->fUseConst && k == 2) ? 0 : 2; j < i - k; j++ )
+            if ( p->fUseRand && VarCons[i][k] > 0 )
+            {
+                j = VarCons[i][k];
+                Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
+                p->VarMarks[i][k][j] = p->iVar++;
+                continue;
+            }
+
+            for ( j = (p->fUseConst && k == 2) ? 0 : 2; j < (p->fUseRand ? p->nVars+2-k : i-k); j++ )
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
@@ -120,21 +199,35 @@ static int Maj_ManMarkup( Maj_Man_t * p )
         }
     }
     //printf( "The number of parameter variables = %d.\n", p->iVar );
-    return p->iVar;
+    if ( !p->fVerbose )
+        return p->iVar;
     // printout
+    printf( "     " );
     for ( i = p->nVars + 2; i < p->nObjs; i++ )
+        printf( "   Node %2d    ", i  );
+    printf( "\n" );
+    for ( m = 0; m < p->nObjs; m++ )
     {
-        printf( "Node %d\n", i );
-        for ( j = 0; j < p->nObjs; j++ )
+        printf( "%2d : ", m );
+        for ( i = p->nVars + 2; i < p->nObjs; i++ )
         {
-            for ( k = 0; k < 3; k++ )
-                printf( "%3d ", p->VarMarks[i][k][j] );
-            printf( "\n" );
+            for ( j = 0; j < p->nObjs; j++ )
+            {
+                if ( j != m )
+                    continue;
+                for ( k = 0; k < 3; k++ )
+                    if ( p->VarMarks[i][k][j] )
+                        printf( "%3d ", p->VarMarks[i][k][j] );
+                    else
+                        printf( "%3c ", '.' );
+                printf( "  " );
+            }
         }
+        printf( "\n" );
     }
     return p->iVar;
 }
-static Maj_Man_t * Maj_ManAlloc( int nVars, int nNodes, int fUseConst, int fUseLine )
+static Maj_Man_t * Maj_ManAlloc( int nVars, int nNodes, int fUseConst, int fUseLine, int fUseRand, int nRands, int fVerbose )
 {
     Maj_Man_t * p = ABC_CALLOC( Maj_Man_t, 1 );
     p->nVars      = nVars;
@@ -142,6 +235,9 @@ static Maj_Man_t * Maj_ManAlloc( int nVars, int nNodes, int fUseConst, int fUseL
     p->nObjs      = 2 + nVars + nNodes;
     p->fUseConst  = fUseConst;
     p->fUseLine   = fUseLine;
+    p->fUseRand   = fUseRand;
+    p->fVerbose   = fVerbose;
+    p->nRands     = nRands;
     p->nWords     = Abc_TtWordNum(nVars);
     p->vOutLits   = Vec_WecStart( p->nObjs );
     p->iVar       = Maj_ManMarkup( p );
@@ -271,8 +367,8 @@ static int Maj_ManAddCnfStart( Maj_Man_t * p )
                 if ( !sat_solver_addclause( p->pSat, pLits2, pLits2+2 ) )
                     return 0;
             }
-            if ( k == 2 )
-                break;
+            if ( k == 2 || p->VarMarks[i][k][2] == 0 || p->VarMarks[i][k+1][2] == 0 )
+                continue;
             // symmetry breaking
             for ( j = 0; j < p->nObjs; j++ ) if ( p->VarMarks[i][k][j] )
             for ( n = j; n < p->nObjs; n++ ) if ( p->VarMarks[i][k+1][n] )
@@ -346,19 +442,23 @@ static int Maj_ManAddCnf( Maj_Man_t * p, int iMint )
     p->iVar += 4*p->nNodes;
     return 1;
 }
-void Maj_ManExactSynthesis2( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose )
+int Maj_ManExactSynthesis2( int nVars, int nNodes, int fUseConst, int fUseLine, int fUseRand, int nRands, int fVerbose )
 {
     int i, iMint = 0;
     abctime clkTotal = Abc_Clock();
-    Maj_Man_t * p = Maj_ManAlloc( nVars, nNodes, fUseConst, fUseLine );
+    Maj_Man_t * p = Maj_ManAlloc( nVars, nNodes, fUseConst, fUseLine, fUseRand, nRands, fVerbose );
     int status = Maj_ManAddCnfStart( p );
     assert( status );
+    if ( fVerbose )
     printf( "Running exact synthesis for %d-input majority with %d MAJ3 gates...\n", p->nVars, p->nNodes );
     for ( i = 0; iMint != -1; i++ )
     {
         abctime clk = Abc_Clock();
         if ( !Maj_ManAddCnf( p, iMint ) )
+        {
+            printf( "The problem has no solution after %2d iterations.  ", i+1 );
             break;
+        }
         status = sat_solver_solve( p->pSat, NULL, NULL, 0, 0, 0, 0 );
         if ( fVerbose )
         {
@@ -371,7 +471,7 @@ void Maj_ManExactSynthesis2( int nVars, int nNodes, int fUseConst, int fUseLine,
         }
         if ( status == l_False )
         {
-            printf( "The problem has no solution.\n" );
+            printf( "The problem has no solution after %2d iterations.  ", i+1 );
             break;
         }
         iMint = Maj_ManEval( p );
@@ -380,9 +480,16 @@ void Maj_ManExactSynthesis2( int nVars, int nNodes, int fUseConst, int fUseLine,
         Maj_ManPrintSolution( p );
     Maj_ManFree( p );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+    return iMint == -1;
 }
 
-
+int Maj_ManExactSynthesisTest()
+{
+//    while ( !Maj_ManExactSynthesis2( 5, 4, 0, 0, 1, 1, 0 ) );
+//    while ( !Maj_ManExactSynthesis2( 7, 7, 0, 0, 1, 2, 0 ) );
+    while ( !Maj_ManExactSynthesis2( 9, 10, 0, 0, 1, 3, 0 ) );
+    return 1;
+}
 
 
 

@@ -8074,11 +8074,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose );
-    extern void Maj_ManExactSynthesis2( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose );
-    int c, nVars = 3, nNodes = 1, fUseConst = 0, fUseLine = 0, fGlucose = 0, fVerbose = 1;
+    extern int Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose );
+    extern int Maj_ManExactSynthesis2( int nVars, int nNodes, int fUseConst, int fUseLine, int fUseRand, int nRands, int fVerbose );
+    int c, nVars = 3, nNodes = 1, fUseConst = 0, fUseLine = 0, fGlucose = 0, fUseRand = 0, nRands = 0, fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INfcgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INRfcrgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8104,11 +8104,25 @@ int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nNodes < 0 )
                 goto usage;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRands = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRands < 0 )
+                goto usage;
+            break;
         case 'f':
             fUseConst ^= 1;
             break;
         case 'c':
             fUseLine ^= 1;
+            break;
+        case 'r':
+            fUseRand ^= 1;
             break;
         case 'g':
             fGlucose ^= 1;
@@ -8130,16 +8144,18 @@ int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fGlucose )
         Maj_ManExactSynthesis( nVars, nNodes, fUseConst, fUseLine, fVerbose );
     else
-        Maj_ManExactSynthesis2( nVars, nNodes, fUseConst, fUseLine, fVerbose );
+        Maj_ManExactSynthesis2( nVars, nNodes, fUseConst, fUseLine, fUseRand, nRands, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: majexact [-IN <num>] [-fcgvh]\n" );
+    Abc_Print( -2, "usage: majexact [-INR <num>] [-fcrgvh]\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input MAJ using MAJ3 gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
+    Abc_Print( -2, "\t-R <num> : the number of additional connections [default = %d]\n", nRands );
     Abc_Print( -2, "\t-f       : toggle using constant fanins [default = %s]\n", fUseConst ? "yes" : "no" );
     Abc_Print( -2, "\t-c       : toggle using cascade topology [default = %s]\n", fUseLine ? "yes" : "no" );
+    Abc_Print( -2, "\t-r       : toggle using random topology [default = %s]\n", fUseRand ? "yes" : "no" );
     Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
@@ -12641,6 +12657,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
+    Maj_ManExactSynthesisTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );

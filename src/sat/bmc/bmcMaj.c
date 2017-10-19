@@ -345,7 +345,7 @@ int Maj_ManAddCnf( Maj_Man_t * p, int iMint )
     p->iVar += 4*p->nNodes;
     return 1;
 }
-void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose )
+int Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose )
 {
     int i, iMint = 0;
     abctime clkTotal = Abc_Clock();
@@ -379,6 +379,7 @@ void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, 
         Maj_ManPrintSolution( p );
     Maj_ManFree( p );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+    return iMint == -1;
 }
 
 
