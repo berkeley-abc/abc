@@ -23,6 +23,7 @@ SRC +=    src/sat/bmc/bmcBCore.c \
     src/sat/bmc/bmcInse.c \
     src/sat/bmc/bmcLoad.c \
     src/sat/bmc/bmcMaj.c \
+    src/sat/bmc/bmcMaj2.c \
     src/sat/bmc/bmcMaxi.c \
     src/sat/bmc/bmcMesh.c \
     src/sat/bmc/bmcMesh2.c \

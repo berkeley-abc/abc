@@ -8075,9 +8075,10 @@ usage:
 int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose );
-    int c, nVars = 3, nNodes = 1, fUseConst = 0, fUseLine = 0, fVerbose = 1;
+    extern void Maj_ManExactSynthesis2( int nVars, int nNodes, int fUseConst, int fUseLine, int fVerbose );
+    int c, nVars = 3, nNodes = 1, fUseConst = 0, fUseLine = 0, fGlucose = 0, fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INfcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INfcgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8109,6 +8110,9 @@ int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fUseLine ^= 1;
             break;
+        case 'g':
+            fGlucose ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -8123,16 +8127,20 @@ int Abc_CommandMajExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Cannot sythesize MAJ gate with an even number of inputs (%d).\n", nVars );
         return 1;
     }
-    Maj_ManExactSynthesis( nVars, nNodes, fUseConst, fUseLine, fVerbose );
+    if ( fGlucose )
+        Maj_ManExactSynthesis( nVars, nNodes, fUseConst, fUseLine, fVerbose );
+    else
+        Maj_ManExactSynthesis2( nVars, nNodes, fUseConst, fUseLine, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: majexact [-IN <num>] [-fcvh]\n" );
+    Abc_Print( -2, "usage: majexact [-IN <num>] [-fcgvh]\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input MAJ using MAJ3 gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
     Abc_Print( -2, "\t-f       : toggle using constant fanins [default = %s]\n", fUseConst ? "yes" : "no" );
     Abc_Print( -2, "\t-c       : toggle using cascade topology [default = %s]\n", fUseLine ? "yes" : "no" );
+    Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     return 1;
@@ -8152,9 +8160,10 @@ usage:
 int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fVerbose );
-    int c, nVars = 4, nNodes = 3, fVerbose = 1; char * pTtStr = NULL;
+    extern void Exa_ManExactSynthesis2( char * pTtStr, int nVars, int nNodes, int fVerbose );
+    int c, nVars = 4, nNodes = 3, fGlucose = 0, fVerbose = 1; char * pTtStr = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8180,6 +8189,9 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nNodes < 0 )
                 goto usage;
             break;
+        case 'g':
+            fGlucose ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -8201,14 +8213,18 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
         return 1;
     }
-    Exa_ManExactSynthesis( pTtStr, nVars, nNodes, fVerbose );
+    if ( fGlucose )
+        Exa_ManExactSynthesis( pTtStr, nVars, nNodes, fVerbose );
+    else
+        Exa_ManExactSynthesis2( pTtStr, nVars, nNodes, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: twoexact [-IN <num>] [-fcvh] <hex>\n" );
+    Abc_Print( -2, "usage: twoexact [-IN <num>] [-fcgvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
+    Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
@@ -24685,7 +24701,7 @@ usage:
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-r     : toggle the use of rewriting [default = %s]\n", fRewrite? "yes": "no" );
 //    Abc_Print( -2, "\t-a     : toggle SAT sweeping and SAT solving [default = %s]\n", fNewAlgo? "SAT solving": "SAT sweeping" );
-    Abc_Print( -2, "\t-s     : toggle using Satoko instead of build-in MiniSAT [default = %s]\n", fUseSatoko? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using Satoko by Bruno Schmitt [default = %s]\n", fUseSatoko? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -24881,7 +24897,7 @@ usage:
     Abc_Print( -2, "\t-D num : the delta in the number of nodes [default = %d]\n", nNodeDelta );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n", fOrDecomp? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle using Satoko instead of build-in MiniSAT [default = %s]\n", fUseSatoko? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using Satoko by Bruno Schmitt [default = %s]\n", fUseSatoko? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -25172,7 +25188,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs [default = %s]\n",    pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-u     : toggle performing structural OR-decomposition [default = %s]\n",   fOrDecomp? "yes": "not" );
     Abc_Print( -2, "\t-r     : toggle disabling periodic restarts [default = %s]\n",              pPars->fNoRestarts? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle using Satoko instead of build-in MiniSAT [default = %s]\n", pPars->fUseSatoko? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using Satoko by Bruno Schmitt [default = %s]\n", pPars->fUseSatoko? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n",pPars->fUseGlucose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                           pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle suppressing report about solved outputs [default = %s]\n",  pPars->fNotVerbose? "yes": "no" );
