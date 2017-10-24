@@ -557,7 +557,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 */
         Gia_ManPrintTents( p );
     }
-    if ( pPars->fSlacks )
+    if ( pPars && pPars->fSlacks )
         Gia_ManDfsSlacksPrint( p );
 }
 
