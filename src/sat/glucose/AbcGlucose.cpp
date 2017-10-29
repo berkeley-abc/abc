@@ -745,14 +745,14 @@ Vec_Int_t * Glucose_SolverFromAig2( Gia_Man_t * p, SimpSolver& S )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Glucose_GenerateCubes( bmcg_sat_solver * pSat[2], Vec_Int_t * vAllVars, Vec_Int_t * vVarMap )
+Vec_Str_t * Glucose_GenerateCubes( bmcg_sat_solver * pSat[2], Vec_Int_t * vCiSatVars, Vec_Int_t * vVar2Index )
 {
     int fCreatePrime = 1;
-    int nVars = Vec_IntCountLarger( vVarMap, -1 );
+    int nSupp = Vec_IntSize(vCiSatVars);
     Vec_Str_t * vSop  = Vec_StrAlloc( 1000 );
-    Vec_Int_t * vLits = Vec_IntAlloc( Vec_IntSize(vAllVars) );
-    Vec_Str_t * vCube = Vec_StrAlloc( nVars + 4 );
-    Vec_StrFill( vCube, nVars, '-' );
+    Vec_Int_t * vLits = Vec_IntAlloc( nSupp );
+    Vec_Str_t * vCube = Vec_StrAlloc( nSupp + 4 );
+    Vec_StrFill( vCube, nSupp, '-' );
     Vec_StrPrintF( vCube, " 1\n\0" );
     while ( 1 )
     {
@@ -763,7 +763,7 @@ Vec_Str_t * Glucose_GenerateCubes( bmcg_sat_solver * pSat[2], Vec_Int_t * vAllVa
             break;
         assert( status == GLUCOSE_SAT );
         Vec_IntClear( vLits );
-        Vec_IntForEachEntry( vAllVars, iVar, i )
+        Vec_IntForEachEntry( vCiSatVars, iVar, i )
             Vec_IntPush( vLits, Abc_Var2Lit(iVar, !bmcg_sat_solver_read_cex_varvalue(pSat[1], iVar)) );
         // expand against offset
         if ( fCreatePrime )
@@ -781,19 +781,19 @@ Vec_Str_t * Glucose_GenerateCubes( bmcg_sat_solver * pSat[2], Vec_Int_t * vAllVa
             nFinal = bmcg_sat_solver_final( pSat[0], &pFinal );
         }
         // print cube
-        Vec_StrFill( vCube, nVars, '-' );
+        Vec_StrFill( vCube, nSupp, '-' );
         for ( i = 0; i < nFinal; i++ )
         {
-            iVar = Vec_IntEntry(vVarMap, Abc_Lit2Var(pFinal[i]));
-            if ( iVar == -1 )
+            int Index = Vec_IntEntry(vVar2Index, Abc_Lit2Var(pFinal[i]));
+            if ( Index == -1 )
                 continue;
             pFinal[k++] = pFinal[i];
-            assert( iVar >= 0 && iVar < nVars );
-            Vec_StrWriteEntry( vCube, iVar, (char)('0' + Abc_LitIsCompl(pFinal[i])) );
+            assert( Index >= 0 && Index < nSupp );
+            Vec_StrWriteEntry( vCube, Index, (char)('0' + Abc_LitIsCompl(pFinal[i])) );
         }
         nFinal = k;
         Vec_StrAppend( vSop, Vec_StrArray(vCube) );
-        //printf( "%4d : %s", Count++, Vec_StrArray(vCube) );
+        //printf( "%s\n", Vec_StrArray(vCube) );
         // add blocking clause
         if ( !bmcg_sat_solver_addclause( pSat[1], pFinal, nFinal ) )
             break;
@@ -803,7 +803,7 @@ Vec_Str_t * Glucose_GenerateCubes( bmcg_sat_solver * pSat[2], Vec_Int_t * vAllVa
     Vec_StrPush( vSop, '\0' );
     return vSop;
 }
-void Glucose_GenerateSop( Gia_Man_t * p )
+Vec_Str_t * Glucose_GenerateSop( Gia_Man_t * p )
 {
     bmcg_sat_solver * pSat[2] = { bmcg_sat_solver_start(), bmcg_sat_solver_start() };
 
@@ -820,7 +820,12 @@ void Glucose_GenerateSop( Gia_Man_t * p )
             if ( !bmcg_sat_solver_addclause( pSat[n], pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
                 assert( 0 );
         if ( !bmcg_sat_solver_addclause( pSat[n], &Lit, 1 ) )
-            assert( 0 );
+        {
+            Vec_Str_t * vSop = Vec_StrAlloc( 10 );
+            Vec_StrPrintF( vSop, " %d\n\0", !n );
+            Cnf_DataFree( pCnf );
+            return vSop;
+        }
     }
     Cnf_DataFree( pCnf );
 
@@ -837,11 +842,15 @@ void Glucose_GenerateSop( Gia_Man_t * p )
     Vec_IntFree( vVarMap );
     Vec_IntFree( vVars );
 
-    printf( "%s", Vec_StrArray(vSop) );
-    Vec_StrFree( vSop );
-
     bmcg_sat_solver_stop( pSat[0] );
     bmcg_sat_solver_stop( pSat[1] );
+    return vSop;
+}
+void Glucose_GenerateSopTest( Gia_Man_t * p )
+{
+    Vec_Str_t * vSop = Glucose_GenerateSop( p );
+    printf( "%s", Vec_StrArray(vSop) );
+    Vec_StrFree( vSop );
 }
 
 /**Function*************************************************************
@@ -855,32 +864,100 @@ void Glucose_GenerateSop( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManSatAndCollect_rec( Gia_Man_t * p, int iObj, 
-    Vec_Int_t * vObjsUsed, Vec_Int_t * vCisUsed, Vec_Int_t * vCiSatVarsToKeep, 
-    int(*pFuncCiToKeep)(void *, int), void * pData )
+int bmcg_sat_solver_quantify2( Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData )
+{
+    extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
+    Gia_Man_t * pMan, * pNew, * pTemp;  Vec_Str_t * vSop;
+    int i, CiId, ObjId, Res, Count = 0, iNode = Abc_Lit2Var(iLit);
+    Vec_Int_t * vCisUsed = Vec_IntAlloc( 100 );
+    Gia_ManCollectCis( p, &iNode, 1, vCisUsed );
+    // remap into CI Ids
+    Vec_IntForEachEntry( vCisUsed, ObjId, i )
+        Vec_IntWriteEntry( vCisUsed, i, Gia_ManIdToCioId(p, ObjId) );
+    // duplicate cone
+    pNew = Gia_ManDupConeSupp( p, iLit, vCisUsed );
+    assert( Gia_ManCiNum(pNew) == Vec_IntSize(vCisUsed) );
+//Gia_AigerWrite( pNew, "test1.aig", 0, 0 );
+
+    // perform quantification one CI at a time
+    assert( pFuncCiToKeep );
+    Vec_IntForEachEntry( vCisUsed, CiId, i )
+        if ( !pFuncCiToKeep( pData, CiId ) )
+        {
+            //printf( "Quantifying %d.\n", CiId );
+            pNew = Gia_ManDupExist( pTemp = pNew, i );
+            Gia_ManStop( pTemp );
+            Count++;
+        }
+//Gia_AigerWrite( pNew, "test2.aig", 0, 0 );
+    if ( Gia_ManPoIsConst(pNew, 0) )
+    {
+        int RetValue = Gia_ManPoIsConst1(pNew, 0);
+        Vec_IntFree( vCisUsed );
+        Gia_ManStop( pNew );
+        return RetValue;
+    }
+
+    vSop = Glucose_GenerateSop( pNew );
+    Gia_ManStop( pNew );
+
+    printf( "Computed # with %d keep-vars and %d quant-vars with %d cubes.\n", 
+        Vec_IntSize(vCisUsed) - Count, Count, Vec_StrCountEntry(vSop, '\n') );
+
+    pMan = Abc_SopSynthesizeOne( Vec_StrArray(vSop), 0 );
+    Vec_StrFree( vSop );
+    if ( Gia_ManPoIsConst(pMan, 0) )
+    {
+        int RetValue = Gia_ManPoIsConst1(pMan, 0);
+        Vec_IntFree( vCisUsed );
+        Gia_ManStop( pMan );
+        return RetValue;
+    }
+
+    Res = Gia_ManDupConeBack( p, pMan, vCisUsed );
+    Vec_IntFree( vCisUsed );
+    Gia_ManStop( pMan );
+    return Res;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs SAT-based quantification.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSatAndCollect_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vObjsUsed, Vec_Int_t * vCiVars )
 {
     Gia_Obj_t * pObj; int iVar;
-    if ( (iVar = Gia_ObjCopyArray(p, iObj)) > 0 )
+    if ( (iVar = Gia_ObjCopyArray(p, iObj)) >= 0 )
         return iVar;
-    iVar = Vec_IntSize( vObjsUsed );
-    Vec_IntPush( vObjsUsed, iObj );
-    Gia_ObjSetCopyArray( p, iObj, iVar );
     pObj = Gia_ManObj( p, iObj );
     assert( Gia_ObjIsCand(pObj) );
     if ( Gia_ObjIsAnd(pObj) )
     {
-        Gia_ManSatAndCollect_rec( p, Gia_ObjFaninId0(pObj, iObj), vObjsUsed, vCisUsed, vCiSatVarsToKeep, pFuncCiToKeep, pData );
-        Gia_ManSatAndCollect_rec( p, Gia_ObjFaninId1(pObj, iObj), vObjsUsed, vCisUsed, vCiSatVarsToKeep, pFuncCiToKeep, pData );
+        Gia_ManSatAndCollect_rec( p, Gia_ObjFaninId0(pObj, iObj), vObjsUsed, vCiVars );
+        Gia_ManSatAndCollect_rec( p, Gia_ObjFaninId1(pObj, iObj), vObjsUsed, vCiVars );
     }
-    else if ( pFuncCiToKeep && pFuncCiToKeep(pData, Gia_ObjCioId(pObj)) )
-        Vec_IntPush( vCiSatVarsToKeep, iVar );
-    if ( vCisUsed && Gia_ObjIsCi(pObj) )
-        Vec_IntPush( vCisUsed, iVar );
+    iVar = Vec_IntSize( vObjsUsed );
+    Vec_IntPush( vObjsUsed, iObj );
+    Gia_ObjSetCopyArray( p, iObj, iVar );
+    if ( vCiVars && Gia_ObjIsCi(pObj) )
+        Vec_IntPush( vCiVars, iVar );
     return iVar;
 }                             
 void Gia_ManQuantLoadCnf( Gia_Man_t * p, Vec_Int_t * vObjsUsed, bmcg_sat_solver * pSats[] )
 {
     Gia_Obj_t * pObj; int i;
+    bmcg_sat_solver_reset( pSats[0] );
+    if ( pSats[1] )
+    bmcg_sat_solver_reset( pSats[1] );
     bmcg_sat_solver_set_nvars( pSats[0], Vec_IntSize(vObjsUsed) );
     if ( pSats[1] )
     bmcg_sat_solver_set_nvars( pSats[1], Vec_IntSize(vObjsUsed) );
@@ -894,6 +971,15 @@ void Gia_ManQuantLoadCnf( Gia_Man_t * p, Vec_Int_t * vObjsUsed, bmcg_sat_solver 
             bmcg_sat_solver_add_and( pSats[0], iVar, iVar0, iVar1, Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
             if ( pSats[1] )
             bmcg_sat_solver_add_and( pSats[1], iVar, iVar0, iVar1, Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
+        }
+        else if ( Gia_ObjIsConst0(pObj) )
+        {
+            int Lit = Abc_Var2Lit( Gia_ObjCopyArray(p, 0), 1 );
+            int RetValue = bmcg_sat_solver_addclause( pSats[0], &Lit, 1 );
+            assert( RetValue );
+            if ( pSats[1] )
+            bmcg_sat_solver_addclause( pSats[1], &Lit, 1 );
+            assert( Lit == 1 );
         }
 }
 int Gia_ManFactorSop( Gia_Man_t * p, Vec_Int_t * vCiObjIds, Vec_Str_t * vSop, int fHash )
@@ -915,61 +1001,68 @@ int Gia_ManFactorSop( Gia_Man_t * p, Vec_Int_t * vCiObjIds, Vec_Str_t * vSop, in
     Gia_ManStop( pMan );
     return Result;
 }
+int bmcg_sat_solver_quantify3( bmcg_sat_solver * pSats[], Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData )
+{
+    return bmcg_sat_solver_quantify2( p, iLit, fHash, pFuncCiToKeep, pData );
+}
 int bmcg_sat_solver_quantify( bmcg_sat_solver * pSats[], Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData )
 {
-    Vec_Int_t * vCiSatVarsToKeep = Vec_IntAlloc( 100 );
-    Vec_Int_t * vObjsUsed = Vec_IntAlloc( 100 );
-    Vec_Int_t * vCisUsed = Vec_IntAlloc( 100 );
+    Vec_Int_t * vObjsUsed = Vec_IntAlloc( 100 ); // GIA objs
+    Vec_Int_t * vCiVars = Vec_IntAlloc( 100 );   // CI SAT vars
     Vec_Int_t * vVarMap = NULL; Vec_Str_t * vSop = NULL; 
-    int i, iVar, iVarLast, Lit, RetValue, Result = -1;
-
-    if ( Vec_IntSize(&p->vCopies) == 0 )
-        Gia_ManCleanCopyArray(p);
-
+    int i, iVar, iVarLast, Lit, RetValue, Count = 0, Result = -1;
+    if ( Vec_IntSize(&p->vCopies) < Gia_ManObjNum(p) )
+        Vec_IntFillExtra( &p->vCopies, Gia_ManObjNum(p), -1 );
+    // assign variable number 0 to const0 node
+    iVar = Vec_IntSize(vObjsUsed); 
     Vec_IntPush( vObjsUsed, 0 );
-    iVarLast = Gia_ManSatAndCollect_rec( p, Abc_Lit2Var(iLit), vObjsUsed, vCisUsed, vCiSatVarsToKeep, pFuncCiToKeep, pData );
+    Gia_ObjSetCopyArray( p, 0, iVar );
+    assert( iVar == 0 );    
+    // collect other variables
+    iVarLast = Gia_ManSatAndCollect_rec( p, Abc_Lit2Var(iLit), vObjsUsed, vCiVars );
     Gia_ManQuantLoadCnf( p, vObjsUsed, pSats );
-
-    Lit = Abc_Var2Lit( iVarLast, !Abc_LitIsCompl(iLit) );
-    RetValue = bmcg_sat_solver_addclause( pSats[0], &Lit, 1 );
+    // check constants
+    Lit = Abc_Var2Lit( iVarLast, !Abc_LitIsCompl(iLit) ); 
+    RetValue = bmcg_sat_solver_addclause( pSats[0], &Lit, 1 ); // offset
     if ( !RetValue || bmcg_sat_solver_solve(pSats[0], NULL, 0) == GLUCOSE_UNSAT )
     {
         Result = 1;
         goto cleanup;
     }
-
     Lit = Abc_Var2Lit( iVarLast, Abc_LitIsCompl(iLit) );
-    RetValue = bmcg_sat_solver_addclause( pSats[1], &Lit, 1 );
+    RetValue = bmcg_sat_solver_addclause( pSats[1], &Lit, 1 ); // onset
     if ( !RetValue || bmcg_sat_solver_solve(pSats[1], NULL, 0) == GLUCOSE_UNSAT )
     {
         Result = 0;
         goto cleanup;
     }
-
-    // map used SAT vars into their cube IDs
+    // map CI SAT variables into their indexes used in the cubes
     vVarMap = Vec_IntStartFull( Vec_IntSize(vObjsUsed) );
-    Vec_IntForEachEntry( vCiSatVarsToKeep, iVar, i )
-        Vec_IntWriteEntry( vVarMap, iVar, i );
-
-    vSop = Glucose_GenerateCubes( pSats, vCisUsed, vVarMap );
-    printf( "%s", Vec_StrArray(vSop) );
-
-    // remap SAT vars into obj IDs of CI nodes
-    Vec_IntForEachEntry( vCiSatVarsToKeep, iVar, i )
-        Vec_IntWriteEntry( vCiSatVarsToKeep, i, Vec_IntEntry(vObjsUsed, iVar) );
-
-    Result = Gia_ManFactorSop( p, vCiSatVarsToKeep, vSop, fHash );
-
+    Vec_IntForEachEntry( vCiVars, iVar, i )
+    {
+        Gia_Obj_t * pObj = Gia_ManObj( p, Vec_IntEntry(vObjsUsed, iVar) );
+        assert( Gia_ObjIsCi(pObj) );
+        if ( pFuncCiToKeep(pData, Gia_ObjCioId(pObj)) )
+            Vec_IntWriteEntry( vVarMap, iVar, i ), Count++;
+    }
+    // generate cubes
+    vSop = Glucose_GenerateCubes( pSats, vCiVars, vVarMap );
+    //printf( "%s", Vec_StrArray(vSop) );
+    printf( "Computed # with %d keep-vars and %d quant-vars with %d cubes.\n", 
+        Count, Vec_IntSize(vCiVars) - Count, Vec_StrCountEntry(vSop, '\n') );
+    // convert into object IDs
+    Vec_IntForEachEntry( vCiVars, iVar, i )
+        Vec_IntWriteEntry( vCiVars, i, Vec_IntEntry(vObjsUsed, iVar) );
+    // convert into an AIG
+    Result = Gia_ManFactorSop( p, vCiVars, vSop, fHash );
 cleanup:
     Vec_IntForEachEntry( vObjsUsed, iVar, i )
         Gia_ObjSetCopyArray( p, iVar, -1 );
-    Vec_IntFree( vCiSatVarsToKeep );
     Vec_IntFree( vObjsUsed );
-    Vec_IntFree( vCisUsed );
+    Vec_IntFree( vCiVars );
     Vec_IntFreeP( &vVarMap );
     Vec_StrFreeP( &vSop );
-
-    return Abc_LitNotCond( Result, Abc_LitIsCompl(iLit) );
+    return Result;
 }
 int Gia_ManCiIsToKeep( void * pData, int i )
 {
@@ -978,13 +1071,30 @@ int Gia_ManCiIsToKeep( void * pData, int i )
 }
 void Glucose_QuantifyAigTest( Gia_Man_t * p )
 {
-    bmcg_sat_solver * pSats[2] = { bmcg_sat_solver_start(), bmcg_sat_solver_start() };
+    bmcg_sat_solver * pSats[3] = { bmcg_sat_solver_start(), bmcg_sat_solver_start(), bmcg_sat_solver_start() };
 
-    int iRes = bmcg_sat_solver_quantify( pSats, p, Gia_ObjFaninLit0p(p, Gia_ManPo(p, 0)), 0, Gia_ManCiIsToKeep, NULL );
-    Gia_ManAppendCo( p, iRes );
+    abctime clk1 = Abc_Clock();
+    int iRes1 = bmcg_sat_solver_quantify( pSats, p, Gia_ObjFaninLit0p(p, Gia_ManPo(p, 0)), 0, Gia_ManCiIsToKeep, NULL );
+    abctime clk1d = Abc_Clock()-clk1;
+
+    abctime clk2 = Abc_Clock();
+    int iRes2 = bmcg_sat_solver_quantify2( p, Gia_ObjFaninLit0p(p, Gia_ManPo(p, 0)), 0, Gia_ManCiIsToKeep, NULL );
+    abctime clk2d = Abc_Clock()-clk2;
+
+    Abc_PrintTime( 1, "Time1", clk1d );
+    Abc_PrintTime( 1, "Time2", clk2d );
+
+    if ( bmcg_sat_solver_equiv_overlap_check( pSats[2], p, iRes1, iRes2, 1 ) )
+        printf( "Verification passed.\n" );
+    else
+        printf( "Verification FAILED.\n" );
+
+    Gia_ManAppendCo( p, iRes1 );
+    Gia_ManAppendCo( p, iRes2 );
 
     bmcg_sat_solver_stop( pSats[0] );
     bmcg_sat_solver_stop( pSats[1] );
+    bmcg_sat_solver_stop( pSats[2] );
 }
 
 /**Function*************************************************************
@@ -1003,11 +1113,17 @@ int bmcg_sat_solver_equiv_overlap_check( bmcg_sat_solver * pSat, Gia_Man_t * p, 
     bmcg_sat_solver * pSats[2] = { pSat, NULL };
     Vec_Int_t * vObjsUsed = Vec_IntAlloc( 100 ); 
     int i, iVar, iSatVar[2], iSatLit[2], Lits[2], status;
-    if ( Vec_IntSize(&p->vCopies) == 0 )
-        Gia_ManCleanCopyArray(p);
+    if ( Vec_IntSize(&p->vCopies) < Gia_ManObjNum(p) )
+        Vec_IntFillExtra( &p->vCopies, Gia_ManObjNum(p), -1 );
+
+    // assign const0 variable number 0
+    iVar = Vec_IntSize(vObjsUsed);
     Vec_IntPush( vObjsUsed, 0 );
-    iSatVar[0] = Gia_ManSatAndCollect_rec( p, Abc_Lit2Var(iLit0), vObjsUsed, NULL, NULL, NULL, NULL );
-    iSatVar[1] = Gia_ManSatAndCollect_rec( p, Abc_Lit2Var(iLit1), vObjsUsed, NULL, NULL, NULL, NULL );
+    Gia_ObjSetCopyArray( p, 0, iVar );
+    assert( iVar == 0 );
+
+    iSatVar[0] = Gia_ManSatAndCollect_rec( p, Abc_Lit2Var(iLit0), vObjsUsed, NULL );
+    iSatVar[1] = Gia_ManSatAndCollect_rec( p, Abc_Lit2Var(iLit1), vObjsUsed, NULL );
     iSatLit[0] = Abc_Var2Lit( iSatVar[0], Abc_LitIsCompl(iLit0) );
     iSatLit[1] = Abc_Var2Lit( iSatVar[1], Abc_LitIsCompl(iLit1) );
     Gia_ManQuantLoadCnf( p, vObjsUsed, pSats );
