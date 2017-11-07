@@ -748,6 +748,154 @@ void Gia_ManSimSimulatePattern( Gia_Man_t * p, char * pFileIn, char * pFileOut )
     Vec_IntFree( vPatOut );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Bit-parallel simulation during AIG construction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word * Gia_ManBuiltInData( Gia_Man_t * p, int iObj )
+{
+    return Vec_WrdEntryP( p->vSims, p->nSimWords * iObj );
+}
+void Gia_ManBuiltInSimStart( Gia_Man_t * p, int nWords, int nObjs )
+{
+    int i, k;
+    assert( !p->fBuiltInSim );
+    assert( Gia_ManAndNum(p) == 0 );
+    p->fBuiltInSim = 1;
+    p->nSimWords = nWords;
+    p->vSims = Vec_WrdAlloc( p->nSimWords * nObjs );
+    Vec_WrdFill( p->vSims, p->nSimWords, 0 );
+    Gia_ManRandomW( 1 );
+    for ( i = 0; i < Gia_ManCiNum(p); i++ )
+        for ( k = 0; k < p->nSimWords; k++ )
+            Vec_WrdPush( p->vSims, Gia_ManRandomW(0) );
+}
+void Gia_ManBuiltInSimPerform( Gia_Man_t * p, int iObj )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    word * pInfo0 = Gia_ManBuiltInData( p, Gia_ObjFaninId0(pObj, iObj) );
+    word * pInfo1 = Gia_ManBuiltInData( p, Gia_ObjFaninId1(pObj, iObj) ); int w;
+    assert( p->fBuiltInSim );
+    if ( Gia_ObjFaninC0(pObj) )
+    {
+        if (  Gia_ObjFaninC1(pObj) )
+            for ( w = 0; w < p->nSimWords; w++ )
+                Vec_WrdPush( p->vSims, ~(pInfo0[w] | pInfo1[w]) );
+        else 
+            for ( w = 0; w < p->nSimWords; w++ )
+                Vec_WrdPush( p->vSims, ~pInfo0[w] & pInfo1[w] );
+    }
+    else 
+    {
+        if (  Gia_ObjFaninC1(pObj) )
+            for ( w = 0; w < p->nSimWords; w++ )
+                Vec_WrdPush( p->vSims, pInfo0[w] & ~pInfo1[w] );
+        else 
+            for ( w = 0; w < p->nSimWords; w++ )
+                Vec_WrdPush( p->vSims, pInfo0[w] & pInfo1[w] );
+    }
+    assert( Vec_WrdSize(p->vSims) == Gia_ManObjNum(p) * p->nSimWords );
+}
+int Gia_ManBuiltInSimCheck( Gia_Man_t * p, int iLit0, int iLit1 )
+{
+    word * pInfo0 = Gia_ManBuiltInData( p, Abc_Lit2Var(iLit0) );
+    word * pInfo1 = Gia_ManBuiltInData( p, Abc_Lit2Var(iLit1) ); int w;
+    assert( p->fBuiltInSim );
+
+//    printf( "%d %d\n", Abc_LitIsCompl(iLit0), Abc_LitIsCompl(iLit1) );
+//    Extra_PrintBinary( stdout, pInfo0, 64*p->nSimWords ); printf( "\n" );
+//    Extra_PrintBinary( stdout, pInfo1, 64*p->nSimWords ); printf( "\n" );
+//    printf( "\n" );
+
+    if ( Abc_LitIsCompl(iLit0) )
+    {
+        if (  Abc_LitIsCompl(iLit1) )
+            for ( w = 0; w < p->nSimWords; w++ )
+                if ( ~pInfo0[w] & ~pInfo1[w] )
+                    return 1;
+        else 
+            for ( w = 0; w < p->nSimWords; w++ )
+                if ( ~pInfo0[w] & pInfo1[w] )
+                    return 1;
+    }
+    else 
+    {
+        if (  Abc_LitIsCompl(iLit1) )
+            for ( w = 0; w < p->nSimWords; w++ )
+                if ( pInfo0[w] & ~pInfo1[w] )
+                    return 1;
+        else 
+            for ( w = 0; w < p->nSimWords; w++ )
+                if ( pInfo0[w] & pInfo1[w] )
+                    return 1;
+    }
+    return 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Finds a satisfying assignment.]
+
+  Description [Returns 1 if a sat assignment is found; 0 otherwise.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManObjCheckSat_rec( Gia_Man_t * p, int iLit, Vec_Int_t * vObjs )
+{
+    int iObj = Abc_Lit2Var(iLit);
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    if ( pObj->fMark0 )
+        return pObj->fMark1 == (unsigned)Abc_LitIsCompl(iLit);
+    pObj->fMark0 = 1;
+    pObj->fMark1 = Abc_LitIsCompl(iLit);
+    Vec_IntPush( vObjs, iObj );
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        if ( pObj->fMark1 == 0 ) // node value is 1
+        {
+            if ( !Gia_ManObjCheckSat_rec( p, Gia_ObjFaninLit0(pObj, iObj), vObjs ) )   return 0;
+            if ( !Gia_ManObjCheckSat_rec( p, Gia_ObjFaninLit1(pObj, iObj), vObjs ) )   return 0;
+        }
+        else
+        {
+            if ( !Gia_ManObjCheckSat_rec( p, Abc_LitNot(Gia_ObjFaninLit0(pObj, iObj)), vObjs ) )   return 0;
+        }
+    }
+    return 1;
+}
+int Gia_ManObjCheckOverlap1( Gia_Man_t * p, int iLit0, int iLit1, Vec_Int_t * vObjs )
+{
+    Gia_Obj_t * pObj;
+    int i, Res0, Res1 = 0;
+//    Gia_ManForEachObj( p, pObj, i )
+//        assert( pObj->fMark0 == 0 && pObj->fMark1 == 0 );
+    Vec_IntClear( vObjs );
+    Res0 = Gia_ManObjCheckSat_rec( p, iLit0, vObjs );
+    if ( Res0 )
+        Res1 = Gia_ManObjCheckSat_rec( p, iLit1, vObjs );
+    Gia_ManForEachObjVec( vObjs, p, pObj, i )
+        pObj->fMark0 = pObj->fMark1 = 0;
+    return Res0 && Res1;
+}
+int Gia_ManObjCheckOverlap( Gia_Man_t * p, int iLit0, int iLit1, Vec_Int_t * vObjs )
+{
+    if ( Gia_ManObjCheckOverlap1( p, iLit0, iLit1, vObjs ) )
+        return 1;
+    return Gia_ManObjCheckOverlap1( p, iLit1, iLit0, vObjs );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -1909,7 +1909,7 @@ Gia_Man_t * Gia_ManDupConeSupp( Gia_Man_t * p, int iLit, Vec_Int_t * vCiIds )
     Gia_Man_t * pNew; int i, iLit0;
     Gia_Obj_t * pObj, * pRoot = Gia_ManObj( p, Abc_Lit2Var(iLit) );
     Vec_Int_t * vObjs = Vec_IntAlloc( 1000 );
-    assert( Gia_ObjIsAnd(pRoot) );
+    //assert( Gia_ObjIsAnd(pRoot) );
     if ( Vec_IntSize(&p->vCopies) < Gia_ManObjNum(p) )
         Vec_IntFillExtra( &p->vCopies, Gia_ManObjNum(p), -1 );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );

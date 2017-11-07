@@ -198,6 +198,7 @@ struct Gia_Man_t_
     int            MappedArea;    // area after mapping
     int            MappedDelay;   // delay after mapping
     // bit-parallel simulation
+    int            fBuiltInSim;
     int            iPatsPi;
     int            nSimWords;
     Vec_Wrd_t *    vSims;
@@ -672,6 +673,11 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         if ( pFan0->fMark0 ) pFan0->fMark1 = 1; else pFan0->fMark0 = 1;
         if ( pFan1->fMark0 ) pFan1->fMark1 = 1; else pFan1->fMark0 = 1;
         pObj->fPhase = (Gia_ObjPhase(pFan0) ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjPhase(pFan1) ^ Gia_ObjFaninC1(pObj));
+    }
+    if ( p->fBuiltInSim )
+    {
+        extern void Gia_ManBuiltInSimPerform( Gia_Man_t * p, int iObj );
+        Gia_ManBuiltInSimPerform( p, Gia_ObjId( p, pObj ) );
     }
     return Gia_ObjId( p, pObj ) << 1;
 }
@@ -1469,6 +1475,10 @@ extern unsigned *          Gia_SimDataCoExt( Gia_ManSim_t * p, int i );
 extern void                Gia_ManSimInfoInit( Gia_ManSim_t * p );
 extern void                Gia_ManSimInfoTransfer( Gia_ManSim_t * p );
 extern void                Gia_ManSimulateRound( Gia_ManSim_t * p );
+extern void                Gia_ManBuiltInSimStart( Gia_Man_t * p, int nWords, int nObjs );
+extern void                Gia_ManBuiltInSimPerform( Gia_Man_t * p, int iObj );
+extern int                 Gia_ManBuiltInSimCheck( Gia_Man_t * p, int iLit0, int iLit1 );
+extern int                 Gia_ManObjCheckOverlap( Gia_Man_t * p, int iLit0, int iLit1, Vec_Int_t * vObjs );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );
@@ -1612,6 +1622,7 @@ extern void                Gia_ManSwapPos( Gia_Man_t * p, int i );
 extern Vec_Int_t *         Gia_ManSaveValue( Gia_Man_t * p );
 extern void                Gia_ManLoadValue( Gia_Man_t * p, Vec_Int_t * vValues );
 extern Vec_Int_t *         Gia_ManFirstFanouts( Gia_Man_t * p );
+extern int                 Gia_ManCheckSuppOverlap( Gia_Man_t * p, int iNode1, int iNode2 );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;
