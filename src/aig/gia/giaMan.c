@@ -117,6 +117,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vLevels );
     Vec_IntFreeP( &p->vTruths );
     Vec_IntErase( &p->vCopies );
+    Vec_IntErase( &p->vCopies2 );
     Vec_IntFreeP( &p->vTtNums );
     Vec_IntFreeP( &p->vTtNodes );
     Vec_WrdFreeP( &p->vTtMemory );

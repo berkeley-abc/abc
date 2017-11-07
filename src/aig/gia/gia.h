@@ -148,6 +148,7 @@ struct Gia_Man_t_
     Abc_Cex_t *    pCexSeq;       // sequential counter-example
     Vec_Ptr_t *    vSeqModelVec;  // sequential counter-examples
     Vec_Int_t      vCopies;       // intermediate copies
+    Vec_Int_t      vCopies2;      // intermediate copies
     Vec_Int_t *    vTruths;       // used for truth table computation
     Vec_Int_t *    vFlopClasses;  // classes of flops for retiming/merging/etc
     Vec_Int_t *    vGateClasses;  // classes of gates for abstraction
@@ -531,6 +532,10 @@ static inline void         Gia_ObjSetCopyF( Gia_Man_t * p, int f, Gia_Obj_t * pO
 static inline int          Gia_ObjCopyArray( Gia_Man_t * p, int iObj )                          { return Vec_IntEntry(&p->vCopies, iObj);                                          }
 static inline void         Gia_ObjSetCopyArray( Gia_Man_t * p, int iObj, int iLit )             { Vec_IntWriteEntry(&p->vCopies, iObj, iLit);                                      }
 static inline void         Gia_ManCleanCopyArray( Gia_Man_t * p )                               { Vec_IntFill( &p->vCopies, Gia_ManObjNum(p), -1 );                                }
+
+static inline int          Gia_ObjCopy2Array( Gia_Man_t * p, int iObj )                          { return Vec_IntEntry(&p->vCopies2, iObj);                                          }
+static inline void         Gia_ObjSetCopy2Array( Gia_Man_t * p, int iObj, int iLit )             { Vec_IntWriteEntry(&p->vCopies2, iObj, iLit);                                      }
+static inline void         Gia_ManCleanCopy2Array( Gia_Man_t * p )                               { Vec_IntFill( &p->vCopies2, Gia_ManObjNum(p), -1 );                                }
 
 static inline int          Gia_ObjFanin0CopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj )         { return Abc_LitNotCond(Gia_ObjCopyF(p, f, Gia_ObjFanin0(pObj)), Gia_ObjFaninC0(pObj));   }
 static inline int          Gia_ObjFanin1CopyF( Gia_Man_t * p, int f, Gia_Obj_t * pObj )         { return Abc_LitNotCond(Gia_ObjCopyF(p, f, Gia_ObjFanin1(pObj)), Gia_ObjFaninC1(pObj));   }

@@ -911,10 +911,11 @@ abctime clkQuaSynth = 0;
 
 int bmcg_sat_solver_quantify2( Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t * vDLits )
 {
+    int fSynthesize = 0;
     abctime clk = Abc_Clock(), clkAll = Abc_Clock();
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
     Gia_Man_t * pMan, * pNew, * pTemp;  Vec_Str_t * vSop;
-    int i, CiId, ObjId, Res, nCubes, nNodes, Count = 0, iNode = Abc_Lit2Var(iLit);
+    int i, CiId, ObjId, Res, nCubes = 0, nNodes, Count = 0, iNode = Abc_Lit2Var(iLit);
     Vec_Int_t * vCisUsed = Vec_IntAlloc( 100 );
     Gia_ManCollectCis( p, &iNode, 1, vCisUsed );
     Vec_IntSort( vCisUsed, 0 );
@@ -927,6 +928,7 @@ int bmcg_sat_solver_quantify2( Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiT
     // duplicate cone
     pNew = Gia_ManDupConeSupp( p, iLit, vCisUsed );
     assert( Gia_ManCiNum(pNew) == Vec_IntSize(vCisUsed) );
+    nNodes = Gia_ManAndNum(pNew);
 
     // perform quantification one CI at a time
     assert( pFuncCiToKeep );
@@ -947,40 +949,48 @@ int bmcg_sat_solver_quantify2( Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiT
         return RetValue;
     }
 
-    clk = Abc_Clock();
-    vSop = bmcg_sat_solver_sop( pNew, 0 );
-    nNodes = Gia_ManAndNum(pNew);
-    Gia_ManStop( pNew );
-    clkQuaSolve += Abc_Clock() - clk;
+    if ( fSynthesize )
+    {
+        clk = Abc_Clock();
+        vSop = bmcg_sat_solver_sop( pNew, 0 );
+        Gia_ManStop( pNew );
+        clkQuaSolve += Abc_Clock() - clk;
 
-    clk = Abc_Clock();
-    pMan = Abc_SopSynthesizeOne( Vec_StrArray(vSop), 1 );
-    clkQuaSynth += Abc_Clock() - clk;
-    nCubes = Vec_StrCountEntry(vSop, '\n');
-    if ( vDLits )
-    {
-        // convert into object IDs
-        Vec_Int_t * vCisObjs = Vec_IntAlloc( Vec_IntSize(vCisUsed) );
-        Vec_IntForEachEntry( vCisUsed, CiId, i )
-            Vec_IntPush( vCisObjs, CiId + 1 );
-        bmcg_sat_generate_dvars( vCisObjs, vSop, vDLits );
-        Vec_IntFree( vCisObjs );
+        clk = Abc_Clock();
+        pMan = Abc_SopSynthesizeOne( Vec_StrArray(vSop), 1 );
+        nCubes = Vec_StrCountEntry(vSop, '\n');
+        clkQuaSynth += Abc_Clock() - clk;
+
+        if ( vDLits )
+        {
+            // convert into object IDs
+            Vec_Int_t * vCisObjs = Vec_IntAlloc( Vec_IntSize(vCisUsed) );
+            Vec_IntForEachEntry( vCisUsed, CiId, i )
+                Vec_IntPush( vCisObjs, CiId + 1 );
+            bmcg_sat_generate_dvars( vCisObjs, vSop, vDLits );
+            Vec_IntFree( vCisObjs );
+        }
+        Vec_StrFree( vSop );
+
+        if ( Gia_ManPoIsConst(pMan, 0) )
+        {
+            int RetValue = Gia_ManPoIsConst1(pMan, 0);
+            Vec_IntFree( vCisUsed );
+            Gia_ManStop( pMan );
+            return RetValue;
+        }
     }
-    Vec_StrFree( vSop );
-    if ( Gia_ManPoIsConst(pMan, 0) )
+    else
     {
-        int RetValue = Gia_ManPoIsConst1(pMan, 0);
-        Vec_IntFree( vCisUsed );
-        Gia_ManStop( pMan );
-        return RetValue;
+        pMan = pNew;
     }
 
     Res = Gia_ManDupConeBack( p, pMan, vCisUsed );
 
     // report the result
-    printf( "Performed quantification with %5d nodes, %3d keep-vars, %3d quant-vars, resulting in %5d cubes and %5d nodes. ", 
-        nNodes, Vec_IntSize(vCisUsed) - Count, Count, nCubes, Gia_ManAndNum(pMan) );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clkAll );
+//    printf( "Performed quantification with %5d nodes, %3d keep-vars, %3d quant-vars, resulting in %5d cubes and %5d nodes. ", 
+//        nNodes, Vec_IntSize(vCisUsed) - Count, Count, nCubes, Gia_ManAndNum(pMan) );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clkAll );
 
     Vec_IntFree( vCisUsed );
     Gia_ManStop( pMan );
@@ -1162,9 +1172,9 @@ int bmcg_sat_solver_quantify3( bmcg_sat_solver * pSats[], Gia_Man_t * p, int iLi
     clkQuaSynth += Abc_Clock() - clk;
 
     // report the result
-    printf( "Performed quantification with %5d nodes, %3d keep-vars, %3d quant-vars, resulting in %5d cubes and %5d nodes. ", 
-        Vec_IntSize(vObjsUsed), Count, Vec_IntSize(vCiVars) - Count, Vec_StrCountEntry(vSop, '\n'), Gia_ManAndNum(p)-RetValue );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clkAll );
+//    printf( "Performed quantification with %5d nodes, %3d keep-vars, %3d quant-vars, resulting in %5d cubes and %5d nodes. ", 
+//        Vec_IntSize(vObjsUsed), Count, Vec_IntSize(vCiVars) - Count, Vec_StrCountEntry(vSop, '\n'), Gia_ManAndNum(p)-RetValue );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clkAll );
 
 cleanup:
     Vec_IntForEachEntry( vObjsUsed, iVar, i )
