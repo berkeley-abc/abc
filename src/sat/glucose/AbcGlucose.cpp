@@ -912,7 +912,7 @@ abctime clkQuaSynth = 0;
 int bmcg_sat_solver_quantify2( Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t * vDLits )
 {
     int fSynthesize = 0;
-    abctime clk = Abc_Clock(), clkAll = Abc_Clock();
+    abctime clk = Abc_Clock();//, clkAll = Abc_Clock();
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
     Gia_Man_t * pMan, * pNew, * pTemp;  Vec_Str_t * vSop;
     int i, CiId, ObjId, Res, nCubes = 0, nNodes, Count = 0, iNode = Abc_Lit2Var(iLit);
@@ -1083,7 +1083,7 @@ int bmcg_sat_solver_quantify( bmcg_sat_solver * pSats[], Gia_Man_t * p, int iLit
 }
 int bmcg_sat_solver_quantify3( bmcg_sat_solver * pSats[], Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t * vDLits )
 {
-    abctime clk, clkAll = Abc_Clock();
+    abctime clk;//, clkAll = Abc_Clock();
     Vec_Int_t * vObjsUsed = Vec_IntAlloc( 100 ); // GIA objs
     Vec_Int_t * vCiVars = Vec_IntAlloc( 100 );   // CI SAT vars
     Vec_Int_t * vVarMap = NULL; Vec_Str_t * vSop = NULL; 
