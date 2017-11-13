@@ -216,6 +216,11 @@ struct Gia_Man_t_
     // balancing
     Vec_Int_t *    vSuper;        // supergate
     Vec_Int_t *    vStore;        // node storage  
+    // existential quantification
+    int            iSuppPi;       // the number of support variables
+    int            nSuppWords;    // the number of support words
+    Vec_Wrd_t *    vSuppWords;    // support information
+    Vec_Int_t      vCopiesTwo;    // intermediate copies
 };
 
 
@@ -683,6 +688,11 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     {
         extern void Gia_ManBuiltInSimPerform( Gia_Man_t * p, int iObj );
         Gia_ManBuiltInSimPerform( p, Gia_ObjId( p, pObj ) );
+    }
+    if ( p->vSuppWords )
+    {
+        extern void Gia_ManQuantSetSuppAnd( Gia_Man_t * p, Gia_Obj_t * pObj );
+        Gia_ManQuantSetSuppAnd( p, pObj );
     }
     return Gia_ObjId( p, pObj ) << 1;
 }
@@ -1247,6 +1257,7 @@ extern Gia_Man_t *         Gia_ManDupMux( int iVar, Gia_Man_t * pCof1, Gia_Man_t
 extern Gia_Man_t *         Gia_ManDupBlock( Gia_Man_t * p, int nBlock );
 extern Gia_Man_t *         Gia_ManDupExist( Gia_Man_t * p, int iVar );
 extern Gia_Man_t *         Gia_ManDupUniv( Gia_Man_t * p, int iVar );
+extern int                 Gia_ManQuantExist( Gia_Man_t * p, int iLit, int(*pFuncCiToKeep)(void *, int), void * pData );
 extern Gia_Man_t *         Gia_ManDupDfsSkip( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern Gia_Man_t *         Gia_ManDupConeSupp( Gia_Man_t * p, int iLit, Vec_Int_t * vCiIds );

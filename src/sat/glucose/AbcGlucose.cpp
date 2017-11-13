@@ -846,11 +846,26 @@ Vec_Str_t * bmcg_sat_solver_sop( Gia_Man_t * p, int CubeLimit )
     bmcg_sat_solver_stop( pSat[1] );
     return vSop;
 }
-void bmcg_sat_solver_sopTest( Gia_Man_t * p )
+void bmcg_sat_solver_print_sop( Gia_Man_t * p )
 {
     Vec_Str_t * vSop = bmcg_sat_solver_sop( p, 0 );
     printf( "%s", Vec_StrArray(vSop) );
     Vec_StrFree( vSop );
+}
+void bmcg_sat_solver_print_sop_lit( Gia_Man_t * p, int Lit )
+{
+    Vec_Int_t * vCisUsed = Vec_IntAlloc( 100 );
+    int i, ObjId, iNode = Abc_Lit2Var( Lit );
+    Gia_ManCollectCis( p, &iNode, 1, vCisUsed );
+    Vec_IntSort( vCisUsed, 0 );
+    Vec_IntForEachEntry( vCisUsed, ObjId, i )
+        Vec_IntWriteEntry( vCisUsed, i, Gia_ManIdToCioId(p, ObjId) );
+    Vec_IntPrint( vCisUsed );
+    Gia_Man_t * pNew = Gia_ManDupConeSupp( p, Lit, vCisUsed );
+    Vec_IntFree( vCisUsed );
+    bmcg_sat_solver_print_sop( pNew );
+    Gia_ManStop( pNew );
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -931,6 +946,7 @@ int bmcg_sat_solver_quantify2( Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiT
     nNodes = Gia_ManAndNum(pNew);
 
     // perform quantification one CI at a time
+    clk = Abc_Clock();
     assert( pFuncCiToKeep );
     Vec_IntForEachEntry( vCisUsed, CiId, i )
         if ( !pFuncCiToKeep( pData, CiId ) )
@@ -988,9 +1004,9 @@ int bmcg_sat_solver_quantify2( Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiT
     Res = Gia_ManDupConeBack( p, pMan, vCisUsed );
 
     // report the result
-//    printf( "Performed quantification with %5d nodes, %3d keep-vars, %3d quant-vars, resulting in %5d cubes and %5d nodes. ", 
-//        nNodes, Vec_IntSize(vCisUsed) - Count, Count, nCubes, Gia_ManAndNum(pMan) );
-//    Abc_PrintTime( 1, "Time", Abc_Clock() - clkAll );
+    //printf( "Performed quantification with %5d nodes, %3d keep-vars, %3d quant-vars, resulting in %5d cubes and %5d nodes. ", 
+    //    nNodes, Vec_IntSize(vCisUsed) - Count, Count, nCubes, Gia_ManAndNum(pMan) );
+    //Abc_PrintTime( 1, "Time", Abc_Clock() - clkAll );
 
     Vec_IntFree( vCisUsed );
     Gia_ManStop( pMan );
@@ -1078,10 +1094,6 @@ int Gia_ManFactorSop( Gia_Man_t * p, Vec_Int_t * vCiObjIds, Vec_Str_t * vSop, in
     return Result;
 }
 int bmcg_sat_solver_quantify( bmcg_sat_solver * pSats[], Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t * vDLits )
-{
-    return bmcg_sat_solver_quantify2( p, iLit, fHash, pFuncCiToKeep, pData, vDLits );
-}
-int bmcg_sat_solver_quantify3( bmcg_sat_solver * pSats[], Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t * vDLits )
 {
     abctime clk;//, clkAll = Abc_Clock();
     Vec_Int_t * vObjsUsed = Vec_IntAlloc( 100 ); // GIA objs
@@ -1216,6 +1228,24 @@ void Glucose_QuantifyAigTest( Gia_Man_t * p )
     bmcg_sat_solver_stop( pSats[0] );
     bmcg_sat_solver_stop( pSats[1] );
     bmcg_sat_solver_stop( pSats[2] );
+}
+int bmcg_sat_solver_quantify_test( bmcg_sat_solver * pSats[], Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t * vDLits )
+{
+    extern int Gia_ManQuantExist( Gia_Man_t * p, int iLit, int(*pFuncCiToKeep)(void *, int), void * pData );
+    int Res1 = Gia_ManQuantExist( p, iLit, pFuncCiToKeep, pData );
+    int Res2 = bmcg_sat_solver_quantify2( p, iLit, 1, pFuncCiToKeep, pData, NULL );
+
+    bmcg_sat_solver * pSat = bmcg_sat_solver_start();
+    if ( bmcg_sat_solver_equiv_overlap_check( pSat, p, Res1, Res2, 1 ) )
+        printf( "Verification passed.\n" );
+    else
+    {
+        printf( "Verification FAILED.\n" );
+        bmcg_sat_solver_print_sop_lit( p, Res1 );
+        bmcg_sat_solver_print_sop_lit( p, Res2 );
+        printf( "\n" );
+    }
+    return Res1;
 }
 
 /**Function*************************************************************

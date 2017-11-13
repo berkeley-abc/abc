@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "misc/tim/tim.h"
 #include "misc/vec/vecWec.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1815,6 +1816,243 @@ Gia_Man_t * Gia_ManDupExist2( Gia_Man_t * p, int iVar )
     Gia_ManStop( pTemp );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Existentially quantified several variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+static inline word * Gia_ManQuantInfoId( Gia_Man_t * p, int iObj )       { return Vec_WrdEntryP( p->vSuppWords, p->nSuppWords * iObj ); }
+static inline word * Gia_ManQuantInfo( Gia_Man_t * p, Gia_Obj_t * pObj ) { return Gia_ManQuantInfoId( p, Gia_ObjId(p, pObj) );      }
+
+static inline void   Gia_ObjCopyGetTwoArray( Gia_Man_t * p, int iObj, int LitsOut[2] )      
+{ 
+    int * pLits = Vec_IntEntryP( &p->vCopiesTwo, 2*iObj );
+    LitsOut[0] = pLits[0];
+    LitsOut[1] = pLits[1];
+}
+static inline void   Gia_ObjCopySetTwoArray( Gia_Man_t * p, int iObj, int LitsIn[2] )      
+{ 
+    int * pLits = Vec_IntEntryP( &p->vCopiesTwo, 2*iObj );
+    pLits[0] = LitsIn[0];
+    pLits[1] = LitsIn[1];
+}
+
+void Gia_ManQuantSetSuppStart( Gia_Man_t * p )
+{
+    assert( Gia_ManObjNum(p) == 1 );
+    assert( p->vSuppWords == NULL );
+    p->iSuppPi    = 0;
+    p->nSuppWords = 1;
+    p->vSuppWords = Vec_WrdAlloc( 1000 );
+    Vec_WrdPush( p->vSuppWords, 0 );
+}
+void Gia_ManQuantSetSuppZero( Gia_Man_t * p )
+{
+    int w;
+    for ( w = 0; w < p->nSuppWords; w++ )
+        Vec_WrdPush( p->vSuppWords, 0 );
+    assert( Vec_WrdSize(p->vSuppWords) == p->nSuppWords * Gia_ManObjNum(p) );
+}
+void Gia_ManQuantSetSuppCi( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    assert( Gia_ObjIsCi(pObj) );
+    assert( p->vSuppWords != NULL );
+    if ( p->iSuppPi == 64 * p->nSuppWords )
+    {
+        Vec_Wrd_t * vTemp = Vec_WrdAlloc( 1000 ); word Data; int w;
+        Vec_WrdForEachEntry( p->vSuppWords, Data, w )
+        {
+            Vec_WrdPush( vTemp, Data );
+            if ( w % p->nSuppWords == 0 )
+                Vec_WrdPush( vTemp, 0 );
+        }
+        Vec_WrdFree( p->vSuppWords );
+        p->vSuppWords = vTemp;
+        p->nSuppWords++;
+    }
+    Gia_ManQuantSetSuppZero( p );
+    Abc_TtSetBit( Gia_ManQuantInfo(p, pObj), p->iSuppPi++ );
+}
+void Gia_ManQuantSetSuppAnd( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    int iObj  = Gia_ObjId(p, pObj);
+    int iFan0 = Gia_ObjFaninId0(pObj, iObj);
+    int iFan1 = Gia_ObjFaninId1(pObj, iObj);
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManQuantSetSuppZero( p );
+    Abc_TtOr( Gia_ManQuantInfo(p, pObj), Gia_ManQuantInfoId(p, iFan0), Gia_ManQuantInfoId(p, iFan1), p->nSuppWords );
+}
+int Gia_ManQuantCheckSupp( Gia_Man_t * p, int iObj, int iSupp )
+{
+    return Abc_TtGetBit( Gia_ManQuantInfoId(p, iObj), iSupp );
+}
+
+
+void Gia_ManQuantDupConeSupp_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vCis, Vec_Int_t * vObjs, int(*pFuncCiToKeep)(void *, int), void * pData )
+{
+    int iLit0, iLit1, iObj = Gia_ObjId( p, pObj );
+    int iLit = Gia_ObjCopyArray( p, iObj );
+    if ( iLit >= 0 )
+        return;
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        int iLit = Gia_ManAppendCi( pNew );
+        Gia_Obj_t * pObjNew = Gia_ManObj( pNew, Abc_Lit2Var(iLit) );
+        if ( pFuncCiToKeep( pData, Gia_ObjCioId(pObj) ) )
+            Gia_ManQuantSetSuppZero( pNew );
+        else
+            Gia_ManQuantSetSuppCi( pNew, pObjNew );
+        Gia_ObjSetCopyArray( p, iObj, iLit );
+        Vec_IntPush( vCis, iObj );
+        return;
+    }
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManQuantDupConeSupp_rec( pNew, p, Gia_ObjFanin0(pObj), vCis, vObjs, pFuncCiToKeep, pData );
+    Gia_ManQuantDupConeSupp_rec( pNew, p, Gia_ObjFanin1(pObj), vCis, vObjs, pFuncCiToKeep, pData );
+    iLit0 = Gia_ObjCopyArray( p, Gia_ObjFaninId0(pObj, iObj) );
+    iLit1 = Gia_ObjCopyArray( p, Gia_ObjFaninId1(pObj, iObj) );
+    iLit0 = Abc_LitNotCond( iLit0, Gia_ObjFaninC0(pObj) );
+    iLit1 = Abc_LitNotCond( iLit1, Gia_ObjFaninC1(pObj) );
+    iLit  = Gia_ManHashAnd( pNew, iLit0, iLit1 );
+    Gia_ObjSetCopyArray( p, iObj, iLit );
+    Vec_IntPush( vObjs, iObj );
+}
+Gia_Man_t * Gia_ManQuantDupConeSupp( Gia_Man_t * p, int iLit, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t ** pvCis, int * pOutLit )
+{
+    Gia_Man_t * pNew; int i, iLit0, iObj;
+    Gia_Obj_t * pObj, * pRoot = Gia_ManObj( p, Abc_Lit2Var(iLit) );
+    Vec_Int_t * vCis = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vObjs = Vec_IntAlloc( 1000 );
+    assert( Gia_ObjIsAnd(pRoot) );
+    if ( Vec_IntSize(&p->vCopies) < Gia_ManObjNum(p) )
+        Vec_IntFillExtra( &p->vCopies, Gia_ManObjNum(p), -1 );
+    pNew = Gia_ManStart( 1000 );
+    Gia_ManHashStart( pNew ); 
+    Gia_ManQuantSetSuppStart( pNew );
+    Gia_ManQuantDupConeSupp_rec( pNew, p, pRoot, vCis, vObjs, pFuncCiToKeep, pData );
+    iLit0 = Gia_ObjCopyArray( p, Abc_Lit2Var(iLit) );
+    iLit0 = Abc_LitNotCond( iLit0, Abc_LitIsCompl(iLit) );
+    if ( pOutLit ) *pOutLit = iLit0;
+    Gia_ManForEachObjVec( vCis, p, pObj, i )
+        Gia_ObjSetCopyArray( p, Gia_ObjId(p, pObj), -1 );
+    Gia_ManForEachObjVec( vObjs, p, pObj, i )
+        Gia_ObjSetCopyArray( p, Gia_ObjId(p, pObj), -1 );
+    //assert( Vec_IntCountLarger(&p->vCopies, -1) == 0 );
+    Vec_IntFree( vObjs );
+    // remap into CI Ids
+    Vec_IntForEachEntry( vCis, iObj, i )
+        Vec_IntWriteEntry( vCis, i, Gia_ManIdToCioId(p, iObj) );
+    if ( pvCis ) *pvCis = vCis;
+    return pNew;
+}
+void Gia_ManQuantExist_rec( Gia_Man_t * p, int iObj, int pRes[2] )
+{
+    Gia_Obj_t * pObj;
+    int Lits0[2], Lits1[2], pFans[2], fCompl[2];
+    if ( Gia_ObjIsTravIdCurrentId( p, iObj ) )
+    {
+        Gia_ObjCopyGetTwoArray( p, iObj, pRes );
+        return;
+    }
+    Gia_ObjSetTravIdCurrentId( p, iObj );
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        pRes[0] = 0; pRes[1] = 1;
+        Gia_ObjCopySetTwoArray( p, iObj, pRes );
+        return;
+    }
+    pFans[0]  = Gia_ObjFaninId0( pObj, iObj );
+    pFans[1]  = Gia_ObjFaninId1( pObj, iObj );
+    fCompl[0] = Gia_ObjFaninC0( pObj );
+    fCompl[1] = Gia_ObjFaninC1( pObj );
+    if ( Gia_ManQuantCheckSupp(p, pFans[0], p->iSuppPi) )
+        Gia_ManQuantExist_rec( p, pFans[0], Lits0 );
+    else
+        Lits0[0] = Lits0[1] = Abc_Var2Lit( pFans[0], 0 );
+    if ( Gia_ManQuantCheckSupp(p, pFans[1], p->iSuppPi) )
+        Gia_ManQuantExist_rec( p, pFans[1], Lits1 );
+    else
+        Lits1[0] = Lits1[1] = Abc_Var2Lit( pFans[1], 0 );
+    pRes[0] = Gia_ManHashAnd( p, Abc_LitNotCond(Lits0[0], fCompl[0]), Abc_LitNotCond(Lits1[0], fCompl[1]) );
+    pRes[1] = Gia_ManHashAnd( p, Abc_LitNotCond(Lits0[1], fCompl[0]), Abc_LitNotCond(Lits1[1], fCompl[1]) );
+    Gia_ObjCopySetTwoArray( p, iObj, pRes );
+}
+int Gia_ManQuantExist( Gia_Man_t * p0, int iLit, int(*pFuncCiToKeep)(void *, int), void * pData )
+{
+    Gia_Man_t * pNew;
+    Vec_Int_t * vOuts, * vOuts2, * vCis; 
+    Gia_Obj_t * pObj = Gia_ManObj( p0, Abc_Lit2Var(iLit) );
+    int i, n, Entry, Lit, OutLit = -1, pLits[2]; 
+    if ( iLit < 2 ) return iLit;
+    if ( Gia_ObjIsCi(pObj) ) return pFuncCiToKeep(pData, Gia_ObjCioId(pObj)) ? iLit : 1;
+    assert( Gia_ObjIsAnd(pObj) );
+    pNew = Gia_ManQuantDupConeSupp( p0, iLit, pFuncCiToKeep, pData, &vCis, &OutLit );
+    if ( pNew->iSuppPi == 0 )
+    {
+        Gia_ManStop( pNew );
+        Vec_IntFree( vCis );
+        return iLit;
+    }
+    assert( pNew->iSuppPi > 0 && pNew->iSuppPi <= 64 * pNew->nSuppWords );
+    vOuts = Vec_IntAlloc( 100 );
+    vOuts2 = Vec_IntAlloc( 100 );
+    assert( OutLit > 1 );
+    Vec_IntPush( vOuts, OutLit );
+    while ( --pNew->iSuppPi >= 0 )
+    {
+        //printf( "Quantifying input %d:\n", p->iSuppPi );
+        if ( Vec_IntSize(&pNew->vCopiesTwo) < 2*Gia_ManObjNum(pNew) )
+            Vec_IntFillExtra( &pNew->vCopiesTwo, 2*Gia_ManObjNum(pNew), -1 );
+        assert( Vec_IntSize(vOuts) > 0 );
+        Vec_IntClear( vOuts2 );
+        Gia_ManIncrementTravId( pNew );
+        Vec_IntForEachEntry( vOuts, Entry, i )
+        {
+            Gia_ManQuantExist_rec( pNew, Abc_Lit2Var(Entry), pLits );
+            for ( n = 0; n < 2; n++ )
+            {
+                Lit = Abc_LitNotCond( pLits[n], Abc_LitIsCompl(Entry) );
+                if ( Lit == 0 )
+                    continue;
+                if ( Lit == 1 )
+                {
+                    Vec_IntFree( vOuts );
+                    Vec_IntFree( vOuts2 );
+                    Gia_ManStop( pNew );
+                    Vec_IntFree( vCis );
+                    return 1;
+                }
+                Vec_IntPushUnique( vOuts2, Lit );
+            }
+        }
+        Vec_IntClear( vOuts );
+        ABC_SWAP( Vec_Int_t *, vOuts, vOuts2 );
+    }
+    //printf( "The number of diff cofactors = %d.\n", Vec_IntSize(vOuts) );
+    assert( Vec_IntSize(vOuts) > 0 );
+    Vec_IntForEachEntry( vOuts, Entry, i )
+        Vec_IntWriteEntry( vOuts, i, Abc_LitNot(Entry) );
+    OutLit = Gia_ManHashAndMulti( pNew, vOuts );
+    OutLit = Abc_LitNot( OutLit );
+    Vec_IntFree( vOuts );
+    Vec_IntFree( vOuts2 );
+    // transfer back
+    Gia_ManAppendCo( pNew, OutLit );
+    Lit = Gia_ManDupConeBack( p0, pNew, vCis );
+    Gia_ManStop( pNew );
+    Vec_IntFree( vCis );
+    return Lit;
+}
+
 
 /**Function*************************************************************
 
