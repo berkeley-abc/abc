@@ -108,8 +108,8 @@ struct Gia_Man_t_
     int            nBufs;         // the number of buffers
     Vec_Int_t *    vCis;          // the vector of CIs (PIs + LOs)
     Vec_Int_t *    vCos;          // the vector of COs (POs + LIs)
-    int *          pHTable;       // hash table
-    int            nHTable;       // hash table size 
+    Vec_Int_t      vHash;         // hash links
+    Vec_Int_t      vHTable;       // hash table
     int            fAddStrash;    // performs additional structural hashing
     int            fSweeper;      // sweeper is running
     int            fGiaSimple;    // simple mode (no const-propagation and strashing)
@@ -640,6 +640,7 @@ static inline Gia_Obj_t * Gia_ManAppendObj( Gia_Man_t * p )
         }
         p->nObjsAlloc = nObjNew;
     }
+    if ( Vec_IntSize(&p->vHTable) ) Vec_IntPush( &p->vHash, 0 );
     return Gia_ManObj( p, p->nObjs++ );
 }
 static inline int Gia_ManAppendCi( Gia_Man_t * p )  
@@ -731,7 +732,7 @@ static inline int Gia_ManAppendMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int
     assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
     assert( Abc_Lit2Var(iLitC) != Abc_Lit2Var(iLit0) );
     assert( Abc_Lit2Var(iLitC) != Abc_Lit2Var(iLit1) );
-    assert( !p->pHTable || !Abc_LitIsCompl(iLit1) );
+    assert( !Vec_IntSize(&p->vHTable) || !Abc_LitIsCompl(iLit1) );
     if ( Abc_Lit2Var(iLit0) < Abc_Lit2Var(iLit1) )
     {
         pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);

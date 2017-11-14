@@ -942,7 +942,7 @@ void Gia_ManDupAppend( Gia_Man_t * pNew, Gia_Man_t * pTwo )
     int i;
     if ( pNew->nRegs > 0 )
         pNew->nRegs = 0;
-    if ( pNew->pHTable == NULL )
+    if ( Vec_IntSize(&pNew->vHTable) == 0 )
         Gia_ManHashStart( pNew );
     Gia_ManConst0(pTwo)->Value = 0;
     Gia_ManForEachObj1( pTwo, pObj, i )
@@ -960,7 +960,7 @@ void Gia_ManDupAppendShare( Gia_Man_t * pNew, Gia_Man_t * pTwo )
     Gia_Obj_t * pObj;
     int i;
     assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(pTwo) );
-    if ( pNew->pHTable == NULL )
+    if ( Vec_IntSize(&pNew->vHTable) == 0 )
         Gia_ManHashStart( pNew );
     Gia_ManConst0(pTwo)->Value = 0;
     Gia_ManForEachObj1( pTwo, pObj, i )
@@ -1425,7 +1425,7 @@ int Gia_ManDupDfs2_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
     if ( Gia_ObjIsCo(pObj) )
         return pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManDupDfs2_rec( pNew, p, Gia_ObjFanin1(pObj) );
-    if ( pNew->pHTable )
+    if ( Vec_IntSize(&pNew->vHTable) )
         return pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     return pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
 } 
