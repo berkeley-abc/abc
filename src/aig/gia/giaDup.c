@@ -1988,10 +1988,11 @@ void Gia_ManQuantExist_rec( Gia_Man_t * p, int iObj, int pRes[2] )
 }
 int Gia_ManQuantExist( Gia_Man_t * p0, int iLit, int(*pFuncCiToKeep)(void *, int), void * pData )
 {
+//    abctime clk = Abc_Clock();
     Gia_Man_t * pNew;
     Vec_Int_t * vOuts, * vOuts2, * vCis; 
     Gia_Obj_t * pObj = Gia_ManObj( p0, Abc_Lit2Var(iLit) );
-    int i, n, Entry, Lit, OutLit = -1, pLits[2]; 
+    int i, n, Entry, Lit, OutLit = -1, pLits[2], nVarsQua, nAndsOld, nAndsNew; 
     if ( iLit < 2 ) return iLit;
     if ( Gia_ObjIsCi(pObj) ) return pFuncCiToKeep(pData, Gia_ObjCioId(pObj)) ? iLit : 1;
     assert( Gia_ObjIsAnd(pObj) );
@@ -2007,6 +2008,8 @@ int Gia_ManQuantExist( Gia_Man_t * p0, int iLit, int(*pFuncCiToKeep)(void *, int
     vOuts2 = Vec_IntAlloc( 100 );
     assert( OutLit > 1 );
     Vec_IntPush( vOuts, OutLit );
+    nVarsQua = pNew->iSuppPi;
+    nAndsOld = Gia_ManAndNum(pNew);
     while ( --pNew->iSuppPi >= 0 )
     {
         //printf( "Quantifying input %d:\n", p->iSuppPi );
@@ -2047,8 +2050,14 @@ int Gia_ManQuantExist( Gia_Man_t * p0, int iLit, int(*pFuncCiToKeep)(void *, int
     Vec_IntFree( vOuts2 );
     // transfer back
     Gia_ManAppendCo( pNew, OutLit );
+    nAndsNew = Gia_ManAndNum(p0);
     Lit = Gia_ManDupConeBack( p0, pNew, vCis );
+    nAndsNew = Gia_ManAndNum(p0) - nAndsNew;
     Gia_ManStop( pNew );
+    // report the result
+//    printf( "Performed quantification with %6d nodes, %3d keep-vars, %3d quant-vars, resulting in %5d new nodes. ", 
+//        nAndsOld, Vec_IntSize(vCis) - nVarsQua, nVarsQua, nAndsNew );
+//    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Vec_IntFree( vCis );
     return Lit;
 }

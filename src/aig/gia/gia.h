@@ -113,6 +113,7 @@ struct Gia_Man_t_
     int            fAddStrash;    // performs additional structural hashing
     int            fSweeper;      // sweeper is running
     int            fGiaSimple;    // simple mode (no const-propagation and strashing)
+    Vec_Int_t      vRefs;         // the reference count
     int *          pRefs;         // the reference count
     int *          pLutRefs;      // the reference count
     Vec_Int_t *    vLevels;       // levels of the nodes
@@ -1203,6 +1204,10 @@ extern Abc_Cex_t *         Gia_ManCexExtendToIncludeAllObjects( Gia_Man_t * p, A
 /*=== giaCsatOld.c ============================================================*/
 extern Vec_Int_t *         Cbs_ManSolveMiter( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 /*=== giaCsat.c ============================================================*/
+typedef struct Cbs_Man_t_  Cbs_Man_t;
+extern Cbs_Man_t *         Cbs_ManAlloc( Gia_Man_t * pGia );
+extern void                Cbs_ManStop( Cbs_Man_t * p );
+extern int                 Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
 extern Vec_Int_t *         Cbs_ManSolveMiterNc( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 /*=== giaCTas.c ============================================================*/
 extern Vec_Int_t *         Tas_ManSolveMiterNc( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
