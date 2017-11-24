@@ -462,9 +462,9 @@ void Gia_ManMinCex( Gia_Man_t * p, Abc_Cex_t * pCex )
     // SAT instance
     clk = Abc_Clock();
     pFrames = Gia_ManFramesForCexMin( p, pCex->iFrame + 1 );
-    pCnf = Mf_ManGenerateCnf( pFrames, 8, 0, 0, 0, 0 );
+    pCnf = (Cnf_Dat_t*)Mf_ManGenerateCnf( pFrames, 8, 0, 0, 0, 0 );
     iFirstVar = pCnf->nVars - (pCex->iFrame+1) * pCex->nPis;
-    pSat = Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    pSat = (sat_solver*)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     iLit = Abc_Var2Lit( 1, 1 );
     status = sat_solver_addclause( pSat, &iLit, &iLit + 1 );
     assert( status );
