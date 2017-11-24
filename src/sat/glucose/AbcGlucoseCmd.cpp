@@ -23,6 +23,14 @@
 
 #include "sat/glucose/AbcGlucose.h"
 
+
+ABC_NAMESPACE_HEADER_START
+
+void Glucose_Init(Abc_Frame_t *pAbc);
+void Glucose_End( Abc_Frame_t * pAbc );
+
+ABC_NAMESPACE_HEADER_END
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -46,7 +54,6 @@ static int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv );
   SeeAlso     []
 
 ***********************************************************************/
-extern "C" {
 
 void Glucose_Init(Abc_Frame_t *pAbc)
 {
@@ -55,8 +62,6 @@ void Glucose_Init(Abc_Frame_t *pAbc)
 
 void Glucose_End( Abc_Frame_t * pAbc )
 {
-}
-
 }
 
 /**Function*************************************************************

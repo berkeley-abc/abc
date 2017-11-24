@@ -1043,6 +1043,8 @@ extern ABC_DLL void               Abc_NtkPrintCiLevels( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkReverseTopoOrder( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkIsTopo( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkTransferPhases( Abc_Ntk_t * pNtkNew, Abc_Ntk_t * pNtk );
+extern ABC_DLL Gia_Man_t *        Abc_SopSynthesizeOne( char * pSop, int fClp );
+
 
 
 /*=== abcVerify.c ==========================================================*/

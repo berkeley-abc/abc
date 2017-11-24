@@ -26,15 +26,14 @@
 
 #include "sat/glucose/AbcGlucose.h"
 
+#include "base/abc/abc.h"
 #include "aig/gia/gia.h"
 #include "sat/cnf/cnf.h"
 #include "misc/extra/extra.h"
 
-using namespace Gluco;
-
 ABC_NAMESPACE_IMPL_START
 
-extern "C" {
+using namespace Gluco;
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -1366,7 +1365,5 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
-}
 
 ABC_NAMESPACE_IMPL_END

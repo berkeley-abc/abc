@@ -31,12 +31,12 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-ABC_NAMESPACE_HEADER_START
-
 #define GLUCOSE_UNSAT -1
 #define GLUCOSE_SAT    1
 #define GLUCOSE_UNDEC  0
 
+
+ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///

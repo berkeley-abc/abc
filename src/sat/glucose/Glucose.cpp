@@ -34,6 +34,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose/Constants.h"
 #include "sat/glucose/System.h"
 
+ABC_NAMESPACE_IMPL_START
+
 using namespace Gluco;
 
 //=================================================================================================
@@ -1491,3 +1493,5 @@ void Solver::reset()
     assumptionPositions.clear(false);
     initialPositions.clear(false);
 }
+
+ABC_NAMESPACE_IMPL_END
