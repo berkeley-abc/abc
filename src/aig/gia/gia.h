@@ -222,6 +222,7 @@ struct Gia_Man_t_
     int            nSuppWords;    // the number of support words
     Vec_Wrd_t *    vSuppWords;    // support information
     Vec_Int_t      vCopiesTwo;    // intermediate copies
+    Vec_Int_t      vSuppVars;     // used variables
 };
 
 
@@ -1263,11 +1264,11 @@ extern Gia_Man_t *         Gia_ManDupMux( int iVar, Gia_Man_t * pCof1, Gia_Man_t
 extern Gia_Man_t *         Gia_ManDupBlock( Gia_Man_t * p, int nBlock );
 extern Gia_Man_t *         Gia_ManDupExist( Gia_Man_t * p, int iVar );
 extern Gia_Man_t *         Gia_ManDupUniv( Gia_Man_t * p, int iVar );
-extern int                 Gia_ManQuantExist( Gia_Man_t * p, int iLit, int(*pFuncCiToKeep)(void *, int), void * pData );
 extern Gia_Man_t *         Gia_ManDupDfsSkip( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupDfsCone( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern Gia_Man_t *         Gia_ManDupConeSupp( Gia_Man_t * p, int iLit, Vec_Int_t * vCiIds );
 extern int                 Gia_ManDupConeBack( Gia_Man_t * p, Gia_Man_t * pNew, Vec_Int_t * vCiIds );
+extern int                 Gia_ManDupConeBackObjs( Gia_Man_t * p, Gia_Man_t * pNew, Vec_Int_t * vObjs );
 extern Gia_Man_t *         Gia_ManDupDfsNode( Gia_Man_t * p, Gia_Obj_t * pObj );
 extern Gia_Man_t *         Gia_ManDupDfsLitArray( Gia_Man_t * p, Vec_Int_t * vLits );
 extern Gia_Man_t *         Gia_ManDupTrimmed( Gia_Man_t * p, int fTrimCis, int fTrimCos, int fDualOut, int OutValue );
@@ -1343,6 +1344,12 @@ extern int                 Gia_ManCountChoices( Gia_Man_t * p );
 extern int                 Gia_ManFilterEquivsForSpeculation( Gia_Man_t * pGia, char * pName1, char * pName2, int fLatchA, int fLatchB );
 extern int                 Gia_ManFilterEquivsUsingParts( Gia_Man_t * pGia, char * pName1, char * pName2 );
 extern void                Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlopsWith, int fUseRiDrivers );
+/*=== giaExist.c =========================================================*/
+extern void                Gia_ManQuantSetSuppStart( Gia_Man_t * p );
+extern void                Gia_ManQuantSetSuppZero( Gia_Man_t * p );
+extern void                Gia_ManQuantSetSuppCi( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern void                Gia_ManQuantUpdateCiSupp( Gia_Man_t * p, int iObj );
+extern int                 Gia_ManQuantExist( Gia_Man_t * p, int iLit, int(*pFuncCiToKeep)(void *, int), void * pData );
 /*=== giaFanout.c =========================================================*/
 extern void                Gia_ObjAddFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );
 extern void                Gia_ObjRemoveFanout( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanout );

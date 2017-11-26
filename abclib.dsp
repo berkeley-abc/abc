@@ -4727,6 +4727,10 @@ SOURCE=.\src\aig\gia\giaEsop.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaExist.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaFalse.c
 # End Source File
 # Begin Source File
