@@ -26,8 +26,13 @@
 
 ABC_NAMESPACE_HEADER_START
 
-void Glucose_Init(Abc_Frame_t *pAbc);
-void Glucose_End( Abc_Frame_t * pAbc );
+#ifdef _WIN32
+extern void Glucose_Init( Abc_Frame_t *pAbc );
+extern void Glucose_End( Abc_Frame_t * pAbc );
+#else
+extern void "C" Glucose_Init( Abc_Frame_t *pAbc );
+extern void "C" Glucose_End( Abc_Frame_t * pAbc );
+#endif
 
 ABC_NAMESPACE_HEADER_END
 

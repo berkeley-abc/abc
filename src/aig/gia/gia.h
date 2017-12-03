@@ -654,6 +654,10 @@ static inline int Gia_ManAppendCi( Gia_Man_t * p )
     Vec_IntPush( p->vCis, Gia_ObjId(p, pObj) );
     return Gia_ObjId( p, pObj ) << 1;
 }
+
+extern void Gia_ManQuantSetSuppAnd( Gia_Man_t * p, Gia_Obj_t * pObj );
+extern void Gia_ManBuiltInSimPerform( Gia_Man_t * p, int iObj );
+
 static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
     Gia_Obj_t * pObj = Gia_ManAppendObj( p );
@@ -688,15 +692,9 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         pObj->fPhase = (Gia_ObjPhase(pFan0) ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjPhase(pFan1) ^ Gia_ObjFaninC1(pObj));
     }
     if ( p->fBuiltInSim )
-    {
-        extern void Gia_ManBuiltInSimPerform( Gia_Man_t * p, int iObj );
         Gia_ManBuiltInSimPerform( p, Gia_ObjId( p, pObj ) );
-    }
     if ( p->vSuppWords )
-    {
-        extern void Gia_ManQuantSetSuppAnd( Gia_Man_t * p, Gia_Obj_t * pObj );
         Gia_ManQuantSetSuppAnd( p, pObj );
-    }
     return Gia_ObjId( p, pObj ) << 1;
 }
 static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )  
