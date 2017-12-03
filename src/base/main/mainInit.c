@@ -61,13 +61,8 @@ extern void Abc2_Init( Abc_Frame_t * pAbc );
 extern void Abc2_End ( Abc_Frame_t * pAbc );
 extern void Abc85_Init( Abc_Frame_t * pAbc );
 extern void Abc85_End( Abc_Frame_t * pAbc );
-#ifdef _WIN32
 extern void Glucose_Init( Abc_Frame_t *pAbc );
 extern void Glucose_End( Abc_Frame_t * pAbc );
-#else
-extern "C" void Glucose_Init( Abc_Frame_t *pAbc );
-extern "C" void Glucose_End( Abc_Frame_t * pAbc );
-#endif
 
 static Abc_FrameInitializer_t* s_InitializerStart = NULL;
 static Abc_FrameInitializer_t* s_InitializerEnd = NULL;
