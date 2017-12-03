@@ -135,7 +135,7 @@ extern int                Io_WriteMoPla( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteSmv.c ===========================================================*/
 extern int                Io_WriteSmv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteVerilog.c =======================================================*/
-extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName );
+extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName, int fOnlyAnds );
 /*=== abcUtil.c ===============================================================*/
 extern Io_FileType_t      Io_ReadFileType( char * pFileName );
 extern Io_FileType_t      Io_ReadLibType( char * pFileName );
