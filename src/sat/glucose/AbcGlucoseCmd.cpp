@@ -30,8 +30,8 @@ ABC_NAMESPACE_HEADER_START
 extern void Glucose_Init( Abc_Frame_t *pAbc );
 extern void Glucose_End( Abc_Frame_t * pAbc );
 #else
-extern void "C" Glucose_Init( Abc_Frame_t *pAbc );
-extern void "C" Glucose_End( Abc_Frame_t * pAbc );
+extern "C" void Glucose_Init( Abc_Frame_t *pAbc );
+extern "C" void Glucose_End( Abc_Frame_t * pAbc );
 #endif
 
 ABC_NAMESPACE_HEADER_END
