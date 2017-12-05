@@ -203,6 +203,8 @@ struct Gia_Man_t_
     int            fBuiltInSim;
     int            iPatsPi;
     int            nSimWords;
+    int            iPastPiMax;
+    int            nSimWordsMax;
     Vec_Wrd_t *    vSims;
     Vec_Wrd_t *    vSimsPi;
     Vec_Int_t *    vClassOld;
@@ -692,7 +694,12 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         pObj->fPhase = (Gia_ObjPhase(pFan0) ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjPhase(pFan1) ^ Gia_ObjFaninC1(pObj));
     }
     if ( p->fBuiltInSim )
+    {
+        Gia_Obj_t * pFan0 = Gia_ObjFanin0(pObj);
+        Gia_Obj_t * pFan1 = Gia_ObjFanin1(pObj);
+        pObj->fPhase = (Gia_ObjPhase(pFan0) ^ Gia_ObjFaninC0(pObj)) & (Gia_ObjPhase(pFan1) ^ Gia_ObjFaninC1(pObj));
         Gia_ManBuiltInSimPerform( p, Gia_ObjId( p, pObj ) );
+    }
     if ( p->vSuppWords )
         Gia_ManQuantSetSuppAnd( p, pObj );
     return Gia_ObjId( p, pObj ) << 1;
@@ -1208,6 +1215,8 @@ extern Cbs_Man_t *         Cbs_ManAlloc( Gia_Man_t * pGia );
 extern void                Cbs_ManStop( Cbs_Man_t * p );
 extern int                 Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
 extern Vec_Int_t *         Cbs_ManSolveMiterNc( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
+extern void                Cbs_ManSetConflictNum( Cbs_Man_t * p, int Num );
+extern Vec_Int_t *         Cbs_ReadModel( Cbs_Man_t * p );
 /*=== giaCTas.c ============================================================*/
 extern Vec_Int_t *         Tas_ManSolveMiterNc( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 /*=== giaCof.c =============================================================*/
@@ -1504,8 +1513,11 @@ extern void                Gia_ManSimInfoTransfer( Gia_ManSim_t * p );
 extern void                Gia_ManSimulateRound( Gia_ManSim_t * p );
 extern void                Gia_ManBuiltInSimStart( Gia_Man_t * p, int nWords, int nObjs );
 extern void                Gia_ManBuiltInSimPerform( Gia_Man_t * p, int iObj );
-extern int                 Gia_ManBuiltInSimCheck( Gia_Man_t * p, int iLit0, int iLit1 );
-extern int                 Gia_ManObjCheckOverlap( Gia_Man_t * p, int iLit0, int iLit1, Vec_Int_t * vObjs );
+extern int                 Gia_ManBuiltInSimCheckOver( Gia_Man_t * p, int iLit0, int iLit1 );
+extern int                 Gia_ManBuiltInSimCheckEqual( Gia_Man_t * p, int iLit0, int iLit1 );
+extern void                Gia_ManBuiltInSimResimulateCone( Gia_Man_t * p, int iLit0, int iLit1 );
+extern void                Gia_ManBuiltInSimResimulate( Gia_Man_t * p );
+extern int                 Gia_ManBuiltInSimAddPat( Gia_Man_t * p, Vec_Int_t * vPat );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );

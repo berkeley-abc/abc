@@ -134,6 +134,10 @@ void Cbs_SetDefaultParams( Cbs_Par_t * pPars )
     pPars->fUseMaxFF   =     0;   // use node with the largest fanin fanout
     pPars->fVerbose    =     1;   // print detailed statistics
 }
+void Cbs_ManSetConflictNum( Cbs_Man_t * p, int Num )
+{
+    p->Pars.nBTLimit = Num;
+}
 
 /**Function*************************************************************
 
