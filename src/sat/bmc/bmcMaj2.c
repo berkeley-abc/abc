@@ -544,6 +544,7 @@ static int Exa_ManMarkup( Exa_Man_t * p )
     {
         for ( k = 0; k < 2; k++ )
         {
+#ifdef USE_FIRST_SPECIAL
             if ( i == p->nObjs - 1 && k == 0 )
             {
                 j = p->nObjs - 2;
@@ -551,6 +552,7 @@ static int Exa_ManMarkup( Exa_Man_t * p )
                 p->VarMarks[i][k][j] = p->iVar++;
                 continue;
             }
+#endif
             for ( j = 1 - k; j < i - k; j++ )
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
@@ -925,6 +927,7 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
     {
         for ( k = 0; k < p->nLutSize; k++ )
         {
+#ifdef USE_FIRST_SPECIAL
             if ( i == p->nObjs - 1 && k == 0 )
             {
                 j = p->nObjs - 2;
@@ -932,6 +935,7 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
                 p->VarMarks[i][k][j] = p->iVar++;
                 continue;
             }
+#endif
             for ( j = p->nLutSize - 1 - k; j < i - k; j++ )
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );

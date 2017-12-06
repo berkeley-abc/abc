@@ -36,6 +36,7 @@
 ABC_NAMESPACE_HEADER_START
 
 //#define USE_NODE_ORDER 1
+//#define USE_FIRST_SPECIAL 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
