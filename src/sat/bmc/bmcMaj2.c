@@ -939,7 +939,7 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
         }
     }
     printf( "The number of parameter variables = %d.\n", p->iVar );
-    return p->iVar;
+    //return p->iVar;
     // printout
 //    for ( i = p->nVars; i < p->nObjs; i++ )
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
@@ -954,6 +954,54 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
         }
     }
     return p->iVar;
+}
+static int Exa3_ManInitPolarityFindVar( Exa3_Man_t * p, int i, int k, int * pIndex )
+{
+    int iVar;
+    do {
+        iVar = p->VarMarks[i][k][*pIndex];
+        *pIndex = (*pIndex + 1) % p->nVars;
+    } while ( iVar <= 0 );
+    //intf( "Setting var %d.\n", iVar );
+    return iVar;
+}
+static void Exa3_ManInitPolarity( Exa3_Man_t * p )
+{
+    int i, k, iVar, nInputs = 0;
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+        // create AND-gate
+        int iVarStart = 1 + p->LutMask*(i - p->nVars);
+        iVar = iVarStart + p->LutMask-1;
+        p->pSat->polarity[iVar] = 1;
+        //printf( "Setting var %d.\n", iVar );
+    }
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+        // connect first fanin to previous
+        if ( i == p->nVars )
+        {
+            for ( k = p->nLutSize - 1; k >= 0; k-- )
+            {
+                iVar = Exa3_ManInitPolarityFindVar( p, i, k, &nInputs );
+                p->pSat->polarity[iVar] = 1;
+            }
+        }
+        else
+        {
+            for ( k = p->nLutSize - 1; k > 0; k-- )
+            {
+                iVar = Exa3_ManInitPolarityFindVar( p, i, k, &nInputs );
+                p->pSat->polarity[iVar] = 1;
+            }
+            iVar = p->VarMarks[i][0][i-1];
+            if ( iVar <= 0 ) printf( "Variable mapping error.\n" ), fflush(stdout);
+            assert( iVar > 0 );
+            p->pSat->polarity[iVar] = 1;
+            //intf( "Setting var %d.\n", iVar );
+        }
+        //intf( "\n" );
+    }
 }
 static Exa3_Man_t * Exa3_ManAlloc( int nVars, int nNodes, int nLutSize, word * pTruth )
 {
@@ -970,6 +1018,7 @@ static Exa3_Man_t * Exa3_ManAlloc( int nVars, int nNodes, int nLutSize, word * p
     p->vInfo      = Exa3_ManTruthTables( p );
     p->pSat       = sat_solver_new();
     sat_solver_setnvars( p->pSat, p->iVar );
+    Exa3_ManInitPolarity( p );
     return p;
 }
 static void Exa3_ManFree( Exa3_Man_t * p )
