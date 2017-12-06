@@ -8177,11 +8177,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fVerbose );
-    extern void Exa_ManExactSynthesis2( char * pTtStr, int nVars, int nNodes, int fVerbose );
-    int c, nVars = 4, nNodes = 3, fGlucose = 0, fVerbose = 1; char * pTtStr = NULL;
+    extern void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fOnlyAnd, int fVerbose );
+    extern void Exa_ManExactSynthesis2( char * pTtStr, int nVars, int nNodes, int fOnlyAnd, int fVerbose );
+    int c, nVars = 4, nNodes = 3, fGlucose = 0, fOnlyAnd = 0, fVerbose = 1; char * pTtStr = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INagvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8206,6 +8206,9 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nNodes < 0 )
                 goto usage;
+            break;
+        case 'a':
+            fOnlyAnd ^= 1;
             break;
         case 'g':
             fGlucose ^= 1;
@@ -8232,16 +8235,17 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fGlucose )
-        Exa_ManExactSynthesis( pTtStr, nVars, nNodes, fVerbose );
+        Exa_ManExactSynthesis( pTtStr, nVars, nNodes, fOnlyAnd, fVerbose );
     else
-        Exa_ManExactSynthesis2( pTtStr, nVars, nNodes, fVerbose );
+        Exa_ManExactSynthesis2( pTtStr, nVars, nNodes, fOnlyAnd, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: twoexact [-IN <num>] [-fcgvh] <hex>\n" );
+    Abc_Print( -2, "usage: twoexact [-IN <num>] [-fcagvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
+    Abc_Print( -2, "\t-a       : toggle using only AND-gates (without XOR-gates) [default = %s]\n", fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
@@ -8262,11 +8266,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Exa3_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int nLutSize, int fVerbose );
-    extern void Exa3_ManExactSynthesis2( char * pTtStr, int nVars, int nNodes, int nLutSize, int fVerbose );
-    int c, nVars = 5, nNodes = 5, nLutSize = 3, fGlucose = 0, fVerbose = 1; char * pTtStr = NULL;
+    extern void Exa3_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int nLutSize, int fOnlyAnd, int fVerbose );
+    extern void Exa3_ManExactSynthesis2( char * pTtStr, int nVars, int nNodes, int nLutSize, int fOnlyAnd, int fVerbose );
+    int c, nVars = 5, nNodes = 5, nLutSize = 3, fGlucose = 0, fOnlyAnd = 0, fVerbose = 1; char * pTtStr = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INKgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INKagvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8303,6 +8307,9 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nLutSize < 0 )
                 goto usage;
             break;
+        case 'a':
+            fOnlyAnd ^= 1;
+            break;
         case 'g':
             fGlucose ^= 1;
             break;
@@ -8333,17 +8340,18 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fGlucose )
-        Exa3_ManExactSynthesis( pTtStr, nVars, nNodes, nLutSize, fVerbose );
+        Exa3_ManExactSynthesis( pTtStr, nVars, nNodes, nLutSize, fOnlyAnd, fVerbose );
     else
-        Exa3_ManExactSynthesis2( pTtStr, nVars, nNodes, nLutSize, fVerbose );
+        Exa3_ManExactSynthesis2( pTtStr, nVars, nNodes, nLutSize, fOnlyAnd, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-INK <num>] [-fcgvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-INK <num>] [-fcagvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", nNodes );
     Abc_Print( -2, "\t-K <num> : the number of node fanins [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );

@@ -431,9 +431,9 @@ int Exa_ManMarkup( Exa_Man_t * p )
 {
     int i, k, j;
     assert( p->nObjs <= MAJ_NOBJS );
-    // assign variables for truth tables
+    // assign functionality
     p->iVar = 1 + p->nNodes * 3;
-    // assign variables for     other nodes
+    // assign connectivity variables
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
         for ( k = 0; k < 2; k++ )
@@ -591,7 +591,7 @@ void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
   SeeAlso     []
 
 ***********************************************************************/
-int Exa_ManAddCnfStart( Exa_Man_t * p )
+int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
 {
     int pLits[MAJ_NOBJS], pLits2[2], i, j, k, n, m;
     // input constraints
@@ -634,6 +634,14 @@ int Exa_ManAddCnfStart( Exa_Man_t * p )
             pLits[0] = Abc_Var2Lit( iVarStart,   k==1 );
             pLits[1] = Abc_Var2Lit( iVarStart+1, k==2 );
             pLits[2] = Abc_Var2Lit( iVarStart+2, k!=0 );
+            if ( !bmcg_sat_solver_addclause( p->pSat, pLits, 3 ) )
+                return 0;
+        }
+        if ( fOnlyAnd )
+        {
+            pLits[0] = Abc_Var2Lit( iVarStart,   1 );
+            pLits[1] = Abc_Var2Lit( iVarStart+1, 1 );
+            pLits[2] = Abc_Var2Lit( iVarStart+2, 0 );
             if ( !bmcg_sat_solver_addclause( p->pSat, pLits, 3 ) )
                 return 0;
         }
@@ -703,7 +711,7 @@ int Exa_ManAddCnf( Exa_Man_t * p, int iMint )
     p->iVar += 3*p->nNodes;
     return 1;
 }
-void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fVerbose )
+void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fOnlyAnd, int fVerbose )
 {
     int i, status, iMint = 1;
     abctime clkTotal = Abc_Clock();
@@ -712,7 +720,7 @@ void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fVerbose )
     assert( nVars <= 10 );
     p = Exa_ManAlloc( nVars, nNodes, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
-    status = Exa_ManAddCnfStart( p );
+    status = Exa_ManAddCnfStart( p, fOnlyAnd );
     assert( status );
     printf( "Running exact synthesis for %d-input function with %d two-input gates...\n", p->nVars, p->nNodes );
     for ( i = 0; iMint != -1; i++ )
@@ -790,8 +798,9 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
 {
     int i, k, j;
     assert( p->nObjs <= MAJ_NOBJS );
-    // assign variables for truth tables
+    // assign functionality variables
     p->iVar = 1 + p->LutMask * p->nNodes;
+    // assign connectivity variables
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
         for ( k = 0; k < p->nLutSize; k++ )
@@ -961,7 +970,7 @@ static void Exa3_ManPrintSolution( Exa3_Man_t * p, int fCompl )
   SeeAlso     []
 
 ***********************************************************************/
-static int Exa3_ManAddCnfStart( Exa3_Man_t * p )
+static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
 {
     int pLits[MAJ_NOBJS], pLits2[2], i, j, k, n, m;
     // input constraints
@@ -1006,6 +1015,14 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p )
             pLits[0] = Abc_Var2Lit( iVarStart,   k==1 );
             pLits[1] = Abc_Var2Lit( iVarStart+1, k==2 );
             pLits[2] = Abc_Var2Lit( iVarStart+2, k!=0 );
+            if ( !bmcg_sat_solver_addclause( p->pSat, pLits, 3 ) )
+                return 0;
+        }
+        if ( fOnlyAnd )
+        {
+            pLits[0] = Abc_Var2Lit( iVarStart,   1 );
+            pLits[1] = Abc_Var2Lit( iVarStart+1, 1 );
+            pLits[2] = Abc_Var2Lit( iVarStart+2, 0 );
             if ( !bmcg_sat_solver_addclause( p->pSat, pLits, 3 ) )
                 return 0;
         }
@@ -1079,7 +1096,7 @@ static int Exa3_ManAddCnf( Exa3_Man_t * p, int iMint )
     p->iVar += (p->nLutSize+1)*p->nNodes;
     return 1;
 }
-void Exa3_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int nLutSize, int fVerbose )
+void Exa3_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int nLutSize, int fOnlyAnd, int fVerbose )
 {
     int i, status, iMint = 1;
     abctime clkTotal = Abc_Clock();
@@ -1089,7 +1106,7 @@ void Exa3_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int nLutSize,
     assert( nLutSize <= 6 );
     p = Exa3_ManAlloc( nVars, nNodes, nLutSize, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
-    status = Exa3_ManAddCnfStart( p );
+    status = Exa3_ManAddCnfStart( p, fOnlyAnd );
     assert( status );
     printf( "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
     for ( i = 0; iMint != -1; i++ )
