@@ -628,6 +628,16 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
                     return 0;
             }
         }
+        // node ordering
+        for ( j = p->nVars; j < i; j++ )
+        for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
+        for ( m = n+1; m < p->nObjs; m++ ) if ( p->VarMarks[j][0][m] )
+        {
+            pLits2[0] = Abc_Var2Lit( p->VarMarks[i][0][n], 1 );
+            pLits2[1] = Abc_Var2Lit( p->VarMarks[j][0][m], 1 );
+            if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
+                return 0;
+        }
         // two input functions
         for ( k = 0; k < 3; k++ )
         {
@@ -1006,6 +1016,16 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
                 if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
                     return 0;
             }
+        }
+        // node ordering
+        for ( j = p->nVars; j < i; j++ )
+        for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
+        for ( m = n+1; m < p->nObjs; m++ ) if ( p->VarMarks[j][0][m] )
+        {
+            pLits2[0] = Abc_Var2Lit( p->VarMarks[i][0][n], 1 );
+            pLits2[1] = Abc_Var2Lit( p->VarMarks[j][0][m], 1 );
+            if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
+                return 0;
         }
         if ( p->nLutSize != 2 )
             continue;

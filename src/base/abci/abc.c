@@ -8241,7 +8241,7 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: twoexact [-IN <num>] [-fcagvh] <hex>\n" );
+    Abc_Print( -2, "usage: twoexact [-IN <num>] [-agvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
@@ -8346,7 +8346,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-INK <num>] [-fcagvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-INK <num>] [-agvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", nNodes );
