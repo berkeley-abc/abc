@@ -544,7 +544,14 @@ static int Exa_ManMarkup( Exa_Man_t * p )
     {
         for ( k = 0; k < 2; k++ )
         {
-            for ( j = 0; j < i - k; j++ )
+            if ( i == p->nObjs - 1 && k == 0 )
+            {
+                j = p->nObjs - 2;
+                Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
+                p->VarMarks[i][k][j] = p->iVar++;
+                continue;
+            }
+            for ( j = 1 - k; j < i - k; j++ )
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
@@ -897,7 +904,14 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
     {
         for ( k = 0; k < p->nLutSize; k++ )
         {
-            for ( j = 0; j < i - k; j++ )
+            if ( i == p->nObjs - 1 && k == 0 )
+            {
+                j = p->nObjs - 2;
+                Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
+                p->VarMarks[i][k][j] = p->iVar++;
+                continue;
+            }
+            for ( j = p->nLutSize - 1 - k; j < i - k; j++ )
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
@@ -907,11 +921,13 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
     printf( "The number of parameter variables = %d.\n", p->iVar );
     return p->iVar;
     // printout
-    for ( i = p->nVars; i < p->nObjs; i++ )
+//    for ( i = p->nVars; i < p->nObjs; i++ )
+    for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
-        printf( "Node %d\n", i );
+        printf( "       Node %2d\n", i );
         for ( j = 0; j < p->nObjs; j++ )
         {
+            printf( "Fanin %2d : ", j );
             for ( k = 0; k < p->nLutSize; k++ )
                 printf( "%3d ", p->VarMarks[i][k][j] );
             printf( "\n" );
