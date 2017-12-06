@@ -392,6 +392,7 @@ int Maj_ManExactSynthesis( int nVars, int nNodes, int fUseConst, int fUseLine, i
 typedef struct Exa_Man_t_ Exa_Man_t;
 struct Exa_Man_t_ 
 {
+    Bmc_EsPar_t *     pPars;     // parameters
     int               nVars;     // inputs
     int               nNodes;    // internal nodes
     int               nObjs;     // total objects (nVars inputs + nNodes internal nodes)
@@ -438,20 +439,14 @@ int Exa_ManMarkup( Exa_Man_t * p )
     {
         for ( k = 0; k < 2; k++ )
         {
-#ifdef USE_FIRST_SPECIAL
-            if ( i == p->nObjs - 1 && k == 0 )
+            if ( p->pPars->fFewerVars && i == p->nObjs - 1 && k == 0 )
             {
                 j = p->nObjs - 2;
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
                 continue;
             }
-#endif
-#ifdef USE_LESS_VARS
-            for ( j = 1 - k; j < i - k; j++ )
-#else
-            for ( j = 0; j < i - k; j++ )
-#endif
+            for ( j = p->pPars->fFewerVars ? 1 - k : 0; j < i - k; j++ )
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
@@ -473,13 +468,14 @@ int Exa_ManMarkup( Exa_Man_t * p )
     }
     return p->iVar;
 }
-Exa_Man_t * Exa_ManAlloc( int nVars, int nNodes, word * pTruth )
+Exa_Man_t * Exa_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
 {
     Exa_Man_t * p = ABC_CALLOC( Exa_Man_t, 1 );
-    p->nVars      = nVars;
-    p->nNodes     = nNodes;
-    p->nObjs      = nVars + nNodes;
-    p->nWords     = Abc_TtWordNum(nVars);
+    p->pPars      = pPars;
+    p->nVars      = pPars->nVars;
+    p->nNodes     = pPars->nNodes;
+    p->nObjs      = pPars->nVars + pPars->nNodes;
+    p->nWords     = Abc_TtWordNum(pPars->nVars);
     p->pTruth     = pTruth;
     p->vOutLits   = Vec_WecStart( p->nObjs );
     p->iVar       = Exa_ManMarkup( p );
@@ -729,16 +725,16 @@ int Exa_ManAddCnf( Exa_Man_t * p, int iMint )
     p->iVar += 3*p->nNodes;
     return 1;
 }
-void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fOnlyAnd, int fVerbose )
+void Exa_ManExactSynthesis( Bmc_EsPar_t * pPars )
 {
     int i, status, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa_Man_t * p; int fCompl = 0;
-    word pTruth[16]; Abc_TtReadHex( pTruth, pTtStr );
-    assert( nVars <= 10 );
-    p = Exa_ManAlloc( nVars, nNodes, pTruth );
+    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    assert( pPars->nVars <= 10 );
+    p = Exa_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
-    status = Exa_ManAddCnfStart( p, fOnlyAnd );
+    status = Exa_ManAddCnfStart( p, pPars->fOnlyAnd );
     assert( status );
     printf( "Running exact synthesis for %d-input function with %d two-input gates...\n", p->nVars, p->nNodes );
     for ( i = 0; iMint != -1; i++ )
@@ -747,7 +743,7 @@ void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fOnlyAnd, 
         if ( !Exa_ManAddCnf( p, iMint ) )
             break;
         status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
-        if ( fVerbose )
+        if ( pPars->fVerbose )
         {
             printf( "Iter %3d : ", i );
             Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
@@ -775,6 +771,7 @@ void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fOnlyAnd, 
 typedef struct Exa3_Man_t_ Exa3_Man_t;
 struct Exa3_Man_t_ 
 {
+    Bmc_EsPar_t *     pPars;     // parameters
     int               nVars;     // inputs
     int               nNodes;    // internal nodes
     int               nLutSize;  // lut size
@@ -823,20 +820,14 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
     {
         for ( k = 0; k < p->nLutSize; k++ )
         {
-#ifdef USE_FIRST_SPECIAL
-            if ( i == p->nObjs - 1 && k == 0 )
+            if ( p->pPars->fFewerVars && i == p->nObjs - 1 && k == 0 )
             {
                 j = p->nObjs - 2;
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
                 continue;
             }
-#endif
-#ifdef USE_LESS_VARS
-            for ( j = p->nLutSize - 1 - k; j < i - k; j++ )
-#else
-            for ( j = 0; j < i - k; j++ )
-#endif
+            for ( j = p->pPars->fFewerVars ? p->nLutSize - 1 - k : 0; j < i - k; j++ )
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
@@ -859,15 +850,16 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
     }
     return p->iVar;
 }
-static Exa3_Man_t * Exa3_ManAlloc( int nVars, int nNodes, int nLutSize, word * pTruth )
+static Exa3_Man_t * Exa3_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
 {
     Exa3_Man_t * p = ABC_CALLOC( Exa3_Man_t, 1 );
-    p->nVars      = nVars;
-    p->nNodes     = nNodes;
-    p->nLutSize   = nLutSize;
-    p->LutMask    = (1 << nLutSize) - 1;
-    p->nObjs      = nVars + nNodes;
-    p->nWords     = Abc_TtWordNum(nVars);
+    p->pPars      = pPars;
+    p->nVars      = pPars->nVars;
+    p->nNodes     = pPars->nNodes;
+    p->nLutSize   = pPars->nLutSize;
+    p->LutMask    = (1 << pPars->nLutSize) - 1;
+    p->nObjs      = pPars->nVars + pPars->nNodes;
+    p->nWords     = Abc_TtWordNum(pPars->nVars);
     p->pTruth     = pTruth;
     p->vOutLits   = Vec_WecStart( p->nObjs );
     p->iVar       = Exa3_ManMarkup( p );
@@ -1132,17 +1124,17 @@ static int Exa3_ManAddCnf( Exa3_Man_t * p, int iMint )
     p->iVar += (p->nLutSize+1)*p->nNodes;
     return 1;
 }
-void Exa3_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int nLutSize, int fOnlyAnd, int fVerbose )
+void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
 {
     int i, status, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa3_Man_t * p; int fCompl = 0;
-    word pTruth[16]; Abc_TtReadHex( pTruth, pTtStr );
-    assert( nVars <= 10 );
-    assert( nLutSize <= 6 );
-    p = Exa3_ManAlloc( nVars, nNodes, nLutSize, pTruth );
+    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    assert( pPars->nVars <= 10 );
+    assert( pPars->nLutSize <= 6 );
+    p = Exa3_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
-    status = Exa3_ManAddCnfStart( p, fOnlyAnd );
+    status = Exa3_ManAddCnfStart( p, pPars->fOnlyAnd );
     assert( status );
     printf( "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
     for ( i = 0; iMint != -1; i++ )
@@ -1151,7 +1143,7 @@ void Exa3_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int nLutSize,
         if ( !Exa3_ManAddCnf( p, iMint ) )
             break;
         status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
-        if ( fVerbose )
+        if ( pPars->fVerbose )
         {
             printf( "Iter %3d : ", i );
             Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );

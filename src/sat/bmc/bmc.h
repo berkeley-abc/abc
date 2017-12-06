@@ -36,12 +36,38 @@
 ABC_NAMESPACE_HEADER_START
 
 //#define USE_NODE_ORDER 1
-//#define USE_FIRST_SPECIAL 1
-//#define USE_LESS_VARS 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
+
+
+// exact synthesis parameters
+
+typedef struct Bmc_EsPar_t_ Bmc_EsPar_t;
+struct Bmc_EsPar_t_
+{
+    int        nVars; 
+    int        nNodes;
+    int        nLutSize;
+    int        fGlucose;
+    int        fOnlyAnd;
+    int        fFewerVars;
+    int        fVerbose; 
+    char *     pTtStr;
+};
+
+static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
+{
+    pPars->nVars      = 5;   // when first GC happens (4096) (degree of 2)
+    pPars->nNodes     = 4;   // when each next GC happens (5)
+    pPars->nLutSize   = 3;   // log difference compared to unique table
+    pPars->fGlucose   = 0;   // minimum gain when reodering is not performed
+    pPars->fOnlyAnd   = 0;   // minimum gain when reodering is not performed
+    pPars->fFewerVars = 0;   // minimum gain when reodering is not performed
+    pPars->fVerbose   = 1;   // verbose output
+}
+
 
 // unrolling manager 
 typedef struct Unr_Man_t_ Unr_Man_t;

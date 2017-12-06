@@ -8177,11 +8177,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Exa_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int fOnlyAnd, int fVerbose );
-    extern void Exa_ManExactSynthesis2( char * pTtStr, int nVars, int nNodes, int fOnlyAnd, int fVerbose );
-    int c, nVars = 4, nNodes = 3, fGlucose = 0, fOnlyAnd = 0, fVerbose = 1; char * pTtStr = NULL;
+    extern void Exa_ManExactSynthesis( Bmc_EsPar_t * pPars );
+    extern void Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars );
+    int c;
+    Bmc_EsPar_t Pars, * pPars = &Pars;
+    Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INagvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INaogvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8191,9 +8193,9 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nVars = atoi(argv[globalUtilOptind]);
+            pPars->nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nVars < 0 )
+            if ( pPars->nVars < 0 )
                 goto usage;
             break;
         case 'N':
@@ -8202,19 +8204,22 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nNodes = atoi(argv[globalUtilOptind]);
+            pPars->nNodes = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNodes < 0 )
+            if ( pPars->nNodes < 0 )
                 goto usage;
             break;
         case 'a':
-            fOnlyAnd ^= 1;
+            pPars->fOnlyAnd ^= 1;
+            break;
+        case 'o':
+            pPars->fFewerVars ^= 1;
             break;
         case 'g':
-            fGlucose ^= 1;
+            pPars->fGlucose ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -8223,41 +8228,42 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     if ( argc == globalUtilOptind + 1 )
-        pTtStr = argv[globalUtilOptind];
-    if ( pTtStr == NULL )
+        pPars->pTtStr = argv[globalUtilOptind];
+    if ( pPars->pTtStr == NULL )
     {
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
         return 1;
     }
-    if ( (1 << (nVars-2)) != (int)strlen(pTtStr) )
+    if ( (1 << (pPars->nVars-2)) != (int)strlen(pPars->pTtStr) )
     {
-        Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (nVars-2)), strlen(pTtStr) );
+        Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (pPars->nVars-2)), strlen(pPars->pTtStr) );
         return 1;
     }
-    if ( nVars > nNodes * (2 - 1) + 1 )
+    if ( pPars->nVars > pPars->nNodes * (2 - 1) + 1 )
     {
-        Abc_Print( -1, "Function with %d variales cannot be implemented with %d two-input gates.\n", nVars, nNodes );
+        Abc_Print( -1, "Function with %d variales cannot be implemented with %d two-input gates.\n", pPars->nVars, pPars->nNodes );
         return 1;
     }
-    if ( nVars > 10 )
+    if ( pPars->nVars > 10 )
     {
         Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
         return 1;
     }
-    if ( fGlucose )
-        Exa_ManExactSynthesis( pTtStr, nVars, nNodes, fOnlyAnd, fVerbose );
+    if ( pPars->fGlucose )
+        Exa_ManExactSynthesis( pPars );
     else
-        Exa_ManExactSynthesis2( pTtStr, nVars, nNodes, fOnlyAnd, fVerbose );
+        Exa_ManExactSynthesis2( pPars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: twoexact [-IN <num>] [-agvh] <hex>\n" );
+    Abc_Print( -2, "usage: twoexact [-IN <num>] [-aogvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
-    Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
-    Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", nNodes );
-    Abc_Print( -2, "\t-a       : toggle using only AND-gates (without XOR-gates) [default = %s]\n", fOnlyAnd ? "yes" : "no" );
-    Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose ? "yes" : "no" );
-    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
+    Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", pPars->nNodes );
+    Abc_Print( -2, "\t-a       : toggle using only AND-gates (without XOR-gates) [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
+    Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );
+    Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fGlucose ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
     Abc_Print( -2, "\t           \n" );
@@ -8283,11 +8289,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Exa3_ManExactSynthesis( char * pTtStr, int nVars, int nNodes, int nLutSize, int fOnlyAnd, int fVerbose );
-    extern void Exa3_ManExactSynthesis2( char * pTtStr, int nVars, int nNodes, int nLutSize, int fOnlyAnd, int fVerbose );
-    int c, nVars = 5, nNodes = 5, nLutSize = 3, fGlucose = 0, fOnlyAnd = 0, fVerbose = 1; char * pTtStr = NULL;
+    extern void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars );
+    extern void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars );
+    int c;
+    Bmc_EsPar_t Pars, * pPars = &Pars;
+    Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INKagvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INKaogvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8297,9 +8305,9 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nVars = atoi(argv[globalUtilOptind]);
+            pPars->nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nVars < 0 )
+            if ( pPars->nVars < 0 )
                 goto usage;
             break;
         case 'N':
@@ -8308,30 +8316,33 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nNodes = atoi(argv[globalUtilOptind]);
+            pPars->nNodes = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nNodes < 0 )
+            if ( pPars->nNodes < 0 )
                 goto usage;
             break;
-        case 'K':
+       case 'K':
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nLutSize = atoi(argv[globalUtilOptind]);
+            pPars->nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLutSize < 0 )
+            if ( pPars->nLutSize < 0 )
                 goto usage;
             break;
         case 'a':
-            fOnlyAnd ^= 1;
+            pPars->fOnlyAnd ^= 1;
+            break;
+        case 'o':
+            pPars->fFewerVars ^= 1;
             break;
         case 'g':
-            fGlucose ^= 1;
+            pPars->fGlucose ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPars->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -8340,47 +8351,48 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     if ( argc == globalUtilOptind + 1 )
-        pTtStr = argv[globalUtilOptind];
-    if ( pTtStr == NULL )
+        pPars->pTtStr = argv[globalUtilOptind];
+    if ( pPars->pTtStr == NULL )
     {
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
         return 1;
     }
-    if ( (1 << (nVars-2)) != (int)strlen(pTtStr) )
+    if ( (1 << (pPars->nVars-2)) != (int)strlen(pPars->pTtStr) )
     {
-        Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (nVars-2)), strlen(pTtStr) );
+        Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (pPars->nVars-2)), strlen(pPars->pTtStr) );
         return 1;
     }
-    if ( nVars > nNodes * (nLutSize - 1) + 1 )
+    if ( pPars->nVars > pPars->nNodes * (pPars->nLutSize - 1) + 1 )
     {
-        Abc_Print( -1, "Function with %d variales cannot be implemented with %d %d-input LUTs.\n", nVars, nNodes, nLutSize );
+        Abc_Print( -1, "Function with %d variales cannot be implemented with %d %d-input LUTs.\n", pPars->nVars, pPars->nNodes, pPars->nLutSize );
         return 1;
     }
-    if ( nVars > 10 )
+    if ( pPars->nVars > 10 )
     {
         Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
         return 1;
     }
-    if ( nLutSize > 6 )
+    if ( pPars->nLutSize > 6 )
     {
         Abc_Print( -1, "Node size should not be more than 6 inputs.\n" );
         return 1;
     }
-    if ( fGlucose )
-        Exa3_ManExactSynthesis( pTtStr, nVars, nNodes, nLutSize, fOnlyAnd, fVerbose );
+    if ( pPars->fGlucose )
+        Exa3_ManExactSynthesis( pPars );
     else
-        Exa3_ManExactSynthesis2( pTtStr, nVars, nNodes, nLutSize, fOnlyAnd, fVerbose );
+        Exa3_ManExactSynthesis2( pPars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-INK <num>] [-agvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-INK <num>] [-aogvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
-    Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
-    Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", nNodes );
-    Abc_Print( -2, "\t-K <num> : the number of node fanins [default = %d]\n", nLutSize );
-    Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", fOnlyAnd ? "yes" : "no" );
-    Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose ? "yes" : "no" );
-    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
+    Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
+    Abc_Print( -2, "\t-K <num> : the number of node fanins [default = %d]\n", pPars->nLutSize );
+    Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
+    Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );
+    Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fGlucose ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
     return 1;
