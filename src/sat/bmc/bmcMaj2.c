@@ -553,7 +553,11 @@ static int Exa_ManMarkup( Exa_Man_t * p )
                 continue;
             }
 #endif
+#ifdef USE_LESS_VARS
             for ( j = 1 - k; j < i - k; j++ )
+#else
+            for ( j = 0; j < i - k; j++ )
+#endif
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
@@ -936,7 +940,11 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
                 continue;
             }
 #endif
+#ifdef USE_LESS_VARS
             for ( j = p->nLutSize - 1 - k; j < i - k; j++ )
+#else
+            for ( j = 0; j < i - k; j++ )
+#endif
             {
                 Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
                 p->VarMarks[i][k][j] = p->iVar++;
