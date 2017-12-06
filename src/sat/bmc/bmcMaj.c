@@ -628,6 +628,7 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
                     return 0;
             }
         }
+#ifdef USE_NODE_ORDER
         // node ordering
         for ( j = p->nVars; j < i; j++ )
         for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
@@ -638,6 +639,7 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
             if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
                 return 0;
         }
+#endif
         // two input functions
         for ( k = 0; k < 3; k++ )
         {
@@ -1017,6 +1019,7 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
                     return 0;
             }
         }
+#ifdef USE_NODE_ORDER
         // node ordering
         for ( j = p->nVars; j < i; j++ )
         for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
@@ -1027,6 +1030,7 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
             if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
                 return 0;
         }
+#endif
         if ( p->nLutSize != 2 )
             continue;
         // two-input functions

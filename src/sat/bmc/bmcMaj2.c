@@ -26,7 +26,6 @@
 
 ABC_NAMESPACE_IMPL_START
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -735,6 +734,7 @@ static int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
                     return 0;
             }
         }
+#ifdef USE_NODE_ORDER
         // node ordering
         for ( j = p->nVars; j < i; j++ )
         for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
@@ -745,6 +745,7 @@ static int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
             if ( !sat_solver_addclause( p->pSat, pLits2, pLits2+2 ) )
                 return 0;
         }
+#endif
         // two input functions
         for ( k = 0; k < 3; k++ )
         {
@@ -939,7 +940,7 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
         }
     }
     printf( "The number of parameter variables = %d.\n", p->iVar );
-    //return p->iVar;
+    return p->iVar;
     // printout
 //    for ( i = p->nVars; i < p->nObjs; i++ )
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
@@ -1018,7 +1019,7 @@ static Exa3_Man_t * Exa3_ManAlloc( int nVars, int nNodes, int nLutSize, word * p
     p->vInfo      = Exa3_ManTruthTables( p );
     p->pSat       = sat_solver_new();
     sat_solver_setnvars( p->pSat, p->iVar );
-    Exa3_ManInitPolarity( p );
+    //Exa3_ManInitPolarity( p );
     return p;
 }
 static void Exa3_ManFree( Exa3_Man_t * p )
@@ -1187,6 +1188,7 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
         }
         //printf( "Node %d:\n", i );
         //sat_solver_flip_print_clause( p->pSat );
+#ifdef USE_NODE_ORDER
         // node ordering
         for ( j = p->nVars; j < i; j++ )
         for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
@@ -1197,6 +1199,7 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
             if ( !sat_solver_addclause( p->pSat, pLits2, pLits2+2 ) )
                 return 0;
         }
+#endif
         if ( p->nLutSize != 2 )
             continue;
         // two-input functions

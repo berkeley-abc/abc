@@ -8229,6 +8229,16 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
         return 1;
     }
+    if ( (1 << (nVars-2)) != (int)strlen(pTtStr) )
+    {
+        Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (nVars-2)), strlen(pTtStr) );
+        return 1;
+    }
+    if ( nVars > nNodes * (2 - 1) + 1 )
+    {
+        Abc_Print( -1, "Function with %d variales cannot be implemented with %d two-input gates.\n", nVars, nNodes );
+        return 1;
+    }
     if ( nVars > 10 )
     {
         Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
@@ -8250,6 +8260,13 @@ usage:
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
+    Abc_Print( -2, "\t           \n" );
+    Abc_Print( -2, "\t           For example, command line \"twoexact -g -I 5 -N 12 169AE443\"\n" );
+    Abc_Print( -2, "\t           synthesizes the smallest circuit composed of two-input gates\n" );
+    Abc_Print( -2, "\t           for the only NPN class of 5-input functions that requires 12 gates;\n" );
+    Abc_Print( -2, "\t           all other functions can be realized with 11 two-input gates or less\n" );
+    Abc_Print( -2, "\t           (see Section 7.1.2 \"Boolean evaluation\" in the book by Donald Knuth\n" );
+    Abc_Print( -2, "\t           http://www.cs.utsa.edu/~wagner/knuth/fasc0c.pdf)\n" );
     return 1;
 }
 
@@ -8327,6 +8344,16 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pTtStr == NULL )
     {
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
+        return 1;
+    }
+    if ( (1 << (nVars-2)) != (int)strlen(pTtStr) )
+    {
+        Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (nVars-2)), strlen(pTtStr) );
+        return 1;
+    }
+    if ( nVars > nNodes * (nLutSize - 1) + 1 )
+    {
+        Abc_Print( -1, "Function with %d variales cannot be implemented with %d %d-input LUTs.\n", nVars, nNodes, nLutSize );
         return 1;
     }
     if ( nVars > 10 )
