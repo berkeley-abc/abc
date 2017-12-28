@@ -425,6 +425,7 @@ Cnf_Dat_t * Mf_ManDeriveCnf( Mf_Man_t * p, int fCnfObjIds, int fAddOrCla )
         {
             pCnf->pClauses[iCla++] = pCnf->pClauses[0] + iLit;
             pCnf->pClauses[0][iLit++] = Abc_Var2Lit(pCnfIds[Id], !fComplLast);
+            assert( pCnf->vMapping == NULL ); // bug fix does not handle generated mapping
             continue;
         }
         for ( k = 0; k < Mf_CutSize(pCut); k++ )
