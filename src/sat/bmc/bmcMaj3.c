@@ -948,10 +948,12 @@ static void Zyx_ManPrintSolution( Zyx_Man_t * p, int fCompl )
         printf( "(" );
         for ( k = 0; k < i; k++ )
             if ( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_TopoVar(p, i, k)) )
+            {
                 if ( k >= 0 && k < p->pPars->nVars )
                     printf( " %c", 'a'+k );
                 else
                     printf( " %02d", k );
+            }
         printf( " )\n" );
     }
 }
