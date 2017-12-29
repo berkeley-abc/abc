@@ -50,8 +50,13 @@ struct Bmc_EsPar_t_
     int        nVars; 
     int        nNodes;
     int        nLutSize;
-    int        fGlucose;
+    int        nMajSupp;
+    int        fMajority;
+    int        fEnumSols;
     int        fOnlyAnd;
+    int        fGlucose;
+    int        fOrderNodes;
+    int        fGenAll;
     int        fFewerVars;
     int        fVerbose; 
     char *     pTtStr;
@@ -59,13 +64,19 @@ struct Bmc_EsPar_t_
 
 static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
 {
-    pPars->nVars      = 5;   // when first GC happens (4096) (degree of 2)
-    pPars->nNodes     = 4;   // when each next GC happens (5)
-    pPars->nLutSize   = 3;   // log difference compared to unique table
-    pPars->fGlucose   = 0;   // minimum gain when reodering is not performed
-    pPars->fOnlyAnd   = 0;   // minimum gain when reodering is not performed
-    pPars->fFewerVars = 0;   // minimum gain when reodering is not performed
-    pPars->fVerbose   = 1;   // verbose output
+    memset( pPars, 0, sizeof(Bmc_EsPar_t) );
+    pPars->nVars       = 0; 
+    pPars->nNodes      = 0; 
+    pPars->nLutSize    = 2; 
+    pPars->nMajSupp    = 0;
+    pPars->fMajority   = 0; 
+    pPars->fEnumSols   = 0; 
+    pPars->fOnlyAnd    = 0; 
+    pPars->fGlucose    = 0; 
+    pPars->fOrderNodes = 0; 
+    pPars->fGenAll     = 0; 
+    pPars->fFewerVars  = 0; 
+    pPars->fVerbose    = 1; 
 }
 
 

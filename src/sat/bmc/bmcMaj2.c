@@ -280,6 +280,7 @@ static inline int Maj_ManFindFanin( Maj_Man_t * p, int i, int k )
 }
 static inline int Maj_ManEval( Maj_Man_t * p )
 {
+    int fUseMiddle = 1;
     static int Flag = 0;
     int i, k, iMint; word * pFanins[3];
     for ( i = p->nVars + 2; i < p->nObjs; i++ )
@@ -288,10 +289,27 @@ static inline int Maj_ManEval( Maj_Man_t * p )
             pFanins[k] = Maj_ManTruth( p, Maj_ManFindFanin(p, i, k) );
         Abc_TtMaj( Maj_ManTruth(p, i), pFanins[0], pFanins[1], pFanins[2], p->nWords );
     }
-    if ( Flag && p->nVars >= 6 )
-        iMint = Abc_TtFindLastDiffBit( Maj_ManTruth(p, p->nObjs-1), Maj_ManTruth(p, p->nObjs), p->nVars );
+    if ( fUseMiddle )
+    {
+        iMint = -1;
+        for ( i = 0; i < (1 << p->nVars); i++ )
+        {
+            int nOnes = Abc_TtBitCount16(i);
+            if ( nOnes < p->nVars/2 || nOnes > p->nVars/2+1 )
+                continue;
+            if ( Abc_TtGetBit(Maj_ManTruth(p, p->nObjs), i) == Abc_TtGetBit(Maj_ManTruth(p, p->nObjs-1), i) )
+                continue;
+            iMint = i;
+            break;
+        }
+    }
     else
-        iMint = Abc_TtFindFirstDiffBit( Maj_ManTruth(p, p->nObjs-1), Maj_ManTruth(p, p->nObjs), p->nVars );
+    {
+        if ( Flag && p->nVars >= 6 )
+            iMint = Abc_TtFindLastDiffBit( Maj_ManTruth(p, p->nObjs-1), Maj_ManTruth(p, p->nObjs), p->nVars );
+        else
+            iMint = Abc_TtFindFirstDiffBit( Maj_ManTruth(p, p->nObjs-1), Maj_ManTruth(p, p->nObjs), p->nVars );
+    }
     //Flag ^= 1;
     assert( iMint < (1 << p->nVars) );
     return iMint;
