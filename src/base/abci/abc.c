@@ -8473,7 +8473,7 @@ int Abc_CommandAllExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fOrderNodes ^= 1;
             break;
         case 'e':
-            pPars->fGenAll ^= 1;
+            pPars->fEnumSols ^= 1;
             break;
         case 'g':
             pPars->fGlucose ^= 1;
@@ -8559,7 +8559,7 @@ usage:
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using node ordering by fanins [default = %s]\n", pPars->fOrderNodes ? "yes" : "no" );
-    Abc_Print( -2, "\t-e       : toggle enumerating all solutions [default = %s]\n", pPars->fGenAll ? "yes" : "no" );
+    Abc_Print( -2, "\t-e       : toggle enumerating all solutions [default = %s]\n", pPars->fEnumSols ? "yes" : "no" );
 //    Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fGlucose ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );

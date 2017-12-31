@@ -559,18 +559,47 @@ struct Zyx_Man_t_
     int               MintBase;   // TopoBase + nObjs * nObjs
     Vec_Wrd_t *       vInfo;      // nVars + nNodes + 1
     Vec_Int_t *       vVarValues; // variable values
+    Vec_Int_t *       vMidMints;  // middle minterms
+    Vec_Bit_t *       vUsed2;     // bit masks
+    Vec_Bit_t *       vUsed3;     // bit masks
+    int               nUsed[2];
     int               pFanins[MAJ3_OBJS][MAJ3_OBJS];  // fanins
     int               pLits[2][2*MAJ3_OBJS]; // neg/pos literals
     int               nLits[2];   // neg/pos literal
     int               Counts[1024];
     bmcg_sat_solver * pSat;       // SAT solver
+    abctime           clkEval;
 };
 
 static inline word *  Zyx_ManTruth( Zyx_Man_t * p, int v )        { return Vec_WrdEntryP( p->vInfo, p->nWords * v ); }
 
-static inline int     Zyx_FuncVar( Zyx_Man_t * p, int i, int m )  { return (1 << p->pPars->nLutSize) * i + m;        }
-static inline int     Zyx_TopoVar( Zyx_Man_t * p, int i, int f )  { return p->TopoBase + p->nObjs * i + f;           }
-static inline int     Zyx_MintVar( Zyx_Man_t * p, int m, int i )  { return p->MintBase + p->nObjs * m + i;           }
+static inline int     Zyx_FuncVar( Zyx_Man_t * p, int i, int m )  { return (p->LutMask + 1) * (i - p->pPars->nVars) + m;        }
+static inline int     Zyx_TopoVar( Zyx_Man_t * p, int i, int f )  { return p->TopoBase + p->nObjs * (i - p->pPars->nVars) + f;  }
+static inline int     Zyx_MintVar( Zyx_Man_t * p, int m, int i )  { return p->MintBase + p->nObjs * m + i;                      }
+
+static inline int     Zyx_ManIsUsed2( Zyx_Man_t * p, int m, int n, int i, int j )
+{
+    int Pos = ((m * p->pPars->nNodes + n - p->pPars->nVars) * p->nObjs + i) * p->nObjs + j;
+    p->nUsed[0]++;
+    assert( i < n && j < n && i < j );
+    if ( Vec_BitEntry(p->vUsed2, Pos) )
+        return 1;
+    p->nUsed[1]++;
+    Vec_BitWriteEntry( p->vUsed2, Pos, 1 );
+    return 0;
+}
+
+static inline int     Zyx_ManIsUsed3( Zyx_Man_t * p, int m, int n, int i, int j, int k )
+{
+    int Pos = (((m * p->pPars->nNodes + n - p->pPars->nVars) * p->nObjs + i) * p->nObjs + j) * p->nObjs + k;
+    p->nUsed[0]++;
+    assert( i < n && j < n && k < n && i < j && j < k );
+    if ( Vec_BitEntry(p->vUsed3, Pos) )
+        return 1;
+    p->nUsed[1]++;
+    Vec_BitWriteEntry( p->vUsed3, Pos, 1 );
+    return 0;
+}
 
 /**Function*************************************************************
 
@@ -725,9 +754,14 @@ Vec_Wrd_t * Zyx_ManTruthTables( Zyx_Man_t * p, word * pTruth )
     for ( i = 0; i < p->pPars->nVars; i++ )
         Abc_TtIthVar( Zyx_ManTruth(p, i), i, p->pPars->nVars );
     if ( p->pPars->fMajority )
+    {
         for ( i = 0; i < nMints; i++ )
             if ( Zyx_ManValue(i, p->pPars->nVars) )
                 Abc_TtSetBit( Zyx_ManTruth(p, p->nObjs), i );
+        for ( i = 0; i < nMints; i++ )
+            if ( Abc_TtBitCount16(i) == p->pPars->nVars/2 || Abc_TtBitCount16(i) == p->pPars->nVars/2+1 )
+                Vec_IntPush( p->vMidMints, i );
+    }
     //Dau_DsdPrintFromTruth( Zyx_ManTruth(p, p->nObjs), p->pPars->nVars );
     return vInfo;
 }
@@ -739,10 +773,15 @@ Zyx_Man_t * Zyx_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     p->nObjs      = p->pPars->nVars + p->pPars->nNodes;
     p->nWords     = Abc_TtWordNum(p->pPars->nVars);
     p->LutMask    = (1 << p->pPars->nLutSize) - 1;
-    p->TopoBase   = (1 << p->pPars->nLutSize) * p->nObjs;
-    p->MintBase   = p->TopoBase + p->nObjs * p->nObjs;
+    p->TopoBase   = (1 << p->pPars->nLutSize) * p->pPars->nNodes;
+    p->MintBase   = p->TopoBase + p->pPars->nNodes * p->nObjs;
     p->vVarValues = Vec_IntStartFull( p->MintBase + (1 << p->pPars->nVars) * p->nObjs );
+    p->vMidMints  = Vec_IntAlloc( 1 << p->pPars->nVars );
     p->vInfo      = Zyx_ManTruthTables( p, pTruth );
+    if ( p->pPars->nLutSize == 2 || p->pPars->fMajority )
+    p->vUsed2     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs );
+    else if ( p->pPars->nLutSize == 3 )
+    p->vUsed3     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs * p->nObjs );
     p->pSat       = bmcg_sat_solver_start();
     bmcg_sat_solver_set_nvars( p->pSat, p->MintBase + (1 << p->pPars->nVars) * p->nObjs );
     Zyx_ManSetupVars( p );
@@ -754,6 +793,9 @@ void Zyx_ManFree( Zyx_Man_t * p )
 {
     bmcg_sat_solver_stop( p->pSat );
     Vec_WrdFree( p->vInfo );
+    Vec_BitFreeP( &p->vUsed2 );
+    Vec_BitFreeP( &p->vUsed3 );
+    Vec_IntFree( p->vMidMints );
     Vec_IntFree( p->vVarValues );
     ABC_FREE( p );
 }
@@ -879,11 +921,13 @@ int Zyx_ManAddCnfLazyFunc( Zyx_Man_t * p, int iMint )
     {
         int nFanins = Zyx_ManCollectFanins( p, i );
         assert( nFanins == p->pPars->nLutSize );
-        for ( n = 0; n < 2; n++ )
+        if ( p->pPars->fMajority )
         {
-            if ( p->pPars->fMajority )
+            for ( k = 0; k < 3; k++ )
             {
-                for ( k = 0; k < 3; k++ )
+                if ( Zyx_ManIsUsed2(p, iMint, i, p->pFanins[i][Sets[k][0]], p->pFanins[i][Sets[k][1]]) )
+                    continue;
+                for ( n = 0; n < 2; n++ )
                 {
                     p->nLits[0] = 0;
                     for ( s = 0; s < 2; s++ )
@@ -896,22 +940,26 @@ int Zyx_ManAddCnfLazyFunc( Zyx_Man_t * p, int iMint )
                         return 0;
                 }
             }
-            else
+        }
+        else
+        {
+            if ( p->pPars->nLutSize == 2 && Zyx_ManIsUsed2(p, iMint, i, p->pFanins[i][0], p->pFanins[i][1]) )
+                continue;
+            if ( p->pPars->nLutSize == 3 && Zyx_ManIsUsed3(p, iMint, i, p->pFanins[i][0], p->pFanins[i][1], p->pFanins[i][2]) )
+                continue;
+            for ( k = 0; k <= p->LutMask; k++ )
+            for ( n = 0; n < 2; n++ )
             {
-                for ( k = 0; k <= p->LutMask; k++ )
+                p->nLits[0] = 0;
+                p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_FuncVar(p, i, k), n );
+                for ( j = 0; j < p->pPars->nLutSize; j++ )
                 {
-                    p->nLits[0] = 0;
-                    p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_FuncVar(p, i, k), n );
-                    for ( j = 0; j < p->pPars->nLutSize; j++ )
-                    {
-                        p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_TopoVar(p, i, p->pFanins[i][j]), 1 );
-                        p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_MintVar(p, iMint, p->pFanins[i][j]), (k >> j) & 1 );
-                    }
-                    p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_MintVar(p, iMint, i), !n );
-                    //Zyx_PrintClause( p->pLits[0], p->nLits[0] );
-                    if ( !bmcg_sat_solver_addclause( p->pSat, p->pLits[0], p->nLits[0] ) )
-                        return 0;
+                    p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_TopoVar(p, i, p->pFanins[i][j]), 1 );
+                    p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_MintVar(p, iMint, p->pFanins[i][j]), (k >> j) & 1 );
                 }
+                p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_MintVar(p, iMint, i), !n );
+                if ( !bmcg_sat_solver_addclause( p->pSat, p->pLits[0], p->nLits[0] ) )
+                    return 0;
             }
         }
     }
@@ -960,6 +1008,7 @@ static void Zyx_ManPrintSolution( Zyx_Man_t * p, int fCompl )
 static inline int Zyx_ManEval( Zyx_Man_t * p )
 {
     static int Flag = 0;
+    //abctime clk = Abc_Clock();
     int i, k, j, iMint; word * pFaninsW[6], * pSpec;
     for ( i = p->pPars->nVars; i < p->nObjs; i++ )
     {
@@ -983,12 +1032,23 @@ static inline int Zyx_ManEval( Zyx_Man_t * p )
         }
     }
     pSpec = p->pPars->fMajority ? Zyx_ManTruth(p, p->nObjs) : p->pTruth;
-    if ( Flag && p->pPars->nVars >= 6 )
-        iMint = Abc_TtFindLastDiffBit( Zyx_ManTruth(p, p->nObjs-1), pSpec, p->pPars->nVars );
+    if ( p->pPars->fMajority )
+    {
+        Vec_IntForEachEntry( p->vMidMints, iMint, i )
+            if ( Abc_TtGetBit(pSpec, iMint) != Abc_TtGetBit(Zyx_ManTruth(p, p->nObjs-1), iMint) )
+                return iMint;
+        return -1;
+    }
     else
-        iMint = Abc_TtFindFirstDiffBit( Zyx_ManTruth(p, p->nObjs-1), pSpec, p->pPars->nVars );
+    {
+        if ( Flag && p->pPars->nVars >= 6 )
+            iMint = Abc_TtFindLastDiffBit( Zyx_ManTruth(p, p->nObjs-1), pSpec, p->pPars->nVars );
+        else
+            iMint = Abc_TtFindFirstDiffBit( Zyx_ManTruth(p, p->nObjs-1), pSpec, p->pPars->nVars );
+    }
     //Flag ^= 1;
     assert( iMint < (1 << p->pPars->nVars) );
+    //p->clkEval += Abc_Clock() - clk;
     return iMint;
 }
 static inline void Zyx_ManEvalStats( Zyx_Man_t * p )
@@ -1008,6 +1068,7 @@ static inline void Zyx_ManPrint( Zyx_Man_t * p, int Iter, int iMint, int nLazyAl
     printf( "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
     Abc_PrintTime( 1, "Time", clk );
     //Zyx_ManEvalStats( p );
+    //Abc_PrintTime( 1, "Eval", p->clkEval );
 }
 void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
 {
@@ -1046,7 +1107,7 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
         iMint = Zyx_ManEval( p );
         if ( iMint == -1 )
         {
-            if ( pPars->fGenAll )
+            if ( pPars->fEnumSols )
             {
                 nSols++;
                 if ( pPars->fVerbose )
@@ -1056,7 +1117,10 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
                 }
                 Zyx_ManPrintSolution( p, fCompl );
                 if ( !Zyx_ManAddCnfBlockSolution( p ) )
+                {
+                    status = GLUCOSE_UNSAT;
                     break;
+                }
                 continue;
             }
             else
@@ -1079,14 +1143,16 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
     }
     if ( pPars->fVerbose )
         Zyx_ManPrint( p, Iter, iMint, nLazyAll, Abc_Clock() - clkTotal );
-    if ( pPars->fGenAll )
+    if ( pPars->fEnumSols )
         printf( "Finished enumerating %d solutions.\n", nSols );
     else if ( iMint == -1 )
         Zyx_ManPrintSolution( p, fCompl );
     else
         printf( "The problem has no solution.\n" );
-    Zyx_ManFree( p );
+    //Zyx_ManEvalStats( p );
+    printf( "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+    Zyx_ManFree( p );
 }
 
 

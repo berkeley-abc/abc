@@ -52,11 +52,10 @@ struct Bmc_EsPar_t_
     int        nLutSize;
     int        nMajSupp;
     int        fMajority;
-    int        fEnumSols;
     int        fOnlyAnd;
     int        fGlucose;
     int        fOrderNodes;
-    int        fGenAll;
+    int        fEnumSols;
     int        fFewerVars;
     int        fVerbose; 
     char *     pTtStr;
@@ -70,11 +69,10 @@ static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
     pPars->nLutSize    = 2; 
     pPars->nMajSupp    = 0;
     pPars->fMajority   = 0; 
-    pPars->fEnumSols   = 0; 
     pPars->fOnlyAnd    = 0; 
     pPars->fGlucose    = 0; 
     pPars->fOrderNodes = 0; 
-    pPars->fGenAll     = 0; 
+    pPars->fEnumSols   = 0; 
     pPars->fFewerVars  = 0; 
     pPars->fVerbose    = 1; 
 }
