@@ -1301,7 +1301,7 @@ int Zyx_TestGetTruthTablePars( char * pFileName, word * pTruth, int * nVars, int
         if ( !Abc_TtIsHexDigit(*pCur) )
             break;
     Symb = *pCur; *pCur = 0;
-    nLength = strlen(pBuffer);
+    nLength = (int)strlen(pBuffer);
     if ( nLength == 1 )
         *nVars = 2;
     else if ( nLength == 2 )
@@ -1368,7 +1368,7 @@ int Zyx_TestReadNode( char * pLine, Vec_Wrd_t * vTruths, int nVars, int nLutSize
         return 0;
     if ( (int)strlen(pLine) != 1 + nLutSize + (1 << nLutSize) )
     {
-        printf( "Node representation has %d chars (expecting %d chars).\n", strlen(pLine), 1 + nLutSize + (1 << nLutSize) );
+        printf( "Node representation has %d chars (expecting %d chars).\n", (int)strlen(pLine), 1 + nLutSize + (1 << nLutSize) );
         return 0;
     }
     if ( pLine[0] != 'A' + iObj )
