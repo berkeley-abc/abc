@@ -153,6 +153,7 @@ static int Abc_CommandMajExact               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTwoExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAllExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTestExact              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -823,6 +824,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "twoexact",   Abc_CommandTwoExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "lutexact",   Abc_CommandLutExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "allexact",   Abc_CommandAllExact,         0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "testexact",  Abc_CommandTestExact,        0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -8564,6 +8566,55 @@ usage:
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTestExact( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Zyx_TestExact( char * pFileName );
+    char * pFileName = NULL;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+       case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
+    if ( pFileName == NULL )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    Zyx_TestExact( pFileName );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: testexact <file>\n" );
+    Abc_Print( -2, "\t           tests solution of the exact synthesis problem\n" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t<file>   : file name in the specified format\n" );
     return 1;
 }
 

@@ -22,6 +22,7 @@
 #include "misc/extra/extra.h"
 #include "misc/util/utilTruth.h"
 #include "sat/glucose/AbcGlucose.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -562,6 +563,7 @@ struct Zyx_Man_t_
     Vec_Int_t *       vMidMints;  // middle minterms
     Vec_Bit_t *       vUsed2;     // bit masks
     Vec_Bit_t *       vUsed3;     // bit masks
+    Vec_Int_t *       vPairs;     // sym var pairs
     int               nUsed[2];
     int               pFanins[MAJ3_OBJS][MAJ3_OBJS];  // fanins
     int               pLits[2][2*MAJ3_OBJS]; // neg/pos literals
@@ -765,6 +767,27 @@ Vec_Wrd_t * Zyx_ManTruthTables( Zyx_Man_t * p, word * pTruth )
     //Dau_DsdPrintFromTruth( Zyx_ManTruth(p, p->nObjs), p->pPars->nVars );
     return vInfo;
 }
+Vec_Int_t * Zyx_ManCreateSymVarPairs( word * pTruth, int nVars )
+{
+    Vec_Int_t * vPairs = Vec_IntAlloc( 100 ); 
+    int i, k, nWords = Abc_TtWordNum(nVars);
+    word Cof0[64], Cof1[64]; 
+    word Cof01[64], Cof10[64];
+    assert( nVars <= 12 );
+    for ( i = 0; i < nVars; i++ )
+    {
+        Abc_TtCofactor0p( Cof0, pTruth, nWords, i );
+        Abc_TtCofactor1p( Cof1, pTruth, nWords, i );
+        for ( k = i+1; k < nVars; k++ )
+        {
+            Abc_TtCofactor1p( Cof01, Cof0, nWords, k );
+            Abc_TtCofactor0p( Cof10, Cof1, nWords, k );
+            if ( Abc_TtEqual( Cof01, Cof10, nWords ) )
+                 Vec_IntPushTwo( vPairs, i, k );
+        }
+    }
+    return vPairs;
+}
 Zyx_Man_t * Zyx_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
 {
     Zyx_Man_t * p = ABC_CALLOC( Zyx_Man_t, 1 );
@@ -782,6 +805,7 @@ Zyx_Man_t * Zyx_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     p->vUsed2     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs );
     else if ( p->pPars->nLutSize == 3 )
     p->vUsed3     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs * p->nObjs );
+    p->vPairs     = Zyx_ManCreateSymVarPairs( p->pPars->fMajority ? Zyx_ManTruth(p, p->nObjs) : pTruth, p->pPars->nVars );
     p->pSat       = bmcg_sat_solver_start();
     bmcg_sat_solver_set_nvars( p->pSat, p->MintBase + (1 << p->pPars->nVars) * p->nObjs );
     Zyx_ManSetupVars( p );
@@ -795,6 +819,7 @@ void Zyx_ManFree( Zyx_Man_t * p )
     Vec_WrdFree( p->vInfo );
     Vec_BitFreeP( &p->vUsed2 );
     Vec_BitFreeP( &p->vUsed3 );
+    Vec_IntFree( p->vPairs );
     Vec_IntFree( p->vMidMints );
     Vec_IntFree( p->vVarValues );
     ABC_FREE( p );
@@ -826,7 +851,7 @@ int Zyx_ManCollectFanins( Zyx_Man_t * p, int i )
 }
 int Zyx_ManAddCnfLazyTopo( Zyx_Man_t * p )
 {
-    int i, k, j, nLazy = 0;
+    int i, k, j, Entry[2], Node[2], nLazy = 0;
     // fanin count
     //printf( "Adding topology clauses.\n" );
     for ( i = p->pPars->nVars; i < p->nObjs; i++ )
@@ -858,12 +883,37 @@ int Zyx_ManAddCnfLazyTopo( Zyx_Man_t * p )
         for ( k = p->pPars->nLutSize - 1; k >= 0; k-- )
             if ( p->pFanins[i-1][k] != p->pFanins[i][k] )
                 break;
-        if ( k == -1 )
+        if ( k == -1 ) // fanins are equal
         {
-            if ( !p->pPars->fMajority )
+            if ( p->pPars->fMajority )
+                continue;
+            // compare by LUT functions
+            for ( k = p->LutMask; k >= 0; k-- )
+                if ( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i-1, k)) != 
+                     bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i  , k)) )
+                    break;
+            if ( k == -1 ) // truth tables cannot be equal
+                continue;
+            // rule out these truth tables
+            if ( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i-1, k)) == 0 && 
+                 bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i  , k)) == 1 )
             {
-                // compare by LUT functions
+                continue;
             }
+            nLazy++;
+            assert( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i-1, k)) == 1 );
+            assert( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i  , k)) == 0 );
+            // rule out this order
+            p->nLits[0] = 0;
+            for ( j = p->LutMask; j >= k; j-- )
+            {
+                int ValA = bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i-1, j));
+                int ValB = bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i,   j));
+                p->pLits[0][p->nLits[0]++] = Abc_Var2Lit(Zyx_FuncVar(p, i-1, j), ValA );
+                p->pLits[0][p->nLits[0]++] = Abc_Var2Lit(Zyx_FuncVar(p, i,   j), ValB );
+            }
+            if ( !bmcg_sat_solver_addclause( p->pSat, p->pLits[0], p->nLits[0] ) )
+                return -1;
             continue;
         }
         if ( p->pFanins[i-1][k] < p->pFanins[i][k] )
@@ -890,6 +940,41 @@ int Zyx_ManAddCnfLazyTopo( Zyx_Man_t * p )
         if ( !bmcg_sat_solver_addclause( p->pSat, p->pLits[0], p->nLits[0] ) )
             return -1;
         //break;
+    }
+    // check symmetric variables
+    Vec_IntForEachEntryDouble( p->vPairs, Entry[0], Entry[1], k )
+    {
+        assert( Entry[0] < Entry[1] );
+        for ( j = 0; j < 2; j++ )
+        {
+            Node[j] = -1;
+            for ( i = p->pPars->nVars; i < p->nObjs; i++ )
+                if ( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_TopoVar(p, i, Entry[j])) )
+                {
+                    Node[j] = i;
+                    break;
+                }
+            assert( Node[j] >= p->pPars->nVars );
+        }
+        // compare the nodes
+        if ( Node[0] <= Node[1] )
+            continue;
+        assert( Node[0] > Node[1] );
+        // create blocking clause
+        nLazy++;
+        assert( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_TopoVar(p, Node[1], Entry[0])) == 0 );
+        assert( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_TopoVar(p, Node[1], Entry[1])) == 1 );
+        // rule out this order
+        p->nLits[0] = 0;
+        for ( j = p->pPars->nVars; j <= Node[1]; j++ )
+        {
+            int ValA = bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_TopoVar(p, j, Entry[0]));
+            int ValB = bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_TopoVar(p, j, Entry[1]));
+            p->pLits[0][p->nLits[0]++] = Abc_Var2Lit(Zyx_TopoVar(p, j, Entry[0]), ValA );
+            p->pLits[0][p->nLits[0]++] = Abc_Var2Lit(Zyx_TopoVar(p, j, Entry[1]), ValB );
+        }
+        if ( !bmcg_sat_solver_addclause( p->pSat, p->pLits[0], p->nLits[0] ) )
+            return -1;
     }
     return nLazy;
 }
@@ -977,7 +1062,45 @@ int Zyx_ManAddCnfLazyFunc( Zyx_Man_t * p, int iMint )
   SeeAlso     []
 
 ***********************************************************************/
-static void Zyx_ManPrintSolution( Zyx_Man_t * p, int fCompl )
+static void Zyx_ManPrintSolutionFile( Zyx_Man_t * p, int fCompl, int fFirst )
+{
+    FILE * pFile;
+    char FileName[1000];  int i, k;
+    if ( fCompl ) Abc_TtNot( p->pTruth, Abc_TtWordNum(p->pPars->nVars) );
+    Abc_TtWriteHexRev( FileName, p->pTruth, p->pPars->nVars );
+    if ( fCompl ) Abc_TtNot( p->pTruth, Abc_TtWordNum(p->pPars->nVars) );
+    sprintf( FileName + (1 << (p->pPars->nVars-2)), "-%d-%d.bool", p->pPars->nLutSize, p->pPars->nNodes );
+    pFile = fopen( FileName, fFirst ? "wb" : "ab" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open input file \"%s\".\n", FileName );
+        return;
+    }
+    for ( i = p->pPars->nVars; i < p->nObjs; i++ )
+    {
+        fprintf( pFile, "%c", 'A' + i );
+        if ( p->pPars->fMajority )
+            fprintf( pFile, "maj3" );
+        else
+        {
+            for ( k = p->LutMask; k >= 0; k-- )
+                fprintf( pFile, "%d", bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_FuncVar(p, i, k)) ^ (i == p->nObjs - 1 && fCompl) );
+            for ( k = 0; k < i; k++ )
+                if ( bmcg_sat_solver_read_cex_varvalue(p->pSat, Zyx_TopoVar(p, i, k)) )
+                {
+                    if ( k >= 0 && k < p->pPars->nVars )
+                        fprintf( pFile, "%c", 'a' + k );
+                    else
+                        fprintf( pFile, "%c", 'A' + k );
+                }
+        }
+        fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, "\n" );
+    fclose( pFile );
+    printf( "Dumped solution into file \"%s\".\n", FileName );
+}
+static void Zyx_ManPrintSolution( Zyx_Man_t * p, int fCompl, int fFirst )
 {
     int i, k;
     printf( "Realization of given %d-input function using %d %d-input %s:\n", 
@@ -1004,6 +1127,8 @@ static void Zyx_ManPrintSolution( Zyx_Man_t * p, int fCompl )
             }
         printf( " )\n" );
     }
+    if ( !p->pPars->fMajority )
+        Zyx_ManPrintSolutionFile( p, fCompl, fFirst );
 }
 static inline int Zyx_ManEval( Zyx_Man_t * p )
 {
@@ -1115,7 +1240,7 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
                     Zyx_ManPrint( p, Iter, iMint, nLazyAll, Abc_Clock() - clkTotal );
                     clk = Abc_Clock();
                 }
-                Zyx_ManPrintSolution( p, fCompl );
+                Zyx_ManPrintSolution( p, fCompl, nSols==1 );
                 if ( !Zyx_ManAddCnfBlockSolution( p ) )
                 {
                     status = GLUCOSE_UNSAT;
@@ -1146,7 +1271,7 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->fEnumSols )
         printf( "Finished enumerating %d solutions.\n", nSols );
     else if ( iMint == -1 )
-        Zyx_ManPrintSolution( p, fCompl );
+        Zyx_ManPrintSolution( p, fCompl, 1 );
     else
         printf( "The problem has no solution.\n" );
     //Zyx_ManEvalStats( p );
@@ -1156,6 +1281,171 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
 }
 
 
+
+/**Function*************************************************************
+
+  Synopsis    [Tests solution to the exact synthesis problem.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Zyx_TestGetTruthTablePars( char * pFileName, word * pTruth, int * nVars, int * nLutSize, int * nNodes )
+{
+    char Symb, * pCur, * pBuffer = Abc_UtilStrsav( pFileName );
+    int nLength;
+    for ( pCur = pBuffer; *pCur; pCur++ )
+        if ( !Abc_TtIsHexDigit(*pCur) )
+            break;
+    Symb = *pCur; *pCur = 0;
+    nLength = strlen(pBuffer);
+    if ( nLength == 1 )
+        *nVars = 2;
+    else if ( nLength == 2 )
+        *nVars = 3;
+    else if ( nLength == 4 )
+        *nVars = 4;
+    else if ( nLength == 8 )
+        *nVars = 5;
+    else if ( nLength == 16 )
+        *nVars = 6;
+    else if ( nLength == 32 )
+        *nVars = 7;
+    else if ( nLength == 64 )
+        *nVars = 8;
+    else
+    {
+        ABC_FREE( pBuffer );
+        printf( "Invalid truth table size.\n" );
+        return 0;
+    }
+    Abc_TtReadHex( pTruth, pBuffer );
+    *pCur = Symb;
+    // read LUT size
+    while ( *pCur && *pCur++ != '-' );
+    if ( *pCur == 0 )
+    {
+        ABC_FREE( pBuffer );
+        printf( "Expecting \'-\' after truth table before LUT size.\n" );
+        return 0;
+    }
+    // read node count
+    *nLutSize = atoi(pCur);
+    while ( *pCur && *pCur++ != '-' );
+    if ( *pCur == 0 )
+    {
+        ABC_FREE( pBuffer );
+        printf( "Expecting \'-\' after LUT size before node count.\n" );
+        return 0;
+    }
+    *nNodes = atoi(pCur);
+    ABC_FREE( pBuffer );
+    return 1;
+}
+
+static inline word *  Zyx_TestTruth( Vec_Wrd_t * vInfo, int i, int nWords ) { return Vec_WrdEntryP(vInfo, nWords * i); }
+
+Vec_Wrd_t * Zyx_TestCreateTruthTables( int nVars, int nNodes )
+{
+    int i, nWords = Abc_TtWordNum(nVars);
+    Vec_Wrd_t * vInfo = Vec_WrdStart( nWords * (nVars + nNodes + 1) ); 
+    for ( i = 0; i < nVars; i++ )
+        Abc_TtIthVar( Zyx_TestTruth(vInfo, i, nWords), i, nVars );
+    //Dau_DsdPrintFromTruth( Maj3_ManTruth(p, p->nObjs), p->nVars );
+    return vInfo;
+}
+int Zyx_TestReadNode( char * pLine, Vec_Wrd_t * vTruths, int nVars, int nLutSize, int iObj )
+{
+    int k, j, nWords = Abc_TtWordNum(nVars);
+    word * pFaninsW[6]; char * pTruth, * pFanins;
+    word * pThis, * pLast = Zyx_TestTruth( vTruths, Vec_WrdSize(vTruths)/nWords - 1, nWords );
+    if ( pLine[strlen(pLine)-1] == '\n' ) pLine[strlen(pLine)-1] = 0;
+    if ( pLine[strlen(pLine)-1] == '\r' ) pLine[strlen(pLine)-1] = 0;
+    if ( pLine[0] == 0 )
+        return 0;
+    if ( (int)strlen(pLine) != 1 + nLutSize + (1 << nLutSize) )
+    {
+        printf( "Node representation has %d chars (expecting %d chars).\n", strlen(pLine), 1 + nLutSize + (1 << nLutSize) );
+        return 0;
+    }
+    if ( pLine[0] != 'A' + iObj )
+    {
+        printf( "The output node in line %s is not correct.\n", pLine );
+        return 0;
+    }
+    pTruth  = pLine + 1;
+    pFanins = pTruth + (1 << nLutSize);
+    for ( k = nLutSize - 1; k >= 0; k-- )
+        pFaninsW[k] = Zyx_TestTruth( vTruths, pFanins[k] >= 'a' ? pFanins[k] - 'a' : pFanins[k] - 'A', nWords );
+    pThis = Zyx_TestTruth(vTruths, iObj, nWords);
+    Abc_TtConst0( pThis, nWords );
+    for ( k = 0; k < (1 << nLutSize); k++ )
+    {
+        if ( pTruth[(1 << nLutSize) - 1 - k] == '0' )
+            continue;
+        Abc_TtConst1( pLast, nWords );
+        for ( j = 0; j < nLutSize; j++ )
+            Abc_TtAndCompl( pLast, pLast, 0, pFaninsW[j], !((k >> j) & 1), nWords );
+        Abc_TtOr( pThis, pThis, pLast, nWords );
+    }
+    //Dau_DsdPrintFromTruth( pThis, nVars );
+    return 1;
+}
+void Zyx_TestExact( char * pFileName )
+{
+    int iObj, nStrs = 0, nVars = -1, nLutSize = -1, nNodes = -1;
+    word * pImpl, pSpec[4]; Vec_Wrd_t * vInfo; char Line[1000];
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open input file \"%s\".\n", pFileName );
+        return;
+    }
+    if ( !Zyx_TestGetTruthTablePars( pFileName, pSpec, &nVars, &nLutSize, &nNodes ) )
+        return;
+    if ( nVars > 8 )
+    {
+        printf( "This tester does not support functions with more than 8 inputs.\n" );
+        return;
+    }
+    if ( nLutSize > 6 )
+    {
+        printf( "This tester does not support nodes with more than 6 inputs.\n" );
+        return;
+    }
+    if ( nNodes > 16 )
+    {
+        printf( "This tester does not support structures with more than 16 inputs.\n" );
+        return;
+    }
+    vInfo = Zyx_TestCreateTruthTables( nVars, nNodes );
+    for ( iObj = nVars; fgets(Line, 1000, pFile) != NULL; iObj++ )
+    {
+        if ( Zyx_TestReadNode( Line, vInfo, nVars, nLutSize, iObj ) )
+            continue;
+        if ( iObj != nVars + nNodes )
+        {
+            printf( "The number of nodes in the structure is not correct.\n" );
+            break;
+        }
+        nStrs++;
+        pImpl = Zyx_TestTruth( vInfo, iObj-1, Abc_TtWordNum(nVars) );
+        if ( Abc_TtEqual( pImpl, pSpec, Abc_TtWordNum(nVars) ) )
+            printf( "Structure %3d : Verification successful.\n", nStrs );
+        else
+        {
+            printf( "Structure %3d : Verification FAILED.\n", nStrs );
+            printf( "Implementation: " ); Dau_DsdPrintFromTruth( pImpl, nVars );
+            printf( "Specification:  " ); Dau_DsdPrintFromTruth( pSpec, nVars );
+        }
+        iObj = nVars - 1;
+    }
+    Vec_WrdFree( vInfo );
+    fclose( pFile );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
