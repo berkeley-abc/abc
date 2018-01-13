@@ -295,6 +295,7 @@ Mio_Cell2_t * Nf_StoDeriveMatches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, in
     for ( i = 1; i <= 6; i++ )
         nPerms[i] = Extra_Factorial( i );
     pCells = Mio_CollectRootsNewDefault2( 6, pnCells, fVerbose );
+    if ( pCells != NULL )
     for ( i = 2; i < *pnCells; i++ )
         Nf_StoCreateGateMaches( vTtMem, vTt2Match, pCells+i, pComp, pPerm, nPerms, vProfs, vStore, fPinFilter, fPinPerm, fPinQuick );
     for ( i = 1; i <= 6; i++ )
@@ -401,6 +402,8 @@ Nf_Man_t * Nf_StoCreate( Gia_Man_t * pGia, Jf_Par_t * pPars )
     Vec_IntFree(vFlowRefs);
     // matching
     Mio_LibraryMatchesFetch( (Mio_Library_t *)Abc_FrameReadLibGen(), &p->vTtMem, &p->vTt2Match, &p->pCells, &p->nCells, p->pPars->fPinFilter, p->pPars->fPinPerm, p->pPars->fPinQuick );
+    if ( p->pCells == NULL )
+        return NULL;
     p->InvDelayI = p->pCells[3].iDelays[0];
     p->InvAreaW  = p->pCells[3].AreaW;
     p->InvAreaF  = p->pCells[3].AreaF;
@@ -2365,6 +2368,8 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         pPars->fCoarsen = 0; 
     pCls = pPars->fCoarsen ? Gia_ManDupMuxes(pGia, pPars->nCoarseLimit) : pGia;
     p = Nf_StoCreate( pCls, pPars );
+    if ( p == NULL )
+        return NULL;
 //    if ( pPars->fVeryVerbose )
 //        Nf_StoPrint( p, pPars->fVeryVerbose );
     if ( pPars->fVerbose && pPars->fCoarsen )
