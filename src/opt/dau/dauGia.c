@@ -445,6 +445,8 @@ int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t *
     Gia_Man_t * pGia = (Gia_Man_t *)p;
     int nSizeNonDec;
     char pDsd[1000];
+    word pTruthCopy[DAU_MAX_WORD];
+    Abc_TtCopy( pTruthCopy, pTruth, Abc_TtWordNum(Vec_IntSize(vLeaves)), 0 );
     m_Calls++;
     assert( Vec_IntSize(vLeaves) <= DAU_DSD_MAX_VAR );
     // collect delay information
@@ -453,10 +455,10 @@ int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t *
         int i, iLit, pVarLevels[DAU_DSD_MAX_VAR];
         Vec_IntForEachEntry( vLeaves, iLit, i )
             pVarLevels[i] = Gia_ObjLevelId( pGia, Abc_Lit2Var(iLit) );
-        nSizeNonDec = Dau_DsdDecomposeLevel( pTruth, Vec_IntSize(vLeaves), fUseMuxes, 1, pDsd, pVarLevels );
+        nSizeNonDec = Dau_DsdDecomposeLevel( pTruthCopy, Vec_IntSize(vLeaves), fUseMuxes, 1, pDsd, pVarLevels );
     }
     else
-        nSizeNonDec = Dau_DsdDecompose( pTruth, Vec_IntSize(vLeaves), fUseMuxes, 1, pDsd );
+        nSizeNonDec = Dau_DsdDecompose( pTruthCopy, Vec_IntSize(vLeaves), fUseMuxes, 1, pDsd );
     if ( nSizeNonDec )
         m_NonDsd++;
 //    printf( "%s\n", pDsd );
