@@ -52,6 +52,7 @@ struct Bmc_EsPar_t_
     int        nLutSize;
     int        nMajSupp;
     int        fMajority;
+    int        fUseIncr;
     int        fOnlyAnd;
     int        fGlucose;
     int        fOrderNodes;
@@ -69,6 +70,7 @@ static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
     pPars->nLutSize    = 2; 
     pPars->nMajSupp    = 0;
     pPars->fMajority   = 0; 
+    pPars->fUseIncr    = 0;
     pPars->fOnlyAnd    = 0; 
     pPars->fGlucose    = 0; 
     pPars->fOrderNodes = 0; 

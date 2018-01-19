@@ -575,9 +575,11 @@ struct Zyx_Man_t_
 
 static inline word *  Zyx_ManTruth( Zyx_Man_t * p, int v )        { return Vec_WrdEntryP( p->vInfo, p->nWords * v ); }
 
-static inline int     Zyx_FuncVar( Zyx_Man_t * p, int i, int m )  { return (p->LutMask + 1) * (i - p->pPars->nVars) + m;        }
-static inline int     Zyx_TopoVar( Zyx_Man_t * p, int i, int f )  { return p->TopoBase + p->nObjs * (i - p->pPars->nVars) + f;  }
-static inline int     Zyx_MintVar( Zyx_Man_t * p, int m, int i )  { return p->MintBase + p->nObjs * m + i;                      }
+static inline int     Zyx_FuncVar( Zyx_Man_t * p, int i, int m )  { return (p->LutMask + 1) * (i - p->pPars->nVars) + m;         }
+static inline int     Zyx_TopoVar( Zyx_Man_t * p, int i, int f )  { return p->TopoBase + p->nObjs * (i - p->pPars->nVars) + f;   }
+static inline int     Zyx_MintVar( Zyx_Man_t * p, int m, int i )  { return p->MintBase + p->nObjs * m + i;                       }
+
+//static inline int     Zyx_MintVar2( Zyx_Man_t * p, int m, int i, int f ) { assert(i >= p->pPars->nVars); return p->MintBase + m * p->pPars->nNodes * (p->pPars->nLutSize + 1) + (i - p->pPars->nVars) * (p->pPars->nLutSize + 1) + f; }
 
 static inline int     Zyx_ManIsUsed2( Zyx_Man_t * p, int m, int n, int i, int j )
 {
@@ -801,12 +803,15 @@ Zyx_Man_t * Zyx_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     p->vVarValues = Vec_IntStartFull( p->MintBase + (1 << p->pPars->nVars) * p->nObjs );
     p->vMidMints  = Vec_IntAlloc( 1 << p->pPars->nVars );
     p->vInfo      = Zyx_ManTruthTables( p, pTruth );
-    if ( p->pPars->nLutSize == 2 || p->pPars->fMajority )
-    p->vUsed2     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs );
-    else if ( p->pPars->nLutSize == 3 )
-    p->vUsed3     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs * p->nObjs );
     p->vPairs     = Zyx_ManCreateSymVarPairs( p->pPars->fMajority ? Zyx_ManTruth(p, p->nObjs) : pTruth, p->pPars->nVars );
     p->pSat       = bmcg_sat_solver_start();
+    if ( pPars->fUseIncr )
+    {
+        if ( p->pPars->nLutSize == 2 || p->pPars->fMajority )
+            p->vUsed2     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs );
+        else if ( p->pPars->nLutSize == 3 )
+            p->vUsed3     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs * p->nObjs );
+    }
     bmcg_sat_solver_set_nvars( p->pSat, p->MintBase + (1 << p->pPars->nVars) * p->nObjs );
     Zyx_ManSetupVars( p );
     Zyx_ManAddCnfStart( p );
@@ -995,9 +1000,8 @@ int Zyx_ManAddCnfBlockSolution( Zyx_Man_t * p )
     Vec_IntFree( vLits );
     return 1;
 }
-int Zyx_ManAddCnfLazyFunc( Zyx_Man_t * p, int iMint )
+int Zyx_ManAddCnfLazyFunc2( Zyx_Man_t * p, int iMint )
 {
-    int Sets[3][2] = {{0, 1}, {0, 2}, {1, 2}};
     int i, k, n, j, s;
     assert( !p->pPars->fMajority || p->pPars->nLutSize == 3 );
     //printf( "Adding functionality clauses for minterm %d.\n", iMint );
@@ -1008,6 +1012,7 @@ int Zyx_ManAddCnfLazyFunc( Zyx_Man_t * p, int iMint )
         assert( nFanins == p->pPars->nLutSize );
         if ( p->pPars->fMajority )
         {
+            int Sets[3][2] = {{0, 1}, {0, 2}, {1, 2}};
             for ( k = 0; k < 3; k++ )
             {
                 if ( Zyx_ManIsUsed2(p, iMint, i, p->pFanins[i][Sets[k][0]], p->pFanins[i][Sets[k][1]]) )
@@ -1032,6 +1037,65 @@ int Zyx_ManAddCnfLazyFunc( Zyx_Man_t * p, int iMint )
                 continue;
             if ( p->pPars->nLutSize == 3 && Zyx_ManIsUsed3(p, iMint, i, p->pFanins[i][0], p->pFanins[i][1], p->pFanins[i][2]) )
                 continue;
+            for ( k = 0; k <= p->LutMask; k++ )
+            for ( n = 0; n < 2; n++ )
+            {
+                p->nLits[0] = 0;
+                p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_FuncVar(p, i, k), n );
+                for ( j = 0; j < p->pPars->nLutSize; j++ )
+                {
+                    p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_TopoVar(p, i, p->pFanins[i][j]), 1 );
+                    p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_MintVar(p, iMint, p->pFanins[i][j]), (k >> j) & 1 );
+                }
+                p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_MintVar(p, iMint, i), !n );
+                if ( !bmcg_sat_solver_addclause( p->pSat, p->pLits[0], p->nLits[0] ) )
+                    return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+int Zyx_ManAddCnfLazyFunc( Zyx_Man_t * p, int iMint )
+{
+    int i, k, n, j, s, t, u;
+    //printf( "Adding clauses for minterm %d with value %d.\n", iMint, Value );
+    assert( !p->pPars->fMajority && p->pPars->nLutSize < 4 );
+    p->Counts[iMint]++;
+    if ( p->pPars->nLutSize == 2 )
+    {
+        for ( i = p->pPars->nVars; i < p->nObjs; i++ )
+        for ( s = 0;               s < i;        s++ )
+        for ( t = s+1;             t < i;        t++ )
+        {
+            p->pFanins[i][0] = s;
+            p->pFanins[i][1] = t;
+            for ( k = 0; k <= p->LutMask; k++ )
+            for ( n = 0; n < 2; n++ )
+            {
+                p->nLits[0] = 0;
+                p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_FuncVar(p, i, k), n );
+                for ( j = 0; j < p->pPars->nLutSize; j++ )
+                {
+                    p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_TopoVar(p, i, p->pFanins[i][j]), 1 );
+                    p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_MintVar(p, iMint, p->pFanins[i][j]), (k >> j) & 1 );
+                }
+                p->pLits[0][p->nLits[0]++] = Abc_Var2Lit( Zyx_MintVar(p, iMint, i), !n );
+                if ( !bmcg_sat_solver_addclause( p->pSat, p->pLits[0], p->nLits[0] ) )
+                    return 0;
+            }
+        }
+    }
+    else if ( p->pPars->nLutSize == 3 )
+    {
+        for ( i = p->pPars->nVars; i < p->nObjs; i++ )
+        for ( s = 0;               s < i;        s++ )
+        for ( t = s+1;             t < i;        t++ )
+        for ( u = t+1;             u < i;        u++ )
+        {
+            p->pFanins[i][0] = s;
+            p->pFanins[i][1] = t;
+            p->pFanins[i][2] = u;
             for ( k = 0; k <= p->LutMask; k++ )
             for ( n = 0; n < 2; n++ )
             {
@@ -1251,14 +1315,14 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
             else
                 break;
         }
-        if ( !Zyx_ManAddCnfLazyFunc(p, iMint) )
+        if ( pPars->fUseIncr ? !Zyx_ManAddCnfLazyFunc2(p, iMint) : !Zyx_ManAddCnfLazyFunc(p, iMint) )
         {
             printf( "Became UNSAT after adding constraints for minterm %d\n", iMint );
             status = GLUCOSE_UNSAT;
             break;
         }
         status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
-        if ( pPars->fVerbose && Iter % 100 == 0 )
+        if ( pPars->fVerbose && (!pPars->fUseIncr || Iter % 100 == 0) )
         {
             Zyx_ManPrint( p, Iter, iMint, nLazyAll, Abc_Clock() - clk );
             clk = Abc_Clock();

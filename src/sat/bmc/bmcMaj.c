@@ -799,13 +799,40 @@ struct Exa3_Man_t_
     int               iVar;      // the next available SAT variable
     word *            pTruth;    // truth table
     Vec_Wrd_t *       vInfo;     // nVars + nNodes + 1
+    Vec_Bit_t *       vUsed2;    // bit masks
+    Vec_Bit_t *       vUsed3;    // bit masks
     int               VarMarks[MAJ_NOBJS][6][MAJ_NOBJS]; // variable marks
     int               VarVals[MAJ_NOBJS]; // values of the first nVars variables
     Vec_Wec_t *       vOutLits;  // output vars
     bmcg_sat_solver * pSat;      // SAT solver
+    int               nUsed[2];
 };
 
 static inline word *  Exa3_ManTruth( Exa3_Man_t * p, int v ) { return Vec_WrdEntryP( p->vInfo, p->nWords * v ); }
+
+static inline int     Exa3_ManIsUsed2( Exa3_Man_t * p, int m, int n, int i, int j )
+{
+    int Pos = ((m * p->pPars->nNodes + n - p->pPars->nVars) * p->nObjs + i) * p->nObjs + j;
+    p->nUsed[0]++;
+    assert( i < n && j < n && i < j );
+    if ( Vec_BitEntry(p->vUsed2, Pos) )
+        return 1;
+    p->nUsed[1]++;
+    Vec_BitWriteEntry( p->vUsed2, Pos, 1 );
+    return 0;
+}
+
+static inline int     Exa3_ManIsUsed3( Exa3_Man_t * p, int m, int n, int i, int j, int k )
+{
+    int Pos = (((m * p->pPars->nNodes + n - p->pPars->nVars) * p->nObjs + i) * p->nObjs + j) * p->nObjs + k;
+    p->nUsed[0]++;
+    assert( i < n && j < n && k < n && i < j && j < k );
+    if ( Vec_BitEntry(p->vUsed3, Pos) )
+        return 1;
+    p->nUsed[1]++;
+    Vec_BitWriteEntry( p->vUsed3, Pos, 1 );
+    return 0;
+}
 
 
 /**Function*************************************************************
@@ -882,6 +909,10 @@ static Exa3_Man_t * Exa3_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     p->vOutLits   = Vec_WecStart( p->nObjs );
     p->iVar       = Exa3_ManMarkup( p );
     p->vInfo      = Exa3_ManTruthTables( p );
+    if ( p->pPars->nLutSize == 2 )
+    p->vUsed2     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs );
+    else if ( p->pPars->nLutSize == 3 )
+    p->vUsed3     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs * p->nObjs );
     p->pSat       = bmcg_sat_solver_start();
     bmcg_sat_solver_set_nvars( p->pSat, p->iVar );
     return p;
@@ -890,6 +921,8 @@ static void Exa3_ManFree( Exa3_Man_t * p )
 {
     bmcg_sat_solver_stop( p->pSat );
     Vec_WrdFree( p->vInfo );
+    Vec_BitFreeP( &p->vUsed2 );
+    Vec_BitFreeP( &p->vUsed3 );
     Vec_WecFree( p->vOutLits );
     ABC_FREE( p );
 }
@@ -1041,18 +1074,21 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
                     return 0;
             }
         }
-#ifdef USE_NODE_ORDER
+//#ifdef USE_NODE_ORDER
         // node ordering
-        for ( j = p->nVars; j < i; j++ )
-        for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
-        for ( m = n+1; m < p->nObjs; m++ ) if ( p->VarMarks[j][0][m] )
+        if ( p->pPars->fUseIncr )
         {
-            pLits2[0] = Abc_Var2Lit( p->VarMarks[i][0][n], 1 );
-            pLits2[1] = Abc_Var2Lit( p->VarMarks[j][0][m], 1 );
-            if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
-                return 0;
+            for ( j = p->nVars; j < i; j++ )
+            for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
+            for ( m = n+1; m < p->nObjs; m++ ) if ( p->VarMarks[j][0][m] )
+            {
+                pLits2[0] = Abc_Var2Lit( p->VarMarks[i][0][n], 1 );
+                pLits2[1] = Abc_Var2Lit( p->VarMarks[j][0][m], 1 );
+                if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
+                    return 0;
+            }
         }
-#endif
+//#endif
         if ( p->nLutSize != 2 )
             continue;
         // two-input functions
@@ -1123,7 +1159,7 @@ static int Exa3_ManAddCnf( Exa3_Man_t * p, int iMint )
                 continue;
             for ( k = 0; k <= p->LutMask; k++ )
             {
-                int pLits[8], nLits = 0;
+                int pLits[16], nLits = 0;
                 if ( k == 0 && n == 1 )
                     continue;
                 //pLits[nLits++] = Abc_Var2Lit( iBaseSatVarI + 0, (k&1)  );
@@ -1142,6 +1178,69 @@ static int Exa3_ManAddCnf( Exa3_Man_t * p, int iMint )
     p->iVar += (p->nLutSize+1)*p->nNodes;
     return 1;
 }
+
+static int Exa3_ManAddCnf2( Exa3_Man_t * p, int iMint )
+{
+    int iBaseSatVar = p->iVar + p->nNodes*iMint;
+    // save minterm values
+    int i, k, n, j, Value = Abc_TtGetBit(p->pTruth, iMint);
+    for ( i = 0; i < p->nVars; i++ )
+        p->VarVals[i] = (iMint >> i) & 1;
+    //printf( "Adding clauses for minterm %d with value %d.\n", iMint, Value );
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+//        int iBaseSatVarI = p->iVar + (p->nLutSize+1)*(i - p->nVars);
+        int iVarStart = 1 + p->LutMask*(i - p->nVars);
+        // collect fanin variables
+        int pFanins[16];
+        for ( j = 0; j < p->nLutSize; j++ )
+            pFanins[j] = Exa3_ManFindFanin(p, i, j);
+        // check cache
+        if ( p->pPars->nLutSize == 2 && Exa3_ManIsUsed2(p, iMint, i, pFanins[1], pFanins[0]) )
+            continue;
+        if ( p->pPars->nLutSize == 3 && Exa3_ManIsUsed3(p, iMint, i, pFanins[2], pFanins[1], pFanins[0]) )
+            continue;
+        // node functionality
+        for ( n = 0; n < 2; n++ )
+        {
+            if ( i == p->nObjs - 1 && n == Value )
+                continue;
+            for ( k = 0; k <= p->LutMask; k++ )
+            {
+                int pLits[16], nLits = 0;
+                if ( k == 0 && n == 1 )
+                    continue;
+                for ( j = 0; j < p->nLutSize; j++ )
+                {
+//                    pLits[nLits++] = Abc_Var2Lit( iBaseSatVar + j, (k >> j) & 1 );
+                    pLits[nLits++] = Abc_Var2Lit( p->VarMarks[i][j][pFanins[j]], 1 );
+                    if ( pFanins[j] >= p->nVars )
+                        pLits[nLits++] = Abc_Var2Lit( iBaseSatVar + pFanins[j] - p->nVars, (k >> j) & 1 );
+                    else if ( p->VarVals[pFanins[j]] != ((k >> j) & 1) )
+                        break;
+                }
+                if ( j < p->nLutSize )
+                    continue;
+//                if ( i != p->nObjs - 1 ) pLits[nLits++] = Abc_Var2Lit( iBaseSatVar + j, !n );
+                if ( i != p->nObjs - 1 ) pLits[nLits++] = Abc_Var2Lit( iBaseSatVar + i - p->nVars, !n );
+                if ( k > 0 )             pLits[nLits++] = Abc_Var2Lit( iVarStart + k-1,             n );
+                assert( nLits <= 2*p->nLutSize+2 );
+                if ( !bmcg_sat_solver_addclause( p->pSat, pLits, nLits ) )
+                    return 0;
+            }
+        }
+    }
+    return 1;
+}
+void Exa3_ManPrint( Exa3_Man_t * p, int i, int iMint, abctime clk )
+{
+    printf( "Iter%6d : ", i );
+    Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
+    printf( "  Var =%5d  ", bmcg_sat_solver_varnum(p->pSat) );
+    printf( "Cla =%6d  ", bmcg_sat_solver_clausenum(p->pSat) );
+    printf( "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
+    Abc_PrintTime( 1, "Time", clk );
+}
 void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
 {
     int i, status, iMint = 1;
@@ -1155,30 +1254,31 @@ void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     status = Exa3_ManAddCnfStart( p, pPars->fOnlyAnd );
     assert( status );
     printf( "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
+    if ( pPars->fUseIncr ) 
+    {
+        bmcg_sat_solver_set_nvars( p->pSat, p->iVar + p->nNodes*(1 << p->nVars) );
+        status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
+        assert( status == GLUCOSE_SAT );
+    }
     for ( i = 0; iMint != -1; i++ )
     {
         abctime clk = Abc_Clock();
-        if ( !Exa3_ManAddCnf( p, iMint ) )
+        if ( pPars->fUseIncr ? !Exa3_ManAddCnf2( p, iMint ) : !Exa3_ManAddCnf( p, iMint ) )
             break;
         status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
-        if ( pPars->fVerbose )
-        {
-            printf( "Iter %3d : ", i );
-            Extra_PrintBinary( stdout, (unsigned *)&iMint, p->nVars );
-            printf( "  Var =%5d  ", p->iVar );
-            printf( "Cla =%6d  ", bmcg_sat_solver_clausenum(p->pSat) );
-            printf( "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
-            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
-        }
+        if ( pPars->fVerbose && (!pPars->fUseIncr || i % 100 == 0) )
+            Exa3_ManPrint( p, i, iMint, Abc_Clock() - clkTotal );
         if ( status == GLUCOSE_UNSAT )
-        {
-            printf( "The problem has no solution.\n" );
             break;
-        }
         iMint = Exa3_ManEval( p );
     }
+    if ( pPars->fVerbose )
+        Exa3_ManPrint( p, i, iMint, Abc_Clock() - clkTotal );
     if ( iMint == -1 )
         Exa3_ManPrintSolution( p, fCompl );
+    else
+        printf( "The problem has no solution.\n" );
+    printf( "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
     Exa3_ManFree( p );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
 }

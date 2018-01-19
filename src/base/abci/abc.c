@@ -8299,7 +8299,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INKaogvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INKiaogvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8335,6 +8335,9 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->nLutSize < 0 )
                 goto usage;
+            break;
+        case 'i':
+            pPars->fUseIncr ^= 1;
             break;
         case 'a':
             pPars->fOnlyAnd ^= 1;
@@ -8388,11 +8391,12 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-INK <num>] [-aogvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-INK <num>] [-iaogvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of I-input function using N K-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
     Abc_Print( -2, "\t-K <num> : the number of node fanins [default = %d]\n", pPars->nLutSize );
+    Abc_Print( -2, "\t-i       : toggle using incremental solving [default = %s]\n", pPars->fUseIncr ? "yes" : "no" );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );
     Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fGlucose ? "yes" : "no" );
@@ -8420,7 +8424,7 @@ int Abc_CommandAllExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MINKaoegvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MINKiaoegvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8468,6 +8472,9 @@ int Abc_CommandAllExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nLutSize < 0 )
                 goto usage;
             break;
+        case 'i':
+            pPars->fUseIncr ^= 1;
+            break;
         case 'a':
             pPars->fOnlyAnd ^= 1;
             break;
@@ -8499,6 +8506,7 @@ int Abc_CommandAllExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->nVars = pPars->nMajSupp;
         pPars->nLutSize = 3;
         pPars->fMajority = 1;
+        pPars->fUseIncr = 1;
         if ( pPars->nNodes == 0 )
         {
             if ( pPars->nMajSupp == 5 )
@@ -8549,16 +8557,30 @@ int Abc_CommandAllExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Node size should not be more than 6 inputs.\n" );
         return 1;
     }
+    if ( !pPars->fUseIncr )
+    {
+        if ( pPars->fMajority )
+        {
+            Abc_Print( -1, "Cannot synthesize majority in the non-incremental mode (use \'-i\').\n" );
+            return 1;
+        }
+        if ( pPars->nLutSize > 3 )
+        {
+            Abc_Print( -1, "Cannot synthesize LUT4 and larger in non-incremental mode (use \'-i\').\n" );
+            return 1;
+        }
+    }
     Zyx_ManExactSynthesis( pPars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: allexact [-MIKN <num>] [-aoevh] <hex>\n" );
+    Abc_Print( -2, "usage: allexact [-MIKN <num>] [-iaoevh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of I-input function using N K-input gates\n" );
     Abc_Print( -2, "\t-M <num> : the majority support size (overrides -I and -K) [default = %d]\n", pPars->nMajSupp );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-K <num> : the number of node fanins [default = %d]\n", pPars->nLutSize );
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
+    Abc_Print( -2, "\t-i       : toggle using incremental solving [default = %s]\n", pPars->fUseIncr ? "yes" : "no" );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using node ordering by fanins [default = %s]\n", pPars->fOrderNodes ? "yes" : "no" );
     Abc_Print( -2, "\t-e       : toggle enumerating all solutions [default = %s]\n", pPars->fEnumSols ? "yes" : "no" );
