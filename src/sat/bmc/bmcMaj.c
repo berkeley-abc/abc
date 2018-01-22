@@ -1262,7 +1262,6 @@ void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     }
     for ( i = 0; iMint != -1; i++ )
     {
-        abctime clk = Abc_Clock();
         if ( pPars->fUseIncr ? !Exa3_ManAddCnf2( p, iMint ) : !Exa3_ManAddCnf( p, iMint ) )
             break;
         status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
