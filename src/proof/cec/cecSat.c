@@ -301,12 +301,19 @@ void Cec2_CollectSuper( Gia_Obj_t * pObj, int fUseMuxes, Vec_Ptr_t * vSuper )
 }
 void Cec2_ObjAddToFrontier( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vFrontier, satoko_t * pSat )
 {
+    int iVar;
     assert( !Gia_IsComplement(pObj) );
     assert( !Gia_ObjIsConst0(pObj) );
     if ( Cec2_ObjSatId(p, pObj) >= 0 )
         return;
     assert( Cec2_ObjSatId(p, pObj) == -1 );
-    Cec2_ObjSetSatId( p, pObj, satoko_add_variable(pSat, 0) );
+    iVar = satoko_add_variable(pSat, 0);
+    if ( p->vVar2Obj )
+    {
+        assert( Vec_IntSize(p->vVar2Obj) == iVar );
+        Vec_IntPush( p->vVar2Obj, Gia_ObjId(p, pObj) );
+    }
+    Cec2_ObjSetSatId( p, pObj, iVar );
     if ( Gia_ObjIsAnd(pObj) )
         Vec_PtrPush( vFrontier, pObj );
 }
@@ -322,7 +329,15 @@ int Gia_ObjGetCnfVar( Gia_Man_t * pGia, int iObj, Vec_Ptr_t * vFrontier, Vec_Ptr
         return Cec2_ObjSatId(pGia,pObj);
     assert( iObj > 0 );
     if ( Gia_ObjIsCi(pObj) )
-        return Cec2_ObjSetSatId( pGia, pObj, satoko_add_variable(pSat, 0) );
+    {
+        int iVar = satoko_add_variable(pSat, 0);
+        if ( pGia->vVar2Obj )
+        {
+            assert( Vec_IntSize(pGia->vVar2Obj) == iVar );
+            Vec_IntPush( pGia->vVar2Obj, iObj );
+        }
+        return Cec2_ObjSetSatId( pGia, pObj, iVar );
+    }
     assert( Gia_ObjIsAnd(pObj) );
     // start the frontier
     Vec_PtrClear( vFrontier );

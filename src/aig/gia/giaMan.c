@@ -92,6 +92,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vClassOld );
     Vec_WrdFreeP( &p->vSims );
     Vec_WrdFreeP( &p->vSimsPi );
+    Vec_IntFreeP( &p->vTimeStamps );
     Vec_FltFreeP( &p->vTiming );
     Vec_VecFreeP( &p->vClockDoms );
     Vec_IntFreeP( &p->vCofVars );
@@ -118,6 +119,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vTruths );
     Vec_IntErase( &p->vCopies );
     Vec_IntErase( &p->vCopies2 );
+    Vec_IntFreeP( &p->vVar2Obj );
     Vec_IntErase( &p->vCopiesTwo );
     Vec_IntErase( &p->vSuppVars );
     Vec_WrdFreeP( &p->vSuppWords );

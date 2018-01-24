@@ -150,6 +150,7 @@ struct Gia_Man_t_
     Vec_Ptr_t *    vSeqModelVec;  // sequential counter-examples
     Vec_Int_t      vCopies;       // intermediate copies
     Vec_Int_t      vCopies2;      // intermediate copies
+    Vec_Int_t *    vVar2Obj;      // mapping of variables into objects
     Vec_Int_t *    vTruths;       // used for truth table computation
     Vec_Int_t *    vFlopClasses;  // classes of flops for retiming/merging/etc
     Vec_Int_t *    vGateClasses;  // classes of gates for abstraction
@@ -209,6 +210,11 @@ struct Gia_Man_t_
     Vec_Wrd_t *    vSimsPi;
     Vec_Int_t *    vClassOld;
     Vec_Int_t *    vClassNew;
+    // incremental simulation
+    int            fIncrSim;
+    int            iNextPi;
+    int            iTimeStamp;
+    Vec_Int_t *    vTimeStamps;
     // truth table computation for small functions
     int            nTtVars;       // truth table variables
     int            nTtWords;      // truth table words
@@ -1518,6 +1524,10 @@ extern int                 Gia_ManBuiltInSimCheckEqual( Gia_Man_t * p, int iLit0
 extern void                Gia_ManBuiltInSimResimulateCone( Gia_Man_t * p, int iLit0, int iLit1 );
 extern void                Gia_ManBuiltInSimResimulate( Gia_Man_t * p );
 extern int                 Gia_ManBuiltInSimAddPat( Gia_Man_t * p, Vec_Int_t * vPat );
+extern void                Gia_ManIncrSimStart( Gia_Man_t * p, int nWords, int nObjs );
+extern void                Gia_ManIncrSimSet( Gia_Man_t * p, Vec_Int_t * vObjLits );
+extern int                 Gia_ManIncrSimCheckOver( Gia_Man_t * p, int iLit0, int iLit1 );
+extern int                 Gia_ManIncrSimCheckEqual( Gia_Man_t * p, int iLit0, int iLit1 );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );

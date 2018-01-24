@@ -281,7 +281,13 @@ int satoko_add_clause(solver_t *s, int *lits, int size)
         solver_enqueue(s, vec_uint_at(s->temp_lits, 0), UNDEF);
         return (s->status = (solver_propagate(s) == UNDEF));
     }
-
+    if ( 0 ) {
+        for ( i = 0; i < vec_uint_size(s->temp_lits); i++ ) {
+            int lit = vec_uint_at(s->temp_lits, i);
+            printf( "%s%d ", lit&1 ? "!":"", lit>>1 );
+        }
+        printf( "\n" );
+    }
     cref = solver_clause_create(s, s->temp_lits, 0);
     clause_watch(s, cref);
     return SATOKO_OK;
