@@ -246,6 +246,15 @@ static inline void Cbs_ManSaveModel( Cbs_Man_t * p, Vec_Int_t * vCex )
 //            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs_VarValue(pVar)) );
             Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjCioId(pVar), !Cbs_VarValue(pVar)) );
 } 
+static inline void Cbs_ManSaveModelAll( Cbs_Man_t * p, Vec_Int_t * vCex )
+{
+    Gia_Obj_t * pVar;
+    int i;
+    Vec_IntClear( vCex );
+    p->pProp.iHead = 0;
+    Cbs_QueForEachEntry( p->pProp, pVar, i )
+        Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs_VarValue(pVar)) );
+} 
 
 /**Function*************************************************************
 
@@ -929,12 +938,12 @@ int Cbs_ManSolve_rec( Cbs_Man_t * p, int Level )
   Returns 1 if unsatisfiable, 0 if satisfiable, and -1 if undecided.
   The node may be complemented. ]
                
-  SideEffects []
+  SideEffects [The two procedures differ in the CEX format.]
 
   SeeAlso     []
 
 ***********************************************************************/
-int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 )
+int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj )
 {
     int RetValue = 0;
     s_Counter = 0;
@@ -943,8 +952,6 @@ int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 )
     assert( p->pClauses.iHead == 1 && p->pClauses.iTail == 1 );
     p->Pars.nBTThis = p->Pars.nJustThis = p->Pars.nBTThisNc = 0;
     Cbs_ManAssign( p, pObj, 0, NULL, NULL );
-    if ( pObj2 ) 
-    Cbs_ManAssign( p, pObj2, 0, NULL, NULL );
     if ( !Cbs_ManSolve_rec(p, 0) && !Cbs_ManCheckLimits(p) )
         Cbs_ManSaveModel( p, p->vModel );
     else
@@ -956,7 +963,31 @@ int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 )
     p->Pars.nJustTotal = Abc_MaxInt( p->Pars.nJustTotal, p->Pars.nJustThis );
     if ( Cbs_ManCheckLimits( p ) )
         RetValue = -1;
-
+//    printf( "%d ", s_Counter );
+    return RetValue;
+}
+int Cbs_ManSolve2( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 )
+{
+    int RetValue = 0;
+    s_Counter = 0;
+    assert( !p->pProp.iHead && !p->pProp.iTail );
+    assert( !p->pJust.iHead && !p->pJust.iTail );
+    assert( p->pClauses.iHead == 1 && p->pClauses.iTail == 1 );
+    p->Pars.nBTThis = p->Pars.nJustThis = p->Pars.nBTThisNc = 0;
+    Cbs_ManAssign( p, pObj, 0, NULL, NULL );
+    if ( pObj2 ) 
+    Cbs_ManAssign( p, pObj2, 0, NULL, NULL );
+    if ( !Cbs_ManSolve_rec(p, 0) && !Cbs_ManCheckLimits(p) )
+        Cbs_ManSaveModelAll( p, p->vModel );
+    else
+        RetValue = 1;
+    Cbs_ManCancelUntil( p, 0 );
+    p->pJust.iHead = p->pJust.iTail = 0;
+    p->pClauses.iHead = p->pClauses.iTail = 1;
+    p->Pars.nBTTotal += p->Pars.nBTThis;
+    p->Pars.nJustTotal = Abc_MaxInt( p->Pars.nJustTotal, p->Pars.nJustThis );
+    if ( Cbs_ManCheckLimits( p ) )
+        RetValue = -1;
 //    printf( "%d ", s_Counter );
     return RetValue;
 }
@@ -1052,14 +1083,14 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
         clk = Abc_Clock();
         p->Pars.fUseHighest = 1;
         p->Pars.fUseLowest  = 0;
-        status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot), NULL );
+        status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot) );
 //        printf( "\n" );
 /*
         if ( status == -1 )
         {
             p->Pars.fUseHighest = 0;
             p->Pars.fUseLowest  = 1;
-            status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot), NULL );
+            status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot) );
         }
 */
         Vec_StrPush( vStatus, (char)status );

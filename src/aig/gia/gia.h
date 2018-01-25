@@ -1219,7 +1219,8 @@ extern Vec_Int_t *         Cbs_ManSolveMiter( Gia_Man_t * pGia, int nConfs, Vec_
 typedef struct Cbs_Man_t_  Cbs_Man_t;
 extern Cbs_Man_t *         Cbs_ManAlloc( Gia_Man_t * pGia );
 extern void                Cbs_ManStop( Cbs_Man_t * p );
-extern int                 Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
+extern int                 Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj );
+extern int                 Cbs_ManSolve2( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
 extern Vec_Int_t *         Cbs_ManSolveMiterNc( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
 extern void                Cbs_ManSetConflictNum( Cbs_Man_t * p, int Num );
 extern Vec_Int_t *         Cbs_ReadModel( Cbs_Man_t * p );

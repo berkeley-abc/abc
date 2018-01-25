@@ -45,9 +45,11 @@ static inline int clause_is_satisfied(solver_t *s, struct clause *clause)
 
 static inline void solver_clean_stats(solver_t *s)
 {
-    int n_conflicts_all = s->stats.n_conflicts_all;
+    long n_conflicts_all = s->stats.n_conflicts_all;
+    long n_propagations_all = s->stats.n_propagations_all;
     memset(&(s->stats), 0, sizeof(struct satoko_stats));
     s->stats.n_conflicts_all = n_conflicts_all;
+    s->stats.n_propagations_all = n_propagations_all;
 }
 
 static inline void print_opts(solver_t *s)

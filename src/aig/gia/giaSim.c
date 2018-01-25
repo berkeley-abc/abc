@@ -1182,7 +1182,7 @@ void Gia_ManIncrSimSet( Gia_Man_t * p, Vec_Int_t * vObjLits )
         if ( Gia_ObjIsAnd(Gia_ManObj(p, Abc_Lit2Var(iLit))) )
             continue;
         //assert( Vec_IntEntry(p->vTimeStamps, Abc_Lit2Var(iLit)) == p->iTimeStamp-1 );
-        //Vec_IntWriteEntry(p->vTimeStamps, Abc_Lit2Var(iLit), p->iTimeStamp);
+        Vec_IntWriteEntry(p->vTimeStamps, Abc_Lit2Var(iLit), p->iTimeStamp);
         if ( Abc_TtGetBit(pSims, p->iPatsPi) == Abc_LitIsCompl(iLit) )
              Abc_TtXorBit(pSims, p->iPatsPi);
     }
@@ -1208,6 +1208,7 @@ int Gia_ManIncrSimCheckOver( Gia_Man_t * p, int iLit0, int iLit1 )
     Gia_ManIncrSimUpdate( p );
     Gia_ManIncrSimCone_rec( p, Abc_Lit2Var(iLit0) );
     Gia_ManIncrSimCone_rec( p, Abc_Lit2Var(iLit1) );
+//    return 0; // disable
     return Gia_ManBuiltInSimCheckOver( p, iLit0, iLit1 );
 }
 int Gia_ManIncrSimCheckEqual( Gia_Man_t * p, int iLit0, int iLit1 )
@@ -1216,6 +1217,7 @@ int Gia_ManIncrSimCheckEqual( Gia_Man_t * p, int iLit0, int iLit1 )
     Gia_ManIncrSimUpdate( p );
     Gia_ManIncrSimCone_rec( p, Abc_Lit2Var(iLit0) );
     Gia_ManIncrSimCone_rec( p, Abc_Lit2Var(iLit1) );
+//    return 1; // disable
     return Gia_ManBuiltInSimCheckEqual( p, iLit0, iLit1 );
 }
 

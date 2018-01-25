@@ -13050,7 +13050,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
-//    Maj_ManExactSynthesisTest();
+//    Psl_FileTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );

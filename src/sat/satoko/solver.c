@@ -620,6 +620,7 @@ unsigned solver_propagate(solver_t *s)
         watch_list_shrink(ws, j - watch_list_array(ws));
     }
     s->stats.n_propagations += n_propagations;
+    s->stats.n_propagations_all += n_propagations;
     s->n_props_simplify -= n_propagations;
     return conf_cref;
 }

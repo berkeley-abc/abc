@@ -278,26 +278,28 @@ void Cec2_AddClausesSuper( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSuper,
   SeeAlso     []
 
 ***********************************************************************/
-void Cec2_CollectSuper_rec( Gia_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes )
+void Cec2_CollectSuper_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes )
 {
+    //printf( "v%d ", Gia_ObjValue(pObj) );
     // if the new node is complemented or a PI, another gate begins
     if ( Gia_IsComplement(pObj) || Gia_ObjIsCi(pObj) || 
-         (!fFirst && Gia_ObjValue(pObj) > 1) || 
+//         (!fFirst && Gia_ObjValue(pObj) > 1) || 
+         (!fFirst && (p->pRefs ? Gia_ObjRefNum(p, pObj) : Gia_ObjValue(pObj)) > 1) || 
          (fUseMuxes && pObj->fMark0) )
     {
         Vec_PtrPushUnique( vSuper, pObj );
         return;
     }
     // go through the branches
-    Cec2_CollectSuper_rec( Gia_ObjChild0(pObj), vSuper, 0, fUseMuxes );
-    Cec2_CollectSuper_rec( Gia_ObjChild1(pObj), vSuper, 0, fUseMuxes );
+    Cec2_CollectSuper_rec( p, Gia_ObjChild0(pObj), vSuper, 0, fUseMuxes );
+    Cec2_CollectSuper_rec( p, Gia_ObjChild1(pObj), vSuper, 0, fUseMuxes );
 }
-void Cec2_CollectSuper( Gia_Obj_t * pObj, int fUseMuxes, Vec_Ptr_t * vSuper )
+void Cec2_CollectSuper( Gia_Man_t * p, Gia_Obj_t * pObj, int fUseMuxes, Vec_Ptr_t * vSuper )
 {
     assert( !Gia_IsComplement(pObj) );
     assert( !Gia_ObjIsCi(pObj) );
     Vec_PtrClear( vSuper );
-    Cec2_CollectSuper_rec( pObj, vSuper, 1, fUseMuxes );
+    Cec2_CollectSuper_rec( p, pObj, vSuper, 1, fUseMuxes );
 }
 void Cec2_ObjAddToFrontier( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vFrontier, satoko_t * pSat )
 {
@@ -360,10 +362,11 @@ int Gia_ObjGetCnfVar( Gia_Man_t * pGia, int iObj, Vec_Ptr_t * vFrontier, Vec_Ptr
         }
         else
         {
-            Cec2_CollectSuper( pNode, fUseMuxes, vFanins );
+            Cec2_CollectSuper( pGia, pNode, fUseMuxes, vFanins );
             Vec_PtrForEachEntry( Gia_Obj_t *, vFanins, pFanin, k )
                 Cec2_ObjAddToFrontier( pGia, Gia_Regular(pFanin), vFrontier, pSat );
-            Cec2_AddClausesSuper( pGia, pNode, vFanins, pSat );
+            Cec2_AddClausesSuper( pGia, pNode, vFanins, pSat ); 
+            //printf( "%d ", Vec_PtrSize(vFanins) );
         }
         assert( Vec_PtrSize(vFanins) > 1 );
     }
