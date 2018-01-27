@@ -33640,13 +33640,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Vec_Int_t * Cbs2_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
     Cec_ParSat_t ParsSat, * pPars = &ParsSat;
     Gia_Man_t * pTemp;
     int c;
-    int fCSat = 0;
+    int fNewSolver = 0, fCSat = 0;
     Cec_ManSatSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNnmtcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNanmtcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33683,6 +33684,9 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nCallsRecycle < 0 )
                 goto usage;
             break;
+        case 'a':
+            fNewSolver ^= 1;
+            break;
         case 'n':
             pPars->fNonChrono ^= 1;
             break;
@@ -33711,7 +33715,9 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Vec_Int_t * vCounters;
         Vec_Str_t * vStatus;
-        if ( pPars->fLearnCls )
+        if ( fNewSolver )
+            vCounters = Cbs2_ManSolveMiterNc( pAbc->pGia, pPars->nBTLimit, &vStatus, pPars->fVerbose );
+        else if ( pPars->fLearnCls )
             vCounters = Tas_ManSolveMiterNc( pAbc->pGia, pPars->nBTLimit, &vStatus, pPars->fVerbose );
         else if ( pPars->fNonChrono )
             vCounters = Cbs_ManSolveMiterNc( pAbc->pGia, pPars->nBTLimit, &vStatus, pPars->fVerbose );
@@ -33728,11 +33734,12 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sat [-CSN <num>] [-nmctvh]\n" );
+    Abc_Print( -2, "usage: &sat [-CSN <num>] [-anmctvh]\n" );
     Abc_Print( -2, "\t         performs SAT solving for the combinational outputs\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-S num : the min number of variables to recycle the solver [default = %d]\n", pPars->nSatVarMax );
     Abc_Print( -2, "\t-N num : the min number of calls to recycle the solver [default = %d]\n", pPars->nCallsRecycle );
+    Abc_Print( -2, "\t-a     : toggle using new solver [default = %s]\n", fNewSolver? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggle using non-chronological backtracking [default = %s]\n", pPars->fNonChrono? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", fCSat? "yes": "no" );
@@ -44856,6 +44863,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Gia_ParTest( pAbc->pGia, nWords, nProcs );
 //    Gia_StoComputeCuts( pAbc->pGia );
 //    printf( "\nThis command is currently disabled.\n\n" );
+/*
     {
         char Buffer[10];
         extern void Gia_DumpLutSizeDistrib( Gia_Man_t * p, char * pFileName );
@@ -44863,6 +44871,9 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pAbc->pGia )
             Gia_DumpLutSizeDistrib( pAbc->pGia, Buffer );
     }
+*/
+//    pTemp = Slv_ManToAig( pAbc->pGia );
+//    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );

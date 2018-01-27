@@ -48,7 +48,7 @@ void Cec_ManSatSetDefaultParams( Cec_ParSat_t * p )
     p->nBTLimit       =     100;  // conflict limit at a node
     p->nSatVarMax     =    2000;  // the max number of SAT variables
     p->nCallsRecycle  =     200;  // calls to perform before recycling SAT solver
-    p->fNonChrono     =       0;  // use non-chronological backtracling (for circuit SAT only)
+    p->fNonChrono     =       1;  // use non-chronological backtracling (for circuit SAT only)
     p->fPolarFlip     =       1;  // flops polarity of variables
     p->fCheckMiter    =       0;  // the circuit is the miter
 //    p->fFirstStop     =       0;  // stop on the first sat output
