@@ -56,7 +56,7 @@ struct Cbs2_Que_t_
     int           iHead;        // beginning of the queue
     int           iTail;        // end of the queue
     int           nSize;        // allocated size
-    Gia_Obj_t **  pData;        // nodes stored in the queue
+    int *         pData;        // nodes stored in the queue
 };
  
 typedef struct Cbs2_Man_t_ Cbs2_Man_t;
@@ -67,10 +67,15 @@ struct Cbs2_Man_t_
     Cbs2_Que_t    pProp;        // propagation queue
     Cbs2_Que_t    pJust;        // justification queue
     Cbs2_Que_t    pClauses;     // clause queue
-    Gia_Obj_t **  pIter;        // iterator through clause vars
-    Vec_Int_t *   vLevReas;     // levels and decisions
+    int *         pIter;        // iterator through clause vars
+    //Vec_Int_t *   vLevReas;     // levels and decisions
     Vec_Int_t *   vModel;       // satisfying assignment
     Vec_Ptr_t *   vTemp;        // temporary storage
+    // internal data
+    Vec_Str_t     vAssign;
+    Vec_Str_t     vValue;
+    Vec_Int_t     vLevReason;
+    Vec_Int_t     vIndex;
     // SAT calls statistics
     int           nSatUnsat;    // the number of proofs
     int           nSatSat;      // the number of failure
@@ -87,27 +92,30 @@ struct Cbs2_Man_t_
     abctime       timeTotal;    // total runtime
 };
 
-static inline int   Cbs2_VarIsAssigned( Gia_Obj_t * pVar )      { return pVar->fMark0;                        }
-static inline void  Cbs2_VarAssign( Gia_Obj_t * pVar )          { assert(!pVar->fMark0); pVar->fMark0 = 1;    }
-static inline void  Cbs2_VarUnassign( Gia_Obj_t * pVar )        { assert(pVar->fMark0);  pVar->fMark0 = 0; pVar->fMark1 = 0; pVar->Value = ~0; }
-static inline int   Cbs2_VarValue( Gia_Obj_t * pVar )           { assert(pVar->fMark0);  return pVar->fMark1; }
-static inline void  Cbs2_VarSetValue( Gia_Obj_t * pVar, int v ) { assert(pVar->fMark0);  pVar->fMark1 = v;    }
-static inline int   Cbs2_VarIsJust( Gia_Obj_t * pVar )          { return Gia_ObjIsAnd(pVar) && !Cbs2_VarIsAssigned(Gia_ObjFanin0(pVar)) && !Cbs2_VarIsAssigned(Gia_ObjFanin1(pVar)); } 
-static inline int   Cbs2_VarFanin0Value( Gia_Obj_t * pVar )     { return !Cbs2_VarIsAssigned(Gia_ObjFanin0(pVar)) ? 2 : (Cbs2_VarValue(Gia_ObjFanin0(pVar)) ^ Gia_ObjFaninC0(pVar)); }
-static inline int   Cbs2_VarFanin1Value( Gia_Obj_t * pVar )     { return !Cbs2_VarIsAssigned(Gia_ObjFanin1(pVar)) ? 2 : (Cbs2_VarValue(Gia_ObjFanin1(pVar)) ^ Gia_ObjFaninC1(pVar)); }
+static inline int   Cbs2_VarUnused( Cbs2_Man_t * p, int iVar )                  { return Vec_IntEntry(&p->vLevReason, 3*iVar) == -1; }
+static inline void  Cbs2_VarSetUnused( Cbs2_Man_t * p, int iVar )               { Vec_IntWriteEntry(&p->vLevReason, 3*iVar, -1);     } 
 
-static inline int         Cbs2_VarDecLevel( Cbs2_Man_t * p, Gia_Obj_t * pVar )  { assert( pVar->Value != ~0 ); return Vec_IntEntry(p->vLevReas, 3*pVar->Value);          }
-static inline Gia_Obj_t * Cbs2_VarReason0( Cbs2_Man_t * p, Gia_Obj_t * pVar )   { assert( pVar->Value != ~0 ); return pVar + Vec_IntEntry(p->vLevReas, 3*pVar->Value+1); }
-static inline Gia_Obj_t * Cbs2_VarReason1( Cbs2_Man_t * p, Gia_Obj_t * pVar )   { assert( pVar->Value != ~0 ); return pVar + Vec_IntEntry(p->vLevReas, 3*pVar->Value+2); }
-static inline int         Cbs2_ClauseDecLevel( Cbs2_Man_t * p, int hClause )    { return Cbs2_VarDecLevel( p, p->pClauses.pData[hClause] );                               }
+static inline int   Cbs2_VarIsAssigned( Cbs2_Man_t * p, Gia_Obj_t * pVar )      { return pVar->fMark0;                        }
+static inline void  Cbs2_VarAssign( Cbs2_Man_t * p, Gia_Obj_t * pVar )          { assert(!pVar->fMark0); pVar->fMark0 = 1;    }
+static inline void  Cbs2_VarUnassign( Cbs2_Man_t * p, Gia_Obj_t * pVar )        { assert(pVar->fMark0);  pVar->fMark0 = 0; pVar->fMark1 = 0; Cbs2_VarSetUnused(p, Gia_ObjId(p->pAig, pVar)); }
+static inline int   Cbs2_VarValue( Cbs2_Man_t * p, Gia_Obj_t * pVar )           { assert(pVar->fMark0);  return pVar->fMark1; }
+static inline void  Cbs2_VarSetValue( Cbs2_Man_t * p, Gia_Obj_t * pVar, int v ) { assert(pVar->fMark0);  pVar->fMark1 = v;    }
+static inline int   Cbs2_VarIsJust( Cbs2_Man_t * p, Gia_Obj_t * pVar )          { return Gia_ObjIsAnd(pVar) && !Cbs2_VarIsAssigned(p, Gia_ObjFanin0(pVar)) && !Cbs2_VarIsAssigned(p, Gia_ObjFanin1(pVar)); } 
+static inline int   Cbs2_VarFanin0Value( Cbs2_Man_t * p, Gia_Obj_t * pVar )     { return !Cbs2_VarIsAssigned(p, Gia_ObjFanin0(pVar)) ? 2 : (Cbs2_VarValue(p, Gia_ObjFanin0(pVar)) ^ Gia_ObjFaninC0(pVar)); }
+static inline int   Cbs2_VarFanin1Value( Cbs2_Man_t * p, Gia_Obj_t * pVar )     { return !Cbs2_VarIsAssigned(p, Gia_ObjFanin1(pVar)) ? 2 : (Cbs2_VarValue(p, Gia_ObjFanin1(pVar)) ^ Gia_ObjFaninC1(pVar)); }
 
-#define Cbs2_QueForEachEntry( Que, pObj, i )                         \
-    for ( i = (Que).iHead; (i < (Que).iTail) && ((pObj) = (Que).pData[i]); i++ )
+static inline int   Cbs2_VarDecLevel( Cbs2_Man_t * p, int iVar )                { assert( !Cbs2_VarUnused(p, iVar) ); return Vec_IntEntry(&p->vLevReason, 3*iVar);    }
+static inline int   Cbs2_VarReason0( Cbs2_Man_t * p, int iVar )                 { assert( !Cbs2_VarUnused(p, iVar) ); return Vec_IntEntry(&p->vLevReason, 3*iVar+1);  }
+static inline int   Cbs2_VarReason1( Cbs2_Man_t * p, int iVar )                 { assert( !Cbs2_VarUnused(p, iVar) ); return Vec_IntEntry(&p->vLevReason, 3*iVar+2);  }
+static inline int   Cbs2_ClauseDecLevel( Cbs2_Man_t * p, int hClause )          { return Cbs2_VarDecLevel( p, p->pClauses.pData[hClause] );                           }
 
-#define Cbs2_ClauseForEachVar( p, hClause, pObj )                    \
-    for ( (p)->pIter = (p)->pClauses.pData + hClause; (pObj = *pIter); (p)->pIter++ )
-#define Cbs2_ClauseForEachVar1( p, hClause, pObj )                   \
-    for ( (p)->pIter = (p)->pClauses.pData+hClause+1; (pObj = *pIter); (p)->pIter++ )
+#define Cbs2_QueForEachEntry( Que, iObj, i )                         \
+    for ( i = (Que).iHead; (i < (Que).iTail) && ((iObj) = (Que).pData[i]); i++ )
+
+#define Cbs2_ClauseForEachVar( p, hClause, iObj )                    \
+    for ( (p)->pIter = (p)->pClauses.pData + hClause; (iObj = *pIter); (p)->pIter++ )
+#define Cbs2_ClauseForEachVar1( p, hClause, iObj )                   \
+    for ( (p)->pIter = (p)->pClauses.pData+hClause+1; (iObj = *pIter); (p)->pIter++ )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -155,15 +163,19 @@ Cbs2_Man_t * Cbs2_ManAlloc( Gia_Man_t * pGia )
     Cbs2_Man_t * p;
     p = ABC_CALLOC( Cbs2_Man_t, 1 );
     p->pProp.nSize = p->pJust.nSize = p->pClauses.nSize = 10000;
-    p->pProp.pData = ABC_ALLOC( Gia_Obj_t *, p->pProp.nSize );
-    p->pJust.pData = ABC_ALLOC( Gia_Obj_t *, p->pJust.nSize );
-    p->pClauses.pData = ABC_ALLOC( Gia_Obj_t *, p->pClauses.nSize );
+    p->pProp.pData = ABC_ALLOC( int, p->pProp.nSize );
+    p->pJust.pData = ABC_ALLOC( int, p->pJust.nSize );
+    p->pClauses.pData = ABC_ALLOC( int, p->pClauses.nSize );
     p->pClauses.iHead = p->pClauses.iTail = 1;
     p->vModel   = Vec_IntAlloc( 1000 );
-    p->vLevReas = Vec_IntAlloc( 1000 );
+    //p->vLevReas = Vec_IntAlloc( 1000 );
     p->vTemp    = Vec_PtrAlloc( 1000 );
     p->pAig     = pGia;
     Cbs2_SetDefaultParams( &p->Pars );
+    Vec_StrFill( &p->vAssign,    Gia_ManObjNum(pGia), 0 );
+    Vec_StrFill( &p->vValue,     Gia_ManObjNum(pGia), 0 );
+    Vec_IntFill( &p->vLevReason, 3*Gia_ManObjNum(pGia), -1 );
+    Vec_IntFill( &p->vIndex,     Gia_ManObjNum(pGia), -1 );
     return p;
 }
 
@@ -180,7 +192,11 @@ Cbs2_Man_t * Cbs2_ManAlloc( Gia_Man_t * pGia )
 ***********************************************************************/
 void Cbs2_ManStop( Cbs2_Man_t * p )
 {
-    Vec_IntFree( p->vLevReas );
+    Vec_StrErase( &p->vAssign );
+    Vec_StrErase( &p->vValue );
+    Vec_IntErase( &p->vLevReason );
+    Vec_IntErase( &p->vIndex );
+    //Vec_IntFree( p->vLevReas );
     Vec_IntFree( p->vModel );
     Vec_PtrFree( p->vTemp );
     ABC_FREE( p->pClauses.pData );
@@ -238,22 +254,28 @@ static inline int Cbs2_ManCheckLimits( Cbs2_Man_t * p )
 static inline void Cbs2_ManSaveModel( Cbs2_Man_t * p, Vec_Int_t * vCex )
 {
     Gia_Obj_t * pVar;
-    int i;
+    int i, iVar;
     Vec_IntClear( vCex );
     p->pProp.iHead = 0;
-    Cbs2_QueForEachEntry( p->pProp, pVar, i )
+    Cbs2_QueForEachEntry( p->pProp, iVar, i )
+    {
+        pVar = Gia_ManObj(p->pAig, iVar);
         if ( Gia_ObjIsCi(pVar) )
-//            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs2_VarValue(pVar)) );
-            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjCioId(pVar), !Cbs2_VarValue(pVar)) );
+//            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs2_VarValue(p, pVar)) );
+            Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjCioId(pVar), !Cbs2_VarValue(p, pVar)) );
+    }
 } 
 static inline void Cbs2_ManSaveModelAll( Cbs2_Man_t * p, Vec_Int_t * vCex )
 {
     Gia_Obj_t * pVar;
-    int i;
+    int i, iVar;
     Vec_IntClear( vCex );
     p->pProp.iHead = 0;
-    Cbs2_QueForEachEntry( p->pProp, pVar, i )
-        Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs2_VarValue(pVar)) );
+    Cbs2_QueForEachEntry( p->pProp, iVar, i )
+    {
+        pVar = Gia_ManObj(p->pAig, iVar);
+        Vec_IntPush( vCex, Abc_Var2Lit(iVar, !Cbs2_VarValue(p, pVar)) );
+    }
 } 
 
 /**Function*************************************************************
@@ -283,14 +305,14 @@ static inline int Cbs2_QueIsEmpty( Cbs2_Que_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Cbs2_QuePush( Cbs2_Que_t * p, Gia_Obj_t * pObj )
+static inline void Cbs2_QuePush( Cbs2_Que_t * p, int iObj )
 {
     if ( p->iTail == p->nSize )
     {
         p->nSize *= 2;
-        p->pData = ABC_REALLOC( Gia_Obj_t *, p->pData, p->nSize ); 
+        p->pData = ABC_REALLOC( int, p->pData, p->nSize ); 
     }
-    p->pData[p->iTail++] = pObj;
+    p->pData[p->iTail++] = iObj;
 }
 
 /**Function*************************************************************
@@ -304,12 +326,11 @@ static inline void Cbs2_QuePush( Cbs2_Que_t * p, Gia_Obj_t * pObj )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Cbs2_QueHasNode( Cbs2_Que_t * p, Gia_Obj_t * pObj )
+static inline int Cbs2_QueHasNode( Cbs2_Que_t * p, int iObj )
 {
-    Gia_Obj_t * pTemp;
-    int i;
-    Cbs2_QueForEachEntry( *p, pTemp, i )
-        if ( pTemp == pObj )
+    int i, iTemp;
+    Cbs2_QueForEachEntry( *p, iTemp, i )
+        if ( iTemp == iObj )
             return 1;
     return 0;
 }
@@ -367,7 +388,7 @@ static inline int Cbs2_QueFinish( Cbs2_Que_t * p )
 {
     int iHeadOld = p->iHead;
     assert( p->iHead < p->iTail );
-    Cbs2_QuePush( p, NULL );
+    Cbs2_QuePush( p, 0 );
     p->iHead = p->iTail;
     return iHeadOld;
 }
@@ -407,12 +428,11 @@ static inline int Cbs2_VarFaninFanoutMax( Cbs2_Man_t * p, Gia_Obj_t * pObj )
 ***********************************************************************/
 static inline Gia_Obj_t * Cbs2_ManDecideHighest( Cbs2_Man_t * p )
 {
-    Gia_Obj_t * pObj, * pObjMax = NULL;
-    int i;
-    Cbs2_QueForEachEntry( p->pJust, pObj, i )
-        if ( pObjMax == NULL || pObjMax < pObj )
-            pObjMax = pObj;
-    return pObjMax;
+    int i, iObj, iObjMax = 0;
+    Cbs2_QueForEachEntry( p->pJust, iObj, i )
+        if ( iObjMax == 0 || iObjMax < iObj )
+            iObjMax = iObj;
+    return Gia_ManObj(p->pAig, iObjMax);
 }
 
 /**Function*************************************************************
@@ -428,12 +448,11 @@ static inline Gia_Obj_t * Cbs2_ManDecideHighest( Cbs2_Man_t * p )
 ***********************************************************************/
 static inline Gia_Obj_t * Cbs2_ManDecideLowest( Cbs2_Man_t * p )
 {
-    Gia_Obj_t * pObj, * pObjMin = NULL;
-    int i;
-    Cbs2_QueForEachEntry( p->pJust, pObj, i )
-        if ( pObjMin == NULL || pObjMin > pObj )
-            pObjMin = pObj;
-    return pObjMin;
+    int i, iObj, iObjMin = 0;
+    Cbs2_QueForEachEntry( p->pJust, iObj, i )
+        if ( iObjMin == 0 || iObjMin > iObj )
+            iObjMin = iObj;
+    return Gia_ManObj(p->pAig, iObjMin);
 }
 
 /**Function*************************************************************
@@ -450,10 +469,11 @@ static inline Gia_Obj_t * Cbs2_ManDecideLowest( Cbs2_Man_t * p )
 static inline Gia_Obj_t * Cbs2_ManDecideMaxFF( Cbs2_Man_t * p )
 {
     Gia_Obj_t * pObj, * pObjMax = NULL;
-    int i, iMaxFF = 0, iCurFF;
+    int i, iMaxFF = 0, iCurFF, iObj;
     assert( p->pAig->pRefs != NULL );
-    Cbs2_QueForEachEntry( p->pJust, pObj, i )
+    Cbs2_QueForEachEntry( p->pJust, iObj, i )
     {
+        pObj = Gia_ManObj(p->pAig, iObj);
         iCurFF = Cbs2_VarFaninFanoutMax( p, pObj );
         assert( iCurFF > 0 );
         if ( iMaxFF < iCurFF )
@@ -481,13 +501,16 @@ static inline Gia_Obj_t * Cbs2_ManDecideMaxFF( Cbs2_Man_t * p )
 static inline void Cbs2_ManCancelUntil( Cbs2_Man_t * p, int iBound )
 {
     Gia_Obj_t * pVar;
-    int i;
+    int i, iVar;
     assert( iBound <= p->pProp.iTail );
     p->pProp.iHead = iBound;
-    Cbs2_QueForEachEntry( p->pProp, pVar, i )
-        Cbs2_VarUnassign( pVar );
+    Cbs2_QueForEachEntry( p->pProp, iVar, i )
+    {
+        pVar = Gia_ManObj(p->pAig, iVar);
+        Cbs2_VarUnassign(p,  pVar );
+    }
     p->pProp.iTail = iBound;
-    Vec_IntShrink( p->vLevReas, 3*iBound );
+    //Vec_IntShrink( p->vLevReas, 3*iBound );
 }
 
 /**Function*************************************************************
@@ -504,17 +527,22 @@ static inline void Cbs2_ManCancelUntil( Cbs2_Man_t * p, int iBound )
 static inline void Cbs2_ManAssign( Cbs2_Man_t * p, Gia_Obj_t * pObj, int Level, Gia_Obj_t * pRes0, Gia_Obj_t * pRes1 )
 {
     Gia_Obj_t * pObjR = Gia_Regular(pObj);
+    int iObj = Gia_ObjId(p->pAig, pObjR);
     assert( Gia_ObjIsCand(pObjR) );
-    assert( !Cbs2_VarIsAssigned(pObjR) );
-    Cbs2_VarAssign( pObjR );
-    Cbs2_VarSetValue( pObjR, !Gia_IsComplement(pObj) );
-    assert( pObjR->Value == ~0 );
-    pObjR->Value = p->pProp.iTail;
-    Cbs2_QuePush( &p->pProp, pObjR );
-    Vec_IntPush( p->vLevReas, Level );
-    Vec_IntPush( p->vLevReas, pRes0 ? pRes0-pObjR : 0 );
-    Vec_IntPush( p->vLevReas, pRes1 ? pRes1-pObjR : 0 );
-    assert( Vec_IntSize(p->vLevReas) == 3 * p->pProp.iTail );
+    assert( !Cbs2_VarIsAssigned(p, pObjR) );
+    Cbs2_VarAssign(p, pObjR );
+    Cbs2_VarSetValue(p, pObjR, !Gia_IsComplement(pObj) );
+    Cbs2_QuePush( &p->pProp, iObj );
+    //assert( pObjR->Value == ~0 );
+    //pObjR->Value = p->pProp.iTail;
+    assert( Cbs2_VarUnused(p, iObj) );
+//    Vec_IntPush( p->vLevReas, Level );
+//    Vec_IntPush( p->vLevReas, pRes0 ? pRes0-pObjR : 0 );
+//    Vec_IntPush( p->vLevReas, pRes1 ? pRes1-pObjR : 0 );
+//    assert( Vec_IntSize(p->vLevReas) == 3 * p->pProp.iTail );
+    Vec_IntWriteEntry( &p->vLevReason, 3*iObj,   Level );
+    Vec_IntWriteEntry( &p->vLevReason, 3*iObj+1, pRes0 ? Gia_ObjId(p->pAig, pRes0) : iObj );
+    Vec_IntWriteEntry( &p->vLevReason, 3*iObj+2, pRes1 ? Gia_ObjId(p->pAig, pRes1) : iObj );
 }
 
 
@@ -532,7 +560,7 @@ static inline void Cbs2_ManAssign( Cbs2_Man_t * p, Gia_Obj_t * pObj, int Level, 
 static inline int Cbs2_ManClauseSize( Cbs2_Man_t * p, int hClause )
 {
     Cbs2_Que_t * pQue = &(p->pClauses);
-    Gia_Obj_t ** pIter;
+    int * pIter;
     for ( pIter = pQue->pData + hClause; *pIter; pIter++ );
     return pIter - pQue->pData - hClause ;
 }
@@ -551,12 +579,11 @@ static inline int Cbs2_ManClauseSize( Cbs2_Man_t * p, int hClause )
 static inline void Cbs2_ManPrintClause( Cbs2_Man_t * p, int Level, int hClause )
 {
     Cbs2_Que_t * pQue = &(p->pClauses);
-    Gia_Obj_t * pObj;
-    int i;
+    int i, iObj;
     assert( Cbs2_QueIsEmpty( pQue ) );
     printf( "Level %2d : ", Level );
-    for ( i = hClause; (pObj = pQue->pData[i]); i++ )
-        printf( "%d=%d(%d) ", Gia_ObjId(p->pAig, pObj), Cbs2_VarValue(pObj), Cbs2_VarDecLevel(p, pObj) );
+    for ( i = hClause; (iObj = pQue->pData[i]); i++ )
+        printf( "%d=%d(%d) ", iObj, Cbs2_VarValue(p, Gia_ManObj(p->pAig, iObj)), Cbs2_VarDecLevel(p, iObj) );
     printf( "\n" );
 }
 
@@ -574,12 +601,11 @@ static inline void Cbs2_ManPrintClause( Cbs2_Man_t * p, int Level, int hClause )
 static inline void Cbs2_ManPrintClauseNew( Cbs2_Man_t * p, int Level, int hClause )
 {
     Cbs2_Que_t * pQue = &(p->pClauses);
-    Gia_Obj_t * pObj;
-    int i;
+    int i, iObj;
     assert( Cbs2_QueIsEmpty( pQue ) );
     printf( "Level %2d : ", Level );
-    for ( i = hClause; (pObj = pQue->pData[i]); i++ )
-        printf( "%c%d ", Cbs2_VarValue(pObj)? '+':'-', Gia_ObjId(p->pAig, pObj) );
+    for ( i = hClause; (iObj = pQue->pData[i]); i++ )
+        printf( "%c%d ", Cbs2_VarValue(p, Gia_ManObj(p->pAig, iObj))? '+':'-', iObj );
     printf( "\n" );
 }
 
@@ -597,9 +623,9 @@ static inline void Cbs2_ManPrintClauseNew( Cbs2_Man_t * p, int Level, int hClaus
 static inline void Cbs2_ManDeriveReason( Cbs2_Man_t * p, int Level )
 {
     Cbs2_Que_t * pQue = &(p->pClauses);
-    Gia_Obj_t * pObj, * pReason;
-    int i, k, iLitLevel;
-    assert( pQue->pData[pQue->iHead] == NULL );
+    Gia_Obj_t * pObj;
+    int i, k, iObj, iLitLevel, iReason;
+    assert( pQue->pData[pQue->iHead] == 0 );
     assert( pQue->iHead + 1 < pQue->iTail );
 /*
     for ( i = pQue->iHead + 1; i < pQue->iTail; i++ )
@@ -612,33 +638,34 @@ static inline void Cbs2_ManDeriveReason( Cbs2_Man_t * p, int Level )
     Vec_PtrClear( p->vTemp );
     for ( i = k = pQue->iHead + 1; i < pQue->iTail; i++ )
     {
-        pObj = pQue->pData[i];
+        iObj = pQue->pData[i];
+        pObj = Gia_ManObj(p->pAig, iObj);
         if ( !pObj->fMark0 ) // unassigned - seen again
             continue;
         // assigned - seen first time
         pObj->fMark0 = 0;
         Vec_PtrPush( p->vTemp, pObj );
         // check decision level
-        iLitLevel = Cbs2_VarDecLevel( p, pObj );
+        iLitLevel = Cbs2_VarDecLevel( p, iObj );
         if ( iLitLevel < Level )
         {
-            pQue->pData[k++] = pObj;
+            pQue->pData[k++] = iObj;
             continue;
         }
         assert( iLitLevel == Level );
-        pReason = Cbs2_VarReason0( p, pObj );
-        if ( pReason == pObj ) // no reason
+        iReason = Cbs2_VarReason0( p, iObj );
+        if ( iReason == iObj ) // no reason
         {
             //assert( pQue->pData[pQue->iHead] == NULL );
-            pQue->pData[pQue->iHead] = pObj;
+            pQue->pData[pQue->iHead] = iObj;
             continue;
         }
-        Cbs2_QuePush( pQue, pReason );
-        pReason = Cbs2_VarReason1( p, pObj );
-        if ( pReason != pObj ) // second reason
-            Cbs2_QuePush( pQue, pReason );
+        Cbs2_QuePush( pQue, iReason );
+        iReason = Cbs2_VarReason1( p, iObj );
+        if ( iReason != iObj ) // second reason
+            Cbs2_QuePush( pQue, iReason );
     }
-    assert( pQue->pData[pQue->iHead] != NULL );
+    assert( pQue->pData[pQue->iHead] != 0 );
     pQue->iTail = k;
     // clear the marks
     Vec_PtrForEachEntry( Gia_Obj_t *, p->vTemp, pObj, i )
@@ -659,15 +686,15 @@ static inline void Cbs2_ManDeriveReason( Cbs2_Man_t * p, int Level )
 static inline int Cbs2_ManAnalyze( Cbs2_Man_t * p, int Level, Gia_Obj_t * pVar, Gia_Obj_t * pFan0, Gia_Obj_t * pFan1 )
 {
     Cbs2_Que_t * pQue = &(p->pClauses);
-    assert( Cbs2_VarIsAssigned(pVar) );
-    assert( Cbs2_VarIsAssigned(pFan0) );
-    assert( pFan1 == NULL || Cbs2_VarIsAssigned(pFan1) );
+    assert( Cbs2_VarIsAssigned(p, pVar) );
+    assert( Cbs2_VarIsAssigned(p, pFan0) );
+    assert( pFan1 == NULL || Cbs2_VarIsAssigned(p, pFan1) );
     assert( Cbs2_QueIsEmpty( pQue ) );
-    Cbs2_QuePush( pQue, NULL );
-    Cbs2_QuePush( pQue, pVar );
-    Cbs2_QuePush( pQue, pFan0 );
+    Cbs2_QuePush( pQue, 0 );
+    Cbs2_QuePush( pQue, Gia_ObjId(p->pAig, pVar) );
+    Cbs2_QuePush( pQue, Gia_ObjId(p->pAig, pFan0) );
     if ( pFan1 )
-        Cbs2_QuePush( pQue, pFan1 );
+        Cbs2_QuePush( pQue, Gia_ObjId(p->pAig, pFan1) );
     Cbs2_ManDeriveReason( p, Level );
     return Cbs2_QueFinish( pQue );
 }
@@ -688,8 +715,8 @@ static inline int Cbs2_ManResolve( Cbs2_Man_t * p, int Level, int hClause0, int 
 {
     Cbs2_Que_t * pQue = &(p->pClauses);
     Gia_Obj_t * pObj;
-    int i, LevelMax = -1, LevelCur;
-    assert( pQue->pData[hClause0] != NULL );
+    int i, iObj, LevelMax = -1, LevelCur;
+    assert( pQue->pData[hClause0] != 0 );
     assert( pQue->pData[hClause0] == pQue->pData[hClause1] );
 /*
     for ( i = hClause0 + 1; (pObj = pQue->pData[i]); i++ )
@@ -698,31 +725,33 @@ static inline int Cbs2_ManResolve( Cbs2_Man_t * p, int Level, int hClause0, int 
         assert( pObj->fMark0 == 1 );
 */
     assert( Cbs2_QueIsEmpty( pQue ) );
-    Cbs2_QuePush( pQue, NULL );
-    for ( i = hClause0 + 1; (pObj = pQue->pData[i]); i++ )
+    Cbs2_QuePush( pQue, 0 );
+    for ( i = hClause0 + 1; (iObj = pQue->pData[i]); i++ )
     {
+        pObj = Gia_ManObj(p->pAig, iObj);
         if ( !pObj->fMark0 ) // unassigned - seen again
             continue;
         // assigned - seen first time
         pObj->fMark0 = 0;
-        Cbs2_QuePush( pQue, pObj );
-        LevelCur = Cbs2_VarDecLevel( p, pObj );
+        Cbs2_QuePush( pQue, iObj );
+        LevelCur = Cbs2_VarDecLevel( p, iObj );
         if ( LevelMax < LevelCur )
             LevelMax = LevelCur;
     }
-    for ( i = hClause1 + 1; (pObj = pQue->pData[i]); i++ )
+    for ( i = hClause1 + 1; (iObj = pQue->pData[i]); i++ )
     {
+        pObj = Gia_ManObj(p->pAig, iObj);
         if ( !pObj->fMark0 ) // unassigned - seen again
             continue;
         // assigned - seen first time
         pObj->fMark0 = 0;
-        Cbs2_QuePush( pQue, pObj );
-        LevelCur = Cbs2_VarDecLevel( p, pObj );
+        Cbs2_QuePush( pQue, iObj );
+        LevelCur = Cbs2_VarDecLevel( p, iObj );
         if ( LevelMax < LevelCur )
             LevelMax = LevelCur;
     }
     for ( i = pQue->iHead + 1; i < pQue->iTail; i++ )
-        pQue->pData[i]->fMark0 = 1;
+        Gia_ManObj(p->pAig, pQue->pData[i])->fMark0 = 1;
     Cbs2_ManDeriveReason( p, LevelMax );
     return Cbs2_QueFinish( pQue );
 }
@@ -742,13 +771,13 @@ static inline int Cbs2_ManPropagateOne( Cbs2_Man_t * p, Gia_Obj_t * pVar, int Le
 {
     int Value0, Value1;
     assert( !Gia_IsComplement(pVar) );
-    assert( Cbs2_VarIsAssigned(pVar) );
+    assert( Cbs2_VarIsAssigned(p, pVar) );
     if ( Gia_ObjIsCi(pVar) )
         return 0;
     assert( Gia_ObjIsAnd(pVar) );
-    Value0 = Cbs2_VarFanin0Value(pVar);
-    Value1 = Cbs2_VarFanin1Value(pVar);
-    if ( Cbs2_VarValue(pVar) )
+    Value0 = Cbs2_VarFanin0Value(p, pVar);
+    Value1 = Cbs2_VarFanin1Value(p, pVar);
+    if ( Cbs2_VarValue(p, pVar) )
     { // value is 1
         if ( Value0 == 0 || Value1 == 0 ) // one is 0
         {
@@ -778,9 +807,9 @@ static inline int Cbs2_ManPropagateOne( Cbs2_Man_t * p, Gia_Obj_t * pVar, int Le
             Cbs2_ManAssign( p, Gia_Not(Gia_ObjChild1(pVar)), Level, pVar, Gia_ObjFanin0(pVar) );
         return 0;
     }
-    assert( Cbs2_VarIsJust(pVar) );
-    assert( !Cbs2_QueHasNode( &p->pJust, pVar ) );
-    Cbs2_QuePush( &p->pJust, pVar );
+    assert( Cbs2_VarIsJust(p, pVar) );
+    assert( !Cbs2_QueHasNode( &p->pJust, Gia_ObjId(p->pAig, pVar) ) );
+    Cbs2_QuePush( &p->pJust, Gia_ObjId(p->pAig, pVar) );
     return 0;
 }
 
@@ -800,10 +829,10 @@ static inline int Cbs2_ManPropagateTwo( Cbs2_Man_t * p, Gia_Obj_t * pVar, int Le
     int Value0, Value1;
     assert( !Gia_IsComplement(pVar) );
     assert( Gia_ObjIsAnd(pVar) );
-    assert( Cbs2_VarIsAssigned(pVar) );
-    assert( !Cbs2_VarValue(pVar) );
-    Value0 = Cbs2_VarFanin0Value(pVar);
-    Value1 = Cbs2_VarFanin1Value(pVar);
+    assert( Cbs2_VarIsAssigned(p, pVar) );
+    assert( !Cbs2_VarValue(p, pVar) );
+    Value0 = Cbs2_VarFanin0Value(p, pVar);
+    Value1 = Cbs2_VarFanin1Value(p, pVar);
     // value is 0
     if ( Value0 == 0 || Value1 == 0 ) // one is 0
         return 0;
@@ -832,20 +861,22 @@ int Cbs2_ManPropagate( Cbs2_Man_t * p, int Level )
 {
     int hClause;
     Gia_Obj_t * pVar;
-    int i, k;
+    int i, k, iVar;
     while ( 1 )
     {
-        Cbs2_QueForEachEntry( p->pProp, pVar, i )
+        Cbs2_QueForEachEntry( p->pProp, iVar, i )
         {
+            pVar = Gia_ManObj(p->pAig, iVar);
             if ( (hClause = Cbs2_ManPropagateOne( p, pVar, Level )) )
                 return hClause;
         }
         p->pProp.iHead = p->pProp.iTail;
         k = p->pJust.iHead;
-        Cbs2_QueForEachEntry( p->pJust, pVar, i )
+        Cbs2_QueForEachEntry( p->pJust, iVar, i )
         {
-            if ( Cbs2_VarIsJust( pVar ) )
-                p->pJust.pData[k++] = pVar;
+            pVar = Gia_ManObj(p->pAig, iVar);
+            if ( Cbs2_VarIsJust(p,  pVar ) )
+                p->pJust.pData[k++] = iVar;
             else if ( (hClause = Cbs2_ManPropagateTwo( p, pVar, Level )) )
                 return hClause;
         }
@@ -896,7 +927,7 @@ int Cbs2_ManSolve_rec( Cbs2_Man_t * p, int Level )
     else if ( p->Pars.fUseMaxFF )
         pVar = Cbs2_ManDecideMaxFF( p );
     else assert( 0 );
-    assert( Cbs2_VarIsJust( pVar ) );
+    assert( Cbs2_VarIsJust(p,  pVar ) );
     // chose decision variable using fanout count
     if ( Gia_ObjRefNum(p->pAig, Gia_ObjFanin0(pVar)) > Gia_ObjRefNum(p->pAig, Gia_ObjFanin1(pVar)) )
         pDecVar = Gia_Not(Gia_ObjChild0(pVar));
@@ -908,7 +939,7 @@ int Cbs2_ManSolve_rec( Cbs2_Man_t * p, int Level )
     Cbs2_ManAssign( p, pDecVar, Level+1, NULL, NULL );
     if ( !(hLearn0 = Cbs2_ManSolve_rec( p, Level+1 )) )
         return 0;
-    if ( pQue->pData[hLearn0] != Gia_Regular(pDecVar) )
+    if ( pQue->pData[hLearn0] != Gia_ObjId(p->pAig, Gia_Regular(pDecVar)) )
         return hLearn0;
     Cbs2_ManCancelUntil( p, iPropHead );
     Cbs2_QueRestore( &p->pJust, iJustHead, iJustTail );
@@ -916,7 +947,7 @@ int Cbs2_ManSolve_rec( Cbs2_Man_t * p, int Level )
     Cbs2_ManAssign( p, Gia_Not(pDecVar), Level+1, NULL, NULL );
     if ( !(hLearn1 = Cbs2_ManSolve_rec( p, Level+1 )) )
         return 0;
-    if ( pQue->pData[hLearn1] != Gia_Regular(pDecVar) )
+    if ( pQue->pData[hLearn1] != Gia_ObjId(p->pAig, Gia_Regular(pDecVar)) )
         return hLearn1;
     hClause = Cbs2_ManResolve( p, Level, hLearn0, hLearn1 );
 //    Cbs2_ManPrintClauseNew( p, Level, hClause );
@@ -1041,7 +1072,7 @@ Vec_Int_t * Cbs2_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvS
     Gia_ManCreateRefs( pAig );
     Gia_ManCleanMark0( pAig );
     Gia_ManCleanMark1( pAig );
-    Gia_ManFillValue( pAig ); // maps nodes into trail ids
+    //Gia_ManFillValue( pAig ); // maps nodes into trail ids
     Gia_ManSetPhase( pAig ); // maps nodes into trail ids
     // create logic network
     p = Cbs2_ManAlloc( pAig );
