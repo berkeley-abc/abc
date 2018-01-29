@@ -379,7 +379,7 @@ static inline void Ndr_ModuleWriteVerilog( char * pFileName, void * pModule, cha
     }
 
     fprintf( pFile, "\nendmodule\n\n" );
-    fclose( pFile );
+    if ( pFileName ) fclose( pFile );
 }
 
 
@@ -507,6 +507,7 @@ static inline void Ndr_ModuleTest()
 
     // write Verilog for verification
     Ndr_ModuleWriteVerilog( NULL, pModule, ppNames );
+    Ndr_ModuleWrite( "add4.ndr", pModule );
     Ndr_ModuleDelete( pModule );
 }
 

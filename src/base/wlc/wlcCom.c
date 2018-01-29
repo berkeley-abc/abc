@@ -176,7 +176,7 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( pFileName, "r" )) == NULL )
     {
         Abc_Print( 1, "Cannot open input file \"%s\". ", pFileName );
-        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".smt", ".smt2", NULL, NULL )) )
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".smt", ".smt2", ".ndr", NULL )) )
             Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
         Abc_Print( 1, "\n" );
         return 0;
@@ -188,6 +188,8 @@ int Abc_CommandReadWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk = Wlc_ReadVer( pFileName, NULL );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "smt" ) || !strcmp( Extra_FileNameExtension(pFileName), "smt2" )  )
         pNtk = Wlc_ReadSmt( pFileName, fOldParser, fPrintTree );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "ndr" )  )
+        pNtk = Wlc_ReadNdr( pFileName );
     else
     {
         printf( "Abc_CommandReadWlc(): Unknown file extension.\n" );
@@ -261,7 +263,9 @@ int Abc_CommandWriteWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "Output file name should be given on the command line.\n" );
         return 0;
     }
-    if ( fSplitNodes )
+    if ( !strcmp( Extra_FileNameExtension(pFileName), "ndr" )  )
+        Wlc_WriteNdr( pNtk, pFileName );
+    else if ( fSplitNodes )
     {
         pNtk = Wlc_NtkDupSingleNodes( pNtk );
         Wlc_WriteVer( pNtk, pFileName, fAddCos, fNoFlops );
@@ -1205,8 +1209,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
     //Wlc_GenerateSmtStdout( pAbc );
     //Wlc_NtkSimulateTest( (Wlc_Ntk_t *)pAbc->pAbcWlc );
-    pNtk = Wlc_NtkDupSingleNodes( pNtk );
-    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    //pNtk = Wlc_NtkDupSingleNodes( pNtk );
+    //Wlc_AbcUpdateNtk( pAbc, pNtk );
+    //Wlc_ReadNdrTest( pNtk );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%test [-vh]\n" );
