@@ -157,6 +157,17 @@ int Ndr_TypeWlc2Ndr( int Type )
   SeeAlso     []
 
 ***********************************************************************/
+char * Ndr_ObjWriteConstant( unsigned * pBits, int nBits )
+{
+    static char Buffer[1000]; int i, Len;
+    assert( nBits + 10 < 1000 );
+    sprintf( Buffer, "%d\'b", nBits );
+    Len = strlen(Buffer);
+    for ( i = nBits-1; i >= 0; i-- )
+        Buffer[Len++] = '0' + Abc_InfoHasBit(pBits, i);
+    Buffer[Len] = 0;
+    return Buffer;
+}
 void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
 {
     Wlc_Obj_t * pObj; 
@@ -175,14 +186,17 @@ void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
     // add internal nodes 
     Wlc_NtkForEachObj( pNtk, pObj, iOutId ) 
     {
+        char * pFunction = NULL;
         if ( Wlc_ObjIsPi(pObj) )
             continue;
         Vec_IntClear( vFanins );
         Wlc_ObjForEachFanin( pObj, iFanin, k )
             Vec_IntPush( vFanins, iFanin );
+        if ( pObj->Type == WLC_OBJ_CONST )
+            pFunction = Ndr_ObjWriteConstant( (unsigned *)Wlc_ObjFanins(pObj), Wlc_ObjRange(pObj) );
         Ndr_ModuleAddObject( pModule, Ndr_TypeWlc2Ndr(pObj->Type), 0,   
             pObj->End, pObj->Beg, pObj->Signed,   
-            Vec_IntSize(vFanins), Vec_IntArray(vFanins), 1, &iOutId,  NULL  ); 
+            Vec_IntSize(vFanins), Vec_IntArray(vFanins), 1, &iOutId,  pFunction  ); 
     }
     // add primary outputs
     Wlc_NtkForEachObj( pNtk, pObj, iOutId ) 
@@ -249,13 +263,52 @@ int Ndr_ObjReadRange( Ndr_Data_t * p, int Obj, int * End, int * Beg )
         *End = pArray[0], *Beg = pArray[1];
     return Signed;
 }
+void Ndr_ObjReadConstant( Vec_Int_t * vFanins, char * pStr )
+{
+    int i, k, Len = pStr ? strlen(pStr) : 0;
+    for ( k = 0; k < Len; k++ )
+        if ( pStr[k] == 'b' )
+            break;
+    if ( pStr == NULL || pStr[k] != 'b' )
+    {
+        printf( "Constants should be represented in binary Verilog notation <nbits>\'b<bits> as char strings (for example, \"4'b1010\").\n" );
+        return;
+    }
+    Vec_IntFill( vFanins, Abc_BitWordNum(Len-k-1), 0 );
+    for ( i = k+1; i < Len; i++ )
+        if ( pStr[i] == '1' )
+            Abc_InfoSetBit( (unsigned *)Vec_IntArray(vFanins), Len-i-1 );
+        else if ( pStr[i] != '0' )
+            printf( "Wrongn symbol (%c) in binary Verilog constant \"%s\".\n", pStr[i], pStr );
+}
+void Ndr_NtkPrintNodes( Wlc_Ntk_t * pNtk )
+{
+    Wlc_Obj_t * pObj; int i, k;
+    printf( "Node IDs and their fanins:\n" );
+    Wlc_NtkForEachObj( pNtk, pObj, i )
+    {
+        int * pFanins = Wlc_ObjFanins(pObj);
+        printf( "%5d = ", i );
+        for ( k = 0; k < Wlc_ObjFaninNum(pObj); k++ )
+            printf( "%5d ", pFanins[k] );
+        for (      ; k < 4; k++ )
+            printf( "      " );
+        printf( "    Name Id %d ", Wlc_ObjNameId(pNtk, i) );
+        if ( Wlc_ObjIsPi(pObj) )
+            printf( "  pi  " );
+        if ( Wlc_ObjIsPo(pObj) )
+            printf( "  po  " );
+        printf( "\n" );
+    }
+}
 Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pData;  
-    Wlc_Obj_t * pObj; Vec_Int_t * vName2Obj;
-    Wlc_Ntk_t * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, 0)+1 );
-    int Mod = 0, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax = 0;
+    Wlc_Obj_t * pObj; Vec_Int_t * vName2Obj, * vFanins = Vec_IntAlloc( 100 );
+    Wlc_Ntk_t * pTemp, * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, 0)+1 );
+    int Mod = 0, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax;
     //pNtk->pSpec = Abc_UtilStrsav( pFileName );
+    // construct network and save name IDs
     Wlc_NtkCleanNameId( pNtk );
     Ndr_ModForEachPi( p, Mod, Obj )
     {
@@ -263,44 +316,48 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         int iObj = Wlc_ObjAlloc( pNtk, WLC_OBJ_PI, Signed, End, Beg );
         int NameId = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
         Wlc_ObjSetNameId( pNtk, iObj, NameId );
-        NameIdMax = Abc_MaxInt( NameIdMax, NameId );
     }
     Ndr_ModForEachNode( p, Mod, Obj )
     {
         int End, Beg, Signed = Ndr_ObjReadRange(p, Obj, &End, &Beg);
         int Type    = Ndr_ObjReadBody( p, Obj, NDR_OPERTYPE );
         int nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
-        Vec_Int_t F = {nArray, nArray, pArray}, * vFanins = &F;
+        Vec_Int_t F = {nArray, nArray, pArray}, * vTemp = &F;
         int iObj    = Wlc_ObjAlloc( pNtk, Ndr_TypeNdr2Wlc(Type), Signed, End, Beg );
         int NameId  = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
+        Vec_IntClear( vFanins );
+        Vec_IntAppend( vFanins, vTemp );
+        if ( Type == ABC_OPER_SLICE )
+            Vec_IntPushTwo( vFanins, End, Beg );
+        else if ( Type == ABC_OPER_CONST )
+            Ndr_ObjReadConstant( vFanins, (char *)Ndr_ObjReadBodyP(p, Obj, NDR_FUNCTION) );
         Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
         Wlc_ObjSetNameId( pNtk, iObj, NameId );
-        NameIdMax = Abc_MaxInt( NameIdMax, NameId );
     }
+    Vec_IntFree( vFanins );
+    // map name IDs into object IDs
+    vName2Obj = Vec_IntInvert( &pNtk->vNameIds, 0 );
+    // mark primary outputs
     Ndr_ModForEachPo( p, Mod, Obj )
     {
         int End, Beg, Signed = Ndr_ObjReadRange(p, Obj, &End, &Beg);
         int nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
-        Wlc_Obj_t * pObj = Wlc_NtkObj( pNtk, pArray[0] );
+        Wlc_Obj_t * pObj = Wlc_NtkObj( pNtk, Vec_IntEntry(vName2Obj, pArray[0]) );
         Wlc_ObjSetCo( pNtk, pObj, 0 );
         assert( nArray == 1 && End == pObj->End && Beg == pObj->Beg && Signed == (int)pObj->Signed );
     }
-    // remap fanins from name IDs into object IDs
-    vName2Obj = Vec_IntInvert( &pNtk->vNameIds, 0 );
+    // remap fanins
     Wlc_NtkForEachObj( pNtk, pObj, i )
     {
         int * pFanins = Wlc_ObjFanins(pObj);
-//        printf( "%d = ", Wlc_ObjNameId(pNtk, i) );
-//        for ( k = 0; k < Wlc_ObjFaninNum(pObj); k++ )
-//            printf( "%d ", Wlc_ObjNameId(pNtk, pFanins[k]) );
-//        printf( "\n" );
         for ( k = 0; k < Wlc_ObjFaninNum(pObj); k++ )
             pFanins[k] = Vec_IntEntry(vName2Obj, pFanins[k]);
     }
     Vec_IntFree(vName2Obj);
-    // create object names
-    pNtk->pManName = Abc_NamStart( NameIdMax+1, 10 );
+    // create fake object names
+    NameIdMax = Vec_IntFindMax(&pNtk->vNameIds);
     nDigits = Abc_Base10Log( NameIdMax+1 );
+    pNtk->pManName = Abc_NamStart( NameIdMax+1, 10 );
     for ( i = 1; i <= NameIdMax; i++ )
     {
         char pName[20]; sprintf( pName, "n%0*d", nDigits, i );
@@ -308,8 +365,9 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         assert( !fFound && i == NameId );
     }
     // derive topological order
-//    pNtk = Wlc_NtkDupDfs( pTemp = pNtk, 0, 1 );
-//    Wlc_NtkFree( pTemp );
+    pNtk = Wlc_NtkDupDfs( pTemp = pNtk, 0, 1 );
+    Wlc_NtkFree( pTemp );
+    //Ndr_NtkPrintNodes( pNtk );
     return pNtk;
 }
 
