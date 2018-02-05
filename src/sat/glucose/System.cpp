@@ -80,11 +80,13 @@ ABC_NAMESPACE_IMPL_END
 
 ABC_NAMESPACE_IMPL_START
 
+using namespace Gluco;
+
 double Gluco::memUsed(void) {
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
     return (double)ru.ru_maxrss / 1024; }
-double MiniSat::memUsedPeak(void) { return memUsed(); }
+double memUsedPeak(void) { return memUsed(); }
 
 ABC_NAMESPACE_IMPL_END
 
