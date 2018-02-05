@@ -379,7 +379,7 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
             fprintf( pFile, "  %s ", pNames[Ndr_ObjReadEntry(p, Type-256, NDR_NAME)] );
             if ( Ndr_ObjReadBody(p, Obj, NDR_NAME) )
                 fprintf( pFile, "%s ", pNames[Ndr_ObjReadBody(p, Obj, NDR_NAME)] );
-            fprintf( pFile, "( ", pNames[Ndr_ObjReadEntry(p, Type-256, NDR_NAME)] );
+            fprintf( pFile, "( " );
             nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
             for ( i = 0; i < nArray; i++ )
                 fprintf( pFile, "%s%s ", pNames[pArray[i]], i==nArray-1 ? "":"," );
