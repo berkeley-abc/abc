@@ -106,7 +106,7 @@ ABC_NAMESPACE_HEADER_START
 // record types
 typedef enum {
     NDR_NONE = 0,          // 0:  unused
-    Ndr_,            // 1:  design (or library of modules)
+    NDR_DESIGN,            // 1:  design (or library of modules)
     NDR_MODULE,            // 2:  one module
     NDR_OBJECT,            // 3:  object
     NDR_INPUT,             // 4:  input
@@ -436,7 +436,7 @@ static inline void * Ndr_Create( int Name )
     p->nCap  = 16;
     p->pHead = ABC_ALLOC( unsigned char, p->nCap );
     p->pBody = ABC_ALLOC( unsigned int, p->nCap * 4 );
-    Ndr_DataPush( p, Ndr_, 0 );
+    Ndr_DataPush( p, NDR_DESIGN, 0 );
     Ndr_DataPush( p, NDR_NAME, Name );
     Ndr_DataAddTo( p, 0, p->nSize );
     assert( p->nSize == 2 );
