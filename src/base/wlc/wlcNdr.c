@@ -173,13 +173,14 @@ void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
     Wlc_Obj_t * pObj; 
     int i, k, iFanin, iOutId;
     // create a new module
-    void * pModule = Ndr_ModuleCreate( 1 );
+    void * pDesign = Ndr_Create( 1 );
+    int ModId = Ndr_AddModule( pDesign, 1 );
     // add primary inputs
     Vec_Int_t * vFanins = Vec_IntAlloc( 10 );
     Wlc_NtkForEachPi( pNtk, pObj, i ) 
     {
         iOutId = Wlc_ObjId(pNtk, pObj);
-        Ndr_ModuleAddObject( pModule, ABC_OPER_CI, 0,   
+        Ndr_AddObject( pDesign, ModId, ABC_OPER_CI, 0,   
             pObj->End, pObj->Beg, pObj->Signed,   
             0, NULL,      1, &iOutId,  NULL  ); // no fanins
     }
@@ -194,7 +195,7 @@ void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
             Vec_IntPush( vFanins, iFanin );
         if ( pObj->Type == WLC_OBJ_CONST )
             pFunction = Ndr_ObjWriteConstant( (unsigned *)Wlc_ObjFanins(pObj), Wlc_ObjRange(pObj) );
-        Ndr_ModuleAddObject( pModule, Ndr_TypeWlc2Ndr(pObj->Type), 0,   
+        Ndr_AddObject( pDesign, ModId, Ndr_TypeWlc2Ndr(pObj->Type), 0,   
             pObj->End, pObj->Beg, pObj->Signed,   
             Vec_IntSize(vFanins), Vec_IntArray(vFanins), 1, &iOutId,  pFunction  ); 
     }
@@ -204,24 +205,24 @@ void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
         if ( !Wlc_ObjIsPo(pObj) )
             continue;
         Vec_IntFill( vFanins, 1, iOutId );
-        Ndr_ModuleAddObject( pModule, ABC_OPER_CO, 0,                   
+        Ndr_AddObject( pDesign, ModId, ABC_OPER_CO, 0,                   
             pObj->End, pObj->Beg, pObj->Signed,   
             1, Vec_IntArray(vFanins),  0, NULL,  NULL ); 
     }
     Vec_IntFree( vFanins );
-    return pModule;
+    return pDesign;
 }
 void Wlc_WriteNdr( Wlc_Ntk_t * pNtk, char * pFileName )
 {
-    void * pModule = Wlc_NtkToNdr( pNtk );
-    Ndr_ModuleWrite( pFileName, pModule );
-    Ndr_ModuleDelete( pModule );
+    void * pDesign = Wlc_NtkToNdr( pNtk );
+    Ndr_Write( pFileName, pDesign );
+    Ndr_Delete( pDesign );
     printf( "Dumped the current design into file \"%s\".\n", pFileName );
 }
 void Wlc_NtkToNdrTest( Wlc_Ntk_t * pNtk )
 {
     // transform
-    void * pModule = Wlc_NtkToNdr( pNtk );
+    void * pDesign = Wlc_NtkToNdr( pNtk );
 
     // collect names     
     Wlc_Obj_t * pObj;  int i;
@@ -230,11 +231,11 @@ void Wlc_NtkToNdrTest( Wlc_Ntk_t * pNtk )
         ppNames[i] = Wlc_ObjName(pNtk, i);
 
     // verify by writing Verilog
-    Ndr_ModuleWriteVerilog( NULL, pModule, ppNames );
-    Ndr_ModuleWrite( "test.ndr", pModule );
+    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_Write( "test.ndr", pDesign );
 
     // cleanup
-    Ndr_ModuleDelete( pModule );
+    Ndr_Delete( pDesign );
     ABC_FREE( ppNames );
 }
 
@@ -305,8 +306,8 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pData;  
     Wlc_Obj_t * pObj; Vec_Int_t * vName2Obj, * vFanins = Vec_IntAlloc( 100 );
-    Wlc_Ntk_t * pTemp, * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, 0)+1 );
-    int Mod = 0, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax;
+    int Mod = 2, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax;
+    Wlc_Ntk_t * pTemp, * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, Mod)+1 );
     //pNtk->pSpec = Abc_UtilStrsav( pFileName );
     // construct network and save name IDs
     Wlc_NtkCleanNameId( pNtk );
@@ -384,11 +385,11 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
 ***********************************************************************/
 Wlc_Ntk_t * Wlc_ReadNdr( char * pFileName )
 {
-    void * pData = Ndr_ModuleRead( pFileName );
+    void * pData = Ndr_Read( pFileName );
     Wlc_Ntk_t * pNtk = Wlc_NtkFromNdr( pData );
     //char * ppNames[10] = { NULL, "a", "b", "c", "d", "e", "f", "g", "h", "i" };
-    //Ndr_ModuleWriteVerilog( NULL, pData, ppNames );
-    Ndr_ModuleDelete( pData );
+    //Ndr_WriteVerilog( NULL, pData, ppNames );
+    Ndr_Delete( pData );
     return pNtk;
 }
 void Wlc_ReadNdrTest()

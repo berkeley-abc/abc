@@ -166,7 +166,7 @@ Acb_Ntk_t * Acb_NtkFromNdr( char * pFileName, void * pModule, Abc_Nam_t * pNames
     Ndr_Data_t * p   = (Ndr_Data_t *)pModule; 
     Acb_Man_t * pMan = Acb_ManAlloc( pFileName, 1, Abc_NamRef(pNames), NULL, NULL, NULL );
     int k, NameId = Abc_NamStrFindOrAdd( pMan->pStrs, pMan->pName, NULL );
-    int Mod = 0, Obj, Type, nArray, * pArray, ObjId;
+    int Mod = 2, Obj, Type, nArray, * pArray, ObjId;
     Acb_Ntk_t * pNtk = Acb_NtkAlloc( pMan, NameId, Ndr_DataCiNum(p, Mod), Ndr_DataCoNum(p, Mod), Ndr_DataObjNum(p, Mod) );
     Vec_Int_t * vMap = Vec_IntStart( nNameIdMax );
     Acb_NtkCleanObjWeights( pNtk );
