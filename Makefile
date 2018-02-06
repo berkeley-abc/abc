@@ -11,6 +11,7 @@ $(info $(MSG_PREFIX)Using CXX=$(CXX))
 $(info $(MSG_PREFIX)Using LD=$(LD))
 
 PROG := abc
+OS := $(shell uname -s)
 
 MODULES := \
 	$(wildcard src/ext*) \
@@ -73,6 +74,10 @@ ABC_READLINE_LIBRARIES ?= -lreadline
 ifndef ABC_USE_NO_READLINE
   CFLAGS += -DABC_USE_READLINE $(ABC_READLINE_INCLUDES)
   LIBS += $(ABC_READLINE_LIBRARIES)
+  ifeq ($(OS), FreeBSD)
+    CFLAGS += -I/usr/local/include
+    LDFLAGS += -L/usr/local/lib
+  endif
   $(info $(MSG_PREFIX)Using libreadline)
 endif
 
@@ -118,7 +123,11 @@ endif
 endif
 
 # LIBS := -ldl -lrt
-LIBS += -ldl -lm
+LIBS += -lm
+ifneq ($(OS), FreeBSD)
+  LIBS += -ldl
+endif
+
 ifneq ($(findstring Darwin, $(shell uname)), Darwin)
    LIBS += -lrt
 endif
@@ -191,7 +200,7 @@ tags:
 
 $(PROG): $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
-	$(VERBOSE)$(LD) -o $@ $^ $(LIBS)
+	$(VERBOSE)$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
