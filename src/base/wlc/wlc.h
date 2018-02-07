@@ -331,6 +331,8 @@ extern void           Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk );
 /*=== wlcNdr.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadNdr( char * pFileName );
 extern void           Wlc_WriteNdr( Wlc_Ntk_t * pNtk, char * pFileName );
+extern Wlc_Ntk_t *    Wlc_NtkFromNdr( void * pData );
+extern void *         Wlc_NtkToNdr( Wlc_Ntk_t * pNtk );
 /*=== wlcNtk.c ========================================================*/
 extern void           Wlc_ManSetDefaultParams( Wlc_Par_t * pPars );
 extern char *         Wlc_ObjTypeName( Wlc_Obj_t * p );
