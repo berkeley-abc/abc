@@ -340,6 +340,7 @@ struct Jf_Par_t_
     int            fDoAverage;
     int            fCutHashing;
     int            fCutSimple;
+    int            fCutGroup;
     int            fVerbose;
     int            fVeryVerbose;
     int            nLutSizeMax;

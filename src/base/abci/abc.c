@@ -36795,7 +36795,7 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Lf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWMaekmupgtvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWMekmupstgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36936,11 +36936,14 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'p':
             pPars->fPower ^= 1;
             break;
-        case 'g':
+        case 's':
             pPars->fPureAig ^= 1;
             break;
         case 't':
             pPars->fDoAverage ^= 1;
+            break;
+        case 'g':
+            pPars->fCutGroup ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -36969,7 +36972,16 @@ int Abc_CommandAbc9Lf( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Flags \"-M\" and \"-u\" are incompatible.\n" );
         return 1;
     }
-
+    if ( pPars->fCutGroup )
+    {
+        if ( pPars->nLutSize < 4 || pPars->nLutSize > 6 )
+        {
+            Abc_Print( -1, "This feature works only for LUT size equal to 4, 5, and 6.\n" );
+            return 1;
+        }
+        printf( "Using cut grouping for %d-LUTs. Considering cuts up to %d.\n", pPars->nLutSize, 2*pPars->nLutSize + 1 );
+        pPars->nLutSize = 2*pPars->nLutSize + 1;
+    }
     pNew = Lf_ManPerformMapping( pAbc->pGia, pPars );
     if ( pNew == NULL )
     {
@@ -36984,7 +36996,7 @@ usage:
         sprintf(Buffer, "best possible" );
     else
         sprintf(Buffer, "%d", pPars->DelayTarget );
-    Abc_Print( -2, "usage: &lf [-KCFARLEDM num] [-kmupgtvwh]\n" );
+    Abc_Print( -2, "usage: &lf [-KCFARLEDM num] [-kmupstgvwh]\n" );
     Abc_Print( -2, "\t           performs technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : LUT size for the mapping (2 <= K <= %d) [default = %d]\n", pPars->nLutSizeMax, pPars->nLutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (1 <= C <= %d) [default = %d]\n", pPars->nCutNumMax, pPars->nCutNum );
@@ -37001,8 +37013,9 @@ usage:
     Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles using additional MUXes [default = %s]\n", pPars->fUseMux7? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggles power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
-    Abc_Print( -2, "\t-g       : toggles generating AIG without mapping [default = %s]\n", pPars->fPureAig? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggles generating AIG without mapping [default = %s]\n", pPars->fPureAig? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
+    Abc_Print( -2, "\t-g       : toggles using cut splitting [default = %s]\n", pPars->fCutGroup? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");

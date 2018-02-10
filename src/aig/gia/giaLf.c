@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define LF_LEAF_MAX   12
+#define LF_LEAF_MAX   13
 #define LF_CUT_MAX    32
 #define LF_LOG_PAGE   12
 #define LF_NO_LEAF   255
@@ -472,8 +472,8 @@ static inline float Lf_CutArea( Lf_Man_t * p, Lf_Cut_t * pCut )
     if ( p->pPars->fPower )
         return 1.0 * pCut->nLeaves + Lf_CutSwitches( p, pCut );
     if ( p->pPars->fOptEdge )
-        return pCut->nLeaves + p->pPars->nAreaTuner;
-    return 1;
+        return (pCut->nLeaves + p->pPars->nAreaTuner) * (1 + (p->pPars->fCutGroup && (int)pCut->nLeaves > p->pPars->nLutSize/2));
+    return 1 + (p->pPars->fCutGroup && (int)pCut->nLeaves > p->pPars->nLutSize/2);
 }
 static inline int Lf_CutIsMux( Lf_Man_t * p, Lf_Cut_t * pCut, Gia_Obj_t * pMux )
 {
@@ -1184,7 +1184,7 @@ void Lf_ObjMergeOrder( Lf_Man_t * p, int iObj )
     Lf_Bst_t * pBest = Lf_ObjReadBest(p, iObj);
     float FlowRefs = Lf_ObjFlowRefs(p, iObj);
     int Required   = Lf_ObjRequired(p, iObj);
-    int nLutSize   = p->pPars->nLutSize;
+    int nLutSize   = p->pPars->fCutGroup ? p->pPars->nLutSize/2 : p->pPars->nLutSize;
     int nCutNum    = p->pPars->nCutNum;
     int nCutWords  = p->nCutWords;
     int fComp0     = Gia_ObjFaninC0(pObj);
@@ -1239,13 +1239,15 @@ void Lf_ObjMergeOrder( Lf_Man_t * p, int iObj )
     }
     if ( Gia_ObjIsMuxId(p->pGia, iObj) )
     {
+        Lf_Cut_t * pCutSave = NULL;
         int fComp2 = Gia_ObjFaninC2(p->pGia, pObj);
         int nCuts2 = Lf_ManPrepareSet( p, Gia_ObjFaninId2(p->pGia, iObj), 2, &pCutSet2 );
         p->CutCount[0] += nCuts0 * nCuts1 * nCuts2;
-        Lf_CutSetForEachCut( nCutWords, pCutSet0, pCut0, i, nCuts0 )
-        Lf_CutSetForEachCut( nCutWords, pCutSet1, pCut1, k, nCuts1 )
-        Lf_CutSetForEachCut( nCutWords, pCutSet2, pCut2, n, nCuts2 )
+        Lf_CutSetForEachCut( nCutWords, pCutSet0, pCut0, i, nCuts0 ) if ( (int)pCut0->nLeaves <= nLutSize )
+        Lf_CutSetForEachCut( nCutWords, pCutSet1, pCut1, k, nCuts1 ) if ( (int)pCut1->nLeaves <= nLutSize )
+        Lf_CutSetForEachCut( nCutWords, pCutSet2, pCut2, n, nCuts2 ) if ( (int)pCut2->nLeaves <= nLutSize )
         {
+            pCutSave = pCut2;
             if ( Lf_CutCountBits(pCut0->Sign | pCut1->Sign | pCut2->Sign) > nLutSize )
                 continue;
             p->CutCount[1]++; 
@@ -1262,13 +1264,38 @@ void Lf_ObjMergeOrder( Lf_Man_t * p, int iObj )
             Lf_CutParams( p, pCutsR[nCutsR], Required, FlowRefs, pObj );
             nCutsR = Lf_SetAddCut( pCutsR, nCutsR, nCutNum );
         }
+        if ( p->pPars->fCutGroup )
+        {
+            assert( pCutSave->nLeaves == 1 );
+            assert( pCutSave->pLeaves[0] == Gia_ObjFaninId2(p->pGia, iObj) );
+            Lf_CutSetForEachCut( nCutWords, pCutSet0, pCut0, i, nCuts0 ) if ( (int)pCut0->nLeaves <= nLutSize )
+            Lf_CutSetForEachCut( nCutWords, pCutSet1, pCut1, k, nCuts1 ) if ( (int)pCut1->nLeaves <= nLutSize )
+            {
+                assert( (int)pCut0->nLeaves + (int)pCut1->nLeaves + 1 <= p->pPars->nLutSize );
+    //            if ( Lf_CutCountBits(pCut0->Sign | pCut1->Sign | pCutSave->Sign) > p->pPars->nLutSize )
+    //                continue;
+                p->CutCount[1]++; 
+                if ( !Lf_CutMergeOrderMux(pCut0, pCut1, pCutSave, pCutsR[nCutsR], p->pPars->nLutSize) )
+                    continue;
+                if ( Lf_SetLastCutIsContained(pCutsR, nCutsR) )
+                    continue;
+                p->CutCount[2]++;
+                if ( p->pPars->fCutMin && Lf_CutComputeTruthMux(p, pCut0, pCut1, pCutSave, fComp0, fComp1, fComp2, pCutsR[nCutsR]) )
+                    pCutsR[nCutsR]->Sign = Lf_CutGetSign(pCutsR[nCutsR]);
+    //            if ( p->pPars->nLutSizeMux && p->pPars->nLutSizeMux == (int)pCutsR[nCutsR]->nLeaves && 
+    //                Lf_ManFindCofVar(Lf_CutTruth(p,pCutsR[nCutsR]), Abc_Truth6WordNum(nLutSize), pCutsR[nCutsR]->nLeaves) == -1 )
+    //                continue;
+                Lf_CutParams( p, pCutsR[nCutsR], Required, FlowRefs, pObj );
+                nCutsR = Lf_SetAddCut( pCutsR, nCutsR, nCutNum );
+            }
+        }
     }
     else
     {
         int fIsXor = Gia_ObjIsXor(pObj);
         p->CutCount[0] += nCuts0 * nCuts1;
-        Lf_CutSetForEachCut( nCutWords, pCutSet0, pCut0, i, nCuts0 )
-        Lf_CutSetForEachCut( nCutWords, pCutSet1, pCut1, k, nCuts1 )
+        Lf_CutSetForEachCut( nCutWords, pCutSet0, pCut0, i, nCuts0 ) if ( (int)pCut0->nLeaves <= nLutSize )
+        Lf_CutSetForEachCut( nCutWords, pCutSet1, pCut1, k, nCuts1 ) if ( (int)pCut1->nLeaves <= nLutSize )
         {
             if ( (int)(pCut0->nLeaves + pCut1->nLeaves) > nLutSize && Lf_CutCountBits(pCut0->Sign | pCut1->Sign) > nLutSize )
                 continue;
@@ -2058,7 +2085,16 @@ void Lf_ManPrintQuit( Lf_Man_t * p, Gia_Man_t * pNew )
     if ( p->CutCount[0] == 0 )
         p->CutCount[0] = 1;
     if ( !p->pPars->fVerbose )
+    {
+        int i, CountOver[2] = {0};
+        int nLutSize = p->pPars->fCutGroup ? p->pPars->nLutSize/2 : p->pPars->nLutSize;
+        Gia_ManForEachLut( pNew, i )
+            CountOver[Gia_ObjLutSize(pNew, i) > nLutSize]++;
+        if ( p->pPars->fCutGroup )
+            printf( "Created %d regular %d-LUTs and %d dual %d-LUTs. The total of %d %d-LUTs.\n", 
+            CountOver[0], nLutSize, CountOver[1], nLutSize, CountOver[0] + 2*CountOver[1], nLutSize );
         return;
+    }
     printf( "CutPair = %.0f  ",         p->CutCount[0] );
     printf( "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
     printf( "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
@@ -2248,6 +2284,7 @@ Gia_Man_t * Lf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
 Gia_Man_t * Gia_ManPerformLfMapping( Gia_Man_t * p, Jf_Par_t * pPars, int fNormalized )
 {
     Gia_Man_t * pNew;
+    assert( !pPars->fCutGroup || pPars->nLutSize == 9 || pPars->nLutSize == 11 || pPars->nLutSize == 13 );
     // reconstruct GIA according to the hierarchy manager
     assert( pPars->pTimesArr == NULL );
     assert( pPars->pTimesReq == NULL );
