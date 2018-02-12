@@ -79,6 +79,7 @@ extern ABC_DLL void   Abc_NtkSetFlopNum( Abc_Frame_t * pAbc, int nFlops );
 // procedures to input/output 'mini LUT'
 extern ABC_DLL void   Abc_FrameGiaInputMiniLut( Abc_Frame_t * pAbc, void * pMiniLut );
 extern ABC_DLL void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc );
+extern ABC_DLL char * Abc_FrameGiaOutputMiniLutAttr( Abc_Frame_t * pAbc, void * pMiniLut );
 
 // procedures to set CI/CO arrival/required times
 extern ABC_DLL void   Abc_NtkSetCiArrivalTime( Abc_Frame_t * pAbc, int iCi, float Rise, float Fall );

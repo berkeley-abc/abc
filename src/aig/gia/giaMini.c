@@ -375,6 +375,15 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
     //printf( "Added %d inverters.\n", Count );
     return p;
 }
+char * Gia_ManToMiniLutAttr( Gia_Man_t * pGia, void * pMiniLut )
+{ 
+    Mini_Lut_t * p = (Mini_Lut_t *)pMiniLut; int i;
+    char * pAttrs = ABC_CALLOC( char, Mini_LutNodeNum(p) );
+    Gia_ManForEachLut( pGia, i )
+        if ( Gia_ObjLutIsMux(pGia, i) )
+            pAttrs[Gia_ManObj(pGia, i)->Value] = 1;
+    return pAttrs;
+}
 
 /**Function*************************************************************
 
@@ -410,6 +419,16 @@ void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc )
     pRes = Gia_ManToMiniLut( pGia );
     pAbc->pGiaMiniLut = Gia_ManFromMiniLut( pRes, &pAbc->vCopyMiniLut );
     return pRes;
+}
+char * Abc_FrameGiaOutputMiniLutAttr( Abc_Frame_t * pAbc, void * pMiniLut )
+{
+    Gia_Man_t * pGia;
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pGia = Abc_FrameReadGia( pAbc );
+    if ( pGia == NULL )
+        printf( "Current network in ABC framework is not defined.\n" );
+    return Gia_ManToMiniLutAttr( pGia, pMiniLut );
 }
 
 /**Function*************************************************************
