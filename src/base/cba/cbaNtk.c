@@ -196,7 +196,7 @@ void Cba_NtkPrintDistrib( Cba_Ntk_t * p, int fVerbose )
         else if ( Type == CBA_BOX_MOD )  
             Vec_IntAddToEntry( vAnds, CBA_BOX_MOD,     13 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 7 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) - 2  );
         else if ( Type == CBA_BOX_POW ) 
-            Vec_IntAddToEntry( vAnds, CBA_BOX_POW,     10 * (int)pow(Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)),Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0))) );
+            Vec_IntAddToEntry( vAnds, CBA_BOX_POW,     10 * (int)pow((double)Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)),(double)Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0))) );
         else if ( Type == CBA_BOX_MIN )   
             Vec_IntAddToEntry( vAnds, CBA_BOX_MIN,      4 * Cba_ObjRangeSize(p, Cba_ObjFinFon(p, i, 0)) );
         else if ( Type == CBA_BOX_SQRT )    

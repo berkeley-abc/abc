@@ -462,7 +462,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         status = Cnf_GiaSolveOne( pPart, pCnf, nTimeOut, &nSatVars, &nSatConfs );
         Cnf_DataFree( pCnf );
         if ( status == 1 )
-            Progress += 1.0 / pow(2, Depth);
+            Progress += 1.0 / pow((double)2, (double)Depth);
         if ( fVerbose ) 
             Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
         if ( status == 0 ) // SAT
@@ -489,7 +489,7 @@ int Cec_GiaSplitTest2( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, in
         status = Cnf_GiaSolveOne( pPart, pCnf, nTimeOut, &nSatVars, &nSatConfs );
         Cnf_DataFree( pCnf );
         if ( status == 1 )
-            Progress += 1.0 / pow(2, Depth);
+            Progress += 1.0 / pow((double)2, (double)Depth);
         if ( fVerbose )
             Cec_GiaSplitPrint( nIter, Depth, nSatVars, nSatConfs, status, Progress, Abc_Clock() - clkTotal );
         if ( status == 0 ) // SAT
@@ -681,7 +681,7 @@ int Cec_GiaSplitTestInt( Gia_Man_t * p, int nProcs, int nTimeOut, int nIterMax, 
                     nIter++;
                 }
                 else
-                    Progress += 1.0 / pow(2, Depth);
+                    Progress += 1.0 / pow((double)2, (double)Depth);
                 Gia_ManStopP( &ThData[i].p );
                 if ( ThData[i].pCnf == NULL )
                     continue;

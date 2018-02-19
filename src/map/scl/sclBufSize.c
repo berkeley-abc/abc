@@ -401,8 +401,8 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
     abctime clk = Abc_Clock();
     int i, k, nObjsOld = Abc_NtkObjNumMax(p->pNtk);
     float GainGate, GainInv, Load, LoadNew, Cin, DeptMax = 0;
-    GainGate = p->pPars->fAddBufs ? pow( Gain, 2.0 ) : Gain;
-    GainInv  = p->pPars->fAddBufs ? pow( Gain, 2.0 ) : Gain;
+    GainGate = p->pPars->fAddBufs ? (float)pow( (double)Gain, (double)2.0 ) : Gain;
+    GainInv  = p->pPars->fAddBufs ? (float)pow( (double)Gain, (double)2.0 ) : Gain;
     Abc_NtkForEachObjReverse( p->pNtk, pObj, i )
     {
         if ( !((Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) > 0) || (Abc_ObjIsCi(pObj) && p->pPiDrive)) )

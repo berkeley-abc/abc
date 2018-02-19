@@ -559,7 +559,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
         else if ( pObj->Type == WLC_OBJ_ARI_MODULUS )  
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_MODULUS, 13 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 7 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) - 2  );
         else if ( pObj->Type == WLC_OBJ_ARI_POWER ) 
-            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_POWER,   10 * (int)pow(Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)),Wlc_ObjRange(Wlc_ObjFanin0(p, pObj))) );
+            Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_POWER,   10 * (int)pow((double)Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)),(double)Wlc_ObjRange(Wlc_ObjFanin0(p, pObj))) );
         else if ( pObj->Type == WLC_OBJ_ARI_MINUS )   
             Vec_IntAddToEntry( vAnds, WLC_OBJ_ARI_MINUS,    4 * Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
         else if ( pObj->Type == WLC_OBJ_ARI_SQRT )    
