@@ -302,12 +302,41 @@ void Ndr_NtkPrintNodes( Wlc_Ntk_t * pNtk )
         printf( "\n" );
     }
 }
+void Wlc_NtkCheckIntegrity( void * pData )
+{
+    Ndr_Data_t * p = (Ndr_Data_t *)pData;  
+    Vec_Int_t * vMap = Vec_IntAlloc( 100 );
+    int Mod = 2, Obj;
+    Ndr_ModForEachObj( p, Mod, Obj )
+    {
+        int NameId  = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
+        if ( NameId == -1 )
+        {
+            int Type = Ndr_ObjReadBody( p, Obj, NDR_OPERTYPE );
+            if ( Type != ABC_OPER_CO )
+                printf( "Internal object %d of type %s has no output name.\n", Obj, Abc_OperName(Type) );
+            continue;
+        }
+        if ( Vec_IntGetEntry(vMap, NameId) > 0 )
+            printf( "Output name %d is used more than once (obj %d and obj %d).\n", NameId, Vec_IntGetEntry(vMap, NameId), Obj );
+        Vec_IntSetEntry( vMap, NameId, Obj );
+    }
+    Ndr_ModForEachObj( p, Mod, Obj )
+    {
+        int i, * pArray, nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
+        for ( i = 0; i < nArray; i++ )
+            if ( Vec_IntGetEntry(vMap, pArray[i]) == 0 )
+                printf( "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
+    }
+    Vec_IntFree( vMap );
+}
 Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pData;  
     Wlc_Obj_t * pObj; Vec_Int_t * vName2Obj, * vFanins = Vec_IntAlloc( 100 );
     int Mod = 2, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax;
     Wlc_Ntk_t * pTemp, * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, Mod)+1 );
+    Wlc_NtkCheckIntegrity( pData );
     //pNtk->pSpec = Abc_UtilStrsav( pFileName );
     // construct network and save name IDs
     Wlc_NtkCleanNameId( pNtk );
@@ -337,19 +366,22 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
         Wlc_ObjSetNameId( pNtk, iObj, NameId );
     }
-    Vec_IntFree( vFanins );
-    // map name IDs into object IDs
-    vName2Obj = Vec_IntInvert( &pNtk->vNameIds, 0 );
     // mark primary outputs
     Ndr_ModForEachPo( p, Mod, Obj )
     {
         int End, Beg, Signed = Ndr_ObjReadRange(p, Obj, &End, &Beg);
         int nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
-        Wlc_Obj_t * pObj = Wlc_NtkObj( pNtk, Vec_IntEntry(vName2Obj, pArray[0]) );
+        int iObj    = Wlc_ObjAlloc( pNtk, WLC_OBJ_BUF, Signed, End, Beg );
+        int NameId  = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
+        assert( nArray == 1 && NameId == -1 );
+        pObj = Wlc_NtkObj( pNtk, iObj );
+        Vec_IntFill( vFanins, 1, pArray[0] );
+        Wlc_ObjAddFanins( pNtk, pObj, vFanins );
         Wlc_ObjSetCo( pNtk, pObj, 0 );
-        assert( nArray == 1 && End == pObj->End && Beg == pObj->Beg && Signed == (int)pObj->Signed );
     }
-    // remap fanins
+    Vec_IntFree( vFanins );
+    // map name IDs into object IDs
+    vName2Obj = Vec_IntInvert( &pNtk->vNameIds, 0 );
     Wlc_NtkForEachObj( pNtk, pObj, i )
     {
         int * pFanins = Wlc_ObjFanins(pObj);
