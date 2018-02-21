@@ -75,6 +75,7 @@ struct Cbs2_Man_t_
     Vec_Str_t     vMark;
     Vec_Int_t     vLevReason;
     Vec_Int_t     vWatches;
+    Vec_Int_t     vWatchUpds;
     Vec_Int_t     vFanoutN;
     Vec_Int_t     vFanout0;
     Vec_Int_t     vActivity;
@@ -98,6 +99,7 @@ struct Cbs2_Man_t_
     // other statistics
     int           nPropCalls[3];
     int           nFails[2];
+    int           nClauseConf;
 };
 
 static inline int   Cbs2_VarUnused( Cbs2_Man_t * p, int iVar )                     { return Vec_IntEntry(&p->vLevReason, 3*iVar) == -1; }
@@ -227,8 +229,9 @@ Cbs2_Man_t * Cbs2_ManAlloc( Gia_Man_t * pGia )
     Vec_IntFill( &p->vFanout0,   Gia_ManObjNum(pGia),   0 );
     Vec_IntFill( &p->vFanoutN,   2*Gia_ManObjNum(pGia), 0 );
     Vec_IntFill( &p->vActivity,  Gia_ManObjNum(pGia), 0 );
-    Vec_IntGrow( &p->vActStore, 1000 );
-    Vec_IntGrow( &p->vJStore, 1000 );
+    Vec_IntGrow( &p->vActStore,  1000 );
+    Vec_IntGrow( &p->vJStore,    1000 );
+    Vec_IntGrow( &p->vWatchUpds, 1000 );
     return p;
 }
 
@@ -254,6 +257,7 @@ void Cbs2_ManStop( Cbs2_Man_t * p )
     Vec_IntErase( &p->vActivity );
     Vec_IntErase( &p->vActStore );
     Vec_IntErase( &p->vJStore );
+    Vec_IntErase( &p->vWatchUpds );
     Vec_IntFree( p->vModel );
     Vec_IntFree( p->vTemp );
     ABC_FREE( p->pClauses.pData );
@@ -369,6 +373,15 @@ static inline void Cbs2_QuePush( Cbs2_Que_t * p, int iObj )
         p->pData = ABC_REALLOC( int, p->pData, p->nSize ); 
     }
     p->pData[p->iTail++] = iObj;
+}
+static inline void Cbs2_QueGrow( Cbs2_Que_t * p, int Plus )
+{
+    if ( p->iTail + Plus > p->nSize )
+    {
+        p->nSize *= 2;
+        p->pData = ABC_REALLOC( int, p->pData, p->nSize ); 
+    }
+    assert( p->iTail + Plus <= p->nSize );
 }
 
 /**Function*************************************************************
@@ -588,14 +601,15 @@ static inline void Cbs2_ManAssign( Cbs2_Man_t * p, int iLit, int Level, int iRes
 ***********************************************************************/
 static inline void Cbs2_ManPrintClause( Cbs2_Man_t * p, int Level, int hClause )
 {
-    int i, iObj;
+    int i, iLit;
     assert( Cbs2_QueIsEmpty( &p->pClauses ) );
     printf( "Level %2d : ", Level );
-    Cbs2_ClauseForEachEntry( p, hClause, iObj, i )
-        printf( "%d=%d(%d) ", iObj, Cbs2_VarValue(p, iObj), Cbs2_VarDecLevel(p, iObj) );
+    Cbs2_ClauseForEachEntry( p, hClause, iLit, i )
+        printf( "%c%d ", Abc_LitIsCompl(iLit) ? '-':'+', Abc_Lit2Var(iLit) );
+//        printf( "%d=%d(%d) ", iObj, Cbs2_VarValue(p, Abc_Lit2Var(iLit)), Cbs2_VarDecLevel(p, Abc_Lit2Var(iLit)) );
     printf( "\n" );
 }
-static inline void Cbs2_ManPrintClauseNew( Cbs2_Man_t * p, int Level, int hClause )
+static inline void Cbs2_ManPrintCube( Cbs2_Man_t * p, int Level, int hClause )
 {
     int i, iObj;
     assert( Cbs2_QueIsEmpty( &p->pClauses ) );
@@ -633,10 +647,21 @@ static inline void Cbs2_ManBumpClean( Cbs2_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Cbs2_ManCleanWatch( Cbs2_Man_t * p )
+{
+    int i, iLit;
+    Vec_IntForEachEntry( &p->vWatchUpds, iLit, i )
+        Vec_IntWriteEntry( &p->vWatches, iLit, 0 );
+    Vec_IntClear( &p->vWatchUpds );
+    //Vec_IntForEachEntry( &p->vWatches, iLit, i )
+    //    assert( iLit == 0 );
+}
 static inline void Cbs2_ManWatchClause( Cbs2_Man_t * p, int hClause, int Lit )
 {
     int * pLits = Cbs2_ClauseLits( p, hClause );
     int * pPlace = Vec_IntEntryP( &p->vWatches, Abc_LitNot(Lit) );
+    if ( *pPlace == 0 )
+        Vec_IntPush( &p->vWatchUpds, Abc_LitNot(Lit) );
 /*
     if ( pClause->pLits[0] == Lit )
         pClause->pNext0 = p->pWatches[lit_neg(Lit)];  
@@ -648,23 +673,36 @@ static inline void Cbs2_ManWatchClause( Cbs2_Man_t * p, int hClause, int Lit )
     p->pWatches[lit_neg(Lit)] = pClause;
 */
     assert( Lit == pLits[0] || Lit == pLits[1] );
-    Cbs2_ClauseSetNext( p, hClause, Lit != pLits[0], *pPlace );
+    Cbs2_ClauseSetNext( p, hClause, Lit == pLits[1], *pPlace );
     *pPlace = hClause;
 }
-static inline int Cbs2_QueFinish( Cbs2_Man_t * p )
+static inline int Cbs2_QueFinish( Cbs2_Man_t * p, int Level )
 {
     Cbs2_Que_t * pQue = &(p->pClauses); 
-    int hClause = pQue->iHead, Size = pQue->iTail - pQue->iHead - 1;
+    int i, iObj, hClauseC, hClause = pQue->iHead, Size = pQue->iTail - pQue->iHead - 1;
     assert( pQue->iHead+1 < pQue->iTail );
     Cbs2_ClauseSetSize( p, pQue->iHead, Size );
-    Cbs2_QuePush( pQue, 0 );
-    Cbs2_QuePush( pQue, 0 );
-    pQue->iHead = pQue->iTail;
-    if ( Size > 1 )
+    hClauseC = pQue->iHead = pQue->iTail;
+    //printf( "Adding cube: " ); Cbs2_ManPrintCube(p, Level, hClause);
+    if ( Size == 1 )
+        return hClause;
+    // create watched clause
+    pQue->iHead = hClause;
+    Cbs2_QueForEachEntry( p->pClauses, iObj, i )
     {
-        Cbs2_ManWatchClause( p, hClause, Cbs2_ClauseLit(p, hClause, 0) );
-        Cbs2_ManWatchClause( p, hClause, Cbs2_ClauseLit(p, hClause, 1) );
+        if ( i == hClauseC )
+            break;
+        else if ( i == hClause ) // nlits
+            Cbs2_QuePush( pQue, iObj );
+        else // literals
+            Cbs2_QuePush( pQue, Abc_Var2Lit(iObj, Cbs2_VarValue(p, iObj)) ); // complement
     }
+    Cbs2_QuePush( pQue, 0 ); // next0
+    Cbs2_QuePush( pQue, 0 ); // next1
+    pQue->iHead = pQue->iTail;
+    Cbs2_ManWatchClause( p, hClauseC, Cbs2_ClauseLit(p, hClauseC, 0) );
+    Cbs2_ManWatchClause( p, hClauseC, Cbs2_ClauseLit(p, hClauseC, 1) );
+    //printf( "Adding clause %d: ", hClauseC ); Cbs2_ManPrintClause(p, Level, hClauseC);
     return hClause;
 }
 
@@ -723,9 +761,10 @@ static inline int Cbs2_ManDeriveReason( Cbs2_Man_t * p, int Level )
         }
         else // clause reason
         {
-            int i, nLits = Cbs2_ClauseSize( p, pReason[1] );
-            int * pLits  = Cbs2_ClauseLits( p, pReason[1] );
+            int i, * pLits, nLits = Cbs2_ClauseSize( p, pReason[1] );
             assert( pReason[1] );
+            Cbs2_QueGrow( pQue, nLits );
+            pLits = Cbs2_ClauseLits( p, pReason[1] );
             assert( iObj == Abc_Lit2Var(pLits[0]) );
             for ( i = 1; i < nLits; i++ )
                 Cbs2_QuePush( pQue, Abc_Lit2Var(pLits[i]) );
@@ -737,31 +776,33 @@ static inline int Cbs2_ManDeriveReason( Cbs2_Man_t * p, int Level )
     // clear the marks
     Vec_IntForEachEntry( p->vTemp, iObj, i )
         Cbs2_VarSetMark0(p, iObj, 0);
-    return Cbs2_QueFinish( p );
+    return Cbs2_QueFinish( p, Level );
 }
 static inline int Cbs2_ManAnalyze( Cbs2_Man_t * p, int Level, int iVar, int iFan0, int iFan1 )
 {
     Cbs2_Que_t * pQue = &(p->pClauses); 
     assert( Cbs2_VarIsAssigned(p, iVar) );
-    assert( Cbs2_VarIsAssigned(p, iFan0) );
-    assert( iFan1 == 0 || Cbs2_VarIsAssigned(p, iFan1) );
     assert( Cbs2_QueIsEmpty( pQue ) );
     Cbs2_QuePush( pQue, 0 );
     Cbs2_QuePush( pQue, 0 );
-    Cbs2_QuePush( pQue, iVar );
-    if ( iFan0 )
+    if ( iFan0 ) // circuit conflict
     {
+        assert( Cbs2_VarIsAssigned(p, iFan0) );
+        assert( iFan1 == 0 || Cbs2_VarIsAssigned(p, iFan1) );
+        Cbs2_QuePush( pQue, iVar );
         Cbs2_QuePush( pQue, iFan0 );
         if ( iFan1 )
         Cbs2_QuePush( pQue, iFan1 );
     }
-    else
+    else // clause conflict
     {
-        int i, nLits = Cbs2_ClauseSize( p, iFan1 );
-        int * pLits  = Cbs2_ClauseLits( p, iFan1 );
+        int i, * pLits, nLits = Cbs2_ClauseSize( p, iFan1 );
         assert( iFan1 );
+        Cbs2_QueGrow( pQue, nLits );
+        pLits = Cbs2_ClauseLits( p, iFan1 );
         assert( iVar == Abc_Lit2Var(pLits[0]) );
-        for ( i = 1; i < nLits; i++ )
+        assert( Cbs2_VarValue(p, iVar) == Abc_LitIsCompl(pLits[0]) );
+        for ( i = 0; i < nLits; i++ )
             Cbs2_QuePush( pQue, Abc_Lit2Var(pLits[i]) );
     }
     return Cbs2_ManDeriveReason( p, Level );
@@ -788,6 +829,8 @@ static inline int Cbs2_ManPropagateClauses( Cbs2_Man_t * p, int Level, int Lit )
     {
         int nLits = Cbs2_ClauseSize( p, Cur );
         int * pLits = Cbs2_ClauseLits( p, Cur );
+        p->nPropCalls[1]++;
+//printf( "  Watching literal %c%d on level %d.\n", Abc_LitIsCompl(Lit) ? '-':'+', Abc_Lit2Var(Lit), Level );
         // make sure the false literal is in the second literal of the clause
         //if ( pCur->pLits[0] == LitF )
         if ( pLits[0] == LitF )
@@ -799,7 +842,7 @@ static inline int Cbs2_ManPropagateClauses( Cbs2_Man_t * p, int Level, int Lit )
             //pTemp = pCur->pNext0;
             //pCur->pNext0 = pCur->pNext1;
             //pCur->pNext1 = pTemp;
-            ABC_SWAP( int, pLits[nLits+1], pLits[nLits+2] );
+            ABC_SWAP( int, pLits[nLits], pLits[nLits+1] );
         }
         //assert( pCur->pLits[1] == LitF );
         assert( pLits[1] == LitF );
@@ -855,7 +898,10 @@ static inline int Cbs2_ManPropagateClauses( Cbs2_Man_t * p, int Level, int Lit )
         // conflict detected - return the conflict clause
         //return pCur;
         if ( Value == Abc_LitIsCompl(pLits[0]) )
+        {
+            p->nClauseConf++;
             return Cbs2_ManAnalyze( p, Level, Abc_Lit2Var(pLits[0]), 0, Cur );
+        }
     }
     return 0;
 }
@@ -1086,8 +1132,8 @@ int Cbs2_ManPropagate2( Cbs2_Man_t * p, int Level )
     int i, iLit, iFan, hClause;
     Cbs2_QueForEachEntry( p->pProp, iLit, i )
     {
-        //if ( (hClause = Cbs2_ManPropagateClauses(p, Level, iLit)) )
-        //    return hClause;
+        if ( (hClause = Cbs2_ManPropagateClauses(p, Level, iLit)) )
+            return hClause;
         Cbs2_ObjForEachFanout( p, Abc_Lit2Var(iLit), iFan )
         {
             int iFanout = Abc_Lit2Var(iFan);
@@ -1251,7 +1297,7 @@ int Cbs2_ManSolve1_rec( Cbs2_Man_t * p, int Level )
         return hLearn1;
     hClause = Cbs2_ManResolve( p, Level, hLearn0, hLearn1 );
     Cbs2_ManBumpClause( p, hClause );
-//    Cbs2_ManPrintClauseNew( p, Level, hClause );
+//    Cbs2_ManPrintCube( p, Level, hClause );
 //    if ( Level > Cbs2_ClauseDecLevel(p, hClause) )
 //        p->Pars.nBTThisNc++;
     p->Pars.nBTThis++;
@@ -1315,7 +1361,7 @@ int Cbs2_ManSolve2_rec( Cbs2_Man_t * p, int Level )
         return hLearn1;
     hClause = Cbs2_ManResolve( p, Level, hLearn0, hLearn1 );
     Cbs2_ManBumpClause( p, hClause );
-    //Cbs2_ManPrintClauseNew( p, Level, hClause );
+    //Cbs2_ManPrintCube( p, Level, hClause );
 //    if ( Level > Cbs2_ClauseDecLevel(p, hClause) )
 //        p->Pars.nBTThisNc++;
     p->Pars.nBTThis++;
@@ -1353,6 +1399,7 @@ int Cbs2_ManSolve( Cbs2_Man_t * p, int iLit )
     else
         RetValue = 1;
     Cbs2_ManCancelUntil( p, 0 );
+    Cbs2_ManCleanWatch( p );
     Cbs2_ManBumpClean( p );
     p->pJust.iHead = p->pJust.iTail = 0;
     p->pClauses.iHead = p->pClauses.iTail = 1;
@@ -1377,6 +1424,7 @@ int Cbs2_ManSolve2( Cbs2_Man_t * p, int iLit, int iLit2 )
     else
         RetValue = 1;
     Cbs2_ManCancelUntil( p, 0 );
+    Cbs2_ManCleanWatch( p );
     Cbs2_ManBumpClean( p );
     p->pJust.iHead = p->pJust.iTail = 0;
     p->pClauses.iHead = p->pClauses.iTail = 1;
@@ -1538,7 +1586,7 @@ Vec_Int_t * Cbs2_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvS
     // solve for each output
     Gia_ManForEachCo( pAig, pRoot, i )
     {
-//        printf( "\n" );
+        //printf( "\nOutput %d\n", i );
 
         Vec_IntClear( vCex );
         if ( Gia_ObjIsConst0(Gia_ObjFanin0(pRoot)) )
@@ -1606,7 +1654,7 @@ Vec_Int_t * Cbs2_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvS
     if ( fVerbose )
         Cbs2_ManSatPrintStats( p );
 //    printf( "RecCalls = %8d.  RecClause = %8d.  RecNonChro = %8d.\n", p->nRecCall, p->nRecClause, p->nRecNonChro );
-    printf( "Prop1 = %d.  Prop2 = %d.  Prop3 = %d.  FailJ = %d.  FailC = %d.   ", p->nPropCalls[0], p->nPropCalls[1], p->nPropCalls[2], p->nFails[0], p->nFails[1] );
+    printf( "Prop1 = %d.  Prop2 = %d.  Prop3 = %d.  ClaConf = %d.   FailJ = %d.  FailC = %d.   ", p->nPropCalls[0], p->nPropCalls[1], p->nPropCalls[2], p->nClauseConf, p->nFails[0], p->nFails[1] );
     Abc_PrintTime( 1, "JFront", p->timeJFront );
 
     Cbs2_ManStop( p );
