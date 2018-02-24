@@ -339,9 +339,9 @@ void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * 
     if ( fCompl )
         *ps = Abc_LitNot(*ps), *pc = Abc_LitNot(*pc); 
 }
-void Wlc_BlastAdder( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) // result is in pAdd0
+void Wlc_BlastAdder( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits, int Carry ) // result is in pAdd0
 {
-    int b, Carry = 0;
+    int b;
     for ( b = 0; b < nBits; b++ )
         Wlc_BlastFullAdder( pNew, pAdd0[b], pAdd1[b], Carry, &Carry, &pAdd0[b] );
 }
@@ -421,7 +421,7 @@ void Wlc_BlastMultiplier2( Gia_Man_t * pNew, int * pArg0, int * pArg1, int nBits
         for ( j = 0; Vec_IntSize(vTemp) < nBits; j++ )
             Vec_IntPush( vTemp, Gia_ManHashAnd(pNew, pArg0[j], pArg1[i]) );
         assert( Vec_IntSize(vTemp) == nBits );
-        Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vTemp), nBits );
+        Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vTemp), nBits, 0 );
     }
 }
 void Wlc_BlastFullAdderCtrl( Gia_Man_t * pNew, int a, int ac, int b, int c, int * pc, int * ps, int fNeg )
@@ -758,7 +758,7 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
     }
     Vec_IntPush( vRes,   0 );
     Vec_IntPush( vLevel, 0 );
-    Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes) );
+    Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes), 0 );
 }
 void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes )
 {
@@ -1314,8 +1314,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds, int iOutput, in
             int nRangeMax = Abc_MaxInt( nRange, Abc_MaxInt(nRange0, nRange1) );
             int * pArg0 = Wlc_VecLoadFanins( vRes,   pFans0, nRange0, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
             int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
+            int CarryIn = Wlc_ObjFaninNum(pObj) == 3 ? pFans2[0] : 0;
             if ( pObj->Type == WLC_OBJ_ARI_ADD )
-                Wlc_BlastAdder( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
+                Wlc_BlastAdder( pNew, pArg0, pArg1, nRange, CarryIn ); // result is in pFan0 (vRes)
 //                Wlc_BlastAdderCLA( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
             else 
                 Wlc_BlastSubtract( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)

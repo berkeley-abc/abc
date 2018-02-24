@@ -396,10 +396,19 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
             fprintf( pFile, "%s", pNames[pArray[0]] ),
             Ndr_ObjWriteRange( p, Obj, pFile, 0 ),
             fprintf( pFile, ";\n" );
+        else if ( Type == ABC_OPER_CONCAT )
+        {
+            fprintf( pFile, "{" );
+            for ( i = 0; i < nArray; i++ )
+                fprintf( pFile, "%s%s", pNames[pArray[i]], i==nArray-1 ? "":", " );
+            fprintf( pFile, "};\n" );
+        }
         else if ( nArray == 1 )
             fprintf( pFile, "%s %s;\n", Abc_OperName(Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE)), pNames[pArray[0]] );
         else if ( nArray == 2 )
             fprintf( pFile, "%s %s %s;\n", pNames[pArray[0]], Abc_OperName(Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE)), pNames[pArray[1]] );
+        else if ( nArray == 3 && Type == ABC_OPER_ARI_ADD )
+            fprintf( pFile, "%s + %s + %s;\n", pNames[pArray[0]], pNames[pArray[1]], pNames[pArray[2]] );
         else if ( Type == ABC_OPER_BIT_MUX )
             fprintf( pFile, "%s ? %s : %s;\n", pNames[pArray[0]], pNames[pArray[1]], pNames[pArray[2]] );
         else
@@ -575,6 +584,95 @@ static inline void Ndr_ModuleTest()
     Ndr_WriteVerilog( NULL, pDesign, ppNames );
     Ndr_Write( "add4.ndr", pDesign );
     Ndr_Delete( pDesign );
+}
+
+
+
+// This testing procedure creates and writes into a Verilog file 
+// for the following design composed of one adder divided into two
+
+// module add8 ( input [7:0] a, input [7:0] b, output [7:0] s, output co );
+//   wire [3:0] a0 = a[3:0];
+//   wire [3:0] b0 = b[3:0];
+
+//   wire [7:4] a1 = a[7:4];
+//   wire [7:4] b1 = b[7:4];
+
+//   wire [4:0] r0 = a0 + b0;
+//   wire [3:0] s0 = r0[3:0];
+//   wire rco = r0[4];
+
+//   wire [4:0] r1 = a1 + b1 + rco;
+//   wire [3:0] s1 = r1[3:0];
+//   assign co = r1[4];
+
+//   assign s = {s1, s0};
+// endmodule
+
+static inline void Ndr_ModuleTestAdder()
+{
+    // map name IDs into char strings
+    char * ppNames[20] = {  NULL, 
+                           "a", "b", "s", "co",          // 1,  2,  3,  4
+                           "a0",  "a1",  "b0",  "b1",    // 5,  6,  7,  8
+                           "r0", "s0", "rco",            // 9,  10, 11
+                           "r1", "s1", "add8"            // 12, 13, 14
+                         };
+    // fanins 
+    int FaninA        =  1;
+    int FaninB        =  2;
+    int FaninS        =  3;
+    int FaninCO       =  4;
+
+    int FaninA0       =  5;
+    int FaninA1       =  6;
+    int FaninB0       =  7;
+    int FaninB1       =  8;
+
+    int FaninR0       =  9;
+    int FaninS0       = 10;
+    int FaninRCO      = 11;
+
+    int FaninR1       = 12;
+    int FaninS1       = 13;
+
+    int Fanins1[2]    = { FaninA0, FaninB0 };
+    int Fanins2[3]    = { FaninA1, FaninB1, FaninRCO };
+    int Fanins3[4]    = { FaninS1, FaninS0 };
+
+    // create a new module
+    void * pDesign = Ndr_Create( 14 );
+
+    int ModuleID = Ndr_AddModule( pDesign, 14 );
+
+    // add objects to the modele
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   7, 0, 0,   0, NULL,      1, &FaninA,   NULL  );  // no fanins
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   7, 0, 0,   0, NULL,      1, &FaninB,   NULL  );  // no fanins
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SLICE,    0,   3, 0, 0,   1, &FaninA,   1, &FaninA0,   NULL );  // wire [3:0] a0 = a[3:0];
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SLICE,    0,   3, 0, 0,   1, &FaninB,   1, &FaninB0,   NULL );  // wire [3:0] b0 = a[3:0];
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SLICE,    0,   7, 4, 0,   1, &FaninA,   1, &FaninA1,   NULL );  // wire [7:4] a1 = a[7:4];
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SLICE,    0,   7, 4, 0,   1, &FaninB,   1, &FaninB1,   NULL );  // wire [7:4] b1 = b[7:4];
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_ARI_ADD,  0,   4, 0, 0,   2, Fanins1,   1, &FaninR0,   NULL );  // wire [4:0] r0 = a0 + b0;
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SLICE,    0,   3, 0, 0,   1, &FaninR0,  1, &FaninS0,   NULL );  // wire [3:0] s0 = r0[3:0];
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SLICE,    0,   4, 4, 0,   1, &FaninR0,  1, &FaninRCO,  NULL );  // wire rco = r0[4];
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_ARI_ADD,  0,   4, 0, 0,   3, Fanins2,   1, &FaninR1,   NULL );  // wire [4:0] r1 = a1 + b1 + rco;
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SLICE,    0,   3, 0, 0,   1, &FaninR1,  1, &FaninS1,   NULL );  // wire [3:0] s1 = r1[3:0];
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SLICE,    0,   4, 4, 0,   1, &FaninR1,  1, &FaninCO,   NULL );  // assign co = r1[4];
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CONCAT,   0,   7, 0, 0,   2, Fanins3,   1, &FaninS,    NULL );  // s = {s1, s0};
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   7, 0, 0,   1, &FaninS,   0, NULL,       NULL ); 
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   0, 0, 0,   1, &FaninCO,  0, NULL,       NULL ); 
+
+    // write Verilog for verification
+    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_Write( "add8.ndr", pDesign );
+    Ndr_Delete( pDesign );
+
 }
 
 // This testing procedure creates and writes into a Verilog file 

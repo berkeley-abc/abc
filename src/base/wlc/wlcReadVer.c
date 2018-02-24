@@ -801,6 +801,12 @@ static inline int Wlc_PrsFindDefinition( Wlc_Prs_t * p, char * pStr, Vec_Int_t *
             if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )
                 return 0;
             pStr = Wlc_PrsSkipSpaces( pStr );
+            if ( Type == WLC_OBJ_ARI_ADD && pStr[0] == '+' )
+            {
+                if ( !(pStr = Wlc_PrsReadName(p, pStr+1, vFanins)) )
+                    return 0;
+                pStr = Wlc_PrsSkipSpaces( pStr );
+            }
             if ( pStr[0] )
                 printf( "Warning: Trailing symbols \"%s\" in line %d.\n", pStr, Wlc_PrsFindLine(p, pStr) );
         }

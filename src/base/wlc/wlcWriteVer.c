@@ -355,6 +355,8 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 else assert( 0 );
                     //fprintf( pFile, "???" );
                 fprintf( pFile, " %s", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 1)) );
+                if ( Wlc_ObjFaninNum(pObj) == 3 && pObj->Type == WLC_OBJ_ARI_ADD ) 
+                    fprintf( pFile, " + %s", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 2)) );
             }
         }
         fprintf( pFile, " ;%s\n", (p->fSmtLib && Wlc_ObjIsSigned(pObj)) ? " // signed SMT-LIB operator" : "" );

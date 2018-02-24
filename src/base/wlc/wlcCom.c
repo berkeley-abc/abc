@@ -20,6 +20,7 @@
 
 #include "wlc.h"
 #include "base/main/mainInt.h"
+#include "aig/miniaig/ndr.h"
 
 ABC_NAMESPACE_IMPL_START
 
