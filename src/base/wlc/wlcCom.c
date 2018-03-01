@@ -888,11 +888,12 @@ usage:
 int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
-    Vec_Int_t * vBoxIds = NULL;
-    Gia_Man_t * pNew = NULL;
-    int c, iOutput = -1, nOutputRange = 2, fGiaSimple = 0, fAddOutputs = 0, fMulti = 0, fBooth = 0, fCreateMiter = 0, fDecMuxes = 0, fVerbose  = 0;
+    Gia_Man_t * pNew = NULL; int c;
+    Wlc_BstPar_t Par, * pPar = &Par;
+    Wlc_BstParDefault( pPar );
+    pPar->nOutputRange = 2;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORcombdsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombdsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -902,9 +903,9 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
                 goto usage;
             }
-            iOutput = atoi(argv[globalUtilOptind]);
+            pPar->iOutput = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( iOutput < 0 )
+            if ( pPar->iOutput < 0 )
                 goto usage;
             break;
         case 'R':
@@ -913,31 +914,53 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nOutputRange = atoi(argv[globalUtilOptind]);
+            pPar->nOutputRange = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nOutputRange < 0 )
+            if ( pPar->nOutputRange < 0 )
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPar->nAdderLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPar->nAdderLimit < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPar->nMultLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPar->nMultLimit < 0 )
                 goto usage;
             break;
         case 'c':
-            fGiaSimple ^= 1;
+            pPar->fGiaSimple ^= 1;
             break;
         case 'o':
-            fAddOutputs ^= 1;
+            pPar->fAddOutputs ^= 1;
             break;
         case 'm':
-            fMulti ^= 1;
+            pPar->fMulti ^= 1;
             break;
         case 'b':
-            fBooth ^= 1;
+            pPar->fBooth ^= 1;
             break;
         case 'd':
-            fCreateMiter ^= 1;
+            pPar->fCreateMiter ^= 1;
             break;
         case 's':
-            fDecMuxes ^= 1;
+            pPar->fDecMuxes ^= 1;
             break;
         case 'v':
-            fVerbose ^= 1;
+            pPar->fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -950,20 +973,29 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandBlast(): There is no current design.\n" );
         return 0;
     }
-    if ( fMulti )
+    if ( pPar->fMulti )
     {
-        vBoxIds = Wlc_NtkCollectMultipliers( pNtk );
-        if ( vBoxIds == NULL )
+        pPar->vBoxIds = Wlc_NtkCollectMultipliers( pNtk );
+        if ( pPar->vBoxIds == NULL )
             Abc_Print( 1, "Warning:  There is no multipliers in the design.\n" );
     }
-    if ( iOutput >= 0 && iOutput + nOutputRange > Wlc_NtkPoNum(pNtk) )
+    else if ( pPar->nAdderLimit || pPar->nMultLimit )
     {
-        Abc_Print( 1, "Abc_CommandBlast(): The output range [%d:%d] is incorrect.\n", iOutput, iOutput + nOutputRange - 1 );
+        int CountA, CountM;
+        pPar->vBoxIds = Wlc_NtkCollectAddMult( pNtk, pPar, &CountA, &CountM );
+        if ( pPar->vBoxIds == NULL )
+            Abc_Print( 1, "Warning:  There is no adders and multipliers that will not be blasted.\n" );
+        else 
+            Abc_Print( 1, "Warning:  %d adders and %d multipliers will not be blasted.\n", CountA, CountM );
+    }
+    if ( pPar->iOutput >= 0 && pPar->iOutput + pPar->nOutputRange > Wlc_NtkPoNum(pNtk) )
+    {
+        Abc_Print( 1, "Abc_CommandBlast(): The output range [%d:%d] is incorrect.\n", pPar->iOutput, pPar->iOutput + pPar->nOutputRange - 1 );
         return 0;
     }
     // transform
-    pNew = Wlc_NtkBitBlast( pNtk, vBoxIds, iOutput, nOutputRange, fGiaSimple, fAddOutputs, fBooth, 0, fCreateMiter, fDecMuxes );
-    Vec_IntFreeP( &vBoxIds );
+    pNew = Wlc_NtkBitBlast( pNtk, pPar );
+    Vec_IntFreeP( &pPar->vBoxIds );
     if ( pNew == NULL )
     {
         Abc_Print( 1, "Abc_CommandBlast(): Bit-blasting has failed.\n" );
@@ -972,17 +1004,19 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-OR num] [-combdsvh]\n" );
+    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combdsvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
-    Abc_Print( -2, "\t-O num : zero-based index of the first word-level PO to bit-blast [default = %d]\n", iOutput );
-    Abc_Print( -2, "\t-R num : the total number of word-level POs to bit-blast [default = %d]\n", nOutputRange );
-    Abc_Print( -2, "\t-c     : toggle using AIG w/o const propagation and strashing [default = %s]\n", fGiaSimple? "yes": "no" );
-    Abc_Print( -2, "\t-o     : toggle using additional POs on the word-level boundaries [default = %s]\n", fAddOutputs? "yes": "no" );
-    Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n", fMulti? "yes": "no" );
-    Abc_Print( -2, "\t-b     : toggle generating radix-4 Booth multipliers [default = %s]\n", fBooth? "yes": "no" );
-    Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fCreateMiter? "yes": "no" );
-    Abc_Print( -2, "\t-s     : toggle creating decoded MUXes [default = %s]\n", fDecMuxes? "yes": "no" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-O num : zero-based index of the first word-level PO to bit-blast [default = %d]\n", pPar->iOutput );
+    Abc_Print( -2, "\t-R num : the total number of word-level POs to bit-blast [default = %d]\n",          pPar->nOutputRange );
+    Abc_Print( -2, "\t-A num : blast adders smaller than this (0 = unused) [default = %d]\n",              pPar->nAdderLimit );
+    Abc_Print( -2, "\t-M num : blast multipliers smaller than this (0 = unused) [default = %d]\n",         pPar->nMultLimit );
+    Abc_Print( -2, "\t-c     : toggle using AIG w/o const propagation and strashing [default = %s]\n",     pPar->fGiaSimple? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle using additional POs on the word-level boundaries [default = %s]\n", pPar->fAddOutputs? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n",  pPar->fMulti? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle generating radix-4 Booth multipliers [default = %s]\n",              pPar->fBooth? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n",                        pPar->fCreateMiter? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle creating decoded MUXes [default = %s]\n",                            pPar->fDecMuxes? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                      pPar->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

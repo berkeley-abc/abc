@@ -5018,6 +5018,18 @@ SOURCE=.\src\aig\miniaig\minilut.h
 SOURCE=.\src\aig\miniaig\ndr.h
 # End Source File
 # End Group
+# Begin Group "uap"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\uap\uap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\uap\uapSat.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "bool"
 

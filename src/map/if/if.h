@@ -364,6 +364,7 @@ struct If_Box_t_
 
 struct If_LibBox_t_
 {
+    int                nBoxes;
     Vec_Ptr_t *        vBoxes;
 };
 
@@ -600,6 +601,7 @@ extern float           If_LibLutSlowestPinDelay( If_LibLut_t * p );
 /*=== ifLibBox.c =============================================================*/
 extern If_LibBox_t *   If_LibBoxStart();
 extern void            If_LibBoxFree( If_LibBox_t * p );
+extern int             If_LibBoxNum( If_LibBox_t * p );
 extern If_Box_t *      If_LibBoxReadBox( If_LibBox_t * p, int Id );
 extern If_Box_t *      If_LibBoxFindBox( If_LibBox_t * p, char * pName );
 extern void            If_LibBoxAdd( If_LibBox_t * p, If_Box_t * pBox );
@@ -608,6 +610,7 @@ extern If_LibBox_t *   If_LibBoxRead2( char * pFileName );
 extern void            If_LibBoxPrint( FILE * pFile, If_LibBox_t * p );
 extern void            If_LibBoxWrite( char * pFileName, If_LibBox_t * p );
 extern int             If_LibBoxLoad( char * pFileName );
+extern If_Box_t *      If_BoxStart( char * pName, int Id, int nPis, int nPos, int fSeq, int fBlack, int fOuter );
 /*=== ifMan.c =============================================================*/
 extern If_Man_t *      If_ManStart( If_Par_t * pPars );
 extern void            If_ManRestart( If_Man_t * p );
