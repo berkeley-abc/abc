@@ -41,6 +41,16 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Wlc_NtkCollectBoxes( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
+{
+    int i, iObj;
+    Vec_Int_t * vBoxes = Vec_IntAlloc( Vec_IntSize(vBoxIds) + 1 );
+    Vec_IntPush( vBoxes, Vec_IntSize(vBoxIds) );
+    Vec_IntForEachEntry( vBoxIds, iObj, i )
+        Vec_IntPush( vBoxes, Wlc_ObjNameId(p, iObj) );
+    Abc_FrameSetBoxes( Vec_IntReleaseArray(vBoxes) );
+    Vec_IntFree( vBoxes );
+}
 Vec_Int_t * Wlc_NtkCollectAddMult( Wlc_Ntk_t * p, Wlc_BstPar_t * pPar, int * pCountA, int * pCountM )
 {
     Vec_Int_t * vBoxIds;
@@ -57,7 +67,10 @@ Vec_Int_t * Wlc_NtkCollectAddMult( Wlc_Ntk_t * p, Wlc_BstPar_t * pPar, int * pCo
             Vec_IntPush( vBoxIds, i ), (*pCountM)++;
     }
     if ( Vec_IntSize( vBoxIds ) > 0 )
+    {
+        Wlc_NtkCollectBoxes( p, vBoxIds );
         return vBoxIds;
+    }
     Vec_IntFree( vBoxIds );
     return NULL;
 }

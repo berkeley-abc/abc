@@ -161,6 +161,7 @@ extern ABC_DLL void            Abc_FrameSetDrivingCell( char * pName );
 extern ABC_DLL void            Abc_FrameSetMaxLoad( float Load );
 
 extern ABC_DLL void            Abc_FrameSetArrayMapping( int * p );
+extern ABC_DLL void            Abc_FrameSetBoxes( int * p );
 
 ABC_NAMESPACE_HEADER_END
 

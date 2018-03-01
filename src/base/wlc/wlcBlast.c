@@ -1082,7 +1082,6 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             If_LibBoxAdd( pBoxLib, pBox );
             for ( k = 0; k < pBox->nPis * pBox->nPos; k++ )
                 pBox->pDelays[k] = 1;
-            printf( "adding box %s\n", Buffer);
         }
         else if ( Wlc_ObjIsCi(pObj) )
         {
