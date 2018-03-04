@@ -1231,10 +1231,65 @@ startword:
                 p->pNtk->vInits = Vec_IntAlloc( 100 );
             Vec_IntPush( p->pNtk->vInits, NameId > 0 ? NameId : -nBits );
         }
+        else if ( Wlc_PrsStrCmp( pStart, "CPL_MEM_" ) )
+        {
+            int * pNameId = NULL, NameOutput, NameMi = -1, NameMo = -1, NameAddr = -1, NameDi = -1, NameDo = -1, fFound, fRead = 1;
+            pStart += strlen("CPL_MEM_");
+            if ( pStart[0] == 'W' )
+                fRead = 0;
+            // read names
+            while ( 1 )
+            {
+                pStart = Wlc_PrsFindSymbol( pStart, '.' );
+                if ( pStart == NULL )
+                    break;
+                pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                if ( !strncmp(pStart, "mem_data_in", 11) )
+                    pNameId = &NameMi;
+                else if ( !strncmp(pStart, "data_in", 7) )
+                    pNameId = &NameDi;
+                else if ( !strncmp(pStart, "data_out", 8) )
+                    pNameId = fRead ? &NameDo : &NameMo;
+                else if ( !strncmp(pStart, "addr_in", 7) )
+                    pNameId = &NameAddr;
+                else
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name of the input/output port." );
+                pStart = Wlc_PrsFindSymbol( pStart, '(' );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
+                pStart = Wlc_PrsFindName( pStart+1, &pName );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
+                *pNameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                if ( !fFound )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            }
+            if ( fRead && (NameMi == -1 || NameAddr == -1 || NameDo == -1) )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name of one of signals of read port is missing." );
+            if ( !fRead && (NameMi == -1 || NameAddr == -1 || NameDi == -1 || NameMo == -1) )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name of one of signals of write port is missing." );
+            // create output
+            NameOutput = fRead ? NameDo : NameMo;
+            pObj = Wlc_NtkObj( p->pNtk, NameOutput );
+            Wlc_ObjUpdateType( p->pNtk, pObj, fRead ? WLC_OBJ_READ : WLC_OBJ_WRITE );
+            Vec_IntClear( p->vFanins );
+            Vec_IntPush( p->vFanins, NameMi );
+            Vec_IntPush( p->vFanins, NameAddr );
+            if ( !fRead )
+                Vec_IntPush( p->vFanins, NameDi );
+            Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+        }
+        else if ( pStart[0] == '(' && pStart[1] == '*' ) // skip comments
+        {
+            while ( *pStart++ != ')' );
+            pStart = Wlc_PrsSkipSpaces( pStart );
+            goto startword;
+        }
         else if ( pStart[0] != '`' )
         {
+            int iLine = Wlc_PrsFindLine(p, pStart);
             pStart = Wlc_PrsFindName( pStart, &pName );
-            return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read line beginning with %s.", pName );
+            return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read line %d beginning with %s.", iLine, (!pName || !pName[0]) ? "\"?\"" : pName );
         }
     }
     if ( p->nNonZero[0] )

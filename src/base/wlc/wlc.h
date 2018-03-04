@@ -96,7 +96,9 @@ typedef enum {
     WLC_OBJ_ARI_SQRT,      // 51: integer square root
     WLC_OBJ_ARI_SQUARE,    // 52: integer square
     WLC_OBJ_TABLE,         // 53: bit table
-    WLC_OBJ_NUMBER         // 54: unused
+    WLC_OBJ_READ,          // 54: read port
+    WLC_OBJ_WRITE,         // 55: write port
+    WLC_OBJ_NUMBER         // 56: unused
 } Wlc_ObjType_t;
 // when adding new types, remember to update table Wlc_Names in "wlcNtk.c"
 

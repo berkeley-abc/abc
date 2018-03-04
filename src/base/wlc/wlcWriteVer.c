@@ -187,7 +187,11 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             Range[0] = 0;
         }
         if ( pObj->fIsPo || (fNoFlops && pObj->fIsFi) )
+        {
+            if ( Wlc_ObjFaninNum(pObj) == 0 )
+                continue;
             fprintf( pFile, "  assign                         " );
+        }
         else if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3 )
             fprintf( pFile, "reg  %s ", Range );
         else
@@ -249,7 +253,22 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             fprintf( pFile, "end\n" );
             continue;
         }
-        else
+        else if ( pObj->Type == WLC_OBJ_READ || pObj->Type == WLC_OBJ_WRITE )
+        {
+            int nBitsMem  = Wlc_ObjRange( Wlc_ObjFanin(p, pObj, 0) );
+            //int nBitsAddr = Wlc_ObjRange( Wlc_ObjFanin(p, pObj, 1) );
+            int nBitsDat  = pObj->Type == WLC_OBJ_READ ? Wlc_ObjRange(pObj) : Wlc_ObjRange(Wlc_ObjFanin(p, pObj, 2));
+            int Depth     = nBitsMem / nBitsDat;
+            assert( nBitsMem % nBitsDat == 0 );
+            fprintf( pFile, "%s ;\n", Wlc_ObjName(p, i) );
+            fprintf( pFile, "         " );
+            fprintf( pFile, "%s_%d (", pObj->Type == WLC_OBJ_READ ? "CPL_MEM_READ" : "CPL_MEM_WRITE", Depth );
+            Wlc_ObjForEachFanin( pObj, iFanin, k )
+                fprintf( pFile, " .%s(%s)", k==0 ? "mem_data_in" : (k==1 ? "addr_in": "data_in"), Wlc_ObjName(p, iFanin) );
+            fprintf( pFile, " .%s(%s) );\n", "data_out", Wlc_ObjName(p, i) );
+            continue;
+        }
+        else 
         {
             fprintf( pFile, "%-16s = ", Wlc_ObjName(p, i) );
             if ( pObj->Type == WLC_OBJ_BUF )
@@ -352,8 +371,12 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                     fprintf( pFile, "@" );
                 else if ( pObj->Type == WLC_OBJ_ARI_SQUARE )
                     fprintf( pFile, "#" );
-                else assert( 0 );
-                    //fprintf( pFile, "???" );
+                else 
+                {
+                    assert( 0 );
+                    fprintf( pFile, "???\n" );
+                    continue;
+                }
                 fprintf( pFile, " %s", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 1)) );
                 if ( Wlc_ObjFaninNum(pObj) == 3 && pObj->Type == WLC_OBJ_ARI_ADD ) 
                     fprintf( pFile, " + %s", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 2)) );
