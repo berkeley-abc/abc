@@ -1015,7 +1015,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange1; k++ )
                 Gia_ManAppendCo( pNew, pFans1[k] );
             for ( k = 0; k < nRange2; k++ )
-                Gia_ManAppendCo( pNew, pFans1[k] );
+                Gia_ManAppendCo( pNew, pFans2[0] );
 
             // make sure there is enough primary inputs in the manager
             for ( k = Gia_ManPiNum(pExtra); k < nRange0 + nRange1 + nRange2; k++ )
