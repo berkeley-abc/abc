@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/berkeley-abc/abc.svg?branch=master)](https://travis-ci.org/berkeley-abc/abc)
+[![Build status](https://ci.appveyor.com/api/projects/status/7q8gopidgvyos00d?svg=true)](https://ci.appveyor.com/project/berkeley-abc/abc)
+
 # ABC: System for Sequential Logic Synthesis and Formal Verification
 
 ABC is always changing but the current snapshot is believed to be stable. 
@@ -17,7 +20,7 @@ To build the demo program
 
  * Copy demo.cc and libabc.a to the working directory
  * Run `gcc -Wall -g -c demo.c -o demo.o`
- * Run `gcc -g -o demo demo.o libabc.a -lm -ldl -rdynamic -lreadline -ltermcap -lpthread`
+ * Run `g++ -g -o demo demo.o libabc.a -lm -ldl -lreadline -lpthread`
 
 To run the demo program, give it a file with the logic network in AIGER or BLIF. For example:
 
