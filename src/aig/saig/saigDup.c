@@ -88,7 +88,7 @@ Aig_Man_t * Saig_ManDupOrpos( Aig_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs )
+Aig_Man_t * Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs, int fAddOuts )
 {
     Aig_Man_t * pAigNew;
     Aig_Obj_t * pObj, * pObj2, * pMiter;
@@ -120,9 +120,11 @@ Aig_Man_t * Saig_ManCreateEquivMiter( Aig_Man_t * pAig, Vec_Int_t * vPairs )
         Aig_ObjCreateCo( pAigNew, pMiter );
     }
     // transfer to register outputs
+    if ( fAddOuts )
     Saig_ManForEachLi( pAig, pObj, i )
         Aig_ObjCreateCo( pAigNew, Aig_ObjChild0Copy(pObj) );
     Aig_ManCleanup( pAigNew );
+    if ( fAddOuts )
     Aig_ManSetRegNum( pAigNew, Aig_ManRegNum(pAig) );
     return pAigNew;
 }

@@ -20581,7 +20581,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplkofdseqvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplkodsefqvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20713,9 +20713,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'o':
             pPars->fOutputCorr ^= 1;
             break;
-        case 'f':
-            pPars->fSemiFormal ^= 1;
-            break;
+//        case 'f':
+//            pPars->fSemiFormal ^= 1;
+//            break;
         case 'd':
             pPars->fDynamic ^= 1;
             break;
@@ -20724,6 +20724,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'e':
             pPars->fEquivDump ^= 1;
+            break;
+        case 'f':
+            pPars->fEquivDump2 ^= 1;
             break;
         case 'q':
             pPars->fStopWhenGone ^= 1;
@@ -20787,6 +20790,11 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             Abc_Print( 0, "Performing constraint-based scorr without constraints.\n" );
     }
+    if ( pPars->fEquivDump && pPars->fEquivDump2 )
+    {
+        Abc_Print( 0, "Command line switches \'-e\' and \'-f\' cannot be used at the same time.\n" );
+        return 0;
+    }
 
     // get the new network
     pNtkRes = Abc_NtkDarSeqSweep2( pNtk, pPars );
@@ -20800,7 +20808,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplkodseqvwh]\n" );
+    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplkodsefqvwh]\n" );
     Abc_Print( -2, "\t         performs sequential sweep using K-step induction\n" );
     Abc_Print( -2, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     Abc_Print( -2, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -20823,6 +20831,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dynamic addition of constraints [default = %s]\n", pPars->fDynamic? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle local simulation in the cone of influence [default = %s]\n", pPars->fLocalSim? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle dumping disproved internal equivalences [default = %s]\n", pPars->fEquivDump? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggle dumping proved internal equivalences [default = %s]\n", pPars->fEquivDump2? "yes": "no" );
     Abc_Print( -2, "\t-q     : toggle quitting when PO is not a constant candidate [default = %s]\n", pPars->fStopWhenGone? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printout of flop equivalences [default = %s]\n", pPars->fFlopVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );

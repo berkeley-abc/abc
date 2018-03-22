@@ -5025,10 +5025,6 @@ SOURCE=.\src\aig\miniaig\ndr.h
 
 SOURCE=.\src\aig\uap\uap.h
 # End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\uap\uapSat.c
-# End Source File
 # End Group
 # End Group
 # Begin Group "bool"
