@@ -1777,8 +1777,11 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         ABC_FREE( pNameGeneric );
         printf( "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
     }
-    Vec_PtrFreeP( &pNew->vNamesIn );
-    Vec_PtrFreeP( &pNew->vNamesOut );
+    if ( pPar->vBoxIds )
+    {
+        Vec_PtrFreeP( &pNew->vNamesIn );
+        Vec_PtrFreeP( &pNew->vNamesOut );
+    }
     return pNew;
 }
 
