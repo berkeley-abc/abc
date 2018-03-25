@@ -1770,7 +1770,7 @@ static void Abc_TgPurgeSymmetry(Abc_TgMan_t * pMan, int doHigh)
 	pMan->nGVars -= sum;
 }
 
-static void Abc_TgExpendSymmetry(Abc_TgMan_t * pMan, char * pPerm, char * pDest)
+void Abc_TgExpendSymmetry(Abc_TgMan_t * pMan, char * pPerm, char * pDest)
 {
 	int i = 0, j, k;
 	for (j = 0; j < pMan->nGVars; j++)
