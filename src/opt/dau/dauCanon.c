@@ -294,7 +294,7 @@ static inline int Abc_TtCompare2VarCofsRev( word * pTruth, int nWords, int iVar,
 ***********************************************************************/
 #define DO_SMALL_TRUTHTABLE 0
 
-inline void Abc_TtNormalizeSmallTruth(word * pTruth, int nVars)
+static inline void Abc_TtNormalizeSmallTruth(word * pTruth, int nVars)
 {
 #if DO_SMALL_TRUTHTABLE
 	if (nVars < 6)
@@ -1404,14 +1404,14 @@ static void Abc_TginitMan(Abc_TgMan_t * pMan, word * pTruth, int nVars)
 	}
 }
 
-inline void Abc_TgManCopy(Abc_TgMan_t* pDst, word* pDstTruth, Abc_TgMan_t* pSrc)
+static inline void Abc_TgManCopy(Abc_TgMan_t* pDst, word* pDstTruth, Abc_TgMan_t* pSrc)
 {
 	*pDst = *pSrc;
 	Abc_TtCopy(pDstTruth, pSrc->pTruth, Abc_TtWordNum(pSrc->nVars), 0);
 	pDst->pTruth = pDstTruth;
 }
 
-inline int Abc_TgCannonVerify(Abc_TgMan_t* pMan)
+static inline int Abc_TgCannonVerify(Abc_TgMan_t* pMan)
 {
 	return Abc_TtCannonVerify(pMan->pTruth, pMan->nVars, pMan->pPermT, pMan->uPhase);
 }
@@ -1444,7 +1444,7 @@ SeeAlso     []
 
 ***********************************************************************/
 
-inline void Abc_TgFlipVar(Abc_TgMan_t* pMan, int iVar)
+static inline void Abc_TgFlipVar(Abc_TgMan_t* pMan, int iVar)
 {
 	int nWords = Abc_TtWordNum(pMan->nVars);
 	int ivp = pMan->pPermTRev[iVar];
@@ -1452,19 +1452,19 @@ inline void Abc_TgFlipVar(Abc_TgMan_t* pMan, int iVar)
 	pMan->uPhase ^= 1 << ivp;
 }
 
-inline void Abc_TgFlipSymGroupByVar(Abc_TgMan_t* pMan, int iVar)
+static inline void Abc_TgFlipSymGroupByVar(Abc_TgMan_t* pMan, int iVar)
 {
 	for (; iVar >= 0; iVar = pMan->symLink[iVar])
 		if (pMan->symPhase[iVar])
 			Abc_TgFlipVar(pMan, iVar);
 }
 
-inline void Abc_TgFlipSymGroup(Abc_TgMan_t* pMan, int idx)
+static inline void Abc_TgFlipSymGroup(Abc_TgMan_t* pMan, int idx)
 {
 	Abc_TgFlipSymGroupByVar(pMan, pMan->pPerm[idx]);
 }
 
-inline void Abc_TgClearSymGroupPhase(Abc_TgMan_t* pMan, int iVar)
+static inline void Abc_TgClearSymGroupPhase(Abc_TgMan_t* pMan, int iVar)
 {
 	for (; iVar >= 0; iVar = pMan->symLink[iVar])
 		pMan->symPhase[iVar] = 0;
@@ -2015,7 +2015,7 @@ static int Abc_TgNextPermutation(Abc_TgMan_t * pMan)
 	return 0;
 }
 
-inline unsigned grayCode(unsigned a) { return a ^ (a >> 1); }
+static inline unsigned grayCode(unsigned a) { return a ^ (a >> 1); }
 
 static int grayFlip(unsigned a, int n)
 {
@@ -2027,7 +2027,7 @@ static int grayFlip(unsigned a, int n)
     return -1;
 }
 
-inline void Abc_TgSaveBest(Abc_TgMan_t * pMan, Abc_TgMan_t * pBest)
+static inline void Abc_TgSaveBest(Abc_TgMan_t * pMan, Abc_TgMan_t * pBest)
 {
 	if (Abc_TtCompare(pBest->pTruth, pMan->pTruth, Abc_TtWordNum(pMan->nVars)) == 1)
 		Abc_TgManCopy(pBest, pBest->pTruth, pMan);
