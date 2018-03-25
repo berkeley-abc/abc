@@ -59,7 +59,7 @@ typedef enum {
 } Dau_DsdType_t;
 
 typedef struct Dss_Man_t_ Dss_Man_t;
-typedef struct Abc_TtMan_t_ Abc_TtMan_t;
+typedef struct Abc_TtHieMan_t_ Abc_TtHieMan_t;
 
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
