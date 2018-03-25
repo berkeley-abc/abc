@@ -2310,6 +2310,8 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pFileName;
     int c, fNames  = 0;
     int fMinimize  = 0;
+    int fUseSatBased = 0;
+    int fHighEffort = 0;
     int fUseOldMin = 0;
     int fCheckCex  = 0;
     int forceSeq   = 0;
@@ -2318,7 +2320,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
     int fVerbose   = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "snmocafvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snmueocafvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2330,6 +2332,12 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'm':
                 fMinimize ^= 1;
+                break;
+            case 'u':
+                fUseSatBased ^= 1;
+                break;
+            case 'e':
+                fHighEffort ^= 1;
                 break;
             case 'o':
                 fUseOldMin ^= 1;
@@ -2419,6 +2427,8 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                     if ( fCheckCex )
                         Bmc_CexCareVerify( pAig, pCex, pCare, fVerbose );
                 }
+                else if ( fUseSatBased )
+                    pCare = Bmc_CexCareSatBasedMinimize( pAig, Saig_ManPiNum(pAig), pCex, fHighEffort, fCheckCex, fVerbose );
                 else
                     pCare = Bmc_CexCareMinimize( pAig, Saig_ManPiNum(pAig), pCex, 4, fCheckCex, fVerbose );
                 Aig_ManStop( pAig );
@@ -2477,19 +2487,21 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_cex [-snmocfvh] <file>\n" );
-    fprintf( pAbc->Err, "\t         saves counter-example derived by \"sat\", \"iprove\", or \"dprove\"\n" );
-    fprintf( pAbc->Err, "\t         the file contains values for each PI in the natural order\n" );
-    fprintf( pAbc->Err, "\t-s     : always report a sequential ctrex (cycle 0 for comb) [default = %s]\n", forceSeq? "yes": "no" );
+    fprintf( pAbc->Err, "usage: write_cex [-snmueocfvh] <file>\n" );
+    fprintf( pAbc->Err, "\t         saves counter-example (CEX) derived by \"sat\", \"iprove\", \"dprove\", etc\n" );
+    fprintf( pAbc->Err, "\t         the output file <file> contains values for each PI in natural order\n" );
+    fprintf( pAbc->Err, "\t-s     : always report a sequential CEX (cycle 0 for comb) [default = %s]\n", forceSeq? "yes": "no" );
     fprintf( pAbc->Err, "\t-n     : write input names into the file [default = %s]\n", fNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-m     : minimize counter-example by dropping don't-care values [default = %s]\n", fMinimize? "yes": "no" );
-    fprintf( pAbc->Err, "\t-o     : use old counter-example minimization algorithm [default = %s]\n", fUseOldMin? "yes": "no" );
-    fprintf( pAbc->Err, "\t-c     : check generated counter-example using ternary simulation [default = %s]\n", fCheckCex? "yes": "no" );
+    fprintf( pAbc->Err, "\t-u     : use SAT-based CEX minimization [default = %s]\n", fUseSatBased? "yes": "no" );
+    fprintf( pAbc->Err, "\t-e     : use high-effort SAT-based CEX minimization [default = %s]\n", fHighEffort? "yes": "no" );
+    fprintf( pAbc->Err, "\t-o     : use old CEX minimization algorithm [default = %s]\n", fUseOldMin? "yes": "no" );
+    fprintf( pAbc->Err, "\t-c     : check generated CEX using ternary simulation [default = %s]\n", fCheckCex? "yes": "no" );
     fprintf( pAbc->Err, "\t-a     : print cex in AIGER 1.9 format [default = %s].\n", fAiger? "yes": "no" );
     fprintf( pAbc->Err, "\t-f     : enable printing flop values in each timeframe [default = %s].\n", fPrintFull? "yes": "no" );  
     fprintf( pAbc->Err, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    fprintf( pAbc->Err, "\t<file> : the name of the file to write\n" );
     return 1;
 }
 
