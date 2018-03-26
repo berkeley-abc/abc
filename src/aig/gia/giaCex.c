@@ -518,7 +518,7 @@ Abc_Cex_t * Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int
 {
     abctime clk = Abc_Clock();
     int n, i, iFirstVar, iLit, status;
-    Vec_Int_t * vLits;
+    Vec_Int_t * vLits = NULL, * vTemp;
     sat_solver * pSat;
     Cnf_Dat_t * pCnf;
     int nFinal, * pFinal;
@@ -547,14 +547,17 @@ Abc_Cex_t * Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int
     status = sat_solver_addclause( pSat, &iLit, &iLit + 1 );
     assert( status );
     // create literals
-    vLits = Vec_IntAlloc( 100 );
+    vTemp = Vec_IntAlloc( 100 );
     for ( i = pCex->nRegs; i < pCex->nBits; i++ )
-        Vec_IntPush( vLits, Abc_Var2Lit(iFirstVar + i - pCex->nRegs, !Abc_InfoHasBit(pCex->pData, i)) );
+        Vec_IntPush( vTemp, Abc_Var2Lit(iFirstVar + i - pCex->nRegs, !Abc_InfoHasBit(pCex->pData, i)) );
     if ( fVerbose )
     Abc_PrintTime( 1, "Constructing SAT solver", Abc_Clock() - clk );
 
     for ( n = 0; n < 2; n++ )
     {
+        Vec_IntFreeP( &vLits );
+
+        vLits = Vec_IntDup( vTemp );
         if ( n ) Vec_IntReverseOrder( vLits );
 
         // SAT-based minimization
@@ -596,7 +599,8 @@ Abc_Cex_t * Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int
         Bmc_CexPrint( pCexBest, pCexBest->nPis, 0 );
     }
     // cleanup
-    Vec_IntFree( vLits );
+    Vec_IntFreeP( &vLits );
+    Vec_IntFreeP( &vTemp );
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     Gia_ManStop( pFrames );

@@ -439,11 +439,7 @@ Abc_Cex_t * Bmc_CexCareSatBasedMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t 
         Gia_ManStop( pGia );
         return NULL;
     }
-    // verify and return
-    if ( !Bmc_CexVerify( pGia, pCex, pCexMin ) )
-        printf( "Counter-example verification has failed.\n" );
-    else if ( fCheck ) 
-        printf( "Counter-example verification succeeded.\n" );
+    // unfortunately, cannot verify - ternary simulation does not work
     Gia_ManStop( pGia );
     return pCexMin;
 }
