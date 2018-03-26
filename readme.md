@@ -66,7 +66,7 @@ The current version of ABC can be compiled with C compiler or C++ compiler.
 ## Bug reporting:
 
 Please try to reproduce all the reported bugs and unexpected features using the latest 
-version of ABC available from https://bitbucket.org/alanmi/abc/
+version of ABC available from https://github.com/berkeley-abc/abc
 
 If the bug still persists, please provide the following information:    
 
