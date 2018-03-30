@@ -96,7 +96,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef ABC_HAVE_STDINT_H
+#ifdef ABC_USE_STDINT_H
 // If there is stdint.h, assume this is a reasonably-modern platform that
 // would also have stddef.h and limits.h
 #include <limits.h>
@@ -146,7 +146,7 @@ ABC_NAMESPACE_HEADER_START
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_PTRDIFF_T;
-#elif     defined(ABC_HAVE_STDINT_H)
+#elif     defined(ABC_USE_STDINT_H)
 typedef ptrdiff_t ABC_PTRDIFF_T;
 #elif     defined(LIN64)
 typedef long ABC_PTRDIFF_T;
@@ -165,7 +165,7 @@ typedef int ABC_PTRDIFF_T;
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_PTRUINT_T;
-#elif     defined(ABC_HAVE_STDINT_H)
+#elif     defined(ABC_USE_STDINT_H)
 typedef uintptr_t ABC_PTRUINT_T;
 #elif     defined(LIN64)
 typedef unsigned long ABC_PTRUINT_T;
@@ -184,7 +184,7 @@ typedef unsigned int ABC_PTRUINT_T;
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_PTRINT_T;
-#elif     defined(ABC_HAVE_STDINT_H)
+#elif     defined(ABC_USE_STDINT_H)
 typedef intptr_t ABC_PTRINT_T;
 #elif     defined(LIN64)
 typedef long ABC_PTRINT_T;
@@ -201,7 +201,7 @@ typedef int ABC_PTRINT_T;
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_INT64_T;
-#elif     defined(ABC_HAVE_STDINT_H)
+#elif     defined(ABC_USE_STDINT_H)
 typedef int64_t ABC_INT64_T;
 #elif     defined(LIN64)
 typedef long ABC_INT64_T;
@@ -218,7 +218,7 @@ typedef signed __int64 ABC_INT64_T;
  */
 #if       defined(__ccdoc__)
 typedef platform_dependent_type ABC_UINT64_T;
-#elif     defined(ABC_HAVE_STDINT_H)
+#elif     defined(ABC_USE_STDINT_H)
 typedef uint64_t ABC_UINT64_T;
 #elif     defined(LIN64)
 typedef unsigned long ABC_UINT64_T;
