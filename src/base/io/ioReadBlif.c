@@ -1668,36 +1668,6 @@ int Io_ReadBlifCreateTiming( Io_ReadBlif_t * p, Abc_Ntk_t * pNtk )
     return 1;
 }
 
-#if 0
-
-/**Function*************************************************************
-
-  Synopsis    [Connect the boxes in the hierarchy of networks.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Io_ReadBlifNetworkConnectBoxes( Io_ReadBlif_t * p, Abc_Ntk_t * pNtkMaster )
-{
-    stmm_generator * gen;
-    Abc_Ntk_t * pNtk;
-    char * pName;
-    // connect the master network
-    if ( Io_ReadBlifNetworkConnectBoxesOne( p, pNtkMaster, pNtkMaster->tName2Model ) )
-        return 1;
-    // connect other networks
-    stmm_foreach_item( pNtkMaster->tName2Model, gen, &pName, (char **)&pNtk )
-        if ( Io_ReadBlifNetworkConnectBoxesOne( p, pNtk, pNtkMaster->tName2Model ) )
-            return 1;
-    return 0;
-}
-
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

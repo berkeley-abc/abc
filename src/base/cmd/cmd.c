@@ -1090,56 +1090,6 @@ usage:
 }
 
 
-#if 0
-
-/**Function********************************************************************
-
-  Synopsis    [Donald's version.]
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-******************************************************************************/
-int CmdCommandUndo( Abc_Frame_t * pAbc, int argc, char **argv )
-{
-    Abc_Ntk_t * pNtkTemp;
-    int id, c;
-
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'h':
-            goto usage;
-            break;
-        default:
-            goto usage;
-        }
-    }
-    if (globalUtilOptind <= argc) {
-    pNtkTemp = pAbc->pNtk;
-    pAbc->pNtk = pAbc->pNtkSaved;
-    pAbc->pNtkSaved = pNtkTemp;
-    }
-    id = atoi(argv[globalUtilOptind]);
-    pNtkTemp = Cmd_HistoryGetSnapshot(pAbc, id);
-    if (!pNtkTemp)
-    fprintf( pAbc->Err, "Snapshot %d does not exist\n", id);
-    else
-    pAbc->pNtk = Abc_NtkDup(pNtkTemp, Abc_NtkMan(pNtkTemp));
-
-    return 0;
-usage:
-    fprintf( pAbc->Err, "usage: undo\n" );
-    fprintf( pAbc->Err, "       swaps the current network and the backup network\n" );
-    return 1;
-}
-
-#endif
-
 
 #if defined(WIN32) && !defined(__cplusplus)
 #include <direct.h>
