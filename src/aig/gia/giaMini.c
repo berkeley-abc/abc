@@ -305,6 +305,7 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
     Vec_Bit_t * vMarks;
     Gia_Obj_t * pObj, * pFanin;
     Vec_Int_t * vLeaves = Vec_IntAlloc( 16 );
+    Vec_Int_t * vInvMap = Vec_IntStart( Gia_ManObjNum(pGia) );
     int i, k, iFanin, LutSize, nWords, Count = 0, pVars[16];
     word * pTruth;
     assert( Gia_ManHasMapping(pGia) );
@@ -361,12 +362,17 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
             pObj->Value = Mini_LutCreatePo( p, Gia_ObjFanin0(pObj)->Value );
         else // add inverter LUT
         {
-            int Fanin = Gia_ObjFanin0(pObj)->Value;
-            int LutInv = Mini_LutCreateNode( p, 1, &Fanin, (unsigned *)pTruth );
+            int LutInv, Fanin = Gia_ObjFanin0(pObj)->Value;
+            if ( (LutInv = Vec_IntEntry(vInvMap, Fanin)) == 0 )
+            {
+                LutInv = Mini_LutCreateNode( p, 1, &Fanin, (unsigned *)pTruth );
+                Vec_IntWriteEntry( vInvMap, Fanin, LutInv );
+                Count++;
+            }
             pObj->Value = Mini_LutCreatePo( p, LutInv );
-            Count++;
         }
     }
+    Vec_IntFree( vInvMap );
     Vec_BitFree( vMarks );
     Gia_ObjComputeTruthTableStop( pGia );
     // set registers
