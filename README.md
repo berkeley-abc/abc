@@ -5,6 +5,8 @@
 
 ABC is always changing but the current snapshot is believed to be stable. 
 
+For an introduction to ABC, visit the [ABC website](http://people.eecs.berkeley.edu/~alanmi/abc/).
+
 ## Compiling:
 
 To compile ABC as a binary, download and unzip the code, then type `make`.
