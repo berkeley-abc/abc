@@ -150,7 +150,9 @@ typedef enum {
     ABC_OPER_ARI_SQUARE,   // 96
     ABC_OPER_CONST,        // 97
 
-    ABC_OPER_LAST          // 98
+    ABC_OPER_ARI_ADDSUB,   // 98
+
+    ABC_OPER_LAST          // 99
 } Acb_ObjType_t; 
 
 
