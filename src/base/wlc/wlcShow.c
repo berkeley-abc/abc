@@ -49,7 +49,7 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     Wlc_Obj_t * pNode;
     int LevelMax, Prev, Level, i;
 
-    if ( Wlc_NtkObjNum(p) > 2000 )
+    if ( vBold ? (Vec_IntSize(vBold) > 2000) : (Wlc_NtkObjNum(p) > 2000) )
     {
         fprintf( stdout, "Cannot visualize WLC with more than %d nodes.\n", 2000 );
         return;
@@ -159,6 +159,8 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     // generate the CO nodes
     Wlc_NtkForEachCo( p, pNode, i )
     {
+        if ( vBold && !pNode->Mark )
+            continue;
         pNode = Wlc_ObjCo2PoFo(p, i);
         fprintf( pFile, "  NodePo%d [label = \"%s_in %d\"", Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
         fprintf( pFile, ", shape = %s", i < Wlc_NtkPoNum(p) ? "invtriangle" : "box" );
@@ -180,11 +182,20 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
         {
             if ( (int)Wlc_ObjLevel(p, pNode) != Level )
                 continue;
+            if ( vBold && !pNode->Mark )
+                continue;
 
             if ( pNode->Type == WLC_OBJ_CONST )
             {
-                fprintf( pFile, "  Node%d [label = \"0x", i ); 
-                Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pNode), (Wlc_ObjRange(pNode) + 3) / 4 );
+                //char * pName = Wlc_ObjName(p, i);
+                fprintf( pFile, "  Node%d [label = \"%d\'h", i, Wlc_ObjRange(pNode) ); 
+                if ( Wlc_ObjRange(pNode) > 64 )
+                {
+                    Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pNode), 16 );
+                    fprintf( pFile, "..." );
+                }
+                else
+                    Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pNode), (Wlc_ObjRange(pNode) + 3) / 4 );
                 fprintf( pFile, "\"" ); 
             }
             else if ( pNode->Type == WLC_OBJ_BUF || pNode->Type == WLC_OBJ_MUX )
@@ -224,6 +235,8 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     // generate the CI nodes
     Wlc_NtkForEachCi( p, pNode, i )
     {
+        if ( vBold && !pNode->Mark )
+            continue;
         fprintf( pFile, "  Node%d [label = \"%s %d\"", Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
         fprintf( pFile, ", shape = %s", i < Wlc_NtkPiNum(p) ? "triangle" : "box" );
         fprintf( pFile, ", color = coral, fillcolor = coral" );
@@ -237,6 +250,8 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     fprintf( pFile, "title1 -> title2 [style = invis];\n" );
     Wlc_NtkForEachCo( p, pNode, i )
     {
+        if ( vBold && !pNode->Mark )
+            continue;
         pNode = Wlc_ObjCo2PoFo( p, i );
         fprintf( pFile, "title2 -> NodePo%d [style = invis];\n", Wlc_ObjId(p, pNode) );
     }
@@ -245,7 +260,9 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     Wlc_NtkForEachCo( p, pNode, i )
     {
         pNode = Wlc_ObjCo2PoFo( p, i );
-        if ( i > 0 )
+        if ( vBold && !pNode->Mark )
+            continue;
+        if ( Prev >= 0 )
             fprintf( pFile, "NodePo%d -> NodePo%d [style = invis];\n", Prev, Wlc_ObjId(p, pNode) );
         Prev = Wlc_ObjId(p, pNode);
     }
@@ -253,7 +270,9 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     Prev = -1;
     Wlc_NtkForEachCi( p, pNode, i )
     {
-        if ( i > 0 )
+        if ( vBold && !pNode->Mark )
+            continue;
+        if ( Prev >= 0 )
             fprintf( pFile, "Node%d -> Node%d [style = invis];\n", Prev, Wlc_ObjId(p, pNode) );
         Prev = Wlc_ObjId(p, pNode);
     }
@@ -261,6 +280,8 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     // generate edges
     Wlc_NtkForEachCo( p, pNode, i )
     {
+        if ( vBold && !pNode->Mark )
+            continue;
         fprintf( pFile, "NodePo%d",  Wlc_ObjId(p, Wlc_ObjCo2PoFo(p, i)) );
         fprintf( pFile, " -> " );
         fprintf( pFile, "Node%d",  Wlc_ObjId(p, pNode) );
@@ -273,6 +294,8 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     {
         int k, iFanin;
         if ( Wlc_ObjIsCi(pNode) )
+            continue;
+        if ( vBold && !pNode->Mark )
             continue;
         // generate the edge from this node to the next
         Wlc_ObjForEachFanin( pNode, iFanin, k )

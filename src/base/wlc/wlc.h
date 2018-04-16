@@ -61,7 +61,7 @@ typedef enum {
     WLC_OBJ_BIT_AND,       // 16: bitwise AND
     WLC_OBJ_BIT_OR,        // 17: bitwise OR
     WLC_OBJ_BIT_XOR,       // 18: bitwise XOR
-    WLC_OBJ_BIT_NAND,      // 19: bitwise AND
+    WLC_OBJ_BIT_NAND,      // 19: bitwise NAND
     WLC_OBJ_BIT_NOR,       // 20: bitwise OR
     WLC_OBJ_BIT_NXOR,      // 21: bitwise NXOR
     WLC_OBJ_BIT_SELECT,    // 22: bit selection
@@ -161,6 +161,7 @@ struct Wlc_Ntk_t_
     Vec_Int_t              vBits;              // object mapping into AIG nodes
     Vec_Int_t              vLevels;            // object levels
     Vec_Int_t              vRefs;              // object reference counters
+    Vec_Int_t              vPoPairs;           // pairs of primary outputs
 };
 
 typedef struct Wlc_Par_t_ Wlc_Par_t;
@@ -364,6 +365,11 @@ extern int            Wlc_NtkAbsCore2( Wlc_Ntk_t * p, Wlc_Par_t * pPars );
 extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pPars );
 /*=== wlcCom.c ========================================================*/
 extern void           Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk );
+/*=== wlcMem.c ========================================================*/
+extern Vec_Int_t *    Wlc_NtkCollectMemory( Wlc_Ntk_t * p );
+extern void           Wlc_NtkPrintMemory( Wlc_Ntk_t * p );
+extern Wlc_Ntk_t *    Wlc_NtkMemAbstractTest( Wlc_Ntk_t * p );
+extern int            Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fPdrVerbose, int fVerbose );
 /*=== wlcNdr.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadNdr( char * pFileName );
 extern void           Wlc_WriteNdr( Wlc_Ntk_t * pNtk, char * pFileName );
@@ -380,6 +386,7 @@ extern void           Wlc_ObjSetCo( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int fFlopIn
 extern char *         Wlc_ObjName( Wlc_Ntk_t * p, int iObj );
 extern void           Wlc_ObjUpdateType( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int Type );
 extern void           Wlc_ObjAddFanins( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFanins );
+extern int            Wlc_ObjDup( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins );
 extern void           Wlc_NtkFree( Wlc_Ntk_t * p );
 extern int            Wlc_NtkCreateLevels( Wlc_Ntk_t * p );
 extern int            Wlc_NtkCreateLevelsRev( Wlc_Ntk_t * p );
@@ -410,6 +417,7 @@ extern void           Wlc_NtkDeleteSim( Vec_Ptr_t * p );
 /*=== wlcStdin.c ========================================================*/
 extern int            Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd );
 /*=== wlcReadVer.c ========================================================*/
+extern char *         Wlc_PrsConvertInitValues( Wlc_Ntk_t * p );
 extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName, char * pStr );
 /*=== wlcUif.c ========================================================*/
 extern Vec_Int_t *    Wlc_NtkCollectAddMult( Wlc_Ntk_t * p, Wlc_BstPar_t * pPar, int * pCountA, int * CountM );

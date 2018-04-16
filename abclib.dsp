@@ -807,6 +807,10 @@ SOURCE=.\src\base\wlc\wlcJson.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcMem.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcNdr.c
 # End Source File
 # Begin Source File
