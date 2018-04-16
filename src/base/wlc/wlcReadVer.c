@@ -42,6 +42,7 @@ struct Wlc_Prs_t_
     Wlc_Ntk_t *            pNtk;
     Mem_Flex_t *           pMemTable;
     Vec_Ptr_t *            vTables;
+    Vec_Str_t *            vPoPairs;
     int                    nConsts;
     int                    nNonZero[4];
     int                    nNegative[4];
@@ -97,6 +98,7 @@ void Wlc_PrsStop( Wlc_Prs_t * p )
         Wlc_NtkFree( p->pNtk );
     if ( p->pMemTable )
         Mem_FlexStop( p->pMemTable, 0 );
+    Vec_StrFreeP( &p->vPoPairs );
     Vec_PtrFreeP( &p->vTables );
     Vec_IntFree( p->vLines );
     Vec_IntFree( p->vStarts );
@@ -235,6 +237,20 @@ int Wlc_PrsRemoveComments( Wlc_Prs_t * p )
         {
             if ( pCur + 5 < pEnd && pCur[2] == 'a' && pCur[3] == 'b' && pCur[4] == 'c' && pCur[5] == '2' )
                 pCur[0] = pCur[1] = pCur[2] = pCur[3] = pCur[4] = pCur[5] = ' ';
+            else if ( !strncmp(pCur + 3, "Pair:", 5) )
+            {
+                if ( p->vPoPairs == NULL )
+                    p->vPoPairs = Vec_StrAlloc( 100 );
+                for ( pNext = pCur + 9; *pNext != '\n'; pNext++ )
+                {
+                    if ( *pNext == ' ' )
+                        Vec_StrPush( p->vPoPairs, '\0' );
+                    else if ( *pNext != '\r' )
+                        Vec_StrPush( p->vPoPairs, *pNext );
+                }
+                if ( Vec_StrEntryLast(p->vPoPairs) != 0 )
+                    Vec_StrPush(p->vPoPairs, 0);
+            }
             else
             {
                 pNext = Wlc_PrsFindSymbol( pCur, '\n' );
@@ -507,7 +523,7 @@ static inline char * Wlc_PrsFindName( char * pStr, char ** ppPlace )
 {
     static char Buffer[WLV_PRS_MAX_LINE];
     char * pThis = *ppPlace = Buffer;
-    int fNotName = 1;
+    int fNotName = 1, Count = 0;
     pStr = Wlc_PrsSkipSpaces( pStr );
     if ( !Wlc_PrsIsChar(pStr) )
         return NULL;
@@ -518,9 +534,16 @@ static inline char * Wlc_PrsFindName( char * pStr, char ** ppPlace )
         if ( fNotName && !Wlc_PrsIsChar(pStr) )
             break;
         if ( *pStr == '\\' )
+        {
+            Count++;
             fNotName = 0;
+        }
         else if ( !fNotName && *pStr == ' ' )
-            fNotName = 1;
+        {
+            Count--;
+            if ( !Count )
+                fNotName = 1;
+        }
         *pThis++ = *pStr++;
     }
     *pThis = 0;
@@ -1008,6 +1031,25 @@ startword:
                 p->pNtk->pInits = Wlc_PrsConvertInitValues( p->pNtk );
                 //printf( "%s", p->pNtk->pInits );
             }
+            if ( p->vPoPairs )
+            {
+                assert( Vec_StrEntryLast(p->vPoPairs) == 0 );
+                Vec_StrPush( p->vPoPairs, 0 );
+                pName = Vec_StrArray(p->vPoPairs);
+                while ( *pName )
+                {
+                    Wlc_NtkForEachPo( p->pNtk, pObj, i )
+                        if ( !strcmp(Wlc_ObjName(p->pNtk, Wlc_ObjId(p->pNtk, pObj)), pName) )
+                        {
+                            Vec_IntPush( &p->pNtk->vPoPairs, i );
+                            break;
+                        }
+                    assert( i < Wlc_NtkPoNum(p->pNtk) );
+                    pName += strlen(pName) + 1;
+                }
+                assert( Vec_IntSize(&p->pNtk->vPoPairs) % 2 == 0 );
+                printf( "Finished parsing %d output pairs to be checked for equivalence.\n", Vec_IntSize(&p->pNtk->vPoPairs)/2 );
+            }
             break;
         }
         // these are read as part of the interface
@@ -1211,13 +1253,13 @@ startword:
             pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
             Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_FO );
             Vec_IntPush( &p->pNtk->vFfs, NameIdOut );
-            if ( nBits != Wlc_ObjRange(pObj) )
-                printf( "Warning!  Flop input has bit-width (%d) that differs from the flop declaration (%d)\n", Wlc_ObjRange(pObj), nBits );
+            //if ( nBits != Wlc_ObjRange(pObj) )
+            //    printf( "Warning!  Flop output \"%s\" has bit-width (%d) that differs from the flop declaration (%d)\n", Abc_NamStr(p->pNtk->pManName, NameIdOut), Wlc_ObjRange(pObj), nBits );
             // create flop input
             pObj = Wlc_NtkObj( p->pNtk, NameIdIn );
             Vec_IntPush( &p->pNtk->vFfs, NameIdIn );
-            if ( nBits != Wlc_ObjRange(pObj) )
-                printf( "Warning!  Flop output has bit-width (%d) that differs from the flop declaration (%d)\n", Wlc_ObjRange(pObj), nBits );
+            //if ( nBits != Wlc_ObjRange(pObj) )
+            //    printf( "Warning!  Flop input \"%s\" has bit-width (%d) that differs from the flop declaration (%d)\n", Abc_NamStr(p->pNtk->pManName, NameIdIn), Wlc_ObjRange(pObj), nBits );
             // save flop init value
             if ( NameId == -1 )
                 printf( "Initial value of flop \"%s\" is not specified. Zero is assumed.\n", Abc_NamStr(p->pNtk->pManName, NameIdOut) );
@@ -1225,11 +1267,13 @@ startword:
             {
                 pObj = Wlc_NtkObj( p->pNtk, NameId );
                 if ( nBits != Wlc_ObjRange(pObj) )
-                    printf( "Warning!  Flop init signal bit-width (%d) is different from the flop declaration (%d)\n", Wlc_ObjRange(pObj), nBits );
+                    printf( "Warning!  Flop init signal \"%s\" bit-width (%d) is different from the flop declaration (%d)\n", Abc_NamStr(p->pNtk->pManName, NameId), Wlc_ObjRange(pObj), nBits );
             }
             if ( p->pNtk->vInits == NULL )
                 p->pNtk->vInits = Vec_IntAlloc( 100 );
             Vec_IntPush( p->pNtk->vInits, NameId > 0 ? NameId : -nBits );
+            // printf( "Created flop %s with range %d and init value %d (nameId = %d)\n", 
+            //     Abc_NamStr(p->pNtk->pManName, NameIdOut), Wlc_ObjRange(pObj), nBits, NameId );
         }
         else if ( Wlc_PrsStrCmp( pStart, "CPL_MEM_" ) )
         {
@@ -1277,6 +1321,7 @@ startword:
             Vec_IntPush( p->vFanins, NameAddr );
             if ( !fRead )
                 Vec_IntPush( p->vFanins, NameDi );
+            //printf( "Memory %s ", fRead ? "Read" : "Write" ); printf( "Fanins: " );  Vec_IntPrint( p->vFanins );
             Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
         }
         else if ( pStart[0] == '(' && pStart[1] == '*' ) // skip comments
@@ -1326,8 +1371,11 @@ Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr )
     if ( !Wlc_PrsDerive( p ) )
         goto finish;
     // derive topological order
-    pNtk = Wlc_NtkDupDfs( p->pNtk, 0, 1 );
-    pNtk->pSpec = Abc_UtilStrsav( pFileName );
+    if ( p->pNtk )
+    {
+        pNtk = Wlc_NtkDupDfs( p->pNtk, 0, 1 );
+        pNtk->pSpec = Abc_UtilStrsav( pFileName );
+    }
 finish:
     Wlc_PrsPrintErrorMessage( p );
     Wlc_PrsStop( p );

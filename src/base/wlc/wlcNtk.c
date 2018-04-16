@@ -85,7 +85,9 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     "sqrt",                // 51: integer square root
     "squar",               // 52: integer square
     "table",               // 53: bit table
-    NULL                   // 54: unused
+    "READ",                // 54: mem read port
+    "WRITE",               // 55: mem write port
+    NULL                   // 56: unused
 };
 
 char * Wlc_ObjTypeName( Wlc_Obj_t * p ) { return Wlc_Names[p->Type]; }
@@ -252,6 +254,7 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
         Mem_FlexStop( p->pMemFanin, 0 );
     if ( p->pMemTable )
         Mem_FlexStop( p->pMemTable, 0 );
+    ABC_FREE( p->vPoPairs.pArray );
     Vec_PtrFreeP( &p->vTables );
     ABC_FREE( p->vPis.pArray );
     ABC_FREE( p->vPos.pArray );
@@ -466,6 +469,8 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
              pObj->Type == WLC_OBJ_BIT_NOT     || pObj->Type == WLC_OBJ_LOGIC_NOT   || pObj->Type == WLC_OBJ_ARI_MINUS )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), 0 );
         // 2-input types (including MUX)
+        else if ( Wlc_ObjFaninNum(pObj) == 0 )
+            printf( "Object %d with name \"%s\" has type 0. Looks like it was declared by not defined...\n", i, Wlc_ObjName(p, i) );
         else if ( Wlc_ObjFaninNum(pObj) == 1 )
             Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), 0 );
         else
@@ -620,6 +625,16 @@ void Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
 {
     printf( "%8d  :  ", Wlc_ObjId(p, pObj) );
     printf( "%3d%s",    Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s" : " " );
+    if ( pObj->Type == WLC_OBJ_PI )
+    {
+        printf( "                          PI\n" );
+        return;
+    }
+    if ( pObj->Type == WLC_OBJ_FO )
+    {
+        printf( "                          FO\n" );
+        return;
+    }
     if ( pObj->Type == WLC_OBJ_CONST )
         printf( "                          " );
     else
@@ -914,6 +929,8 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
     if ( p->pSpec )
         pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Wlc_NtkTransferNames( pNew, p );
+    if ( Vec_IntSize(&p->vPoPairs) )
+        Vec_IntAppend( &pNew->vPoPairs, &p->vPoPairs );
     return pNew;
 }
 Wlc_Ntk_t * Wlc_NtkDupDfsAbs( Wlc_Ntk_t * p, Vec_Int_t * vPisOld, Vec_Int_t * vPisNew, Vec_Int_t * vFlops )

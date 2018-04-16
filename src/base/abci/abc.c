@@ -26581,6 +26581,7 @@ usage:
     Abc_Print( -2, "\t         a toolkit for constraint manipulation\n" );
     Abc_Print( -2, "\t         if constraints are absent, detect them functionally\n" );
     Abc_Print( -2, "\t         if constraints are present, profiles them using random simulation\n" );
+    Abc_Print( -2, "\t         (constraints fail when any of them becomes 1 in any timeframe)\n" );
     Abc_Print( -2, "\t-F num : the max number of timeframes to consider [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-C num : the max number of conflicts in SAT solving [default = %d]\n", nConfs );
     Abc_Print( -2, "\t-P num : the max number of propagations in SAT solving [default = %d]\n", nProps );
@@ -26818,6 +26819,7 @@ int Abc_CommandFold( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: fold [-cvh]\n" );
     Abc_Print( -2, "\t         folds constraints represented as separate outputs\n" );
+    Abc_Print( -2, "\t         (constraints fail when any of them becomes 1 in any timeframe)\n" );
     Abc_Print( -2, "\t-c     : toggle complementing constraints while folding [default = %s]\n", fCompl? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
