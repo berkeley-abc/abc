@@ -355,7 +355,7 @@ Wlc_Ntk_t * Wlc_NtkAbstractMemory( Wlc_Ntk_t * p, Vec_Int_t * vMemObjs, Vec_Int_
     Wlc_Obj_t * pObj, * pCounter, * pConst, * pAdder, * pConstr = NULL;
     Vec_Int_t * vNewObjs = NULL;
     Vec_Int_t * vFanins  = Vec_IntAlloc( 100 );
-    int i, Po0, Po1, AdderBits = 4, nBits = 0;
+    int i, Po0, Po1, AdderBits = 16, nBits = 0;
 
     // mark memory nodes
     Wlc_NtkCleanMarks( p );
@@ -816,7 +816,7 @@ Wlc_Ntk_t * Wlc_NtkMemAbstractTest( Wlc_Ntk_t * p )
     return pNewFull;
 }
 
-int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fPdrVerbose, int fVerbose )
+int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbose, int fVerbose )
 {
     abctime clk = Abc_Clock();
     Wlc_Ntk_t * pNewFull, * pNew; Aig_Man_t * pAig, * pTempAig;
@@ -861,7 +861,6 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fPdrVerbose, int fVerbo
         Aig_ManStop( pTempAig );
         pAbs = Gia_ManFromAigSimple( pAig );
         Aig_ManStop( pAig );
-        //Gia_AigerWrite( pAbs, "mem_abs.aig", 0, 0 );
 
         // try to prove abstracted GIA by converting it to AIG and calling PDR
         pAig = Gia_ManToAigSimple( pAbs );
@@ -874,6 +873,13 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fPdrVerbose, int fVerbo
         if ( fVerbose )
             Wlc_NtkPrintCex( p, pNew, pCex );
         Wlc_NtkFree( pNew );
+
+        if ( fDumpAbs )
+        {
+            char * pFileName = "mem_abs.aig";
+            Gia_AigerWrite( pAbs, pFileName, 0, 0 );
+            printf( "Iteration %3d: Dumped abstraction in file \"%s\" after finding CEX in frame %d.\n", nIters, pFileName, pCex ? pCex->iFrame : -1 );
+        }
 
         // check if proved or undecided
         if ( pCex == NULL ) 

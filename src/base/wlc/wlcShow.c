@@ -162,7 +162,7 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
         if ( vBold && !pNode->Mark )
             continue;
         pNode = Wlc_ObjCo2PoFo(p, i);
-        fprintf( pFile, "  NodePo%d [label = \"%s_in %d\"", Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
+        fprintf( pFile, "  NodePo%d [label = \"%s%s %d\"", Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjIsPo(pNode)? "":"_in",  Wlc_ObjRange(pNode) ); 
         fprintf( pFile, ", shape = %s", i < Wlc_NtkPoNum(p) ? "invtriangle" : "box" );
         fprintf( pFile, ", color = coral, fillcolor = coral" );
         fprintf( pFile, "];\n" );
