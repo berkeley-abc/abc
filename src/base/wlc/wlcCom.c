@@ -309,9 +309,10 @@ int Abc_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fShowMem     = 0;
     int fDistrib     = 0;
     int fTwoSides    = 0;
+    int fAllObjects  = 0;
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cmardtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cmardtovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -332,6 +333,9 @@ int Abc_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 't':
             fTwoSides ^= 1;
+            break;
+        case 'o':
+            fAllObjects ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -356,9 +360,11 @@ int Abc_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Wlc_NtkPrintNodes( pNtk, WLC_OBJ_ARI_ADD );
     if ( fShowMem )
         Wlc_NtkPrintMemory( pNtk );
+    if ( fAllObjects )
+        Wlc_NtkPrintObjects( pNtk );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%ps [-cmardtvh]\n" );
+    Abc_Print( -2, "usage: %%ps [-cmardtovh]\n" );
     Abc_Print( -2, "\t         prints statistics\n" );
     Abc_Print( -2, "\t-c     : toggle printing cones [default = %s]\n",                 fShowCones? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle printing multipliers [default = %s]\n",           fShowMulti? "yes": "no" );
@@ -366,6 +372,7 @@ usage:
     Abc_Print( -2, "\t-r     : toggle printing memories [default = %s]\n",              fShowMem?   "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle printing distrubition [default = %s]\n",          fDistrib?   "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle printing stats for LHS and RHS [default = %s]\n", fTwoSides?  "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle printing all objects [default = %s]\n",           fAllObjects?"yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",   fVerbose?   "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
