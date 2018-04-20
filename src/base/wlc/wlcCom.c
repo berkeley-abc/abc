@@ -903,9 +903,9 @@ usage:
 int Abc_CommandMemAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
-    int c, nIterMax = 1000, fPdrVerbose = 0, fVerbose = 0;
+    int c, nIterMax = 1000, fDumpAbs = 0, fPdrVerbose = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Iwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Idwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -919,6 +919,9 @@ int Abc_CommandMemAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nIterMax <= 0 )
                 goto usage;
+            break;
+        case 'd':
+            fDumpAbs ^= 1;
             break;
         case 'w':
             fPdrVerbose ^= 1;
@@ -937,14 +940,15 @@ int Abc_CommandMemAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandCone(): There is no current design.\n" );
         return 0;
     }
-    Wlc_NtkMemAbstract( pNtk, nIterMax, fPdrVerbose, fVerbose );
+    Wlc_NtkMemAbstract( pNtk, nIterMax, fDumpAbs, fPdrVerbose, fVerbose );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%memabs [-I num] [-wvh]\n" );
+    Abc_Print( -2, "usage: %%memabs [-I num] [-dwvh]\n" );
     Abc_Print( -2, "\t         memory abstraction for word-level networks\n" );
     Abc_Print( -2, "\t-I num : maximum number of CEGAR iterations [default = %d]\n",  nIterMax );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dumping abstraction as an AIG [default = %s]\n",fDumpAbs? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing verbose PDR output [default = %s]\n",  fPdrVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

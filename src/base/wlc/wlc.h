@@ -369,7 +369,7 @@ extern void           Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk );
 extern Vec_Int_t *    Wlc_NtkCollectMemory( Wlc_Ntk_t * p );
 extern void           Wlc_NtkPrintMemory( Wlc_Ntk_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkMemAbstractTest( Wlc_Ntk_t * p );
-extern int            Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fPdrVerbose, int fVerbose );
+extern int            Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbose, int fVerbose );
 /*=== wlcNdr.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadNdr( char * pFileName );
 extern void           Wlc_WriteNdr( Wlc_Ntk_t * pNtk, char * pFileName );
