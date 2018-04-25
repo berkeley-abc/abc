@@ -29520,16 +29520,20 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     char ** pArgvNew;
     int c, nArgcNew;
     int fUnique = 0;
+    int fVerilog = 0;
     int fMiniAig = 0;
     int fMiniLut = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "umlvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upmlvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'u':
             fUnique ^= 1;
+            break;
+        case 'p':
+            fVerilog ^= 1;
             break;
         case 'm':
             fMiniAig ^= 1;
@@ -29565,6 +29569,8 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_AigerWriteSimple( pGia, pFileName );
         Gia_ManStop( pGia );
     }
+    else if ( fVerilog )
+        Gia_ManDumpVerilog( pAbc->pGia, pFileName );
     else if ( fMiniAig )
         Gia_ManWriteMiniAig( pAbc->pGia, pFileName );
     else if ( fMiniLut )
@@ -29574,9 +29580,10 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-umlvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upmlvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
+    Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
     Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
