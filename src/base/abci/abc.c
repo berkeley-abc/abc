@@ -29318,8 +29318,8 @@ int Abc_CommandAbc9Load( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &load [-h]\n" );
-    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save" );
-    Abc_Print( -2, "\t        (after loading the previously saved AIG can be loaded again)" );
+    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save\n" );
+    Abc_Print( -2, "\t        (after loading the previously saved AIG can be loaded again)\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -29365,8 +29365,8 @@ int Abc_CommandAbc9Load2( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &load2 [-h]\n" );
-    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save2" );
-    Abc_Print( -2, "\t        (after loading the previously saved AIG cannot be loaded again)" );
+    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save2\n" );
+    Abc_Print( -2, "\t        (after loading the previously saved AIG cannot be loaded again)\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -29408,7 +29408,7 @@ int Abc_CommandAbc9LoadAig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &loadaig [-h]\n" );
-    Abc_Print( -2, "\t        loads AIG previously saved by &saveaig" );
+    Abc_Print( -2, "\t        loads AIG previously saved by &saveaig\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
