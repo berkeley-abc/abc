@@ -6802,12 +6802,21 @@ int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: runeco [-vh]\n" );
-    Abc_Print( -2, "\t         performs testing by running internal procedures\n" );
+    Abc_Print( -2, "usage: runeco <implementation> <specification> <weights> [-vh]\n" );
+    Abc_Print( -2, "\t         performs computation of patch functions during ECO,\n" );
+    Abc_Print( -2, "\t         as described in the following paper: A. Q. Dao et al\n" );
+    Abc_Print( -2, "\t         \"Efficient computation of ECO patch functions\", Proc. DAC\'18\n" );
+    Abc_Print( -2, "\t         https://people.eecs.berkeley.edu/~alanmi/publications/2018/dac18_eco.pdf\n" );
+    Abc_Print( -2, "\t         (currently only applicable to benchmarks from 2017 ICCAD CAD competition\n" );
+    Abc_Print( -2, "\t         http://cad-contest-2017.el.cycu.edu.tw/Problem_A/default.html as follows:\n" );
+    Abc_Print( -2, "\t         \"runeco unit1/F.v unit1/G.v unit1/weight.txt; cec -n out.v unit1/G.v\")\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+
+
 
 /**Function*************************************************************
 
