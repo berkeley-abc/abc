@@ -2273,7 +2273,7 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
 ***********************************************************************/
 int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, int fCisOnly )
 {
-    extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop );
+    extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
 
     abctime clk  = Abc_Clock();
     int nTargets = Vec_IntSize(&pNtkF->vTargets);
@@ -2389,7 +2389,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
             }
 
             // add new function to the miter
-            pOne  = Abc_SopSynthesizeOne( pSop );
+            pOne  = Abc_SopSynthesizeOne( pSop, 1 );
             printf( "Tar%02d: ", i );
             Gia_ManPrintStats( pOne, NULL );
 
