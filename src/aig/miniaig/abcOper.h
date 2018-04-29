@@ -138,8 +138,8 @@ typedef enum {
     ABC_OPER_LATCH,        // 86
     ABC_OPER_LATCHRS,      // 87
     ABC_OPER_DFF,          // 88
-    ABC_OPER_DFFCPL,       // 89
-    ABC_OPER_DFFRS,        // 90
+    ABC_OPER_DFFRSE,       // 89
+    ABC_OPER_DFFLAST,      // 90
 
     ABC_OPER_SLICE,        // 91
     ABC_OPER_CONCAT,       // 92

@@ -1642,7 +1642,7 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Wlc_NtkSimulateTest( Wlc_Ntk_t * p );
-    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    //Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -1658,11 +1658,12 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pNtk == NULL )
-    {
-        Abc_Print( 1, "Abc_CommandTest(): There is no current design.\n" );
-        return 0;
-    }
+//    if ( pNtk == NULL )
+//    {
+//        Abc_Print( 1, "Abc_CommandTest(): There is no current design.\n" );
+//        return 0;
+//    }
+
     // transform
     //pNtk = Wlc_NtkUifNodePairs( pNtk, NULL );
     //pNtk = Wlc_NtkAbstractNodes( pNtk, NULL );
@@ -1671,9 +1672,9 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Wlc_NtkSimulateTest( (Wlc_Ntk_t *)pAbc->pAbcWlc );
     //pNtk = Wlc_NtkDupSingleNodes( pNtk );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
-    //Wlc_ReadNdrTest( pNtk );
-    pNtk = Wlc_NtkMemAbstractTest( pNtk );
-    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    Ndr_ModuleTestMemory();
+    //pNtk = Wlc_NtkMemAbstractTest( pNtk );
+    //Wlc_AbcUpdateNtk( pAbc, pNtk );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%test [-vh]\n" );

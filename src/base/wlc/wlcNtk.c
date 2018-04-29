@@ -860,6 +860,7 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
     int i, iFanin;
     if ( Wlc_ObjCopy(p, iObj) )
         return;
+    //printf( "Visiting node %d\n", iObj );
     pObj = Wlc_NtkObj( p, iObj );
     Wlc_ObjForEachFanin( pObj, iFanin, i )
         Wlc_NtkDupDfs_rec( pNew, p, iFanin, vFanins );
@@ -876,6 +877,8 @@ Wlc_Ntk_t * Wlc_NtkDupDfsSimple( Wlc_Ntk_t * p )
     vFanins = Vec_IntAlloc( 100 );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fMemPorts = p->fMemPorts;
+    pNew->fEasyFfs = p->fEasyFfs;
     Wlc_NtkForEachCi( p, pObj, i )
         Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
     Wlc_NtkForEachCo( p, pObj, i )
@@ -902,6 +905,8 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fMemPorts = p->fMemPorts;
+    pNew->fEasyFfs = p->fEasyFfs;
     Wlc_NtkForEachCi( p, pObj, i )
         if ( !fMarked || pObj->Mark )
         {
@@ -951,6 +956,8 @@ Wlc_Ntk_t * Wlc_NtkDupDfsAbs( Wlc_Ntk_t * p, Vec_Int_t * vPisOld, Vec_Int_t * vP
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fMemPorts = p->fMemPorts;
+    pNew->fEasyFfs = p->fEasyFfs;
 
     // duplicate marked PIs
     vFanins = Vec_IntAlloc( 100 );
@@ -1132,6 +1139,8 @@ Wlc_Ntk_t * Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p )
     vFanins = Vec_IntAlloc( 100 );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fMemPorts = p->fMemPorts;
+    pNew->fEasyFfs = p->fEasyFfs;
     Wlc_NtkForEachObj( p, pObj, i )
     {
         if ( Wlc_ObjIsCi(pObj) )

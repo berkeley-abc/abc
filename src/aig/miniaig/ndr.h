@@ -42,61 +42,51 @@ ABC_NAMESPACE_HEADER_START
 /*
     For the lack of a better name, this format is called New Data Representation (NDR).
 
-    NDR is based on the following principles:
-    - complex data is composed of individual records
-    - a record has one of several known types (module, name, range, fanins, etc)
-    - a record can be atomic, for example, a name or an operator type
-    - a record can be composed of other records (for example, a module is composed of objects, etc)
-    - the stored data should be easy to write into and read from a file, or pass around as a memory buffer
-    - the format should be simple, easy to use, low-memory, and extensible
-    - new record types can be added by the user as needed
+    NDR is designed as an interchange format to pass hierarchical word-level designs between the tools.
+    It is relatively simple, uses little memory, and can be easily converted into other ABC data-structures.
 
-    The implementation is based on the following ideas:
-    - a record is composed of two parts (the header followed by the body)
-    - the header contains two items (the record type and the body size, measured in terms of 4-byte integers)
-    - the body contains as many entries as stated in the record size
-    - if a record is composed of other records, its body contains these records
+    This tutorial discusses how to construct the NDR representation of a hierarchical word-level design.
 
-    As an example, consider a name. It can be a module name, an object name, or a net name.
-    A record storing one name has a header {NDR_NAME, 1} containing record type (NDR_NAME) and size (1),
-    The body of the record is composed of one unsigned integer representing the name (say, 357).  
-    So the complete record looks as follows:  { <header>, <body> } = { {NDR_NAME, 1}, {357} }.
+    First, all names used in the design (including the design name, module names, port names, net names, 
+    instance names, etc) are hashed into 1-based integers called "name IDs". Nets are not explicitly represented. 
+    The connectivity of a design object is established by specifying name IDs of the nets connected to the object. 
+    Object inputs are name IDs of the driving nets; object outputs are name IDs of the driven nets.
 
-    As another example, consider a two-input AND-gate.  In this case, the recent is composed 
-    of a header {NDR_OBJECT, 4}  containing record type (NDR_OBJECT) and the body size (4), followed 
-    by an array of records creating the AND-gate:  (a) name, (b) operation type, (c) fanins.   
-    The complete record  looks as follows: {  {NDR_OBJECT, 5}, {{{NDR_NAME, 1}, 357}, {{NDR_OPERTYPE, 1}, ABC_OPER_LOGIC_AND}, 
-    {{NDR_INPUT, 2}, {<id_fanin1>, <id_fanin2>}}} }.   Please note that only body entries are counted towards size. 
-    In the case of one name, there is only one body entry.  In the case of the AND-gate, there are 4 body entries 
-    (name ID, gate type, first fanin, second fanin).
+    The design is initialized using procedure Ndr_Create(), which takes the design name as an argument.
+    A module in the design is initialized using procedure Ndr_AddModule(), which take the design and 
+    the module name as arguments. Objects are added to a module in any order using procedure Ndr_AddObject().
 
-    Headers and bodies of all objects are stored differently.  Headers are stored in an array of unsigned chars, 
-    while bodies are stored in the array of 4-byte unsigned integers.  This is important for memory efficiency. 
-    However, the user does not see these details.
+    Primary input and primary output objects should be explicitly created, as shown in the examples below.
 
-    To estimate memory usage, we can assume that each header takes 1 byte and each body entry contains 4 bytes.   
-    A name takes 5 bytes, and an AND-gate takes 1 * NumHeaders + 4 * NumBodyEntries = 1 * 4 + 4 * 4 = 20 bytes.  
-    Not bad.  The same as memory usage in a well-designed AIG package with structural hashing. 
+    Instances of known operators listed in file "abcOper.h" are assumed to have one output. The only known 
+    issue due to this restriction concerns an adder, which produces a sum and a carry-out. To make sure the 
+    adder instance has only one output, the carry-out has to be concatenated with the sum before the adder 
+    instance is created in the NDR format.
 
-    Comments:
-    - it is assumed that all port names, net names, and instance names are hashed into 1-based integer numbers called name IDs
-    - nets are not explicitly represented but their name ID are used to establish connectivity between the objects
-    - primary input and primary output objects have to be explicitly created (as shown in the example below)
-    - object inputs are name IDs of the driving nets; object outputs are name IDs of the driven nets
-    - objects can be added to a module in any order
-    - if the ordering of inputs/outputs/flops of a module is not provided as a separate record,
-      their ordering is determined by the order of their appearance of their records in the body of the module
-    - if range limits and signedness are all 0, it is assumed that it is a Boolean object
-    - if left limit and right limit of a range are equal, it is assumed that the range contains one bit
-    - instances of known operators can have types defined by Wlc_ObjType_t below
-    - instances of user modules have type equal to the name ID of the module plus 1000
-    - initial states of the flops are given as char-strings containing 0, 1, and 'x' 
-      (for example, "4'b10XX" is an init state of a 4-bit flop with bit-level init states const1, const0, unknown, unknown)
-    - word-level constants are represented as char-strings given in the same way as they would appear in a Verilog file 
-      (for example, the 16-bit constant 10 is represented as a string "4'b1010". This string contains  8 bytes, 
-      including the char '\0' to denote the end of the string. It will take 2 unsigned ints, therefore 
-      its record will look as follows { {NDR_FUNCTION, 2}, {"4'b1010"} }, but the user does not see these details.  
-      The user only gives  "4'b1010" as an argument (char * pFunction) to the above procedure Ndr_AddObject(). 
+    Instances of hierarchical modules defined by the user can have multiple outputs. 
+
+    Bit-slice and concatenation operators should be represented as separate objects.
+
+    If the ordering of inputs/outputs/flops of a module is not provided as a separate record in NDR format, 
+    their ordering is determined by the order of their appearance of their records in the body of the module.
+
+    If left limit and right limit of a range are equal, it is assumed that the range contains one bit
+    If range limits and signedness are all 0, it is assumed that it is the bit-width is equal to 1.
+    
+    Word-level constants are represented as char-strings given in the same way as they would appear in a Verilog 
+    file. For example, the 16-bit constant 10 is represented as a string "4'b1010" and is given as an argument 
+    (char * pFunction) to the procedure Ndr_AddObject().
+
+    Currently two types of flops are supported: a simple flop with implicit clock with two fanins (data and init) 
+    and a complex flop with 7 fanins (clock, data, reset, set, enable, async, init), as shown in the examples below.
+
+    The initial value of a flop is represented by input "init", which can be driven by a constant or by a primary 
+    input of the module. If it is a primary input, is it assumed that the flop is not initialized. If the input 
+    "init" is not driven, it is assumed that the flop is initialized to 0.
+
+    Memory read and write ports are supported, as shown in the example below.
+
+    (to be continued)
 */
 
 ////////////////////////////////////////////////////////////////////////
@@ -377,12 +367,70 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
         if ( Type >= 256 )
         {
             fprintf( pFile, "  %s ", pNames[Ndr_ObjReadEntry(p, Type-256, NDR_NAME)] );
-            if ( Ndr_ObjReadBody(p, Obj, NDR_NAME) )
+            if ( Ndr_ObjReadBody(p, Obj, NDR_NAME) > 0 )
                 fprintf( pFile, "%s ", pNames[Ndr_ObjReadBody(p, Obj, NDR_NAME)] );
             fprintf( pFile, "( " );
             nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
             for ( i = 0; i < nArray; i++ )
                 fprintf( pFile, "%s%s ", pNames[pArray[i]], i==nArray-1 ? "":"," );
+            fprintf( pFile, ");\n" );
+            continue;
+        }
+        if ( Type == ABC_OPER_DFF )
+        {
+            fprintf( pFile, "  %s ", "ABC_DFF" );
+            if ( Ndr_ObjReadBody(p, Obj, NDR_NAME) > 0 )
+                fprintf( pFile, "%s ", pNames[Ndr_ObjReadBody(p, Obj, NDR_NAME)] );
+            fprintf( pFile, "( " );
+            nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
+            fprintf( pFile, ".q(%s), ",    Ndr_ObjReadOutName(p, Obj, pNames) );
+            fprintf( pFile, ".d(%s), ",    pNames[pArray[0]] );
+            fprintf( pFile, ".init(%s) ",  pNames[pArray[1]] );
+            fprintf( pFile, ");\n" );
+            continue;
+        }
+        if ( Type == ABC_OPER_DFFRSE )
+        {
+            fprintf( pFile, "  %s ", "ABC_DFFRSE" );
+            if ( Ndr_ObjReadBody(p, Obj, NDR_NAME) > 0 )
+                fprintf( pFile, "%s ", pNames[Ndr_ObjReadBody(p, Obj, NDR_NAME)] );
+            fprintf( pFile, "( " );
+            nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
+            fprintf( pFile, ".q(%s), ",      Ndr_ObjReadOutName(p, Obj, pNames) );
+            fprintf( pFile, ".d(%s), ",      pNames[pArray[0]] );
+            fprintf( pFile, ".clk(%s), ",    pNames[pArray[1]] );
+            fprintf( pFile, ".reset(%s), ",  pNames[pArray[2]] );
+            fprintf( pFile, ".set(%s), ",    pNames[pArray[3]] );
+            fprintf( pFile, ".enable(%s), ", pNames[pArray[4]] );
+            fprintf( pFile, ".async(%s), ",  pNames[pArray[5]] );
+            fprintf( pFile, ".init(%s) ",    pNames[pArray[6]] );
+            fprintf( pFile, ");\n" );
+            continue;
+        }
+        if ( Type == ABC_OPER_RAMR )
+        {
+            fprintf( pFile, "  %s ", "ABC_READ" );
+            if ( Ndr_ObjReadBody(p, Obj, NDR_NAME) > 0 )
+                fprintf( pFile, "%s ", pNames[Ndr_ObjReadBody(p, Obj, NDR_NAME)] );
+            fprintf( pFile, "( " );
+            nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
+            fprintf( pFile, ".data(%s), ",   Ndr_ObjReadOutName(p, Obj, pNames) );
+            fprintf( pFile, ".mem_in(%s), ", pNames[pArray[0]] );
+            fprintf( pFile, ".addr(%s) ",    pNames[pArray[1]] );
+            fprintf( pFile, ");\n" );
+            continue;
+        }
+        if ( Type == ABC_OPER_RAMW )
+        {
+            fprintf( pFile, "  %s ", "ABC_WRITE" );
+            if ( Ndr_ObjReadBody(p, Obj, NDR_NAME) > 0 )
+                fprintf( pFile, "%s ", pNames[Ndr_ObjReadBody(p, Obj, NDR_NAME)] );
+            fprintf( pFile, "( " );
+            nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
+            fprintf( pFile, ".mem_out(%s), ",  Ndr_ObjReadOutName(p, Obj, pNames) );
+            fprintf( pFile, ".mem_in(%s), ",   pNames[pArray[0]] );
+            fprintf( pFile, ".addr(%s), ",     pNames[pArray[1]] );
+            fprintf( pFile, ".data(%s) ",      pNames[pArray[2]] );
             fprintf( pFile, ");\n" );
             continue;
         }
@@ -551,7 +599,7 @@ static inline void Ndr_Write( char * pFileName, void * pDesign )
 ////////////////////////////////////////////////////////////////////////
 
 // This testing procedure creates and writes into a Verilog file 
-// for the following design composed of one module
+// the following design composed of one module
 
 // module add10 ( input [3:0] a, output [3:0] s );
 //   wire [3:0] const10 = 4'b1010;
@@ -589,7 +637,7 @@ static inline void Ndr_ModuleTest()
 
 
 // This testing procedure creates and writes into a Verilog file 
-// for the following design composed of one adder divided into two
+// the following design composed of one adder divided into two
 
 // module add8 ( input [7:0] a, input [7:0] b, output [7:0] s, output co );
 //   wire [3:0] a0 = a[3:0];
@@ -676,7 +724,7 @@ static inline void Ndr_ModuleTestAdder()
 }
 
 // This testing procedure creates and writes into a Verilog file 
-// for the following hierarchical design composed of three modules
+// the following hierarchical design composed of two modules
 
 // module mux21w ( input sel, input [3:0] d1, input [3:0] d0, output [3:0] out );
 //   assign out = sel ? d1 : d0;
@@ -760,6 +808,141 @@ static inline void Ndr_ModuleTestHierarchy()
     Ndr_Delete( pDesign );
 }
 
+
+// This testing procedure creates and writes into a Verilog file 
+// the following design with read/write memory ports
+
+// module test ( input clk, input [8:0] raddr, input [8:0] waddr, input [31:0] data, input [16383:0] mem_init, output out );
+// 
+//    wire [31:0] read1, read2;
+// 
+//    wire [16383:0] mem_fo1, mem_fo2,  mem_fi1, mem_fi2;
+// 
+//    ABC_FF    i_reg1   ( .q(mem_fo1), .d(mem_fi1), .init(mem_init) );
+//    ABC_FF    i_reg2   ( .q(mem_fo2), .d(mem_fi2), .init(mem_init) );
+// 
+//    ABC_WRITE i_write1 ( .mem_out(mem_fi1), .mem_in(mem_fo1), .addr(waddr), .data(data) );
+//    ABC_WRITE i_write2 ( .mem_out(mem_fi2), .mem_in(mem_fo2), .addr(waddr), .data(data) );
+// 
+//    ABC_READ  i_read1  ( .data(read1), .mem_in(mem_fi1), .addr(raddr) );
+//    ABC_READ  i_read2  ( .data(read2), .mem_in(mem_fi2), .addr(raddr) );
+//
+//    assign out = read1 != read2;
+//endmodule
+
+static inline void Ndr_ModuleTestMemory()
+{
+    // map name IDs into char strings
+    char * ppNames[20] = {  NULL, 
+                           "clk", "raddr", "waddr", "data", "mem_init", "out",  // 1, 2, 3, 4, 5, 6
+                           "read1",  "read2",                                   // 7. 8
+                           "mem_fo1", "mem_fo2", "mem_fi1", "mem_fi2",          // 9, 10, 11, 12
+                           "i_reg1", "i_reg2",                                  // 13, 14
+                           "i_read1", "i_read2",                                // 15, 16
+                           "i_write1", "i_write2", "memtest"                    // 17, 18, 19
+                         };
+    // inputs
+    int NameIdClk     = 1;
+    int NameIdRaddr   = 2;
+    int NameIdWaddr   = 3;
+    int NameIdData    = 4;
+    int NameIdMemInit = 5;
+    // flops
+    int NameIdFF1     =  9;
+    int NameIdFF2     = 10;
+    int FaninsFF1[2]  = { 11, 5 };
+    int FaninsFF2[2]  = { 12, 5 };
+    // writes
+    int NameIdWrite1    = 11;
+    int NameIdWrite2    = 12;
+    int FaninsWrite1[3] = {  9, 3, 4 };
+    int FaninsWrite2[3] = { 10, 3, 4 };
+    // reads
+    int NameIdRead1    =  7;
+    int NameIdRead2    =  8;
+    int FaninsRead1[2] = { 11, 2 };
+    int FaninsRead2[2] = { 12, 2 };
+    // compare
+    int NameIdComp      = 6;
+    int FaninsComp[2]   = { 7, 8 };
+
+    // create a new module 
+    void * pDesign = Ndr_Create( 19 );           // create design named "memtest"
+
+    int ModuleID = Ndr_AddModule( pDesign, 19 ); // create module named "memtest"
+
+    // add objects to the module
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,           0,     0, 0, 0,   0, NULL,         1, &NameIdClk,     NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,           0,     8, 0, 0,   0, NULL,         1, &NameIdRaddr,   NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,           0,     8, 0, 0,   0, NULL,         1, &NameIdWaddr,   NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,           0,    31, 0, 0,   0, NULL,         1, &NameIdData,    NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,           0, 16383, 0, 0,   0, NULL,         1, &NameIdMemInit, NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,           0,     0, 0, 0,   1, &NameIdComp,  0, NULL,           NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_DFF,         13, 16383, 0, 0,   2, FaninsFF1,    1, &NameIdFF1,     NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_DFF,         14, 16383, 0, 0,   2, FaninsFF2,    1, &NameIdFF2,     NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_RAMW,        17, 16383, 0, 0,   3, FaninsWrite1, 1, &NameIdWrite1,  NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_RAMW,        18, 16383, 0, 0,   3, FaninsWrite2, 1, &NameIdWrite2,  NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_RAMR,        15,    31, 0, 0,   2, FaninsRead1,  1, &NameIdRead1,   NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_RAMR,        16,    31, 0, 0,   2, FaninsRead2,  1, &NameIdRead2,   NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_COMP_NOTEQU,  0,     0, 0, 0,   2, FaninsComp,   1, &NameIdComp,    NULL );
+
+    // write Verilog for verification
+    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_Write( "memtest.ndr", pDesign );
+    Ndr_Delete( pDesign );
+}
+
+// This testing procedure creates and writes into a Verilog file 
+// the following design composed of one word-level flop
+
+// module flop ( input [3:0] data, input clk, input reset, input set, input enable, input async, input [3:0] init, output [3:0] q );
+//   ABC_DFFRSE reg1 ( .d(data), .clk(clk), .reset(reset), .set(set), .enable(enable), .async(async), .init(init), .q(q) ) ;
+// endmodule
+
+static inline void Ndr_ModuleTestFlop()
+{
+    // map name IDs into char strings
+    char * ppNames[10] = { NULL, "flop", "data", "clk", "reset", "set", "enable", "async", "init", "q" };
+    // name IDs
+    int NameIdData   = 2;
+    int NameIdClk    = 3;
+    int NameIdReset  = 4;
+    int NameIdSet    = 5;
+    int NameIdEnable = 6;
+    int NameIdAsync  = 7;
+    int NameIdInit   = 8;
+    int NameIdQ      = 9;
+    // array of fanins of node s
+    int Fanins[7] = { NameIdData, NameIdClk, NameIdReset, NameIdSet, NameIdEnable, NameIdAsync, NameIdInit };
+
+    // create a new module
+    void * pDesign = Ndr_Create( 1 );
+
+    int ModuleID = Ndr_AddModule( pDesign, 1 );
+
+    // add objects to the modele
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   3, 0, 0,   0, NULL,      1, &NameIdData,   NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdClk,    NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdReset,  NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdSet,    NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdEnable, NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdAsync,  NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   3, 0, 0,   0, NULL,      1, &NameIdInit,   NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_DFFRSE,   0,   3, 0, 0,   7, Fanins,    1, &NameIdQ,      NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdQ,  0, NULL,          NULL );
+
+    // write Verilog for verification
+    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_Write( "flop.ndr", pDesign );
+    Ndr_Delete( pDesign );
+}
 
 ABC_NAMESPACE_HEADER_END
 

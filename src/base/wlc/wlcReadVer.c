@@ -1275,6 +1275,123 @@ startword:
             // printf( "Created flop %s with range %d and init value %d (nameId = %d)\n", 
             //     Abc_NamStr(p->pNtk->pManName, NameIdOut), Wlc_ObjRange(pObj), nBits, NameId );
         }
+        else if ( Wlc_PrsStrCmp( pStart, "ABC_DFFRSE" ) )
+        {
+            int NameId[8], fFound, nBits = 1, fFlopIn, fFlopOut, fFlopClk, fFlopRst, fFlopSet, fFlopEna, fFlopAsync, fFlopInit;
+            pStart += strlen("ABC_DFF");
+            while ( 1 )
+            {
+                pStart = Wlc_PrsFindSymbol( pStart, '.' );
+                if ( pStart == NULL )
+                    break;
+                pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                fFlopIn    = (pStart[0] == 'd');
+                fFlopOut   = (pStart[0] == 'q');
+                fFlopClk   = (pStart[0] == 'c');
+                fFlopRst   = (pStart[0] == 'r');
+                fFlopSet   = (pStart[0] == 's');
+                fFlopEna   = (pStart[0] == 'e');
+                fFlopAsync = (pStart[0] == 'a');
+                fFlopInit  = (pStart[0] == 'i');
+                pStart = Wlc_PrsFindSymbol( pStart, '(' );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
+                pStart = Wlc_PrsFindName( pStart+1, &pName );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
+                if ( fFlopIn )
+                    NameId[0] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopOut ) 
+                    NameId[7] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopClk ) 
+                    NameId[1] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopRst ) 
+                    NameId[2] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopSet ) 
+                    NameId[3] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopEna ) 
+                    NameId[4] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopAsync ) 
+                    NameId[5] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopInit ) 
+                    NameId[6] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else
+                    assert( 0 );
+                if ( !fFound )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            }
+            if ( NameId[0] == -1 || NameId[7] == -1 )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name of flop input or flop output is missing." );
+            // create output
+            pObj = Wlc_NtkObj( p->pNtk, NameId[7] );
+            Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_FF );
+            Vec_IntClear( p->vFanins );
+            Vec_IntPush( p->vFanins, NameId[0] );
+            Vec_IntPush( p->vFanins, NameId[1] );
+            Vec_IntPush( p->vFanins, NameId[2] );
+            Vec_IntPush( p->vFanins, NameId[3] );
+            Vec_IntPush( p->vFanins, NameId[4] );
+            Vec_IntPush( p->vFanins, NameId[5] );
+            Vec_IntPush( p->vFanins, NameId[6] );
+            Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+        }
+        else if ( Wlc_PrsStrCmp( pStart, "ABC_DFF" ) )
+        {
+            int NameId = -1, NameIdIn = -1, NameIdOut = -1, fFound, nBits = 1, fFlopIn, fFlopOut;
+            pStart += strlen("ABC_DFFRSE");
+            while ( 1 )
+            {
+                pStart = Wlc_PrsFindSymbol( pStart, '.' );
+                if ( pStart == NULL )
+                    break;
+                pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                fFlopIn = (pStart[0] == 'd');
+                fFlopOut = (pStart[0] == 'q');
+                pStart = Wlc_PrsFindSymbol( pStart, '(' );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
+                pStart = Wlc_PrsFindName( pStart+1, &pName );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
+                if ( fFlopIn )
+                    NameIdIn = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopOut ) 
+                    NameIdOut = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else
+                    NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                if ( !fFound )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            }
+            if ( NameIdIn == -1 || NameIdOut == -1 )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name of flop input or flop output is missing." );
+            // create flop output
+            pObj = Wlc_NtkObj( p->pNtk, NameIdOut );
+            Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_FO );
+            Vec_IntPush( &p->pNtk->vFfs, NameIdOut );
+            nBits = Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameIdOut));
+            // create flop input
+            pObj = Wlc_NtkObj( p->pNtk, NameIdIn );
+            Vec_IntPush( &p->pNtk->vFfs, NameIdIn );
+            // compare bit-width
+            if ( Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameIdIn)) != nBits )
+                printf( "Warning!  Flop input \"%s\" bit-width (%d) is different from that of flop output (%d)\n", 
+                    Abc_NamStr(p->pNtk->pManName, NameId), Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameIdIn)), nBits );
+            // save flop init value
+            if ( NameId == -1 )
+                printf( "Initial value of flop \"%s\" is not specified. Zero is assumed.\n", Abc_NamStr(p->pNtk->pManName, NameIdOut) );
+            else
+            {
+                if ( Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameId)) != nBits )
+                    printf( "Warning!  Flop init signal \"%s\" bit-width (%d) is different from that of flop output (%d)\n", 
+                        Abc_NamStr(p->pNtk->pManName, NameId), Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameId)), nBits );
+            }
+            if ( p->pNtk->vInits == NULL )
+                p->pNtk->vInits = Vec_IntAlloc( 100 );
+            Vec_IntPush( p->pNtk->vInits, NameId > 0 ? NameId : -Wlc_ObjRange(Wlc_NtkObj(p->pNtk, NameIdOut)) );
+            // printf( "Created flop %s with range %d and init value %d (nameId = %d)\n", 
+            //     Abc_NamStr(p->pNtk->pManName, NameIdOut), Wlc_ObjRange(pObj), nBits, NameId );
+            p->pNtk->fEasyFfs = 1;
+        }
         else if ( Wlc_PrsStrCmp( pStart, "CPL_MEM_" ) )
         {
             int * pNameId = NULL, NameOutput, NameMi = -1, NameMo = -1, NameAddr = -1, NameDi = -1, NameDo = -1, fFound, fRead = 1;
@@ -1323,6 +1440,87 @@ startword:
                 Vec_IntPush( p->vFanins, NameDi );
             //printf( "Memory %s ", fRead ? "Read" : "Write" ); printf( "Fanins: " );  Vec_IntPrint( p->vFanins );
             Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+        }
+        else if ( Wlc_PrsStrCmp( pStart, "ABC_READ" ) )
+        {
+            int * pNameId = NULL, NameMemIn = -1, NameData = -1, NameAddr = -1, fFound;
+            pStart += strlen("ABC_READ");
+            while ( 1 )
+            {
+                pStart = Wlc_PrsFindSymbol( pStart, '.' );
+                if ( pStart == NULL )
+                    break;
+                pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                if ( !strncmp(pStart, "mem_in", 6) )
+                    pNameId = &NameMemIn;
+                else if ( !strncmp(pStart, "addr", 4) )
+                    pNameId = &NameAddr;
+                else if ( !strncmp(pStart, "data", 4) )
+                    pNameId = &NameData;
+                else
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name of the input/output port." );
+                pStart = Wlc_PrsFindSymbol( pStart, '(' );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
+                pStart = Wlc_PrsFindName( pStart+1, &pName );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
+                *pNameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                if ( !fFound )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            }
+            if ( NameMemIn == -1 || NameAddr == -1 || NameData == -1 )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name of one of signals of read port is missing." );
+            // create output
+            pObj = Wlc_NtkObj( p->pNtk, NameData );
+            Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_READ );
+            Vec_IntClear( p->vFanins );
+            Vec_IntPush( p->vFanins, NameMemIn );
+            Vec_IntPush( p->vFanins, NameAddr );
+            Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+            p->pNtk->fMemPorts = 1;
+        }
+        else if ( Wlc_PrsStrCmp( pStart, "ABC_WRITE" ) )
+        {
+            int * pNameId = NULL, NameMemIn = -1, NameMemOut = -1, NameData = -1, NameAddr = -1, fFound;
+            pStart += strlen("ABC_WRITE");
+            while ( 1 )
+            {
+                pStart = Wlc_PrsFindSymbol( pStart, '.' );
+                if ( pStart == NULL )
+                    break;
+                pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                if ( !strncmp(pStart, "mem_in", 6) )
+                    pNameId = &NameMemIn;
+                else if ( !strncmp(pStart, "mem_out", 7) )
+                    pNameId = &NameMemOut;
+                else if ( !strncmp(pStart, "data", 4) )
+                    pNameId = &NameData;
+                else if ( !strncmp(pStart, "addr", 4) )
+                    pNameId = &NameAddr;
+                else
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name of the input/output port." );
+                pStart = Wlc_PrsFindSymbol( pStart, '(' );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
+                pStart = Wlc_PrsFindName( pStart+1, &pName );
+                if ( pStart == NULL )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
+                *pNameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                if ( !fFound )
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );
+            }
+            if ( NameMemIn == -1 || NameAddr == -1 || NameData == -1 || NameMemOut == -1 )
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Name of one of signals of write port is missing." );
+            // create output
+            pObj = Wlc_NtkObj( p->pNtk, NameMemOut );
+            Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_WRITE );
+            Vec_IntClear( p->vFanins );
+            Vec_IntPush( p->vFanins, NameMemIn );
+            Vec_IntPush( p->vFanins, NameAddr );
+            Vec_IntPush( p->vFanins, NameData );
+            Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
+            p->pNtk->fMemPorts = 1;
         }
         else if ( pStart[0] == '(' && pStart[1] == '*' ) // skip comments
         {

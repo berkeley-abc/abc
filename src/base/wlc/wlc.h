@@ -44,10 +44,10 @@ ABC_NAMESPACE_HEADER_START
 typedef enum { 
     WLC_OBJ_NONE = 0,      // 00: unknown
     WLC_OBJ_PI,            // 01: primary input 
-    WLC_OBJ_PO,            // 02: primary output (unused)
+    WLC_OBJ_PO,            // 02: primary output
     WLC_OBJ_FO,            // 03: flop output
     WLC_OBJ_FI,            // 04: flop input (unused)
-    WLC_OBJ_FF,            // 05: flop (unused)
+    WLC_OBJ_FF,            // 05: flop
     WLC_OBJ_CONST,         // 06: constant
     WLC_OBJ_BUF,           // 07: buffer
     WLC_OBJ_MUX,           // 08: multiplexer
@@ -98,7 +98,8 @@ typedef enum {
     WLC_OBJ_TABLE,         // 53: bit table
     WLC_OBJ_READ,          // 54: read port
     WLC_OBJ_WRITE,         // 55: write port
-    WLC_OBJ_NUMBER         // 56: unused
+    WLC_OBJ_ARI_ADDSUB,    // 56: adder-subtractor
+    WLC_OBJ_NUMBER         // 57: unused
 } Wlc_ObjType_t;
 // when adding new types, remember to update table Wlc_Names in "wlcNtk.c"
 
@@ -142,6 +143,8 @@ struct Wlc_Ntk_t_
     int                    nObjs[WLC_OBJ_NUMBER]; // counter of objects of each type
     int                    nAnds[WLC_OBJ_NUMBER]; // counter of AND gates after blasting
     int                    fSmtLib;            // the network comes from an SMT-LIB file
+    int                    fMemPorts;          // the network contains memory ports
+    int                    fEasyFfs;           // the network contains simple flops
     int                    nAssert;            // the number of asserts
     // memory for objects
     Wlc_Obj_t *            pObjs;

@@ -366,6 +366,8 @@ Wlc_Ntk_t * Wlc_NtkAbstractMemory( Wlc_Ntk_t * p, Vec_Int_t * vMemObjs, Vec_Int_
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc + 1000 );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fMemPorts = p->fMemPorts;
+    pNew->fEasyFfs = p->fEasyFfs;
     pNew->vInits = Vec_IntAlloc( 100 );
 
     // duplicate PIs

@@ -91,6 +91,12 @@ int Ndr_TypeNdr2Wlc( int Type )
     if ( Type == ABC_OPER_ARI_MIN )       return WLC_OBJ_ARI_MINUS;     // 50: arithmetic minus
     if ( Type == ABC_OPER_ARI_SQRT )      return WLC_OBJ_ARI_SQRT;      // 51: integer square root
     if ( Type == ABC_OPER_ARI_SQUARE )    return WLC_OBJ_ARI_SQUARE;    // 52: integer square
+    if ( Type == ABC_OPER_ARI_ADDSUB )    return WLC_OBJ_ARI_ADDSUB;    // 56: adder-subtractor
+    if ( Type == ABC_OPER_ARI_SMUL )      return WLC_OBJ_ARI_MULTI;     // 45: signed multiplier
+    if ( Type == ABC_OPER_DFF )           return WLC_OBJ_FO;            // 03: flop
+    if ( Type == ABC_OPER_DFFRSE )        return WLC_OBJ_FF;            // 05: flop
+    if ( Type == ABC_OPER_RAMR )          return WLC_OBJ_READ;          // 54: read port
+    if ( Type == ABC_OPER_RAMW )          return WLC_OBJ_WRITE;         // 55: write port
     return -1;
 }
 int Ndr_TypeWlc2Ndr( int Type )
@@ -142,6 +148,12 @@ int Ndr_TypeWlc2Ndr( int Type )
     if ( Type == WLC_OBJ_ARI_MINUS )      return ABC_OPER_ARI_MIN;      // 50: arithmetic minus
     if ( Type == WLC_OBJ_ARI_SQRT )       return ABC_OPER_ARI_SQRT;     // 51: integer square root
     if ( Type == WLC_OBJ_ARI_SQUARE )     return ABC_OPER_ARI_SQUARE;   // 52: integer square
+    if ( Type == WLC_OBJ_ARI_ADDSUB )     return ABC_OPER_ARI_ADDSUB;   // 56: adder-subtractor
+    if ( Type == WLC_OBJ_ARI_MULTI )      return ABC_OPER_ARI_SMUL;     // 45: signed multiplier
+    if ( Type == WLC_OBJ_FO )             return ABC_OPER_DFF;          // 03: flop
+    if ( Type == WLC_OBJ_FF )             return ABC_OPER_DFFRSE;       // 05: flop
+    if ( Type == WLC_OBJ_READ )           return ABC_OPER_RAMR;         // 54: read port
+    if ( Type == WLC_OBJ_WRITE )          return ABC_OPER_RAMW;         // 55: write port
     return -1;
 }
 
@@ -337,6 +349,7 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
     int Mod = 2, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax;
     Wlc_Ntk_t * pTemp, * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, Mod)+1 );
     Wlc_NtkCheckIntegrity( pData );
+    Vec_IntClear( &pNtk->vFfs );
     //pNtk->pSpec = Abc_UtilStrsav( pFileName );
     // construct network and save name IDs
     Wlc_NtkCleanNameId( pNtk );
@@ -357,6 +370,25 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         int NameId  = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
         Vec_IntClear( vFanins );
         Vec_IntAppend( vFanins, vTemp );
+        if ( Type == ABC_OPER_DFF )
+        {
+            // save init state
+            if ( pNtk->vInits == NULL )
+                pNtk->vInits = Vec_IntAlloc( 100 );
+            if ( Vec_IntSize(vFanins) == 2 )
+                Vec_IntPush( pNtk->vInits, Vec_IntPop(vFanins) );
+            else // assume const0 if init is not given
+                Vec_IntPush( pNtk->vInits, -(End-Beg+1) );
+            // save flop output
+            pObj = Wlc_NtkObj(pNtk, iObj);
+            assert( Wlc_ObjType(pObj) == WLC_OBJ_FO );
+            Wlc_ObjSetNameId( pNtk, iObj, NameId );
+            Vec_IntPush( &pNtk->vFfs, NameId );
+            // save flop input
+            assert( Vec_IntSize(vFanins) == 1 );
+            Vec_IntPush( &pNtk->vFfs, Vec_IntEntry(vFanins, 0) );
+            continue;
+        }
         if ( Type == ABC_OPER_SLICE )
             Vec_IntPushTwo( vFanins, End, Beg );
         else if ( Type == ABC_OPER_CONST )
@@ -365,6 +397,13 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
             ABC_SWAP( int, Vec_IntEntryP(vFanins, 1)[0], Vec_IntEntryP(vFanins, 2)[0] );
         Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
         Wlc_ObjSetNameId( pNtk, iObj, NameId );
+        if ( Type == ABC_OPER_ARI_SMUL )
+        {
+            pObj = Wlc_NtkObj(pNtk, iObj);
+            assert( Wlc_ObjFaninNum(pObj) == 2 );
+            Wlc_ObjFanin0(pNtk, pObj)->Signed = 1;
+            Wlc_ObjFanin1(pNtk, pObj)->Signed = 1;
+        }
     }
     // mark primary outputs
     Ndr_ModForEachPo( p, Mod, Obj )
@@ -388,6 +427,27 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         for ( k = 0; k < Wlc_ObjFaninNum(pObj); k++ )
             pFanins[k] = Vec_IntEntry(vName2Obj, pFanins[k]);
     }
+    if ( pNtk->vInits )
+    {
+        Vec_IntForEachEntry( &pNtk->vFfs, NameId, i )
+            Vec_IntWriteEntry( &pNtk->vFfs, i, Vec_IntEntry(vName2Obj, NameId) );
+        Vec_IntForEachEntry( pNtk->vInits, NameId, i )
+            if ( NameId > 0 )
+                Vec_IntWriteEntry( pNtk->vInits, i, Vec_IntEntry(vName2Obj, NameId) );
+        // move FO/FI to be part of CI/CO
+        assert( (Vec_IntSize(&pNtk->vFfs) & 1) == 0 );
+        assert( Vec_IntSize(&pNtk->vFfs) == 2 * Vec_IntSize(pNtk->vInits) );
+        Wlc_NtkForEachFf( pNtk, pObj, i )
+            if ( i & 1 )
+                Wlc_ObjSetCo( pNtk, pObj, 1 );
+            //else
+            //    Wlc_ObjSetCi( pNtk, pObj );
+        Vec_IntClear( &pNtk->vFfs );
+        // convert init values into binary string
+        //Vec_IntPrint( &p->pNtk->vInits );
+        pNtk->pInits = Wlc_PrsConvertInitValues( pNtk );
+        //printf( "%s", p->pNtk->pInits );
+    }
     Vec_IntFree(vName2Obj);
     // create fake object names
     NameIdMax = Vec_IntFindMax(&pNtk->vNameIds);
@@ -395,14 +455,17 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
     pNtk->pManName = Abc_NamStart( NameIdMax+1, 10 );
     for ( i = 1; i <= NameIdMax; i++ )
     {
-        char pName[20]; sprintf( pName, "n%0*d", nDigits, i );
+        char pName[20]; sprintf( pName, "s%0*d", nDigits, i );
         NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pName, &fFound );
         assert( !fFound && i == NameId );
     }
+    //Ndr_NtkPrintNodes( pNtk );
     // derive topological order
     pNtk = Wlc_NtkDupDfs( pTemp = pNtk, 0, 1 );
     Wlc_NtkFree( pTemp );
     //Ndr_NtkPrintNodes( pNtk );
+    pNtk->fMemPorts = 1;          // the network contains memory ports
+    pNtk->fEasyFfs = 1;           // the network contains simple flops
     return pNtk;
 }
 
