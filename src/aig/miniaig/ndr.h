@@ -53,13 +53,13 @@ ABC_NAMESPACE_HEADER_START
     Object inputs are name IDs of the driving nets; object outputs are name IDs of the driven nets.
 
     The design is initialized using procedure Ndr_Create(), which takes the design name as an argument.
-    A module in the design is initialized using procedure Ndr_AddModule(), which take the design and 
+    A module in the design is initialized using procedure Ndr_AddModule(), which takes the design and 
     the module name as arguments. Objects are added to a module in any order using procedure Ndr_AddObject().
 
     Primary input and primary output objects should be explicitly created, as shown in the examples below.
 
     Instances of known operators listed in file "abcOper.h" are assumed to have one output. The only known 
-    issue due to this restriction concerns an adder, which produces a sum and a carry-out. To make sure the 
+    issue due to this restriction concerns the adder, which produces the sum and the carry-out. To make sure the 
     adder instance has only one output, the carry-out has to be concatenated with the sum before the adder 
     instance is created in the NDR format.
 
@@ -68,17 +68,16 @@ ABC_NAMESPACE_HEADER_START
     Bit-slice and concatenation operators should be represented as separate objects.
 
     If the ordering of inputs/outputs/flops of a module is not provided as a separate record in NDR format, 
-    their ordering is determined by the order of their appearance of their records in the body of the module.
+    their ordering is determined by the order of their appearance in the NDR description of the module.
 
-    If left limit and right limit of a range are equal, it is assumed that the range contains one bit
-    If range limits and signedness are all 0, it is assumed that it is the bit-width is equal to 1.
+    If left limit and right limit of a bit-range are equal, it is assumed that the range contains one bit
     
     Word-level constants are represented as char-strings given in the same way as they would appear in a Verilog 
     file. For example, the 16-bit constant 10 is represented as a string "4'b1010" and is given as an argument 
     (char * pFunction) to the procedure Ndr_AddObject().
 
-    Currently two types of flops are supported: a simple flop with implicit clock with two fanins (data and init) 
-    and a complex flop with 7 fanins (clock, data, reset, set, enable, async, init), as shown in the examples below.
+    Currently two types of flops are supported: a simple flop with implicit clock and two fanins (data and init) 
+    and a complex flop with 8 fanins (clock, data, reset, set, enable, async, sre, init), as shown in the examples below.
 
     The initial value of a flop is represented by input "init", which can be driven by a constant or by a primary 
     input of the module. If it is a primary input, is it assumed that the flop is not initialized. If the input 
@@ -322,6 +321,7 @@ static inline int Ndr_DataObjNum( Ndr_Data_t * p, int Mod )
 static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod, char ** pNames )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; 
+    Vec_Int_t * vOuts = Vec_IntAlloc( 100 );
     int Obj, nArray, * pArray, fFirst = 1;
 
     fprintf( pFile, "\nmodule %s (\n  ", pNames[Ndr_ObjReadEntry(p, Mod, NDR_NAME)] );
@@ -348,16 +348,20 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
         fprintf( pFile, "  output " );
         Ndr_ObjWriteRange( p, Obj, pFile, 1 );
         fprintf( pFile, " %s;\n", Ndr_ObjReadInName(p, Obj, pNames) );
+        Vec_IntPush( vOuts, Ndr_ObjReadBody(p, Obj, NDR_INPUT) );
     }
 
     fprintf( pFile, "\n" );
 
     Ndr_ModForEachNode( p, Mod, Obj )
     {
+        if ( Vec_IntFind(vOuts, Ndr_ObjReadBody(p, Obj, NDR_OUTPUT)) >= 0 )
+            continue;
         fprintf( pFile, "  wire " );
         Ndr_ObjWriteRange( p, Obj, pFile, 1 );
         fprintf( pFile, " %s;\n", Ndr_ObjReadOutName(p, Obj, pNames) );
     }
+    Vec_IntFree( vOuts );
 
     fprintf( pFile, "\n" );
 
@@ -403,7 +407,8 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
             fprintf( pFile, ".set(%s), ",    pNames[pArray[3]] );
             fprintf( pFile, ".enable(%s), ", pNames[pArray[4]] );
             fprintf( pFile, ".async(%s), ",  pNames[pArray[5]] );
-            fprintf( pFile, ".init(%s) ",    pNames[pArray[6]] );
+            fprintf( pFile, ".sre(%s), ",    pNames[pArray[6]] );
+            fprintf( pFile, ".init(%s) ",    pNames[pArray[7]] );
             fprintf( pFile, ");\n" );
             continue;
         }
@@ -900,25 +905,26 @@ static inline void Ndr_ModuleTestMemory()
 // This testing procedure creates and writes into a Verilog file 
 // the following design composed of one word-level flop
 
-// module flop ( input [3:0] data, input clk, input reset, input set, input enable, input async, input [3:0] init, output [3:0] q );
-//   ABC_DFFRSE reg1 ( .d(data), .clk(clk), .reset(reset), .set(set), .enable(enable), .async(async), .init(init), .q(q) ) ;
+// module flop ( input [3:0] data, input clk, input reset, input set, input enable, input async, input sre, input [3:0] init, output [3:0] q );
+//   ABC_DFFRSE reg1 ( .d(data), .clk(clk), .reset(reset), .set(set), .enable(enable), .async(async), .sre(sre), .init(init), .q(q) ) ;
 // endmodule
 
 static inline void Ndr_ModuleTestFlop()
 {
     // map name IDs into char strings
-    char * ppNames[10] = { NULL, "flop", "data", "clk", "reset", "set", "enable", "async", "init", "q" };
+    char * ppNames[12] = { NULL, "flop", "data", "clk", "reset", "set", "enable", "async", "sre", "init", "q" };
     // name IDs
-    int NameIdData   = 2;
-    int NameIdClk    = 3;
-    int NameIdReset  = 4;
-    int NameIdSet    = 5;
-    int NameIdEnable = 6;
-    int NameIdAsync  = 7;
-    int NameIdInit   = 8;
-    int NameIdQ      = 9;
+    int NameIdData   =  2;
+    int NameIdClk    =  3;
+    int NameIdReset  =  4;
+    int NameIdSet    =  5;
+    int NameIdEnable =  6;
+    int NameIdAsync  =  7;
+    int NameIdSre    =  8;
+    int NameIdInit   =  9;
+    int NameIdQ      = 10;
     // array of fanins of node s
-    int Fanins[7] = { NameIdData, NameIdClk, NameIdReset, NameIdSet, NameIdEnable, NameIdAsync, NameIdInit };
+    int Fanins[8] = { NameIdData, NameIdClk, NameIdReset, NameIdSet, NameIdEnable, NameIdAsync, NameIdSre, NameIdInit };
 
     // create a new module
     void * pDesign = Ndr_Create( 1 );
@@ -932,9 +938,10 @@ static inline void Ndr_ModuleTestFlop()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdSet,    NULL );
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdEnable, NULL );
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdAsync,  NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   0, 0, 0,   0, NULL,      1, &NameIdSre,    NULL );
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   3, 0, 0,   0, NULL,      1, &NameIdInit,   NULL );
 
-    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_DFFRSE,   0,   3, 0, 0,   7, Fanins,    1, &NameIdQ,      NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_DFFRSE,   0,   3, 0, 0,   8, Fanins,    1, &NameIdQ,      NULL );
 
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdQ,  0, NULL,          NULL );
 

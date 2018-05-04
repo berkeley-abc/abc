@@ -261,7 +261,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 fprintf( pFile, "         " );
                 fprintf( pFile, "%s (", pObj->Type == WLC_OBJ_READ ? "ABC_READ" : "ABC_WRITE" );
                 Wlc_ObjForEachFanin( pObj, iFanin, k )
-                    fprintf( pFile, " .%s(%s)", k==0 ? "mem_in" : (k==1 ? "addr": "data"), Wlc_ObjName(p, iFanin) );
+                    fprintf( pFile, " .%s(%s),", k==0 ? "mem_in" : (k==1 ? "addr": "data"), Wlc_ObjName(p, iFanin) );
                 fprintf( pFile, " .%s(%s) ) ;\n", pObj->Type == WLC_OBJ_READ ? "data" : "mem_out", Wlc_ObjName(p, i) );
                 continue;
             }
@@ -276,19 +276,19 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 fprintf( pFile, "         " );
                 fprintf( pFile, "%s_%d (", pObj->Type == WLC_OBJ_READ ? "CPL_MEM_READ" : "CPL_MEM_WRITE", Depth );
                 Wlc_ObjForEachFanin( pObj, iFanin, k )
-                    fprintf( pFile, " .%s(%s)", k==0 ? "mem_data_in" : (k==1 ? "addr_in": "data_in"), Wlc_ObjName(p, iFanin) );
+                    fprintf( pFile, " .%s(%s),", k==0 ? "mem_data_in" : (k==1 ? "addr_in": "data_in"), Wlc_ObjName(p, iFanin) );
                 fprintf( pFile, " .%s(%s) ) ;\n", "data_out", Wlc_ObjName(p, i) );
                 continue;
             }
         }
         else if ( pObj->Type == WLC_OBJ_FF )
         {
-            char * pInNames[7] = {"d", "clk", "reset", "set", "enable", "async", "init"};
+            char * pInNames[8] = {"d", "clk", "reset", "set", "enable", "async", "sre", "init"};
             fprintf( pFile, "%s ;\n", Wlc_ObjName(p, i) );
             fprintf( pFile, "         " );
             fprintf( pFile, "%s (", "ABC_DFFRSE" );
             Wlc_ObjForEachFanin( pObj, iFanin, k )
-                fprintf( pFile, " .%s(%s)", pInNames[k], Wlc_ObjName(p, iFanin) );
+                fprintf( pFile, " .%s(%s),", pInNames[k], Wlc_ObjName(p, iFanin) );
             fprintf( pFile, " .%s(%s) ) ;\n", "q", Wlc_ObjName(p, i) );
             continue;
         }

@@ -194,6 +194,7 @@ static inline char * Abc_OperName( int Type )
     if ( Type == ABC_OPER_ARI_ADD      )   return "+";      
     if ( Type == ABC_OPER_ARI_SUB      )   return "-";      
     if ( Type == ABC_OPER_ARI_MUL      )   return "*";      
+    if ( Type == ABC_OPER_ARI_SMUL     )   return "*";      
     if ( Type == ABC_OPER_ARI_DIV      )   return "/";      
     if ( Type == ABC_OPER_ARI_REM      )   return "%";      
     if ( Type == ABC_OPER_ARI_MOD      )   return "mod";    

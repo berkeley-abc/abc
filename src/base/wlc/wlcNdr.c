@@ -397,13 +397,6 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
             ABC_SWAP( int, Vec_IntEntryP(vFanins, 1)[0], Vec_IntEntryP(vFanins, 2)[0] );
         Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
         Wlc_ObjSetNameId( pNtk, iObj, NameId );
-        if ( Type == ABC_OPER_ARI_SMUL )
-        {
-            pObj = Wlc_NtkObj(pNtk, iObj);
-            assert( Wlc_ObjFaninNum(pObj) == 2 );
-            Wlc_ObjFanin0(pNtk, pObj)->Signed = 1;
-            Wlc_ObjFanin1(pNtk, pObj)->Signed = 1;
-        }
     }
     // mark primary outputs
     Ndr_ModForEachPo( p, Mod, Obj )
@@ -426,6 +419,12 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         int * pFanins = Wlc_ObjFanins(pObj);
         for ( k = 0; k < Wlc_ObjFaninNum(pObj); k++ )
             pFanins[k] = Vec_IntEntry(vName2Obj, pFanins[k]);
+        if ( Wlc_ObjType(pObj) == WLC_OBJ_ARI_MULTI )
+        {
+            assert( Wlc_ObjFaninNum(pObj) == 2 );
+            Wlc_ObjFanin0(pNtk, pObj)->Signed = 1;
+            Wlc_ObjFanin1(pNtk, pObj)->Signed = 1;
+        }
     }
     if ( pNtk->vInits )
     {
