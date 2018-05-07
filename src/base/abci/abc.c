@@ -655,6 +655,25 @@ Vec_Int_t * Abc_FrameDeriveStatusArray( Vec_Ptr_t * vCexes )
             Vec_IntWriteEntry( vStatuses, i, 0 ); // set this output as SAT
     return vStatuses;
 }
+Vec_Int_t * Abc_FrameDeriveStatusArray2( Vec_Ptr_t * vCexes )
+{
+    Vec_Int_t * vStatuses;
+    Abc_Cex_t * pCex;
+    int i;
+    if ( vCexes == NULL )
+        return NULL;
+    vStatuses = Vec_IntAlloc( Vec_PtrSize(vCexes) );
+    Vec_IntFill( vStatuses, Vec_PtrSize(vCexes), -1 ); // assume UNDEC
+    Vec_PtrForEachEntry( Abc_Cex_t *, vCexes, pCex, i )
+        if ( pCex == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
+        {
+            Vec_IntWriteEntry( vStatuses, i, 1 ); // set this output as UNSAT
+            Vec_PtrWriteEntry( vCexes, i, NULL );
+        }
+        else if ( pCex != NULL )
+            Vec_IntWriteEntry( vStatuses, i, 0 ); // set this output as SAT
+    return vStatuses;
+}
 
 /**Function*************************************************************
 
@@ -2765,8 +2784,8 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
                     Abc_CexPrintStats( pTemp );
                 }
             }
-            if ( Counter )
-                printf( "In total, %d (out of %d) outputs are \"sat\" but CEXes are not recorded.\n", Counter, Vec_PtrSize(pAbc->vCexVec) );
+//            if ( Counter )
+//                printf( "In total, %d (out of %d) outputs are \"sat\" but CEXes are not recorded.\n", Counter, Vec_PtrSize(pAbc->vCexVec) );
         }
     }
     if ( pAbc->vStatuses )
@@ -33675,7 +33694,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fNewSolver = 0, fCSat = 0;
     Cec_ManSatSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNanmtcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNanmtcxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33727,6 +33746,9 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fCSat ^= 1;
             break;
+        case 'x':
+            pPars->fSaveCexes ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -33759,10 +33781,16 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Cec_ManSatSolving( pAbc->pGia, pPars );
         Abc_FrameUpdateGia( pAbc, pTemp );
     }
+    if ( pAbc->pGia->vSeqModelVec )
+    {
+        Vec_Int_t * vStatuses = Abc_FrameDeriveStatusArray2( pAbc->pGia->vSeqModelVec );
+        Abc_FrameReplacePoStatuses( pAbc, &vStatuses );
+        Abc_FrameReplaceCexVec( pAbc, &pAbc->pGia->vSeqModelVec );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sat [-CSN <num>] [-anmctvh]\n" );
+    Abc_Print( -2, "usage: &sat [-CSN <num>] [-anmctxvh]\n" );
     Abc_Print( -2, "\t         performs SAT solving for the combinational outputs\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-S num : the min number of variables to recycle the solver [default = %d]\n", pPars->nSatVarMax );
@@ -33772,6 +33800,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", fCSat? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle using learning in curcuit-based solver [default = %s]\n", pPars->fLearnCls? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle solving all outputs and saving counter-examples [default = %s]\n", pPars->fSaveCexes? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -673,6 +673,21 @@ p->timeSatUndec += Abc_Clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Cex_t * Cex_ManGenCex( Cec_ManSat_t * p, int iOut )
+{
+    Abc_Cex_t * pCex;
+    int i;
+    pCex = Abc_CexAlloc( 0, Gia_ManCiNum(p->pAig), 1 );
+    pCex->iPo = iOut;
+    pCex->iFrame = 0;
+    for ( i = 0; i < Gia_ManCiNum(p->pAig); i++ )
+    {
+        int iVar = Cec_ObjSatNum(p, Gia_ManCi(p->pAig, i));
+        if ( iVar > 0 && sat_solver_var_value(p->pSat, iVar) )
+            pCex->pData[i>>5] |= (1<<(i & 31));     
+    }
+    return pCex;
+}
 void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Int_t * vIdsOrig, Vec_Int_t * vMiterPairs, Vec_Int_t * vEquivPairs )
 {
     Bar_Progress_t * pProgress = NULL;
@@ -680,6 +695,9 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
     Gia_Obj_t * pObj;
     int i, status;
     abctime clk = Abc_Clock(), clk2;
+    Vec_PtrFreeP( &pAig->vSeqModelVec );
+    if ( pPars->fSaveCexes )
+        pAig->vSeqModelVec = Vec_PtrStart( Gia_ManCoNum(pAig) );
     // reset the manager
     if ( pPat )
     {
@@ -715,6 +733,8 @@ clk2 = Abc_Clock();
             assert( OrigId1 >= 0 && OrigId2 >= 0 );
             Vec_IntPushTwo( vEquivPairs, OrigId1, OrigId2 );
         }
+        if ( pPars->fSaveCexes && status != -1 )
+            Vec_PtrWriteEntry( pAig->vSeqModelVec, i, status ? (Abc_Cex_t *)(ABC_PTRINT_T)1 : Cex_ManGenCex(p, i) );
 
 /*
         if ( status == -1 )
