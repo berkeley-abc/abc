@@ -4,6 +4,9 @@ include(CMakeParseArguments)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
+# options for ABC
+option(ABC_BUILD_BINARY "Build the ABC binary" ON)
+
 function(addprefix var prefix)
     foreach( s ${ARGN} )
         list(APPEND tmp "-I${s}")
@@ -95,9 +98,11 @@ add_library(libabc EXCLUDE_FROM_ALL ${ABC_SRC})
 abc_properties(libabc PUBLIC)
 set_property(TARGET libabc PROPERTY OUTPUT_NAME abc)
 
-add_executable(abc ${ABC_MAIN_SRC})
-target_link_libraries(abc PRIVATE libabc)
-abc_properties(abc PRIVATE)
+if(ABC_BUILD_BINARY)
+    add_executable(abc ${ABC_MAIN_SRC})
+    target_link_libraries(abc PRIVATE libabc)
+    abc_properties(abc PRIVATE)
+endif()
 
 add_library(libabc-pic EXCLUDE_FROM_ALL ${ABC_SRC})
 abc_properties(libabc-pic PUBLIC)
