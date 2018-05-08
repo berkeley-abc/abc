@@ -717,6 +717,8 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
         {
             pObj->fMark0 = 0;
             pObj->fMark1 = 1;
+            if ( pPars->fSaveCexes )
+                Vec_PtrWriteEntry( pAig->vSeqModelVec, i, (Abc_Cex_t *)(ABC_PTRINT_T)1 );
             continue;
         }
         Bar_ProgressUpdate( pProgress, i, "SAT..." );

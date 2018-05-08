@@ -2758,7 +2758,8 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkPrintPoEquivs( pNtk );
         return 0;
     }
-    Abc_Print( 1,"Status = %d  Frames = %d   ", pAbc->Status, pAbc->nFrames );
+    if ( !pAbc->vStatuses )
+        Abc_Print( 1,"Status = %d  Frames = %d   ", pAbc->Status, pAbc->nFrames );
     if ( pAbc->pCex == NULL && pAbc->vCexVec == NULL )
         Abc_Print( 1,"Cex is not defined.\n" );
     else
@@ -2770,7 +2771,7 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Cex_t * pTemp;
             int nCexes = 0;
             int Counter = 0;
-            printf( "\n" );
+            //printf( "\n" );
             Vec_PtrForEachEntry( Abc_Cex_t *, pAbc->vCexVec, pTemp, c )
             {
                 if ( pTemp == (void *)(ABC_PTRINT_T)1 )
