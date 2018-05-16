@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(NT64)
 #include <unistd.h>
 #endif
 

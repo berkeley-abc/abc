@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#ifdef WIN32
+#if defined(WIN32) || defined(NT64)
 #include <process.h>
 #else
 #include <unistd.h>

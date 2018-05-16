@@ -386,8 +386,15 @@ char * Gia_ManToMiniLutAttr( Gia_Man_t * pGia, void * pMiniLut )
     Mini_Lut_t * p = (Mini_Lut_t *)pMiniLut; int i;
     char * pAttrs = ABC_CALLOC( char, Mini_LutNodeNum(p) );
     Gia_ManForEachLut( pGia, i )
-        if ( Gia_ObjLutIsMux(pGia, i) )
+        if ( Gia_ObjLutIsMux(pGia, i) ){
+        	unsigned giaValue = (Gia_ManObj(pGia, i)->Value);
             pAttrs[Gia_ManObj(pGia, i)->Value] = 1;
+        }
+        else{
+        	unsigned giaValue = (Gia_ManObj(pGia, i)->Value);
+        	pAttrs[Gia_ManObj(pGia, i)->Value] = 0;
+        }
+
     return pAttrs;
 }
 
