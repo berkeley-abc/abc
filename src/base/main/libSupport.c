@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 #define WIN32
 #endif
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(NT64)
 # include <sys/types.h>
 # include <dirent.h>
 # include <dlfcn.h>
@@ -55,7 +55,7 @@ typedef void (*lib_init_end_func) (Abc_Frame_t * pAbc);
 void open_libs() {
     int curr_lib = 0;
 
-#ifdef WIN32
+#if defined(WIN32) || defined(NT64)
 //    printf("Warning: open_libs WIN32 not implemented.\n");
 #else
     DIR* dirp;
@@ -133,7 +133,7 @@ void open_libs() {
 // This will close all open ABC library extensions
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void close_libs() {
-#ifdef WIN32
+#if defined(WIN32) || defined(NT64)
     printf("Warning: close_libs WIN32 not implemented.\n");
 #else
     int i;
@@ -150,7 +150,7 @@ void close_libs() {
 // This will get a pointer to a function inside of an open library
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 void* get_fnct_ptr(int lib_num, char* sym_name) {
-#ifdef WIN32
+#if defined(WIN32) || defined (NT64)
     printf("Warning: get_fnct_ptr WIN32 not implemented.\n");
     return 0;
 #else

@@ -21,6 +21,7 @@
 #include "base/abc/abc.h"
 #include "mainInt.h"
 
+#undef ABC_USE_READLINE
 #ifdef ABC_USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>

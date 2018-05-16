@@ -18,7 +18,7 @@
 
 #define _BSD_SOURCE
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(NT64)
 #include <unistd.h>
 #endif
 
