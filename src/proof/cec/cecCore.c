@@ -241,6 +241,8 @@ Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
 //    pNew = Gia_ManDupDfsSkip( pAig );
     pNew = Gia_ManDup( pAig );
     Cec_ManPatStop( pPat );
+    pNew->vSeqModelVec = pAig->vSeqModelVec;
+    pAig->vSeqModelVec = NULL;
     return pNew;
 }
 

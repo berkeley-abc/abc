@@ -422,8 +422,8 @@ Gia_Man_t * Gia_ManFramesForCexMin( Gia_Man_t * p, int nFrames )
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pFrames, Gia_ObjFanin0Copy(pObj) );
     pFrames = Gia_ManCleanup( pTemp = pFrames );
-    printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
-        Gia_ManAndNum(pTemp), Gia_ManAndNum(pFrames) );
+    //printf( "Before cleanup = %d nodes. After cleanup = %d nodes.\n", 
+    //    Gia_ManAndNum(pTemp), Gia_ManAndNum(pFrames) );
     Gia_ManStop( pTemp );
     return pFrames;
 }
@@ -497,6 +497,114 @@ void Gia_ManMinCex( Gia_Man_t * p, Abc_Cex_t * pCex )
     sat_solver_delete( pSat );
     Cnf_DataFree( pCnf );
     Gia_ManStop( pFrames );
+}
+
+
+Abc_Cex_t * Bmc_CexCareDeriveCex( Abc_Cex_t * pCex, int iFirstVar, int * pLits, int nLits )
+{
+    Abc_Cex_t * pCexMin; int i;
+    pCexMin = Abc_CexAlloc( pCex->nRegs, pCex->nPis, pCex->iFrame + 1 );
+    pCexMin->iPo    = pCex->iPo;
+    pCexMin->iFrame = pCex->iFrame;
+    for ( i = 0; i < nLits; i++ )
+    {
+        int PiNum = Abc_Lit2Var(pLits[i]) - iFirstVar;
+        assert( PiNum >= 0 && PiNum < pCex->nBits - pCex->nRegs );
+        Abc_InfoSetBit( pCexMin->pData, pCexMin->nRegs + PiNum );
+    }
+    return pCexMin;
+}
+Abc_Cex_t * Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int fHighEffort, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    int n, i, iFirstVar, iLit, status;
+    Vec_Int_t * vLits = NULL, * vTemp;
+    sat_solver * pSat;
+    Cnf_Dat_t * pCnf;
+    int nFinal, * pFinal;
+    Abc_Cex_t * pCexBest = NULL; 
+    int CountBest = 0;
+    Gia_Man_t * pFrames;
+
+    // CEX minimization
+    clk = Abc_Clock();
+    pCexBest = Bmc_CexCareMinimizeAig( p, Gia_ManPiNum(p), pCex, 1, 1, fVerbose );
+    for ( i = pCexBest->nRegs; i < pCexBest->nBits; i++ )
+        CountBest += Abc_InfoHasBit(pCexBest->pData, i);
+    if ( fVerbose )
+    {
+        printf( "Care bits = %d. ", CountBest );
+        Abc_PrintTime( 1, "Non-SAT-based CEX minimization", Abc_Clock() - clk );
+    }
+
+    // SAT instance
+    clk = Abc_Clock();
+    pFrames = Gia_ManFramesForCexMin( p, pCex->iFrame + 1 );
+    pCnf = (Cnf_Dat_t*)Mf_ManGenerateCnf( pFrames, 8, 0, 0, 0, 0 );
+    iFirstVar = pCnf->nVars - (pCex->iFrame+1) * pCex->nPis;
+    pSat = (sat_solver*)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    iLit = Abc_Var2Lit( 1, 1 );
+    status = sat_solver_addclause( pSat, &iLit, &iLit + 1 );
+    assert( status );
+    // create literals
+    vTemp = Vec_IntAlloc( 100 );
+    for ( i = pCex->nRegs; i < pCex->nBits; i++ )
+        Vec_IntPush( vTemp, Abc_Var2Lit(iFirstVar + i - pCex->nRegs, !Abc_InfoHasBit(pCex->pData, i)) );
+    if ( fVerbose )
+    Abc_PrintTime( 1, "Constructing SAT solver", Abc_Clock() - clk );
+
+    for ( n = 0; n < 2; n++ )
+    {
+        Vec_IntFreeP( &vLits );
+
+        vLits = Vec_IntDup( vTemp );
+        if ( n ) Vec_IntReverseOrder( vLits );
+
+        // SAT-based minimization
+        clk = Abc_Clock();
+        status = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits), 0, 0, 0, 0 );
+        nFinal = sat_solver_final( pSat, &pFinal );
+        if ( fVerbose )
+        {
+            printf( "Status %s   Selected %5d assumptions out of %5d.  ", status == l_False ? "OK ":"BUG", nFinal, Vec_IntSize(vLits) );
+            Abc_PrintTime( 1, "Analyze_final", Abc_Clock() - clk );
+        }
+        if ( CountBest > nFinal )
+        {
+            CountBest = nFinal;
+            ABC_FREE( pCexBest );
+            pCexBest = Bmc_CexCareDeriveCex( pCex, iFirstVar, pFinal, nFinal );
+        }
+        if ( !fHighEffort )
+            continue;
+
+        // SAT-based minimization
+        clk = Abc_Clock();
+        nFinal = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vLits), Vec_IntSize(vLits), 0 );
+        if ( fVerbose )
+        {
+            printf( "Status %s   Selected %5d assumptions out of %5d.  ", status == l_False ? "OK ":"BUG", nFinal, Vec_IntSize(vLits) );
+            Abc_PrintTime( 1, "LEXUNSAT     ", Abc_Clock() - clk );
+        }
+        if ( CountBest > nFinal )
+        {
+            CountBest = nFinal;
+            ABC_FREE( pCexBest );
+            pCexBest = Bmc_CexCareDeriveCex( pCex, iFirstVar, Vec_IntArray(vLits), nFinal );
+        }
+    }
+    if ( fVerbose )
+    {
+        printf( "Final    :    " );
+        Bmc_CexPrint( pCexBest, pCexBest->nPis, 0 );
+    }
+    // cleanup
+    Vec_IntFreeP( &vLits );
+    Vec_IntFreeP( &vTemp );
+    sat_solver_delete( pSat );
+    Cnf_DataFree( pCnf );
+    Gia_ManStop( pFrames );
+    return pCexBest;
 }
 
 ////////////////////////////////////////////////////////////////////////

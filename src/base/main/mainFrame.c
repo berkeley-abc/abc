@@ -111,6 +111,9 @@ void        Abc_FrameSetMaxLoad( float Load )                { s_GlobalFrame->Ma
 int *       Abc_FrameReadArrayMapping( Abc_Frame_t * pAbc )  { return pAbc->pArray;                                            }
 void        Abc_FrameSetArrayMapping( int * p )              { ABC_FREE( s_GlobalFrame->pArray ); s_GlobalFrame->pArray = p;   }      
 
+int *       Abc_FrameReadBoxes( Abc_Frame_t * pAbc )         { return pAbc->pBoxes;                                            }
+void        Abc_FrameSetBoxes( int * p )                     { ABC_FREE( s_GlobalFrame->pBoxes ); s_GlobalFrame->pBoxes = p;   }      
+
 /**Function*************************************************************
 
   Synopsis    [Returns 1 if the flag is enabled without value or with value 1.]
@@ -236,6 +239,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     Vec_IntFreeP( &p->vCopyMiniAig );
     Vec_IntFreeP( &p->vCopyMiniLut );
     ABC_FREE( p->pArray );
+    ABC_FREE( p->pBoxes );
 
     ABC_FREE( p );
     s_GlobalFrame = NULL;

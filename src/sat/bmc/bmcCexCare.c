@@ -430,6 +430,19 @@ Abc_Cex_t * Bmc_CexCareMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, 
     Gia_ManStop( pGia );
     return pCexMin;
 }
+Abc_Cex_t * Bmc_CexCareSatBasedMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int fHighEffort, int fCheck, int fVerbose )
+{
+    Gia_Man_t * pGia = Gia_ManFromAigSimple( p );
+    Abc_Cex_t * pCexMin = Bmc_CexCareSatBasedMinimizeAig( pGia, pCex, fHighEffort, fVerbose );
+    if ( pCexMin == NULL )
+    {
+        Gia_ManStop( pGia );
+        return NULL;
+    }
+    // unfortunately, cannot verify - ternary simulation does not work
+    Gia_ManStop( pGia );
+    return pCexMin;
+}
 
 /**Function*************************************************************
 

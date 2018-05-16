@@ -200,6 +200,8 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         pAlgoName = "new phase flipping ";
     else if ( NpnType == 7 )
         pAlgoName = "new hier. matching ";
+    else if ( NpnType == 8 )
+        pAlgoName = "new adap. matching ";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
@@ -293,13 +295,12 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     }
     else if ( NpnType == 7 )
     {
-        extern unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int fExact );
-        extern Abc_TtMan_t * Abc_TtManStart( int nVars );
-        extern void Abc_TtManStop( Abc_TtMan_t * p );
-        extern int Abc_TtManNumClasses( Abc_TtMan_t * p );
+        extern unsigned Abc_TtCanonicizeHie(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int fExact );
+        extern Abc_TtHieMan_t * Abc_TtHieManStart( int nVars, int nLevels );
+        extern void Abc_TtHieManStop(Abc_TtHieMan_t * p );
 
         int fExact = 0;
-        Abc_TtMan_t * pMan = Abc_TtManStart( p->nVars );
+		Abc_TtHieMan_t * pMan = Abc_TtHieManStart( p->nVars, 5 );
         for ( i = 0; i < p->nFuncs; i++ )
         {
             if ( fVerbose )
@@ -310,7 +311,27 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
                 printf( "\n" );
         }
         // nClasses = Abc_TtManNumClasses( pMan );
-        Abc_TtManStop( pMan );
+		Abc_TtHieManStop( pMan );
+    }
+    else if ( NpnType == 8 )
+    {
+        typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+        unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+        unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
+		Abc_TtHieMan_t * Abc_TtHieManStart(int nVars, int nLevels);
+		void Abc_TtHieManStop(Abc_TtHieMan_t * p);
+		
+		int fHigh = 1, iEnumThres = 25;
+		Abc_TtHieMan_t * pMan = Abc_TtHieManStart(p->nVars, 5);
+		for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d : ", i );
+            uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm, fHigh*100 + iEnumThres);
+            if ( fVerbose )
+                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+        }
+		Abc_TtHieManStop(pMan);
     }
     else assert( 0 );
     clk = Abc_Clock() - clk;
@@ -375,7 +396,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int f
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
-    if ( NpnType >= 0 && NpnType <= 7 )
+    if ( NpnType >= 0 && NpnType <= 8 )
         Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );

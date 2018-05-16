@@ -66,6 +66,7 @@ void Ssw_ManSetDefaultParams( Ssw_Pars_t * p )
     p->fLocalSim      =       0;  // local simulation
     p->fVerbose       =       0;  // verbose stats
     p->fEquivDump     =       0;  // enables dumping equivalences
+    p->fEquivDump2    =       0;  // enables dumping equivalences
 
     // latch correspondence
     p->fLatchCorrOpt  =       0;  // performs optimized register correspondence

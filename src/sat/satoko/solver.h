@@ -209,8 +209,7 @@ static inline int solver_enqueue(solver_t *s, unsigned lit, unsigned reason)
     unsigned var = lit2var(lit);
 
     vec_char_assign(s->assigns, var, lit_polarity(lit));
-    if ( solver_dlevel(s) == 0 )
-        vec_char_assign(s->polarity, var, lit_polarity(lit));
+    vec_char_assign(s->polarity, var, lit_polarity(lit));
     vec_uint_assign(s->levels, var, solver_dlevel(s));
     vec_uint_assign(s->reasons, var, reason);
     vec_uint_push_back(s->trail, lit);

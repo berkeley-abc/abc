@@ -134,7 +134,7 @@ static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestDec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestNpn                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestRPO                ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTestRun                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRunEco                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -655,6 +655,25 @@ Vec_Int_t * Abc_FrameDeriveStatusArray( Vec_Ptr_t * vCexes )
             Vec_IntWriteEntry( vStatuses, i, 0 ); // set this output as SAT
     return vStatuses;
 }
+Vec_Int_t * Abc_FrameDeriveStatusArray2( Vec_Ptr_t * vCexes )
+{
+    Vec_Int_t * vStatuses;
+    Abc_Cex_t * pCex;
+    int i;
+    if ( vCexes == NULL )
+        return NULL;
+    vStatuses = Vec_IntAlloc( Vec_PtrSize(vCexes) );
+    Vec_IntFill( vStatuses, Vec_PtrSize(vCexes), -1 ); // assume UNDEC
+    Vec_PtrForEachEntry( Abc_Cex_t *, vCexes, pCex, i )
+        if ( pCex == (Abc_Cex_t *)(ABC_PTRINT_T)1 )
+        {
+            Vec_IntWriteEntry( vStatuses, i, 1 ); // set this output as UNSAT
+            Vec_PtrWriteEntry( vCexes, i, NULL );
+        }
+        else if ( pCex != NULL )
+            Vec_IntWriteEntry( vStatuses, i, 0 ); // set this output as SAT
+    return vStatuses;
+}
 
 /**Function*************************************************************
 
@@ -804,7 +823,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "testdec",       Abc_CommandTestDec,          0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testnpn",       Abc_CommandTestNpn,          0 );
     Cmd_CommandAdd( pAbc, "LogiCS",       "testrpo",       Abc_CommandTestRPO,          0 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "testrun",       Abc_CommandTestRun,          0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "runeco",        Abc_CommandRunEco,           0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -2739,7 +2758,8 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkPrintPoEquivs( pNtk );
         return 0;
     }
-    Abc_Print( 1,"Status = %d  Frames = %d   ", pAbc->Status, pAbc->nFrames );
+    if ( !pAbc->vStatuses )
+        Abc_Print( 1,"Status = %d  Frames = %d   ", pAbc->Status, pAbc->nFrames );
     if ( pAbc->pCex == NULL && pAbc->vCexVec == NULL )
         Abc_Print( 1,"Cex is not defined.\n" );
     else
@@ -2751,7 +2771,7 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Cex_t * pTemp;
             int nCexes = 0;
             int Counter = 0;
-            printf( "\n" );
+            //printf( "\n" );
             Vec_PtrForEachEntry( Abc_Cex_t *, pAbc->vCexVec, pTemp, c )
             {
                 if ( pTemp == (void *)(ABC_PTRINT_T)1 )
@@ -2765,8 +2785,8 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
                     Abc_CexPrintStats( pTemp );
                 }
             }
-            if ( Counter )
-                printf( "In total, %d (out of %d) outputs are \"sat\" but CEXes are not recorded.\n", Counter, Vec_PtrSize(pAbc->vCexVec) );
+//            if ( Counter )
+//                printf( "In total, %d (out of %d) outputs are \"sat\" but CEXes are not recorded.\n", Counter, Vec_PtrSize(pAbc->vCexVec) );
         }
     }
     if ( pAbc->vStatuses )
@@ -6674,6 +6694,7 @@ usage:
     Abc_Print( -2, "\t               5: new fast hybrid semi-canonical form\n" );
     Abc_Print( -2, "\t               6: new phase canonical form\n" );
     Abc_Print( -2, "\t               7: new hierarchical matching\n" );
+    Abc_Print( -2, "\t               8: hierarchical matching by XueGong Zhou at Fudan University, Shanghai\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-d       : toggle dumping resulting functions into a file [default = %s]\n", fDumpRes? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggle dumping in binary format [default = %s]\n", fBinary? "yes": "no" );
@@ -6772,9 +6793,9 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandTestRun( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkTestRun( char * pFileNames[3], int fVerbose );
+    extern void Acb_NtkRunEco( char * pFileNames[3], int fVerbose );
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -6797,16 +6818,25 @@ int Abc_CommandTestRun( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Expecting three file names on the command line.\n" );
         goto usage;
     }
-    Acb_NtkTestRun( argv + globalUtilOptind, fVerbose );
+    Acb_NtkRunEco( argv + globalUtilOptind, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: testrun [-vh]\n" );
-    Abc_Print( -2, "\t         performs testing by running internal procedures\n" );
+    Abc_Print( -2, "usage: runeco <implementation> <specification> <weights> [-vh]\n" );
+    Abc_Print( -2, "\t         performs computation of patch functions during ECO,\n" );
+    Abc_Print( -2, "\t         as described in the following paper: A. Q. Dao et al\n" );
+    Abc_Print( -2, "\t         \"Efficient computation of ECO patch functions\", Proc. DAC\'18\n" );
+    Abc_Print( -2, "\t         https://people.eecs.berkeley.edu/~alanmi/publications/2018/dac18_eco.pdf\n" );
+    Abc_Print( -2, "\t         (currently only applicable to benchmarks from 2017 ICCAD CAD competition\n" );
+    Abc_Print( -2, "\t         http://cad-contest-2017.el.cycu.edu.tw/Problem_A/default.html as follows:\n" );
+    Abc_Print( -2, "\t         \"runeco unit1/F.v unit1/G.v unit1/weight.txt; cec -n out.v unit1/G.v\")\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+
+
 
 /**Function*************************************************************
 
@@ -20581,7 +20611,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplkofdseqvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNcmplkodsefqvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20713,9 +20743,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'o':
             pPars->fOutputCorr ^= 1;
             break;
-        case 'f':
-            pPars->fSemiFormal ^= 1;
-            break;
+//        case 'f':
+//            pPars->fSemiFormal ^= 1;
+//            break;
         case 'd':
             pPars->fDynamic ^= 1;
             break;
@@ -20724,6 +20754,9 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'e':
             pPars->fEquivDump ^= 1;
+            break;
+        case 'f':
+            pPars->fEquivDump2 ^= 1;
             break;
         case 'q':
             pPars->fStopWhenGone ^= 1;
@@ -20787,6 +20820,11 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             Abc_Print( 0, "Performing constraint-based scorr without constraints.\n" );
     }
+    if ( pPars->fEquivDump && pPars->fEquivDump2 )
+    {
+        Abc_Print( 0, "Command line switches \'-e\' and \'-f\' cannot be used at the same time.\n" );
+        return 0;
+    }
 
     // get the new network
     pNtkRes = Abc_NtkDarSeqSweep2( pNtk, pPars );
@@ -20800,7 +20838,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplkodseqvwh]\n" );
+    Abc_Print( -2, "usage: scorr [-PQFCLSIVMN <num>] [-cmplkodsefqvwh]\n" );
     Abc_Print( -2, "\t         performs sequential sweep using K-step induction\n" );
     Abc_Print( -2, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     Abc_Print( -2, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -20823,6 +20861,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dynamic addition of constraints [default = %s]\n", pPars->fDynamic? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle local simulation in the cone of influence [default = %s]\n", pPars->fLocalSim? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle dumping disproved internal equivalences [default = %s]\n", pPars->fEquivDump? "yes": "no" );
+    Abc_Print( -2, "\t-f     : toggle dumping proved internal equivalences [default = %s]\n", pPars->fEquivDump2? "yes": "no" );
     Abc_Print( -2, "\t-q     : toggle quitting when PO is not a constant candidate [default = %s]\n", pPars->fStopWhenGone? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printout of flop equivalences [default = %s]\n", pPars->fFlopVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
@@ -26571,6 +26610,7 @@ usage:
     Abc_Print( -2, "\t         a toolkit for constraint manipulation\n" );
     Abc_Print( -2, "\t         if constraints are absent, detect them functionally\n" );
     Abc_Print( -2, "\t         if constraints are present, profiles them using random simulation\n" );
+    Abc_Print( -2, "\t         (constraints fail when any of them becomes 1 in any timeframe)\n" );
     Abc_Print( -2, "\t-F num : the max number of timeframes to consider [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-C num : the max number of conflicts in SAT solving [default = %d]\n", nConfs );
     Abc_Print( -2, "\t-P num : the max number of propagations in SAT solving [default = %d]\n", nProps );
@@ -26808,6 +26848,7 @@ int Abc_CommandFold( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: fold [-cvh]\n" );
     Abc_Print( -2, "\t         folds constraints represented as separate outputs\n" );
+    Abc_Print( -2, "\t         (constraints fail when any of them becomes 1 in any timeframe)\n" );
     Abc_Print( -2, "\t-c     : toggle complementing constraints while folding [default = %s]\n", fCompl? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -29306,8 +29347,8 @@ int Abc_CommandAbc9Load( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &load [-h]\n" );
-    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save" );
-    Abc_Print( -2, "\t        (after loading the previously saved AIG can be loaded again)" );
+    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save\n" );
+    Abc_Print( -2, "\t        (after loading the previously saved AIG can be loaded again)\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -29353,8 +29394,8 @@ int Abc_CommandAbc9Load2( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &load2 [-h]\n" );
-    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save2" );
-    Abc_Print( -2, "\t        (after loading the previously saved AIG cannot be loaded again)" );
+    Abc_Print( -2, "\t        loads AIG with mapping previously saved by &save2\n" );
+    Abc_Print( -2, "\t        (after loading the previously saved AIG cannot be loaded again)\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -29396,7 +29437,7 @@ int Abc_CommandAbc9LoadAig( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &loadaig [-h]\n" );
-    Abc_Print( -2, "\t        loads AIG previously saved by &saveaig" );
+    Abc_Print( -2, "\t        loads AIG previously saved by &saveaig\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -29499,16 +29540,20 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     char ** pArgvNew;
     int c, nArgcNew;
     int fUnique = 0;
+    int fVerilog = 0;
     int fMiniAig = 0;
     int fMiniLut = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "umlvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upmlvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'u':
             fUnique ^= 1;
+            break;
+        case 'p':
+            fVerilog ^= 1;
             break;
         case 'm':
             fMiniAig ^= 1;
@@ -29544,6 +29589,8 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_AigerWriteSimple( pGia, pFileName );
         Gia_ManStop( pGia );
     }
+    else if ( fVerilog )
+        Gia_ManDumpVerilog( pAbc->pGia, pFileName );
     else if ( fMiniAig )
         Gia_ManWriteMiniAig( pAbc->pGia, pFileName );
     else if ( fMiniLut )
@@ -29553,9 +29600,10 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-umlvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upmlvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
+    Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
     Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -33647,7 +33695,7 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fNewSolver = 0, fCSat = 0;
     Cec_ManSatSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNanmtcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNanmtcxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33699,6 +33747,9 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fCSat ^= 1;
             break;
+        case 'x':
+            pPars->fSaveCexes ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -33731,10 +33782,16 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Cec_ManSatSolving( pAbc->pGia, pPars );
         Abc_FrameUpdateGia( pAbc, pTemp );
     }
+    if ( pAbc->pGia->vSeqModelVec )
+    {
+        Vec_Int_t * vStatuses = Abc_FrameDeriveStatusArray2( pAbc->pGia->vSeqModelVec );
+        Abc_FrameReplacePoStatuses( pAbc, &vStatuses );
+        Abc_FrameReplaceCexVec( pAbc, &pAbc->pGia->vSeqModelVec );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sat [-CSN <num>] [-anmctvh]\n" );
+    Abc_Print( -2, "usage: &sat [-CSN <num>] [-anmctxvh]\n" );
     Abc_Print( -2, "\t         performs SAT solving for the combinational outputs\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-S num : the min number of variables to recycle the solver [default = %d]\n", pPars->nSatVarMax );
@@ -33744,6 +33801,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT solver [default = %s]\n", fCSat? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle using learning in curcuit-based solver [default = %s]\n", pPars->fLearnCls? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle solving all outputs and saving counter-examples [default = %s]\n", pPars->fSaveCexes? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -22,6 +22,7 @@
 #include "misc/util/utilTruth.h"
 #include "misc/vec/vecMem.h"
 #include "bool/lucky/lucky.h"
+#include <math.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -40,6 +41,90 @@ static word s_CMasks6[5] = {
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+ 
+/**Function*************************************************************
+
+  Synopsis    [Compares Cof0 and Cof1.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+/*
+static inline int Abc_TtCompare1VarCofs( word * pTruth, int nWords, int iVar )
+{
+    if ( nWords == 1 )
+    {
+        word Cof0 = pTruth[0] & s_Truths6Neg[iVar];
+        word Cof1 = (pTruth[0] >> (1 << iVar)) & s_Truths6Neg[iVar];
+        if ( Cof0 != Cof1 )
+            return Cof0 < Cof1 ? -1 : 1;
+        return 0;
+    }
+	if ( iVar <= 5 )
+	{
+        word Cof0, Cof1;
+		int w, shift = (1 << iVar);
+		for ( w = 0; w < nWords; w++ )
+        {
+            Cof0 = pTruth[w] & s_Truths6Neg[iVar];
+            Cof1 = (pTruth[w] >> shift) & s_Truths6Neg[iVar];
+            if ( Cof0 != Cof1 )
+                return Cof0 < Cof1 ? -1 : 1;
+        }
+        return 0;
+	}
+	// if ( iVar > 5 )
+	{
+        word * pLimit = pTruth + nWords;
+		int i, iStep = Abc_TtWordNum(iVar);
+        assert( nWords >= 2 );
+		for ( ; pTruth < pLimit; pTruth += 2*iStep )
+			for ( i = 0; i < iStep; i++ )
+                if ( pTruth[i] != pTruth[i + iStep] )
+                    return pTruth[i] < pTruth[i + iStep] ? -1 : 1;
+        return 0;
+	}	
+}
+static inline int Abc_TtCompare1VarCofsRev( word * pTruth, int nWords, int iVar )
+{
+    if ( nWords == 1 )
+    {
+        word Cof0 = pTruth[0] & s_Truths6Neg[iVar];
+        word Cof1 = (pTruth[0] >> (1 << iVar)) & s_Truths6Neg[iVar];
+        if ( Cof0 != Cof1 )
+            return Cof0 < Cof1 ? -1 : 1;
+        return 0;
+    }
+	if ( iVar <= 5 )
+	{
+        word Cof0, Cof1;
+		int w, shift = (1 << iVar);
+		for ( w = nWords - 1; w >= 0; w-- )
+        {
+            Cof0 = pTruth[w] & s_Truths6Neg[iVar];
+            Cof1 = (pTruth[w] >> shift) & s_Truths6Neg[iVar];
+            if ( Cof0 != Cof1 )
+                return Cof0 < Cof1 ? -1 : 1;
+        }
+        return 0;
+	}
+	// if ( iVar > 5 )
+	{
+        word * pLimit = pTruth + nWords;
+		int i, iStep = Abc_TtWordNum(iVar);
+        assert( nWords >= 2 );
+		for ( pLimit -= 2*iStep; pLimit >= pTruth; pLimit -= 2*iStep )
+			for ( i = iStep - 1; i >= 0; i-- )
+                if ( pLimit[i] != pLimit[i + iStep] )
+                    return pLimit[i] < pLimit[i + iStep] ? -1 : 1;
+        return 0;
+	}	
+}
+*/
 
 /**Function*************************************************************
 
@@ -57,35 +142,35 @@ static inline int Abc_TtCheckEqual2VarCofs( word * pTruth, int nWords, int iVar,
     assert( Num1 < Num2 && Num2 < 4 );
     if ( nWords == 1 )
         return ((pTruth[0] >> (Num2 * (1 << iVar))) & s_CMasks6[iVar]) == ((pTruth[0] >> (Num1 * (1 << iVar))) & s_CMasks6[iVar]);
-    if ( iVar <= 4 )
-    {
-        int w, shift = (1 << iVar);
-        for ( w = 0; w < nWords; w++ )
+	if ( iVar <= 4 )
+	{
+		int w, shift = (1 << iVar);
+		for ( w = 0; w < nWords; w++ )
             if ( ((pTruth[w] >> Num2 * shift) & s_CMasks6[iVar]) != ((pTruth[w] >> Num1 * shift) & s_CMasks6[iVar]) )
                 return 0;
         return 1;
-    }
-    if ( iVar == 5 )
-    {
+	}
+	if ( iVar == 5 )
+	{
         unsigned * pTruthU = (unsigned *)pTruth;
         unsigned * pLimitU = (unsigned *)(pTruth + nWords);
         assert( nWords >= 2 );
-        for ( ; pTruthU < pLimitU; pTruthU += 4 )
+		for ( ; pTruthU < pLimitU; pTruthU += 4 )
             if ( pTruthU[Num2] != pTruthU[Num1] )
                 return 0;
         return 1;
-    }
-    // if ( iVar > 5 )
-    {
+	}
+	// if ( iVar > 5 )
+	{
         word * pLimit = pTruth + nWords;
-        int i, iStep = Abc_TtWordNum(iVar);
+		int i, iStep = Abc_TtWordNum(iVar);
         assert( nWords >= 4 );
-        for ( ; pTruth < pLimit; pTruth += 4*iStep )
-            for ( i = 0; i < iStep; i++ )
+		for ( ; pTruth < pLimit; pTruth += 4*iStep )
+			for ( i = 0; i < iStep; i++ )
                 if ( pTruth[i+Num2*iStep] != pTruth[i+Num1*iStep] )
                     return 0;
         return 1;
-    }    
+	}	
 }
 
 /**Function*************************************************************
@@ -110,11 +195,11 @@ static inline int Abc_TtCompare2VarCofs( word * pTruth, int nWords, int iVar, in
             return Cof1 < Cof2 ? -1 : 1;
         return 0;
     }
-    if ( iVar <= 4 )
-    {
+	if ( iVar <= 4 )
+	{
         word Cof1, Cof2;
-        int w, shift = (1 << iVar);
-        for ( w = 0; w < nWords; w++ )
+		int w, shift = (1 << iVar);
+		for ( w = 0; w < nWords; w++ )
         {
             Cof1 = (pTruth[w] >> Num1 * shift) & s_CMasks6[iVar];
             Cof2 = (pTruth[w] >> Num2 * shift) & s_CMasks6[iVar];
@@ -122,30 +207,30 @@ static inline int Abc_TtCompare2VarCofs( word * pTruth, int nWords, int iVar, in
                 return Cof1 < Cof2 ? -1 : 1;
         }
         return 0;
-    }
-    if ( iVar == 5 )
-    {
+	}
+	if ( iVar == 5 )
+	{
         unsigned * pTruthU = (unsigned *)pTruth;
         unsigned * pLimitU = (unsigned *)(pTruth + nWords);
         assert( nWords >= 2 );
-        for ( ; pTruthU < pLimitU; pTruthU += 4 )
+		for ( ; pTruthU < pLimitU; pTruthU += 4 )
             if ( pTruthU[Num1] != pTruthU[Num2] )
                 return pTruthU[Num1] < pTruthU[Num2] ? -1 : 1;
         return 0;
-    }
-    // if ( iVar > 5 )
-    {
+	}
+	// if ( iVar > 5 )
+	{
         word * pLimit = pTruth + nWords;
-        int i, iStep = Abc_TtWordNum(iVar);
+		int i, iStep = Abc_TtWordNum(iVar);
         int Offset1 = Num1*iStep;
         int Offset2 = Num2*iStep;
         assert( nWords >= 4 );
-        for ( ; pTruth < pLimit; pTruth += 4*iStep )
-            for ( i = 0; i < iStep; i++ )
+		for ( ; pTruth < pLimit; pTruth += 4*iStep )
+			for ( i = 0; i < iStep; i++ )
                 if ( pTruth[i + Offset1] != pTruth[i + Offset2] )
                     return pTruth[i + Offset1] < pTruth[i + Offset2] ? -1 : 1;
         return 0;
-    }    
+	}	
 }
 static inline int Abc_TtCompare2VarCofsRev( word * pTruth, int nWords, int iVar, int Num1, int Num2 )
 {
@@ -158,11 +243,11 @@ static inline int Abc_TtCompare2VarCofsRev( word * pTruth, int nWords, int iVar,
             return Cof1 < Cof2 ? -1 : 1;
         return 0;
     }
-    if ( iVar <= 4 )
-    {
+	if ( iVar <= 4 )
+	{
         word Cof1, Cof2;
-        int w, shift = (1 << iVar);
-        for ( w = nWords - 1; w >= 0; w-- )
+		int w, shift = (1 << iVar);
+		for ( w = nWords - 1; w >= 0; w-- )
         {
             Cof1 = (pTruth[w] >> Num1 * shift) & s_CMasks6[iVar];
             Cof2 = (pTruth[w] >> Num2 * shift) & s_CMasks6[iVar];
@@ -170,30 +255,30 @@ static inline int Abc_TtCompare2VarCofsRev( word * pTruth, int nWords, int iVar,
                 return Cof1 < Cof2 ? -1 : 1;
         }
         return 0;
-    }
-    if ( iVar == 5 )
-    {
+	}
+	if ( iVar == 5 )
+	{
         unsigned * pTruthU = (unsigned *)pTruth;
         unsigned * pLimitU = (unsigned *)(pTruth + nWords);
         assert( nWords >= 2 );
-        for ( pLimitU -= 4; pLimitU >= pTruthU; pLimitU -= 4 )
+		for ( pLimitU -= 4; pLimitU >= pTruthU; pLimitU -= 4 )
             if ( pLimitU[Num1] != pLimitU[Num2] )
                 return pLimitU[Num1] < pLimitU[Num2] ? -1 : 1;
         return 0;
-    }
-    // if ( iVar > 5 )
-    {
+	}
+	// if ( iVar > 5 )
+	{
         word * pLimit = pTruth + nWords;
-        int i, iStep = Abc_TtWordNum(iVar);
+		int i, iStep = Abc_TtWordNum(iVar);
         int Offset1 = Num1*iStep;
         int Offset2 = Num2*iStep;
         assert( nWords >= 4 );
-        for ( pLimit -= 4*iStep; pLimit >= pTruth; pLimit -= 4*iStep )
-            for ( i = iStep - 1; i >= 0; i-- )
+		for ( pLimit -= 4*iStep; pLimit >= pTruth; pLimit -= 4*iStep )
+			for ( i = iStep - 1; i >= 0; i-- )
                 if ( pLimit[i + Offset1] != pLimit[i + Offset2] )
                     return pLimit[i + Offset1] < pLimit[i + Offset2] ? -1 : 1;
         return 0;
-    }    
+	}	
 }
 
 /**Function*************************************************************
@@ -207,10 +292,21 @@ static inline int Abc_TtCompare2VarCofsRev( word * pTruth, int nWords, int iVar,
   SeeAlso     []
 
 ***********************************************************************/
+#define DO_SMALL_TRUTHTABLE 0
+
+static inline void Abc_TtNormalizeSmallTruth(word * pTruth, int nVars)
+{
+#if DO_SMALL_TRUTHTABLE
+	if (nVars < 6)
+		*pTruth &= (1ULL << (1 << nVars)) - 1;
+#endif
+}
+
 static inline int Abc_TtCountOnesInTruth( word * pTruth, int nVars )
 {   
     int nWords = Abc_TtWordNum( nVars );
     int k, Counter = 0;
+    Abc_TtNormalizeSmallTruth(pTruth, nVars);
     for ( k = 0; k < nWords; k++ )
         if ( pTruth[k] )
             Counter += Abc_TtCountOnes( pTruth[k] );
@@ -222,6 +318,7 @@ static inline void Abc_TtCountOnesInCofs( word * pTruth, int nVars, int * pStore
     int i, k, Counter, nWords;
     if ( nVars <= 6 )
     {
+        Abc_TtNormalizeSmallTruth(pTruth, nVars);
         for ( i = 0; i < nVars; i++ )
             pStore[i] = Abc_TtCountOnes( pTruth[0] & s_Truths6Neg[i] );
         return;
@@ -972,72 +1069,84 @@ unsigned Abc_TtCanonicizePhase( word * pTruth, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-#define TT_NUM_TABLES 5
+#define TT_MAX_LEVELS 5
 
-struct Abc_TtMan_t_
+struct Abc_TtHieMan_t_
 {
-    Vec_Mem_t *   vTtMem[TT_NUM_TABLES];   // truth table memory and hash tables
-    Vec_Int_t **  vRepres;                 // pointers to the representatives from the last hierarchical level
+	int  nLastLevel, nWords;
+	Vec_Mem_t *  vTtMem[TT_MAX_LEVELS];    // truth table memory and hash tables
+	Vec_Int_t *  vRepres[TT_MAX_LEVELS];   // pointers to the representatives from the last hierarchical level
+	int         vTruthId[TT_MAX_LEVELS];
 };
 
-Vec_Int_t ** Abc_TtRepresStart() {
-    Vec_Int_t ** vRepres = ABC_ALLOC(Vec_Int_t *, TT_NUM_TABLES - 1);
-    int i;
-    // create a list of pointers for each level of the hierarchy
-    for (i = 0; i < (TT_NUM_TABLES - 1); i++) {
-        vRepres[i] = Vec_IntAlloc(1);
-    }
-    return vRepres;
+Abc_TtHieMan_t * Abc_TtHieManStart(int nVars, int nLevels)
+{
+	Abc_TtHieMan_t * p = NULL;
+	int i;
+	if (nLevels > TT_MAX_LEVELS) return p;
+	p = ABC_CALLOC(Abc_TtHieMan_t, 1);
+	p->nLastLevel = nLevels - 1;
+	p->nWords = Abc_TtWordNum(nVars);
+	for (i = 0; i < nLevels; i++)
+	{
+		p->vTtMem[i] = Vec_MemAlloc(p->nWords, 12);
+		Vec_MemHashAlloc(p->vTtMem[i], 10000);
+		p->vRepres[i] = Vec_IntAlloc(1);
+	}
+	return p;
 }
 
-void Abc_TtRepresStop(Vec_Int_t ** vRepres) {
-    int i;
-    for (i = 0; i < (TT_NUM_TABLES - 1); i++) {
-        Vec_IntFree(vRepres[i]);
-    }
-    ABC_FREE( vRepres );
+void Abc_TtHieManStop(Abc_TtHieMan_t * p)
+{
+	int i;
+	for (i = 0; i <= p->nLastLevel; i++)
+	{
+		Vec_MemHashFree(p->vTtMem[i]);
+		Vec_MemFreeP(&p->vTtMem[i]);
+		Vec_IntFree(p->vRepres[i]);
+	}
+	ABC_FREE(p);
 }
 
-Abc_TtMan_t * Abc_TtManStart( int nVars )
+int Abc_TtHieRetrieveOrInsert(Abc_TtHieMan_t * p, int level, word * pTruth, word * pResult)
 {
-    Abc_TtMan_t * p = ABC_CALLOC( Abc_TtMan_t, 1 );
-    int i, nWords = Abc_TtWordNum( nVars );
-    for ( i = 0; i < TT_NUM_TABLES; i++ )
-    {
-        p->vTtMem[i] = Vec_MemAlloc( nWords, 12 );
-        Vec_MemHashAlloc( p->vTtMem[i], 10000 );
-    }
-    p->vRepres = Abc_TtRepresStart();
-    return p;
-}
-void Abc_TtManStop( Abc_TtMan_t * p )
-{
-    int i;
-    for ( i = 0; i < TT_NUM_TABLES; i++ )
-    {
-        Vec_MemHashFree( p->vTtMem[i] );
-        Vec_MemFreeP( &p->vTtMem[i] );
-    }
-    Abc_TtRepresStop(p->vRepres);
-    ABC_FREE( p );
-}
-int Abc_TtManNumClasses( Abc_TtMan_t * p )
-{
-    return Vec_MemEntryNum( p->vTtMem[TT_NUM_TABLES-1] );
+	int i, iSpot, truthId;
+	word * pRepTruth;
+	if (level < 0) level += p->nLastLevel + 1;
+	if (level < 0 || level > p->nLastLevel) return -1;
+	iSpot = *Vec_MemHashLookup(p->vTtMem[level], pTruth);
+	if (iSpot == -1) {
+		p->vTruthId[level] = Vec_MemHashInsert(p->vTtMem[level], pTruth);
+		if (level < p->nLastLevel) return 0;
+		iSpot = p->vTruthId[level];
+	}
+	// return the class representative
+	if (level < p->nLastLevel)
+		truthId = Vec_IntEntry(p->vRepres[level], iSpot);
+	else
+		truthId = iSpot;
+	for (i = 0; i < level; i++)
+		Vec_IntSetEntry(p->vRepres[i], p->vTruthId[i], truthId);
+
+	pRepTruth = Vec_MemReadEntry(p->vTtMem[p->nLastLevel], truthId);
+	if (level < p->nLastLevel) {
+		Abc_TtCopy(pResult, pRepTruth, p->nWords, 0);
+		return 1;
+	}
+	assert(Abc_TtEqual(pTruth, pRepTruth, p->nWords));
+	if (pTruth != pResult)
+		Abc_TtCopy(pResult, pRepTruth, p->nWords, 0);
+	return 0;
 }
 
-unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm, int fExact )
+unsigned Abc_TtCanonicizeHie( Abc_TtHieMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm, int fExact )
 {
     int fNaive = 1;
     int pStore[17];
     static word pTruth[1024];
     unsigned uCanonPhase = 0;
     int nOnes, nWords = Abc_TtWordNum( nVars );
-    int i, k, truthId;
-    int * pSpot;
-    int vTruthId[TT_NUM_TABLES-1];
-    int fLevelFound;
-    word * pRepTruth;
+    int i, k;
     assert( nVars <= 16 );
 
     Abc_TtCopy( pTruth, pTruthInit, nWords, 0 );
@@ -1054,12 +1163,7 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
         uCanonPhase |= (1 << nVars);
     }
     // check cache
-    pSpot = Vec_MemHashLookup( p->vTtMem[0], pTruth );
-    if ( *pSpot != -1 ) {
-        fLevelFound = 0;
-        goto end_repres;
-    }
-    vTruthId[0] = Vec_MemHashInsert( p->vTtMem[0], pTruth );
+    if (Abc_TtHieRetrieveOrInsert(p, 0, pTruth, pTruthInit) > 0) return 0;
 
     // normalize phase
     Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
@@ -1073,12 +1177,7 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
         pStore[i] = nOnes - pStore[i]; 
     }
     // check cache
-    pSpot = Vec_MemHashLookup( p->vTtMem[1], pTruth );
-    if ( *pSpot != -1 ) {
-        fLevelFound = 1;
-        goto end_repres;
-    }
-    vTruthId[1] = Vec_MemHashInsert( p->vTtMem[1], pTruth );
+	if (Abc_TtHieRetrieveOrInsert(p, 1, pTruth, pTruthInit) > 0) return 0;
 
     // normalize permutation
     {
@@ -1102,12 +1201,7 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
         }
     }
     // check cache
-    pSpot = Vec_MemHashLookup( p->vTtMem[2], pTruth );
-    if ( *pSpot != -1 ) {
-        fLevelFound = 2;
-        goto end_repres;
-    }
-    vTruthId[2] = Vec_MemHashInsert( p->vTtMem[2], pTruth );
+	if (Abc_TtHieRetrieveOrInsert(p, 2, pTruth, pTruthInit) > 0) return 0;
 
     // iterate TT permutations for tied variables
     for ( k = 0; k < 5; k++ )
@@ -1126,12 +1220,7 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
             break;
     }
     // check cache
-    pSpot = Vec_MemHashLookup( p->vTtMem[3], pTruth );
-    if ( *pSpot != -1 ) {
-        fLevelFound = 3;
-        goto end_repres;
-    }
-    vTruthId[3] = Vec_MemHashInsert( p->vTtMem[3], pTruth );
+	if (Abc_TtHieRetrieveOrInsert(p, 3, pTruth, pTruthInit) > 0) return 0;
 
     // perform exact NPN using groups
     if ( fExact ) {
@@ -1172,25 +1261,868 @@ unsigned Abc_TtCanonicizeHie( Abc_TtMan_t * p, word * pTruthInit, int nVars, cha
             freePermInfoPtr(pis[i]);
         }
     }
-    // check cache
-    pSpot = Vec_MemHashLookup( p->vTtMem[4], pTruth );
-    fLevelFound = 4;
-    if ( *pSpot != -1 ) {
-        goto end_repres;
-    }
-    *pSpot = Vec_MemHashInsert( p->vTtMem[4], pTruth );
-
-end_repres:
-    // return the class representative
-    if(fLevelFound < (TT_NUM_TABLES - 1))
-        truthId = Vec_IntEntry(p->vRepres[fLevelFound], *pSpot);
-    else truthId = *pSpot;
-    for(i = 0; i < fLevelFound; i++)
-        Vec_IntSetEntry(p->vRepres[i], vTruthId[i], truthId);
-    pRepTruth = Vec_MemReadEntry(p->vTtMem[TT_NUM_TABLES-1], truthId);
-    Abc_TtCopy( pTruthInit, pRepTruth, nWords, 0 );
-
+    // update cache
+	Abc_TtHieRetrieveOrInsert(p, 4, pTruth, pTruthInit);
     return 0;
+}
+
+
+/**Function*************************************************************
+
+Synopsis    [Adaptive exact/semi-canonical form computation.]
+
+Description []
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+
+typedef struct TiedGroup_
+{
+	char iStart;                         // index of Abc_TgMan_t::pPerm
+	char nGVars;                         // the number of variables in the group
+	char fPhased;                        // if the phases of the variables are determined
+} TiedGroup;
+
+typedef struct Abc_TgMan_t_
+{
+	word *pTruth;
+	int nVars;                          // the number of variables
+	int nGVars;                         // the number of variables in groups ( symmetric variables purged )
+	int nGroups;                        // the number of tied groups
+	unsigned uPhase;                    // phase of each variable and the function
+	char pPerm[16];                     // permutation of variables, symmetric variables purged, for grouping
+	char pPermT[16];                    // permutation of variables, symmetric variables expanded, actual transformation for pTruth
+	char pPermTRev[16];                 // reverse permutation of pPermT
+	signed char pPermDir[16];			// for generating the next permutation
+	TiedGroup pGroup[16];               // tied groups
+	// symemtric group attributes
+	char symPhase[16];                  // phase type of symemtric groups
+	signed char symLink[17];            // singly linked list, indicate the variables in symemtric groups
+} Abc_TgMan_t;
+
+#if !defined(NDEBUG) && !defined(CANON_VERIFY)
+#define CANON_VERIFY
+#endif
+/**Function*************************************************************
+
+Synopsis    [Utilities.]
+
+Description []
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+
+// Johnson¨CTrotter algorithm
+static int Abc_NextPermSwapC(char * pData, signed char * pDir, int size)
+{
+	int i, j, k = -1;
+	for (i = 0; i < size; i++)
+	{
+		j = i + pDir[i];
+		if (j >= 0 && j < size && pData[i] > pData[j] && (k < 0 || pData[i] > pData[k]))
+			k = i;
+	}
+	if (k < 0) k = 0;
+
+	for (i = 0; i < size; i++)
+		if (pData[i] > pData[k])
+			pDir[i] = -pDir[i];
+
+	j = k + pDir[k];
+	return j < k ? j : k;
+}
+
+
+typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag)
+{
+	int nWords = Abc_TtWordNum(nVars);
+	unsigned uCanonPhase1, uCanonPhase2;
+	char pCanonPerm2[16];
+	static word pTruth2[1024];
+
+	if (Abc_TtCountOnesInTruth(pTruth, nVars) != (1 << (nVars - 1)))
+		return func(p, pTruth, nVars, pCanonPerm, flag);
+	Abc_TtCopy(pTruth2, pTruth, nWords, 1);
+	Abc_TtNormalizeSmallTruth(pTruth2, nVars);
+	uCanonPhase1 = func(p, pTruth, nVars, pCanonPerm, flag);
+	uCanonPhase2 = func(p, pTruth2, nVars, pCanonPerm2, flag);
+	if (Abc_TtCompareRev(pTruth, pTruth2, nWords) <= 0)
+		return uCanonPhase1;
+	Abc_TtCopy(pTruth, pTruth2, nWords, 0);
+	memcpy(pCanonPerm, pCanonPerm2, nVars);
+	return uCanonPhase2;
+}
+
+word gpVerCopy[1024];
+static int Abc_TtCannonVerify(word* pTruth, int nVars, char * pCanonPerm, unsigned uCanonPhase)
+{
+#ifdef CANON_VERIFY
+	int nWords = Abc_TtWordNum(nVars);
+	char pCanonPermCopy[16];
+	static word pCopy2[1024];
+	Abc_TtCopy(pCopy2, pTruth, nWords, 0);
+	memcpy(pCanonPermCopy, pCanonPerm, sizeof(char) * nVars);
+	Abc_TtImplementNpnConfig(pCopy2, nVars, pCanonPermCopy, uCanonPhase);
+	Abc_TtNormalizeSmallTruth(pCopy2, nVars);
+	return Abc_TtEqual(gpVerCopy, pCopy2, nWords);
+#else
+	return 1;
+#endif
+}
+
+/**Function*************************************************************
+
+Synopsis    [Tied group management.]
+
+Description []
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+
+static void Abc_TginitMan(Abc_TgMan_t * pMan, word * pTruth, int nVars)
+{
+	int i;
+	pMan->pTruth = pTruth;
+	pMan->nVars = pMan->nGVars = nVars;
+	pMan->uPhase = 0;
+	for (i = 0; i < nVars; i++)
+	{
+		pMan->pPerm[i] = i;
+		pMan->pPermT[i] = i;
+		pMan->pPermTRev[i] = i;
+		pMan->symPhase[i] = 1;
+	}
+}
+
+static inline void Abc_TgManCopy(Abc_TgMan_t* pDst, word* pDstTruth, Abc_TgMan_t* pSrc)
+{
+	*pDst = *pSrc;
+	Abc_TtCopy(pDstTruth, pSrc->pTruth, Abc_TtWordNum(pSrc->nVars), 0);
+	pDst->pTruth = pDstTruth;
+}
+
+static inline int Abc_TgCannonVerify(Abc_TgMan_t* pMan)
+{
+	return Abc_TtCannonVerify(pMan->pTruth, pMan->nVars, pMan->pPermT, pMan->uPhase);
+}
+
+void Abc_TgExpendSymmetry(Abc_TgMan_t * pMan, char * pPerm, char * pDest);
+static void CheckConfig(Abc_TgMan_t * pMan)
+{
+#ifndef NDEBUG
+	int i;
+	char pPermE[16];
+	Abc_TgExpendSymmetry(pMan, pMan->pPerm, pPermE);
+	for (i = 0; i < pMan->nVars; i++)
+	{
+		assert(pPermE[i] == pMan->pPermT[i]);
+		assert(pMan->pPermTRev[pMan->pPermT[i]] == i);
+	}
+	assert(Abc_TgCannonVerify(pMan));
+#endif
+}
+
+/**Function*************************************************************
+
+Synopsis    [Truthtable manipulation.]
+
+Description []
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+
+static inline void Abc_TgFlipVar(Abc_TgMan_t* pMan, int iVar)
+{
+	int nWords = Abc_TtWordNum(pMan->nVars);
+	int ivp = pMan->pPermTRev[iVar];
+	Abc_TtFlip(pMan->pTruth, nWords, ivp);
+	pMan->uPhase ^= 1 << ivp;
+}
+
+static inline void Abc_TgFlipSymGroupByVar(Abc_TgMan_t* pMan, int iVar)
+{
+	for (; iVar >= 0; iVar = pMan->symLink[iVar])
+		if (pMan->symPhase[iVar])
+			Abc_TgFlipVar(pMan, iVar);
+}
+
+static inline void Abc_TgFlipSymGroup(Abc_TgMan_t* pMan, int idx)
+{
+	Abc_TgFlipSymGroupByVar(pMan, pMan->pPerm[idx]);
+}
+
+static inline void Abc_TgClearSymGroupPhase(Abc_TgMan_t* pMan, int iVar)
+{
+	for (; iVar >= 0; iVar = pMan->symLink[iVar])
+		pMan->symPhase[iVar] = 0;
+}
+
+static void Abc_TgImplementPerm(Abc_TgMan_t* pMan, const char *pPermDest)
+{
+	int i, nVars = pMan->nVars;
+	char *pPerm = pMan->pPermT;
+	char *pRev = pMan->pPermTRev;
+	unsigned uPhase = pMan->uPhase & (1 << nVars);
+
+	for (i = 0; i < nVars; i++)
+		pRev[pPerm[i]] = i;
+	for (i = 0; i < nVars; i++)
+		pPerm[i] = pRev[pPermDest[i]];
+	for (i = 0; i < nVars; i++)
+		pRev[pPerm[i]] = i;
+
+	Abc_TtImplementNpnConfig(pMan->pTruth, nVars, pRev, 0);
+	Abc_TtNormalizeSmallTruth(pMan->pTruth, nVars);
+
+	for (i = 0; i < nVars; i++)
+	{
+		if (pMan->uPhase & (1 << pPerm[i]))
+			uPhase |= (1 << i);
+		pPerm[i] = pPermDest[i];
+		pRev[pPerm[i]] = i;
+	}
+	pMan->uPhase = uPhase;
+}
+
+static void Abc_TgSwapAdjacentSymGroups(Abc_TgMan_t* pMan, int idx)
+{
+	int iVar, jVar, ix;
+	char pPermNew[16];
+	assert(idx < pMan->nGVars - 1);
+	iVar = pMan->pPerm[idx];
+	jVar = pMan->pPerm[idx + 1];
+	pMan->pPerm[idx] = jVar;
+	pMan->pPerm[idx + 1] = iVar;
+	ABC_SWAP(char, pMan->pPermDir[idx], pMan->pPermDir[idx + 1]);
+	if (pMan->symLink[iVar] >= 0 || pMan->symLink[jVar] >= 0)
+	{
+		Abc_TgExpendSymmetry(pMan, pMan->pPerm, pPermNew);
+		Abc_TgImplementPerm(pMan, pPermNew);
+		return;
+	}
+	// plain variable swap
+	ix = pMan->pPermTRev[iVar];
+	assert(pMan->pPermT[ix] == iVar && pMan->pPermT[ix + 1] == jVar);
+	Abc_TtSwapAdjacent(pMan->pTruth, Abc_TtWordNum(pMan->nVars), ix);
+	pMan->pPermT[ix] = jVar;
+	pMan->pPermT[ix + 1] = iVar;
+	pMan->pPermTRev[iVar] = ix + 1;
+	pMan->pPermTRev[jVar] = ix;
+	if (((pMan->uPhase >> ix) & 1) != ((pMan->uPhase >> (ix + 1)) & 1))
+		pMan->uPhase ^= 1 << ix | 1 << (ix + 1);
+	assert(Abc_TgCannonVerify(pMan));
+}
+
+/**Function*************************************************************
+
+Synopsis    [semmetry of two variables.]
+
+Description []
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+
+static word pSymCopy[1024];
+
+static int Abc_TtIsSymmetric(word * pTruth, int nVars, int iVar, int jVar, int fPhase)
+{
+	int rv;
+	int nWords = Abc_TtWordNum(nVars);
+	Abc_TtCopy(pSymCopy, pTruth, nWords, 0);
+	Abc_TtSwapVars(pSymCopy, nVars, iVar, jVar);
+	rv = Abc_TtEqual(pTruth, pSymCopy, nWords) * 2;
+	if (!fPhase) return rv;
+	Abc_TtFlip(pSymCopy, nWords, iVar);
+	Abc_TtFlip(pSymCopy, nWords, jVar);
+	return rv + Abc_TtEqual(pTruth, pSymCopy, nWords);
+}
+
+static int Abc_TtIsSymmetricHigh(Abc_TgMan_t * pMan, int iVar, int jVar, int fPhase)
+{
+	int rv, iv, jv, n;
+	int nWords = Abc_TtWordNum(pMan->nVars);
+	Abc_TtCopy(pSymCopy, pMan->pTruth, nWords, 0);
+	for (n = 0, iv = iVar, jv = jVar; iv >= 0 && jv >= 0; iv = pMan->symLink[iv], jv = pMan->symLink[jv], n++)
+		Abc_TtSwapVars(pSymCopy, pMan->nVars, iv, jv);
+	assert(iv < 0 && jv < 0);	// two symmetric groups must have the same size 
+	rv = Abc_TtEqual(pMan->pTruth, pSymCopy, nWords) * 2;
+	if (!fPhase) return rv;
+	for (iv = iVar, jv = jVar; iv >= 0 && jv >= 0; iv = pMan->symLink[iv], jv = pMan->symLink[jv])
+	{
+		if (pMan->symPhase[iv]) Abc_TtFlip(pSymCopy, nWords, iv);
+		if (pMan->symPhase[jv]) Abc_TtFlip(pSymCopy, nWords, jv);
+	}
+	return rv + Abc_TtEqual(pMan->pTruth, pSymCopy, nWords);
+}
+
+/**Function*************************************************************
+
+Synopsis    [Create groups by cofactor signatures]
+
+Description [Similar to Abc_TtSemiCanonicize. 
+             Use stable insertion sort to keep the order of the variables in the groups.
+			 Defer permutation. ]
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+
+static void Abc_TgCreateGroups(Abc_TgMan_t * pMan)
+{
+	int pStore[17];
+	int i, j, nOnes;
+	int nVars = pMan->nVars, nWords = Abc_TtWordNum(nVars);
+	TiedGroup * pGrp = pMan->pGroup;
+	assert(nVars <= 16);
+	// normalize polarity    
+	nOnes = Abc_TtCountOnesInTruth(pMan->pTruth, nVars);
+	if (nOnes > (1 << (nVars - 1)))
+	{
+		Abc_TtNot(pMan->pTruth, nWords);
+		nOnes = (1 << nVars) - nOnes;
+		pMan->uPhase |= (1 << nVars);
+	}
+	// normalize phase
+	Abc_TtCountOnesInCofs(pMan->pTruth, nVars, pStore);
+	pStore[nVars] = nOnes;
+	for (i = 0; i < nVars; i++)
+	{
+		if (pStore[i] >= nOnes - pStore[i])
+			continue;
+		Abc_TtFlip(pMan->pTruth, nWords, i);
+		pMan->uPhase |= (1 << i);
+		pStore[i] = nOnes - pStore[i];
+	}
+
+	// sort variables
+	for (i = 1; i < nVars; i++)
+	{
+		int a = pStore[i]; char aa = pMan->pPerm[i];
+		for (j = i; j > 0 && pStore[j - 1] > a; j--)
+			pStore[j] = pStore[j - 1], pMan->pPerm[j] = pMan->pPerm[j - 1];
+		pStore[j] = a; pMan->pPerm[j] = aa;
+	}
+	// group variables
+//	Abc_SortIdxC(pStore, pMan->pPerm, nVars);
+	pGrp[0].iStart = 0;
+	pGrp[0].fPhased = pStore[0] * 2 != nOnes;
+	for (i = j = 1; i < nVars; i++)
+	{
+		if (pStore[i] == pStore[i - 1]) continue;
+		pGrp[j].iStart = i;
+		pGrp[j].fPhased = pStore[i] * 2 != nOnes;
+		pGrp[j - 1].nGVars = i - pGrp[j - 1].iStart;
+		j++;
+	}
+	pGrp[j - 1].nGVars = i - pGrp[j - 1].iStart;
+	pMan->nGroups = j;
+}
+
+/**Function*************************************************************
+
+Synopsis    [Group symmetric variables.]
+
+Description []
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+
+static int Abc_TgGroupSymmetry(Abc_TgMan_t * pMan, TiedGroup * pGrp, int doHigh)
+{
+	int i, j, iVar, jVar, nsym = 0;
+	int fDone[16], scnt[16], stype[16];
+	signed char *symLink = pMan->symLink;
+//	char * symPhase = pMan->symPhase;
+	int nGVars = pGrp->nGVars;
+	char * pVars = pMan->pPerm + pGrp->iStart;
+	int modified, order = 0;
+
+	for (i = 0; i < nGVars; i++)
+		fDone[i] = 0, scnt[i] = 1;
+
+	do {
+		modified = 0;
+		for (i = 0; i < nGVars - 1; i++)
+		{
+			iVar = pVars[i];
+			if (iVar < 0 || fDone[i]) continue;
+//			if (!pGrp->fPhased && !Abc_TtHasVar(pMan->pTruth, pMan->nVars, iVar)) continue;
+			// Mark symmetric variables/groups
+			for (j = i + 1; j < nGVars; j++)
+			{
+				jVar = pVars[j];
+				if (jVar < 0 || scnt[j] != scnt[i])	// || pMan->symPhase[jVar] != pMan->symPhase[iVar])
+					stype[j] = 0;
+				else if (scnt[j] == 1)
+					stype[j] = Abc_TtIsSymmetric(pMan->pTruth, pMan->nVars, iVar, jVar, !pGrp->fPhased);
+				else
+					stype[j] = Abc_TtIsSymmetricHigh(pMan, iVar, jVar, !pGrp->fPhased);
+			}
+			fDone[i] = 1;
+			// Merge symmetric groups
+			for (j = i + 1; j < nGVars; j++)
+			{
+				int ii;
+				jVar = pVars[j];
+				switch (stype[j])
+				{
+				case 1:			// E-Symmetry
+					Abc_TgFlipSymGroupByVar(pMan, jVar);
+					// fallthrough
+				case 2:			// NE-Symmetry
+					pMan->symPhase[iVar] += pMan->symPhase[jVar];
+					break;
+				case 3:			// multiform Symmetry
+					Abc_TgClearSymGroupPhase(pMan, jVar);
+					break;
+				default:		// case 0: No Symmetry
+					continue;
+				}
+
+				for (ii = iVar; symLink[ii] >= 0; ii = symLink[ii])
+					;
+				symLink[ii] = jVar;
+				pVars[j] = -1;
+				scnt[i] += scnt[j];
+				modified = 1;
+				fDone[i] = 0;
+				nsym++;
+			}
+		}
+//		if (++order > 3) printf("%d", order);
+	} while (doHigh && modified);
+
+	return nsym;
+}
+
+static void Abc_TgPurgeSymmetry(Abc_TgMan_t * pMan, int doHigh)
+{
+	int i, j, k, sum = 0, nVars = pMan->nVars;
+	signed char *symLink = pMan->symLink;
+	char gcnt[16] = { 0 };
+	char * pPerm = pMan->pPerm;
+
+	for (i = 0; i <= nVars; i++)
+		symLink[i] = -1;
+
+	// purge unsupported variables
+	if (!pMan->pGroup[0].fPhased)
+	{
+		int iVar = pMan->nVars;
+		for (j = 0; j < pMan->pGroup[0].nGVars; j++)
+		{
+			int jVar = pPerm[j];
+			assert(jVar >= 0);
+			if (!Abc_TtHasVar(pMan->pTruth, nVars, jVar))
+			{
+				symLink[jVar] = symLink[iVar];
+				symLink[iVar] = jVar;
+				pPerm[j] = -1;
+				gcnt[0]++;
+			}
+		}
+	}
+
+	for (k = 0; k < pMan->nGroups; k++)
+		gcnt[k] += Abc_TgGroupSymmetry(pMan, pMan->pGroup + k, doHigh);
+
+	for (i = 0; i < nVars && pPerm[i] >= 0; i++)
+		;
+	for (j = i + 1; ; i++, j++)
+	{
+		while (j < nVars && pPerm[j] < 0) j++;
+		if (j >= nVars) break;
+		pPerm[i] = pPerm[j];
+	}
+	for (k = 0; k < pMan->nGroups; k++)
+	{
+		pMan->pGroup[k].nGVars -= gcnt[k];
+		pMan->pGroup[k].iStart -= sum;
+		sum += gcnt[k];
+	}
+	if (pMan->pGroup[0].nGVars == 0)
+	{
+		pMan->nGroups--;
+		memmove(pMan->pGroup, pMan->pGroup + 1, sizeof(TiedGroup) * pMan->nGroups);
+		assert(pMan->pGroup[0].iStart == 0);
+	}
+	pMan->nGVars -= sum;
+}
+
+void Abc_TgExpendSymmetry(Abc_TgMan_t * pMan, char * pPerm, char * pDest)
+{
+	int i = 0, j, k;
+	for (j = 0; j < pMan->nGVars; j++)
+		for (k = pPerm[j]; k >= 0; k = pMan->symLink[k])
+			pDest[i++] = k;
+	for (k = pMan->symLink[pMan->nVars]; k >= 0; k = pMan->symLink[k])
+		pDest[i++] = k;
+	assert(i == pMan->nVars);
+}
+
+
+/**Function*************************************************************
+
+Synopsis    [Semi-canonical form computation.]
+
+Description [simple config enumeration]
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+static int Abc_TgSymGroupPerm(Abc_TgMan_t* pMan, int idx, TiedGroup* pTGrp)
+{
+	word* pTruth = pMan->pTruth;
+	static word pCopy[1024];
+	static word pBest[1024];
+	int Config = 0;
+	int nWords = Abc_TtWordNum(pMan->nVars);
+	Abc_TgMan_t tgManCopy, tgManBest;
+	int fSwapOnly = pTGrp->fPhased;
+
+	CheckConfig(pMan);
+	if (fSwapOnly)
+	{
+		Abc_TgManCopy(&tgManCopy, pCopy, pMan);
+		Abc_TgSwapAdjacentSymGroups(&tgManCopy, idx);
+		CheckConfig(&tgManCopy);
+		if (Abc_TtCompareRev(pTruth, pCopy, nWords) < 0)
+		{
+			Abc_TgManCopy(pMan, pTruth, &tgManCopy);
+			return 4;
+		}
+		return 0;
+	}
+
+	// save two copies
+	Abc_TgManCopy(&tgManCopy, pCopy, pMan);
+	Abc_TgManCopy(&tgManBest, pBest, pMan);
+	// PXY
+	// 001
+	Abc_TgFlipSymGroup(&tgManCopy, idx);
+	CheckConfig(&tgManCopy);
+	if (Abc_TtCompareRev(pBest, pCopy, nWords) == 1)
+		Abc_TgManCopy(&tgManBest, pBest, &tgManCopy), Config = 1;
+	// PXY
+	// 011
+	Abc_TgFlipSymGroup(&tgManCopy, idx + 1);
+	CheckConfig(&tgManCopy);
+	if (Abc_TtCompareRev(pBest, pCopy, nWords) == 1)
+		Abc_TgManCopy(&tgManBest, pBest, &tgManCopy), Config = 3;
+	// PXY
+	// 010
+	Abc_TgFlipSymGroup(&tgManCopy, idx);
+	CheckConfig(&tgManCopy);
+	if (Abc_TtCompareRev(pBest, pCopy, nWords) == 1)
+		Abc_TgManCopy(&tgManBest, pBest, &tgManCopy), Config = 2;
+	// PXY
+	// 110
+	Abc_TgSwapAdjacentSymGroups(&tgManCopy, idx);
+	CheckConfig(&tgManCopy);
+	if (Abc_TtCompareRev(pBest, pCopy, nWords) == 1)
+		Abc_TgManCopy(&tgManBest, pBest, &tgManCopy), Config = 6;
+	// PXY
+	// 111
+	Abc_TgFlipSymGroup(&tgManCopy, idx + 1);
+	CheckConfig(&tgManCopy);
+	if (Abc_TtCompareRev(pBest, pCopy, nWords) == 1)
+		Abc_TgManCopy(&tgManBest, pBest, &tgManCopy), Config = 7;
+	// PXY
+	// 101
+	Abc_TgFlipSymGroup(&tgManCopy, idx);
+	CheckConfig(&tgManCopy);
+	if (Abc_TtCompareRev(pBest, pCopy, nWords) == 1)
+		Abc_TgManCopy(&tgManBest, pBest, &tgManCopy), Config = 5;
+	// PXY
+	// 100
+	Abc_TgFlipSymGroup(&tgManCopy, idx + 1);
+	CheckConfig(&tgManCopy);
+	if (Abc_TtCompareRev(pBest, pCopy, nWords) == 1)
+		Abc_TgManCopy(&tgManBest, pBest, &tgManCopy), Config = 4;
+	// PXY
+	// 000
+	Abc_TgSwapAdjacentSymGroups(&tgManCopy, idx);
+	CheckConfig(&tgManCopy);
+	assert(Abc_TtEqual(pTruth, pCopy, nWords));
+	if (Config == 0)
+		return 0;
+	assert(Abc_TtCompareRev(pTruth, pBest, nWords) == 1);
+	Abc_TgManCopy(pMan, pTruth, &tgManBest);
+	return Config;
+}
+
+static int Abc_TgPermPhase(Abc_TgMan_t* pMan, int iVar)
+{
+	static word pCopy[1024];
+	int nWords = Abc_TtWordNum(pMan->nVars);
+	int ivp = pMan->pPermTRev[iVar];
+	Abc_TtCopy(pCopy, pMan->pTruth, nWords, 0);
+	Abc_TtFlip(pCopy, nWords, ivp);
+	if (Abc_TtCompareRev(pMan->pTruth, pCopy, nWords) == 1)
+	{
+		Abc_TtCopy(pMan->pTruth, pCopy, nWords, 0);
+		pMan->uPhase ^= 1 << ivp;
+		return 16;
+	}
+	return 0;
+}
+
+static void Abc_TgSimpleEnumeration(Abc_TgMan_t * pMan)
+{
+	int i, j, k;
+	int pGid[16];
+
+	for (k = j = 0; j < pMan->nGroups; j++)
+		for (i = 0; i < pMan->pGroup[j].nGVars; i++, k++)
+			pGid[k] = j;
+	assert(k == pMan->nGVars);
+
+	for (k = 0; k < 5; k++)
+	{
+		int fChanges = 0;
+		for (i = pMan->nGVars - 2; i >= 0; i--)
+			if (pGid[i] == pGid[i + 1])
+				fChanges |= Abc_TgSymGroupPerm(pMan, i, pMan->pGroup + pGid[i]);
+		for (i = 1; i < pMan->nGVars - 1; i++)
+			if (pGid[i] == pGid[i + 1])
+				fChanges |= Abc_TgSymGroupPerm(pMan, i, pMan->pGroup + pGid[i]);
+
+		for (i = pMan->nVars - 1; i >= 0; i--)
+			if (pMan->symPhase[i])
+				fChanges |= Abc_TgPermPhase(pMan, i);
+		for (i = 1; i < pMan->nVars; i++)
+			if (pMan->symPhase[i])
+				fChanges |= Abc_TgPermPhase(pMan, i);
+		if (!fChanges) break;
+	}
+	assert(Abc_TgCannonVerify(pMan));
+}
+
+/**Function*************************************************************
+
+Synopsis    [Exact canonical form computation.]
+
+Description [full config enumeration]
+
+SideEffects []
+
+SeeAlso     []
+
+***********************************************************************/
+// enumeration time = exp((cost-27.12)*0.59)
+static int Abc_TgEnumerationCost(Abc_TgMan_t * pMan)
+{
+	int cSym = 0;
+	double cPerm = 0.0;
+	TiedGroup * pGrp = 0;
+	int i, j, n;
+	if (pMan->nGroups == 0) return 0;
+
+	for (i = 0; i < pMan->nGroups; i++)
+	{
+		pGrp = pMan->pGroup + i;
+		n = pGrp->nGVars;
+		if (n > 1)
+			cPerm += 0.92 + log(n) / 2 + n * (log(n) - 1);
+	}
+	if (pMan->pGroup->fPhased)
+		n = 0;
+	else
+	{
+		char * pVars = pMan->pPerm;
+		n = pMan->pGroup->nGVars;
+		for (i = 0; i < n; i++)
+			for (j = pVars[i]; j >= 0; j = pMan->symLink[j])
+				cSym++;
+	}
+	// coefficients computed by linear regression
+	return pMan->nVars + n * 1.09 + cPerm * 1.65 + 0.5; 
+//	return (rv > 60 ? 100000000 : 0) + n * 1000000 + cSym * 10000 + cPerm * 100 + 0.5;
+}
+
+static int Abc_TgIsInitPerm(char * pData, signed char * pDir, int size)
+{
+	int i;
+	if (pDir[0] != -1) return 0;
+	for (i = 1; i < size; i++)
+		if (pDir[i] != -1 || pData[i] < pData[i - 1])
+			return 0;
+	return 1;
+}
+
+static void Abc_TgFirstPermutation(Abc_TgMan_t * pMan)
+{
+	int i;
+	for (i = 0; i < pMan->nGVars; i++)
+		pMan->pPermDir[i] = -1;
+#ifndef NDEBUG
+	for (i = 0; i < pMan->nGroups; i++)
+	{
+		TiedGroup * pGrp = pMan->pGroup + i;
+		int nGvars = pGrp->nGVars;
+		char * pVars = pMan->pPerm + pGrp->iStart;
+		signed char * pDirs = pMan->pPermDir + pGrp->iStart;
+		assert(Abc_TgIsInitPerm(pVars, pDirs, nGvars));
+	}
+#endif
+}
+
+static int Abc_TgNextPermutation(Abc_TgMan_t * pMan)
+{
+	int i, j, nGvars;
+	TiedGroup * pGrp;
+	char * pVars;
+	signed char * pDirs;
+	for (i = 0; i < pMan->nGroups; i++)
+	{
+		pGrp = pMan->pGroup + i;
+		nGvars = pGrp->nGVars;
+		if (nGvars == 1) continue;
+		pVars = pMan->pPerm + pGrp->iStart;
+		pDirs = pMan->pPermDir + pGrp->iStart;
+		j = Abc_NextPermSwapC(pVars, pDirs, nGvars);
+		if (j >= 0)
+		{
+			Abc_TgSwapAdjacentSymGroups(pMan, j + pGrp->iStart);
+			return 1;
+		}
+		Abc_TgSwapAdjacentSymGroups(pMan, pGrp->iStart);
+		assert(Abc_TgIsInitPerm(pVars, pDirs, nGvars));
+	}
+	return 0;
+}
+
+static inline unsigned grayCode(unsigned a) { return a ^ (a >> 1); }
+
+static int grayFlip(unsigned a, int n)
+{
+	unsigned d = grayCode(a) ^ grayCode(a + 1);
+	int i;
+	for (i = 0; i < n; i++)
+		if (d == 1U << i) return i;
+	assert(0);
+    return -1;
+}
+
+static inline void Abc_TgSaveBest(Abc_TgMan_t * pMan, Abc_TgMan_t * pBest)
+{
+	if (Abc_TtCompare(pBest->pTruth, pMan->pTruth, Abc_TtWordNum(pMan->nVars)) == 1)
+		Abc_TgManCopy(pBest, pBest->pTruth, pMan);
+}
+
+static void Abc_TgPhaseEnumeration(Abc_TgMan_t * pMan, Abc_TgMan_t * pBest)
+{
+	char pFGrps[16];
+	TiedGroup * pGrp = pMan->pGroup;
+	int i, j, n = pGrp->nGVars;
+
+	Abc_TgSaveBest(pMan, pBest);
+	if (pGrp->fPhased) return;
+
+	// sort by symPhase
+	for (i = 0; i < n; i++)
+	{
+		char iv = pMan->pPerm[i];		
+		for (j = i; j > 0 && pMan->symPhase[pFGrps[j-1]] > pMan->symPhase[iv]; j--)
+			pFGrps[j] = pFGrps[j - 1];
+		pFGrps[j] = iv;
+	}
+
+	for (i = 0; i < (1 << n) - 1; i++)
+	{
+		Abc_TgFlipSymGroupByVar(pMan, pFGrps[grayFlip(i, n)]);
+		Abc_TgSaveBest(pMan, pBest);
+	}
+}
+
+static void Abc_TgFullEnumeration(Abc_TgMan_t * pWork, Abc_TgMan_t * pBest)
+{
+//	static word pCopy[1024];
+//	Abc_TgMan_t tgManCopy;
+//	Abc_TgManCopy(&tgManCopy, pCopy, pMan);
+
+	Abc_TgFirstPermutation(pWork);
+	do Abc_TgPhaseEnumeration(pWork, pBest);
+	while (Abc_TgNextPermutation(pWork));
+	pBest->uPhase |= 1U << 30;
+}
+
+unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres)
+{
+	int nWords = Abc_TtWordNum(nVars);
+	unsigned fExac = 0, fHash = 1U << 29;
+	static word pCopy[1024];
+	Abc_TgMan_t tgMan, tgManCopy;
+	int iCost;
+	const int MaxCost = 84;  // maximun posible cost for function with 16 inputs 
+	const int doHigh = iThres / 100, iEnumThres = iThres % 100;
+
+#ifdef CANON_VERIFY
+	Abc_TtCopy(gpVerCopy, pTruth, nWords, 0);
+#endif
+
+	assert(nVars <= 16);
+	if (p && Abc_TtHieRetrieveOrInsert(p, -5, pTruth, pTruth) > 0) return fHash;
+	Abc_TginitMan(&tgMan, pTruth, nVars);
+	Abc_TgCreateGroups(&tgMan);
+	if (p && Abc_TtHieRetrieveOrInsert(p, -4, pTruth, pTruth) > 0) return fHash;
+	Abc_TgPurgeSymmetry(&tgMan, doHigh);
+
+	Abc_TgExpendSymmetry(&tgMan, tgMan.pPerm, pCanonPerm);
+	Abc_TgImplementPerm(&tgMan, pCanonPerm);
+	assert(Abc_TgCannonVerify(&tgMan));
+
+	if (p == NULL) {
+		if (iEnumThres > MaxCost || Abc_TgEnumerationCost(&tgMan) < iEnumThres) {
+			Abc_TgManCopy(&tgManCopy, pCopy, &tgMan);
+			Abc_TgFullEnumeration(&tgManCopy, &tgMan);
+		}
+		else
+			Abc_TgSimpleEnumeration(&tgMan);
+	}
+	else {
+		iCost = Abc_TgEnumerationCost(&tgMan);
+		if (iCost < iEnumThres) fExac = 1U << 30;
+		if (Abc_TtHieRetrieveOrInsert(p, -3, pTruth, pTruth) > 0) return fHash + fExac;
+		Abc_TgManCopy(&tgManCopy, pCopy, &tgMan);
+		Abc_TgSimpleEnumeration(&tgMan);
+		if (Abc_TtHieRetrieveOrInsert(p, -2, pTruth, pTruth) > 0) return fHash + fExac;
+		if (fExac) {
+			Abc_TgManCopy(&tgMan, pTruth, &tgManCopy);
+			Abc_TgFullEnumeration(&tgManCopy, &tgMan);
+		}
+		Abc_TtHieRetrieveOrInsert(p, -1, pTruth, pTruth);
+	}
+	memcpy(pCanonPerm, tgMan.pPermT, sizeof(char) * nVars);
+
+#ifdef CANON_VERIFY
+	if (!Abc_TgCannonVerify(&tgMan))
+		printf("Canonical form verification failed!\n");
+#endif
+	return tgMan.uPhase;
 }
 
 ////////////////////////////////////////////////////////////////////////

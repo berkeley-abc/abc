@@ -139,6 +139,11 @@ void If_LibBoxAdd( If_LibBox_t * p, If_Box_t * pBox )
         Vec_PtrFillExtra( p->vBoxes, 2 * pBox->Id + 10, NULL );
     assert( Vec_PtrEntry( p->vBoxes, pBox->Id ) == NULL );
     Vec_PtrWriteEntry( p->vBoxes, pBox->Id, pBox );
+    p->nBoxes++;
+}
+int If_LibBoxNum( If_LibBox_t * p )
+{
+    return p->nBoxes;
 }
 
 /**Function*************************************************************

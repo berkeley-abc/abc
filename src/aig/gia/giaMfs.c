@@ -105,6 +105,11 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
         nVars = Abc_Tt6MinBase( &uTruth, Vec_IntArray(vArray), Vec_IntSize(vArray) );
         Vec_IntShrink( vArray, nVars );
         Vec_WrdWriteEntry( vTruths, Counter, uTruth );
+        if ( Gia_ObjLutIsMux(p, Id) )
+        {
+            Vec_StrWriteEntry( vFixed, Counter, (char)1 );
+            Vec_StrWriteEntry( vEmpty, Counter, (char)1 );
+        }
         Gia_ObjSetCopyArray( p, Id, Counter++ );
     }
     Gia_ObjComputeTruthTableStop( p );
@@ -251,7 +256,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     int nMfsNodes;
     word * pTruth, uTruthVar = ABC_CONST(0xAAAAAAAAAAAAAAAA);
     Vec_Wec_t * vGroups = Vec_WecStart( nBoxes );
-    Vec_Int_t * vMfs2Gia;
+    Vec_Int_t * vMfs2Gia, * vMfs2Old;
     Vec_Int_t * vGroupMap;
     Vec_Int_t * vMfsTopo, * vCover, * vBoxesLeft;
     Vec_Int_t * vArray, * vLeaves;
@@ -260,7 +265,11 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     if ( pManTime ) Tim_ManBlackBoxIoNum( pManTime, &nBbIns, &nBbOuts );
     nMfsNodes = 1 + Gia_ManCiNum(p) + Gia_ManLutNum(p) + Gia_ManCoNum(p) + nBbIns + nBbOuts;
     vMfs2Gia  = Vec_IntStartFull( nMfsNodes );
+    vMfs2Old  = Vec_IntStartFull( nMfsNodes );
     vGroupMap = Vec_IntStartFull( nMfsNodes );
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjCopyArray(p, i) > 0 )
+            Vec_IntWriteEntry( vMfs2Old, Gia_ObjCopyArray(p, i), i );
     // collect nodes
     curCi = nRealPis;
     curCo = 0;
@@ -342,7 +351,20 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
         if ( iGroup == -1 ) // internal node
         {
             assert( Sfm_NodeReadUsed(pNtk, iMfsId) );
-            iLitNew = Gia_ManFromIfLogicCreateLut( pNew, pTruth, vLeaves, vCover, vMapping, vMapping2 );
+            if ( Gia_ObjLutIsMux(p, Vec_IntEntry(vMfs2Old, iMfsId)) )
+            {
+                int MapSize = Vec_IntSize(vMapping2);
+                int nVarsNew, Res = Abc_TtSimplify( pTruth, Vec_IntArray(vLeaves), Vec_IntSize(vLeaves), &nVarsNew );
+                Vec_IntShrink( vLeaves, nVarsNew );
+                iLitNew = Gia_ManFromIfLogicCreateLut( pNew, pTruth, vLeaves, vCover, vMapping, vMapping2 );
+                if ( MapSize < Vec_IntSize(vMapping2) )
+                {
+                    assert( Vec_IntEntryLast(vMapping2) == Abc_Lit2Var(iLitNew) );
+                    Vec_IntWriteEntry(vMapping2, Vec_IntSize(vMapping2)-1, -Abc_Lit2Var(iLitNew) );
+                }
+            }
+            else
+                iLitNew = Gia_ManFromIfLogicCreateLut( pNew, pTruth, vLeaves, vCover, vMapping, vMapping2 );
         }
         else if ( Abc_LitIsCompl(iGroup) ) // internal CI
         {
@@ -411,6 +433,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     Vec_IntFree( vMfsTopo );
     Vec_IntFree( vGroupMap );
     Vec_IntFree( vMfs2Gia );
+    Vec_IntFree( vMfs2Old );
     Vec_IntFree( vBoxesLeft );
     return pNew;
 }

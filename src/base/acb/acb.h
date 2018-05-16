@@ -237,7 +237,7 @@ static inline void           Acb_NtkFreeObjCnfs( Acb_Ntk_t * p )             { V
 
 static inline Acb_ObjType_t  Acb_ObjType( Acb_Ntk_t * p, int i )                     { assert(i>0); return (Acb_ObjType_t)(int)(unsigned char)Vec_StrEntry(&p->vObjType, i);                }
 static inline void           Acb_ObjCleanType( Acb_Ntk_t * p, int i )                { assert(i>0); Vec_StrWriteEntry( &p->vObjType, i, (char)ABC_OPER_NONE );                              }
-static inline int            Acb_TypeIsSeq( Acb_ObjType_t Type )                     { return Type >= ABC_OPER_RAM && Type <= ABC_OPER_DFFRS;                                               }
+static inline int            Acb_TypeIsSeq( Acb_ObjType_t Type )                     { return Type >= ABC_OPER_RAM && Type <= ABC_OPER_DFFLAST;                                             }
 static inline int            Acb_TypeIsUnary( Acb_ObjType_t Type )                   { return Type == ABC_OPER_BIT_BUF || Type == ABC_OPER_BIT_INV || Type == ABC_OPER_LOGIC_NOT || Type == ABC_OPER_ARI_MIN || Type == ABC_OPER_ARI_SQRT || Type == ABC_OPER_ARI_ABS || (Type >= ABC_OPER_RED_AND && Type <= ABC_OPER_RED_NXOR);  }
 static inline int            Acb_TypeIsMux( Acb_ObjType_t Type )                     { return Type == ABC_OPER_BIT_MUX || Type == ABC_OPER_SEL_NMUX || Type == ABC_OPER_SEL_SEL || Type == ABC_OPER_SEL_PSEL;  }
 

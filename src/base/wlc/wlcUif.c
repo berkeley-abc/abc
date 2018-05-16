@@ -32,6 +32,51 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Collect adds and mults.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkCollectBoxes( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds )
+{
+    int i, iObj;
+    Vec_Int_t * vBoxes = Vec_IntAlloc( Vec_IntSize(vBoxIds) + 1 );
+    Vec_IntPush( vBoxes, Vec_IntSize(vBoxIds) );
+    Vec_IntForEachEntry( vBoxIds, iObj, i )
+        Vec_IntPush( vBoxes, Wlc_ObjNameId(p, iObj) );
+    Abc_FrameSetBoxes( Vec_IntReleaseArray(vBoxes) );
+    Vec_IntFree( vBoxes );
+}
+Vec_Int_t * Wlc_NtkCollectAddMult( Wlc_Ntk_t * p, Wlc_BstPar_t * pPar, int * pCountA, int * pCountM )
+{
+    Vec_Int_t * vBoxIds;
+    Wlc_Obj_t * pObj;  int i;
+    *pCountA = *pCountM = 0;
+    if ( pPar->nAdderLimit == 0 && pPar->nMultLimit == 0 )
+        return NULL;
+    vBoxIds = Vec_IntAlloc( 100 );
+    Wlc_NtkForEachObj( p, pObj, i )
+    {
+        if ( pObj->Type == WLC_OBJ_ARI_ADD && pPar->nAdderLimit && Wlc_ObjRange(pObj) >= pPar->nAdderLimit )
+            Vec_IntPush( vBoxIds, i ), (*pCountA)++;
+        else if ( pObj->Type == WLC_OBJ_ARI_MULTI && pPar->nMultLimit && Wlc_ObjRange(pObj) >= pPar->nMultLimit )
+            Vec_IntPush( vBoxIds, i ), (*pCountM)++;
+    }
+    if ( Vec_IntSize( vBoxIds ) > 0 )
+    {
+        Wlc_NtkCollectBoxes( p, vBoxIds );
+        return vBoxIds;
+    }
+    Vec_IntFree( vBoxIds );
+    return NULL;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Check if two objects have the same input/output signatures.]
 
   Description []

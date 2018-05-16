@@ -1534,6 +1534,36 @@ static inline int Abc_TtMinimumBase( word * t, int * pSupp, int nVarsAll, int * 
     Abc_TtShrink( t, iVar, nVarsAll, uSupp );
     return 1;
 }
+static inline int Abc_TtSimplify( word * t, int * pLits, int nVarsAll, int * pnVars )
+{
+    int v, u;
+    for ( v = 0; v < nVarsAll; v++ )
+    {
+        if ( pLits[v] == 0 )
+            Abc_TtCofactor0( t, Abc_TtWordNum(nVarsAll), v );
+        else if ( pLits[v] == 1 )
+            Abc_TtCofactor1( t, Abc_TtWordNum(nVarsAll), v );
+    }
+    for ( v = 0;   v < nVarsAll; v++ )
+    for ( u = v+1; u < nVarsAll; u++ )
+        if ( Abc_Lit2Var(pLits[v]) == Abc_Lit2Var(pLits[u]) )
+        {
+            assert( nVarsAll <= 6 );
+            if ( pLits[v] == pLits[u] )
+            {
+                word t0 = Abc_Tt6Cofactor0(Abc_Tt6Cofactor0(*t, v), u);
+                word t1 = Abc_Tt6Cofactor1(Abc_Tt6Cofactor1(*t, v), u);
+                *t = (t0 & s_Truths6Neg[v]) | (t1 & s_Truths6[v]);
+            }
+            else // if ( pLits[v] == Abc_LitNot(pLits[u]) )
+            {
+                word t0 = Abc_Tt6Cofactor1(Abc_Tt6Cofactor0(*t, v), u);
+                word t1 = Abc_Tt6Cofactor0(Abc_Tt6Cofactor1(*t, v), u);
+                *t = (t0 & s_Truths6Neg[v]) | (t1 & s_Truths6[v]);
+            }
+        }
+    return Abc_TtMinimumBase( t, pLits, nVarsAll, pnVars );
+}
 
 /**Function*************************************************************
 

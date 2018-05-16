@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/berkeley-abc/abc.svg?branch=master)](https://travis-ci.org/berkeley-abc/abc)
+[![Build status](https://ci.appveyor.com/api/projects/status/7q8gopidgvyos00d?svg=true)](https://ci.appveyor.com/project/berkeley-abc/abc)
+
 # ABC: System for Sequential Logic Synthesis and Formal Verification
 
 ABC is always changing but the current snapshot is believed to be stable. 
@@ -17,7 +20,7 @@ To build the demo program
 
  * Copy demo.cc and libabc.a to the working directory
  * Run `gcc -Wall -g -c demo.c -o demo.o`
- * Run `gcc -g -o demo demo.o libabc.a -lm -ldl -rdynamic -lreadline -ltermcap -lpthread`
+ * Run `g++ -g -o demo demo.o libabc.a -lm -ldl -lreadline -lpthread`
 
 To run the demo program, give it a file with the logic network in AIGER or BLIF. For example:
 
@@ -63,11 +66,11 @@ The current version of ABC can be compiled with C compiler or C++ compiler.
 ## Bug reporting:
 
 Please try to reproduce all the reported bugs and unexpected features using the latest 
-version of ABC available from https://bitbucket.org/alanmi/abc/
+version of ABC available from https://github.com/berkeley-abc/abc
 
 If the bug still persists, please provide the following information:    
 
- 1. ABC version (when it was downloaded from BitBucket)
+ 1. ABC version (when it was downloaded from GitHub)
  1. Linux distribution and version (32-bit or 64-bit)
  1. The exact command-line and error message when trying to run the tool
  1. The output of the `ldd` command run on the exeutable (e.g. `ldd abc`).
@@ -106,6 +109,4 @@ https://www.dropbox.com/s/qrl9svlf0ylxy8p/ABC_GettingStarted.pdf
 Unfortunately, there is no comprehensive regression test. Good luck!                                
 
 This system is maintained by Alan Mishchenko <alanmi@berkeley.edu>. Consider also 
-using ZZ framework developed by Niklas Een: https://bitbucket.org/niklaseen/abc-zz
-
-This file was last modified on June 18, 2014
+using ZZ framework developed by Niklas Een: https://bitbucket.org/niklaseen/abc-zz (or https://github.com/berkeley-abc/abc-zz)

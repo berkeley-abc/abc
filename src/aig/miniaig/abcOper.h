@@ -138,8 +138,8 @@ typedef enum {
     ABC_OPER_LATCH,        // 86
     ABC_OPER_LATCHRS,      // 87
     ABC_OPER_DFF,          // 88
-    ABC_OPER_DFFCPL,       // 89
-    ABC_OPER_DFFRS,        // 90
+    ABC_OPER_DFFRSE,       // 89
+    ABC_OPER_DFFLAST,      // 90
 
     ABC_OPER_SLICE,        // 91
     ABC_OPER_CONCAT,       // 92
@@ -150,7 +150,9 @@ typedef enum {
     ABC_OPER_ARI_SQUARE,   // 96
     ABC_OPER_CONST,        // 97
 
-    ABC_OPER_LAST          // 98
+    ABC_OPER_ARI_ADDSUB,   // 98
+
+    ABC_OPER_LAST          // 99
 } Acb_ObjType_t; 
 
 
@@ -192,6 +194,7 @@ static inline char * Abc_OperName( int Type )
     if ( Type == ABC_OPER_ARI_ADD      )   return "+";      
     if ( Type == ABC_OPER_ARI_SUB      )   return "-";      
     if ( Type == ABC_OPER_ARI_MUL      )   return "*";      
+    if ( Type == ABC_OPER_ARI_SMUL     )   return "*";      
     if ( Type == ABC_OPER_ARI_DIV      )   return "/";      
     if ( Type == ABC_OPER_ARI_REM      )   return "%";      
     if ( Type == ABC_OPER_ARI_MOD      )   return "mod";    

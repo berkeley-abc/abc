@@ -51,6 +51,7 @@ struct Cec_ParSat_t_
     int              fCheckMiter;   // the circuit is the miter
 //    int              fFirstStop;    // stop on the first sat output
     int              fLearnCls;     // perform clause learning
+    int              fSaveCexes;    // saves counter-examples
     int              fVerbose;      // verbose stats
 };
 

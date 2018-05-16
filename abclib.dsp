@@ -807,6 +807,10 @@ SOURCE=.\src\base\wlc\wlcJson.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wlc\wlcMem.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wlc\wlcNdr.c
 # End Source File
 # Begin Source File
@@ -5016,6 +5020,14 @@ SOURCE=.\src\aig\miniaig\minilut.h
 # Begin Source File
 
 SOURCE=.\src\aig\miniaig\ndr.h
+# End Source File
+# End Group
+# Begin Group "uap"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\aig\uap\uap.h
 # End Source File
 # End Group
 # End Group
