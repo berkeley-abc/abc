@@ -69,6 +69,7 @@ int Ndr_TypeNdr2Wlc( int Type )
     if ( Type == ABC_OPER_LOGIC_AND )     return WLC_OBJ_LOGIC_AND;     // 28: logic AND
     if ( Type == ABC_OPER_LOGIC_OR )      return WLC_OBJ_LOGIC_OR;      // 29: logic OR
     if ( Type == ABC_OPER_LOGIC_XOR )     return WLC_OBJ_LOGIC_XOR;     // 30: logic XOR
+    if ( Type == ABC_OPER_SEL_NMUX )      return WLC_OBJ_MUX;           // 08: multiplexer
     if ( Type == ABC_OPER_COMP_EQU )      return WLC_OBJ_COMP_EQU;      // 31: compare equal
     if ( Type == ABC_OPER_COMP_NOTEQU )   return WLC_OBJ_COMP_NOTEQU;   // 32: compare not equal
     if ( Type == ABC_OPER_COMP_LESS )     return WLC_OBJ_COMP_LESS;     // 33: compare less
@@ -183,7 +184,7 @@ char * Ndr_ObjWriteConstant( unsigned * pBits, int nBits )
 void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
 {
     Wlc_Obj_t * pObj; 
-    int i, k, iFanin, iOutId;
+    int i, k, iFanin, iOutId, Type;
     // create a new module
     void * pDesign = Ndr_Create( 1 );
     int ModId = Ndr_AddModule( pDesign, 1 );
@@ -207,7 +208,11 @@ void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
             Vec_IntPush( vFanins, iFanin );
         if ( pObj->Type == WLC_OBJ_CONST )
             pFunction = Ndr_ObjWriteConstant( (unsigned *)Wlc_ObjFanins(pObj), Wlc_ObjRange(pObj) );
-        Ndr_AddObject( pDesign, ModId, Ndr_TypeWlc2Ndr(pObj->Type), 0,   
+        if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjRange(Wlc_ObjFanin0(pNtk, pObj)) > 1 )
+            Type = ABC_OPER_SEL_NMUX;
+        else
+            Type = Ndr_TypeWlc2Ndr(pObj->Type);
+        Ndr_AddObject( pDesign, ModId, Type, 0,   
             pObj->End, pObj->Beg, pObj->Signed,   
             Vec_IntSize(vFanins), Vec_IntArray(vFanins), 1, &iOutId,  pFunction  ); 
     }
