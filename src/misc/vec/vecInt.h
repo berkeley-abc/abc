@@ -127,7 +127,7 @@ static inline Vec_Int_t * Vec_IntStart( int nSize )
     Vec_Int_t * p;
     p = Vec_IntAlloc( nSize );
     p->nSize = nSize;
-    memset( p->pArray, 0, sizeof(int) * nSize );
+    if ( p->pArray ) memset( p->pArray, 0, sizeof(int) * nSize );
     return p;
 }
 static inline Vec_Int_t * Vec_IntStartFull( int nSize )
@@ -135,7 +135,7 @@ static inline Vec_Int_t * Vec_IntStartFull( int nSize )
     Vec_Int_t * p;
     p = Vec_IntAlloc( nSize );
     p->nSize = nSize;
-    memset( p->pArray, 0xff, sizeof(int) * nSize );
+    if ( p->pArray ) memset( p->pArray, 0xff, sizeof(int) * nSize );
     return p;
 }
 static inline Vec_Int_t * Vec_IntStartRange( int First, int Range )
