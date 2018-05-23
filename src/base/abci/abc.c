@@ -44828,7 +44828,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
 //    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
 //    extern void Gia_ManTisTest( Gia_Man_t * pInit );
-    extern void Gia_StoComputeCuts( Gia_Man_t * p );
+//    extern void Gia_StoComputeCuts( Gia_Man_t * p );
+    extern void Abc_BddGiaTest( Gia_Man_t * pGia, int fVerbose );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
@@ -44945,6 +44946,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 //    pTemp = Slv_ManToAig( pAbc->pGia );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
+    Abc_BddGiaTest( pAbc->pGia, fVerbose );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );
