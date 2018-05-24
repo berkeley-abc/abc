@@ -147,7 +147,7 @@ void Wlc_WriteVerIntVec( FILE * pFile, Wlc_Ntk_t * p, Vec_Int_t * vVec, int Star
 void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
 {
     Wlc_Obj_t * pObj;
-    int i, k, iFanin;
+    int i, k, j, iFanin;
     char Range[100];
     fprintf( pFile, "module %s ( ", p->pName );
     fprintf( pFile, "\n   " );
@@ -245,6 +245,34 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 if ( !k ) continue;
                 fprintf( pFile, "               " );
                 fprintf( pFile, "%d : %s = ", k-1, Wlc_ObjName(p, i) );
+                fprintf( pFile, "%s ;\n", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, k)) );
+            }
+            fprintf( pFile, "             " );
+            fprintf( pFile, "endcase\n" );
+            fprintf( pFile, "           " );
+            fprintf( pFile, "end\n" );
+            continue;
+        }
+        else if ( pObj->Type == WLC_OBJ_SEL )
+        {
+            fprintf( pFile, "%s ;\n", Wlc_ObjName(p, i) );
+            fprintf( pFile, "         " );
+            fprintf( pFile, "always @( " );
+            Wlc_ObjForEachFanin( pObj, iFanin, k )
+                fprintf( pFile, "%s%s", k ? " or ":"", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, k)) );
+            fprintf( pFile, " )\n" );
+            fprintf( pFile, "           " );
+            fprintf( pFile, "begin\n" );
+            fprintf( pFile, "             " );
+            fprintf( pFile, "case ( %s )\n", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, 0)) );
+            Wlc_ObjForEachFanin( pObj, iFanin, k )
+            {
+                if ( !k ) continue;
+                fprintf( pFile, "               " );
+                fprintf( pFile, "%d\'b", Wlc_ObjFaninNum(pObj)-1 );
+                for ( j = Wlc_ObjFaninNum(pObj)-1; j > 0; j-- )
+                    fprintf( pFile, "%d", (int)(j==k) );
+                fprintf( pFile, " : %s = ", Wlc_ObjName(p, i) );
                 fprintf( pFile, "%s ;\n", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, k)) );
             }
             fprintf( pFile, "             " );

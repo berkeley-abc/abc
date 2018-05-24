@@ -70,6 +70,7 @@ int Ndr_TypeNdr2Wlc( int Type )
     if ( Type == ABC_OPER_LOGIC_OR )      return WLC_OBJ_LOGIC_OR;      // 29: logic OR
     if ( Type == ABC_OPER_LOGIC_XOR )     return WLC_OBJ_LOGIC_XOR;     // 30: logic XOR
     if ( Type == ABC_OPER_SEL_NMUX )      return WLC_OBJ_MUX;           // 08: multiplexer
+    if ( Type == ABC_OPER_SEL_SEL )       return WLC_OBJ_SEL;           // 57: selector
     if ( Type == ABC_OPER_COMP_EQU )      return WLC_OBJ_COMP_EQU;      // 31: compare equal
     if ( Type == ABC_OPER_COMP_NOTEQU )   return WLC_OBJ_COMP_NOTEQU;   // 32: compare not equal
     if ( Type == ABC_OPER_COMP_LESS )     return WLC_OBJ_COMP_LESS;     // 33: compare less
@@ -127,6 +128,7 @@ int Ndr_TypeWlc2Ndr( int Type )
     if ( Type == WLC_OBJ_LOGIC_AND )      return ABC_OPER_LOGIC_AND;    // 28: logic AND
     if ( Type == WLC_OBJ_LOGIC_OR )       return ABC_OPER_LOGIC_OR;     // 29: logic OR
     if ( Type == WLC_OBJ_LOGIC_XOR )      return ABC_OPER_LOGIC_XOR;    // 30: logic XOR
+    if ( Type == WLC_OBJ_SEL )            return ABC_OPER_SEL_SEL;      // 57: selector
     if ( Type == WLC_OBJ_COMP_EQU )       return ABC_OPER_COMP_EQU;     // 31: compare equal
     if ( Type == WLC_OBJ_COMP_NOTEQU )    return ABC_OPER_COMP_NOTEQU;  // 32: compare not equal
     if ( Type == WLC_OBJ_COMP_LESS )      return ABC_OPER_COMP_LESS;    // 33: compare less

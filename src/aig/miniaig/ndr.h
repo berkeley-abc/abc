@@ -951,6 +951,61 @@ static inline void Ndr_ModuleTestFlop()
     Ndr_Delete( pDesign );
 }
 
+
+// This testing procedure creates and writes into a Verilog file 
+// the following design composed of one selector
+
+// module sel ( input [3:0] c, input [2:0] d0, input [2:0] d1, input [2:0] d2, input [2:0] d3, input [2:0] out );
+//     wire [2:0] s7 ;
+//     always @( c or d0 or d1 or d2 or d3 )
+//       begin
+//         case ( c )
+//           4'b0001 : s7 = d0 ;
+//           4'b0010 : s7 = d1 ;
+//           4'b0100 : s7 = d2 ;
+//           4'b1000 : s7 = d3 ;
+//         endcase
+//       end
+//     assign  out = s7 ;
+// endmodule
+
+static inline void Ndr_ModuleTestSelSel()
+{
+    // map name IDs into char strings
+    char * ppNames[12] = { NULL, "sel", "c", "d0", "d1", "d2", "d3", "out" };
+    // name IDs
+    int NameIdC      =  2;
+    int NameIdD0     =  3;
+    int NameIdD1     =  4;
+    int NameIdD2     =  5;
+    int NameIdD3     =  6;
+    int NameIdOut    =  7;
+    // array of fanins of node s
+    int Fanins[8] = { NameIdC, NameIdD0, NameIdD1, NameIdD2, NameIdD3 };
+
+    // create a new module
+    void * pDesign = Ndr_Create( 1 );
+
+    int ModuleID = Ndr_AddModule( pDesign, 1 );
+
+    // add objects to the modele
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   3, 0, 0,   0, NULL,      1, &NameIdC,      NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   2, 0, 0,   0, NULL,      1, &NameIdD0,     NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   2, 0, 0,   0, NULL,      1, &NameIdD1,     NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   2, 0, 0,   0, NULL,      1, &NameIdD2,     NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   2, 0, 0,   0, NULL,      1, &NameIdD3,     NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SEL_SEL,  0,   2, 0, 0,   5, Fanins,    1, &NameIdOut,    NULL );
+
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   2, 0, 0,   1, &NameIdOut,0, NULL,          NULL );
+
+    // write Verilog for verification
+    //Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_Write( "sel.ndr", pDesign );
+    Ndr_Delete( pDesign );
+}
+
+
 ABC_NAMESPACE_HEADER_END
 
 #endif
