@@ -1005,6 +1005,38 @@ static inline void Ndr_ModuleTestSelSel()
     Ndr_Delete( pDesign );
 }
 
+// This testing procedure creates and writes into a Verilog file 
+// the following design composed of one decoder
+
+// module dec ( input [1:0] in, output [3:0] out );
+//     wire out0 = ~in[1] & ~in[0] ;
+//     wire out1 = ~in[1] &  in[0] ;
+//     wire out2 =  in[1] & ~in[0] ;
+//     wire out3 =  in[1] &  in[0] ;
+//     assign out = { out3, out2, out1, out0 } ;
+// endmodule
+
+static inline void Ndr_ModuleTestDec()
+{
+    // map name IDs into char strings
+    char * ppNames[12] = { NULL, "dec", "in", "out" };
+    // name IDs
+    int NameIdIn     =  2;
+    int NameIdOut    =  3;
+
+    // create a new module
+    void * pDesign = Ndr_Create( 1 );
+
+    int ModuleID = Ndr_AddModule( pDesign, 1 );
+
+    // add objects to the modele
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   1, 0, 0,   0, NULL,       1, &NameIdIn,     NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SEL_DEC,  0,   3, 0, 0,   1, &NameIdIn,  1, &NameIdOut,    NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdOut, 0, NULL,          NULL );
+
+    Ndr_Write( "dec.ndr", pDesign );
+    Ndr_Delete( pDesign );
+}
 
 ABC_NAMESPACE_HEADER_END
 

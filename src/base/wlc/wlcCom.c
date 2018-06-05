@@ -1676,7 +1676,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Wlc_NtkSimulateTest( (Wlc_Ntk_t *)pAbc->pAbcWlc );
     //pNtk = Wlc_NtkDupSingleNodes( pNtk );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
-    Ndr_ModuleTestSelSel();
+    Ndr_ModuleTestDec();
     //pNtk = Wlc_NtkMemAbstractTest( pNtk );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
     return 0;

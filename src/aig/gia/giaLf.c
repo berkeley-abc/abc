@@ -1542,7 +1542,7 @@ int Lf_ManSetMapRefs( Lf_Man_t * p )
     }
     if ( p->pGia->pManTime != NULL )
     {
-        assert( Gia_ManBufNum(p->pGia) );
+        assert( !Gia_ManBufNum(p->pGia) );
         Tim_ManIncrementTravId( (Tim_Man_t*)p->pGia->pManTime );
         if ( p->pPars->fDoAverage )
             for ( i = 0; i < Gia_ManCoNum(p->pGia); i++ )

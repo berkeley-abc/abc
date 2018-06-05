@@ -100,7 +100,8 @@ typedef enum {
     WLC_OBJ_WRITE,         // 55: write port
     WLC_OBJ_ARI_ADDSUB,    // 56: adder-subtractor
     WLC_OBJ_SEL,           // 57: positionally encoded selector
-    WLC_OBJ_NUMBER         // 57: unused
+    WLC_OBJ_DEC,           // 58: decoder
+    WLC_OBJ_NUMBER         // 59: unused
 } Wlc_ObjType_t;
 // when adding new types, remember to update table Wlc_Names in "wlcNtk.c"
 

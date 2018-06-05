@@ -836,6 +836,18 @@ void Wlc_BlastSquare( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
 }
+void Wlc_BlastDecoder( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, Vec_Int_t * vRes )
+{
+    int i, k, nMints = 1 << nNum;
+    Vec_IntClear( vRes );
+    for ( i = 0; i < nMints; i++ )
+    {
+        int iMint = 1;
+        for ( k = 0; k < nNum; k++ )
+            iMint = Gia_ManHashAnd( pNew, iMint, Abc_LitNotCond(pNum[k], !((i >> k) & 1)) );
+        Vec_IntPush( vRes, iMint );
+    }
+}
 void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla )
 {
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB + 3 );
@@ -1509,6 +1521,15 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         {
             int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRange0, 0 );
             Wlc_BlastSquare( pNew, pArg0, nRange0, vTemp2, vRes );
+            if ( nRange > Vec_IntSize(vRes) )
+                Vec_IntFillExtra( vRes, nRange, 0 );
+            else
+                Vec_IntShrink( vRes, nRange );
+        }
+        else if ( pObj->Type == WLC_OBJ_DEC )
+        {
+            int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRange0, 0 );
+            Wlc_BlastDecoder( pNew, pArg0, nRange0, vTemp2, vRes );
             if ( nRange > Vec_IntSize(vRes) )
                 Vec_IntFillExtra( vRes, nRange, 0 );
             else
