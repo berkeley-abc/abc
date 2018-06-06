@@ -3667,6 +3667,10 @@ SOURCE=.\src\misc\extra\extraUtilMult.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraUtilPath.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraUtilPerm.c
 # End Source File
 # Begin Source File
