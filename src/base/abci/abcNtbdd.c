@@ -254,7 +254,7 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
   SeeAlso     []
 
 ***********************************************************************/
-void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInternal, int fReorder, int fVerbose )
+void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInternal, int fReorder, int fReverse, int fVerbose )
 {
     ProgressBar * pProgress;
     Abc_Obj_t * pObj, * pFanin;
@@ -287,8 +287,7 @@ void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInter
     Abc_NtkForEachCi( pNtk, pObj, i )
         if ( Abc_ObjFanoutNum(pObj) > 0 )
         {
-            bFunc = dd->vars[i];
-//            bFunc = dd->vars[Abc_NtkCiNum(pNtk) - 1 - i];
+            bFunc = fReverse ? dd->vars[Abc_NtkCiNum(pNtk) - 1 - i] : dd->vars[i];
             Abc_ObjSetGlobalBdd( pObj, bFunc );  Cudd_Ref( bFunc );
         }
 

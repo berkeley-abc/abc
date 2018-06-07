@@ -739,7 +739,7 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
     else
         pNtkNew = Abc_NtkStrash( pNtkInit, 0, 1, 0 );
     // collapse the network 
-    pNtkNew = Abc_NtkCollapse( pTemp = pNtkNew, 10000, 0, 1, 0 );
+    pNtkNew = Abc_NtkCollapse( pTemp = pNtkNew, 10000, 0, 1, 0, 0 );
     Abc_NtkDelete( pTemp );
     if ( pNtkNew == NULL )
         return NULL;

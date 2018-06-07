@@ -67,7 +67,7 @@ int Abc_NtkExtractSequentialDcs( Abc_Ntk_t * pNtk, int fVerbose )
     }
 
     // compute the global BDDs of the latches
-    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, fVerbose );    
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, 0, fVerbose );    
     if ( dd == NULL )
         return 0;
     if ( fVerbose )

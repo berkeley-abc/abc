@@ -118,7 +118,7 @@ int Abc_NtkMinimumBase2( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, DdNode * bFunc )
+Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, DdNode * bFunc, int fReverse )
 {
     Abc_Obj_t * pNodeNew, * pTemp;
     int i;
@@ -126,12 +126,12 @@ Abc_Obj_t * Abc_NodeFromGlobalBdds( Abc_Ntk_t * pNtkNew, DdManager * dd, DdNode 
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
     // add the fanins in the order, in which they appear in the reordered manager
     Abc_NtkForEachCi( pNtkNew, pTemp, i )
-        Abc_ObjAddFanin( pNodeNew, Abc_NtkCi(pNtkNew, dd->invperm[i]) );
+        Abc_ObjAddFanin( pNodeNew, Abc_NtkCi(pNtkNew, fReverse ? Abc_NtkCiNum(pNtkNew)-1-dd->invperm[i] : dd->invperm[i]) );
     // transfer the function
     pNodeNew->pData = Extra_TransferLevelByLevel( dd, (DdManager *)pNtkNew->pManFunc, bFunc );  Cudd_Ref( (DdNode *)pNodeNew->pData );
     return pNodeNew;
 }
-Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
+Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk, int fReverse )
 {
     ProgressBar * pProgress;
     Abc_Ntk_t * pNtkNew;
@@ -147,7 +147,7 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
         assert( Abc_NtkIsStrash(pNtk->pExdc) );
         assert( Abc_NtkCoNum(pNtk->pExdc) == 1 );
         // compute the global BDDs
-        if ( Abc_NtkBuildGlobalBdds(pNtk->pExdc, 10000000, 1, 1, 0) == NULL )
+        if ( Abc_NtkBuildGlobalBdds(pNtk->pExdc, 10000000, 1, 1, 0, 0) == NULL )
             return NULL;
         // transfer tot the same manager
         ddExdc = (DdManager *)Abc_NtkGlobalBddMan( pNtk->pExdc );
@@ -188,21 +188,21 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk )
             Abc_ObjAddFanin( pNode->pCopy, pDriver->pCopy );
             continue;
         }
-        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, (DdNode *)Abc_ObjGlobalBdd(pNode) );
+        pNodeNew = Abc_NodeFromGlobalBdds( pNtkNew, dd, (DdNode *)Abc_ObjGlobalBdd(pNode), fReverse );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
 
     }
     Extra_ProgressBarStop( pProgress );
     return pNtkNew;
 }
-Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose )
+Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fReverse, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     abctime clk = Abc_Clock();
 
     assert( Abc_NtkIsStrash(pNtk) );
     // compute the global BDDs
-    if ( Abc_NtkBuildGlobalBdds(pNtk, fBddSizeMax, 1, fReorder, fVerbose) == NULL )
+    if ( Abc_NtkBuildGlobalBdds(pNtk, fBddSizeMax, 1, fReorder, fReverse, fVerbose) == NULL )
         return NULL;
     if ( fVerbose )
     {
@@ -212,7 +212,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
     }
 
     // create the new network
-    pNtkNew = Abc_NtkFromGlobalBdds( pNtk );
+    pNtkNew = Abc_NtkFromGlobalBdds( pNtk, fReverse );
     Abc_NtkFreeGlobalBdds( pNtk, 1 );
     if ( pNtkNew == NULL )
         return NULL;
@@ -236,7 +236,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
 
 #else
 
-Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fVerbose )
+Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fReverse, int fVerbose )
 {
     return NULL;
 }

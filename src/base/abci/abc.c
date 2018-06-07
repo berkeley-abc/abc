@@ -3237,16 +3237,18 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fBddSizeMax;
     int fDualRail;
     int fReorder;
+    int fReverse;
     int c;
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
     fVerbose = 0;
     fReorder = 1;
+    fReverse = 0;
     fDualRail = 0;
     fBddSizeMax = ABC_INFINITY;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Brdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Brodvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3261,14 +3263,17 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( fBddSizeMax < 0 )
                 goto usage;
             break;
+        case 'r':
+            fReorder ^= 1;
+            break;
+        case 'o':
+            fReverse ^= 1;
+            break;
         case 'd':
             fDualRail ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
-            break;
-        case 'r':
-            fReorder ^= 1;
             break;
         case 'h':
             goto usage;
@@ -3291,11 +3296,11 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // get the new network
     if ( Abc_NtkIsStrash(pNtk) )
-        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, fVerbose );
+        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, fReverse, fVerbose );
     else
     {
         pNtk = Abc_NtkStrash( pNtk, 0, 0, 0 );
-        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, fVerbose );
+        pNtkRes = Abc_NtkCollapse( pNtk, fBddSizeMax, fDualRail, fReorder, fReverse, fVerbose );
         Abc_NtkDelete( pNtk );
     }
     if ( pNtkRes == NULL )
@@ -3308,10 +3313,11 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: collapse [-B <num>] [-rdvh]\n" );
+    Abc_Print( -2, "usage: collapse [-B <num>] [-rodvh]\n" );
     Abc_Print( -2, "\t          collapses the network by constructing global BDDs\n" );
     Abc_Print( -2, "\t-B <num>: limit on live BDD nodes during collapsing [default = %d]\n", fBddSizeMax );
     Abc_Print( -2, "\t-r      : toggles dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
+    Abc_Print( -2, "\t-o      : toggles reverse variable ordering [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggles dual-rail collapsing mode [default = %s]\n", fDualRail? "yes": "no" );
     Abc_Print( -2, "\t-v      : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
@@ -13144,7 +13150,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
-    Abc_EnumeratePathsTest();
+//    Abc_EnumeratePathsTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
