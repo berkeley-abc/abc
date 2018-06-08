@@ -1277,7 +1277,7 @@ startword:
         }
         else if ( Wlc_PrsStrCmp( pStart, "ABC_DFFRSE" ) )
         {
-            int NameId[8], fFound, nBits = 1, fFlopIn, fFlopOut, fFlopClk, fFlopRst, fFlopSet, fFlopEna, fFlopAsync, fFlopInit;
+            int NameId[8] = {0}, fFound, fFlopIn, fFlopOut, fFlopClk, fFlopRst, fFlopSet, fFlopEna, fFlopAsync, fFlopInit;
             pStart += strlen("ABC_DFF");
             while ( 1 )
             {

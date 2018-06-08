@@ -1426,7 +1426,7 @@ static void CheckConfig(Abc_TgMan_t * pMan)
 	for (i = 0; i < pMan->nVars; i++)
 	{
 		assert(pPermE[i] == pMan->pPermT[i]);
-		assert(pMan->pPermTRev[pMan->pPermT[i]] == i);
+		assert(pMan->pPermTRev[(int)pMan->pPermT[i]] == i);
 	}
 	assert(Abc_TgCannonVerify(pMan));
 #endif
@@ -1478,11 +1478,11 @@ static void Abc_TgImplementPerm(Abc_TgMan_t* pMan, const char *pPermDest)
 	unsigned uPhase = pMan->uPhase & (1 << nVars);
 
 	for (i = 0; i < nVars; i++)
-		pRev[pPerm[i]] = i;
+		pRev[(int)pPerm[i]] = i;
 	for (i = 0; i < nVars; i++)
-		pPerm[i] = pRev[pPermDest[i]];
+		pPerm[i] = pRev[(int)pPermDest[i]];
 	for (i = 0; i < nVars; i++)
-		pRev[pPerm[i]] = i;
+		pRev[(int)pPerm[i]] = i;
 
 	Abc_TtImplementNpnConfig(pMan->pTruth, nVars, pRev, 0);
 	Abc_TtNormalizeSmallTruth(pMan->pTruth, nVars);
@@ -1492,7 +1492,7 @@ static void Abc_TgImplementPerm(Abc_TgMan_t* pMan, const char *pPermDest)
 		if (pMan->uPhase & (1 << pPerm[i]))
 			uPhase |= (1 << i);
 		pPerm[i] = pPermDest[i];
-		pRev[pPerm[i]] = i;
+		pRev[(int)pPerm[i]] = i;
 	}
 	pMan->uPhase = uPhase;
 }
@@ -1656,7 +1656,7 @@ static int Abc_TgGroupSymmetry(Abc_TgMan_t * pMan, TiedGroup * pGrp, int doHigh)
 //	char * symPhase = pMan->symPhase;
 	int nGVars = pGrp->nGVars;
 	char * pVars = pMan->pPerm + pGrp->iStart;
-	int modified, order = 0;
+	int modified;
 
 	for (i = 0; i < nGVars; i++)
 		fDone[i] = 0, scnt[i] = 1;
@@ -2046,7 +2046,7 @@ static void Abc_TgPhaseEnumeration(Abc_TgMan_t * pMan, Abc_TgMan_t * pBest)
 	for (i = 0; i < n; i++)
 	{
 		char iv = pMan->pPerm[i];		
-		for (j = i; j > 0 && pMan->symPhase[pFGrps[j-1]] > pMan->symPhase[iv]; j--)
+		for (j = i; j > 0 && pMan->symPhase[(int)pFGrps[j-1]] > pMan->symPhase[(int)iv]; j--)
 			pFGrps[j] = pFGrps[j - 1];
 		pFGrps[j] = iv;
 	}

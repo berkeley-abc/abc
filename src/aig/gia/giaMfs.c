@@ -354,7 +354,8 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
             if ( Gia_ObjLutIsMux(p, Vec_IntEntry(vMfs2Old, iMfsId)) )
             {
                 int MapSize = Vec_IntSize(vMapping2);
-                int nVarsNew, Res = Abc_TtSimplify( pTruth, Vec_IntArray(vLeaves), Vec_IntSize(vLeaves), &nVarsNew );
+                int nVarsNew;
+                Abc_TtSimplify( pTruth, Vec_IntArray(vLeaves), Vec_IntSize(vLeaves), &nVarsNew );
                 Vec_IntShrink( vLeaves, nVarsNew );
                 iLitNew = Gia_ManFromIfLogicCreateLut( pNew, pTruth, vLeaves, vCover, vMapping, vMapping2 );
                 if ( MapSize < Vec_IntSize(vMapping2) )

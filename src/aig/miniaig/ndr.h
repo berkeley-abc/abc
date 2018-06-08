@@ -972,7 +972,7 @@ static inline void Ndr_ModuleTestFlop()
 static inline void Ndr_ModuleTestSelSel()
 {
     // map name IDs into char strings
-    char * ppNames[12] = { NULL, "sel", "c", "d0", "d1", "d2", "d3", "out" };
+    //char * ppNames[12] = { NULL, "sel", "c", "d0", "d1", "d2", "d3", "out" };
     // name IDs
     int NameIdC      =  2;
     int NameIdD0     =  3;
@@ -1019,7 +1019,7 @@ static inline void Ndr_ModuleTestSelSel()
 static inline void Ndr_ModuleTestDec()
 {
     // map name IDs into char strings
-    char * ppNames[12] = { NULL, "dec", "in", "out" };
+    //char * ppNames[12] = { NULL, "dec", "in", "out" };
     // name IDs
     int NameIdIn     =  2;
     int NameIdOut    =  3;

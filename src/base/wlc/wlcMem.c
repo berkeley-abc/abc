@@ -827,7 +827,7 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbo
     Vec_Wec_t * vRefines = Vec_WecAlloc( 100 );
     Vec_Int_t * vNodeFrames = Vec_IntAlloc( 100 );
     Vec_Int_t * vMemObjs, * vMemFanins, * vFirstTotal, * vRefine; 
-    int RetValue, iFirstMemPi, iFirstCi, iFirstMemCi, nDcBits, nIters;
+    int RetValue = -1, iFirstMemPi, iFirstCi, iFirstMemCi, nDcBits, nIters;
 
     vMemObjs    = Wlc_NtkCollectMemory( p );
     vMemFanins  = Wlc_NtkCollectMemFanins( p, vMemObjs );
