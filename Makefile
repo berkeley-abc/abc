@@ -119,9 +119,14 @@ GCC_MINOR=$(word 2,$(subst .,$(space),$(GCC_VERSION)))
 
 $(info $(MSG_PREFIX)Found GCC_VERSION $(GCC_VERSION))
 ifeq ($(findstring $(GCC_MAJOR),0 1 2 3),)
-$(info $(MSG_PREFIX)Found GCC_MAJOR>=4)
+ifeq ($(GCC_MAJOR),4)
+$(info $(MSG_PREFIX)Found GCC_MAJOR==4)
 ifeq ($(findstring $(GCC_MINOR),0 1 2 3 4 5),)
 $(info $(MSG_PREFIX)Found GCC_MINOR>=6)
+CFLAGS += -Wno-unused-but-set-variable
+endif
+else
+$(info $(MSG_PREFIX)Found GCC_MAJOR>=5)
 CFLAGS += -Wno-unused-but-set-variable
 endif
 endif
