@@ -375,7 +375,7 @@ void Wlc_BlastAdderCLA_rec( Gia_Man_t * pNew, int * pGen, int * pPro, int * pCar
         Wlc_BlastAdderCLA_one( pNew, pGen2, pPro2, pCar, pGen1, pPro1, pCar+nBits/2 ); // returns *pGen1, *pPro1, pCar[nBits/2]
     }
 }
-void Wlc_BlastAdderCLA_int( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) // result is in pAdd0
+void Wlc_BlastAdderCLA_int( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits, int CarryIn ) // result is in pAdd0
 {
     int * pGen = ABC_CALLOC( int, nBits );
     int * pPro = ABC_CALLOC( int, nBits );
@@ -383,12 +383,12 @@ void Wlc_BlastAdderCLA_int( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBit
     int b, Gen, Pro;
     if ( nBits == 1 )
     {
-        int Carry = 0;
+        int Carry = CarryIn;
         Wlc_BlastFullAdder( pNew, pAdd0[0], pAdd1[0], Carry, &Carry, &pAdd0[0] );
         return;
     }
     assert( nBits >= 2 );
-    pCar[0] = 0;
+    pCar[0] = CarryIn;
     for ( b = 0; b < nBits; b++ )
     {
         pGen[b] = Gia_ManHashAnd(pNew, pAdd0[b], pAdd1[b]);
@@ -401,7 +401,7 @@ void Wlc_BlastAdderCLA_int( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBit
     ABC_FREE(pPro);
     ABC_FREE(pCar);
 }
-void Wlc_BlastAdderCLA( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits, int fSign ) // result is in pAdd0
+void Wlc_BlastAdderCLA( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits, int fSign, int CarryIn ) // result is in pAdd0
 {
     int i, Log2 = Abc_Base2Log(nBits);
     int * pAdd0n = ABC_CALLOC( int, 1<<Log2 );
@@ -416,12 +416,102 @@ void Wlc_BlastAdderCLA( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits, i
         pAdd0n[i] = fSign ? pAdd0[nBits-1] : 0;
         pAdd1n[i] = fSign ? pAdd1[nBits-1] : 0;
     }
-    Wlc_BlastAdderCLA_int( pNew, pAdd0n, pAdd1n, 1<<Log2 );
+    Wlc_BlastAdderCLA_int( pNew, pAdd0n, pAdd1n, 1<<Log2, CarryIn );
     for ( i = 0; i < nBits; i++ )
         pAdd0[i] = pAdd0n[i];
     ABC_FREE(pAdd0n);
     ABC_FREE(pAdd1n);
 }
+
+void Wlc_BlastAdderFast_int( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int Log2, int CarryIn ) // result is in pAdd0
+{
+    int i, b, Gen, Pro, nBits = 1 << Log2;
+    int * pGen = ABC_CALLOC( int, nBits+1 );
+    int * pPro = ABC_CALLOC( int, nBits+1 );
+    int * pPro2= ABC_CALLOC( int, nBits+1 );
+    if ( nBits == 1 )
+    {
+        int Carry = CarryIn;
+        Wlc_BlastFullAdder( pNew, pAdd0[0], pAdd1[0], Carry, &Carry, &pAdd0[0] );
+        ABC_FREE(pGen);
+        ABC_FREE(pPro);
+        ABC_FREE(pPro2);
+        return;
+    }
+    assert( nBits >= 2 );
+    pGen[0] = CarryIn;
+    pPro[0] = 0;
+    pPro2[0]= 0;
+    for ( b = 1; b <= nBits; b++ )
+    {
+        pGen[b] = Gia_ManHashAnd(pNew, pAdd0[b-1], pAdd1[b-1]);
+        pPro[b] = Gia_ManHashXor(pNew, pAdd0[b-1], pAdd1[b-1]);
+        pPro2[b]= pPro[b];
+    }
+    
+    // Han-Carlson adder from http://www.aoki.ecei.tohoku.ac.jp/arith/mg/algorithm.html
+    for ( b = 1; b <= nBits; b += 2 )
+    {
+        Gen = Gia_ManHashOr( pNew, pGen[b], Gia_ManHashAnd(pNew, pPro[b], pGen[b-1]) );
+        Pro = Gia_ManHashAnd(pNew, pPro[b], pPro[b-1]);
+        pPro[b] = Pro;
+        pGen[b] = Gen;
+    }
+    for ( i = 1; i < Log2-1; i++ )
+    {
+        for ( b = 1 + 2*i; b <= nBits; b += 2 )
+        {
+            Gen = Gia_ManHashOr( pNew, pGen[b], Gia_ManHashAnd(pNew, pPro[b], pGen[b-i*2]) );
+            Pro = Gia_ManHashAnd(pNew, pPro[b], pPro[b-i*2]);
+            pPro[b] = Pro;
+            pGen[b] = Gen;
+        }
+    }
+    for ( b = nBits/2 + 1; b <= nBits; b += 2 )
+    {
+        Gen = Gia_ManHashOr( pNew, pGen[b], Gia_ManHashAnd(pNew, pPro[b], pGen[b-nBits/2]) );
+        Pro = Gia_ManHashAnd(pNew, pPro[b], pPro[b-nBits/2]);
+        pPro[b] = Pro;
+        pGen[b] = Gen;
+    }
+    for ( b = 2; b <= nBits; b += 2 )
+    {
+        Gen = Gia_ManHashOr( pNew, pGen[b], Gia_ManHashAnd(pNew, pPro[b], pGen[b-1]) );
+        Pro = Gia_ManHashAnd(pNew, pPro[b], pPro[b-1]);
+        pPro[b] = Pro;
+        pGen[b] = Gen;
+    }
+    
+    for ( b = 0; b < nBits; b++ )
+        pAdd0[b] = Gia_ManHashXor(pNew, pPro2[b+1], pGen[b]);
+    pAdd0[nBits] = pGen[nBits];
+
+    ABC_FREE(pGen);
+    ABC_FREE(pPro);
+    ABC_FREE(pPro2);
+}
+void Wlc_BlastAdderFast( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits, int fSign, int CarryIn ) // result is in pAdd0
+{
+    int i, Log2 = Abc_Base2Log(nBits);
+    int * pAdd0n = ABC_CALLOC( int, (1<<Log2)+1 );
+    int * pAdd1n = ABC_CALLOC( int, (1<<Log2)+1 );
+    for ( i = 0; i < nBits; i++ )
+    {
+        pAdd0n[i] = pAdd0[i];
+        pAdd1n[i] = pAdd1[i];
+    }
+    for ( ; i < (1<<Log2); i++ )
+    {
+        pAdd0n[i] = fSign ? pAdd0[nBits-1] : 0;
+        pAdd1n[i] = fSign ? pAdd1[nBits-1] : 0;
+    }
+    Wlc_BlastAdderFast_int( pNew, pAdd0n, pAdd1n, Log2, CarryIn );
+    for ( i = 0; i <= nBits; i++ )
+        pAdd0[i] = pAdd0n[i];
+    ABC_FREE(pAdd0n);
+    ABC_FREE(pAdd1n);
+}
+
 void Wlc_BlastMinus( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vRes )
 {
     int * pRes  = Wlc_VecCopy( vRes, pNum, nNum );
@@ -781,10 +871,109 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
     Vec_IntPush( vLevel, 0 );
 
     if ( fCla )
-        Wlc_BlastAdderCLA( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes), fSigned );
+        Wlc_BlastAdderCLA( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes), fSigned, 0 );
     else
         Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes), 0 );
 }
+
+int Wlc_BlastAddLevel( Gia_Man_t * pNew, int Start )
+{
+    int i;
+    if ( Start == 0 )
+        Gia_ManCleanLevels( pNew, 5 * Gia_ManObjNum(pNew) );
+    for ( i = Start; i < Gia_ManObjNum(pNew); i++ )
+    {
+        Gia_Obj_t * pObj = Gia_ManObj( pNew, i );
+        if ( Gia_ObjIsAnd(pObj) )
+            Gia_ObjSetAndLevel( pNew, pObj );
+    }
+    return Gia_ManObjNum(pNew);
+}
+void Wlc_IntInsert2( Gia_Man_t * pNew, Vec_Int_t * vProd, int iLit )
+{
+    int i, Entry, Level = Gia_ObjLevelId(pNew, Abc_Lit2Var(iLit));
+    Vec_IntForEachEntryReverse( vProd, Entry, i )
+        if ( Gia_ObjLevelId(pNew, Abc_Lit2Var(Entry)) >= Level )
+            break;
+    Vec_IntInsert( vProd, i + 1, iLit );
+//    Vec_IntForEachEntry( vProd, Entry, i )
+//        printf( "Obj=%d(%d) ", Abc_Lit2Var(Entry), Gia_ObjLevelId(pNew, Abc_Lit2Var(Entry)) );
+//    printf( "\n" );
+}
+void Wlc_IntSortCostReverse( Gia_Man_t * pNew, int * pArray, int nSize )
+{
+    int i, j, best_i;
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( Gia_ObjLevelId(pNew, Abc_Lit2Var(pArray[j])) > Gia_ObjLevelId(pNew, Abc_Lit2Var(pArray[best_i])) )
+                best_i = j;
+        ABC_SWAP( int, pArray[i], pArray[best_i] );
+    }
+}
+void Wlc_BlastReduceMatrix2( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Int_t * vRes, int fSigned, int fCla )
+{
+    Vec_Int_t * vProd, * vTemp;
+    int i, NodeS, NodeC, Node1, Node2, Node3;
+    int Start = Wlc_BlastAddLevel( pNew, 0 );
+    int nSize = Vec_WecSize(vProds);
+    Vec_WecForEachLevel( vProds, vProd, i )
+        Wlc_IntSortCostReverse( pNew, Vec_IntArray(vProd), Vec_IntSize(vProd) );
+    for ( i = 0; i < nSize; i++ )
+    {
+        while ( 1 )
+        {
+            vProd = Vec_WecEntry( vProds, i );
+            if ( Vec_IntSize(vProd) < 3 )
+                break;
+
+            Node1  = Vec_IntPop( vProd );
+            Node2  = Vec_IntPop( vProd );
+            Node3  = Vec_IntPop( vProd );
+
+            assert( Gia_ObjLevelId(pNew, Abc_Lit2Var(Node3)) >= Gia_ObjLevelId(pNew, Abc_Lit2Var(Node2)) );
+            assert( Gia_ObjLevelId(pNew, Abc_Lit2Var(Node2)) >= Gia_ObjLevelId(pNew, Abc_Lit2Var(Node1)) );
+
+            Wlc_BlastFullAdder( pNew, Node1, Node2, Node3, &NodeC, &NodeS );
+            Start = Wlc_BlastAddLevel( pNew, Start );
+
+            Wlc_IntInsert2( pNew, vProd, NodeS );
+
+            vProd  = Vec_WecEntry( vProds, i+1 );
+            Wlc_IntInsert2( pNew, vProd, NodeC );
+        }
+    }
+
+    // make all ranks have two products
+    for ( i = 0; i < nSize; i++ )
+    {
+        vProd  = Vec_WecEntry( vProds, i );
+        while ( Vec_IntSize(vProd) < 2 )
+            Vec_IntPush( vProd, 0 );
+        assert( Vec_IntSize(vProd) == 2 );
+    }
+//    Vec_WecPrint( vProds, 0 );
+
+    Vec_IntClear( vRes );
+    vTemp = Vec_IntAlloc( 100 );
+    for ( i = 0; i < nSize; i++ )
+    {
+        vProd  = Vec_WecEntry( vProds, i );
+        Vec_IntPush( vRes,  Vec_IntEntry(vProd, 0) );
+        Vec_IntPush( vTemp, Vec_IntEntry(vProd, 1) );
+    }
+    Vec_IntPush( vRes,  0 );
+    Vec_IntPush( vTemp, 0 );
+
+    if ( fCla )
+        Wlc_BlastAdderCLA( pNew, Vec_IntArray(vRes), Vec_IntArray(vTemp), Vec_IntSize(vRes), fSigned, 0 );
+    else
+        Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vTemp), Vec_IntSize(vRes), 0 );
+    Vec_IntFree( vTemp );
+}
+
+
 void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla )
 {
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
@@ -807,6 +996,7 @@ void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA
     }
 
     Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, fSigned, fCla );
+//    Wlc_BlastReduceMatrix2( pNew, vProds, vRes, fSigned, fCla );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
@@ -918,6 +1108,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
     //Wlc_BlastPrintMatrix( pNew, vProds );
     //printf( "Cutoff ID for partial products = %d.\n", Gia_ManObjNum(pNew) );
     Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, fSigned, fCla );
+//    Wlc_BlastReduceMatrix2( pNew, vProds, vRes, fSigned, fCla );
 
     Vec_WecFree( vProds );
     Vec_WecFree( vLevels );
@@ -1439,9 +1630,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             if ( pObj->Type == WLC_OBJ_ARI_ADD )
             {
                 if ( pPar->fCla )
-                    Wlc_BlastAdderCLA( pNew, pArg0, pArg1, nRange, Wlc_ObjIsSignedFanin01(p, pObj) ); // result is in pFan0 (vRes)
+                    Wlc_BlastAdderCLA( pNew, pArg0, pArg1, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj), CarryIn ); // result is in pFan0 (vRes)
+                    //Wlc_BlastAdderFast( pNew, pArg0, pArg1, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj), CarryIn ); // result is in pFan0 (vRes)
                 else
-                    Wlc_BlastAdder( pNew, pArg0, pArg1, nRange, CarryIn ); // result is in pFan0 (vRes)
+                    Wlc_BlastAdder( pNew, pArg0, pArg1, nRangeMax, CarryIn ); // result is in pFan0 (vRes)
             }
             else 
                 Wlc_BlastSubtract( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
