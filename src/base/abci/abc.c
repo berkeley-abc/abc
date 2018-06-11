@@ -315,6 +315,7 @@ static int Abc_CommandInsWin                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandPermute                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnpermute              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCubeEnum               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPathEnum               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1001,6 +1002,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "permute",       Abc_CommandPermute,          1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "unpermute",     Abc_CommandUnpermute,        1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "cubeenum",      Abc_CommandCubeEnum,         0 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "pathenum",      Abc_CommandPathEnum,         0 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dcec",          Abc_CommandDCec,             0 );
@@ -12945,7 +12947,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nCutMax      =  1;
     int nLeafMax     =  4;
     int nDivMax      =  2;
-    int nDecMax      = 70;
+    int nDecMax      =  3;
     int nNumOnes     =  4;
     int fNewAlgo     =  0;
     int fNewOrder    =  0;
@@ -13150,7 +13152,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
-//    Abc_EnumeratePathsTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -22821,6 +22822,63 @@ usage:
     Abc_Print( -2, "\t         enumerates reachable states of 2x2x2 cube\n" );
     Abc_Print( -2, "\t         (http://en.wikipedia.org/wiki/Pocket_Cube)\n" );
     Abc_Print( -2, "\t-z     : toggle using ZDD-based algorithm [default = %s]\n", fZddAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPathEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_EnumerateFrontierTest( int nSize );
+    int c, nSize = 4, fZddAlgo = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nzvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSize < 0 )
+                goto usage;
+            break;
+        case 'z':
+            fZddAlgo ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+    Abc_EnumerateFrontierTest( nSize );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: pathenum [-N num] [-vh]\n" );
+    Abc_Print( -2, "\t         enumerates self-avoiding paths on the NxN grid\n" );
+    Abc_Print( -2, "\t-N num : the size of the grid to consider [default = %d]\n", nSize );
+//    Abc_Print( -2, "\t-z     : toggle using ZDD-based algorithm [default = %s]\n", fZddAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
