@@ -207,9 +207,15 @@ static inline void Ndr_DataPushArray( Ndr_Data_t * p, int Type, int nArray, int 
 }
 static inline void Ndr_DataPushString( Ndr_Data_t * p, int Type, char * pFunc )
 { 
+    int nBuffInts;
+    int * pBuff;
     if ( !pFunc )
         return;
-    Ndr_DataPushArray( p, Type, ((int)strlen(pFunc) + 4) / 4, (int *)pFunc );
+    nBuffInts = ((int)strlen(pFunc) + 4) / 4;
+    pBuff = (int *)calloc( 1, 4*nBuffInts );
+    memcpy( pBuff, pFunc, strlen(pFunc) );
+    Ndr_DataPushArray( p, Type, nBuffInts, pBuff );
+    free( pBuff );
 }
 
 ////////////////////////////////////////////////////////////////////////
