@@ -42775,11 +42775,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_PolynBuild2Test( Gia_Man_t * pGia, int nExtra, int fSigned, int fVerbose, int fVeryVerbose );
-    Vec_Int_t * vOrder = NULL;
-    int c, nExtra = -1, fOld = 0, fSimple = 1, fSigned = 0, fVerbose = 0, fVeryVerbose = 0;
+    extern void Gia_PolynBuild2Test( Gia_Man_t * pGia, char * pSign, int nExtra, int fSigned, int fVerbose, int fVeryVerbose );
+    Vec_Int_t * vOrder = NULL; char * pSign = NULL;
+    int c, nExtra = 0, fOld = 0, fSimple = 1, fSigned = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Noasvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NSoasvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -42793,6 +42793,15 @@ int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nExtra < 0 )
                 goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a char string without spaces.\n" );
+                goto usage;
+            }
+            pSign = argv[globalUtilOptind];
+            globalUtilOptind++;
             break;
         case 'o':
             fOld ^= 1;
@@ -42820,6 +42829,11 @@ int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Esop(): There is no AIG.\n" );
         return 0;
     }
+    if ( argc >= globalUtilOptind + 1 )
+    {
+        printf( "Trailing symbols on the command line (\"%s\").\n", argv[globalUtilOptind] );
+        return 0;
+    }
     if ( fOld )
     {
         vOrder = fSimple ? NULL : Gia_PolynReorder( pAbc->pGia, fVerbose, fVeryVerbose );
@@ -42827,11 +42841,11 @@ int Abc_CommandAbc9Polyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_IntFreeP( &vOrder );
     }
     else
-        Gia_PolynBuild2Test( pAbc->pGia, nExtra, fSigned, fVerbose, fVeryVerbose );
+        Gia_PolynBuild2Test( pAbc->pGia, pSign, nExtra, fSigned, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &polyn [-N num] [-oasvwh]\n" );
+    Abc_Print( -2, "usage: &polyn [-N num] [-oasvwh] [-S str]\n" );
     Abc_Print( -2, "\t         derives algebraic polynomial from AIG\n" );
     Abc_Print( -2, "\t-N num : the number of additional primary outputs (-1 = unused) [default = %d]\n", nExtra );
     Abc_Print( -2, "\t-o     : toggles old computation [default = %s]\n",  fOld? "yes": "no" );
@@ -42840,6 +42854,18 @@ usage:
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggles printing very verbose information [default = %s]\n",  fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t\n");
+    Abc_Print( -2, "\t-S str : (optional) the output signature as a character string\n" );
+    Abc_Print( -2, "\t         The format used to represent the output signature is very restrictive.\n" );
+    Abc_Print( -2, "\t         It should be a string without spaces containing monomials in terms of\n" );
+    Abc_Print( -2, "\t         inputs (i<num>) and outputs (o<num>) where <num> is 0-based. Coefficients\n" );
+    Abc_Print( -2, "\t         are degrees of two, represented by log2 of their value: for example, \n" );
+    Abc_Print( -2, "\t         \"2\" is 2^2 = 4, \"-4\" is -2^4=-16, \"-0\" is -2^0=-1, etc\n" );
+    Abc_Print( -2, "\t         Two types of signature are accepted:\n" );
+    Abc_Print( -2, "\t         (1) a sequence of monomials without parentheses (for example, \"-2*o0+1*o1+0*o2\")\n" );
+    Abc_Print( -2, "\t         (2) a product of two sequences followed by a sum with a sequence\n" );
+    Abc_Print( -2, "\t             (for example, \"(4*o0+2*o1+1*o2)*(4*i3+2*i4+1*i5)+(4*o3+2*o4+1*o5)\")\n" );
+    Abc_Print( -2, "\t         Here is the signature of a signed 2-bit multiplier: \"(0*o0+1*o1+2*o2-3*o3)\"\n" );
     return 1;
 }
 
