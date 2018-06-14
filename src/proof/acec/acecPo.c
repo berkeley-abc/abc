@@ -98,7 +98,7 @@ Vec_Wec_t * Acec_ParseDistribute( Vec_Wec_t * vM1, Vec_Wec_t * vM2, Vec_Wec_t * 
             Vec_IntPush(vLevel, Entry);
         Vec_IntForEachEntryStop( vLevel2, Entry, n, Vec_IntSize(vLevel2)-1 )
             Vec_IntPush(vLevel, Entry);
-        Vec_IntPush(vLevel, Vec_IntEntryLast(vLevel1)+Vec_IntEntryLast(vLevel2));
+        Vec_IntPush(vLevel, Vec_IntEntryLast(vLevel1)+Vec_IntEntryLast(vLevel2)-1);
     }
     Vec_WecForEachLevel( vAdd, vLevel1, k )
     {
