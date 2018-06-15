@@ -345,9 +345,9 @@ void Wlc_BlastAdder( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits, int 
     for ( b = 0; b < nBits; b++ )
         Wlc_BlastFullAdder( pNew, pAdd0[b], pAdd1[b], Carry, &Carry, &pAdd0[b] );
 }
-void Wlc_BlastSubtract( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits ) // result is in pAdd0
+void Wlc_BlastSubtract( Gia_Man_t * pNew, int * pAdd0, int * pAdd1, int nBits, int Carry ) // result is in pAdd0
 {
-    int b, Carry = 1;
+    int b;
     for ( b = 0; b < nBits; b++ )
         Wlc_BlastFullAdder( pNew, pAdd0[b], Abc_LitNot(pAdd1[b]), Carry, &Carry, &pAdd0[b] );
 }
@@ -1138,8 +1138,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     Wlc_Obj_t * pObj, * pObj2;
     Vec_Int_t * vBits = &p->vBits, * vTemp0, * vTemp1, * vTemp2, * vRes, * vAddOutputs = NULL, * vAddObjs = NULL;
     int nBits = Wlc_NtkPrepareBits( p );
-    int nRange, nRange0, nRange1, nRange2;
-    int i, k, b, iFanin, iLit, nAndPrev, * pFans0, * pFans1, * pFans2;
+    int nRange, nRange0, nRange1, nRange2, nRange3;
+    int i, k, b, iFanin, iLit, nAndPrev, * pFans0, * pFans1, * pFans2, * pFans3;
     int nFFins = 0, nFFouts = 0, curPi = 0, curPo = 0;
     int nBitCis = 0, nBitCos = 0, fAdded = 0;
     Wlc_BstPar_t Par, * pPar = &Par;
@@ -1209,9 +1209,11 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         nRange0 = Wlc_ObjFaninNum(pObj) > 0 ? Wlc_ObjRange( Wlc_ObjFanin0(p, pObj) ) : -1;
         nRange1 = Wlc_ObjFaninNum(pObj) > 1 ? Wlc_ObjRange( Wlc_ObjFanin1(p, pObj) ) : -1;
         nRange2 = Wlc_ObjFaninNum(pObj) > 2 ? Wlc_ObjRange( Wlc_ObjFanin2(p, pObj) ) : -1;
+        nRange3 = Wlc_ObjFaninNum(pObj) > 3 ? Wlc_ObjRange( Wlc_ObjFanin(p, pObj, 3) ) : -1;
         pFans0  = Wlc_ObjFaninNum(pObj) > 0 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId0(pObj)) ) : NULL;
         pFans1  = Wlc_ObjFaninNum(pObj) > 1 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId1(pObj)) ) : NULL;
         pFans2  = Wlc_ObjFaninNum(pObj) > 2 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId2(pObj)) ) : NULL;
+        pFans3  = Wlc_ObjFaninNum(pObj) > 3 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId(pObj,3)) ) : NULL;
         Vec_IntClear( vRes );
         assert( nRange > 0 );
         if ( pPar->vBoxIds && pObj->Mark )
@@ -1280,7 +1282,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 if ( pObj->Type == WLC_OBJ_ARI_ADD )
                     Wlc_BlastAdder( pExtra, pArg0, pArg1, nRange, CarryIn ); // result is in pFan0 (vRes)
                 else 
-                    Wlc_BlastSubtract( pExtra, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
+                    Wlc_BlastSubtract( pExtra, pArg0, pArg1, nRange, 1 ); // result is in pFan0 (vRes)
                 Vec_IntShrink( vRes, nRange );
             }
             else if ( fUseOldMultiplierBlasting )
@@ -1636,8 +1638,22 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                     Wlc_BlastAdder( pNew, pArg0, pArg1, nRangeMax, CarryIn ); // result is in pFan0 (vRes)
             }
             else 
-                Wlc_BlastSubtract( pNew, pArg0, pArg1, nRange ); // result is in pFan0 (vRes)
+                Wlc_BlastSubtract( pNew, pArg0, pArg1, nRange, 1 ); // result is in pFan0 (vRes)
             Vec_IntShrink( vRes, nRange );
+        }
+        else if ( pObj->Type == WLC_OBJ_ARI_ADDSUB ) 
+        {
+            int nRangeMax = Abc_MaxInt( nRange, Abc_MaxInt(nRange2, nRange3) );
+            int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans2, nRange2, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
+            int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans2, nRange2, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
+            int * pArg2 = Wlc_VecLoadFanins( vTemp2, pFans3, nRange3, nRangeMax, Wlc_ObjIsSignedFanin01(p, pObj) );
+            int ModeIn   = pFans0[0];
+            int CarryIn  = pFans1[0]; int j;
+            Wlc_BlastAdder   ( pNew, pArg0, pArg2, nRangeMax, CarryIn ); // result is in pArg0 (vTemp0)
+            Wlc_BlastSubtract( pNew, pArg1, pArg2, nRangeMax, Abc_LitNot(CarryIn) ); // result is in pArg1 (vTemp1)
+            Vec_IntClear( vRes );
+            for ( j = 0; j < nRange; j++ )
+                Vec_IntPush( vRes, Gia_ManHashMux(pNew, ModeIn, pArg0[j], pArg1[j]) ); 
         }
         else if ( pObj->Type == WLC_OBJ_ARI_MULTI )
         {

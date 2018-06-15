@@ -1044,6 +1044,42 @@ static inline void Ndr_ModuleTestDec()
     Ndr_Delete( pDesign );
 }
 
+// This testing procedure creates and writes into a Verilog file 
+// the following design composed of one adder/subtractor
+
+// module addsub ( input mode, input cin, input [2:0] a, input [2:0] b, output [3:0] out );
+//     assign out = mode ? a+b+cin : a-b-cin ;
+// endmodule
+
+static inline void Ndr_ModuleTestAddSub()
+{
+    // map name IDs into char strings
+    //char * ppNames[12] = { NULL, "addsub", "mode", "cin", "a", "b", "out" };
+    // name IDs
+    int NameIdInMode =  2;
+    int NameIdInCin  =  3;
+    int NameIdInA    =  4;
+    int NameIdInB    =  5;
+    int NameIdOut    =  6;
+    int Fanins[8] = { 2, 3, 4, 5 };
+
+    // create a new module
+    void * pDesign = Ndr_Create( 1 );
+
+    int ModuleID = Ndr_AddModule( pDesign, 1 );
+
+    // add objects to the modele
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,          0,   0, 0, 0,   0, NULL,       1, &NameIdInMode, NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,          0,   0, 0, 0,   0, NULL,       1, &NameIdInCin,  NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,          0,   2, 0, 0,   0, NULL,       1, &NameIdInA,    NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,          0,   2, 0, 0,   0, NULL,       1, &NameIdInB,    NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_ARI_ADDSUB,  0,   3, 0, 0,   4, Fanins,     1, &NameIdOut,    NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,          0,   3, 0, 0,   1, &NameIdOut, 0, NULL,          NULL );
+
+    Ndr_Write( "addsub.ndr", pDesign );
+    Ndr_Delete( pDesign );
+}
+
 ABC_NAMESPACE_HEADER_END
 
 #endif

@@ -318,6 +318,20 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             fprintf( pFile, " } ;\n" );
             continue;
         }
+        else if ( pObj->Type == WLC_OBJ_ARI_ADDSUB )
+        {
+            // out = mode ? a+b+cin : a-b-cin
+            int nRange = Wlc_ObjRange(Wlc_ObjFanin0(p, pObj));
+            fprintf( pFile, "%s ;\n", Wlc_ObjName(p, i) );
+            fprintf( pFile, "         " );
+            fprintf( pFile, "assign " );
+            fprintf( pFile, "%s = %s ? %s + %s + %s : %s - %s - %s ;\n", 
+                        Wlc_ObjName(p, i), Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)),
+                        Wlc_ObjName(p, Wlc_ObjFaninId2(pObj)), Wlc_ObjName(p, Wlc_ObjFaninId(pObj,3)), Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)),
+                        Wlc_ObjName(p, Wlc_ObjFaninId2(pObj)), Wlc_ObjName(p, Wlc_ObjFaninId(pObj,3)), Wlc_ObjName(p, Wlc_ObjFaninId1(pObj)) 
+                   );
+            continue;
+        }
         else if ( pObj->Type == WLC_OBJ_READ || pObj->Type == WLC_OBJ_WRITE )
         {
             if ( p->fMemPorts )
