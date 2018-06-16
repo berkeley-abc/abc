@@ -321,7 +321,6 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
         else if ( pObj->Type == WLC_OBJ_ARI_ADDSUB )
         {
             // out = mode ? a+b+cin : a-b-cin
-            int nRange = Wlc_ObjRange(Wlc_ObjFanin0(p, pObj));
             fprintf( pFile, "%s ;\n", Wlc_ObjName(p, i) );
             fprintf( pFile, "         " );
             fprintf( pFile, "assign " );

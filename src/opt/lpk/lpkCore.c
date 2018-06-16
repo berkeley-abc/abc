@@ -451,6 +451,7 @@ p->timeTruth3 += Abc_Clock() - clk;
                 printf( "%c=%d ", 'a'+k, Abc_ObjLevel(pLeaf) );
             printf( "\n" );
             Kit_DsdPrintFromTruth( pTruth, pCut->nLeaves );
+            printf( "\n" );
 //            pFileName = Kit_TruthDumpToFile( pTruth, pCut->nLeaves, Count++ );
 //            printf( "Saved truth table in file \"%s\".\n", pFileName );
         }
