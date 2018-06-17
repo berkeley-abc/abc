@@ -35,6 +35,133 @@ ABC_NAMESPACE_IMPL_START
 
 /**Function*************************************************************
 
+  Synopsis    [Memory blasting.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkMemBlast_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins )
+{
+    Wlc_Obj_t * pObj;
+    int i, iFanin;
+    if ( Wlc_ObjCopy(p, iObj) )
+        return;
+    pObj = Wlc_NtkObj( p, iObj );
+    Wlc_ObjForEachFanin( pObj, iFanin, i )
+        Wlc_NtkMemBlast_rec( pNew, p, iFanin, vFanins );
+    if ( pObj->Type == WLC_OBJ_WRITE )
+    {
+        Vec_Int_t * vTemp = Vec_IntAlloc( 1 );
+        Vec_Int_t * vBits = Vec_IntAlloc( 100 );
+        Wlc_Obj_t * pMem  = Wlc_ObjFanin0(p, pObj);
+        Wlc_Obj_t * pAddr = Wlc_ObjFanin1(p, pObj);
+        Wlc_Obj_t * pData = Wlc_ObjFanin2(p, pObj);
+        int DataW = Wlc_ObjRange(pData);
+        int AddrW = Wlc_ObjRange(pAddr);
+        int nRegs = 1 << AddrW, iObjNew, iObjDec;
+        assert( nRegs * DataW == Wlc_ObjRange(pMem) );
+        assert( Wlc_ObjRange(pObj) == Wlc_ObjRange(pMem) );
+        // create decoder
+        iObjDec = Wlc_ObjAlloc( pNew, WLC_OBJ_DEC, 0, nRegs-1, 0 );
+        Vec_IntFill( vTemp, 1, Wlc_ObjCopy(p, Wlc_ObjId(p, pAddr)) );
+        Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObjDec), vTemp );
+        // create decoder bits
+        for ( i = 0; i < nRegs; i++ )
+        {
+            int iObj2 = Wlc_ObjAlloc( pNew, WLC_OBJ_BIT_SELECT, 0, i, i );
+            Vec_IntFill( vTemp, 1, iObjDec );
+            Vec_IntPushTwo( vTemp, i, i );
+            Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObj2), vTemp );
+            Vec_IntPush( vBits, iObj2 );
+        }
+        // create data words
+        Vec_IntClear( vFanins );
+        for ( i = 0; i < nRegs; i++ )
+        {
+            int iObj2 = Wlc_ObjAlloc( pNew, WLC_OBJ_BIT_SELECT, 0, i*DataW+DataW-1, i*DataW );
+            Vec_IntFill( vTemp, 1, Wlc_ObjCopy(p, Wlc_ObjId(p, pMem)) );
+            Vec_IntPushTwo( vTemp, i*DataW+DataW-1, i*DataW );
+            Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObj2), vTemp );
+            Vec_IntPush( vFanins, iObj2 );
+        }
+        // create MUXes of data words controlled by decoder bits
+        for ( i = 0; i < nRegs; i++ )
+        {
+            int iObj2 = Wlc_ObjAlloc( pNew, WLC_OBJ_MUX, 0, DataW-1, 0 );
+            Vec_IntFill( vTemp, 1, Vec_IntEntry(vBits, i) );
+            Vec_IntPushTwo( vTemp, Wlc_ObjCopy(p, Wlc_ObjId(p, pData)), Vec_IntEntry(vFanins, i) );
+            Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObj2), vTemp );
+            Vec_IntWriteEntry( vFanins, i, iObj2 );
+        }
+        // concatenate the results
+        iObjNew = Wlc_ObjAlloc( pNew, WLC_OBJ_BIT_CONCAT, 0, nRegs*DataW-1, 0 );
+        Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObjNew), vFanins );
+        Wlc_ObjSetCopy( p, iObj, iObjNew );
+        Vec_IntFree( vTemp );
+        Vec_IntFree( vBits );
+    }
+    else if ( pObj->Type == WLC_OBJ_READ )
+    {
+        Vec_Int_t * vTemp = Vec_IntAlloc( 1 );
+        Wlc_Obj_t * pMem  = Wlc_ObjFanin0(p, pObj);
+        Wlc_Obj_t * pAddr = Wlc_ObjFanin1(p, pObj);
+        int DataW = Wlc_ObjRange(pObj);
+        int AddrW = Wlc_ObjRange(pAddr);
+        int nRegs = 1 << AddrW, iObjNew;
+        assert( nRegs * DataW == Wlc_ObjRange(pMem) );
+        Vec_IntClear( vFanins );
+        Vec_IntPush( vFanins, Wlc_ObjCopy(p, Wlc_ObjId(p, pAddr)) );
+        for ( i = 0; i < nRegs; i++ )
+        {
+            int iObj2 = Wlc_ObjAlloc( pNew, WLC_OBJ_BIT_SELECT, 0, i*DataW+DataW-1, i*DataW );
+            Vec_IntFill( vTemp, 1, Wlc_ObjCopy(p, Wlc_ObjId(p, pMem)) );
+            Vec_IntPushTwo( vTemp, i*DataW+DataW-1, i*DataW );
+            Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObj2), vTemp );
+            Vec_IntPush( vFanins, iObj2 );
+        }
+        iObjNew = Wlc_ObjAlloc( pNew, WLC_OBJ_MUX, 0, DataW-1, 0 );
+        Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObjNew), vFanins );
+        Wlc_ObjSetCopy( p, iObj, iObjNew );
+        Vec_IntFree( vTemp );
+    }
+    else
+        Wlc_ObjDup( pNew, p, iObj, vFanins );
+}
+Wlc_Ntk_t * Wlc_NtkMemBlast( Wlc_Ntk_t * p )
+{
+    Wlc_Ntk_t * pNew;
+    Wlc_Obj_t * pObj;
+    Vec_Int_t * vFanins;
+    int i;
+    Wlc_NtkCleanCopy( p );
+    vFanins = Vec_IntAlloc( 100 );
+    pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
+    pNew->fSmtLib = p->fSmtLib;
+    pNew->fMemPorts = p->fMemPorts;
+    pNew->fEasyFfs = p->fEasyFfs;
+    Wlc_NtkForEachCi( p, pObj, i )
+        Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_NtkMemBlast_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
+    if ( p->vInits )
+    pNew->vInits = Vec_IntDup( p->vInits );
+    if ( p->pInits )
+    pNew->pInits = Abc_UtilStrsav( p->pInits );
+    Vec_IntFree( vFanins );
+    if ( p->pSpec )
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    return pNew;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Collect memory nodes.]
 
   Description []

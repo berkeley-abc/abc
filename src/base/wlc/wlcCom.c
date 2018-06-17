@@ -38,6 +38,7 @@ static int  Abc_CommandPdrAbs     ( Abc_Frame_t * pAbc, int argc, char ** argv )
 static int  Abc_CommandAbs2       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandMemAbs     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandBlastMem   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandGraft      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandProfile    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandShortNames ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -82,6 +83,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%abs2",        Abc_CommandAbs2,       0 );
     Cmd_CommandAdd( pAbc, "Word level", "%memabs",      Abc_CommandMemAbs,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",       Abc_CommandBlast,      0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%blastmem",    Abc_CommandBlastMem,   0 );
     Cmd_CommandAdd( pAbc, "Word level", "%graft",       Abc_CommandGraft,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%profile",     Abc_CommandProfile,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%short_names", Abc_CommandShortNames, 0 );
@@ -1100,6 +1102,52 @@ usage:
     Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n",                        pPar->fCreateMiter? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating decoded MUXes [default = %s]\n",                            pPar->fDecMuxes? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                      pPar->fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandBlastMem( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Wlc_Ntk_t * Wlc_NtkMemBlast( Wlc_Ntk_t * p );
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandGraft(): There is no current design.\n" );
+        return 0;
+    }
+    pNtk = Wlc_NtkMemBlast( pNtk );
+    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%blastmem [-vh]\n" );
+    Abc_Print( -2, "\t         performs blasting of memory read/write ports\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

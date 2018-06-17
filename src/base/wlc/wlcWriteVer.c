@@ -475,7 +475,8 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                     fprintf( pFile, "#" );
                 else 
                 {
-                    assert( 0 );
+                    //assert( 0 );
+                    printf( "Failed to write node \"%s\" with unknown operator type (%d).\n", Wlc_ObjName(p, i), pObj->Type );
                     fprintf( pFile, "???\n" );
                     continue;
                 }

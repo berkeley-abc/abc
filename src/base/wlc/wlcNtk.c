@@ -640,6 +640,11 @@ void Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
         printf( "FO\n" );
         return;
     }
+    if ( pObj->Type != WLC_OBJ_CONST && Wlc_ObjFaninNum(pObj) == 0 )
+    {
+        printf( "Unknown object without fanins\n" );
+        return;
+    }
     if ( pObj->Type != WLC_OBJ_CONST )
     {
         printf( "%6d%s  %5s  ",  Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)), Wlc_ObjIsSigned(Wlc_ObjFanin0(p, pObj)) ? "s" : " ", Wlc_Names[(int)pObj->Type] );
