@@ -25,6 +25,13 @@
 #include "aig/gia/gia.h"
 #include "misc/vec/vecHsh.h"
 
+#include <math.h>
+#include "sat/bmc/bmc.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satStore.h"
+#include "misc/extra/extra.h"
+
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -512,6 +519,83 @@ void Abc_EnumerateFrontierTest( int nSize )
     Vec_WecFree( vFronts );
     Vec_IntFree( vLife );
     Vec_IntFree( vEdges );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Performs SAT-based path enumeration.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+double Abc_Word2Double( word w )
+{
+    double Res = 0;  int i;
+    for ( i = 0; i < 64; i++ )
+        if ( (w >> i) & 1 )
+            Res += pow(2,i);
+    return Res;
+}
+void Abc_GraphSolve( Gia_Man_t * pGia )
+{
+    int nIters = 1000;
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pGia, 8, 0, 1, 0, 0 );
+    sat_solver * pSat; Vec_Int_t * vLits = Vec_IntAlloc( 100 );
+    int i, k, iLit, nVars = Gia_ManCiNum(pGia);
+    int iCiVarBeg = pCnf->nVars - nVars;
+    word Total = 0;
+    word Mint1 = 0;
+    word Mint2 = 0;
+
+    // restart the SAT solver
+    pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, pCnf->nVars );
+    // add timeframe clauses
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !sat_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+            assert( 0 );
+    // create trivial assignment
+    Vec_IntClear( vLits );
+    for ( k = 0; k < nVars; k++ )
+        Vec_IntPush( vLits, Abc_Var2Lit(iCiVarBeg+k, 1) );
+    // generate random assignment
+    for ( i = 0; i < nIters; i++ )
+    {
+        int Status = sat_solver_solve_lexsat( pSat, Vec_IntArray(vLits), Vec_IntSize(vLits) );
+        if ( Status != l_True )
+            break;
+        assert( Status == l_True );
+        // block this assignment
+        Vec_IntForEachEntry( vLits, iLit, k )
+            Vec_IntWriteEntry( vLits, k, Abc_LitNot(iLit) );
+        if ( !sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntLimit(vLits) ) )
+            break;
+        Vec_IntForEachEntry( vLits, iLit, k )
+            Vec_IntWriteEntry( vLits, k, Abc_LitNot(iLit) );
+        // collect new minterm
+        Mint2 = 0;
+        Vec_IntForEachEntry( vLits, iLit, k )
+            if ( !Abc_LitIsCompl(iLit) )
+                Mint2 |= ((word)1) << (nVars-1-k);
+        if ( Mint1 == 0 )
+            Mint1 = Mint2;
+        // report
+        //printf( "Iter %3d : ", i );
+        //Extra_PrintBinary( stdout, (unsigned *)&Mint2, Abc_MinInt(64, nVars) ); printf( "\n" );
+    }
+    //Mint1 = 0;
+    Total = (Mint2-Mint1)/nIters;
+    printf( "Vars = %d   Iters = %d   Ave = %.0f   Total = %.0f  ", nVars, nIters, Abc_Word2Double(Mint2-Mint1), Abc_Word2Double(Total) );
+    printf( "Estimate = %.0f\n", (pow(2,nVars)-Abc_Word2Double(Mint1))/Abc_Word2Double((Mint2-Mint1)/nIters) );
+
+    sat_solver_delete( pSat );
+    Cnf_DataFree( pCnf );
+    Vec_IntFree( vLits );
 }
 
 ////////////////////////////////////////////////////////////////////////
