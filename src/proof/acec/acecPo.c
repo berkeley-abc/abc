@@ -671,7 +671,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Wec_t * vSign, Vec_Int_t * 
             Vec_IntForEachEntryStop( vLevel, Entry, k, Vec_IntSize(vLevel)-1 )
             {
                 if ( Entry < 0 ) // input
-                    Vec_IntPush( vTempM[0], Vec_IntEntry(vLeaves, -1-Entry) );
+                    Vec_IntPushUniqueOrder( vTempM[0], Vec_IntEntry(vLeaves, -1-Entry) );
                 else // output
                 {
                     assert( OutLit == -1 ); // only one output literal is expected
@@ -682,7 +682,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Wec_t * vSign, Vec_Int_t * 
                 nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC[0], vTempM[0] );   // mono without out
             else if ( !Abc_LitIsCompl(OutLit) ) // positive literal
             {
-                Vec_IntPush( vTempM[0], Abc_Lit2Var(OutLit) );
+                Vec_IntPushUniqueOrder( vTempM[0], Abc_Lit2Var(OutLit) );
                 nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC[0], vTempM[0] );   // mono with pos out
             }
             else // negative literal
@@ -691,7 +691,7 @@ Vec_Wec_t * Gia_PolynBuildNew( Gia_Man_t * pGia, Vec_Wec_t * vSign, Vec_Int_t * 
                 nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC[0], vTempM[0] );   // mono without out
                 // second monomial
                 Vec_IntFill( vTempC[0], 1, -Vec_IntEntryLast(vLevel) );
-                Vec_IntPush( vTempM[0], Abc_Lit2Var(OutLit) );
+                Vec_IntPushUniqueOrder( vTempM[0], Abc_Lit2Var(OutLit) );
                 nMonos += Gia_PolynBuildAdd( pHashC, pHashM, vCoefs, vLit2Mono, vTempC[0], vTempM[0] );   // mono with neg out
             }
             nBuilds++;
