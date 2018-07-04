@@ -3094,6 +3094,75 @@ static inline int Abc_Tt4Check( int t )
     return 0;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns symmetry profile of the function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtVarsAreSymmetric( word * pTruth, int nVars, int i, int j, word * pCof0, word * pCof1 )
+{
+    int nWords = Abc_TtWordNum( nVars );
+    assert( i < nVars && j < nVars );
+    Abc_TtCofactor0p( pCof0, pTruth, nWords, i );
+    Abc_TtCofactor1p( pCof1, pTruth, nWords, i );
+    Abc_TtCofactor1( pCof0, nWords, j );
+    Abc_TtCofactor0( pCof1, nWords, j );
+    return Abc_TtEqual( pCof0, pCof1, nWords );
+}
+static inline int Abc_TtIsFullySymmetric( word * pTruth, int nVars )
+{
+    int m, v, Polar = 0, Seen = 0; 
+    for ( m = 0; m < (1<<nVars); m++ )
+    {
+        int Count = 0;
+        int Value = Abc_TtGetBit( pTruth, m );
+        for ( v = 0; v < nVars; v++ )
+            Count += ((m >> v) & 1);
+        if ( (Seen >> Count) & 1 ) // seen this count
+        {
+            if ( Value != ((Polar >> Count) & 1) )
+                return -1;
+        }
+        else // new count
+        {
+            Seen  |= 1 << Count;
+            if ( Value )
+                Polar |= 1 << Count;
+        }
+    }
+    return Polar;
+}
+static inline void Abc_TtGenFullySymmetric( word * pTruth, int nVars, int Polar )
+{
+    int m, v, nWords = Abc_TtWordNum( nVars );
+    Abc_TtClear( pTruth, nWords );
+    for ( m = 0; m < (1<<nVars); m++ )
+    {
+        int Count = 0;
+        for ( v = 0; v < nVars; v++ )
+            Count += ((m >> v) & 1);
+        if ( (Polar >> Count) & 1 )
+            Abc_TtSetBit( pTruth, m );
+    }
+}
+static inline void Abc_TtTestFullySymmetric()
+{
+    word pTruth[4]; // 8-var function
+    int PolarOut, PolarIn = 271;
+    Abc_TtGenFullySymmetric( pTruth, 8, PolarIn );
+    //Abc_TtXorBit( pTruth, 171 );
+    PolarOut = Abc_TtIsFullySymmetric( pTruth, 8 );
+    assert( PolarIn == PolarOut );
+}
+
+
 /*=== utilTruth.c ===========================================================*/
 
 

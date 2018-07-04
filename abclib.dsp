@@ -3655,6 +3655,10 @@ SOURCE=.\src\misc\extra\extraUtilFile.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraUtilMaj.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraUtilMemory.c
 # End Source File
 # Begin Source File

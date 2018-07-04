@@ -119,6 +119,7 @@ extern char *       Extra_StringAppend( char * pStrGiven, char * pStrAdd );
 extern void         Extra_StringClean( char * pStrGiven, char * pCharKeep );
 extern unsigned     Extra_ReadBinary( char * Buffer );
 extern void         Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits );
+extern void         Extra_PrintBinary2( FILE * pFile, unsigned Sign[], int nBits );
 extern int          Extra_ReadHex( unsigned Sign[], char * pString, int nDigits );
 extern int          Extra_ReadHexadecimal( unsigned Sign[], char * pString, int nVars );
 extern void         Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars );

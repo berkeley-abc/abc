@@ -508,6 +508,23 @@ void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits )
 
 //  fprintf( pFile, "\n" );
 }
+void Extra_PrintBinary2( FILE * pFile, unsigned Sign[], int nBits )
+{
+    int Remainder, nWords;
+    int w, i;
+
+    Remainder = (nBits%(sizeof(unsigned)*8));
+    nWords    = (nBits/(sizeof(unsigned)*8)) + (Remainder>0);
+
+    for ( w = 0; w < nWords; w++ )
+    {
+        int Limit = w == nWords-1 ? Remainder : 32;
+        for ( i = 0; i < Limit; i++ )
+            fprintf( pFile, "%c", '0' + (int)((Sign[w] & (1<<i)) > 0) );
+    }
+
+//    fprintf( pFile, "\n" );
+}
 
 /**Function*************************************************************
 
