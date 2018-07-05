@@ -8757,10 +8757,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandMajGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gem_Enumerate( int nVars, int fVerbose );
-    int c, nVars = 8, fVerbose = 0;
+    extern int Gem_Enumerate( int nVars, int fDump, int fVerbose );
+    int c, nVars = 8, fDump = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ndvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8775,6 +8775,9 @@ int Abc_CommandMajGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nVars < 0 )
                 goto usage;
             break;
+        case 'd':
+            fDump ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -8784,13 +8787,14 @@ int Abc_CommandMajGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    Gem_Enumerate( nVars, fVerbose );
+    Gem_Enumerate( nVars, fDump, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: majgen [-N <num>] [-vh]>\n" );
+    Abc_Print( -2, "usage: majgen [-N <num>] [-dvh]>\n" );
     Abc_Print( -2, "\t           generates networks for majority gates\n" );
     Abc_Print( -2, "\t-N <num> : the maximum number of variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-d       : toggle dumping functions into a file [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     return 1;

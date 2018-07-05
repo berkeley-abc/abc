@@ -91,7 +91,7 @@ Gem_Man_t * Gem_ManAlloc( int nVars, int fVerbose )
     p = ABC_CALLOC( Gem_Man_t, 1 );
     p->nVars      = nVars;
     p->nWords     = Abc_TtWordNum( nVars );
-    p->nObjsAlloc = 1000000;
+    p->nObjsAlloc = 10000000;
     p->nObjs      = 2;
     p->pObjs      = ABC_CALLOC( Gem_Obj_t, p->nObjsAlloc );
     p->pObjs[1].nVars = p->pObjs[1].Groups = 1; // buffer
@@ -274,12 +274,13 @@ int Gem_FuncCheckMajority( Gem_Man_t * p, int f )
         int Mask = Abc_Tt6Mask( nHalfVars );
         printf( "Found symmetric %d-variable function: ", pObj->nVars );
         Extra_PrintBinary2( stdout, (unsigned *)&Polar, pObj->nVars + 1 );
-        printf( "\n" );
+        printf( "   " );
         if ( (pObj->nVars & 1) && Polar == (Mask << nHalfVars) )
         {
-            printf( "This function is majority-%d.\n", pObj->nVars );
+            printf( "This is majority-%d.\n", pObj->nVars );
             return 0;
         }
+        printf( "\n" );
     }
     return 0;
 }
@@ -341,26 +342,27 @@ int Gem_FuncReduce( Gem_Man_t * p, int f, int i, int j )
   SeeAlso     []
 
 ***********************************************************************/
-int Gem_Enumerate( int nVars, int fVerbose )
+int Gem_Enumerate( int nVars, int fDump, int fVerbose )
 {
     abctime clk = Abc_Clock();
     Gem_Man_t * p = Gem_ManAlloc( nVars, fVerbose );
-    int v, f, i, j;
+    int v, f, i, j, nObjsStop = 1;
     for ( v = 1; v <= nVars-2; v++ )
     {
         // expand functions by adding a gate
-        int nObjStop = p->nObjs;
-        printf( "Expanding   %d (functions = %10d)  ", v, p->nObjs );
+        int nObjsStopPrev = nObjsStop;
+        nObjsStop = p->nObjs;
+        printf( "Expanding  var %2d (functions = %10d)  ", v, p->nObjs );
         Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
-        for ( f = 0; f < nObjStop; f++ )
-            if ( v == (int)p->pObjs[f].nVars )
+        for ( f = 0; f < nObjsStop; f++ )
+            if ( v == (int)p->pObjs[f].nVars || (v > (int)p->pObjs[f].nVars && f >= nObjsStopPrev) )
                 for ( i = 0; i < v; i++ )
                     if ( (int)p->pObjs[f].Groups & (1 << i) )
                         Gem_FuncExpand( p, f, i );
         // reduce functions by adding a crossbar
-        printf( "Connecting  %d (functions = %10d)  ", v, p->nObjs );
+        printf( "Connecting var %2d (functions = %10d)  ", v, p->nObjs );
         Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
-        for ( f = nObjStop; f < p->nObjs; f++ )
+        for ( f = nObjsStop; f < p->nObjs; f++ )
             for ( i = 0; i < (int)p->pObjs[f].nVars; i++ )
                 if ( (int)p->pObjs[f].Groups & (1 << i) )
                     for ( j = i+1; j < (int)p->pObjs[f].nVars; j++ )
@@ -368,9 +370,9 @@ int Gem_Enumerate( int nVars, int fVerbose )
                             if ( Gem_FuncReduce( p, f, i, j ) )
                                 return Gem_ManFree( p );
     }
-    printf( "Finished    %d (functions = %10d)  ", v, p->nObjs );
+    printf( "Finished          (functions = %10d)  ", v, p->nObjs );
     Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
-    Vec_MemDumpTruthTables( p->vTtMem, "enum", nVars );
+    if ( fDump ) Vec_MemDumpTruthTables( p->vTtMem, "enum", nVars );
     Gem_ManFree( p );
     return 0;
 }
