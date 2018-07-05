@@ -13235,7 +13235,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
-    Abc_GenAdderTree( "at_4_8.v", 4, 8 );
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
