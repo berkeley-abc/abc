@@ -27,6 +27,7 @@
 #include "misc/vec/vecMem.h"
 #include "misc/extra/extra.h"
 #include "misc/util/utilTruth.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -215,47 +216,36 @@ void Gem_FuncExpand( Gem_Man_t * p, int f, int i )
     Gem_Obj_t * pNew = p->pObjs + p->nObjs, * pObj = p->pObjs + f; 
     word * pTruth   = Vec_MemReadEntry( p->vTtMem, f );
     word * pResult  = p->pTtElems[p->nVars];
-    word * pBest    = p->pTtElems[p->nVars+1];
     word * pCofs[2] = { p->pTtElems[p->nVars+2], p->pTtElems[p->nVars+3] };
-    int v, iFunc, BestPlace, GroupsMod;
+    int v, iFunc;
+    char pCanonPermC[16];
     assert( i < (int)pObj->nVars );
     assert( (int)pObj->nVars + 2 <= p->nVars );
     Abc_TtCopy( pResult, pTruth, p->nWords, 0 );
     // move i variable to the end
     for ( v = i; v < (int)pObj->nVars-1; v++ )
         Abc_TtSwapAdjacent( pResult, p->nWords, v );
-    GroupsMod = Gem_GroupVarRemove( pObj->Groups, i );
-    //Extra_PrintBinary2( stdout, (unsigned*)&GroupsMod, p->nVars ); printf("\n");
     // create new symmetric group
     assert( v == (int)pObj->nVars-1 );
     Abc_TtCofactor0p( pCofs[0], pResult, p->nWords, v );
     Abc_TtCofactor1p( pCofs[1], pResult, p->nWords, v );
     Abc_TtMaj( pResult, p->pTtElems[v], p->pTtElems[v+1], p->pTtElems[v+2], p->nWords );
     Abc_TtMux( pResult, pResult, pCofs[1], pCofs[0], p->nWords );
-    //Extra_PrintHex( stdout, (unsigned*)pResult, pObj->nVars + 2 ); printf("\n");
     // canonicize
-    BestPlace = Gem_FuncFindPlace( pResult, p->nWords, GroupsMod, pBest, 0 );
-    //Extra_PrintHex( stdout, (unsigned*)pBest, pObj->nVars + 2 ); printf("\n");
-    iFunc = Vec_MemHashInsert( p->vTtMem, pBest );
+    //Extra_PrintHex( stdout, (unsigned*)pResult, pObj->nVars + 2 ); printf("\n");
+    Abc_TtCanonicizePerm( pResult, pObj->nVars + 2, pCanonPermC );
+    Abc_TtStretch6( pResult, Abc_MaxInt(6, pObj->nVars+2), p->nVars );
+    //Extra_PrintHex( stdout, (unsigned*)pResult, pObj->nVars + 2 ); printf("\n\n");
+    iFunc = Vec_MemHashInsert( p->vTtMem, pResult );
     if ( iFunc < p->nObjs )
         return;
     assert( iFunc == p->nObjs );
     pNew->nVars   = pObj->nVars + 2;
     pNew->nNodes  = pObj->nNodes + 1;
-    pNew->Groups  = Gem_GroupVarsInsert3( GroupsMod, BestPlace );
+    pNew->Groups  = Gem_GroupsDerive( pResult, pNew->nVars, pCofs[0], pCofs[1] );
     pNew->Predec  = f;
     pNew->History = i; 
     Gem_PrintNode( p, iFunc, "Expand  ", 0 );
-    GroupsMod = Gem_GroupsDerive( pBest, pNew->nVars, pCofs[0], pCofs[1] );
-    //Extra_PrintBinary2( stdout, (unsigned*)&GroupsMod, p->nVars ); printf("\n");
-//    assert( GroupsMod == (int)pNew->Groups );
-    assert( GroupsMod == (GroupsMod & (int)pNew->Groups) );
-
-    if ( GroupsMod != (int)pNew->Groups )
-    {
-        pNew->Groups = GroupsMod;
-        Gem_PrintNode( p, iFunc, "Expand  ", 1 );
-    }
 
     assert( p->nObjs < p->nObjsAlloc );
     if ( ++p->nObjs == p->nObjsAlloc )
@@ -298,20 +288,18 @@ int Gem_FuncReduce( Gem_Man_t * p, int f, int i, int j )
     Gem_Obj_t * pNew = p->pObjs + p->nObjs, * pObj = p->pObjs + f; 
     word * pTruth   = Vec_MemReadEntry( p->vTtMem, f );
     word * pResult  = p->pTtElems[p->nVars];
-    word * pBest    = p->pTtElems[p->nVars+1];
     word * pCofs[2] = { p->pTtElems[p->nVars+2], p->pTtElems[p->nVars+3] };
-    int u, v, w, BestPlace, iFunc, GroupsMod;
+    int v, iFunc;
+    char pCanonPermC[16];
     assert( i < j && j < 16 );
     Abc_TtCopy( pResult, pTruth, p->nWords, 0 );
     // move j variable to the end
     for ( v = j; v < (int)pObj->nVars-1; v++ )
         Abc_TtSwapAdjacent( pResult, p->nWords, v );
-    GroupsMod = Gem_GroupVarRemove( pObj->Groups, j );
     assert( v == (int)pObj->nVars-1 );
     // move i variable to the end
     for ( v = i; v < (int)pObj->nVars-2; v++ )
         Abc_TtSwapAdjacent( pResult, p->nWords, v );
-    GroupsMod = Gem_GroupVarRemove( GroupsMod, i );
     assert( v == (int)pObj->nVars-2 );
     // create new variable
     Abc_TtCofactor0p( pCofs[0], pResult, p->nWords, v+1 );
@@ -319,63 +307,22 @@ int Gem_FuncReduce( Gem_Man_t * p, int f, int i, int j )
     Abc_TtCofactor0( pCofs[0], p->nWords, v );
     Abc_TtCofactor1( pCofs[1], p->nWords, v );
     Abc_TtMux( pResult, p->pTtElems[v], pCofs[1], pCofs[0], p->nWords );
-    // check if new variable belongs to any group
-    for ( u = 0; u < v; u++ )
-    {
-        if ( ((GroupsMod >> u) & 1) == 0 )
-            continue;
-        if ( !Abc_TtVarsAreSymmetric(pResult, p->nVars, u, v, pCofs[0], pCofs[1]) ) 
-            continue;
-        // u and v are symm
-        for ( w = v-1; w >= u; w-- )
-            Abc_TtSwapAdjacent( pResult, p->nWords, w );
-        // check if it exists
-        iFunc = Vec_MemHashInsert( p->vTtMem, pResult );
-        if ( iFunc < p->nObjs )
-            return 0;
-        assert( iFunc == p->nObjs );
-        pNew->nVars   = pObj->nVars - 1;
-        pNew->nNodes  = pObj->nNodes;
-        pNew->Groups  = Gem_GroupVarsInsert1( GroupsMod, u-1, 0 );
-        pNew->Predec  = f;
-        pNew->History = (j << 4) | i;
-        Gem_PrintNode( p, iFunc, "Symmetry", 0 );
-        GroupsMod = Gem_GroupsDerive( pResult, pNew->nVars, pCofs[0], pCofs[1] );
-        //assert( GroupsMod == (int)pNew->Groups );
-        assert( GroupsMod == (GroupsMod & (int)pNew->Groups) );
-
-        if ( GroupsMod != (int)pNew->Groups )
-        {
-            pNew->Groups = GroupsMod;
-            Gem_PrintNode( p, iFunc, "Symmetry", 1 );
-        }
-
-        assert( p->nObjs < p->nObjsAlloc );
-        if ( ++p->nObjs == p->nObjsAlloc )
-            Gem_ManRealloc( p );
-        return Gem_FuncCheckMajority( p, iFunc );
-    }
-    // v is not symmetric to any variable
-    BestPlace = Gem_FuncFindPlace( pResult, p->nWords, GroupsMod, pBest, 1 );
-    // check if it exists
-    iFunc = Vec_MemHashInsert( p->vTtMem, pBest );
+    // canonicize
+    //Extra_PrintHex( stdout, (unsigned*)pResult, pObj->nVars - 1 ); printf("\n");
+    Abc_TtCanonicizePerm( pResult, pObj->nVars - 1, pCanonPermC );
+    Abc_TtStretch6( pResult, Abc_MaxInt(6, pObj->nVars-1), p->nVars );
+    //Extra_PrintHex( stdout, (unsigned*)pResult, pObj->nVars - 1 ); printf("\n\n");
+    iFunc = Vec_MemHashInsert( p->vTtMem, pResult );
     if ( iFunc < p->nObjs )
         return 0;
     assert( iFunc == p->nObjs );
     pNew->nVars   = pObj->nVars - 1;
     pNew->nNodes  = pObj->nNodes;
-    pNew->Groups  = Gem_GroupVarsInsert1( GroupsMod, BestPlace, 1 );
+    pNew->Groups  = Gem_GroupsDerive( pResult, pNew->nVars, pCofs[0], pCofs[1] );
     pNew->Predec  = f;
     pNew->History = (j << 4) | i;
     Gem_PrintNode( p, iFunc, "Crossbar", 0 );
-    GroupsMod = Gem_GroupsDerive( pBest, pNew->nVars, pCofs[0], pCofs[1] );
-    //assert( GroupsMod == (int)pNew->Groups );
-    assert( GroupsMod == (GroupsMod & (int)pNew->Groups) );
-    if ( GroupsMod != (int)pNew->Groups )
-    {
-        pNew->Groups = GroupsMod;
-        Gem_PrintNode( p, iFunc, "Symmetry", 1 );
-    }
+    Gem_FuncCheckMajority( p, iFunc );
 
     assert( p->nObjs < p->nObjsAlloc );
     if ( ++p->nObjs == p->nObjsAlloc )
@@ -421,6 +368,8 @@ int Gem_Enumerate( int nVars, int fVerbose )
                             if ( Gem_FuncReduce( p, f, i, j ) )
                                 return Gem_ManFree( p );
     }
+    printf( "Finished    %d (functions = %10d)  ", v, p->nObjs );
+    Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
     Vec_MemDumpTruthTables( p->vTtMem, "enum", nVars );
     Gem_ManFree( p );
     return 0;

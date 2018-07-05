@@ -489,7 +489,7 @@ int Abc_TtCountOnesInCofsFast( word * pTruth, int nVars, int * pStore )
   SeeAlso     []
 
 ***********************************************************************/
-static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pCanonPerm, int * pStoreOut )
+static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pCanonPerm, int * pStoreOut, int fOnlySwap )
 {
     int fOldSwap = 0;
     int pStoreIn[17];
@@ -501,7 +501,7 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
         pCanonPerm[i] = i;
     // normalize polarity    
     nOnes = Abc_TtCountOnesInTruth( pTruth, nVars );
-    if ( nOnes > nWords * 32 )
+    if ( nOnes > nWords * 32 && !fOnlySwap )
     {
         Abc_TtNot( pTruth, nWords );
         nOnes = nWords*64 - nOnes;
@@ -512,7 +512,7 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
     pStore[nVars] = nOnes;
     for ( i = 0; i < nVars; i++ )
     {
-        if ( pStore[i] >= nOnes - pStore[i] )
+        if ( pStore[i] >= nOnes - pStore[i] || fOnlySwap )
             continue;
         Abc_TtFlip( pTruth, nWords, i );
         uCanonPhase |= (1 << i);
@@ -923,7 +923,7 @@ unsigned Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm )
     Abc_TtCopy( pCopy1, pTruth, nWords, 0 );
 #endif
 
-    uCanonPhase = Abc_TtSemiCanonicize( pTruth, nVars, pCanonPerm, pStoreIn );
+    uCanonPhase = Abc_TtSemiCanonicize( pTruth, nVars, pCanonPerm, pStoreIn, 0 );
     for ( k = 0; k < 5; k++ )
     {
         int fChanges = 0;
@@ -955,6 +955,53 @@ unsigned Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm )
         i = 0;
     }
 */
+    return uCanonPhase;
+}
+
+unsigned Abc_TtCanonicizePerm( word * pTruth, int nVars, char * pCanonPerm )
+{
+    int pStoreIn[17];
+    unsigned uCanonPhase;
+    int i, k, nWords = Abc_TtWordNum( nVars );
+    int fNaive = 1;
+
+#ifdef CANON_VERIFY
+    char pCanonPermCopy[16];
+    static word pCopy1[1024];
+    static word pCopy2[1024];
+    Abc_TtCopy( pCopy1, pTruth, nWords, 0 );
+#endif
+
+    assert( nVars <= 16 );
+    for ( i = 0; i < nVars; i++ )
+        pCanonPerm[i] = i;
+
+    uCanonPhase = Abc_TtSemiCanonicize( pTruth, nVars, pCanonPerm, pStoreIn, 1 );
+    for ( k = 0; k < 5; k++ )
+    {
+        int fChanges = 0;
+        for ( i = nVars - 2; i >= 0; i-- )
+            if ( pStoreIn[i] == pStoreIn[i+1] )
+                fChanges |= Abc_TtCofactorPerm( pTruth, i, nWords, 1, pCanonPerm, &uCanonPhase, fNaive );
+        if ( !fChanges )
+            break;
+        fChanges = 0;
+        for ( i = 1; i < nVars - 1; i++ )
+            if ( pStoreIn[i] == pStoreIn[i+1] )
+                fChanges |= Abc_TtCofactorPerm( pTruth, i, nWords, 1, pCanonPerm, &uCanonPhase, fNaive );
+        if ( !fChanges )
+            break;
+    }
+
+#ifdef CANON_VERIFY
+    Abc_TtCopy( pCopy2, pTruth, nWords, 0 );
+    memcpy( pCanonPermCopy, pCanonPerm, sizeof(char) * nVars );
+    Abc_TtImplementNpnConfig( pCopy2, nVars, pCanonPermCopy, uCanonPhase );
+    if ( !Abc_TtEqual( pCopy1, pCopy2, nWords ) )
+        printf( "Canonical form verification failed!\n" );
+#endif
+
+    assert( uCanonPhase == 0 );
     return uCanonPhase;
 }
 
