@@ -12183,9 +12183,11 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     int nVars;    // the number of variables
+    int nArgs;    // the number of arguments
     int nLutSize = -1; // the size of LUTs
     int nLuts = -1;    // the number of LUTs
     int fAdder;
+    int fAdderTree;
     int fSorter;
     int fMesh;
     int fMulti;
@@ -12202,10 +12204,13 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars );
     extern void Abc_GenOneHot( char * pFileName, int nVars );
     extern void Abc_GenRandom( char * pFileName, int nPis );
+    extern void Abc_GenAdderTree( char * pFileName, int nArgs, int nBits );
 
     // set defaults
     nVars = 8;
+    nArgs = 8;
     fAdder = 0;
+    fAdderTree = 0;
     fSorter = 0;
     fMesh = 0;
     fMulti = 0;
@@ -12214,7 +12219,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     fRandom = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NKLasemftrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NAKLabsemftrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -12227,6 +12232,17 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nVars < 0 )
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nArgs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nArgs < 0 )
                 goto usage;
             break;
         case 'K':
@@ -12253,6 +12269,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'a':
             fAdder ^= 1;
+            break;
+        case 'b':
+            fAdderTree ^= 1;
             break;
         case 's':
             fSorter ^= 1;
@@ -12309,6 +12328,14 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenOneHot( FileName, nVars );
     else if ( fRandom )
         Abc_GenRandom( FileName, nVars );
+    else if ( fAdderTree )
+    {
+        printf( "Generating adder tree with %d arguments and %d bits.\n", nArgs, nVars );
+        Abc_GenAdderTree( FileName, nArgs, nVars );
+        sprintf( Command, "%%read %s; %%blast; &put", FileName );
+        Cmd_CommandExecute( pAbc, Command );
+        return 0;
+    }
     else
     {
         Abc_Print( -1, "Type of circuit is not specified.\n" );
@@ -12320,12 +12347,14 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: gen [-NKL num] [-asemftrvh] <file>\n" );
+    Abc_Print( -2, "usage: gen [-NAKL num] [-asemftrvh] <file>\n" );
     Abc_Print( -2, "\t         generates simple circuits\n" );
     Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-A num : the number of agruments (for adder tree) [default = %d]\n", nArgs );
     Abc_Print( -2, "\t-K num : the LUT size (to be used with switch -f) [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-L num : the LUT count (to be used with switch -f) [default = %d]\n", nLuts );
     Abc_Print( -2, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );
+    Abc_Print( -2, "\t-b     : generate an adder tree [default = %s]\n", fAdderTree? "yes": "no" );
     Abc_Print( -2, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );
     Abc_Print( -2, "\t-e     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );
     Abc_Print( -2, "\t-m     : generate a multiplier [default = %s]\n", fMulti? "yes": "no" );
@@ -13206,6 +13235,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
+    Abc_GenAdderTree( "at_4_8.v", 4, 8 );
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
