@@ -839,14 +839,14 @@ void Abc_AdderTree( FILE * pFile, int nArgs, int nBits )
     fprintf( pFile, "module adder_tree_%d_%d (\n   ", nArgs, nBits );
     for ( i = 0; i < nBits; i++, fprintf(pFile, "\n   ") )
         for ( k = 0; k < nArgs; k++ )
-            fprintf( pFile, " %c%0*d,", 'a'+k, nDigits, nBits-1-i );
+            fprintf( pFile, " i%0*d_%0*d,", nDigits, k, nDigits, nBits-1-i );
     fprintf( pFile, " z\n" );
     fprintf( pFile, "  );\n" );
     for ( i = 0; i < nBits; i++ )
     {
         fprintf( pFile, "  input" );
         for ( k = 0; k < nArgs; k++ )
-            fprintf( pFile, " %c%0*d%s", 'a'+k, nDigits, nBits-1-i, k==nArgs-1 ? "":"," );
+            fprintf( pFile, " i%0*d_%0*d%s", nDigits, k, nDigits, nBits-1-i, k==nArgs-1 ? "":"," );
         fprintf( pFile, ";\n" );
     }
     fprintf( pFile, "  output [%d:0] z;\n", nBits+Log2-1 );
@@ -854,7 +854,7 @@ void Abc_AdderTree( FILE * pFile, int nArgs, int nBits )
     {
         fprintf( pFile, "  wire [%d:0] t%d = {", nBits-1, i );
         for ( k = 0; k < nBits; k++ )
-            fprintf( pFile, " %c%0*d%s", 'a'+i, nDigits, nBits-1-k, k==nBits-1 ? "":"," );
+            fprintf( pFile, " i%0*d_%0*d%s", nDigits, i, nDigits, nBits-1-k, k==nBits-1 ? "":"," );
         fprintf( pFile, " };\n" );
     }
     for ( i = 0; i < nArgs-1; i++ )
