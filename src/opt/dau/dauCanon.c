@@ -351,6 +351,11 @@ static inline void Abc_TtCountOnesInCofs( word * pTruth, int nVars, int * pStore
         }
     } 
 }
+int Abc_TtCountOnesInCofsSimple( word * pTruth, int nVars, int * pStore )
+{
+    Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
+    return Abc_TtCountOnesInTruth( pTruth, nVars );
+}
 
 /**Function*************************************************************
 
@@ -491,6 +496,7 @@ int Abc_TtCountOnesInCofsFast( word * pTruth, int nVars, int * pStore )
 ***********************************************************************/
 static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pCanonPerm, int * pStoreOut, int fOnlySwap )
 {
+    int fUseOld = 1;
     int fOldSwap = 0;
     int pStoreIn[17];
     int * pStore = pStoreOut ? pStoreOut : pStoreIn;
@@ -499,25 +505,53 @@ static inline unsigned Abc_TtSemiCanonicize( word * pTruth, int nVars, char * pC
     assert( nVars <= 16 );
     for ( i = 0; i < nVars; i++ )
         pCanonPerm[i] = i;
-    // normalize polarity    
-    nOnes = Abc_TtCountOnesInTruth( pTruth, nVars );
-    if ( nOnes > nWords * 32 && !fOnlySwap )
+
+    if ( fUseOld )
     {
-        Abc_TtNot( pTruth, nWords );
-        nOnes = nWords*64 - nOnes;
-        uCanonPhase |= (1 << nVars);
+        // normalize polarity    
+        nOnes = Abc_TtCountOnesInTruth( pTruth, nVars );
+        if ( nOnes > nWords * 32 && !fOnlySwap )
+        {
+            Abc_TtNot( pTruth, nWords );
+            nOnes = nWords*64 - nOnes;
+            uCanonPhase |= (1 << nVars);
+        }
+        // normalize phase
+        Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
+        pStore[nVars] = nOnes;
+        for ( i = 0; i < nVars; i++ )
+        {
+            if ( pStore[i] >= nOnes - pStore[i] || fOnlySwap )
+                continue;
+            Abc_TtFlip( pTruth, nWords, i );
+            uCanonPhase |= (1 << i);
+            pStore[i] = nOnes - pStore[i]; 
+        }
     }
-    // normalize phase
-    Abc_TtCountOnesInCofs( pTruth, nVars, pStore );
-    pStore[nVars] = nOnes;
-    for ( i = 0; i < nVars; i++ )
+    else
     {
-        if ( pStore[i] >= nOnes - pStore[i] || fOnlySwap )
-            continue;
-        Abc_TtFlip( pTruth, nWords, i );
-        uCanonPhase |= (1 << i);
-        pStore[i] = nOnes - pStore[i]; 
+        nOnes = Abc_TtCountOnesInCofsQuick( pTruth, nVars, pStore );
+        // normalize polarity    
+        if ( nOnes > nWords * 32 && !fOnlySwap )
+        {
+            for ( i = 0; i < nVars; i++ )
+                pStore[i] = nWords * 32 - pStore[i]; 
+            Abc_TtNot( pTruth, nWords );
+            nOnes = nWords*64 - nOnes;
+            uCanonPhase |= (1 << nVars);
+        }
+        // normalize phase
+        pStore[nVars] = nOnes;
+        for ( i = 0; i < nVars; i++ )
+        {
+            if ( pStore[i] >= nOnes - pStore[i] || fOnlySwap )
+                continue;
+            Abc_TtFlip( pTruth, nWords, i );
+            uCanonPhase |= (1 << i);
+            pStore[i] = nOnes - pStore[i]; 
+        }
     }
+
     // normalize permutation
     if ( fOldSwap )
     {
