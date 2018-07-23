@@ -2919,6 +2919,10 @@ SOURCE=.\src\opt\dau\dauCore.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\dau\dauCount.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\dau\dauDivs.c
 # End Source File
 # Begin Source File

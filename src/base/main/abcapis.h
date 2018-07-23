@@ -98,6 +98,9 @@ extern ABC_DLL int *  Abc_FrameReadBoxes( Abc_Frame_t * pAbc );
 extern ABC_DLL int    Abc_FrameReadProbStatus( Abc_Frame_t * pAbc );   
 extern ABC_DLL void * Abc_FrameReadCex( Abc_Frame_t * pAbc );    
 
+// procedure to return sequential equivalences
+extern ABC_DLL int *  Abc_FrameReadMiniAigEquivClasses( Abc_Frame_t * pAbc );
+
 ABC_NAMESPACE_HEADER_END
 
 #endif

@@ -589,6 +589,74 @@ int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
     return pRes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Returns equivalences of MiniAig nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManMapEquivAfterScorr( Gia_Man_t * p, Vec_Int_t * vMap )
+{
+    Vec_Int_t * vRes = Vec_IntStartFull( Vec_IntSize(vMap) );
+    Vec_Int_t * vGia2Mini = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj, * pRepr;
+    int i, iObjLit, iReprLit, fCompl, iReprGia, iReprMini;
+    Vec_IntForEachEntry( vMap, iObjLit, i )
+    {
+        if ( iObjLit == -1 )
+            continue;
+        iReprGia = Gia_ObjReprSelf( p, Abc_Lit2Var(iObjLit) );
+        iReprMini = Vec_IntEntry( vGia2Mini, iReprGia );
+        if ( iReprMini == -1 )
+        {
+            Vec_IntWriteEntry( vGia2Mini, iReprGia, i );
+            continue;
+        }
+        if ( iReprMini == i )
+            continue;
+        assert( iReprMini < i );
+        Vec_IntWriteEntry( vRes, i, iReprMini );
+    }
+    Vec_IntFree( vGia2Mini );
+    Gia_ManSetPhase( p );
+    Vec_IntForEachEntry( vRes, iReprMini, i )
+    {
+        if ( iReprMini == -1 )
+            continue;
+        iObjLit  = Vec_IntEntry(vMap, i);
+        iReprLit = Vec_IntEntry(vMap, iReprMini);
+        pObj     = Gia_ManObj( p, Abc_Lit2Var(iObjLit) );
+        pRepr    = Gia_ManObj( p, Abc_Lit2Var(iReprLit) );
+        fCompl   = Abc_LitIsCompl(iObjLit) ^ Abc_LitIsCompl(iReprLit) ^ pObj->fPhase ^ pRepr->fPhase;
+        Vec_IntWriteEntry( vRes, i, Abc_Var2Lit(iReprMini, fCompl) );
+    }
+    return vRes;
+}
+int * Abc_FrameReadMiniAigEquivClasses( Abc_Frame_t * pAbc )
+{
+    Vec_Int_t * vRes;
+    int * pRes;
+    if ( pAbc->pGiaMiniAig == NULL )
+        printf( "GIA derived from MiniAig is not available.\n" );
+    if ( pAbc->vCopyMiniAig == NULL )
+        printf( "Mapping of MiniAig nodes is not available.\n" );
+    if ( pAbc->pGia2 == NULL )
+        printf( "Internal GIA with equivalence classes is not available.\n" );
+    if ( pAbc->pGia2->pReprs == NULL )
+        printf( "Equivalence classes of internal GIA are not available.\n" );
+    if ( Gia_ManObjNum(pAbc->pGia2) != Gia_ManObjNum(pAbc->pGiaMiniAig) )
+        printf( "Internal GIA with equivalence classes is not directly derived from MiniAig.\n" );
+    // derive the set of equivalent node pairs
+    vRes = Gia_ManMapEquivAfterScorr( pAbc->pGia2, pAbc->vCopyMiniAig );
+    pRes = Vec_IntReleaseArray( vRes );
+    Vec_IntFree( vRes );
+    return pRes;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
