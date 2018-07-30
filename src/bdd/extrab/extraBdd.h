@@ -198,6 +198,10 @@ extern DdNode *     Extra_bddAndPermute( DdManager * ddF, DdNode * bF, DdManager
 extern int          Extra_bddCountCubes( DdManager * dd, DdNode ** pFuncs, int nFuncs, int fMode, int nLimit, int * pGuide );
 extern void         Extra_zddDumpPla( DdManager * dd, DdNode * zCover, int nVars, char * pFileName );
 
+/* build the set of all tuples of K variables out of N */
+extern DdNode *     Extra_bddTuples( DdManager * dd, int K, DdNode * bVarsN );
+extern DdNode *      extraBddTuples( DdManager * dd, DdNode * bVarsK, DdNode * bVarsN );
+
 #ifndef ABC_PRB
 #define ABC_PRB(dd,f)       printf("%s = ", #f); Extra_bddPrint(dd,f); printf("\n")
 #endif
