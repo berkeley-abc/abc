@@ -158,7 +158,7 @@ void Dau_AddFunction( word tCur, int nVars, unsigned * pTable, Vec_Int_t * vNpns
     unsigned tRep  = pTable[t];
     unsigned tRep2 = pTable[tRep & tMask];
     assert( ((tNorm >> Digit) & 1) == 0 );
-    assert( (tRep & tMask) == (tRep2 & tMask) );
+    assert( (tRep & (tMask>>1)) == (tRep2 & (tMask>>1)) );
     if ( (tRep2 >> 31) == 0 ) // first time
     {
         Vec_IntPush( vNpns, tRep2 );
