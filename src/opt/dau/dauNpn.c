@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define USE4VARS 1
+//#define USE4VARS 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -47,7 +47,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Dau_TruthEnum()
 {
-    int fUseTable = 1;
+    int fUseTable = 0;
     abctime clk = Abc_Clock();
 #ifdef USE4VARS
     int nVars   = 4;
