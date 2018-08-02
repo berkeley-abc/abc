@@ -47,7 +47,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Dau_TruthEnum()
 {
-    int fUseTable = 0;
+    int fUseTable = 1;
     abctime clk = Abc_Clock();
 #ifdef USE4VARS
     int nVars   = 4;
@@ -76,6 +76,11 @@ void Dau_TruthEnum()
     }
     if ( pTable == NULL )
         printf( "Cannot alloc memory for table.\n" );
+
+    for ( i = 0; i <= 0x7FFFFFFF; i++ )
+        if ( (i & 0x0FFFFFFF) == 0x0FFFFFFF )
+            printf( "%08x : %08x\n", i, pTable[i] );
+
     for ( tCur = 0; tCur < nFuncs; tCur++ )
     {
         if ( (tCur & 0xFFFF) == 0 )
