@@ -79,7 +79,7 @@ void Dau_TruthEnum()
     for ( tCur = 0; tCur < nFuncs; tCur++ )
     {
         if ( (tCur & 0xFFFFFF) == 0 )
-            printf( "Finished %08x\n", tCur );
+            printf( "Finished %08x\n", tCur ), fflush(stdout);
         if ( Abc_TtGetBit(pPres, (int)tCur) )
             continue;
         //Extra_PrintBinary( stdout, (unsigned *)&tCur, 16 ); printf( " %04x\n", (int)tCur );
@@ -108,6 +108,7 @@ void Dau_TruthEnum()
     }
     printf( "Computed %d NPN classes of %d variables.  ", Vec_IntSize(vNpns), nVars );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    fflush(stdout);
     Vec_IntFree( vNpns );
     ABC_FREE( pPres );
     ABC_FREE( pPerm );
@@ -244,12 +245,15 @@ void Dau_NetworkEnum()
             //printf("Finished %d nodes with %d functions.\n", Count++, Vec_IntSize(vNpns) );
             iPrev = iLast;
             iLast = Vec_IntSize(vNpns)-1;
-            printf("Finished %d nodes with %d functions.\n", Count++, iLast - iPrev );
+            printf("Finished %d nodes with %d functions.  ", Count++, iLast - iPrev );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            fflush(stdout);
         }
     }
     Vec_IntFree( vNpns );
     ABC_FREE( pTable );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    fflush(stdout);
 }
 void Dau_NetworkEnumTest()
 {
