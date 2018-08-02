@@ -63,7 +63,7 @@ void Dau_TruthEnum()
     int * pPerm = Extra_PermSchedule( nVars );
     int * pComp = Extra_GreyCodeSchedule( nVars );
     word nFuncs = ((word)1 << (((word)1 << nVars)-1));
-    word * pPres = ABC_CALLOC( word, 1 << ((1<<nVars)-7) );
+    word * pPres = ABC_CALLOC( word, 1 << ((1<<nVars)-6) );
     unsigned * pTable = fUseTable ? (unsigned *)ABC_CALLOC(word, nSizeW) : NULL;
     Vec_Int_t * vNpns = Vec_IntAlloc( 1000 );
     word tMask = Abc_Tt6Mask( 1 << nVars );
@@ -77,13 +77,13 @@ void Dau_TruthEnum()
     if ( pTable == NULL )
         printf( "Cannot alloc memory for table.\n" );
 
-    for ( i = 0; i <= 0x7FFFFFFF; i++ )
-        if ( (i & 0x0FFFFFFF) == 0x0FFFFFFF )
-            printf( "%08x : %08x\n", i, pTable[i] );
+    for ( tCur = 0; tCur < nFuncs; tCur++ )
+        if ( (tCur & 0x07FFFFFF) == 0 )
+            printf( "%08x : %08x\n", (int)tCur, pTable[(int)tCur] );
 
     for ( tCur = 0; tCur < nFuncs; tCur++ )
     {
-        if ( (tCur & 0xFFFF) == 0 )
+        if ( (tCur & 0xFF) == 0 )
             printf( "Finished %08x\n", (int)tCur ), fflush(stdout);
         if ( Abc_TtGetBit(pPres, (int)tCur) )
             continue;
