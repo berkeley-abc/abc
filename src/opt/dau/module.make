@@ -7,4 +7,5 @@ SRC +=    src/opt/dau/dauCanon.c \
     src/opt/dau/dauGia.c \
     src/opt/dau/dauMerge.c \
     src/opt/dau/dauNonDsd.c \
+    src/opt/dau/dauNpn.c \
     src/opt/dau/dauTree.c
