@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-//#define USE4VARS 1
+#define USE4VARS 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -162,6 +162,7 @@ void Dau_AddFunction( word tCur, int nVars, unsigned * pTable, Vec_Int_t * vNpns
 void Dau_NetworkEnum()
 {
     abctime clk = Abc_Clock();
+    int Limit = 1;
 #ifdef USE4VARS
     int nVars = 4;
     int nSizeW  = 1 << 14;
@@ -189,7 +190,7 @@ void Dau_NetworkEnum()
         {
             word Cof0 = Abc_Tt6Cofactor0( uTruth, nVars-1-v );
             word Cof1 = Abc_Tt6Cofactor1( uTruth, nVars-1-v );
-            for ( g = 0; g < 2; g++ )
+            for ( g = 0; g < Limit; g++ )
             {
                 if ( nSupp < nVars )
                 {
@@ -198,7 +199,7 @@ void Dau_NetworkEnum()
                     Dau_AddFunction( tCur, nVars, pTable, vNpns );
                 }
             }
-            for ( g = 0; g < 2; g++ )
+            for ( g = 0; g < Limit; g++ )
             {
                 // add one cross bar
                 for ( k = 0; k < nSupp; k++ ) if ( k != v )
@@ -214,7 +215,7 @@ void Dau_NetworkEnum()
                     }
                 }
             }
-            for ( g = 0; g < 2; g++ )
+            for ( g = 0; g < Limit; g++ )
             {
                 // add two cross bars
                 for ( k = 0;   k < nSupp; k++ ) if ( k != v )
