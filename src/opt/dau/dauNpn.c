@@ -76,16 +76,11 @@ void Dau_TruthEnum()
     }
     if ( pTable == NULL )
         printf( "Cannot alloc memory for table.\n" );
-
-//    for ( tCur = 0; tCur < nFuncs; tCur++ )
-//        if ( (tCur & 0x07FFFFFF) == 0 )
-//            printf( "%08x : %08x\n", (int)tCur, pTable[(int)tCur] );
-
     for ( tCur = 0; tCur < nFuncs; tCur++ )
     {
-        if ( (tCur & 0xFFFF) == 0 )
+        if ( (tCur & 0x3FFFF) == 0 )
         {
-            printf( "Finished %08x.  ", (int)tCur );
+            printf( "Finished %08x.  Classes = %6d.  ", (int)tCur, Vec_IntSize(vNpns) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             fflush(stdout);
         }
