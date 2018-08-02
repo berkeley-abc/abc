@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define USE4VARS 1
+//#define USE4VARS 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -154,13 +154,14 @@ void Dau_AddFunction( word tCur, int nVars, unsigned * pTable, Vec_Int_t * vNpns
     int Digit  = (1 << nVars)-1;
     word tMask = Abc_Tt6Mask( 1 << nVars );
     word tNorm = (tCur >> Digit) & 1 ? ~tCur : tCur;
-    unsigned t = (unsigned)tNorm & tMask;
-    unsigned tRep  = pTable[t];
+    unsigned t = (unsigned)(tNorm & tMask);
+    unsigned tRep = pTable[t];
+    unsigned tRep2 = pTable[tRep & 0x7FFFFFFF];
     assert( ((tNorm >> Digit) & 1) == 0 );
-    if ( (tRep >> 31) == 0 ) // first time
+    if ( (tRep2 >> 31) == 0 ) // first time
     {
-        Vec_IntPush( vNpns, tRep );
-        pTable[tRep] |= (1 << 31);
+        Vec_IntPush( vNpns, tRep2 );
+        pTable[tRep & 0x7FFFFFFF] = tRep2 | (1 << 31);
     }
 
 }
@@ -263,7 +264,7 @@ void Dau_NetworkEnum()
 }
 void Dau_NetworkEnumTest()
 {
-    Dau_TruthEnum();
+    //Dau_TruthEnum();
     Dau_NetworkEnum();
 }
 
