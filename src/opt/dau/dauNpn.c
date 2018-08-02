@@ -194,15 +194,28 @@ void Dau_NetworkEnum()
         //Dau_DsdPrintFromTruth( &uTruth, 4 );
         for ( v = 0; v < nSupp; v++ )
         {
+            word tGate, tCur;
             word Cof0 = Abc_Tt6Cofactor0( uTruth, nVars-1-v );
             word Cof1 = Abc_Tt6Cofactor1( uTruth, nVars-1-v );
             for ( g = 0; g < Limit; g++ )
             {
                 if ( nSupp < nVars )
                 {
-                    word tGate = g ? s_Truths6[nVars-1-v] ^ s_Truths6[nVars-1-nSupp] : s_Truths6[nVars-1-v] & s_Truths6[nVars-1-nSupp];
-                    word tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_AddFunction( tCur, nVars, pTable, vNpns );
+                    if ( g == 0 )
+                    {
+                        tGate = s_Truths6[nVars-1-v] & s_Truths6[nVars-1-nSupp];
+                        tCur  = (tGate & Cof1) | (~tGate & Cof0);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tCur  = (tGate & Cof0) | (~tGate & Cof1);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+                    }
+                    else
+                    {
+                        tGate = s_Truths6[nVars-1-v] ^ s_Truths6[nVars-1-nSupp];
+                        tCur  = (tGate & Cof1) | (~tGate & Cof0);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+                    }
                 }
             }
             for ( g = 0; g < Limit; g++ )
@@ -210,13 +223,26 @@ void Dau_NetworkEnum()
                 // add one cross bar
                 for ( k = 0; k < nSupp; k++ ) if ( k != v )
                 {
-                    word tGate = g ? s_Truths6[nVars-1-v] ^ s_Truths6[nVars-1-k] : s_Truths6[nVars-1-v] & s_Truths6[nVars-1-k];
-                    word tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_AddFunction( tCur, nVars, pTable, vNpns );
-                    if ( g == 0 ) // skip XOR
+                    if ( g == 0 )
                     {
-                        word tGate = s_Truths6[nVars-1-v] & ~s_Truths6[nVars-1-k];
-                        word tCur  = (tGate & Cof1) | (~tGate & Cof0);
+                        tGate = s_Truths6[nVars-1-v] & s_Truths6[nVars-1-k];
+                        tCur  = (tGate & Cof1) | (~tGate & Cof0);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tCur  = (tGate & Cof0) | (~tGate & Cof1);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tGate = s_Truths6[nVars-1-v] & ~s_Truths6[nVars-1-k];
+                        tCur  = (tGate & Cof1) | (~tGate & Cof0);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tCur  = (tGate & Cof0) | (~tGate & Cof1);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+                    }
+                    else
+                    {
+                        tGate = s_Truths6[nVars-1-v] ^ s_Truths6[nVars-1-k];
+                        tCur  = (tGate & Cof1) | (~tGate & Cof0);
                         Dau_AddFunction( tCur, nVars, pTable, vNpns );
                     }
                 }
@@ -227,20 +253,39 @@ void Dau_NetworkEnum()
                 for ( k = 0;   k < nSupp; k++ ) if ( k != v )
                 for ( m = k+1; m < nSupp; m++ ) if ( m != v )
                 {
-                    word tGate = g ? s_Truths6[nVars-1-m] ^ s_Truths6[nVars-1-k] : s_Truths6[nVars-1-m] & s_Truths6[nVars-1-k];
-                    word tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_AddFunction( tCur, nVars, pTable, vNpns );
-                    if ( g == 0 ) // skip XOR
+                    if ( g == 0 )
                     {
-                        tGate =  s_Truths6[nVars-1-m] & ~s_Truths6[nVars-1-k];
+                        tGate = s_Truths6[nVars-1-m] & s_Truths6[nVars-1-k];
                         tCur  = (tGate & Cof1) | (~tGate & Cof0);
                         Dau_AddFunction( tCur, nVars, pTable, vNpns );
 
-                        tGate = ~s_Truths6[nVars-1-m] &  s_Truths6[nVars-1-k];
+                        tCur  = (tGate & Cof0) | (~tGate & Cof1);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tGate = s_Truths6[nVars-1-m] & ~s_Truths6[nVars-1-k];
                         tCur  = (tGate & Cof1) | (~tGate & Cof0);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tCur  = (tGate & Cof0) | (~tGate & Cof1);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tGate = ~s_Truths6[nVars-1-m] & s_Truths6[nVars-1-k];
+                        tCur  = (tGate & Cof1) | (~tGate & Cof0);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tCur  = (tGate & Cof0) | (~tGate & Cof1);
                         Dau_AddFunction( tCur, nVars, pTable, vNpns );
 
                         tGate = ~s_Truths6[nVars-1-m] & ~s_Truths6[nVars-1-k];
+                        tCur  = (tGate & Cof1) | (~tGate & Cof0);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+
+                        tCur  = (tGate & Cof0) | (~tGate & Cof1);
+                        Dau_AddFunction( tCur, nVars, pTable, vNpns );
+                    }
+                    else
+                    {
+                        tGate = s_Truths6[nVars-1-m] ^ s_Truths6[nVars-1-k];
                         tCur  = (tGate & Cof1) | (~tGate & Cof0);
                         Dau_AddFunction( tCur, nVars, pTable, vNpns );
                     }
@@ -252,7 +297,7 @@ void Dau_NetworkEnum()
             //printf("Finished %d nodes with %d functions.\n", Count++, Vec_IntSize(vNpns) );
             iPrev = iLast;
             iLast = Vec_IntSize(vNpns)-1;
-            printf("Finished %2d nodes with %6d functions our of %6d.  ", Count++, iLast - iPrev, Vec_IntSize(vNpns) );
+            printf("Finished %2d nodes with %6d functions out of %6d.  ", Count++, iLast - iPrev, Vec_IntSize(vNpns) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             fflush(stdout);
         }
