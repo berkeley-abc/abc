@@ -156,14 +156,13 @@ void Dau_AddFunction( word tCur, int nVars, unsigned * pTable, Vec_Int_t * vNpns
     word tNorm = (tCur >> Digit) & 1 ? ~tCur : tCur;
     unsigned t = (unsigned)tNorm & tMask;
     unsigned tRep  = pTable[t];
-    unsigned tRep2 = pTable[tRep & tMask];
     assert( ((tNorm >> Digit) & 1) == 0 );
-    //assert( (tRep & (tMask>>1)) == (tRep2 & (tMask>>1)) );
-    if ( (tRep2 >> 31) == 0 ) // first time
+    if ( (tRep >> 31) == 0 ) // first time
     {
-        Vec_IntPush( vNpns, tRep2 );
-        pTable[tRep2] |= (1 << 31);
+        Vec_IntPush( vNpns, tRep );
+        pTable[tRep] |= (1 << 31);
     }
+
 }
 void Dau_NetworkEnum()
 {
