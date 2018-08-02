@@ -78,8 +78,8 @@ void Dau_TruthEnum()
         printf( "Cannot alloc memory for table.\n" );
     for ( tCur = 0; tCur < nFuncs; tCur++ )
     {
-        if ( (tCur & 0xFFFFFF) == 0 )
-            printf( "Finished %08x\n", tCur ), fflush(stdout);
+        if ( (tCur & 0xFFFF) == 0 )
+            printf( "Finished %08x\n", (int)tCur ), fflush(stdout);
         if ( Abc_TtGetBit(pPres, (int)tCur) )
             continue;
         //Extra_PrintBinary( stdout, (unsigned *)&tCur, 16 ); printf( " %04x\n", (int)tCur );
@@ -117,7 +117,7 @@ void Dau_TruthEnum()
     if ( pTable )
     {
         FILE * pFile = fopen( pFileName, "wb" );
-        fwrite( pTable, 8, nSizeW, pFile );
+        int RetValue = fwrite( pTable, 8, nSizeW, pFile );
         fclose( pFile );
         ABC_FREE( pTable );
     }
@@ -139,7 +139,7 @@ unsigned * Dau_ReadFile( char * pFileName, int nSizeW )
 {
     FILE * pFile = fopen( pFileName, "rb" );
     unsigned * p = (unsigned *)ABC_CALLOC(word, nSizeW);
-    fread( p, sizeof(word), nSizeW, pFile );
+    int RetValue = fread( p, sizeof(word), nSizeW, pFile );
     fclose( pFile );
     return p;
 }
