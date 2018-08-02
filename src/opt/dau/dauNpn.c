@@ -158,7 +158,7 @@ void Dau_AddFunction( word tCur, int nVars, unsigned * pTable, Vec_Int_t * vNpns
     unsigned tRep  = pTable[t];
     unsigned tRep2 = pTable[tRep & tMask];
     assert( ((tNorm >> Digit) & 1) == 0 );
-    assert( (tRep & (tMask>>1)) == (tRep2 & (tMask>>1)) );
+    //assert( (tRep & (tMask>>1)) == (tRep2 & (tMask>>1)) );
     if ( (tRep2 >> 31) == 0 ) // first time
     {
         Vec_IntPush( vNpns, tRep2 );
@@ -252,7 +252,7 @@ void Dau_NetworkEnum()
             //printf("Finished %d nodes with %d functions.\n", Count++, Vec_IntSize(vNpns) );
             iPrev = iLast;
             iLast = Vec_IntSize(vNpns)-1;
-            printf("Finished %d nodes with %d functions.  ", Count++, iLast - iPrev );
+            printf("Finished %2d nodes with %6d functions our of %6d.  ", Count++, iLast - iPrev, Vec_IntSize(vNpns) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             fflush(stdout);
         }
