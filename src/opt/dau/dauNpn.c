@@ -63,7 +63,7 @@ void Dau_TruthEnum()
     int * pPerm = Extra_PermSchedule( nVars );
     int * pComp = Extra_GreyCodeSchedule( nVars );
     word nFuncs = ((word)1 << (((word)1 << nVars)-1));
-    word * pPres = ABC_CALLOC( word, 1 << ((1<<nVars)-6) );
+    word * pPres = ABC_CALLOC( word, 1 << ((1<<nVars)-7) );
     unsigned * pTable = fUseTable ? (unsigned *)ABC_CALLOC(word, nSizeW) : NULL;
     Vec_Int_t * vNpns = Vec_IntAlloc( 1000 );
     word tMask = Abc_Tt6Mask( 1 << nVars );
@@ -77,14 +77,18 @@ void Dau_TruthEnum()
     if ( pTable == NULL )
         printf( "Cannot alloc memory for table.\n" );
 
-    for ( tCur = 0; tCur < nFuncs; tCur++ )
-        if ( (tCur & 0x07FFFFFF) == 0 )
-            printf( "%08x : %08x\n", (int)tCur, pTable[(int)tCur] );
+//    for ( tCur = 0; tCur < nFuncs; tCur++ )
+//        if ( (tCur & 0x07FFFFFF) == 0 )
+//            printf( "%08x : %08x\n", (int)tCur, pTable[(int)tCur] );
 
     for ( tCur = 0; tCur < nFuncs; tCur++ )
     {
-        if ( (tCur & 0xFF) == 0 )
-            printf( "Finished %08x\n", (int)tCur ), fflush(stdout);
+        if ( (tCur & 0xFFFF) == 0 )
+        {
+            printf( "Finished %08x.  ", (int)tCur );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            fflush(stdout);
+        }
         if ( Abc_TtGetBit(pPres, (int)tCur) )
             continue;
         //Extra_PrintBinary( stdout, (unsigned *)&tCur, 16 ); printf( " %04x\n", (int)tCur );
@@ -167,7 +171,7 @@ void Dau_AddFunction( word tCur, int nVars, unsigned * pTable, Vec_Int_t * vNpns
 void Dau_NetworkEnum()
 {
     abctime clk = Abc_Clock();
-    int Limit = 1;
+    int Limit = 2;
 #ifdef USE4VARS
     int nVars = 4;
     int nSizeW  = 1 << 14;
