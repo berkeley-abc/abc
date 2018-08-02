@@ -141,10 +141,12 @@ void Dau_TruthEnum()
 ***********************************************************************/
 unsigned * Dau_ReadFile( char * pFileName, int nSizeW )
 {
+    abctime clk = Abc_Clock();
     FILE * pFile = fopen( pFileName, "rb" );
     unsigned * p = (unsigned *)ABC_CALLOC(word, nSizeW);
     int RetValue = fread( p, sizeof(word), nSizeW, pFile );
     fclose( pFile );
+    Abc_PrintTime( 1, "File reading", Abc_Clock() - clk );
     return p;
 }
 void Dau_AddFunction( word tCur, int nVars, unsigned * pTable, Vec_Int_t * vNpns )
@@ -262,7 +264,7 @@ void Dau_NetworkEnum()
 }
 void Dau_NetworkEnumTest()
 {
-    Dau_TruthEnum();
+    //Dau_TruthEnum();
     Dau_NetworkEnum();
 }
 
