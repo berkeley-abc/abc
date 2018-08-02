@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-//#define USE4VARS 1
+#define USE4VARS 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -263,7 +263,7 @@ void Dau_NetworkEnum()
 }
 void Dau_NetworkEnumTest()
 {
-    //Dau_TruthEnum();
+    Dau_TruthEnum();
     Dau_NetworkEnum();
 }
 
