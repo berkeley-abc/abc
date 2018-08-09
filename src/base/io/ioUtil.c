@@ -390,7 +390,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             pNtkTemp = Abc_NtkToNetlist( pNtk );
         else
         {
-            fprintf( stdout, "Latches are writen into the PLA file at PI/PO pairs.\n" );
+            fprintf( stdout, "Latches are written into the PLA file at PI/PO pairs.\n" );
             pNtkCopy = Abc_NtkDup( pNtk );
             Abc_NtkMakeComb( pNtkCopy, 0 );
             pNtkTemp = Abc_NtkToNetlist( pNtk );
