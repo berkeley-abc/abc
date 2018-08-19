@@ -198,7 +198,7 @@ int Acb_WireIsTarget( int Token, Abc_Nam_t * pNames )
 }
 void * Acb_VerilogSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames )
 {
-    void * pDesign = NULL;
+    Ndr_Data_t * pDesign = NULL;
     Vec_Int_t * vInputs  = Vec_IntAlloc(100);
     Vec_Int_t * vOutputs = Vec_IntAlloc(100);
     Vec_Int_t * vWires   = Vec_IntAlloc(100);
