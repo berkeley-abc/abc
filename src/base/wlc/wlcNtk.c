@@ -866,6 +866,8 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
 {
     Wlc_Obj_t * pObj;
     int i, iFanin;
+    if ( iObj == 0 )
+        return;
     if ( Wlc_ObjCopy(p, iObj) )
         return;
     //printf( "Visiting node %d\n", iObj );

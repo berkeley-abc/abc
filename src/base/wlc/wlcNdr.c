@@ -469,6 +469,7 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         assert( !fFound && i == NameId );
     }
     //Ndr_NtkPrintNodes( pNtk );
+    //Wlc_WriteVer( pNtk, "temp_ndr.v", 0, 0 );
     // derive topological order
     pNtk = Wlc_NtkDupDfs( pTemp = pNtk, 0, 1 );
     Wlc_NtkFree( pTemp );
