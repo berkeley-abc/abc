@@ -28,7 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define USE4VARS 1
+//#define USE4VARS 1
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -144,8 +144,14 @@ unsigned * Dau_ReadFile( char * pFileName, int nSizeW )
     abctime clk = Abc_Clock();
     FILE * pFile = fopen( pFileName, "rb" );
     unsigned * p = (unsigned *)ABC_CALLOC(word, nSizeW);
-    int RetValue = fread( p, sizeof(word), nSizeW, pFile );
-    fclose( pFile );
+    int RetValue = pFile ? fread( p, sizeof(word), nSizeW, pFile ) : 0;
+    if ( pFile )
+    {
+        printf( "Finished reading file \"%s\".\n", pFileName );
+        fclose( pFile );
+    }
+    else
+        printf( "Cannot open input file \"%s\".\n", pFileName );
     Abc_PrintTime( 1, "File reading", Abc_Clock() - clk );
     return p;
 }
@@ -192,7 +198,7 @@ void Dau_NetworkEnum()
     pTable[Inv] |= (1 << 31);
     Vec_IntPushTwo( Vec_WecEntry(vNpns,  0), 0, Inv );
     Vec_IntPushTwo( Vec_WecEntry(vNpns_, 0), 0, Inv );
-    printf("Nodes = %2d.   New = %4d. Total = %6d.   New = %4d. Total = %6d.  ", 
+    printf("Nodes = %2d.   New = %6d. Total = %6d.   New = %6d. Total = %6d.  ", 
         0, Vec_IntSize(Vec_WecEntry(vNpns,  0)), Vec_WecSizeSize(vNpns), 
            Vec_IntSize(Vec_WecEntry(vNpns_, 0)), Vec_WecSizeSize(vNpns_) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -351,17 +357,17 @@ void Dau_NetworkEnum()
                     printf( "Found function %d\n", Res );
             }
         }
-        printf("Nodes = %2d.   New = %4d. Total = %6d.   New = %4d. Total = %6d.  ", 
+        printf("Nodes = %2d.   New = %6d. Total = %6d.   New = %6d. Total = %6d.  ", 
             n, Vec_IntSize(vFuncsN), Vec_WecSizeSize(vNpns), Vec_IntSize(vFuncsN_), Vec_WecSizeSize(vNpns_) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         fflush(stdout);
         if ( Vec_IntSize(vFuncsN) == 0 )
             break;
     }
-    printf( "Functions with 7 nodes:\n" );
-    Vec_IntForEachEntry( Vec_WecEntry(vNpns_,7), Entry, i )
-        printf( "%04x ", Entry );
-    printf( "\n" );
+//    printf( "Functions with 7 nodes:\n" );
+//    Vec_IntForEachEntry( Vec_WecEntry(vNpns_,7), Entry, i )
+//        printf( "%04x ", Entry );
+//    printf( "\n" );
 
     Vec_WecFree( vNpns );
     Vec_WecFree( vNpns_ );
