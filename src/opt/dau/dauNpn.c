@@ -122,6 +122,7 @@ void Dau_TruthEnum()
     {
         FILE * pFile = fopen( pFileName, "wb" );
         int RetValue = fwrite( pTable, 8, nSizeW, pFile );
+        RetValue = 0;
         fclose( pFile );
         ABC_FREE( pTable );
     }
@@ -145,6 +146,7 @@ unsigned * Dau_ReadFile( char * pFileName, int nSizeW )
     FILE * pFile = fopen( pFileName, "rb" );
     unsigned * p = (unsigned *)ABC_CALLOC(word, nSizeW);
     int RetValue = pFile ? fread( p, sizeof(word), nSizeW, pFile ) : 0;
+    RetValue = 0;
     if ( pFile )
     {
         printf( "Finished reading file \"%s\".\n", pFileName );
@@ -178,7 +180,7 @@ void Dau_NetworkEnum()
 {
     abctime clk = Abc_Clock();
     int Limit = 2;
-    int UseTwo = 1;
+    int UseTwo = 0;
 #ifdef USE4VARS
     int nVars = 4;
     int nSizeW  = 1 << 14;
@@ -191,7 +193,7 @@ void Dau_NetworkEnum()
     unsigned * pTable  = Dau_ReadFile( pFileName, nSizeW );
     Vec_Wec_t * vNpns  = Vec_WecStart( 32 );
     Vec_Wec_t * vNpns_ = Vec_WecStart( 32 );
-    int i, v, u, g, k, m, n, Res, Entry, iPrev = 0, iLast = 1;
+    int i, v, u, g, k, m, n, Res, Entry;
     unsigned Inv = (unsigned)Abc_Tt6Mask(1 << (nVars-1));
     // create constant function and buffer/inverter function
     pTable[0]   |= (1 << 31);
