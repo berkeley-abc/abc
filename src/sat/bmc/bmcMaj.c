@@ -572,6 +572,59 @@ static inline int Exa_ManEval( Exa_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Exa_ManDumpBlif( Exa_Man_t * p, int fCompl )
+{
+    char Buffer[1000];
+    char FileName[1000];
+    FILE * pFile;
+    int i, k, iVar;
+    if ( fCompl )
+        Abc_TtNot( p->pTruth, p->nWords );
+    Extra_PrintHexadecimalString( Buffer, (unsigned *)p->pTruth, p->nVars );
+    if ( fCompl )
+        Abc_TtNot( p->pTruth, p->nWords );
+    sprintf( FileName, "%s_%d_%d.blif", Buffer, 2, p->nNodes );
+    pFile = fopen( FileName, "wb" );
+    fprintf( pFile, "# Realization of the %d-input function %s using %d two-input gates:\n", p->nVars, Buffer, p->nNodes );
+    fprintf( pFile, ".model %s_%d_%d\n", Buffer, 2, p->nNodes );
+    fprintf( pFile, ".inputs" );
+    for ( i = 0; i < p->nVars; i++ )
+        fprintf( pFile, " %c", 'a'+i );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".outputs F\n" );
+    for ( i = p->nObjs - 1; i >= p->nVars; i-- )
+    {
+        int iVarStart = 1 + 3*(i - p->nVars);
+        int Val1 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart);
+        int Val2 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart+1);
+        int Val3 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart+2);
+
+        fprintf( pFile, ".names" );
+        for ( k = 1; k >= 0; k-- )
+        {
+            iVar = Exa_ManFindFanin( p, i, k );
+            if ( iVar >= 0 && iVar < p->nVars )
+                fprintf( pFile, " %c", 'a'+iVar );
+            else
+                fprintf( pFile, " %02d", iVar );
+        }
+        if ( i == p->nObjs - 1 )
+            fprintf( pFile, " F\n" );
+        else
+            fprintf( pFile, " %02d\n", i );
+        if ( i == p->nObjs - 1 && fCompl )
+            fprintf( pFile, "00 1\n" );
+        if ( (i == p->nObjs - 1 && fCompl) ^ Val1 )
+            fprintf( pFile, "01 1\n" );
+        if ( (i == p->nObjs - 1 && fCompl) ^ Val2 )
+            fprintf( pFile, "10 1\n" );
+        if ( (i == p->nObjs - 1 && fCompl) ^ Val3 )
+            fprintf( pFile, "11 1\n" );
+    }
+    fprintf( pFile, ".end\n\n" );
+    fclose( pFile );
+    printf( "Solution was dumped into file \"%s\".\n", FileName );
+}
 void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
 {
     int i, k, iVar;
@@ -778,7 +831,10 @@ void Exa_ManExactSynthesis( Bmc_EsPar_t * pPars )
         iMint = Exa_ManEval( p );
     }
     if ( iMint == -1 )
+    {
         Exa_ManPrintSolution( p, fCompl );
+        Exa_ManDumpBlif( p, fCompl );
+    }
     Exa_ManFree( p );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
 }
