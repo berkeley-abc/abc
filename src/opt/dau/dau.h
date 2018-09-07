@@ -80,6 +80,9 @@ extern unsigned      Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPe
 extern unsigned      Abc_TtCanonicizePerm( word * pTruth, int nVars, char * pCanonPerm );
 extern unsigned      Abc_TtCanonicizePhase( word * pTruth, int nVars );
 extern int           Abc_TtCountOnesInCofsSimple( word * pTruth, int nVars, int * pStore );
+extern unsigned      Abc_TtCanonicizeHie(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int fExact );
+extern Abc_TtHieMan_t * Abc_TtHieManStart( int nVars, int nLevels );
+extern void          Abc_TtHieManStop(Abc_TtHieMan_t * p );
 /*=== dauCount.c ==========================================================*/
 extern int           Abc_TtCountOnesInCofsQuick( word * pTruth, int nVars, int * pStore );
 /*=== dauDsd.c  ==========================================================*/

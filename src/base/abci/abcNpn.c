@@ -295,10 +295,6 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     }
     else if ( NpnType == 7 )
     {
-        extern unsigned Abc_TtCanonicizeHie(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int fExact );
-        extern Abc_TtHieMan_t * Abc_TtHieManStart( int nVars, int nLevels );
-        extern void Abc_TtHieManStop(Abc_TtHieMan_t * p );
-
         int fExact = 0;
 		Abc_TtHieMan_t * pMan = Abc_TtHieManStart( p->nVars, 5 );
         for ( i = 0; i < p->nFuncs; i++ )
