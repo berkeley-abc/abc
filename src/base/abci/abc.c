@@ -317,6 +317,7 @@ static int Abc_CommandPermute                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandUnpermute              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCubeEnum               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPathEnum               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFunEnum                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandCec                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDCec                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1005,6 +1006,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "unpermute",     Abc_CommandUnpermute,        1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "cubeenum",      Abc_CommandCubeEnum,         0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "pathenum",      Abc_CommandPathEnum,         0 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "funenum",       Abc_CommandFunEnum,          0 );
 
     Cmd_CommandAdd( pAbc, "Verification", "cec",           Abc_CommandCec,              0 );
     Cmd_CommandAdd( pAbc, "Verification", "dcec",          Abc_CommandDCec,             0 );
@@ -22968,6 +22970,71 @@ usage:
     Abc_Print( -2, "\t         enumerates self-avoiding paths on the NxN grid\n" );
     Abc_Print( -2, "\t-N num : the size of the grid to consider [default = %d]\n", nSize );
 //    Abc_Print( -2, "\t-z     : toggle using ZDD-based algorithm [default = %s]\n", fZddAlgo? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose );
+    int c, nInputs = 4, nVars = 4, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SNvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nInputs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nInputs < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+    Dau_FunctionEnum( nInputs, nVars, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: funenum [-SN num] [-vh]\n" );
+    Abc_Print( -2, "\t         enumerates minimum 2-input-gate implementations\n" );
+    Abc_Print( -2, "\t-S num : the maximum intermediate support size [default = %d]\n", nInputs );
+    Abc_Print( -2, "\t-N num : the number of inputs of Boolean functions [default = %d]\n", nVars );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
