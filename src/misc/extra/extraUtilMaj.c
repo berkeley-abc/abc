@@ -370,7 +370,7 @@ int Gem_Enumerate( int nVars, int fDump, int fVerbose )
                             if ( Gem_FuncReduce( p, f, i, j ) )
                                 return Gem_ManFree( p );
     }
-    printf( "Finished          (functions = %10d)  ", v, p->nObjs );
+    printf( "Finished          (functions = %10d)  ", p->nObjs );
     Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
     if ( fDump ) Vec_MemDumpTruthTables( p->vTtMem, "enum", nVars );
     Gem_ManFree( p );

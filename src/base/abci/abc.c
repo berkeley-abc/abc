@@ -23027,6 +23027,17 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( nVars < 2 || nVars > 6 )
+    {
+        Abc_Print( -1, "The number of inputs should be 2 <= N <= 6.\n" );
+        goto usage;
+    }
+    if ( nInputs < nVars || nInputs > 6 )
+    {
+        Abc_Print( -1, "The intermediate support size should be N <= S <= 6.\n" );
+        goto usage;
+    }
+
     Dau_FunctionEnum( nInputs, nVars, fVerbose );
     return 0;
 

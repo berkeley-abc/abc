@@ -467,15 +467,16 @@ int Dau_CountFuncs( Vec_Int_t * vNodSup, int iStart, int iStop, int nVars )
         Count += ((Entry & 0xF) <= nVars);
     return Count;
 }
-int Dau_PrintStats( int nNodes, int nInputs, int nVars, Vec_Int_t * vNodSup, int iStart, int iStop, abctime clk )
+int Dau_PrintStats( int nNodes, int nInputs, int nVars, Vec_Int_t * vNodSup, int iStart, int iStop, word nSteps, abctime clk )
 {
     int nNew;
-    printf("Nodes = %2d.   ",   nNodes );
-    printf("New%d = %10d. ",    nInputs, iStop-iStart );
-    printf("Total%d = %10d.  ", nInputs, iStop );
-    printf("New%d = %10d. ",    nVars, nNew = Dau_CountFuncs(vNodSup, iStart, iStop, nVars) );
-    printf("Total%d = %10d.  ", nVars,        Dau_CountFuncs(vNodSup,      0, iStop, nVars) );
-    Abc_PrintTime( 1, "Time",   Abc_Clock() - clk );
+    printf("N =%2d | ",      nNodes );
+    printf("C =%12.0f  ",    (double)(iword)nSteps );
+    printf("New%d =%10d  ",  nInputs, iStop-iStart );
+    printf("All%d =%10d | ", nInputs, iStop );
+    printf("New%d =%8d  ",   nVars, nNew = Dau_CountFuncs(vNodSup, iStart, iStop, nVars) );
+    printf("All%d =%8d  ",   nVars,        Dau_CountFuncs(vNodSup,      0, iStop, nVars) );
+    Abc_PrintTime( 1, "T",   Abc_Clock() - clk );
     fflush(stdout);
     return nNew;
 }
@@ -483,13 +484,13 @@ int Dau_InsertFunction( Abc_TtHieMan_t * pMan, word * pCur, int nNodes, int nInp
 {
     char Perm[16] = {0};
     int nVarsNew = Abc_TtMinBase( pCur, NULL, nVars, nInputs );
-    unsigned Phase = nVarsNew ? Abc_TtCanonicizeHie( pMan, pCur, nVarsNew, Perm, 1 ) : 0;
+    unsigned Phase = Abc_TtCanonicizeHie( pMan, pCur, nVarsNew, Perm, 1 );
     int nEntries = Vec_MemEntryNum(vTtMem);
     int Entry = Vec_MemHashInsert( vTtMem, pCur );
     if ( nEntries == Vec_MemEntryNum(vTtMem) ) // found in the table - not new
         return 0;
     Phase = 0;
-    nEntries = 0;
+    Entry = 0;
     // this is a new class
     Vec_IntPush( vNodSup, (nNodes << 16) | nVarsNew );
     assert( Vec_MemEntryNum(vTtMem) == Vec_IntSize(vNodSup) );
@@ -498,7 +499,7 @@ int Dau_InsertFunction( Abc_TtHieMan_t * pMan, word * pCur, int nNodes, int nInp
 void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
 {
     abctime clk = Abc_Clock();
-    int nWords = Abc_TtWordNum(nInputs);
+    int nWords = Abc_TtWordNum(nInputs); word nSteps = 0;
 	Abc_TtHieMan_t * pMan = Abc_TtHieManStart( nInputs, 5 );
     Vec_Mem_t * vTtMem  = Vec_MemAlloc( nWords, 16 );
     Vec_Int_t * vNodSup = Vec_IntAlloc( 1 << 16 );
@@ -514,7 +515,7 @@ void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
     Abc_TtNot( Truth, nWords );
     Vec_MemHashInsert( vTtMem, Truth );
     Vec_IntPush( vNodSup, 1 ); // nodes=0, supp=1
-    Dau_PrintStats( 0, nInputs, nVars, vNodSup, 0, 2, clk );
+    Dau_PrintStats( 0, nInputs, nVars, vNodSup, 0, 2, nSteps, clk );
     // numerate other functions based on how many nodes they have
     for ( n = 1; n < 32; n++ )
     {
@@ -554,6 +555,7 @@ void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
                             Dau_InsertFunction( pMan, &tCur, n, nInputs, nSupp+1, vTtMem, vNodSup );
                         }
                     }
+                    nSteps += 3;
                 }
                 for ( g = 0; g < 2; g++ )
                 {
@@ -582,6 +584,7 @@ void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
                             tCur  = (tGate & Cof1) | (~tGate & Cof0);
                             Dau_InsertFunction( pMan, &tCur, n, nInputs, nSupp, vTtMem, vNodSup );
                         }
+                        nSteps += 5;
                     }
                 }
                 for ( g = 0; g < 2; g++ )
@@ -626,13 +629,14 @@ void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
                             tCur  = (tGate & Cof1) | (~tGate & Cof0);
                             Dau_InsertFunction( pMan, &tCur, n, nInputs, nSupp, vTtMem, vNodSup );
                         }
+                        nSteps += 9;
                     }
                 }
             }
         }
         iStart = iStop; 
         iStop  = Vec_IntSize(vNodSup);
-        nNew = Dau_PrintStats( n, nInputs, nVars, vNodSup, iStart, iStop, clk );
+        nNew = Dau_PrintStats( n, nInputs, nVars, vNodSup, iStart, iStop, nSteps, clk );
         if ( nNew == 0 )
             break;
     }

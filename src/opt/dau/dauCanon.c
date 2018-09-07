@@ -1230,6 +1230,13 @@ unsigned Abc_TtCanonicizeHie( Abc_TtHieMan_t * p, word * pTruthInit, int nVars, 
     int i, k;
     assert( nVars <= 16 );
 
+    // handle constant
+    if ( nVars == 0 )
+    {
+        Abc_TtClear( pTruthInit, nWords );
+        return 0;
+    }
+
     Abc_TtCopy( pTruth, pTruthInit, nWords, 0 );
 
     for ( i = 0; i < nVars; i++ )
