@@ -519,6 +519,7 @@ void Dau_TablesSave( int nInputs, int nVars, Vec_Mem_t * vTtMem, Vec_Mem_t * vTt
     fwrite( Vec_IntArray(vNodSup), 4, Vec_IntSize(vNodSup), pFile );
     fclose( pFile );
     printf( "Dumped files with %10d functions and %10d classes.\n", Vec_IntSize(vMapping), Vec_IntSize(vNodSup) );
+    fflush(stdout);
 }
 void Dau_TablesLoad( int nInputs, int nVars, Vec_Mem_t * vTtMem, Vec_Mem_t * vTtMemA, Vec_Int_t * vNodSup, Vec_Int_t * vMapping )
 {
