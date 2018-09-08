@@ -575,6 +575,48 @@ void Dau_TablesLoad( int nInputs, int nVars, Vec_Mem_t * vTtMem, Vec_Mem_t * vTt
 
 /**Function*************************************************************
 
+  Synopsis    [Dump functions by the number of nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dau_DumpFuncs( Vec_Mem_t * vTtMem, Vec_Int_t * vNodSup, int nVars, int nMax )
+{
+    FILE * pFile[20];
+    int Counters[20] = {0};
+    int n, i;
+    assert( nVars == 4 || nVars == 5 );
+    for ( n = 0; n <= nMax; n++ )
+    {
+        char FileName[100];
+        sprintf( FileName, "func%d_min%d.tt", nVars, n );
+        pFile[n] = fopen( FileName, "wb" );
+    }
+    for ( i = 0; i < Vec_MemEntryNum(vTtMem); i++ )
+    {
+        word * pTruth = Vec_MemReadEntry( vTtMem, i );
+        int NodSup = Vec_IntEntry( vNodSup, i );
+        if ( (NodSup & 0xF) != nVars )
+            continue;
+        Counters[NodSup >> 16]++;
+        if ( nVars == 4 )
+            fprintf( pFile[NodSup >> 16], "%04x\n", (int)(0xFFFF & pTruth[0]) );
+        else if ( nVars == 5 )
+            fprintf( pFile[NodSup >> 16], "%08x\n", (int)(0xFFFFFFFF & pTruth[0]) );
+    }
+    for ( n = 0; n <= nMax; n++ )
+    {
+        printf( "Dumped %8d  %d-node %d-input functions into file.\n", Counters[n], n, nVars );
+        fclose( pFile[n] );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Function enumeration.]
 
   Description []
@@ -591,7 +633,7 @@ int Dau_CountFuncs( Vec_Int_t * vNodSup, int iStart, int iStop, int nVars )
         Count += ((Entry & 0xF) <= nVars);
     return Count;
 }
-int Dau_PrintStats( int nNodes, int nInputs, int nVars, Vec_Int_t * vNodSup, int iStart, int iStop, word nSteps, abctime clk )
+int Dau_PrintStats( int nNodes, int nInputs, int nVars, Vec_Int_t * vNodSup, int iStart, int iStop, word nSteps, int Count2, abctime clk )
 {
     int nNew;
     printf("N =%2d | ",      nNodes );
@@ -600,7 +642,9 @@ int Dau_PrintStats( int nNodes, int nInputs, int nVars, Vec_Int_t * vNodSup, int
     printf("All%d =%10d | ", nInputs, iStop );
     printf("New%d =%8d  ",   nVars, nNew = Dau_CountFuncs(vNodSup, iStart, iStop, nVars) );
     printf("All%d =%8d  ",   nVars,        Dau_CountFuncs(vNodSup,      0, iStop, nVars) );
-    Abc_PrintTime( 1, "T",   Abc_Clock() - clk );
+    printf("Two =%5d ",      Count2 );
+    //Abc_PrintTime( 1, "T",   Abc_Clock() - clk );
+    Abc_Print(1, "%9.2f sec\n", 1.0*(Abc_Clock() - clk)/(CLOCKS_PER_SEC));
     fflush(stdout);
     return nNew;
 }
@@ -640,7 +684,7 @@ int Dau_InsertFunction( Abc_TtHieMan_t * pMan, word * pCur, int nNodes, int nInp
         return 1;
     }
 }
-void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
+void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fVerbose )
 {
     abctime clk = Abc_Clock();
     int nWords = Abc_TtWordNum(nInputs); word nSteps = 0;
@@ -649,7 +693,7 @@ void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
     Vec_Mem_t * vTtMemA  = Vec_MemAlloc( nWords, 16 );
     Vec_Int_t * vNodSup = Vec_IntAlloc( 1 << 16 );
     Vec_Int_t * vMapping = Vec_IntAlloc( 1 << 16 );
-    int v, g, k, m, n, Entry, nNew, iStart = 1, iStop = 2;
+    int v, u, g, k, m, n, Entry, nNew, Limit[32] = {1, 2};
     word Truth[4] = {0};
     assert( nVars >= 3 && nVars <= nInputs && nInputs <= 6 );
     Vec_MemHashAlloc( vTtMem,  1<<16 );
@@ -671,11 +715,12 @@ void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
         Vec_IntPush( vNodSup, 1 ); // nodes=0, supp=1
         Vec_IntPush( vMapping, 1 );
     }
-    Dau_PrintStats( 0, nInputs, nVars, vNodSup, 0, 2, nSteps, clk );
+    Dau_PrintStats( 0, nInputs, nVars, vNodSup, 0, 2, nSteps, 0, clk );
     // numerate other functions based on how many nodes they have
-    for ( n = 1; n < 32; n++ )
+    for ( n = 1; n <= nNodeMax; n++ )
     {
-        for ( Entry = iStart; Entry < iStop; Entry++ )
+        int Count2 = 0;
+        for ( Entry = Limit[n-1]; Entry < Limit[n]; Entry++ )
         {
             word * pTruth = Vec_MemReadEntry( vTtMem, Entry );
             int NodSup = Vec_IntEntry(vNodSup, Entry);
@@ -789,15 +834,52 @@ void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose )
                     }
                 }
             }
+        } 
+        if ( fUseTwo && n > 2 )
+        for ( Entry = Limit[n-2]; Entry < Limit[n-1]; Entry++ )
+        {
+            word * pTruth = Vec_MemReadEntry( vTtMem, Entry );
+            int NodSup = Vec_IntEntry(vNodSup, Entry);
+            int nSupp = 0xF & NodSup; int g1, g2;
+            assert( n-2 == (NodSup >> 16) );
+            assert( !Abc_Tt6HasVar(*pTruth, nSupp) );
+            for ( v = 0; v < nSupp; v++ )
+            for ( u = 0; u < nSupp; u++ ) if ( u != v )
+            {
+                word Cof0 = Abc_Tt6Cofactor0( *pTruth, v );
+                word Cof1 = Abc_Tt6Cofactor1( *pTruth, v );
+
+                word Cof00 = Abc_Tt6Cofactor0( Cof0, u );
+                word Cof01 = Abc_Tt6Cofactor1( Cof0, u );
+                word Cof10 = Abc_Tt6Cofactor0( Cof1, u );
+                word Cof11 = Abc_Tt6Cofactor1( Cof1, u );
+
+                word tGates[5], tCur;
+                tGates[0] =  s_Truths6[v] &  s_Truths6[u];
+                tGates[1] =  s_Truths6[v] & ~s_Truths6[u];
+                tGates[2] = ~s_Truths6[v] &  s_Truths6[u];
+                tGates[3] =  s_Truths6[v] |  s_Truths6[u];
+                tGates[4] =  s_Truths6[v] ^  s_Truths6[u];
+
+                for ( g1 = 0;    g1 < 5; g1++ )
+                for ( g2 = g1+1; g2 < 5; g2++ )
+                {
+                    Cof0  = (tGates[g1] & Cof01) | (~tGates[g1] & Cof00);
+                    Cof1  = (tGates[g1] & Cof11) | (~tGates[g1] & Cof10);
+
+                    tCur  = (tGates[g2] & Cof1)  | (~tGates[g2] & Cof0);
+                    Count2 += Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                }
+            }
         }
-        iStart = iStop; 
-        iStop  = Vec_IntSize(vNodSup);
-        nNew = Dau_PrintStats( n, nInputs, nVars, vNodSup, iStart, iStop, nSteps, clk );
+        Limit[n+1] = Vec_IntSize(vNodSup);
+        nNew = Dau_PrintStats( n, nInputs, nVars, vNodSup, Limit[n], Limit[n+1], nSteps, Count2, clk );
         if ( nNew == 0 )
             break;
     }
     Dau_TablesSave( nInputs, nVars, vTtMem, vTtMemA, vNodSup, vMapping, Vec_IntSize(vNodSup), clk );
     Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
+    //Dau_DumpFuncs( vTtMem, vNodSup, nVars, nNodeMax );
     //Dau_ExactNpnPrint( vTtMem, vTtMemA, vNodSup, nVars, nInputs, n );
 	Abc_TtHieManStop( pMan );
     Vec_MemHashFree( vTtMem );
