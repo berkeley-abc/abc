@@ -22991,7 +22991,7 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Dau_FunctionEnum( int nInputs, int nVars, int fVerbose );
     int c, nInputs = 4, nVars = 4, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SNvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SIvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23006,10 +23006,10 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nInputs < 0 )
                 goto usage;
             break;
-        case 'N':
+        case 'I':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
             nVars = atoi(argv[globalUtilOptind]);
@@ -23029,12 +23029,12 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( nVars < 2 || nVars > 6 )
     {
-        Abc_Print( -1, "The number of inputs should be 2 <= N <= 6.\n" );
+        Abc_Print( -1, "The number of inputs should be 2 <= I <= 6.\n" );
         goto usage;
     }
     if ( nInputs < nVars || nInputs > 6 )
     {
-        Abc_Print( -1, "The intermediate support size should be N <= S <= 6.\n" );
+        Abc_Print( -1, "The intermediate support size should be I <= S <= 6.\n" );
         goto usage;
     }
 
@@ -23042,10 +23042,10 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: funenum [-SN num] [-vh]\n" );
+    Abc_Print( -2, "usage: funenum [-SI num] [-vh]\n" );
     Abc_Print( -2, "\t         enumerates minimum 2-input-gate implementations\n" );
     Abc_Print( -2, "\t-S num : the maximum intermediate support size [default = %d]\n", nInputs );
-    Abc_Print( -2, "\t-N num : the number of inputs of Boolean functions [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-I num : the number of inputs of Boolean functions [default = %d]\n", nVars );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
