@@ -341,10 +341,24 @@ static int * Vec_MemHashLookup( Vec_Mem_t * p, word * pEntry )
             return pSpot;
     return pSpot;
 }
+static void Vec_MemHashProfile( Vec_Mem_t * p )
+{
+    int e;
+    for ( e = 0; e < 1000; e++ )
+    {
+        int Count = 0;
+        int * pSpot = Vec_IntEntryP( p->vTable, e );
+        for ( ; *pSpot != -1; pSpot = Vec_IntEntryP(p->vNexts, *pSpot) )
+            Count++;
+        printf( "%d ", Count );
+    }
+    printf( "\n" );
+}
 static void Vec_MemHashResize( Vec_Mem_t * p )
 {
     word * pEntry;
     int i, * pSpot;
+    //Vec_MemHashProfile( p );
     Vec_IntFill( p->vTable, Abc_PrimeCudd(2 * Vec_IntSize(p->vTable)), -1 );
     Vec_IntClear( p->vNexts );
     Vec_MemForEachEntry( p, pEntry, i )

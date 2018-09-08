@@ -628,6 +628,7 @@ int Dau_InsertFunction( Abc_TtHieMan_t * pMan, word * pCur, int nNodes, int nInp
             //    Dau_TablesSave( nInputs, nVars0, vTtMem, vTtMemA, vNodSup, vMapping, nFronts, clk );
             return 0;
         }
+        Entry = 0;
         Phase = 0;
         //printf( "%d ", Dau_CountCompl(pCur[0], nVarsNew) );
         // this is a new class
