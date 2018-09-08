@@ -58,6 +58,7 @@ struct Bmc_EsPar_t_
     int        fOrderNodes;
     int        fEnumSols;
     int        fFewerVars;
+    int        RuntimeLim;
     int        fVerbose; 
     char *     pTtStr;
 };
@@ -76,6 +77,7 @@ static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
     pPars->fOrderNodes = 0; 
     pPars->fEnumSols   = 0; 
     pPars->fFewerVars  = 0; 
+    pPars->RuntimeLim  = 0;
     pPars->fVerbose    = 1; 
 }
 

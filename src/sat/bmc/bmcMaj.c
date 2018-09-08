@@ -500,6 +500,8 @@ Exa_Man_t * Exa_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     p->vInfo      = Exa_ManTruthTables( p );
     p->pSat       = bmcg_sat_solver_start();
     bmcg_sat_solver_set_nvars( p->pSat, p->iVar );
+    if ( pPars->RuntimeLim )
+        bmcg_sat_solver_set_runtime_limit( p->pSat, Abc_Clock() + pPars->RuntimeLim * CLOCKS_PER_SEC );
     return p;
 }
 void Exa_ManFree( Exa_Man_t * p )
@@ -828,6 +830,11 @@ void Exa_ManExactSynthesis( Bmc_EsPar_t * pPars )
             printf( "The problem has no solution.\n" );
             break;
         }
+        if ( status == GLUCOSE_UNDEC )
+        {
+            printf( "The problem timed out after %d sec.\n", pPars->RuntimeLim );
+            break;
+        }
         iMint = Exa_ManEval( p );
     }
     if ( iMint == -1 )
@@ -971,6 +978,8 @@ static Exa3_Man_t * Exa3_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     p->vUsed3     = Vec_BitStart( (1 << p->pPars->nVars) * p->pPars->nNodes * p->nObjs * p->nObjs * p->nObjs );
     p->pSat       = bmcg_sat_solver_start();
     bmcg_sat_solver_set_nvars( p->pSat, p->iVar );
+    if ( pPars->RuntimeLim )
+        bmcg_sat_solver_set_runtime_limit( p->pSat, Abc_Clock() + pPars->RuntimeLim * CLOCKS_PER_SEC );
     return p;
 }
 static void Exa3_ManFree( Exa3_Man_t * p )
@@ -1323,15 +1332,17 @@ void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
         status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
         if ( pPars->fVerbose && (!pPars->fUseIncr || i % 100 == 0) )
             Exa3_ManPrint( p, i, iMint, Abc_Clock() - clkTotal );
-        if ( status == GLUCOSE_UNSAT )
+        if ( status == GLUCOSE_UNSAT || status == GLUCOSE_UNDEC )
             break;
         iMint = Exa3_ManEval( p );
     }
-    if ( pPars->fVerbose )
+    if ( pPars->fVerbose && status != GLUCOSE_UNDEC )
         Exa3_ManPrint( p, i, iMint, Abc_Clock() - clkTotal );
     if ( iMint == -1 )
         Exa3_ManPrintSolution( p, fCompl );
-    else
+    else if ( status == GLUCOSE_UNDEC )
+        printf( "The problem timed out after %d sec.\n", pPars->RuntimeLim );
+    else 
         printf( "The problem has no solution.\n" );
     printf( "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
     Exa3_ManFree( p );

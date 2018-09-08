@@ -8293,7 +8293,7 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INaogvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INTaogvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8317,6 +8317,17 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nNodes = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nNodes < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->RuntimeLim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->RuntimeLim < 0 )
                 goto usage;
             break;
         case 'a':
@@ -8366,10 +8377,11 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: twoexact [-IN <num>] [-aogvh] <hex>\n" );
+    Abc_Print( -2, "usage: twoexact [-INT <num>] [-aogvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
-    Abc_Print( -2, "\t-N <num> : the number of MAJ3 nodes [default = %d]\n", pPars->nNodes );
+    Abc_Print( -2, "\t-N <num> : the number of two-input nodes [default = %d]\n", pPars->nNodes );
+    Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", pPars->RuntimeLim );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates (without XOR-gates) [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );
     Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fGlucose ? "yes" : "no" );
@@ -8405,7 +8417,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INKiaogvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INKTiaogvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8440,6 +8452,17 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nLutSize < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->RuntimeLim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->RuntimeLim < 0 )
                 goto usage;
             break;
         case 'i':
@@ -8497,11 +8520,12 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-INK <num>] [-iaogvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-INKT <num>] [-iaogvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of I-input function using N K-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
     Abc_Print( -2, "\t-K <num> : the number of node fanins [default = %d]\n", pPars->nLutSize );
+    Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", pPars->RuntimeLim );
     Abc_Print( -2, "\t-i       : toggle using incremental solving [default = %s]\n", pPars->fUseIncr ? "yes" : "no" );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );
