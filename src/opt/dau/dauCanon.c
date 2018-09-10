@@ -1220,7 +1220,7 @@ int Abc_TtHieRetrieveOrInsert(Abc_TtHieMan_t * p, int level, word * pTruth, word
 	return 0;
 }
 
-unsigned Abc_TtCanonicizeHie_int( Abc_TtHieMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm, int fExact )
+unsigned Abc_TtCanonicizeHie( Abc_TtHieMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm, int fExact )
 {
     int fNaive = 1;
     int pStore[17];
@@ -1229,6 +1229,13 @@ unsigned Abc_TtCanonicizeHie_int( Abc_TtHieMan_t * p, word * pTruthInit, int nVa
     int nOnes, nWords = Abc_TtWordNum( nVars );
     int i, k;
     assert( nVars <= 16 );
+
+    // handle constant
+    if ( nVars == 0 )
+    {
+        Abc_TtClear( pTruthInit, nWords );
+        return 0;
+    }
 
     Abc_TtCopy( pTruth, pTruthInit, nWords, 0 );
 
@@ -1347,37 +1354,6 @@ unsigned Abc_TtCanonicizeHie_int( Abc_TtHieMan_t * p, word * pTruthInit, int nVa
     return 0;
 }
 
-unsigned Abc_TtCanonicizeHie( Abc_TtHieMan_t * p, word * pTruthInit, int nVars, char * pCanonPerm, int fExact )
-{
-    int nOnes, nWords = Abc_TtWordNum( nVars );
-    static word pTruth0[1024], pTruth1[1024];
-    // handle constant
-    if ( nVars == 0 )
-    {
-        Abc_TtClear( pTruthInit, nWords );
-        return 0;
-    }
-    if ( !fExact )
-        return Abc_TtCanonicizeHie_int(p, pTruthInit, nVars, pCanonPerm, fExact );
-
-    // normalize polarity    
-    nOnes = Abc_TtCountOnesInTruth( pTruthInit, nVars );
-    if ( nOnes != nWords * 32 )
-        return Abc_TtCanonicizeHie_int(p, pTruthInit, nVars, pCanonPerm, fExact );
-
-    Abc_TtCopy( pTruth0, pTruthInit, nWords, 0 );
-    Abc_TtCopy( pTruth1, pTruthInit, nWords, 0 );
-    Abc_TtNot( pTruth0, nWords );
-
-    Abc_TtCanonicizeHie_int(p, pTruth0, nVars, pCanonPerm, fExact );
-    Abc_TtCanonicizeHie_int(p, pTruth1, nVars, pCanonPerm, fExact );
-
-    if ( memcmp(pTruth0, pTruth1, sizeof(word)*nWords) < 0 )
-        Abc_TtCopy( pTruthInit, pTruth0, nWords, 0 );
-    else
-        Abc_TtCopy( pTruthInit, pTruth1, nWords, 0 );
-    return 0;
-}
 
 /**Function*************************************************************
 
