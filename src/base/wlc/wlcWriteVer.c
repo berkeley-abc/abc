@@ -366,7 +366,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             fprintf( pFile, "         " );
             fprintf( pFile, "%s (", "ABC_DFFRSE" );
             Wlc_ObjForEachFanin( pObj, iFanin, k )
-                fprintf( pFile, " .%s(%s),", pInNames[k], Wlc_ObjName(p, iFanin) );
+                if ( iFanin ) fprintf( pFile, " .%s(%s),", pInNames[k], Wlc_ObjName(p, iFanin) );
             fprintf( pFile, " .%s(%s) ) ;\n", "q", Wlc_ObjName(p, i) );
             continue;
         }
