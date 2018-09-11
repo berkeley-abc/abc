@@ -43675,6 +43675,16 @@ int Abc_CommandAbc9Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Mfs(): The current AIG has no mapping.\n" );
         return 0;
     }
+    if ( Gia_ManLutSizeMax(pAbc->pGia) > 6 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Mfs(): The current mapping has nodes with more than 6 inputs. Cannot use \"mfs\".\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->pAigExtra && Gia_ManPiNum(pAbc->pGia->pAigExtra) > 6 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Mfs(): The current white-boxes have more than 6 inputs. Cannot use \"mfs\".\n" );
+        return 0;
+    }
     pTemp = Gia_ManPerformMfs( pAbc->pGia, pPars );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
@@ -43692,7 +43702,7 @@ usage:
     Abc_Print( -2, "\t-d       : toggle performing redundancy removal [default = %s]\n",                        pPars->fRrOnly? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggle minimizing area or area+edges [default = %s]\n",                        pPars->fArea? "area": "area+edges" );
     Abc_Print( -2, "\t-e       : toggle high-effort resubstitution [default = %s]\n",                           pPars->fMoreEffort? "yes": "no" );
-    Abc_Print( -2, "\t-b       : toggle preserving all while boxes [default = %s]\n",                           pPars->fAllBoxes? "yes": "no" );
+    Abc_Print( -2, "\t-b       : toggle preserving all white boxes [default = %s]\n",                           pPars->fAllBoxes? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",                        pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n",                pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
