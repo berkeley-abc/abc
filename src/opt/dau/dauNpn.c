@@ -829,8 +829,12 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fV
                             tGate = s_Truths6[m] ^ s_Truths6[k];
                             tCur  = (tGate & Cof1) | (~tGate & Cof0);
                             Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+
+                            tGate = s_Truths6[m] ^ s_Truths6[k];
+                            tCur  = (tGate & Cof0) | (~tGate & Cof1);
+                            Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
                         }
-                        nSteps += 9;
+                        nSteps += 10;
                     }
                 }
             }
