@@ -23012,10 +23012,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fVerbose );
-    int c, nInputs = 4, nVars = 4, nNodeMax = 32, fUseTwo = 0, fVerbose = 0;
+    extern void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fReduce, int fVerbose );
+    int c, nInputs = 4, nVars = 4, nNodeMax = 32, fUseTwo = 0, fReduce = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SIMtvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SIMtrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23055,6 +23055,9 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             fUseTwo ^= 1;
             break;
+        case 'r':
+            fReduce ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -23076,16 +23079,17 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
     }
 
-    Dau_FunctionEnum( nInputs, nVars, nNodeMax, fUseTwo, fVerbose );
+    Dau_FunctionEnum( nInputs, nVars, nNodeMax, fUseTwo, fReduce, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: funenum [-SIM num] [-tvh]\n" );
+    Abc_Print( -2, "usage: funenum [-SIM num] [-trvh]\n" );
     Abc_Print( -2, "\t         enumerates minimum 2-input-gate implementations\n" );
     Abc_Print( -2, "\t-S num : the maximum intermediate support size [default = %d]\n", nInputs );
     Abc_Print( -2, "\t-I num : the number of inputs of Boolean functions [default = %d]\n", nVars );
     Abc_Print( -2, "\t-M num : the maximum number of 2-input gates [default = %d]\n", nNodeMax );
     Abc_Print( -2, "\t-t     : toggle adding combination of two gates [default = %s]\n", fUseTwo? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle reducing the last level [default = %s]\n", fReduce? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
