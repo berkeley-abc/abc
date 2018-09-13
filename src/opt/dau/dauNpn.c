@@ -509,20 +509,11 @@ void Dau_ExactNpnPrint( Vec_Mem_t * vTtMem, Vec_Int_t * vNodSup, int nVars, int 
   SeeAlso     []
 
 ***********************************************************************/
-void Dau_TablesSave( int nInputs, int nVars, Vec_Mem_t * vTtMem, Vec_Mem_t * vTtMemA, Vec_Int_t * vNodSup, Vec_Int_t * vMapping, int nFronts, abctime clk )
+void Dau_TablesSave( int nInputs, int nVars, Vec_Mem_t * vTtMem, Vec_Int_t * vNodSup, int nFronts, abctime clk )
 {
     FILE * pFile; 
     char FileName[100];
     int i, nWords = Abc_TtWordNum(nInputs);
-/*
-    // functions
-    sprintf( FileName, "fun%d%d.ttd", nInputs, nVars );
-    pFile = fopen( FileName, "wb" );
-    for ( i = 0; i < Vec_MemEntryNum(vTtMemA); i++ )
-        fwrite( Vec_MemReadEntry(vTtMemA, i), 8, nWords, pFile );
-    fwrite( Vec_IntArray(vMapping), 4, Vec_IntSize(vMapping), pFile );
-    fclose( pFile );
-*/
     // NPN classes
     sprintf( FileName, "npn%d%d.ttd", nInputs, nVars );
     pFile = fopen( FileName, "wb" );
@@ -530,57 +521,12 @@ void Dau_TablesSave( int nInputs, int nVars, Vec_Mem_t * vTtMem, Vec_Mem_t * vTt
         fwrite( Vec_MemReadEntry(vTtMem, i), 8, nWords, pFile );
     fwrite( Vec_IntArray(vNodSup), 4, Vec_IntSize(vNodSup), pFile );
     fclose( pFile );
-//    printf( "Dumped files with %10d functions and %10d classes after exploring %10d frontiers.\n", 
-//        Vec_IntSize(vMapping), Vec_IntSize(vNodSup), nFronts );
+//    printf( "Dumped files with %10d classes after exploring %10d frontiers.\n", 
+//        Vec_IntSize(vNodSup), nFronts );
     printf( "Dumped file \"%s\" with %10d classes after exploring %10d frontiers.  ", 
         FileName, Vec_IntSize(vNodSup), nFronts );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     fflush(stdout);
-}
-void Dau_TablesLoad( int nInputs, int nVars, Vec_Mem_t * vTtMem, Vec_Mem_t * vTtMemA, Vec_Int_t * vNodSup, Vec_Int_t * vMapping )
-{
-    char FileName1[100], FileName2[100];
-    int i, RetValue, FileSize1, FileSize2, nWords = Abc_TtWordNum(nInputs);
-    // functions
-    sprintf( FileName1, "fun%d%d.ttd", nInputs, nVars );
-    FileSize1 = Extra_FileSize( FileName1 );
-    if ( FileSize1 )
-    {
-        word uTruth;
-        FILE * pFile = fopen( FileName1, "rb" );
-        int nEntries = FileSize1 / 12;
-        assert( FileSize1 % 12 == 0 );
-        for ( i = 0; i < nEntries; i++ )
-        {
-            RetValue = fread( &uTruth, 8, nWords, pFile );
-            Vec_MemHashInsert( vTtMem, &uTruth );
-        }
-        Vec_IntFill( vNodSup, nEntries, -1 );
-        RetValue = fread( Vec_IntArray(vNodSup), 4, Vec_IntSize(vNodSup), pFile );
-        fclose( pFile );
-    }
-    // classes
-    sprintf( FileName2, "npn%d%d.ttd", nInputs, nVars );
-    FileSize2 = Extra_FileSize( FileName2 );
-    if ( FileSize2 )
-    {
-        word uTruth;
-        FILE * pFile = fopen( FileName2, "rb" );
-        int nEntries = FileSize2 / 12;
-        assert( FileSize2 % 12 == 0 );
-        for ( i = 0; i < nEntries; i++ )
-        {
-            RetValue = fread( &uTruth, 8, nWords, pFile );
-            Vec_MemHashInsert( vTtMemA, &uTruth );
-        }
-        Vec_IntFill( vMapping, nEntries, -1 );
-        RetValue = fread( Vec_IntArray(vMapping), 4, Vec_IntSize(vMapping), pFile );
-        fclose( pFile );
-    }
-    RetValue = 0;
-    if ( FileSize1 )
-        printf( "Loaded file \"%s\" with %10d functions and file \"%s\" with %10d classes.\n", 
-            FileName1, FileSize1, FileName2, FileSize2 );
 }
 
 /**Function*************************************************************
@@ -658,46 +604,36 @@ int Dau_PrintStats( int nNodes, int nInputs, int nVars, Vec_Int_t * vNodSup, int
     fflush(stdout);
     return nNew;
 }
+int Dau_RunNpn( Abc_TtHieMan_t * pMan, word * pTruth, int nVars, char * pCanonPerm )
+{
+    typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+    unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+    unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
+    if ( nVars < 6 )
+        return Abc_TtCanonicizeWrap( Abc_TtCanonicizeAda, NULL, pTruth, nVars, pCanonPerm, 99 );
+    else
+        return Abc_TtCanonicizeWrap( Abc_TtCanonicizeAda, pMan, pTruth, nVars, pCanonPerm, 99 );
+}
 int Dau_InsertFunction( Abc_TtHieMan_t * pMan, word * pCur, int nNodes, int nInputs, int nVars0, int nVars, 
-    Vec_Mem_t * vTtMem, Vec_Mem_t * vTtMemA, Vec_Int_t * vNodSup, Vec_Int_t * vMapping, int nFronts, abctime clk )
+    Vec_Mem_t * vTtMem, Vec_Int_t * vNodSup, int nFronts, abctime clk )
 {
     int DumpDelta = 1000000;
-//    int DumpDelta = 125000000;
-//    int nEntries = Vec_MemEntryNum(vTtMemA);
-//    Vec_MemHashInsert( vTtMemA, pCur );
-//    if ( nEntries == Vec_MemEntryNum(vTtMemA) ) // found in the table - not new
-//        return 0;
-//    else // this is a new function
-    {
-        typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
-        unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
-        unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
-
-        char Perm[16] = {0};
-        int nVarsNew = Abc_TtMinBase( pCur, NULL, nVars, nInputs );
-        unsigned Phase = Abc_TtCanonicizeHie( pMan, pCur, nVarsNew, Perm, 1 );
-//        unsigned Phase = Abc_TtCanonicizeWrap( Abc_TtCanonicizeAda, pMan, pCur, nVarsNew, Perm, 199 );
-        int nEntries = Vec_MemEntryNum(vTtMem);
-        int Entry = Vec_MemHashInsert( vTtMem, pCur );
-        //Vec_IntPush( vMapping, Entry );
-        //assert( Vec_MemEntryNum(vTtMemA) == Vec_IntSize(vMapping) );
-        if ( nEntries == Vec_MemEntryNum(vTtMem) ) // found in the table - not new
-        {
-            //if ( Vec_IntSize(vMapping) % DumpDelta == 0 )
-            //    Dau_TablesSave( nInputs, nVars0, vTtMem, vTtMemA, vNodSup, vMapping, nFronts, clk );
-            return 0;
-        }
-        Entry = 0;
-        Phase = 0;
-        //printf( "%d ", Dau_CountCompl(pCur[0], nVarsNew) );
-        // this is a new class
-        Vec_IntPush( vNodSup, (nNodes << 16) | nVarsNew );
-        assert( Vec_MemEntryNum(vTtMem) == Vec_IntSize(vNodSup) );
-        //if ( Vec_IntSize(vMapping) % DumpDelta == 0 )
-        if ( Vec_IntSize(vNodSup) % DumpDelta == 0 )
-            Dau_TablesSave( nInputs, nVars0, vTtMem, vTtMemA, vNodSup, vMapping, nFronts, clk );
-        return 1;
-    }
+    char Perm[16] = {0};
+    int nVarsNew = Abc_TtMinBase( pCur, NULL, nVars, nInputs );
+    //unsigned Phase = Abc_TtCanonicizeHie( pMan, pCur, nVarsNew, Perm, 1 );
+    unsigned Phase = Dau_RunNpn( pMan, pCur, nVarsNew, Perm );
+    int nEntries = Vec_MemEntryNum(vTtMem);
+    int Entry = Vec_MemHashInsert( vTtMem, pCur );
+    if ( nEntries == Vec_MemEntryNum(vTtMem) ) // found in the table - not new
+        return 0;
+    Entry = 0;
+    Phase = 0;
+    // this is a new class
+    Vec_IntPush( vNodSup, (nNodes << 16) | nVarsNew );
+    assert( Vec_MemEntryNum(vTtMem) == Vec_IntSize(vNodSup) );
+    if ( Vec_IntSize(vNodSup) % DumpDelta == 0 )
+        Dau_TablesSave( nInputs, nVars0, vTtMem, vNodSup, nFronts, clk );
+    return 1;
 }
 void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fReduce, int fVerbose )
 {
@@ -705,31 +641,19 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
     int nWords = Abc_TtWordNum(nInputs); word nSteps = 0;
 	Abc_TtHieMan_t * pMan = Abc_TtHieManStart( nInputs, 5 );
     Vec_Mem_t * vTtMem  = Vec_MemAlloc( nWords, 16 );
-    Vec_Mem_t * vTtMemA  = Vec_MemAlloc( nWords, 16 );
     Vec_Int_t * vNodSup = Vec_IntAlloc( 1 << 16 );
-    Vec_Int_t * vMapping = Vec_IntAlloc( 1 << 16 );
     int v, u, k, m, n, Entry, nNew, Limit[32] = {1, 2};
     word Truth[4] = {0};
     assert( nVars >= 3 && nVars <= nInputs && nInputs <= 6 );
     Vec_MemHashAlloc( vTtMem,  1<<16 );
-    Vec_MemHashAlloc( vTtMemA, 1<<16 );
-    if ( 0 ) // load from file
-        Dau_TablesLoad( nInputs, nVars, vTtMem, vTtMemA, vNodSup, vMapping );
-    else
-    {
-        // add constant 0
-        Vec_MemHashInsert( vTtMem,  Truth );
-        Vec_MemHashInsert( vTtMemA, Truth );
-        Vec_IntPush( vNodSup, 0 ); // nodes=0, supp=0
-        Vec_IntPush( vMapping, 0 );
-        // add buffer/inverter
-        Abc_TtIthVar( Truth, 0, nInputs );
-        Abc_TtNot( Truth, nWords );
-        Vec_MemHashInsert( vTtMem,  Truth );
-        Vec_MemHashInsert( vTtMemA, Truth );
-        Vec_IntPush( vNodSup, 1 ); // nodes=0, supp=1
-        Vec_IntPush( vMapping, 1 );
-    }
+    // add constant 0
+    Vec_MemHashInsert( vTtMem,  Truth );
+    Vec_IntPush( vNodSup, 0 ); // nodes=0, supp=0
+    // add buffer/inverter
+    Abc_TtIthVar( Truth, 0, nInputs );
+    Abc_TtNot( Truth, nWords );
+    Vec_MemHashInsert( vTtMem,  Truth );
+    Vec_IntPush( vNodSup, 1 ); // nodes=0, supp=1
     Dau_PrintStats( 0, nInputs, nVars, vNodSup, 0, 2, nSteps, 0, clk );
     // numerate other functions based on how many nodes they have
     for ( n = 1; n <= nNodeMax; n++ )
@@ -757,15 +681,15 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
                 {
                     tGate = s_Truths6[v] & s_Truths6[nSupp];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp+1, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp+1, vTtMem, vNodSup, Entry, clk );
 
                     tCur  = (tGate & Cof0) | (~tGate & Cof1);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp+1, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp+1, vTtMem, vNodSup, Entry, clk );
 
 
                     tGate = s_Truths6[v] ^ s_Truths6[nSupp];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp+1, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp+1, vTtMem, vNodSup, Entry, clk );
 
                     nSteps += 3;
                 }
@@ -775,22 +699,22 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
                 {
                     tGate = s_Truths6[v] & s_Truths6[k];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tCur  = (tGate & Cof0) | (~tGate & Cof1);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tGate = s_Truths6[v] & ~s_Truths6[k];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tCur  = (tGate & Cof0) | (~tGate & Cof1);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
 
                     tGate = s_Truths6[v] ^ s_Truths6[k];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     nSteps += 5;
                 }
@@ -800,40 +724,40 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
                 {
                     tGate = s_Truths6[m] & s_Truths6[k];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tCur  = (tGate & Cof0) | (~tGate & Cof1);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tGate = s_Truths6[m] & ~s_Truths6[k];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tCur  = (tGate & Cof0) | (~tGate & Cof1);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tGate = ~s_Truths6[m] & s_Truths6[k];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tCur  = (tGate & Cof0) | (~tGate & Cof1);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tGate = ~s_Truths6[m] & ~s_Truths6[k];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tCur  = (tGate & Cof0) | (~tGate & Cof1);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     
                     tGate = s_Truths6[m] ^ s_Truths6[k];
                     tCur  = (tGate & Cof1) | (~tGate & Cof0);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     tGate = s_Truths6[m] ^ s_Truths6[k];
                     tCur  = (tGate & Cof0) | (~tGate & Cof1);
-                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
 
                     nSteps += 10;
                 }
@@ -872,7 +796,7 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
                     Cof1  = (tGates[g1] & Cof11) | (~tGates[g1] & Cof10);
 
                     tCur  = (tGates[g2] & Cof1)  | (~tGates[g2] & Cof0);
-                    Count2 += Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vTtMemA, vNodSup, vMapping, Entry, clk );
+                    Count2 += Dau_InsertFunction( pMan, &tCur, n, nInputs, nVars, nSupp, vTtMem, vNodSup, Entry, clk );
                 }
             }
         }
@@ -881,25 +805,20 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
         if ( nNew == 0 )
             break;
     }
-    Dau_TablesSave( nInputs, nVars, vTtMem, vTtMemA, vNodSup, vMapping, Vec_IntSize(vNodSup), clk );
+    Dau_TablesSave( nInputs, nVars, vTtMem, vNodSup, Vec_IntSize(vNodSup), clk );
     Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
     //Dau_DumpFuncs( vTtMem, vNodSup, nVars, nNodeMax );
-    //Dau_ExactNpnPrint( vTtMem, vTtMemA, vNodSup, nVars, nInputs, n );
+    //Dau_ExactNpnPrint( vTtMem, vNodSup, nVars, nInputs, n );
 	Abc_TtHieManStop( pMan );
     Vec_MemHashFree( vTtMem );
-    Vec_MemHashFree( vTtMemA );
     Vec_MemFreeP( &vTtMem );
-    Vec_MemFreeP( &vTtMemA );
     Vec_IntFree( vNodSup );
-    Vec_IntFree( vMapping );
     fflush(stdout);
 }
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
 
 ABC_NAMESPACE_IMPL_END
 
