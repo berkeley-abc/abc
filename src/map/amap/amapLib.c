@@ -242,8 +242,11 @@ Amap_Gat_t * Amap_LibFindGate( Amap_Lib_t * p, unsigned uTruth )
     Amap_Gat_t * pGate;
     int i;
     Vec_PtrForEachEntry( Amap_Gat_t *, p->vSorted, pGate, i )
+    {
+        if (( pGate == NULL ) || ( pGate->pFunc == NULL )) continue;
         if ( pGate->nPins <= 5 && pGate->pFunc[0] == uTruth )
             return pGate;
+    }
     return NULL;
 }
 
