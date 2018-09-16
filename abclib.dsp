@@ -2955,6 +2955,10 @@ SOURCE=.\src\opt\dau\dauNpn.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\opt\dau\dauNpn2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\opt\dau\dauTree.c
 # End Source File
 # End Group

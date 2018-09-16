@@ -13214,8 +13214,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
     {
-//        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
-//        Abc_EnumerateFuncs( nDecMax, nDivMax, fVerbose );
+        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
+        Abc_EnumerateFuncs( 4, 7, 0 );
     }
 /*
     if ( fNewAlgo )
@@ -13266,7 +13266,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Cba_PrsReadBlifTest();
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
-    Dau_NetworkEnumTest();
+    //Dau_NetworkEnumTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -23012,10 +23012,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Dtt_EnumerateLf( int nVars, int nNodeMax, int fVerbose );
     extern void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fReduce, int fVerbose );
-    int c, nInputs = 4, nVars = 4, nNodeMax = 32, fUseTwo = 0, fReduce = 0, fVerbose = 0;
+    int c, nInputs = 4, nVars = 4, nNodeMax = 32, fUseTwo = 0, fReduce = 0, fSimple = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SIMtrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SIMtrlvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23058,6 +23059,9 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fReduce ^= 1;
             break;
+        case 'l':
+            fSimple ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -23068,28 +23072,40 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( nVars < 2 || nVars > 6 )
+    if ( fSimple )
     {
-        Abc_Print( -1, "The number of inputs should be 2 <= I <= 6.\n" );
-        goto usage;
+        if ( nVars < 4 || nVars > 5 )
+        {
+            Abc_Print( -1, "The number of inputs should be 4 <= I <= 5.\n" );
+            goto usage;
+        }
+        Dtt_EnumerateLf( nVars, nNodeMax, fVerbose );
     }
-    if ( nInputs < nVars || nInputs > 6 )
+    else
     {
-        Abc_Print( -1, "The intermediate support size should be I <= S <= 6.\n" );
-        goto usage;
+        if ( nVars < 2 || nVars > 6 )
+        {
+            Abc_Print( -1, "The number of inputs should be 2 <= I <= 6.\n" );
+            goto usage;
+        }
+        if ( nInputs < nVars || nInputs > 6 )
+        {
+            Abc_Print( -1, "The intermediate support size should be I <= S <= 6.\n" );
+            goto usage;
+        }
+        Dau_FunctionEnum( nInputs, nVars, nNodeMax, fUseTwo, fReduce, fVerbose );
     }
-
-    Dau_FunctionEnum( nInputs, nVars, nNodeMax, fUseTwo, fReduce, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: funenum [-SIM num] [-trvh]\n" );
+    Abc_Print( -2, "usage: funenum [-SIM num] [-trlvh]\n" );
     Abc_Print( -2, "\t         enumerates minimum 2-input-gate implementations\n" );
     Abc_Print( -2, "\t-S num : the maximum intermediate support size [default = %d]\n", nInputs );
     Abc_Print( -2, "\t-I num : the number of inputs of Boolean functions [default = %d]\n", nVars );
     Abc_Print( -2, "\t-M num : the maximum number of 2-input gates [default = %d]\n", nNodeMax );
     Abc_Print( -2, "\t-t     : toggle adding combination of two gates [default = %s]\n", fUseTwo? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle reducing the last level [default = %s]\n", fReduce? "yes": "no" );
+    Abc_Print( -2, "\t-l     : toggle generating L(f) rather than C(f) [default = %s]\n", fSimple? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

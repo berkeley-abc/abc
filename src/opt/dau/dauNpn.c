@@ -620,8 +620,8 @@ int Dau_InsertFunction( Abc_TtHieMan_t * pMan, word * pCur, int nNodes, int nInp
     int DumpDelta = 1000000;
     char Perm[16] = {0};
     int nVarsNew = Abc_TtMinBase( pCur, NULL, nVars, nInputs );
-    unsigned Phase = Abc_TtCanonicizeHie( pMan, pCur, nVarsNew, Perm, 1 );
-    //unsigned Phase = Dau_RunNpn( pMan, pCur, nVarsNew, Perm );
+    //unsigned Phase = Abc_TtCanonicizeHie( pMan, pCur, nVarsNew, Perm, 1 );
+    unsigned Phase = Dau_RunNpn( pMan, pCur, nInputs, Perm );
     int nEntries = Vec_MemEntryNum(vTtMem);
     int Entry = Vec_MemHashInsert( vTtMem, pCur );
     if ( nEntries == Vec_MemEntryNum(vTtMem) ) // found in the table - not new
