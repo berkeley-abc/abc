@@ -143,7 +143,7 @@ Vec_Int_t * Dtt_ManCollect( Dtt_Man_t * p, unsigned Truth, Vec_Int_t * vFuns )
         for ( k = 0; k < p->nComps; k++ )
         {
             unsigned tTemp = (unsigned)(tCur & 1 ? ~tCur : tCur);
-            //if ( Dtt_ManCheckHash( p, tTemp ) )
+            if ( Dtt_ManCheckHash( p, tTemp ) )
                 Vec_IntPush( vFuns, tTemp );
             tCur = Abc_Tt6Flip( tCur, p->pComps[k] );
         }
@@ -233,7 +233,7 @@ void Dtt_EnumerateLf( int nVars, int nNodeMax, int fVerbose )
     Dtt_PrintStats(0, nVars, p->vFunNodes, nSteps, clk);
     for ( n = 1; n < nNodeMax; n++ )
     {
-        for ( i = 0, j = n - 1; i < n; i++, j-- )
+        for ( i = 0, j = n - 1; i < n; i++, j-- ) if ( i <= j )
         {
             Vec_Int_t * vFaninI = Vec_WecEntry( p->vFunNodes, i );
             Vec_Int_t * vFaninJ = Vec_WecEntry( p->vFunNodes, j );
