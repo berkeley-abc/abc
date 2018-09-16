@@ -45,9 +45,11 @@ struct Dtt_Man_t_
     Vec_Wec_t *    vFunNodes;      // nodes by NPN class
     Vec_Int_t *    vTemp;          // temporary
     Vec_Int_t *    vTemp2;         // temporary
+    unsigned       FunMask;        // function mask
     unsigned       BinMask;        // hash mask
     unsigned *     pBins;          // hash bins
     Vec_Int_t *    vUsedBins;      // used bins
+    int            Counts[32];     // node counts
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -82,6 +84,7 @@ Dtt_Man_t * Dtt_ManAlloc( int nVars )
     p->vFunNodes  = Vec_WecStart( 16 );
     p->vTemp      = Vec_IntAlloc( 4000 );
     p->vTemp2     = Vec_IntAlloc( 4000 );
+    p->FunMask    = nVars == 5 ? ~0 : (nVars == 4 ? 0xFFFF : 0xFF);
     p->BinMask    = 0x3FFF;
     p->pBins      = ABC_FALLOC( unsigned, p->BinMask + 1 );
     p->vUsedBins  = Vec_IntAlloc( 4000 );
@@ -171,45 +174,56 @@ Vec_Int_t * Dtt_ManCollect( Dtt_Man_t * p, unsigned Truth, Vec_Int_t * vFuns )
 ***********************************************************************/
 static inline int Dtt_ManGetFun( Dtt_Man_t * p, unsigned tFun )
 {
-    unsigned ttFun = p->nVars == 4 ? 0xFFFF & tFun : tFun;
-    return Abc_TtGetBit( p->pPres, ttFun >> 1 );
+    return Abc_TtGetBit( p->pPres, (tFun & p->FunMask) >> 1 );
 }
 static inline void Dtt_ManSetFun( Dtt_Man_t * p, unsigned tFun )
 {
-    unsigned ttFun = p->nVars == 4 ? 0xFFFF & tFun : tFun;
-    //assert( !Dtt_ManGetFun(p, ttFun) );
-    Abc_TtSetBit( p->pPres, ttFun >> 1 );
+    //assert( !Dtt_ManGetFun(p, (fFun & p->FunMask)) );
+    Abc_TtSetBit( p->pPres, (tFun & p->FunMask) >> 1 );
 }
 void Dtt_ManAddFunction( Dtt_Man_t * p, int n, int FanI, int FanJ, int Type, unsigned Truth )
 {
     Vec_Int_t * vFuncs = Dtt_ManCollect( p, Truth, p->vTemp2 );
     unsigned Min = Vec_IntFindMin( vFuncs ); 
     int i, nObjs = Vec_IntSize(p->vFanins)/2;
+    int nNodesI = 0xF & (Vec_IntEntry(p->vConfigs, FanI) >> 3);
+    int nNodesJ = 0xF & (Vec_IntEntry(p->vConfigs, FanJ) >> 3);
+    int nNodes  = nNodesI + nNodesJ + 1;
     assert( nObjs == Vec_IntSize(p->vTruths) );
     assert( nObjs == Vec_IntSize(p->vConfigs) );
     assert( nObjs == Vec_IntSize(p->vClasses) );
     Vec_WecPush( p->vFunNodes, n, nObjs );
     Vec_IntPushTwo( p->vFanins, FanI, FanJ );
     Vec_IntPush( p->vTruths, Truth );
-    Vec_IntPush( p->vConfigs, Type );
+    Vec_IntPush( p->vConfigs, (nNodes << 3) | Type );
     Vec_IntPush( p->vClasses, Vec_IntSize(p->vTruthNpns) );
     Vec_IntPush( p->vTruthNpns, Min );
     Vec_IntForEachEntry( vFuncs, Min, i )
         Dtt_ManSetFun( p, Min );
+    assert( nNodes < 32 );
+    p->Counts[nNodes]++;
 }
-int Dtt_PrintStats( int nNodes, int nVars, Vec_Wec_t * vFunNodes, word nSteps, abctime clk )
+int Dtt_PrintStats( int nNodes, int nVars, Vec_Wec_t * vFunNodes, word nSteps, abctime clk, int fDelay )
 {
     int nNew = Vec_IntSize(Vec_WecEntry(vFunNodes, nNodes));
-    printf("N =%2d  | ",       nNodes );
+    printf("%c =%2d  |  ",     fDelay ? 'D':'N', nNodes );
     printf("C =%12.0f  |  ",   (double)(iword)nSteps );
-    printf("New%d =%10d  ",    nVars, nNew + (int)(nNodes==0) );
+    printf("New%d =%10d   ",   nVars, nNew + (int)(nNodes==0) );
     printf("All%d =%10d  |  ", nVars, Vec_WecSizeSize(vFunNodes)+1 );
     Abc_PrintTime( 1, "Time",  Abc_Clock() - clk );
     //Abc_Print(1, "%9.2f sec\n", 1.0*(Abc_Clock() - clk)/(CLOCKS_PER_SEC));
     fflush(stdout);
     return nNew;
 }
-void Dtt_EnumerateLf( int nVars, int nNodeMax, int fVerbose )
+void Dtt_PrintDistrib( Dtt_Man_t * p )
+{
+    int i;
+    printf( "NPN classes for each node count (N):\n" );
+    for ( i = 0; i < 32; i++ )
+        if ( p->Counts[i] )
+            printf( "N = %2d : NPN = %6d\n", i, p->Counts[i] );
+}
+void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fVerbose )
 {
     abctime clk = Abc_Clock(); word nSteps = 0;
     Dtt_Man_t * p = Dtt_ManAlloc( nVars ); int n, i, j;
@@ -224,16 +238,17 @@ void Dtt_EnumerateLf( int nVars, int nNodeMax, int fVerbose )
     Vec_WecPush( p->vFunNodes, 0, Vec_IntSize(p->vFanins)/2 );
     Vec_IntPushTwo( p->vFanins, 0, 0 );
     Vec_IntPush( p->vTruths, (unsigned)s_Truths6[0] );
-    Vec_IntPush( p->vConfigs, -1 );
+    Vec_IntPush( p->vConfigs, 0 );
     Vec_IntPush( p->vClasses, Vec_IntSize(p->vTruthNpns) );
     Vec_IntPush( p->vTruthNpns, (unsigned)s_Truths6[0] );
     for ( i = 0; i < nVars; i++ )
         Dtt_ManSetFun( p, (unsigned)s_Truths6[i] );
+    p->Counts[0] = 2;
     // enumerate
-    Dtt_PrintStats(0, nVars, p->vFunNodes, nSteps, clk);
-    for ( n = 1; n < nNodeMax; n++ )
+    Dtt_PrintStats(0, nVars, p->vFunNodes, nSteps, clk, fDelay);
+    for ( n = 1; n <= nNodeMax; n++ )
     {
-        for ( i = 0, j = n - 1; i < n; i++, j-- ) if ( i <= j )
+        for ( i = 0, j = n - 1; i < n; i++, j = j - 1 + fDelay ) if ( i <= j )
         {
             Vec_Int_t * vFaninI = Vec_WecEntry( p->vFunNodes, i );
             Vec_Int_t * vFaninJ = Vec_WecEntry( p->vFunNodes, j );
@@ -263,9 +278,11 @@ void Dtt_EnumerateLf( int nVars, int nNodeMax, int fVerbose )
                 }
             }
         }
-        if ( Dtt_PrintStats(n, nVars, p->vFunNodes, nSteps, clk) == 0 )
+        if ( Dtt_PrintStats(n, nVars, p->vFunNodes, nSteps, clk, fDelay) == 0 )
             break;
     }
+    if ( fDelay )
+        Dtt_PrintDistrib( p );
     Dtt_ManFree( p );
 }
 
