@@ -604,16 +604,8 @@ int Dau_PrintStats( int nNodes, int nInputs, int nVars, Vec_Int_t * vNodSup, int
     fflush(stdout);
     return nNew;
 }
-int Dau_RunNpn( Abc_TtHieMan_t * pMan, word * pTruth, int nVars, char * pCanonPerm )
-{
-    typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
-    unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
-    unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
-    if ( nVars < 6 )
-        return Abc_TtCanonicizeWrap( Abc_TtCanonicizeAda, NULL, pTruth, nVars, pCanonPerm, 99 );
-    else
-        return Abc_TtCanonicizeWrap( Abc_TtCanonicizeAda, pMan, pTruth, nVars, pCanonPerm, 99 );
-}
+
+
 int Dau_InsertFunction( Abc_TtHieMan_t * pMan, word * pCur, int nNodes, int nInputs, int nVars0, int nVars, 
     Vec_Mem_t * vTtMem, Vec_Int_t * vNodSup, int nFronts, abctime clk )
 {
@@ -621,7 +613,7 @@ int Dau_InsertFunction( Abc_TtHieMan_t * pMan, word * pCur, int nNodes, int nInp
     char Perm[16] = {0};
     int nVarsNew = Abc_TtMinBase( pCur, NULL, nVars, nInputs );
     //unsigned Phase = Abc_TtCanonicizeHie( pMan, pCur, nVarsNew, Perm, 1 );
-    unsigned Phase = Dau_RunNpn( pMan, pCur, nInputs, Perm );
+    unsigned Phase = Abc_TtCanonicizeWrap( Abc_TtCanonicizeAda, pMan, pCur, nVarsNew, Perm, 99 );
     int nEntries = Vec_MemEntryNum(vTtMem);
     int Entry = Vec_MemHashInsert( vTtMem, pCur );
     if ( nEntries == Vec_MemEntryNum(vTtMem) ) // found in the table - not new
@@ -639,7 +631,7 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
 {
     abctime clk = Abc_Clock();
     int nWords = Abc_TtWordNum(nInputs); word nSteps = 0;
-	Abc_TtHieMan_t * pMan = Abc_TtHieManStart( nInputs, 5 );
+    Abc_TtHieMan_t * pMan = Abc_TtHieManStart( nInputs, 5 );
     Vec_Mem_t * vTtMem  = Vec_MemAlloc( nWords, 16 );
     Vec_Int_t * vNodSup = Vec_IntAlloc( 1 << 16 );
     int v, u, k, m, n, Entry, nNew, Limit[32] = {1, 2};
@@ -809,7 +801,7 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
     Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
     //Dau_DumpFuncs( vTtMem, vNodSup, nVars, nNodeMax );
     //Dau_ExactNpnPrint( vTtMem, vNodSup, nVars, nInputs, n );
-	Abc_TtHieManStop( pMan );
+    Abc_TtHieManStop( pMan );
     Vec_MemHashFree( vTtMem );
     Vec_MemFreeP( &vTtMem );
     Vec_IntFree( vNodSup );
