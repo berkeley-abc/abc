@@ -2851,6 +2851,8 @@ Gia_Man_t * Gia_ManTransformMiter( Gia_Man_t * p )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
+    if ( p->vNamesIn )
+        pNew->vNamesIn = Vec_PtrDupStr(p->vNamesIn);
     return pNew;
 }
 Gia_Man_t * Gia_ManTransformMiter2( Gia_Man_t * p )
