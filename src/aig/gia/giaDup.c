@@ -2815,6 +2815,30 @@ Gia_Man_t * Gia_ManDupAndOr( Gia_Man_t * p, int nOuts, int fUseOr, int fCompl )
 
 /**Function*************************************************************
 
+  Synopsis    [Transforms output names.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Gia_ManMiterNames( Vec_Ptr_t * p )
+{
+    char * pName1, * pName2, pBuffer[1000]; int i;
+    Vec_Ptr_t * pNew = Vec_PtrAlloc( Vec_PtrSize(p)/2 );
+    assert( Vec_PtrSize(p) % 2 == 0 );
+    Vec_PtrForEachEntryDouble( char *, char *, p, pName1, pName2, i )
+    {
+        sprintf( pBuffer, "%s_xor_%s", pName1, pName2 );
+        Vec_PtrPush( pNew, Abc_UtilStrsav(pBuffer) );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Transforms the circuit into a regular miter.]
 
   Description []
@@ -2853,6 +2877,8 @@ Gia_Man_t * Gia_ManTransformMiter( Gia_Man_t * p )
     Gia_ManStop( pTemp );
     if ( p->vNamesIn )
         pNew->vNamesIn = Vec_PtrDupStr(p->vNamesIn);
+    if ( p->vNamesOut )
+        pNew->vNamesOut = Gia_ManMiterNames(p->vNamesOut);
     return pNew;
 }
 Gia_Man_t * Gia_ManTransformMiter2( Gia_Man_t * p )
