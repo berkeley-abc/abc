@@ -2085,8 +2085,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     }
     if ( pPar->vBoxIds )
     {
-        Vec_PtrFreeP( &pNew->vNamesIn );
-        Vec_PtrFreeP( &pNew->vNamesOut );
+        Vec_PtrFreeFree( pNew->vNamesIn );   pNew->vNamesIn  = NULL;
+        Vec_PtrFreeFree( pNew->vNamesOut );  pNew->vNamesOut = NULL;
     }
     return pNew;
 }
