@@ -1154,6 +1154,10 @@ static inline int Abc_Tt6HasVar( word t, int iVar )
 {
     return ((t >> (1<<iVar)) & s_Truths6Neg[iVar]) != (t & s_Truths6Neg[iVar]);
 }
+static inline int Abc_Tt6XorVar( word t, int iVar )
+{
+    return ((t >> (1<<iVar)) & s_Truths6Neg[iVar]) == ~(t & s_Truths6Neg[iVar]);
+}
 static inline int Abc_TtHasVar( word * t, int nVars, int iVar )
 {
     assert( iVar < nVars );
@@ -3106,6 +3110,20 @@ static inline int Abc_Tt4Check( int t )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Abc_Tt6VarsAreSymmetric( word t, int iVar, int jVar )
+{
+    word * s_PMasks = s_PPMasks[iVar][jVar];
+    int shift = (1 << jVar) - (1 << iVar);
+    assert( iVar < jVar );
+    return ((t & s_PMasks[1]) << shift) == (t & s_PMasks[2]);
+}
+static inline int Abc_Tt6VarsAreAntiSymmetric( word t, int iVar, int jVar )
+{
+    word * s_PMasks = s_PPMasks[iVar][jVar];
+    int shift = (1 << jVar) + (1 << iVar);
+    assert( iVar < jVar );
+    return ((t & (s_PMasks[1] >> (1 << iVar))) << shift) == (t & (s_PMasks[2] << (1 << iVar)));
+}
 static inline int Abc_TtVarsAreSymmetric( word * pTruth, int nVars, int i, int j, word * pCof0, word * pCof1 )
 {
     int nWords = Abc_TtWordNum( nVars );
@@ -3114,6 +3132,16 @@ static inline int Abc_TtVarsAreSymmetric( word * pTruth, int nVars, int i, int j
     Abc_TtCofactor1p( pCof1, pTruth, nWords, i );
     Abc_TtCofactor1( pCof0, nWords, j );
     Abc_TtCofactor0( pCof1, nWords, j );
+    return Abc_TtEqual( pCof0, pCof1, nWords );
+}
+static inline int Abc_TtVarsAreAntiSymmetric( word * pTruth, int nVars, int i, int j, word * pCof0, word * pCof1 )
+{
+    int nWords = Abc_TtWordNum( nVars );
+    assert( i < nVars && j < nVars );
+    Abc_TtCofactor0p( pCof0, pTruth, nWords, i );
+    Abc_TtCofactor1p( pCof1, pTruth, nWords, i );
+    Abc_TtCofactor0( pCof0, nWords, j );
+    Abc_TtCofactor1( pCof1, nWords, j );
     return Abc_TtEqual( pCof0, pCof1, nWords );
 }
 static inline int Abc_TtIsFullySymmetric( word * pTruth, int nVars )

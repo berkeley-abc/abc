@@ -13214,8 +13214,8 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
     {
-        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
-        Abc_EnumerateFuncs( 4, 7, 0 );
+//        extern void Abc_EnumerateFuncs( int nDecMax, int nDivMax, int fVerbose );
+//        Abc_EnumerateFuncs( 4, 7, 0 );
     }
 /*
     if ( fNewAlgo )
@@ -13267,6 +13267,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
     //Dau_NetworkEnumTest();
+    //Ext_TruthDiagnoseTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
