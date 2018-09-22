@@ -969,12 +969,12 @@ usage:
 int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
-    Gia_Man_t * pNew = NULL; int c;
+    Gia_Man_t * pNew = NULL; int c, fMiter = 0, fDumpNames = 0;
     Wlc_BstPar_t Par, * pPar = &Par;
     Wlc_BstParDefault( pPar );
     pPar->nOutputRange = 2;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombadsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombadstnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1043,6 +1043,13 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPar->fDecMuxes ^= 1;
             break;
+        case 't':
+            pPar->fCreateMiter ^= 1;
+            fMiter ^= 1;
+            break;
+        case 'n':
+            fDumpNames ^= 1;
+            break;
         case 'v':
             pPar->fVerbose ^= 1;
             break;
@@ -1085,10 +1092,31 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandBlast(): Bit-blasting has failed.\n" );
         return 0;
     }
+    // generate miter
+    if ( fMiter )
+    {
+        Gia_Man_t * pTemp = pNew;
+        pNew = Gia_ManTransformMiter( pNew );
+        Gia_ManStop( pTemp );
+        Abc_Print( 1, "Bit-blasting created a traditional multi-output miter by XORing POs pair-wise.\n" );
+        if ( fDumpNames )
+        {
+            int i; char * pName;
+            FILE * pFile = fopen( "pio_name_map.txt", "wb" );
+            if ( pNew->vNamesIn )
+                Vec_PtrForEachEntry( char *, pNew->vNamesIn, pName, i )
+                    fprintf( pFile, "i%d %s\n", i, pName );
+            if ( pNew->vNamesOut )
+                Vec_PtrForEachEntry( char *, pNew->vNamesOut, pName, i )
+                    fprintf( pFile, "o%d %s\n", i, pName );
+            fclose( pFile );
+            Abc_Print( 1, "Finished dumping file \"pio_name_map.txt\" containing PI/PO name mapping.\n" );
+        }
+    }
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combadsvh]\n" );
+    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combadstnvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-O num : zero-based index of the first word-level PO to bit-blast [default = %d]\n", pPar->iOutput );
     Abc_Print( -2, "\t-R num : the total number of word-level POs to bit-blast [default = %d]\n",          pPar->nOutputRange );
@@ -1099,8 +1127,10 @@ usage:
     Abc_Print( -2, "\t-m     : toggle creating boxes for all multipliers in the design [default = %s]\n",  pPar->fMulti? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggle generating radix-4 Booth multipliers [default = %s]\n",              pPar->fBooth? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle generating carry-look-ahead adder [default = %s]\n",                 pPar->fCla? "yes": "no" );
-    Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n",                        pPar->fCreateMiter? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle creating dual-output multi-output miter [default = %s]\n",           pPar->fCreateMiter? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating decoded MUXes [default = %s]\n",                            pPar->fDecMuxes? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle creating regular multi-output miter [default = %s]\n",               fMiter? "yes": "no" );
+    Abc_Print( -2, "\t-n     : toggle dumping signal names into a text file [default = %s]\n",             fDumpNames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                      pPar->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
