@@ -140,6 +140,7 @@ struct Wlc_Ntk_t_
     Vec_Int_t              vCis;               // combinational inputs
     Vec_Int_t              vCos;               // combinational outputs
     Vec_Int_t              vFfs;               // flops
+    Vec_Int_t              vFfs2;              // flops
     Vec_Int_t *            vInits;             // initial values
     char *                 pInits;             // initial values
     int                    nObjs[WLC_OBJ_NUMBER]; // counter of objects of each type
@@ -275,6 +276,7 @@ static inline Wlc_Obj_t *  Wlc_NtkPo( Wlc_Ntk_t * p, int i )                    
 static inline Wlc_Obj_t *  Wlc_NtkCi( Wlc_Ntk_t * p, int i )                        { return Wlc_NtkObj( p, Vec_IntEntry(&p->vCis, i) );                       }
 static inline Wlc_Obj_t *  Wlc_NtkCo( Wlc_Ntk_t * p, int i )                        { return Wlc_NtkObj( p, Vec_IntEntry(&p->vCos, i) );                       }
 static inline Wlc_Obj_t *  Wlc_NtkFf( Wlc_Ntk_t * p, int i )                        { return Wlc_NtkObj( p, Vec_IntEntry(&p->vFfs, i) );                       }
+static inline Wlc_Obj_t *  Wlc_NtkFf2( Wlc_Ntk_t * p, int i )                       { return Wlc_NtkObj( p, Vec_IntEntry(&p->vFfs2, i) );                      }
 
 static inline int          Wlc_ObjIsPi( Wlc_Obj_t * p )                             { return p->Type == WLC_OBJ_PI;                                            }
 static inline int          Wlc_ObjIsPo( Wlc_Obj_t * p )                             { return p->fIsPo;                                                         }
@@ -350,6 +352,8 @@ static inline Wlc_Obj_t *  Wlc_ObjCo2PoFo( Wlc_Ntk_t * p, int iCoId )           
     for ( i = 0; (i < Wlc_NtkCoNum(p)) && (((pCo) = Wlc_NtkCo(p, i)), 1); i++ )
 #define Wlc_NtkForEachFf( p, pFf, i )                                               \
     for ( i = 0; (i < Vec_IntSize(&p->vFfs)) && (((pFf) = Wlc_NtkFf(p, i)), 1); i++ )
+#define Wlc_NtkForEachFf2( p, pFf, i )                                              \
+    for ( i = 0; (i < Vec_IntSize(&p->vFfs2)) && (((pFf) = Wlc_NtkFf2(p, i)), 1); i++ )
 
 #define Wlc_ObjForEachFanin( pObj, iFanin, i )                                      \
     for ( i = 0; (i < Wlc_ObjFaninNum(pObj)) && (((iFanin) = Wlc_ObjFaninId(pObj, i)), 1); i++ )

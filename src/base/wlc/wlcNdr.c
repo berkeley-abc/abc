@@ -399,6 +399,8 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
             Vec_IntPush( &pNtk->vFfs, Vec_IntEntry(vFanins, 0) );
             continue;
         }
+        if ( Type == ABC_OPER_DFFRSE )
+            Vec_IntPush( &pNtk->vFfs2, iObj );
         if ( Type == ABC_OPER_SLICE )
             Vec_IntPushTwo( vFanins, End, Beg );
         else if ( Type == ABC_OPER_CONST )

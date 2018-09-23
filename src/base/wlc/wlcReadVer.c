@@ -1277,7 +1277,7 @@ startword:
         }
         else if ( Wlc_PrsStrCmp( pStart, "ABC_DFFRSE" ) )
         {
-            int NameId[8] = {0}, fFound, fFlopIn, fFlopOut, fFlopClk, fFlopRst, fFlopSet, fFlopEna, fFlopAsync, fFlopInit;
+            int NameId[10] = {0}, fFound, fFlopIn, fFlopClk, fFlopRst, fFlopSet, fFlopEna, fFlopAsync, fFlopSre, fFlopInit, fFlopOut;
             pStart += strlen("ABC_DFF");
             while ( 1 )
             {
@@ -1286,13 +1286,14 @@ startword:
                     break;
                 pStart = Wlc_PrsSkipSpaces( pStart+1 );
                 fFlopIn    = (pStart[0] == 'd');
-                fFlopOut   = (pStart[0] == 'q');
                 fFlopClk   = (pStart[0] == 'c');
                 fFlopRst   = (pStart[0] == 'r');
-                fFlopSet   = (pStart[0] == 's');
+                fFlopSet   = (pStart[0] == 's' && pStart[1] == 'e');
                 fFlopEna   = (pStart[0] == 'e');
                 fFlopAsync = (pStart[0] == 'a');
+                fFlopSre   = (pStart[0] == 's' && pStart[1] == 'r');
                 fFlopInit  = (pStart[0] == 'i');
+                fFlopOut   = (pStart[0] == 'q');
                 pStart = Wlc_PrsFindSymbol( pStart, '(' );
                 if ( pStart == NULL )
                     return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
@@ -1301,8 +1302,6 @@ startword:
                     return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
                 if ( fFlopIn )
                     NameId[0] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
-                else if ( fFlopOut ) 
-                    NameId[7] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
                 else if ( fFlopClk ) 
                     NameId[1] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
                 else if ( fFlopRst ) 
@@ -1313,8 +1312,12 @@ startword:
                     NameId[4] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
                 else if ( fFlopAsync ) 
                     NameId[5] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
-                else if ( fFlopInit ) 
+                else if ( fFlopSre ) 
                     NameId[6] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopInit ) 
+                    NameId[7] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                else if ( fFlopOut ) 
+                    NameId[8] = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
                 else
                     assert( 0 );
                 if ( !fFound )
@@ -1323,7 +1326,7 @@ startword:
             if ( NameId[0] == -1 || NameId[7] == -1 )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "Name of flop input or flop output is missing." );
             // create output
-            pObj = Wlc_NtkObj( p->pNtk, NameId[7] );
+            pObj = Wlc_NtkObj( p->pNtk, NameId[8] );
             Wlc_ObjUpdateType( p->pNtk, pObj, WLC_OBJ_FF );
             Vec_IntClear( p->vFanins );
             Vec_IntPush( p->vFanins, NameId[0] );
@@ -1333,6 +1336,7 @@ startword:
             Vec_IntPush( p->vFanins, NameId[4] );
             Vec_IntPush( p->vFanins, NameId[5] );
             Vec_IntPush( p->vFanins, NameId[6] );
+            Vec_IntPush( p->vFanins, NameId[7] );
             Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
         }
         else if ( Wlc_PrsStrCmp( pStart, "ABC_DFF" ) )
@@ -1571,6 +1575,10 @@ Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr )
     // derive topological order
     if ( p->pNtk )
     {
+        Wlc_Obj_t * pObj; int i;
+        Wlc_NtkForEachObj( p->pNtk, pObj, i )
+            if ( pObj->Type == WLC_OBJ_FF )
+                Vec_IntPush( &p->pNtk->vFfs2, Wlc_ObjId(p->pNtk, pObj) );
         pNtk = Wlc_NtkDupDfs( p->pNtk, 0, 1 );
         pNtk->pSpec = Abc_UtilStrsav( pFileName );
     }

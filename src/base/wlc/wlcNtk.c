@@ -264,6 +264,7 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
     ABC_FREE( p->vCis.pArray );
     ABC_FREE( p->vCos.pArray );
     ABC_FREE( p->vFfs.pArray );
+    ABC_FREE( p->vFfs2.pArray );
     Vec_IntFreeP( &p->vInits );
     ABC_FREE( p->vTravIds.pArray );
     ABC_FREE( p->vNameIds.pArray );
@@ -286,6 +287,7 @@ int Wlc_NtkMemUsage( Wlc_Ntk_t * p )
     Mem += 4 * p->vCis.nCap;
     Mem += 4 * p->vCos.nCap;
     Mem += 4 * p->vFfs.nCap;
+    Mem += 4 * p->vFfs2.nCap;
     Mem += sizeof(Wlc_Obj_t) * p->nObjsAlloc;
     Mem += Abc_NamMemUsed(p->pManName);
     Mem += Mem_FlexReadMemUsage(p->pMemFanin);
@@ -872,6 +874,7 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
         return;
     //printf( "Visiting node %d\n", iObj );
     pObj = Wlc_NtkObj( p, iObj );
+    assert( pObj->Type != WLC_OBJ_FF );
     Wlc_ObjForEachFanin( pObj, iFanin, i )
         Wlc_NtkDupDfs_rec( pNew, p, iFanin, vFanins );
     Wlc_ObjDup( pNew, p, iObj, vFanins );
@@ -908,9 +911,9 @@ Wlc_Ntk_t * Wlc_NtkDupDfsSimple( Wlc_Ntk_t * p )
 Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
 {
     Wlc_Ntk_t * pNew;
-    Wlc_Obj_t * pObj;
+    Wlc_Obj_t * pObj, * pObjNew;
     Vec_Int_t * vFanins;
-    int i;
+    int i, k, iObj, iFanin;
     vFanins = Vec_IntAlloc( 100 );
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
@@ -925,12 +928,28 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
             Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
             pObj->Type = Type;
         }
+    Wlc_NtkForEachFf2( p, pObj, i )
+    {
+        int iObjNew = Wlc_ObjAlloc( pNew, pObj->Type, Wlc_ObjIsSigned(pObj), pObj->End, pObj->Beg );
+        Wlc_ObjSetCopy( p, Wlc_ObjId(p, pObj), iObjNew );
+        Vec_IntPush( &pNew->vFfs2, iObjNew );
+    }
     Wlc_NtkForEachCo( p, pObj, i )
         if ( !fMarked || pObj->Mark )
             Wlc_NtkDupDfs_rec( pNew, p, Wlc_ObjId(p, pObj), vFanins );
     Wlc_NtkForEachCo( p, pObj, i )
         if ( !fMarked || pObj->Mark )
             Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), fSeq ? pObj->fIsFi : 0 );
+    Wlc_NtkForEachFf2( p, pObj, i )
+    {
+        iObj = Wlc_ObjId(p, pObj);
+        Wlc_ObjForEachFanin( pObj, iFanin, k )
+            Wlc_NtkDupDfs_rec( pNew, p, iFanin, vFanins );
+        Wlc_ObjCollectCopyFanins( p, iObj, vFanins );
+        pObjNew = Wlc_NtkObj( pNew, Wlc_ObjCopy(p, iObj) );
+        Wlc_ObjAddFanins( pNew, pObjNew, vFanins );
+        pObjNew->fXConst = pObj->fXConst;
+    }
     Vec_IntFree( vFanins );
     if ( fSeq )
     {

@@ -192,7 +192,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
                 continue;
             fprintf( pFile, "  assign                         " );
         }
-        else if ( (pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3) || pObj->Type == WLC_OBJ_FF || pObj->Type == WLC_OBJ_SEL )
+        else if ( (pObj->Type == WLC_OBJ_MUX && Wlc_ObjFaninNum(pObj) > 3) || pObj->Type == WLC_OBJ_SEL )
             fprintf( pFile, "reg  %s ", Range );
         else
             fprintf( pFile, "wire %s ", Range );
@@ -361,13 +361,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
         }
         else if ( pObj->Type == WLC_OBJ_FF )
         {
-            char * pInNames[8] = {"d", "clk", "reset", "set", "enable", "async", "sre", "init"};
             fprintf( pFile, "%s ;\n", Wlc_ObjName(p, i) );
-            fprintf( pFile, "         " );
-            fprintf( pFile, "%s (", "ABC_DFFRSE" );
-            Wlc_ObjForEachFanin( pObj, iFanin, k )
-                if ( iFanin ) fprintf( pFile, " .%s(%s),", pInNames[k], Wlc_ObjName(p, iFanin) );
-            fprintf( pFile, " .%s(%s) ) ;\n", "q", Wlc_ObjName(p, i) );
             continue;
         }
         else 
@@ -561,6 +555,18 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
         }
         assert( !p->vInits || iFanin == (int)strlen(p->pInits) );
     }
+    // write DFFs in the end
+    fprintf( pFile, "\n" );
+    Wlc_NtkForEachFf2( p, pObj, i )
+    {
+        char * pInNames[8] = {"d", "clk", "reset", "set", "enable", "async", "sre", "init"};
+        fprintf( pFile, "         " );
+        fprintf( pFile, "%s (", "ABC_DFFRSE" );
+        Wlc_ObjForEachFanin( pObj, iFanin, k )
+            if ( iFanin ) fprintf( pFile, " .%s(%s),", pInNames[k], Wlc_ObjName(p, iFanin) );
+        fprintf( pFile, " .%s(%s) ) ;\n", "q", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+    }
+    fprintf( pFile, "\n" );
     fprintf( pFile, "endmodule\n\n" );
 } 
 void Wlc_WriteVer( Wlc_Ntk_t * p, char * pFileName, int fAddCos, int fNoFlops )
