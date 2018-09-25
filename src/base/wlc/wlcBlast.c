@@ -131,6 +131,12 @@ int Wlc_NtkMuxTree2( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData
         Vec_IntPush( vTemp, Abc_LitNot( Gia_ManHashAnd(pNew, iLit, Vec_IntEntry(vData, m)) ) );
     return Abc_LitNot( Gia_ManHashAndMulti(pNew, vTemp) );
 }
+void Wlc_NtkPrintNameArray( Vec_Ptr_t * vNames )
+{
+    int i; char * pTemp;
+    Vec_PtrForEachEntry( char *, vNames, pTemp, i )
+        printf( "%2d : %s\n", i, pTemp );
+}
 
 /**Function*************************************************************
 
@@ -1134,13 +1140,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     Tim_Man_t * pManTime = NULL;
     If_LibBox_t * pBoxLib = NULL;
     Vec_Ptr_t * vTables = NULL;
+    Vec_Int_t * vFf2Ci = Vec_IntAlloc( 100 );
     Gia_Man_t * pTemp, * pNew, * pExtra = NULL;
     Wlc_Obj_t * pObj, * pObj2;
     Vec_Int_t * vBits = &p->vBits, * vTemp0, * vTemp1, * vTemp2, * vRes, * vAddOutputs = NULL, * vAddObjs = NULL;
     int nBits = Wlc_NtkPrepareBits( p );
     int nRange, nRange0, nRange1, nRange2, nRange3;
     int i, k, b, iFanin, iLit, nAndPrev, * pFans0, * pFans1, * pFans2, * pFans3;
-    int nFFins = 0, nFFouts = 0, curPi = 0, curPo = 0;
+    int nFFins = 0, nFFouts = 0, curPi = 0, curPo = 0, nFf2Regs = 0;
     int nBitCis = 0, nBitCos = 0, fAdded = 0;
     Wlc_BstPar_t Par, * pPar = &Par;
     Wlc_BstParDefault( pPar );
@@ -1167,6 +1174,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     if ( pPar->vBoxIds )
     {
         int nNewCis = 0, nNewCos = 0;
+        assert( Vec_IntSize(&p->vFfs2) == 0 );
         Wlc_NtkForEachObj( p, pObj, i )
             pObj->Mark = 0;
         // count bit-width of regular CIs/COs
@@ -1186,6 +1194,36 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             if ( Wlc_ObjFaninNum(pObj) > 2 )
             nNewCos += Wlc_ObjRange( Wlc_ObjFanin2(p, pObj) );
             pObj->Mark = 1;
+        }
+        // create hierarchy manager
+        pManTime = Tim_ManStart( nBitCis + nNewCis, nBitCos + nNewCos );
+        curPi = nBitCis;
+        curPo = 0;
+        // create AIG manager for logic of the boxes
+        pExtra = Gia_ManStart( Wlc_NtkObjNum(p) );
+        Gia_ManHashAlloc( pExtra );
+        assert( !pPar->fGiaSimple );
+        // create box library
+        pBoxLib = If_LibBoxStart();
+    }
+    if ( Vec_IntSize(&p->vFfs2) > 0 )
+    {
+        int nNewCis = 0, nNewCos = 0;
+        assert( pPar->vBoxIds == 0 );
+        // count bit-width of regular CIs/COs
+        Wlc_NtkForEachCi( p, pObj, i )
+            nBitCis += Wlc_ObjRange( pObj );
+        Wlc_NtkForEachCo( p, pObj, i )
+            nBitCos += Wlc_ObjRange( pObj );
+        // count bit-width of additional CIs/COs due to selected multipliers
+        Wlc_NtkForEachFf2( p, pObj, i )
+        {
+            // currently works only for multipliers
+            assert( pObj->Type == WLC_OBJ_FF );
+            assert( Wlc_ObjRange(pObj) == Wlc_ObjRange(Wlc_ObjFanin0(p, pObj)) );
+            nNewCis += Wlc_ObjRange(pObj);
+            nNewCos += 2*Wlc_ObjRange(pObj) + 3;
+            nFf2Regs+= Wlc_ObjRange(pObj);
         }
         // create hierarchy manager
         pManTime = Tim_ManStart( nBitCis + nNewCis, nBitCos + nNewCos );
@@ -1322,8 +1360,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < pBox->nPis * pBox->nPos; k++ )
                 pBox->pDelays[k] = 1;
         }
-        else if ( Wlc_ObjIsCi(pObj) )
+        else if ( Wlc_ObjIsCi(pObj) || pObj->Type == WLC_OBJ_FF ) // assuming that FFs are ordered immediately after PIs
         {
+            if ( pObj->Type == WLC_OBJ_FF )
+                Vec_IntPush( vFf2Ci, Gia_ManCiNum(pNew) );
             if ( Wlc_ObjRangeIsReversed(pObj) )
             {
                 for ( k = 0; k < nRange; k++ )
@@ -1767,6 +1807,89 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     Vec_IntFree( vTemp1 );
     Vec_IntFree( vTemp2 );
     Vec_IntFree( vRes );
+    // create flop boxes
+    Wlc_NtkForEachFf2( p, pObj, i )
+    {
+        If_Box_t * pBox;
+        char Buffer[100];
+        float * pTable;
+        Vec_Int_t * vTemp0 = Vec_IntAlloc( 100 );
+        Vec_Int_t * vTemp1 = Vec_IntAlloc( 100 );
+        int iLit, nRange = Wlc_ObjRange(pObj);
+        int * pFans0, * pFans1, * pFans2, * pFans3;
+        int iReset, iSet, iEnable;
+        int nRangeIn = 2*nRange + 3; // D, reset, set, enable, Q
+
+        assert( pObj->Type == WLC_OBJ_FF );
+
+        // create new box
+        if ( vTables == NULL )
+            Tim_ManSetDelayTables( pManTime, (vTables = Vec_PtrAlloc(100)) );
+        Tim_ManCreateBox( pManTime, curPo, nRangeIn, curPi, nRange, Vec_PtrSize(vTables), 0 );
+        curPi += nRange;
+        curPo += nRangeIn;
+
+        // create delay table
+        pTable = ABC_ALLOC( float, 3 + nRange * nRangeIn );
+        pTable[0] = Vec_PtrSize(vTables);
+        pTable[1] = nRangeIn;
+        pTable[2] = nRange;
+        for ( k = 0; k < nRange * nRangeIn; k++ )
+            pTable[3 + k] = 1.0;
+        Vec_PtrPush( vTables, pTable );
+
+        // create combinational outputs in the normal manager
+        pFans0  = Wlc_ObjFaninNum(pObj) > 0 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId0(pObj)) ) : NULL;
+        pFans1  = Wlc_ObjFaninNum(pObj) > 1 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId1(pObj)) ) : NULL;
+        pFans2  = Wlc_ObjFaninNum(pObj) > 2 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId2(pObj)) ) : NULL;
+        pFans3  = Wlc_ObjFaninNum(pObj) > 3 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId(pObj,3)) ) : NULL;
+        for ( k = 0; k < nRange; k++ )
+            Gia_ManAppendCo( pNew, pFans0[k] );
+        Gia_ManAppendCo( pNew, pFans1[0] );
+        Gia_ManAppendCo( pNew, pFans2[0] );
+        Gia_ManAppendCo( pNew, pFans3[0] );
+        for ( k = 0; k < nRange; k++ )
+            Gia_ManAppendCo( pNew, Gia_Obj2Lit(pNew, Gia_ManCi(pNew, Vec_IntEntry(vFf2Ci, i)+k)) );
+
+        // make sure there is enough primary inputs in the manager
+        for ( k = Gia_ManPiNum(pExtra); k < nRangeIn; k++ )
+            Gia_ManAppendCi( pExtra );
+        // create combinational inputs
+        for ( k = 0; k < nRange; k++ )
+            Vec_IntPush( vTemp0, Gia_Obj2Lit(pExtra, Gia_ManPi(pExtra, k)) );
+        iReset  = Gia_Obj2Lit(pExtra, Gia_ManPi(pExtra, nRange+0));
+        iSet    = Gia_Obj2Lit(pExtra, Gia_ManPi(pExtra, nRange+1));
+        iEnable = Gia_Obj2Lit(pExtra, Gia_ManPi(pExtra, nRange+2));
+        for ( k = 0; k < nRange; k++ )
+            Vec_IntPush( vTemp1, Gia_Obj2Lit(pExtra, Gia_ManPi(pExtra, nRangeIn-nRange+k)) );
+
+        // bit-blast in the external manager
+        for ( k = 0; k < nRange; k++ )
+        {
+            // enable
+            //iLitFlop = Gia_LitNotCond( Gia_ObjCopy(pObj), Gia_FlopIsOne(pObj) );
+            //iLit = Gia_ManHashMux( Gia_ObjGia(pObj), Gia_FlopEnableCopy(pObj), iLit, iLitFlop );
+            iLit = Gia_ManHashMux( pExtra, iEnable, Vec_IntEntry(vTemp0, k), Vec_IntEntry(vTemp1, k) );
+            // set
+            //iLit = Gia_ManHashOr( Gia_ObjGia(pObj), iLit, Gia_FlopSetCopy(pObj) );
+            iLit = Gia_ManHashOr( pExtra, iLit, iSet );
+            // reset
+            //iLit = Gia_ManHashAnd( Gia_ObjGia(pObj), iLit, Gia_LitNot(Gia_FlopResetCopy(pObj)) );
+            iLit = Gia_ManHashAnd( pExtra, iLit, Abc_LitNot(iReset) );
+            // create outputs in the external manager
+            Gia_ManAppendCo( pExtra, iLit );
+        }
+
+        // add box to the library
+        sprintf( Buffer, "%s%03d", "ff_comb", 1+If_LibBoxNum(pBoxLib) );
+        pBox = If_BoxStart( Abc_UtilStrsav(Buffer), 1+If_LibBoxNum(pBoxLib), nRange, nRangeIn, 0, 0, 0 ); 
+        If_LibBoxAdd( pBoxLib, pBox );
+        for ( k = 0; k < pBox->nPis * pBox->nPos; k++ )
+            pBox->pDelays[k] = 1;
+        Vec_IntFree( vTemp0 );
+        Vec_IntFree( vTemp1 );
+    }
+    Vec_IntFree( vFf2Ci );
     // create COs
     if ( pPar->fCreateMiter )
     {
@@ -1856,8 +1979,16 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     //Vec_IntErase( vBits );
     //Vec_IntErase( &p->vCopies );
     // set the number of registers
-    assert( nFFins == nFFouts );
-    Gia_ManSetRegNum( pNew, nFFins );
+    if ( Vec_IntSize(&p->vFfs2) > 0 )
+    {
+        assert( nFFins == 0 && nFFouts == 0 );
+        Gia_ManSetRegNum( pNew, nFf2Regs );
+    }
+    else
+    {
+        assert( nFFins == nFFouts );
+        Gia_ManSetRegNum( pNew, nFFins );
+    }
     // finalize AIG
     if ( !pPar->fGiaSimple && !pPar->fNoCleanup )
     {
@@ -1882,6 +2013,24 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         }
     }
     // finalize AIG with boxes
+    if ( Vec_IntSize(&p->vFfs2) > 0 )
+    {
+        curPo += nBitCos;
+        assert( curPi == Tim_ManCiNum(pManTime) );
+        assert( curPo == Tim_ManCoNum(pManTime) );
+        // finalize the extra AIG
+        pExtra = Gia_ManCleanup( pTemp = pExtra );
+        Gia_ManStop( pTemp );
+        assert( Gia_ManPoNum(pExtra) == Gia_ManCiNum(pNew) - nBitCis );
+        // attach
+        pNew->pAigExtra = pExtra;
+        pNew->pManTime = pManTime;
+        // normalize AIG
+        pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
+        Gia_ManTransferTiming( pNew, pTemp );
+        Gia_ManStop( pTemp );
+        //Tim_ManPrint( pManTime );
+    }
     if ( pPar->vBoxIds )
     {
         curPo += nBitCos;
@@ -1944,6 +2093,20 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
     }
+    Wlc_NtkForEachFf2( p, pObj, i )
+    {
+        char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+        nRange = Wlc_ObjRange( pObj );
+        if ( fSkipBitRange && nRange == 1 )
+            Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(pName) );
+        else
+            for ( k = 0; k < nRange; k++ )
+            {
+                char Buffer[1000];
+                sprintf( Buffer, "%s[%d]", pName, k );
+                Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
+            }
+    }
     if ( p->pInits && fAdded )
         Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav("abc_reset_flop") );
     if ( pPar->vBoxIds )
@@ -1964,6 +2127,43 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     assert( Vec_PtrSize(pNew->vNamesIn) == Gia_ManCiNum(pNew) );
     // create output names
     pNew->vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pNew) );
+    Wlc_NtkForEachFf2( p, pObj, i )
+    {
+        int iFanin;
+        Wlc_ObjForEachFanin( pObj, iFanin, b )
+        {
+            char * pName = Wlc_ObjName(p, iFanin);
+            nRange = Wlc_ObjRange( Wlc_NtkObj(p, iFanin) );
+            if ( fSkipBitRange && nRange == 1 )
+                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
+            else
+                for ( k = 0; k < nRange; k++ )
+                {
+                    char Buffer[1000];
+                    sprintf( Buffer, "%s[%d]", pName, k );
+                    Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+                }
+            if ( b == 3 )
+                break;
+        }
+        {
+            char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+            nRange = Wlc_ObjRange( pObj );
+            if ( fSkipBitRange && nRange == 1 )
+            {
+                char Buffer[1000];
+                sprintf( Buffer, "%s_in", pName );
+                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+            }
+            else
+                for ( k = 0; k < nRange; k++ )
+                {
+                    char Buffer[1000];
+                    sprintf( Buffer, "%s_in[%d]", pName, k );
+                    Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+                }
+        }
+    }
     if ( pPar->vBoxIds )
     {
         Wlc_NtkForEachObjVec( pPar->vBoxIds, p, pObj, i )
@@ -2083,6 +2283,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         ABC_FREE( pNameGeneric );
         printf( "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
     }
+    Wlc_NtkPrintNameArray( pNew->vNamesIn );
+    Wlc_NtkPrintNameArray( pNew->vNamesOut );
     if ( pPar->vBoxIds )
     {
         Vec_PtrFreeFree( pNew->vNamesIn );   pNew->vNamesIn  = NULL;
