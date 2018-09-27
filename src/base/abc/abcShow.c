@@ -113,9 +113,61 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode )
     // visualize the file 
     Abc_ShowFile( FileNameDot );
 }
+void Abc_NtkShowBdd( Abc_Ntk_t * pNtk )
+{
+    char FileNameDot[200];
+    char ** ppNamesIn, ** ppNamesOut;
+    DdManager * dd; DdNode * bFunc;
+    Vec_Ptr_t * vFuncsGlob;
+    Abc_Obj_t * pObj; int i;
+    FILE * pFile;
+
+    assert( Abc_NtkIsStrash(pNtk) );
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, 0, 0 );
+    if ( dd == NULL )
+    {
+        printf( "Construction of global BDDs has failed.\n" );
+        return;
+    }
+    //printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+
+    // complement the global functions
+    vFuncsGlob = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Vec_PtrPush( vFuncsGlob, Abc_ObjGlobalBdd(pObj) );
+
+    // create the file name
+    Abc_ShowGetFileName( pNtk->pName, FileNameDot );
+    // check that the file can be opened
+    if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
+    {
+        fprintf( stdout, "Cannot open the intermediate file \"%s\".\n", FileNameDot );
+        return;
+    }
+
+    // set the node names 
+    ppNamesIn = Abc_NtkCollectCioNames( pNtk, 0 );
+    ppNamesOut = Abc_NtkCollectCioNames( pNtk, 1 );
+    Cudd_DumpDot( dd, Abc_NtkCoNum(pNtk), (DdNode **)Vec_PtrArray(vFuncsGlob), ppNamesIn, ppNamesOut, pFile );
+    ABC_FREE( ppNamesIn );
+    ABC_FREE( ppNamesOut );
+    fclose( pFile );
+
+    // cleanup
+    Abc_NtkFreeGlobalBdds( pNtk, 0 );
+    Vec_PtrForEachEntry( DdNode *, vFuncsGlob, bFunc, i )
+        Cudd_RecursiveDeref( dd, bFunc );
+    Vec_PtrFree( vFuncsGlob );
+    Extra_StopManager( dd );
+    Abc_NtkCleanCopy( pNtk );
+
+    // visualize the file 
+    Abc_ShowFile( FileNameDot );
+}
 
 #else
 void Abc_NodeShowBdd( Abc_Obj_t * pNode ) {}
+void Abc_NtkShowBdd( Abc_Ntk_t * pNtk ) {}
 #endif
 
 /**Function*************************************************************

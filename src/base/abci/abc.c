@@ -3061,15 +3061,19 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Obj_t * pNode;
-    int c;
+    int c, fGlobal = 0;
     extern void Abc_NodeShowBdd( Abc_Obj_t * pNode );
+    extern void Abc_NtkShowBdd( Abc_Ntk_t * pNtk );
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "gh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'g':
+            fGlobal ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -3083,10 +3087,21 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsBddLogic(pNtk) )
+    if ( fGlobal )
     {
-        Abc_Print( -1, "Visualizing BDDs can only be done for logic BDD networks (run \"bdd\").\n" );
-        return 1;
+        if ( !Abc_NtkIsStrash(pNtk) )
+        {
+            Abc_Print( -1, "Visualizing BDDs can only be done for AIGs (run \"strash\").\n" );
+            return 1;
+        }
+    }
+    else
+    {
+        if ( !Abc_NtkIsBddLogic(pNtk) )
+        {
+            Abc_Print( -1, "Visualizing BDDs can only be done for logic BDD networks (run \"bdd\").\n" );
+            return 1;
+        }
     }
 
     if ( argc > globalUtilOptind + 1 )
@@ -3112,17 +3127,22 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
     }
-    Abc_NodeShowBdd( pNode );
+    if ( fGlobal )
+        Abc_NtkShowBdd( pNtk );
+    else
+        Abc_NodeShowBdd( pNode );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: show_bdd [-h] <node>\n" );
-    Abc_Print( -2, "       visualizes the BDD of a node using DOT and GSVIEW\n" );
+    Abc_Print( -2, "usage: show_bdd [-gh] <node>\n" );
+    Abc_Print( -2, "       uses DOT and GSVIEW to visualize the global BDDs of primary outputs\n" );
+    Abc_Print( -2, "       in terms of primary inputs or the local BDD of a node in terms of its fanins\n" );
 #ifdef WIN32
     Abc_Print( -2, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
     Abc_Print( -2, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
-    Abc_Print( -2, "\t<node>: the node to consider [default = the driver of the first PO]\n");
+    Abc_Print( -2, "\t<node>: (optional) the node to consider [default = the driver of the first PO]\n");
+    Abc_Print( -2, "\t-g    : toggle visualizing the global BDDs of primary outputs [default = %s].\n", fGlobal? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
