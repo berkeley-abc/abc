@@ -186,6 +186,7 @@ static int Abc_CommandExtSeqDcs              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandReach                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCone                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandNode                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandCof                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTopmost                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTopAnd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTrim                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -880,8 +881,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "reach",         Abc_CommandReach,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "cone",          Abc_CommandCone,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "node",          Abc_CommandNode,             1 );
+    Cmd_CommandAdd( pAbc, "Various",      "cof",           Abc_CommandCof,              1 );
     Cmd_CommandAdd( pAbc, "Various",      "topmost",       Abc_CommandTopmost,          1 );
-    Cmd_CommandAdd( pAbc, "Various",      "topand",        Abc_CommandTopAnd,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "topand",        Abc_CommandTopAnd,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "trim",          Abc_CommandTrim,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "short_names",   Abc_CommandShortNames,       0 );
     Cmd_CommandAdd( pAbc, "Various",      "move_names",    Abc_CommandMoveNames,        0 );
@@ -3089,21 +3091,18 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fGlobal )
     {
-        if ( !Abc_NtkIsStrash(pNtk) )
-        {
-            Abc_Print( -1, "Visualizing BDDs can only be done for AIGs (run \"strash\").\n" );
-            return 1;
-        }
-    }
-    else
-    {
-        if ( !Abc_NtkIsBddLogic(pNtk) )
-        {
-            Abc_Print( -1, "Visualizing BDDs can only be done for logic BDD networks (run \"bdd\").\n" );
-            return 1;
-        }
+        Abc_Ntk_t * pTemp = Abc_NtkIsStrash(pNtk) ? pNtk : Abc_NtkStrash(pNtk, 0, 0, 0);
+        Abc_NtkShowBdd( pTemp );
+        if ( pTemp != pNtk )
+            Abc_NtkDelete( pTemp );
+        return 0;
     }
 
+    if ( !Abc_NtkIsBddLogic(pNtk) )
+    {
+        Abc_Print( -1, "Visualizing BDDs can only be done for logic BDD networks (run \"bdd\").\n" );
+        return 1;
+    }
     if ( argc > globalUtilOptind + 1 )
     {
         Abc_Print( -1, "Wrong number of auguments.\n" );
@@ -3127,10 +3126,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
     }
-    if ( fGlobal )
-        Abc_NtkShowBdd( pNtk );
-    else
-        Abc_NodeShowBdd( pNode );
+    Abc_NodeShowBdd( pNode );
     return 0;
 
 usage:
@@ -11240,6 +11236,80 @@ usage:
     Abc_Print( -2, "\t         replaces the current network by the network composed of one node\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\tname   : the node name\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandCof( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pNode;
+    int c, Const;
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+       case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "Currently can only be applied to a logic network.\n" );
+        return 1;
+    }
+
+    if ( argc != globalUtilOptind + 2 )
+    {
+        Abc_Print( -1, "Wrong number of auguments.\n" );
+        goto usage;
+    }
+
+    pNode = Abc_NtkFindNode( pNtk, argv[globalUtilOptind] );
+    if ( pNode == NULL )
+    {
+        Abc_Print( -1, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
+        return 1;
+    }
+    Const = atoi( argv[globalUtilOptind+1] );
+    if ( Const != 0 && Const != 1 )
+    {
+        Abc_Print( -1, "Constant should be 0 or 1.\n", argv[globalUtilOptind+1] );
+        return 1;
+    }
+    Abc_ObjReplaceByConstant( pNode, Const );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: cof [-h] <node> <const>\n" );
+    Abc_Print( -2, "\t          replaces one node in a logic network by constant 0 or 1\n" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<node>  : the node to replace\n");
+    Abc_Print( -2, "\t<const> : the constant to replace the node with\n");
+    Abc_Print( -2, "\tname    : the node name\n");
     return 1;
 }
 

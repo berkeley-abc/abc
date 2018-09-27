@@ -657,6 +657,7 @@ extern ABC_DLL void               Abc_ObjPatchFanoutFanin( Abc_Obj_t * pObj, int
 extern ABC_DLL Abc_Obj_t *        Abc_ObjInsertBetween( Abc_Obj_t * pNodeIn, Abc_Obj_t * pNodeOut, Abc_ObjType_t Type );
 extern ABC_DLL void               Abc_ObjTransferFanout( Abc_Obj_t * pObjOld, Abc_Obj_t * pObjNew );
 extern ABC_DLL void               Abc_ObjReplace( Abc_Obj_t * pObjOld, Abc_Obj_t * pObjNew );
+extern ABC_DLL void               Abc_ObjReplaceByConstant( Abc_Obj_t * pNode, int fConst1 );
 extern ABC_DLL int                Abc_ObjFanoutFaninNum( Abc_Obj_t * pFanout, Abc_Obj_t * pFanin );
 /*=== abcFanOrder.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkMakeLegit( Abc_Ntk_t * pNtk );
