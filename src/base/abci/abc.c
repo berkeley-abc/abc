@@ -11287,8 +11287,9 @@ int Abc_CommandCof( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Wrong number of auguments.\n" );
         goto usage;
     }
-
-    pNode = Abc_NtkFindNode( pNtk, argv[globalUtilOptind] );
+    pNode = Abc_NtkFindCi( pNtk, argv[globalUtilOptind] );
+    if ( pNode == NULL )
+        pNode = Abc_NtkFindNode( pNtk, argv[globalUtilOptind] );
     if ( pNode == NULL )
     {
         Abc_Print( -1, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
