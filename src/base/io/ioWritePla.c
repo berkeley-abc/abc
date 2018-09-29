@@ -523,8 +523,14 @@ int Io_WriteMoPlaOneM( FILE * pFile, Abc_Ntk_t * pNtk, int nMints )
         Abc_NtkForEachCo( pNtk, pObj, i )
             Vec_PtrPush( vFuncsGlob, Abc_ObjGlobalBdd(pObj) );
 
-        // consider minterms
-        Io_WriteMoPlaOneIntMintermsM( pFile, pNtk, dd, (DdNode *)Vec_PtrEntry(vFuncsGlob, 0), nMints );
+        // get the output function
+        bFunc = (DdNode *)Vec_PtrEntry(vFuncsGlob, 0);
+        if ( bFunc == Cudd_ReadOne(dd) )
+            printf( "First primary output has constant 1 function.\n" );
+        else if ( Cudd_Not(bFunc) == Cudd_ReadOne(dd) )
+            printf( "First primary output has constant 0 function.\n" );
+        else
+            Io_WriteMoPlaOneIntMintermsM( pFile, pNtk, dd, bFunc, nMints );
         Abc_NtkFreeGlobalBdds( pNtk, 0 );
 
         // cleanup
