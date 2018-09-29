@@ -383,7 +383,7 @@ int Io_WriteMoPlaOneIntMinterms( FILE * pFile, Abc_Ntk_t * pNtk, DdManager * dd,
 ***********************************************************************/
 int Io_WriteMoPlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
 {
-    int fVerbose = 1;
+    int fVerbose = 0;
     DdManager * dd;
     DdNode * bFunc;
     Vec_Ptr_t * vFuncsGlob;
@@ -445,9 +445,130 @@ int Io_WriteMoPla( Abc_Ntk_t * pNtk, char * pFileName )
     return 1;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the network in PLA format.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Io_WriteMoPlaOneIntMintermsM( FILE * pFile, Abc_Ntk_t * pNtk, DdManager * dd, DdNode * bFunc, int nMints )
+{
+    Abc_Obj_t * pNode;
+    int * pArray = ABC_CALLOC( int, dd->size );
+    DdNode ** pbMints = Cudd_bddPickArbitraryMinterms( dd, bFunc, dd->vars, dd->size, nMints );
+    int i, k, nInputs = Abc_NtkCiNum(pNtk);
+    assert( dd->size == Abc_NtkCiNum(pNtk) );
+
+    // write the header
+    fprintf( pFile, ".i %d\n", nInputs );
+    fprintf( pFile, ".o %d\n", 1 );
+    fprintf( pFile, ".ilb" );
+    Abc_NtkForEachCi( pNtk, pNode, i )
+        fprintf( pFile, " %s", Abc_ObjName(pNode) );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".ob" );
+    fprintf( pFile, " %s", Abc_ObjName(Abc_NtkCo(pNtk, 0)) );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".p %d\n", nMints );
+
+    // iterate through minterms
+    for ( k = 0; k < nMints; k++ )
+    {
+        Cudd_BddToCubeArray( dd, pbMints[k], pArray );
+        for ( i = 0; i < Abc_NtkCiNum(pNtk); i++ )
+            if ( pArray[i] == 0 )
+                fprintf( pFile, "%c", '0' );
+            else if ( pArray[i] == 1 )
+                fprintf( pFile, "%c", '1' );
+            else if ( pArray[i] == 2 )
+                fprintf( pFile, "%c", '-' );
+        fprintf( pFile, " " );
+        fprintf( pFile, "%c", '1' );
+        fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, ".e\n" );
+
+    //for ( k = 0; k < nMints; k++ )
+    //    Cudd_RecursiveDeref( dd, pbMints[k] );
+    ABC_FREE( pbMints );
+    ABC_FREE( pArray );
+    return 1;
+}
+int Io_WriteMoPlaOneM( FILE * pFile, Abc_Ntk_t * pNtk, int nMints )
+{
+    int fVerbose = 0;
+    DdManager * dd;
+    DdNode * bFunc;
+    Vec_Ptr_t * vFuncsGlob;
+    Abc_Obj_t * pObj;
+    int i;
+    if ( Abc_NtkIsStrash(pNtk) )
+    {
+        assert( Abc_NtkIsStrash(pNtk) );
+        dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, 0, fVerbose );
+        if ( dd == NULL )
+            return 0;
+        if ( fVerbose )
+            printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
+
+        // complement the global functions
+        vFuncsGlob = Vec_PtrAlloc( Abc_NtkCoNum(pNtk) );
+        Abc_NtkForEachCo( pNtk, pObj, i )
+            Vec_PtrPush( vFuncsGlob, Abc_ObjGlobalBdd(pObj) );
+
+        // consider minterms
+        Io_WriteMoPlaOneIntMintermsM( pFile, pNtk, dd, (DdNode *)Vec_PtrEntry(vFuncsGlob, 0), nMints );
+        Abc_NtkFreeGlobalBdds( pNtk, 0 );
+
+        // cleanup
+        Vec_PtrForEachEntry( DdNode *, vFuncsGlob, bFunc, i )
+            Cudd_RecursiveDeref( dd, bFunc );
+        Vec_PtrFree( vFuncsGlob );
+        //Extra_StopManager( dd );
+        Cudd_Quit( dd );
+    }
+    else if ( Abc_NtkIsBddLogic(pNtk) )
+    {
+        DdNode * bFunc = (DdNode *)Abc_ObjFanin0(Abc_NtkCo(pNtk, 0))->pData;
+        dd = (DdManager *)pNtk->pManFunc;
+        if ( dd->size == Abc_NtkCiNum(pNtk) )
+            Io_WriteMoPlaOneIntMintermsM( pFile, pNtk, dd, bFunc, nMints );
+        else
+        {
+            printf( "Cannot write minterms because the size of the manager for local BDDs is not equal to\n" );
+            printf( "the number of primary inputs. (It is likely that the current network is not collapsed.)\n" );
+        }
+    }
+    return 1;
+}
+int Io_WriteMoPlaM( Abc_Ntk_t * pNtk, char * pFileName, int nMints )
+{
+    FILE * pFile;
+    assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsBddLogic(pNtk) );
+    pFile = fopen( pFileName, "w" );
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Io_WriteMoPlaM(): Cannot open the output file.\n" );
+        return 0;
+    }
+    fprintf( pFile, "# Benchmark \"%s\" written by ABC on %s\n", pNtk->pName, Extra_TimeStamp() );
+    Io_WriteMoPlaOneM( pFile, pNtk, nMints );
+    fclose( pFile );
+    return 1;
+}
+
+
 #else
 
-int Io_WriteMoPla( Abc_Ntk_t * pNtk, char * pFileName ) { return 1; }
+int Io_WriteMoPla( Abc_Ntk_t * pNtk, char * pFileName )              { return 1; }
+int Io_WriteMoPlaM( Abc_Ntk_t * pNtk, char * pFileName, int nMints ) { return 1; }
 
 #endif
 

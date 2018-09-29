@@ -2678,14 +2678,24 @@ usage:
 ***********************************************************************/
 int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    extern int Io_WriteMoPlaM( Abc_Ntk_t * pNtk, char * pFileName, int nMints );
     char * pFileName;
-    int c, fUseMoPla = 0;
+    int c, fUseMoPla = 0, nMints = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mmh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'M':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nMints = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                break;
             case 'm':
                 fUseMoPla ^= 1;
                 break;
@@ -2705,15 +2715,28 @@ int IoCommandWritePla( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    Io_Write( pAbc->pNtkCur, pFileName, fUseMoPla ? IO_FILE_MOPLA : IO_FILE_PLA );
+    if ( nMints )
+    {
+        if ( Abc_NtkIsBddLogic(pAbc->pNtkCur) )
+            Io_WriteMoPlaM( pAbc->pNtkCur, pFileName, nMints );
+        else
+        {
+            Abc_Ntk_t * pStrash = Abc_NtkStrash( pAbc->pNtkCur, 0, 0, 0 );
+            Io_WriteMoPlaM( pStrash, pFileName, nMints );
+            Abc_NtkDelete( pStrash );
+        }
+    }
+    else
+        Io_Write( pAbc->pNtkCur, pFileName, fUseMoPla ? IO_FILE_MOPLA : IO_FILE_PLA );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_pla [-mh] <file>\n" );
-    fprintf( pAbc->Err, "\t         writes the collapsed network into a PLA file\n" );
-    fprintf( pAbc->Err, "\t-m     : toggle writing multi-output PLA [default = %s]\n", fUseMoPla? "yes":"no" );
-    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    fprintf( pAbc->Err, "usage: write_pla [-M <num>] [-mh] <file>\n" );
+    fprintf( pAbc->Err, "\t           writes the collapsed network into a PLA file\n" );
+    fprintf( pAbc->Err, "\t-M <num> : the number of on-set minterms to write [default = %d]\n", nMints );
+    fprintf( pAbc->Err, "\t-m       : toggle writing multi-output PLA [default = %s]\n", fUseMoPla? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile     : the name of the file to write\n" );
     return 1;
 }
 
