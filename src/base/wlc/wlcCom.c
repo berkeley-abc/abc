@@ -40,6 +40,7 @@ static int  Abc_CommandMemAbs     ( Abc_Frame_t * pAbc, int argc, char ** argv )
 static int  Abc_CommandBlast      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlastMem   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandGraft      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandRetime     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandProfile    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandShortNames ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandShow       ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -85,6 +86,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%blast",       Abc_CommandBlast,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blastmem",    Abc_CommandBlastMem,   0 );
     Cmd_CommandAdd( pAbc, "Word level", "%graft",       Abc_CommandGraft,      0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%retime",      Abc_CommandRetime,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%profile",     Abc_CommandProfile,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%short_names", Abc_CommandShortNames, 0 );
     Cmd_CommandAdd( pAbc, "Word level", "%show",        Abc_CommandShow,       0 );
@@ -1168,7 +1170,7 @@ int Abc_CommandBlastMem( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pNtk == NULL )
     {
-        Abc_Print( 1, "Abc_CommandGraft(): There is no current design.\n" );
+        Abc_Print( 1, "Abc_CommandBlastMem(): There is no current design.\n" );
         return 0;
     }
     pNtk = Wlc_NtkMemBlast( pNtk );
@@ -1223,6 +1225,63 @@ int Abc_CommandGraft( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: %%graft [-vh]\n" );
     Abc_Print( -2, "\t         detects multipliers in LHS of the miter and moves them to RHS\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Wln_NtkRetimeTest( char * pFileName );
+    FILE * pFile;
+    char * pFileName = NULL;
+    int c, fVerbose  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        printf( "Abc_CommandRetime(): Input file name should be given on the command line.\n" );
+        return 0;
+    }
+    // get the file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        Abc_Print( 1, "Cannot open input file \"%s\". ", pFileName );
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".ndr", NULL, NULL, NULL, NULL )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
+        Abc_Print( 1, "\n" );
+        return 0;
+    }
+    fclose( pFile );
+    Wln_NtkRetimeTest( pFileName );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%retime [-vh]\n" );
+    Abc_Print( -2, "\t         performs retiming for the NDR design\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -1754,7 +1813,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Wlc_NtkSimulateTest( (Wlc_Ntk_t *)pAbc->pAbcWlc );
     //pNtk = Wlc_NtkDupSingleNodes( pNtk );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
-    Ndr_ModuleTestDec();
+    //Wln_ReadNdrTest();
     //pNtk = Wlc_NtkMemAbstractTest( pNtk );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
     return 0;

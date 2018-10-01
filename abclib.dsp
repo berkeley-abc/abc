@@ -1106,6 +1106,38 @@ SOURCE=.\src\base\acb\acbSets.h
 SOURCE=.\src\base\acb\acbUtil.c
 # End Source File
 # End Group
+# Begin Group "wln"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\base\wln\wln.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wln\wln.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wln\wlnNdr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wln\wlnNtk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wln\wlnObj.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wln\wlnRetime.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wln\wlnWriteVer.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "bdd"
 

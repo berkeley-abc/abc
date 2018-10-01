@@ -60,7 +60,7 @@ typedef enum {
     ABC_OPER_BIT_NXOR,     // 18
     ABC_OPER_BIT_SHARP,    // 19
     ABC_OPER_BIT_SHARPL,   // 20
-    ABC_OPER_BIT_MUX,      // 21
+    ABC_OPER_BIT_MUX,      // 21  fanins are: {Ctrl, Data1, Data0}
     ABC_OPER_BIT_MAJ,      // 22
 
     ABC_OPER_ABC,          // 23
@@ -86,7 +86,7 @@ typedef enum {
     ABC_OPER_LOGIC_XOR,    // 41
     ABC_OPER_LOGIC_XNOR,   // 42
 
-    ABC_OPER_SEL_NMUX,     // 43
+    ABC_OPER_SEL_NMUX,     // 43  fanins are: {Ctrl, Data0, Data1, Data2, ...}
     ABC_OPER_SEL_SEL,      // 44
     ABC_OPER_SEL_PSEL,     // 45
     ABC_OPER_SEL_ENC,      // 46
@@ -217,11 +217,14 @@ static inline char * Abc_OperName( int Type )
     if ( Type == ABC_OPER_SHIFT_ROTL   )   return "rotL";   
     if ( Type == ABC_OPER_SHIFT_ROTR   )   return "rotR";   
 
+    if ( Type == ABC_OPER_DFFRSE       )   return "DFFRSE";    
+
     if ( Type == ABC_OPER_SLICE        )   return "[:]";    
     if ( Type == ABC_OPER_CONCAT       )   return "{}";     
     if ( Type == ABC_OPER_ZEROPAD      )   return "zPad";   
     if ( Type == ABC_OPER_SIGNEXT      )   return "sExt";   
 
+    if ( Type == ABC_OPER_CONST        )   return "const";  
     if ( Type == ABC_OPER_TABLE        )   return "table";  
     if ( Type == ABC_OPER_LAST         )   return NULL;     
     assert( 0 );
