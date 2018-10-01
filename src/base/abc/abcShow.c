@@ -85,12 +85,13 @@ void Abc_NodeShowBddOne( DdManager * dd, DdNode * bFunc )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NodeShowBdd( Abc_Obj_t * pNode )
+void Abc_NodeShowBdd( Abc_Obj_t * pNode, int fCompl )
 {
     FILE * pFile;
     Vec_Ptr_t * vNamesIn;
     char FileNameDot[200];
     char * pNameOut;
+    DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
 
     assert( Abc_NtkIsBddLogic(pNode->pNtk) );
     // create the file name
@@ -105,7 +106,14 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode )
     // set the node names 
     vNamesIn = Abc_NodeGetFaninNames( pNode );
     pNameOut = Abc_ObjName(pNode);
-    Cudd_DumpDot( (DdManager *)pNode->pNtk->pManFunc, 1, (DdNode **)&pNode->pData, (char **)vNamesIn->pArray, &pNameOut, pFile );
+    if ( fCompl )
+        Cudd_DumpDot( dd, 1, (DdNode **)&pNode->pData, (char **)vNamesIn->pArray, &pNameOut, pFile );
+    else
+    {
+        DdNode * bAdd = Cudd_BddToAdd( dd, (DdNode *)pNode->pData ); Cudd_Ref( bAdd );
+        Cudd_DumpDot( dd, 1, (DdNode **)&bAdd, (char **)vNamesIn->pArray, &pNameOut, pFile );
+        Cudd_RecursiveDeref( dd, bAdd );
+    }
     Abc_NodeFreeNames( vNamesIn );
     Abc_NtkCleanCopy( pNode->pNtk );
     fclose( pFile );
@@ -113,7 +121,7 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode )
     // visualize the file 
     Abc_ShowFile( FileNameDot );
 }
-void Abc_NtkShowBdd( Abc_Ntk_t * pNtk )
+void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl )
 {
     char FileNameDot[200];
     char ** ppNamesIn, ** ppNamesOut;
@@ -148,7 +156,18 @@ void Abc_NtkShowBdd( Abc_Ntk_t * pNtk )
     // set the node names 
     ppNamesIn = Abc_NtkCollectCioNames( pNtk, 0 );
     ppNamesOut = Abc_NtkCollectCioNames( pNtk, 1 );
-    Cudd_DumpDot( dd, Abc_NtkCoNum(pNtk), (DdNode **)Vec_PtrArray(vFuncsGlob), ppNamesIn, ppNamesOut, pFile );
+    if ( fCompl )
+        Cudd_DumpDot( dd, Abc_NtkCoNum(pNtk), (DdNode **)Vec_PtrArray(vFuncsGlob), ppNamesIn, ppNamesOut, pFile );
+    else
+    {
+        DdNode ** pbAdds = ABC_ALLOC( DdNode *, Vec_PtrSize(vFuncsGlob) );
+        Vec_PtrForEachEntry( DdNode *, vFuncsGlob, bFunc, i )
+            { pbAdds[i] = Cudd_BddToAdd( dd, bFunc ); Cudd_Ref( pbAdds[i] ); }
+        Cudd_DumpDot( dd, Abc_NtkCoNum(pNtk), pbAdds, ppNamesIn, ppNamesOut, pFile );
+        Vec_PtrForEachEntry( DdNode *, vFuncsGlob, bFunc, i )
+            Cudd_RecursiveDeref( dd, pbAdds[i] );
+        ABC_FREE( pbAdds );
+    }
     ABC_FREE( ppNamesIn );
     ABC_FREE( ppNamesOut );
     fclose( pFile );
@@ -166,8 +185,8 @@ void Abc_NtkShowBdd( Abc_Ntk_t * pNtk )
 }
 
 #else
-void Abc_NodeShowBdd( Abc_Obj_t * pNode ) {}
-void Abc_NtkShowBdd( Abc_Ntk_t * pNtk ) {}
+void Abc_NodeShowBdd( Abc_Obj_t * pNode, int fCompl ) {}
+void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl ) {}
 #endif
 
 /**Function*************************************************************

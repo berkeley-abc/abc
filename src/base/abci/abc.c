@@ -3063,16 +3063,19 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Obj_t * pNode;
-    int c, fGlobal = 0;
-    extern void Abc_NodeShowBdd( Abc_Obj_t * pNode );
-    extern void Abc_NtkShowBdd( Abc_Ntk_t * pNtk );
+    int c, fCompl = 0, fGlobal = 0;
+    extern void Abc_NodeShowBdd( Abc_Obj_t * pNode, int fCompl );
+    extern void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl );
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "gh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cgh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            fCompl ^= 1;
+            break;
         case 'g':
             fGlobal ^= 1;
             break;
@@ -3092,7 +3095,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fGlobal )
     {
         Abc_Ntk_t * pTemp = Abc_NtkIsStrash(pNtk) ? pNtk : Abc_NtkStrash(pNtk, 0, 0, 0);
-        Abc_NtkShowBdd( pTemp );
+        Abc_NtkShowBdd( pTemp, fCompl );
         if ( pTemp != pNtk )
             Abc_NtkDelete( pTemp );
         return 0;
@@ -3126,11 +3129,11 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
     }
-    Abc_NodeShowBdd( pNode );
+    Abc_NodeShowBdd( pNode, fCompl );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: show_bdd [-gh] <node>\n" );
+    Abc_Print( -2, "usage: show_bdd [-cgh] <node>\n" );
     Abc_Print( -2, "       uses DOT and GSVIEW to visualize the global BDDs of primary outputs\n" );
     Abc_Print( -2, "       in terms of primary inputs or the local BDD of a node in terms of its fanins\n" );
 #ifdef WIN32
@@ -3138,6 +3141,7 @@ usage:
     Abc_Print( -2, "       (\"gsview32.exe\" may be in \"C:\\Program Files\\Ghostgum\\gsview\\\")\n" );
 #endif
     Abc_Print( -2, "\t<node>: (optional) the node to consider [default = the driver of the first PO]\n");
+    Abc_Print( -2, "\t-c    : toggle visualizing BDD with complemented edges [default = %s].\n", fCompl? "yes": "no" );
     Abc_Print( -2, "\t-g    : toggle visualizing the global BDDs of primary outputs [default = %s].\n", fGlobal? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
