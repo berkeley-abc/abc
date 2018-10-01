@@ -353,7 +353,7 @@ int Wln_RetRemoveOneFanin( Wln_Ret_t * p, int iObj )
 int Wln_RetRemoveOneFanout( Wln_Ret_t * p, int iObj )
 {
     int k, iFanin, * pLink, iFlop, iFlop1 = -1;
-    int * pFanins  = Wln_RetFanins( p, iObj );
+    //int * pFanins  = Wln_RetFanins( p, iObj );
     Wln_RetForEachFanout( p, iObj, iFanin, pLink, k )
     {
         assert( pLink[0] );
