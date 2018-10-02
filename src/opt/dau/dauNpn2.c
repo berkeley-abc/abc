@@ -405,7 +405,7 @@ void Dtt_PrintMulti( Dtt_Man_t * p )
             if ( p->pNodes[i] == n )
             {
                 int Log = Abc_Base2Log(p->pTimes[i]);
-                assert( Log < 10 );
+                assert( Log < 11 );
                 if ( p->pTimes[i] < 2 )
                     Counts[n][0]++;
                 else
@@ -416,13 +416,13 @@ void Dtt_PrintMulti( Dtt_Man_t * p )
         if ( Count == 0 )
             break;
         printf( "n=%2d : ", n );
-        printf( "All = %6d  ", Count );
-        printf( "Ave = %6d  ", Total/Count );
+        printf( "All = %7d  ", Count );
+        printf( "Ave = %3d  ", Total/Count );
         for ( i = 0; i < 11; i++ )
             if ( Counts[n][i] )
-                printf( "%6d ", Counts[n][i] );
+                printf( "%6d", Counts[n][i] );
             else
-                printf( "%6s ", "" );
+                printf( "%6s", "" );
         printf( "\n" );
     }
 }
