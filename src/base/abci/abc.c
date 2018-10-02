@@ -23108,11 +23108,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fVerbose );
+    extern void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose );
     extern void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fReduce, int fVerbose );
-    int c, nInputs = 4, nVars = 4, nNodeMax = 32, fUseTwo = 0, fReduce = 0, fSimple = 0, fDelay = 0, fVerbose = 0;
+    int c, nInputs = 4, nVars = 4, nNodeMax = 32, fUseTwo = 0, fReduce = 0, fSimple = 0, fDelay = 0, fMulti = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SIMtrldvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SIMtrldmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23161,6 +23161,9 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fDelay ^= 1;
             break;
+        case 'm':
+            fMulti ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -23178,7 +23181,7 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "The number of inputs should be 3 <= I <= 5.\n" );
             goto usage;
         }
-        Dtt_EnumerateLf( nVars, nNodeMax, fDelay, fVerbose );
+        Dtt_EnumerateLf( nVars, nNodeMax, fDelay, fMulti, fVerbose );
     }
     else
     {
@@ -23197,15 +23200,16 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: funenum [-SIM num] [-trldvh]\n" );
+    Abc_Print( -2, "usage: funenum [-SIM num] [-trldmvh]\n" );
     Abc_Print( -2, "\t         enumerates minimum 2-input-gate implementations\n" );
     Abc_Print( -2, "\t-S num : the maximum intermediate support size [default = %d]\n",     nInputs );
     Abc_Print( -2, "\t-I num : the number of inputs of Boolean functions [default = %d]\n", nVars );
     Abc_Print( -2, "\t-M num : the maximum number of 2-input gates [default = %d]\n",       nNodeMax );
-    Abc_Print( -2, "\t-t     : toggle adding combination of two gates [default = %s]\n",    fUseTwo? "yes": "no" );
-    Abc_Print( -2, "\t-r     : toggle reducing the last level [default = %s]\n",            fReduce? "yes": "no" );
-    Abc_Print( -2, "\t-l     : toggle generating L(f) rather than C(f) [default = %s]\n",   fSimple? "yes": "no" );
-    Abc_Print( -2, "\t-d     : toggle generating D(f) rather than C(f) [default = %s]\n",   fDelay? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle adding combination of two gates [default = %s]\n",    fUseTwo?  "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle reducing the last level [default = %s]\n",            fReduce?  "yes": "no" );
+    Abc_Print( -2, "\t-l     : toggle generating L(f) rather than C(f) [default = %s]\n",   fSimple?  "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle generating D(f) rather than C(f) [default = %s]\n",   fDelay?   "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle generating multiplicity statistics [default = %s]\n", fMulti?   "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                     fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

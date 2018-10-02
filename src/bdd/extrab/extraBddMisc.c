@@ -2723,8 +2723,8 @@ DdNode * Extra_bddTuples(
         if ( K > nVars )
             return NULL;
 
-        /* the second argument in the recursive call stannds for <n>;
-        /* reate the first argument, which stands for <k> 
+        /* the second argument in the recursive call stands for <n>;
+         * create the first argument, which stands for <k> 
          * as when we are talking about the tuple of <k> out of <n> */
         for ( i = 0; i < nVars-K; i++ )
             VarsK = cuddT( VarsK );
