@@ -247,7 +247,7 @@ int Dtt_ManCheckHash( Dtt_Man_t * p, unsigned Truth )
 }
 Vec_Int_t * Dtt_ManCollect( Dtt_Man_t * p, unsigned Truth, Vec_Int_t * vFuns )
 {
-    int i, k, Entry, Shift = (1 << p->nVars) - 1;
+    int i, k, Entry;
     word tCur = ((word)Truth << 32) | (word)Truth;
     Vec_IntClear( vFuns );
     for ( i = 0; i < p->nPerms; i++ )
@@ -356,7 +356,7 @@ void Dtt_PrintMulti2( Dtt_Man_t * p )
         printf( "\n" );
     }
 }
-void Dtt_PrintMulti( Dtt_Man_t * p )
+void Dtt_PrintMulti1( Dtt_Man_t * p )
 {
     int i, n, Entry, Count, Prev;
     for ( n = 0; n < 16; n++ )
@@ -393,6 +393,37 @@ void Dtt_PrintMulti( Dtt_Man_t * p )
         printf( "\n" );
         Vec_IntFree( vTimes );
         Vec_IntFree( vUsed );
+    }
+}
+void Dtt_PrintMulti( Dtt_Man_t * p )
+{
+    int n, Counts[13][11] = {{0}};
+    for ( n = 0; n < 13; n++ )
+    {
+        int i, Total = 0, Count = 0;
+        for ( i = 0; i < p->nClasses; i++ )
+            if ( p->pNodes[i] == n )
+            {
+                int Log = Abc_Base2Log(p->pTimes[i]);
+                assert( Log < 10 );
+                if ( p->pTimes[i] < 2 )
+                    Counts[n][0]++;
+                else
+                    Counts[n][Log]++;
+                Total += p->pTimes[i];
+                Count++;
+            }
+        if ( Count == 0 )
+            break;
+        printf( "n=%2d : ", n );
+        printf( "All = %6d  ", Count );
+        printf( "Ave = %6d  ", Total/Count );
+        for ( i = 0; i < 11; i++ )
+            if ( Counts[n][i] )
+                printf( "%6d ", Counts[n][i] );
+            else
+                printf( "%6s ", "" );
+        printf( "\n" );
     }
 }
 void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose )
