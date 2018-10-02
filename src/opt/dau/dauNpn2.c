@@ -417,7 +417,7 @@ void Dtt_PrintMulti( Dtt_Man_t * p )
             break;
         printf( "n=%2d : ", n );
         printf( "All = %7d  ", Count );
-        printf( "Ave = %3d  ", Total/Count );
+        printf( "Ave = %6.2f  ", 1.0*Total/Count );
         for ( i = 0; i < 11; i++ )
             if ( Counts[n][i] )
                 printf( "%6d", Counts[n][i] );
