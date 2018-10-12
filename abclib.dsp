@@ -1167,7 +1167,15 @@ SOURCE=.\src\bdd\extrab\extraBddKmap.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bdd\extrab\extraBddMaxMin.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bdd\extrab\extraBddMisc.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\bdd\extrab\extraBddSet.c
 # End Source File
 # Begin Source File
 
