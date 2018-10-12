@@ -476,7 +476,7 @@ extraZddMaxUnion(
 	TopS = dd->permZ[S->index];
 	TopT = dd->permZ[T->index];
 
-	if ( TopS > TopT || (TopS == TopT && (unsigned)S > (unsigned)T) )
+	if ( TopS > TopT || (TopS == TopT && S > T) )
 		return extraZddMaxUnion(dd, T, S);
 
     /* check cache */
@@ -585,7 +585,7 @@ extraZddMinUnion(
 	TopS = dd->permZ[S->index];
 	TopT = dd->permZ[T->index];
 
-	if ( TopS > TopT || (TopS == TopT && (unsigned)S > (unsigned)T) )
+	if ( TopS > TopT || (TopS == TopT && S > T) )
 		return extraZddMinUnion(dd, T, S);
 
     /* check cache */
@@ -690,7 +690,7 @@ extraZddDotProduct(
 	TopS = dd->permZ[S->index];
 	TopT = dd->permZ[T->index];
 
-	if ( TopS > TopT || (TopS == TopT && (unsigned)S > (unsigned)T) )
+	if ( TopS > TopT || (TopS == TopT && S > T) )
 		return extraZddDotProduct(dd, T, S);
 
     /* check cache */
@@ -815,7 +815,7 @@ extraZddCrossProduct(
 	TopS = dd->permZ[S->index];
 	TopT = dd->permZ[T->index];
 
-	if ( TopS > TopT || (TopS == TopT && (unsigned)S > (unsigned)T) )
+	if ( TopS > TopT || (TopS == TopT && S > T) )
 		return extraZddCrossProduct(dd, T, S);
 
     /* check cache */
@@ -956,7 +956,7 @@ extraZddMaxDotProduct(
 	TopS = dd->permZ[S->index];
 	TopT = dd->permZ[T->index];
 
-	if ( TopS > TopT || (TopS == TopT && (unsigned)S > (unsigned)T) )
+	if ( TopS > TopT || (TopS == TopT && S > T) )
 		return extraZddMaxDotProduct(dd, T, S);
 
     /* check cache */
