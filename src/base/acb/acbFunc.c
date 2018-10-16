@@ -1922,7 +1922,10 @@ void Acb_GenerateFileOut( Vec_Str_t * vPatchLine, char * pFileNameF, char * pFil
     // output file
     pFileOut = fopen( pFileNameOut, "wb" );
     if ( !pFileOut )
+    {
+        fclose( pFileIn );
         return;
+    }
     // copy line by line
     while ( fgets(pBuffer, 10000, pFileIn) )
     {

@@ -115,6 +115,8 @@ Fpga_LutLib_t * Fpga_LutLibRead( char * FileName, int fVerbose )
         }
         i++;
     }
+    fclose( pFile );
+
     p->LutMax = i-1;
 /*
     if ( p->LutMax > FPGA_MAX_LEAVES )

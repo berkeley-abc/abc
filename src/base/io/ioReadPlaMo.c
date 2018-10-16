@@ -110,6 +110,7 @@ char * Mop_ManLoadFile( char * pFileName )
     if ( nFileSize == 0 )
     {
         Abc_Print( -1, "Mop_ManLoadFile(): The file is empty.\n" );
+        fclose( pFile );
         return NULL;
     }
     pContents = ABC_ALLOC( char, nFileSize + 10 );

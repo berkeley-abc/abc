@@ -84,6 +84,7 @@ void swap_ij_case3( word* f,int totalVars, int i, int j)
             memcpy(&f[x],&f[x+shift],SizeOfBlock);
             memcpy(&f[x+shift],temp,SizeOfBlock);
         }
+    free( temp );
 }
 void swap_ij( word* f,int totalVars, int varI, int varJ)
 {
