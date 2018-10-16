@@ -177,6 +177,8 @@ void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCor
                 fclose( pFile );
                 return;
             }    
+            else
+                fclose( pFileTemp );
         }
     } 
  
