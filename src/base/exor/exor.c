@@ -1005,7 +1005,7 @@ Vec_Wec_t * Abc_ExorcismNtk2Esop( Abc_Ntk_t * pNtk )
                     Vec_IntPush( vCubeIn, 2*k );
                 }
             }
-            Vec_IntPush( vCubeIn, -1 );
+            Vec_IntPush( vCubeIn, -( i + 1 ) );
         }
     }
 

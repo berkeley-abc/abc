@@ -43176,13 +43176,23 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pFileNameIn )
     {
         pNtk = Io_ReadPla( pFileNameIn, 0, 0, 0, /* no preprocessing = */1, /* check = */1 );
+        if ( pNtk == NULL )
+        {
+            printf( "Reading PLA file has failed.\n" );
+            return 1;
+        }
         nInputs = Abc_NtkCiNum( pNtk );
         nOutputs = Abc_NtkCoNum( pNtk );
         vEsop = Abc_ExorcismNtk2Esop( pNtk );
+        if ( vEsop == NULL )
+        {
+            printf( "Converting PLA to ESOP failed.\n" );
+            return 1;
+        }
     }
     else if ( pAbc->pGia )
     {
-        // generate starting cover and run minimization
+        // generate starting cover
         nInputs = Gia_ManCiNum( pAbc->pGia );
         nOutputs = Gia_ManCoNum( pAbc->pGia );
         Eso_ManCompute( pAbc->pGia, fVerbose, &vEsop );
@@ -43190,6 +43200,7 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( vEsop )
     {
+        // run minimization
         Abc_ExorcismMain( vEsop, nInputs, nOutputs, pFileNameOut, Quality, Verbosity, nCubesMax, fUseQCost );
         Vec_WecFree( vEsop );
     }
@@ -43204,7 +43215,8 @@ usage:
     Abc_Print( -2, "                     0 = no output; 1 = outline; 2 = verbose\n");
     Abc_Print( -2, "        -C N       : maximum number of cubes in startign cover [default = %d]\n", nCubesMax );
     Abc_Print( -2, "        -q         : toggle using quantum cost [default = %s]\n", fUseQCost? "yes": "no" );
-    Abc_Print( -2, "        <file>     : the output file name in ESOP-PLA format\n");
+    Abc_Print( -2, "        [file_in]  : optional input file in ESOP-PLA format (otherwise current AIG is used)\n");
+    Abc_Print( -2, "        <file_out> : output file in ESOP-PLA format\n");
     Abc_Print( -2, "\n" );
     return 1;
 }
