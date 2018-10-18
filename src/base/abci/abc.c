@@ -43576,10 +43576,16 @@ usage:
 int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_ExorcismMain( Vec_Wec_t * vEsop, int nIns, int nOuts, char * pFileNameOut, int Quality, int Verbosity, int nCubesMax, int fUseQCost );
+    extern Vec_Wec_t * Abc_ExorcismNtk2Esop( Abc_Ntk_t * pNtk );
+
     extern Gia_Man_t * Eso_ManCompute( Gia_Man_t * pGia, int fVerbose, Vec_Wec_t ** pvRes );
     Vec_Wec_t * vEsop = NULL;
+    Abc_Ntk_t * pNtk = NULL;
+    char * pFileNameIn = NULL;
     char * pFileNameOut = NULL;
     int c, Quality = 2, Verbosity = 0, nCubesMax = 20000, fUseQCost = 0, fVerbose = 0;
+    int nInputs, nOutputs;
+
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "QVCqvh" ) ) != EOF )
     {
@@ -43630,30 +43636,72 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pAbc->pGia == NULL )
+
+    if ( argc == globalUtilOptind + 2 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Exorcism(): There is no AIG.\n" );
-        return 0;
+        pFileNameIn = argv[globalUtilOptind];
+        pFileNameOut = argv[globalUtilOptind + 1];
     }
-    // get the output file name
-    if ( argc == globalUtilOptind + 1 )
+    else if ( argc == globalUtilOptind + 1 )
+    {
         pFileNameOut = argv[globalUtilOptind];
-    // generate starting cover and run minimization
-    Eso_ManCompute( pAbc->pGia, fVerbose, &vEsop );
-    Abc_ExorcismMain( vEsop, Gia_ManCiNum(pAbc->pGia), Gia_ManCoNum(pAbc->pGia), pFileNameOut, Quality, Verbosity, nCubesMax, fUseQCost );
-    Vec_WecFree( vEsop );
+    }
+    else
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Exorcism(): Argument error.\n" );
+        goto usage;
+    }
+
+    if ( pAbc->pGia == NULL && pFileNameIn == NULL )
+    {
+      Abc_Print( -1, "Abc_CommandAbc9Exorcism(): There is neither an AIG nor an ESOP-PLA file.\n" );
+      return 0;
+    }
+
+    if ( pFileNameIn )
+    {
+        pNtk = Io_ReadPla( pFileNameIn, 0, 0, 0, /* no preprocessing = */1, /* check = */1 );
+        if ( pNtk == NULL )
+        {
+            printf( "Reading PLA file has failed.\n" );
+            return 1;
+        }
+        nInputs = Abc_NtkCiNum( pNtk );
+        nOutputs = Abc_NtkCoNum( pNtk );
+        vEsop = Abc_ExorcismNtk2Esop( pNtk );
+        if ( vEsop == NULL )
+        {
+            printf( "Converting PLA to ESOP failed.\n" );
+            return 1;
+        }
+    }
+    else if ( pAbc->pGia )
+    {
+        // generate starting cover
+        nInputs = Gia_ManCiNum( pAbc->pGia );
+        nOutputs = Gia_ManCoNum( pAbc->pGia );
+        Eso_ManCompute( pAbc->pGia, fVerbose, &vEsop );
+    }
+
+    if ( vEsop )
+    {
+        // run minimization
+        Abc_ExorcismMain( vEsop, nInputs, nOutputs, pFileNameOut, Quality, Verbosity, nCubesMax, fUseQCost );
+        Vec_WecFree( vEsop );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &exorcism [-Q N] [-V N] [-C N] -q <file>\n" );
-    Abc_Print( -2, "                performs heuristic exclusive sum-of-project minimization\n" );
-    Abc_Print( -2, "        -Q N  : minimization quality [default = %d]\n", Quality);
-    Abc_Print( -2, "                increasing this number improves quality and adds to runtime\n");
-    Abc_Print( -2, "        -V N  : verbosity level [default = %d]\n", Verbosity);
-    Abc_Print( -2, "                0 = no output; 1 = outline; 2 = verbose\n");
-    Abc_Print( -2, "        -C N  : maximum number of cubes in startign cover [default = %d]\n", nCubesMax );
-    Abc_Print( -2, "        -q    : toggle using quantum cost [default = %s]\n", fUseQCost? "yes": "no" );
-    Abc_Print( -2, "        <file>: the output file name in ESOP-PLA format\n");
+    Abc_Print( -2, "usage: &exorcism [-Q N] [-V N] [-C N] -q [file_in] <file_out>\n" );
+    Abc_Print( -2, "                     performs heuristic exclusive sum-of-project minimization\n" );
+    Abc_Print( -2, "        -Q N       : minimization quality [default = %d]\n", Quality);
+    Abc_Print( -2, "                     increasing this number improves quality and adds to runtime\n");
+    Abc_Print( -2, "        -V N       : verbosity level [default = %d]\n", Verbosity);
+    Abc_Print( -2, "                     0 = no output; 1 = outline; 2 = verbose\n");
+    Abc_Print( -2, "        -C N       : maximum number of cubes in startign cover [default = %d]\n", nCubesMax );
+    Abc_Print( -2, "        -q         : toggle using quantum cost [default = %s]\n", fUseQCost? "yes": "no" );
+    Abc_Print( -2, "        [file_in]  : optional input file in ESOP-PLA format (otherwise current AIG is used)\n");
+    Abc_Print( -2, "        <file_out> : output file in ESOP-PLA format\n");
     Abc_Print( -2, "\n" );
     return 1;
 }
