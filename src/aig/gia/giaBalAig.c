@@ -399,6 +399,12 @@ Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p, int fStrict )
         Gia_ManForEachCiId( pNew, Id, i )
             Vec_IntWriteEntry( pNew->vLevels, Id, Vec_IntEntry(p->vCiArrs, i)/And2Delay );
     }
+    else if ( p->vInArrs )
+    {
+        int Id, And2Delay = p->And2Delay ? p->And2Delay : 1;
+        Gia_ManForEachCiId( pNew, Id, i )
+            Vec_IntWriteEntry( pNew->vLevels, Id, (int)(Vec_FltEntry(p->vInArrs, i)/And2Delay) );
+    }
     // create internal nodes
     Gia_ManHashStart( pNew );
     Gia_ManForEachBuf( p, pObj, i )
@@ -1050,6 +1056,12 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
         p->vLevels = Vec_IntStart( Gia_ManObjNum(p) );
         Gia_ManForEachCiId( p, Id, i )
             Vec_IntWriteEntry( p->vLevels, Id, Vec_IntEntry(p->vCiArrs, i)/And2Delay );
+    }
+    else if ( p->vInArrs )
+    {
+        int i, Id, And2Delay = p->And2Delay ? p->And2Delay : 1;
+        Gia_ManForEachCiId( p, Id, i )
+            Vec_IntWriteEntry( p->vLevels, Id, (int)(Vec_FltEntry(p->vInArrs, i)/And2Delay) );
     }
     // determine CI levels
     if ( p->pManTime && p->vLevels == NULL )
