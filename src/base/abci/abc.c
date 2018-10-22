@@ -29435,6 +29435,7 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
         pGia->DefOutReqs = Abc_NtkReadDefaultRequiredWorst(pNtk);
         pGia->vInArrs  = Vec_FltAllocArray( Abc_NtkGetCiArrivalFloats(pNtk), Abc_NtkCiNum(pNtk) );
         pGia->vOutReqs = Vec_FltAllocArray( Abc_NtkGetCoRequiredFloats(pNtk), Abc_NtkCoNum(pNtk) );
+        pGia->And2Delay = pNtk->AndGateDelay;
     }
     Abc_FrameUpdateGia( pAbc, pGia );
     return 0;
