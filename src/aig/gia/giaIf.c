@@ -2245,6 +2245,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     {
         int Id, And2Delay = p->And2Delay ? p->And2Delay : 1;
         assert( Vec_FltSize(p->vInArrs) == Gia_ManCiNum(p) );
+        pPars->pTimesArr = ABC_CALLOC( float, Gia_ManCiNum(p));
         Gia_ManForEachCiId( p, Id, i )
             pPars->pTimesArr[i] = Vec_FltEntry(p->vInArrs, i)/And2Delay;
     }
