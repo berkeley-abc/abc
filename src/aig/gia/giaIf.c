@@ -2132,6 +2132,7 @@ void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
         p->vOutReqs    = pGia->vOutReqs;    pGia->vOutReqs    = NULL;
         p->DefInArrs   = pGia->DefInArrs;
         p->DefOutReqs  = pGia->DefOutReqs;
+        p->And2Delay   = pGia->And2Delay;
     }
     if ( pGia->vNamesIn || pGia->vNamesOut )
     {
