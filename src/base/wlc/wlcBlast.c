@@ -2309,12 +2309,16 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
         nRange = Wlc_ObjRange( pObj );
         if ( fSkipBitRange && nRange == 1 )
-            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
+        {
+            char Buffer[1000];
+            sprintf( Buffer, "%s_fi", pName );
+            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+        }
         else
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s[%d]", pName, k );
+                sprintf( Buffer, "%s_fi[%d]", pName, k );
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
             }
     }

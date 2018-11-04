@@ -482,6 +482,7 @@ Abc_Ntk_t * Abc_NtkIvyFraig( Abc_Ntk_t * pNtk, int nConfLimit, int fDoSparse, in
     }
     else
         pNtkAig = Abc_NtkIvyAfter( pNtk, pMan, 0, 0 );
+    pNtkAig->pModel = (int *)pMan->pData; pMan->pData = NULL;
     Ivy_ManStop( pTemp );
     Ivy_ManStop( pMan );
     return pNtkAig;

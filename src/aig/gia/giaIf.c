@@ -2232,7 +2232,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
 {
     extern void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose );
     Gia_Man_t * pNew;
-    If_Man_t * pIfMan; int i, Entry, EntryF;
+    If_Man_t * pIfMan; int i, Id, Entry, EntryF;
     assert( pPars->pTimesArr == NULL );
     assert( pPars->pTimesReq == NULL );
     if ( p->vCiArrs )
@@ -2244,11 +2244,10 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     }
     else if ( p->vInArrs )
     {
-        int Id, And2Delay = p->And2Delay ? p->And2Delay : 1;
         assert( Vec_FltSize(p->vInArrs) == Gia_ManCiNum(p) );
         pPars->pTimesArr = ABC_CALLOC( float, Gia_ManCiNum(p));
         Gia_ManForEachCiId( p, Id, i )
-            pPars->pTimesArr[i] = Vec_FltEntry(p->vInArrs, i)/And2Delay;
+            pPars->pTimesArr[i] = Vec_FltEntry(p->vInArrs, i);
     }
     if ( p->vCoReqs )
     {
