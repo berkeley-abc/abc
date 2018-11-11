@@ -27292,6 +27292,11 @@ int Abc_CommandFold( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "The network has no constraints.\n" );
         return 0;
     }
+    if ( Abc_NtkConstrNum(pNtk) == Abc_NtkPoNum(pNtk) )
+    {
+        Abc_Print( 0, "The network has no primary outputs (only constraints).\n" );
+        return 0;
+    }
     if ( Abc_NtkIsComb(pNtk) )
         Abc_Print( 0, "The network is combinational.\n" );
     // modify the current network
