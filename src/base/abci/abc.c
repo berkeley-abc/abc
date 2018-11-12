@@ -43594,7 +43594,7 @@ int Abc_CommandAbc9Exorcism( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileNameIn = NULL;
     char * pFileNameOut = NULL;
     int c, Quality = 2, Verbosity = 0, nCubesMax = 20000, fUseQCost = 0, fVerbose = 0;
-    int nInputs, nOutputs;
+    int nInputs = -1, nOutputs = -1;
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "QVCqvh" ) ) != EOF )
