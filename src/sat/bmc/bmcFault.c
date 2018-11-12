@@ -22,6 +22,7 @@
 #include "sat/cnf/cnf.h"
 #include "sat/bsat/satStore.h"
 #include "aig/gia/giaAig.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -58,6 +59,7 @@ void Gia_ParFfSetDefault( Bmc_ParFf_t * p )
     p->nIterCheck    =     0;
     p->fBasic        =     0; 
     p->fFfOnly       =     0;
+    p->fCheckUntest  =     0; 
     p->fDump         =     0; 
     p->fDumpUntest   =     0; 
     p->fVerbose      =     0; 
@@ -476,6 +478,7 @@ Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p, Vec_Int_t * vMap )
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i, iCtrl0, iCtrl1, iCtrl2, iCtrl3, iMuxA, iMuxB, iFuncVars = 0;
+    int VarLimit = 4 * Gia_ManAndNum(p);
     pNew = Gia_ManStart( 9 * Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     Gia_ManHashAlloc( pNew );
@@ -484,22 +487,22 @@ Gia_Man_t * Gia_ManFOFUnfold( Gia_Man_t * p, Vec_Int_t * vMap )
         pObj->Value = Gia_ManAppendCi( pNew );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        if ( Vec_IntEntry(vMap, iFuncVars++) )
+        if ( Vec_IntEntry(vMap, iFuncVars++) && iFuncVars < VarLimit )
             iCtrl0 = Gia_ManAppendCi(pNew);
         else
             iCtrl0 = 0, Gia_ManAppendCi(pNew);
 
-        if ( Vec_IntEntry(vMap, iFuncVars++) )
+        if ( Vec_IntEntry(vMap, iFuncVars++) && iFuncVars < VarLimit )
             iCtrl1 = Gia_ManAppendCi(pNew);
         else
             iCtrl1 = 0, Gia_ManAppendCi(pNew);
 
-        if ( Vec_IntEntry(vMap, iFuncVars++) )
+        if ( Vec_IntEntry(vMap, iFuncVars++) && iFuncVars < VarLimit )
             iCtrl2 = Gia_ManAppendCi(pNew);
         else
             iCtrl2 = 0, Gia_ManAppendCi(pNew);
 
-        if ( Vec_IntEntry(vMap, iFuncVars++) )
+        if ( Vec_IntEntry(vMap, iFuncVars++) && iFuncVars < VarLimit )
             iCtrl3 = Gia_ManAppendCi(pNew);
         else
             iCtrl3 = 0, Gia_ManAppendCi(pNew);
@@ -1441,6 +1444,19 @@ void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars )
         return;
     }
 
+    printf( "Options: " );
+    printf( "Untestable faults = %s. ", pPars->fCheckUntest || pPars->fDumpDelay ? "yes": "no" );
+    if ( pPars->nCardConstr )
+        printf( "Using %sstrict cardinality %d. ", pPars->fNonStrict ? "non-" : "", pPars->nCardConstr );
+    if ( pPars->fFfOnly )
+        printf( "Faults at FF outputs only = yes. " );
+    if ( pPars->nTimeOut )
+        printf( "Runtime limit = %d sec.  ", pPars->nTimeOut );
+    if ( p != pG && pG->pSpec )
+        printf( "Golden model = %s. ", pG->pSpec );
+    printf( "Verbose = %s. ", pPars->fVerbose ? "yes": "no" );
+    printf( "\n" );
+
     // select algorithm
     if ( pPars->Algo == 0 )
         nFuncVars = Gia_ManCiNum(p);
@@ -1565,7 +1581,7 @@ finish:
     // dump the test suite
     if ( pPars->fDump )
     {
-        char * pFileName = "tests.txt";
+        char * pFileName = p->pSpec ? Extra_FileNameGenericAppend(p->pSpec, "_tests.txt") : "tests.txt";
         if ( pPars->fDumpDelay && pPars->Algo == 1 )
         {
             Gia_ManDumpTestsDelay( vTests, Iter, pFileName, p );
@@ -1579,7 +1595,7 @@ finish:
     }
 
     // compute untestable faults
-    if ( Iter && (p != pG || pPars->fDumpUntest) )
+    if ( Iter && (p != pG || pPars->fDumpUntest || pPars->fCheckUntest) )
     {
         abctime clkTotal = Abc_Clock();
         // restart the SAT solver
@@ -1680,7 +1696,7 @@ finish:
         if ( pPars->fDumpUntest && status == l_True )
         {
             abctime clk = Abc_Clock();
-            char * pFileName = "untest.txt";
+            char * pFileName = p->pSpec ? Extra_FileNameGenericAppend(p->pSpec, "_untest.txt") : "untest.txt";
             int nUntests = Gia_ManDumpUntests( pM, pCnf, pSat, nFuncVars, pFileName, pPars->fVerbose );
             if ( p == pG )
                 printf( "Dumped %d untestable multiple faults into file \"%s\".  ", nUntests, pFileName );

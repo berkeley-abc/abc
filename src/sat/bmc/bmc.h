@@ -188,6 +188,7 @@ struct Bmc_ParFf_t_
     int        fNonStrict;
     int        fBasic;
     int        fFfOnly;
+    int        fCheckUntest;
     int        fDump;
     int        fDumpDelay;
     int        fDumpUntest;
