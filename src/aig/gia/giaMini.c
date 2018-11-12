@@ -593,7 +593,14 @@ int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
 
   Synopsis    [Returns equivalences of MiniAig nodes.]
 
-  Description []
+  Description [The resulting array contains as many entries as there are objects
+  in the initial MiniAIG. If the i-th entry of the array is equal to -1, it means
+  that the i-th MiniAIG object is not equivalent to any other object. Otherwise, 
+  the i-th entry contains the literal of the representative of the equivalence 
+  class of objects, to which the i-th object belongs. The representative is defined 
+  as the first object belonging to the equivalence class in the current topological 
+  order. It can be the constant 0 node, a flop output or an internal node. It is 
+  the user's responsibility to free the resulting array when it is not needed.]
                
   SideEffects []
 
@@ -656,6 +663,137 @@ int * Abc_FrameReadMiniAigEquivClasses( Abc_Frame_t * pAbc )
     pRes = Vec_IntReleaseArray( vRes );
     Vec_IntFree( vRes );
     return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Verifies equivalences of MiniAig nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_MiniAigReduce( Mini_Aig_t * p, int * pEquivs )
+{
+    Gia_Man_t * pGia, * pTemp;
+    Vec_Int_t * vCopies;
+    int i, iGiaLit = 0, nNodes;
+    // get the number of nodes
+    nNodes = Mini_AigNodeNum(p);
+    // create ABC network
+    pGia = Gia_ManStart( nNodes );
+    pGia->pName = Abc_UtilStrsav( "MiniAig" );
+    // create mapping from MiniAIG objects into ABC objects
+    vCopies = Vec_IntAlloc( nNodes );
+    Vec_IntPush( vCopies, 0 );
+    // iterate through the objects
+    Gia_ManHashAlloc( pGia );
+    for ( i = 1; i < nNodes; i++ )
+    {
+        if ( Mini_AigNodeIsPi( p, i ) )
+            iGiaLit = Gia_ManAppendCi(pGia);
+        else if ( Mini_AigNodeIsPo( p, i ) )
+            iGiaLit = Gia_ManAppendCo(pGia, Gia_ObjFromMiniFanin0Copy(pGia, vCopies, p, i));
+        else if ( Mini_AigNodeIsAnd( p, i ) )
+            iGiaLit = Gia_ManHashAnd(pGia, Gia_ObjFromMiniFanin0Copy(pGia, vCopies, p, i), Gia_ObjFromMiniFanin1Copy(pGia, vCopies, p, i));
+        else assert( 0 );
+        if ( pEquivs[i] != -1 )
+            iGiaLit = Abc_LitNotCond( Vec_IntEntry(vCopies, Abc_Lit2Var(pEquivs[i])), Abc_LitIsCompl(pEquivs[i]) );
+        Vec_IntPush( vCopies, iGiaLit );
+    }
+    Gia_ManHashStop( pGia );
+    assert( Vec_IntSize(vCopies) == nNodes );
+    Vec_IntFree( vCopies );
+    Gia_ManSetRegNum( pGia, Mini_AigRegNum(p) );
+    pGia = Gia_ManSeqCleanup( pTemp = pGia );
+    Gia_ManStop( pTemp );
+    return pGia;
+}
+Gia_Man_t * Gia_MiniAigMiter( Mini_Aig_t * p, int * pEquivs )
+{
+    Gia_Man_t * pGia, * pTemp;
+    Vec_Int_t * vCopies;
+    int i, iGiaLit = 0, iGiaLit2, nNodes, iPos = 0, nPos = 0, Temp;
+    // get the number of nodes
+    nNodes = Mini_AigNodeNum(p);
+    // create ABC network
+    pGia = Gia_ManStart( 2 * nNodes );
+    pGia->pName = Abc_UtilStrsav( "MiniAig" );
+    // create mapping from MiniAIG objects into ABC objects
+    vCopies = Vec_IntAlloc( nNodes );
+    Vec_IntPush( vCopies, 0 );
+    // iterate through the objects
+    Gia_ManHashAlloc( pGia );
+    for ( i = 1; i < nNodes; i++ )
+    {
+        if ( Mini_AigNodeIsPi( p, i ) )
+            iGiaLit = Gia_ManAppendCi(pGia);
+        else if ( Mini_AigNodeIsPo( p, i ) )
+        {
+            nPos++;
+            Vec_IntPush( vCopies, -1 );
+            continue;
+        }
+        else if ( Mini_AigNodeIsAnd( p, i ) )
+            iGiaLit = Gia_ManHashAnd(pGia, Gia_ObjFromMiniFanin0Copy(pGia, vCopies, p, i), Gia_ObjFromMiniFanin1Copy(pGia, vCopies, p, i));
+        else assert( 0 );
+        Vec_IntPush( vCopies, iGiaLit );
+    }
+    assert( Vec_IntSize(vCopies) == nNodes );
+    assert( nPos > Mini_AigRegNum(p) );
+    // create miters for each equiv class
+    for ( i = 1; i < nNodes; i++ )
+    {
+        if ( pEquivs[i] == -1 )
+            continue;
+        iGiaLit = Vec_IntEntry(vCopies, i);
+        iGiaLit2 = Abc_LitNotCond( Vec_IntEntry(vCopies, Abc_Lit2Var(pEquivs[i])), Abc_LitIsCompl(pEquivs[i]) );
+        Gia_ManAppendCo( pGia, Gia_ManHashXor(pGia, iGiaLit, iGiaLit2) );
+    }
+    // create flop inputs
+    Temp = Gia_ManCoNum(pGia);
+    for ( i = 1; i < nNodes; i++ )
+    {
+        if ( !Mini_AigNodeIsPo( p, i ) )
+            continue;
+        if ( iPos++ >= nPos - Mini_AigRegNum(p) )
+            Gia_ManAppendCo(pGia, Gia_ObjFromMiniFanin0Copy(pGia, vCopies, p, i));
+    }
+    assert( iPos == nPos );
+    assert( Mini_AigRegNum(p) == Gia_ManCoNum(pGia) - Temp );
+    Gia_ManSetRegNum( pGia, Mini_AigRegNum(p) );
+    Gia_ManHashStop( pGia );
+    Vec_IntFree( vCopies );
+    pGia = Gia_ManCleanup( pTemp = pGia );
+    Gia_ManStop( pTemp );
+    return pGia;
+}
+void Gia_MiniAigVerify( Abc_Frame_t * pAbc, char * pFileName )
+{
+    int * pEquivs;
+    Gia_Man_t * pGia;
+    char * pFileMiter   = "mini_aig_miter.aig";
+    char * pFileReduced = "mini_aig_reduced.aig";
+    Mini_Aig_t * p = Mini_AigLoad( pFileName );
+    Abc_FrameGiaInputMiniAig( pAbc, p );
+    Cmd_CommandExecute( pAbc, "&ps; &scorr; &ps" );
+    pEquivs = Abc_FrameReadMiniAigEquivClasses( pAbc );
+    // dump miter for verification
+    pGia = Gia_MiniAigMiter( p, pEquivs );
+    Gia_AigerWrite( pGia, pFileMiter, 0, 0 );
+    printf( "Dumped miter AIG in file \"%s\".\n", pFileMiter );
+    Gia_ManStop( pGia );
+    // dump reduced AIG
+    pGia = Gia_MiniAigReduce( p, pEquivs );
+    Gia_AigerWrite( pGia, pFileReduced, 0, 0 );
+    printf( "Dumped reduced AIG in file \"%s\".\n", pFileReduced );
+    Gia_ManStop( pGia );
+    // cleanup
+    ABC_FREE( pEquivs );
+    Mini_AigStop( p );
 }
 
 ////////////////////////////////////////////////////////////////////////
