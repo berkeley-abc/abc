@@ -27780,7 +27780,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
     Pdr_Par_t Pars, * pPars = &Pars;
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkUsed, * pNtkFlop = NULL;
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
@@ -27963,25 +27963,27 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -2, "There is no current network.\n");
         return 0;
     }
-    if ( Abc_NtkLatchNum(pNtk) == 0 )
-    {
-        Abc_Print( 0, "The current network is combinational.\n");
-        return 0;
-    }
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
         return 0;
     }
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        pNtkFlop = Abc_NtkDup( pNtk );
+        Abc_NtkAddLatch( pNtkFlop, Abc_AigConst1(pNtkFlop), ABC_INIT_ONE );
+    }
     // run the procedure
     pPars->fUseBridge = pAbc->fBridgeMode;
-    pAbc->Status  = Abc_NtkDarPdr( pNtk, pPars );
-    pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
+    pNtkUsed = pNtkFlop ? pNtkFlop : pNtk;
+    pAbc->Status  = Abc_NtkDarPdr( pNtkUsed, pPars );
+    pAbc->nFrames = pNtkUsed->vSeqModelVec ? -1 : pPars->iFrame;
     Abc_FrameReplacePoStatuses( pAbc, &pPars->vOutMap );
-    if ( pNtk->vSeqModelVec )
-        Abc_FrameReplaceCexVec( pAbc, &pNtk->vSeqModelVec );
+    if ( pNtkUsed->vSeqModelVec )
+        Abc_FrameReplaceCexVec( pAbc, &pNtkUsed->vSeqModelVec );
     else
-        Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+        Abc_FrameReplaceCex( pAbc, &pNtkUsed->pSeqModel );
+    if ( pNtkFlop ) Abc_NtkDelete( pNtkFlop );
     return 0;
 
 usage:
