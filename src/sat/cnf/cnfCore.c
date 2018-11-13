@@ -222,63 +222,6 @@ Cnf_Dat_t * Cnf_DeriveOther( Aig_Man_t * pAig, int fSkipTtMin )
     return Cnf_DeriveOtherWithMan( s_pManCnf, pAig, fSkipTtMin );
 }
 
-#if 0
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Cnf_Dat_t * Cnf_Derive_old( Aig_Man_t * pAig )
-{
-/*
-    // iteratively improve area flow
-    for ( i = 0; i < nIters; i++ )
-    {
-clk = Abc_Clock();
-        Cnf_ManScanMapping( p, 0 );
-        Cnf_ManMapForCnf( p );
-ABC_PRT( "iter ", Abc_Clock() - clk );
-    }
-*/
-    // write the file
-    vMapped = Aig_ManScanMapping( p, 1 );
-    Vec_PtrFree( vMapped );
-
-clk = Abc_Clock();
-    Cnf_ManTransferCuts( p );
-
-    Cnf_ManPostprocess( p );
-    Cnf_ManScanMapping( p, 0 );
-/*
-    Cnf_ManPostprocess( p );
-    Cnf_ManScanMapping( p, 0 );
-    Cnf_ManPostprocess( p );
-    Cnf_ManScanMapping( p, 0 );
-*/
-ABC_PRT( "Ext ", Abc_Clock() - clk );
-
-/*
-    vMapped = Cnf_ManScanMapping( p, 1 );
-    pCnf = Cnf_ManWriteCnf( p, vMapped );
-    Vec_PtrFree( vMapped );
-
-    // clean up
-    Cnf_ManFreeCuts( p );
-    Dar_ManCutsFree( pAig );
-    return pCnf;
-*/
-    Aig_MmFixedStop( pMemCuts, 0 );
-    return NULL;
-}
-
-#endif
 
 
 ////////////////////////////////////////////////////////////////////////

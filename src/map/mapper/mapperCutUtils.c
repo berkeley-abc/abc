@@ -219,56 +219,6 @@ int Map_CutListCount( Map_Cut_t * pSets )
     return i;
 }
 
-#if 0
-
-/**function*************************************************************
-
-  synopsis    [Removes the fanouts of the cut.]
-
-  description []
-               
-  sideeffects []
-
-  seealso     []
-
-***********************************************************************/
-void Map_CutRemoveFanouts( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase )
-{
-    Map_NodeVec_t * vFanouts;
-    int i, k;
-    for ( i = 0; i < pCut->nLeaves; i++ )
-    {
-        vFanouts = pCut->ppLeaves[i]->vFanouts;
-        for ( k = 0; k < vFanouts->nSize; k++ )
-            if ( vFanouts->pArray[k] == pNode )
-                break;
-        assert( k != vFanouts->nSize );
-        for ( k++; k < vFanouts->nSize; k++ )
-            vFanouts->pArray[k-1] = vFanouts->pArray[k];
-        vFanouts->nSize--;
-    }
-}
-
-/**function*************************************************************
-
-  synopsis    [Removes the fanouts of the cut.]
-
-  description []
-               
-  sideeffects []
-
-  seealso     []
-
-***********************************************************************/
-void Map_CutInsertFanouts( Map_Node_t * pNode, Map_Cut_t * pCut, int fPhase )
-{
-    int i;
-    for ( i = 0; i < pCut->nLeaves; i++ )
-        Map_NodeVecPush( pCut->ppLeaves[i]->vFanouts, pNode );
-}
-
-#endif
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

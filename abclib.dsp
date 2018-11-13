@@ -915,10 +915,6 @@ SOURCE=.\src\base\bac\bacCom.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\bac\bacLib.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\bac\bacNtk.c
 # End Source File
 # Begin Source File
@@ -951,19 +947,11 @@ SOURCE=.\src\base\bac\bacReadBlif.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\base\bac\bacReadSmt.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\base\bac\bacReadVer.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\src\base\bac\bacWriteBlif.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\bac\bacWriteSmt.c
 # End Source File
 # Begin Source File
 
@@ -1068,14 +1056,6 @@ SOURCE=.\src\base\acb\acb.h
 # Begin Source File
 
 SOURCE=.\src\base\acb\acbAbc.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\acb\acbAig.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\base\acb\acbCom.c
 # End Source File
 # Begin Source File
 
@@ -3347,10 +3327,6 @@ SOURCE=.\src\map\if\ifCut.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\map\if\ifData2.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\map\if\ifDec07.c
 # End Source File
 # Begin Source File
@@ -3664,10 +3640,6 @@ SOURCE=.\src\map\mpm\mpmPre.c
 # Begin Source File
 
 SOURCE=.\src\map\mpm\mpmTruth.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\map\mpm\mpmUtil.c
 # End Source File
 # End Group
 # End Group

@@ -385,58 +385,6 @@ Vec_Int_t *createSingletonIntVector( int iElem )
     return myVec;
 }
 
-#if 0
-Vec_Ptr_t *generateDisjuntiveMonotone_rec()
-{
-    nextLevelSignals = ;
-    if level is not exhausted
-    for all x \in nextLevelSignals
-    {
-        append x in currAntecendent
-        recond it as a monotone predicate
-        resurse with level - 1 
-    }
-}
-#endif
-
-#if 0
-Vec_Ptr_t *generateDisjuntiveMonotoneLevels(Aig_Man_t *pAig, 
-            struct aigPoIndices *aigPoIndicesInstance, 
-            struct antecedentConsequentVectorsStruct *anteConsecInstanceOrig,
-            int level )
-{
-    Vec_Int_t *firstLevelMonotone;
-    Vec_Int_t *currVecInt;
-    Vec_Ptr_t *hierarchyList;
-    int iElem, i;
-
-    assert( level >= 1 );
-    firstLevelMonotone = findNewDisjunctiveMonotone( pAig, aigPoIndicesInstance, anteConsecInstance );
-    if( firstLevelMonotone == NULL || Vec_IntSize(firstLevelMonotone) <= 0 )
-        return NULL;
-    
-    hierarchyList = Vec_PtrAlloc(Vec_IntSize(firstLevelMonotone));
-    
-    Vec_IntForEachEntry( firstLevelMonotone, iElem, i )
-    {
-        currVecInt = createSingletonIntVector( iElem );
-        Vec_PtrPush( hierarchyList, currVecInt );
-    }
-
-    if( level > 1 )
-    {
-        Vec_IntForEachEntry( firstLevelMonotone, iElem, i )
-        {
-            currVecInt = (Vec_Int_t *)Vec_PtrEntry( hierarchyList, i );
-            
-            
-        }
-    }
-
-    return hierarchyList;
-}
-#endif
-
 int Vec_IntPushUniqueLocal( Vec_Int_t * p, int Entry )
 {
     int i;

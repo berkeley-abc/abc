@@ -60,26 +60,6 @@ extern Aig_Man_t *generateGeneralDisjunctiveTester( Abc_Ntk_t *pNtk, Aig_Man_t *
 #define kCS_WITH_SAFETY_AND_DCS_INVARIANTS 3
 #define kCS_WITH_SAFETY_AND_USER_GIVEN_DCS_INVARIANTS 4
 
-//unused function
-#if 0
-Aig_Obj_t *readTargetPinSignal(Aig_Man_t *pAig, Abc_Ntk_t *pNtk)
-{
-    Aig_Obj_t *pObj;
-    int i;
-
-    Saig_ManForEachPo( pAig, pObj, i )
-    {
-        if( strstr( Abc_ObjName(Abc_NtkPo( pNtk, i )), "0Liveness_" ) != NULL  )
-        {
-            //return Aig_ObjFanin0(pObj);
-            return Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObj), Aig_ObjFaninC0(pObj));
-        }
-    }    
-
-    return NULL;
-}
-#endif
-
 Aig_Obj_t *readLiveSignal_0( Aig_Man_t *pAig, int liveIndex_0 )
 {
     Aig_Obj_t *pObj;
@@ -95,82 +75,6 @@ Aig_Obj_t *readLiveSignal_k( Aig_Man_t *pAig, int liveIndex_k )
     pObj = Aig_ManCo( pAig, liveIndex_k );
     return Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObj), Aig_ObjFaninC0(pObj));
 }
-
-//unused funtion
-#if 0
-Aig_Obj_t *readTargetPoutSignal(Aig_Man_t *pAig, Abc_Ntk_t *pNtk, int nonFirstIteration)
-{
-    Aig_Obj_t *pObj;
-    int i;
-
-    if( nonFirstIteration == 0 )
-        return NULL;
-    else
-        Saig_ManForEachPo( pAig, pObj, i )
-        {
-            if( strstr( Abc_ObjName(Abc_NtkPo( pNtk, i )), "kLiveness_" ) != NULL  )
-            {
-                //return Aig_ObjFanin0(pObj);
-                return Aig_NotCond((Aig_Obj_t *)Aig_ObjFanin0(pObj), Aig_ObjFaninC0(pObj));
-            }
-        }    
-
-    return NULL;
-}
-#endif
-
-//unused function
-#if 0
-void updateNewNetworkNameManager_kCS( Abc_Ntk_t *pNtk, Aig_Man_t *pAig, Vec_Ptr_t *vPiNames, 
-            Vec_Ptr_t *vLoNames, Vec_Ptr_t *vPoNames, Vec_Ptr_t *vLiNames )
-{
-    Aig_Obj_t *pObj;
-    Abc_Obj_t *pNode;
-    int i, ntkObjId;
-
-    pNtk->pManName = Nm_ManCreate( Abc_NtkCiNum( pNtk ) );
-
-    if( vPiNames )
-    {
-        Saig_ManForEachPi( pAig, pObj, i )
-        {
-            ntkObjId = Abc_NtkCi( pNtk, i )->Id;
-            Nm_ManStoreIdName( pNtk->pManName, ntkObjId, Aig_ObjType(pObj), (char *)Vec_PtrEntry(vPiNames, i), NULL );
-        }
-    }
-    if( vLoNames )
-    {
-        Saig_ManForEachLo( pAig, pObj, i )
-        {
-            ntkObjId = Abc_NtkCi( pNtk, Saig_ManPiNum( pAig ) + i )->Id;
-            Nm_ManStoreIdName( pNtk->pManName, ntkObjId, Aig_ObjType(pObj), (char *)Vec_PtrEntry(vLoNames, i), NULL );
-        }
-    }
-
-    if( vPoNames )
-    {
-        Saig_ManForEachPo( pAig, pObj, i )
-        {
-            ntkObjId = Abc_NtkCo( pNtk, i )->Id;
-            Nm_ManStoreIdName( pNtk->pManName, ntkObjId, Aig_ObjType(pObj), (char *)Vec_PtrEntry(vPoNames, i), NULL );    
-        }
-    }
-
-    if( vLiNames )
-    {
-        Saig_ManForEachLi( pAig, pObj, i )
-        {
-            ntkObjId = Abc_NtkCo( pNtk, Saig_ManPoNum( pAig ) + i )->Id;
-            Nm_ManStoreIdName( pNtk->pManName, ntkObjId, Aig_ObjType(pObj), (char *)Vec_PtrEntry(vLiNames, i), NULL );
-        }
-    }
-
-    // assign latch input names
-    Abc_NtkForEachLatch(pNtk, pNode, i)
-        if ( Nm_ManFindNameById(pNtk->pManName, Abc_ObjFanin0(pNode)->Id) == NULL )
-            Abc_ObjAssignName( Abc_ObjFanin0(pNode), Abc_ObjName(Abc_ObjFanin0(pNode)), NULL );
-}
-#endif
 
 Aig_Man_t *introduceAbsorberLogic( Aig_Man_t *pAig, int *pLiveIndex_0, int *pLiveIndex_k, int nonFirstIteration )
 {
@@ -404,23 +308,6 @@ int flipConePdr( Aig_Man_t *pAig, int directive, int targetCSPropertyIndex, int 
     Aig_ManStop( pAig );
     return RetValue;
 }
-
-//unused function
-#if 0
-int read0LiveIndex( Abc_Ntk_t *pNtk )
-{
-    Abc_Obj_t *pObj;
-    int i;
-
-    Abc_NtkForEachPo( pNtk, pObj, i )
-    {
-        if( strstr( Abc_ObjName( pObj ), "0Liveness_" ) != NULL )
-            return i;
-    }        
-
-    return -1;
-}
-#endif
 
 int collectSafetyInvariantPOIndex(Abc_Ntk_t *pNtk)
 {

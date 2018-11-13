@@ -216,55 +216,6 @@ int Fpga_CutListCount( Fpga_Cut_t * pSets )
     return i;
 }
 
-#if 0
-
-/**function*************************************************************
-
-  synopsis    [Removes the fanouts of the cut.]
-
-  description []
-               
-  sideeffects []
-
-  seealso     []
-
-***********************************************************************/
-void Fpga_CutRemoveFanouts( Fpga_Man_t * p, Fpga_Node_t * pNode, Fpga_Cut_t * pCut )
-{
-    Fpga_NodeVec_t * vFanouts;
-    int i, k;
-    for ( i = 0; i < pCut->nLeaves; i++ )
-    {
-        vFanouts = pCut->ppLeaves[i]->vFanouts;
-        for ( k = 0; k < vFanouts->nSize; k++ )
-            if ( vFanouts->pArray[k] == pNode )
-                break;
-        assert( k != vFanouts->nSize );
-        for ( k++; k < vFanouts->nSize; k++ )
-            vFanouts->pArray[k-1] = vFanouts->pArray[k];
-        vFanouts->nSize--;
-    }
-}
-
-/**function*************************************************************
-
-  synopsis    [Removes the fanouts of the cut.]
-
-  description []
-               
-  sideeffects []
-
-  seealso     []
-
-***********************************************************************/
-void Fpga_CutInsertFanouts( Fpga_Man_t * p, Fpga_Node_t * pNode, Fpga_Cut_t * pCut )
-{
-    int i;
-    for ( i = 0; i < pCut->nLeaves; i++ )
-        Fpga_NodeVecPush( pCut->ppLeaves[i]->vFanouts, pNode );
-}
-#endif
-
 /**Function*************************************************************
 
   Synopsis    [Computes the arrival time and the area flow of the cut.]

@@ -195,43 +195,6 @@ static inline int Ree_ManCutTruth( Gia_Obj_t * pObj, int * pCut0, int * pCut1, i
     return 0xFF & (Gia_ObjIsXor(pObj) ? Truth0 ^ Truth1 : Truth0 & Truth1); 
 }
 
-#if 0
-
-int Ree_ObjComputeTruth_rec( Gia_Obj_t * pObj )
-{
-    int Truth0, Truth1;
-    if ( pObj->Value )
-        return pObj->Value;
-    assert( Gia_ObjIsAnd(pObj) );
-    Truth0 = Ree_ObjComputeTruth_rec( Gia_ObjFanin0(pObj) );
-    Truth1 = Ree_ObjComputeTruth_rec( Gia_ObjFanin1(pObj) );
-    if ( Gia_ObjIsXor(pObj) )
-        return (pObj->Value = (Gia_ObjFaninC0(pObj) ? ~Truth0 : Truth0) ^ (Gia_ObjFaninC1(pObj) ? ~Truth1 : Truth1));
-    else
-        return (pObj->Value = (Gia_ObjFaninC0(pObj) ? ~Truth0 : Truth0) & (Gia_ObjFaninC1(pObj) ? ~Truth1 : Truth1));
-}
-void Ree_ObjCleanTruth_rec( Gia_Obj_t * pObj )
-{
-    if ( !pObj->Value )
-        return;
-    pObj->Value = 0;
-    if ( !Gia_ObjIsAnd(pObj) )
-        return;
-    Ree_ObjCleanTruth_rec( Gia_ObjFanin0(pObj) );
-    Ree_ObjCleanTruth_rec( Gia_ObjFanin1(pObj) );
-}
-int Ree_ObjComputeTruth( Gia_Man_t * p, int iObj, int * pCut )
-{
-    unsigned Truth, Truths[3] = { 0xAA, 0xCC, 0xF0 }; int i;
-    for ( i = 1; i <= pCut[0]; i++ )
-        Gia_ManObj(p, pCut[i])->Value = Truths[i-1];
-    Truth = 0xFF & Ree_ObjComputeTruth_rec( Gia_ManObj(p, iObj) );
-    Ree_ObjCleanTruth_rec( Gia_ManObj(p, iObj) );
-    return Truth;
-}
-
-#endif
-
 /**Function*************************************************************
 
   Synopsis    []

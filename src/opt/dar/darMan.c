@@ -129,41 +129,6 @@ void Dar_ManPrintStats( Dar_Man_t * p )
 }
 
 
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-#if 0
-
-ABC_NAMESPACE_IMPL_END
-
-#include "bool/kit/kit.h"
-
-ABC_NAMESPACE_IMPL_START
-
-void Dar_ManPrintScript()
-{
-    unsigned pCanons[222];
-    int i;
-    Dar_LibReturnCanonicals( pCanons );
-    for ( i = 1; i < 222; i++ )
-    {
-        Kit_DsdNtk_t * pNtk;
-        pNtk = Kit_DsdDecompose( pCanons + i, 4 );
-        printf( "    \"" );
-        Kit_DsdPrint( stdout, pNtk );
-        printf( "\",              /* %3d  */\n", i );
-        Kit_DsdNtkFree( pNtk );
-    }
-}
-#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
