@@ -179,8 +179,8 @@ static inline void Xdbl_Test()
     xdbl b    = Xdbl_FromDouble(10.28828287);
     xdbl ab   = Xdbl_Mul(a, b);
 
-    xdbl ten100 = Xdbl_FromDouble( 1e100 );
-    xdbl ten100_ = ABC_CONST(0x014c924d692ca61b);
+    xdbl ten100 ___unused = Xdbl_FromDouble( 1e100 );
+    xdbl ten100_ ___unused = ABC_CONST(0x014c924d692ca61b);
 
     assert( ten100 == ten100_ );
 
