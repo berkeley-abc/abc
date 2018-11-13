@@ -1,0 +1,26 @@
+abc_libabc_add_sources(
+    NAME aig_ivy
+    SOURCES
+        ivyUtil.c
+        ivyTable.c
+        ivyObj.c
+        ivyCutTrav.c
+        ivyFraig.c
+        ivyBalance.c
+        ivyOper.c
+        ivyCanon.c
+        ivyMan.c
+        ivyFastMap.c
+        ivyRwr.c
+        ivyCheck.c
+        ivyCut.c
+        ivyResyn.c
+        ivyDsd.c
+        ivyMem.c
+        ivyFanout.c
+        ivyShow.c
+        ivyDfs.c
+        ivyMulti.c
+        ivySeq.c
+        ivyHaig.c
+)
