@@ -1,0 +1,21 @@
+abc_libabc_add_sources(
+    NAME misc_extra
+    SOURCES
+        extraUtilBitMatrix.c
+        extraUtilFile.c
+        extraUtilCube.c
+        extraUtilMult.c
+        extraUtilUtil.c
+        extraUtilPerm.c
+        extraUtilReader.c
+        extraUtilCanon.c
+        extraUtilMaj.c
+        extraUtilMemory.c
+        extraUtilTruth.c
+        extraUtilPath.c
+        extraUtilProgress.c
+        extraUtilSupp.c
+        extraUtilDsd.c
+        extraUtilMisc.c
+        extraUtilEnum.c
+)
