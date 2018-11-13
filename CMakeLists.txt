@@ -1,110 +1,306 @@
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.3.0 FATAL_ERROR)
+project(abc C CXX)
 
 include(CMakeParseArguments)
-include(CheckCCompilerFlag)
-include(CheckCXXCompilerFlag)
+include(GNUInstallDirs)
 
-function(addprefix var prefix)
-    foreach( s ${ARGN} )
-        list(APPEND tmp "-I${s}")
-    endforeach()
-    set(${var} ${tmp} PARENT_SCOPE)
-endfunction()
+set(ABC_USE_NAMESPACE "" CACHE STRING "ABC namespace")
+option(ABC_USE_STDINT_H "Use C99 stdint.h header for platform-dependent types")
+option(ABC_USE_NO_CUDD "Compile CUDD with ABC")
+option(ABC_USE_NO_READLINE "Whether to use libreadline")
+option(ABC_USE_NO_PTHREADS "Whether to compile with thread support")
+option(ABC_USE_PIC "Whether to compile into position independent code")
+option(ABC_USE_LIBSTDCXX "Link explicitly to stdc++")
 
-# filter out flags that are not appropriate for the compiler being used
-function(target_compile_options_filtered target visibility)
-    foreach( flag ${ARGN} )
-        if( flag MATCHES "^-D.*" )
-            target_compile_options( ${target} ${visibility} ${flag} )
-        else()
-            check_c_compiler_flag( ${flag} C_COMPILER_SUPPORTS__${flag} )
-            if( C_COMPILER_SUPPORTS__${flag} )
-                target_compile_options( ${target} ${visibility} $<$<COMPILE_LANGUAGE:C>:${flag}> )
-            endif()
+add_library(abc_interface INTERFACE)
 
-            check_cxx_compiler_flag( ${flag} CXX_COMPILER_SUPPORTS__${flag} )
-            if( CXX_COMPILER_SUPPORTS__${flag} )
-                target_compile_options( ${target} ${visibility} $<$<COMPILE_LANGUAGE:CXX>:${flag}>  )
-            endif()
-        endif()
-    endforeach()
-endfunction()
-
-project(abc)
-
-if(READLINE_FOUND MATCHES TRUE)
-    addprefix(ABC_READLINE_INCLUDES_FLAGS "-I" ${READLINE_INCLUDE})
-    string(REPLACE ";" " " ABC_READLINE_INCLUDES_FLAGS "${ABC_READLINE_INCLUDES_FLAGS}")
-    list(APPEND ABC_READLINE_FLAGS "ABC_READLINE_INCLUDES=${ABC_READLINE_INCLUDES_FLAGS}")
-
-    string(REPLACE ";" " " ABC_READLINE_LIBRARIES_FLAGS "${READLINE_LIBRARIES}")
-    list(APPEND ABC_READLINE_FLAGS "ABC_READLINE_LIBRARIES=${ABC_READLINE_LIBRARIES_FLAGS}")
-elseif(READLINE_FOUND MATCHES FALSE)
-    list(APPEND ABC_READLINE_FLAGS "ABC_USE_NO_READLINE=1")
-endif()
-
-if(ABC_USE_NAMESPACE)
-    set(ABC_USE_NAMESPACE_FLAGS "ABC_USE_NAMESPACE=${ABC_USE_NAMESPACE}")
-endif()
-
-if( APPLE )
-    set(make_env ${CMAKE_COMMAND} -E env SDKROOT=${CMAKE_OSX_SYSROOT})
-endif()
-
-# run make to extract compiler options, linker options and list of source files
-execute_process(
-  COMMAND
-    ${make_env}
-    make
-        ${ABC_READLINE_FLAGS}
-        ${ABC_USE_NAMESPACE_FLAGS}
-        ARCHFLAGS_EXE=${CMAKE_CURRENT_BINARY_DIR}/abc_arch_flags_program.exe
-        ABC_MAKE_NO_DEPS=1
-        CC=${CMAKE_C_COMPILER}
-        CXX=${CMAKE_CXX_COMPILER}
-        LD=${CMAKE_CXX_COMPILER}
-        cmake_info
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  OUTPUT_VARIABLE MAKE_OUTPUT
+set(ABC_MODULES
+    src/base/abc src/base/abci src/base/cmd src/base/io src/base/main src/base/exor
+    src/base/ver src/base/wlc src/base/wln src/base/acb src/base/bac src/base/cba src/base/pla src/base/test
+    src/map/mapper src/map/mio src/map/super src/map/if
+    src/map/amap src/map/cov src/map/scl src/map/mpm
+    src/misc/extra src/misc/mvc src/misc/st src/misc/util src/misc/nm
+    src/misc/vec src/misc/hash src/misc/tim src/misc/bzlib src/misc/zlib
+    src/misc/mem src/misc/bar src/misc/bbl src/misc/parse
+    src/opt/cut src/opt/fxu src/opt/fxch src/opt/rwr src/opt/mfs src/opt/sim
+    src/opt/ret src/opt/fret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt
+    src/opt/cgt src/opt/csw src/opt/dar src/opt/dau src/opt/dsc src/opt/sfm src/opt/sbd
+    src/sat/bsat src/sat/xsat src/sat/satoko src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc src/sat/glucose
+    src/bool/bdc src/bool/deco src/bool/dec src/bool/kit src/bool/lucky
+    src/bool/rsb src/bool/rpo
+    src/proof/pdr src/proof/abs src/proof/live src/proof/ssc src/proof/int
+    src/proof/cec src/proof/acec src/proof/dch src/proof/fraig src/proof/fra src/proof/ssw
+    src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop
+    src/aig/miniaig
 )
 
-# extract options from make output
-function(extract_var SEPARATOR DEST_VARIABLE MAKE_OUTPUT)
-  string(REGEX MATCH "${SEPARATOR} .* ${SEPARATOR}" TMP "${MAKE_OUTPUT}")
-  string(REGEX REPLACE "${SEPARATOR} (.*) ${SEPARATOR}" "\\1" TMP "${TMP}")
+file(GLOB "src/ext*" ABC_EXTERNAL_MODULES)
 
-  separate_arguments(TMP)
-
-  set(${DEST_VARIABLE} ${TMP} PARENT_SCOPE)
-endfunction()
-
-extract_var(SEPARATOR_SRC ABC_SRC ${MAKE_OUTPUT})
-extract_var(SEPARATOR_LIBS ABC_LIBS ${MAKE_OUTPUT})
-extract_var(SEPARATOR_CFLAGS ABC_CFLAGS ${MAKE_OUTPUT})
-extract_var(SEPARATOR_CXXFLAGS ABC_CXXFLAGS ${MAKE_OUTPUT})
-
-if(ABC_USE_NAMESPACE)
-    set_source_files_properties(${ABC_SRC} PROPERTIES LANGUAGE CXX)
+if(ABC_EXTERNAL_MODULES)
+    message(STATUS "External abc modules: ${ABC_EXTERNAL_MODULES}")
+    list(APPEND ABC_MODULES ${ABC_EXTERNAL_MODULES})
 endif()
 
-function(abc_properties target visibility)
-    target_include_directories(${target} ${visibility} ${CMAKE_CURRENT_SOURCE_DIR}/src )
-    target_compile_options_filtered(${target} ${visibility} ${ABC_CFLAGS} ${ABC_CXXFLAGS} -Wno-unused-but-set-variable )
-    target_link_libraries(${target} ${visibility} ${ABC_LIBS})
+target_compile_definitions(abc_interface INTERFACE $<$<CONFIG:Debug>:_DEBUG> $<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
+target_include_directories(abc_interface INTERFACE "${abc_SOURCE_DIR}/src")
+target_link_libraries(abc_interface
+    INTERFACE ${CMAKE_DL_LIBS}
+)
+
+if(NOT ABC_USE_NO_CUDD)
+    message(STATUS "Compiling with CUDD")
+    list(APPEND ABC_MODULES src/bdd/cudd src/bdd/extrab src/bdd/dsd src/bdd/epd src/bdd/mtr src/bdd/reo src/bdd/cas src/bdd/bbr src/bdd/llb)
+    target_compile_definitions(abc_interface
+        INTERFACE ABC_USE_CUDD=1
+    )
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.6.0"))
+    target_compile_options(abc_interface
+        INTERFACE -Wno-unused-but-set-variable
+    )
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    target_compile_options(abc_interface
+        INTERFACE
+            -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare
+    )
+    target_link_libraries(abc_interface INTERFACE m)
+    if(WIN32 OR ABC_USE_NAMESPACE)
+        target_compile_options(abc_interface
+            INTERFACE
+                $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
+        )
+    endif()
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_definitions(abc_interface
+        INTERFACE
+            "_CONSOLE"
+            "_MBCS"
+            "_SCL_SECURE_NO_WARNINGS"
+            "_CRT_SECURE_NO_WARNINGS"
+    )
+endif()
+if(WIN32)
+    target_compile_definitions(abc_interface
+        INTERFACE
+            $<$<BOOL:${BUILD_SHARED_LIBS}>:ABC_DLL=ABC_DLLEXPORT>
+            $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:WIN32_NO_DLL>
+    )
+endif()
+
+if(ABC_USE_NAMESPACE)
+    message(STATUS "Compiling in namespace ${ABC_USE_NAMESPACE}")
+    target_compile_definitions(abc_interface INTERFACE "ABC_NAMESPACE=${ABC_USE_NAMESPACE}")
+endif()
+
+include(CheckTypeSize)
+check_type_size("(void*)0" SIZEOF_VOID_P)
+if(ABC_USE_STDINT_H)
+    target_compile_definitions(abc_interface INTERFACE "ABC_USE_STDINT_H=1")
+else()
+    check_type_size("(long)0" SIZEOF_LONG)
+    check_type_size("(int)0" SIZEOF_INT)
+    if(UNIX OR APPLE)
+        set(ARCH_PREFIX "LIN")
+    elseif(WIN32)
+        set(ARCH_PREFIX "NT")
+    else()
+        message(FATAL_ERROR "Unknown arch")
+    endif()
+    if(SIZEOF_VOID_P EQUAL 4)
+        set(ARCH_SUFFIX "")
+    elseif(SIZEOF_VOID_P EQUAL 8)
+        set(ARCH_SUFFIX "64")
+    else()
+        message(FATAL_ERROR "Unknown pointer size")
+    endif()
+    target_compile_definitions(abc_interface INTERFACE
+        "SIZEOF_VOID_P=${SIZEOF_VOID_P}"
+        "SIZEOF_LONG=${SIZEOF_LONG}"
+        "SIZEOF_INT=${SIZEOF_INT}"
+        "${ARCH_PREFIX}${ARCH_SUFFIX}"
+    )
+endif()
+if(CMAKE_SYSTEM_PROCESS STREQUAL "arm")
+    target_compile_definitions(abc_interface INTERFACE
+        ABC_MEMALIGN=4
+    )
+endif()
+
+if(NOT ABC_USE_NO_READLINE)
+    message(STATUS "Using libreadline")
+    target_compile_definitions(abc_interface
+        INTERFACE ABC_USE_READLINE
+    )
+    find_path(ABC_READLINE_INCLUDES
+        NAMES readline.h
+        HINTS
+            $ENV{READLINE_ROOT}
+        PATH_SUFFIXES include include/readline
+    )
+    find_library(ABC_READLINE_LIBRARIES
+        NAMES readline libreadline
+        HINTS
+            $ENV{READLINE_ROOT}
+    )
+    if(NOT ABC_READLINE_INCLUDES OR NOT ABC_READLINE_LIBRARIES)
+        message(FATAL_ERROR "Could not find readline")
+    endif()
+    target_include_directories(abc_interface
+        INTERFACE ${ABC_READLINE_INCLUDES}
+    )
+    target_link_libraries(abc_interface
+        INTERFACE ${ABC_READLINE_LIBRARIES}
+    )
+endif()
+
+if(NOT ABC_USE_NO_PTHREADS)
+    message(STATUS "Using pthreads")
+    target_compile_definitions(abc_interface
+        INTERFACE ABC_USE_PTHREADS
+    )
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        option(ABC_USE_EXTERNAL_PTHREAD "Use external pthread library")
+        if(ABC_USE_EXTERNAL_PTHREAD)
+            find_path(ABC_EXTERNAL_PTHREAD_INCLUDES
+                NAMES pthread.h
+                HINTS
+                    $ENV{PTHREAD_ROOT}
+                PATH_SUFFIXES include include/readline
+            )
+            find_library(ABC_EXTERNAL_PTHREAD_LIBRARIES
+                NAMES pthread pthread_lib pthread_dll
+                HINTS
+                    $ENV{PTHREAD_ROOT}
+            )
+            set(ABC_PTHREAD_INCLUDES "${ABC_EXTERNAL_PTHREAD_INCLUDES}")
+            set(ABC_PTHREAD_LIBRARIES "${ABC_EXTERNAL_PTHREAD_LIBRARIES}")
+        else()
+            if(SIZEOF_VOID_P EQUAL 8)
+                set(PTHREAD_ARCH "x64")
+            else()
+                set(PTHREAD_ARCH "x86")
+            endif()
+            set(ABC_PTHREAD_INCLUDES "${abc_SOURCE_DIR}/lib")
+            set(ABC_PTHREAD_LIBRARIES "${abc_SOURCE_DIR}/lib/${PTHREAD_ARCH}/pthreadVC2.lib")
+            install(FILES "${abc_SOURCE_DIR}/lib/${PTHREAD_ARCH}/pthreadVC2.dll"
+                DESTINATION "${CMAKE_INSTALL_BINDIR}"
+            )
+        endif()
+        if(NOT ABC_PTHREAD_INCLUDES OR NOT ABC_PTHREAD_LIBRARIES)
+            message(FATAL_ERROR "Could not find pthread")
+        endif()
+        target_include_directories(abc_interface INTERFACE "${ABC_PTHREAD_INCLUDES}")
+        target_link_libraries(abc_interface INTERFACE "${ABC_PTHREAD_LIBRARIES}")
+    else()
+        set(CMAKE_THREAD_PREFER_PTHREAD ON)
+        set(THREADS_PREFER_PTHREAD_FLAG ON)
+        find_package(Threads REQUIRED)
+        target_link_libraries(abc_interface
+            INTERFACE Threads::Threads
+        )
+    endif()
+endif()
+
+if(ABC_USE_PIC)
+    message(STATUS "Compiling position independent code")
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+if(ABC_USE_LIBSTDCXX)
+    message(STATUS "Using explicit -lstdc++")
+    target_link_libraries(abc_interface
+        INTERFACE stdc++
+    )
+endif()
+
+define_property(GLOBAL
+    PROPERTY LIBABC_SOURCES
+    BRIEF_DOCS "Sources of libabc"
+    FULL_DOCS "All source files of libabc"
+)
+
+define_property(GLOBAL
+    PROPERTY ABC_SOURCES
+    BRIEF_DOCS "Sources of executables of abc"
+    FULL_DOCS "All source files of libabc"
+)
+
+function(abc_libabc_add_sources)
+    cmake_parse_arguments(AAM "" "NAME" "SOURCES" ${ARGN})
+    file(RELATIVE_PATH RELDIR "${abc_SOURCE_DIR}" "${CMAKE_CURRENT_LIST_DIR}")
+    set(RELSOURCES)
+    foreach(SOURCE ${AAM_SOURCES})
+        list(APPEND RELSOURCES "${RELDIR}/${SOURCE}")
+    endforeach()
+    source_group("${RELDIR}" FILES "${AAM_SOURCES}")
+    set_property(GLOBAL APPEND PROPERTY LIBABC_SOURCES ${RELSOURCES})
 endfunction()
 
-set(ABC_MAIN_SRC src/base/main/main.c)
-list(REMOVE_ITEM ABC_SRC ${ABC_MAIN_SRC})
+function(abc_add_executable)
+    cmake_parse_arguments(AAE "" "NAME" "SOURCES" ${ARGN})
+    file(RELATIVE_PATH RELDIR "${abc_SOURCE_DIR}" "${CMAKE_CURRENT_LIST_DIR}")
+    set(RELSOURCES)
+    foreach(SOURCE ${AAE_SOURCES})
+        list(APPEND RELSOURCES "${RELDIR}${SOURCE}")
+    endforeach()
+    if(ABC_USE_NAMESPACE)
+        set_source_files_properties(${AAE_SOURCES} PROPERTIES LANGUAGE CXX)
+    endif()
+    add_executable("${AAE_NAME}" ${AAE_SOURCES})
+    target_link_libraries("${AAE_NAME}" PUBLIC libabc)
+    set_property(GLOBAL APPEND PROPERTY ABC_SOURCES ${RELSOURCES})
+endfunction()
 
-add_library(libabc EXCLUDE_FROM_ALL ${ABC_SRC})
-abc_properties(libabc PUBLIC)
-set_property(TARGET libabc PROPERTY OUTPUT_NAME abc)
+foreach(ABC_MODULE ${ABC_MODULES})
+    add_subdirectory("${ABC_MODULE}")
+endforeach()
 
-add_executable(abc ${ABC_MAIN_SRC})
-target_link_libraries(abc PRIVATE libabc)
-abc_properties(abc PRIVATE)
+get_property(LIBABC_SOURCES GLOBAL PROPERTY LIBABC_SOURCES)
+get_property(ABC_SOURCES GLOBAL PROPERTY ABC_SOURCES)
 
-add_library(libabc-pic EXCLUDE_FROM_ALL ${ABC_SRC})
-abc_properties(libabc-pic PUBLIC)
-set_property(TARGET libabc-pic PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_property(TARGET libabc-pic PROPERTY OUTPUT_NAME abc-pic)
+if(ABC_USE_NAMESPACE)
+    set_source_files_properties(${LIBABC_SOURCES} PROPERTIES LANGUAGE CXX)
+endif()
+
+add_library(libabc ${LIBABC_SOURCES})
+target_link_libraries(libabc PUBLIC abc_interface)
+set_target_properties(libabc
+    PROPERTIES OUTPUT_NAME "abc"
+)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set_target_properties(libabc
+        PROPERTIES OUTPUT_NAME "abc$<$<CONFIG:Debug>:d>$<$<NOT:$<CONFIG:Debug>>:r>"
+    )
+endif()
+
+install(TARGETS libabc
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(BUILD_SHARED_LIBS)
+        install(FILES $<TARGET_PDB_FILE:libabc> DESTINATION bin OPTIONAL)
+    endif()
+endif()
+
+enable_testing()
+add_test(NAME base_i10
+    COMMAND abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+    WORKING_DIRECTORY "${abc_SOURCE_DIR}"
+)
+
+add_custom_target(etags
+    etags ${LIBABC_SOURCES} ${ABC_SOURCES}
+    COMMENT "Generating etags"
+    WORKING_DIRECTORY "${abc_SOURCE_DIR}"
+)
+
+add_custom_target(docs
+    doxygen doxygen.conf
+    COMMENT "Building documentation."
+    WORKING_DIRECTORY "${abc_SOURCE_DIR}"
+)
