@@ -74,7 +74,7 @@ static int TypeCheck( Abc_Frame_t * pAbc, const char * s);
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_RealMain( int argc, char * argv[] )
+ABC_DLL int Abc_RealMain( int argc, char * argv[] )
 {
     Abc_Frame_t * pAbc;
     Vec_Str_t* sCommandUsr = Vec_StrAlloc(1000);
