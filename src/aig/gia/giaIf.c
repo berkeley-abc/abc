@@ -2232,7 +2232,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
 {
     extern void Gia_ManIffTest( Gia_Man_t * pGia, If_LibLut_t * pLib, int fVerbose );
     Gia_Man_t * pNew;
-    If_Man_t * pIfMan; int i, Id, Entry, EntryF;
+    If_Man_t * pIfMan; int i, Entry;//, Id, EntryF;
     assert( pPars->pTimesArr == NULL );
     assert( pPars->pTimesReq == NULL );
     if ( p->vCiArrs )
@@ -2242,6 +2242,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         Vec_IntForEachEntry( p->vCiArrs, Entry, i )
             pPars->pTimesArr[i] = (float)Entry;
     }
+/*  // uncommenting this leads to a mysterious memory corruption 
     else if ( p->vInArrs )
     {
         assert( Vec_FltSize(p->vInArrs) == Gia_ManCiNum(p) );
@@ -2249,6 +2250,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         Gia_ManForEachCiId( p, Id, i )
             pPars->pTimesArr[i] = Vec_FltEntry(p->vInArrs, i);
     }
+*/
     if ( p->vCoReqs )
     {
         assert( Vec_IntSize(p->vCoReqs) == Gia_ManCoNum(p) );
@@ -2256,6 +2258,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         Vec_IntForEachEntry( p->vCoReqs, Entry, i )
             pPars->pTimesReq[i] = (float)Entry;
     }
+/*  // uncommenting this leads to a mysterious memory corruption 
     else if ( p->vOutReqs )
     {
         assert( Vec_FltSize(p->vOutReqs) == Gia_ManCoNum(p) );
@@ -2263,6 +2266,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         Vec_FltForEachEntry( p->vOutReqs, EntryF, i )
             pPars->pTimesReq[i] = EntryF;
     }
+*/
     ABC_FREE( p->pCellStr );
     Vec_IntFreeP( &p->vConfigs );
     // disable cut minimization when GIA strucure is needed
