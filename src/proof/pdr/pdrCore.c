@@ -1427,7 +1427,7 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         char * pFileName = Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
         Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
         Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
-        printf( "Dumpted invariable in file \"%s\".\n", pFileName );
+        printf( "Dumped inductive invariant in file \"%s\".\n", pFileName );
     }
     else if ( RetValue == 1 )
         Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
