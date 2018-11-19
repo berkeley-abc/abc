@@ -1203,7 +1203,13 @@ startword:
                 break;
             }
             // check range of the control
-            if ( nValues != Vec_IntSize(p->vFanins) - 1 )
+            if ( nValues < Vec_IntSize(p->vFanins) - 1 ) // may occur if default is not there
+            {
+                //return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
+                printf( "Warning:  The number of values in the case statement is wrong.\n" );
+                Vec_IntShrink(p->vFanins,nValues+1);
+            }
+            else if ( nValues > Vec_IntSize(p->vFanins) - 1 )
                 return Wlc_PrsWriteErrorMessage( p, pStart, "The number of values in the case statement is wrong.", pName );
             if ( Wlc_ObjRange(pObj) == 1 )
             {
@@ -1526,6 +1532,55 @@ startword:
             Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
             p->pNtk->fMemPorts = 1;
         }
+        else if ( Wlc_PrsStrCmp( pStart, "CPL_RROT" ) || Wlc_PrsStrCmp( pStart, "CPL_LROT" ) )                                    
+        {                                                                                                                         
+            // CPL_RROT #(128, 6) I_47479(.o ( E_46713 )  , .d ( E_46718 )  , .s ( E_46712 )  );                                  
+            int right_rotation = Wlc_PrsStrCmp( pStart, "CPL_RROT" );                                                             
+            int NameId = -1, NameIdOut = -1, NameIdInD = -1, NameIdInS = -1, fFound, fRotInD, fRotInS, fRotOut;                   
+            pStart += strlen("CPL_RROT");                                                                                         
+                                                                                                                                  
+            // NOTE: no need to parse the parameter values                                                                        
+            //if ( pStart[0] == '#' )                                                                                             
+                                                                                                                                  
+            // read names                                                                                                         
+            while ( 1 )                                                                                                           
+            {                                                                                                                     
+                pStart = Wlc_PrsFindSymbol( pStart, '.' );                                                                        
+                if ( pStart == NULL )                                                                                             
+                    break;                                                                                                        
+                pStart = Wlc_PrsSkipSpaces( pStart+1 );                                                                           
+                if ( pStart[0] != 'o' && pStart[0] != 'd' && pStart[0] != 's')                                                    
+                    continue;                                                                                                     
+                fRotInD = (pStart[0] == 'd');                                                                                     
+                fRotInS = (pStart[0] == 's');                                                                                     
+                fRotOut = (pStart[0] == 'o');                                                                                     
+                pStart = Wlc_PrsFindSymbol( pStart, '(' );                                                                        
+                if ( pStart == NULL )                                                                                             
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the rotation description." ); 
+                pStart = Wlc_PrsFindName( pStart+1, &pName );                                                                     
+                if ( pStart == NULL )                                                                                             
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside rotation description." );                
+                if ( fRotInD )                                                                                                    
+                    NameIdInD = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );                                         
+                else if ( fRotInS )                                                                                               
+                    NameIdInS = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );                                         
+                else if ( fRotOut )                                                                                               
+                    NameIdOut = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );                                         
+                else                                                                                                              
+                    NameId = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );                                            
+                if ( !fFound )                                                                                                    
+                    return Wlc_PrsWriteErrorMessage( p, pStart, "Name %s is not declared.", pName );                              
+            }                                                                                                                     
+            if ( NameIdOut == -1 || NameIdInD == -1 || NameIdInS == -1 )                                                          
+                return Wlc_PrsWriteErrorMessage( p, pStart, "Some fields of CPL_ROT are missing." );                              
+            // create rot output                                                                                                  
+            pObj = Wlc_NtkObj( p->pNtk, NameIdOut );                                                                              
+            Wlc_ObjUpdateType( p->pNtk, pObj, right_rotation ? WLC_OBJ_ROTATE_R : WLC_OBJ_ROTATE_L );                             
+            Vec_IntClear( p->vFanins );                                                                                           
+            Vec_IntPush( p->vFanins, NameIdInD );                                                                                 
+            Vec_IntPush( p->vFanins, NameIdInS );                                                                                 
+            Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );                                                                        
+        }                                                                                                                         
         else if ( pStart[0] == '(' && pStart[1] == '*' ) // skip comments
         {
             while ( *pStart++ != ')' );

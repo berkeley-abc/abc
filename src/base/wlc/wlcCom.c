@@ -970,13 +970,14 @@ usage:
 ******************************************************************************/
 int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Wlc_NtkPrintInputInfo( Wlc_Ntk_t * pNtk );
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
-    Gia_Man_t * pNew = NULL; int c, fMiter = 0, fDumpNames = 0;
+    Gia_Man_t * pNew = NULL; int c, fMiter = 0, fDumpNames = 0, fPrintInputInfo = 0;
     Wlc_BstPar_t Par, * pPar = &Par;
     Wlc_BstParDefault( pPar );
     pPar->nOutputRange = 2;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombadstnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombadstnivh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1052,6 +1053,9 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'n':
             fDumpNames ^= 1;
             break;
+        case 'i': 
+            fPrintInputInfo ^= 1; 
+            break;
         case 'v':
             pPar->fVerbose ^= 1;
             break;
@@ -1066,6 +1070,8 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandBlast(): There is no current design.\n" );
         return 0;
     }
+    if ( fPrintInputInfo )
+        Wlc_NtkPrintInputInfo(pNtk); 
     if ( pPar->fMulti )
     {
         pPar->vBoxIds = Wlc_NtkCollectMultipliers( pNtk );
@@ -1118,7 +1124,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combadstnvh]\n" );
+    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combadstnivh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-O num : zero-based index of the first word-level PO to bit-blast [default = %d]\n", pPar->iOutput );
     Abc_Print( -2, "\t-R num : the total number of word-level POs to bit-blast [default = %d]\n",          pPar->nOutputRange );
@@ -1133,6 +1139,7 @@ usage:
     Abc_Print( -2, "\t-s     : toggle creating decoded MUXes [default = %s]\n",                            pPar->fDecMuxes? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle creating regular multi-output miter [default = %s]\n",               fMiter? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggle dumping signal names into a text file [default = %s]\n",             fDumpNames? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggle to print input names after blasting [default = %s]\n",               fPrintInputInfo ? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                      pPar->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

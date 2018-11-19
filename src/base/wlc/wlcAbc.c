@@ -42,6 +42,58 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Wlc_NtkPrintInputInfo( Wlc_Ntk_t * pNtk )
+{
+    Wlc_Obj_t * pObj;
+    int i, k, nRange, nBeg, nEnd, nBits = 0;
+    FILE * output;
+
+    output = fopen("abc_blast_input.info","w");
+
+    Wlc_NtkForEachCi( pNtk, pObj, i )
+    {
+        nRange = Wlc_ObjRange(pObj);
+        nBeg = pObj->Beg;
+        nEnd = pObj->End;
+
+        for ( k = 0; k < nRange; k++ )
+        {
+            int index = nEnd > nBeg ? nBeg + k : nEnd + k;
+            char c = pObj->Type != WLC_OBJ_FO ? 'i' : pNtk->pInits[nBits + k];
+            fprintf(output,"%s[%d] : %c \n", Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), index , c );
+        }
+        if (pObj->Type == WLC_OBJ_FO)
+            nBits += nRange;
+    }
+
+    Wlc_NtkForEachPo( pNtk, pObj, i )
+    {
+        nRange = Wlc_ObjRange(pObj);
+        nBeg = pObj->Beg;
+        nEnd = pObj->End;
+
+        for ( k = 0; k < nRange; k++ )
+        {
+            int index = nEnd > nBeg ? nBeg + k : nEnd + k;
+            fprintf(output,"%s[%d] : o \n", Wlc_ObjName(pNtk, Wlc_ObjId(pNtk, pObj)), index);
+        }
+    }
+
+    fclose(output);
+    return;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Wlc_NtkPrintInvStats( Wlc_Ntk_t * pNtk, Vec_Int_t * vCounts, int fVerbose )
 {
     Wlc_Obj_t * pObj;

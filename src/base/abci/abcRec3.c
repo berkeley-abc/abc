@@ -1106,7 +1106,7 @@ int Abc_RecToGia3( Gia_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, Vec_Int
 {
     Lms_Man_t * p = s_pMan3;
     char pCanonPerm[LMS_VAR_MAX];
-    unsigned uCanonPhase;
+    unsigned uCanonPhase = 0;
     int iFan0, iFan1, iGiaObj;
     Gia_Man_t * pGia = p->pGia;
     Gia_Obj_t * pGiaPo, * pGiaTemp = NULL;
