@@ -1079,6 +1079,7 @@ Vec_Str_t * Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
 void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact )
 {
     int fVerbose = XAIG_VERBOSE;
+    int fWriteNewLine = 0;
     FILE * pFile;
     Gia_Man_t * p;
     Gia_Obj_t * pObj;
@@ -1194,8 +1195,10 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     }
 
     // write the comment
-//    fprintf( pFile, "c\n" );
-    fprintf( pFile, "c" );
+    if ( fWriteNewLine ) 
+        fprintf( pFile, "c\n" );
+    else
+        fprintf( pFile, "c" );
 
     // write additional AIG
     if ( p->pAigExtra )
@@ -1406,6 +1409,8 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         fprintf( pFile, "%c", '\0' );
     }
     // write comments
+    if ( fWriteNewLine )
+        fprintf( pFile, "c\n" );
     fprintf( pFile, "\nThis file was produced by the GIA package in ABC on %s\n", Gia_TimeStamp() );
     fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
     fclose( pFile );
