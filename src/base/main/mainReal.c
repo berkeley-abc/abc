@@ -131,8 +131,8 @@ int Abc_RealMain( int argc, char * argv[] )
                 enable_dbg_outs ^= 1;                            
                 break;                                          
 
-            case 'm':
-#ifndef WIN32
+            case 'm': {
+#ifndef WIN32                
                 int maxMb = atoi(globalUtilOptarg);             
                 printf("Limiting memory use to %d MB\n", maxMb);
                 struct rlimit limit = {                         
@@ -141,9 +141,9 @@ int Abc_RealMain( int argc, char * argv[] )
                 };                                              
                 setrlimit(RLIMIT_AS, &limit);                   
 #endif
-                break;                                          
-
-            case 'l':
+                break; 
+            }                                         
+            case 'l': {
 #ifndef WIN32
                 int maxTime = atoi(globalUtilOptarg);           
                 printf("Limiting time to %d seconds\n", maxTime);
@@ -153,8 +153,8 @@ int Abc_RealMain( int argc, char * argv[] )
                 };                                              
                 setrlimit(RLIMIT_CPU, &limit);                  
 #endif
-                break;                                          
-
+                break; 
+            }                                         
             case 'c':
                 if( Vec_StrSize(sCommandUsr) > 0 )
                 {
