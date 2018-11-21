@@ -10727,7 +10727,7 @@ int Abc_CommandExpand( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_NtkDelete( pNtk2 );
     // convert it into an AIG
     pGia = Abc_NtkClpGia( pStrash );
-    //Gia_AigerWrite( pGia, "aig_dump.aig", 0, 0 );
+    //Gia_AigerWrite( pGia, "aig_dump.aig", 0, 0, 0 );
     Abc_NtkDelete( pStrash );
     // get the new network
     Abc_NtkExpandCubes( pNtk, pGia, fVerbose );
@@ -16857,7 +16857,7 @@ int Abc_CommandRecDump3( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 0, "No structure in the library.\n" );
             return 1;
         }
-        Gia_AigerWrite( pGia, FileName, 0, 0 );
+        Gia_AigerWrite( pGia, FileName, 0, 0, 0 );
     }
     return 0;
 
@@ -30070,9 +30070,10 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerilog = 0;
     int fMiniAig = 0;
     int fMiniLut = 0;
+    int fWriteNewLine = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "upmlvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upmlcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30087,6 +30088,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'l':
             fMiniLut ^= 1;
+            break;
+        case 'c':
+            fWriteNewLine ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -30123,16 +30127,17 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( fMiniLut )
         Gia_ManWriteMiniLut( pAbc->pGia, pFileName );
     else
-        Gia_AigerWrite( pAbc->pGia, pFileName, 0, 0 );
+        Gia_AigerWrite( pAbc->pGia, pFileName, 0, 0, fWriteNewLine );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-upmlvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upmlcvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
     Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
+    Abc_Print( -2, "\t-c     : toggle writing \'\\n\' after \'c\' in the AIGER file [default = %s]\n", fWriteNewLine? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");
@@ -34710,7 +34715,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
             pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
             Gia_ManStop( pAux );
         }
-        Gia_AigerWrite( pTemp, pFileNameIn ? pFileNameIn : pFileName, 0, 0 );
+        Gia_AigerWrite( pTemp, pFileNameIn ? pFileNameIn : pFileName, 0, 0, 0 );
         Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", pFileName );
         Gia_ManPrintStatsShort( pTemp );
         Gia_ManStop( pTemp );
@@ -34723,7 +34728,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
             pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
             Gia_ManStop( pAux );
 
-            Gia_AigerWrite( pTemp, pFileName2, 0, 0 );
+            Gia_AigerWrite( pTemp, pFileName2, 0, 0, 0 );
             Abc_Print( 1, "Reduced original network was written into file \"%s\".\n", pFileName2 );
             Gia_ManPrintStatsShort( pTemp );
             Gia_ManStop( pTemp );
@@ -34824,7 +34829,7 @@ int Abc_CommandAbc9Srm2( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManSeqStructSweep( pAux = pTemp, 1, 1, 0 );
         Gia_ManStop( pAux );
 
-        Gia_AigerWrite( pTemp, pFileName, 0, 0 );
+        Gia_AigerWrite( pTemp, pFileName, 0, 0, 0 );
         Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", pFileName );
         Gia_ManPrintStatsShort( pTemp );
         Gia_ManStop( pTemp );
@@ -35281,7 +35286,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fDumpMiter )
         {
             Abc_Print( 0, "The verification miter is written into file \"%s\".\n", "cec_miter.aig" );
-            Gia_AigerWrite( pMiter, "cec_miter.aig", 0, 0 );
+            Gia_AigerWrite( pMiter, "cec_miter.aig", 0, 0, 0 );
         }
         pAbc->Status = Cec_ManVerify( pMiter, pPars );
         Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
@@ -40538,7 +40543,7 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             Gia_Man_t * pOne = Gia_ManDupDfsCone( pAbc->pGia, pObj );
             sprintf( Buffer, "%s_%0*d.aig", Extra_FileNameGeneric(pAbc->pGia->pSpec), nDigits, i );
-            Gia_AigerWrite( pOne, Buffer, 0, 0 );
+            Gia_AigerWrite( pOne, Buffer, 0, 0, 0 );
             Gia_ManStop( pOne );
         }
         printf( "Dumped all outputs into individual AIGER files.\n" );
@@ -42929,8 +42934,8 @@ int Abc_CommandAbc9Demiter( Abc_Frame_t * pAbc, int argc, char ** argv )
             sprintf( pName1, "%s_2.aig", pGen );
             ABC_FREE( pGen );
         }
-        Gia_AigerWrite( pPart1, pName0, 0, 0 );
-        Gia_AigerWrite( pPart2, pName1, 0, 0 );
+        Gia_AigerWrite( pPart1, pName0, 0, 0, 0 );
+        Gia_AigerWrite( pPart2, pName1, 0, 0, 0 );
         Gia_ManStop( pPart1 );
         Gia_ManStop( pPart2 );
         if ( fDumpFilesTwo )

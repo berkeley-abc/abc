@@ -1076,10 +1076,9 @@ Vec_Str_t * Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact )
+void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact, int fWriteNewLine )
 {
     int fVerbose = XAIG_VERBOSE;
-    int fWriteNewLine = 0;
     FILE * pFile;
     Gia_Man_t * p;
     Gia_Obj_t * pObj;
@@ -1438,7 +1437,7 @@ void Gia_DumpAiger( Gia_Man_t * p, char * pFilePrefix, int iFileNum, int nFileNu
 {
     char Buffer[100];
     sprintf( Buffer, "%s%0*d.aig", pFilePrefix, nFileNumDigits, iFileNum );
-    Gia_AigerWrite( p, Buffer, 0, 0 );
+    Gia_AigerWrite( p, Buffer, 0, 0, 0 );
 }
 
 /**Function*************************************************************

@@ -1430,7 +1430,7 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
         // dump abstraction map
         Vec_IntFreeP( &p->pGia->vGateClasses );
         p->pGia->vGateClasses = Ga2_ManAbsTranslate( p );
-        Gia_AigerWrite( p->pGia, pFileName, 0, 0 );
+        Gia_AigerWrite( p->pGia, pFileName, 0, 0, 0 );
     }
     else if ( p->pPars->fDumpVabs )
     {
@@ -1443,7 +1443,7 @@ void Ga2_GlaDumpAbsracted( Ga2_Man_t * p, int fVerbose )
         vGateClasses = Ga2_ManAbsTranslate( p );
         pAbs = Gia_ManDupAbsGates( p->pGia, vGateClasses );
         Gia_ManCleanValue( p->pGia );
-        Gia_AigerWrite( pAbs, pFileName, 0, 0 );
+        Gia_AigerWrite( pAbs, pFileName, 0, 0, 0 );
         Gia_ManStop( pAbs );
         Vec_IntFreeP( &vGateClasses );
     }
@@ -1563,7 +1563,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
                     Vec_IntWriteEntry( pAig->vGateClasses, i, 1 );
                 Gia_ManForEachRo( pAig, pObj, i )
                     Vec_IntWriteEntry( pAig->vGateClasses, Gia_ObjId(pAig, pObj), 1 );
-                Gia_AigerWrite( pAig, pFileName, 0, 0 );
+                Gia_AigerWrite( pAig, pFileName, 0, 0, 0 );
                 Vec_IntFree( pAig->vGateClasses );
                 pAig->vGateClasses = vMap;
                 if ( p->pPars->fVerbose )

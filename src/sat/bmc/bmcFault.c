@@ -754,7 +754,7 @@ Gia_Man_t * Gia_ManFormulaUnfold( Gia_Man_t * p, char * pForm, int fFfOnly )
     Gia_ManStop( pTemp );
     assert( Gia_ManPiNum(pNew) == Gia_ManCiNum(p) + nPars * (fFfOnly ? Count : Gia_ManAndNum(p)) );
 //    if ( fUseFaults )
-//        Gia_AigerWrite( pNew, "newfault.aig", 0, 0 );
+//        Gia_AigerWrite( pNew, "newfault.aig", 0, 0, 0 );
     return pNew;
 }
 
@@ -1260,7 +1260,7 @@ int Gia_ManFaultPrepare( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars, int
         p1 = Gia_ManFOFUnfold( p, vMap );
     if ( pPars->Algo != 1 )
         p0 = Gia_ManDeriveDup( pG, Gia_ManCiNum(p1) - Gia_ManCiNum(pG) );
-//    Gia_AigerWrite( p1, "newfault.aig", 0, 0 );
+//    Gia_AigerWrite( p1, "newfault.aig", 0, 0, 0 );
 //    printf( "Dumped circuit with fault parameters into file \"newfault.aig\".\n" );
 
     // create miter

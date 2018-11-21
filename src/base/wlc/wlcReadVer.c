@@ -1663,7 +1663,7 @@ void Io_ReadWordTest( char * pFileName )
     Wlc_WriteVer( pNtk, "test.v", 0, 0 );
 
     pNew = Wlc_NtkBitBlast( pNtk, NULL );
-    Gia_AigerWrite( pNew, "test.aig", 0, 0 );
+    Gia_AigerWrite( pNew, "test.aig", 0, 0, 0 );
     Gia_ManStop( pNew );
 
     Wlc_NtkFree( pNtk );

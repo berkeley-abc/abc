@@ -1293,7 +1293,7 @@ void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose )
     // create AIG with two primary outputs (original and permuted)
     pPerm = Gia_ManDupPerm( p, vPiPerm );
     pDouble = Gia_ManDupAppendNew( p, pPerm );
-//Gia_AigerWrite( pDouble, "test.aig", 0, 0 );
+//Gia_AigerWrite( pDouble, "test.aig", 0, 0, 0 );
 
     // analyze the two-output miter
     pAig = Gia_ManIsoReduce( pDouble, &vPosEquivs, &vPisPerm, 0, 0, 0, 0 );

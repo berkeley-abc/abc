@@ -1994,14 +1994,14 @@ int Gia_CommandSpecI( Gia_Man_t * pGia, int nFramesInit, int nBTLimitInit, int f
             }
         }
         // write equivalence classes
-        Gia_AigerWrite( pGia, "gore.aig", 0, 0 );
+        Gia_AigerWrite( pGia, "gore.aig", 0, 0, 0 );
         // reduce the model
         pReduce = Gia_ManSpecReduce( pGia, 0, 0, 1, 0, 0 );
         if ( pReduce )
         {
             pReduce = Gia_ManSeqStructSweep( pAux = pReduce, 1, 1, 0 );
             Gia_ManStop( pAux );
-            Gia_AigerWrite( pReduce, "gsrm.aig", 0, 0 );
+            Gia_AigerWrite( pReduce, "gsrm.aig", 0, 0, 0 );
 //            Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", "gsrm.aig" );
 //          Gia_ManPrintStatsShort( pReduce );
             Gia_ManStop( pReduce );

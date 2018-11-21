@@ -2361,8 +2361,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         assert( Gia_ManPoNum(pNew) % 2 == 0 );
         sprintf( pFileName0, "%s_lhs_.aig", pNameGeneric );
         sprintf( pFileName1, "%s_rhs_.aig", pNameGeneric );
-        Gia_AigerWrite( pGia0, pFileName0, 0, 0 );
-        Gia_AigerWrite( pGia1, pFileName1, 0, 0 );
+        Gia_AigerWrite( pGia0, pFileName0, 0, 0, 0 );
+        Gia_AigerWrite( pGia1, pFileName1, 0, 0, 0 );
         Gia_ManStop( pGia0 );
         Gia_ManStop( pGia1 );
         Vec_IntFree( vOrder );

@@ -241,10 +241,10 @@ void Gia_ManPrintClasses_old( Gia_Man_t * p )
     {
         Gia_Man_t * pTemp;
         pTemp = Gia_ManDupFlopClass( p, 1 );
-        Gia_AigerWrite( pTemp, "dom1.aig", 0, 0 );
+        Gia_AigerWrite( pTemp, "dom1.aig", 0, 0, 0 );
         Gia_ManStop( pTemp );
         pTemp = Gia_ManDupFlopClass( p, 2 );
-        Gia_AigerWrite( pTemp, "dom2.aig", 0, 0 );
+        Gia_AigerWrite( pTemp, "dom2.aig", 0, 0, 0 );
         Gia_ManStop( pTemp );
     }
 }

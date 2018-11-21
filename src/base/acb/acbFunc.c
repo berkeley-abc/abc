@@ -2036,14 +2036,14 @@ Cnf_Dat_t * Acb_NtkEcoCompute( Gia_Man_t * p, int iTar, int nTars )
         Gia_ManStop( p );
         pCof1 = Acb_NtkEcoSynthesize( p = pCof1 );
         Gia_ManStop( p );
-        Gia_AigerWrite( pCof0, "eco_qbf0.aig", 0, 0 );
-        Gia_AigerWrite( pCof1, "eco_qbf1.aig", 0, 0 );
+        Gia_AigerWrite( pCof0, "eco_qbf0.aig", 0, 0, 0 );
+        Gia_AigerWrite( pCof1, "eco_qbf1.aig", 0, 0, 0 );
         Gia_ManStop( pCof0 );
         Gia_ManStop( pCof1 );
         printf( "Dumped cof0 into file \"%s\".\n", "eco_qbf0.aig" );
         printf( "Dumped cof1 into file \"%s\".\n", "eco_qbf1.aig" );
     }
-//    Gia_AigerWrite( pCof, "eco_qbf.aig", 0, 0 );
+//    Gia_AigerWrite( pCof, "eco_qbf.aig", 0, 0, 0 );
 //    printf( "Dumped the result of quantification into file \"%s\".\n", "eco_qbf.aig" );
     pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pCof, 8, 0, 0, 0, 0 );
     Gia_ManStop( pCof );
@@ -2445,7 +2445,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
     // generate output files
     Acb_GenerateFilePatch( vPatch, "patch.v" );
     Acb_GenerateFileOut( vInst, pFileNameF, "out.v", vPatch );
-    //Gia_AigerWrite( pGiaG, "test.aig", 0, 0 );
+    //Gia_AigerWrite( pGiaG, "test.aig", 0, 0, 0 );
 cleanup:
     // cleanup
     if ( vGias )

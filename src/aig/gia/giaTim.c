@@ -962,8 +962,8 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
         char * pNameGeneric = Extra_FileNameGeneric( pFileSpec ? pFileSpec : pGia->pSpec );
         sprintf( pFileName0, "%s_spec.aig", pNameGeneric );
         sprintf( pFileName1, "%s_impl.aig", pNameGeneric );
-        Gia_AigerWrite( pGia0, pFileName0, 0, 0 );
-        Gia_AigerWrite( pGia1, pFileName1, 0, 0 );
+        Gia_AigerWrite( pGia0, pFileName0, 0, 0, 0 );
+        Gia_AigerWrite( pGia1, pFileName1, 0, 0, 0 );
         ABC_FREE( pNameGeneric );
         printf( "Dumped two parts of the miter into files \"%s\" and \"%s\".\n", pFileName0, pFileName1 );
     }

@@ -622,10 +622,10 @@ sat_solver * Ifn_ManSatBuild( Ifn_Ntk_t * p, Vec_Int_t ** pvPiVars, Vec_Int_t **
     sat_solver * pSat = NULL;
     *pvPiVars = *pvPoVars = NULL;
     p1 = Ifn_ManStrFindModel( p );
-//    Gia_AigerWrite( p1, "satbuild.aig", 0, 0 );
+//    Gia_AigerWrite( p1, "satbuild.aig", 0, 0, 0 );
     p2 = Ifn_ManStrFindCofactors( p->nInps, p1 );
     Gia_ManStop( p1 );
-//    Gia_AigerWrite( p2, "satbuild2.aig", 0, 0 );
+//    Gia_AigerWrite( p2, "satbuild2.aig", 0, 0, 0 );
     pSat = Ifn_ManStrFindSolver( p2, pvPiVars, pvPoVars );
     Gia_ManStop( p2 );
     return pSat;

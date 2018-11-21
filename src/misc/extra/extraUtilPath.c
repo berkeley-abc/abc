@@ -98,7 +98,7 @@ void Abc_EnumeratePathsTest()
 {
     int nSize = 2;
     Gia_Man_t * pGia = Abc_EnumeratePaths( nSize );
-    Gia_AigerWrite( pGia, "testpath.aig", 0, 0 );
+    Gia_AigerWrite( pGia, "testpath.aig", 0, 0, 0 );
     Gia_ManStop( pGia );
 }
 
@@ -353,7 +353,7 @@ void Abc_GraphDeriveGiaDump( Vec_Wec_t * vNodes, Vec_Int_t * vEdges, int Size )
     char pFileName[100];
     Gia_Man_t * pGia = Abc_GraphDeriveGia( vNodes, vEdges );
     sprintf( pFileName, "grid_%dx%d_e%03d.aig", Size, Size, Vec_IntSize(vEdges)/2 );
-    Gia_AigerWrite( pGia, pFileName, 0, 0 );
+    Gia_AigerWrite( pGia, pFileName, 0, 0, 0 );
     Gia_ManStop( pGia );
     printf( "Finished dumping AIG into file \"%s\".\n", pFileName );
 }

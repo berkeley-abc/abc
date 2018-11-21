@@ -573,7 +573,7 @@ int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
     if ( pAbc->pGiaMiniAig == NULL || pAbc->pGiaMiniLut == NULL )
         return NULL;
     pGia = Gia_ManDup2( pAbc->pGiaMiniAig, pAbc->pGiaMiniLut );
-    //Gia_AigerWrite( pGia, "aig_m_lut.aig", 0, 0 );
+    //Gia_AigerWrite( pGia, "aig_m_lut.aig", 0, 0, 0 );
     // compute equivalences in this AIG
     pTemp = Gia_ManComputeGiaEquivs( pGia, nConfs, fVerbose );
     Gia_ManStop( pTemp );
@@ -783,12 +783,12 @@ void Gia_MiniAigVerify( Abc_Frame_t * pAbc, char * pFileName )
     pEquivs = Abc_FrameReadMiniAigEquivClasses( pAbc );
     // dump miter for verification
     pGia = Gia_MiniAigMiter( p, pEquivs );
-    Gia_AigerWrite( pGia, pFileMiter, 0, 0 );
+    Gia_AigerWrite( pGia, pFileMiter, 0, 0, 0 );
     printf( "Dumped miter AIG in file \"%s\".\n", pFileMiter );
     Gia_ManStop( pGia );
     // dump reduced AIG
     pGia = Gia_MiniAigReduce( p, pEquivs );
-    Gia_AigerWrite( pGia, pFileReduced, 0, 0 );
+    Gia_AigerWrite( pGia, pFileReduced, 0, 0, 0 );
     printf( "Dumped reduced AIG in file \"%s\".\n", pFileReduced );
     Gia_ManStop( pGia );
     // cleanup

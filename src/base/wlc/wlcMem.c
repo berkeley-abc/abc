@@ -1006,7 +1006,7 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbo
         if ( fDumpAbs )
         {
             char * pFileName = "mem_abs.aig";
-            Gia_AigerWrite( pAbs, pFileName, 0, 0 );
+            Gia_AigerWrite( pAbs, pFileName, 0, 0, 0 );
             printf( "Iteration %3d: Dumped abstraction in file \"%s\" after finding CEX in frame %d.\n", nIters, pFileName, pCex ? pCex->iFrame : -1 );
         }
 
