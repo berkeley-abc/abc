@@ -10992,6 +10992,11 @@ int Abc_CommandReach( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Reachability analysis works only for AIGs (run \"strash\").\n" );
         return 1;
     }
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) ) 
+    { 
+        Abc_Print( 1, "The miters is already solved; skipping the command.\n" ); 
+        return 0;
+    }
     pAbc->Status  = Abc_NtkDarReach( pNtk, pPars );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
@@ -23901,10 +23906,14 @@ int Abc_CommandDProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "This command works only for structrally hashed networks. Run \"st\".\n" );
+        return 0;
+    }
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) ) 
+    { 
+        Abc_Print( 1, "The miters is already solved; skipping the command.\n" ); 
         return 0;
     }
 
@@ -25605,6 +25614,11 @@ int Abc_CommandBmc( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Does not work for combinational networks.\n" );
         return 0;
     }
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) ) 
+    { 
+        Abc_Print( 1, "The miters is already solved; skipping the command.\n" ); 
+        return 0;
+    }
     pAbc->Status = Abc_NtkDarBmc( pNtk, 0, nFrames, nSizeMax, nNodeDelta, 0, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, 0, nCofFanLit, fVerbose, &iFrames, fUseSatoko );
     pAbc->nFrames = iFrames;
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
@@ -25798,6 +25812,11 @@ int Abc_CommandBmc2( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Abc_NtkLatchNum(pNtk) == 0 )
     {
         Abc_Print( -1, "Does not work for combinational networks.\n" );
+        return 0;
+    }
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) ) 
+    { 
+        Abc_Print( 1, "The miters is already solved; skipping the command.\n" ); 
         return 0;
     }
     pAbc->Status = Abc_NtkDarBmc( pNtk, nStart, nFrames, nSizeMax, nNodeDelta, nTimeOut, nBTLimit, nBTLimitAll, fRewrite, fNewAlgo, fOrDecomp, 0, fVerbose, &iFrames, fUseSatoko );
@@ -26054,6 +26073,11 @@ int Abc_CommandBmc3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Constraints have to be folded (use \"fold\").\n" );
         return 0;
     }
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) ) 
+    { 
+        Abc_Print( 1, "The miters is already solved; skipping the command.\n" ); 
+        return 0;
+    }
     pPars->fUseBridge = pAbc->fBridgeMode;
     pAbc->Status = Abc_NtkDarBmc3( pNtk, pPars, fOrDecomp );
     pAbc->nFrames = pNtk->vSeqModelVec ? -1 : pPars->iFrame;
@@ -26258,6 +26282,11 @@ int Abc_CommandBmcInter( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) ) 
+    { 
+        Abc_Print( 1, "The miters is already solved; skipping the command.\n" ); 
         return 0;
     }
     if ( Abc_NtkLatchNum(pNtk) == 0 )
@@ -27989,6 +28018,11 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
+        return 0;
+    }
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) ) 
+    { 
+        Abc_Print( 1, "The miters is already solved; skipping the command.\n" ); 
         return 0;
     }
     if ( Abc_NtkLatchNum(pNtk) == 0 )
@@ -44473,6 +44507,11 @@ int Abc_CommandAbc9GlaDerive( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 */
+    if ( pAbc->fBatchMode && (pAbc->Status == 0 || pAbc->Status == 1) ) 
+    { 
+        Abc_Print( 1, "The miters is already solved; skipping the command.\n" ); 
+        return 0;
+    }
     if ( pAbc->pGia->vGateClasses == NULL )
     {
         Abc_Print( -1, "Abstraction gate map is missing.\n" );
