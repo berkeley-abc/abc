@@ -50,7 +50,7 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 #include <sys/resource.h>
 #include <unistd.h>      
 #include <signal.h>      
-#include <malloc.h>      
+#include <stdlib.h>
 #endif
 
 #include "base/abc/abc.h"
