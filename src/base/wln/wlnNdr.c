@@ -268,7 +268,8 @@ Wln_Ntk_t * Wln_NtkFromNdr( void * pData )
     assert( i == Vec_PtrSize(vConstStrings) );
     Vec_PtrFree( vConstStrings );
     //Ndr_NtkPrintObjects( pNtk );
-    //Wln_WriteVer( pNtk, "temp_ndr.v", 0, 0 );
+    Wln_WriteVer( pNtk, "temp_ndr.v" );
+    printf( "Dumped design \"%s\" into file \"temp_ndr.v\".\n", pNtk->pName );
     // derive topological order
     pNtk = Wln_NtkDupDfs( pTemp = pNtk );
     Wln_NtkFree( pTemp );
@@ -313,8 +314,18 @@ void Wln_NtkRetimeTest( char * pFileName )
     Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pData );
     Ndr_Delete( pData );
     if ( !Wln_NtkHasInstId(pNtk) )
+    {
+        int iObj;
         printf( "The design has no delay information.\n" );
-    else
+        Wln_NtkCleanInstId(pNtk);
+        Wln_NtkForEachObj( pNtk, iObj )
+            if ( Wln_ObjIsFf(pNtk, iObj) )
+                Wln_ObjSetInstId( pNtk, iObj, 1 );
+            else if ( !Wln_ObjIsCio(pNtk, iObj) && Wln_ObjFaninNum(pNtk, iObj) > 0 )
+                Wln_ObjSetInstId( pNtk, iObj, 10 );
+        printf( "Assuming user-specified delays for internal nodes.\n" );
+    }
+    //else
     {
         Vec_Int_t * vMoves = Wln_NtkRetime( pNtk );
         Vec_IntPrint( vMoves );

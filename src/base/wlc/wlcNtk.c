@@ -305,7 +305,7 @@ int Wlc_NtkMemUsage( Wlc_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Wlc_NtkCreateLevels( Wlc_Ntk_t * p )
+int Wlc_NtkCreateLevels_( Wlc_Ntk_t * p )
 {
     Wlc_Obj_t * pObj; 
     int i, k, iFanin, Level, LevelMax = 0;
@@ -342,6 +342,37 @@ int Wlc_NtkCreateLevelsRev( Wlc_Ntk_t * p )
     //Wlc_NtkForEachObj( p, pObj, i )
     //    printf( "%d -> %d\n", i, Wlc_ObjLevelId(p, i) );
     return LevelMax;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assigns object levels.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkCreateLevels_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
+{
+    int k, iFanin, Level = 0;
+    if ( Vec_IntEntry(&p->vLevels, Wlc_ObjId(p, pObj)) > 0 )
+        return;
+    Wlc_ObjForEachFanin( pObj, iFanin, k ) if ( iFanin )
+        Wlc_NtkCreateLevels_rec( p, Wlc_NtkObj(p, iFanin) );
+    Wlc_ObjForEachFanin( pObj, iFanin, k ) if ( iFanin )
+        Level = Abc_MaxInt( Level, Wlc_ObjLevelId(p, iFanin) );
+    Vec_IntWriteEntry( &p->vLevels, Wlc_ObjId(p, pObj), Level + 1 );
+}
+int Wlc_NtkCreateLevels( Wlc_Ntk_t * p )
+{
+    Wlc_Obj_t * pObj;  int i;
+    Vec_IntFill( &p->vLevels, Wlc_NtkObjNumMax(p), 0 );
+    Wlc_NtkForEachCo( p, pObj, i )
+        Wlc_NtkCreateLevels_rec( p, pObj );
+    return Vec_IntFindMax( &p->vLevels );
 }
 
 /**Function*************************************************************
