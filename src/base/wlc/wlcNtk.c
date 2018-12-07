@@ -1129,7 +1129,7 @@ void Wlc_NtkMarkCone_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFlops )
             Vec_IntPush( vFlops, Wlc_ObjCiId(pObj) );
         return;
     }
-    Wlc_ObjForEachFanin( pObj, iFanin, i )
+    Wlc_ObjForEachFanin( pObj, iFanin, i ) if ( iFanin )
         Wlc_NtkMarkCone_rec( p, Wlc_NtkObj(p, iFanin), vFlops );
 }
 void Wlc_NtkMarkCone( Wlc_Ntk_t * p, int iCoId, int Range, int fSeq, int fAllPis )

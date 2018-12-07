@@ -203,7 +203,7 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
                 fprintf( pFile, "\"" ); 
             }
             else if ( pNode->Type == WLC_OBJ_BUF || pNode->Type == WLC_OBJ_MUX )
-                fprintf( pFile, "  Node%d [label = \"%d\"", i, Wlc_ObjRange(pNode) ); 
+                fprintf( pFile, "  Node%d [label = \"%d: %d\"", i, i, Wlc_ObjRange(pNode) ); 
             else if ( pNode->Type >= WLC_OBJ_LOGIC_NOT && pNode->Type <= WLC_OBJ_COMP_MOREEQU )
                 fprintf( pFile, "  Node%d [label = \"%d:%s\"", i, i, Wlc_ObjTypeName(pNode) ); 
             else

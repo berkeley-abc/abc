@@ -51,7 +51,7 @@ static inline int *   Wln_RetFanouts( Wln_Ret_t * p, int i ) { return Vec_IntEnt
 #define Wln_RetForEachFanin( p, iObj, iFanin, pLink, i )    \
     for ( i = 0; (i < Wln_ObjFaninNum(p->pNtk, iObj)) &&    \
          (((iFanin) = Wln_RetFanins(p, iObj)[2*i]), 1) &&   \
-           ((pLink) = (Wln_RetFanins(p, iObj)+2*i+1)); i++ ) if ( !iFanin )  {} else
+           ((pLink) = (Wln_RetFanins(p, iObj)+2*i+1)); i++ ) if ( !iFanin || (!Wln_ObjFaninNum(p->pNtk, iFanin) && !Wln_ObjIsCi(p->pNtk, iFanin)) )  {} else
 
 #define Wln_RetForEachFanout( p, iObj, iFanout, pLink, i )  \
     for ( i = 0; (i < Wln_ObjRefs(p->pNtk, iObj)) &&        \
@@ -217,23 +217,9 @@ void Wln_RetMarkChanges_rec( Wln_Ret_t * p, int iObj )
         if ( !pLink[0] )
             Wln_RetMarkChanges_rec( p, iFanout );
 }
-int Wln_RetPropDelay_rec( Wln_Ret_t * p, int iObj )
+void Wln_RetMarkChanges( Wln_Ret_t * p, Vec_Int_t * vFront )
 {
-    int k, iFanin, * pLink, * pDelay = Vec_IntEntryP( &p->vPathDelays, iObj );
-    if ( *pDelay >= 0 )
-        return *pDelay;
-    *pDelay = 0;
-    Wln_RetForEachFanin( p, iObj, iFanin, pLink, k )
-        if ( pLink[0] )
-            *pDelay = Abc_MaxInt(*pDelay, 0);
-        else
-            *pDelay = Abc_MaxInt(*pDelay, Wln_RetPropDelay_rec(p, iFanin));
-    *pDelay += Vec_IntEntry( &p->vNodeDelays, iObj );
-    return *pDelay;
-}
-int Wln_RetPropDelay( Wln_Ret_t * p, Vec_Int_t * vFront )
-{
-    int i, iObj, DelayMax = 0;
+    int i, iObj;
     if ( vFront )
     {
         Vec_IntForEachEntry( vFront, iObj, i )
@@ -245,6 +231,26 @@ int Wln_RetPropDelay( Wln_Ret_t * p, Vec_Int_t * vFront )
         Wln_NtkForEachCi( p->pNtk, iObj, i )
             Vec_IntWriteEntry( &p->vPathDelays, iObj, 0 );
     }
+}
+int Wln_RetPropDelay_rec( Wln_Ret_t * p, int iObj )
+{
+    int k, iFanin, * pLink, * pDelay = Vec_IntEntryP( &p->vPathDelays, iObj );
+    if ( *pDelay >= 0 )
+        return *pDelay;
+    *pDelay = 0;
+    Wln_RetForEachFanin( p, iObj, iFanin, pLink, k )
+    {
+        if ( pLink[0] )
+            *pDelay = Abc_MaxInt(*pDelay, 0);
+        else
+            *pDelay = Abc_MaxInt(*pDelay, Wln_RetPropDelay_rec(p, iFanin));
+    }
+    *pDelay += Vec_IntEntry( &p->vNodeDelays, iObj );
+    return *pDelay;
+}
+int Wln_RetPropDelay( Wln_Ret_t * p )
+{
+    int iObj, DelayMax = 0;
     Vec_IntClear( &p->vSinks );
     Wln_NtkForEachObj( p->pNtk, iObj )
         if ( !Wln_ObjIsCio(p->pNtk, iObj) )
@@ -458,16 +464,20 @@ void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward
     int i, iObj;
     if ( vSet == NULL )
     {
-        printf( "*** Recording initial move (0, %d)\n", Delay );
-        Vec_IntPushTwo( &p->vMoves, 0, Delay );
+        printf( "*** Recording initial state (delay = %d)\n", Delay );
+        Vec_IntPushTwo( &p->vMoves, Delay, 0 );
         return;
     }
+    printf( "*** Recording %s retiming (delay = %d):", fForward ? "forward" : "backward", Delay );
+    Vec_IntPush( &p->vMoves, Delay );
     Vec_IntForEachEntry( vSet, iObj, i )
     {
         int NameId = Vec_IntEntry( &p->pNtk->vNameIds, iObj );
-        printf( "*** Recording new move (%d, %d)\n", fForward ? -NameId : NameId, Delay );
-        Vec_IntPushTwo( &p->vMoves, fForward ? -NameId : NameId, Delay );
+        Vec_IntPush( &p->vMoves, fForward ? -NameId : NameId );
+        printf( " %d", fForward ? -iObj : iObj );
     }
+    Vec_IntPush( &p->vMoves, 0 );
+    printf( "\n" );
 }
 
 /**Function*************************************************************
@@ -489,7 +499,8 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk )
     Vec_Int_t * vFront   = &p->vFront;
     Vec_Int_t * vMoves   = Vec_IntAlloc(0);
     //Wln_RetPrint( p );
-    p->DelayMax = Wln_RetPropDelay( p, NULL );
+    Wln_RetMarkChanges( p, NULL );
+    p->DelayMax = Wln_RetPropDelay( p );
     Wln_RetFindSources( p );
     Wln_RetAddToMoves( p, NULL, p->DelayMax, 0 );
     while ( Vec_IntSize(vSources) || Vec_IntSize(vSinks) )
@@ -497,13 +508,20 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk )
         int DelayMaxPrev = p->DelayMax;
         int fForward  = Vec_IntSize(vSources) && Wln_RetCheckForward( p, vSources );
         int fBackward = Vec_IntSize(vSinks)   && Wln_RetCheckBackward( p, vSinks );
+        Vec_IntSort( vSources, 0 );
+        Vec_IntSort( vSinks, 0 );
+
+        printf( "\nSinks: " );
+        Vec_IntPrint( &p->vSinks );
+
+        printf( "Sources: " );
+        Vec_IntPrint( &p->vSources );
+
         if ( !fForward && !fBackward )
         {
             printf( "Cannot retime forward and backward.\n" );
             break;
         }
-        Vec_IntSort( vSources, 0 );
-        Vec_IntSort( vSinks, 0 );
         if ( Vec_IntTwoCountCommon(vSources, vSinks) )
         {
             printf( "Cannot reduce delay by retiming.\n" );
@@ -511,13 +529,24 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk )
         }
         Vec_IntClear( vFront );
         if ( (fForward && !fBackward) || (fForward && fBackward && Vec_IntSize(vSources) < Vec_IntSize(vSinks)) )
-            Wln_RetRetimeForward( p, vSources ), Vec_IntAppend( vFront, vSources ), fForward = 1, fBackward = 0;
+        {
+            Vec_IntAppend( vFront, vSources );
+            Wln_RetMarkChanges( p, vFront );
+            Wln_RetRetimeForward( p, vFront );
+            p->DelayMax = Wln_RetPropDelay( p );
+            fForward = 1, fBackward = 0;
+        }
         else
-            Wln_RetRetimeBackward( p, vSinks ),  Vec_IntAppend( vFront, vSinks ), fForward = 0, fBackward = 1;
+        {
+            Vec_IntAppend( vFront, vSinks );
+            Wln_RetRetimeBackward( p, vFront );
+            Wln_RetMarkChanges( p, vFront );
+            p->DelayMax = Wln_RetPropDelay( p );
+            fForward = 0, fBackward = 1;
+        }
         //Wln_RetPrint( p );
-        p->DelayMax = Wln_RetPropDelay( p, vFront );
         Wln_RetAddToMoves( p, vFront, p->DelayMax, fForward );
-        if ( p->DelayMax > DelayMaxPrev )
+        if ( p->DelayMax >= DelayMaxPrev )
             break;
         Wln_RetFindSources( p );
         if ( 2*Vec_IntSize(&p->vEdgeLinks) > Vec_IntCap(&p->vEdgeLinks) )
