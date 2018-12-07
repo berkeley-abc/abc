@@ -327,6 +327,7 @@ void Wln_NtkRetimeTest( char * pFileName )
                 Wln_ObjSetInstId( pNtk, iObj, 10 );
         printf( "Assuming user-specified delays for internal nodes.\n" );
     }
+/*
     else
     {
         int iObj;
@@ -334,10 +335,11 @@ void Wln_NtkRetimeTest( char * pFileName )
             if ( !Wln_ObjIsCio(pNtk, iObj) && Wln_ObjFaninNum(pNtk, iObj) > 0 && !Wln_ObjIsFf(pNtk, iObj) )
                 printf( "Obj %5d : NameId = %6d  InstId = %6d\n", iObj, Wln_ObjNameId(pNtk, iObj), Wln_ObjInstId(pNtk, iObj) );
     }
+*/
     //else
     {
         Vec_Int_t * vMoves = Wln_NtkRetime( pNtk );
-        Vec_IntPrint( vMoves );
+        //Vec_IntPrint( vMoves );
         Vec_IntFree( vMoves );
     }
     Wln_NtkFree( pNtk );
