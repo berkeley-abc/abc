@@ -282,6 +282,7 @@ static inline int          Wlc_ObjIsPi( Wlc_Obj_t * p )                         
 static inline int          Wlc_ObjIsPo( Wlc_Obj_t * p )                             { return p->fIsPo;                                                         }
 static inline int          Wlc_ObjIsCi( Wlc_Obj_t * p )                             { return p->Type == WLC_OBJ_PI || p->Type == WLC_OBJ_FO;                   }
 static inline int          Wlc_ObjIsCo( Wlc_Obj_t * p )                             { return p->fIsPo || p->fIsFi;                                             }
+static inline int          Wlc_ObjIsFf( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj(p, i)->Type == WLC_OBJ_FF;                             }
 
 static inline int          Wlc_ObjId( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )             { return pObj - p->pObjs;                                                  }
 static inline int          Wlc_ObjCiId( Wlc_Obj_t * p )                             { assert( Wlc_ObjIsCi(p) ); return p->Fanins[1];                           }

@@ -579,6 +579,8 @@ static inline void * Ndr_Read( char * pFileName )
     // check file size
     fseek( pFile, 0, SEEK_END );
     nFileSize = ftell( pFile ); 
+    if ( nFileSize % 5 != 0 )
+        return NULL;
     assert( nFileSize % 5 == 0 );
     rewind( pFile );
     // create structure

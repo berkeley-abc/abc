@@ -1284,7 +1284,7 @@ startword:
         else if ( Wlc_PrsStrCmp( pStart, "ABC_DFFRSE" ) )
         {
             int NameId[10] = {0}, fFound, fFlopIn, fFlopClk, fFlopRst, fFlopSet, fFlopEna, fFlopAsync, fFlopSre, fFlopInit, fFlopOut;
-            pStart += strlen("ABC_DFF");
+            pStart += strlen("ABC_DFFRSE");
             while ( 1 )
             {
                 pStart = Wlc_PrsFindSymbol( pStart, '.' );
@@ -1348,7 +1348,7 @@ startword:
         else if ( Wlc_PrsStrCmp( pStart, "ABC_DFF" ) )
         {
             int NameId = -1, NameIdIn = -1, NameIdOut = -1, fFound, nBits = 1, fFlopIn, fFlopOut;
-            pStart += strlen("ABC_DFFRSE");
+            pStart += strlen("ABC_DFF");
             while ( 1 )
             {
                 pStart = Wlc_PrsFindSymbol( pStart, '.' );

@@ -76,7 +76,8 @@ static inline int *   Wln_RetFanouts( Wln_Ret_t * p, int i ) { return Vec_IntEnt
 void Wln_RetPrintObj( Wln_Ret_t * p, int iObj )
 {
     int k, iFanin, Type = Wln_ObjType(p->pNtk, iObj), * pLink;
-    printf( "Obj %6d : Type = %6s  Fanins = %d : ", iObj, Abc_OperName(Type), Wln_ObjFaninNum(p->pNtk, iObj) );
+    printf( "Obj %6d : Type = %6s  NameId = %5d  InstId = %5d  Fanins = %d : ", 
+        iObj, Abc_OperName(Type), Wln_ObjNameId(p->pNtk, iObj), Wln_ObjInstId(p->pNtk, iObj), Wln_ObjFaninNum(p->pNtk, iObj) );
     Wln_RetForEachFanin( p, iObj, iFanin, pLink, k )
     {
         printf( "%5d ", iFanin );
@@ -159,7 +160,8 @@ Wln_Ret_t * Wln_RetAlloc( Wln_Ntk_t * pNtk )
     Vec_IntFree( vRefsCopy );
     // other data
     p->nClasses = Wln_RetComputeFfClasses( pNtk, &p->vFfClasses );
-    ABC_SWAP( Vec_Int_t, p->vNodeDelays, pNtk->vInstIds );
+    //ABC_SWAP( Vec_Int_t, p->vNodeDelays, pNtk->vInstIds );
+    Vec_IntAppend( &p->vNodeDelays, &pNtk->vInstIds );
     Vec_IntGrow( &p->vSources, 1000 );
     Vec_IntGrow( &p->vSinks, 1000 );
     Vec_IntGrow( &p->vFront, 1000 );
@@ -474,7 +476,7 @@ void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward
     {
         int NameId = Vec_IntEntry( &p->pNtk->vNameIds, iObj );
         Vec_IntPush( &p->vMoves, fForward ? -NameId : NameId );
-        printf( " %d", fForward ? -iObj : iObj );
+        printf( " %d (NameID = %d)  ", fForward ? -iObj : iObj, fForward ? -NameId : NameId );
     }
     Vec_IntPush( &p->vMoves, 0 );
     printf( "\n" );
@@ -491,14 +493,32 @@ void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk )
+void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
+{
+    if ( Wln_NtkHasInstId(pNtk) )
+        Vec_IntErase( &pNtk->vInstIds );
+    if ( !Wln_NtkHasInstId(pNtk) )
+    {
+        int iObj;
+        printf( "The design has no delay information.\n" );
+        Wln_NtkCleanInstId(pNtk);
+        Wln_NtkForEachObj( pNtk, iObj )
+            if ( Wln_ObjIsFf(pNtk, iObj) )
+                Wln_ObjSetInstId( pNtk, iObj, 1 );
+            else if ( !Wln_ObjIsCio(pNtk, iObj) && Wln_ObjFaninNum(pNtk, iObj) > 0 )
+                Wln_ObjSetInstId( pNtk, iObj, 10 );
+        printf( "Assuming user-specified delays for internal nodes.\n" );
+    }
+}
+Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
 {
     Wln_Ret_t * p = Wln_RetAlloc( pNtk );
     Vec_Int_t * vSources = &p->vSources;
     Vec_Int_t * vSinks   = &p->vSinks;
     Vec_Int_t * vFront   = &p->vFront;
     Vec_Int_t * vMoves   = Vec_IntAlloc(0);
-    //Wln_RetPrint( p );
+    if ( fVerbose )
+        Wln_RetPrint( p );
     Wln_RetMarkChanges( p, NULL );
     p->DelayMax = Wln_RetPropDelay( p );
     Wln_RetFindSources( p );
@@ -554,6 +574,11 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk )
     }
     ABC_SWAP( Vec_Int_t, *vMoves, p->vMoves );
     Wln_RetFree( p );
+    if ( fVerbose )
+    {
+        printf( "\nThe resulting moves recorded in terms of name IDs of the NDR nodes:\n" );
+        Vec_IntPrint( vMoves );
+    }
     return vMoves;
 }
 

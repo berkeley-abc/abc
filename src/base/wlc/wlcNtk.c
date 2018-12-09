@@ -357,8 +357,8 @@ int Wlc_NtkCreateLevelsRev( Wlc_Ntk_t * p )
 ***********************************************************************/
 void Wlc_NtkCreateLevels_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
 {
-    int k, iFanin, Level = 0;
-    if ( Vec_IntEntry(&p->vLevels, Wlc_ObjId(p, pObj)) > 0 )
+    int k, iFanin, Level = 0, iObj = Wlc_ObjId(p, pObj);
+    if ( Wlc_ObjIsCi(pObj) || Wlc_ObjIsFf(p, iObj) || Wlc_ObjFaninNum(pObj) == 0 || Wlc_ObjLevel(p, pObj) > 0 )
         return;
     Wlc_ObjForEachFanin( pObj, iFanin, k ) if ( iFanin )
         Wlc_NtkCreateLevels_rec( p, Wlc_NtkObj(p, iFanin) );
@@ -368,11 +368,18 @@ void Wlc_NtkCreateLevels_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
 }
 int Wlc_NtkCreateLevels( Wlc_Ntk_t * p )
 {
-    Wlc_Obj_t * pObj;  int i;
+    Wlc_Obj_t * pObj;  int i, LeveMax = 0;
     Vec_IntFill( &p->vLevels, Wlc_NtkObjNumMax(p), 0 );
-    Wlc_NtkForEachCo( p, pObj, i )
+    Wlc_NtkForEachObj( p, pObj, i )
         Wlc_NtkCreateLevels_rec( p, pObj );
-    return Vec_IntFindMax( &p->vLevels );
+    Wlc_NtkForEachObj( p, pObj, i )
+        if ( !Wlc_ObjIsCi(pObj) && Wlc_ObjFaninNum(pObj) )
+            Vec_IntAddToEntry( &p->vLevels, i, 1 );
+    LeveMax = Vec_IntFindMax( &p->vLevels );
+    Wlc_NtkForEachFf2( p, pObj, i )
+        Vec_IntWriteEntry( &p->vLevels, Wlc_ObjId(p, pObj), LeveMax+1 );
+    Wlc_NtkPrintObjects( p ); 
+    return LeveMax+1;
 }
 
 /**Function*************************************************************
@@ -662,6 +669,8 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
 void Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
 {
     printf( "%8d  :  ", Wlc_ObjId(p, pObj) );
+    if ( Vec_IntSize(&p->vLevels) )
+        printf( "Lev = %2d  ", Vec_IntEntry(&p->vLevels, Wlc_ObjId(p,pObj)) );
     printf( "%6d%s = ", Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s" : " " );
     if ( pObj->Type == WLC_OBJ_PI )
     {

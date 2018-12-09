@@ -293,7 +293,8 @@ Wln_Ntk_t * Wln_NtkFromNdr( void * pData )
 Wln_Ntk_t * Wln_ReadNdr( char * pFileName )
 {
     void * pData = Ndr_Read( pFileName );
-    Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pData );
+    Wln_Ntk_t * pNtk = pData ? Wln_NtkFromNdr( pData ) : NULL;
+    if ( pNtk ) return NULL;
     //char * ppNames[10] = { NULL, "a", "b", "c", "d", "e", "f", "g", "h", "i" };
     //Ndr_WriteVerilog( NULL, pData, ppNames );
     Ndr_Delete( pData );
@@ -308,40 +309,21 @@ void Wln_ReadNdrTest()
     Wln_NtkStaticFanoutTest( pNtk );
     Wln_NtkFree( pNtk );
 }
-void Wln_NtkRetimeTest( char * pFileName )
+void Wln_NtkRetimeTest( char * pFileName, int fVerbose  )
 {
+    Vec_Int_t * vMoves;
     void * pData = Ndr_Read( pFileName );
-    Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pData );
+    Wln_Ntk_t * pNtk = pData ? Wln_NtkFromNdr( pData ) : NULL;
+    if ( pNtk == NULL ) 
+    {
+        printf( "Retiming network is not available.\n" );
+        return;
+    }
     Ndr_Delete( pData );
-    if ( Wln_NtkHasInstId(pNtk) )
-        Vec_IntErase( &pNtk->vInstIds );
-    if ( !Wln_NtkHasInstId(pNtk) )
-    {
-        int iObj;
-        printf( "The design has no delay information.\n" );
-        Wln_NtkCleanInstId(pNtk);
-        Wln_NtkForEachObj( pNtk, iObj )
-            if ( Wln_ObjIsFf(pNtk, iObj) )
-                Wln_ObjSetInstId( pNtk, iObj, 1 );
-            else if ( !Wln_ObjIsCio(pNtk, iObj) && Wln_ObjFaninNum(pNtk, iObj) > 0 )
-                Wln_ObjSetInstId( pNtk, iObj, 10 );
-        printf( "Assuming user-specified delays for internal nodes.\n" );
-    }
-/*
-    else
-    {
-        int iObj;
-        Wln_NtkForEachObj( pNtk, iObj )
-            if ( !Wln_ObjIsCio(pNtk, iObj) && Wln_ObjFaninNum(pNtk, iObj) > 0 && !Wln_ObjIsFf(pNtk, iObj) )
-                printf( "Obj %5d : NameId = %6d  InstId = %6d\n", iObj, Wln_ObjNameId(pNtk, iObj), Wln_ObjInstId(pNtk, iObj) );
-    }
-*/
-    //else
-    {
-        Vec_Int_t * vMoves = Wln_NtkRetime( pNtk );
-        //Vec_IntPrint( vMoves );
-        Vec_IntFree( vMoves );
-    }
+    Wln_NtkRetimeCreateDelayInfo( pNtk );
+    vMoves = Wln_NtkRetime( pNtk, fVerbose );
+    //Vec_IntPrint( vMoves );
+    Vec_IntFree( vMoves );
     Wln_NtkFree( pNtk );
 }
 

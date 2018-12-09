@@ -327,6 +327,13 @@ static inline int * Vec_IntReleaseArray( Vec_Int_t * p )
     p->pArray = NULL;
     return pArray;
 }
+static inline int * Vec_IntReleaseNewArray( Vec_Int_t * p )
+{
+    int * pArray = ABC_ALLOC( int, p->nSize+1 );
+    pArray[0] = p->nSize+1;
+    memcpy( pArray+1, p->pArray, sizeof(int)*p->nSize );
+    return pArray;
+}
 
 /**Function*************************************************************
 

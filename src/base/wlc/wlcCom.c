@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "wlc.h"
+#include "base/wln/wln.h"
 #include "base/main/mainInt.h"
 #include "aig/miniaig/ndr.h"
 
@@ -1250,7 +1251,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Wln_NtkRetimeTest( char * pFileName );
+    extern void Wln_NtkRetimeTest( char * pFileName, int fVerbose );
     FILE * pFile;
     char * pFileName = NULL;
     int c, fVerbose  = 0;
@@ -1268,6 +1269,23 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( pAbc->pNdr )
+    {
+        Vec_Int_t * vMoves;
+        Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pAbc->pNdr );
+        Wln_NtkRetimeCreateDelayInfo( pNtk );
+        if ( pNtk == NULL )
+        {
+            printf( "Transforming NDR into internal represnetation has failed.\n" );
+            return 0;
+        }
+        vMoves = Wln_NtkRetime( pNtk, fVerbose );
+        Wln_NtkFree( pNtk );
+        ABC_FREE( pAbc->pNdrArray );
+        if ( vMoves ) pAbc->pNdrArray = Vec_IntReleaseNewArray( vMoves );
+        Vec_IntFreeP( &vMoves );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
     {
         printf( "Abc_CommandRetime(): Input file name should be given on the command line.\n" );
@@ -1284,7 +1302,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     fclose( pFile );
-    Wln_NtkRetimeTest( pFileName );
+    Wln_NtkRetimeTest( pFileName, fVerbose );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%retime [-vh]\n" );

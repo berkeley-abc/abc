@@ -499,7 +499,8 @@ Wlc_Ntk_t * Wlc_ReadNdr( char * pFileName )
     Wlc_Ntk_t * pNtk = Wlc_NtkFromNdr( pData );
     //char * ppNames[10] = { NULL, "a", "b", "c", "d", "e", "f", "g", "h", "i" };
     //Ndr_WriteVerilog( NULL, pData, ppNames );
-    Ndr_Delete( pData );
+    //Ndr_Delete( pData );
+    Abc_FrameInputNdr( Abc_FrameGetGlobalFrame(), pData );
     return pNtk;
 }
 void Wlc_ReadNdrTest()

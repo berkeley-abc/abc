@@ -237,13 +237,31 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
     // the labeling node of this level
     fprintf( pFile, "  Level%d;\n",  0 );
     // generate the CI nodes
-    Wlc_NtkForEachCi( p, pNode, i )
+    Wlc_NtkForEachObj( p, pNode, i )
     {
+        if ( !Wlc_ObjIsCi(pNode) && Wlc_ObjFaninNum(pNode) > 0 )
+            continue;
         if ( vBold && !pNode->Mark )
             continue;
-        fprintf( pFile, "  Node%d [label = \"%d:%s %d\"", Wlc_ObjId(p, pNode), Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
-        fprintf( pFile, ", shape = %s", i < Wlc_NtkPiNum(p) ? "triangle" : "box" );
-        fprintf( pFile, ", color = coral, fillcolor = coral" );
+        if ( pNode->Type == WLC_OBJ_CONST )
+        {
+            //char * pName = Wlc_ObjName(p, i);
+            fprintf( pFile, "  Node%d [label = \"%d:%d\'h", i, i, Wlc_ObjRange(pNode) ); 
+            if ( Wlc_ObjRange(pNode) > 64 )
+            {
+                Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pNode), 16 );
+                fprintf( pFile, "..." );
+            }
+            else
+                Abc_TtPrintHexArrayRev( pFile, (word *)Wlc_ObjConstValue(pNode), (Wlc_ObjRange(pNode) + 3) / 4 );
+            fprintf( pFile, "\"" ); 
+        }
+        else
+        {
+            fprintf( pFile, "  Node%d [label = \"%d:%s %d\"", Wlc_ObjId(p, pNode), Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
+            fprintf( pFile, ", shape = %s", (Vec_IntSize(&p->vFfs2) > 0 || i < Wlc_NtkPiNum(p)) ? "triangle" : "box" );
+            fprintf( pFile, ", color = coral, fillcolor = coral" );
+        }
         fprintf( pFile, "];\n" );
     }
     fprintf( pFile, "}" );

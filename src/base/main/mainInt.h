@@ -150,6 +150,8 @@ struct Abc_Frame_t_
     Vec_Int_t *     vCopyMiniLut;
     int *           pArray;
     int *           pBoxes;
+    void *          pNdr;
+    int *           pNdrArray;
 
     Abc_Frame_Callback_BmcFrameDone_Func pFuncOnFrameDone;
 };

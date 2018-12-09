@@ -22,6 +22,7 @@
 #include "mainInt.h"
 #include "bool/dec/dec.h"
 #include "map/if/if.h"
+#include "aig/miniaig/ndr.h"
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -82,6 +83,10 @@ int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFr
 int         Abc_FrameReadCexRegNum( Abc_Frame_t * p )        { return s_GlobalFrame->pCex->nRegs;  }               
 int         Abc_FrameReadCexPo( Abc_Frame_t * p )            { return s_GlobalFrame->pCex->iPo;    }               
 int         Abc_FrameReadCexFrame( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->iFrame; }               
+
+void        Abc_FrameInputNdr( Abc_Frame_t * pAbc, void * pData ) { Ndr_Delete(s_GlobalFrame->pNdr); s_GlobalFrame->pNdr = pData;                        }
+void *      Abc_FrameOutputNdr( Abc_Frame_t * pAbc )         { void * pData = s_GlobalFrame->pNdr; s_GlobalFrame->pNdr = NULL; return pData;             }  
+int *       Abc_FrameOutputNdrArray( Abc_Frame_t * pAbc )    { int * pArray = s_GlobalFrame->pNdrArray; s_GlobalFrame->pNdrArray = NULL; return pArray;  }
 
 void        Abc_FrameSetLibLut( void * pLib )                { s_GlobalFrame->pLibLut   = pLib;    } 
 void        Abc_FrameSetLibBox( void * pLib )                { s_GlobalFrame->pLibBox   = pLib;    } 
@@ -232,7 +237,9 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     ABC_FREE( p->pCex );
     Vec_IntFreeP( &p->pAbcWlcInv );
     Abc_NamDeref( s_GlobalFrame->pJsonStrs );
-    Vec_WecFreeP(&s_GlobalFrame->vJsonObjs );    
+    Vec_WecFreeP( &s_GlobalFrame->vJsonObjs );  
+    Ndr_Delete( s_GlobalFrame->pNdr );
+    ABC_FREE( s_GlobalFrame->pNdrArray );
 
     Gia_ManStopP( &p->pGiaMiniAig );
     Gia_ManStopP( &p->pGiaMiniLut );
@@ -240,6 +247,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     Vec_IntFreeP( &p->vCopyMiniLut );
     ABC_FREE( p->pArray );
     ABC_FREE( p->pBoxes );
+    
 
     ABC_FREE( p );
     s_GlobalFrame = NULL;

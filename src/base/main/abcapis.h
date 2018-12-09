@@ -81,6 +81,11 @@ extern ABC_DLL void   Abc_FrameGiaInputMiniLut( Abc_Frame_t * pAbc, void * pMini
 extern ABC_DLL void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc );
 extern ABC_DLL char * Abc_FrameGiaOutputMiniLutAttr( Abc_Frame_t * pAbc, void * pMiniLut );
 
+// procedures to input/output NDR data-structure
+extern ABC_DLL void   Abc_FrameInputNdr( Abc_Frame_t * pAbc, void * pData );
+extern ABC_DLL void * Abc_FrameOutputNdr( Abc_Frame_t * pAbc );
+extern ABC_DLL int  * Abc_FrameOutputNdrArray( Abc_Frame_t * pAbc );
+
 // procedures to set CI/CO arrival/required times
 extern ABC_DLL void   Abc_NtkSetCiArrivalTime( Abc_Frame_t * pAbc, int iCi, float Rise, float Fall );
 extern ABC_DLL void   Abc_NtkSetCoRequiredTime( Abc_Frame_t * pAbc, int iCo, float Rise, float Fall );
