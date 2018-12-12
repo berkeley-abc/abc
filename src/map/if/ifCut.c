@@ -953,18 +953,22 @@ float If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut )
 float If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut )
 {
     If_Obj_t * pLeaf;
-    float Flow;
+    float Flow, AddOn;
     int i;
     Flow = pCut->nLeaves;
     If_CutForEachLeaf( p, pCut, pLeaf, i )
     {
         if ( pLeaf->nRefs == 0 || If_ObjIsConst1(pLeaf) )
-            Flow += If_ObjCutBest(pLeaf)->Edge;
+            AddOn = If_ObjCutBest(pLeaf)->Edge;
         else 
         {
             assert( pLeaf->EstRefs > p->fEpsilon );
-            Flow += If_ObjCutBest(pLeaf)->Edge / pLeaf->EstRefs;
+            AddOn = If_ObjCutBest(pLeaf)->Edge / pLeaf->EstRefs;
         }
+        if ( Flow >= (float)1e32 || AddOn >= (float)1e32 )
+            Flow = (float)1e32;
+        else 
+            Flow += AddOn;
     }
     return Flow;
 }
