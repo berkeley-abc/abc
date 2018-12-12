@@ -892,7 +892,7 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
     }
     while ( 1 )
     {
-        char * pName; int XValue;
+        char * pName; int XValue, TypeNew;
         // read name
         pStart = Wlc_PrsFindName( pStart, &pName );
         if ( pStart == NULL )
@@ -911,11 +911,11 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
             continue;
         }
         // check definition
-        Type = Wlc_PrsFindDefinition( p, pStart, p->vFanins, &XValue );
-        if ( Type )
+        TypeNew = Wlc_PrsFindDefinition( p, pStart, p->vFanins, &XValue );
+        if ( TypeNew )
         {
             Wlc_Obj_t * pObj = Wlc_NtkObj( p->pNtk, iObj );
-            Wlc_ObjUpdateType( p->pNtk, pObj, Type );
+            Wlc_ObjUpdateType( p->pNtk, pObj, TypeNew );
             Wlc_ObjAddFanins( p->pNtk, pObj, p->vFanins );
             pObj->fXConst = XValue;
         }

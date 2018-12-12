@@ -176,8 +176,8 @@ int Ndr_TypeWlc2Ndr( int Type )
 ***********************************************************************/
 char * Ndr_ObjWriteConstant( unsigned * pBits, int nBits )
 {
-    static char Buffer[1000]; int i, Len;
-    assert( nBits + 10 < 1000 );
+    static char Buffer[10000]; int i, Len;
+    assert( nBits + 10 < 10000 );
     sprintf( Buffer, "%d\'b", nBits );
     Len = strlen(Buffer);
     for ( i = nBits-1; i >= 0; i-- )
@@ -205,7 +205,7 @@ void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
     Wlc_NtkForEachObj( pNtk, pObj, iOutId ) 
     {
         char * pFunction = NULL;
-        if ( Wlc_ObjIsPi(pObj) )
+        if ( Wlc_ObjIsPi(pObj) || pObj->Type == 0 )
             continue;
         Vec_IntClear( vFanins );
         Wlc_ObjForEachFanin( pObj, iFanin, k )
@@ -214,8 +214,17 @@ void * Wlc_NtkToNdr( Wlc_Ntk_t * pNtk )
             pFunction = Ndr_ObjWriteConstant( (unsigned *)Wlc_ObjFanins(pObj), Wlc_ObjRange(pObj) );
         if ( pObj->Type == WLC_OBJ_MUX && Wlc_ObjRange(Wlc_ObjFanin0(pNtk, pObj)) > 1 )
             Type = ABC_OPER_SEL_NMUX;
+        else if ( pObj->Type == WLC_OBJ_FO )
+        {
+            Wlc_Obj_t * pFi = Wlc_ObjFo2Fi( pNtk, pObj );
+            assert( Vec_IntSize(vFanins) == 0 );
+            Vec_IntPush( vFanins, Wlc_ObjId(pNtk, pFi) );
+            Vec_IntFillExtra( vFanins, 7, 0 );
+            Type = ABC_OPER_DFFRSE;
+        }
         else
             Type = Ndr_TypeWlc2Ndr(pObj->Type);
+        assert( Type > 0 );
         Ndr_AddObject( pDesign, ModId, Type, 0,   
             pObj->End, pObj->Beg, pObj->Signed,   
             Vec_IntSize(vFanins), Vec_IntArray(vFanins), 1, &iOutId,  pFunction  ); 

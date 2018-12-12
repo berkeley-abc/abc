@@ -521,7 +521,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
         else
         {
             assert( Wlc_ObjFaninNum(pObj) >= 2 );
-            Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)), Wlc_ObjSign(Wlc_ObjFanin1(p, pObj)) );
+            Sign = Wlc_NtkPrintDistribMakeSign( Wlc_ObjSign(pObj), Wlc_ObjFaninId(pObj, 0) ? Wlc_ObjSign(Wlc_ObjFanin0(p, pObj)) : 0, Wlc_ObjFaninId(pObj, 1) ? Wlc_ObjSign(Wlc_ObjFanin1(p, pObj)) : 0 );
         }
         // add to storage
         Wlc_NtkPrintDistribAddOne( vTypes, vOccurs, pObj->Type, Sign );
@@ -991,7 +991,7 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
         pObjNew->fXConst = pObj->fXConst;
     }
     Vec_IntFree( vFanins );
-    if ( fSeq )
+    if ( fSeq && p->vInits )
     {
         if ( fMarked )
         {
