@@ -1158,7 +1158,11 @@ static inline void Lf_CutParams( Lf_Man_t * p, Lf_Cut_t * pCut, int Required, fl
                 if ( pCut->Flow >= (float)1e32 || pBest->Flow[Index] >= (float)1e32 )
                     pCut->Flow = (float)1e32;
                 else 
+                {
                     pCut->Flow += pBest->Flow[Index];
+                    if ( pCut->Flow > (float)1e32 )
+                         pCut->Flow = (float)1e32;
+                }
             }
             Delay = pBest->Delay[Index];
         }
@@ -1172,7 +1176,11 @@ static inline void Lf_CutParams( Lf_Man_t * p, Lf_Cut_t * pCut, int Required, fl
     if ( p->fUseEla )
         pCut->Flow = Lf_CutAreaDerefed(p, pCut) / FlowRefs;
     else
+    {
         pCut->Flow = (pCut->Flow + Lf_CutArea(p, pCut)) / FlowRefs;
+        if ( pCut->Flow > (float)1e32 )
+             pCut->Flow = (float)1e32;
+    }
 }
 
 void Lf_ObjMergeOrder( Lf_Man_t * p, int iObj )
