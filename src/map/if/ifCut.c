@@ -934,7 +934,11 @@ float If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut )
         if ( Flow >= (float)1e32 || AddOn >= (float)1e32 )
             Flow = (float)1e32;
         else 
+        {
             Flow += AddOn;
+            if ( Flow > (float)1e32 )
+                 Flow = (float)1e32;
+        }
     }
     return Flow;
 }
@@ -968,7 +972,11 @@ float If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut )
         if ( Flow >= (float)1e32 || AddOn >= (float)1e32 )
             Flow = (float)1e32;
         else 
+        {
             Flow += AddOn;
+            if ( Flow > (float)1e32 )
+                 Flow = (float)1e32;
+        }
     }
     return Flow;
 }
