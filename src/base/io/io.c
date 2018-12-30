@@ -1156,7 +1156,7 @@ usage:
     fprintf( pAbc->Err, "\t         creates network with node having given truth table\n" );
     fprintf( pAbc->Err, "\t-x     : toggles between bin and hex representation [default = %s]\n", fHex? "hex":"bin" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
-    fprintf( pAbc->Err, "\ttruth  : truth table with most signficant bit first (e.g. 1000 for AND(a,b))\n" );
+    fprintf( pAbc->Err, "\ttruth  : truth table with most significant bit first (e.g. 1000 for AND(a,b))\n" );
     return 1;
 }
 

@@ -493,7 +493,7 @@ Aig_Man_t * Iso_ManFilterPos( Aig_Man_t * pAig, Vec_Ptr_t ** pvPosEquivs, int fV
 
     // report the results
 //    Vec_VecPrintInt( (Vec_Vec_t *)vClasses );
-//    printf( "Devided %d outputs into %d cand equiv classes.\n", Saig_ManPoNum(pAig), Vec_PtrSize(vClasses) );
+//    printf( "Divided %d outputs into %d cand equiv classes.\n", Saig_ManPoNum(pAig), Vec_PtrSize(vClasses) );
 /*
     if ( fVerbose )
     {
