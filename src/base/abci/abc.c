@@ -7948,7 +7948,7 @@ int Abc_CommandExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( argc == globalUtilOptind )
         goto usage;
 
-    memset( pTruth, 0, 64 );
+    memset( pTruth, 0, 64 * sizeof(*pTruth) );
     while ( globalUtilOptind < argc )
     {
         if ( nFunc == 16 )
