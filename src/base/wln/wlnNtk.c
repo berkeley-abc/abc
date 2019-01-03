@@ -175,7 +175,7 @@ int Wln_ObjDup( Wln_Ntk_t * pNew, Wln_Ntk_t * p, int iObj )
     if ( Wln_ObjIsConst(p, iObj) )
         Wln_ObjSetConst( pNew, iObjNew, Wln_ObjFanin0(p, iObj) );
     else if ( Wln_ObjIsSlice(p, iObj) || Wln_ObjIsRotate(p, iObj) || Wln_ObjIsTable(p, iObj) )
-        Wln_ObjSetFanin( p, iObjNew, 1, Wln_ObjFanin1(p, iObj) );
+        Wln_ObjSetFanin( pNew, iObjNew, 1, Wln_ObjFanin1(p, iObj) );
     Wln_ObjSetCopy( p, iObj, iObjNew );
     return iObjNew;
 }
