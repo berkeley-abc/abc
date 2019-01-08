@@ -247,7 +247,8 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
         Abc_Print( 1, "XMA stats:  " );
         Abc_Print( 1,"Xor =%7d (%6.2f %%)  ", nXors, 300.0 * nXors / Abc_NtkNodeNum(pNtk) );
         Abc_Print( 1,"Mux =%7d (%6.2f %%)  ", nMuxs, 300.0 * nMuxs / Abc_NtkNodeNum(pNtk) );
-        Abc_Print( 1,"And =%7d (%6.2f %%)",   nAnds, 100.0 * nAnds / Abc_NtkNodeNum(pNtk) );
+        Abc_Print( 1,"And =%7d (%6.2f %%)  ",   nAnds, 100.0 * nAnds / Abc_NtkNodeNum(pNtk) );
+        Abc_Print( 1,"Total =%7d",   nAnds + nXors + nMuxs );
         Abc_Print( 1,"\n" );
         return;
     }
