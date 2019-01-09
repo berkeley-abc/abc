@@ -1,5 +1,6 @@
 SRC +=    src/misc/extra/extraUtilBitMatrix.c \
     src/misc/extra/extraUtilCanon.c \
+    src/misc/extra/extraUtilCfs.c \
     src/misc/extra/extraUtilCube.c \
     src/misc/extra/extraUtilDsd.c \
     src/misc/extra/extraUtilEnum.c \
