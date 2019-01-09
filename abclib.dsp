@@ -3691,6 +3691,10 @@ SOURCE=.\src\misc\extra\extraUtilCanon.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\extra\extraUtilCfs.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\extra\extraUtilCube.c
 # End Source File
 # Begin Source File
@@ -3704,6 +3708,10 @@ SOURCE=.\src\misc\extra\extraUtilEnum.c
 # Begin Source File
 
 SOURCE=.\src\misc\extra\extraUtilFile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\extra\extraUtilMacc.c
 # End Source File
 # Begin Source File
 
