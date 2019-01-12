@@ -302,7 +302,7 @@ void Abc_TtNormalizeSmallTruth(word * pTruth, int nVars)
     }
 }
 
-inline void Abc_TtVerifySmallTruth(word * pTruth, int nVars)
+static inline void Abc_TtVerifySmallTruth(word * pTruth, int nVars)
 {
 #ifndef NDEBUG
     if (nVars < 6) {
