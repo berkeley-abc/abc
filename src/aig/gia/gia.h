@@ -849,6 +849,24 @@ static inline int Gia_ManAppendXor2( Gia_Man_t * p, int iLit0, int iLit1 )
     return Gia_ManAppendMux2( p, iLit0, Abc_LitNot(iLit1), iLit1 );
 }
 
+static inline int Gia_ManAppendXorReal2( Gia_Man_t * p, int iLit0, int iLit1 )  
+{ 
+    int fCompl;
+    if ( !p->fGiaSimple )
+    {
+        if ( iLit0 < 2 )
+            return iLit0 ? Abc_LitNot(iLit1) : iLit1;
+        if ( iLit1 < 2 )
+            return iLit1 ? Abc_LitNot(iLit0) : iLit0;
+        if ( iLit0 == iLit1 )
+            return 0;
+        if ( iLit0 == Abc_LitNot(iLit1) )
+            return 1;
+    }
+    fCompl = Abc_LitIsCompl(iLit0) ^ Abc_LitIsCompl(iLit1);
+    return Abc_LitNotCond( Gia_ManAppendXorReal( p, Abc_LitRegular(iLit0), Abc_LitRegular(iLit1) ), fCompl );
+}
+
 static inline void Gia_ManPatchCoDriver( Gia_Man_t * p, int iCoIndex, int iLit0 )  
 {
     Gia_Obj_t * pObjCo  = Gia_ManCo( p, iCoIndex );
