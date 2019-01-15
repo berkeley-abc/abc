@@ -13162,7 +13162,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLeafMax     =  4;
     int nDivMax      =  2;
     int nDecMax      =  3;
-    int nNumOnes     =  4;
+    int nNumOnes     =  0;
     int fNewAlgo     =  0;
     int fNewOrder    =  0;
     int fVerbose     =  0;
@@ -13367,7 +13367,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
     //Dau_NetworkEnumTest();
-    //Extra_DigitsDumpGiaTest();
+    //Extra_SimulationTest( nDivMax, nNumOnes, fNewOrder );
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -34036,12 +34036,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_ManScorrDivideTest( Gia_Man_t * p, Cec_ParCor_t * pPars );
     Cec_ParCor_t Pars, * pPars = &Pars;
     Gia_Man_t * pTemp;
+    int fPartition = 0;
     int c;
     Cec_ManCorSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPkrecqwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCPpkrecqwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -34077,6 +34079,9 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( pPars->nPrefix < 0 )
                 goto usage;
+            break;
+        case 'p':
+            fPartition ^= 1;
             break;
         case 'k':
             pPars->fConstCorr ^= 1;
@@ -34124,16 +34129,20 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "The network is combinational.\n" );
         return 0;
     }
-    pTemp = Cec_ManLSCorrespondence( pAbc->pGia, pPars );
+    if ( fPartition )
+        pTemp = Gia_ManScorrDivideTest( pAbc->pGia, pPars );
+    else
+        pTemp = Cec_ManLSCorrespondence( pAbc->pGia, pPars );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &scorr [-FCP num] [-krecqwvh]\n" );
+    Abc_Print( -2, "usage: &scorr [-FCP num] [-pkrecqwvh]\n" );
     Abc_Print( -2, "\t         performs signal correpondence computation\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
     Abc_Print( -2, "\t-P num : the number of timeframes in the prefix [default = %d]\n", pPars->nPrefix );
+    Abc_Print( -2, "\t-p     : toggle using partitioning for the input AIG [default = %s]\n", fPartition? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle using constant correspondence [default = %s]\n", pPars->fConstCorr? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle using equivalences as choices [default = %s]\n", pPars->fMakeChoices? "yes": "no" );
@@ -45571,7 +45580,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 */
 //    pTemp = Slv_ManToAig( pAbc->pGia );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
-    Abc_BddGiaTest( pAbc->pGia, fVerbose );
+//    Extra_TestGia2( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );

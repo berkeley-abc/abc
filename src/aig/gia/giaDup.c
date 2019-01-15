@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "misc/tim/tim.h"
 #include "misc/vec/vecWec.h"
+#include "proof/cec/cec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -4579,6 +4580,190 @@ int Gia_ManDemiterTwoWords( Gia_Man_t * p, Gia_Man_t ** pp0, Gia_Man_t ** pp1 )
             *pp0 = pNew;
     }
     return 1;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Extracts "half" of the sequential AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupHalfSeq( Gia_Man_t * p, int fSecond )
+{
+    int i; Gia_Obj_t * pObj;
+    Gia_Man_t * pNew = Gia_ManStart( Gia_ManObjNum(p) ); 
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    if ( fSecond )
+    {
+        Gia_ManForEachCi( p, pObj, i )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        Gia_ManForEachPo( p, pObj, i )
+            Gia_ManDupOrderDfs_rec( pNew, p, pObj );
+        Gia_ManForEachRi( p, pObj, i )
+            if ( i >= Gia_ManRegNum(p)/2 )
+                Gia_ManDupOrderDfs_rec( pNew, p, pObj );
+        Gia_ManSetRegNum( pNew, Gia_ManRegNum(p)- Gia_ManRegNum(p)/2 );
+    }
+    else
+    {
+        Gia_ManForEachPi( p, pObj, i )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        Gia_ManForEachRo( p, pObj, i )
+            if ( i >= Gia_ManRegNum(p)/2 )
+                pObj->Value = Gia_ManAppendCi( pNew );
+        Gia_ManForEachRo( p, pObj, i )
+            if ( i < Gia_ManRegNum(p)/2 )
+                pObj->Value = Gia_ManAppendCi( pNew );
+        Gia_ManForEachPo( p, pObj, i )
+            Gia_ManDupOrderDfs_rec( pNew, p, pObj );
+        Gia_ManForEachRi( p, pObj, i )
+            if ( i < Gia_ManRegNum(p)/2 )
+                Gia_ManDupOrderDfs_rec( pNew, p, pObj );
+        Gia_ManSetRegNum( pNew, Gia_ManRegNum(p)/2 );
+    }
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Merge two sets of sequential equivalences.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSeqEquivMerge( Gia_Man_t * p, Gia_Man_t * pPart[2] )
+{
+    int i, iObj, * pClasses    = ABC_FALLOC( int, Gia_ManObjNum(p) );
+    int n, Repr, * pClass2Repr = ABC_FALLOC( int, Gia_ManObjNum(p) );
+    // initialize equiv class representation in the big AIG
+    assert( p->pReprs  == NULL && p->pNexts  == NULL );
+    p->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        Gia_ObjSetRepr( p, i, GIA_VOID );
+    // map equivalences of p into classes
+    pClasses[0] = 0;
+    for ( n = 0; n < 2; n++ )
+    {
+        assert( pPart[n]->pReprs != NULL && pPart[n]->pNexts != NULL );
+        for ( i = 0; i < Gia_ManObjNum(pPart[n]); i++ )
+            if ( Gia_ObjRepr(pPart[n], i) == 0 )
+                pClasses[Gia_ManObj(pPart[n], i)->Value] = 0;
+        Gia_ManForEachClass( pPart[n], i )
+        {
+            Repr = Gia_ManObj(pPart[n], i)->Value;
+            if ( n == 1 )
+            {
+                Gia_ClassForEachObj( pPart[n], i, iObj )
+                    if ( pClasses[Gia_ManObj(pPart[n], iObj)->Value] != -1 )
+                        Repr = pClasses[Gia_ManObj(pPart[n], iObj)->Value];
+            }
+            Gia_ClassForEachObj( pPart[n], i, iObj )
+                pClasses[Gia_ManObj(pPart[n], iObj)->Value] = Repr;
+        }
+    }
+    // map representatives of each class
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        if ( pClasses[i] != -1 && pClass2Repr[pClasses[i]] == -1 )
+        {
+            pClass2Repr[pClasses[i]] = i;
+            pClasses[i] = -1;
+        }
+    // remap the remaining classes
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        if ( pClasses[i] != -1 )
+            p->pReprs[i].iRepr = pClass2Repr[pClasses[i]];
+    ABC_FREE(pClasses);
+    ABC_FREE(pClass2Repr);
+    // create next pointers
+    p->pNexts = Gia_ManDeriveNexts( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print equivalences.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintEquivs( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; int i, iObj;
+    printf( "Const0:" );
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Gia_ObjRepr(p, i) == 0 )
+            printf( " %d", i );
+    printf( "\n" );
+    Gia_ManForEachClass( p, i )
+    {
+        printf( "%d:", i );
+        Gia_ClassForEachObj1( p, i, iObj )
+            printf( " %d", iObj );
+        printf( "\n" );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computing seq equivs by dividing AIG into two parts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSeqEquivDivide( Gia_Man_t * p, Cec_ParCor_t * pPars )
+{
+    Gia_Man_t * pParts[2];
+    Gia_Obj_t * pObj;
+    int n, i;
+    for ( n = 0; n < 2; n++ )
+    {
+        // derive n-th part of the AIG
+        pParts[n] = Gia_ManDupHalfSeq( p, n );
+        //Gia_ManPrintStats( pParts[n], NULL );
+        // compute equivalences (recorded internally using pReprs and pNexts)
+        Cec_ManLSCorrespondenceClasses( pParts[n], pPars );
+        // make the nodes of the part AIG point to their prototypes in the AIG
+        Gia_ManForEachObj( p, pObj, i )
+            if ( ~pObj->Value )
+                Gia_ManObj( pParts[n], Abc_Lit2Var(pObj->Value) )->Value = i;
+    }
+    Gia_ManSeqEquivMerge( p, pParts );
+    Gia_ManStop( pParts[0] );
+    Gia_ManStop( pParts[1] );
+}
+Gia_Man_t * Gia_ManScorrDivideTest( Gia_Man_t * p, Cec_ParCor_t * pPars )
+{
+    extern Gia_Man_t * Gia_ManCorrReduce( Gia_Man_t * p );
+    Gia_Man_t * pNew, * pTemp;
+    ABC_FREE( p->pReprs ); p->pReprs = NULL;
+    ABC_FREE( p->pNexts ); p->pNexts = NULL;
+    Gia_ManSeqEquivDivide( p, pPars );
+    //Gia_ManPrintEquivs( p );
+    pNew = Gia_ManCorrReduce( p );
+    pNew = Gia_ManSeqCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////
