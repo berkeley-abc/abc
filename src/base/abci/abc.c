@@ -535,6 +535,9 @@ static int Abc_CommandAbc9Gla2Vta            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Fla2Gla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Gla2Fla            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandAbc9Gen                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Cfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern int Abc_CommandAbcLivenessToSafety    ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1233,6 +1236,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Liveness",     "l3s",           Abc_CommandAbcLivenessToSafetyWithLTL, 0 );
     Cmd_CommandAdd( pAbc, "Liveness",     "kcs",           Abc_CommandCS_kLiveness,               0 );
     Cmd_CommandAdd( pAbc, "Liveness",     "nck",           Abc_CommandNChooseK,                   0 );
+
+    Cmd_CommandAdd( pAbc, "ABC9",         "gen",           Abc_CommandAbc9Gen,                    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "cfs",           Abc_CommandAbc9Cfs,                    0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -45415,6 +45421,193 @@ usage:
     Abc_Print( -2, "usage: &gla_fla [-vh]\n" );
     Abc_Print( -2, "\t          maps gate-level into flop-level abstraction\n" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Gen( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Extra_CommandGen( int Algo, int LutSize, int nLuts, int nLevels, int fVerbose );
+    Gia_Man_t * pTemp = NULL;
+    int Algo        =   0;
+    int LutSize     =   6;
+    int nLuts       = 256;
+    int nLevels     =   8;
+    int c, fVerbose =   0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AKNLvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Algo = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Algo < 0 )
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            LutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( LutSize < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLuts < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevels = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevels < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pTemp = Extra_CommandGen( Algo, LutSize, nLuts, nLevels, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gen [-AKNLvh]\n" );
+    Abc_Print( -2, "\t          generates network\n" );
+    Abc_Print( -2, "\t-A num  : the generation algorithm [default = %d]\n",        Algo );
+    Abc_Print( -2, "\t-K num  : the number of LUT inputs [default = %d]\n",        LutSize );
+    Abc_Print( -2, "\t-N num  : the number of LUTs on one level [default = %d]\n", nLuts );
+    Abc_Print( -2, "\t-L num  : the number of LUT levels [default = %d]\n",        nLevels );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Extra_CommandCfs( int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose );
+    int Limit       =   0;
+    int Reps        =   1;
+    int UnseenUse   =   2;
+    int RareUse     =   2;
+    int c, fVerbose =   0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LNURvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Limit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Limit < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Reps = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Reps < 0 )
+                goto usage;
+            break;
+        case 'U':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-U\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            UnseenUse = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( UnseenUse < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            RareUse = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( RareUse < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    Extra_CommandCfs( Limit, Reps, UnseenUse, RareUse, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &cfs [-LNURvh]\n" );
+    Abc_Print( -2, "\t          performs simulation\n" );
+    Abc_Print( -2, "\t-L num  : the limit on the number of occurrences [default = %d]\n",  Limit );
+    Abc_Print( -2, "\t-N num  : the number of repetions of each pattern [default = %d]\n", Reps );
+    Abc_Print( -2, "\t-U num  : what to do with unseen patterns [default = %d]\n",         UnseenUse );
+    Abc_Print( -2, "\t-R num  : what to do with rare patterns [default = %d]\n",           RareUse );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n",     fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }

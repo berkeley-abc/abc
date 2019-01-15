@@ -5,6 +5,7 @@ SRC +=    src/misc/extra/extraUtilBitMatrix.c \
     src/misc/extra/extraUtilDsd.c \
     src/misc/extra/extraUtilEnum.c \
     src/misc/extra/extraUtilFile.c \
+    src/misc/extra/extraUtilGen.c \
     src/misc/extra/extraUtilMacc.c \
     src/misc/extra/extraUtilMaj.c \
     src/misc/extra/extraUtilMemory.c \

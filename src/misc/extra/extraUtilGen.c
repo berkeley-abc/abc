@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [extraUtilCfs.c]
+  FileName    [extraUtilGen.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: extraUtilCfs.c,v 1.0 2003/02/01 00:00:00 alanmi Exp $]
+  Revision    [$Id: extraUtilGen.c,v 1.0 2003/02/01 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -24,6 +24,7 @@
 #include <assert.h>
 
 #include "aig/gia/gia.h"
+#include "misc/vec/vecMem.h"
 #include "misc/extra/extra.h"
 #include "misc/util/utilTruth.h"
 
@@ -32,6 +33,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -48,8 +50,9 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_CommandCfs( int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose )
+Gia_Man_t * Extra_CommandGen( int Algo, int LutSize, int nLuts, int nLevels, int fVerbose )
 {
+    return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////
