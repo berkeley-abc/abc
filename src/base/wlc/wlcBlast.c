@@ -1262,7 +1262,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         // create box library
         pBoxLib = If_LibBoxStart();
     }
-    printf( "Init state: %s\n", p->pInits );
+    //printf( "Init state: %s\n", p->pInits );
 
     // blast in the topological order
     Wlc_NtkForEachObj( p, pObj, i )
