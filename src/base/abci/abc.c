@@ -1237,8 +1237,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Liveness",     "kcs",           Abc_CommandCS_kLiveness,               0 );
     Cmd_CommandAdd( pAbc, "Liveness",     "nck",           Abc_CommandNChooseK,                   0 );
 
-    Cmd_CommandAdd( pAbc, "ABC9",         "gen",           Abc_CommandAbc9Gen,                    0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "cfs",           Abc_CommandAbc9Cfs,                    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gen",          Abc_CommandAbc9Gen,                    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&cfs",          Abc_CommandAbc9Cfs,                    0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
