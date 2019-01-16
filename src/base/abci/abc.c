@@ -45533,7 +45533,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Extra_CommandCfs( int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose );
+    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose );
     int Limit       =   0;
     int Reps        =   1;
     int UnseenUse   =   2;
@@ -45597,7 +45597,12 @@ int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    Extra_CommandCfs( Limit, Reps, UnseenUse, RareUse, fVerbose );
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Cfs(): There is no AIG.\n" );
+        return 1;
+    }
+    Extra_CommandCfs( pAbc->pGia, Limit, Reps, UnseenUse, RareUse, fVerbose );
     return 0;
 
 usage:

@@ -48,7 +48,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-void Extra_CommandCfs( int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose )
+void Extra_CommandCfs( Gia_Man_t * pGia, int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose )
 {
 }
 
