@@ -2225,7 +2225,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 for ( k = 0; k < nRange; k++ )
                 {
                     char Buffer[1000];
-                    sprintf( Buffer, "%s_in[%d]", pName, Wlc_NtkObj(p, iFanin)->Beg+k );
+                    sprintf( Buffer, "%s_in[%d]", pName, pObj->Beg+k );
                     Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
                 }
         }
