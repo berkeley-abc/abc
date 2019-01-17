@@ -127,6 +127,8 @@ extern ABC_DLL int             Abc_FrameReadCexPiNum( Abc_Frame_t * p );
 extern ABC_DLL int             Abc_FrameReadCexRegNum( Abc_Frame_t * p );              
 extern ABC_DLL int             Abc_FrameReadCexPo( Abc_Frame_t * p );              
 extern ABC_DLL int             Abc_FrameReadCexFrame( Abc_Frame_t * p );              
+extern ABC_DLL Vec_Ptr_t *     Abc_FrameReadCexCiNames( Abc_Frame_t * p );              
+extern ABC_DLL void            Abc_FrameSetCexCiNames( Vec_Ptr_t * vNames );              
 
 extern ABC_DLL void            Abc_FrameSetNtkStore( Abc_Ntk_t * pNtk ); 
 extern ABC_DLL void            Abc_FrameSetNtkStoreSize( int nStored );  

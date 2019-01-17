@@ -1124,6 +1124,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Finished dumping file \"pio_name_map.txt\" containing PI/PO name mapping.\n" );
         }
     }
+    Abc_FrameSetCexCiNames( Vec_PtrDupStr(pNew->vNamesIn) );
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
