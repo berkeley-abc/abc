@@ -2446,12 +2446,35 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
             fprintf( pFile, "# COUNTEREXAMPLE LENGTH: %u\n", pCex->iFrame+1);
             // output flop values (unaffected by the minimization)
             Abc_NtkForEachLatch( pNtk, pObj, i )
-                fprintf( pFile, "%s@0=%c\n", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+!Abc_LatchIsInit0(pObj) );
+            {
+                char * pObjName = Abc_ObjName(Abc_ObjFanout0(pObj));
+                int ii, NameLen = strlen(pObjName);
+                // check if there is a PI with a matching name
+                Abc_Obj_t * pObjPi;
+                Abc_NtkForEachPi( pNtk, pObjPi, ii )
+                    if ( !strncmp(Abc_ObjName(pObjPi), pObjName, NameLen) && !strncmp(Abc_ObjName(pObjPi)+NameLen, "_init", 5) )
+                    {
+                        if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+ii) )
+                            fprintf( pFile, "%s@%d=%c\n", pObjName, 0, '0'+Abc_InfoHasBit(pCex->pData, pCare->nRegs+ii) );
+                        break;
+                    }
+                if ( ii != Abc_NtkPiNum(pNtk) )
+                    continue;
+                if ( !strncmp(pObjName, "abc_reset_flop", 14) )
+                    continue;
+                fprintf( pFile, "%s@0=%c\n", pObjName, '0'+!Abc_LatchIsInit0(pObj) );
+            }
             // output PI values (while skipping the minimized ones)
             for ( f = 0; f <= pCex->iFrame; f++ )
                 Abc_NtkForEachPi( pNtk, pObj, i )
+                {
+                    // skip names with "_init" in the end
+                    int NameLen = strlen(Abc_ObjName(pObj));
+                    if ( NameLen > 5 && !strncmp(Abc_ObjName(pObj)+NameLen-5, "_init", 5) )
+                        continue;
                     if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
                         fprintf( pFile, "%s@%d=%c\n", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+                }
             Abc_CexFreeP( &pCare );
         }
         else
