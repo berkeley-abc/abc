@@ -2475,24 +2475,40 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             fprintf( pFile, "\n");                                           
             fprintf( pFile, "# COUNTEREXAMPLE LENGTH: %u\n", pCex->iFrame+1);
-            // output flop values (unaffected by the minimization)
             if ( (vNamesIn = Abc_FrameReadCexCiNames(pAbc)) != NULL )
+            {
+                // output flop values (unaffected by the minimization)
                 Vec_PtrForEachEntryStart( char *, vNamesIn, pObjName, i, Abc_NtkPiNum(pNtk) )
                     IoCommandPrintLatchName( pFile, pNtk, NULL, pObjName, pCex, pCare );
+                // output PI values (while skipping the minimized ones)
+                for ( f = 0; f <= pCex->iFrame; f++ )
+                    Vec_PtrForEachEntryStop( char *, vNamesIn, pObjName, i, Abc_NtkPiNum(pNtk) )
+                    {
+                        // skip names with "_init" in the end
+                        int NameLen = strlen(pObjName);
+                        if ( NameLen > 5 && !strncmp(pObjName+NameLen-5, "_init", 5) )
+                            continue;
+                        if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
+                            fprintf( pFile, "%s@%d=%c\n", pObjName, f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+                    }
+            }
             else
+            {
+                // output flop values (unaffected by the minimization)
                 Abc_NtkForEachLatch( pNtk, pObj, i )
                     IoCommandPrintLatchName( pFile, pNtk, pObj, Abc_ObjName(Abc_ObjFanout0(pObj)), pCex, pCare );
-            // output PI values (while skipping the minimized ones)
-            for ( f = 0; f <= pCex->iFrame; f++ )
-                Abc_NtkForEachPi( pNtk, pObj, i )
-                {
-                    // skip names with "_init" in the end
-                    int NameLen = strlen(Abc_ObjName(pObj));
-                    if ( NameLen > 5 && !strncmp(Abc_ObjName(pObj)+NameLen-5, "_init", 5) )
-                        continue;
-                    if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
-                        fprintf( pFile, "%s@%d=%c\n", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
-                }
+                // output PI values (while skipping the minimized ones)
+                for ( f = 0; f <= pCex->iFrame; f++ )
+                    Abc_NtkForEachPi( pNtk, pObj, i )
+                    {
+                        // skip names with "_init" in the end
+                        int NameLen = strlen(Abc_ObjName(pObj));
+                        if ( NameLen > 5 && !strncmp(Abc_ObjName(pObj)+NameLen-5, "_init", 5) )
+                            continue;
+                        if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
+                            fprintf( pFile, "%s@%d=%c\n", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+                    }
+            }
             Abc_CexFreeP( &pCare );
         }
         else
