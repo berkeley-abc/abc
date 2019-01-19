@@ -45439,15 +45439,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Gen( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Extra_CommandGen( int Algo, int LutSize, int nLuts, int nLevels, int fVerbose );
+    extern Gia_Man_t * Extra_CommandGen( int Algo, int LutSize, int nLuts, int nLevels, int Limit, int nBestTries, int fVerbose );
     Gia_Man_t * pTemp = NULL;
     int Algo        =   0;
     int LutSize     =   6;
     int nLuts       = 256;
     int nLevels     =   8;
+    int Limit       =   0;
+    int nBestTries  =   1;
     int c, fVerbose =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "AKNLvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AKNDLBvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -45484,15 +45486,37 @@ int Abc_CommandAbc9Gen( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nLuts < 0 )
                 goto usage;
             break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevels = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevels < 0 )
+                goto usage;
+            break;
         case 'L':
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nLevels = atoi(argv[globalUtilOptind]);
+            Limit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nLevels < 0 )
+            if ( Limit < 0 )
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBestTries = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBestTries < 0 )
                 goto usage;
             break;
         case 'v':
@@ -45504,18 +45528,20 @@ int Abc_CommandAbc9Gen( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    pTemp = Extra_CommandGen( Algo, LutSize, nLuts, nLevels, fVerbose );
+    pTemp = Extra_CommandGen( Algo, LutSize, nLuts, nLevels, Limit, nBestTries, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gen [-AKNLvh]\n" );
+    Abc_Print( -2, "usage: &gen [-AKNDLBvh]\n" );
     Abc_Print( -2, "\t          generates network\n" );
-    Abc_Print( -2, "\t-A num  : the generation algorithm [default = %d]\n",        Algo );
-    Abc_Print( -2, "\t-K num  : the number of LUT inputs [default = %d]\n",        LutSize );
-    Abc_Print( -2, "\t-N num  : the number of LUTs on one level [default = %d]\n", nLuts );
-    Abc_Print( -2, "\t-L num  : the number of LUT levels [default = %d]\n",        nLevels );
-    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-A num  : the generation algorithm [default = %d]\n",                 Algo );
+    Abc_Print( -2, "\t-K num  : the number of LUT inputs [default = %d]\n",                 LutSize );
+    Abc_Print( -2, "\t-N num  : the number of LUTs on one level [default = %d]\n",          nLuts );
+    Abc_Print( -2, "\t-D num  : the number of LUT levels [default = %d]\n",                 nLevels );
+    Abc_Print( -2, "\t-L num  : limit below which we randomize [default = %d]\n",           Limit );
+    Abc_Print( -2, "\t-B num  : select best fanins among this many tries [default = %d]\n", nBestTries );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n",      fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
