@@ -457,7 +457,7 @@ char * Wlc_PrsConvertInitValues( Wlc_Ntk_t * p )
             pObj = Wlc_NtkObj( p, Wlc_ObjFaninId0(pObj) );
         pInits = (pObj->Type == WLC_OBJ_CONST && !pObj->fXConst) ? Wlc_ObjConstValue(pObj) : NULL;
         for ( k = 0; k < Abc_MinInt(Value, Wlc_ObjRange(pObj)); k++ )
-            Vec_StrPush( vStr, (char)(pInits ? '0' + Abc_InfoHasBit((unsigned *)pInits, k) : 'X') );
+            Vec_StrPush( vStr, (char)(pInits ? '0' + Abc_InfoHasBit((unsigned *)pInits, k) : 'x') );
         // extend values with zero, in case the init value signal has different range compared to constant used
         for ( ; k < Value; k++ )
             Vec_StrPush( vStr, '0' );
@@ -588,6 +588,8 @@ static inline char * Wlc_PrsReadConstant( Wlc_Prs_t * p, char * pStr, Vec_Int_t 
     if ( pStr[1] != 'h' )
         return (char *)(ABC_PTRINT_T)Wlc_PrsWriteErrorMessage( p, pStr, "Expecting hexadecimal constant and not \"%c\".", pStr[1] );
     *pXValue = (pStr[2] == 'x' || pStr[2] == 'X');
+    if ( *pXValue == 'X' )
+        *pXValue = 'x';
     Vec_IntFill( vFanins, Abc_BitWordNum(nBits), 0 );
     nDigits = Abc_TtReadHexNumber( (word *)Vec_IntArray(vFanins), pStr+2 );
     if ( nDigits != (nBits + 3)/4 )

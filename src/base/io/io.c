@@ -2317,10 +2317,11 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
     int forceSeq   = 0;
     int fAiger     = 0;
     int fPrintFull = 0;
+    int fUseFfNames = 0;
     int fVerbose   = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "snmueocafvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snmueocafzvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2350,6 +2351,9 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'f':
                 fPrintFull ^= 1;
+                break;
+            case 'z':
+                fUseFfNames ^= 1;
                 break;
             case 'v':
                 fVerbose ^= 1;
@@ -2444,6 +2448,46 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             fprintf( pFile, "\n");                                           
             fprintf( pFile, "# COUNTEREXAMPLE LENGTH: %u\n", pCex->iFrame+1);
+            if ( fUseFfNames )
+            {
+                int * pValues;
+                int nXValues = 0, iFlop = 0, iPivotPi = -1;
+                Abc_NtkForEachPi( pNtk, pObj, iPivotPi )
+                    if ( !strcmp(Abc_ObjName(pObj), "_abc_190121_abc_") )
+                        break;
+                if ( iPivotPi == Abc_NtkPiNum(pNtk) )
+                {
+                    fprintf( stdout, "IoCommandWriteCex(): Cannot find special PI required by switch \"-z\".\n" );
+                    return 1;
+                }
+                // count X-valued flops
+                for ( i = iPivotPi+1; i < Abc_NtkPiNum(pNtk); i++ )
+                    if ( Abc_ObjName(Abc_NtkPi(pNtk, i))[0] == 'x' )
+                        nXValues++;
+                // map X-valued flops into auxiliary PIs
+                pValues = ABC_FALLOC( int, Abc_NtkPiNum(pNtk) );
+                for ( i = iPivotPi+1; i < Abc_NtkPiNum(pNtk); i++ )
+                    if ( Abc_ObjName(Abc_NtkPi(pNtk, i))[0] == 'x' )
+                        pValues[i] = iPivotPi - nXValues + iFlop++;
+                assert( iFlop == nXValues );
+                // write flop values
+                for ( i = iPivotPi+1; i < Abc_NtkPiNum(pNtk); i++ )
+                    if ( pValues[i] == -1 )
+                        fprintf( pFile, "%s@0=%c\n", Abc_ObjName(Abc_NtkPi(pNtk, i))+1, Abc_ObjName(Abc_NtkPi(pNtk, i))[0] );
+                    else if ( Abc_InfoHasBit(pCare->pData, pCare->nRegs + pValues[i]) )
+                        fprintf( pFile, "%s@0=%c\n", Abc_ObjName(Abc_NtkPi(pNtk, i))+1, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs + pValues[i]) );
+                ABC_FREE( pValues );
+                // output PI values (while skipping the minimized ones)
+                for ( f = 0; f <= pCex->iFrame; f++ )
+                    Abc_NtkForEachPi( pNtk, pObj, i )
+                    {
+                        if ( i == iPivotPi - nXValues ) break;
+                        if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
+                            fprintf( pFile, "%s@%d=%c\n", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+                    }
+            }
+            else
+            {
             // output flop values (unaffected by the minimization)
             Abc_NtkForEachLatch( pNtk, pObj, i )
                 fprintf( pFile, "%s@0=%c\n", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+!Abc_LatchIsInit0(pObj) );
@@ -2452,6 +2496,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                 Abc_NtkForEachPi( pNtk, pObj, i )
                     if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
                         fprintf( pFile, "%s@%d=%c\n", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+            }
             Abc_CexFreeP( &pCare );
         }
         else
@@ -2498,7 +2543,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_cex [-snmueocfvh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_cex [-snmueocfzvh] <file>\n" );
     fprintf( pAbc->Err, "\t         saves counter-example (CEX) derived by \"sat\", \"iprove\", \"dprove\", etc\n" );
     fprintf( pAbc->Err, "\t         the output file <file> contains values for each PI in natural order\n" );
     fprintf( pAbc->Err, "\t-s     : always report a sequential CEX (cycle 0 for comb) [default = %s]\n", forceSeq? "yes": "no" );
@@ -2508,9 +2553,10 @@ usage:
     fprintf( pAbc->Err, "\t-e     : use high-effort SAT-based CEX minimization [default = %s]\n", fHighEffort? "yes": "no" );
     fprintf( pAbc->Err, "\t-o     : use old CEX minimization algorithm [default = %s]\n", fUseOldMin? "yes": "no" );
     fprintf( pAbc->Err, "\t-c     : check generated CEX using ternary simulation [default = %s]\n", fCheckCex? "yes": "no" );
-    fprintf( pAbc->Err, "\t-a     : print cex in AIGER 1.9 format [default = %s].\n", fAiger? "yes": "no" );
-    fprintf( pAbc->Err, "\t-f     : enable printing flop values in each timeframe [default = %s].\n", fPrintFull? "yes": "no" );  
-    fprintf( pAbc->Err, "\t-v     : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );  
+    fprintf( pAbc->Err, "\t-a     : print cex in AIGER 1.9 format [default = %s]\n", fAiger? "yes": "no" );
+    fprintf( pAbc->Err, "\t-f     : enable printing flop values in each timeframe [default = %s]\n", fPrintFull? "yes": "no" );  
+    fprintf( pAbc->Err, "\t-z     : toggle using saved flop names [default = %s]\n", fUseFfNames? "yes": "no" );  
+    fprintf( pAbc->Err, "\t-v     : enable verbose output [default = %s]\n", fVerbose? "yes": "no" );  
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\t<file> : the name of the file to write\n" );
     return 1;

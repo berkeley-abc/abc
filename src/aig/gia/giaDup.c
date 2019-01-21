@@ -3047,7 +3047,7 @@ Gia_Man_t * Gia_ManTransformDualOutput( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int fGiaSimple, int fVerbose )
+Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fGiaSimple, int fVerbose )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
@@ -3071,6 +3071,9 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int fGiaSimple, int
         pObj->Value = Gia_ManAppendCi( pNew );
     // create additional primary inputs
     for ( i = Gia_ManPiNum(p); i < CountPis; i++ )
+        Gia_ManAppendCi( pNew );
+    // create additional primary inputs
+    for ( i = 0; i < nNewPis; i++ )
         Gia_ManAppendCi( pNew );
     // create flop outputs
     Gia_ManForEachRo( p, pObj, i )
@@ -3137,7 +3140,7 @@ Gia_Man_t * Gia_ManMiter2( Gia_Man_t * pStart, char * pInit, int fVerbose )
     for ( i = 0; i < Gia_ManPiNum(pStart); i++ )
         assert( pInit[i] == 'x' || pInit[i] == 'X' );
     // normalize the manager
-    pUndc = Gia_ManDupZeroUndc( pStart, pInit + Gia_ManPiNum(pStart), 0, fVerbose );
+    pUndc = Gia_ManDupZeroUndc( pStart, pInit + Gia_ManPiNum(pStart), 0, 0, fVerbose );
     // create new init string
     pInitNew = ABC_ALLOC( char, Gia_ManPiNum(pUndc)+1 );
     for ( i = 0; i < Gia_ManPiNum(pStart); i++ )

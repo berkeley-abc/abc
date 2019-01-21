@@ -214,6 +214,7 @@ struct Wlc_BstPar_t_
     int                    fNoCleanup;
     int                    fCreateMiter;
     int                    fDecMuxes;
+    int                    fSaveFfNames;
     int                    fVerbose;
     Vec_Int_t *            vBoxIds;
 };

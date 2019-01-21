@@ -2055,7 +2055,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         }
         else
         {
-            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, pPar->fGiaSimple, 0 );
+            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, pPar->fSaveFfNames ? 1+Gia_ManRegNum(pNew) : 0, pPar->fGiaSimple, 0 );
             Gia_ManDupRemapLiterals( vBits, pTemp );
             Gia_ManStop( pTemp );
         }
@@ -2121,10 +2121,13 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         if ( p->pInits[i] == 'x' || p->pInits[i] == 'X' )
         {
             char Buffer[100];
-            sprintf( Buffer, "%s%d", "init", i );
+            sprintf( Buffer, "_%s_abc_%d_", "init", i );
             Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             fAdded = 1;
         }
+        if ( pPar->fSaveFfNames )
+            for ( i = 0; i < 1+Length; i++ )
+                Vec_PtrPush( pNew->vNamesIn, NULL );
     }
     Wlc_NtkForEachCi( p, pObj, i )
     if ( !Wlc_ObjIsPi(pObj) )
@@ -2172,6 +2175,25 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 sprintf( Buffer, "%s[%d]", pName, pObj->Beg+k );
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
+    }
+    if ( p->pInits && pPar->fSaveFfNames )
+    {
+        char * pName;
+        int Length    = (int)strlen(p->pInits);
+        int NameStart = Vec_PtrSize(pNew->vNamesIn)-Length;
+        int NullStart = Vec_PtrSize(pNew->vNamesIn)-2*Length;
+        int SepStart  = Vec_PtrSize(pNew->vNamesIn)-2*Length-1;
+        assert( Vec_PtrEntry(pNew->vNamesIn, SepStart) == NULL );
+        Vec_PtrWriteEntry( pNew->vNamesIn, SepStart, Abc_UtilStrsav("_abc_190121_abc_") );
+        for ( i = 0; i < Length; i++ )
+        {
+            char Buffer[100];
+            sprintf( Buffer, "%c%s", p->pInits[i], Vec_PtrEntry(pNew->vNamesIn, NameStart+i) );
+            assert( Vec_PtrEntry(pNew->vNamesIn, NullStart+i) == NULL );
+            Vec_PtrWriteEntry( pNew->vNamesIn, NullStart+i, Abc_UtilStrsav(Buffer) );
+        }
+        Vec_PtrForEachEntry( char *, pNew->vNamesIn, pName, i )
+            assert( pName != NULL );
     }
     if ( p->pInits && fAdded )
         Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav("abc_reset_flop") );

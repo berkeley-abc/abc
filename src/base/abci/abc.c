@@ -29478,7 +29478,7 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
             Aig_ManStop( pAig );
             // perform undc/zero
             pInits = Abc_NtkCollectLatchValuesStr( pAbc->pNtkCur );
-            pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, 0, fVerbose );
+            pGia = Gia_ManDupZeroUndc( pTemp = pGia, pInits, 0, 0, fVerbose );
             Gia_ManStop( pTemp );
             ABC_FREE( pInits );
         }
