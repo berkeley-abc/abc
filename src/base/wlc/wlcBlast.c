@@ -1150,8 +1150,6 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     int i, k, b, iFanin, iLit, nAndPrev, * pFans0, * pFans1, * pFans2, * pFans3;
     int nFFins = 0, nFFouts = 0, curPi = 0, curPo = 0, nFf2Regs = 0;
     int nBitCis = 0, nBitCos = 0, fAdded = 0;
-    int iFirstAddPi = -1;  // remembers the first additional PI that stands for DC-flop output
-    int iFirstFlop  = -1;  // remembers the first flop of the design
     Wlc_BstPar_t Par, * pPar = &Par;
     Wlc_BstParDefault( pPar );
     pPar = pParIn ? pParIn : pPar;
@@ -2119,21 +2117,14 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     if ( p->pInits )
     {
         int Length = strlen(p->pInits);
-        // remember the place in the array where the first PI begins
-        iFirstAddPi = Vec_PtrSize(pNew->vNamesIn);
         for ( i = 0; i < Length; i++ )
         if ( p->pInits[i] == 'x' || p->pInits[i] == 'X' )
         {
-            //char Buffer[100];
-            //sprintf( Buffer, "%s%d", "init", i );
-            //Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
-            // save NULL at this time - to be overwritten later
-            //printf( "Adding NULL in position %d\n", Vec_PtrSize(pNew->vNamesIn) );
-            Vec_PtrPush( pNew->vNamesIn, NULL );
+            char Buffer[100];
+            sprintf( Buffer, "%s%d", "init", i );
+            Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             fAdded = 1;
         }
-        // remember the place in the array where the first real flop is
-        iFirstFlop = Vec_PtrSize(pNew->vNamesIn);
     }
     Wlc_NtkForEachCi( p, pObj, i )
     if ( !Wlc_ObjIsPi(pObj) )
@@ -2150,7 +2141,6 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
     }
-/*
     Wlc_NtkForEachFf2( p, pObj, i )
     {
         char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
@@ -2169,7 +2159,6 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
     }
-*/
     Wlc_NtkForEachFf2( p, pObj, i )
     {
         char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
@@ -2202,22 +2191,6 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         }
     }
     assert( Vec_PtrSize(pNew->vNamesIn) == Gia_ManCiNum(pNew) );
-    // finish creating names of additional primary inputs
-    if ( p->pInits )
-    {
-        int k = iFirstAddPi, Length = strlen(p->pInits);
-        assert( iFirstAddPi >= 0 && iFirstFlop >= 0 );
-        for ( i = 0; i < Length; i++ )
-        if ( p->pInits[i] == 'x' || p->pInits[i] == 'X' )
-        {
-            char Buffer[1000];
-            sprintf( Buffer, "%s_init", (char *)Vec_PtrEntry(pNew->vNamesIn, iFirstFlop+i) );
-            assert( Vec_PtrEntry(pNew->vNamesIn, k) == NULL );
-            Vec_PtrWriteEntry( pNew->vNamesIn, k++, Abc_UtilStrsav(Buffer) );
-            //printf( "Replacing NULL in position %d\n", iFirstAddPi-Length+i );
-        }
-        assert( k == iFirstFlop );
-    }
     // create output names
     pNew->vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pNew) );
     Wlc_NtkForEachFf2( p, pObj, i )

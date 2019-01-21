@@ -152,7 +152,6 @@ struct Abc_Frame_t_
     int *           pBoxes;
     void *          pNdr;
     int *           pNdrArray;
-    Vec_Ptr_t *     vCiNamesStore;  // storage for CI names
 
     Abc_Frame_Callback_BmcFrameDone_Func pFuncOnFrameDone;
 };

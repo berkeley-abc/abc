@@ -51,7 +51,6 @@ static int  Abc_CommandInvCheck   ( Abc_Frame_t * pAbc, int argc, char ** argv )
 static int  Abc_CommandInvGet     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandInvPut     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandInvMin     ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int  Abc_CommandCexFix     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandTest       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static inline Wlc_Ntk_t * Wlc_AbcGetNtk( Abc_Frame_t * pAbc )                       { return (Wlc_Ntk_t *)pAbc->pAbcWlc;                      }
@@ -100,7 +99,6 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "inv_get",      Abc_CommandInvGet,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "inv_put",      Abc_CommandInvPut,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "inv_min",      Abc_CommandInvMin,     0 );
-    Cmd_CommandAdd( pAbc, "Word level", "cexfix",       Abc_CommandCexFix,     0 );
 }
 
 /**Function********************************************************************
@@ -1124,7 +1122,6 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 1, "Finished dumping file \"pio_name_map.txt\" containing PI/PO name mapping.\n" );
         }
     }
-    Abc_FrameSetCexCiNames( Vec_PtrDupStr(pNew->vNamesIn) );
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
@@ -1795,71 +1792,6 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandCexFix( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    Wlc_Ntk_t * pNtk = NULL;
-    Abc_Cex_t * pCexNew;
-    char * pFileName;
-    int c, fVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            Abc_Print( -2, "Unknown switch.\n");
-            goto usage;
-        }
-    }
-    if ( pAbc->pCex == NULL )
-    {
-        fprintf( pAbc->Out, "Counter-example is not available.\n" );
-        goto usage;
-    }
-    if ( argc != globalUtilOptind + 1 )
-    {
-        fprintf( pAbc->Out, "File name with the original design is missing on the command line.\n" );
-        goto usage;
-    }
-    pFileName = argv[globalUtilOptind];
-    pNtk = Wlc_ReadVer( pFileName, NULL );
-    if ( pNtk == NULL )
-    {
-        fprintf( pAbc->Out, "Cannot parse the incoming design in Verilog.\n" );
-        goto usage;
-    }
-    pCexNew = Abc_CexTransformUndc( pAbc->pCex, pNtk->pInits );
-    Wlc_NtkFree( pNtk );
-    Abc_FrameReplaceCex( pAbc, &pCexNew );
-    printf( "Replaced the current CEX by a new one generated using the original design.\n" );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: cexfix [-vh] <file>\n" );
-    Abc_Print( -2, "\t         updates CEX after to match the original design\n" );
-    Abc_Print( -2, "\t<file> : the file with the original design\n" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    return 1;
-}
-
 
 /**Function********************************************************************
 

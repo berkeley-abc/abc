@@ -83,9 +83,6 @@ int         Abc_FrameReadCexPiNum( Abc_Frame_t * p )         { return s_GlobalFr
 int         Abc_FrameReadCexRegNum( Abc_Frame_t * p )        { return s_GlobalFrame->pCex->nRegs;  }               
 int         Abc_FrameReadCexPo( Abc_Frame_t * p )            { return s_GlobalFrame->pCex->iPo;    }               
 int         Abc_FrameReadCexFrame( Abc_Frame_t * p )         { return s_GlobalFrame->pCex->iFrame; }               
-Vec_Ptr_t * Abc_FrameReadCexCiNames( Abc_Frame_t * p )       { return s_GlobalFrame->vCiNamesStore; }              
-void        Abc_FrameSetCexCiNames( Vec_Ptr_t * vNames )     { if ( s_GlobalFrame->vCiNamesStore ) Vec_PtrFreeFree(s_GlobalFrame->vCiNamesStore); s_GlobalFrame->vCiNamesStore = vNames; }
-
 
 void        Abc_FrameInputNdr( Abc_Frame_t * pAbc, void * pData ) { Ndr_Delete(s_GlobalFrame->pNdr); s_GlobalFrame->pNdr = pData;                        }
 void *      Abc_FrameOutputNdr( Abc_Frame_t * pAbc )         { void * pData = s_GlobalFrame->pNdr; s_GlobalFrame->pNdr = NULL; return pData;             }  
@@ -243,7 +240,6 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     Vec_WecFreeP( &s_GlobalFrame->vJsonObjs );  
     Ndr_Delete( s_GlobalFrame->pNdr );
     ABC_FREE( s_GlobalFrame->pNdrArray );
-    Vec_PtrFreeFree( s_GlobalFrame->vCiNamesStore );
 
     Gia_ManStopP( &p->pGiaMiniAig );
     Gia_ManStopP( &p->pGiaMiniLut );
