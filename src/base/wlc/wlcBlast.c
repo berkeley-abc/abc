@@ -2110,7 +2110,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s[%d]", pName, pObj->Beg+k );
+                sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
     }
@@ -2140,7 +2140,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s[%d]", pName, pObj->Beg+k );
+                sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
     }
@@ -2158,7 +2158,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s_fo[%d]", pName, pObj->Beg+k );
+                sprintf( Buffer, "%s_fo[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
     }
@@ -2172,7 +2172,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s[%d]", pName, pObj->Beg+k );
+                sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
     }
@@ -2207,7 +2207,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s[%d]", pName, pObj->Beg+k );
+                sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
             }
         }
@@ -2228,7 +2228,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 for ( k = 0; k < nRange; k++ )
                 {
                     char Buffer[1000];
-                    sprintf( Buffer, "%s[%d]", pName, Wlc_NtkObj(p, iFanin)->Beg+k );
+                    Wlc_Obj_t * pFanin = Wlc_NtkObj(p, iFanin);
+                    sprintf( Buffer, "%s[%d]", pName, pFanin->Beg < pFanin->End ? pFanin->Beg+k : pFanin->End+k );
                     Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
                 }
             if ( b == 3 )
@@ -2247,7 +2248,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 for ( k = 0; k < nRange; k++ )
                 {
                     char Buffer[1000];
-                    sprintf( Buffer, "%s_in[%d]", pName, pObj->Beg+k );
+                    sprintf( Buffer, "%s_in[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                     Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
                 }
         }
@@ -2265,7 +2266,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 for ( k = 0; k < nRange; k++ )
                 {
                     char Buffer[1000];
-                    sprintf( Buffer, "%s[%d]", pName, Wlc_NtkObj(p, iFanin)->Beg+k );
+                    Wlc_Obj_t * pFanin = Wlc_NtkObj(p, iFanin);
+                    sprintf( Buffer, "%s[%d]", pName, pFanin->Beg < pFanin->End ? pFanin->Beg+k : pFanin->End+k );
                     Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
                 }
             }
@@ -2286,9 +2288,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s[%d]", pName, pObj->Beg+k );
+                sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
-                sprintf( Buffer, "%s[%d]", pName2, pObj->Beg+k );
+                sprintf( Buffer, "%s[%d]", pName2, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
             }
         }
@@ -2300,7 +2302,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 for ( k = 0; k < nRange; k++ )
                 {
                     char Buffer[1000];
-                    sprintf( Buffer, "%s[%d]", pName, pObj->Beg+k );
+                    sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                     Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
                 }
         }
@@ -2318,7 +2320,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 for ( k = 0; k < nRange; k++ )
                 {
                     char Buffer[1000];
-                    sprintf( Buffer, "%s[%d]", pName, pObj->Beg+k );
+                    sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                     Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
                 }
         }
@@ -2342,7 +2344,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s_fi[%d]", pName, pObj->Beg+k );
+                sprintf( Buffer, "%s_fi[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
             }
     }
@@ -2360,7 +2362,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             for ( k = 0; k < nRange; k++ )
             {
                 char Buffer[1000];
-                sprintf( Buffer, "%s_fi[%d]", pName, pObj->Beg+k );
+                sprintf( Buffer, "%s_fi[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->End+k );
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
             }
     }
