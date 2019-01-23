@@ -50,7 +50,7 @@ char * Wln_ConstFromBits( int * pBits, int nBits )
     sprintf( pBuffer, "%d\'b", nBits );
     Len = strlen(pBuffer);
     for ( i = nBits-1; i >= 0; i-- )
-        pBuffer[Len++] = '0' + Abc_InfoHasBit(pBits, i);
+        pBuffer[Len++] = '0' + Abc_InfoHasBit((unsigned *)pBits, i);
     pBuffer[Len] = 0;
     return pBuffer;
 }
