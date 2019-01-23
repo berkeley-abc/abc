@@ -44,7 +44,7 @@ extern int Ndr_TypeWlc2Ndr( int Type );
   SeeAlso     []
 
 ***********************************************************************/
-char * Wln_ConstFromBits( unsigned * pBits, int nBits )
+char * Wln_ConstFromBits( int * pBits, int nBits )
 {
     char * pBuffer = ABC_ALLOC( char, nBits+100 ); int i, Len;
     sprintf( pBuffer, "%d\'b", nBits );

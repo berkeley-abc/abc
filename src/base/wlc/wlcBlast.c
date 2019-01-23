@@ -2188,7 +2188,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         for ( i = 0; i < Length; i++ )
         {
             char Buffer[100];
-            sprintf( Buffer, "%c%s", p->pInits[i], Vec_PtrEntry(pNew->vNamesIn, NameStart+i) );
+            sprintf( Buffer, "%c%s", p->pInits[i], (char *)Vec_PtrEntry(pNew->vNamesIn, NameStart+i) );
             assert( Vec_PtrEntry(pNew->vNamesIn, NullStart+i) == NULL );
             Vec_PtrWriteEntry( pNew->vNamesIn, NullStart+i, Abc_UtilStrsav(Buffer) );
         }

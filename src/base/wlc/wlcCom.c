@@ -1811,7 +1811,7 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Wlc_NtkSimulateTest( Wlc_Ntk_t * p );
-    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    //Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
