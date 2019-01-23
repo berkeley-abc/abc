@@ -184,7 +184,35 @@ Vec_Int_t * Wlc_NtkCollectMemSizes( Wlc_Ntk_t * p )
     }
     return vMemSizes;
 }
-Vec_Int_t * Wlc_NtkCollectMemory( Wlc_Ntk_t * p )
+// remove PIs without fanout, non-driven object and their fanouts
+int Wlc_ObjCheckIsEmpty_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
+{
+    int k, iFanin;
+    if ( Wlc_ObjType(pObj) == 0 )
+        return 1;
+    if ( Wlc_ObjIsPi(pObj) )
+        return Vec_IntEntry(&p->vRefs, Wlc_ObjId(p, pObj)) == 0;
+    else if ( Wlc_ObjIsCi(pObj) )
+        return 0;
+    Wlc_ObjForEachFanin( pObj, iFanin, k )
+        if ( !Wlc_ObjCheckIsEmpty_rec(p, Wlc_NtkObj(p, iFanin)) )
+            return 0;
+    return 1;
+}
+Vec_Int_t * Wlc_NtkCleanObjects( Wlc_Ntk_t * p, Vec_Int_t * vObjs )
+{
+    Wlc_Obj_t * pObj; int i;
+    Vec_Int_t * vMemObjs = Vec_IntAlloc( 10 );
+    Wlc_NtkSetRefs( p );
+    Wlc_NtkForEachObjVec( vObjs, p, pObj, i )
+    {
+        //printf( "Considering %d (%s)\n", Wlc_ObjId(p, pObj), Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
+        if ( !Wlc_ObjCheckIsEmpty_rec(p, pObj) )
+            Vec_IntPush( vMemObjs, Wlc_ObjId(p, pObj) );
+    }
+    return vMemObjs;
+}
+Vec_Int_t * Wlc_NtkCollectMemory( Wlc_Ntk_t * p, int fClean )
 {
     Wlc_Obj_t * pObj; int i;
     Vec_Int_t * vMemSizes = Wlc_NtkCollectMemSizes( p );
@@ -197,13 +225,21 @@ Vec_Int_t * Wlc_NtkCollectMemory( Wlc_Ntk_t * p )
             Vec_IntPush( vMemObjs, i );
     }
     Vec_IntFree( vMemSizes );
+    Vec_IntSort( vMemObjs, 0 );
+    //Wlc_NtkPrintNodeArray( p, vMemObjs ); 
+    if ( fClean )
+    {
+        Vec_Int_t * vTemp;
+        vMemObjs = Wlc_NtkCleanObjects( p, vTemp = vMemObjs );
+        Vec_IntFree( vTemp );
+    }
     return vMemObjs;
 }
 void Wlc_NtkPrintMemory( Wlc_Ntk_t * p )
 {
     Vec_Int_t * vMemory;
-    vMemory = Wlc_NtkCollectMemory( p );
-    Vec_IntSort( vMemory, 0 );
+    vMemory = Wlc_NtkCollectMemory( p, 1 );
+    printf( "Memory subsystem is composed of the following objects:\n" );
     Wlc_NtkPrintNodeArray( p, vMemory );
     Vec_IntFree( vMemory );
 }
@@ -917,7 +953,7 @@ Wlc_Ntk_t * Wlc_NtkMemAbstractTest( Wlc_Ntk_t * p )
 {
     int iFirstMemPi, iFirstCi, iFirstMemCi, nDcBits;
     Vec_Int_t * vRefine;
-    Vec_Int_t * vMemObjs    = Wlc_NtkCollectMemory( p );
+    Vec_Int_t * vMemObjs    = Wlc_NtkCollectMemory( p, 0 );
     Vec_Int_t * vMemFanins  = Wlc_NtkCollectMemFanins( p, vMemObjs );
 
     Vec_Wec_t * vRefines    = Vec_WecAlloc( 100 );
@@ -956,7 +992,7 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbo
     Vec_Int_t * vMemObjs, * vMemFanins, * vFirstTotal, * vRefine; 
     int RetValue = -1, iFirstMemPi, iFirstCi, iFirstMemCi, nDcBits, nIters;
 
-    vMemObjs    = Wlc_NtkCollectMemory( p );
+    vMemObjs    = Wlc_NtkCollectMemory( p, 0 );
     vMemFanins  = Wlc_NtkCollectMemFanins( p, vMemObjs );
     pNewFull    = Wlc_NtkAbstractMemory( p, vMemObjs, vMemFanins, &iFirstMemPi, &iFirstCi, &iFirstMemCi, NULL, NULL );
     nDcBits     = Wlc_CountDcs( pNewFull->pInits );

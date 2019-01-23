@@ -1029,9 +1029,9 @@ startword:
                         Wlc_ObjSetCi( p->pNtk, pObj );
                 Vec_IntClear( &p->pNtk->vFfs );
                 // convert init values into binary string
-                //Vec_IntPrint( &p->pNtk->vInits );
+                //Vec_IntPrint( p->pNtk->vInits );
                 p->pNtk->pInits = Wlc_PrsConvertInitValues( p->pNtk );
-                //printf( "%s", p->pNtk->pInits );
+                //printf( "%s\n", p->pNtk->pInits );
             }
             if ( p->vPoPairs )
             {

@@ -378,8 +378,39 @@ int Wlc_NtkCreateLevels( Wlc_Ntk_t * p )
     LeveMax = Vec_IntFindMax( &p->vLevels );
     Wlc_NtkForEachFf2( p, pObj, i )
         Vec_IntWriteEntry( &p->vLevels, Wlc_ObjId(p, pObj), LeveMax+1 );
-    Wlc_NtkPrintObjects( p ); 
+    //Wlc_NtkPrintObjects( p ); 
     return LeveMax+1;
+}
+int Wlc_NtkRemapLevels( Wlc_Ntk_t * p, Vec_Int_t * vObjs, int nLevels )
+{
+    int i, k, iFanin, iObj, Entry, Level = 0, Res = nLevels;
+    Vec_Int_t * vMap  = Vec_IntStart( nLevels+1 );
+    Vec_Int_t * vUsed = Vec_IntStart( nLevels+1 );
+    // mark used levels
+    Vec_IntWriteEntry( vUsed, nLevels, 1 );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+    {
+        Vec_IntWriteEntry( vUsed, Wlc_ObjLevelId(p, iObj), 1 );
+        Wlc_ObjForEachFanin( Wlc_NtkObj(p, iObj), iFanin, k ) if ( iFanin )
+            Vec_IntWriteEntry( vUsed, Wlc_ObjLevelId(p, iFanin), 1 );
+    }
+    // create level map
+    Vec_IntForEachEntry( vUsed, Entry, i )
+        if ( Entry )
+            Vec_IntWriteEntry( vMap, i, Level++ );
+    //printf( "Total used levels %d -> %d\n", nLevels, Level );
+    // remap levels
+    Vec_IntForEachEntry( &p->vLevels, Level, i )
+    {
+        if ( Vec_IntEntry(vUsed, Level) )
+            Vec_IntWriteEntry( &p->vLevels, i, Vec_IntEntry(vMap, Level) );
+        else
+            Vec_IntWriteEntry( &p->vLevels, i, -1 );
+    }
+    Res = Vec_IntEntry( vMap, nLevels );
+    Vec_IntFree( vUsed );
+    Vec_IntFree( vMap );
+    return Res;
 }
 
 /**Function*************************************************************
@@ -674,17 +705,17 @@ void Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
     printf( "%6d%s = ", Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s" : " " );
     if ( pObj->Type == WLC_OBJ_PI )
     {
-        printf( "PI\n" );
+        printf( "            PI                   :    %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
         return;
     }
     if ( pObj->Type == WLC_OBJ_FO )
     {
-        printf( "FO\n" );
+        printf( "            FO                   :    %-12s = %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)), Wlc_ObjName(p, Wlc_ObjId(p, Wlc_ObjFo2Fi(p, pObj))) );
         return;
     }
     if ( pObj->Type != WLC_OBJ_CONST && Wlc_ObjFaninNum(pObj) == 0 )
     {
-        printf( "Unknown object without fanins\n" );
+        printf( "Unknown object without fanins    :    %-12s\n", Wlc_ObjName(p, Wlc_ObjId(p, pObj)) );
         return;
     }
     if ( pObj->Type != WLC_OBJ_CONST )

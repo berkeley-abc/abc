@@ -317,20 +317,20 @@ int Abc_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAllObjects  = 0;
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cmardtovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cbamdtovh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'c':
             fShowCones ^= 1;
             break;
-        case 'm':
+        case 'b':
             fShowMulti ^= 1;
             break;
         case 'a':
             fShowAdder ^= 1;
             break;
-        case 'r':
+        case 'm':
             fShowMem ^= 1;
             break;
         case 'd':
@@ -369,12 +369,12 @@ int Abc_CommandPs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Wlc_NtkPrintObjects( pNtk );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%ps [-cmardtovh]\n" );
+    Abc_Print( -2, "usage: %%ps [-cbamdtovh]\n" );
     Abc_Print( -2, "\t         prints statistics\n" );
     Abc_Print( -2, "\t-c     : toggle printing cones [default = %s]\n",                 fShowCones? "yes": "no" );
-    Abc_Print( -2, "\t-m     : toggle printing multipliers [default = %s]\n",           fShowMulti? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle printing multipliers [default = %s]\n",           fShowMulti? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle printing adders [default = %s]\n",                fShowAdder? "yes": "no" );
-    Abc_Print( -2, "\t-r     : toggle printing memories [default = %s]\n",              fShowMem?   "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle printing memories [default = %s]\n",              fShowMem?   "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle printing distrubition [default = %s]\n",          fDistrib?   "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle printing stats for LHS and RHS [default = %s]\n", fTwoSides?  "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle printing all objects [default = %s]\n",           fAllObjects?"yes": "no" );
@@ -1443,7 +1443,7 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fMemory )
     {
-        Vec_Int_t * vTemp = Wlc_NtkCollectMemory( pNtk );
+        Vec_Int_t * vTemp = Wlc_NtkCollectMemory( pNtk, 1 );
         Wlc_NtkShow( pNtk, vTemp );
         Vec_IntFree( vTemp );
     }
@@ -1811,7 +1811,7 @@ usage:
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Wlc_NtkSimulateTest( Wlc_Ntk_t * p );
-    //Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -1844,6 +1844,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Wln_ReadNdrTest();
     //pNtk = Wlc_NtkMemAbstractTest( pNtk );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
+    //Wln_NtkFromWlcTest( pNtk );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%test [-vh]\n" );

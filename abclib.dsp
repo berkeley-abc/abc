@@ -1135,6 +1135,10 @@ SOURCE=.\src\base\wln\wlnRetime.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wln\wlnWlc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wln\wlnWriteVer.c
 # End Source File
 # End Group

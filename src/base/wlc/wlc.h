@@ -379,7 +379,7 @@ extern Gia_Man_t *    Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pPars );
 /*=== wlcCom.c ========================================================*/
 extern void           Wlc_SetNtk( Abc_Frame_t * pAbc, Wlc_Ntk_t * pNtk );
 /*=== wlcMem.c ========================================================*/
-extern Vec_Int_t *    Wlc_NtkCollectMemory( Wlc_Ntk_t * p );
+extern Vec_Int_t *    Wlc_NtkCollectMemory( Wlc_Ntk_t * p, int fClean );
 extern void           Wlc_NtkPrintMemory( Wlc_Ntk_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkMemAbstractTest( Wlc_Ntk_t * p );
 extern int            Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbose, int fVerbose );
@@ -403,6 +403,7 @@ extern int            Wlc_ObjDup( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec
 extern void           Wlc_NtkFree( Wlc_Ntk_t * p );
 extern int            Wlc_NtkCreateLevels( Wlc_Ntk_t * p );
 extern int            Wlc_NtkCreateLevelsRev( Wlc_Ntk_t * p );
+extern int            Wlc_NtkRemapLevels( Wlc_Ntk_t * p, Vec_Int_t * vObjs, int nLevels );
 extern int            Wlc_NtkCountRealPis( Wlc_Ntk_t * p );
 extern void           Wlc_NtkPrintNode( Wlc_Ntk_t * p, Wlc_Obj_t * pObj );
 extern void           Wlc_NtkPrintNodeArray( Wlc_Ntk_t * p, Vec_Int_t * vArray );

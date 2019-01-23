@@ -475,7 +475,7 @@ void Wln_WriteVer( Wln_Ntk_t * p, char * pFileName )
         fprintf( stdout, "Wln_WriteVer(): Cannot open the output file \"%s\".\n", pFileName );
         return;
     }
-    fprintf( pFile, "// Benchmark \"%s\" written by ABC on %s\n", p->pName, Extra_TimeStamp() );
+    fprintf( pFile, "// Benchmark \"%s\" from file \"%s\" written by ABC on %s\n", p->pName, p->pSpec ? p->pSpec : "unknown", Extra_TimeStamp() );
     fprintf( pFile, "\n" );
     Wln_WriteTables( pFile, p );
 //    if ( fAddCos )

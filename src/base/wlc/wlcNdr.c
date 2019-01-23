@@ -155,7 +155,7 @@ int Ndr_TypeWlc2Ndr( int Type )
     if ( Type == WLC_OBJ_ARI_SQUARE )     return ABC_OPER_ARI_SQUARE;   // 52: integer square
     if ( Type == WLC_OBJ_ARI_ADDSUB )     return ABC_OPER_ARI_ADDSUB;   // 56: adder-subtractor
     if ( Type == WLC_OBJ_ARI_MULTI )      return ABC_OPER_ARI_SMUL;     // 45: signed multiplier
-    if ( Type == WLC_OBJ_FO )             return ABC_OPER_DFF;          // 03: flop
+    if ( Type == WLC_OBJ_FO )             return ABC_OPER_DFFRSE;       // 03: flop
     if ( Type == WLC_OBJ_FF )             return ABC_OPER_DFFRSE;       // 05: flop
     if ( Type == WLC_OBJ_READ )           return ABC_OPER_RAMR;         // 54: read port
     if ( Type == WLC_OBJ_WRITE )          return ABC_OPER_RAMW;         // 55: write port
