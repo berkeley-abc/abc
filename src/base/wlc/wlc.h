@@ -120,6 +120,7 @@ struct Wlc_Obj_t_ // 24 bytes
     unsigned               Type    :  6;       // node type
     unsigned               Signed  :  1;       // signed
     unsigned               Mark    :  1;       // user mark
+    unsigned               Mark2   :  1;       // user mark
     unsigned               fIsPo   :  1;       // this is PO
     unsigned               fIsFi   :  1;       // this is FI
     unsigned               fXConst :  1;       // this is X-valued constant
@@ -283,6 +284,10 @@ static inline int          Wlc_ObjIsPi( Wlc_Obj_t * p )                         
 static inline int          Wlc_ObjIsPo( Wlc_Obj_t * p )                             { return p->fIsPo;                                                         }
 static inline int          Wlc_ObjIsCi( Wlc_Obj_t * p )                             { return p->Type == WLC_OBJ_PI || p->Type == WLC_OBJ_FO;                   }
 static inline int          Wlc_ObjIsCo( Wlc_Obj_t * p )                             { return p->fIsPo || p->fIsFi;                                             }
+static inline int          Wlc_ObjIsRead( Wlc_Obj_t * p )                           { return p->Type == WLC_OBJ_READ;                                          }
+static inline int          Wlc_ObjIsWrite( Wlc_Obj_t * p )                          { return p->Type == WLC_OBJ_WRITE;                                         }
+static inline int          Wlc_ObjIsMux( Wlc_Obj_t * p )                            { return p->Type == WLC_OBJ_MUX;                                           }
+static inline int          Wlc_ObjIsBuf( Wlc_Obj_t * p )                            { return p->Type == WLC_OBJ_BUF;                                           }
 static inline int          Wlc_ObjIsFf( Wlc_Ntk_t * p, int i )                      { return Wlc_NtkObj(p, i)->Type == WLC_OBJ_FF;                             }
 
 static inline int          Wlc_ObjId( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )             { return pObj - p->pObjs;                                                  }
@@ -383,6 +388,7 @@ extern Vec_Int_t *    Wlc_NtkCollectMemory( Wlc_Ntk_t * p, int fClean );
 extern void           Wlc_NtkPrintMemory( Wlc_Ntk_t * p );
 extern Wlc_Ntk_t *    Wlc_NtkMemAbstractTest( Wlc_Ntk_t * p );
 extern int            Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbose, int fVerbose );
+extern Wlc_Ntk_t *    Wlc_NtkAbstractMem( Wlc_Ntk_t * p, int nFrames, int fVerbose );
 /*=== wlcNdr.c ========================================================*/
 extern Wlc_Ntk_t *    Wlc_ReadNdr( char * pFileName );
 extern void           Wlc_WriteNdr( Wlc_Ntk_t * pNtk, char * pFileName );

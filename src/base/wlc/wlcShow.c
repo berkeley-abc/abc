@@ -261,7 +261,7 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
         else
         {
             fprintf( pFile, "  Node%d [label = \"%d:%s %d\"", Wlc_ObjId(p, pNode), Wlc_ObjId(p, pNode), Wlc_ObjName(p, Wlc_ObjId(p, pNode)), Wlc_ObjRange(pNode) ); 
-            fprintf( pFile, ", shape = %s", (Vec_IntSize(&p->vFfs2) > 0 || i < Wlc_NtkPiNum(p)) ? "triangle" : "box" );
+            fprintf( pFile, ", shape = %s", (Vec_IntSize(&p->vFfs2) > 0 || Wlc_ObjCiId(pNode) < Wlc_NtkPiNum(p)) ? "triangle" : "box" );
             fprintf( pFile, ", color = coral, fillcolor = coral" );
         }
         fprintf( pFile, "];\n" );

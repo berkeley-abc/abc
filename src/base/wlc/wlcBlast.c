@@ -1267,8 +1267,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     // blast in the topological order
     Wlc_NtkForEachObj( p, pObj, i )
     {
-//        char * pName1 = Wlc_ObjName(p, i);
-//        char * pName2 = Wlc_ObjFaninNum(pObj) ? Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) : NULL;
+        //char * pName1 = Wlc_ObjName(p, i);
+        //char * pName2 = Wlc_ObjFaninNum(pObj) ? Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) : NULL;
 
         nAndPrev = Gia_ManAndNum(pNew);
         nRange  = Wlc_ObjRange( pObj );

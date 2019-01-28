@@ -38,6 +38,7 @@ static int  Abc_CommandAbs        ( Abc_Frame_t * pAbc, int argc, char ** argv )
 static int  Abc_CommandPdrAbs     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandAbs2       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandMemAbs     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandMemAbs2    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlast      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandBlastMem   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandGraft      ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -84,6 +85,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%pdra",        Abc_CommandPdrAbs,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%abs2",        Abc_CommandAbs2,       0 );
     Cmd_CommandAdd( pAbc, "Word level", "%memabs",      Abc_CommandMemAbs,     0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%memabs2",     Abc_CommandMemAbs2,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",       Abc_CommandBlast,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blastmem",    Abc_CommandBlastMem,   0 );
     Cmd_CommandAdd( pAbc, "Word level", "%graft",       Abc_CommandGraft,      0 );
@@ -942,7 +944,7 @@ int Abc_CommandMemAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pNtk == NULL )
     {
-        Abc_Print( 1, "Abc_CommandCone(): There is no current design.\n" );
+        Abc_Print( 1, "Abc_CommandMemAbs(): There is no current design.\n" );
         return 0;
     }
     Wlc_NtkMemAbstract( pNtk, nIterMax, fDumpAbs, fPdrVerbose, fVerbose );
@@ -953,6 +955,63 @@ usage:
     Abc_Print( -2, "\t-I num : maximum number of CEGAR iterations [default = %d]\n",  nIterMax );
     Abc_Print( -2, "\t-d     : toggle dumping abstraction as an AIG [default = %s]\n",fDumpAbs? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing verbose PDR output [default = %s]\n",  fPdrVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandMemAbs2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    int c, nFrames = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFrames = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFrames <= 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( 1, "Abc_CommandMemAbs2(): There is no current design.\n" );
+        return 0;
+    }
+    pNtk = Wlc_NtkAbstractMem( pNtk, nFrames, fVerbose );
+    Wlc_AbcUpdateNtk( pAbc, pNtk );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%memabs2 [-F num] [-vh]\n" );
+    Abc_Print( -2, "\t         memory abstraction for word-level networks\n" );
+    Abc_Print( -2, "\t-F num : the number of timeframes [default = %d]\n",  nFrames );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -1810,8 +1869,9 @@ usage:
 ******************************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Wlc_NtkExploreMem( Wlc_Ntk_t * p, int nFrames );
     extern void Wlc_NtkSimulateTest( Wlc_Ntk_t * p );
-    //Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
+    Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -1845,6 +1905,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //pNtk = Wlc_NtkMemAbstractTest( pNtk );
     //Wlc_AbcUpdateNtk( pAbc, pNtk );
     //Wln_NtkFromWlcTest( pNtk );
+    Wlc_NtkExploreMem( pNtk, 0 );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%test [-vh]\n" );

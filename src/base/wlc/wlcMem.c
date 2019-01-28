@@ -309,11 +309,11 @@ int Wlc_NtkDupOneObject( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int 
     }
     return iObjNew;
 }
-void Wlc_NtkDupOneBuffer( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFanins, int fIsFi )
+void Wlc_NtkDupOneBuffer( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int iFanin, Vec_Int_t * vFanins, int fIsFi )
 {
     int iObj = Wlc_ObjAlloc( pNew, WLC_OBJ_BUF, pObj->Signed, pObj->End, pObj->Beg );
     Wlc_Obj_t * pObjNew = Wlc_NtkObj( pNew, iObj );
-    Vec_IntFill( vFanins, 1, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
+    Vec_IntFill( vFanins, 1, iFanin );
     Wlc_ObjAddFanins( pNew, pObjNew, vFanins );
     Wlc_ObjSetCo( pNew, pObjNew, fIsFi );
 }
@@ -593,9 +593,9 @@ Wlc_Ntk_t * Wlc_NtkAbstractMemory( Wlc_Ntk_t * p, Vec_Int_t * vMemObjs, Vec_Int_
             Wlc_ObjAddFanins( pNew, pObjNew, vFanins );
             Wlc_ObjSetCo( pNew, pObjNew, 0 );
         }
-        printf( "Created %d miter outputs.\n", Wlc_NtkPoNum(pNew) );
+        printf( "Memory abstraction created %d miter outputs.\n", Wlc_NtkPoNum(pNew) );
         Wlc_NtkForEachCo( p, pObj, i )
-            if ( pObj->fIsFi )
+            if ( pObj->fIsFi && !pObj->Mark )
                 Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
 
         // create constraint output
@@ -630,7 +630,7 @@ Wlc_Ntk_t * Wlc_NtkAbstractMemory( Wlc_Ntk_t * p, Vec_Int_t * vMemObjs, Vec_Int_
     // create new flop inputs
     if ( vMemFanins )
         Wlc_NtkForEachObjVec( vMemFanins, p, pObj, i )
-            Wlc_NtkDupOneBuffer( pNew, p, pObj, vFanins, 1 );
+            Wlc_NtkDupOneBuffer( pNew, p, pObj, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)), vFanins, 1 );
 
     // create flop inputs for constraint objects
     if ( vConstrs )
@@ -1094,6 +1094,420 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbo
     Abc_CexFreeP( &pCex ); // return CEX in the future
     return RetValue;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Collect visited objects.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wlc_NtkExploreMem2_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vCollect, int nFrames )
+{
+    int k, iFanin, nVisited = 0;
+    if ( pObj->Mark == 0 )
+        return 0;
+    if ( Wlc_ObjType(pObj) == WLC_OBJ_PI || (Wlc_ObjType(pObj) == WLC_OBJ_FO && nFrames == 0) )
+    {
+        Vec_IntPushTwo( vCollect, Wlc_ObjId(p, pObj), nFrames );
+        return 1;
+    }
+    if ( Wlc_ObjType(pObj) == WLC_OBJ_FO )
+        return Wlc_NtkExploreMem2_rec( p, Wlc_ObjFo2Fi(p, pObj), vCollect, nFrames-1 );
+    Wlc_ObjForEachFanin( pObj, iFanin, k )
+        nVisited += Wlc_NtkExploreMem2_rec( p, Wlc_NtkObj(p, iFanin), vCollect, nFrames );
+    Vec_IntPushTwo( vCollect, Wlc_ObjId(p, pObj), nFrames );
+    return nVisited + 1;
+}
+void Wlc_NtkExploreMem2( Wlc_Ntk_t * p, int nFrames )
+{
+    Wlc_Obj_t * pObj; int i, k, Entry, Frame, nVisited;
+    Vec_Int_t * vCollect = Vec_IntStart( 1000 );
+    Vec_Int_t * vMemObjsClean = Wlc_NtkCollectMemory( p, 1 );
+    Wlc_NtkCleanMarks( p );
+    Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, i )
+        pObj->Mark = 1;
+    Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, i )
+    {
+        if ( Wlc_ObjType(pObj) != WLC_OBJ_READ )
+            continue;
+        Vec_IntClear( vCollect );
+        nVisited = Wlc_NtkExploreMem2_rec( p, pObj, vCollect, nFrames );
+        printf( "Obj %6d : ", Wlc_ObjId(p, pObj) );
+        printf( "Visit = %6d  ", nVisited );
+        printf( "Pair = %6d  ", Vec_IntSize(vCollect)/2 );
+        if ( Vec_IntSize(vCollect)/2 < 10 )
+            Vec_IntForEachEntryDouble( vCollect, Entry, Frame, k )
+                printf( "%d(%d) ", Entry, Frame );
+        printf( "\n" );
+    }
+    Vec_IntFree( vMemObjsClean );
+    Vec_IntFree( vCollect );
+    Wlc_NtkCleanMarks( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect memory flops reachable.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkExploreMem_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vCollect, int nFrames )
+{
+    int k, iFanin;
+    if ( pObj->Mark == 0 )
+        return;
+    if ( Wlc_ObjType(pObj) == WLC_OBJ_PI || (Wlc_ObjType(pObj) == WLC_OBJ_FO && nFrames == 0) )
+    {
+        Vec_IntPushUnique( vCollect, Wlc_ObjId(p, pObj) );
+        return;
+    }
+    if ( Wlc_ObjType(pObj) == WLC_OBJ_FO )
+    {
+        Wlc_NtkExploreMem_rec( p, Wlc_ObjFo2Fi(p, pObj), vCollect, nFrames-1 );
+        return;
+    }
+    Wlc_ObjForEachFanin( pObj, iFanin, k )
+        Wlc_NtkExploreMem_rec( p, Wlc_NtkObj(p, iFanin), vCollect, nFrames );
+}
+void Wlc_NtkExploreMem( Wlc_Ntk_t * p, int nFrames )
+{
+    Wlc_Obj_t * pObj; int i, k, iObj;
+    Vec_Int_t * vCollect = Vec_IntStart( 1000 );
+    Vec_Int_t * vMemObjsClean = Wlc_NtkCollectMemory( p, 1 );
+    Wlc_NtkCleanMarks( p );
+    Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, i )
+        pObj->Mark = 1;
+    Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, i )
+    {
+        if ( Wlc_ObjType(pObj) != WLC_OBJ_READ )
+            continue;
+        Vec_IntClear( vCollect );
+        Wlc_NtkExploreMem_rec( p, pObj, vCollect, nFrames );
+        printf( "Read port %6d : ", Wlc_ObjId(p, pObj) );
+        printf( "Inputs = %6d  ", Vec_IntSize(vCollect) );
+        Vec_IntForEachEntry( vCollect, iObj, k )
+            printf( "%d(%s) ", iObj, Wlc_ObjName(p, iObj) );
+        printf( "\n" );
+    }
+    Vec_IntFree( vMemObjsClean );
+    Vec_IntFree( vCollect );
+    Wlc_NtkCleanMarks( p );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [For each READ find reachable CIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Wlc_NtkFindReachablePiFo( Wlc_Ntk_t * p, Vec_Int_t * vMemObjsClean, int nFrames )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    Wlc_Obj_t * pObjR, * pObjI, * pObj; 
+    int i, j, k, f, fFanin;
+    Wlc_NtkForEachObj( p, pObj, i )
+        pObj->Mark2 = 0;
+    // go through read ports
+    Wlc_NtkForEachObjVec( vMemObjsClean, p, pObjR, i ) if ( Wlc_ObjIsRead(pObjR) )
+    {
+        // go through memory CIs
+        Wlc_NtkForEachObjVec( vMemObjsClean, p, pObjI, j ) if ( Wlc_ObjIsCi(pObjI) )
+        {
+            // propagate bit from CI to READ
+            pObjI->Mark2 = 1;
+            Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, k )
+            {
+                if ( pObj == pObjI )
+                    continue;
+                assert( pObj->Mark2 == 0 );
+                Wlc_ObjForEachFanin( pObj, fFanin, f )
+                    pObj->Mark2 |= Wlc_NtkObj(p, fFanin)->Mark2;
+            }
+            if ( pObjR->Mark2 )
+                Vec_IntPushThree( vRes, Wlc_ObjId(p, pObjR), Wlc_ObjId(p, pObjI), -1 );
+            Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, k )
+                pObj->Mark2 = 0;
+        }
+    }
+    Wlc_NtkForEachObj( p, pObj, i )
+        assert( pObj->Mark2 == 0 );
+    return vRes;
+}
+Vec_Int_t * Wlc_NtkExtractCisForThisRead( Vec_Int_t * vReachReadCi, int iRead )
+{
+    int k;
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    for ( k = 0; k < Vec_IntSize(vReachReadCi)/3; k++ )
+    {
+        if ( iRead != Vec_IntEntry( vReachReadCi, 3*k ) )
+            continue;
+        Vec_IntPush( vRes, Vec_IntEntry( vReachReadCi, 3*k+1 ) );
+        Vec_IntPush( vRes, Vec_IntEntry( vReachReadCi, 3*k+2 ) );
+    }
+    return vRes;
+}
+Vec_Int_t * Wlc_NtkCollectOneType( Wlc_Ntk_t * p, Vec_Int_t * vMemObjsClean, int Type1, int Type2 )
+{
+    Wlc_Obj_t * pObj; int i;
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, i )
+        if ( Wlc_ObjType(pObj) == Type1 || Wlc_ObjType(pObj) == Type2 )
+            Vec_IntPush( vRes, Wlc_ObjId(p, pObj) );
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create memory constraints.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_NtkCreateMemoryConstr( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, Vec_Int_t * vMemObjsClean, Vec_Int_t * vReachReadCi )
+{
+    Vec_Int_t * vReads  = Wlc_NtkCollectOneType( p, vMemObjsClean, WLC_OBJ_READ, -1 );
+    Vec_Int_t * vObjCis = Wlc_NtkCollectOneType( p, vMemObjsClean, WLC_OBJ_PI, WLC_OBJ_FO );
+    Vec_Int_t * vFanins = Vec_IntAlloc( 10 );
+    Wlc_Obj_t * pObjR, * pObj, * pCond; 
+    int i, k, iObjCi, iObjNew = -1;
+    // go through read ports
+    Wlc_NtkForEachObjVec( vReads, p, pObjR, i )
+    {
+        // ABC_READ  ( .mem_in(mem_fi1), .addr(raddr), .data(read1) ) ;
+        // ABC_WRITE ( .mem_in(mem_fo1), .addr(waddr), .data(data), .mem_out(mem_fi1) ) ;
+        // initialize CI related to the read port
+        Vec_Int_t * vLocalCis = Wlc_NtkExtractCisForThisRead( vReachReadCi, Wlc_ObjId(p, pObjR) );
+        Wlc_NtkForEachObjVec( vObjCis, p, pObj, k )
+            Wlc_ObjSetCopy( p, Wlc_ObjId(p, pObj), -1 );
+        Vec_IntForEachEntryDouble( vLocalCis, iObjCi, iObjNew, k )
+            Wlc_ObjSetCopy( p, iObjCi, iObjNew );
+        Vec_IntFree( vLocalCis );
+        // implement the nodes
+        Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, k )
+        {
+            if ( Wlc_ObjIsRead(pObj) || Wlc_ObjIsCi(pObj) )
+                continue;
+            Wlc_ObjSetCopy( p, Wlc_ObjId(p, pObj), -1 );
+            if ( Wlc_ObjIsWrite(pObj) )
+            {
+                if ( Wlc_ObjCopy(p, Wlc_ObjFaninId0(pObj)) == -1 )
+                    continue;
+                if ( Wlc_ObjRange(pObjR) != Wlc_ObjRange(Wlc_ObjFanin2(p, pObj)) )
+                    continue;
+                // create equality
+                pCond = Wlc_NtkObj( pNew, Wlc_ObjAlloc(pNew, WLC_OBJ_COMP_EQU, 0, 0, 0) );
+                Vec_IntFillTwo( vFanins, 2, Wlc_ObjCopy(p, Wlc_ObjFaninId1(pObjR)), Wlc_ObjCopy(p, Wlc_ObjFaninId1(pObj)) );
+                //printf( "%d : ", Wlc_ObjId(p,pObj) ), Vec_IntPrint( vFanins );
+                Wlc_ObjAddFanins( pNew, pCond, vFanins );
+                // create MUX
+                iObjNew = Wlc_ObjAlloc( pNew, WLC_OBJ_MUX, 0, Wlc_ObjRange(pObjR)-1, 0 );
+                Vec_IntFill( vFanins, 1, Wlc_ObjId(pNew, pCond) );
+                Vec_IntPush( vFanins, Wlc_ObjCopy(p, Wlc_ObjFaninId2(pObj)) );
+                Vec_IntPush( vFanins, Wlc_ObjCopy(p, Wlc_ObjFaninId0(pObj)) );
+                Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObjNew), vFanins );
+            }
+            else if ( Wlc_ObjIsMux(pObj) )
+            {
+                int iFanin0New = Wlc_ObjCopy(p, Wlc_ObjFaninId1(pObj));
+                int iFanin1New = Wlc_ObjCopy(p, Wlc_ObjFaninId2(pObj));
+                if ( iFanin0New == -1 || iFanin1New == -1 )
+                    continue;
+                //Wlc_NtkPrintNode( pNew, Wlc_NtkObj(pNew, iFanin0New) );
+                assert( Wlc_ObjRange(pObjR) == Wlc_ObjRange(Wlc_NtkObj(pNew, iFanin0New)) );
+                assert( Wlc_ObjRange(pObjR) == Wlc_ObjRange(Wlc_NtkObj(pNew, iFanin1New)) );
+                iObjNew = Wlc_ObjAlloc( pNew, WLC_OBJ_MUX, 0, Wlc_ObjRange(pObjR)-1, 0 );
+                Vec_IntFill( vFanins, 1, Wlc_ObjCopy(p, Wlc_ObjFaninId0(pObj)) );
+                Vec_IntPush( vFanins, iFanin0New );
+                Vec_IntPush( vFanins, iFanin1New );
+                Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObjNew), vFanins );
+            }
+            else if ( Wlc_ObjIsBuf(pObj) )
+            {
+                iObjNew = Wlc_ObjCopy( p, Wlc_ObjFaninId0(pObj) );
+                if ( iObjNew == -1 )
+                    continue;
+            }
+            else assert( 0 );
+            Wlc_ObjSetCopy( p, Wlc_ObjId(p, pObj), iObjNew );
+        }
+        // extract fanin
+        iObjNew = Wlc_ObjCopy( p, Wlc_ObjFaninId0(pObjR) );
+        assert( iObjNew != -1 );
+        Vec_IntFill( vFanins, 1, iObjNew );
+        // add it as buffer fanin
+        iObjNew = Wlc_ObjCopy( p, Wlc_ObjId(p, pObjR) );
+        assert( Wlc_NtkObj(pNew, iObjNew)->Type == WLC_OBJ_BUF );
+        Wlc_ObjAddFanins( pNew, Wlc_NtkObj(pNew, iObjNew), vFanins );
+    }
+    Wlc_NtkForEachObjVec( vObjCis, p, pObj, k )
+        Wlc_ObjSetCopy( p, Wlc_ObjId(p, pObj), -1 );
+    Vec_IntFree( vFanins );
+    Vec_IntFree( vReads );
+    Vec_IntFree( vObjCis );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Perform abstraction.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Wlc_Ntk_t * Wlc_NtkAbstractMem( Wlc_Ntk_t * p, int nFrames, int fVerbose )
+{
+    Vec_Int_t * vMemObjsAll   = Wlc_NtkCollectMemory( p, 0 );
+    Vec_Int_t * vMemObjsClean = Wlc_NtkCollectMemory( p, 1 );
+    Vec_Int_t * vReachReadCi  = Wlc_NtkFindReachablePiFo( p, vMemObjsClean, nFrames );
+    Wlc_Ntk_t * pNew, * pTemp;
+    Wlc_Obj_t * pObj;
+    Vec_Int_t * vFanins  = Vec_IntAlloc( 100 );
+    int i, Po0, Po1, iObjNew;
+
+    assert( nFrames == 0 );
+
+    // mark memory nodes
+    Wlc_NtkCleanMarks( p );
+    Wlc_NtkForEachObjVec( vMemObjsAll, p, pObj, i )
+        pObj->Mark = 1;
+
+    // start new network
+    Wlc_NtkCleanCopy( p );
+    pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc + Vec_IntSize(vMemObjsClean) * nFrames * 10 );
+    pNew->fSmtLib   = p->fSmtLib;
+    pNew->fMemPorts = p->fMemPorts;
+    pNew->fEasyFfs  = p->fEasyFfs;
+    pNew->vInits    = Vec_IntAlloc( 100 );
+
+    // duplicate PIs
+    Wlc_NtkForEachPi( p, pObj, i )
+        if ( !pObj->Mark )
+            Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+
+    // create new PIs
+    assert( Vec_IntSize(vReachReadCi) % 3 == 0 );
+    for ( i = 0; i < Vec_IntSize(vReachReadCi)/3; i++ )
+    {
+        pObj = Wlc_NtkObj( p, Vec_IntEntry( vReachReadCi, 3*i ) );
+        assert( Wlc_ObjIsRead(pObj) );
+        iObjNew = Wlc_NtkDupOneObject( pNew, p, pObj, WLC_OBJ_PI, vFanins );
+        Vec_IntWriteEntry( vReachReadCi, 3*i+2, iObjNew );
+    }
+    //Vec_IntPrint( vReachReadCi );
+
+    // duplicate flop outputs
+    Wlc_NtkForEachCi( p, pObj, i )
+        if ( !Wlc_ObjIsPi(pObj) && !pObj->Mark )
+        {
+            Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+            Vec_IntPush( pNew->vInits, Vec_IntEntry(p->vInits, i-Wlc_NtkPiNum(p)) );
+        }
+
+/*
+    // create flops for memory objects
+    Wlc_NtkForEachObjVec( vMemFanins, p, pObj, i )
+        for ( k = 0; k < nFrames; k++ )
+            Wlc_NtkDupOneObject( pNew, p, pObj, WLC_OBJ_FO, vFanins );
+*/
+
+    // create buffers for read ports
+    Wlc_NtkForEachObjVec( vMemObjsClean, p, pObj, i )
+    {
+        if ( !Wlc_ObjIsRead(pObj) )
+            continue;
+        iObjNew = Wlc_ObjAlloc( pNew, WLC_OBJ_BUF, pObj->Signed, pObj->End, pObj->Beg );
+        Wlc_ObjSetCopy( p, Wlc_ObjId(p, pObj), iObjNew );
+    }
+
+    // duplicate objects
+    Wlc_NtkForEachObj( p, pObj, i )
+        if ( !Wlc_ObjIsCi(pObj) && !pObj->Mark )
+            Wlc_ObjDup( pNew, p, Wlc_ObjId(p, pObj), vFanins );
+
+    // create memory constraints
+    Wlc_NtkCreateMemoryConstr( pNew, p, vMemObjsClean, vReachReadCi );
+
+    // create outpus
+    if ( Vec_IntSize(&p->vPoPairs) )
+    {
+        // create miter for the PO pairs
+        Vec_IntForEachEntryDouble( &p->vPoPairs, Po0, Po1, i )
+        {
+            int iCopy0 = Wlc_ObjCopy(p, Wlc_ObjId(p, Wlc_NtkPo(p, Po0)));
+            int iCopy1 = Wlc_ObjCopy(p, Wlc_ObjId(p, Wlc_NtkPo(p, Po1)));
+            int iObj = Wlc_ObjAlloc( pNew, WLC_OBJ_COMP_NOTEQU, 0, 0, 0 );
+            Wlc_Obj_t * pObjNew = Wlc_NtkObj( pNew, iObj );
+            Vec_IntFillTwo( vFanins, 1, iCopy0, iCopy1 );
+            Wlc_ObjAddFanins( pNew, pObjNew, vFanins );
+            Wlc_ObjSetCo( pNew, pObjNew, 0 );
+        }
+        printf( "Memory abstraction created %d miter outputs.\n", Wlc_NtkPoNum(pNew) );
+        Wlc_NtkForEachCo( p, pObj, i )
+            if ( pObj->fIsFi && !pObj->Mark )
+                Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
+    }
+    else
+    {
+        // duplicate POs
+        Wlc_NtkForEachPo( p, pObj, i )
+            if ( !pObj->Mark )
+                Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
+        // duplicate FIs
+        Wlc_NtkForEachCo( p, pObj, i )
+            if ( !Wlc_ObjIsPo(pObj) && !pObj->Mark )
+                Wlc_ObjSetCo( pNew, Wlc_ObjCopyObj(pNew, p, pObj), pObj->fIsFi );
+    }
+
+/*
+    // create new flop inputs
+    Wlc_NtkForEachObjVec( vMemFanins, p, pObj, i )
+        for ( k = 0; k < nFrames; k++ )
+            Wlc_NtkDupOneBuffer( pNew, p, pObj, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj))-(nFrames-1-k), vFanins, 1 );
+*/
+
+    // append init states
+    pNew->pInits = Wlc_PrsConvertInitValues( pNew );
+    if ( p->pSpec )
+        pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    if ( Wlc_NtkHasNameId(p) )
+        Wlc_NtkTransferNames( pNew, p );
+    Vec_IntFree( vFanins );
+    Vec_IntFree( vMemObjsAll );
+    Vec_IntFree( vMemObjsClean );
+    Vec_IntFree( vReachReadCi );
+    Wlc_NtkCleanMarks( p );
+    // derive topological order
+//printf( "Objects before = %d.\n", Wlc_NtkObjNum(pNew) );
+    pNew = Wlc_NtkDupDfs( pTemp = pNew, 0, 1 );
+    Wlc_NtkFree( pTemp );
+//printf( "Objects after = %d.\n", Wlc_NtkObjNum(pNew) );
+    return pNew;
+}
+
 
 
 ////////////////////////////////////////////////////////////////////////

@@ -1119,6 +1119,10 @@ SOURCE=.\src\base\wln\wln.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wln\wlnMem.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wln\wlnNdr.c
 # End Source File
 # Begin Source File

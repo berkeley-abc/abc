@@ -832,7 +832,7 @@ void Wlc_NtkTransferNames( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p )
     assert( pNew->pManName  == NULL && p->pManName != NULL );
     Wlc_NtkCleanNameId( pNew );
     for ( i = 0; i < p->nObjsAlloc; i++ )
-        if ( Wlc_ObjCopy(p, i) && i < Vec_IntSize(&p->vNameIds) && Wlc_ObjNameId(p, i) )
+        if ( Wlc_ObjCopy(p, i) > 0 && i < Vec_IntSize(&p->vNameIds) && Wlc_ObjNameId(p, i) )
             Wlc_ObjSetNameId( pNew, Wlc_ObjCopy(p, i), Wlc_ObjNameId(p, i) );
     pNew->pManName = p->pManName; 
     p->pManName = NULL;
