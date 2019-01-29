@@ -45439,7 +45439,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Gen( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Extra_CommandGen( int Algo, int LutSize, int nLuts, int nLevels, int Limit, int nBestTries, int fVerbose );
+    extern Gia_Man_t * Extra_CommandGen( int Algo, int LutSize, int nLuts, int nLevels, int Limit, int nBestTries, int Multi, int fXor, int fVerbose );
     Gia_Man_t * pTemp = NULL;
     int Algo        =   0;
     int LutSize     =   6;
@@ -45447,9 +45447,11 @@ int Abc_CommandAbc9Gen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nLevels     =   8;
     int Limit       =   0;
     int nBestTries  =   1;
+    int Multi       =   0;
+    int fXor        =   1;
     int c, fVerbose =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "AKNDLBvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "AKNDLBMxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -45519,6 +45521,20 @@ int Abc_CommandAbc9Gen( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nBestTries < 0 )
                 goto usage;
             break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Multi = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Multi < 0 )
+                goto usage;
+            break;
+        case 'x':
+            fXor ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -45528,12 +45544,12 @@ int Abc_CommandAbc9Gen( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    pTemp = Extra_CommandGen( Algo, LutSize, nLuts, nLevels, Limit, nBestTries, fVerbose );
+    pTemp = Extra_CommandGen( Algo, LutSize, nLuts, nLevels, Limit, nBestTries, Multi, fXor, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gen [-AKNDLBvh]\n" );
+    Abc_Print( -2, "usage: &gen [-AKNDLBMxvh]\n" );
     Abc_Print( -2, "\t          generates network\n" );
     Abc_Print( -2, "\t-A num  : the generation algorithm [default = %d]\n",                 Algo );
     Abc_Print( -2, "\t-K num  : the number of LUT inputs [default = %d]\n",                 LutSize );
@@ -45541,6 +45557,8 @@ usage:
     Abc_Print( -2, "\t-D num  : the number of LUT levels [default = %d]\n",                 nLevels );
     Abc_Print( -2, "\t-L num  : limit below which we randomize [default = %d]\n",           Limit );
     Abc_Print( -2, "\t-B num  : select best fanins among this many tries [default = %d]\n", nBestTries );
+    Abc_Print( -2, "\t-M num  : the multiplier type (1=array, 2=booth) [default = %d]\n",   Multi );
+    Abc_Print( -2, "\t-x      : toggle using XOR gates [default = %s]\n",                   fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n",      fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
@@ -45559,29 +45577,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Multi, int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose );
-    int Multi       =   0;
+    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose );
     int Limit       =   0;
     int Reps        =   1;
     int UnseenUse   =   2;
     int RareUse     =   2;
     int c, fVerbose =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MLNURvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LNURvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'M':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            Multi = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( Multi < 0 )
-                goto usage;
-            break;
         case 'L':
             if ( globalUtilOptind >= argc )
             {
@@ -45640,13 +45646,12 @@ int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Cfs(): There is no AIG.\n" );
         return 1;
     }
-    Extra_CommandCfs( pAbc->pGia, Multi, Limit, Reps, UnseenUse, RareUse, fVerbose );
+    Extra_CommandCfs( pAbc->pGia, Limit, Reps, UnseenUse, RareUse, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cfs [-MLNURvh]\n" );
+    Abc_Print( -2, "usage: &cfs [-LNURvh]\n" );
     Abc_Print( -2, "\t          performs simulation\n" );
-    Abc_Print( -2, "\t-M num  : the multiplier type (1=array, 2=booth) [default = %d]\n",  Multi );
     Abc_Print( -2, "\t-L num  : the limit on the number of occurrences [default = %d]\n",  Limit );
     Abc_Print( -2, "\t-N num  : the number of repetions of each pattern [default = %d]\n", Reps );
     Abc_Print( -2, "\t-U num  : what to do with unseen patterns [default = %d]\n",         UnseenUse );
