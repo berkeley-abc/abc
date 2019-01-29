@@ -45559,17 +45559,29 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose );
+    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Multi, int Limit, int Reps, int UnseenUse, int RareUse, int fVerbose );
+    int Multi       =   0;
     int Limit       =   0;
     int Reps        =   1;
     int UnseenUse   =   2;
     int RareUse     =   2;
     int c, fVerbose =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LNURvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MLNURvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Multi = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Multi < 0 )
+                goto usage;
+            break;
         case 'L':
             if ( globalUtilOptind >= argc )
             {
@@ -45628,12 +45640,13 @@ int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Cfs(): There is no AIG.\n" );
         return 1;
     }
-    Extra_CommandCfs( pAbc->pGia, Limit, Reps, UnseenUse, RareUse, fVerbose );
+    Extra_CommandCfs( pAbc->pGia, Multi, Limit, Reps, UnseenUse, RareUse, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cfs [-LNURvh]\n" );
+    Abc_Print( -2, "usage: &cfs [-MLNURvh]\n" );
     Abc_Print( -2, "\t          performs simulation\n" );
+    Abc_Print( -2, "\t-M num  : the multiplier type (1=array, 2=booth) [default = %d]\n",  Multi );
     Abc_Print( -2, "\t-L num  : the limit on the number of occurrences [default = %d]\n",  Limit );
     Abc_Print( -2, "\t-N num  : the number of repetions of each pattern [default = %d]\n", Reps );
     Abc_Print( -2, "\t-U num  : what to do with unseen patterns [default = %d]\n",         UnseenUse );
