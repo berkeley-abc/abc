@@ -157,7 +157,7 @@ typedef enum {
 
 
 // printing operator types
-static inline char * Abc_OperName( int Type )
+static inline const char * Abc_OperName( int Type )
 {
     if ( Type == ABC_OPER_NONE         )   return NULL;
     if ( Type == ABC_OPER_PI           )   return "pi";     
