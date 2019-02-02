@@ -174,7 +174,7 @@ void Wln_NtkCheckIntegrity( void * pData )
         int Type = Ndr_ObjReadBody( p, Obj, NDR_OPERTYPE );
         int i, * pArray, nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         for ( i = 0; i < nArray; i++ )
-            if ( Vec_IntGetEntry(vMap, pArray[i]) == 0 && !(Type == ABC_OPER_DFFRSE && (i >= 5 || i <= 7)) )
+            if ( Vec_IntGetEntry(vMap, pArray[i]) == 0 && !(Type == ABC_OPER_DFFRSE && (i >= 5 && i <= 7)) )
                 printf( "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
     }
     Vec_IntFree( vMap );
