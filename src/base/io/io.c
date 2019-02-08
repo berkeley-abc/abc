@@ -2292,6 +2292,14 @@ ABC_NAMESPACE_IMPL_END
 
 ABC_NAMESPACE_IMPL_START
 
+int Abc_NtkCheckSpecialPi( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj;  int i;
+    Abc_NtkForEachPi( pNtk, pObj, i )
+        if ( !strcmp(Abc_ObjName(pObj), "_abc_190121_abc_") )
+            return 1;
+    return 0;
+}
 
 /**Function*************************************************************
 
@@ -2448,7 +2456,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             fprintf( pFile, "\n");                                           
             fprintf( pFile, "# COUNTEREXAMPLE LENGTH: %u\n", pCex->iFrame+1);
-            if ( fUseFfNames )
+            if ( fUseFfNames && Abc_NtkCheckSpecialPi(pNtk) )
             {
                 int * pValues;
                 int nXValues = 0, iFlop = 0, iPivotPi = -1;
