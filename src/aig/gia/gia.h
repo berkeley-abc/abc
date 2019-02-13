@@ -246,6 +246,7 @@ struct Gps_Par_t_
     int            fMiter;
     int            fSkipMap;
     int            fSlacks;
+    int            fNoColor;
     char *         pDumpFile;
 };
 

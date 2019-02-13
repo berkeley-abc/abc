@@ -450,6 +450,13 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Gia_ManPrintStatsMiter( p, 0 );
         return;
     }
+    if ( pPars->fNoColor )
+    {
+        if ( p->pName )
+            Abc_Print( 1, "%-8s : ", p->pName );
+    }
+    else
+    {
 #ifdef WIN32
     SetConsoleTextAttribute( GetStdHandle(STD_OUTPUT_HANDLE), 15 ); // bright
     if ( p->pName )
@@ -459,6 +466,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( p->pName )
         Abc_Print( 1, "%s%-8s%s : ", "\033[1;37m", p->pName, "\033[0m" );  // bright
 #endif
+    }
     Abc_Print( 1, "i/o =%7d/%7d", 
         Gia_ManPiNum(p) - Gia_ManBoxCiNum(p) - Gia_ManRegBoxNum(p), 
         Gia_ManPoNum(p) - Gia_ManBoxCoNum(p) - Gia_ManRegBoxNum(p) );
@@ -468,7 +476,14 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
     if ( Gia_ManRegBoxNum(p) )
         Abc_Print( 1, "  boxff =%d(%d)", Gia_ManRegBoxNum(p), Gia_ManClockDomainNum(p) );
-
+    if ( pPars->fNoColor )
+    {
+        Abc_Print( 1, "  %s =%8d", p->pMuxes? "nod" : "and", Gia_ManAndNum(p) );
+        Abc_Print( 1, "  lev =%5d", Gia_ManLevelNum(p) ); 
+        Abc_Print( 1, " (%.2f)", Gia_ManLevelAve(p) ); 
+    }
+    else
+    {
 #ifdef WIN32
     {
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -484,6 +499,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     Abc_Print( 1, "  %slev =%5d%s", "\033[1;35m", Gia_ManLevelNum(p), "\033[0m" ); // magenta
     Abc_Print( 1, " %s(%.2f)%s",    "\033[1;35m", Gia_ManLevelAve(p), "\033[0m" ); 
 #endif
+    }
     Vec_IntFreeP( &p->vLevels );
     if ( pPars && pPars->fCut )
         Abc_Print( 1, "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );

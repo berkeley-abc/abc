@@ -13374,6 +13374,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Abc_NtkComputePaths( Abc_FrameReadNtk(pAbc) );
     //Dau_NetworkEnumTest();
     //Extra_SimulationTest( nDivMax, nNumOnes, fNewOrder );
+    //Mnist_ExperimentWithScaling( nDecMax );
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -30229,7 +30230,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fBest = 0;
     memset( pPars, 0, sizeof(Gps_Par_t) );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmaszbh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmaszxbh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30259,6 +30260,9 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'z':
             pPars->fSkipMap ^= 1;
+            break;
+        case 'x':
+            pPars->fNoColor ^= 1;
             break;
         case 'D':
             if ( globalUtilOptind >= argc )
@@ -30299,7 +30303,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tpcnlmaszbh] [-D file]\n" );
+    Abc_Print( -2, "usage: &ps [-tpcnlmaszxbh] [-D file]\n" );
     Abc_Print( -2, "\t          prints stats of the current AIG\n" );
     Abc_Print( -2, "\t-t      : toggle printing BMC tents [default = %s]\n",                pPars->fTents? "yes": "no" );
     Abc_Print( -2, "\t-p      : toggle printing switching activity [default = %s]\n",       pPars->fSwitch? "yes": "no" );
@@ -30310,7 +30314,8 @@ usage:
     Abc_Print( -2, "\t-a      : toggle printing miter statistics [default = %s]\n",         pPars->fMiter? "yes": "no" );
     Abc_Print( -2, "\t-s      : toggle printing slack distribution [default = %s]\n",       pPars->fSlacks? "yes": "no" );
     Abc_Print( -2, "\t-z      : skip mapping statistics even if mapped [default = %s]\n",   pPars->fSkipMap? "yes": "no" );
-    Abc_Print( -2, "\t-b      : toggle printing saved AIG statistics [default = %s]\n",     fBest? "yes": "no" );
+    Abc_Print( -2, "\t-n      : toggle using no color in the printout [default = %s]\n",    pPars->fNoColor? "yes": "no" );
+    Abc_Print( -2, "\t-x      : toggle printing saved AIG statistics [default = %s]\n",     fBest? "yes": "no" );
     Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
@@ -45558,7 +45563,7 @@ usage:
     Abc_Print( -2, "\t-L num  : limit below which we randomize [default = %d]\n",           Limit );
     Abc_Print( -2, "\t-B num  : select best fanins among this many tries [default = %d]\n", nBestTries );
     Abc_Print( -2, "\t-M num  : the multiplier type (1=array, 2=booth) [default = %d]\n",   Multi );
-    Abc_Print( -2, "\t-x      : toggle using XOR gates [default = %s]\n",                   fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-x      : toggle using XOR gates [default = %s]\n",                   fXor? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n",      fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
