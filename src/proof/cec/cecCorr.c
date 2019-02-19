@@ -1219,9 +1219,21 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     }
     // copy names if present
     if ( pAig->vNamesIn )
+    {
+        char * pName; int i;
         pNew->vNamesIn = Vec_PtrDupStr( pAig->vNamesIn );
+        Vec_PtrForEachEntryStart( char *, pNew->vNamesIn, pName, i, Gia_ManCiNum(pNew) )
+            ABC_FREE( pName );
+        Vec_PtrShrink( pNew->vNamesIn, Gia_ManCiNum(pNew) );
+    }
     if ( pAig->vNamesOut )
+    {
+        char * pName; int i;
         pNew->vNamesOut = Vec_PtrDupStr( pAig->vNamesOut );
+        Vec_PtrForEachEntryStart( char *, pNew->vNamesOut, pName, i, Gia_ManCoNum(pNew) )
+            ABC_FREE( pName );
+        Vec_PtrShrink( pNew->vNamesOut, Gia_ManCoNum(pNew) );
+    }
     return pNew;
 }
 
