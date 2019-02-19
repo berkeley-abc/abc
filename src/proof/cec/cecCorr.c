@@ -1217,6 +1217,11 @@ Gia_Man_t * Cec_ManLSCorrespondence( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         else
             Cec_ManPrintFlopEquivs( pAig );
     }
+    // copy names if present
+    if ( pAig->vNamesIn )
+        pNew->vNamesIn = Vec_PtrDupStr( pAig->vNamesIn );
+    if ( pAig->vNamesOut )
+        pNew->vNamesOut = Vec_PtrDupStr( pAig->vNamesOut );
     return pNew;
 }
 
