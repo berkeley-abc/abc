@@ -260,7 +260,7 @@ void Sfm_ComputeInterpolantCheck( Sfm_Ntk_t * p )
         else if ( uTruth == SFM_SAT_UNDEC )
             printf( "The problem is UNDEC.\n" );
         else
-            Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 2 ); printf( "\n" );
+            Kit_DsdPrintFromTruth( (unsigned *)&uTruth, 2 ), printf( "\n" );
     }
 }
 

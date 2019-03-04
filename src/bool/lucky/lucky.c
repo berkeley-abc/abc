@@ -56,7 +56,7 @@ int memCompare(word* x, word*  y, int nVars)
              tempWord = a[i];
              count++;
          }
-         p->nFuncs = count;
+     p->nFuncs = count;
 }
 //////////sort Word** a//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int compareWords2 (const void ** x, const void ** y)
@@ -94,7 +94,7 @@ void sortAndUnique(word** a, Abc_TtStore_t* p)
              tempWordPtr = a[i];
              count++;
          }
-         p->nFuncs = count;
+     p->nFuncs = count;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
