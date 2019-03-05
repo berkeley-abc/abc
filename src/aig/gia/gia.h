@@ -356,7 +356,7 @@ struct Jf_Par_t_
     word           WordMapDelay;
     word           WordMapArea;
     word           WordMapDelayTarget;
-    float          MapDelay;
+    int            MapDelay;
     float          MapArea;
     float          MapAreaF;
     float          MapDelayTarget;

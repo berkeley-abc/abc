@@ -203,8 +203,8 @@ struct Amap_Obj_t_
     unsigned           fPhase   :  1;
     unsigned           fRepr    :  1;
     unsigned           fPolar   :  1;  // pCutBest->fInv ^ pSetBest->fInv
-    unsigned           Level    : 12;  // 20  (July 16, 2009)
-    unsigned           nCuts    : 20;  // 12  (July 16, 2009)
+    unsigned           Level;
+    unsigned           nCuts;
     int                nRefs;
     int                Equiv;
     int                Fan[3];
