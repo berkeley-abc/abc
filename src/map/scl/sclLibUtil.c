@@ -292,7 +292,7 @@ void Abc_SclLinkCells( SC_Lib * p )
         Vec_PtrClear( vList );
         SC_RingForEachCell( pRepr, pCell, i )
             Vec_PtrPush( vList, pCell );
-        qsort( (void *)Vec_PtrArray(vList), Vec_PtrSize(vList), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
+        qsort( (void *)Vec_PtrArray(vList), (size_t)Vec_PtrSize(vList), sizeof(void *), (int(*)(const void *,const void *))Abc_SclCompareCells );
         // create new representative
         pRepr = (SC_Cell *)Vec_PtrEntry( vList, 0 );
         pRepr->pNext = pRepr->pPrev = pRepr;

@@ -132,7 +132,7 @@ int Abc_TruthNpnCountUniqueSort( Abc_TtStore_t * p )
     // sort them by value
     nWords = p->nWords;
     assert( nWords > 0 );
-    qsort( (void *)p->pFuncs, p->nFuncs, sizeof(word *), (int(*)(const void *,const void *))Abc_TruthCompare );
+    qsort( (void *)p->pFuncs, (size_t)p->nFuncs, sizeof(word *), (int(*)(const void *,const void *))Abc_TruthCompare );
     // count the number of unqiue functions
     for ( i = k = 1; i < p->nFuncs; i++ )
         if ( memcmp( p->pFuncs[i-1], p->pFuncs[i], sizeof(word) * nWords ) )

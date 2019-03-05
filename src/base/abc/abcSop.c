@@ -81,7 +81,7 @@ char * Abc_SopStart( Mem_Flex_t * pMan, int nCubes, int nVars )
 
     Length = nCubes * (nVars + 3);
     pSopCover = Mem_FlexEntryFetch( pMan, Length + 1 );
-    memset( pSopCover, '-', Length );
+    memset( pSopCover, '-', (size_t)Length );
     pSopCover[Length] = 0;
 
     for ( i = 0; i < nCubes; i++ )

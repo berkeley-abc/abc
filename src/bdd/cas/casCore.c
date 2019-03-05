@@ -524,9 +524,9 @@ DdNode * GetSingleOutputFunction( DdManager * dd, DdNode ** pbOuts, int nOuts, D
     }
     
     // order the outputs
-    qsort( (void*)Order,     nOuts, sizeof(int), (int(*)(const void*, const void*)) CompareSupports );
+    qsort( (void*)Order,     (size_t)nOuts, sizeof(int), (int(*)(const void*, const void*)) CompareSupports );
     // order the outputs
-//  qsort( (void*)OrderMint, nOuts, sizeof(int), (int(*)(const void*, const void*)) CompareMinterms );
+//  qsort( (void*)OrderMint, (size_t)nOuts, sizeof(int), (int(*)(const void*, const void*)) CompareMinterms );
 
 
     bResult = b0;   Cudd_Ref( bResult );

@@ -755,7 +755,7 @@ Vec_Ptr_t * Abc_NtkFindGoodOrder( Abc_Ntk_t * pNtk )
     }
 
     // sort nodes in the increasing order of the flow
-    qsort( (Abc_Obj_t **)Vec_PtrArray(vCos), Abc_NtkCoNum(pNtk), 
+    qsort( (Abc_Obj_t **)Vec_PtrArray(vCos), (size_t)Abc_NtkCoNum(pNtk), 
         sizeof(Abc_Obj_t *), (int (*)(const void *, const void *))Abc_ObjCompareFlow );
     // verify sorting
     pFanin0 = (Abc_Obj_t *)Vec_PtrEntry(vCos, 0);

@@ -334,13 +334,13 @@ void Abc_NtkOrderObjsByName( Abc_Ntk_t * pNtk, int fComb )
     Abc_NtkForEachBox( pNtk, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Abc_ObjName(Abc_ObjFanout0(pObj));
     // order objects alphabetically
-    qsort( (void *)Vec_PtrArray(pNtk->vPis), Vec_PtrSize(pNtk->vPis), sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtk->vPis), (size_t)Vec_PtrSize(pNtk->vPis), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareNames );
-    qsort( (void *)Vec_PtrArray(pNtk->vPos), Vec_PtrSize(pNtk->vPos), sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtk->vPos), (size_t)Vec_PtrSize(pNtk->vPos), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareNames );
     // if the comparison if combinational (latches as PIs/POs), order them too
     if ( fComb )
-        qsort( (void *)Vec_PtrArray(pNtk->vBoxes), Vec_PtrSize(pNtk->vBoxes), sizeof(Abc_Obj_t *), 
+        qsort( (void *)Vec_PtrArray(pNtk->vBoxes), (size_t)Vec_PtrSize(pNtk->vBoxes), sizeof(Abc_Obj_t *), 
             (int (*)(const void *, const void *)) Abc_NodeCompareNames );
     // order CIs/COs first PIs/POs(Asserts) then latches
     Abc_NtkOrderCisCos( pNtk );
@@ -428,14 +428,14 @@ void Abc_NtkTransferOrder( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
     Abc_NamDeref( pStrsCi );
     Abc_NamDeref( pStrsCo );
     // order PI/PO 
-    qsort( (void *)Vec_PtrArray(pNtkNew->vPis), Vec_PtrSize(pNtkNew->vPis), sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtkNew->vPis), (size_t)Vec_PtrSize(pNtkNew->vPis), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareIndexes );
-    qsort( (void *)Vec_PtrArray(pNtkNew->vPos), Vec_PtrSize(pNtkNew->vPos), sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtkNew->vPos), (size_t)Vec_PtrSize(pNtkNew->vPos), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareIndexes );
     // order CI/CO 
-    qsort( (void *)Vec_PtrArray(pNtkNew->vCis), Vec_PtrSize(pNtkNew->vCis), sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtkNew->vCis), (size_t)Vec_PtrSize(pNtkNew->vCis), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareIndexes );
-    qsort( (void *)Vec_PtrArray(pNtkNew->vCos), Vec_PtrSize(pNtkNew->vCos), sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtkNew->vCos), (size_t)Vec_PtrSize(pNtkNew->vCos), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareIndexes );
     // order CIs/COs first PIs/POs(Asserts) then latches
     //Abc_NtkOrderCisCos( pNtk );

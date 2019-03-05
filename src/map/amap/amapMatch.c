@@ -47,7 +47,7 @@ Amap_Cut_t * Amap_ManDupCut( Amap_Man_t * p, Amap_Cut_t * pCut )
     Amap_Cut_t * pNew;
     int nBytes = sizeof(Amap_Cut_t) + sizeof(int) * pCut->nFans;
     pNew = (Amap_Cut_t *)Aig_MmFlexEntryFetch( p->pMemCutBest, nBytes );
-    memcpy( pNew, pCut, nBytes );
+    memcpy( pNew, pCut, (size_t)nBytes );
     return pNew;
 }
 

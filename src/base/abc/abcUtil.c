@@ -2139,7 +2139,7 @@ void Abc_NtkCompareCones( Abc_Ntk_t * pNtk )
         pSupps[i] = Vec_PtrSize(vSupp);
         Vec_PtrFree( vSupp );
     }
-    qsort( (void *)pPerms, Abc_NtkCoNum(pNtk), sizeof(int), (int (*)(const void *, const void *)) Abc_NtkCompareConesCompare );
+    qsort( (void *)pPerms, (size_t)Abc_NtkCoNum(pNtk), sizeof(int), (int (*)(const void *, const void *)) Abc_NtkCompareConesCompare );
 
     // consider COs in this order
     Iter = 0;

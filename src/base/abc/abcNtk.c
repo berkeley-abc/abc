@@ -2091,7 +2091,7 @@ int Abc_NodeCompareByFanoutCount( Abc_Obj_t ** pp1, Abc_Obj_t ** pp2 )
 void Abc_NtkPermutePiUsingFanout( Abc_Ntk_t * pNtk )
 {
     Abc_Obj_t * pNode; int i;
-    qsort( (void *)Vec_PtrArray(pNtk->vPis), Vec_PtrSize(pNtk->vPis), sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(pNtk->vPis), (size_t)Vec_PtrSize(pNtk->vPis), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareByFanoutCount );
     Vec_PtrClear( pNtk->vCis );
     Vec_PtrForEachEntry( Abc_Obj_t *, pNtk->vPis, pNode, i )

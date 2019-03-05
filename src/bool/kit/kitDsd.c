@@ -95,7 +95,7 @@ Kit_DsdObj_t * Kit_DsdObjAlloc( Kit_DsdNtk_t * pNtk, Kit_Dsd_t Type, int nFans )
     Kit_DsdObj_t * pObj;
     int nSize = sizeof(Kit_DsdObj_t) + sizeof(unsigned) * (Kit_DsdObjOffset(nFans) + (Type == KIT_DSD_PRIME) * Kit_TruthWordNum(nFans));
     pObj = (Kit_DsdObj_t *)ABC_ALLOC( char, nSize );
-    memset( pObj, 0, nSize );
+    memset( pObj, 0, (size_t)nSize );
     pObj->Id = pNtk->nVars + pNtk->nNodes;
     pObj->Type = Type;
     pObj->nFans = nFans;

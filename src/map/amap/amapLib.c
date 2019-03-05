@@ -221,7 +221,7 @@ Vec_Ptr_t * Amap_LibSortGatesByArea( Amap_Lib_t * pLib )
 {
     Vec_Ptr_t * vSorted;
     vSorted = Vec_PtrDup( pLib->vGates );
-    qsort( (void *)Vec_PtrArray(vSorted), Vec_PtrSize(vSorted), sizeof(void *), 
+    qsort( (void *)Vec_PtrArray(vSorted), (size_t)Vec_PtrSize(vSorted), sizeof(void *), 
             (int (*)(const void *, const void *)) Amap_LibCompareGatesByArea );
     return vSorted;
 }

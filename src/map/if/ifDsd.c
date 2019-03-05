@@ -2074,7 +2074,7 @@ int If_DsdManCompute( If_DsdMan_t * p, word * pTruth, int nLeaves, unsigned char
 //p->timeDsd += Abc_Clock() - clk;
     if ( nSizeNonDec > 0 )
         Abc_TtStretch6( pCopy, nSizeNonDec, p->nVars );
-    memset( pPerm, 0xFF, nLeaves );
+    memset( pPerm, 0xFF, (size_t)nLeaves );
 //clk = Abc_Clock();
     iDsd = If_DsdManAddDsd( p, pDsd, pCopy, pPerm, &nSupp );
 //p->timeCanon += Abc_Clock() - clk;

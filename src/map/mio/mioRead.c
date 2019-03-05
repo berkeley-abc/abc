@@ -595,7 +595,7 @@ void Mio_LibrarySortGates( Mio_Library_t * pLib )
     pLib->ppGates0 = ABC_ALLOC( Mio_Gate_t *, pLib->nGates );
     for ( i = 0; i < pLib->nGates; i++ )
         pLib->ppGates0[i] = ppGates[i];
-    qsort( (void *)ppGates, pLib->nGates, sizeof(void *), 
+    qsort( (void *)ppGates, (size_t)pLib->nGates, sizeof(void *), 
             (int (*)(const void *, const void *)) Mio_LibraryCompareGatesByName );
     for ( i = 0; i < pLib->nGates; i++ )
         ppGates[i]->pNext = (i < pLib->nGates-1)? ppGates[i+1] : NULL;

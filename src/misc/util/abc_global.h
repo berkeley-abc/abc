@@ -256,13 +256,13 @@ typedef ABC_INT64_T iword;
 #define ABC_PRMn(a,f)   (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%10.3f MB  ",    1.0*(f)/(1<<20)))
 #define ABC_PRMP(a,f,F) (Abc_Print(1, "%s =", (a)), Abc_Print(1, "%10.3f MB (%6.2f %%)\n",  (1.0*(f)/(1<<20)), ((F)? 100.0*(f)/(F) : 0.0) ) )
 
-#define ABC_ALLOC(type, num)     ((type *) malloc(sizeof(type) * (num)))
-#define ABC_CALLOC(type, num)    ((type *) calloc((num), sizeof(type)))
-#define ABC_FALLOC(type, num)    ((type *) memset(malloc(sizeof(type) * (num)), 0xff, sizeof(type) * (num)))
+#define ABC_ALLOC(type, num)     ((type *) malloc(sizeof(type) * (size_t)(num)))
+#define ABC_CALLOC(type, num)    ((type *) calloc((size_t)(num), sizeof(type)))
+#define ABC_FALLOC(type, num)    ((type *) memset(malloc(sizeof(type) * (size_t)(num)), 0xff, sizeof(type) * (size_t)(num)))
 #define ABC_FREE(obj)            ((obj) ? (free((char *) (obj)), (obj) = 0) : 0)
 #define ABC_REALLOC(type, obj, num) \
-        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (num))) : \
-         ((type *) malloc(sizeof(type) * (num))))
+        ((obj) ? ((type *) realloc((char *)(obj), sizeof(type) * (size_t)(num))) : \
+         ((type *) malloc(sizeof(type) * (size_t)(num))))
 
 static inline int      Abc_AbsInt( int a        )             { return a < 0 ? -a : a; }
 static inline int      Abc_MaxInt( int a, int b )             { return a > b ?  a : b; }

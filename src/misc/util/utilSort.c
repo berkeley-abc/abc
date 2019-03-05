@@ -434,7 +434,7 @@ void Abc_SortTest()
     else
     {
         clk = Abc_Clock();
-        qsort( (void *)pArray, nSize, sizeof(int), (int (*)(const void *, const void *)) Abc_SortNumCompare );
+        qsort( (void *)pArray, (size_t)nSize, sizeof(int), (int (*)(const void *, const void *)) Abc_SortNumCompare );
         Abc_PrintTime( 1, "Old sort", Abc_Clock() - clk );
         // check
         for ( i = 1; i < nSize; i++ )
@@ -479,14 +479,14 @@ void Abc_QuickSort1( word * pData, int nSize, int fDecrease )
     int i, fVerify = 0;
     if ( fDecrease )
     {
-        qsort( (void *)pData, nSize, sizeof(word), (int (*)(const void *, const void *))Abc_QuickSort1CompareDec );
+        qsort( (void *)pData, (size_t)nSize, sizeof(word), (int (*)(const void *, const void *))Abc_QuickSort1CompareDec );
         if ( fVerify )
             for ( i = 1; i < nSize; i++ )
                 assert( (unsigned)pData[i-1] >= (unsigned)pData[i] );
     }
     else
     {
-        qsort( (void *)pData, nSize, sizeof(word), (int (*)(const void *, const void *))Abc_QuickSort1CompareInc );
+        qsort( (void *)pData, (size_t)nSize, sizeof(word), (int (*)(const void *, const void *))Abc_QuickSort1CompareInc );
         if ( fVerify )
             for ( i = 1; i < nSize; i++ )
                 assert( (unsigned)pData[i-1] <= (unsigned)pData[i] );

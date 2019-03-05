@@ -807,10 +807,10 @@ static int Vec_FltSortCompare2( float * pp1, float * pp2 )
 static inline void Vec_FltSort( Vec_Flt_t * p, int fReverse )
 {
     if ( fReverse ) 
-        qsort( (void *)p->pArray, p->nSize, sizeof(float), 
+        qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(float), 
                 (int (*)(const void *, const void *)) Vec_FltSortCompare2 );
     else
-        qsort( (void *)p->pArray, p->nSize, sizeof(float), 
+        qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(float), 
                 (int (*)(const void *, const void *)) Vec_FltSortCompare1 );
 }
 

@@ -201,8 +201,8 @@ static inline void Ndr_DataPushArray( Ndr_Data_t * p, int Type, int nArray, int 
         return;
     assert( nArray > 0 );
     Ndr_DataResize( p, nArray );
-    memset( p->pHead + p->nSize, Type, nArray );
-    memcpy( p->pBody + p->nSize, pArray, 4*nArray );
+    memset( p->pHead + p->nSize, Type, (size_t)nArray );
+    memcpy( p->pBody + p->nSize, pArray, (size_t)4*nArray );
     p->nSize += nArray;
 }
 static inline void Ndr_DataPushString( Ndr_Data_t * p, int Type, char * pFunc )

@@ -1456,7 +1456,7 @@ unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * 
     if (Abc_TtCompareRev(pTruth, pTruth2, nWords) <= 0)
         return uCanonPhase1;
     Abc_TtCopy(pTruth, pTruth2, nWords, 0);
-    memcpy(pCanonPerm, pCanonPerm2, nVars);
+    memcpy(pCanonPerm, pCanonPerm2, (size_t)nVars);
     return uCanonPhase2;
 }
 

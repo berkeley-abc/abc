@@ -76,8 +76,8 @@ int Io_WritePlaOne( FILE * pFile, Abc_Ntk_t * pNtk )
     nOutputs = Abc_NtkCoNum(pNtk);
     pCubeIn  = ABC_ALLOC( char, nInputs + 1 );
     pCubeOut = ABC_ALLOC( char, nOutputs + 1 );
-    memset( pCubeIn,  '-', nInputs );     pCubeIn[nInputs]   = 0;
-    memset( pCubeOut, '0', nOutputs );    pCubeOut[nOutputs] = 0;
+    memset( pCubeIn,  '-', (size_t)nInputs );     pCubeIn[nInputs]   = 0;
+    memset( pCubeOut, '0', (size_t)nOutputs );    pCubeOut[nOutputs] = 0;
 
     // write the header
     fprintf( pFile, ".i %d\n", nInputs );

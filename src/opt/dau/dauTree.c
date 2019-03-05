@@ -860,7 +860,7 @@ unsigned * Dss_ObjHashLookup( Dss_Man_t * p, int Type, Vec_Int_t * vFaninLits, w
         if ( (int)pObj->Type == Type && 
              (int)pObj->nFans == Vec_IntSize(vFaninLits) && 
              !memcmp(pObj->pFans, Vec_IntArray(vFaninLits), sizeof(int)*pObj->nFans) &&
-             (pTruth == NULL || !memcmp(Dss_ObjTruth(pObj), pTruth, Abc_TtByteNum(pObj->nFans))) ) // equal
+             (pTruth == NULL || !memcmp(Dss_ObjTruth(pObj), pTruth, (size_t)Abc_TtByteNum(pObj->nFans))) ) // equal
             return pSpot;
     }
     return pSpot;

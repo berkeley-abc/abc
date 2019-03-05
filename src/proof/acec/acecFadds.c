@@ -438,10 +438,10 @@ Vec_Int_t * Gia_ManDetectFullAdders( Gia_Man_t * p, int fVerbose, Vec_Int_t ** p
 {
     Vec_Int_t * vCutsXor, * vCutsMaj, * vFadds;
     Dtc_ManComputeCuts( p, pvCutsXor2, &vCutsXor, &vCutsMaj, fVerbose );
-    qsort( Vec_IntArray(vCutsXor), Vec_IntSize(vCutsXor)/4, 16, (int (*)(const void *, const void *))Dtc_ManCompare );
-    qsort( Vec_IntArray(vCutsMaj), Vec_IntSize(vCutsMaj)/4, 16, (int (*)(const void *, const void *))Dtc_ManCompare );
+    qsort( Vec_IntArray(vCutsXor), (size_t)(Vec_IntSize(vCutsXor)/4), 16, (int (*)(const void *, const void *))Dtc_ManCompare );
+    qsort( Vec_IntArray(vCutsMaj), (size_t)(Vec_IntSize(vCutsMaj)/4), 16, (int (*)(const void *, const void *))Dtc_ManCompare );
     vFadds = Dtc_ManFindCommonCuts( p, vCutsXor, vCutsMaj );
-    qsort( Vec_IntArray(vFadds), Vec_IntSize(vFadds)/5, 20, (int (*)(const void *, const void *))Dtc_ManCompare2 );
+    qsort( Vec_IntArray(vFadds), (size_t)(Vec_IntSize(vFadds)/5), 20, (int (*)(const void *, const void *))Dtc_ManCompare2 );
     if ( fVerbose )
         printf( "XOR3 cuts = %d.  MAJ cuts = %d.  Full-adders = %d.\n", Vec_IntSize(vCutsXor)/4, Vec_IntSize(vCutsMaj)/4, Vec_IntSize(vFadds)/5 );
     if ( fVerbose )

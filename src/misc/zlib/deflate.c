@@ -1232,7 +1232,7 @@ local void check_match(deflate_state *s, IPos start, IPos match, int length)
 {
     /* check that the match is indeed a match */
     if (zmemcmp(s->window + match,
-                s->window + start, length) != EQUAL) {
+                s->window + start, (size_t)length) != EQUAL) {
         fprintf(stderr, " start %u, match %u, length %d\n",
                 start, match, length);
         do {

@@ -2493,7 +2493,7 @@ void Extra_NpnTest()
     // read functions
     pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M.txt", nFuncs );
 //    pFuncs = Extra_NpnRead( "C:\\_projects\\abc\\_TEST\\allan\\lib6var5M_out_Total_minimal.txt", nFuncs );
-    qsort( (void *)pFuncs, nFuncs, sizeof(word), (int(*)(const void *,const void *))CompareWords );
+    qsort( (void *)pFuncs, (size_t)nFuncs, sizeof(word), (int(*)(const void *,const void *))CompareWords );
 
     // count unique
     k = 1;
@@ -2517,7 +2517,7 @@ void Extra_NpnTest()
     printf( "Finished deriving minimum form\n" );
 /*
     // sort them by value
-    qsort( (void *)pFuncs, nFuncs, sizeof(word), (int(*)(const void *,const void *))CompareWords );
+    qsort( (void *)pFuncs, (size_t)nFuncs, sizeof(word), (int(*)(const void *,const void *))CompareWords );
     // count unique
     nUnique = nFuncs;
     for ( i = 1; i < nFuncs; i++ )

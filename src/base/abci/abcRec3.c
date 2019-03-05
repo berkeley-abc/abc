@@ -1356,7 +1356,7 @@ void Abc_NtkRecDumpTt3( char * pFileName, int fBinary )
     Vec_MemForEachEntry( p->vTtMem, pTruth, i )
         Vec_StrPush( p->vSupps, (char)Abc_TtSupportSize(pTruth, nVars) );
     vEntries = Vec_IntStartNatural( nEntries );
-    qsort( (void *)Vec_IntArray(vEntries), nEntries, sizeof(int), (int(*)(const void *,const void *))Abc_NtkRecTruthCompare );
+    qsort( (void *)Vec_IntArray(vEntries), (size_t)nEntries, sizeof(int), (int(*)(const void *,const void *))Abc_NtkRecTruthCompare );
     Vec_StrFreeP( &p->vSupps );
     // write the file
     Vec_IntForEachEntry( vEntries, Entry, i )

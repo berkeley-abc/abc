@@ -375,7 +375,7 @@ Vec_Ptr_t * Abc_NtkCreateCoOrder( Abc_Ntk_t * pNtk, Vec_Wec_t * vSupps )
         Vec_PtrPush( vNodes, pNode );
     }
     // order objects alphabetically
-    qsort( (void *)Vec_PtrArray(vNodes), Vec_PtrSize(vNodes), sizeof(Abc_Obj_t *), 
+    qsort( (void *)Vec_PtrArray(vNodes), (size_t)Vec_PtrSize(vNodes), sizeof(Abc_Obj_t *), 
         (int (*)(const void *, const void *)) Abc_NodeCompareByTemp );
     // cleanup
 //    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )

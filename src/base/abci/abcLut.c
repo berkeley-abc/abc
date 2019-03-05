@@ -678,7 +678,7 @@ int Abc_NodeDecomposeStep( Abc_ManScl_t * p )
 /*
     for ( v = 0; v < nVars; v++ )
         p->pBSet[v] = v;
-    qsort( (void *)p->pBSet, nVars, sizeof(int), 
+    qsort( (void *)p->pBSet, (size_t)nVars, sizeof(int), 
             (int (*)(const void *, const void *)) Abc_NodeCompareLevelsInc );
 */
     Abc_NodeDecomposeSort( (Abc_Obj_t **)Vec_PtrArray(p->vLeaves), Vec_PtrSize(p->vLeaves), p->pBSet, p->nLutSize );

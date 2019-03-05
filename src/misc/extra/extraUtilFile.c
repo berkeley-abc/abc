@@ -808,7 +808,7 @@ void Extra_FileSort( char * pFileName, char * pFileNameOut )
             Begin = i + 1;
         }
     // sort the lines
-    qsort( pLines, nLines, sizeof(char *), (int(*)(const void *,const void *))Extra_StringCompare );
+    qsort( pLines, (size_t)nLines, sizeof(char *), (int(*)(const void *,const void *))Extra_StringCompare );
     // write a new file
     pFile = fopen( pFileNameOut, "wb" );
     for ( i = 0; i < nLines; i++ )

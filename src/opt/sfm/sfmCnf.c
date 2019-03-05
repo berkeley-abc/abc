@@ -132,7 +132,7 @@ Vec_Wec_t * Sfm_CreateCnf( Sfm_Ntk_t * p )
         nCubes = Sfm_TruthToCnf( uTruth, Sfm_ObjFaninNum(p, i), p->vCover, vCnf );
         vCnfBase = (Vec_Str_t *)Vec_WecEntry( vCnfs, i );
         Vec_StrGrow( vCnfBase, Vec_StrSize(vCnf) );
-        memcpy( Vec_StrArray(vCnfBase), Vec_StrArray(vCnf), Vec_StrSize(vCnf) );
+        memcpy( Vec_StrArray(vCnfBase), Vec_StrArray(vCnf), (size_t)Vec_StrSize(vCnf) );
         vCnfBase->nSize = Vec_StrSize(vCnf);
     }
     Vec_StrFree( vCnf );

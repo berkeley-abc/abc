@@ -910,10 +910,10 @@ static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
     if ( p->nSize < 2 )
         return;
     if ( Vec_PtrSortCompare == NULL )
-        qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+        qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(void *), 
                 (int (*)(const void *, const void *)) Vec_PtrSortComparePtr );
     else
-        qsort( (void *)p->pArray, p->nSize, sizeof(void *), 
+        qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(void *), 
                 (int (*)(const void *, const void *)) Vec_PtrSortCompare );
 }
 
@@ -1067,7 +1067,7 @@ static inline void Vec_PtrDoubleSimInfo( Vec_Ptr_t * vInfo )
     nWords = (unsigned *)Vec_PtrEntry(vInfo,1) - (unsigned *)Vec_PtrEntry(vInfo,0);
     vInfoNew = Vec_PtrAllocSimInfo( 2*Vec_PtrSize(vInfo), nWords );
     // copy the simulation info
-    memcpy( Vec_PtrEntry(vInfoNew,0), Vec_PtrEntry(vInfo,0), Vec_PtrSize(vInfo) * nWords * 4 );
+    memcpy( Vec_PtrEntry(vInfoNew,0), Vec_PtrEntry(vInfo,0), (size_t)(Vec_PtrSize(vInfo) * nWords * 4) );
     // replace the array
     ABC_FREE( vInfo->pArray );
     vInfo->pArray = vInfoNew->pArray;
@@ -1099,7 +1099,7 @@ static inline void Vec_PtrReallocSimInfo( Vec_Ptr_t * vInfo )
     vInfoNew = Vec_PtrAllocSimInfo( Vec_PtrSize(vInfo), 2*nWords );
     // copy the simulation info
     for ( i = 0; i < vInfo->nSize; i++ )
-        memcpy( Vec_PtrEntry(vInfoNew,i), Vec_PtrEntry(vInfo,i), nWords * 4 );
+        memcpy( Vec_PtrEntry(vInfoNew,i), Vec_PtrEntry(vInfo,i), (size_t)(nWords * 4) );
     // replace the array
     ABC_FREE( vInfo->pArray );
     vInfo->pArray = vInfoNew->pArray;

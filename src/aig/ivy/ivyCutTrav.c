@@ -142,7 +142,7 @@ unsigned * Ivy_NodeCutElementary( Vec_Int_t * vStore, int nWords, int NodeId )
 {
     unsigned * pBitCut;
     pBitCut = Vec_IntFetch( vStore, nWords );
-    memset( pBitCut, 0, 4 * nWords );
+    memset( pBitCut, 0, (size_t)(4 * nWords) );
     Extra_TruthSetBit( pBitCut, NodeId );
     return pBitCut;
 }

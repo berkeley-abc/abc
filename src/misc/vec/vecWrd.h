@@ -1084,10 +1084,10 @@ static int Vec_WrdSortCompare2( word * pp1, word * pp2 )
 static inline void Vec_WrdSort( Vec_Wrd_t * p, int fReverse )
 {
     if ( fReverse ) 
-        qsort( (void *)p->pArray, p->nSize, sizeof(word), 
+        qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(word), 
                 (int (*)(const void *, const void *)) Vec_WrdSortCompare2 );
     else
-        qsort( (void *)p->pArray, p->nSize, sizeof(word), 
+        qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(word), 
                 (int (*)(const void *, const void *)) Vec_WrdSortCompare1 );
 }
 
@@ -1171,7 +1171,7 @@ static int Vec_WrdSortCompareUnsigned( word * pp1, word * pp2 )
 ***********************************************************************/
 static inline void Vec_WrdSortUnsigned( Vec_Wrd_t * p )
 {
-    qsort( (void *)p->pArray, p->nSize, sizeof(word), 
+    qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(word), 
             (int (*)(const void *, const void *)) Vec_WrdSortCompareUnsigned );
 }
 

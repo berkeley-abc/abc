@@ -237,7 +237,7 @@ void Dau_DsdNormalize_rec( char * pStr, char ** p, int * pMatches )
         for ( i = 0; i < nMarks; i++ )
             pStore = Dau_DsdNormalizeCopy( pStore, pStr, pMarks, pPerm[i] );
         assert( pStore - pBuffer == *p - pOld );
-        memcpy( pOld, pBuffer, pStore - pBuffer );
+        memcpy( pOld, pBuffer, (size_t)(pStore - pBuffer) );
         return;
     }
     if ( **p == '<' || **p == '{' ) // mux

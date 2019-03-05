@@ -1381,20 +1381,20 @@ static int Vec_IntSortCompare2( int * pp1, int * pp2 )
 static inline void Vec_IntSort( Vec_Int_t * p, int fReverse )
 {
     if ( fReverse ) 
-        qsort( (void *)p->pArray, p->nSize, sizeof(int), 
+        qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare2 );
     else
-        qsort( (void *)p->pArray, p->nSize, sizeof(int), 
+        qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare1 );
 }
 static inline void Vec_IntSortMulti( Vec_Int_t * p, int nMulti, int fReverse )
 {
     assert( Vec_IntSize(p) % nMulti == 0 );
     if ( fReverse ) 
-        qsort( (void *)p->pArray, p->nSize/nMulti, nMulti*sizeof(int), 
+        qsort( (void *)p->pArray, (size_t)(p->nSize/nMulti), nMulti*sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare2 );
     else
-        qsort( (void *)p->pArray, p->nSize/nMulti, nMulti*sizeof(int), 
+        qsort( (void *)p->pArray, (size_t)(p->nSize/nMulti), nMulti*sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare1 );
 }
 
@@ -1638,7 +1638,7 @@ static inline int Vec_IntSortCompareUnsigned( unsigned * pp1, unsigned * pp2 )
 ***********************************************************************/
 static inline void Vec_IntSortUnsigned( Vec_Int_t * p )
 {
-    qsort( (void *)p->pArray, p->nSize, sizeof(int), 
+    qsort( (void *)p->pArray, (size_t)p->nSize, sizeof(int), 
             (int (*)(const void *, const void *)) Vec_IntSortCompareUnsigned );
 }
 

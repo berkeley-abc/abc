@@ -576,7 +576,7 @@ void CmdCommandPrint( Abc_Frame_t * pAbc, int fPrintAll, int fDetails )
     nCommands = i;
 
     // sort command by group and then by name, alphabetically
-    qsort( (void *)ppCommands, nCommands, sizeof(Abc_Command *), 
+    qsort( (void *)ppCommands, (size_t)nCommands, sizeof(Abc_Command *), 
             (int (*)(const void *, const void *)) CmdCommandPrintCompare );
     assert( CmdCommandPrintCompare( ppCommands, ppCommands + nCommands - 1 ) <= 0 );
 
@@ -734,7 +734,7 @@ void CmdPrintTable( st__table * tTable, int fAliases )
         ppNames[nNames++] = key;
 
     // sort array by name
-    qsort( (void *)ppNames, nNames, sizeof(char *), 
+    qsort( (void *)ppNames, (size_t)nNames, sizeof(char *), 
         (int (*)(const void *, const void *))CmdNamePrintCompare );
 
     // print in this order

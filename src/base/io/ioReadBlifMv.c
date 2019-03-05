@@ -585,7 +585,7 @@ char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize )
         p = pContents = ABC_ALLOC( char, nFileSize + 10 );
         buf = bufHead;
         do {
-            memcpy(p+nBytes,buf->buf,buf->nBuf);
+            memcpy(p+nBytes,buf->buf,(size_t)buf->nBuf);
             nBytes += buf->nBuf;
 //        } while((buf = buf->next));
             pNext = buf->next;

@@ -572,7 +572,7 @@ Ivy_FraigMan_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParam
 //    p->pSimWords    = ABC_ALLOC( unsigned, Ivy_ManObjNum(pManAig) * p->nSimWords ); 
     EntrySize    = sizeof(Ivy_FraigSim_t) + sizeof(unsigned) * p->nSimWords;
     p->pSimWords = (char *)ABC_ALLOC( char, Ivy_ManObjNum(pManAig) * EntrySize ); 
-    memset( p->pSimWords, 0, EntrySize );
+    memset( p->pSimWords, 0, (size_t)EntrySize );
     k = 0;
     Ivy_ManForEachObj( pManAig, pObj, i )
     {

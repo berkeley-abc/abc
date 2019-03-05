@@ -525,7 +525,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             {
                 pCur++;
                 vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );             pCur += 4;
-                memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
+                memcpy( Vec_StrArray(vStr), pCur, (size_t)Vec_StrSize(vStr) );
                 pCur += Vec_StrSize(vStr);
                 pNew->pAigExtra = Gia_AigerReadFromMemory( Vec_StrArray(vStr), Vec_StrSize(vStr), 0, 0, 0 );
                 Vec_StrFree( vStr );
@@ -552,7 +552,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pCur++;
                 nInputs = Gia_AigerReadInt(pCur)/4;                        pCur += 4;
                 pNew->vInArrs  = Vec_FltStart( nInputs );
-                memcpy( Vec_FltArray(pNew->vInArrs),  pCur, 4*nInputs );   pCur += 4*nInputs;
+                memcpy( Vec_FltArray(pNew->vInArrs),  pCur, (size_t)4*nInputs );   pCur += 4*nInputs;
                 if ( fVerbose ) printf( "Finished reading extension \"i\".\n" );
             }
             else if ( *pCur == 'o' )
@@ -560,7 +560,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pCur++;
                 nOutputs = Gia_AigerReadInt(pCur)/4;                       pCur += 4;
                 pNew->vOutReqs  = Vec_FltStart( nOutputs );
-                memcpy( Vec_FltArray(pNew->vOutReqs),  pCur, 4*nOutputs ); pCur += 4*nOutputs;
+                memcpy( Vec_FltArray(pNew->vOutReqs),  pCur, (size_t)4*nOutputs ); pCur += 4*nOutputs;
                 if ( fVerbose ) printf( "Finished reading extension \"o\".\n" );
             }
             // read equivalence classes
@@ -580,7 +580,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pCur++;
                 assert( Gia_AigerReadInt(pCur) == 4*Gia_ManRegNum(pNew) );   pCur += 4;
                 pNew->vFlopClasses  = Vec_IntStart( Gia_ManRegNum(pNew) );
-                memcpy( Vec_IntArray(pNew->vFlopClasses),  pCur, 4*Gia_ManRegNum(pNew) );   pCur += 4*Gia_ManRegNum(pNew);
+                memcpy( Vec_IntArray(pNew->vFlopClasses),  pCur, (size_t)4*Gia_ManRegNum(pNew) );   pCur += 4*Gia_ManRegNum(pNew);
                 if ( fVerbose ) printf( "Finished reading extension \"f\".\n" );
             }
             // read gate classes
@@ -589,7 +589,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pCur++;
                 assert( Gia_AigerReadInt(pCur) == 4*Gia_ManObjNum(pNew) );   pCur += 4;
                 pNew->vGateClasses  = Vec_IntStart( Gia_ManObjNum(pNew) );
-                memcpy( Vec_IntArray(pNew->vGateClasses),  pCur, 4*Gia_ManObjNum(pNew) );   pCur += 4*Gia_ManObjNum(pNew);
+                memcpy( Vec_IntArray(pNew->vGateClasses),  pCur, (size_t)4*Gia_ManObjNum(pNew) );   pCur += 4*Gia_ManObjNum(pNew);
                 if ( fVerbose ) printf( "Finished reading extension \"g\".\n" );
             }
             // read hierarchy information
@@ -597,7 +597,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             {
                 pCur++;
                 vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );          pCur += 4;
-                memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );
+                memcpy( Vec_StrArray(vStr), pCur, (size_t)Vec_StrSize(vStr) );
                 pCur += Vec_StrSize(vStr);
                 pNew->pManTime = Tim_ManLoad( vStr, 1 );
                 Vec_StrFree( vStr );
@@ -653,7 +653,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pCur++;
                 pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
                 pPlacement = ABC_ALLOC( Gia_Plc_t, Gia_ManObjNum(pNew) );
-                memcpy( pPlacement, pCur, 4*Gia_ManObjNum(pNew) );      pCur += 4*Gia_ManObjNum(pNew);
+                memcpy( pPlacement, pCur, (size_t)4*Gia_ManObjNum(pNew) );      pCur += 4*Gia_ManObjNum(pNew);
                 assert( pCur == pCurTemp );
                 pNew->pPlacement = pPlacement;
                 if ( fVerbose ) printf( "Finished reading extension \"p\".\n" );
@@ -696,7 +696,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 nSize = nSize - strlen(pNew->pCellStr) - 1;
                 assert( nSize % 4 == 0 );
                 pNew->vConfigs = Vec_IntAlloc(nSize / 4);
-//                memcpy(Vec_IntArray(pNew->vConfigs), pCur, nSize);      pCur += nSize;
+//                memcpy(Vec_IntArray(pNew->vConfigs), pCur, (size_t)nSize);      pCur += nSize;
                 for ( i = 0; i < nSize / 4; i++ )
                     Vec_IntPush( pNew->vConfigs, Gia_AigerReadInt(pCur) ), pCur += 4;
                 assert( pCur == pCurTemp );
@@ -728,7 +728,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pCur++;
                 pCurTemp = pCur + Gia_AigerReadInt(pCur) + 4;           pCur += 4;
                 pSwitching = ABC_ALLOC( unsigned char, Gia_ManObjNum(pNew) );
-                memcpy( pSwitching, pCur, Gia_ManObjNum(pNew) );        pCur += Gia_ManObjNum(pNew);
+                memcpy( pSwitching, pCur, (size_t)Gia_ManObjNum(pNew) );        pCur += Gia_ManObjNum(pNew);
                 assert( pCur == pCurTemp );
                 if ( fVerbose ) printf( "Finished reading extension \"s\".\n" );
             }
@@ -737,7 +737,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             {
                 pCur++;
                 vStr = Vec_StrStart( Gia_AigerReadInt(pCur) );          pCur += 4;
-                memcpy( Vec_StrArray(vStr), pCur, Vec_StrSize(vStr) );  pCur += Vec_StrSize(vStr);
+                memcpy( Vec_StrArray(vStr), pCur, (size_t)Vec_StrSize(vStr) );  pCur += Vec_StrSize(vStr);
                 pNew->pManTime = Tim_ManLoad( vStr, 0 );
                 Vec_StrFree( vStr );
                 if ( fVerbose ) printf( "Finished reading extension \"t\".\n" );
@@ -747,7 +747,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             {
                 pCur++;
                 pNew->vObjClasses = Vec_IntStart( Gia_AigerReadInt(pCur)/4 ); pCur += 4;
-                memcpy( Vec_IntArray(pNew->vObjClasses), pCur, 4*Vec_IntSize(pNew->vObjClasses) );
+                memcpy( Vec_IntArray(pNew->vObjClasses), pCur, (size_t)4*Vec_IntSize(pNew->vObjClasses) );
                 pCur += 4*Vec_IntSize(pNew->vObjClasses);
                 if ( fVerbose ) printf( "Finished reading extension \"v\".\n" );
             }

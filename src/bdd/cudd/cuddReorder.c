@@ -541,7 +541,7 @@ cuddSifting(
         var[i] = i;
     }
 
-    qsort((void *)var,size,sizeof(int),(DD_QSFP)ddUniqueCompare);
+    qsort((void *)var,(size_t)size,sizeof(int),(DD_QSFP)ddUniqueCompare);
 
     /* Now sift. */
     for (i = 0; i < ddMin(table->siftMaxVar,size); i++) {

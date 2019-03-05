@@ -361,7 +361,7 @@ Vec_Wec_t * Gia_PolynGetResult( Hsh_VecMan_t * pHashC, Hsh_VecMan_t * pHashM, Ve
     Vec_WecForEachLevel( vSorted, vClass, i )
     {
         // sort monomials by the index of the first variable
-        qsort( Vec_IntArray(vClass), Vec_IntSize(vClass)/3, 12, (int (*)(const void *, const void *))Gia_PolynGetResultCompare );
+        qsort( Vec_IntArray(vClass), (size_t)(Vec_IntSize(vClass)/3), 12, (int (*)(const void *, const void *))Gia_PolynGetResultCompare );
         Vec_IntForEachEntryTriple( vClass, iConst, iMono, iFirst, k )
         {
             vArray = Hsh_VecReadEntry( pHashC, iConst );

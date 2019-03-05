@@ -462,7 +462,7 @@ Mio_Gate_t ** Mio_CollectRoots( Mio_Library_t * pLib, int nInputs, float tDelay,
     // sort by delay
     if ( iGate > 0 ) 
     {
-        qsort( (void *)ppGates, iGate, sizeof(Mio_Gate_t *), 
+        qsort( (void *)ppGates, (size_t)iGate, sizeof(Mio_Gate_t *), 
                 (int (*)(const void *, const void *)) Mio_DelayCompare );
         assert( Mio_DelayCompare( ppGates, ppGates + iGate - 1 ) <= 0 );
     }
@@ -572,7 +572,7 @@ Mio_Cell_t * Mio_CollectRootsNew( Mio_Library_t * pLib, int nInputs, int * pnGat
     // sort by delay
     if ( iCell > 5 ) 
     {
-        qsort( (void *)(ppCells + 4), iCell - 4, sizeof(Mio_Cell_t), 
+        qsort( (void *)(ppCells + 4), (size_t)(iCell - 4), sizeof(Mio_Cell_t), 
                 (int (*)(const void *, const void *)) Mio_AreaCompare );
         assert( Mio_AreaCompare( ppCells + 4, ppCells + iCell - 1 ) <= 0 );
     }
@@ -729,7 +729,7 @@ Mio_Cell2_t * Mio_CollectRootsNew2( Mio_Library_t * pLib, int nInputs, int * pnG
     // sort by delay
     if ( iCell > 5 ) 
     {
-        qsort( (void *)(ppCells + 4), iCell - 4, sizeof(Mio_Cell2_t), 
+        qsort( (void *)(ppCells + 4), (size_t)(iCell - 4), sizeof(Mio_Cell2_t), 
                 (int (*)(const void *, const void *)) Mio_AreaCompare2 );
         assert( Mio_AreaCompare2( ppCells + 4, ppCells + iCell - 1 ) <= 0 );
     }
@@ -818,7 +818,7 @@ int Mio_CollectRootsNewDefault3( int nInputs, Vec_Ptr_t ** pvNames, Vec_Wrd_t **
             pTruth[1] = pTruth[3] = pGate0->pTruth[1];
         }
         else if ( pGate0->nInputs == 8 )
-            memcpy( pTruth, pGate0->pTruth, 4*sizeof(word) );
+            memcpy( pTruth, pGate0->pTruth, (size_t)(4*sizeof(word)) );
     }
     assert( iGate == nGates );
     assert( Vec_WrdEntry(*pvTruths,  0) ==        0 );
