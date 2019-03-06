@@ -6797,6 +6797,9 @@ usage:
     Abc_Print( -2, "\t               6: new phase canonical form\n" );
     Abc_Print( -2, "\t               7: new hierarchical matching\n" );
     Abc_Print( -2, "\t               8: hierarchical matching by XueGong Zhou at Fudan University, Shanghai\n" );
+    Abc_Print( -2, "\t               9: FPL2018 algorithm     by XueGong Zhou at Fudan University, Shanghai\n" );
+    Abc_Print( -2, "\t              10: TRETS algorithm       by XueGong Zhou at Fudan University, Shanghai\n" );
+    Abc_Print( -2, "\t              11: a new exact matching  by XueGong Zhou at Fudan University, Shanghai\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-d       : toggle dumping resulting functions into a file [default = %s]\n", fDumpRes? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggle dumping in binary format [default = %s]\n", fBinary? "yes": "no" );

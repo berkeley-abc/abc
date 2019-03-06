@@ -185,23 +185,29 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
 
     char * pAlgoName = NULL;
     if ( NpnType == 0 )
-        pAlgoName = "uniqifying         ";
+        pAlgoName = "uniqifying          ";
     else if ( NpnType == 1 )
-        pAlgoName = "exact NPN          ";
+        pAlgoName = "exact NPN           ";
     else if ( NpnType == 2 )
-        pAlgoName = "counting 1s        ";
+        pAlgoName = "counting 1s         ";
     else if ( NpnType == 3 )
-        pAlgoName = "Jake's hybrid fast ";
+        pAlgoName = "Jake's hybrid fast  ";
     else if ( NpnType == 4 )
-        pAlgoName = "Jake's hybrid good ";
+        pAlgoName = "Jake's hybrid good  ";
     else if ( NpnType == 5 )
-        pAlgoName = "new hybrid fast    ";
+        pAlgoName = "new hybrid fast     ";
     else if ( NpnType == 6 )
-        pAlgoName = "new phase flipping ";
+        pAlgoName = "new phase flipping  ";
     else if ( NpnType == 7 )
-        pAlgoName = "new hier. matching ";
+        pAlgoName = "new hier. matching  ";
     else if ( NpnType == 8 )
-        pAlgoName = "new adap. matching ";
+        pAlgoName = "new adap. matching  ";
+    else if ( NpnType == 9 )
+        pAlgoName = "FPL 2018 algorithm  ";
+    else if ( NpnType == 10 )
+        pAlgoName = "TRETS algorithm     ";
+    else if ( NpnType == 11 )
+        pAlgoName = "new exact algorithm ";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
@@ -327,6 +333,29 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         }
 		Abc_TtHieManStop(pMan);
     }
+    else if ( NpnType == 9 || NpnType == 10 || NpnType == 11 )
+    {
+        typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+        unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+        unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
+        unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
+		
+		Abc_TtHieMan_t * pMan = Abc_TtHieManStart(p->nVars, 5);
+		for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d : ", i );
+            if ( NpnType == 9 )
+                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm,  100); // FPL2018 algorithm
+            else if ( NpnType == 10 )
+                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm, 1100); // TRETS algorithm
+            else if ( NpnType == 11 )
+                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm,    0); // the new exact algorithm
+            if ( fVerbose )
+                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+        }
+		Abc_TtHieManStop(pMan);
+    }
     else assert( 0 );
     clk = Abc_Clock() - clk;
     printf( "Classes =%9d  ", Abc_TruthNpnCountUnique(p) );
@@ -390,7 +419,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int f
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
-    if ( NpnType >= 0 && NpnType <= 8 )
+    if ( NpnType >= 0 && NpnType <= 11 )
         Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );
