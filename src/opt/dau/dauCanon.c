@@ -1638,7 +1638,8 @@ static inline int Abc_TgCannonVerify(Abc_TgMan_t* pMan)
     return Abc_TtCannonVerify(pMan->pTruth, pMan->nVars, pMan->pPermT, pMan->uPhase);
 }
 
-int Abc_TgExpendSymmetry(Abc_TgMan_t * pMan, char * pDest);
+extern int Abc_TgExpendSymmetry(Abc_TgMan_t * pMan, char * pDest);
+
 static void CheckConfig(Abc_TgMan_t * pMan)
 {
 #ifndef NDEBUG
@@ -1812,7 +1813,7 @@ static void Abc_TgCreateGroups(Abc_TgMan_t * pMan)
     int pStore[17];
     int i, nOnes;
     int nVars = pMan->nVars, nWords = Abc_TtWordNum(nVars);
-    TiedGroup * pGrp = pMan->pGroup;
+    //TiedGroup * pGrp = pMan->pGroup;
     assert(nVars <= 16);
     // normalize polarity    
     nOnes = Abc_TtCountOnesInTruth(pMan->pTruth, nVars);
@@ -1970,7 +1971,7 @@ static void Abc_TgPurgeSymmetry(Abc_TgMan_t * pMan, int fHigh)
     pMan->nGVars -= sum;
 }
 
-static int Abc_TgExpendSymmetry(Abc_TgMan_t * pMan, char * pDest)
+int Abc_TgExpendSymmetry(Abc_TgMan_t * pMan, char * pDest)
 {
     int i = 0, j, k, s;
     char * pPerm = pMan->pPerm;
@@ -2380,7 +2381,7 @@ static void Abc_TgReorderFGrps(Abc_TgMan_t * pMan)
     for (i = 0; i < n; i++)
     {
         char iv = pMan->pPerm[i];
-        for (j = i; j > 0 && pMan->symPhase[pFGrps[j - 1]] > pMan->symPhase[iv]; j--)
+        for (j = i; j > 0 && pMan->symPhase[(int)pFGrps[j - 1]] > pMan->symPhase[iv]; j--)
             pFGrps[j] = pFGrps[j - 1];
         pFGrps[j] = iv;
     }
@@ -2449,7 +2450,7 @@ static int Abc_TgRecordPhase1(Abc_TgMan_t * pMan)   // for AdjSE
 {
     Vec_Int_t * vPhase = pMan->vPhase;
     int i, j, n = pMan->pGroup->nGVars;
-    int nCoefs = pMan->nGVars + 2;
+    //int nCoefs = pMan->nGVars + 2;
     int nScc, nMinScc;
 
     assert (Vec_IntSize(vPhase) == 0);
@@ -2542,7 +2543,7 @@ static int Abc_TgEnumerationCost(Abc_TgMan_t * pMan)
     if (pMan->nGroups == 0) return 0;
 
     for (i = 0; i < pMan->nGroups; i++)
-        c.cPerm += log2fn[pMan->pGroup[i].nGVars];
+        c.cPerm += log2fn[(int)pMan->pGroup[i].nGVars];
 
     c.cPhase = pMan->fPhased ? 0
              : pMan->nAlgorithm == 0 ? pMan->pGroup->nGVars
