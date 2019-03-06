@@ -676,17 +676,17 @@ static inline int Gia_ManAppendAnd( Gia_Man_t * p, int iLit0, int iLit1 )
     assert( p->fGiaSimple || Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
     if ( iLit0 < iLit1 )
     {
-        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
-        pObj->fCompl0 = Abc_LitIsCompl(iLit0);
-        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
-        pObj->fCompl1 = Abc_LitIsCompl(iLit1);
+        pObj->iDiff0  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0));
+        pObj->fCompl0 = (unsigned)(Abc_LitIsCompl(iLit0));
+        pObj->iDiff1  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1));
+        pObj->fCompl1 = (unsigned)(Abc_LitIsCompl(iLit1));
     }
     else
     {
-        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
-        pObj->fCompl1 = Abc_LitIsCompl(iLit0);
-        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
-        pObj->fCompl0 = Abc_LitIsCompl(iLit1);
+        pObj->iDiff1  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0));
+        pObj->fCompl1 = (unsigned)(Abc_LitIsCompl(iLit0));
+        pObj->iDiff0  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1));
+        pObj->fCompl0 = (unsigned)(Abc_LitIsCompl(iLit1));
     }
     if ( p->pFanData )
     {
@@ -722,17 +722,17 @@ static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )
     assert( !Abc_LitIsCompl(iLit1) );
     if ( Abc_Lit2Var(iLit0) > Abc_Lit2Var(iLit1) )
     {
-        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
-        pObj->fCompl0 = Abc_LitIsCompl(iLit0);
-        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
-        pObj->fCompl1 = Abc_LitIsCompl(iLit1);
+        pObj->iDiff0  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0));
+        pObj->fCompl0 = (unsigned)(Abc_LitIsCompl(iLit0));
+        pObj->iDiff1  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1));
+        pObj->fCompl1 = (unsigned)(Abc_LitIsCompl(iLit1));
     }
     else
     {
-        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
-        pObj->fCompl1 = Abc_LitIsCompl(iLit0);
-        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
-        pObj->fCompl0 = Abc_LitIsCompl(iLit1);
+        pObj->iDiff1  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0));
+        pObj->fCompl1 = (unsigned)(Abc_LitIsCompl(iLit0));
+        pObj->iDiff0  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1));
+        pObj->fCompl0 = (unsigned)(Abc_LitIsCompl(iLit1));
     }
     p->nXors++;
     return Gia_ObjId( p, pObj ) << 1;
@@ -750,18 +750,18 @@ static inline int Gia_ManAppendMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int
     assert( !Vec_IntSize(&p->vHTable) || !Abc_LitIsCompl(iLit1) );
     if ( Abc_Lit2Var(iLit0) < Abc_Lit2Var(iLit1) )
     {
-        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
-        pObj->fCompl0 = Abc_LitIsCompl(iLit0);
-        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
-        pObj->fCompl1 = Abc_LitIsCompl(iLit1);
+        pObj->iDiff0  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0));
+        pObj->fCompl0 = (unsigned)(Abc_LitIsCompl(iLit0));
+        pObj->iDiff1  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1));
+        pObj->fCompl1 = (unsigned)(Abc_LitIsCompl(iLit1));
         p->pMuxes[Gia_ObjId(p, pObj)] = iLitC;
     }
     else
     {
-        pObj->iDiff1  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0);
-        pObj->fCompl1 = Abc_LitIsCompl(iLit0);
-        pObj->iDiff0  = Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1);
-        pObj->fCompl0 = Abc_LitIsCompl(iLit1);
+        pObj->iDiff1  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0));
+        pObj->fCompl1 = (unsigned)(Abc_LitIsCompl(iLit0));
+        pObj->iDiff0  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit1));
+        pObj->fCompl0 = (unsigned)(Abc_LitIsCompl(iLit1));
         p->pMuxes[Gia_ObjId(p, pObj)] = Abc_LitNot(iLitC);
     }
     p->nMuxes++;
