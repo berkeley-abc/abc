@@ -127,7 +127,7 @@ static inline Vec_Int_t * Vec_IntStart( int nSize )
     Vec_Int_t * p;
     p = Vec_IntAlloc( nSize );
     p->nSize = nSize;
-    if ( p->pArray ) memset( p->pArray, 0, sizeof(int) * nSize );
+    if ( p->pArray ) memset( p->pArray, 0, sizeof(int) * (size_t)nSize );
     return p;
 }
 static inline Vec_Int_t * Vec_IntStartFull( int nSize )
@@ -135,7 +135,7 @@ static inline Vec_Int_t * Vec_IntStartFull( int nSize )
     Vec_Int_t * p;
     p = Vec_IntAlloc( nSize );
     p->nSize = nSize;
-    if ( p->pArray ) memset( p->pArray, 0xff, sizeof(int) * nSize );
+    if ( p->pArray ) memset( p->pArray, 0xff, sizeof(int) * (size_t)nSize );
     return p;
 }
 static inline Vec_Int_t * Vec_IntStartRange( int First, int Range )
@@ -210,7 +210,7 @@ static inline Vec_Int_t * Vec_IntAllocArrayCopy( int * pArray, int nSize )
     p->nSize  = nSize;
     p->nCap   = nSize;
     p->pArray = ABC_ALLOC( int, nSize );
-    memcpy( p->pArray, pArray, sizeof(int) * nSize );
+    memcpy( p->pArray, pArray, sizeof(int) * (size_t)nSize );
     return p;
 }
 
@@ -232,7 +232,7 @@ static inline Vec_Int_t * Vec_IntDup( Vec_Int_t * pVec )
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nSize;
     p->pArray = p->nCap? ABC_ALLOC( int, p->nCap ) : NULL;
-    memcpy( p->pArray, pVec->pArray, sizeof(int) * pVec->nSize );
+    memcpy( p->pArray, pVec->pArray, sizeof(int) * (size_t)pVec->nSize );
     return p;
 }
 
@@ -331,7 +331,7 @@ static inline int * Vec_IntReleaseNewArray( Vec_Int_t * p )
 {
     int * pArray = ABC_ALLOC( int, p->nSize+1 );
     pArray[0] = p->nSize+1;
-    memcpy( pArray+1, p->pArray, sizeof(int)*p->nSize );
+    memcpy( pArray+1, p->pArray, sizeof(int)*(size_t)p->nSize );
     return pArray;
 }
 
@@ -404,7 +404,7 @@ static inline int Vec_IntCap( Vec_Int_t * p )
 ***********************************************************************/
 static inline double Vec_IntMemory( Vec_Int_t * p )
 {
-    return !p ? 0.0 : 1.0 * sizeof(int) * p->nCap + sizeof(Vec_Int_t) ;
+    return !p ? 0.0 : 1.0 * sizeof(int) * (size_t)p->nCap + sizeof(Vec_Int_t) ;
 }
 
 /**Function*************************************************************
@@ -1558,7 +1558,7 @@ static inline int * Vec_IntUniqueLookup( Vec_Int_t * vData, int i, int nIntSize,
 {
     int * pData = Vec_IntEntryP( vData, i*nIntSize );
     for ( ; *pStart != -1; pStart = pNexts + *pStart )
-        if ( !memcmp( pData, Vec_IntEntryP(vData, *pStart*nIntSize), sizeof(int) * nIntSize ) )
+        if ( !memcmp( pData, Vec_IntEntryP(vData, *pStart*nIntSize), sizeof(int) * (size_t)nIntSize ) )
             return pStart;
     return pStart;
 }
@@ -2018,7 +2018,7 @@ static inline int Vec_IntCompareVec( Vec_Int_t * p1, Vec_Int_t * p2 )
         return (p1 != NULL) - (p2 != NULL);
     if ( Vec_IntSize(p1) != Vec_IntSize(p2) )
         return Vec_IntSize(p1) - Vec_IntSize(p2);
-    return memcmp( Vec_IntArray(p1), Vec_IntArray(p2), sizeof(int)*Vec_IntSize(p1) );
+    return memcmp( Vec_IntArray(p1), Vec_IntArray(p2), sizeof(int)*(size_t)Vec_IntSize(p1) );
 }
 
 /**Function*************************************************************

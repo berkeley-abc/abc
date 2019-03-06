@@ -249,9 +249,9 @@ static inline void Extra_ProgressBarUpdate( ProgressBar * p, int nItemsCur, char
 static inline int   Extra_BitWordNum( int nBits )    { return nBits/(8*sizeof(unsigned)) + ((nBits%(8*sizeof(unsigned))) > 0);  }
 static inline int   Extra_TruthWordNum( int nVars )  { return nVars <= 5 ? 1 : (1 << (nVars - 5)); }
 
-static inline void  Extra_TruthSetBit( unsigned * p, int Bit )   { p[Bit>>5] |= (1<<(Bit & 31));               }
-static inline void  Extra_TruthXorBit( unsigned * p, int Bit )   { p[Bit>>5] ^= (1<<(Bit & 31));               }
-static inline int   Extra_TruthHasBit( unsigned * p, int Bit )   { return (p[Bit>>5] & (1<<(Bit & 31))) > 0;   }
+static inline void  Extra_TruthSetBit( unsigned * p, int Bit )   { p[Bit>>5] |= (unsigned)(1<<(Bit & 31));               }
+static inline void  Extra_TruthXorBit( unsigned * p, int Bit )   { p[Bit>>5] ^= (unsigned)(1<<(Bit & 31));               }
+static inline int   Extra_TruthHasBit( unsigned * p, int Bit )   { return (p[Bit>>5] & (unsigned)(1<<(Bit & 31))) > 0;   }
 
 static inline int Extra_WordCountOnes( unsigned uWord )
 {

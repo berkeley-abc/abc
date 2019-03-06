@@ -115,7 +115,7 @@ static inline Vec_Wrd_t * Vec_WrdStart( int nSize )
     Vec_Wrd_t * p;
     p = Vec_WrdAlloc( nSize );
     p->nSize = nSize;
-    memset( p->pArray, 0, sizeof(word) * nSize );
+    memset( p->pArray, 0, sizeof(word) * (size_t)nSize );
     return p;
 }
 
@@ -135,7 +135,7 @@ static inline Vec_Wrd_t * Vec_WrdStartFull( int nSize )
     Vec_Wrd_t * p;
     p = Vec_WrdAlloc( nSize );
     p->nSize = nSize;
-    memset( p->pArray, 0xff, sizeof(word) * nSize );
+    memset( p->pArray, 0xff, sizeof(word) * (size_t)nSize );
     return p;
 }
 
@@ -200,7 +200,7 @@ static inline Vec_Wrd_t * Vec_WrdAllocArrayCopy( word * pArray, int nSize )
     p->nSize  = nSize;
     p->nCap   = nSize;
     p->pArray = ABC_ALLOC( word, nSize );
-    memcpy( p->pArray, pArray, sizeof(word) * nSize );
+    memcpy( p->pArray, pArray, sizeof(word) * (size_t)nSize );
     return p;
 }
 
@@ -222,7 +222,7 @@ static inline Vec_Wrd_t * Vec_WrdDup( Vec_Wrd_t * pVec )
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nSize;
     p->pArray = p->nCap? ABC_ALLOC( word, p->nCap ) : NULL;
-    memcpy( p->pArray, pVec->pArray, sizeof(word) * pVec->nSize );
+    memcpy( p->pArray, pVec->pArray, sizeof(word) * (size_t)pVec->nSize );
     return p;
 }
 
@@ -377,7 +377,7 @@ static inline int Vec_WrdCap( Vec_Wrd_t * p )
 ***********************************************************************/
 static inline double Vec_WrdMemory( Vec_Wrd_t * p )
 {
-    return !p ? 0.0 : 1.0 * sizeof(word) * p->nCap + sizeof(Vec_Wrd_t);
+    return !p ? 0.0 : 1.0 * sizeof(word) * (size_t)p->nCap + sizeof(Vec_Wrd_t);
 }
 
 /**Function*************************************************************

@@ -129,7 +129,7 @@ static inline void Vec_WecGrow( Vec_Wec_t * p, int nCapMin )
     if ( p->nCap >= nCapMin )
         return;
     p->pArray = ABC_REALLOC( Vec_Int_t, p->pArray, nCapMin ); 
-    memset( p->pArray + p->nCap, 0, sizeof(Vec_Int_t) * (nCapMin - p->nCap) );
+    memset( p->pArray + p->nCap, 0, sizeof(Vec_Int_t) * (size_t)(nCapMin - p->nCap) );
     p->nCap   = nCapMin;
 }
 static inline void Vec_WecInit( Vec_Wec_t * p, int nSize )
@@ -339,7 +339,7 @@ static inline double Vec_WecMemory( Vec_Wec_t * p )
     if ( p == NULL )  return 0.0;
     Mem = sizeof(Vec_Int_t) * Vec_WecCap(p);
     for ( i = 0; i < p->nSize; i++ )
-        Mem += sizeof(int) * Vec_IntCap( Vec_WecEntry(p, i) );
+        Mem += sizeof(int) * (size_t)Vec_IntCap( Vec_WecEntry(p, i) );
     return Mem;
 }
 

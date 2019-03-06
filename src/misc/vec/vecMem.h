@@ -236,12 +236,12 @@ static inline word * Vec_MemGetEntry( Vec_Mem_t * p, int i )
 static inline void Vec_MemSetEntry( Vec_Mem_t * p, int i, word * pEntry )
 {
     word * pPlace = Vec_MemGetEntry( p, i );
-    memmove( pPlace, pEntry, sizeof(word) * p->nEntrySize );
+    memmove( pPlace, pEntry, sizeof(word) * (size_t)p->nEntrySize );
 }
 static inline void Vec_MemPush( Vec_Mem_t * p, word * pEntry )
 {
     word * pPlace = Vec_MemGetEntry( p, p->nEntries );
-    memmove( pPlace, pEntry, sizeof(word) * p->nEntrySize );
+    memmove( pPlace, pEntry, sizeof(word) * (size_t)p->nEntrySize );
 }
 
 /**Function*************************************************************

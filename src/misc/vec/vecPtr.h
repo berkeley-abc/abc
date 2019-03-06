@@ -120,7 +120,7 @@ static inline Vec_Ptr_t * Vec_PtrStart( int nSize )
     Vec_Ptr_t * p;
     p = Vec_PtrAlloc( nSize );
     p->nSize = nSize;
-    memset( p->pArray, 0, sizeof(void *) * nSize );
+    memset( p->pArray, 0, sizeof(void *) * (size_t)nSize );
     return p;
 }
 
@@ -163,7 +163,7 @@ static inline Vec_Ptr_t * Vec_PtrAllocArrayCopy( void ** pArray, int nSize )
     p->nSize  = nSize;
     p->nCap   = nSize;
     p->pArray = ABC_ALLOC( void *, nSize );
-    memcpy( p->pArray, pArray, sizeof(void *) * nSize );
+    memcpy( p->pArray, pArray, sizeof(void *) * (size_t)nSize );
     return p;
 }
 
@@ -185,7 +185,7 @@ static inline Vec_Ptr_t * Vec_PtrDup( Vec_Ptr_t * pVec )
     p->nSize  = pVec->nSize;
     p->nCap   = pVec->nCap;
     p->pArray = p->nCap? ABC_ALLOC( void *, p->nCap ) : NULL;
-    memcpy( p->pArray, pVec->pArray, sizeof(void *) * pVec->nSize );
+    memcpy( p->pArray, pVec->pArray, sizeof(void *) * (size_t)pVec->nSize );
     return p;
 }
 static inline Vec_Ptr_t * Vec_PtrDupStr( Vec_Ptr_t * pVec )
@@ -350,7 +350,7 @@ static inline int Vec_PtrCap( Vec_Ptr_t * p )
 ***********************************************************************/
 static inline double Vec_PtrMemory( Vec_Ptr_t * p )
 {
-    return !p ? 0.0 : 1.0 * sizeof(void *) * p->nCap + sizeof(Vec_Ptr_t);
+    return !p ? 0.0 : 1.0 * sizeof(void *) * (size_t)p->nCap + sizeof(Vec_Ptr_t);
 }
 
 /**Function*************************************************************
@@ -620,7 +620,7 @@ static inline void Vec_PtrCopy( Vec_Ptr_t * pDest, Vec_Ptr_t * pSour )
 {
     pDest->nSize = 0;
     Vec_PtrGrow( pDest, pSour->nSize );
-    memcpy( pDest->pArray, pSour->pArray, sizeof(void *) * pSour->nSize );
+    memcpy( pDest->pArray, pSour->pArray, sizeof(void *) * (size_t)pSour->nSize );
     pDest->nSize = pSour->nSize;
 }
 
@@ -824,8 +824,8 @@ static inline void Vec_PtrReorder( Vec_Ptr_t * p, int nItems )
 {
     assert( nItems < p->nSize );
     Vec_PtrGrow( p, nItems + p->nSize );
-    memmove( (char **)p->pArray + p->nSize, p->pArray, nItems * sizeof(void*) );
-    memmove( p->pArray, (char **)p->pArray + nItems, p->nSize * sizeof(void*) );
+    memmove( (char **)p->pArray + p->nSize, p->pArray, (size_t)nItems * sizeof(void*) );
+    memmove( p->pArray, (char **)p->pArray + nItems, (size_t)p->nSize * sizeof(void*) );
 }
 
 /**Function*************************************************************
@@ -988,7 +988,7 @@ static inline Vec_Ptr_t * Vec_PtrAllocSimInfo( int nEntries, int nWords )
     void ** pMemory;
     unsigned * pInfo;
     int i;
-    pMemory = (void **)ABC_ALLOC( char, (sizeof(void *) + sizeof(unsigned) * nWords) * nEntries );
+    pMemory = (void **)ABC_ALLOC( char, (sizeof(void *) + sizeof(unsigned) * (size_t)nWords) * nEntries );
     pInfo = (unsigned *)(pMemory + nEntries);
     for ( i = 0; i < nEntries; i++ )
         pMemory[i] = pInfo + i * nWords;
@@ -1026,7 +1026,7 @@ static inline void Vec_PtrCleanSimInfo( Vec_Ptr_t * vInfo, int iWord, int nWords
 {
     int i;
     for ( i = 0; i < vInfo->nSize; i++ )
-        memset( (char*)Vec_PtrEntry(vInfo,i) + 4*iWord, 0, 4*(nWords-iWord) );
+        memset( (char*)Vec_PtrEntry(vInfo,i) + 4*iWord, 0, (size_t)(4*(nWords-iWord)) );
 }
 
 /**Function*************************************************************
@@ -1044,7 +1044,7 @@ static inline void Vec_PtrFillSimInfo( Vec_Ptr_t * vInfo, int iWord, int nWords 
 {
     int i;
     for ( i = 0; i < vInfo->nSize; i++ )
-        memset( (char*)Vec_PtrEntry(vInfo,i) + 4*iWord, 0xFF, 4*(nWords-iWord) );
+        memset( (char*)Vec_PtrEntry(vInfo,i) + 4*iWord, 0xFF, (size_t)(4*(nWords-iWord)) );
 }
 
 /**Function*************************************************************
