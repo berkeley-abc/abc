@@ -2381,7 +2381,7 @@ static void Abc_TgReorderFGrps(Abc_TgMan_t * pMan)
     for (i = 0; i < n; i++)
     {
         char iv = pMan->pPerm[i];
-        for (j = i; j > 0 && pMan->symPhase[(int)pFGrps[j - 1]] > pMan->symPhase[iv]; j--)
+        for (j = i; j > 0 && pMan->symPhase[(int)pFGrps[j - 1]] > pMan->symPhase[(int)iv]; j--)
             pFGrps[j] = pFGrps[j - 1];
         pFGrps[j] = iv;
     }
