@@ -45683,7 +45683,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-//    Gia_Man_t * pTemp = NULL;
+    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int nFrames = 5;
     int fSwitch = 0;
@@ -45713,7 +45713,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
 //    extern void Gia_ManTisTest( Gia_Man_t * pInit );
 //    extern void Gia_StoComputeCuts( Gia_Man_t * p );
-    extern void Abc_BddGiaTest( Gia_Man_t * pGia, int fVerbose );
+//    extern void Abc_BddGiaTest( Gia_Man_t * pGia, int fVerbose );
+    extern Gia_Man_t * Dau_ConstructAigFromFile( char * pFileName );
 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
@@ -45765,11 +45766,11 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
-        return 1;
-    }
+//    if ( pAbc->pGia == NULL )
+//    {
+//        Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
+//        return 1;
+//    }
 /*
     if ( pAbc->pCex == NULL )
     {
@@ -45831,6 +45832,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    pTemp = Slv_ManToAig( pAbc->pGia );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
 //    Extra_TestGia2( pAbc->pGia );
+    pTemp = Dau_ConstructAigFromFile( "lib4var2.txt" );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );
