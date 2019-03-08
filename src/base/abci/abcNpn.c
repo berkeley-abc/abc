@@ -203,11 +203,11 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
     else if ( NpnType == 8 )
         pAlgoName = "new adap. matching  ";
     else if ( NpnType == 9 )
-        pAlgoName = "FPL 2018 algorithm  ";
+        pAlgoName = "adjustable algorithm (heuristic) ";
     else if ( NpnType == 10 )
-        pAlgoName = "TRETS algorithm     ";
+        pAlgoName = "adjustable algorithm (exact)     ";
     else if ( NpnType == 11 )
-        pAlgoName = "new exact algorithm ";
+        pAlgoName = "new cost-aware exact algorithm   ";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
@@ -346,11 +346,11 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
             if ( fVerbose )
                 printf( "%7d : ", i );
             if ( NpnType == 9 )
-                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm,  100); // FPL2018 algorithm
+                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm,  125); // -A 8, adjustable algorithm (heuristic)
             else if ( NpnType == 10 )
-                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm, 1100); // TRETS algorithm
+                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm, 1199); // -A 9, adjustable algorithm (exact)
             else if ( NpnType == 11 )
-                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, p->pFuncs[i], p->nVars, pCanonPerm,    0); // the new exact algorithm
+                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeCA,  pMan, p->pFuncs[i], p->nVars, pCanonPerm,    1); // -A 10, new cost-aware exact algorithm
             if ( fVerbose )
                 Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
         }
