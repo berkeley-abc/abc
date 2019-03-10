@@ -379,7 +379,7 @@ static int Abc_TtScc6(word wTruth, int ck)
     int sum = 0;
     if (!wTruth) return 0;
     for (i = 0; i < 64; i++)
-        if (wTruth & ABC_CONST(0x1) << i) {
+        if (wTruth & (word)1 << i) {
             int ci = Abc_TtBitCount8[i] + ck;
             sum += shiftFunc(ci);
         }
@@ -402,9 +402,9 @@ static inline void Abc_TtSccInCofs6(word wTruth, int nVars, int ck, int * pStore
     {
         int sum = 0;
         for (i = j = 0; j < 64; j++)
-            if (s_Truths6Neg[v] & ABC_CONST(0x1) << j)
+            if (s_Truths6Neg[v] & (word)1 << j)
             {
-                if (wTruth & ABC_CONST(0x1) << j)
+                if (wTruth & (word)1 << j)
                 {
                     int ci = Abc_TtBitCount8[i] + ck;
                     sum += shiftFunc(ci);
@@ -2628,7 +2628,7 @@ unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char 
     return tgMan.uPhase;
 }
 
-unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres)
+unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int fCA)
 {
     int nWords = Abc_TtWordNum(nVars);
     unsigned fHard = 0, fHash = 1 << 29;
@@ -2669,7 +2669,7 @@ unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char *
 
     assert(Abc_TgCannonVerify(&tgManCopy));
     sc = Abc_TgRecordPhase(&tgManCopy, 0);
-    if (Abc_SccEnumCost(&tgManCopy, sc) > Abc_SccPhaseCost(&tgManCopy))
+    if (fCA && Abc_SccEnumCost(&tgManCopy, sc) > Abc_SccPhaseCost(&tgManCopy))
     {
         Abc_TgResetGroup(&tgManCopy);
         sc = Abc_TgRecordPhase(&tgManCopy, 1);
