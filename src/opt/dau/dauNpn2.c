@@ -774,7 +774,7 @@ void Dtt_MakeFormulaFI2( unsigned tFun, Dtt_FunImpl_t* pFun, Vec_Vec_t* vLibImpl
 {
     int j;
     Dtt_FunImpl_t* pImpl2;
-    char sFI2[100]; sprintf( sFI2, "" );
+    char sFI2[100] = {0}; //sprintf( sFI2, "" );
 
     if ( pFun->FI2 == 0 ) // PI
     {
@@ -799,7 +799,7 @@ void Dtt_MakeFormula( unsigned tFun, Dtt_FunImpl_t* pFun, Vec_Vec_t* vLibImpl, i
 {
     int j;
     Dtt_FunImpl_t* pImpl1;
-    char sFI1[100], sCopy[100]; sprintf( sFI1, "" );
+    char sFI1[100], sCopy[100] = {0}; //sprintf( sFI1, "" );
 
     if ( pFun->FI1 == 0 ) // PI
     {
@@ -986,7 +986,7 @@ void Dtt_DumpLibrary( Dtt_Man_t * p )
         if ( i<2 ) continue; // skip const 0 and buffer
         Vec_VecForEachEntryLevel( Dtt_FunImpl_t*, vLibImpl, pFun, j, i )
         {
-            sprintf( str, "" );
+            str[0] = 0; //sprintf( str, "" );
             Dtt_MakeFormula( (unsigned)Entry, pFun, vLibImpl, (4<<16)+(3<<12)+(2<<8)+(1<<4), str, 1, pFile );
         }
     }

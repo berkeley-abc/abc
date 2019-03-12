@@ -1274,6 +1274,7 @@ void Abc_TtHieManStop(Abc_TtHieMan_t * p)
         Vec_MemFreeP(&p->vTtMem[i]);
         Vec_IntFree(p->vRepres[i]);
     }
+    Vec_IntFree( p->vPhase );
     ABC_FREE(p);
 }
 
@@ -1520,7 +1521,7 @@ static int Abc_NextPermSwapC(char * pData, signed char * pDir, int size)
     return j < k ? j : k;
 }
 
-typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+//typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
 unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag)
 {
     int nWords = Abc_TtWordNum(nVars);
