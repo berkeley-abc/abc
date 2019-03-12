@@ -3271,6 +3271,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fReorder;
     int fReverse;
     int c;
+    char * pLogFileName = NULL;
     pNtk = Abc_FrameReadNtk(pAbc);
 
     // set defaults
@@ -3280,7 +3281,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     fDualRail = 0;
     fBddSizeMax = ABC_INFINITY;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Brodvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BLrodvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3294,6 +3295,15 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( fBddSizeMax < 0 )
                 goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
             break;
         case 'r':
             fReorder ^= 1;
@@ -3342,12 +3352,23 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    if ( pLogFileName )
+    {
+        pAbc->pCex = NULL;
+        pAbc->nFrames = -1;
+        if ( Abc_NtkNodeNum(pNtkRes) == 0 ) 
+            pAbc->Status =  1; // UNSAT
+        else
+            pAbc->Status = -1; // UNDEC
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "collapse" );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: collapse [-B <num>] [-rodvh]\n" );
+    Abc_Print( -2, "usage: collapse [-B <num>] [-L file] [-rodvh]\n" );
     Abc_Print( -2, "\t          collapses the network by constructing global BDDs\n" );
     Abc_Print( -2, "\t-B <num>: limit on live BDD nodes during collapsing [default = %d]\n", fBddSizeMax );
+    Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-r      : toggles dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
     Abc_Print( -2, "\t-o      : toggles reverse variable ordering [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggles dual-rail collapsing mode [default = %s]\n", fDualRail? "yes": "no" );
@@ -21902,6 +21923,7 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMiter;
     int fVerbose;
     char * pFileSim;
+    char * pLogFileName = NULL;
     extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
     // set defaults
     fNew       =  0;
@@ -21913,7 +21935,7 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     fVerbose   =  0;
     pFileSim   = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWTAnmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWTALnmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21959,6 +21981,15 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             pFileSim = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'n':
             fNew ^= 1;
             break;
@@ -21992,16 +22023,19 @@ int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     ABC_FREE( pNtk->pSeqModel );
     pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fMiter, fVerbose, pFileSim );
     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+    if ( pLogFileName )
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "sim" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sim [-FWT num] [-A file] [-nmvh]\n" );
+    Abc_Print( -2, "usage: sim [-FWT num] [-AL file] [-nmvh]\n" );
     Abc_Print( -2, "\t          performs random simulation of the sequential miter\n" );
     Abc_Print( -2, "\t-F num  : the number of frames to simulate [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-W num  : the number of words to simulate [default = %d]\n", nWords );
     Abc_Print( -2, "\t-T num  : approximate runtime limit in seconds [default = %d]\n", TimeOut );
     Abc_Print( -2, "\t-A file : text file name with user's patterns [default = random simulation]\n" );
     Abc_Print( -2, "\t          (patterns are listed, one per line, as sequences of 0s and 1s)\n" );
+    Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-n      : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
     Abc_Print( -2, "\t-m      : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -22027,10 +22061,11 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
     Ssw_RarPars_t Pars, * pPars = &Pars;
     Abc_Ntk_t * pNtkRes, * pNtk = Abc_FrameReadNtk(pAbc);
     Vec_Ptr_t * vSeqModelVec;
+    char * pLogFileName = NULL;
     int c;
     Ssw_RarSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGadivzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FWBRSNTGLadivzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22122,6 +22157,15 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->TimeOutGap < 0 )
                 goto usage;
             break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'a':
             pPars->fSolveAll ^= 1;
             break;
@@ -22204,10 +22248,12 @@ int Abc_CommandSim3( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
         pAbc->nFrames = -1;
     }
+    if ( pLogFileName )
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "sim3" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sim3 [-FWBRSNTG num] [-advzh]\n" );
+    Abc_Print( -2, "usage: sim3 [-FWBRSNTG num] [-L file] [-advzh]\n" );
     Abc_Print( -2, "\t         performs random simulation of the sequential miter\n" );
     Abc_Print( -2, "\t-F num : the number of frames to simulate [default = %d]\n",                         pPars->nFrames );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n",                          pPars->nWords );
@@ -22217,6 +22263,7 @@ usage:
     Abc_Print( -2, "\t-N num : random number seed (1 <= num <= 1000) [default = %d]\n",                    pPars->nRandSeed );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n",                     pPars->TimeOut );
     Abc_Print( -2, "\t-G num : approximate runtime gap in seconds since the last CEX [default = %d]\n",    pPars->TimeOutGap );
+    Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                                          pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-a     : toggle solving all outputs (do not stop when one is SAT) [default = %s]\n", pPars->fSolveAll?    "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dropping (replacing by 0) SAT outputs [default = %s]\n",             pPars->fDropSatOuts? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle changing init state to a last rare state [default = %s]\n",          pPars->fVerbose?     "yes": "no" );
