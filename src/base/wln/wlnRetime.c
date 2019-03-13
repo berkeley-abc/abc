@@ -499,7 +499,7 @@ void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
         Vec_IntErase( &pNtk->vInstIds );
     if ( !Wln_NtkHasInstId(pNtk) )
     {
-        int iObj;
+        int i, iObj;
         printf( "The design has no delay information.\n" );
         Wln_NtkCleanInstId(pNtk);
         Wln_NtkForEachObj( pNtk, iObj )
@@ -507,6 +507,8 @@ void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
                 Wln_ObjSetInstId( pNtk, iObj, 1 );
             else if ( !Wln_ObjIsCio(pNtk, iObj) && Wln_ObjFaninNum(pNtk, iObj) > 0 )
                 Wln_ObjSetInstId( pNtk, iObj, 10 );
+        Wln_NtkForEachCo( pNtk, iObj, i ) 
+            Wln_ObjSetInstId( pNtk, Wln_ObjFanin0(pNtk, iObj), 1 );
         printf( "Assuming user-specified delays for internal nodes.\n" );
     }
 }
