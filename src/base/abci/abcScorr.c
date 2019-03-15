@@ -378,8 +378,11 @@ Abc_Ntk_t * Abc_NtkTestScorr( char * pFileNameIn, char * pFileNameOut, int nStep
         Abc_NtkDelete( pLogic );
         Abc_NtkDelete( pNetlist );
         printf( "Deriving strashed network from input file %s has failed.\n", pFileNameIn );
+        fclose( pFile );
         return NULL;
     }
+    fclose( pFile );
+
     pAig = Abc_NtkToDar( pStrash, 0, 1 ); // performs "zero" internally
     // the newer computation (&scorr)
     if ( fNewAlgo )

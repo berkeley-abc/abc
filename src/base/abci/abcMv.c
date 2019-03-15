@@ -221,6 +221,7 @@ void Abc_MvRead( Mv_Man_t * p )
         Cudd_RecursiveDeref( p->dd, bTemp );
         Cudd_RecursiveDeref( p->dd, bCube );
     }
+    flose(pFile);
 
     // add the complement of the domain to all values
     for ( i = 0; i < 15; i++ )

@@ -1121,6 +1121,7 @@ If_DsdMan_t * If_DsdManLoad( char * pFileName )
     RetValue = fread( pBuffer, 4, 1, pFile );
     if ( strncmp(pBuffer, DSD_VERSION, strlen(DSD_VERSION)) )
     {
+        fclose( pFile );
         printf( "Unrecognized format of file \"%s\".\n", pFileName );
         return NULL;
     }
