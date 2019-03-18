@@ -45688,6 +45688,9 @@ int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( RareUse < 0 )
                 goto usage;
             break;
+        case 'r':
+            fReplaceRare ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
