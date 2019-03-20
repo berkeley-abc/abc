@@ -100,6 +100,7 @@ int Ndr_TypeNdr2Wlc( int Type )
     if ( Type == ABC_OPER_DFFRSE )        return WLC_OBJ_FF;            // 05: flop
     if ( Type == ABC_OPER_RAMR )          return WLC_OBJ_READ;          // 54: read port
     if ( Type == ABC_OPER_RAMW )          return WLC_OBJ_WRITE;         // 55: write port
+    if ( Type == ABC_OPER_LUT )           return WLC_OBJ_TABLE;         // 55: LUT
     return -1;
 }
 int Ndr_TypeWlc2Ndr( int Type )
@@ -159,6 +160,7 @@ int Ndr_TypeWlc2Ndr( int Type )
     if ( Type == WLC_OBJ_FF )             return ABC_OPER_DFFRSE;       // 05: flop
     if ( Type == WLC_OBJ_READ )           return ABC_OPER_RAMR;         // 54: read port
     if ( Type == WLC_OBJ_WRITE )          return ABC_OPER_RAMW;         // 55: write port
+    if ( Type == WLC_OBJ_TABLE )          return ABC_OPER_LUT;          // 55: LUT
     return -1;
 }
 

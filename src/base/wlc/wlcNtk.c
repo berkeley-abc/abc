@@ -943,7 +943,7 @@ void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * v
         return;
     if ( Wlc_ObjCopy(p, iObj) )
         return;
-    //printf( "Visiting node %d\n", iObj );
+    printf( "Visiting node %d with type %d (%s)\n", iObj, Wlc_NtkObj(p, iObj)->Type, Wlc_NtkObj(p, iObj)->Type < WLC_OBJ_NUMBER ? Wlc_Names[Wlc_NtkObj(p, iObj)->Type] : NULL );
     pObj = Wlc_NtkObj( p, iObj );
     assert( pObj->Type != WLC_OBJ_FF );
     Wlc_ObjForEachFanin( pObj, iFanin, i )
