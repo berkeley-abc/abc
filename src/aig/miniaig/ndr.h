@@ -131,6 +131,8 @@ static inline int           Ndr_DataEnd( Ndr_Data_t * p, int i )                
 static inline void          Ndr_DataAddTo( Ndr_Data_t * p, int i, int Add )      { assert(Ndr_DataType(p, i) <= NDR_OBJECT); p->pBody[i] += Add;  } 
 static inline void          Ndr_DataPush( Ndr_Data_t * p, int Type, int Entry )  { p->pHead[p->nSize] = Type; p->pBody[p->nSize++] = Entry;       }
 
+#define NDR_ALLOC(type, num)     ((type *) malloc(sizeof(type) * (size_t)(num)))
+
 ////////////////////////////////////////////////////////////////////////
 ///                          ITERATORS                               ///
 ////////////////////////////////////////////////////////////////////////
@@ -172,7 +174,7 @@ static inline void Ndr_DataResize( Ndr_Data_t * p, int Add )
 {
     if ( p->nSize + Add <= p->nCap )
         return;
-    p->nCap  = Abc_MaxInt( 2 * p->nCap, p->nSize + Add );
+    p->nCap  = 2 * p->nCap > p->nSize + Add ? 2 * p->nCap : p->nSize + Add;
     p->pHead = (unsigned char*)realloc( p->pHead,   p->nCap );
     p->pBody = (unsigned int *)realloc( p->pBody, 4*p->nCap );
 }
@@ -327,8 +329,8 @@ static inline int Ndr_DataObjNum( Ndr_Data_t * p, int Mod )
 static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod, char ** pNames )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; 
-    Vec_Int_t * vOuts = Vec_IntAlloc( 100 );
-    int Obj, nArray, * pArray, fFirst = 1;
+    int * pOuts = NDR_ALLOC( int, Ndr_DataCoNum(p, Mod) );
+    int i, k, Obj, nArray, * pArray, fFirst = 1;
 
     fprintf( pFile, "\nmodule %s (\n  ", pNames[Ndr_ObjReadEntry(p, Mod, NDR_NAME)] );
 
@@ -349,25 +351,29 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
         fprintf( pFile, " %s;\n", Ndr_ObjReadOutName(p, Obj, pNames) );
     }
 
+    i = 0;
     Ndr_ModForEachPo( p, Mod, Obj )
     {
         fprintf( pFile, "  output " );
         Ndr_ObjWriteRange( p, Obj, pFile, 1 );
         fprintf( pFile, " %s;\n", Ndr_ObjReadInName(p, Obj, pNames) );
-        Vec_IntPush( vOuts, Ndr_ObjReadBody(p, Obj, NDR_INPUT) );
+        pOuts[i++] = Ndr_ObjReadBody(p, Obj, NDR_INPUT);
     }
 
     fprintf( pFile, "\n" );
 
     Ndr_ModForEachNode( p, Mod, Obj )
     {
-        if ( Vec_IntFind(vOuts, Ndr_ObjReadBody(p, Obj, NDR_OUTPUT)) >= 0 )
+        for ( k = 0; k < i; k++ )
+            if ( pOuts[k] == Ndr_ObjReadBody(p, Obj, NDR_OUTPUT) )
+                break;
+        if ( k < i )
             continue;
         fprintf( pFile, "  wire " );
         Ndr_ObjWriteRange( p, Obj, pFile, 1 );
         fprintf( pFile, " %s;\n", Ndr_ObjReadOutName(p, Obj, pNames) );
     }
-    Vec_IntFree( vOuts );
+    free( pOuts );
 
     fprintf( pFile, "\n" );
 
@@ -499,11 +505,11 @@ static inline void Ndr_WriteVerilog( char * pFileName, void * pDesign, char ** p
 // creating a new module (returns pointer to the memory buffer storing the module info)
 static inline void * Ndr_Create( int Name )
 {
-    Ndr_Data_t * p = ABC_ALLOC( Ndr_Data_t, 1 );
+    Ndr_Data_t * p = NDR_ALLOC( Ndr_Data_t, 1 );
     p->nSize = 0;
     p->nCap  = 16;
-    p->pHead = ABC_ALLOC( unsigned char, p->nCap );
-    p->pBody = ABC_ALLOC( unsigned int, p->nCap * 4 );
+    p->pHead = NDR_ALLOC( unsigned char, p->nCap );
+    p->pBody = NDR_ALLOC( unsigned int, p->nCap * 4 );
     Ndr_DataPush( p, NDR_DESIGN, 0 );
     Ndr_DataPush( p, NDR_NAME, Name );
     Ndr_DataAddTo( p, 0, p->nSize );
@@ -584,10 +590,10 @@ static inline void * Ndr_Read( char * pFileName )
     assert( nFileSize % 5 == 0 );
     rewind( pFile );
     // create structure
-    p = ABC_ALLOC( Ndr_Data_t, 1 );
+    p = NDR_ALLOC( Ndr_Data_t, 1 );
     p->nSize = p->nCap = nFileSize / 5;
-    p->pHead = ABC_ALLOC( unsigned char, p->nCap );
-    p->pBody = ABC_ALLOC( unsigned int, p->nCap * 4 );
+    p->pHead = NDR_ALLOC( unsigned char, p->nCap );
+    p->pBody = NDR_ALLOC( unsigned int, p->nCap * 4 );
     RetValue = (int)fread( p->pBody, 4, p->nCap, pFile );
     RetValue = (int)fread( p->pHead, 1, p->nCap, pFile );
     assert( p->nSize == (int)p->pBody[0] );
