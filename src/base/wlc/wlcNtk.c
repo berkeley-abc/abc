@@ -266,6 +266,7 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
     ABC_FREE( p->vFfs.pArray );
     ABC_FREE( p->vFfs2.pArray );
     Vec_IntFreeP( &p->vInits );
+    Vec_IntFreeP( &p->vArsts );
     ABC_FREE( p->vTravIds.pArray );
     ABC_FREE( p->vNameIds.pArray );
     ABC_FREE( p->vValues.pArray );
@@ -961,6 +962,7 @@ Wlc_Ntk_t * Wlc_NtkDupDfsSimple( Wlc_Ntk_t * p )
     vFanins = Vec_IntAlloc( 100 );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fAsyncRst = p->fAsyncRst;
     pNew->fMemPorts = p->fMemPorts;
     pNew->fEasyFfs = p->fEasyFfs;
     Wlc_NtkForEachCi( p, pObj, i )
@@ -989,6 +991,7 @@ Wlc_Ntk_t * Wlc_NtkDupDfs( Wlc_Ntk_t * p, int fMarked, int fSeq )
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fAsyncRst = p->fAsyncRst;
     pNew->fMemPorts = p->fMemPorts;
     pNew->fEasyFfs = p->fEasyFfs;
     Wlc_NtkForEachCi( p, pObj, i )
@@ -1056,6 +1059,7 @@ Wlc_Ntk_t * Wlc_NtkDupDfsAbs( Wlc_Ntk_t * p, Vec_Int_t * vPisOld, Vec_Int_t * vP
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fAsyncRst = p->fAsyncRst;
     pNew->fMemPorts = p->fMemPorts;
     pNew->fEasyFfs = p->fEasyFfs;
 
@@ -1239,6 +1243,7 @@ Wlc_Ntk_t * Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p )
     vFanins = Vec_IntAlloc( 100 );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fAsyncRst = p->fAsyncRst;
     pNew->fMemPorts = p->fMemPorts;
     pNew->fEasyFfs = p->fEasyFfs;
     Wlc_NtkForEachObj( p, pObj, i )

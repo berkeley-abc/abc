@@ -142,11 +142,13 @@ struct Wlc_Ntk_t_
     Vec_Int_t              vCos;               // combinational outputs
     Vec_Int_t              vFfs;               // flops
     Vec_Int_t              vFfs2;              // flops
+    Vec_Int_t *            vArsts;             // async resets
     Vec_Int_t *            vInits;             // initial values
     char *                 pInits;             // initial values
     int                    nObjs[WLC_OBJ_NUMBER]; // counter of objects of each type
     int                    nAnds[WLC_OBJ_NUMBER]; // counter of AND gates after blasting
     int                    fSmtLib;            // the network comes from an SMT-LIB file
+    int                    fAsyncRst;          // the network has asynchronous reset
     int                    fMemPorts;          // the network contains memory ports
     int                    fEasyFfs;           // the network contains simple flops
     int                    nAssert;            // the number of asserts

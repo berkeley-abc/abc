@@ -481,6 +481,32 @@ char * Wlc_PrsConvertInitValues( Wlc_Ntk_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Wlc_PrsCheckBitConst0( Wlc_Ntk_t * p, int NameId )
+{
+    Wlc_Obj_t * pObj = Wlc_NtkObj( p, NameId );
+    int * pInits;
+    if ( Wlc_ObjRange(pObj) != 1 )
+        return 0;
+    while ( pObj->Type == WLC_OBJ_BUF )
+        pObj = Wlc_NtkObj( p, Wlc_ObjFaninId0(pObj) );
+    if ( pObj->Type != WLC_OBJ_CONST )
+        return 0;
+    pInits = Wlc_ObjConstValue(pObj);
+    return Abc_InfoHasBit((unsigned *)pInits, 0) == 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline char * Wlc_PrsFindRange( char * pStr, int * End, int * Beg )
 {
     *End = *Beg = 0;
@@ -1033,6 +1059,18 @@ startword:
                 p->pNtk->pInits = Wlc_PrsConvertInitValues( p->pNtk );
                 //printf( "%s\n", p->pNtk->pInits );
             }
+            if ( p->pNtk->vArsts )
+            {
+                int i, NameIdArst;
+                Vec_IntForEachEntry( p->pNtk->vArsts, NameIdArst, i )
+                {
+                    if ( Wlc_PrsCheckBitConst0(p->pNtk, NameIdArst) )
+                        continue;
+                    p->pNtk->fAsyncRst = 1;
+                    printf( "Detected async reset \"%s\".\n", Abc_NamStr(p->pNtk->pManName, NameIdArst) );
+                    break;
+                }
+            }
             if ( p->vPoPairs )
             {
                 assert( Vec_StrEntryLast(p->vPoPairs) == 0 );
@@ -1236,6 +1274,21 @@ startword:
                 if ( pStart == NULL )
                     break;
                 pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                if ( !p->pNtk->fAsyncRst && !strncmp(pStart, "arst", 4) && pStart[4] != 'v' )
+                {
+                    int NameIdArst;
+                    pStart = Wlc_PrsFindSymbol( pStart, '(' );
+                    if ( pStart == NULL )
+                        return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
+                    pStart = Wlc_PrsFindName( pStart+1, &pName );
+                    if ( pStart == NULL )
+                        return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
+                    NameIdArst = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
+                    if ( p->pNtk->vArsts == NULL )
+                        p->pNtk->vArsts = Vec_IntAlloc( 100 );
+                    Vec_IntPushUnique( p->pNtk->vArsts, NameIdArst );
+                    continue;
+                }
                 if ( pStart[0] != 'd' && (pStart[0] != 'q' || pStart[1] == 'b') && strncmp(pStart, "arstval", 7) )
                     continue;
                 fFlopIn = (pStart[0] == 'd');

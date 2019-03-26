@@ -1133,6 +1133,11 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandBlast(): There is no current design.\n" );
         return 0;
     }
+    if ( pNtk->fAsyncRst )
+    {
+        Abc_Print( 1, "Abc_CommandBlast(): Trying to bit-blast network with asynchronous reset.\n" );
+        return 0;
+    }
     if ( fPrintInputInfo )
         Wlc_NtkPrintInputInfo(pNtk); 
     if ( pPar->fMulti )

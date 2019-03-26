@@ -141,6 +141,7 @@ Wlc_Ntk_t * Wlc_NtkMemBlast( Wlc_Ntk_t * p )
     vFanins = Vec_IntAlloc( 100 );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fAsyncRst = p->fAsyncRst;
     pNew->fMemPorts = p->fMemPorts;
     pNew->fEasyFfs = p->fEasyFfs;
     Wlc_NtkForEachCi( p, pObj, i )
@@ -529,6 +530,7 @@ Wlc_Ntk_t * Wlc_NtkAbstractMemory( Wlc_Ntk_t * p, Vec_Int_t * vMemObjs, Vec_Int_
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc + 1000 );
     pNew->fSmtLib = p->fSmtLib;
+    pNew->fAsyncRst = p->fAsyncRst;
     pNew->fMemPorts = p->fMemPorts;
     pNew->fEasyFfs = p->fEasyFfs;
     pNew->vInits = Vec_IntAlloc( 100 );
@@ -1399,6 +1401,7 @@ Wlc_Ntk_t * Wlc_NtkAbstractMem( Wlc_Ntk_t * p, int nFrames, int fVerbose )
     Wlc_NtkCleanCopy( p );
     pNew = Wlc_NtkAlloc( p->pName, p->nObjsAlloc + Vec_IntSize(vMemObjsClean) * nFrames * 10 );
     pNew->fSmtLib   = p->fSmtLib;
+    pNew->fAsyncRst = p->fAsyncRst;
     pNew->fMemPorts = p->fMemPorts;
     pNew->fEasyFfs  = p->fEasyFfs;
     pNew->vInits    = Vec_IntAlloc( 100 );

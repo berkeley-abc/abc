@@ -2112,7 +2112,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 char Buffer[1000];
                 sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->Beg-k );
                 Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
-                printf( "Writing %s\n", Buffer );
+                //printf( "Writing %s\n", Buffer );
             }
     }
     if ( p->pInits )
