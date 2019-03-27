@@ -2795,26 +2795,29 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
         if ( RetValue == 0  && (Abc_NtkLatchNum(pNtk) == 0) )
         {
             pNtk->pModel = pNtkComb->pModel; pNtkComb->pModel = NULL;
-            Abc_Print( 1, "Networks are not equivalent.\n" );
-            ABC_PRT( "Time", Abc_Clock() - clk );
             if ( pSecPar->fReportSolution )
-            {
                 Abc_Print( 1, "SOLUTION: FAIL       " );
-                ABC_PRT( "Time", Abc_Clock() - clkTotal );
-            }
+            else
+                Abc_Print( 1, "SATISFIABLE    " );
+            ABC_PRT( "Time", Abc_Clock() - clkTotal );
             return RetValue;
         }
         Abc_NtkDelete( pNtkComb );
         // return the result, if solved
         if ( RetValue == 1 )
         {
-            Abc_Print( 1, "Networks are equivalent after CEC.   " );
-            ABC_PRT( "Time", Abc_Clock() - clk );
             if ( pSecPar->fReportSolution )
-            {
-            Abc_Print( 1, "SOLUTION: PASS       " );
+                Abc_Print( 1, "SOLUTION: PASS       " );
+            else
+                Abc_Print( 1, "UNSATISFIABLE  " );
             ABC_PRT( "Time", Abc_Clock() - clkTotal );
-            }
+            return RetValue;
+        }
+        // return undecided, if the miter is combinational
+        if ( Abc_NtkLatchNum(pNtk) == 0 )
+        {
+            Abc_Print( 1, "UNDECIDED      " );
+            ABC_PRT( "Time", Abc_Clock() - clkTotal );
             return RetValue;
         }
     }
