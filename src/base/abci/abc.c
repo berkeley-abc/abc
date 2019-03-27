@@ -44800,9 +44800,10 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abs_Par_t Pars, * pPars = &Pars;
     int c, fNewAlgo = 1;
+    char * pLogFileName = NULL;
     Abs_ParSetDefaults( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCLDETRQPBAtfardmnscbpquwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FSCMDETRQPBALtfardmnscbpquwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -44839,10 +44840,10 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nConfLimit < 0 )
                 goto usage;
             break;
-        case 'L':
+        case 'M':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nLearnedStart = atoi(argv[globalUtilOptind]);
@@ -44936,6 +44937,15 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->pFileVabs = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 't':
             pPars->fUseTermVars ^= 1;
             break;
@@ -45020,15 +45030,17 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         pAbc->Status  = Gia_ManPerformGlaOld( pAbc->pGia, pPars, 0 );
     pAbc->nFrames = pPars->iFrame;
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    if ( pLogFileName )
+        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&gla" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gla [-FSCLDETRQPB num] [-A file] [-fardmnscbpquwvh]\n" );
+    Abc_Print( -2, "usage: &gla [-FSCMDETRQPB num] [-AL file] [-fardmnscbpquwvh]\n" );
     Abc_Print( -2, "\t          fixed-time-frame gate-level proof- and cex-based abstraction\n" );
     Abc_Print( -2, "\t-F num  : the max number of timeframes to unroll [default = %d]\n", pPars->nFramesMax );
     Abc_Print( -2, "\t-S num  : the starting time frame (0=unused) [default = %d]\n", pPars->nFramesStart );
     Abc_Print( -2, "\t-C num  : the max number of SAT solver conflicts (0=unused) [default = %d]\n", pPars->nConfLimit );
-    Abc_Print( -2, "\t-L num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
+    Abc_Print( -2, "\t-M num  : the max number of learned clauses to keep (0=unused) [default = %d]\n", pPars->nLearnedStart );
     Abc_Print( -2, "\t-D num  : delta value for learned clause removal [default = %d]\n", pPars->nLearnedDelta );
     Abc_Print( -2, "\t-E num  : ratio percentage for learned clause removal [default = %d]\n", pPars->nLearnedPerce );
     Abc_Print( -2, "\t-T num  : an approximate timeout, in seconds [default = %d]\n", pPars->nTimeOut );
@@ -45037,6 +45049,7 @@ usage:
     Abc_Print( -2, "\t-P num  : maximum percentage of added objects before a restart (0<=num<=100) [default = %d]\n", pPars->nRatioMax );
     Abc_Print( -2, "\t-B num  : the number of stable frames to call prover or dump abstraction [default = %d]\n", pPars->nFramesNoChangeLim );
     Abc_Print( -2, "\t-A file : file name for dumping abstrated model (&gla -d) or abstraction map (&gla -m)\n" );
+    Abc_Print( -2, "\t-L file : the log file name [default = %s]\n", pLogFileName ? pLogFileName : "no logging" );
     Abc_Print( -2, "\t-f      : toggle propagating fanout implications [default = %s]\n", pPars->fPropFanout? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle refinement by adding one layers of gates [default = %s]\n", pPars->fAddLayer? "yes": "no" );
     Abc_Print( -2, "\t-r      : toggle using improved refinement heuristics [default = %s]\n", pPars->fNewRefine? "yes": "no" );
