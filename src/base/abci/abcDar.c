@@ -2780,7 +2780,6 @@ int Abc_NtkDarProve( Abc_Ntk_t * pNtk, Fra_Sec_t * pSecPar, int nBmcFramesMax, i
         Prove_Params_t Params, * pParams = &Params;
         Abc_Ntk_t * pNtkComb;
         int RetValue;
-        abctime clk = Abc_Clock();
         if ( Abc_NtkLatchNum(pNtk) == 0 )
             Abc_Print( 1, "The network has no latches. Running CEC.\n" );
         // create combinational network
