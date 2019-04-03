@@ -1059,7 +1059,7 @@ startword:
                 p->pNtk->pInits = Wlc_PrsConvertInitValues( p->pNtk );
                 //printf( "%s\n", p->pNtk->pInits );
             }
-            if ( p->pNtk->vArsts )
+            if ( p->pNtk->vArsts && !p->pNtk->fAsyncRst )
             {
                 int i, NameIdArst;
                 Vec_IntForEachEntry( p->pNtk->vArsts, NameIdArst, i )
@@ -1280,7 +1280,23 @@ startword:
                     pStart = Wlc_PrsFindSymbol( pStart, '(' );
                     if ( pStart == NULL )
                         return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read opening parenthesis in the flop description." );
-                    pStart = Wlc_PrsFindName( pStart+1, &pName );
+                    pStart = Wlc_PrsSkipSpaces( pStart+1 );
+                    if ( Wlc_PrsIsDigit(pStart) )
+                    {
+                        int Range, Signed, XValue;
+                        Vec_Int_t * vFanins = Vec_IntAlloc( 100 );
+                        pStart = Wlc_PrsReadConstant( p, pStart, vFanins, &Range, &Signed, &XValue );
+                        if ( pStart && Vec_IntSize(vFanins) == 1 && Vec_IntEntry(vFanins, 0) == 0 )
+                        {
+                            Vec_IntFree( vFanins );
+                            continue;
+                        }
+                        printf( "Detected async reset.\n" );
+                        p->pNtk->fAsyncRst = 1;
+                        Vec_IntFree( vFanins );
+                        continue;
+                    }
+                    pStart = Wlc_PrsFindName( pStart, &pName );
                     if ( pStart == NULL )
                         return Wlc_PrsWriteErrorMessage( p, pStart, "Cannot read name inside flop description." );
                     NameIdArst = Abc_NamStrFindOrAdd( p->pNtk->pManName, pName, &fFound );
