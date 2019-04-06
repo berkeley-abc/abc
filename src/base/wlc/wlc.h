@@ -101,6 +101,7 @@ typedef enum {
     WLC_OBJ_ARI_ADDSUB,    // 56: adder-subtractor
     WLC_OBJ_SEL,           // 57: positionally encoded selector
     WLC_OBJ_DEC,           // 58: decoder
+    WLC_OBJ_LUT,           // 59: lookup table
     WLC_OBJ_NUMBER         // 59: unused
 } Wlc_ObjType_t;
 // when adding new types, remember to update table Wlc_Names in "wlcNtk.c"

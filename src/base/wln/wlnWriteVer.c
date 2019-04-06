@@ -184,6 +184,15 @@ void Wln_WriteVerInt( FILE * pFile, Wln_Ntk_t * p )
             fprintf( pFile, " s%d_Index(%s, ", iObj, Wln_ObjName(p, Wln_ObjFanin0(p, iObj)) );
             fprintf( pFile, "%s)",             Wln_ObjName(p, iObj) );
         }
+        else if ( Wln_ObjType(p, iObj) == ABC_OPER_LUT )
+        {
+            // wire [3:0] s4972; LUT lut4972_Index(s4971, s4972);
+            fprintf( pFile, "%s ;           LUT", Wln_ObjName(p, iObj) );
+            fprintf( pFile, " lut%d (%s, ", iObj, Wln_ObjName(p, Wln_ObjFanin0(p, iObj)) );
+            for ( k = 1; k < Wln_ObjFaninNum(p, iObj); k++ )
+                fprintf( pFile, "%s, ", Wln_ObjName(p, Wln_ObjFanin(p, iObj, k)) );
+            fprintf( pFile, "%s)",             Wln_ObjName(p, iObj) );
+        }
         else if ( Wln_ObjIsConst(p, iObj) )
             fprintf( pFile, "%-16s = %s", Wln_ObjName(p, iObj), Wln_ObjConstString(p, iObj) );
         else if ( Wln_ObjType(p, iObj) == ABC_OPER_SHIFT_ROTR || Wln_ObjType(p, iObj) == ABC_OPER_SHIFT_ROTL )

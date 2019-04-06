@@ -503,12 +503,17 @@ void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
         printf( "The design has no delay information.\n" );
         Wln_NtkCleanInstId(pNtk);
         Wln_NtkForEachObj( pNtk, iObj )
-            if ( Wln_ObjIsFf(pNtk, iObj) )
+        {
+            if ( Wln_ObjIsFf(pNtk, iObj) || Wln_ObjType(pNtk, iObj) == ABC_OPER_SLICE || Wln_ObjType(pNtk, iObj) == ABC_OPER_CONCAT )
                 Wln_ObjSetInstId( pNtk, iObj, 1 );
             else if ( !Wln_ObjIsCio(pNtk, iObj) && Wln_ObjFaninNum(pNtk, iObj) > 0 )
                 Wln_ObjSetInstId( pNtk, iObj, 10 );
+        }
         Wln_NtkForEachCo( pNtk, iObj, i ) 
-            Wln_ObjSetInstId( pNtk, Wln_ObjFanin0(pNtk, iObj), 1 );
+        {
+            if ( Wln_ObjType(pNtk, Wln_ObjFanin0(pNtk, iObj)) != ABC_OPER_LUT )
+                Wln_ObjSetInstId( pNtk, Wln_ObjFanin0(pNtk, iObj), 1 );
+        }
         printf( "Assuming user-specified delays for internal nodes.\n" );
     }
 }

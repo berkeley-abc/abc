@@ -226,6 +226,7 @@ static inline const char * Abc_OperName( int Type )
 
     if ( Type == ABC_OPER_CONST        )   return "const";  
     if ( Type == ABC_OPER_TABLE        )   return "table";  
+    if ( Type == ABC_OPER_LUT          )   return "lut";  
     if ( Type == ABC_OPER_LAST         )   return NULL;     
     assert( 0 );
     return NULL;

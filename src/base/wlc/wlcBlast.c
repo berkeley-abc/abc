@@ -2055,7 +2055,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         }
         else
         {
-            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, pPar->fSaveFfNames ? 1+Gia_ManRegNum(pNew) : 0, pPar->fGiaSimple, 0 );
+            pNew = Gia_ManDupZeroUndc( pTemp = pNew, p->pInits, pPar->fSaveFfNames ? 1+Gia_ManRegNum(pNew) : 0, pPar->fGiaSimple, pPar->fVerbose );
             Gia_ManDupRemapLiterals( vBits, pTemp );
             Gia_ManStop( pTemp );
         }

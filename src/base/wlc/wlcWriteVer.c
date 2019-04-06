@@ -203,6 +203,15 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             fprintf( pFile, " s%d_Index(%s, ", i, Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
             fprintf( pFile, "%s)",             Wlc_ObjName(p, i) );
         }
+        else if ( pObj->Type == WLC_OBJ_LUT )
+        {
+            // wire [3:0] s4972; LUT lut4972_Index(s4971, s4972);
+            fprintf( pFile, "%s ;           LUT", Wlc_ObjName(p, i) );
+            fprintf( pFile, " lut%d (%s, ", i, Wlc_ObjName(p, Wlc_ObjFaninId0(pObj)) );
+            for ( k = 1; k < Wlc_ObjFaninNum(pObj); k++ )
+                fprintf( pFile, "%s, ", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, k)) );
+            fprintf( pFile, "%s)",             Wlc_ObjName(p, i) );
+        }
         else if ( pObj->Type == WLC_OBJ_CONST )
         {
             fprintf( pFile, "%-16s = %d\'%sh", Wlc_ObjName(p, i), Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) ? "s":"" );
