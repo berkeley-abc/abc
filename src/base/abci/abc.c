@@ -45645,16 +45645,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Limit, int Reps, int UnseenUse, int RareUse, int fReplaceRare, int fConstSim, int fVerbose );
+    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Limit, int Reps, int UnseenUse, int RareUse, int fReplaceRare, int fConstSim, int fDagNodes, int fVerbose );
     int Limit       =   0;
     int Reps        =   1;
     int UnseenUse   =   2;
     int RareUse     =   2;
     int fReplaceRare=   0;
     int fConstSim   =   0;
+    int fDagNodes   =   0;
     int c, fVerbose =   0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LNURrcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LNURrcdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -45708,6 +45709,9 @@ int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fConstSim ^= 1;
             break;
+        case 'd':
+            fDagNodes ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -45722,11 +45726,11 @@ int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Cfs(): There is no AIG.\n" );
         return 1;
     }
-    Extra_CommandCfs( pAbc->pGia, Limit, Reps, UnseenUse, RareUse, fReplaceRare, fConstSim, fVerbose );
+    Extra_CommandCfs( pAbc->pGia, Limit, Reps, UnseenUse, RareUse, fReplaceRare, fConstSim, fDagNodes, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cfs [-LNURrcvh]\n" );
+    Abc_Print( -2, "usage: &cfs [-LNURrcdvh]\n" );
     Abc_Print( -2, "\t          performs simulation\n" );
     Abc_Print( -2, "\t-L num  : the limit on the number of occurrences [default = %d]\n",  Limit );
     Abc_Print( -2, "\t-N num  : the number of repetions of each pattern [default = %d]\n", Reps );
@@ -45734,6 +45738,7 @@ usage:
     Abc_Print( -2, "\t-R num  : what to do with rare patterns [default = %d]\n",           RareUse );
     Abc_Print( -2, "\t-r      : toggle replacing rare patterns [default = %s]\n",          fReplaceRare? "yes": "no" );
     Abc_Print( -2, "\t-c      : toggle inserting constants [default = %s]\n",              fConstSim? "yes": "no" );
+    Abc_Print( -2, "\t-d      : toggle using only DAG nodes [default = %s]\n",             fDagNodes? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n",     fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
