@@ -996,8 +996,9 @@ void Dtt_DumpLibrary( Dtt_Man_t * p )
     fflush( stdout );
 }
 
-void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose, int fDump )
+void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose )
 {
+    int fDump = 1;
     abctime clk = Abc_Clock(); word nSteps = 0, nMultis = 0;
     Dtt_Man_t * p = Dtt_ManAlloc( nVars, fMulti ); int n, i, j;
 
