@@ -242,6 +242,8 @@ int Wln_RetPropDelay_rec( Wln_Ret_t * p, int iObj )
     *pDelay = 0;
     Wln_RetForEachFanin( p, iObj, iFanin, pLink, k )
     {
+        if ( Wln_ObjIsFf(p->pNtk, iObj) && k > 0 )
+            continue;
         if ( pLink[0] )
             *pDelay = Abc_MaxInt(*pDelay, 0);
         else
@@ -327,6 +329,8 @@ static inline int Wln_RetCheckForwardOne( Wln_Ret_t * p, int iObj )
     int k, iFanin, * pLink, iFlop, Class = -1;
     Wln_RetForEachFanin( p, iObj, iFanin, pLink, k )
     {
+        if ( Wln_ObjIsFf(p->pNtk, iObj) && k > 0 )
+            continue;
         if ( !pLink[0] )
             return 0;
         iFlop = Vec_IntEntry( &p->vEdgeLinks, pLink[0] + 1 );
@@ -391,6 +395,8 @@ int Wln_RetRemoveOneFanin( Wln_Ret_t * p, int iObj )
     int * pFanins  = Wln_RetFanins( p, iObj );
     Wln_RetForEachFanin( p, iObj, iFanin, pLink, k )
     {
+        if ( Wln_ObjIsFf(p->pNtk, iObj) && k > 0 )
+            continue;
         assert( pLink[0] );
         iFlop = Vec_IntEntry( &p->vEdgeLinks, pLink[0] + 1 );
         pFanins[2*k+1] = Vec_IntEntry( &p->vEdgeLinks, pLink[0] );
