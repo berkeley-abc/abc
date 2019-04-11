@@ -29668,12 +29668,20 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     // transfer PO names to pNtk
     if ( pAbc->pGia->vNamesOut )
     {
+        char pSuffix[100];
         Abc_Obj_t * pObj;
-        int i;
+        int i, nDigits = Abc_Base10Log( Abc_NtkLatchNum(pNtk) );
         Abc_NtkForEachCo( pNtk, pObj, i ) {
             if (i < Vec_PtrSize(pAbc->pGia->vNamesOut)) {
                 Nm_ManDeleteIdName(pNtk->pManName, pObj->Id);
-                Abc_ObjAssignName( pObj, (char *)Vec_PtrEntry(pAbc->pGia->vNamesOut, i), NULL );
+                if ( Abc_ObjIsPo(pObj) )
+                    Abc_ObjAssignName( pObj, (char *)Vec_PtrEntry(pAbc->pGia->vNamesOut, i), NULL );
+                else
+                {
+                    assert( i >= Abc_NtkPoNum(pNtk) );
+                    sprintf( pSuffix, "_li%0*d", nDigits, i-Abc_NtkPoNum(pNtk) );
+                    Abc_ObjAssignName( pObj, (char *)Vec_PtrEntry(pAbc->pGia->vNamesOut, i), pSuffix );
+                }
             }
         }
     }
