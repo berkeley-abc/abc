@@ -29593,19 +29593,25 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan );
     extern void Abc_NtkRedirectCiCo( Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p );
+    extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables );
 
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, fVerbose = 0;
     int fStatusClear = 1;
+    int fFindEnables = 0;
+    int c, fVerbose  = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sevh" ) ) != EOF )
     {
         switch ( c )
         {
         case 's':
             fStatusClear ^= 1;
+            break;
+        case 'e':
+            fFindEnables ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -29621,16 +29627,12 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( Gia_ManHasCellMapping(pAbc->pGia) )
-    {
-        extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p );
+    if ( fFindEnables )
+        pNtk = Abc_NtkFromMappedGia( pAbc->pGia, 1 );
+    else if ( Gia_ManHasCellMapping(pAbc->pGia) )
         pNtk = Abc_NtkFromCellMappedGia( pAbc->pGia );
-    }
     else if ( Gia_ManHasMapping(pAbc->pGia) || pAbc->pGia->pMuxes )
-    {
-        extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p );
-        pNtk = Abc_NtkFromMappedGia( pAbc->pGia );
-    }
+        pNtk = Abc_NtkFromMappedGia( pAbc->pGia, 0 );
     else if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
     {
         pMan = Gia_ManToAig( pAbc->pGia, 0 );
@@ -29712,9 +29714,10 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &put [-svh]\n" );
+    Abc_Print( -2, "usage: &put [-sevh]\n" );
     Abc_Print( -2, "\t         transfer the current network into the old ABC\n" );
     Abc_Print( -2, "\t-s     : toggle clearning verification status [default = %s]\n", fStatusClear? "yes": "no" );
+    Abc_Print( -2, "\t-e     : toggle extracting MUXes for flop enables [default = %s]\n", fFindEnables? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

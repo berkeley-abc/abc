@@ -712,7 +712,29 @@ Hop_Obj_t * Abc_ObjHopFromGia( Hop_Man_t * pHopMan, Gia_Man_t * p, int GiaId, Ve
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
+Abc_Obj_t * Abc_NtkFromMappedGia_rec( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, int iObj, int fAddInv )
+{
+    Abc_Obj_t * pObjNew;
+    Gia_Obj_t * pObj = Gia_ManObj(p, iObj);
+    if ( Gia_ObjValue(pObj) >= 0 )
+        pObjNew = Abc_NtkObj( pNtkNew, Gia_ObjValue(pObj) );
+    else
+    {
+        Abc_NtkFromMappedGia_rec( pNtkNew, p, Gia_ObjFaninId0(pObj, iObj), 0 );
+        Abc_NtkFromMappedGia_rec( pNtkNew, p, Gia_ObjFaninId1(pObj, iObj), 0 );
+        pObjNew = Abc_NtkCreateNode( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin0(pObj))) );
+        Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ObjFanin1(pObj))) );
+        pObjNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, 2, NULL );
+        if ( Gia_ObjFaninC0(pObj) )  Abc_SopComplementVar( (char *)pObjNew->pData, 0 );
+        if ( Gia_ObjFaninC1(pObj) )  Abc_SopComplementVar( (char *)pObjNew->pData, 1 );
+        pObj->Value = Abc_ObjId( pObjNew );
+    }
+    if ( fAddInv )
+        pObjNew = Abc_NtkCreateNodeInv(pNtkNew, pObjNew);
+    return pObjNew;
+}
+Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables )
 {
     int fVerbose = 0;
     int fDuplicate = 0;
@@ -720,8 +742,9 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
     Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo, * pConst0 = NULL;
     Gia_Obj_t * pObj, * pObjLi, * pObjLo;
     Vec_Ptr_t * vReflect;
-    int i, k, iFan, nDupGates; 
-    assert( Gia_ManHasMapping(p) || p->pMuxes );
+    int i, k, iFan, nDupGates, nCountMux = 0; 
+    assert( Gia_ManHasMapping(p) || p->pMuxes || fFindEnables );
+    assert( !fFindEnables || !p->pMuxes );
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, Gia_ManHasMapping(p) ? ABC_FUNC_AIG : ABC_FUNC_SOP, 1 );
     // duplicate the name and the spec
     pNtkNew->pName = Extra_UtilStrsav(p->pName);
@@ -749,7 +772,43 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
         Abc_LatchSetInit0( pObjNew );
     }
     // rebuild the AIG
-    if ( p->pMuxes )
+    if ( fFindEnables )
+    {
+        Gia_ManForEachCo( p, pObj, i )
+        {
+            pObjNew = NULL;
+            if ( Gia_ObjIsRi(p, pObj) && Gia_ObjIsMuxType(Gia_ObjFanin0(pObj)) )
+            {
+                int iObjRo = Gia_ObjRiToRoId( p, Gia_ObjId(p, pObj) );
+                int iLitE, iLitT, iCtrl = Gia_ObjRecognizeMuxLits( p, Gia_ObjFanin0(pObj), &iLitT, &iLitE );
+                iLitE = Abc_LitNotCond( iLitE, Gia_ObjFaninC0(pObj) );
+                iLitT = Abc_LitNotCond( iLitT, Gia_ObjFaninC0(pObj) );
+                if ( Abc_Lit2Var(iLitT) == iObjRo )
+                {
+                    int iTemp = iLitE;
+                    iLitE = iLitT;
+                    iLitT = iTemp;
+                    iCtrl = Abc_LitNot( iCtrl );
+                }
+                if ( Abc_Lit2Var(iLitE) == iObjRo )
+                {
+                    Abc_Obj_t * pObjCtrl  = Abc_NtkFromMappedGia_rec( pNtkNew, p, Abc_Lit2Var(iCtrl), Abc_LitIsCompl(iCtrl) );
+                    Abc_Obj_t * pObjNodeT = Abc_NtkFromMappedGia_rec( pNtkNew, p, Abc_Lit2Var(iLitT), Abc_LitIsCompl(iLitT) );
+                    Abc_Obj_t * pObjNodeE = Abc_NtkFromMappedGia_rec( pNtkNew, p, Abc_Lit2Var(iLitE), Abc_LitIsCompl(iLitE) );
+                    pObjNew = Abc_NtkCreateNode( pNtkNew );
+                    Abc_ObjAddFanin( pObjNew, pObjCtrl );
+                    Abc_ObjAddFanin( pObjNew, pObjNodeT );
+                    Abc_ObjAddFanin( pObjNew, pObjNodeE );
+                    pObjNew->pData = Abc_SopCreateMux( (Mem_Flex_t *)pNtkNew->pManFunc );
+                    nCountMux++;
+                }
+            }
+            if ( pObjNew == NULL )
+                pObjNew = Abc_NtkFromMappedGia_rec( pNtkNew, p, Gia_ObjFaninId0p(p, pObj), Gia_ObjFaninC0(pObj) );
+            Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), pObjNew );
+        }
+    }
+    else if ( p->pMuxes )
     {
         Gia_ManForEachAnd( p, pObj, i )
         {
@@ -803,7 +862,10 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p )
         }
         Vec_PtrFree( vReflect );
     }
+    //if ( fFindEnables )
+    //    printf( "Extracted %d flop enable signals.\n", nCountMux );
     // connect the PO nodes
+    if ( !fFindEnables )
     Gia_ManForEachCo( p, pObj, i )
     {
         pObjNew = Abc_NtkObj( pNtkNew, Gia_ObjValue(Gia_ObjFanin0(pObj)) );
