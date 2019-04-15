@@ -806,6 +806,13 @@ int Gia_ManHashAndMulti2( Gia_Man_t * p, Vec_Int_t * vLits )
         iRes = Gia_ManHashAnd( p, iRes, iLit );
     return iRes;
 }
+int Gia_ManHashDualMiter( Gia_Man_t * p, Vec_Int_t * vOuts )
+{
+    int i, iLit0, iLit1, iRes = 1;
+    Vec_IntForEachEntryDouble( vOuts, iLit0, iLit1, i )
+        iRes = Gia_ManHashOr( p, iRes, Gia_ManHashXor(p, iLit0, iLit1) );
+    return iRes;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

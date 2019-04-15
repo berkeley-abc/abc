@@ -1936,9 +1936,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     }
     Vec_IntFree( vFf2Ci );
     // create COs
-    if ( pPar->fCreateMiter )
+    if ( pPar->fCreateMiter || pPar->fCreateWordMiter )
     {
         int nPairs = 0, nBits = 0;
+        Vec_Int_t * vOuts = Vec_IntAlloc( 100 );
         assert( Wlc_NtkPoNum(p) % 2 == 0 );
         Wlc_NtkForEachCo( p, pObj, i )
         {
@@ -1965,26 +1966,48 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             assert( nRange1 == nRange2 );
             pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj)) );
             pFans2  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjId(p, pObj2)) );
-            if ( Wlc_ObjRangeIsReversed(pObj) )
+            if ( pPar->fCreateWordMiter )
             {
-                for ( k = 0; k < nRange1; k++ )
+                Vec_IntClear( vOuts );
+                if ( Wlc_ObjRangeIsReversed(pObj) )
                 {
-                    Gia_ManAppendCo( pNew, pFans1[nRange1-1-k] );
-                    Gia_ManAppendCo( pNew, pFans2[nRange2-1-k] );
+                    for ( k = 0; k < nRange1; k++ )
+                        Vec_IntPushTwo( vOuts, pFans1[nRange1-1-k], pFans2[nRange2-1-k] );
                 }
+                else
+                {
+                    for ( k = 0; k < nRange1; k++ )
+                        Vec_IntPushTwo( vOuts, pFans1[k], pFans2[k] );
+                }
+                Gia_ManAppendCo( pNew, Gia_ManHashDualMiter(pNew, vOuts) );
             }
             else
             {
-                for ( k = 0; k < nRange1; k++ )
+                if ( Wlc_ObjRangeIsReversed(pObj) )
                 {
-                    Gia_ManAppendCo( pNew, pFans1[k] );
-                    Gia_ManAppendCo( pNew, pFans2[k] );
+                    for ( k = 0; k < nRange1; k++ )
+                    {
+                        Gia_ManAppendCo( pNew, pFans1[nRange1-1-k] );
+                        Gia_ManAppendCo( pNew, pFans2[nRange2-1-k] );
+                    }
+                }
+                else
+                {
+                    for ( k = 0; k < nRange1; k++ )
+                    {
+                        Gia_ManAppendCo( pNew, pFans1[k] );
+                        Gia_ManAppendCo( pNew, pFans2[k] );
+                    }
                 }
             }
             nPairs++;
             nBits += nRange1;
         }
-        printf( "Derived a dual-output miter with %d pairs of bits belonging to %d pairs of word-level outputs.\n", nBits, nPairs );
+        Vec_IntFree( vOuts );
+        if ( pPar->fCreateWordMiter )
+            printf( "Derived an ordinary miter with %d bit-level outputs, one for each pair of word-level outputs.\n", nPairs );
+        else
+            printf( "Derived a dual-output miter with %d pairs of bits belonging to %d pairs of word-level outputs.\n", nBits, nPairs );
     }
     else
     {
@@ -2280,7 +2303,16 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     {
         char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
         nRange = Wlc_ObjRange( pObj );
-        if ( pPar->fCreateMiter && nRange > 1 )
+        if ( pPar->fCreateWordMiter )
+        {
+            Wlc_Obj_t * pObj2 = Wlc_NtkCo( p, ++i );
+            char * pName2 = Wlc_ObjName(p, Wlc_ObjId(p, pObj2));
+            char Buffer[1000];
+            sprintf( Buffer, "%s_xor_%s", pName, pName2 );
+            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+            //printf( "Adding output %s\n", Buffer );
+        }
+        else if ( pPar->fCreateMiter && nRange > 1 )
         {
             Wlc_Obj_t * pObj2 = Wlc_NtkCo( p, ++i );
             char * pName2 = Wlc_ObjName(p, Wlc_ObjId(p, pObj2));
@@ -2295,7 +2327,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
             }
         }
-        else
+        else 
         {
             if ( fSkipBitRange && nRange == 1 )
                 Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
