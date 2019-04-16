@@ -1102,18 +1102,22 @@ usage:
 int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk;
+    char * pStr = NULL;
     char * pSopCover;
-    int fHex;
+    int fHex  = 1;
+    int fFile = 0;
     int c;
 
-    fHex = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "xh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "xfh" ) ) != EOF )
     {
         switch ( c )
         {
             case 'x':
                 fHex ^= 1;
+                break;
+            case 'f':
+                fFile ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -1123,15 +1127,22 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     if ( argc != globalUtilOptind + 1 )
-    {
         goto usage;
-    }
+
+    if ( fFile )
+        pStr = Extra_FileReadContents( argv[globalUtilOptind] );
+    else
+        pStr = argv[globalUtilOptind];
+    while ( pStr[ strlen(pStr) - 1 ] == '\n' || pStr[ strlen(pStr) - 1 ] == '\r' )
+        pStr[ strlen(pStr) - 1 ] = '\0';
 
     // convert truth table to SOP
     if ( fHex )
-        pSopCover = Abc_SopFromTruthHex(argv[globalUtilOptind]);
+        pSopCover = Abc_SopFromTruthHex(pStr);
     else
-        pSopCover = Abc_SopFromTruthBin(argv[globalUtilOptind]);
+        pSopCover = Abc_SopFromTruthBin(pStr);
+    if ( fFile )
+        ABC_FREE( pStr );
     if ( pSopCover == NULL || pSopCover[0] == 0 )
     {
         ABC_FREE( pSopCover );
@@ -1152,11 +1163,13 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_truth [-xh] <truth>\n" );
+    fprintf( pAbc->Err, "usage: read_truth [-xfh] <truth> <file>\n" );
     fprintf( pAbc->Err, "\t         creates network with node having given truth table\n" );
-    fprintf( pAbc->Err, "\t-x     : toggles between bin and hex representation [default = %s]\n", fHex? "hex":"bin" );
+    fprintf( pAbc->Err, "\t-x     : toggles between bin and hex representation [default = %s]\n", fHex?  "hex":"bin" );
+    fprintf( pAbc->Err, "\t-f     : toggles reading truth table from file [default = %s]\n",      fFile? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\ttruth  : truth table with most signficant bit first (e.g. 1000 for AND(a,b))\n" );
+    fprintf( pAbc->Err, "\tfile   : file name with the truth table\n" );
     return 1;
 }
 
