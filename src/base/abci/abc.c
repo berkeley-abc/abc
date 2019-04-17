@@ -136,6 +136,7 @@ static int Abc_CommandTestDec                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestNpn                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestRPO                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunEco                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRunGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -833,6 +834,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "testnpn",       Abc_CommandTestNpn,          0 );
     Cmd_CommandAdd( pAbc, "LogiCS",       "testrpo",       Abc_CommandTestRPO,          0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "runeco",        Abc_CommandRunEco,           0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "rungen",        Abc_CommandRunGen,           0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -6961,6 +6963,51 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRunGen( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Acb_NtkRunGen( char * pFileNames[2], int fVerbose );
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc - globalUtilOptind != 2 )
+    {
+        Abc_Print( 1, "Expecting two file names on the command line.\n" );
+        goto usage;
+    }
+    Acb_NtkRunGen( argv + globalUtilOptind, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: rungen <file1> <file2> [-vh]\n" );
+    Abc_Print( -2, "\t         experimental command\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 
 
