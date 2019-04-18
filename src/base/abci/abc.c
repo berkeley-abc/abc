@@ -23230,11 +23230,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose );
+    extern void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose, char* pFileName );
     extern void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fReduce, int fVerbose );
-    int c, nInputs = 4, nVars = 4, nNodeMax = 32, fUseTwo = 0, fReduce = 0, fSimple = 0, fDelay = 0, fMulti = 0, fVerbose = 0;
+    extern Gia_Man_t * Dau_ConstructAigFromFile( char * pFileName );
+    int c, nInputs = 4, nVars = 4, nNodeMax = 32, fUseTwo = 0, fReduce = 0, fSimple = 0, fDelay = 0, fMulti = 0, fDump = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SIMtrldmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SIMtrldmpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23286,6 +23287,9 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fMulti ^= 1;
             break;
+        case 'p':
+            fDump ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -23298,12 +23302,21 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fSimple || fDelay )
     {
+        char Buffer[100];
         if ( nVars < 3 || nVars > 5 )
         {
             Abc_Print( -1, "The number of inputs should be 3 <= I <= 5.\n" );
             goto usage;
         }
-        Dtt_EnumerateLf( nVars, nNodeMax, fDelay, fMulti, fVerbose );
+        sprintf( Buffer, "Lflib%d.txt", nVars );
+        Dtt_EnumerateLf( nVars, nNodeMax, fDelay, fMulti, fVerbose, fDump?Buffer:NULL );
+        if ( fDump )
+        {
+            Gia_Man_t * pTemp;
+            pTemp = Dau_ConstructAigFromFile( Buffer );
+            Abc_FrameUpdateGia( pAbc, pTemp );
+            Gia_DumpAiger( pTemp, "Lflib", nVars, 1 );
+        }
     }
     else
     {
@@ -23322,7 +23335,7 @@ int Abc_CommandFunEnum( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: funenum [-SIM num] [-trldmvh]\n" );
+    Abc_Print( -2, "usage: funenum [-SIM num] [-trldmvph]\n" );
     Abc_Print( -2, "\t         enumerates minimum 2-input-gate implementations\n" );
     Abc_Print( -2, "\t-S num : the maximum intermediate support size [default = %d]\n",     nInputs );
     Abc_Print( -2, "\t-I num : the number of inputs of Boolean functions [default = %d]\n", nVars );
@@ -23333,6 +23346,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle generating D(f) rather than C(f) [default = %s]\n",   fDelay?   "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle generating multiplicity statistics [default = %s]\n", fMulti?   "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n",                     fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle dumping result library (formula and AIG) [default = %s]\n",fDump?"yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

@@ -916,10 +916,10 @@ void Dtt_FindNP( Dtt_Man_t * p, unsigned tFun, unsigned tGoal, unsigned tNpn, in
     assert(0);
 }
 
-void Dtt_DumpLibrary( Dtt_Man_t * p )
+void Dtt_DumpLibrary( Dtt_Man_t * p, char* FileName )
 {
     FILE * pFile;
-    char FileName[100], str[100], sFI1[50], sFI2[50];
+    char str[100], sFI1[50], sFI2[50];
     int i, j, Entry, fRepeat;
     Dtt_FunImpl_t * pFun, * pFun2;
     Vec_Int_t * vLibFun = Vec_IntDup( p->vTruthNpns );  // none-duplicating vector of NPN representitives
@@ -962,7 +962,6 @@ void Dtt_DumpLibrary( Dtt_Man_t * p )
     }
 
     // print to file
-    sprintf( FileName, "lib%dvar.txt", p->nVars );
     pFile = fopen( FileName, "wb" );
 
     if (0)
@@ -996,9 +995,8 @@ void Dtt_DumpLibrary( Dtt_Man_t * p )
     fflush( stdout );
 }
 
-void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose )
+void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerbose, char* pFileName )
 {
-    int fDump = 1;
     abctime clk = Abc_Clock(); word nSteps = 0, nMultis = 0;
     Dtt_Man_t * p = Dtt_ManAlloc( nVars, fMulti ); int n, i, j;
 
@@ -1068,8 +1066,8 @@ void Dtt_EnumerateLf( int nVars, int nNodeMax, int fDelay, int fMulti, int fVerb
         Dtt_PrintDistrib( p );
     //if ( p->pTable ) 
         //Dtt_PrintMulti( p );
-    if ( !fDelay && fDump )
-        Dtt_DumpLibrary( p );
+    if ( !fDelay && pFileName!=NULL )
+        Dtt_DumpLibrary( p, pFileName );
     Dtt_ManFree( p );
 }
 
