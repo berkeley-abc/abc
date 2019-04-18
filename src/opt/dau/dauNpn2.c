@@ -312,6 +312,7 @@ unsigned * Dau_ReadFile2( char * pFileName, int nSizeW )
 {
     abctime clk = Abc_Clock();
     FILE * pFile = fopen( pFileName, "rb" );
+    if (pFile == NULL) return NULL;
     unsigned * p = (unsigned *)ABC_CALLOC(word, nSizeW);
     int RetValue = pFile ? fread( p, sizeof(word), nSizeW, pFile ) : 0;
     RetValue = 0;
@@ -341,12 +342,19 @@ void Dtt_ManRenum( int nVars, unsigned * pTable, int * pnClasses )
 }
 unsigned * Dtt_ManLoadClasses( int nVars, int * pnClasses )
 {
+    extern Dau_TruthEnum(int);
+    
     unsigned * pTable = NULL;
-    if ( nVars == 4 )
-        pTable = Dau_ReadFile2( "tableW14.data", 1 << 14 );
-    else if ( nVars == 5 )
-        pTable = Dau_ReadFile2( "tableW30.data", 1 << 30 );
-    else assert( 0 );
+    int nSizeLog = (1<<nVars) -2;
+    int nSizeW = 1 << nSizeLog;
+    char pFileName[20];
+    sprintf( pFileName, "tableW%d.data", nSizeLog );
+    pTable = Dau_ReadFile2( pFileName, nSizeW );
+    if (pTable == NULL)
+    {
+        Dau_TruthEnum(nVars);
+        pTable = Dau_ReadFile2( pFileName, nSizeW );
+    }
     Dtt_ManRenum( nVars, pTable, pnClasses );
     return pTable;
 }
