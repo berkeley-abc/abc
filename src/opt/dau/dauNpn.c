@@ -51,8 +51,6 @@ void Dau_TruthEnum(int nVars)
     abctime clk = Abc_Clock();
     int nSizeLog = (1<<nVars) -2;
     int nSizeW = 1 << nSizeLog;
-    char pFileName[20];
-    sprintf( pFileName, "tableW%d.data", nSizeLog );
     int nPerms  = Extra_Factorial( nVars );
     int nMints  = 1 << nVars;
     int * pPerm = Extra_PermSchedule( nVars );
@@ -115,8 +113,12 @@ void Dau_TruthEnum(int nVars)
     // write into file
     if ( pTable )
     {
-        FILE * pFile = fopen( pFileName, "wb" );
-        int RetValue = fwrite( pTable, 8, nSizeW, pFile );
+        FILE * pFile;
+        int RetValue;
+        char pFileName[20];
+        sprintf( pFileName, "tableW%d.data", nSizeLog );
+        pFile = fopen( pFileName, "wb" );
+        RetValue = fwrite( pTable, 8, nSizeW, pFile );
         RetValue = 0;
         fclose( pFile );
         ABC_FREE( pTable );
@@ -179,12 +181,13 @@ void Dau_NetworkEnum(int nVars)
     int nSizeLog = (1<<nVars) -2;
     int nSizeW = 1 << nSizeLog;
     char pFileName[20];
-    sprintf( pFileName, "tableW%d.data", nSizeLog );
-    unsigned * pTable  = Dau_ReadFile( pFileName, nSizeW );
+    unsigned * pTable;
     Vec_Wec_t * vNpns  = Vec_WecStart( 32 );
     Vec_Wec_t * vNpns_ = Vec_WecStart( 32 );
     int i, v, u, g, k, m, n, Res, Entry;
     unsigned Inv = (unsigned)Abc_Tt6Mask(1 << (nVars-1));
+    sprintf( pFileName, "tableW%d.data", nSizeLog );
+    pTable  = Dau_ReadFile( pFileName, nSizeW );
     // create constant function and buffer/inverter function
     pTable[0]   |= (1 << 31);
     pTable[Inv] |= (1 << 31);

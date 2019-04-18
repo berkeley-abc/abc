@@ -311,10 +311,12 @@ Gia_Man_t * Dau_ConstructAigFromFile( char * pFileName )
 unsigned * Dau_ReadFile2( char * pFileName, int nSizeW )
 {
     abctime clk = Abc_Clock();
+    unsigned * p;
+    int RetValue;
     FILE * pFile = fopen( pFileName, "rb" );
     if (pFile == NULL) return NULL;
-    unsigned * p = (unsigned *)ABC_CALLOC(word, nSizeW);
-    int RetValue = pFile ? fread( p, sizeof(word), nSizeW, pFile ) : 0;
+    p = (unsigned *)ABC_CALLOC(word, nSizeW);
+    RetValue = pFile ? fread( p, sizeof(word), nSizeW, pFile ) : 0;
     RetValue = 0;
     if ( pFile )
     {
@@ -342,8 +344,7 @@ void Dtt_ManRenum( int nVars, unsigned * pTable, int * pnClasses )
 }
 unsigned * Dtt_ManLoadClasses( int nVars, int * pnClasses )
 {
-    extern Dau_TruthEnum(int);
-    
+    extern void Dau_TruthEnum(int nVars);
     unsigned * pTable = NULL;
     int nSizeLog = (1<<nVars) -2;
     int nSizeW = 1 << nSizeLog;
