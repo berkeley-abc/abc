@@ -554,7 +554,7 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
     Vec_Int_t * vFront   = &p->vFront;
     Vec_Int_t * vMoves   = Vec_IntAlloc(0);
     int nMoves = 0, fPrevFwd = 0, fPrevBwd = 0, nCountIncrease = 0;
-    int DelayInit = 0, DelayBest = 0;
+    int DelayInit = 0, DelayBest = 0, nChange = 0;
     Wln_RetPrint( p, fVerbose );
     Wln_RetMarkChanges( p, NULL );
     p->DelayMax = DelayInit = DelayBest = Wln_RetPropDelay( p );
@@ -613,8 +613,14 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
         if ( p->DelayMax >= DelayMaxPrev )
             nCountIncrease++;
         else
+        {
+            if ( nCountIncrease > 0 )
+                nChange++;
             nCountIncrease = 0;
+        }
         if ( nCountIncrease > 3 )
+            break;
+        if ( nChange > 5 )
             break;
         Wln_RetFindSources( p );
         if ( 2*Vec_IntSize(&p->vEdgeLinks) > Vec_IntCap(&p->vEdgeLinks) )
