@@ -98,7 +98,7 @@ void Wln_RetPrint( Wln_Ret_t * p, int fVerbose )
     printf( "Total number of objects = %d.  Objects with non-trivial delay = %d.\n", Wln_NtkObjNum(p->pNtk), nCount );
     if ( !fVerbose )
     {
-        int nCount = 0, nPrints = 0, nLimit = 5;
+        int nPrints = 0, nLimit = 5;
         printf( "The following %d objects have non-trivial delays:\n", nLimit );
         Wln_NtkForEachObj( p->pNtk, iObj )
         {
