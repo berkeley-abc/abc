@@ -89,9 +89,27 @@ void Wln_RetPrintObj( Wln_Ret_t * p, int iObj )
     }
     printf( "\n" );
 }
-void Wln_RetPrint( Wln_Ret_t * p )
+void Wln_RetPrint( Wln_Ret_t * p, int fVerbose )
 {
-    int iObj;
+    int iObj, nCount = 0;
+    Wln_NtkForEachObj( p->pNtk, iObj )
+        if ( Wln_ObjInstId(p->pNtk, iObj) > 1 )
+            nCount++;
+    printf( "Total number of objects = %d.  Objects with non-trivial delay = %d.\n", Wln_NtkObjNum(p->pNtk), nCount );
+    if ( !fVerbose )
+    {
+        int nCount = 0, nPrints = 0, nLimit = 5;
+        printf( "The following %d objects have non-trivial delays:\n", nLimit );
+        Wln_NtkForEachObj( p->pNtk, iObj )
+        {
+            if ( Wln_ObjInstId(p->pNtk, iObj) <= 1 )
+                continue;
+            Wln_RetPrintObj( p, iObj );
+            if ( ++nPrints == nLimit )
+                break;
+        }
+        return;
+    }
     printf( "Printing %d objects of network \"%s\":\n", Wln_NtkObjNum(p->pNtk), p->pNtk->pName );
     Wln_NtkForEachObj( p->pNtk, iObj )
         Wln_RetPrintObj( p, iObj );
@@ -125,7 +143,7 @@ int Wln_RetComputeFfClasses( Wln_Ntk_t * pNtk, Vec_Int_t * vClasses )
     nClasses = Hsh_VecSize( p );
     Hsh_VecManStop( p );
     Vec_IntFree( vFlop );
-    printf( "Detected %d flop classes.\n", nClasses );
+    printf( "Detected %d flops and %d flop classes.\n", Wln_NtkFfNum(pNtk), nClasses );
     return nClasses;
 }
 Wln_Ret_t * Wln_RetAlloc( Wln_Ntk_t * pNtk )
@@ -467,24 +485,27 @@ void Wln_RetRetimeBackward( Wln_Ret_t * p, Vec_Int_t * vSet )
         Wln_RetInsertOneFanin( p, iObj, iFlop );
     }
 }
-void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward )
+void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward, int nMoves, int fVerbose )
 {
     int i, iObj;
     if ( vSet == NULL )
     {
-        printf( "*** Recording initial state (delay = %d)\n", Delay );
+        printf( "Move %4d : Recording initial state     (delay = %6d)\n", nMoves, Delay );
         Vec_IntPushTwo( &p->vMoves, Delay, 0 );
         return;
     }
-    printf( "*** Recording %s retiming (delay = %d):", fForward ? "forward" : "backward", Delay );
+    printf( "Move %4d : Recording %s retiming (delay = %6d) :", nMoves, fForward ? "forward " : "backward", Delay );
     Vec_IntPush( &p->vMoves, Delay );
     Vec_IntForEachEntry( vSet, iObj, i )
     {
         int NameId = Vec_IntEntry( &p->pNtk->vNameIds, iObj );
         Vec_IntPush( &p->vMoves, fForward ? -NameId : NameId );
-        printf( " %d (NameID = %d)  ", fForward ? -iObj : iObj, fForward ? -NameId : NameId );
+        if ( fVerbose )
+            printf( " %d (NameID = %d)  ", fForward ? -iObj : iObj, fForward ? -NameId : NameId );
     }
     Vec_IntPush( &p->vMoves, 0 );
+    if ( !fVerbose )
+        printf( " %3d retimed objects", Vec_IntSize(vSet) );
     printf( "\n" );
 }
 
@@ -501,9 +522,11 @@ void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward
 ***********************************************************************/
 void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
 {
+//    if ( Wln_NtkHasInstId(pNtk) )
+//        Vec_IntErase( &pNtk->vInstIds );
     if ( Wln_NtkHasInstId(pNtk) )
-        Vec_IntErase( &pNtk->vInstIds );
-    if ( !Wln_NtkHasInstId(pNtk) )
+        printf( "Using delays given by the user in the input file.\n" );
+    else
     {
         int i, iObj;
         printf( "The design has no delay information.\n" );
@@ -520,7 +543,7 @@ void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
             if ( Wln_ObjType(pNtk, Wln_ObjFanin0(pNtk, iObj)) != ABC_OPER_LUT )
                 Wln_ObjSetInstId( pNtk, Wln_ObjFanin0(pNtk, iObj), 1 );
         }
-        printf( "Assuming user-specified delays for internal nodes.\n" );
+        printf( "Assuming default delays: 10 units for most nodes and 1 unit for bit-slice, concat, and buffers driving COs.\n" );
     }
 }
 Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
@@ -530,12 +553,13 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
     Vec_Int_t * vSinks   = &p->vSinks;
     Vec_Int_t * vFront   = &p->vFront;
     Vec_Int_t * vMoves   = Vec_IntAlloc(0);
-    if ( fVerbose )
-        Wln_RetPrint( p );
+    int nMoves = 0, fPrevFwd = 0, fPrevBwd = 0, nCountIncrease = 0;
+    int DelayInit = 0, DelayBest = 0;
+    Wln_RetPrint( p, fVerbose );
     Wln_RetMarkChanges( p, NULL );
-    p->DelayMax = Wln_RetPropDelay( p );
+    p->DelayMax = DelayInit = DelayBest = Wln_RetPropDelay( p );
     Wln_RetFindSources( p );
-    Wln_RetAddToMoves( p, NULL, p->DelayMax, 0 );
+    Wln_RetAddToMoves( p, NULL, p->DelayMax, 0, nMoves, fVerbose );
     while ( Vec_IntSize(vSources) || Vec_IntSize(vSinks) )
     {
         int DelayMaxPrev = p->DelayMax;
@@ -543,12 +567,6 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
         int fBackward = Vec_IntSize(vSinks)   && Wln_RetCheckBackward( p, vSinks );
         Vec_IntSort( vSources, 0 );
         Vec_IntSort( vSinks, 0 );
-
-        printf( "\nSinks: " );
-        Vec_IntPrint( &p->vSinks );
-
-        printf( "Sources: " );
-        Vec_IntPrint( &p->vSources );
 
         if ( !fForward && !fBackward )
         {
@@ -560,14 +578,16 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
             printf( "Cannot reduce delay by retiming.\n" );
             break;
         }
+        nMoves++;
         Vec_IntClear( vFront );
-        if ( (fForward && !fBackward) || (fForward && fBackward && Vec_IntSize(vSources) < Vec_IntSize(vSinks)) )
+        if ( (fPrevFwd && fForward) || (!(fPrevBwd && fBackward) && ((fForward && !fBackward) || (fForward && fBackward && Vec_IntSize(vSources) < Vec_IntSize(vSinks)))) )
         {
             Vec_IntAppend( vFront, vSources );
             Wln_RetMarkChanges( p, vFront );
             Wln_RetRetimeForward( p, vFront );
             p->DelayMax = Wln_RetPropDelay( p );
             fForward = 1, fBackward = 0;
+            fPrevFwd = 1;
         }
         else
         {
@@ -576,10 +596,25 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
             Wln_RetMarkChanges( p, vFront );
             p->DelayMax = Wln_RetPropDelay( p );
             fForward = 0, fBackward = 1;
+            fPrevBwd = 1;
         }
+        DelayBest = Abc_MinInt( DelayBest, p->DelayMax );
         //Wln_RetPrint( p );
-        Wln_RetAddToMoves( p, vFront, p->DelayMax, fForward );
+        if ( fVerbose )
+            printf( "\n" );
+        Wln_RetAddToMoves( p, vFront, p->DelayMax, fForward, nMoves, fVerbose );
+        if ( fVerbose )
+        {
+            printf( "Sinks: " );
+            Vec_IntPrint( &p->vSinks );
+            printf( "Sources: " );
+            Vec_IntPrint( &p->vSources );
+        }
         if ( p->DelayMax >= DelayMaxPrev )
+            nCountIncrease++;
+        else
+            nCountIncrease = 0;
+        if ( nCountIncrease > 3 )
             break;
         Wln_RetFindSources( p );
         if ( 2*Vec_IntSize(&p->vEdgeLinks) > Vec_IntCap(&p->vEdgeLinks) )
@@ -591,6 +626,12 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
     {
         printf( "\nThe resulting moves recorded in terms of name IDs of the NDR nodes:\n" );
         Vec_IntPrint( vMoves );
+    }
+    else
+    {
+        printf( "Retiming instruction contains %d moves and %d total retimed objects.\n", nMoves, Vec_IntSize(vMoves)-2*nMoves-2 );
+        printf( "Initial delay = %d.  The best delay achieved = %d.  Improvement = %d. (%6.2f %%)\n", 
+            DelayInit, DelayBest, DelayInit - DelayBest, 100.0 * (DelayInit - DelayBest) / DelayInit );
     }
     return vMoves;
 }
