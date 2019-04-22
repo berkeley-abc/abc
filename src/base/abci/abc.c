@@ -31112,7 +31112,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &st [-L num] [-acmrh]\n" );
+    Abc_Print( -2, "usage: &st [-L num] [-acmrsh]\n" );
     Abc_Print( -2, "\t         performs structural hashing\n" );
     Abc_Print( -2, "\t-a     : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle collapsing hierarchical AIG [default = %s]\n", fCollapse? "yes": "no" );
@@ -31120,6 +31120,7 @@ usage:
     Abc_Print( -2, "\t-L num : create MUX when sum of refs does not exceed this limit [default = %d]\n", Limit );
     Abc_Print( -2, "\t         (use L = 1 to create AIG with XORs but without MUXes)\n" );
     Abc_Print( -2, "\t-r     : toggle rehashing AIG while preserving mapping [default = %s]\n", fRehashMap? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle using MUX restructuring [default = %s]\n", fStrMuxes? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
