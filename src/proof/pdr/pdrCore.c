@@ -79,6 +79,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->nFailOuts      =       0;  // the number of disproved outputs
     pPars->nDropOuts      =       0;  // the number of timed out outputs
     pPars->timeLastSolved =       0;  // last one solved
+    pPars->pInvFileName   =    NULL;  // invariant file name
 }
 
 /**Function*************************************************************
@@ -1424,7 +1425,7 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
     }
     if ( p->pPars->fDumpInv )
     {
-        char * pFileName = Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
+        char * pFileName = pPars->pInvFileName ? pPars->pInvFileName : Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
         Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
         Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
         printf( "Dumped inductive invariant in file \"%s\".\n", pFileName );

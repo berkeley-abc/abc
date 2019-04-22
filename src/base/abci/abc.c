@@ -27945,7 +27945,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSLaxrmuyfqipdegjonctkvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSLIaxrmuyfqipdegjonctkvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28057,6 +28057,15 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
             pLogFileName = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pInvFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'a':
             pPars->fSolveAll ^= 1;
             break;
@@ -28164,7 +28173,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: pdr [-MFCDQTHGS <num>] [-L <file>] [-axrmuyfqipdegjonctkvwzh]\n" );
+    Abc_Print( -2, "usage: pdr [-MFCDQTHGS <num>] [-LI <file>] [-axrmuyfqipdegjonctkvwzh]\n" );
     Abc_Print( -2, "\t         model checking using property directed reachability (aka IC3)\n" );
     Abc_Print( -2, "\t         pioneered by Aaron R. Bradley (http://theory.stanford.edu/~arbrad/)\n" );
     Abc_Print( -2, "\t         with improvements by Niklas Een (http://een.se/niklas/)\n" );
@@ -28178,6 +28187,7 @@ usage:
     Abc_Print( -2, "\t-G num : runtime gap since the last CEX (0 = no limit) [default = %d]\n",              pPars->nTimeOutGap );
     Abc_Print( -2, "\t-S num : * value to seed the SAT solver with [default = %d]\n",                          pPars->nRandomSeed );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                                          pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-I file: the invariant file name [default = %s]\n",                                    pPars->pInvFileName ? pPars->pInvFileName : "default name" );
     Abc_Print( -2, "\t-a     : toggle solving all outputs even if one of them is SAT [default = %s]\n",      pPars->fSolveAll? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",              pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n",                 pPars->fTwoRounds? "yes": "no" );

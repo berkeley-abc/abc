@@ -843,7 +843,7 @@ int IPdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         }
         if ( p->pPars->fDumpInv )
         {
-            char * pFileName = Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
+            char * pFileName = pPars->pInvFileName ? pPars->pInvFileName : Extra_FileNameGenericAppend(p->pAig->pName, "_inv.pla");
                 Abc_FrameSetInv( Pdr_ManDeriveInfinityClauses( p, RetValue!=1 ) );
                 Pdr_ManDumpClauses( p, pFileName, RetValue==1 );
         }
