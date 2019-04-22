@@ -219,6 +219,80 @@ Gia_Man_t * Gia_ManDupMuxesTest( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Test these procedures.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManMuxRestructure( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, nNodes = 0;
+    Vec_Bit_t * vUsed = Vec_BitStart( Gia_ManObjNum(p) );
+    assert( !Gia_ManHasChoices(p) );
+    assert( !Gia_ManHasMapping(p) );
+    assert( p->pMuxes != NULL );
+    ABC_FREE( p->pRefs );
+    Gia_ManCreateRefs( p ); 
+    // start the new manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjsAlloc );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManHashStart( pNew );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsMuxId(p, i) && 
+                  Gia_ObjIsMuxId(p, Gia_ObjFaninId0(pObj, i)) && !Vec_BitEntry(vUsed, Gia_ObjFaninId0(pObj, i)) && 
+                  Gia_ObjIsMuxId(p, Gia_ObjFaninId1(pObj, i)) && !Vec_BitEntry(vUsed, Gia_ObjFaninId1(pObj, i)) &&
+                  Gia_ObjFaninId2(p, Gia_ObjFaninId0(pObj, i)) == Gia_ObjFaninId2(p, Gia_ObjFaninId1(pObj, i))  )
+        {
+            Gia_Obj_t * pFan1 = Gia_ObjFanin1(pObj);
+            int Value0 = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin2Copy(p, pFan1), Gia_ObjFanin0Copy(pObj) );
+            int Value1 = Gia_ManHashMux( pNew, Value0, Gia_ObjFanin1Copy(pFan1), Gia_ObjFanin0Copy(pFan1) );
+            pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Value1, Value0 );
+            Vec_BitWriteEntry( vUsed, Gia_ObjFaninId0(pObj, i), 1 );
+            Vec_BitWriteEntry( vUsed, Gia_ObjFaninId1(pObj, i), 1 );
+            Vec_BitWriteEntry( vUsed, i, 1 );
+            nNodes++;
+        }
+        else if ( Gia_ObjIsMuxId(p, i) )
+            pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsXor(pObj) )
+            pObj->Value = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else 
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+    Vec_BitFree( vUsed );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // perform cleanup
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+Gia_Man_t * Gia_ManDupMuxRestructure( Gia_Man_t * p )
+{
+    Gia_Man_t * pTemp, * pNew = Gia_ManDupMuxes( p, 2 );
+    pNew = Gia_ManMuxRestructure( pTemp = pNew );  Gia_ManStop( pTemp );
+    pNew = Gia_ManDupNoMuxes( pTemp = pNew );      Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns the size of MUX structure.]
 
   Description []

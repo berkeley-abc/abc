@@ -30995,14 +30995,16 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_ManDupMuxRestructure( Gia_Man_t * p );
     Gia_Man_t * pTemp;
     int c, Limit = 2;
     int fAddStrash = 0;
     int fCollapse = 0;
     int fAddMuxes = 0;
+    int fStrMuxes = 0;
     int fRehashMap = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Lacmrh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Lacmrsh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31029,6 +31031,9 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fRehashMap ^= 1;
             break;
+        case 's':
+            fStrMuxes ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -31040,7 +31045,15 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Strash(): There is no AIG.\n" );
         return 1;
     }
-    if ( Gia_ManHasMapping(pAbc->pGia) && fRehashMap )
+    if ( fStrMuxes )
+    {
+        if ( Gia_ManHasMapping(pAbc->pGia) )
+            Abc_Print( 0, "Restructing the current AIG destroys the LUT mapping.\n" );
+        Vec_IntFreeP( &pAbc->pGia->vMapping );
+        pTemp = Gia_ManDupMuxRestructure( pAbc->pGia );
+        Abc_Print( 1, "Finished AIG restructing to enable efficient mapping of 4:1 MUXes into 4-LUTs.\n" );
+    }
+    else if ( Gia_ManHasMapping(pAbc->pGia) && fRehashMap )
     {
         pTemp = Gia_ManDupHashMapping( pAbc->pGia );
         Gia_ManTransferPacking( pTemp, pAbc->pGia );
