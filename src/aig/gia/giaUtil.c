@@ -771,6 +771,20 @@ int * Gia_ManCreateMuxRefs( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Int_t * Gia_ManBfsForCrossCut( Gia_Man_t * p )
+{
+    Vec_Int_t * vNodes = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Vec_Vec_t * vLevels = Gia_ManLevelize( p );
+    Vec_Ptr_t * vObjs;
+    Gia_Obj_t * pObj;
+    int i, k;
+    Vec_VecForEachLevel( vLevels, vObjs, i )
+        Vec_PtrForEachEntry( Gia_Obj_t *, vObjs, pObj, k )
+            Vec_IntPush( vNodes, Gia_ObjId(p, pObj) );
+    Vec_VecFree( vLevels );
+    return vNodes;
+}
+
 void Gia_ManDfsForCrossCut_rec( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vNodes )
 {
     if ( Gia_ObjIsTravIdCurrent(p, pObj) )
@@ -823,6 +837,7 @@ int Gia_ManCrossCut( Gia_Man_t * p, int fReverse )
     Gia_Obj_t * pObj;
     int i, nCutCur = 0, nCutMax = 0;
     vNodes = Gia_ManDfsForCrossCut( p, fReverse );
+    //vNodes = Gia_ManBfsForCrossCut( p );
     Gia_ManForEachObjVec( vNodes, p, pObj, i )
     {
         if ( pObj->Value )
