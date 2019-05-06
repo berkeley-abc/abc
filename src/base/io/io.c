@@ -2968,14 +2968,18 @@ int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pFileName;
     FILE * pFile;
     unsigned * pTruth;
+    int fHex = 1;
     int fReverse = 0;
     int c;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "xrh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'x':
+                fHex ^= 1;
+                break;
             case 'r':
                 fReverse ^= 1;
                 break;
@@ -3031,14 +3035,18 @@ int IoCommandWriteTruth( Abc_Frame_t * pAbc, int argc, char **argv )
         printf( "Cannot open file \"%s\" for writing.\n", pFileName );
         return 0;
     }
-    Extra_PrintBinary( pFile, pTruth, 1<<Abc_ObjFaninNum(pNode) );
+    if ( fHex )
+        Extra_PrintHex2( pFile, pTruth, Abc_ObjFaninNum(pNode) );
+    else
+        Extra_PrintBinary( pFile, pTruth, 1<<Abc_ObjFaninNum(pNode) );
     fclose( pFile );
     Vec_IntFree( vTruth );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_truth [-rh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_truth [-xrh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes truth table into a file\n" );
+    fprintf( pAbc->Err, "\t-x     : toggles between bin and hex representation [default = %s]\n", fHex?  "hex":"bin" );
     fprintf( pAbc->Err, "\t-r     : toggle reversing bits in the truth table [default = %s]\n", fReverse? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
