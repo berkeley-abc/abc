@@ -450,7 +450,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Gia_ManPrintStatsMiter( p, 0 );
         return;
     }
-    if ( pPars->fNoColor )
+    if ( pPars && pPars->fNoColor )
     {
         if ( p->pName )
             Abc_Print( 1, "%-8s : ", p->pName );
@@ -476,7 +476,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Abc_Print( 1, "  ff =%7d", Gia_ManRegNum(p) );
     if ( Gia_ManRegBoxNum(p) )
         Abc_Print( 1, "  boxff =%d(%d)", Gia_ManRegBoxNum(p), Gia_ManClockDomainNum(p) );
-    if ( pPars->fNoColor )
+    if ( pPars && pPars->fNoColor )
     {
         Abc_Print( 1, "  %s =%8d", p->pMuxes? "nod" : "and", Gia_ManAndNum(p) );
         Abc_Print( 1, "  lev =%5d", Gia_ManLevelNum(p) ); 
