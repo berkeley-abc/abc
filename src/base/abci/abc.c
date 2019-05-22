@@ -45756,7 +45756,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Limit, int Reps, int UnseenUse, int RareUse, int fReplaceRare, int fConstSim, int fDagNodes, int FlipProb, int fVerbose );
+    extern void Extra_CommandCfs( Gia_Man_t * pGia, int Limit, int Reps, int UnseenUse, int RareUse, int fReplaceRare, int fConstSim, int fDagNodes, float FlipProb, int fVerbose );
     int Limit       =   0;
     int Reps        =   1;
     int UnseenUse   =   2;
@@ -45764,7 +45764,7 @@ int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fReplaceRare=   0;
     int fConstSim   =   0;
     int fDagNodes   =   0;
-    int FlipProb    =   0;
+    float FlipProb  =   0;
     int c, fVerbose =   0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "LNURPrcdvh" ) ) != EOF )
@@ -45821,7 +45821,7 @@ int Abc_CommandAbc9Cfs( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
                 goto usage;
             }
-            FlipProb = atoi(argv[globalUtilOptind]);
+            FlipProb = atof(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( FlipProb < 0 )
                 goto usage;
@@ -45859,7 +45859,7 @@ usage:
     Abc_Print( -2, "\t-N num  : the number of repetions of each pattern [default = %d]\n", Reps );
     Abc_Print( -2, "\t-U num  : what to do with unseen patterns [default = %d]\n",         UnseenUse );
     Abc_Print( -2, "\t-R num  : what to do with rare patterns [default = %d]\n",           RareUse );
-    Abc_Print( -2, "\t-P num  : ramdom flip probability [default = %d]\n",                 FlipProb );
+    Abc_Print( -2, "\t-P num  : base2-log of ramdom flip probability [default = %f]\n",    FlipProb );
     Abc_Print( -2, "\t-r      : toggle replacing rare patterns [default = %s]\n",          fReplaceRare? "yes": "no" );
     Abc_Print( -2, "\t-c      : toggle inserting constants [default = %s]\n",              fConstSim? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggle using only DAG nodes [default = %s]\n",             fDagNodes? "yes": "no" );
