@@ -610,7 +610,8 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fS
     if ( i == Gia_ManObjNum(p) )
     {
 //        Abc_Print( 1, "Gia_ManEquivReduce(): There are no equivalences to reduce.\n" );
-        return NULL;
+//        return NULL;
+        return Gia_ManDup( p );
     }
 /*
     if ( !Gia_ManCheckTopoOrder( p ) )
