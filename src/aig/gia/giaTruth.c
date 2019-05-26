@@ -63,6 +63,40 @@ static inline word * Gla_ObjTruthDup( Gia_Man_t * p, word * pDst, word * pSrc, i
   SeeAlso     []
 
 ***********************************************************************/
+word Gia_LutComputeTruth6Simple_rec( Gia_Man_t * p, int iObj )
+{
+    word Truth0, Truth1, Truth;
+    Gia_Obj_t * pObj = Gia_ManObj(p, iObj);
+    if ( Gia_ObjIsConst0(pObj) )
+        return 0;
+    if ( Gia_ObjIsCi(pObj) )
+        return s_Truths6[Gia_ObjCioId(pObj)];
+    Truth0 = Gia_LutComputeTruth6Simple_rec( p, Gia_ObjFaninId0(pObj, iObj) );
+    Truth1 = Gia_LutComputeTruth6Simple_rec( p, Gia_ObjFaninId1(pObj, iObj) );
+    Truth0 = Gia_ObjFaninC0(pObj) ? ~Truth0 : Truth0;
+    Truth1 = Gia_ObjFaninC1(pObj) ? ~Truth1 : Truth1;
+    Truth  = Gia_ObjIsXor(pObj) ? Truth0 ^ Truth1 : Truth0 & Truth1;
+    return Truth;
+}
+word Gia_LutComputeTruth6Simple( Gia_Man_t * p, int iPo )
+{
+    Gia_Obj_t * pObj = Gia_ManPo( p, iPo );
+    word Truth = Gia_LutComputeTruth6Simple_rec( p, Gia_ObjFaninId0p(p, pObj) );
+    return Gia_ObjFaninC0(pObj) ? ~Truth : Truth;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 word Gia_LutComputeTruth6_rec( Gia_Man_t * p, int iNode, Vec_Wrd_t * vTruths )
 {
     Gia_Obj_t * pObj;

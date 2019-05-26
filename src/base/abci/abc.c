@@ -389,6 +389,7 @@ static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MuxProfile         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9PrintTruth         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Unate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Rex2Gia            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9RexWalk            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1086,6 +1087,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&psig",         Abc_CommandAbc9PSig,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&status",       Abc_CommandAbc9Status,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&profile",      Abc_CommandAbc9MuxProfile,   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&print_truth",  Abc_CommandAbc9PrintTruth,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&unate",        Abc_CommandAbc9Unate,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rex2gia",      Abc_CommandAbc9Rex2Gia,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&rexwalk",      Abc_CommandAbc9RexWalk,      0 );
@@ -30679,6 +30681,93 @@ usage:
     Abc_Print( -2, "\t-m     : toggle profiling MUX structures [default = %s]\n", fMuxes? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle profiling adder structures [default = %s]\n", fAdders? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9PrintTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern word Gia_LutComputeTruth6Simple( Gia_Man_t * p, int iPo );
+    int i, c, iOutNum = 0, nOutRange = -1, fVerbose = 0; word Truth;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iOutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iOutNum < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOutRange = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOutRange < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9PrintTruth(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManPiNum(pAbc->pGia) > 6 )
+    {
+        Abc_Print( -1, "The number of inputs of the AIG exceeds 6.\n" );
+        return 1;
+    }
+    if ( iOutNum < 0 || iOutNum + nOutRange > Gia_ManPoNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9PrintTruth(): Range of outputs to extract is incorrect.\n" );
+        return 1;
+    }
+    if ( nOutRange == -1 )
+        nOutRange = Gia_ManCoNum(pAbc->pGia);
+    for ( i = iOutNum; i < iOutNum + nOutRange; i++ )
+    {
+        Truth = Gia_LutComputeTruth6Simple( pAbc->pGia, i );
+        printf( "Output %8d : ", i );
+        Extra_PrintHex( stdout, (unsigned *)&Truth, Gia_ManCiNum(pAbc->pGia) );
+        printf( "\n" );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &print_truth [-OR num] [-vh]\n" );
+    Abc_Print( -2, "\t         prints truth tables of outputs in hex notation\n" );
+    Abc_Print( -2, "\t-O num : the index of first PO to print [default = %d]\n", iOutNum );
+    Abc_Print( -2, "\t-R num : (optional) the number of outputs to extract [default = all]\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
