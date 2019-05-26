@@ -315,6 +315,7 @@ static int Abc_CommandSynch                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandClockGate              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtWin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandInsWin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandSymFun                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPermute                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnpermute              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCubeEnum               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1010,6 +1011,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "clockgate",     Abc_CommandClockGate,        1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "extwin",        Abc_CommandExtWin,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "inswin",        Abc_CommandInsWin,           1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "symfun",        Abc_CommandSymFun,           0 );
     Cmd_CommandAdd( pAbc, "Sequential",   "permute",       Abc_CommandPermute,          1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "unpermute",     Abc_CommandUnpermute,        1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "cubeenum",      Abc_CommandCubeEnum,         0 );
@@ -22959,6 +22961,79 @@ usage:
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Vec_Bit_t * vMints;
+    char * pStr;
+    int nVars = 5;
+    int c, m, k, Count;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            Abc_Print( -2, "Unknown switch.\n");
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Not enough command-line arguments.\n" );
+        return 1;
+    }
+    if ( nVars < 2 || nVars > 9 )
+    {
+        Abc_Print( -1, "The number of variables should be between 2 and 9.\n" );
+        return 1;
+    }
+    vMints = Vec_BitStart( 1 << nVars );
+    pStr = argv[globalUtilOptind];
+    while ( *pStr )
+    {
+        for ( m = 0; m < (1 << nVars); m++ )
+        {
+            Count = 0;
+            for ( k = 0; k < nVars; k++ )
+                Count += (m >> k) & 1;
+            if ( *pStr == '0' + Count )
+                Vec_BitWriteEntry( vMints, m, 1 );
+        }
+        pStr++;
+    }
+    Extra_PrintHex( stdout, (unsigned *)Vec_BitArray(vMints), nVars ); printf( "\n" );
+    Vec_BitFree( vMints );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: symfun [-h] <ones>\n" );
+    Abc_Print( -2, "\t         prints truth table of a symmetric function up to 9 inputs\n" );
+    Abc_Print( -2, "\t<ones> : the counts of ones in the inputs when the function is one\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
 /**Function*************************************************************
 
   Synopsis    []
