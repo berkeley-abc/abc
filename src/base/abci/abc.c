@@ -36980,8 +36980,24 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
+    // add wire delay to LUT library delays
+    if ( pPars->WireDelay > 0 && pPars->pLutLib )
+    {
+        int i, k;
+        for ( i = 0; i <= pPars->pLutLib->LutMax; i++ )
+            for ( k = 0; k <= i; k++ )
+                pPars->pLutLib->pLutDelays[i][k] += pPars->WireDelay;
+    }
     // perform mapping
     pNew = Gia_ManPerformMapping( pAbc->pGia, pPars );
+    // subtract wire delay from LUT library delays
+    if ( pPars->WireDelay > 0 && pPars->pLutLib )
+    {
+        int i, k;
+        for ( i = 0; i <= pPars->pLutLib->LutMax; i++ )
+            for ( k = 0; k <= i; k++ )
+                pPars->pLutLib->pLutDelays[i][k] -= pPars->WireDelay;
+    }
     if ( pNew == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9If(): Mapping of GIA has failed.\n" );

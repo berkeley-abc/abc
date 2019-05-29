@@ -217,7 +217,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         assert( pCut->Delay != -1 );
 //        assert( pCut->Delay <= pObj->Required + p->fEpsilon );
         if ( pCut->Delay > pObj->Required + 2*p->fEpsilon )
-            Abc_Print( 1, "If_ObjPerformMappingAnd(): Warning! Delay of node %d (%f) exceeds the required times (%f).\n", 
+            Abc_Print( 1, "If_ObjPerformMappingAnd(): Warning! Node with ID %d has delay (%f) exceeding the required times (%f).\n", 
                 pObj->Id, pCut->Delay, pObj->Required + p->fEpsilon );
         pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
         if ( p->pPars->fEdge )
