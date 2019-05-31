@@ -20,6 +20,8 @@
 
 #include "base/abc/abc.h"
 #include "opt/sim/sim.h"
+#include "opt/dau/dau.h"
+#include "misc/util/utilTruth.h"
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -236,6 +238,93 @@ void Ntk_NetworkSymmsPrint( Abc_Ntk_t * pNtk, Extra_SymmInfo_t * pSymms )
 void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fReorder, int fVerbose ) {}
 
 #endif
+
+/**Function*************************************************************
+
+  Synopsis    [Generating NPN classes of all symmetric function of N variables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntk_SymFunGenerate( int nVars )
+{
+    char Ones[100] = {0};
+    word * pFun;
+    int k, m, * pComp, * pPerm, Func;
+    Vec_Wrd_t * vCanons = NULL;
+    Abc_TtHieMan_t * pMan;
+    assert( !(nVars < 1 || nVars > 16) );
+	pMan = Abc_TtHieManStart(nVars, 5);
+    printf( "Generating truth tables of all symmetric functions of %d variables.\n", nVars );
+    pComp = nVars == 6 ? Extra_GreyCodeSchedule( 6 ) : NULL;
+    pPerm = nVars == 6 ? Extra_PermSchedule( 6 )     : NULL;
+    vCanons = Vec_WrdAlloc( 100 );
+    for ( m = 0; m < (1 << (nVars+1)); m++ )
+    {
+        for ( k = 0; k <= nVars; k++ )
+            Ones[k] = '0' + ((m >> k) & 1);
+        printf( "%s : ", Ones );
+        pFun = Abc_TtSymFunGenerate( Ones, nVars );
+        Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
+        // compute NPN canicical form
+        if ( nVars < 6 )
+        {
+            unsigned Canon = Extra_TruthCanonNPN( (unsigned)Abc_Tt6Stretch(pFun[0], nVars), nVars );
+            printf( " : NPN " );
+            Extra_PrintHex( stdout, &Canon, nVars );
+            if ( (Func = Vec_WrdFind(vCanons, (word)Canon)) == -1 )
+            {
+                Func = Vec_WrdSize(vCanons);
+                Vec_WrdPush( vCanons, (word)Canon );
+            }
+            printf( "  Class %3d", Func );
+        }
+        else if ( nVars == 6 )
+        {
+            word Canon = Extra_Truth6MinimumExact( pFun[0], pComp, pPerm );
+            printf( " : NPN " );
+            Extra_PrintHex( stdout, (unsigned *)&Canon, nVars );
+            if ( (Func = Vec_WrdFind(vCanons, (word)Canon)) == -1 )
+            {
+                Func = Vec_WrdSize(vCanons);
+                Vec_WrdPush( vCanons, (word)Canon );
+            }
+            printf( "  Class %3d", Func );
+        }
+        if ( 0 )
+        {
+            unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
+            unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
+            char pCanonPerm[16];
+            unsigned uCanonPhase;
+            if ( nVars < 6 )
+            {
+                word Truth = Abc_Tt6Stretch(pFun[0], nVars);
+                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, &Truth, nVars, pCanonPerm, 1199); // -A 9, adjustable algorithm (exact)
+                printf( " : NPN " );
+                Extra_PrintHex( stdout, (unsigned *)&Truth, nVars );
+            }
+            else
+            {
+                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, pFun, nVars, pCanonPerm, 1199); // -A 9, adjustable algorithm (exact)
+                printf( " : NPN " );
+                Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
+            }
+        }
+        printf( "\n" );
+        ABC_FREE( pFun );
+    }
+	Abc_TtHieManStop(pMan);
+    if ( Vec_WrdSize(vCanons) )
+        printf( "The number of different NPN classes is %d.\n", Vec_WrdSize(vCanons) );
+    Vec_WrdFreeP( &vCanons );
+    ABC_FREE( pPerm );
+    ABC_FREE( pComp );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

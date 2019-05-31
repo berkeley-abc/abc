@@ -3191,7 +3191,32 @@ static inline void Abc_TtTestFullySymmetric()
 }
 
 
-/*=== utilTruth.c ===========================================================*/
+/**Function*************************************************************
+
+  Synopsis    [Generates truth table of a symmetric function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word * Abc_TtSymFunGenerate( char * pOnes, int nVars )
+{
+    int m, k, Count;
+    word * pTruth = ABC_CALLOC( word, Abc_TtWordNum(nVars) );
+    assert( (int)strlen(pOnes) == nVars + 1 );
+    for ( m = 0; m < (1 << nVars); m++ )
+    {
+        Count = 0;
+        for ( k = 0; k < nVars; k++ )
+            Count += (m >> k) & 1;
+        if ( pOnes[Count] == '1' )
+            Abc_TtXorBit( pTruth, m );
+    }
+    return pTruth;
+}
 
 
 ABC_NAMESPACE_HEADER_END

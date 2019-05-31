@@ -22974,12 +22974,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Vec_Bit_t * vMints;
-    char * pStr;
-    int nVars = 5;
-    int c, m, k, Count;
+    extern void Ntk_SymFunGenerate( int nVars );
+    word * pFun = NULL;
+    char * pStr,  * pTruth, * pCommand;
+    int c, k, nVars = -1, fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22992,6 +22992,9 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
             nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -22999,39 +23002,64 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( nVars != -1 )
+    {
+        if ( nVars < 1 || nVars > 16 )
+        {
+            printf( "Cannot generate functions for less than 1 and more than %d variables.\n", nVars );
+            return 1;
+        }
+        Ntk_SymFunGenerate( nVars );
+        return 0;
+    }
     if ( argc != globalUtilOptind + 1 )
     {
         Abc_Print( -1, "Not enough command-line arguments.\n" );
         return 1;
     }
-    if ( nVars < 2 || nVars > 9 )
+    // make sure the string is composed of N+1 zeros and ones
+    pStr = argv[globalUtilOptind];
+    nVars = strlen(pStr) - 1;
+    for ( k = 0; k <= nVars; k++ )
+        if ( pStr[k] != '0' && pStr[k] != '1' )
+            break;
+    if ( k <= nVars )
     {
-        Abc_Print( -1, "The number of variables should be between 2 and 9.\n" );
+        Abc_Print( -1, "The string should be composed of zeros and ones.\n" );
         return 1;
     }
-    vMints = Vec_BitStart( 1 << nVars );
-    pStr = argv[globalUtilOptind];
-    while ( *pStr )
+    // generate and print one function
+    pFun = Abc_TtSymFunGenerate( pStr, nVars );
+    pTruth = ABC_CALLOC( char, nVars > 2 ? (1 << (nVars-2)) + 1 : 2 );
+    Extra_PrintHexadecimalString( pTruth, (unsigned *)pFun, nVars );
+    ABC_FREE( pFun );
+    if ( fVerbose )
     {
-        for ( m = 0; m < (1 << nVars); m++ )
-        {
-            Count = 0;
-            for ( k = 0; k < nVars; k++ )
-                Count += (m >> k) & 1;
-            if ( *pStr == '0' + Count )
-                Vec_BitWriteEntry( vMints, m, 1 );
-        }
-        pStr++;
+        if ( nVars > 6 )
+            printf( "Generated truth table of the %d-variable function and set it as the current network.\n", nVars );
+        else
+            printf( "Generated truth table of the %d-variable function (%s) and set it as the current network\n", nVars, pTruth );
     }
-    Extra_PrintHex( stdout, (unsigned *)Vec_BitArray(vMints), nVars ); printf( "\n" );
-    Vec_BitFree( vMints );
+    else
+        printf( "%s\n", pTruth );
+    // read the truth table to be the current network in ABC
+    pCommand = ABC_CALLOC( char, strlen(pTruth) + 100 );
+    sprintf( pCommand, "read_truth %s", pTruth );
+    Cmd_CommandExecute( pAbc, pCommand );
+    ABC_FREE( pCommand );
+    ABC_FREE( pTruth );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: symfun [-h] <ones>\n" );
-    Abc_Print( -2, "\t         prints truth table of a symmetric function up to 9 inputs\n" );
-    Abc_Print( -2, "\t<ones> : the counts of ones in the inputs when the function is one\n" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: symfun [-N num] [-vh] <ones>\n" );
+    Abc_Print( -2, "\t           generated a single-output symmetric function\n" );
+    Abc_Print( -2, "\t-N <num> : prints truth tables of all N-var symmetric functions [default = not used]\n" );
+    Abc_Print( -2, "\t-v       : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t<ones>   : the string of N+1 zeros and ones, where N is the number of variables\n" );
+    Abc_Print( -2, "\t           For example, to get 3-input NAND-gate, use \"symfun 1000\".\n" );
+    Abc_Print( -2, "\t           To get 5-input majority gate, use \"symfun 000111\".\n" );
+
     return 1;
 }
 /**Function*************************************************************
