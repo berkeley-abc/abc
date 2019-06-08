@@ -241,6 +241,61 @@ void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fReorder
 
 /**Function*************************************************************
 
+  Synopsis    [Try different permutations.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntk_SymTryRandomFlips( word * pFun, word * pNpn, int nVars )
+{
+    int Rand[16] = { 17290, 20203, 19027, 12035, 14687, 10920, 10413, 261, 2072, 16899, 4480, 6192, 3978, 8343, 745, 1370 };
+    int i, nWords = Abc_TtWordNum(nVars);
+    word * pFunT = ABC_CALLOC( word, nWords );
+    Abc_TtCopy( pFunT, pFun, nWords, 0 );
+    for ( i = 0; i < 16; i++ )
+        Abc_TtFlip( pFunT, nWords, Rand[i] % (nVars-1) );
+    assert( Abc_TtCompareRev(pNpn, pFunT, nWords) != 1 );
+    ABC_FREE( pFunT );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find canonical form of symmetric function.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ntk_SymFunDeriveNpn( word * pFun, int nVars, int * pComp )
+{
+    int i, nWords = Abc_TtWordNum(nVars);
+    word * pFunB = ABC_CALLOC( word, nWords );
+    Abc_TtCopy( pFunB, pFun, nWords, 1 );
+    if ( Abc_TtCompareRev(pFunB, pFun, nWords) == 1 )
+        Abc_TtCopy( pFunB, pFun, nWords, 0 );
+    for ( i = 0; i < (1 << nVars); i++ )
+    {
+        Abc_TtFlip( pFun, nWords, pComp[i] );
+        if ( Abc_TtCompareRev(pFunB, pFun, nWords) == 1 )
+            Abc_TtCopy( pFunB, pFun, nWords, 0 );
+        Abc_TtNot( pFun, nWords );
+        if ( Abc_TtCompareRev(pFunB, pFun, nWords) == 1 )
+            Abc_TtCopy( pFunB, pFun, nWords, 0 );
+    }
+    //Ntk_SymTryRandomFlips( pFun, pFunB, nVars );
+    Abc_TtCopy( pFun, pFunB, nWords, 0 );
+    ABC_FREE( pFunB );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Generating NPN classes of all symmetric function of N variables.]
 
   Description []
@@ -252,77 +307,39 @@ void Abc_NtkSymmetries( Abc_Ntk_t * pNtk, int fUseBdds, int fNaive, int fReorder
 ***********************************************************************/
 void Ntk_SymFunGenerate( int nVars )
 {
-    char Ones[100] = {0};
-    word * pFun;
-    int k, m, * pComp, * pPerm, Func;
-    Vec_Wrd_t * vCanons = NULL;
-    Abc_TtHieMan_t * pMan;
+    int k, m, Class, fVerbose = 0;
+    int * pComp = Extra_GreyCodeSchedule( nVars );
+    Vec_Mem_t * vTtMem = Vec_MemAlloc( Abc_Truth6WordNum(nVars), 12 );
+    Vec_MemHashAlloc( vTtMem, 10000 );
     assert( !(nVars < 1 || nVars > 16) );
-	pMan = Abc_TtHieManStart(nVars, 5);
     printf( "Generating truth tables of all symmetric functions of %d variables.\n", nVars );
-    pComp = nVars == 6 ? Extra_GreyCodeSchedule( 6 ) : NULL;
-    pPerm = nVars == 6 ? Extra_PermSchedule( 6 )     : NULL;
-    vCanons = Vec_WrdAlloc( 100 );
     for ( m = 0; m < (1 << (nVars+1)); m++ )
     {
+        word * pFun;
+        char Ones[100] = {0};
         for ( k = 0; k <= nVars; k++ )
             Ones[k] = '0' + ((m >> k) & 1);
-        printf( "%s : ", Ones );
+        if ( fVerbose )
+            printf( "%s : ", Ones );
         pFun = Abc_TtSymFunGenerate( Ones, nVars );
-        Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
-        // compute NPN canicical form
         if ( nVars < 6 )
+            pFun[0] = Abc_Tt6Stretch( pFun[0], nVars );
+        if ( fVerbose )
+            Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
+        Ntk_SymFunDeriveNpn( pFun, nVars, pComp );
+        Class = Vec_MemHashInsert( vTtMem, pFun );
+        if ( fVerbose )
         {
-            unsigned Canon = Extra_TruthCanonNPN( (unsigned)Abc_Tt6Stretch(pFun[0], nVars), nVars );
             printf( " : NPN " );
-            Extra_PrintHex( stdout, &Canon, nVars );
-            if ( (Func = Vec_WrdFind(vCanons, (word)Canon)) == -1 )
-            {
-                Func = Vec_WrdSize(vCanons);
-                Vec_WrdPush( vCanons, (word)Canon );
-            }
-            printf( "  Class %3d", Func );
+            Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
+            printf( "  Class %3d", Class );
+            printf( "\n" );
         }
-        else if ( nVars == 6 )
-        {
-            word Canon = Extra_Truth6MinimumExact( pFun[0], pComp, pPerm );
-            printf( " : NPN " );
-            Extra_PrintHex( stdout, (unsigned *)&Canon, nVars );
-            if ( (Func = Vec_WrdFind(vCanons, (word)Canon)) == -1 )
-            {
-                Func = Vec_WrdSize(vCanons);
-                Vec_WrdPush( vCanons, (word)Canon );
-            }
-            printf( "  Class %3d", Func );
-        }
-        if ( 0 )
-        {
-            unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
-            unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
-            char pCanonPerm[16];
-            unsigned uCanonPhase;
-            if ( nVars < 6 )
-            {
-                word Truth = Abc_Tt6Stretch(pFun[0], nVars);
-                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, &Truth, nVars, pCanonPerm, 1199); // -A 9, adjustable algorithm (exact)
-                printf( " : NPN " );
-                Extra_PrintHex( stdout, (unsigned *)&Truth, nVars );
-            }
-            else
-            {
-                uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeAda, pMan, pFun, nVars, pCanonPerm, 1199); // -A 9, adjustable algorithm (exact)
-                printf( " : NPN " );
-                Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
-            }
-        }
-        printf( "\n" );
         ABC_FREE( pFun );
     }
-	Abc_TtHieManStop(pMan);
-    if ( Vec_WrdSize(vCanons) )
-        printf( "The number of different NPN classes is %d.\n", Vec_WrdSize(vCanons) );
-    Vec_WrdFreeP( &vCanons );
-    ABC_FREE( pPerm );
+    printf( "The number of different NPN classes is %d.\n", Vec_MemEntryNum(vTtMem) );
+    Vec_MemHashFree( vTtMem );
+    Vec_MemFreeP( &vTtMem );
     ABC_FREE( pComp );
 }
 
