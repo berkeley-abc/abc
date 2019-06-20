@@ -22974,10 +22974,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Ntk_SymFunGenerate( int nVars );
+    extern void Ntk_SymFunGenerate( int nVars, int fVerbose );
     word * pFun = NULL;
     char * pStr,  * pTruth, * pCommand;
-    int c, k, nVars = -1, fVerbose = 1;
+    int c, k, nVars = -1, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
     {
@@ -23009,7 +23009,7 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "Cannot generate functions for less than 1 and more than %d variables.\n", nVars );
             return 1;
         }
-        Ntk_SymFunGenerate( nVars );
+        Ntk_SymFunGenerate( nVars, fVerbose );
         return 0;
     }
     if ( argc != globalUtilOptind + 1 )

@@ -305,9 +305,9 @@ void Ntk_SymFunDeriveNpn( word * pFun, int nVars, int * pComp )
   SeeAlso     []
 
 ***********************************************************************/
-void Ntk_SymFunGenerate( int nVars )
+void Ntk_SymFunGenerate( int nVars, int fVerbose )
 {
-    int k, m, Class, fVerbose = 0;
+    int k, m, Class;
     int * pComp = Extra_GreyCodeSchedule( nVars );
     Vec_Mem_t * vTtMem = Vec_MemAlloc( Abc_Truth6WordNum(nVars), 12 );
     Vec_MemHashAlloc( vTtMem, 10000 );
