@@ -2956,7 +2956,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
     if ( pMiter == NULL )
     {
         Abc_Print( 1, "Miter computation has failed.\n" );
-        return 0;
+        return -1;
     }
     RetValue = Abc_NtkMiterIsConstant( pMiter );
     if ( RetValue == 0 )

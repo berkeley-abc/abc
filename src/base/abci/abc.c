@@ -23903,7 +23903,7 @@ int Abc_CommandDSec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // perform verification
-    Abc_NtkDarSec( pNtk1, pNtk2, pSecPar );
+    pAbc->Status = Abc_NtkDarSec( pNtk1, pNtk2, pSecPar );
 
     if ( fDelete1 ) Abc_NtkDelete( pNtk1 );
     if ( fDelete2 ) Abc_NtkDelete( pNtk2 );
