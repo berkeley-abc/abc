@@ -3018,7 +3018,7 @@ int Abc_NtkDarSec( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, Fra_Sec_t * pSecPar )
     // perform verification
     RetValue = Fra_FraigSec( pMan, pSecPar, NULL );
     Aig_ManStop( pMan );
-    return RetValue;
+    return RetValue == -1 ? -1 : !RetValue;
 }
 
 /**Function*************************************************************
