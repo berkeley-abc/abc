@@ -97,6 +97,8 @@ static void Mini_LutPush( Mini_Lut_t * p, int nVars, int * pVars, unsigned * pTr
             Mini_LutGrow( p, 2 * p->nCap );
     }
     for ( i = 0; i < nVars; i++ )
+        assert( pVars[i] >= 0 && pVars[i] < p->nSize );
+    for ( i = 0; i < nVars; i++ )
         p->pArray[p->LutSize * p->nSize + i] = pVars[i];
     for ( ; i < p->LutSize; i++ )
         p->pArray[p->LutSize * p->nSize + i] = MINI_LUT_NULL;
