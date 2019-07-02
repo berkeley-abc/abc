@@ -936,6 +936,51 @@ Gia_Man_t * Gia_ManDupPermFlopGap( Gia_Man_t * p, Vec_Int_t * vFfMask )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_ManDupPiPerm( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pOne;
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManRandom(1);
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        int iLit0 = Gia_ObjFanin0Copy(pObj);
+        int iLit1 = Gia_ObjFanin1Copy(pObj);
+        int iPlace0 = Gia_ManRandom(0) % Gia_ManCiNum(p);
+        int iPlace1 = Gia_ManRandom(0) % Gia_ManCiNum(p);
+        if ( Abc_Lit2Var(iLit0) <= Gia_ManCiNum(p) )
+            iLit0 = Abc_Var2Lit( iPlace0+1, Abc_LitIsCompl(iLit0) );
+        if ( Abc_Lit2Var(iLit1) <= Gia_ManCiNum(p) )
+            iLit1 = Abc_Var2Lit( iPlace1+1, Abc_LitIsCompl(iLit1) );
+        pObj->Value = Gia_ManHashAnd( pNew, iLit0, iLit1 );
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pOne = pNew );
+    Gia_ManStop( pOne );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Appends second AIG without any changes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManDupAppend( Gia_Man_t * pNew, Gia_Man_t * pTwo )
 {
     Gia_Obj_t * pObj;
