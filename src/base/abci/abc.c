@@ -42262,12 +42262,12 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Gia_ParFfSetDefault( Bmc_ParFf_t * p );
     extern void Gia_ManFaultTest( Gia_Man_t * p, Gia_Man_t * pG, Bmc_ParFf_t * pPars );
     Bmc_ParFf_t Pars, * pPars = &Pars;
-    char * pFileName = NULL;
+    char * pFileName = NULL, * pFileName2 = NULL;
     Gia_Man_t * pGold = NULL;
     int c;
     Gia_ParFfSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ATNKSGkbsfcdeunvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ATNKSGFkbsfcdeunvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -42318,16 +42318,25 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'S':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by string.\n" );
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a string.\n" );
                 goto usage;
             }
             pPars->pFormStr = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pFileName2 = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'G':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-G\" should be followed by string.\n" );
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by a file name.\n" );
                 goto usage;
             }
             pFileName = argv[globalUtilOptind];
@@ -42368,6 +42377,29 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+    // read string from file
+    if ( pFileName2 )
+    {
+        FILE * pFile = fopen( pFileName2, "r" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9FFTest(): File name \"%s\" with formula is invalid.\n", pFileName2 );
+            return 0;
+        }
+        pPars->pFormStr = Extra_FileRead(pFile);
+        fclose( pFile );
+        // skip spaces
+        while ( 1 )
+        {
+            int Len = strlen(pPars->pFormStr);
+            char Char = pPars->pFormStr[Len-1];
+            if ( Char == ' ' || Char == '\n' || Char == '\r' || Char == '\t' || Char == -51 )
+                pPars->pFormStr[Len-1] = '\0';
+            else
+                break;
+        }
+        printf( "Using formula \"%s\" form file \"%s\".\n", pPars->pFormStr, pFileName2 );
     }
     if ( pPars->Algo == 0 && pPars->pFormStr == NULL )
     {
@@ -42435,10 +42467,12 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Gia_ManFaultTest( pAbc->pGia, pGold ? pGold : pAbc->pGia, pPars );
     Gia_ManStopP( &pGold );
+    if ( pFileName2 )
+        ABC_FREE( pPars->pFormStr );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fftest [-ATNK num] [-kbsfcdeunvh] <file> [-G file] [-S str]\n" );
+    Abc_Print( -2, "usage: &fftest [-ATNK num] [-kbsfcdeunvh] <file> [-GF file] [-S str]\n" );
     Abc_Print( -2, "\t          performs functional fault test generation\n" );
     Abc_Print( -2, "\t-A num  : selects fault model for all gates [default = %d]\n", pPars->Algo );
     Abc_Print( -2, "\t                0: fault model is not selected (use -S str)\n" );
@@ -42462,6 +42496,7 @@ usage:
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t<file>  : (optional) file name with input test patterns\n\n");
     Abc_Print( -2, "\t-G file : (optional) file name with the golden model\n\n");
+    Abc_Print( -2, "\t-F file : (optional) file name with the string representing the fault model\n");
     Abc_Print( -2, "\t-S str  : (optional) string representing the fault model\n");
     Abc_Print( -2, "\t          The following notations are used:\n");
     Abc_Print( -2, "\t            Functional variables: {a,b} (both a and b are always present)\n");
