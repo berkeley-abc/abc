@@ -49,6 +49,62 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_DeriveFormula_rec( Gia_Man_t * pGia, char ** ppNamesIn, Vec_Str_t * vStr, int iLit )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( pGia, Abc_Lit2Var(iLit) );
+    int fCompl = Abc_LitIsCompl(iLit);
+    if ( Gia_ObjIsAnd(pObj) )
+    {
+        Vec_StrPush( vStr, '(' );
+        if ( Gia_ObjIsMux(pGia, pObj) )
+        {
+            Gia_DeriveFormula_rec( pGia, ppNamesIn, vStr, Gia_ObjFaninLit0p(pGia, pObj) );
+            Vec_StrPush( vStr, '?' );
+            Gia_DeriveFormula_rec( pGia, ppNamesIn, vStr, Abc_LitNotCond( Gia_ObjFaninLit1p(pGia, pObj), fCompl ) );
+            Vec_StrPush( vStr, ':' );
+            Gia_DeriveFormula_rec( pGia, ppNamesIn, vStr, Abc_LitNotCond( Gia_ObjFaninLit2p(pGia, pObj), fCompl ) );
+        }
+        else
+        {
+            Gia_DeriveFormula_rec( pGia, ppNamesIn, vStr, Abc_LitNotCond( Gia_ObjFaninLit0p(pGia, pObj), fCompl ) );
+            Vec_StrPush( vStr, (char)(Gia_ObjIsXor(pObj) ? '^' : (char)(fCompl ? '|' : '&')) );
+            Gia_DeriveFormula_rec( pGia, ppNamesIn, vStr, Abc_LitNotCond( Gia_ObjFaninLit1p(pGia, pObj), fCompl ) );
+        }
+        Vec_StrPush( vStr, ')' );
+    }
+    else
+    {
+        if ( fCompl ) Vec_StrPush( vStr, '~' );
+        Vec_StrPrintF( vStr, "%s", ppNamesIn[Gia_ObjCioId(pObj)] );
+    }
+}
+char * Gia_DeriveFormula( Gia_Man_t * pGia, char ** ppNamesIn )
+{
+    char * pResult;
+    Vec_Str_t * vStr   = Vec_StrAlloc( 1000 );
+    Gia_Man_t * pMuxes = Gia_ManDupMuxes( pGia, 2 );
+    Gia_Obj_t * pObj   = Gia_ManCo( pGia, 0 );
+    Vec_StrPush( vStr, '(' );
+    Gia_DeriveFormula_rec( pGia, ppNamesIn, vStr, Gia_ObjFaninLit0p(pGia, pObj) );
+    Vec_StrPush( vStr, ')' );
+    Vec_StrPush( vStr, '\0' );
+    Gia_ManStop( pMuxes );
+    pResult = Vec_StrReleaseArray( vStr );
+    Vec_StrFree( vStr );
+    return pResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [This procedure sets default parameters.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ParFfSetDefault( Bmc_ParFf_t * p )
 {
     memset( p, 0, sizeof(Bmc_ParFf_t) );

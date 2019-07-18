@@ -42381,25 +42381,46 @@ int Abc_CommandAbc9FFTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     // read string from file
     if ( pFileName2 )
     {
-        FILE * pFile = fopen( pFileName2, "r" );
-        if ( pFile == NULL )
+        if ( !strcmp( Extra_FileNameExtension(pFileName2), "blif" ) )
         {
-            Abc_Print( -1, "Abc_CommandAbc9FFTest(): File name \"%s\" with formula is invalid.\n", pFileName2 );
-            return 0;
-        }
-        pPars->pFormStr = Extra_FileRead(pFile);
-        fclose( pFile );
-        // skip spaces
-        while ( 1 )
-        {
-            int Len = strlen(pPars->pFormStr);
-            char Char = pPars->pFormStr[Len-1];
-            if ( Char == ' ' || Char == '\n' || Char == '\r' || Char == '\t' || Char == -51 )
-                pPars->pFormStr[Len-1] = '\0';
+            extern char * Gia_DeriveFormula( Gia_Man_t * pGia, char ** ppNamesIn );
+            Abc_Ntk_t * pNtk2 = Io_Read( pFileName2, Io_ReadFileType(pFileName2), 1, 0 );
+            Abc_Ntk_t * pNtk3 = Abc_NtkStrash( pNtk2, 0, 0, 0 );
+            Gia_Man_t * pGia  = Abc_NtkClpGia( pNtk3 );
+            char ** ppNamesIn = Abc_NtkCollectCioNames( pNtk2, 0 );
+            if ( Gia_ManCoNum(pGia) == 1 )
+                pPars->pFormStr = Gia_DeriveFormula( pGia, ppNamesIn );
             else
-                break;
+                printf( "The formula BLIF file contains the network with more one output.\n" );
+            ABC_FREE( ppNamesIn );
+            Gia_ManStop( pGia );
+            Abc_NtkDelete( pNtk2 );
+            Abc_NtkDelete( pNtk3 );
+            if ( pPars->pFormStr == NULL )
+                goto usage;
         }
-        printf( "Using formula \"%s\" form file \"%s\".\n", pPars->pFormStr, pFileName2 );
+        else
+        {
+            FILE * pFile = fopen( pFileName2, "r" );
+            if ( pFile == NULL )
+            {
+                Abc_Print( -1, "Abc_CommandAbc9FFTest(): File name \"%s\" with formula is invalid.\n", pFileName2 );
+                return 0;
+            }
+            pPars->pFormStr = Extra_FileRead(pFile);
+            fclose( pFile );
+            // skip spaces
+            while ( 1 )
+            {
+                int Len = strlen(pPars->pFormStr);
+                char Char = pPars->pFormStr[Len-1];
+                if ( Char == ' ' || Char == '\n' || Char == '\r' || Char == '\t' || Char == -51 )
+                    pPars->pFormStr[Len-1] = '\0';
+                else
+                    break;
+            }
+        }
+        printf( "Using formula \"%s\" from file \"%s\".\n", pPars->pFormStr, pFileName2 );
     }
     if ( pPars->Algo == 0 && pPars->pFormStr == NULL )
     {
@@ -42496,7 +42517,7 @@ usage:
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t<file>  : (optional) file name with input test patterns\n\n");
     Abc_Print( -2, "\t-G file : (optional) file name with the golden model\n\n");
-    Abc_Print( -2, "\t-F file : (optional) file name with the string representing the fault model\n");
+    Abc_Print( -2, "\t-F file : (optional) file name with the fault model in BLIF format\n");
     Abc_Print( -2, "\t-S str  : (optional) string representing the fault model\n");
     Abc_Print( -2, "\t          The following notations are used:\n");
     Abc_Print( -2, "\t            Functional variables: {a,b} (both a and b are always present)\n");
@@ -42513,6 +42534,11 @@ usage:
     Abc_Print( -2, "\t              (((a^p)&(b^q))^r)     complement at the inputs and at the output\n");
     Abc_Print( -2, "\t              (a?(b?~s:r):(b?q:p))  functionally observable fault at the output\n");
     Abc_Print( -2, "\t              (p?(a|b):(a&b))       replace AND by OR\n");
+    Abc_Print( -2, "\t           If the BLIF file is used for the formula with option \'-F\', following rules apply:\n");
+    Abc_Print( -2, "\t              - the network should be combinational and have exactly one primary output\n");
+    Abc_Print( -2, "\t              - input names should have only one character:\n");
+    Abc_Print( -2, "\t                {a, b} (for functional variables)\n");
+    Abc_Print( -2, "\t                {p,q,r,s,t,u,v,w} (for parameter variables)\n");
     return 1;
 }
 
