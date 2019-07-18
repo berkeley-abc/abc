@@ -148,11 +148,23 @@ int Wln_RetComputeFfClasses( Wln_Ntk_t * pNtk, Vec_Int_t * vClasses )
 }
 Wln_Ret_t * Wln_RetAlloc( Wln_Ntk_t * pNtk )
 {
-    Wln_Ret_t * p; int k, iObj, iFanin;
+    Wln_Ret_t * p; int k, iObj, iFanin, fFirst = 1;
     Vec_Int_t * vRefsCopy = Vec_IntAlloc(0);
     p = ABC_CALLOC( Wln_Ret_t, 1 );
     p->pNtk = pNtk;
     Wln_NtkCreateRefs( pNtk );
+    // print objects without fanout
+    Wln_NtkForEachObj( pNtk, iObj )
+        if ( Wln_ObjRefs(pNtk, iObj) == 0 && !Wln_ObjIsCio(pNtk, iObj) )
+        {
+            if ( fFirst )
+            {
+                fFirst = 0;
+                printf( "Objects without fanout:\n" );
+            }
+            Wln_ObjPrint(pNtk, iObj);
+        }
+    // start fanin/fanout maps
     Wln_NtkStartFaninMap( pNtk, &p->vFanins, 2 );
     Wln_NtkStartFanoutMap( pNtk, &p->vFanouts, &pNtk->vRefs, 2 );
     ABC_SWAP( Vec_Int_t, *vRefsCopy, pNtk->vRefs );
@@ -372,6 +384,8 @@ int Wln_RetCheckForward( Wln_Ret_t * p, Vec_Int_t * vSet )
 static inline int Wln_RetCheckBackwardOne( Wln_Ret_t * p, int iObj )
 {
     int k, iFanin, * pLink, iFlop, Class = -1;
+    if ( Wln_ObjRefs(p->pNtk, iObj) == 0 )
+        return 0;
     Wln_RetForEachFanout( p, iObj, iFanin, pLink, k )
     {
         if ( !pLink[0] )
