@@ -115,7 +115,7 @@ void Dau_TruthEnum(int nVars)
     {
         FILE * pFile;
         int RetValue;
-        char pFileName[20];
+        char pFileName[200];
         sprintf( pFileName, "tableW%d.data", nSizeLog );
         pFile = fopen( pFileName, "wb" );
         RetValue = fwrite( pTable, 8, nSizeW, pFile );
@@ -180,7 +180,7 @@ void Dau_NetworkEnum(int nVars)
     int UseTwo = 0;
     int nSizeLog = (1<<nVars) -2;
     int nSizeW = 1 << nSizeLog;
-    char pFileName[20];
+    char pFileName[200];
     unsigned * pTable;
     Vec_Wec_t * vNpns  = Vec_WecStart( 32 );
     Vec_Wec_t * vNpns_ = Vec_WecStart( 32 );

@@ -1086,7 +1086,7 @@ int Ver_ParseInitial( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
 ***********************************************************************/
 int Ver_ParseAssign( Ver_Man_t * pMan, Abc_Ntk_t * pNtk )
 {
-    char Buffer[1000], Buffer2[1000];
+    char Buffer[1000], Buffer2[2000];
     Ver_Stream_t * p = pMan->pReader;
     Abc_Obj_t * pNode, * pNet;
     char * pWord, * pName, * pEquation;

@@ -348,7 +348,7 @@ unsigned * Dtt_ManLoadClasses( int nVars, int * pnClasses )
     unsigned * pTable = NULL;
     int nSizeLog = (1<<nVars) -2;
     int nSizeW = 1 << nSizeLog;
-    char pFileName[20];
+    char pFileName[200];
     sprintf( pFileName, "tableW%d.data", nSizeLog );
     pTable = Dau_ReadFile2( pFileName, nSizeW );
     if (pTable == NULL)

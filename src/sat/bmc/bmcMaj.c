@@ -577,7 +577,7 @@ static inline int Exa_ManEval( Exa_Man_t * p )
 void Exa_ManDumpBlif( Exa_Man_t * p, int fCompl )
 {
     char Buffer[1000];
-    char FileName[1000];
+    char FileName[1100];
     FILE * pFile;
     int i, k, iVar;
     if ( fCompl )

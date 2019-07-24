@@ -264,7 +264,7 @@ If_DsdObj_t * If_DsdObjAlloc( If_DsdMan_t * p, int Type, int nFans )
 If_DsdMan_t * If_DsdManAlloc( int nVars, int LutSize )
 {
     If_DsdMan_t * p; int v;
-    char pFileName[10];
+    char pFileName[100];
     assert( nVars <= DAU_MAX_VAR );
     sprintf( pFileName, "%02d.dsd", nVars );
     p = ABC_CALLOC( If_DsdMan_t, 1 );

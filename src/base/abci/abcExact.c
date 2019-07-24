@@ -388,7 +388,7 @@ static inline Ses_Store_t * Ses_StoreAlloc( int nBTLimit, int fMakeAIG, int fVer
     pStore->fMakeAIG           = fMakeAIG;
     pStore->fVerbose           = fVerbose;
     pStore->nBTLimit           = nBTLimit;
-    memset( pStore->pEntries, 0, SES_STORE_TABLE_SIZE );
+    memset( pStore->pEntries, 0, sizeof(char)*SES_STORE_TABLE_SIZE );
 
     pStore->pSat = sat_solver_new();
 

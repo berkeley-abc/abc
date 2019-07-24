@@ -258,7 +258,7 @@ int Abc_CascadeExperiment( char * pFileGeneric, DdManager * dd, DdNode ** pOutpu
     // verify the results
     if ( fCheck )
     {
-        char Command[200];
+        char Command[300];
         sprintf( Command, "cec %s %s", FileNameIni, FileNameFin );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command );
     }

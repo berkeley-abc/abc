@@ -725,7 +725,7 @@ void Aig_ManPrintVerbose( Aig_Man_t * p, int fHaig )
 void Aig_ManDump( Aig_Man_t * p )
 { 
     static int Counter = 0;
-    char FileName[20];
+    char FileName[200];
     // dump the logic into a file
     sprintf( FileName, "aigbug\\%03d.blif", ++Counter );
     Aig_ManDumpBlif( p, FileName, NULL, NULL );
