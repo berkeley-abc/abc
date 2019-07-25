@@ -1110,9 +1110,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         Gia_ManTransferMapping( p, pInit );
         Gia_ManTransferPacking( p, pInit );
         Gia_ManTransferTiming( p, pInit );
-        p->vNamesIn   = pInit->vNamesIn;   pInit->vNamesIn   = NULL;
-        p->vNamesOut  = pInit->vNamesOut;  pInit->vNamesOut  = NULL;
-        p->nConstrs   = pInit->nConstrs;   pInit->nConstrs   = 0;
+        p->nConstrs   = pInit->nConstrs;
     }
     else
         p = pInit;
@@ -1415,9 +1413,7 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     fclose( pFile );
     if ( p != pInit )
     {
-        pInit->pManTime  = p->pManTime;  p->pManTime = NULL;
-        pInit->vNamesIn  = p->vNamesIn;  p->vNamesIn = NULL;
-        pInit->vNamesOut = p->vNamesOut; p->vNamesOut = NULL;
+        Gia_ManTransferTiming( pInit, p );
         Gia_ManStop( p );
     }
 }
