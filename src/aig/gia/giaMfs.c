@@ -393,6 +393,8 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
             if ( Vec_IntFind(vMfsTopo, iGroup) >= 0 )
             {
                 iLitNew = Vec_IntEntry( vMfs2Gia, iMfsId );
+                if ( iLitNew < 0 )
+                    continue;
                 assert( iLitNew >= 0 );
             }
             continue;
