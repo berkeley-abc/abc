@@ -132,11 +132,11 @@ Vec_Int_t * Gia_GenCreateMuxes( Gia_Man_t * p, Gia_Man_t * pNew, Vec_Int_t * vFl
     }
     return vLits;
 }
-Gia_Man_t * Gia_GenQbfMiter( Gia_Man_t * p, int nFrames, int nLutNum, int nLutSize, char * pStr, int fVerbose )
+Gia_Man_t * Gia_GenQbfMiter( Gia_Man_t * p, int nFrames, int nLutNum, int nLutSize, char * pStr, int fUseOut, int fVerbose )
 {
     Gia_Obj_t * pObj; 
     Gia_Man_t * pTemp, * pNew;
-    int i, iMiter, nPars = nLutNum * (1 << nLutSize);
+    int i, iMiter, iLut0, iLut1, nPars = nLutNum * (1 << nLutSize);
     Vec_Int_t * vLits0, * vLits1, * vParLits;
     Vec_Int_t * vFlops = Gia_GenCollectFlopIndexes( pStr, nLutNum, nLutSize, Gia_ManRegNum(p) );
     // collect parameter literals (data vars)
@@ -160,7 +160,18 @@ Gia_Man_t * Gia_GenQbfMiter( Gia_Man_t * p, int nFrames, int nLutNum, int nLutSi
     vLits0 = Gia_GenCreateMuxes( p, pNew, vFlops, nLutNum, nLutSize, vParLits, 0 );
     vLits1 = Gia_GenCreateMuxes( p, pNew, vFlops, nLutNum, nLutSize, vParLits, 1 );
     // create miter output
-    iMiter = Gia_ManHashAnd( pNew, Vec_IntEntry(vLits0, 0), Abc_LitNot(Vec_IntEntry(vLits1, 0)) );
+    //iMiter = Gia_ManHashAnd( pNew, Vec_IntEntry(vLits0, 0), Abc_LitNot(Vec_IntEntry(vLits1, 0)) );
+    ///////////////////////////////////////////////////////////////////////////
+    iLut0 = Vec_IntEntry(vLits0, 0);
+    iLut1 = Vec_IntEntry(vLits1, 0);
+    if ( fUseOut )
+    {
+        Gia_Obj_t * pObjPoLast = Gia_ManPo( p, Gia_ManPoNum(p)-1 );
+        int iOut = Abc_LitNotCond( Gia_ObjFanin0Copy(pObjPoLast), 0 );
+        iLut1 = Gia_ManHashAnd( pNew, iLut1, Abc_LitNot(iOut) );
+    }
+    iMiter = Gia_ManHashAnd( pNew, iLut0, Abc_LitNot(iLut1) );
+    ///////////////////////////////////////////////////////////////////////////
     iMiter = Gia_ManHashAnd( pNew, Abc_LitNot(iMiter), Abc_Var2Lit(1, 0) );
     Gia_ManAppendCo( pNew, iMiter );
     // cleanup

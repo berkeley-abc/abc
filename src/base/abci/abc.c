@@ -42761,16 +42761,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9GenQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_GenQbfMiter( Gia_Man_t * pGia, int nFrames, int nLutNum, int nLutSize, char * pStr, int fVerbose );
+    extern Gia_Man_t * Gia_GenQbfMiter( Gia_Man_t * pGia, int nFrames, int nLutNum, int nLutSize, char * pStr, int fUseOut, int fVerbose );
     int nFrames   =    1;
     int nLutNum   =    1;
     int nLutSize  =    6;
     char * pStr   = NULL;
+    int fUseOut   =    0;
     int fVerbose  =    0;
     int c;
     Gia_Man_t * pTemp;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FKNSvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FKNSovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -42810,13 +42811,16 @@ int Abc_CommandAbc9GenQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'S':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a string.\n" );
                 goto usage;
             }
             pStr = Abc_UtilStrsav(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pStr == NULL )
                 goto usage;
+            break;
+        case 'o':
+            fUseOut ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -42847,17 +42851,18 @@ int Abc_CommandAbc9GenQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Currently this commands works for one frame and one LUT.\n" );
         return 1;
     }
-    pTemp = Gia_GenQbfMiter( pAbc->pGia, nFrames, nLutNum, nLutSize, pStr, fVerbose );
+    pTemp = Gia_GenQbfMiter( pAbc->pGia, nFrames, nLutNum, nLutSize, pStr, fUseOut, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     ABC_FREE( pStr );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &genqbf [-FKN num] [-vh]\n" );
+    Abc_Print( -2, "usage: &genqbf [-FKN num] [-ovh]\n" );
     Abc_Print( -2, "\t         generates QBF miter for computing an inductive invariant\n" );
     Abc_Print( -2, "\t-F num : the number of time frames for induction [default = %d]\n", nFrames );
     Abc_Print( -2, "\t-K num : the LUT size [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-N num : the number of LUTs [default = %d]\n", nLutNum );
+    Abc_Print( -2, "\t-o     : toggle using the last output [default = %s]\n", fUseOut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
