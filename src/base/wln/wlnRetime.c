@@ -499,7 +499,7 @@ void Wln_RetRetimeBackward( Wln_Ret_t * p, Vec_Int_t * vSet )
         Wln_RetInsertOneFanin( p, iObj, iFlop );
     }
 }
-void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward, int nMoves, int fVerbose )
+void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward, int nMoves, int fSkipSimple, int fVerbose )
 {
     int i, iObj;
     if ( vSet == NULL )
@@ -513,6 +513,8 @@ void Wln_RetAddToMoves( Wln_Ret_t * p, Vec_Int_t * vSet, int Delay, int fForward
     Vec_IntForEachEntry( vSet, iObj, i )
     {
         int NameId = Vec_IntEntry( &p->pNtk->vNameIds, iObj );
+        if ( fSkipSimple && (Wln_ObjIsFf(p->pNtk, iObj) || Wln_ObjType(p->pNtk, iObj) == ABC_OPER_SLICE || Wln_ObjType(p->pNtk, iObj) == ABC_OPER_CONCAT) )
+            continue;
         Vec_IntPush( &p->vMoves, fForward ? -NameId : NameId );
         if ( fVerbose )
             printf( " %d (NameID = %d)  ", fForward ? -iObj : iObj, fForward ? -NameId : NameId );
@@ -560,7 +562,7 @@ void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
         printf( "Assuming default delays: 10 units for most nodes and 1 unit for bit-slice, concat, and buffers driving COs.\n" );
     }
 }
-Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
+Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose )
 {
     Wln_Ret_t * p = Wln_RetAlloc( pNtk );
     Vec_Int_t * vSources = &p->vSources;
@@ -573,7 +575,7 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
     Wln_RetMarkChanges( p, NULL );
     p->DelayMax = DelayInit = DelayBest = Wln_RetPropDelay( p );
     Wln_RetFindSources( p );
-    Wln_RetAddToMoves( p, NULL, p->DelayMax, 0, nMoves, fVerbose );
+    Wln_RetAddToMoves( p, NULL, p->DelayMax, 0, nMoves, fSkipSimple, fVerbose );
     while ( Vec_IntSize(vSources) || Vec_IntSize(vSinks) )
     {
         int DelayMaxPrev = p->DelayMax;
@@ -616,7 +618,7 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fVerbose )
         //Wln_RetPrint( p );
         if ( fVerbose )
             printf( "\n" );
-        Wln_RetAddToMoves( p, vFront, p->DelayMax, fForward, nMoves, fVerbose );
+        Wln_RetAddToMoves( p, vFront, p->DelayMax, fForward, nMoves, fSkipSimple, fVerbose );
         if ( fVerbose )
         {
             printf( "Sinks: " );

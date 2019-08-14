@@ -1323,15 +1323,19 @@ usage:
 ******************************************************************************/
 int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Wln_NtkRetimeTest( char * pFileName, int fVerbose );
+    extern void Wln_NtkRetimeTest( char * pFileName, int fSkipSimple, int fVerbose );
     FILE * pFile;
     char * pFileName = NULL;
+    int fSkipSimple  = 0;
     int c, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fSkipSimple ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -1351,7 +1355,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "Transforming NDR into internal represnetation has failed.\n" );
             return 0;
         }
-        vMoves = Wln_NtkRetime( pNtk, fVerbose );
+        vMoves = Wln_NtkRetime( pNtk, fSkipSimple, fVerbose );
         Wln_NtkFree( pNtk );
         ABC_FREE( pAbc->pNdrArray );
         if ( vMoves ) pAbc->pNdrArray = Vec_IntReleaseNewArray( vMoves );
@@ -1374,11 +1378,12 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     fclose( pFile );
-    Wln_NtkRetimeTest( pFileName, fVerbose );
+    Wln_NtkRetimeTest( pFileName, fSkipSimple, fVerbose );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%retime [-vh]\n" );
+    Abc_Print( -2, "usage: %%retime [-svh]\n" );
     Abc_Print( -2, "\t         performs retiming for the NDR design\n" );
+    Abc_Print( -2, "\t-s     : toggle printing simple nodes [default = %s]\n", !fSkipSimple? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
