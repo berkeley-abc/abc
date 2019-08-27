@@ -235,23 +235,23 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 nNames  = vTokens->nSize - 2;
                 pNode = Io_ReadCreateNode( pNtk, (char *)vTokens->pArray[0], ppNames, nNames );
                 // assign the cover
-                if ( strcmp(pType, "AND") == 0 )
+                if ( strcmp(pType, "AND") == 0 || strcmp(pType, "and") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, nNames, NULL) );
-                else if ( strcmp(pType, "OR") == 0 )
+                else if ( strcmp(pType, "OR") == 0 || strcmp(pType, "or") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateOr((Mem_Flex_t *)pNtk->pManFunc, nNames, NULL) );
-                else if ( strcmp(pType, "NAND") == 0 )
+                else if ( strcmp(pType, "NAND") == 0 || strcmp(pType, "nand") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateNand((Mem_Flex_t *)pNtk->pManFunc, nNames) );
-                else if ( strcmp(pType, "NOR") == 0 )
+                else if ( strcmp(pType, "NOR") == 0 || strcmp(pType, "nor") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateNor((Mem_Flex_t *)pNtk->pManFunc, nNames) );
-                else if ( strcmp(pType, "XOR") == 0 )
+                else if ( strcmp(pType, "XOR") == 0 || strcmp(pType, "xor") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateXor((Mem_Flex_t *)pNtk->pManFunc, nNames) );
-                else if ( strcmp(pType, "NXOR") == 0 || strcmp(pType, "XNOR") == 0 )
+                else if ( strcmp(pType, "NXOR") == 0 || strcmp(pType, "XNOR") == 0 || strcmp(pType, "nxor") == 0 || strcmp(pType, "xnor") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateNxor((Mem_Flex_t *)pNtk->pManFunc, nNames) );
-                else if ( strncmp(pType, "BUF", 3) == 0 )
+                else if ( strncmp(pType, "BUF", 3) == 0 || strcmp(pType, "buf") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateBuf((Mem_Flex_t *)pNtk->pManFunc) );
-                else if ( strcmp(pType, "NOT") == 0 )
+                else if ( strcmp(pType, "NOT") == 0 || strcmp(pType, "not") == 0 )
                     Abc_ObjSetData( pNode, Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc) );
-                else if ( strncmp(pType, "MUX", 3) == 0 )
+                else if ( strncmp(pType, "MUX", 3) == 0 || strcmp(pType, "mux") == 0 )
 //                    Abc_ObjSetData( pNode, Abc_SopRegister(pNtk->pManFunc, "1-0 1\n-11 1\n") );
                     Abc_ObjSetData( pNode, Abc_SopRegister((Mem_Flex_t *)pNtk->pManFunc, "0-1 1\n11- 1\n") );
                 else if ( strncmp(pType, "gnd", 3) == 0 )
