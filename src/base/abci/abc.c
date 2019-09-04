@@ -527,6 +527,7 @@ static int Abc_CommandAbc9Mfsd               ( Abc_Frame_t * pAbc, int argc, cha
 //static int Abc_CommandAbc9CexMerge           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandAbc9CexMin             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandAbc9AbsCreate          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9AbsDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9AbsRefine          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GlaDerive          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1227,6 +1228,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmerge",     Abc_CommandAbc9CexMerge,     0 );
 //    Cmd_CommandAdd( pAbc, "ABC9",         "&cexmin",       Abc_CommandAbc9CexMin,       0 );
 
+    Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_create",   Abc_CommandAbc9AbsCreate,    0 );
     Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_derive",   Abc_CommandAbc9AbsDerive,    0 );
     Cmd_CommandAdd( pAbc, "Abstraction",  "&abs_refine",   Abc_CommandAbc9AbsRefine,    0 );
     Cmd_CommandAdd( pAbc, "Abstraction",  "&gla_derive",   Abc_CommandAbc9GlaDerive,    0 );
@@ -39498,13 +39500,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_ManDupReplaceCut( Gia_Man_t * p );
     Gia_Man_t * pTemp;
     int c, nCutMax   = 16;
+    int fUseNaive    =  0;
     int fUseOldAlgo  =  0;
     int fVerbose     =  0;
     int fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cavwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cnavwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -39518,6 +39522,9 @@ int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nCutMax < 0 )
                 goto usage;
+            break;
+        case 'n':
+            fUseNaive ^= 1;
             break;
         case 'a':
             fUseOldAlgo ^= 1;
@@ -39539,7 +39546,9 @@ int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Rpm(): There is no AIG.\n" );
         return 0;
     }
-    if ( fUseOldAlgo )
+    if ( fUseNaive )
+        pTemp = Gia_ManDupReplaceCut( pAbc->pGia );
+    else if ( fUseOldAlgo )
         pTemp = Abs_RpmPerformOld( pAbc->pGia, fVerbose );
     else
         pTemp = Abs_RpmPerform( pAbc->pGia, nCutMax, fVerbose, fVeryVerbose );
@@ -39547,9 +39556,10 @@ int Abc_CommandAbc9Rpm( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &rpm [-C num] [-avwh]\n" );
+    Abc_Print( -2, "usage: &rpm [-C num] [-navwh]\n" );
     Abc_Print( -2, "\t         performs structural reparametrization\n" );
     Abc_Print( -2, "\t-C num : max cut size for testing range equivalence [default = %d]\n", nCutMax );
+    Abc_Print( -2, "\t-n     : toggle using naive reparametrization [default = %s]\n", fUseNaive? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle using old algorithm [default = %s]\n", fUseOldAlgo? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
@@ -44836,6 +44846,78 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9AbsCreate( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp = NULL;
+    char * pStr, * pFlopNum;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9AbsCreate(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+    {
+        Abc_Print( -1, "The network is combinational.\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->vFlopClasses != NULL )
+    {
+        Abc_Print( -1, "Abstraction flop map is already defined.\n" );
+        return 0;
+    }
+    pAbc->pGia->vFlopClasses = Vec_IntStart( Gia_ManRegNum(pAbc->pGia) );
+    // read the flop list
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Flop list should be specified on the command line.\n" );
+        return 0;
+    }
+    pStr = argv[globalUtilOptind];
+    // parse flop list
+    pFlopNum = strtok( pStr, " ," );
+    while ( pFlopNum )
+    {
+        int iFlop = atoi(pFlopNum);
+        assert( iFlop >= 0 && iFlop < Gia_ManRegNum(pAbc->pGia) );
+        Vec_IntWriteEntry( pAbc->pGia->vFlopClasses, iFlop, 1 );
+        pFlopNum = strtok( NULL, " ," );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &abs_create [-vh] <comma-separated_list_of_zero-based_flop_ids>\n" );
+    Abc_Print( -2, "\t        creates new flop map by reading user's input\n" );
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
 
 /**Function*************************************************************
 

@@ -4814,6 +4814,62 @@ Gia_Man_t * Gia_ManScorrDivideTest( Gia_Man_t * p, Cec_ParCor_t * pPars )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicate AIG by creating a cut between logic fed by PIs]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManHighLightFlopLogic( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->fMark0 = 0;
+    Gia_ManForEachRo( p, pObj, i )
+        pObj->fMark0 = 1;
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 | Gia_ObjFanin1(pObj)->fMark0;
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0;
+}
+Gia_Man_t * Gia_ManDupReplaceCut( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;  int i;
+    Gia_Obj_t * pObj, * pFanin;
+    Gia_ManHighLightFlopLogic( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    // create PIs for nodes pointed to from above the cut
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( !pObj->fMark0 )
+            continue;
+        pFanin = Gia_ObjFanin0(pObj);
+        if ( !pFanin->fMark0 && !~pFanin->Value )
+            pFanin->Value = Gia_ManAppendCi(pNew);
+        pFanin = Gia_ObjFanin1(pObj);
+        if ( !pFanin->fMark0 && !~pFanin->Value )
+            pFanin->Value = Gia_ManAppendCi(pNew);
+    }
+    // create flop outputs
+    Gia_ManForEachRo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    // create internal nodes
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManDupOrderDfs_rec( pNew, p, pObj );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManCleanMark0( p );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
