@@ -650,7 +650,7 @@ int Gia_FormStrCount( char * pStr, int * pnVars, int * pnPars )
     if ( *pnVars != FFTEST_MAX_VARS )
         { printf( "The number of input variables (%d) should be 2\n", *pnVars ); return 1; }
     if ( *pnPars < 1 || *pnPars > FFTEST_MAX_PARS )
-        { printf( "The number of parameters should be between 1 and %d\n", *pnPars ); return 1; }
+        { printf( "The number of parameters should be between 1 and %d\n", FFTEST_MAX_PARS ); return 1; }
     return 0;
 }
 void Gia_FormStrTransform( char * pStr, char * pForm )
