@@ -550,7 +550,7 @@ static inline int Abc_CubeContain( char * pCube1, char * pCube2, int nVars )
             fCont12 = 0;
         else
             return 0;
-        if ( !fCont21 && !fCont21 )
+        if ( !fCont12 && !fCont21 )
             return 0;
     }
     assert( fCont21 || fCont12 );

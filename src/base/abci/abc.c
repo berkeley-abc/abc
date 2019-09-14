@@ -4105,7 +4105,7 @@ int Abc_CommandCleanup( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkIsStrash(pNtk) )
     {
-        if ( !fCleanupPos && !fCleanupPos )
+        if ( !fCleanupPis && !fCleanupPos )
         {
             Abc_Print( -1, "Cleanup for PIs and POs is not enabled.\n" );
             pNtkRes = Abc_NtkDup( pNtk );
