@@ -782,9 +782,8 @@ void Wlc_IntInsert( Vec_Int_t * vProd, Vec_Int_t * vLevel, int Node, int Level )
     Vec_IntInsert( vProd,  i + 1, Node  );
     Vec_IntInsert( vLevel, i + 1, Level );
 }
-void Wlc_BlastPrintMatrix( Gia_Man_t * p, Vec_Wec_t * vProds )
+void Wlc_BlastPrintMatrix( Gia_Man_t * p, Vec_Wec_t * vProds, int fVerbose )
 {
-    int fVerbose = 0;
     Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
     Vec_Wrd_t * vTemp = Vec_WrdStart( Gia_ManObjNum(p) );
     Vec_Int_t * vLevel;  word Truth;
@@ -1051,16 +1050,19 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
     int FillA = fSigned ? pArgA[nArgA-1] : 0;
     int FillB = fSigned ? pArgB[nArgB-1] : 0;
     int i, k, Sign;
-    // create new arguments
-    Vec_Int_t * vArgB = Vec_IntAlloc( nArgB + 3 );
+
+    // extend argument B
+    Vec_Int_t * vArgB = Vec_IntAlloc( nArgB + 2 );
     Vec_IntPush( vArgB, 0 );
     for ( i = 0; i < nArgB; i++ )
         Vec_IntPush( vArgB, pArgB[i] );
-    Vec_IntPush( vArgB, FillB );
+    if ( !fSigned )
+        Vec_IntPushTwo( vArgB, FillB, FillB );
     if ( Vec_IntSize(vArgB) % 2 == 0 )
         Vec_IntPush( vArgB, FillB );
     assert( Vec_IntSize(vArgB) % 2 == 1 );
-    // iterate through bit-pairs
+
+    // iterate through bit-pairs of B
     for ( k = 0; k+2 < Vec_IntSize(vArgB); k+=2 )
     {
         int pp    = -1;
@@ -1077,12 +1079,13 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
             int Part = Gia_ManHashOr( pNew, Gia_ManHashAnd(pNew, One, This), Gia_ManHashAnd(pNew, Two, Prev) );
             
             pp = Gia_ManHashXor( pNew, Part, Neg );
-
-            if ( pp == 0 )
+            if ( pp == 0 || (fSigned && i == nArgA) )
                 continue;
+
             Vec_WecPush( vProds,  k+i, pp );
             Vec_WecPush( vLevels, k+i, 0 );
         }
+        if ( fSigned ) i--;
         // perform sign extension
         Sign = fSigned ? pp : Neg;
         if ( k == 0 )
@@ -1096,7 +1099,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
             Vec_WecPush( vProds,  k+i+2, Abc_LitNot(Sign) );
             Vec_WecPush( vLevels, k+i+2, 0 );
         }
-        else
+        else 
         {
             Vec_WecPush( vProds,  k+i, Abc_LitNot(Sign) );
             Vec_WecPush( vLevels, k+i, 0 );
@@ -1111,7 +1114,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
         Vec_WecPush( vLevels, k, 0 );
     }
     //Vec_WecPrint( vProds, 0 );
-    //Wlc_BlastPrintMatrix( pNew, vProds );
+    //Wlc_BlastPrintMatrix( pNew, vProds, 1 );
     //printf( "Cutoff ID for partial products = %d.\n", Gia_ManObjNum(pNew) );
     Wlc_BlastReduceMatrix( pNew, vProds, vLevels, vRes, fSigned, fCla );
 //    Wlc_BlastReduceMatrix2( pNew, vProds, vRes, fSigned, fCla );
