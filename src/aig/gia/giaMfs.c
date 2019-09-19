@@ -67,7 +67,7 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
     int nRealPos = nBoxes ? Tim_ManPoNum(pManTime) : Gia_ManPoNum(p);
     int i, j, k, curCi, curCo, nBoxIns, nBoxOuts;
     int Id, iFan, nMfsVars, nBbIns = 0, nBbOuts = 0, Counter = 0;
-    assert( !p->pAigExtra || Gia_ManPiNum(p->pAigExtra) <= 6 );
+    //assert( !p->pAigExtra || Gia_ManPiNum(p->pAigExtra) <= 6 );
     if ( pManTime ) Tim_ManBlackBoxIoNum( pManTime, &nBbIns, &nBbOuts );
     // skip PIs due to box outputs
     Counter += nBbOuts;
@@ -148,7 +148,7 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
             for ( i = 0; i < nBoxIns; i++ )
                 Vec_IntPush( vLeaves, Gia_ObjId(p->pAigExtra, Gia_ManCi(p->pAigExtra, i)) );
             // iterate through box outputs
-            if ( !Tim_ManBoxIsBlack(pManTime, k) )
+            if ( !Tim_ManBoxIsBlack(pManTime, k) && Tim_ManBoxInputNum(pManTime, k) <= 6 )
             {
                 for ( j = 0; j < nBoxOuts; j++ )
                 {

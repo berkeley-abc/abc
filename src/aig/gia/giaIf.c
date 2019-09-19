@@ -2331,6 +2331,13 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // print delay trace
+    if ( pPars->fVerboseTrace )
+    {
+        pNew->pLutLib = pPars->pLutLib;
+        Gia_ManDelayTraceLutPrint( pNew, 1 );
+        pNew->pLutLib = NULL;
+    }
     return pNew;
 }
 Gia_Man_t * Gia_ManPerformMapping( Gia_Man_t * p, void * pp )

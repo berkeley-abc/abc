@@ -143,6 +143,7 @@ struct If_Par_t_
     int                fDoAverage;    // optimize average rather than maximum level
     int                fHashMapping;  // perform AIG hashing after mapping
     int                fVerbose;      // the verbosity flag
+    int                fVerboseTrace; // the verbosity flag
     char *             pLutStruct;    // LUT structure
     float              WireDelay;     // wire delay
     // internal parameters
