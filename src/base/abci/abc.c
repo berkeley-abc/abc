@@ -12406,6 +12406,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSorter;
     int fMesh;
     int fMulti;
+    int fBooth;
     int fFpga;
     int fOneHot;
     int fRandom;
@@ -12416,6 +12417,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_GenSorter( char * pFileName, int nVars );
     extern void Abc_GenMesh( char * pFileName, int nVars );
     extern void Abc_GenMulti( char * pFileName, int nVars );
+    extern void Abc_GenBooth( char * pFileName, int nVars );
     extern void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars );
     extern void Abc_GenOneHot( char * pFileName, int nVars );
     extern void Abc_GenRandom( char * pFileName, int nPis );
@@ -12429,12 +12431,13 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSorter = 0;
     fMesh = 0;
     fMulti = 0;
+    fBooth = 0;
     fFpga = 0;
     fOneHot = 0;
     fRandom = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NAKLabsemftrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NAKLatsembfnrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -12485,7 +12488,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             fAdder ^= 1;
             break;
-        case 'b':
+        case 't':
             fAdderTree ^= 1;
             break;
         case 's':
@@ -12497,10 +12500,13 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fMulti ^= 1;
             break;
+        case 'b':
+            fBooth ^= 1;
+            break;
         case 'f':
             fFpga ^= 1;
             break;
-        case 't':
+        case 'n':
             fOneHot ^= 1;
             break;
         case 'r':
@@ -12535,6 +12541,8 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenMesh( FileName, nVars );
     else if ( fMulti )
         Abc_GenMulti( FileName, nVars );
+    else if ( fBooth )
+        Abc_GenBooth( FileName, nVars );
     else if ( fFpga )
         Abc_GenFpga( FileName, nLutSize, nLuts, nVars );
 //        Abc_GenFpga( FileName, 2, 2, 3 );
@@ -12562,19 +12570,20 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: gen [-NAKL num] [-asemftrvh] <file>\n" );
+    Abc_Print( -2, "usage: gen [-NAKL num] [-atsembfnrvh] <file>\n" );
     Abc_Print( -2, "\t         generates simple circuits\n" );
     Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-A num : the number of agruments (for adder tree) [default = %d]\n", nArgs );
     Abc_Print( -2, "\t-K num : the LUT size (to be used with switch -f) [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-L num : the LUT count (to be used with switch -f) [default = %d]\n", nLuts );
     Abc_Print( -2, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );
-    Abc_Print( -2, "\t-b     : generate an adder tree [default = %s]\n", fAdderTree? "yes": "no" );
+    Abc_Print( -2, "\t-t     : generate an adder tree [default = %s]\n", fAdderTree? "yes": "no" );
     Abc_Print( -2, "\t-s     : generate a sorter [default = %s]\n", fSorter? "yes": "no" );
     Abc_Print( -2, "\t-e     : generate a mesh [default = %s]\n", fMesh? "yes": "no" );
     Abc_Print( -2, "\t-m     : generate a multiplier [default = %s]\n", fMulti? "yes": "no" );
+    Abc_Print( -2, "\t-b     : generate a signed Booth multiplier [default = %s]\n", fBooth? "yes": "no" );
     Abc_Print( -2, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );
-    Abc_Print( -2, "\t-t     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );
+    Abc_Print( -2, "\t-n     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );
     Abc_Print( -2, "\t-r     : generate random single-output function [default = %s]\n", fRandom? "yes": "no" );
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
