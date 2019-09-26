@@ -36701,7 +36701,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fExpRed ^= 1;
             break;
         case 'l':
-            pPars->fLatchPaths ^= 1;
+            pPars->fLut6Filter ^= 1;
             break;
         case 'e':
             pPars->fEdge ^= 1;
@@ -36961,7 +36961,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->nLutSize    =  pPars->nGateSize;
     }
 
-    if ( pPars->fUseDsd || pPars->fUseTtPerm )
+    if ( pPars->fUseDsd || pPars->fUseTtPerm || pPars->fLut6Filter )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
@@ -37077,7 +37077,8 @@ usage:
     Abc_Print( -2, "\t-q       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
     Abc_Print( -2, "\t-r       : enables expansion/reduction of the best cuts [default = %s]\n", pPars->fExpRed? "yes": "no" );
-    Abc_Print( -2, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
+//    Abc_Print( -2, "\t-l       : optimizes latch paths for delay, other paths for area [default = %s]\n", pPars->fLatchPaths? "yes": "no" );
+    Abc_Print( -2, "\t-l       : toggle restricting the type of 6-input lookup tables [default = %s]\n", pPars->fLut6Filter? "yes": "no" );
     Abc_Print( -2, "\t-e       : uses edge-based cut selection heuristics [default = %s]\n", pPars->fEdge? "yes": "no" );
     Abc_Print( -2, "\t-p       : uses power-aware cut selection heuristics [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-m       : enables cut minimization by removing vacuous variables [default = %s]\n", pPars->fCutMin? "yes": "no" );

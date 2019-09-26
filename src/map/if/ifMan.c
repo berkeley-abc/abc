@@ -284,6 +284,11 @@ void If_ManStop( If_Man_t * p )
     for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )
         Vec_IntFreeP( &p->vTtOccurs[i] );
     Mem_FixedStop( p->pMemObj, 0 );
+    if ( p->vTtMem6 )
+    {
+        Vec_MemHashFree( p->vTtMem6 );
+        Vec_MemFreeP( &p->vTtMem6 );
+    }
     ABC_FREE( p->pMemCi );
     ABC_FREE( p->pMemAnd );
     ABC_FREE( p->puTemp[0] );

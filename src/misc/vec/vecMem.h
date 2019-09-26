@@ -397,6 +397,13 @@ static int Vec_MemHashInsert( Vec_Mem_t * p, word * pEntry )
   SeeAlso     []
 
 ***********************************************************************/
+static inline Vec_Mem_t * Vec_MemAllocForTTSimple( int nVars )
+{
+    int nWords = (nVars <= 6 ? 1 : (1 << (nVars - 6)));
+    Vec_Mem_t * vTtMem = Vec_MemAlloc( nWords, 12 );
+    Vec_MemHashAlloc( vTtMem, 10000 );
+    return vTtMem;
+}
 static inline Vec_Mem_t * Vec_MemAllocForTT( int nVars, int fCompl )
 {
     int Value, nWords = (nVars <= 6 ? 1 : (1 << (nVars - 6)));

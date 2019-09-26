@@ -117,6 +117,7 @@ struct If_Par_t_
     int                fFancy;        // a fancy feature
     int                fExpRed;       // expand/reduce of the best cuts
     int                fLatchPaths;   // reset timing on latch paths
+    int                fLut6Filter;   // uses filtering of 6-LUT functions
     int                fEdge;         // uses edge-based cut selection heuristics
     int                fPower;        // uses power-aware cut selection heuristics
     int                fCutMin;       // performs cut minimization by removing functionally reducdant variables
@@ -260,6 +261,7 @@ struct If_Man_t_
     Hash_IntMan_t *    vPairHash;     // hashing pairs of truth tables
     Vec_Int_t *        vPairRes;      // resulting truth table
     Vec_Str_t *        vPairPerms;    // resulting permutation
+    Vec_Mem_t *        vTtMem6;
     char               pCanonPerm[IF_MAX_LUTSIZE];
     unsigned           uCanonPhase;
     int                nCacheHits;
@@ -652,6 +654,8 @@ extern void            If_ManComputeRequired( If_Man_t * p );
 extern void            If_CutRotatePins( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutComputeTruth( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
 extern int             If_CutComputeTruthPerm( If_Man_t * p, If_Cut_t * pCut, If_Cut_t * pCut0, If_Cut_t * pCut1, int fCompl0, int fCompl1 );
+extern Vec_Mem_t *     If_DeriveHashTable6( int nVars, word Truth );
+extern int             If_CutCheckTruth6( If_Man_t * p, If_Cut_t * pCut );
 /*=== ifTune.c ===========================================================*/
 extern Ifn_Ntk_t *     Ifn_NtkParse( char * pStr );
 extern int             Ifn_NtkTtBits( char * pStr );
