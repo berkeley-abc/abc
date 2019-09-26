@@ -302,7 +302,7 @@ void Abc_TtNormalizeSmallTruth(word * pTruth, int nVars)
     }
 }
 
-inline void Abc_TtVerifySmallTruth(word * pTruth, int nVars)
+void Abc_TtVerifySmallTruth(word * pTruth, int nVars)
 {
 #ifndef NDEBUG
     if (nVars < 6) {
@@ -1501,7 +1501,7 @@ SeeAlso     []
 
 ***********************************************************************/
 
-// Johnson¨CTrotter algorithm
+// Johnson\A8CTrotter algorithm
 static int Abc_NextPermSwapC(char * pData, signed char * pDir, int size)
 {
     int i, j, k = -1;

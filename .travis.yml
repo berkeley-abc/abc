@@ -15,21 +15,25 @@ matrix:
           packages:
             - libreadline-dev
       env: 
-        MAKE_ARGS: ABC_USE_NAMESPACE=xxx
+        CMAKE_ARGS: -DABC_USE_NAMESPACE=xxx
         DEMO_ARGS: -DABC_NAMESPACE=xxx
 
     - os: osx
-      osx_image: xcode8
+      osx_image: xcode10
       before_install:
         - brew update
         - brew install readline
 
 script:
   
-  - make ${MAKE_ARGS} -j2 abc
-  - ./abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+  - mkdir build && cd build
+  - cmake -DCMAKE_INSTALL_PREFIX=$PWD $CMAKE_ARGS ..
+  - cmake --build . --target libabc -- -j2
+  - cmake --build . --target abc -- -j2
+  - cmake --build . --target install -- -j2
+  - ctest -VV
+  - bin/abc -c "r $TRAVIS_BUILD_DIR/i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
 
-  - make ${MAKE_ARGS} libabc.a
-  - g++ ${DEMO_ARGS} -Wall -c src/demo.c -o demo.o
-  - g++ -o demo demo.o libabc.a -lm -ldl -lreadline -lpthread
-  - ./demo i10.aig
+  - g++ ${DEMO_ARGS} -Wall -c $TRAVIS_BUILD_DIR/src/demo.c -o demo.o
+  - g++ -o demo demo.o -l abc -Llib -Llib64 -lm -ldl -lreadline -lpthread
+  - ./demo $TRAVIS_BUILD_DIR/i10.aig

@@ -48,11 +48,9 @@
 
 #ifdef ABC_USE_PTHREADS
 
-#ifdef _WIN32
-    #include "../lib/pthread.h"
-#else
-    #include <pthread.h>
-    #include <unistd.h>
+#include <pthread.h>
+#ifndef _WIN32
+#include <unistd.h>
 #endif
 
 #endif
