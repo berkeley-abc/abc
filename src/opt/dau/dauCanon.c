@@ -369,7 +369,7 @@ int Abc_TtCountOnesInCofsSimple( word * pTruth, int nVars, int * pStore )
 }
 
 // Shifted Cofactor Coefficient
-inline int shiftFunc(int ci)
+static inline int shiftFunc(int ci)
 //{ return ci * ci; }
 { return 1 << ci; }
 
