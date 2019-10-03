@@ -21211,10 +21211,18 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( pPars->fConstrs )
     {
+        if ( Abc_NtkConstrNum(pNtk) == Abc_NtkPoNum(pNtk) )
+        {
+            Abc_Print( 0, "Command cannot be applied because the network has only constraint outputs (no primary outputs).\n" );
+            return 0;
+        }
         if ( Abc_NtkConstrNum(pNtk) > 0 )
             Abc_Print( 0, "Performing scorr with %d constraints.\n", Abc_NtkConstrNum(pNtk) );
         else
+        {
             Abc_Print( 0, "Performing constraint-based scorr without constraints.\n" );
+            pPars->fConstrs = 0;
+        }
     }
     if ( pPars->fEquivDump && pPars->fEquivDump2 )
     {
