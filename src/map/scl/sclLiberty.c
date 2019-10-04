@@ -730,7 +730,7 @@ Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose )
         // iterate through output pins
         Scl_ItemForEachChildName( p, pCell, pOutput, "pin" )
         {
-            if ( (pFormula = Scl_LibertyReadPinFormula(p, pOutput)) ) 
+            if ( !(pFormula = Scl_LibertyReadPinFormula(p, pOutput)) ) 
                 continue;
             if ( !strcmp(pFormula, "0") || !strcmp(pFormula, "1") )
             {
