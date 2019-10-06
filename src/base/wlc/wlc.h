@@ -214,6 +214,7 @@ struct Wlc_BstPar_t_
     int                    fAddOutputs;
     int                    fMulti;
     int                    fBooth;
+    int                    fNonRest;
     int                    fCla;
     int                    fNoCleanup;
     int                    fCreateMiter;

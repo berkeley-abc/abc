@@ -773,6 +773,35 @@ void Wlc_BlastSqrt( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, Ve
     }
     Vec_IntReverseOrder( vRes );
 }
+void Wlc_BlastSqrtNR( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, Vec_Int_t * vRes )
+{
+    int * pSqr, * pRem, * pIn1;
+    int i, k, Carry = 1;
+    assert( nNum % 2 == 0 );
+    Vec_IntFill( vRes, nNum/2, 0 );
+    Vec_IntFill( vTmp, 2*nNum, 0 );
+    pSqr = Vec_IntArray( vRes );
+    pRem = Vec_IntArray( vTmp );
+    pIn1 = pRem + nNum;
+    for ( i = 0; i < nNum/2; i++ )
+    {
+        int SqrPrev = Carry;
+        assert( pIn1[0] == 0 );
+        for ( k = 1; k < i; k++ )
+            pIn1[k] = 0;
+        for ( k = i; k < 2*i; k++ )
+            pIn1[k] = pSqr[k-i];
+        pIn1[k++] = Abc_LitNot(Carry);
+        pIn1[k++] = 1;
+        assert( k == 2*i+2 );
+        pRem[2*i+0] = pNum[nNum-2*i-1];
+        pRem[2*i+1] = pNum[nNum-2*i-2];
+        for ( k = 2*i+1; k >= 0; k-- )
+            Wlc_BlastFullAdder( pNew, Gia_ManHashXor(pNew, SqrPrev, pIn1[k]), pRem[k], Carry, &Carry, &pRem[k] );
+        pSqr[i] = Carry;
+    }
+    Vec_IntReverseOrder( vRes );
+}
 void Wlc_IntInsert( Vec_Int_t * vProd, Vec_Int_t * vLevel, int Node, int Level )
 {
     int i;
@@ -1794,7 +1823,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         {
             int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRange0 + (nRange0 & 1), 0 );
             nRange0 += (nRange0 & 1);
-            Wlc_BlastSqrt( pNew, pArg0, nRange0, vTemp2, vRes );
+            if ( pPar->fNonRest )
+                Wlc_BlastSqrtNR( pNew, pArg0, nRange0, vTemp2, vRes );
+            else
+                Wlc_BlastSqrt( pNew, pArg0, nRange0, vTemp2, vRes );
             if ( nRange > Vec_IntSize(vRes) )
                 Vec_IntFillExtra( vRes, nRange, 0 );
             else
