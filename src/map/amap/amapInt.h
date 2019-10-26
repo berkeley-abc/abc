@@ -103,6 +103,7 @@ struct Amap_Man_t_
     Vec_Ptr_t *        vCuts0;
     Vec_Ptr_t *        vCuts1;
     Vec_Ptr_t *        vCuts2;
+    Vec_Ptr_t *        vTempP;
     // statistics
     int                nCutsUsed;
     int                nCutsTried;

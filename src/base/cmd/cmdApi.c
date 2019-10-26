@@ -99,11 +99,11 @@ void Cmd_CommandAdd( Abc_Frame_t * pAbc, const char * sGroup, const char * sName
 int Cmd_CommandHandleSpecial( Abc_Frame_t * pAbc, const char * sCommand )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int piCountNew = pNtk ? Abc_NtkCiNum(pNtk)         : 0, piCount = 0;
-    int poCountNew = pNtk ? Abc_NtkCoNum(pNtk)         : 0, poCount = 0;
-    int ndCountNew = pNtk ? Abc_NtkNodeNum(pNtk)       : 0, ndCount = 0;
-    double AreaNew = pNtk ? Abc_NtkGetMappedArea(pNtk) : 0, Area    = 0;
-    int DepthNew   = pNtk ? Abc_NtkLevel(pNtk)         : 0, Depth   = 0;
+    int piCountNew = (pNtk && Abc_NtkHasMapping(pNtk)) ? Abc_NtkCiNum(pNtk)         : 0, piCount = 0;
+    int poCountNew = (pNtk && Abc_NtkHasMapping(pNtk)) ? Abc_NtkCoNum(pNtk)         : 0, poCount = 0;
+    int ndCountNew = (pNtk && Abc_NtkHasMapping(pNtk)) ? Abc_NtkNodeNum(pNtk)       : 0, ndCount = 0;
+    double AreaNew = (pNtk && Abc_NtkHasMapping(pNtk)) ? Abc_NtkGetMappedArea(pNtk) : 0, Area    = 0;
+    int DepthNew   = (pNtk && Abc_NtkHasMapping(pNtk)) ? Abc_NtkLevel(pNtk)         : 0, Depth   = 0;
     if ( strstr(sCommand, "#PS") ) 
     {
         printf( "pi=%d ",   piCountNew );
