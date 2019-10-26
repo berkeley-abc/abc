@@ -734,7 +734,7 @@ Abc_Obj_t * Abc_NtkFromMappedGia_rec( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, int iO
         pObjNew = Abc_NtkCreateNodeInv(pNtkNew, pObjNew);
     return pObjNew;
 }
-Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables )
+Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs )
 {
     int fVerbose = 0;
     int fDuplicate = 0;
@@ -877,7 +877,7 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables )
     Abc_NtkAddDummyBoxNames( pNtkNew );
 
     // decouple the PO driver nodes to reduce the number of levels
-    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, fDuplicate );
+    nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, !fUseBuffs );
     if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
     {
         if ( !fDuplicate )
@@ -932,10 +932,9 @@ static inline Abc_Obj_t * Abc_NtkFromCellRead( Abc_Ntk_t * p, Vec_Int_t * vCopyL
     Abc_NtkFromCellWrite( vCopyLits, i, c, Abc_ObjId(pObjNew) );
     return pObjNew;
 }
-Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
+Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p, int fUseBuffs )
 {
     int fFixDrivers = 1;
-    int fDuplicate = 1;
     int fVerbose = 0;
     Abc_Ntk_t * pNtkNew;
     Vec_Int_t * vCopyLits;
@@ -1051,10 +1050,10 @@ Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p )
     // decouple the PO driver nodes to reduce the number of levels
     if ( fFixDrivers )
     {
-        int nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, fDuplicate );
+        int nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkNew, !fUseBuffs );
         if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
         {
-            if ( !fDuplicate )
+            if ( fUseBuffs )
                 printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
             else
                 printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );

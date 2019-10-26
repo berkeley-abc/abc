@@ -17075,9 +17075,10 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSwitching;
     int fSkipFanout;
     int fUseProfile;
+    int fUseBuffs;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fUseBuffs, int fVerbose );
     extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -17091,9 +17092,10 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     fSwitching  = 0;
     fSkipFanout = 0;
     fUseProfile = 0;
+    fUseBuffs   = 0;
     fVerbose    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "DABFSGMarspfuvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "DABFSGMarspfuovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -17188,6 +17190,9 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'u':
             fUseProfile ^= 1;
             break;
+        case 'o':
+            fUseBuffs ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -17224,7 +17229,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_Print( 0, "The network was strashed and balanced before mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fUseBuffs, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -17236,7 +17241,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fUseBuffs, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_Print( -1, "Mapping has failed.\n" );
@@ -17263,7 +17268,7 @@ usage:
         sprintf(Buffer, "not used" );
     else
         sprintf(Buffer, "%.3f", DelayTarget );
-    Abc_Print( -2, "usage: map [-DABFSG float] [-M num] [-arspfuvh]\n" );
+    Abc_Print( -2, "usage: map [-DABFSG float] [-M num] [-arspfuovh]\n" );
     Abc_Print( -2, "\t           performs standard cell mapping of the current network\n" );
     Abc_Print( -2, "\t-D float : sets the global required times [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-A float : \"area multiplier\" to bias gate selection [default = %.2f]\n", AreaMulti );
@@ -17278,6 +17283,7 @@ usage:
     Abc_Print( -2, "\t-p       : optimizes power by minimizing switching [default = %s]\n", fSwitching? "yes": "no" );
     Abc_Print( -2, "\t-f       : do not use large gates to map high-fanout nodes [default = %s]\n", fSkipFanout? "yes": "no" );
     Abc_Print( -2, "\t-u       : use standard-cell profile [default = %s]\n", fUseProfile? "yes": "no" );
+    Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
@@ -29791,17 +29797,18 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan );
     extern void Abc_NtkRedirectCiCo( Abc_Ntk_t * pNtk );
-    extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p );
-    extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables );
+    extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p, int fUseBuffs );
+    extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
 
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int fStatusClear = 1;
     int fFindEnables = 0;
+    int fUseBuffs    = 0;
     int c, fVerbose  = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "sevh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "seovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29810,6 +29817,9 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'e':
             fFindEnables ^= 1;
+            break;
+        case 'o':
+            fUseBuffs ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -29826,11 +29836,11 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fFindEnables )
-        pNtk = Abc_NtkFromMappedGia( pAbc->pGia, 1 );
+        pNtk = Abc_NtkFromMappedGia( pAbc->pGia, 1, fUseBuffs );
     else if ( Gia_ManHasCellMapping(pAbc->pGia) )
-        pNtk = Abc_NtkFromCellMappedGia( pAbc->pGia );
+        pNtk = Abc_NtkFromCellMappedGia( pAbc->pGia, fUseBuffs );
     else if ( Gia_ManHasMapping(pAbc->pGia) || pAbc->pGia->pMuxes )
-        pNtk = Abc_NtkFromMappedGia( pAbc->pGia, 0 );
+        pNtk = Abc_NtkFromMappedGia( pAbc->pGia, 0, fUseBuffs );
     else if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
     {
         pMan = Gia_ManToAig( pAbc->pGia, 0 );
@@ -29912,10 +29922,11 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &put [-sevh]\n" );
+    Abc_Print( -2, "usage: &put [-seovh]\n" );
     Abc_Print( -2, "\t         transfer the current network into the old ABC\n" );
     Abc_Print( -2, "\t-s     : toggle clearning verification status [default = %s]\n", fStatusClear? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle extracting MUXes for flop enables [default = %s]\n", fFindEnables? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggles using buffers to decouple combinational outputs [default = %s]\n", fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
