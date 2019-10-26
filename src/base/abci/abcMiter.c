@@ -19,6 +19,9 @@
 ***********************************************************************/
 
 #include "base/abc/abc.h"
+#include "base/io/ioAbc.h"
+#include "sat/cnf/cnf.h"
+#include "sat/bsat/satStore.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1185,6 +1188,62 @@ int Abc_NtkCombinePos( Abc_Ntk_t * pNtk, int fAnd, int fXor )
         return 0;
     }
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Miter construction for two networks.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkTryNewMiter( char * pFileName0, char * pFileName1 )
+{
+    extern void * Cnf_DataWriteIntoSolver2( Cnf_Dat_t * p, int nFrames, int fInit );
+    int i, nVars, * pVars, iCiVarBeg, iCoVarBeg = 1, nBTLimit = 100000;
+    sat_solver * pSat  = NULL;
+    Cnf_Dat_t * pCnf   = NULL;
+    Vec_Ptr_t * vCexes = NULL;
+    Abc_Ntk_t * pNtk1  = Io_Read( pFileName0, IO_FILE_VERILOG, 1, 0 );
+    Abc_Ntk_t * pNtk2  = Io_Read( pFileName1, IO_FILE_VERILOG, 1, 0 );
+    Abc_Ntk_t * pNtk1_ = Abc_NtkStrash( pNtk1, 1, 1, 0 );
+    Abc_Ntk_t * pNtk2_ = Abc_NtkStrash( pNtk2, 1, 1, 0 );
+    Abc_Ntk_t * pMiter = Abc_NtkMiter( pNtk1_, pNtk2_, 1, 0, 0, 1 );
+    Gia_Man_t * pGia = Abc_NtkClpGia( pMiter );
+    assert( Abc_NtkCiNum(pNtk1) == Abc_NtkCiNum(pNtk2) );
+    assert( Abc_NtkCoNum(pNtk1) == Abc_NtkCoNum(pNtk2) );
+    Abc_NtkDelete( pNtk1 );
+    Abc_NtkDelete( pNtk2 );
+    Abc_NtkDelete( pNtk1_ );
+    Abc_NtkDelete( pNtk2_ );
+    Abc_NtkDelete( pMiter );
+    vCexes = Vec_PtrStart( Gia_ManPoNum(pGia) );
+    pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pGia, 8, 0, 0, 0, 0 );
+    nVars = Gia_ManPiNum(pGia);
+    iCiVarBeg = pCnf->nVars - nVars;
+    pVars = ABC_ALLOC( int, nVars );
+    for ( i = 0; i < nVars; i++ )
+        pVars[i] = iCiVarBeg + i;
+    pSat = (sat_solver *)Cnf_DataWriteIntoSolver(pCnf, 1, 0);
+    Cnf_DataFree( pCnf );
+    for ( i = 0; i < Gia_ManPoNum(pGia); i++ )
+    {
+        int Lit = Abc_Var2Lit( iCoVarBeg + i, 0 );
+        int status = sat_solver_solve( pSat, &Lit, &Lit + 1, nBTLimit, 0, 0, 0 );
+        assert( status != l_Undef );
+        if ( status == l_False )
+            continue;
+        Vec_PtrWriteEntry( vCexes, i, Sat_SolverGetModel(pSat, pVars, nVars) );
+        printf( "Output %3d (out of %3d) is SAT.\n", i, Gia_ManPoNum(pGia) );
+    }
+    Gia_ManStop( pGia );
+    sat_solver_delete( pSat );
+    ABC_FREE( pVars );
+    return vCexes;
 }
 
 ////////////////////////////////////////////////////////////////////////
