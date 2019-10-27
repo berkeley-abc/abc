@@ -2142,6 +2142,58 @@ int Gia_ManCheckSuppOverlap( Gia_Man_t * p, int iNode1, int iNode2 )
     return Result;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Count PIs with fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCountPisWithFanout( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; 
+    int i, Count = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->fMark0 = 0;
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        Gia_ObjFanin0(pObj)->fMark0 = 1;
+        Gia_ObjFanin1(pObj)->fMark0 = 1;
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ObjFanin0(pObj)->fMark0 = 1;
+    Gia_ManForEachCi( p, pObj, i )
+        Count += pObj->fMark0;
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->fMark0 = 0;
+    return Count;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count POs driven by non-zero driver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManCountPosWithNonZeroDrivers( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; 
+    int i, Count = 0;
+    Gia_ManForEachCo( p, pObj, i )
+        Count += Gia_ObjFaninLit0(pObj, Gia_ObjId(p, pObj)) != 0;
+    return Count;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

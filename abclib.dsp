@@ -5027,6 +5027,10 @@ SOURCE=.\src\aig\gia\giaSim2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSim4.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaSort.c
 # End Source File
 # Begin Source File

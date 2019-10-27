@@ -1474,7 +1474,7 @@ extern void                Gia_ManPrintStatsMiter( Gia_Man_t * p, int fVerbose )
 extern void                Gia_ManSetRegNum( Gia_Man_t * p, int nRegs );
 extern void                Gia_ManReportImprovement( Gia_Man_t * p, Gia_Man_t * pNew );
 extern void                Gia_ManPrintNpnClasses( Gia_Man_t * p );
-extern void                Gia_ManDumpVerilog( Gia_Man_t * p, char * pFileName );
+extern void                Gia_ManDumpVerilog( Gia_Man_t * p, char * pFileName, Vec_Int_t * vObjs );
 /*=== giaMem.c ===========================================================*/
 extern Gia_MmFixed_t *     Gia_MmFixedStart( int nEntrySize, int nEntriesMax );
 extern void                Gia_MmFixedStop( Gia_MmFixed_t * p, int fVerbose );
@@ -1695,6 +1695,8 @@ extern Vec_Int_t *         Gia_ManSaveValue( Gia_Man_t * p );
 extern void                Gia_ManLoadValue( Gia_Man_t * p, Vec_Int_t * vValues );
 extern Vec_Int_t *         Gia_ManFirstFanouts( Gia_Man_t * p );
 extern int                 Gia_ManCheckSuppOverlap( Gia_Man_t * p, int iNode1, int iNode2 );
+extern int                 Gia_ManCountPisWithFanout( Gia_Man_t * p );
+extern int                 Gia_ManCountPosWithNonZeroDrivers( Gia_Man_t * p );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;
