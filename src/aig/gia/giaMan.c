@@ -18,6 +18,8 @@
 
 ***********************************************************************/
 
+#include <ctype.h>
+
 #include "gia.h"
 #include "misc/tim/tim.h"
 #include "proof/abs/abs.h"
@@ -1251,7 +1253,7 @@ void Gia_ManDumpVerilog( Gia_Man_t * p, char * pFileName, Vec_Int_t * vObjs )
             fprintf( pFile, "%c", p->pName[i] );
         else
             fprintf( pFile, "_" );
-    fprintf( pFile, " (\n    ", p->pName );
+    fprintf( pFile, " (\n    " );
     Gia_ManWriteNames( pFile, 'x', Gia_ManPiNum(p), p->vNamesIn, 4, 4, NULL );
     fprintf( pFile, ",\n    " );
 
