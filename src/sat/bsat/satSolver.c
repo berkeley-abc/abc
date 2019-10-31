@@ -217,16 +217,32 @@ static inline int  order_select(sat_solver* s, float random_var_freq) // selectv
 void sat_solver_set_var_activity(sat_solver* s, int * pVars, int nVars) 
 {
     int i;
-    assert( s->VarActType == 1 );
     for (i = 0; i < s->size; i++)
         s->activity[i] = 0;
-    s->var_inc = Abc_Dbl2Word(1);
-    for ( i = 0; i < nVars; i++ )
+    if ( s->VarActType == 0 )
     {
-        int iVar = pVars ? pVars[i] : i;
-        s->activity[iVar] = Abc_Dbl2Word(nVars-i);
-        order_update( s, iVar );
+        s->var_inc            = (1 <<  5);
+        s->var_decay          = -1;
+        for ( i = 0; i < nVars; i++ )
+        {
+            int iVar = pVars ? pVars[i] : i;
+            s->activity[iVar] = s->var_inc*(nVars-i);
+            if (s->orderpos[iVar] != -1)
+                order_update( s, iVar );
+        }
     }
+    else if ( s->VarActType == 1 )
+    {
+        s->var_inc = Abc_Dbl2Word(1);
+        for ( i = 0; i < nVars; i++ )
+        {
+            int iVar = pVars ? pVars[i] : i;
+            s->activity[iVar] = Abc_Dbl2Word(nVars-i);
+            if (s->orderpos[iVar] != -1)
+                order_update( s, iVar );
+        }
+    }
+    else assert( 0 );
 }
 
 //=================================================================================================

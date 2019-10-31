@@ -1315,18 +1315,21 @@ void Gia_ManDumpVerilog( Gia_Man_t * p, char * pFileName, Vec_Int_t * vObjs )
     fprintf( pFile, "\n" );
     Gia_ManForEachAnd( p, pObj, i )
     {
+        int fSkip = 0;
         if ( vObjs )
         {
             Vec_IntForEachEntry( vObjs, iObj, k )
                 if ( iObj == i )
                     break;
             if ( k < Vec_IntSize(vObjs) )
-                continue;
+                fSkip = 1;
         }
-
-        fprintf( pFile, "  and( %s,", Gia_ObjGetDumpName(NULL, 'n', i, nDigits) );
-        fprintf( pFile, " %s,",       Gia_ObjGetDumpName(NULL, (char)(Gia_ObjFaninC0(pObj)? 'i':'n'), Gia_ObjFaninId0(pObj, i), nDigits) );
-        fprintf( pFile, " %s );\n",   Gia_ObjGetDumpName(NULL, (char)(Gia_ObjFaninC1(pObj)? 'i':'n'), Gia_ObjFaninId1(pObj, i), nDigits) );
+        if ( !fSkip )
+        {
+            fprintf( pFile, "  and( %s,", Gia_ObjGetDumpName(NULL, 'n', i, nDigits) );
+            fprintf( pFile, " %s,",       Gia_ObjGetDumpName(NULL, (char)(Gia_ObjFaninC0(pObj)? 'i':'n'), Gia_ObjFaninId0(pObj, i), nDigits) );
+            fprintf( pFile, " %s );\n",   Gia_ObjGetDumpName(NULL, (char)(Gia_ObjFaninC1(pObj)? 'i':'n'), Gia_ObjFaninId1(pObj, i), nDigits) );
+        }
         if ( Vec_BitEntry(vInvs, i) )
         {
             fprintf( pFile, "  not( %s,", Gia_ObjGetDumpName(NULL, 'i', i, nDigits) );

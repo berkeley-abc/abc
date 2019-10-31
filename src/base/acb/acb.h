@@ -416,6 +416,7 @@ static inline int Acb_ObjWhatFanin( Acb_Ntk_t * p, int iObj, int iFaninGiven )
 static inline void Acb_ObjAddFanin( Acb_Ntk_t * p, int iObj, int iFanin )
 {
     int * pFanins = Acb_ObjFanins( p, iObj );
+    assert( iFanin > 0 );
     assert( pFanins[ 1 + pFanins[0] ] == -1 );
     pFanins[ 1 + pFanins[0]++ ] = iFanin;
 }
