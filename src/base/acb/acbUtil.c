@@ -470,6 +470,304 @@ void Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp
     Vec_IntClear( &p->vSuppOld );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Derive AIG for one network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acb_NtkFindNodes2_rec( Acb_Ntk_t * p, int iObj, Vec_Int_t * vNodes )
+{
+    int * pFanin, iFanin, i;
+    if ( Acb_ObjSetTravIdCur(p, iObj) )
+        return;
+    if ( Acb_ObjIsCi(p, iObj) )
+        return;
+    Acb_ObjForEachFaninFast( p, iObj, pFanin, iFanin, i )
+        Acb_NtkFindNodes2_rec( p, iFanin, vNodes );
+    assert( !Acb_ObjIsCo(p, iObj) );
+    Vec_IntPush( vNodes, iObj );
+}
+Vec_Int_t * Acb_NtkFindNodes2( Acb_Ntk_t * p )
+{
+    int i, iObj;
+    Vec_Int_t * vNodes = Vec_IntAlloc( 1000 );
+    Acb_NtkIncTravId( p );
+    Acb_NtkForEachCo( p, iObj, i )
+        Acb_NtkFindNodes2_rec( p, Acb_ObjFanin(p, iObj, 0), vNodes );
+    return vNodes;
+}
+int Acb_ObjToGia2( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp )
+{
+    //char * pName = Abc_NamStr( p->pDesign->pStrs, Acb_ObjName(p, iObj) );
+    int * pFanin, iFanin, k, Type, Res;
+    assert( !Acb_ObjIsCio(p, iObj) );
+    Vec_IntClear( vTemp );
+    Acb_ObjForEachFaninFast( p, iObj, pFanin, iFanin, k )
+    {
+        assert( Acb_ObjCopy(p, iFanin) >= 0 );
+        Vec_IntPush( vTemp, Acb_ObjCopy(p, iFanin) );
+    }
+    Type = Acb_ObjType( p, iObj );
+    if ( Type == ABC_OPER_CONST_F ) 
+        return 0;
+    if ( Type == ABC_OPER_CONST_T ) 
+        return 1;
+    if ( Type == ABC_OPER_BIT_BUF ) 
+        return Vec_IntEntry(vTemp, 0);
+    if ( Type == ABC_OPER_BIT_INV ) 
+        return Abc_LitNot( Vec_IntEntry(vTemp, 0) );
+    if ( Type == ABC_OPER_BIT_AND || Type == ABC_OPER_BIT_NAND )
+    {
+        Res = 1;
+        Vec_IntForEachEntry( vTemp, iFanin, k )
+            Res = Gia_ManAppendAnd2( pNew, Res, iFanin );
+        return Abc_LitNotCond( Res, Type == ABC_OPER_BIT_NAND );
+    }
+    if ( Type == ABC_OPER_BIT_OR || Type == ABC_OPER_BIT_NOR )
+    {
+        Res = 0;
+        Vec_IntForEachEntry( vTemp, iFanin, k )
+            Res = Gia_ManAppendOr2( pNew, Res, iFanin );
+        return Abc_LitNotCond( Res, Type == ABC_OPER_BIT_NOR );
+    }
+    if ( Type == ABC_OPER_BIT_XOR || Type == ABC_OPER_BIT_NXOR )
+    {
+        Res = 0;
+        Vec_IntForEachEntry( vTemp, iFanin, k )
+            Res = Gia_ManAppendXor2( pNew, Res, iFanin );
+        return Abc_LitNotCond( Res, Type == ABC_OPER_BIT_NXOR );
+    }
+    assert( 0 );
+    return -1;
+}
+Gia_Man_t * Acb_NtkToGia2( Acb_Ntk_t * p )
+{
+    Gia_Man_t * pNew, * pOne;
+    Vec_Int_t * vFanins, * vNodes;
+    int i, iObj;
+    pNew = Gia_ManStart( 2 * Acb_NtkObjNum(p) + 1000 );
+    pNew->pName = Abc_UtilStrsav(Acb_NtkName(p));
+    Acb_NtkCleanObjCopies( p );
+    Acb_NtkForEachCi( p, iObj, i )
+        Acb_ObjSetCopy( p, iObj, Gia_ManAppendCi(pNew) );
+    vFanins = Vec_IntAlloc( 4 );
+    vNodes  = Acb_NtkFindNodes2( p );
+    Vec_IntForEachEntry( vNodes, iObj, i )
+        Acb_ObjSetCopy( p, iObj, Acb_ObjToGia2(pNew, p, iObj, vFanins) );
+    Vec_IntFree( vNodes );
+    Vec_IntFree( vFanins );
+    Acb_NtkForEachCo( p, iObj, i )
+        Gia_ManAppendCo( pNew, Acb_ObjCopy(p, Acb_ObjFanin(p, iObj, 0)) );
+    pNew = Gia_ManCleanup( pOne = pNew );
+    Gia_ManUpdateCopy( &p->vObjCopy, pOne );
+    Gia_ManStop( pOne );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Acb_NtkCollectCopies( Acb_Ntk_t * p, Gia_Man_t * pGia, Vec_Ptr_t ** pvNodesR )
+{
+    int i, iObj, iLit;
+    Vec_Int_t * vObjs   = Acb_NtkFindNodes2( p );
+    Vec_Int_t * vNodes  = Vec_IntAlloc( Acb_NtkObjNum(p) );
+    Vec_Ptr_t * vNodesR = Vec_PtrStart( Gia_ManObjNum(pGia) );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        if ( (iLit = Acb_ObjCopy(p, iObj)) >= 0 && Gia_ObjIsAnd(Gia_ManObj(pGia, Abc_Lit2Var(iLit))) )
+        {
+            if ( Vec_PtrEntry(vNodesR, Abc_Lit2Var(iLit)) == NULL )
+            {
+                Vec_PtrWriteEntry( vNodesR, Abc_Lit2Var(iLit), Abc_UtilStrsav(Acb_ObjNameStr(p, iObj)) );
+                Vec_IntPush( vNodes, Abc_Lit2Var(iLit) );
+            }
+        }
+    Vec_IntFree( vObjs );
+    Vec_IntSort( vNodes, 0 );
+    *pvNodesR = vNodesR;
+    return vNodes;
+}
+Vec_Int_t * Acb_NtkCollectUser( Acb_Ntk_t * p, Vec_Ptr_t * vUser )
+{
+    char * pTemp; int i;
+    Vec_Int_t * vRes = Vec_IntAlloc( Vec_PtrSize(vUser) );
+    Vec_Int_t * vMap = Vec_IntStart( Abc_NamObjNumMax(Acb_NtkNam(p)) );
+    Acb_NtkForEachNode( p, i )
+        if ( Acb_ObjName(p, i) > 0 )
+            Vec_IntWriteEntry( vMap, Acb_ObjName(p, i), Acb_ObjCopy(p, i) );
+    Vec_PtrForEachEntry( char *, vUser, pTemp, i )
+        if ( Acb_NtkStrId(p, pTemp) < Vec_IntSize(vMap) )
+        {
+            int iLit = Vec_IntEntry( vMap, Acb_NtkStrId(p, pTemp) );
+            assert( iLit > 0 );
+            //printf( "Obj = %3d  Name = %3d  Copy = %3d\n", i, Acb_NtkStrId(p, pTemp), iLit );
+            Vec_IntPush( vRes, Abc_Lit2Var(iLit) );
+        }
+    assert( Vec_IntSize(vRes) == Vec_PtrSize(vUser) );
+    Vec_IntFree( vMap );
+    Vec_IntUniqify( vRes );
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fVerbose, 
+                    Gia_Man_t ** ppGiaF, Gia_Man_t ** ppGiaG, Vec_Int_t ** pvNodes, Vec_Ptr_t ** pvNodesR )
+{
+    extern Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW );
+    Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileName0, NULL );
+    Acb_Ntk_t * pNtkG = Acb_VerilogSimpleRead( pFileName1, NULL );
+    int RetValue = 0;
+    if ( pNtkF && pNtkG )
+    {
+        Gia_Man_t * pGiaF = Acb_NtkToGia2( pNtkF );
+        Gia_Man_t * pGiaG = Acb_NtkToGia2( pNtkG );
+        assert( Acb_NtkCiNum(pNtkF) == Acb_NtkCiNum(pNtkG) );
+        assert( Acb_NtkCoNum(pNtkF) == Acb_NtkCoNum(pNtkG) );
+        *ppGiaF  = pGiaF;
+        *ppGiaG  = pGiaG;
+        *pvNodes = Acb_NtkCollectCopies( pNtkF, pGiaF, pvNodesR );
+        RetValue = 1;
+    }
+    if ( pNtkF->pDesign ) Acb_ManFree( pNtkF->pDesign );
+    if ( pNtkG->pDesign ) Acb_ManFree( pNtkG->pDesign );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Acb_NtkPlaces( char * pFileName, Vec_Ptr_t * vNames )
+{
+    Vec_Int_t * vPlaces; int First = 1, Pos = -1;
+    char * pTemp, * pBuffer = Extra_FileReadContents( pFileName );
+    char * pLimit = pBuffer + strlen(pBuffer);
+    if ( pBuffer == NULL )
+        return NULL;
+    vPlaces = Vec_IntAlloc( Vec_PtrSize(vNames) );
+    for ( pTemp = pBuffer; *pTemp; pTemp++ )
+    {
+        if ( *pTemp == '\n' )
+            Pos = pTemp - pBuffer + 1;
+        else if ( *pTemp == '(' )
+        {
+            if ( First )
+                First = 0;
+            else
+            {
+                char * pToken = strtok( pTemp+1, "  \n\r\t" );
+                char * pName; int i;
+                Vec_PtrForEachEntry( char *, vNames, pName, i )
+                    if ( !strcmp(pName, pToken) )
+                        Vec_IntPushTwo( vPlaces, Pos, i );
+                pTemp = pToken + strlen(pToken);
+                while ( *pTemp == 0 )
+                    pTemp++;
+                assert( pTemp < pLimit );
+            }
+        }
+    }
+    assert( Vec_IntSize(vPlaces) == 2*Vec_PtrSize(vNames) );
+    ABC_FREE( pBuffer );
+    return vPlaces;
+}
+void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames )
+{
+    int i, k, Prev = 0, Pos, Pos2, iObj;
+    Vec_Int_t * vPlaces;
+    char * pName, * pBuffer;
+    FILE * pFile = fopen( pFileNameOut, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open output file \"%s\".\n", pFileNameOut );
+        return;
+    }
+    pBuffer = Extra_FileReadContents( pFileNameIn );
+    if ( pBuffer == NULL )
+    {
+        fclose( pFile );
+        printf( "Cannot open input file \"%s\".\n", pFileNameIn );
+        return;
+    }
+    vPlaces = Acb_NtkPlaces( pFileNameIn, vNames );
+    Vec_IntForEachEntryDouble( vPlaces, Pos, iObj, i )
+    {
+        for ( k = Prev; k < Pos; k++ )
+            fputc( pBuffer[k], pFile );
+        fprintf( pFile, "// [t_%d = %s] //", iObj, (char *)Vec_PtrEntry(vNames, iObj) );
+        Prev = Pos;
+    }
+    Vec_IntFree( vPlaces );
+    pName = strstr(pBuffer, "endmodule");
+    Pos2 = pName - pBuffer;
+    for ( k = Prev; k < Pos2; k++ )
+        fputc( pBuffer[k], pFile );
+    fprintf( pFile, "\n\n" );
+    fprintf( pFile, "  wire " );
+    Vec_PtrForEachEntry( char *, vNames, pName, i )
+        fprintf( pFile, " t_%d%s", i, i==Vec_PtrSize(vNames)-1 ? ";" : "," );
+    fprintf( pFile, "\n\n" );
+    Vec_PtrForEachEntry( char *, vNames, pName, i )
+        fprintf( pFile, "  buf( %s, t_%d );\n", pName, i );
+    fprintf( pFile, "\n" );
+    for ( k = Pos2; pBuffer[k]; k++ )
+        fputc( pBuffer[k], pFile );
+    ABC_FREE( pBuffer );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acb_NtkRunSim( char * pFileName[4], int nWords, int fOrder, int fVerbose )
+{
+    extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int fOrder, int fVerbose );
+    extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose );
+    char * pFileNames[4] = { pFileName[2], pFileName[1], NULL, pFileName[2] };
+    if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, fOrder, fVerbose ) )
+        Acb_NtkRunEco( pFileNames, 0, fVerbose );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -1255,6 +1255,7 @@ extern Gia_Man_t *         Gia_ManDupCofAll( Gia_Man_t * p, int nFanLim, int fVe
 extern void                Gia_ManCollectCis( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vSupp );
 extern void                Gia_ManCollectAnds_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vNodes );
 extern void                Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vNodes, Vec_Int_t * vLeaves );
+extern Vec_Int_t *         Gia_ManCollectAndsAll( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManCollectNodesCis( Gia_Man_t * p, int * pNodes, int nNodes );
 extern int                 Gia_ManSuppSize( Gia_Man_t * p, int * pNodes, int nNodes );
 extern int                 Gia_ManConeSize( Gia_Man_t * p, int * pNodes, int nNodes );
@@ -1697,6 +1698,7 @@ extern Vec_Int_t *         Gia_ManFirstFanouts( Gia_Man_t * p );
 extern int                 Gia_ManCheckSuppOverlap( Gia_Man_t * p, int iNode1, int iNode2 );
 extern int                 Gia_ManCountPisWithFanout( Gia_Man_t * p );
 extern int                 Gia_ManCountPosWithNonZeroDrivers( Gia_Man_t * p );
+extern void                Gia_ManUpdateCopy( Vec_Int_t * vCopy, Gia_Man_t * p );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

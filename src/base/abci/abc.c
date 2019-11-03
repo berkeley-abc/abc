@@ -4333,8 +4333,8 @@ int Abc_CommandFastExtract( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( Abc_NtkNodeNum(pNtk) == 0 || Abc_NtkPiNum(pNtk) == 0 )
     {
-        Abc_Print( -1, "The network does not have internal nodes.\n" );
-        return 1;
+        Abc_Print( 0, "The network does not have internal nodes.\n" );
+        return 0;
     }
     if ( !Abc_NtkIsLogic(pNtk) )
     {
@@ -6933,13 +6933,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkRunEco( char * pFileNames[3], int fVerbose );
-    int c, fVerbose = 0;
+    extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose );
+    char * pFileNames[4] = {NULL};
+    int c, fCheck = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            fCheck ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -6951,16 +6955,18 @@ int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 //    pArgvNew = argv + globalUtilOptind;
 //    nArgcNew = argc - globalUtilOptind;
-    if ( argc - globalUtilOptind != 3 )
+    if ( argc - globalUtilOptind < 2 || argc - globalUtilOptind > 3 )
     {
         Abc_Print( 1, "Expecting three file names on the command line.\n" );
         goto usage;
     }
-    Acb_NtkRunEco( argv + globalUtilOptind, fVerbose );
+    for ( c = 0; c < argc - globalUtilOptind; c++ )
+        pFileNames[c] = argv[globalUtilOptind+c];
+    Acb_NtkRunEco( pFileNames, fCheck, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: runeco <implementation> <specification> <weights> [-vh]\n" );
+    Abc_Print( -2, "usage: runeco [-cvh] <implementation> <specification> <weights>\n" );
     Abc_Print( -2, "\t         performs computation of patch functions during ECO,\n" );
     Abc_Print( -2, "\t         as described in the following paper: A. Q. Dao et al\n" );
     Abc_Print( -2, "\t         \"Efficient computation of ECO patch functions\", Proc. DAC\'18\n" );
@@ -6968,6 +6974,7 @@ usage:
     Abc_Print( -2, "\t         (currently only applicable to benchmarks from 2017 ICCAD CAD competition\n" );
     Abc_Print( -2, "\t         http://cad-contest-2017.el.cycu.edu.tw/Problem_A/default.html as follows:\n" );
     Abc_Print( -2, "\t         \"runeco unit1/F.v unit1/G.v unit1/weight.txt; cec -n out.v unit1/G.v\")\n" );
+    Abc_Print( -2, "\t-c     : toggle checking that the problem has a solution [default = %s]\n", fCheck? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -6988,6 +6995,7 @@ usage:
 int Abc_CommandRunGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Acb_NtkRunGen( char * pFileNames[2], int fVerbose );
+    char * pFileNames[4] = {NULL};
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
@@ -7008,11 +7016,13 @@ int Abc_CommandRunGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Expecting two file names on the command line.\n" );
         goto usage;
     }
-    Acb_NtkRunGen( argv + globalUtilOptind, fVerbose );
+    for ( c = 0; c < 2; c++ )
+        pFileNames[c] = argv[globalUtilOptind+c];
+    Acb_NtkRunGen( pFileNames, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rungen <file1> <file2> [-vh]\n" );
+    Abc_Print( -2, "usage: rungen [-vh] <file1> <file2>\n" );
     Abc_Print( -2, "\t         experimental command\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -7032,13 +7042,28 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_Sim4Try( char * pFileName0, char * pFileName1, int fVerbose );
-    int c, fVerbose = 1;
+    extern void Acb_NtkRunSim( char * pFileName[4], int nWords, int fOrder, int fVerbose );
+    char * pFileNames[4] = {NULL, NULL, "out.v", NULL};
+    int c, fOrder = 0, nWords = 1, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Wovh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords < 0 )
+                goto usage;
+            break;
+        case 'o':
+            fOrder ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -7048,19 +7073,24 @@ int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( argc - globalUtilOptind != 2 )
+    if ( argc - globalUtilOptind < 2 || argc - globalUtilOptind > 4 )
     {
-        Abc_Print( 1, "Expecting two file names on the command line.\n" );
+        Abc_Print( 1, "Expecting two or three file names on the command line.\n" );
         goto usage;
     }
-    Gia_Sim4Try( argv[globalUtilOptind+0], argv[globalUtilOptind+1], fVerbose );
+    Gia_ManRandom(1);
+    for ( c = 0; c < argc - globalUtilOptind; c++ )
+        pFileNames[c] = argv[globalUtilOptind+c];
+    Acb_NtkRunSim( pFileNames, nWords, fOrder, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: runsim <file1> <file2> [-vh]\n" );
-    Abc_Print( -2, "\t         experimental command\n" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: runsim [-W] [-ovh] [-N <num>] <file1> <file2> <file3>\n" );
+    Abc_Print( -2, "\t           experimental simulation command\n" );
+    Abc_Print( -2, "\t-W <num> : the number of words of simulation info [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-o       : toggle using a different node ordering [default = %s]\n", fOrder? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 

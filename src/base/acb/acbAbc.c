@@ -177,7 +177,7 @@ Acb_Ntk_t * Acb_NtkFromNdr( char * pFileName, void * pModule, Abc_Nam_t * pNames
         ObjId  = Acb_ObjAlloc( pNtk, ABC_OPER_CI, 0, 0 );
         Vec_IntWriteEntry( vMap, NameId, ObjId );
         Acb_ObjSetName( pNtk, ObjId, NameId );
-        Acb_ObjSetWeight( pNtk, ObjId, vWeights ? Vec_IntEntry(vWeights, NameId) : 0 );
+        Acb_ObjSetWeight( pNtk, ObjId, vWeights ? Vec_IntEntry(vWeights, NameId) : 1 );
     }
     Ndr_ModForEachTarget( p, Mod, Obj )
     {
@@ -198,12 +198,14 @@ Acb_Ntk_t * Acb_NtkFromNdr( char * pFileName, void * pModule, Abc_Nam_t * pNames
     }
     Ndr_ModForEachNode( p, Mod, Obj )
     {
+        //char * pName;
         NameId = Ndr_ObjReadBody( p, Obj, NDR_OUTPUT );
+        //pName = Abc_NamStr( pMan->pStrs, NameId );
         ObjId  = Vec_IntEntry( vMap, NameId );
         nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         for ( k = 0; k < nArray; k++ )
             Acb_ObjAddFanin( pNtk, ObjId, Vec_IntEntry(vMap, pArray[k]) );
-        Acb_ObjSetWeight( pNtk, ObjId, vWeights ? Vec_IntEntry(vWeights, NameId) : 0 );
+        Acb_ObjSetWeight( pNtk, ObjId, vWeights ? Vec_IntEntry(vWeights, NameId) : 1 );
     }
     Ndr_ModForEachPo( p, Mod, Obj )
     {

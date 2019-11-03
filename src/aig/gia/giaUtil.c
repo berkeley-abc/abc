@@ -2194,6 +2194,34 @@ int Gia_ManCountPosWithNonZeroDrivers( Gia_Man_t * p )
     return Count;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManUpdateCopy( Vec_Int_t * vCopy, Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, iLit;
+    Vec_IntForEachEntry( vCopy, iLit, i )
+    {
+        if ( iLit == -1 )
+            continue;
+        pObj = Gia_ManObj( p, Abc_Lit2Var(iLit) );
+        if ( !~pObj->Value )
+            Vec_IntWriteEntry( vCopy, i, -1 );
+        else
+            Vec_IntWriteEntry( vCopy, i, Abc_LitNotCond(pObj->Value, Abc_LitIsCompl(iLit)) );
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

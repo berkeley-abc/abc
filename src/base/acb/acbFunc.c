@@ -175,6 +175,14 @@ Abc_Nam_t * Acb_VerilogStartNames()
     }
     return pNames;
 }
+void Acb_VerilogRemoveComments ( char * pBuffer )
+{
+    char * pTemp;
+    for ( pTemp = pBuffer; *pTemp; pTemp++ )
+        if ( pTemp[0] == '/' && pTemp[1] == '/' )
+            while ( *pTemp && *pTemp != '\n' )
+                *pTemp++ = ' ';
+}
 Vec_Int_t * Acb_VerilogSimpleLex( char * pFileName, Abc_Nam_t * pNames )
 {
     Vec_Int_t * vBuffer = Vec_IntAlloc( 1000 );
@@ -182,11 +190,12 @@ Vec_Int_t * Acb_VerilogSimpleLex( char * pFileName, Abc_Nam_t * pNames )
     char * pToken;
     if ( pBuffer == NULL )
         return NULL;
-    pToken = strtok( pBuffer, "  \n\r()," );
+    Acb_VerilogRemoveComments( pBuffer );
+    pToken = strtok( pBuffer, "  \n\r\t()," );
     while ( pToken )
     {
         Vec_IntPush( vBuffer, Abc_NamStrFindOrAdd(pNames, pToken, NULL) );
-        pToken = strtok( NULL, "  \n\r(),;" );
+        pToken = strtok( NULL, "  \n\r\t(),;" );
     }
     ABC_FREE( pBuffer );
     return vBuffer;
@@ -204,7 +213,7 @@ void * Acb_VerilogSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames )
     Vec_Int_t * vWires   = Vec_IntAlloc(100);
     Vec_Int_t * vTypes   = Vec_IntAlloc(100);
     Vec_Int_t * vFanins  = Vec_IntAlloc(100);
-    Vec_Int_t * vCur = NULL;  
+    Vec_Int_t * vCur     = NULL;  
     int i, ModuleID, Token, Size, Count = 0;
     assert( Vec_IntEntry(vBuffer, 0) == ACB_MODULE );
     Vec_IntForEachEntryStart( vBuffer, Token, i, 2 )
@@ -221,9 +230,12 @@ void * Acb_VerilogSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames )
             vCur = vWires;
         else if ( Token >= ACB_BUF && Token <= ACB_XNOR )
         {
+            char * pToken = Abc_NamStr(pNames, Vec_IntEntry(vBuffer, i+1));
             Vec_IntPush( vTypes, Token );
             Vec_IntPush( vTypes, Vec_IntSize(vFanins) );
             vCur = vFanins;
+            if ( pToken[1] == 'z' && pToken[2] == '_' && pToken[3] == 'g' && pToken[4] == '_' )
+                i++;
         }
         else 
             Vec_IntPush( vCur, Token );
@@ -412,7 +424,7 @@ void Acb_VerilogSimpleWrite( Acb_Ntk_t * p, char * pFileName )
             assert( Acb_ObjType(p, iObj) == ABC_OPER_CONST_F || Acb_ObjType(p, iObj) == ABC_OPER_CONST_T );
             fprintf( pFile, "  %s (", Acb_Oper2Name( ABC_OPER_BIT_BUF ) );
             fprintf( pFile, " 1\'b%d", Acb_ObjType(p, iObj) == ABC_OPER_CONST_T );
-            fprintf( pFile, " );" );
+            fprintf( pFile, " );\n" );
         }
 
     fprintf( pFile, "\nendmodule\n\n" );
@@ -547,7 +559,7 @@ Vec_Int_t * Acb_NtkFindDivsCis( Acb_Ntk_t * p, Vec_Int_t * vSupp )
     printf( "Divisors are %d support variables (CIs in the TFO of the targets).\n", Vec_IntSize(vSupp) );
     return vDivs;
 }
-Vec_Int_t * Acb_NtkFindDivs( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Bit_t * vBlock )
+Vec_Int_t * Acb_NtkFindDivs( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Bit_t * vBlock, int fVerbose )
 {
     int fPrintWeights = 0;
     int nDivLimit = 3000;
@@ -589,8 +601,10 @@ Vec_Int_t * Acb_NtkFindDivs( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Bit_t * vBloc
             printf( "%d", (Vec_IntEntry(&p->vObjWeight, iObj) / 1) % 10 );
         printf( "\n" );
     }
+    if ( fVerbose )
     printf( "Reducing divisor set from %d to ", Vec_IntSize(vDivs) );
     Vec_IntShrink( vDivs, nDivLimit );
+    if ( fVerbose )
     printf( "%d.\n", Vec_IntSize(vDivs) );
     return vDivs;
 }
@@ -644,11 +658,15 @@ Vec_Int_t * Acb_NtkFindNodes( Acb_Ntk_t * p, Vec_Int_t * vRoots, Vec_Int_t * vDi
 ***********************************************************************/
 int Acb_ObjToGia( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp )
 {
+    //char * pName = Abc_NamStr( p->pDesign->pStrs, Acb_ObjName(p, iObj) );
     int * pFanin, iFanin, k, Type, Res;
     assert( !Acb_ObjIsCio(p, iObj) );
     Vec_IntClear( vTemp );
     Acb_ObjForEachFaninFast( p, iObj, pFanin, iFanin, k )
+    {
+        assert( Acb_ObjCopy(p, iFanin) >= 0 );
         Vec_IntPush( vTemp, Acb_ObjCopy(p, iFanin) );
+    }
     Type = Acb_ObjType( p, iObj );
     if ( Type == ABC_OPER_CONST_F ) 
         return 0;
@@ -688,6 +706,7 @@ Gia_Man_t * Acb_NtkToGia( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Int_t * vNodes, 
     Vec_Int_t * vFanins;
     int i, iObj;
     pNew = Gia_ManStart( 2 * Acb_NtkObjNum(p) + 1000 );
+    pNew->pName = Abc_UtilStrsav(Acb_NtkName(p));
     Gia_ManHashAlloc( pNew );
     Acb_NtkCleanObjCopies( p );
     // create primary inputs
@@ -1202,7 +1221,14 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
             if ( TimeOut ) sat_solver_set_runtime_limit( pSat, TimeOut * CLOCKS_PER_SEC + Abc_Clock() );
             status = sat_solver_solve( pSat, Vec_IntArray(vSupp), Vec_IntLimit(vSupp), 0, 0, 0, 0 );
             if ( TimeOut ) sat_solver_set_runtime_limit( pSat, 0 );
-            if ( status != l_False )
+            if ( status == l_True )
+            {
+                printf( "ECO does not exist.\n" );
+                sat_solver_delete( pSat );
+                Vec_IntFree( vSupp );
+                return NULL;
+            }
+            if ( status == l_Undef )
             {
                 printf( "Support computation timed out after %d sec.\n", TimeOut );
                 sat_solver_delete( pSat );
@@ -1789,12 +1815,12 @@ Vec_Str_t * Acb_GenerateInstance( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * 
 {
     int i, iObj;
     Vec_Str_t * vStr = Vec_StrAlloc( 100 );
-    Vec_StrAppend( vStr, "patch p0 (" );
+    Vec_StrAppend( vStr, "  patch p0 (" );
     Vec_IntForEachEntry( vTars, iObj, i )
         Vec_StrPrintF( vStr, "%s .%s(%s)", i ? ",":"", Acb_ObjNameStr(p, iObj), Acb_ObjNameStr(p, iObj) );
     Vec_IntForEachEntryInVec( vDivs, vUsed, iObj, i )
         Vec_StrPrintF( vStr, ", .%s(%s)", Acb_ObjNameStr(p, iObj), Acb_ObjNameStr(p, iObj) );
-    Vec_StrAppend( vStr, " );\n" );
+    Vec_StrAppend( vStr, " );\n\n" );
     Vec_StrPush( vStr, '\0' );
     return vStr;
 }
@@ -1880,7 +1906,7 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
             Vec_StrPrintF( vStr, "  %s (", Acb_Oper2Name( ABC_OPER_BIT_BUF ) );
             Vec_StrPrintF( vStr, " %s, ", (char *)Vec_PtrEntry(vNames, Vec_IntEntry(vGate, 1)) );
             Vec_StrPrintF( vStr, " 1\'b%d", Vec_IntEntry(vGate, 0) == ABC_OPER_CONST_T );
-            Vec_StrPrintF( vStr, " );" );
+            Vec_StrPrintF( vStr, " );\n" );
         }
     }
     Vec_StrAppend( vStr, "\nendmodule\n\n" );
@@ -1913,28 +1939,23 @@ void Acb_GenerateFilePatch( Vec_Str_t * p, char * pFileNamePatch )
 }
 void Acb_GenerateFileOut( Vec_Str_t * vPatchLine, char * pFileNameF, char * pFileNameOut, Vec_Str_t * vPatch )
 {
-    char * pBuffer = ABC_ALLOC( char, 10000 );
-    FILE * pFileIn, * pFileOut;
-    // input file
-    pFileIn = fopen( pFileNameF, "rb" );
-    if ( !pFileIn )
+    FILE * pFileOut;
+    char * pBuffer = Extra_FileReadContents( pFileNameF );
+    if ( pBuffer == NULL )
         return;
-    // output file
     pFileOut = fopen( pFileNameOut, "wb" );
-    if ( !pFileOut )
-        return;
-    // copy line by line
-    while ( fgets(pBuffer, 10000, pFileIn) )
+    if ( pFileOut )
     {
-        if ( strstr(pBuffer, "endmodule") )
-            fprintf( pFileOut, "\n%s", Vec_StrArray(vPatchLine) );
-        fputs( pBuffer, pFileOut );
+        char * pTemp = strstr( pBuffer, "endmodule" );
+        int nFirst = pTemp-pBuffer, nSecond = strlen(pBuffer) - nFirst;
+        int Value = fwrite( pBuffer, nFirst, 1, pFileOut );
+        fprintf( pFileOut, "\n%s", Vec_StrArray(vPatchLine) );
+        Value = fwrite( pBuffer+nFirst, nSecond, 1, pFileOut );
+        if ( vPatch )
+            fprintf( pFileOut, "\n%s\n", Vec_StrArray(vPatch) );
     }
-    if ( vPatch )
-        fprintf( pFileOut, "\n\n%s\n", Vec_StrArray(vPatch) );
-    fclose( pFileIn );
-    fclose( pFileOut );
     ABC_FREE( pBuffer );
+    fclose( pFileOut );
 }
 
 /**Function*************************************************************
@@ -2012,10 +2033,10 @@ Gia_Man_t * Acb_NtkEcoSynthesize( Gia_Man_t * p )
     }
     return pNew;
 }
-Cnf_Dat_t * Acb_NtkEcoCompute( Gia_Man_t * p, int iTar, int nTars )
+Cnf_Dat_t * Acb_NtkDeriveMiterCnf( Gia_Man_t * p, int iTar, int nTars, int fVerbose )
 {
     Gia_Man_t * pCof = Gia_ManDup( p );
-    Cnf_Dat_t * pCnf; int v, fVerbose = 1;
+    Cnf_Dat_t * pCnf; int v;
     for ( v = 0; v < iTar; v++ )
     {
         pCof = Gia_ManDupUniv( p = pCof, Gia_ManCiNum(pCof) - nTars + v );
@@ -2024,8 +2045,8 @@ Cnf_Dat_t * Acb_NtkEcoCompute( Gia_Man_t * p, int iTar, int nTars )
     }
     if ( fVerbose ) printf( "M_quo: " );
     if ( fVerbose ) Gia_ManPrintStats( pCof, NULL );
-    pCof = Acb_NtkEcoSynthesize( p = pCof );
-    Gia_ManStop( p );
+    //pCof = Acb_NtkEcoSynthesize( p = pCof );
+    //Gia_ManStop( p );
     if ( fVerbose ) printf( "M_syn: " );
     if ( fVerbose ) Gia_ManPrintStats( pCof, NULL );
     if ( 0 && iTar < nTars )
@@ -2113,7 +2134,7 @@ Gia_Man_t * Gia_ManInterOneInt( Gia_Man_t * pCof1, Gia_Man_t * pCof0, int Depth 
         Gia_ManStop( pInter[m] );
     return pFinal;
 }
-Gia_Man_t * Acb_NtkEcoComputeInter2( Gia_Man_t * p, int iTar, int nTars )
+Gia_Man_t * Acb_NtkDeriveMiterCnfInter2( Gia_Man_t * p, int iTar, int nTars )
 {
 //    extern Gia_Man_t * Gia_ManInterOne( Gia_Man_t * pNtkOn, Gia_Man_t * pNtkOff, int fVerbose );
     extern Gia_Man_t * Abc_GiaSynthesizeInter( Gia_Man_t * p );
@@ -2154,7 +2175,7 @@ Gia_Man_t * Acb_NtkEcoComputeInter2( Gia_Man_t * p, int iTar, int nTars )
     //Gia_ManPrintStats( pInter, NULL );
     return pInter;
 }
-Gia_Man_t * Acb_NtkEcoComputeInter( Gia_Man_t * p, int iTar, int nTars )
+Gia_Man_t * Acb_NtkDeriveMiterCnfInter( Gia_Man_t * p, int iTar, int nTars )
 {
     Gia_Man_t * pCof1, * pCof = Gia_ManDup( p ); int v;
     for ( v = 0; v < iTar; v++ )
@@ -2271,7 +2292,7 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, int fCisOnly )
+int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int fCisOnly, int fCheck, int fVerbose )
 {
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
 
@@ -2286,7 +2307,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
     Vec_Int_t * vSuppF  = Acb_NtkFindSupp( pNtkF, vRoots );
     Vec_Int_t * vSuppG  = Acb_NtkFindSupp( pNtkG, vRoots );
     Vec_Int_t * vSupp   = Vec_IntTwoMerge( vSuppF, vSuppG );
-    Vec_Int_t * vDivs   = fCisOnly ? Acb_NtkFindDivsCis( pNtkF, vSupp ) : Acb_NtkFindDivs( pNtkF, vSupp, vBlock );
+    Vec_Int_t * vDivs   = fCisOnly ? Acb_NtkFindDivsCis( pNtkF, vSupp ) : Acb_NtkFindDivs( pNtkF, vSupp, vBlock, fVerbose );
     Vec_Int_t * vNodesF = Acb_NtkFindNodes( pNtkF, vRoots, vDivs );
     Vec_Int_t * vNodesG = Acb_NtkFindNodes( pNtkG, vRoots, NULL );
 
@@ -2309,21 +2330,24 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
     char * pSop = NULL;
     int i, Res;
 
-    printf( "The number of targets = %d.\n", nTargets );
+    if ( fVerbose )
+    {
+        printf( "The number of targets = %d.\n", nTargets );
 
-    printf( "NtkF:  " );
-    Gia_ManPrintStats( pGiaF, NULL );
-    printf( "NtkG:  " );
-    Gia_ManPrintStats( pGiaG, NULL );
-    printf( "Miter: " );
-    Gia_ManPrintStats( pGiaM, NULL );
+        printf( "NtkF:  " );
+        Gia_ManPrintStats( pGiaF, NULL );
+        printf( "NtkG:  " );
+        Gia_ManPrintStats( pGiaG, NULL );
+        printf( "Miter: " );
+        Gia_ManPrintStats( pGiaM, NULL );
+    }
 
     // check that the problem has a solution
-    if ( 0 )//fCisOnly )
+    if ( fCheck )//fCisOnly )
     {
         int Lit, status;
         sat_solver * pSat;
-        pCnf = Acb_NtkEcoCompute( pGiaM, nTargets, nTargets );
+        pCnf = Acb_NtkDeriveMiterCnf( pGiaM, nTargets, nTargets, fVerbose );
         pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
         Cnf_DataFree( pCnf );
         // add output clause
@@ -2350,7 +2374,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
             vSupp = Vec_IntStartNatural( Vec_IntSize(vDivs) );
             printf( "Target %d has support with %d variables.\n", i, Vec_IntSize(vSupp) );
 
-            pOne = Acb_NtkEcoComputeInter( pGiaM, i, nTargets );
+            pOne = Acb_NtkDeriveMiterCnfInter( pGiaM, i, nTargets );
             printf( "Tar%02d: ", i );
             Gia_ManPrintStats( pOne, NULL );
 
@@ -2363,12 +2387,11 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
         }
         else
         {
-            pCnf = Acb_NtkEcoCompute( pGiaM, i, nTargets );
+            pCnf = Acb_NtkDeriveMiterCnf( pGiaM, i, nTargets, fVerbose );
 //            vSupp = Acb_DerivePatchSupportS( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, NULL, TimeOut );
             vSupp = Acb_DerivePatchSupport( pCnf, i, nTargets, Vec_IntSize(vDivs), vDivs, pNtkF, vSuppOld, TimeOut );
             if ( vSupp == NULL )
             {
-                Vec_IntFree( vSuppOld );
                 Cnf_DataFree( pCnf );
                 RetValue = 0;
                 goto cleanup;
@@ -2383,7 +2406,6 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
             Cnf_DataFree( pCnf );
             if ( pSop == NULL )
             {
-                Vec_IntFree( vSuppOld );
                 RetValue = 0;
                 goto cleanup;
             }
@@ -2405,7 +2427,6 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
         Vec_IntAppend( Vec_WecPushLevel(vSupps), vSupp );
         Vec_IntFree( vSupp );
     }
-    Vec_IntFree( vSuppOld );
 
     // make sure the function is UNSAT
     printf( "\n" );
@@ -2443,8 +2464,9 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileNameF, 
     Acb_PrintPatch( pNtkF, vDivs, vUsed, clk );
 
     // generate output files
-    Acb_GenerateFilePatch( vPatch, "patch.v" );
-    Acb_GenerateFileOut( vInst, pFileNameF, "out.v", vPatch );
+    if ( pFileName[3] == NULL ) Acb_GenerateFilePatch( vPatch, "patch.v" );
+    Acb_GenerateFileOut( vInst, pFileName[0], pFileName[3] ? pFileName[3] : "out.v", vPatch );
+    printf( "Finished dumping resulting file \"%s\".\n\n", pFileName[3] ? pFileName[3] : "out.v" );
     //Gia_AigerWrite( pGiaG, "test.aig", 0, 0, 0 );
 cleanup:
     // cleanup
@@ -2460,9 +2482,9 @@ cleanup:
 
     Vec_PtrFreeFree( vSops );
     Vec_WecFree( vSupps );
-
-    if ( vFuncs ) Vec_PtrFreeFree( vFuncs );
+    Vec_IntFree( vSuppOld );
     Vec_IntFreeP( &vUsed );
+    if ( vFuncs ) Vec_PtrFreeFree( vFuncs );
 
     Gia_ManStop( pGiaF );
     Gia_ManStop( pGiaG );
@@ -2511,7 +2533,7 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunEco( char * pFileNames[3], int fVerbose )
+void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose )
 {
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNames[0], pFileNames[2] );
     Acb_Ntk_t * pNtkG = Acb_VerilogSimpleRead( pFileNames[1], NULL );
@@ -2528,11 +2550,11 @@ void Acb_NtkRunEco( char * pFileNames[3], int fVerbose )
 
     Acb_IntallLibrary();
 
-    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames[0], 0 ) )
+    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, 0, fCheck, fVerbose ) )
     {
-        printf( "General ECO computation timed out. Trying inputs only.\n\n" );
-        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames[0], 1 ) )
-            printf( "Input-only ECO computation also timed out.\n\n" );
+        printf( "General computation timed out. Trying inputs only.\n\n" );
+        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, 1, fCheck, fVerbose ) )
+            printf( "Input-only computation also timed out.\n\n" );
     }
 
     Acb_ManFree( pNtkF->pDesign );

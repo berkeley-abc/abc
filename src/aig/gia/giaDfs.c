@@ -143,6 +143,26 @@ void Gia_ManCollectAnds( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vN
 
 /**Function*************************************************************
 
+  Synopsis    [Collects support nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManCollectAndsAll( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; int i;
+    Vec_Int_t * vNodes = Vec_IntAlloc( Gia_ManAndNum(p) );
+    Gia_ManForEachAnd( p, pObj, i )
+        Vec_IntPush( vNodes, i );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Counts the support size of the node.]
 
   Description []
