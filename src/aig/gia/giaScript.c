@@ -610,10 +610,20 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
 void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fBalance, int fMinAve, int fUseMfs, int fVerbose )
 {
     char Comm1[1000], Comm2[1000], Comm3[1000], Comm4[1000];
-    sprintf( Comm1, "&synch2 -K %d -C 500; &if -m%s       -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-    sprintf( Comm2, "&dch -C 500;          &if -m%s       -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-    sprintf( Comm3, "&synch2 -K %d -C 500; &lf -m%s  -E 5 -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-    sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+    if ( nLutSize == 0 ) 
+    {
+        sprintf( Comm1, "&synch2 -K 6 -C 500;  &if -m%s       -C %d; %s &save", fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm2, "&dch -C 500;          &if -m%s       -C %d; %s &save", fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm3, "&synch2 -K 6 -C 500;  &lf -m%s  -E 5 -C %d; %s &save", fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -C %d; %s &save", fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+    }
+    else
+    {
+        sprintf( Comm1, "&synch2 -K %d -C 500; &if -m%s       -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm2, "&dch -C 500;          &if -m%s       -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm3, "&synch2 -K %d -C 500; &lf -m%s  -E 5 -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+    }
 
     // perform synthesis
     if ( fVerbose )
