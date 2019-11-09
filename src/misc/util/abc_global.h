@@ -25,6 +25,10 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifndef ABC_USE_BRIDGE
+#define ABC_USE_BRIDGE
+#endif
+
 #ifdef _WIN32
 #ifndef __MINGW32__
 #define inline __inline // compatible with MS VS 6.0
@@ -284,8 +288,10 @@ static inline int      Abc_Base2Log( unsigned n )             { int r; if ( n < 
 static inline int      Abc_Base10Log( unsigned n )            { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 10, r++ ) {}; return r; }
 static inline int      Abc_Base16Log( unsigned n )            { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 16, r++ ) {}; return r; }
 static inline char *   Abc_UtilStrsav( char * s )             { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;  }
+static inline int      Abc_BitByteNum( int nBits )            { return (nBits>>3) + ((nBits&7)  > 0);                       }
 static inline int      Abc_BitWordNum( int nBits )            { return (nBits>>5) + ((nBits&31) > 0);                       }
 static inline int      Abc_Bit6WordNum( int nBits )           { return (nBits>>6) + ((nBits&63) > 0);                       }
+static inline int      Abc_TruthByteNum( int nVars )          { return nVars <= 3 ? 1 : (1 << (nVars - 3));                 }
 static inline int      Abc_TruthWordNum( int nVars )          { return nVars <= 5 ? 1 : (1 << (nVars - 5));                 }
 static inline int      Abc_Truth6WordNum( int nVars )         { return nVars <= 6 ? 1 : (1 << (nVars - 6));                 }
 static inline int      Abc_InfoHasBit( unsigned * p, int i )  { return (p[(i)>>5] & (unsigned)(1<<((i) & 31))) > 0;         }
@@ -333,16 +339,6 @@ static inline abctime Abc_Clock()
 #endif
 }
 
-// bridge communication
-#define BRIDGE_NETLIST           106
-#define BRIDGE_ABS_NETLIST       107
-extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
-extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, void * p, int pkg_type );
-
-// string printing
-extern char * vnsprintf(const char* format, va_list args);
-extern char * nsprintf(const char* format, ...);
-
 
 // misc printing procedures
 enum Abc_VerbLevel
@@ -353,6 +349,20 @@ enum Abc_VerbLevel
     ABC_STANDARD =  1,
     ABC_VERBOSE  =  2
 };
+
+
+#ifdef ABC_USE_BRIDGE
+
+// bridge communication
+#define BRIDGE_NETLIST           106
+#define BRIDGE_ABS_NETLIST       107
+extern int Gia_ManToBridgeText( FILE * pFile, int Size, unsigned char * pBuffer );
+extern int Gia_ManToBridgeAbsNetlist( FILE * pFile, void * p, int pkg_type );
+
+// string printing
+extern char * vnsprintf(const char* format, va_list args);
+extern char * nsprintf(const char* format, ...);
+
 static inline void Abc_Print( int level, const char * format, ... )
 {
     extern ABC_DLL int Abc_FrameIsBridgeMode();
@@ -385,6 +395,23 @@ static inline void Abc_Print( int level, const char * format, ... )
     va_end( args );
 }
 
+#else
+
+static inline void Abc_Print( int level, const char * format, ... )
+{
+    va_list args;
+    va_start( args, format );
+    if ( level == ABC_ERROR )
+        printf( "Error: " );
+    else if ( level == ABC_WARNING )
+        printf( "Warning: " );
+    vprintf( format, args );
+    va_end( args );
+}
+
+#endif
+
+
 static inline void Abc_PrintInt( int i )
 {
     double v3 = (double)i/1000;
@@ -409,6 +436,7 @@ static inline void Abc_PrintInt( int i )
     else if ( v6 > -999.5 && v6 < 999.5 )
         Abc_Print( 1, "%4.0fm", v6 );
 }
+
 
 static inline void Abc_PrintTime( int level, const char * pStr, abctime time )
 {
@@ -451,6 +479,53 @@ static inline int Abc_PrimeCudd( unsigned int p )
     return (int)(p);
 
 } // end of Cudd_Prime 
+
+// Creates a sequence of random numbers.
+// http://www.codeproject.com/KB/recipes/SimpleRNG.aspx
+
+#define NUMBER1  3716960521u
+#define NUMBER2  2174103536u
+
+static inline unsigned Abc_Random( int fReset )
+{
+    static unsigned int m_z = NUMBER1;
+    static unsigned int m_w = NUMBER2;
+    if ( fReset )
+    {
+        m_z = NUMBER1;
+        m_w = NUMBER2;
+    }
+    m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+    m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+    return (m_z << 16) + m_w;
+}
+static inline word Abc_RandomW( int fReset )
+{
+    return ((word)Abc_Random(fReset) << 32) | ((word)Abc_Random(fReset) << 0);
+}
+
+// the returned buffer has 32 unused bytes at the end, filled with zeros
+static inline void * Abc_FileReadContents( char * pFileName, int * pnFileSize )
+{
+    int RetValue, nFileSize;
+    char * pBuffer;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+        return NULL;
+    // get the file size, in bytes
+    fseek( pFile, 0, SEEK_END );
+    nFileSize = ftell( pFile );
+    if ( pnFileSize )
+        *pnFileSize = nFileSize;
+    rewind( pFile );
+    // load the contents of the file into memory
+    pBuffer = ABC_ALLOC( char, nFileSize + 32 );
+    RetValue = fread( pBuffer, 1, nFileSize, pFile );
+    memset( pBuffer + nFileSize, 0, 32 );
+    assert( RetValue == nFileSize );
+    fclose( pFile );
+    return (void *)pBuffer;
+}
 
 
 // sorting

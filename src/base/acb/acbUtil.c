@@ -652,8 +652,8 @@ int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fVerbose,
         *pvNodes = Acb_NtkCollectCopies( pNtkF, pGiaF, pvNodesR );
         RetValue = 1;
     }
-    if ( pNtkF->pDesign ) Acb_ManFree( pNtkF->pDesign );
-    if ( pNtkG->pDesign ) Acb_ManFree( pNtkG->pDesign );
+    if ( pNtkF ) Acb_ManFree( pNtkF->pDesign );
+    if ( pNtkG ) Acb_ManFree( pNtkG->pDesign );
     return RetValue;
 }
 

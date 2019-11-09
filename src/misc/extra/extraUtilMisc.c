@@ -21,6 +21,7 @@
 #include <math.h>
 
 #include "extra.h"
+#include "misc/vec/vec.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -2569,6 +2570,149 @@ void Extra_NtkPowerTest()
         Extra_NtkPrintBin( (word *)&t, 64 );
         printf( "\n" );
     }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Tranposing bit matrix.]
+
+  Description [Borrowed from "Hacker's Delight", by Henry S. Warren Jr.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Extra_Transpose64Simple( word A[64], word B[64] )
+{
+    int i, k;
+    for ( i = 0; i < 64; i++ )
+        B[i] = 0;
+    for ( i = 0; i < 64; i++ )
+    for ( k = 0; k < 64; k++ )
+        if ( (A[i] >> k) & 1 )
+            B[k] |= ((word)1 << (63-i));
+}
+void Extra_Transpose32( unsigned a[32] ) 
+{
+    int j, k;
+    unsigned long m, t;
+    for ( j = 16, m = 0x0000FFFF; j; j >>= 1, m ^= m << j ) 
+    {
+        for ( k = 0; k < 32; k = ((k | j) + 1) & ~j ) 
+        {
+            t = (a[k] ^ (a[k|j] >> j)) & m;
+            a[k] ^= t;
+            a[k|j] ^= (t << j);
+        }
+    }
+}
+void Extra_Transpose64( word A[64] )
+{
+    int j, k;
+    word t, m = 0x00000000FFFFFFFF;
+    for ( j = 32; j != 0; j = j >> 1, m = m ^ (m << j) )
+    {
+        for ( k = 0; k < 64; k = (k + j + 1) & ~j )
+        {
+            t = (A[k] ^ (A[k+j] >> j)) & m;
+            A[k] = A[k] ^ t;
+            A[k+j] = A[k+j] ^ (t << j);
+        }
+    }
+}
+void Extra_Transpose64p( word * A[64] )
+{
+    int j, k;
+    word t, m = 0x00000000FFFFFFFF;
+    for ( j = 32; j != 0; j = j >> 1, m = m ^ (m << j) )
+    {
+        for ( k = 0; k < 64; k = (k + j + 1) & ~j )
+        {
+            t = (A[k][0] ^ (A[k+j][0] >> j)) & m;
+            A[k][0] = A[k][0] ^ t;
+            A[k+j][0] = A[k+j][0] ^ (t << j);
+        }
+    }
+}
+void Extra_BitMatrixTransposeP( Vec_Wrd_t * vSimsIn, int nWordsIn, Vec_Wrd_t * vSimsOut, int nWordsOut )
+{    
+    word * pM[64];  int i, y, x;
+    assert( Vec_WrdSize(vSimsIn) == Vec_WrdSize(vSimsOut) );
+    assert( Vec_WrdSize(vSimsIn)  / nWordsIn  == 64 * nWordsOut );
+    assert( Vec_WrdSize(vSimsOut) / nWordsOut == 64 * nWordsIn  );
+    for ( y = 0; y < nWordsIn;  y++ )
+    for ( x = 0; x < nWordsOut; x++ )
+    {
+        for ( i = 0; i < 64; i++ )
+        {
+            pM[i]    = Vec_WrdEntryP( vSimsOut, (64*y+i)*nWordsOut + x );
+            pM[i][0] = Vec_WrdEntry ( vSimsIn,  (64*x+i)*nWordsIn  + y );
+        }
+        Extra_Transpose64p( pM );
+    }
+}
+void Extra_BitMatrixTransposePP( Vec_Ptr_t * vSimsIn, int nWordsIn, Vec_Wrd_t * vSimsOut, int nWordsOut )
+{    
+    word * pM[64];  int i, y, x;
+    assert( Vec_WrdSize(vSimsOut) / nWordsOut == 64 * nWordsIn  );
+    for ( y = 0; y < nWordsIn;  y++ )
+    for ( x = 0; x < nWordsOut; x++ )
+    {
+        for ( i = 0; i < 64; i++ )
+        {
+            pM[i]    = Vec_WrdEntryP( vSimsOut, (64*y+i)*nWordsOut + x );
+            pM[i][0] = ((word *)Vec_PtrEntry( vSimsIn, 64*x+i ))[y];
+        }
+        Extra_Transpose64p( pM );
+    }
+}
+void Extra_BitMatrixTransposeTest()
+{   
+    int nWordsIn  = 1;
+    int nWordsOut = 2;
+    int i, k, nItems = 64 * nWordsIn * nWordsOut;
+
+    Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nItems );
+    Vec_Wrd_t * vSimsOut = Vec_WrdStart( nItems );
+
+    Abc_RandomW(1);
+    for ( i = 0; i < nItems; i++ )
+        Vec_WrdWriteEntry( vSimsIn, i, Abc_RandomW(0) );
+
+    Extra_BitMatrixTransposeP( vSimsIn, nWordsIn, vSimsOut, nWordsOut );
+
+    nItems = Vec_WrdSize(vSimsIn)  / nWordsIn;
+    for ( i = 0; i < nItems; i++ )
+    {
+        if ( i%64 == 0 )
+            Abc_Print( 1, "\n" );
+        for ( k = 0; k < nWordsIn; k++ )
+        {
+            Extra_PrintBinary( stdout, (unsigned *)Vec_WrdEntryP(vSimsIn, i*nWordsIn+k), 64 );
+            Abc_Print( 1, " " );
+        }
+        Abc_Print( 1, "\n" );
+    }
+    Abc_Print( 1, "\n" );
+
+    nItems = Vec_WrdSize(vSimsOut) / nWordsOut;
+    for ( i = 0; i < nItems; i++ )
+    {
+        if ( i%64 == 0 )
+            Abc_Print( 1, "\n" );
+        for ( k = 0; k < nWordsOut; k++ )
+        {
+            Extra_PrintBinary( stdout, (unsigned *)Vec_WrdEntryP(vSimsOut, i*nWordsOut+k), 64 );
+            Abc_Print( 1, " " );
+        }
+        Abc_Print( 1, "\n" );
+    }
+    Abc_Print( 1, "\n" );
+
+    Vec_WrdFree( vSimsIn );
+    Vec_WrdFree( vSimsOut );
 }
 
 ////////////////////////////////////////////////////////////////////////
