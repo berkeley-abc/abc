@@ -2221,6 +2221,164 @@ void Gia_ManUpdateCopy( Vec_Int_t * vCopy, Gia_Man_t * p )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Populate internal simulation info.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word * Gia_ManObjSim( Gia_Man_t * p, int iObj )
+{
+    return Vec_WrdEntryP( p->vSims, p->nSimWords * iObj );
+}
+static inline void Gia_ManObjSimPi( Gia_Man_t * p, int iObj )
+{
+    int w;
+    word * pSim = Gia_ManObjSim( p, iObj );
+    for ( w = 0; w < p->nSimWords; w++ )
+        pSim[w] = Gia_ManRandomW( 0 );
+//    pSim[0] <<= 1;
+}
+static inline void Gia_ManObjSimPo( Gia_Man_t * p, int iObj )
+{
+    int w;
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    word * pSimCo  = Gia_ManObjSim( p, iObj );
+    word * pSimDri = Gia_ManObjSim( p, Gia_ObjFaninId0(pObj, iObj) );
+    if ( Gia_ObjFaninC0(pObj) )
+        for ( w = 0; w < p->nSimWords; w++ )
+            pSimCo[w] = ~pSimDri[w];
+    else
+        for ( w = 0; w < p->nSimWords; w++ )
+            pSimCo[w] =  pSimDri[w];
+}
+static inline void Gia_ManObjSimAnd( Gia_Man_t * p, int iObj )
+{
+    int w;
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    word * pSim  = Gia_ManObjSim( p, iObj );
+    word * pSim0 = Gia_ManObjSim( p, Gia_ObjFaninId0(pObj, iObj) );
+    word * pSim1 = Gia_ManObjSim( p, Gia_ObjFaninId1(pObj, iObj) );
+    if ( Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )
+        for ( w = 0; w < p->nSimWords; w++ )
+            pSim[w] = ~pSim0[w] & ~pSim1[w];
+    else if ( Gia_ObjFaninC0(pObj) && !Gia_ObjFaninC1(pObj) )
+        for ( w = 0; w < p->nSimWords; w++ )
+            pSim[w] = ~pSim0[w] & pSim1[w];
+    else if ( !Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) )
+        for ( w = 0; w < p->nSimWords; w++ )
+            pSim[w] = pSim0[w] & ~pSim1[w];
+    else
+        for ( w = 0; w < p->nSimWords; w++ )
+            pSim[w] = pSim0[w] & pSim1[w];
+}
+int Gia_ManSimulateWords( Gia_Man_t * p, int nWords )
+{
+    Gia_Obj_t * pObj; int i;
+    // allocate simulation info for one timeframe
+    Vec_WrdFreeP( &p->vSims );
+    p->vSims = Vec_WrdStart( Gia_ManObjNum(p) * nWords );
+    p->nSimWords = nWords;
+    // perform simulation
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            Gia_ManObjSimAnd( p, i );
+        else if ( Gia_ObjIsCi(pObj) )
+            Gia_ManObjSimPi( p, i );
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ManObjSimPo( p, i );
+        else assert( 0 );
+    }
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Dump data files.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV )
+{
+    int n, nSize[2] = {nCexesT*64, nCexesV*64};
+
+    char pFileNameOutTX[100];
+    char pFileNameOutTY[100];
+    char pFileNameOutVX[100];
+    char pFileNameOutVY[100];
+    
+    sprintf( pFileNameOutTX, "data/%s_%d_%d.data", Gia_ManName(p), nSize[0], Gia_ManCiNum(p) );
+    sprintf( pFileNameOutTY, "data/%s_%d_%d.data", Gia_ManName(p), nSize[0], Gia_ManCoNum(p) );
+    sprintf( pFileNameOutVX, "data/%s_%d_%d.data", Gia_ManName(p), nSize[1], Gia_ManCiNum(p) );
+    sprintf( pFileNameOutVY, "data/%s_%d_%d.data", Gia_ManName(p), nSize[1], Gia_ManCoNum(p) );
+
+    Gia_ManRandomW( 1 );
+    for ( n = 0; n < 2; n++ )
+    {
+        int Res = Gia_ManSimulateWords( p, nSize[n] );
+
+        Vec_Bit_t * vBitX = Vec_BitAlloc( nSize[n] * Gia_ManCiNum(p) );
+        Vec_Bit_t * vBitY = Vec_BitAlloc( nSize[n] * Gia_ManCoNum(p) );
+
+        FILE * pFileOutX  = fopen( n ? pFileNameOutVX : pFileNameOutTX, "wb" );
+        FILE * pFileOutY  = fopen( n ? pFileNameOutVY : pFileNameOutTY, "wb" );
+
+        int i, k, Id, Num, Value, nBytes;
+        for ( k = 0; k < nSize[n]; k++ )
+        {
+            Gia_ManForEachCiId( p, Id, i )
+            {
+                Vec_BitPush( vBitX, Abc_TtGetBit(Gia_ManObjSim(p, Id), k) );
+                //printf( "%d", Abc_TtGetBit(Gia_ManObjSim(p, Id), k) );
+            }
+            //printf( " " );
+            Gia_ManForEachCoId( p, Id, i )
+            {
+                Vec_BitPush( vBitY, Abc_TtGetBit(Gia_ManObjSim(p, Id), k) );
+                //printf( "%d", Abc_TtGetBit(Gia_ManObjSim(p, Id), k) );
+            }
+            //printf( "\n" );
+        }
+        assert( Vec_BitSize(vBitX) <= Vec_BitCap(vBitX) );
+        assert( Vec_BitSize(vBitY) <= Vec_BitCap(vBitY) );
+
+        Num = 2;               Value = fwrite( &Num, 1, 4, pFileOutX ); assert( Value == 4 );
+        Num = nSize[n];        Value = fwrite( &Num, 1, 4, pFileOutX ); assert( Value == 4 );
+        Num = Gia_ManCiNum(p); Value = fwrite( &Num, 1, 4, pFileOutX ); assert( Value == 4 );
+
+        nBytes = nSize[n] * Gia_ManCiNum(p) / 8;
+        assert( nSize[n] * Gia_ManCiNum(p) % 8 == 0 );
+        Value = fwrite( Vec_BitArray(vBitX), 1, nBytes, pFileOutX );
+        assert( Value == nBytes );
+
+        Num = 2;               Value = fwrite( &Num, 1, 4, pFileOutY ); assert( Value == 4 );
+        Num = nSize[n];        Value = fwrite( &Num, 1, 4, pFileOutY ); assert( Value == 4 );
+        Num = Gia_ManCoNum(p); Value = fwrite( &Num, 1, 4, pFileOutY ); assert( Value == 4 );
+
+        nBytes = nSize[n] * Gia_ManCoNum(p) / 8;
+        assert( nSize[n] * Gia_ManCoNum(p) % 8 == 0 );
+        Value = fwrite( Vec_BitArray(vBitY), 1, nBytes, pFileOutY );
+        assert( Value == nBytes );
+
+        fclose( pFileOutX );
+        fclose( pFileOutY );
+
+        Vec_BitFree( vBitX );
+        Vec_BitFree( vBitY );
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
