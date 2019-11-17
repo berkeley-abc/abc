@@ -368,6 +368,7 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
     Ndr_Data_t * p = (Ndr_Data_t *)pData;  
     Wlc_Obj_t * pObj; Vec_Int_t * vName2Obj, * vFanins = Vec_IntAlloc( 100 );
     int Mod = 2, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax;
+    Vec_Wrd_t * vTruths = NULL;
     Wlc_Ntk_t * pTemp, * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, Mod)+1 );
     Wlc_NtkCheckIntegrity( pData );
     Vec_IntClear( &pNtk->vFfs );
@@ -412,6 +413,14 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         }
         if ( Type == ABC_OPER_DFFRSE )
             Vec_IntPush( &pNtk->vFfs2, iObj );
+        if ( Type == ABC_OPER_LUT )
+        {
+            if ( vTruths == NULL )
+                vTruths = Vec_WrdStart( 1000 );
+            if ( NameId >= Vec_WrdSize(vTruths) )
+                Vec_WrdFillExtra( vTruths, 2*NameId, 0 );
+            Vec_WrdWriteEntry( vTruths, NameId, *((word *)Ndr_ObjReadBodyP(p, Obj, NDR_FUNCTION)) );
+        }
         if ( Type == ABC_OPER_SLICE )
             Vec_IntPushTwo( vFanins, End, Beg );
         else if ( Type == ABC_OPER_CONST )
@@ -487,6 +496,22 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
     // derive topological order
     pNtk = Wlc_NtkDupDfs( pTemp = pNtk, 0, 1 );
     Wlc_NtkFree( pTemp );
+    // copy truth tables
+    if ( vTruths )
+    {
+        pNtk->vLutTruths = Vec_WrdStart( Wlc_NtkObjNumMax(pNtk) );
+        Wlc_NtkForEachObj( pNtk, pObj, i )
+        {
+            int iObj   = Wlc_ObjId(pNtk, pObj);
+            int NameId = Wlc_ObjNameId(pNtk, iObj);
+            word Truth = Vec_WrdEntry(vTruths, NameId);
+            if ( pObj->Type != WLC_OBJ_LUT || NameId == 0 )
+                continue;
+            assert( sizeof(void *) == 8 || Wlc_ObjFaninNum(pObj) < 6 );
+            Vec_WrdWriteEntry( pNtk->vLutTruths, iObj, Truth );
+        }
+        Vec_WrdFreeP( &vTruths );
+    }
     //Ndr_NtkPrintNodes( pNtk );
     pNtk->fMemPorts = 1;          // the network contains memory ports
     pNtk->fEasyFfs = 1;           // the network contains simple flops

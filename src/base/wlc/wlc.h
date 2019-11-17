@@ -160,6 +160,7 @@ struct Wlc_Ntk_t_
     Mem_Flex_t *           pMemFanin;
     Mem_Flex_t *           pMemTable;
     Vec_Ptr_t *            vTables;
+    Vec_Wrd_t *            vLutTruths;
     // object names
     Abc_Nam_t *            pManName;           // object names
     Vec_Int_t              vNameIds;           // object name IDs

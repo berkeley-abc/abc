@@ -211,6 +211,12 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             for ( k = 1; k < Wlc_ObjFaninNum(pObj); k++ )
                 fprintf( pFile, "%s, ", Wlc_ObjName(p, Wlc_ObjFaninId(pObj, k)) );
             fprintf( pFile, "%s)",             Wlc_ObjName(p, i) );
+            if ( p->vLutTruths )
+            {
+                word Truth = Vec_WrdEntry( p->vLutTruths, Wlc_ObjId(p, pObj) );
+                fprintf( pFile, " ; // TT = " );
+                Extra_PrintHex( pFile, (unsigned *)&Truth, Wlc_ObjFaninNum(pObj) );
+            }
         }
         else if ( pObj->Type == WLC_OBJ_CONST )
         {

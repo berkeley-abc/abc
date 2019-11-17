@@ -207,17 +207,25 @@ static inline void Ndr_DataPushArray( Ndr_Data_t * p, int Type, int nArray, int 
     memcpy( p->pBody + p->nSize, pArray, (size_t)4*nArray );
     p->nSize += nArray;
 }
-static inline void Ndr_DataPushString( Ndr_Data_t * p, int Type, char * pFunc )
+static inline void Ndr_DataPushString( Ndr_Data_t * p, int ObjType, int Type, char * pFunc )
 { 
     int nBuffInts;
     int * pBuff;
     if ( !pFunc )
         return;
-    nBuffInts = ((int)strlen(pFunc) + 4) / 4;
-    pBuff = (int *)calloc( 1, 4*nBuffInts );
-    memcpy( pBuff, pFunc, strlen(pFunc) );
-    Ndr_DataPushArray( p, Type, nBuffInts, pBuff );
-    free( pBuff );
+    if ( ObjType == ABC_OPER_LUT )
+    {
+        word Truth = (word)pFunc;
+        Ndr_DataPushArray( p, Type, 2, (int *)&Truth );
+    }
+    else
+    {
+        nBuffInts = ((int)strlen(pFunc) + 4) / 4;
+        pBuff = (int *)calloc( 1, 4*nBuffInts );
+        memcpy( pBuff, pFunc, strlen(pFunc) );
+        Ndr_DataPushArray( p, Type, nBuffInts, pBuff );
+        free( pBuff );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -554,7 +562,7 @@ static inline void Ndr_AddObject( void * pDesign, int ModuleId,
         Ndr_DataPush( p, NDR_NAME, InstName );
     Ndr_DataPushArray( p, NDR_INPUT, nInputs, pInputs );
     Ndr_DataPushArray( p, NDR_OUTPUT, nOutputs, pOutputs );
-    Ndr_DataPushString( p, NDR_FUNCTION, pFunction );
+    Ndr_DataPushString( p, ObjType, NDR_FUNCTION, pFunction );
     Ndr_DataAddTo( p, Obj, p->nSize - Obj );
     Ndr_DataAddTo( p, Mod, p->nSize - Obj );
     Ndr_DataAddTo( p, 0, p->nSize - Obj );
@@ -1085,6 +1093,35 @@ static inline void Ndr_ModuleTestAddSub()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,          0,   3, 0, 0,   1, &NameIdOut, 0, NULL,          NULL );
 
     Ndr_Write( "addsub.ndr", pDesign );
+    Ndr_Delete( pDesign );
+}
+
+// This testing procedure creates and writes into a Verilog file 
+// the following design composed of one lookup table with function of AND2
+
+// module lut_test ( input [1:0] in, output out );
+//     assign out = LUT #(TT=4'h8) lut_inst { in[0], in[1], out } ;
+// endmodule
+
+static inline void Ndr_ModuleTestLut()
+{
+    // map name IDs into char strings
+    //char * ppNames[12] = { NULL, "lut_test", "in", "out" };
+    // name IDs
+    int NameIdIn     =  2;
+    int NameIdOut    =  3;
+
+    // create a new module
+    void * pDesign = Ndr_Create( 1 );
+
+    int ModuleID = Ndr_AddModule( pDesign, 1 );
+
+    // add objects to the modele
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   1, 0, 0,   0, NULL,       1, &NameIdIn,     NULL );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_LUT,      0,   0, 0, 0,   1, &NameIdIn,  1, &NameIdOut,    (char *)(ABC_CONST(0x8)) );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   0, 0, 0,   1, &NameIdOut, 0, NULL,          NULL );
+
+    Ndr_Write( "lut_test.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 

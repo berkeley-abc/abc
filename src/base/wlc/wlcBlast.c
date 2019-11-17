@@ -718,6 +718,20 @@ void Wlc_BlastTable( Gia_Man_t * pNew, word * pTable, int * pFans, int nFans, in
     Vec_IntFree( vMemory );
     ABC_FREE( pTruth );
 }
+void Wlc_BlastLut( Gia_Man_t * pNew, word Truth, int * pFans, int nFans, int nOuts, Vec_Int_t * vRes )
+{
+    extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
+    Vec_Int_t * vMemory = Vec_IntAlloc( 0 );
+    Vec_Int_t vLeaves = { nFans, nFans, pFans };
+    int iLit;
+    Vec_IntClear( vRes );
+    assert( nOuts == 1 );
+    if ( nFans < 6 )
+        Truth = Abc_Tt6Stretch( Truth, nFans );
+    iLit = Kit_TruthToGia( pNew, (unsigned *)&Truth, nFans, vMemory, &vLeaves, 1 );
+    Vec_IntPush( vRes, iLit );
+    Vec_IntFree( vMemory );
+}
 void Wlc_BlastPower( Gia_Man_t * pNew, int * pNum, int nNum, int * pExp, int nExp, Vec_Int_t * vTemp, Vec_Int_t * vRes )
 {
     Vec_Int_t * vDegrees = Vec_IntAlloc( 2*nNum );
@@ -1852,6 +1866,8 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         }
         else if ( pObj->Type == WLC_OBJ_TABLE )
             Wlc_BlastTable( pNew, Wlc_ObjTable(p, pObj), pFans0, nRange0, nRange, vRes );
+        else if ( pObj->Type == WLC_OBJ_LUT && p->vLutTruths )
+            Wlc_BlastLut( pNew, Vec_WrdEntry(p->vLutTruths, Wlc_ObjId(p, pObj)), pFans0, nRange0, nRange, vRes );
         else assert( 0 );
         assert( Vec_IntSize(vBits) == Wlc_ObjCopy(p, i) );
         Vec_IntAppend( vBits, vRes );

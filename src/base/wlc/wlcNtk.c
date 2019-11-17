@@ -259,6 +259,7 @@ void Wlc_NtkFree( Wlc_Ntk_t * p )
         Mem_FlexStop( p->pMemTable, 0 );
     ABC_FREE( p->vPoPairs.pArray );
     Vec_PtrFreeP( &p->vTables );
+    Vec_WrdFreeP( &p->vLutTruths );
     ABC_FREE( p->vPis.pArray );
     ABC_FREE( p->vPos.pArray );
     ABC_FREE( p->vCis.pArray );
