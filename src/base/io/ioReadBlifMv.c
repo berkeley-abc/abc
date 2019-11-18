@@ -1420,8 +1420,8 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
 */
         if ( pName2 == NULL )
         {
-            Abc_Obj_t * pNode = Abc_NtkCreateNode( p->pNtk );
-            pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, " 0\n" );
+            Abc_Obj_t * pNode = Abc_NtkCreateNodeConst0( p->pNtk );
+            //pNode->pData = Abc_SopRegister( (Mem_Flex_t *)p->pNtk->pManFunc, " 0\n" );
             pNet = Abc_NtkFindOrCreateNet( p->pNtk, Abc_ObjNameSuffix(pNode, "abc") );
             Abc_ObjAddFanin( pNet, pNode );
             pTerm = Abc_NtkCreateBi( p->pNtk );
@@ -2268,12 +2268,25 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
     }
 
     // if this is the first line with gate, update the network type
-    if ( Abc_NtkNodeNum(p->pNtk) == 0 )
+    if ( Abc_NtkNodeNum(p->pNtk) == 0 && p->pNtk->ntkFunc == ABC_FUNC_SOP )
     {
         assert( p->pNtk->ntkFunc == ABC_FUNC_SOP );
         p->pNtk->ntkFunc = ABC_FUNC_MAP;
         Mem_FlexStop( (Mem_Flex_t *)p->pNtk->pManFunc, 0 );
         p->pNtk->pManFunc = pGenlib;
+        if ( p->pMan && p->pMan->pDesign && Vec_PtrSize(p->pMan->pDesign->vModules) > 0 )
+        {
+            Abc_Ntk_t * pModel; int k;
+            Vec_PtrForEachEntry( Abc_Ntk_t *, p->pMan->pDesign->vModules, pModel, k )
+            {
+                if ( pModel == p->pNtk )
+                    continue;
+                assert( pModel->ntkFunc == ABC_FUNC_SOP );
+                pModel->ntkFunc = ABC_FUNC_MAP;
+                Mem_FlexStop( (Mem_Flex_t *)pModel->pManFunc, 0 );
+                pModel->pManFunc = pGenlib;
+            }
+        }
     }
 
     // reorder the formal inputs to be in the same order as in the gate

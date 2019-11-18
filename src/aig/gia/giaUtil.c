@@ -2377,6 +2377,8 @@ void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV )
 
         Vec_BitFree( vBitX );
         Vec_BitFree( vBitY );
+
+        Res = 0;
     }
 }
 
