@@ -2517,7 +2517,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( pAbc->Out, "Empty network.\n" );
         return 0;
     }
-    if ( pNtk->pModel == NULL && pAbc->pCex == NULL )
+    if ( pNtk->pModel == NULL && pAbc->pCex == NULL && pAbc->vCexVec == NULL )
     {
         fprintf( pAbc->Out, "Counter-example is not available.\n" );
         return 0;
