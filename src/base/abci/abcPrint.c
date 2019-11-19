@@ -175,7 +175,7 @@ float Abc_NtkMfsTotalSwitching( Abc_Ntk_t * pNtk )
     // strash the network
     pNtkStr = Abc_NtkStrash( pNtk, 0, 1, 0 );
     Abc_NtkForEachObj( pNtk, pObjAbc, i )
-        if ( Abc_ObjRegular((Abc_Obj_t *)pObjAbc->pTemp)->Type == ABC_FUNC_NONE || (!Abc_ObjIsCi(pObjAbc) && !Abc_ObjIsNode(pObjAbc)) )
+        if ( pObjAbc->pTemp && Abc_ObjRegular((Abc_Obj_t *)pObjAbc->pTemp)->Type == ABC_FUNC_NONE || (!Abc_ObjIsCi(pObjAbc) && !Abc_ObjIsNode(pObjAbc)) )
             pObjAbc->pTemp = NULL;
     // map network into an AIG
     pAig = Abc_NtkToDar( pNtkStr, 0, (int)(Abc_NtkLatchNum(pNtk) > 0) );
