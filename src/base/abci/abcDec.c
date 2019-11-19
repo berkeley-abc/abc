@@ -439,6 +439,36 @@ Abc_TtStore_t * Abc_TtStoreLoad( char * pFileName, int nVarNum )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_TtStoreLoadSave( char * pFileName )
+{ 
+    Abc_TtStore_t * p;
+    char * pFileInput  = pFileName;
+    char * pFileOutput = Extra_FileNameGenericAppend(pFileName, "_binary.data");
+
+    // read info from file
+    p = Abc_TtStoreLoad( pFileInput, -1 );
+    if ( p == NULL )
+        return;
+
+    // write into another file
+    Abc_TtStoreWrite( pFileOutput, p, 1 );
+
+    // delete data-structure
+    Abc_TtStoreFree( p, -1 );
+    printf( "Input file \"%s\" was copied into output file \"%s\".\n", pFileInput, pFileOutput );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read truth tables from input file and write them into output file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_TtStoreTest( char * pFileName )
 { 
     Abc_TtStore_t * p;

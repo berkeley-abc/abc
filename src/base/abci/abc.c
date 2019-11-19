@@ -135,6 +135,7 @@ static int Abc_CommandMerge                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestDec                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestNpn                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestRPO                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTestTruth              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunEco                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunSim                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -838,6 +839,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "testdec",       Abc_CommandTestDec,          0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "testnpn",       Abc_CommandTestNpn,          0 );
     Cmd_CommandAdd( pAbc, "LogiCS",       "testrpo",       Abc_CommandTestRPO,          0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "testtruth",     Abc_CommandTestTruth,        0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "runeco",        Abc_CommandRunEco,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "rungen",        Abc_CommandRunGen,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "runsim",        Abc_CommandRunSim,           0 );
@@ -6917,6 +6919,53 @@ usage:
     Abc_Print(-2, "\t<file>   : a text file with truth tables in hexadecimal, listed one per line,\n");
     Abc_Print(-2, "\t           or a binary file with an array of truth tables (in this case,\n");
     Abc_Print(-2, "\t           -N <num> is required to determine how many functions are stored)\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTestTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int * Kit_TruthTest( char * pFileName );
+    int * pResult = NULL;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( 1,"Input file is not given.\n" );
+        return 0;
+    }
+    pResult = Kit_TruthTest( argv[globalUtilOptind] );
+    ABC_FREE( pResult );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: testtruth [-vh] <file>\n" );
+    Abc_Print( -2, "\t           printing truth table stats\n" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
