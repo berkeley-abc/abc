@@ -2562,7 +2562,7 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
             {
                 if ( pCex == NULL )
                     continue;
-                fprintf( pFile, "#\n# CEX for output number %d (%s)\n#\n", i, Abc_ObjName(Abc_NtkPo(pNtk, i)) ); 
+                fprintf( pFile, "#\n#\n# CEX for output %d\n#\n", i ); 
                 Abc_NtkDumpOneCex( pFile, pNtk, pCex, 
                     fPrintFull, fNames, fUseFfNames, fMinimize, fUseOldMin, 
                     fCheckCex, fUseSatBased, fHighEffort, fAiger, fVerbose );
