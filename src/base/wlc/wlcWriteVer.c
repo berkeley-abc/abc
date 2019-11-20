@@ -144,6 +144,16 @@ void Wlc_WriteVerIntVec( FILE * pFile, Wlc_Ntk_t * p, Vec_Int_t * vVec, int Star
         NameCounter++;
     }
 } 
+
+int Wlc_ObjFaninBitNum( Wlc_Ntk_t * p, Wlc_Obj_t * pObj )
+{
+    Wlc_Obj_t * pFanin;
+    int i, Count = 0;
+    Wlc_ObjForEachFaninObj( p, pObj, pFanin, i )
+        Count += Wlc_ObjRange(pFanin);
+    return Count;
+}
+
 void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
 {
     Wlc_Obj_t * pObj;
@@ -215,7 +225,7 @@ void Wlc_WriteVerInt( FILE * pFile, Wlc_Ntk_t * p, int fNoFlops )
             {
                 word Truth = Vec_WrdEntry( p->vLutTruths, Wlc_ObjId(p, pObj) );
                 fprintf( pFile, " ; // TT = " );
-                Extra_PrintHex( pFile, (unsigned *)&Truth, Wlc_ObjFaninNum(pObj) );
+                Extra_PrintHex( pFile, (unsigned *)&Truth, Wlc_ObjFaninBitNum(p, pObj) );
             }
         }
         else if ( pObj->Type == WLC_OBJ_CONST )
