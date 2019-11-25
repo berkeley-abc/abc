@@ -2819,15 +2819,26 @@ usage:
 ***********************************************************************/
 int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Abc_NtkDumpOneCexSpecial( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex );
     extern void Abc_NtkPrintPoEquivs( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, fOutStatus = 0, fShort = 1;
+    char * pLogFileName = NULL;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "osh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Losh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pLogFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'o':
             fOutStatus ^= 1;
             break;
@@ -2883,7 +2894,32 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->vStatuses )
     {
-        if ( fShort )
+        if ( pLogFileName )
+        {
+            Abc_Cex_t * pTemp = NULL;
+            FILE * pFile = fopen( pLogFileName, "wb" );
+            if ( pFile == NULL )
+            {
+                printf( "Cannot open file \"%s\" for writing.\n", pLogFileName );
+                return 0;
+            }
+            Vec_PtrForEachEntry( Abc_Cex_t *, pAbc->vCexVec, pTemp, c )
+            {
+                int Status = Vec_IntEntry( pAbc->vStatuses, c );
+                if ( Status == -1 ) // undec
+                    fprintf( pFile, "STATUS: ABORTED " );
+                else if ( Status == 0 )
+                    fprintf( pFile, "STATUS: SAT " );
+                else if ( Status == 1 )
+                    fprintf( pFile, "STATUS: UNSAT " );
+                fprintf( pFile, "%s\n", Abc_ObjName(Abc_NtkPo(pNtk, c)) );
+                if ( Status != 0 )
+                    continue;
+                Abc_NtkDumpOneCexSpecial( pFile, pNtk, pTemp );
+            }
+            fclose( pFile );
+        }
+        else if ( fShort )
         {
             printf( "Status array contains %d SAT, %d UNSAT, and %d UNDEC entries (out of %d).",
                 Vec_IntCountEntry(pAbc->vStatuses, 0), Vec_IntCountEntry(pAbc->vStatuses, 1),
@@ -2900,11 +2936,12 @@ int Abc_CommandPrintStatus( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_status [-osh]\n" );
-    Abc_Print( -2, "\t        prints verification status\n" );
-    Abc_Print( -2, "\t-o    : toggle printing output status [default = %s]\n", fOutStatus? "yes": "no" );
-    Abc_Print( -2, "\t-s    : toggle using short print-out [default = %s]\n", fShort? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: print_status [-L file] [-osh]\n" );
+    Abc_Print( -2, "\t          prints verification status\n" );
+    Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
+    Abc_Print( -2, "\t-o      : toggle printing output status [default = %s]\n", fOutStatus? "yes": "no" );
+    Abc_Print( -2, "\t-s      : toggle using short print-out [default = %s]\n", fShort? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
 

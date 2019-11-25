@@ -2326,6 +2326,32 @@ int Abc_NtkCheckSpecialPi( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_NtkDumpOneCexSpecial( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex )
+{
+    Abc_Cex_t * pCare = NULL; int i, f; Abc_Obj_t * pObj;
+    extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+    Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+    //fprintf( pFile, "# FALSIFYING OUTPUTS:");                                       
+    //fprintf( pFile, " %s", Abc_ObjName(Abc_NtkCo(pNtk, pCex->iPo)) ); 
+    pCare = Bmc_CexCareMinimize( pAig, Saig_ManPiNum(pAig), pCex, 4, 0, 0 );
+    Aig_ManStop( pAig );
+    if( pCare == NULL )   
+    {
+        printf( "Counter-example minimization has failed.\n" ); 
+        return;
+    }
+    // output flop values (unaffected by the minimization)
+    Abc_NtkForEachLatch( pNtk, pObj, i )
+        fprintf( pFile, "CEX: %s@0=%c\n", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+!Abc_LatchIsInit0(pObj) );
+    // output PI values (while skipping the minimized ones)
+    for ( f = 0; f <= pCex->iFrame; f++ )
+        Abc_NtkForEachPi( pNtk, pObj, i )
+            if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
+                fprintf( pFile, "CEX: %s@%d=%c\n", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+    Abc_CexFreeP( &pCare );
+}
+
+
 void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex, 
     int fPrintFull, int fNames, int fUseFfNames, int fMinimize, int fUseOldMin, 
     int fCheckCex, int fUseSatBased, int fHighEffort, int fAiger, int fVerbose )
