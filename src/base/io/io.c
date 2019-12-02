@@ -3309,14 +3309,18 @@ usage:
 int IoCommandWriteJson( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     extern void Json_Write( char * pFileName, Abc_Nam_t * pStr, Vec_Wec_t * vObjs );
+    extern void Json_Extract( char * pFileName, Abc_Nam_t * pStr, Vec_Wec_t * vObjs );
+    int c, fExtract = 0;
     char * pFileName;
-    int c;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'c':
+                fExtract ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -3330,15 +3334,17 @@ int IoCommandWriteJson( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
-    // get the output file name
     pFileName = argv[globalUtilOptind];
-    // call the corresponding file writer
-    Json_Write( pFileName, Abc_FrameReadJsonStrs(Abc_FrameReadGlobalFrame()), Abc_FrameReadJsonObjs(Abc_FrameReadGlobalFrame()) );
+    if ( fExtract )
+        Json_Extract( pFileName, Abc_FrameReadJsonStrs(Abc_FrameReadGlobalFrame()), Abc_FrameReadJsonObjs(Abc_FrameReadGlobalFrame()) );
+    else
+        Json_Write( pFileName, Abc_FrameReadJsonStrs(Abc_FrameReadGlobalFrame()), Abc_FrameReadJsonObjs(Abc_FrameReadGlobalFrame()) );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_json [-h] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_json [-ch] <file>\n" );
     fprintf( pAbc->Err, "\t         write the network in JSON format\n" );
+    fprintf( pAbc->Err, "\t-c     : output extracted version\n" );
     fprintf( pAbc->Err, "\t-h     : print the help message\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .json)\n" );
     return 1;
