@@ -289,6 +289,21 @@ void Json_Write( char * pFileName, Abc_Nam_t * pStr, Vec_Wec_t * vObjs )
   SeeAlso     []
 
 ***********************************************************************/
+char * Json_ReadPreprocess( char * pIn, int nFileSize )
+{
+    char * pOut = ABC_ALLOC( char, 3*nFileSize ); int i, k = 0;
+    for ( i = 0; i < nFileSize; i++ )
+        if ( pIn[i] == '{' || pIn[i] == '}' || pIn[i] == '[' || pIn[i] == ']' )
+        {
+            pOut[k++] = ' ';
+            pOut[k++] = pIn[i];
+            pOut[k++] = ' ';
+        }
+        else
+            pOut[k++] = pIn[i];
+    pOut[k++] = '\0';
+    return pOut;
+}
 Vec_Wec_t * Json_Read( char * pFileName, Abc_Nam_t ** ppStrs )
 {
     Abc_Nam_t * pStrs; 
@@ -310,6 +325,11 @@ Vec_Wec_t * Json_Read( char * pFileName, Abc_Nam_t ** ppStrs )
     RetValue = fread( pContents, nFileSize, 1, pFile );
     pContents[nFileSize] = 0;
     fclose( pFile );
+
+    pContents = Json_ReadPreprocess( pCur = pContents, nFileSize );
+    nFileSize = strlen(pContents);
+    ABC_FREE( pCur );
+    pCur = pContents;
 
     // start data-structures
     vObjs  = Vec_WecAlloc( 1000 );
