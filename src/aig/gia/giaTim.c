@@ -855,8 +855,17 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManCleanupRemap( p, pTemp );
     Gia_ManStop( pTemp );
-    assert( Tim_ManPoNum(pManTime) == Gia_ManCoNum(pNew) - nBBouts );
-    assert( Tim_ManPiNum(pManTime) == Gia_ManCiNum(pNew) - nBBins );
+/*
+    printf( "%d = %d - %d    Diff = %d\n", 
+        Tim_ManPoNum(pManTime),   Gia_ManCoNum(pNew),  nBBouts, 
+        Tim_ManPoNum(pManTime) - (Gia_ManCoNum(pNew) - nBBouts) );
+
+    printf( "%d = %d - %d    Diff = %d\n\n", 
+        Tim_ManPiNum(pManTime),   Gia_ManCiNum(pNew),  nBBins, 
+        Tim_ManPiNum(pManTime) - (Gia_ManCiNum(pNew) - nBBins) );
+*/
+    assert( vBoxPres != NULL || Tim_ManPoNum(pManTime) == Gia_ManCoNum(pNew) - nBBouts );
+    assert( vBoxPres != NULL || Tim_ManPiNum(pManTime) == Gia_ManCiNum(pNew) - nBBins );
     // implement initial state if given
     if ( fSeq && p->vRegInits && Vec_IntSum(p->vRegInits) )
     {
