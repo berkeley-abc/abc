@@ -596,6 +596,12 @@ Vec_Int_t * Acb_NtkCollectCopies( Acb_Ntk_t * p, Gia_Man_t * pGia, Vec_Ptr_t ** 
                 Vec_IntPush( vNodes, Abc_Lit2Var(iLit) );
             }
         }
+    // create POs
+    Gia_ManForEachCoId( pGia, iObj, i )
+    {
+        Vec_PtrWriteEntry( vNodesR, iObj, Abc_UtilStrsav(Acb_ObjNameStr(p, Acb_NtkCo(p, i))) );
+        Vec_IntPush( vNodes, iObj );
+    }
     Vec_IntFree( vObjs );
     Vec_IntSort( vNodes, 0 );
     *pvNodesR = vNodesR;
@@ -686,7 +692,7 @@ Vec_Int_t * Acb_NtkPlaces( char * pFileName, Vec_Ptr_t * vNames )
                 First = 0;
             else
             {
-                char * pToken = strtok( pTemp+1, "  \n\r\t" );
+                char * pToken = strtok( pTemp+1, "  \n\r\t," );
                 char * pName; int i;
                 Vec_PtrForEachEntry( char *, vNames, pName, i )
                     if ( !strcmp(pName, pToken) )
@@ -764,7 +770,7 @@ void Acb_NtkRunSim( char * pFileName[4], int nWords, int fOrder, int fVerbose )
     extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose );
     char * pFileNames[4] = { pFileName[2], pFileName[1], NULL, pFileName[2] };
     if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, fOrder, fVerbose ) )
-        Acb_NtkRunEco( pFileNames, 0, fVerbose );
+        Acb_NtkRunEco( pFileNames, 1, fVerbose );
 }
 
 
