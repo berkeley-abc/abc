@@ -7128,11 +7128,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkRunSim( char * pFileName[4], int nWords, int fOrder, int fVerbose );
+    extern void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fVerbose );
     char * pFileNames[4] = {NULL, NULL, "out.v", NULL};
-    int c, fOrder = 0, nWords = 1, fVerbose = 0;
+    int c, nWords = 4, nBeam = 4, LevL = 0, LevU = 0, fOrder = 0, fFancy = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Wovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WBLUofvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7147,8 +7147,44 @@ int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nWords < 0 )
                 goto usage;
             break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBeam = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBeam < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            LevL = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( LevL < 0 )
+                goto usage;
+            break;
+        case 'U':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-U\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            LevU = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( LevU < 0 )
+                goto usage;
+            break;
         case 'o':
             fOrder ^= 1;
+            break;
+        case 'f':
+            fFancy ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -7167,15 +7203,19 @@ int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ManRandom(1);
     for ( c = 0; c < argc - globalUtilOptind; c++ )
         pFileNames[c] = argv[globalUtilOptind+c];
-    Acb_NtkRunSim( pFileNames, nWords, fOrder, fVerbose );
+    Acb_NtkRunSim( pFileNames, nWords, nBeam, LevL, LevU, fOrder, fFancy, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: runsim [-W] [-ovh] [-N <num>] <file1> <file2> <file3>\n" );
+    Abc_Print( -2, "usage: runsim [-WBLU] [-ofvh] [-N <num>] <file1> <file2> <file3>\n" );
     Abc_Print( -2, "\t           experimental simulation command\n" );
     Abc_Print( -2, "\t-W <num> : the number of words of simulation info [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-B <num> : the beam width parameter [default = %d]\n", nBeam );
+    Abc_Print( -2, "\t-L <num> : the lower bound on level [default = %d]\n", LevL );
+    Abc_Print( -2, "\t-U <num> : the upper bound on level [default = %d]\n", LevU );
     Abc_Print( -2, "\t-o       : toggle using a different node ordering [default = %s]\n", fOrder? "yes": "no" );
-    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-f       : toggle using experimental feature [default = %s]\n",      fFancy? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }

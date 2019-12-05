@@ -888,6 +888,12 @@ Vec_Int_t * Acb_FindSupportStart( sat_solver * pSat, int iFirstDiv, Vec_Int_t * 
             //printf( "Selecting divisor %d with weight %d\n", i, Vec_IntEntry(vWeights, i) );
             fFound = 1;
         }
+        if ( fFound == 0 )
+        {
+            Vec_WrdFree( vPats );
+            Vec_IntFree( vSupp );
+            return NULL;
+        }
         assert( fFound );
         iPat++;
     }
@@ -1102,7 +1108,10 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
         else
             vSupp = Acb_FindSupportNext( pSat, iFirstDiv, vWeights, vPats, &nPats );
         if ( vSupp == NULL )
-            break;
+        {
+            Vec_IntFree( vSuppBest );
+            return NULL;
+        }
         //vSupp = Acb_FindSupportMin( pSat, iFirstDiv, vPats, &nPats, vTemp = vSupp );
         //Vec_IntFree( vTemp );
         if ( vSupp == NULL )
@@ -1241,6 +1250,7 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
             // find minimum subset
             if ( fUseMinAssump )
             {
+                int fUseSuppMin = 1;
                 // solve in a standard way
                 abctime clk = Abc_Clock();
                 nSuppNew = sat_solver_minimize_assumptions( pSat, Vec_IntArray(vSupp), Vec_IntSize(vSupp), 0 );
@@ -1250,20 +1260,25 @@ Vec_Int_t * Acb_DerivePatchSupport( Cnf_Dat_t * pCnf, int iTar, int nTargets, in
                 Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
                 // perform minimization
-                if ( Vec_IntSize(vSupp) > 0 )
+                if ( fUseSuppMin && Vec_IntSize(vSupp) > 0 )
                 {
                     abctime clk = Abc_Clock();
+                    Vec_Int_t * vSupp2 = Vec_IntDup( vSupp );
                     Vec_Int_t * vTemp, * vWeights = Acb_DeriveWeights( vDivs, pNtkF );
                     vSupp = Acb_FindSupport( pSat, iDivVar, vWeights, vTemp = vSupp, TimeOut );
                     Vec_IntFree( vWeights );
                     Vec_IntFree( vTemp );
                     if ( vSupp == NULL )
                     {
-                        printf( "Support minimization timed out after %d sec.\n", TimeOut );
-                        sat_solver_delete( pSat );
-                        return NULL;
+                        printf( "Support minimization did not succeed.  " );
+                        //sat_solver_delete( pSat );
+                        vSupp = vSupp2;
                     }
-                    printf( "Minimized support to %d supp vars.  ", Vec_IntSize(vSupp) );
+                    else
+                    {
+                        Vec_IntFree( vSupp2 );
+                        printf( "Minimized support to %d supp vars.  ", Vec_IntSize(vSupp) );
+                    }
                     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
                 }
             }
@@ -1504,6 +1519,17 @@ char * Acb_EnumerateSatAssigns( sat_solver * pSat, int PivotVar, int FreeVar, Ve
     {
         if ( iMint == 1000 )
         {
+            //if ( Vec_IntSize(vDivVars) == 0 )
+            {
+                printf( "Assuming constant 0 function.\n" );
+                Vec_StrClear( vTempSop );
+                Vec_StrPush( vTempSop, ' ' );
+                Vec_StrPush( vTempSop, '0' );
+                Vec_StrPush( vTempSop, '\n' );
+                Vec_StrPush( vTempSop, '\0' );
+                return Vec_StrReleaseArray(vTempSop);
+            }
+
             printf( "Reached the limit on the number of cubes (1000).\n" );
             Vec_IntFree( vTemp );
             Vec_IntFree( vLits );
@@ -2039,7 +2065,17 @@ Cnf_Dat_t * Acb_NtkDeriveMiterCnf( Gia_Man_t * p, int iTar, int nTars, int fVerb
     Cnf_Dat_t * pCnf; int v;
     for ( v = 0; v < iTar; v++ )
     {
+        Gia_Man_t * pTemp;
         pCof = Gia_ManDupUniv( p = pCof, Gia_ManCiNum(pCof) - nTars + v );
+        //pCof = Acb_NtkEcoSynthesize( pTemp = pCof );
+        //pCof = Gia_ManCompress2( pTemp = pCof, 1, 0 );
+        pCof = Gia_ManAigSyn2( pTemp = pCof, 0, 1, 0, 100, 0, 0, 0 );
+        Gia_ManStop( pTemp );
+        if ( Gia_ManAndNum(pCof) > 10000 )
+        {
+            printf( "Quantifying target %3d ", v );
+            Gia_ManPrintStats( pCof, NULL );
+        }
         assert( Gia_ManCiNum(pCof) == Gia_ManCiNum(p) );
         Gia_ManStop( p );
     }
