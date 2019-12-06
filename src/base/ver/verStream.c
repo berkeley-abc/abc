@@ -441,6 +441,24 @@ char * Ver_StreamGetWord( Ver_Stream_t * p, char * pCharsToStop )
     return NULL;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Ver_StreamMove( Ver_Stream_t * p )
+{
+    if ( !strncmp(p->pBufferCur+1, "z_g_", 4) )
+        while ( p->pBufferCur[0] != '(' )
+            p->pBufferCur++;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
