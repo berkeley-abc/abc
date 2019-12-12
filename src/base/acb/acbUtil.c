@@ -587,21 +587,23 @@ Vec_Int_t * Acb_NtkCollectCopies( Acb_Ntk_t * p, Gia_Man_t * pGia, Vec_Ptr_t ** 
     Vec_Int_t * vObjs   = Acb_NtkFindNodes2( p );
     Vec_Int_t * vNodes  = Vec_IntAlloc( Acb_NtkObjNum(p) );
     Vec_Ptr_t * vNodesR = Vec_PtrStart( Gia_ManObjNum(pGia) );
+    Vec_Bit_t * vDriver = Vec_BitStart( Acb_NtkObjNum(p) );
+    Gia_ManForEachCoId( pGia, iObj, i )
+    {
+        Vec_BitWriteEntry( vDriver, Gia_ObjFaninId0(Gia_ManObj(pGia, iObj), iObj), 1 );
+        Vec_PtrWriteEntry( vNodesR, iObj, Abc_UtilStrsav(Acb_ObjNameStr(p, Acb_NtkCo(p, i))) );
+        Vec_IntPush( vNodes, iObj );
+    }
     Vec_IntForEachEntry( vObjs, iObj, i )
         if ( (iLit = Acb_ObjCopy(p, iObj)) >= 0 && Gia_ObjIsAnd(Gia_ManObj(pGia, Abc_Lit2Var(iLit))) )
         {
-            if ( Vec_PtrEntry(vNodesR, Abc_Lit2Var(iLit)) == NULL )
+            if ( !Vec_BitEntry(vDriver, Abc_Lit2Var(iLit)) && Vec_PtrEntry(vNodesR, Abc_Lit2Var(iLit)) == NULL )
             {
                 Vec_PtrWriteEntry( vNodesR, Abc_Lit2Var(iLit), Abc_UtilStrsav(Acb_ObjNameStr(p, iObj)) );
                 Vec_IntPush( vNodes, Abc_Lit2Var(iLit) );
             }
         }
-    // create POs
-    Gia_ManForEachCoId( pGia, iObj, i )
-    {
-        Vec_PtrWriteEntry( vNodesR, iObj, Abc_UtilStrsav(Acb_ObjNameStr(p, Acb_NtkCo(p, i))) );
-        Vec_IntPush( vNodes, iObj );
-    }
+    Vec_BitFree( vDriver );
     Vec_IntFree( vObjs );
     Vec_IntSort( vNodes, 0 );
     *pvNodesR = vNodesR;
