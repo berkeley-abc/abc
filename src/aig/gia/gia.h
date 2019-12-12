@@ -1293,6 +1293,7 @@ extern Gia_Man_t *         Gia_ManDupFlopClass( Gia_Man_t * p, int iClass );
 extern Gia_Man_t *         Gia_ManDupMarked( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupTimes( Gia_Man_t * p, int nTimes );  
 extern Gia_Man_t *         Gia_ManDupDfs( Gia_Man_t * p );  
+extern Gia_Man_t *         Gia_ManDupDfsOnePo( Gia_Man_t * p, int iPo );
 extern Gia_Man_t *         Gia_ManDupCofactorVar( Gia_Man_t * p, int iVar, int Value );  
 extern Gia_Man_t *         Gia_ManDupCofactorObj( Gia_Man_t * p, int iObj, int Value );  
 extern Gia_Man_t *         Gia_ManDupMux( int iVar, Gia_Man_t * pCof1, Gia_Man_t * pCof0 );

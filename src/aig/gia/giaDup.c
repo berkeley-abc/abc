@@ -1556,6 +1556,30 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
         pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
     return pNew;
 }
+Gia_Man_t * Gia_ManDupDfsOnePo( Gia_Man_t * p, int iPo )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( iPo >= 0 && iPo < Gia_ManPoNum(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachCo( p, pObj, i )
+        if ( !Gia_ObjIsPo(p, pObj) || i == iPo )
+            Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( !Gia_ObjIsPo(p, pObj) || i == iPo )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
 
 /**Function*************************************************************
 

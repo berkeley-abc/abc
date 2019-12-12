@@ -45764,11 +45764,6 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 */
-    if ( Gia_ManPoNum(pAbc->pGia) > 1 )
-    {
-        Abc_Print( 1, "The network is more than one PO (run \"orpos\").\n" );
-        return 0;
-    }
     if ( pPars->nFramesMax < 0 )
     {
         Abc_Print( 1, "The number of starting frames should be a positive integer.\n" );
@@ -45779,14 +45774,42 @@ int Abc_CommandAbc9Gla( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "The starting frame is larger than the max number of frames.\n" );
         return 0;
     }
-    if ( fNewAlgo )
-        pAbc->Status = Gia_ManPerformGla( pAbc->pGia, pPars );
-    else
-        pAbc->Status  = Gia_ManPerformGlaOld( pAbc->pGia, pPars, 0 );
-    pAbc->nFrames = pPars->iFrame;
-    Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
-    if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&gla" );
+    if ( Gia_ManPoNum(pAbc->pGia) == 1 )
+    {
+        if ( fNewAlgo )
+            pAbc->Status = Gia_ManPerformGla( pAbc->pGia, pPars );
+        else
+            pAbc->Status  = Gia_ManPerformGlaOld( pAbc->pGia, pPars, 0 );
+        pAbc->nFrames = pPars->iFrame;
+        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+        if ( pLogFileName )
+            Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "&gla" );
+    }
+    else // iterate over outputs
+    {
+        Gia_Obj_t * pObj; int o, Status;
+        Vec_Ptr_t * vSeqModelVec = Vec_PtrStart( Gia_ManPoNum(pAbc->pGia) );
+        Vec_Int_t * vStatuses = Vec_IntAlloc( Gia_ManPoNum(pAbc->pGia) );
+        Gia_ManForEachPo( pAbc->pGia, pObj, o )
+        {
+            Gia_Man_t * pOne = Gia_ManDupDfsOnePo( pAbc->pGia, o );
+            if ( fNewAlgo )
+                Status = Gia_ManPerformGla( pOne, pPars );
+            else
+                Status = Gia_ManPerformGlaOld( pOne, pPars, 0 );
+            Vec_IntPush( vStatuses, Status );
+            if ( pLogFileName )
+                Abc_NtkWriteLogFile( pLogFileName, pOne->pCexSeq, Status, pPars->iFrame, "&gla" );
+            if ( pOne->pCexSeq )
+                Vec_PtrWriteEntry( vSeqModelVec, o, pOne->pCexSeq );
+            pOne->pCexSeq = NULL;
+            Gia_ManStop( pOne );
+        }
+        assert( Vec_IntSize(vStatuses) == Gia_ManPoNum(pAbc->pGia) );
+        Abc_FrameReplaceCexVec( pAbc, &vSeqModelVec );
+        Abc_FrameReplacePoStatuses( pAbc, &vStatuses );
+        pAbc->nFrames = -1;
+    }
     return 0;
 
 usage:
