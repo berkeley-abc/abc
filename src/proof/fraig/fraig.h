@@ -61,6 +61,7 @@ struct Fraig_ParamsStruct_t_
     int  fVerboseP;     // the verbosiness flag (for proof reporting)
     int  fInternal;     // is set to 1 for internal fraig calls
     int  nConfLimit;    // the limit on the number of conflicts
+    int approximate;    // if set to 1, run approximate fraig
     ABC_INT64_T nInspLimit;  // the limit on the number of inspections
 };
 

@@ -164,8 +164,8 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
     {
         // check the simulation hash table
         pNodeOld = Fraig_HashTableLookupF( pMan, pNodeNew );
-        if ( pNodeOld == NULL ) // the node is unique
-            return pNodeNew;
+        //if ( pNodeOld == NULL ) // the node is unique
+        return pNodeNew;
     }
     assert( pNodeOld->pRepr == 0 );
     // there is another node which looks the same according to simulation

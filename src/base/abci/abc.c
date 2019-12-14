@@ -15969,8 +15969,9 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fTryProve  =    0; // tries to solve the final miter
     pParams->fVerbose   =    0; // the verbosiness flag
     pParams->fVerboseP  =    0; // the verbosiness flag
+    pParams->approximate=    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "RDCrscptvaeh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "RDCrscptvaehx" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16031,6 +16032,9 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'e':
             fExdc ^= 1;
+            break;
+        case 'x':
+            pParams->approximate ^= 1;
             break;
         case 'h':
             goto usage;
