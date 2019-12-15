@@ -44897,10 +44897,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9DeepSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int TimeOut, int nAnds, int fVerbose );
-    Gia_Man_t * pTemp; int c, TimeOut = 0, nAnds = 0, fVerbose = 0;
+    extern Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int TimeOut, int nAnds, int Seed, int fVerbose );
+    Gia_Man_t * pTemp; int c, TimeOut = 0, nAnds = 0, Seed = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TAvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TASvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -44926,6 +44926,17 @@ int Abc_CommandAbc9DeepSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nAnds < 0 )
                 goto usage;
             break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -44940,15 +44951,16 @@ int Abc_CommandAbc9DeepSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9DeepSyn(): There is no AIG.\n" );
         return 0;
     }
-    pTemp = Gia_ManDeepSyn( pAbc->pGia, TimeOut, nAnds, fVerbose );
+    pTemp = Gia_ManDeepSyn( pAbc->pGia, TimeOut, nAnds, Seed, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &deepsyn [-TA <num>] [-vh]\n" );
+    Abc_Print( -2, "usage: &deepsyn [-TAS <num>] [-vh]\n" );
     Abc_Print( -2, "\t           performs synthesis\n" );
     Abc_Print( -2, "\t-T <num> : the timeout in seconds (0 = no timeout) [default = %d]\n",    TimeOut );
     Abc_Print( -2, "\t-A <num> : the number of nodes to stop (0 = no limit) [default = %d]\n", nAnds   );
+    Abc_Print( -2, "\t-S <num> : user-specified random seed (0 <= num <= 100) [default = %d]\n", Seed   );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",       fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

@@ -43,7 +43,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int TimeOut, int nAnds, int fVerbose )
+Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int TimeOut, int nAnds, int Seed, int fVerbose )
 {
     return NULL;
 }
