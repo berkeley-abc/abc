@@ -4795,6 +4795,10 @@ SOURCE=.\src\aig\gia\giaCut.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaDeep.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaDfs.c
 # End Source File
 # Begin Source File
