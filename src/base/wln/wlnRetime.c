@@ -476,7 +476,7 @@ void Wln_RetInsertOneFanout( Wln_Ret_t * p, int iObj, int iFlop )
     {
         if ( pLink[0] )
             pLink = Wln_RetHeadToTail( p, pLink );
-        assert( pLink[0] == 0 );
+        //assert( pLink[0] == 0 );
         pLink[0] = Vec_IntSize(&p->vEdgeLinks);
         Vec_IntPushTwo( &p->vEdgeLinks, 0, iFlop );
     }
