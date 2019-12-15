@@ -16111,6 +16111,7 @@ usage:
     Abc_Print( -2, "\t-e     : toggle functional sweeping using EXDC [default = %s]\n",       fExdc? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle between all nodes and DFS nodes [default = %s]\n",      fAllNodes? "all": "dfs" );
     Abc_Print( -2, "\t-t     : toggle using partitioned representation [default = %s]\n",     fPartition? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle doing approximations [default = %s]\n",     pParams->approximate? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

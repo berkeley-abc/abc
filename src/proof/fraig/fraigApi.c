@@ -209,9 +209,9 @@ void Fraig_ManSetPo( Fraig_Man_t * p, Fraig_Node_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
-Fraig_Node_t * Fraig_NodeAnd( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2 )
+Fraig_Node_t * Fraig_NodeAnd( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2, int enable_approximation )
 {
-    return Fraig_NodeAndCanon( p, p1, p2 );
+    return Fraig_NodeAndCanon( p, p1, p2, enable_approximation );
 }
 
 /**Function*************************************************************
@@ -227,7 +227,7 @@ Fraig_Node_t * Fraig_NodeAnd( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t *
 ***********************************************************************/
 Fraig_Node_t * Fraig_NodeOr( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2 )
 {
-    return Fraig_Not( Fraig_NodeAndCanon( p, Fraig_Not(p1), Fraig_Not(p2) ) );
+    return Fraig_Not( Fraig_NodeAndCanon( p, Fraig_Not(p1), Fraig_Not(p2), 0 ) );
 }
 
 /**Function*************************************************************
@@ -260,8 +260,8 @@ Fraig_Node_t * Fraig_NodeExor( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t 
 Fraig_Node_t * Fraig_NodeMux( Fraig_Man_t * p, Fraig_Node_t * pC, Fraig_Node_t * pT, Fraig_Node_t * pE )
 {
     Fraig_Node_t * pAnd1, * pAnd2, * pRes;
-    pAnd1 = Fraig_NodeAndCanon( p, pC,          pT );     Fraig_Ref( pAnd1 );
-    pAnd2 = Fraig_NodeAndCanon( p, Fraig_Not(pC), pE );   Fraig_Ref( pAnd2 );
+    pAnd1 = Fraig_NodeAndCanon( p, pC,          pT, 0 );     Fraig_Ref( pAnd1 );
+    pAnd2 = Fraig_NodeAndCanon( p, Fraig_Not(pC), pE, 0 );   Fraig_Ref( pAnd2 );
     pRes  = Fraig_NodeOr( p, pAnd1, pAnd2 ); 
     Fraig_RecursiveDeref( p, pAnd1 );
     Fraig_RecursiveDeref( p, pAnd2 );

@@ -49,7 +49,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_Node_t * p2 )
+Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_Node_t * p2, int enable_approximation )
 {
     Fraig_Node_t * pNodeNew, * pNodeOld, * pNodeRepr;
     int fUseSatCheck;
@@ -164,7 +164,7 @@ Fraig_Node_t * Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_
     {
         // check the simulation hash table
         pNodeOld = Fraig_HashTableLookupF( pMan, pNodeNew );
-        //if ( pNodeOld == NULL ) // the node is unique
+        if ( pNodeOld == NULL || enable_approximation == 1 ) // the node is unique
         return pNodeNew;
     }
     assert( pNodeOld->pRepr == 0 );

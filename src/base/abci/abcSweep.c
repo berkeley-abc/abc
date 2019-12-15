@@ -170,7 +170,7 @@ void Abc_NtkFraigSweepUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
         // get the FRAIG node
         gNode = Fraig_NotCond( Abc_ObjRegular(pNodeAig)->pCopy, (int)Abc_ObjIsComplement(pNodeAig) );
         // perform ANDing with EXDC
-        gNodeRes = Fraig_NodeAnd( pMan, gNode, Fraig_Not(gNodeExdc) );
+        gNodeRes = Fraig_NodeAnd( pMan, gNode, Fraig_Not(gNodeExdc),0 );
         // write the node back
         Abc_ObjRegular(pNodeAig)->pCopy = (Abc_Obj_t *)Fraig_NotCond( gNodeRes, (int)Abc_ObjIsComplement(pNodeAig) );
     }

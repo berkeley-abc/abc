@@ -182,7 +182,7 @@ extern int                 Fraig_NodeIsAnd( Fraig_Node_t * p );
 extern int                 Fraig_NodeComparePhase( Fraig_Node_t * p1, Fraig_Node_t * p2 );
 
 extern Fraig_Node_t *      Fraig_NodeOr( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2 );
-extern Fraig_Node_t *      Fraig_NodeAnd( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2 );
+extern Fraig_Node_t *      Fraig_NodeAnd( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2, int enable_approximation );
 extern Fraig_Node_t *      Fraig_NodeOr( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2 );
 extern Fraig_Node_t *      Fraig_NodeExor( Fraig_Man_t * p, Fraig_Node_t * p1, Fraig_Node_t * p2 );
 extern Fraig_Node_t *      Fraig_NodeMux( Fraig_Man_t * p, Fraig_Node_t * pNode, Fraig_Node_t * pNodeT, Fraig_Node_t * pNodeE );
