@@ -7072,7 +7072,13 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
             fPlaceEnable ^= 1;
             break;
         case 'a':
-            fApproximationEnable ^= 1;
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-a\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            fApproximationEnable = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'h':
             goto usage;
