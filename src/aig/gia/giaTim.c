@@ -732,6 +732,49 @@ Gia_Man_t * Gia_ManUpdateExtraAig2( void * pTime, Gia_Man_t * p, Vec_Int_t * vBo
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates AIG while moving the last CIs to be after PIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupMoveLast( Gia_Man_t * p, int iInsert, int nItems )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        if ( i < iInsert )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachCi( p, pObj, i )
+        if ( i >= Gia_ManCiNum(p) - nItems )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachCi( p, pObj, i )
+        if ( i >= iInsert && i < Gia_ManCiNum(p) - nItems )
+            pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsCi(pObj) )
+            continue;
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else assert( 0 );
+    }
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes AIG with boxes.]
 
   Description []
@@ -762,7 +805,7 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     Tim_Man_t * pManTime = (Tim_Man_t *)p->pManTime;
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pObjBox;
-    int i, k, curCi, curCo, nBBins = 0, nBBouts = 0;
+    int i, k, curCi, curCo, nBBins = 0, nBBouts = 0, nNewPis = 0;
     assert( !fSeq || p->vRegClasses );
     //assert( Gia_ManRegNum(p) == 0 );
     assert( Gia_ManCiNum(p) == Tim_ManPiNum(pManTime) + Gia_ManCoNum(pBoxes) );
@@ -810,6 +853,7 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
                 pObj->Value = fSkip ? 0 : Gia_ManAppendCi(pNew);
                 Gia_ObjSetTravIdCurrent( p, pObj );
                 nBBins++;
+                nNewPis += !fSkip;
             }
         }
         else
@@ -855,6 +899,12 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManCleanupRemap( p, pTemp );
     Gia_ManStop( pTemp );
+    if ( nNewPis )
+    {
+        pNew = Gia_ManDupMoveLast( pTemp = pNew, Tim_ManPiNum(pManTime)-Gia_ManRegNum(pNew), nNewPis );
+        Gia_ManCleanupRemap( p, pTemp );
+        Gia_ManStop( pTemp );
+    }
 /*
     printf( "%d = %d - %d    Diff = %d\n", 
         Tim_ManPoNum(pManTime),   Gia_ManCoNum(pNew),  nBBouts, 
