@@ -101,11 +101,11 @@ clk = Abc_Clock();
         if (fApproximationEnable == 0)
             uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
         else if (fApproximationEnable == 1)
-            uTruth = 0xFFF0 & *Cut_CutReadTruth(pCut);
+            uTruth = 0xFFFE & *Cut_CutReadTruth(pCut);
         else if (fApproximationEnable == 2)
-            uTruth = 0xFF00 & *Cut_CutReadTruth(pCut);
+            uTruth = 0xFFFC & *Cut_CutReadTruth(pCut);
         else
-            uTruth = 0xF000 & *Cut_CutReadTruth(pCut);
+            uTruth = 0xFFF8 & *Cut_CutReadTruth(pCut);
 
         pPerm = p->pPerms4[ (int)p->pPerms[uTruth] ];
         uPhase = p->pPhases[uTruth];
