@@ -633,6 +633,8 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
             }
             else if ( If_ObjIsConst1(pObj) )
             {
+                arrTime = -IF_INFINITY;
+                If_ObjSetArrTime( pObj, arrTime );
             }
             else
                 assert( 0 );
