@@ -371,6 +371,9 @@ static int Abc_CommandIso                    ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTraceStart             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTraceCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandAbcSave                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbcLoad                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandAbc9Get                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Put                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Save               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1072,6 +1075,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "dualrail",      Abc_CommandDualRail,         1 );
     Cmd_CommandAdd( pAbc, "Verification", "blockpo",       Abc_CommandBlockPo,          1 );
     Cmd_CommandAdd( pAbc, "Verification", "iso",           Abc_CommandIso,              1 );
+
+    Cmd_CommandAdd( pAbc, "Various",      "save",          Abc_CommandAbcSave,          0 );
+    Cmd_CommandAdd( pAbc, "Various",      "load",          Abc_CommandAbcLoad,          0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&get",          Abc_CommandAbc9Get,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&put",          Abc_CommandAbc9Put,          0 );
@@ -29477,6 +29483,145 @@ usage:
     return 1;
 }
 
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compares to versions of the design and finds the best.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_NtkCompareWithBest( Abc_Ntk_t * pBest, Abc_Ntk_t * p, 
+    float * pnBestNtkArea,  float * pnBestNtkDelay, 
+    int *   pnBestNtkNodes, int *   pnBestNtkLevels, int fArea )
+{ 
+    float nNtkArea   = (float)Abc_NtkGetMappedArea(p);
+    float nNtkDelay  = (float)Abc_NtkDelayTrace(p, NULL, NULL, 0);
+    int   nNtkNodes  = Abc_NtkNodeNum(p);
+    int   nNtkLevels = Abc_NtkLevel(p);
+
+    if ( pBest == NULL ||
+         Abc_NtkPiNum(pBest)    != Abc_NtkPiNum(p)    ||
+         Abc_NtkPoNum(pBest)    != Abc_NtkPoNum(p)    ||
+         Abc_NtkLatchNum(pBest) != Abc_NtkLatchNum(p) ||
+         strcmp(Abc_NtkName(pBest), Abc_NtkName(p))   ||
+         (!fArea && (*pnBestNtkLevels > nNtkLevels || (*pnBestNtkLevels == nNtkLevels && *pnBestNtkDelay > nNtkDelay ))) ||
+         ( fArea && (*pnBestNtkNodes  > nNtkNodes  || (*pnBestNtkNodes  == nNtkNodes  && *pnBestNtkArea  > nNtkArea  )))
+       )
+    {
+        *pnBestNtkArea   = nNtkArea;
+        *pnBestNtkDelay  = nNtkDelay; 
+        *pnBestNtkNodes  = nNtkNodes;
+        *pnBestNtkLevels = nNtkLevels;
+        printf( "\nUpdating the best network (Area = %10.2f  Delay = %10.2f  Nodes = %6d  Level = %6d).\n\n", 
+            nNtkArea, nNtkDelay, nNtkNodes, nNtkLevels );
+        return 1;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbcSave( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fArea = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'a':
+            fArea ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(pAbc->pNtkCur) )
+    {
+        Abc_Print( -1, "Network has no mapping.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkCompareWithBest( pAbc->pNtkBest, pAbc->pNtkCur, 
+             &pAbc->nBestNtkArea,  &pAbc->nBestNtkDelay, 
+             &pAbc->nBestNtkNodes, &pAbc->nBestNtkLevels, fArea ) )
+        return 0;
+    // save the design as best
+    if ( pAbc->pNtkBest ) Abc_NtkDelete( pAbc->pNtkBest );
+    pAbc->pNtkBest = Abc_NtkDup(pAbc->pNtkCur);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: save [-ah]\n" );
+    Abc_Print( -2, "\t        compares and possibly saves network with mapping\n" );
+    Abc_Print( -2, "\t-a    : toggle using area as the primary metric [default = %s]\n", fArea? "yes": "no" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbcLoad( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    // restore from best
+    if ( pAbc->pNtkBest == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbcLoad(): There is no best design saved.\n" );
+        return 1;
+    }
+    if ( pAbc->pNtkCur ) Abc_NtkDelete( pAbc->pNtkCur );
+    pAbc->pNtkCur = Abc_NtkDup(pAbc->pNtkBest);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: load [-h]\n" );
+    Abc_Print( -2, "\t        loads mapped network previously saved by \"save\"\n" );
+    Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
 
 /**Function*************************************************************
 

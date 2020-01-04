@@ -76,6 +76,13 @@ struct Abc_Frame_t_
     int             fAutoexac;     // marks the autoexec mode
     int             fBatchMode;    // batch mode flag
     int             fBridgeMode;   // bridge mode flag
+    // save/load
+    Abc_Ntk_t *     pNtkBest;        // the current network
+    float           nBestNtkArea;   // best area
+    float           nBestNtkDelay;  // best delay
+    int             nBestNtkNodes;  // best nodes
+    int             nBestNtkLevels; // best levels
+
     // output streams
     FILE *          Out;
     FILE *          Err;
