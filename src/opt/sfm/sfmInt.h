@@ -81,6 +81,8 @@ struct Sfm_Ntk_t_
     Vec_Str_t *       vEmpty;      // transparent objects
     Vec_Wrd_t *       vTruths;     // truth tables
     Vec_Wec_t         vFanins;     // fanins
+    Vec_Int_t *       vStarts;     // offsets
+    Vec_Wrd_t *       vTruths2;    // truth tables (large)
     // attributes
     Vec_Wec_t         vFanouts;    // fanouts
     Vec_Int_t         vLevels;     // logic level
@@ -195,7 +197,7 @@ extern void        Kit_DsdPrintFromTruth( unsigned * pTruth, int nVars );
 
 /*=== sfmCnf.c ==========================================================*/
 extern void         Sfm_PrintCnf( Vec_Str_t * vCnf );
-extern int          Sfm_TruthToCnf( word Truth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf );
+extern int          Sfm_TruthToCnf( word Truth, word * pTruth, int nVars, Vec_Int_t * vCover, Vec_Str_t * vCnf );
 extern Vec_Wec_t *  Sfm_CreateCnf( Sfm_Ntk_t * p );
 extern void         Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap, int iPivotVar );
 /*=== sfmCore.c ==========================================================*/

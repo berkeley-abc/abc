@@ -167,6 +167,7 @@ word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
     sat_solver_setnvars( p->pSat, nVars + 1 );
     pLits[0] = Abc_Var2Lit( Sfm_ObjSatVar(p, p->iPivotNode), 0 ); // F = 1
     pLits[1] = Abc_Var2Lit( nVars, 0 ); // iNewLit
+    assert( Vec_IntSize(p->vDivIds) <= 6 );
     while ( 1 ) 
     {
         // find onset minterm

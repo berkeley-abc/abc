@@ -44822,9 +44822,9 @@ int Abc_CommandAbc9Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Mfs(): The current AIG has no mapping.\n" );
         return 0;
     }
-    if ( Gia_ManLutSizeMax(pAbc->pGia) > 6 )
+    if ( Gia_ManLutSizeMax(pAbc->pGia) > 15 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Mfs(): The current mapping has nodes with more than 6 inputs. Cannot use \"mfs\".\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Mfs(): The current mapping has nodes with more than 15 inputs. Cannot use \"mfs\".\n" );
         return 0;
     }
 /*

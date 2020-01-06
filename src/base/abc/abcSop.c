@@ -457,12 +457,21 @@ char * Abc_SopCreateFromIsop( Mem_Flex_t * pMan, int nVars, Vec_Int_t * vCover )
 char * Abc_SopCreateFromTruthIsop( Mem_Flex_t * pMan, int nVars, word * pTruth, Vec_Int_t * vCover )
 {
     char * pSop = NULL;
-    assert( nVars <= 6 );
-    if ( pTruth[0] == 0 )
-        pSop = Abc_SopRegister( pMan, " 0\n" );
-    else if ( ~pTruth[0] == 0 )
-        pSop = Abc_SopRegister( pMan, " 1\n" );
-    else
+    int w, nWords  = Abc_Truth6WordNum( nVars );
+    assert( nVars < 16 );
+
+    for ( w = 0; w < nWords; w++ )
+        if ( pTruth[w] )
+            break;
+    if ( w == nWords )
+        return Abc_SopRegister( pMan, " 0\n" );
+
+    for ( w = 0; w < nWords; w++ )
+        if ( ~pTruth[w] )
+            break;
+    if ( w == nWords )
+        return Abc_SopRegister( pMan, " 1\n" );
+
     {
         int RetValue = Kit_TruthIsop( (unsigned *)pTruth, nVars, vCover, 1 );
         assert( nVars > 0 );

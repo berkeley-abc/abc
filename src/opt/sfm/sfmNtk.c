@@ -164,7 +164,7 @@ void Sfm_CreateLevelR( Vec_Wec_t * vFanouts, Vec_Int_t * vLevelsR, Vec_Str_t * v
   SeeAlso     []
 
 ***********************************************************************/
-Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * vFixed, Vec_Str_t * vEmpty, Vec_Wrd_t * vTruths )
+Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t * vFixed, Vec_Str_t * vEmpty, Vec_Wrd_t * vTruths, Vec_Int_t * vStarts, Vec_Wrd_t * vTruths2 )
 {
     Sfm_Ntk_t * p;
     Sfm_CheckConsistency( vFanins, nPis, nPos, vFixed );
@@ -178,6 +178,8 @@ Sfm_Ntk_t * Sfm_NtkConstruct( Vec_Wec_t * vFanins, int nPis, int nPos, Vec_Str_t
     p->vEmpty   = vEmpty;
     p->vTruths  = vTruths;
     p->vFanins  = *vFanins;
+    p->vStarts  = vStarts;
+    p->vTruths2 = vTruths2;
     ABC_FREE( vFanins );
     // attributes
     Sfm_CreateFanout( &p->vFanins, &p->vFanouts );
@@ -217,6 +219,8 @@ void Sfm_NtkFree( Sfm_Ntk_t * p )
     Vec_StrFreeP( &p->vEmpty );
     Vec_WrdFree( p->vTruths );
     Vec_WecErase( &p->vFanins );
+    Vec_IntFree( p->vStarts );
+    Vec_WrdFree( p->vTruths2 );
     // attributes
     Vec_WecErase( &p->vFanouts );
     ABC_FREE( p->vLevels.pArray );
@@ -316,6 +320,7 @@ void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth 
     int iFanin = Sfm_ObjFanin( p, iNode, f );
     assert( Sfm_ObjIsNode(p, iNode) );
     assert( iFanin != iFaninNew );
+    assert( Sfm_ObjFaninNum(p, iNode) <= 6 );
     if ( uTruth == 0 || ~uTruth == 0 )
     {
         Sfm_ObjForEachFanin( p, iNode, iFanin, f )
@@ -341,7 +346,7 @@ void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth 
         Sfm_NtkUpdateLevelR_rec( p, iFanin );
     // update truth table
     Vec_WrdWriteEntry( p->vTruths, iNode, uTruth );
-    Sfm_TruthToCnf( uTruth, Sfm_ObjFaninNum(p, iNode), p->vCover, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode) );
+    Sfm_TruthToCnf( uTruth, NULL, Sfm_ObjFaninNum(p, iNode), p->vCover, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode) );
 }
 
 /**Function*************************************************************
@@ -361,7 +366,7 @@ Vec_Int_t *  Sfm_NodeReadFanins( Sfm_Ntk_t * p, int i )
 }
 word * Sfm_NodeReadTruth( Sfm_Ntk_t * p, int i )
 {
-    return Vec_WrdEntryP( p->vTruths, i );
+    return Sfm_ObjFaninNum(p, i) <= 6 ? Vec_WrdEntryP( p->vTruths, i ) : Vec_WrdEntryP( p->vTruths2, Vec_IntEntry(p->vStarts, i) );
 }
 int Sfm_NodeReadFixed( Sfm_Ntk_t * p, int i )
 {
