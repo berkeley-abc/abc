@@ -258,7 +258,7 @@ void Lpk_TryDec( word * pTruth, int nVars )
 {
     extern word If_Dec6Perform( word t, int fDerive );
     extern void If_Dec6Verify( word t, word z );
-    int nWords = Abc_Truth6WordNum( nVars );
+    //int nWords = Abc_Truth6WordNum( nVars );
     assert( nVars == 8 );
     printf( "%d", If_Dec6Perform(pTruth[0], 1) > 0 );
     printf( "%d", If_Dec6Perform(pTruth[1], 1) > 0 );

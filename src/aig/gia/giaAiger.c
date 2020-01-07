@@ -794,6 +794,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
     if ( !fGiaSimple && !fSkipStrash && Gia_ManHasDangling(pNew) )
     {
         Tim_Man_t * pManTime;
+        Gia_Man_t * pAigExtra;
         Vec_Int_t * vFlopMap, * vGateMap, * vObjMap, * vRegClasses, * vRegInits;
         vRegClasses = pNew->vRegClasses;  pNew->vRegClasses    = NULL;
         vRegInits   = pNew->vRegInits;    pNew->vRegInits      = NULL;
@@ -801,6 +802,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
         vGateMap    = pNew->vGateClasses; pNew->vGateClasses   = NULL;
         vObjMap     = pNew->vObjClasses;  pNew->vObjClasses    = NULL;
         pManTime = (Tim_Man_t *)pNew->pManTime; pNew->pManTime = NULL;
+        pAigExtra   = pNew->pAigExtra;    pNew->pAigExtra      = NULL;
         pNew = Gia_ManCleanup( pTemp = pNew );
         if ( (vGateMap || vObjMap) && (Gia_ManObjNum(pNew) < Gia_ManObjNum(pTemp)) )
             printf( "Cleanup removed objects after reading. Old gate/object abstraction maps are invalid!\n" );
@@ -811,6 +813,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
         pNew->vGateClasses = vGateMap;
         pNew->vObjClasses  = vObjMap;
         pNew->pManTime     = pManTime;
+        pNew->pAigExtra    = pAigExtra;
     }
 
     if ( fHieOnly )
