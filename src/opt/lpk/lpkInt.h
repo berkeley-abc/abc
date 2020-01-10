@@ -44,8 +44,8 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define LPK_SIZE_MAX             24     // the largest size of the function
-#define LPK_CUTS_MAX            512     // the largest number of cuts considered
+#define LPK_SIZE_MAX            100    // the largest size of the function
+#define LPK_CUTS_MAX          10000    // the largest number of cuts considered
 
 typedef struct Lpk_Man_t_ Lpk_Man_t;
 typedef struct Lpk_Cut_t_ Lpk_Cut_t;
@@ -93,6 +93,7 @@ struct Lpk_Man_t_
     int          pRefs[LPK_SIZE_MAX];   // fanin reference counters 
     int          pCands[LPK_SIZE_MAX];  // internal nodes pointing only to the leaves
     Vec_Ptr_t *  vLeaves;
+    Vec_Ptr_t *  vTemp;
     // truth table representation
     Vec_Ptr_t *  vTtElems;              // elementary truth tables
     Vec_Ptr_t *  vTtNodes;              // storage for temporary truth tables of the nodes 

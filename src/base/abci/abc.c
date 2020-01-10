@@ -4898,7 +4898,7 @@ int Abc_CommandLutpack( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->nLutsMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nLutsMax < 2 || pPars->nLutsMax > 8 )
+            if ( pPars->nLutsMax < 2 || pPars->nLutsMax > 16 )
                 goto usage;
             break;
         case 'Q':
@@ -4988,7 +4988,7 @@ usage:
     Abc_Print( -2, "\t           performs \"rewriting\" for LUT network;\n" );
     Abc_Print( -2, "\t           determines LUT size as the max fanin count of a node;\n" );
     Abc_Print( -2, "\t           if the network is not LUT-mapped, packs it into 6-LUTs\n" );
-    Abc_Print( -2, "\t           (there is another command for resynthesis after LUT mapping, \"imfs\")\n" );
+    Abc_Print( -2, "\t           (there is another command for resynthesis after LUT mapping, \"mfs2\")\n" );
     Abc_Print( -2, "\t-N <num> : the max number of LUTs in the structure (2 <= num) [default = %d]\n", pPars->nLutsMax );
     Abc_Print( -2, "\t-Q <num> : the max number of LUTs not in MFFC (0 <= num) [default = %d]\n", pPars->nLutsOver );
     Abc_Print( -2, "\t-S <num> : the max number of LUT inputs shared (0 <= num <= 3) [default = %d]\n", pPars->nVarsShared );

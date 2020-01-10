@@ -870,7 +870,7 @@ extern ABC_DLL int                Abc_NodeMffcSize( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeMffcSizeSupp( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeMffcSizeStop( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeMffcLabelAig( Abc_Obj_t * pNode );
-extern ABC_DLL int                Abc_NodeMffcLabel( Abc_Obj_t * pNode );
+extern ABC_DLL int                Abc_NodeMffcLabel( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern ABC_DLL void               Abc_NodeMffcConeSupp( Abc_Obj_t * pNode, Vec_Ptr_t * vCone, Vec_Ptr_t * vSupp );
 extern ABC_DLL int                Abc_NodeDeref_rec( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeRef_rec( Abc_Obj_t * pNode );
