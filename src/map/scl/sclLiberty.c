@@ -29,7 +29,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_MAX_LIB_STR_LEN 5000
+// #define ABC_MAX_LIB_STR_LEN 5000
 
 // entry types
 typedef enum { 
@@ -70,6 +70,7 @@ struct Scl_Tree_t_
     Scl_Item_t *    pItems;       // the items
     char *          pError;       // the error string
     abctime         clkStart;     // beginning time
+    Vec_Str_t *     vBuffer;      // temp string buffer
 };
 
 static inline Scl_Item_t *  Scl_LibertyRoot( Scl_Tree_t * p )                                      { return p->pItems;                                                 }
@@ -340,8 +341,11 @@ static inline Scl_Item_t * Scl_LibertyNewItem( Scl_Tree_t * p, int Type )
 ***********************************************************************/
 char * Scl_LibertyReadString( Scl_Tree_t * p, Scl_Pair_t Pair )   
 { 
-    static char Buffer[ABC_MAX_LIB_STR_LEN]; 
-    assert( Pair.End-Pair.Beg < ABC_MAX_LIB_STR_LEN );
+    // static char Buffer[ABC_MAX_LIB_STR_LEN]; 
+    char * Buffer;
+    if ( Pair.End - Pair.Beg + 2 > Vec_StrSize(p->vBuffer) )
+        Vec_StrFill( p->vBuffer, Pair.End - Pair.Beg + 100, '\0' );
+    Buffer = Vec_StrArray( p->vBuffer );
     strncpy( Buffer, p->pContents+Pair.Beg, Pair.End-Pair.Beg ); 
     if ( Pair.Beg < Pair.End && Buffer[0] == '\"' )
     {
@@ -572,6 +576,7 @@ Scl_Tree_t * Scl_LibertyStart( char * pFileName )
     p->pItems = ABC_CALLOC( Scl_Item_t, p->nItermAlloc );
     p->nItems = 0;
     p->nLines = 1;
+    p->vBuffer = Vec_StrStart( 10 );
     return p;
 }
 void Scl_LibertyStop( Scl_Tree_t * p, int fVerbose )
@@ -581,6 +586,7 @@ void Scl_LibertyStop( Scl_Tree_t * p, int fVerbose )
         printf( "Memory = %7.2f MB. ", 1.0 * (p->nContents + p->nItermAlloc * sizeof(Scl_Item_t))/(1<<20) );
         ABC_PRT( "Time", Abc_Clock() - p->clkStart );
     }
+    Vec_StrFree( p->vBuffer );
     ABC_FREE( p->pFileName );
     ABC_FREE( p->pContents );
     ABC_FREE( p->pItems );
