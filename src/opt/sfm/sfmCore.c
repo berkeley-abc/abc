@@ -111,6 +111,7 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     int fSkipUpdate  = 0;
     int fVeryVerbose = 0;//p->pPars->fVeryVerbose && Vec_IntSize(p->vDivs) < 200;// || pNode->Id == 556;
     int i, iFanin, iVar = -1;
+    int iFaninRem = -1, iFaninSkip = -1;
     word uTruth, uSign, uMask;
     abctime clk;
     assert( Sfm_ObjIsNode(p, iNode) );
@@ -129,6 +130,12 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
         if ( i != f )
             Vec_IntPush( p->vDivIds, Sfm_ObjSatVar(p, iFanin) );
+        else
+            iFaninRem = iFanin;
+    assert( iFaninRem != -1 );
+    // find fanin to skip 
+    if ( Sfm_ObjIsFixed(p, iFaninRem) && Sfm_ObjFaninNum(p, iFaninRem) == 1 )
+        iFaninSkip = Sfm_ObjFanin(p, iFaninRem, 0);
 clk = Abc_Clock();
     uTruth = Sfm_ComputeInterpolant( p );
 p->timeSat += Abc_Clock() - clk;
@@ -164,10 +171,11 @@ p->timeSat += Abc_Clock() - clk;
         // find the next divisor to try
         uMask = (~(word)0) >> (64 - p->nCexes);
         Vec_WrdForEachEntry( p->vDivCexes, uSign, iVar )
-            if ( uSign == uMask )
+            if ( uSign == uMask && Vec_IntEntry(p->vDivs, iVar) != iFaninSkip )
                 break;
         if ( iVar == Vec_IntSize(p->vDivs) )
             return 0;
+        assert( Vec_IntEntry(p->vDivs, iVar) != iFaninSkip );
         // try replacing the critical fanin
         Vec_IntPush( p->vDivIds, Sfm_ObjSatVar(p, Vec_IntEntry(p->vDivs, iVar)) );
 clk = Abc_Clock();
@@ -255,9 +263,37 @@ int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
   SeeAlso     []
 
 ***********************************************************************/
+void Sfm_NtkPrint( Sfm_Ntk_t * p )
+{
+    int i;
+    for ( i = 0; i < p->nObjs; i++ )
+    {
+        Vec_Int_t * vArray = Vec_WecEntry( &p->vFanins, i );
+        printf( "Obj %3d : ", i );
+        printf( "Fixed %d  ", Vec_StrEntry(p->vFixed, i) );
+        printf( "Empty %d  ", Vec_StrEntry(p->vEmpty, i) );
+        printf( "Truth  " );
+        Extra_PrintHex( stdout, (unsigned *)Vec_WrdEntryP(p->vTruths, i), Vec_IntSize(vArray) );
+        printf( "  " );
+        Vec_IntPrint( vArray );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
     int i, k, Counter = 0;
+    //Sfm_NtkPrint( p );
     p->timeTotal = Abc_Clock();
     if ( pPars->fVerbose )
     {
@@ -294,6 +330,7 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
     p->timeTotal = Abc_Clock() - p->timeTotal;
     if ( pPars->fVerbose )
         Sfm_NtkPrintStats( p );
+    //Sfm_NtkPrint( p );
     return Counter;
 }
 
