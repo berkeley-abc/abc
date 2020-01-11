@@ -161,13 +161,13 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
         {
             nBoxIns = Tim_ManBoxInputNum( pManTime, k );
             nBoxOuts = Tim_ManBoxOutputNum( pManTime, k );
-            // collect truth table leaves
-            Vec_IntClear( vLeaves );
-            for ( i = 0; i < nBoxIns; i++ )
-                Vec_IntPush( vLeaves, Gia_ObjId(p->pAigExtra, Gia_ManCi(p->pAigExtra, i)) );
             // iterate through box outputs
             if ( !Tim_ManBoxIsBlack(pManTime, k) ) //&& Tim_ManBoxInputNum(pManTime, k) <= 6 )
             {
+                // collect truth table leaves
+                Vec_IntClear( vLeaves );
+                for ( i = 0; i < nBoxIns; i++ )
+                    Vec_IntPush( vLeaves, Gia_ObjId(p->pAigExtra, Gia_ManCi(p->pAigExtra, i)) );
                 for ( j = 0; j < nBoxOuts; j++ )
                 {
                     // CI corresponding to the box outputs
