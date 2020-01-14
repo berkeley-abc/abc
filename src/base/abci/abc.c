@@ -10845,15 +10845,18 @@ usage:
 int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c;
+    int c, fGlobal = 0;
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "gh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'g':
+            fGlobal ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -10867,14 +10870,25 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !Abc_NtkIsBddLogic(pNtk) )
+    if ( fGlobal )
     {
-        Abc_Print( -1, "Only a BDD logic network can be converted to MUXes.\n" );
-        return 1;
+        if ( !Abc_NtkIsStrash(pNtk) )
+        {
+            Abc_Print( -1, "The current network should be an AIG.\n" );
+            return 1;
+        }
+    }
+    else
+    {
+        if ( !Abc_NtkIsBddLogic(pNtk) )
+        {
+            Abc_Print( -1, "Only a BDD logic network can be converted to MUXes.\n" );
+            return 1;
+        }
     }
 
     // get the new network
-    pNtkRes = Abc_NtkBddToMuxes( pNtk );
+    pNtkRes = Abc_NtkBddToMuxes( pNtk, fGlobal );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Converting to MUXes has failed.\n" );
@@ -10885,9 +10899,10 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: muxes [-h]\n" );
+    Abc_Print( -2, "usage: muxes [-gh]\n" );
     Abc_Print( -2, "\t        converts the current network into a network derived by\n" );
     Abc_Print( -2, "\t        replacing all nodes by DAGs isomorphic to the local BDDs\n" );
+    Abc_Print( -2, "\t-g    : toggle visualizing the global BDDs of primary outputs [default = %s].\n", fGlobal? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
