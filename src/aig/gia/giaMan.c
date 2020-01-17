@@ -444,6 +444,29 @@ int Gia_ManPrintEdges( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManLogAigStats( Gia_Man_t * p, char * pDumpFile )
+{
+    FILE * pTable = fopen( pDumpFile, "wb" );
+    fprintf( pTable, "Name = %24s     ", p->pName );
+    fprintf( pTable, "In = %6d   ",      Gia_ManCiNum(p) );
+    fprintf( pTable, "Out = %6d   ",     Gia_ManCoNum(p) );
+    fprintf( pTable, "And = %8d   ",     Gia_ManAndNum(p) );
+    fprintf( pTable, "Lev = %6d",        Gia_ManLevelNum(p) );
+    fprintf( pTable, "\n" );
+    fclose( pTable );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints stats for the AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 {
     extern float Gia_ManLevelAve( Gia_Man_t * p );
@@ -535,6 +558,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
     if ( Gia_ManHasMapping(p) && (pPars == NULL || !pPars->fSkipMap) )
         Gia_ManPrintMappingStats( p, pPars ? pPars->pDumpFile : NULL );
+    else if ( pPars && pPars->pDumpFile )
+        Gia_ManLogAigStats( p, pPars->pDumpFile );
     if ( pPars && pPars->fNpn && Gia_ManHasMapping(p) && Gia_ManLutSizeMax(p) <= 4 )
         Gia_ManPrintNpnClasses( p );
     if ( p->vPacking )
