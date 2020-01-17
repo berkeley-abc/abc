@@ -444,6 +444,7 @@ int Gia_ManPrintEdges( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+/*
 void Gia_ManLogAigStats( Gia_Man_t * p, char * pDumpFile )
 {
     FILE * pTable = fopen( pDumpFile, "wb" );
@@ -453,6 +454,19 @@ void Gia_ManLogAigStats( Gia_Man_t * p, char * pDumpFile )
     fprintf( pTable, "And = %8d   ",     Gia_ManAndNum(p) );
     fprintf( pTable, "Lev = %6d",        Gia_ManLevelNum(p) );
     fprintf( pTable, "\n" );
+    fclose( pTable );
+}
+*/
+void Gia_ManLogAigStats( Gia_Man_t * p, char * pDumpFile )
+{
+    FILE * pTable = fopen( pDumpFile, "wb" );
+    fprintf( pTable, "{\n" );
+    fprintf( pTable, "    \"name\" : \"%s\",\n", p->pName );
+    fprintf( pTable, "    \"input\" : %d,\n",    Gia_ManCiNum(p) );
+    fprintf( pTable, "    \"output\" : %d,\n",   Gia_ManCoNum(p) );
+    fprintf( pTable, "    \"and\" : %d,\n",      Gia_ManAndNum(p) );
+    fprintf( pTable, "    \"level\" : %d\n",     Gia_ManLevelNum(p) );
+    fprintf( pTable, "}\n" );
     fclose( pTable );
 }
 
