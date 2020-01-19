@@ -2248,6 +2248,17 @@ usage:
     fprintf( pAbc->Err, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h       : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile     : the name of the file to write\n" );
+    fprintf( pAbc->Err, "\n" );
+    fprintf( pAbc->Err, "\t           CNF variable mapping rules:\n" );
+    fprintf( pAbc->Err, "\n" );
+    fprintf( pAbc->Err, "\t           Assume CNF has N variables, with variable IDs running from 0 to N-1.\n" );
+    fprintf( pAbc->Err, "\t           Variable number 0 is not used in the CNF.\n" );
+    fprintf( pAbc->Err, "\t           Variables 1, 2, 3,... <nPOs> represent POs in their natural order.\n" );
+    fprintf( pAbc->Err, "\t           Variables N-<nPIs>, N-<nPIs>+1, N-<nPIs>+2, ... N-1, represent PIs in their natural order.\n" );
+    fprintf( pAbc->Err, "\t           The internal variables are ordered in a reverse topological order from outputs to inputs.\n" );
+    fprintf( pAbc->Err, "\t           That is, smaller variable IDs tend to be closer to the outputs, while larger\n" );
+    fprintf( pAbc->Err, "\t           variable IDs tend to be closer to the inputs. It was found that this ordering\n" );
+    fprintf( pAbc->Err, "\t           leads to faster SAT solving for hard UNSAT CEC problems.\n" );
     return 1;
 }
 
