@@ -1246,6 +1246,162 @@ Vec_Ptr_t * Abc_NtkTryNewMiter( char * pFileName0, char * pFileName1 )
     return vCexes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Read node names.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_NtkReadNodeNames( Abc_Ntk_t * pNtk, char * pFileName )
+{
+    char Buffer[1000];
+    Vec_Ptr_t * vNodes = NULL;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open node list \"%s\".\n", pFileName );
+        return NULL;
+    }
+    vNodes = Vec_PtrAlloc( 100 );
+    while ( fgets(Buffer, 1000, pFile) != NULL ) 
+    {
+        char * pToken = strtok( Buffer, " \n\r\t" );
+        while ( pToken )
+        {
+            Abc_Obj_t * pObj = Abc_NtkFindNode( pNtk, pToken );
+            if ( pObj == NULL )
+            {
+                printf( "Cannot find node \"%s\".\n", pToken );
+                Vec_PtrFree( vNodes );
+                fclose( pFile );
+                return NULL;
+            }
+            Vec_PtrPush( vNodes, pObj );
+            pToken = strtok( NULL, " \n\r\t" );
+        }
+    }
+    fclose( pFile );
+    return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Deriving specialized miter.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Obj_t * Abc_NtkSpecialMuxTree_rec( Abc_Ntk_t * pNew, Abc_Obj_t ** pCtrl, int nCtrl, Abc_Obj_t ** pData, int Shift )
+{
+    Abc_Obj_t * pLit0, * pLit1;
+    if ( nCtrl == 0 )
+        return pData[Shift];
+    pLit0 = Abc_NtkSpecialMuxTree_rec( pNew, pCtrl, nCtrl-1, pData, Shift );
+    pLit1 = Abc_NtkSpecialMuxTree_rec( pNew, pCtrl, nCtrl-1, pData, Shift + (1<<(nCtrl-1)) );
+    return Abc_NtkCreateNodeMux( pNew, pCtrl[nCtrl-1], pLit1, pLit0 );
+}
+Abc_Ntk_t * Abc_NtkSpecialMiter( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
+{
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObj, * pFanin, * pObjNew, * pPoNew; char * pName; 
+    Vec_Int_t * vFirsts = Vec_IntAlloc( Vec_PtrSize(vNodes) );
+    Vec_Ptr_t * vNames  = Vec_PtrAlloc( 100 );
+    Vec_Ptr_t * vFanins = Vec_PtrAlloc( 100 );
+    Vec_Ptr_t * vDatas  = Vec_PtrAlloc( 100 );
+    Vec_Ptr_t * vDfs    = Abc_NtkDfs( pNtk, 1 );
+    Vec_Ptr_t * vCopies = Vec_PtrStart( Abc_NtkObjNumMax(pNtk) );
+    int i, k, Index, First, nNewPis = 0;
+    // count the number of additional inputs
+    Abc_NtkCleanCopy( pNtk );
+    Abc_NtkCleanMarkA( pNtk );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        char Buffer[1000];
+        assert( Abc_ObjIsNode(pObj) );
+        pObj->fMarkA = 1;
+        Vec_IntPush( vFirsts, nNewPis );
+        nNewPis += 1 << Abc_ObjFaninNum(pObj);
+        for ( k = 0; k < (1 << Abc_ObjFaninNum(pObj)); k++ )
+        {
+            sprintf( Buffer, "pi_%s_%d", Abc_ObjName(pObj), k );
+            Vec_PtrPush( vNames, Abc_UtilStrsav(Buffer) );
+        }
+    }
+    // create new network with the additional PIs
+    pNtkNew = Abc_NtkAlloc( pNtk->ntkType, pNtk->ntkFunc, 1 );
+    pNtkNew->pName = Extra_UtilStrsav( "miter" );
+    Vec_PtrForEachEntry( char *, vNames, pName, i )
+        Abc_ObjAssignName( Abc_NtkCreatePi(pNtkNew), pName, NULL );
+    // duplicate PIs
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        pObj->pCopy = Abc_NtkDupObj( pNtkNew, pObj, 1 );
+    // copy nodes
+    Vec_PtrForEachEntry( Abc_Obj_t *, vDfs, pObj, i )
+    {
+        if ( !pObj->fMarkA )
+        {
+            Abc_NtkDupObj( pNtkNew, pObj, 1 );
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+            Vec_PtrWriteEntry( vCopies, pObj->Id, pObj->pCopy );
+            continue;
+        }
+        Vec_PtrClear( vFanins );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Vec_PtrPush( vFanins, pFanin->pCopy );
+        Index = Vec_PtrFind( vNodes, pObj );
+        assert( Index >= 0 );
+        First = Vec_IntEntry( vFirsts, Index );
+        Vec_PtrClear( vDatas );
+        for ( k = 0; k < (1 << Abc_ObjFaninNum(pObj)); k++ )
+            Vec_PtrPush( vDatas, Abc_NtkCi(pNtkNew, First + k) );
+        pObj->pCopy = Abc_NtkSpecialMuxTree_rec( pNtkNew, 
+            (Abc_Obj_t **)Vec_PtrArray(vFanins), Vec_PtrSize(vFanins), 
+            (Abc_Obj_t **)Vec_PtrArray(vDatas),  0 ); 
+        Vec_PtrWriteEntry( vCopies, pObj->Id, pObj->pCopy );
+    }
+    Vec_PtrForEachEntry( Abc_Obj_t *, vDfs, pObj, i )
+    {
+        pObj->fMarkA = 0;
+        Abc_NtkDupObj( pNtkNew, pObj, 0 );
+        Abc_ObjAssignName( pObj->pCopy, Abc_ObjName(pObj), "_copy" );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+    }
+    // create miter
+    Vec_PtrClear( vDatas );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        Vec_PtrClear( vFanins );
+        Vec_PtrPush( vFanins, Abc_ObjFanin0(pObj)->pCopy );
+        Vec_PtrPush( vFanins, (Abc_Obj_t *)Vec_PtrEntry(vCopies, Abc_ObjId(Abc_ObjFanin0(pObj))) );
+        Vec_PtrPush( vDatas, Abc_NtkCreateNodeExor(pNtkNew, vFanins) );
+    }
+    if ( Vec_PtrSize(vDatas) > 1 )
+        pObjNew = Abc_NtkCreateNodeOr( pNtkNew, vDatas );
+    else
+        pObjNew = (Abc_Obj_t *)Vec_PtrEntry(vDatas, 0);
+    Abc_ObjAddFanin( (pPoNew = Abc_NtkCreatePo(pNtkNew)), pObjNew );
+    Abc_ObjAssignName( pPoNew, "miter_output", NULL );
+    // cleanup
+    Vec_IntFree( vFirsts );
+    Vec_PtrFreeFree( vNames );
+    Vec_PtrFree( vFanins );
+    Vec_PtrFree( vDatas );
+    Vec_PtrFree( vDfs );
+    Vec_PtrFree( vCopies );
+    return pNtkNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

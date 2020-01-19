@@ -163,6 +163,7 @@ static int Abc_CommandMajGen                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMiter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandMiter2                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDemiter                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrPos                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAndPos                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -872,6 +873,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "miter2",        Abc_CommandMiter2,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "demiter",       Abc_CommandDemiter,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "orpos",         Abc_CommandOrPos,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "andpos",        Abc_CommandAndPos,           1 );
@@ -9427,6 +9429,76 @@ usage:
     Abc_Print( -2, "\tfile2    : (optional) the file with the second network\n");
     Abc_Print( -2, "\t           if no files are given, uses the current network and its spec\n");
     Abc_Print( -2, "\t           if one file is given, uses the current network and the file\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandMiter2( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Vec_Ptr_t * Abc_NtkReadNodeNames( Abc_Ntk_t * pNtk, char * pFileName );
+    extern Abc_Ntk_t * Abc_NtkSpecialMiter( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes );
+
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    Vec_Ptr_t * vNodes;
+    char * pFileName;
+    int c, fVerbose = 0;
+    pNtk = Abc_FrameReadNtk(pAbc);
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    // get the second network
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "The file with node names is not given.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "The base network should be logic network from BLIF file.\n" );
+        return 1;
+    }
+    // read the second network
+    pFileName = argv[globalUtilOptind];
+    if ( (vNodes = Abc_NtkReadNodeNames(pNtk, pFileName)) == NULL )
+    {
+        Abc_Print( -1, "Cannot read node names from file \"%s\".\n", pFileName );
+        return 1;
+    }
+    pNtkRes = Abc_NtkSpecialMiter( pNtk, vNodes );
+    Vec_PtrFree( vNodes );
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: miter2 [-h] <file>\n" );
+    Abc_Print( -2, "\t         derives specialized miter\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : file name with node names\n");
     return 1;
 }
 
