@@ -2382,6 +2382,46 @@ void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV )
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupWithMuxPos( Gia_Man_t * p )
+{
+    Vec_Int_t * vPoints = Vec_IntAlloc( 1000 );
+    Gia_Obj_t * pObj, * pCtrl, * pData0, * pData1;
+    Gia_Man_t * pNew = Gia_ManDup( p ); int i, iObj;
+    assert( Gia_ManRegNum(pNew) == 0 );
+    Gia_ManForEachCo( pNew, pObj, i )
+        Gia_ObjFanin0(pObj)->fMark0 = 1;
+    Gia_ManForEachAnd( pNew, pObj, i )
+    {
+        if ( !Gia_ObjIsMuxType(pObj) )
+            continue;
+        pCtrl  = Gia_ObjRecognizeMux( pObj, &pData1, &pData0 );
+        pCtrl  = Gia_Regular(pCtrl);
+        pData1 = Gia_Regular(pData1);
+        pData0 = Gia_Regular(pData0);
+        if ( Gia_ObjIsAnd(pObj)   && !pObj->fMark0   )  Vec_IntPush( vPoints, Gia_ObjId(pNew, pObj)   );
+        if ( Gia_ObjIsAnd(pCtrl)  && !pCtrl->fMark0  )  Vec_IntPush( vPoints, Gia_ObjId(pNew, pCtrl)  );
+        if ( Gia_ObjIsAnd(pData1) && !pData1->fMark0 )  Vec_IntPush( vPoints, Gia_ObjId(pNew, pData1) );
+        if ( Gia_ObjIsAnd(pData0) && !pData0->fMark0 )  Vec_IntPush( vPoints, Gia_ObjId(pNew, pData0) );
+    }
+    Gia_ManCleanMark0( pNew );
+    Vec_IntUniqify( vPoints );
+    Vec_IntForEachEntry( vPoints, iObj, i )
+        Gia_ManAppendCo( pNew, Abc_Var2Lit(iObj, 0) );
+    Vec_IntFree( vPoints );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
