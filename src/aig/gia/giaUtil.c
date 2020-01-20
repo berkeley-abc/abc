@@ -2396,29 +2396,56 @@ void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV )
 Gia_Man_t * Gia_ManDupWithMuxPos( Gia_Man_t * p )
 {
     Vec_Int_t * vPoints = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vQuads  = Vec_IntAlloc( 1000 );
+    Vec_Bit_t * vHeads  = Vec_BitStart( Gia_ManObjNum(p) );
+    Vec_Bit_t * vDatas  = Vec_BitStart( Gia_ManObjNum(p) );
     Gia_Obj_t * pObj, * pCtrl, * pData0, * pData1;
     Gia_Man_t * pNew = Gia_ManDup( p ); int i, iObj;
     assert( Gia_ManRegNum(pNew) == 0 );
-    Gia_ManForEachCo( pNew, pObj, i )
-        Gia_ObjFanin0(pObj)->fMark0 = 1;
     Gia_ManForEachAnd( pNew, pObj, i )
     {
         if ( !Gia_ObjIsMuxType(pObj) )
             continue;
         pCtrl  = Gia_ObjRecognizeMux( pObj, &pData1, &pData0 );
         pCtrl  = Gia_Regular(pCtrl);
-        pData1 = Gia_Regular(pData1);
         pData0 = Gia_Regular(pData0);
-        if ( Gia_ObjIsAnd(pObj)   && !pObj->fMark0   )  Vec_IntPush( vPoints, Gia_ObjId(pNew, pObj)   );
-        if ( Gia_ObjIsAnd(pCtrl)  && !pCtrl->fMark0  )  Vec_IntPush( vPoints, Gia_ObjId(pNew, pCtrl)  );
-        if ( Gia_ObjIsAnd(pData1) && !pData1->fMark0 )  Vec_IntPush( vPoints, Gia_ObjId(pNew, pData1) );
-        if ( Gia_ObjIsAnd(pData0) && !pData0->fMark0 )  Vec_IntPush( vPoints, Gia_ObjId(pNew, pData0) );
+        pData1 = Gia_Regular(pData1);
+        Vec_IntPushTwo( vQuads, Gia_ObjId(pNew, pObj),   Gia_ObjId(pNew, pCtrl)  );
+        Vec_IntPushTwo( vQuads, Gia_ObjId(pNew, pData0), Gia_ObjId(pNew, pData1) );
+        Vec_BitWriteEntry( vHeads, Gia_ObjId(pNew, pObj),   1 );
+        Vec_BitWriteEntry( vDatas, Gia_ObjId(pNew, pData0), 1 );
+        Vec_BitWriteEntry( vDatas, Gia_ObjId(pNew, pData1), 1 );
+    }
+    Gia_ManForEachCo( pNew, pObj, i )
+        Gia_ObjFanin0(pObj)->fMark0 = 1;
+    for ( i = 0; i < Vec_IntSize(vQuads)/4; i++ )
+    {
+        int iObj   = Vec_IntEntry( vQuads, 4*i+0 );
+        int iCtrl  = Vec_IntEntry( vQuads, 4*i+1 );
+        int iData0 = Vec_IntEntry( vQuads, 4*i+2 );
+        int iData1 = Vec_IntEntry( vQuads, 4*i+3 );
+        if ( (Vec_BitEntry(vHeads, iObj)   && Vec_BitEntry(vDatas, iObj))   || 
+             (Vec_BitEntry(vHeads, iData0) && Vec_BitEntry(vDatas, iData0)) || 
+             (Vec_BitEntry(vHeads, iData1) && Vec_BitEntry(vDatas, iData1)) )
+        {
+            Gia_Obj_t * pObj   = Gia_ManObj( p, iObj );
+            Gia_Obj_t * pCtrl  = Gia_ManObj( p, iCtrl );
+            Gia_Obj_t * pData0 = Gia_ManObj( p, iData0 );
+            Gia_Obj_t * pData1 = Gia_ManObj( p, iData1 );
+            if ( Gia_ObjIsAnd(pObj)   && !pObj->fMark0   )  Vec_IntPush( vPoints, iObj   );
+            if ( Gia_ObjIsAnd(pCtrl)  && !pCtrl->fMark0  )  Vec_IntPush( vPoints, iCtrl  );
+            if ( Gia_ObjIsAnd(pData0) && !pData0->fMark0 )  Vec_IntPush( vPoints, iData0 );
+            if ( Gia_ObjIsAnd(pData1) && !pData1->fMark0 )  Vec_IntPush( vPoints, iData1 );
+        }
     }
     Gia_ManCleanMark0( pNew );
     Vec_IntUniqify( vPoints );
     Vec_IntForEachEntry( vPoints, iObj, i )
         Gia_ManAppendCo( pNew, Abc_Var2Lit(iObj, 0) );
     Vec_IntFree( vPoints );
+    Vec_IntFree( vQuads );
+    Vec_BitFree( vHeads );
+    Vec_BitFree( vDatas );
     return pNew;
 }
 
