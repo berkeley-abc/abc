@@ -414,6 +414,7 @@ static int Abc_CommandAbc9Sim3               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ReadSim            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9WriteSim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SimPat             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SimRsb             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Resim              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SpecI              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Equiv              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1126,6 +1127,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_sim",     Abc_CommandAbc9ReadSim,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&write_sim",    Abc_CommandAbc9WriteSim,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&simpat",       Abc_CommandAbc9SimPat,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&simrsb",       Abc_CommandAbc9SimRsb,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&resim",        Abc_CommandAbc9Resim,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&speci",        Abc_CommandAbc9SpecI,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&equiv",        Abc_CommandAbc9Equiv,        0 );
@@ -32687,7 +32689,7 @@ int Abc_CommandAbc9SimPat( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia->vSimsPi == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9WriteSim(): Does not have simulation information available.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9SimPat(): Does not have simulation information available.\n" );
         return 0;
     }
     Gia_ManSimPat( pAbc->pGia, nWords, fVerbose );
@@ -32697,6 +32699,73 @@ usage:
     Abc_Print( -2, "usage: &simpat [-W num] [-vh]\n" );
     Abc_Print( -2, "\t         performs simulation of the AIG\n" );
     Abc_Print( -2, "\t-W num : the number of frames to simulate [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SimRsb( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManSimRsb( Gia_Man_t * p, int nCands, int fVerbose );
+    int c, nCands = 32, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCands = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCands < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SimRsb(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) > 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SimRsb(): This command works only for combinational AIGs.\n" );
+        return 0;
+    }
+    if ( pAbc->pGia->vSimsPi == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SimRsb(): Does not have simulation information available.\n" );
+        return 0;
+    }
+    Gia_ManSimRsb( pAbc->pGia, nCands, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &simrsb [-N num] [-vh]\n" );
+    Abc_Print( -2, "\t         performs resubstitution\n" );
+    Abc_Print( -2, "\t-C num : the number of candidates to try [default = %d]\n", nCands );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

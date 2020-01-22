@@ -1361,6 +1361,7 @@ Vec_Wrd_t * Gia_ManSimBitPacking( Gia_Man_t * p, Vec_Int_t * vCexStore, int nCex
         iPat += Gia_ManSimBitPackOne( nWordsMax, vSimsIn, vSimsCare, iPat, Vec_IntEntryP(vCexStore, iCur), Size );
         iCur += Size;
         assert( iPat <= nCexes );
+        Out = 0;
     }
     printf( "Compressed %d CEXes into %d test patterns.\n", nCexes, iPat );
     assert( iCur == Vec_IntSize(vCexStore) );
@@ -1550,7 +1551,7 @@ void Gia_ManSimPat( Gia_Man_t * p, int nWords0, int fVerbose )
         assert( Status >= -1 && Status <= 1 );
         Counts[Status+1]++;
     }
-    printf( "Total = %d : SAT = %d.  UNSAT = %d.  UNDEC = %d.\n", Gia_ManCoNum(p), Counts[1], Counts[2], Counts[0] );
+    printf( "Total = %d : SAT = %d.  UNSAT = %d.  UNDEC = %d.\n", Counts[1]+Counts[2]+Counts[0], Counts[1], Counts[2], Counts[0] );
     if ( Counts[1] == 0 )
         printf( "There are no counter-examples.  No need for more simulation.\n" );
     else
@@ -1562,6 +1563,300 @@ void Gia_ManSimPat( Gia_Man_t * p, int nWords0, int fVerbose )
     }
     Vec_StrFree( vStatus );
     Vec_IntFree( vCexStore );
+    Vec_WrdFree( vSims );
+}
+
+
+
+
+
+typedef struct Gia_SimRsbMan_t_ Gia_SimRsbMan_t;
+struct Gia_SimRsbMan_t_
+{
+    Gia_Man_t *    pGia;
+    Vec_Int_t *    vTfo;
+    Vec_Int_t *    vCands;
+    Vec_Int_t *    vFanins;
+    Vec_Int_t *    vFanins2;
+    Vec_Wrd_t *    vSimsObj;
+    Vec_Wrd_t *    vSimsObj2;
+    int            nWords;
+    word *         pFunc[3];
+};
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_SimRsbMan_t * Gia_SimRsbAlloc( Gia_Man_t * pGia )
+{
+    Gia_SimRsbMan_t * p = ABC_CALLOC( Gia_SimRsbMan_t, 1 );
+    p->pGia      = pGia;
+    p->nWords    = Vec_WrdSize(pGia->vSimsPi) / Gia_ManCiNum(pGia); assert( Vec_WrdSize(pGia->vSimsPi) % Gia_ManCiNum(pGia) == 0 );
+    p->pFunc[0]  = ABC_CALLOC( word, p->nWords );
+    p->pFunc[1]  = ABC_CALLOC( word, p->nWords );
+    p->pFunc[2]  = ABC_CALLOC( word, p->nWords );
+    p->vTfo      = Vec_IntAlloc( 1000 );
+    p->vCands    = Vec_IntAlloc( 1000 );
+    p->vFanins   = Vec_IntAlloc( 10 );
+    p->vFanins2  = Vec_IntAlloc( 10 );
+    p->vSimsObj  = Gia_ManSimPatSim( pGia );
+    p->vSimsObj2 = Vec_WrdStart( Vec_WrdSize(p->vSimsObj) );
+    assert( p->nWords == Vec_WrdSize(p->vSimsObj) / Gia_ManObjNum(pGia) );
+    Gia_ManStaticFanoutStart( pGia );
+    return p;
+}
+void Gia_SimRsbFree( Gia_SimRsbMan_t * p )
+{
+    Gia_ManStaticFanoutStop( p->pGia );
+    Vec_IntFree( p->vTfo );
+    Vec_IntFree( p->vCands );
+    Vec_IntFree( p->vFanins );
+    Vec_IntFree( p->vFanins2 );
+    Vec_WrdFree( p->vSimsObj );
+    Vec_WrdFree( p->vSimsObj2 );
+    ABC_FREE( p->pFunc[0] );
+    ABC_FREE( p->pFunc[1] );
+    ABC_FREE( p->pFunc[2] );
+    ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_SimRsbTfo_rec( Gia_Man_t * p, int iObj, int iFanout, Vec_Int_t * vTfo )
+{
+    int i, iFan;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    Gia_ObjForEachFanoutStaticId( p, iObj, iFan, i )
+        if ( iFanout == -1 || iFan == iFanout )
+            Gia_SimRsbTfo_rec( p, iFan, -1, vTfo );
+    Vec_IntPush( vTfo, iObj );
+}
+Vec_Int_t * Gia_SimRsbTfo( Gia_SimRsbMan_t * p, int iObj, int iFanout )
+{
+    assert( iObj > 0 );
+    Vec_IntClear( p->vTfo );
+    Gia_ManIncrementTravId( p->pGia );
+    Gia_SimRsbTfo_rec( p->pGia, iObj, iFanout, p->vTfo );
+    assert( Vec_IntEntryLast(p->vTfo) == iObj );
+    Vec_IntPop( p->vTfo );
+    Vec_IntReverseOrder( p->vTfo );
+    Vec_IntSort( p->vTfo, 0 );
+    return p->vTfo;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word * Gia_SimRsbFunc( Gia_SimRsbMan_t * p, int iObj, Vec_Int_t * vFanins, int fOnSet )
+{
+    int nTruthWords = Abc_Truth6WordNum( Vec_IntSize(vFanins) );
+    word * pTruth   = ABC_CALLOC( word, nTruthWords ); 
+    word * pFunc    = Vec_WrdEntryP( p->vSimsObj, p->nWords*iObj );
+    word * pFanins[16] = {NULL};  int s, b, iMint, i, iFanin;
+    assert( Vec_IntSize(vFanins) <= 16 );
+    Vec_IntForEachEntry( vFanins, iFanin, i )
+        pFanins[i] = Vec_WrdEntryP( p->vSimsObj, p->nWords*iFanin );
+    for ( s = 0; s < 64*p->nWords; s++ )
+    {
+        if ( !Abc_TtGetBit(p->pFunc[2], s) || !Abc_TtGetBit(pFunc, s) == fOnSet )
+            continue;
+        iMint = 0;
+        for ( b = 0; b < Vec_IntSize(vFanins); b++ )
+            if ( Abc_TtGetBit(pFanins[b], s) )
+                iMint |= 1 << b;
+        Abc_TtSetBit( pTruth, iMint );
+    }
+    return pTruth;
+}
+int Gia_SimRsbResubVerify( Gia_SimRsbMan_t * p, int iObj, Vec_Int_t * vFanins )
+{
+    word * pTruth0 = Gia_SimRsbFunc( p, iObj, p->vFanins, 0 );
+    word * pTruth1 = Gia_SimRsbFunc( p, iObj, p->vFanins, 1 );
+    int Res = !Abc_TtIntersect( pTruth0, pTruth1, p->nWords, 0 );
+    ABC_FREE( pTruth0 );
+    ABC_FREE( pTruth1 );
+    return Res;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Gia_SimRsbSimAndCareSet( Gia_Man_t * p, int i, Gia_Obj_t * pObj, int nWords, Vec_Wrd_t * vSims, Vec_Wrd_t * vSims2 )
+{
+    word pComps[2] = { 0, ~(word)0 };
+    word Diff0 = pComps[Gia_ObjFaninC0(pObj)];
+    word Diff1 = pComps[Gia_ObjFaninC1(pObj)];
+    Vec_Wrd_t * vSims0 = Gia_ObjIsTravIdCurrentId(p, Gia_ObjFaninId0(pObj, i)) ? vSims2 : vSims;
+    Vec_Wrd_t * vSims1 = Gia_ObjIsTravIdCurrentId(p, Gia_ObjFaninId1(pObj, i)) ? vSims2 : vSims;
+    word * pSims0 = Vec_WrdEntryP( vSims0, nWords*Gia_ObjFaninId0(pObj, i) );
+    word * pSims1 = Vec_WrdEntryP( vSims1, nWords*Gia_ObjFaninId1(pObj, i) );
+    word * pSims2 = Vec_WrdEntryP( vSims2, nWords*i ); int w;
+    for ( w = 0; w < nWords; w++ )
+        pSims2[w] = (pSims0[w] ^ Diff0) & (pSims1[w] ^ Diff1);
+}
+word * Gia_SimRsbCareSet( Gia_SimRsbMan_t * p, int iObj, Vec_Int_t * vTfo )
+{
+    word * pSims  = Vec_WrdEntryP( p->vSimsObj,  p->nWords*iObj );
+    word * pSims2 = Vec_WrdEntryP( p->vSimsObj2, p->nWords*iObj );  int iNode, i;
+    Abc_TtCopy( pSims2, pSims, p->nWords, 1 );
+    Abc_TtClear( p->pFunc[2], p->nWords );
+    Vec_IntForEachEntry( vTfo, iNode, i )
+    {
+        Gia_Obj_t * pNode = Gia_ManObj(p->pGia, iNode);
+        if ( Gia_ObjIsAnd(pNode) )
+            Gia_SimRsbSimAndCareSet( p->pGia, iNode, pNode, p->nWords, p->vSimsObj, p->vSimsObj2 );
+        else if ( Gia_ObjIsCo(pNode) )
+        {
+            word * pSimsA = Vec_WrdEntryP( p->vSimsObj,  p->nWords*Gia_ObjFaninId0p(p->pGia, pNode) );
+            word * pSimsB = Vec_WrdEntryP( p->vSimsObj2, p->nWords*Gia_ObjFaninId0p(p->pGia, pNode) );
+            Abc_TtOrXor( p->pFunc[2], pSimsA, pSimsB, p->nWords );
+        }
+        else assert( 0 );
+    }
+    return p->pFunc[2];
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ObjSimCollect( Gia_SimRsbMan_t * p )
+{
+    int i, k, iTemp, iFanout;
+    Vec_IntClear( p->vFanins2 );
+    assert( Vec_IntSize(p->vFanins) > 0 );
+    Vec_IntForEachEntry( p->vFanins, iTemp, i )
+    {
+        Gia_Obj_t * pObj = Gia_ManObj( p->pGia, iTemp );
+        if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsTravIdCurrentId( p->pGia, Gia_ObjFaninId0(pObj, iTemp) ) )
+            Vec_IntPush( p->vFanins2, Gia_ObjFaninId0(pObj, iTemp) );
+        if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsTravIdCurrentId( p->pGia, Gia_ObjFaninId1(pObj, iTemp) ) )
+            Vec_IntPush( p->vFanins2, Gia_ObjFaninId1(pObj, iTemp) );
+        Gia_ObjForEachFanoutStaticId( p->pGia, iTemp, iFanout, k )
+            if ( Gia_ObjIsAnd(Gia_ManObj(p->pGia, iFanout)) && !Gia_ObjIsTravIdCurrentId( p->pGia, iFanout ) )
+                Vec_IntPush( p->vFanins2, iFanout );
+    }
+}
+Vec_Int_t * Gia_ObjSimCands( Gia_SimRsbMan_t * p, int iObj, int nCands )
+{
+    assert( iObj > 0 );
+    assert( Gia_ObjIsAnd(Gia_ManObj(p->pGia, iObj)) );
+    Vec_IntClear( p->vCands );
+    Vec_IntFill( p->vFanins, 1, iObj );
+    while ( Vec_IntSize(p->vFanins) > 0 && Vec_IntSize(p->vCands) < nCands )
+    {
+        int i, iTemp;
+        Vec_IntForEachEntry( p->vFanins, iTemp, i )
+            Gia_ObjSetTravIdCurrentId( p->pGia, iTemp );
+        Gia_ObjSimCollect( p ); // p->vFanins -> p->vFanins2
+        Vec_IntAppend( p->vCands, p->vFanins2 );
+        ABC_SWAP( Vec_Int_t *, p->vFanins, p->vFanins2 );
+    }
+    assert( Vec_IntSize(p->vFanins) == 0 || Vec_IntSize(p->vCands) >= nCands );
+    if ( Vec_IntSize(p->vCands) > nCands )
+        Vec_IntShrink( p->vCands, nCands );
+    return p->vCands;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ObjSimRsb( Gia_SimRsbMan_t * p, int iObj, int nCands, int fVerbose, int * pnBufs, int * pnInvs )
+{
+    int i, iCand, RetValue = 0;
+    Vec_Int_t * vTfo   = Gia_SimRsbTfo( p, iObj, -1 );
+    word * pCareSet    = Gia_SimRsbCareSet( p, iObj, vTfo );
+    word * pFunc       = Vec_WrdEntryP( p->vSimsObj, p->nWords*iObj );
+    Vec_Int_t * vCands = Gia_ObjSimCands( p, iObj, nCands );
+    Abc_TtAndSharp( p->pFunc[0], pCareSet, pFunc, p->nWords, 1 );
+    Abc_TtAndSharp( p->pFunc[1], pCareSet, pFunc, p->nWords, 0 );
+
+/*
+printf( "Considering node %d with %d candidates:\n", iObj, Vec_IntSize(vCands) );
+Vec_IntPrint( vTfo );
+Vec_IntPrint( vCands );
+Extra_PrintBinary( stdout, (unsigned *)pCareSet,    64 );  printf( "\n" );
+Extra_PrintBinary( stdout, (unsigned *)pFunc,       64 );  printf( "\n" );
+Extra_PrintBinary( stdout, (unsigned *)p->pFunc[0], 64 );  printf( "\n" );
+Extra_PrintBinary( stdout, (unsigned *)p->pFunc[1], 64 );  printf( "\n" );
+*/
+    Vec_IntForEachEntry( vCands, iCand, i )
+    {
+        word * pDiv = Vec_WrdEntryP( p->vSimsObj, p->nWords*iCand );
+        if ( !Abc_TtIntersect(pDiv, p->pFunc[0], p->nWords, 0) &&
+             !Abc_TtIntersect(pDiv, p->pFunc[1], p->nWords, 1) )
+            { (*pnBufs)++; if ( fVerbose ) printf( "Level %3d : %d = buf(%d)\n", Gia_ObjLevelId(p->pGia, iObj), iObj, iCand ); RetValue = 1; }
+        if ( !Abc_TtIntersect(pDiv, p->pFunc[0], p->nWords, 1) &&
+             !Abc_TtIntersect(pDiv, p->pFunc[1], p->nWords, 0) )
+            { (*pnInvs)++; if ( fVerbose ) printf( "Level %3d : %d = inv(%d)\n", Gia_ObjLevelId(p->pGia, iObj), iObj, iCand ); RetValue = 1; }
+    }
+    return RetValue;
+}
+
+int Gia_ManSimRsb( Gia_Man_t * pGia, int nCands, int fVerbose )
+{
+    Gia_Obj_t * pObj; int iObj, nCount = 0, nBufs = 0, nInvs = 0;
+    Gia_SimRsbMan_t * p = Gia_SimRsbAlloc( pGia );
+    assert( pGia->vSimsPi != NULL );
+    Gia_ManLevelNum( pGia );
+    Gia_ManForEachAnd( pGia, pObj, iObj )
+        //if ( iObj == 6 )
+        nCount += Gia_ObjSimRsb( p, iObj, nCands, fVerbose, &nBufs, &nInvs );
+    printf( "Resubstitution is possible for %d nodes (%.2f %% out of %d) (Bufs = %d Invs = %d)\n", 
+        nCount, 100.0*nCount/Gia_ManAndNum(pGia), Gia_ManAndNum(pGia), nBufs, nInvs );
+    Gia_SimRsbFree( p );
+    return nCount;
 }
 
 ////////////////////////////////////////////////////////////////////////
