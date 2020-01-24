@@ -545,7 +545,7 @@ void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
     {
         printf( "Using delays given by the user in the input file.\n" );
         Wln_NtkForEachObj( pNtk, iObj )
-            if ( !Wln_ObjIsCio(pNtk, iObj) && Wln_ObjInstId(pNtk, iObj) == 0 )
+            if ( !Wln_ObjIsCio(pNtk, iObj) && !Wln_ObjIsConst(pNtk, iObj) && Wln_ObjInstId(pNtk, iObj) == 0 )
                 printf( "Warning: Object %d of type %s has zero delay. Retiming will not work correctly.\n", iObj, Abc_OperName(Wln_ObjType(pNtk, iObj)) );
     }
     else
