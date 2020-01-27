@@ -68,6 +68,8 @@ struct Vec_Wec_t_
     for ( i = LevelStart-1; (i >= LevelStop) && (((vVec) = Vec_WecEntry(vGlob, i)), 1); i-- )
 #define Vec_WecForEachLevelTwo( vGlob1, vGlob2, vVec1, vVec2, i )                          \
     for ( i = 0; (i < Vec_WecSize(vGlob1)) && (((vVec1) = Vec_WecEntry(vGlob1, i)), 1) && (((vVec2) = Vec_WecEntry(vGlob2, i)), 1); i++ )
+#define Vec_WecForEachLevelDouble( vGlob, vVec1, vVec2, i )                                \
+    for ( i = 0; (i < Vec_WecSize(vGlob)) && (((vVec1) = Vec_WecEntry(vGlob, i)), 1) && (((vVec2) = Vec_WecEntry(vGlob, i+1)), 1); i += 2 )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -247,6 +249,9 @@ static inline int Vec_WecSizeUsedLimits( Vec_Wec_t * p, int iStart, int iStop )
 ***********************************************************************/
 static inline void Vec_WecShrink( Vec_Wec_t * p, int nSizeNew )
 {
+    Vec_Int_t * vVec; int i;
+    Vec_WecForEachLevelStart( p, vVec, i, nSizeNew )
+        Vec_IntShrink( vVec, 0 );
     assert( p->nSize >= nSizeNew );
     p->nSize = nSizeNew;
 }

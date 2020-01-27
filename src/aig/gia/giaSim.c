@@ -1685,7 +1685,7 @@ word * Gia_SimRsbFunc( Gia_SimRsbMan_t * p, int iObj, Vec_Int_t * vFanins, int f
         pFanins[i] = Vec_WrdEntryP( p->vSimsObj, p->nWords*iFanin );
     for ( s = 0; s < 64*p->nWords; s++ )
     {
-        if ( !Abc_TtGetBit(p->pFunc[2], s) || !Abc_TtGetBit(pFunc, s) == fOnSet )
+        if ( !Abc_TtGetBit(p->pFunc[2], s) || Abc_TtGetBit(pFunc, s) != fOnSet )
             continue;
         iMint = 0;
         for ( b = 0; b < Vec_IntSize(vFanins); b++ )
@@ -1846,6 +1846,7 @@ Extra_PrintBinary( stdout, (unsigned *)p->pFunc[1], 64 );  printf( "\n" );
 
 int Gia_ManSimRsb( Gia_Man_t * pGia, int nCands, int fVerbose )
 {
+    abctime clk = Abc_Clock();
     Gia_Obj_t * pObj; int iObj, nCount = 0, nBufs = 0, nInvs = 0;
     Gia_SimRsbMan_t * p = Gia_SimRsbAlloc( pGia );
     assert( pGia->vSimsPi != NULL );
@@ -1853,8 +1854,9 @@ int Gia_ManSimRsb( Gia_Man_t * pGia, int nCands, int fVerbose )
     Gia_ManForEachAnd( pGia, pObj, iObj )
         //if ( iObj == 6 )
         nCount += Gia_ObjSimRsb( p, iObj, nCands, fVerbose, &nBufs, &nInvs );
-    printf( "Resubstitution is possible for %d nodes (%.2f %% out of %d) (Bufs = %d Invs = %d)\n", 
+    printf( "Can resubstitute %d nodes (%.2f %% out of %d) (Bufs = %d Invs = %d)  ", 
         nCount, 100.0*nCount/Gia_ManAndNum(pGia), Gia_ManAndNum(pGia), nBufs, nInvs );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Gia_SimRsbFree( p );
     return nCount;
 }

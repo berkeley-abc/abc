@@ -443,6 +443,108 @@ static inline void Abc_TtIthVar( word * pOut, int iVar, int nVars )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_TtIsAndCompl( word * pOut, int fCompl, word * pIn1, int fCompl1, word * pIn2, int fCompl2, word * pCare, int nWords )
+{
+    int w;
+    if ( fCompl )
+    {
+        if ( fCompl1 )
+        {
+            if ( fCompl2 )
+            {
+                for ( w = 0; w < nWords; w++ )
+                    if ( (~pOut[w] & pCare[w]) != (~pIn1[w] & ~pIn2[w] & pCare[w]) )
+                        return 0;
+            }
+            else
+            {
+                for ( w = 0; w < nWords; w++ )
+                    if ( (~pOut[w] & pCare[w]) != (~pIn1[w] & pIn2[w] & pCare[w]) )
+                        return 0;
+            }
+        }
+        else
+        {
+            if ( fCompl2 )
+            {
+                for ( w = 0; w < nWords; w++ )
+                    if ( (~pOut[w] & pCare[w]) != (pIn1[w] & ~pIn2[w] & pCare[w]) )
+                        return 0;
+            }
+            else
+            {
+                for ( w = 0; w < nWords; w++ )
+                    if ( (~pOut[w] & pCare[w]) != (pIn1[w] & pIn2[w] & pCare[w]) )
+                        return 0;
+            }
+        }
+    }
+    else
+    {
+        if ( fCompl1 )
+        {
+            if ( fCompl2 )
+            {
+                for ( w = 0; w < nWords; w++ )
+                    if ( (pOut[w] & pCare[w]) != (~pIn1[w] & ~pIn2[w] & pCare[w]) )
+                        return 0;
+            }
+            else
+            {
+                for ( w = 0; w < nWords; w++ )
+                    if ( (pOut[w] & pCare[w]) != (~pIn1[w] & pIn2[w] & pCare[w]) )
+                        return 0;
+            }
+        }
+        else
+        {
+            if ( fCompl2 )
+            {
+                for ( w = 0; w < nWords; w++ )
+                    if ( (pOut[w] & pCare[w]) != (pIn1[w] & ~pIn2[w] & pCare[w]) )
+                        return 0;
+            }
+            else
+            {
+                for ( w = 0; w < nWords; w++ )
+                    if ( (pOut[w] & pCare[w]) != (pIn1[w] & pIn2[w] & pCare[w]) )
+                        return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+static inline int Abc_TtIsXorCompl( word * pOut, int fCompl, word * pIn1, word * pIn2, word * pCare, int nWords )
+{
+    int w;
+    if ( fCompl )
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( (~pOut[w] & pCare[w]) != ((pIn1[w] ^ pIn2[w]) & pCare[w]) )
+                return 0;
+    }
+    else
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( ( pOut[w] & pCare[w]) != ((pIn1[w] ^ pIn2[w]) & pCare[w]) )
+                return 0;
+    }
+    return 1;
+}
+
+
+/**Function*************************************************************
+
   Synopsis    [Compares Cof0 and Cof1.]
 
   Description []
