@@ -1094,7 +1094,7 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
     vSuppBest = Vec_IntDup( vSuppStart );
     printf( "Starting cost = %d.\n", CostBest );
 
-    // interatively find the one with the most ones in the uncovered rows
+    // iteratively find the one with the most ones in the uncovered rows
     for ( Iter = 0; Iter < 200; Iter++ )
     {
         if ( Abc_Clock() > clkLimit )

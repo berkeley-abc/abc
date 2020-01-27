@@ -123,7 +123,7 @@ if ( fVerbose && !fInitial )
         // quit after timing analysis
         if ( i == nIterLimit )
             break;
-        // skip if 10 interations did not give improvement
+        // skip if 10 iterations did not give improvement
         if ( i - IterBest > 20 )
             break;
         // skip if delay limit is reached

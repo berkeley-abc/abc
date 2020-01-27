@@ -94,10 +94,10 @@ struct Dec_Man_t_
 ///                        ITERATORS                                 ///
 ////////////////////////////////////////////////////////////////////////
 
-// interator throught the leaves
+// iterator through the leaves
 #define Dec_GraphForEachLeaf( pGraph, pLeaf, i )                                              \
     for ( i = 0; (i < (pGraph)->nLeaves) && (((pLeaf) = Dec_GraphNode(pGraph, i)), 1); i++ )
-// interator throught the internal nodes
+// iterator through the internal nodes
 #define Dec_GraphForEachNode( pGraph, pAnd, i )                                               \
     for ( i = (pGraph)->nLeaves; (i < (pGraph)->nSize) && (((pAnd) = Dec_GraphNode(pGraph, i)), 1); i++ )
 
