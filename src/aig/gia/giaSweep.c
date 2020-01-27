@@ -203,6 +203,7 @@ Gia_Man_t * Gia_ManDupWithBoxes( Gia_Man_t * p, int fSeq )
     pNew->pAigExtra = Gia_ManUpdateExtraAig2( p->pManTime, p->pAigExtra, vBoxesLeft );
     assert( Gia_ManCiNum(pNew) == Tim_ManPiNum((Tim_Man_t*)pNew->pManTime) + Gia_ManCoNum(pNew->pAigExtra) );
     Vec_IntFree( vBoxesLeft );
+    pNew->nAnd2Delay = p->nAnd2Delay;
     return pNew;
 }
 

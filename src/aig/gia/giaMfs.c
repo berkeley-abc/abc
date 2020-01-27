@@ -470,6 +470,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     // duplicated initial state
     if ( p->vRegInits )
         pNew->vRegInits = Vec_IntDup( p->vRegInits );
+    pNew->nAnd2Delay = p->nAnd2Delay;
 
     // cleanup
     Vec_WecFree( vGroups );
