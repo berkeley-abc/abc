@@ -588,6 +588,8 @@ Vec_Int_t * Acb_NtkCollectCopies( Acb_Ntk_t * p, Gia_Man_t * pGia, Vec_Ptr_t ** 
     Vec_Int_t * vNodes  = Vec_IntAlloc( Acb_NtkObjNum(p) );
     Vec_Ptr_t * vNodesR = Vec_PtrStart( Gia_ManObjNum(pGia) );
     Vec_Bit_t * vDriver = Vec_BitStart( Gia_ManObjNum(pGia) );
+    Gia_ManForEachCiId( pGia, iObj, i )
+        Vec_PtrWriteEntry( vNodesR, iObj, Abc_UtilStrsav(Acb_ObjNameStr(p, Acb_NtkCi(p, i))) );
     Gia_ManForEachCoId( pGia, iObj, i )
     {
         Vec_BitWriteEntry( vDriver, Gia_ObjFaninId0(Gia_ManObj(pGia, iObj), iObj), 1 );
