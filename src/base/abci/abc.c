@@ -40191,13 +40191,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_ManEquivReduce2( Gia_Man_t * p );
     Gia_Man_t * pTemp;
     Dch_Pars_t Pars, * pPars = &Pars;
-    int c, fEquiv = 0;
+    int c, fMinLevel = 0, fEquiv = 0;
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptfrevh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptfremvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40252,6 +40253,9 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'e':
             fEquiv ^= 1;
             break;
+        case 'm':
+            fMinLevel ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -40281,12 +40285,17 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManEquivReduce( pAbc->pGia, 1, 0, 0, 0 );
     }
     else
+    {
         pTemp = Gia_ManPerformDch( pAbc->pGia, pPars );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+        if ( fMinLevel ) 
+            pTemp = Gia_ManEquivReduce2( pAbc->pGia );
+    }
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &dch [-WCS num] [-sptfrevh]\n" );
+    Abc_Print( -2, "usage: &dch [-WCS num] [-sptfremvh]\n" );
     Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
     Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
@@ -40297,6 +40306,7 @@ usage:
     Abc_Print( -2, "\t-f     : toggle using lighter logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle skipping choices with redundant support [default = %s]\n", pPars->fSkipRedSupp? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle computing and merging equivalences [default = %s]\n", fEquiv? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle minimizing logic level after merging equivalences [default = %s]\n", fMinLevel? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

@@ -508,6 +508,67 @@ void Gia_ManEquivPrintClasses( Gia_Man_t * p, int fVerbose, float Mem )
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Map representatives into class members with minimum level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManChoiceMinLevel_rec( Gia_Man_t * p, int iPivot, int fDiveIn, Vec_Int_t * vMap )
+{
+    int Level0, Level1, LevelMax;
+    Gia_Obj_t * pPivot = Gia_ManObj( p, iPivot );
+    if ( Gia_ObjIsCi(pPivot) )
+        return 0;
+    if ( Gia_ObjLevel(p, pPivot) )
+        return Gia_ObjLevel(p, pPivot);
+    if ( fDiveIn && Gia_ObjIsClass(p, iPivot) )
+    {
+        int iObj, ObjMin = -1, iRepr = Gia_ObjRepr(p, iPivot), LevMin = ABC_INFINITY;
+        Gia_ClassForEachObj( p, iRepr, iObj )
+        {
+            int LevCur = Gia_ManChoiceMinLevel_rec( p, iObj, 0, vMap );
+            if ( LevMin > LevCur )
+            {
+                LevMin = LevCur;
+                ObjMin = iObj;
+            }
+        }
+        assert( LevMin > 0 );
+        Vec_IntWriteEntry( vMap, iRepr, ObjMin );
+        Gia_ClassForEachObj( p, iRepr, iObj )
+            Gia_ObjSetLevelId( p, iObj, LevMin );
+        return LevMin;
+    }
+    assert( Gia_ObjIsAnd(pPivot) );
+    Level0 = Gia_ManChoiceMinLevel_rec( p, Gia_ObjFaninId0(pPivot, iPivot), 1, vMap );
+    Level1 = Gia_ManChoiceMinLevel_rec( p, Gia_ObjFaninId1(pPivot, iPivot), 1, vMap );
+    LevelMax = 1 + Abc_MaxInt(Level0, Level1);
+    Gia_ObjSetLevel( p, pPivot, LevelMax );
+    return LevelMax;
+}
+Vec_Int_t * Gia_ManChoiceMinLevel( Gia_Man_t * p )
+{
+    Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj;
+    int i, LevelCur, LevelMax = 0;
+//    assert( Gia_ManRegNum(p) == 0 );
+    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        LevelCur = Gia_ManChoiceMinLevel_rec( p, Gia_ObjFaninId0p(p, pObj), 1, vMap );
+        LevelMax = Abc_MaxInt(LevelMax, LevelCur);
+    }
+    //printf( "Max level %d\n", LevelMax );
+    return vMap;
+} 
+
 /**Function*************************************************************
 
   Synopsis    [Returns representative node.]
@@ -583,15 +644,24 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fS
     int i;
     if ( !p->pReprs && p->pSibls )
     {
+        int * pMap = ABC_FALLOC( int, Gia_ManObjNum(p) );
         p->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
         for ( i = 0; i < Gia_ManObjNum(p); i++ )
             Gia_ObjSetRepr( p, i, GIA_VOID );
         for ( i = 0; i < Gia_ManObjNum(p); i++ )
             if ( p->pSibls[i] > 0 )
-                Gia_ObjSetRepr( p, i, p->pSibls[i] );
-        printf( "Created equivalence classes.\n" );
+            {
+                if ( pMap[p->pSibls[i]] == -1 )
+                    pMap[p->pSibls[i]] = p->pSibls[i];
+                pMap[i] = pMap[p->pSibls[i]];
+            }
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+            if ( p->pSibls[i] > 0 )
+                Gia_ObjSetRepr( p, i, pMap[i] );
+        //printf( "Created equivalence classes.\n" );
         ABC_FREE( p->pNexts );
         p->pNexts = Gia_ManDeriveNexts( p );
+        ABC_FREE( pMap );
     }
     if ( !p->pReprs )
     {
@@ -640,6 +710,101 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fS
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManEquivReduce2_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vMap, int fDiveIn )
+{
+    Gia_Obj_t * pRepr;
+    if ( ~pObj->Value )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    if ( fDiveIn && (pRepr = Gia_ManEquivRepr(p, pObj, 1, 0)) )
+    {
+        int iTemp, iRepr = Gia_ObjId(p, pRepr);
+        Gia_Obj_t * pRepr2 = Gia_ManObj( p, Vec_IntEntry(vMap, iRepr) );
+        Gia_ManEquivReduce2_rec( pNew, p, pRepr2, vMap, 0 );
+        Gia_ClassForEachObj( p, iRepr, iTemp )
+        {
+            Gia_Obj_t * pTemp = Gia_ManObj(p, iTemp);
+            pTemp->Value = Abc_LitNotCond( pRepr2->Value, Gia_ObjPhaseReal(pRepr2) ^ Gia_ObjPhaseReal(pTemp) );
+        }
+        assert( ~pObj->Value );
+        assert( ~pRepr->Value );
+        assert( ~pRepr2->Value );
+        return;
+    }
+    Gia_ManEquivReduce2_rec( pNew, p, Gia_ObjFanin0(pObj), vMap, 1 );
+    Gia_ManEquivReduce2_rec( pNew, p, Gia_ObjFanin1(pObj), vMap, 1 );
+    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+Gia_Man_t * Gia_ManEquivReduce2( Gia_Man_t * p )
+{
+    Vec_Int_t * vMap;
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    if ( !p->pReprs && p->pSibls )
+    {
+        int * pMap = ABC_FALLOC( int, Gia_ManObjNum(p) );
+        p->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+            Gia_ObjSetRepr( p, i, GIA_VOID );
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+            if ( p->pSibls[i] > 0 )
+            {
+                if ( pMap[p->pSibls[i]] == -1 )
+                    pMap[p->pSibls[i]] = p->pSibls[i];
+                pMap[i] = pMap[p->pSibls[i]];
+            }
+        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+            if ( p->pSibls[i] > 0 )
+                Gia_ObjSetRepr( p, i, pMap[i] );
+        //printf( "Created equivalence classes.\n" );
+        ABC_FREE( p->pNexts );
+        p->pNexts = Gia_ManDeriveNexts( p );
+        ABC_FREE( pMap );
+    }
+    if ( !p->pReprs )
+    {
+        Abc_Print( 1, "Gia_ManEquivReduce(): Equivalence classes are not available.\n" );
+        return NULL;
+    }
+    // check if there are any equivalences defined
+    Gia_ManForEachObj( p, pObj, i )
+        if ( Gia_ObjReprObj(p, i) != NULL )
+            break;
+    if ( i == Gia_ManObjNum(p) )
+        return Gia_ManDup( p );
+    vMap = Gia_ManChoiceMinLevel( p );
+    Gia_ManSetPhase( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManEquivReduce2_rec( pNew, p, Gia_ObjFanin0(pObj), vMap, 1 );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManHashStop( pNew );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Vec_IntFree( vMap );
+    return pNew;
+}
+
 
 /**Function*************************************************************
 
