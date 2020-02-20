@@ -504,9 +504,10 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
         {
             int iObj   = Wlc_ObjId(pNtk, pObj);
             int NameId = Wlc_ObjNameId(pNtk, iObj);
-            word Truth = Vec_WrdEntry(vTruths, NameId);
+            word Truth;
             if ( pObj->Type != WLC_OBJ_LUT || NameId == 0 )
                 continue;
+            Truth = Vec_WrdEntry(vTruths, NameId);
             assert( sizeof(void *) == 8 || Wlc_ObjFaninNum(pObj) < 6 );
             Vec_WrdWriteEntry( pNtk->vLutTruths, iObj, Truth );
         }
