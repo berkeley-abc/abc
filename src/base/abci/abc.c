@@ -411,6 +411,8 @@ static int Abc_CommandAbc9Trim               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Dfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sim                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sim3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9MLGen              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9MLTest             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadSim            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9WriteSim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SimPat             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1124,6 +1126,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&dfs",          Abc_CommandAbc9Dfs,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim",          Abc_CommandAbc9Sim,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim3",         Abc_CommandAbc9Sim3,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&mlgen",        Abc_CommandAbc9MLGen,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&mltest",       Abc_CommandAbc9MLTest,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&read_sim",     Abc_CommandAbc9ReadSim,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&write_sim",    Abc_CommandAbc9WriteSim,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&simpat",       Abc_CommandAbc9SimPat,       0 );
@@ -32493,6 +32497,172 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9MLGen( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, char * pFileName );
+    extern void Gia_ManDumpPlaFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, char * pFileName );
+    int c, Seed = 0, nWords = 10, fBinData = 0, fVerbose = 0;
+    char * pFileName = NULL;
+    char ** pArgvNew;
+    int nArgcNew;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WSbvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
+        case 'b':
+            fBinData ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9MLGen(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) > 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9MLGen(): This command works only for combinational AIGs.\n" );
+        return 0;
+    }
+    Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew == 0 )
+        printf( "Default file names will be used.\n" );
+    else
+        pFileName = pArgvNew[0];
+    if ( nArgcNew != 0 && nArgcNew != 1 )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    if ( fBinData )
+        Gia_ManDumpFiles( pAbc->pGia, nWords, nWords, Seed, pFileName );
+    else
+        Gia_ManDumpPlaFiles( pAbc->pGia, nWords, nWords, Seed, pFileName );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &mlgen [-WS num] [-bvh] <file>\n" );
+    Abc_Print( -2, "\t         generates data files for machine learning\n" );
+    Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-S num : the random seed for simulation data (num < 10000) [default = %d]\n", Seed );
+    Abc_Print( -2, "\t-b     : toggle using binary data files [default = %s]\n", fBinData? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : file to store the simulation info\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9MLTest( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName );
+    int c, fVerbose = 0;
+    char * pFileName = NULL;
+    char ** pArgvNew;
+    int nArgcNew;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9MLGen(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) > 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9MLGen(): This command works only for combinational AIGs.\n" );
+        return 0;
+    }
+    Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew == 0 )
+    {
+        printf( "Expecting data file name on the command line.\n" );
+        return 0;
+    }
+    pFileName = pArgvNew[0];
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    Gia_ManTestOneFile( pAbc->pGia, pFileName );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: [-vh] <file>\n" );
+    Abc_Print( -2, "\t         testing command for machine learning data\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : file with input simulation info\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Vec_Wrd_t * Gia_ManSimPatGenRandom( int nWords );
@@ -32564,7 +32734,7 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &read_sim [-W num] [-vh] <file>\n" );
     Abc_Print( -2, "\t         reads simulation patterns from file\n" );
-    Abc_Print( -2, "\t-W num : the number of frames to simulate [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", nWords );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : file to store the simulation info\n");
