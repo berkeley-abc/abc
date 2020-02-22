@@ -1107,6 +1107,10 @@ SOURCE=.\src\base\acb\acbSets.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\acb\acbTest.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\acb\acbUtil.c
 # End Source File
 # End Group

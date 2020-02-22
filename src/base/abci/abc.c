@@ -139,6 +139,7 @@ static int Abc_CommandTestTruth              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRunEco                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunSim                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRunTest                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -855,6 +856,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "runeco",        Abc_CommandRunEco,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "rungen",        Abc_CommandRunGen,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "runsim",        Abc_CommandRunSim,           0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "runtest",       Abc_CommandRunTest,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
@@ -7244,6 +7246,58 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRunTest( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose );
+    char * pFileNames[4] = {NULL};
+    int c, fFancy = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'f':
+            fFancy ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc - globalUtilOptind < 2 || argc - globalUtilOptind > 3 )
+    {
+        Abc_Print( 1, "Expecting two or three file names on the command line.\n" );
+        goto usage;
+    }
+    for ( c = 0; c < argc - globalUtilOptind; c++ )
+        pFileNames[c] = argv[globalUtilOptind+c];
+    Acb_NtkRunTest( pFileNames, fFancy, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: runtest [-fvh] <file1> <file2>\n" );
+    Abc_Print( -2, "\t           experimental simulation command\n" );
+    Abc_Print( -2, "\t-f       : toggle using experimental feature [default = %s]\n",      fFancy? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
 
 
 
@@ -32644,7 +32698,7 @@ int Abc_CommandAbc9MLTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: [-vh] <file>\n" );
+    Abc_Print( -2, "usage: &mltest [-vh] <file>\n" );
     Abc_Print( -2, "\t         testing command for machine learning data\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
