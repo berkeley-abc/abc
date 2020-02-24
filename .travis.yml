@@ -19,10 +19,11 @@ matrix:
         DEMO_ARGS: -DABC_NAMESPACE=xxx
 
     - os: osx
-      osx_image: xcode8
-      before_install:
-        - brew update
-        - brew install readline
+      osx_image: xcode10
+      addons:
+        homebrew:
+          packages:
+            - readline
 
 script:
   
