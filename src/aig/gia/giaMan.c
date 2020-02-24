@@ -88,6 +88,12 @@ void Gia_ManStop( Gia_Man_t * p )
     assert( p->pManTime == NULL );
     Vec_PtrFreeFree( p->vNamesIn );
     Vec_PtrFreeFree( p->vNamesOut );
+    ABC_FREE( p->pUserFile );
+    Gia_ManStopP( &p->pUserSpec );
+    Gia_ManStopP( &p->pUserAig );
+    Vec_PtrFreeFree( p->vUserNames );
+    Vec_WecFreeP( &p->vUserNodes );
+    Vec_IntFreeP( &p->vUserArray );
     Vec_IntFreeP( &p->vSwitching );
     Vec_IntFreeP( &p->vSuper );
     Vec_IntFreeP( &p->vStore );
@@ -95,6 +101,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vClassOld );
     Vec_WrdFreeP( &p->vSims );
     Vec_WrdFreeP( &p->vSimsPi );
+    Vec_WrdFreeP( &p->vSimsPo );
     Vec_IntFreeP( &p->vTimeStamps );
     Vec_FltFreeP( &p->vTiming );
     Vec_VecFreeP( &p->vClockDoms );

@@ -208,6 +208,7 @@ struct Gia_Man_t_
     int            nSimWordsMax;
     Vec_Wrd_t *    vSims;
     Vec_Wrd_t *    vSimsPi;
+    Vec_Wrd_t *    vSimsPo;
     Vec_Int_t *    vClassOld;
     Vec_Int_t *    vClassNew;
     // incremental simulation
@@ -231,6 +232,13 @@ struct Gia_Man_t_
     Vec_Wrd_t *    vSuppWords;    // support information
     Vec_Int_t      vCopiesTwo;    // intermediate copies
     Vec_Int_t      vSuppVars;     // used variables
+    // additional info
+    char *         pUserFile;
+    Gia_Man_t *    pUserSpec;
+    Gia_Man_t *    pUserAig;
+    Vec_Ptr_t *    vUserNames;
+    Vec_Wec_t *    vUserNodes;
+    Vec_Int_t *    vUserArray;
 };
 
 

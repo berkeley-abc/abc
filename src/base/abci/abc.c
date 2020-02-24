@@ -7280,7 +7280,7 @@ int Abc_CommandRunTest( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( argc - globalUtilOptind < 2 || argc - globalUtilOptind > 3 )
+    if ( argc - globalUtilOptind < 2 || argc - globalUtilOptind > 5 )
     {
         Abc_Print( 1, "Expecting two or three file names on the command line.\n" );
         goto usage;
