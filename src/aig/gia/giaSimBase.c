@@ -857,7 +857,7 @@ Vec_Int_t * Gia_ManSimPatStart( int nItems )
 }
 void Gia_ManSimRelTest( Gia_Man_t * p )
 {
-    int nWords        = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
+    //int nWords        = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
     Vec_Int_t * vObjs = Gia_ManSimPatStart( 4 ); // can be CI/AND/CO
     Vec_Wrd_t * vVals = Gia_ManSimPatValues( p );
     Vec_Wrd_t * vRel  = Gia_ManSimRel( p, vObjs, vVals );
@@ -1075,7 +1075,7 @@ void Gia_SimAbsSolve( Gia_SimAbsMan_t * p )
     Vec_IntForEachEntry( p->vResub, iPat, i )
         printf( "%4d ", iPat );
     for ( ; i < 16; i++ )
-        printf( "     ", iPat );
+        printf( "     " );
     printf( "   " );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }

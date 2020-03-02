@@ -680,7 +680,7 @@ int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fVerbose,
 ***********************************************************************/
 Vec_Int_t * Acb_NtkPlaces( char * pFileName, Vec_Ptr_t * vNames )
 {
-    Vec_Int_t * vPlaces; int First = 1, Pos = -1;
+    Vec_Int_t * vPlaces; int First = 1, Pos = -1, fComment = 0;
     char * pTemp, * pBuffer = Extra_FileReadContents( pFileName );
     char * pLimit = pBuffer + strlen(pBuffer);
     if ( pBuffer == NULL )
@@ -688,6 +688,13 @@ Vec_Int_t * Acb_NtkPlaces( char * pFileName, Vec_Ptr_t * vNames )
     vPlaces = Vec_IntAlloc( Vec_PtrSize(vNames) );
     for ( pTemp = pBuffer; *pTemp; pTemp++ )
     {
+        if ( *pTemp == '\n' )
+            fComment = 0;
+        if ( *pTemp == '/' && *(pTemp + 1) == '/' )
+            fComment = 1;
+        if ( fComment )
+            continue;
+
         if ( *pTemp == '\n' )
             Pos = pTemp - pBuffer + 1;
         else if ( *pTemp == '(' )

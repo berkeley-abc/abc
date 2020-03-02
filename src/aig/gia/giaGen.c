@@ -241,8 +241,8 @@ void Gia_ManDumpPlaFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, cha
     char pFileNameOutT[100];
     char pFileNameOutV[100];
     
-    sprintf( pFileNameOutT, "train_%s_%d.pla", pFileName ? pFileName : Gia_ManName(p), nSize[0], Gia_ManCiNum(p) );
-    sprintf( pFileNameOutV, "test_%s_%d.pla",  pFileName ? pFileName : Gia_ManName(p), nSize[1], Gia_ManCiNum(p) );
+    sprintf( pFileNameOutT, "train_%s_%d.pla", pFileName ? pFileName : Gia_ManName(p), nSize[0] );
+    sprintf( pFileNameOutV, "test_%s_%d.pla",  pFileName ? pFileName : Gia_ManName(p), nSize[1] );
 
     Gia_ManRandomW( 1 );
     for ( n = 0; n < Seed; n++ )
@@ -409,6 +409,11 @@ void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName )
     int nIns, nWords;
     if ( !Gia_ManSimParamRead( pFileName, &nIns, &nWords ) )
         return;
+    if ( nIns != Gia_ManCiNum(p) )
+    {
+        printf( "The number of inputs in the file \"%s\" (%d) does not match the AIG (%d).\n", pFileName, nIns, Gia_ManCiNum(p) );
+        return;
+    }
     vSimsIn = Vec_WrdStart( nIns * nWords );
     vValues = Vec_IntAlloc( nWords * 64 );
     Gia_ManSimFileRead( pFileName, nIns, nWords, vSimsIn, vValues );
