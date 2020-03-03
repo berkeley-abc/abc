@@ -187,15 +187,30 @@ Vec_Int_t * Acb_VerilogSimpleLex( char * pFileName, Abc_Nam_t * pNames )
 {
     Vec_Int_t * vBuffer = Vec_IntAlloc( 1000 );
     char * pBuffer = Extra_FileReadContents( pFileName );
-    char * pToken;
+    char * pToken, * pStart, * pLimit = pBuffer + strlen(pBuffer);
     if ( pBuffer == NULL )
         return NULL;
     Acb_VerilogRemoveComments( pBuffer );
-    pToken = strtok( pBuffer, "  \n\r\t()," );
+    pToken = strtok( pBuffer, "  \n\r\t(),;=" );
     while ( pToken )
     {
-        Vec_IntPush( vBuffer, Abc_NamStrFindOrAdd(pNames, pToken, NULL) );
-        pToken = strtok( NULL, "  \n\r\t(),;" );
+        int iToken = Abc_NamStrFindOrAdd( pNames, pToken, NULL );
+        if ( !strcmp(pToken, "assign") )
+            Vec_IntPush( vBuffer, ACB_BUF );
+        else
+            Vec_IntPush( vBuffer, iToken );
+        if ( iToken >= ACB_BUF && iToken < ACB_UNUSED )
+        {
+            for ( pStart = pToken; pStart < pLimit && *pStart != '\n'; pStart++ )
+                if ( *pStart == '(' )
+                    break;
+            if ( *pStart == '(' )
+            {
+                pToken = strtok( pStart, "  \n\r\t(),;=" );
+                continue;
+            }
+        }
+        pToken = strtok( NULL, "  \n\r\t(),;=" );
     }
     ABC_FREE( pBuffer );
     return vBuffer;
@@ -234,8 +249,8 @@ void * Acb_VerilogSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames )
             Vec_IntPush( vTypes, Token );
             Vec_IntPush( vTypes, Vec_IntSize(vFanins) );
             vCur = vFanins;
-            if ( pToken[1] == 'z' && pToken[2] == '_' && pToken[3] == 'g' && pToken[4] == '_' )
-                i++;
+            //if ( pToken[1] == 'z' && pToken[2] == '_' && pToken[3] == 'g' && pToken[4] == '_' )
+            //    i++;
         }
         else 
             Vec_IntPush( vCur, Token );
