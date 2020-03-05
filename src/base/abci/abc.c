@@ -32653,7 +32653,6 @@ int Abc_CommandAbc9MLTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName );
     int c, fVerbose = 0;
-    char * pFileName = NULL;
     char ** pArgvNew;
     int nArgcNew;
     Extra_UtilGetoptReset();
@@ -32672,29 +32671,23 @@ int Abc_CommandAbc9MLTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9MLGen(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9MLTest(): There is no AIG.\n" );
         return 1;
     }
     if ( Gia_ManRegNum(pAbc->pGia) > 0 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9MLGen(): This command works only for combinational AIGs.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9MLTest(): This command works only for combinational AIGs.\n" );
         return 0;
     }
     Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( nArgcNew == 0 )
-    {
-        printf( "Expecting data file name on the command line.\n" );
-        return 0;
-    }
-    pFileName = pArgvNew[0];
     if ( nArgcNew != 1 )
     {
-        Abc_Print( -1, "File name is not given on the command line.\n" );
-        return 1;
+        Abc_Print( -1, "Abc_CommandAbc9MLTest(): Expecting data file name on the command line.\n" );
+        return 0;
     }
-    Gia_ManTestOneFile( pAbc->pGia, pFileName );
+    Gia_ManTestOneFile( pAbc->pGia, pArgvNew[0] );
     return 0;
 
 usage:
@@ -47594,7 +47587,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    Extra_TestGia2( pAbc->pGia );
     //pTemp = Dau_ConstructAigFromFile( "lib4var2.txt" );
     //Abc_FrameUpdateGia( pAbc, pTemp );
-    Gia_Sim5TestPolarities( pAbc->pGia );
+    //Gia_Sim5TestPolarities( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );
