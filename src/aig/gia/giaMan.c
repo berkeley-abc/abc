@@ -93,6 +93,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Gia_ManStopP( &p->pUserAig );
     Vec_PtrFreeFree( p->vUserNames );
     Vec_WecFreeP( &p->vUserNodes );
+    Vec_WecFreeP( &p->vUserSupps );
     Vec_IntFreeP( &p->vUserArray );
     Vec_IntFreeP( &p->vSwitching );
     Vec_IntFreeP( &p->vSuper );

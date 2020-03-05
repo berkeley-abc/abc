@@ -1835,6 +1835,13 @@ static inline int Abc_TtCountOnesVecMask( word * x, word * pMask, int nWords, in
             Count += Abc_TtCountOnes( pMask[w] & x[w] );
     return Count;
 }
+static inline int Abc_TtCountOnesVecXor( word * x, word * y, int nWords )
+{
+    int w, Count = 0;
+    for ( w = 0; w < nWords; w++ )
+        Count += Abc_TtCountOnes( x[w] ^ y[w] );
+    return Count;
+}
 
 /**Function*************************************************************
 

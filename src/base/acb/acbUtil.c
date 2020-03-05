@@ -502,7 +502,7 @@ Vec_Int_t * Acb_NtkFindNodes2( Acb_Ntk_t * p )
         Acb_NtkFindNodes2_rec( p, Acb_ObjFanin(p, iObj, 0), vNodes );
     return vNodes;
 }
-int Acb_ObjToGia2( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp )
+int Acb_ObjToGia2( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp, int fUseXors )
 {
     //char * pName = Abc_NamStr( p->pDesign->pStrs, Acb_ObjName(p, iObj) );
     int * pFanin, iFanin, k, Type, Res;
@@ -540,13 +540,13 @@ int Acb_ObjToGia2( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp 
     {
         Res = 0;
         Vec_IntForEachEntry( vTemp, iFanin, k )
-            Res = Gia_ManAppendXor2( pNew, Res, iFanin );
+            Res = fUseXors ? Gia_ManAppendXorReal(pNew, Res, iFanin) : Gia_ManAppendXor2(pNew, Res, iFanin);
         return Abc_LitNotCond( Res, Type == ABC_OPER_BIT_NXOR );
     }
     assert( 0 );
     return -1;
 }
-Gia_Man_t * Acb_NtkToGia2( Acb_Ntk_t * p )
+Gia_Man_t * Acb_NtkToGia2( Acb_Ntk_t * p, int fUseXors, Vec_Int_t * vTargets, int nTargets )
 {
     Gia_Man_t * pNew, * pOne;
     Vec_Int_t * vFanins, * vNodes;
@@ -556,10 +556,17 @@ Gia_Man_t * Acb_NtkToGia2( Acb_Ntk_t * p )
     Acb_NtkCleanObjCopies( p );
     Acb_NtkForEachCi( p, iObj, i )
         Acb_ObjSetCopy( p, iObj, Gia_ManAppendCi(pNew) );
+    if ( vTargets )
+        Vec_IntForEachEntry( vTargets, iObj, i )
+            Acb_ObjSetCopy( p, iObj, Gia_ManAppendCi(pNew) );
+    else
+        for ( i = 0; i < nTargets; i++ )
+            Gia_ManAppendCi(pNew);
     vFanins = Vec_IntAlloc( 4 );
     vNodes  = Acb_NtkFindNodes2( p );
     Vec_IntForEachEntry( vNodes, iObj, i )
-        Acb_ObjSetCopy( p, iObj, Acb_ObjToGia2(pNew, p, iObj, vFanins) );
+        if ( Acb_ObjCopy(p, iObj) == -1 ) // skip targets assigned above
+            Acb_ObjSetCopy( p, iObj, Acb_ObjToGia2(pNew, p, iObj, vFanins, fUseXors) );
     Vec_IntFree( vNodes );
     Vec_IntFree( vFanins );
     Acb_NtkForEachCo( p, iObj, i )
@@ -583,13 +590,16 @@ Gia_Man_t * Acb_NtkToGia2( Acb_Ntk_t * p )
 ***********************************************************************/
 Vec_Int_t * Acb_NtkCollectCopies( Acb_Ntk_t * p, Gia_Man_t * pGia, Vec_Ptr_t ** pvNodesR )
 {
-    int i, iObj, iLit;
+    int i, iObj, iLit, nTargets = Vec_IntSize(&p->vTargets);
     Vec_Int_t * vObjs   = Acb_NtkFindNodes2( p );
     Vec_Int_t * vNodes  = Vec_IntAlloc( Acb_NtkObjNum(p) );
     Vec_Ptr_t * vNodesR = Vec_PtrStart( Gia_ManObjNum(pGia) );
     Vec_Bit_t * vDriver = Vec_BitStart( Gia_ManObjNum(pGia) );
     Gia_ManForEachCiId( pGia, iObj, i )
-        Vec_PtrWriteEntry( vNodesR, iObj, Abc_UtilStrsav(Acb_ObjNameStr(p, Acb_NtkCi(p, i))) );
+        if ( i < Gia_ManCiNum(pGia) - nTargets )
+            Vec_PtrWriteEntry( vNodesR, iObj, Abc_UtilStrsav(Acb_ObjNameStr(p, Acb_NtkCi(p, i))) );
+        else
+            Vec_PtrWriteEntry( vNodesR, iObj, Abc_UtilStrsav(Acb_ObjNameStr(p, Vec_IntEntry(&p->vTargets, i-(Gia_ManCiNum(pGia) - nTargets)))) );
     Gia_ManForEachCoId( pGia, iObj, i )
     {
         Vec_BitWriteEntry( vDriver, Gia_ObjFaninId0(Gia_ManObj(pGia, iObj), iObj), 1 );
@@ -644,23 +654,31 @@ Vec_Int_t * Acb_NtkCollectUser( Acb_Ntk_t * p, Vec_Ptr_t * vUser )
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fVerbose, 
+int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fUseXors, int fVerbose, 
                     Gia_Man_t ** ppGiaF, Gia_Man_t ** ppGiaG, Vec_Int_t ** pvNodes, Vec_Ptr_t ** pvNodesR )
 {
     extern Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW );
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileName0, NULL );
     Acb_Ntk_t * pNtkG = Acb_VerilogSimpleRead( pFileName1, NULL );
-    int RetValue = 0;
+    int i, RetValue = 0;
     if ( pNtkF && pNtkG )
     {
-        Gia_Man_t * pGiaF = Acb_NtkToGia2( pNtkF );
-        Gia_Man_t * pGiaG = Acb_NtkToGia2( pNtkG );
+        int nTargets = Vec_IntSize(&pNtkF->vTargets);
+        Gia_Man_t * pGiaF = Acb_NtkToGia2( pNtkF, fUseXors, &pNtkF->vTargets, 0 );
+        Gia_Man_t * pGiaG = Acb_NtkToGia2( pNtkG, 0, NULL, nTargets );
         assert( Acb_NtkCiNum(pNtkF) == Acb_NtkCiNum(pNtkG) );
         assert( Acb_NtkCoNum(pNtkF) == Acb_NtkCoNum(pNtkG) );
         *ppGiaF  = pGiaF;
         *ppGiaG  = pGiaG;
         *pvNodes = Acb_NtkCollectCopies( pNtkF, pGiaF, pvNodesR );
         RetValue = 1;
+        if ( nTargets > 0 )
+        {
+            assert( pGiaF->vUserNodes == NULL );
+            pGiaF->vUserNodes = Vec_WecStart( nTargets );
+            for ( i = 0; i < nTargets; i++ )
+                Vec_WecPush( pGiaF->vUserNodes, i, 1 + Gia_ManCiNum(pGiaF) - nTargets + i );
+        }
     }
     if ( pNtkF ) Acb_ManFree( pNtkF->pDesign );
     if ( pNtkG ) Acb_ManFree( pNtkG->pDesign );

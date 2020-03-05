@@ -238,6 +238,7 @@ struct Gia_Man_t_
     Gia_Man_t *    pUserAig;
     Vec_Ptr_t *    vUserNames;
     Vec_Wec_t *    vUserNodes;
+    Vec_Wec_t *    vUserSupps;
     Vec_Int_t *    vUserArray;
 };
 
@@ -726,8 +727,8 @@ static inline int Gia_ManAppendXorReal( Gia_Man_t * p, int iLit0, int iLit1 )
     assert( iLit0 >= 0 && Abc_Lit2Var(iLit0) < Gia_ManObjNum(p) );
     assert( iLit1 >= 0 && Abc_Lit2Var(iLit1) < Gia_ManObjNum(p) );
     assert( Abc_Lit2Var(iLit0) != Abc_Lit2Var(iLit1) );
-    assert( !Abc_LitIsCompl(iLit0) );
-    assert( !Abc_LitIsCompl(iLit1) );
+    //assert( !Abc_LitIsCompl(iLit0) );
+    //assert( !Abc_LitIsCompl(iLit1) );
     if ( Abc_Lit2Var(iLit0) > Abc_Lit2Var(iLit1) )
     {
         pObj->iDiff0  = (unsigned)(Gia_ObjId(p, pObj) - Abc_Lit2Var(iLit0));
@@ -860,7 +861,6 @@ static inline int Gia_ManAppendXor2( Gia_Man_t * p, int iLit0, int iLit1 )
 
 static inline int Gia_ManAppendXorReal2( Gia_Man_t * p, int iLit0, int iLit1 )  
 { 
-    int fCompl;
     if ( !p->fGiaSimple )
     {
         if ( iLit0 < 2 )
@@ -872,8 +872,7 @@ static inline int Gia_ManAppendXorReal2( Gia_Man_t * p, int iLit0, int iLit1 )
         if ( iLit0 == Abc_LitNot(iLit1) )
             return 1;
     }
-    fCompl = Abc_LitIsCompl(iLit0) ^ Abc_LitIsCompl(iLit1);
-    return Abc_LitNotCond( Gia_ManAppendXorReal( p, Abc_LitRegular(iLit0), Abc_LitRegular(iLit1) ), fCompl );
+    return Gia_ManAppendXorReal( p, iLit0, iLit1 );
 }
 
 static inline void Gia_ManPatchCoDriver( Gia_Man_t * p, int iCoIndex, int iLit0 )  

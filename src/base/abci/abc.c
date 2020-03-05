@@ -32719,7 +32719,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Wrd_t * Gia_ManSimPatGenRandom( int nWords );
     extern Vec_Wrd_t * Gia_ManSimPatRead( char * pFileName );
     int c, nWords = 4, fVerbose = 0;
     char ** pArgvNew;
@@ -32765,7 +32764,7 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( nArgcNew == 0 )
     {
         Gia_ManRandom( 1 );
-        pAbc->pGia->vSimsPi = Gia_ManSimPatGenRandom( Gia_ManCiNum(pAbc->pGia) * nWords );
+        pAbc->pGia->vSimsPi = Vec_WrdStartRandom( Gia_ManCiNum(pAbc->pGia) * nWords );
         printf( "Generated %d random patterns (%d 64-bit words) for each input of the AIG.\n", 64*nWords, nWords );
         return 0;
     }
@@ -47593,8 +47592,9 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    pTemp = Slv_ManToAig( pAbc->pGia );
 //    Abc_FrameUpdateGia( pAbc, pTemp );
 //    Extra_TestGia2( pAbc->pGia );
-    pTemp = Dau_ConstructAigFromFile( "lib4var2.txt" );
-    Abc_FrameUpdateGia( pAbc, pTemp );
+    //pTemp = Dau_ConstructAigFromFile( "lib4var2.txt" );
+    //Abc_FrameUpdateGia( pAbc, pTemp );
+    Gia_Sim5TestPolarities( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );

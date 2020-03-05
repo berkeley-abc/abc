@@ -160,6 +160,13 @@ static inline Vec_Wrd_t * Vec_WrdStartNatural( int nSize )
         p->pArray[i] = i;
     return p;
 }
+static inline Vec_Wrd_t * Vec_WrdStartRandom( int nSize )
+{
+    Vec_Wrd_t * vSims = Vec_WrdStart( nSize ); int i;
+    for ( i = 0; i < nSize; i++ )
+        vSims->pArray[i] = Abc_RandomW(0);
+    return vSims;
+}
 
 /**Function*************************************************************
 

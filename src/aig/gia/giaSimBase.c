@@ -78,13 +78,6 @@ struct Gia_SimAbsMan_t_
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Wrd_t * Gia_ManSimPatGenRandom( int nWords )
-{
-    Vec_Wrd_t * vSims = Vec_WrdAlloc( nWords ); int i;
-    for ( i = 0; i < nWords; i++ )
-        Vec_WrdPush( vSims, Gia_ManRandomW(0) );
-    return vSims;
-}
 void Gia_ManSimPatAssignInputs( Gia_Man_t * p, int nWords, Vec_Wrd_t * vSims, Vec_Wrd_t * vSimsIn )
 {
     int i, Id;
@@ -102,8 +95,12 @@ static inline void Gia_ManSimPatSimAnd( Gia_Man_t * p, int i, Gia_Obj_t * pObj, 
     word * pSims0 = pSims + nWords*Gia_ObjFaninId0(pObj, i);
     word * pSims1 = pSims + nWords*Gia_ObjFaninId1(pObj, i);
     word * pSims2 = pSims + nWords*i; int w;
-    for ( w = 0; w < nWords; w++ )
-        pSims2[w] = (pSims0[w] ^ Diff0) & (pSims1[w] ^ Diff1);
+    if ( Gia_ObjIsXor(pObj) )
+        for ( w = 0; w < nWords; w++ )
+            pSims2[w] = (pSims0[w] ^ Diff0) ^ (pSims1[w] ^ Diff1);
+    else
+        for ( w = 0; w < nWords; w++ )
+            pSims2[w] = (pSims0[w] ^ Diff0) & (pSims1[w] ^ Diff1);
 }
 static inline void Gia_ManSimPatSimPo( Gia_Man_t * p, int i, Gia_Obj_t * pObj, int nWords, Vec_Wrd_t * vSims )
 {
@@ -173,7 +170,7 @@ Vec_Wrd_t * Gia_ManSimPatValues( Gia_Man_t * p )
 
   SeeAlso     []
 
-***********************************************************************/\
+***********************************************************************/
 Vec_Wrd_t * Gia_ManSimCombine( int nInputs, Vec_Wrd_t * vBase, Vec_Wrd_t * vAddOn, int nWordsUse )
 {
     int nWordsBase  = Vec_WrdSize(vBase)  / nInputs;
@@ -226,7 +223,7 @@ Vec_Wrd_t * Gia_ManSimBitPacking( Gia_Man_t * p, Vec_Int_t * vCexStore, int nCex
 {
     int c, iCur = 0, iPat = 0;
     int nWordsMax = Abc_Bit6WordNum( nCexes ); 
-    Vec_Wrd_t * vSimsIn   = Gia_ManSimPatGenRandom( Gia_ManCiNum(p) * nWordsMax );
+    Vec_Wrd_t * vSimsIn   = Vec_WrdStartRandom( Gia_ManCiNum(p) * nWordsMax );
     Vec_Wrd_t * vSimsCare = Vec_WrdStart( Gia_ManCiNum(p) * nWordsMax );
     Vec_Wrd_t * vSimsRes  = NULL;
     for ( c = 0; c < nCexes; c++ )
@@ -586,8 +583,12 @@ static inline void Gia_SimRsbSimAndCareSet( Gia_Man_t * p, int i, Gia_Obj_t * pO
     word * pSims0 = Vec_WrdEntryP( vSims0, nWords*Gia_ObjFaninId0(pObj, i) );
     word * pSims1 = Vec_WrdEntryP( vSims1, nWords*Gia_ObjFaninId1(pObj, i) );
     word * pSims2 = Vec_WrdEntryP( vSims2, nWords*i ); int w;
-    for ( w = 0; w < nWords; w++ )
-        pSims2[w] = (pSims0[w] ^ Diff0) & (pSims1[w] ^ Diff1);
+    if ( Gia_ObjIsXor(pObj) )
+        for ( w = 0; w < nWords; w++ )
+            pSims2[w] = (pSims0[w] ^ Diff0) ^ (pSims1[w] ^ Diff1);
+    else
+        for ( w = 0; w < nWords; w++ )
+            pSims2[w] = (pSims0[w] ^ Diff0) & (pSims1[w] ^ Diff1);
 }
 word * Gia_SimRsbCareSet( Gia_SimRsbMan_t * p, int iObj, Vec_Int_t * vTfo )
 {

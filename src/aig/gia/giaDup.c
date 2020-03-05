@@ -3471,7 +3471,10 @@ Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis )
         Gia_ObjRiToRo(p, pObj)->Value = Gia_ManAppendCi( pNew );
     // create internal nodes
     Vec_PtrForEachEntry( Gia_Obj_t *, vNodes, pObj, i )
-        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( Gia_ObjIsXor(pObj) )
+            pObj->Value = Gia_ManAppendXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     // create COs
     Vec_PtrForEachEntry( Gia_Obj_t *, vRoots, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
