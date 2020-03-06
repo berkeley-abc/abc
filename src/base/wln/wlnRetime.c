@@ -487,6 +487,8 @@ void Wln_RetRetimeForward( Wln_Ret_t * p, Vec_Int_t * vSet )
     Vec_IntForEachEntry( vSet, iObj, i )
     {
         iFlop = Wln_RetRemoveOneFanin( p, iObj );
+        if ( iFlop == -1 )
+            continue;
         Wln_RetInsertOneFanout( p, iObj, iFlop );
     }
 }
@@ -496,6 +498,8 @@ void Wln_RetRetimeBackward( Wln_Ret_t * p, Vec_Int_t * vSet )
     Vec_IntForEachEntry( vSet, iObj, i )
     {
         iFlop = Wln_RetRemoveOneFanout( p, iObj );
+        if ( iFlop == -1 )
+            continue;
         Wln_RetInsertOneFanin( p, iObj, iFlop );
     }
 }
