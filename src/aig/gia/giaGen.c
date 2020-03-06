@@ -236,28 +236,29 @@ void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, char *
 ***********************************************************************/
 void Gia_ManDumpPlaFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, char * pFileName )
 {
-    int n, nSize[2] = {nCexesT*64, nCexesV*64};
+    int n, nSize[3] = {nCexesT, nCexesV, nCexesV};
 
-    char pFileNameOutT[100];
-    char pFileNameOutV[100];
+    char pFileNameOut[3][100];
     
-    sprintf( pFileNameOutT, "train_%s_%d.pla", pFileName ? pFileName : Gia_ManName(p), nSize[0] );
-    sprintf( pFileNameOutV, "test_%s_%d.pla",  pFileName ? pFileName : Gia_ManName(p), nSize[1] );
+    sprintf( pFileNameOut[0], "%s.train.pla", pFileName ? pFileName : Gia_ManName(p) );
+    sprintf( pFileNameOut[1], "%s.valid.pla", pFileName ? pFileName : Gia_ManName(p) );
+    sprintf( pFileNameOut[2], "%s.test.pla",  pFileName ? pFileName : Gia_ManName(p) );
 
     Gia_ManRandomW( 1 );
     for ( n = 0; n < Seed; n++ )
         Gia_ManRandomW( 0 );
-    for ( n = 0; n < 2; n++ )
+    for ( n = 0; n < 3; n++ )
     {
         int Res = Gia_ManSimulateWords( p, nSize[n] );
         int i, k, Id;
 
-        FILE * pFileOut  = fopen( n ? pFileNameOutV : pFileNameOutT, "wb" );
+        FILE * pFileOut  = fopen( pFileNameOut[n], "wb" );
 
         fprintf( pFileOut, ".i %d\n", Gia_ManCiNum(p) );
         fprintf( pFileOut, ".o %d\n", Gia_ManCoNum(p) );
-        fprintf( pFileOut, ".p %d\n", nSize[n] );
-        for ( k = 0; k < nSize[n]; k++ )
+        fprintf( pFileOut, ".p %d\n", nSize[n]*64 );
+        fprintf( pFileOut, ".type fr\n" );
+        for ( k = 0; k < nSize[n]*64; k++ )
         {
             Gia_ManForEachCiId( p, Id, i )
             {
@@ -278,7 +279,7 @@ void Gia_ManDumpPlaFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, cha
 
         Res = 0;
     }
-    printf( "Finished dumping files \"%s\" and \"%s\".\n", pFileNameOutT, pFileNameOutV );
+    printf( "Finished dumping files: \"%s.{train, valid, test}.pla\".\n", pFileName ? pFileName : Gia_ManName(p) );
 }
 
 /**Function*************************************************************
@@ -337,6 +338,7 @@ int Gia_ManSimParamRead( char * pFileName, int * pnIns, int * pnWords )
     *pnIns = nIns - 1;
     *pnWords = nLines / 64;
     //printf( "Expecting %d inputs and %d words of simulation data.\n", *pnIns, *pnWords );
+    fclose( pFile );
     return 1;
 }
 void Gia_ManSimFileRead( char * pFileName, int nIns, int nWords, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValues )
@@ -374,11 +376,11 @@ void Gia_ManSimFileRead( char * pFileName, int nIns, int nWords, Vec_Wrd_t * vSi
     }
     assert( nPats == 64*nWords );
     fclose( pFile );
-    printf( "Read %d simulation patterns for %d inputs.\n", 64*nWords, nIns );
+    printf( "Read %d simulation patterns for %d inputs. Probability of 1 at the output is %6.2f %%.\n", 64*nWords, nIns, 100.0*Vec_IntSum(vValues)/nPats );
 }
 void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValues )
 {
-    int i, Value, Count = 0, nWords = Vec_WrdSize(vSimsIn) / Gia_ManCiNum(p);
+    int i, Value, Guess, Count = 0, nWords = Vec_WrdSize(vSimsIn) / Gia_ManCiNum(p);
     word * pSims;
     assert( Vec_IntSize(vValues) == nWords * 64 );
     Gia_ManSimulateWordsInit( p, vSimsIn );
@@ -387,8 +389,11 @@ void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValu
     Vec_IntForEachEntry( vValues, Value, i )
         if ( Abc_TtGetBit(pSims, i) == Value )
             Count++;
-    printf( "Total = %6d.  Errors = %6d.  Correct = %6d.  (%6.2f %%)\n", 
-        Vec_IntSize(vValues), Vec_IntSize(vValues) - Count, Count, 100.0*Count/Vec_IntSize(vValues) );
+    Guess = (Vec_IntSum(vValues) > nWords * 32) ? Vec_IntSum(vValues) : nWords * 64 - Vec_IntSum(vValues);
+    printf( "Total = %6d.  Errors = %6d.  Correct = %6d.  (%6.2f %%)   Naive guess = %6d.  (%6.2f %%)\n", 
+        Vec_IntSize(vValues), Vec_IntSize(vValues) - Count, 
+        Count, 100.0*Count/Vec_IntSize(vValues),
+        Guess, 100.0*Guess/Vec_IntSize(vValues));
 }
 
 /**Function*************************************************************

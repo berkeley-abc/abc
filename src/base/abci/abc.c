@@ -23433,7 +23433,7 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             printf( "Generated truth table of the %d-variable function (%s) and set it as the current network\n", nVars, pTruth );
     }
-    else
+    else if ( nVars <= 8 )
         printf( "%s\n", pTruth );
     // read the truth table to be the current network in ABC
     pCommand = ABC_CALLOC( char, strlen(pTruth) + 100 );
@@ -47436,39 +47436,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp = NULL;
     int c, fVerbose = 0;
     int nFrames = 5;
     int fSwitch = 0;
     int nWords = 1000;
     int nProcs = 2;
-//    extern Gia_Man_t * Gia_VtaTest( Gia_Man_t * p );
-//    extern int Gia_ManSuppSizeTest( Gia_Man_t * p );
-//    extern void Gia_VtaTest( Gia_Man_t * p, int nFramesStart, int nFramesMax, int nConfMax, int nTimeMax, int fVerbose );
-//    extern void Gia_IsoTest( Gia_Man_t * p, int fVerbose );
-//    extern void Ga2_ManComputeTest( Gia_Man_t * p );
-//    extern void Bmc_CexTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
-//    extern void Gia_IsoTest( Gia_Man_t * p, Abc_Cex_t * pCex, int fVerbose );
-//    extern void Unr_ManTest( Gia_Man_t * pGia, int nFrames );
-//    extern int Gia_ManVerify( Gia_Man_t * pGia );
-//    extern Gia_Man_t * Gia_ManOptimizeRing( Gia_Man_t * p );
-//    extern void Gia_ManCollectSeqTest( Gia_Man_t * p );
-//    extern Gia_Man_t * Gia_SweeperFraigTest( Gia_Man_t * p, int nWords, int nConfs, int fVerbose );
-//    extern Gia_Man_t * Bmc_CexDepthTest( Gia_Man_t * p, Abc_Cex_t * pCex, int nFrames, int fVerbose );
-//    extern Gia_Man_t * Bmc_CexTarget( Gia_Man_t * p, int nFrames );
-//    extern void Gia_ManMuxProfiling( Gia_Man_t * p );
-//    extern Gia_Man_t * Mig_ManTest( Gia_Man_t * pGia );
-//    extern Gia_Man_t * Gia_ManInterTest( Gia_Man_t * p );
-//    extern Gia_Man_t * Llb_ReachableStatesGia( Gia_Man_t * p );
-//    extern Gia_Man_t * Unm_ManTest( Gia_Man_t * pGia );
-//    extern void Agi_ManTest( Gia_Man_t * pGia );
-//    extern void Gia_ManCheckFalseTest( Gia_Man_t * p, int nSlackMax );
-//    extern void Gia_ParTest( Gia_Man_t * p, int nWords, int nProcs );
-//    extern void Gia_ManTisTest( Gia_Man_t * pInit );
-//    extern void Gia_StoComputeCuts( Gia_Man_t * p );
-//    extern void Abc_BddGiaTest( Gia_Man_t * pGia, int fVerbose );
-    extern Gia_Man_t * Dau_ConstructAigFromFile( char * pFileName );
-
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WPFsvh" ) ) != EOF )
     {
@@ -47524,70 +47496,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
 //        return 1;
 //    }
-/*
-    if ( pAbc->pCex == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9Test(): There is no CEX.\n" );
-        return 1;
-    }
-*/
-//    Gia_ManFrontTest( pAbc->pGia );
-//    Gia_ManReduceConst( pAbc->pGia, 1 );
-//    Sat_ManTest( pAbc->pGia, Gia_ManCo(pAbc->pGia, 0), 0 );
-//    Gia_ManTestDistance( pAbc->pGia );
-//    Gia_SatSolveTest( pAbc->pGia );
-//    For_ManExperiment( pAbc->pGia, 20, 1, 1 );
-//    Gia_ManUnrollSpecial( pAbc->pGia, 5, 100, 1 );
-//    pAbc->pGia = Gia_ManDupSelf( pTemp = pAbc->pGia );
-//    pAbc->pGia = Gia_ManRemoveEnables( pTemp = pAbc->pGia );
-//    Cbs_ManSolveTest( pAbc->pGia );
-//    pAbc->pGia = Gia_VtaTest( pTemp = pAbc->pGia );
-//    Gia_ManStopP( &pTemp );
-//    Gia_ManSuppSizeTest( pAbc->pGia );
-//    Gia_VtaTest( pAbc->pGia, 10, 100000, 0, 0, 1 );
-//    Gia_IsoTest( pAbc->pGia, fVerbose );
-//    Ga2_ManComputeTest( pAbc->pGia );
-//    Bmc_CexTest( pAbc->pGia, pAbc->pCex, fVerbose );
-//    Gia_IsoTest( pAbc->pGia, pAbc->pCex, 0 );
-//    Unr_ManTest( pAbc->pGia, nFrames );
-//    Gia_ManVerifyWithBoxes( pAbc->pGia );
-//    Gia_ManCollectSeqTest( pAbc->pGia );
-//    pTemp = Gia_ManOptimizeRing( pAbc->pGia );
-//    pTemp = Gia_SweeperFraigTest( pAbc->pGia, 4, 1000, 0 );
-//    Abc_FrameUpdateGia( pAbc, pTemp );
-//    pTemp = Bmc_CexDepthTest( pAbc->pGia, pAbc->pCex, nFrames, fVerbose );
-//    pTemp = Bmc_CexTarget( pAbc->pGia, nFrames );
-//    Abc_FrameUpdateGia( pAbc, pTemp );
-//    Gia_ManMuxProfiling( pAbc->pGia );
-//    pTemp = Mig_ManTest( pAbc->pGia );
-//    Abc_FrameUpdateGia( pAbc, pTemp );
-//    pTemp = Gia_ManInterTest( pAbc->pGia );
-//    Abc_FrameUpdateGia( pAbc, pTemp );
-//    pTemp = Llb_ReachableStatesGia( pAbc->pGia );
-//    Abc_FrameUpdateGia( pAbc, pTemp );
-//    Unm_ManTest( pAbc->pGia );
-//    Agi_ManTest( pAbc->pGia );
-//    Gia_ManResubTest( pAbc->pGia );
-//    Jf_ManTestCnf( pAbc->pGia );
-//    Gia_ManCheckFalseTest( pAbc->pGia, nFrames );
-//    Gia_ParTest( pAbc->pGia, nWords, nProcs );
-//    Gia_StoComputeCuts( pAbc->pGia );
-//    printf( "\nThis command is currently disabled.\n\n" );
-/*
-    {
-        char Buffer[10];
-        extern void Gia_DumpLutSizeDistrib( Gia_Man_t * p, char * pFileName );
-        sprintf( Buffer, "stats%d.txt", nFrames );
-        if ( pAbc->pGia )
-            Gia_DumpLutSizeDistrib( pAbc->pGia, Buffer );
-    }
-*/
-//    pTemp = Slv_ManToAig( pAbc->pGia );
-//    Abc_FrameUpdateGia( pAbc, pTemp );
-//    Extra_TestGia2( pAbc->pGia );
-    //pTemp = Dau_ConstructAigFromFile( "lib4var2.txt" );
-    //Abc_FrameUpdateGia( pAbc, pTemp );
-    //Gia_Sim5TestPolarities( pAbc->pGia );
+//    Abc_FrameUpdateGia( pAbc, Abc_Procedure(pAbc->pGia) );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );
