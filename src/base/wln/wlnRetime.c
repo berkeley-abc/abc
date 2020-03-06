@@ -370,7 +370,7 @@ static inline int Wln_RetCheckForwardOne( Wln_Ret_t * p, int iObj )
         else if ( Class != Vec_IntEntry( &p->vFfClasses, iFlop ) )
             return 0;
     }
-    return 1;
+    return Class == -1 ? 0 : 1;
 }
 int Wln_RetCheckForward( Wln_Ret_t * p, Vec_Int_t * vSet )
 {
@@ -398,7 +398,7 @@ static inline int Wln_RetCheckBackwardOne( Wln_Ret_t * p, int iObj )
         else if ( Class != Vec_IntEntry( &p->vFfClasses, iFlop ) )
             return 0;
     }
-    return 1;
+    return Class == -1 ? 0 : 1;
 }
 int Wln_RetCheckBackward( Wln_Ret_t * p, Vec_Int_t * vSet )
 {
