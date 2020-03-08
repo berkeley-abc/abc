@@ -155,11 +155,17 @@ void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, char *
     char pFileNameOutTY[100];
     char pFileNameOutVX[100];
     char pFileNameOutVY[100];
+    char pFileNameOut[100];
     
-    sprintf( pFileNameOutTX, "train_%s_%d_%d.data", pFileName ? pFileName : Gia_ManName(p), nSize[0], Gia_ManCiNum(p) );
-    sprintf( pFileNameOutTY, "train_%s_%d_%d.data", pFileName ? pFileName : Gia_ManName(p), nSize[0], Gia_ManCoNum(p) );
-    sprintf( pFileNameOutVX, "test_%s_%d_%d.data",  pFileName ? pFileName : Gia_ManName(p), nSize[1], Gia_ManCiNum(p) );
-    sprintf( pFileNameOutVY, "test_%s_%d_%d.data",  pFileName ? pFileName : Gia_ManName(p), nSize[1], Gia_ManCoNum(p) );
+    //sprintf( pFileNameOutTX, "train_%s_%d_%d.data", pFileName ? pFileName : Gia_ManName(p), nSize[0], Gia_ManCiNum(p) );
+    //sprintf( pFileNameOutTY, "train_%s_%d_%d.data", pFileName ? pFileName : Gia_ManName(p), nSize[0], Gia_ManCoNum(p) );
+    //sprintf( pFileNameOutVX, "test_%s_%d_%d.data",  pFileName ? pFileName : Gia_ManName(p), nSize[1], Gia_ManCiNum(p) );
+    //sprintf( pFileNameOutVY, "test_%s_%d_%d.data",  pFileName ? pFileName : Gia_ManName(p), nSize[1], Gia_ManCoNum(p) );
+    
+    sprintf( pFileNameOutTX, "%s_x.train.data", pFileName ? pFileName : Gia_ManName(p) );
+    sprintf( pFileNameOutTY, "%s_y.train.data", pFileName ? pFileName : Gia_ManName(p) );
+    sprintf( pFileNameOutVX, "%s_x.test.data",  pFileName ? pFileName : Gia_ManName(p) );
+    sprintf( pFileNameOutVY, "%s_y.test.data",  pFileName ? pFileName : Gia_ManName(p) );
 
     Gia_ManRandomW( 1 );
     for ( n = 0; n < Seed; n++ )
@@ -221,6 +227,17 @@ void Gia_ManDumpFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, char *
     }
     printf( "Finished dumping files \"%s\" and \"%s\".\n", pFileNameOutTX, pFileNameOutTY );
     printf( "Finished dumping files \"%s\" and \"%s\".\n", pFileNameOutVX, pFileNameOutVY );
+
+    sprintf( pFileNameOut, "%s.flist", pFileName ? pFileName : Gia_ManName(p) );
+    {
+        FILE * pFile = fopen( pFileNameOut, "wb" );
+        fprintf( pFile, "%s\n", pFileNameOutTX );
+        fprintf( pFile, "%s\n", pFileNameOutTY );
+        fprintf( pFile, "%s\n", pFileNameOutVX );
+        fprintf( pFile, "%s\n", pFileNameOutVY );
+        fclose( pFile );
+        printf( "Finished dumping file list \"%s\".\n", pFileNameOut );
+    }
 }
 
 /**Function*************************************************************
