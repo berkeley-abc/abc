@@ -32651,15 +32651,25 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9MLTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName );
+    extern void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName, char * pDumpFile );
     int c, fVerbose = 0;
+    char * pDumpFile = NULL;
     char ** pArgvNew;
     int nArgcNew;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pDumpFile = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -32687,15 +32697,16 @@ int Abc_CommandAbc9MLTest( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9MLTest(): Expecting data file name on the command line.\n" );
         return 0;
     }
-    Gia_ManTestOneFile( pAbc->pGia, pArgvNew[0] );
+    Gia_ManTestOneFile( pAbc->pGia, pArgvNew[0], pDumpFile );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &mltest [-vh] <file>\n" );
-    Abc_Print( -2, "\t         testing command for machine learning data\n" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : file with input simulation info\n");
+    Abc_Print( -2, "usage: &mltest [-vh] [-D file] <file>\n" );
+    Abc_Print( -2, "\t          testing command for machine learning data\n" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
+    Abc_Print( -2, "\tfile    : file with input simulation info\n");
     return 1;
 }
 

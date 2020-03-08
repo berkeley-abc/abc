@@ -293,6 +293,20 @@ void Gia_ManDumpPlaFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, cha
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManSimLogStats( Gia_Man_t * p, char * pDumpFile, int Total, int Correct )
+{
+    FILE * pTable = fopen( pDumpFile, "wb" );
+    fprintf( pTable, "{\n" );
+    fprintf( pTable, "    \"name\" : \"%s\",\n", p->pName );
+    fprintf( pTable, "    \"input\" : %d,\n",    Gia_ManCiNum(p) );
+    fprintf( pTable, "    \"output\" : %d,\n",   Gia_ManCoNum(p) );
+    fprintf( pTable, "    \"and\" : %d,\n",      Gia_ManAndNum(p) );
+    fprintf( pTable, "    \"level\" : %d\n",     Gia_ManLevelNum(p) );
+    fprintf( pTable, "    \"total\" : %d\n",     Total );
+    fprintf( pTable, "    \"correct\" : %d\n",   Correct );
+    fprintf( pTable, "}\n" );
+    fclose( pTable );
+}
 int Gia_ManSimParamRead( char * pFileName, int * pnIns, int * pnWords )
 {
     int c, nIns = -1, nLines = 0, Count = 0, fReadDot = 0;
@@ -376,9 +390,9 @@ void Gia_ManSimFileRead( char * pFileName, int nIns, int nWords, Vec_Wrd_t * vSi
     }
     assert( nPats == 64*nWords );
     fclose( pFile );
-    printf( "Read %d simulation patterns for %d inputs. Probability of 1 at the output is %6.2f %%.\n", 64*nWords, nIns, 100.0*Vec_IntSum(vValues)/nPats );
+    printf( "Finished reading %d simulation patterns for %d inputs. Probability of 1 at the output is %6.2f %%.\n", 64*nWords, nIns, 100.0*Vec_IntSum(vValues)/nPats );
 }
-void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValues )
+void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValues, char * pDumpFile )
 {
     int i, Value, Guess, Count = 0, nWords = Vec_WrdSize(vSimsIn) / Gia_ManCiNum(p);
     word * pSims;
@@ -394,6 +408,10 @@ void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValu
         Vec_IntSize(vValues), Vec_IntSize(vValues) - Count, 
         Count, 100.0*Count/Vec_IntSize(vValues),
         Guess, 100.0*Guess/Vec_IntSize(vValues));
+    if ( pDumpFile == NULL )
+        return;
+    Gia_ManSimLogStats( p, pDumpFile, Vec_IntSize(vValues), Count );
+    printf( "Finished dumping statistics into file \"%s\".\n", pDumpFile );
 }
 
 /**Function*************************************************************
@@ -407,7 +425,7 @@ void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValu
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName )
+void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName, char * pDumpFile )
 {
     Vec_Wrd_t * vSimsIn;
     Vec_Int_t * vValues;
@@ -422,7 +440,7 @@ void Gia_ManTestOneFile( Gia_Man_t * p, char * pFileName )
     vSimsIn = Vec_WrdStart( nIns * nWords );
     vValues = Vec_IntAlloc( nWords * 64 );
     Gia_ManSimFileRead( pFileName, nIns, nWords, vSimsIn, vValues );
-    Gia_ManCompareValues( p, vSimsIn, vValues );
+    Gia_ManCompareValues( p, vSimsIn, vValues, pDumpFile );
     Vec_WrdFree( vSimsIn );
     Vec_IntFree( vValues );
 }
