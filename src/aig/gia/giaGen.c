@@ -293,7 +293,7 @@ void Gia_ManDumpPlaFiles( Gia_Man_t * p, int nCexesT, int nCexesV, int Seed, cha
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManSimLogStats( Gia_Man_t * p, char * pDumpFile, int Total, int Correct )
+void Gia_ManSimLogStats( Gia_Man_t * p, char * pDumpFile, int Total, int Correct, int Guess )
 {
     FILE * pTable = fopen( pDumpFile, "wb" );
     fprintf( pTable, "{\n" );
@@ -301,9 +301,10 @@ void Gia_ManSimLogStats( Gia_Man_t * p, char * pDumpFile, int Total, int Correct
     fprintf( pTable, "    \"input\" : %d,\n",    Gia_ManCiNum(p) );
     fprintf( pTable, "    \"output\" : %d,\n",   Gia_ManCoNum(p) );
     fprintf( pTable, "    \"and\" : %d,\n",      Gia_ManAndNum(p) );
-    fprintf( pTable, "    \"level\" : %d\n",     Gia_ManLevelNum(p) );
-    fprintf( pTable, "    \"total\" : %d\n",     Total );
-    fprintf( pTable, "    \"correct\" : %d\n",   Correct );
+    fprintf( pTable, "    \"level\" : %d,\n",    Gia_ManLevelNum(p) );
+    fprintf( pTable, "    \"total\" : %d,\n",    Total );
+    fprintf( pTable, "    \"correct\" : %d,\n",  Correct );
+    fprintf( pTable, "    \"guess\" : %d\n",     Guess );
     fprintf( pTable, "}\n" );
     fclose( pTable );
 }
@@ -410,7 +411,7 @@ void Gia_ManCompareValues( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Int_t * vValu
         Guess, 100.0*Guess/Vec_IntSize(vValues));
     if ( pDumpFile == NULL )
         return;
-    Gia_ManSimLogStats( p, pDumpFile, Vec_IntSize(vValues), Count );
+    Gia_ManSimLogStats( p, pDumpFile, Vec_IntSize(vValues), Count, Guess );
     printf( "Finished dumping statistics into file \"%s\".\n", pDumpFile );
 }
 
