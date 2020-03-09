@@ -81,6 +81,8 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
 ***********************************************************************/
 void Gia_ManStop( Gia_Man_t * p )
 {
+    extern void Gia_DatFree( Gia_Dat_t * p );
+    Gia_DatFree( p->pUserData );
     if ( p->vSeqModelVec )
         Vec_PtrFreeFree( p->vSeqModelVec );
     Gia_ManStaticFanoutStop( p );
@@ -88,13 +90,6 @@ void Gia_ManStop( Gia_Man_t * p )
     assert( p->pManTime == NULL );
     Vec_PtrFreeFree( p->vNamesIn );
     Vec_PtrFreeFree( p->vNamesOut );
-    ABC_FREE( p->pUserFile );
-    Gia_ManStopP( &p->pUserSpec );
-    Gia_ManStopP( &p->pUserAig );
-    Vec_PtrFreeFree( p->vUserNames );
-    Vec_WecFreeP( &p->vUserNodes );
-    Vec_WecFreeP( &p->vUserSupps );
-    Vec_IntFreeP( &p->vUserArray );
     Vec_IntFreeP( &p->vSwitching );
     Vec_IntFreeP( &p->vSuper );
     Vec_IntFreeP( &p->vStore );

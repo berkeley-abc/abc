@@ -231,6 +231,8 @@ int IoCommandRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         sprintf( Command, "read_constr %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "c" ) )
         sprintf( Command, "so %s", pFileName );
+    else if ( !strcmp( Extra_FileNameExtension(pFileName), "script" ) )
+        sprintf( Command, "so %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "dsd" ) )
         sprintf( Command, "dsd_load %s", pFileName );
     if ( Command[0] )

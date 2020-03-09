@@ -29,6 +29,7 @@ ABC_NAMESPACE_IMPL_START
 
 void Sim_Init( Abc_Frame_t * pAbc ) {}
 void Sim_End( Abc_Frame_t * pAbc )  {}
+void Gia_DatFree( Gia_Dat_t * p )   {}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///

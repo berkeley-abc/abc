@@ -52,6 +52,7 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Gia_MmFixed_t_        Gia_MmFixed_t;    
 typedef struct Gia_MmFlex_t_         Gia_MmFlex_t;     
 typedef struct Gia_MmStep_t_         Gia_MmStep_t;     
+typedef struct Gia_Dat_t_            Gia_Dat_t;
 
 typedef struct Gia_Rpr_t_ Gia_Rpr_t;
 struct Gia_Rpr_t_
@@ -232,14 +233,7 @@ struct Gia_Man_t_
     Vec_Wrd_t *    vSuppWords;    // support information
     Vec_Int_t      vCopiesTwo;    // intermediate copies
     Vec_Int_t      vSuppVars;     // used variables
-    // additional info
-    char *         pUserFile;
-    Gia_Man_t *    pUserSpec;
-    Gia_Man_t *    pUserAig;
-    Vec_Ptr_t *    vUserNames;
-    Vec_Wec_t *    vUserNodes;
-    Vec_Wec_t *    vUserSupps;
-    Vec_Int_t *    vUserArray;
+    Gia_Dat_t *    pUserData;
 };
 
 
