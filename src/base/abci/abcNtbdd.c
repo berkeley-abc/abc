@@ -34,7 +34,7 @@ ABC_NAMESPACE_IMPL_START
 
 #ifdef ABC_USE_CUDD
 
-static void        Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
+static int         Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit );
 static void        Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st__table * tBdd2Node );
@@ -129,12 +129,15 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( void * dd0, void * bFunc, char * pNamePo, Vec_
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal )
+Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit )
 {
     Abc_Ntk_t * pNtkNew;
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     if ( fGlobal ) 
-        Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew );
+    {
+        if ( !Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew, Limit ) )
+            return NULL;
+    }
     else
     {
         Abc_NtkBddToMuxesPerform( pNtk, pNtkNew );
@@ -259,17 +262,17 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
+int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit )
 {
     DdManager * dd;
     Abc_Obj_t * pObj, * pObjNew; int i;
     st__table * tBdd2Node;
     assert( Abc_NtkIsStrash(pNtk) );
-    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, 0, 0 );
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, Limit, 1, 1, 0, 0 );
     if ( dd == NULL )
     {
         printf( "Construction of global BDDs has failed.\n" );
-        return;
+        return 0;
     }
     //printf( "Shared BDD size = %6d nodes.\n", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
 
@@ -292,6 +295,7 @@ void Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew )
     Abc_NtkFreeGlobalBdds( pNtk, 0 );
     Extra_StopManager( dd );
     Abc_NtkCleanCopy( pNtk );
+    return 1;
 }
 
 /**Function*************************************************************
@@ -655,7 +659,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
 #else
 
 double Abc_NtkSpacePercentage( Abc_Obj_t * pNode ) { return 0.0; }
-Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal ) { return NULL; }
+Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit ) { return NULL; }
 
 
 #endif

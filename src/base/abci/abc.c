@@ -10985,15 +10985,25 @@ usage:
 int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, fGlobal = 0;
-
+    int c, fGlobal = 0, Limit = 1000000;
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "gh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Bgh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Limit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Limit < 0 )
+                goto usage;
+            break;
         case 'g':
             fGlobal ^= 1;
             break;
@@ -11028,7 +11038,7 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkBddToMuxes( pNtk, fGlobal );
+    pNtkRes = Abc_NtkBddToMuxes( pNtk, fGlobal, Limit );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "Converting to MUXes has failed.\n" );
@@ -11039,11 +11049,12 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: muxes [-gh]\n" );
-    Abc_Print( -2, "\t        converts the current network into a network derived by\n" );
-    Abc_Print( -2, "\t        replacing all nodes by DAGs isomorphic to the local BDDs\n" );
-    Abc_Print( -2, "\t-g    : toggle visualizing the global BDDs of primary outputs [default = %s].\n", fGlobal? "yes": "no" );
-    Abc_Print( -2, "\t-h    : print the command usage\n");
+    Abc_Print( -2, "usage: muxes [-B num] [-gh]\n" );
+    Abc_Print( -2, "\t          converts the current network into a network derived by\n" );
+    Abc_Print( -2, "\t          replacing all nodes by DAGs isomorphic to the local BDDs\n" );
+    Abc_Print( -2, "\t-B <num>: limit on live BDD nodes during collapsing [default = %d]\n", Limit );
+    Abc_Print( -2, "\t-g      : toggle visualizing the global BDDs of primary outputs [default = %s].\n", fGlobal? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
 
