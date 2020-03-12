@@ -1129,8 +1129,8 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
         }
         //vSupp = Acb_FindSupportMin( pSat, iFirstDiv, vPats, &nPats, vTemp = vSupp );
         //Vec_IntFree( vTemp );
-        if ( vSupp == NULL )
-            break;
+        //if ( vSupp == NULL )
+        //    break;
         Cost = Acb_ComputeSuppCost( vSupp, vWeights, iFirstDiv );
         //Acb_PrintPatterns( vPats, nPats, vWeights );
         if ( CostBest > Cost )
