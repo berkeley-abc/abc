@@ -11041,7 +11041,7 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
     pNtkRes = Abc_NtkBddToMuxes( pNtk, fGlobal, Limit );
     if ( pNtkRes == NULL )
     {
-        Abc_Print( -1, "Converting to MUXes has failed.\n" );
+        Abc_Print( 0, "Converting to MUXes has failed.\n" );
         return 0;
     }
     // replace the current network
