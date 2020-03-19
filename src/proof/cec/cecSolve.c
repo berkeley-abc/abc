@@ -673,6 +673,14 @@ p->timeSatUndec += Abc_Clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
+Abc_Cex_t * Cex_ManGenSimple( Cec_ManSat_t * p, int iOut )
+{
+    Abc_Cex_t * pCex;
+    pCex = Abc_CexAlloc( 0, Gia_ManCiNum(p->pAig), 1 );
+    pCex->iPo = iOut;
+    pCex->iFrame = 0;
+    return pCex;
+}
 Abc_Cex_t * Cex_ManGenCex( Cec_ManSat_t * p, int iOut )
 {
     Abc_Cex_t * pCex;
@@ -715,10 +723,11 @@ void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPar
     {
         if ( Gia_ObjIsConst0(Gia_ObjFanin0(pObj)) )
         {
-            pObj->fMark0 = 0;
-            pObj->fMark1 = 1;
+            status = !Gia_ObjFaninC0(pObj);
+            pObj->fMark0 = (status == 0);
+            pObj->fMark1 = (status == 1);
             if ( pPars->fSaveCexes )
-                Vec_PtrWriteEntry( pAig->vSeqModelVec, i, (Abc_Cex_t *)(ABC_PTRINT_T)1 );
+                Vec_PtrWriteEntry( pAig->vSeqModelVec, i, status ? (Abc_Cex_t *)(ABC_PTRINT_T)1 : Cex_ManGenSimple(p, i) );
             continue;
         }
         Bar_ProgressUpdate( pProgress, i, "SAT..." );
