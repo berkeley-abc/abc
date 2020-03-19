@@ -371,6 +371,34 @@ Kit_Graph_t * Kit_TruthToGraph( unsigned * pTruth, int nVars, Vec_Int_t * vMemor
 
 /**Function*************************************************************
 
+  Synopsis    [Derives the factored form from the truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Kit_Graph_t * Kit_TruthToGraph2( unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_t * vMemory )
+{
+    Kit_Graph_t * pGraph;
+    int RetValue;
+    // derive SOP
+    RetValue = Kit_TruthIsop2( pTruth0, pTruth1, nVars, vMemory, 1 ); // tried 1 and found not useful in "renode"
+    if ( RetValue == -1 )
+        return NULL;
+    if ( Vec_IntSize(vMemory) > (1<<16) )
+        return NULL;
+//    printf( "Isop size = %d.\n", Vec_IntSize(vMemory) );
+    assert( RetValue == 0 || RetValue == 1 );
+    // derive factored form
+    pGraph = Kit_SopFactor( vMemory, RetValue, nVars, vMemory );
+    return pGraph;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives the maximum depth from the leaf to the root.]
 
   Description []

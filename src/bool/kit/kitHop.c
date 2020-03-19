@@ -100,6 +100,30 @@ int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * 
     Kit_GraphFree( pGraph );
     return iLit;
 }
+int Kit_TruthToGia2( Gia_Man_t * pMan, unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash )
+{
+    int iLit;
+    Kit_Graph_t * pGraph;
+    // transform truth table into the decomposition tree
+    if ( vMemory == NULL )
+    {
+        vMemory = Vec_IntAlloc( 0 );
+        pGraph = Kit_TruthToGraph2( pTruth0, pTruth1, nVars, vMemory );
+        Vec_IntFree( vMemory );
+    }
+    else
+        pGraph = Kit_TruthToGraph2( pTruth0, pTruth1, nVars, vMemory );
+    if ( pGraph == NULL )
+    {
+        printf( "Kit_TruthToGia2(): Converting truth table to AIG has failed for function:\n" );
+        Kit_DsdPrintFromTruth( pTruth0, nVars ); printf( "\n" );
+        Kit_DsdPrintFromTruth( pTruth1, nVars ); printf( "\n" );
+    }
+    // derive the AIG for the decomposition tree
+    iLit = Kit_GraphToGia( pMan, pGraph, vLeaves, fHash );
+    Kit_GraphFree( pGraph );
+    return iLit;
+}
 
 /**Function*************************************************************
 
