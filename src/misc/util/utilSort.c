@@ -779,6 +779,41 @@ void Abc_QuickSortTest()
     ABC_FREE( pData2 );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+// Creates a sequence of random numbers.
+// http://www.codeproject.com/KB/recipes/SimpleRNG.aspx
+
+#define NUMBER1  3716960521u
+#define NUMBER2  2174103536u
+
+unsigned Abc_Random( int fReset )
+{
+    static unsigned int m_z = NUMBER1;
+    static unsigned int m_w = NUMBER2;
+    if ( fReset )
+    {
+        m_z = NUMBER1;
+        m_w = NUMBER2;
+    }
+    m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+    m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+    return (m_z << 16) + m_w;
+}
+word Abc_RandomW( int fReset )
+{
+    return ((word)Abc_Random(fReset) << 32) | ((word)Abc_Random(fReset) << 0);
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

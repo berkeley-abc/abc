@@ -480,30 +480,6 @@ static inline int Abc_PrimeCudd( unsigned int p )
 
 } // end of Cudd_Prime 
 
-// Creates a sequence of random numbers.
-// http://www.codeproject.com/KB/recipes/SimpleRNG.aspx
-
-#define NUMBER1  3716960521u
-#define NUMBER2  2174103536u
-
-static inline unsigned Abc_Random( int fReset )
-{
-    static unsigned int m_z = NUMBER1;
-    static unsigned int m_w = NUMBER2;
-    if ( fReset )
-    {
-        m_z = NUMBER1;
-        m_w = NUMBER2;
-    }
-    m_z = 36969 * (m_z & 65535) + (m_z >> 16);
-    m_w = 18000 * (m_w & 65535) + (m_w >> 16);
-    return (m_z << 16) + m_w;
-}
-static inline word Abc_RandomW( int fReset )
-{
-    return ((word)Abc_Random(fReset) << 32) | ((word)Abc_Random(fReset) << 0);
-}
-
 // the returned buffer has 32 unused bytes at the end, filled with zeros
 static inline void * Abc_FileReadContents( char * pFileName, int * pnFileSize )
 {
@@ -537,6 +513,8 @@ extern void   Abc_QuickSort3( word * pData, int nSize, int fDecrease );
 extern void   Abc_QuickSortCostData( int * pCosts, int nSize, int fDecrease, word * pData, int * pResult );
 extern int *  Abc_QuickSortCost( int * pCosts, int nSize, int fDecrease );
 
+extern unsigned Abc_Random( int fReset );
+extern word     Abc_RandomW( int fReset );
 
 ABC_NAMESPACE_HEADER_END
 
