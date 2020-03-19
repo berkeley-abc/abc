@@ -3141,10 +3141,10 @@ Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops )
     assert( Vec_WecSize(vRes) == iNode );
     return vRes;
 }
-Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias )
+Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias, Gia_Man_t * pMulti )
 {
     Vec_Wec_t * vRes = NULL;
-    Abc_Ntk_t * pNtk = Abc_NtkCreateFromGias( "top", vGias );
+    Abc_Ntk_t * pNtk = Abc_NtkCreateFromGias( "top", vGias, pMulti );
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObj, * pFanin;
     int i, k, iNode = 0;
@@ -3173,7 +3173,7 @@ Gia_Man_t * Abc_GiaSynthesizeInter( Gia_Man_t * p )
     Abc_Ntk_t * pNtkNew, * pNtk;
     Vec_Ptr_t * vGias = Vec_PtrAlloc( 1 );
     Vec_PtrPush( vGias, p );
-    pNtk = Abc_NtkCreateFromGias( "top", vGias );
+    pNtk = Abc_NtkCreateFromGias( "top", vGias, NULL );
     Vec_PtrFree( vGias );
     Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "balance; collapse; muxes; strash; dc2" );

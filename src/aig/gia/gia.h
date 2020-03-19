@@ -233,7 +233,7 @@ struct Gia_Man_t_
     Vec_Wrd_t *    vSuppWords;    // support information
     Vec_Int_t      vCopiesTwo;    // intermediate copies
     Vec_Int_t      vSuppVars;     // used variables
-    Gia_Dat_t *    pUserData;
+    Gia_Dat_t *    pUData;
 };
 
 

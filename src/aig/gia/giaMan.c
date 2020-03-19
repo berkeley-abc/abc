@@ -82,7 +82,7 @@ Gia_Man_t * Gia_ManStart( int nObjsMax )
 void Gia_ManStop( Gia_Man_t * p )
 {
     extern void Gia_DatFree( Gia_Dat_t * p );
-    Gia_DatFree( p->pUserData );
+    Gia_DatFree( p->pUData );
     if ( p->vSeqModelVec )
         Vec_PtrFreeFree( p->vSeqModelVec );
     Gia_ManStaticFanoutStop( p );
@@ -487,6 +487,7 @@ void Gia_ManLogAigStats( Gia_Man_t * p, char * pDumpFile )
 void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
 {
     extern float Gia_ManLevelAve( Gia_Man_t * p );
+    int fHaveLevels = p->vLevels != NULL;
     if ( pPars && pPars->fMiter )
     {
         Gia_ManPrintStatsMiter( p, 0 );
@@ -542,7 +543,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     Abc_Print( 1, " %s(%.2f)%s",    "\033[1;35m", Gia_ManLevelAve(p), "\033[0m" ); 
 #endif
     }
-    Vec_IntFreeP( &p->vLevels );
+    if ( !fHaveLevels ) 
+        Vec_IntFreeP( &p->vLevels );
     if ( pPars && pPars->fCut )
         Abc_Print( 1, "  cut = %d(%d)", Gia_ManCrossCut(p, 0), Gia_ManCrossCut(p, 1) );
     Abc_Print( 1, "  mem =%5.2f MB", Gia_ManMemory(p)/(1<<20) );

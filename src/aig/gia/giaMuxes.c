@@ -162,7 +162,7 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
     int i;
-    assert( p->pMuxes != NULL );
+    assert( p->pMuxes != NULL || Gia_ManXorNum(p) );
     // start the new manager
     pNew = Gia_ManStart( 5000 );
     pNew->pName = Abc_UtilStrsav( p->pName );

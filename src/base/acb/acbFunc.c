@@ -1893,8 +1893,8 @@ Vec_Ptr_t * Acb_GenerateSignalNames( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t
 Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUsed, Vec_Ptr_t * vSops, Vec_Ptr_t * vGias, Vec_Int_t * vTars )
 {
     extern Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops );
-    extern Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias );
-    Vec_Wec_t * vGates = vGias ? Abc_GiaSynthesize(vGias) : Abc_SopSynthesize(vSops);  Vec_Int_t * vGate;
+    extern Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias, Gia_Man_t * pMulti );
+    Vec_Wec_t * vGates = vGias ? Abc_GiaSynthesize(vGias, NULL) : Abc_SopSynthesize(vSops);  Vec_Int_t * vGate;
     int nOuts = vGias ? Vec_PtrSize(vGias) : Vec_PtrSize(vSops);
     int i, k, iObj, nWires = Vec_WecSize(vGates) - Vec_IntSize(vUsed) - nOuts, fFirst = 1;
     Vec_Ptr_t * vNames = Acb_GenerateSignalNames( p, vDivs, vUsed, nWires, vTars, vGates );
@@ -1957,6 +1957,142 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
 
     printf( "Synthesized patch with %d inputs, %d outputs and %d gates.\n", Vec_IntSize(vUsed), nOuts, nWires );
     return vStr;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Patch generation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Acb_GenerateInstance2( Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts )
+{
+    char * pName; int i;
+    Vec_Str_t * vStr = Vec_StrAlloc( 100 );
+    Vec_StrAppend( vStr, "  patch p0 (" );
+    Vec_PtrForEachEntry( char *, vOuts, pName, i )
+        Vec_StrPrintF( vStr, "%s .%s(target_%s)", i ? ",":"", pName, pName );
+    Vec_PtrForEachEntry( char *, vIns, pName, i )
+        Vec_StrPrintF( vStr, ", .%s(%s)", pName, pName );
+    Vec_StrAppend( vStr, " );\n\n" );
+    Vec_StrPush( vStr, '\0' );
+    return vStr;
+}
+Vec_Ptr_t * Acb_GenerateSignalNames2( Vec_Wec_t * vGates, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts )
+{
+    int nIns = Vec_PtrSize(vIns), nOuts = Vec_PtrSize(vOuts);
+    int nNodes = Vec_WecSize(vGates) - nIns - nOuts;
+    Vec_Ptr_t * vRes = Vec_PtrStart( Vec_WecSize(vGates) ); char * pName;
+    Vec_Str_t * vStr = Vec_StrAlloc(1000); int i, nWires = 1;
+    // create input names
+    Vec_PtrForEachEntry( char *, vIns, pName, i )
+        Vec_PtrWriteEntry( vRes, i, Abc_UtilStrsav(pName) );
+    // create names for nodes driving outputs
+    Vec_PtrForEachEntry( char *, vOuts, pName, i )
+    {
+        Vec_Int_t * vGate = Vec_WecEntry( vGates, nIns + nNodes + i );
+        assert( Vec_IntEntry(vGate, 0) == ABC_OPER_BIT_BUF );
+        Vec_PtrWriteEntry( vRes, Vec_IntEntry(vGate, 1), Abc_UtilStrsav(pName) );
+    }
+    for ( i = nIns; i < nIns + nNodes; i++ )
+        if ( Vec_PtrEntry(vRes, i) == NULL )
+        {
+            Vec_StrPrintF( vStr, "ww%d", nWires++ );
+            Vec_StrPush( vStr, '\0' );
+            Vec_PtrWriteEntry( vRes, i, Vec_StrReleaseArray(vStr) );
+        }
+    Vec_StrFree( vStr );
+    return vRes;
+}
+Vec_Str_t * Acb_GeneratePatch2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts )
+{
+    extern Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias, Gia_Man_t * pMulti );
+    Vec_Wec_t * vGates = Abc_GiaSynthesize( NULL, pGia );  Vec_Int_t * vGate;
+    int nIns = Vec_PtrSize(vIns), nOuts = Vec_PtrSize(vOuts); char * pName;
+    int i, k, iObj, nWires = Vec_WecSize(vGates) - nIns - nOuts, fFirst = 1;
+    Vec_Ptr_t * vNames = Acb_GenerateSignalNames2( vGates, vIns, vOuts );
+
+    Vec_Str_t * vStr = Vec_StrAlloc( 100 );
+    Vec_StrAppend( vStr, "module patch (" );
+
+    Vec_PtrForEachEntry( char *, vOuts, pName, i )
+        Vec_StrPrintF( vStr, "%s %s", i ? ",":"", pName );
+    Vec_PtrForEachEntry( char *, vIns, pName, i )
+        Vec_StrPrintF( vStr, ", %s", pName );
+    Vec_StrAppend( vStr, " );\n\n" );
+
+    Vec_StrAppend( vStr, "  output" );
+    Vec_PtrForEachEntry( char *, vOuts, pName, i )
+        Vec_StrPrintF( vStr, "%s %s", i ? ",":"", pName );
+    Vec_StrAppend( vStr, ";\n" );
+
+    Vec_StrAppend( vStr, "  input" );
+    Vec_PtrForEachEntry( char *, vIns, pName, i )
+        Vec_StrPrintF( vStr, "%s %s", i ? ",":"", pName );
+    Vec_StrAppend( vStr, ";\n" );
+
+    if ( nWires > nOuts )
+    {
+        Vec_StrAppend( vStr, "  wire" );
+        for ( i = 0; i < nWires; i++ )
+        {
+            char * pName = (char *)Vec_PtrEntry( vNames, nIns+i );
+            if ( !strncmp(pName, "ww", 2) )
+                Vec_StrPrintF( vStr, "%s %s", fFirst ? "":",", pName ), fFirst = 0;
+        }
+        Vec_StrAppend( vStr, ";\n\n" );
+    }
+
+    // create internal nodes
+    Vec_WecForEachLevelStartStop( vGates, vGate, i, nIns, nIns+nWires )
+    {
+        if ( Vec_IntSize(vGate) > 2 )
+        {
+            Vec_StrPrintF( vStr, "  %s (", Acb_Oper2Name(Vec_IntEntry(vGate, 0)) );
+            Vec_IntForEachEntryStart( vGate, iObj, k, 1 )
+                Vec_StrPrintF( vStr, "%s %s", k > 1 ? ",":"", (char *)Vec_PtrEntry(vNames, iObj) );
+            Vec_StrAppend( vStr, " );\n" );
+        }
+        else
+        {
+            assert( Vec_IntEntry(vGate, 0) == ABC_OPER_CONST_F || Vec_IntEntry(vGate, 0) == ABC_OPER_CONST_T );
+            Vec_StrPrintF( vStr, "  %s (", Acb_Oper2Name( ABC_OPER_BIT_BUF ) );
+            Vec_StrPrintF( vStr, " %s, ", (char *)Vec_PtrEntry(vNames, Vec_IntEntry(vGate, 1)) );
+            Vec_StrPrintF( vStr, " 1\'b%d", Vec_IntEntry(vGate, 0) == ABC_OPER_CONST_T );
+            Vec_StrPrintF( vStr, " );\n" );
+        }
+    }
+    Vec_StrAppend( vStr, "\nendmodule\n\n" );
+    Vec_StrPush( vStr, '\0' );
+    Vec_PtrFreeFree( vNames );
+    Vec_WecFree( vGates );
+
+    printf( "Synthesized patch with %d inputs, %d outputs and %d gates.\n", nIns, nOuts, nWires );
+    return vStr;
+}
+void Acb_GenerateFile2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts, char * pFileName, char * pFileNameOut )
+{
+    extern void Acb_GenerateFilePatch( Vec_Str_t * p, char * pFileNamePatch );
+    extern void Acb_GenerateFileOut( Vec_Str_t * vPatchLine, char * pFileNameF, char * pFileNameOut, Vec_Str_t * vPatch );
+    extern void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames, int fNumber );
+    Vec_Str_t * vInst   = Acb_GenerateInstance2( vIns, vOuts );
+    Vec_Str_t * vPatch  = Acb_GeneratePatch2( pGia, vIns, vOuts );
+    //printf( "%s", Vec_StrArray(vPatch) );
+    //Gia_AigerWrite( pGia, "test.aig", 0, 0, 0 );
+    // generate output files
+    Acb_GenerateFilePatch( vPatch, "patch.v" );
+    printf( "Finished dumping patch file \"%s\".\n", "patch.v" );
+    Acb_NtkInsert( pFileName, "temp.v", vOuts, 0 );
+    printf( "Finished dumping intermediate file \"%s\".\n", "temp.v" );
+    Acb_GenerateFileOut( vInst, "temp.v", pFileNameOut, vPatch );
+    printf( "Finished dumping the resulting file \"%s\".\n", pFileNameOut );
+    Vec_StrFree( vInst );
+    Vec_StrFree( vPatch );
 }
 
 /**Function*************************************************************

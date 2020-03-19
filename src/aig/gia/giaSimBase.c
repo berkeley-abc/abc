@@ -188,7 +188,7 @@ Vec_Wrd_t * Gia_ManSimCombine( int nInputs, Vec_Wrd_t * vBase, Vec_Wrd_t * vAddO
         for ( w = 0; w < nWordsUse; w++ )
             Vec_WrdPush( vSimsIn, pSimsA[w] );
     }
-    assert( Vec_WrdSize(vSimsIn) == Vec_WrdCap(vSimsIn) );
+    assert( Vec_WrdSize(vSimsIn) == Vec_WrdCap(vSimsIn) || Vec_WrdSize(vSimsIn) < 16 );
     return vSimsIn;
 }
 int Gia_ManSimBitPackOne( int nWords, Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsCare, int iPat, int * pLits, int nLits )
@@ -819,13 +819,83 @@ Vec_Wrd_t * Gia_ManSimRel( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vVals )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Wrd_t * Gia_ManSimRelDeriveFuncs( Gia_Man_t * p, Vec_Wrd_t * vRel, int nOuts )
+{
+    int i, k, m, nMints = 1 << nOuts, nWords = Vec_WrdSize(vRel) / nMints;
+    Vec_Wrd_t * vFuncs = Vec_WrdStart( nOuts * nWords );
+    assert( Vec_WrdSize(vRel) % nMints == 0 );
+    for ( i = 0; i < 64 * nWords; i++ )
+    {
+        for ( m = 0; m < nMints; m++ )
+            if ( Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) )
+                break;
+        assert( m < nMints );
+        for ( k = 0; k < nOuts; k++ )
+            if ( (m >> k) & 1 )
+                Abc_TtSetBit( Vec_WrdEntryP(vFuncs, k*nWords), i );
+    }
+    return vFuncs;
+}
+Vec_Wrd_t * Gia_ManSimRelDeriveFuncs2( Gia_Man_t * p, Vec_Wrd_t * vRel, int nOuts )
+{
+    int i, k, m, nMints = 1 << nOuts, nWords = Vec_WrdSize(vRel) / nMints;
+    Vec_Wrd_t * vFuncs = Vec_WrdStart( 2 * nOuts * nWords );
+    assert( Vec_WrdSize(vRel) % nMints == 0 );
+    for ( i = 0; i < 64 * nWords; i++ )
+    {
+        for ( m = 0; m < nMints; m++ )
+            if ( Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) )
+                break;
+        assert( m < nMints );
+        for ( k = 0; k < nOuts; k++ )
+        {
+            if ( Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+(m^(1<<k)) ) )
+                continue;
+            if ( (m >> k) & 1 )
+                Abc_TtSetBit( Vec_WrdEntryP(vFuncs, (2*k+1)*nWords), i );
+            else
+                Abc_TtSetBit( Vec_WrdEntryP(vFuncs, (2*k+0)*nWords), i );
+        }
+        if ( 0 )
+        {
+            for ( m = 0; m < nMints; m++ )
+                printf( "%d", Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) );
+            printf( " " );
+            for ( k = 0; k < nOuts; k++ )
+            {
+                if ( Abc_TtGetBit( Vec_WrdEntryP(vFuncs, (2*k+0)*nWords), i ) )
+                    printf( "0" );
+                else if ( Abc_TtGetBit( Vec_WrdEntryP(vFuncs, (2*k+1)*nWords), i ) )
+                    printf( "1" );
+                else
+                    printf( "-" );
+            }
+            printf( "\n" );
+        }
+    }
+    return vFuncs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManSimRelPrint( Gia_Man_t * p, Vec_Wrd_t * vRel, Vec_Int_t * vOutMints )
 {
     int nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
     int nMints = Vec_WrdSize(vRel) / nWords; 
-    int i, k, m, Count;
+    int i, m, Count;
+/*
     for ( i = 0; i < 64 * nWords; i++ )
     {
+        int k;
         for ( k = 0; k < Gia_ManCiNum(p); k++ )
             printf( "%d", Abc_TtGetBit( Vec_WrdEntryP(p->vSimsPi, k), i ) );
         printf( " " );
@@ -845,6 +915,27 @@ void Gia_ManSimRelPrint( Gia_Man_t * p, Vec_Wrd_t * vRel, Vec_Int_t * vOutMints 
                 printf( "no" );
         }
         printf( "\n" );
+    }
+*/
+/*
+    for ( i = 0; i < 64 * nWords; i++ )
+    {
+        Count = 0;
+        for ( m = 0; m < nMints; m++ )
+            Count += Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m );
+        printf( "%d ", Count );
+    }
+    printf( "\n" );
+*/
+    for ( i = 0; i < 64 * nWords; i++ )
+    {
+        Count = 0;
+        for ( m = 0; m < nMints; m++ )
+        {
+            printf( "%d", Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m ) );
+            Count += Abc_TtGetBit( Vec_WrdArray(vRel), i*nMints+m );
+        }
+        printf( "  Count = %2d \n", Count );
     }
 }
 Vec_Int_t * Gia_ManSimPatStart( int nItems )
@@ -868,11 +959,6 @@ void Gia_ManSimRelTest( Gia_Man_t * p )
     Vec_WrdFree( vVals );
     Vec_WrdFree( vRel );
 }
-
-
-
-
-
 
 
 
@@ -1074,9 +1160,9 @@ void Gia_SimAbsSolve( Gia_SimAbsMan_t * p )
     }
     printf( "Solution %2d for covering problem [%5d x %5d]: ", Vec_IntSize(p->vResub), Vec_IntSize(p->vPatPairs)/2, p->nCands );
     Vec_IntForEachEntry( p->vResub, iPat, i )
-        printf( "%4d ", iPat );
-    for ( ; i < 16; i++ )
-        printf( "     " );
+        printf( "%6d ", iPat );
+    for ( ; i < 12; i++ )
+        printf( "       " );
     printf( "   " );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
@@ -1130,14 +1216,14 @@ void Gia_SimAbsInit( Gia_SimAbsMan_t * p )
     Vec_Int_t * vValue0 = Gia_SimAbsFind( p->vValues, 0 );
     Vec_Int_t * vValue1 = Gia_SimAbsFind( p->vValues, 1 );
     Vec_IntClear( p->vPatPairs );
-    printf( "There %d offset and %d onset minterms (%d pairs).\n", Vec_IntSize(vValue0), Vec_IntSize(vValue1), Vec_IntSize(vValue0)*Vec_IntSize(vValue1) );
-    Gia_ManRandom( 1 );
+    printf( "There are %d offset and %d onset minterms (%d pairs).\n", Vec_IntSize(vValue0), Vec_IntSize(vValue1), Vec_IntSize(vValue0)*Vec_IntSize(vValue1) );
+    Abc_Random( 1 );
     assert( Vec_IntSize(vValue0) > 0 );
     assert( Vec_IntSize(vValue1) > 0 );
     for ( n = 0; n < nPairsInit; n++ )
         Vec_IntPushTwo( p->vPatPairs, 
-            Vec_IntEntry(vValue0, Gia_ManRandom(0) % Vec_IntSize(vValue0)), 
-            Vec_IntEntry(vValue1, Gia_ManRandom(0) % Vec_IntSize(vValue1)) );
+            Vec_IntEntry(vValue0, Abc_Random(0) % Vec_IntSize(vValue0)), 
+            Vec_IntEntry(vValue1, Abc_Random(0) % Vec_IntSize(vValue1)) );
     Vec_IntFree( vValue0 );
     Vec_IntFree( vValue1 );
 }
