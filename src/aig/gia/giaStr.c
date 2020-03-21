@@ -1357,7 +1357,7 @@ Gia_Man_t * Str_NtkBalance( Gia_Man_t * pGia, Str_Ntk_t * p, int nLutSize, int f
     ABC_FREE( pNew->vCopies.pArray );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(pGia) );
-    pNew = Gia_ManDupNoMuxes( pTemp = pNew );
+    pNew = Gia_ManDupNoMuxes( pTemp = pNew, 0 );
     Gia_ManStop( pTemp );
 //    if ( pGia->pManTime != NULL )
 //        pNew->pManTime = Tim_ManDup( (Tim_Man_t *)pGia->pManTime, 0 );

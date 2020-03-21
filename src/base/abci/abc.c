@@ -31891,7 +31891,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( pAbc->pGia->pMuxes )
     {
-        pTemp = Gia_ManDupNoMuxes( pAbc->pGia );
+        pTemp = Gia_ManDupNoMuxes( pAbc->pGia, 0 );
         if ( !Abc_FrameReadFlag("silentmode") )
             printf( "Generated AIG from AND/XOR/MUX graph.\n" );
     }

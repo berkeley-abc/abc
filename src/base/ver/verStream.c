@@ -454,7 +454,7 @@ char * Ver_StreamGetWord( Ver_Stream_t * p, char * pCharsToStop )
 ***********************************************************************/
 void Ver_StreamMove( Ver_Stream_t * p )
 {
-    if ( !strncmp(p->pBufferCur+1, "z_g_", 4) )
+    if ( !strncmp(p->pBufferCur+1, "z_g_", 4) || !strncmp(p->pBufferCur+1, "co_g", 3) )
         while ( p->pBufferCur[0] != '(' )
             p->pBufferCur++;
 }

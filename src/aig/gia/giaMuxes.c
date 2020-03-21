@@ -157,7 +157,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
+Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p, int fSkipBufs )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
@@ -176,7 +176,7 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p )
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsBuf(pObj) )
-            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+            pObj->Value = fSkipBufs ? Gia_ObjFanin0Copy(pObj) : Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsMuxId(p, i) )
             pObj->Value = Gia_ManHashMux( pNew, Gia_ObjFanin2Copy(p, pObj), Gia_ObjFanin1Copy(pObj), Gia_ObjFanin0Copy(pObj) );
         else if ( Gia_ObjIsXor(pObj) )
@@ -207,7 +207,7 @@ Gia_Man_t * Gia_ManDupMuxesTest( Gia_Man_t * p )
 {
     Gia_Man_t * pNew, * pNew2;
     pNew = Gia_ManDupMuxes( p, 2 );
-    pNew2 = Gia_ManDupNoMuxes( pNew );
+    pNew2 = Gia_ManDupNoMuxes( pNew, 0 );
     Gia_ManPrintStats( p, NULL );
     Gia_ManPrintStats( pNew, NULL );
     Gia_ManPrintStats( pNew2, NULL );
@@ -287,7 +287,7 @@ Gia_Man_t * Gia_ManDupMuxRestructure( Gia_Man_t * p )
 {
     Gia_Man_t * pTemp, * pNew = Gia_ManDupMuxes( p, 2 );
     pNew = Gia_ManMuxRestructure( pTemp = pNew );  Gia_ManStop( pTemp );
-    pNew = Gia_ManDupNoMuxes( pTemp = pNew );      Gia_ManStop( pTemp );
+    pNew = Gia_ManDupNoMuxes( pTemp = pNew, 0 );   Gia_ManStop( pTemp );
     return pNew;
 }
 

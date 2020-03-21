@@ -214,7 +214,7 @@ Vec_Int_t * Gia_ManStartFanoutMap( Gia_Man_t * p, Vec_Int_t * vFanoutNums )
     Gia_Obj_t * pObj;
     int i, iOffset;
     iOffset  = Gia_ManObjNum(p);
-    vEdgeMap = Vec_IntStart( iOffset + Gia_ManMuxNum(p) + 2 * Gia_ManAndNum(p) + Gia_ManCoNum(p) );
+    vEdgeMap = Vec_IntStart( iOffset + Gia_ManMuxNum(p) + 2 * Gia_ManAndNum(p) + Gia_ManCoNum(p) - Gia_ManBufNum(p) );
     Gia_ManForEachObj( p, pObj, i )
     {
         Vec_IntWriteEntry( vEdgeMap, i, iOffset );
@@ -261,9 +261,8 @@ void Gia_ManStaticFanoutStart( Gia_Man_t * p )
             Gia_ObjSetFanout( p, pFanin, iFanout, pObj );
             Vec_IntAddToEntry( vCounts, Gia_ObjId(p, pFanin), 1 );
         }
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsBuf(pObj) )
         {
-
             pFanin = Gia_ObjFanin1(pObj);
             iFanout = Vec_IntEntry( vCounts, Gia_ObjId(p, pFanin) );
             Gia_ObjSetFanout( p, pFanin, iFanout, pObj );

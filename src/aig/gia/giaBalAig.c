@@ -449,7 +449,7 @@ Gia_Man_t * Gia_ManBalance( Gia_Man_t * p, int fSimpleAnd, int fStrict, int fVer
     Gia_ManTransferTiming( pNew1, pNew );
     if ( fVerbose )      Gia_ManPrintStats( pNew1, NULL );
     Gia_ManStop( pNew );
-    pNew2 = Gia_ManDupNoMuxes( pNew1 );
+    pNew2 = Gia_ManDupNoMuxes( pNew1, 0 );
     Gia_ManTransferTiming( pNew2, pNew1 );
     if ( fVerbose )      Gia_ManPrintStats( pNew2, NULL );
     Gia_ManStop( pNew1 );
@@ -1083,7 +1083,7 @@ Gia_Man_t * Gia_ManAreaBalance( Gia_Man_t * p, int fSimpleAnd, int nNewNodesMax,
     Gia_ManStop( pNew );
     Vec_IntFreeP( &vCiLevels );
     // derive the final result
-    pNew2 = Gia_ManDupNoMuxes( pNew1 );
+    pNew2 = Gia_ManDupNoMuxes( pNew1, 0 );
     Gia_ManTransferTiming( pNew2, pNew1 );
     if ( fVerbose )     Gia_ManPrintStats( pNew2, NULL );
     Gia_ManStop( pNew1 );

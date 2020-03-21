@@ -519,10 +519,12 @@ int Acb_ObjToGia2( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp,
         return 0;
     if ( Type == ABC_OPER_CONST_T ) 
         return 1;
-    if ( Type == ABC_OPER_BIT_BUF ) 
-        return Vec_IntEntry(vTemp, 0);
-    if ( Type == ABC_OPER_BIT_INV ) 
-        return Abc_LitNot( Vec_IntEntry(vTemp, 0) );
+    if ( Type == ABC_OPER_BIT_BUF || Type == ABC_OPER_BIT_INV ) 
+    {
+        Res = fUseXors ? Gia_ManAppendBuf(pNew, Vec_IntEntry(vTemp, 0)) : Vec_IntEntry(vTemp, 0);
+        //Res = Vec_IntEntry(vTemp, 0);
+        return Abc_LitNotCond( Res, Type == ABC_OPER_BIT_INV );
+    }
     if ( Type == ABC_OPER_BIT_AND || Type == ABC_OPER_BIT_NAND )
     {
         Res = 1;
@@ -886,7 +888,7 @@ void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames,
     else
     {
         Vec_PtrForEachEntry( char *, vNames, pName, i )
-            fprintf( pFile, " target_%s%s", pName, i==Vec_PtrSize(vNames)-1 ? ";" : "," );
+            fprintf( pFile, " t%d_%s%s", i, pName, i==Vec_PtrSize(vNames)-1 ? ";" : "," );
     }
     fprintf( pFile, "\n\n" );
     if ( fNumber )
@@ -897,7 +899,7 @@ void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames,
     else
     {
         Vec_PtrForEachEntry( char *, vNames, pName, i )
-            fprintf( pFile, "  buf( %s, target_%s );    // t_%d\n", pName, pName, i );
+            fprintf( pFile, "  buf( %s, t%d_%s );\n", pName, i, pName );
     }
     fprintf( pFile, "\n" );
     for ( k = Pos2; pBuffer[k]; k++ )

@@ -245,7 +245,7 @@ void * Acb_VerilogSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames )
             vCur = vWires;
         else if ( Token >= ACB_BUF && Token <= ACB_XNOR )
         {
-            char * pToken = Abc_NamStr(pNames, Vec_IntEntry(vBuffer, i+1));
+            //char * pToken = Abc_NamStr(pNames, Vec_IntEntry(vBuffer, i+1));
             Vec_IntPush( vTypes, Token );
             Vec_IntPush( vTypes, Vec_IntSize(vFanins) );
             vCur = vFanins;
@@ -1976,7 +1976,7 @@ Vec_Str_t * Acb_GenerateInstance2( Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts )
     Vec_Str_t * vStr = Vec_StrAlloc( 100 );
     Vec_StrAppend( vStr, "  patch p0 (" );
     Vec_PtrForEachEntry( char *, vOuts, pName, i )
-        Vec_StrPrintF( vStr, "%s .%s(target_%s)", i ? ",":"", pName, pName );
+        Vec_StrPrintF( vStr, "%s .%s(t%d_%s)", i ? ",":"", pName, i, pName );
     Vec_PtrForEachEntry( char *, vIns, pName, i )
         Vec_StrPrintF( vStr, ", .%s(%s)", pName, pName );
     Vec_StrAppend( vStr, " );\n\n" );

@@ -556,6 +556,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
         Abc_Print( 1, "  bb = %d", Gia_ManBlackBoxNum(p) );
     if ( Gia_ManBufNum(p) )
         Abc_Print( 1, "  buf = %d", Gia_ManBufNum(p) );
+    if ( Gia_ManXorNum(p) && p->pMuxes == NULL )
+        Abc_Print( 1, "  xor = %d", Gia_ManXorNum(p) );
     if ( pPars && pPars->fMuxXor )
         printf( "\nXOR/MUX " ), Gia_ManPrintMuxStats( p );
     if ( pPars && pPars->fSwitch )

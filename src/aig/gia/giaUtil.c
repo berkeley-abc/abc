@@ -694,7 +694,8 @@ void Gia_ManCreateValueRefs( Gia_Man_t * p )
         if ( Gia_ObjIsAnd(pObj) )
         {
             Gia_ObjFanin0(pObj)->Value++;
-            Gia_ObjFanin1(pObj)->Value++;
+            if ( !Gia_ObjIsBuf(pObj) )
+                Gia_ObjFanin1(pObj)->Value++;
         }
         else if ( Gia_ObjIsCo(pObj) )
             Gia_ObjFanin0(pObj)->Value++;
@@ -723,7 +724,8 @@ void Gia_ManCreateRefs( Gia_Man_t * p )
         if ( Gia_ObjIsAnd(pObj) )
         {
             Gia_ObjRefFanin0Inc( p, pObj );
-            Gia_ObjRefFanin1Inc( p, pObj );
+            if ( !Gia_ObjIsBuf(pObj) )
+                Gia_ObjRefFanin1Inc( p, pObj );
             if ( Gia_ObjIsMuxId(p, i) )
                 Gia_ObjRefFanin2Inc( p, pObj );
         }
