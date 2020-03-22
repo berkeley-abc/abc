@@ -736,6 +736,14 @@ static inline int Vec_PtrFind( Vec_Ptr_t * p, void * Entry )
             return i;
     return -1;
 }
+static inline int Vec_PtrFindStr( Vec_Ptr_t * p, char * Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] && !strcmp((char *)p->pArray[i], Entry) )
+            return i;
+    return -1;
+}
 
 /**Function*************************************************************
 
