@@ -2594,6 +2594,19 @@ static inline void Extra_Transpose64Simple( word A[64], word B[64] )
         if ( (A[i] >> k) & 1 )
             B[k] |= ((word)1 << (63-i));
 }
+static inline void Extra_BitMatrixTransposeSimple( Vec_Wrd_t * vSimsIn, int nWordsIn, Vec_Wrd_t * vSimsOut, int nWordsOut )
+{
+    int i, k;
+    assert( Vec_WrdSize(vSimsIn) == nWordsIn * nWordsOut * 64 );
+    assert( Vec_WrdSize(vSimsIn) == Vec_WrdSize(vSimsOut) );
+    assert( Vec_WrdSize(vSimsIn)  % nWordsIn  == 0 );
+    assert( Vec_WrdSize(vSimsOut) % nWordsOut == 0 );
+    Vec_WrdFill( vSimsOut, Vec_WrdSize(vSimsOut), 0 );
+    for ( i = 0; i < 64*nWordsOut; i++ )
+    for ( k = 0; k < 64*nWordsIn;  k++ )
+        if ( Abc_InfoHasBit( (unsigned *)Vec_WrdEntryP(vSimsIn,  i*nWordsIn),  k ) )
+             Abc_InfoSetBit( (unsigned *)Vec_WrdEntryP(vSimsOut, k*nWordsOut), i );
+}
 void Extra_Transpose32( unsigned a[32] ) 
 {
     int j, k;
@@ -2642,13 +2655,13 @@ void Extra_BitMatrixTransposeP( Vec_Wrd_t * vSimsIn, int nWordsIn, Vec_Wrd_t * v
     assert( Vec_WrdSize(vSimsIn) == Vec_WrdSize(vSimsOut) );
     assert( Vec_WrdSize(vSimsIn)  / nWordsIn  == 64 * nWordsOut );
     assert( Vec_WrdSize(vSimsOut) / nWordsOut == 64 * nWordsIn  );
-    for ( y = 0; y < nWordsIn;  y++ )
     for ( x = 0; x < nWordsOut; x++ )
+    for ( y = 0; y < nWordsIn;  y++ )
     {
         for ( i = 0; i < 64; i++ )
         {
-            pM[i]    = Vec_WrdEntryP( vSimsOut, (64*y+i)*nWordsOut + x );
-            pM[i][0] = Vec_WrdEntry ( vSimsIn,  (64*x+i)*nWordsIn  + y );
+            pM[i]    = Vec_WrdEntryP( vSimsOut, (64*y+63-i)*nWordsOut + x );
+            pM[i][0] = Vec_WrdEntry ( vSimsIn,  (64*x+63-i)*nWordsIn  + y );
         }
         Extra_Transpose64p( pM );
     }
@@ -2657,8 +2670,8 @@ void Extra_BitMatrixTransposePP( Vec_Ptr_t * vSimsIn, int nWordsIn, Vec_Wrd_t * 
 {    
     word * pM[64];  int i, y, x;
     assert( Vec_WrdSize(vSimsOut) / nWordsOut == 64 * nWordsIn  );
-    for ( y = 0; y < nWordsIn;  y++ )
     for ( x = 0; x < nWordsOut; x++ )
+    for ( y = 0; y < nWordsIn;  y++ )
     {
         for ( i = 0; i < 64; i++ )
         {
@@ -2668,51 +2681,51 @@ void Extra_BitMatrixTransposePP( Vec_Ptr_t * vSimsIn, int nWordsIn, Vec_Wrd_t * 
         Extra_Transpose64p( pM );
     }
 }
+void Extra_BitMatrixShow( Vec_Wrd_t * vSims, int nWords )
+{
+    int i, k, nBits = Vec_WrdSize(vSims)  / nWords;
+    for ( i = 0; i < nBits; i++ )
+    {
+        if ( i%64 == 0 )
+            Abc_Print( 1, "\n" );
+        for ( k = 0; k < nWords; k++ )
+        {
+            Extra_PrintBinary2( stdout, (unsigned *)Vec_WrdEntryP(vSims, i*nWords+k), 64 );
+            Abc_Print( 1, " " );
+        }
+        Abc_Print( 1, "\n" );
+    }
+    Abc_Print( 1, "\n" );
+}
 void Extra_BitMatrixTransposeTest()
 {   
-    int nWordsIn  = 1;
-    int nWordsOut = 2;
-    int i, k, nItems = 64 * nWordsIn * nWordsOut;
+    abctime clk = Abc_Clock();
 
-    Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nItems );
-    Vec_Wrd_t * vSimsOut = Vec_WrdStart( nItems );
+    int nWordsIn  = 100;
+    int nWordsOut = 200;
+    int nItems = 64 * nWordsIn * nWordsOut;
 
-    Abc_RandomW(1);
-    for ( i = 0; i < nItems; i++ )
-        Vec_WrdWriteEntry( vSimsIn, i, Abc_RandomW(0) );
+    Vec_Wrd_t * vSimsIn   = Vec_WrdStartRandom( nItems );
+    Vec_Wrd_t * vSimsOut  = Vec_WrdStart( nItems );
+    Vec_Wrd_t * vSimsOut2 = Vec_WrdStart( nItems );
 
-    Extra_BitMatrixTransposeP( vSimsIn, nWordsIn, vSimsOut, nWordsOut );
+    Extra_BitMatrixTransposeP     ( vSimsIn, nWordsIn, vSimsOut,  nWordsOut );
+    Extra_BitMatrixTransposeSimple( vSimsIn, nWordsIn, vSimsOut2, nWordsOut );
 
-    nItems = Vec_WrdSize(vSimsIn)  / nWordsIn;
-    for ( i = 0; i < nItems; i++ )
-    {
-        if ( i%64 == 0 )
-            Abc_Print( 1, "\n" );
-        for ( k = 0; k < nWordsIn; k++ )
-        {
-            Extra_PrintBinary( stdout, (unsigned *)Vec_WrdEntryP(vSimsIn, i*nWordsIn+k), 64 );
-            Abc_Print( 1, " " );
-        }
-        Abc_Print( 1, "\n" );
-    }
-    Abc_Print( 1, "\n" );
+    if ( memcmp( Vec_WrdArray(vSimsOut), Vec_WrdArray(vSimsOut2), sizeof(word)*Vec_WrdSize(vSimsOut) ) )
+        printf( "Verification failed.\n" );
+    else
+        printf( "Verification succeeded.\n" );
 
-    nItems = Vec_WrdSize(vSimsOut) / nWordsOut;
-    for ( i = 0; i < nItems; i++ )
-    {
-        if ( i%64 == 0 )
-            Abc_Print( 1, "\n" );
-        for ( k = 0; k < nWordsOut; k++ )
-        {
-            Extra_PrintBinary( stdout, (unsigned *)Vec_WrdEntryP(vSimsOut, i*nWordsOut+k), 64 );
-            Abc_Print( 1, " " );
-        }
-        Abc_Print( 1, "\n" );
-    }
-    Abc_Print( 1, "\n" );
+    //Extra_BitMatrixShow( vSimsIn,   nWordsIn );
+    //Extra_BitMatrixShow( vSimsOut,  nWordsOut );
+    //Extra_BitMatrixShow( vSimsOut2, nWordsOut );
 
     Vec_WrdFree( vSimsIn );
     Vec_WrdFree( vSimsOut );
+    Vec_WrdFree( vSimsOut2 );
+
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////

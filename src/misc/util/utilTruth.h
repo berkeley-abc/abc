@@ -1842,6 +1842,16 @@ static inline int Abc_TtCountOnesVecXor( word * x, word * y, int nWords )
         Count += Abc_TtCountOnes( x[w] ^ y[w] );
     return Count;
 }
+static inline int Abc_TtAndXorSum( word * pOut, word * pIn1, word * pIn2, int nWords )
+{
+    int w, Count = 0;
+    for ( w = 0; w < nWords; w++ )
+    {
+        pOut[w] &= pIn1[w] ^ pIn2[w];
+        Count += Abc_TtCountOnes( pOut[w] );
+    }
+    return Count;
+}
 
 /**Function*************************************************************
 

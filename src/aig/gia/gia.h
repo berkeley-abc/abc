@@ -205,9 +205,11 @@ struct Gia_Man_t_
     int            fBuiltInSim;
     int            iPatsPi;
     int            nSimWords;
+    int            nSimWordsT;
     int            iPastPiMax;
     int            nSimWordsMax;
     Vec_Wrd_t *    vSims;
+    Vec_Wrd_t *    vSimsT;
     Vec_Wrd_t *    vSimsPi;
     Vec_Wrd_t *    vSimsPo;
     Vec_Int_t *    vClassOld;

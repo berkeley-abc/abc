@@ -496,33 +496,16 @@ unsigned Extra_ReadBinary( char * Buffer )
 ***********************************************************************/
 void Extra_PrintBinary( FILE * pFile, unsigned Sign[], int nBits )
 {
-    int Remainder, nWords;
-    int w, i;
-
-    Remainder = (nBits%(sizeof(unsigned)*8));
-    nWords    = (nBits/(sizeof(unsigned)*8)) + (Remainder>0);
-
-    for ( w = nWords-1; w >= 0; w-- )
-        for ( i = ((w == nWords-1 && Remainder)? Remainder-1: 31); i >= 0; i-- )
-            fprintf( pFile, "%c", '0' + (int)((Sign[w] & (1<<i)) > 0) );
-
-//  fprintf( pFile, "\n" );
+    int i;
+    for ( i = nBits-1; i >= 0; i-- )
+        fprintf( pFile, "%c", '0' + Abc_InfoHasBit(Sign, i) );
+//    fprintf( pFile, "\n" );
 }
 void Extra_PrintBinary2( FILE * pFile, unsigned Sign[], int nBits )
 {
-    int Remainder, nWords;
-    int w, i;
-
-    Remainder = (nBits%(sizeof(unsigned)*8));
-    nWords    = (nBits/(sizeof(unsigned)*8)) + (Remainder>0);
-
-    for ( w = 0; w < nWords; w++ )
-    {
-        int Limit = w == nWords-1 ? Remainder : 32;
-        for ( i = 0; i < Limit; i++ )
-            fprintf( pFile, "%c", '0' + (int)((Sign[w] & (1<<i)) > 0) );
-    }
-
+    int i;
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, "%c", '0' + Abc_InfoHasBit(Sign, i) );
 //    fprintf( pFile, "\n" );
 }
 

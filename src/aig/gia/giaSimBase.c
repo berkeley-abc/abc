@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "misc/util/utilTruth.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -768,7 +769,7 @@ int Gia_ManSimRelCompare( Gia_Man_t * p, int nWords, Vec_Wrd_t * vSims, int nWor
     }
     return 1;
 }
-void Gia_ManSimRelCollectOutputs( Gia_Man_t * p, int nWords, Vec_Wrd_t * vSims, int nWordsOut, Vec_Wrd_t * vSimsOut, Vec_Wrd_t * vRel )
+int Gia_ManSimRelCollectOutputs( Gia_Man_t * p, int nWords, Vec_Wrd_t * vSims, int nWordsOut, Vec_Wrd_t * vSimsOut, Vec_Wrd_t * vRel )
 {
     int i, m, nMints = nWords / nWordsOut, Count = 0;
     assert( Vec_WrdSize(vSims)    == nWords   * Gia_ManObjNum(p) );
@@ -784,6 +785,7 @@ void Gia_ManSimRelCollectOutputs( Gia_Man_t * p, int nWords, Vec_Wrd_t * vSims, 
     }
     if ( Count )
         printf( "The relation is not well-defined for %d (out of %d) patterns.\n", Count, 64 * nWordsOut );
+    return Count;
 }
 Vec_Wrd_t * Gia_ManSimRel( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vVals )
 {
@@ -810,7 +812,8 @@ Vec_Wrd_t * Gia_ManSimRel( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vVals )
             Gia_ManSimPatSimPo( p, Gia_ObjId(p, pObj), pObj, nWords * nMints, vSims );
     Gia_ManForEachObjVec( vObjs, p, pObj, i )
         pObj->fPhase = 0;
-    Gia_ManSimRelCollectOutputs( p, nWords * nMints, vSims, nWords, vVals, vRel );
+    if ( Gia_ManSimRelCollectOutputs( p, nWords * nMints, vSims, nWords, vVals, vRel ) )
+        Vec_WrdFreeP( &vRel );
     Vec_WrdFree( vSims );
     return vRel;
 }
@@ -1328,6 +1331,311 @@ Vec_Int_t * Gia_SimAbsPerformOne( Gia_Man_t * pGia, word * pOffSet, word * pOnSe
     Gia_SimAbsFree( p );
     Abc_PrintTime( 1, "Resubstitution time", Abc_Clock() - clk );
     return vResub;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+typedef struct Gia_RsbMan_t_ Gia_RsbMan_t;
+struct Gia_RsbMan_t_
+{
+    Gia_Man_t *    pGia;
+    word *         pOffSet;
+    word *         pOnSet;
+    int            nWords;
+    int            nWordsT;
+    Vec_Wrd_t *    vSims;
+    Vec_Wrd_t *    vSimsT;
+    Vec_Int_t *    vCands;
+    Vec_Int_t *    vObjs;
+    Vec_Int_t *    vObjs2;
+    Vec_Wec_t *    vSets[2];
+    word *         pSet[3];
+    Vec_Int_t *    vActive;
+};
+Gia_RsbMan_t * Gia_RsbAlloc( Gia_Man_t * pGia, word * pOffSet, word * pOnSet, Vec_Wrd_t * vSims, int nWords, Vec_Wrd_t * vSimsT, int nWordsT, Vec_Int_t * vCands )
+{
+    int i, iObj;
+    Gia_RsbMan_t * p = ABC_CALLOC( Gia_RsbMan_t, 1 );
+    assert( nWords <= 1024 );
+    assert( Vec_WrdSize(vSims) == 64 * nWords * nWordsT );
+    assert( Vec_WrdSize(vSims) == Vec_WrdSize(vSimsT) );
+    p->pGia      = pGia;
+    p->pOffSet   = pOffSet;
+    p->pOnSet    = pOnSet;
+    p->nWords    = nWords;
+    p->nWordsT   = nWordsT;
+    p->vSims     = vSims;
+    p->vSimsT    = vSimsT;
+    p->vCands    = vCands;
+    p->vObjs     = Vec_IntAlloc( 100 );
+    p->vObjs2    = Vec_IntAlloc( 100 );
+    p->vSets[0]  = Vec_WecAlloc( 1024 );
+    p->vSets[1]  = Vec_WecAlloc( 1024 );
+    p->pSet[0]   = ABC_CALLOC( word, nWordsT );
+    p->pSet[1]   = ABC_CALLOC( word, nWordsT );
+    p->pSet[2]   = ABC_CALLOC( word, nWordsT );
+    p->vActive   = Vec_IntAlloc( 100 );
+    Vec_IntForEachEntry( vCands, iObj, i )
+    {
+        assert( iObj < nWordsT * 64 );
+        Abc_TtSetBit( p->pSet[0], iObj );
+    }
+    Vec_WecPushLevel( p->vSets[0] );
+    Vec_WecPushLevel( p->vSets[1] );
+    for ( i = 0; i < 64*nWords; i++ )
+    {
+        int Value0 = Abc_TtGetBit( pOffSet, i );
+        int Value1 = Abc_TtGetBit( pOnSet,  i );
+        if ( Value0 && !Value1 )
+            Vec_WecPush( p->vSets[0], 0, i );
+        else if ( !Value0 && Value1 )
+            Vec_WecPush( p->vSets[1], 0, i );
+        else assert( !Value0 || !Value1 );
+    }
+    assert( Vec_WecSize(p->vSets[0]) == 1 );
+    assert( Vec_WecSize(p->vSets[1]) == 1 );
+    Abc_Random( 1 );
+    //Extra_PrintBinary2( stdout, (unsigned*)pOffSet, 64*nWords ); printf( "\n" );
+    //Extra_PrintBinary2( stdout, (unsigned*)pOnSet,  64*nWords ); printf( "\n" );
+    return p;
+}
+void Gia_RsbFree( Gia_RsbMan_t * p )
+{
+    Vec_IntFree( p->vActive );
+    Vec_IntFree( p->vObjs );
+    Vec_IntFree( p->vObjs2 );
+    Vec_WecFree( p->vSets[0] );
+    Vec_WecFree( p->vSets[1] );
+    ABC_FREE( p->pSet[0] );
+    ABC_FREE( p->pSet[1] );
+    ABC_FREE( p->pSet[2] );
+    ABC_FREE( p );
+}
+
+
+int Gia_RsbCost( Gia_RsbMan_t * p )
+{
+    Vec_Int_t * vLevel[2]; int i, Cost = 0;
+    Vec_WecForEachLevelTwo( p->vSets[0], p->vSets[1], vLevel[0], vLevel[1], i )
+        Cost += Vec_IntSize(vLevel[0]) * Vec_IntSize(vLevel[1]);
+    return Cost;
+}
+void Gia_RsbPrint( Gia_RsbMan_t * p )
+{
+    Vec_Int_t * vLevel[2]; 
+    int n, i, nLeaves = 1 << Vec_IntSize(p->vObjs);
+    assert( Vec_WecSize(p->vSets[0]) == nLeaves );
+    assert( Vec_WecSize(p->vSets[1]) == nLeaves );
+    printf( "Database for %d objects and cost %d:\n", Vec_IntSize(p->vObjs), Gia_RsbCost(p) );
+    Vec_WecForEachLevelTwo( p->vSets[0], p->vSets[1], vLevel[0], vLevel[1], i )
+    {
+        for ( n = 0; n < 2; n++ )
+        {
+            printf( "%5d : ", i );
+            Extra_PrintBinary2( stdout, (unsigned*)&i, Vec_IntSize(p->vObjs) ); printf( " %d ", n );
+            Vec_IntPrint( vLevel[n] );
+        }
+    }    
+}
+void Gia_RsbUpdateAdd( Gia_RsbMan_t * p, int iObj )
+{
+    int n, i, nLeaves = 1 << Vec_IntSize(p->vObjs);
+    assert( Vec_WecSize(p->vSets[0]) == nLeaves );
+    assert( Vec_WecSize(p->vSets[1]) == nLeaves );
+    for ( i = 0; i < nLeaves; i++ )
+    {
+        for ( n = 0; n < 2; n++ )
+        {
+            Vec_Int_t * vLevelN = Vec_WecPushLevel(p->vSets[n]);  
+            Vec_Int_t * vLevel  = Vec_WecEntry(p->vSets[n], i);
+            int iMint, j, k = 0;
+            Vec_IntForEachEntry( vLevel, iMint, j )
+            {
+                if ( Abc_TtGetBit(Vec_WrdEntryP(p->vSims, p->nWords*iObj), iMint) )
+                    Vec_IntPush( vLevelN, iMint );
+                else
+                    Vec_IntWriteEntry( vLevel, k++, iMint );
+            }
+            Vec_IntShrink( vLevel, k );
+        }
+    }
+    Vec_IntPush( p->vObjs, iObj );
+    assert( Vec_WecSize(p->vSets[0]) == 2*nLeaves );
+    assert( Vec_WecSize(p->vSets[1]) == 2*nLeaves );
+}
+void Gia_RsbUpdateRemove( Gia_RsbMan_t * p, int Index )
+{
+    Vec_Int_t * vLevel[2], * vTemp[2][2];
+    int k = 0, m, m2, nLeaves = 1 << Vec_IntSize(p->vObjs);
+    assert( Index < Vec_IntSize(p->vObjs) );
+    assert( Vec_WecSize(p->vSets[0]) == nLeaves );
+    assert( Vec_WecSize(p->vSets[1]) == nLeaves );
+    for ( m = 0; m < nLeaves; m++ )
+    {
+        if ( m & (1 << Index) )
+            continue;
+        m2 = m ^ (1 << Index);
+        vTemp[0][0] = Vec_WecEntry(p->vSets[0], m);
+        vTemp[0][1] = Vec_WecEntry(p->vSets[1], m);
+        vTemp[1][0] = Vec_WecEntry(p->vSets[0], m2);
+        vTemp[1][1] = Vec_WecEntry(p->vSets[1], m2);
+        Vec_IntAppend( vTemp[0][0], vTemp[1][0] );
+        Vec_IntAppend( vTemp[0][1], vTemp[1][1] );
+        Vec_IntClear( vTemp[1][0] );
+        Vec_IntClear( vTemp[1][1] );
+    }
+    Vec_IntDrop( p->vObjs, Index );
+    Vec_WecForEachLevelTwo( p->vSets[0], p->vSets[1], vLevel[0], vLevel[1], m )
+    {
+        if ( m & (1 << Index) )
+            continue;
+        ABC_SWAP( Vec_Int_t, Vec_WecArray(p->vSets[0])[k], Vec_WecArray(p->vSets[0])[m] );
+        ABC_SWAP( Vec_Int_t, Vec_WecArray(p->vSets[1])[k], Vec_WecArray(p->vSets[1])[m] );
+        k++;
+    }
+    assert( k == nLeaves/2 );
+    Vec_WecShrink( p->vSets[0], k );
+    Vec_WecShrink( p->vSets[1], k );
+}
+int Gia_RsbRemovalCost( Gia_RsbMan_t * p, int Index )
+{
+    Vec_Int_t * vTemp[2][2];
+    unsigned Mask = Abc_InfoMask( Index );
+    int m, m2, Cost = 0, nLeaves = 1 << Vec_IntSize(p->vObjs);
+    assert( Vec_WecSize(p->vSets[0]) == (1 << Vec_IntSize(p->vObjs)) );
+    assert( Vec_WecSize(p->vSets[1]) == (1 << Vec_IntSize(p->vObjs)) );
+    for ( m = 0; m < nLeaves; m++ )
+    {
+        if ( m & (1 << Index) )
+            continue;
+        m2 = m ^ (1 << Index);
+        vTemp[0][0] = Vec_WecEntry(p->vSets[0], m);
+        vTemp[0][1] = Vec_WecEntry(p->vSets[1], m);
+        vTemp[1][0] = Vec_WecEntry(p->vSets[0], m2);
+        vTemp[1][1] = Vec_WecEntry(p->vSets[1], m2);
+        Cost += (Vec_IntSize(vTemp[0][0]) + Vec_IntSize(vTemp[1][0])) * (Vec_IntSize(vTemp[0][1]) + Vec_IntSize(vTemp[1][1]));
+    }
+    return Cost;
+}
+int Gia_RsbFindNodeToRemove( Gia_RsbMan_t * p, int * pMinCost )
+{
+    int i, iObj, iMin = -1, CostMin = ABC_INFINITY;
+    Vec_IntForEachEntry( p->vObjs, iObj, i )
+    {
+        int Cost = Gia_RsbRemovalCost( p, i );
+        if ( CostMin > Cost )
+        {
+            CostMin = Cost;
+            iMin = i;
+        }
+    }
+    if ( pMinCost )
+        *pMinCost = CostMin;
+    return iMin;
+}
+
+void Gia_RsbFindMints( Gia_RsbMan_t * p, int * pMint0, int * pMint1 )
+{
+    int iSetI = Abc_Random(0) % Vec_IntSize(p->vActive);
+    int iSet  = Vec_IntEntry( p->vActive, iSetI );
+    Vec_Int_t * vArray0 = Vec_WecEntry(p->vSets[0], iSet);
+    Vec_Int_t * vArray1 = Vec_WecEntry(p->vSets[1], iSet);
+    int iMint0i = Abc_Random(0) % Vec_IntSize(vArray0);
+    int iMint1i = Abc_Random(0) % Vec_IntSize(vArray1);
+    int iMint0 = Vec_IntEntry( vArray0, iMint0i );
+    int iMint1 = Vec_IntEntry( vArray1, iMint1i );
+    *pMint0 = iMint0;
+    *pMint1 = iMint1;
+}
+int Gia_RsbFindNode( Gia_RsbMan_t * p )
+{
+    int i, iObj, nNodes, nNodesNew = -1, nNodesOld = -1, Mint0, Mint1, Shift;
+    Abc_TtCopy( p->pSet[1], p->pSet[0], p->nWordsT, 0 );
+    Vec_IntForEachEntry( p->vObjs, iObj, i )
+    {
+        assert( Abc_TtGetBit(p->pSet[1], iObj) );
+        Abc_TtXorBit(p->pSet[1], iObj);
+    }
+    Abc_TtCopy( p->pSet[2], p->pSet[1], p->nWordsT, 0 );
+    Gia_RsbFindMints( p, &Mint0, &Mint1 );
+    nNodes = Abc_TtAndXorSum( p->pSet[1], Vec_WrdEntryP(p->vSimsT, p->nWordsT*Mint0), Vec_WrdEntryP(p->vSimsT, p->nWordsT*Mint1), p->nWordsT );
+    for ( i = 0; i < 5 && nNodes > 1; i++ )
+    {
+        nNodesOld = nNodes;
+        Abc_TtCopy( p->pSet[2], p->pSet[1], p->nWordsT, 0 );
+        Gia_RsbFindMints( p, &Mint0, &Mint1 );
+        nNodesNew = Abc_TtAndXorSum( p->pSet[1], Vec_WrdEntryP(p->vSimsT, p->nWordsT*Mint0), Vec_WrdEntryP(p->vSimsT, p->nWordsT*Mint1), p->nWordsT );
+        assert( nNodesNew <= nNodes );
+        if ( nNodesNew < nNodes )
+            i = 0;
+        nNodes = nNodesNew;
+    }
+    Shift = Abc_Random(0) % (64*p->nWordsT);
+    for ( i = 0; i < 64*p->nWordsT; i++ )
+    {
+        int Index = (i+Shift) % (64*p->nWordsT);
+        if ( Abc_TtGetBit( p->pSet[2], Index ) )
+            return Index;
+    }
+    assert( 0 );      
+    return -1;
+}
+int Gia_RsbCollectValid( Gia_RsbMan_t * p )
+{
+    Vec_Int_t * vLevel[2]; int i;
+    Vec_IntClear( p->vActive );
+    assert( Vec_WecSize(p->vSets[0]) == Vec_WecSize(p->vSets[1]) );
+    Vec_WecForEachLevelTwo( p->vSets[0], p->vSets[1], vLevel[0], vLevel[1], i )
+        if ( Vec_IntSize(vLevel[0]) && Vec_IntSize(vLevel[1]) )
+            Vec_IntPush( p->vActive, i );
+    if ( Vec_IntSize(p->vActive) == 0 )
+        return 0;
+    return 1;
+}
+Vec_Int_t * Gia_RsbSolve( Gia_RsbMan_t * p )
+{
+    int i, iMin;
+    Vec_IntClear( p->vObjs );
+    while ( Gia_RsbCollectValid(p) )
+        Gia_RsbUpdateAdd( p, Gia_RsbFindNode(p) );
+    for ( i = 0; i < 100; i++ )
+    {
+        int k, nUndo = 1 + Abc_Random(0) % Vec_IntSize(p->vObjs);
+        for ( k = 0; k < nUndo; k++ )
+        {
+            iMin = Gia_RsbFindNodeToRemove( p, NULL );// &MinCost );
+            Gia_RsbUpdateRemove( p, iMin );
+        }
+        while ( Gia_RsbCollectValid(p) )
+            Gia_RsbUpdateAdd( p, Gia_RsbFindNode(p) );
+        if ( Vec_IntSize(p->vObjs2) == 0 || Vec_IntSize(p->vObjs2) > Vec_IntSize(p->vObjs) )
+        {
+            Vec_IntClear( p->vObjs2 );
+            Vec_IntAppend( p->vObjs2, p->vObjs );
+        }
+    }
+    //Gia_RsbPrint( p );
+    return Vec_IntDup( p->vObjs2 );
+}
+Vec_Int_t * Gia_RsbSetFind( word * pOffSet, word * pOnSet, Vec_Wrd_t * vSims, int nWords, Vec_Wrd_t * vSimsT, int nWordsT, Vec_Int_t * vCands )
+{
+    Gia_RsbMan_t * p  = Gia_RsbAlloc( NULL, pOffSet, pOnSet, vSims, nWords, vSimsT, nWordsT, vCands );
+    Vec_Int_t * vObjs = Gia_RsbSolve( p );
+    Gia_RsbFree( p );
+    Vec_IntSort( vObjs, 0 );
+    return vObjs;
 }
 
 ////////////////////////////////////////////////////////////////////////
