@@ -1835,6 +1835,23 @@ static inline int Abc_TtCountOnesVecMask( word * x, word * pMask, int nWords, in
             Count += Abc_TtCountOnes( pMask[w] & x[w] );
     return Count;
 }
+static inline int Abc_TtCountOnesVecMask2( word * x0, word * x1, int fComp0, int fComp1, word * pMask, int nWords )
+{
+    int w, Count = 0;
+    if ( !fComp0 && !fComp1 )
+        for ( w = 0; w < nWords; w++ )
+            Count += Abc_TtCountOnes( pMask[w] &  x0[w] &  x1[w] );
+    else if (  fComp0 && !fComp1 )
+        for ( w = 0; w < nWords; w++ )
+            Count += Abc_TtCountOnes( pMask[w] & ~x0[w] &  x1[w] );
+    else if ( !fComp0 &&  fComp1 )
+        for ( w = 0; w < nWords; w++ )
+            Count += Abc_TtCountOnes( pMask[w] &  x0[w] & ~x1[w] );
+    else 
+        for ( w = 0; w < nWords; w++ )
+            Count += Abc_TtCountOnes( pMask[w] & ~x0[w] & ~x1[w] );
+    return Count;
+}
 static inline int Abc_TtCountOnesVecXor( word * x, word * y, int nWords )
 {
     int w, Count = 0;

@@ -936,9 +936,12 @@ Vec_Wrd_t * Gia_ManSimRelDeriveFuncs2( Gia_Man_t * p, Vec_Wrd_t * vRel, int nOut
     else
     {
         printf( "The relation was successfully determized with don't-cares for %d patterns.\n", 64 * nWords );
-        printf( "Don't-cares in each output:" );
         for ( k = 0; k < nOuts; k++ )
-            printf( "   %d = %d", k, nDCs[k] );
+        {
+            int nOffs = Abc_TtCountOnesVec( Vec_WrdEntryP(vFuncs, (2*k+0)*nWords), nWords );
+            int nOns  = Abc_TtCountOnesVec( Vec_WrdEntryP(vFuncs, (2*k+1)*nWords), nWords );
+            printf( "%4d : Off = %6d  On = %6d  Dc = %6d (%6.2f %%)", k, nOffs, nOns, nDCs[k], 100.0*nDCs[k]/(64*nWords) );
+        }
         printf( "\n" );
     }
     Gia_ManSimRelCheckFuncs( p, vRel, nOuts, vFuncs );
@@ -1512,7 +1515,7 @@ void Gia_RsbUpdateRemove( Gia_RsbMan_t * p, int Index )
 int Gia_RsbRemovalCost( Gia_RsbMan_t * p, int Index )
 {
     Vec_Int_t * vTemp[2][2];
-    unsigned Mask = Abc_InfoMask( Index );
+    //unsigned Mask = Abc_InfoMask( Index );
     int m, m2, Cost = 0, nLeaves = 1 << Vec_IntSize(p->vObjs);
     assert( Vec_WecSize(p->vSets[0]) == (1 << Vec_IntSize(p->vObjs)) );
     assert( Vec_WecSize(p->vSets[1]) == (1 << Vec_IntSize(p->vObjs)) );
