@@ -326,6 +326,16 @@ static inline void Abc_TtXor( word * pOut, word * pIn1, word * pIn2, int nWords,
         for ( w = 0; w < nWords; w++ )
             pOut[w] = pIn1[w] ^ pIn2[w];
 }
+static inline void Abc_TtXorMask( word * pOut, word * pIn1, word * pIn2, word * pMask, int nWords, int fCompl )
+{
+    int w;
+    if ( fCompl )
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = (pIn1[w] ^ pIn2[w]) & ~pMask[w];
+    else
+        for ( w = 0; w < nWords; w++ )
+            pOut[w] = (pIn1[w] ^ pIn2[w]) & pMask[w];
+}
 static inline void Abc_TtMux( word * pOut, word * pCtrl, word * pIn1, word * pIn0, int nWords )
 {
     int w;

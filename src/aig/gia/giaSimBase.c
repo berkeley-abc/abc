@@ -940,7 +940,7 @@ Vec_Wrd_t * Gia_ManSimRelDeriveFuncs2( Gia_Man_t * p, Vec_Wrd_t * vRel, int nOut
         {
             int nOffs = Abc_TtCountOnesVec( Vec_WrdEntryP(vFuncs, (2*k+0)*nWords), nWords );
             int nOns  = Abc_TtCountOnesVec( Vec_WrdEntryP(vFuncs, (2*k+1)*nWords), nWords );
-            printf( "%4d : Off = %6d  On = %6d  Dc = %6d (%6.2f %%)", k, nOffs, nOns, nDCs[k], 100.0*nDCs[k]/(64*nWords) );
+            printf( "%4d : Off = %6d  On = %6d  Dc = %6d (%6.2f %%)\n", k, nOffs, nOns, nDCs[k], 100.0*nDCs[k]/(64*nWords) );
         }
         printf( "\n" );
     }

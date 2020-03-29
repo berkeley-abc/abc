@@ -2653,8 +2653,7 @@ void Extra_BitMatrixTransposeP( Vec_Wrd_t * vSimsIn, int nWordsIn, Vec_Wrd_t * v
 {    
     word * pM[64];  int i, y, x;
     assert( Vec_WrdSize(vSimsIn) == Vec_WrdSize(vSimsOut) );
-    assert( Vec_WrdSize(vSimsIn)  / nWordsIn  == 64 * nWordsOut );
-    assert( Vec_WrdSize(vSimsOut) / nWordsOut == 64 * nWordsIn  );
+    assert( Vec_WrdSize(vSimsIn) == 64 * nWordsIn * nWordsOut );
     for ( x = 0; x < nWordsOut; x++ )
     for ( y = 0; y < nWordsIn;  y++ )
     {
@@ -2669,14 +2668,15 @@ void Extra_BitMatrixTransposeP( Vec_Wrd_t * vSimsIn, int nWordsIn, Vec_Wrd_t * v
 void Extra_BitMatrixTransposePP( Vec_Ptr_t * vSimsIn, int nWordsIn, Vec_Wrd_t * vSimsOut, int nWordsOut )
 {    
     word * pM[64];  int i, y, x;
-    assert( Vec_WrdSize(vSimsOut) / nWordsOut == 64 * nWordsIn  );
+    assert( Vec_PtrSize(vSimsIn)  == 64 * nWordsOut );
+    assert( Vec_WrdSize(vSimsOut) == 64 * nWordsOut * nWordsIn  );
     for ( x = 0; x < nWordsOut; x++ )
     for ( y = 0; y < nWordsIn;  y++ )
     {
         for ( i = 0; i < 64; i++ )
         {
-            pM[i]    = Vec_WrdEntryP( vSimsOut, (64*y+i)*nWordsOut + x );
-            pM[i][0] = ((word *)Vec_PtrEntry( vSimsIn, 64*x+i ))[y];
+            pM[i]    = Vec_WrdEntryP( vSimsOut, (64*y+63-i)*nWordsOut + x );
+            pM[i][0] = ((word *)Vec_PtrEntry( vSimsIn, 64*x+63-i ))[y];
         }
         Extra_Transpose64p( pM );
     }
