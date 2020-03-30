@@ -502,6 +502,12 @@ static inline void * Abc_FileReadContents( char * pFileName, int * pnFileSize )
     fclose( pFile );
     return (void *)pBuffer;
 }
+static inline void Abc_ReverseOrder( int * pA, int nA )
+{
+    int i;
+    for ( i = 0; i < nA/2; i++ )
+        ABC_SWAP( int, pA[i], pA[nA-1-i] );
+}
 
 
 // sorting

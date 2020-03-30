@@ -503,7 +503,7 @@ Vec_Int_t * Acb_NtkFindNodes2( Acb_Ntk_t * p )
         Acb_NtkFindNodes2_rec( p, Acb_ObjFanin(p, iObj, 0), vNodes );
     return vNodes;
 }
-int Acb_ObjToGia2( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp, int fUseXors )
+int Acb_ObjToGia2( Gia_Man_t * pNew, int fUseBuf, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp, int fUseXors )
 {
     //char * pName = Abc_NamStr( p->pDesign->pStrs, Acb_ObjName(p, iObj) );
     int * pFanin, iFanin, k, Type, Res;
@@ -521,8 +521,7 @@ int Acb_ObjToGia2( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp,
         return 1;
     if ( Type == ABC_OPER_BIT_BUF || Type == ABC_OPER_BIT_INV ) 
     {
-        Res = fUseXors ? Gia_ManAppendBuf(pNew, Vec_IntEntry(vTemp, 0)) : Vec_IntEntry(vTemp, 0);
-        //Res = Vec_IntEntry(vTemp, 0);
+        Res = fUseBuf ? Gia_ManAppendBuf(pNew, Vec_IntEntry(vTemp, 0)) : Vec_IntEntry(vTemp, 0);
         return Abc_LitNotCond( Res, Type == ABC_OPER_BIT_INV );
     }
     if ( Type == ABC_OPER_BIT_AND || Type == ABC_OPER_BIT_NAND )
@@ -549,7 +548,7 @@ int Acb_ObjToGia2( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vTemp,
     assert( 0 );
     return -1;
 }
-Gia_Man_t * Acb_NtkToGia2( Acb_Ntk_t * p, int fUseXors, Vec_Int_t * vTargets, int nTargets )
+Gia_Man_t * Acb_NtkToGia2( Acb_Ntk_t * p, int fUseBuf, int fUseXors, Vec_Int_t * vTargets, int nTargets )
 {
     Gia_Man_t * pNew, * pOne;
     Vec_Int_t * vFanins, * vNodes;
@@ -569,7 +568,7 @@ Gia_Man_t * Acb_NtkToGia2( Acb_Ntk_t * p, int fUseXors, Vec_Int_t * vTargets, in
     vNodes  = Acb_NtkFindNodes2( p );
     Vec_IntForEachEntry( vNodes, iObj, i )
         if ( Acb_ObjCopy(p, iObj) == -1 ) // skip targets assigned above
-            Acb_ObjSetCopy( p, iObj, Acb_ObjToGia2(pNew, p, iObj, vFanins, fUseXors) );
+            Acb_ObjSetCopy( p, iObj, Acb_ObjToGia2(pNew, fUseBuf, p, iObj, vFanins, fUseXors) );
     Vec_IntFree( vNodes );
     Vec_IntFree( vFanins );
     Acb_NtkForEachCo( p, iObj, i )
@@ -661,7 +660,7 @@ Vec_Int_t * Acb_NtkCollectUser( Acb_Ntk_t * p, Vec_Ptr_t * vUser )
 
 ***********************************************************************/
 int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fUseXors, int fVerbose, 
-                    Gia_Man_t ** ppGiaF, Gia_Man_t ** ppGiaG, Vec_Int_t ** pvNodes, Vec_Ptr_t ** pvNodesR, Vec_Bit_t ** pvPolar )
+                    Gia_Man_t ** ppGiaF, Gia_Man_t ** ppGiaG, int fUseBuf, Vec_Int_t ** pvNodes, Vec_Ptr_t ** pvNodesR, Vec_Bit_t ** pvPolar )
 {
     extern Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW );
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileName0, NULL );
@@ -670,8 +669,8 @@ int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fUseXors, int fVer
     if ( pNtkF && pNtkG )
     {
         int nTargets = Vec_IntSize(&pNtkF->vTargets);
-        Gia_Man_t * pGiaF = Acb_NtkToGia2( pNtkF, fUseXors, &pNtkF->vTargets, 0 );
-        Gia_Man_t * pGiaG = Acb_NtkToGia2( pNtkG, 0, NULL, nTargets );
+        Gia_Man_t * pGiaF = Acb_NtkToGia2( pNtkF, fUseBuf, fUseXors, &pNtkF->vTargets, 0 );
+        Gia_Man_t * pGiaG = Acb_NtkToGia2( pNtkG, 0,       0,        NULL, nTargets );
         assert( Acb_NtkCiNum(pNtkF) == Acb_NtkCiNum(pNtkG) );
         assert( Acb_NtkCoNum(pNtkF) == Acb_NtkCoNum(pNtkG) );
         *ppGiaF  = pGiaF;
@@ -919,12 +918,12 @@ void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames,
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fVerbose )
+void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fVerbose )
 {
-    extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fVerbose );
+    extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fVerbose );
     extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose );
     char * pFileNames[4] = { pFileName[2], pFileName[1], NULL, pFileName[2] };
-    if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, nBeam, LevL, LevU, fOrder, fFancy, fVerbose ) )
+    if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fVerbose ) )
         Acb_NtkRunEco( pFileNames, 1, fVerbose );
 }
 
