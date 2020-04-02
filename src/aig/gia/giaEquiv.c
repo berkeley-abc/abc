@@ -185,6 +185,7 @@ Gia_Man_t * Gia_ManComputeGiaEquivs( Gia_Man_t * pGia, int nConfs, int fVerbose 
     Gia_Man_t * pTemp;
     Cec_ParFra_t ParsFra, * pPars = &ParsFra;
     Cec_ManFraSetDefaultParams( pPars );
+    pPars->nItersMax = 100;
     pPars->fUseOrigIds = 1;
     pPars->fSatSweeping = 1;
     pPars->nBTLimit = nConfs;
