@@ -317,6 +317,7 @@ Mini_Lut_t * Gia_ManToMiniLut( Gia_Man_t * pGia )
     p = Mini_LutStart( LutSize );
     // create primary inputs
     Gia_ManFillValue( pGia );
+    Gia_ManConst0(pGia)->Value = 0;
     Gia_ManForEachCi( pGia, pObj, i )
         pObj->Value = Mini_LutCreatePi(p);
     // create internal nodes
