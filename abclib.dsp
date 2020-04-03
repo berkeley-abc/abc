@@ -5227,10 +5227,6 @@ SOURCE=.\src\bool\kit\kit.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\bool\kit\kit_.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\bool\kit\kitAig.c
 # End Source File
 # Begin Source File

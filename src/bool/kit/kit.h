@@ -575,7 +575,7 @@ extern int             Kit_GraphLeafDepth_rec( Kit_Graph_t * pGraph, Kit_Node_t 
 //extern Hop_Obj_t *     Kit_CoverToHop( Hop_Man_t * pMan, Vec_Int_t * vCover, int nVars, Vec_Int_t * vMemory );
 /*=== kitIsop.c ==========================================================*/
 extern int             Kit_TruthIsop( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryBoth );
-extern int             Kit_TruthIsop2( unsigned * puTruth0, unsigned * puTruth1, int nVars, Vec_Int_t * vMemory, int fTryBoth );
+extern int             Kit_TruthIsop2( unsigned * puTruth0, unsigned * puTruth1, int nVars, Vec_Int_t * vMemory, int fTryBoth, int fReturnTt );
 extern void            Kit_TruthIsopPrint( unsigned * puTruth, int nVars, Vec_Int_t * vMemory, int fTryBoth );
 extern void            Kit_TruthIsopPrintCover( Vec_Int_t * vCover, int nVars, int fCompl );
 /*=== kitPla.c ==========================================================*/

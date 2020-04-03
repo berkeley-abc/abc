@@ -52,7 +52,7 @@ static unsigned   Kit_TruthIsop5_rec( unsigned uOn, unsigned uOnDc, int nVars, K
   SeeAlso     []
 
 ***********************************************************************/
-int Kit_TruthIsop2( unsigned * puTruth0, unsigned * puTruth1, int nVars, Vec_Int_t * vMemory, int fTryBoth )
+int Kit_TruthIsop2( unsigned * puTruth0, unsigned * puTruth1, int nVars, Vec_Int_t * vMemory, int fTryBoth, int fReturnTt )
 {
     Kit_Sop_t cRes, * pcRes = &cRes;
     Kit_Sop_t cRes2, * pcRes2 = &cRes2;
@@ -102,8 +102,17 @@ int Kit_TruthIsop2( unsigned * puTruth0, unsigned * puTruth1, int nVars, Vec_Int
     }
 //    printf( "%d ", vMemory->nSize );
     // move the cover representation to the beginning of the memory buffer
-    memmove( vMemory->pArray, pcRes->pCubes, pcRes->nCubes * sizeof(unsigned) );
-    Vec_IntShrink( vMemory, pcRes->nCubes );
+    if ( fReturnTt )
+    {
+        int nWords = Kit_TruthWordNum( nVars );
+        memmove( vMemory->pArray, pResult, nWords * sizeof(unsigned) );
+        Vec_IntShrink( vMemory, nWords );
+    }
+    else
+    {
+        memmove( vMemory->pArray, pcRes->pCubes, pcRes->nCubes * sizeof(unsigned) );
+        Vec_IntShrink( vMemory, pcRes->nCubes );
+    }
     return RetValue;
 }
 
