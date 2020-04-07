@@ -221,20 +221,22 @@ int Gia_ManSimBitPackOne( int nWords, Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsCare
     }
     return (int)(i == iPat);
 }
-Vec_Wrd_t * Gia_ManSimBitPacking( Gia_Man_t * p, Vec_Int_t * vCexStore, int nCexes )
+Vec_Wrd_t * Gia_ManSimBitPacking( Gia_Man_t * p, Vec_Int_t * vCexStore, int nCexes, int nUnDecs )
 {
     int c, iCur = 0, iPat = 0;
     int nWordsMax = Abc_Bit6WordNum( nCexes ); 
     Vec_Wrd_t * vSimsIn   = Vec_WrdStartRandom( Gia_ManCiNum(p) * nWordsMax );
     Vec_Wrd_t * vSimsCare = Vec_WrdStart( Gia_ManCiNum(p) * nWordsMax );
     Vec_Wrd_t * vSimsRes  = NULL;
-    for ( c = 0; c < nCexes; c++ )
+    for ( c = 0; c < nCexes + nUnDecs; c++ )
     {
         int Out  = Vec_IntEntry( vCexStore, iCur++ );
         int Size = Vec_IntEntry( vCexStore, iCur++ );
+        if ( Size == -1 )
+            continue;
         iPat += Gia_ManSimBitPackOne( nWordsMax, vSimsIn, vSimsCare, iPat, Vec_IntEntryP(vCexStore, iCur), Size );
         iCur += Size;
-        assert( iPat <= nCexes );
+        assert( iPat <= nCexes + nUnDecs );
         Out = 0;
     }
     printf( "Compressed %d CEXes into %d test patterns.\n", nCexes, iPat );
@@ -430,7 +432,7 @@ void Gia_ManSimPat( Gia_Man_t * p, int nWords0, int fVerbose )
         printf( "There are no counter-examples.  No need for more simulation.\n" );
     else
     {
-        vSimsIn = Gia_ManSimBitPacking( p, vCexStore, Counts[1] );
+        vSimsIn = Gia_ManSimBitPacking( p, vCexStore, Counts[1], Counts[0] );
         Vec_WrdFreeP( &p->vSimsPi );
         p->vSimsPi = vSimsIn;
         Gia_ManSimProfile( p );
