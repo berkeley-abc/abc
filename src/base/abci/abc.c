@@ -30619,6 +30619,9 @@ int Abc_CommandAbc9SaveAig( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         switch ( c )
         {
+        case 'a':
+            fArea ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
