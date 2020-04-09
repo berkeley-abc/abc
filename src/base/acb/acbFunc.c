@@ -26,6 +26,8 @@
 #include "map/mio/mio.h"
 #include "misc/util/utilTruth.h"
 #include "aig/gia/giaAig.h"
+#include "base/main/main.h"
+#include "base/cmd/cmd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -495,6 +497,9 @@ Vec_Int_t * Acb_NtkFindRoots( Acb_Ntk_t * p, Vec_Int_t * vTargets, Vec_Bit_t ** 
     Acb_NtkIncTravId( p );
     Acb_NtkForEachCi( p, iObj, i )
         Acb_ObjSetTravIdCur( p, iObj );
+    // visit internal nodes
+    Acb_NtkForEachNode( p, iObj )
+        Acb_NtkFindRoots_rec(p, iObj, vBlock);
     // collect outputs reachable from targets
     Acb_NtkForEachCoDriver( p, iObj, i )
         if ( Acb_NtkFindRoots_rec(p, iObj, vBlock) )
@@ -577,7 +582,7 @@ Vec_Int_t * Acb_NtkFindDivsCis( Acb_Ntk_t * p, Vec_Int_t * vSupp )
 Vec_Int_t * Acb_NtkFindDivs( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Bit_t * vBlock, int fVerbose )
 {
     int fPrintWeights = 0;
-    int nDivLimit = 3000;
+    int nDivLimit = 5000;
     int i, iObj;
     Vec_Int_t * vDivs = Vec_IntAlloc( 1000 );
     // mark inputs
@@ -741,7 +746,7 @@ Gia_Man_t * Acb_NtkToGia( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Int_t * vNodes, 
     Acb_NtkForEachCoDriverVec( vRoots, p, iObj, i )
         Gia_ManAppendCo( pNew, Acb_ObjCopy(p, iObj) );
     // add divisor as primary outputs (if the divisors are not primary inputs)
-    if ( vDivs && Vec_IntSize(vDivs) > Vec_IntSize(vSupp) ) 
+    if ( vDivs )//&& Vec_IntSize(vDivs) > Vec_IntSize(vSupp) ) 
         Vec_IntForEachEntry( vDivs, iObj, i )
             Gia_ManAppendCo( pNew, Acb_ObjCopy(p, iObj) );
     Gia_ManHashStop( pNew );
@@ -806,7 +811,7 @@ Gia_Man_t * Acb_CreateMiter( Gia_Man_t * pF, Gia_Man_t * pG )
   SeeAlso     []
 
 ***********************************************************************/
-#define NWORDS 64
+#define NWORDS 256
 
 void Vec_IntPermute( Vec_Int_t * p )
 {
@@ -904,11 +909,16 @@ Vec_Int_t * Acb_FindSupportStart( sat_solver * pSat, int iFirstDiv, Vec_Int_t * 
             fFound = 1;
         }
         if ( fFound == 0 )
+            break;
+/*
+        if ( fFound == 0 )
         {
+            printf( "For some reason, cannot find a divisor.\n" );
             Vec_WrdFree( vPats );
             Vec_IntFree( vSupp );
             return NULL;
         }
+*/
         assert( fFound );
         iPat++;
     }
@@ -998,6 +1008,7 @@ Vec_Int_t * Acb_FindSupportNext( sat_solver * pSat, int iFirstDiv, Vec_Int_t * v
         (*pnPats)++;
         if ( *pnPats == NWORDS*64 )
         {
+            printf( "Exceeded %d words.\n", NWORDS );
             Vec_IntFreeP( &vSupp );
             return NULL;
         }
@@ -1100,7 +1111,7 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
     abctime clkLimit = TimeOut * CLOCKS_PER_SEC + Abc_Clock();
     Vec_Wrd_t * vPats = NULL;
     int nPats = 0;
-    Vec_Int_t * vSuppBest, * vSupp;//, * vTemp;
+    Vec_Int_t * vSuppBest, * vSupp, * vTemp;
     int CostBest, Cost;
     int Iter;
 
@@ -1110,25 +1121,21 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
     printf( "Starting cost = %d.\n", CostBest );
 
     // iteratively find the one with the most ones in the uncovered rows
-    for ( Iter = 0; Iter < 200; Iter++ )
+    for ( Iter = 0; Iter < 500; Iter++ )
     {
         if ( Abc_Clock() > clkLimit )
         {
-            Vec_IntFree( vSuppBest );
-            Vec_WrdFree( vPats );
-            return NULL;
+            printf( "Timeout after %d sec.\n", TimeOut );
+            break;
         }
         if ( Iter == 0 )
             vSupp = Acb_FindSupportStart( pSat, iFirstDiv, vWeights, &vPats, &nPats );
         else
             vSupp = Acb_FindSupportNext( pSat, iFirstDiv, vWeights, vPats, &nPats );
         if ( vSupp == NULL )
-        {
-            Vec_IntFree( vSuppBest );
-            return NULL;
-        }
-        //vSupp = Acb_FindSupportMin( pSat, iFirstDiv, vPats, &nPats, vTemp = vSupp );
-        //Vec_IntFree( vTemp );
+            break;
+        vSupp = Acb_FindSupportMin( pSat, iFirstDiv, vPats, &nPats, vTemp = vSupp );
+        Vec_IntFree( vTemp );
         if ( vSupp == NULL )
             break;
         Cost = Acb_ComputeSuppCost( vSupp, vWeights, iFirstDiv );
@@ -1137,15 +1144,15 @@ Vec_Int_t * Acb_FindSupport( sat_solver * pSat, int iFirstDiv, Vec_Int_t * vWeig
         {
             CostBest = Cost;
             ABC_SWAP( Vec_Int_t *, vSuppBest, vSupp );
-            printf( "Iter %4d:  Next cost = %d.  ", Iter, Cost );
+            printf( "Iter %4d:  Next cost = %5d.  ", Iter, Cost );
             printf( "Updating best solution.\n" );
         }
         Vec_IntFree( vSupp );
     }
-    Acb_FindReplace( pSat, iFirstDiv, vWeights, vPats, nPats, vSuppBest );
-
+    if ( vPats )
+        Acb_FindReplace( pSat, iFirstDiv, vWeights, vPats, nPats, vSuppBest );
     //printf( "Number of patterns = %d.\n", nPats );
-    Vec_WrdFree( vPats );
+    Vec_WrdFreeP( &vPats );
     return vSuppBest;
 }
 
@@ -1898,8 +1905,26 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
     int nOuts = vGias ? Vec_PtrSize(vGias) : Vec_PtrSize(vSops);
     int i, k, iObj, nWires = Vec_WecSize(vGates) - Vec_IntSize(vUsed) - nOuts, fFirst = 1;
     Vec_Ptr_t * vNames = Acb_GenerateSignalNames( p, vDivs, vUsed, nWires, vTars, vGates );
-
     Vec_Str_t * vStr = Vec_StrAlloc( 100 );
+
+    int nInvs = 0, nBufs = 0, nNodes = 0, nConst = 0;
+    Vec_WecForEachLevelStartStop( vGates, vGate, i, Vec_IntSize(vUsed), Vec_IntSize(vUsed)+nWires )
+    {
+        if ( Vec_IntSize(vGate) > 2 )
+        {
+            char * pName = Acb_Oper2Name(Vec_IntEntry(vGate, 0));
+            if ( !strcmp(pName, "buf") )
+                nBufs++;
+            else if ( !strcmp(pName, "not") )
+                nInvs++;
+            else
+                nNodes++;
+        }
+        else
+            nConst++;
+    }
+    Vec_StrPrintF( vStr, "// Patch statistics: in = %d  out = %d  gate = %d  (const = %d  buf = %d  inv = %d  other = %d)\n\n", 
+        Vec_IntSize(vUsed), nOuts, nWires, nConst, nBufs, nInvs, nNodes );
     Vec_StrAppend( vStr, "module patch (" );
 
     assert( Vec_IntSize(vTars) == nOuts );
@@ -1955,7 +1980,8 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
     Vec_PtrFreeFree( vNames );
     Vec_WecFree( vGates );
 
-    printf( "Synthesized patch with %d inputs, %d outputs and %d gates.\n", Vec_IntSize(vUsed), nOuts, nWires );
+    printf( "Synthesized patch with %d inputs, %d outputs and %d gates (const = %d  buf = %d  inv = %d  other = %d).\n", 
+        Vec_IntSize(vUsed), nOuts, nWires, nConst, nBufs, nInvs, nNodes );
     return vStr;
 }
 
@@ -2479,7 +2505,7 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int fCisOnly, int fCheck, int fVerbose )
+int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int fCisOnly, int fCheck, int fVerbose, int fVeryVerbose )
 {
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
 
@@ -2515,7 +2541,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     Vec_Str_t * vInst  = NULL, * vPatch = NULL;
 
     char * pSop = NULL;
-    int i, Res;
+    int i;
 
     if ( fVerbose )
     {
@@ -2609,6 +2635,8 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
 
             // add to functions
             Vec_PtrPush( vSops, pSop );
+            if ( fVeryVerbose )
+                printf( "Function %d\n%s", i, pSop );
         }
         // add to supports
         Vec_IntAppend( Vec_WecPushLevel(vSupps), vSupp );
@@ -2619,6 +2647,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     printf( "\n" );
     if ( !fCisOnly )
     {
+        int Res;
         abctime clk  = Abc_Clock();
         pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pGiaM, 8, 0, 0, 0, 0 );
         Res = Acb_CheckMiter( pCnf );
@@ -2708,7 +2737,6 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
     Acb_IntallLibrary();
 }
 
-
 /**Function*************************************************************
 
   Synopsis    [Top level procedure.]
@@ -2720,8 +2748,9 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose )
+void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose, int fVeryVerbose )
 {
+    char Command[1000]; int Result = 1;
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNames[0], pFileNames[2] );
     Acb_Ntk_t * pNtkG = Acb_VerilogSimpleRead( pFileNames[1], NULL );
     if ( !pNtkF || !pNtkG )
@@ -2737,15 +2766,23 @@ void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose )
 
     Acb_IntallLibrary();
 
-    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, 0, fCheck, fVerbose ) )
+    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, 0, fCheck, fVerbose, fVeryVerbose ) )
     {
-        printf( "General computation timed out. Trying inputs only.\n\n" );
-        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, 1, fCheck, fVerbose ) )
-            printf( "Input-only computation also timed out.\n\n" );
+//        printf( "General computation timed out. Trying inputs only.\n\n" );
+//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, 1, fCheck, fVerbose, fVeryVerbose ) )
+//            printf( "Input-only computation also timed out.\n\n" );
+        printf( "Computation did not succeed.\n" );
+        Result = 0;
     }
 
     Acb_ManFree( pNtkF->pDesign );
     Acb_ManFree( pNtkG->pDesign );
+
+    // verify the result
+    sprintf( Command, "read %s; strash; write temp1.aig; read %s; strash; write temp2.aig; &cec temp1.aig temp2.aig", 
+        pFileNames[1], pFileNames[3] ? pFileNames[3] : "out.v" );
+    if ( Result && Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
+        fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
 }
 
 ////////////////////////////////////////////////////////////////////////
