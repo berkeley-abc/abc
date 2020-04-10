@@ -912,20 +912,113 @@ void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames,
   Synopsis    []
 
   Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acb_Ntk4CollectAdd( Acb_Ntk_t * pNtk, int iObj, Vec_Int_t * vRes, Vec_Int_t * vDists, int Dist )
+{
+    if ( Acb_ObjSetTravIdCur(pNtk, iObj) )
+        return;
+    Vec_IntWriteEntry( vDists, iObj, Dist );
+    Vec_IntPush( vRes, iObj );
+}
+void Acb_Ntk4CollectRing( Acb_Ntk_t * pNtk, Vec_Int_t * vStart, Vec_Int_t * vRes, Vec_Int_t * vDists )
+{
+    int i, iObj;
+    Vec_IntForEachEntry( vStart, iObj, i )
+    {
+        int k, iFanin, * pFanins, Weight = Vec_IntEntry(vDists, iObj); 
+        Acb_ObjForEachFaninFast( pNtk, iObj, pFanins, iFanin, k )
+            Acb_Ntk4CollectAdd( pNtk, iFanin, vRes, vDists, Weight + 1*(Acb_ObjFaninNum(pNtk, iObj) > 1) );
+        Acb_ObjForEachFanout( pNtk, iObj, iFanin, k )
+            Acb_Ntk4CollectAdd( pNtk, iFanin, vRes, vDists, Weight + 2*(Acb_ObjFaninNum(pNtk, iObj) > 1) );
+    }
+}
+void Acb_Ntk4DumpWeightsInt( Acb_Ntk_t * pNtk, Vec_Int_t * vObjs, char * pFileName )
+{
+    int i, iObj;//, Weight;
+    Vec_Int_t * vDists, * vStart, * vNexts;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Canont open input file \"%s\".\n", pFileName );
+        return;
+    }
+    vStart = Vec_IntAlloc( 100 );
+    vNexts = Vec_IntAlloc( 100 );
+    vDists = Vec_IntStart( Acb_NtkObjNumMax(pNtk) );
+    Acb_NtkIncTravId( pNtk );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+    {
+        Acb_ObjSetTravIdCur(pNtk, iObj);
+        Vec_IntWriteEntry( vDists, iObj, 1 );
+        Vec_IntPush( vStart, iObj );
+    }    
+    while ( 1 )
+    {
+        Acb_Ntk4CollectRing( pNtk, vStart, vNexts, vDists );
+        if ( Vec_IntSize(vNexts) == 0 )
+            break;
+        Vec_IntClear( vStart );
+        ABC_SWAP( Vec_Int_t, *vStart, *vNexts );
+    }
+    Vec_IntFree( vStart );
+    Vec_IntFree( vNexts );
+    // create weights
+//    Vec_IntForEachEntry( vDists, Weight, i )
+//        if ( Weight && Acb_ObjNameStr(pNtk, i)[0] != '1' )
+//            fprintf( pFile, "%s %d\n", Acb_ObjNameStr(pNtk, i), 10000+Weight );
+    Acb_NtkForEachObj( pNtk, iObj )
+    {
+        char * pName = Acb_ObjNameStr(pNtk, iObj);
+        int Weight = Vec_IntEntry(vDists, iObj);
+        if ( Weight == 0 )
+            Weight = 10000;
+        fprintf( pFile, "%s %d\n", pName, 100000+Weight );
+    }
+
+    Vec_IntFree( vDists );
+    fclose( pFile );
+}
+void Acb_Ntk4DumpWeights( char * pFileNameIn, Vec_Ptr_t * vObjNames, char * pFileName )
+{
+    char * pName; int i, iObj;
+    Vec_Int_t * vObjs = Vec_IntAlloc( Vec_PtrSize(vObjNames) );
+    Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNameIn, NULL );
+    Acb_NtkCreateFanout( pNtkF );
+    Vec_PtrForEachEntry( char *, vObjNames, pName, i )
+    {
+        Acb_NtkForEachObj( pNtkF, iObj )
+            if ( !strcmp(Acb_ObjNameStr(pNtkF, iObj), pName) )
+                Vec_IntPush( vObjs, iObj );
+    }
+    Acb_Ntk4DumpWeightsInt( pNtkF, vObjs, pFileName );
+    Acb_ManFree( pNtkF->pDesign );
+    Vec_IntFree( vObjs );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fVerbose, int fVeryVerbose )
+void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fVerbose, int fVeryVerbose )
 {
     extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fVerbose );
-    extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose, int fVeryVerbose );
-    char * pFileNames[4] = { pFileName[2], pFileName[1], NULL, pFileName[2] };
+    extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fVerbose, int fVeryVerbose );
+    char * pFileNames[4] = { pFileName[2], pFileName[1], fUseWeights ? "weights.txt" : NULL, pFileName[2] };
     if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fVerbose ) )
-        Acb_NtkRunEco( pFileNames, 1, fVerbose, fVeryVerbose );
-}
+        Acb_NtkRunEco( pFileNames, 1, fRandom, fVerbose, fVeryVerbose );
+} 
 
 
 ////////////////////////////////////////////////////////////////////////

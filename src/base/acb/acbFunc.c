@@ -2748,7 +2748,7 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose, int fVeryVerbose )
+void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fVerbose, int fVeryVerbose )
 {
     char Command[1000]; int Result = 1;
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNames[0], pFileNames[2] );
@@ -2758,8 +2758,12 @@ void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose, int fVeryVer
     //int * pArray = Vec_IntArray( &pNtkF->vTargets );
     //ABC_SWAP( int, pArray[7], pArray[4] );
     //Vec_IntReverseOrder( &pNtkF->vTargets );
-    //Vec_IntPermute( &pNtkF->vTargets );
-    //Vec_IntPrint( &pNtkF->vTargets );
+    if ( fRandom )
+    {
+        printf( "Permuting targets as follows:   " );
+        Vec_IntPermute( &pNtkF->vTargets );
+        Vec_IntPrint( &pNtkF->vTargets );
+    }
         
     assert( Acb_NtkCiNum(pNtkF) == Acb_NtkCiNum(pNtkG) );
     assert( Acb_NtkCoNum(pNtkF) == Acb_NtkCoNum(pNtkG) );
@@ -2783,6 +2787,7 @@ void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose, int fVeryVer
         pFileNames[1], pFileNames[3] ? pFileNames[3] : "out.v" );
     if ( Result && Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
         fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+    printf( "\n" );
 }
 
 ////////////////////////////////////////////////////////////////////////

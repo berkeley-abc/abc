@@ -7045,16 +7045,19 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fVerbose, int fVeryVerbose );
+    extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fVerbose, int fVeryVerbose );
     char * pFileNames[4] = {NULL};
-    int c, fCheck = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, fCheck = 0, fRandom = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "crvwh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'c':
             fCheck ^= 1;
+            break;
+        case 'r':
+            fRandom ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -7076,12 +7079,22 @@ int Abc_CommandRunEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
     }
     for ( c = 0; c < argc - globalUtilOptind; c++ )
+    {
+        FILE * pFile = fopen( argv[globalUtilOptind+c], "rb" );
+        if ( pFile == NULL )
+        {
+            printf( "Cannot open input file \"%s\".\n", argv[globalUtilOptind+c] );
+            return 0;
+        }
+        else
+            fclose( pFile );
         pFileNames[c] = argv[globalUtilOptind+c];
-    Acb_NtkRunEco( pFileNames, fCheck, fVerbose, fVeryVerbose );
+    }
+    Acb_NtkRunEco( pFileNames, fCheck, fRandom, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: runeco [-cvwh] <implementation> <specification> <weights>\n" );
+    Abc_Print( -2, "usage: runeco [-crvwh] <implementation> <specification> <weights>\n" );
     Abc_Print( -2, "\t         performs computation of patch functions during ECO,\n" );
     Abc_Print( -2, "\t         as described in the following paper: A. Q. Dao et al\n" );
     Abc_Print( -2, "\t         \"Efficient computation of ECO patch functions\", Proc. DAC\'18\n" );
@@ -7090,6 +7103,7 @@ usage:
     Abc_Print( -2, "\t         http://cad-contest-2017.el.cycu.edu.tw/Problem_A/default.html as follows:\n" );
     Abc_Print( -2, "\t         \"runeco unit1/F.v unit1/G.v unit1/weight.txt; cec -n out.v unit1/G.v\")\n" );
     Abc_Print( -2, "\t-c     : toggle checking that the problem has a solution [default = %s]\n", fCheck? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle using random permutation of support variables [default = %s]\n", fRandom? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -7158,11 +7172,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fVerbose, int fVeryVerbose );
+    extern void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fVerbose, int fVeryVerbose );
     char * pFileNames[4] = {NULL, NULL, "out.v", NULL};
-    int c, nWords = 8, nBeam = 4, LevL = -1, LevU = -1, fOrder = 0, fFancy = 0, fUseBuf = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, nWords = 8, nBeam = 4, LevL = -1, LevU = -1, fOrder = 0, fFancy = 0, fUseBuf = 0, fRandom = 0, fUseWeights = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WBLUofbvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WBLUofbruvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7219,6 +7233,12 @@ int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'b':
             fUseBuf ^= 1;
             break;
+        case 'r':
+            fRandom ^= 1;
+            break;
+        case 'u':
+            fUseWeights ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -7239,11 +7259,22 @@ int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ManRandom(1);
     for ( c = 0; c < argc - globalUtilOptind; c++ )
         pFileNames[c] = argv[globalUtilOptind+c];
-    Acb_NtkRunSim( pFileNames, nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fVerbose, fVeryVerbose );
+    for ( c = 0; c < argc - globalUtilOptind - 1; c++ )
+    {
+        FILE * pFile = fopen( pFileNames[c], "rb" );
+        if ( pFile == NULL )
+        {
+            printf( "Cannot open input file \"%s\".\n", pFileNames[c] );
+            return 0;
+        }
+        else
+            fclose( pFile );
+    }
+    Acb_NtkRunSim( pFileNames, nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fRandom, fUseWeights, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: runsim [-WBLU] [-ofbvwh] [-N <num>] <file1> <file2> <file3>\n" );
+    Abc_Print( -2, "usage: runsim [-WBLU] [-ofbruvwh] [-N <num>] <file1> <file2> <file3>\n" );
     Abc_Print( -2, "\t           experimental simulation command\n" );
     Abc_Print( -2, "\t-W <num> : the number of words of simulation info [default = %d]\n", nWords );
     Abc_Print( -2, "\t-B <num> : the beam width parameter [default = %d]\n", nBeam );
@@ -7252,8 +7283,10 @@ usage:
     Abc_Print( -2, "\t-o       : toggle using a different node ordering [default = %s]\n", fOrder? "yes": "no" );
     Abc_Print( -2, "\t-f       : toggle using experimental feature [default = %s]\n",      fFancy? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggle using buffers [default = %s]\n",                   fUseBuf? "yes": "no" );
-    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w       : toggle printing more verbose information [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-r       : toggle using random permutation of support variables [default = %s]\n",      fRandom? "yes": "no" );
+    Abc_Print( -2, "\t-u       : toggle using topological info to select support variables [default = %s]\n", fUseWeights? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",                       fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle printing more verbose information [default = %s]\n",                  fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
