@@ -28,6 +28,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -662,7 +663,6 @@ Vec_Int_t * Acb_NtkCollectUser( Acb_Ntk_t * p, Vec_Ptr_t * vUser )
 int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fUseXors, int fVerbose, 
                     Gia_Man_t ** ppGiaF, Gia_Man_t ** ppGiaG, int fUseBuf, Vec_Int_t ** pvNodes, Vec_Ptr_t ** pvNodesR, Vec_Bit_t ** pvPolar )
 {
-    extern Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW );
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileName0, NULL );
     Acb_Ntk_t * pNtkG = Acb_VerilogSimpleRead( pFileName1, NULL );
     int RetValue = -1;

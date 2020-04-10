@@ -1028,6 +1028,8 @@ extern void        Acb_NtkPrintNode( Acb_Ntk_t * p, int iObj );
 extern int         Acb_NtkCreateNode( Acb_Ntk_t * p, word uTruth, Vec_Int_t * vSupp );
 extern void        Acb_NtkUpdateNode( Acb_Ntk_t * p, int Pivot, word uTruth, Vec_Int_t * vSupp );
 
+extern Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW );
+
 ABC_NAMESPACE_HEADER_END
 
 
