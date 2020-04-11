@@ -202,6 +202,101 @@ Gia_Man_t * Slv_ManToAig( Gia_Man_t * pGia )
     return pNew;
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCofPisVars( Gia_Man_t * p, int nVars )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj; int i, m;
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManForEachPi( p, pObj, i )
+        Gia_ManAppendCi( pNew );
+    Gia_ManHashStart( pNew );
+    for ( m = 0; m < (1 << nVars); m++ )
+    {
+        Gia_ManFillValue( p );
+        Gia_ManConst0(p)->Value = 0;
+        Gia_ManForEachPi( p, pObj, i )
+        {
+            if ( i < nVars )
+                pObj->Value = (m >> i) & 1;
+            else
+                pObj->Value = Gia_ObjToLit(pNew, Gia_ManCi(pNew, i));
+        }
+        Gia_ManForEachAnd( p, pObj, i )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachPo( p, pObj, i )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManHashStop( pNew );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManStructExperiment( Gia_Man_t * p )
+{
+    extern int Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose );
+    Gia_Man_t * pTemp, * pUsed;
+    Vec_Ptr_t * vGias = Vec_PtrAlloc( 100 );
+    Gia_Obj_t * pObj; int i, k;
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        int iFan0 = Gia_ObjFaninId0p(p, pObj);
+        pTemp = Gia_ManDupAndCones( p, &iFan0, 1, 1 );
+        Vec_PtrForEachEntry( Gia_Man_t *, vGias, pUsed, k )
+            if ( Gia_ManCiNum(pTemp) == Gia_ManCiNum(pUsed) && Cec_ManVerifyTwo(pTemp, pUsed, 0) == 1 )
+            {
+                ABC_SWAP( void *, Vec_PtrArray(vGias)[0], Vec_PtrArray(vGias)[k] );
+                break;
+            }
+            else
+                ABC_FREE( pTemp->pCexComb );
+
+        printf( "\nOut %6d : ", i );
+        if ( k == Vec_PtrSize(vGias) )
+            printf( "Equiv to none    " );
+        else
+            printf( "Equiv to %6d  ", k );
+        Gia_ManPrintStats( pTemp, NULL );
+
+        if ( k == Vec_PtrSize(vGias) )
+            Vec_PtrPush( vGias, pTemp );
+        else
+            Gia_ManStop( pTemp );
+    }
+    printf( "\nComputed %d classes.\n\n", Vec_PtrSize(vGias) );
+    Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
+        Gia_ManStop( pTemp );
+    Vec_PtrFree( vGias );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
