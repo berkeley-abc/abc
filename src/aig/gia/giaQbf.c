@@ -302,10 +302,10 @@ void Gia_Gen2CodePrint( int nLutSize, int nLutNum, Vec_Int_t * vCode )
     {
         int Code = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, i );
         printf( "%3d  ", i );
-        Extra_PrintBinary( stdout, &i, nLutSize );
+        Extra_PrintBinary( stdout, (unsigned *)&i, nLutSize );
         printf( "  -->  " );
         printf( "%3d  ", Code );
-        Extra_PrintBinary( stdout, &Code, nLutNum );
+        Extra_PrintBinary( stdout, (unsigned *)&Code, nLutNum );
         printf( "\n" );
     }
     // create several different pairs
@@ -330,21 +330,21 @@ void Gia_Gen2CodePrint( int nLutSize, int nLutNum, Vec_Int_t * vCode )
 
         printf( "%2d :", n );
         printf( "  x =%3d ", NumX );
-        Extra_PrintBinary( stdout, &NumX, nLutSize );
+        Extra_PrintBinary( stdout,(unsigned *) &NumX, nLutSize );
         printf( "  y =%3d ", NumY );
-        Extra_PrintBinary( stdout, &NumY, nLutSize );
+        Extra_PrintBinary( stdout, (unsigned *)&NumY, nLutSize );
         printf( "  nand =%3d ", NumXY );
-        Extra_PrintBinary( stdout, &NumXY, nLutSize );
+        Extra_PrintBinary( stdout, (unsigned *)&NumXY, nLutSize );
         printf( "  " );
 
         printf( "  c(x) =%3d ", CodeX );
-        Extra_PrintBinary( stdout, &CodeX, nLutNum );
+        Extra_PrintBinary( stdout, (unsigned *)&CodeX, nLutNum );
         printf( "  c(y) =%3d ", CodeY );
-        Extra_PrintBinary( stdout, &CodeY, nLutNum );
+        Extra_PrintBinary( stdout, (unsigned *)&CodeY, nLutNum );
         printf( "  c(nand) =%3d ", CodeXY );
-        Extra_PrintBinary( stdout, &CodeXY, nLutNum );
+        Extra_PrintBinary( stdout, (unsigned *)&CodeXY, nLutNum );
         printf( "    nand(c(x), c(y)) =%3d ", CodeXCodeY );
-        Extra_PrintBinary( stdout, &CodeXCodeY, nLutNum );
+        Extra_PrintBinary( stdout, (unsigned *)&CodeXCodeY, nLutNum );
         printf( "    " );
 
         printf( "%s", CodeXCodeY == CodeXY ? "yes" : "no" );
