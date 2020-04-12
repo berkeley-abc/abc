@@ -184,6 +184,184 @@ Gia_Man_t * Gia_GenQbfMiter( Gia_Man_t * p, int nFrames, int nLutNum, int nLutSi
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Generate miter for the encoding problem.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_Gen2CreateMux_rec( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData, int Shift )
+{
+    int iLit0, iLit1;
+    if ( nCtrl == 0 )
+        return Vec_IntEntry( vData, Shift );
+    iLit0 = Gia_Gen2CreateMux_rec( pNew, pCtrl, nCtrl-1, vData, Shift );
+    iLit1 = Gia_Gen2CreateMux_rec( pNew, pCtrl, nCtrl-1, vData, Shift + (1<<(nCtrl-1)) );
+    return Gia_ManHashMux( pNew, pCtrl[nCtrl-1], iLit1, iLit0 );
+}
+Vec_Int_t * Gia_Gen2CreateMuxes( Gia_Man_t * pNew, int nLutSize, int nLutNum, Vec_Int_t * vPLits, Vec_Int_t * vXLits )
+{
+    Vec_Int_t * vLits = Vec_IntAlloc( nLutNum );
+    int i, iMux;
+    // add MUXes for each group of flops
+    assert( Vec_IntSize(vPLits) == nLutNum * (1 << nLutSize) );
+    assert( Vec_IntSize(vXLits) == nLutSize );
+    for ( i = 0; i < nLutNum; i++ )
+    {
+        iMux = Gia_Gen2CreateMux_rec( pNew, Vec_IntArray(vXLits), nLutSize, vPLits, i * (1 << nLutSize) );
+        Vec_IntPush( vLits, iMux );
+    }
+    return vLits;
+}
+Gia_Man_t * Gia_Gen2CreateMiter( int nLutSize, int nLutNum )
+{
+    // |<-- PVars(0)-->|...|<-- PVars(nLutNum-1)-->|<-- XVars-->|<-- YVars-->|
+    Vec_Int_t * vPLits  = Vec_IntAlloc( nLutNum * (1 << nLutSize) );
+    Vec_Int_t * vXLits  = Vec_IntAlloc( nLutSize );
+    Vec_Int_t * vYLits  = Vec_IntAlloc( nLutSize );
+    Vec_Int_t * vXYLits = Vec_IntAlloc( nLutSize );
+    Vec_Int_t * vXRes, * vYRes, * vXYRes;
+    Vec_Int_t * vXYRes2 = Vec_IntAlloc( 2 * nLutNum );
+    Gia_Man_t * pTemp, * pNew = Gia_ManStart( 1000 ); int i, k, v, Cond, Res;
+    pNew->pName = Abc_UtilStrsav( "homoqbf" );
+    Gia_ManHashAlloc( pNew );
+    for ( i = 0; i < nLutNum * (1 << nLutSize); i++ )
+        Vec_IntPush( vPLits, Gia_ManAppendCi(pNew) );
+    for ( i = 0; i < nLutSize; i++ )
+        Vec_IntPush( vXLits, Gia_ManAppendCi(pNew) );
+    for ( i = 0; i < nLutSize; i++ )
+        Vec_IntPush( vYLits, Gia_ManAppendCi(pNew) );
+    for ( i = 0; i < nLutSize; i++ )
+        Vec_IntPush( vXYLits, Abc_LitNot(Gia_ManHashAnd(pNew, Vec_IntEntry(vXLits, i), Vec_IntEntry(vYLits, i))) );
+    vXRes  = Gia_Gen2CreateMuxes( pNew, nLutSize, nLutNum, vPLits, vXLits );
+    vYRes  = Gia_Gen2CreateMuxes( pNew, nLutSize, nLutNum, vPLits, vYLits );
+    vXYRes = Gia_Gen2CreateMuxes( pNew, nLutSize, nLutNum, vPLits, vXYLits );
+    for ( i = 0; i < nLutNum; i++ )
+    {
+        Vec_IntPush( vXYRes2, Vec_IntEntry(vXYRes, i) );
+        Vec_IntPush( vXYRes2, Abc_LitNot(Gia_ManHashAnd(pNew, Vec_IntEntry(vXRes, i), Vec_IntEntry(vYRes, i))) );
+    }
+    Res = Gia_ManHashDualMiter( pNew, vXYRes2 );
+    // uniqueness of codes
+    for ( i = 0; i < (1 << nLutSize); i++ )
+    {
+        Vec_Int_t * vCondA = Vec_IntAlloc( nLutNum );
+        Vec_Int_t * vCondB = Vec_IntAlloc( nLutNum );
+        for ( v = 0; v < nLutNum; v++ )
+            Vec_IntPush( vCondA, Vec_IntEntry(vPLits, v*(1 << nLutSize)+i) );
+        for ( k = i+1; k < (1 << nLutSize); k++ )
+        {
+            Vec_IntClear( vCondB );
+            for ( v = 0; v < nLutNum; v++ )
+            {
+                Vec_IntPush( vCondB, Vec_IntEntry(vCondA, v) );
+                Vec_IntPush( vCondB, Vec_IntEntry(vPLits, v*(1 << nLutSize)+k) );
+            }
+            Cond = Gia_ManHashDualMiter( pNew, vCondB );
+            Res = Gia_ManHashOr( pNew, Res, Abc_LitNot(Cond) );
+        }
+        Vec_IntFree( vCondA );
+        Vec_IntFree( vCondB );
+    }
+    Gia_ManAppendCo( pNew, Abc_LitNot(Res) );
+    Gia_ManHashStop( pNew );
+    Vec_IntFree( vPLits );
+    Vec_IntFree( vXLits );
+    Vec_IntFree( vYLits );
+    Vec_IntFree( vXYLits );
+    Vec_IntFree( vXRes );
+    Vec_IntFree( vYRes );
+    Vec_IntFree( vXYRes );
+    Vec_IntFree( vXYRes2 );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    printf( "Generated QBF miter with %d parameters, %d functional variables, and %d AIG nodes.\n", 
+        nLutNum * (1 << nLutSize), 2*nLutNum, Gia_ManAndNum(pNew) );
+    return pNew;
+}
+int Gia_Gen2CodeOne( int nLutSize, int nLutNum, Vec_Int_t * vCode, int x )
+{
+    int k, Code = 0;
+    for ( k = 0; k < nLutNum; k++ )
+        if ( Vec_IntEntry(vCode, k*(1 << nLutSize)+x) )
+            Code |= (1 << k);
+    return Code;
+}
+void Gia_Gen2CodePrint( int nLutSize, int nLutNum, Vec_Int_t * vCode )
+{
+    // |<-- PVars(0)-->|...|<-- PVars(nLutNum-1)-->|
+    int i, n, nPairs = 16;
+    printf( "%d-input %d-output code table:\n", nLutSize, nLutNum );
+    for ( i = 0; i < (1 << nLutSize); i++ )
+    {
+        int Code = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, i );
+        printf( "%3d  ", i );
+        Extra_PrintBinary( stdout, &i, nLutSize );
+        printf( "  -->  " );
+        printf( "%3d  ", Code );
+        Extra_PrintBinary( stdout, &Code, nLutNum );
+        printf( "\n" );
+    }
+    // create several different pairs
+    srand( time(NULL) );
+    printf( "Simulation of the encoding with %d random pairs:\n", nPairs );
+    for ( n = 0; n < nPairs; n++ )
+    {
+        unsigned MaskIn = Abc_InfoMask( nLutSize );
+        unsigned MaskOut = Abc_InfoMask( nLutNum );
+        int CodeX, CodeY, CodeXY, CodeXCodeY;
+        int NumX = 0, NumY = 0, NumXY;
+        while ( NumX == NumY )
+        {
+            NumX = rand() % (1 << nLutSize);
+            NumY = rand() % (1 << nLutSize);
+            NumXY = MaskIn & ~(NumX & NumY);
+        }
+        CodeX = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, NumX );
+        CodeY = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, NumY );
+        CodeXY = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, NumXY );
+        CodeXCodeY = MaskOut & ~(CodeX & CodeY);
+
+        printf( "%2d :", n );
+        printf( "  x =%3d ", NumX );
+        Extra_PrintBinary( stdout, &NumX, nLutSize );
+        printf( "  y =%3d ", NumY );
+        Extra_PrintBinary( stdout, &NumY, nLutSize );
+        printf( "  nand =%3d ", NumXY );
+        Extra_PrintBinary( stdout, &NumXY, nLutSize );
+        printf( "  " );
+
+        printf( "  c(x) =%3d ", CodeX );
+        Extra_PrintBinary( stdout, &CodeX, nLutNum );
+        printf( "  c(y) =%3d ", CodeY );
+        Extra_PrintBinary( stdout, &CodeY, nLutNum );
+        printf( "  c(nand) =%3d ", CodeXY );
+        Extra_PrintBinary( stdout, &CodeXY, nLutNum );
+        printf( "    nand(c(x), c(y)) =%3d ", CodeXCodeY );
+        Extra_PrintBinary( stdout, &CodeXCodeY, nLutNum );
+        printf( "    " );
+
+        printf( "%s", CodeXCodeY == CodeXY ? "yes" : "no" );
+        printf( "\n" );
+    }
+}
+void Gia_Gen2CodeTest()
+{
+    int i, nLutSize = 1, nLutNum = 2;
+    Vec_Int_t * vCode = Vec_IntAlloc( (1 << nLutSize) * nLutNum );
+    srand( time(NULL) );
+    for ( i = 0; i < (1 << nLutSize) * nLutNum; i++ )
+        Vec_IntPush( vCode, rand() & 1 );
+    Gia_Gen2CodePrint( nLutSize, nLutNum, vCode );
+    Vec_IntFree( vCode );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Naive way to enumerate SAT assignments.]
@@ -632,7 +810,7 @@ void Gia_QbfLearnConstraint( Qbf_Man_t * p, Vec_Int_t * vValues )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int fGlucose, int fVerbose )
+int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int nEncVars, int fGlucose, int fVerbose )
 {
     Qbf_Man_t * p = Gia_QbfAlloc( pGia, nPars, fGlucose, fVerbose );
     Gia_Man_t * pCof;
@@ -679,6 +857,12 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         assert( Vec_IntSize(p->vValues) == nPars );
         Vec_IntPrintBinary( p->vValues );
         printf( "  Statistics: 0=%d 1=%d\n", nZeros, Vec_IntSize(p->vValues) - nZeros );
+        if ( nEncVars )
+        {
+            int nBits = Vec_IntSize(p->vValues)/(1 << nEncVars);
+            assert( Vec_IntSize(p->vValues) == (1 << nEncVars) * nBits );
+            Gia_Gen2CodePrint( nEncVars, nBits, p->vValues );
+        }
     }
     if ( RetValue == -1 && nTimeOut && (Abc_Clock() - p->clkStart)/CLOCKS_PER_SEC >= nTimeOut )
         printf( "The problem timed out after %d sec.  ", nTimeOut );

@@ -519,6 +519,7 @@ static int Abc_CommandAbc9FFTest             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Qbf                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9QVar               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenQbf             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9HomoQbf            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatFx              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatClp             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Inse               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1235,6 +1236,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&qbf",          Abc_CommandAbc9Qbf,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&qvar",         Abc_CommandAbc9QVar,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&genqbf",       Abc_CommandAbc9GenQbf,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&homoqbf",      Abc_CommandAbc9HomoQbf,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satfx",        Abc_CommandAbc9SatFx,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satclp",       Abc_CommandAbc9SatClp,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&inse",         Abc_CommandAbc9Inse,         0 );
@@ -13673,6 +13675,7 @@ int Abc_CommandTestColor( Abc_Frame_t * pAbc, int argc, char ** argv )
 ***********************************************************************/
 int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Gia_Gen2CodeTest();
     extern void Dau_NetworkEnumTest();
     //Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int nCutMax      =  1;
@@ -13886,7 +13889,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Dau_NetworkEnumTest();
     //Extra_SimulationTest( nDivMax, nNumOnes, fNewOrder );
     //Mnist_ExperimentWithScaling( nDecMax );
-    //Extra_ReadForestTest();
+    Gia_Gen2CodeTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -43715,16 +43718,17 @@ usage:
 int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_QbfDumpFile( Gia_Man_t * pGia, int nPars );
-    extern int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int fGlucose, int fVerbose );
+    extern int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int nEncVars, int fGlucose, int fVerbose );
     int c, nPars   = -1;
     int nIterLimit =  0;
     int nConfLimit =  0;
     int nTimeOut   =  0;
+    int nEncVars   =  0;
     int fDumpCnf   =  0;
     int fGlucose   =  0;
     int fVerbose   =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PICTdgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PICTKdgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -43772,6 +43776,17 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nTimeOut < 0 )
                 goto usage;
             break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nEncVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nEncVars < 0 )
+                goto usage;
+            break;
         case 'd':
             fDumpCnf ^= 1;
             break;
@@ -43810,16 +43825,17 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fDumpCnf )
         Gia_QbfDumpFile( pAbc->pGia, nPars );
     else
-        Gia_QbfSolve( pAbc->pGia, nPars, nIterLimit, nConfLimit, nTimeOut, fGlucose, fVerbose );
+        Gia_QbfSolve( pAbc->pGia, nPars, nIterLimit, nConfLimit, nTimeOut, nEncVars, fGlucose, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &qbf [-PICT num] [-dgvh]\n" );
+    Abc_Print( -2, "usage: &qbf [-PICTK num] [-dgvh]\n" );
     Abc_Print( -2, "\t         solves QBF problem EpVxM(p,x)\n" );
     Abc_Print( -2, "\t-P num : number of parameters p (should be the first PIs) [default = %d]\n", nPars );
     Abc_Print( -2, "\t-I num : quit after the given iteration even if unsolved [default = %d]\n", nIterLimit );
     Abc_Print( -2, "\t-C num : conflict limit per problem [default = %d]\n", nConfLimit );
     Abc_Print( -2, "\t-T num : global timeout [default = %d]\n", nTimeOut );
+    Abc_Print( -2, "\t-K num : the number of input bits (for encoding miters only) [default = %d]\n", nEncVars );
     Abc_Print( -2, "\t-d     : toggle dumping QDIMACS file instead of solving [default = %s]\n", fDumpCnf? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
@@ -44022,6 +44038,75 @@ usage:
     Abc_Print( -2, "\t-K num : the LUT size [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-N num : the number of LUTs [default = %d]\n", nLutNum );
     Abc_Print( -2, "\t-o     : toggle using the last output [default = %s]\n", fUseOut? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9HomoQbf( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_Gen2CreateMiter( int nLutSize, int nLutNum );
+    int nLutSize  =  2;
+    int nLutNum   =  3;
+    int fVerbose  =  0;
+    int c;
+    Gia_Man_t * pTemp;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KNvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutNum < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pTemp = Gia_Gen2CreateMiter( nLutSize, nLutNum );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &homoqbf [-KN num] [-vh]\n" );
+    Abc_Print( -2, "\t         generates QBF miter for the encoding problem\n" );
+    Abc_Print( -2, "\t-K num : the LUT size [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-N num : the number of LUTs [default = %d]\n", nLutNum );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
