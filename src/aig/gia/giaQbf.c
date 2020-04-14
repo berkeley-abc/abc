@@ -23,6 +23,7 @@
 #include "sat/bsat/satStore.h"
 #include "misc/extra/extra.h"
 #include "sat/glucose/AbcGlucose.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -282,7 +283,7 @@ Gia_Man_t * Gia_Gen2CreateMiter( int nLutSize, int nLutNum )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     printf( "Generated QBF miter with %d parameters, %d functional variables, and %d AIG nodes.\n", 
-        nLutNum * (1 << nLutSize), 2*nLutNum, Gia_ManAndNum(pNew) );
+        nLutNum * (1 << nLutSize), 2*nLutSize, Gia_ManAndNum(pNew) );
     return pNew;
 }
 int Gia_Gen2CodeOne( int nLutSize, int nLutNum, Vec_Int_t * vCode, int x )
@@ -293,6 +294,15 @@ int Gia_Gen2CodeOne( int nLutSize, int nLutNum, Vec_Int_t * vCode, int x )
             Code |= (1 << k);
     return Code;
 }
+word * Gia_Gen2CodeOneP( int nLutSize, int nLutNum, Vec_Int_t * vCode, int x )
+{
+    word * pRes = ABC_CALLOC( word, Abc_Bit6WordNum(nLutNum) );
+    int k;
+    for ( k = 0; k < nLutNum; k++ )
+        if ( Vec_IntEntry(vCode, k*(1 << nLutSize)+x) )
+            Abc_InfoSetBit( (unsigned *)pRes, k );
+    return pRes;
+}
 void Gia_Gen2CodePrint( int nLutSize, int nLutNum, Vec_Int_t * vCode )
 {
     // |<-- PVars(0)-->|...|<-- PVars(nLutNum-1)-->|
@@ -300,13 +310,15 @@ void Gia_Gen2CodePrint( int nLutSize, int nLutNum, Vec_Int_t * vCode )
     printf( "%d-input %d-output code table:\n", nLutSize, nLutNum );
     for ( i = 0; i < (1 << nLutSize); i++ )
     {
-        int Code = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, i );
+        word * CodeX  = Gia_Gen2CodeOneP( nLutSize, nLutNum, vCode, i );
         printf( "%3d  ", i );
         Extra_PrintBinary( stdout, (unsigned *)&i, nLutSize );
         printf( "  -->  " );
-        printf( "%3d  ", Code );
-        Extra_PrintBinary( stdout, (unsigned *)&Code, nLutNum );
+        if ( nLutNum <= 16 )
+            printf( "%5d  ", (int)CodeX[0] );
+        Extra_PrintBinary( stdout, (unsigned *)CodeX, nLutNum );
         printf( "\n" );
+        ABC_FREE( CodeX );
     }
     // create several different pairs
     srand( time(NULL) );
@@ -314,41 +326,48 @@ void Gia_Gen2CodePrint( int nLutSize, int nLutNum, Vec_Int_t * vCode )
     for ( n = 0; n < nPairs; n++ )
     {
         unsigned MaskIn = Abc_InfoMask( nLutSize );
-        unsigned MaskOut = Abc_InfoMask( nLutNum );
-        int CodeX, CodeY, CodeXY, CodeXCodeY;
-        int NumX = 0, NumY = 0, NumXY;
+        int NumX = 0, NumY = 0, NumXY, nWords = Abc_Bit6WordNum(nLutNum);
+        word * CodeX, * CodeY, * CodeXY;
+        word * CodeXCodeY = ABC_CALLOC( word, nWords );
         while ( NumX == NumY )
         {
             NumX = rand() % (1 << nLutSize);
             NumY = rand() % (1 << nLutSize);
             NumXY = MaskIn & ~(NumX & NumY);
         }
-        CodeX = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, NumX );
-        CodeY = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, NumY );
-        CodeXY = Gia_Gen2CodeOne( nLutSize, nLutNum, vCode, NumXY );
-        CodeXCodeY = MaskOut & ~(CodeX & CodeY);
+        CodeX  = Gia_Gen2CodeOneP( nLutSize, nLutNum, vCode, NumX );
+        CodeY  = Gia_Gen2CodeOneP( nLutSize, nLutNum, vCode, NumY );
+        CodeXY = Gia_Gen2CodeOneP( nLutSize, nLutNum, vCode, NumXY );
+        Abc_TtAnd( CodeXCodeY, CodeX, CodeY, nWords, 1 );
+        if ( nLutNum < 64*nWords )
+            CodeXCodeY[nWords-1] &= Abc_Tt6Mask(nLutNum % 64);            
 
         printf( "%2d :", n );
-        printf( "  x =%3d ", NumX );
+        printf( " x =%3d ", NumX );
         Extra_PrintBinary( stdout,(unsigned *) &NumX, nLutSize );
-        printf( "  y =%3d ", NumY );
+        printf( " y =%3d ", NumY );
         Extra_PrintBinary( stdout, (unsigned *)&NumY, nLutSize );
-        printf( "  nand =%3d ", NumXY );
+        printf( " nand =%3d ", NumXY );
         Extra_PrintBinary( stdout, (unsigned *)&NumXY, nLutSize );
         printf( "  " );
 
-        printf( "  c(x) =%3d ", CodeX );
-        Extra_PrintBinary( stdout, (unsigned *)&CodeX, nLutNum );
-        printf( "  c(y) =%3d ", CodeY );
-        Extra_PrintBinary( stdout, (unsigned *)&CodeY, nLutNum );
-        printf( "  c(nand) =%3d ", CodeXY );
-        Extra_PrintBinary( stdout, (unsigned *)&CodeXY, nLutNum );
-        printf( "    nand(c(x), c(y)) =%3d ", CodeXCodeY );
-        Extra_PrintBinary( stdout, (unsigned *)&CodeXCodeY, nLutNum );
-        printf( "    " );
+        printf( " c(x) = " );
+        Extra_PrintBinary( stdout, (unsigned *)CodeX, nLutNum );
+        printf( " c(y) = " );
+        Extra_PrintBinary( stdout, (unsigned *)CodeY, nLutNum );
+        printf( " c(nand) = " );
+        Extra_PrintBinary( stdout, (unsigned *)CodeXY, nLutNum );
+        printf( "  nand(c(x),c(y)) = " );
+        Extra_PrintBinary( stdout, (unsigned *)CodeXCodeY, nLutNum );
+        printf( "  " );
 
-        printf( "%s", CodeXCodeY == CodeXY ? "yes" : "no" );
+        printf( "%s", Abc_TtEqual(CodeXCodeY, CodeXY, nWords) ? "yes" : "no" );
         printf( "\n" );
+
+        ABC_FREE( CodeX );
+        ABC_FREE( CodeY );
+        ABC_FREE( CodeXY );
+        ABC_FREE( CodeXCodeY );
     }
 }
 void Gia_Gen2CodeTest()
