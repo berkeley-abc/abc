@@ -18,7 +18,7 @@ APIs of ABC compiled as a static library.
 
 To build the demo program
 
- * Copy demo.cc and libabc.a to the working directory
+ * Copy demo.c and libabc.a to the working directory
  * Run `gcc -Wall -g -c demo.c -o demo.o`
  * Run `g++ -g -o demo demo.o libabc.a -lm -ldl -lreadline -lpthread`
 
