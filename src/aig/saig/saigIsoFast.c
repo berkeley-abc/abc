@@ -236,7 +236,7 @@ Vec_Int_t * Iso_StoCollectInfo( Iso_Sto_t * p, Aig_Obj_t * pPo )
     if ( fVerboseShow )
     Vec_IntForEachEntry( vInfo, Entry, i )
     {
-        Iso_Dat2_t Data = { Entry & 0xFFFF };
+        Iso_Dat2_t Data = { (unsigned)Entry & 0xFFFF };
         Iso_Dat_t * pData = (Iso_Dat_t *)&Data;
 
         printf( "%6d : ", i );

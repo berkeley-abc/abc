@@ -1015,7 +1015,7 @@ void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int Le
 {
     extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fVerbose );
     extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fVerbose, int fVeryVerbose );
-    char * pFileNames[4] = { pFileName[2], pFileName[1], fUseWeights ? "weights.txt" : NULL, pFileName[2] };
+    char * pFileNames[4] = { pFileName[2], pFileName[1], fUseWeights ? (char *)"weights.txt" : NULL, pFileName[2] };
     if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fVerbose ) )
         Acb_NtkRunEco( pFileNames, 1, fRandom, fVerbose, fVeryVerbose );
 } 

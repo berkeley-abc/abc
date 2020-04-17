@@ -489,7 +489,7 @@ static inline void Wlc_NtkPrintDistribAddOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vO
 {
     Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, Type );
     Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, Type );
-    word Entry = 0; int i;
+    word Entry; int i;
     Vec_WrdForEachEntry( vType, Entry, i )
         if ( Entry == Sign )
         {
@@ -513,7 +513,7 @@ void Wlc_NtkPrintDistrib( Wlc_Ntk_t * p, int fTwoSides, int fVerbose )
     Wlc_Obj_t * pObj, * pObjRange = NULL; int nCountRange = 0;
     Vec_Ptr_t * vTypes, * vOccurs;
     Vec_Int_t * vAnds = Vec_IntStart( WLC_OBJ_NUMBER );
-    word Sign;
+    word Sign = 0;
     int i, k, s, s0, s1;
     if ( Wlc_NtkPoNum(p) != 2 )
         fTwoSides = 0;

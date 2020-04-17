@@ -1719,7 +1719,7 @@ finish:
     // dump the test suite
     if ( pPars->fDump )
     {
-        char * pFileName = p->pSpec ? Extra_FileNameGenericAppend(p->pSpec, "_tests.txt") : "tests.txt";
+        char * pFileName = p->pSpec ? Extra_FileNameGenericAppend(p->pSpec, "_tests.txt") : (char *)"tests.txt";
         if ( pPars->fDumpDelay && pPars->Algo == 1 )
         {
             Gia_ManDumpTestsDelay( vTests, Iter, pFileName, p );
@@ -1834,7 +1834,7 @@ finish:
         if ( pPars->fDumpUntest && status == l_True )
         {
             abctime clk = Abc_Clock();
-            char * pFileName = p->pSpec ? Extra_FileNameGenericAppend(p->pSpec, "_untest.txt") : "untest.txt";
+            char * pFileName = p->pSpec ? Extra_FileNameGenericAppend(p->pSpec, "_untest.txt") : (char *)"untest.txt";
             int nUntests = Gia_ManDumpUntests( pM, pCnf, pSat, nFuncVars, pFileName, pPars->fVerbose );
             if ( p == pG )
                 printf( "Dumped %d untestable multiple faults into file \"%s\".  ", nUntests, pFileName );

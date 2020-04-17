@@ -922,7 +922,7 @@ void Gia_ManCountCareBits( Gia_Man_t * p, Vec_Wec_t * vPats )
 unsigned char * Mnist_ReadImages1_()
 {
     int Size = 60000 * 28 * 28 + 16;
-    unsigned char * pData = malloc( Size );
+    unsigned char * pData = (unsigned char *)malloc( Size );
     FILE * pFile = fopen( "train-images.idx3-ubyte", "rb" );
     int RetValue = fread( pData, 1, Size, pFile );
     assert( RetValue == Size );
