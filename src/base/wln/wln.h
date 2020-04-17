@@ -163,6 +163,7 @@ static inline void         Wln_ObjSetFanout( Wln_Ntk_t * p, int i, int f, int v 
 
 static inline void         Wln_NtkIncrementTravId( Wln_Ntk_t * p )               { if (!p->nTravIds++) Vec_IntFill(&p->vTravIds, Vec_IntCap(&p->vTypes), 0);  }       
 static inline void         Wln_ObjSetTravIdCurrent( Wln_Ntk_t * p, int i )       { Vec_IntWriteEntry( &p->vTravIds, i, p->nTravIds );                         }
+static inline void         Wln_ObjSetTravIdPrevious( Wln_Ntk_t * p, int i )      { Vec_IntWriteEntry( &p->vTravIds, i, p->nTravIds-1 );                       }
 static inline int          Wln_ObjIsTravIdCurrent( Wln_Ntk_t * p, int i )        { return (Vec_IntEntry(&p->vTravIds, i) == p->nTravIds);                     }   
 static inline int          Wln_ObjIsTravIdPrevious( Wln_Ntk_t * p, int i )       { return (Vec_IntEntry(&p->vTravIds, i) == p->nTravIds-1);                   }   
 static inline int          Wln_ObjCheckTravId( Wln_Ntk_t * p, int i )            { if ( Wln_ObjIsTravIdCurrent(p, i) ) return 1; Wln_ObjSetTravIdCurrent(p, i); return 0; }   
@@ -225,6 +226,7 @@ extern void           Wln_NtkFree( Wln_Ntk_t * p );
 extern int            Wln_NtkMemUsage( Wln_Ntk_t * p );
 extern void           Wln_NtkPrint( Wln_Ntk_t * p );
 extern Wln_Ntk_t *    Wln_NtkDupDfs( Wln_Ntk_t * p );
+extern int            Wln_NtkIsAcyclic( Wln_Ntk_t * p );
 extern void           Wln_NtkCreateRefs( Wln_Ntk_t * p );
 extern void           Wln_NtkStartFaninMap( Wln_Ntk_t * p, Vec_Int_t * vFaninMap, int nMulti );
 extern void           Wln_NtkStartFanoutMap( Wln_Ntk_t * p, Vec_Int_t * vFanoutMap, Vec_Int_t * vFanoutNums, int nMulti );

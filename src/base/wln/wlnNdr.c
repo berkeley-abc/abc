@@ -270,6 +270,11 @@ Wln_Ntk_t * Wln_NtkFromNdr( void * pData )
     //Ndr_NtkPrintObjects( pNtk );
     Wln_WriteVer( pNtk, "temp_ndr.v" );
     printf( "Dumped design \"%s\" into file \"temp_ndr.v\".\n", pNtk->pName );
+    if ( !Wln_NtkIsAcyclic(pNtk) )
+    {
+        Wln_NtkFree(pNtk);
+        return NULL;
+    }
     // derive topological order
     pNtk = Wln_NtkDupDfs( pTemp = pNtk );
     Wln_NtkFree( pTemp );

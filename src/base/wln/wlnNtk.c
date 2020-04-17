@@ -129,6 +129,139 @@ void Wln_NtkPrint( Wln_Ntk_t * p )
     printf( "\n" );
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Detects combinational loops.]
+
+  Description [This procedure is based on the idea suggested by Donald Chai. 
+  As we traverse the network and visit the nodes, we need to distinquish 
+  three types of nodes: (1) those that are visited for the first time, 
+  (2) those that have been visited in this traversal but are currently not 
+  on the traversal path, (3) those that have been visited and are currently 
+  on the travesal path. When the node of type (3) is encountered, it means 
+  that there is a combinational loop. To mark the three types of nodes, 
+  two new values of the traversal IDs are used.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wln_NtkIsAcyclic_rec( Wln_Ntk_t * p, int iObj )
+{
+    int i, iFanin;
+    //printf( "Visiting node %d\n", iObj );
+    if ( 43309 == iObj )
+    {
+        int s = 0;
+    }
+    // skip the node if it is already visited
+    if ( Wln_ObjIsTravIdPrevious(p, iObj) )
+        return 1;
+    // check if the node is part of the combinational loop
+    if ( Wln_ObjIsTravIdCurrent(p, iObj) )
+    {
+        fprintf( stdout, "Network contains combinational loop!\n" );
+        fprintf( stdout, "Node %16s is encountered twice on the following path:\n", Wln_ObjName(p, iObj) );
+        fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d) ->\n", 
+            Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
+        return 0;
+    }
+    // mark this node as a node on the current path
+    Wln_ObjSetTravIdCurrent( p, iObj );
+    // quit if it is a CI or constant node
+    if ( Wln_ObjIsCi(p, iObj) || Wln_ObjIsFf(p, iObj) || Wln_ObjFaninNum(p, iObj) == 0 )
+    {
+        // mark this node as a visited node
+        Wln_ObjSetTravIdPrevious( p, iObj );
+        return 1;
+    }
+    // traverse the fanin's cone searching for the loop
+    Wln_ObjForEachFanin( p, iObj, iFanin, i )
+    {
+        if ( !Wln_NtkIsAcyclic_rec(p, iFanin) )
+        {
+            // return as soon as the loop is detected
+            fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d) ->\n", 
+                Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
+            return 0;
+        }
+    }
+    // mark this node as a visited node
+    Wln_ObjSetTravIdPrevious( p, iObj );
+    return 1;
+}
+int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
+{
+    int fAcyclic, i, iObj, nUnvisited = 0 ;
+    // set the traversal ID for this DFS ordering
+    Wln_NtkIncrementTravId( p );   
+    Wln_NtkIncrementTravId( p );   
+    // iObj->TravId == pNet->nTravIds      means "iObj is on the path"
+    // iObj->TravId == pNet->nTravIds - 1  means "iObj is visited but is not on the path"
+    // iObj->TravId <  pNet->nTravIds - 1  means "iObj is not visited"
+    // traverse the network to detect cycles
+    fAcyclic = 1;
+    Wln_NtkForEachCo( p, iObj, i )
+    {
+        // traverse the output logic cone
+        if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
+            continue;
+        // stop as soon as the first loop is detected
+        fprintf( stdout, "Primary output %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
+        break;
+    }
+    Wln_NtkForEachFf( p, iObj, i )
+    {
+        // traverse the output logic cone
+        if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
+            continue;
+        // stop as soon as the first loop is detected
+        fprintf( stdout, "Flip-flop %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
+        break;
+    }
+    Wln_NtkForEachObj( p, iObj )
+        nUnvisited += !Wln_ObjIsTravIdPrevious(p, iObj) && !Wln_ObjIsCi(p, iObj);
+    if ( nUnvisited )
+    {
+        int nSinks = 0;
+        Wln_NtkCreateRefs(p);
+        printf( "The network has %d objects and %d (%6.2f %%) of them are not connected to the outputs.\n", 
+            Wln_NtkObjNum(p), nUnvisited, 100.0*nUnvisited/Wln_NtkObjNum(p) );
+        Wln_NtkForEachObj( p, iObj )
+            if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsFf(p, iObj) )
+                nSinks++;
+        if ( nSinks )
+        {
+            int nPrinted = 0;
+            printf( "These unconnected objects feed into %d sink objects without fanout:\n", nSinks );
+            Wln_NtkForEachObj( p, iObj )
+                if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsFf(p, iObj) )
+                {
+                    fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d)\n", 
+                        Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
+                    if ( ++nPrinted == 5 )
+                        break;
+                }
+            if ( nPrinted < nSinks )
+                printf( "...\n" );
+        }
+        Wln_NtkForEachObj( p, iObj )
+            if ( /*!Wln_ObjRefs(p, iObj) &&*/ !Wln_ObjIsTravIdPrevious(p, iObj) && !Wln_ObjIsCi(p, iObj) )
+            {
+                // traverse the output logic cone
+                if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
+                    continue;
+                // stop as soon as the first loop is detected
+                fprintf( stdout, "Unconnected object %s\n", Wln_ObjName(p, iObj) );
+                break;
+            }
+    }
+    return fAcyclic;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Duplicating network.]
@@ -186,7 +319,7 @@ int Wln_NtkDupDfs_rec( Wln_Ntk_t * pNew, Wln_Ntk_t * p, int iObj )
         return 0;
     if ( Wln_ObjCopy(p, iObj) )
         return Wln_ObjCopy(p, iObj);
-    //printf( "Visiting node %d\n", iObj );
+    //printf( "Visiting node %16s (ID %6d) of type %5s (type ID %2d)\n", Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
     assert( !Wln_ObjIsFf(p, iObj) );
     Wln_ObjForEachFanin( p, iObj, iFanin, i )
         Wln_NtkDupDfs_rec( pNew, p, iFanin );
