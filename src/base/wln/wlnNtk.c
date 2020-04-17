@@ -153,10 +153,6 @@ int Wln_NtkIsAcyclic_rec( Wln_Ntk_t * p, int iObj )
 {
     int i, iFanin;
     //printf( "Visiting node %d\n", iObj );
-    if ( 43309 == iObj )
-    {
-        int s = 0;
-    }
     // skip the node if it is already visited
     if ( Wln_ObjIsTravIdPrevious(p, iObj) )
         return 1;
