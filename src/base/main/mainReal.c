@@ -145,7 +145,7 @@ int Abc_RealMain( int argc, char * argv[] )
             }                                         
             case 'l': {
 #ifndef WIN32
-                int maxTime = atoi(globalUtilOptarg);           
+                rlim_t maxTime = atoi(globalUtilOptarg);           
                 printf("Limiting time to %d seconds\n", maxTime);
                 struct rlimit limit = {                         
                     maxTime,             /* soft limit */       

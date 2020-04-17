@@ -816,7 +816,7 @@ static Vec_Bit_t * Wlc_NtkMarkLimit( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
     Vec_Ptr_t * vMults = Vec_PtrAlloc( 1000 );
     Vec_Ptr_t * vFlops = Vec_PtrAlloc( 1000 );
     Wlc_Obj_t * pObj; int i;
-    Int_Pair_t * pPair;
+    Int_Pair_t * pPair = NULL;
 
     if ( pPars->nLimit == ABC_INFINITY )
         return NULL;

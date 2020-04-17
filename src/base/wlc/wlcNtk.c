@@ -94,7 +94,7 @@ static char * Wlc_Names[WLC_OBJ_NUMBER+1] = {
     NULL                   // 58: unused
 };
 
-char * Wlc_ObjTypeName( Wlc_Obj_t * p ) { return p ? (p->Type < WLC_OBJ_NUMBER ? Wlc_Names[p->Type] : "out_of_bound") : "no_obj"; }
+char * Wlc_ObjTypeName( Wlc_Obj_t * p ) { return p ? (p->Type < WLC_OBJ_NUMBER ? Wlc_Names[p->Type] : (char *)"out_of_bound") : (char *)"no_obj"; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -489,7 +489,7 @@ static inline void Wlc_NtkPrintDistribAddOne( Vec_Ptr_t * vTypes, Vec_Ptr_t * vO
 {
     Vec_Wrd_t * vType  = (Vec_Wrd_t *)Vec_PtrEntry( vTypes, Type );
     Vec_Wrd_t * vOccur = (Vec_Wrd_t *)Vec_PtrEntry( vOccurs, Type );
-    word Entry; int i;
+    word Entry = 0; int i;
     Vec_WrdForEachEntry( vType, Entry, i )
         if ( Entry == Sign )
         {

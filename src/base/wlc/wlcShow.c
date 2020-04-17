@@ -362,7 +362,7 @@ void Wlc_NtkShow( Wlc_Ntk_t * p, Vec_Int_t * vBold )
     FILE * pFile;
     char FileNameDot[200];
     char * pName = Extra_FileDesignName(p->pName);
-    char * pSpec = p->pSpec ? Extra_FileDesignName(p->pSpec) : "unknown";
+    char * pSpec = p->pSpec ? Extra_FileDesignName(p->pSpec) : (char *)"unknown";
     sprintf( FileNameDot, "%s_%s.dot", pName, pSpec );
     ABC_FREE( pName );
     if ( strcmp(pSpec, "unknown") )

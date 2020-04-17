@@ -122,7 +122,7 @@ struct Dec_Man_t_
 ***********************************************************************/
 static inline Dec_Edge_t Dec_EdgeCreate( int Node, int fCompl )   
 {
-    Dec_Edge_t eEdge = { fCompl, Node }; 
+    Dec_Edge_t eEdge = { (unsigned)fCompl, (unsigned)Node }; 
     return eEdge; 
 }
 

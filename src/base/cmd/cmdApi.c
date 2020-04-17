@@ -125,7 +125,7 @@ int Cmd_CommandHandleSpecial( Abc_Frame_t * pAbc, const char * sCommand )
     if ( strstr(sCommand, "#ASSERT") ) 
     {
         int Status    = 0;
-        char * pNumb  = strrchr( sCommand, '=' );
+        char * pNumb  = strrchr( (char *)sCommand, '=' );
         if ( strstr(sCommand, "_PI_") ) 
         {
             piCount = pNumb ? atoi(pNumb+1) : 0;
