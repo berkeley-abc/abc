@@ -136,7 +136,10 @@ Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit )
     if ( fGlobal ) 
     {
         if ( !Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew, Limit ) )
+        {
+            Abc_NtkDelete( pNtkNew );
             return NULL;
+        }
     }
     else
     {
