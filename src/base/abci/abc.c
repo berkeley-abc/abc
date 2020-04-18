@@ -33026,6 +33026,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9GenSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Gia_ManSimProfile( Gia_Man_t * pGia );
     extern void Gia_ManPatSatImprove( Gia_Man_t * pGia, int nWords, int fVerbose );
     extern void Gia_ManPatDistImprove( Gia_Man_t * p, int fVerbose );
     extern void Gia_ManPatRareImprove( Gia_Man_t * p, int RareLimit, int fVerbose );
