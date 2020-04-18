@@ -239,11 +239,10 @@ Vec_Wrd_t * Gia_ManSimBitPacking( Gia_Man_t * p, Vec_Int_t * vCexStore, int nCex
         assert( iPat <= nCexes + nUnDecs );
         Out = 0;
     }
-    printf( "Compressed %d CEXes into %d test patterns.\n", nCexes, iPat );
     assert( iCur == Vec_IntSize(vCexStore) );
     vSimsRes = Gia_ManSimCombine( Gia_ManCiNum(p), p->vSimsPi, vSimsIn, Abc_Bit6WordNum(iPat+1) );
-    printf( "Combined %d words of the original info with %d words of additional info.\n", 
-        Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p), Abc_Bit6WordNum(iPat+1) );
+    printf( "Compressed %d CEXes into %d patterns and added %d words to available %d words.\n", 
+        nCexes, iPat, Abc_Bit6WordNum(iPat+1), Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p) );
     Vec_WrdFree( vSimsIn );
     Vec_WrdFree( vSimsCare );
     return vSimsRes;
@@ -344,7 +343,7 @@ void Gia_ManSimPatWrite( char * pFileName, Vec_Wrd_t * vSimsIn, int nWords )
     for ( i = 0; i < nNodes; i++ )
         Gia_ManSimPatWriteOne( pFile, Vec_WrdEntryP(vSimsIn, i*nWords), nWords );
     fclose( pFile );
-    printf( "Written %d words of simulation data.\n", nWords );
+    printf( "Written %d words of simulation data into file \"%s\".\n", nWords, pFileName );
 }
 int Gia_ManSimPatReadOne( char c )
 {
@@ -405,11 +404,11 @@ void Gia_ManSimProfile( Gia_Man_t * pGia )
     Vec_Wrd_t * vSims = Gia_ManSimPatSim( pGia );
     int nWords = Vec_WrdSize(vSims) / Gia_ManObjNum(pGia);
     int nC0s = 0, nC1s = 0, nUnique = Gia_ManSimPatHashPatterns( pGia, nWords, vSims, &nC0s, &nC1s );
-    printf( "Simulating %d words leads to %d unique objects (%.2f %% out of %d), Const0 = %d. Const1 = %d.\n", 
-        nWords, nUnique, 100.0*nUnique/Gia_ManCandNum(pGia), Gia_ManCandNum(pGia), nC0s, nC1s );
+    printf( "Simulating %d patterns leads to %d unique objects (%.2f %% out of %d), Const0 = %d. Const1 = %d.\n", 
+        64*nWords, nUnique, 100.0*nUnique/Gia_ManCandNum(pGia), Gia_ManCandNum(pGia), nC0s, nC1s );
     Vec_WrdFree( vSims );
 }
-void Gia_ManSimPat( Gia_Man_t * p, int nWords0, int fVerbose )
+void Gia_ManPatSatImprove( Gia_Man_t * p, int nWords0, int fVerbose )
 {
     extern Vec_Int_t * Cbs2_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
     int i, Status, Counts[3] = {0};
@@ -418,7 +417,7 @@ void Gia_ManSimPat( Gia_Man_t * p, int nWords0, int fVerbose )
     Vec_Str_t * vStatus = NULL;
     Vec_Int_t * vCexStore = NULL;
     Vec_Wrd_t * vSims = Gia_ManSimPatSim( p );
-    Gia_ManSimProfile( p );
+    //Gia_ManSimProfile( p );
     pGia  = Gia_ManSimPatGenMiter( p, vSims );
     vCexStore = Cbs2_ManSolveMiterNc( pGia, 1000, &vStatus, 0 );
     Gia_ManStop( pGia );
@@ -427,7 +426,8 @@ void Gia_ManSimPat( Gia_Man_t * p, int nWords0, int fVerbose )
         assert( Status >= -1 && Status <= 1 );
         Counts[Status+1]++;
     }
-    printf( "Total = %d : SAT = %d.  UNSAT = %d.  UNDEC = %d.\n", Counts[1]+Counts[2]+Counts[0], Counts[1], Counts[2], Counts[0] );
+    if ( fVerbose )
+        printf( "Total = %d : SAT = %d.  UNSAT = %d.  UNDEC = %d.\n", Counts[1]+Counts[2]+Counts[0], Counts[1], Counts[2], Counts[0] );
     if ( Counts[1] == 0 )
         printf( "There are no counter-examples.  No need for more simulation.\n" );
     else
@@ -435,7 +435,7 @@ void Gia_ManSimPat( Gia_Man_t * p, int nWords0, int fVerbose )
         vSimsIn = Gia_ManSimBitPacking( p, vCexStore, Counts[1], Counts[0] );
         Vec_WrdFreeP( &p->vSimsPi );
         p->vSimsPi = vSimsIn;
-        Gia_ManSimProfile( p );
+        //Gia_ManSimProfile( p );
     }
     Vec_StrFree( vStatus );
     Vec_IntFree( vCexStore );
@@ -1641,6 +1641,392 @@ Vec_Int_t * Gia_RsbSetFind( word * pOffSet, word * pOnSet, Vec_Wrd_t * vSims, in
     Gia_RsbFree( p );
     Vec_IntSort( vObjs, 0 );
     return vObjs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Improving quality of simulation patterns.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_SimQualityOne( Gia_Man_t * p, Vec_Int_t * vPat, int fPoOnly )
+{
+    int i, Id, Value, nWords = Abc_Bit6WordNum( 1+Gia_ManCiNum(p) );
+    Vec_Wrd_t * vTemp, * vSims, * vSimsPi = Vec_WrdStart( Gia_ManCiNum(p) * nWords );
+    Vec_Int_t * vRes;
+    assert( Vec_IntSize(vPat) == Gia_ManCiNum(p) );
+    Vec_IntForEachEntry( vPat, Value, i )
+    {
+        word * pSim = Vec_WrdEntryP( vSimsPi, i*nWords );
+        if ( Value )
+            Abc_TtFill( pSim, nWords );
+        Abc_TtXorBit( pSim, i+1 );
+    }
+    vTemp = p->vSimsPi;
+    p->vSimsPi = vSimsPi;
+    vSims = Gia_ManSimPatSim( p );
+    p->vSimsPi = vTemp;
+    if ( fPoOnly )
+    {
+        vRes = Vec_IntStart( Gia_ManCoNum(p) );
+        Gia_ManForEachCoId( p, Id, i )
+        {
+            word * pSim = Vec_WrdEntryP( vSims, Id*nWords );
+            if ( pSim[0] & 1 )
+                Abc_TtNot( pSim, nWords );
+            Vec_IntWriteEntry( vRes, i, Abc_TtCountOnesVec(pSim, nWords) );
+        }
+        assert( Vec_IntSize(vRes) == Gia_ManCoNum(p) );
+    }
+    else
+    {
+        vRes = Vec_IntStart( Gia_ManObjNum(p) );
+        Gia_ManForEachAndId( p, Id )
+        {
+            word * pSim = Vec_WrdEntryP( vSims, Id*nWords );
+            if ( pSim[0] & 1 )
+                Abc_TtNot( pSim, nWords );
+            Vec_IntWriteEntry( vRes, Id, Abc_TtCountOnesVec(pSim, nWords) );
+        }
+        assert( Vec_IntSize(vRes) == Gia_ManObjNum(p) );
+    }
+    Vec_WrdFree( vSims );
+    Vec_WrdFree( vSimsPi );
+    return vRes;
+}
+void Gia_SimQualityTest( Gia_Man_t * p )
+{
+    Vec_Int_t * vPat, * vRes;
+    int k, m, nMints = (1 << Gia_ManCiNum(p));
+    assert( Gia_ManCiNum(p) <= 10 );
+    for ( m = 0; m < nMints; m++ )
+    {
+        printf( "%d : ", m );
+        Extra_PrintBinary( stdout, (unsigned*)&m, Gia_ManCiNum(p) );
+        printf( " " );
+        vPat = Vec_IntAlloc( Gia_ManCiNum(p) );
+        for ( k = 0; k < Gia_ManCiNum(p); k++ )
+            Vec_IntPush( vPat, (m >> k) & 1 );
+        vRes = Gia_SimQualityOne( p, vPat, 1 );
+        printf( "%d ", Vec_IntSum(vRes) );
+        Vec_IntFree( vRes );
+        Vec_IntFree( vPat );
+        printf( "\n" );
+    }
+}
+Vec_Int_t * Gia_SimGenerateStats( Gia_Man_t * p )
+{
+    Vec_Int_t * vTotal = Vec_IntStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vRes, * vPat;
+    int i, k, Value;
+    Abc_Random(1);
+    for ( i = 0; i < 1000; i++ )
+    {
+        vPat = Vec_IntAlloc( Gia_ManCiNum(p) );
+        for ( k = 0; k < Gia_ManCiNum(p); k++ )
+            Vec_IntPush( vPat, Abc_Random(0) & 1 );
+        vRes = Gia_SimQualityOne( p, vPat, 0 );
+        assert( Vec_IntSize(vRes) == Gia_ManObjNum(p) );
+        Vec_IntForEachEntry( vRes, Value, k )
+            Vec_IntAddToEntry( vTotal, k, Value );
+        Vec_IntFree( vRes );
+        Vec_IntFree( vPat );
+    }
+    //Vec_IntPrint( vTotal );
+    return vTotal;
+}   
+double Gia_SimComputeScore( Gia_Man_t * p, Vec_Int_t * vTotal, Vec_Int_t * vThis )
+{
+    double TotalScore = 0;
+    int i, Total, This; 
+    assert( Vec_IntSize(vTotal) == Vec_IntSize(vThis) );
+    Vec_IntForEachEntryTwo( vTotal, vThis, Total, This, i )
+    {
+        if ( Total == 0 ) 
+            Total = 1;
+        TotalScore += 1000.0*This/Total;
+    }
+    return TotalScore == 0 ? 1.0 : TotalScore/Gia_ManAndNum(p);
+}
+int Gia_SimQualityPatternsMax( Gia_Man_t * p, Vec_Int_t * vPat, int Iter, int fVerbose, Vec_Int_t * vStats )
+{
+    int k, MaxIn = -1;
+    Vec_Int_t * vTries = Vec_IntAlloc( 100 );
+    Vec_Int_t * vRes = Gia_SimQualityOne( p, vPat, 0 );
+    double Value, InitValue, MaxValue = InitValue = Gia_SimComputeScore( p, vStats, vRes );
+    Vec_IntFree( vRes );
+
+    if ( fVerbose )
+        printf( "Iter %5d : Init = %6.3f  ", Iter, InitValue );
+
+    for ( k = 0; k < Gia_ManCiNum(p); k++ )
+    {
+        Vec_IntArray(vPat)[k] ^= 1;
+        //Vec_IntPrint( vPat );
+
+        vRes = Gia_SimQualityOne( p, vPat, 0 );
+        Value = Gia_SimComputeScore( p, vStats, vRes );
+        if ( MaxValue <= Value )
+        {
+            if ( MaxValue < Value )
+                Vec_IntClear( vTries );
+            Vec_IntPush( vTries, k );
+            MaxValue = Value;
+            MaxIn = k;
+        }
+        Vec_IntFree( vRes );
+
+        Vec_IntArray(vPat)[k] ^= 1;
+    }
+    MaxIn = Vec_IntSize(vTries) ? Vec_IntEntry( vTries, rand()%Vec_IntSize(vTries) ) : -1;
+    if ( fVerbose )
+    {
+        printf( "Final = %6.3f  Ratio = %4.2f  Tries = %5d  ", MaxValue, MaxValue/InitValue, Vec_IntSize(vTries) );
+        printf( "Choosing %5d\r", MaxIn );
+    }
+    Vec_IntFree( vTries );
+    return MaxIn;
+}
+Vec_Int_t * Gia_ManPatCollectOne( Gia_Man_t * p, Vec_Wrd_t * vPatterns, int n, int nWords )
+{
+    Vec_Int_t * vPat = Vec_IntAlloc( Gia_ManCiNum(p) ); int k;
+    for ( k = 0; k < Gia_ManCiNum(p); k++ )
+        Vec_IntPush( vPat, Abc_TtGetBit( Vec_WrdEntryP(vPatterns, k*nWords), n ) );
+    return vPat;
+}
+void Gia_ManPatUpdateOne( Gia_Man_t * p, Vec_Wrd_t * vPatterns, int n, int nWords, Vec_Int_t * vPat )
+{
+    int k, Value;
+    Vec_IntForEachEntry( vPat, Value, k )
+    {
+        word * pSim = Vec_WrdEntryP( vPatterns, k*nWords );
+        if ( Abc_TtGetBit(pSim, n) != Value )
+            Abc_TtXorBit( pSim, n );
+    }
+}
+void Gia_ManPatDistImprove( Gia_Man_t * p, int fVerbose )
+{
+    int n, k, nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
+    double InitValue, InitTotal = 0, FinalValue, FinalTotal = 0;
+    Vec_Int_t * vPat, * vRes, * vStats = Gia_SimGenerateStats( p );
+    Vec_Wrd_t * vPatterns = p->vSimsPi; p->vSimsPi = NULL;
+    Abc_Random(1);
+    for ( n = 0; n < 64*nWords; n++ )
+    {
+        abctime clk = Abc_Clock();
+//        if ( n == 32 )
+//            break;
+
+        vPat = Gia_ManPatCollectOne( p, vPatterns, n, nWords );
+        vRes = Gia_SimQualityOne( p, vPat, 0 );
+        InitValue = Gia_SimComputeScore(p, vStats, vRes);
+        InitTotal += InitValue;
+        Vec_IntFree( vRes );
+
+        for ( k = 0; k < 100; k++ )
+        {
+            int MaxIn = Gia_SimQualityPatternsMax( p, vPat, k, fVerbose, vStats );
+            if ( MaxIn == -1 )
+                break;
+            assert( MaxIn >= 0 && MaxIn < Gia_ManCiNum(p) );
+            Vec_IntArray(vPat)[MaxIn] ^= 1;            
+        }
+        //Vec_IntPrint( vPat );
+
+        vRes = Gia_SimQualityOne( p, vPat, 0 );
+        FinalValue = Gia_SimComputeScore(p, vStats, vRes);
+        FinalTotal += FinalValue;
+        Vec_IntFree( vRes );
+
+        if ( fVerbose )
+        {
+            printf( "Pat %5d : Tries = %5d  InitValue = %6.3f  FinalValue = %6.3f  Ratio = %4.2f  ", 
+                n, k, InitValue, FinalValue, FinalValue/InitValue );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
+
+        Gia_ManPatUpdateOne( p, vPatterns, n, nWords, vPat );
+        Vec_IntFree( vPat );
+    }
+    Vec_IntFree( vStats );
+    if ( fVerbose )
+        printf( "\n" );
+    printf( "Improved %d patterns with average init value %.2f and average final value %.2f.\n", 
+        64*nWords, 1.0*InitTotal/(64*nWords), 1.0*FinalTotal/(64*nWords) );
+    p->vSimsPi = vPatterns;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Improving quality of simulation patterns.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_SimCollectRare( Gia_Man_t * p, Vec_Wrd_t * vPatterns, int RareLimit )
+{
+    Vec_Int_t * vRareCounts = Vec_IntAlloc( 100 );  // (node, rare_count) pairs
+    int Id, nWords = Vec_WrdSize(vPatterns) / Gia_ManCiNum(p), TotalBits = 64*nWords;
+    Vec_Wrd_t * vSims, * vTemp = p->vSimsPi;
+    assert( Vec_WrdSize(vPatterns) % Gia_ManCiNum(p) == 0 );
+    p->vSimsPi = vPatterns;
+    vSims = Gia_ManSimPatSim( p );
+    p->vSimsPi = vTemp;
+    Gia_ManForEachAndId( p, Id )
+    {
+        word * pSim   = Vec_WrdEntryP( vSims, Id*nWords );
+        int Count     = Abc_TtCountOnesVec( pSim, nWords );
+        int fRareOne  = Count < TotalBits/2; // fRareOne is 1 if rare value is 1
+        int CountRare = fRareOne ? Count : TotalBits - Count;
+        assert( CountRare <= TotalBits/2 );
+        if ( CountRare <= RareLimit )
+            Vec_IntPushTwo( vRareCounts, Abc_Var2Lit(Id, fRareOne), CountRare );
+    }
+    Vec_WrdFree( vSims );
+    return vRareCounts;
+}
+Vec_Flt_t * Gia_SimQualityImpact( Gia_Man_t * p, Vec_Int_t * vPat, Vec_Int_t * vRareCounts )
+{
+    Vec_Flt_t * vQuoIncs = Vec_FltStart( Gia_ManCiNum(p) );
+    int nWordsNew = Abc_Bit6WordNum( 1+Gia_ManCiNum(p) );
+    Vec_Wrd_t * vSimsPiNew = Vec_WrdStart( Gia_ManCiNum(p) * nWordsNew );
+    Vec_Wrd_t * vTemp, * vSims;
+    int i, k, Value, RareLit, RareCount;
+    assert( Vec_IntSize(vPat) == Gia_ManCiNum(p) );
+    Vec_IntForEachEntry( vPat, Value, i )
+    {
+        word * pSim = Vec_WrdEntryP( vSimsPiNew, i*nWordsNew );
+        if ( Value )
+            Abc_TtFill( pSim, nWordsNew );
+        Abc_TtXorBit( pSim, i+1 );
+    }
+    vTemp = p->vSimsPi;
+    p->vSimsPi = vSimsPiNew;
+    vSims = Gia_ManSimPatSim( p );
+    p->vSimsPi = vTemp;
+    Vec_IntForEachEntryDouble( vRareCounts, RareLit, RareCount, i )
+    {
+        float Incrm = (float)1.0/(RareCount+1);
+        int RareObj = Abc_Lit2Var(RareLit);
+        int RareVal = Abc_LitIsCompl(RareLit);
+        word * pSim = Vec_WrdEntryP( vSims, RareObj*nWordsNew );
+        int OrigVal = pSim[0] & 1;
+        if ( OrigVal )
+            Abc_TtNot( pSim, nWordsNew );
+        for ( k = 0; k < Gia_ManCiNum(p); k++ )
+            if ( Abc_TtGetBit(pSim, k+1) ) // value changed
+                Vec_FltAddToEntry( vQuoIncs, k, OrigVal != RareVal ? Incrm : -Incrm );
+    }
+    Vec_WrdFree( vSims );
+    Vec_WrdFree( vSimsPiNew );
+    return vQuoIncs;
+}
+Vec_Int_t * Gia_SimCollectBest( Vec_Flt_t * vQuo )
+{
+    Vec_Int_t * vRes; int i;
+    float Value, ValueMax = Vec_FltFindMax( vQuo );
+    if ( ValueMax <= 0 )
+        return NULL;
+    vRes = Vec_IntAlloc( 100 );  // variables with max quo
+    Vec_FltForEachEntry( vQuo, Value, i )
+        if ( Value == ValueMax )
+            Vec_IntPush( vRes, i );
+    return vRes;
+}
+float Gia_ManPatGetQuo( Gia_Man_t * p, Vec_Int_t * vRareCounts, Vec_Wrd_t * vSims, int n, int nWords )
+{
+    float Quality = 0;
+    int RareLit, RareCount, i; 
+    assert( Vec_WrdSize(vSims) == Gia_ManObjNum(p) );
+    Vec_IntForEachEntryDouble( vRareCounts, RareLit, RareCount, i )
+    {
+        float Incrm = (float)1.0/(RareCount+1);
+        int RareObj = Abc_Lit2Var(RareLit);
+        int RareVal = Abc_LitIsCompl(RareLit);
+        word * pSim = Vec_WrdEntryP( vSims, RareObj*nWords );
+        if ( Abc_TtGetBit(pSim, n) == RareVal )
+            Quality += Incrm;
+    }
+    return Quality;
+}
+float Gia_ManPatGetTotalQuo( Gia_Man_t * p, int RareLimit, Vec_Wrd_t * vPatterns, int nWords )
+{
+    float Total = 0; int n;
+    Vec_Int_t * vRareCounts = Gia_SimCollectRare( p, vPatterns, RareLimit );
+    Vec_Wrd_t * vSims, * vTemp = p->vSimsPi;
+    p->vSimsPi = vPatterns;
+    vSims = Gia_ManSimPatSim( p );
+    p->vSimsPi = vTemp;
+    for ( n = 0; n < 64*nWords; n++ )
+        Total += Gia_ManPatGetQuo( p, vRareCounts, vSims, n, nWords );
+    Vec_IntFree( vRareCounts );
+    Vec_WrdFree( vSims );
+    return Total;
+}
+float Gia_ManPatGetOneQuo( Gia_Man_t * p, int RareLimit, Vec_Wrd_t * vPatterns, int nWords, int n )
+{
+    float Total = 0; 
+    Vec_Int_t * vRareCounts = Gia_SimCollectRare( p, vPatterns, RareLimit );
+    Vec_Wrd_t * vSims, * vTemp = p->vSimsPi;
+    p->vSimsPi = vPatterns;
+    vSims = Gia_ManSimPatSim( p );
+    p->vSimsPi = vTemp;
+    Total += Gia_ManPatGetQuo( p, vRareCounts, vSims, n, nWords );
+    Vec_IntFree( vRareCounts );
+    Vec_WrdFree( vSims );
+    return Total;
+}
+void Gia_ManPatRareImprove( Gia_Man_t * p, int RareLimit, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    float FinalTotal, InitTotal;
+    int n, nRares = 0, nChanges = 0, nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
+    Vec_Wrd_t * vPatterns = p->vSimsPi; p->vSimsPi = NULL;
+    InitTotal = Gia_ManPatGetTotalQuo( p, RareLimit, vPatterns, nWords );
+    for ( n = 0; n < 64*nWords; n++ )
+    {
+        abctime clk = Abc_Clock();
+        Vec_Int_t * vRareCounts = Gia_SimCollectRare( p, vPatterns, RareLimit );
+        Vec_Int_t * vPat        = Gia_ManPatCollectOne( p, vPatterns, n, nWords );
+        Vec_Flt_t * vQuoIncs    = Gia_SimQualityImpact( p, vPat, vRareCounts );
+        Vec_Int_t * vBest       = Gia_SimCollectBest( vQuoIncs );
+        if ( fVerbose )
+        {
+            float PatQuo = Gia_ManPatGetOneQuo( p, RareLimit, vPatterns, nWords, n );
+            printf( "Pat %5d : Rare = %4d  Cands = %3d  Value = %8.3f  Change = %8.3f  ", 
+                n, Vec_IntSize(vRareCounts)/2, vBest ? Vec_IntSize(vBest) : 0, 
+                PatQuo, vBest ? Vec_FltEntry(vQuoIncs, Vec_IntEntry(vBest,0)) : 0 );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
+        if ( vBest != NULL )
+        {
+            int VarBest = Vec_IntEntry( vBest, rand()%Vec_IntSize(vBest) );
+            Abc_TtXorBit( Vec_WrdEntryP(vPatterns, VarBest*nWords), n );
+            nChanges++;
+        }
+        nRares = Vec_IntSize(vRareCounts)/2;
+        Vec_IntFree( vRareCounts );
+        Vec_IntFree( vPat );
+        Vec_FltFree( vQuoIncs );
+        Vec_IntFreeP( &vBest );
+    }
+    if ( fVerbose )
+        printf( "\n" );
+    FinalTotal = Gia_ManPatGetTotalQuo( p, RareLimit, vPatterns, nWords );
+    p->vSimsPi = vPatterns;
+
+    printf( "Improved %d out of %d patterns using %d rare nodes: %.2f -> %.2f.  ", 
+        nChanges, 64*nWords, nRares, InitTotal, FinalTotal );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////
