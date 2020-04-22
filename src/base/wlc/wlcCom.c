@@ -1327,18 +1327,21 @@ usage:
 ******************************************************************************/
 int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Wln_NtkRetimeTest( char * pFileName, int fSkipSimple, int fVerbose );
+    extern void Wln_NtkRetimeTest( char * pFileName, int fSkipSimple, int fDump, int fVerbose );
     FILE * pFile;
     char * pFileName = NULL;
     int fSkipSimple  = 0;
-    int c, fVerbose  = 0;
+    int c, fDump = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sdvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 's':
             fSkipSimple ^= 1;
+            break;
+        case 'd':
+            fDump ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -1352,7 +1355,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pNdr )
     {
         Vec_Int_t * vMoves;
-        Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pAbc->pNdr );
+        Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pAbc->pNdr, fDump );
         Wln_NtkRetimeCreateDelayInfo( pNtk );
         if ( pNtk == NULL )
         {
@@ -1382,12 +1385,13 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     fclose( pFile );
-    Wln_NtkRetimeTest( pFileName, fSkipSimple, fVerbose );
+    Wln_NtkRetimeTest( pFileName, fSkipSimple, fDump, fVerbose );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%retime [-svh]\n" );
+    Abc_Print( -2, "usage: %%retime [-sdvh]\n" );
     Abc_Print( -2, "\t         performs retiming for the NDR design\n" );
     Abc_Print( -2, "\t-s     : toggle printing simple nodes [default = %s]\n", !fSkipSimple? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle dumping the network in Verilog [default = %s]\n", fDump? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

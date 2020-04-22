@@ -218,7 +218,7 @@ static inline int          Wln_ObjRiToRo( Wln_Ntk_t * p, int i )                
 /*=== wlcNdr.c ========================================================*/
 extern Wln_Ntk_t *    Wln_ReadNdr( char * pFileName );
 extern void           Wln_WriteNdr( Wln_Ntk_t * pNtk, char * pFileName );
-extern Wln_Ntk_t *    Wln_NtkFromNdr( void * pData );
+extern Wln_Ntk_t *    Wln_NtkFromNdr( void * pData, int fDump );
 extern void *         Wln_NtkToNdr( Wln_Ntk_t * pNtk );
 /*=== wlcNtk.c ========================================================*/
 extern Wln_Ntk_t *    Wln_NtkAlloc( char * pName, int nObjsMax );

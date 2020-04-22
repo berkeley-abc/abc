@@ -207,7 +207,7 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
             continue;
         // stop as soon as the first loop is detected
         fprintf( stdout, "Primary output %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
-        break;
+        goto finish;
     }
     Wln_NtkForEachFf( p, iObj, i )
     {
@@ -216,7 +216,7 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
             continue;
         // stop as soon as the first loop is detected
         fprintf( stdout, "Flip-flop %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
-        break;
+        goto finish;
     }
     Wln_NtkForEachObj( p, iObj )
         nUnvisited += !Wln_ObjIsTravIdPrevious(p, iObj) && !Wln_ObjIsCi(p, iObj);
@@ -227,14 +227,14 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
         printf( "The network has %d objects and %d (%6.2f %%) of them are not connected to the outputs.\n", 
             Wln_NtkObjNum(p), nUnvisited, 100.0*nUnvisited/Wln_NtkObjNum(p) );
         Wln_NtkForEachObj( p, iObj )
-            if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsFf(p, iObj) )
+            if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj) && !Wln_ObjIsFf(p, iObj) )
                 nSinks++;
         if ( nSinks )
         {
             int nPrinted = 0;
             printf( "These unconnected objects feed into %d sink objects without fanout:\n", nSinks );
             Wln_NtkForEachObj( p, iObj )
-                if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsFf(p, iObj) )
+                if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj) && !Wln_ObjIsFf(p, iObj) )
                 {
                     fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d)\n", 
                         Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
@@ -252,9 +252,10 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
                     continue;
                 // stop as soon as the first loop is detected
                 fprintf( stdout, "Unconnected object %s\n", Wln_ObjName(p, iObj) );
-                break;
+                goto finish;
             }
     }
+finish:
     return fAcyclic;
 }
 
