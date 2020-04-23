@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "misc/util/utilNam.h"
+#include "misc/util/utilTruth.h"
 #include "misc/vec/vecWec.h"
 #include "misc/vec/vecHsh.h"
 
@@ -978,6 +979,186 @@ void Gia_ManProfileStructures( Gia_Man_t * p, int nLimit, int fVerbose )
         Gia_ManProfileStructuresInt( pNew, nLimit, fVerbose );
         Gia_ManStop( pNew );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Circuit restructuring.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManMarkTfi_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    if ( !Gia_ObjIsAnd(pObj) )
+        return;
+    Gia_ManMarkTfi_rec( p, Gia_ObjFanin0(pObj) );
+    Gia_ManMarkTfi_rec( p, Gia_ObjFanin1(pObj) );
+}
+Vec_Int_t * Gia_ManFindSharedInputs( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj, * pObj2; int i, k, Value;
+    Vec_Int_t * vRes = Vec_IntStart( Gia_ManCiNum(p) );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        Gia_ManIncrementTravId( p );
+        Gia_ManMarkTfi_rec( p, Gia_ObjFanin0(pObj) );
+        Gia_ManForEachCi( p, pObj2, k )
+            if ( Gia_ObjIsTravIdCurrent(p, pObj2) )
+                Vec_IntAddToEntry( vRes, k, 1 );
+    }
+    k = 0;
+    Vec_IntForEachEntry( vRes, Value, i )
+        if ( Value == Gia_ManCoNum(p) )
+            Vec_IntWriteEntry( vRes, k++, i );
+    Vec_IntShrink( vRes, k );
+    //printf( "Found %d candidate inputs.\n", Vec_IntSize(vRes) );
+    if ( Vec_IntSize(vRes) == 0 || Vec_IntSize(vRes) > 10 )
+        Vec_IntFreeP(&vRes);
+    return vRes;
+}
+Vec_Wec_t * Gia_ManFindCofs( Gia_Man_t * p, Vec_Int_t * vRes, Gia_Man_t ** ppNew )
+{
+    Gia_Obj_t * pObj;
+    Vec_Wec_t * vCofs = Vec_WecStart( 1 << Vec_IntSize(vRes) );
+    int Value, i, m, nMints = 1 << Vec_IntSize(vRes);
+    Gia_Man_t * pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    assert( Vec_IntSize(vRes) < Gia_ManCiNum(p) );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    for ( m = 0; m < nMints; m++ )
+    {
+        Vec_Int_t * vLayer = Vec_WecEntry( vCofs, m );
+        Vec_IntForEachEntry( vRes, Value, i )
+            Gia_ManCi(p, Value)->Value = (unsigned)((m >> i) & 1);
+        Gia_ManForEachAnd( p, pObj, i )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Gia_ManForEachCo( p, pObj, i )
+            Vec_IntPush( vLayer, Gia_ObjFanin0Copy(pObj) );
+        assert( Vec_IntSize(vLayer) == Gia_ManCoNum(p) );
+        //printf( "%3d : ", m ); Vec_IntPrint( vLayer );
+    }
+    if ( ppNew != NULL )
+        *ppNew = pNew;
+    return vCofs;
+}
+Vec_Int_t * Gia_ManFindEquivClasses( Vec_Wec_t * vCofs )
+{
+    Vec_Int_t * vVec; int i, k, Lev;
+    Vec_Int_t * vMap    = Vec_IntAlloc( Vec_WecSize(vCofs) );
+    Vec_Int_t * vUnique = Vec_IntAlloc( Vec_WecSize(vCofs) );
+    Vec_WecForEachLevel( vCofs, vVec, i )
+    {
+        Vec_IntForEachEntry( vUnique, Lev, k )
+            if ( Vec_IntEqual(vVec, Vec_WecEntry(vCofs, Lev)) )
+                break;
+        Vec_IntPush( vMap, k );
+        if ( k == Vec_IntSize(vUnique) )
+            Vec_IntPush( vUnique, i );
+    }
+    //printf( "Found %d equiv clasess.\n", Vec_IntSize(vUnique) );
+    //Vec_IntPrint( vUnique );
+    Vec_IntFree( vUnique );
+    assert( Vec_IntSize(vMap) == Vec_WecSize(vCofs) );
+    //Vec_IntPrint( vMap );
+    return vMap;
+}
+int Gia_ManFindMuxTree_rec( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData, int Shift )
+{
+    int iLit0, iLit1;
+    if ( nCtrl-- == 0 )
+        return Vec_IntEntry( vData, Shift );
+    iLit0 = Gia_ManFindMuxTree_rec( pNew, pCtrl, nCtrl, vData, Shift );
+    iLit1 = Gia_ManFindMuxTree_rec( pNew, pCtrl, nCtrl, vData, Shift + (1<<nCtrl) );
+    return Gia_ManHashMux( pNew, pCtrl[nCtrl], iLit1, iLit0 );
+}
+void Gia_ManFindDerive( Gia_Man_t * pNew, int nOuts, Vec_Int_t * vIns, Vec_Wec_t * vCofs, Vec_Int_t * vMap )
+{
+    extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
+    Vec_Int_t * vMemory = Vec_IntAlloc( 1 << 16 );
+    Vec_Int_t * vLeaves = Vec_IntAlloc( 100 );
+    Vec_Int_t * vUsed = Vec_IntStart( Vec_WecSize(vCofs) );
+    Vec_Int_t * vBits = Vec_IntAlloc( 10 );
+    Vec_Int_t * vData = Vec_IntAlloc( Vec_WecSize(vCofs) );
+    int nWords = Abc_TtWordNum(Vec_IntSize(vIns));
+    word * pTruth = ABC_ALLOC( word, nWords );
+    int nValues = Vec_IntFindMax(vMap)+1;
+    int i, k, Value, nBits = Abc_Base2Log(nValues);
+    assert( nBits < Vec_IntSize(vIns) );
+    assert( Vec_IntSize(vMap) == Vec_WecSize(vCofs) );
+    assert( Vec_IntSize(vMap) == (1 << Vec_IntSize(vIns)) );
+    Vec_IntForEachEntry( vIns, Value, i )
+        Vec_IntPush( vLeaves, Gia_ObjToLit(pNew, Gia_ManCi(pNew, Value)) );
+    for ( i = 0; i < nBits; i++ )
+    {
+        Abc_TtClear( pTruth, nWords );
+        Vec_IntForEachEntry( vMap, Value, k )
+            if ( (Value >> i) & 1 )
+                Abc_TtSetBit( pTruth, k );
+        if ( nBits < 6 )
+            pTruth[0] = Abc_Tt6Stretch( pTruth[0], Vec_IntSize(vIns) );
+        Vec_IntPush( vBits, Kit_TruthToGia(pNew, (unsigned*)pTruth, Vec_IntSize(vIns), vMemory, vLeaves, 1) );
+        //printf( "Bit %d : ", i ); Dau_DsdPrintFromTruth( pTruth, Vec_IntSize(vIns) );
+    }
+    for ( i = 0; i < nValues; i++ )
+    {
+        int Cof = Vec_IntFind(vMap, i);
+        assert( Cof >= 0 && Cof < Vec_WecSize(vCofs) );
+        Vec_IntWriteEntry( vUsed, Cof, 1 );
+    }
+    for ( i = 0; i < nOuts; i++ )
+    {
+        Vec_Int_t * vLevel;
+        Vec_IntClear( vData );
+        Vec_WecForEachLevel( vCofs, vLevel, k )
+            if ( Vec_IntEntry(vUsed, k) )
+                Vec_IntPush( vData, Vec_IntEntry(vLevel, i) );
+        while ( Vec_IntSize(vData) < (1 << nBits) )
+            Vec_IntPush( vData, 0 );
+        assert( Vec_IntSize(vData) == (1 << nBits) );
+        assert( Vec_IntSize(vBits) == nBits );
+        Value = Gia_ManFindMuxTree_rec( pNew, Vec_IntArray(vBits), Vec_IntSize(vBits), vData, 0 );
+        Gia_ManAppendCo( pNew, Value );
+    }
+    ABC_FREE( pTruth );
+    Vec_IntFree( vUsed );
+    Vec_IntFree( vBits );
+    Vec_IntFree( vData );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vMemory );
+}
+Gia_Man_t * Gia_ManCofStructure( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew = NULL;
+    Vec_Int_t * vIns = Gia_ManFindSharedInputs( p );
+    Vec_Wec_t * vCfs = vIns ? Gia_ManFindCofs( p, vIns, &pNew ) : NULL;
+    Vec_Int_t * vMap = vCfs ? Gia_ManFindEquivClasses( vCfs ) : NULL;
+    if ( vMap && Abc_Base2Log(Vec_IntFindMax(vMap)+1) < Vec_IntSize(vIns) ) 
+    {
+        Gia_Man_t * pTemp; 
+        Gia_ManFindDerive( pNew, Gia_ManCoNum(p), vIns, vCfs, vMap );
+        pNew = Gia_ManCleanup( pTemp = pNew );
+        Gia_ManStop( pTemp );
+    }
+    else
+        Gia_ManStopP( &pNew );
+    Vec_WecFreeP( &vCfs );
+    Vec_IntFreeP( &vMap );
+    Vec_IntFreeP( &vIns );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////
