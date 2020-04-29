@@ -251,6 +251,64 @@ static int Mini_AigXor( Mini_Aig_t * p, int Lit0, int Lit1 )
     return Mini_AigMux( p, Lit0, Mini_AigLitNot(Lit1), Lit1 );
 }
 
+static unsigned s_MiniTruths5[5] = {
+    0xAAAAAAAA,
+    0xCCCCCCCC,
+    0xF0F0F0F0,
+    0xFF00FF00,
+    0xFFFF0000,
+};
+static inline int Mini_AigTt5HasVar( unsigned t, int iVar )
+{
+    return ((t << (1<<iVar)) & s_MiniTruths5[iVar]) != (t & s_MiniTruths5[iVar]);
+}
+static inline unsigned Mini_AigTt5Cofactor0( unsigned t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t & ~s_MiniTruths5[iVar]) | ((t & ~s_MiniTruths5[iVar]) << (1<<iVar));
+}
+static inline unsigned Mini_AigTt5Cofactor1( unsigned t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t & s_MiniTruths5[iVar]) | ((t & s_MiniTruths5[iVar]) >> (1<<iVar));
+}
+static inline int Mini_AigAndProp( Mini_Aig_t * p, int iLit0, int iLit1 )  
+{ 
+    if ( iLit0 < 2 )
+        return iLit0 ? iLit1 : 0;
+    if ( iLit1 < 2 )
+        return iLit1 ? iLit0 : 0;
+    if ( iLit0 == iLit1 )
+        return iLit1;
+    if ( iLit0 == Abc_LitNot(iLit1) )
+        return 0;
+    return Mini_AigAnd( p, iLit0, iLit1 );
+}
+static inline int Mini_AigMuxProp( Mini_Aig_t * p, int iCtrl, int iData1, int iData0 )  
+{ 
+    int iTemp0 = Mini_AigAndProp( p, Mini_AigLitNot(iCtrl), iData0 );
+    int iTemp1 = Mini_AigAndProp( p, iCtrl, iData1 );
+    return Mini_AigLitNot( Mini_AigAndProp( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ) );
+}
+static inline int Mini_AigTruth( Mini_Aig_t * p, int * pVarLits, int nVars, unsigned Truth )
+{
+    int Var, Lit0, Lit1; 
+    if ( Truth == 0 )
+        return 0;
+    if ( ~Truth == 0 )
+        return 1;
+    assert( nVars > 0 );
+    // find the topmost var
+    for ( Var = nVars-1; Var >= 0; Var-- )
+        if ( Mini_AigTt5HasVar( Truth, Var ) )
+             break;
+    assert( Var >= 0 );
+    // cofactor
+    Lit0 = Mini_AigTruth( p, pVarLits, Var, Mini_AigTt5Cofactor0(Truth, Var) );
+    Lit1 = Mini_AigTruth( p, pVarLits, Var, Mini_AigTt5Cofactor1(Truth, Var) );
+    return Mini_AigMuxProp( p, pVarLits[Var], Lit1, Lit0 );
+}
+
 // procedure to check the topological order during AIG construction
 static int Mini_AigCheck( Mini_Aig_t * p )
 {

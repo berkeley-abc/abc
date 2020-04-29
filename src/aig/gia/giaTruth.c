@@ -83,7 +83,159 @@ word Gia_LutComputeTruth6Simple( Gia_Man_t * p, int iPo )
     Gia_Obj_t * pObj = Gia_ManPo( p, iPo );
     word Truth = Gia_LutComputeTruth6Simple_rec( p, Gia_ObjFaninId0p(p, pObj) );
     return Gia_ObjFaninC0(pObj) ? ~Truth : Truth;
+}
 
+word Gia_LutComputeTruth6Map_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vMap )
+{
+    word Truth0, Truth1, Truth;
+    Gia_Obj_t * pObj = Gia_ManObj(p, iObj);
+    if ( Gia_ObjIsConst0(pObj) )
+        return 0;
+    if ( Gia_ObjIsCi(pObj) )
+        return s_Truths6[Vec_IntEntry(vMap, Gia_ObjCioId(pObj))];
+    Truth0 = Gia_LutComputeTruth6Map_rec( p, Gia_ObjFaninId0(pObj, iObj), vMap );
+    Truth1 = Gia_LutComputeTruth6Map_rec( p, Gia_ObjFaninId1(pObj, iObj), vMap );
+    Truth0 = Gia_ObjFaninC0(pObj) ? ~Truth0 : Truth0;
+    Truth1 = Gia_ObjFaninC1(pObj) ? ~Truth1 : Truth1;
+    Truth  = Gia_ObjIsXor(pObj) ? Truth0 ^ Truth1 : Truth0 & Truth1;
+    return Truth;
+}
+word Gia_LutComputeTruth6Map( Gia_Man_t * p, int iPo, Vec_Int_t * vMap )
+{
+    Gia_Obj_t * pObj = Gia_ManPo( p, iPo );
+    word Truth = Gia_LutComputeTruth6Map_rec( p, Gia_ObjFaninId0p(p, pObj), vMap );
+    return Gia_ObjFaninC0(pObj) ? ~Truth : Truth;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generate MUX tree of the truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static unsigned s_Truths5[5] = {
+    0xAAAAAAAA,
+    0xCCCCCCCC,
+    0xF0F0F0F0,
+    0xFF00FF00,
+    0xFFFF0000,
+};
+static inline int Abc_Tt5HasVar( unsigned t, int iVar )
+{
+    return ((t << (1<<iVar)) & s_Truths5[iVar]) != (t & s_Truths5[iVar]);
+}
+static inline unsigned Abc_Tt5Cofactor0( unsigned t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t & ~s_Truths5[iVar]) | ((t & ~s_Truths5[iVar]) << (1<<iVar));
+}
+static inline unsigned Abc_Tt5Cofactor1( unsigned t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 6 );
+    return (t & s_Truths5[iVar]) | ((t & s_Truths5[iVar]) >> (1<<iVar));
+}
+int Gia_Truth5ToGia( Gia_Man_t * p, int * pVarLits, int nVars, unsigned Truth, int fHash )
+{
+    int Var, Lit0, Lit1; 
+    if ( Truth == 0 )
+        return 0;
+    if ( ~Truth == 0 )
+        return 1;
+    assert( nVars > 0 );
+    // find the topmost var
+    for ( Var = nVars-1; Var >= 0; Var-- )
+        if ( Abc_Tt5HasVar( Truth, Var ) )
+             break;
+    assert( Var >= 0 );
+    // cofactor
+    Lit0 = Gia_Truth5ToGia( p, pVarLits, Var, Abc_Tt5Cofactor0(Truth, Var), fHash );
+    Lit1 = Gia_Truth5ToGia( p, pVarLits, Var, Abc_Tt5Cofactor1(Truth, Var), fHash );
+    if ( fHash )
+        return Gia_ManHashMux( p, pVarLits[Var], Lit1, Lit0 );
+    else
+        return Gia_ManAppendMux( p, pVarLits[Var], Lit1, Lit0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generate MUX tree of the truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_Truth6ToGia( Gia_Man_t * p, int * pVarLits, int nVars, word Truth, int fHash )
+{
+    int Var, Lit0, Lit1; 
+    if ( Truth == 0 )
+        return 0;
+    if ( ~Truth == 0 )
+        return 1;
+    assert( nVars > 0 );
+    // find the topmost var
+    for ( Var = nVars-1; Var >= 0; Var-- )
+        if ( Abc_Tt6HasVar( Truth, Var ) )
+             break;
+    assert( Var >= 0 );
+    // cofactor
+    Lit0 = Gia_Truth6ToGia( p, pVarLits, Var, Abc_Tt6Cofactor0(Truth, Var), fHash );
+    Lit1 = Gia_Truth6ToGia( p, pVarLits, Var, Abc_Tt6Cofactor1(Truth, Var), fHash );
+    if ( fHash )
+        return Gia_ManHashMux( p, pVarLits[Var], Lit1, Lit0 );
+    else
+        return Gia_ManAppendMux( p, pVarLits[Var], Lit1, Lit0 );
+}
+void Gia_Truth6ToGiaTest( Gia_Man_t * p )
+{
+    int Size = 5;
+    word Truth, TruthNew;
+    Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManCiNum(p) );
+    Vec_Int_t * vSupp = Vec_IntStart( 100 );
+    int nCos = Gia_ManCoNum(p), Count = 0;
+    int i, k, Id, ObjId, iLitNew;
+    Gia_ManHashAlloc( p );
+    Gia_ManForEachCoId( p, Id, i )
+    {
+        Gia_ManCollectCis( p, &Id, 1, vSupp ); // ObjIds
+        if ( Vec_IntSize(vSupp) <= Size && i < nCos )
+        {
+            int pVarLits[6];
+            Vec_IntForEachEntry( vSupp, ObjId, k )
+            {
+                int CioId = Gia_ObjCioId(Gia_ManObj(p, ObjId));
+                Vec_IntWriteEntry( vMap, CioId, k );
+                pVarLits[k] = Abc_Var2Lit( ObjId, 0 );
+            }
+            Truth = Gia_LutComputeTruth6Map( p, i, vMap );
+            if ( Size == 5 )
+                iLitNew = Gia_Truth5ToGia( p, pVarLits, Vec_IntSize(vSupp), (unsigned)Truth, 1 );
+            else
+                iLitNew = Gia_Truth6ToGia( p, pVarLits, Vec_IntSize(vSupp), Truth, 1 );
+            Gia_ManAppendCo( p, iLitNew );
+            TruthNew = Gia_LutComputeTruth6Map( p, Gia_ManCoNum(p)-1, vMap );
+            Vec_IntForEachEntry( vSupp, ObjId, k )
+            {
+                int CioId = Gia_ObjCioId(Gia_ManObj(p, ObjId));
+                Vec_IntWriteEntry( vMap, CioId, -1 );
+            }
+            if ( Truth != TruthNew )
+                printf( "Error for output %d.\n", i );
+            Count++;
+            //Dau_DsdPrintFromTruth( &Truth, Vec_IntSize(vSupp) );
+        }
+    }
+    Gia_ManHashStop( p );
+    printf( "Finished processing %d outputs.\n", Count );
+    Vec_IntFree( vSupp );
+    Vec_IntFree( vMap );
 }
 
 /**Function*************************************************************
