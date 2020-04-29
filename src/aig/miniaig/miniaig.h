@@ -280,7 +280,7 @@ static inline int Mini_AigAndProp( Mini_Aig_t * p, int iLit0, int iLit1 )
         return iLit1 ? iLit0 : 0;
     if ( iLit0 == iLit1 )
         return iLit1;
-    if ( iLit0 == Abc_LitNot(iLit1) )
+    if ( iLit0 == Mini_AigLitNot(iLit1) )
         return 0;
     return Mini_AigAnd( p, iLit0, iLit1 );
 }
@@ -288,7 +288,7 @@ static inline int Mini_AigMuxProp( Mini_Aig_t * p, int iCtrl, int iData1, int iD
 { 
     int iTemp0 = Mini_AigAndProp( p, Mini_AigLitNot(iCtrl), iData0 );
     int iTemp1 = Mini_AigAndProp( p, iCtrl, iData1 );
-    return Mini_AigLitNot( Mini_AigAndProp( p, Abc_LitNot(iTemp0), Abc_LitNot(iTemp1) ) );
+    return Mini_AigLitNot( Mini_AigAndProp( p, Mini_AigLitNot(iTemp0), Mini_AigLitNot(iTemp1) ) );
 }
 static inline int Mini_AigTruth( Mini_Aig_t * p, int * pVarLits, int nVars, unsigned Truth )
 {
