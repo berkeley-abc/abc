@@ -1,6 +1,7 @@
 
 CC   := gcc
 CXX  := g++
+AR   := ar
 LD   := $(CXX)
 
 MSG_PREFIX ?=
@@ -8,6 +9,7 @@ ABCSRC = .
 
 $(info $(MSG_PREFIX)Using CC=$(CC))
 $(info $(MSG_PREFIX)Using CXX=$(CXX))
+$(info $(MSG_PREFIX)Using AR=$(AR))
 $(info $(MSG_PREFIX)Using LD=$(LD))
 
 PROG := abc
@@ -215,8 +217,7 @@ $(PROG): $(OBJ)
 
 lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
-	$(VERBOSE)ar rv $@ $?
-	$(VERBOSE)ranlib $@
+	$(VERBOSE)$(AR) rsv $@ $?
 
 lib$(PROG).so: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
