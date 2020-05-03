@@ -121,36 +121,6 @@ static inline void Exp_Print( int nVars, Vec_Int_t * p )
     Exp_PrintLit( nVars, Vec_IntEntryLast(p) );
     Abc_Print( 1, "\n" );
 }
-static inline void Exp_PrintNodeVerilog( FILE * pFile, int nVars, Vec_Int_t * p, Vec_Ptr_t * vNames, int Node, int fCompl )
-{
-    static void Exp_PrintLitVerilog( FILE * pFile, int nVars, Vec_Int_t * p, Vec_Ptr_t * vNames, int Lit );
-    if ( Vec_IntEntry(p, 2*Node+1) >= 2*nVars )
-        fprintf( pFile, "(" );
-    Exp_PrintLitVerilog( pFile, nVars, p, vNames, Vec_IntEntry(p, 2*Node+1) ^ fCompl );
-    if ( Vec_IntEntry(p, 2*Node+1) >= 2*nVars )
-        fprintf( pFile, ")" );
-    fprintf( pFile, " %c ", fCompl ? '|' : '&' );
-    if ( Vec_IntEntry(p, 2*Node+0) >= 2*nVars )
-        fprintf( pFile, "(" );
-    Exp_PrintLitVerilog( pFile, nVars, p, vNames, Vec_IntEntry(p, 2*Node+0) ^ fCompl );
-    if ( Vec_IntEntry(p, 2*Node+0) >= 2*nVars )
-        fprintf( pFile, ")" );
-}
-static inline void Exp_PrintLitVerilog( FILE * pFile, int nVars, Vec_Int_t * p, Vec_Ptr_t * vNames, int Lit )
-{
-    if ( Lit == EXP_CONST0 )
-        fprintf( pFile, "1\'b0" );
-    else if ( Lit == EXP_CONST1 )
-        fprintf( pFile, "1\'b1" );
-    else if ( Lit < 2 * nVars )
-        fprintf( pFile, "%s%s", (Lit&1) ? "~" : "", (char *)Vec_PtrEntry(vNames, Lit/2) );
-    else
-        Exp_PrintNodeVerilog( pFile, nVars, p, vNames, Lit/2-nVars, Lit&1 );
-}
-static inline void Exp_PrintVerilog( FILE * pFile, int nVars, Vec_Int_t * p, Vec_Ptr_t * vNames )
-{
-    Exp_PrintLitVerilog( pFile, nVars, p, vNames, Vec_IntEntryLast(p) );
-}
 static inline Vec_Int_t * Exp_Reverse( Vec_Int_t * p )
 {
     Vec_IntReverseOrder( p );
