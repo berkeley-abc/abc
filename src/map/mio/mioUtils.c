@@ -288,6 +288,70 @@ void Mio_WriteLibrary( FILE * pFile, Mio_Library_t * pLib, int fPrintSops, int f
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mio_WriteGateVerilog( FILE * pFile, Mio_Gate_t * pGate, Vec_Ptr_t * vNames )
+{
+    char * pName; int i;
+    fprintf( pFile, "module %s ( ", pGate->pName );
+    fprintf( pFile, "%s", pGate->pOutName );
+    Vec_PtrForEachEntry( char *, vNames, pName, i )
+        fprintf( pFile, ", %s", pName );
+    fprintf( pFile, " );\n" );
+    fprintf( pFile, "  output %s;\n", pGate->pOutName );
+    if ( Vec_PtrSize(vNames) > 0 )
+    {
+        fprintf( pFile, "  input %s", (char *)Vec_PtrEntry(vNames, 0) );
+        Vec_PtrForEachEntryStart( char *, vNames, pName, i, 1 )
+            fprintf( pFile, ", %s", pName );
+        fprintf( pFile, ";\n" );
+    }
+    fprintf( pFile, "  assign %s = ", pGate->pOutName );
+    Exp_PrintVerilog( pFile, Vec_PtrSize(vNames), pGate->vExpr, vNames );
+    fprintf( pFile, ";\n" );
+    fprintf( pFile, "endmodule\n\n" );
+}
+void Mio_WriteLibraryVerilog( FILE * pFile, Mio_Library_t * pLib, int fPrintSops, int fShort, int fSelected )
+{
+    Mio_Gate_t * pGate;
+    Mio_Pin_t * pPin;
+    Vec_Ptr_t * vGates = Vec_PtrAlloc( 1000 );
+    Vec_Ptr_t * vNames = Vec_PtrAlloc( 100 );
+    int i, nCells;
+    int fAllPins = fShort || Mio_CheckGates( pLib );
+    if ( fSelected )
+    {
+        Mio_Cell2_t * pCells = Mio_CollectRootsNewDefault2( 6, &nCells, 0 );
+        for ( i = 0; i < nCells; i++ )
+            Vec_PtrPush( vGates, pCells[i].pMioGate );
+        ABC_FREE( pCells );
+    }
+    else
+    {
+        for ( i = 0; i < pLib->nGates; i++ )
+            Vec_PtrPush( vGates, pLib->ppGates0[i] );
+    }
+    fprintf( pFile, "// Verilog for genlib library \"%s\" with %d gates written by ABC on %s\n\n", pLib->pName, Vec_PtrSize(vGates), Extra_TimeStamp() );
+    Vec_PtrForEachEntry( Mio_Gate_t *, vGates, pGate, i )
+    {
+        Vec_PtrClear( vNames );
+        Mio_GateForEachPin( pGate, pPin )
+            Vec_PtrPush( vNames, pPin->pName );
+        Mio_WriteGateVerilog( pFile, pGate, vNames );
+    }
+    Vec_PtrFree( vNames );
+    Vec_PtrFree( vGates );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Compares the max delay of two gates.]
 
   Description []
