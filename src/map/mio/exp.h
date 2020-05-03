@@ -123,7 +123,7 @@ static inline void Exp_Print( int nVars, Vec_Int_t * p )
 }
 static inline void Exp_PrintNodeVerilog( FILE * pFile, int nVars, Vec_Int_t * p, Vec_Ptr_t * vNames, int Node, int fCompl )
 {
-    extern void Exp_PrintLitVerilog( FILE * pFile, int nVars, Vec_Int_t * p, Vec_Ptr_t * vNames, int Lit );
+    static void Exp_PrintLitVerilog( FILE * pFile, int nVars, Vec_Int_t * p, Vec_Ptr_t * vNames, int Lit );
     if ( Vec_IntEntry(p, 2*Node+1) >= 2*nVars )
         fprintf( pFile, "(" );
     Exp_PrintLitVerilog( pFile, nVars, p, vNames, Vec_IntEntry(p, 2*Node+1) ^ fCompl );
