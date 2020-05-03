@@ -355,7 +355,6 @@ void Mio_WriteLibraryVerilog( FILE * pFile, Mio_Library_t * pLib, int fPrintSops
     Vec_Ptr_t * vGates = Vec_PtrAlloc( 1000 );
     Vec_Ptr_t * vNames = Vec_PtrAlloc( 100 );
     int i, nCells;
-    int fAllPins = fShort || Mio_CheckGates( pLib );
     if ( fSelected )
     {
         Mio_Cell2_t * pCells = Mio_CollectRootsNewDefault2( 6, &nCells, 0 );

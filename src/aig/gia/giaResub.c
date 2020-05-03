@@ -702,7 +702,6 @@ int Gia_ManFindGateGateInt( word * pOffSet, word * pOnSet, Vec_Ptr_t * vDivs, in
             int fCompB = Abc_LitIsCompl(iDiv1);
             int iDiv10 = Abc_Lit2Var(iDiv1 >> 16);
             int iDiv11 = Abc_Lit2Var(iDiv1 & 0xFFF);
-            word * pDiv0  = (word *)Vec_PtrEntry(vDivs, Abc_Lit2Var(iDiv0));
             word * pDiv10 = (word *)Vec_PtrEntry(vDivs, Abc_Lit2Var(iDiv10));
             word * pDiv11 = (word *)Vec_PtrEntry(vDivs, Abc_Lit2Var(iDiv11));
             Abc_TtAndCompl( pDivTempB, pDiv10, Abc_LitIsCompl(iDiv10), pDiv11, Abc_LitIsCompl(iDiv11), nWords );
