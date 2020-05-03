@@ -343,7 +343,7 @@ void Gia_ManSimPatWrite( char * pFileName, Vec_Wrd_t * vSimsIn, int nWords )
     for ( i = 0; i < nNodes; i++ )
         Gia_ManSimPatWriteOne( pFile, Vec_WrdEntryP(vSimsIn, i*nWords), nWords );
     fclose( pFile );
-    printf( "Written %d words of simulation data into file \"%s\".\n", nWords, pFileName );
+    printf( "Written %d words of simulation data for %d objects into file \"%s\".\n", nWords, Vec_WrdSize(vSimsIn)/nWords, pFileName );
 }
 int Gia_ManSimPatReadOne( char c )
 {
@@ -358,7 +358,7 @@ int Gia_ManSimPatReadOne( char c )
     assert( Digit >= 0 && Digit < 16 );
     return Digit;
 }
-Vec_Wrd_t * Gia_ManSimPatRead( char * pFileName )
+Vec_Wrd_t * Gia_ManSimPatRead( char * pFileName, int * pnWords )
 {
     Vec_Wrd_t * vSimsIn = NULL; 
     int c, nWords = -1, nChars = 0; word Num = 0;
@@ -384,7 +384,9 @@ Vec_Wrd_t * Gia_ManSimPatRead( char * pFileName )
     }
     assert( Vec_WrdSize(vSimsIn) % nWords == 0 );
     fclose( pFile );
-    printf( "Read %d words of simulation data.\n", nWords );
+    printf( "Read %d words of simulation data for %d objects.\n", nWords, Vec_WrdSize(vSimsIn)/nWords );
+    if ( pnWords )
+        *pnWords = nWords;
     return vSimsIn;
 }
 

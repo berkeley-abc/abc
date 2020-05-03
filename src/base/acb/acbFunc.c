@@ -1541,7 +1541,7 @@ char * Acb_EnumerateSatAssigns( sat_solver * pSat, int PivotVar, int FreeVar, Ve
     {
         if ( iMint == 1000 )
         {
-            //if ( Vec_IntSize(vDivVars) == 0 )
+            if ( Vec_IntSize(vDivVars) == 0 )
             {
                 printf( "Assuming constant 0 function.\n" );
                 Vec_StrClear( vTempSop );
@@ -2511,7 +2511,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
 
     abctime clk  = Abc_Clock();
     int nTargets = Vec_IntSize(&pNtkF->vTargets);
-    int TimeOut  = fCisOnly ? 0 : 60;  // 60 seconds
+    int TimeOut  = fCisOnly ? 0 : 120;  // 60 seconds
     int RetValue = 1;
 
     // compute various sets of nodes

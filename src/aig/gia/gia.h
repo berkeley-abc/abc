@@ -1704,6 +1704,7 @@ extern int                 Gia_ManCheckSuppOverlap( Gia_Man_t * p, int iNode1, i
 extern int                 Gia_ManCountPisWithFanout( Gia_Man_t * p );
 extern int                 Gia_ManCountPosWithNonZeroDrivers( Gia_Man_t * p );
 extern void                Gia_ManUpdateCopy( Vec_Int_t * vCopy, Gia_Man_t * p );
+extern Vec_Int_t *         Gia_ManComputeDistance( Gia_Man_t * p, int iObj, Vec_Int_t * vObjs, int fVerbose );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

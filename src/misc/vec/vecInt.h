@@ -1397,6 +1397,14 @@ static inline void Vec_IntSortMulti( Vec_Int_t * p, int nMulti, int fReverse )
         qsort( (void *)p->pArray, (size_t)(p->nSize/nMulti), nMulti*sizeof(int), 
                 (int (*)(const void *, const void *)) Vec_IntSortCompare1 );
 }
+static inline int Vec_IntIsSorted( Vec_Int_t * p, int fReverse )
+{
+    int i;
+    for ( i = 1; i < p->nSize; i++ )
+        if ( fReverse ? (p->pArray[i-1] < p->pArray[i]) : (p->pArray[i-1] > p->pArray[i]) )
+            return 0;
+    return 1;            
+}
 
 /**Function*************************************************************
 

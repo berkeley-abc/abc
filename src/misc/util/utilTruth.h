@@ -365,6 +365,141 @@ static inline int Abc_TtIntersect( word * pIn1, word * pIn2, int nWords, int fCo
     }
     return 0;
 }
+static inline int Abc_TtIntersectOne( word * pOut, int fComp, word * pIn, int fComp0, int nWords )
+{
+    int w;
+    if ( fComp0 )
+    {
+        if ( fComp )
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( ~pIn[w] & ~pOut[w] )
+                    return 1;
+        }
+        else
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( ~pIn[w] & pOut[w] )
+                    return 1;
+        }
+    }
+    else
+    {
+        if ( fComp )
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( pIn[w] & ~pOut[w] )
+                    return 1;
+        }
+        else
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( pIn[w] & pOut[w] )
+                    return 1;
+        }
+    }
+    return 0;
+}
+static inline int Abc_TtIntersectTwo( word * pOut, int fComp, word * pIn0, int fComp0, word * pIn1, int fComp1, int nWords )
+{
+    int w;
+    if ( fComp0 && fComp1 )
+    {
+        if ( fComp )
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( ~pIn0[w] & ~pIn1[w] & ~pOut[w] )
+                    return 1;
+        }
+        else
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( ~pIn0[w] & ~pIn1[w] & pOut[w] )
+                    return 1;
+        }
+    }
+    else if ( fComp0 )
+    {
+        if ( fComp )
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( ~pIn0[w] & pIn1[w] & ~pOut[w] )
+                    return 1;
+        }
+        else
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( ~pIn0[w] & pIn1[w] & pOut[w] )
+                    return 1;
+        }
+    }
+    else if ( fComp1 )
+    {
+        if ( fComp )
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( pIn0[w] & ~pIn1[w] & ~pOut[w] )
+                    return 1;
+        }
+        else
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( pIn0[w] & ~pIn1[w] & pOut[w] )
+                    return 1;
+        }
+    }
+    else 
+    {
+        if ( fComp )
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( pIn0[w] & pIn1[w] & ~pOut[w] )
+                    return 1;
+        }
+        else
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( pIn0[w] & pIn1[w] & pOut[w] )
+                    return 1;
+        }
+    }
+    return 0;
+}
+static inline int Abc_TtIntersectXor( word * pOut, int fComp, word * pIn0, word * pIn1, int fComp01, int nWords )
+{
+    int w;
+    if ( fComp01 )
+    {
+        if ( fComp )
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( ~(pIn0[w] ^ pIn1[w]) & ~pOut[w] )
+                    return 1;
+        }
+        else 
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( ~(pIn0[w] ^ pIn1[w]) & pOut[w] )
+                    return 1;
+        }
+    }
+    else
+    {
+        if ( fComp )
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( (pIn0[w] ^ pIn1[w]) & ~pOut[w] )
+                    return 1;
+        }
+        else 
+        {
+            for ( w = 0; w < nWords; w++ )
+                if ( (pIn0[w] ^ pIn1[w]) & pOut[w] )
+                    return 1;
+        }
+    }
+    return 0;
+}
 static inline int Abc_TtEqual( word * pIn1, word * pIn2, int nWords )
 {
     int w;
@@ -1867,6 +2002,17 @@ static inline int Abc_TtCountOnesVecXor( word * x, word * y, int nWords )
     int w, Count = 0;
     for ( w = 0; w < nWords; w++ )
         Count += Abc_TtCountOnes( x[w] ^ y[w] );
+    return Count;
+}
+static inline int Abc_TtCountOnesVecXorMask( word * x, word * y, int fCompl, word * pMask, int nWords )
+{
+    int w, Count = 0;
+    if ( fCompl )
+        for ( w = 0; w < nWords; w++ )
+            Count += Abc_TtCountOnes( pMask[w] & (x[w] ^ ~y[w]) );
+    else
+        for ( w = 0; w < nWords; w++ )
+            Count += Abc_TtCountOnes( pMask[w] & (x[w] ^ y[w]) );
     return Count;
 }
 static inline int Abc_TtAndXorSum( word * pOut, word * pIn1, word * pIn2, int nWords )

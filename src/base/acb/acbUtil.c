@@ -671,6 +671,8 @@ int Acb_NtkExtract( char * pFileName0, char * pFileName1, int fUseXors, int fVer
         int nTargets = Vec_IntSize(&pNtkF->vTargets);
         Gia_Man_t * pGiaF = Acb_NtkToGia2( pNtkF, fUseBuf, fUseXors, &pNtkF->vTargets, 0 );
         Gia_Man_t * pGiaG = Acb_NtkToGia2( pNtkG, 0,       0,        NULL, nTargets );
+        pGiaF->pSpec = Abc_UtilStrsav( pNtkF->pDesign->pSpec );
+        pGiaG->pSpec = Abc_UtilStrsav( pNtkG->pDesign->pSpec );
         assert( Acb_NtkCiNum(pNtkF) == Acb_NtkCiNum(pNtkG) );
         assert( Acb_NtkCoNum(pNtkF) == Acb_NtkCoNum(pNtkG) );
         *ppGiaF  = pGiaF;
@@ -784,6 +786,8 @@ int Abc_NtkExtract( char * pFileName0, char * pFileName1, int fUseXors, int fVer
         Gia_Man_t * pGiaG = Abc_NtkToGia2( pNtkG, 0 );
         assert( Abc_NtkCiNum(pNtkF) == Abc_NtkCiNum(pNtkG) );
         assert( Abc_NtkCoNum(pNtkF) == Abc_NtkCoNum(pNtkG) );
+        pGiaF->pSpec = Abc_UtilStrsav( pNtkF->pSpec );
+        pGiaG->pSpec = Abc_UtilStrsav( pNtkG->pSpec );
         *ppGiaF  = pGiaF;
         *ppGiaG  = pGiaG;
         *pvNodes = Abc_NtkCollectCopies( pNtkF, pGiaF, pvNodesR, pvPolar );

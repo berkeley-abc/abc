@@ -2290,6 +2290,94 @@ Gia_Man_t * Gia_ManDupWithMuxPos( Gia_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Collect distance info.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManRingAdd( Gia_Man_t * p, int iObj, Vec_Int_t * vRes, Vec_Int_t * vDists, int Dist )
+{
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    Vec_IntWriteEntry( vDists, iObj, Dist );
+    Vec_IntPush( vRes, iObj );
+}
+void Gia_ManCollectRing( Gia_Man_t * p, Vec_Int_t * vStart, Vec_Int_t * vRes, Vec_Int_t * vDists )
+{
+    int i, k, iObj, iFan;
+    Vec_IntForEachEntry( vStart, iObj, i )
+    {
+        int Weight = Vec_IntEntry( vDists, iObj );
+        Gia_Obj_t * pObj = Gia_ManObj(p, iObj);
+        assert( Weight > 0 );
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Gia_ManRingAdd( p, Gia_ObjFaninId0(pObj, iObj), vRes, vDists, Weight + 1*!Gia_ObjIsBuf(Gia_ObjFanin0(pObj)) );
+            Gia_ManRingAdd( p, Gia_ObjFaninId1(pObj, iObj), vRes, vDists, Weight + 1*!Gia_ObjIsBuf(Gia_ObjFanin1(pObj)) );
+        }
+        Gia_ObjForEachFanoutStaticId( p, iObj, iFan, k )
+            Gia_ManRingAdd( p, iFan, vRes, vDists, Weight + 1*!Gia_ObjIsBuf(Gia_ManObj(p, iFan)) );
+    }
+}
+Vec_Int_t * Gia_ManComputeDistanceInt( Gia_Man_t * p, int iTarg, Vec_Int_t * vObjs, int fVerbose )
+{
+    int i, iObj;
+    Vec_Int_t * vDists, * vStart, * vNexts;
+    vStart = Vec_IntAlloc( 100 );
+    vNexts = Vec_IntAlloc( 100 );
+    vDists = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_ManIncrementTravId( p );
+    if ( vObjs )
+    {
+        Vec_IntForEachEntry( vObjs, iObj, i )
+        {
+            Gia_ObjSetTravIdCurrentId(p, iObj);
+            Vec_IntWriteEntry( vDists, iObj, 1 );
+            Vec_IntPush( vStart, iObj );
+        }
+    }
+    else
+    {
+        Gia_ObjSetTravIdCurrentId(p, iTarg);
+        Vec_IntWriteEntry( vDists, iTarg, 1 );
+        Vec_IntPush( vStart, iTarg );
+    }
+    for ( i = 0; ; i++ )
+    {
+        if ( fVerbose )
+            printf( "Ring %2d : %6d\n", i, Vec_IntSize(vDists)-Vec_IntCountZero(vDists) );        
+        Gia_ManCollectRing( p, vStart, vNexts, vDists );
+        if ( Vec_IntSize(vNexts) == 0 )
+            break;
+        Vec_IntClear( vStart );
+        ABC_SWAP( Vec_Int_t, *vStart, *vNexts );
+    }
+    Vec_IntFree( vStart );
+    Vec_IntFree( vNexts );
+    return vDists;
+}
+Vec_Int_t * Gia_ManComputeDistance( Gia_Man_t * p, int iObj, Vec_Int_t * vObjs, int fVerbose )
+{
+    Vec_Int_t * vDists;
+    if ( p->vFanoutNums )
+        vDists = Gia_ManComputeDistanceInt( p, iObj, vObjs, fVerbose );
+    else
+    {
+        Gia_ManStaticFanoutStart( p );
+        vDists = Gia_ManComputeDistanceInt( p, iObj, vObjs, fVerbose );
+        Gia_ManStaticFanoutStop( p );
+    }
+    return vDists;
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
