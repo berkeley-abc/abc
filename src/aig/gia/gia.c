@@ -297,6 +297,101 @@ void Gia_ManStructExperiment( Gia_Man_t * p )
     Vec_PtrFree( vGias );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_EnumFirstUnused( int * pUsed, int nVars )
+{
+    int i;
+    for ( i = 0; i < nVars; i++ )
+        if ( pUsed[i] == 0 )
+            return i;
+    return -1;
+}
+void Gia_EnumPerms_rec( int * pUsed, int nVars, int * pPerm, int nPerm, int * pCount, FILE * pFile, int nLogVars )
+{
+    int i, k, New;
+    if ( nPerm == nVars )
+    {
+        if ( pFile )
+        {
+            for ( i = 0; i < nLogVars; i++ )
+                fprintf( pFile, "%c", '0' + ((*pCount) >> (nLogVars-1-i) & 1) );
+            fprintf( pFile, " " );
+            for ( i = 0; i < nVars; i++ )
+            for ( k = 0; k < nVars; k++ )
+                fprintf( pFile, "%c", '0' + (pPerm[i] == k) );
+            fprintf( pFile, "\n" );
+        }
+        else
+        {
+            if ( *pCount < 20 )
+            {
+                printf( "%5d : ", (*pCount) );
+                for ( i = 0; i < nVars; i += 2 )
+                    printf( "%d %d  ", pPerm[i], pPerm[i+1] );
+                printf( "\n" );
+            }
+        }
+        (*pCount)++;
+        return;
+    }
+    New = Gia_EnumFirstUnused( pUsed, nVars );
+    assert( New >= 0 );
+    pPerm[nPerm] = New;
+    assert( pUsed[New] == 0 );
+    pUsed[New] = 1;
+    // try remaining ones
+    for ( i = 0; i < nVars; i++ )
+    {
+        if ( pUsed[i] == 1 )
+            continue;
+        pPerm[nPerm+1] = i;
+        assert( pUsed[i] == 0 );
+        pUsed[i] = 1;
+        Gia_EnumPerms_rec( pUsed, nVars, pPerm, nPerm+2, pCount, pFile, nLogVars );
+        assert( pUsed[i] == 1 );
+        pUsed[i] = 0;
+    }
+    assert( pUsed[New] == 1 );
+    pUsed[New] = 0;
+}
+void Gia_EnumPerms( int nVars )
+{
+    int nLogVars = 0, Count = 0;
+    int * pUsed = ABC_CALLOC( int, nVars );
+    int * pPerm = ABC_CALLOC( int, nVars );
+    FILE * pFile = fopen( "pairset.pla", "wb" );
+    assert( nVars % 2 == 0 );
+
+    printf( "Printing sets of pairs for %d objects:\n", nVars );
+    Gia_EnumPerms_rec( pUsed, nVars, pPerm, 0, &Count, NULL, -1 ); 
+    if ( Count > 20 )
+        printf( "...\n" );
+    printf( "Finished enumerating %d sets of pairs.\n", Count );
+
+    nLogVars = Abc_Base2Log( Count );
+    printf( "Need %d variables to encode %d sets.\n", nLogVars, Count );
+    Count = 0;
+    fprintf( pFile, ".i %d\n", 10 );
+    fprintf( pFile, ".o %d\n", nVars*nVars );
+    Gia_EnumPerms_rec( pUsed, nVars, pPerm, 0, &Count, pFile, nLogVars );   
+    fprintf( pFile, ".e\n" );
+    fclose( pFile );
+    printf( "Finished dumping file \"%s\".\n", "pairset.pla" );
+
+    ABC_FREE( pUsed );
+    ABC_FREE( pPerm );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
