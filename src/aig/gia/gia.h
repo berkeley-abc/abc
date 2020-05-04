@@ -1557,6 +1557,9 @@ extern void                Gia_ManIncrSimStart( Gia_Man_t * p, int nWords, int n
 extern void                Gia_ManIncrSimSet( Gia_Man_t * p, Vec_Int_t * vObjLits );
 extern int                 Gia_ManIncrSimCheckOver( Gia_Man_t * p, int iLit0, int iLit1 );
 extern int                 Gia_ManIncrSimCheckEqual( Gia_Man_t * p, int iLit0, int iLit1 );
+/*=== giaSimBase.c ============================================================*/
+extern Vec_Wrd_t *         Gia_ManSimPatRead( char * pFileName, int * pnWords );
+extern void                Gia_ManSimPatWrite( char * pFileName, Vec_Wrd_t * vSimsIn, int nWords );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );

@@ -942,7 +942,6 @@ Gia_Man_t * Gia_ManResub2( Gia_Man_t * pGia, int nNodes, int nSupp, int nDivs, i
 }
 Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, int fVerbose, int fVeryVerbose )
 {
-    extern Vec_Wrd_t * Gia_ManSimPatRead( char * pFileName, int * pnWords );
     int iTopLit, nWords = 0;
     Gia_Man_t * pMan   = NULL;
     Vec_Wrd_t * vSims  = Gia_ManSimPatRead( pFileName, &nWords );
@@ -952,8 +951,8 @@ Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, i
     if ( p == NULL )
         return NULL;
     assert( Vec_PtrSize(vDivs) < (1<<15) );
-    printf( "OFF = %5d (%6.2f %%)  ", Abc_TtCountOnesVec(Vec_PtrEntry(vDivs, 0), nWords), 100.0*Abc_TtCountOnesVec(Vec_PtrEntry(vDivs, 0), nWords)/(64*nWords) );
-    printf( "ON = %5d (%6.2f %%)\n",  Abc_TtCountOnesVec(Vec_PtrEntry(vDivs, 1), nWords), 100.0*Abc_TtCountOnesVec(Vec_PtrEntry(vDivs, 1), nWords)/(64*nWords) );
+    printf( "OFF = %5d (%6.2f %%)  ", Abc_TtCountOnesVec((word *)Vec_PtrEntry(vDivs, 0), nWords), 100.0*Abc_TtCountOnesVec((word *)Vec_PtrEntry(vDivs, 0), nWords)/(64*nWords) );
+    printf( "ON = %5d (%6.2f %%)\n",  Abc_TtCountOnesVec((word *)Vec_PtrEntry(vDivs, 1), nWords), 100.0*Abc_TtCountOnesVec((word *)Vec_PtrEntry(vDivs, 1), nWords)/(64*nWords) );
     if ( Vec_PtrSize(vDivs) > 4000 )
     {
         printf( "Reducing all divs from %d to 4000.\n", Vec_PtrSize(vDivs) );

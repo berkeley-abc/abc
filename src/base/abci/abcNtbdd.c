@@ -286,7 +286,7 @@ int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limi
     // complement the global functions
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
-        DdNode * bFunc = Abc_ObjGlobalBdd(pObj);
+        DdNode * bFunc = (DdNode *)Abc_ObjGlobalBdd(pObj);
         pObjNew = Abc_NodeBddToMuxes_rec( dd, Cudd_Regular(bFunc), pNtkNew, tBdd2Node );
         if ( Cudd_IsComplement(bFunc) )
             pObjNew = Abc_NtkCreateNodeInv( pNtkNew, pObjNew );

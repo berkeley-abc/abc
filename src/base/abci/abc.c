@@ -32841,7 +32841,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Wrd_t * Gia_ManSimPatRead( char * pFileName );
     int c, fOutputs = 0, nWords = 4, fVerbose = 0;
     char ** pArgvNew;
     int nArgcNew;
@@ -32893,7 +32892,7 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fOutputs )
     {
         Vec_WrdFreeP( &pAbc->pGia->vSimsPo );
-        pAbc->pGia->vSimsPo = Gia_ManSimPatRead( pArgvNew[0] );
+        pAbc->pGia->vSimsPo = Gia_ManSimPatRead( pArgvNew[0], NULL );
         if ( Vec_WrdSize(pAbc->pGia->vSimsPo) % Gia_ManCoNum(pAbc->pGia) != 0 )
         {
             Vec_WrdFreeP( &pAbc->pGia->vSimsPo );
@@ -32907,7 +32906,7 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
-        pAbc->pGia->vSimsPi = Gia_ManSimPatRead( pArgvNew[0] );
+        pAbc->pGia->vSimsPi = Gia_ManSimPatRead( pArgvNew[0], NULL );
         if ( Vec_WrdSize(pAbc->pGia->vSimsPi) % Gia_ManCiNum(pAbc->pGia) != 0 )
         {
             Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
@@ -32944,7 +32943,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9WriteSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManSimPatWrite( char * pFileName, Vec_Wrd_t * vSimsIn, int nWords );
     int c, fOutputs = 0, fVerbose = 0;
     char ** pArgvNew;
     int nArgcNew;
