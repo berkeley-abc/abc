@@ -381,7 +381,7 @@ void Gia_EnumPerms( int nVars )
     nLogVars = Abc_Base2Log( Count );
     printf( "Need %d variables to encode %d sets.\n", nLogVars, Count );
     Count = 0;
-    fprintf( pFile, ".i %d\n", 10 );
+    fprintf( pFile, ".i %d\n", nLogVars );
     fprintf( pFile, ".o %d\n", nVars*nVars );
     Gia_EnumPerms_rec( pUsed, nVars, pPerm, 0, &Count, pFile, nLogVars );   
     fprintf( pFile, ".e\n" );
