@@ -2362,9 +2362,11 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     // print delay trace
     if ( pPars->fVerboseTrace )
     {
+        Gia_ManTransferTiming( pNew, p );
         pNew->pLutLib = pPars->pLutLib;
-        Gia_ManDelayTraceLutPrint( pNew, 1 );
+        Gia_ManDelayTraceLutPrint( pNew, pPars->fVerbose );
         pNew->pLutLib = NULL;
+        Gia_ManTransferTiming( p, pNew );
     }
     return pNew;
 }
