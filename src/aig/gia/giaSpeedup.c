@@ -246,16 +246,24 @@ float Gia_ManDelayTraceLut( Gia_Man_t * p )
 
     // initialize the arrival times
     Gia_ManTimeStart( p );
-    Gia_ManLevelNum( p );
 
     // propagate arrival times
     if ( p->pManTime )
         Tim_ManIncrementTravId( (Tim_Man_t *)p->pManTime );
-    Gia_ManForEachObj( p, pObj, i )
+
+    if ( Gia_ManIsNormalized(p) )
+        vObjs = Gia_ManOrderWithBoxes( p );
+    else {
+        vObjs = Vec_IntAlloc( Gia_ManObjNum(p) );
+        for (i = 0; i < Gia_ManObjNum(p); i++)
+            Vec_IntPush( vObjs, i );
+    }
+    Vec_IntForEachEntry( vObjs, iObj, i )
     {
-        if ( !Gia_ObjIsCi(pObj) && !Gia_ObjIsCo(pObj) && !Gia_ObjIsLut(p, i) )
+        pObj = Gia_ManObj(p, iObj);
+        if ( !Gia_ObjIsCi(pObj) && !Gia_ObjIsCo(pObj) && !Gia_ObjIsLut(p, iObj) )
             continue;
-        tArrival = Gia_ObjComputeArrival( p, i, fUseSorting );
+        tArrival = Gia_ObjComputeArrival( p, iObj, fUseSorting );
         if ( Gia_ObjIsCi(pObj) && p->pManTime )
         {
             tArrival = Tim_ManGetCiArrival( (Tim_Man_t *)p->pManTime, Gia_ObjCioId(pObj) );
@@ -263,7 +271,7 @@ float Gia_ManDelayTraceLut( Gia_Man_t * p )
         }
         if ( Gia_ObjIsCo(pObj) && p->pManTime )
             Tim_ManSetCoArrival( (Tim_Man_t *)p->pManTime, Gia_ObjCioId(pObj), tArrival );
-        Gia_ObjSetTimeArrival( p, i, tArrival );
+        Gia_ObjSetTimeArrival( p, iObj, tArrival );
     }
 
     // get the latest arrival times
@@ -289,8 +297,7 @@ float Gia_ManDelayTraceLut( Gia_Man_t * p )
     }
 
     // propagate the required times
-    vObjs = Gia_ManOrderReverse( p );
-    Vec_IntForEachEntry( vObjs, iObj, i )
+    Vec_IntForEachEntryReverse( vObjs, iObj, i )
     {
         pObj = Gia_ManObj(p, iObj);
         if ( Gia_ObjIsLut(p, iObj) )
