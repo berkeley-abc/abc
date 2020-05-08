@@ -615,8 +615,6 @@ int Gia_ManFindOneUnate( word * pSets[2], Vec_Ptr_t * vDivs, int nWords, Vec_Int
     int n;
     for ( n = 0; n < 2; n++ )
     {
-        Vec_IntClear( vUnateLits[n] );
-        Vec_IntClear( vNotUnateVars[n] );
         Gia_ManFindOneUnateInt( pSets[n], pSets[!n], vDivs, nWords, vUnateLits[n], vNotUnateVars[n] );
         if ( fVerbose ) printf( "Found %d %d-unate divs.\n", Vec_IntSize(vUnateLits[n]), n );
     }
@@ -904,7 +902,7 @@ void Gia_ManComputePairWeights( word * pSets[2], Vec_Ptr_t * vDivs, int nWords, 
 ***********************************************************************/
 int Gia_ManResubPerformInt( Gia_ResbMan_t * p )
 {
-    int TopOneW[2], TopTwoW[2], Max, iResLit, nVars = Vec_PtrSize(p->vDivs);
+    int TopOneW[2] = {0}, TopTwoW[2] = {0}, Max1, Max2, iResLit, nVars = Vec_PtrSize(p->vDivs);
     if ( p->fVerbose )
     {
         printf( "\nCalling decomposition for ISF: " ); 
@@ -995,41 +993,84 @@ int Gia_ManResubPerformInt( Gia_ResbMan_t * p )
         return -1;
     Gia_ManComputeLitWeights( p->pSets, p->vDivs, p->nWords, p->vUnateLits, p->vUnateLitsW, TopOneW, p->fVerbose );
     Gia_ManComputePairWeights( p->pSets, p->vDivs, p->nWords, p->vUnatePairs, p->vUnatePairsW, TopTwoW, p->fVerbose );
-    //Max = Abc_MaxInt( Abc_MaxInt(TopOneW[0], TopOneW[1]), Abc_MaxInt(TopTwoW[0], TopTwoW[1]) );
-    Max = Abc_MaxInt(TopOneW[0], TopOneW[1]);
-    if ( Max == 0 )
+    Max1 = Abc_MaxInt(TopOneW[0], TopOneW[1]);
+    Max2 = Abc_MaxInt(TopTwoW[0], TopTwoW[1]);
+    if ( Abc_MaxInt(Max1, Max2) == 0 )
         return -1;
-    if ( Max == TopOneW[0] || Max == TopOneW[1] )
+    if ( Max1 > Max2/2 )
     {
-        int fUseOr  = Max == TopOneW[0];
-        int iDiv    = Vec_IntEntry( p->vUnateLits[!fUseOr], 0 );
-        int fComp   = Abc_LitIsCompl(iDiv);
-        word * pDiv = (word *)Vec_PtrEntry( p->vDivs, Abc_Lit2Var(iDiv) );
-        Abc_TtAndSharp( p->pSets[fUseOr], p->pSets[fUseOr], pDiv, p->nWords, !fComp );
-        iResLit = Gia_ManResubPerformInt( p );
-        if ( iResLit >= 0 ) 
+        if ( Max1 == TopOneW[0] || Max1 == TopOneW[1] )
         {
-            int iNode = nVars + Vec_IntSize(p->vGates)/2;
-            Vec_IntPushTwo( p->vGates, Abc_LitNot(iDiv), Abc_LitNotCond(iResLit, fUseOr) );
-            return Abc_Var2Lit( iNode, fUseOr );
+            int fUseOr  = Max1 == TopOneW[0];
+            int iDiv    = Vec_IntEntry( p->vUnateLits[!fUseOr], 0 );
+            int fComp   = Abc_LitIsCompl(iDiv);
+            word * pDiv = (word *)Vec_PtrEntry( p->vDivs, Abc_Lit2Var(iDiv) );
+            Abc_TtAndSharp( p->pSets[fUseOr], p->pSets[fUseOr], pDiv, p->nWords, !fComp );
+            iResLit = Gia_ManResubPerformInt( p );
+            if ( iResLit >= 0 ) 
+            {
+                int iNode = nVars + Vec_IntSize(p->vGates)/2;
+                Vec_IntPushTwo( p->vGates, Abc_LitNot(iDiv), Abc_LitNotCond(iResLit, fUseOr) );
+                return Abc_Var2Lit( iNode, fUseOr );
+            }
+        }
+        if ( Max2 == 0 )
+            return -1;
+        if ( Max2 == TopTwoW[0] || Max2 == TopTwoW[1] )
+        {
+            int fUseOr  = Max2 == TopTwoW[0];
+            int iDiv    = Vec_IntEntry( p->vUnatePairs[!fUseOr], 0 );
+            int fComp   = Abc_LitIsCompl(iDiv);
+            Gia_ManDeriveDivPair( iDiv, p->vDivs, p->nWords, p->pDivA );
+            Abc_TtAndSharp( p->pSets[fUseOr], p->pSets[fUseOr], p->pDivA, p->nWords, !fComp );
+            iResLit = Gia_ManResubPerformInt( p );
+            if ( iResLit >= 0 ) 
+            {
+                int iNode = nVars + Vec_IntSize(p->vGates)/2;
+                int iDiv0 = Abc_Lit2Var(iDiv) & 0x7FFF;   
+                int iDiv1 = Abc_Lit2Var(iDiv) >> 15;      
+                Vec_IntPushTwo( p->vGates, iDiv0, iDiv1 );
+                Vec_IntPushTwo( p->vGates, Abc_LitNotCond(iResLit, fUseOr), Abc_Var2Lit(iNode, !fComp) );
+                return Abc_Var2Lit( iNode+1, fUseOr );
+            }
         }
     }
-    if ( Max == TopTwoW[0] || Max == TopTwoW[1] )
+    else
     {
-        int fUseOr  = Max == TopTwoW[0];
-        int iDiv    = Vec_IntEntry( p->vUnatePairs[!fUseOr], 0 );
-        int fComp   = Abc_LitIsCompl(iDiv);
-        Gia_ManDeriveDivPair( iDiv, p->vDivs, p->nWords, p->pDivA );
-        Abc_TtAndSharp( p->pSets[fUseOr], p->pSets[fUseOr], p->pDivA, p->nWords, !fComp );
-        iResLit = Gia_ManResubPerformInt( p );
-        if ( iResLit >= 0 ) 
+        if ( Max2 == TopTwoW[0] || Max2 == TopTwoW[1] )
         {
-            int iNode = nVars + Vec_IntSize(p->vGates)/2;
-            int iDiv0 = Abc_Lit2Var(iDiv) & 0x7FFF;   
-            int iDiv1 = Abc_Lit2Var(iDiv) >> 15;      
-            Vec_IntPushTwo( p->vGates, iDiv0, iDiv1 );
-            Vec_IntPushTwo( p->vGates, Abc_LitNotCond(iResLit, fUseOr), Abc_Var2Lit(iNode, !fComp) );
-            return Abc_Var2Lit( iNode+1, fUseOr );
+            int fUseOr  = Max2 == TopTwoW[0];
+            int iDiv    = Vec_IntEntry( p->vUnatePairs[!fUseOr], 0 );
+            int fComp   = Abc_LitIsCompl(iDiv);
+            Gia_ManDeriveDivPair( iDiv, p->vDivs, p->nWords, p->pDivA );
+            Abc_TtAndSharp( p->pSets[fUseOr], p->pSets[fUseOr], p->pDivA, p->nWords, !fComp );
+            iResLit = Gia_ManResubPerformInt( p );
+            if ( iResLit >= 0 ) 
+            {
+                int iNode = nVars + Vec_IntSize(p->vGates)/2;
+                int iDiv0 = Abc_Lit2Var(iDiv) & 0x7FFF;   
+                int iDiv1 = Abc_Lit2Var(iDiv) >> 15;      
+                Vec_IntPushTwo( p->vGates, iDiv0, iDiv1 );
+                Vec_IntPushTwo( p->vGates, Abc_LitNotCond(iResLit, fUseOr), Abc_Var2Lit(iNode, !fComp) );
+                return Abc_Var2Lit( iNode+1, fUseOr );
+            }
+        }
+        if ( Max1 == 0 )
+            return -1;
+        if ( Max1 == TopOneW[0] || Max1 == TopOneW[1] )
+        {
+            int fUseOr  = Max1 == TopOneW[0];
+            int iDiv    = Vec_IntEntry( p->vUnateLits[!fUseOr], 0 );
+            int fComp   = Abc_LitIsCompl(iDiv);
+            word * pDiv = (word *)Vec_PtrEntry( p->vDivs, Abc_Lit2Var(iDiv) );
+            Abc_TtAndSharp( p->pSets[fUseOr], p->pSets[fUseOr], pDiv, p->nWords, !fComp );
+            iResLit = Gia_ManResubPerformInt( p );
+            if ( iResLit >= 0 ) 
+            {
+                int iNode = nVars + Vec_IntSize(p->vGates)/2;
+                Vec_IntPushTwo( p->vGates, Abc_LitNot(iDiv), Abc_LitNotCond(iResLit, fUseOr) );
+                return Abc_Var2Lit( iNode, fUseOr );
+            }
         }
     }
     return -1;
@@ -1047,8 +1088,16 @@ void Gia_ManResubPerform( Gia_ResbMan_t * p, Vec_Ptr_t * vDivs, int nWords, Vec_
     }
     Vec_IntPush( vRes, Res );
     Gia_ManResubPrint( vRes, Vec_PtrSize(vDivs) );
-    printf( "          Verification %s.\n", Gia_ManResubVerify(p) ? "succeeded" : "FAILED *******************************" );
+    if ( !Gia_ManResubVerify(p) )
+        printf( "    Verification FAILED." );
+//    else
+//        printf( "    Verification succeeded." );
+    printf( "\n" );
 }
+
+extern void Extra_PrintHex( FILE * pFile, unsigned * pTruth, int nVars );
+extern void Dau_DsdPrintFromTruth2( word * pTruth, int nVarsInit );
+
 void Gia_ManResubTest3()
 {
     int nVars = 3;
@@ -1072,9 +1121,12 @@ void Gia_ManResubTest3()
         printf( "%3d : ", i );
         Extra_PrintHex( stdout, (unsigned*)&Truth, nVars );
         printf( " " );
-        Dau_DsdPrintFromTruth2( (unsigned*)&Truth, nVars );
-        printf( "       " );
+        Dau_DsdPrintFromTruth2( &Truth, nVars );
+        printf( "               " );
         Gia_ManResubPerform( p, vDivs, 1, vRes, 0 );
+
+        if ( i == 1000 )
+            break;
     }
     Gia_ResbFree( p );
     Vec_IntFree( vRes );
@@ -1102,7 +1154,7 @@ void Gia_ManResubTest3_()
         Divs[1] =  Truth;
         Extra_PrintHex( stdout, (unsigned*)&Truth, 6 );
         printf( " " );
-        Dau_DsdPrintFromTruth2( (unsigned*)&Truth, 6 );
+        Dau_DsdPrintFromTruth2( &Truth, 6 );
         printf( "       " );
         Gia_ManResubPerform( p, vDivs, 1, vRes, 0 );
     }
