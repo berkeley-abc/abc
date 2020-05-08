@@ -651,6 +651,12 @@ static inline void Vec_PtrPushTwo( Vec_Ptr_t * p, void * Entry1, void * Entry2 )
     Vec_PtrPush( p, Entry1 );
     Vec_PtrPush( p, Entry2 );
 }
+static inline void Vec_PtrAppend( Vec_Ptr_t * vVec1, Vec_Ptr_t * vVec2 )
+{
+    void * Entry; int i;
+    Vec_PtrForEachEntry( void *, vVec2, Entry, i )
+        Vec_PtrPush( vVec1, Entry );
+}
 
 /**Function*************************************************************
 
