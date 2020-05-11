@@ -71,6 +71,15 @@ Vec_Int_t * Acb_ObjCollectTfi( Acb_Ntk_t * p, int iObj, int fTerm )
             Acb_ObjCollectTfi_rec( p, iObj, fTerm );
     return &p->vArray0;
 }
+Vec_Int_t * Acb_ObjCollectTfiVec( Acb_Ntk_t * p, Vec_Int_t * vObjs )
+{
+    int i, iObj;
+    Vec_IntClear( &p->vArray0 );
+    Acb_NtkIncTravId( p );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Acb_ObjCollectTfi_rec( p, iObj, 0 );
+    return &p->vArray0;
+}
 
 void Acb_ObjCollectTfo_rec( Acb_Ntk_t * p, int iObj, int fTerm )
 {
@@ -94,6 +103,130 @@ Vec_Int_t * Acb_ObjCollectTfo( Acb_Ntk_t * p, int iObj, int fTerm )
         Acb_NtkForEachCi( p, iObj, i )
             Acb_ObjCollectTfo_rec( p, iObj, fTerm );
     return &p->vArray1;
+}
+Vec_Int_t * Acb_ObjCollectTfoVec( Acb_Ntk_t * p, Vec_Int_t * vObjs )
+{
+    int i, iObj;
+    if ( !Acb_NtkHasObjFanout(p) )
+        Acb_NtkCreateFanout( p );
+    Vec_IntClear( &p->vArray1 );
+    Acb_NtkIncTravId( p );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Acb_ObjCollectTfo_rec( p, iObj, 0 );
+    return &p->vArray1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Count the number of nodes driving the POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Acb_NtkIsPiBuffers( Acb_Ntk_t * p, int iObj )
+{
+    if ( Acb_ObjIsCi(p, iObj) )
+        return 1;
+    if ( Acb_ObjFaninNum(p, iObj) != 1 )
+        return 0;
+    return Acb_NtkIsPiBuffers( p, Acb_ObjFanin(p, iObj, 0) );
+}
+int Acb_NtkCountPiBuffers( Acb_Ntk_t * p, Vec_Int_t * vObjs )
+{
+    int i, iObj, Count = 0;
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Count += Acb_NtkIsPiBuffers( p, iObj );
+    return Count;
+}
+int Acb_NtkCountPoDrivers( Acb_Ntk_t * p, Vec_Int_t * vObjs )
+{
+    int i, iObj, Count = 0;
+    Acb_NtkIncTravId( p );
+    Acb_NtkForEachCo( p, iObj, i )
+        Acb_ObjSetTravIdCur( p, iObj );
+    Acb_NtkForEachCo( p, iObj, i )
+        Acb_ObjSetTravIdCur( p, Acb_ObjFanin(p, iObj, 0) );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Count += Acb_ObjIsTravIdCur(p, iObj);
+    return Count;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute MFFC size.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Acb_NtkNodeDeref_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj, int nGates[5] )
+{
+    int i, Fanin, * pFanins, Counter = 1;
+    if ( Acb_ObjIsCi(p, iObj) )
+        return 0;
+    if ( nGates )
+    {
+        int Type = Acb_ObjType( p, iObj );
+        if ( Type == ABC_OPER_CONST_F ) 
+            nGates[0]++;
+        if ( Type == ABC_OPER_CONST_T ) 
+            nGates[1]++;
+        if ( Type == ABC_OPER_BIT_BUF ) 
+            nGates[2]++;
+        if ( Type == ABC_OPER_BIT_INV ) 
+            nGates[3]++;
+        else
+            nGates[4] += Acb_ObjFaninNum(p, iObj)-1;
+    }
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
+    {
+        assert( Vec_IntEntry(vRefs, Fanin) > 0 );
+        Vec_IntAddToEntry( vRefs, Fanin, -1 );
+        if ( Vec_IntEntry(vRefs, Fanin) == 0 )
+            Counter += Acb_NtkNodeDeref_rec( vRefs, p, Fanin, nGates );
+    }
+    return Counter;
+}
+int Acb_NtkNodeRef_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj )
+{
+    int i, Fanin, * pFanins, Counter = 1;
+    if ( Acb_ObjIsCi(p, iObj) )
+        return 0;
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
+    {
+        if ( Vec_IntEntry(vRefs, Fanin) == 0 )
+            Counter += Acb_NtkNodeRef_rec( vRefs, p, Fanin );
+        Vec_IntAddToEntry( vRefs, Fanin, 1 );
+    }
+    return Counter;
+}
+int Acb_NtkFindMffcSize( Acb_Ntk_t * p, Vec_Int_t * vObjs, int nGates[5] )
+{
+    Vec_Int_t * vRefs = Vec_IntStart( Acb_NtkObjNumMax(p) );
+    int i, iObj, Fanin, * pFanins, Count1 = 0, Count2 = 0;
+    Acb_NtkForEachObj( p, iObj )
+        Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
+            Vec_IntAddToEntry( vRefs, Fanin, 1 );
+    //Vec_IntForEachEntry( vObjs, iObj, i )
+    //    assert( Vec_IntEntry(vRefs, iObj) > 0 );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Vec_IntAddToEntry( vRefs, iObj, 1 );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Count1 += Acb_NtkNodeDeref_rec( vRefs, p, iObj, nGates );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Count2 += Acb_NtkNodeRef_rec( vRefs, p, iObj );
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Vec_IntAddToEntry( vRefs, iObj, -1 );
+    assert( Count1 == Count2 );
+    Vec_IntFree( vRefs );
+    return Count1;
 }
 
 /**Function*************************************************************

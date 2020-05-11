@@ -1897,6 +1897,14 @@ Vec_Ptr_t * Acb_GenerateSignalNames( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t
     Vec_StrFree( vStr );
     return vRes;
 }
+Vec_Int_t * Acb_GetUsedDivs( Vec_Int_t * vDivs, Vec_Int_t * vUsed )
+{
+    int i, iObj;
+    Vec_Int_t * vRes = Vec_IntAlloc( Vec_IntSize(vUsed) );
+    Vec_IntForEachEntryInVec( vDivs, vUsed, iObj, i )
+        Vec_IntPush( vRes, iObj );
+    return vRes;
+}
 Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUsed, Vec_Ptr_t * vSops, Vec_Ptr_t * vGias, Vec_Int_t * vTars )
 {
     extern Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops );
@@ -1904,10 +1912,16 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
     Vec_Wec_t * vGates = vGias ? Abc_GiaSynthesize(vGias, NULL) : Abc_SopSynthesize(vSops);  Vec_Int_t * vGate;
     int nOuts = vGias ? Vec_PtrSize(vGias) : Vec_PtrSize(vSops);
     int i, k, iObj, nWires = Vec_WecSize(vGates) - Vec_IntSize(vUsed) - nOuts, fFirst = 1;
+    int nGates[5] = {0}, nInvs = 0, nBufs = 0, nNodes = 0, nConst[2] = {0};
     Vec_Ptr_t * vNames = Acb_GenerateSignalNames( p, vDivs, vUsed, nWires, vTars, vGates );
     Vec_Str_t * vStr = Vec_StrAlloc( 100 );
-
-    int nInvs = 0, nBufs = 0, nNodes = 0, nConst = 0;
+    Vec_Int_t * vSup = Acb_GetUsedDivs( vDivs, vUsed );
+    Vec_Int_t * vTfi = Acb_ObjCollectTfiVec( p, vSup );
+    Vec_Int_t * vTfo = Acb_ObjCollectTfoVec( p, vTars );
+    int nPiCount = Acb_NtkCountPiBuffers( p, vSup );
+    int nPoCount = Acb_NtkCountPoDrivers( p, vTars );
+    int nMffc    = Acb_NtkFindMffcSize( p, vSup, nGates );
+    Vec_IntFree( vSup );
     Vec_WecForEachLevelStartStop( vGates, vGate, i, Vec_IntSize(vUsed), Vec_IntSize(vUsed)+nWires )
     {
         if ( Vec_IntSize(vGate) > 2 )
@@ -1918,13 +1932,17 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
             else if ( !strcmp(pName, "not") )
                 nInvs++;
             else
-                nNodes++;
+                nNodes += Vec_IntSize(vGate) - 3;
         }
         else
-            nConst++;
+            nConst[Vec_IntEntry(vGate, 0) == ABC_OPER_CONST_T]++;
     }
-    Vec_StrPrintF( vStr, "// Patch statistics: in = %d  out = %d  gate = %d  (const = %d  buf = %d  inv = %d  other = %d)\n\n", 
-        Vec_IntSize(vUsed), nOuts, nWires, nConst, nBufs, nInvs, nNodes );
+
+    Vec_StrPrintF( vStr, "// Patch   : in = %d  out = %d : pi_in = %d  po_out = %d : tfi = %d  tfo = %d\n", Vec_IntSize(vUsed), nOuts, nPiCount, nPoCount, Vec_IntSize(vTfi), Vec_IntSize(vTfo) );
+    Vec_StrPrintF( vStr, "// Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,       nConst[0], nConst[1], nBufs,     nInvs,     nNodes ); 
+    Vec_StrPrintF( vStr, "// Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,        nGates[0], nGates[1], nGates[2], nGates[3], nGates[4] ); 
+    Vec_StrPrintF( vStr, "// TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n\n", nWires-nMffc, nConst[0]-nGates[0],  nConst[1]-nGates[1],  nBufs-nGates[2], nInvs-nGates[3], nNodes-nGates[4] ); 
+
     Vec_StrAppend( vStr, "module patch (" );
 
     assert( Vec_IntSize(vTars) == nOuts );
@@ -1980,8 +1998,14 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
     Vec_PtrFreeFree( vNames );
     Vec_WecFree( vGates );
 
-    printf( "Synthesized patch with %d inputs, %d outputs and %d gates (const = %d  buf = %d  inv = %d  other = %d).\n", 
-        Vec_IntSize(vUsed), nOuts, nWires, nConst, nBufs, nInvs, nNodes );
+//    printf( "Synthesized patch with %d inputs, %d outputs and %d gates (const = %d  buf = %d  inv = %d  other = %d).\n", 
+//        Vec_IntSize(vUsed), nOuts, nWires, nConst, nBufs, nInvs, nNodes );
+//    printf( "Summary of the results\n" );
+    printf( "\n" );
+    printf( "Patch   : in = %d  out = %d : pi_in = %d  po_out = %d : tfi = %d  tfo = %d\n", Vec_IntSize(vUsed), nOuts, nPiCount, nPoCount, Vec_IntSize(vTfi), Vec_IntSize(vTfo) );
+    printf( "Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,       nConst[0], nConst[1], nBufs,     nInvs,     nNodes ); 
+    printf( "Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,        nGates[0], nGates[1], nGates[2], nGates[3], nGates[4] ); 
+    printf( "TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires-nMffc, nConst[0]-nGates[0],  nConst[1]-nGates[1],  nBufs-nGates[2], nInvs-nGates[3], nNodes-nGates[4] ); 
     return vStr;
 }
 
@@ -2479,7 +2503,7 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
             Vec_IntWriteEntry( vMap, iVar, Vec_IntSize(vUsed) );
             Vec_IntPush( vUsed, iVar );
         }
-    printf( "The number of used variables %d (out of %d).\n", Vec_IntSum(vPres), Vec_IntSize(vPres) );
+    //printf( "The number of used variables %d (out of %d).\n", Vec_IntSum(vPres), Vec_IntSize(vPres) );
     // remap SOPs
     Vec_WecForEachLevel( vSupps, vLevel, i )
     {
