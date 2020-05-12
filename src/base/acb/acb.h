@@ -1023,7 +1023,7 @@ extern Vec_Int_t * Acb_ObjCollectTfiVec( Acb_Ntk_t * p, Vec_Int_t * vObjs );
 extern Vec_Int_t * Acb_ObjCollectTfoVec( Acb_Ntk_t * p, Vec_Int_t * vObjs );
 extern int         Acb_NtkCountPiBuffers( Acb_Ntk_t * p, Vec_Int_t * vObjs );
 extern int         Acb_NtkCountPoDrivers( Acb_Ntk_t * p, Vec_Int_t * vObjs );
-extern int         Acb_NtkFindMffcSize( Acb_Ntk_t * p, Vec_Int_t * vObjs, int nGates[5] );
+extern int         Acb_NtkFindMffcSize( Acb_Ntk_t * p, Vec_Int_t * vObjsRefed, Vec_Int_t * vObjsDerefed, int nGates[5] );
 
 extern int         Acb_ObjComputeLevelD( Acb_Ntk_t * p, int iObj );
 extern int         Acb_NtkComputeLevelD( Acb_Ntk_t * p, Vec_Int_t * vTfo );

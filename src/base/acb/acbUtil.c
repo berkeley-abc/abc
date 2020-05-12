@@ -21,6 +21,7 @@
 #include "acb.h"
 #include "base/abc/abc.h"
 #include "base/io/ioAbc.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -166,67 +167,65 @@ int Acb_NtkCountPoDrivers( Acb_Ntk_t * p, Vec_Int_t * vObjs )
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkNodeDeref_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj, int nGates[5] )
+int Acb_NtkNodeDeref_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj )
+{
+    int i, Fanin, * pFanins, Counter = 1;
+    if ( Acb_ObjIsCi(p, iObj) )
+        return 0;
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
+    {
+        assert( Vec_IntEntry(vRefs, Fanin) > 0 );
+        Vec_IntAddToEntry( vRefs, Fanin, -1 );
+        if ( Vec_IntEntry(vRefs, Fanin) == 0 )
+            Counter += Acb_NtkNodeDeref_rec( vRefs, p, Fanin );
+    }
+    return Counter;
+}
+int Acb_NtkNodeRef_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj, int nGates[5] )
 {
     int i, Fanin, * pFanins, Counter = 1;
     if ( Acb_ObjIsCi(p, iObj) )
         return 0;
     if ( nGates )
     {
+        int nFan = Acb_ObjFaninNum(p, iObj);
         int Type = Acb_ObjType( p, iObj );
         if ( Type == ABC_OPER_CONST_F ) 
             nGates[0]++;
-        if ( Type == ABC_OPER_CONST_T ) 
+        else if ( Type == ABC_OPER_CONST_T ) 
             nGates[1]++;
-        if ( Type == ABC_OPER_BIT_BUF ) 
+        else if ( Type == ABC_OPER_BIT_BUF || Type == ABC_OPER_CO ) 
             nGates[2]++;
-        if ( Type == ABC_OPER_BIT_INV ) 
+        else if ( Type == ABC_OPER_BIT_INV ) 
             nGates[3]++;
         else
+        {
+            assert( nFan >= 2 );
             nGates[4] += Acb_ObjFaninNum(p, iObj)-1;
+        }
     }
     Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
     {
-        assert( Vec_IntEntry(vRefs, Fanin) > 0 );
-        Vec_IntAddToEntry( vRefs, Fanin, -1 );
         if ( Vec_IntEntry(vRefs, Fanin) == 0 )
-            Counter += Acb_NtkNodeDeref_rec( vRefs, p, Fanin, nGates );
-    }
-    return Counter;
-}
-int Acb_NtkNodeRef_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj )
-{
-    int i, Fanin, * pFanins, Counter = 1;
-    if ( Acb_ObjIsCi(p, iObj) )
-        return 0;
-    Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
-    {
-        if ( Vec_IntEntry(vRefs, Fanin) == 0 )
-            Counter += Acb_NtkNodeRef_rec( vRefs, p, Fanin );
+            Counter += Acb_NtkNodeRef_rec( vRefs, p, Fanin, nGates );
         Vec_IntAddToEntry( vRefs, Fanin, 1 );
     }
     return Counter;
 }
-int Acb_NtkFindMffcSize( Acb_Ntk_t * p, Vec_Int_t * vObjs, int nGates[5] )
+int Acb_NtkFindMffcSize( Acb_Ntk_t * p, Vec_Int_t * vObjsRefed, Vec_Int_t * vObjsDerefed, int nGates[5] )
 {
     Vec_Int_t * vRefs = Vec_IntStart( Acb_NtkObjNumMax(p) );
-    int i, iObj, Fanin, * pFanins, Count1 = 0, Count2 = 0;
+    int i, iObj, Fanin, * pFanins, Count2 = 0;
     Acb_NtkForEachObj( p, iObj )
         Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
             Vec_IntAddToEntry( vRefs, Fanin, 1 );
-    //Vec_IntForEachEntry( vObjs, iObj, i )
-    //    assert( Vec_IntEntry(vRefs, iObj) > 0 );
-    Vec_IntForEachEntry( vObjs, iObj, i )
-        Vec_IntAddToEntry( vRefs, iObj, 1 );
-    Vec_IntForEachEntry( vObjs, iObj, i )
-        Count1 += Acb_NtkNodeDeref_rec( vRefs, p, iObj, nGates );
-    Vec_IntForEachEntry( vObjs, iObj, i )
-        Count2 += Acb_NtkNodeRef_rec( vRefs, p, iObj );
-    Vec_IntForEachEntry( vObjs, iObj, i )
-        Vec_IntAddToEntry( vRefs, iObj, -1 );
-    assert( Count1 == Count2 );
+    Vec_IntForEachEntry( vObjsRefed, iObj, i )
+        Acb_NtkNodeRef_rec( vRefs, p, iObj, NULL );
+    Vec_IntForEachEntry( vObjsDerefed, iObj, i )
+        if ( Vec_IntEntry(vRefs, iObj) == 0 )
+            Count2 += Acb_NtkNodeRef_rec( vRefs, p, iObj, nGates );
     Vec_IntFree( vRefs );
-    return Count1;
+    return Count2;
 }
 
 /**Function*************************************************************
@@ -942,6 +941,63 @@ int Abc_NtkExtract( char * pFileName0, char * pFileName1, int fUseXors, int fVer
   SeeAlso     []
 
 ***********************************************************************/
+void Acb_NtkFindNamesInPlaces( char * pBuffer, Vec_Int_t * vPlaces, Vec_Ptr_t * vPivots )
+{
+    int * pCounts = Abc_FrameReadGateCounts();
+    Vec_Ptr_t * vNames = Vec_PtrAlloc( 100 );
+    int i, k, iObj, Pos;
+    for ( i = 0; i < 5; i++ )
+        pCounts[i] = 0;
+    Vec_IntForEachEntryDouble( vPlaces, Pos, iObj, i )
+    {
+        int nFanins = 0;
+        char pLocal[1000], * pTemp, * pName, * pSpot;
+        char * pPivot = (char *)Vec_PtrEntry(vPivots, iObj);
+        for ( k = 0; k < 1000; k++ )
+        {
+            if ( pBuffer[Pos+k] == '\n' )
+            {
+                pLocal[k] = 0;
+                break;
+            }
+            else
+                pLocal[k] = pBuffer[Pos+k];
+        }
+        assert( k < 1000 );
+        pSpot = strstr( pLocal, pPivot );
+        if ( pSpot == NULL )
+        {
+            printf( "Cannot find location of signal \"%s\" in this line.\n", pPivot );
+            continue;
+        }
+        pTemp = strtok( pLocal, " \r\n\t,;()" );
+        while ( pTemp )
+        {
+            if ( !strcmp(pTemp, "1\'b0") )
+                pCounts[0]++;
+            else if ( !strcmp(pTemp, "1\'b1") )
+                pCounts[1]++;
+            else if ( !strcmp(pTemp, "buf") || !strcmp(pTemp, "assign") )
+                pCounts[2]++;
+            else if ( !strcmp(pTemp, "not") )
+                pCounts[3]++;
+            else if ( strcmp(pTemp, pPivot) && pTemp > pSpot )
+            {
+                nFanins++;
+                Vec_PtrForEachEntry( char *, vNames, pName, k )
+                    if ( !strcmp(pName, pTemp) )
+                        break;
+                if ( k == Vec_PtrSize(vNames) )
+                    Vec_PtrPush( vNames, Abc_UtilStrsav(pTemp) );
+            }
+            pTemp = strtok( NULL, " \r\n\t,;()" );
+        }
+        if ( nFanins > 1 )
+            pCounts[4] += nFanins-1;
+    }
+    //printf( "Found %d names\n", Vec_PtrSize(vNames) );
+    Abc_FrameSetSignalNames( vNames );
+}
 Vec_Int_t * Acb_NtkPlaces( char * pFileName, Vec_Ptr_t * vNames )
 {
     Vec_Int_t * vPlaces; int First = 1, Pos = -1, fComment = 0;
@@ -1002,6 +1058,7 @@ void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames,
         return;
     }
     vPlaces = Acb_NtkPlaces( pFileNameIn, vNames );
+    Acb_NtkFindNamesInPlaces( pBuffer, vPlaces, vNames );
     Vec_IntForEachEntryDouble( vPlaces, Pos, iObj, i )
     {
         for ( k = Prev; k < Pos; k++ )

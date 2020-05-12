@@ -1905,6 +1905,42 @@ Vec_Int_t * Acb_GetUsedDivs( Vec_Int_t * vDivs, Vec_Int_t * vUsed )
         Vec_IntPush( vRes, iObj );
     return vRes;
 }
+Vec_Int_t * Acb_GetDerefedNodes( Acb_Ntk_t * p )
+{
+    Vec_Ptr_t * vNames = Abc_FrameReadSignalNames();
+    if ( vNames != NULL )
+    {
+        Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
+        Vec_Int_t * vMap   = Vec_IntStartFull( Abc_NamObjNumMax(p->pDesign->pStrs) );
+        int i, iObj; char * pName;
+        Acb_NtkForEachObj( p, iObj )
+            if ( Acb_ObjName(p, iObj) )
+                Vec_IntWriteEntry( vMap, Acb_ObjName(p, iObj), iObj );
+        Vec_PtrForEachEntry( char *, vNames, pName, i )
+        {
+            int NameId = Abc_NamStrFindOrAdd( p->pDesign->pStrs, pName, NULL );
+            if ( NameId == 0 )
+            {
+                printf( "Cannot find name ID for name %s\n", pName );
+                Vec_IntFree( vMap );
+                Vec_IntFree( vNodes );
+                return NULL;
+            }
+            else if ( Vec_IntEntry(vMap, NameId) == -1 )
+            {
+                printf( "Cannot find obj ID for name %s\n", pName );
+                Vec_IntFree( vMap );
+                Vec_IntFree( vNodes );
+                return NULL;
+            }
+            else
+                Vec_IntPush( vNodes, Vec_IntEntry(vMap, NameId) );
+        }
+        Vec_IntFree( vMap );
+        return vNodes;
+    }
+    return NULL;
+}
 Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUsed, Vec_Ptr_t * vSops, Vec_Ptr_t * vGias, Vec_Int_t * vTars )
 {
     extern Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops );
@@ -1912,15 +1948,19 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
     Vec_Wec_t * vGates = vGias ? Abc_GiaSynthesize(vGias, NULL) : Abc_SopSynthesize(vSops);  Vec_Int_t * vGate;
     int nOuts = vGias ? Vec_PtrSize(vGias) : Vec_PtrSize(vSops);
     int i, k, iObj, nWires = Vec_WecSize(vGates) - Vec_IntSize(vUsed) - nOuts, fFirst = 1;
-    int nGates[5] = {0}, nInvs = 0, nBufs = 0, nNodes = 0, nConst[2] = {0};
+    int nGates1[5] = {0}, nGates0[5] = {0};
     Vec_Ptr_t * vNames = Acb_GenerateSignalNames( p, vDivs, vUsed, nWires, vTars, vGates );
     Vec_Str_t * vStr = Vec_StrAlloc( 100 );
     Vec_Int_t * vSup = Acb_GetUsedDivs( vDivs, vUsed );
+    Vec_Int_t * vDrf = Acb_GetDerefedNodes( p );
     Vec_Int_t * vTfi = Acb_ObjCollectTfiVec( p, vSup );
     Vec_Int_t * vTfo = Acb_ObjCollectTfoVec( p, vTars );
     int nPiCount = Acb_NtkCountPiBuffers( p, vSup );
     int nPoCount = Acb_NtkCountPoDrivers( p, vTars );
-    int nMffc    = Acb_NtkFindMffcSize( p, vSup, nGates );
+    int nMffc    = vDrf ? Vec_IntSize(vTars) + Acb_NtkFindMffcSize( p, vSup, vDrf, nGates1 ) : 0;
+    int * pCounts = Abc_FrameReadGateCounts();
+    for ( i = 0; i < 5; i++ )
+        nGates1[i] += pCounts[i];
     Vec_IntFree( vSup );
     Vec_WecForEachLevelStartStop( vGates, vGate, i, Vec_IntSize(vUsed), Vec_IntSize(vUsed)+nWires )
     {
@@ -1928,20 +1968,23 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
         {
             char * pName = Acb_Oper2Name(Vec_IntEntry(vGate, 0));
             if ( !strcmp(pName, "buf") )
-                nBufs++;
+                nGates0[2]++;
             else if ( !strcmp(pName, "not") )
-                nInvs++;
+                nGates0[3]++;
             else
-                nNodes += Vec_IntSize(vGate) - 3;
+                nGates0[4] += Vec_IntSize(vGate) - 3;
         }
         else
-            nConst[Vec_IntEntry(vGate, 0) == ABC_OPER_CONST_T]++;
+            nGates0[Vec_IntEntry(vGate, 0) == ABC_OPER_CONST_T]++;
     }
 
     Vec_StrPrintF( vStr, "// Patch   : in = %d  out = %d : pi_in = %d  po_out = %d : tfi = %d  tfo = %d\n", Vec_IntSize(vUsed), nOuts, nPiCount, nPoCount, Vec_IntSize(vTfi), Vec_IntSize(vTfo) );
-    Vec_StrPrintF( vStr, "// Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,       nConst[0], nConst[1], nBufs,     nInvs,     nNodes ); 
-    Vec_StrPrintF( vStr, "// Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,        nGates[0], nGates[1], nGates[2], nGates[3], nGates[4] ); 
-    Vec_StrPrintF( vStr, "// TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n\n", nWires-nMffc, nConst[0]-nGates[0],  nConst[1]-nGates[1],  nBufs-nGates[2], nInvs-nGates[3], nNodes-nGates[4] ); 
+    Vec_StrPrintF( vStr, "// Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,         nGates0[0], nGates0[1], nGates0[2], nGates0[3], nGates0[4] ); 
+    if ( vDrf != NULL )
+    Vec_StrPrintF( vStr, "// Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,          nGates1[0], nGates1[1], nGates1[2], nGates1[3], nGates1[4] ); 
+    if ( vDrf != NULL )
+    Vec_StrPrintF( vStr, "// TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires-nMffc, nGates0[0]-nGates1[0],  nGates0[1]-nGates1[1],  nGates0[2]-nGates1[2], nGates0[3]-nGates1[3], nGates0[4]-nGates1[4] ); 
+    Vec_StrPrintF( vStr, "\n" );
 
     Vec_StrAppend( vStr, "module patch (" );
 
@@ -2003,9 +2046,13 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
 //    printf( "Summary of the results\n" );
     printf( "\n" );
     printf( "Patch   : in = %d  out = %d : pi_in = %d  po_out = %d : tfi = %d  tfo = %d\n", Vec_IntSize(vUsed), nOuts, nPiCount, nPoCount, Vec_IntSize(vTfi), Vec_IntSize(vTfo) );
-    printf( "Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,       nConst[0], nConst[1], nBufs,     nInvs,     nNodes ); 
-    printf( "Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,        nGates[0], nGates[1], nGates[2], nGates[3], nGates[4] ); 
-    printf( "TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires-nMffc, nConst[0]-nGates[0],  nConst[1]-nGates[1],  nBufs-nGates[2], nInvs-nGates[3], nNodes-nGates[4] ); 
+    printf( "Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,         nGates0[0], nGates0[1], nGates0[2], nGates0[3], nGates0[4] ); 
+    if ( vDrf != NULL )
+    printf( "Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,          nGates1[0], nGates1[1], nGates1[2], nGates1[3], nGates1[4] ); 
+    if ( vDrf != NULL )
+    printf( "TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires-nMffc,   nGates0[0]-nGates1[0],  nGates0[1]-nGates1[1],  nGates0[2]-nGates1[2], nGates0[3]-nGates1[3], nGates0[4]-nGates1[4] ); 
+    printf( "\n" );
+    Vec_IntFreeP( &vDrf );
     return vStr;
 }
 

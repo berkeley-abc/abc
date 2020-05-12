@@ -67,6 +67,8 @@ void *      Abc_FrameReadManDec()                            { if ( s_GlobalFram
 void *      Abc_FrameReadManDsd()                            { return s_GlobalFrame->pManDsd;      } 
 void *      Abc_FrameReadManDsd2()                           { return s_GlobalFrame->pManDsd2;     }
 char *      Abc_FrameReadFlag( char * pFlag )                { return Cmd_FlagReadByName( s_GlobalFrame, pFlag );   }
+Vec_Ptr_t * Abc_FrameReadSignalNames()                       { return s_GlobalFrame->vSignalNames; }
+int *       Abc_FrameReadGateCounts()                        { return s_GlobalFrame->pGateCounts;  }
 
 int         Abc_FrameReadBmcFrames( Abc_Frame_t * p )        { return s_GlobalFrame->nFrames;      }               
 int         Abc_FrameReadProbStatus( Abc_Frame_t * p )       { return s_GlobalFrame->Status;       }               
@@ -102,6 +104,7 @@ void        Abc_FrameSetManDsd2( void * pMan )               { if (s_GlobalFrame
 void        Abc_FrameSetInv( Vec_Int_t * vInv )              { Vec_IntFreeP(&s_GlobalFrame->pAbcWlcInv); s_GlobalFrame->pAbcWlcInv = vInv; }
 void        Abc_FrameSetJsonStrs( Abc_Nam_t * pStrs )        { Abc_NamDeref( s_GlobalFrame->pJsonStrs ); s_GlobalFrame->pJsonStrs = pStrs; }
 void        Abc_FrameSetJsonObjs( Vec_Wec_t * vObjs )        { Vec_WecFreeP(&s_GlobalFrame->vJsonObjs ); s_GlobalFrame->vJsonObjs = vObjs; }
+void        Abc_FrameSetSignalNames( Vec_Ptr_t * vNames )    { if ( s_GlobalFrame->vSignalNames ) Vec_PtrFreeFree( s_GlobalFrame->vSignalNames ); s_GlobalFrame->vSignalNames = vNames; }
 
 int         Abc_FrameIsBatchMode()                           { return s_GlobalFrame ? s_GlobalFrame->fBatchMode : 0;              } 
 
@@ -231,6 +234,8 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     }
     Vec_IntFreeP( &p->vIndFlops );
     Vec_PtrFreeP( &p->vLTLProperties_global );
+    if ( p->vSignalNames )
+    Vec_PtrFreeFree( p->vSignalNames );
     Abc_FrameDeleteAllNetworks( p );
     ABC_FREE( p->pDrivingCell );
     ABC_FREE( p->pCex2 );
