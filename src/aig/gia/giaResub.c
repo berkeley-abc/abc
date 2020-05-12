@@ -1032,6 +1032,7 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
         }
         if ( Max2 == 0 )
             return -1;
+/*
         if ( Max2 == TopTwoW[0] || Max2 == TopTwoW[1] )
         {
             int fUseOr  = Max2 == TopTwoW[0];
@@ -1050,6 +1051,7 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
                 return Abc_Var2Lit( iNode+1, fUseOr );
             }
         }
+*/
     }
     else
     {
@@ -1073,6 +1075,7 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
         }
         if ( Max1 == 0 )
             return -1;
+/*
         if ( Max1 == TopOneW[0] || Max1 == TopOneW[1] )
         {
             int fUseOr  = Max1 == TopOneW[0];
@@ -1088,6 +1091,7 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
                 return Abc_Var2Lit( iNode, fUseOr );
             }
         }
+*/
     }
     return -1;
 }
@@ -1117,6 +1121,7 @@ void Abc_ResubPrepareManager( int nWords )
 {
     if ( s_pResbMan != NULL )
         Gia_ResbFree( s_pResbMan );
+    s_pResbMan = NULL;
     if ( nWords > 0 )
         s_pResbMan = Gia_ResbAlloc( nWords );
 }
@@ -1260,7 +1265,8 @@ void Gia_ManResubTest3_()
 ***********************************************************************/
 void Gia_ManCheckResub( Vec_Ptr_t * vDivs, int nWords )
 {
-    int i, Set[10] = { 2, 189, 2127, 2125, 177, 178 };
+    //int i, nVars = 6, pVarSet[10] = { 2, 189, 2127, 2125, 177, 178 };
+    int i, nVars = 3, pVarSet[10] = { 2, 3, 4 };
     word * pOffSet = (word *)Vec_PtrEntry( vDivs, 0 );
     word * pOnSet  = (word *)Vec_PtrEntry( vDivs, 1 );
     Vec_Int_t * vValue = Vec_IntStartFull( 1 << 6 );
@@ -1270,8 +1276,8 @@ void Gia_ManCheckResub( Vec_Ptr_t * vDivs, int nWords )
         int v, Mint = 0, Value = Abc_TtGetBit(pOnSet, i);
         if ( !Abc_TtGetBit(pOffSet, i) && !Value )
             continue;
-        for ( v = 0; v < 6; v++ )
-            if ( Abc_TtGetBit((word *)Vec_PtrEntry(vDivs, Set[v]), i) )
+        for ( v = 0; v < nVars; v++ )
+            if ( Abc_TtGetBit((word *)Vec_PtrEntry(vDivs, pVarSet[v]), i) )
                 Mint |= 1 << v;
         if ( Vec_IntEntry(vValue, Mint) == -1 )
             Vec_IntWriteEntry(vValue, Mint, Value);
@@ -1300,7 +1306,7 @@ Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, i
     Vec_Wrd_t * vSims  = Gia_ManSimPatRead( pFileName, &nWords );
     Vec_Ptr_t * vDivs  = vSims ? Gia_ManDeriveDivs( vSims, nWords ) : NULL;
     Gia_ResbMan_t * p = Gia_ResbAlloc( nWords );
-//    Gia_ManCheckResub( vDivs, nWords );
+    //Gia_ManCheckResub( vDivs, nWords );
     if ( Vec_PtrSize(vDivs) >= (1<<14) )
     {
         printf( "Reducing all divs from %d to %d.\n", Vec_PtrSize(vDivs), (1<<14)-1 );
