@@ -290,6 +290,8 @@ struct Gia_ResbMan_t_
 {
     int         nWords;
     int         nLimit;
+    int         nChoice;
+    int         fUseXor;
     int         fDebug;
     int         fVerbose;
     Vec_Ptr_t * vDivs;
@@ -329,10 +331,12 @@ Gia_ResbMan_t * Gia_ResbAlloc( int nWords )
     p->vSims            = Vec_WrdAlloc( 100 );
     return p;
 }
-void Gia_ResbInit( Gia_ResbMan_t * p, Vec_Ptr_t * vDivs, int nWords, int nLimit, int fDebug, int fVerbose )
+void Gia_ResbInit( Gia_ResbMan_t * p, Vec_Ptr_t * vDivs, int nWords, int nLimit, int nChoice, int fUseXor, int fDebug, int fVerbose )
 {
     assert( p->nWords == nWords );
     p->nLimit   = nLimit;
+    p->nChoice  = nChoice;
+    p->fUseXor  = fUseXor;
     p->fDebug   = fDebug;
     p->fVerbose = fVerbose;
     Abc_TtCopy( p->pSets[0], (word *)Vec_PtrEntry(vDivs, 0), nWords, 0 );
@@ -441,7 +445,7 @@ int Gia_ManResubPrint( Vec_Int_t * vRes, int nVars )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManResubVerify( Gia_ResbMan_t * p )
+int Gia_ManResubVerify( Gia_ResbMan_t * p, word * pFunc )
 {
     int nVars = Vec_PtrSize(p->vDivs);
     int iTopLit, RetValue;
@@ -451,9 +455,15 @@ int Gia_ManResubVerify( Gia_ResbMan_t * p )
     iTopLit = Vec_IntEntryLast(p->vGates);
     assert( iTopLit >= 0 );
     if ( iTopLit == 0 )
+    {
+        if ( pFunc ) Abc_TtClear( pFunc, p->nWords );
         return Abc_TtIsConst0( p->pSets[1], p->nWords );
+    }
     if ( iTopLit == 1 )
+    {
+        if ( pFunc ) Abc_TtFill( pFunc, p->nWords );
         return Abc_TtIsConst0( p->pSets[0], p->nWords );
+    }
     if ( Abc_Lit2Var(iTopLit) < nVars )
     {
         assert( Vec_IntSize(p->vGates) == 1 );
@@ -489,6 +499,7 @@ int Gia_ManResubVerify( Gia_ResbMan_t * p )
         RetValue = !Abc_TtIntersectOne(p->pSets[1], 0, pDivRes, 0, p->nWords) && !Abc_TtIntersectOne(p->pSets[0], 0, pDivRes, 1, p->nWords);
     else
         RetValue = !Abc_TtIntersectOne(p->pSets[0], 0, pDivRes, 0, p->nWords) && !Abc_TtIntersectOne(p->pSets[1], 0, pDivRes, 1, p->nWords);
+    if ( pFunc ) Abc_TtCopy( pFunc, pDivRes, p->nWords, Abc_LitIsCompl(iTopLit) );
     return RetValue;
 }
 
@@ -503,62 +514,177 @@ int Gia_ManResubVerify( Gia_ResbMan_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManGetVar( Gia_Man_t * pNew, Vec_Int_t * vUsed, int iVar )
+int Gia_ManConstructFromMap( Gia_Man_t * pNew, Vec_Int_t * vGates, int nVars, Vec_Int_t * vUsed, Vec_Int_t * vCopy, int fHash )
 {
-    if ( Vec_IntEntry(vUsed, iVar) == -1 )
-        Vec_IntWriteEntry( vUsed, iVar, Gia_ManAppendCi(pNew) );
-    return Vec_IntEntry(vUsed, iVar);
-}
-Gia_Man_t * Gia_ManConstructFromGates( Vec_Int_t * vGates, int nVars )
-{
-    int i, iLit0, iLit1, iTopLit, iLitRes;
-    Gia_Man_t * pNew;
-    if ( Vec_IntSize(vGates) == 0 )
-        return NULL;
+    int i, iLit0, iLit1, iLitRes, iTopLit = Vec_IntEntryLast( vGates );
+    assert( Vec_IntSize(vUsed) == nVars );
+    assert( Vec_IntSize(vGates) > 1 );
     assert( Vec_IntSize(vGates) % 2 == 1 );
-    pNew = Gia_ManStart( 100 );
-    pNew->pName = Abc_UtilStrsav( "resub" );
-    iTopLit = Vec_IntEntryLast( vGates );
-    if ( iTopLit == 0 || iTopLit == 1 )
-        iLitRes = 0;
-    else if ( Abc_Lit2Var(iTopLit) < nVars )
+    assert( Abc_Lit2Var(iTopLit)-nVars == Vec_IntSize(vGates)/2-1 );
+    Vec_IntClear( vCopy );
+    Vec_IntForEachEntryDouble( vGates, iLit0, iLit1, i )
     {
-        assert( Vec_IntSize(vGates) == 1 );
-        iLitRes = Gia_ManAppendCi(pNew);
-    }
-    else
-    {
-        Vec_Int_t * vUsed = Vec_IntStartFull( nVars );
-        Vec_Int_t * vCopy = Vec_IntAlloc( Vec_IntSize(vGates)/2 );
-        assert( Vec_IntSize(vGates) > 1 );
-        assert( Vec_IntSize(vGates) % 2 == 1 );
-        assert( Abc_Lit2Var(iTopLit)-nVars == Vec_IntSize(vGates)/2-1 );
-        Vec_IntForEachEntryDouble( vGates, iLit0, iLit1, i )
+        int iVar0 = Abc_Lit2Var(iLit0);
+        int iVar1 = Abc_Lit2Var(iLit1);
+        int iRes0 = iVar0 < nVars ? Vec_IntEntry(vUsed, iVar0) : Vec_IntEntry(vCopy, iVar0 - nVars);
+        int iRes1 = iVar1 < nVars ? Vec_IntEntry(vUsed, iVar1) : Vec_IntEntry(vCopy, iVar1 - nVars);
+        if ( iVar0 < iVar1 )
         {
-            int iVar0 = Abc_Lit2Var(iLit0);
-            int iVar1 = Abc_Lit2Var(iLit1);
-            int iRes0 = iVar0 < nVars ? Gia_ManGetVar(pNew, vUsed, iVar0) : Vec_IntEntry(vCopy, iVar0 - nVars);
-            int iRes1 = iVar1 < nVars ? Gia_ManGetVar(pNew, vUsed, iVar1) : Vec_IntEntry(vCopy, iVar1 - nVars);
-            if ( iVar0 < iVar1 )
+            if ( fHash )
+                iLitRes = Gia_ManHashAnd( pNew, Abc_LitNotCond(iRes0, Abc_LitIsCompl(iLit0)), Abc_LitNotCond(iRes1, Abc_LitIsCompl(iLit1)) );
+            else
                 iLitRes = Gia_ManAppendAnd( pNew, Abc_LitNotCond(iRes0, Abc_LitIsCompl(iLit0)), Abc_LitNotCond(iRes1, Abc_LitIsCompl(iLit1)) );
-            else if ( iVar0 > iVar1 )
-            {
-                assert( !Abc_LitIsCompl(iLit0) );
-                assert( !Abc_LitIsCompl(iLit1) );
-                iLitRes = Gia_ManAppendXor( pNew, Abc_LitNotCond(iRes0, Abc_LitIsCompl(iLit0)), Abc_LitNotCond(iRes1, Abc_LitIsCompl(iLit1)) );
-            }
-            else assert( 0 );
-            Vec_IntPush( vCopy, iLitRes );
         }
-        assert( Vec_IntSize(vCopy) == Vec_IntSize(vGates)/2 );
-        iLitRes = Vec_IntEntry( vCopy, Vec_IntSize(vGates)/2-1 );
-        Vec_IntFree( vUsed );
-        Vec_IntFree( vCopy );
+        else if ( iVar0 > iVar1 )
+        {
+            assert( !Abc_LitIsCompl(iLit0) );
+            assert( !Abc_LitIsCompl(iLit1) );
+            if ( fHash )
+                iLitRes = Gia_ManHashXor( pNew, Abc_LitNotCond(iRes0, Abc_LitIsCompl(iLit0)), Abc_LitNotCond(iRes1, Abc_LitIsCompl(iLit1)) );
+            else
+                iLitRes = Gia_ManAppendXor( pNew, Abc_LitNotCond(iRes0, Abc_LitIsCompl(iLit0)), Abc_LitNotCond(iRes1, Abc_LitIsCompl(iLit1)) );
+        }
+        else assert( 0 );
+        Vec_IntPush( vCopy, iLitRes );
     }
-    Gia_ManAppendCo( pNew, Abc_LitNotCond(iLitRes, Abc_LitIsCompl(iTopLit)) );
+    assert( Vec_IntSize(vCopy) == Vec_IntSize(vGates)/2 );
+    iLitRes = Vec_IntEntry( vCopy, Vec_IntSize(vGates)/2-1 );
+    return iLitRes;
+}
+Gia_Man_t * Gia_ManConstructFromGates( Vec_Wec_t * vFuncs, int nVars )
+{
+    Vec_Int_t * vGates; int i, k, iLit;
+    Vec_Int_t * vCopy = Vec_IntAlloc( 100 );
+    Vec_Int_t * vUsed = Vec_IntStartFull( nVars );
+    Gia_Man_t * pNew = Gia_ManStart( 100 );
+    pNew->pName = Abc_UtilStrsav( "resub" );
+    Vec_WecForEachLevel( vFuncs, vGates, i )
+    {
+        assert( Vec_IntSize(vGates) % 2 == 1 );
+        Vec_IntForEachEntry( vGates, iLit, k )
+        {
+            int iVar = Abc_Lit2Var(iLit);
+            if ( iVar > 0 && iVar < nVars && Vec_IntEntry(vUsed, iVar) == -1 )
+                Vec_IntWriteEntry( vUsed, iVar, Gia_ManAppendCi(pNew) );
+        }
+    }
+    Vec_WecForEachLevel( vFuncs, vGates, i )
+    {
+        int iLitRes, iTopLit = Vec_IntEntryLast( vGates );
+        if ( Abc_Lit2Var(iTopLit) == 0 )
+            iLitRes = 0;
+        else if ( Abc_Lit2Var(iTopLit) < nVars )
+            iLitRes = Gia_ManAppendCi(pNew);
+        else
+            iLitRes = Gia_ManConstructFromMap( pNew, vGates, nVars, vUsed, vCopy, 0 );
+        Gia_ManAppendCo( pNew, Abc_LitNotCond( iLitRes, Abc_LitIsCompl(iTopLit) ) );
+    }
+    Vec_IntFree( vCopy );
+    Vec_IntFree( vUsed );
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Construct AIG manager from gates.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManInsertOrder_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vObjs, Vec_Wec_t * vFuncs, Vec_Int_t * vNodes )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    if ( iObj == 0 )
+        return;
+    if ( pObj->fPhase )
+    {
+        int nVars = Gia_ManObjNum(p);
+        int k, iLit, Index = Vec_IntFind( vObjs, iObj );
+        Vec_Int_t * vGates = Vec_WecEntry( vFuncs, Index );
+        assert( Gia_ObjIsCo(pObj) || Gia_ObjIsAnd(pObj) );
+        Vec_IntForEachEntry( vGates, iLit, k )
+            if ( Abc_Lit2Var(iLit) < nVars )
+                Gia_ManInsertOrder_rec( p, Abc_Lit2Var(iLit), vObjs, vFuncs, vNodes );
+    }
+    else if ( Gia_ObjIsCo(pObj) )
+        Gia_ManInsertOrder_rec( p, Gia_ObjFaninId0p(p, pObj), vObjs, vFuncs, vNodes );
+    else if ( Gia_ObjIsAnd(pObj) )
+    {
+        Gia_ManInsertOrder_rec( p, Gia_ObjFaninId0p(p, pObj), vObjs, vFuncs, vNodes );
+        Gia_ManInsertOrder_rec( p, Gia_ObjFaninId1p(p, pObj), vObjs, vFuncs, vNodes );
+    }
+    else assert( Gia_ObjIsCi(pObj) );
+    if ( !Gia_ObjIsCi(pObj) )
+        Vec_IntPush( vNodes, iObj );
+}
+Vec_Int_t * Gia_ManInsertOrder( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wec_t * vFuncs )
+{
+    int i, Id;
+    Vec_Int_t * vNodes = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_ManForEachCoId( p, Id, i )
+        Gia_ManInsertOrder_rec( p, Id, vObjs, vFuncs, vNodes );
+    return vNodes;
+}
+Gia_Man_t * Gia_ManInsertFromGates( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wec_t * vFuncs )
+{
+    Gia_Man_t * pNew, * pTemp; 
+    Gia_Obj_t * pObj; 
+    int i, nVars = Gia_ManObjNum(p);
+    Vec_Int_t * vUsed = Vec_IntStartFull( nVars );
+    Vec_Int_t * vNodes, * vCopy = Vec_IntAlloc(100);
+    Gia_ManForEachObjVec( vObjs, p, pObj, i )
+        pObj->fPhase = 1;
+    vNodes = Gia_ManInsertOrder( p, vObjs, vFuncs );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) + 1000 );
+    Gia_ManHashStart( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachObjVec( vNodes, p, pObj, i )
+        if ( !pObj->fPhase )
+        {
+            if ( Gia_ObjIsCo(pObj) )
+                pObj->Value = Gia_ObjFanin0Copy(pObj);
+            else if ( Gia_ObjIsAnd(pObj) )            
+                pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            else assert( 0 );
+        }
+        else
+        {
+            int k, iLit, Index = Vec_IntFind( vObjs, Gia_ObjId(p, pObj) );
+            Vec_Int_t * vGates = Vec_WecEntry( vFuncs, Index );
+            int iLitRes, iTopLit = Vec_IntEntryLast( vGates );
+            if ( Abc_Lit2Var(iTopLit) == 0 )
+                iLitRes = 0;
+            else if ( Abc_Lit2Var(iTopLit) < nVars )
+                iLitRes = Gia_ManObj(p, Abc_Lit2Var(iTopLit))->Value;
+            else
+            {
+                Vec_IntForEachEntry( vGates, iLit, k )
+                    Vec_IntWriteEntry( vUsed, Abc_Lit2Var(iLit), Gia_ManObj(p, Abc_Lit2Var(iLit))->Value );
+                iLitRes = Gia_ManConstructFromMap( pNew, vGates, nVars, vUsed, vCopy, 1 );
+                Vec_IntForEachEntry( vGates, iLit, k )
+                    Vec_IntWriteEntry( vUsed, Abc_Lit2Var(iLit), -1 );
+            }
+            pObj->Value = Abc_LitNotCond( iLitRes, Abc_LitIsCompl(iTopLit) );
+        }
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, pObj->Value );
+    Gia_ManForEachObjVec( vObjs, p, pObj, i )
+        pObj->fPhase = 0;
+    Gia_ManHashStop( pNew );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    Vec_IntFree( vNodes );
+    Vec_IntFree( vUsed );
+    Vec_IntFree( vCopy );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
 
 /**Function*************************************************************
 
@@ -943,18 +1069,21 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
         printf( "Reducing binate divs from %d to 1000.\n", Vec_IntSize(p->vBinateVars) );
         Vec_IntShrink( p->vBinateVars, 1000 );
     }
-    iResLit = Gia_ManFindXor( p->pSets, p->vDivs, p->nWords, p->vBinateVars, p->vUnatePairs, p->fVerbose );
-    if ( iResLit >= 0 ) // xor
+    if ( p->fUseXor )
     {
-        int iNode = nVars + Vec_IntSize(p->vGates)/2;
-        int fComp = Abc_LitIsCompl(iResLit);
-        int iDiv0 = Abc_Lit2Var(iResLit) & 0x7FFF;
-        int iDiv1 = Abc_Lit2Var(iResLit) >> 15;
-        assert( !Abc_LitIsCompl(iDiv0) );
-        assert( !Abc_LitIsCompl(iDiv1) );
-        assert( iDiv0 > iDiv1 );
-        Vec_IntPushTwo( p->vGates, iDiv0, iDiv1 );
-        return Abc_Var2Lit( iNode, fComp );
+        iResLit = Gia_ManFindXor( p->pSets, p->vDivs, p->nWords, p->vBinateVars, p->vUnatePairs, p->fVerbose );
+        if ( iResLit >= 0 ) // xor
+        {
+            int iNode = nVars + Vec_IntSize(p->vGates)/2;
+            int fComp = Abc_LitIsCompl(iResLit);
+            int iDiv0 = Abc_Lit2Var(iResLit) & 0x7FFF;
+            int iDiv1 = Abc_Lit2Var(iResLit) >> 15;
+            assert( !Abc_LitIsCompl(iDiv0) );
+            assert( !Abc_LitIsCompl(iDiv1) );
+            assert( iDiv0 > iDiv1 );
+            Vec_IntPushTwo( p->vGates, iDiv0, iDiv1 );
+            return Abc_Var2Lit( iNode, fComp );
+        }
     }
     if ( nLimit == 1 )
         return -1;
@@ -1095,13 +1224,33 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
     }
     return -1;
 }
-void Gia_ManResubPerform( Gia_ResbMan_t * p, Vec_Ptr_t * vDivs, int nWords, int nLimit, int fDebug, int fVerbose )
+void Gia_ManResubPerform( Gia_ResbMan_t * p, Vec_Ptr_t * vDivs, int nWords, int nLimit, int nChoice, int fUseXor, int fDebug, int fVerbose )
 {
     int Res;
-    Gia_ResbInit( p, vDivs, nWords, nLimit, fDebug, fVerbose );
+    Gia_ResbInit( p, vDivs, nWords, nLimit, nChoice, fUseXor, fDebug, fVerbose );
     Res = Gia_ManResubPerform_rec( p, nLimit );
     if ( Res >= 0 )
         Vec_IntPush( p->vGates, Res );
+}
+Vec_Int_t * Gia_ManResubOne( Vec_Ptr_t * vDivs, int nWords, int nLimit, int nChoice, int fUseXor, int fDebug, int fVerbose, word * pFunc )
+{
+    Vec_Int_t * vRes;
+    Gia_ResbMan_t * p = Gia_ResbAlloc( nWords );
+    Gia_ManResubPerform( p, vDivs, nWords, nLimit, nChoice, fUseXor, fDebug, 0 );
+    if ( fVerbose )
+        Gia_ManResubPrint( p->vGates, Vec_PtrSize(vDivs) );
+    if ( !Gia_ManResubVerify(p, pFunc) )
+    {
+        Gia_ManResubPrint( p->vGates, Vec_PtrSize(vDivs) );
+        printf( "Verification FAILED.\n" );
+    }
+    else if ( fDebug && fVerbose )
+        printf( "Verification succeeded." );
+    if ( fVerbose )
+        printf( "\n" );
+    vRes = Vec_IntDup( p->vGates );
+    Gia_ResbFree( p );
+    return vRes;
 }
 
 /**Function*************************************************************
@@ -1126,11 +1275,11 @@ void Abc_ResubPrepareManager( int nWords )
         s_pResbMan = Gia_ResbAlloc( nWords );
 }
 
-int Abc_ResubComputeFunction( void ** ppDivs, int nDivs, int nWords, int nLimit, int fDebug, int fVerbose, int ** ppArray )
+int Abc_ResubComputeFunction( void ** ppDivs, int nDivs, int nWords, int nLimit, int nChoice, int fUseXor, int fDebug, int fVerbose, int ** ppArray )
 {
     Vec_Ptr_t Divs = { nDivs, nDivs, ppDivs };
     assert( s_pResbMan != NULL ); // first call Abc_ResubPrepareManager()
-    Gia_ManResubPerform( s_pResbMan, &Divs, nWords, nLimit, fDebug, 0 );
+    Gia_ManResubPerform( s_pResbMan, &Divs, nWords, nLimit, nChoice, fUseXor, fDebug, 0 );
     if ( fVerbose )
     {
         Gia_ManResubPrint( s_pResbMan->vGates, nDivs );
@@ -1138,7 +1287,7 @@ int Abc_ResubComputeFunction( void ** ppDivs, int nDivs, int nWords, int nLimit,
     }
     if ( fDebug )
     {
-        if ( !Gia_ManResubVerify(s_pResbMan) )
+        if ( !Gia_ManResubVerify(s_pResbMan, NULL) )
         {
             Gia_ManResubPrint( s_pResbMan->vGates, nDivs );
             printf( "Verification FAILED.\n" );
@@ -1206,7 +1355,7 @@ void Gia_ManResubTest3()
         printf( "           " );
 
         //Abc_ResubDumpProblem( "temp.resub", (void **)Vec_PtrArray(vDivs), Vec_PtrSize(vDivs), 1 );
-        ArraySize = Abc_ResubComputeFunction( (void **)Vec_PtrArray(vDivs), Vec_PtrSize(vDivs), 1, 4, 1, fVerbose, &pArray );
+        ArraySize = Abc_ResubComputeFunction( (void **)Vec_PtrArray(vDivs), Vec_PtrSize(vDivs), 1, 4, 0, 0, 1, fVerbose, &pArray );
         if ( !fVerbose )
             printf( "\n" );
 
@@ -1245,7 +1394,7 @@ void Gia_ManResubTest3_()
         printf( " " );
         Dau_DsdPrintFromTruth2( &Truth, 6 );
         printf( "       " );
-        Gia_ManResubPerform( p, vDivs, 1, 100, 1, 0 );
+        Gia_ManResubPerform( p, vDivs, 1, 100, 0, 1, 1, 0 );
     }
     Gia_ResbFree( p );
     Vec_IntFree( vRes );
@@ -1295,11 +1444,11 @@ Vec_Ptr_t * Gia_ManDeriveDivs( Vec_Wrd_t * vSims, int nWords )
         Vec_PtrPush( vDivs, Vec_WrdEntryP(vSims, nWords*i) );
     return vDivs;
 }
-Gia_Man_t * Gia_ManResub2( Gia_Man_t * pGia, int nNodes, int nSupp, int nDivs, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManResub2( Gia_Man_t * pGia, int nNodes, int nSupp, int nDivs, int nChoice, int fUseXor, int fVerbose, int fVeryVerbose )
 {
     return NULL;
 }
-Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, int nChoice, int fUseXor, int fVerbose, int fVeryVerbose )
 {
     int nWords = 0;
     Gia_Man_t * pMan   = NULL;
@@ -1313,9 +1462,14 @@ Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, i
         Vec_PtrShrink( vDivs, (1<<14)-1 );
     }
     assert( Vec_PtrSize(vDivs) < (1<<14) );
-    Gia_ManResubPerform( p, vDivs, nWords, 100, 1, 1 );
+    Gia_ManResubPerform( p, vDivs, nWords, 100, nChoice, fUseXor, 1, 1 );
     if ( Vec_IntSize(p->vGates) )
-        pMan = Gia_ManConstructFromGates( p->vGates, Vec_PtrSize(vDivs) );
+    {
+        Vec_Wec_t * vGates = Vec_WecStart(1);
+        Vec_IntAppend( Vec_WecEntry(vGates, 0), p->vGates );
+        pMan = Gia_ManConstructFromGates( vGates, Vec_PtrSize(vDivs) );
+        Vec_WecFree( vGates );
+    }
     else
         printf( "Decomposition did not succeed.\n" );
     Gia_ResbFree( p );
