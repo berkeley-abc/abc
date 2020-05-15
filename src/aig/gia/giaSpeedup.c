@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "map/if/if.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -448,11 +449,14 @@ int Gia_LutVerifyTiming(  Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-float Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose )
+float Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose, int fVerbosePath )
 {
     If_LibLut_t * pLutLib = (If_LibLut_t *)p->pLutLib;
     int i, Nodes, * pCounters;
     float tArrival, tDelta, nSteps, Num;
+    Gia_Obj_t * pObj;
+    If_LibBox_t * pLibBox;
+    int iLut, iBox, iDelayTable, nBoxIns, iShift;
     // get the library
     if ( pLutLib && pLutLib->LutMax < Gia_ManLutSizeMax(p) )
     {
@@ -478,16 +482,91 @@ float Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose )
         assert( Num >=0 && Num <= nSteps );
         pCounters[(int)Num]++;
     }
+    printf( "Max delay = %6.2f. Delay trace using %s model%c\n", tArrival, pLutLib? "LUT library" : "unit-delay", (fVerbose || fVerbosePath ? ':' : '.'));
     // print the results    
     if ( fVerbose )
     {
-        printf( "Max delay = %6.2f. Delay trace using %s model:\n", tArrival, pLutLib? "LUT library" : "unit-delay" );
         Nodes = 0;
         for ( i = 0; i < nSteps; i++ )
         {
             Nodes += pCounters[i];
             printf( "%3d %s : %5d  (%6.2f %%)\n", pLutLib? 5*(i+1) : i+1, 
                 pLutLib? "%":"lev", Nodes, 100.0*Nodes/Gia_ManLutNum(p) );
+        }
+    }
+
+    if ( fVerbosePath )
+    {
+        pLibBox = Abc_FrameReadLibBox();
+
+        // find the first critical (latest arriving) CO
+        pObj = NULL;
+        Gia_ManForEachCo( p, pObj, i )
+        {
+            if (Gia_ObjTimeArrivalObj( p, pObj ) == tArrival)
+                break;
+        }
+        if ( Gia_ObjIsRo(p, pObj) )
+            printf( "%8.2f  RO\n", tArrival );
+        else if ( Gia_ObjIsPo(p, pObj) )
+            printf( "%8.2f  PO\n", tArrival );
+        else
+            assert( 0 );
+
+        // iterate backwards to find the critical fanin (having zero slack)
+        while ( pObj )
+        {
+            assert( Gia_ObjTimeSlackObj( p, pObj ) == 0 );
+            if ( Gia_ObjIsPo(p, pObj) || Gia_ObjIsRo(p, pObj) )
+                pObj = Gia_ObjFanin0( pObj );
+            else if ( Gia_ObjIsRi(p, pObj) )
+            {
+                tArrival = Gia_ObjTimeArrivalObj( p, pObj );
+                printf( "%8.2f RI\n", tArrival );
+                break;
+            }
+            else if ( Gia_ObjIsLut(p, Gia_ObjId(p, pObj)) )
+            {
+                iLut = Gia_ObjId( p, pObj );
+                pObj = NULL;
+                Gia_LutForEachFaninObj( p, iLut, pObj, i )
+                {
+                    if ( Gia_ObjTimeSlackObj( p, pObj ) == 0 )
+                        break;
+                }
+                tArrival = Gia_ObjTimeArrivalObj( p, pObj );
+                printf( "%8.2f  LUT  (K = %d)\n", tArrival, Gia_ObjLutSize(p, iLut));
+            }
+            else if ( Gia_ObjIsCi(pObj) )
+            {
+                iBox = Tim_ManBoxForCi( p->pManTime, Gia_ObjCioId(pObj) );
+                if ( iBox == -1 )
+                {
+                    printf( "%8.2f  PI\n", tArrival );
+                    break;
+                }
+                nBoxIns = Tim_ManBoxInputNum( p->pManTime, iBox );
+                iShift = Tim_ManBoxInputFirst( p->pManTime, iBox );
+                pObj = NULL;
+                for ( i = 0; i < nBoxIns; i++ )
+                {
+                    pObj = Gia_ManCo( p, iShift + i );
+                    if ( Gia_ObjTimeSlackObj( p, pObj ) == 0 )
+                        break;
+                }
+                assert( i < nBoxIns );
+
+                tArrival = Tim_ManGetCoRequired( (Tim_Man_t *)p->pManTime, Gia_ObjCioId(pObj) );
+                iDelayTable = Tim_ManBoxDelayTableId(p->pManTime, iBox);
+                If_Box_t *pIfBox = pLibBox ? If_LibBoxReadBox( pLibBox, iDelayTable ) : NULL;
+                printf("%8.2f  BOX  num %5d", tArrival, iBox );
+                if ( pIfBox )
+                    printf( " (%s)\n", pIfBox->pName );
+                else
+                    printf( " (id %d)\n", iDelayTable );
+            }
+            else
+                assert( 0 );
         }
     }
     ABC_FREE( pCounters );
