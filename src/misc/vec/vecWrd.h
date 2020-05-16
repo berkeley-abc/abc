@@ -167,6 +167,32 @@ static inline Vec_Wrd_t * Vec_WrdStartRandom( int nSize )
         vSims->pArray[i] = Abc_RandomW(0);
     return vSims;
 }
+static inline Vec_Wrd_t * Vec_WrdStartTruthTables( int nVars )
+{
+    Vec_Wrd_t * p;
+    unsigned Masks[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
+    int i, k, nWords;
+    nWords = nVars <= 6 ? 1 : (1 << (nVars - 6));
+    p = Vec_WrdStart( nWords * nVars );
+    for ( i = 0; i < nVars; i++ )
+    {
+        unsigned * pTruth = (unsigned *)(p->pArray + nWords * i);
+        if ( i < 5 )
+        {
+            for ( k = 0; k < 2*nWords; k++ )
+                pTruth[k] = Masks[i];
+        }
+        else
+        {
+            for ( k = 0; k < 2*nWords; k++ )
+                if ( k & (1 << (i-5)) )
+                    pTruth[k] = ~(unsigned)0;
+                else
+                    pTruth[k] = 0;
+        }
+    }
+    return p;
+}
 
 /**Function*************************************************************
 
@@ -1199,6 +1225,99 @@ static inline void Vec_WrdAppend( Vec_Wrd_t * vVec1, Vec_Wrd_t * vVec2 )
     word Entry; int i;
     Vec_WrdForEachEntry( vVec2, Entry, i )
         Vec_WrdPush( vVec1, Entry );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Gia_ManSimPatWriteOne( FILE * pFile, word * pSim, int nWords )
+{
+    int k, Digit, nDigits = nWords*16;
+    for ( k = 0; k < nDigits; k++ )
+    {
+        Digit = (int)((pSim[k/16] >> ((k%16) * 4)) & 15);
+        if ( Digit < 10 )
+            fprintf( pFile, "%d", Digit );
+        else
+            fprintf( pFile, "%c", 'A' + Digit-10 );
+    }
+    fprintf( pFile, "\n" );
+}
+static inline void Vec_WrdPrintHex( Vec_Wrd_t * p, int nWords )
+{
+    int i, nNodes = Vec_WrdSize(p) / nWords;
+    assert( Vec_WrdSize(p) % nWords == 0 );
+    for ( i = 0; i < nNodes; i++ )
+        Gia_ManSimPatWriteOne( stdout, Vec_WrdEntryP(p, i*nWords), nWords );
+}
+static inline void Vec_WrdDumpHex( char * pFileName, Vec_Wrd_t * p, int nWords, int fVerbose )
+{
+    int i, nNodes = Vec_WrdSize(p) / nWords;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    assert( Vec_WrdSize(p) % nWords == 0 );
+    for ( i = 0; i < nNodes; i++ )
+        Gia_ManSimPatWriteOne( pFile, Vec_WrdEntryP(p, i*nWords), nWords );
+    fclose( pFile );
+    if ( fVerbose )
+        printf( "Written %d words of simulation data for %d objects into file \"%s\".\n", nWords, Vec_WrdSize(p)/nWords, pFileName );
+}
+static inline int Vec_WrdReadHexOne( char c )
+{
+    int Digit = 0;
+    if ( c >= '0' && c <= '9' )
+        Digit = c - '0';
+    else if ( c >= 'A' && c <= 'F' )
+        Digit = c - 'A' + 10;
+    else if ( c >= 'a' && c <= 'f' )
+        Digit = c - 'a' + 10;
+    else assert( 0 );
+    assert( Digit >= 0 && Digit < 16 );
+    return Digit;
+}
+static inline Vec_Wrd_t * Vec_WrdReadHex( char * pFileName, int * pnWords, int fVerbose )
+{
+    Vec_Wrd_t * p = NULL; 
+    int c, nWords = -1, nChars = 0; word Num = 0;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return NULL;
+    }
+    p = Vec_WrdAlloc( 1000 );
+    while ( (c = fgetc(pFile)) != EOF )
+    {
+        if ( c == '\n' && nWords == -1 )
+            nWords = Vec_WrdSize(p);
+        if ( c == '\n' || c == '\r' || c == '\t' || c == ' ' )
+            continue;
+        Num |= (word)Vec_WrdReadHexOne((char)c) << (nChars * 4);
+        if ( ++nChars < 16 )
+            continue;
+        Vec_WrdPush( p, Num );
+        nChars = 0; 
+        Num = 0;
+    }
+    assert( Vec_WrdSize(p) % nWords == 0 );
+    fclose( pFile );
+    if ( pnWords )
+        *pnWords = nWords;
+    if ( fVerbose )
+        printf( "Read %d words of simulation data for %d objects.\n", nWords, Vec_WrdSize(p)/nWords );
+    return p;
 }
 
 

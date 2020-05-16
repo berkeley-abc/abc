@@ -1558,8 +1558,7 @@ extern void                Gia_ManIncrSimSet( Gia_Man_t * p, Vec_Int_t * vObjLit
 extern int                 Gia_ManIncrSimCheckOver( Gia_Man_t * p, int iLit0, int iLit1 );
 extern int                 Gia_ManIncrSimCheckEqual( Gia_Man_t * p, int iLit0, int iLit1 );
 /*=== giaSimBase.c ============================================================*/
-extern Vec_Wrd_t *         Gia_ManSimPatRead( char * pFileName, int * pnWords );
-extern void                Gia_ManSimPatWrite( char * pFileName, Vec_Wrd_t * vSimsIn, int nWords );
+extern Vec_Wrd_t *         Gia_ManSimPatSim( Gia_Man_t * p );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );
@@ -1685,6 +1684,7 @@ extern int                 Gia_ObjRecognizeExor( Gia_Obj_t * pObj, Gia_Obj_t ** 
 extern Gia_Obj_t *         Gia_ObjRecognizeMux( Gia_Obj_t * pNode, Gia_Obj_t ** ppNodeT, Gia_Obj_t ** ppNodeE );
 extern int                 Gia_ObjRecognizeMuxLits( Gia_Man_t * p, Gia_Obj_t * pNode, int * iLitT, int * iLitE );
 extern int                 Gia_NodeMffcSize( Gia_Man_t * p, Gia_Obj_t * pNode );
+extern int                 Gia_NodeMffcSizeMark( Gia_Man_t * p, Gia_Obj_t * pNode );
 extern int                 Gia_NodeMffcSizeSupp( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Int_t * vSupp );
 extern int                 Gia_ManHasDangling( Gia_Man_t * p );
 extern int                 Gia_ManMarkDangling( Gia_Man_t * p );

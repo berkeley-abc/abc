@@ -32892,7 +32892,7 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fOutputs )
     {
         Vec_WrdFreeP( &pAbc->pGia->vSimsPo );
-        pAbc->pGia->vSimsPo = Gia_ManSimPatRead( pArgvNew[0], NULL );
+        pAbc->pGia->vSimsPo = Vec_WrdReadHex( pArgvNew[0], NULL, 1 );
         if ( Vec_WrdSize(pAbc->pGia->vSimsPo) % Gia_ManCoNum(pAbc->pGia) != 0 )
         {
             Vec_WrdFreeP( &pAbc->pGia->vSimsPo );
@@ -32906,7 +32906,7 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
-        pAbc->pGia->vSimsPi = Gia_ManSimPatRead( pArgvNew[0], NULL );
+        pAbc->pGia->vSimsPi = Vec_WrdReadHex( pArgvNew[0], NULL, 1 );
         if ( Vec_WrdSize(pAbc->pGia->vSimsPi) % Gia_ManCiNum(pAbc->pGia) != 0 )
         {
             Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
@@ -32988,12 +32988,12 @@ int Abc_CommandAbc9WriteSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fOutputs )
     {
         assert( Vec_WrdSize(pAbc->pGia->vSimsPo) % Gia_ManCoNum(pAbc->pGia) == 0 );
-        Gia_ManSimPatWrite( pArgvNew[0], pAbc->pGia->vSimsPo, Vec_WrdSize(pAbc->pGia->vSimsPo) / Gia_ManCoNum(pAbc->pGia) );
+        Vec_WrdDumpHex( pArgvNew[0], pAbc->pGia->vSimsPo, Vec_WrdSize(pAbc->pGia->vSimsPo) / Gia_ManCoNum(pAbc->pGia), 1 );
     }
     else
     {
         assert( Vec_WrdSize(pAbc->pGia->vSimsPi) % Gia_ManCiNum(pAbc->pGia) == 0 );
-        Gia_ManSimPatWrite( pArgvNew[0], pAbc->pGia->vSimsPi, Vec_WrdSize(pAbc->pGia->vSimsPi) / Gia_ManCiNum(pAbc->pGia) );
+        Vec_WrdDumpHex( pArgvNew[0], pAbc->pGia->vSimsPi, Vec_WrdSize(pAbc->pGia->vSimsPi) / Gia_ManCiNum(pAbc->pGia), 1 );
     }
     return 0;
 
@@ -47938,7 +47938,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        return 1;
 //    }
 //    Abc_FrameUpdateGia( pAbc, Abc_Procedure(pAbc->pGia) );
-//    Gia_SimQualityTest( pAbc->pGia );
+//    Gia_ManTryResub( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );
