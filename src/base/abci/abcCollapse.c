@@ -195,7 +195,16 @@ Abc_Ntk_t * Abc_NtkFromGlobalBdds( Abc_Ntk_t * pNtk, int fReverse )
     Extra_ProgressBarStop( pProgress );
     return pNtkNew;
 }
-Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fReverse, int fVerbose )
+void Abc_NtkDumpVariableOrder( Abc_Ntk_t * pNtk )
+{
+    DdManager * dd = (DdManager *)Abc_NtkGlobalBddMan( pNtk );
+    FILE * pFile = fopen( "order.txt", "wb" ); int i;
+    for ( i = 0; i < dd->size; i++ )
+        fprintf( pFile, "%d ", dd->invperm[i] );
+    fprintf( pFile, "\n" );
+    fclose( pFile );
+}
+Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fReverse, int fDumpOrder, int fVerbose )
 {
     Abc_Ntk_t * pNtkNew;
     abctime clk = Abc_Clock();
@@ -210,6 +219,8 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
         printf( "Shared BDD size = %6d nodes.  ", Cudd_ReadKeys(dd) - Cudd_ReadDead(dd) );
         ABC_PRT( "BDD construction time", Abc_Clock() - clk );
     }
+    if ( fDumpOrder ) 
+        Abc_NtkDumpVariableOrder( pNtk );
 
     // create the new network
     pNtkNew = Abc_NtkFromGlobalBdds( pNtk, fReverse );
@@ -236,7 +247,7 @@ Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, i
 
 #else
 
-Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fReverse, int fVerbose )
+Abc_Ntk_t * Abc_NtkCollapse( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDualRail, int fReorder, int fReverse, int fDumpOrder, int fVerbose )
 {
     return NULL;
 }

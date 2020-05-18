@@ -201,7 +201,7 @@ int Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pPars )
             fflush( stdout );
         }
         clk = Abc_Clock();
-        pNtk = Abc_NtkCollapse( pNtkTemp = pNtk, pParams->nBddSizeLimit, 0, pParams->fBddReorder, 0, 0 );
+        pNtk = Abc_NtkCollapse( pNtkTemp = pNtk, pParams->nBddSizeLimit, 0, pParams->fBddReorder, 0, 0, 0 );
         if ( pNtk )   
         {
             Abc_NtkDelete( pNtkTemp );
