@@ -133,6 +133,67 @@ Vec_Wrd_t * Gia_ManSimPatSim( Gia_Man_t * pGia )
   Synopsis    []
 
   Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSimPatAssignInputs2( Gia_Man_t * p, int nWords, Vec_Wrd_t * vSims, Vec_Wrd_t * vSimsIn )
+{
+    int i, Id;
+    assert( Vec_WrdSize(vSims)   == 2 * nWords * Gia_ManObjNum(p) );
+    assert( Vec_WrdSize(vSimsIn) ==     nWords * Gia_ManCiNum(p) );
+    Gia_ManForEachCiId( p, Id, i )
+    {
+        Abc_TtCopy( Vec_WrdEntryP(vSims, 2*Id*nWords+0), Vec_WrdEntryP(vSimsIn, i*nWords), nWords, 0 );
+        Abc_TtCopy( Vec_WrdEntryP(vSims, 2*Id*nWords+1), Vec_WrdEntryP(vSimsIn, i*nWords), nWords, 1 );
+    }
+}
+static inline void Gia_ManSimPatSimAnd2( Gia_Man_t * p, int i, Gia_Obj_t * pObj, int nWords, Vec_Wrd_t * vSims )
+{
+    word * pSims  = Vec_WrdArray(vSims);
+    word * pSims0 = pSims + nWords*Gia_ObjFaninLit0(pObj, i);
+    word * pSims1 = pSims + nWords*Gia_ObjFaninLit1(pObj, i);
+    word * pSims2 = pSims + nWords*(2*i+0); 
+    word * pSims3 = pSims + nWords*(2*i+1); int w;
+//    if ( Gia_ObjIsXor(pObj) )
+//        for ( w = 0; w < nWords; w++ )
+//            pSims2[w] = pSims0[w] ^ pSims1[w];
+//    else
+        for ( w = 0; w < nWords; w++ )
+        {
+            pSims2[w] = pSims0[w] & pSims1[w];
+            pSims3[w] = ~pSims2[w];
+        }
+}
+static inline void Gia_ManSimPatSimPo2( Gia_Man_t * p, int i, Gia_Obj_t * pObj, int nWords, Vec_Wrd_t * vSims )
+{
+    word * pSims   = Vec_WrdArray(vSims);
+    word * pSims0  = pSims + nWords*Gia_ObjFaninLit0(pObj, i);
+    word * pSims2  = pSims + nWords*i; int w;
+    for ( w = 0; w < nWords; w++ )
+        pSims2[w] = pSims0[w];
+}
+Vec_Wrd_t * Gia_ManSimPatSim2( Gia_Man_t * pGia )
+{
+    Gia_Obj_t * pObj;
+    int i, nWords = Vec_WrdSize(pGia->vSimsPi) / Gia_ManCiNum(pGia);
+    Vec_Wrd_t * vSims = Vec_WrdStart( Gia_ManObjNum(pGia) * nWords * 2 );
+    assert( Vec_WrdSize(pGia->vSimsPi) % Gia_ManCiNum(pGia) == 0 );
+    Gia_ManSimPatAssignInputs2( pGia, nWords, vSims, pGia->vSimsPi );
+    Gia_ManForEachAnd( pGia, pObj, i ) 
+        Gia_ManSimPatSimAnd2( pGia, i, pObj, nWords, vSims );
+    Gia_ManForEachCo( pGia, pObj, i )
+        Gia_ManSimPatSimPo2( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
+    return vSims;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
 
   SideEffects []
 
@@ -1946,6 +2007,44 @@ void Gia_ManPatRareImprove( Gia_Man_t * p, int RareLimit, int fVerbose )
     printf( "Improved %d out of %d patterns using %d rare nodes: %.2f -> %.2f.  ", 
         nChanges, 64*nWords, nRares, InitTotal, FinalTotal );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Improving quality of simulation patterns.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSimTest( Gia_Man_t * pGia )
+{
+    int n, nWords = 8;
+    Vec_Wrd_t * vSim1, * vSim2;
+    Vec_Wrd_t * vSim0 = Vec_WrdStartRandom( Gia_ManCiNum(pGia) * nWords );
+    abctime clk = Abc_Clock();
+
+    pGia->vSimsPi = vSim0;
+    for ( n = 0; n < 10; n++ )
+    {
+        vSim1 = Gia_ManSimPatSim( pGia );
+        Vec_WrdFree( vSim1 );
+    }
+    Abc_PrintTime( 1, "Time1", Abc_Clock() - clk );
+
+    clk = Abc_Clock();
+    for ( n = 0; n < 10; n++ )
+    {
+        vSim2 = Gia_ManSimPatSim2( pGia );
+        Vec_WrdFree( vSim2 );
+    }
+    Abc_PrintTime( 1, "Time2", Abc_Clock() - clk );
+
+    pGia->vSimsPi = NULL;
+    Vec_WrdFree( vSim0 );
 }
 
 ////////////////////////////////////////////////////////////////////////
