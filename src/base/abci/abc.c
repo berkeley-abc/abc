@@ -34788,8 +34788,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Resub( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, int fVerbose, int fVeryVerbose );
-    extern Gia_Man_t * Gia_ManResub2( Gia_Man_t * pGia, int nNodes, int nSupp, int nDivs, int fVerbose, int fVeryVerbose );
+    extern Gia_Man_t * Gia_ManResub1( char * pFileName, int nNodes, int nSupp, int nDivs, int iChoice, int fUseXor, int fVerbose, int fVeryVerbose );
+    extern Gia_Man_t * Gia_ManResub2( Gia_Man_t * pGia, int nNodes, int nSupp, int nDivs, int iChoice, int fUseXor, int fVerbose, int fVeryVerbose );
     Gia_Man_t * pTemp;
     int nNodes       =  0;
     int nSupp        =  0;
@@ -34848,7 +34848,7 @@ int Abc_CommandAbc9Resub( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind + 1 )
     {
-        pTemp = Gia_ManResub1( argv[globalUtilOptind], nNodes, nSupp, nDivs, fVerbose, fVeryVerbose );
+        pTemp = Gia_ManResub1( argv[globalUtilOptind], nNodes, nSupp, nDivs, 0, 0, fVerbose, fVeryVerbose );
         Abc_FrameUpdateGia( pAbc, pTemp );
         return 0;
     }
@@ -34857,7 +34857,7 @@ int Abc_CommandAbc9Resub( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Resub(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManResub2( pAbc->pGia, nNodes, nSupp, nDivs, fVerbose, fVeryVerbose );
+    pTemp = Gia_ManResub2( pAbc->pGia, nNodes, nSupp, nDivs, 0, 0, fVerbose, fVeryVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
