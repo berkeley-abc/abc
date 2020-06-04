@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "misc/util/utilTruth.h"
 #include "misc/extra/extra.h"
+//#include <immintrin.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -157,15 +158,17 @@ static inline void Gia_ManSimPatSimAnd2( Gia_Man_t * p, int i, Gia_Obj_t * pObj,
     word * pSims1 = pSims + nWords*Gia_ObjFaninLit1(pObj, i);
     word * pSims2 = pSims + nWords*(2*i+0); 
     word * pSims3 = pSims + nWords*(2*i+1); int w;
+    assert( !Gia_ObjIsXor(pObj) );
 //    if ( Gia_ObjIsXor(pObj) )
 //        for ( w = 0; w < nWords; w++ )
 //            pSims2[w] = pSims0[w] ^ pSims1[w];
 //    else
-        for ( w = 0; w < nWords; w++ )
-        {
-            pSims2[w] = pSims0[w] & pSims1[w];
-            pSims3[w] = ~pSims2[w];
-        }
+    for ( w = 0; w < nWords; w++ )
+    {
+        pSims2[w] = pSims0[w] & pSims1[w];
+        pSims3[w] = ~pSims2[w];
+    }
+    //_mm256_storeu_ps( (float *)pSims2, _mm256_and_ps(_mm256_loadu_ps((float *)pSims0), _mm256_loadu_ps((float *)pSims1)) );
 }
 static inline void Gia_ManSimPatSimPo2( Gia_Man_t * p, int i, Gia_Obj_t * pObj, int nWords, Vec_Wrd_t * vSims )
 {
@@ -2011,7 +2014,7 @@ void Gia_ManPatRareImprove( Gia_Man_t * p, int RareLimit, int fVerbose )
 
 /**Function*************************************************************
 
-  Synopsis    [Improving quality of simulation patterns.]
+  Synopsis    [Trying vectorized simulation.]
 
   Description []
 
@@ -2022,13 +2025,13 @@ void Gia_ManPatRareImprove( Gia_Man_t * p, int RareLimit, int fVerbose )
 ***********************************************************************/
 void Gia_ManSimTest( Gia_Man_t * pGia )
 {
-    int n, nWords = 8;
+    int n, nWords = 4;
     Vec_Wrd_t * vSim1, * vSim2;
     Vec_Wrd_t * vSim0 = Vec_WrdStartRandom( Gia_ManCiNum(pGia) * nWords );
     abctime clk = Abc_Clock();
 
     pGia->vSimsPi = vSim0;
-    for ( n = 0; n < 10; n++ )
+    for ( n = 0; n < 20; n++ )
     {
         vSim1 = Gia_ManSimPatSim( pGia );
         Vec_WrdFree( vSim1 );
@@ -2036,7 +2039,7 @@ void Gia_ManSimTest( Gia_Man_t * pGia )
     Abc_PrintTime( 1, "Time1", Abc_Clock() - clk );
 
     clk = Abc_Clock();
-    for ( n = 0; n < 10; n++ )
+    for ( n = 0; n < 20; n++ )
     {
         vSim2 = Gia_ManSimPatSim2( pGia );
         Vec_WrdFree( vSim2 );
@@ -2045,6 +2048,66 @@ void Gia_ManSimTest( Gia_Man_t * pGia )
 
     pGia->vSimsPi = NULL;
     Vec_WrdFree( vSim0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Trying compiled simulation.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSimGen( Gia_Man_t * pGia )
+{
+    int nWords = 4;
+    Gia_Obj_t * pObj;
+    Vec_Wrd_t * vSim0 = Vec_WrdStartRandom( Gia_ManCiNum(pGia) * nWords );
+    FILE * pFile = fopen( "comp_sim.c", "wb" );
+    int i, k, Id;
+    fprintf( pFile, "#include <stdio.h>\n" );
+    fprintf( pFile, "#include <stdlib.h>\n" );
+    fprintf( pFile, "#include <time.h>\n" );
+    fprintf( pFile, "int main()\n" );
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  clock_t clkThis = clock();\n" );
+    fprintf( pFile, "  unsigned long Res = 0;\n" );
+    fprintf( pFile, "  int i;\n" );
+    fprintf( pFile, "  srand(time(NULL));\n" );
+    fprintf( pFile, "  for ( i = 0; i < 2000; i++ )\n" );
+    fprintf( pFile, "  {\n" );
+    for ( k = 0; k < nWords; k++ )
+        fprintf( pFile, "  unsigned long s%07d_%d = 0x%08x%08x;\n", 0, k, 0, 0 );
+    Gia_ManForEachCiId( pGia, Id, i )
+    {
+        word * pSim = Vec_WrdEntryP(vSim0, i*nWords);
+        unsigned * pSimU = (unsigned *)pSim;
+        for ( k = 0; k < nWords; k++ )
+            fprintf( pFile, "  unsigned long s%07d_%d = ((unsigned long)rand() << 48) | ((unsigned long)rand() << 32) | ((unsigned long)rand() << 16) | (unsigned long)rand();\n", Id, k );
+    }
+    Gia_ManForEachAnd( pGia, pObj, Id )
+    {
+        for ( k = 0; k < nWords; k++ )
+            fprintf( pFile, "  unsigned long s%07d_%d = %cs%07d_%d & %cs%07d_%d;\n", Id, k, 
+                Gia_ObjFaninC0(pObj) ? '~' : ' ', Gia_ObjFaninId0(pObj, Id), k, 
+                Gia_ObjFaninC1(pObj) ? ' ' : '~', Gia_ObjFaninId1(pObj, Id), k );
+    }
+    Gia_ManForEachCoId( pGia, Id, i )
+    {
+        pObj = Gia_ManObj(pGia, Id);
+        for ( k = 0; k < nWords; k++ )
+            fprintf( pFile, "  Res ^= %cs%07d_%d;\n", Gia_ObjFaninC0(pObj) ? '~' : ' ', Gia_ObjFaninId0(pObj, Id), k );
+    }
+    Vec_WrdFree( vSim0 );
+    fprintf( pFile, "  }\n" );
+    fprintf( pFile, "  printf( \"Res = 0x%%08x    \", (unsigned)Res );\n" );
+    fprintf( pFile, "  printf( \"Time = %%6.2f sec\\n\", (float)(clock() - clkThis)/CLOCKS_PER_SEC );\n" );
+    fprintf( pFile, "  return 1;\n" );
+    fprintf( pFile, "}\n" );
+    fclose( pFile );
 }
 
 ////////////////////////////////////////////////////////////////////////
