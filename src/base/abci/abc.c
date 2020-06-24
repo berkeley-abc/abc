@@ -36950,13 +36950,31 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         else
         {
-            Gia_Man_t * pTemp;
+            abctime clk = Abc_Clock();
+            Gia_Obj_t * pObj; int i;
             if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a single-output miter.\n" );
-            pTemp = Gia_ManDemiterToDual( pAbc->pGia );
-            pAbc->Status = Cec_ManVerify( pTemp, pPars );
-            ABC_SWAP( Abc_Cex_t *, pAbc->pGia->pCexComb, pTemp->pCexComb );
-            Gia_ManStop( pTemp );
+            // handle the case when the output is disproved by an all-0 primary input pattern
+            ABC_FREE( pAbc->pGia->pCexComb );
+            Gia_ManSetPhase( pAbc->pGia );
+            Gia_ManForEachCo( pAbc->pGia, pObj, i )
+                if ( pObj->fPhase )
+                {
+                    pAbc->pGia->pCexComb = Abc_CexAlloc( 0, Gia_ManCiNum(pAbc->pGia), 1 );
+                    if ( !pPars->fSilent )
+                    {
+                        Abc_Print( 1, "Networks are NOT EQUIVALENT. Output %d trivially differs (different phase).  ", i );
+                        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+                    }
+                    break;
+                }
+            if ( pAbc->pGia->pCexComb == NULL )
+            {
+                Gia_Man_t * pTemp = Gia_ManDemiterToDual( pAbc->pGia );
+                pAbc->Status = Cec_ManVerify( pTemp, pPars );
+                ABC_SWAP( Abc_Cex_t *, pAbc->pGia->pCexComb, pTemp->pCexComb );
+                Gia_ManStop( pTemp );
+            }
         }
         Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
         return 0;
