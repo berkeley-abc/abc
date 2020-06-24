@@ -36966,6 +36966,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                         Abc_Print( 1, "Networks are NOT EQUIVALENT. Output %d trivially differs (different phase).  ", i );
                         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
                     }
+                    pAbc->Status = 0;// satisfiable
                     break;
                 }
             if ( pAbc->pGia->pCexComb == NULL )
