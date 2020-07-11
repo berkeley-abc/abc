@@ -10423,8 +10423,10 @@ int Abc_CommandPutOnTop( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkPutOnTop( pNtk, pNtk2 );
+    Abc_Ntk_t *pNtk2Logic = Abc_NtkToLogic( pNtk2 );
+    pNtkRes = Abc_NtkPutOnTop( pNtk, pNtk2Logic );
     Abc_NtkDelete( pNtk2 );
+    Abc_NtkDelete( pNtk2Logic );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
