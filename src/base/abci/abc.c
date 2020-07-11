@@ -193,6 +193,7 @@ static int Abc_CommandCone                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandNode                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCof                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTopmost                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBottommost             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTopAnd                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTrim                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandShortNames             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -915,6 +916,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "node",          Abc_CommandNode,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "cof",           Abc_CommandCof,              1 );
     Cmd_CommandAdd( pAbc, "Various",      "topmost",       Abc_CommandTopmost,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "bottommost",    Abc_CommandBottommost,       1 );
     Cmd_CommandAdd( pAbc, "Various",      "topand",        Abc_CommandTopAnd,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "trim",          Abc_CommandTrim,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "short_names",   Abc_CommandShortNames,       0 );
@@ -10423,7 +10425,15 @@ int Abc_CommandPutOnTop( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkPutOnTop( pNtk, pNtk2 );
+    if ( Abc_NtkIsLogic(pNtk2) )
+        pNtkRes = Abc_NtkPutOnTop( pNtk, pNtk2 );
+    else if ( Abc_NtkIsStrash(pNtk2) )
+    {
+        Abc_Ntk_t * pLogic = Abc_NtkToLogic( pNtk2 );
+        pNtkRes = Abc_NtkPutOnTop( pNtk, pLogic );
+        Abc_NtkDelete( pLogic );
+    }
+    else assert( 0 );
     Abc_NtkDelete( pNtk2 );
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
@@ -11903,12 +11913,7 @@ int Abc_CommandTopmost( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( Abc_NtkLatchNum(pNtk) > 0 )
     {
-        Abc_Print( -1, "Currently can only works for combinational circuits.\n" );
-        return 0;
-    }
-    if ( Abc_NtkPoNum(pNtk) != 1 )
-    {
-        Abc_Print( -1, "Currently expects a single-output miter.\n" );
+        Abc_Print( -1, "Currently only works for combinational circuits.\n" );
         return 0;
     }
 
@@ -11925,6 +11930,86 @@ int Abc_CommandTopmost( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: topmost [-N num] [-h]\n" );
     Abc_Print( -2, "\t         replaces the current network by several of its topmost levels\n" );
+    Abc_Print( -2, "\t-N num : max number of levels [default = %d]\n", nLevels );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\tname   : the node name\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBottommost( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk, * pNtkRes;
+    int c, nLevels;
+    extern Abc_Ntk_t * Abc_NtkBottommost( Abc_Ntk_t * pNtk, int nLevels );
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    // set defaults
+    nLevels = 10;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevels = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevels < 0 )
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "Currently only works for structurally hashed circuits.\n" );
+        return 0;
+    }
+
+    if ( Abc_NtkLatchNum(pNtk) > 0 )
+    {
+        Abc_Print( -1, "Currently only works for combinational circuits.\n" );
+        return 0;
+    }
+
+    pNtkRes = Abc_NtkBottommost( pNtk, nLevels );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "The command has failed.\n" );
+        return 1;
+    }
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: bottommost [-N num] [-h]\n" );
+    Abc_Print( -2, "\t         replaces the current network by several of its bottommost levels\n" );
     Abc_Print( -2, "\t-N num : max number of levels [default = %d]\n", nLevels );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\tname   : the node name\n");
