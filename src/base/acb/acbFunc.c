@@ -825,6 +825,21 @@ void Vec_IntPermute( Vec_Int_t * p )
     }
 }
 
+void Vec_IntPermute2( Vec_Int_t * p )
+{
+    int i, nSize = Vec_IntSize( p );
+    int * pArray = Vec_IntArray( p );
+    srand( time(NULL) );
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        if ( rand() % 3 == 0 )
+        {
+            printf( "Permuting %d and %d\n", i, i+1 );
+            ABC_SWAP( int, pArray[i], pArray[i+1] );
+        }
+    }
+}
+
 void Acb_PrintPatterns( Vec_Wrd_t * vPats, int nPats, Vec_Int_t * vWeights )
 {
     int i, k, Entry, nDivs = Vec_IntSize(vWeights);

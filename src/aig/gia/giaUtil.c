@@ -522,6 +522,28 @@ int Gia_ManLevelNum( Gia_Man_t * p )
     }
     return p->nLevels;
 }
+int Gia_ManLevelRNum( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManCleanLevels( p, Gia_ManObjNum(p) );
+    p->nLevels = 0;
+    Gia_ManForEachObjReverse( p, pObj, i )
+    {
+        if ( !p->fGiaSimple && Gia_ObjIsBuf(pObj) )
+            Gia_ObjUpdateLevelId( p, Gia_ObjFaninId0(pObj, i), Gia_ObjLevel(p, pObj) );
+        else if ( Gia_ObjIsAnd(pObj) )
+        {
+            Gia_ObjUpdateLevelId( p, Gia_ObjFaninId0(pObj, i), 1+Gia_ObjLevel(p, pObj) );
+            Gia_ObjUpdateLevelId( p, Gia_ObjFaninId1(pObj, i), 1+Gia_ObjLevel(p, pObj) );
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ObjUpdateLevelId( p, Gia_ObjFaninId0(pObj, i), 1 );
+        else
+            p->nLevels = Abc_MaxInt( p->nLevels, Gia_ObjLevel(p, pObj) );
+    }
+    return p->nLevels;
+}
 float Gia_ManLevelAve( Gia_Man_t * p )  
 {
     Gia_Obj_t * pObj;
