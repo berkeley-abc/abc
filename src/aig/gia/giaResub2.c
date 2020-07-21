@@ -255,7 +255,6 @@ int Gia_Rsb2ManDivs( Gia_Rsb2Man_t * p, int iNode )
 {
     int i, iNodeLevel = 0;
     int * pRefs = Vec_IntArray( &p->vRefs );
-    int * pObjs = Vec_IntArray( &p->vObjs );
     p->CareSet = Gia_Rsb2ManOdcs( p, iNode );
     p->Truth1 = p->CareSet & Vec_WrdEntry(&p->vSims, 2*iNode);
     p->Truth0 = p->CareSet & ~p->Truth1;
@@ -409,7 +408,7 @@ int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncr
     while ( (iNode = Abc_ResubNodeToTry(&p->vTried, p->nPis+1, p->iFirstPo)) > 0 )
     {
         int nDivs = Gia_Rsb2ManDivs( p, iNode );
-        int * pResub, nResub = Abc_ResubComputeFunction( (word **)Vec_PtrArray(&p->vpDivs), nDivs, 1, p->nMffc-1, nDivsMax, 0, fUseXor, fDebug, fVerbose, &pResub );
+        int * pResub, nResub = Abc_ResubComputeFunction( Vec_PtrArray(&p->vpDivs), nDivs, 1, p->nMffc-1, nDivsMax, 0, fUseXor, fDebug, fVerbose, &pResub );
         if ( nResub == 0 )
             Vec_IntPush( &p->vTried, iNode );
         else
