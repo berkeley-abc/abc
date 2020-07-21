@@ -182,7 +182,6 @@ Vec_Wec_t * Gia_Iso4Gia( Gia_Man_t * p )
         {
             Gia_ManForEachObjVec( vLevel, p, pObj, i )
             {
-                Gia_Obj_t * pfanin = Gia_ObjFanin0(pObj);
                 assert( Gia_ObjIsCo(pObj) );
                 pObj->Value = Abc_Random(0);
                 Gia_ObjFanin0(pObj)->Value += pObj->Value + RandC[Gia_ObjFaninC0(pObj)];

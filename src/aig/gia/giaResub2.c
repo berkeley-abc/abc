@@ -54,91 +54,18 @@ struct Gia_Rsb2Man_t_
     Vec_Int_t      vLevels;
     Vec_Int_t      vRefs;
     Vec_Int_t      vCopies;
+    Vec_Int_t      vTried;
     word           Truth0;
     word           Truth1;
     word           CareSet;
 };
 
+extern void Abc_ResubPrepareManager( int nWords );
 extern int Abc_ResubComputeFunction( void ** ppDivs, int nDivs, int nWords, int nLimit, int nDivsMax, int iChoice, int fUseXor, int fDebug, int fVerbose, int ** ppArray );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose, int ** ppArray )
-{
-    *ppArray = NULL;
-    return 0;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int * Gia_ManToResub( Gia_Man_t * p )
-{
-    Gia_Obj_t * pObj;
-    int * pObjs = ABC_CALLOC( int, 2*Gia_ManObjNum(p) );
-    int i, iFirstPo = 1 + Gia_ManCiNum(p) + Gia_ManAndNum(p);
-    assert( Gia_ManIsNormalized(p) );
-    Gia_ManForEachObj1( p, pObj, i )
-    {
-        if ( Gia_ObjIsCi(pObj) )
-            continue;
-        pObjs[2*i+0] = Gia_ObjFaninLit0(Gia_ManObj(p, i), i);
-        if ( Gia_ObjIsCo(pObj) )
-            pObjs[2*i+1] = pObjs[2*i+0];
-        else if ( Gia_ObjIsAnd(pObj) )
-            pObjs[2*i+1] = Gia_ObjFaninLit1(Gia_ManObj(p, i), i);
-        else assert( 0 );
-    }
-    return pObjs;
-}
-Gia_Man_t * Gia_ManFromResub( int * pObjs, int nObjs )
-{
-    int i;
-    Gia_Man_t * pNew = Gia_ManStart( nObjs );
-    for ( i = 1; i < nObjs; i++ )
-    {
-        if ( pObjs[2*i] == 0 ) // pi
-            Gia_ManAppendCi( pNew );
-        else if ( pObjs[2*i] == pObjs[2*i+1] ) // po
-            Gia_ManAppendCo( pNew, pObjs[2*i] );
-        else if ( pObjs[2*i] < pObjs[2*i+1] )
-            Gia_ManAppendAnd( pNew, pObjs[2*i], pObjs[2*i+1] );
-        else if ( pObjs[2*i] > pObjs[2*i+1] )
-            Gia_ManAppendXor( pNew, pObjs[2*i], pObjs[2*i+1] );
-        else assert( 0 );
-    }
-    return pNew;
-}
-Gia_Man_t * Gia_ManResub2Test( Gia_Man_t * p )
-{
-    int * pObjsNew, * pObjs = Gia_ManToResub( p );
-    int nObjsNew = Abc_ResubComputeWindow( pObjs, Gia_ManObjNum(p), 1000, 0, 0, 0, 0, 0, &pObjsNew );
-    Gia_Man_t * pNew = Gia_ManFromResub( pObjsNew, nObjsNew );
-    ABC_FREE( pObjs );
-    ABC_FREE( pObjsNew );
-    return pNew;
-}
 
 /**Function*************************************************************
 
@@ -165,19 +92,8 @@ void Gia_Rsb2ManFree( Gia_Rsb2Man_t * p )
     Vec_IntErase( &p->vLevels );
     Vec_IntErase( &p->vRefs   );
     Vec_IntErase( &p->vCopies );
+    Vec_IntErase( &p->vTried );
     ABC_FREE( p );
-}
-int Gia_Rsb2ManLevel( Gia_Rsb2Man_t * p )
-{
-    int i, * pLevs, Level = 0;
-    Vec_IntClear( &p->vLevels );
-    Vec_IntGrow( &p->vLevels, p->nObjs );
-    pLevs = Vec_IntArray( &p->vLevels );
-    for ( i = p->nPis + 1; i < p->iFirstPo; i++ )
-        pLevs[i] = 1 + Abc_MaxInt( pLevs[2*i+0]/2, pLevs[2*i+1]/2 );
-    for ( i = p->iFirstPo; i < p->nObjs; i++ )
-        Level = Abc_MaxInt( Level, pLevs[i] = pLevs[2*i+0]/2 );
-    return Level;
 }
 void Gia_Rsb2ManStart( Gia_Rsb2Man_t * p, int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose )
 {
@@ -191,7 +107,7 @@ void Gia_Rsb2ManStart( Gia_Rsb2Man_t * p, int * pObjs, int nObjs, int nDivsMax, 
     p->fVerbose       = fVerbose; 
     // user data
     Vec_IntClear( &p->vObjs );
-    Vec_IntPushArray( &p->vObjs, pObjs, nObjs );
+    Vec_IntPushArray( &p->vObjs, pObjs, 2*nObjs );
     assert( pObjs[0] == 0 );
     assert( pObjs[1] == 0 );
     p->nObjs    = nObjs;
@@ -201,34 +117,36 @@ void Gia_Rsb2ManStart( Gia_Rsb2Man_t * p, int * pObjs, int nObjs, int nDivsMax, 
     p->iFirstPo = 0;
     for ( i = 1; i < nObjs; i++ )
     {
-        if ( pObjs[0] == 0 && pObjs[1] == 0 )
+        if ( pObjs[2*i+0] == 0 && pObjs[2*i+1] == 0 )
             p->nPis++;
-        else if ( pObjs[0] == pObjs[1] )
+        else if ( pObjs[2*i+0] == pObjs[2*i+1] )
             p->nPos++;
         else
             p->nNodes++;
     }
     assert( nObjs == 1 + p->nPis + p->nNodes + p->nPos );
     p->iFirstPo = nObjs - p->nPos;
-    p->Level = Gia_Rsb2ManLevel(p);
     Vec_WrdClear( &p->vSims );
     Vec_WrdGrow( &p->vSims, 2*nObjs );
     Vec_WrdPush( &p->vSims, 0 );
     Vec_WrdPush( &p->vSims, 0 );
     for ( i = 0; i < p->nPis; i++ )
     {
-        Vec_WrdPush( &p->vSims, s_Truths6[i] );
+        Vec_WrdPush( &p->vSims,  s_Truths6[i] );
         Vec_WrdPush( &p->vSims, ~s_Truths6[i] );
     }
+    p->vSims.nSize = 2*p->nObjs;
     Vec_IntClear( &p->vDivs   );
     Vec_IntClear( &p->vLevels );
     Vec_IntClear( &p->vRefs   );
     Vec_IntClear( &p->vCopies );
+    Vec_IntClear( &p->vTried  );
     Vec_PtrClear( &p->vpDivs  );
     Vec_IntGrow( &p->vDivs,   nObjs );
     Vec_IntGrow( &p->vLevels, nObjs );
     Vec_IntGrow( &p->vRefs,   nObjs );
     Vec_IntGrow( &p->vCopies, nObjs );
+    Vec_IntGrow( &p->vTried,  nObjs );
     Vec_PtrGrow( &p->vpDivs,  nObjs );
 }
 
@@ -243,6 +161,31 @@ void Gia_Rsb2ManStart( Gia_Rsb2Man_t * p, int * pObjs, int nObjs, int nDivsMax, 
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_Rsb2ManPrint( Gia_Rsb2Man_t * p )
+{
+    int i, * pObjs = Vec_IntArray( &p->vObjs );
+    printf( "PI = %d.  PO = %d.  Obj = %d.\n", p->nPis, p->nPos, p->nObjs );
+    for ( i = p->nPis + 1; i < p->iFirstPo; i++ )
+        printf( "%2d = %c%2d & %c%2d;\n", i, 
+            Abc_LitIsCompl(pObjs[2*i+0]) ? '!' : ' ', Abc_Lit2Var(pObjs[2*i+0]),
+            Abc_LitIsCompl(pObjs[2*i+1]) ? '!' : ' ', Abc_Lit2Var(pObjs[2*i+1]) );
+    for ( i = p->iFirstPo; i < p->nObjs; i++ )
+        printf( "%2d = %c%2d;\n", i, 
+            Abc_LitIsCompl(pObjs[2*i+0]) ? '!' : ' ', Abc_Lit2Var(pObjs[2*i+0]) );
+}
+
+int Gia_Rsb2ManLevel( Gia_Rsb2Man_t * p )
+{
+    int i, * pLevs, Level = 0;
+    Vec_IntClear( &p->vLevels );
+    Vec_IntGrow( &p->vLevels, p->nObjs );
+    pLevs = Vec_IntArray( &p->vLevels );
+    for ( i = p->nPis + 1; i < p->iFirstPo; i++ )
+        pLevs[i] = 1 + Abc_MaxInt( pLevs[2*i+0]/2, pLevs[2*i+1]/2 );
+    for ( i = p->iFirstPo; i < p->nObjs; i++ )
+        Level = Abc_MaxInt( Level, pLevs[i] = pLevs[2*i+0]/2 );
+    return Level;
+}
 word Gia_Rsb2ManOdcs( Gia_Rsb2Man_t * p, int iNode )
 {
     int i; word Res = 0;
@@ -252,8 +195,9 @@ word Gia_Rsb2ManOdcs( Gia_Rsb2Man_t * p, int iNode )
     {
         if ( pObjs[2*i+0] < pObjs[2*i+1] )
             pSims[2*i+0] = pSims[pObjs[2*i+0]] & pSims[pObjs[2*i+1]];
-        else
+        else if ( pObjs[2*i+0] > pObjs[2*i+1] )
             pSims[2*i+0] = pSims[pObjs[2*i+0]] ^ pSims[pObjs[2*i+1]];
+        else assert( 0 );
         pSims[2*i+1] = ~pSims[2*i+0];        
     }
     for ( i = p->iFirstPo; i < p->nObjs; i++ )
@@ -263,39 +207,57 @@ word Gia_Rsb2ManOdcs( Gia_Rsb2Man_t * p, int iNode )
     {
         if ( pObjs[2*i+0] < pObjs[2*i+1] )
             pSims[2*i+0] = pSims[pObjs[2*i+0]] & pSims[pObjs[2*i+1]];
-        else
+        else if ( pObjs[2*i+0] < pObjs[2*i+1] )
             pSims[2*i+0] = pSims[pObjs[2*i+0]] ^ pSims[pObjs[2*i+1]];
+        else assert( 0 );
         pSims[2*i+1] = ~pSims[2*i+0];        
     }
     for ( i = p->iFirstPo; i < p->nObjs; i++ )
         Res |= pSims[2*i+0] ^ pSims[pObjs[2*i+0]];
+    ABC_SWAP( word, pSims[2*iNode+0], pSims[2*iNode+1] );
     return Res;
 }
 // marks MFFC and returns its size
+int Gia_Rsb2ManDeref_rec( Gia_Rsb2Man_t * p, int * pObjs, int * pRefs, int iNode )
+{
+    int Counter = 1;
+    if ( iNode <= p->nPis )
+        return 0;
+    if ( --pRefs[Abc_Lit2Var(pObjs[2*iNode+0])] == 0 )
+        Counter += Gia_Rsb2ManDeref_rec( p, pObjs, pRefs, Abc_Lit2Var(pObjs[2*iNode+0]) );
+    if ( --pRefs[Abc_Lit2Var(pObjs[2*iNode+1])] == 0 )
+        Counter += Gia_Rsb2ManDeref_rec( p, pObjs, pRefs, Abc_Lit2Var(pObjs[2*iNode+1]) );
+    return Counter;
+}
 int Gia_Rsb2ManMffc( Gia_Rsb2Man_t * p, int iNode )
 {
-    int i, * pRefs, * pObjs, nMffc = 0;
+    int i, * pRefs, * pObjs;
     Vec_IntFill( &p->vRefs, p->nObjs, 0 );
     pRefs = Vec_IntArray( &p->vRefs );
     pObjs = Vec_IntArray( &p->vObjs );
-    for ( i = p->nObjs - 1; i >= p->iFirstPo; i-- )
-        pRefs[pObjs[2*i+0]] = 1;
-    for ( i = p->iFirstPo - 1; i > p->nPis; i-- )
-        if ( i != iNode && pRefs[i] )
-            pRefs[pObjs[2*i+0]] = pRefs[pObjs[2*i+1]] = 1;
+    assert( pObjs[2*iNode+0] != pObjs[2*iNode+1] );
     for ( i = p->nPis + 1; i < p->iFirstPo; i++ )
-        nMffc += !pRefs[i];
-    return nMffc;
+        pRefs[Abc_Lit2Var(pObjs[2*i+0])]++, 
+        pRefs[Abc_Lit2Var(pObjs[2*i+1])]++;
+    for ( i = p->iFirstPo; i < p->nObjs; i++ )
+        pRefs[Abc_Lit2Var(pObjs[2*i+0])]++;
+    for ( i = p->nPis + 1; i < p->iFirstPo; i++ )
+        assert( pRefs[i] );
+    pRefs[iNode] = 0;
+    for ( i = iNode + 1; i < p->iFirstPo; i++ )
+        if ( !pRefs[Abc_Lit2Var(pObjs[2*i+0])] || !pRefs[Abc_Lit2Var(pObjs[2*i+1])] )
+            pRefs[i] = 0;
+    return Gia_Rsb2ManDeref_rec( p, pObjs, pRefs, iNode );
 }
 // collects divisors and maps them into nodes
 // assumes MFFC is already marked
 int Gia_Rsb2ManDivs( Gia_Rsb2Man_t * p, int iNode )
 {
-    int i;
+    int i, iNodeLevel = 0;
     int * pRefs = Vec_IntArray( &p->vRefs );
     int * pObjs = Vec_IntArray( &p->vObjs );
     p->CareSet = Gia_Rsb2ManOdcs( p, iNode );
-    p->Truth1 = p->CareSet & Vec_WrdEntry(&p->vSims, iNode);
+    p->Truth1 = p->CareSet & Vec_WrdEntry(&p->vSims, 2*iNode);
     p->Truth0 = p->CareSet & ~p->Truth1;
     Vec_PtrClear( &p->vpDivs );
     Vec_PtrPush( &p->vpDivs, &p->Truth0 );
@@ -304,19 +266,20 @@ int Gia_Rsb2ManDivs( Gia_Rsb2Man_t * p, int iNode )
     Vec_IntPushTwo( &p->vDivs, -1, -1 );
     for ( i = 1; i <= p->nPis; i++ )
     {
-        Vec_PtrPush( &p->vpDivs, Vec_WrdEntryP(&p->vSims, i) );
+        Vec_PtrPush( &p->vpDivs, Vec_WrdEntryP(&p->vSims, 2*i) );
         Vec_IntPush( &p->vDivs, i );
     }
     p->nMffc = Gia_Rsb2ManMffc( p, iNode );
-    assert( pRefs[iNode] == 1 );
-    pRefs[iNode] = 0;
+    if ( p->nLevelIncrease >= 0 )
+    {
+        p->Level = Gia_Rsb2ManLevel(p);
+        iNodeLevel = Vec_IntEntry(&p->vLevels, iNode);
+    }
     for ( i = p->nPis + 1; i < p->iFirstPo; i++ )
     {
-        if ( i > iNode )
-            pRefs[i] = pRefs[pObjs[2*i+0]] && pRefs[pObjs[2*i+1]];
-        if ( !pRefs[i] )
+        if ( !pRefs[i] || (p->nLevelIncrease >= 0 && Vec_IntEntry(&p->vLevels, i) > iNodeLevel + p->nLevelIncrease) )
             continue;
-        Vec_PtrPush( &p->vpDivs, Vec_WrdEntryP(&p->vSims, i) );
+        Vec_PtrPush( &p->vpDivs, Vec_WrdEntryP(&p->vSims, 2*i) );
         Vec_IntPush( &p->vDivs, i );
     }
     assert( Vec_IntSize(&p->vDivs) == Vec_PtrSize(&p->vpDivs) );
@@ -358,7 +321,7 @@ int Gia_Rsb2ManInsert_rec( Vec_Int_t * vRes, int nPis, Vec_Int_t * vObjs, int iN
     if ( iObj == iNode )
     {
         int nVars = Vec_IntSize(vDivs);
-        int iLitRes, iTopLit = Vec_IntEntryLast( vResub );
+        int iLitRes = -1, iTopLit = Vec_IntEntryLast( vResub );
         if ( Abc_Lit2Var(iTopLit) == 0 )
             iLitRes = 0;
         else if ( Abc_Lit2Var(iTopLit) < nVars )
@@ -376,7 +339,7 @@ int Gia_Rsb2ManInsert_rec( Vec_Int_t * vRes, int nPis, Vec_Int_t * vObjs, int iN
                 int iVar1 = Abc_Lit2Var(iLit1);
                 int iRes0 = iVar0 < nVars ? Vec_IntEntry(vCopies, Vec_IntEntry(vDivs, iVar0)) : Vec_IntEntry(vCopy, iVar0 - nVars);
                 int iRes1 = iVar1 < nVars ? Vec_IntEntry(vCopies, Vec_IntEntry(vDivs, iVar1)) : Vec_IntEntry(vCopy, iVar1 - nVars);
-                iLitRes = Gia_Rsb2AddNode( vRes, iLit0, iLit1, iRes0, iRes1 );
+                iLitRes   = Gia_Rsb2AddNode( vRes, iLit0, iLit1, iRes0, iRes1 );
                 Vec_IntPush( vCopy, iLitRes );
             }
             Vec_IntFree( vCopy );
@@ -398,20 +361,151 @@ int Gia_Rsb2ManInsert_rec( Vec_Int_t * vRes, int nPis, Vec_Int_t * vObjs, int iN
 }
 Vec_Int_t * Gia_Rsb2ManInsert( int nPis, int nPos, Vec_Int_t * vObjs, int iNode, Vec_Int_t * vResub, Vec_Int_t * vDivs, Vec_Int_t * vCopies )
 {
-    int i, iFirstPo = Vec_IntSize(vObjs) - nPos;
-    Vec_Int_t * vRes = Vec_IntAlloc( 2*Vec_IntSize(vObjs) );
+    int i, nObjs = Vec_IntSize(vObjs)/2, iFirstPo = nObjs - nPos;
+    Vec_Int_t * vRes = Vec_IntAlloc( Vec_IntSize(vObjs) );
+//Vec_IntPrint( vDivs );
+//Vec_IntPrint( vResub );
     Vec_IntFill( vCopies, Vec_IntSize(vObjs), -1 );
     Vec_IntFill( vRes, 2*(nPis + 1), 0 );
     for ( i = 0; i <= nPis; i++ )
-        Vec_IntPush( vCopies, 2*i );
-    for ( i = 0; i < nPos; i++ )
-        Gia_Rsb2ManInsert_rec( vRes, nPis, vObjs, iNode, vResub, vDivs, vCopies, Abc_Lit2Var(Vec_IntEntry(vObjs, 2*(iFirstPo+1))) );
-    for ( i = 0; i < nPos; i++ )
+        Vec_IntWriteEntry( vCopies, i, 2*i );
+    for ( i = iFirstPo; i < nObjs; i++ )
+        Gia_Rsb2ManInsert_rec( vRes, nPis, vObjs, iNode, vResub, vDivs, vCopies, Abc_Lit2Var( Vec_IntEntry(vObjs, 2*i) ) );
+    for ( i = iFirstPo; i < nObjs; i++ )
     {
-        int iLitNew = Abc_Lit2LitL( Vec_IntArray(vCopies), Vec_IntEntry(vObjs, 2*(iFirstPo+1)) );
+        int iLitNew = Abc_Lit2LitL( Vec_IntArray(vCopies), Vec_IntEntry(vObjs, 2*i) );
         Vec_IntPushTwo( vRes, iLitNew, iLitNew );
     }
     return vRes;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_ResubNodeToTry( Vec_Int_t * vTried, int iFirst, int iLast )
+{
+    int iNode;
+    //for ( iNode = iFirst; iNode < iLast; iNode++ )
+    for ( iNode = iLast - 1; iNode >= iFirst; iNode-- )
+        if ( Vec_IntFind(vTried, iNode) == -1 )
+            return iNode;
+    return -1;
+}
+int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose, int ** ppArray )
+{
+    int RetValue = 0, iNode, fChange = 0;
+    Gia_Rsb2Man_t * p = Gia_Rsb2ManAlloc(); 
+    Gia_Rsb2ManStart( p, pObjs, nObjs, nDivsMax, nLevelIncrease, fUseXor, fUseZeroCost, fDebug, fVerbose );
+    *ppArray = NULL;
+    while ( (iNode = Abc_ResubNodeToTry(&p->vTried, p->nPis+1, p->iFirstPo)) > 0 )
+    {
+        int nDivs = Gia_Rsb2ManDivs( p, iNode );
+        int * pResub, nResub = Abc_ResubComputeFunction( (word **)Vec_PtrArray(&p->vpDivs), nDivs, 1, p->nMffc-1, nDivsMax, 0, fUseXor, fDebug, fVerbose, &pResub );
+        if ( nResub == 0 )
+            Vec_IntPush( &p->vTried, iNode );
+        else
+        {
+            int i, k = 0, iTried;
+            Vec_Int_t vResub = { nResub, nResub, pResub };
+            Vec_Int_t * vRes = Gia_Rsb2ManInsert( p->nPis, p->nPos, &p->vObjs, iNode, &vResub, &p->vDivs, &p->vCopies );
+//printf( "\nResubbing node %d:\n", iNode );
+//Gia_Rsb2ManPrint( p );
+            p->nObjs    = Vec_IntSize(vRes)/2;
+            p->iFirstPo = p->nObjs - p->nPos;
+            Vec_IntClear( &p->vObjs );
+            Vec_IntAppend( &p->vObjs, vRes );
+            Vec_IntFree( vRes );
+            Vec_IntForEachEntry( &p->vTried, iTried, i )
+                if ( Vec_IntEntry(&p->vCopies, i) > 0 )
+                    Vec_IntWriteEntry( &p->vTried, k++, iTried );
+            Vec_IntShrink( &p->vTried, k );
+            fChange = 1;
+//Gia_Rsb2ManPrint( p );
+        }
+    }
+    if ( fChange )
+    {
+        RetValue = p->nObjs;
+        *ppArray = p->vObjs.pArray;
+        Vec_IntZero( &p->vObjs );
+    }
+    Gia_Rsb2ManFree( p );
+    return RetValue;
+}
+int Abc_ResubComputeWindow2( int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose, int ** ppArray )
+{
+    *ppArray = ABC_ALLOC( int, 2*nObjs );
+    memmove( *ppArray, pObjs, 2*nObjs * sizeof(int) );
+    return nObjs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int * Gia_ManToResub( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, * pObjs = ABC_CALLOC( int, 2*Gia_ManObjNum(p) );
+    assert( Gia_ManIsNormalized(p) );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsCi(pObj) )
+            continue;
+        pObjs[2*i+0] = Gia_ObjFaninLit0(Gia_ManObj(p, i), i);
+        if ( Gia_ObjIsCo(pObj) )
+            pObjs[2*i+1] = pObjs[2*i+0];
+        else if ( Gia_ObjIsAnd(pObj) )
+            pObjs[2*i+1] = Gia_ObjFaninLit1(Gia_ManObj(p, i), i);
+        else assert( 0 );
+    }
+    return pObjs;
+}
+Gia_Man_t * Gia_ManFromResub( int * pObjs, int nObjs )
+{
+    Gia_Man_t * pNew = Gia_ManStart( nObjs );
+    int i;
+    for ( i = 1; i < nObjs; i++ )
+    {
+        if ( pObjs[2*i] == 0 ) // pi
+            Gia_ManAppendCi( pNew );
+        else if ( pObjs[2*i] == pObjs[2*i+1] ) // po
+            Gia_ManAppendCo( pNew, pObjs[2*i] );
+        else if ( pObjs[2*i] < pObjs[2*i+1] )
+            Gia_ManAppendAnd( pNew, pObjs[2*i], pObjs[2*i+1] );
+        else if ( pObjs[2*i] > pObjs[2*i+1] )
+            Gia_ManAppendXor( pNew, pObjs[2*i], pObjs[2*i+1] );
+        else assert( 0 );
+    }
+    return pNew;
+}
+Gia_Man_t * Gia_ManResub2Test( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    int nObjsNew, * pObjsNew, * pObjs = Gia_ManToResub( p );
+    Abc_ResubPrepareManager( 1 );
+    nObjsNew = Abc_ResubComputeWindow( pObjs, Gia_ManObjNum(p), 1000, -1, 0, 0, 0, 0, &pObjsNew );
+    Abc_ResubPrepareManager( 0 );
+    pNew = Gia_ManFromResub( pObjsNew, nObjsNew );
+    ABC_FREE( pObjs );
+    ABC_FREE( pObjsNew );
+    return pNew;
 }
 
 /**Function*************************************************************
@@ -559,7 +653,7 @@ Vec_Int_t * Gia_RsbCiWindow( Gia_Man_t * p, int nPis )
     Gia_ManStaticFanoutStop( p );
     Vec_WecFree( vLevels );
     Vec_IntFree( vMap );
-Vec_IntPrint( vNodes );
+//Vec_IntPrint( vNodes );
     Vec_IntFree( vNodes );
     return vRes;
 }
