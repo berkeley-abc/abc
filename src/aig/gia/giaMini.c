@@ -1028,7 +1028,7 @@ void Gia_MiniAigGenerateFromFile()
     Vec_Int_t * vMapOut  = Vec_IntStart( Vec_IntSize(vTriples) );
     Vec_Int_t * vPis = Vec_IntAlloc( 100 );
     Vec_Int_t * vPos = Vec_IntAlloc( 100 );
-    int i, ObjOut, ObjIn, nIns = 0, nOuts = 0;
+    int i, ObjOut, ObjIn;
     assert( Vec_IntSize(vTriples) % 3 == 0 );
     for ( i = 0; i < Vec_IntSize(vTriples)/3; i++ )
     {
