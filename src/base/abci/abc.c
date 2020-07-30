@@ -13988,7 +13988,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Dau_NetworkEnumTest();
     //Extra_SimulationTest( nDivMax, nNumOnes, fNewOrder );
     //Mnist_ExperimentWithScaling( nDecMax );
-    //Gia_Gen2CodeTest();
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
@@ -29949,18 +29948,20 @@ usage:
 int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Abc3_ReadShowHie( char * pFileName, int fFlat );
+    extern Gia_Man_t * Gia_MiniAigSuperDerive( char * pFileName, int fVerbose );
     Gia_Man_t * pAig = NULL;
     FILE * pFile;
     char ** pArgvNew;
     char * FileName, * pTemp;
     int c, nArgcNew;
     int fMiniAig = 0;
+    int fMiniAig2 = 0;
     int fMiniLut = 0;
     int fVerbose = 0;
     int fGiaSimple = 0;
     int fSkipStrash = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "csmlvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "csmnlvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -29972,6 +29973,9 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'm':
             fMiniAig ^= 1;
+            break;
+        case 'n':
+            fMiniAig2 ^= 1;
             break;
         case 'l':
             fMiniLut ^= 1;
@@ -30009,6 +30013,8 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fMiniAig )
         pAig = Gia_ManReadMiniAig( FileName );
+    else if ( fMiniAig2 )
+        pAig = Gia_MiniAigSuperDerive( FileName, fVerbose );
     else if ( fMiniLut )
         pAig = Gia_ManReadMiniLut( FileName );
 //    else if ( Extra_FileIsType( FileName, ".v", NULL, NULL ) )
@@ -30020,11 +30026,12 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &r [-csmlvh] <file>\n" );
+    Abc_Print( -2, "usage: &r [-csmnlvh] <file>\n" );
     Abc_Print( -2, "\t         reads the current AIG from the AIGER file\n" );
     Abc_Print( -2, "\t-c     : toggles reading simple AIG [default = %s]\n", fGiaSimple? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggles structural hashing while reading [default = %s]\n", !fSkipStrash? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles reading MiniAIG rather than AIGER file [default = %s]\n", fMiniAig? "yes": "no" );
+    Abc_Print( -2, "\t-n     : toggles reading MiniAIG as a set of supergates [default = %s]\n", fMiniAig2? "yes": "no" );
     Abc_Print( -2, "\t-l     : toggles reading MiniLUT rather than AIGER file [default = %s]\n", fMiniLut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
