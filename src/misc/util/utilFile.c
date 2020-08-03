@@ -25,6 +25,23 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+// Handle legacy macros
+#if !defined(S_IREAD)
+#if defined(S_IRUSR)
+#define S_IREAD S_IRUSR
+#else
+#error S_IREAD is undefined
+#endif
+#endif
+
+#if !defined(S_IWRITE)
+#if defined(S_IWUSR)
+#define S_IWRITE S_IWUSR
+#else
+#error S_IWRITE is undefined
+#endif
+#endif
+
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <windows.h>
 #include <process.h>
