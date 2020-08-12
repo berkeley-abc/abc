@@ -1300,10 +1300,20 @@ static inline Vec_Wrd_t * Vec_WrdReadHex( char * pFileName, int * pnWords, int f
     p = Vec_WrdAlloc( 1000 );
     while ( (c = fgetc(pFile)) != EOF )
     {
-        if ( c == '\n' && nWords == -1 )
-            nWords = Vec_WrdSize(p);
-        if ( c == '\n' || c == '\r' || c == '\t' || c == ' ' )
+        if ( c == '\r' || c == '\t' || c == ' ' )
             continue;
+        if ( c == '\n' )
+        {
+            if ( nChars > 0 )
+            {
+                Vec_WrdPush( p, Num );
+                nChars = 0; 
+                Num = 0;
+            }
+            if ( nWords == -1 && Vec_WrdSize(p) > 0 )
+                nWords = Vec_WrdSize(p);
+            continue;
+        }
         Num |= (word)Vec_WrdReadHexOne((char)c) << (nChars * 4);
         if ( ++nChars < 16 )
             continue;
