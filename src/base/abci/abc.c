@@ -37156,6 +37156,11 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( 0, "The verification miter is written into file \"%s\".\n", "cec_miter.aig" );
             Gia_AigerWrite( pMiter, "cec_miter.aig", 0, 0, 0 );
         }
+        if ( pGias[0]->vSimsPi )
+        {
+            pMiter->vSimsPi = Vec_WrdDup(pGias[0]->vSimsPi); 
+            pMiter->nSimWords = pGias[0]->nSimWords;
+        }
         pAbc->Status = Cec_ManVerify( pMiter, pPars );
         Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
         Gia_ManStop( pMiter );

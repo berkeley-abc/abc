@@ -349,6 +349,11 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
         Gia_ManStop( p );
         return RetValue;
     }
+    if ( pInit->vSimsPi )
+    {
+        p->vSimsPi = Vec_WrdDup(pInit->vSimsPi); 
+        p->nSimWords = pInit->nSimWords;
+    }
     // sweep for equivalences
     Cec_ManFraSetDefaultParams( pParsFra );
     pParsFra->nItersMax    = 1000;

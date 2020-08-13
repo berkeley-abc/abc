@@ -360,6 +360,11 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSil
         Vec_IntFreeP( &pAig->vIdsEquiv );
         pAig->vIdsEquiv = Vec_IntAlloc( 1000 );
     }
+    if ( pAig->vSimsPi )
+    {
+        pIni->vSimsPi = Vec_WrdDup(pAig->vSimsPi); 
+        pIni->nSimWords = pAig->nSimWords;
+    }
 
     // prepare the managers
     // SAT sweeping
@@ -368,12 +373,12 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSil
         pPars->fColorDiff = 1;
     // simulation
     Cec_ManSimSetDefaultParams( pParsSim );
-    pParsSim->nWords      = pPars->nWords;
+    pParsSim->nWords      = Abc_MaxInt(2*pAig->nSimWords, pPars->nWords);
     pParsSim->nFrames     = pPars->nRounds;
     pParsSim->fCheckMiter = pPars->fCheckMiter;
     pParsSim->fDualOut    = pPars->fDualOut;
     pParsSim->fVerbose    = pPars->fVerbose;
-    pSim = Cec_ManSimStart( p->pAig, pParsSim );
+    pSim = Cec_ManSimStart( pIni, pParsSim );
     // SAT solving
     Cec_ManSatSetDefaultParams( pParsSat );
     pParsSat->nBTLimit = pPars->nBTLimit;
@@ -386,7 +391,7 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSil
 clk = Abc_Clock();
     if ( p->pAig->pReprs == NULL )
     {
-        if ( Cec_ManSimClassesPrepare(pSim, -1) || Cec_ManSimClassesRefine(pSim) )
+        if ( Cec_ManSimClassesPrepare(pSim, -1) || (!p->pAig->nSimWords && Cec_ManSimClassesRefine(pSim)) )
         {
             Gia_ManStop( p->pAig );
             p->pAig = NULL;
