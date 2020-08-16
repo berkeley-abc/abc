@@ -48121,6 +48121,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    }
 //    Abc_FrameUpdateGia( pAbc, Abc_Procedure(pAbc->pGia) );
 //    Gia_ManTryResub( pAbc->pGia );
+    Gia_RsbEnumerateWindows( pAbc->pGia, 6, 5 );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );

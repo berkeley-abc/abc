@@ -521,7 +521,7 @@ Gia_Man_t * Gia_ManResub2Test( Gia_Man_t * p )
 // returns the number of nodes added to the window when is iPivot is added
 // the window nodes in vNodes are labeled with the current traversal ID
 // the new node iPivot and its fanout are temporarily labeled and then unlabeled
-int Gia_WinTryAddingNode( Gia_Man_t * p, int iPivot, Vec_Wec_t * vLevels, Vec_Int_t * vNodes )
+int Gia_WinTryAddingNode( Gia_Man_t * p, int iPivot, int iPivot2, Vec_Wec_t * vLevels, Vec_Int_t * vNodes )
 {
     Vec_Int_t * vLevel; 
     Gia_Obj_t * pObj, * pFanout;
@@ -533,22 +533,34 @@ int Gia_WinTryAddingNode( Gia_Man_t * p, int iPivot, Vec_Wec_t * vLevels, Vec_In
     // add the object to the window and to the levelized structure
     Gia_ObjSetTravIdCurrentId( p, iPivot );
     Vec_WecPush( vLevels, Gia_ObjLevelId(p, iPivot), iPivot );
+    // the same about the second node if it is given
+    if ( iPivot2 != -1 )
+    {
+        // precondition:  the new object to be added (iPivot2) is not in the window
+        assert( !Gia_ObjIsTravIdCurrentId(p, iPivot2) );
+        // add the object to the window and to the levelized structure
+        Gia_ObjSetTravIdCurrentId( p, iPivot2 );
+        Vec_WecPush( vLevels, Gia_ObjLevelId(p, iPivot2), iPivot2 );
+    }
     // iterate through all objects and explore their fanouts
     Vec_WecForEachLevel( vLevels, vLevel, k )
         Gia_ManForEachObjVec( vLevel, p, pObj, i )
-            if ( Gia_ObjFanoutNum(p, pObj) > 10 ) // do not explore objects with high fanout
-                Gia_ObjForEachFanoutStatic( p, pObj, pFanout, f )
-                    if ( Gia_ObjIsAnd(pFanout) && // internal node
-                        !Gia_ObjIsTravIdCurrent(p, pFanout) && // not in the window
-                         Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin0(pFanout)) && // but fanins are
-                         Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin1(pFanout)) )  // in the window
-                    {
-                        // add fanout to the window and to the levelized structure
-                        Gia_ObjSetTravIdCurrent( p, pFanout );
-                        Vec_WecPush( vLevels, Gia_ObjLevel(p, pFanout), Gia_ObjId(p, pFanout) );
-                        // count the number of nodes in the structure
-                        Count++;
-                    }
+            Gia_ObjForEachFanoutStatic( p, pObj, pFanout, f )
+            {
+                if ( f == 5 ) // explore first 5 fanouts of the node
+                    break;
+                if ( Gia_ObjIsAnd(pFanout) && // internal node
+                    !Gia_ObjIsTravIdCurrent(p, pFanout) && // not in the window
+                     Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin0(pFanout)) && // but fanins are
+                     Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin1(pFanout)) )  // in the window
+                {
+                    // add fanout to the window and to the levelized structure
+                    Gia_ObjSetTravIdCurrent( p, pFanout );
+                    Vec_WecPush( vLevels, Gia_ObjLevel(p, pFanout), Gia_ObjId(p, pFanout) );
+                    // count the number of nodes in the structure
+                    Count++;
+                }
+            }
     // iterate through the nodes in the levelized structure
     Vec_WecForEachLevel( vLevels, vLevel, k )
     {
@@ -584,7 +596,7 @@ int Gia_WinAddCiWithMaxDivisors( Gia_Man_t * p, Vec_Wec_t * vLevels )
     {
         if ( Gia_ObjIsTravIdCurrentId( p, Id ) )
             continue;
-        nCurFan = Gia_WinTryAddingNode( p, Id, vLevels, NULL );
+        nCurFan = Gia_WinTryAddingNode( p, Id, -1, vLevels, NULL );
         if ( nMaxFan < nCurFan )
         {
             nMaxFan = nCurFan;
@@ -645,7 +657,7 @@ Vec_Int_t * Gia_RsbCiWindow( Gia_Man_t * p, int nPis )
     for ( i = 1; i < nPis; i++ )
     {
         iMaxFan = Gia_WinAddCiWithMaxDivisors( p, vLevels );
-        Gia_WinTryAddingNode( p, iMaxFan, vLevels, vNodes );
+        Gia_WinTryAddingNode( p, iMaxFan, -1, vLevels, vNodes );
     }
     Vec_IntSort( vNodes, 0 );
     vRes = Gia_RsbCiTranslate( p, vNodes, vMap );
@@ -661,6 +673,342 @@ void Gia_RsbCiWindowTest( Gia_Man_t * p )
     Vec_Int_t * vWin = Gia_RsbCiWindow( p, 6 );
     //Vec_IntPrint( vWin );
     Vec_IntFree( vWin );
+}
+
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Return initial window for the given node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int  Gia_ObjFaninId( Gia_Obj_t * pObj, int iObj, int n )          { return n ? Gia_ObjFaninId1(pObj, iObj) : Gia_ObjFaninId0(pObj, iObj);  }
+
+static inline int  Gia_ObjTravIsTopTwo( Gia_Man_t * p, int iNodeA )            { return (p->pTravIds[iNodeA] >= p->nTravIds - 1);       }
+static inline int  Gia_ObjTravIsSame( Gia_Man_t * p, int iNodeA, int iNodeB )  { return (p->pTravIds[iNodeA] == p->pTravIds[iNodeB]);   }
+static inline void Gia_ObjTravSetSame( Gia_Man_t * p, int iNodeA, int iNodeB ) { p->pTravIds[iNodeA] = p->pTravIds[iNodeB];             }
+
+// collect nodes on the path from the meeting point to the root node, excluding the meeting point
+void Gia_RsbWindowGather( Gia_Man_t * p, Vec_Int_t * vPaths, int iNode, Vec_Int_t * vVisited )
+{
+    int iPrev;
+    if ( iNode == 0 )
+        return;
+    Vec_IntPush( vVisited, iNode );
+    iPrev = Vec_IntEntry( vPaths, iNode );
+    if ( iPrev == 0 )
+        return;
+    assert( Gia_ObjTravIsSame(p, iPrev, iNode) );
+    Gia_RsbWindowGather( p, vPaths, iPrev, vVisited );
+}
+// explore the frontier of nodes in the breadth-first traversal
+int Gia_RsbWindowExplore( Gia_Man_t * p, Vec_Int_t * vVisited, int iStart, Vec_Int_t * vPaths, int * piMeet, int * piNode )
+{
+    int i, n, iObj, iLimit = Vec_IntSize( vVisited );
+    *piMeet = *piNode = 0;
+    Vec_IntForEachEntryStartStop( vVisited, iObj, i, iStart, iLimit )
+    {
+        Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        for ( n = 0; n < 2; n++ )
+        {
+            int iFan = Gia_ObjFaninId( pObj, iObj, n );
+            // if the node was visited on the paths to both fanins, collect it
+            if ( Gia_ObjTravIsTopTwo(p, iObj) && Gia_ObjTravIsTopTwo(p, iFan) && !Gia_ObjTravIsSame(p, iObj, iFan) )
+            {
+                *piMeet = iFan;
+                *piNode = iObj;
+                return 1;
+            }
+            // if the node was visited already on this path, skip it
+            if ( Gia_ObjTravIsTopTwo(p, iFan) )
+            {
+                assert( Gia_ObjTravIsSame(p, iObj, iFan) );
+                continue;
+            }
+            // label the node as visited
+            Gia_ObjTravSetSame( p, iFan, iObj );
+            Vec_IntWriteEntry( vPaths, iFan, iObj ); 
+            Vec_IntPush( vVisited, iFan );
+        }
+    }
+    return 0;
+}
+Vec_Int_t * Gia_RsbWindowInit( Gia_Man_t * p, Vec_Int_t * vPaths, int iPivot, int nIter )
+{
+    Vec_Int_t * vVisited = Vec_IntAlloc( 100 );
+    Gia_Obj_t * pPivot = Gia_ManObj( p, iPivot ); 
+    int i, n, iStart = 0;
+    assert( Gia_ObjIsAnd(pPivot) );
+    // start paths for both fanins of the pivot node
+    for ( n = 0; n < 2; n++ )
+    {
+        int iFan = Gia_ObjFaninId( pPivot, iPivot, n );
+        Gia_ManIncrementTravId(p);
+        Vec_IntPush( vVisited, iFan );
+        Vec_IntWriteEntry( vPaths, iFan, 0 ); 
+        Gia_ObjSetTravIdCurrentId( p, iFan );
+    }
+    // perform several iterations of breadth-first search
+    for ( i = 0; i < nIter; i++ )
+    {
+        int iMeet, iNode, iNext = Vec_IntSize(vVisited);
+        if ( Gia_RsbWindowExplore( p, vVisited, iStart, vPaths, &iMeet, &iNode ) )
+        {
+            // found the shared path
+            if ( Gia_ObjIsTravIdCurrentId(p, iMeet) )
+                assert( Gia_ObjIsTravIdPreviousId(p, iNode) );
+            else if ( Gia_ObjIsTravIdPreviousId(p, iMeet) )
+                assert( Gia_ObjIsTravIdCurrentId(p, iNode) );
+            else assert( 0 );
+            // collect the initial window
+            Vec_IntClear( vVisited );
+            Gia_RsbWindowGather( p, vPaths, Vec_IntEntry(vPaths, iMeet), vVisited );
+            Gia_RsbWindowGather( p, vPaths, iNode, vVisited );
+            Vec_IntPush( vVisited, iPivot );
+            break;
+        }
+        iStart = iNext;
+    }
+    // if no meeting point is found, make sure to return NULL
+    if ( i == nIter )
+        Vec_IntFreeP( &vVisited );
+    return vVisited;
+}
+Vec_Int_t * Gia_RsbCreateWindowInputs( Gia_Man_t * p, Vec_Int_t * vWin )
+{
+    Vec_Int_t * vInputs = Vec_IntAlloc(10);
+    Gia_Obj_t * pObj; int i, n, iObj;
+    Gia_ManIncrementTravId(p);
+    Gia_ManForEachObjVec( vWin, p, pObj, i )
+        Gia_ObjSetTravIdCurrent(p, pObj);
+    Gia_ManForEachObjVec( vWin, p, pObj, i )
+    {
+        assert( Gia_ObjIsAnd(pObj) );
+        for ( n = 0; n < 2; n++ )
+        {
+            int iFan = n ? Gia_ObjFaninId1p(p, pObj) : Gia_ObjFaninId0p(p, pObj);
+            if ( !Gia_ObjIsTravIdCurrentId(p, iFan) )
+                Vec_IntPushUnique( vInputs, iFan );
+        }
+    }
+    Vec_IntForEachEntry( vInputs, iObj, i )
+    {
+        Gia_ObjSetTravIdCurrentId( p, iObj );
+        Vec_IntPush( vWin, iObj );
+    }
+    return vInputs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Grow window for the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_RsbAddSideInputs( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin )
+{
+    Vec_Int_t * vLevel; 
+    Gia_Obj_t * pObj, * pFanout;
+    int k, i, f, iObj;
+    // precondition: the levelized structure is empty
+    assert( Vec_WecSizeSize(vLevels) == 0 );
+    // precondition: window nodes are labeled with the current ID
+    Vec_IntForEachEntry( vWin, iObj, i )
+    {
+        assert( Gia_ObjIsTravIdCurrentId(p, iObj) );
+        Vec_WecPush( vLevels, Gia_ObjLevelId(p, iObj), iObj );
+    }
+    // iterate through all objects and explore their fanouts
+    Vec_WecForEachLevel( vLevels, vLevel, k )
+        Gia_ManForEachObjVec( vLevel, p, pObj, i )
+            Gia_ObjForEachFanoutStatic( p, pObj, pFanout, f )
+            {
+                if ( f == 5 ) // explore first 5 fanouts of the node
+                    break;
+                if ( Gia_ObjIsAnd(pFanout) && // internal node
+                    !Gia_ObjIsTravIdCurrent(p, pFanout) && // not in the window
+                     Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin0(pFanout)) && // but fanins are
+                     Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin1(pFanout)) )  // in the window
+                {
+                    // add fanout to the window and to the levelized structure
+                    Gia_ObjSetTravIdCurrent( p, pFanout );
+                    Vec_WecPush( vLevels, Gia_ObjLevel(p, pFanout), Gia_ObjId(p, pFanout) );
+                    Vec_IntPush( vWin, Gia_ObjId(p, pFanout) );
+                }
+            }
+    // iterate through the nodes in the levelized structure
+    Vec_WecForEachLevel( vLevels, vLevel, k )
+        Vec_IntClear( vLevel );
+}
+// expland inputs until saturation while adding the side-fanouts
+void Gia_RsbExpandInputs( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Vec_Int_t * vInputs )
+{
+    Gia_Obj_t * pObj; 
+    int i, n, iFans[2], fChange = 1;
+    while ( fChange )
+    {
+        fChange = 0;
+        Gia_ManForEachObjVec( vInputs, p, pObj, i )
+        {
+            if ( !Gia_ObjIsAnd(pObj) )
+                continue;
+            iFans[0] = Gia_ObjFaninId0p(p, pObj);
+            iFans[1] = Gia_ObjFaninId1p(p, pObj);
+            if ( !Gia_ObjIsTravIdCurrentId(p, iFans[0]) && !Gia_ObjIsTravIdCurrentId(p, iFans[1]) )
+                continue;
+            Vec_IntRemove( vInputs, Gia_ObjId(p, pObj) );
+            assert( Vec_IntFind(vWin, Gia_ObjId(p, pObj)) >= 0 );
+            for ( n = 0; n < 2; n++ )
+            {
+                if ( Gia_ObjIsTravIdCurrentId(p, iFans[n]) )
+                    continue;
+                assert( Vec_IntFind(vInputs, iFans[n]) == -1 );
+                Vec_IntPush( vInputs, iFans[n] );
+                Gia_WinTryAddingNode( p, iFans[n], -1, vLevels, vWin );
+                assert( Gia_ObjIsTravIdCurrentId(p, iFans[n]) );
+            }
+            fChange = 1;
+        }
+    }
+}
+// select the best input to expand, based on its contribution to the window size
+int Gia_RsbSelectOneInput( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vIns )
+{
+    int i, iNode = 0, WeightThis, WeightBest = -1;
+    Gia_Obj_t * pObj; 
+    Gia_ManForEachObjVec( vIns, p, pObj, i )
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            int iFan0 = Gia_ObjFaninId0p(p, pObj);
+            int iFan1 = Gia_ObjFaninId1p(p, pObj);
+            assert( !Gia_ObjIsTravIdCurrentId(p, iFan0) && !Gia_ObjIsTravIdCurrentId(p, iFan1) );
+            WeightThis = Gia_WinTryAddingNode( p, iFan0, iFan1, vLevels, NULL );
+            if ( WeightBest < WeightThis )
+            {
+                WeightBest = WeightThis;
+                iNode = Gia_ObjId(p, pObj);
+            }
+        }
+    return iNode;
+}
+// grow the initial window as long as it fits the input count limit
+void Gia_RsbWindowGrow( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Vec_Int_t * vIns, int nInputsMax )
+{
+    int iNode;
+    Gia_RsbAddSideInputs( p, vLevels, vWin );
+    Gia_RsbExpandInputs( p, vLevels, vWin, vIns );
+    while ( Vec_IntSize(vIns) < nInputsMax && (iNode = Gia_RsbSelectOneInput(p, vLevels, vIns)) )
+    {
+        int iFan0 = Gia_ObjFaninId0p(p, Gia_ManObj(p, iNode));
+        int iFan1 = Gia_ObjFaninId1p(p, Gia_ManObj(p, iNode));
+        assert( !Gia_ObjIsTravIdCurrentId(p, iFan0) && !Gia_ObjIsTravIdCurrentId(p, iFan1) );
+        Gia_WinTryAddingNode( p, iFan0, iFan1, vLevels, vWin );
+        assert(  Gia_ObjIsTravIdCurrentId(p, iFan0) &&  Gia_ObjIsTravIdCurrentId(p, iFan1) );
+        Vec_IntRemove( vIns, iNode );
+        Vec_IntPushTwo( vIns, iFan0, iFan1 );
+        Gia_RsbExpandInputs( p, vLevels, vWin, vIns );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Create window for the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_RsbWindowCompute( Gia_Man_t * p, int iObj, int nInputsMax, int nLevelsMax, Vec_Wec_t * vLevels, Vec_Int_t * vPaths, Vec_Int_t ** pvWin, Vec_Int_t ** pvIns )
+{
+    Vec_Int_t * vWin, * vIns;
+    *pvWin = *pvIns = NULL;
+    vWin = Gia_RsbWindowInit( p, vPaths, iObj, nLevelsMax );
+    if ( vWin == NULL )
+        return 0;
+    vIns = Gia_RsbCreateWindowInputs( p, vWin ); 
+    // vWin and vIns are labeled with the current trav ID
+    //Vec_IntPrint( vWin );    
+    //Vec_IntPrint( vIns );    
+    if ( Vec_IntSize(vIns) <= nInputsMax + 2 ) // consider windows, which initially has a larger input space
+        Gia_RsbWindowGrow( p, vLevels, vWin, vIns, nInputsMax );
+    if ( Vec_IntSize(vIns) <= nInputsMax )
+    {
+        Vec_IntSort( vWin, 0 );
+        Vec_IntSort( vIns, 0 );
+        *pvWin = vWin;
+        *pvIns = vIns;
+        return 1;
+    }
+    else
+    {
+        Vec_IntFree( vWin );
+        Vec_IntFree( vIns );
+        return 0;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Enumerate windows of the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
+{
+    int fVerbose = 0;
+    int i, nWins = 0, nWinSize = 0, nInsSize = 0;
+    Vec_Wec_t * vLevels = Vec_WecStart( Gia_ManLevelNum(p)+1 );
+    Vec_Int_t * vPaths = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj;
+    abctime clk = Abc_Clock();
+    Gia_ManStaticFanoutStart( p );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        Vec_Int_t * vWin, * vIns;
+        if ( !Gia_RsbWindowCompute( p, i, nInputsMax, nLevelsMax, vLevels, vPaths, &vWin, &vIns ) )
+            continue;
+        nWins++;
+        nWinSize += Vec_IntSize(vWin);
+        nInsSize += Vec_IntSize(vIns);
+        if ( fVerbose )
+        {
+            printf( "Obj %d\n", i );
+            Vec_IntPrint( vWin );    
+            Vec_IntPrint( vIns );    
+            printf( "\n" );
+        }
+        Vec_IntFree( vWin );
+        Vec_IntFree( vIns );
+
+    }
+    Gia_ManStaticFanoutStop( p );
+    Vec_WecFree( vLevels );
+    Vec_IntFree( vPaths );
+    printf( "Computed windows for %d nodes (out of %d). Ave inputs = %.2f. Ave volume = %.2f.  ", 
+        nWins, Gia_ManAndNum(p), 1.0*nInsSize/Abc_MaxInt(1,nWins), 1.0*nWinSize/Abc_MaxInt(1,nWins) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////
