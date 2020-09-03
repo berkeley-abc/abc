@@ -35,8 +35,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
  
-#define ACB_LAST_NAME_ID 14
-
 typedef enum {
     ACB_NONE = 0,  // 0:  unused
     ACB_MODULE,    // 1:  "module"
@@ -52,6 +50,8 @@ typedef enum {
     ACB_NOR,       // 11: "nor"
     ACB_XOR,       // 12: "xor"
     ACB_XNOR,      // 13: "xnor"
+    ACB_MUX,       // 14: "_HMUX"
+    ACB_DC,        // 15: "_DC"
     ACB_UNUSED     // 14: unused
 } Acb_KeyWords_t; 
 
@@ -70,6 +70,8 @@ static inline char * Acb_Num2Name( int i )
     if ( i == 11 )  return "nor";
     if ( i == 12 )  return "xor";
     if ( i == 13 )  return "xnor";
+    if ( i == 14 )  return "_HMUX";
+    if ( i == 15 )  return "_DC";
     return NULL;
 }
 
@@ -83,6 +85,8 @@ static inline int Acb_Type2Oper( int i )
     if ( i == 11 )  return ABC_OPER_BIT_NOR;
     if ( i == 12 )  return ABC_OPER_BIT_XOR;
     if ( i == 13 )  return ABC_OPER_BIT_NXOR;
+    if ( i == 14 )  return ABC_OPER_BIT_MUX;
+    if ( i == 15 )  return ABC_OPER_TRI;
     assert( 0 );
     return -1;
 }
@@ -91,6 +95,7 @@ static inline char * Acb_Oper2Name( int i )
 {
     if ( i == ABC_OPER_CONST_F  )  return "const0";
     if ( i == ABC_OPER_CONST_T  )  return "const1";
+    if ( i == ABC_OPER_CONST_X  )  return "constX";
     if ( i == ABC_OPER_BIT_BUF  )  return "buf";
     if ( i == ABC_OPER_BIT_INV  )  return "not";
     if ( i == ABC_OPER_BIT_AND  )  return "and";
@@ -99,6 +104,8 @@ static inline char * Acb_Oper2Name( int i )
     if ( i == ABC_OPER_BIT_NOR  )  return "nor";
     if ( i == ABC_OPER_BIT_XOR  )  return "xor";
     if ( i == ABC_OPER_BIT_NXOR )  return "xnor";
+    if ( i == ABC_OPER_BIT_MUX )   return "mux";
+    if ( i == ABC_OPER_TRI )       return "_DC";
     assert( 0 );
     return NULL;
 }
@@ -245,14 +252,11 @@ void * Acb_VerilogSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames )
             vCur = vOutputs;
         else if ( Token == ACB_WIRE )
             vCur = vWires;
-        else if ( Token >= ACB_BUF && Token <= ACB_XNOR )
+        else if ( Token >= ACB_BUF && Token < ACB_UNUSED )
         {
-            //char * pToken = Abc_NamStr(pNames, Vec_IntEntry(vBuffer, i+1));
             Vec_IntPush( vTypes, Token );
             Vec_IntPush( vTypes, Vec_IntSize(vFanins) );
             vCur = vFanins;
-            //if ( pToken[1] == 'z' && pToken[2] == '_' && pToken[3] == 'g' && pToken[4] == '_' )
-            //    i++;
         }
         else 
             Vec_IntPush( vCur, Token );
@@ -288,6 +292,8 @@ void * Acb_VerilogSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames )
         Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CONST_F, 0, 0, 0, 0,   0, NULL,  1, &Token,   NULL  ); // no fanins
     if ( (Token = Abc_NamStrFind(pNames, "1\'b1")) )
         Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CONST_T, 0, 0, 0, 0,   0, NULL,  1, &Token,   NULL  ); // no fanins
+    if ( (Token = Abc_NamStrFind(pNames, "1\'bx")) )
+        Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CONST_X, 0, 0, 0, 0,   0, NULL,  1, &Token,   NULL  ); // no fanins
     Vec_IntForEachEntryDouble( vTypes, Token, Size, i ) 
         if ( Token > 0 )
         {
@@ -440,7 +446,10 @@ void Acb_VerilogSimpleWrite( Acb_Ntk_t * p, char * pFileName )
         {
             assert( Acb_ObjType(p, iObj) == ABC_OPER_CONST_F || Acb_ObjType(p, iObj) == ABC_OPER_CONST_T );
             fprintf( pFile, "  %s (", Acb_Oper2Name( ABC_OPER_BIT_BUF ) );
-            fprintf( pFile, " 1\'b%d", Acb_ObjType(p, iObj) == ABC_OPER_CONST_T );
+            if ( Acb_ObjType(p, iObj) == ABC_OPER_CONST_X )
+                fprintf( pFile, " 1\'bx" );
+            else
+                fprintf( pFile, " 1\'b%d", Acb_ObjType(p, iObj) == ABC_OPER_CONST_T );
             fprintf( pFile, " );\n" );
         }
 
