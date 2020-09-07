@@ -48059,6 +48059,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax );
     int c, fVerbose = 0;
     int nFrames = 5;
     int fSwitch = 0;

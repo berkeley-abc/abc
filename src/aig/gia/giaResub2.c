@@ -399,9 +399,9 @@ int Abc_ResubNodeToTry( Vec_Int_t * vTried, int iFirst, int iLast )
             return iNode;
     return -1;
 }
-int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose, int ** ppArray )
+int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose, int ** ppArray, int * pnResubs )
 {
-    int RetValue = 0, iNode, fChange = 0;
+    int iNode, nChanges = 0, RetValue = 0;
     Gia_Rsb2Man_t * p = Gia_Rsb2ManAlloc(); 
     Gia_Rsb2ManStart( p, pObjs, nObjs, nDivsMax, nLevelIncrease, fUseXor, fUseZeroCost, fDebug, fVerbose );
     *ppArray = NULL;
@@ -416,8 +416,8 @@ int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncr
             int i, k = 0, iTried;
             Vec_Int_t vResub = { nResub, nResub, pResub };
             Vec_Int_t * vRes = Gia_Rsb2ManInsert( p->nPis, p->nPos, &p->vObjs, iNode, &vResub, &p->vDivs, &p->vCopies );
-//printf( "\nResubbing node %d:\n", iNode );
-//Gia_Rsb2ManPrint( p );
+            //printf( "\nResubing node %d:\n", iNode );
+            //Gia_Rsb2ManPrint( p );
             p->nObjs    = Vec_IntSize(vRes)/2;
             p->iFirstPo = p->nObjs - p->nPos;
             Vec_IntClear( &p->vObjs );
@@ -427,23 +427,27 @@ int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncr
                 if ( Vec_IntEntry(&p->vCopies, i) > 0 )
                     Vec_IntWriteEntry( &p->vTried, k++, iTried );
             Vec_IntShrink( &p->vTried, k );
-            fChange = 1;
-//Gia_Rsb2ManPrint( p );
+            nChanges++;
+            //Gia_Rsb2ManPrint( p );
         }
     }
-    if ( fChange )
+    if ( nChanges )
     {
         RetValue = p->nObjs;
         *ppArray = p->vObjs.pArray;
         Vec_IntZero( &p->vObjs );
     }
     Gia_Rsb2ManFree( p );
+    if ( pnResubs )
+        *pnResubs = nChanges;
     return RetValue;
 }
-int Abc_ResubComputeWindow2( int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose, int ** ppArray )
+int Abc_ResubComputeWindow2( int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose, int ** ppArray, int * pnResubs )
 {
     *ppArray = ABC_ALLOC( int, 2*nObjs );
     memmove( *ppArray, pObjs, 2*nObjs * sizeof(int) );
+    if ( pnResubs )
+        *pnResubs = 0;
     return nObjs;
 }
 
@@ -476,13 +480,13 @@ int * Gia_ManToResub( Gia_Man_t * p )
     }
     return pObjs;
 }
-Gia_Man_t * Gia_ManFromResub( int * pObjs, int nObjs )
+Gia_Man_t * Gia_ManFromResub( int * pObjs, int nObjs, int nIns )
 {
     Gia_Man_t * pNew = Gia_ManStart( nObjs );
     int i;
     for ( i = 1; i < nObjs; i++ )
     {
-        if ( pObjs[2*i] == 0 ) // pi
+        if ( pObjs[2*i] == 0 && i <= nIns ) // pi
             Gia_ManAppendCi( pNew );
         else if ( pObjs[2*i] == pObjs[2*i+1] ) // po
             Gia_ManAppendCo( pNew, pObjs[2*i] );
@@ -497,11 +501,16 @@ Gia_Man_t * Gia_ManFromResub( int * pObjs, int nObjs )
 Gia_Man_t * Gia_ManResub2Test( Gia_Man_t * p )
 {
     Gia_Man_t * pNew;
-    int nObjsNew, * pObjsNew, * pObjs = Gia_ManToResub( p );
+    int nResubs, nObjsNew, * pObjsNew, * pObjs = Gia_ManToResub( p );
+//Gia_ManPrint( p );
     Abc_ResubPrepareManager( 1 );
-    nObjsNew = Abc_ResubComputeWindow( pObjs, Gia_ManObjNum(p), 1000, -1, 0, 0, 0, 0, &pObjsNew );
+    nObjsNew = Abc_ResubComputeWindow( pObjs, Gia_ManObjNum(p), 1000, -1, 0, 0, 0, 0, &pObjsNew, &nResubs );
+    printf( "Performed resub %d times.  Reduced %d nodes.\n", nResubs, nObjsNew ? Gia_ManObjNum(p) - nObjsNew : 0 );
     Abc_ResubPrepareManager( 0 );
-    pNew = Gia_ManFromResub( pObjsNew, nObjsNew );
+    if ( nObjsNew )
+        pNew = Gia_ManFromResub( pObjsNew, nObjsNew, Gia_ManCiNum(p) );
+    else 
+        pNew = Gia_ManDup( p );
     ABC_FREE( pObjs );
     ABC_FREE( pObjsNew );
     return pNew;
@@ -966,6 +975,116 @@ int Gia_RsbWindowCompute( Gia_Man_t * p, int iObj, int nInputsMax, int nLevelsMa
 
 /**Function*************************************************************
 
+  Synopsis    [Derive GIA from the window]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_RsbFindOutputs( Gia_Man_t * p, Vec_Int_t * vWin, Vec_Int_t * vIns, Vec_Int_t * vRefs )
+{
+    Vec_Int_t * vOuts = Vec_IntAlloc( 100 );
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachObjVec( vWin, p, pObj, i ) 
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0p(p, pObj), 1 );
+            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId1p(p, pObj), 1 );
+        }
+    Gia_ManForEachObjVec( vIns, p, pObj, i ) 
+        Vec_IntWriteEntry( vRefs, Gia_ObjId(p, pObj), Gia_ObjFanoutNum(p, pObj) );
+    Gia_ManForEachObjVec( vWin, p, pObj, i )
+        if ( Gia_ObjFanoutNum(p, pObj) != Vec_IntEntry(vRefs, Gia_ObjId(p, pObj)) )
+            Vec_IntPush( vOuts, Gia_ObjId(p, pObj) );
+    Gia_ManForEachObjVec( vWin, p, pObj, i )
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0p(p, pObj), -1 );
+            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId1p(p, pObj), -1 );
+        }
+    return vOuts;
+}
+
+Gia_Man_t * Gia_RsbDeriveGiaFromWindows( Gia_Man_t * p, Vec_Int_t * vWin, Vec_Int_t * vIns, Vec_Int_t * vOuts )
+{
+    Gia_Man_t * pNew; 
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObjVec( vIns, p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachObjVec( vWin, p, pObj, i )
+        if ( !~pObj->Value )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachObjVec( vOuts, p, pObj, i )
+        Gia_ManAppendCo( pNew, pObj->Value );
+    Gia_ManHashStop( pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Naive truth-table-based verification.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word Gia_LutComputeTruth66_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    word Truth0, Truth1;
+    if ( Gia_ObjIsCi(pObj) )
+        return s_Truths6[Gia_ObjCioId(pObj)];
+    if ( Gia_ObjIsConst0(pObj) )
+        return 0;
+    assert( Gia_ObjIsAnd(pObj) );
+    Truth0 = Gia_LutComputeTruth66_rec( p, Gia_ObjFanin0(pObj) );
+    Truth1 = Gia_LutComputeTruth66_rec( p, Gia_ObjFanin1(pObj) );
+    if ( Gia_ObjFaninC0(pObj) )
+        Truth0 = ~Truth0;
+    if ( Gia_ObjFaninC1(pObj) )
+        Truth1 = ~Truth1;
+    return Truth0 & Truth1;
+}
+void Gia_ManVerifyTwoTruths( Gia_Man_t * p1, Gia_Man_t * p2 )
+{
+    int i, fFailed = 0;
+    assert( Gia_ManCoNum(p1) == Gia_ManCoNum(p2) );
+    for ( i = 0; i < Gia_ManCoNum(p1); i++ )
+    {
+        Gia_Obj_t * pPo1 = Gia_ManCo(p1, i);
+        Gia_Obj_t * pPo2 = Gia_ManCo(p2, i);
+        word word1 = Gia_LutComputeTruth66_rec( p1, Gia_ObjFanin0(pPo1) );
+        word word2 = Gia_LutComputeTruth66_rec( p2, Gia_ObjFanin0(pPo2) );
+        if ( Gia_ObjFaninC0(pPo1) )
+            word1 = ~word1;
+        if ( Gia_ObjFaninC0(pPo2) )
+            word2 = ~word2;
+        if ( word1 != word2 )
+        {
+            printf( "Verification failed for output %d (out of %d).\n", i, Gia_ManCoNum(p1) );
+            fFailed = 1;
+        }
+    }
+    if ( !fFailed )
+        printf( "Verification succeeded for %d outputs.\n", Gia_ManCoNum(p1) );
+}
+
+
+
+/**Function*************************************************************
+
   Synopsis    [Enumerate windows of the nodes.]
 
   Description []
@@ -978,36 +1097,53 @@ int Gia_RsbWindowCompute( Gia_Man_t * p, int iObj, int nInputsMax, int nLevelsMa
 void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
 {
     int fVerbose = 0;
-    int i, nWins = 0, nWinSize = 0, nInsSize = 0;
+    int i, nWins = 0, nWinSize = 0, nInsSize = 0, nOutSize = 0;
     Vec_Wec_t * vLevels = Vec_WecStart( Gia_ManLevelNum(p)+1 );
     Vec_Int_t * vPaths = Vec_IntStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vRefs = Vec_IntStart( Gia_ManObjNum(p) );
     Gia_Obj_t * pObj;
+    Gia_Man_t * pIn, * pOut;
     abctime clk = Abc_Clock();
     Gia_ManStaticFanoutStart( p );
     Gia_ManForEachAnd( p, pObj, i )
     {
-        Vec_Int_t * vWin, * vIns;
+        Vec_Int_t * vWin, * vIns, * vOuts;
         if ( !Gia_RsbWindowCompute( p, i, nInputsMax, nLevelsMax, vLevels, vPaths, &vWin, &vIns ) )
             continue;
+        vOuts = Gia_RsbFindOutputs( p, vWin, vIns, vRefs );
         nWins++;
         nWinSize += Vec_IntSize(vWin);
         nInsSize += Vec_IntSize(vIns);
+        nOutSize += Vec_IntSize(vOuts);
         if ( fVerbose )
         {
-            printf( "Obj %d\n", i );
+            printf( "\n\nObj %d\n", i );
             Vec_IntPrint( vWin );    
             Vec_IntPrint( vIns );    
+            Vec_IntPrint( vOuts );    
             printf( "\n" );
         }
+        else
+            printf( "\nObj %d.   Window: Ins = %d. Ands = %d. Outs = %d.\n", 
+                i, Vec_IntSize(vIns), Vec_IntSize(vWin)-Vec_IntSize(vIns), Vec_IntSize(vOuts) );
+
+        pIn = Gia_RsbDeriveGiaFromWindows( p, vWin, vIns, vOuts );
+        pOut = Gia_ManResub2Test( pIn );
+        Gia_ManVerifyTwoTruths( pIn, pOut );
+
+        Gia_ManStop( pIn );
+        Gia_ManStop( pOut );
+
         Vec_IntFree( vWin );
         Vec_IntFree( vIns );
-
+        Vec_IntFree( vOuts );
     }
     Gia_ManStaticFanoutStop( p );
     Vec_WecFree( vLevels );
     Vec_IntFree( vPaths );
-    printf( "Computed windows for %d nodes (out of %d). Ave inputs = %.2f. Ave volume = %.2f.  ", 
-        nWins, Gia_ManAndNum(p), 1.0*nInsSize/Abc_MaxInt(1,nWins), 1.0*nWinSize/Abc_MaxInt(1,nWins) );
+    Vec_IntFree( vRefs );
+    printf( "\nComputed windows for %d nodes (out of %d). Ave inputs = %.2f. Ave outputs = %.2f. Ave volume = %.2f.  ", 
+        nWins, Gia_ManAndNum(p), 1.0*nInsSize/Abc_MaxInt(1,nWins), 1.0*nOutSize/Abc_MaxInt(1,nWins), 1.0*nWinSize/Abc_MaxInt(1,nWins) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
