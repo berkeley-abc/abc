@@ -632,7 +632,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose )
 
     pGiaF = Acb_NtkGiaDeriveDual( pNtkF );
     pGiaG = Acb_NtkGiaDeriveDual( pNtkG );
-    pGia  = Acb_NtkGiaDeriveMiter( pGiaF, pGiaG, 0 );
+    pGia  = Acb_NtkGiaDeriveMiter( pGiaF, pGiaG, 2 );
     //Gia_AigerWrite( pGiaF, Extra_FileNameGenericAppend(pFileNames[1], "_f2.aig"), 0, 0, 0 );
     //Gia_AigerWrite( pGiaG, Extra_FileNameGenericAppend(pFileNames[1], "_g2.aig"), 0, 0, 0 );
     //Gia_AigerWrite( pGia,  Extra_FileNameGenericAppend(pFileNames[1], "_miter_0.aig"), 0, 0, 0 );
