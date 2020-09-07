@@ -385,7 +385,7 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSil
     pParsSat->fVerbose = pPars->fVeryVerbose;
     // simulation patterns
     pPat = Cec_ManPatStart();
-    pPat->fVerbose = pPars->fVeryVerbose;
+    //pPat->fVerbose = pPars->fVeryVerbose;
 
     // start equivalence classes
 clk = Abc_Clock();

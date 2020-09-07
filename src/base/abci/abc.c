@@ -36972,7 +36972,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nArgcNew, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -37015,6 +37015,9 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'v':
             pPars->fVerbose ^= 1;
+            break;
+        case 'w':
+            pPars->fVeryVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -37171,7 +37174,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasvh]\n" );
+    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasvwh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
@@ -37181,6 +37184,7 @@ usage:
     Abc_Print( -2, "\t-a     : toggle writing dual-output miter [default = %s]\n", fDumpMiter? "yes":"no");
     Abc_Print( -2, "\t-s     : toggle silent operation [default = %s]\n", pPars->fSilent ? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
+    Abc_Print( -2, "\t-w     : toggle printing SAT solver statistics [default = %s]\n", pPars->fVeryVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
