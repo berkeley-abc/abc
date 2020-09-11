@@ -548,6 +548,8 @@ finalize:
     Cec_ManSimStop( pSim );
     Cec_ManPatStop( pPat );
     Cec_ManFraStop( p );
+    ABC_FREE( pTemp->pReprs );
+    ABC_FREE( pTemp->pNexts );
     return pTemp;
 }
 
