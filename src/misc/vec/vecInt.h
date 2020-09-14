@@ -1279,6 +1279,26 @@ static inline int Vec_IntCountZero( Vec_Int_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntAddPositive( Vec_Int_t * p ) 
+{
+    int i, Counter = 0;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( p->pArray[i] > 0 )
+            Counter += p->pArray[i];
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Checks if two vectors are equal.]
 
   Description []

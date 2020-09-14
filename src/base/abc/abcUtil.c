@@ -3122,7 +3122,8 @@ Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops )
     Abc_Obj_t * pObj, * pFanin;
     int i, k, iNode = 0;
     Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; balance; dc2; map -a" );
+    //Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; balance; dc2; map -a" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "st; collapse; sop; fx; strash; &get; &ps; &deepsyn -I 4 -J 50 -T 5 -S 111 -t; &ps; &put; map -a" );
     pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
     vRes = Vec_WecStart( Abc_NtkPiNum(pNtkNew) + Abc_NtkNodeNum(pNtkNew) + Abc_NtkPoNum(pNtkNew) );
     Abc_NtkForEachPi( pNtkNew, pObj, i )

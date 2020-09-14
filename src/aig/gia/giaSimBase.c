@@ -113,7 +113,13 @@ static inline void Gia_ManSimPatSimPo( Gia_Man_t * p, int i, Gia_Obj_t * pObj, i
     word * pSims0  = pSims + nWords*Gia_ObjFaninId0(pObj, i);
     word * pSims2  = pSims + nWords*i; int w;
     for ( w = 0; w < nWords; w++ )
-        pSims2[w] = (pSims0[w] ^ Diff0);
+        pSims2[w]  = (pSims0[w] ^ Diff0);
+}
+static inline void Gia_ManSimPatSimNot( Gia_Man_t * p, int i, Gia_Obj_t * pObj, int nWords, Vec_Wrd_t * vSims )
+{
+    word * pSims   = Vec_WrdArray(vSims) + nWords*i; int w;
+    for ( w = 0; w < nWords; w++ )
+        pSims[w]   = ~pSims[w];
 }
 Vec_Wrd_t * Gia_ManSimPatSim( Gia_Man_t * pGia )
 {
@@ -127,6 +133,20 @@ Vec_Wrd_t * Gia_ManSimPatSim( Gia_Man_t * pGia )
     Gia_ManForEachCo( pGia, pObj, i )
         Gia_ManSimPatSimPo( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
     return vSims;
+}
+void Gia_ManSimPatResim( Gia_Man_t * pGia, Vec_Int_t * vObjs, int nWords, Vec_Wrd_t * vSims )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachObjVec( vObjs, pGia, pObj, i )
+        if ( i == 0 )
+            Gia_ManSimPatSimNot( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
+        else if ( Gia_ObjIsAnd(pObj) )
+            Gia_ManSimPatSimAnd( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
+        else if ( !Gia_ObjIsCo(pObj) ) assert(0);
+}
+void Gia_ManSimPatWrite( char * pFileName, Vec_Wrd_t * vSimsIn, int nWords )
+{
+    Vec_WrdDumpHex( pFileName, vSimsIn, nWords, 0 );
 }
 
 /**Function*************************************************************

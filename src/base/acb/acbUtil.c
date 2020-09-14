@@ -167,17 +167,35 @@ int Acb_NtkCountPoDrivers( Acb_Ntk_t * p, Vec_Int_t * vObjs )
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkNodeDeref_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj )
+int Acb_NtkNodeDeref_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj, int nGates[5] )
 {
     int i, Fanin, * pFanins, Counter = 1;
     if ( Acb_ObjIsCi(p, iObj) )
         return 0;
+    if ( nGates )
+    {
+        int nFan = Acb_ObjFaninNum(p, iObj);
+        int Type = Acb_ObjType( p, iObj );
+        if ( Type == ABC_OPER_CONST_F ) 
+            nGates[0]++;
+        else if ( Type == ABC_OPER_CONST_T ) 
+            nGates[1]++;
+        else if ( Type == ABC_OPER_BIT_BUF || Type == ABC_OPER_CO ) 
+            nGates[2]++;
+        else if ( Type == ABC_OPER_BIT_INV ) 
+            nGates[3]++;
+        else
+        {
+            assert( nFan >= 2 );
+            nGates[4] += Acb_ObjFaninNum(p, iObj)-1;
+        }
+    }
     Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
     {
         assert( Vec_IntEntry(vRefs, Fanin) > 0 );
         Vec_IntAddToEntry( vRefs, Fanin, -1 );
         if ( Vec_IntEntry(vRefs, Fanin) == 0 )
-            Counter += Acb_NtkNodeDeref_rec( vRefs, p, Fanin );
+            Counter += Acb_NtkNodeDeref_rec( vRefs, p, Fanin, nGates );
     }
     return Counter;
 }
@@ -220,10 +238,10 @@ int Acb_NtkFindMffcSize( Acb_Ntk_t * p, Vec_Int_t * vObjsRefed, Vec_Int_t * vObj
         Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
             Vec_IntAddToEntry( vRefs, Fanin, 1 );
     Vec_IntForEachEntry( vObjsRefed, iObj, i )
-        Acb_NtkNodeRef_rec( vRefs, p, iObj, NULL );
+        Vec_IntAddToEntry( vRefs, iObj, 1 );
     Vec_IntForEachEntry( vObjsDerefed, iObj, i )
-        if ( Vec_IntEntry(vRefs, iObj) == 0 )
-            Count2 += Acb_NtkNodeRef_rec( vRefs, p, iObj, nGates );
+        //if ( Vec_IntEntry(vRefs, iObj) != 0 || Acb_ObjIsCo(p, iObj) )
+            Count2 += Acb_NtkNodeDeref_rec( vRefs, p, iObj, nGates );
     Vec_IntFree( vRefs );
     return Count2;
 }
@@ -1133,7 +1151,7 @@ void Acb_Ntk4CollectRing( Acb_Ntk_t * pNtk, Vec_Int_t * vStart, Vec_Int_t * vRes
 }
 void Acb_Ntk4DumpWeightsInt( Acb_Ntk_t * pNtk, Vec_Int_t * vObjs, char * pFileName )
 {
-    int i, iObj;//, Weight;
+    int i, iObj, Count = 0;//, Weight;
     Vec_Int_t * vDists, * vStart, * vNexts;
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
@@ -1165,15 +1183,30 @@ void Acb_Ntk4DumpWeightsInt( Acb_Ntk_t * pNtk, Vec_Int_t * vObjs, char * pFileNa
 //    Vec_IntForEachEntry( vDists, Weight, i )
 //        if ( Weight && Acb_ObjNameStr(pNtk, i)[0] != '1' )
 //            fprintf( pFile, "%s %d\n", Acb_ObjNameStr(pNtk, i), 10000+Weight );
+/*
+    // mark reachable
+    Vec_IntClear( &pNtk->vArray0 );
+    Acb_NtkIncTravId( pNtk );
+    Acb_NtkForEachCo( pNtk, iObj, i )
+        if ( !Vec_IntEntry(vStatus, i) )
+            Acb_ObjCollectTfi_rec( pNtk, iObj, 0 );
+*/
     Acb_NtkForEachObj( pNtk, iObj )
     {
         char * pName = Acb_ObjNameStr(pNtk, iObj);
         int Weight = Vec_IntEntry(vDists, iObj);
         if ( Weight == 0 )
             Weight = 10000;
+/*
+        if ( !Acb_ObjSetTravIdCur(pNtk, iObj) )
+        {
+            Count++;
+            continue;
+        }
+*/
         fprintf( pFile, "%s %d\n", pName, 100000+Weight );
     }
-
+    //printf( "Skipped %d nodes.\n", Count );
     Vec_IntFree( vDists );
     fclose( pFile );
 }
@@ -1205,13 +1238,13 @@ void Acb_Ntk4DumpWeights( char * pFileNameIn, Vec_Ptr_t * vObjNames, char * pFil
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fVerbose, int fVeryVerbose )
+void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fInputs, int fVerbose, int fVeryVerbose )
 {
     extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fVerbose );
-    extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fVerbose, int fVeryVerbose );
+    extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fInputs, int fVerbose, int fVeryVerbose );
     char * pFileNames[4] = { pFileName[2], pFileName[1], fUseWeights ? (char *)"weights.txt" : NULL, pFileName[2] };
     if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fVerbose ) )
-        Acb_NtkRunEco( pFileNames, 1, fRandom, fVerbose, fVeryVerbose );
+        Acb_NtkRunEco( pFileNames, 1, fRandom, fInputs, fVerbose, fVeryVerbose );
 } 
 
 
