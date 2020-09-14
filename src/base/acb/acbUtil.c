@@ -1151,7 +1151,7 @@ void Acb_Ntk4CollectRing( Acb_Ntk_t * pNtk, Vec_Int_t * vStart, Vec_Int_t * vRes
 }
 void Acb_Ntk4DumpWeightsInt( Acb_Ntk_t * pNtk, Vec_Int_t * vObjs, char * pFileName )
 {
-    int i, iObj, Count = 0;//, Weight;
+    int i, iObj;//, Count = 0;//, Weight;
     Vec_Int_t * vDists, * vStart, * vNexts;
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )

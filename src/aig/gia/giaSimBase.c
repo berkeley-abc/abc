@@ -2104,7 +2104,7 @@ void Gia_ManSimGen( Gia_Man_t * pGia )
     Gia_ManForEachCiId( pGia, Id, i )
     {
         word * pSim = Vec_WrdEntryP(vSim0, i*nWords);
-        unsigned * pSimU = (unsigned *)pSim;
+        //unsigned * pSimU = (unsigned *)pSim;
         for ( k = 0; k < nWords; k++ )
             fprintf( pFile, "  unsigned long s%07d_%d = ((unsigned long)rand() << 48) | ((unsigned long)rand() << 32) | ((unsigned long)rand() << 16) | (unsigned long)rand();\n", Id, k );
     }
