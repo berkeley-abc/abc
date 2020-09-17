@@ -148,9 +148,13 @@ int Acb_NtkCountPoDrivers( Acb_Ntk_t * p, Vec_Int_t * vObjs )
     int i, iObj, Count = 0;
     Acb_NtkIncTravId( p );
     Acb_NtkForEachCo( p, iObj, i )
+    {
+        int Fanin0 = Acb_ObjFanin0(p, iObj);
         Acb_ObjSetTravIdCur( p, iObj );
-    Acb_NtkForEachCo( p, iObj, i )
-        Acb_ObjSetTravIdCur( p, Acb_ObjFanin(p, iObj, 0) );
+        Acb_ObjSetTravIdCur( p, Fanin0 );
+        if ( Acb_ObjFaninNum(p, Fanin0) == 1 )
+            Acb_ObjSetTravIdCur( p, Acb_ObjFanin0(p, Fanin0) );
+    }
     Vec_IntForEachEntry( vObjs, iObj, i )
         Count += Acb_ObjIsTravIdCur(p, iObj);
     return Count;
@@ -167,47 +171,117 @@ int Acb_NtkCountPoDrivers( Acb_Ntk_t * p, Vec_Int_t * vObjs )
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkNodeDeref_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj, int nGates[5] )
+int Acb_NtkNodeDeref_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj )
 {
     int i, Fanin, * pFanins, Counter = 1;
     if ( Acb_ObjIsCi(p, iObj) )
         return 0;
-    if ( nGates )
-    {
-        int nFan = Acb_ObjFaninNum(p, iObj);
-        int Type = Acb_ObjType( p, iObj );
-        if ( Type == ABC_OPER_CONST_F ) 
-            nGates[0]++;
-        else if ( Type == ABC_OPER_CONST_T ) 
-            nGates[1]++;
-        else if ( Type == ABC_OPER_BIT_BUF || Type == ABC_OPER_CO ) 
-            nGates[2]++;
-        else if ( Type == ABC_OPER_BIT_INV ) 
-            nGates[3]++;
-        else
-        {
-            assert( nFan >= 2 );
-            nGates[4] += Acb_ObjFaninNum(p, iObj)-1;
-        }
-    }
     Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
     {
         assert( Vec_IntEntry(vRefs, Fanin) > 0 );
         Vec_IntAddToEntry( vRefs, Fanin, -1 );
         if ( Vec_IntEntry(vRefs, Fanin) == 0 )
-            Counter += Acb_NtkNodeDeref_rec( vRefs, p, Fanin, nGates );
+            Counter += Acb_NtkNodeDeref_rec( vRefs, p, Fanin );
     }
     return Counter;
 }
-int Acb_NtkNodeRef_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj, int nGates[5] )
+int Acb_NtkNodeRef_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj )
 {
     int i, Fanin, * pFanins, Counter = 1;
     if ( Acb_ObjIsCi(p, iObj) )
         return 0;
-    if ( nGates )
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
     {
-        int nFan = Acb_ObjFaninNum(p, iObj);
-        int Type = Acb_ObjType( p, iObj );
+        if ( Vec_IntEntry(vRefs, Fanin) == 0 )
+            Counter += Acb_NtkNodeRef_rec( vRefs, p, Fanin );
+        Vec_IntAddToEntry( vRefs, Fanin, 1 );
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computing and updating direct and reverse logic level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Acb_NtkCollectDeref_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj, Vec_Int_t * vRes )
+{
+    int i, Fanin, * pFanins;
+    if ( Acb_ObjIsCi(p, iObj) )
+        return;
+    Vec_IntPush( vRes, iObj );
+    Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
+    {
+        assert( Vec_IntEntry(vRefs, Fanin) > 0 );
+        Vec_IntAddToEntry( vRefs, Fanin, -1 );
+        if ( Vec_IntEntry(vRefs, Fanin) == 0 )
+            Acb_NtkCollectDeref_rec( vRefs, p, Fanin, vRes );
+    }
+}
+Vec_Int_t * Acb_NtkCollectMffc( Acb_Ntk_t * p, Vec_Int_t * vObjsRefed, Vec_Int_t * vObjsDerefed )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    Vec_Int_t * vRefs = Vec_IntStart( Acb_NtkObjNumMax(p) );
+    int i, iObj, Fanin, * pFanins;
+    Acb_NtkForEachObj( p, iObj )
+        Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
+            Vec_IntAddToEntry( vRefs, Fanin, 1 );
+    Acb_NtkForEachCo( p, iObj, i )
+        Vec_IntAddToEntry( vRefs, iObj, 1 );
+    if ( vObjsRefed )
+        Vec_IntForEachEntry( vObjsRefed, iObj, i )
+            Vec_IntAddToEntry( vRefs, iObj, 1 );
+    Vec_IntForEachEntry( vObjsDerefed, iObj, i )
+    {
+        if ( Acb_ObjIsCo(p, iObj) )
+            iObj = Acb_ObjFanin0(p, iObj);
+        if ( Vec_IntEntry(vRefs, iObj) != 0 )
+            Acb_NtkCollectDeref_rec( vRefs, p, iObj, vRes );
+    }
+    Vec_IntFree( vRefs );
+    Vec_IntUniqify( vRes );
+    return vRes;
+}
+
+Vec_Int_t * Acb_NamesToIds( Acb_Ntk_t * pNtk, Vec_Int_t * vNamesInv, Vec_Ptr_t * vNames )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( Vec_PtrSize(vNames) );
+    char * pName; int i;
+    Vec_PtrForEachEntry( char *, vNames, pName, i )
+    {
+        int NameId = Acb_NtkStrId(pNtk, pName);
+        int iObjId = 0;
+        if ( NameId < 1 )
+            printf( "Cannot find name \"%s\" in the network \"%s\".\n", pName, pNtk->pDesign->pName );
+        else
+            iObjId = Vec_IntEntry( vNamesInv, NameId );
+        Vec_IntPush( vRes, iObjId );
+    }
+    return vRes;
+}
+int Acb_NtkCollectMfsGates( char * pFileName, Vec_Ptr_t * vNamesRefed, Vec_Ptr_t * vNamesDerefed, int nGates[5] )
+{
+    Acb_Ntk_t * pNtkF        = Acb_VerilogSimpleRead( pFileName, NULL );
+    Vec_Int_t * vNamesInv    = Vec_IntInvert( &pNtkF->vObjName, 0 ) ;
+    Vec_Int_t * vObjsRefed   = Acb_NamesToIds( pNtkF, vNamesInv, vNamesRefed );
+    Vec_Int_t * vObjsDerefed = Acb_NamesToIds( pNtkF, vNamesInv, vNamesDerefed );
+    Vec_Int_t * vNodes       = Acb_NtkCollectMffc( pNtkF, vObjsRefed, vObjsDerefed );
+    int i, iObj, RetValue    = Vec_IntSize(vNodes);
+    Vec_IntFree( vNamesInv );
+    Vec_IntFree( vObjsRefed );
+    Vec_IntFree( vObjsDerefed );
+    for ( i = 0; i < 5; i++ )
+        nGates[i] = 0;
+    Vec_IntForEachEntry( vNodes, iObj, i )
+    {
+        int nFan = Acb_ObjFaninNum(pNtkF, iObj);
+        int Type = Acb_ObjType( pNtkF, iObj );
         if ( Type == ABC_OPER_CONST_F ) 
             nGates[0]++;
         else if ( Type == ABC_OPER_CONST_T ) 
@@ -219,31 +293,30 @@ int Acb_NtkNodeRef_rec( Vec_Int_t * vRefs, Acb_Ntk_t * p, int iObj, int nGates[5
         else
         {
             assert( nFan >= 2 );
-            nGates[4] += Acb_ObjFaninNum(p, iObj)-1;
+            nGates[4] += Acb_ObjFaninNum(pNtkF, iObj)-1;
         }
     }
-    Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
-    {
-        if ( Vec_IntEntry(vRefs, Fanin) == 0 )
-            Counter += Acb_NtkNodeRef_rec( vRefs, p, Fanin, nGates );
-        Vec_IntAddToEntry( vRefs, Fanin, 1 );
-    }
-    return Counter;
+    Vec_IntFree( vNodes );
+    Acb_ManFree( pNtkF->pDesign );
+    return RetValue;
 }
-int Acb_NtkFindMffcSize( Acb_Ntk_t * p, Vec_Int_t * vObjsRefed, Vec_Int_t * vObjsDerefed, int nGates[5] )
+Vec_Ptr_t * Acb_NtkReturnMfsGates( char * pFileName, Vec_Ptr_t * vNodes )
 {
-    Vec_Int_t * vRefs = Vec_IntStart( Acb_NtkObjNumMax(p) );
-    int i, iObj, Fanin, * pFanins, Count2 = 0;
-    Acb_NtkForEachObj( p, iObj )
-        Acb_ObjForEachFaninFast( p, iObj, pFanins, Fanin, i )
-            Vec_IntAddToEntry( vRefs, Fanin, 1 );
-    Vec_IntForEachEntry( vObjsRefed, iObj, i )
-        Vec_IntAddToEntry( vRefs, iObj, 1 );
-    Vec_IntForEachEntry( vObjsDerefed, iObj, i )
-        //if ( Vec_IntEntry(vRefs, iObj) != 0 || Acb_ObjIsCo(p, iObj) )
-            Count2 += Acb_NtkNodeDeref_rec( vRefs, p, iObj, nGates );
-    Vec_IntFree( vRefs );
-    return Count2;
+    Vec_Ptr_t * vMffc     = Vec_PtrAlloc( 100 );
+    Acb_Ntk_t * pNtkF     = Acb_VerilogSimpleRead( pFileName, NULL );
+    Vec_Int_t * vNamesInv = Vec_IntInvert( &pNtkF->vObjName, 0 ) ;
+    Vec_Int_t * vNodeObjs = Acb_NamesToIds( pNtkF, vNamesInv, vNodes );
+    Vec_Int_t * vNodeMffc = Acb_NtkCollectMffc( pNtkF, NULL, vNodeObjs );
+    int i, iObj;
+    Vec_IntForEachEntry( vNodeMffc, iObj, i )
+        Vec_PtrPush( vMffc, Abc_UtilStrsav( Acb_ObjNameStr(pNtkF, iObj) ) );
+//Vec_IntPrint( vNodeMffc );
+//Vec_PtrPrintNames( vMffc );
+    Vec_IntFree( vNodeMffc );
+    Vec_IntFree( vNodeObjs );
+    Vec_IntFree( vNamesInv );
+    Acb_ManFree( pNtkF->pDesign );
+    return vMffc;
 }
 
 /**Function*************************************************************
@@ -959,63 +1032,6 @@ int Abc_NtkExtract( char * pFileName0, char * pFileName1, int fUseXors, int fVer
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkFindNamesInPlaces( char * pBuffer, Vec_Int_t * vPlaces, Vec_Ptr_t * vPivots )
-{
-    int * pCounts = Abc_FrameReadGateCounts();
-    Vec_Ptr_t * vNames = Vec_PtrAlloc( 100 );
-    int i, k, iObj, Pos;
-    for ( i = 0; i < 5; i++ )
-        pCounts[i] = 0;
-    Vec_IntForEachEntryDouble( vPlaces, Pos, iObj, i )
-    {
-        int nFanins = 0;
-        char pLocal[1000], * pTemp, * pName, * pSpot;
-        char * pPivot = (char *)Vec_PtrEntry(vPivots, iObj);
-        for ( k = 0; k < 1000; k++ )
-        {
-            if ( pBuffer[Pos+k] == '\n' )
-            {
-                pLocal[k] = 0;
-                break;
-            }
-            else
-                pLocal[k] = pBuffer[Pos+k];
-        }
-        assert( k < 1000 );
-        pSpot = strstr( pLocal, pPivot );
-        if ( pSpot == NULL )
-        {
-            printf( "Cannot find location of signal \"%s\" in this line.\n", pPivot );
-            continue;
-        }
-        pTemp = strtok( pLocal, " \r\n\t,;()" );
-        while ( pTemp )
-        {
-            if ( !strcmp(pTemp, "1\'b0") )
-                pCounts[0]++;
-            else if ( !strcmp(pTemp, "1\'b1") )
-                pCounts[1]++;
-            else if ( !strcmp(pTemp, "buf") || !strcmp(pTemp, "assign") )
-                pCounts[2]++;
-            else if ( !strcmp(pTemp, "not") )
-                pCounts[3]++;
-            else if ( strcmp(pTemp, pPivot) && pTemp > pSpot )
-            {
-                nFanins++;
-                Vec_PtrForEachEntry( char *, vNames, pName, k )
-                    if ( !strcmp(pName, pTemp) )
-                        break;
-                if ( k == Vec_PtrSize(vNames) )
-                    Vec_PtrPush( vNames, Abc_UtilStrsav(pTemp) );
-            }
-            pTemp = strtok( NULL, " \r\n\t,;()" );
-        }
-        if ( nFanins > 1 )
-            pCounts[4] += nFanins-1;
-    }
-    //printf( "Found %d names\n", Vec_PtrSize(vNames) );
-    Abc_FrameSetSignalNames( vNames );
-}
 Vec_Int_t * Acb_NtkPlaces( char * pFileName, Vec_Ptr_t * vNames )
 {
     Vec_Int_t * vPlaces; int First = 1, Pos = -1, fComment = 0;
@@ -1057,7 +1073,7 @@ Vec_Int_t * Acb_NtkPlaces( char * pFileName, Vec_Ptr_t * vNames )
     ABC_FREE( pBuffer );
     return vPlaces;
 }
-void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames, int fNumber )
+void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames, int fNumber, int fSkipMffc )
 {
     int i, k, Prev = 0, Pos, Pos2, iObj;
     Vec_Int_t * vPlaces;
@@ -1075,16 +1091,32 @@ void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames,
         printf( "Cannot open input file \"%s\".\n", pFileNameIn );
         return;
     }
-    vPlaces = Acb_NtkPlaces( pFileNameIn, vNames );
-    Acb_NtkFindNamesInPlaces( pBuffer, vPlaces, vNames );
-    Vec_IntForEachEntryDouble( vPlaces, Pos, iObj, i )
+    if ( fSkipMffc )
     {
-        for ( k = Prev; k < Pos; k++ )
-            fputc( pBuffer[k], pFile );
-        fprintf( pFile, "// [t_%d = %s] //", iObj, (char *)Vec_PtrEntry(vNames, iObj) );
-        Prev = Pos;
+        Vec_Ptr_t * vMffcNames = Acb_NtkReturnMfsGates( pFileNameIn, vNames );
+        vPlaces = Acb_NtkPlaces( pFileNameIn, vMffcNames );
+        Vec_IntForEachEntryDouble( vPlaces, Pos, iObj, i )
+        {
+            for ( k = Prev; k < Pos; k++ )
+                fputc( pBuffer[k], pFile );
+            fprintf( pFile, "// MFFC %d = %s //", iObj, (char *)Vec_PtrEntry(vMffcNames, iObj) );
+            Prev = Pos;
+        }
+        Vec_IntFree( vPlaces );
+        Vec_PtrFreeFree( vMffcNames );
     }
-    Vec_IntFree( vPlaces );
+    else
+    {
+        vPlaces = Acb_NtkPlaces( pFileNameIn, vNames );
+        Vec_IntForEachEntryDouble( vPlaces, Pos, iObj, i )
+        {
+            for ( k = Prev; k < Pos; k++ )
+                fputc( pBuffer[k], pFile );
+            fprintf( pFile, "// [t_%d = %s] //", iObj, (char *)Vec_PtrEntry(vNames, iObj) );
+            Prev = Pos;
+        }
+        Vec_IntFree( vPlaces );
+    }
     pName = strstr(pBuffer, "endmodule");
     Pos2 = pName - pBuffer;
     for ( k = Prev; k < Pos2; k++ )
@@ -1238,12 +1270,12 @@ void Acb_Ntk4DumpWeights( char * pFileNameIn, Vec_Ptr_t * vObjNames, char * pFil
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fInputs, int fVerbose, int fVeryVerbose )
+void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fInputs, int fSkipMffc, int fVerbose, int fVeryVerbose )
 {
-    extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fVerbose );
+    extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fSkipMffc, int fVerbose );
     extern void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fInputs, int fVerbose, int fVeryVerbose );
     char * pFileNames[4] = { pFileName[2], pFileName[1], fUseWeights ? (char *)"weights.txt" : NULL, pFileName[2] };
-    if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fVerbose ) )
+    if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fSkipMffc, fVerbose ) )
         Acb_NtkRunEco( pFileNames, 1, fRandom, fInputs, fVerbose, fVeryVerbose );
 } 
 

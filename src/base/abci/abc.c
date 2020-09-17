@@ -7194,11 +7194,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fInputs, int fVerbose, int fVeryVerbose );
+    extern void Acb_NtkRunSim( char * pFileName[4], int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fInputs, int fSkipMffc, int fVerbose, int fVeryVerbose );
     char * pFileNames[4] = {NULL, NULL, "out.v", NULL};
-    int c, nWords = 8, nBeam = 4, LevL = -1, LevU = -1, fOrder = 0, fFancy = 0, fUseBuf = 0, fRandom = 0, fUseWeights = 0, fInputs = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, nWords = 8, nBeam = 4, LevL = -1, LevU = -1, fOrder = 0, fFancy = 0, fUseBuf = 0, fRandom = 0, fUseWeights = 0, fInputs = 0, fSkipMffc = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WBLUofbruivwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WBLUofbruimvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7264,6 +7264,9 @@ int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'i':
             fInputs ^= 1;
             break;
+        case 'm':
+            fSkipMffc ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -7295,11 +7298,11 @@ int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             fclose( pFile );
     }
-    Acb_NtkRunSim( pFileNames, nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fRandom, fUseWeights, fInputs, fVerbose, fVeryVerbose );
+    Acb_NtkRunSim( pFileNames, nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fRandom, fUseWeights, fInputs, fSkipMffc, fVerbose, fVeryVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: runsim [-WBLU] [-ofbruivwh] [-N <num>] <file1> <file2> <file3>\n" );
+    Abc_Print( -2, "usage: runsim [-WBLU] [-ofbruimvwh] [-N <num>] <file1> <file2> <file3>\n" );
     Abc_Print( -2, "\t           experimental simulation command\n" );
     Abc_Print( -2, "\t-W <num> : the number of words of simulation info [default = %d]\n", nWords );
     Abc_Print( -2, "\t-B <num> : the beam width parameter [default = %d]\n", nBeam );
@@ -7311,6 +7314,7 @@ usage:
     Abc_Print( -2, "\t-r       : toggle using random permutation of support variables [default = %s]\n",      fRandom? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggle using topological info to select support variables [default = %s]\n", fUseWeights? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggle using primary inputs as support variables [default = %s]\n",          fInputs? "yes": "no" );
+    Abc_Print( -2, "\t-m       : toggle MFFC nodes as candidate divisors [default = %s]\n",                   fSkipMffc? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",                       fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing more verbose information [default = %s]\n",                  fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

@@ -626,6 +626,26 @@ static inline void Vec_PtrCopy( Vec_Ptr_t * pDest, Vec_Ptr_t * pSour )
 
 /**Function*************************************************************
 
+  Synopsis    [Print names stored in the array.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_PtrPrintNames( Vec_Ptr_t * p )
+{
+    char * pName; int i;
+    printf( "Vector has %d entries: {", Vec_PtrSize(p) );
+    Vec_PtrForEachEntry( char *, p, pName, i )
+        printf( "%s ", pName );
+    printf( " }\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

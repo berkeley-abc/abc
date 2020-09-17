@@ -1942,44 +1942,17 @@ Vec_Int_t * Acb_GetUsedDivs( Vec_Int_t * vDivs, Vec_Int_t * vUsed )
         Vec_IntPush( vRes, iObj );
     return vRes;
 }
-Vec_Int_t * Acb_GetDerefedNodes( Acb_Ntk_t * p )
+Vec_Ptr_t * Acb_SignalNames( Acb_Ntk_t * p, Vec_Int_t * vObjs )
 {
-    Vec_Ptr_t * vNames = Abc_FrameReadSignalNames();
-    if ( vNames != NULL )
-    {
-        Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
-        Vec_Int_t * vMap   = Vec_IntStartFull( Abc_NamObjNumMax(p->pDesign->pStrs) );
-        int i, iObj; char * pName;
-        Acb_NtkForEachObj( p, iObj )
-            if ( Acb_ObjName(p, iObj) )
-                Vec_IntWriteEntry( vMap, Acb_ObjName(p, iObj), iObj );
-        Vec_PtrForEachEntry( char *, vNames, pName, i )
-        {
-            int NameId = Abc_NamStrFindOrAdd( p->pDesign->pStrs, pName, NULL );
-            if ( NameId == 0 )
-            {
-                printf( "Cannot find name ID for name %s\n", pName );
-                Vec_IntFree( vMap );
-                Vec_IntFree( vNodes );
-                return NULL;
-            }
-            else if ( Vec_IntEntry(vMap, NameId) == -1 )
-            {
-                printf( "Cannot find obj ID for name %s\n", pName );
-                Vec_IntFree( vMap );
-                Vec_IntFree( vNodes );
-                return NULL;
-            }
-            else
-                Vec_IntPush( vNodes, Vec_IntEntry(vMap, NameId) );
-        }
-        Vec_IntFree( vMap );
-        return vNodes;
-    }
-    return NULL;
+    Vec_Ptr_t * vNames = Vec_PtrAlloc( Vec_IntSize(vObjs) );
+    int i, iObj;
+    Vec_IntForEachEntry( vObjs, iObj, i )
+        Vec_PtrPush( vNames, Acb_ObjNameStr(p, iObj) );
+    return vNames;
 }
 Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUsed, Vec_Ptr_t * vSops, Vec_Ptr_t * vGias, Vec_Int_t * vTars )
 {
+    extern int Acb_NtkCollectMfsGates( char * pFileName, Vec_Ptr_t * vNamesRefed, Vec_Ptr_t * vNamesDerefed, int nGates1[5] );
     extern Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops );
     extern Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias, Gia_Man_t * pMulti );
     Vec_Wec_t * vGates = vGias ? Abc_GiaSynthesize(vGias, NULL) : Abc_SopSynthesize(vSops);  Vec_Int_t * vGate;
@@ -1989,15 +1962,13 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
     Vec_Ptr_t * vNames = Acb_GenerateSignalNames( p, vDivs, vUsed, nWires, vTars, vGates );
     Vec_Str_t * vStr = Vec_StrAlloc( 100 );
     Vec_Int_t * vSup = Acb_GetUsedDivs( vDivs, vUsed );
-    Vec_Int_t * vDrf = Acb_GetDerefedNodes( p );
+    Vec_Ptr_t * vSpN = Acb_SignalNames( p, vSup );
     Vec_Int_t * vTfi = Acb_ObjCollectTfiVec( p, vSup );
     Vec_Int_t * vTfo = Acb_ObjCollectTfoVec( p, vTars );
     int nPiCount = Acb_NtkCountPiBuffers( p, vSup );
     int nPoCount = Acb_NtkCountPoDrivers( p, vTars );
-    int nMffc    = vDrf ? Vec_IntSize(vTars) + Acb_NtkFindMffcSize( p, vSup, vDrf, nGates1 ) : 0;
-    int * pCounts = Abc_FrameReadGateCounts();
-    for ( i = 0; i < 5; i++ )
-        nGates1[i] += pCounts[i];
+    int nMffc    = Abc_FrameReadSpecName() ? Acb_NtkCollectMfsGates( Abc_FrameReadSpecName(), vSpN, Abc_FrameReadSignalNames(), nGates1 ) : 0;
+    Vec_PtrFree( vSpN );
     Vec_IntFree( vSup );
     Vec_WecForEachLevelStartStop( vGates, vGate, i, Vec_IntSize(vUsed), Vec_IntSize(vUsed)+nWires )
     {
@@ -2017,9 +1988,9 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
 
     Vec_StrPrintF( vStr, "// Patch   : in = %d  out = %d : pi_in = %d  po_out = %d : tfi = %d  tfo = %d\n", Vec_IntSize(vUsed), nOuts, nPiCount, nPoCount, Vec_IntSize(vTfi), Vec_IntSize(vTfo) );
     Vec_StrPrintF( vStr, "// Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,         nGates0[0], nGates0[1], nGates0[2], nGates0[3], nGates0[4] ); 
-    if ( vDrf != NULL )
+    if ( Abc_FrameReadSpecName() )
     Vec_StrPrintF( vStr, "// Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,          nGates1[0], nGates1[1], nGates1[2], nGates1[3], nGates1[4] ); 
-    if ( vDrf != NULL )
+    if ( Abc_FrameReadSpecName() )
     Vec_StrPrintF( vStr, "// TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires-nMffc, nGates0[0]-nGates1[0],  nGates0[1]-nGates1[1],  nGates0[2]-nGates1[2], nGates0[3]-nGates1[3], nGates0[4]-nGates1[4] ); 
     Vec_StrPrintF( vStr, "\n" );
 
@@ -2084,12 +2055,11 @@ Vec_Str_t * Acb_GeneratePatch( Acb_Ntk_t * p, Vec_Int_t * vDivs, Vec_Int_t * vUs
     printf( "\n" );
     printf( "Patch   : in = %d  out = %d : pi_in = %d  po_out = %d : tfi = %d  tfo = %d\n", Vec_IntSize(vUsed), nOuts, nPiCount, nPoCount, Vec_IntSize(vTfi), Vec_IntSize(vTfo) );
     printf( "Added   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires,         nGates0[0], nGates0[1], nGates0[2], nGates0[3], nGates0[4] ); 
-    if ( vDrf != NULL )
+    if ( Abc_FrameReadSpecName() )
     printf( "Removed : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nMffc,          nGates1[0], nGates1[1], nGates1[2], nGates1[3], nGates1[4] ); 
-    if ( vDrf != NULL )
+    if ( Abc_FrameReadSpecName() )
     printf( "TOTAL   : gate =%4d : c0 =%2d  c1 =%2d  buf =%3d  inv =%3d  two-input =%4d\n", nWires-nMffc,   nGates0[0]-nGates1[0],  nGates0[1]-nGates1[1],  nGates0[2]-nGates1[2], nGates0[3]-nGates1[3], nGates0[4]-nGates1[4] ); 
     printf( "\n" );
-    Vec_IntFreeP( &vDrf );
     return vStr;
 }
 
@@ -2209,11 +2179,11 @@ Vec_Str_t * Acb_GeneratePatch2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * 
     printf( "Synthesized patch with %d inputs, %d outputs and %d gates.\n", nIns, nOuts, nWires );
     return vStr;
 }
-void Acb_GenerateFile2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts, char * pFileName, char * pFileNameOut )
+void Acb_GenerateFile2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts, char * pFileName, char * pFileNameOut, int fSkipMffc )
 {
     extern void Acb_GenerateFilePatch( Vec_Str_t * p, char * pFileNamePatch );
     extern void Acb_GenerateFileOut( Vec_Str_t * vPatchLine, char * pFileNameF, char * pFileNameOut, Vec_Str_t * vPatch );
-    extern void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames, int fNumber );
+    extern void Acb_NtkInsert( char * pFileNameIn, char * pFileNameOut, Vec_Ptr_t * vNames, int fNumber, int fSkipMffc );
     Vec_Str_t * vInst   = Acb_GenerateInstance2( vIns, vOuts );
     Vec_Str_t * vPatch  = Acb_GeneratePatch2( pGia, vIns, vOuts );
     //printf( "%s", Vec_StrArray(vPatch) );
@@ -2221,7 +2191,7 @@ void Acb_GenerateFile2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts, c
     // generate output files
     Acb_GenerateFilePatch( vPatch, "patch.v" );
     printf( "Finished dumping patch file \"%s\".\n", "patch.v" );
-    Acb_NtkInsert( pFileName, "temp.v", vOuts, 0 );
+    Acb_NtkInsert( pFileName, "temp.v", vOuts, 0, fSkipMffc );
     printf( "Finished dumping intermediate file \"%s\".\n", "temp.v" );
     Acb_GenerateFileOut( vInst, "temp.v", pFileNameOut, vPatch );
     printf( "Finished dumping the resulting file \"%s\".\n", pFileNameOut );

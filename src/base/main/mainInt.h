@@ -134,7 +134,7 @@ struct Abc_Frame_t_
     Vec_Ptr_t *     vPlugInComBinPairs;    // pairs of command and its binary name
     Vec_Ptr_t *     vLTLProperties_global; // related to LTL
     Vec_Ptr_t *     vSignalNames;  // temporary storage for signal names
-    int             pGateCounts[5];// temporary gate counts
+    char *          pSpecName;
     void *          pSave1; 
     void *          pSave2; 
     void *          pSave3; 
