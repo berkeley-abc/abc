@@ -419,7 +419,7 @@ void Abc_ResubPrintDivs( void ** ppDivs, int nDivs )
     for ( i = 0; i < nDivs; i++ )
     {
         printf( "Div %2d : ", i );
-        Dau_DsdPrintFromTruth( ppDivs[i], 6 );
+        Dau_DsdPrintFromTruth( pDivs[i], 6 );
     }
 }
 int Abc_ResubNodeToTry( Vec_Int_t * vTried, int iFirst, int iLast )
