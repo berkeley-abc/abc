@@ -20,6 +20,8 @@
 
 #include "gia.h"
 #include "misc/util/utilTruth.h"
+#include "misc/vec/vecHsh.h"
+#include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -302,6 +304,26 @@ int Gia_Rsb2AddNode( Vec_Int_t * vRes, int iLit0, int iLit1, int iRes0, int iRes
     int iLitMax = iRes0 < iRes1 ? Abc_LitNotCond(iRes1, Abc_LitIsCompl(iLit1)) : Abc_LitNotCond(iRes0, Abc_LitIsCompl(iLit0));
     int iLitRes = Vec_IntSize(vRes);
     if ( iLit0 < iLit1 ) // and
+    {
+        if ( iLitMin == 0 )
+            return 0;
+        if ( iLitMin == 1 )
+            return iLitMax;
+        if ( iLitMin == Abc_LitNot(iLitMax) )
+            return 0;
+    }
+    else if ( iLit0 > iLit1 ) // xor
+    {
+        if ( iLitMin == 0 )
+            return iLitMax;
+        if ( iLitMin == 1 )
+            return Abc_LitNot(iLitMax);
+        if ( iLitMin == Abc_LitNot(iLitMax) )
+            return 1;
+    }
+    else assert( 0 );
+    assert( iLitMin >= 2 && iLitMax >= 2 );
+    if ( iLit0 < iLit1 ) // and
         Vec_IntPushTwo( vRes, iLitMin, iLitMax );
     else if ( iLit0 > iLit1 ) // xor
     {
@@ -390,6 +412,16 @@ Vec_Int_t * Gia_Rsb2ManInsert( int nPis, int nPos, Vec_Int_t * vObjs, int iNode,
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_ResubPrintDivs( void ** ppDivs, int nDivs )
+{
+    word ** pDivs = (word **)ppDivs;
+    int i;
+    for ( i = 0; i < nDivs; i++ )
+    {
+        printf( "Div %2d : ", i );
+        Dau_DsdPrintFromTruth( ppDivs[i], 6 );
+    }
+}
 int Abc_ResubNodeToTry( Vec_Int_t * vTried, int iFirst, int iLast )
 {
     int iNode;
@@ -424,8 +456,8 @@ int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncr
             Vec_IntAppend( &p->vObjs, vRes );
             Vec_IntFree( vRes );
             Vec_IntForEachEntry( &p->vTried, iTried, i )
-                if ( Vec_IntEntry(&p->vCopies, i) > 0 )
-                    Vec_IntWriteEntry( &p->vTried, k++, iTried );
+                if ( Vec_IntEntry(&p->vCopies, iTried) > Abc_Var2Lit(p->nPis, 0) ) // internal node
+                    Vec_IntWriteEntry( &p->vTried, k++, Abc_Lit2Var(Vec_IntEntry(&p->vCopies, iTried)) );
             Vec_IntShrink( &p->vTried, k );
             nChanges++;
             //Gia_Rsb2ManPrint( p );
@@ -505,7 +537,7 @@ Gia_Man_t * Gia_ManResub2Test( Gia_Man_t * p )
 //Gia_ManPrint( p );
     Abc_ResubPrepareManager( 1 );
     nObjsNew = Abc_ResubComputeWindow( pObjs, Gia_ManObjNum(p), 1000, -1, 0, 0, 0, 0, &pObjsNew, &nResubs );
-    printf( "Performed resub %d times.  Reduced %d nodes.\n", nResubs, nObjsNew ? Gia_ManObjNum(p) - nObjsNew : 0 );
+    //printf( "Performed resub %d times.  Reduced %d nodes.\n", nResubs, nObjsNew ? Gia_ManObjNum(p) - nObjsNew : 0 );
     Abc_ResubPrepareManager( 0 );
     if ( nObjsNew )
         pNew = Gia_ManFromResub( pObjsNew, nObjsNew, Gia_ManCiNum(p) );
@@ -1057,7 +1089,7 @@ word Gia_LutComputeTruth66_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
         Truth1 = ~Truth1;
     return Truth0 & Truth1;
 }
-void Gia_ManVerifyTwoTruths( Gia_Man_t * p1, Gia_Man_t * p2 )
+int Gia_ManVerifyTwoTruths( Gia_Man_t * p1, Gia_Man_t * p2 )
 {
     int i, fFailed = 0;
     assert( Gia_ManCoNum(p1) == Gia_ManCoNum(p2) );
@@ -1073,12 +1105,15 @@ void Gia_ManVerifyTwoTruths( Gia_Man_t * p1, Gia_Man_t * p2 )
             word2 = ~word2;
         if ( word1 != word2 )
         {
+            //Dau_DsdPrintFromTruth( &word1, 6 );
+            //Dau_DsdPrintFromTruth( &word2, 6 );
             printf( "Verification failed for output %d (out of %d).\n", i, Gia_ManCoNum(p1) );
             fFailed = 1;
         }
     }
-    if ( !fFailed )
-        printf( "Verification succeeded for %d outputs.\n", Gia_ManCoNum(p1) );
+//    if ( !fFailed )
+//        printf( "Verification succeeded for %d outputs.\n", Gia_ManCoNum(p1) );
+    return !fFailed;
 }
 
 
@@ -1097,10 +1132,12 @@ void Gia_ManVerifyTwoTruths( Gia_Man_t * p1, Gia_Man_t * p2 )
 void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
 {
     int fVerbose = 0;
-    int i, nWins = 0, nWinSize = 0, nInsSize = 0, nOutSize = 0;
+    int fUseHash = 1;
+    int i, nWins = 0, nWinSize = 0, nInsSize = 0, nOutSize = 0, nNodeGain = 0;
     Vec_Wec_t * vLevels = Vec_WecStart( Gia_ManLevelNum(p)+1 );
     Vec_Int_t * vPaths = Vec_IntStart( Gia_ManObjNum(p) );
     Vec_Int_t * vRefs = Vec_IntStart( Gia_ManObjNum(p) );
+    Hsh_VecMan_t * pHash = Hsh_VecManStart( 1000 );
     Gia_Obj_t * pObj;
     Gia_Man_t * pIn, * pOut;
     abctime clk = Abc_Clock();
@@ -1115,6 +1152,8 @@ void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
         nWinSize += Vec_IntSize(vWin);
         nInsSize += Vec_IntSize(vIns);
         nOutSize += Vec_IntSize(vOuts);
+   
+
         if ( fVerbose )
         {
             printf( "\n\nObj %d\n", i );
@@ -1123,14 +1162,34 @@ void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
             Vec_IntPrint( vOuts );    
             printf( "\n" );
         }
-        else
-            printf( "\nObj %d.   Window: Ins = %d. Ands = %d. Outs = %d.\n", 
+        else if ( Vec_IntSize(vWin) > 1000 )
+            printf( "Obj %d.   Window: Ins = %d. Ands = %d. Outs = %d.\n", 
                 i, Vec_IntSize(vIns), Vec_IntSize(vWin)-Vec_IntSize(vIns), Vec_IntSize(vOuts) );
+
+        if ( fUseHash )
+        {
+            int nEntries = Hsh_VecSize(pHash);
+            Hsh_VecManAdd( pHash, vWin );
+            if ( nEntries == Hsh_VecSize(pHash) )
+            {
+                Vec_IntFree( vWin );
+                Vec_IntFree( vIns );
+                Vec_IntFree( vOuts );
+                continue;
+            }
+        }
 
         pIn = Gia_RsbDeriveGiaFromWindows( p, vWin, vIns, vOuts );
         pOut = Gia_ManResub2Test( pIn );
-        Gia_ManVerifyTwoTruths( pIn, pOut );
+        //pOut = Gia_ManDup( pIn );
+        if ( !Gia_ManVerifyTwoTruths( pIn, pOut ) )
+        {
+            Gia_ManPrint( pIn );
+            Gia_ManPrint( pOut );
+            pOut = pOut;
+        }
 
+        nNodeGain += Gia_ManAndNum(pIn) - Gia_ManAndNum(pOut);
         Gia_ManStop( pIn );
         Gia_ManStop( pOut );
 
@@ -1142,9 +1201,11 @@ void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
     Vec_WecFree( vLevels );
     Vec_IntFree( vPaths );
     Vec_IntFree( vRefs );
-    printf( "\nComputed windows for %d nodes (out of %d). Ave inputs = %.2f. Ave outputs = %.2f. Ave volume = %.2f.  ", 
-        nWins, Gia_ManAndNum(p), 1.0*nInsSize/Abc_MaxInt(1,nWins), 1.0*nOutSize/Abc_MaxInt(1,nWins), 1.0*nWinSize/Abc_MaxInt(1,nWins) );
+    printf( "Computed windows for %d nodes (out of %d). Unique = %d. Ave inputs = %.2f. Ave outputs = %.2f. Ave volume = %.2f.  Gain = %d. ", 
+        nWins, Gia_ManAndNum(p), Hsh_VecSize(pHash), 1.0*nInsSize/Abc_MaxInt(1,nWins), 
+        1.0*nOutSize/Abc_MaxInt(1,nWins), 1.0*nWinSize/Abc_MaxInt(1,nWins), nNodeGain );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    Hsh_VecManStop( pHash );
 }
 
 ////////////////////////////////////////////////////////////////////////
