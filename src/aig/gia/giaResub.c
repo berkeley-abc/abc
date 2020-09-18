@@ -1079,6 +1079,99 @@ void Gia_ManSortBinate( word * pSets[2], Vec_Ptr_t * vDivs, int nWords, Vec_Int_
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManResubFindBestBinate( Gia_ResbMan_t * p )
+{
+    int nMintsAll = Abc_TtCountOnesVec(p->pSets[0], p->nWords) + Abc_TtCountOnesVec(p->pSets[1], p->nWords);
+    int i, iDiv, iLitBest = -1, CostBest = -1;
+//Vec_IntPrint( p->vBinateVars );
+//Dau_DsdPrintFromTruth( p->pSets[0], 6 );
+//Dau_DsdPrintFromTruth( p->pSets[1], 6 );
+    Vec_IntForEachEntry( p->vBinateVars, iDiv, i )
+    {
+        word * pDiv = (word *)Vec_PtrEntry(p->vDivs, iDiv);
+        int nMints0 = Abc_TtCountOnesVecMask( pDiv, p->pSets[0], p->nWords, 0 );
+        int nMints1 = Abc_TtCountOnesVecMask( pDiv, p->pSets[1], p->nWords, 0 );
+        if ( CostBest < nMints0 + nMints1 ) 
+        {
+            CostBest = nMints0 + nMints1;
+            iLitBest = Abc_Var2Lit( iDiv, 0 );
+        }
+        if ( CostBest < nMintsAll - nMints0 - nMints1 ) 
+        {
+            CostBest = nMintsAll - nMints0 - nMints1;
+            iLitBest = Abc_Var2Lit( iDiv, 1 );
+        }
+    }
+    return iLitBest;
+}
+int Gia_ManResubAddNode( Gia_ResbMan_t * p, int iLit0, int iLit1, int Type )
+{
+    int iNode = Vec_PtrSize(p->vDivs) + Vec_IntSize(p->vGates)/2;
+    int fFlip = (Type == 2) ^ (iLit0 > iLit1);
+    int iFan0 = fFlip ? iLit1 : iLit0;
+    int iFan1 = fFlip ? iLit0 : iLit1;
+    assert( iLit0 != iLit1 );
+    if ( Type == 2 )
+        assert( iFan0 > iFan1 );
+    else
+        assert( iFan0 < iFan1 );
+    Vec_IntPushTwo( p->vGates, Abc_LitNotCond(iFan0, Type==1), Abc_LitNotCond(iFan1, Type==1) );
+    return Abc_Var2Lit( iNode, Type==1 );
+}
+int Gia_ManResubPerformMux_rec( Gia_ResbMan_t * p, int nLimit )
+{
+    extern int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit );
+    int iDivBest, iResLit0, iResLit1, nNodes;
+    word * pDiv, * pCopy[2];
+    if ( nLimit < 3 )
+        return -1;
+    iDivBest = Gia_ManResubFindBestBinate( p );
+    if ( iDivBest == -1 )
+        return -1;
+    pCopy[0] = ABC_CALLOC( word, p->nWords );
+    pCopy[1] = ABC_CALLOC( word, p->nWords );
+    Abc_TtCopy( pCopy[0], p->pSets[0], p->nWords, 0 );
+    Abc_TtCopy( pCopy[1], p->pSets[1], p->nWords, 0 );
+    pDiv = (word *)Vec_PtrEntry( p->vDivs, Abc_Lit2Var(iDivBest) );
+    Abc_TtAndSharp( p->pSets[0], pCopy[0], pDiv, p->nWords, !Abc_LitIsCompl(iDivBest) );
+    Abc_TtAndSharp( p->pSets[1], pCopy[1], pDiv, p->nWords, !Abc_LitIsCompl(iDivBest) );
+    nNodes = Vec_IntSize(p->vGates)/2;
+    iResLit0 = Gia_ManResubPerform_rec( p, nLimit-3 );
+    if ( iResLit0 == -1 )
+    {
+        ABC_FREE( pCopy[0] );
+        ABC_FREE( pCopy[1] );
+        return -1;
+    }
+    Abc_TtAndSharp( p->pSets[0], pCopy[0], pDiv, p->nWords,  Abc_LitIsCompl(iDivBest) );
+    Abc_TtAndSharp( p->pSets[1], pCopy[1], pDiv, p->nWords,  Abc_LitIsCompl(iDivBest) );
+    ABC_FREE( pCopy[0] );
+    ABC_FREE( pCopy[1] );
+    nNodes = Vec_IntSize(p->vGates)/2 - nNodes;
+    if ( nLimit-nNodes < 3 )
+        return -1;
+    iResLit1 = Gia_ManResubPerform_rec( p, nLimit-3-nNodes );
+    if ( iResLit1 == -1 )
+        return -1;
+    else
+    {
+        int iLit0 = Gia_ManResubAddNode( p, Abc_LitNot(iDivBest), iResLit0, 0 );
+        int iLit1 = Gia_ManResubAddNode( p,            iDivBest,  iResLit1, 0 );
+        return Gia_ManResubAddNode( p, iLit0, iLit1, 1 );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Perform resubstitution.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
 {
     int TopOneW[2] = {0}, TopTwoW[2] = {0}, Max1, Max2, iResLit, nVars = Vec_PtrSize(p->vDivs);
@@ -1112,6 +1205,7 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
         return Abc_Var2Lit( iNode, fComp );
     }
     Vec_IntTwoFindCommon( p->vNotUnateVars[0], p->vNotUnateVars[1], p->vBinateVars );
+    //return Gia_ManResubPerformMux_rec( p, nLimit );
     if ( Vec_IntSize(p->vBinateVars) > p->nDivsMax )
         Vec_IntShrink( p->vBinateVars, p->nDivsMax );
     if ( p->fVerbose ) printf( "  B = %3d", Vec_IntSize(p->vBinateVars) );
@@ -1290,7 +1384,10 @@ void Gia_ManResubPerform( Gia_ResbMan_t * p, Vec_Ptr_t * vDivs, int nWords, int 
     int Res;
     Gia_ResbInit( p, vDivs, nWords, nLimit, nDivsMax, iChoice, fUseXor, fDebug, fVerbose, fVerbose );
     Res = Gia_ManResubPerform_rec( p, nLimit );
-    if ( Res >= 0 ) Vec_IntPush( p->vGates, Res );
+    if ( Res >= 0 ) 
+        Vec_IntPush( p->vGates, Res );
+    else
+        Vec_IntClear( p->vGates );
     if ( fVerbose )
         printf( "\n" );
 }
@@ -1398,7 +1495,7 @@ extern void Dau_DsdPrintFromTruth2( word * pTruth, int nVarsInit );
 
 void Gia_ManResubTest3()
 {
-    int nVars = 3;
+    int nVars = 4;
     int fVerbose = 1;
     word Divs[6] = { 0, 0, 
         ABC_CONST(0xAAAAAAAAAAAAAAAA),
@@ -1412,7 +1509,7 @@ void Gia_ManResubTest3()
     for ( i = 0; i < 6; i++ )
         Vec_PtrPush( vDivs, Divs+i );
     Abc_ResubPrepareManager( 1 );
-    for ( i = 0; i < (1<<(1<<nVars)); i++ )
+    for ( i = 0; i < (1<<(1<<nVars)); i++ ) //if ( i == 0xCA ) 
     {
         word Truth = Abc_Tt6Stretch( i, nVars );
         Divs[0] = ~Truth;
@@ -1424,9 +1521,8 @@ void Gia_ManResubTest3()
         printf( "           " );
 
         //Abc_ResubDumpProblem( "temp.resub", (void **)Vec_PtrArray(vDivs), Vec_PtrSize(vDivs), 1 );
-        ArraySize = Abc_ResubComputeFunction( (void **)Vec_PtrArray(vDivs), Vec_PtrSize(vDivs), 1, 4, 50, 0, 0, 1, fVerbose, &pArray );
-        if ( !fVerbose )
-            printf( "\n" );
+        ArraySize = Abc_ResubComputeFunction( (void **)Vec_PtrArray(vDivs), Vec_PtrSize(vDivs), 1, 16, 50, 0, 0, 1, fVerbose, &pArray );
+        printf( "\n" );
 
         Vec_IntClear( vRes );
         for ( k = 0; k < ArraySize; k++ )
