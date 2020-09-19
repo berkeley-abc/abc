@@ -540,7 +540,10 @@ Gia_Man_t * Gia_ManResub2Test( Gia_Man_t * p )
     //printf( "Performed resub %d times.  Reduced %d nodes.\n", nResubs, nObjsNew ? Gia_ManObjNum(p) - nObjsNew : 0 );
     Abc_ResubPrepareManager( 0 );
     if ( nObjsNew )
+    {
         pNew = Gia_ManFromResub( pObjsNew, nObjsNew, Gia_ManCiNum(p) );
+        pNew->pName = Abc_UtilStrsav( p->pName );
+    }
     else 
         pNew = Gia_ManDup( p );
     ABC_FREE( pObjs );
@@ -967,6 +970,193 @@ void Gia_RsbWindowGrow( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Ve
 
 /**Function*************************************************************
 
+  Synopsis    [Grow window for the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// uses levelized structure (vLevels) to collect in array vWin divisors supported by the cut (vIn)
+void Gia_WinCreateFromCut( Gia_Man_t * p, Vec_Int_t * vIn, Vec_Wec_t * vLevels, Vec_Int_t * vWin )
+{
+    Vec_Int_t * vLevel; 
+    Gia_Obj_t * pObj, * pFanout;
+    int k, i, f, iObj, Level;
+    Vec_Int_t * vUsed = Vec_IntAlloc( 100 );
+    // precondition:  the levelized structure is empty
+    assert( Vec_WecSizeSize(vLevels) == 0 );
+    // clean the resulting array
+    Vec_IntClear( vWin );
+    // start a new trav ID and add nodes to the levelized structure
+    Gia_ManIncrementTravId( p );
+    Vec_IntForEachEntry( vIn, iObj, i )
+    {
+        Gia_ObjSetTravIdCurrentId( p, iObj );
+        Vec_WecPush( vLevels, Gia_ObjLevelId(p, iObj), iObj );
+        Vec_IntPush( vWin, iObj );
+        Vec_IntPushUniqueOrder( vUsed, Gia_ObjLevelId(p, iObj) );
+    }
+    // iterate through all objects and explore their fanouts
+    //Vec_WecForEachLevel( vLevels, vLevel, k )
+    Vec_IntForEachEntry( vUsed, Level, k )
+    {
+        vLevel = Vec_WecEntry( vLevels, Level );
+        Gia_ManForEachObjVec( vLevel, p, pObj, i )
+            Gia_ObjForEachFanoutStatic( p, pObj, pFanout, f )
+            {
+                if ( f == 5 ) // explore first 5 fanouts of the node
+                    break;
+                if ( Gia_ObjIsAnd(pFanout) && // internal node
+                    !Gia_ObjIsTravIdCurrent(p, pFanout) && // not in the window
+                     Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin0(pFanout)) && // but fanins are
+                     Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin1(pFanout)) )  // in the window
+                {
+                    // add fanout to the window and to the levelized structure
+                    Gia_ObjSetTravIdCurrent( p, pFanout );
+                    Vec_WecPush( vLevels, Gia_ObjLevel(p, pFanout), Gia_ObjId(p, pFanout) );
+                    Vec_IntPush( vWin, Gia_ObjId(p, pFanout) );
+                    Vec_IntPushUniqueOrder( vUsed, Gia_ObjLevel(p, pFanout) );
+                }
+            }
+        Vec_IntClear( vLevel );
+    }
+    Vec_IntSort( vWin, 0 );
+    Vec_IntFree( vUsed );
+}
+// update the cut until both fanins of AND nodes are not in the cut
+int Gia_RsbExpandCut( Gia_Man_t * p, Vec_Int_t * vIns )
+{
+    int fOnlyPis = 0, fChange = 1, nSize = Vec_IntSize(vIns);
+    while ( fChange )
+    {
+        Gia_Obj_t * pObj;
+        int i, iFan0, iFan1, fHave0, fHave1;
+        fOnlyPis = 1;
+        fChange = 0;
+        // check if some nodes can be expanded without increasing cut size
+        Gia_ManForEachObjVec( vIns, p, pObj, i )
+        {
+            assert( Gia_ObjIsTravIdCurrent(p, pObj) );
+            if ( !Gia_ObjIsAnd(pObj) )
+                continue;
+            fOnlyPis = 0;
+            iFan0 = Gia_ObjFaninId0p(p, pObj);
+            iFan1 = Gia_ObjFaninId1p(p, pObj);
+            fHave0 = Gia_ObjIsTravIdCurrentId(p, iFan0);
+            fHave1 = Gia_ObjIsTravIdCurrentId(p, iFan1);
+            if ( !fHave0 && !fHave1 )
+                continue;
+            // can expand because one of the fanins is already in the cut
+            // remove current cut node
+            Vec_IntDrop( vIns, i );
+            // add missing fanin
+            if ( !fHave0 )  
+            {
+                Vec_IntPush( vIns, iFan0 );
+                Gia_ObjSetTravIdCurrentId( p, iFan0 );
+            }
+            if ( !fHave1 )  
+            {
+                Vec_IntPush( vIns, iFan1 );
+                Gia_ObjSetTravIdCurrentId( p, iFan1 );
+            }
+            fChange = 1;
+            break;
+        }
+    }
+    assert( Vec_IntSize(vIns) <= nSize );
+    return fOnlyPis;
+}
+int Gia_RsbFindFaninAdd( int iFan, int pFanins[32], int pFaninCounts[32], int nFanins )
+{
+    int i;
+    for ( i = 0; i < nFanins; i++ )
+        if ( pFanins[i] == iFan )
+            break;
+    pFanins[i] = iFan;
+    pFaninCounts[i]++;
+    return nFanins + (i == nFanins);
+}                        
+int Gia_RsbFindFaninToAddToCut( Gia_Man_t * p, Vec_Int_t * vIns )
+{
+    Gia_Obj_t * pObj;
+    int nFanins = 0, pFanins[64] = {0}, pFaninCounts[64] = {0};
+    int i, iFan0, iFan1, iFanMax = -1, CountMax = 0;
+    Gia_ManForEachObjVec( vIns, p, pObj, i )
+    {
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        iFan0 = Gia_ObjFaninId0p(p, pObj);
+        iFan1 = Gia_ObjFaninId1p(p, pObj);
+        assert( !Gia_ObjIsTravIdCurrentId(p, iFan0) );
+        assert( !Gia_ObjIsTravIdCurrentId(p, iFan1) );
+        nFanins = Gia_RsbFindFaninAdd( iFan0, pFanins, pFaninCounts, nFanins );
+        nFanins = Gia_RsbFindFaninAdd( iFan1, pFanins, pFaninCounts, nFanins );
+        assert( nFanins < 64 );
+    }
+    // find fanin with the highest count
+    for ( i = 0; i < nFanins; i++ )
+        if ( CountMax < pFaninCounts[i] )
+        {
+            CountMax = pFaninCounts[i];
+            iFanMax  = pFanins[i];
+        }
+    return iFanMax;
+}
+// precondition: nodes in vWin and in vIns are marked with the current ID
+void Gia_RsbWindowGrow2( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Vec_Int_t * vIns, int nInputsMax )
+{
+    // window will be recomputed later
+    Vec_IntClear( vWin );
+    // expand the cut without increasing its cost
+    if ( !Gia_RsbExpandCut( p, vIns ) )
+    {
+        // save it as the best cut
+        Vec_Int_t * vBest = Vec_IntSize(vIns) <= nInputsMax ? Vec_IntDup(vIns) : NULL;
+        int fOnlyPis = 0, Iter = 0;
+        // iterate expansion until  
+        // (1) the cut cannot be expanded because all leaves are PIs
+        // (2) the cut size exceeded the limit for 5 consecutive iterations
+        while ( !fOnlyPis && (Vec_IntSize(vIns) <= nInputsMax || Iter < 5) )
+        {
+            int iFanBest = Gia_RsbFindFaninToAddToCut( p, vIns );
+            Vec_IntPush( vIns, iFanBest );
+            Gia_ObjSetTravIdCurrentId( p, iFanBest );
+            fOnlyPis = Gia_RsbExpandCut( p, vIns );
+            if ( Vec_IntSize(vIns) > nInputsMax )
+                Iter++;
+            else
+                Iter = 0;                
+            if ( Vec_IntSize(vIns) <= nInputsMax && (!vBest || Vec_IntSize(vBest) <= Vec_IntSize(vIns)) )
+            {
+                if ( vBest )
+                    Vec_IntClear(vBest);
+                else
+                    vBest = Vec_IntAlloc( 10 );
+                Vec_IntAppend( vBest, vIns );
+            }
+        }
+        if ( vBest )
+        {
+            Vec_IntClear( vIns );
+            Vec_IntAppend( vIns, vBest );
+            Vec_IntFree( vBest );
+        }
+        else
+            assert( Vec_IntSize(vIns) > nInputsMax );
+    }
+    if ( Vec_IntSize(vIns) <= nInputsMax )
+    {
+        Vec_IntSort( vIns, 0 );
+        Gia_WinCreateFromCut( p, vIns, vLevels, vWin );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Create window for the node.]
 
   Description []
@@ -987,8 +1177,8 @@ int Gia_RsbWindowCompute( Gia_Man_t * p, int iObj, int nInputsMax, int nLevelsMa
     // vWin and vIns are labeled with the current trav ID
     //Vec_IntPrint( vWin );    
     //Vec_IntPrint( vIns );    
-    if ( Vec_IntSize(vIns) <= nInputsMax + 2 ) // consider windows, which initially has a larger input space
-        Gia_RsbWindowGrow( p, vLevels, vWin, vIns, nInputsMax );
+    if ( Vec_IntSize(vIns) <= nInputsMax + 3 ) // consider windows, which initially has a larger input space
+        Gia_RsbWindowGrow2( p, vLevels, vWin, vIns, nInputsMax );
     if ( Vec_IntSize(vIns) <= nInputsMax )
     {
         Vec_IntSort( vWin, 0 );
@@ -1206,6 +1396,22 @@ void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
         1.0*nOutSize/Abc_MaxInt(1,nWins), 1.0*nWinSize/Abc_MaxInt(1,nWins), nNodeGain );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Hsh_VecManStop( pHash );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Apply k-resub to one AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_RsbTryOneWindow( Gia_Man_t * p )
+{
+    return Gia_ManResub2Test( p );
 }
 
 ////////////////////////////////////////////////////////////////////////

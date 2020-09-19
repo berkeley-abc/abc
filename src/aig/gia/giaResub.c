@@ -1248,34 +1248,37 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
         Vec_IntPushTwo( p->vGates, iDiv0, Abc_Var2Lit(iNode, fComp1) );
         return Abc_Var2Lit( iNode+1, fComp );
     }
-    if ( nLimit == 2 )
-        return -1;
-    iResLit = Gia_ManFindGateGate( p->pSets, p->vDivs, p->nWords, p->vUnatePairs, p->vUnatePairsW, p->pDivA, p->pDivB );
-    if ( iResLit >= 0 ) // and(pair,pair)
+//    if ( nLimit == 2 )
+//        return -1;
+    if ( nLimit >= 3 )
     {
-        int iNode  = nVars + Vec_IntSize(p->vGates)/2;
+        iResLit = Gia_ManFindGateGate( p->pSets, p->vDivs, p->nWords, p->vUnatePairs, p->vUnatePairsW, p->pDivA, p->pDivB );
+        if ( iResLit >= 0 ) // and(pair,pair)
+        {
+            int iNode  = nVars + Vec_IntSize(p->vGates)/2;
 
-        int fComp  = Abc_LitIsCompl(iResLit);
-        int iDiv0  = Abc_Lit2Var(iResLit) & 0x7FFF; // pair
-        int iDiv1  = Abc_Lit2Var(iResLit) >> 15;    // pair
+            int fComp  = Abc_LitIsCompl(iResLit);
+            int iDiv0  = Abc_Lit2Var(iResLit) & 0x7FFF; // pair
+            int iDiv1  = Abc_Lit2Var(iResLit) >> 15;    // pair
 
-        int Div0   = Vec_IntEntry( p->vUnatePairs[!fComp], Abc_Lit2Var(iDiv0) );
-        int fComp0 = Abc_LitIsCompl(Div0) ^ Abc_LitIsCompl(iDiv0);
-        int iDiv00 = Abc_Lit2Var(Div0) & 0x7FFF;
-        int iDiv01 = Abc_Lit2Var(Div0) >> 15;   
+            int Div0   = Vec_IntEntry( p->vUnatePairs[!fComp], Abc_Lit2Var(iDiv0) );
+            int fComp0 = Abc_LitIsCompl(Div0) ^ Abc_LitIsCompl(iDiv0);
+            int iDiv00 = Abc_Lit2Var(Div0) & 0x7FFF;
+            int iDiv01 = Abc_Lit2Var(Div0) >> 15;   
         
-        int Div1   = Vec_IntEntry( p->vUnatePairs[!fComp], Abc_Lit2Var(iDiv1) );
-        int fComp1 = Abc_LitIsCompl(Div1) ^ Abc_LitIsCompl(iDiv1);
-        int iDiv10 = Abc_Lit2Var(Div1) & 0x7FFF;
-        int iDiv11 = Abc_Lit2Var(Div1) >> 15;   
+            int Div1   = Vec_IntEntry( p->vUnatePairs[!fComp], Abc_Lit2Var(iDiv1) );
+            int fComp1 = Abc_LitIsCompl(Div1) ^ Abc_LitIsCompl(iDiv1);
+            int iDiv10 = Abc_Lit2Var(Div1) & 0x7FFF;
+            int iDiv11 = Abc_Lit2Var(Div1) >> 15;   
         
-        Vec_IntPushTwo( p->vGates, iDiv00, iDiv01 );
-        Vec_IntPushTwo( p->vGates, iDiv10, iDiv11 );
-        Vec_IntPushTwo( p->vGates, Abc_Var2Lit(iNode, fComp0), Abc_Var2Lit(iNode+1, fComp1) );
-        return Abc_Var2Lit( iNode+2, fComp );
+            Vec_IntPushTwo( p->vGates, iDiv00, iDiv01 );
+            Vec_IntPushTwo( p->vGates, iDiv10, iDiv11 );
+            Vec_IntPushTwo( p->vGates, Abc_Var2Lit(iNode, fComp0), Abc_Var2Lit(iNode+1, fComp1) );
+            return Abc_Var2Lit( iNode+2, fComp );
+        }
     }
-    if ( nLimit == 3 )
-        return -1;
+//    if ( nLimit == 3 )
+//        return -1;
     if ( Vec_IntSize(p->vUnateLits[0]) + Vec_IntSize(p->vUnateLits[1]) + Vec_IntSize(p->vUnatePairs[0]) + Vec_IntSize(p->vUnatePairs[1]) == 0 )
         return -1;
 
@@ -1289,9 +1292,10 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
     Max2 = Abc_MaxInt(TopTwoW[0], TopTwoW[1]);
     if ( Abc_MaxInt(Max1, Max2) == 0 )
         return -1;
+
     if ( Max1 > Max2/2 )
     {
-        if ( Max1 == TopOneW[0] || Max1 == TopOneW[1] )
+        if ( nLimit >= 2 && (Max1 == TopOneW[0] || Max1 == TopOneW[1]) )
         {
             int fUseOr  = Max1 == TopOneW[0];
             int iDiv    = Vec_IntEntry( p->vUnateLits[!fUseOr], 0 );
@@ -1335,7 +1339,7 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit )
     }
     else
     {
-        if ( Max2 == TopTwoW[0] || Max2 == TopTwoW[1] )
+        if ( nLimit >= 3 && (Max2 == TopTwoW[0] || Max2 == TopTwoW[1]) )
         {
             int fUseOr  = Max2 == TopTwoW[0];
             int iDiv    = Vec_IntEntry( p->vUnatePairs[!fUseOr], 0 );
