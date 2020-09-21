@@ -27,6 +27,12 @@ int Lsv_CommandPrintGates(Abc_Frame_t* pAbc, int argc, char** argv) {
   int i;
   Abc_NtkForEachObj(pNtk, pObj, i) {
     printf("Object Id = %d, name = %s\n", Abc_ObjId(pObj), Abc_ObjName(pObj));
+    Abc_Obj_t* pFanin;
+    int j;
+    Abc_ObjForEachFanin(pObj, pFanin, j) {
+      printf("  Fanin-%d: Id = %d, name = %s\n", j, Abc_ObjId(pFanin),
+             Abc_ObjName(pFanin));
+    }
   }
 
   return 0;

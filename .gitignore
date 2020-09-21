@@ -196,3 +196,10 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# VSCode
+.vscode/*
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
