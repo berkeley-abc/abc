@@ -1099,7 +1099,8 @@ int Gia_RsbFindFaninToAddToCut( Gia_Man_t * p, Vec_Int_t * vIns )
     }
     // find fanin with the highest count
     for ( i = 0; i < nFanins; i++ )
-        if ( CountMax < pFaninCounts[i] )
+//        if ( CountMax < pFaninCounts[i] )
+        if ( CountMax < pFaninCounts[i] || (CountMax == pFaninCounts[i] && (Gia_ObjFanoutNumId(p, iFanMax) < Gia_ObjFanoutNumId(p, pFanins[i]))) )
         {
             CountMax = pFaninCounts[i];
             iFanMax  = pFanins[i];
@@ -1322,7 +1323,7 @@ int Gia_ManVerifyTwoTruths( Gia_Man_t * p1, Gia_Man_t * p2 )
 void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
 {
     int fVerbose = 0;
-    int fUseHash = 1;
+    int fUseHash = 0;
     int i, nWins = 0, nWinSize = 0, nInsSize = 0, nOutSize = 0, nNodeGain = 0;
     Vec_Wec_t * vLevels = Vec_WecStart( Gia_ManLevelNum(p)+1 );
     Vec_Int_t * vPaths = Vec_IntStart( Gia_ManObjNum(p) );
