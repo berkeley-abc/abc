@@ -14,4 +14,4 @@ Tentative topic: Unateness checking of global PI/PO
 Deadline: TBD
 
 ## Participants
-We recommend students to register their student IDs and GitHub accounts in this [list](./Participants.md).
+We recommend students to register their student IDs and GitHub accounts in this [table](./participants-id.csv).
