@@ -14,7 +14,10 @@ Tentative topic: Unateness checking of global PI/PO
 Deadline: TBD
 
 ## Submission Workflow
-Programming assignments **must** be submitted via pull requests.
+Programming assignments **must** be submitted via pull requests to a student's branch.
+All enrolled students will have their own branches named by their students' ID numbers.
+If you cannot find your own branch, please contact the TA.
+If you don't know how to send a pull request, please read through this [document](https://guides.github.com/activities/forking/).
 
 ## Participants
 We recommend students to register their student IDs and GitHub accounts in this [table](./lsv/participants-id.csv).
