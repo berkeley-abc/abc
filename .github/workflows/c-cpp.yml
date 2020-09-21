@@ -9,5 +9,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: make
-      run: make -j8
+    - name: make and sanity check
+      run: | 
+        make -j8
+        ./abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
