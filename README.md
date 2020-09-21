@@ -6,7 +6,9 @@ It is forked from the repository [ABC](https://github.com/berkeley-abc/abc) of U
 ### PA0
 Topic: Getting familiar with git and GitHub
 
-Task: 
+Task: Fill in your GitHub Account in this [table](./lsv/participants-id.csv) via a pull request to the **master** branch.
+
+Deadline: 2020.09.30
 
 ### PA1
 Tentative topic: Unateness checking of local nodes
@@ -30,5 +32,4 @@ We recommend students to register their student IDs and GitHub accounts in this 
 ## Contact
 TA: Nian-Ze Lee (d04943019@ntu.edu.tw)
 
-For questions, you are encouraged to open an issue. 
-You could also send emails to the TA.
+For questions, you are encouraged to open an [issue](https://github.com/NTU-ALComLab/LSV-PA/issues).
