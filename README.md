@@ -17,7 +17,7 @@ Deadline: TBD
 Programming assignments **must** be submitted via pull requests.
 
 ## Participants
-We recommend students to register their student IDs and GitHub accounts in this [table](./participants-id.csv).
+We recommend students to register their student IDs and GitHub accounts in this [table](./lsv/participants-id.csv).
 
 ## Contact
 TA: Nian-Ze Lee
