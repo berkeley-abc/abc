@@ -3,6 +3,11 @@ This is a repository to host programming assignments of the course **Logic Synth
 It is forked from the repository [ABC](https://github.com/berkeley-abc/abc) of UC Berkeley.
 
 ## Assignments
+### PA0
+Topic: Getting familiar with git and GitHub
+
+Task: 
+
 ### PA1
 Tentative topic: Unateness checking of local nodes
 
@@ -23,6 +28,7 @@ If you don't know how to send a pull request, please read through this [document
 We recommend students to register their student IDs and GitHub accounts in this [table](./lsv/participants-id.csv).
 
 ## Contact
-TA: Nian-Ze Lee
+TA: Nian-Ze Lee (d04943019@ntu.edu.tw)
 
-For questions, please send emails to d04943019@ntu.edu.tw
+For questions, you are encouraged to open an issue. 
+You could also send emails to the TA.
