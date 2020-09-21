@@ -13,5 +13,13 @@ Tentative topic: Unateness checking of global PI/PO
 
 Deadline: TBD
 
+## Submission Workflow
+Programming assignments **must** be submitted via pull requests.
+
 ## Participants
 We recommend students to register their student IDs and GitHub accounts in this [table](./participants-id.csv).
+
+## Contact
+TA: Nian-Ze Lee
+
+For questions, please send emails to d04943019@ntu.edu.tw
