@@ -60,6 +60,8 @@ tags
 /cmake
 /cscope
 
+*.ps
+
 # C
 # Prerequisites
 *.d
