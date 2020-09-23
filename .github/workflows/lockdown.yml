@@ -1,4 +1,4 @@
-name: 'Lock down repository'
+name: 'Repo Lockdown'
 
 on:
   pull_request_target:
@@ -13,4 +13,4 @@ jobs:
           github-token: ${{ github.token }}
           pr-comment: >
             This repository does not accept pull requests now.
-            Submission period will be open from '2020-09-30T20:00:00'
+            Submission period will be open from ... (TBD)
