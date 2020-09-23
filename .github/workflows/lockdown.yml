@@ -8,7 +8,7 @@ jobs:
   lockdown:
     runs-on: ubuntu-latest
     steps:
-      - uses: dessant/repo-lockdown@v2
+      - uses: dessant/repo-lockdown@v2.0.0
         with:
           github-token: ${{ github.token }}
           pr-comment: >

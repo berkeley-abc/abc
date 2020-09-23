@@ -1,3 +1,0 @@
-- name: Repo Lockdown
-  uses: dessant/repo-lockdown@v2.0.0
-
