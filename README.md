@@ -33,3 +33,6 @@ We recommend students to register their student IDs and GitHub accounts in this 
 TA: Nian-Ze Lee (d04943019@ntu.edu.tw)
 
 For questions, you are encouraged to open an [issue](https://github.com/NTU-ALComLab/LSV-PA/issues).
+As other students might have the same questions, discussing in an issue will benefit everyone.
+Note that you can set labels, e.g., `PA0`, `PA1`, etc, to classify your questions.
+

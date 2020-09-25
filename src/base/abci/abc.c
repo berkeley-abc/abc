@@ -15443,7 +15443,7 @@ int Abc_CommandIFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     nPartSize    = 0;
     nLevelMax    = 0;
     nConfLimit   = 100;
-    fDoSparse    = 0;
+    fDoSparse    = 1;
     fProve       = 0;
     fVerbose     = 0;
     Extra_UtilGetoptReset();
@@ -36287,6 +36287,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fUseAlgo = 0, fUseAlgoG = 0;
     Cec_ManFraSetDefaultParams( pPars );
     pPars->fSatSweeping = 1;
+    pPars->nItersMax = 1000000;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCrmdckngwvh" ) ) != EOF )
     {

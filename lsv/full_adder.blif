@@ -1,0 +1,13 @@
+.model full_adder
+.inputs a b c-in
+.outputs sum c-out
+.names a b c-in sum #sum=XOR(a,b,c-in)
+100 1
+010 1
+001 1
+111 1
+.names a b c-in c-out #c-out=MAJ(a,b,c-in)
+11- 1
+1-1 1
+-11 1
+.end
