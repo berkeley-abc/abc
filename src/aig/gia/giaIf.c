@@ -2357,6 +2357,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     // transfer name
     assert( pNew->pName == NULL );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    ABC_FREE( pNew->pSpec );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // print delay trace
