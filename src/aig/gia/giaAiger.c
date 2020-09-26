@@ -636,6 +636,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pCur++;
                 if ( (*pCur >= 'a' && *pCur <= 'z') || (*pCur >= 'A' && *pCur <= 'Z') || (*pCur >= '0' && *pCur <= '9') )
                 {
+                    ABC_FREE( pNew->pName );
                     pNew->pName = Abc_UtilStrsav( (char *)pCur );       pCur += strlen(pNew->pName) + 1;
                 }
                 else
