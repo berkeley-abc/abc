@@ -58,5 +58,7 @@ git pull private master
 
 Third, push your code to the public fork and send a pull request to this repository via GitHub UI.
 ```
-git push origin <your-student-id>
+git push --set-upstream origin <your-student-id>
 ```
+
+To repeat the process, you only need `git pull private master` and `git push`.
