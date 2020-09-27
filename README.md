@@ -37,7 +37,7 @@ pull your code to the public fork after an assignment is finished,
 and send a pull request via the public fork.
 The benefit of this method is that you can push your code during the development and keep it private.
 The drawback is again you need to send a pull request close to the deadline, as PRs are visible to everyone.
-The detailed steps are documented here.
+The detailed steps are documented [here](./private-fork.md).
 
 ## Participants
 We recommend students to register their student IDs and GitHub accounts in this [table](./lsv/participants-id.csv).
