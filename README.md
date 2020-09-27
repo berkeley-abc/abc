@@ -21,10 +21,23 @@ Tentative topic: Unateness checking of global PI/PO
 Deadline: TBD
 
 ## Submission Workflow
-Programming assignments **must** be submitted via pull requests to a student's branch.
+Programming assignments **must** be submitted via a pull request to a student's branch.
 All enrolled students will have their own branches named by their students' ID numbers.
 If you cannot find your own branch, please contact the TA.
 If you don't know how to send a pull request, please read through this [document](https://guides.github.com/activities/forking/).
+
+### To avoid plagiarism ...
+Please note that your fork of this public repository will also be public,
+which means that if you push your code to the fork, it is visible to everyone.
+In case you want to prevent other students from copying your solution,
+an easy way is to push and send a pull request at the last moment before the deadline.
+
+Another complicated way is to create a private repository to develop your solutions,
+pull your code to the public fork after an assignment is finished,
+and send a pull request via the public fork.
+The benefit of this method is that you can push your code during the development and keep it private.
+The drawback is again you need to send a pull request close to the deadline, as PRs are visible to everyone.
+The detailed steps are documented here.
 
 ## Participants
 We recommend students to register their student IDs and GitHub accounts in this [table](./lsv/participants-id.csv).
