@@ -12,23 +12,23 @@ https://stackoverflow.com/questions/10065526/github-how-to-make-a-fork-of-public
 
 In the following steps, **this repository** refers to `git@github.com:NTU-ALComLab/LSV-PA.git`
 
-1. [Import][GitHub Importer] this repository and set the new repository private  
+1. [Import][GitHub Importer] this repository and set the new repository private.
 - Name the new repository whatever you like. In this example we name it `LSV-PA-private`.
 
 [GitHub Importer]: https://docs.github.com/en/free-pro-team@latest/github/importing-your-projects-to-github/importing-a-repository-with-github-importer
 
-2. Clone the private repository to your local machine
+2. Clone the private repository to your local machine.
 ```
 git clone git@github.com:<your-username>/LSV-PA-private.git
 ```
 
-3. Add this repository as a remote in order to update your private repository
+3. Add this repository as a remote in order to update your private repository.
 ```
 cd LSV-PA-private
 git remote add upstream git@github.com:NTU-ALComLab/LSV-PA.git
 ```
 
-List all of your remotes by `git remote -v`
+List all of your remotes by `git remote -v`.
 ```
 origin	git@github.com:<your-username>/LSV-PA-private.git (fetch)
 origin	git@github.com:<your-username>/LSV-PA-private.git (push)
