@@ -27,6 +27,10 @@ All enrolled students will have their own branches named by their students' ID n
 If you cannot find your own branch, please contact the TA.
 If you don't know how to send a pull request, please read through this [document](https://guides.github.com/activities/forking/).
 
+We will allocate a period of time for submission.
+Outside the submission period this repository will be locked down: it will not accept any pull request.
+You **must** send a pull request during the submission period.
+
 ### To avoid plagiarism ...
 Please note that your fork of this public repository will also be public,
 which means that if you push your code to the fork, it is visible to everyone.
