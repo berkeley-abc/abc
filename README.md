@@ -34,16 +34,6 @@ Task: Fill in your GitHub Account in this [table](./lsv/admin/participants-id.cs
 
 Deadline: 2020.09.30
 
-#### Benchmarking
-For the following assignments, your submissions will be evaluated over [The EPFL Combinational Benchmark Suite](https://www.epfl.ch/labs/lsi/page-102566-en-html/benchmarks/).
-You can clone the benchmarks from this [repository](https://github.com/lsils/benchmarks) and create a symbolic link in your PA folder.
-
-```
-git clone git@github.com:lsils/benchmarks.git EPFL-benchmark-suite
-cd LSV-PA
-ln -s ~/EPFL-benchmark-suite ./benchmarks
-```
-
 ### PA1
 Tentative topic: Unateness checking of local nodes
 
@@ -53,6 +43,16 @@ Submission period: TBD
 Tentative topic: Unateness checking of global PI/PO
 
 Submission period: TBD
+
+#### Evaluation
+For PA1 and PA2, your submissions will be evaluated over [The EPFL Combinational Benchmark Suite](https://www.epfl.ch/labs/lsi/page-102566-en-html/benchmarks/).
+You can clone the benchmarks from this [repository](https://github.com/lsils/benchmarks) and create a symbolic link in your PA folder.
+
+```
+~$ git clone git@github.com:lsils/benchmarks.git EPFL-benchmark-suite
+~$ cd LSV-PA
+~/LSV-PA$ ln -s ~/EPFL-benchmark-suite ./benchmarks
+```
 
 ## Participants
 We recommend students to register their student IDs and GitHub accounts in this [table](./lsv/admin/participants-id.csv).
