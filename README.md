@@ -13,12 +13,12 @@ Deadline: 2020.09.30
 ### PA1
 Tentative topic: Unateness checking of local nodes
 
-Deadline: TBD
+Submission period: TBD
 
 ### PA2
 Tentative topic: Unateness checking of global PI/PO
 
-Deadline: TBD
+Submission period: TBD
 
 ## Submission Workflow
 We will follow a common [git feature branch workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow) for submission.
