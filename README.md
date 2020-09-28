@@ -30,7 +30,7 @@ The detailed steps are documented [here](./private-fork.md).
 ### PA0
 Topic: Getting familiar with git and GitHub
 
-Task: Fill in your GitHub Account in this [table](./lsv/participants-id.csv) via a pull request to the **master** branch.
+Task: Fill in your GitHub Account in this [table](./lsv/admin/participants-id.csv) via a pull request to the **master** branch.
 
 Deadline: 2020.09.30
 
@@ -45,7 +45,7 @@ Tentative topic: Unateness checking of global PI/PO
 Submission period: TBD
 
 ## Participants
-We recommend students to register their student IDs and GitHub accounts in this [table](./lsv/participants-id.csv).
+We recommend students to register their student IDs and GitHub accounts in this [table](./lsv/admin/participants-id.csv).
 
 ## Contact
 TA: Nian-Ze Lee (d04943019@ntu.edu.tw)
