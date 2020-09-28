@@ -21,6 +21,7 @@ Tentative topic: Unateness checking of global PI/PO
 Deadline: TBD
 
 ## Submission Workflow
+We will follow a common [git feature branch workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow) for submission.
 Programming assignments **must** be submitted via a pull request to a student's branch.
 All enrolled students will have their own branches named by their students' ID numbers.
 If you cannot find your own branch, please contact the TA.
