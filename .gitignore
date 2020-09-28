@@ -11,6 +11,7 @@ lib/abc*
 lib/m114*
 lib/bip*
 docs/
+benchmarks
 
 src/ext*
 src/xxx/
