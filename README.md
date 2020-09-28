@@ -34,6 +34,7 @@ Task: Fill in your GitHub Account in this [table](./lsv/admin/participants-id.cs
 
 Deadline: 2020.09.30
 
+#### Benchmarking
 For the following assignments, your submissions will be evaluated over [The EPFL Combinational Benchmark Suite](https://www.epfl.ch/labs/lsi/page-102566-en-html/benchmarks/).
 You can clone the benchmarks from this [repository](https://github.com/lsils/benchmarks) and create a symbolic link in your PA folder.
 
