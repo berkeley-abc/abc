@@ -5,7 +5,6 @@ It is forked from the repository [ABC](https://github.com/berkeley-abc/abc) of U
 ## Submission Workflow
 We will follow a common [git feature branch workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow) for submission.
 Programming assignments **must** be submitted via a pull request to a student's branch.
-(You are recommended to [squash the commits](https://docs.github.com/en/free-pro-team@latest/github/collaborating-with-issues-and-pull-requests/about-pull-request-merges) in your feature branch into a single commit.)
 All enrolled students will have their own branches named by their students' ID numbers.
 If you cannot find your own branch, please contact the TA.
 If you don't know how to send a pull request, please read through this [document](https://guides.github.com/activities/forking/).
