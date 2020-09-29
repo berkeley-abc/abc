@@ -1987,6 +1987,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
         pFile = fopen( Buffer, "wb" );
         if ( pFile == NULL )
         {
+            Vec_StrFree( vConfigsStr );
             printf( "Cannot open file \"%s\".\n", Buffer );
             return pNew;
         }

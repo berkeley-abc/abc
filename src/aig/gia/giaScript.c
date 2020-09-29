@@ -91,6 +91,7 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * pInit, int fOldAlgo, int fCoarsen, int f
     {
         pNew = Gia_ManDup(p);
         Gia_ManTransferTiming( pNew, p );
+        Gia_ManStop( p );
         return pNew;
     }
     // delay optimization
@@ -164,6 +165,7 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     {
         pNew = Gia_ManDup(p);
         Gia_ManTransferTiming( pNew, p );
+        Gia_ManStop( p );
         return pNew;
     }
     // perform balancing
@@ -200,6 +202,7 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     {
         pNew = Gia_ManDup(p);
         Gia_ManTransferTiming( pNew, p );
+        Gia_ManStop( p );
         return pNew;
     }
 //Gia_ManAigPrintPiLevels( p );
