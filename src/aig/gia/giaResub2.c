@@ -1211,19 +1211,20 @@ Vec_Int_t * Gia_RsbFindOutputs( Gia_Man_t * p, Vec_Int_t * vWin, Vec_Int_t * vIn
 {
     Vec_Int_t * vOuts = Vec_IntAlloc( 100 );
     Gia_Obj_t * pObj; int i;
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachObjVec( vIns, p, pObj, i ) 
+        Gia_ObjSetTravIdCurrent( p, pObj );
     Gia_ManForEachObjVec( vWin, p, pObj, i ) 
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( !Gia_ObjIsTravIdCurrent(p, pObj) && Gia_ObjIsAnd(pObj) )
         {
             Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0p(p, pObj), 1 );
             Vec_IntAddToEntry( vRefs, Gia_ObjFaninId1p(p, pObj), 1 );
         }
-    Gia_ManForEachObjVec( vIns, p, pObj, i ) 
-        Vec_IntWriteEntry( vRefs, Gia_ObjId(p, pObj), Gia_ObjFanoutNum(p, pObj) );
     Gia_ManForEachObjVec( vWin, p, pObj, i )
-        if ( Gia_ObjFanoutNum(p, pObj) != Vec_IntEntry(vRefs, Gia_ObjId(p, pObj)) )
+        if ( !Gia_ObjIsTravIdCurrent(p, pObj) && Gia_ObjFanoutNum(p, pObj) != Vec_IntEntry(vRefs, Gia_ObjId(p, pObj)) )
             Vec_IntPush( vOuts, Gia_ObjId(p, pObj) );
     Gia_ManForEachObjVec( vWin, p, pObj, i )
-        if ( Gia_ObjIsAnd(pObj) )
+        if ( !Gia_ObjIsTravIdCurrent(p, pObj) && Gia_ObjIsAnd(pObj) )
         {
             Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0p(p, pObj), -1 );
             Vec_IntAddToEntry( vRefs, Gia_ObjFaninId1p(p, pObj), -1 );
