@@ -58,7 +58,7 @@ binate inputs: a
 ```
 
 To ease the correction of your code,
-please print the nodes in the order of `Abc_ForEachNode()`.
+please print the nodes in the order of `Abc_NtkForEachNode()`.
 Please print the names of inputs returned by function `Abc_ObjName()`, and sort the inputs in an increasing order with respect to their object IDs returned by function `Abc_ObjId()` in a line.
 If there is no satisfying input,
 please do not print an empty line.
