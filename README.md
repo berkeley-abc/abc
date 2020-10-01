@@ -34,10 +34,12 @@ Task: Fill in your GitHub Account in this [table](./lsv/admin/participants-id.cs
 
 Deadline: 2020.09.30
 
-### PA1
-Tentative topic: Unateness checking of local nodes
+### [PA1](./lsv/pa1/README.md)
+Topic: Unateness checking of SOP for a node
 
-Submission period: TBD
+Submission period:
+- Parts 1 and 2: 2020/10/15 11:00-13:00
+- Part 3: 2020/10/29 11:00-13:00
 
 ### PA2
 Tentative topic: Unateness checking of global PI/PO
