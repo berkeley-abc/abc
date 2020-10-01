@@ -13,4 +13,4 @@ jobs:
           github-token: ${{ github.token }}
           pr-comment: >
             This repository does not accept pull requests now.
-            Submission period will be open from ... (TBD)
+            Submission period will be open during 2020/10/15 1100-1300.
