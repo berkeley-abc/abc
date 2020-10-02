@@ -862,6 +862,61 @@ FILE * Io_FileOpen( const char * FileName, const char * PathVar, const char * Mo
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Tranform SF into PLA.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_TransformSF2PLA( char * pNameIn, char * pNameOut )
+{
+    int fStart = 0, Size = 1000000;
+    char * pBuffer, * pToken;
+    FILE * pFileIn  = fopen( pNameIn,  "rb" );
+    FILE * pFileOut = fopen( pNameOut, "wb" );
+    if ( pFileIn == NULL )
+    {
+        if ( pFileOut ) fclose( pFileOut );
+        printf( "Cannot open file \"%s\" for reading.\n", pNameIn );
+        return;
+    }
+    if ( pFileOut == NULL )
+    {
+        if ( pFileIn )  fclose( pFileIn );
+        printf( "Cannot open file \"%s\" for reading.\n", pNameOut );
+        return;
+    }
+    pBuffer = ABC_ALLOC( char, Size );
+    fprintf( pFileOut, ".type fd\n" );
+    while ( fgets(pBuffer, Size, pFileIn) )
+    {
+        if ( strstr(pBuffer, "END_SDF") )
+            break;
+        if ( strstr(pBuffer, "SDF") )
+        {
+            fgets(pBuffer, Size, pFileIn);
+            if ( (pToken = strtok( pBuffer, " \t\r\n" )) )
+                fprintf( pFileOut, ".i %d\n", atoi(pToken) );
+            if ( (pToken = strtok( NULL, " \t\r\n" )) )
+                fprintf( pFileOut, ".o %d\n", atoi(pToken) );
+            if ( (pToken = strtok( NULL, " \t\r\n" )) )
+                fprintf( pFileOut, ".p %d\n", atoi(pToken) );
+            fStart = 1;
+        }
+        else if ( fStart )
+            fprintf( pFileOut, "%s", pBuffer );
+    }
+    fprintf( pFileOut, ".e\n" );
+    fclose( pFileIn );
+    fclose( pFileOut );
+    ABC_FREE( pBuffer );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
