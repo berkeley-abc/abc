@@ -34,7 +34,7 @@ structurally hashed AIG (by command `strash`)
 2. logic network in BDD (by command `bdd`) vs.
 collapsed BDD (by command `collapse`)
 
-(b) Given a structurally hashed AIG, find a sequence of ABC commands to covert it to a logic network with node function expressed in sum-of-products (SOP).
+(b) Given a structurally hashed AIG, find a sequence of ABC command(s) to covert it to a logic network with node function expressed in sum-of-products (SOP).
 
 ### 3. [Programming ABC]
 (80%)  
