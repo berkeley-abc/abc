@@ -129,7 +129,10 @@ CFLAGS += -Wno-unused-but-set-variable
 endif
 else
 $(info $(MSG_PREFIX)Found GCC_MAJOR>=5)
+CLANG_HEADER=$(shell $(CC) --version | grep -w clang)
+ifeq (,$(CLANG_HEADER))
 CFLAGS += -Wno-unused-but-set-variable
+endif
 endif
 endif
 
