@@ -98,7 +98,7 @@ Notice that both *a* and *b* are positive unate with respect to the first SOP.
 On the other hand, they are binate with respect to the second SOP.
 
 To resolve the ambiguity, for nodes whose functions are represented by the SOPs of the offsets, please follow the procedure below:  
-1. Use the given SOP to decide the unateness of variables. (In the above example, use SOP `00 0`.)
-2. Negate the answers. That is, positive unateness becomes negative unateness; negative unateness becomes positive unateness; binateness remains. (In the above example, first decide both *a* and *b* are negative unate with respect to the SOP `00 0`, and negate the answers to positive unateness.)
+1. Use the given SOP to decide the unateness of variables. (In the above example, use SOP `00 0` to decide both *a* and *b* are negative unate.)
+2. Negate the answers. That is, positive unateness becomes negative unateness; negative unateness becomes positive unateness; binateness remains. (Both *a* and *b* become positive unate.)
 
 Essentially, the above procedure chooses the first SOP instead of the second SOP to decide the unateness of variables.
