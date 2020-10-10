@@ -66,3 +66,39 @@ That is, for example, if there is no binate input of a node, do not print such l
 ```
 binate inputs:
 ```
+
+#### SOP of the offset
+In `blif` format, sometimes the function of a node is represented by its **offset**.
+
+For example, consider a node *f* with two inputs *a* and *b*:
+
+```
+.names a b f
+00 0
+```
+
+This SOP defines f' = a'b'. To obtain its onset, we can use:
+
+```
+.names a b f
+1- 1
+-1 1
+```
+
+or
+
+```
+.names a b f
+01 1
+10 1
+11 1
+```
+
+Notice that both *a* and *b* are positive unate with respect to the first SOP.
+On the other hand, they are binate with respect to the second SOP.
+
+To resolve the ambiguity, for nodes whose functions are represented by the SOPs of the offsets, please follow the procedure below:  
+1. Use the given SOP to decide the unateness of variables. (In the above example, use SOP `00 0`.)
+2. Negate the answers. That is, positive unateness becomes negative unateness; negative unateness becomes positive unateness; binateness remains. (In the above example, first decide both *a* and *b* are negative unate with respect to the SOP `00 0`, and negate the answers to positive unateness.)
+
+Essentially, the above procedure chooses the first SOP instead of the second SOP to decide the unateness of variables.
