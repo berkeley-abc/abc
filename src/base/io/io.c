@@ -25,7 +25,10 @@
 #include "sat/bmc/bmc.h"
 
 #ifdef WIN32
+#include <process.h> 
 #define unlink _unlink
+#else
+#include <unistd.h>
 #endif
 
 ABC_NAMESPACE_IMPL_START
