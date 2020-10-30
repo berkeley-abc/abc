@@ -516,7 +516,8 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
 
     // remove elementary cuts
     for ( pTemp = pObj; pTemp; pTemp = pTemp->pEquiv )
-        pTemp->pCutSet->nCuts--;
+        if ( pTemp != pObj || pTemp->pCutSet->nCuts > 1 )
+            pTemp->pCutSet->nCuts--;
 
     // update the cutset of the node
     pCutSet = pObj->pCutSet;
