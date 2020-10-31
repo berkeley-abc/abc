@@ -718,7 +718,7 @@ void Io_WriteVerilogObjectsLut( FILE * pFile, Abc_Ntk_t * pNtk, int nLutSize )
         if ( nLutSize == 6 )
             fprintf( pFile, "%08x%08x", (unsigned)(Truth >> 32), (unsigned)Truth );
         else
-            fprintf( pFile, "%0*x", 1<<(nLutSize-2), Abc_InfoMask(1 << nLutSize) & Truth );
+            fprintf( pFile, "%0*x", 1<<(nLutSize-2), Abc_InfoMask(1 << nLutSize) & (unsigned)Truth );
         fprintf( pFile, ") lut_%0*d ( {", nDigits, Counter++ );
         for ( k = nLutSize - 1; k >= Abc_ObjFaninNum(pObj); k-- )
             fprintf( pFile, "%*s, ", Length, "1\'b0" );
@@ -804,7 +804,7 @@ void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize )
         }
     if ( Counter )
     {
-        printf( "In total, %d internal logic nodes exceeded the fanout count limit.\n", Counter );
+        printf( "In total, %d internal logic nodes exceed the fanin count limit. Verilog is not written.\n", Counter );
         return;
     }
 

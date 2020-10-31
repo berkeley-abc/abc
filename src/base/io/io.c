@@ -3039,7 +3039,7 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: write_verilog [-K num] [-ah] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the current network in Verilog format\n" );
-    fprintf( pAbc->Err, "\t-K num : write the network using instances of K-LUTs (2 <= K <= %d) [default = not used]\n", 6, nLutSize );
+    fprintf( pAbc->Err, "\t-K num : write the network using instances of K-LUTs (2 <= K <= 6) [default = not used]\n" );
     fprintf( pAbc->Err, "\t-a     : toggle writing expressions with only ANDs (without XORs and MUXes) [default = %s]\n", fOnlyAnds? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
