@@ -39541,7 +39541,7 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pNew; int c;
     Mf_ManSetDefaultPars( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWaekmcgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFARLEDWaekmclgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -39665,6 +39665,9 @@ int Abc_CommandAbc9Mf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             pPars->fGenCnf ^= 1;
             break;
+        case 'l':
+            pPars->fGenLit ^= 1;
+            break;
         case 'g':
             pPars->fPureAig ^= 1;
             break;
@@ -39717,6 +39720,7 @@ usage:
     Abc_Print( -2, "\t-k       : toggles coarsening the subject graph [default = %s]\n", pPars->fCoarsen? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles cut minimization [default = %s]\n", pPars->fCutMin? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles mapping for CNF generation [default = %s]\n", pPars->fGenCnf? "yes": "no" );
+    Abc_Print( -2, "\t-l       : toggles mapping for literals [default = %s]\n", pPars->fGenLit? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles generating AIG without mapping [default = %s]\n", pPars->fPureAig? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );

@@ -339,6 +339,7 @@ struct Jf_Par_t_
     int            fCutMin;
     int            fFuncDsd;
     int            fGenCnf;
+    int            fGenLit;
     int            fCnfObjIds;
     int            fAddOrCla;
     int            fCnfMapping;

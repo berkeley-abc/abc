@@ -24,6 +24,7 @@
 #include "misc/extra/extra.h"
 #include "sat/cnf/cnf.h"
 #include "opt/dau/dau.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -557,8 +558,8 @@ static inline int Mf_CutComputeTruth6( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_t 
     assert( (int)(t & 1) == 0 );
     truthId        = Vec_MemHashInsert(p->vTtMem, &t);
     pCutR->iFunc   = Abc_Var2Lit( truthId, fCompl );
-    if ( p->pPars->fGenCnf && truthId == Vec_IntSize(&p->vCnfSizes) )
-        Vec_IntPush( &p->vCnfSizes, Abc_Tt6CnfSize(t, pCutR->nLeaves) );
+    if ( (p->pPars->fGenCnf || p->pPars->fGenLit) && truthId == Vec_IntSize(&p->vCnfSizes) )
+        Vec_IntPush( &p->vCnfSizes, p->pPars->fGenCnf ? Abc_Tt6CnfSize(t, pCutR->nLeaves) : Kit_TruthLitNum((unsigned *)&t, pCutR->nLeaves, &p->vCnfMem) );
 //    p->nCutMux += Mf_ManTtIsMux( t );
     assert( (int)pCutR->nLeaves <= nOldSupp );
 //    Mf_ManTruthCanonicize( &t, pCutR->nLeaves );
@@ -588,8 +589,8 @@ static inline int Mf_CutComputeTruth( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_t *
 //Kit_DsdPrintFromTruth( uTruth, pCutR->nLeaves ), printf("\n" ), printf("\n" );
     truthId        = Vec_MemHashInsert(p->vTtMem, uTruth);
     pCutR->iFunc   = Abc_Var2Lit( truthId, fCompl );
-    if ( p->pPars->fGenCnf && truthId == Vec_IntSize(&p->vCnfSizes) && LutSize <= 8 )
-        Vec_IntPush( &p->vCnfSizes, Abc_Tt8CnfSize(uTruth, pCutR->nLeaves) );
+    if ( (p->pPars->fGenCnf || p->pPars->fGenLit) && truthId == Vec_IntSize(&p->vCnfSizes) && LutSize <= 8 )
+        Vec_IntPush( &p->vCnfSizes, p->pPars->fGenCnf ? Abc_Tt8CnfSize(uTruth, pCutR->nLeaves) : Kit_TruthLitNum((unsigned *)uTruth, pCutR->nLeaves, &p->vCnfMem) );
     assert( (int)pCutR->nLeaves <= nOldSupp );
     return (int)pCutR->nLeaves < nOldSupp;
     }
@@ -612,8 +613,8 @@ static inline int Mf_CutComputeTruthMux6( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut
     assert( (int)(t & 1) == 0 );
     truthId        = Vec_MemHashInsert(p->vTtMem, &t);
     pCutR->iFunc   = Abc_Var2Lit( truthId, fCompl );
-    if ( p->pPars->fGenCnf && truthId == Vec_IntSize(&p->vCnfSizes) )
-        Vec_IntPush( &p->vCnfSizes, Abc_Tt6CnfSize(t, pCutR->nLeaves) );
+    if ( (p->pPars->fGenCnf || p->pPars->fGenLit) && truthId == Vec_IntSize(&p->vCnfSizes) )
+        Vec_IntPush( &p->vCnfSizes, p->pPars->fGenCnf ? Abc_Tt6CnfSize(t, pCutR->nLeaves) : Kit_TruthLitNum((unsigned *)&t, pCutR->nLeaves, &p->vCnfMem) );
     assert( (int)pCutR->nLeaves <= nOldSupp );
     return (int)pCutR->nLeaves < nOldSupp;
 }
@@ -642,8 +643,8 @@ static inline int Mf_CutComputeTruthMux( Mf_Man_t * p, Mf_Cut_t * pCut0, Mf_Cut_
     assert( (uTruth[0] & 1) == 0 );
     truthId        = Vec_MemHashInsert(p->vTtMem, uTruth);
     pCutR->iFunc   = Abc_Var2Lit( truthId, fCompl );
-    if ( p->pPars->fGenCnf && truthId == Vec_IntSize(&p->vCnfSizes) && LutSize <= 8 )
-        Vec_IntPush( &p->vCnfSizes, Abc_Tt8CnfSize(uTruth, pCutR->nLeaves) );
+    if ( (p->pPars->fGenCnf || p->pPars->fGenLit) && truthId == Vec_IntSize(&p->vCnfSizes) && LutSize <= 8 )
+        Vec_IntPush( &p->vCnfSizes, p->pPars->fGenCnf ? Abc_Tt8CnfSize(uTruth, pCutR->nLeaves) : Kit_TruthLitNum((unsigned *)uTruth, pCutR->nLeaves, &p->vCnfMem) );
     assert( (int)pCutR->nLeaves <= nOldSupp );
     return (int)pCutR->nLeaves < nOldSupp;
     }
@@ -699,6 +700,8 @@ static inline void Mf_CutPrint( Mf_Man_t * p, Mf_Cut_t * pCut )
     {
         if ( p->pPars->fGenCnf )
             printf( "CNF = %2d  ", Vec_IntEntry(&p->vCnfSizes, Abc_Lit2Var(pCut->iFunc)) );
+        if ( p->pPars->fGenLit )
+            printf( "Lit = %2d  ", Vec_IntEntry(&p->vCnfSizes, Abc_Lit2Var(pCut->iFunc)) );
         Dau_DsdPrintFromTruth( Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(pCut->iFunc)), pCut->nLeaves );
     }
     else
@@ -998,7 +1001,7 @@ static inline int Mf_CutArea( Mf_Man_t * p, int nLeaves, int iFunc )
 {
     if ( nLeaves < 2 )
         return 0;
-    if ( p->pPars->fGenCnf )
+    if ( p->pPars->fGenCnf || p->pPars->fGenLit )
         return Vec_IntEntry(&p->vCnfSizes, Abc_Lit2Var(iFunc));
     if ( p->pPars->fOptEdge )
         return nLeaves + p->pPars->nAreaTuner;
@@ -1202,7 +1205,7 @@ int Mf_ManSetMapRefs( Mf_Man_t * p )
                 Mf_ObjMapRefInc( p, pCut[k] );
         p->pPars->Edge += Mf_CutSize(pCut);
         p->pPars->Area++;
-        if ( p->pPars->fGenCnf )
+        if ( p->pPars->fGenCnf || p->pPars->fGenLit )
             p->pPars->Clause += Mf_CutArea(p, Mf_CutSize(pCut), Mf_CutFunc(pCut));
     }
     // blend references
@@ -1394,7 +1397,7 @@ Mf_Man_t * Mf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->pLfObjs   = ABC_CALLOC( Mf_Obj_t, Gia_ManObjNum(pGia) );
     p->iCur      = 2;
     Vec_PtrGrow( &p->vPages, 256 );
-    if ( pPars->fGenCnf )
+    if ( pPars->fGenCnf || pPars->fGenLit )
     {
         Vec_IntGrow( &p->vCnfSizes, 10000 );
         Vec_IntPush( &p->vCnfSizes, 1 );
@@ -1410,7 +1413,7 @@ Mf_Man_t * Mf_ManAlloc( Gia_Man_t * pGia, Jf_Par_t * pPars )
 }
 void Mf_ManFree( Mf_Man_t * p )
 {
-    assert( !p->pPars->fGenCnf || Vec_IntSize(&p->vCnfSizes) == Vec_MemEntryNum(p->vTtMem) );
+    assert( !p->pPars->fGenCnf || !p->pPars->fGenLit || Vec_IntSize(&p->vCnfSizes) == Vec_MemEntryNum(p->vTtMem) );
     if ( p->pPars->fCutMin )
         Vec_MemHashFree( p->vTtMem );
     if ( p->pPars->fCutMin )
@@ -1453,6 +1456,7 @@ void Mf_ManSetDefaultPars( Jf_Par_t * pPars )
     pPars->fCoarsen     =  1;
     pPars->fCutMin      =  0;
     pPars->fGenCnf      =  0;
+    pPars->fGenLit      =  0;
     pPars->fPureAig     =  0;
     pPars->fVerbose     =  0;
     pPars->fVeryVerbose =  0;
@@ -1469,6 +1473,8 @@ void Mf_ManPrintStats( Mf_Man_t * p, char * pTitle )
     printf( "Edge =%9lu   ",  (long)p->pPars->Edge );
     if ( p->pPars->fGenCnf )
         printf( "CNF =%9lu   ", (long)p->pPars->Clause );
+    if ( p->pPars->fGenLit )
+        printf( "FFL =%9lu   ", (long)p->pPars->Clause );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     fflush( stdout );
 }
@@ -1483,6 +1489,7 @@ void Mf_ManPrintInit( Mf_Man_t * p )
     printf( "CutMin = %d  ",  p->pPars->fCutMin );
     printf( "Coarse = %d  ",  p->pPars->fCoarsen );
     printf( "CNF = %d  ",     p->pPars->fGenCnf );
+    printf( "FFL = %d  ",     p->pPars->fGenLit );
     printf( "\n" );
     printf( "Computing cuts...\r" );
     fflush( stdout );
@@ -1656,7 +1663,7 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
 {
     Mf_Man_t * p;
     Gia_Man_t * pNew, * pCls;
-    if ( pPars->fGenCnf )
+    if ( pPars->fGenCnf || pPars->fGenLit )
         pPars->fCutMin = 1;
     if ( Gia_ManHasChoices(pGia) )
         pPars->fCutMin = 1, pPars->fCoarsen = 0; 
@@ -1685,8 +1692,8 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
         pNew = Mf_ManDeriveMapping( p );
     if ( p->pPars->fGenCnf )
         pGia->pData = Mf_ManDeriveCnf( p, p->pPars->fCnfObjIds, p->pPars->fAddOrCla );
-//    if ( p->pPars->fGenCnf )
-//        Mf_ManProfileTruths( p );
+    //if ( p->pPars->fGenCnf || p->pPars->fGenLit )
+    //    Mf_ManProfileTruths( p );
     Gia_ManMappingVerify( pNew );
     Mf_ManPrintQuit( p, pNew );
     Mf_ManFree( p );

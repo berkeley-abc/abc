@@ -496,6 +496,31 @@ int * Kit_TruthTest( char * pFileName )
     return pResult;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Derives the factored form from the truth table.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Kit_TruthLitNum( unsigned * pTruth, int nVars, Vec_Int_t * vMemory )
+{
+    Kit_Graph_t * pGraph;
+    int RetValue, nLits;
+    RetValue = Kit_TruthIsop( pTruth, nVars, vMemory, 1 ); 
+    if ( RetValue == -1 || Vec_IntSize(vMemory) > (1<<16) )
+        return -1;
+    assert( RetValue == 0 || RetValue == 1 );
+    pGraph = Kit_SopFactor( vMemory, RetValue, nVars, vMemory );
+    nLits = 1 + Kit_GraphNodeNum( pGraph );
+    Kit_GraphFree( pGraph );
+    return nLits;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

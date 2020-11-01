@@ -568,6 +568,7 @@ extern unsigned        Kit_GraphToTruth( Kit_Graph_t * pGraph );
 extern Kit_Graph_t *   Kit_TruthToGraph( unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
 extern Kit_Graph_t *   Kit_TruthToGraph2( unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_t * vMemory );
 extern int             Kit_GraphLeafDepth_rec( Kit_Graph_t * pGraph, Kit_Node_t * pNode, Kit_Node_t * pLeaf );
+extern int             Kit_TruthLitNum( unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
 /*=== kitHop.c ==========================================================*/
 //extern int             Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
 //extern Hop_Obj_t *     Kit_GraphToHop( Hop_Man_t * pMan, Kit_Graph_t * pGraph );
