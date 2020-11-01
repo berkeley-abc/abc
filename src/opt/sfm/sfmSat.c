@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "sfmInt.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -26,15 +27,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
-
-static word s_Truths6[6] = {
-    ABC_CONST(0xAAAAAAAAAAAAAAAA),
-    ABC_CONST(0xCCCCCCCCCCCCCCCC),
-    ABC_CONST(0xF0F0F0F0F0F0F0F0),
-    ABC_CONST(0xFF00FF00FF00FF00),
-    ABC_CONST(0xFFFF0000FFFF0000),
-    ABC_CONST(0xFFFFFFFF00000000)
-};
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -224,6 +216,100 @@ word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
         }
     p->nCexes++;
     return SFM_SAT_SAT;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Takes SAT solver and returns interpolant.]
+
+  Description [If interpolant does not exist, records difference variables.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sfm_ComputeInterpolantInt( Sfm_Ntk_t * p, word Truth[2] )
+{
+    int fOnSet, iMint, iVar, nVars = sat_solver_nvars( p->pSat );
+    int iVarPivot = Sfm_ObjSatVar( p, p->iPivotNode );
+    int status, iNewLit, i, Div, nIter = 0;
+    Truth[0] = Truth[1] = 0;
+    sat_solver_setnvars( p->pSat, nVars + 1 );
+    iNewLit = Abc_Var2Lit( nVars, 0 ); // iNewLit
+    assert( Vec_IntSize(p->vDivIds) <= 6 );
+    Vec_IntFill( p->vValues, (1 << Vec_IntSize(p->vDivIds)) * Vec_IntSize(p->vDivVars), -1 );
+    while ( 1 ) 
+    {
+        // find care minterm
+        p->nSatCalls++; nIter++;
+        status = sat_solver_solve( p->pSat, &iNewLit, &iNewLit + 1, p->pPars->nBTLimit, 0, 0, 0 );
+        if ( status == l_Undef )
+            return l_Undef;
+        if ( status == l_False )
+            return l_False;
+        assert( status == l_True );
+        // collect values
+        iMint = 0;
+        fOnSet = sat_solver_var_value(p->pSat, iVarPivot);
+        Vec_IntClear( p->vLits );
+        Vec_IntPush( p->vLits, Abc_LitNot(iNewLit) ); // NOT(iNewLit)
+        Vec_IntPush( p->vLits, Abc_LitNot(sat_solver_var_literal(p->pSat, iVarPivot)) );
+        Vec_IntForEachEntry( p->vDivIds, Div, i )
+        {
+            Vec_IntPush( p->vLits, Abc_LitNot(sat_solver_var_literal(p->pSat, Div)) );
+            if ( sat_solver_var_value(p->pSat, Div) )
+                iMint |= 1 << i;
+        }
+        if ( Truth[!fOnSet] & ((word)1 << iMint) )
+            break; 
+        assert( !(Truth[fOnSet] & ((word)1 << iMint)) );
+        Truth[fOnSet] |= ((word)1 << iMint);
+        // remember variable values
+        Vec_IntForEachEntry( p->vDivVars, iVar, i )
+            Vec_IntWriteEntry( p->vValues, iMint * Vec_IntSize(p->vDivVars) + i, sat_solver_var_value(p->pSat, iVar) );
+        status = sat_solver_addclause( p->pSat, Vec_IntArray(p->vLits), Vec_IntArray(p->vLits) + Vec_IntSize(p->vLits) );
+        if ( status == 0 )
+            return l_False;
+    }
+    assert( status == l_True );
+    // store the counter-example
+    assert( iMint < (1 << Vec_IntSize(p->vDivIds)) );
+    Vec_IntForEachEntry( p->vDivVars, iVar, i )
+    {
+        int Value = Vec_IntEntry(p->vValues, iMint * Vec_IntSize(p->vDivVars) + i);
+        assert( Value != -1 );
+        if ( Value ^ sat_solver_var_value(p->pSat, iVar) ) // insert 1
+        {
+            word * pSign = Vec_WrdEntryP( p->vDivCexes, i );
+            assert( !Abc_InfoHasBit( (unsigned *)pSign, p->nCexes) );
+            Abc_InfoXorBit( (unsigned *)pSign, p->nCexes );
+        }
+    }
+    p->nCexes++;
+    return l_True;
+}
+word Sfm_ComputeInterpolant2( Sfm_Ntk_t * p )
+{
+    word Res, ResP, ResN, Truth[2];
+    int nCubesP = 0, nCubesN = 0;
+    int RetValue = Sfm_ComputeInterpolantInt( p, Truth );
+    if ( RetValue == l_Undef )
+        return SFM_SAT_UNDEC;
+    if ( RetValue == l_True )
+        return SFM_SAT_SAT;
+    assert( RetValue == l_False );
+    //printf( "Offset = %2d.  Onset = %2d.  DC = %2d.  Total = %2d.\n", 
+    //    Abc_TtCountOnes(Truth[0]), Abc_TtCountOnes(Truth[1]), 
+    //    (1<<Vec_IntSize(p->vDivIds)) - (Abc_TtCountOnes(Truth[0]) + Abc_TtCountOnes(Truth[1])), 
+    //     1<<Vec_IntSize(p->vDivIds) );
+    Truth[0] = Abc_Tt6Stretch( Truth[0], Vec_IntSize(p->vDivIds) );
+    Truth[1] = Abc_Tt6Stretch( Truth[1], Vec_IntSize(p->vDivIds) );
+    ResP = Abc_Tt6Isop( Truth[1], ~Truth[0], Vec_IntSize(p->vDivIds), &nCubesP );
+    ResN = Abc_Tt6Isop( Truth[0], ~Truth[1], Vec_IntSize(p->vDivIds), &nCubesN );
+    Res  = nCubesP <= nCubesN ? ResP : ~ResN;
+    //Dau_DsdPrintFromTruth( &Res, Vec_IntSize(p->vDivIds) );            
+    return Res;
 }
 
 /**Function*************************************************************
