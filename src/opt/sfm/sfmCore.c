@@ -232,7 +232,6 @@ finish:
 int Sfm_NodeResubOne( Sfm_Ntk_t * p, int iNode )
 {
     int fSkipUpdate  = 0;
-    int fVeryVerbose = 0;//p->pPars->fVeryVerbose;
     int i, iFanin;
     word uTruth;
     abctime clk;

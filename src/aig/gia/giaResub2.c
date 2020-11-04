@@ -979,8 +979,20 @@ void Gia_RsbWindowGrow( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Ve
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_WinCreateFromCut_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vWin )
+{
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    pObj = Gia_ManObj( p, iObj );
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_WinCreateFromCut_rec( p, Gia_ObjFaninId0(pObj, iObj), vWin );
+    Gia_WinCreateFromCut_rec( p, Gia_ObjFaninId1(pObj, iObj), vWin );
+    Vec_IntPush( vWin, iObj );
+}
 // uses levelized structure (vLevels) to collect in array vWin divisors supported by the cut (vIn)
-void Gia_WinCreateFromCut( Gia_Man_t * p, Vec_Int_t * vIn, Vec_Wec_t * vLevels, Vec_Int_t * vWin )
+void Gia_WinCreateFromCut( Gia_Man_t * p, int iPivot, Vec_Int_t * vIn, Vec_Wec_t * vLevels, Vec_Int_t * vWin )
 {
     Vec_Int_t * vLevel; 
     Gia_Obj_t * pObj, * pFanout;
@@ -990,13 +1002,19 @@ void Gia_WinCreateFromCut( Gia_Man_t * p, Vec_Int_t * vIn, Vec_Wec_t * vLevels, 
     assert( Vec_WecSizeSize(vLevels) == 0 );
     // clean the resulting array
     Vec_IntClear( vWin );
-    // start a new trav ID and add nodes to the levelized structure
+    // collect leaves
     Gia_ManIncrementTravId( p );
     Vec_IntForEachEntry( vIn, iObj, i )
     {
         Gia_ObjSetTravIdCurrentId( p, iObj );
-        Vec_WecPush( vLevels, Gia_ObjLevelId(p, iObj), iObj );
         Vec_IntPush( vWin, iObj );
+    }
+    // collect internal cone
+    Gia_WinCreateFromCut_rec( p, iPivot, vWin );
+    // add nodes to the levelized structure
+    Vec_IntForEachEntry( vWin, iObj, i )
+    {
+        Vec_WecPush( vLevels, Gia_ObjLevelId(p, iObj), iObj );
         Vec_IntPushUniqueOrder( vUsed, Gia_ObjLevelId(p, iObj) );
     }
     // iterate through all objects and explore their fanouts
@@ -1108,7 +1126,7 @@ int Gia_RsbFindFaninToAddToCut( Gia_Man_t * p, Vec_Int_t * vIns )
     return iFanMax;
 }
 // precondition: nodes in vWin and in vIns are marked with the current ID
-void Gia_RsbWindowGrow2( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Vec_Int_t * vIns, int nInputsMax )
+void Gia_RsbWindowGrow2( Gia_Man_t * p, int iObj, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Vec_Int_t * vIns, int nInputsMax )
 {
     // window will be recomputed later
     Vec_IntClear( vWin );
@@ -1152,7 +1170,7 @@ void Gia_RsbWindowGrow2( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, V
     if ( Vec_IntSize(vIns) <= nInputsMax )
     {
         Vec_IntSort( vIns, 0 );
-        Gia_WinCreateFromCut( p, vIns, vLevels, vWin );
+        Gia_WinCreateFromCut( p, iObj, vIns, vLevels, vWin );
     }
 }
 
@@ -1179,7 +1197,7 @@ int Gia_RsbWindowCompute( Gia_Man_t * p, int iObj, int nInputsMax, int nLevelsMa
     //Vec_IntPrint( vWin );    
     //Vec_IntPrint( vIns );    
     if ( Vec_IntSize(vIns) <= nInputsMax + 3 ) // consider windows, which initially has a larger input space
-        Gia_RsbWindowGrow2( p, vLevels, vWin, vIns, nInputsMax );
+        Gia_RsbWindowGrow2( p, iObj, vLevels, vWin, vIns, nInputsMax );
     if ( Vec_IntSize(vIns) <= nInputsMax )
     {
         Vec_IntSort( vWin, 0 );
