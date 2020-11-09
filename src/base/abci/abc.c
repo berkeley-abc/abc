@@ -36293,6 +36293,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ManFraSetDefaultParams( pPars );
     pPars->fSatSweeping = 1;
     pPars->nItersMax = 1000000;
+    pPars->nBTLimit  = 1000000;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCrmdckngxwvh" ) ) != EOF )
     {
