@@ -1069,9 +1069,11 @@ static inline void        Gia_ClassUndoPair( Gia_Man_t * p, int i )          { a
 #define Gia_ManForEachClassReverse( p, i )                     \
     for ( i = Gia_ManObjNum(p) - 1; i > 0; i-- ) if ( !Gia_ObjIsHead(p, i) ) {} else
 #define Gia_ClassForEachObj( p, i, iObj )                      \
-    for ( assert(Gia_ObjIsHead(p, i)), iObj = i; iObj > 0; iObj = Gia_ObjNext(p, iObj) )
+    for ( assert(Gia_ObjIsHead(p, i) && i), iObj = i; iObj > 0; iObj = Gia_ObjNext(p, iObj) )
 #define Gia_ClassForEachObj1( p, i, iObj )                     \
     for ( assert(Gia_ObjIsHead(p, i)), iObj = Gia_ObjNext(p, i); iObj > 0; iObj = Gia_ObjNext(p, iObj) )
+#define Gia_ClassForEachObjStart( p, i, iObj, Start )          \
+    for ( assert(Gia_ObjIsHead(p, i)), iObj = Gia_ObjNext(p, Start); iObj > 0; iObj = Gia_ObjNext(p, iObj) )
 
 
 static inline int         Gia_ObjFoffsetId( Gia_Man_t * p, int Id )                { return Vec_IntEntry( p->vFanout, Id );                                 }

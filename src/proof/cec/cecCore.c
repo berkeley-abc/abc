@@ -348,6 +348,8 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSil
     Cec_ManPat_t * pPat;
     int i, fTimeOut = 0, nMatches = 0;
     abctime clk, clk2, clkTotal = Abc_Clock();
+    if ( pPars->fVerbose )
+        printf( "Simulating %d words for %d rounds. SAT solving with %d conflicts.\n", pPars->nWords, pPars->nRounds, pPars->nBTLimit );
 
     // duplicate AIG and transfer equivalence classes
     Gia_ManRandom( 1 );
@@ -519,6 +521,9 @@ p->timeSat += Abc_Clock() - clk;
         }
     }
 finalize:
+    if ( pPars->fVerbose )
+        printf( "Performed %d SAT calls: P = %d  D = %d  F = %d\n", 
+            p->nAllProvedS + p->nAllDisprovedS + p->nAllFailedS, p->nAllProvedS, p->nAllDisprovedS, p->nAllFailedS );
     if ( p->pPars->fVerbose && p->pAig )
     {
         Abc_Print( 1, "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 

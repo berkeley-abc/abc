@@ -153,6 +153,9 @@ struct Cec_ManFra_t_
     int              nAllProved;     // total number of proved nodes
     int              nAllDisproved;  // total number of disproved nodes
     int              nAllFailed;     // total number of failed nodes
+    int              nAllProvedS;    // total number of proved nodes
+    int              nAllDisprovedS; // total number of disproved nodes
+    int              nAllFailedS;    // total number of failed nodes
     // runtime stats
     abctime          timeSim;        // unsat
     abctime          timePat;        // unsat

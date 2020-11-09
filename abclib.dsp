@@ -5415,6 +5415,10 @@ SOURCE=.\src\proof\cec\cecSatG.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\cec\cecSatG2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\cec\cecSeq.c
 # End Source File
 # Begin Source File

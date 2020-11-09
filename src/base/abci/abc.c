@@ -36286,14 +36286,15 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Cec2_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
     extern Gia_Man_t * Cec3_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
+    extern Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
     Cec_ParFra_t ParsFra, * pPars = &ParsFra;
     Gia_Man_t * pTemp;
-    int c, fUseAlgo = 0, fUseAlgoG = 0;
+    int c, fUseAlgo = 0, fUseAlgoG = 0, fUseAlgoG2 = 0;
     Cec_ManFraSetDefaultParams( pPars );
     pPars->fSatSweeping = 1;
     pPars->nItersMax = 1000000;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCrmdckngwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCrmdckngxwvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36384,6 +36385,9 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'g':
             fUseAlgoG ^= 1;
             break;
+        case 'x':
+            fUseAlgoG2 ^= 1;
+            break;
         case 'w':
             pPars->fVeryVerbose ^= 1;
             break;
@@ -36403,6 +36407,8 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Cec2_ManSimulateTest( pAbc->pGia, pPars );
     else if ( fUseAlgoG )
         pTemp = Cec3_ManSimulateTest( pAbc->pGia, pPars );
+    else if ( fUseAlgoG2 )
+        pTemp = Cec4_ManSimulateTest( pAbc->pGia, pPars );
     else
         pTemp = Cec_ManSatSweeping( pAbc->pGia, pPars, 0 );
     Abc_FrameUpdateGia( pAbc, pTemp );
