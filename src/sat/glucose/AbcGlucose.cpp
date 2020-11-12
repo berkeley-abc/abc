@@ -116,6 +116,11 @@ int glucose_solver_addvar(Gluco::SimpSolver* S)
     return S->nVars() - 1;
 }
 
+int * glucose_solver_read_cex(Gluco::SimpSolver* S )
+{
+    return S->getCex();
+}
+
 int glucose_solver_read_cex_varvalue(Gluco::SimpSolver* S, int ivar)
 {
     return S->model[ivar] == l_True;
@@ -208,6 +213,10 @@ int bmcg_sat_solver_elim_varnum(bmcg_sat_solver* s)
     return ((Gluco::SimpSolver*)s)->eliminated_vars;
 }
 
+int * bmcg_sat_solver_read_cex(bmcg_sat_solver* s)
+{
+    return glucose_solver_read_cex((Gluco::SimpSolver*)s);
+}
 int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
 {
     return glucose_solver_read_cex_varvalue((Gluco::SimpSolver*)s, ivar);
@@ -383,6 +392,11 @@ int glucose_solver_addvar(Gluco::Solver* S)
     return S->nVars() - 1;
 }
 
+int * glucose_solver_read_cex(Gluco::Solver* S )
+{
+    return S->getCex();
+}
+
 int glucose_solver_read_cex_varvalue(Gluco::Solver* S, int ivar)
 {
     return S->model[ivar] == l_True;
@@ -468,6 +482,11 @@ int bmcg_sat_solver_elim_varnum(bmcg_sat_solver* s)
 {
     return 0;
 //    return ((Gluco::SimpSolver*)s)->eliminated_vars;
+}
+
+int * bmcg_sat_solver_read_cex(bmcg_sat_solver* s)
+{
+    return glucose_solver_read_cex((Gluco::Solver*)s);
 }
 
 int bmcg_sat_solver_read_cex_varvalue(bmcg_sat_solver* s, int ivar)
