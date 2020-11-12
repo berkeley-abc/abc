@@ -269,6 +269,7 @@ int * Gia_ManDeriveNexts( Gia_Man_t * p )
         pTails[i] = i;
     for ( i = 0; i < Gia_ManObjNum(p); i++ )
     {
+        //if ( p->pReprs[i].iRepr == GIA_VOID )
         if ( !p->pReprs[i].iRepr || p->pReprs[i].iRepr == GIA_VOID )
             continue;
         pNexts[ pTails[p->pReprs[i].iRepr] ] = i;
@@ -2587,6 +2588,123 @@ void Gia_ManFilterEquivsUsingLatches( Gia_Man_t * pGia, int fFlopsOnly, int fFlo
     Vec_IntFree( vNodes );
     Vec_IntFree( vFfIds );
     Abc_Print( 1, "The number of literals: Before = %d. After = %d.\n", iLitsOld, iLitsNew );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Changing node order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManChangeOrder_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return pObj->Value;
+    if ( Gia_ObjIsCi(pObj) )
+        return pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManChangeOrder_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    if ( Gia_ObjIsCo(pObj) )
+        return pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManChangeOrder_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    return pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+} 
+Gia_Man_t * Gia_ManChangeOrder( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, k;
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachClass( p, i )
+        Gia_ClassForEachObj( p, i, k )
+            Gia_ManChangeOrder_rec( pNew, p, Gia_ManObj(p, k) );
+    Gia_ManForEachConst( p, k )
+        Gia_ManChangeOrder_rec( pNew, p, Gia_ManObj(p, k) );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManChangeOrder_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    assert( Gia_ManObjNum(pNew) == Gia_ManObjNum(p) );
+    return pNew;
+}
+void Gia_ManTransferEquivs( Gia_Man_t * p, Gia_Man_t * pNew )
+{
+    Vec_Int_t * vClass;
+    int i, k, iNode, iRepr;
+    assert( Gia_ManObjNum(p) == Gia_ManObjNum(pNew) );
+    assert( p->pReprs != NULL );
+    assert( p->pNexts != NULL );
+    assert( pNew->pReprs == NULL );
+    assert( pNew->pNexts == NULL );
+    // start representatives
+    pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pNew) );
+    for ( i = 0; i < Gia_ManObjNum(pNew); i++ )
+        Gia_ObjSetRepr( pNew, i, GIA_VOID );
+    // iterate over constant candidates
+    Gia_ManForEachConst( p, i )
+        Gia_ObjSetRepr( pNew, Abc_Lit2Var(Gia_ManObj(p, i)->Value), 0 );
+    // iterate over class candidates
+    vClass = Vec_IntAlloc( 100 );
+    Gia_ManForEachClass( p, i )
+    {
+        Vec_IntClear( vClass );
+        Gia_ClassForEachObj( p, i, k )
+            Vec_IntPushUnique( vClass, Abc_Lit2Var(Gia_ManObj(p, k)->Value) );
+        assert( Vec_IntSize( vClass ) > 1 );
+        Vec_IntSort( vClass, 0 );
+        iRepr = Vec_IntEntry( vClass, 0 );
+        Vec_IntForEachEntryStart( vClass, iNode, k, 1 )
+            Gia_ObjSetRepr( pNew, iNode, iRepr );
+    }
+    Vec_IntFree( vClass );
+    pNew->pNexts = Gia_ManDeriveNexts( pNew );
+}
+void Gia_ManTransferTest( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_Rpr_t * pReprs = p->pReprs;  // representatives (for CIs and ANDs)
+    int *       pNexts = p->pNexts;  // next nodes in the equivalence classes
+    Gia_Man_t * pNew = Gia_ManChangeOrder(p);
+    //Gia_ManEquivPrintClasses( p, 1, 0 );
+    assert( Gia_ManObjNum(p) == Gia_ManObjNum(pNew) );
+    Gia_ManTransferEquivs( p, pNew );
+    p->pReprs = NULL;
+    p->pNexts = NULL;
+    // make new point to old
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        assert( !Abc_LitIsCompl(pObj->Value) );
+        Gia_ManObj(pNew, Abc_Lit2Var(pObj->Value))->Value = Abc_Var2Lit(i, 0);
+    }
+    Gia_ManTransferEquivs( pNew, p );
+    //Gia_ManEquivPrintClasses( p, 1, 0 );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        pReprs[i].fProved = 0;
+        //printf( "%5d :    %5d %5d    %5d %5d\n", i, *(int*)&p->pReprs[i], *(int*)&pReprs[i], (int)p->pNexts[i], (int)pNexts[i] );
+    if ( memcmp(p->pReprs, pReprs, sizeof(int)*Gia_ManObjNum(p)) )
+        printf( "Verification of reprs failed.\n" );
+    else
+        printf( "Verification of reprs succeeded.\n" );
+    if ( memcmp(p->pNexts, pNexts, sizeof(int)*Gia_ManObjNum(p)) )
+        printf( "Verification of nexts failed.\n" );
+    else
+        printf( "Verification of nexts succeeded.\n" );
+    ABC_FREE( pNew->pReprs );
+    ABC_FREE( pNew->pNexts );
+    ABC_FREE( pReprs );
+    ABC_FREE( pNexts );
+    Gia_ManStop( pNew );
 }
 
 ////////////////////////////////////////////////////////////////////////
