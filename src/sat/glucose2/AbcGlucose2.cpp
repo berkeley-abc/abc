@@ -58,24 +58,24 @@ using namespace Gluco2;
   SeeAlso     []
 
 ***********************************************************************/
-SimpSolver * glucose_solver_start()
+SimpSolver * glucose2_solver_start()
 {
     SimpSolver * S = new SimpSolver;
     S->setIncrementalMode();
     return S;
 }
 
-void glucose_solver_stop(Gluco2::SimpSolver* S)
+void glucose2_solver_stop(Gluco2::SimpSolver* S)
 {
     delete S;
 }
 
-void glucose_solver_reset(Gluco2::SimpSolver* S)
+void glucose2_solver_reset(Gluco2::SimpSolver* S)
 {
     S->reset();
 }
 
-int glucose_solver_addclause(Gluco2::SimpSolver* S, int * plits, int nlits)
+int glucose2_solver_addclause(Gluco2::SimpSolver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
     for ( int i = 0; i < nlits; i++,plits++)
@@ -90,14 +90,14 @@ int glucose_solver_addclause(Gluco2::SimpSolver* S, int * plits, int nlits)
     return S->addClause(lits); // returns 0 if the problem is UNSAT
 }
 
-void glucose_solver_setcallback(Gluco2::SimpSolver* S, void * pman, int(*pfunc)(void*, int, int*))
+void glucose2_solver_setcallback(Gluco2::SimpSolver* S, void * pman, int(*pfunc)(void*, int, int*))
 {
     S->pCnfMan = pman;
     S->pCnfFunc = pfunc;
     S->nCallConfl = 1000;
 }
 
-int glucose_solver_solve(Gluco2::SimpSolver* S, int * plits, int nlits)
+int glucose2_solver_solve(Gluco2::SimpSolver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
     for (int i=0;i<nlits;i++,plits++)
@@ -110,23 +110,23 @@ int glucose_solver_solve(Gluco2::SimpSolver* S, int * plits, int nlits)
     return (res == l_True ? 1 : res == l_False ? -1 : 0);
 }
 
-int glucose_solver_addvar(Gluco2::SimpSolver* S)
+int glucose2_solver_addvar(Gluco2::SimpSolver* S)
 {
     S->newVar();
     return S->nVars() - 1;
 }
 
-int * glucose_solver_read_cex(Gluco2::SimpSolver* S )
+int * glucose2_solver_read_cex(Gluco2::SimpSolver* S )
 {
     return S->getCex();
 }
 
-int glucose_solver_read_cex_varvalue(Gluco2::SimpSolver* S, int ivar)
+int glucose2_solver_read_cex_varvalue(Gluco2::SimpSolver* S, int ivar)
 {
     return S->model[ivar] == l_True;
 }
 
-void glucose_solver_setstop(Gluco2::SimpSolver* S, int * pstop)
+void glucose2_solver_setstop(Gluco2::SimpSolver* S, int * pstop)
 {
     S->pstop = pstop;
 }
@@ -145,31 +145,31 @@ void glucose_solver_setstop(Gluco2::SimpSolver* S, int * pstop)
 ***********************************************************************/
 bmcg2_sat_solver * bmcg2_sat_solver_start() 
 {
-    return (bmcg2_sat_solver *)glucose_solver_start();
+    return (bmcg2_sat_solver *)glucose2_solver_start();
 }
 void bmcg2_sat_solver_stop(bmcg2_sat_solver* s)
 {
-    glucose_solver_stop((Gluco2::SimpSolver*)s);
+    glucose2_solver_stop((Gluco2::SimpSolver*)s);
 }
 void bmcg2_sat_solver_reset(bmcg2_sat_solver* s)
 {
-    glucose_solver_reset((Gluco2::SimpSolver*)s);
+    glucose2_solver_reset((Gluco2::SimpSolver*)s);
 }
 
 
 int bmcg2_sat_solver_addclause(bmcg2_sat_solver* s, int * plits, int nlits)
 {
-    return glucose_solver_addclause((Gluco2::SimpSolver*)s,plits,nlits);
+    return glucose2_solver_addclause((Gluco2::SimpSolver*)s,plits,nlits);
 }
 
 void bmcg2_sat_solver_setcallback(bmcg2_sat_solver* s, void * pman, int(*pfunc)(void*, int, int*))
 {
-    glucose_solver_setcallback((Gluco2::SimpSolver*)s,pman,pfunc);
+    glucose2_solver_setcallback((Gluco2::SimpSolver*)s,pman,pfunc);
 }
 
 int bmcg2_sat_solver_solve(bmcg2_sat_solver* s, int * plits, int nlits)
 {
-    return glucose_solver_solve((Gluco2::SimpSolver*)s,plits,nlits);
+    return glucose2_solver_solve((Gluco2::SimpSolver*)s,plits,nlits);
 }
 
 int bmcg2_sat_solver_final(bmcg2_sat_solver* s, int ** ppArray)
@@ -180,7 +180,7 @@ int bmcg2_sat_solver_final(bmcg2_sat_solver* s, int ** ppArray)
 
 int bmcg2_sat_solver_addvar(bmcg2_sat_solver* s)
 {
-    return glucose_solver_addvar((Gluco2::SimpSolver*)s);
+    return glucose2_solver_addvar((Gluco2::SimpSolver*)s);
 }
 
 void bmcg2_sat_solver_set_nvars( bmcg2_sat_solver* s, int nvars )
@@ -215,16 +215,16 @@ int bmcg2_sat_solver_elim_varnum(bmcg2_sat_solver* s)
 
 int * bmcg2_sat_solver_read_cex(bmcg2_sat_solver* s)
 {
-    return glucose_solver_read_cex((Gluco2::SimpSolver*)s);
+    return glucose2_solver_read_cex((Gluco2::SimpSolver*)s);
 }
 int bmcg2_sat_solver_read_cex_varvalue(bmcg2_sat_solver* s, int ivar)
 {
-    return glucose_solver_read_cex_varvalue((Gluco2::SimpSolver*)s, ivar);
+    return glucose2_solver_read_cex_varvalue((Gluco2::SimpSolver*)s, ivar);
 }
 
 void bmcg2_sat_solver_set_stop(bmcg2_sat_solver* s, int * pstop)
 {
-    glucose_solver_setstop((Gluco2::SimpSolver*)s, pstop);
+    glucose2_solver_setstop((Gluco2::SimpSolver*)s, pstop);
 }
 
 abctime bmcg2_sat_solver_set_runtime_limit(bmcg2_sat_solver* s, abctime Limit)
@@ -339,19 +339,19 @@ int bmcg2_sat_solver_add_and( bmcg2_sat_solver * s, int iVar, int iVar0, int iVa
   SeeAlso     []
 
 ***********************************************************************/
-Solver * glucose_solver_start()
+Solver * glucose2_solver_start()
 {
     Solver * S = new Solver;
     S->setIncrementalMode();
     return S;
 }
 
-void glucose_solver_stop(Gluco2::Solver* S)
+void glucose2_solver_stop(Gluco2::Solver* S)
 {
     delete S;
 }
 
-int glucose_solver_addclause(Gluco2::Solver* S, int * plits, int nlits)
+int glucose2_solver_addclause(Gluco2::Solver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
     for ( int i = 0; i < nlits; i++,plits++)
@@ -366,14 +366,14 @@ int glucose_solver_addclause(Gluco2::Solver* S, int * plits, int nlits)
     return S->addClause(lits); // returns 0 if the problem is UNSAT
 }
 
-void glucose_solver_setcallback(Gluco2::Solver* S, void * pman, int(*pfunc)(void*, int, int*))
+void glucose2_solver_setcallback(Gluco2::Solver* S, void * pman, int(*pfunc)(void*, int, int*))
 {
     S->pCnfMan = pman;
     S->pCnfFunc = pfunc;
     S->nCallConfl = 1000;
 }
 
-int glucose_solver_solve(Gluco2::Solver* S, int * plits, int nlits)
+int glucose2_solver_solve(Gluco2::Solver* S, int * plits, int nlits)
 {
     vec<Lit> lits;
     for (int i=0;i<nlits;i++,plits++)
@@ -386,23 +386,23 @@ int glucose_solver_solve(Gluco2::Solver* S, int * plits, int nlits)
     return (res == l_True ? 1 : res == l_False ? -1 : 0);
 }
 
-int glucose_solver_addvar(Gluco2::Solver* S)
+int glucose2_solver_addvar(Gluco2::Solver* S)
 {
     S->newVar();
     return S->nVars() - 1;
 }
 
-int * glucose_solver_read_cex(Gluco2::Solver* S )
+int * glucose2_solver_read_cex(Gluco2::Solver* S )
 {
     return S->getCex();
 }
 
-int glucose_solver_read_cex_varvalue(Gluco2::Solver* S, int ivar)
+int glucose2_solver_read_cex_varvalue(Gluco2::Solver* S, int ivar)
 {
     return S->model[ivar] == l_True;
 }
 
-void glucose_solver_setstop(Gluco2::Solver* S, int * pstop)
+void glucose2_solver_setstop(Gluco2::Solver* S, int * pstop)
 {
     S->pstop = pstop;
 }
@@ -421,26 +421,26 @@ void glucose_solver_setstop(Gluco2::Solver* S, int * pstop)
 ***********************************************************************/
 bmcg2_sat_solver * bmcg2_sat_solver_start() 
 {
-    return (bmcg2_sat_solver *)glucose_solver_start();
+    return (bmcg2_sat_solver *)glucose2_solver_start();
 }
 void bmcg2_sat_solver_stop(bmcg2_sat_solver* s)
 {
-    glucose_solver_stop((Gluco2::Solver*)s);
+    glucose2_solver_stop((Gluco2::Solver*)s);
 }
 
 int bmcg2_sat_solver_addclause(bmcg2_sat_solver* s, int * plits, int nlits)
 {
-    return glucose_solver_addclause((Gluco2::Solver*)s,plits,nlits);
+    return glucose2_solver_addclause((Gluco2::Solver*)s,plits,nlits);
 }
 
 void bmcg2_sat_solver_setcallback(bmcg2_sat_solver* s, void * pman, int(*pfunc)(void*, int, int*))
 {
-    glucose_solver_setcallback((Gluco2::Solver*)s,pman,pfunc);
+    glucose2_solver_setcallback((Gluco2::Solver*)s,pman,pfunc);
 }
 
 int bmcg2_sat_solver_solve(bmcg2_sat_solver* s, int * plits, int nlits)
 {
-    return glucose_solver_solve((Gluco2::Solver*)s,plits,nlits);
+    return glucose2_solver_solve((Gluco2::Solver*)s,plits,nlits);
 }
 
 int bmcg2_sat_solver_final(bmcg2_sat_solver* s, int ** ppArray)
@@ -451,7 +451,7 @@ int bmcg2_sat_solver_final(bmcg2_sat_solver* s, int ** ppArray)
 
 int bmcg2_sat_solver_addvar(bmcg2_sat_solver* s)
 {
-    return glucose_solver_addvar((Gluco2::Solver*)s);
+    return glucose2_solver_addvar((Gluco2::Solver*)s);
 }
 
 void bmcg2_sat_solver_set_nvars( bmcg2_sat_solver* s, int nvars )
@@ -486,17 +486,17 @@ int bmcg2_sat_solver_elim_varnum(bmcg2_sat_solver* s)
 
 int * bmcg2_sat_solver_read_cex(bmcg2_sat_solver* s)
 {
-    return glucose_solver_read_cex((Gluco2::Solver*)s);
+    return glucose2_solver_read_cex((Gluco2::Solver*)s);
 }
 
 int bmcg2_sat_solver_read_cex_varvalue(bmcg2_sat_solver* s, int ivar)
 {
-    return glucose_solver_read_cex_varvalue((Gluco2::Solver*)s, ivar);
+    return glucose2_solver_read_cex_varvalue((Gluco2::Solver*)s, ivar);
 }
 
 void bmcg2_sat_solver_set_stop(bmcg2_sat_solver* s, int * pstop)
 {
-    glucose_solver_setstop((Gluco2::Solver*)s, pstop);
+    glucose2_solver_setstop((Gluco2::Solver*)s, pstop);
 }
 
 abctime bmcg2_sat_solver_set_runtime_limit(bmcg2_sat_solver* s, abctime Limit)
@@ -589,7 +589,7 @@ int bmcg2_sat_solver_minimize_assumptions( bmcg2_sat_solver * s, int * plits, in
   SeeAlso     []
 
 ***********************************************************************/
-void glucose_print_stats(SimpSolver& s, abctime clk)
+void glucose2_print_stats(SimpSolver& s, abctime clk)
 {
     double cpu_time = (double)(unsigned)clk / CLOCKS_PER_SEC;
     double mem_used = memUsed();
@@ -701,7 +701,7 @@ void Glucose2_SolveCnf( char * pFileName, Glucose2_Pars * pPars )
 
     vec<Lit> dummy;
     lbool ret = S.solveLimited(dummy, 0);
-    if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
+    if ( pPars->verb ) glucose2_print_stats(S, Abc_Clock() - clk);
     printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
     Abc_PrintTime( 1, "      Time", Abc_Clock() - clk );
 }
@@ -736,12 +736,12 @@ Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& s )
     return vCnfIds;
 }
 
-// procedure below does not work because glucose_solver_addclause() expects Solver
+// procedure below does not work because glucose2_solver_addclause() expects Solver
 Vec_Int_t * Glucose_SolverFromAig2( Gia_Man_t * p, SimpSolver& S ) 
 {
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 1/*fAddOrCla*/, 0, 0/*verbose*/ );
     for ( int i = 0; i < pCnf->nClauses; i++ )
-        if ( !glucose_solver_addclause( &S, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
+        if ( !glucose2_solver_addclause( &S, pCnf->pClauses[i], pCnf->pClauses[i+1]-pCnf->pClauses[i] ) )
             assert( 0 );
     Vec_Int_t * vCnfIds = Vec_IntAllocArrayCopy(pCnf->pVarNums,pCnf->nVars);
     //printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
@@ -1361,7 +1361,7 @@ int Glucose2_SolveAig(Gia_Man_t * p, Glucose2_Pars * pPars)
     vec<Lit> dummy;
     lbool ret = S.solveLimited(dummy, 0);
 
-    if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
+    if ( pPars->verb ) glucose2_print_stats(S, Abc_Clock() - clk);
     printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
     Abc_PrintTime( 1, "      Time", Abc_Clock() - clk );
 
