@@ -58,7 +58,7 @@ using namespace Gluco2;
   SeeAlso     []
 
 ***********************************************************************/
-Gluco2::SimpSolver * glucose_solver_start()
+SimpSolver * glucose_solver_start()
 {
     SimpSolver * S = new SimpSolver;
     S->setIncrementalMode();
@@ -339,7 +339,7 @@ int bmcg2_sat_solver_add_and( bmcg2_sat_solver * s, int iVar, int iVar0, int iVa
   SeeAlso     []
 
 ***********************************************************************/
-Gluco2::Solver * glucose_solver_start()
+Solver * glucose_solver_start()
 {
     Solver * S = new Solver;
     S->setIncrementalMode();
