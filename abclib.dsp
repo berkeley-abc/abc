@@ -2366,6 +2366,114 @@ SOURCE=.\src\sat\glucose\Vec.h
 SOURCE=.\src\sat\glucose\XAlloc.h
 # End Source File
 # End Group
+# Begin Group "glucose2"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\AbcGlucose2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\AbcGlucose2.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\AbcGlucoseCmd2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Alg.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Alloc.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\BoundedQueue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Constants.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Dimacs.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Glucose2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Heap.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\IntTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Map.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Options.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Options2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\ParseUtils.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\pstdint.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Queue.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\SimpSolver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\SimpSolver2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Solver.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\SolverTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Sort.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\System.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\System2.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\Vec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\XAlloc.h
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 

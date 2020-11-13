@@ -20,10 +20,46 @@
 
 #include "aig/gia/gia.h"
 #include "misc/util/utilTruth.h"
-#include "sat/glucose/AbcGlucose.h"
 #include "cec.h"
 
+#define USE_GLUCOSE2
+
+#ifdef USE_GLUCOSE2
+
+#include "sat/glucose2/AbcGlucose2.h"
+
+#define sat_solver                       bmcg2_sat_solver
+#define sat_solver_start                 bmcg2_sat_solver_start
+#define sat_solver_stop                  bmcg2_sat_solver_stop
+#define sat_solver_addclause             bmcg2_sat_solver_addclause
+#define sat_solver_addvar                bmcg2_sat_solver_addvar
+#define sat_solver_read_cex_varvalue     bmcg2_sat_solver_read_cex_varvalue
+#define sat_solver_reset                 bmcg2_sat_solver_reset
+#define sat_solver_set_conflict_budget   bmcg2_sat_solver_set_conflict_budget
+#define sat_solver_conflictnum           bmcg2_sat_solver_conflictnum
+#define sat_solver_solve                 bmcg2_sat_solver_solve
+#define sat_solver_read_cex_varvalue     bmcg2_sat_solver_read_cex_varvalue
+
+#else
+
+#include "sat/glucose/AbcGlucose.h"
+
+#define sat_solver                       bmcg_sat_solver
+#define sat_solver_start                 bmcg_sat_solver_start
+#define sat_solver_stop                  bmcg_sat_solver_stop
+#define sat_solver_addclause             bmcg_sat_solver_addclause
+#define sat_solver_addvar                bmcg_sat_solver_addvar
+#define sat_solver_read_cex_varvalue     bmcg_sat_solver_read_cex_varvalue
+#define sat_solver_reset                 bmcg_sat_solver_reset
+#define sat_solver_set_conflict_budget   bmcg_sat_solver_set_conflict_budget
+#define sat_solver_conflictnum           bmcg_sat_solver_conflictnum
+#define sat_solver_solve                 bmcg_sat_solver_solve
+#define sat_solver_read_cex_varvalue     bmcg_sat_solver_read_cex_varvalue
+
+#endif
+
 ABC_NAMESPACE_IMPL_START
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -37,7 +73,7 @@ struct Cec4_Man_t_
     Gia_Man_t *      pAig;           // user's AIG
     Gia_Man_t *      pNew;           // internal AIG
     // SAT solving
-    bmcg_sat_solver* pSat;           // SAT solver
+    sat_solver *     pSat;           // SAT solver
     Vec_Ptr_t *      vFrontier;      // CNF construction
     Vec_Ptr_t *      vFanins;        // CNF construction
     Vec_Wrd_t *      vSims;          // CI simulation info
@@ -98,7 +134,7 @@ Cec4_Man_t * Cec4_ManCreate( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     p->timeStart     = Abc_Clock();
     p->pPars         = pPars;
     p->pAig          = pAig;
-    p->pSat          = bmcg_sat_solver_start();
+    p->pSat          = sat_solver_start();
     p->vFrontier     = Vec_PtrAlloc( 1000 );
     p->vFanins       = Vec_PtrAlloc( 100 );
     p->vCexMin       = Vec_IntAlloc( 100 );
@@ -135,7 +171,7 @@ void Cec4_ManDestroy( Cec4_Man_t * p )
     }
     Vec_WrdFreeP( &p->pAig->vSims );
     Gia_ManCleanMark01( p->pAig );
-    bmcg_sat_solver_stop( p->pSat );
+    sat_solver_stop( p->pSat );
     Gia_ManStopP( &p->pNew );
     Vec_PtrFreeP( &p->vFrontier );
     Vec_PtrFreeP( &p->vFanins );
@@ -174,7 +210,7 @@ Gia_Man_t * Cec4_ManStartNew( Gia_Man_t * pAig )
   SeeAlso     []
 
 ***********************************************************************/
-void Cec4_AddClausesMux( Gia_Man_t * p, Gia_Obj_t * pNode, bmcg_sat_solver * pSat )
+void Cec4_AddClausesMux( Gia_Man_t * p, Gia_Obj_t * pNode, sat_solver * pSat )
 {
     int fPolarFlip = 0;
     Gia_Obj_t * pNodeI, * pNodeT, * pNodeE;
@@ -210,7 +246,7 @@ void Cec4_AddClausesMux( Gia_Man_t * p, Gia_Obj_t * pNode, bmcg_sat_solver * pSa
         if ( Gia_Regular(pNodeT)->fPhase )  pLits[1] = Abc_LitNot( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = Abc_LitNot( pLits[2] );
     }
-    RetValue = bmcg_sat_solver_addclause( pSat, pLits, 3 );
+    RetValue = sat_solver_addclause( pSat, pLits, 3 );
     assert( RetValue );
     pLits[0] = Abc_Var2Lit(VarI, 1);
     pLits[1] = Abc_Var2Lit(VarT, 0^fCompT);
@@ -221,7 +257,7 @@ void Cec4_AddClausesMux( Gia_Man_t * p, Gia_Obj_t * pNode, bmcg_sat_solver * pSa
         if ( Gia_Regular(pNodeT)->fPhase )  pLits[1] = Abc_LitNot( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = Abc_LitNot( pLits[2] );
     }
-    RetValue = bmcg_sat_solver_addclause( pSat, pLits, 3 );
+    RetValue = sat_solver_addclause( pSat, pLits, 3 );
     assert( RetValue );
     pLits[0] = Abc_Var2Lit(VarI, 0);
     pLits[1] = Abc_Var2Lit(VarE, 1^fCompE);
@@ -232,7 +268,7 @@ void Cec4_AddClausesMux( Gia_Man_t * p, Gia_Obj_t * pNode, bmcg_sat_solver * pSa
         if ( Gia_Regular(pNodeE)->fPhase )  pLits[1] = Abc_LitNot( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = Abc_LitNot( pLits[2] );
     }
-    RetValue = bmcg_sat_solver_addclause( pSat, pLits, 3 );
+    RetValue = sat_solver_addclause( pSat, pLits, 3 );
     assert( RetValue );
     pLits[0] = Abc_Var2Lit(VarI, 0);
     pLits[1] = Abc_Var2Lit(VarE, 0^fCompE);
@@ -243,7 +279,7 @@ void Cec4_AddClausesMux( Gia_Man_t * p, Gia_Obj_t * pNode, bmcg_sat_solver * pSa
         if ( Gia_Regular(pNodeE)->fPhase )  pLits[1] = Abc_LitNot( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = Abc_LitNot( pLits[2] );
     }
-    RetValue = bmcg_sat_solver_addclause( pSat, pLits, 3 );
+    RetValue = sat_solver_addclause( pSat, pLits, 3 );
     assert( RetValue );
 
     // two additional clauses
@@ -268,7 +304,7 @@ void Cec4_AddClausesMux( Gia_Man_t * p, Gia_Obj_t * pNode, bmcg_sat_solver * pSa
         if ( Gia_Regular(pNodeE)->fPhase )  pLits[1] = Abc_LitNot( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = Abc_LitNot( pLits[2] );
     }
-    RetValue = bmcg_sat_solver_addclause( pSat, pLits, 3 );
+    RetValue = sat_solver_addclause( pSat, pLits, 3 );
     assert( RetValue );
     pLits[0] = Abc_Var2Lit(VarT, 1^fCompT);
     pLits[1] = Abc_Var2Lit(VarE, 1^fCompE);
@@ -279,10 +315,10 @@ void Cec4_AddClausesMux( Gia_Man_t * p, Gia_Obj_t * pNode, bmcg_sat_solver * pSa
         if ( Gia_Regular(pNodeE)->fPhase )  pLits[1] = Abc_LitNot( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = Abc_LitNot( pLits[2] );
     }
-    RetValue = bmcg_sat_solver_addclause( pSat, pLits, 3 );
+    RetValue = sat_solver_addclause( pSat, pLits, 3 );
     assert( RetValue );
 }
-void Cec4_AddClausesSuper( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSuper, bmcg_sat_solver * pSat )
+void Cec4_AddClausesSuper( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSuper, sat_solver * pSat )
 {
     int fPolarFlip = 0;
     Gia_Obj_t * pFanin;
@@ -303,7 +339,7 @@ void Cec4_AddClausesSuper( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSuper,
             if ( Gia_Regular(pFanin)->fPhase )  pLits[0] = Abc_LitNot( pLits[0] );
             if ( pNode->fPhase )                pLits[1] = Abc_LitNot( pLits[1] );
         }
-        RetValue = bmcg_sat_solver_addclause( pSat, pLits, 2 );
+        RetValue = sat_solver_addclause( pSat, pLits, 2 );
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
@@ -320,7 +356,7 @@ void Cec4_AddClausesSuper( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSuper,
     {
         if ( pNode->fPhase )  pLits[nLits-1] = Abc_LitNot( pLits[nLits-1] );
     }
-    RetValue = bmcg_sat_solver_addclause( pSat, pLits, nLits );
+    RetValue = sat_solver_addclause( pSat, pLits, nLits );
     assert( RetValue );
     ABC_FREE( pLits );
 }
@@ -357,14 +393,14 @@ void Cec4_CollectSuper( Gia_Obj_t * pObj, int fUseMuxes, Vec_Ptr_t * vSuper )
     Vec_PtrClear( vSuper );
     Cec4_CollectSuper_rec( pObj, vSuper, 1, fUseMuxes );
 }
-void Cec4_ObjAddToFrontier( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vFrontier, bmcg_sat_solver * pSat )
+void Cec4_ObjAddToFrontier( Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vFrontier, sat_solver * pSat )
 {
     assert( !Gia_IsComplement(pObj) );
     assert( !Gia_ObjIsConst0(pObj) );
     if ( Cec4_ObjSatId(p, pObj) >= 0 )
         return;
     assert( Cec4_ObjSatId(p, pObj) == -1 );
-    Cec4_ObjSetSatId( p, pObj, bmcg_sat_solver_addvar(pSat) );
+    Cec4_ObjSetSatId( p, pObj, sat_solver_addvar(pSat) );
     if ( Gia_ObjIsAnd(pObj) )
         Vec_PtrPush( vFrontier, pObj );
 }
@@ -380,7 +416,7 @@ int Cec4_ObjGetCnfVar( Cec4_Man_t * p, int iObj )
         return Cec4_ObjSatId(p->pNew,pObj);
     assert( iObj > 0 );
     if ( Gia_ObjIsCi(pObj) )
-        return Cec4_ObjSetSatId( p->pNew, pObj, bmcg_sat_solver_addvar(p->pSat) );
+        return Cec4_ObjSetSatId( p->pNew, pObj, sat_solver_addvar(p->pSat) );
     assert( Gia_ObjIsAnd(pObj) );
     if ( fUseAnd2 )
     {
@@ -389,7 +425,7 @@ int Cec4_ObjGetCnfVar( Cec4_Man_t * p, int iObj )
         Vec_PtrClear( p->vFanins );
         Vec_PtrPush( p->vFanins, Gia_ObjChild0(pObj) );
         Vec_PtrPush( p->vFanins, Gia_ObjChild1(pObj) );
-        Cec4_ObjSetSatId( p->pNew, pObj, bmcg_sat_solver_addvar(p->pSat) );
+        Cec4_ObjSetSatId( p->pNew, pObj, sat_solver_addvar(p->pSat) );
         Cec4_AddClausesSuper( p->pNew, pObj, p->vFanins, p->pSat );
         return Cec4_ObjSatId( p->pNew, pObj );
     }
@@ -777,7 +813,7 @@ void Cec4_ManCreateClasses( Gia_Man_t * p, Cec4_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec4_ManVerify_rec( Gia_Man_t * p, int iObj, bmcg_sat_solver * pSat )
+int Cec4_ManVerify_rec( Gia_Man_t * p, int iObj, sat_solver * pSat )
 {
     int Value0, Value1;
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
@@ -786,13 +822,13 @@ int Cec4_ManVerify_rec( Gia_Man_t * p, int iObj, bmcg_sat_solver * pSat )
         return pObj->fMark1;
     Gia_ObjSetTravIdCurrentId(p, iObj);
     if ( Gia_ObjIsCi(pObj) )
-        return pObj->fMark1 = bmcg_sat_solver_read_cex_varvalue(pSat, Cec4_ObjSatId(p, pObj));
+        return pObj->fMark1 = sat_solver_read_cex_varvalue(pSat, Cec4_ObjSatId(p, pObj));
     assert( Gia_ObjIsAnd(pObj) );
     Value0 = Cec4_ManVerify_rec( p, Gia_ObjFaninId0(pObj, iObj), pSat ) ^ Gia_ObjFaninC0(pObj);
     Value1 = Cec4_ManVerify_rec( p, Gia_ObjFaninId1(pObj, iObj), pSat ) ^ Gia_ObjFaninC1(pObj);
     return pObj->fMark1 = Value0 & Value1;
 }
-void Cec4_ManVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase, bmcg_sat_solver * pSat )
+void Cec4_ManVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase, sat_solver * pSat )
 {
     int Value0, Value1;
     Gia_ManIncrementTravId( p );
@@ -997,10 +1033,10 @@ void Cec4_ManSatSolverRecycle( Cec4_Man_t * p )
 {
     Gia_Obj_t * pObj;
     int i;
-    //printf( "Solver size = %d.\n", bmcg_sat_solver_varnum(p->pSat) );
+    //printf( "Solver size = %d.\n", sat_solver_varnum(p->pSat) );
     p->nRecycles++;
     p->nCallsSince = 0;
-    bmcg_sat_solver_reset( p->pSat );
+    sat_solver_reset( p->pSat );
     // clean mapping of AigIds into SatIds
     Gia_ManForEachObjVec( &p->pNew->vSuppVars, p->pNew, pObj, i )
         Cec4_ObjCleanSatId( p->pNew, pObj );
@@ -1024,7 +1060,7 @@ int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
         Cec4_ManSatSolverRecycle( p );
     // add more logic to the solver
     if ( !iObj0 && Cec4_ObjSatId(p->pNew, Gia_ManConst0(p->pNew)) == -1 )
-        Cec4_ObjSetSatId( p->pNew, Gia_ManConst0(p->pNew), bmcg_sat_solver_addvar(p->pSat) );
+        Cec4_ObjSetSatId( p->pNew, Gia_ManConst0(p->pNew), sat_solver_addvar(p->pSat) );
     clk = Abc_Clock();
     iVar0 = Cec4_ObjGetCnfVar( p, iObj0 );
     iVar1 = Cec4_ObjGetCnfVar( p, iObj1 );
@@ -1032,10 +1068,10 @@ int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
     // perform solving
     Lits[0] = Abc_Var2Lit(iVar0, 1);
     Lits[1] = Abc_Var2Lit(iVar1, fPhase);
-    bmcg_sat_solver_set_conflict_budget( p->pSat, p->pPars->nBTLimit );
-    nConfBeg = bmcg_sat_solver_conflictnum( p->pSat );
-    status = bmcg_sat_solver_solve( p->pSat, Lits, 2 );
-    nConfEnd = bmcg_sat_solver_conflictnum( p->pSat );
+    sat_solver_set_conflict_budget( p->pSat, p->pPars->nBTLimit );
+    nConfBeg = sat_solver_conflictnum( p->pSat );
+    status = sat_solver_solve( p->pSat, Lits, 2 );
+    nConfEnd = sat_solver_conflictnum( p->pSat );
     assert( nConfEnd >= nConfBeg );
     if ( fVerbose )
     {
@@ -1067,10 +1103,10 @@ int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
     {
         Lits[0] = Abc_Var2Lit(iVar0, 0);
         Lits[1] = Abc_Var2Lit(iVar1, !fPhase);
-        bmcg_sat_solver_set_conflict_budget( p->pSat, p->pPars->nBTLimit );
-        nConfBeg = bmcg_sat_solver_conflictnum( p->pSat );
-        status = bmcg_sat_solver_solve( p->pSat, Lits, 2 );
-        nConfEnd = bmcg_sat_solver_conflictnum( p->pSat );
+        sat_solver_set_conflict_budget( p->pSat, p->pPars->nBTLimit );
+        nConfBeg = sat_solver_conflictnum( p->pSat );
+        status = sat_solver_solve( p->pSat, Lits, 2 );
+        nConfEnd = sat_solver_conflictnum( p->pSat );
         assert( nConfEnd >= nConfBeg );
         if ( fVerbose )
         {
@@ -1112,7 +1148,7 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
         p->pAig->iPatsPi++;
         assert( p->pAig->iPatsPi > 0 && p->pAig->iPatsPi < 64 * p->pAig->nSimWords );
         Vec_IntForEachEntryDouble( &p->pNew->vCopiesTwo, IdAig, IdSat, i )
-            Cec4_ObjSimSetInputBit( p->pAig, IdAig, bmcg_sat_solver_read_cex_varvalue(p->pSat, IdSat) );
+            Cec4_ObjSimSetInputBit( p->pAig, IdAig, sat_solver_read_cex_varvalue(p->pSat, IdSat) );
         if ( fEasy )
             p->timeSatSat0 += Abc_Clock() - clk;
         else
