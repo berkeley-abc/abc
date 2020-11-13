@@ -36290,6 +36290,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ParFra_t ParsFra, * pPars = &ParsFra; Gia_Man_t * pTemp;
     int c, fUseAlgo = 0, fUseAlgoG = 0, fUseAlgoG2 = 0;
     Cec_ManFraSetDefaultParams( pPars );
+    pPars->jType          =       0;    // solver type
     pPars->fSatSweeping   =       1;    // conflict limit at a node
     pPars->nWords         =       4;    // simulation words
     pPars->nRounds        =     250;    // simulation rounds
@@ -36299,10 +36300,21 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     pPars->nCallsRecycle  =     500;    // calls to perform before recycling SAT solver
     pPars->nGenIters      =       5;    // pattern generation iterations
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WRILDCPrmdckngxwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCPrmdckngxwvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'J':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-J\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->jType = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->jType < 0 )
+                goto usage;
+            break;
         case 'W':
             if ( globalUtilOptind >= argc )
             {
@@ -36431,8 +36443,9 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fraig [-WRILDCP <num>] [-rmdckngwvh]\n" );
+    Abc_Print( -2, "usage: &fraig [-JWRILDCP <num>] [-rmdckngwvh]\n" );
     Abc_Print( -2, "\t         performs combinational SAT sweeping\n" );
+    Abc_Print( -2, "\t-J num : the solver type [default = %d]\n", pPars->jType );
     Abc_Print( -2, "\t-W num : the number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-R num : the number of simulation rounds [default = %d]\n", pPars->nRounds );
     Abc_Print( -2, "\t-I num : the number of sweeping iterations [default = %d]\n", pPars->nItersMax );

@@ -97,6 +97,11 @@ extern int               bmcg2_sat_solver_add_and( bmcg2_sat_solver * s, int iVa
 extern int               bmcg2_sat_solver_quantify( bmcg2_sat_solver * s[], Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t * vDLits );
 extern int               bmcg2_sat_solver_equiv_overlap_check( bmcg2_sat_solver * s, Gia_Man_t * p, int iLit0, int iLit1, int fEquiv );
 extern Vec_Str_t *       bmcg2_sat_solver_sop( Gia_Man_t * p, int CubeLimit );
+extern int               bmcg2_sat_solver_jftr( bmcg2_sat_solver * s );
+extern void              bmcg2_sat_solver_set_jftr( bmcg2_sat_solver * s, int jftr );
+extern void              bmcg2_sat_solver_set_var_fanin_lit( bmcg2_sat_solver * s, int var, int lit0, int lit1 );
+extern void              bmcg2_sat_solver_start_new_round( bmcg2_sat_solver * s );
+extern void              bmcg2_sat_solver_mark_cone( bmcg2_sat_solver * s, int var );
 
 extern void              Glucose2_SolveCnf( char * pFilename, Glucose2_Pars * pPars );
 extern int               Glucose2_SolveAig( Gia_Man_t * p, Glucose2_Pars * pPars );

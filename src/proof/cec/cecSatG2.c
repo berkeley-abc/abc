@@ -28,33 +28,45 @@
 
 #include "sat/glucose2/AbcGlucose2.h"
 
-#define sat_solver                       bmcg2_sat_solver
-#define sat_solver_start                 bmcg2_sat_solver_start
-#define sat_solver_stop                  bmcg2_sat_solver_stop
-#define sat_solver_addclause             bmcg2_sat_solver_addclause
-#define sat_solver_addvar                bmcg2_sat_solver_addvar
-#define sat_solver_read_cex_varvalue     bmcg2_sat_solver_read_cex_varvalue
-#define sat_solver_reset                 bmcg2_sat_solver_reset
-#define sat_solver_set_conflict_budget   bmcg2_sat_solver_set_conflict_budget
-#define sat_solver_conflictnum           bmcg2_sat_solver_conflictnum
-#define sat_solver_solve                 bmcg2_sat_solver_solve
-#define sat_solver_read_cex_varvalue     bmcg2_sat_solver_read_cex_varvalue
+#define sat_solver                         bmcg2_sat_solver
+#define sat_solver_start                   bmcg2_sat_solver_start
+#define sat_solver_stop                    bmcg2_sat_solver_stop
+#define sat_solver_addclause               bmcg2_sat_solver_addclause
+#define sat_solver_addvar                  bmcg2_sat_solver_addvar
+#define sat_solver_read_cex_varvalue       bmcg2_sat_solver_read_cex_varvalue
+#define sat_solver_reset                   bmcg2_sat_solver_reset
+#define sat_solver_set_conflict_budget     bmcg2_sat_solver_set_conflict_budget
+#define sat_solver_conflictnum             bmcg2_sat_solver_conflictnum
+#define sat_solver_solve                   bmcg2_sat_solver_solve
+#define sat_solver_read_cex_varvalue       bmcg2_sat_solver_read_cex_varvalue
+#define sat_solver_read_cex                bmcg2_sat_solver_read_cex
+#define sat_solver_jftr                    bmcg2_sat_solver_jftr
+#define sat_solver_set_jftr                bmcg2_sat_solver_set_jftr
+#define sat_solver_set_var_fanin_lit       bmcg2_sat_solver_set_var_fanin_lit
+#define sat_solver_start_new_round         bmcg2_sat_solver_start_new_round
+#define sat_solver_mark_cone               bmcg2_sat_solver_mark_cone
 
 #else
 
 #include "sat/glucose/AbcGlucose.h"
 
-#define sat_solver                       bmcg_sat_solver
-#define sat_solver_start                 bmcg_sat_solver_start
-#define sat_solver_stop                  bmcg_sat_solver_stop
-#define sat_solver_addclause             bmcg_sat_solver_addclause
-#define sat_solver_addvar                bmcg_sat_solver_addvar
-#define sat_solver_read_cex_varvalue     bmcg_sat_solver_read_cex_varvalue
-#define sat_solver_reset                 bmcg_sat_solver_reset
-#define sat_solver_set_conflict_budget   bmcg_sat_solver_set_conflict_budget
-#define sat_solver_conflictnum           bmcg_sat_solver_conflictnum
-#define sat_solver_solve                 bmcg_sat_solver_solve
-#define sat_solver_read_cex_varvalue     bmcg_sat_solver_read_cex_varvalue
+#define sat_solver                         bmcg_sat_solver
+#define sat_solver_start                   bmcg_sat_solver_start
+#define sat_solver_stop                    bmcg_sat_solver_stop
+#define sat_solver_addclause               bmcg_sat_solver_addclause
+#define sat_solver_addvar                  bmcg_sat_solver_addvar
+#define sat_solver_read_cex_varvalue       bmcg_sat_solver_read_cex_varvalue
+#define sat_solver_reset                   bmcg_sat_solver_reset
+#define sat_solver_set_conflict_budget     bmcg_sat_solver_set_conflict_budget
+#define sat_solver_conflictnum             bmcg_sat_solver_conflictnum
+#define sat_solver_solve                   bmcg_sat_solver_solve
+#define sat_solver_read_cex_varvalue       bmcg_sat_solver_read_cex_varvalue
+#define sat_solver_read_cex                bmcg_sat_solver_read_cex
+#define sat_solver_jftr                    bmcg_sat_solver_jftr
+#define sat_solver_set_jftr                bmcg_sat_solver_set_jftr
+#define sat_solver_set_var_fanin_lit       bmcg_sat_solver_set_var_fanin_lit
+#define sat_solver_start_new_round         bmcg_sat_solver_start_new_round
+#define sat_solver_mark_cone               bmcg_sat_solver_mark_cone
 
 #endif
 
@@ -134,7 +146,8 @@ Cec4_Man_t * Cec4_ManCreate( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     p->timeStart     = Abc_Clock();
     p->pPars         = pPars;
     p->pAig          = pAig;
-    p->pSat          = sat_solver_start();
+    p->pSat          = sat_solver_start();  
+    sat_solver_set_jftr( p->pSat, pPars->jType );
     p->vFrontier     = Vec_PtrAlloc( 1000 );
     p->vFanins       = Vec_PtrAlloc( 100 );
     p->vCexMin       = Vec_IntAlloc( 100 );
@@ -422,11 +435,19 @@ int Cec4_ObjGetCnfVar( Cec4_Man_t * p, int iObj )
     {
         Cec4_ObjGetCnfVar( p, Gia_ObjFaninId0(pObj, iObj) );
         Cec4_ObjGetCnfVar( p, Gia_ObjFaninId1(pObj, iObj) );
-        Vec_PtrClear( p->vFanins );
-        Vec_PtrPush( p->vFanins, Gia_ObjChild0(pObj) );
-        Vec_PtrPush( p->vFanins, Gia_ObjChild1(pObj) );
         Cec4_ObjSetSatId( p->pNew, pObj, sat_solver_addvar(p->pSat) );
-        Cec4_AddClausesSuper( p->pNew, pObj, p->vFanins, p->pSat );
+        if( sat_solver_jftr( p->pSat ) < 2 )
+        {
+            Vec_PtrClear( p->vFanins );
+            Vec_PtrPush( p->vFanins, Gia_ObjChild0(pObj) );
+            Vec_PtrPush( p->vFanins, Gia_ObjChild1(pObj) );
+            Cec4_AddClausesSuper( p->pNew, pObj, p->vFanins, p->pSat );
+        }
+        if( 0 < sat_solver_jftr( p->pSat ) )
+            sat_solver_set_var_fanin_lit( p->pSat\
+                , Cec4_ObjSatId( p->pNew, pObj )\
+                , Abc_Var2Lit( Cec4_ObjSatId( p->pNew, Gia_ObjFanin0(pObj) ), Gia_ObjFaninC0(pObj) )\
+                , Abc_Var2Lit( Cec4_ObjSatId( p->pNew, Gia_ObjFanin1(pObj) ), Gia_ObjFaninC1(pObj) ) );
         return Cec4_ObjSatId( p->pNew, pObj );
     }
     // start the frontier
@@ -1064,6 +1085,12 @@ int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
     clk = Abc_Clock();
     iVar0 = Cec4_ObjGetCnfVar( p, iObj0 );
     iVar1 = Cec4_ObjGetCnfVar( p, iObj1 );
+    if( sat_solver_jftr( p->pSat ) )
+    {
+        sat_solver_start_new_round( p->pSat );
+        sat_solver_mark_cone( p->pSat, Cec4_ObjSatId(p->pNew, Gia_ManObj(p->pNew, iObj0)) );
+        sat_solver_mark_cone( p->pSat, Cec4_ObjSatId(p->pNew, Gia_ManObj(p->pNew, iObj1)) );
+    }
     p->timeCnf += Abc_Clock() - clk;
     // perform solving
     Lits[0] = Abc_Var2Lit(iVar0, 1);
@@ -1135,20 +1162,35 @@ int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
 int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
 {
     abctime clk = Abc_Clock();
-    int i, IdAig, IdSat, status, fEasy, RetValue = 1;
+    int i, iLit, IdAig, IdSat, status, fEasy, RetValue = 1;
     Gia_Obj_t * pObj = Gia_ManObj( p->pAig, iObj );
     Gia_Obj_t * pRepr = Gia_ManObj( p->pAig, iRepr );
     int fCompl = Abc_LitIsCompl(pObj->Value) ^ Abc_LitIsCompl(pRepr->Value) ^ pObj->fPhase ^ pRepr->fPhase;
     status = Cec4_ManSolveTwo( p, Abc_Lit2Var(pRepr->Value), Abc_Lit2Var(pObj->Value), fCompl, &fEasy, p->pPars->fVerbose );
     if ( status == GLUCOSE_SAT )
     {
+        int * pCex;
         //printf( "Disproved: %d == %d.\n", Abc_Lit2Var(pRepr->Value), Abc_Lit2Var(pObj->Value) );
         p->nSatSat++;
         p->nPatterns++;
         p->pAig->iPatsPi++;
         assert( p->pAig->iPatsPi > 0 && p->pAig->iPatsPi < 64 * p->pAig->nSimWords );
-        Vec_IntForEachEntryDouble( &p->pNew->vCopiesTwo, IdAig, IdSat, i )
-            Cec4_ObjSimSetInputBit( p->pAig, IdAig, sat_solver_read_cex_varvalue(p->pSat, IdSat) );
+        //Vec_IntForEachEntryDouble( &p->pNew->vCopiesTwo, IdAig, IdSat, i )
+        //    Cec4_ObjSimSetInputBit( p->pAig, IdAig, sat_solver_read_cex_varvalue(p->pSat, IdSat) );
+        pCex = sat_solver_read_cex( p->pSat );
+        Vec_IntClear( p->vPat );
+        if ( pCex == NULL )
+        {
+            Vec_IntForEachEntryDouble( &p->pNew->vCopiesTwo, IdAig, IdSat, i )
+                Vec_IntPush( p->vPat, Abc_Var2Lit(IdAig, sat_solver_read_cex_varvalue(p->pSat, IdSat)) );
+        }
+        else
+        {
+            for ( i = 0; i < pCex[0]; )
+                Vec_IntPush( p->vPat, Abc_LitNot(pCex[++i]) );
+        }
+        Vec_IntForEachEntry( p->vPat, iLit, i )
+            Cec4_ObjSimSetInputBit( p->pAig, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit) );
         if ( fEasy )
             p->timeSatSat0 += Abc_Clock() - clk;
         else

@@ -326,6 +326,32 @@ int bmcg_sat_solver_add_and( bmcg_sat_solver * s, int iVar, int iVar0, int iVar1
     return 1;
 }
 
+int bmcg_sat_solver_jftr(bmcg_sat_solver* s)
+{
+    return ((Gluco::SimpSolver*)s)->jftr;
+}
+
+void bmcg_sat_solver_set_jftr(bmcg_sat_solver* s, int jftr)
+{
+    ((Gluco::SimpSolver*)s)->jftr = jftr;
+}
+
+void bmcg_sat_solver_set_var_fanin_lit(bmcg_sat_solver* s, int var, int lit0, int lit1)
+{
+    ((Gluco::SimpSolver*)s)->sat_solver_set_var_fanin_lit(var, lit0, lit1);
+}
+
+void bmcg_sat_solver_start_new_round(bmcg_sat_solver* s)
+{
+    ((Gluco::SimpSolver*)s)->sat_solver_start_new_round();
+}
+
+void bmcg_sat_solver_mark_cone(bmcg_sat_solver* s, int var)
+{
+    ((Gluco::SimpSolver*)s)->sat_solver_mark_cone(var);
+}
+
+
 #else
 
 /**Function*************************************************************
@@ -349,6 +375,11 @@ Solver * glucose_solver_start()
 void glucose_solver_stop(Gluco::Solver* S)
 {
     delete S;
+}
+
+void glucose_solver_reset(Gluco::Solver* S)
+{
+    S->reset();
 }
 
 int glucose_solver_addclause(Gluco::Solver* S, int * plits, int nlits)
@@ -426,6 +457,10 @@ bmcg_sat_solver * bmcg_sat_solver_start()
 void bmcg_sat_solver_stop(bmcg_sat_solver* s)
 {
     glucose_solver_stop((Gluco::Solver*)s);
+}
+void bmcg_sat_solver_reset(bmcg_sat_solver* s)
+{
+    glucose_solver_reset((Gluco::Solver*)s);
 }
 
 int bmcg_sat_solver_addclause(bmcg_sat_solver* s, int * plits, int nlits)
@@ -573,6 +608,54 @@ int bmcg_sat_solver_minimize_assumptions( bmcg_sat_solver * s, int * plits, int 
 //    nResR = nLitsL == 1 ? 1 : sat_solver_minimize_assumptions( s, pLits + nResL, nLitsL, nConfLimit );
     nresR = nlitsL == 1 ? 1 : bmcg_sat_solver_minimize_assumptions( s, plits, pivot + nresL + nlitsL, pivot + nresL );
     return nresL + nresR;
+}
+
+int bmcg_sat_solver_add_and( bmcg_sat_solver * s, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1, int fCompl )
+{
+    int Lits[3];
+
+    Lits[0] = Abc_Var2Lit( iVar, !fCompl );
+    Lits[1] = Abc_Var2Lit( iVar0, fCompl0 );
+    if ( !bmcg_sat_solver_addclause( s, Lits, 2 ) )
+        return 0;
+
+    Lits[0] = Abc_Var2Lit( iVar, !fCompl );
+    Lits[1] = Abc_Var2Lit( iVar1, fCompl1 );
+    if ( !bmcg_sat_solver_addclause( s, Lits, 2 ) )
+        return 0;
+
+    Lits[0] = Abc_Var2Lit( iVar,   fCompl );
+    Lits[1] = Abc_Var2Lit( iVar0, !fCompl0 );
+    Lits[2] = Abc_Var2Lit( iVar1, !fCompl1 );
+    if ( !bmcg_sat_solver_addclause( s, Lits, 3 ) )
+        return 0;
+
+    return 1;
+}
+
+int bmcg_sat_solver_jftr(bmcg_sat_solver* s)
+{
+    return ((Gluco::Solver*)s)->jftr;
+}
+
+void bmcg_sat_solver_set_jftr(bmcg_sat_solver* s, int jftr)
+{
+    ((Gluco::Solver*)s)->jftr = jftr;
+}
+
+void bmcg_sat_solver_set_var_fanin_lit(bmcg_sat_solver* s, int var, int lit0, int lit1)
+{
+    ((Gluco::Solver*)s)->sat_solver_set_var_fanin_lit(var, lit0, lit1);
+}
+
+void bmcg_sat_solver_start_new_round(bmcg_sat_solver* s)
+{
+    ((Gluco::Solver*)s)->sat_solver_start_new_round();
+}
+
+void bmcg_sat_solver_mark_cone(bmcg_sat_solver* s, int var)
+{
+    ((Gluco::Solver*)s)->sat_solver_mark_cone(var);
 }
 
 #endif

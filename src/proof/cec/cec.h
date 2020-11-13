@@ -95,6 +95,7 @@ struct Cec_ParSmf_t_
 typedef struct Cec_ParFra_t_ Cec_ParFra_t;
 struct Cec_ParFra_t_
 {
+    int              jType;         // solver type
     int              nWords;        // the number of simulation words
     int              nRounds;       // the number of simulation rounds
     int              nItersMax;     // the maximum number of iterations of SAT sweeping
