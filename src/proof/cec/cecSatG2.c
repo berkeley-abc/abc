@@ -1366,7 +1366,7 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
         assert( p->pAig->iPatsPi > 0 && p->pAig->iPatsPi < 64 * p->pAig->nSimWords );
         //Vec_IntForEachEntryDouble( &p->pNew->vCopiesTwo, IdAig, IdSat, i )
         //    Cec4_ObjSimSetInputBit( p->pAig, IdAig, sat_solver_read_cex_varvalue(p->pSat, IdSat) );
-        pCex = sat_solver_read_cex( p->pSat );
+        pCex = NULL;//sat_solver_read_cex( p->pSat );
         Vec_IntClear( p->vPat );
         if ( pCex == NULL )
         {
@@ -1461,8 +1461,8 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     Gia_Obj_t * pObj, * pRepr; 
     int i, fSimulate = 1;
     if ( pPars->fVerbose )
-        printf( "Simulate %d words in %d rounds. Easy SAT with %d tries. SAT with %d confs. Recycle after %d SAT calls.\n", 
-            pPars->nWords, pPars->nRounds, pPars->nGenIters, pPars->nBTLimit, pPars->nCallsRecycle );
+        printf( "Solver type = %d. Simulate %d words in %d rounds. SAT with %d confs. Recycle after %d SAT calls.\n", 
+            pPars->jType, pPars->nWords, pPars->nRounds, pPars->nBTLimit, pPars->nCallsRecycle );
 
     // this is currently needed to have a correct mapping
     Gia_ManForEachCi( p, pObj, i )
@@ -1498,7 +1498,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         Cec4_ManSimulate( p, pMan );
         if ( pPars->fCheckMiter && !Cec4_ManSimulateCos(p) ) // cex detected
             goto finalize;
-        if ( i % (pPars->nRounds / 5) == 0 && pPars->fVerbose )
+        if ( i && i % (pPars->nRounds / 5) == 0 && pPars->fVerbose )
             Cec4_ManPrintStats( p, pPars, pMan, 1 );
     }
 
@@ -1510,9 +1510,11 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         Cec4_ManSimulate( p, pMan );
         if ( pPars->fCheckMiter && !Cec4_ManSimulateCos(p) ) // cex detected
             goto finalize;
-        if ( pPars->fVerbose )
+        if ( i && i % 5 == 0 && pPars->fVerbose )
             Cec4_ManPrintStats( p, pPars, pMan, 1 );
     }
+    if ( i && i % 5 && pPars->fVerbose )
+        Cec4_ManPrintStats( p, pPars, pMan, 1 );
 
     p->iPatsPi = 0;
     pMan->nSatSat = 0;

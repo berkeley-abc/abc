@@ -609,7 +609,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
     for(i = 0;i<selectors.size();i++)  
       out_learnt.push(selectors[i]);       
 
-    out_learnt.copyTo(analyze_toclear);
+    out_learnt.copyTo_(analyze_toclear);
     if (ccmin_mode == 2){
         uint32_t abstract_level = 0;
         for (i = 1; i < out_learnt.size(); i++)

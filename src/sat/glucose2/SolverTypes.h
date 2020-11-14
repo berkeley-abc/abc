@@ -38,6 +38,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose2/Map.h"
 #include "sat/glucose2/Alloc.h"
 
+#include "sat/glucose2/CGlucose.h"
+
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace Gluco2 {
@@ -144,6 +146,10 @@ class Clause {
     union { Lit lit; float act; uint32_t abs; CRef rel; } data[0];
 
     friend class ClauseAllocator;
+
+    #ifdef CGLUCOSE_EXP
+    friend class Solver;
+    #endif
 
     // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
     template<class V>
@@ -306,9 +312,15 @@ class OccLists
     }
 
     void  clear(bool free = true){
-        occs   .clear(free);
-        dirty  .clear(free);
-        dirties.clear(free);
+        if(free){
+            occs   .clear(free);
+            dirty  .clear(free);
+            dirties.clear(free);
+        } else {
+            occs   .shrink_(occs   .size());
+            dirty  .shrink_(dirty  .size());
+            dirties.shrink_(dirties.size());
+        }
     }
 };
 

@@ -2395,6 +2395,14 @@ SOURCE=.\src\sat\glucose2\BoundedQueue.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\glucose2\CGlucose.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\glucose2\CGlucoseCore.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\glucose2\Constants.h
 # End Source File
 # Begin Source File

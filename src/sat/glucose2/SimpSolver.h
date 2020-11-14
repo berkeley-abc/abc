@@ -24,6 +24,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose2/Queue.h"
 #include "sat/glucose2/Solver.h"
 
+#include "sat/glucose2/CGlucose.h"
+
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace Gluco2 {

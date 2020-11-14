@@ -37,6 +37,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "sat/glucose2/BoundedQueue.h"
 #include "sat/glucose2/Constants.h"
 
+#include "sat/glucose2/CGlucose.h"
+
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace Gluco2 {
@@ -123,6 +125,7 @@ public:
     int     nVars      ()      const;       // The current number of variables.
     int     nFreeVars  ()      const;
     int *   getCex     ()      const;
+    int     level      (Var x) const;       // moved level() to public to compile "struct JustOrderLt" -- alanmi
 
     // Incremental mode
     void setIncrementalMode();
@@ -341,7 +344,6 @@ protected:
     int      decisionLevel    ()      const; // Gives the current decisionlevel.
     uint32_t abstractLevel    (Var x) const; // Used to represent an abstraction of sets of decision levels.
     CRef     reason           (Var x) const;
-    int      level            (Var x) const;
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
     bool     withinBudget     ()      const;
     inline bool isSelector(Var v) {return (incremental && v>nbVarsInitialFormula);}
@@ -359,6 +361,99 @@ protected:
     // Returns a random integer 0 <= x < size. Seed must never be 0.
     static inline int irand(double& seed, int size) {
         return (int)(drand(seed) * size); }
+
+
+    // circuit-based solver
+protected:
+    struct JustData { unsigned now: 1; double act_fanin; };
+    vec<JustData> jdata;
+    static inline JustData mkJustData(bool n){ JustData d = {n,0}; return d; }
+
+    struct JustOrderLt {
+        const Solver * pS;
+        bool operator () (Var x, Var y) const {
+            if( pS->justActivity(x) != pS->justActivity(y) )
+                return pS->justActivity(x) > pS->justActivity(y);
+            if( pS->level(x) != pS->level(y) )
+                return pS->level(x) < pS->level(y);
+            return x > y;
+        }
+        JustOrderLt(const Solver * _pS) : pS(_pS) { }
+    };
+
+    struct JustWatch { struct { unsigned dir:1; } header; Var head; Var next; Var prev; };
+    vec<JustWatch> jwatch;
+    static inline JustWatch mkJustWatch(){ JustWatch w = {0, var_Undef, var_Undef, var_Undef}; return w; }
+    void addJwatch( Var host, Var member );
+    void delJwatch( Var member );
+
+    vec<Lit> var2FaninLits; // (~0): undefine
+    vec<unsigned> var2TravId;
+    vec<Lit> var2Fanout0, var2FanoutN, var2FanoutP;
+    CRef itpc; // the interpreted clause of a gate 
+
+    bool isTwoFanin( Var v ) const ; // this var has two fanins 
+    Lit  getFaninLit0( Var v ) const { return var2FaninLits[ (v<<1) + 0 ]; }
+    Lit  getFaninLit1( Var v ) const { return var2FaninLits[ (v<<1) + 1 ]; }
+    bool getFaninC0( Var v )   const { return sign(getFaninLit0(v)); }
+    bool getFaninC1( Var v )   const { return sign(getFaninLit1(v)); }
+    Var  getFaninVar0( Var v ) const { return  var(getFaninLit0(v)); }
+    Var  getFaninVar1( Var v ) const { return  var(getFaninLit1(v)); }
+
+    Lit  maxActiveLit(Lit lit0, Lit lit1) const ;
+
+    Lit  fanin2JustLit(Var v) const ;
+    Lit  gateJustFanin(Var v) const ; // l_Undef=satisfied, 0/1 = fanin0/fanin1 requires justify
+    void gateAddJwatch(Var v);
+    CRef gatePropagateCheck( Var v, Var t );
+    CRef gatePropagateCheckThis( Var v );
+    CRef gatePropagateCheckFanout( Var v, Lit lfo );
+    void setItpcSize( int sz ); // sz <= 3
+
+    // directly call by original glucose functions 
+    void updateJustActivity( Var v );
+    void ResetJustData(bool fCleanMemory);
+    Lit  pickJustLit( Var& j_reason );
+    void justCheck();
+    void pushJustQueue(Var v);
+    void restoreJustQueue(int level); // call with cancelUntil
+    void gateClearJwatch( Var v, int backtrack_level );
+
+    CRef gatePropagate( Lit p );
+
+    CRef interpret( Var v, Var t );
+    CRef castCRef( Lit p );  // interpret a gate into a clause 
+    CRef getConfClause( CRef r );
+
+    CRef Var2CRef( Var  v  ) const { return v  |  (1<<(sizeof(CRef)*8-1)); }
+    Var  CRef2Var( CRef cr ) const { return cr & ~(1<<(sizeof(CRef)*8-1)); }
+    bool isGateCRef( CRef cr ) const { return CRef_Undef != cr && 0 != (cr & (1<<(sizeof(CRef)*8-1))); }
+
+    int64_t travId_prev, travId;
+
+    Heap<JustOrderLt> jheap;
+    /* jstack
+    call by unchecked_enqueue
+    consumed by pickJustLit
+    cleaned by cancelUntil
+    */
+    vec<Var> jstack;
+public:
+    void setVarFaninLits( Var v, Lit lit1, Lit lit2 );
+    //void delVarFaninLits( Var v);
+
+    int setNewRound(){ return travId ++ ; }
+    void markCone( Var v );
+    bool isRoundWatch( Var v ) const { return travId==var2TravId[v]; }
+
+
+    const JustData& getJustData(int v) const { return jdata[v]; }
+    double varActivity(int v) const { return activity[v];}
+    double justActivity(int v) const { return jdata[v].act_fanin;}
+    int varPolarity(int v){ return polarity[v]? 1: 0;}
+    vec<Lit> JustModel; // model obtained by justification enabled
+
+    int justUsage() const ;
 };
 
 
@@ -378,11 +473,24 @@ inline void Solver::varBumpActivity(Var v, double inc) {
         // Rescale:
         for (int i = 0; i < nVars(); i++)
             activity[i] *= 1e-100;
+        
+        if( justUsage() )
+            for (int i = 0; i < jheap.size(); i++){
+                Var j = jheap[i];
+                jdata[j].act_fanin = activity[getFaninVar0(j)] > activity[getFaninVar1(j)]? activity[getFaninVar0(j)]: activity[getFaninVar1(j)];
+            }
         var_inc *= 1e-100; }
 
     // Update order_heap with respect to new activity:
     if (order_heap.inHeap(v))
-        order_heap.decrease(v); }
+        order_heap.decrease(v); 
+
+    #ifdef CGLUCOSE_EXP
+    if( justUsage() )
+        updateJustActivity(v);
+
+    #endif
+}
 
 inline void Solver::claDecayActivity() { cla_inc *= (1 / clause_decay); }
 inline void Solver::claBumpActivity (Clause& c) {
@@ -405,14 +513,27 @@ inline bool     Solver::addClause       (Lit p)                 { add_tmp.clear(
 inline bool     Solver::addClause       (Lit p, Lit q)          { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); return addClause_(add_tmp); }
 inline bool     Solver::addClause       (Lit p, Lit q, Lit r)   { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); add_tmp.push(r); return addClause_(add_tmp); }
 inline bool     Solver::locked          (const Clause& c) const { 
+   #ifdef CGLUCOSE_EXP
+
+    if(c.size()>2) 
+     return value(c[0]) == l_True && reason(var(c[0])) != CRef_Undef && !isGateCRef(reason(var(c[0]))) && ca.lea(reason(var(c[0]))) == &c; 
+   return 
+     (value(c[0]) == l_True && reason(var(c[0])) != CRef_Undef && !isGateCRef(reason(var(c[0]))) && ca.lea(reason(var(c[0]))) == &c)
+     || 
+     (value(c[1]) == l_True && reason(var(c[1])) != CRef_Undef && !isGateCRef(reason(var(c[1]))) && ca.lea(reason(var(c[1]))) == &c);
+
+   #else
+   
    if(c.size()>2) 
      return value(c[0]) == l_True && reason(var(c[0])) != CRef_Undef && ca.lea(reason(var(c[0]))) == &c; 
    return 
      (value(c[0]) == l_True && reason(var(c[0])) != CRef_Undef && ca.lea(reason(var(c[0]))) == &c)
      || 
      (value(c[1]) == l_True && reason(var(c[1])) != CRef_Undef && ca.lea(reason(var(c[1]))) == &c);
+
+   #endif
  }
-inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); }
+inline void     Solver::newDecisionLevel()                      {trail_lim.push(trail.size());}
 
 inline int      Solver::decisionLevel ()      const   { return trail_lim.size(); }
 inline uint32_t Solver::abstractLevel (Var x) const   { return 1 << (level(x) & 31); }
@@ -463,9 +584,9 @@ inline void     Solver::toDimacs      (const char* file, Lit p, Lit q, Lit r){ v
 
 inline void     Solver::addVar(Var v) { while (v >= nVars()) newVar(); }
 
-inline void     Solver::sat_solver_set_var_fanin_lit(int var, int lit0, int lit1) {}  
-inline void     Solver::sat_solver_start_new_round()  {}  
-inline void     Solver::sat_solver_mark_cone(int var) {}  
+inline void     Solver::sat_solver_set_var_fanin_lit(int v, int lit0, int lit1) { setVarFaninLits( Var(v), toLit(lit0), toLit(lit1) ); }
+inline void     Solver::sat_solver_start_new_round()  { setNewRound(); }
+inline void     Solver::sat_solver_mark_cone(int v) { markCone(v); }
 
 //=================================================================================================
 // Debug etc:
@@ -501,6 +622,9 @@ inline void Solver::printInitialClause(CRef cr)
 //=================================================================================================
 }
 
+
 ABC_NAMESPACE_CXX_HEADER_END
+
+#include "sat/glucose2/CGlucoseCore.h"
 
 #endif

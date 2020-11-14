@@ -68,6 +68,7 @@ SimpSolver::SimpSolver() :
     ca.extra_clause_field = true; // NOTE: must happen before allocating the dummy clause below.
     bwdsub_tmpunit        = ca.alloc(dummy);
     remove_satisfied      = false;
+    parsing               = 0;
 }
 
 

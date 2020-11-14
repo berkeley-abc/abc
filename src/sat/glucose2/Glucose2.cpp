@@ -26,13 +26,14 @@ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FO
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
-
 #include <math.h>
 
 #include "sat/glucose2/Sort.h"
-#include "sat/glucose2/Solver.h"
 #include "sat/glucose2/Constants.h"
 #include "sat/glucose2/System.h"
+#include "sat/glucose2/Solver.h"
+
+#include "sat/glucose2/CGlucose.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -40,7 +41,7 @@ using namespace Gluco2;
 
 //=================================================================================================
 // Options:
-
+namespace Gluco2 {
 static const char* _cat = "CORE";
 static const char* _cr = "CORE -- RESTART";
 static const char* _cred = "CORE -- REDUCE";
@@ -79,9 +80,9 @@ static DoubleOption  opt_restart_inc       (_cat, "rinc",        "Restart interv
 static DoubleOption  opt_garbage_frac      (_cat, "gc-frac",     "The fraction of wasted memory allowed before a garbage collection is triggered",           0.20, DoubleRange(0, false, HUGE_VAL, false));
 
 
-BoolOption    opt2_certified_      (_certified, "certified",         "Certified UNSAT using DRUP format", false );
-StringOption  opt2_certified_file_ (_certified, "certified-output",  "Certified UNSAT output file",       "NULL");
-
+BoolOption    opt_certified_      (_certified, "certified",         "Certified UNSAT using DRUP format", false );
+StringOption  opt_certified_file_ (_certified, "certified-output",  "Certified UNSAT output file",       "NULL");
+};
 
 //=================================================================================================
 // Constructor/Destructor:
@@ -121,7 +122,7 @@ Solver::Solver() :
   , rnd_init_act     (opt_rnd_init_act)
   , garbage_frac     (opt_garbage_frac)
   , certifiedOutput  (NULL)
-  , certifiedUNSAT   (opt2_certified_) 
+  , certifiedUNSAT   (opt_certified_) 
     // Statistics: (formerly in 'SolverStats')
     //
   ,  nbRemovedClauses(0),nbReducedClauses(0), nbDL2(0),nbBin(0),nbUn(0) , nbReduceDB(0)
@@ -148,8 +149,13 @@ Solver::Solver() :
   , asynch_interrupt   (false)
   , incremental(opt_incremental)
   , nbVarsInitialFormula(INT32_MAX)
+
+  #ifdef CGLUCOSE_EXP
+  , jheap         (JustOrderLt(this))
+  #endif
 {
   MYFLAG=0;  
+
   // Initialize only first time. Useful for incremental solving, useless otherwise
   lbdQueue.initSize(sizeLBDQueue);
   trailQueue.initSize(sizeTrailQueue);
@@ -160,13 +166,24 @@ Solver::Solver() :
 
 
   if(certifiedUNSAT) {
-    if(!strcmp(opt2_certified_file_,"NULL")) {
+    if(!strcmp(opt_certified_file_,"NULL")) {
       certifiedOutput =  fopen("/dev/stdout", "wb");
     } else {
-      certifiedOutput =  fopen(opt2_certified_file_, "wb");           
+      certifiedOutput =  fopen(opt_certified_file_, "wb");           
     }
     //    fprintf(certifiedOutput,"o proof DRUP\n");
   }
+
+  #ifdef CGLUCOSE_EXP
+  travId = 0;
+  travId_prev = 0;
+
+  // allocate space for clause interpretation 
+  vec<Lit> tmp; tmp.growTo(3); 
+  itpc = ca.alloc(tmp);
+  ca[itpc].shrink( ca[itpc].size() );
+
+  #endif
 }
 
 
@@ -216,6 +233,19 @@ Var Solver::newVar(bool sign, bool dvar)
     decision .push();
     trail    .capacity(v+1);
     setDecisionVar(v, dvar);
+
+    #ifdef CGLUCOSE_EXP
+    //jreason  .capacity(v+1);
+    if( justUsage() ){
+      jdata    .push(mkJustData(false));
+      jwatch   .push(mkJustWatch());
+      var2FanoutN.growTo( nVars()<<1, toLit(~0));
+      //var2FanoutP.growTo( nVars()<<1, toLit(~0));
+      var2Fanout0.growTo( nVars(), toLit(~0));
+      var2TravId .growTo( nVars(), 0);
+    }
+    #endif
+
     return v;
 }
 
@@ -460,7 +490,7 @@ void Solver::minimisationWithBinaryResolution(vec<Lit> &out_learnt) {
         }
       }
       
-      out_learnt.shrink(nb);
+      out_learnt.shrink_(nb);
       
     }
   }
@@ -470,6 +500,7 @@ void Solver::minimisationWithBinaryResolution(vec<Lit> &out_learnt) {
 //
 void Solver::cancelUntil(int level) {
     if (decisionLevel() > level){
+
         for (int c = trail.size()-1; c >= trail_lim[level]; c--){
             Var      x  = var(trail[c]);
             assigns [x] = l_Undef;
@@ -477,9 +508,25 @@ void Solver::cancelUntil(int level) {
                 polarity[x] = sign(trail[c]);
             insertVarOrder(x); }
         qhead = trail_lim[level];
-        trail.shrink(trail.size() - trail_lim[level]);
-        trail_lim.shrink(trail_lim.size() - level);
-    } 
+
+
+
+        #ifdef CGLUCOSE_EXP
+        if( 0 < justUsage() ){
+          for (int c = trail.size()-1; c >= trail_lim[level]; c--){
+              Var      x  = var(trail[c]);
+
+              gateClearJwatch(x, level);
+
+              jdata[x].now = false;
+          }
+        }
+        #endif
+
+        trail.shrink_(trail.size() - trail_lim[level]);
+        trail_lim.shrink_(trail_lim.size() - level);
+        jstack.shrink_( jstack.size() );
+    }
 }
 
 
@@ -528,6 +575,8 @@ Lit Solver::pickBranchLit()
 |________________________________________________________________________________________________@*/
 void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& out_btlevel,unsigned int &lbd,unsigned int &szWithoutSelectors)
 {
+    //double clk = Abc_Clock();
+
     int pathC = 0;
     Lit p     = lit_Undef;
 
@@ -535,10 +584,15 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
     //
     out_learnt.push();      // (leave room for the asserting literal)
     int index   = trail.size() - 1;
-
+    
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
+
+      #ifdef CGLUCOSE_EXP
+        Clause& c = ca[ lit_Undef != p ? castCRef(p): getConfClause(confl) ];
+      #else
         Clause& c = ca[confl];
+      #endif
 
         // Special case for binary clauses
         // The first one has to be SAT
@@ -554,7 +608,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
 
 #ifdef DYNAMICNBLEVEL               
         // DYNAMIC NBLEVEL trick (see competition'09 companion paper)
-        if(c.learnt()  && c.lbd()>2) { 
+        if(c.learnt()  && c.lbd()>2) {
           unsigned int nblevels = computeLBD(c);
           if(nblevels+1<c.lbd() ) { // improve the LBD
             if(c.lbd()<=lbLBDFrozenClause) {
@@ -578,8 +632,14 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
                 pathC++;
 #ifdef UPDATEVARACTIVITY
                 // UPDATEVARACTIVITY trick (see competition'09 companion paper)
+        #ifdef CGLUCOSE_EXP
+                if(!isSelector(var(q)) && (reason(var(q))!= CRef_Undef)  
+                  && ! isGateCRef(reason(var(q))) && ca[reason(var(q))].learnt()) 
+                  lastDecisionLevel.push(q);
+        #else
                 if(!isSelector(var(q)) && (reason(var(q))!= CRef_Undef)  && ca[reason(var(q))].learnt()) 
                   lastDecisionLevel.push(q);
+        #endif
 #endif
                 
               } else {
@@ -609,7 +669,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
     for(i = 0;i<selectors.size();i++)  
       out_learnt.push(selectors[i]);       
 
-    out_learnt.copyTo(analyze_toclear);
+    out_learnt.copyTo_(analyze_toclear);
     if (ccmin_mode == 2){
         uint32_t abstract_level = 0;
         for (i = 1; i < out_learnt.size(); i++)
@@ -626,7 +686,11 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
             if (reason(x) == CRef_Undef)
                 out_learnt[j++] = out_learnt[i];
             else{
+                #ifdef CGLUCOSE_EXP
+                Clause& c = ca[castCRef(out_learnt[i])];
+                #else
                 Clause& c = ca[reason(var(out_learnt[i]))];
+                #endif
                 // Thanks to Siert Wieringa for this bug fix!
                 for (int k = ((c.size()==2) ? 0:1); k < c.size(); k++)
                     if (!seen[var(c[k])] && level(var(c[k])) > 0){
@@ -638,7 +702,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
         i = j = out_learnt.size();
 
     max_literals += out_learnt.size();
-    out_learnt.shrink(i - j);
+    out_learnt.shrink_(i - j);
     tot_literals += out_learnt.size();
 
 
@@ -687,8 +751,16 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
   // UPDATEVARACTIVITY trick (see competition'09 companion paper)
   if(lastDecisionLevel.size()>0) {
     for(int i = 0;i<lastDecisionLevel.size();i++) {
+
+      #ifdef CGLUCOSE_EXP
+      Lit t = lastDecisionLevel[i];
+      if( isGateCRef(reason(var(t))) || ca[reason(var(t))].lbd()<lbd )
+          varBumpActivity(var(lastDecisionLevel[i]));
+      #else
       if(ca[reason(var(lastDecisionLevel[i]))].lbd()<lbd)
-        varBumpActivity(var(lastDecisionLevel[i]));
+          varBumpActivity(var(lastDecisionLevel[i]));
+      #endif
+
     }
     lastDecisionLevel.clear();
   } 
@@ -698,6 +770,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
 
   for (j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
   for(j = 0 ; j<selectors.size() ; j++) seen[var(selectors[j])] = 0;  
+
 }
 
 
@@ -709,7 +782,11 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
     int top = analyze_toclear.size();
     while (analyze_stack.size() > 0){
         assert(reason(var(analyze_stack.last())) != CRef_Undef);
+        #ifdef CGLUCOSE_EXP
+        Clause& c = ca[castCRef(analyze_stack.last())]; analyze_stack.pop();
+        #else
         Clause& c = ca[reason(var(analyze_stack.last()))]; analyze_stack.pop();
+        #endif
         if(c.size()==2 && value(c[0])==l_False) {
           assert(value(c[1])==l_True);
           Lit tmp = c[0];
@@ -726,7 +803,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
                 }else{
                     for (int j = top; j < analyze_toclear.size(); j++)
                         seen[var(analyze_toclear[j])] = 0;
-                    analyze_toclear.shrink(analyze_toclear.size() - top);
+                    analyze_toclear.shrink_(analyze_toclear.size() - top);
                     return false;
                 }
             }
@@ -763,7 +840,11 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
                 assert(level(x) > 0);
                 out_conflict.push(~trail[i]);
             }else{
+              #ifdef CGLUCOSE_EXP
+                Clause& c = ca[castCRef(trail[i])];
+              #else
                 Clause& c = ca[reason(x)];
+              #endif
                 //                for (int j = 1; j < c.size(); j++) Minisat (glucose 2.0) loop 
                 // Bug in case of assumptions due to special data structures for Binary.
                 // Many thanks to Sam Bayless (sbayless@cs.ubc.ca) for discover this bug.
@@ -779,13 +860,20 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
     seen[var(p)] = 0;
 }
 
-
 void Solver::uncheckedEnqueue(Lit p, CRef from)
 {
     assert(value(p) == l_Undef);
     assigns[var(p)] = lbool(!sign(p));
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
+    #ifdef CGLUCOSE_EXP
+    if( 0 < justUsage() ){
+        jdata[var(p)] = mkJustData( l_False == value(var(p)) );
+        if(isTwoFanin(var(p)) && l_False == value(var(p)))
+          if(l_Undef == value( getFaninVar0(var(p)) ) && l_Undef == value( getFaninVar1(var(p)) ))
+            jstack.push(var(p));
+        }
+    #endif
 }
 
 
@@ -811,7 +899,19 @@ CRef Solver::propagate()
         vec<Watcher>&  ws  = watches[p];
         Watcher        *i, *j, *end;
         num_props++;
-        
+
+        #ifdef CGLUCOSE_EXP
+        if( 2 <= justUsage() ){
+          CRef stats;
+          if( CRef_Undef != (stats = gatePropagate(p)) ){
+            confl = stats;
+            if( l_True == value(var(p)) )
+              return confl;
+            
+          }
+        }
+        #endif
+
         // First, Propagate binary clauses 
         vec<Watcher>&  wbin  = watchesBin[p];
         for(int k = 0;k<wbin.size();k++) {
@@ -823,6 +923,8 @@ CRef Solver::propagate()
             uncheckedEnqueue(imp,wbin[k].cref);
           }
         }
+
+
 
         for (i = j = (Watcher*)ws, end = i + ws.size();  i != end;){
             // Try to avoid inspecting the clause:
@@ -897,9 +999,13 @@ CRef Solver::propagate()
     }
     propagations += num_props;
     simpDB_props -= num_props;
-    
+
     return confl;
 }
+
+
+
+
 
 
 /*_________________________________________________________________________________________________
@@ -1044,24 +1150,25 @@ lbool Solver::search(int nof_conflicts)
     unsigned int nblevels,szWoutSelectors;
     bool blocked=false;
     starts++;
+
     for (;;){
         CRef confl = propagate();
         if (confl != CRef_Undef){
+
             // CONFLICT
           conflicts++; conflictC++;conflictsRestarts++;
           if(conflicts%5000==0 && var_decay<0.95)
             var_decay += 0.01;
 
           if (verbosity >= 1 && conflicts%verbEveryConflicts==0){
-            printf("c | %8d   %7d    %5d | %7d %8d %8d | %5d %8d   %6d %8d | %6.3f %% |\n", 
+            printf("c | %8d   %7d    %5d | %7d %8d %8d | %5d %8d   %6d %8d | %6.3f %% \n", 
                    (int)starts,(int)nbstopsrestarts, (int)(conflicts/starts), 
                    (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int)clauses_literals, 
                    (int)nbReduceDB, nLearnts(), (int)nbDL2,(int)nbRemovedClauses, progressEstimate()*100);
           }
-          if (decisionLevel() == 0) {
+          if (decisionLevel() == 0) 
             return l_False;
-            
-          }
+
 
           trailQueue.push(trail.size());
           // BLOCK RESTART (CP 2012 paper)
@@ -1077,9 +1184,7 @@ lbool Solver::search(int nof_conflicts)
 
             lbdQueue.push(nblevels);
             sumLBD += nblevels;
- 
             cancelUntil(backtrack_level);
-
             if (certifiedUNSAT) {
               for (int i = 0; i < learnt_clause.size(); i++)
                 fprintf(certifiedOutput, "%i " , (var(learnt_clause[i]) + 1) *
@@ -1104,9 +1209,7 @@ lbool Solver::search(int nof_conflicts)
             varDecayActivity();
             claDecayActivity();
 
-           
         }else{
-
           // Our dynamic restart, see the SAT09 competition compagnion paper 
           if ( (conflictsRestarts && lbdQueue.isvalid() && lbdQueue.getavg()*K > sumLBD/conflictsRestarts) || (pstop && *pstop) ) {
             lbdQueue.fastclear();
@@ -1149,13 +1252,26 @@ lbool Solver::search(int nof_conflicts)
                 }
             }
 
+            #ifdef CGLUCOSE_EXP
+            // pick from JustQueue
+            Var j_reason = -1;
+            if (0 < justUsage())
+            if ( next == lit_Undef ){
+              decisions++;
+              next = pickJustLit( j_reason );
+              if(next == lit_Undef)
+                return l_True;
+              addJwatch(var(next), j_reason);
+              
+            }
+            #endif
+
             if (next == lit_Undef){
                 // New variable decision:
                 decisions++;
                 next = pickBranchLit();
 
                 if (next == lit_Undef){
-                  //printf("c last restart ## conflicts  :  %d %d \n",conflictC,decisionLevel());
                   // Model found:
                   return l_True;
                 }
@@ -1167,6 +1283,7 @@ lbool Solver::search(int nof_conflicts)
         }
     }
 }
+
 
 
 double Solver::progressEstimate() const
@@ -1209,19 +1326,31 @@ void Solver::printIncrementalStats() {
 lbool Solver::solve_()
 {
 
+    #ifdef CGLUCOSE_EXP
+    ResetJustData(false);
+
+    if( 0 < justUsage() )
+      for(int i=0; i<trail.size(); i++){ // learnt unit clauses 
+        Var v = var(trail[i]);
+          if( isTwoFanin(v) && value(v) == l_False )
+            jstack.push(v);
+      }
+    #endif
+
   if(incremental && certifiedUNSAT) {
     printf("Can not use incremental and certified unsat in the same time\n");
     exit(-1);
   }
-    model.clear();
-    conflict.clear();
-    if (!ok) return l_False;
+    JustModel.shrink_(JustModel.size());
+    model.shrink_(model.size());
+    conflict.shrink_(conflict.size());
+    if (!ok){
+      travId_prev = travId;
+      return l_False;
+    }
     double curTime = cpuTime();
-
     
     solves++;
-            
-
     
     lbool   status        = l_Undef;
     if(!incremental && verbosity>=1) {
@@ -1240,7 +1369,7 @@ printf("c ==================================[ Search Statistics (every %6d confl
       printf("c |                                                                                                       |\n"); 
 
       printf("c |          RESTARTS           |          ORIGINAL         |              LEARNT              | Progress |\n");
-      printf("c |       NB   Blocked  Avg Cfc |    Vars  Clauses Literals |   Red   Learnts    LBD2  Removed |          |\n");
+      printf("c |       NB   Blocked  Avg Cfc |    Vars  Clauses Literals |   Red   Learnts    LBD2  Removed |          | pol-inconsist\n");
       printf("c =========================================================================================================\n");
     }
 
@@ -1265,11 +1394,28 @@ printf("c ==================================[ Search Statistics (every %6d confl
 
 
     if (status == l_True){
-        // Extend & copy model:
-        model.growTo(nVars());
-        for (int i = 0; i < nVars(); i++) model[i] = value(i);
+
+        if( justUsage() && false ){
+          assert(jheap.empty());
+          //JustModel.growTo(nVars());
+          int i = 0;
+          JustModel.push(toLit(0));
+          for (; i < trail.size(); i++) 
+            if( isRoundWatch(var(trail[i])) && !isTwoFanin(var(trail[i])) )
+              JustModel.push(trail[i]);
+          JustModel[0] = toLit(i);
+        } else {
+          // Extend & copy model:
+          model.growTo(nVars());
+          for (int i = 0; i < trail.size(); i++) model[ var(trail[i]) ] = value(var(trail[i]));
+        }
     }else if (status == l_False && conflict.size() == 0)
         ok = false;
+
+    //#ifdef CGLUCOSE_EXP
+    //if(status == l_True && 0 < justUsage())
+    //  justCheck();
+    //#endif
 
     cancelUntil(0);
 
@@ -1299,6 +1445,7 @@ printf("c ==================================[ Search Statistics (every %6d confl
     else if (pCnfFunc)
         terminate_search_early = false; // for next run
 
+    travId_prev = travId;
     return status;
 }
 
@@ -1385,6 +1532,12 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 
 void Solver::relocAll(ClauseAllocator& to)
 {
+    #ifdef CGLUCOSE_EXP
+    if( CRef_Undef != itpc ){
+      setItpcSize(3);
+      ca.reloc(itpc, to);
+    }
+    #endif
     int v, s, i, j;
     // All watchers:
     //
@@ -1408,6 +1561,10 @@ void Solver::relocAll(ClauseAllocator& to)
     for (i = 0; i < trail.size(); i++){
         Var v = var(trail[i]);
 
+        #ifdef CGLUCOSE_EXP
+        if( isGateCRef(reason(v)) )
+          continue;
+        #endif
         if (reason(v) != CRef_Undef && (ca[reason(v)].reloced() || locked(ca[reason(v)])))
             ca.reloc(vardata[v].reason, to);
     }
@@ -1477,27 +1634,55 @@ void Solver::reset()
     learnts.clear(false);
     //permanentLearnts.clear(false);
     //unaryWatchedClauses.clear(false);
-    model.clear(false);
-    conflict.clear(false);
-    activity.clear(false);
-    assigns.clear(false);
-    polarity.clear(false);
+    model   .shrink_(model   .size());
+    conflict.shrink_(conflict.size());
+    activity.shrink_(activity.size());
+    assigns .shrink_(assigns .size());
+    polarity.shrink_(polarity.size());
     //forceUNSAT.clear(false);
-    decision.clear(false);
-    trail.clear(false);
-    nbpos.clear(false);
-    trail_lim.clear(false);
-    vardata.clear(false);
-    assumptions.clear(false);
-    permDiff.clear(false);
-    lastDecisionLevel.clear(false);
+    decision   .shrink_(decision   .size());
+    trail      .shrink_(trail      .size());
+    trail_lim  .shrink_(trail_lim  .size());
+    vardata    .shrink_(vardata    .size());
+    assumptions.shrink_(assumptions.size());
+    nbpos      .shrink_(nbpos      .size());
+    permDiff   .shrink_(permDiff   .size());
+    #ifdef UPDATEVARACTIVITY
+    lastDecisionLevel.shrink_(lastDecisionLevel.size());
+    #endif
     ca.clear();
-    seen.clear(false);
-    analyze_stack.clear(false);
-    analyze_toclear.clear(false);
+    seen           .shrink_(seen.size());
+    analyze_stack  .shrink_(analyze_stack  .size());
+    analyze_toclear.shrink_(analyze_toclear.size());
     add_tmp.clear(false);
     assumptionPositions.clear(false);
     initialPositions.clear(false);
+
+    #ifdef CGLUCOSE_EXP
+
+    ResetJustData(false);
+
+    jwatch.shrink_(jwatch.size());
+    jdata .shrink_(jdata .size());
+
+
+    travId = 0;
+    travId_prev = 0;
+    var2TravId   .shrink_(var2TravId.size());
+    JustModel    .shrink_(JustModel .size());
+
+    var2FaninLits.shrink_(var2FaninLits.size());
+    var2Fanout0  .shrink_(var2Fanout0  .size());
+    var2FanoutN  .shrink_(var2FanoutN  .size());
+    //var2FanoutP.clear(false);
+    if( CRef_Undef != itpc ){
+      itpc = CRef_Undef;       // clause allocator has been cleared, do not worry 
+      // allocate space for clause interpretation 
+      vec<Lit> tmp; tmp.growTo(3); 
+      itpc = ca.alloc(tmp);
+      ca[itpc].shrink( ca[itpc].size() );
+    }
+    #endif
 }
 
 ABC_NAMESPACE_IMPL_END
