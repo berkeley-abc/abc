@@ -36292,13 +36292,13 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ManFraSetDefaultParams( pPars );
     pPars->jType          =       0;    // solver type
     pPars->fSatSweeping   =       1;    // conflict limit at a node
-    pPars->nWords         =       4;    // simulation words
-    pPars->nRounds        =     250;    // simulation rounds
+    pPars->nWords         =       8;    // simulation words
+    pPars->nRounds        =      10;    // simulation rounds
     pPars->nItersMax      = 1000000;    // this is a miter
     pPars->nBTLimit       = 1000000;    // use logic cones
     pPars->nSatVarMax     =    1000;    // the max number of SAT variables before recycling SAT solver
     pPars->nCallsRecycle  =     500;    // calls to perform before recycling SAT solver
-    pPars->nGenIters      =       5;    // pattern generation iterations
+    pPars->nGenIters      =     100;    // pattern generation iterations
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCPrmdckngxwvh" ) ) != EOF )
     {
