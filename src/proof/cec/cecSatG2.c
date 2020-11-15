@@ -94,6 +94,9 @@ struct Cec4_Man_t_
     Vec_Int_t *      vCands;
     Vec_Int_t *      vVisit;
     Vec_Int_t *      vPat;
+    Vec_Bit_t *      vFails;
+    int              iPosRead;       // candidate reading position
+    int              iPosWrite;      // candidate writing position
     int              iLastConst;     // last const node proved
     // refinement
     Vec_Int_t *      vRefClasses;
@@ -128,7 +131,7 @@ struct Cec4_Man_t_
 };
 
 static inline int    Cec4_ObjSatId( Gia_Man_t * p, Gia_Obj_t * pObj )             { return Gia_ObjCopy2Array(p, Gia_ObjId(p, pObj));                                                     }
-static inline int    Cec4_ObjSetSatId( Gia_Man_t * p, Gia_Obj_t * pObj, int Num ) { assert(Cec4_ObjSatId(p, pObj) == -1); Gia_ObjSetCopy2Array(p, Gia_ObjId(p, pObj), Num); Vec_IntPush(&p->vSuppVars, Gia_ObjId(p, pObj)); if ( Gia_ObjIsCi(pObj) ) Vec_IntPushTwo(&p->vCopiesTwo, Gia_ObjId(p, pObj), Num); return Num;  }
+static inline int    Cec4_ObjSetSatId( Gia_Man_t * p, Gia_Obj_t * pObj, int Num ) { assert(Cec4_ObjSatId(p, pObj) == -1); Gia_ObjSetCopy2Array(p, Gia_ObjId(p, pObj), Num); Vec_IntPush(&p->vSuppVars, Gia_ObjId(p, pObj)); if ( Gia_ObjIsCi(pObj) ) Vec_IntPushTwo(&p->vCopiesTwo, Gia_ObjId(p, pObj), Num); assert(Vec_IntSize(&p->vVarMap) == Num); Vec_IntPush(&p->vVarMap, Gia_ObjId(p, pObj)); return Num;  }
 static inline void   Cec4_ObjCleanSatId( Gia_Man_t * p, Gia_Obj_t * pObj )        { assert(Cec4_ObjSatId(p, pObj) != -1); Gia_ObjSetCopy2Array(p, Gia_ObjId(p, pObj), -1);               }
 
 ////////////////////////////////////////////////////////////////////////
@@ -161,9 +164,10 @@ Cec4_Man_t * Cec4_ManCreate( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     p->vCexMin       = Vec_IntAlloc( 100 );
     p->vClassUpdates = Vec_IntAlloc( 100 );
     p->vCexStamps    = Vec_IntStart( Gia_ManObjNum(pAig) );
-    //p->vCands        = Vec_IntAlloc( 100 );
+    p->vCands        = Vec_IntAlloc( 100 );
     p->vVisit        = Vec_IntAlloc( 100 );
     p->vPat          = Vec_IntAlloc( 100 );
+    p->vFails        = Vec_BitStart( Gia_ManObjNum(pAig) );
     //pAig->pData     = p->pSat; // point AIG manager to the solver
     return p;
 }
@@ -203,6 +207,7 @@ void Cec4_ManDestroy( Cec4_Man_t * p )
     Vec_IntFreeP( &p->vCands );
     Vec_IntFreeP( &p->vVisit );
     Vec_IntFreeP( &p->vPat );
+    Vec_BitFreeP( &p->vFails );
     Vec_IntFreeP( &p->vRefClasses );
     Vec_IntFreeP( &p->vRefNodes );
     Vec_IntFreeP( &p->vRefBins );
@@ -1170,54 +1175,67 @@ int Cec4_ManGeneratePatternOne( Gia_Man_t * p, int iRepr, int iReprVal, int iCan
         pObj->fMark0 = pObj->fMark1 = 0;
     return Res;
 }
+void Cec4_ManCandIterStart( Cec4_Man_t * p )
+{
+    int i, * pArray;
+    assert( p->iPosWrite == 0 );
+    assert( p->iPosRead == 0 );
+    assert( Vec_IntSize(p->vCands) == 0 );
+    for ( i = 1; i < Gia_ManObjNum(p->pAig); i++ )
+        if ( Gia_ObjRepr(p->pAig, i) != GIA_VOID )
+            Vec_IntPush( p->vCands, i );
+    pArray = Vec_IntArray( p->vCands );
+    for ( i = 0; i < Vec_IntSize(p->vCands); i++ )
+    {
+        int iNew = Abc_Random(0) % Vec_IntSize(p->vCands);
+        ABC_SWAP( int, pArray[i], pArray[iNew] );
+    }
+}
+int Cec4_ManCandIterNext( Cec4_Man_t * p )
+{
+    while ( Vec_IntSize(p->vCands) > 0 )
+    {
+        int fStop, iCand = Vec_IntEntry( p->vCands, p->iPosRead );
+        if ( fStop = (Gia_ObjRepr(p->pAig, iCand) != GIA_VOID) )
+            Vec_IntWriteEntry( p->vCands, p->iPosWrite++, iCand );
+        if ( ++p->iPosRead == Vec_IntSize(p->vCands) )
+        {
+            Vec_IntShrink( p->vCands, p->iPosWrite );
+            p->iPosWrite = 0;
+            p->iPosRead = 0;
+        }
+        if ( fStop )
+            return iCand;
+    }
+    return 0;
+}
 int Cec4_ManGeneratePatterns( Cec4_Man_t * p )
 {
     abctime clk = Abc_Clock();
-    int i, nPats = 64 * p->pAig->nSimWords, Count = 0, Packs = 0;
-    // collect candidate nodes
-    if ( p->pPars->nGenIters )
-    {
-        if ( p->vCands == NULL )
-        {
-            p->vCands = Vec_IntAlloc( Gia_ManObjNum(p->pAig)/2 );
-            for ( i = 1; i < Gia_ManObjNum(p->pAig); i++ )
-                if ( Gia_ObjRepr(p->pAig, i) != GIA_VOID )
-                    Vec_IntPush( p->vCands, i );
-        }
-        else
-        {
-            int iObj, k = 0;
-            Vec_IntForEachEntry( p->vCands, iObj, i )
-                if ( Gia_ObjRepr(p->pAig, iObj) != GIA_VOID )
-                    Vec_IntWriteEntry( p->vCands, k++, iObj );
-            Vec_IntShrink( p->vCands, k );
-            assert( Vec_IntSize(p->vCands) > 0 );
-        }
-    }
+    int i, iCand, nPats = 64 * p->pAig->nSimWords, Count = 0, Packs = 0;
     p->pAig->iPatsPi = 0;
     Vec_WrdFill( p->pAig->vSimsPi, Vec_WrdSize(p->pAig->vSimsPi), 0 );
-    // generate the given number of patterns
     for ( i = 0; i < 100 * nPats; i++ )
-    {
-        int iCand    = Vec_IntEntry( p->vCands, Abc_Random(0) % Vec_IntSize(p->vCands) );
-        int iRepr    = Gia_ObjRepr( p->pAig, iCand );
-        int iCandVal = Gia_ManObj(p->pAig, iCand)->fPhase;
-        int iReprVal = Gia_ManObj(p->pAig, iRepr)->fPhase;
-        int Res = Cec4_ManGeneratePatternOne( p->pAig, iRepr,  iReprVal, iCand, !iCandVal, p->vPat, p->vVisit );
-        if ( !Res )
-            Res = Cec4_ManGeneratePatternOne( p->pAig, iRepr, !iReprVal, iCand,  iCandVal, p->vPat, p->vVisit );
-        if ( Res )
+        if ( (iCand = Cec4_ManCandIterNext(p)) )
         {
-            int Ret = Cec4_ManPackAddPattern( p->pAig, p->vPat );
-            Packs += Ret;
-            if ( Ret == 64 * p->pAig->nSimWords )
-                break;
-            if ( ++Count == 4 * 64 * p->pAig->nSimWords )
-                break;
-            //Cec4_ManCexVerify( p->pAig, iRepr, iCand, iReprVal ^ iCandVal );
-            //Gia_ManCleanMark01( p->pAig );
+            int iRepr    = Gia_ObjRepr( p->pAig, iCand );
+            int iCandVal = Gia_ManObj(p->pAig, iCand)->fPhase;
+            int iReprVal = Gia_ManObj(p->pAig, iRepr)->fPhase;
+            int Res = Cec4_ManGeneratePatternOne( p->pAig, iRepr,  iReprVal, iCand, !iCandVal, p->vPat, p->vVisit );
+            if ( !Res )
+                Res = Cec4_ManGeneratePatternOne( p->pAig, iRepr, !iReprVal, iCand,  iCandVal, p->vPat, p->vVisit );
+            if ( Res )
+            {
+                int Ret = Cec4_ManPackAddPattern( p->pAig, p->vPat );
+                Packs += Ret;
+                if ( Ret == 64 * p->pAig->nSimWords )
+                    break;
+                if ( ++Count == 4 * 64 * p->pAig->nSimWords )
+                    break;
+                //Cec4_ManCexVerify( p->pAig, iRepr, iCand, iReprVal ^ iCandVal );
+                //Gia_ManCleanMark01( p->pAig );
+            }
         }
-    }
     p->nSatSat += Count;
     //printf( "%3d : %6.2f %% : Generated %d CEXs after trying %d pairs. Ave tries = %.2f. Ave packs = %.2f\n", p->nItersSim++, 100.0*Vec_IntSize(p->vCands)/Gia_ManAndNum(p->pAig),
     //    Count, 100 * nPats, (float)p->pPars->nGenIters * nPats / Abc_MaxInt(1, Count), (float)Packs / Abc_MaxInt(1, Count) );
@@ -1248,14 +1266,15 @@ void Cec4_ManSatSolverRecycle( Cec4_Man_t * p )
     // clean mapping of AigIds into SatIds
     Gia_ManForEachObjVec( &p->pNew->vSuppVars, p->pNew, pObj, i )
         Cec4_ObjCleanSatId( p->pNew, pObj );
-    Vec_IntClear( &p->pNew->vSuppVars );  // AigIds for which SatId is defined
-    Vec_IntClear( &p->pNew->vCopiesTwo ); // pairs (CiAigId, SatId)
+    Vec_IntClear( &p->pNew->vSuppVars  );  // AigIds for which SatId is defined
+    Vec_IntClear( &p->pNew->vCopiesTwo );  // pairs (CiAigId, SatId)
+    Vec_IntClear( &p->pNew->vVarMap    );  // mapping of SatId into AigId
 }
 int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pfEasy, int fVerbose )
 {
     abctime clk;
-    int nConfEnd, nConfBeg;
-    int status, iVar0, iVar1, Lits[2];
+    int nBTLimit = Vec_BitEntry(p->vFails, iObj0) || Vec_BitEntry(p->vFails, iObj1) ? p->pPars->nBTLimit/10 : p->pPars->nBTLimit;
+    int nConfEnd, nConfBeg, status, iVar0, iVar1, Lits[2];
     int UnsatConflicts[3] = {0};
     if ( iObj1 <  iObj0 ) 
          iObj1 ^= iObj0, iObj0 ^= iObj1, iObj1 ^= iObj0;
@@ -1282,7 +1301,7 @@ int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
     // perform solving
     Lits[0] = Abc_Var2Lit(iVar0, 1);
     Lits[1] = Abc_Var2Lit(iVar1, fPhase);
-    sat_solver_set_conflict_budget( p->pSat, p->pPars->nBTLimit );
+    sat_solver_set_conflict_budget( p->pSat, nBTLimit );
     nConfBeg = sat_solver_conflictnum( p->pSat );
     status = sat_solver_solve( p->pSat, Lits, 2 );
     nConfEnd = sat_solver_conflictnum( p->pSat );
@@ -1319,7 +1338,7 @@ int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
     {
         Lits[0] = Abc_Var2Lit(iVar0, 0);
         Lits[1] = Abc_Var2Lit(iVar1, !fPhase);
-        sat_solver_set_conflict_budget( p->pSat, p->pPars->nBTLimit );
+        sat_solver_set_conflict_budget( p->pSat, nBTLimit );
         nConfBeg = sat_solver_conflictnum( p->pSat );
         status = sat_solver_solve( p->pSat, Lits, 2 );
         nConfEnd = sat_solver_conflictnum( p->pSat );
@@ -1375,8 +1394,9 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
         }
         else
         {
+            int * pMap = Vec_IntArray(&p->pNew->vVarMap);
             for ( i = 0; i < pCex[0]; )
-                Vec_IntPush( p->vPat, Abc_LitNot(pCex[++i]) );
+                Vec_IntPush( p->vPat, Abc_Lit2LitV(pMap, Abc_LitNot(pCex[++i])) );
         }
         Vec_IntForEachEntry( p->vPat, iLit, i )
             Cec4_ObjSimSetInputBit( p->pAig, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit) );
@@ -1418,6 +1438,9 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
         p->nSatUndec++;
         assert( status == GLUCOSE_UNDEC );
         Gia_ObjSetFailed( p->pAig, iObj );
+        Vec_BitWriteEntry( p->vFails, iObj, 1 );
+        //if ( iRepr )
+        //Vec_BitWriteEntry( p->vFails, iRepr, 1 );
         p->timeSatUndec += Abc_Clock() - clk;
         RetValue = 2;
     }
@@ -1503,6 +1526,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     }
 
     // perform additional simulation
+    Cec4_ManCandIterStart( pMan );
     for ( i = 0; fSimulate && i < pPars->nGenIters; i++ )
     {
         Cec4_ManSimulateCis( p );
@@ -1521,10 +1545,13 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     pMan->pNew = Cec4_ManStartNew( p );
     Gia_ManForEachAnd( p, pObj, i )
     {
+        Gia_Obj_t * pObjNew; 
         pMan->nAndNodes++;
-        //Gia_Obj_t * pObjNew; 
         pObj->Value = Gia_ManHashAnd( pMan->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        //pObjNew = Gia_ManObj( pMan->pNew, Abc_Lit2Var(pObj->Value) );
+        pObjNew = Gia_ManObj( pMan->pNew, Abc_Lit2Var(pObj->Value) );
+        if ( Vec_BitEntry(pMan->vFails, Gia_ObjFaninId0(pObjNew, Abc_Lit2Var(pObj->Value))) || 
+             Vec_BitEntry(pMan->vFails, Gia_ObjFaninId1(pObjNew, Abc_Lit2Var(pObj->Value))) )
+            Vec_BitWriteEntry( pMan->vFails, Abc_Lit2Var(pObjNew->Value), 1 );
         //if ( Gia_ObjIsAnd(pObjNew) )
         //    Gia_ObjSetAndLevel( pMan->pNew, pObjNew );
         // select representative based on candidate equivalence classes
