@@ -1196,7 +1196,7 @@ int Cec4_ManCandIterNext( Cec4_Man_t * p )
     while ( Vec_IntSize(p->vCands) > 0 )
     {
         int fStop, iCand = Vec_IntEntry( p->vCands, p->iPosRead );
-        if ( fStop = (Gia_ObjRepr(p->pAig, iCand) != GIA_VOID) )
+        if ( (fStop = (Gia_ObjRepr(p->pAig, iCand) != GIA_VOID)) )
             Vec_IntWriteEntry( p->vCands, p->iPosWrite++, iCand );
         if ( ++p->iPosRead == Vec_IntSize(p->vCands) )
         {
@@ -1273,7 +1273,7 @@ void Cec4_ManSatSolverRecycle( Cec4_Man_t * p )
 int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pfEasy, int fVerbose )
 {
     abctime clk;
-    int nBTLimit = Vec_BitEntry(p->vFails, iObj0) || Vec_BitEntry(p->vFails, iObj1) ? p->pPars->nBTLimit/10 : p->pPars->nBTLimit;
+    int nBTLimit = (Vec_BitEntry(p->vFails, iObj0) || Vec_BitEntry(p->vFails, iObj1)) ? p->pPars->nBTLimit/10 : p->pPars->nBTLimit;
     int nConfEnd, nConfBeg, status, iVar0, iVar1, Lits[2];
     int UnsatConflicts[3] = {0};
     if ( iObj1 <  iObj0 ) 
@@ -1385,7 +1385,7 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
         assert( p->pAig->iPatsPi > 0 && p->pAig->iPatsPi < 64 * p->pAig->nSimWords );
         //Vec_IntForEachEntryDouble( &p->pNew->vCopiesTwo, IdAig, IdSat, i )
         //    Cec4_ObjSimSetInputBit( p->pAig, IdAig, sat_solver_read_cex_varvalue(p->pSat, IdSat) );
-        pCex = NULL;//sat_solver_read_cex( p->pSat );
+        pCex = sat_solver_read_cex( p->pSat );
         Vec_IntClear( p->vPat );
         if ( pCex == NULL )
         {

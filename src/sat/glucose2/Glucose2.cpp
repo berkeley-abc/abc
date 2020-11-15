@@ -1153,6 +1153,13 @@ lbool Solver::search(int nof_conflicts)
 
     for (;;){
         CRef confl = propagate();
+
+        // exact conflict limit
+        if ( !withinBudget() && confl != CRef_Undef ) {
+          lbdQueue.fastclear();
+          cancelUntil(0);
+          return l_Undef; }
+
         if (confl != CRef_Undef){
 
             // CONFLICT
@@ -1395,15 +1402,15 @@ printf("c ==================================[ Search Statistics (every %6d confl
 
     if (status == l_True){
 
-        if( justUsage() && false ){
+        if( justUsage() ){
           assert(jheap.empty());
           //JustModel.growTo(nVars());
-          int i = 0;
+          int i = 0, j = 0;
           JustModel.push(toLit(0));
           for (; i < trail.size(); i++) 
             if( isRoundWatch(var(trail[i])) && !isTwoFanin(var(trail[i])) )
-              JustModel.push(trail[i]);
-          JustModel[0] = toLit(i);
+              JustModel.push(trail[i]), j++;
+          JustModel[0] = toLit(j);
         } else {
           // Extend & copy model:
           model.growTo(nVars());

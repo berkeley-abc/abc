@@ -546,7 +546,7 @@ inline int      Solver::nClauses      ()      const   { return clauses.size(); }
 inline int      Solver::nLearnts      ()      const   { return learnts.size(); }
 inline int      Solver::nVars         ()      const   { return vardata.size(); }
 inline int      Solver::nFreeVars     ()      const   { return (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]); }
-inline int *    Solver::getCex        ()      const   { return NULL; }
+inline int *    Solver::getCex        ()      const   { return (int*) &JustModel[0]; }
 inline void     Solver::setPolarity   (Var v, bool b) { polarity[v] = b; }
 inline void     Solver::setDecisionVar(Var v, bool b) 
 { 
