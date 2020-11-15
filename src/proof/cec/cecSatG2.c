@@ -656,7 +656,7 @@ void Cec4_RefineInit( Gia_Man_t * p, Cec4_Man_t * pMan )
     Gia_ManForEachObj( p, pObj, i )
     {
         p->pReprs[i].iRepr = GIA_VOID;
-        if ( !Gia_ObjIsCo(pObj) )
+        if ( !Gia_ObjIsCo(pObj) && (!pMan->pPars->nLevelMax || Gia_ObjLevel(p, pObj) <= pMan->pPars->nLevelMax) )
             Vec_IntPush( pMan->vRefNodes, i );
     }
     pMan->vRefBins    = Vec_IntAlloc( Gia_ManObjNum(p)/2 );
@@ -1466,7 +1466,7 @@ Gia_Obj_t * Cec4_ManFindRepr( Gia_Man_t * p, Cec4_Man_t * pMan, int iObj )
     {
         if ( iObj == iMem )
             break;
-        if ( Gia_ObjProved(p, iMem) )
+        if ( Gia_ObjProved(p, iMem) || Gia_ObjFailed(p, iMem) )
             continue;
         Cec4_ManSimulate_rec( p, pMan, iMem );
         if ( Cec4_ObjSimEqual(p, iObj, iMem) )
