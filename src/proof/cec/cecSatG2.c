@@ -1273,7 +1273,7 @@ void Cec4_ManSatSolverRecycle( Cec4_Man_t * p )
 int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pfEasy, int fVerbose )
 {
     abctime clk;
-    int nBTLimit = (Vec_BitEntry(p->vFails, iObj0) || Vec_BitEntry(p->vFails, iObj1)) ? p->pPars->nBTLimit/10 : p->pPars->nBTLimit;
+    int nBTLimit = Vec_BitEntry(p->vFails, iObj0) || Vec_BitEntry(p->vFails, iObj1) ? p->pPars->nBTLimit/10 : p->pPars->nBTLimit;
     int nConfEnd, nConfBeg, status, iVar0, iVar1, Lits[2];
     int UnsatConflicts[3] = {0};
     if ( iObj1 <  iObj0 ) 
@@ -1494,6 +1494,8 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     // check if any output trivially fails under all-0 pattern
     Gia_ManRandom( 1 );
     Gia_ManSetPhase( p );
+    if ( pPars->nLevelMax )
+        Gia_ManLevelNum(p);
     //Gia_ManStaticFanoutStart( p );
     if ( pPars->fCheckMiter ) 
     {
@@ -1548,6 +1550,8 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         Gia_Obj_t * pObjNew; 
         pMan->nAndNodes++;
         pObj->Value = Gia_ManHashAnd( pMan->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( pPars->nLevelMax && Gia_ObjLevel(p, pObj) > pPars->nLevelMax )
+            continue;
         pObjNew = Gia_ManObj( pMan->pNew, Abc_Lit2Var(pObj->Value) );
         if ( Gia_ObjIsAnd(pObjNew) )
         if ( Vec_BitEntry(pMan->vFails, Gia_ObjFaninId0(pObjNew, Abc_Lit2Var(pObj->Value))) || 
