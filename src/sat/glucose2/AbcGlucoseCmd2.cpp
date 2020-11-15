@@ -57,7 +57,7 @@ static int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 void Glucose2_Init(Abc_Frame_t *pAbc)
 {
-    Cmd_CommandAdd( pAbc, "ABC9", "&glucose",  Abc_CommandGlucose,  0 );
+    Cmd_CommandAdd( pAbc, "ABC9", "&glucose2",  Abc_CommandGlucose,  0 );
 }
 
 void Glucose2_End( Abc_Frame_t * pAbc )
