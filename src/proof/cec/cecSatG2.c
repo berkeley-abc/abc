@@ -122,6 +122,7 @@ struct Cec4_Man_t_
     int              nRecycles;
     int              nConflicts[2][3];
     int              nGates[2];
+    int              nFaster[2];
     abctime          timeCnf;
     abctime          timeGenPats;
     abctime          timeSatSat0;
@@ -1070,6 +1071,24 @@ void Cec4_ManCexVerify( Gia_Man_t * p, int iObj0, int iObj1, int fPhase )
   SeeAlso     []
 
 *************************************`**********************************/
+void Cec4_ManPackAddPatterns( Gia_Man_t * p, int iBit, Vec_Int_t * vLits )
+{
+    int k, Limit = Abc_MinInt( Vec_IntSize(vLits), 64 * p->nSimWords - 1 );
+    for ( k = 0; k < Limit; k++ )
+    {
+        int i, Lit, iBitLocal = (iBit + k + 1) % Limit + 1;
+        assert( iBitLocal > 0 && iBitLocal < 64 * p->nSimWords );
+        Vec_IntForEachEntry( vLits, Lit, i )
+        {
+            word * pInfo = Vec_WrdEntryP( p->vSims,   p->nSimWords * Abc_Lit2Var(Lit) );
+            word * pPres = Vec_WrdEntryP( p->vSimsPi, p->nSimWords * Abc_Lit2Var(Lit) );
+            if ( Abc_InfoHasBit( (unsigned *)pPres, iBitLocal ) )
+                continue;
+            if ( Abc_InfoHasBit( (unsigned *)pInfo, iBitLocal ) != Abc_LitIsCompl(Lit ^ (i == k)) )
+                 Abc_InfoXorBit( (unsigned *)pInfo, iBitLocal );
+        }
+    }
+}
 int Cec4_ManPackAddPatternTry( Gia_Man_t * p, int iBit, Vec_Int_t * vLits )
 {
     int i, Lit;
@@ -1092,17 +1111,29 @@ int Cec4_ManPackAddPatternTry( Gia_Man_t * p, int iBit, Vec_Int_t * vLits )
     }
     return 1;
 }
-int Cec4_ManPackAddPattern( Gia_Man_t * p, Vec_Int_t * vLits )
+int Cec4_ManPackAddPattern( Gia_Man_t * p, Vec_Int_t * vLits, int fExtend )
 {
     int k;
-    for ( k = 1; k < 64 * p->nSimWords; k++ )
+    for ( k = 1; k < 64 * p->nSimWords - 1; k++ )
     {
-        if ( ++p->iPatsPi == 64 * p->nSimWords )
+        if ( ++p->iPatsPi == 64 * p->nSimWords - 1 )
             p->iPatsPi = 1;
         if ( Cec4_ManPackAddPatternTry( p, p->iPatsPi, vLits ) )
+        {
+            if ( fExtend )
+                Cec4_ManPackAddPatterns( p, p->iPatsPi, vLits );
             break;
+        }
     }
-    //assert( k < 64 * p->nSimWords );
+    if ( k == 64 * p->nSimWords - 1 )
+    {
+        p->iPatsPi = k;
+        if ( !Cec4_ManPackAddPatternTry( p, p->iPatsPi, vLits ) )
+            printf( "Internal error.\n" );
+        else if ( fExtend )
+            Cec4_ManPackAddPatterns( p, p->iPatsPi, vLits );
+        return 64 * p->nSimWords;
+    }
     return k;
 }
 
@@ -1336,7 +1367,7 @@ int Cec4_ManGeneratePatterns( Cec4_Man_t * p )
                 Res = Cec4_ManGeneratePatternOne( p->pAig, iRepr, !iReprVal, iCand,  iCandVal, p->vPat, p->vVisit );
             if ( Res )
             {
-                int Ret = Cec4_ManPackAddPattern( p->pAig, p->vPat );
+                int Ret = Cec4_ManPackAddPattern( p->pAig, p->vPat, 1 );
                 //Vec_IntPushTwo( p->vDisprPairs, iRepr, iCand );
                 Packs += Ret;
                 if ( Ret == 64 * p->pAig->nSimWords )
@@ -1482,19 +1513,20 @@ int Cec4_ManSolveTwo( Cec4_Man_t * p, int iObj0, int iObj1, int fPhase, int * pf
 int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
 {
     abctime clk = Abc_Clock();
-    int i, iLit, IdAig, IdSat, status, fEasy, RetValue = 1;
+    int i, IdAig, IdSat, status, fEasy, RetValue = 1;
     Gia_Obj_t * pObj = Gia_ManObj( p->pAig, iObj );
     Gia_Obj_t * pRepr = Gia_ManObj( p->pAig, iRepr );
     int fCompl = Abc_LitIsCompl(pObj->Value) ^ Abc_LitIsCompl(pRepr->Value) ^ pObj->fPhase ^ pRepr->fPhase;
     status = Cec4_ManSolveTwo( p, Abc_Lit2Var(pRepr->Value), Abc_Lit2Var(pObj->Value), fCompl, &fEasy, p->pPars->fVerbose );
     if ( status == GLUCOSE_SAT )
     {
+        int iLit;
+        //int iPatsOld = p->pAig->iPatsPi;
         //printf( "Disproved: %d == %d.\n", Abc_Lit2Var(pRepr->Value), Abc_Lit2Var(pObj->Value) );
         p->nSatSat++;
         p->nPatterns++;
-        p->pAig->iPatsPi++;
         Vec_IntClear( p->vPat );
-        if ( 0 == p->pPars->jType )
+        if ( p->pPars->jType == 0 )
         {
             Vec_IntForEachEntryDouble( &p->pNew->vCopiesTwo, IdAig, IdSat, i )
                 Vec_IntPush( p->vPat, Abc_Var2Lit(IdAig, sat_solver_read_cex_varvalue(p->pSat, IdSat)) );
@@ -1503,13 +1535,15 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
         {
             int * pCex = sat_solver_read_cex( p->pSat );
             int * pMap = Vec_IntArray(&p->pNew->vVarMap);
-            //assert( p->pAig->pMuxes == NULL ); // no xors
             for ( i = 0; i < pCex[0]; )
                 Vec_IntPush( p->vPat, Abc_Lit2LitV(pMap, Abc_LitNot(pCex[++i])) );
         }
-        assert( p->pAig->iPatsPi > 0 && p->pAig->iPatsPi < 64 * p->pAig->nSimWords );
+        assert( p->pAig->iPatsPi >= 0 && p->pAig->iPatsPi < 64 * p->pAig->nSimWords - 1 );
+        p->pAig->iPatsPi++;
         Vec_IntForEachEntry( p->vPat, iLit, i )
             Cec4_ObjSimSetInputBit( p->pAig, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit) );
+        //Cec4_ManPackAddPattern( p->pAig, p->vPat, 0 );
+        //assert( iPatsOld + 1 == p->pAig->iPatsPi );
         if ( fEasy )
             p->timeSatSat0 += Abc_Clock() - clk;
         else
@@ -1518,14 +1552,17 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
         // this is not needed, but we keep it here anyway, because it takes very little time
         //Cec4_ManVerify( p->pNew, Abc_Lit2Var(pRepr->Value), Abc_Lit2Var(pObj->Value), fCompl, p->pSat );
         // resimulated once in a while
-        if ( p->pAig->iPatsPi == 64 * p->pAig->nSimWords - 1 )
+        if ( p->pAig->iPatsPi == 64 * p->pAig->nSimWords - 2 )
         {
             abctime clk2 = Abc_Clock();
             Cec4_ManSimulate( p->pAig, p );
+            //printf( "FasterSmall = %d.  FasterBig = %d.\n", p->nFaster[0], p->nFaster[1] );
+            p->nFaster[0] = p->nFaster[1] = 0;
             //if ( p->nSatSat && p->nSatSat % 100 == 0 )
                 Cec4_ManPrintStats( p->pAig, p->pPars, p, 0 );
             Vec_IntFill( p->vCexStamps, Gia_ManObjNum(p->pAig), 0 );
             p->pAig->iPatsPi = 0;
+            Vec_WrdFill( p->pAig->vSimsPi, Vec_WrdSize(p->pAig->vSimsPi), 0 );
             p->timeResimGlo += Abc_Clock() - clk2;
         }
     }
@@ -1581,10 +1618,12 @@ Gia_Obj_t * Cec4_ManFindRepr( Gia_Man_t * p, Cec4_Man_t * pMan, int iObj )
         Cec4_ManSimulate_rec( p, pMan, iMem );
         if ( Cec4_ObjSimEqual(p, iObj, iMem) )
         {
+            pMan->nFaster[0]++;
             pMan->timeResimLoc += Abc_Clock() - clk;
             return Gia_ManObj(p, iMem);
         }
     }
+    pMan->nFaster[1]++;
     pMan->timeResimLoc += Abc_Clock() - clk;
     return NULL;
 }
@@ -1653,6 +1692,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         Cec4_ManPrintStats( p, pPars, pMan, 1 );
 
     p->iPatsPi = 0;
+    Vec_WrdFill( p->vSimsPi, Vec_WrdSize(p->vSimsPi), 0 );
     pMan->nSatSat = 0;
     pMan->pNew = Cec4_ManStartNew( p );
     Gia_ManForEachAnd( p, pObj, i )
@@ -1697,8 +1737,8 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     {
         abctime clk2 = Abc_Clock();
         Cec4_ManSimulate( p, pMan );
-        Vec_IntFill( pMan->vCexStamps, Gia_ManObjNum(p), 0 );
         p->iPatsPi = 0;
+        Vec_IntFill( pMan->vCexStamps, Gia_ManObjNum(p), 0 );
         pMan->timeResimGlo += Abc_Clock() - clk2;
     }
     if ( pPars->fVerbose )
