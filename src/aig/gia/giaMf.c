@@ -1600,14 +1600,14 @@ static inline int Mf_CutAreaRefed( Mf_Man_t * p, int * pCut )
 {
     int Ela1 = Mf_CutDeref_rec( p, pCut );
     int Ela2 = Mf_CutRef_rec( p, pCut );
-    //assert( Ela1 == Ela2 );
+    assert( Ela1 == Ela2 );
     return Ela1;
 }
 static inline int Mf_CutAreaDerefed( Mf_Man_t * p, int * pCut )
 {
     int Ela1 = Mf_CutRef_rec( p, pCut );
     int Ela2 = Mf_CutDeref_rec( p, pCut );
-    //assert( Ela1 == Ela2 );
+    assert( Ela1 == Ela2 );
     return Ela1;
 }
 static inline float Mf_CutFlow( Mf_Man_t * p, int * pCut, int * pTime )

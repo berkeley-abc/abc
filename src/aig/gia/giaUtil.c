@@ -1272,9 +1272,9 @@ int Gia_NodeMffcMapping( Gia_Man_t * p )
     Vec_IntFill( vMapping, Gia_ManObjNum(p), 0 );
     pRefsOld = p->pRefs; p->pRefs = NULL;
     Gia_ManCreateRefs( p ); 
-    p->pRefs = pRefsOld;
     Gia_ManForEachCoDriverId( p, Id, i )
         Count += Gia_NodeMffcMapping_rec( p, Id, vMapping, vSupp );
+    p->pRefs = pRefsOld;
     Vec_IntFree( vSupp );
     p->vMapping = vMapping;
     //printf( "Mapping is %.2fx larger than AIG manager.\n", 1.0*Vec_IntSize(vMapping)/Gia_ManObjNum(p) );
