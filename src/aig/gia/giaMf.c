@@ -1548,38 +1548,6 @@ void Mf_ManComputeCuts( Mf_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Mf_CutRef2_rec( Mf_Man_t * p, int * pCut, Vec_Int_t * vTemp, int Limit )
-{
-    int i, Count = Mf_CutArea(p, Mf_CutSize(pCut), Mf_CutFunc(pCut));
-    if ( Limit == 0 ) return Count;
-    for ( i = 1; i <= Mf_CutSize(pCut); i++ )
-    {
-        Vec_IntPush( vTemp, pCut[i] );
-        if ( !Mf_ObjMapRefInc(p, pCut[i]) && Mf_ManObj(p, pCut[i])->iCutSet )
-            Count += Mf_CutRef2_rec( p, Mf_ObjCutBest(p, pCut[i]), vTemp, Limit-1 );
-    }
-    return Count;
-}
-static inline int Mf_CutAreaDerefed2( Mf_Man_t * p, int * pCut )
-{
-    int Ela1, iObj, i;
-    Vec_IntClear( &p->vTemp );
-    Ela1 = Mf_CutRef2_rec( p, pCut, &p->vTemp, 8 );
-    Vec_IntForEachEntry( &p->vTemp, iObj, i )
-        Mf_ObjMapRefDec( p, iObj );
-    return Ela1;
-}
-static inline int Mf_CutAreaDerefed2Multi( Mf_Man_t * p, int ** ppCuts, int nCuts )
-{
-    int Ela1 = 0, iObj, i;
-    Vec_IntClear( &p->vTemp );
-    for ( i = 0; i < nCuts; i++ )
-        Ela1 += Mf_CutRef2_rec( p, ppCuts[i], &p->vTemp, ABC_INFINITY );
-    Vec_IntForEachEntry( &p->vTemp, iObj, i )
-        Mf_ObjMapRefDec( p, iObj );
-    return Ela1;
-}
-
 int Mf_CutRef_rec( Mf_Man_t * p, int * pCut )
 {
     int i, Count = Mf_CutArea(p, Mf_CutSize(pCut), Mf_CutFunc(pCut));
@@ -1610,6 +1578,67 @@ static inline int Mf_CutAreaDerefed( Mf_Man_t * p, int * pCut )
     assert( Ela1 == Ela2 );
     return Ela1;
 }
+static inline int Mf_CutAreaMffc( Mf_Man_t * p, int iObj )
+{
+    return Mf_ObjMapRefNum(p, iObj) ? 
+        Mf_CutAreaRefed  (p, Mf_ObjCutBest(p, iObj)) : 
+        Mf_CutAreaDerefed(p, Mf_ObjCutBest(p, iObj));
+}
+
+int Mf_CutRef2_rec( Mf_Man_t * p, int * pCut, Vec_Int_t * vTemp, int Limit )
+{
+    int i, Count = Mf_CutArea(p, Mf_CutSize(pCut), Mf_CutFunc(pCut));
+    if ( Limit == 0 ) return Count;
+    for ( i = 1; i <= Mf_CutSize(pCut); i++ )
+    {
+        Vec_IntPush( vTemp, pCut[i] );
+        if ( !Mf_ObjMapRefInc(p, pCut[i]) && Mf_ManObj(p, pCut[i])->iCutSet )
+            Count += Mf_CutRef2_rec( p, Mf_ObjCutBest(p, pCut[i]), vTemp, Limit-1 );
+    }
+    return Count;
+}
+int Mf_CutDeref2_rec( Mf_Man_t * p, int * pCut, Vec_Int_t * vTemp, int Limit )
+{
+    int i, Count = Mf_CutArea(p, Mf_CutSize(pCut), Mf_CutFunc(pCut));
+    if ( Limit == 0 ) return Count;
+    for ( i = 1; i <= Mf_CutSize(pCut); i++ )
+    {
+        Vec_IntPush( vTemp, pCut[i] );
+        if ( !Mf_ObjMapRefDec(p, pCut[i]) && Mf_ManObj(p, pCut[i])->iCutSet )
+            Count += Mf_CutDeref2_rec( p, Mf_ObjCutBest(p, pCut[i]), vTemp, Limit-1 );
+    }
+    return Count;
+}
+static inline int Mf_CutAreaRefed2( Mf_Man_t * p, int * pCut )
+{
+    int Ela1, iObj, i;
+    Vec_IntClear( &p->vTemp );
+    Ela1 = Mf_CutDeref2_rec( p, pCut, &p->vTemp, 8 );
+    Vec_IntForEachEntry( &p->vTemp, iObj, i )
+        Mf_ObjMapRefInc( p, iObj );
+    return Ela1;
+}
+static inline int Mf_CutAreaDerefed2( Mf_Man_t * p, int * pCut )
+{
+    int Ela1, iObj, i;
+    Vec_IntClear( &p->vTemp );
+    Ela1 = Mf_CutRef2_rec( p, pCut, &p->vTemp, 8 );
+    Vec_IntForEachEntry( &p->vTemp, iObj, i )
+        Mf_ObjMapRefDec( p, iObj );
+    return Ela1;
+}
+static inline int Mf_CutAreaRefed2Multi( Mf_Man_t * p, int iObj, int ** ppCuts, int nCuts )
+{
+    int Ela1 = 0, iTemp, i;
+    Vec_IntClear( &p->vTemp );
+    for ( i = 0; i < nCuts; i++ )
+        Ela1 += Mf_CutDeref2_rec( p, ppCuts[i], &p->vTemp, ABC_INFINITY );
+    assert( Mf_ObjMapRefNum(p, iObj) == 0 );
+    Vec_IntForEachEntry( &p->vTemp, iTemp, i )
+        Mf_ObjMapRefInc( p, iTemp );
+    return Ela1;
+}
+
 static inline float Mf_CutFlow( Mf_Man_t * p, int * pCut, int * pTime )
 {
     Mf_Obj_t * pObj;
@@ -1668,6 +1697,41 @@ static inline void Mf_ObjComputeBestCut( Mf_Man_t * p, int iObj )
   SeeAlso     []
 
 ***********************************************************************/
+int Mf_ManMappingFromMapping( Mf_Man_t * p )
+{
+    Gia_Man_t * pGia = p->pGia0;
+    Gia_Obj_t * pObj;
+    int i, iObj, Count = 0;
+    Vec_Int_t * vMapping = Vec_IntAlloc( 3 * Gia_ManObjNum(pGia) );
+    Vec_IntFill( vMapping, Gia_ManObjNum(pGia), 0 );
+    Gia_ManForEachAnd( pGia, pObj, iObj )
+        if ( Mf_ObjMapRefNum(p, iObj) )
+        {
+            int * pCut = Mf_ObjCutBest(p, iObj);
+            Vec_IntWriteEntry( vMapping, iObj, Vec_IntSize(vMapping) );
+            Vec_IntPush( vMapping, Mf_CutSize(pCut) );
+            for ( i = 1; i <= Mf_CutSize(pCut); i++ )
+                Vec_IntPush( vMapping, pCut[i] );
+            Vec_IntPush( vMapping, iObj );
+            Count++;
+        }
+    assert( pGia->vMapping == NULL );
+    pGia->vMapping = vMapping;
+    printf( "Mapping is %.2fx larger than AIG manager.\n", 1.0*Vec_IntSize(vMapping)/Gia_ManObjNum(pGia) );
+    return Count;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Mf_ManPrintFanoutProfile( Mf_Man_t * p, Vec_Int_t * vFanCounts )
 {
     Gia_Man_t * pGia = p->pGia0;
@@ -1685,11 +1749,9 @@ void Mf_ManPrintFanoutProfile( Mf_Man_t * p, Vec_Int_t * vFanCounts )
 int Mf_ManPrintMfccStats( Mf_Man_t * p, int iObj )
 {
     Gia_Man_t * pGia = p->pGia0;
-    int Area = Mf_ObjMapRefNum(p, iObj) > 0 ? 
-            Mf_CutAreaRefed  (p, Mf_ObjCutBest(p, iObj)) : 
-            Mf_CutAreaDerefed(p, Mf_ObjCutBest(p, iObj));
+    int Area;
     printf( "%5d : Level = %5d  Refs = %5d  Mffc = %5d\n", 
-        iObj, Gia_ObjLevelId(pGia, iObj), Mf_ObjMapRefNum(p, iObj), Area );
+        iObj, Gia_ObjLevelId(pGia, iObj), Mf_ObjMapRefNum(p, iObj), (Area = Mf_CutAreaMffc(p, iObj)) );
     return Area;
 }
 void Mf_ManOptimizationOne( Mf_Man_t * p, int iObj )
@@ -1697,10 +1759,14 @@ void Mf_ManOptimizationOne( Mf_Man_t * p, int iObj )
     Gia_Man_t * pGia = p->pGia0;
     int * ppCuts[32], nCuts = 0;
     int iFanout, i, nAreaSum = 0, nAreaBest = 0;
-    // skip pivots whose MFFC fanouts are not used in the mapping or pointed to by COs
+    // skip pivots whose MFFC fanouts are pointed to by COs
     Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
-        if ( Mf_ObjMapRefNum(p, iFanout) == 0 || Gia_ObjIsCo(Gia_ManObj(pGia, iFanout)) )
+        if ( Gia_ObjIsCo(Gia_ManObj(pGia, iFanout)) )
             return;
+    // the pivot is used in the mapping as well as all of its fanouts
+    assert( Mf_ObjMapRefNum(p, iObj) > 1 );
+    Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
+        assert( Mf_ObjMapRefNum(p, iFanout) > 0 );
     // print this pivot and its fanouts
     printf( "\nPivot node = %d\n", iObj );
     printf( "Pivot " ), Mf_ManPrintMfccStats( p, iObj );
@@ -1711,21 +1777,21 @@ void Mf_ManOptimizationOne( Mf_Man_t * p, int iObj )
         Mf_ObjMapRefInc( p, iFanout );
     Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
         ppCuts[nCuts++] = Mf_ObjCutBest( p, iFanout );
-    nAreaBest = Mf_CutAreaDerefed2Multi( p, ppCuts, nCuts );
+    nAreaBest = Mf_CutAreaRefed2Multi( p, iObj, ppCuts, nCuts );
     Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
         Mf_ObjMapRefDec( p, iFanout );
-    printf( "Sum of MFFC size = %d\n", nAreaSum );
-    printf( "Shared MFFC size = %d\n", nAreaBest );
+    printf( "Sum of MFFC sizes = %d\n", nAreaSum );
+    printf( "Shared MFFC size  = %d\n", nAreaBest );
 }
 void Mf_ManOptimization( Mf_Man_t * p )
 {
     int nOutMax = 3;
     Gia_Man_t * pGia = p->pGia0;
-    int i, Count, nNodes = Gia_NodeMffcMapping( pGia );
+    int i, Count, nNodes = Mf_ManMappingFromMapping( p );
     Gia_ManLevelNum( pGia );
     Gia_ManStaticMappingFanoutStart( pGia );
     Mf_ManPrintFanoutProfile( p, pGia->vFanoutNums );
-    printf( "\nIndividual logic cones:\n" );
+    printf( "\nIndividual logic cones for mapping with %d nodes:\n", nNodes );
     Vec_IntForEachEntry( pGia->vFanoutNums, Count, i )
         if ( Count >= 2 && Count <= nOutMax && Gia_ObjIsAnd(Gia_ManObj(pGia, i)) )
             Mf_ManOptimizationOne( p, i );
