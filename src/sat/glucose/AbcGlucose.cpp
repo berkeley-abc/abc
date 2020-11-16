@@ -326,6 +326,38 @@ int bmcg_sat_solver_add_and( bmcg_sat_solver * s, int iVar, int iVar0, int iVar1
     return 1;
 }
 
+int bmcg_solver_add_xor( bmcg_sat_solver * pSat, int iVarA, int iVarB, int iVarC, int fCompl )
+{
+    int Lits[3];
+    int Cid;
+    assert( iVarA >= 0 && iVarB >= 0 && iVarC >= 0 );
+
+    Lits[0] = Abc_Var2Lit( iVarA, !fCompl );
+    Lits[1] = Abc_Var2Lit( iVarB, 1 );
+    Lits[2] = Abc_Var2Lit( iVarC, 1 );
+    Cid = bmcg_sat_solver_addclause( pSat, Lits, 3 );
+    assert( Cid );
+
+    Lits[0] = Abc_Var2Lit( iVarA, !fCompl );
+    Lits[1] = Abc_Var2Lit( iVarB, 0 );
+    Lits[2] = Abc_Var2Lit( iVarC, 0 );
+    Cid = bmcg_sat_solver_addclause( pSat, Lits, 3 );
+    assert( Cid );
+
+    Lits[0] = Abc_Var2Lit( iVarA, fCompl );
+    Lits[1] = Abc_Var2Lit( iVarB, 1 );
+    Lits[2] = Abc_Var2Lit( iVarC, 0 );
+    Cid = bmcg_sat_solver_addclause( pSat, Lits, 3 );
+    assert( Cid );
+
+    Lits[0] = Abc_Var2Lit( iVarA, fCompl );
+    Lits[1] = Abc_Var2Lit( iVarB, 0 );
+    Lits[2] = Abc_Var2Lit( iVarC, 1 );
+    Cid = bmcg_sat_solver_addclause( pSat, Lits, 3 );
+    assert( Cid );
+    return 4;
+}
+
 int bmcg_sat_solver_jftr(bmcg_sat_solver* s)
 {
     return ((Gluco::SimpSolver*)s)->jftr;
@@ -631,6 +663,38 @@ int bmcg_sat_solver_add_and( bmcg_sat_solver * s, int iVar, int iVar0, int iVar1
         return 0;
 
     return 1;
+}
+
+int bmcg_solver_add_xor( bmcg_sat_solver * pSat, int iVarA, int iVarB, int iVarC, int fCompl )
+{
+    int Lits[3];
+    int Cid;
+    assert( iVarA >= 0 && iVarB >= 0 && iVarC >= 0 );
+
+    Lits[0] = Abc_Var2Lit( iVarA, !fCompl );
+    Lits[1] = Abc_Var2Lit( iVarB, 1 );
+    Lits[2] = Abc_Var2Lit( iVarC, 1 );
+    Cid = bmcg_sat_solver_addclause( pSat, Lits, 3 );
+    assert( Cid );
+
+    Lits[0] = Abc_Var2Lit( iVarA, !fCompl );
+    Lits[1] = Abc_Var2Lit( iVarB, 0 );
+    Lits[2] = Abc_Var2Lit( iVarC, 0 );
+    Cid = bmcg_sat_solver_addclause( pSat, Lits, 3 );
+    assert( Cid );
+
+    Lits[0] = Abc_Var2Lit( iVarA, fCompl );
+    Lits[1] = Abc_Var2Lit( iVarB, 1 );
+    Lits[2] = Abc_Var2Lit( iVarC, 0 );
+    Cid = bmcg_sat_solver_addclause( pSat, Lits, 3 );
+    assert( Cid );
+
+    Lits[0] = Abc_Var2Lit( iVarA, fCompl );
+    Lits[1] = Abc_Var2Lit( iVarB, 0 );
+    Lits[2] = Abc_Var2Lit( iVarC, 1 );
+    Cid = bmcg_sat_solver_addclause( pSat, Lits, 3 );
+    assert( Cid );
+    return 4;
 }
 
 int bmcg_sat_solver_jftr(bmcg_sat_solver* s)

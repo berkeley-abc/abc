@@ -94,6 +94,7 @@ extern int               bmcg_sat_solver_learntnum( bmcg_sat_solver* s );
 extern int               bmcg_sat_solver_conflictnum( bmcg_sat_solver* s );
 extern int               bmcg_sat_solver_minimize_assumptions( bmcg_sat_solver * s, int * plits, int nlits, int pivot );
 extern int               bmcg_sat_solver_add_and( bmcg_sat_solver * s, int iVar, int iVar0, int iVar1, int fCompl0, int fCompl1, int fCompl );
+extern int               bmcg_sat_solver_add_xor( bmcg_sat_solver * s, int iVarA, int iVarB, int iVarC, int fCompl );
 extern int               bmcg_sat_solver_quantify( bmcg_sat_solver * s[], Gia_Man_t * p, int iLit, int fHash, int(*pFuncCiToKeep)(void *, int), void * pData, Vec_Int_t * vDLits );
 extern int               bmcg_sat_solver_equiv_overlap_check( bmcg_sat_solver * s, Gia_Man_t * p, int iLit0, int iLit1, int fEquiv );
 extern Vec_Str_t *       bmcg_sat_solver_sop( Gia_Man_t * p, int CubeLimit );
