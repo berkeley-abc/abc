@@ -283,6 +283,89 @@ void Gia_ManStaticFanoutStart( Gia_Man_t * p )
     Vec_IntFree( vCounts );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Compute the map of all edges.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManStartMappingFanoutMap( Gia_Man_t * p, Vec_Int_t * vFanoutNums )
+{
+    Gia_Obj_t * pObj;
+    int i, iOffset = Gia_ManObjNum(p);
+    Vec_Int_t * vEdgeMap = Vec_IntAlloc( 2 * iOffset );
+    Vec_IntFill( vEdgeMap, iOffset, 0 );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Vec_IntEntry(vFanoutNums, i) == 0 )
+            continue;
+        Vec_IntWriteEntry( vEdgeMap, i, iOffset );
+        iOffset += Vec_IntEntry( vFanoutNums, i );
+        Vec_IntFillExtra( vEdgeMap, iOffset, 0 );
+    }
+    //printf( "Fanout map is %.2fx larger than AIG manager.\n", 1.0*Vec_IntSize(vEdgeMap)/Gia_ManObjNum(p) );
+    return vEdgeMap;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Allocates static fanout.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManStaticMappingFanoutStart( Gia_Man_t * p )
+{
+    Vec_Int_t * vCounts;
+    int * pRefsOld;
+    Gia_Obj_t * pObj, * pFanin;
+    int i, k, iFan, iFanout;
+    assert( p->vFanoutNums == NULL );
+    assert( p->vFanout == NULL );
+    // recompute reference counters
+    pRefsOld = p->pLutRefs; p->pLutRefs = NULL;
+    Gia_ManSetLutRefs(p);
+    p->vFanoutNums = Vec_IntAllocArray( p->pLutRefs, Gia_ManObjNum(p) );
+    p->pLutRefs = pRefsOld;
+    // start the fanout maps
+    p->vFanout = Gia_ManStartMappingFanoutMap( p, p->vFanoutNums );
+    // incrementally add fanouts
+    vCounts = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_ManForEachLut( p, i )
+    {
+        pObj = Gia_ManObj( p, i );
+        Gia_LutForEachFanin( p, i, iFan, k )
+        {
+            pFanin = Gia_ManObj( p, iFan );
+            iFanout = Vec_IntEntry( vCounts, iFan );
+            Gia_ObjSetFanout( p, pFanin, iFanout, pObj );
+            Vec_IntAddToEntry( vCounts, iFan, 1 );
+        }
+    }
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        iFan = Gia_ObjFaninId0p(p, pObj);
+        pFanin = Gia_ManObj( p, iFan );
+        iFanout = Vec_IntEntry( vCounts, iFan );
+        Gia_ObjSetFanout( p, pFanin, iFanout, pObj );
+        Vec_IntAddToEntry( vCounts, iFan, 1 );
+    }
+    // double-check the current number of fanouts added
+    Gia_ManForEachObj( p, pObj, i )
+        assert( Vec_IntEntry(vCounts, i) == Gia_ObjFanoutNum(p, pObj) );
+    Vec_IntFree( vCounts );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Deallocates static fanout.]

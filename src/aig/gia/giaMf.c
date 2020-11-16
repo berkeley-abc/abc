@@ -1569,6 +1569,16 @@ static inline int Mf_CutAreaDerefed2( Mf_Man_t * p, int * pCut )
         Mf_ObjMapRefDec( p, iObj );
     return Ela1;
 }
+static inline int Mf_CutAreaDerefed2Multi( Mf_Man_t * p, int ** ppCuts, int nCuts )
+{
+    int Ela1 = 0, iObj, i;
+    Vec_IntClear( &p->vTemp );
+    for ( i = 0; i < nCuts; i++ )
+        Ela1 += Mf_CutRef2_rec( p, ppCuts[i], &p->vTemp, ABC_INFINITY );
+    Vec_IntForEachEntry( &p->vTemp, iObj, i )
+        Mf_ObjMapRefDec( p, iObj );
+    return Ela1;
+}
 
 int Mf_CutRef_rec( Mf_Man_t * p, int * pCut )
 {
@@ -1586,11 +1596,18 @@ int Mf_CutDeref_rec( Mf_Man_t * p, int * pCut )
             Count += Mf_CutDeref_rec( p, Mf_ObjCutBest(p, pCut[i]) );
     return Count;
 }
+static inline int Mf_CutAreaRefed( Mf_Man_t * p, int * pCut )
+{
+    int Ela1 = Mf_CutDeref_rec( p, pCut );
+    int Ela2 = Mf_CutRef_rec( p, pCut );
+    //assert( Ela1 == Ela2 );
+    return Ela1;
+}
 static inline int Mf_CutAreaDerefed( Mf_Man_t * p, int * pCut )
 {
     int Ela1 = Mf_CutRef_rec( p, pCut );
     int Ela2 = Mf_CutDeref_rec( p, pCut );
-    assert( Ela1 == Ela2 );
+    //assert( Ela1 == Ela2 );
     return Ela1;
 }
 static inline float Mf_CutFlow( Mf_Man_t * p, int * pCut, int * pTime )
@@ -1642,6 +1659,83 @@ static inline void Mf_ObjComputeBestCut( Mf_Man_t * p, int iObj )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mf_ManPrintFanoutProfile( Mf_Man_t * p, Vec_Int_t * vFanCounts )
+{
+    Gia_Man_t * pGia = p->pGia0;
+    int i, Count, nMax = Vec_IntFindMax( vFanCounts );
+    Vec_Int_t * vCounts = Vec_IntStart( nMax + 1 );
+    Vec_IntForEachEntry( vFanCounts, Count, i )
+        if ( Count && Gia_ObjIsAnd(Gia_ManObj(pGia, i)) ) 
+            Vec_IntAddToEntry( vCounts, Count, 1 );
+    printf( "\nFanout distribution for internal nodes:\n" );
+    Vec_IntForEachEntry( vCounts, Count, i )
+        if ( Count ) printf( "Fanout = %5d : Nodes = %5d.\n", i, Count );
+    printf( "Total nodes with fanout = %d. Max fanout = %d.\n\n", Vec_IntCountPositive(vCounts), nMax );
+    Vec_IntFree( vCounts );
+}
+int Mf_ManPrintMfccStats( Mf_Man_t * p, int iObj )
+{
+    Gia_Man_t * pGia = p->pGia0;
+    int Area = Mf_ObjMapRefNum(p, iObj) > 0 ? 
+            Mf_CutAreaRefed  (p, Mf_ObjCutBest(p, iObj)) : 
+            Mf_CutAreaDerefed(p, Mf_ObjCutBest(p, iObj));
+    printf( "%5d : Level = %5d  Refs = %5d  Mffc = %5d\n", 
+        iObj, Gia_ObjLevelId(pGia, iObj), Mf_ObjMapRefNum(p, iObj), Area );
+    return Area;
+}
+void Mf_ManOptimizationOne( Mf_Man_t * p, int iObj )
+{
+    Gia_Man_t * pGia = p->pGia0;
+    int * ppCuts[32], nCuts = 0;
+    int iFanout, i, nAreaSum = 0, nAreaBest = 0;
+    // skip pivots whose MFFC fanouts are not used in the mapping or pointed to by COs
+    Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
+        if ( Mf_ObjMapRefNum(p, iFanout) == 0 || Gia_ObjIsCo(Gia_ManObj(pGia, iFanout)) )
+            return;
+    // print this pivot and its fanouts
+    printf( "\nPivot node = %d\n", iObj );
+    printf( "Pivot " ), Mf_ManPrintMfccStats( p, iObj );
+    Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
+        printf( "Node  " ), nAreaSum += Mf_ManPrintMfccStats( p, iFanout );
+    // calculate the shared MFFC
+    Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
+        Mf_ObjMapRefInc( p, iFanout );
+    Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
+        ppCuts[nCuts++] = Mf_ObjCutBest( p, iFanout );
+    nAreaBest = Mf_CutAreaDerefed2Multi( p, ppCuts, nCuts );
+    Gia_ObjForEachFanoutStaticId( pGia, iObj, iFanout, i )
+        Mf_ObjMapRefDec( p, iFanout );
+    printf( "Sum of MFFC size = %d\n", nAreaSum );
+    printf( "Shared MFFC size = %d\n", nAreaBest );
+}
+void Mf_ManOptimization( Mf_Man_t * p )
+{
+    int nOutMax = 3;
+    Gia_Man_t * pGia = p->pGia0;
+    int i, Count, nNodes = Gia_NodeMffcMapping( pGia );
+    Gia_ManLevelNum( pGia );
+    Gia_ManStaticMappingFanoutStart( pGia );
+    Mf_ManPrintFanoutProfile( p, pGia->vFanoutNums );
+    printf( "\nIndividual logic cones:\n" );
+    Vec_IntForEachEntry( pGia->vFanoutNums, Count, i )
+        if ( Count >= 2 && Count <= nOutMax && Gia_ObjIsAnd(Gia_ManObj(pGia, i)) )
+            Mf_ManOptimizationOne( p, i );
+    printf( "\nFinished printing individual logic cones.\n" );
+    Gia_ManStaticFanoutStop( pGia );
+    Vec_IntFreeP( &pGia->vMapping );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Technology mappping.]
 
   Description []
@@ -1682,6 +1776,7 @@ Gia_Man_t * Mf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars )
     p->fUseEla = 1;
     for ( ; p->Iter < p->pPars->nRounds + pPars->nRoundsEla; p->Iter++ )
         Mf_ManComputeMapping( p );
+    //Mf_ManOptimization( p );
     if ( pPars->fVeryVerbose && pPars->fCutMin )
         Vec_MemDumpTruthTables( p->vTtMem, Gia_ManName(p->pGia), pPars->nLutSize );
     if ( pPars->fCutMin )
