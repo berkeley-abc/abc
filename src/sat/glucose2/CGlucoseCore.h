@@ -13,68 +13,50 @@
 ABC_NAMESPACE_IMPL_START
 
 namespace Gluco2 {
-
-inline int  Solver::justUsage() const {
-	return jftr;
-}
-
-inline Lit Solver::maxActiveLit(Lit lit0, Lit lit1) const {
-	return activity[var(lit0)] < activity[var(lit1)]? lit1: lit0;
-}
-
-//Lit  Solver::faninNJustLit(Var v, int idx) const {
-//	assert(isTwoFanin(v));
-//	assert(value(v) == l_False); // l_True should be handled by propagation
-//	return ~ (0 == idx? getFaninLit0(v): );
-//}
-
-// select one of fanins to justify
-inline Lit  Solver::fanin2JustLit(Var v) const {
-	assert(v < nVars());
-	Lit lit0, lit1;
-	lit0 = ~getFaninLit0(v);
-	lit1 = ~getFaninLit1(v);
-//	if( (sign(lit0) != polarity[var(lit0)]) ^ (sign(lit1) != polarity[var(lit1)]) )
-//		return sign(lit0) == polarity[var(lit0)]? lit0: lit1;
-	return maxActiveLit(lit0, lit1);
-}
+inline int  Solver::justUsage() const { return jftr; }
 
 inline Lit  Solver::gateJustFanin(Var v) const {
 	assert(v < nVars());
-	assert(isTwoFanin(v));
-	assert(value(v) == l_False); // l_True should be handled by propagation
+	assert(isJReason(v));
+
 
 	lbool val0, val1;
-	val0 = value(getFaninVar0(v));
-	val1 = value(getFaninVar1(v));
+	val0 = value(getFaninLit0(v));
+	val1 = value(getFaninLit1(v));
 
-	// phased values
-	if(l_Undef != val0) val0 = val0 ^ getFaninC0(v);
-	if(l_Undef != val1) val1 = val1 ^ getFaninC1(v);
+	if(isAND(v)){
+		// should be handled by conflict analysis before entering here
+		assert( value(v) != l_False || l_True  != val0 || l_True  != val1 );
 
-	// should be handled by conflict analysis before entering here
-	assert(value(v) != l_False || l_True  != val0 || l_True  != val1);
+		if(val0 == l_False || val1 == l_False)
+			return lit_Undef;
 
-	if(val0 == l_False || val1 == l_False)
-		return lit_Undef;
+		// branch 
+		if(val0 == l_True)
+			return ~getFaninLit1(v);
+		if(val1 == l_True)
+			return ~getFaninLit0(v);
 
-	// branch 
-	if(val0 == l_True)
-		return ~getFaninLit1(v);
-	if(val1 == l_True)
-		return ~getFaninLit0(v);
+		return maxActiveLit( ~getFaninLit0(v), ~getFaninLit1(v) );
+	} else { // xor scope
+		// should be handled by conflict analysis before entering here
+		assert( value(v) == l_Undef || value(v) != l_False || val0 == val1 );
 
-	// both fanins are eligible
-	//return maxActiveLit(faninNJustLit(v, 0), faninNJustLit(v, 1));
-	return fanin2JustLit(v);
+		// both are assigned
+		if( l_Undef != val0 && l_Undef != val1 )
+			return lit_Undef;
+
+		// should be handled by propagation before entering here
+		assert( l_Undef == val0 && l_Undef == val1 );
+		return maxActiveLit( getFaninPlt0(v), getFaninPlt1(v) );
+	}
 }
 
 
 // a var should at most be enqueued one time
 inline void Solver::pushJustQueue(Var v){
 	assert(v < nVars());
-	assert(value(v) == l_False); // l_True should be handled by propagation
-	assert(isTwoFanin(v));
+	assert(isJReason(v));
 
 	if( ! isRoundWatch(v) )\
 		return;
@@ -94,7 +76,7 @@ inline void Solver::ResetJustData(bool fCleanMemory){
 inline Lit Solver::pickJustLit( Var& j_reason ){
 	Var next = var_Undef;
 	Lit jlit = lit_Undef;
-	//double clk = Abc_Clock();
+
 	for( int i = 0; i < jstack.size(); i ++ ){
 		Var x = jstack[i];
 		if( l_Undef != value(getFaninLit0(x)) || l_Undef != value(getFaninLit1(x)) )
@@ -106,12 +88,11 @@ inline Lit Solver::pickJustLit( Var& j_reason ){
 		if( ! jdata[next].now )
 			continue; 
 
-		assert( l_False == value(next) );
+		assert(isJReason(next));
 		if( lit_Undef != (jlit = gateJustFanin(next)) )
 			break;
 		gateAddJwatch(next);
 	}
-
 
 	j_reason = next;
 	return jlit;
@@ -120,8 +101,7 @@ inline Lit Solver::pickJustLit( Var& j_reason ){
 
 inline void Solver::gateAddJwatch(Var v){
 	assert(v < nVars());
-	assert(isTwoFanin(v));
-	assert(value(v) == l_False); // l_True should be handled by propagation
+	assert(isJReason(v));
 
 	if( var_Undef != jwatch[v].prev ) // already in jwatch
 		return;
@@ -132,16 +112,13 @@ inline void Solver::gateAddJwatch(Var v){
 	Var var0, var1;
 	var0 = getFaninVar0(v);
 	var1 = getFaninVar1(v);
-	val0 = value(var0);
-	val1 = value(var1);
+	val0 = value(getFaninLit0(v));
+	val1 = value(getFaninLit1(v));
 
-	// phased values
-	if(l_Undef != val0) val0 = val0 ^ getFaninC0(v);
-	if(l_Undef != val1) val1 = val1 ^ getFaninC1(v);
+	assert( !isAND(v) ||  l_False == val0 || l_False == val1  );
+	assert(  isAND(v) || (l_Undef != val0 && l_Undef != val1) );
 
-	assert( l_False == val0 || l_False == val1 );
-
-	if(val0 == l_False && val1 == l_False){
+	if( (val0 == l_False && val1 == l_False) || !isAND(v) ){
 		addJwatch(vardata[var0].level < vardata[var1].level? var0: var1, v);
 		return;
 	}
@@ -182,7 +159,7 @@ inline void Solver::addJwatch( Var host, Var member ){
 	assert( var_Undef == jwatch[member].next && var_Undef == jwatch[member].prev );
 
 	if( var_Undef != jwatch[host].head )
-	jwatch[jwatch[host].head].prev = member;
+		jwatch[jwatch[host].head].prev = member;
 
 	jwatch[member].next = jwatch[host].head;
 	jwatch[member].prev = host;
@@ -197,12 +174,12 @@ inline void Solver::delJwatch( Var member ){
 	assert( jwatch[prev].next == member || jwatch[prev].head == member );
 
 	if( jwatch[prev].next == member )
-	jwatch[prev].next = next;
+		jwatch[prev].next = next;
 	else 
-	jwatch[prev].head = next;
+		jwatch[prev].head = next;
 
 	if( var_Undef != next )
-	jwatch[next].prev = prev;
+		jwatch[next].prev = prev;
 
 	jwatch[member].prev = var_Undef;
 	jwatch[member].next = var_Undef;
@@ -215,17 +192,12 @@ inline void Solver::delJwatch( Var member ){
 
 inline void Solver::justCheck(){
 	Lit lit;
-	//for(int i=0; i<JustQueue.size(); i++)
-	//	if(lit_Undef!= (lit = gateJustFanin(JustQueue[i])))
-	//		printf("%d is not justified\n", JustQueue[i]);
 	int i, nJustFail = 0;
 	for(i=0; i<trail.size(); i++){
 		Var      x  = var(trail[i]);
-		if( ! isTwoFanin(x) )
-			continue;
 		if( ! isRoundWatch(x) )
 			continue;
-		if( l_False != value(x) )
+		if( !isJReason(x) )
 			continue;
 		if( lit_Undef != (lit = gateJustFanin(x)) ){
 			printf("\t%8d is not justified (value=%d, level=%3d)\n", x, l_True == value(x)? 1: 0, vardata[x].level), nJustFail ++ ;
@@ -235,15 +207,6 @@ inline void Solver::justCheck(){
 	}
 	if( nJustFail )
 		printf("%d just-fails\n", nJustFail);
-	
-	JustModel.clear(false);
-	JustModel.growTo(nVars(), lit_Undef);
-
-	for (i = 0; i < nVars(); i++){
-		if( l_Undef  == value(i) )
-			continue;
-		JustModel[i] = mkLit( i, l_False == value(i) );
-	}
 }
 /**
 inline void Solver::delVarFaninLits( Var v ){
@@ -303,6 +266,7 @@ inline void Solver::delVarFaninLits( Var v ){
 }
 **/
 inline void Solver::setVarFaninLits( Var v, Lit lit1, Lit lit2 ){
+	assert( var(lit1) != var(lit2) );
 	int mincap = var(lit1) < var(lit2)? var(lit2): var(lit1);
 	mincap = (v < mincap? mincap: v) + 1;
 
@@ -344,6 +308,7 @@ inline bool Solver::isTwoFanin( Var v ) const {
 	Lit lit1 = var2FaninLits[ (v<<1) + 1 ];
 	assert( toLit(~0) == lit0 || var(lit0) < nVars() );
 	assert( toLit(~0) == lit1 || var(lit1) < nVars() );
+    lit0.x = lit1.x = 0; // suppress the warning - alanmi
 	return toLit(~0) != var2FaninLits[ (v<<1) + 0 ] && toLit(~0) != var2FaninLits[ (v<<1) + 1 ];
 }
 
@@ -389,66 +354,106 @@ check_fanout:
 inline CRef Solver::gatePropagateCheckFanout( Var v, Lit lfo ){
 	Lit faninLit = sign(lfo)? getFaninLit1(var(lfo)): getFaninLit0(var(lfo));
 	assert( var(faninLit) == v );
-
-	if( l_False == value(faninLit) )
-	{
-		if( l_False == value(var(lfo)) )
-			return CRef_Undef;
-
-		if( l_True == value(var(lfo)) )
-			return Var2CRef(var(lfo));
-		
-		jwatch[var(lfo)].header.dir = sign(lfo);
-		uncheckedEnqueue(~mkLit(var(lfo)), Var2CRef( var(lfo) ) );
-	} else {
-		assert( l_True == value(faninLit) );
-
-		if( l_True == value(var(lfo)) )
-			return CRef_Undef;
-		
-		// check value of the other fanin 
-		Lit faninLitP = sign(lfo)? getFaninLit0(var(lfo)): getFaninLit1(var(lfo));
-		if( l_False == value(var(lfo)) ){
-			
-			if( l_False == value(faninLitP) )
+	if( isAND(var(lfo)) ){
+		if( l_False == value(faninLit) )
+		{
+			if( l_False == value(var(lfo)) )
 				return CRef_Undef;
 
-			if( l_True == value(faninLitP) )
+			if( l_True == value(var(lfo)) )
 				return Var2CRef(var(lfo));
+			
+			jwatch[var(lfo)].header.dir = sign(lfo);
+			uncheckedEnqueue(~mkLit(var(lfo)), Var2CRef( var(lfo) ) );
+		} else {
+			assert( l_True == value(faninLit) );
 
-			uncheckedEnqueue( ~faninLitP, Var2CRef( var(lfo) ) );
+			if( l_True == value(var(lfo)) )
+				return CRef_Undef;
+			
+			// check value of the other fanin 
+			Lit faninLitP = sign(lfo)? getFaninLit0(var(lfo)): getFaninLit1(var(lfo));
+			if( l_False == value(var(lfo)) ){
+				
+				if( l_False == value(faninLitP) )
+					return CRef_Undef;
+
+				if( l_True == value(faninLitP) )
+					return Var2CRef(var(lfo));
+
+				uncheckedEnqueue( ~faninLitP, Var2CRef( var(lfo) ) );
+			}
+			else
+			if( l_True == value(faninLitP) )
+				uncheckedEnqueue( mkLit(var(lfo)), Var2CRef( var(lfo) ) );
 		}
+	} else { // xor scope
+		// check value of the other fanin 
+		Lit faninLitP = sign(lfo)? getFaninLit0(var(lfo)): getFaninLit1(var(lfo));
+
+		lbool val0, val1, valo;
+		val0 = value(faninLit );
+		val1 = value(faninLitP);
+		valo = value(var(lfo));
+
+		if( l_Undef == val1 && l_Undef == valo )
+			return CRef_Undef;
 		else
-		if( l_True == value(faninLitP) )
-			uncheckedEnqueue( mkLit(var(lfo)), Var2CRef( var(lfo) ) );
+		if( l_Undef == val1 )
+			uncheckedEnqueue( ~faninLitP ^ ( (l_True == val0) ^ (l_True == valo) ), Var2CRef( var(lfo) ) );
+		else
+		if( l_Undef == valo )
+			uncheckedEnqueue( ~mkLit( var(lfo), (l_True == val0) ^ (l_True == val1) ), Var2CRef( var(lfo) ) );
+		else
+		if( l_False  == (valo ^ (val0 == val1)) )
+			return Var2CRef(var(lfo));
+
 	}
+	
 	return CRef_Undef;
 }
 
 inline CRef Solver::gatePropagateCheckThis( Var v ){
 	CRef confl = CRef_Undef;
-	if( l_False == value(v) ){
-		if( l_True == value(getFaninLit0(v)) && l_True == value(getFaninLit1(v)) )
-			return Var2CRef(v);
+	if( isAND(v) ){
+		if( l_False == value(v) ){
+			if( l_True == value(getFaninLit0(v)) && l_True == value(getFaninLit1(v)) )
+				return Var2CRef(v);
 
-		if( l_False == value(getFaninLit0(v)) || l_False == value(getFaninLit1(v)) )
+			if( l_False == value(getFaninLit0(v)) || l_False == value(getFaninLit1(v)) )
+				return CRef_Undef;
+
+			if( l_True == value(getFaninLit0(v)) )
+				uncheckedEnqueue(~getFaninLit1( v ), Var2CRef( v ) );
+			if( l_True == value(getFaninLit1(v)) )
+				uncheckedEnqueue(~getFaninLit0( v ), Var2CRef( v ) );
+		} else {
+			assert( l_True == value(v) );
+			if( l_False == value(getFaninLit0(v)) || l_False == value(getFaninLit1(v)) )
+				confl = Var2CRef(v);
+
+			if( l_Undef == value( getFaninLit0( v )) )
+				uncheckedEnqueue( getFaninLit0( v ), Var2CRef( v ) );
+
+			if( l_Undef == value( getFaninLit1( v )) )
+				uncheckedEnqueue( getFaninLit1( v ), Var2CRef( v ) );
+
+		}
+	} else { // xor scope
+		lbool val0, val1, valo;
+		val0 = value(getFaninLit0(v));
+		val1 = value(getFaninLit1(v));
+		valo = value(v);
+		if( l_Undef == val0 && l_Undef == val1 )
 			return CRef_Undef;
-
-		if( l_True == value(getFaninLit0(v)) )
-			uncheckedEnqueue(~getFaninLit1( v ), Var2CRef( v ) );
-		if( l_True == value(getFaninLit1(v)) )
-			uncheckedEnqueue(~getFaninLit0( v ), Var2CRef( v ) );
-	} else {
-		assert( l_True == value(v) );
-		if( l_False == value(getFaninLit0(v)) || l_False == value(getFaninLit1(v)) )
-			confl = Var2CRef(v);
-
-		if( l_Undef == value( getFaninLit0( v )) )
-			uncheckedEnqueue( getFaninLit0( v ), Var2CRef( v ) );
-
-		if( l_Undef == value( getFaninLit1( v )) )
-			uncheckedEnqueue( getFaninLit1( v ), Var2CRef( v ) );
-
+		if( l_Undef == val0 )
+			uncheckedEnqueue(~getFaninLit0( v ) ^ ( (l_True == val1) ^ (l_True == valo) ), Var2CRef( v ) );
+		else
+		if( l_Undef == val1 )
+			uncheckedEnqueue(~getFaninLit1( v ) ^ ( (l_True == val0) ^ (l_True == valo) ), Var2CRef( v ) );
+		else
+		if( l_False == (valo ^ (val0 == val1)) )
+			return Var2CRef(v);
 	}
 
 	return confl;
@@ -460,97 +465,39 @@ inline CRef Solver::getConfClause( CRef r ){
 	Var v = CRef2Var(r);
 	assert( isTwoFanin(v) );
 
-	if( l_False == value(v) ){
+	if(isAND(v)){
+		if( l_False == value(v) ){
+			setItpcSize(3);
+			Clause& c = ca[itpc];
+			c[0] = mkLit(v);
+			c[1] = ~getFaninLit0( v );
+			c[2] = ~getFaninLit1( v );
+		} else {
+			setItpcSize(2);
+			Clause& c = ca[itpc];
+			c[0] = ~mkLit(v);
+
+			lbool val0 = value(getFaninLit0(v));
+			lbool val1 = value(getFaninLit1(v));
+
+			if( l_False == val0 && l_False == val1 )
+				c[1] = level(getFaninVar0(v)) < level(getFaninVar1(v))? getFaninLit0( v ): getFaninLit1( v );
+			else
+			if( l_False == val0 )
+				c[1] = getFaninLit0( v );
+			else
+				c[1] = getFaninLit1( v );
+		}
+	} else { // xor scope
 		setItpcSize(3);
 		Clause& c = ca[itpc];
-		c[0] = mkLit(v);
-		c[1] = ~getFaninLit0( v );
-		c[2] = ~getFaninLit1( v );
-	} else {
-		setItpcSize(2);
-		Clause& c = ca[itpc];
-		c[0] = ~mkLit(v);
-
-		lbool val0 = value(getFaninLit0(v));
-		lbool val1 = value(getFaninLit1(v));
-
-		if( l_False == val0 && l_False == val1 )
-			c[1] = level(getFaninVar0(v)) < level(getFaninVar1(v))? getFaninLit0( v ): getFaninLit1( v );
-		else
-		if( l_False == val0 )
-			c[1] = getFaninLit0( v );
-		else
-			c[1] = getFaninLit1( v );
+		c[0] = mkLit(v, l_True == value(v));
+		c[1] = mkLit(getFaninVar0(v), l_True == value(getFaninVar0(v)));
+		c[2] = mkLit(getFaninVar1(v), l_True == value(getFaninVar1(v)));
 	}
+	
 
 	return itpc;
-}
-
-inline CRef Solver::gatePropagateCheck( Var v, Var t )
-{  // check fanin consistency 
-	assert( isTwoFanin(v) );
-	CRef confl = CRef_Undef;
-	lbool val0, val1, valo;
-	Var var0, var1;
-	var0 = getFaninVar0( v );
-	var1 = getFaninVar1( v );
-	val0 = value( var0 );
-	val1 = value( var1 );
-	valo = value( v );
-
-	// phased values
-	if(l_Undef != val0) val0 = val0 ^ getFaninC0( v );
-	if(l_Undef != val1) val1 = val1 ^ getFaninC1( v );
-
-
-	if( l_True == valo ){
-
-
-		if( l_False == val0 || l_False == val1 )
-		{ // conflict 
-			return Var2CRef(v);
-		}
-
-		// propagate 1
-		if( l_Undef == val0 )
-			uncheckedEnqueue( getFaninLit0( v ), Var2CRef( v ) );
-		if( l_Undef == val1 )
-			uncheckedEnqueue( getFaninLit1( v ), Var2CRef( v ) );
-
-	} else 
-	if( l_False == valo ){
-
-		if( l_True == val0 && l_True == val1 )
-		{  // conflict 
-			confl = Var2CRef(v);
-		}
-
-		// propagate 0
-		if( l_True == val0 && l_Undef == val1 )
-			uncheckedEnqueue( ~getFaninLit1( v ), Var2CRef( v ) );
-		else
-		if( l_True == val1 && l_Undef == val0 )
-			uncheckedEnqueue( ~getFaninLit0( v ), Var2CRef( v ) );
-
-	} else
-	if( l_Undef == valo ){
-
-		if( l_True == val0 && l_True == val1 ){
-			jwatch[v].header.dir =  t == var1;
-			uncheckedEnqueue(  mkLit(v), Var2CRef( v ) );
-		} else
-		if( t == var0 && l_False == val0 ){
-			jwatch[v].header.dir = 0;
-			uncheckedEnqueue( ~mkLit(v), Var2CRef( v ) );
-		} else
-		if( t == var1 && l_False == val1 ){
-			jwatch[v].header.dir = 1;
-			uncheckedEnqueue( ~mkLit(v), Var2CRef( v ) );
-		}
-
-	}
-
-	return confl;
 }
 
 inline void Solver::setItpcSize( int sz ){
@@ -576,43 +523,57 @@ inline CRef Solver::interpret( Var v, Var t )
 	if(l_Undef != val1) val1 = val1 ^ getFaninC1( v );
 
 
-	if( v == t ){
-		// tracing output 
-		if( l_False == valo ){
-			setItpcSize(2);
-			Clause& c = ca[itpc];
-			c[0] = ~mkLit(v);
+	if( isAND(v) ){
+		if( v == t ){ // tracing output 
+			if( l_False == valo ){
+				setItpcSize(2);
+				Clause& c = ca[itpc];
+				c[0] = ~mkLit(v);
 
-			if( l_False == val0 && l_False == val1 )
-				c[1] = 0 == jwatch[v].header.dir ? getFaninLit0( v ): getFaninLit1( v );
-			else
-			if( l_False == val0 )
-				c[1] = getFaninLit0( v );
-			else
-				c[1] = getFaninLit1( v );
+				if( l_False == val0 && l_False == val1 )
+					c[1] = 0 == jwatch[v].header.dir ? getFaninLit0( v ): getFaninLit1( v );
+				else
+				if( l_False == val0 )
+					c[1] = getFaninLit0( v );
+				else
+					c[1] = getFaninLit1( v );
+			} else {
+				setItpcSize(3);
+				Clause& c = ca[itpc];
+				c[0] = mkLit(v);
+				c[1] = ~getFaninLit0( v );
+				c[2] = ~getFaninLit1( v );
+			}
 		} else {
-			setItpcSize(3);
-			Clause& c = ca[itpc];
-			c[0] = mkLit(v);
-			c[1] = ~getFaninLit0( v );
-			c[2] = ~getFaninLit1( v );
+			assert( t == var0 || t == var1 );
+			if( l_False == valo ){
+				setItpcSize(3);
+				Clause& c = ca[itpc];
+				c[0] = ~getFaninLit0( v );
+				c[1] = ~getFaninLit1( v );
+				c[2] = mkLit(v);
+				if( t == var1 )
+	                c[1].x ^= c[0].x, c[0].x ^= c[1].x, c[1].x ^= c[0].x;
+			} else {
+				setItpcSize(2);
+				Clause& c = ca[itpc];
+				c[0] =  t == var0? getFaninLit0( v ): getFaninLit1( v );
+				c[1] = ~mkLit(v);
+			}
 		}
-	} else {
-		assert( t == var0 || t == var1 );
-		if( l_False == valo ){
-			setItpcSize(3);
-			Clause& c = ca[itpc];
-			c[0] = ~getFaninLit0( v );
-			c[1] = ~getFaninLit1( v );
-			c[2] = mkLit(v);
-			if( t == var1 )
-				//std::swap(c[0],c[1]);
-                c[1].x ^= c[0].x, c[0].x ^= c[1].x, c[1].x ^= c[0].x;
+	} else { // xor scope
+		setItpcSize(3);
+		Clause& c = ca[itpc];
+		if( v == t ){
+			c[0] = mkLit(v, l_False == value(v));
+			c[1] = mkLit(var0, l_True == value(var0));
+			c[2] = mkLit(var1, l_True == value(var1));
 		} else {
-			setItpcSize(2);
-			Clause& c = ca[itpc];
-			c[0] =  t == var0? getFaninLit0( v ): getFaninLit1( v );
-			c[1] = ~mkLit(v);
+			if( t == var0)
+				c[0] = mkLit(var0, l_False == value(var0)), c[1] = mkLit(var1, l_True  == value(var1));
+			else
+				c[1] = mkLit(var0, l_True  == value(var0)), c[0] = mkLit(var1, l_False == value(var1));
+			c[2] = mkLit(v, l_True == value(v));
 		}
 	}
 
@@ -640,12 +601,8 @@ inline void Solver::markCone( Var v ){
 	markCone( getFaninVar1(v) );
 }
 
-
-
 };
 
-
 ABC_NAMESPACE_IMPL_END
-
 
 #endif

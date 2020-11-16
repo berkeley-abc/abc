@@ -392,17 +392,19 @@ protected:
     vec<Lit> var2Fanout0, var2FanoutN, var2FanoutP;
     CRef itpc; // the interpreted clause of a gate 
 
-    bool isTwoFanin( Var v ) const ; // this var has two fanins 
+    bool isTwoFanin  ( Var v ) const ; // this var has two fanins 
+    bool isAND       ( Var v ) const { return getFaninVar0(v) < getFaninVar1(v); }
+    bool isJReason   ( Var v ) const { return isTwoFanin(v) && ( l_False == value(v) || (!isAND(v) && l_Undef != value(v)) ); }
     Lit  getFaninLit0( Var v ) const { return var2FaninLits[ (v<<1) + 0 ]; }
     Lit  getFaninLit1( Var v ) const { return var2FaninLits[ (v<<1) + 1 ]; }
-    bool getFaninC0( Var v )   const { return sign(getFaninLit0(v)); }
-    bool getFaninC1( Var v )   const { return sign(getFaninLit1(v)); }
+    bool getFaninC0  ( Var v ) const { return sign(getFaninLit0(v)); }
+    bool getFaninC1  ( Var v ) const { return sign(getFaninLit1(v)); }
     Var  getFaninVar0( Var v ) const { return  var(getFaninLit0(v)); }
     Var  getFaninVar1( Var v ) const { return  var(getFaninLit1(v)); }
+    Lit  getFaninPlt0( Var v ) const { return mkLit(getFaninVar0(v), 1 == polarity[getFaninVar0(v)]); }
+    Lit  getFaninPlt1( Var v ) const { return mkLit(getFaninVar1(v), 1 == polarity[getFaninVar1(v)]); }
+    Lit  maxActiveLit(Lit lit0, Lit lit1) const { return activity[var(lit0)] < activity[var(lit1)]? lit1: lit0; }
 
-    Lit  maxActiveLit(Lit lit0, Lit lit1) const ;
-
-    Lit  fanin2JustLit(Var v) const ;
     Lit  gateJustFanin(Var v) const ; // l_Undef=satisfied, 0/1 = fanin0/fanin1 requires justify
     void gateAddJwatch(Var v);
     CRef gatePropagateCheck( Var v, Var t );

@@ -868,9 +868,8 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     trail.push_(p);
     #ifdef CGLUCOSE_EXP
     if( 0 < justUsage() ){
-        jdata[var(p)] = mkJustData( l_False == value(var(p)) );
-        if(isTwoFanin(var(p)) && l_False == value(var(p)))
-          if(l_Undef == value( getFaninVar0(var(p)) ) && l_Undef == value( getFaninVar1(var(p)) ))
+        jdata[var(p)] = mkJustData( isJReason(var(p)) );
+        if( isJReason(var(p)) && l_Undef == value( getFaninVar0(var(p)) ) && l_Undef == value( getFaninVar1(var(p)) ) )
             jstack.push(var(p));
         }
     #endif
@@ -1339,7 +1338,7 @@ lbool Solver::solve_()
     if( 0 < justUsage() )
       for(int i=0; i<trail.size(); i++){ // learnt unit clauses 
         Var v = var(trail[i]);
-          if( isTwoFanin(v) && value(v) == l_False )
+          if( isJReason(v) )
             jstack.push(v);
       }
     #endif
