@@ -1327,7 +1327,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
     {
         Gia_Obj_t * pRepr;
         pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pNew) );
-        for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        for ( i = 0; i < Gia_ManObjNum(pNew); i++ )
             Gia_ObjSetRepr( pNew, i, GIA_VOID );
         Gia_ManForEachObj1( p, pObj, i )
         {

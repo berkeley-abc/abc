@@ -401,6 +401,29 @@ Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars )
     return pAig;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Performs computation of AIGs with choices.]
+
+  Description [Takes several AIGs and performs choicing.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Cec_ComputeChoicesNew( Gia_Man_t * pGia, int fVerbose )
+{
+    extern void Cec4_ManSimulateTest2( Gia_Man_t * p, int fVerbose );
+    Aig_Man_t * pAig;
+    Cec4_ManSimulateTest2( pGia, fVerbose );
+    pGia = Gia_ManEquivToChoices( pGia, 3 );
+    Gia_ManSetRegNum( pGia, Gia_ManRegNum(pGia) );
+    pAig = Gia_ManToAig( pGia, 1 );
+    Gia_ManStop( pGia );
+    return pAig;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

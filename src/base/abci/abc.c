@@ -36284,21 +36284,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Cec4_ManSetParams( Cec_ParFra_t * pPars );
     extern Gia_Man_t * Cec2_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
     extern Gia_Man_t * Cec3_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
     extern Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
     Cec_ParFra_t ParsFra, * pPars = &ParsFra; Gia_Man_t * pTemp;
     int c, fUseAlgo = 0, fUseAlgoG = 0, fUseAlgoG2 = 0;
-    Cec_ManFraSetDefaultParams( pPars );
-    pPars->jType          =       2;    // solver type
-    pPars->fSatSweeping   =       1;    // conflict limit at a node
-    pPars->nWords         =       4;    // simulation words
-    pPars->nRounds        =      10;    // simulation rounds
-    pPars->nItersMax      =    2000;    // this is a miter
-    pPars->nBTLimit       = 1000000;    // use logic cones
-    pPars->nSatVarMax     =    1000;    // the max number of SAT variables before recycling SAT solver
-    pPars->nCallsRecycle  =     500;    // calls to perform before recycling SAT solver
-    pPars->nGenIters      =     100;    // pattern generation iterations
+    Cec4_ManSetParams( pPars );
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPrmdckngxwvh" ) ) != EOF )
     {
@@ -37034,10 +37026,10 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     Gia_Man_t * pGias[2] = {NULL, NULL}, * pMiter;
     char ** pArgvNew;
-    int c, nArgcNew, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
+    int c, nArgcNew, fUseNew = 0, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -37077,6 +37069,9 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             pPars->fSilent ^= 1;
+            break;
+        case 'x':
+            fUseNew ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -37216,7 +37211,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     // compute the miter
-    pMiter = Gia_ManMiter( pGias[0], pGias[1], 0, 1, 0, 0, pPars->fVerbose );
+    pMiter = Gia_ManMiter( pGias[0], pGias[1], 0, !fUseNew, 0, 0, pPars->fVerbose );
     if ( pMiter )
     {
         if ( fDumpMiter )
@@ -37229,8 +37224,23 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             pMiter->vSimsPi = Vec_WrdDup(pGias[0]->vSimsPi); 
             pMiter->nSimWords = pGias[0]->nSimWords;
         }
-        pAbc->Status = Cec_ManVerify( pMiter, pPars );
-        Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
+        if ( fUseNew )
+        {
+            abctime clk = Abc_Clock();
+            extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int fVerbose );
+            Gia_Man_t * pNew = Cec4_ManSimulateTest3( pMiter, pPars->fVerbose );
+            if ( Gia_ManAndNum(pNew) == 0 )
+                Abc_Print( 1, "Networks are equivalent.  " );
+            else
+                Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            Gia_ManStop( pNew );
+        }
+        else
+        {
+            pAbc->Status = Cec_ManVerify( pMiter, pPars );
+            Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
+        }
         Gia_ManStop( pMiter );
     }
     if ( pGias[0] != pAbc->pGia )
@@ -37239,7 +37249,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasvwh]\n" );
+    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasxvwh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
@@ -37248,6 +37258,7 @@ usage:
     Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", fDualOutput? "yes":"no");
     Abc_Print( -2, "\t-a     : toggle writing dual-output miter [default = %s]\n", fDumpMiter? "yes":"no");
     Abc_Print( -2, "\t-s     : toggle silent operation [default = %s]\n", pPars->fSilent ? "yes":"no");
+    Abc_Print( -2, "\t-x     : toggle using new solver [default = %s]\n", fUseNew? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-w     : toggle printing SAT solver statistics [default = %s]\n", pPars->fVeryVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -40970,7 +40981,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptfremvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptfremgcxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -41028,6 +41039,15 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fMinLevel ^= 1;
             break;
+        case 'g':
+            pPars->fUseGia ^= 1;
+            break;
+        case 'c':
+            pPars->fUseCSat ^= 1;
+            break;
+        case 'x':
+            pPars->fUseNew ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -41067,7 +41087,7 @@ int Abc_CommandAbc9Dch( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &dch [-WCS num] [-sptfremvh]\n" );
+    Abc_Print( -2, "usage: &dch [-WCS num] [-sptfremgcxvh]\n" );
     Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
     Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
@@ -41079,6 +41099,9 @@ usage:
     Abc_Print( -2, "\t-r     : toggle skipping choices with redundant support [default = %s]\n", pPars->fSkipRedSupp? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle computing and merging equivalences [default = %s]\n", fEquiv? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle minimizing logic level after merging equivalences [default = %s]\n", fMinLevel? "yes": "no" );
+    Abc_Print( -2, "\t-g     : toggle using GIA to prove equivalences [default = %s]\n", pPars->fUseGia? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggle using circuit-based SAT vs. MiniSat [default = %s]\n", pPars->fUseCSat? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle using new choice computation [default = %s]\n", pPars->fUseNew? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

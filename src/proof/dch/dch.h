@@ -52,6 +52,7 @@ struct Dch_Pars_t_
     int              fPower;        // uses power-aware rewriting
     int              fUseGia;       // uses GIA package 
     int              fUseCSat;      // uses circuit-based solver
+    int              fUseNew;       // uses new implementation
     int              fLightSynth;   // uses lighter version of synthesis
     int              fSkipRedSupp;  // skip choices with redundant support vars
     int              fVerbose;      // verbose stats

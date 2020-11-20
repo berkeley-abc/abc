@@ -145,6 +145,30 @@ static inline void   Cec4_ObjCleanSatId( Gia_Man_t * p, Gia_Obj_t * pObj )      
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+/**Function*************************************************************
+
+  Synopsis    [Default parameter settings.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec4_ManSetParams( Cec_ParFra_t * pPars )
+{
+    memset( pPars, 0, sizeof(Cec_ParFra_t) );
+    pPars->jType          =       2;    // solver type
+    pPars->fSatSweeping   =       1;    // conflict limit at a node
+    pPars->nWords         =       4;    // simulation words
+    pPars->nRounds        =      10;    // simulation rounds
+    pPars->nItersMax      =    2000;    // this is a miter
+    pPars->nBTLimit       = 1000000;    // use logic cones
+    pPars->nSatVarMax     =    1000;    // the max number of SAT variables before recycling SAT solver
+    pPars->nCallsRecycle  =     500;    // calls to perform before recycling SAT solver
+    pPars->nGenIters      =     100;    // pattern generation iterations
+}
 
 /**Function*************************************************************
 
@@ -1765,6 +1789,26 @@ finalize:
 Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
 {
     Gia_Man_t * pNew = NULL;
+    Cec4_ManPerformSweeping( p, pPars, &pNew );
+    return pNew;
+}
+void Cec4_ManSimulateTest2( Gia_Man_t * p, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Cec_ParFra_t ParsFra, * pPars = &ParsFra;
+    Cec4_ManSetParams( pPars );
+    Cec4_ManPerformSweeping( p, pPars, NULL );
+    pPars->fVerbose = fVerbose;
+    //if ( fVerbose )
+        Abc_PrintTime( 1, "New choice computation time", Abc_Clock() - clk );
+}
+Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Gia_Man_t * pNew = NULL;
+    Cec_ParFra_t ParsFra, * pPars = &ParsFra;
+    Cec4_ManSetParams( pPars );
+    pPars->fVerbose = fVerbose;
     Cec4_ManPerformSweeping( p, pPars, &pNew );
     return pNew;
 }

@@ -1988,7 +1988,7 @@ Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
     pNew->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
     pNew->pNexts = ABC_CALLOC( int, Gia_ManObjNum(p) );
     for ( i = 0; i < Gia_ManObjNum(p); i++ )
-        Gia_ObjSetRepr( pNew, i, GIA_VOID );
+        pNew->pReprs[i].iRepr = GIA_VOID;
     Gia_ManFillValue( p );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
