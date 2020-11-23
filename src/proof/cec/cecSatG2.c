@@ -1802,12 +1802,13 @@ void Cec4_ManSimulateTest2( Gia_Man_t * p, int fVerbose )
     if ( fVerbose )
         Abc_PrintTime( 1, "New choice computation time", Abc_Clock() - clk );
 }
-Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int fVerbose )
+Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose )
 {
     Gia_Man_t * pNew = NULL;
     Cec_ParFra_t ParsFra, * pPars = &ParsFra;
     Cec4_ManSetParams( pPars );
     pPars->fVerbose = fVerbose;
+    pPars->nBTLimit = nBTLimit;
     Cec4_ManPerformSweeping( p, pPars, &pNew );
     return pNew;
 }

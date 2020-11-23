@@ -37227,8 +37227,8 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fUseNew )
         {
             abctime clk = Abc_Clock();
-            extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int fVerbose );
-            Gia_Man_t * pNew = Cec4_ManSimulateTest3( pMiter, pPars->fVerbose );
+            extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
+            Gia_Man_t * pNew = Cec4_ManSimulateTest3( pMiter, pPars->nBTLimit, pPars->fVerbose );
             if ( Gia_ManAndNum(pNew) == 0 )
                 Abc_Print( 1, "Networks are equivalent.  " );
             else
