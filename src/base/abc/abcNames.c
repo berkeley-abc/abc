@@ -606,6 +606,17 @@ void Abc_NtkShortNames( Abc_Ntk_t * pNtk )
     Abc_NtkAddDummyPoNames( pNtk );
     Abc_NtkAddDummyBoxNames( pNtk );
 }
+void Abc_NtkCleanNames( Abc_Ntk_t * pNtk )
+{  
+    Abc_Obj_t * pObj; int i;
+    Nm_Man_t * pManName = Nm_ManCreate( Abc_NtkCiNum(pNtk) + Abc_NtkCoNum(pNtk) + Abc_NtkBoxNum(pNtk) );
+    Abc_NtkForEachCi( pNtk, pObj, i )
+        Nm_ManStoreIdName( pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Nm_ManStoreIdName( pManName, pObj->Id, pObj->Type, Abc_ObjName(pObj), NULL );
+    Nm_ManFree( pNtk->pManName );
+    pNtk->pManName = pManName;
+}
 
 /**Function*************************************************************
 

@@ -12196,13 +12196,16 @@ usage:
 int Abc_CommandShortNames( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
+    int c, fKeepIo = 0;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "kh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'k':
+            fKeepIo ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -12215,12 +12218,16 @@ int Abc_CommandShortNames( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    Abc_NtkShortNames( pNtk );
+    if ( fKeepIo )
+        Abc_NtkCleanNames( pNtk );
+    else
+        Abc_NtkShortNames( pNtk );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: short_names [-h]\n" );
+    Abc_Print( -2, "usage: short_names [-kh]\n" );
     Abc_Print( -2, "\t         replaces PI/PO/latch names by short char strings\n" );
+    Abc_Print( -2, "\t-k     : toggle keeping PI/PO names unchanged [default = %s]\n", fKeepIo? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
