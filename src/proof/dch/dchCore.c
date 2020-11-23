@@ -106,7 +106,7 @@ p->timeSimInit = Abc_Clock() - clk;
     // free memory ahead of time
 p->timeTotal = Abc_Clock() - clkTotal;
     Dch_ManStop( p );
-    //if ( pPars->fVerbose ) 
+    if ( pPars->fVerbose ) 
         Abc_PrintTime( 1, "Old choice computation time", Abc_Clock() - clk2 );
     // create choices
     ABC_FREE( pAig->pTable );
