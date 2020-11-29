@@ -1037,7 +1037,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Wlc_BstParDefault( pPar );
     pPar->nOutputRange = 2;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombqadestnizvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORAMcombqaydestnizvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -1102,6 +1102,9 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'a':
             pPar->fCla ^= 1;
+            break;
+        case 'y':
+            pPar->fDivBy0 ^= 1;
             break;
         case 'd':
             pPar->fCreateMiter ^= 1;
@@ -1198,7 +1201,7 @@ int Abc_CommandBlast( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combqadestnizvh]\n" );
+    Abc_Print( -2, "usage: %%blast [-ORAM num] [-combqaydestnizvh]\n" );
     Abc_Print( -2, "\t         performs bit-blasting of the word-level design\n" );
     Abc_Print( -2, "\t-O num : zero-based index of the first word-level PO to bit-blast [default = %d]\n", pPar->iOutput );
     Abc_Print( -2, "\t-R num : the total number of word-level POs to bit-blast [default = %d]\n",          pPar->nOutputRange );
@@ -1210,6 +1213,7 @@ usage:
     Abc_Print( -2, "\t-b     : toggle generating radix-4 Booth multipliers [default = %s]\n",              pPar->fBooth? "yes": "no" );
     Abc_Print( -2, "\t-q     : toggle generating non-restoring square root [default = %s]\n",              pPar->fNonRest? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle generating carry-look-ahead adder [default = %s]\n",                 pPar->fCla? "yes": "no" );
+    Abc_Print( -2, "\t-y     : toggle creating different divide-by-0 condition [default = %s]\n",          pPar->fDivBy0? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle creating dual-output multi-output miter [default = %s]\n",           pPar->fCreateMiter? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle creating miter with output word bits combined [default = %s]\n",     pPar->fCreateWordMiter? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating decoded MUXes [default = %s]\n",                            pPar->fDecMuxes? "yes": "no" );
