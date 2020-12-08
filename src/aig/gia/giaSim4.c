@@ -41,7 +41,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fSkipMffc, int fVerbose )
+int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nTimeout, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fSkipMffc, int fVerbose )
 {
     return 0;
 }
