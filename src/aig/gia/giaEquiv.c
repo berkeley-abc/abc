@@ -2707,6 +2707,117 @@ void Gia_ManTransferTest( Gia_Man_t * p )
     Gia_ManStop( pNew );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Converting AIG after SAT sweeping into AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec4_ManMarkIndependentClasses_rec( Gia_Man_t * p, int iObj )
+{
+    Gia_Obj_t * pObj;
+    assert( iObj > 0 );
+    if ( Gia_ObjIsTravIdPreviousId(p, iObj) ) // failed
+        return 0;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) ) // passed
+        return 1;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsCi(pObj) )
+        return 1;
+    assert( Gia_ObjIsAnd(pObj) );
+    if ( Cec4_ManMarkIndependentClasses_rec( p, Gia_ObjFaninId0(pObj, iObj) ) && 
+         Cec4_ManMarkIndependentClasses_rec( p, Gia_ObjFaninId1(pObj, iObj) ) )
+        return 1;
+    Gia_ObjSetTravIdPreviousId(p, iObj);
+    return 0;
+}
+int Cec4_ManMarkIndependentClasses( Gia_Man_t * p, Gia_Man_t * pNew )
+{
+    int iObjNew, iRepr, iObj, Res, fHaveChoices = 0;
+    Gia_ManCleanMark01(p);
+    Gia_ManForEachClass( p, iRepr )
+    {
+        Gia_ManIncrementTravId( pNew );
+        Gia_ManIncrementTravId( pNew );
+        iObjNew = Abc_Lit2Var( Gia_ManObj(p, iRepr)->Value );
+        Res = Cec4_ManMarkIndependentClasses_rec( pNew, iObjNew );
+        assert( Res == 1 );
+        Gia_ObjSetTravIdPreviousId( pNew, iObjNew );
+        p->pReprs[iRepr].fColorA = 1;
+        Gia_ClassForEachObj1( p, iRepr, iObj )
+        {
+            assert( p->pReprs[iObj].iRepr == (unsigned)iRepr );
+            iObjNew = Abc_Lit2Var( Gia_ManObj(p, iObj)->Value );
+            if ( Cec4_ManMarkIndependentClasses_rec( pNew, iObjNew ) )
+            {
+                p->pReprs[iObj].fColorA = 1;
+                fHaveChoices = 1;
+            }
+            Gia_ObjSetTravIdPreviousId( pNew, iObjNew );
+        }
+    }
+    return fHaveChoices;
+}
+int Cec4_ManSatSolverAnd_rec( Gia_Man_t * pCho, Gia_Man_t * p, Gia_Man_t * pNew, int iObj )
+{
+    return 0;
+}
+int Cec4_ManSatSolverChoices_rec( Gia_Man_t * pCho, Gia_Man_t * p, Gia_Man_t * pNew, int iObj )
+{
+    if ( !Gia_ObjIsClass(p, iObj) )
+        return Cec4_ManSatSolverAnd_rec( pCho, p, pNew, iObj );
+    else
+    {
+        Vec_Int_t * vLits = Vec_IntAlloc( 100 );
+        int i, iHead, iNext, iRepr = Gia_ObjIsHead(p, iObj) ? iObj : Gia_ObjRepr(p, iObj);
+        Gia_ClassForEachObj( p, iRepr, iObj )
+            if ( p->pReprs[iObj].fColorA )
+                Vec_IntPush( vLits, Cec4_ManSatSolverAnd_rec( pCho, p, pNew, iObj ) );
+        Vec_IntSort( vLits, 1 );
+        iHead = Abc_Lit2Var( Vec_IntEntry(vLits, 0) );
+        if ( Vec_IntSize(vLits) > 1 )
+        {
+            Vec_IntForEachEntryStart( vLits, iNext, i, 1 )
+            {
+                pCho->pSibls[iHead] = Abc_Lit2Var(iNext);  
+                iHead = Abc_Lit2Var(iNext);
+            }
+        }
+        return Abc_LitNotCond( Vec_IntEntry(vLits, 0), Gia_ManObj(p, iHead)->fPhase );
+    }
+}
+Gia_Man_t * Cec4_ManSatSolverChoices( Gia_Man_t * p, Gia_Man_t * pNew )
+{
+    Gia_Man_t * pCho;
+    Gia_Obj_t * pObj; 
+    int i, DriverId;
+    // mark topologically dependent equivalent nodes
+    if ( !Cec4_ManMarkIndependentClasses( p, pNew ) )
+        return Gia_ManDup( pNew );
+    // rebuild AIG in a different order with choices
+    pCho = Gia_ManStart( Gia_ManObjNum(pNew) );
+    pCho->pName = Abc_UtilStrsav( p->pName );
+    pCho->pSpec = Abc_UtilStrsav( p->pSpec );
+    pCho->pSibls = ABC_CALLOC( int, Gia_ManObjNum(pNew) );
+    Gia_ManFillValue(pNew);
+    Gia_ManConst0(pNew)->Value = 0;
+    for ( i = 0; i < Gia_ManCiNum(pNew); i++ )
+        Gia_ManCi(pNew, i)->Value = Gia_ManAppendCi( pCho );
+    Gia_ManForEachCoDriverId( p, DriverId, i )
+        Cec4_ManSatSolverChoices_rec( pCho, p, pNew, DriverId );
+    Gia_ManForEachCo( pNew, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pCho, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pCho, Gia_ManRegNum(p) );
+    return pCho;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
