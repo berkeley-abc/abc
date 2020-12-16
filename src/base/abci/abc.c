@@ -36606,8 +36606,9 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSpeculate = 1;
     int fSkipSome = 0;
     int fDualOut = 0;
+    int fComb = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Adrsfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Adrsfcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36632,6 +36633,9 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             fSkipSome ^= 1;
             break;
+        case 'c':
+            fComb ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -36645,6 +36649,15 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Srm(): There is no AIG.\n" );
         return 1;
+    }
+    if ( fComb )
+    {
+        extern int Cec4_ManSimulateOnlyTest( Gia_Man_t * p, int fVerbose );
+        int Result = Cec4_ManSimulateOnlyTest( pAbc->pGia, fVerbose );
+        extern Gia_Man_t * Gia_ManCombSpecReduce( Gia_Man_t * p );
+        pTemp = Gia_ManCombSpecReduce( pAbc->pGia );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+        return 0;
     }
     sprintf(pFileName,  "gsrm%s.aig", fSpeculate? "" : "s" );
     sprintf(pFileName2, "gsyn%s.aig", fSpeculate? "" : "s" );
@@ -36678,13 +36691,14 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &srm [-A file] [-drsfvh]\n" );
-    Abc_Print( -2, "\t          writes speculatively reduced model into file \"%s\"\n", pFileName );
+    Abc_Print( -2, "usage: &srm [-A file] [-drsfcvh]\n" );
+    Abc_Print( -2, "\t          derives or writes speculatively reduced model into file \"%s\"\n", pFileName );
     Abc_Print( -2, "\t-A file : file name for dumping speculative-reduced model [default = \"gsrm.aig\"]\n" );
     Abc_Print( -2, "\t-d      : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-r      : toggle writing reduced network for synthesis [default = %s]\n", fSynthesis? "yes": "no" );
     Abc_Print( -2, "\t-s      : toggle using speculation at the internal nodes [default = %s]\n", fSpeculate? "yes": "no" );
     Abc_Print( -2, "\t-f      : toggle filtering to remove redundant equivalences [default = %s]\n", fSkipSome? "yes": "no" );
+    Abc_Print( -2, "\t-c      : toggle using combinational speculation [default = %s]\n", fComb? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
