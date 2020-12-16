@@ -2818,6 +2818,66 @@ Gia_Man_t * Cec4_ManSatSolverChoices( Gia_Man_t * p, Gia_Man_t * pNew )
     return pCho;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Converting AIG after SAT sweeping into AIG with choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCombSpecReduce( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj, * pRepr; int i, iLit;
+    Vec_Int_t * vXors = Vec_IntAlloc( 100 );
+    Gia_Man_t * pTemp, * pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    assert( p->pReprs && p->pNexts );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManLevelNum(p);
+    Gia_ManSetPhase(p);
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        pRepr = Gia_ObjReprObj( p, i );
+        if ( pRepr && Abc_Lit2Var(pObj->Value) != Abc_Lit2Var(pRepr->Value) )
+        {
+            //if ( Gia_ObjLevel(p, pRepr) > Gia_ObjLevel(p, pObj) + 50 )
+            //printf( "%d %d  ", Gia_ObjLevel(p, pRepr), Gia_ObjLevel(p, pObj) );
+            iLit = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
+            Vec_IntPush( vXors, Gia_ManHashXor( pNew, pObj->Value, iLit ) );
+            pObj->Value = iLit;
+        }
+    }
+    Gia_ManHashStop( pNew );
+    if ( Vec_IntSize(vXors) == 0 )
+        Vec_IntPush( vXors, 0 );
+    Vec_IntForEachEntry( vXors, iLit, i )
+        Gia_ManAppendCo( pNew, iLit );
+    Vec_IntFree( vXors );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+void Gia_ManCombSpecReduceTest( Gia_Man_t * p, char * pFileName )
+{
+    Gia_Man_t * pSrm = Gia_ManCombSpecReduce( p );
+    if ( pFileName == NULL )
+        pFileName = "test.aig";
+    Gia_AigerWrite( pSrm, pFileName, 0, 0, 0 );
+    Abc_Print( 1, "Speculatively reduced model was written into file \"%s\".\n", pFileName );
+    Gia_ManStop( pSrm );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

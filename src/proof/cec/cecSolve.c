@@ -696,7 +696,7 @@ Abc_Cex_t * Cex_ManGenCex( Cec_ManSat_t * p, int iOut )
     }
     return pCex;
 }
-void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Int_t * vIdsOrig, Vec_Int_t * vMiterPairs, Vec_Int_t * vEquivPairs )
+void Cec_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Int_t * vIdsOrig, Vec_Int_t * vMiterPairs, Vec_Int_t * vEquivPairs, int f0Proved )
 {
     Bar_Progress_t * pProgress = NULL;
     Cec_ManSat_t * p;
@@ -746,6 +746,9 @@ clk2 = Abc_Clock();
         }
         if ( pPars->fSaveCexes && status != -1 )
             Vec_PtrWriteEntry( pAig->vSeqModelVec, i, status ? (Abc_Cex_t *)(ABC_PTRINT_T)1 : Cex_ManGenCex(p, i) );
+
+        if ( f0Proved && status == 1 )
+            Gia_ManPatchCoDriver( pAig, i, 0 );
 
 /*
         if ( status == -1 )
@@ -807,7 +810,7 @@ void Cec_ManSatSolveCSat( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * 
 {
     Vec_Str_t * vStatus;
     Vec_Int_t * vPat = Vec_IntAlloc( 1000 );
-    Vec_Int_t * vCexStore = Cbs_ManSolveMiterNc( pAig, pPars->nBTLimit, &vStatus, 0 );
+    Vec_Int_t * vCexStore = Cbs_ManSolveMiterNc( pAig, pPars->nBTLimit, &vStatus, 0, 0 );
     Gia_Obj_t * pObj;
     int i, status, iStart = 0;
     assert( Vec_StrSize(vStatus) == Gia_ManCoNum(pAig) );

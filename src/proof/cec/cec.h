@@ -219,7 +219,7 @@ extern void          Cec_ManCecSetDefaultParams( Cec_ParCec_t * p );
 extern void          Cec_ManCorSetDefaultParams( Cec_ParCor_t * p );
 extern void          Cec_ManChcSetDefaultParams( Cec_ParChc_t * p );
 extern Gia_Man_t *   Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSilent );
-extern Gia_Man_t *   Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars );
+extern Gia_Man_t *   Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars, int f0Proved );
 extern void          Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars );
 /*=== cecSeq.c ==========================================================*/
 extern int           Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex_t * pCex );
