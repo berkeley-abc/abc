@@ -36123,10 +36123,21 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fNewSolver = 0, fCSat = 0, f0Proved = 0;
     Cec_ManSatSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CSNanmtcxzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "JCSNanmtcxzvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'J':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-J\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->SolverType = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->SolverType < 0 )
+                goto usage;
+            break;
         case 'C':
             if ( globalUtilOptind >= argc )
             {
@@ -36222,8 +36233,9 @@ int Abc_CommandAbc9Sat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sat [-CSN <num>] [-anmctxzvh]\n" );
+    Abc_Print( -2, "usage: &sat [-JCSN <num>] [-anmctxzvh]\n" );
     Abc_Print( -2, "\t         performs SAT solving for the combinational outputs\n" );
+    Abc_Print( -2, "\t-J num : the SAT solver type [default = %d]\n", pPars->SolverType );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-S num : the min number of variables to recycle the solver [default = %d]\n", pPars->nSatVarMax );
     Abc_Print( -2, "\t-N num : the min number of calls to recycle the solver [default = %d]\n", pPars->nCallsRecycle );

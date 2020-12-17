@@ -45,6 +45,7 @@ ABC_NAMESPACE_IMPL_START
 void Cec_ManSatSetDefaultParams( Cec_ParSat_t * p )
 {
     memset( p, 0, sizeof(Cec_ParSat_t) );
+    p->SolverType     =      -1;  // SAT solver type
     p->nBTLimit       =     100;  // conflict limit at a node
     p->nSatVarMax     =    2000;  // the max number of SAT variables
     p->nCallsRecycle  =     200;  // calls to perform before recycling SAT solver
@@ -237,7 +238,10 @@ Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars, int f0Pro
     Gia_Man_t * pNew;
     Cec_ManPat_t * pPat;
     pPat = Cec_ManPatStart();
-    Cec_ManSatSolve( pPat, pAig, pPars, NULL, NULL, NULL, f0Proved );
+    if ( pPars->SolverType == -1 )
+        Cec_ManSatSolve( pPat, pAig, pPars, NULL, NULL, NULL, f0Proved );
+    else
+        CecG_ManSatSolve( pPat, pAig, pPars, f0Proved );
 //    pNew = Gia_ManDupDfsSkip( pAig );
     pNew = Gia_ManCleanup( pAig );
     Cec_ManPatStop( pPat );

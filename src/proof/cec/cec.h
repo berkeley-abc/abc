@@ -43,6 +43,7 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Cec_ParSat_t_ Cec_ParSat_t;
 struct Cec_ParSat_t_
 {
+    int              SolverType;    // SAT solver type
     int              nBTLimit;      // conflict limit at a node
     int              nSatVarMax;    // the max number of SAT variables
     int              nCallsRecycle; // calls to perform before recycling SAT solver
