@@ -2460,6 +2460,40 @@ Vec_Int_t * Gia_ManComputeDistance( Gia_Man_t * p, int iObj, Vec_Int_t * vObjs, 
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ComputeTest()
+{
+    char * pStart, Line [1000]; float Total = 0;
+    char * pFileName = "data.txt";
+    FILE * pFile = fopen( pFileName, "r" );
+    if ( pFile == NULL )
+        { printf( "Input file \"%s\" cannot be opened.\n", pFileName ); return; }
+    while ( fgets( Line, 1000, pFile ) != NULL )
+    {
+        if ( !strstr(Line, "xxx") )
+            continue;
+        if ( !strstr(Line, "yyy") )
+            continue;
+        //printf( "%s", Line );
+        pStart = strstr(Line, "zzz");
+        if ( pStart == NULL )
+            continue;
+        //printf( "%s", pStart + 4 );
+        Total += -atof( pStart + 4 );
+    }
+    printf( "Total = %.2f\n", Total );
+    fclose( pFile );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

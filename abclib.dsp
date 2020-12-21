@@ -5543,6 +5543,10 @@ SOURCE=.\src\proof\cec\cecSolve.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\cec\cecSolveG.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\cec\cecSplit.c
 # End Source File
 # Begin Source File

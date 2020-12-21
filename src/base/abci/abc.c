@@ -36669,6 +36669,7 @@ int Abc_CommandAbc9Srm( Abc_Frame_t * pAbc, int argc, char ** argv )
         extern Gia_Man_t * Gia_ManCombSpecReduce( Gia_Man_t * p );
         pTemp = Gia_ManCombSpecReduce( pAbc->pGia );
         Abc_FrameUpdateGia( pAbc, pTemp );
+        Result = 0;
         return 0;
     }
     sprintf(pFileName,  "gsrm%s.aig", fSpeculate? "" : "s" );
