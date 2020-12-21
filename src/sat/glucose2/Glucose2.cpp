@@ -175,6 +175,7 @@ Solver::Solver() :
   }
 
   #ifdef CGLUCOSE_EXP
+  jftr = 0;
   travId = 0;
   travId_prev = 0;
 

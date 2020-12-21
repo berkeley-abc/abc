@@ -20,6 +20,59 @@
 
 #include "cecInt.h"
 
+
+#define USE_GLUCOSE2
+
+#ifdef USE_GLUCOSE2
+
+#include "sat/glucose2/AbcGlucose2.h"
+
+#define sat_solver                         bmcg2_sat_solver
+#define sat_solver_start                   bmcg2_sat_solver_start
+#define sat_solver_stop                    bmcg2_sat_solver_stop
+#define sat_solver_addclause               bmcg2_sat_solver_addclause
+#define sat_solver_add_and                 bmcg2_sat_solver_add_and
+#define sat_solver_add_xor                 bmcg2_sat_solver_add_xor
+#define sat_solver_addvar                  bmcg2_sat_solver_addvar
+#define sat_solver_reset                   bmcg2_sat_solver_reset
+#define sat_solver_set_conflict_budget     bmcg2_sat_solver_set_conflict_budget
+#define sat_solver_conflictnum             bmcg2_sat_solver_conflictnum
+#define sat_solver_solve                   bmcg2_sat_solver_solve
+#define sat_solver_read_cex_varvalue       bmcg2_sat_solver_read_cex_varvalue
+#define sat_solver_read_cex                bmcg2_sat_solver_read_cex
+#define sat_solver_jftr                    bmcg2_sat_solver_jftr
+#define sat_solver_set_jftr                bmcg2_sat_solver_set_jftr
+#define sat_solver_set_var_fanin_lit       bmcg2_sat_solver_set_var_fanin_lit
+#define sat_solver_start_new_round         bmcg2_sat_solver_start_new_round
+#define sat_solver_mark_cone               bmcg2_sat_solver_mark_cone
+//#define sat_solver_set_nvars               bmcg2_sat_solver_set_nvars
+#define sat_solver_varnum                  bmcg2_sat_solver_varnum
+#else
+
+#include "sat/glucose/AbcGlucose.h"
+
+#define sat_solver                         bmcg_sat_solver
+#define sat_solver_start                   bmcg_sat_solver_start
+#define sat_solver_stop                    bmcg_sat_solver_stop
+#define sat_solver_addclause               bmcg_sat_solver_addclause
+#define sat_solver_add_and                 bmcg_sat_solver_add_and
+#define sat_solver_add_xor                 bmcg_sat_solver_add_xor
+#define sat_solver_addvar                  bmcg_sat_solver_addvar
+#define sat_solver_reset                   bmcg_sat_solver_reset
+#define sat_solver_set_conflict_budget     bmcg_sat_solver_set_conflict_budget
+#define sat_solver_conflictnum             bmcg_sat_solver_conflictnum
+#define sat_solver_solve                   bmcg_sat_solver_solve
+#define sat_solver_read_cex_varvalue       bmcg_sat_solver_read_cex_varvalue
+#define sat_solver_read_cex                bmcg_sat_solver_read_cex
+#define sat_solver_jftr                    bmcg_sat_solver_jftr
+#define sat_solver_set_jftr                bmcg_sat_solver_set_jftr
+#define sat_solver_set_var_fanin_lit       bmcg_sat_solver_set_var_fanin_lit
+#define sat_solver_start_new_round         bmcg_sat_solver_start_new_round
+#define sat_solver_mark_cone               bmcg_sat_solver_mark_cone
+#define sat_solver_set_nvars               bmcg_sat_solver_set_nvars
+
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -47,7 +100,7 @@ static inline void CecG_ObjSetSatNum( Cec_ManSat_t * p, Gia_Obj_t * pObj, int Nu
 ***********************************************************************/
 int CecG_ObjSatVarValue( Cec_ManSat_t * p, Gia_Obj_t * pObj )             
 { 
-    return sat_solver_var_value( p->pSat, CecG_ObjSatNum(p, pObj) );
+    return sat_solver_read_cex_varvalue( p->pSat, CecG_ObjSatNum(p, pObj) );
 }
 
 /**Function*************************************************************
@@ -96,7 +149,7 @@ void CecG_AddClausesMux( Cec_ManSat_t * p, Gia_Obj_t * pNode )
         if ( Gia_Regular(pNodeT)->fPhase )  pLits[1] = lit_neg( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
     }
-    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    RetValue = sat_solver_addclause( p->pSat, pLits, 3 );
     assert( RetValue );
     pLits[0] = toLitCond(VarI, 1);
     pLits[1] = toLitCond(VarT, 0^fCompT);
@@ -107,7 +160,7 @@ void CecG_AddClausesMux( Cec_ManSat_t * p, Gia_Obj_t * pNode )
         if ( Gia_Regular(pNodeT)->fPhase )  pLits[1] = lit_neg( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
     }
-    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    RetValue = sat_solver_addclause( p->pSat, pLits, 3 );
     assert( RetValue );
     pLits[0] = toLitCond(VarI, 0);
     pLits[1] = toLitCond(VarE, 1^fCompE);
@@ -118,7 +171,7 @@ void CecG_AddClausesMux( Cec_ManSat_t * p, Gia_Obj_t * pNode )
         if ( Gia_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
     }
-    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    RetValue = sat_solver_addclause( p->pSat, pLits, 3 );
     assert( RetValue );
     pLits[0] = toLitCond(VarI, 0);
     pLits[1] = toLitCond(VarE, 0^fCompE);
@@ -129,7 +182,7 @@ void CecG_AddClausesMux( Cec_ManSat_t * p, Gia_Obj_t * pNode )
         if ( Gia_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
     }
-    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    RetValue = sat_solver_addclause( p->pSat, pLits, 3 );
     assert( RetValue );
 
     // two additional clauses
@@ -154,7 +207,7 @@ void CecG_AddClausesMux( Cec_ManSat_t * p, Gia_Obj_t * pNode )
         if ( Gia_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
     }
-    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    RetValue = sat_solver_addclause( p->pSat, pLits, 3 );
     assert( RetValue );
     pLits[0] = toLitCond(VarT, 1^fCompT);
     pLits[1] = toLitCond(VarE, 1^fCompE);
@@ -165,7 +218,7 @@ void CecG_AddClausesMux( Cec_ManSat_t * p, Gia_Obj_t * pNode )
         if ( Gia_Regular(pNodeE)->fPhase )  pLits[1] = lit_neg( pLits[1] );
         if ( pNode->fPhase )                pLits[2] = lit_neg( pLits[2] );
     }
-    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 3 );
+    RetValue = sat_solver_addclause( p->pSat, pLits, 3 );
     assert( RetValue );
 }
 
@@ -200,7 +253,7 @@ void CecG_AddClausesSuper( Cec_ManSat_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSup
             if ( Gia_Regular(pFanin)->fPhase )  pLits[0] = lit_neg( pLits[0] );
             if ( pNode->fPhase )                pLits[1] = lit_neg( pLits[1] );
         }
-        RetValue = sat_solver_addclause( p->pSat, pLits, pLits + 2 );
+        RetValue = sat_solver_addclause( p->pSat, pLits, 2 );
         assert( RetValue );
     }
     // add A & B => C   or   !A + !B + C
@@ -217,7 +270,7 @@ void CecG_AddClausesSuper( Cec_ManSat_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSup
     {
         if ( pNode->fPhase )  pLits[nLits-1] = lit_neg( pLits[nLits-1] );
     }
-    RetValue = sat_solver_addclause( p->pSat, pLits, pLits + nLits );
+    RetValue = sat_solver_addclause( p->pSat, pLits, nLits );
     assert( RetValue );
     ABC_FREE( pLits );
 }
@@ -233,7 +286,7 @@ void CecG_AddClausesSuper( Cec_ManSat_t * p, Gia_Obj_t * pNode, Vec_Ptr_t * vSup
   SeeAlso     []
 
 ***********************************************************************/
-void CecG_CollectSuper_rec( Gia_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes )
+void CecG_CollectSuper_rec( Gia_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, int fUseMuxes, int fUseSuper )
 {
     // if the new node is complemented or a PI, another gate begins
     if ( Gia_IsComplement(pObj) || Gia_ObjIsCi(pObj) || 
@@ -243,9 +296,14 @@ void CecG_CollectSuper_rec( Gia_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, in
         Vec_PtrPushUnique( vSuper, pObj );
         return;
     }
+    if( !fUseSuper ){
+        Vec_PtrPushUnique( vSuper, Gia_ObjChild0(pObj) );
+        Vec_PtrPushUnique( vSuper, Gia_ObjChild1(pObj) );
+        return ;
+    }
     // go through the branches
-    CecG_CollectSuper_rec( Gia_ObjChild0(pObj), vSuper, 0, fUseMuxes );
-    CecG_CollectSuper_rec( Gia_ObjChild1(pObj), vSuper, 0, fUseMuxes );
+    CecG_CollectSuper_rec( Gia_ObjChild0(pObj), vSuper, 0, fUseMuxes, fUseSuper );
+    CecG_CollectSuper_rec( Gia_ObjChild1(pObj), vSuper, 0, fUseMuxes, fUseSuper );
 }
 
 /**Function*************************************************************
@@ -259,12 +317,12 @@ void CecG_CollectSuper_rec( Gia_Obj_t * pObj, Vec_Ptr_t * vSuper, int fFirst, in
   SeeAlso     []
 
 ***********************************************************************/
-void CecG_CollectSuper( Gia_Obj_t * pObj, int fUseMuxes, Vec_Ptr_t * vSuper )
+void CecG_CollectSuper( Gia_Obj_t * pObj, int fUseMuxes, int fUseSuper, Vec_Ptr_t * vSuper )
 {
     assert( !Gia_IsComplement(pObj) );
     assert( !Gia_ObjIsCi(pObj) );
     Vec_PtrClear( vSuper );
-    CecG_CollectSuper_rec( pObj, vSuper, 1, fUseMuxes );
+    CecG_CollectSuper_rec( pObj, vSuper, 1, fUseMuxes, fUseSuper );
 }
 
 /**Function*************************************************************
@@ -287,7 +345,7 @@ void CecG_ObjAddToFrontier( Cec_ManSat_t * p, Gia_Obj_t * pObj, Vec_Ptr_t * vFro
     if ( Gia_ObjIsConst0(pObj) )
         return;
     Vec_PtrPush( p->vUsedNodes, pObj );
-    CecG_ObjSetSatNum( p, pObj, p->nSatVars++ );
+    CecG_ObjSetSatNum( p, pObj, sat_solver_addvar( p->pSat ) );
     if ( Gia_ObjIsAnd(pObj) )
         Vec_PtrPush( vFrontier, pObj );
 }
@@ -307,18 +365,18 @@ void CecG_CnfNodeAddToSolver( Cec_ManSat_t * p, Gia_Obj_t * pObj )
 { 
     Vec_Ptr_t * vFrontier;
     Gia_Obj_t * pNode, * pFanin;
-    int i, k, fUseMuxes = 1;
+    int i, k, fUseMuxes = 0 == p->pPars->SolverType;
     // quit if CNF is ready
     if ( CecG_ObjSatNum(p,pObj) )
         return;
     if ( Gia_ObjIsCi(pObj) )
     {
         Vec_PtrPush( p->vUsedNodes, pObj );
-        CecG_ObjSetSatNum( p, pObj, p->nSatVars++ );
-        sat_solver_setnvars( p->pSat, p->nSatVars );
+        CecG_ObjSetSatNum( p, pObj, sat_solver_addvar( p->pSat ) );
         return;
     }
     assert( Gia_ObjIsAnd(pObj) );
+
     // start the frontier
     vFrontier = Vec_PtrAlloc( 100 );
     CecG_ObjAddToFrontier( p, pObj, vFrontier );
@@ -340,13 +398,25 @@ void CecG_CnfNodeAddToSolver( Cec_ManSat_t * p, Gia_Obj_t * pObj )
         }
         else
         {
-            CecG_CollectSuper( pNode, fUseMuxes, p->vFanins );
+            CecG_CollectSuper( pNode, fUseMuxes, 0 == p->pPars->SolverType, p->vFanins );
             Vec_PtrForEachEntry( Gia_Obj_t *, p->vFanins, pFanin, k )
                 CecG_ObjAddToFrontier( p, Gia_Regular(pFanin), vFrontier );
-            CecG_AddClausesSuper( p, pNode, p->vFanins );
+            
+            if( p->pPars->SolverType < 2 )
+                CecG_AddClausesSuper( p, pNode, p->vFanins );
         }
         assert( Vec_PtrSize(p->vFanins) > 1 );
     }
+    if( p->pPars->SolverType )
+        Vec_PtrForEachEntry( Gia_Obj_t *, vFrontier, pNode, i ){
+            int var = CecG_ObjSatNum( p, pNode );
+            int Lit0 = Abc_Var2Lit( CecG_ObjSatNum( p, Gia_ObjFanin0(pNode) ), Gia_ObjFaninC0(pNode) );
+            int Lit1 = Abc_Var2Lit( CecG_ObjSatNum( p, Gia_ObjFanin1(pNode) ), Gia_ObjFaninC1(pNode) );
+            assert(Gia_ObjIsAnd(pNode));
+            if ( (Lit0 > Lit1) ^ Gia_ObjIsXor(pNode) )
+                 Lit1 ^= Lit0, Lit0 ^= Lit1, Lit1 ^= Lit0;
+            sat_solver_set_var_fanin_lit( p->pSat, var, Lit0, Lit1 );
+        }
     Vec_PtrFree( vFrontier );
 }
 
@@ -373,20 +443,22 @@ void CecG_ManSatSolverRecycle( Cec_ManSat_t * p )
             CecG_ObjSetSatNum( p, pObj, 0 );
         Vec_PtrClear( p->vUsedNodes );
 //        memset( p->pSatVars, 0, sizeof(int) * Gia_ManObjNumMax(p->pAigTotal) );
-        sat_solver_delete( p->pSat );
+        sat_solver_stop( p->pSat );
     }
-    p->pSat = sat_solver_new();
-    sat_solver_setnvars( p->pSat, 1000 );
-    p->pSat->factors = ABC_CALLOC( double, p->pSat->cap );
+    p->pSat = sat_solver_start();
+    assert( 0 <= p->pPars->SolverType && p->pPars->SolverType <= 2 );
+    sat_solver_set_jftr( p->pSat, p->pPars->SolverType );
+    //sat_solver_setnvars( p->pSat, 1000 ); // minisat only
+    //p->pSat->factors = ABC_CALLOC( double, p->pSat->cap );
     // var 0 is not used
     // var 1 is reserved for const0 node - add the clause
-    p->nSatVars = 1;
+
 //    p->nSatVars = 0;
-    Lit = toLitCond( p->nSatVars, 1 );
+    CecG_ObjSetSatNum( p, Gia_ManConst0(p->pAig), sat_solver_addvar( p->pSat ) );
+    Lit = toLitCond( CecG_ObjSatNum( p, Gia_ManConst0(p->pAig) ), 1 );
+    sat_solver_addclause( p->pSat, &Lit, 1 );
 //    if ( p->pPars->fPolarFlip ) // no need to normalize const0 node (bug fix by SS on 9/17/2012)
 //        Lit = lit_neg( Lit );
-    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
-    CecG_ObjSetSatNum( p, Gia_ManConst0(p->pAig), p->nSatVars++ );
 
     p->nRecycles++;
     p->nCallsSince = 0;
@@ -408,7 +480,7 @@ int CecG_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
 {
     Gia_Obj_t * pObjR = Gia_Regular(pObj);
     int nBTLimit = p->pPars->nBTLimit;
-    int Lit, RetValue, status, nConflicts;
+    int Lit, RetValue, nConflicts;
     abctime clk = Abc_Clock();
 
     if ( pObj == Gia_ManConst0(p->pAig) )
@@ -425,20 +497,25 @@ int CecG_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
     // check if SAT solver needs recycling
     if ( p->pSat == NULL || 
         (p->pPars->nSatVarMax && 
-         p->nSatVars > p->pPars->nSatVarMax && 
+         sat_solver_varnum(p->pSat) > p->pPars->nSatVarMax && 
          p->nCallsSince > p->pPars->nCallsRecycle) )
         CecG_ManSatSolverRecycle( p );
 
     // if the nodes do not have SAT variables, allocate them
     CecG_CnfNodeAddToSolver( p, pObjR );
 
-    // propage unit clauses
-    if ( p->pSat->qtail != p->pSat->qhead )
-    {
-        status = sat_solver_simplify(p->pSat);
-        assert( status != 0 );
-        assert( p->pSat->qtail == p->pSat->qhead );
+    if( p->pPars->SolverType ){
+        sat_solver_start_new_round( p->pSat );
+        sat_solver_mark_cone( p->pSat, CecG_ObjSatNum(p, pObjR) );
     }
+
+    // propage unit clauses // minisat only
+    //if ( p->pSat->qtail != p->pSat->qhead )
+    //{
+    //    status = sat_solver_simplify(p->pSat);
+    //    assert( status != 0 );
+    //    assert( p->pSat->qtail == p->pSat->qhead );
+    //}
 
     // solve under assumptions
     // A = 1; B = 0     OR     A = 1; B = 1 
@@ -447,35 +524,37 @@ int CecG_ManSatCheckNode( Cec_ManSat_t * p, Gia_Obj_t * pObj )
     {
         if ( pObjR->fPhase )  Lit = lit_neg( Lit );
     }
-    nConflicts = p->pSat->stats.conflicts;
+    nConflicts = sat_solver_conflictnum(p->pSat);
 
-    RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, 
-        (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
+    sat_solver_set_conflict_budget( p->pSat, nBTLimit );
+    RetValue = sat_solver_solve( p->pSat, &Lit, 1 );
+    //RetValue = sat_solver_solve( p->pSat, &Lit, &Lit + 1, 
+    //    (ABC_INT64_T)nBTLimit, (ABC_INT64_T)0, (ABC_INT64_T)0, (ABC_INT64_T)0 );
     if ( RetValue == l_False )
     {
 p->timeSatUnsat += Abc_Clock() - clk;
         Lit = lit_neg( Lit );
-        RetValue = sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
+        RetValue = sat_solver_addclause( p->pSat, &Lit, 1 );
         assert( RetValue );
         p->nSatUnsat++;
-        p->nConfUnsat += p->pSat->stats.conflicts - nConflicts;       
-//Abc_Print( 1, "UNSAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+        p->nConfUnsat += sat_solver_conflictnum(p->pSat) - nConflicts;       
+//Abc_Print( 1, "UNSAT after %d conflicts\n", sat_solver_conflictnum(p->pSat) - nConflicts );
         return 1;
     }
     else if ( RetValue == l_True )
     {
 p->timeSatSat += Abc_Clock() - clk;
         p->nSatSat++;
-        p->nConfSat += p->pSat->stats.conflicts - nConflicts;
-//Abc_Print( 1, "SAT after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+        p->nConfSat += sat_solver_conflictnum(p->pSat) - nConflicts;
+//Abc_Print( 1, "SAT after %d conflicts\n", sat_solver_conflictnum(p->pSat) - nConflicts );
         return 0;
     }
     else // if ( RetValue == l_Undef )
     {
 p->timeSatUndec += Abc_Clock() - clk;
         p->nSatUndec++;
-        p->nConfUndec += p->pSat->stats.conflicts - nConflicts;
-//Abc_Print( 1, "UNDEC after %d conflicts\n", p->pSat->stats.conflicts - nConflicts );
+        p->nConfUndec += sat_solver_conflictnum(p->pSat) - nConflicts;
+//Abc_Print( 1, "UNDEC after %d conflicts\n", sat_solver_conflictnum(p->pSat) - nConflicts );
         return -1;
     }
 }
@@ -488,6 +567,8 @@ void CecG_ManSatSolve( Cec_ManPat_t * pPat, Gia_Man_t * pAig, Cec_ParSat_t * pPa
     int i, status;
     abctime clk = Abc_Clock(), clk2;
     Vec_PtrFreeP( &pAig->vSeqModelVec );
+    if( pPars->SolverType )
+        pPars->fPolarFlip = 0;
     // reset the manager
     if ( pPat )
     {
@@ -530,20 +611,24 @@ clk2 = Abc_Clock();
         if ( status != 0 )
             continue;
         // save the pattern
-        if ( pPat )
-        {
-            abctime clk3 = Abc_Clock();
-            Cec_ManPatSavePattern( pPat, p, pObj );
-            pPat->timeTotalSave += Abc_Clock() - clk3;
-        }
+        //if ( pPat )
+        //{
+        //    abctime clk3 = Abc_Clock();
+        //    Cec_ManPatSavePattern( pPat, p, pObj );
+        //    pPat->timeTotalSave += Abc_Clock() - clk3;
+        //}
         // quit if one of them is solved
         if ( pPars->fCheckMiter )
             break;
     }
     p->timeTotal = Abc_Clock() - clk;
+    printf("Recycles %d\n", p->nRecycles);
     Bar_ProgressStop( pProgress );
     if ( pPars->fVerbose )
         Cec_ManSatPrintStats( p );
+    if( p->pSat )
+        sat_solver_stop( p->pSat );
+    p->pSat = NULL;
     Cec_ManSatStop( p );
 }
 
