@@ -5539,6 +5539,10 @@ SOURCE=.\src\proof\cec\cecSeq.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\cec\cecSim.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\cec\cecSolve.c
 # End Source File
 # Begin Source File

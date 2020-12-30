@@ -10,6 +10,7 @@ SRC +=    src/proof/cec/cecCec.c \
     src/proof/cec/cecSatG.c \
     src/proof/cec/cecSatG2.c \
     src/proof/cec/cecSeq.c \
+    src/proof/cec/cecSim.c \
     src/proof/cec/cecSolve.c \
     src/proof/cec/cecSolveG.c \
     src/proof/cec/cecSplit.c \

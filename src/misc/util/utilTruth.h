@@ -216,6 +216,12 @@ static inline void Abc_TtMask( word * pTruth, int nWords, int nBits )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Abc_TtVec( word * pOut, int nWords, word Entry )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = Entry;
+}
 static inline void Abc_TtConst( word * pOut, int nWords, int fConst1 )
 {
     int w;
@@ -315,6 +321,12 @@ static inline void Abc_TtOrXor( word * pOut, word * pIn1, word * pIn2, int nWord
     int w;
     for ( w = 0; w < nWords; w++ )
         pOut[w] |= pIn1[w] ^ pIn2[w];
+}
+static inline void Abc_TtOrAnd( word * pOut, word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] |= pIn1[w] & pIn2[w];
 }
 static inline void Abc_TtXor( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
 {
