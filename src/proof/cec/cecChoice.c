@@ -256,7 +256,7 @@ int Cec_ManChoiceComputation_int( Gia_Man_t * pAig, Cec_ParChc_t * pPars )
         // found counter-examples to speculation
         clk2 = Abc_Clock();
         if ( pPars->fUseCSat )
-            vCexStore = Cbs_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0 );
+            vCexStore = Cbs_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0, 0 );
         else
             vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
         Gia_ManStop( pSrm );
@@ -395,6 +395,29 @@ Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars )
         pParsChc->nBTLimit = 100;
     pParsChc->fVerbose = pPars->fVerbose;
     pGia = Cec_ManChoiceComputationVec( pGia, 3, pParsChc );
+    Gia_ManSetRegNum( pGia, Gia_ManRegNum(pGia) );
+    pAig = Gia_ManToAig( pGia, 1 );
+    Gia_ManStop( pGia );
+    return pAig;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs computation of AIGs with choices.]
+
+  Description [Takes several AIGs and performs choicing.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Aig_Man_t * Cec_ComputeChoicesNew( Gia_Man_t * pGia, int fVerbose )
+{
+    extern void Cec4_ManSimulateTest2( Gia_Man_t * p, int fVerbose );
+    Aig_Man_t * pAig;
+    Cec4_ManSimulateTest2( pGia, fVerbose );
+    pGia = Gia_ManEquivToChoices( pGia, 3 );
     Gia_ManSetRegNum( pGia, Gia_ManRegNum(pGia) );
     pAig = Gia_ManToAig( pGia, 1 );
     Gia_ManStop( pGia );

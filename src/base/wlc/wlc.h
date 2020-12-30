@@ -217,6 +217,7 @@ struct Wlc_BstPar_t_
     int                    fBooth;
     int                    fNonRest;
     int                    fCla;
+    int                    fDivBy0;
     int                    fNoCleanup;
     int                    fCreateMiter;
     int                    fCreateWordMiter;
@@ -238,6 +239,7 @@ static inline void Wlc_BstParDefault( Wlc_BstPar_t * pPar )
     pPar->fMulti       =  0;
     pPar->fBooth       =  0;
     pPar->fCla         =  0;
+    pPar->fDivBy0      =  0;
     pPar->fCreateMiter =  0;
     pPar->fCreateWordMiter =  0;
     pPar->fDecMuxes    =  0;

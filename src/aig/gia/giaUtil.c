@@ -1236,6 +1236,53 @@ int Gia_NodeMffcSizeSupp( Gia_Man_t * p, Gia_Obj_t * pNode, Vec_Int_t * vSupp )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_NodeMffcMapping_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vMapping, Vec_Int_t * vSupp )
+{
+    Gia_Obj_t * pObj; int i, iNode, Count = 1;
+    if ( !iObj || Vec_IntEntry(vMapping, iObj) )
+        return 0;
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsCi(pObj) )
+        return 0;
+    Gia_NodeMffcSizeSupp( p, pObj, vSupp );
+    Vec_IntSort( vSupp, 0 );
+    Vec_IntWriteEntry( vMapping, iObj, Vec_IntSize(vMapping) );
+    Vec_IntPush( vMapping, Vec_IntSize(vSupp) );
+    Vec_IntAppend( vMapping, vSupp );
+    Vec_IntPush( vMapping, iObj );
+    Vec_IntForEachEntry( vSupp, iNode, i )
+        Count += Gia_NodeMffcMapping_rec( p, iNode, vMapping, vSupp );
+    return Count;
+}
+int Gia_NodeMffcMapping( Gia_Man_t * p )
+{
+    int i, Id, Count = 0;
+    int * pRefsOld;
+    Vec_Int_t * vMapping, * vSupp = Vec_IntAlloc( 100 );
+    vMapping = Vec_IntAlloc( 2 * Gia_ManObjNum(p) );
+    Vec_IntFill( vMapping, Gia_ManObjNum(p), 0 );
+    pRefsOld = p->pRefs; p->pRefs = NULL;
+    Gia_ManCreateRefs( p ); 
+    Gia_ManForEachCoDriverId( p, Id, i )
+        Count += Gia_NodeMffcMapping_rec( p, Id, vMapping, vSupp );
+    p->pRefs = pRefsOld;
+    Vec_IntFree( vSupp );
+    p->vMapping = vMapping;
+    //printf( "Mapping is %.2fx larger than AIG manager.\n", 1.0*Vec_IntSize(vMapping)/Gia_ManObjNum(p) );
+    return Count;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if AIG has dangling nodes.]
 
   Description []
@@ -2413,6 +2460,40 @@ Vec_Int_t * Gia_ManComputeDistance( Gia_Man_t * p, int iObj, Vec_Int_t * vObjs, 
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ComputeTest()
+{
+    char * pStart, Line [1000]; float Total = 0;
+    char * pFileName = "data.txt";
+    FILE * pFile = fopen( pFileName, "r" );
+    if ( pFile == NULL )
+        { printf( "Input file \"%s\" cannot be opened.\n", pFileName ); return; }
+    while ( fgets( Line, 1000, pFile ) != NULL )
+    {
+        if ( !strstr(Line, "xxx") )
+            continue;
+        if ( !strstr(Line, "yyy") )
+            continue;
+        //printf( "%s", Line );
+        pStart = strstr(Line, "zzz");
+        if ( pStart == NULL )
+            continue;
+        //printf( "%s", pStart + 4 );
+        Total += -atof( pStart + 4 );
+    }
+    printf( "Total = %.2f\n", Total );
+    fclose( pFile );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

@@ -102,6 +102,41 @@ Gia_Man_t * Gia_ManFromAig( Aig_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks integrity of choice nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManCheckChoices_rec( Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( !pObj || !Gia_ObjIsAnd(pObj) || pObj->fPhase )
+        return;
+    pObj->fPhase = 1;
+    Gia_ManCheckChoices_rec( p, Gia_ObjFanin0(pObj) );
+    Gia_ManCheckChoices_rec( p, Gia_ObjFanin1(pObj) );
+    Gia_ManCheckChoices_rec( p, Gia_ObjSiblObj(p, Gia_ObjId(p, pObj)) );
+}
+void Gia_ManCheckChoices( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    int i, fFound = 0;
+    Gia_ManCleanPhase( p );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManCheckChoices_rec( p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( !pObj->fPhase )
+            printf( "Object %d is dangling.\n", i ), fFound = 1;
+    if ( !fFound )
+        printf( "There are no dangling objects.\n" );
+    Gia_ManCleanPhase( p );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG in the DFS order.]
 
   Description []
@@ -155,6 +190,7 @@ Gia_Man_t * Gia_ManFromAigChoices( Aig_Man_t * p )
         Gia_ManAppendCo( pNew, Gia_ObjChild0Copy(pObj) );
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     //assert( Gia_ManObjNum(pNew) == Aig_ManObjNum(p) );
+    //Gia_ManCheckChoices( pNew );
     return pNew;
 }
 

@@ -129,6 +129,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vVar2Obj );
     Vec_IntErase( &p->vCopiesTwo );
     Vec_IntErase( &p->vSuppVars );
+    Vec_IntErase( &p->vVarMap );
     Vec_WrdFreeP( &p->vSuppWords );
     Vec_IntFreeP( &p->vTtNums );
     Vec_IntFreeP( &p->vTtNodes );

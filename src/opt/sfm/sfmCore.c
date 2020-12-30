@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "sfmInt.h"
+#include "bool/kit/kit.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -79,6 +80,8 @@ void Sfm_NtkPrintStats( Sfm_Ntk_t * p )
     printf( "Attempts :   " );
     printf( "Remove %6d out of %6d (%6.2f %%)   ", p->nRemoves, p->nTryRemoves, 100.0*p->nRemoves/Abc_MaxInt(1, p->nTryRemoves) );
     printf( "Resub  %6d out of %6d (%6.2f %%)   ", p->nResubs,  p->nTryResubs,  100.0*p->nResubs /Abc_MaxInt(1, p->nTryResubs)  );
+    if ( p->pPars->fUseDcs )
+    printf( "Improves %6d out of %6d (%6.2f %%)   ", p->nImproves,p->nTryImproves,100.0*p->nImproves/Abc_MaxInt(1, p->nTryImproves));
     printf( "\n" );
 
     printf( "Reduction:   " );
@@ -213,7 +216,69 @@ finish:
     // update the network
     Sfm_NtkUpdate( p, iNode, f, (iVar == -1 ? iVar : Vec_IntEntry(p->vDivs, iVar)), uTruth );
     return 1;
- }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Performs resubstitution for the node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Sfm_NodeResubOne( Sfm_Ntk_t * p, int iNode )
+{
+    int fSkipUpdate  = 0;
+    int i, iFanin;
+    word uTruth;
+    abctime clk;
+    assert( Sfm_ObjIsNode(p, iNode) );
+    p->nTryImproves++;
+    // report init stats
+    if ( p->pPars->fVeryVerbose )
+        printf( "%5d : Lev =%3d. Leaf =%3d.  Node =%3d.  Div=%3d.  Fanins = %d.  MFFC = %d\n", 
+            iNode, Sfm_ObjLevel(p, iNode), 0, Vec_IntSize(p->vNodes), Vec_IntSize(p->vDivs), 
+            Sfm_ObjFaninNum(p, iNode), Sfm_ObjMffcSize(p, iNode) );
+    // collect fanins
+    Vec_IntClear( p->vDivIds );
+    Sfm_ObjForEachFanin( p, iNode, iFanin, i )
+        Vec_IntPush( p->vDivIds, Sfm_ObjSatVar(p, iFanin) );
+clk = Abc_Clock();
+    uTruth = Sfm_ComputeInterpolant2( p );
+p->timeSat += Abc_Clock() - clk;
+    // analyze outcomes
+    if ( uTruth == SFM_SAT_UNDEC )
+    {
+        p->nTimeOuts++;
+        return 0;
+    }
+    assert( uTruth != SFM_SAT_SAT );
+    if ( uTruth == Vec_WrdEntry(p->vTruths, iNode) )
+        return 0;
+    else
+    {
+        word uTruth0  =  Vec_WrdEntry(p->vTruths, iNode);
+        //word uTruth0N = ~uTruth0;
+        //word uTruthN  = ~uTruth;
+        int Old  = Kit_TruthLitNum((unsigned*)&uTruth0,  Sfm_ObjFaninNum(p, iNode), p->vCover);
+        //int OldN = Kit_TruthLitNum((unsigned*)&uTruth0N, Sfm_ObjFaninNum(p, iNode), p->vCover);
+        int New  = Kit_TruthLitNum((unsigned*)&uTruth,   Sfm_ObjFaninNum(p, iNode), p->vCover);
+        //int NewN = Kit_TruthLitNum((unsigned*)&uTruthN,  Sfm_ObjFaninNum(p, iNode), p->vCover);
+        //if ( Abc_MinInt(New, NewN) > Abc_MinInt(Old, OldN) )
+        if ( New > Old )
+            return 0;
+    }
+    p->nImproves++;
+    if ( fSkipUpdate )
+        return 0;
+    // update truth table
+    Vec_WrdWriteEntry( p->vTruths, iNode, uTruth );
+    Sfm_TruthToCnf( uTruth, NULL, Sfm_ObjFaninNum(p, iNode), p->vCover, (Vec_Str_t *)Vec_WecEntry(p->vCnfs, iNode) );
+    return 1;
+}
 int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanin;
@@ -230,15 +295,18 @@ int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
             if ( Sfm_NodeResubSolve( p, iNode, i, 0 ) )
                 return 1;
         }
-    if ( p->pPars->fArea )
-        return 0;
     // try removing redundant edges
+    if ( !p->pPars->fArea )
     Sfm_ObjForEachFanin( p, iNode, iFanin, i )
         if ( !(Sfm_ObjIsNode(p, iFanin) && Sfm_ObjFanoutNum(p, iFanin) == 1) )
         {
             if ( Sfm_NodeResubSolve( p, iNode, i, 1 ) )
                 return 1;
         }
+    // try simplifying local functions
+    if ( p->pPars->fUseDcs )
+        if ( Sfm_NodeResubOne( p, iNode ) )
+            return 1;
 /*
     // try replacing area critical fanins while adding two new fanins
     if ( Sfm_ObjFaninNum(p, iNode) < p->nFaninMax )

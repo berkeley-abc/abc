@@ -752,6 +752,7 @@ extern ABC_DLL void               Abc_NtkAddDummyPiNames( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkAddDummyPoNames( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkAddDummyBoxNames( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkShortNames( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCleanNames( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkStartNameIds( Abc_Ntk_t * p );
 extern ABC_DLL void               Abc_NtkTransferNameIds( Abc_Ntk_t * p, Abc_Ntk_t * pNew );
 extern ABC_DLL void               Abc_NtkUpdateNameIds( Abc_Ntk_t * p );

@@ -43,6 +43,7 @@ ABC_NAMESPACE_HEADER_START
 typedef struct Cec_ParSat_t_ Cec_ParSat_t;
 struct Cec_ParSat_t_
 {
+    int              SolverType;    // SAT solver type
     int              nBTLimit;      // conflict limit at a node
     int              nSatVarMax;    // the max number of SAT variables
     int              nCallsRecycle; // calls to perform before recycling SAT solver
@@ -95,6 +96,7 @@ struct Cec_ParSmf_t_
 typedef struct Cec_ParFra_t_ Cec_ParFra_t;
 struct Cec_ParFra_t_
 {
+    int              jType;         // solver type
     int              nWords;        // the number of simulation words
     int              nRounds;       // the number of simulation rounds
     int              nItersMax;     // the maximum number of iterations of SAT sweeping
@@ -102,6 +104,9 @@ struct Cec_ParFra_t_
     int              TimeLimit;     // the runtime limit in seconds
     int              nLevelMax;     // restriction on the level nodes to be swept
     int              nDepthMax;     // the depth in terms of steps of speculative reduction
+    int              nCallsRecycle; // calls to perform before recycling SAT solver
+    int              nSatVarMax;    // the max number of SAT variables
+    int              nGenIters;     // pattern generation iterations
     int              fRewriting;    // enables AIG rewriting
     int              fCheckMiter;   // the circuit is the miter
 //    int              fFirstStop;    // stop on the first sat output
@@ -215,7 +220,7 @@ extern void          Cec_ManCecSetDefaultParams( Cec_ParCec_t * p );
 extern void          Cec_ManCorSetDefaultParams( Cec_ParCor_t * p );
 extern void          Cec_ManChcSetDefaultParams( Cec_ParChc_t * p );
 extern Gia_Man_t *   Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSilent );
-extern Gia_Man_t *   Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars );
+extern Gia_Man_t *   Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars, int f0Proved );
 extern void          Cec_ManSimulation( Gia_Man_t * pAig, Cec_ParSim_t * pPars );
 /*=== cecSeq.c ==========================================================*/
 extern int           Cec_ManSeqResimulateCounter( Gia_Man_t * pAig, Cec_ParSim_t * pPars, Abc_Cex_t * pCex );

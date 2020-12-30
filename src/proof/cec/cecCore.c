@@ -45,6 +45,7 @@ ABC_NAMESPACE_IMPL_START
 void Cec_ManSatSetDefaultParams( Cec_ParSat_t * p )
 {
     memset( p, 0, sizeof(Cec_ParSat_t) );
+    p->SolverType     =      -1;  // SAT solver type
     p->nBTLimit       =     100;  // conflict limit at a node
     p->nSatVarMax     =    2000;  // the max number of SAT variables
     p->nCallsRecycle  =     200;  // calls to perform before recycling SAT solver
@@ -232,14 +233,17 @@ void Cec_ManChcSetDefaultParams( Cec_ParChc_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars )
+Gia_Man_t * Cec_ManSatSolving( Gia_Man_t * pAig, Cec_ParSat_t * pPars, int f0Proved )
 {
     Gia_Man_t * pNew;
     Cec_ManPat_t * pPat;
     pPat = Cec_ManPatStart();
-    Cec_ManSatSolve( pPat, pAig, pPars, NULL, NULL, NULL );
+    if ( pPars->SolverType == -1 )
+        Cec_ManSatSolve( pPat, pAig, pPars, NULL, NULL, NULL, f0Proved );
+    else
+        CecG_ManSatSolve( pPat, pAig, pPars, f0Proved );
 //    pNew = Gia_ManDupDfsSkip( pAig );
-    pNew = Gia_ManDup( pAig );
+    pNew = Gia_ManCleanup( pAig );
     Cec_ManPatStop( pPat );
     pNew->vSeqModelVec = pAig->vSeqModelVec;
     pAig->vSeqModelVec = NULL;
@@ -348,6 +352,8 @@ Gia_Man_t * Cec_ManSatSweeping( Gia_Man_t * pAig, Cec_ParFra_t * pPars, int fSil
     Cec_ManPat_t * pPat;
     int i, fTimeOut = 0, nMatches = 0;
     abctime clk, clk2, clkTotal = Abc_Clock();
+    if ( pPars->fVerbose )
+        printf( "Simulating %d words for %d rounds. SAT solving with %d conflicts.\n", pPars->nWords, pPars->nRounds, pPars->nBTLimit );
 
     // duplicate AIG and transfer equivalence classes
     Gia_ManRandom( 1 );
@@ -443,7 +449,7 @@ clk = Abc_Clock();
         if ( pPars->fRunCSat )
             Cec_ManSatSolveCSat( pPat, pSrm, pParsSat ); 
         else
-            Cec_ManSatSolve( pPat, pSrm, pParsSat, p->pAig->vIdsOrig, p->vXorNodes, pAig->vIdsEquiv ); 
+            Cec_ManSatSolve( pPat, pSrm, pParsSat, p->pAig->vIdsOrig, p->vXorNodes, pAig->vIdsEquiv, 0 ); 
 p->timeSat += Abc_Clock() - clk;
         if ( Cec_ManFraClassesUpdate( p, pSim, pPat, pSrm ) )
         {
@@ -519,6 +525,9 @@ p->timeSat += Abc_Clock() - clk;
         }
     }
 finalize:
+    if ( pPars->fVerbose )
+        printf( "Performed %d SAT calls: P = %d  D = %d  F = %d\n", 
+            p->nAllProvedS + p->nAllDisprovedS + p->nAllFailedS, p->nAllProvedS, p->nAllDisprovedS, p->nAllFailedS );
     if ( p->pPars->fVerbose && p->pAig )
     {
         Abc_Print( 1, "NBeg = %d. NEnd = %d. (Gain = %6.2f %%).  RBeg = %d. REnd = %d. (Gain = %6.2f %%).\n", 
@@ -548,8 +557,8 @@ finalize:
     Cec_ManSimStop( pSim );
     Cec_ManPatStop( pPat );
     Cec_ManFraStop( p );
-    ABC_FREE( pTemp->pReprs );
-    ABC_FREE( pTemp->pNexts );
+    if ( pTemp ) ABC_FREE( pTemp->pReprs );
+    if ( pTemp ) ABC_FREE( pTemp->pNexts );
     return pTemp;
 }
 

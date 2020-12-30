@@ -2982,14 +2982,27 @@ usage:
 ***********************************************************************/
 int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
 {
+    extern void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize );
     char * pFileName;
     int c, fOnlyAnds = 0;
+    int nLutSize = -1;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kah" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'K':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nLutSize = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nLutSize < 2 || nLutSize > 6 )
+                    goto usage;
+                break;
             case 'a':
                 fOnlyAnds ^= 1;
                 break;
@@ -3017,13 +3030,16 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
         Io_WriteVerilog( pNtkTemp, pFileName, 1 );
         Abc_NtkDelete( pNtkTemp );
     }
+    else if ( nLutSize >= 2 && nLutSize <= 6 )
+        Io_WriteVerilogLut( pAbc->pNtkCur, pFileName, nLutSize );
     else
-    Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_VERILOG );
+        Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_VERILOG );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_verilog [-ah] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_verilog [-K num] [-ah] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the current network in Verilog format\n" );
+    fprintf( pAbc->Err, "\t-K num : write the network using instances of K-LUTs (2 <= K <= 6) [default = not used]\n" );
     fprintf( pAbc->Err, "\t-a     : toggle writing expressions with only ANDs (without XORs and MUXes) [default = %s]\n", fOnlyAnds? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );

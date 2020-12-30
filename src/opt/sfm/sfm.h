@@ -66,6 +66,7 @@ struct Sfm_Par_t_
     int             fUseAndOr;     // enable internal detection of AND/OR gates
     int             fZeroCost;     // enable zero-cost replacement
     int             fUseSim;       // enable simulation
+    int             fUseDcs;       // enable deriving don't-cares
     int             fPrintDecs;    // enable printing decompositions
     int             fAllBoxes;     // enable preserving all boxes
     int             fLibVerbose;   // enable library stats

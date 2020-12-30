@@ -2583,10 +2583,11 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int fCisOnly, int fInputs, int fCheck, int fVerbose, int fVeryVerbose )
+int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fVerbose, int fVeryVerbose )
 {
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
 
+    abctime clkStart  = Abc_Clock();
     abctime clk  = Abc_Clock();
     int nTargets = Vec_IntSize(&pNtkF->vTargets);
     int TimeOut  = fCisOnly ? 0 : 120;  // 60 seconds
@@ -2697,6 +2698,14 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
             Cnf_DataFree( pCnf );
             if ( pSop == NULL )
             {
+                RetValue = 0;
+                goto cleanup;
+            }
+            if ( nTimeout && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeout ) 
+            {
+                Vec_IntFreeP( &vSupp );
+                ABC_FREE( pSop );
+                printf( "The target computation timed out after %d seconds.\n", nTimeout );
                 RetValue = 0;
                 goto cleanup;
             }
@@ -2826,7 +2835,7 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fInputs, int fVerbose, int fVeryVerbose )
+void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fVerbose, int fVeryVerbose )
 {
     char Command[1000]; int Result = 1;
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNames[0], pFileNames[2] );
@@ -2848,10 +2857,10 @@ void Acb_NtkRunEco( char * pFileNames[4], int fCheck, int fRandom, int fInputs, 
 
     Acb_IntallLibrary( Abc_FrameReadSignalNames() != NULL );
 
-    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, 0, fInputs, fCheck, fVerbose, fVeryVerbose ) )
+    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fVerbose, fVeryVerbose ) )
     {
 //        printf( "General computation timed out. Trying inputs only.\n\n" );
-//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, 1, fInputs, fCheck, fVerbose, fVeryVerbose ) )
+//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fVerbose, fVeryVerbose ) )
 //            printf( "Input-only computation also timed out.\n\n" );
         printf( "Computation did not succeed.\n" );
         Result = 0;

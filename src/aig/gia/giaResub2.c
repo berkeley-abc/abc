@@ -979,8 +979,20 @@ void Gia_RsbWindowGrow( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Ve
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_WinCreateFromCut_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vWin )
+{
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    pObj = Gia_ManObj( p, iObj );
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_WinCreateFromCut_rec( p, Gia_ObjFaninId0(pObj, iObj), vWin );
+    Gia_WinCreateFromCut_rec( p, Gia_ObjFaninId1(pObj, iObj), vWin );
+    Vec_IntPush( vWin, iObj );
+}
 // uses levelized structure (vLevels) to collect in array vWin divisors supported by the cut (vIn)
-void Gia_WinCreateFromCut( Gia_Man_t * p, Vec_Int_t * vIn, Vec_Wec_t * vLevels, Vec_Int_t * vWin )
+void Gia_WinCreateFromCut( Gia_Man_t * p, int iPivot, Vec_Int_t * vIn, Vec_Wec_t * vLevels, Vec_Int_t * vWin )
 {
     Vec_Int_t * vLevel; 
     Gia_Obj_t * pObj, * pFanout;
@@ -990,13 +1002,19 @@ void Gia_WinCreateFromCut( Gia_Man_t * p, Vec_Int_t * vIn, Vec_Wec_t * vLevels, 
     assert( Vec_WecSizeSize(vLevels) == 0 );
     // clean the resulting array
     Vec_IntClear( vWin );
-    // start a new trav ID and add nodes to the levelized structure
+    // collect leaves
     Gia_ManIncrementTravId( p );
     Vec_IntForEachEntry( vIn, iObj, i )
     {
         Gia_ObjSetTravIdCurrentId( p, iObj );
-        Vec_WecPush( vLevels, Gia_ObjLevelId(p, iObj), iObj );
         Vec_IntPush( vWin, iObj );
+    }
+    // collect internal cone
+    Gia_WinCreateFromCut_rec( p, iPivot, vWin );
+    // add nodes to the levelized structure
+    Vec_IntForEachEntry( vWin, iObj, i )
+    {
+        Vec_WecPush( vLevels, Gia_ObjLevelId(p, iObj), iObj );
         Vec_IntPushUniqueOrder( vUsed, Gia_ObjLevelId(p, iObj) );
     }
     // iterate through all objects and explore their fanouts
@@ -1108,7 +1126,7 @@ int Gia_RsbFindFaninToAddToCut( Gia_Man_t * p, Vec_Int_t * vIns )
     return iFanMax;
 }
 // precondition: nodes in vWin and in vIns are marked with the current ID
-void Gia_RsbWindowGrow2( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Vec_Int_t * vIns, int nInputsMax )
+void Gia_RsbWindowGrow2( Gia_Man_t * p, int iObj, Vec_Wec_t * vLevels, Vec_Int_t * vWin, Vec_Int_t * vIns, int nInputsMax )
 {
     // window will be recomputed later
     Vec_IntClear( vWin );
@@ -1152,7 +1170,7 @@ void Gia_RsbWindowGrow2( Gia_Man_t * p, Vec_Wec_t * vLevels, Vec_Int_t * vWin, V
     if ( Vec_IntSize(vIns) <= nInputsMax )
     {
         Vec_IntSort( vIns, 0 );
-        Gia_WinCreateFromCut( p, vIns, vLevels, vWin );
+        Gia_WinCreateFromCut( p, iObj, vIns, vLevels, vWin );
     }
 }
 
@@ -1179,7 +1197,7 @@ int Gia_RsbWindowCompute( Gia_Man_t * p, int iObj, int nInputsMax, int nLevelsMa
     //Vec_IntPrint( vWin );    
     //Vec_IntPrint( vIns );    
     if ( Vec_IntSize(vIns) <= nInputsMax + 3 ) // consider windows, which initially has a larger input space
-        Gia_RsbWindowGrow2( p, vLevels, vWin, vIns, nInputsMax );
+        Gia_RsbWindowGrow2( p, iObj, vLevels, vWin, vIns, nInputsMax );
     if ( Vec_IntSize(vIns) <= nInputsMax )
     {
         Vec_IntSort( vWin, 0 );
@@ -1414,6 +1432,70 @@ void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax )
 Gia_Man_t * Gia_RsbTryOneWindow( Gia_Man_t * p )
 {
     return Gia_ManResub2Test( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Apply k-resub to one AIG.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_RsbTestArray()
+{
+    int Array[1000] = { 
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 6, 3, 7, 15, 17, 8, 19, 
+        5, 20, 5, 12, 8, 24, 4, 12, 9, 28, 27, 31, 23, 32, 4, 13, 8, 36, 5, 
+        13, 18, 40, 9, 18, 5, 44, 19, 36, 9, 48, 47, 51, 10, 18, 40, 54, 8, 
+        56, 25, 37, 44, 61, 59, 63, 8, 28, 8, 18, 25, 68, 66, 70, 64, 73, 11, 
+        19, 8, 13, 76, 78, 10, 19, 40, 82, 9, 84, 81, 87, 20, 61, 19, 28, 30, 
+        92, 91, 95, 88, 96, 74, 98, 9, 40, 49, 103, 27, 104, 10, 107, 8, 40, 
+        9, 24, 111, 113, 11, 115, 109, 117, 11, 66, 51, 121, 118, 122, 18, 36, 
+        18, 110, 93, 127, 10, 131, 129, 133, 11, 38, 32, 137, 103, 138, 19, 141, 
+        134, 143, 28, 76, 9, 146, 11, 110, 19, 150, 149, 153, 87, 95, 9, 19, 10, 
+        159, 61, 160, 18, 30, 61, 158, 9, 12, 25, 169, 19, 171, 111, 173, 10, 175, 
+        167, 177, 18, 102, 4, 20, 18, 171, 183, 185, 11, 187, 181, 189, 178, 190, 
+        24, 44, 11, 194, 8, 54, 4, 198, 197, 201, 45, 49, 10, 39, 9, 126, 73, 209, 
+        11, 211, 54, 168, 213, 215, 43, 167, 67, 218, 10, 221, 26, 54, 18, 18, 34, 
+        34, 38, 38, 40, 40, 42, 42, 52, 52, 100, 100, 124, 124, 126, 126, 144, 144, 
+        148, 148, 154, 154, 156, 156, 162, 162, 164, 164, 192, 192, 70, 70, 202, 
+        202, 204, 204, 206, 206, 216, 216, 222, 222, 224, 224
+    };
+    int i, iFan0, iFan1, nResubs;
+    int * pRes;
+    // create the internal array
+    Vec_Int_t * vArray = Vec_IntAlloc( 100 );
+    for ( i = 0; i < 50 || Array[i] > 0; i++ )
+        Vec_IntPush( vArray, Array[i] );
+    Vec_IntPrint( vArray );
+    // check the nodes
+    printf( "Constant0 and primary inputs:\n" );
+    Vec_IntForEachEntryDouble( vArray, iFan0, iFan1, i )
+    {
+        if ( iFan0 != iFan1 )
+            break;
+        printf( "%2d = %c%2d & %c%2d;\n", i, 
+            Abc_LitIsCompl(iFan0) ? '!' : ' ', Abc_Lit2Var(iFan0),
+            Abc_LitIsCompl(iFan1) ? '!' : ' ', Abc_Lit2Var(iFan1) );
+    }
+    printf( "Primary outputs:\n" );
+    Vec_IntForEachEntryDoubleStart( vArray, iFan0, iFan1, i, 14 )
+    {
+        if ( iFan0 != iFan1 )
+            continue;
+        printf( "%2d = %c%2d & %c%2d;\n", i, 
+            Abc_LitIsCompl(iFan0) ? '!' : ' ', Abc_Lit2Var(iFan0),
+            Abc_LitIsCompl(iFan1) ? '!' : ' ', Abc_Lit2Var(iFan1) );
+    }
+    // run the resub
+    Abc_ResubPrepareManager( 1 );
+    Abc_ResubComputeWindow( Vec_IntArray(vArray), Vec_IntSize(vArray)/2, 10, -1, 0, 0, 1, 1, &pRes, &nResubs );
+    Abc_ResubPrepareManager( 0 );
+    Vec_IntFree( vArray );
 }
 
 ////////////////////////////////////////////////////////////////////////

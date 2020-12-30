@@ -899,7 +899,8 @@ void Io_TransformSF2PLA( char * pNameIn, char * pNameOut )
             break;
         if ( strstr(pBuffer, "SDF") )
         {
-            fgets(pBuffer, Size, pFileIn);
+            char * pRes = fgets(pBuffer, Size, pFileIn);
+            assert( pRes != NULL );
             if ( (pToken = strtok( pBuffer, " \t\r\n" )) )
                 fprintf( pFileOut, ".i %d\n", atoi(pToken) );
             if ( (pToken = strtok( NULL, " \t\r\n" )) )
