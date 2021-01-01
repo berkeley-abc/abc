@@ -227,8 +227,8 @@ int Cec_ManSRunPropagate( Cec_ManS_t * p, int iNode )
         return 0;
     }
     p->nVisited++;
-    Cec_ManSRunImply( p, iFan0 );
-    Cec_ManSRunImply( p, iFan1 );
+    //Cec_ManSRunImply( p, iFan0 );
+    //Cec_ManSRunImply( p, iFan1 );
     {
         word * pSim__ = Cec_ManSSim( p, 0, 0 );
         word * pSim00 = Cec_ManSSim( p, iFan0,  Gia_ObjFaninC0(pNode) );
@@ -238,46 +238,43 @@ int Cec_ManSRunPropagate( Cec_ManS_t * p, int iNode )
         p->iRand = p->iRand == SIM_RANDS-1 ? 0 : p->iRand + 1;
         if ( p->nWords == 1 )
         {
-            pSim__[0] |= pSim_0[0] &  pSim01[0] & pSim11[0];
-            pSim__[0] |= pSim_1[0] & (pSim00[0] | pSim10[0]);
+            pSim01[0] |= pSim_1[0];
+            pSim11[0] |= pSim_1[0];
 
-            pSim00[0] |= pSim_0[0] & ~pSim__[0] & (pSim01[0] | ~p->Rands[p->iRand]);
-            pSim10[0] |= pSim_0[0] & ~pSim__[0] & (pSim11[0] |  p->Rands[p->iRand]);
-
-            pSim01[0] |= pSim_1[0] & ~pSim__[0];
-            pSim11[0] |= pSim_1[0] & ~pSim__[0];
+            pSim00[0] |= pSim_0[0] & (pSim11[0] | ~p->Rands[p->iRand]);
+            pSim10[0] |= pSim_0[0] & (pSim01[0] |  p->Rands[p->iRand]);
 
             pSim__[0] |= pSim00[0] & pSim01[0];
             pSim__[0] |= pSim10[0] & pSim11[0];
+
+            pSim00[0] &= ~pSim__[0];
+            pSim01[0] &= ~pSim__[0];
+            pSim10[0] &= ~pSim__[0];
+            pSim11[0] &= ~pSim__[0];
         }
         else
         {
             int w;
-
-            Abc_TtAnd( p->pTemp[0], pSim01, pSim11, p->nWords, 0 );
-            Abc_TtOrAnd( pSim__, pSim_0, p->pTemp[0], p->nWords );
-
-            Abc_TtOr( p->pTemp[0], pSim00, pSim10, p->nWords );
-            Abc_TtOrAnd( pSim__, pSim_1, p->pTemp[0], p->nWords );
-
-            //Abc_TtVec( p->pTemp[0], p->nWords, p->Rands[p->iRand] );
             for ( w = 0; w < p->nWords; w++ )
-                p->pTemp[0][w] = p->Rands[(p->iRand + w) % SIM_RANDS];
+                p->pTemp[0][w] = ~p->Rands[(p->iRand + w) % SIM_RANDS];
 
-            Abc_TtAndCompl( p->pTemp[1], pSim01, 1, p->pTemp[0], 0, p->nWords );
-            Abc_TtAndCompl( p->pTemp[2], pSim__, 1, p->pTemp[1], 1, p->nWords );
-            Abc_TtOrAnd( pSim00, pSim_0, p->pTemp[2], p->nWords );
+            Abc_TtOr( pSim01, pSim01, pSim_1, p->nWords );
+            Abc_TtOr( pSim11, pSim11, pSim_1, p->nWords );
 
-            Abc_TtAndCompl( p->pTemp[1], pSim11, 1, p->pTemp[0], 1, p->nWords );
-            Abc_TtAndCompl( p->pTemp[2], pSim__, 1, p->pTemp[1], 1, p->nWords );
-            Abc_TtOrAnd( pSim10, pSim_0, p->pTemp[2], p->nWords );
+            Abc_TtOr( p->pTemp[1], pSim11, p->pTemp[0], p->nWords );
+            Abc_TtOrAnd( pSim00, pSim_0, p->pTemp[1], p->nWords );
 
-            Abc_TtAndSharp( p->pTemp[0], pSim_1, pSim__, p->nWords, 1 );
-            Abc_TtOr( pSim01, pSim01, p->pTemp[0], p->nWords );
-            Abc_TtOr( pSim11, pSim11, p->pTemp[0], p->nWords );
+            Abc_TtNot( p->pTemp[0], p->nWords );
+            Abc_TtOr( p->pTemp[1], pSim01, p->pTemp[0], p->nWords );
+            Abc_TtOrAnd( pSim10, pSim_0, p->pTemp[1], p->nWords );
 
             Abc_TtOrAnd( pSim__, pSim00, pSim01, p->nWords );
             Abc_TtOrAnd( pSim__, pSim10, pSim11, p->nWords );
+
+            Abc_TtAndSharp( pSim00, pSim00, pSim__, p->nWords, 1 );
+            Abc_TtAndSharp( pSim01, pSim01, pSim__, p->nWords, 1 );
+            Abc_TtAndSharp( pSim10, pSim10, pSim__, p->nWords, 1 );
+            Abc_TtAndSharp( pSim11, pSim11, pSim__, p->nWords, 1 );
         }
     }
     return 1;
