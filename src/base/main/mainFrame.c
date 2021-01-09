@@ -108,6 +108,7 @@ void        Abc_FrameSetSignalNames( Vec_Ptr_t * vNames )    { if ( s_GlobalFram
 void        Abc_FrameSetSpecName( char * pFileName )         { ABC_FREE( s_GlobalFrame->pSpecName ); s_GlobalFrame->pSpecName = pFileName; }
 
 int         Abc_FrameIsBatchMode()                           { return s_GlobalFrame ? s_GlobalFrame->fBatchMode : 0;              } 
+void        Abc_FrameSetBatchMode( int Mode )                { if ( s_GlobalFrame ) s_GlobalFrame->fBatchMode = Mode;             } 
 
 int         Abc_FrameIsBridgeMode()                          { return s_GlobalFrame ? s_GlobalFrame->fBridgeMode : 0;             } 
 void        Abc_FrameSetBridgeMode()                         { if ( s_GlobalFrame ) s_GlobalFrame->fBridgeMode = 1;               } 

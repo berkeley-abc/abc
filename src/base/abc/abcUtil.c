@@ -3123,7 +3123,9 @@ Vec_Wec_t * Abc_SopSynthesize( Vec_Ptr_t * vSops )
     int i, k, iNode = 0;
     Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
     //Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; balance; dc2; map -a" );
+    Abc_FrameSetBatchMode( 1 );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "st; collapse; sop; fx; strash; &get; &ps; &deepsyn -I 4 -J 50 -T 5 -S 111 -t; &ps; &put; map -a" );
+    Abc_FrameSetBatchMode( 0 );
     pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
     vRes = Vec_WecStart( Abc_NtkPiNum(pNtkNew) + Abc_NtkNodeNum(pNtkNew) + Abc_NtkPoNum(pNtkNew) );
     Abc_NtkForEachPi( pNtkNew, pObj, i )
@@ -3150,7 +3152,9 @@ Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias, Gia_Man_t * pMulti )
     Abc_Obj_t * pObj, * pFanin;
     int i, k, iNode = 0;
     Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
+    Abc_FrameSetBatchMode( 1 );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "compress2rs; dch; map -a;  strash; compress2rs; dch; map -a;  strash; compress2rs; dch; map -a" );
+    Abc_FrameSetBatchMode( 0 );
     pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
     vRes = Vec_WecStart( Abc_NtkPiNum(pNtkNew) + Abc_NtkNodeNum(pNtkNew) + Abc_NtkPoNum(pNtkNew) );
     Abc_NtkForEachPi( pNtkNew, pObj, i )
@@ -3254,9 +3258,11 @@ Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp )
     pNtk = Abc_NtkCreateFromSops( "top", vSops );
     Vec_PtrFree( vSops );
     Abc_FrameReplaceCurrentNetwork( Abc_FrameReadGlobalFrame(), pNtk );
+    Abc_FrameSetBatchMode( 1 );
     if ( fClp ) 
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "clp; sop" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "fx; strash; balance; dc2" );
+    Abc_FrameSetBatchMode( 0 );
     pNtkNew = Abc_FrameReadNtk( Abc_FrameReadGlobalFrame() );
     return Abc_NtkStrashToGia( pNtkNew );
 }
