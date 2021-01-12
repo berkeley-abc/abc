@@ -148,6 +148,9 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     FILE * pFile;
     SC_Lib * pLib;
+    char * pIgnoreListPtr;
+    char ** pIgnoreList = NULL;
+    int nIgnoreListIndex = 0;
     int c, fDump = 0;
     float Slew = 0;
     float Gain = 0;
@@ -194,6 +197,37 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nGatesMin < 0 ) 
                 goto usage;
             break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a comma separated cell ignore list.\n" );
+                goto usage;
+            }
+            if ( pIgnoreList != NULL )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" was provided twice.\n" );
+                goto usage;
+            }
+            // Tokenize the ingore list
+            pIgnoreListPtr = argv[globalUtilOptind];
+            do {
+                nIgnoreListIndex++;
+                pIgnoreListPtr = strchr(pIgnoreListPtr, ',');
+            } while ( pIgnoreListPtr != NULL );
+            // Allocate memory for ignore list
+            pIgnoreList = malloc((nIgnoreListIndex + 1) * sizeof(char *));
+            memset(pIgnoreList, 0, (nIgnoreListIndex + 1) * sizeof(char *));
+            // Store pointer to entries of ignore list in allocated memory
+            nIgnoreListIndex = 0;
+            pIgnoreListPtr = strtok(argv[globalUtilOptind], ",");
+            while ( pIgnoreListPtr != NULL )
+            {
+                pIgnoreList[nIgnoreListIndex] = pIgnoreListPtr;
+                nIgnoreListIndex++;
+                pIgnoreListPtr = strtok(NULL, ",");
+            }
+            globalUtilOptind++;
+            break;
         case 'd':
             fDump ^= 1;
             break;
@@ -223,7 +257,11 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
     // read new library
-    pLib = Abc_SclReadLiberty( pFileName, fVerbose, fVeryVerbose );
+    pLib = Abc_SclReadLiberty( pFileName, pIgnoreList, fVerbose, fVeryVerbose );
+    if ( pIgnoreList != NULL)
+    {
+        free( pIgnoreList );
+    }
     if ( pLib == NULL )
     {
         fprintf( pAbc->Err, "Reading SCL library from file \"%s\" has failed. \n", pFileName );
@@ -251,11 +289,17 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnvwh] <file>\n" );
+    if ( pIgnoreList != NULL )
+    {
+        free (pIgnoreList);
+    }
+
+    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-I list] [-dnvwh] <file>\n" );
     fprintf( pAbc->Err, "\t           reads Liberty library from file\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
     fprintf( pAbc->Err, "\t-M num   : skip gate classes whose size is less than this [default = %d]\n", nGatesMin );
+    fprintf( pAbc->Err, "\t-I list  : comma separated list of cells to ignore [default = %s]\n", "<empty>" );
     fprintf( pAbc->Err, "\t-d       : toggle dumping the parsed library into file \"*_temp.lib\" [default = %s]\n", fDump? "yes": "no" );
     fprintf( pAbc->Err, "\t-n       : toggle replacing gate/pin names by short strings [default = %s]\n", fShortNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle writing verbose information [default = %s]\n", fVerbose? "yes": "no" );

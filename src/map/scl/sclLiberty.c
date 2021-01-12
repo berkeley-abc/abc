@@ -1427,7 +1427,7 @@ Vec_Ptr_t * Scl_LibertyReadTemplates( Scl_Tree_t * p )
 //    Scl_LibertyPrintTemplates( vRes );
     return vRes;
 }
-Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbose )
+Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, char ** pIgnoreList, int fVerbose, int fVeryVerbose )
 {
     int fUseFirstTable = 0;
     Vec_Str_t * vOut;
@@ -1673,7 +1673,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     }
     return vOut;
 }
-SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
+SC_Lib * Abc_SclReadLiberty( char * pFileName, char ** pIgnoreList, int fVerbose, int fVeryVerbose )
 {
     SC_Lib * pLib;
     Scl_Tree_t * p;
@@ -1683,7 +1683,7 @@ SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
         return NULL;
 //    Scl_LibertyParseDump( p, "temp_.lib" );
     // collect relevant data
-    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose );
+    vStr = Scl_LibertyReadSclStr( p, pIgnoreList, fVerbose, fVeryVerbose );
     Scl_LibertyStop( p, fVeryVerbose );
     if ( vStr == NULL )
         return NULL;
@@ -1721,7 +1721,7 @@ void Scl_LibertyTest()
     if ( p == NULL )
         return;
 //    Scl_LibertyParseDump( p, "temp_.lib" );
-    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose );
+    vStr = Scl_LibertyReadSclStr( p, NULL, fVerbose, fVeryVerbose );
     Scl_LibertyStringDump( "test_scl.lib", vStr );
     Vec_StrFree( vStr );
     Scl_LibertyStop( p, fVerbose );
