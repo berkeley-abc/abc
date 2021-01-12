@@ -694,6 +694,28 @@ int Scl_LibertyReadCellOutputNum( Scl_Tree_t * p, Scl_Item_t * pCell )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks if the cell name is included in the ignore list.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_LibertyIsOnIgnoreList( Scl_Tree_t * p, Scl_Item_t * pCell, char ** pIgnoreList )
+{
+    while ( *pIgnoreList != NULL )
+    {
+        if ( Scl_LibertyCompare( p, pCell->Head, *pIgnoreList ) )
+            return 1;
+        pIgnoreList++;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Parses the standard cell library in Liberty format.]
 
   Description [Writes the resulting file in Genlib format.]
@@ -1464,6 +1486,12 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, char ** pIgnoreList, int fVer
     nCells = 0;
     Scl_ItemForEachChildName( p, Scl_LibertyRoot(p), pCell, "cell" )
     {
+        if ( Scl_LibertyIsOnIgnoreList(p, pCell, pIgnoreList) )
+        {
+            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" due to being on the ignore list.\n", Scl_LibertyReadString(p, pCell->Head) );
+            nSkipped[3]++;
+            continue;
+        }
         if ( Scl_LibertyReadCellIsFlop(p, pCell) )
         {
             if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped sequential cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
@@ -1496,6 +1524,8 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, char ** pIgnoreList, int fVer
     Vec_StrPut_( vOut );
     Scl_ItemForEachChildName( p, Scl_LibertyRoot(p), pCell, "cell" )
     {
+        if ( Scl_LibertyIsOnIgnoreList(p, pCell, pIgnoreList) )
+            continue;
         if ( Scl_LibertyReadCellIsFlop(p, pCell) )
             continue;
         if ( Scl_LibertyReadCellIsDontUse(p, pCell) )
