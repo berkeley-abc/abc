@@ -705,9 +705,11 @@ int Scl_LibertyReadCellOutputNum( Scl_Tree_t * p, Scl_Item_t * pCell )
 ***********************************************************************/
 int Scl_LibertyIsOnIgnoreList( Scl_Tree_t * p, Scl_Item_t * pCell, char ** pIgnoreList )
 {
+	if ( pIgnoreList == NULL )
+		return 0;
     while ( *pIgnoreList != NULL )
     {
-        if ( Scl_LibertyCompare( p, pCell->Head, *pIgnoreList ) )
+        if ( !Scl_LibertyCompare( p, pCell->Head, *pIgnoreList ) )
             return 1;
         pIgnoreList++;
     }
