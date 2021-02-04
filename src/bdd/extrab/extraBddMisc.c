@@ -1291,7 +1291,7 @@ static DdNode * extraBddCountCubes( DdManager * dd, DdNode * L, DdNode * U, st__
     if (r)
     {
         int nCubes = 0;
-        if ( st__lookup( table, (char *)r, (char **)&nCubes ) )
+        if ( st__lookup_int( table, (char *)r, &nCubes ) )
             *pnCubes = nCubes;
         else assert( 0 );
         return r;
