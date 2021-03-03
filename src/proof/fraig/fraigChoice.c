@@ -122,29 +122,29 @@ Fraig_ManCheckConsistency( pMan );
 
             if (fShortCut) 
             {
-                pT = Fraig_NodeAnd(pMan, pB, pC);
+                pT = Fraig_NodeAnd(pMan, pB, pC, 0);
                 if ( !pT->pRepr )
                 {
-                    pN = Fraig_NodeAnd(pMan, pA, pT);
+                    pN = Fraig_NodeAnd(pMan, pA, pT, 0);
 //                    Fraig_NodeAddChoice( pMan, pNode, pN );
                 }
             }
             else
-                pN = Fraig_NodeAnd(pMan, pA, Fraig_NodeAnd(pMan, pB, pC));
+                pN = Fraig_NodeAnd(pMan, pA, Fraig_NodeAnd(pMan, pB, pC, 0), 0);
             // assert ( Fraig_NodesEqual(pN, pNode) );
 
 
             if (fShortCut) 
             {
-                pT = Fraig_NodeAnd(pMan, pA, pC);
+                pT = Fraig_NodeAnd(pMan, pA, pC, 0);
                 if ( !pT->pRepr )
                 {
-                    pN = Fraig_NodeAnd(pMan, pB, pT);
+                    pN = Fraig_NodeAnd(pMan, pB, pT, 0);
 //                    Fraig_NodeAddChoice( pMan, pNode, pN );
                 }
             }
             else
-                pN = Fraig_NodeAnd(pMan, pB, Fraig_NodeAnd(pMan, pA, pC));
+                pN = Fraig_NodeAnd(pMan, pB, Fraig_NodeAnd(pMan, pA, pC, 0), 0);
             // assert ( Fraig_NodesEqual(pN, pNode) );
         }
 
@@ -163,28 +163,28 @@ Fraig_ManCheckConsistency( pMan );
 
             if (fShortCut) 
             {
-                pT = Fraig_NodeAnd(pMan, pA, pB);
+                pT = Fraig_NodeAnd(pMan, pA, pB, 0);
                 if ( !pT->pRepr )
                 {
-                    pN = Fraig_NodeAnd(pMan, pC, pT);
+                    pN = Fraig_NodeAnd(pMan, pC, pT, 0);
 //                    Fraig_NodeAddChoice( pMan, pNode, pN );
                 }
             }
             else
-                pN = Fraig_NodeAnd(pMan, Fraig_NodeAnd(pMan, pA, pB), pC);
+                pN = Fraig_NodeAnd(pMan, Fraig_NodeAnd(pMan, pA, pB, 0), pC, 0);
             // assert ( Fraig_NodesEqual(pN, pNode) );
 
             if (fShortCut) 
             {
-                pT = Fraig_NodeAnd(pMan, pA, pC);
+                pT = Fraig_NodeAnd(pMan, pA, pC, 0);
                 if ( !pT->pRepr )
                 {
-                    pN = Fraig_NodeAnd(pMan, pB, pT);
+                    pN = Fraig_NodeAnd(pMan, pB, pT, 0);
 //                    Fraig_NodeAddChoice( pMan, pNode, pN );
                 }
             }
             else
-                pN = Fraig_NodeAnd(pMan, Fraig_NodeAnd(pMan, pA, pC), pB);
+                pN = Fraig_NodeAnd(pMan, Fraig_NodeAnd(pMan, pA, pC, 0), pB, 0);
             // assert ( Fraig_NodesEqual(pN, pNode) );
         }
 

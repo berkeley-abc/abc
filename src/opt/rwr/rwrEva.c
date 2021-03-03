@@ -56,7 +56,7 @@ static int Rwr_NodeGetDepth_rec( Abc_Obj_t * pObj, Vec_Ptr_t * vLeaves );
   SeeAlso     []
 
 ***********************************************************************/
-int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros, int fPlaceEnable )
+int Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros, int fPlaceEnable, int fApproximationEnable  )
 {
     int fVeryVerbose = 0;
     Dec_Graph_t * pGraph;
@@ -98,7 +98,15 @@ clk = Abc_Clock();
 //            Cut_CutPrint( pCut, 0 ), printf( "\n" );
 
         // get the fanin permutation
-        uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
+        if (fApproximationEnable == 0)
+            uTruth = 0xFFFF & *Cut_CutReadTruth(pCut);
+        else if (fApproximationEnable == 1)
+            uTruth = 0xFFFE & *Cut_CutReadTruth(pCut);
+        else if (fApproximationEnable == 2)
+            uTruth = 0xFFFC & *Cut_CutReadTruth(pCut);
+        else
+            uTruth = 0xFFF8 & *Cut_CutReadTruth(pCut);
+
         pPerm = p->pPerms4[ (int)p->pPerms[uTruth] ];
         uPhase = p->pPhases[uTruth];
         // collect fanins with the corresponding permutation/phase

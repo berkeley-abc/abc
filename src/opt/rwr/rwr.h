@@ -129,7 +129,7 @@ static inline Rwr_Node_t * Rwr_NotCond( Rwr_Node_t * p, int c )  { return (Rwr_N
 /*=== rwrDec.c ========================================================*/
 extern void              Rwr_ManPreprocess( Rwr_Man_t * p );
 /*=== rwrEva.c ========================================================*/
-extern int               Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros, int fPlaceEnable );
+extern int               Rwr_NodeRewrite( Rwr_Man_t * p, Cut_Man_t * pManCut, Abc_Obj_t * pNode, int fUpdateLevel, int fUseZeros, int fPlaceEnableint, int fApproximationEnable  );
 extern void              Rwr_ScoresClean( Rwr_Man_t * p );
 extern void              Rwr_ScoresReport( Rwr_Man_t * p );
 /*=== rwrLib.c ========================================================*/

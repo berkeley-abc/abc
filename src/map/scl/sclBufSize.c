@@ -406,7 +406,8 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
     Abc_NtkForEachObjReverse( p->pNtk, pObj, i )
     {
         if ( !((Abc_ObjIsNode(pObj) && Abc_ObjFaninNum(pObj) > 0) || (Abc_ObjIsCi(pObj) && p->pPiDrive)) )
-            continue;
+            if(!(Abc_ObjIsPi(pObj) && p->pPars->fBufPis) )
+                continue;
         if ( 2 * nObjsOld < Abc_NtkObjNumMax(p->pNtk) )
         {
             printf( "Buffering could not be completed because the gain value (%d) is too low.\n", p->pPars->GainRatio );
