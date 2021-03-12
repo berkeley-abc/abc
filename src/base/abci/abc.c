@@ -23681,12 +23681,24 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fFlops = 1;
     int fNodes = 1;
     int fFanout = 0;
+    int Seed = -1;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fiofnxh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SFiofnxh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
@@ -23747,13 +23759,16 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Command \"permute\" has failed.\n" );
         return 1;
     }
+    if ( Seed >= 0 )
+        srand( (unsigned)Seed );
     Abc_NtkPermute( pNtkRes, fInputs, fOutputs, fFlops, pFlopPermFile );
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: permute [-iofnxh] [-F filename]\n" );
+    Abc_Print( -2, "usage: permute [-S num] [-iofnxh] [-F filename]\n" );
     Abc_Print( -2, "\t                performs random permutation of inputs/outputs/flops\n" );
+    Abc_Print( -2, "\t-S num        : the random seed to generate permutations (0 <= num < INT_MAX) [default = %d]\n", Seed );
     Abc_Print( -2, "\t-i            : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
     Abc_Print( -2, "\t-o            : toggle permuting primary outputs [default = %s]\n", fOutputs? "yes": "no" );
     Abc_Print( -2, "\t-f            : toggle permuting flip-flops [default = %s]\n", fFlops? "yes": "no" );
