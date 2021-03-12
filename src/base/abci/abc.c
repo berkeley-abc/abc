@@ -23730,6 +23730,8 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( Seed >= 0 )
+        srand( (unsigned)Seed );
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -23759,8 +23761,6 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Command \"permute\" has failed.\n" );
         return 1;
     }
-    if ( Seed >= 0 )
-        srand( (unsigned)Seed );
     Abc_NtkPermute( pNtkRes, fInputs, fOutputs, fFlops, pFlopPermFile );
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
