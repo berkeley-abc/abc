@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 

@@ -2490,6 +2490,98 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float * Extra_FileReadFloat( FILE * pFile, int * pnFileSize )
+{
+    float * pBuffer;
+    int RetValue, nFileSize;
+    fseek( pFile, 0, SEEK_END );  
+    nFileSize = *pnFileSize = ftell( pFile );  
+    rewind( pFile ); 
+    assert( nFileSize%4 == 0 );
+    pBuffer = ABC_CALLOC( float, nFileSize/4 );
+    RetValue = fread( pBuffer, nFileSize, 1, pFile );
+    return pBuffer;
+}
+float * Extra_FileReadFloatContents( char * pFileName, int * pnFileSize )
+{
+    FILE * pFile;
+    float * pBuffer;
+    pFile = fopen( pFileName, "rb" );
+    pBuffer = pFile ? Extra_FileReadFloat( pFile, pnFileSize ) : NULL;
+    if ( pFile )  fclose( pFile );
+    return pBuffer;
+}
+static inline int Extra_FixedFound( int Value, int Fixed )
+{
+    Value  += 1 << (Fixed-1);
+    Value >>= Fixed;
+    return Value;
+}
+static inline int Extra_ConvertFloat8( float Value )
+{
+    return Extra_FixedFound( (int)(Value * (1 << 16)), 8 );
+}
+Gia_Man_t * Wlc_BlastArray( char * pFileName )
+{
+    int nFileSize = 0;
+    float * pBuffer = Extra_FileReadFloatContents( pFileName, &nFileSize );
+    int i, v, Value, nInputs = nFileSize/4 - 1;
+    Vec_Int_t * vArg0 = Vec_IntAlloc( 100 );
+    Vec_Int_t * vArg1 = Vec_IntAlloc( 100 );
+    Vec_Int_t * vTemp = Vec_IntAlloc( 100 );
+    Vec_Int_t * vRes  = Vec_IntAlloc( 100 );
+    Vec_Int_t * vSum  = Vec_IntAlloc( 100 );
+    Gia_Man_t * pTemp, * pNew = Gia_ManStart( 10000 );
+    pNew->pName = Abc_UtilStrsav( "blast" );
+    Gia_ManHashAlloc( pNew );
+    for ( i = 0; i < 8*nInputs; i++ )
+        Gia_ManAppendCi(pNew);
+
+    Value = (Extra_ConvertFloat8(pBuffer[0]) << 8) | (1 << 7);
+    for ( v = 0; v < 20; v++ )
+        Vec_IntPush( vSum, (Value >> v) & 1 );
+    
+    for ( i = 0; i < nInputs; i++ )
+    {
+        Value = Extra_ConvertFloat8( pBuffer[1+i] );
+
+        Vec_IntClear( vArg0 );
+        for ( v = 0; v < 8; v++ )
+            Vec_IntPush( vArg0, Gia_ManCiLit(pNew, 8*i+v) );
+
+        Vec_IntClear( vArg1 );
+        for ( v = 0; v < 12; v++ )
+            Vec_IntPush( vArg1, (Value >> v) & 1 );
+
+        Wlc_BlastMultiplier( pNew, Vec_IntArray(vArg0), Vec_IntArray(vArg1), 8, 12, vTemp, vRes, 1 );
+        Wlc_BlastAdder( pNew, Vec_IntArray(vSum), Vec_IntArray(vRes), 20, 0 );
+    }
+    ABC_FREE( pBuffer );
+    for ( v = 8; v < 16; v++ )
+        Gia_ManAppendCo( pNew, Vec_IntEntry(vSum, v) );
+    Vec_IntFree( vArg0 );
+    Vec_IntFree( vArg1 );
+    Vec_IntFree( vTemp );
+    Vec_IntFree( vRes );
+    Vec_IntFree( vSum );
+
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

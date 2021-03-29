@@ -416,6 +416,7 @@ static int Abc_CommandAbc9Sim                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Sim3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MLGen              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MLTest             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Iwls21Test         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ReadSim            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9WriteSim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PrintSim           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1138,6 +1139,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim3",         Abc_CommandAbc9Sim3,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mlgen",        Abc_CommandAbc9MLGen,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mltest",       Abc_CommandAbc9MLTest,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&iwls21test",   Abc_CommandAbc9Iwls21Test,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim_read",     Abc_CommandAbc9ReadSim,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim_write",    Abc_CommandAbc9WriteSim,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sim_print",    Abc_CommandAbc9PrintSim,     0 );
@@ -32987,6 +32989,96 @@ usage:
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
     Abc_Print( -2, "\tfile    : file with input simulation info\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Iwls21Test( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManTestWordFile( Gia_Man_t * p, char * pFileName, char * pDumpFile, int fVerbose );
+    int c, fVerbose = 0;
+    char * pDumpFile = NULL;
+    char ** pArgvNew;
+    int nArgcNew;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pDumpFile = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew == 2 )
+    {
+        Gia_Man_t * pAig = Gia_AigerRead( pArgvNew[0], 0, 0, 0 );
+        if ( pAig == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER from file \"%s\" has failed.\n", pArgvNew[0] );
+            return 0;
+        }
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): There is no AIG.\n" );
+            return 1;
+        }
+        Gia_ManTestWordFile( pAig, pArgvNew[1], pDumpFile, fVerbose );
+        Gia_ManStop( pAig );
+        return 0;
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): Expecting data file name on the command line.\n" );
+        return 0;
+    }
+    if ( Gia_ManRegNum(pAbc->pGia) > 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): This command works only for combinational AIGs.\n" );
+        return 0;
+    }
+    Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
+    Gia_ManTestWordFile( pAbc->pGia, pArgvNew[0], pDumpFile, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &iwls21test [-vh] [-D file] <file1> <file2>\n" );
+    Abc_Print( -2, "\t          this command evaluates AIG for 2021 IWLS ML+LS Contest\n" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
+    Abc_Print( -2, "\tfile1   : file with input AIG (or \"&read <file1.aig>; &iwls21test <file2>\" can be used)\n");
+    Abc_Print( -2, "\tfile2   : file with CIFAR10 image data (https://www.cs.toronto.edu/~kriz/cifar.html)\n");
     return 1;
 }
 
