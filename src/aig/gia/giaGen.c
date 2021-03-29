@@ -88,6 +88,7 @@ void Gia_DeriveAigTest()
     Gia_ManStop( pThis );
     Vec_WrdFree( vSimsIn );
     Vec_StrFree( vSimsOut );
+    nInputs = 0;
 }
 
 
@@ -519,11 +520,11 @@ void Gia_ManReadSimFile( char * pFileName, int * pnIns, int * pnOuts, int * pnPa
             continue;
         if ( pTemp[0] != '.' )
             break;
-        if ( pTemp[1] = 'i' )
+        if ( pTemp[1] == 'i' )
             nIns = atoi(pTemp+2);
-        else if ( pTemp[1] = 'o' )
+        else if ( pTemp[1] == 'o' )
             nOuts = atoi(pTemp+2);
-        else if ( pTemp[1] = 'p' )
+        else if ( pTemp[1] == 'p' )
         {
             if ( atoi(pTemp+2) % 64 == 0 )
                 printf( "Expecting the number of patterns divisible by 64.\n" );
