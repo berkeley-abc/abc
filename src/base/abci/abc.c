@@ -33043,10 +33043,10 @@ int Abc_CommandAbc9Iwls21Test( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Reading AIGER from file \"%s\" has failed.\n", pArgvNew[0] );
             return 0;
         }
-        if ( pAbc->pGia == NULL )
+        if ( Gia_ManRegNum(pAig) > 0 )
         {
-            Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): There is no AIG.\n" );
-            return 1;
+            Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): This command works only for combinational AIGs.\n" );
+            return 0;
         }
         Gia_ManTestWordFile( pAig, pArgvNew[1], pDumpFile, fVerbose );
         Gia_ManStop( pAig );
