@@ -32068,13 +32068,14 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Gia_Man_t * Gia_ManDupMuxRestructure( Gia_Man_t * p );
     Gia_Man_t * pTemp;
     int c, Limit = 2;
+    int Multi = 0;
     int fAddStrash = 0;
     int fCollapse = 0;
     int fAddMuxes = 0;
     int fStrMuxes = 0;
     int fRehashMap = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Lacmrsh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LMacmrsh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32087,6 +32088,17 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
             Limit = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( Limit < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Multi = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Multi <= 0 )
                 goto usage;
             break;
         case 'a':
@@ -32114,6 +32126,13 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Strash(): There is no AIG.\n" );
         return 1;
+    }
+    if ( Multi > 0 )
+    {
+        extern Gia_Man_t * Gia_ManDupAddPis( Gia_Man_t * p, int nMulti );
+        pTemp = Gia_ManDupAddPis( pAbc->pGia, Multi );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+        return 0;
     }
     if ( fStrMuxes )
     {
@@ -32182,13 +32201,14 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &st [-L num] [-acmrsh]\n" );
+    Abc_Print( -2, "usage: &st [-LM num] [-acmrsh]\n" );
     Abc_Print( -2, "\t         performs structural hashing\n" );
     Abc_Print( -2, "\t-a     : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle collapsing hierarchical AIG [default = %s]\n", fCollapse? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle converting to larger gates [default = %s]\n", fAddMuxes? "yes": "no" );
     Abc_Print( -2, "\t-L num : create MUX when sum of refs does not exceed this limit [default = %d]\n", Limit );
     Abc_Print( -2, "\t         (use L = 1 to create AIG with XORs but without MUXes)\n" );
+    Abc_Print( -2, "\t-M num : create an AIG with additional primary inputs [default = %d]\n", Multi );
     Abc_Print( -2, "\t-r     : toggle rehashing AIG while preserving mapping [default = %s]\n", fRehashMap? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle using MUX restructuring [default = %s]\n", fStrMuxes? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -33048,6 +33068,11 @@ int Abc_CommandAbc9Iwls21Test( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): This command works only for combinational AIGs.\n" );
             return 0;
         }
+        if ( Gia_ManCoNum(pAig) != 10 )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): Expecting an AIG with 10 outputs.\n" );
+            return 0;
+        }
         Gia_ManTestWordFile( pAig, pArgvNew[1], pDumpFile, fVerbose );
         Gia_ManStop( pAig );
         return 0;
@@ -33056,6 +33081,11 @@ int Abc_CommandAbc9Iwls21Test( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): There is no AIG.\n" );
         return 1;
+    }
+    if ( Gia_ManCoNum(pAbc->pGia) != 10 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Iwls21Test(): Expecting an AIG with 10 outputs.\n" );
+        return 0;
     }
     if ( nArgcNew != 1 )
     {

@@ -4899,6 +4899,38 @@ Gia_Man_t * Gia_ManDupReplaceCut( Gia_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicate AIG by creating a cut between logic fed by PIs]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupAddPis( Gia_Man_t * p, int nMulti )
+{
+    Gia_Man_t * pNew;  int i, k;
+    Gia_Obj_t * pObj;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) + Gia_ManCiNum(p) * nMulti );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        pObj->Value = Gia_ManAppendCi(pNew);
+        for ( k = 1; k < nMulti; k++ )
+            Gia_ManAppendCi(pNew);
+    }
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    assert( Gia_ManCiNum(pNew) == nMulti * Gia_ManCiNum(p) );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

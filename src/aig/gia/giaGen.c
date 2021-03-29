@@ -877,7 +877,7 @@ void Gia_ManTestWordFile( Gia_Man_t * p, char * pFileName, char * pDumpFile, int
     char * pKnownFileNames[3] = {"small.aig", "medium.aig", "large.aig"};
     int pLimitFileSizes[3] = {10000, 100000, 1000000};
     for ( i = 0; i < 3; i++ )
-        if ( !strncmp(p->pSpec, pKnownFileNames[i], 5) && Gia_ManAndNum(p) > pLimitFileSizes[i] )
+        if ( p->pSpec && !strncmp(p->pSpec, pKnownFileNames[i], 5) && Gia_ManAndNum(p) > pLimitFileSizes[i] )
             printf( "Warning: The input file \"%s\" contains more than %d internal and-nodes.\n", pKnownFileNames[i], pLimitFileSizes[i] );
     if ( nInputs == Gia_ManCiNum(p) )
     {
