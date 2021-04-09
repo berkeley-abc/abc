@@ -2495,6 +2495,65 @@ void Gia_ComputeTest()
     fclose( pFile );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Computes sum total of support size of primary outputs.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSumTotalOfSupportSizes( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj;
+    Vec_Wec_t * vSupps = Vec_WecStart( Gia_ManObjNum(p) );
+    int i, nResult = 0;
+    for ( i = 0; i < Gia_ManCiNum(p); i++ )
+        Vec_IntPush( Vec_WecEntry(vSupps, 1+i), i );
+    Gia_ManForEachAnd( p, pObj, i )
+        Vec_IntTwoMerge2( Vec_WecEntry(vSupps, Gia_ObjFaninId0(pObj, i)), Vec_WecEntry(vSupps, Gia_ObjFaninId1(pObj, i)), Vec_WecEntry(vSupps, i) ); 
+    Gia_ManForEachCo( p, pObj, i )
+        nResult += Vec_IntSize( Vec_WecEntry(vSupps, Gia_ObjFaninId0p(p, pObj)) );
+    Vec_WecFree( vSupps );
+    return nResult;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes sum total of support size of primary outputs.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSumTotalOfSupportSizes2( Gia_Man_t * p )
+{
+    Vec_Wrd_t * vSims = Vec_WrdStart( Gia_ManObjNum(p) );
+    int r, nResult = 0, nRounds = (Gia_ManCiNum(p) + 63)/64;
+    for ( r = 0; r < nRounds; r++ )
+    {
+        Gia_Obj_t * pObj;
+        int i, Limit = r == nRounds-1 ? Gia_ManCiNum(p) % 64 : 64;
+        for ( i = 0; i < Limit; i++ )
+            Vec_WrdWriteEntry( vSims, 1+64*r+i, (word)1 << i );
+        Gia_ManForEachAnd( p, pObj, i )
+            Vec_WrdWriteEntry( vSims, i, Vec_WrdEntry(vSims, Gia_ObjFaninId0(pObj, i)) | Vec_WrdEntry(vSims, Gia_ObjFaninId1(pObj, i)) );
+        Gia_ManForEachCo( p, pObj, i )
+            nResult += Abc_TtCountOnes( Vec_WrdEntry(vSims, Gia_ObjFaninId0p(p, pObj)) );
+        for ( i = 0; i < Limit; i++ )
+            Vec_WrdWriteEntry( vSims, 1+64*r+i, 0 );
+    }
+    Vec_WrdFree( vSims );
+    return nResult;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
