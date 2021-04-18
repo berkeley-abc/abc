@@ -694,6 +694,30 @@ int Scl_LibertyReadCellOutputNum( Scl_Tree_t * p, Scl_Item_t * pCell )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks if the cell name is included in the ignore list.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_LibertyIsOnIgnoreList( Scl_Tree_t * p, Scl_Item_t * pCell, char ** pIgnoreList )
+{
+	if ( pIgnoreList == NULL )
+		return 0;
+    while ( *pIgnoreList != NULL )
+    {
+        if ( !Scl_LibertyCompare( p, pCell->Head, *pIgnoreList ) )
+            return 1;
+        pIgnoreList++;
+    }
+    return 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Parses the standard cell library in Liberty format.]
 
   Description [Writes the resulting file in Genlib format.]
@@ -1427,7 +1451,7 @@ Vec_Ptr_t * Scl_LibertyReadTemplates( Scl_Tree_t * p )
 //    Scl_LibertyPrintTemplates( vRes );
     return vRes;
 }
-Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbose )
+Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, char ** pIgnoreList, int fVerbose, int fVeryVerbose )
 {
     int fUseFirstTable = 0;
     Vec_Str_t * vOut;
@@ -1464,6 +1488,12 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     nCells = 0;
     Scl_ItemForEachChildName( p, Scl_LibertyRoot(p), pCell, "cell" )
     {
+        if ( Scl_LibertyIsOnIgnoreList(p, pCell, pIgnoreList) )
+        {
+            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" due to being on the ignore list.\n", Scl_LibertyReadString(p, pCell->Head) );
+            nSkipped[3]++;
+            continue;
+        }
         if ( Scl_LibertyReadCellIsFlop(p, pCell) )
         {
             if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped sequential cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
@@ -1496,6 +1526,8 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     Vec_StrPut_( vOut );
     Scl_ItemForEachChildName( p, Scl_LibertyRoot(p), pCell, "cell" )
     {
+        if ( Scl_LibertyIsOnIgnoreList(p, pCell, pIgnoreList) )
+            continue;
         if ( Scl_LibertyReadCellIsFlop(p, pCell) )
             continue;
         if ( Scl_LibertyReadCellIsDontUse(p, pCell) )
@@ -1673,7 +1705,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     }
     return vOut;
 }
-SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
+SC_Lib * Abc_SclReadLiberty( char * pFileName, char ** pIgnoreList, int fVerbose, int fVeryVerbose )
 {
     SC_Lib * pLib;
     Scl_Tree_t * p;
@@ -1683,7 +1715,7 @@ SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
         return NULL;
 //    Scl_LibertyParseDump( p, "temp_.lib" );
     // collect relevant data
-    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose );
+    vStr = Scl_LibertyReadSclStr( p, pIgnoreList, fVerbose, fVeryVerbose );
     Scl_LibertyStop( p, fVeryVerbose );
     if ( vStr == NULL )
         return NULL;
@@ -1721,7 +1753,7 @@ void Scl_LibertyTest()
     if ( p == NULL )
         return;
 //    Scl_LibertyParseDump( p, "temp_.lib" );
-    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose );
+    vStr = Scl_LibertyReadSclStr( p, NULL, fVerbose, fVeryVerbose );
     Scl_LibertyStringDump( "test_scl.lib", vStr );
     Vec_StrFree( vStr );
     Scl_LibertyStop( p, fVerbose );
