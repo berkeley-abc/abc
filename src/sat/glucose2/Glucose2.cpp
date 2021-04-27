@@ -151,7 +151,8 @@ Solver::Solver() :
   , nbVarsInitialFormula(INT32_MAX)
 
   #ifdef CGLUCOSE_EXP
-  , jheap         (JustOrderLt(this))
+  //, jheap         (JustOrderLt(this))
+  , jheap         (JustOrderLt2(this))
   #endif
 {
   MYFLAG=0;  
@@ -175,6 +176,7 @@ Solver::Solver() :
   }
 
   #ifdef CGLUCOSE_EXP
+  jhead= 0;
   jftr = 0;
   travId = 0;
   travId_prev = 0;
@@ -233,18 +235,28 @@ Var Solver::newVar(bool sign, bool dvar)
     polarity .push(sign);
     decision .push();
     trail    .capacity(v+1);
-    setDecisionVar(v, dvar);
+    
 
     #ifdef CGLUCOSE_EXP
     //jreason  .capacity(v+1);
     if( justUsage() ){
-      jdata    .push(mkJustData(false));
-      jwatch   .push(mkJustWatch());
-      var2FanoutN.growTo( nVars()<<1, toLit(~0));
-      //var2FanoutP.growTo( nVars()<<1, toLit(~0));
-      var2Fanout0.growTo( nVars(), toLit(~0));
-      var2TravId .growTo( nVars(), 0);
-    }
+        //jdata    .push(mkJustData(false));
+        //jwatch   .push(mkJustWatch());
+
+        jlevel   .push(-1);
+        jnext    .push(-1);
+
+        var2FanoutN.growTo( nVars()<<1, toLit(~0));
+        //var2FanoutP.growTo( nVars()<<1, toLit(~0));
+        var2Fanout0.growTo( nVars(), toLit(~0));
+        var2NodeData.growTo( nVars(), mkNodeData());
+        var2TravId .growTo( nVars(), 0);
+
+        setDecisionVar(v, dvar, false);
+    } else 
+        setDecisionVar(v, dvar);
+    #else
+    setDecisionVar(v, dvar);
     #endif
 
     return v;
@@ -283,7 +295,7 @@ bool Solver::addClause_(vec<Lit>& ps)
         return true;
       else if (value(ps[i]) != l_False && ps[i] != p)
         ps[j++] = p = ps[i];
-    ps.shrink(i - j);
+    ps.shrink_(i - j);
 
     if ( 0 ) {
         for ( int i = 0; i < ps.size(); i++ )
@@ -502,31 +514,45 @@ void Solver::minimisationWithBinaryResolution(vec<Lit> &out_learnt) {
 void Solver::cancelUntil(int level) {
     if (decisionLevel() > level){
 
-        for (int c = trail.size()-1; c >= trail_lim[level]; c--){
-            Var      x  = var(trail[c]);
-            assigns [x] = l_Undef;
-            if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last()))
-                polarity[x] = sign(trail[c]);
-            insertVarOrder(x); }
-        qhead = trail_lim[level];
-
-
-
         #ifdef CGLUCOSE_EXP
         if( 0 < justUsage() ){
-          for (int c = trail.size()-1; c >= trail_lim[level]; c--){
-              Var      x  = var(trail[c]);
 
-              gateClearJwatch(x, level);
+            for (int c = trail.size()-1; c >= trail_lim[level]; c--){
+                Var      x  = var(trail[c]);
+                assigns [x] = l_Undef;
+                if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last()))
+                    polarity[x] = sign(trail[c]);
+                //gateClearJwatch(x, level);
 
-              jdata[x].now = false;
-          }
-        }
+                var2NodeData[x].now = false;
+            }
+            for (int l = decisionLevel(); l > level; l -- ){
+                int q = jlevel[l], k;
+                jlevel[l] = -1;
+                while( -1 != q ){
+                    k = jnext[q];
+                    jnext[q] = -1;
+                    Var v = var(trail[q]);
+                    if( Solver::level(v) <= level ){
+                        pushJustQueue(v,q);
+                    }
+                    q = k;
+                }
+            }
+        } else 
         #endif
+            for (int c = trail.size()-1; c >= trail_lim[level]; c--){
+                Var      x  = var(trail[c]);
+                assigns [x] = l_Undef;
+                if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last()))
+                    polarity[x] = sign(trail[c]);
+                insertVarOrder(x);
+            }
+
+        jhead = qhead = trail_lim[level];
 
         trail.shrink_(trail.size() - trail_lim[level]);
         trail_lim.shrink_(trail_lim.size() - level);
-        jstack.shrink_( jstack.size() );
     }
 }
 
@@ -577,6 +603,7 @@ Lit Solver::pickBranchLit()
 void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& out_btlevel,unsigned int &lbd,unsigned int &szWithoutSelectors)
 {
     //double clk = Abc_Clock();
+    heap_rescale = 0;
 
     int pathC = 0;
     Lit p     = lit_Undef;
@@ -586,22 +613,23 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
     out_learnt.push();      // (leave room for the asserting literal)
     int index   = trail.size() - 1;
     
+    analyze_toclear.shrink_( analyze_toclear.size() );
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
 
-      #ifdef CGLUCOSE_EXP
+        #ifdef CGLUCOSE_EXP
         Clause& c = ca[ lit_Undef != p ? castCRef(p): getConfClause(confl) ];
-      #else
+        #else
         Clause& c = ca[confl];
-      #endif
+        #endif
 
         // Special case for binary clauses
         // The first one has to be SAT
         if( p != lit_Undef && c.size()==2 && value(c[0])==l_False) {
-          
-          assert(value(c[1])==l_True);
-          Lit tmp = c[0];
-          c[0] =  c[1], c[1] = tmp;
+
+            assert(value(c[1])==l_True);
+            Lit tmp = c[0];
+            c[0] =  c[1], c[1] = tmp;
         }
         
         if (c.learnt()) 
@@ -610,46 +638,51 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
 #ifdef DYNAMICNBLEVEL               
         // DYNAMIC NBLEVEL trick (see competition'09 companion paper)
         if(c.learnt()  && c.lbd()>2) {
-          unsigned int nblevels = computeLBD(c);
-          if(nblevels+1<c.lbd() ) { // improve the LBD
-            if(c.lbd()<=lbLBDFrozenClause) {
-              c.setCanBeDel(false); 
+            unsigned int nblevels = computeLBD(c);
+            if(nblevels+1<c.lbd() ) { // improve the LBD
+                if(c.lbd()<=lbLBDFrozenClause) {
+                    c.setCanBeDel(false);
+                }
+                // seems to be interesting : keep it for the next round
+                c.setLBD(nblevels); // Update it
             }
-            // seems to be interesting : keep it for the next round
-            c.setLBD(nblevels); // Update it
-          }
         }
 #endif
 
 
         for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++){
             Lit q = c[j];
+            bool fBump = 0;
 
             if (!seen[var(q)] && level(var(q)) > 0){
-              if(!isSelector(var(q)))
-                varBumpActivity(var(q));
-              seen[var(q)] = 1;
-              if (level(var(q)) >= decisionLevel()) {
-                pathC++;
-#ifdef UPDATEVARACTIVITY
-                // UPDATEVARACTIVITY trick (see competition'09 companion paper)
-        #ifdef CGLUCOSE_EXP
-                if(!isSelector(var(q)) && (reason(var(q))!= CRef_Undef)  
-                  && ! isGateCRef(reason(var(q))) && ca[reason(var(q))].learnt()) 
-                  lastDecisionLevel.push(q);
-        #else
-                if(!isSelector(var(q)) && (reason(var(q))!= CRef_Undef)  && ca[reason(var(q))].learnt()) 
-                  lastDecisionLevel.push(q);
-        #endif
-#endif
-                
-              } else {
-                if(isSelector(var(q))) {
-                  assert(value(q) == l_False);
-                  selectors.push(q);
-                } else 
-                  out_learnt.push(q);
-              }
+                if(!isSelector(var(q))){
+                    fBump = 1;
+                    varBumpActivity(var(q));
+                }
+                seen[var(q)] = 1;
+                if (level(var(q)) >= decisionLevel()) {
+                    if( fBump )
+                        analyze_toclear.push(q);
+                    pathC++;
+                    #ifdef UPDATEVARACTIVITY
+                    // UPDATEVARACTIVITY trick (see competition'09 companion paper)
+                    #ifdef CGLUCOSE_EXP
+                    if(!isSelector(var(q)) && (reason(var(q))!= CRef_Undef)  
+                    && ! isGateCRef(reason(var(q))) && ca[reason(var(q))].learnt())
+                        lastDecisionLevel.push(q);
+                    #else
+                    if(!isSelector(var(q)) && (reason(var(q))!= CRef_Undef)  && ca[reason(var(q))].learnt()) 
+                        lastDecisionLevel.push(q);
+                    #endif
+                    #endif
+
+                } else {
+                    if(isSelector(var(q))) {
+                        assert(value(q) == l_False);
+                        selectors.push(q);
+                    } else 
+                        out_learnt.push(q);
+                }
             }
         }
         
@@ -667,10 +700,15 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
     //
     int i, j;
 
-    for(i = 0;i<selectors.size();i++)  
-      out_learnt.push(selectors[i]);       
+    for(i = 0;i<selectors.size();i++) out_learnt.push(selectors[i]);       
 
+
+    #ifdef CGLUCOSE_EXP
+    for(i = 0;i<out_learnt.size();i++)  
+        analyze_toclear.push(out_learnt[i]);
+    #else
     out_learnt.copyTo_(analyze_toclear);
+    #endif
     if (ccmin_mode == 2){
         uint32_t abstract_level = 0;
         for (i = 1; i < out_learnt.size(); i++)
@@ -749,29 +787,51 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
 
   
 #ifdef UPDATEVARACTIVITY
-  // UPDATEVARACTIVITY trick (see competition'09 companion paper)
-  if(lastDecisionLevel.size()>0) {
-    for(int i = 0;i<lastDecisionLevel.size();i++) {
-
-      #ifdef CGLUCOSE_EXP
-      Lit t = lastDecisionLevel[i];
-      if( isGateCRef(reason(var(t))) || ca[reason(var(t))].lbd()<lbd )
-          varBumpActivity(var(lastDecisionLevel[i]));
-      #else
-      if(ca[reason(var(lastDecisionLevel[i]))].lbd()<lbd)
-          varBumpActivity(var(lastDecisionLevel[i]));
-      #endif
-
-    }
-    lastDecisionLevel.clear();
-  } 
-#endif      
+    // UPDATEVARACTIVITY trick (see competition'09 companion paper)
+    if(lastDecisionLevel.size()>0) {
+        for(int i = 0;i<lastDecisionLevel.size();i++) {
+            Lit t = lastDecisionLevel[i];
+            //assert( ca[reason(var(t))].learnt() );
+            if(ca[reason(var(t))].lbd()<lbd)
+                varBumpActivity(var(t));
+        }
+        lastDecisionLevel.shrink_( lastDecisionLevel.size() );
+    } 
+#endif
 
 
+    if( justUsage() ){
+        if( heap_rescale )
+        {
+            for (j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;
 
-  for (j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
-  for(j = 0 ; j<selectors.size() ; j++) seen[var(selectors[j])] = 0;  
+            analyze_toclear.shrink_( analyze_toclear.size() );
+            for (j = 0; j < jheap.size(); j++){
+                Var x = jheap[j];
+                if( var2NodeData[x].now )
+                    analyze_toclear.push(mkLit(x));
+            }
+            for (j = 0; j < analyze_toclear.size(); j++){
+                Var x = var(analyze_toclear[j]);
+//                jdata[x].act_fanin = activity[getFaninVar0(x)] > activity[getFaninVar1(x)]? activity[getFaninVar0(x)]: activity[getFaninVar1(x)];
+//                jheap.update(x);
+                if( activity[getFaninVar1(x)] > activity[getFaninVar0(x)] )
+                    jheap.update( JustKey( activity[getFaninVar1(x)], x, jheap.data_attr(x) ) );
+                else
+                    jheap.update( JustKey( activity[getFaninVar0(x)], x, jheap.data_attr(x) ) );
+            }
 
+        } else {
+
+            for (j = 0; j < analyze_toclear.size(); j++)
+            {
+                seen[var(analyze_toclear[j])] = 0;
+                updateJustActivity(var(analyze_toclear[j]));
+            }
+        }
+    } else
+        for (j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
+    for(j = 0 ; j<selectors.size() ; j++) seen[var(selectors[j])] = 0;
 }
 
 
@@ -779,7 +839,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt,vec<Lit>&selectors, int& o
 // visiting literals at levels that cannot be removed later.
 bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
 {
-    analyze_stack.clear(); analyze_stack.push(p);
+    analyze_stack.shrink_( analyze_stack.size() ); analyze_stack.push(p);
     int top = analyze_toclear.size();
     while (analyze_stack.size() > 0){
         assert(reason(var(analyze_stack.last())) != CRef_Undef);
@@ -826,7 +886,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
 |________________________________________________________________________________________________@*/
 void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
 {
-    out_conflict.clear();
+    out_conflict.shrink_( out_conflict.size() );
     out_conflict.push(p);
 
     if (decisionLevel() == 0)
@@ -863,17 +923,12 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
 
 void Solver::uncheckedEnqueue(Lit p, CRef from)
 {
+    if( justUsage() && !isRoundWatch(var(p)) )
+        return;
     assert(value(p) == l_Undef);
     assigns[var(p)] = lbool(!sign(p));
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
-    #ifdef CGLUCOSE_EXP
-    if( 0 < justUsage() ){
-        jdata[var(p)] = mkJustData( isJReason(var(p)) );
-        if( isJReason(var(p)) && l_Undef == value( getFaninVar0(var(p)) ) && l_Undef == value( getFaninVar1(var(p)) ) )
-            jstack.push(var(p));
-        }
-    #endif
 }
 
 
@@ -902,13 +957,11 @@ CRef Solver::propagate()
 
         #ifdef CGLUCOSE_EXP
         if( 2 <= justUsage() ){
-          CRef stats;
-          if( CRef_Undef != (stats = gatePropagate(p)) ){
-            confl = stats;
-            if( l_True == value(var(p)) )
-              return confl;
-            
-          }
+            CRef stats;
+            if( CRef_Undef != (stats = gatePropagate(p)) ){
+                confl = stats;
+                if( l_True == value(var(p)) ) return confl;
+            }
         }
         #endif
 
@@ -995,7 +1048,7 @@ CRef Solver::propagate()
             }
         NextClause:;
         }
-        ws.shrink(i - j);
+        ws.shrink_(i - j);
     }
     propagations += num_props;
     simpDB_props -= num_props;
@@ -1065,7 +1118,7 @@ void Solver::reduceDB()
       learnts[j++] = learnts[i];
     }
   }
-  learnts.shrink(i - j);
+  learnts.shrink_(i - j);
   checkGarbage();
 }
 
@@ -1080,7 +1133,7 @@ void Solver::removeSatisfied(vec<CRef>& cs)
         else
             cs[j++] = cs[i];
     }
-    cs.shrink(i - j);
+    cs.shrink_(i - j);
 }
 
 
@@ -1119,7 +1172,10 @@ bool Solver::simplify()
 
     checkGarbage();
 
-    rebuildOrderHeap();
+    #ifdef CGLUCOSE_EXP
+    if( !justUsage() )
+    #endif
+        rebuildOrderHeap();
 
     simpDB_assigns = nAssigns();
     simpDB_props   = clauses_literals + learnts_literals;   // (shouldn't depend on stats really, but it will do for now)
@@ -1185,8 +1241,8 @@ lbool Solver::search(int nof_conflicts)
             if(!blocked) {lastblockatrestart=starts;nbstopsrestartssame++;blocked=true;}
           }
 
-            learnt_clause.clear();
-            selectors.clear();
+            learnt_clause.shrink_( learnt_clause.size() );
+            selectors    .shrink_( selectors.size() );
             analyze(confl, learnt_clause, selectors,backtrack_level,nblevels,szWoutSelectors);
 
             lbdQueue.push(nblevels);
@@ -1217,31 +1273,30 @@ lbool Solver::search(int nof_conflicts)
             claDecayActivity();
 
         }else{
-          // Our dynamic restart, see the SAT09 competition compagnion paper 
-          if ( (conflictsRestarts && lbdQueue.isvalid() && lbdQueue.getavg()*K > sumLBD/conflictsRestarts) || (pstop && *pstop) ) {
-            lbdQueue.fastclear();
-            progress_estimate = progressEstimate();
-            int bt = 0;
-            if(incremental) { // DO NOT BACKTRACK UNTIL 0.. USELESS
-              bt = (decisionLevel()<assumptions.size()) ? decisionLevel() : assumptions.size();
+            // Our dynamic restart, see the SAT09 competition compagnion paper 
+            if ( (conflictsRestarts && lbdQueue.isvalid() && lbdQueue.getavg()*K > sumLBD/conflictsRestarts) || (pstop && *pstop) ) {
+                lbdQueue.fastclear();
+                progress_estimate = progressEstimate();
+                int bt = 0;
+                if(incremental) { // DO NOT BACKTRACK UNTIL 0.. USELESS
+                    bt = (decisionLevel()<assumptions.size()) ? decisionLevel() : assumptions.size();
+                }
+                cancelUntil(bt);
+                return l_Undef; 
             }
-            cancelUntil(bt);
-            return l_Undef; 
-          }
 
-           // Simplify the set of problem clauses:
-          if (decisionLevel() == 0 && !simplify()) {
-            return l_False;
-          }
+            // Simplify the set of problem clauses:
+            if (decisionLevel() == 0 && !simplify()) {
+                return l_False;
+            }
             // Perform clause database reduction !
-            if(conflicts>=curRestart* nbclausesbeforereduce) 
-              {
-                  
+            if(conflicts>=curRestart* nbclausesbeforereduce)
+            {
                 assert(learnts.size()>0);
                 curRestart = (conflicts/ nbclausesbeforereduce)+1;
                 reduceDB();
                 nbclausesbeforereduce += incReduceDB;
-              }
+            }
 
             Lit next = lit_Undef;
             while (decisionLevel() < assumptions.size()){
@@ -1250,10 +1305,10 @@ lbool Solver::search(int nof_conflicts)
                 if (value(p) == l_True){
                     // Dummy decision level:
                     newDecisionLevel();
-                }else if (value(p) == l_False){
+                } else if (value(p) == l_False){
                     analyzeFinal(~p, conflict);
                     return l_False;
-                }else{
+                } else {
                     next = p;
                     break;
                 }
@@ -1261,15 +1316,17 @@ lbool Solver::search(int nof_conflicts)
 
             #ifdef CGLUCOSE_EXP
             // pick from JustQueue
-            Var j_reason = -1;
+
             if (0 < justUsage())
             if ( next == lit_Undef ){
-              decisions++;
-              next = pickJustLit( j_reason );
-              if(next == lit_Undef)
-                return l_True;
-              addJwatch(var(next), j_reason);
-              
+                int index = -1;
+                decisions++;
+                next = pickJustLit( index );
+                if(next == lit_Undef)
+                    return l_True;
+                //addJwatch(var(next), j_reason);
+                jnext[index] = jlevel[decisionLevel()+1];
+                jlevel[decisionLevel()+1] = index;
             }
             #endif
 
@@ -1335,21 +1392,13 @@ lbool Solver::solve_()
 
     #ifdef CGLUCOSE_EXP
     ResetJustData(false);
-
-    if( 0 < justUsage() )
-      for(int i=0; i<trail.size(); i++){ // learnt unit clauses 
-        Var v = var(trail[i]);
-          if( isJReason(v) )
-            jstack.push(v);
-      }
     #endif
 
-  if(incremental && certifiedUNSAT) {
-    printf("Can not use incremental and certified unsat in the same time\n");
-    exit(-1);
-  }
-    JustModel.shrink_(JustModel.size());
-    model.shrink_(model.size());
+    if(incremental && certifiedUNSAT) {
+        printf("Can not use incremental and certified unsat in the same time\n");
+        exit(-1);
+    }
+
     conflict.shrink_(conflict.size());
     if (!ok){
       travId_prev = travId;
@@ -1403,18 +1452,20 @@ printf("c ==================================[ Search Statistics (every %6d confl
     if (status == l_True){
 
         if( justUsage() ){
-          assert(jheap.empty());
-          //JustModel.growTo(nVars());
-          int i = 0, j = 0;
-          JustModel.push(toLit(0));
-          for (; i < trail.size(); i++) 
-            if( isRoundWatch(var(trail[i])) && !isTwoFanin(var(trail[i])) )
-              JustModel.push(trail[i]), j++;
-          JustModel[0] = toLit(j);
+            JustModel.shrink_(JustModel.size());
+            assert(jheap.empty());
+            //JustModel.growTo(nVars());
+            int i = 0, j = 0;
+            JustModel.push(toLit(0));
+            for (; i < trail.size(); i++) 
+                if( isRoundWatch(var(trail[i])) && !isTwoFanin(var(trail[i])) )
+                    JustModel.push(trail[i]), j++;
+            JustModel[0] = toLit(j);
         } else {
-          // Extend & copy model:
-          model.growTo(nVars());
-          for (int i = 0; i < trail.size(); i++) model[ var(trail[i]) ] = value(var(trail[i]));
+            // Extend & copy model:
+            model.shrink_(model.size());
+            model.growTo(nVars());
+            for (int i = 0; i < trail.size(); i++) model[ var(trail[i]) ] = value(var(trail[i]));
         }
     }else if (status == l_False && conflict.size() == 0)
         ok = false;
@@ -1669,25 +1720,28 @@ void Solver::reset()
 
     ResetJustData(false);
 
-    jwatch.shrink_(jwatch.size());
-    jdata .shrink_(jdata .size());
+    //jwatch.shrink_(jwatch.size());
+    //jdata .shrink_(jdata .size());
 
-
+    jhead  = 0;
     travId = 0;
     travId_prev = 0;
     var2TravId   .shrink_(var2TravId.size());
     JustModel    .shrink_(JustModel .size());
+    jlevel       .shrink_(jlevel.size());
+    jnext        .shrink_(jnext.size());
 
-    var2FaninLits.shrink_(var2FaninLits.size());
+    //var2FaninLits.shrink_(var2FaninLits.size());
+    var2NodeData .shrink_(var2NodeData .size());
     var2Fanout0  .shrink_(var2Fanout0  .size());
     var2FanoutN  .shrink_(var2FanoutN  .size());
     //var2FanoutP.clear(false);
     if( CRef_Undef != itpc ){
-      itpc = CRef_Undef;       // clause allocator has been cleared, do not worry 
-      // allocate space for clause interpretation 
-      vec<Lit> tmp; tmp.growTo(3); 
-      itpc = ca.alloc(tmp);
-      ca[itpc].shrink( ca[itpc].size() );
+        itpc = CRef_Undef;       // clause allocator has been cleared, do not worry 
+        // allocate space for clause interpretation 
+        vec<Lit> tmp; tmp.growTo(3); 
+        itpc = ca.alloc(tmp);
+        ca[itpc].shrink( ca[itpc].size() );
     }
     #endif
 }

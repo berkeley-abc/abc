@@ -707,7 +707,7 @@ void SimpSolver::cleanUpClauses()
     for (i = j = 0; i < clauses.size(); i++)
         if (ca[clauses[i]].mark() == 0)
             clauses[j++] = clauses[i];
-    clauses.shrink(i - j);
+    clauses.shrink_(i - j);
 }
 
 
@@ -760,18 +760,22 @@ void SimpSolver::reset()
     Solver::reset();
     grow = opt_grow;
     asymm_lits = eliminated_vars = bwdsub_assigns = n_touched = 0;
-    elimclauses.clear(false);
-    touched.clear(false);
-    occurs.clear(false);
-    n_occ.clear(false);
-    elim_heap.clear(false);
+
     subsumption_queue.clear(false);
-    frozen.clear(false);
-    eliminated.clear(false);
     vec<Lit> dummy(1,lit_Undef);
     ca.extra_clause_field = true; // NOTE: must happen before allocating the dummy clause below.
     bwdsub_tmpunit        = ca.alloc(dummy);
     remove_satisfied      = false;
+
+    occurs.clear(false);
+
+    touched      .shrink_( touched      .size() );
+    n_occ        .shrink_( n_occ        .size() );
+    eliminated   .shrink_( eliminated   .size() );
+    frozen       .shrink_( frozen       .size() );
+    elimclauses  .shrink_( elimclauses  .size() );
+
+    elim_heap    .clear_(false);
 }
 
 ABC_NAMESPACE_IMPL_END

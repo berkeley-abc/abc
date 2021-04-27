@@ -298,6 +298,7 @@ class OccLists
     OccLists(const Deleted& d) : deleted(d) {}
     
     void  init      (const Idx& idx){ occs.growTo(toInt(idx)+1); dirty.growTo(toInt(idx)+1, 0); }
+    void  prelocate (const int num){ occs.prelocate(num); dirty.prelocate(num); }
     // Vec&  operator[](const Idx& idx){ return occs[toInt(idx)]; }
     Vec&  operator[](const Idx& idx){ return occs[toInt(idx)]; }
     Vec&  lookup    (const Idx& idx){ if (dirty[toInt(idx)]) clean(idx); return occs[toInt(idx)]; }
@@ -332,7 +333,7 @@ void OccLists<Idx,Vec,Deleted>::cleanAll()
         // Dirties may contain duplicates so check here if a variable is already cleaned:
         if (dirty[toInt(dirties[i])])
             clean(dirties[i]);
-    dirties.clear();
+    dirties.shrink_( dirties.size() );
 }
 
 
@@ -344,7 +345,7 @@ void OccLists<Idx,Vec,Deleted>::clean(const Idx& idx)
     for (i = j = 0; i < vec.size(); i++)
         if (!deleted(vec[i]))
             vec[j++] = vec[i];
-    vec.shrink(i - j);
+    vec.shrink_(i - j);
     dirty[toInt(idx)] = 0;
 }
 

@@ -67,7 +67,9 @@ public:
     void     shrink_  (int nelems)     { assert(nelems <= sz); sz -= nelems; }
     int      capacity (void) const     { return cap; }
     void     capacity (int min_cap);
+    void     prelocate(int ext_cap);
     void     growTo   (int size);
+    void     growTo_  (int size);
     void     growTo   (int size, const T& pad);
     void     clear    (bool dealloc = false);
 
@@ -90,7 +92,7 @@ public:
 
     // Duplicatation (preferred instead):
     void copyTo (vec<T>& copy) const { copy.clear(); copy.growTo(sz); for (int i = 0; i < sz; i++) copy[i] = data[i]; }
-    void copyTo_(vec<T>& copy) const { copy.shrink_(copy.size()); copy.growTo(sz); for (int i = 0; i < sz; i++) copy[i] = data[i]; }
+    void copyTo_(vec<T>& copy) const { copy.shrink_(copy.size()); copy.growTo_(sz); for (int i = 0; i < sz; i++) copy[i] = data[i]; }
     void moveTo(vec<T>& dest) { dest.clear(true); dest.data = data; dest.sz = sz; dest.cap = cap; data = NULL; sz = 0; cap = 0; }
 };
 
@@ -101,6 +103,14 @@ void vec<T>::capacity(int min_cap) {
     int add = imax((min_cap - cap + 1) & ~1, ((cap >> 1) + 2) & ~1);   // NOTE: grow by approximately 3/2
     if (add > INT_MAX - cap || (((data = (T*)::realloc(data, (cap += add) * sizeof(T))) == NULL) && errno == ENOMEM))
         throw OutOfMemoryException();
+ }
+
+template<class T>
+void vec<T>::prelocate(int ext_cap) {
+    if (cap >= ext_cap) return;
+    if (ext_cap > INT_MAX || (((data = (T*)::realloc(data, ext_cap * sizeof(T))) == NULL) && errno == ENOMEM))
+        throw OutOfMemoryException();
+    cap = ext_cap;
  }
 
 
@@ -117,6 +127,13 @@ void vec<T>::growTo(int size) {
     if (sz >= size) return;
     capacity(size);
     for (int i = sz; i < size; i++) new (&data[i]) T();
+    sz = size; }
+
+
+template<class T>
+void vec<T>::growTo_(int size) {
+    if (sz >= size) return;
+    capacity(size);
     sz = size; }
 
 

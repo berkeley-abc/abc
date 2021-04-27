@@ -99,15 +99,16 @@ void glucose2_solver_setcallback(Gluco2::SimpSolver* S, void * pman, int(*pfunc)
 
 int glucose2_solver_solve(Gluco2::SimpSolver* S, int * plits, int nlits)
 {
-    vec<Lit> lits;
-    for (int i=0;i<nlits;i++,plits++)
-    {
-        Lit p;
-        p.x = *plits;
-        lits.push(p);
-    }
-    Gluco2::lbool res = S->solveLimited(lits, 0);
-    return (res == l_True ? 1 : res == l_False ? -1 : 0);
+//    vec<Lit> lits;
+//    for (int i=0;i<nlits;i++,plits++)
+//    {
+//        Lit p;
+//        p.x = *plits;
+//        lits.push(p);
+//    }
+//    Gluco2::lbool res = S->solveLimited(lits, 0);
+//    return (res == l_True ? 1 : res == l_False ? -1 : 0);
+    return S->solveLimited(plits, nlits, 0);
 }
 
 int glucose2_solver_addvar(Gluco2::SimpSolver* S)
@@ -381,6 +382,10 @@ void bmcg2_sat_solver_start_new_round(bmcg2_sat_solver* s)
 void bmcg2_sat_solver_mark_cone(bmcg2_sat_solver* s, int var)
 {
     ((Gluco2::SimpSolver*)s)->sat_solver_mark_cone(var);
+}
+
+void bmcg2_sat_solver_prelocate( bmcg2_sat_solver * s, int var_num ){
+    ((Gluco2::SimpSolver*)s)->prelocate(var_num);
 }
 
 #else
@@ -719,6 +724,10 @@ void bmcg2_sat_solver_start_new_round(bmcg2_sat_solver* s)
 void bmcg2_sat_solver_mark_cone(bmcg2_sat_solver* s, int var)
 {
     ((Gluco2::Solver*)s)->sat_solver_mark_cone(var);
+}
+
+void bmcg2_sat_solver_prelocate( bmcg2_sat_solver * s, int var_num ){
+    ((Gluco2::Solver*)s)->prelocate(var_num);
 }
 
 #endif

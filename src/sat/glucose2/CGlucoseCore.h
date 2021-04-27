@@ -37,7 +37,10 @@ inline Lit  Solver::gateJustFanin(Var v) const {
 		if(val1 == l_True)
 			return ~getFaninLit0(v);
 
+		//assert( jdata[v].act_fanin == activity[getFaninVar0(v)] || jdata[v].act_fanin == activity[getFaninVar1(v)] );
+		//assert( jdata[v].act_fanin == (jdata[v].adir? activity[getFaninVar1(v)]: activity[getFaninVar0(v)]) );
 		return maxActiveLit( ~getFaninLit0(v), ~getFaninLit1(v) );
+		//return jdata[v].adir? ~getFaninLit1(v): ~getFaninLit0(v);
 	} else { // xor scope
 		// should be handled by conflict analysis before entering here
 		assert( value(v) == l_Undef || value(v) != l_False || val0 == val1 );
@@ -54,59 +57,67 @@ inline Lit  Solver::gateJustFanin(Var v) const {
 
 
 // a var should at most be enqueued one time
-inline void Solver::pushJustQueue(Var v){
+inline void Solver::pushJustQueue(Var v, int index){
 	assert(v < nVars());
 	assert(isJReason(v));
 
 	if( ! isRoundWatch(v) )\
 		return;
 
+	var2NodeData[v].now = true;
 
-	jdata[v].act_fanin = activity[getFaninVar0(v)] > activity[getFaninVar1(v)]? activity[getFaninVar0(v)]: activity[getFaninVar1(v)];
-	jdata[v].now = true;
 
-	jheap.update(v);
+	if( activity[getFaninVar1(v)] > activity[getFaninVar0(v)] )
+		jheap.update( JustKey( activity[getFaninVar1(v)], v, index ) );
+	else
+		jheap.update( JustKey( activity[getFaninVar0(v)], v, index ) );
+}
+
+inline void Solver::uncheckedEnqueue2(Lit p, CRef from)
+{
+    //assert( isRoundWatch(var(p)) ); // inplace sorting guarantee this 
+    assert(value(p) == l_Undef);
+    assigns[var(p)] = lbool(!sign(p));
+    vardata[var(p)] = mkVarData(from, decisionLevel());
+    trail.push_(p);
 }
 
 inline void Solver::ResetJustData(bool fCleanMemory){
-	jstack.shrink_( jstack.size() );
-	jheap .clear(fCleanMemory);
+	jhead = 0;
+	jheap .clear_( fCleanMemory );
 }
 
-inline Lit Solver::pickJustLit( Var& j_reason ){
+inline Lit Solver::pickJustLit( int& index ){
 	Var next = var_Undef;
 	Lit jlit = lit_Undef;
 
-	for( int i = 0; i < jstack.size(); i ++ ){
-		Var x = jstack[i];
-		if( l_Undef != value(getFaninLit0(x)) || l_Undef != value(getFaninLit1(x)) )
-			continue;
-		pushJustQueue(x);
+	for( ; jhead < trail.size() ; jhead++ ){
+		Var x = var(trail[jhead]);
+		if( !decisionLevel() && !isRoundWatch(x) ) continue;
+		if( isJReason(x) && l_Undef == value( getFaninVar0(x) ) && l_Undef == value( getFaninVar1(x) ) )
+			pushJustQueue(x,jhead);
 	}
-	jstack.shrink_( jstack.size() );
-	while( ! jheap.empty() && var_Undef != (next = jheap.removeMin()) ){
-		if( ! jdata[next].now )
+
+	while( ! jheap.empty() ){
+		next = jheap.removeMin(index);
+		if( ! var2NodeData[next].now )
 			continue; 
 
 		assert(isJReason(next));
-		if( lit_Undef != (jlit = gateJustFanin(next)) )
+		if( lit_Undef != (jlit = gateJustFanin(next)) ){
+			//assert( jheap.prev.key() == activity[getFaninVar0(next)] || jheap.prev.key() == activity[getFaninVar1(next)] );
 			break;
-		gateAddJwatch(next);
+		}
+		gateAddJwatch(next,index);
 	}
 
-	j_reason = next;
 	return jlit;
 }
 
 
-inline void Solver::gateAddJwatch(Var v){
+inline void Solver::gateAddJwatch(Var v,int index){
 	assert(v < nVars());
 	assert(isJReason(v));
-
-	if( var_Undef != jwatch[v].prev ) // already in jwatch
-		return;
-
-	assert( var_Undef == jwatch[v].prev );
 
 	lbool val0, val1;
 	Var var0, var1;
@@ -119,72 +130,37 @@ inline void Solver::gateAddJwatch(Var v){
 	assert(  isAND(v) || (l_Undef != val0 && l_Undef != val1) );
 
 	if( (val0 == l_False && val1 == l_False) || !isAND(v) ){
-		addJwatch(vardata[var0].level < vardata[var1].level? var0: var1, v);
+		addJwatch(vardata[var0].level < vardata[var1].level? var0: var1, v, index);
 		return;
 	}
 
-	addJwatch(l_False == val0? var0: var1, v);
-}
+	addJwatch(l_False == val0? var0: var1, v, index);
 
-inline void Solver::gateClearJwatch( Var v, int backtrack_level ){
-	if( var_Undef == jwatch[v].head )
-		return ;
-
-	Var member, next;
-	member = jwatch[v].head;
-	while( var_Undef != member ){
-		next = jwatch[member].next;
-
-		delJwatch( member );
-
-		if( vardata[member].level <= backtrack_level )
-			pushJustQueue(member);
-
-		member = next;
-	}
+	return;
 }
 
 inline void Solver::updateJustActivity( Var v ){
-	for(Lit lfo = var2Fanout0[ v ]; lfo != toLit(~0); lfo = var2FanoutN[ toInt(lfo) ] ){
+	if( ! var2NodeData[v].sort )
+		inplace_sort(v);
+
+	int nFanout = 0;
+	for(Lit lfo = var2Fanout0[ v ]; nFanout < var2NodeData[v].sort; lfo = var2FanoutN[ toInt(lfo) ], nFanout ++ ){
 		Var x = var(lfo);
-		if( jdata[x].now && jheap.inHeap(x) ){
-			jdata[x].act_fanin = activity[getFaninVar0(x)] > activity[getFaninVar1(x)]? activity[getFaninVar0(x)]: activity[getFaninVar1(x)];
-			jheap.update(x);
+		if( var2NodeData[x].now && jheap.inHeap(x) ){
+			if( activity[getFaninVar1(x)] > activity[getFaninVar0(x)] )
+				jheap.update( JustKey( activity[getFaninVar1(x)], x, jheap.data_attr(x) ) );
+			else
+				jheap.update( JustKey( activity[getFaninVar0(x)], x, jheap.data_attr(x) ) );
 		}
 	}
 }
 
 
-inline void Solver::addJwatch( Var host, Var member ){
-	assert( var_Undef == jwatch[member].next && var_Undef == jwatch[member].prev );
-
-	if( var_Undef != jwatch[host].head )
-		jwatch[jwatch[host].head].prev = member;
-
-	jwatch[member].next = jwatch[host].head;
-	jwatch[member].prev = host;
-	jwatch[host].head = member;
+inline void Solver::addJwatch( Var host, Var member, int index ){
+	assert(level(host) >= level(member));
+	jnext[index] = jlevel[level(host)];
+	jlevel[level(host)] = index;
 }
-
-inline void Solver::delJwatch( Var member ){
-	Var prev = jwatch[member].prev;
-	Var next = jwatch[member].next;
-
-	assert( var_Undef != prev ); // must be in a list to be deleted 
-	assert( jwatch[prev].next == member || jwatch[prev].head == member );
-
-	if( jwatch[prev].next == member )
-		jwatch[prev].next = next;
-	else 
-		jwatch[prev].head = next;
-
-	if( var_Undef != next )
-		jwatch[next].prev = prev;
-
-	jwatch[member].prev = var_Undef;
-	jwatch[member].next = var_Undef;
-}
-
 
 /*
  * circuit propagation 
@@ -270,22 +246,11 @@ inline void Solver::setVarFaninLits( Var v, Lit lit1, Lit lit2 ){
 	int mincap = var(lit1) < var(lit2)? var(lit2): var(lit1);
 	mincap = (v < mincap? mincap: v) + 1;
 
-	if( var2FaninLits.size() < (mincap<<1) )
-		var2FaninLits.growTo( (mincap<<1), toLit(~0));
-	assert( (toLit(~0) == lit1 && toLit(~0) == lit2) || ((v<<1)+1 < var2FaninLits.size()) );
-	var2FaninLits[ (v<<1) + 0 ] = lit1;
-	var2FaninLits[ (v<<1) + 1 ] = lit2;
+	var2NodeData[ v ].lit0 = lit1;
+	var2NodeData[ v ].lit1 = lit2;
 
 
 	assert( toLit(~0) != lit1 && toLit(~0) != lit2 );
-
-
-	if( var2FanoutN.size() < (mincap<<1) )
-		var2FanoutN.growTo( (mincap<<1), toLit(~0));
-	//if( var2FanoutP.size() < (mincap<<1) )
-	//	var2FanoutP.growTo( (mincap<<1), toLit(~0));
-	if( var2Fanout0.size() < mincap )
-		var2Fanout0.growTo( mincap, toLit(~0));
 
 	var2FanoutN[ (v<<1) + 0 ] = var2Fanout0[ var(lit1) ];
 	var2FanoutN[ (v<<1) + 1 ] = var2Fanout0[ var(lit2) ];
@@ -301,22 +266,19 @@ inline void Solver::setVarFaninLits( Var v, Lit lit1, Lit lit2 ){
 
 
 inline bool Solver::isTwoFanin( Var v ) const {
-	assert(v < nVars());
-	if( var2FaninLits.size() <= (v<<1)+1 )
-		return false;
-	Lit lit0 = var2FaninLits[ (v<<1) + 0 ];
-	Lit lit1 = var2FaninLits[ (v<<1) + 1 ];
+	Lit lit0 = var2NodeData[ v ].lit0;
+	Lit lit1 = var2NodeData[ v ].lit1;
 	assert( toLit(~0) == lit0 || var(lit0) < nVars() );
 	assert( toLit(~0) == lit1 || var(lit1) < nVars() );
     lit0.x = lit1.x = 0; // suppress the warning - alanmi
-	return toLit(~0) != var2FaninLits[ (v<<1) + 0 ] && toLit(~0) != var2FaninLits[ (v<<1) + 1 ];
+	return toLit(~0) != var2NodeData[ v ].lit0 && toLit(~0) != var2NodeData[ v ].lit1;
 }
 
 // this implementation return the last conflict encountered
 // which follows minisat concept
 inline CRef Solver::gatePropagate( Lit p ){
 	CRef confl = CRef_Undef, stats;
-	if( justUsage() < 2 || var2FaninLits.size() <= var(p) )
+	if( justUsage() < 2 )
 		return CRef_Undef;
 
 	if( ! isRoundWatch(var(p)) )
@@ -337,10 +299,12 @@ inline CRef Solver::gatePropagate( Lit p ){
 check_fanout:
 	assert( var(p) < var2Fanout0.size() );
 
-	for( Lit lfo = var2Fanout0[ var(p) ]; lfo != toLit(~0); lfo = var2FanoutN[ toInt(lfo) ] )
-	{
-		if( ! isRoundWatch(var(lfo)) ) continue;
+	if( ! var2NodeData[var(p)].sort )
+		inplace_sort(var(p));
 
+	int nFanout = 0;
+	for( Lit lfo = var2Fanout0[ var(p) ]; nFanout < var2NodeData[var(p)].sort; lfo = var2FanoutN[ toInt(lfo) ], nFanout ++ )
+	{
 		if( CRef_Undef != (stats = gatePropagateCheckFanout( var(p), lfo )) ){
 			confl = stats;
 			if( l_True == value(var(lfo)) )
@@ -363,8 +327,8 @@ inline CRef Solver::gatePropagateCheckFanout( Var v, Lit lfo ){
 			if( l_True == value(var(lfo)) )
 				return Var2CRef(var(lfo));
 			
-			jwatch[var(lfo)].header.dir = sign(lfo);
-			uncheckedEnqueue(~mkLit(var(lfo)), Var2CRef( var(lfo) ) );
+			var2NodeData[var(lfo)].dir = sign(lfo);
+			uncheckedEnqueue2(~mkLit(var(lfo)), Var2CRef( var(lfo) ) );
 		} else {
 			assert( l_True == value(faninLit) );
 
@@ -381,11 +345,11 @@ inline CRef Solver::gatePropagateCheckFanout( Var v, Lit lfo ){
 				if( l_True == value(faninLitP) )
 					return Var2CRef(var(lfo));
 
-				uncheckedEnqueue( ~faninLitP, Var2CRef( var(lfo) ) );
+				uncheckedEnqueue2( ~faninLitP, Var2CRef( var(lfo) ) );
 			}
 			else
 			if( l_True == value(faninLitP) )
-				uncheckedEnqueue( mkLit(var(lfo)), Var2CRef( var(lfo) ) );
+				uncheckedEnqueue2( mkLit(var(lfo)), Var2CRef( var(lfo) ) );
 		}
 	} else { // xor scope
 		// check value of the other fanin 
@@ -400,10 +364,10 @@ inline CRef Solver::gatePropagateCheckFanout( Var v, Lit lfo ){
 			return CRef_Undef;
 		else
 		if( l_Undef == val1 )
-			uncheckedEnqueue( ~faninLitP ^ ( (l_True == val0) ^ (l_True == valo) ), Var2CRef( var(lfo) ) );
+			uncheckedEnqueue2( ~faninLitP ^ ( (l_True == val0) ^ (l_True == valo) ), Var2CRef( var(lfo) ) );
 		else
 		if( l_Undef == valo )
-			uncheckedEnqueue( ~mkLit( var(lfo), (l_True == val0) ^ (l_True == val1) ), Var2CRef( var(lfo) ) );
+			uncheckedEnqueue2( ~mkLit( var(lfo), (l_True == val0) ^ (l_True == val1) ), Var2CRef( var(lfo) ) );
 		else
 		if( l_False  == (valo ^ (val0 == val1)) )
 			return Var2CRef(var(lfo));
@@ -424,19 +388,19 @@ inline CRef Solver::gatePropagateCheckThis( Var v ){
 				return CRef_Undef;
 
 			if( l_True == value(getFaninLit0(v)) )
-				uncheckedEnqueue(~getFaninLit1( v ), Var2CRef( v ) );
+				uncheckedEnqueue2(~getFaninLit1( v ), Var2CRef( v ) );
 			if( l_True == value(getFaninLit1(v)) )
-				uncheckedEnqueue(~getFaninLit0( v ), Var2CRef( v ) );
+				uncheckedEnqueue2(~getFaninLit0( v ), Var2CRef( v ) );
 		} else {
 			assert( l_True == value(v) );
 			if( l_False == value(getFaninLit0(v)) || l_False == value(getFaninLit1(v)) )
 				confl = Var2CRef(v);
 
 			if( l_Undef == value( getFaninLit0( v )) )
-				uncheckedEnqueue( getFaninLit0( v ), Var2CRef( v ) );
+				uncheckedEnqueue2( getFaninLit0( v ), Var2CRef( v ) );
 
 			if( l_Undef == value( getFaninLit1( v )) )
-				uncheckedEnqueue( getFaninLit1( v ), Var2CRef( v ) );
+				uncheckedEnqueue2( getFaninLit1( v ), Var2CRef( v ) );
 
 		}
 	} else { // xor scope
@@ -447,10 +411,10 @@ inline CRef Solver::gatePropagateCheckThis( Var v ){
 		if( l_Undef == val0 && l_Undef == val1 )
 			return CRef_Undef;
 		if( l_Undef == val0 )
-			uncheckedEnqueue(~getFaninLit0( v ) ^ ( (l_True == val1) ^ (l_True == valo) ), Var2CRef( v ) );
+			uncheckedEnqueue2(~getFaninLit0( v ) ^ ( (l_True == val1) ^ (l_True == valo) ), Var2CRef( v ) );
 		else
 		if( l_Undef == val1 )
-			uncheckedEnqueue(~getFaninLit1( v ) ^ ( (l_True == val0) ^ (l_True == valo) ), Var2CRef( v ) );
+			uncheckedEnqueue2(~getFaninLit1( v ) ^ ( (l_True == val0) ^ (l_True == valo) ), Var2CRef( v ) );
 		else
 		if( l_False == (valo ^ (val0 == val1)) )
 			return Var2CRef(v);
@@ -530,13 +494,7 @@ inline CRef Solver::interpret( Var v, Var t )
 				Clause& c = ca[itpc];
 				c[0] = ~mkLit(v);
 
-				if( l_False == val0 && l_False == val1 )
-					c[1] = 0 == jwatch[v].header.dir ? getFaninLit0( v ): getFaninLit1( v );
-				else
-				if( l_False == val0 )
-					c[1] = getFaninLit0( v );
-				else
-					c[1] = getFaninLit1( v );
+				c[1] = var2NodeData[v].dir ? getFaninLit1( v ): getFaninLit0( v );
 			} else {
 				setItpcSize(3);
 				Clause& c = ca[itpc];
@@ -594,11 +552,65 @@ inline void Solver::markCone( Var v ){
 	if( var2TravId[v] >= travId )
 		return;
 	var2TravId[v] = travId;
-
+	var2NodeData[v].sort = 0;
+	Var var0, var1;
+	var0 = getFaninVar0(v);
+	var1 = getFaninVar1(v);
 	if( !isTwoFanin(v) )
 		return;
-	markCone( getFaninVar0(v) );
-	markCone( getFaninVar1(v) );
+	markCone( var0 );
+	markCone( var1 );
+}
+
+inline void Solver::inplace_sort( Var v ){
+	Lit w, next, prev;
+	prev= var2Fanout0[v];
+
+	if( toLit(~0) == prev ) return;
+
+	if( isRoundWatch(var(prev)) )
+		var2NodeData[v].sort ++ ;
+
+	if( toLit(~0) == (w = var2FanoutN[toInt(prev)]) )
+		return;
+
+	while( toLit(~0) != w ){
+		next = var2FanoutN[toInt(w)];
+		if( isRoundWatch(var(w)) )
+			var2NodeData[v].sort ++ ;
+		if( isRoundWatch(var(w)) && !isRoundWatch(var(prev)) ){
+			var2FanoutN[toInt(w)] = var2Fanout0[v];
+			var2Fanout0[v] = w;
+			var2FanoutN[toInt(prev)] = next;
+		} else 
+			prev = w;
+		w = next;
+	}
+}
+
+inline void Solver::prelocate( int base_var_num ){
+	if( justUsage() ){
+		var2FanoutN .prelocate( base_var_num << 1 );
+		var2Fanout0 .prelocate( base_var_num );
+		var2NodeData.prelocate( base_var_num );
+		var2TravId  .prelocate( base_var_num );
+		jheap       .prelocate( base_var_num );
+		jlevel      .prelocate( base_var_num );
+		jnext       .prelocate( base_var_num );
+	}
+	watches    .prelocate( base_var_num << 1 );
+	watchesBin .prelocate( base_var_num << 1 );
+
+	decision   .prelocate( base_var_num );
+	trail      .prelocate( base_var_num );
+	assigns    .prelocate( base_var_num );
+	vardata    .prelocate( base_var_num );
+	activity   .prelocate( base_var_num );
+
+
+	seen       .prelocate( base_var_num );
+	permDiff   .prelocate( base_var_num );
+	polarity   .prelocate( base_var_num );
 }
 
 };

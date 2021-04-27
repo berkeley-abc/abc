@@ -71,6 +71,9 @@ public:
     void sat_solver_set_var_fanin_lit(int, int, int);  
     void sat_solver_start_new_round();  
     void sat_solver_mark_cone(int);  
+    void sat_solver_set_jftr(int);
+    int  sat_solver_jftr();
+    void sat_solver_reset();
 
     // Problem specification:
     //
@@ -111,7 +114,7 @@ public:
     // Variable mode:
     // 
     void    setPolarity    (Var v, bool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
-    void    setDecisionVar (Var v, bool b); // Declare if a variable should be eligible for selection in the decision heuristic.
+    void    setDecisionVar (Var v, bool b, bool use_oheap = true); // Declare if a variable should be eligible for selection in the decision heuristic.
 
     // Read state:
     //
@@ -365,38 +368,26 @@ protected:
 
     // circuit-based solver
 protected:
-    struct JustData { unsigned now: 1; double act_fanin; };
-    vec<JustData> jdata;
-    static inline JustData mkJustData(bool n){ JustData d = {n,0}; return d; }
+    void uncheckedEnqueue2(Lit p, CRef from = CRef_Undef);
+    bool heap_rescale;
 
-    struct JustOrderLt {
-        const Solver * pS;
-        bool operator () (Var x, Var y) const {
-            if( pS->justActivity(x) != pS->justActivity(y) )
-                return pS->justActivity(x) > pS->justActivity(y);
-            if( pS->level(x) != pS->level(y) )
-                return pS->level(x) < pS->level(y);
-            return x > y;
-        }
-        JustOrderLt(const Solver * _pS) : pS(_pS) { }
-    };
+    void addJwatch( Var host, Var member, int index );
+    //void delJwatch( Var member );
 
-    struct JustWatch { struct { unsigned dir:1; } header; Var head; Var next; Var prev; };
-    vec<JustWatch> jwatch;
-    static inline JustWatch mkJustWatch(){ JustWatch w = {0, var_Undef, var_Undef, var_Undef}; return w; }
-    void addJwatch( Var host, Var member );
-    void delJwatch( Var member );
-
-    vec<Lit> var2FaninLits; // (~0): undefine
+    struct NodeData { Lit lit0; Lit lit1; unsigned sort:30; unsigned dir:1; unsigned now:1; };
+    static inline NodeData mkNodeData(){ NodeData w; w.lit0 = toLit(~0); w.lit1 = toLit(~0); w.sort = 0; w.dir = 0; w.now = 0; return w; }
+    vec<NodeData> var2NodeData;
+    //vec<Lit> var2FaninLits; // (~0): undefine
     vec<unsigned> var2TravId;
-    vec<Lit> var2Fanout0, var2FanoutN, var2FanoutP;
+    vec<Lit> var2Fanout0, var2FanoutN;//, var2FanoutP;
     CRef itpc; // the interpreted clause of a gate 
+    void inplace_sort( Var v );
 
     bool isTwoFanin  ( Var v ) const ; // this var has two fanins 
     bool isAND       ( Var v ) const { return getFaninVar0(v) < getFaninVar1(v); }
     bool isJReason   ( Var v ) const { return isTwoFanin(v) && ( l_False == value(v) || (!isAND(v) && l_Undef != value(v)) ); }
-    Lit  getFaninLit0( Var v ) const { return var2FaninLits[ (v<<1) + 0 ]; }
-    Lit  getFaninLit1( Var v ) const { return var2FaninLits[ (v<<1) + 1 ]; }
+    Lit  getFaninLit0( Var v ) const { return var2NodeData[ v ].lit0; }
+    Lit  getFaninLit1( Var v ) const { return var2NodeData[ v ].lit1; }
     bool getFaninC0  ( Var v ) const { return sign(getFaninLit0(v)); }
     bool getFaninC1  ( Var v ) const { return sign(getFaninLit1(v)); }
     Var  getFaninVar0( Var v ) const { return  var(getFaninLit0(v)); }
@@ -406,7 +397,7 @@ protected:
     Lit  maxActiveLit(Lit lit0, Lit lit1) const { return activity[var(lit0)] < activity[var(lit1)]? lit1: lit0; }
 
     Lit  gateJustFanin(Var v) const ; // l_Undef=satisfied, 0/1 = fanin0/fanin1 requires justify
-    void gateAddJwatch(Var v);
+    void gateAddJwatch(Var v,int index);
     CRef gatePropagateCheck( Var v, Var t );
     CRef gatePropagateCheckThis( Var v );
     CRef gatePropagateCheckFanout( Var v, Lit lfo );
@@ -415,9 +406,9 @@ protected:
     // directly call by original glucose functions 
     void updateJustActivity( Var v );
     void ResetJustData(bool fCleanMemory);
-    Lit  pickJustLit( Var& j_reason );
+    Lit  pickJustLit( int& index );
     void justCheck();
-    void pushJustQueue(Var v);
+    void pushJustQueue(Var v, int index);
     void restoreJustQueue(int level); // call with cancelUntil
     void gateClearJwatch( Var v, int backtrack_level );
 
@@ -431,31 +422,58 @@ protected:
     Var  CRef2Var( CRef cr ) const { return cr & ~(1<<(sizeof(CRef)*8-1)); }
     bool isGateCRef( CRef cr ) const { return CRef_Undef != cr && 0 != (cr & (1<<(sizeof(CRef)*8-1))); }
 
-    int64_t travId_prev, travId;
+    unsigned travId_prev, travId;
 
-    Heap<JustOrderLt> jheap;
-    /* jstack
-    call by unchecked_enqueue
-    consumed by pickJustLit
-    cleaned by cancelUntil
-    */
-    vec<Var> jstack;
+    //Heap<JustOrderLt> jheap;
+    int jhead;
+
+    struct JustKey {
+        typedef double Key;
+        typedef Var Data;
+        typedef int Attr;
+        Key  _key;
+        Data _data;
+        Attr _attr;
+        Data data() const { return _data; }
+        Key   key() const { return _key; }
+        Attr attr() const { return _attr; }
+        JustKey():_key(0),_data(0),_attr(0){}
+        JustKey( const Key& nkey, const Data& ndata, const Attr& nattr ): _key(nkey), _data(ndata), _attr(nattr) {}
+    };
+    struct JustOrderLt2 {
+        const Solver * pS;
+        bool operator () (const JustKey& x, const JustKey& y) const {
+            if( x.key() != y.key() ) return x.key() > y.key();
+            if( pS->level( x.data() ) != pS->level( y.data() ) )
+                return pS->level( x.data() ) < pS->level( y.data() );
+            return x.data() > y.data();
+        }
+        JustOrderLt2(const Solver * _pS) : pS(_pS) { }
+    };
+    Heap2<JustOrderLt2, JustKey> jheap;
+    vec<int> jlevel;
+    vec<int> jnext;
 public:
+    void prelocate( int var_num );
     void setVarFaninLits( Var v, Lit lit1, Lit lit2 );
+    void setVarFaninLits( int v, int lit1, int lit2 ){ setVarFaninLits( Var(v), toLit(lit1), toLit(lit2) ); }
     //void delVarFaninLits( Var v);
 
-    int setNewRound(){ return travId ++ ; }
+    void setNewRound(){ travId ++ ; }
     void markCone( Var v );
+    void setJust( int njftr ){ jftr = njftr; }
     bool isRoundWatch( Var v ) const { return travId==var2TravId[v]; }
+    void justReset(){ jftr = 0; reset(); }
 
 
-    const JustData& getJustData(int v) const { return jdata[v]; }
+    //const JustData& getJustData(int v) const { return jdata[v]; }
     double varActivity(int v) const { return activity[v];}
-    double justActivity(int v) const { return jdata[v].act_fanin;}
+    //double justActivity(int v) const { return jdata[v].act_fanin;}
     int varPolarity(int v){ return polarity[v]? 1: 0;}
     vec<Lit> JustModel; // model obtained by justification enabled
 
     int justUsage() const ;
+    int solveLimited( int * , int nlits );
 };
 
 
@@ -466,32 +484,26 @@ inline CRef Solver::reason(Var x) const { return vardata[x].reason; }
 inline int  Solver::level (Var x) const { return vardata[x].level; }
 
 inline void Solver::insertVarOrder(Var x) {
-    if (!order_heap.inHeap(x) && decision[x]) order_heap.insert(x); }
+    #ifdef CGLUCOSE_EXP
+    if (!justUsage() && !order_heap.inHeap(x) && decision[x]) order_heap.insert(x); 
+    #else
+    if (!order_heap.inHeap(x) && decision[x]) order_heap.insert(x); 
+    #endif
+}
 
 inline void Solver::varDecayActivity() { var_inc *= (1 / var_decay); }
 inline void Solver::varBumpActivity(Var v) { varBumpActivity(v, var_inc); }
 inline void Solver::varBumpActivity(Var v, double inc) {
     if ( (activity[v] += inc) > 1e100 ) {
+        heap_rescale = 1;
         // Rescale:
         for (int i = 0; i < nVars(); i++)
             activity[i] *= 1e-100;
-        
-        if( justUsage() )
-            for (int i = 0; i < jheap.size(); i++){
-                Var j = jheap[i];
-                jdata[j].act_fanin = activity[getFaninVar0(j)] > activity[getFaninVar1(j)]? activity[getFaninVar0(j)]: activity[getFaninVar1(j)];
-            }
         var_inc *= 1e-100; }
 
     // Update order_heap with respect to new activity:
-    if (order_heap.inHeap(v))
+    if (!justUsage() && order_heap.inHeap(v))
         order_heap.decrease(v); 
-
-    #ifdef CGLUCOSE_EXP
-    if( justUsage() )
-        updateJustActivity(v);
-
-    #endif
 }
 
 inline void Solver::claDecayActivity() { cla_inc *= (1 / clause_decay); }
@@ -550,13 +562,13 @@ inline int      Solver::nVars         ()      const   { return vardata.size(); }
 inline int      Solver::nFreeVars     ()      const   { return (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]); }
 inline int *    Solver::getCex        ()      const   { return (int*) &JustModel[0]; }
 inline void     Solver::setPolarity   (Var v, bool b) { polarity[v] = b; }
-inline void     Solver::setDecisionVar(Var v, bool b) 
+inline void     Solver::setDecisionVar(Var v, bool b, bool use_oheap) 
 { 
     if      ( b && !decision[v]) dec_vars++;
     else if (!b &&  decision[v]) dec_vars--;
 
     decision[v] = b;
-    insertVarOrder(v);
+    if( use_oheap ) insertVarOrder(v);
 }
 inline void     Solver::setConfBudget(int64_t x){ conflict_budget    = conflicts    + x; }
 inline void     Solver::setPropBudget(int64_t x){ propagation_budget = propagations + x; }
@@ -589,7 +601,16 @@ inline void     Solver::addVar(Var v) { while (v >= nVars()) newVar(); }
 inline void     Solver::sat_solver_set_var_fanin_lit(int v, int lit0, int lit1) { setVarFaninLits( Var(v), toLit(lit0), toLit(lit1) ); }
 inline void     Solver::sat_solver_start_new_round()  { setNewRound(); }
 inline void     Solver::sat_solver_mark_cone(int v) { markCone(v); }
-
+inline void     Solver::sat_solver_set_jftr( int njftr ){ setJust(njftr); }
+inline int      Solver::sat_solver_jftr(){ return jftr; }
+inline void     Solver::sat_solver_reset(){ justReset();  }
+inline int      Solver::solveLimited( int * lit0, int nlits ){
+    assumptions.clear();
+    for(int i = 0; i < nlits; i ++)
+        assumptions.push(toLit(lit0[i]));
+    lbool res = solve_();
+    return res == l_True ? 1 : (res == l_False ? -1 : 0);
+}
 //=================================================================================================
 // Debug etc:
 

@@ -18,8 +18,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Glucose_Heap_h
-#define Glucose_Heap_h
+#ifndef Glucose_Heap2_h
+#define Glucose_Heap2_h
 
 #include "sat/glucose2/Vec.h"
 
@@ -31,10 +31,10 @@ namespace Gluco2 {
 // A heap implementation with support for decrease/increase key.
 
 
-template<class Comp>
-class Heap {
+template<class Comp, class Obj>
+class Heap2 {
     Comp     lt;       // The heap is a minimum-heap with respect to this comparator
-    vec<int> heap;     // Heap of integers
+    vec<Obj> heap;     // Heap of integers
     vec<int> indices;  // Each integers position (index) in the Heap
 
     // Index "traversal" functions
@@ -42,112 +42,118 @@ class Heap {
     static inline int right (int i) { return (i+1)*2; }
     static inline int parent(int i) { return (i-1) >> 1; }
 
+    inline int data  (int i) const { return heap[i].data();}
 
     void percolateUp(int i)
     {
-        int x  = heap[i];
+        Obj x  = heap[i];
         int p  = parent(i);
         
         while (i != 0 && lt(x, heap[p])){
             heap[i]          = heap[p];
-            indices[heap[p]] = i;
+            indices[data(p)] = i;
             i                = p;
             p                = parent(p);
         }
         heap   [i] = x;
-        indices[x] = i;
+        indices[x.data()] = i;
     }
 
 
     void percolateDown(int i)
     {
-        int x = heap[i];
+        Obj x = heap[i];
         while (left(i) < heap.size()){
             int child = right(i) < heap.size() && lt(heap[right(i)], heap[left(i)]) ? right(i) : left(i);
             if (!lt(heap[child], x)) break;
             heap[i]          = heap[child];
-            indices[heap[i]] = i;
+            indices[data(i)] = i;
             i                = child;
         }
-        heap   [i] = x;
-        indices[x] = i;
+        heap   [i]        = x;
+        indices[x.data()] = i;
     }
 
 
   public:
-    Heap(const Comp& c) : lt(c) { }
+    Heap2(const Comp& c) : lt(c) { }
 
     int  size      ()          const { return heap.size(); }
     bool empty     ()          const { return heap.size() == 0; }
     bool inHeap    (int n)     const { return n < indices.size() && indices[n] >= 0; }
-    int  operator[](int index) const { assert(index < heap.size()); return heap[index]; }
+    int  operator[](int index) const { assert(index < heap.size()); return heap[index].data(); }
 
 
     void decrease  (int n) { assert(inHeap(n)); percolateUp  (indices[n]); }
     void increase  (int n) { assert(inHeap(n)); percolateDown(indices[n]); }
     void prelocate (int ext_cap){ indices.prelocate(ext_cap); }
-
+    int  data_attr (int n) const { return heap[indices[n]].attr(); }
     // Safe variant of insert/decrease/increase:
-    void update(int n)
+    void update(const Obj& x)
     {
+        int n = x.data();
         if (!inHeap(n))
-            insert(n);
+            insert(x);
         else {
+            heap[indices[x.data()]] = x;
             percolateUp(indices[n]);
             percolateDown(indices[n]); }
     }
 
 
-    void insert(int n)
+    void insert(const Obj& x)
     {
+        int n = x.data();
         indices.growTo(n+1, -1);
         assert(!inHeap(n));
 
         indices[n] = heap.size();
-        heap.push(n);
+        heap.push(x);
         percolateUp(indices[n]); 
     }
 
-
-    int  removeMin()
+    //Obj prev;
+    int  removeMin(int& _attr)
     {
-        int x            = heap[0];
+        Obj x            = heap[0];
         heap[0]          = heap.last();
-        indices[heap[0]] = 0;
-        indices[x]       = -1;
+        indices[heap[0].data()] = 0;
+        indices[x.data()]= -1;
         heap.pop();
         if (heap.size() > 1) percolateDown(0);
-        return x; 
+        //prev = x;
+        _attr = x.attr();
+        return x.data();
     }
 
 
     // Rebuild the heap from scratch, using the elements in 'ns':
-    void build(vec<int>& ns) {
-        int i;
-        for (i = 0; i < heap.size(); i++)
-            indices[heap[i]] = -1;
-        heap.clear();
-
-        for (i = 0; i < ns.size(); i++){
-            indices[ns[i]] = i;
-            heap.push(ns[i]); }
-
-        for (i = heap.size() / 2 - 1; i >= 0; i--)
-            percolateDown(i);
-    }
+//    void build(vec<int>& ns) {
+//        int i;
+//        for (i = 0; i < heap.size(); i++)
+//            indices[heap[i]] = -1;
+//        heap.clear();
+//
+//        for (i = 0; i < ns.size(); i++){
+//            indices[ns[i]] = i;
+//            heap.push(ns[i]); }
+//
+//        for (i = heap.size() / 2 - 1; i >= 0; i--)
+//            percolateDown(i);
+//    }
 
     void clear(bool dealloc = false) 
     { 
         int i;
         for (i = 0; i < heap.size(); i++)
-            indices[heap[i]] = -1;
+            indices[heap[i].data()] = -1;
         heap.clear(dealloc); 
     }
     void clear_(bool dealloc = false) 
     { 
         int i;
         for (i = 0; i < heap.size(); i++)
-            indices[heap[i]] = -1;
+            indices[heap[i].data()] = -1;
 
         if( ! dealloc ) heap.shrink_( heap.size() );
         else            heap.clear(true); 

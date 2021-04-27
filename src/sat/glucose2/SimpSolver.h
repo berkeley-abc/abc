@@ -61,12 +61,25 @@ class SimpSolver : public Solver {
     //
     bool    solve       (const vec<Lit>& assumps, bool do_simp = true, bool turn_off_simp = false);
     lbool   solveLimited(const vec<Lit>& assumps, bool do_simp = true, bool turn_off_simp = false);
+    int     solveLimited(int * lit0, int nlits, bool do_simp = false, bool turn_off_simp = false);
     bool    solve       (                     bool do_simp = true, bool turn_off_simp = false);
     bool    solve       (Lit p       ,        bool do_simp = true, bool turn_off_simp = false);       
     bool    solve       (Lit p, Lit q,        bool do_simp = true, bool turn_off_simp = false);
     bool    solve       (Lit p, Lit q, Lit r, bool do_simp = true, bool turn_off_simp = false);
     bool    eliminate   (bool turn_off_elim = false);  // Perform variable elimination based simplification. 
 
+    void    prelocate(int base_var_num){
+        Solver::prelocate(base_var_num);
+        frozen    .prelocate( base_var_num );
+        eliminated.prelocate( base_var_num );
+
+        if (use_simplification){
+            n_occ     .prelocate( base_var_num << 1 );
+            occurs    .prelocate( base_var_num );
+            touched   .prelocate( base_var_num );
+            elim_heap .prelocate( base_var_num );
+        }
+    }
     // Memory managment:
     //
     virtual void reset();
@@ -198,6 +211,14 @@ inline bool SimpSolver::solve        (const vec<Lit>& assumps, bool do_simp, boo
 
 inline lbool SimpSolver::solveLimited (const vec<Lit>& assumps, bool do_simp, bool turn_off_simp){ 
     assumps.copyTo(assumptions); return solve_(do_simp, turn_off_simp); }
+
+inline int SimpSolver::solveLimited(int * lit0, int nlits, bool do_simp, bool turn_off_simp){
+    assumptions.clear();
+    for(int i = 0; i < nlits; i ++)
+        assumptions.push(toLit(lit0[i]));
+    lbool res = solve_(do_simp, turn_off_simp);
+    return res == l_True ? 1 : (res == l_False ? -1 : 0);
+}
 
 inline void SimpSolver::addVar(Var v) { while (v >= nVars()) newVar(); }
 

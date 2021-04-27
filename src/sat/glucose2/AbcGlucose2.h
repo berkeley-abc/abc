@@ -103,6 +103,7 @@ extern void              bmcg2_sat_solver_set_jftr( bmcg2_sat_solver * s, int jf
 extern void              bmcg2_sat_solver_set_var_fanin_lit( bmcg2_sat_solver * s, int var, int lit0, int lit1 );
 extern void              bmcg2_sat_solver_start_new_round( bmcg2_sat_solver * s );
 extern void              bmcg2_sat_solver_mark_cone( bmcg2_sat_solver * s, int var );
+extern void              bmcg2_sat_solver_prelocate( bmcg2_sat_solver * s, int var_num );
 
 extern void              Glucose2_SolveCnf( char * pFilename, Glucose2_Pars * pPars );
 extern int               Glucose2_SolveAig( Gia_Man_t * p, Glucose2_Pars * pPars );
