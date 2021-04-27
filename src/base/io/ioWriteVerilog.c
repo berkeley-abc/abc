@@ -567,6 +567,14 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds )
                 Hop_IthVar((Hop_Man_t *)pNtk->pManFunc, k)->pData = Extra_UtilStrsav(Io_WriteVerilogGetName(Abc_ObjName(pFanin)));
             // write the formula
             Hop_ObjPrintVerilog( pFile, pFunc, vLevels, 0, fOnlyAnds );
+            if ( pObj->fPersist )
+            {
+                Abc_Obj_t * pFan0 = Abc_ObjFanin0(Abc_ObjFanin(pObj, 0));
+                Abc_Obj_t * pFan1 = Abc_ObjFanin0(Abc_ObjFanin(pObj, 1));
+                int Cond = Abc_ObjIsNode(pFan0) && Abc_ObjIsNode(pFan1) && !pFan0->fPersist && !pFan1->fPersist;
+                fprintf( pFile, "; // MUXF7 %s\n", Cond ? "":"to be legalized" );
+            }
+            else
             fprintf( pFile, ";\n" );
             // clear the input names
             Abc_ObjForEachFanin( pObj, pFanin, k )
