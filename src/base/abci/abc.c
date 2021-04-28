@@ -29886,8 +29886,10 @@ static inline int Abc_NtkCompareWithBest( Abc_Ntk_t * pBest, Abc_Ntk_t * p,
          Abc_NtkPoNum(pBest)    != Abc_NtkPoNum(p)    ||
          Abc_NtkLatchNum(pBest) != Abc_NtkLatchNum(p) ||
          strcmp(Abc_NtkName(pBest), Abc_NtkName(p))   ||
-         (!fArea && (*pnBestNtkLevels > nNtkLevels || (*pnBestNtkLevels == nNtkLevels && *pnBestNtkDelay > nNtkDelay ))) ||
-         ( fArea && (*pnBestNtkNodes  > nNtkNodes  || (*pnBestNtkNodes  == nNtkNodes  && *pnBestNtkArea  > nNtkArea  )))
+//         (!fArea && (*pnBestNtkLevels > nNtkLevels || (*pnBestNtkLevels == nNtkLevels && *pnBestNtkDelay > nNtkDelay ))) ||
+//         ( fArea && (*pnBestNtkNodes  > nNtkNodes  || (*pnBestNtkNodes  == nNtkNodes  && *pnBestNtkArea  > nNtkArea  )))
+         (!fArea && (*pnBestNtkDelay > nNtkDelay || (*pnBestNtkDelay == nNtkDelay && *pnBestNtkArea  > nNtkArea  ))) ||
+         ( fArea && (*pnBestNtkArea  > nNtkArea  || (*pnBestNtkArea  == nNtkArea  && *pnBestNtkDelay > nNtkDelay )))
        )
     {
         *pnBestNtkArea   = nNtkArea;

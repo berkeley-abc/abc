@@ -328,7 +328,7 @@ int Cec_ManSRunSim( Cec_ManS_t * p, int iNode0, int iNode1 )
 {
     abctime clk = Abc_Clock();
     //Vec_Int_t * vLevel; 
-    int pNodes[2] = { iNode0, iNode1 };
+    //int pNodes[2] = { iNode0, iNode1 };
     int i, iNode, Status, fDiff = Gia_ObjPhaseDiff( p->pAig, iNode0, iNode1 );
     word * pSim00 = Cec_ManSSim( p, iNode0, 0 );
     word * pSim01 = Cec_ManSSim( p, iNode0, 1 );
