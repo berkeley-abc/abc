@@ -88,7 +88,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pNode, * pNet;
     Vec_Str_t * vString;
-    unsigned uTruth[8];
+    unsigned uTruth[2048];
     char * pType, ** ppNames, * pString;
     int iLine, nNames, nDigits, fLutsPresent = 0;
     
@@ -161,7 +161,7 @@ Abc_Ntk_t * Io_ReadBenchNetwork( Extra_FileReader_t * p )
                 ppNames = (char **)vTokens->pArray + 3;
                 nNames  = vTokens->nSize - 3;
                 // check the number of inputs
-                if ( nNames > 8 )
+                if ( nNames > 15 )
                 {
                     printf( "%s: Currently cannot read truth tables with more than 8 inputs (%d).\n", Extra_FileReaderGetFileName(p), nNames );
                     Vec_StrFree( vString );
