@@ -34,7 +34,7 @@ ABC_NAMESPACE_IMPL_START
 
 #ifdef ABC_USE_CUDD
 
-static int         Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit );
+       int         Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder );
 static void        Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st__table * tBdd2Node );
@@ -135,7 +135,7 @@ Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit )
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     if ( fGlobal ) 
     {
-        if ( !Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew, Limit ) )
+        if ( !Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew, Limit, 0 ) )
         {
             Abc_NtkDelete( pNtkNew );
             return NULL;
@@ -265,13 +265,13 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit )
+int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder )
 {
     DdManager * dd;
     Abc_Obj_t * pObj, * pObjNew; int i;
     st__table * tBdd2Node;
     assert( Abc_NtkIsStrash(pNtk) );
-    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, Limit, 1, 1, 0, 0 );
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, Limit, 1, 1, fReorder, 0 );
     if ( dd == NULL )
     {
         printf( "Construction of global BDDs has failed.\n" );
@@ -410,6 +410,7 @@ void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInter
     if ( fReorder )
     {
         Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 1 );
+//        Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 1 );
         Cudd_AutodynDisable( dd );
     }
 //    Cudd_PrintInfo( dd, stdout );
