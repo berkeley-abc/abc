@@ -241,7 +241,7 @@ void Gia_ManLutParams( Gia_Man_t * p, int * pnCurLuts, int * pnCurEdges, int * p
                     pLevels[i] = Abc_MaxInt( pLevels[i], pLevels[Gia_ObjFaninId1(pObj, i)] );
                 }
                 *pnCurLevels = Abc_MaxInt( *pnCurLevels, pLevels[i] );
-                *pnCurEdges++;
+                (*pnCurEdges)++;
                 //nMuxF++;
                 continue;
             }
