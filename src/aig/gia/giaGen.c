@@ -195,6 +195,36 @@ int Gia_ManSimulateWordsInit( Gia_Man_t * p, Vec_Wrd_t * vSimsIn )
     return 1;
 }
 
+Vec_Wrd_t * Gia_ManSimulateWordsOut( Gia_Man_t * p, Vec_Wrd_t * vSimsIn )
+{
+    Gia_Obj_t * pObj; int i, Id;
+    int nWords = Vec_WrdSize(vSimsIn) / Gia_ManCiNum(p);
+    Vec_Wrd_t * vSimsOut = Vec_WrdStart( nWords * Gia_ManCoNum(p) );
+    assert( Vec_WrdSize(vSimsIn) == nWords * Gia_ManCiNum(p) );
+    // allocate simulation info for one timeframe
+    Vec_WrdFreeP( &p->vSims );
+    p->vSims = Vec_WrdStart( Gia_ManObjNum(p) * nWords );
+    p->nSimWords = nWords;
+    // set input sim info
+    Gia_ManForEachCiId( p, Id, i )
+        memcpy( Vec_WrdEntryP(p->vSims, Id*nWords), Vec_WrdEntryP(vSimsIn, i*nWords), sizeof(word)*nWords );
+    // perform simulation
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            Gia_ManObjSimAnd( p, i );
+        else if ( Gia_ObjIsCi(pObj) )
+            continue;
+        else if ( Gia_ObjIsCo(pObj) )
+            Gia_ManObjSimPo( p, i );
+        else assert( 0 );
+    }
+    // set output sim info
+    Gia_ManForEachCoId( p, Id, i )
+        memcpy( Vec_WrdEntryP(vSimsOut, i*nWords), Vec_WrdEntryP(p->vSims, Id*nWords), sizeof(word)*nWords );
+    return vSimsOut;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Dump data files.]

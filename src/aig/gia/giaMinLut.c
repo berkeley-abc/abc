@@ -51,6 +51,136 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO, int nIns, int nOuts )
+{
+    int i, nSize, iLine, nLines, nWords;
+    char pLine[1000];
+    Vec_Wrd_t * vSimI, * vSimO;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return;
+    }
+    fseek( pFile, 0, SEEK_END );  
+    nSize = ftell( pFile );  
+    if ( nSize % (nIns + nOuts + 1) > 0 )
+    {
+        printf( "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % (nIns + nOuts + 1) );
+        fclose( pFile );
+        return;
+    }
+    rewind( pFile );
+    nLines = nSize / (nIns + nOuts + 1);
+    nWords = (nLines + 63)/64;
+    vSimI  = Vec_WrdStart( nIns *nWords );
+    vSimO  = Vec_WrdStart( nOuts*nWords );
+    for ( iLine = 0; fgets( pLine, 1000, pFile ); iLine++ )
+    {
+        for ( i = 0; i < nIns; i++ )
+            if ( pLine[i] == '1' )
+                Abc_TtXorBit( Vec_WrdArray(vSimI) + i*nWords, iLine );
+            else assert( pLine[i] == '0' );
+        for ( i = 0; i < nOuts; i++ )
+            if ( pLine[nIns+i] == '1' )
+                Abc_TtXorBit( Vec_WrdArray(vSimO) + i*nWords, iLine );
+            else assert( pLine[nIns+i] == '0' );
+    }
+    fclose( pFile );
+    *pvSimI = vSimI;
+    *pvSimO = vSimO;
+    printf( "Read %d words of simulation data for %d inputs and %d outputs.\n", nWords, nIns, nOuts );
+}
+void Gia_ManSimInfoTransform( int fSmall )
+{
+    int nIns  = fSmall ? 32 : 64;
+    int nOuts = fSmall ? 10 : 35;
+    char * pFileName = fSmall ? "io_s.txt" : "io_l.txt";
+    Vec_Wrd_t * vSimI, * vSimO;
+    Vec_WrdReadText( pFileName, &vSimI, &vSimO, nIns, nOuts );
+    Vec_WrdDumpBin( Extra_FileNameGenericAppend(pFileName, ".simi"), vSimI, 1 );
+    Vec_WrdDumpBin( Extra_FileNameGenericAppend(pFileName, ".simo"), vSimO, 1 );
+    Vec_WrdFree( vSimI );
+    Vec_WrdFree( vSimO );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSimInfoTry( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Wrd_t * vSimO )
+{
+    extern Vec_Wrd_t * Gia_ManSimulateWordsOut( Gia_Man_t * p, Vec_Wrd_t * vSimsIn );
+    Vec_Wrd_t * vSimsOut = Gia_ManSimulateWordsOut( p, vSimI );
+    word * pSim0 = Vec_WrdArray(p->vSims);
+    int i, Count, nWords = Vec_WrdSize(vSimO) / Gia_ManCoNum(p);
+    Gia_Obj_t * pObj; 
+    assert( Vec_WrdSize(vSimI) / Gia_ManCiNum(p) == nWords );
+    assert( Vec_WrdSize(vSimI) % Gia_ManCiNum(p) == 0 );
+    assert( Vec_WrdSize(vSimO) % Gia_ManCoNum(p) == 0 );
+    Abc_TtClear( pSim0, nWords );
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        word * pSimImpl = Vec_WrdEntryP( vSimsOut, i * nWords );
+        word * pSimGold = Vec_WrdEntryP( vSimO,    i * nWords );
+        Abc_TtOrXor( pSim0, pSimImpl, pSimGold, nWords );
+    }
+    Count = Abc_TtCountOnesVec( pSim0, nWords );
+    printf( "Number of failed patterns is %d (out of %d). The first one is %d\n", 
+        Count, 64*nWords, Abc_TtFindFirstBit2(pSim0, nWords) );
+    Vec_WrdFreeP( &p->vSims );
+    Vec_WrdFreeP( &vSimsOut );
+    p->nSimWords = -1;
+    return Count;
+}
+void Gia_ManSimInfoTryTest( Gia_Man_t * p, int fSmall )
+{
+    abctime clk = Abc_Clock();
+    int nIns  = fSmall ? 32 : 64;
+    int nOuts = fSmall ? 10 : 35;
+    char * pFileNameI = fSmall ? "s.simi" : "l.simi";
+    char * pFileNameO = fSmall ? "s.simo" : "l.simo";
+    Vec_Wrd_t * vSimI = Vec_WrdReadBin( pFileNameI, 1 );
+    Vec_Wrd_t * vSimO = Vec_WrdReadBin( pFileNameO, 1 );
+    Gia_ManSimInfoTry( p, vSimI, vSimO );
+    Vec_WrdFree( vSimI );
+    Vec_WrdFree( vSimO );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSimInfoPassTest( Gia_Man_t * p, int fSmall )
+{
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManDoMuxMapping( Gia_Man_t * p )
 {
     extern Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars );

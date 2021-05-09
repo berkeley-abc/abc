@@ -48456,6 +48456,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Gia_ManSimInfoTryTest( Gia_Man_t * p, int fSmall );
     extern void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax );
     extern int Gia_ManSumTotalOfSupportSizes( Gia_Man_t * p );
     int c, fVerbose = 0;
@@ -48519,8 +48520,8 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 //        return 1;
 //    }
 //    Abc_FrameUpdateGia( pAbc, Abc_Procedure(pAbc->pGia) );
-//    Gia_ManTryResub( pAbc->pGia );
-    printf( "AIG in \"%s\" has the sum of output support sizes equal to %d.\n", pAbc->pGia->pSpec, Gia_ManSumTotalOfSupportSizes(pAbc->pGia) );
+    Gia_ManSimInfoTryTest( pAbc->pGia, fSwitch );
+//    printf( "AIG in \"%s\" has the sum of output support sizes equal to %d.\n", pAbc->pGia->pSpec, Gia_ManSumTotalOfSupportSizes(pAbc->pGia) );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );

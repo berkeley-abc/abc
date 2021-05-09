@@ -1330,6 +1330,63 @@ static inline Vec_Wrd_t * Vec_WrdReadHex( char * pFileName, int * pnWords, int f
     return p;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_WrdDumpBin( char * pFileName, Vec_Wrd_t * p, int fVerbose )
+{
+    int RetValue;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    RetValue = fwrite( Vec_WrdArray(p), 1, 8*Vec_WrdSize(p), pFile );
+    fclose( pFile );
+    if ( RetValue != 8*Vec_WrdSize(p) )
+        printf( "Error reading data from file.\n" );
+    if ( fVerbose )
+        printf( "Written %d words of simulation data into file \"%s\".\n", Vec_WrdSize(p), pFileName );
+}
+static inline Vec_Wrd_t * Vec_WrdReadBin( char * pFileName, int fVerbose )
+{
+    Vec_Wrd_t * p = NULL; int nSize, RetValue;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return NULL;
+    }
+    fseek( pFile, 0, SEEK_END );
+    nSize = ftell( pFile );
+    if ( nSize % 8 > 0 )
+    {
+        printf( "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % 8 );
+        fclose( pFile );
+        return NULL;
+    }
+    else
+    {
+        rewind( pFile );
+        p = Vec_WrdStart( nSize/8 );
+        RetValue = fread( Vec_WrdArray(p), 1, nSize, pFile );
+        fclose( pFile );
+        if ( RetValue != nSize )
+            printf( "Error reading data from file.\n" );
+        if ( fVerbose )
+            printf( "Read %d words of simulation data from file \"%s\".\n", nSize/8, pFileName );
+        return p;
+    }
+}
 
 ABC_NAMESPACE_HEADER_END
 
