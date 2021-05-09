@@ -37435,7 +37435,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( Gia_ManAndNum(pNew) == 0 )
                 Abc_Print( 1, "Networks are equivalent.  " );
             else
-                Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
+                Abc_Print( 1, "Networks are UNDECIDED.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             Gia_ManStop( pNew );
         }
