@@ -612,7 +612,7 @@ Abc_Ntk_t * Abc_NtkFromMapSuperChoice( Map_Man_t * pMan, Abc_Ntk_t * pNtk )
     // duplicate the network
     pNtkNew2 = Abc_NtkDup( pNtk );
     pNtkNew  = Abc_NtkMulti( pNtkNew2, 0, 20, 0, 0, 1, 0 );
-    if ( !Abc_NtkBddToSop( pNtkNew, -1, ABC_INFINITY ) )
+    if ( !Abc_NtkBddToSop( pNtkNew, -1, ABC_INFINITY, 1 ) )
     {
         printf( "Abc_NtkFromMapSuperChoice(): Converting to SOPs has failed.\n" );
         return NULL;

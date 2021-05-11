@@ -10706,11 +10706,11 @@ usage:
 int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c, fMode = -1, nCubeLimit = 1000000;
+    int c, fCubeSort = 1, fMode = -1, nCubeLimit = 1000000;
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cdnh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Csdnh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10724,6 +10724,9 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nCubeLimit < 0 )
                 goto usage;
+            break;
+        case 's':
+            fCubeSort ^= 1;
             break;
         case 'd':
             fMode = 1;
@@ -10747,6 +10750,11 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Converting to SOP is possible only for logic networks.\n" );
         return 1;
     }
+    if ( !fCubeSort && Abc_NtkHasBdd(pNtk) && !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY, 0) )
+    {
+        Abc_Print( -1, "Converting to SOP has failed.\n" );
+        return 0;
+    }
     if ( !Abc_NtkToSop(pNtk, fMode, nCubeLimit) )
     {
         Abc_Print( -1, "Converting to SOP has failed.\n" );
@@ -10755,9 +10763,10 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: sop [-C num] [-dnh]\n" );
+    Abc_Print( -2, "usage: sop [-C num] [-sdnh]\n" );
     Abc_Print( -2, "\t         converts node functions to SOP\n" );
     Abc_Print( -2, "\t-C num : the limit on the number of cubes at a node [default = %d]\n", nCubeLimit );
+    Abc_Print( -2, "\t-s     : toggles cube sort when converting from BDDs [default = %s]\n", fCubeSort ? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggles using only positive polarity [default = %s]\n", fMode == 1 ? "yes": "no"  );
     Abc_Print( -2, "\t-n     : toggles using only negative polarity [default = %s]\n", fMode == 0 ? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

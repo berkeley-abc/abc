@@ -152,11 +152,11 @@ void Gia_ManSimInfoPrintOne( Gia_Man_t * p, Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSi
     {
         Gia_ManForEachCiId( p, Id, i )
     //        printf( "%d", Vec_WrdEntry(p->vSims, p->nSimWords*Id) & 1 );
-            printf( "%d", (Vec_WrdEntry(vSimsIn,  nWords*i) >> k) & 1 );
+            printf( "%d", (int)(Vec_WrdEntry(vSimsIn,  nWords*i) >> k) & 1 );
         printf( " " );
         Gia_ManForEachCoId( p, Id, i )
     //        printf( "%d", Vec_WrdEntry(p->vSims, p->nSimWords*Id) & 1 );
-            printf( "%d", (Vec_WrdEntry(vSimsOut, nWords*i) >> k) & 1 );
+            printf( "%d", (int)(Vec_WrdEntry(vSimsOut, nWords*i) >> k) & 1 );
         printf( "\n" );
     }
 }

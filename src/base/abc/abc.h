@@ -671,7 +671,7 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkFraigRestore( int nPatsRand, int nPatsD
 extern ABC_DLL void               Abc_NtkFraigStoreClean();
 /*=== abcFunc.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkSopToBdd( Abc_Ntk_t * pNtk );
-extern ABC_DLL int                Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit );
+extern ABC_DLL int                Abc_NtkBddToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit, int fCubeSort );
 extern ABC_DLL void               Abc_NodeBddToCnf( Abc_Obj_t * pNode, Mem_Flex_t * pMmMan, Vec_Str_t * vCube, int fAllPrimes, char ** ppSop0, char ** ppSop1 );
 extern ABC_DLL void               Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkSopToAig( Abc_Ntk_t * pNtk );
