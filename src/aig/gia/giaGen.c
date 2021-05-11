@@ -222,6 +222,8 @@ Vec_Wrd_t * Gia_ManSimulateWordsOut( Gia_Man_t * p, Vec_Wrd_t * vSimsIn )
     // set output sim info
     Gia_ManForEachCoId( p, Id, i )
         memcpy( Vec_WrdEntryP(vSimsOut, i*nWords), Vec_WrdEntryP(p->vSims, Id*nWords), sizeof(word)*nWords );
+    Vec_WrdFreeP( &p->vSims );
+    p->nSimWords = -1;
     return vSimsOut;
 }
 

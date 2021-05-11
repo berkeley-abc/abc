@@ -1368,24 +1368,27 @@ static inline Vec_Wrd_t * Vec_WrdReadBin( char * pFileName, int fVerbose )
     }
     fseek( pFile, 0, SEEK_END );
     nSize = ftell( pFile );
+    if ( nSize == 0 )
+    {
+        printf( "The input file is empty.\n" );
+        fclose( pFile );
+        return NULL;
+    }
     if ( nSize % 8 > 0 )
     {
         printf( "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % 8 );
         fclose( pFile );
         return NULL;
     }
-    else
-    {
-        rewind( pFile );
-        p = Vec_WrdStart( nSize/8 );
-        RetValue = fread( Vec_WrdArray(p), 1, nSize, pFile );
-        fclose( pFile );
-        if ( RetValue != nSize )
-            printf( "Error reading data from file.\n" );
-        if ( fVerbose )
-            printf( "Read %d words of simulation data from file \"%s\".\n", nSize/8, pFileName );
-        return p;
-    }
+    rewind( pFile );
+    p = Vec_WrdStart( nSize/8 );
+    RetValue = fread( Vec_WrdArray(p), 1, nSize, pFile );
+    fclose( pFile );
+    if ( RetValue != nSize )
+        printf( "Error reading data from file.\n" );
+    if ( fVerbose )
+        printf( "Read %d words of simulation data from file \"%s\".\n", nSize/8, pFileName );
+    return p;
 }
 
 ABC_NAMESPACE_HEADER_END

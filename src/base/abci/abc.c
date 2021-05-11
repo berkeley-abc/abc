@@ -486,6 +486,7 @@ static int Abc_CommandAbc9Pack               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Edge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MinLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9MinSim             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Unmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Struct             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1210,6 +1211,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&edge",         Abc_CommandAbc9Edge,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satlut",       Abc_CommandAbc9SatLut,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&minlut",       Abc_CommandAbc9MinLut,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&minsim",       Abc_CommandAbc9MinSim,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&unmap",        Abc_CommandAbc9Unmap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&struct",       Abc_CommandAbc9Struct,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&trace",        Abc_CommandAbc9Trace,        0 );
@@ -40825,11 +40827,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9MinLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManPerformMinLut( Gia_Man_t * p, int GroupSize, int LutSize, int fVerbose );
-    Gia_Man_t * pTemp;
-    int c, LutSize = 6, GroupSize = 3, fVerbose = 0;
+    extern void Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int GroupSize, int Thresh );
+    //extern Gia_Man_t * Gia_ManPerformMinLut( Gia_Man_t * p, int GroupSize, int LutSize, int fVerbose );
+    //Gia_Man_t * pTemp;
+    char * pFileName = NULL;
+    int c, LutSize = 6, GroupSize = 3, Limit = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KGvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KGLvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40851,6 +40855,15 @@ int Abc_CommandAbc9MinLut( Abc_Frame_t * pAbc, int argc, char ** argv )
             GroupSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            Limit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -40864,17 +40877,86 @@ int Abc_CommandAbc9MinLut( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
-    pTemp = Gia_ManPerformMinLut( pAbc->pGia, GroupSize, LutSize, fVerbose );
+    if ( argc == globalUtilOptind + 1 )
+    {
+        FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9BCore(): Cannot open file \"%s\" for writing the proof.\n", argv[globalUtilOptind] );
+            return 0;
+        }
+        fclose( pFile );
+        pFileName = argv[globalUtilOptind];
+    }
+    //pTemp = Gia_ManPerformMinLut( pAbc->pGia, GroupSize, LutSize, fVerbose );
     //Abc_FrameUpdateGia( pAbc, pTemp );
+    Gia_ManSimInfoSynth( pAbc->pGia, pFileName, GroupSize, Limit );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &minlut [-KG num] [-vh]\n" );
+    Abc_Print( -2, "usage: &minlut [-KGL num] [-vh] <file>\n" );
     Abc_Print( -2, "\t           performs specialized LUT mapping\n" );
-    Abc_Print( -2, "\t-K num   : the LUT size for mapping [default = %d]\n", LutSize );
-    Abc_Print( -2, "\t-G num   : the output group size [default = %d]\n",    GroupSize );
-    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n",   fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-K num   : the LUT size for mapping [default = %d]\n",      LutSize );
+    Abc_Print( -2, "\t-G num   : the output group size [default = %d]\n",         GroupSize );
+    Abc_Print( -2, "\t-L num   : the limit when patterns count [default = %d]\n", Limit );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n",        fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
+    Abc_Print( -2, "\t<file>   : file name with simulation information\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9MinSim( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2, int fCompare );
+    int c, fCompare = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fCompare ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( argc != globalUtilOptind + 2 )
+    {
+        Abc_Print( -1, "Expecting two file names on the command line.\n" );
+        return 1;
+    }
+    Gia_ManSimInfoPassTest( pAbc->pGia, argv[globalUtilOptind], argv[globalUtilOptind+1], fCompare );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &minsim [-cvh] <file> <file2>\n" );
+    Abc_Print( -2, "\t           performs specialized AIG simulation\n" );
+    Abc_Print( -2, "\t-c       : toggles comparing simulation patterns [default = %s]\n",  fCompare? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n",                 fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    Abc_Print( -2, "\t<file>   : file name with simulation information\n");
+    Abc_Print( -2, "\t<file2>  : file name with simulation information\n");
     return 1;
 }
 
