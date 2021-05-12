@@ -34,8 +34,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#ifdef ABC_USE_CUDD
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -266,15 +264,17 @@ void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2,
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp, int Thresh )
+word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp, int Thresh, int fVerbose )
 {
-    int i, k, Id, nUsed = 0, nGood = 0;
+    Gia_Obj_t * pObj;
+    int i, k, nUsed = 0, nGood = 0;
     int nWords = Vec_WrdSize(vSimI) / Gia_ManCiNum(p);
     int nMints = 1 << Vec_IntSize(vSupp);
     word ** pSims = ABC_ALLOC( word *, Vec_IntSize(vSupp) );
+    word * pRes   = ABC_CALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
     int * pCounts = ABC_CALLOC( int, nMints );
-    Vec_IntForEachEntry( vSupp, Id, i )
-        pSims[i] = Vec_WrdEntryP( vSimI, Id * nWords );
+    Gia_ManForEachObjVec( vSupp, p, pObj, i )
+        pSims[i] = Vec_WrdEntryP( vSimI, Gia_ObjCioId(pObj) * nWords );
     for ( k = 0; k < 64*nWords; k++ )
     {
         int iMint = 0;
@@ -288,13 +288,16 @@ int Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp, i
     {
         nUsed += (pCounts[k] > 0);
         nGood += (pCounts[k] > Thresh);
+        if ( pCounts[k] > Thresh )
+            Abc_TtXorBit( pRes, k );
         //printf( "%d ", pCounts[k] );
     }
     //printf( "\n" );
-    printf( "Total used %4d and good %4d (out of %4d).\n", nUsed, nGood, nMints ); 
+    if ( fVerbose )
+    printf( "Used %4d and good %4d (out of %4d).\n", nUsed, nGood, nMints ); 
     ABC_FREE( pSims );
     ABC_FREE( pCounts );
-    return nUsed;
+    return pRes;
 }
 void Gia_ManCollectSupp_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vSupp )
 {
@@ -305,7 +308,8 @@ void Gia_ManCollectSupp_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vSupp )
     pObj = Gia_ManObj( p, iObj );
     if ( Gia_ObjIsCi(pObj) )
     {
-        Vec_IntPush( vSupp, Gia_ObjCioId(pObj) );
+        //Vec_IntPush( vSupp, Gia_ObjCioId(pObj) );
+        Vec_IntPush( vSupp, Gia_ObjId(p, pObj) );
         return;
     }
     assert( Gia_ObjIsAnd(pObj) );
@@ -320,23 +324,72 @@ Vec_Int_t * Gia_ManCollectSupp( Gia_Man_t * p, int iOut, int nOuts )
         Gia_ManCollectSupp_rec( p, Gia_ObjFaninId0p(p, Gia_ManCo(p, iOut+i)), vSupp );
     return vSupp;
 }
-void Gia_ManSimInfoSynthOne( Gia_Man_t * p, Vec_Wrd_t * vSimI, int iOut, int nOuts, int Thresh )
+Gia_Man_t * Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int LutSize, int Thresh, int fVerbose )
 {
-    Vec_Int_t * vSupp = Gia_ManCollectSupp( p, iOut, nOuts );
-    printf( "Group %3d / %3d / %3d : Supp = %3d   ", iOut, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp) );
-    Gia_ManCountFraction( p, vSimI, vSupp, Thresh );
-    Vec_IntFree( vSupp );
+    extern int Kit_TruthToGia2( Gia_Man_t * p, unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
+    Gia_Man_t * pNew; Gia_Obj_t * pObj;
+    Vec_Int_t * vMemory = Vec_IntAlloc( 1 << 18 );
+    Vec_Int_t * vLeaves = Vec_IntAlloc( nIns );
+    Vec_Wrd_t * vSimI = pFileName ? Vec_WrdReadBin( pFileName, 1 ) : NULL;  
+    word * pTruth0 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) );
+    word * pTruth1 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) ); int g, k;
+    if ( vSimI )
+    {
+        int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
+        printf( "Density of input  patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
+        printf( "The number of patterns %d with threshold %d (%6.2f %%).\n", nPats, Thresh, 100.0*Thresh/nPats );
+    }
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, k )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ObjComputeTruthTableStart( p, nIns );
+    Gia_ManHashStart( pNew );
+    for ( g = 0; g < Gia_ManCoNum(p); g += nOuts )
+    {
+        Vec_Int_t * vSupp = Gia_ManCollectSupp( p, g, nOuts );
+        int Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
+        word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
+        int nWords = Abc_Truth6WordNum( Vec_IntSize(vSupp) );
+        assert( Vec_IntSize(vSupp) <= nIns );
+        Vec_IntClear( vLeaves );
+        Gia_ManForEachObjVec( vSupp, p, pObj, k )
+            Vec_IntPush( vLeaves, pObj->Value );        
+        for ( k = 0; k < nOuts; k++ )
+        {
+            Gia_Obj_t * pObj = Gia_ManCo( p, g+k );
+            if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
+            {
+                word * pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ObjFanin0(pObj), vSupp );
+                Abc_TtSharp( pTruth0, pCare, pTruth, nWords );
+                Abc_TtAnd( pTruth1, pCare, pTruth, nWords, 0 );
+                pObj->Value = Kit_TruthToGia2( pNew, (unsigned *)pTruth0, (unsigned *)pTruth1, Vec_IntSize(vLeaves), vMemory, vLeaves, 1 );
+            }
+            else
+                pObj->Value = Gia_ObjFanin0(pObj)->Value;
+            pObj->Value ^= Gia_ObjFaninC0(pObj);
+        }
+        ABC_FREE( pCare );
+        Vec_IntFree( vSupp );
+        Temp = 0;
+    }
+    Gia_ManHashStop( pNew );
+    Gia_ManForEachCo( p, pObj, k )
+        pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
+    Gia_ObjComputeTruthTableStop( p );
+    ABC_FREE( pTruth0 );
+    ABC_FREE( pTruth1 );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vMemory );
+    Vec_WrdFreeP( &vSimI );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
 }
-void Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int GroupSize, int Thresh )
-{
-    Vec_Wrd_t * vSimI = Vec_WrdReadBin( pFileName, 1 );  
-    int g, nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
-    printf( "Density of input  patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
-    printf( "The number of patterns %d with threshold %d (%6.2f %%).\n", nPats, Thresh, 100.0*Thresh/nPats );
-    for ( g = 0; g < Gia_ManCoNum(p); g += GroupSize )
-        Gia_ManSimInfoSynthOne( p, vSimI, g, GroupSize, Thresh );
-    Vec_WrdFree( vSimI );
-}
+
+#ifdef ABC_USE_CUDD
 
 /**Function*************************************************************
 

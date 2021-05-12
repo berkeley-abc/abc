@@ -40836,16 +40836,34 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9MinLut( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int GroupSize, int Thresh );
+    extern Gia_Man_t * Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int LutSize, int Thresh, int fVerbose );
     //extern Gia_Man_t * Gia_ManPerformMinLut( Gia_Man_t * p, int GroupSize, int LutSize, int fVerbose );
-    //Gia_Man_t * pTemp;
+    Gia_Man_t * pTemp;
     char * pFileName = NULL;
-    int c, LutSize = 6, GroupSize = 3, Limit = 0, fVerbose = 0;
+    int c, nIns = 6, nOuts = 2, LutSize = 6, Limit = -1, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KGLvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOKLvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nIns = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nOuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'K':
             if ( globalUtilOptind >= argc )
             {
@@ -40853,15 +40871,6 @@ int Abc_CommandAbc9MinLut( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             LutSize = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            break;
-        case 'G':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-G\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            GroupSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
         case 'L':
@@ -40899,15 +40908,17 @@ int Abc_CommandAbc9MinLut( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     //pTemp = Gia_ManPerformMinLut( pAbc->pGia, GroupSize, LutSize, fVerbose );
     //Abc_FrameUpdateGia( pAbc, pTemp );
-    Gia_ManSimInfoSynth( pAbc->pGia, pFileName, GroupSize, Limit );
+    pTemp = Gia_ManSimInfoSynth( pAbc->pGia, pFileName, nIns, nOuts, LutSize, Limit, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &minlut [-KGL num] [-vh] <file>\n" );
+    Abc_Print( -2, "usage: &minlut [-IOKL num] [-vh] <file>\n" );
     Abc_Print( -2, "\t           performs specialized LUT mapping\n" );
+    Abc_Print( -2, "\t-I num   : the input support size [default = %d]\n",        nIns );
+    Abc_Print( -2, "\t-O num   : the output group size [default = %d]\n",         nOuts );
     Abc_Print( -2, "\t-K num   : the LUT size for mapping [default = %d]\n",      LutSize );
-    Abc_Print( -2, "\t-G num   : the output group size [default = %d]\n",         GroupSize );
-    Abc_Print( -2, "\t-L num   : the limit when patterns count [default = %d]\n", Limit );
+    Abc_Print( -2, "\t-L num   : patterns count after this limit [default = %d]\n", Limit );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n",        fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     Abc_Print( -2, "\t<file>   : file name with simulation information\n");
