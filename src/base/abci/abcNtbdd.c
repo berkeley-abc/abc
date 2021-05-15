@@ -34,7 +34,7 @@ ABC_NAMESPACE_IMPL_START
 
 #ifdef ABC_USE_CUDD
 
-       int         Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder );
+       int         Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder, int fUseAdd );
 static void        Abc_NtkBddToMuxesPerform( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes( Abc_Obj_t * pNodeOld, Abc_Ntk_t * pNtkNew );
 static Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * pNtkNew, st__table * tBdd2Node );
@@ -129,13 +129,13 @@ Abc_Ntk_t * Abc_NtkDeriveFromBdd( void * dd0, void * bFunc, char * pNamePo, Vec_
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit )
+Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit, int fUseAdd )
 {
     Abc_Ntk_t * pNtkNew;
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     if ( fGlobal ) 
     {
-        if ( !Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew, Limit, 0 ) )
+        if ( !Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew, Limit, 0, fUseAdd ) )
         {
             Abc_NtkDelete( pNtkNew );
             return NULL;
@@ -237,8 +237,10 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
 {
     Abc_Obj_t * pNodeNew, * pNodeNew0, * pNodeNew1, * pNodeNewC;
     assert( !Cudd_IsComplement(bFunc) );
-    if ( bFunc == b1 )
+    if ( bFunc == b1 || bFunc == a1 )
         return Abc_NtkCreateNodeConst1(pNtkNew);
+    if ( bFunc == a0 )
+        return Abc_NtkCreateNodeConst0(pNtkNew);
     if ( st__lookup( tBdd2Node, (char *)bFunc, (char **)&pNodeNew ) )
         return pNodeNew;
     // solve for the children nodes
@@ -265,9 +267,10 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder )
+int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder, int fUseAdd )
 {
     DdManager * dd;
+    Vec_Ptr_t * vAdds = fUseAdd ? Vec_PtrAlloc(100) : NULL;
     Abc_Obj_t * pObj, * pObjNew; int i;
     st__table * tBdd2Node;
     assert( Abc_NtkIsStrash(pNtk) );
@@ -287,15 +290,31 @@ int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limi
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
         DdNode * bFunc = (DdNode *)Abc_ObjGlobalBdd(pObj);
-        pObjNew = Abc_NodeBddToMuxes_rec( dd, Cudd_Regular(bFunc), pNtkNew, tBdd2Node );
-        if ( Cudd_IsComplement(bFunc) )
-            pObjNew = Abc_NtkCreateNodeInv( pNtkNew, pObjNew );
+        if ( fUseAdd )
+        {
+            DdNode * aFunc = Cudd_BddToAdd( dd, bFunc );  Cudd_Ref( aFunc );
+            pObjNew = Abc_NodeBddToMuxes_rec( dd, aFunc, pNtkNew, tBdd2Node );
+            Vec_PtrPush( vAdds, aFunc );
+        }
+        else
+        {
+            pObjNew = Abc_NodeBddToMuxes_rec( dd, Cudd_Regular(bFunc), pNtkNew, tBdd2Node );
+            if ( Cudd_IsComplement(bFunc) )
+                pObjNew = Abc_NtkCreateNodeInv( pNtkNew, pObjNew );
+        }
         Abc_ObjAddFanin( pObj->pCopy, pObjNew );
     }
 
     // cleanup
     st__free_table( tBdd2Node );
     Abc_NtkFreeGlobalBdds( pNtk, 0 );
+    if ( vAdds )
+    {
+        DdNode * aTemp;
+        Vec_PtrForEachEntry( DdNode *, vAdds, aTemp, i )
+            Cudd_RecursiveDeref( dd, aTemp );
+        Vec_PtrFree( vAdds );
+    }
     Extra_StopManager( dd );
     Abc_NtkCleanCopy( pNtk );
     return 1;
@@ -663,7 +682,7 @@ ABC_PRT( "Time", Abc_Clock() - clk );
 #else
 
 double Abc_NtkSpacePercentage( Abc_Obj_t * pNode ) { return 0.0; }
-Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit ) { return NULL; }
+Abc_Ntk_t * Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit, int fUseAdd ) { return NULL; }
 
 
 #endif

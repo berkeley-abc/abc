@@ -11111,11 +11111,11 @@ usage:
 int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
-    int c, fGlobal = 0, Limit = 1000000;
+    int c, fGlobal = 0, fUseAdd = 0, Limit = 1000000;
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Bgh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Bgah" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11132,6 +11132,9 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'g':
             fGlobal ^= 1;
+            break;
+        case 'a':
+            fUseAdd ^= 1;
             break;
         case 'h':
             goto usage;
@@ -11164,7 +11167,7 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkBddToMuxes( pNtk, fGlobal, Limit );
+    pNtkRes = Abc_NtkBddToMuxes( pNtk, fGlobal, Limit, fUseAdd );
     if ( pNtkRes == NULL )
     {
         Abc_Print( 0, "Converting to MUXes has failed.\n" );
@@ -11175,11 +11178,12 @@ int Abc_CommandMuxes( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: muxes [-B num] [-gh]\n" );
+    Abc_Print( -2, "usage: muxes [-B num] [-gah]\n" );
     Abc_Print( -2, "\t          converts the current network into a network derived by\n" );
     Abc_Print( -2, "\t          replacing all nodes by DAGs isomorphic to the local BDDs\n" );
     Abc_Print( -2, "\t-B <num>: limit on live BDD nodes during collapsing [default = %d]\n", Limit );
     Abc_Print( -2, "\t-g      : toggle visualizing the global BDDs of primary outputs [default = %s].\n", fGlobal? "yes": "no" );
+    Abc_Print( -2, "\t-a      : toggle using ADDs instead of BDDs [default = %s].\n", fUseAdd? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }

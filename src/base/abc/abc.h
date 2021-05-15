@@ -762,7 +762,7 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkToNetlist( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkToNetlistBench( Abc_Ntk_t * pNtk );
 /*=== abcNtbdd.c ==========================================================*/
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkDeriveFromBdd( void * dd, void * bFunc, char * pNamePo, Vec_Ptr_t * vNamesPi );
-extern ABC_DLL Abc_Ntk_t *        Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit );
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkBddToMuxes( Abc_Ntk_t * pNtk, int fGlobal, int Limit, int fUseAdd );
 extern ABC_DLL void *             Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int fBddSizeMax, int fDropInternal, int fReorder, int fReverse, int fVerbose );
 extern ABC_DLL void *             Abc_NtkFreeGlobalBdds( Abc_Ntk_t * pNtk, int fFreeMan );
 extern ABC_DLL int                Abc_NtkSizeOfGlobalBdds( Abc_Ntk_t * pNtk );
