@@ -34,6 +34,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -430,7 +432,6 @@ Gia_Man_t * Gia_ManDoMuxMapping( Gia_Man_t * p )
 Gia_Man_t * Gia_ManDoMuxTransform( Gia_Man_t * p, int fReorder )
 {
     extern Gia_Man_t * Abc_NtkStrashToGia( Abc_Ntk_t * pNtk );
-    extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     extern int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder, int fUseAdd );
     Gia_Man_t * pRes = NULL;
     Aig_Man_t * pMan = Gia_ManToAig( p, 0 );
