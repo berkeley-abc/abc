@@ -274,7 +274,7 @@ int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limi
     Abc_Obj_t * pObj, * pObjNew; int i;
     st__table * tBdd2Node;
     assert( Abc_NtkIsStrash(pNtk) );
-    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, Limit, 1, 1, fReorder, 0 );
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, Limit, 1, fReorder, 0, 0 );
     if ( dd == NULL )
     {
         printf( "Construction of global BDDs has failed.\n" );

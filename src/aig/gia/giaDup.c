@@ -3460,6 +3460,8 @@ Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis )
     // create PIs
     if ( fTrimPis )
     {
+        Gia_ManForEachPi( p, pObj, i )
+            pObj->Value = ~0;
         Vec_PtrForEachEntry( Gia_Obj_t *, vLeaves, pObj, i )
             pObj->Value = Gia_ManAppendCi( pNew );
     }

@@ -1286,6 +1286,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     void * pAttrMan;
     int TotalMemory, i;
+    int fWarning = 0;
 //    int LargePiece = (4 << ABC_NUM_STEPS);
     if ( pNtk == NULL )
         return;
@@ -1310,9 +1311,11 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
 //            ABC_FREE( pObj->vFanouts.pArray );
         // these flags should be always zero
         // if this is not true, something is wrong somewhere
-        assert( pObj->fMarkA == 0 );
-        assert( pObj->fMarkB == 0 );
-        assert( pObj->fMarkC == 0 );
+//        assert( pObj->fMarkA == 0 );
+//        assert( pObj->fMarkB == 0 );
+//        assert( pObj->fMarkC == 0 );
+        if ( !fWarning && (pObj->fMarkA || pObj->fMarkB || pObj->fMarkC) )
+            { printf( "Flags A, B, or C are not zero.\n" ), fWarning = 1; }
     }
     // free the nodes
     if ( pNtk->pMmStep == NULL )

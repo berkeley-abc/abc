@@ -89,15 +89,12 @@ void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO
     *pvSimO = vSimO;
     printf( "Read %d words of simulation data for %d inputs and %d outputs (padded %d zero-patterns).\n", nWords, nIns, nOuts, nWords*64-nLines );
 }
-void Gia_ManSimInfoTransform( int fSmall )
+void Gia_ManSimInfoTransform( char * pFileName, char * pFileOut1, char * pFileOut2, int nIns, int nOuts )
 {
-    int nIns  = fSmall ? 32 : 64;
-    int nOuts = fSmall ? 10 : 35;
-    char * pFileName = fSmall ? "io_s.txt" : "io_l.txt";
     Vec_Wrd_t * vSimI, * vSimO;
     Vec_WrdReadText( pFileName, &vSimI, &vSimO, nIns, nOuts );
-    Vec_WrdDumpBin( Extra_FileNameGenericAppend(pFileName, ".simi"), vSimI, 1 );
-    Vec_WrdDumpBin( Extra_FileNameGenericAppend(pFileName, ".simo"), vSimO, 1 );
+    Vec_WrdDumpBin( pFileOut1 ? pFileOut1 : Extra_FileNameGenericAppend(pFileName, ".simi"), vSimI, 1 );
+    Vec_WrdDumpBin( pFileOut2 ? pFileOut2 : Extra_FileNameGenericAppend(pFileName, ".simo"), vSimO, 1 );
     Vec_WrdFree( vSimI );
     Vec_WrdFree( vSimO );
 }
@@ -180,8 +177,25 @@ int Gia_ManSimEvalOne( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new )
         Abc_TtOrXor( pSim0, pSimImpl, pSimGold, nWords );
     }
     Count = Abc_TtCountOnesVec( pSim0, nWords );
-    printf( "Number of failed patterns is %d (out of %d). The first one is %d.\n", 
-        Count, 64*nWords, Abc_TtFindFirstBit2(pSim0, nWords) );
+    printf( "Number of failed patterns is %d (%8.4f %% of %d). The first one is %d.\n", 
+        Count, 100.0*Count/(64*nWords), 64*nWords, Abc_TtFindFirstBit2(pSim0, nWords) );
+    ABC_FREE( pSim0 );
+    return Count;
+}
+int Gia_ManSimEvalOne2( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new )
+{
+    int i, Count = 0, nWords = Vec_WrdSize(vSimO) / Gia_ManCoNum(p);
+    word * pSim0 = ABC_CALLOC( word, nWords );
+    assert( Vec_WrdSize(vSimO) == Vec_WrdSize(vSimO_new) );
+    for ( i = 0; i < Gia_ManCoNum(p); i++ )
+    {
+        word * pSimGold = Vec_WrdEntryP( vSimO,     i * nWords );
+        word * pSimImpl = Vec_WrdEntryP( vSimO_new, i * nWords );
+        Abc_TtXor( pSim0, pSimImpl, pSimGold, nWords, 0 );
+        Count += Abc_TtCountOnesVec( pSim0, nWords );
+    }
+    printf( "Number of failed patterns is %d (%8.4f %% of %d). The first one is %d.\n", 
+        Count, 100.0*Count/(64*nWords*Gia_ManCoNum(p)), 64*nWords*Gia_ManCoNum(p), Abc_TtFindFirstBit2(pSim0, nWords) );
     ABC_FREE( pSim0 );
     return Count;
 }
@@ -204,28 +218,11 @@ Vec_Wrd_t * Gia_ManSimInfoTry( Gia_Man_t * p, Vec_Wrd_t * vSimI )
 }
 int Gia_ManSimInfoEval( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new )
 {
-    int nResult = Gia_ManSimEvalOne(p, vSimO, vSimO_new);
-    Vec_WrdDumpBin( "temp.simo", vSimO_new, 1 );
+    int nResult = Gia_ManSimEvalOne2(p, vSimO, vSimO_new);
+    //Vec_WrdDumpBin( "temp.simo", vSimO_new, 1 );
     printf( "Total errors = %d.  ", nResult );
-    printf( "Density of output patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO_new), Vec_WrdSize(vSimO_new))/(64*Vec_WrdSize(vSimO_new)) );
+    printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO_new), Vec_WrdSize(vSimO_new))/(64*Vec_WrdSize(vSimO_new)) );
     return nResult;
-}
-void Gia_ManSimInfoTryTest( Gia_Man_t * p, int fSmall )
-{
-    abctime clk = Abc_Clock();
-    char * pFileNameI = fSmall ? "io_s.simi" : "io_l.simi";
-    char * pFileNameO = fSmall ? "io_s.simo" : "io_l.simo";
-    Vec_Wrd_t * vSimI = Vec_WrdReadBin( pFileNameI, 1 );
-    Vec_Wrd_t * vSimO = Vec_WrdReadBin( pFileNameO, 1 );
-    Vec_Wrd_t * vSimO_new;
-    printf( "Density of input  patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
-    printf( "Density of output patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO), Vec_WrdSize(vSimO))/(64*Vec_WrdSize(vSimO)) );
-    vSimO_new = Gia_ManSimInfoTry( p, vSimI );
-    Gia_ManSimInfoEval( p, vSimO, vSimO_new );
-    Vec_WrdFree( vSimI );
-    Vec_WrdFree( vSimO );
-    Vec_WrdFree( vSimO_new );
-    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2, int fCompare )
 {
@@ -234,8 +231,8 @@ void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2,
     {
         Vec_Wrd_t * vSim1 = Vec_WrdReadBin( pFileName,  1 );
         Vec_Wrd_t * vSim2 = Vec_WrdReadBin( pFileName2, 1 );
-        printf( "Density of input  patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim1), Vec_WrdSize(vSim1))/(64*Vec_WrdSize(vSim1)) );
-        printf( "Density of output patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim2), Vec_WrdSize(vSim2))/(64*Vec_WrdSize(vSim2)) );
+        printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim1), Vec_WrdSize(vSim1))/(64*Vec_WrdSize(vSim1)) );
+        printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim2), Vec_WrdSize(vSim2))/(64*Vec_WrdSize(vSim2)) );
         Gia_ManSimInfoEval( p, vSim1, vSim2 );
         Vec_WrdFree( vSim1 );
         Vec_WrdFree( vSim2 );
@@ -244,8 +241,8 @@ void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2,
     {
         Vec_Wrd_t * vSimI = Vec_WrdReadBin( pFileName, 1 );
         Vec_Wrd_t * vSimO = Gia_ManSimInfoTry( p, vSimI );
-        printf( "Density of input  patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
-        printf( "Density of output patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO), Vec_WrdSize(vSimO))/(64*Vec_WrdSize(vSimO)) );
+        printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
+        printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO), Vec_WrdSize(vSimO))/(64*Vec_WrdSize(vSimO)) );
         Vec_WrdDumpBin( pFileName2, vSimO, 1 );
         Vec_WrdFree( vSimI );
         Vec_WrdFree( vSimO );
@@ -264,7 +261,7 @@ void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2,
   SeeAlso     []
 
 ***********************************************************************/
-word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp, int Thresh, int fVerbose )
+word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp, int Thresh, int fVerbose, int * pCare )
 {
     Gia_Obj_t * pObj;
     int i, k, nUsed = 0, nGood = 0;
@@ -287,8 +284,8 @@ word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp
     for ( k = 0; k < nMints; k++ )
     {
         nUsed += (pCounts[k] > 0);
-        nGood += (pCounts[k] > Thresh);
-        if ( pCounts[k] > Thresh )
+        nGood += (pCounts[k] >= Thresh);
+        if ( pCounts[k] >= Thresh )
             Abc_TtXorBit( pRes, k );
         //printf( "%d ", pCounts[k] );
     }
@@ -297,6 +294,7 @@ word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp
     printf( "Used %4d and good %4d (out of %4d).\n", nUsed, nGood, nMints ); 
     ABC_FREE( pSims );
     ABC_FREE( pCounts );
+    *pCare = nGood;
     return pRes;
 }
 void Gia_ManCollectSupp_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vSupp )
@@ -324,7 +322,7 @@ Vec_Int_t * Gia_ManCollectSupp( Gia_Man_t * p, int iOut, int nOuts )
         Gia_ManCollectSupp_rec( p, Gia_ObjFaninId0p(p, Gia_ManCo(p, iOut+i)), vSupp );
     return vSupp;
 }
-Gia_Man_t * Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int LutSize, int Thresh, int fVerbose )
+Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int Thresh, int fVerbose )
 {
     extern int Kit_TruthToGia2( Gia_Man_t * p, unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
     Gia_Man_t * pNew; Gia_Obj_t * pObj;
@@ -332,12 +330,12 @@ Gia_Man_t * Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int nIns, int 
     Vec_Int_t * vLeaves = Vec_IntAlloc( nIns );
     Vec_Wrd_t * vSimI = pFileName ? Vec_WrdReadBin( pFileName, 1 ) : NULL;  
     word * pTruth0 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) );
-    word * pTruth1 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) ); int g, k;
+    word * pTruth1 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) ); int g, k; float CareAve = 0;
     if ( vSimI )
     {
         int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
-        printf( "Density of input  patterns %6.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
-        printf( "The number of patterns %d with threshold %d (%6.2f %%).\n", nPats, Thresh, 100.0*Thresh/nPats );
+        printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
+        printf( "Using patterns with count %d and higher as cares (%8.4f %% of all patterns).\n", Thresh, 100.0*Thresh/nPats );
     }
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -351,9 +349,10 @@ Gia_Man_t * Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int nIns, int 
     for ( g = 0; g < Gia_ManCoNum(p); g += nOuts )
     {
         Vec_Int_t * vSupp = Gia_ManCollectSupp( p, g, nOuts );
-        int Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
-        word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
+        int Care, Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
+        word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose, &Care ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
         int nWords = Abc_Truth6WordNum( Vec_IntSize(vSupp) );
+        CareAve += 100.0*Care/(1 << nIns);
         assert( Vec_IntSize(vSupp) <= nIns );
         Vec_IntClear( vLeaves );
         Gia_ManForEachObjVec( vSupp, p, pObj, k )
@@ -376,6 +375,8 @@ Gia_Man_t * Gia_ManSimInfoSynth( Gia_Man_t * p, char * pFileName, int nIns, int 
         Vec_IntFree( vSupp );
         Temp = 0;
     }
+    CareAve /= Gia_ManCoNum(p)/nOuts;
+    printf( "Average size of the care set = %8.4f %%.\n", CareAve );
     Gia_ManHashStop( pNew );
     Gia_ManForEachCo( p, pObj, k )
         pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
@@ -430,14 +431,15 @@ Gia_Man_t * Gia_ManDoMuxTransform( Gia_Man_t * p, int fReorder )
 {
     extern Gia_Man_t * Abc_NtkStrashToGia( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
-    extern int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder );
+    extern int Abc_NtkBddToMuxesPerformGlo( Abc_Ntk_t * pNtk, Abc_Ntk_t * pNtkNew, int Limit, int fReorder, int fUseAdd );
     Gia_Man_t * pRes = NULL;
     Aig_Man_t * pMan = Gia_ManToAig( p, 0 );
     Abc_Ntk_t * pNtk = Abc_NtkFromAigPhase( pMan );
     Abc_Ntk_t * pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_SOP );
     pNtk->pName = Extra_UtilStrsav( pMan->pName );
     Aig_ManStop( pMan );
-    if ( Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew, 1000000, fReorder ) )
+    //pNtkNew = Abc_NtkBddToMuxes( pNtk, 1, 1000000, 1 );
+    if ( Abc_NtkBddToMuxesPerformGlo( pNtk, pNtkNew, 1000000, fReorder, 0 ) )
     {
         Abc_Ntk_t * pStrash = Abc_NtkStrash( pNtkNew, 1, 1, 0 );
         pRes = Abc_NtkStrashToGia( pStrash );
@@ -457,37 +459,135 @@ int Gia_ManDoTest1( Gia_Man_t * p, int fReorder )
     Gia_ManStop( pNew );
     return Res;
 }
-Gia_Man_t * Gia_ManPerformMinLut( Gia_Man_t * p, int GroupSize, int LutSize, int fVerbose )
+Abc_Ntk_t * Gia_ManDoTest2( Gia_Man_t * p, int fReorder )
 {
-    Gia_Man_t * pNew = NULL;
+    extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
+    Abc_Ntk_t * pNtkNew;
+    Gia_Man_t * pTemp, * pNew;
+    pNew = Gia_ManDoMuxTransform( p, fReorder );
+    pNew = Gia_ManDoMuxMapping( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    pNtkNew = Abc_NtkFromMappedGia( pNew, 0, 0 );
+    pNtkNew->pName = Extra_UtilStrsav(p->pName);
+    Gia_ManStop( pNew );
+    Abc_NtkToSop( pNtkNew, 1, ABC_INFINITY );
+    return pNtkNew;
+}
+Abc_Ntk_t * Abc_NtkMapTransform( Gia_Man_t * p, int nOuts, int fUseFixed, int fVerbose )
+{
+    extern Abc_Ntk_t * Abc_NtkSpecialMapping( Abc_Ntk_t * pNtk, int fVerbose );
+    int i, k, g, nGroups = Gia_ManCoNum(p) / nOuts, CountsAll[3] = {0}; 
+    Abc_Obj_t * pObjNew, * pFaninNew;  Gia_Obj_t * pObj;
+    Abc_Ntk_t * pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
+    assert( Gia_ManCoNum(p) % nOuts == 0 );
+    pNtkNew->pName = Extra_UtilStrsav(p->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(p->pSpec);
+    Gia_ManFillValue( p );
+    Gia_ManForEachPi( p, pObj, i )
+        Abc_NtkCreatePi( pNtkNew );
+    Gia_ManForEachPo( p, pObj, i )
+        Abc_NtkCreatePo( pNtkNew );
+    assert( nOuts <= 64 );
+    for ( g = 0; g < nGroups; g++ )
+    {
+        Gia_Man_t * pNew;   Aig_Man_t * pMan;
+        Abc_Ntk_t * pNtk, * pNtkRes, * pNtkMap;
+        int pPos[64], Counter = 0, Counts[3] = {0};
+        for ( i = 0; i < nOuts; i++ )
+            pPos[i] = g*nOuts+i;
+        pNew = Gia_ManDupCones( p, pPos, nOuts, 1 );
+        if ( !fUseFixed )
+            pNtkMap = Gia_ManDoTest2( pNew, 1 );
+        else
+        {
+            pMan = Gia_ManToAig( pNew, 0 );
+            pNtk = Abc_NtkFromAigPhase( pMan );
+            Aig_ManStop( pMan );
+            pNtkRes = Abc_NtkBddToMuxes( pNtk, 1, 1000000, 1 );
+            Abc_NtkDelete( pNtk );
+            pNtkMap = Abc_NtkSpecialMapping( pNtkRes, 0 );
+            Abc_NtkDelete( pNtkRes );
+        }
+        Gia_ManStop( pNew );
+        Gia_ManForEachCi( p, pObj, i )
+            if ( ~pObj->Value )
+                Abc_NtkCi(pNtkMap, Counter++)->pCopy = Abc_NtkCi(pNtkNew, i);
+        assert( Counter == Abc_NtkCiNum(pNtkMap) );
+        Abc_NtkForEachNode( pNtkMap, pObjNew, i )
+        {
+            pObjNew->pCopy = Abc_NtkDupObj( pNtkNew, pObjNew, 0 );
+            pObjNew->pCopy->fPersist = pObjNew->fPersist;
+            if ( pObjNew->fPersist )
+                Counts[1]++;
+            else
+                Counts[0]++;
+            Abc_ObjForEachFanin( pObjNew, pFaninNew, k )
+                Abc_ObjAddFanin( pObjNew->pCopy, pFaninNew->pCopy );
+        }
+        Abc_NtkForEachCo( pNtkMap, pObjNew, i )
+            Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, g*nOuts+i), Abc_ObjFanin0(pObjNew)->pCopy );
+        Abc_NtkDelete( pNtkMap );
+
+        if ( fVerbose )
+        {
+        printf( "%3d / %3d :  ", g, nGroups );
+        printf( "Test   = %4d   ", Counts[0] );
+        printf( "MarkA  = %4d   ", Counts[1] );
+        printf( "MarkB  = %4d   ", Counts[2] );
+        printf( "\n" );
+        }
+
+        CountsAll[0] += Counts[0];
+        CountsAll[1] += Counts[1];
+        CountsAll[2] += Counts[2];
+    }
+    if ( fVerbose )
+    printf( "Total LUT count = %5d.  MarkA = %5d. MarkB = %5d.\n", CountsAll[0], CountsAll[1], CountsAll[2] );
+    // create names
+    Abc_NtkAddDummyPiNames( pNtkNew );
+    Abc_NtkAddDummyPoNames( pNtkNew );
+    Abc_NtkAddDummyBoxNames( pNtkNew );
+    // check the resulting AIG
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        Abc_Print( 1, "Abc_NtkFromMappedGia(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fVerbose )
+{
+    int fPrintOnly = 0;
     int Res1, Res2, Result = 0;
     int g, nGroups = Gia_ManCoNum(p) / GroupSize;
     assert( Gia_ManCoNum(p) % GroupSize == 0 );
     assert( GroupSize <= 64 );
-    for ( g = 0; g < nGroups; g++ )
+    if ( fPrintOnly )
     {
-        Gia_Man_t * pNew;//, * pTemp;
-        int fTrimPis = 0;
-        int o, pPos[64];
-        for ( o = 0; o < GroupSize; o++ )
-            pPos[o] = g*GroupSize+o;
-        pNew = Gia_ManDupCones( p, pPos, GroupSize, fTrimPis );
-        printf( "%3d / %3d :  ", g, nGroups );
-        printf( "Test1 = %4d   ", Res1 = Gia_ManDoTest1(pNew, 0) );
-        printf( "Test2 = %4d   ", Res2 = Gia_ManDoTest1(pNew, 1) );
-        printf( "Test  = %4d   ", Abc_MinInt(Res1, Res2) );
-        printf( "\n" );
-        Result += Abc_MinInt(Res1, Res2);
-        //Gia_ManPrintStats( pNew, NULL );
-        Gia_ManStop( pNew );
+        for ( g = 0; g < nGroups; g++ )
+        {
+            Gia_Man_t * pNew;
+            int o, pPos[64];
+            for ( o = 0; o < GroupSize; o++ )
+                pPos[o] = g*GroupSize+o;
+            pNew = Gia_ManDupCones( p, pPos, GroupSize, 0 );
+            printf( "%3d / %3d :  ", g, nGroups );
+            printf( "Test1 = %4d   ", Res1 = Gia_ManDoTest1(pNew, 0) );
+            printf( "Test2 = %4d   ", Res2 = Gia_ManDoTest1(pNew, 1) );
+            printf( "Test  = %4d   ", Abc_MinInt(Res1, Res2) );
+            printf( "\n" );
+            Result += Abc_MinInt(Res1, Res2);
+            //Gia_ManPrintStats( pNew, NULL );
+            Gia_ManStop( pNew );
+        }
+        printf( "Total LUT count = %d.\n", Result );
+        return NULL;
+
     }
-    printf( "Total LUT count = %d.\n", Result );
-    return pNew;
+    return Abc_NtkMapTransform( p, GroupSize, fUseFixed, fVerbose );
 }
 
 #else
 
-Gia_Man_t * Gia_ManPerformMinLut( Gia_Man_t * p, int GroupSize, int LutSize, int fVerbose )
+Gia_Man_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fVerbose )
 {
     return NULL;
 }
