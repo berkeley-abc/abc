@@ -453,6 +453,15 @@ void Abc_NtkPrintStats( Abc_Ntk_t * pNtk, int fFactored, int fSaveBest, int fDum
 //    if ( Abc_NtkHasSop(pNtk) )
 //        printf( "The total number of cube pairs = %d.\n", Abc_NtkGetCubePairNum(pNtk) );
 
+    if ( 0 )
+    {
+        FILE * pTable = fopen( "stats.txt", "a+" );
+        if ( Abc_NtkIsStrash(pNtk) )
+        fprintf( pTable, "%s ", pNtk->pName );
+        fprintf( pTable, "%d ", Abc_NtkNodeNum(pNtk) );
+        fclose( pTable );
+    }
+
     fflush( stdout );
     if ( pNtk->pExdc )
         Abc_NtkPrintStats( pNtk->pExdc, fFactored, fSaveBest, fDumpResult, fUseLutLib, fPrintMuxes, fPower, fGlitch, fSkipBuf, fSkipSmall, fPrintMem );

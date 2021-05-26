@@ -486,9 +486,11 @@ static int Abc_CommandAbc9Of                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Pack               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Edge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9LNetSim             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9LNetOpt             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9LNetMap             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9LNetRead           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9LNetSim            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9LNetEval           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9LNetOpt            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9LNetMap            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Unmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Struct             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Trace              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1213,7 +1215,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&pack",         Abc_CommandAbc9Pack,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&edge",         Abc_CommandAbc9Edge,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satlut",       Abc_CommandAbc9SatLut,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&lnetread",     Abc_CommandAbc9LNetRead,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&lnetsim",      Abc_CommandAbc9LNetSim,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&lneteval",     Abc_CommandAbc9LNetEval,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&lnetopt",      Abc_CommandAbc9LNetOpt,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&lnetmap",      Abc_CommandAbc9LNetMap,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&unmap",        Abc_CommandAbc9Unmap,        0 );
@@ -10437,7 +10441,6 @@ int Abc_CommandPutOnTop( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( argc > globalUtilOptind + 1 )
     {
-        Abc_Ntk_t * pStrash;
         for ( c = 1; c < argc; c++ )
         {
             Abc_Ntk_t * pTemp, * pLogic = Io_Read( argv[c], Io_ReadFileType(argv[c]), 1, 0 );
@@ -10462,9 +10465,7 @@ int Abc_CommandPutOnTop( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
         }
         assert( Abc_NtkIsLogic(pNtkRes) );
-        pStrash = Abc_NtkStrash( pNtkRes, 1, 1, 0 );
-        Abc_FrameReplaceCurrentNetwork( pAbc, pStrash );
-        Abc_NtkDelete( pNtkRes );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
         return 0;
     }
 
@@ -40948,36 +40949,15 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9LNetSim( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAbc9LNetRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2, int fCompare );
-    int c, nIns = 6, nOuts = 2, fCompare = 0, fVerbose = 0;
+    extern void Gia_ManReadSimInfoInputs( char * pFileName, char * pFileOut1, int fVerbose );
+    int c, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IOcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'I':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            nIns = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            break;
-        case 'O':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-O\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            nOuts = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            break;
-        case 'c':
-            fCompare ^= 1;
-            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -40986,11 +40966,50 @@ int Abc_CommandAbc9LNetSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( argc == globalUtilOptind + 3 )
+    if ( argc == globalUtilOptind + 2 ) // read 1 file, write 1 file
     {
-        extern void Gia_ManSimInfoTransform( char * pFileName, char * pFileOut1, char * pFileOut2, int nIns, int nOuts );
-        Gia_ManSimInfoTransform( argv[globalUtilOptind], argv[globalUtilOptind+1], argv[globalUtilOptind+2], nIns, nOuts );
+        Gia_ManReadSimInfoInputs( argv[globalUtilOptind], argv[globalUtilOptind+1], fVerbose );
         return 0;
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &lnetread [-vh] <file> <file2>\n" );
+    Abc_Print( -2, "\t           reads and converts the simulation data\n" );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    Abc_Print( -2, "\t<file>   : input file name with simulation information\n");
+    Abc_Print( -2, "\t<file2>  : output file name with simulation information\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9LNetSim( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2, int fVerbose );
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
     }
     if ( pAbc->pGia == NULL )
     {
@@ -41002,20 +41021,77 @@ int Abc_CommandAbc9LNetSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Expecting two file names on the command line.\n" );
         return 1;
     }
-    Gia_ManSimInfoPassTest( pAbc->pGia, argv[globalUtilOptind], argv[globalUtilOptind+1], fCompare );
+    Gia_ManSimInfoPassTest( pAbc->pGia, argv[globalUtilOptind], argv[globalUtilOptind+1], fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &lnetsim [-IO num] [-cvh] <file> <file2> <file3>\n" );
+    Abc_Print( -2, "usage: &lnetsim [-vh] <file> <file2>\n" );
     Abc_Print( -2, "\t           performs specialized AIG simulation\n" );
-    Abc_Print( -2, "\t-I num   : the input support size [default = %d]\n",        nIns );
-    Abc_Print( -2, "\t-O num   : the output group size [default = %d]\n",         nOuts );
-    Abc_Print( -2, "\t-c       : toggles comparing simulation patterns [default = %s]\n",  fCompare? "yes": "no" );
-    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n",                 fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    Abc_Print( -2, "\t<file>   : input file name with simulation information\n");
+    Abc_Print( -2, "\t<file2>  : output file name with simulation information\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9LNetEval( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManSimInfoEval( Gia_Man_t * p, char * pFileName, char * pFileName2, int nOuts, int fVerbose );
+    int c, nOuts = -1, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ovh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nOuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    if ( argc != globalUtilOptind + 2 )
+    {
+        Abc_Print( -1, "Expecting two file names on the command line.\n" );
+        return 1;
+    }
+    Gia_ManSimInfoEval( pAbc->pGia, argv[globalUtilOptind], argv[globalUtilOptind+1], nOuts, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &lneteval [-O num] [-vh] <file> <file2>\n" );
+    Abc_Print( -2, "\t           performs testing of the AIG on the simulation data\n" );
+    Abc_Print( -2, "\t-O num   : the output group size [default = %d]\n",  nOuts );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     Abc_Print( -2, "\t<file>   : file name with simulation information\n");
     Abc_Print( -2, "\t<file2>  : file name with simulation information\n");
-    Abc_Print( -2, "\t<file3>  : file name with simulation information (optional)\n");
     return 1;
 }
 

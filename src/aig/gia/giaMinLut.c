@@ -91,13 +91,94 @@ void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO
     *pvSimO = vSimO;
     printf( "Read %d words of simulation data for %d inputs and %d outputs (padded %d zero-patterns).\n", nWords, nIns, nOuts, nWords*64-nLines );
 }
-void Gia_ManSimInfoTransform( char * pFileName, char * pFileOut1, char * pFileOut2, int nIns, int nOuts )
+int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
 {
-    Vec_Wrd_t * vSimI, * vSimO;
-    Vec_WrdReadText( pFileName, &vSimI, &vSimO, nIns, nOuts );
-    Vec_WrdDumpBin( pFileOut1 ? pFileOut1 : Extra_FileNameGenericAppend(pFileName, ".simi"), vSimI, 1 );
-    Vec_WrdDumpBin( pFileOut2 ? pFileOut2 : Extra_FileNameGenericAppend(pFileName, ".simo"), vSimO, 1 );
+    int i, nSize, iLine, nLines, nWords, nIns;
+    char pLine[1000];
+    Vec_Wrd_t * vSimI;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return 0;
+    }
+    fgets( pLine, 1000, pFile );
+    nIns = strlen(pLine)-1;
+    if ( nIns < 1 )
+    {
+        printf( "Cannot find the number of inputs in file \"%s\".\n", pFileName );
+        fclose( pFile );
+        return 0;
+    }
+    fseek( pFile, 0, SEEK_END );  
+    nSize = ftell( pFile );  
+    if ( nSize % (nIns + 1) > 0 )
+    {
+        printf( "Cannot read file with simulation data that is not aligned at 8 bytes (remainder = %d).\n", nSize % (nIns + 1) );
+        fclose( pFile );
+        return 0;
+    }
+    rewind( pFile );
+    nLines = nSize / (nIns + 1);
+    nWords = (nLines + 63)/64;
+    vSimI  = Vec_WrdStart( nIns *nWords );
+    for ( iLine = 0; fgets( pLine, 1000, pFile ); iLine++ )
+    {
+        for ( i = 0; i < nIns; i++ )
+            if ( pLine[nIns-1-i] == '1' )
+                Abc_TtXorBit( Vec_WrdArray(vSimI) + i*nWords, iLine );
+            else assert( pLine[nIns-1-i] == '0' );
+    }
+    fclose( pFile );
+    *pvSimI = vSimI;
+    printf( "Read %d words of simulation data for %d inputs (padded to 64-bit boundary with %d zero-patterns).\n", nWords, nIns, nWords*64-nLines );
+    return nIns;
+}
+Vec_Int_t * Vec_WrdReadNumsOut( char * pFileName, int fVerbose )
+{
+    char pLine[1000]; 
+    Vec_Int_t * vNums; int iLine;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return NULL;
+    }
+    vNums = Vec_IntAlloc( 1000 );
+    for ( iLine = 0; fgets( pLine, 1000, pFile ); iLine++ )
+        Vec_IntPush( vNums, atoi(pLine) );
+    fclose( pFile );
+    if ( fVerbose )
+    printf( "Finished reading %d output values from file \"%s\".\n", Vec_IntSize(vNums), pFileName );
+    return vNums;
+}
+Vec_Wrd_t * Vec_WrdReadTextOut( char * pFileName, int nOuts )
+{
+    int i, iLine, nLines, nWords;
+    Vec_Wrd_t * vSimO;
+    Vec_Int_t * vNums = Vec_WrdReadNumsOut( pFileName, 1 );
+    if ( vNums == NULL )
+        return NULL;
+    nLines = Vec_IntSize(vNums);
+    nWords = (nLines + 63)/64;
+    vSimO  = Vec_WrdStart( nOuts*nWords );
+    Vec_IntForEachEntry( vNums, i, iLine )
+        Abc_TtXorBit( Vec_WrdArray(vSimO) + i*nWords, iLine );
+    Vec_IntFree( vNums );
+    printf( "Read %d words of simulation data for %d outputs (padded %d zero-patterns).\n", nWords, nOuts, nWords*64-nLines );
+    return vSimO;
+}
+void Gia_ManReadSimInfoInputs( char * pFileName, char * pFileOut1, int fVerbose )
+{
+    Vec_Wrd_t * vSimI;
+    Vec_WrdReadText2( pFileName, &vSimI );
+    Vec_WrdDumpBin( pFileOut1, vSimI, fVerbose );
     Vec_WrdFree( vSimI );
+}
+void Gia_ManReadSimInfoOutputs( char * pFileName, char * pFileOut, int nOuts )
+{
+    Vec_Wrd_t * vSimO = Vec_WrdReadTextOut( pFileName, nOuts );
+    Vec_WrdDumpBin( pFileOut, vSimO, 1 );
     Vec_WrdFree( vSimO );
 }
 
@@ -201,6 +282,49 @@ int Gia_ManSimEvalOne2( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new 
     ABC_FREE( pSim0 );
     return Count;
 }
+int Gia_ManSimEvalMaxValue( Vec_Wrd_t * vSimO, int nWords, int nOuts, int nBits, int iPat )
+{
+    int o, ValueMax = -1, OutMax = -1;
+    for ( o = 0; o < nOuts; o++ )
+    {
+        int i, Value = 0;
+        for ( i = 0; i < nBits; i++ )
+        {
+            word * pSim = Vec_WrdEntryP( vSimO, (o*nBits+i) * nWords );
+            if ( Abc_TtGetBit(pSim, iPat) )
+                Value |= 1 << i;
+        }
+        if ( ValueMax <= Value )
+        {
+            ValueMax = Value;
+            OutMax = o;
+        }
+    }
+    return OutMax;
+}
+int Gia_ManSimEvalOne3( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Int_t * vValues, int nBits )
+{
+    int i, Value, nOuts = Gia_ManCoNum(p) / nBits;
+    int First = -1, Count = 0, nWords = Vec_WrdSize(vSimO) / Gia_ManCoNum(p);
+    assert( Gia_ManCoNum(p) % nBits == 0 );
+    assert( 64*(nWords-1) < Vec_IntSize(vValues) && Vec_IntSize(vValues) <= 64*nWords );
+    Vec_IntForEachEntry( vValues, Value, i )
+        if ( Value == Gia_ManSimEvalMaxValue(vSimO, nWords, nOuts, nBits, i) )
+        {
+            Count++;
+            if ( First == -1 )
+                First = i;
+        }
+    printf( "The accuracy is %8.4f %% (%d out of %d output are correct, for example, output number %d).\n", 
+        100.0*Count/Vec_IntSize(vValues), Count, Vec_IntSize(vValues), First );
+    if ( 0 )
+    {
+        FILE * pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%0.2f \n", 100.0*Count/Vec_IntSize(vValues) );
+        fclose( pTable );
+    }
+    return Count;
+}
 Vec_Wrd_t * Gia_ManSimInfoTry( Gia_Man_t * p, Vec_Wrd_t * vSimI )
 {
     int nWords = Vec_WrdSize(vSimI) / Gia_ManCiNum(p);
@@ -218,7 +342,7 @@ Vec_Wrd_t * Gia_ManSimInfoTry( Gia_Man_t * p, Vec_Wrd_t * vSimI )
     }
     return vSimO_new;
 }
-int Gia_ManSimInfoEval( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new )
+int Gia_ManSimInfoEval_old( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new )
 {
     int nResult = Gia_ManSimEvalOne2(p, vSimO, vSimO_new);
     //Vec_WrdDumpBin( "temp.simo", vSimO_new, 1 );
@@ -226,29 +350,33 @@ int Gia_ManSimInfoEval( Gia_Man_t * p, Vec_Wrd_t * vSimO, Vec_Wrd_t * vSimO_new 
     printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO_new), Vec_WrdSize(vSimO_new))/(64*Vec_WrdSize(vSimO_new)) );
     return nResult;
 }
-void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2, int fCompare )
+void Gia_ManSimInfoPassTest( Gia_Man_t * p, char * pFileName, char * pFileName2, int fVerbose )
 {
     abctime clk = Abc_Clock();
-    if ( fCompare )
-    {
-        Vec_Wrd_t * vSim1 = Vec_WrdReadBin( pFileName,  1 );
-        Vec_Wrd_t * vSim2 = Vec_WrdReadBin( pFileName2, 1 );
-        printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim1), Vec_WrdSize(vSim1))/(64*Vec_WrdSize(vSim1)) );
-        printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim2), Vec_WrdSize(vSim2))/(64*Vec_WrdSize(vSim2)) );
-        Gia_ManSimInfoEval( p, vSim1, vSim2 );
-        Vec_WrdFree( vSim1 );
-        Vec_WrdFree( vSim2 );
-    }
-    else
-    {
-        Vec_Wrd_t * vSimI = Vec_WrdReadBin( pFileName, 1 );
-        Vec_Wrd_t * vSimO = Gia_ManSimInfoTry( p, vSimI );
-        printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
-        printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO), Vec_WrdSize(vSimO))/(64*Vec_WrdSize(vSimO)) );
-        Vec_WrdDumpBin( pFileName2, vSimO, 1 );
-        Vec_WrdFree( vSimI );
-        Vec_WrdFree( vSimO );
-    }
+    Vec_Wrd_t * vSimI = Vec_WrdReadBin( pFileName, fVerbose );
+    Vec_Wrd_t * vSimO = Gia_ManSimInfoTry( p, vSimI );
+    if ( fVerbose )
+    printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
+    if ( fVerbose )
+    printf( "Density of output patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimO), Vec_WrdSize(vSimO))/(64*Vec_WrdSize(vSimO)) );
+    Vec_WrdDumpBin( pFileName2, vSimO, fVerbose );
+    Vec_WrdFree( vSimI );
+    Vec_WrdFree( vSimO );
+    if ( fVerbose )
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+}
+void Gia_ManSimInfoEval( Gia_Man_t * p, char * pFileName, char * pFileName2, int nOuts, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Vec_Wrd_t * vSim1 = Vec_WrdReadBin( pFileName, fVerbose );
+    Vec_Int_t * vNums = Vec_WrdReadNumsOut( pFileName2, fVerbose );
+    assert( nOuts > 0 );
+    if ( fVerbose )
+    printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSim1), Vec_WrdSize(vSim1))/(64*Vec_WrdSize(vSim1)) );
+    Gia_ManSimEvalOne3( p, vSim1, vNums, nOuts );
+    Vec_WrdFree( vSim1 );
+    Vec_IntFree( vNums );
+    if ( fVerbose )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
@@ -326,18 +454,19 @@ Vec_Int_t * Gia_ManCollectSupp( Gia_Man_t * p, int iOut, int nOuts )
 }
 Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int Thresh, int fVerbose )
 {
+    abctime clk = Abc_Clock();
     extern int Kit_TruthToGia2( Gia_Man_t * p, unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
     Gia_Man_t * pNew; Gia_Obj_t * pObj;
     Vec_Int_t * vMemory = Vec_IntAlloc( 1 << 18 );
     Vec_Int_t * vLeaves = Vec_IntAlloc( nIns );
-    Vec_Wrd_t * vSimI = pFileName ? Vec_WrdReadBin( pFileName, 1 ) : NULL;  
+    Vec_Wrd_t * vSimI = pFileName ? Vec_WrdReadBin( pFileName, fVerbose ) : NULL;  
     word * pTruth0 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) );
     word * pTruth1 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) ); int g, k; float CareAve = 0;
-    if ( vSimI )
+    if ( vSimI && fVerbose )
     {
         int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
         printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
-        printf( "Using patterns with count %d and higher as cares (%8.4f %% of all patterns).\n", Thresh, 100.0*Thresh/nPats );
+        printf( "Using patterns with count %d and higher as cares.\n", Thresh );
     }
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
@@ -378,7 +507,6 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, in
         Temp = 0;
     }
     CareAve /= Gia_ManCoNum(p)/nOuts;
-    printf( "Average size of the care set = %8.4f %%.\n", CareAve );
     Gia_ManHashStop( pNew );
     Gia_ManForEachCo( p, pObj, k )
         pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
@@ -389,6 +517,14 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, in
     Vec_IntFree( vMemory );
     Vec_WrdFreeP( &vSimI );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    printf( "Using patterns with count %d and higher as cares. Average care set is %8.4f %%.  ", Thresh, CareAve );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    if ( 0 )
+    {
+        FILE * pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%0.2f ", CareAve );
+        fclose( pTable );
+    }
     return pNew;
 }
 
