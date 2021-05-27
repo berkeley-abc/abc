@@ -102,9 +102,7 @@ int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
         printf( "Cannot open file \"%s\" for reading.\n", pFileName );
         return 0;
     }
-    fgets( pLine, 1000, pFile );
-    nIns = strlen(pLine)-1;
-    if ( nIns < 1 )
+    if ( !fgets(pLine, 1000, pFile) || (nIns = strlen(pLine)-1) < 1 )
     {
         printf( "Cannot find the number of inputs in file \"%s\".\n", pFileName );
         fclose( pFile );
@@ -464,7 +462,7 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, in
     word * pTruth1 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) ); int g, k; float CareAve = 0;
     if ( vSimI && fVerbose )
     {
-        int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
+        //int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
         printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
         printf( "Using patterns with count %d and higher as cares.\n", Thresh );
     }
@@ -724,7 +722,7 @@ Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, 
 
 #else
 
-Gia_Man_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fVerbose )
+Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fVerbose )
 {
     return NULL;
 }

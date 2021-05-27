@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "kit.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -385,7 +386,7 @@ Kit_Graph_t * Kit_TruthToGraph2( unsigned * pTruth0, unsigned * pTruth1, int nVa
     Kit_Graph_t * pGraph;
     int RetValue;
     // derive SOP
-    RetValue = Kit_TruthIsop2( pTruth0, pTruth1, nVars, vMemory, 1, 0 ); // tried 1 and found not useful in "renode"
+    RetValue = Kit_TruthIsop2( pTruth0, pTruth1, nVars, vMemory, 0, 0 ); // tried 1 and found not useful in "renode"
     if ( RetValue == -1 )
         return NULL;
     if ( Vec_IntSize(vMemory) > (1<<16) )
