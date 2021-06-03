@@ -202,6 +202,7 @@ int Gia_ManLutLevel( Gia_Man_t * p, int ** ppLevels )
 ***********************************************************************/
 void Gia_ManLutParams( Gia_Man_t * p, int * pnCurLuts, int * pnCurEdges, int * pnCurLevels )
 {
+    int fDisable2Lut = 1;
     if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t *)p->pManTime) )
     {
         int i;
@@ -224,7 +225,7 @@ void Gia_ManLutParams( Gia_Man_t * p, int * pnCurLuts, int * pnCurEdges, int * p
         *pnCurLevels = 0;
         Gia_ManForEachLut( p, i )
         {
-            if ( Gia_ObjLutIsMux(p, i) )
+            if ( Gia_ObjLutIsMux(p, i) && !(fDisable2Lut && Gia_ObjLutSize(p, i) == 2) )
             {
                 int pFanins[3];
                 if ( Gia_ObjLutSize(p, i) == 3 )
@@ -471,6 +472,7 @@ int Gia_ManCountDupLut( Gia_Man_t * p )
 
 void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
 {
+    int fDisable2Lut = 1;
     Gia_Obj_t * pObj;
     int * pLevels;
     int i, k, iFan, nLutSize = 0, nLuts = 0, nFanins = 0, LevelMax = 0, Ave = 0, nMuxF = 0;
@@ -479,7 +481,7 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     pLevels = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManForEachLut( p, i )
     {
-        if ( Gia_ObjLutIsMux(p, i) )
+        if ( Gia_ObjLutIsMux(p, i) && !(fDisable2Lut && Gia_ObjLutSize(p, i) == 2) )
         {
             int pFanins[3];
             if ( Gia_ObjLutSize(p, i) == 3 )
