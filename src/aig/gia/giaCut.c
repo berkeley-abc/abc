@@ -602,10 +602,10 @@ void Gia_StoRefObj( Gia_Sto_t * p, int iObj )
 }
 void Gia_StoComputeCuts( Gia_Man_t * pGia )
 {
-    int nCutSize  =  6;
-    int nCutNum   = 25;
-    int fCutMin   =  1;
-    int fTruthMin =  1;
+    int nCutSize  =  8;
+    int nCutNum   =  6;
+    int fCutMin   =  0;
+    int fTruthMin =  0;
     int fVerbose  =  1;
     Gia_Sto_t * p = Gia_StoAlloc( pGia, nCutSize, nCutNum, fCutMin, fTruthMin, fVerbose );
     Gia_Obj_t * pObj;  int i, iObj;
@@ -635,6 +635,145 @@ void Gia_StoComputeCuts( Gia_Man_t * pGia )
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
     Gia_StoFree( p );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Extract a given number of cuts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_StoSelectOneCut( Vec_Wec_t * vCuts, int iObj, Vec_Int_t * vCut, int nCutSizeMin )
+{
+    Vec_Int_t * vThis = Vec_WecEntry( vCuts, iObj );
+    int i, v, * pCut, * pList = Vec_IntArray( vThis );
+    if ( pList == NULL )
+        return 0;
+    Vec_IntClear( vCut );
+    Sdb_ForEachCut( pList, pCut, i )
+    {
+        if ( pCut[0] < nCutSizeMin )
+            continue;
+        for ( v = 0; v <= pCut[0]; v++ )
+            Vec_IntPush( vCut, pCut[v] );
+        return 1;
+    }
+    return 0;
+}
+Vec_Wec_t * Gia_ManSelectCuts( Vec_Wec_t * vCuts, int nCuts, int nCutSizeMin )
+{
+    Vec_Wec_t * vCutsSel = Vec_WecStart( nCuts );
+    int i; srand( time(NULL) );
+    for ( i = 0; i < nCuts; i++ )
+        while ( !Gia_StoSelectOneCut(vCuts, (rand() | (rand() << 15)) % Vec_WecSize(vCuts), Vec_WecEntry(vCutsSel, i), nCutSizeMin) );
+    return vCutsSel;
+}
+Vec_Wec_t * Gia_ManExtractCuts( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int fVerbose0 )
+{
+    int nCutSize  =  nCutSize0;
+    int nCutNum   =  6;
+    int fCutMin   =  0;
+    int fTruthMin =  0;
+    int fVerbose  =  fVerbose0;
+    Vec_Wec_t * vCutsSel;
+    Gia_Sto_t * p = Gia_StoAlloc( pGia, nCutSize, nCutNum, fCutMin, fTruthMin, fVerbose );
+    Gia_Obj_t * pObj;  int i, iObj;
+    assert( nCutSize <= GIA_MAX_CUTSIZE );
+    assert( nCutNum  <  GIA_MAX_CUTNUM  );
+    // prepare references
+    Gia_ManForEachObj( p->pGia, pObj, iObj )
+        Gia_StoRefObj( p, iObj );
+    // compute cuts
+    Gia_StoComputeCutsConst0( p, 0 );
+    Gia_ManForEachCiId( p->pGia, iObj, i )
+        Gia_StoComputeCutsCi( p, iObj );
+    Gia_ManForEachAnd( p->pGia, pObj, iObj )
+        Gia_StoComputeCutsNode( p, iObj );
+    if ( p->fVerbose )
+    {
+        printf( "Running cut computation with CutSize = %d  CutNum = %d  CutMin = %s  TruthMin = %s\n", 
+            p->nCutSize, p->nCutNum, p->fCutMin ? "yes":"no", p->fTruthMin ? "yes":"no" );
+        printf( "CutPair = %.0f  ",         p->CutCount[0] );
+        printf( "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
+        printf( "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
+        printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
+        printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
+        printf( "\n" );
+        printf( "The number of nodes with cut count over the limit (%d cuts) = %d nodes (out of %d).  ", 
+            p->nCutNum, p->nCutsOver, Gia_ManAndNum(pGia) );
+        Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
+    }
+    vCutsSel = Gia_ManSelectCuts( p->vCuts, nCuts0, nCutSize0-1 );
+    Gia_StoFree( p );
+    return vCutsSel;
+}
+void Gia_ManCreateWins( Gia_Man_t * pGia, Vec_Wec_t * vCuts )
+{
+    Gia_Obj_t * pObj; 
+    Vec_Wec_t * vWins = Vec_WecStart( Gia_ManObjNum(pGia) );
+    Vec_Int_t * vTemp = Vec_IntAlloc( 100 );
+    Vec_Int_t * vCut; int i, k, Obj, Cut;
+    Vec_WecForEachLevel( vCuts, vCut, i )
+        Vec_IntForEachEntryStart( vCut, Obj, k, 1 )
+            Vec_IntPush( Vec_WecEntry(vWins, Obj), i );
+    Gia_ManForEachAnd( pGia, pObj, Obj )
+    {
+        Vec_Int_t * vWin  = Vec_WecEntry(vWins, Obj);
+        Vec_Int_t * vWin0 = Vec_WecEntry(vWins, Gia_ObjFaninId0(pObj, Obj));
+        Vec_Int_t * vWin1 = Vec_WecEntry(vWins, Gia_ObjFaninId1(pObj, Obj));
+        Vec_IntTwoFindCommon( vWin0, vWin1, vTemp );
+        Vec_IntForEachEntry( vTemp, Cut, k )
+        {
+            Vec_IntPushUniqueOrder( vWin, Cut );
+            Vec_IntPush( Vec_WecEntry(vCuts, Cut), Obj );
+        }
+    }
+    Vec_WecFree( vWins );
+    Vec_IntFree( vTemp );
+}
+void Gia_ManPrintWins( Vec_Wec_t * vCuts )
+{
+    Vec_Int_t * vCut; int i, k, Obj;
+    Vec_WecForEachLevel( vCuts, vCut, i )
+    {
+        int nInputs = Vec_IntEntry(vCut, 0);
+        printf( "Cut %5d : ", i );
+        printf( "Supp = %d  ", nInputs );
+        printf( "Nodes = %d  ", Vec_IntSize(vCut) - 1 - nInputs );
+        Vec_IntForEachEntryStartStop( vCut, Obj, k, 1, nInputs+1 )
+            printf( "%d ", Obj );
+        printf( "  " );
+        Vec_IntForEachEntryStart( vCut, Obj, k, nInputs+1 )
+            printf( "%d ", Obj );
+        printf( "\n" );
+    }
+}
+void Gia_ManPrintWinStats( Vec_Wec_t * vCuts )
+{
+    Vec_Int_t * vCut; int i, nInputs = 0, nNodes = 0;
+    Vec_WecForEachLevel( vCuts, vCut, i )
+    {
+        nInputs += Vec_IntEntry(vCut, 0);
+        nNodes += Vec_IntSize(vCut) - 1 - Vec_IntEntry(vCut, 0);
+    }
+    printf( "Computed %d windows with average support %.3f and average volume %.3f.\n", 
+        Vec_WecSize(vCuts), 1.0*nInputs/Vec_WecSize(vCuts), 1.0*nNodes/Vec_WecSize(vCuts) );
+}
+void Gia_ManExtractTest( Gia_Man_t * pGia )
+{
+    Vec_Wec_t * vCutsSel = Gia_ManExtractCuts( pGia, 8, 10000, 1 );
+    abctime clk = Abc_Clock();
+    Gia_ManCreateWins( pGia, vCutsSel );
+    //Gia_ManPrintWins( vCutsSel );
+    Gia_ManPrintWinStats( vCutsSel );
+    Vec_WecFree( vCutsSel );
+    Abc_PrintTime( 0, "Creating windows", Abc_Clock() - clk );
 }
 
 ////////////////////////////////////////////////////////////////////////
