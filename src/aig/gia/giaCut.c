@@ -767,7 +767,9 @@ void Gia_ManPrintWinStats( Vec_Wec_t * vCuts )
 }
 void Gia_ManExtractTest( Gia_Man_t * pGia )
 {
-    Vec_Wec_t * vCutsSel = Gia_ManExtractCuts( pGia, 8, 10000, 1 );
+    extern Vec_Wec_t * Gia_ManExtractCuts2( Gia_Man_t * p, int nCutSize, int nCuts, int fVerbose );
+    Vec_Wec_t * vCutsSel = Gia_ManExtractCuts2( pGia, 8, 10000, 1 );
+    //Vec_Wec_t * vCutsSel = Gia_ManExtractCuts( pGia, 8, 10000, 1 );
     abctime clk = Abc_Clock();
     Gia_ManCreateWins( pGia, vCutsSel );
     //Gia_ManPrintWins( vCutsSel );

@@ -1498,10 +1498,50 @@ void Gia_RsbTestArray()
     Vec_IntFree( vArray );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computing cuts of the nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Gia_ManExtractCuts2( Gia_Man_t * p, int nCutSize, int nCuts, int fVerbose )
+{
+    int c, nLevelMax = 8;
+    abctime clk = Abc_Clock();
+    Vec_Wec_t * vCuts = Vec_WecStart( nCuts );
+    Vec_Int_t * vPaths = Vec_IntStart( Gia_ManObjNum(p) );
+    srand( time(NULL) );
+    for ( c = 0; c < nCuts; )
+    {
+        Vec_Int_t * vCut, * vWin = NULL;
+        while ( vWin == NULL )
+        {
+            int iPivot = 1 + Gia_ManCiNum(p) + rand() % Gia_ManAndNum(p);
+            assert( Gia_ObjIsAnd(Gia_ManObj(p, iPivot)) );
+            vWin = Gia_RsbWindowInit( p, vPaths, iPivot, nLevelMax );
+        }
+        vCut = Gia_RsbCreateWindowInputs( p, vWin );
+        if ( Vec_IntSize(vCut) >= nCutSize - 2 && Vec_IntSize(vCut) <= nCutSize )
+        {
+            Vec_IntPush( Vec_WecEntry(vCuts, c), Vec_IntSize(vCut) );
+            Vec_IntAppend( Vec_WecEntry(vCuts, c++), vCut );
+        }
+        Vec_IntFree( vCut );
+        Vec_IntFree( vWin );
+    }
+    Vec_IntFree( vPaths );
+    Abc_PrintTime( 0, "Computing cuts  ", Abc_Clock() - clk );
+    return vCuts;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
 
 ABC_NAMESPACE_IMPL_END
 
