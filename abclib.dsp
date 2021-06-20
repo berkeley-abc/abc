@@ -5063,6 +5063,10 @@ SOURCE=.\src\aig\gia\giaMinLut.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaMinLut2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaMuxes.c
 # End Source File
 # Begin Source File

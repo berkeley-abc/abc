@@ -118,27 +118,6 @@ word Gia_LutComputeTruth6Map( Gia_Man_t * p, int iPo, Vec_Int_t * vMap )
   SeeAlso     []
 
 ***********************************************************************/
-static unsigned s_Truths5[5] = {
-    0xAAAAAAAA,
-    0xCCCCCCCC,
-    0xF0F0F0F0,
-    0xFF00FF00,
-    0xFFFF0000,
-};
-static inline int Abc_Tt5HasVar( unsigned t, int iVar )
-{
-    return ((t << (1<<iVar)) & s_Truths5[iVar]) != (t & s_Truths5[iVar]);
-}
-static inline unsigned Abc_Tt5Cofactor0( unsigned t, int iVar )
-{
-    assert( iVar >= 0 && iVar < 6 );
-    return (t & ~s_Truths5[iVar]) | ((t & ~s_Truths5[iVar]) << (1<<iVar));
-}
-static inline unsigned Abc_Tt5Cofactor1( unsigned t, int iVar )
-{
-    assert( iVar >= 0 && iVar < 6 );
-    return (t & s_Truths5[iVar]) | ((t & s_Truths5[iVar]) >> (1<<iVar));
-}
 int Gia_Truth5ToGia( Gia_Man_t * p, int * pVarLits, int nVars, unsigned Truth, int fHash )
 {
     int Var, Lit0, Lit1; 
@@ -645,9 +624,18 @@ word * Gia_ObjComputeTruthTableCut( Gia_Man_t * p, Gia_Obj_t * pRoot, Vec_Int_t 
 {
     Gia_Obj_t * pTemp;
     word * pTruth, * pTruthL, * pTruth0, * pTruth1;
-    int i, iObj, Id0, Id1;
+    int i, iObj, Id0, Id1, Index = Vec_IntFind(vLeaves, Gia_ObjId(p, pRoot));
     assert( p->vTtMemory != NULL );
     assert( Vec_IntSize(vLeaves) <= p->nTtVars );
+    if ( Index >= 0 )
+        return Gla_ObjTruthElem( p, Index );    
+    if ( Gia_ObjIsConst0(pRoot) )
+    {
+        if ( Vec_WrdSize(p->vTtMemory) < p->nTtWords )
+            Vec_WrdFillExtra( p->vTtMemory, p->nTtWords, 0 );
+        return Gla_ObjTruthConst0( p, Gla_ObjTruthFree1(p) );
+    }
+    assert( Gia_ObjIsAnd(pRoot) );
     // extend ID numbers
     if ( Vec_IntSize(p->vTtNums) < Gia_ManObjNum(p) )
         Vec_IntFillExtra( p->vTtNums, Gia_ManObjNum(p), -ABC_INFINITY );

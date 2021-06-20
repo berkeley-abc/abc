@@ -121,7 +121,7 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode, int fCompl )
     // visualize the file 
     Abc_ShowFile( FileNameDot );
 }
-void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl )
+void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl, int fReorder )
 {
     char FileNameDot[200];
     char ** ppNamesIn, ** ppNamesOut;
@@ -131,7 +131,7 @@ void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl )
     FILE * pFile;
 
     assert( Abc_NtkIsStrash(pNtk) );
-    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, 1, 0, 0 );
+    dd = (DdManager *)Abc_NtkBuildGlobalBdds( pNtk, 10000000, 1, fReorder, 0, 0 );
     if ( dd == NULL )
     {
         printf( "Construction of global BDDs has failed.\n" );
@@ -186,7 +186,7 @@ void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl )
 
 #else
 void Abc_NodeShowBdd( Abc_Obj_t * pNode, int fCompl ) {}
-void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl ) {}
+void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl, int fReorder ) {}
 #endif
 
 /**Function*************************************************************

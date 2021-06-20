@@ -417,6 +417,8 @@ word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp
             Abc_TtXorBit( pRes, k );
         //printf( "%d ", pCounts[k] );
     }
+    if ( Vec_IntSize(vSupp) < 6 )
+        pRes[0] = Abc_Tt6Stretch( pRes[0], Vec_IntSize(vSupp) );
     //printf( "\n" );
     if ( fVerbose )
     printf( "Used %4d and good %4d (out of %4d).\n", nUsed, nGood, nMints ); 
@@ -450,16 +452,29 @@ Vec_Int_t * Gia_ManCollectSupp( Gia_Man_t * p, int iOut, int nOuts )
         Gia_ManCollectSupp_rec( p, Gia_ObjFaninId0p(p, Gia_ManCo(p, iOut+i)), vSupp );
     return vSupp;
 }
-Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int Thresh, int fVerbose )
+int Gia_ManPerformLNetOpt_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
-    abctime clk = Abc_Clock();
+    if ( ~pObj->Value )
+        return pObj->Value;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManPerformLNetOpt_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManPerformLNetOpt_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    return pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName, int nIns, int nOuts, int Thresh, int nRounds, int fVerbose )
+{
+    extern int Gia_ManDupOrderDfs_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj );
+    extern Gia_Man_t * Gia_TryPermOpt( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose );
+    extern Gia_Man_t * Gia_TryPermOptCare( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose );
     extern int Kit_TruthToGia2( Gia_Man_t * p, unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
+    abctime clk = Abc_Clock();
     Gia_Man_t * pNew; Gia_Obj_t * pObj;
     Vec_Int_t * vMemory = Vec_IntAlloc( 1 << 18 );
     Vec_Int_t * vLeaves = Vec_IntAlloc( nIns );
     Vec_Wrd_t * vSimI = pFileName ? Vec_WrdReadBin( pFileName, fVerbose ) : NULL;  
     word * pTruth0 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) );
     word * pTruth1 = ABC_CALLOC( word, Abc_Truth6WordNum(nIns) ); int g, k; float CareAve = 0;
+    word * pTruthsTry = ABC_CALLOC( word, 2*nOuts*Abc_Truth6WordNum(nIns) );
     if ( vSimI && fVerbose )
     {
         //int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
@@ -478,10 +493,10 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, in
     for ( g = 0; g < Gia_ManCoNum(p); g += nOuts )
     {
         Vec_Int_t * vSupp = Gia_ManCollectSupp( p, g, nOuts );
-        int Care, Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
+        int Care = 1 << Vec_IntSize(vSupp), Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
         word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose, &Care ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
         int nWords = Abc_Truth6WordNum( Vec_IntSize(vSupp) );
-        CareAve += 100.0*Care/(1 << nIns);
+        CareAve += 100.0*Care/(1 << Vec_IntSize(vSupp));
         assert( Vec_IntSize(vSupp) <= nIns );
         Vec_IntClear( vLeaves );
         Gia_ManForEachObjVec( vSupp, p, pObj, k )
@@ -489,16 +504,42 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, in
         for ( k = 0; k < nOuts; k++ )
         {
             Gia_Obj_t * pObj = Gia_ManCo( p, g+k );
-            if ( Gia_ObjIsAnd(Gia_ObjFanin0(pObj)) )
+            word * pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ObjFanin0(pObj), vSupp );
+            Abc_TtSharp( pTruth0, pCare, pTruth, nWords );
+            Abc_TtAnd( pTruth1, pCare, pTruth, nWords, 0 );
+            if ( vSimI )
             {
-                word * pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ObjFanin0(pObj), vSupp );
-                Abc_TtSharp( pTruth0, pCare, pTruth, nWords );
-                Abc_TtAnd( pTruth1, pCare, pTruth, nWords, 0 );
-                pObj->Value = Kit_TruthToGia2( pNew, (unsigned *)pTruth0, (unsigned *)pTruth1, Vec_IntSize(vLeaves), vMemory, vLeaves, 1 );
+                Abc_TtCopy( pTruthsTry + (2*k+0)*nWords, pTruth1, nWords, 0 );
+                Abc_TtCopy( pTruthsTry + (2*k+1)*nWords, pTruth0, nWords, 0 );
             }
             else
-                pObj->Value = Gia_ObjFanin0(pObj)->Value;
-            pObj->Value ^= Gia_ObjFaninC0(pObj);
+                Abc_TtCopy( pTruthsTry + k*nWords, pTruth1, nWords, 0 );
+            if ( !fTryNew )
+            {
+                pObj->Value = Kit_TruthToGia2( pNew, (unsigned *)pTruth0, (unsigned *)pTruth1, Vec_IntSize(vLeaves), vMemory, vLeaves, 1 );
+                pObj->Value ^= Gia_ObjFaninC0(pObj);
+            }
+        }
+        if ( fTryNew )
+        {
+            Gia_Man_t * pMin;
+            if ( vSimI )
+                pMin = Gia_TryPermOpt( pTruthsTry, Vec_IntSize(vSupp), 2*nOuts, nWords, nRounds, fVerbose );
+            else
+                pMin = Gia_TryPermOptCare( pTruthsTry, Vec_IntSize(vSupp), nOuts, nWords, nRounds, fVerbose );
+            Gia_ManFillValue( pMin );
+            Gia_ManConst0(pMin)->Value = 0;
+            Gia_ManForEachCi( pMin, pObj, k )
+                pObj->Value = Vec_IntEntry( vLeaves, k );
+            for ( k = 0; k < nOuts; k++ )
+            {
+                Gia_Obj_t * pObj  = Gia_ManCo( p, g+k );
+                Gia_Obj_t * pObj2 = Gia_ManCo( pMin, k );
+                pObj->Value  = Gia_ManPerformLNetOpt_rec( pNew, pMin, Gia_ObjFanin0(pObj2) );
+                pObj->Value ^= Gia_ObjFaninC0(pObj2);
+                pObj->Value ^= Gia_ObjFaninC0(pObj);
+            }
+            Gia_ManStop( pMin );
         }
         ABC_FREE( pCare );
         Vec_IntFree( vSupp );
@@ -523,6 +564,7 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, char * pFileName, int nIns, in
         fprintf( pTable, "%0.2f ", CareAve );
         fclose( pTable );
     }
+    ABC_FREE( pTruthsTry );
     return pNew;
 }
 
@@ -594,12 +636,12 @@ int Gia_ManDoTest1( Gia_Man_t * p, int fReorder )
     Gia_ManStop( pNew );
     return Res;
 }
-Abc_Ntk_t * Gia_ManDoTest2( Gia_Man_t * p, int fReorder )
+Abc_Ntk_t * Gia_ManDoTest2( Gia_Man_t * p, int fReorder, int fTryNew )
 {
     extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
     Abc_Ntk_t * pNtkNew;
     Gia_Man_t * pTemp, * pNew;
-    pNew = Gia_ManDoMuxTransform( p, fReorder );
+    pNew = fTryNew ? Gia_ManDup(p) : Gia_ManDoMuxTransform( p, fReorder );
     pNew = Gia_ManDoMuxMapping( pTemp = pNew );
     Gia_ManStop( pTemp );
     pNtkNew = Abc_NtkFromMappedGia( pNew, 0, 0 );
@@ -608,7 +650,7 @@ Abc_Ntk_t * Gia_ManDoTest2( Gia_Man_t * p, int fReorder )
     Abc_NtkToSop( pNtkNew, 1, ABC_INFINITY );
     return pNtkNew;
 }
-Abc_Ntk_t * Abc_NtkMapTransform( Gia_Man_t * p, int nOuts, int fUseFixed, int fVerbose )
+Abc_Ntk_t * Abc_NtkMapTransform( Gia_Man_t * p, int nOuts, int fUseFixed, int fTryNew, int fVerbose )
 {
     extern Abc_Ntk_t * Abc_NtkSpecialMapping( Abc_Ntk_t * pNtk, int fVerbose );
     int i, k, g, nGroups = Gia_ManCoNum(p) / nOuts, CountsAll[3] = {0}; 
@@ -632,7 +674,7 @@ Abc_Ntk_t * Abc_NtkMapTransform( Gia_Man_t * p, int nOuts, int fUseFixed, int fV
             pPos[i] = g*nOuts+i;
         pNew = Gia_ManDupCones( p, pPos, nOuts, 1 );
         if ( !fUseFixed )
-            pNtkMap = Gia_ManDoTest2( pNew, 1 );
+            pNtkMap = Gia_ManDoTest2( pNew, 1, fTryNew );
         else
         {
             pMan = Gia_ManToAig( pNew, 0 );
@@ -688,7 +730,7 @@ Abc_Ntk_t * Abc_NtkMapTransform( Gia_Man_t * p, int nOuts, int fUseFixed, int fV
     return pNtkNew;
 }
 
-Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fVerbose )
+Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fTryNew, int fVerbose )
 {
     int fPrintOnly = 0;
     int Res1, Res2, Result = 0;
@@ -717,12 +759,12 @@ Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, 
         return NULL;
 
     }
-    return Abc_NtkMapTransform( p, GroupSize, fUseFixed, fVerbose );
+    return Abc_NtkMapTransform( p, GroupSize, fUseFixed, fTryNew, fVerbose );
 }
 
 #else
 
-Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fVerbose )
+Abc_Ntk_t * Gia_ManPerformLNetMap( Gia_Man_t * p, int GroupSize, int fUseFixed, int fTryNew, int fVerbose )
 {
     return NULL;
 }

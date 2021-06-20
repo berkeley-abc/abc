@@ -35,6 +35,22 @@ ABC_NAMESPACE_HEADER_START
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
 
+static unsigned s_Truths5[6] = {
+    0xAAAAAAAA,
+    0xCCCCCCCC,
+    0xF0F0F0F0,
+    0xFF00FF00,
+    0xFFFF0000
+};
+
+static unsigned s_Truths5Neg[6] = {
+    0x55555555,
+    0x33333333,
+    0x0F0F0F0F,
+    0x00FF00FF,
+    0x0000FFFF
+};
+
 static word s_Truths6[6] = {
     ABC_CONST(0xAAAAAAAAAAAAAAAA),
     ABC_CONST(0xCCCCCCCCCCCCCCCC),
@@ -261,6 +277,12 @@ static inline void Abc_TtCopy( word * pOut, word * pIn, int nWords, int fCompl )
     else
         for ( w = 0; w < nWords; w++ )
             pOut[w] = pIn[w];
+}
+static inline word * Abc_TtDup( word * pIn, int nWords, int fCompl )
+{
+    word * pOut = ABC_ALLOC( word, nWords );
+    Abc_TtCopy( pOut, pIn, nWords, fCompl );
+    return pOut;
 }
 static inline void Abc_TtAnd( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
 {
@@ -818,6 +840,33 @@ static inline void Abc_TtElemInit2( word * pTtElems, int nVars )
                 pTruth[k] = (k & (1 << (i-6))) ? ~(word)0 : 0;
     }
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Abc_Tt5HasVar( unsigned t, int iVar )
+{
+    return ((t << (1<<iVar)) & s_Truths5[iVar]) != (t & s_Truths5[iVar]);
+}
+static inline unsigned Abc_Tt5Cofactor0( unsigned t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 5 );
+    return (t &s_Truths5Neg[iVar]) | ((t &s_Truths5Neg[iVar]) << (1<<iVar));
+}
+static inline unsigned Abc_Tt5Cofactor1( unsigned t, int iVar )
+{
+    assert( iVar >= 0 && iVar < 5 );
+    return (t & s_Truths5[iVar]) | ((t & s_Truths5[iVar]) >> (1<<iVar));
+}
+
 
 /**Function*************************************************************
 
