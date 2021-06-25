@@ -48866,6 +48866,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_ManPerformNewResub( Gia_Man_t * p, int nWinCount, int nCutSize, int nProcs, int fVerbose );
     extern void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax );
     extern int Gia_ManSumTotalOfSupportSizes( Gia_Man_t * p );
     extern void Abc_Tt6MinTest2( Gia_Man_t * p );
@@ -48924,12 +48925,12 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-//    if ( pAbc->pGia == NULL )
-//    {
-//        Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
-//        return 1;
-//    }
-//    Abc_FrameUpdateGia( pAbc, Abc_Procedure(pAbc->pGia) );
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
+        return 1;
+    }
+    Abc_FrameUpdateGia( pAbc, Gia_ManPerformNewResub(pAbc->pGia, 10, 8, 1, 1) );
 //    printf( "AIG in \"%s\" has the sum of output support sizes equal to %d.\n", pAbc->pGia->pSpec, Gia_ManSumTotalOfSupportSizes(pAbc->pGia) );
     //Gia_ManExtractTest( pAbc->pGia );
     //Abc_Tt6MinTest2( pAbc->pGia );

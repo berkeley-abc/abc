@@ -683,6 +683,7 @@ Gia_Man_t * Gia_TryPermOpt( word * pTruths, int nIns, int nOuts, int nWords, int
         Abc_TtCopy( pTruthDup, pTruths, nOuts*nWords, 0 );
         if ( fVerbose )
             printf( "\n" );
+        nNodesAll = 0;
     }
     if ( fVerbose )
         printf( "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
@@ -728,7 +729,6 @@ void Abc_Tt6MinTest2( Gia_Man_t * p )
     word * pTruth = ABC_ALLOC( word, 3*nWords );
     word * pRes = NULL, * pTruths[3] = { pTruth, pTruth+nWords, pTruth+2*nWords };
 
-    Gia_Man_t * pNew    = NULL;
     Vec_Int_t * vSupp   = Vec_IntAlloc( 100 );
     Vec_Wrd_t * vNodes  = Vec_WrdAlloc( 100 );
     Vec_Wec_t * vNodes2 = Vec_WecAlloc( 100 );
