@@ -1478,6 +1478,147 @@ void Gia_AigerWriteSimple( Gia_Man_t * pInit, char * pFileName )
     fclose( pFile );
 }
 
+
+
+/**Function*************************************************************
+
+  Synopsis    [Simple AIGER reader/writer.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline unsigned Aiger_ReadUnsigned( FILE * pFile )
+{
+    unsigned x = 0, i = 0;
+    unsigned char ch;
+    while ((ch = fgetc(pFile)) & 0x80)
+        x |= (ch & 0x7f) << (7 * i++);
+    return x | (ch << (7 * i));
+}
+static inline void Aiger_WriteUnsigned( FILE * pFile, unsigned x )
+{
+    unsigned char ch;
+    while (x & ~0x7f)
+    {
+        ch = (x & 0x7f) | 0x80;
+        fputc( ch, pFile );
+        x >>= 7;
+    }
+    ch = x;
+    fputc( ch, pFile );
+}
+int * Aiger_Read( char * pFileName, int * pnObjs, int * pnIns, int * pnLats, int * pnOuts, int * pnAnds )
+{
+    int i, Temp, nTotal, nObjs, nIns, nLats, nOuts, nAnds, * pObjs;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Aiger_Read(): Cannot open the output file \"%s\".\n", pFileName );
+        return NULL;
+    }
+    if ( fgetc(pFile) != 'a' || fgetc(pFile) != 'i' || fgetc(pFile) != 'g' )
+    {
+        fprintf( stdout, "Aiger_Read(): Can only read binary AIGER.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    if ( fscanf(pFile, "%d %d %d %d %d", &nTotal, &nIns, &nLats, &nOuts, &nAnds) != 5 )
+    {
+        fprintf( stdout, "Aiger_Read(): Cannot read the header line.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    if ( nTotal != nIns + nLats + nAnds )
+    {
+        fprintf( stdout, "The number of objects does not match.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    nObjs = 1 + nIns + 2*nLats + nOuts + nAnds;
+    pObjs = ABC_CALLOC( int, nObjs * 2 );
+    // read flop input literals
+    for ( i = 0; i < nLats; i++ )
+    {
+        while ( fgetc(pFile) != '\n' );
+        fscanf( pFile, "%d", &Temp );
+        pObjs[2*(nObjs-nLats+i)+0] = Temp;
+        pObjs[2*(nObjs-nLats+i)+1] = Temp;
+    }
+    // read output literals
+    for ( i = 0; i < nOuts; i++ )
+    {
+        while ( fgetc(pFile) != '\n' );
+        fscanf( pFile, "%d", &Temp );
+        pObjs[2*(nObjs-nOuts-nLats+i)+0] = Temp;
+        pObjs[2*(nObjs-nOuts-nLats+i)+1] = Temp;
+    }
+    // read the binary part
+    while ( fgetc(pFile) != '\n' );
+    for ( i = 0; i < nAnds; i++ )
+    {
+        int uLit  = 2*(1 + nIns + nLats + i);
+        int uLit1 = uLit  - Aiger_ReadUnsigned( pFile );
+        int uLit0 = uLit1 - Aiger_ReadUnsigned( pFile );
+        pObjs[2*(1+nIns+i)+0] = uLit0;
+        pObjs[2*(1+nIns+i)+1] = uLit1;
+    }
+    fclose( pFile );
+    if ( pnObjs ) *pnObjs = nObjs;
+    if ( pnIns )  *pnIns  = nIns;
+    if ( pnLats ) *pnLats = nLats;
+    if ( pnOuts ) *pnOuts = nOuts;
+    if ( pnAnds ) *pnAnds = nAnds;
+    return pObjs;
+}
+void Aiger_Write( char * pFileName, int * pObjs, int nObjs, int nIns, int nLats, int nOuts, int nAnds )
+{
+    FILE * pFile = fopen( pFileName, "wb" ); int i;
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Aiger_Write(): Cannot open the output file \"%s\".\n", pFileName );
+        return;
+    }
+    fprintf( pFile, "aig %d %d %d %d %d\n", nIns + nLats + nAnds, nIns, nLats, nOuts, nAnds );
+    for ( i = 0; i < nLats; i++ )
+        fprintf( pFile, "%d\n", pObjs[2*(nObjs-nLats+i)+0] );
+    for ( i = 0; i < nOuts; i++ )
+        fprintf( pFile, "%d\n", pObjs[2*(nObjs-nOuts-nLats+i)+0] );
+    for ( i = 0; i < nAnds; i++ )
+    {
+        int uLit  = 2*(1 + nIns + nLats + i);
+        int uLit0 = pObjs[2*(1+nIns+i)+0];
+        int uLit1 = pObjs[2*(1+nIns+i)+1];
+        Aiger_WriteUnsigned( pFile, uLit  - uLit1 );
+        Aiger_WriteUnsigned( pFile, uLit1 - uLit0 );
+    }
+    fprintf( pFile, "c\n" );
+    fclose( pFile );
+}
+void Aiger_Test( char * pFileNameIn, char * pFileNameOut )
+{
+    int nObjs, nIns, nLats, nOuts, nAnds, * pObjs = Aiger_Read( pFileNameIn, &nObjs, &nIns, &nLats, &nOuts, &nAnds );
+    if ( pObjs == NULL )
+        return;
+    printf( "Read input file \"%s\".\n", pFileNameIn );
+    Aiger_Write( pFileNameOut, pObjs, nObjs, nIns, nLats, nOuts, nAnds );
+    printf( "Written output file \"%s\".\n", pFileNameOut );
+    ABC_FREE( pObjs );
+}
+
+/*
+int main( int argc, char ** argv )
+{
+    if ( argc != 3 )
+        return 0;
+    Aiger_Test( argv[1], argv[2] );
+    return 1;
+}
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
