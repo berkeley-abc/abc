@@ -1219,8 +1219,8 @@ float If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut )
         return pCut->nLeaves;
     aResult2 = If_CutEdgeRef( p, pCut );
     aResult  = If_CutEdgeDeref( p, pCut );
-    assert( aResult > aResult2 - 3*p->fEpsilon );
-    assert( aResult < aResult2 + 3*p->fEpsilon );
+//    assert( aResult > aResult2 - 3*p->fEpsilon );
+//    assert( aResult < aResult2 + 3*p->fEpsilon );
     return aResult;
 }
 
@@ -1242,8 +1242,8 @@ float If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut )
         return pCut->nLeaves;
     aResult2 = If_CutEdgeDeref( p, pCut );
     aResult  = If_CutEdgeRef( p, pCut );
-    assert( aResult > aResult2 - p->fEpsilon );
-    assert( aResult < aResult2 + p->fEpsilon );
+//    assert( aResult > aResult2 - p->fEpsilon );
+//    assert( aResult < aResult2 + p->fEpsilon );
     return aResult;
 }
 

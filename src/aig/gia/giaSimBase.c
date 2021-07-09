@@ -211,6 +211,7 @@ Gia_Man_t * Gia_ManPerformMuxDec( Gia_Man_t * p )
     Gia_ManHashAlloc( pNew );
     for ( o = 0; o < Gia_ManCoNum(p); o++ )
     {
+        Abc_TtReverseVars( pRes+o*nWords, nWords );
         Vec_IntClear( vDatas );
         for ( i = 0; i < nWords; i++ )
             Vec_IntPush( vDatas, Kit_TruthToGia(pNew, (unsigned *)(pRes+o*nWords+i), 6, vMemory, vLeaves, 1) );
