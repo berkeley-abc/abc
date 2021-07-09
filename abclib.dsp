@@ -5103,7 +5103,7 @@ SOURCE=.\src\aig\gia\giaResub2.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaResub3_new.c
+SOURCE=.\src\aig\gia\giaResub3.c
 # End Source File
 # Begin Source File
 
