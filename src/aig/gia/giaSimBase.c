@@ -149,6 +149,85 @@ void Gia_ManSimPatWrite( char * pFileName, Vec_Wrd_t * vSimsIn, int nWords )
     Vec_WrdDumpHex( pFileName, vSimsIn, nWords, 0 );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word * Gia_ManDeriveFuncs( Gia_Man_t * p )
+{
+    int nVars2 = (Gia_ManCiNum(p) + 6)/2;
+    int nVars3 = Gia_ManCiNum(p) - nVars2;
+    int nWords = Abc_Truth6WordNum( Gia_ManCiNum(p) );
+    int nWords2 = Abc_Truth6WordNum( nVars2 );
+    word * pRes = ABC_ALLOC( word, Gia_ManCoNum(p) * nWords );
+    Vec_Wrd_t * vSims = Vec_WrdStart( nWords2 * Gia_ManObjNum(p) );
+    Vec_Ptr_t * vTruths = Vec_PtrAllocTruthTables( nVars2 );
+    Gia_Obj_t * pObj; int i, v, m;
+    Gia_ManForEachCi( p, pObj, i )
+        assert( Gia_ObjId(p, pObj) == i+1 );
+    for ( i = 0; i < nVars2; i++ )
+        Abc_TtCopy( Vec_WrdEntryP(vSims, nWords2*(i+1)), (word *)Vec_PtrEntry(vTruths, i), nWords2, 0 );
+    Vec_PtrFree( vTruths );
+    for ( m = 0; m < (1 << nVars3); m++ )
+    {
+        for ( v = 0; v < nVars3; v++ )
+            Abc_TtConst( Vec_WrdEntryP(vSims, nWords2*(nVars2+v+1)), nWords2, (m >> v) & 1 );
+        Gia_ManForEachAnd( p, pObj, i ) 
+            Gia_ManSimPatSimAnd( p, i, pObj, nWords2, vSims );
+        Gia_ManForEachCo( p, pObj, i )
+            Gia_ManSimPatSimPo( p, Gia_ObjId(p, pObj), pObj, nWords2, vSims );
+        Gia_ManForEachCo( p, pObj, i )
+            Abc_TtCopy( pRes + i*nWords + m*nWords2, Vec_WrdEntryP(vSims, nWords2*Gia_ObjId(p, pObj)), nWords2, 0 );
+    }
+    Vec_WrdFree( vSims );
+    return pRes;
+}
+Gia_Man_t * Gia_ManPerformMuxDec( Gia_Man_t * p )
+{
+    extern int Gia_ManFindMuxTree_rec( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData, int Shift );
+    extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
+    int nWords = Abc_Truth6WordNum( Gia_ManCiNum(p) );
+    int nCofs = 1 << (Gia_ManCiNum(p) - 6);
+    word * pRes = Gia_ManDeriveFuncs( p );
+    Vec_Int_t * vMemory = Vec_IntAlloc( 1 << 16 );
+    Vec_Int_t * vLeaves = Vec_IntAlloc( 6 );
+    Vec_Int_t * vCtrls  = Vec_IntAlloc( nCofs );
+    Vec_Int_t * vDatas  = Vec_IntAlloc( Gia_ManCoNum(p) );
+    Gia_Man_t * pNew, * pTemp; int i, o;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    for ( i = 0; i < Gia_ManCiNum(p); i++ )
+        Vec_IntPush( i < 6 ? vLeaves : vCtrls, Gia_ManAppendCi(pNew) );
+    Gia_ManHashAlloc( pNew );
+    for ( o = 0; o < Gia_ManCoNum(p); o++ )
+    {
+        Vec_IntClear( vDatas );
+        for ( i = 0; i < nWords; i++ )
+            Vec_IntPush( vDatas, Kit_TruthToGia(pNew, (unsigned *)(pRes+o*nWords+i), 6, vMemory, vLeaves, 1) );
+        Gia_ManAppendCo( pNew, Gia_ManFindMuxTree_rec(pNew, Vec_IntArray(vCtrls), Vec_IntSize(vCtrls), vDatas, 0) );
+    }
+    Gia_ManHashStop( pNew );
+    ABC_FREE( pRes );
+    Vec_IntFree( vMemory );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vCtrls );
+    Vec_IntFree( vDatas );   
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
 /**Function*************************************************************
 
   Synopsis    []
