@@ -1513,7 +1513,7 @@ static inline void Aiger_WriteUnsigned( FILE * pFile, unsigned x )
 }
 int * Aiger_Read( char * pFileName, int * pnObjs, int * pnIns, int * pnLats, int * pnOuts, int * pnAnds )
 {
-    int i, Temp, nTotal, nObjs, nIns, nLats, nOuts, nAnds, * pObjs;
+    int i, Temp, Value = 0, nTotal, nObjs, nIns, nLats, nOuts, nAnds, * pObjs;
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
@@ -1544,7 +1544,7 @@ int * Aiger_Read( char * pFileName, int * pnObjs, int * pnIns, int * pnLats, int
     for ( i = 0; i < nLats; i++ )
     {
         while ( fgetc(pFile) != '\n' );
-        fscanf( pFile, "%d", &Temp );
+        Value += fscanf( pFile, "%d", &Temp );
         pObjs[2*(nObjs-nLats+i)+0] = Temp;
         pObjs[2*(nObjs-nLats+i)+1] = Temp;
     }
@@ -1552,10 +1552,11 @@ int * Aiger_Read( char * pFileName, int * pnObjs, int * pnIns, int * pnLats, int
     for ( i = 0; i < nOuts; i++ )
     {
         while ( fgetc(pFile) != '\n' );
-        fscanf( pFile, "%d", &Temp );
+        Value += fscanf( pFile, "%d", &Temp );
         pObjs[2*(nObjs-nOuts-nLats+i)+0] = Temp;
         pObjs[2*(nObjs-nOuts-nLats+i)+1] = Temp;
     }
+    assert( Value == nLats + nOuts );
     // read the binary part
     while ( fgetc(pFile) != '\n' );
     for ( i = 0; i < nAnds; i++ )

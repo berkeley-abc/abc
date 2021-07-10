@@ -239,6 +239,145 @@ Gia_Man_t * Gia_ManPerformMuxDec( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManComputeTfos_rec( Gia_Man_t * p, int iObj, int iRoot, Vec_Int_t * vNode )
+{
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjIsTravIdPreviousId(p, iObj) )
+        return 1;
+    if ( Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return 0;
+    pObj = Gia_ManObj( p, iObj );
+    if ( !Gia_ObjIsAnd(pObj) )
+        return 0;
+    if ( Gia_ManComputeTfos_rec( p, Gia_ObjFaninId0(pObj, iObj), iRoot, vNode ) |
+         Gia_ManComputeTfos_rec( p, Gia_ObjFaninId1(pObj, iObj), iRoot, vNode ) )
+    {
+         Gia_ObjSetTravIdPreviousId(p, iObj);
+         Vec_IntPush( vNode, iObj );
+         return 1;
+    }
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    return 0;
+}
+Vec_Wec_t * Gia_ManComputeTfos( Gia_Man_t * p )
+{
+    Vec_Wec_t * vNodes = Vec_WecStart( Gia_ManCiNum(p) );
+    Vec_Int_t * vTemp = Vec_IntAlloc( 100 );
+    int i, o, IdCi, IdCo;
+    Gia_ManForEachCiId( p, IdCi, i )
+    {
+        Vec_Int_t * vNode = Vec_WecEntry( vNodes, i );
+        Gia_ManIncrementTravId( p );
+        Gia_ManIncrementTravId( p );
+        Gia_ObjSetTravIdPreviousId(p, IdCi);
+        Vec_IntPush( vNode, IdCi );
+        Vec_IntClear( vTemp );
+        Gia_ManForEachCoId( p, IdCo, o )
+            if ( Gia_ManComputeTfos_rec( p, Gia_ObjFaninId0(Gia_ManObj(p, IdCo), IdCo), IdCi, vNode ) )
+                Vec_IntPush( vTemp, Gia_ManObjNum(p) + (o >> 1) );
+        Vec_IntUniqify( vTemp );
+        Vec_IntAppend( vNode, vTemp );
+    }
+    Vec_IntFree( vTemp );
+    Vec_WecSort( vNodes, 1 );
+    //Vec_WecPrint( vNodes, 0 );
+    //Gia_AigerWrite( p, "dump.aig", 0, 0, 0 );
+    return vNodes;
+}
+int Gia_ManFindDividerVar( Gia_Man_t * p, int fVerbose )
+{
+    int iVar, Target = 1 << 28;
+    for ( iVar = 6; iVar < Gia_ManCiNum(p); iVar++ )
+        if ( (1 << (iVar-3)) * Gia_ManObjNum(p) > Target )
+            break;
+    if ( iVar == Gia_ManCiNum(p) )
+        iVar = Gia_ManCiNum(p) - 1;
+    if ( fVerbose )
+        printf( "Split var = %d.  Rounds = %d.  Bytes per node = %d.  Total = %.2f MB.\n", iVar, 1 << (Gia_ManCiNum(p) - iVar), 1 << (iVar-3), 1.0*(1 << (iVar-3)) * Gia_ManObjNum(p)/(1<<20) );
+    return iVar;
+}
+int Gia_ManComparePair( Gia_Man_t * p, Vec_Wrd_t * vSims, int iOut, int nWords2 )
+{
+    Gia_Obj_t * pObj0 = Gia_ManCo( p, 2*iOut+0 );
+    Gia_Obj_t * pObj1 = Gia_ManCo( p, 2*iOut+1 );
+    word * pSim0 = Vec_WrdEntryP( vSims, nWords2*Gia_ObjId(p, pObj0) );
+    word * pSim1 = Vec_WrdEntryP( vSims, nWords2*Gia_ObjId(p, pObj1) );
+    Gia_ManSimPatSimPo( p, Gia_ObjId(p, pObj0), pObj0, nWords2, vSims );
+    Gia_ManSimPatSimPo( p, Gia_ObjId(p, pObj1), pObj1, nWords2, vSims );
+    return Abc_TtEqual( pSim0, pSim1, nWords2 );
+}
+int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose )
+{
+    int Status = -1;
+    abctime clk = Abc_Clock(); int fWarning = 0;
+    //int nVars2  = (Gia_ManCiNum(p) + 6)/2;
+    int nVars2  = Gia_ManFindDividerVar( p, fVerbose );
+    int nVars3  = Gia_ManCiNum(p) - nVars2;
+    int nWords2 = Abc_Truth6WordNum( nVars2 );
+    Vec_Wrd_t * vSims = Vec_WrdStart( nWords2 * Gia_ManObjNum(p) );
+    Vec_Wec_t * vNodes = Gia_ManComputeTfos( p );
+    Vec_Ptr_t * vTruths = Vec_PtrAllocTruthTables( nVars2 );
+    Gia_Obj_t * pObj; Vec_Int_t * vNode; int i, m, iObj;
+    Vec_WecForEachLevelStop( vNodes, vNode, i, nVars2 )
+        Abc_TtCopy( Vec_WrdEntryP(vSims, nWords2*Vec_IntEntry(vNode,0)), (word *)Vec_PtrEntry(vTruths, i), nWords2, 0 );
+    Vec_PtrFree( vTruths );
+    Gia_ManForEachAnd( p, pObj, i )
+        Gia_ManSimPatSimAnd( p, i, pObj, nWords2, vSims );
+    for ( i = 0; i < Gia_ManCoNum(p)/2; i++ )
+    {
+        if ( !Gia_ManComparePair( p, vSims, i, nWords2 ) )
+        {
+            printf( "Miter is asserted for output %d.\n", i );
+            Vec_WecFree( vNodes );
+            Vec_WrdFree( vSims );
+            return 0;
+        }
+    }
+    for ( m = 0; m < (1 << nVars3); m++ )
+    {
+        int iVar = m ? Abc_TtSuppFindFirst( m ^ (m >> 1) ^ (m-1) ^ ((m-1) >> 1) ) : 0;
+        vNode = Vec_WecEntry( vNodes, nVars2+iVar );
+        Abc_TtNot( Vec_WrdEntryP(vSims, nWords2*Vec_IntEntry(vNode,0)), nWords2 );
+        Vec_IntForEachEntryStart( vNode, iObj, i, 1 )
+        {
+            if ( iObj < Gia_ManObjNum(p) )
+            {
+                pObj = Gia_ManObj( p, iObj );
+                assert( Gia_ObjIsAnd(pObj) );
+                Gia_ManSimPatSimAnd( p, iObj, pObj, nWords2, vSims );
+            }
+            else if ( !Gia_ManComparePair( p, vSims, iObj - Gia_ManObjNum(p), nWords2 ) )
+            {
+                printf( "Miter is asserted for output %d.\n", iObj - Gia_ManObjNum(p) );
+                Vec_WecFree( vNodes );
+                Vec_WrdFree( vSims );
+                return 0;
+            }
+        }
+        //for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        //    printf( "%3d : ", i), Extra_PrintHex2( stdout, (unsigned *)Vec_WrdEntryP(vSims, i), 6 ), printf( "\n" );
+        if ( !fWarning && Abc_Clock() > clk + 5*CLOCKS_PER_SEC )
+            printf( "The computation is expected to take about %.2f sec.\n", 5.0*(1 << nVars3)/m ), fWarning = 1;
+        //if ( (m & 0x3F) == 0x3F )
+        if ( fVerbose && (m & 0xFF) == 0xFF )
+        printf( "Finished %6d (out of %6d)...\n", m, 1 << nVars3 );
+    }
+    Vec_WecFree( vNodes );
+    Vec_WrdFree( vSims );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManSimPatAssignInputs2( Gia_Man_t * p, int nWords, Vec_Wrd_t * vSims, Vec_Wrd_t * vSimsIn )
 {
     int i, Id;

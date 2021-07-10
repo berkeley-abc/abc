@@ -1141,8 +1141,8 @@ float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut )
         return 0;
     aResult2 = If_CutAreaDeref( p, pCut );
     aResult  = If_CutAreaRef( p, pCut );
-    assert( aResult > aResult2 - p->fEpsilon );
-    assert( aResult < aResult2 + p->fEpsilon );
+//    assert( aResult > aResult2 - p->fEpsilon );
+//    assert( aResult < aResult2 + p->fEpsilon );
     return aResult;
 }
 

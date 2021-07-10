@@ -37407,10 +37407,10 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     Gia_Man_t * pGias[2] = {NULL, NULL}, * pMiter;
     char ** pArgvNew;
-    int c, nArgcNew, fUseNew = 0, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
+    int c, nArgcNew, fUseSim = 0, fUseNew = 0, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasxvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasxtvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -37453,6 +37453,9 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'x':
             fUseNew ^= 1;
+            break;
+        case 't':
+            fUseSim ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -37605,7 +37608,25 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             pMiter->vSimsPi = Vec_WrdDup(pGias[0]->vSimsPi); 
             pMiter->nSimWords = pGias[0]->nSimWords;
         }
-        if ( fUseNew )
+        if ( fUseSim && Gia_ManCiNum(pMiter) > 40 )
+        {
+            Abc_Print( -1, "This type of CEC can only be applied to AIGs with no more than 40 inputs.\n" );
+            return 0;
+        }
+        if ( fUseSim )
+        {
+            abctime clk = Abc_Clock();
+            extern int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose );
+            int Status = Gia_ManCheckSimEquiv( pMiter, pPars->fVerbose );
+            if ( Status == 1 )
+                Abc_Print( 1, "Networks are equivalent.  " );
+            else if ( Status == 0 )
+                Abc_Print( 1, "Networks are NOT equivalent.  " );
+            else
+                Abc_Print( 1, "Networks are UNDECIDED.  " );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
+        else if ( fUseNew )
         {
             abctime clk = Abc_Clock();
             extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
@@ -37630,7 +37651,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasxvwh]\n" );
+    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasxtvwh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
@@ -37640,6 +37661,7 @@ usage:
     Abc_Print( -2, "\t-a     : toggle writing dual-output miter [default = %s]\n", fDumpMiter? "yes":"no");
     Abc_Print( -2, "\t-s     : toggle silent operation [default = %s]\n", pPars->fSilent ? "yes":"no");
     Abc_Print( -2, "\t-x     : toggle using new solver [default = %s]\n", fUseNew? "yes":"no");
+    Abc_Print( -2, "\t-t     : toggle using simulation [default = %s]\n", fUseSim? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-w     : toggle printing SAT solver statistics [default = %s]\n", pPars->fVeryVerbose? "yes":"no");
     Abc_Print( -2, "\t-h     : print the command usage\n");
