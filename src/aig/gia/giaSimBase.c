@@ -225,6 +225,7 @@ Gia_Man_t * Gia_ManPerformMuxDec( Gia_Man_t * p )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
+    Gia_ManTransferTiming( pNew, p );
     return pNew;
 }
 
@@ -308,7 +309,6 @@ int Gia_ManComparePair( Gia_Man_t * p, Vec_Wrd_t * vSims, int iOut, int nWords2 
 }
 int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose )
 {
-    int Status = -1;
     abctime clk = Abc_Clock(); int fWarning = 0;
     //int nVars2  = (Gia_ManCiNum(p) + 6)/2;
     int nVars2  = Gia_ManFindDividerVar( p, fVerbose );
