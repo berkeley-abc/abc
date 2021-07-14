@@ -41025,6 +41025,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9LNetRead( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Vec_WrdReadTest( char * pFileName );
     extern void Gia_ManReadSimInfoInputs( char * pFileName, char * pFileOut1, int fVerbose );
     int c, fVerbose = 0;
     Extra_UtilGetoptReset();
@@ -41045,11 +41046,21 @@ int Abc_CommandAbc9LNetRead( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManReadSimInfoInputs( argv[globalUtilOptind], argv[globalUtilOptind+1], fVerbose );
         return 0;
     }
+    if ( strstr(argv[globalUtilOptind], ".v") )
+    {
+        Gia_Man_t * pNew = Vec_WrdReadTest( argv[globalUtilOptind] );
+        if ( pNew == NULL )
+        {
+            printf( "Cannot read network from file \"%s\".\n", argv[globalUtilOptind] );
+            return 0;
+        }
+        Abc_FrameUpdateGia( pAbc, pNew );
+    }
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &lnetread [-vh] <file> <file2>\n" );
-    Abc_Print( -2, "\t           reads and converts the simulation data\n" );
+    Abc_Print( -2, "\t           reads and converts the network or the simulation data\n" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     Abc_Print( -2, "\t<file>   : input file name with simulation information\n");
@@ -41252,7 +41263,7 @@ int Abc_CommandAbc9LNetOpt( Abc_Frame_t * pAbc, int argc, char ** argv )
         FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
         if ( pFile == NULL )
         {
-            Abc_Print( -1, "Abc_CommandAbc9BCore(): Cannot open file \"%s\" for writing the proof.\n", argv[globalUtilOptind] );
+            Abc_Print( -1, "Abc_CommandAbc9BCore(): Cannot open file \"%s\" for reading the simulation information.\n", argv[globalUtilOptind] );
             return 0;
         }
         fclose( pFile );
@@ -41340,7 +41351,7 @@ int Abc_CommandAbc9LNetMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
         if ( pFile == NULL )
         {
-            Abc_Print( -1, "Abc_CommandAbc9BCore(): Cannot open file \"%s\" for writing the proof.\n", argv[globalUtilOptind] );
+            Abc_Print( -1, "Abc_CommandAbc9BCore(): Cannot open file \"%s\" for reading the simulation information.\n", argv[globalUtilOptind] );
             return 0;
         }
         fclose( pFile );

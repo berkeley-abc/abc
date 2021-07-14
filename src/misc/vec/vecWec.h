@@ -637,6 +637,25 @@ static inline int Vec_WecCountNonTrivial( Vec_Wec_t * p, int * pnUsed )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Vec_WecMaxLevelSize( Vec_Wec_t * p )
+{
+    Vec_Int_t * vTemp; int i, Res = 0;
+    Vec_WecForEachLevel( p, vTemp, i )
+        Res = Abc_MaxInt( Res, Vec_IntSize(vTemp) );
+    return Res;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline Vec_Int_t * Vec_WecCollectFirsts( Vec_Wec_t * p )
 {
     Vec_Int_t * vFirsts, * vLevel;

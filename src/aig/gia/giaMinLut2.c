@@ -515,6 +515,247 @@ word * Abc_TtMinArray( word * p, int nOuts, int nVars, int * pnNodes, int fVerbo
   SeeAlso     []
 
 ***********************************************************************/
+static inline word Abc_TtGia6Min_rec( Gia_Man_t * p, word uF, word uR, int nVars, Vec_Wrd_t * vNodes, int * piLit, int * pPerm )
+{
+    word uF0, uF1, uR0, uR1, uRes0, uRes1, uRes2; int i, Var, iLit0, iLit1;
+    assert( nVars <= 6 );
+    assert( (uF & uR) == 0 );
+    *piLit = -1;
+    if ( !uF && !uR )
+        return TT_UNDEF;
+    if ( !uF && !~uR )
+    {
+        *piLit = 0;
+        return 0;
+    }
+    if ( !~uF && !uR )
+    {
+        *piLit = 1;
+        return ~(word)0;
+    }
+    assert( nVars > 0 );
+    for ( Var = nVars-1; Var >= 0; Var-- )
+        if ( Abc_Tt6HasVar( uF, Var ) || Abc_Tt6HasVar( uR, Var ) )
+             break;
+    assert( Var >= 0 );
+    if ( 1 && vNodes )
+    {
+        int iLit;
+        Vec_WrdForEachEntryDouble( vNodes, uRes2, iLit, i )
+            if ( !(uF & ~uRes2) && !(uRes2 & uR) )
+            {
+                *piLit = (unsigned)iLit;
+                return uRes2;
+            }
+            else if ( !(uF & uRes2) && !(~uRes2 & uR) )
+            {
+                *piLit = Abc_LitNot( (unsigned)iLit );
+                return ~uRes2;
+            }
+    }
+    uF0 = Abc_Tt6Cofactor0( uF, Var );
+    uF1 = Abc_Tt6Cofactor1( uF, Var );
+    uR0 = Abc_Tt6Cofactor0( uR, Var );
+    uR1 = Abc_Tt6Cofactor1( uR, Var );
+    uRes0 = Abc_TtGia6Min_rec( p, uF0, uR0, Var, vNodes, &iLit0, pPerm );
+    uRes1 = Abc_TtGia6Min_rec( p, uF1, uR1, Var, vNodes, &iLit1, pPerm );
+    if ( uRes0 == TT_UNDEF && uRes1 == TT_UNDEF )
+        return TT_UNDEF;
+    if ( uRes0 == TT_UNDEF )
+    {
+        *piLit = iLit1;
+        return uRes1;
+    }
+    if ( uRes1 == TT_UNDEF || uRes0 == uRes1 )
+    {
+        *piLit = iLit0;
+        return uRes0;
+    }
+//    if ( (uRes0 & ~uRes1) == 0 )
+//        printf( "0" );
+//    else if ( (~uRes0 & uRes1) == 0 )
+//        printf( "1" );
+//    else
+//        printf( "*" );
+    uRes2 = (uRes0 & s_Truths6Neg[Var]) | (uRes1 & s_Truths6[Var]);
+    Var = pPerm ? pPerm[Var] : Var;
+    if ( !(uRes0 & ~uRes1) )
+        *piLit = Gia_ManHashOr( p, Gia_ManHashAnd(p, Abc_Var2Lit(1+Var, 0), iLit1), iLit0 );
+    else if ( !(uRes1 & ~uRes0) )
+        *piLit = Gia_ManHashOr( p, Gia_ManHashAnd(p, Abc_Var2Lit(1+Var, 1), iLit0), iLit1 );
+    else
+        *piLit = Gia_ManHashMux( p, Abc_Var2Lit(1+Var, 0), iLit1, iLit0 );
+    assert( !(uF & ~uRes2) );
+    assert( !(uRes2 & uR) );
+    if ( vNodes )
+        Vec_WrdPushTwo( vNodes, uRes2, (word)*piLit );
+    return uRes2;
+}
+word * Abc_TtGiaMin_rec( Gia_Man_t * p, word * pF, word * pR, int nVars, Vec_Wrd_t * vMemory, Vec_Wrd_t * vNodes, Vec_Wec_t * vNodes2, int * piLit, int * pPerm )
+{
+    int i, Entry, Var, iLit0, iLit1, nWords = Abc_TtWordNum(nVars);
+    word * pRes0, * pRes1, * pRes2 = Vec_WrdFetch( vMemory, nWords );
+    *piLit = -1;
+    if ( nVars <= 6 )
+    {
+        pRes2[0] = Abc_TtGia6Min_rec( p, pF[0], pR[0], nVars, vNodes, piLit, pPerm );
+        return pRes2;
+    }
+    assert( !Abc_TtIntersect(pF, pR, nWords, 0) );
+    if ( Abc_TtIsConst0(pF, nWords) && Abc_TtIsConst0(pR, nWords) )
+        return NULL;
+    if ( Abc_TtIsConst0(pF, nWords) && Abc_TtIsConst1(pR, nWords) )
+    {
+        *piLit = 0;
+        Abc_TtClear( pRes2, nWords );
+        return pRes2;
+    }
+    if ( Abc_TtIsConst1(pF, nWords) && Abc_TtIsConst0(pR, nWords) )
+    {
+        *piLit = 1;
+        Abc_TtFill( pRes2, nWords );
+        return pRes2;
+    }
+    nWords >>= 1;
+    if ( !Abc_TtHasVar( pF, nVars, nVars-1 ) && !Abc_TtHasVar( pR, nVars, nVars-1 ) )
+    {
+        pRes0 = Abc_TtGiaMin_rec( p, pF, pR, nVars-1, vMemory, vNodes, vNodes2, piLit, pPerm );
+        Abc_TtCopy( pRes2,          pRes0, nWords, 0 );
+        Abc_TtCopy( pRes2 + nWords, pRes0, nWords, 0 );
+        return pRes2;
+    }
+    if ( 1 && vNodes2 )
+    {
+        Vec_Int_t * vLayer = Vec_WecEntry( vNodes2, nVars ); int iLit;
+        Vec_IntForEachEntryDouble( vLayer, Entry, iLit, i )
+        {
+            word * pTemp = Vec_WrdEntryP( vMemory, Entry );
+            if ( !Abc_TtIntersect(pTemp, pF, 2*nWords, 1) && !Abc_TtIntersect(pTemp, pR, 2*nWords, 0) )
+            {
+                *piLit = iLit;
+                return pTemp;
+            }
+            else if ( !Abc_TtIntersect(pTemp, pF, 2*nWords, 0) && !Abc_TtIntersect(pTemp, pR, 2*nWords, 1) )
+            {
+                *piLit = Abc_LitNot(iLit);
+                Abc_TtCopy( pRes2, pTemp, 2*nWords, 1 );
+                return pRes2;
+            }
+        }
+/*
+        if ( nVars > 7 )
+        {
+            vLayer = Vec_WecEntry( vNodes2, nVars-1 );
+            Vec_IntForEachEntryDouble( vLayer, Entry, iLit, i )
+            {
+                word * pTemp = Vec_WrdEntryP( vMemory, Entry );
+                if ( !Abc_TtIntersect(pTemp, pF, 2*nWords, 1) && !Abc_TtIntersect(pTemp, pR, 2*nWords, 0) )
+                {
+                    *piLit = iLit;
+                    return pTemp;
+                }
+                else if ( !Abc_TtIntersect(pTemp, pF, 2*nWords, 0) && !Abc_TtIntersect(pTemp, pR, 2*nWords, 1) )
+                {
+                    *piLit = Abc_LitNot(iLit);
+                    Abc_TtCopy( pRes2, pTemp, 2*nWords, 1 );
+                    return pRes2;
+                }
+            }
+        }
+*/
+    }
+    assert( nVars > 6 );
+    pRes0 = Abc_TtGiaMin_rec( p, pF,          pR,          nVars-1, vMemory, vNodes, vNodes2, &iLit0, pPerm );
+    pRes1 = Abc_TtGiaMin_rec( p, pF + nWords, pR + nWords, nVars-1, vMemory, vNodes, vNodes2, &iLit1, pPerm );
+    if ( pRes0 == NULL && pRes1 == NULL )
+        return NULL;
+    if ( pRes0 == NULL || pRes1 == NULL || Abc_TtEqual(pRes0, pRes1, nWords) )
+    {
+        *piLit = pRes0 ? iLit0 : iLit1;
+        Abc_TtCopy( pRes2,          pRes0 ? pRes0 : pRes1, nWords, 0 );
+        Abc_TtCopy( pRes2 + nWords, pRes0 ? pRes0 : pRes1, nWords, 0 );
+        return pRes2;
+    }
+    Abc_TtCopy( pRes2,          pRes0, nWords, 0 );
+    Abc_TtCopy( pRes2 + nWords, pRes1, nWords, 0 );
+    Var = pPerm ? pPerm[nVars-1] : nVars-1;
+    if ( !Abc_TtIntersect(pRes1, pRes0, nWords, 1) )
+        *piLit = Gia_ManHashOr( p, Gia_ManHashAnd(p, Abc_Var2Lit(1+Var, 0), iLit1), iLit0 );
+    else if ( !Abc_TtIntersect(pRes0, pRes1, nWords, 1) )
+        *piLit = Gia_ManHashOr( p, Gia_ManHashAnd(p, Abc_Var2Lit(1+Var, 1), iLit0), iLit1 );
+    else
+        *piLit = Gia_ManHashMux( p, Abc_Var2Lit(1+Var, 0), iLit1, iLit0 );
+    assert( !Abc_TtIntersect(pRes2, pF, 2*nWords, 1) ); // assert( !(uF & ~uRes2) );
+    assert( !Abc_TtIntersect(pRes2, pR, 2*nWords, 0) ); // assert( !(uRes2 & uR)  );
+    if ( vNodes2 )
+    {
+        Vec_Int_t * vLayer = Vec_WecEntry( vNodes2, nVars ); 
+        Vec_IntPushTwo( vLayer, pRes2 - Vec_WrdArray(vMemory), *piLit );
+    }
+    return pRes2;
+}
+Gia_Man_t * Abc_TtGiaMinArray( word * p, int nOuts, int nVars, int * pnNodes, int fVerbose, int * pIPerm )
+{
+    Gia_Man_t * pNew, * pTemp;
+    int o, i, iLit, nWords = Abc_TtWordNum(nVars);
+    word * pRes, * pResult = ABC_ALLOC( word, nOuts*nWords/2 );
+    Vec_Wrd_t * vMemory = Vec_WrdAlloc( 100 );
+    Vec_Wrd_t * vNodes  = Vec_WrdAlloc( 100 );
+    Vec_Wec_t * vNodes2 = Vec_WecStart( nVars+1 );
+    Vec_WrdGrow( vMemory, 1 << 20 );
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( "muxes" );
+    for ( i = 0; i < nVars; i++ )
+        Gia_ManAppendCi(pNew);
+    Gia_ManHashAlloc( pNew );
+
+    for ( o = 0; o < nOuts/2; o++ )
+    {
+        word * pF = p + (2*o+0)*nWords;
+        word * pR = p + (2*o+1)*nWords;
+        for ( i = nVars; i < 6; i++ )
+            assert( !Abc_Tt6HasVar(pF[0], i) && !Abc_Tt6HasVar(pR[0], i) );
+        pRes = Abc_TtGiaMin_rec( pNew, pF, pR, nVars, vMemory, vNodes, vNodes2, &iLit, pIPerm );
+        if ( pResult == NULL )
+        {
+            Abc_TtClear( pResult + o*nWords, nWords );
+            Gia_ManAppendCo( pNew, 0 );
+        }
+        else
+        {
+            Abc_TtCopy( pResult + o*nWords, pRes, nWords, 0 );
+            Gia_ManAppendCo( pNew, iLit );
+        }
+    }
+    if ( fVerbose )
+    printf( "Nodes = %5d.  Nodes2 = %5d.  Total = %5d.    ", 
+        Vec_WrdSize(vNodes), Vec_WecSizeSize(vNodes2), Vec_WrdSize(vNodes) + Vec_WecSizeSize(vNodes2) );
+    //printf( "Memory %d (Truth table %d)\n", Vec_WrdSize(vMemory), nWords );
+    if ( pnNodes )
+        *pnNodes = Vec_WrdSize(vNodes) + Vec_WecSizeSize(vNodes2);
+    Vec_WrdFree( vMemory );
+    Vec_WrdFree( vNodes );
+    Vec_WecFree( vNodes2 );
+    ABC_FREE( pResult );
+
+    Gia_ManHashStop( pNew );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Gia_ManBuildMuxes6_rec( Gia_Man_t * p, word t, int nVars, int * pPerm )
 {
     int iLit0, iLit1, Var;
@@ -652,7 +893,7 @@ Gia_Man_t * Gia_TryPermOptCare( word * pTruths, int nIns, int nOuts, int nWords,
     ABC_FREE( pTruthBest );
     return pNew;
 }
-Gia_Man_t * Gia_TryPermOpt( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose )
+Gia_Man_t * Gia_TryPermOpt2( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose )
 {
     abctime clk = Abc_Clock();
     Gia_Man_t * pNew;
@@ -694,6 +935,45 @@ Gia_Man_t * Gia_TryPermOpt( word * pTruths, int nIns, int nOuts, int nWords, int
     //Gia_ManDumpMuxGia( pTruthBest, nIns, nOuts/2, nWords, pIPermBest, "tt_end.aig" );
     ABC_FREE( pTruthBest );
     return pNew;
+}
+Gia_Man_t * Gia_TryPermOpt( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Gia_Man_t * pBest = NULL;
+    word * pTruthDup = Abc_TtDup( pTruths, nOuts*nWords, 0 );
+    int pIPermBest[TREE_MAX_VARS] = {0};
+    int pIPerm[TREE_MAX_VARS] = {0};
+    int r, rBest = -1, nNodes2 = -1, nNodesBest = ABC_INFINITY;
+    assert( nOuts % 2 == 0 );
+    //srand( time(NULL) );
+    Gia_ManRandom(1);
+    for ( r = 0; r < nRounds; r++ )
+    {
+        int nNodesAll = Gia_ManPermuteTreeOne( pTruthDup, nIns, nOuts, nWords, r>0, pIPerm, 0, fVerbose );
+        Gia_Man_t * pTemp = Abc_TtGiaMinArray( pTruthDup, nOuts, nIns, NULL, 0, pIPerm );
+        nNodes2 = Gia_ManAndNum(pTemp);
+        if ( nNodesBest > nNodes2 )
+        {
+            nNodesBest = nNodes2;
+            memcpy( pIPermBest, pIPerm, sizeof(int)*nIns );
+            rBest = r;
+
+            Gia_ManStopP( &pBest );
+            pBest = pTemp; 
+            pTemp = NULL;
+        }
+        Gia_ManStopP( &pTemp );
+        Abc_TtCopy( pTruthDup, pTruths, nOuts*nWords, 0 );
+        if ( fVerbose )
+            printf( "Permuted = %5d.  AIG = %5d.\n", nNodesAll, nNodes2 );
+        nNodesAll = 0;
+    }
+    if ( fVerbose )
+        printf( "Best round %3d. Best nodes %5d.  ", rBest, nNodesBest );
+    ABC_FREE( pTruthDup );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return pBest;
 }
 
 

@@ -61,6 +61,8 @@ struct Vec_Wrd_t_
     for ( i = Start; (i < Stop) && (((Entry) = Vec_WrdEntry(vVec, i)), 1); i++ )
 #define Vec_WrdForEachEntryReverse( vVec, pEntry, i )                                       \
     for ( i = Vec_WrdSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_WrdEntry(vVec, i)), 1); i-- )
+#define Vec_WrdForEachEntryDouble( vVec, Entry1, Entry2, i )                                \
+    for ( i = 0; (i+1 < Vec_WrdSize(vVec)) && (((Entry1) = Vec_WrdEntry(vVec, i)), 1) && (((Entry2) = Vec_WrdEntry(vVec, i+1)), 1); i += 2 )
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -668,6 +670,30 @@ static inline void Vec_WrdPush( Vec_Wrd_t * p, word Entry )
             Vec_WrdGrow( p, 2 * p->nCap );
     }
     p->pArray[p->nSize++] = Entry;
+}
+static inline void Vec_WrdPushTwo( Vec_Wrd_t * p, word Entry1, word Entry2 )
+{
+    Vec_WrdPush( p, Entry1 );
+    Vec_WrdPush( p, Entry2 );
+}
+static inline void Vec_WrdPushThree( Vec_Wrd_t * p, word Entry1, word Entry2, word Entry3 )
+{
+    Vec_WrdPush( p, Entry1 );
+    Vec_WrdPush( p, Entry2 );
+    Vec_WrdPush( p, Entry3 );
+}
+static inline void Vec_WrdPushFour( Vec_Wrd_t * p, word Entry1, word Entry2, word Entry3, word Entry4 )
+{
+    Vec_WrdPush( p, Entry1 );
+    Vec_WrdPush( p, Entry2 );
+    Vec_WrdPush( p, Entry3 );
+    Vec_WrdPush( p, Entry4 );
+}
+static inline void Vec_WrdPushArray( Vec_Wrd_t * p, word * pEntries, int nEntries )
+{
+    int i;
+    for ( i = 0; i < nEntries; i++ )
+        Vec_WrdPush( p, pEntries[i] );
 }
 
 /**Function*************************************************************

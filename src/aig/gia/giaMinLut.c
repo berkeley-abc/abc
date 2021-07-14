@@ -51,6 +51,145 @@ extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Wec_t * Vec_WrdReadLayerText( char * pFileName, int * pnIns, int * pnOuts )
+{
+    char * pThis, pLine[1000];
+    Vec_Wec_t * vRes; int iLine;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return NULL;
+    }
+    vRes = Vec_WecAlloc(100);
+    for ( iLine = 0; fgets( pLine, 1000, pFile ); iLine++ )
+    {
+        if ( iLine == 0 )
+        {
+            pThis = strstr( pLine, "[" );
+            *pnIns = atoi( pThis+1 ) + 1;
+            pThis = strstr( pThis+1, "[" );
+            *pnOuts = atoi( pThis+1 ) + 1;
+        }
+        else
+        {
+            Vec_Int_t * vLevel = NULL;
+            for ( pThis = pLine; (pThis = strstr(pThis, "M0[")); pThis++ )
+            {
+                if ( vLevel == NULL )
+                    vLevel = Vec_WecPushLevel( vRes );
+                Vec_IntPush( vLevel, atoi( pThis+3 ) );
+            }
+            if ( vLevel )
+                Vec_IntReverseOrder( vLevel );
+        }
+    }
+    fclose( pFile );
+    //Vec_WecPrint( vRes, 0 );
+    return vRes;
+}
+int Vec_WrdReadTruthTextOne( char * pFileName, int nIns, int nOuts, word * pRes )
+{
+    int i, nWords = Abc_TtWordNum( nIns );
+    char * pStart, * pBuffer = Extra_FileReadContents( pFileName );
+    if ( pBuffer == NULL )
+    {
+        printf( "Cannot read file \"%s\".\n", pFileName );
+        return 0;
+    }
+    pStart = pBuffer;
+    for ( i = 0; i < nOuts; i++ )
+    {
+        pStart = strstr( pStart + 1, "0x" );
+        if ( !Extra_ReadHex( (unsigned *)(pRes + i*nWords), pStart + 2, nWords*16 ) )
+        {
+            printf( "Cannot read truth table %d (out of %d) in file \"%s\".\n", i, nOuts, pFileName );
+            ABC_FREE( pBuffer );
+            return 0;
+        }
+    }
+    ABC_FREE( pBuffer );
+    return 1;
+}
+word * Vec_WrdReadTruthText( char * pFileName, int nIns, int nOuts, int nFiles )
+{
+    char FileName[1000];
+    int i, nWords = Abc_TtWordNum( nIns );
+    word * pRes = ABC_CALLOC( word, nOuts*nFiles*nWords );
+    for ( i = 0; i < nFiles; i++ )
+    {
+        assert( strlen(pFileName) < 900 );
+        strcpy( FileName, pFileName );
+        sprintf( FileName + strlen(FileName) - 2, "_N%d.bench", i );
+        if ( !Vec_WrdReadTruthTextOne( FileName, nIns, nOuts, pRes + i*nOuts*nWords ) )
+        {
+            ABC_FREE( pRes );
+            return NULL;
+        }
+    }
+    return pRes;
+}
+Gia_Man_t * Vec_WrdReadTest( char * pFileName )
+{
+    extern int Gia_ManPerformLNetOpt_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj );
+    extern Gia_Man_t * Gia_TryPermOptCare( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose );
+    Gia_Man_t * pPart, * pNew = NULL; Gia_Obj_t * pObj;
+    int i, k, nIns, nOuts, iLit;
+    Vec_Wec_t * vRes = Vec_WrdReadLayerText( pFileName, &nIns, &nOuts );
+    int nFiles = vRes ? Vec_WecSize(vRes) : 0;
+    int nBitsI = vRes ? Vec_WecMaxLevelSize(vRes) : 0;
+    int nBitsO = vRes ? nOuts / Vec_WecSize(vRes) : 0;
+    word * pFuncs = vRes ? Vec_WrdReadTruthText( pFileName, nBitsI, nBitsO, Vec_WecSize(vRes) ) : NULL;
+    Vec_Int_t * vPart, * vLits = Vec_IntAlloc( nOuts );
+    if ( vRes == NULL || pFuncs == NULL )
+    {
+        Vec_WecFreeP( &vRes );
+        Vec_IntFreeP( &vLits );
+        ABC_FREE( pFuncs );
+        return NULL;
+    }
+    assert( nOuts % Vec_WecSize(vRes) == 0 );
+    pNew = Gia_ManStart( 10000 );
+    pNew->pName = Abc_UtilStrsav( pFileName );
+    pNew->pSpec = NULL;
+    for ( i = 0; i < nIns; i++ )
+        Gia_ManAppendCi(pNew);
+    Gia_ManHashStart( pNew );
+    Vec_WecForEachLevel( vRes, vPart, i )
+    {
+        assert( Vec_IntSize(vPart) <= nBitsI );
+        pPart = Gia_TryPermOptCare( pFuncs + i * nBitsO, nBitsI, nBitsO, Abc_TtWordNum(nBitsI), 10, 0 );
+        Gia_ManFillValue( pPart );
+        Gia_ManConst0(pPart)->Value = 0;
+        Gia_ManForEachCi( pPart, pObj, k )
+            pObj->Value = Abc_Var2Lit( 1+Vec_IntEntry(vPart, k), 0 );
+        Gia_ManForEachCo( pPart, pObj, k )
+        {
+            Gia_ManPerformLNetOpt_rec( pNew, pPart, Gia_ObjFanin0(pObj) );
+            Vec_IntPush( vLits, Gia_ObjFanin0Copy(pObj) );
+        }
+        Gia_ManStop( pPart );
+    }
+    Gia_ManHashStop( pNew );
+    Vec_IntForEachEntry( vLits, iLit, i )
+        Gia_ManAppendCo( pNew, iLit );
+    ABC_FREE( pFuncs );
+    Vec_WecFree( vRes );
+    Vec_IntFree( vLits );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO, int nIns, int nOuts )
 {
     int i, nSize, iLine, nLines, nWords;
