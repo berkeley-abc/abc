@@ -265,6 +265,73 @@ void Wlc_BlastMultiplierCnfTest( int nBits )
     sat_solver_delete( pSat );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Wlc_ManGenAdderN( Gia_Man_t * p, int nLits, int * pLitsA, int * pLitsB, int Carry )
+{
+    extern void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * ps );
+    Vec_Int_t * vRes = Vec_IntStart( nLits + 1 ); 
+    int i, * pRes = Vec_IntArray(vRes);
+    for ( i = 0; i < nLits; i++ )
+        Wlc_BlastFullAdder( p, pLitsA[i], pLitsB[i], Carry, &Carry, &pRes[i] );
+    pRes[nLits] = Carry;
+    return vRes;
+}
+Vec_Int_t * Wlc_ManGenAdder_rec( Gia_Man_t * p, int nLits, int * pLitsA, int * pLitsB, int Carry, int Size )
+{
+    Vec_Int_t * vRes, * vRes0, * vRes1, * vRes2; int i, iCtrl;
+    if ( nLits == Size )
+        return Wlc_ManGenAdderN( p, nLits, pLitsA, pLitsB, Carry );
+    vRes0 = Wlc_ManGenAdder_rec( p, nLits/2, pLitsA, pLitsB, Carry, Size );
+    vRes1 = Wlc_ManGenAdder_rec( p, nLits/2, pLitsA + nLits/2, pLitsB + nLits/2, 0, Size );
+    vRes2 = Wlc_ManGenAdder_rec( p, nLits/2, pLitsA + nLits/2, pLitsB + nLits/2, 1, Size );
+    vRes  = Vec_IntAlloc( nLits + 1 );
+    Vec_IntAppend( vRes, vRes0 );
+    iCtrl = Vec_IntPop( vRes );
+    for ( i = 0; i <= nLits/2; i++ )
+        Vec_IntPush( vRes, Gia_ManHashMux(p, iCtrl, Vec_IntEntry(vRes2, i), Vec_IntEntry(vRes1, i)) );
+    assert( Vec_IntSize(vRes) == nLits + 1 );
+    Vec_IntFree( vRes0 );
+    Vec_IntFree( vRes1 );
+    Vec_IntFree( vRes2 );
+    return vRes;
+}
+Gia_Man_t * Wlc_ManGenAdder( int nBits, int Size, int fSigned )
+{
+    Gia_Man_t * pTemp, * pNew; int n, i, iLit, nBitsAll;
+    Vec_Int_t * vOuts, * vLits = Vec_IntAlloc( 1000 );
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( "adder" );
+    for ( nBitsAll = Size; nBitsAll < nBits; nBitsAll *= 2 )
+        ;
+    for ( n = 0; n < 2; n++ )
+    {
+        for ( i = 0; i < nBits; i++ )
+            Vec_IntPush( vLits, Gia_ManAppendCi(pNew) );
+        for ( ; i < nBitsAll; i++ )
+            Vec_IntPush( vLits, fSigned ? Vec_IntEntry(vLits, nBits-1) : 0 );
+    }
+    Gia_ManHashAlloc( pNew );
+    vOuts = Wlc_ManGenAdder_rec( pNew, nBitsAll, Vec_IntEntryP(vLits, 0), Vec_IntEntryP(vLits, Vec_IntSize(vLits)/2), 0, Size );
+    Gia_ManHashStop( pNew );
+    Vec_IntForEachEntry( vOuts, iLit, i )
+        Gia_ManAppendCo( pNew, iLit );
+    Vec_IntFree( vLits );
+    Vec_IntFree( vOuts );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

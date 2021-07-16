@@ -136,7 +136,6 @@ Gia_Man_t * Vec_WrdReadTest( char * pFileName )
     Gia_Man_t * pPart, * pNew = NULL; Gia_Obj_t * pObj;
     int i, k, nIns, nOuts, iLit;
     Vec_Wec_t * vRes = Vec_WrdReadLayerText( pFileName, &nIns, &nOuts );
-    int nFiles = vRes ? Vec_WecSize(vRes) : 0;
     int nBitsI = vRes ? Vec_WecMaxLevelSize(vRes) : 0;
     int nBitsO = vRes ? nOuts / Vec_WecSize(vRes) : 0;
     word * pFuncs = vRes ? Vec_WrdReadTruthText( pFileName, nBitsI, nBitsO, Vec_WecSize(vRes) ) : NULL;

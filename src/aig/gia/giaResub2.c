@@ -1116,13 +1116,24 @@ int Gia_RsbFindFaninToAddToCut( Gia_Man_t * p, Vec_Int_t * vIns )
         assert( nFanins < 64 );
     }
     // find fanin with the highest count
-    for ( i = 0; i < nFanins; i++ )
-//        if ( CountMax < pFaninCounts[i] )
-        if ( CountMax < pFaninCounts[i] || (CountMax == pFaninCounts[i] && (Gia_ObjFanoutNumId(p, iFanMax) < Gia_ObjFanoutNumId(p, pFanins[i]))) )
-        {
-            CountMax = pFaninCounts[i];
-            iFanMax  = pFanins[i];
-        }
+    if ( p->vFanoutNums != NULL )
+    {
+        for ( i = 0; i < nFanins; i++ )
+            if ( CountMax < pFaninCounts[i] || (CountMax == pFaninCounts[i] && (Gia_ObjFanoutNumId(p, iFanMax) < Gia_ObjFanoutNumId(p, pFanins[i]))) )
+            {
+                CountMax = pFaninCounts[i];
+                iFanMax  = pFanins[i];
+            }
+    }
+    else
+    {
+        for ( i = 0; i < nFanins; i++ )
+            if ( CountMax < pFaninCounts[i] || (CountMax == pFaninCounts[i] && (Gia_ObjRefNumId(p, iFanMax) < Gia_ObjRefNumId(p, pFanins[i]))) )
+            {
+                CountMax = pFaninCounts[i];
+                iFanMax  = pFanins[i];
+            }
+    }
     return iFanMax;
 }
 // precondition: nodes in vWin and in vIns are marked with the current ID
@@ -1167,7 +1178,7 @@ void Gia_RsbWindowGrow2( Gia_Man_t * p, int iObj, Vec_Wec_t * vLevels, Vec_Int_t
         else
             assert( Vec_IntSize(vIns) > nInputsMax );
     }
-    if ( Vec_IntSize(vIns) <= nInputsMax )
+    if ( vLevels && Vec_IntSize(vIns) <= nInputsMax )
     {
         Vec_IntSort( vIns, 0 );
         Gia_WinCreateFromCut( p, iObj, vIns, vLevels, vWin );
