@@ -379,6 +379,7 @@ static int Abc_CommandAbcLoad                ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandAbc9Get                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Put                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9MoveNames          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Save               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Save2              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SaveAig            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1107,6 +1108,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&get",          Abc_CommandAbc9Get,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&put",          Abc_CommandAbc9Put,          0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&move_names",   Abc_CommandAbc9MoveNames,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&save",         Abc_CommandAbc9Save,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&save2",        Abc_CommandAbc9Save2,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&saveaig",      Abc_CommandAbc9SaveAig,      0 );
@@ -30730,6 +30732,67 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9MoveNames( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "nvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        Abc_Print( -1, "There is no current network\n" );
+        return 1;
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "There is no current AIG.\n" );
+        return 1;
+    }
+    if ( Gia_ManCiNum(pAbc->pGia) != Abc_NtkCiNum(pAbc->pNtkCur) )
+    {
+        Abc_Print( -1, "The number of CIs does not match.\n" );
+        return 1;
+    }
+    if ( Gia_ManCoNum(pAbc->pGia) != Abc_NtkCoNum(pAbc->pNtkCur) )
+    {
+        Abc_Print( -1, "The number of COs does not match.\n" );
+        return 1;
+    }
+    if ( pAbc->pGia->vNamesIn  )    Vec_PtrFreeFree( pAbc->pGia->vNamesIn );
+    if ( pAbc->pGia->vNamesOut )    Vec_PtrFreeFree( pAbc->pGia->vNamesOut );
+    pAbc->pGia->vNamesIn  = Abc_NtkCollectCiNames( pAbc->pNtkCur );
+    pAbc->pGia->vNamesOut = Abc_NtkCollectCoNames( pAbc->pNtkCur );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &move_names [-vh]\n" );
+    Abc_Print( -2, "\t         move CI/CO names\n" );
+    Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : the file name\n");
+    return 1;
+}
 
 /**Function*************************************************************
 

@@ -286,14 +286,14 @@ Vec_Int_t * Wlc_ManGenAdderN( Gia_Man_t * p, int nLits, int * pLitsA, int * pLit
     pRes[nLits] = Carry;
     return vRes;
 }
-Vec_Int_t * Wlc_ManGenAdder_rec( Gia_Man_t * p, int nLits, int * pLitsA, int * pLitsB, int Carry, int Size )
+Vec_Int_t * Wlc_ManGenAdder2_rec( Gia_Man_t * p, int nLits, int * pLitsA, int * pLitsB, int Carry, int Size )
 {
     Vec_Int_t * vRes, * vRes0, * vRes1, * vRes2; int i, iCtrl;
     if ( nLits == Size )
         return Wlc_ManGenAdderN( p, nLits, pLitsA, pLitsB, Carry );
-    vRes0 = Wlc_ManGenAdder_rec( p, nLits/2, pLitsA, pLitsB, Carry, Size );
-    vRes1 = Wlc_ManGenAdder_rec( p, nLits/2, pLitsA + nLits/2, pLitsB + nLits/2, 0, Size );
-    vRes2 = Wlc_ManGenAdder_rec( p, nLits/2, pLitsA + nLits/2, pLitsB + nLits/2, 1, Size );
+    vRes0 = Wlc_ManGenAdder2_rec( p, nLits/2, pLitsA, pLitsB, Carry, Size );
+    vRes1 = Wlc_ManGenAdder2_rec( p, nLits/2, pLitsA + nLits/2, pLitsB + nLits/2, 0, Size );
+    vRes2 = Wlc_ManGenAdder2_rec( p, nLits/2, pLitsA + nLits/2, pLitsB + nLits/2, 1, Size );
     vRes  = Vec_IntAlloc( nLits + 1 );
     Vec_IntAppend( vRes, vRes0 );
     iCtrl = Vec_IntPop( vRes );
@@ -305,7 +305,7 @@ Vec_Int_t * Wlc_ManGenAdder_rec( Gia_Man_t * p, int nLits, int * pLitsA, int * p
     Vec_IntFree( vRes2 );
     return vRes;
 }
-Gia_Man_t * Wlc_ManGenAdder( int nBits, int Size, int fSigned )
+Gia_Man_t * Wlc_ManGenAdder2( int nBits, int Size, int fSigned )
 {
     Gia_Man_t * pTemp, * pNew; int n, i, iLit, nBitsAll;
     Vec_Int_t * vOuts, * vLits = Vec_IntAlloc( 1000 );
@@ -321,12 +321,178 @@ Gia_Man_t * Wlc_ManGenAdder( int nBits, int Size, int fSigned )
             Vec_IntPush( vLits, fSigned ? Vec_IntEntry(vLits, nBits-1) : 0 );
     }
     Gia_ManHashAlloc( pNew );
-    vOuts = Wlc_ManGenAdder_rec( pNew, nBitsAll, Vec_IntEntryP(vLits, 0), Vec_IntEntryP(vLits, Vec_IntSize(vLits)/2), 0, Size );
+    vOuts = Wlc_ManGenAdder2_rec( pNew, nBitsAll, Vec_IntEntryP(vLits, 0), Vec_IntEntryP(vLits, Vec_IntSize(vLits)/2), 0, Size );
     Gia_ManHashStop( pNew );
     Vec_IntForEachEntry( vOuts, iLit, i )
         Gia_ManAppendCo( pNew, iLit );
     Vec_IntFree( vLits );
     Vec_IntFree( vOuts );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+Vec_Int_t * Wlc_ManGenAdder_rec( Gia_Man_t * p, int nLits, int * pLitsA, int * pLitsB, int Carry, int Size )
+{
+    Vec_Int_t * vRes, * vRes0, * vRes1, * vRes2, * vRes3, * vRes4; int i, iCtrl;
+    if ( nLits == Size )
+        return Wlc_ManGenAdderN( p, nLits, pLitsA, pLitsB, Carry );
+    assert( nLits % 3 == 0 );
+    vRes0 = Wlc_ManGenAdder_rec( p, nLits/3, pLitsA + 0*nLits/3, pLitsB + 0*nLits/3, Carry, Size );
+    vRes1 = Wlc_ManGenAdder_rec( p, nLits/3, pLitsA + 1*nLits/3, pLitsB + 1*nLits/3, 0, Size );
+    vRes2 = Wlc_ManGenAdder_rec( p, nLits/3, pLitsA + 1*nLits/3, pLitsB + 1*nLits/3, 1, Size );
+    vRes3 = Wlc_ManGenAdder_rec( p, nLits/3, pLitsA + 2*nLits/3, pLitsB + 2*nLits/3, 0, Size );
+    vRes4 = Wlc_ManGenAdder_rec( p, nLits/3, pLitsA + 2*nLits/3, pLitsB + 2*nLits/3, 1, Size );
+    vRes  = Vec_IntAlloc( nLits + 1 );
+    Vec_IntAppend( vRes, vRes0 );
+    iCtrl = Vec_IntPop( vRes );
+    for ( i = 0; i <= nLits/3; i++ )
+        Vec_IntPush( vRes, Gia_ManHashMux(p, iCtrl, Vec_IntEntry(vRes2, i), Vec_IntEntry(vRes1, i)) );
+    iCtrl = Vec_IntPop( vRes );
+    for ( i = 0; i <= nLits/3; i++ )
+        Vec_IntPush( vRes, Gia_ManHashMux(p, iCtrl, Vec_IntEntry(vRes4, i), Vec_IntEntry(vRes3, i)) );
+    assert( Vec_IntSize(vRes) == nLits + 1 );
+    Vec_IntFree( vRes0 );
+    Vec_IntFree( vRes1 );
+    Vec_IntFree( vRes2 );
+    Vec_IntFree( vRes3 );
+    Vec_IntFree( vRes4 );
+    return vRes;
+}
+Gia_Man_t * Wlc_ManGenAdder( int nBits )
+{
+    Gia_Man_t * pTemp, * pNew; int n, i, iLit, nBitsAll;
+    Vec_Int_t * vOuts, * vLits = Vec_IntAlloc( 1000 );
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( "adder" );
+    for ( nBitsAll = 3; nBitsAll < nBits; nBitsAll *= 3 )
+        ;
+    for ( n = 0; n < 2; n++ )
+    {
+        for ( i = 0; i < nBits; i++ )
+            Vec_IntPush( vLits, Gia_ManAppendCi(pNew) );
+        for ( ; i < nBitsAll; i++ )
+            Vec_IntPush( vLits, 0 );
+    }
+    Gia_ManHashAlloc( pNew );
+    vOuts = Wlc_ManGenAdder_rec( pNew, nBitsAll, Vec_IntEntryP(vLits, 0), Vec_IntEntryP(vLits, Vec_IntSize(vLits)/2), 0, 3 );
+    Gia_ManHashStop( pNew );
+    Vec_IntForEachEntryStop( vOuts, iLit, i, nBits+1 )
+        Gia_ManAppendCo( pNew, iLit );
+    Vec_IntFree( vLits );
+    Vec_IntFree( vOuts );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Wlc_ManGenTree_iter( Gia_Man_t * p, Vec_Wec_t * vBits, int * pCounter )
+{
+    Vec_Wec_t * vBitsNew = Vec_WecStart( Vec_WecSize(vBits) ); int i, k, Count = 0;
+    for ( i = 0; i < Vec_WecSize(vBits)-1; i++ )
+    {
+        Vec_Int_t * vBits0 = Vec_WecEntry(vBits, i);
+        Vec_Int_t * vBits1 = Vec_WecEntry(vBits, i+1);
+        if ( i == 0 )
+        {
+            int s = 0;
+        }
+        while ( Vec_IntSize(vBits0) >= 6 )
+        {
+            for ( k = 0; k < 6; k++ )
+                Vec_IntPop( vBits0 );
+            Vec_WecPush( vBitsNew, i+0, 0 );
+            Vec_WecPush( vBitsNew, i+1, 0 );
+            Vec_WecPush( vBitsNew, i+2, 0 );
+            Count += 3;
+        }
+        if ( Vec_IntSize(vBits0) == 4 || Vec_IntSize(vBits0) == 5 )
+        {
+            Vec_IntClear( vBits0 );
+            if ( Vec_IntSize(vBits1) > 0 )
+                Vec_IntPop( vBits1 );
+            Vec_WecPush( vBitsNew, i+0, 0 );
+            Vec_WecPush( vBitsNew, i+1, 0 );
+            Vec_WecPush( vBitsNew, i+2, 0 );
+            Count += 3;
+        }
+        //if ( (Vec_IntSize(vBits0) == 2 && Vec_IntSize(vBits1) > 1) || (Vec_IntSize(vBits0) == 3 && Vec_IntSize(vBits1) > 0) )
+        if ( Vec_IntSize(vBits0) == 3 && Vec_IntSize(vBits1) > 0 )
+        {
+            Vec_IntClear( vBits0 );
+            Vec_IntPop( vBits1 );
+            if ( Vec_IntSize(vBits1) > 0 )
+                Vec_IntPop( vBits1 );
+            if ( Vec_IntSize(vBits1) > 0 )
+                Vec_IntPop( vBits1 );
+            Vec_WecPush( vBitsNew, i+0, 0 );
+            Vec_WecPush( vBitsNew, i+1, 0 );
+            Vec_WecPush( vBitsNew, i+2, 0 );
+            Count += 3;
+        }
+        if ( Vec_IntSize(vBits0) == 3 && Vec_IntSize(vBits1) == 0 )
+        {
+            Vec_IntClear( vBits0 );
+            Vec_WecPush( vBitsNew, i+0, 0 );
+            Vec_WecPush( vBitsNew, i+1, 0 );
+            Count += 2;
+        }
+/*
+        if ( Vec_IntSize(vBits0) == 1 && Vec_IntSize(vBits1) > 2 )
+        {
+            Vec_IntClear( vBits0 );
+            Vec_IntPop( vBits1 );
+            Vec_IntPop( vBits1 );
+            Vec_IntPop( vBits1 );
+            Vec_WecPush( vBitsNew, i+0, 0 );
+            Vec_WecPush( vBitsNew, i+1, 0 );
+            Vec_WecPush( vBitsNew, i+2, 0 );
+        }
+*/
+        for ( k = 0; k < Vec_IntSize(vBits0); k++ )
+            Vec_WecPush( vBitsNew, i, 0 );
+        Vec_IntClear( vBits0 );
+    }
+    if ( pCounter )
+        *pCounter += Count;
+    return vBitsNew;
+}
+Gia_Man_t * Wlc_ManGenTree( int nBits )
+{
+    Gia_Man_t * pTemp, * pNew; int i, iLit, Counter = 0;
+    Vec_Int_t * vOuts = Vec_IntAlloc( 1000 ), * vLits = Vec_IntAlloc( 1000 );
+    Vec_Wec_t * vTemp, * vBits = Vec_WecStart( 14 ); // Abc_Base2Log(nBits)+3 );
+    pNew = Gia_ManStart( 1000 );
+    pNew->pName = Abc_UtilStrsav( "tree" );
+    for ( i = 0; i < nBits; i++ )
+//        Vec_WecPush( vBits, 0, Gia_ManAppendCi(pNew) );
+        Vec_WecPush( vBits, 0, 0 );
+    Vec_WecPrint( vBits, 0 );
+    Gia_ManHashAlloc( pNew );
+    for ( i = 0; i < 10; i++ )
+    {
+        vBits = Wlc_ManGenTree_iter( pNew, vTemp = vBits, &Counter );
+        Vec_WecFree( vTemp );
+        printf( "LEVEL %d\n", i+1 );
+        Vec_WecPrint( vBits, 0 );
+    }
+    printf( "Counter = %d.\n", Counter );
+    Gia_ManHashStop( pNew );
+    Vec_IntForEachEntry( vOuts, iLit, i )
+        Gia_ManAppendCo( pNew, iLit );
+    Vec_IntFree( vLits );
+    Vec_WecFree( vBits );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     return pNew;

@@ -138,6 +138,7 @@ Gia_Man_t * Vec_WrdReadTest( char * pFileName )
     Vec_Wec_t * vRes = Vec_WrdReadLayerText( pFileName, &nIns, &nOuts );
     int nBitsI = vRes ? Vec_WecMaxLevelSize(vRes) : 0;
     int nBitsO = vRes ? nOuts / Vec_WecSize(vRes) : 0;
+    int nWords = Abc_TtWordNum(nBitsI);
     word * pFuncs = vRes ? Vec_WrdReadTruthText( pFileName, nBitsI, nBitsO, Vec_WecSize(vRes) ) : NULL;
     Vec_Int_t * vPart, * vLits = Vec_IntAlloc( nOuts );
     if ( vRes == NULL || pFuncs == NULL )
@@ -157,7 +158,7 @@ Gia_Man_t * Vec_WrdReadTest( char * pFileName )
     Vec_WecForEachLevel( vRes, vPart, i )
     {
         assert( Vec_IntSize(vPart) <= nBitsI );
-        pPart = Gia_TryPermOptCare( pFuncs + i * nBitsO, nBitsI, nBitsO, Abc_TtWordNum(nBitsI), 10, 0 );
+        pPart = Gia_TryPermOptCare( pFuncs + i * nBitsO * nWords, nBitsI, nBitsO, nWords, 10, 0 );
         Gia_ManFillValue( pPart );
         Gia_ManConst0(pPart)->Value = 0;
         Gia_ManForEachCi( pPart, pObj, k )
