@@ -1,20 +1,21 @@
 
-CC   := gcc
-CXX  := g++
-AR   := ar
+CC   ?= gcc
+CXX  ?= g++
+AR   ?= ar
 LD   := $(CXX)
+LN   ?= ln
+MV   ?= mv
 
 MSG_PREFIX ?=
 ABCSRC ?= .
 VPATH = $(ABCSRC)
 
-$(info $(MSG_PREFIX)Using CC=$(CC))
-$(info $(MSG_PREFIX)Using CXX=$(CXX))
-$(info $(MSG_PREFIX)Using AR=$(AR))
-$(info $(MSG_PREFIX)Using LD=$(LD))
-
 PROG := abc
 OS := $(shell uname -s)
+
+VERSION ?= 1.1.0
+SOVERSION ?= 1
+SONAME := lib$(PROG).so.$(SOVERSION)
 
 MODULES := \
 	$(wildcard src/ext*) \
@@ -64,9 +65,12 @@ endif
 
 # compile ABC using the C++ compiler and put everything in the namespace $(ABC_NAMESPACE)
 ifdef ABC_USE_NAMESPACE
-  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -fpermissive -x c++
+  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -std=c++11 -fvisibility=hidden -fpermissive
   CC := $(CXX)
+  DLIBS := -lstdc++
   $(info $(MSG_PREFIX)Compiling in namespace $(ABC_NAMESPACE))
+else
+  ABC_USE_LIBSTDCXX := 1
 endif
 
 # compile CUDD with ABC
@@ -120,7 +124,7 @@ GCC_VERSION=$(shell $(CC) -dumpversion)
 GCC_MAJOR=$(word 1,$(subst .,$(space),$(GCC_VERSION)))
 GCC_MINOR=$(word 2,$(subst .,$(space),$(GCC_VERSION)))
 
-$(info $(MSG_PREFIX)Found GCC_VERSION $(GCC_VERSION))
+$(info $(MSG_PREFIX)Found CC_VERSION $(GCC_VERSION))
 ifeq ($(findstring $(GCC_MAJOR),0 1 2 3),)
 ifeq ($(GCC_MAJOR),4)
 $(info $(MSG_PREFIX)Found GCC_MAJOR==4)
@@ -130,7 +134,10 @@ CFLAGS += -Wno-unused-but-set-variable
 endif
 else
 $(info $(MSG_PREFIX)Found GCC_MAJOR>=5)
+CLANG_HEADER=$(shell $(CC) --version | grep -w clang)
+ifeq (,$(CLANG_HEADER))
 CFLAGS += -Wno-unused-but-set-variable
+endif
 endif
 endif
 
@@ -151,11 +158,17 @@ ifdef ABC_USE_LIBSTDCXX
    $(info $(MSG_PREFIX)Using explicit -lstdc++)
 endif
 
+$(info $(MSG_PREFIX)Using CC=$(CC))
+$(info $(MSG_PREFIX)Using CXX=$(CXX))
+$(info $(MSG_PREFIX)Using AR=$(AR))
+$(info $(MSG_PREFIX)Using LD=$(LD))
+
 $(info $(MSG_PREFIX)Using CFLAGS=$(CFLAGS))
 CXXFLAGS += $(CFLAGS) -std=c++17 -fno-exceptions
+$(info $(MSG_PREFIX)Using CXXFLAGS=$(CXXFLAGS))
 
 SRC  :=
-GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
+GARBAGE := core core.* *.stackdump ./tags $(PROG) demo arch_flags
 
 .PHONY: all default tags clean docs cmake_info
 
@@ -168,6 +181,8 @@ OBJ := \
 	$(patsubst %.y, %.o,  $(filter %.y, $(SRC)))
 
 LIBOBJ := $(filter-out src/base/main/main.o,$(OBJ))
+MAINOBJ := src/base/main/main.o
+DEMOOBJ := src/demo.o
 
 DEP := $(OBJ:.o=.d)
 
@@ -213,25 +228,36 @@ depend: $(DEP)
 
 clean:
 	@echo "$(MSG_PREFIX)\`\` Cleaning up..."
-	$(VERBOSE)rm -rvf $(PROG) lib$(PROG).a
-	$(VERBOSE)rm -rvf $(OBJ)
-	$(VERBOSE)rm -rvf $(GARBAGE)
-	$(VERBOSE)rm -rvf $(OBJ:.o=.d)
+	$(VERBOSE)rm -rvf $(PROG) lib$(PROG).* $(OBJ) $(GARBAGE) $(OBJ:.o=.d)
 
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
-$(PROG): $(OBJ)
-	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
-	$(VERBOSE)$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+lib: lib$(PROG).so.$(VERSION)
+
+test: demo
+	./demo i10.aig
+
+demo: $(DEMOOBJ) lib$(PROG).a
+	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
+	+$(VERBOSE)$(LD) -o $@ $(DEMOOBJ) lib$(PROG).a $(LDFLAGS) $(DLIBS) $(LIBS)
+
+$(PROG): $(MAINOBJ) lib$(PROG).so
+	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
+	+$(VERBOSE)$(LD) -o $@ $(MAINOBJ) -L. -l$(PROG) $(LDFLAGS) $(LIBS)
 
 lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	$(VERBOSE)$(AR) rsv $@ $?
 
-lib$(PROG).so: $(LIBOBJ)
+lib$(PROG).so.$(VERSION): $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
-	$(VERBOSE)$(CXX) -shared -o $@ $^ $(LIBS)
+	+$(VERBOSE)$(LD) -shared -Wl,-soname=$(SONAME) -o $@ $^ $(LIBS)
+
+lib$(PROG).so: lib$(PROG).so.$(VERSION)
+	ldconfig -v -n .
+	@$(LN) -sf lib$(PROG).so.$(VERSION) lib$(PROG).so
+	@$(LN) -sf lib$(PROG).so.$(VERSION) $(SONAME)
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
