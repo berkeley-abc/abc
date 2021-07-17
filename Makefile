@@ -1,8 +1,10 @@
 
-CC   := gcc
-CXX  := g++
-AR   := ar
+CC   ?= gcc
+CXX  ?= g++
+AR   ?= ar
 LD   := $(CXX)
+LN   ?= ln
+MV   ?= mv
 
 MSG_PREFIX ?=
 ABCSRC = .
@@ -14,6 +16,9 @@ $(info $(MSG_PREFIX)Using LD=$(LD))
 
 PROG := abc
 OS := $(shell uname -s)
+
+SOVERSION ?= 1.0.1
+SONAME := lib$(PROG).so.$(SOVERSION)
 
 MODULES := \
 	$(wildcard src/ext*) \
@@ -63,7 +68,7 @@ endif
 
 # compile ABC using the C++ comipler and put everything in the namespace $(ABC_NAMESPACE)
 ifdef ABC_USE_NAMESPACE
-  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -fpermissive
+  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -std=c++11 -fpermissive
   CC := $(CXX)
   $(info $(MSG_PREFIX)Compiling in namespace $(ABC_NAMESPACE))
 endif
@@ -213,7 +218,7 @@ tags:
 
 $(PROG): $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
-	$(VERBOSE)$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+	+$(VERBOSE)$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
@@ -221,7 +226,10 @@ lib$(PROG).a: $(LIBOBJ)
 
 lib$(PROG).so: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
-	$(VERBOSE)$(CXX) -shared -o $@ $^ $(LIBS)
+	+$(VERBOSE)$(CXX) -shared -Wl,-soname=$(SONAME) -o $@ $^ $(LIBS)
+	$(VERBOSE)$(MV) lib$(PROG).so ${SONAME}
+	$(VERBOSE)$(LN) -s ${SONAME} lib$(PROG).so
+	$(VERBOSE)$(LN) -s ${SONAME} lib$(PROG).so.1
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
