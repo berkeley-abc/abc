@@ -34064,7 +34064,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SimRsb( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManSimRsb( Gia_Man_t * p, int nCands, int fVerbose );
+    extern int Gia_ManSimRsb( Gia_Man_t * p, int nCands, int fVerbose );
     int c, nCands = 32, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
