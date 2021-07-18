@@ -17,7 +17,8 @@ $(info $(MSG_PREFIX)Using LD=$(LD))
 PROG := abc
 OS := $(shell uname -s)
 
-SOVERSION ?= 1.0.1
+VERSION ?= 1.1.0
+SOVERSION ?= 1
 SONAME := lib$(PROG).so.$(SOVERSION)
 
 MODULES := \
@@ -70,6 +71,7 @@ endif
 ifdef ABC_USE_NAMESPACE
   CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -std=c++11 -fpermissive
   CC := $(CXX)
+  DLIBS := -lstdc++
   $(info $(MSG_PREFIX)Compiling in namespace $(ABC_NAMESPACE))
 endif
 
@@ -159,7 +161,7 @@ $(info $(MSG_PREFIX)Using CFLAGS=$(CFLAGS))
 CXXFLAGS += $(CFLAGS)
 
 SRC  :=
-GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
+GARBAGE := core core.* *.stackdump ./tags $(PROG) demo arch_flags
 
 .PHONY: all default tags clean docs cmake_info
 
@@ -172,6 +174,8 @@ OBJ := \
 	$(patsubst %.y, %.o,  $(filter %.y, $(SRC)))
 
 LIBOBJ := $(filter-out src/base/main/main.o,$(OBJ))
+MAINOBJ := src/base/main/main.o
+DEMOOBJ := src/demo.o
 
 DEP := $(OBJ:.o=.d)
 
@@ -211,25 +215,37 @@ depend: $(DEP)
 
 clean:
 	@echo "$(MSG_PREFIX)\`\` Cleaning up..."
-	$(VERBOSE)rm -rvf $(PROG) lib$(PROG).a $(OBJ) $(GARBAGE) $(OBJ:.o=.d)
+	$(VERBOSE)rm -rvf lib$(PROG).* $(OBJ) $(GARBAGE) $(OBJ:.o=.d)
 
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
-$(PROG): $(OBJ)
-	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
-	+$(VERBOSE)$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+lib: lib$(PROG).so.$(VERSION)
+
+test: demo
+	LD_LIBRARY_PATH=. ./abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+	LD_LIBRARY_PATH=. ./demo i10.aig
+
+demo: $(DEMOOBJ) lib$(PROG).a
+	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
+	+$(VERBOSE)$(LD) -o $@ $(DEMOOBJ) lib$(PROG).a $(LDFLAGS) $(DLIBS) $(LIBS)
+
+$(PROG): $(MAINOBJ) lib$(PROG).so
+	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
+	+$(VERBOSE)$(LD) -o $@ $(MAINOBJ) -L. -l$(PROG) $(LDFLAGS) $(LIBS)
 
 lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	$(VERBOSE)$(AR) rsv $@ $?
 
-lib$(PROG).so: $(LIBOBJ)
+lib$(PROG).so.$(VERSION): $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
-	+$(VERBOSE)$(CXX) -shared -Wl,-soname=$(SONAME) -o $@ $^ $(LIBS)
-	$(VERBOSE)$(MV) lib$(PROG).so ${SONAME}
-	$(VERBOSE)$(LN) -s ${SONAME} lib$(PROG).so
-	$(VERBOSE)$(LN) -s ${SONAME} lib$(PROG).so.1
+	+$(VERBOSE)$(LD) -shared -Wl,-soname=$(SONAME) -o $@ $^ $(LIBS)
+
+lib$(PROG).so: lib$(PROG).so.$(VERSION)
+	ldconfig -v -n .
+	@$(LN) -sf lib$(PROG).so.$(VERSION) lib$(PROG).so
+	@$(LN) -sf lib$(PROG).so.$(VERSION) $(SONAME)
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
