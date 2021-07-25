@@ -422,7 +422,7 @@ static inline Vec_Wec_t * Vec_WecDup( Vec_Wec_t * p )
     Vec_Wec_t * vNew;
     Vec_Int_t * vVec;
     int i, k, Entry;
-    vNew = Vec_WecAlloc( Vec_WecSize(p) );
+    vNew = Vec_WecStart( Vec_WecSize(p) );
     Vec_WecForEachLevel( p, vVec, i )
         Vec_IntForEachEntry( vVec, Entry, k )
             Vec_WecPush( vNew, i, Entry );

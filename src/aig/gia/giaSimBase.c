@@ -2348,6 +2348,55 @@ void Gia_ManSimGen( Gia_Man_t * pGia )
     fclose( pFile );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Trying vectorized simulation.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int fVerbose )
+{
+    Vec_Wrd_t * vSim0, * vSim1, * vSim2;
+    abctime clk = Abc_Clock();
+    int n, i, RetValue = 1;
+    printf( "Simulating %d round with %d machine words.\n", nRounds, nWords );
+    Abc_RandomW(0);
+    for ( n = 0; RetValue && n < nRounds; n++ )
+    {
+        vSim0 = Vec_WrdStartRandom( Gia_ManCiNum(p0) * nWords );
+        p0->vSimsPi = vSim0;
+        p1->vSimsPi = vSim0;
+        vSim1 = Gia_ManSimPatSim( p0 );
+        vSim2 = Gia_ManSimPatSim( p1 );
+        for ( i = 0; i < Gia_ManCoNum(p0); i++ )
+        {
+            word * pSim1 = Vec_WrdEntryP(vSim1, Gia_ObjId(p0, Gia_ManCo(p0, i))*nWords);
+            word * pSim2 = Vec_WrdEntryP(vSim2, Gia_ObjId(p1, Gia_ManCo(p1, i))*nWords);
+            if ( memcmp(pSim1, pSim2, sizeof(word)*nWords) )
+            {
+                printf( "Output %d failed simulation at round %d.  ", i, n );
+                RetValue = 0;
+                break;
+            }
+        }
+        Vec_WrdFree( vSim1 );
+        Vec_WrdFree( vSim2 );
+        Vec_WrdFree( vSim0 );
+        p0->vSimsPi = NULL;
+        p1->vSimsPi = NULL;
+    }
+    if ( RetValue == 1 )
+        printf( "Simulation did not detect a bug.  " );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return RetValue;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

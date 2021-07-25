@@ -1246,10 +1246,16 @@ void Gia_ManSimOneBit( Gia_Man_t * p, Vec_Int_t * vValues )
     Gia_ManForEachCo( p, pObj, k )
         pObj->fMark0 = Gia_ObjFanin0(pObj)->fMark0 ^ Gia_ObjFaninC0(pObj);
 
+    Gia_ManForEachCi( p, pObj, k )
+        printf( "%d", k % 10 );
+    printf( "\n" );
+    Gia_ManForEachCi( p, pObj, k )
+        printf( "%d", Vec_IntEntry(vValues, k) );
+    printf( "\n" );
+
     Gia_ManForEachCo( p, pObj, k )
         printf( "%d", k % 10 );
     printf( "\n" );
-
     Gia_ManForEachCo( p, pObj, k )
         printf( "%d", pObj->fMark0 );
     printf( "\n" );
@@ -1309,6 +1315,66 @@ void Gia_ManSimOneBitTest2( Gia_Man_t * p )
 
     Vec_IntFree( vValues );
 }
+void Gia_ManSimOneBitTest3( Gia_Man_t * p )
+{
+    Vec_Int_t * vValues = Vec_IntStart( Gia_ManCiNum(p) );
+
+    Vec_IntWriteEntry( vValues, 0, 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntWriteEntry( vValues, 0, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2, 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntWriteEntry( vValues, 0, 1 );
+    Vec_IntWriteEntry( vValues, 1, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2+2, 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-1, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -1, 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-1, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-2, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -1, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -2, 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-2, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -2, 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-1, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-2, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-3, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -1, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -2, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -3, 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-2, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)/2-3, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -2, 1 );
+    Vec_IntWriteEntry( vValues, Gia_ManCiNum(p)  -3, 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 1 );
+    Gia_ManSimOneBit( p, vValues );
+    Vec_IntFill( vValues, Vec_IntSize(vValues), 0 );
+
+    Vec_IntFree( vValues );
+}
+
+
 void Gia_ManSimOneBitTest( Gia_Man_t * p )
 {
     Vec_Int_t * vValues = Vec_IntStart( Gia_ManCiNum(p) );
