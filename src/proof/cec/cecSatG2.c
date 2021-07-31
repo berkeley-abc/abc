@@ -1794,13 +1794,14 @@ Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
     Cec4_ManPerformSweeping( p, pPars, &pNew, 0 );
     return pNew;
 }
-void Cec4_ManSimulateTest2( Gia_Man_t * p, int fVerbose )
+void Cec4_ManSimulateTest2( Gia_Man_t * p, int nConfs, int fVerbose )
 {
     abctime clk = Abc_Clock();
     Cec_ParFra_t ParsFra, * pPars = &ParsFra;
     Cec4_ManSetParams( pPars );
     Cec4_ManPerformSweeping( p, pPars, NULL, 0 );
     pPars->fVerbose = fVerbose;
+    pPars->nBTLimit = nConfs;
     if ( fVerbose )
         Abc_PrintTime( 1, "New choice computation time", Abc_Clock() - clk );
 }

@@ -15125,7 +15125,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dch_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptgcfrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WCSsptgcfrxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -15183,6 +15183,9 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             pPars->fSkipRedSupp ^= 1;
             break;
+        case 'x':
+            pPars->fUseNew ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -15213,7 +15216,7 @@ int Abc_CommandDch( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dch [-WCS num] [-sptgcfrvh]\n" );
+    Abc_Print( -2, "usage: dch [-WCS num] [-sptgcfrxvh]\n" );
     Abc_Print( -2, "\t         computes structural choices using a new approach\n" );
     Abc_Print( -2, "\t-W num : the max number of simulation words [default = %d]\n", pPars->nWords );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
@@ -15225,6 +15228,7 @@ usage:
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT vs. MiniSat [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle using faster logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle skipping choices with redundant support [default = %s]\n", pPars->fSkipRedSupp? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle using new choice computation [default = %s]\n", pPars->fUseNew? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -30654,7 +30658,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         Abc_Ntk_t * pNtkNoCh;
-//        Abc_Print( -1, "Transforming AIG with %d choice nodes.\n", Gia_ManEquivCountClasses(pAbc->pGia) );
+        Abc_Print( -1, "Transforming AIG with %d choice nodes.\n", Gia_ManEquivCountClasses(pAbc->pGia) );
         // create network without choices
         pMan = Gia_ManToAig( pAbc->pGia, 0 );
         pNtkNoCh = Abc_NtkFromAigPhase( pMan );
@@ -32565,19 +32569,19 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( nVars )
     {
-        Abc_Print( -1, "Cofactoring the last %d inputs.\n", nVars );
+        Abc_Print( 0, "Cofactoring the last %d inputs.\n", nVars );
         pTemp = Gia_ManComputeCofs( pAbc->pGia, nVars );
         Abc_FrameUpdateGia( pAbc, pTemp );
     }
     else if ( nLimFan )
     {
-        Abc_Print( -1, "Cofactoring all variables whose fanout count is higher than %d.\n", nLimFan );
+        Abc_Print( 0, "Cofactoring all variables whose fanout count is higher than %d.\n", nLimFan );
         pTemp = Gia_ManDupCofAll( pAbc->pGia, nLimFan, fVerbose );
         Abc_FrameUpdateGia( pAbc, pTemp );
     }
     else if ( iVar )
     {
-        Abc_Print( -1, "Cofactoring one variable with object ID %d.\n", iVar );
+        Abc_Print( 0, "Cofactoring one variable with object ID %d.\n", iVar );
         pTemp = Gia_ManDupCof( pAbc->pGia, iVar );
         Abc_FrameUpdateGia( pAbc, pTemp );
     }

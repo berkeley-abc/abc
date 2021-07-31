@@ -848,7 +848,7 @@ pPars->timeSynth = Abc_Clock() - clk;
 ***********************************************************************/
 Aig_Man_t * Dar_ManChoiceNew( Aig_Man_t * pAig, Dch_Pars_t * pPars )
 {
-    extern Aig_Man_t * Cec_ComputeChoicesNew( Gia_Man_t * pGia, int fVerbose );
+    extern Aig_Man_t * Cec_ComputeChoicesNew( Gia_Man_t * pGia, int nConfs, int fVerbose );
     extern Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars );
 //    extern Aig_Man_t * Dch_DeriveTotalAig( Vec_Ptr_t * vAigs );
     extern Aig_Man_t * Dch_ComputeChoices( Aig_Man_t * pAig, Dch_Pars_t * pPars );
@@ -872,7 +872,7 @@ pPars->timeSynth = Abc_Clock() - clk;
 
     // perform choice computation
     if ( pPars->fUseNew )
-        pMan = Cec_ComputeChoicesNew( pGia, pPars->fVerbose );
+        pMan = Cec_ComputeChoicesNew( pGia, pPars->nBTLimit, pPars->fVerbose );
     else if ( pPars->fUseGia )
         pMan = Cec_ComputeChoices( pGia, pPars );
     else
