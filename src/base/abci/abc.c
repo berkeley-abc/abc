@@ -32507,11 +32507,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_ManComputeCofs( Gia_Man_t * p, int nVars );
     Gia_Man_t * pTemp;
     int c, fVerbose = 0;
-    int iVar = 0, nLimFan = 0;
+    int iVar = 0, nLimFan = 0, nVars = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "VLvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "VLNvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32537,6 +32538,17 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nLimFan < 0 )
                 goto usage;
             break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -32551,7 +32563,13 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Cof(): There is no AIG.\n" );
         return 1;
     }
-    if ( nLimFan )
+    if ( nVars )
+    {
+        Abc_Print( -1, "Cofactoring the last %d inputs.\n", nVars );
+        pTemp = Gia_ManComputeCofs( pAbc->pGia, nVars );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+    }
+    else if ( nLimFan )
     {
         Abc_Print( -1, "Cofactoring all variables whose fanout count is higher than %d.\n", nLimFan );
         pTemp = Gia_ManDupCofAll( pAbc->pGia, nLimFan, fVerbose );
@@ -32571,10 +32589,11 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cof [-VL num] [-vh]\n" );
+    Abc_Print( -2, "usage: &cof [-VLN num] [-vh]\n" );
     Abc_Print( -2, "\t         performs cofactoring w.r.t. variable(s)\n" );
     Abc_Print( -2, "\t-V num : the zero-based ID of one variable to cofactor [default = %d]\n", iVar );
     Abc_Print( -2, "\t-L num : cofactor vars with fanout count higher than this [default = %d]\n", nLimFan );
+    Abc_Print( -2, "\t-N num : cofactoring the given number of last input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -49263,8 +49282,6 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     Abc_FrameUpdateGia( pAbc, Gia_ManPerformNewResub(pAbc->pGia, 100, 8, 1, 1) );
 //    printf( "AIG in \"%s\" has the sum of output support sizes equal to %d.\n", pAbc->pGia->pSpec, Gia_ManSumTotalOfSupportSizes(pAbc->pGia) );
-    //Gia_ManExtractTest( pAbc->pGia );
-    //Abc_Tt6MinTest2( pAbc->pGia );
     return 0;
 usage:
     Abc_Print( -2, "usage: &test [-FW num] [-svh]\n" );
