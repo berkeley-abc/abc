@@ -566,6 +566,44 @@ word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp
     *pCare = nGood;
     return pRes;
 }
+void Gia_ManPermuteSupp_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vLevels, Vec_Int_t * vCounts )
+{
+    Gia_Obj_t * pObj; int n;
+    if ( !iObj || Gia_ObjIsTravIdCurrentId(p, iObj) )
+        return;
+    Gia_ObjSetTravIdCurrentId(p, iObj);
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsCi(pObj) )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManPermuteSupp_rec( p, Gia_ObjFaninId0(pObj, iObj), vLevels, vCounts );
+    Gia_ManPermuteSupp_rec( p, Gia_ObjFaninId1(pObj, iObj), vLevels, vCounts );
+    for ( n = 0; n < 2; n++ )
+    {
+        Gia_Obj_t * pFanin = n ? Gia_ObjFanin1(pObj) : Gia_ObjFanin0(pObj);
+        if ( !Gia_ObjIsCi(pFanin) )
+            continue;
+        Vec_IntAddToEntry( vLevels, Gia_ObjCioId(pFanin), Gia_ObjLevel(p, pObj) );
+        Vec_IntAddToEntry( vCounts, Gia_ObjCioId(pFanin), 1 );
+    }
+}
+void Gia_ManPermuteSupp( Gia_Man_t * p, int iOut, int nOuts, Vec_Int_t * vSupp )
+{
+    Vec_Int_t * vLevels = Vec_IntStart( Gia_ManCiNum(p) );
+    Vec_Int_t * vCounts = Vec_IntStart( Gia_ManCiNum(p) ); 
+    int i, * pCost = ABC_CALLOC( int, Gia_ManCiNum(p) );
+    Gia_Obj_t * pObj;
+    Gia_ManIncrementTravId( p );
+    for ( i = 0; i < nOuts; i++ )
+        Gia_ManPermuteSupp_rec( p, Gia_ObjFaninId0p(p, Gia_ManCo(p, iOut+i)), vLevels, vCounts );
+    Gia_ManForEachObjVec( vSupp, p, pObj, i )
+        pCost[i] = 10000 * Vec_IntEntry(vLevels, Gia_ObjCioId(pObj)) / Vec_IntEntry(vCounts, Gia_ObjCioId(pObj));
+    Vec_IntFree( vCounts );
+    Vec_IntFree( vLevels );
+    Vec_IntSelectSortCost2( Vec_IntArray(vSupp), Vec_IntSize(vSupp), pCost );
+    assert( Vec_IntSize(vSupp) < 2 || pCost[0] <= pCost[1] );
+    ABC_FREE( pCost );
+}
 void Gia_ManCollectSupp_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vSupp )
 {
     Gia_Obj_t * pObj;
@@ -591,6 +629,12 @@ Vec_Int_t * Gia_ManCollectSupp( Gia_Man_t * p, int iOut, int nOuts )
         Gia_ManCollectSupp_rec( p, Gia_ObjFaninId0p(p, Gia_ManCo(p, iOut+i)), vSupp );
     return vSupp;
 }
+Vec_Int_t * Gia_ManCollectSuppNew( Gia_Man_t * p, int iOut, int nOuts )
+{
+    Vec_Int_t * vRes = Gia_ManCollectSupp( p, iOut, nOuts );
+    Gia_ManPermuteSupp( p, iOut, nOuts, vRes );
+    return vRes;
+}
 int Gia_ManPerformLNetOpt_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 {
     if ( ~pObj->Value )
@@ -602,7 +646,6 @@ int Gia_ManPerformLNetOpt_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj
 }
 Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName, int nIns, int nOuts, int Thresh, int nRounds, int fVerbose )
 {
-    extern int Gia_ManDupOrderDfs_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj );
     extern Gia_Man_t * Gia_TryPermOpt( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose );
     extern Gia_Man_t * Gia_TryPermOptCare( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose );
     extern int Kit_TruthToGia2( Gia_Man_t * p, unsigned * pTruth0, unsigned * pTruth1, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
@@ -620,6 +663,7 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName,
         printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
         printf( "Using patterns with count %d and higher as cares.\n", Thresh );
     }
+    Gia_ManLevelNum( p );
     Gia_ManFillValue( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -631,7 +675,7 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName,
     Gia_ManHashStart( pNew );
     for ( g = 0; g < Gia_ManCoNum(p); g += nOuts )
     {
-        Vec_Int_t * vSupp = Gia_ManCollectSupp( p, g, nOuts );
+        Vec_Int_t * vSupp = Gia_ManCollectSuppNew( p, g, nOuts );
         int Care = 1 << Vec_IntSize(vSupp), Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
         word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose, &Care ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
         int nWords = Abc_Truth6WordNum( Vec_IntSize(vSupp) );
@@ -693,6 +737,84 @@ Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName,
     ABC_FREE( pTruth1 );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vMemory );
+    Vec_WrdFreeP( &vSimI );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    printf( "Using patterns with count %d and higher as cares. Average care set is %8.4f %%.  ", Thresh, CareAve );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    if ( 0 )
+    {
+        FILE * pTable = fopen( "stats.txt", "a+" );
+        fprintf( pTable, "%0.2f ", CareAve );
+        fclose( pTable );
+    }
+    ABC_FREE( pTruthsTry );
+    return pNew;
+}
+Gia_Man_t * Gia_ManPerformLNetOptNew( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int Thresh, int nRounds, int fVerbose )
+{
+    extern Gia_Man_t * Gia_TryPermOptNew( word * pTruths, int nIns, int nOuts, int nWords, int nRounds, int fVerbose );
+    abctime clk = Abc_Clock();
+    Gia_Man_t * pNew, * pMin;  Gia_Obj_t * pObj;
+    Vec_Int_t * vLeaves = Vec_IntAlloc( nIns );
+    Vec_Wrd_t * vSimI = pFileName ? Vec_WrdReadBin( pFileName, fVerbose ) : NULL;  
+    word * pTruthsTry = ABC_CALLOC( word, (nOuts+1)*Abc_Truth6WordNum(nIns) );
+    int k, g;  float CareAve = 0;
+    if ( vSimI && fVerbose )
+    {
+        //int nPats = 64*Vec_WrdSize(vSimI)/Gia_ManCiNum(p);
+        printf( "Density of input  patterns %8.4f.\n", (float)Abc_TtCountOnesVec(Vec_WrdArray(vSimI), Vec_WrdSize(vSimI))/(64*Vec_WrdSize(vSimI)) );
+        printf( "Using patterns with count %d and higher as cares.\n", Thresh );
+    }
+    Gia_ManLevelNum( p );
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, k )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ObjComputeTruthTableStart( p, nIns );
+    Gia_ManHashStart( pNew );
+    for ( g = 0; g < Gia_ManCoNum(p); g += nOuts )
+    {
+        Vec_Int_t * vSupp = Gia_ManCollectSuppNew( p, g, nOuts );
+        int Care = 1 << Vec_IntSize(vSupp), Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
+        word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose, &Care ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
+        int nWords = Abc_Truth6WordNum( Vec_IntSize(vSupp) );
+        CareAve += 100.0*Care/(1 << Vec_IntSize(vSupp));
+        assert( Vec_IntSize(vSupp) <= nIns );
+        Vec_IntClear( vLeaves );
+        Gia_ManForEachObjVec( vSupp, p, pObj, k )
+            Vec_IntPush( vLeaves, pObj->Value );        
+        for ( k = 0; k < nOuts; k++ )
+        {
+            Gia_Obj_t * pObj = Gia_ManCo( p, g+k );
+            word * pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ObjFanin0(pObj), vSupp );
+            Abc_TtCopy( pTruthsTry + k*nWords, pTruth, nWords, Gia_ObjFaninC0(pObj) );
+        }
+        Abc_TtCopy( pTruthsTry + nOuts*nWords, pCare, nWords, 0 );
+        ABC_FREE( pCare );
+        pMin = Gia_TryPermOptNew( pTruthsTry, Vec_IntSize(vSupp), nOuts, nWords, nRounds, fVerbose );
+        Gia_ManFillValue( pMin );
+        Gia_ManConst0(pMin)->Value = 0;
+        Gia_ManForEachCi( pMin, pObj, k )
+            pObj->Value = Vec_IntEntry( vLeaves, k );
+        Gia_ManForEachCo( pMin, pObj, k )
+        {
+            Gia_Obj_t * pObj0 = Gia_ManCo( p, g+k );
+            pObj0->Value  = Gia_ManPerformLNetOpt_rec( pNew, pMin, Gia_ObjFanin0(pObj) );
+            pObj0->Value ^= Gia_ObjFaninC0(pObj);
+        }
+        Gia_ManStop( pMin );
+        Vec_IntFree( vSupp );
+        Temp = 0;
+    }
+    CareAve /= Gia_ManCoNum(p)/nOuts;
+    Gia_ManHashStop( pNew );
+    Gia_ManForEachCo( p, pObj, k )
+        pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
+    Gia_ObjComputeTruthTableStop( p );
+    Vec_IntFree( vLeaves );
     Vec_WrdFreeP( &vSimI );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     printf( "Using patterns with count %d and higher as cares. Average care set is %8.4f %%.  ", Thresh, CareAve );

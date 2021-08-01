@@ -41461,6 +41461,7 @@ usage:
 int Abc_CommandAbc9LNetOpt( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManPerformLNetOpt( Gia_Man_t * p, int fTryNew, char * pFileName, int nIns, int nOuts, int Thresh, int nRounds, int fVerbose );
+    extern Gia_Man_t * Gia_ManPerformLNetOptNew( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int Thresh, int nRounds, int fVerbose );
     Gia_Man_t * pTemp;
     char * pFileName = NULL;
     int c, fTryNew = 1, nIns = 6, nOuts = 2, Limit = 0, nRounds = 100, fVerbose = 0;
@@ -41536,7 +41537,7 @@ int Abc_CommandAbc9LNetOpt( Abc_Frame_t * pAbc, int argc, char ** argv )
         fclose( pFile );
         pFileName = argv[globalUtilOptind];
     }
-    pTemp = Gia_ManPerformLNetOpt( pAbc->pGia, fTryNew, pFileName, nIns, nOuts, Limit, nRounds, fVerbose );
+    pTemp = Gia_ManPerformLNetOptNew( pAbc->pGia, pFileName, nIns, nOuts, Limit, nRounds, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 

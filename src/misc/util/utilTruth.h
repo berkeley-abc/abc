@@ -1674,31 +1674,6 @@ static inline void Abc_TtFlip( word * pTruth, int nWords, int iVar )
   SeeAlso     []
 
 ***********************************************************************/
-static inline word Abc_Tt6Permute_rec( word t, int * pPerm, int nVars )
-{
-    word uRes0, uRes1; int Var;
-    if (  t == 0 ) return 0;
-    if ( ~t == 0 ) return ~(word)0;
-    for ( Var = nVars-1; Var >= 0; Var-- )
-        if ( Abc_Tt6HasVar( t, Var ) )
-             break;
-    assert( Var >= 0 );
-    uRes0 = Abc_Tt6Permute_rec( Abc_Tt6Cofactor0(t, Var), pPerm, Var );
-    uRes1 = Abc_Tt6Permute_rec( Abc_Tt6Cofactor1(t, Var), pPerm, Var );
-    return (uRes0 & s_Truths6Neg[pPerm[Var]]) | (uRes1 & s_Truths6[pPerm[Var]]);
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 static inline word Abc_Tt6SwapAdjacent( word Truth, int iVar )
 {
     return (Truth & s_PMasks[iVar][0]) | ((Truth & s_PMasks[iVar][1]) << (1 << iVar)) | ((Truth & s_PMasks[iVar][2]) >> (1 << iVar));
@@ -1801,6 +1776,48 @@ static inline word Abc_Tt6RemoveVar( word t, int iVar )
     while ( iVar < 5 )
         t = Abc_Tt6SwapAdjacent( t, iVar++ );
     return t;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline word Abc_Tt6Permute_rec( word t, int * pPerm, int nVars )
+{
+    word uRes0, uRes1; int Var;
+    if (  t == 0 ) return 0;
+    if ( ~t == 0 ) return ~(word)0;
+    for ( Var = nVars-1; Var >= 0; Var-- )
+        if ( Abc_Tt6HasVar( t, Var ) )
+             break;
+    assert( Var >= 0 );
+    uRes0 = Abc_Tt6Permute_rec( Abc_Tt6Cofactor0(t, Var), pPerm, Var );
+    uRes1 = Abc_Tt6Permute_rec( Abc_Tt6Cofactor1(t, Var), pPerm, Var );
+    return (uRes0 & s_Truths6Neg[pPerm[Var]]) | (uRes1 & s_Truths6[pPerm[Var]]);
+}
+static inline void Abc_TtPermute( word * p, int * pPerm, int nVars )
+{
+    int v, nWords = Abc_TtWordNum(nVars), Perm[16];
+    assert( nVars <= 16 );
+    for ( v = 0; v < nVars; v++ )
+        Perm[v] = pPerm[v];
+    for ( v = nVars-1; v >= 0; v-- )
+    {
+        while ( v != Perm[v] )
+        {
+            int vCur = Perm[v];
+            Abc_TtSwapVars( p, nVars, v, vCur );
+            Perm[v] = Perm[vCur];
+            Perm[vCur]= vCur;
+        }
+    }
 }
 
 /**Function*************************************************************
