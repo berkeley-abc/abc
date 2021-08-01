@@ -1331,16 +1331,20 @@ usage:
 ******************************************************************************/
 int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Wln_NtkRetimeTest( char * pFileName, int fSkipSimple, int fDump, int fVerbose );
+    extern void Wln_NtkRetimeTest( char * pFileName, int fIgnoreIO, int fSkipSimple, int fDump, int fVerbose );
     FILE * pFile;
     char * pFileName = NULL;
+    int fIgnoreIO = 0;
     int fSkipSimple  = 0;
     int c, fDump = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "sdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "isdvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'i':
+            fIgnoreIO ^= 1;
+            break;
         case 's':
             fSkipSimple ^= 1;
             break;
@@ -1366,7 +1370,7 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
             printf( "Transforming NDR into internal represnetation has failed.\n" );
             return 0;
         }
-        vMoves = Wln_NtkRetime( pNtk, fSkipSimple, fVerbose );
+        vMoves = Wln_NtkRetime( pNtk, fIgnoreIO, fSkipSimple, fVerbose );
         Wln_NtkFree( pNtk );
         ABC_FREE( pAbc->pNdrArray );
         if ( vMoves ) pAbc->pNdrArray = Vec_IntReleaseNewArray( vMoves );
@@ -1389,11 +1393,12 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     fclose( pFile );
-    Wln_NtkRetimeTest( pFileName, fSkipSimple, fDump, fVerbose );
+    Wln_NtkRetimeTest( pFileName, fIgnoreIO, fSkipSimple, fDump, fVerbose );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%retime [-sdvh]\n" );
+    Abc_Print( -2, "usage: %%retime [-isdvh]\n" );
     Abc_Print( -2, "\t         performs retiming for the NDR design\n" );
+    Abc_Print( -2, "\t-i     : toggle ignoring delays of IO paths [default = %s]\n", fIgnoreIO? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle printing simple nodes [default = %s]\n", !fSkipSimple? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping the network in Verilog [default = %s]\n", fDump? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );

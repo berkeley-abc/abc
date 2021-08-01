@@ -314,7 +314,7 @@ void Wln_ReadNdrTest()
     Wln_NtkStaticFanoutTest( pNtk );
     Wln_NtkFree( pNtk );
 }
-void Wln_NtkRetimeTest( char * pFileName, int fSkipSimple, int fDump, int fVerbose )
+void Wln_NtkRetimeTest( char * pFileName, int fIgnoreIO, int fSkipSimple, int fDump, int fVerbose )
 {
     Vec_Int_t * vMoves;
     void * pData = Ndr_Read( pFileName );
@@ -326,7 +326,7 @@ void Wln_NtkRetimeTest( char * pFileName, int fSkipSimple, int fDump, int fVerbo
         return;
     }
     Wln_NtkRetimeCreateDelayInfo( pNtk );
-    vMoves = Wln_NtkRetime( pNtk, fSkipSimple, fVerbose );
+    vMoves = Wln_NtkRetime( pNtk, fIgnoreIO, fSkipSimple, fVerbose );
     //Vec_IntPrint( vMoves );
     Vec_IntFree( vMoves );
     Wln_NtkFree( pNtk );

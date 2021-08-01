@@ -335,6 +335,55 @@ void Wln_RetFindSources( Wln_Ret_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Mark paths from PIs to POs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Wln_RetMarkPaths_rec( Wln_Ntk_t * p, int iObj, int fVerbose )
+{
+    int k, iFanin, fPrev = 1;
+    if ( Wln_ObjIsTravIdPrevious(p, iObj) )
+        return 1;
+    if ( Wln_ObjIsTravIdCurrent(p, iObj) )
+        return 0;
+    if ( Wln_ObjIsCio(p, iObj) || Wln_ObjIsFf(p, iObj) )
+        return 0;
+    Wln_ObjForEachFanin( p, iObj, iFanin, k )
+        fPrev &= Wln_RetMarkPaths_rec( p, iFanin, fVerbose );
+    if ( fPrev )
+    {
+        Wln_ObjSetTravIdPrevious( p, iObj );
+        if ( Vec_IntEntry(&p->vInstIds, iObj) > 0 )
+        {
+            if ( fVerbose )
+                printf( "Updating delay %5d -> %5d : ", Vec_IntEntry(&p->vInstIds, iObj), 1 );
+            if ( fVerbose )
+                Wln_ObjPrint( p, iObj );
+            Vec_IntWriteEntry( &p->vInstIds, iObj, 1 );
+        }
+        return 1;
+    }
+    Wln_ObjSetTravIdCurrent( p, iObj );
+    return 0;
+}
+void Wln_RetMarkPaths( Wln_Ntk_t * p, int fVerbose )
+{
+    int i, iObj;
+    Wln_NtkIncrementTravId( p );
+    Wln_NtkIncrementTravId( p );
+    Wln_NtkForEachPi( p, iObj, i )
+        Wln_ObjSetTravIdPrevious( p, iObj );
+    Wln_NtkForEachPo( p, iObj, i )
+        Wln_RetMarkPaths_rec( p, Wln_ObjFanin0(p, iObj), fVerbose );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Retimability check.]
 
   Description []
@@ -571,7 +620,7 @@ void Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk )
         printf( "Assuming default delays: 10 units for most nodes and 1 unit for bit-slice, concat, and buffers driving COs.\n" );
     }
 }
-Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose )
+Vec_Int_t * Wln_NtkRetime_int( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose )
 {
     Wln_Ret_t * p = Wln_RetAlloc( pNtk );
     Vec_Int_t * vSources = &p->vSources;
@@ -665,6 +714,12 @@ Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fSkipSimple, int fVerbose )
             DelayInit, DelayBest, DelayInit - DelayBest, 100.0 * (DelayInit - DelayBest) / DelayInit );
     }
     return vMoves;
+}
+Vec_Int_t * Wln_NtkRetime( Wln_Ntk_t * pNtk, int fIgnoreIO, int fSkipSimple, int fVerbose )
+{
+    if ( fIgnoreIO )
+        Wln_RetMarkPaths( pNtk, fVerbose );
+    return Wln_NtkRetime_int( pNtk, fSkipSimple, fVerbose );
 }
 
 ////////////////////////////////////////////////////////////////////////

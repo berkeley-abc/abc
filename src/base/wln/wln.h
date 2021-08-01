@@ -246,7 +246,7 @@ extern int            Wln_ObjClone( Wln_Ntk_t * pNew, Wln_Ntk_t * p, int iObj );
 extern int            Wln_ObjCreateCo( Wln_Ntk_t * p, int iFanin );
 extern void           Wln_ObjPrint( Wln_Ntk_t * p, int iObj );
 /*=== wlcRetime.c ========================================================*/
-extern Vec_Int_t *    Wln_NtkRetime( Wln_Ntk_t * p, int fSkipSimple, int fVerbose );
+extern Vec_Int_t *    Wln_NtkRetime( Wln_Ntk_t * p, int fIgnoreIO, int fSkipSimple, int fVerbose );
 extern void           Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk );
 /*=== wlcWriteVer.c ========================================================*/
 extern void           Wln_WriteVer( Wln_Ntk_t * p, char * pFileName );
