@@ -1804,7 +1804,7 @@ static inline word Abc_Tt6Permute_rec( word t, int * pPerm, int nVars )
 }
 static inline void Abc_TtPermute( word * p, int * pPerm, int nVars )
 {
-    int v, nWords = Abc_TtWordNum(nVars), Perm[16];
+    int v, Perm[16];
     assert( nVars <= 16 );
     for ( v = 0; v < nVars; v++ )
         Perm[v] = pPerm[v];
