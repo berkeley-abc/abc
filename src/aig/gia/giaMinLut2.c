@@ -536,7 +536,6 @@ static inline word Abc_TtSimple6Min_rec( Gia_Man_t * p, word uF, word uC, int nV
     if ( 1 && vNodes )
     {
         int iLit;
-        int s = 0;
         Vec_WrdForEachEntryDouble( vNodes, uRes2, iLit, i )
             if ( !((uF ^ uRes2) & uC) )
             {
