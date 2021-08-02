@@ -158,7 +158,7 @@ Gia_Man_t * Vec_WrdReadTest( char * pFileName )
     Vec_WecForEachLevel( vRes, vPart, i )
     {
         assert( Vec_IntSize(vPart) <= nBitsI );
-        pPart = Gia_TryPermOptCare( pFuncs + i * nBitsO * nWords, nBitsI, nBitsO, nWords, 10, 0 );
+        pPart = Gia_TryPermOptCare( pFuncs + i * nBitsO * nWords, nBitsI, nBitsO, nWords, 20, 0 );
         Gia_ManFillValue( pPart );
         Gia_ManConst0(pPart)->Value = 0;
         Gia_ManForEachCi( pPart, pObj, k )

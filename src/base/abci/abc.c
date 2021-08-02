@@ -41464,9 +41464,9 @@ int Abc_CommandAbc9LNetOpt( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Gia_Man_t * Gia_ManPerformLNetOptNew( Gia_Man_t * p, char * pFileName, int nIns, int nOuts, int Thresh, int nRounds, int fVerbose );
     Gia_Man_t * pTemp;
     char * pFileName = NULL;
-    int c, fTryNew = 1, nIns = 6, nOuts = 2, Limit = 0, nRounds = 100, fVerbose = 0;
+    int c, nIns = 6, nOuts = 2, Limit = 0, nRounds = 20, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IORXxvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IORXvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -41506,9 +41506,6 @@ int Abc_CommandAbc9LNetOpt( Abc_Frame_t * pAbc, int argc, char ** argv )
             nRounds = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
-        case 'x':
-            fTryNew ^= 1;
-            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -41542,13 +41539,12 @@ int Abc_CommandAbc9LNetOpt( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &lnetopt [-IORX num] [-xvh] <file>\n" );
+    Abc_Print( -2, "usage: &lnetopt [-IORX num] [-vh] <file>\n" );
     Abc_Print( -2, "\t           performs specialized AIG optimization\n" );
     Abc_Print( -2, "\t-I num   : the input support size [default = %d]\n",                 nIns );
     Abc_Print( -2, "\t-O num   : the output group size [default = %d]\n",                  nOuts );
     Abc_Print( -2, "\t-R num   : patterns are cares starting this value [default = %d]\n", Limit );
     Abc_Print( -2, "\t-X num   : the number of optimization rounds [default = %d]\n",      nRounds );
-    Abc_Print( -2, "\t-x       : toggles using another computation [default = %s]\n",      fTryNew? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n",                 fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     Abc_Print( -2, "\t<file>   : file name with simulation information\n");

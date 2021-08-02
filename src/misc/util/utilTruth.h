@@ -399,7 +399,23 @@ static inline int Abc_TtIntersect( word * pIn1, word * pIn2, int nWords, int fCo
     }
     return 0;
 }
-static inline int Abc_TtIntersectOne( word * pOut, int fComp, word * pIn, int fComp0, int nWords )
+static inline int Abc_TtIntersectCare( word * pIn1, word * pIn2, word * pCare, int nWords, int fCompl )
+{
+    int w;
+    if ( fCompl )
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( ~pIn1[w] & pIn2[w] & pCare[w] )
+                return 1;
+    }
+    else
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( pIn1[w] & pIn2[w] & pCare[w] )
+                return 1;
+    }
+    return 0;
+}static inline int Abc_TtIntersectOne( word * pOut, int fComp, word * pIn, int fComp0, int nWords )
 {
     int w;
     if ( fComp0 )
@@ -540,6 +556,23 @@ static inline int Abc_TtEqual( word * pIn1, word * pIn2, int nWords )
     for ( w = 0; w < nWords; w++ )
         if ( pIn1[w] != pIn2[w] )
             return 0;
+    return 1;
+}
+static inline int Abc_TtEqualCare( word * pIn1, word * pIn2, word * pCare, int fComp, int nWords )
+{
+    int w;
+    if ( fComp )
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( (~pIn1[w] ^ pIn2[w]) & pCare[w] )
+                return 0;
+    }
+    else
+    {
+        for ( w = 0; w < nWords; w++ )
+            if ( (pIn1[w] ^ pIn2[w]) & pCare[w] )
+                return 0;
+    }
     return 1;
 }
 static inline int Abc_TtOpposite( word * pIn1, word * pIn2, int nWords )
@@ -1804,6 +1837,25 @@ static inline word Abc_Tt6Permute_rec( word t, int * pPerm, int nVars )
 }
 static inline void Abc_TtPermute( word * p, int * pPerm, int nVars )
 {
+    int v, UnPerm[16], Perm[16];
+    assert( nVars <= 16 );
+    for ( v = 0; v < nVars; v++ )
+        UnPerm[v] = Perm[v] = v;
+    for ( v = nVars-1; v >= 0; v-- )
+    {
+        int Lev = UnPerm[pPerm[v]];
+        if ( v == Lev )
+            continue;
+        Abc_TtSwapVars( p, nVars, v, Lev );
+        ABC_SWAP( int, Perm[v], Perm[Lev] );
+        UnPerm[Perm[Lev]] = Lev;
+        UnPerm[Perm[v]] = v;
+    }
+    for ( v = 0; v < nVars; v++ )
+        assert( Perm[v] == pPerm[v] );
+}
+static inline void Abc_TtUnpermute( word * p, int * pPerm, int nVars )
+{
     int v, Perm[16];
     assert( nVars <= 16 );
     for ( v = 0; v < nVars; v++ )
@@ -1818,6 +1870,8 @@ static inline void Abc_TtPermute( word * p, int * pPerm, int nVars )
             Perm[vCur]= vCur;
         }
     }
+    for ( v = 0; v < nVars; v++ )
+        assert( Perm[v] == v );
 }
 
 /**Function*************************************************************
