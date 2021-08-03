@@ -415,7 +415,7 @@ Aig_Obj_t * Dar_BalanceBuildSuper( Aig_Man_t * p, Vec_Ptr_t * vSuper, Aig_Type_t
         pObj2 = (Aig_Obj_t *)Vec_PtrPop(vSuper);
         Dar_BalancePushUniqueOrderByLevel( vSuper, Aig_Oper(p, pObj1, pObj2, Type), Type == AIG_OBJ_EXOR );
     }
-    return (Aig_Obj_t *)Vec_PtrEntry(vSuper, 0);
+    return vSuper->nSize ? (Aig_Obj_t *)Vec_PtrEntry(vSuper, 0) : Aig_ManConst0(p);
 }
 
 
