@@ -32700,18 +32700,22 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pTemp;
     int c;
     int fNormal  = 0;
-    int fReverse = 0;
+    int fRevFans = 0;
+    int fRevOuts = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "nrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "nfovh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'n':
             fNormal ^= 1;
             break;
-        case 'r':
-            fReverse ^= 1;
+        case 'f':
+            fRevFans ^= 1;
+            break;
+        case 'o':
+            fRevOuts ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -32728,31 +32732,18 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fNormal )
-    {
         pTemp = Gia_ManDupOrderAiger( pAbc->pGia );
-        if ( fVerbose )
-            Abc_Print( -1, "AIG objects are reordered as follows: CIs, ANDs, COs.\n" );
-    }
-    else if ( fReverse )
-    {
-        pTemp = Gia_ManDupOrderDfsReverse( pAbc->pGia );
-        if ( fVerbose )
-            Abc_Print( -1, "AIG objects are reordered in the reserve DFS order.\n" );
-    }
-    else
-    {
-        pTemp = Gia_ManDupOrderDfs( pAbc->pGia );
-        if ( fVerbose )
-            Abc_Print( -1, "AIG objects are reordered in the DFS order.\n" );
-    }
+    else 
+        pTemp = Gia_ManDupOrderDfsReverse( pAbc->pGia, fRevFans, fRevOuts );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &dfs [-nrvh]\n" );
+    Abc_Print( -2, "usage: &dfs [-nfovh]\n" );
     Abc_Print( -2, "\t        orders objects in the DFS order\n" );
     Abc_Print( -2, "\t-n    : toggle using normalized ordering [default = %s]\n", fNormal? "yes": "no" );
-    Abc_Print( -2, "\t-r    : toggle using reverse DFS ordering [default = %s]\n", fReverse? "yes": "no" );
+    Abc_Print( -2, "\t-f    : toggle using reverse fanin traversal order [default = %s]\n", fRevFans? "yes": "no" );
+    Abc_Print( -2, "\t-o    : toggle using reverse output traversal order [default = %s]\n", fRevOuts? "yes": "no" );
     Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;

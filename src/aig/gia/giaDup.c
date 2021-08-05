@@ -466,7 +466,16 @@ Gia_Man_t * Gia_ManDupOrderDfsChoices( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupOrderDfsReverse( Gia_Man_t * p )
+int Gia_ManDupOrderDfs2_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return pObj->Value;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupOrderDfs2_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    Gia_ManDupOrderDfs2_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    return pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+} 
+Gia_Man_t * Gia_ManDupOrderDfsReverse( Gia_Man_t * p, int fRevFans, int fRevOuts )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
@@ -476,12 +485,28 @@ Gia_Man_t * Gia_ManDupOrderDfsReverse( Gia_Man_t * p )
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachCoReverse( p, pObj, i )
-        Gia_ManDupOrderDfs_rec( pNew, p, pObj );
     Gia_ManForEachCi( p, pObj, i )
-        if ( !~pObj->Value )
-            pObj->Value = Gia_ManAppendCi(pNew);
-    assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(p) );
+        pObj->Value = Gia_ManAppendCi(pNew);
+    if ( fRevOuts )
+    {
+        if ( fRevFans )
+            Gia_ManForEachCoReverse( p, pObj, i )
+                Gia_ManDupOrderDfs2_rec( pNew, p, Gia_ObjFanin0(pObj) );
+        else
+            Gia_ManForEachCoReverse( p, pObj, i )
+                Gia_ManDupOrderDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    }
+    else
+    {
+        if ( fRevFans )
+            Gia_ManForEachCo( p, pObj, i )
+                Gia_ManDupOrderDfs2_rec( pNew, p, Gia_ObjFanin0(pObj) );
+        else
+            Gia_ManForEachCo( p, pObj, i )
+                Gia_ManDupOrderDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManDupRemapCis( pNew, p );
     Gia_ManDupRemapCos( pNew, p );
     Gia_ManDupRemapEquiv( pNew, p );
