@@ -37753,6 +37753,20 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Gia_Obj_t * pObj; int i;
             if ( !pPars->fSilent )
             Abc_Print( 1, "Assuming the current network is a single-output miter.\n" );
+            if ( fUseSim )
+            {
+                abctime clk = Abc_Clock();
+                extern int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose );
+                int Status = Gia_ManCheckSimEquiv( pAbc->pGia, pPars->fVerbose );
+                if ( Status == 1 )
+                    Abc_Print( 1, "Networks are equivalent.  " );
+                else if ( Status == 0 )
+                    Abc_Print( 1, "Networks are NOT equivalent.  " );
+                else
+                    Abc_Print( 1, "Networks are UNDECIDED.  " );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+                return 0;
+            }
             // handle the case when the output is disproved by an all-0 primary input pattern
             ABC_FREE( pAbc->pGia->pCexComb );
             Gia_ManSetPhase( pAbc->pGia );
