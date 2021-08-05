@@ -232,6 +232,26 @@ static inline const char * Abc_OperName( int Type )
     return NULL;
 }
 
+// printing operator types
+static inline const char * Abc_OperNameSimple( int Type )
+{
+    if ( Type == ABC_OPER_NONE         )   return NULL;  
+    if ( Type == ABC_OPER_CONST_F      )   return "buf";    
+    if ( Type == ABC_OPER_CONST_T      )   return "buf";    
+    if ( Type == ABC_OPER_CONST_X      )   return "buf";    
+    if ( Type == ABC_OPER_CONST_Z      )   return "buf";   
+    if ( Type == ABC_OPER_BIT_BUF      )   return "buf";    
+    if ( Type == ABC_OPER_BIT_INV      )   return "not";      
+    if ( Type == ABC_OPER_BIT_AND      )   return "and";      
+    if ( Type == ABC_OPER_BIT_OR       )   return "or";      
+    if ( Type == ABC_OPER_BIT_XOR      )   return "xor";      
+    if ( Type == ABC_OPER_BIT_NAND     )   return "nand";     
+    if ( Type == ABC_OPER_BIT_NOR      )   return "nor";     
+    if ( Type == ABC_OPER_BIT_NXOR     )   return "xnor";     
+    assert( 0 );
+    return NULL;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////

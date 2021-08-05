@@ -334,7 +334,7 @@ static inline int Ndr_DataObjNum( Ndr_Data_t * p, int Mod )
 }
 
 // to write signal names, this procedure takes a mapping of name IDs into actual char-strings (pNames)
-static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod, char ** pNames )
+static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod, char ** pNames, int fSimple )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; 
     int * pOuts = NDR_ALLOC( int, Ndr_DataCoNum(p, Mod) );
@@ -376,6 +376,8 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
             if ( pOuts[k] == Ndr_ObjReadBody(p, Obj, NDR_OUTPUT) )
                 break;
         if ( k < i )
+            continue;
+        if ( Ndr_ObjReadOutName(p, Obj, pNames)[0] == '1' )
             continue;
         fprintf( pFile, "  wire " );
         Ndr_ObjWriteRange( p, Obj, pFile, 1 );
@@ -459,6 +461,24 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
             fprintf( pFile, ");\n" );
             continue;
         }
+        if ( fSimple )
+        {
+            if ( Ndr_ObjReadOutName(p, Obj, pNames)[0] == '1' )
+                continue;
+            nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
+            fprintf( pFile, "  %s ( %s", Abc_OperNameSimple(Type), Ndr_ObjReadOutName(p, Obj, pNames) );
+            if ( nArray == 0 )
+                fprintf( pFile, ", %s );\n", (char *)Ndr_ObjReadBodyP(p, Obj, NDR_FUNCTION) );
+            else if ( nArray == 1 && Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE) == ABC_OPER_BIT_BUF )
+                fprintf( pFile, ", %s );\n", pNames[pArray[0]] );
+            else
+            {
+                for ( i = 0; i < nArray; i++ )
+                    fprintf( pFile, ", %s", pNames[pArray[i]] );
+                fprintf( pFile, " );\n" );
+            }
+            continue;
+        }
         fprintf( pFile, "  assign %s = ", Ndr_ObjReadOutName(p, Obj, pNames) );
         nArray = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         if ( nArray == 0 )
@@ -492,7 +512,7 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
 }
 
 // to write signal names, this procedure takes a mapping of name IDs into actual char-strings (pNames)
-static inline void Ndr_WriteVerilog( char * pFileName, void * pDesign, char ** pNames )
+static inline void Ndr_WriteVerilog( char * pFileName, void * pDesign, char ** pNames, int fSimple )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; int Mod;
 
@@ -500,7 +520,7 @@ static inline void Ndr_WriteVerilog( char * pFileName, void * pDesign, char ** p
     if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ); return; }
 
     Ndr_DesForEachMod( p, Mod )
-        Ndr_WriteVerilogModule( pFile, p, Mod, pNames );
+        Ndr_WriteVerilogModule( pFile, p, Mod, pNames, fSimple );
     
     if ( pFileName ) fclose( pFile );
 }
@@ -656,7 +676,7 @@ static inline void Ndr_ModuleTest()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdS,  0, NULL,       NULL      ); // fanin is a
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
     Ndr_Write( "add4.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
@@ -744,7 +764,7 @@ static inline void Ndr_ModuleTestAdder()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   0, 0, 0,   1, &FaninCO,  0, NULL,       NULL ); 
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
     Ndr_Write( "add8.ndr", pDesign );
     Ndr_Delete( pDesign );
 
@@ -830,7 +850,7 @@ static inline void Ndr_ModuleTestHierarchy()
     Ndr_AddObject( pDesign, Module41, ABC_OPER_CO,        0,   3, 0, 0,   1, &FaninOut,   0, NULL,       NULL ); 
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
     Ndr_Write( "mux41w.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
@@ -919,7 +939,7 @@ static inline void Ndr_ModuleTestMemory()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_COMP_NOTEQU,  0,     0, 0, 0,   2, FaninsComp,   1, &NameIdComp,    NULL );
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
     Ndr_Write( "memtest.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
@@ -968,7 +988,7 @@ static inline void Ndr_ModuleTestFlop()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdQ,  0, NULL,          NULL );
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
     Ndr_Write( "flop.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
@@ -1022,7 +1042,7 @@ static inline void Ndr_ModuleTestSelSel()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   2, 0, 0,   1, &NameIdOut,0, NULL,          NULL );
 
     // write Verilog for verification
-    //Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    //Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
     Ndr_Write( "sel.ndr", pDesign );
     Ndr_Delete( pDesign );
 }

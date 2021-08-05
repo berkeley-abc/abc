@@ -96,7 +96,7 @@ void Wln_NtkToNdrTest( Wln_Ntk_t * p )
         ppNames[i] = Abc_UtilStrsav(Wln_ObjName(p, i));
 
     // verify by writing Verilog
-    Ndr_WriteVerilog( NULL, pDesign, ppNames );
+    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
     Ndr_Write( "test.ndr", pDesign );
 
     // cleanup
@@ -301,7 +301,7 @@ Wln_Ntk_t * Wln_ReadNdr( char * pFileName )
     Wln_Ntk_t * pNtk = pData ? Wln_NtkFromNdr( pData, 0 ) : NULL;
     if ( pNtk ) return NULL;
     //char * ppNames[10] = { NULL, "a", "b", "c", "d", "e", "f", "g", "h", "i" };
-    //Ndr_WriteVerilog( NULL, pData, ppNames );
+    //Ndr_WriteVerilog( NULL, pData, ppNames, 0 );
     Ndr_Delete( pData );
     return pNtk;
 }
