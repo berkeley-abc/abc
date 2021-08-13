@@ -485,7 +485,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
 {
-    int fUseZeroDefaultOutputRequired = 1;
+    //int fUseZeroDefaultOutputRequired = 1;
     Abc_ManTime_t * p;
     Abc_Time_t* pTime;
     Abc_Obj_t * pObj; int i;
