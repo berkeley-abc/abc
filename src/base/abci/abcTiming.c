@@ -209,10 +209,10 @@ void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
 ***********************************************************************/
 void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall )
 {
-  static int debug;
-  debug++;
     Vec_Ptr_t * vTimes;
     Abc_Time_t * pTime;
+    static int debug;
+    debug++;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
@@ -227,9 +227,10 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
 }
 void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall )
 {
-
     Vec_Ptr_t * vTimes;
     Abc_Time_t * pTime;
+    static int debug;
+    debug++;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
@@ -238,8 +239,6 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    static int debug;
-    debug++;
     //      printf("Debug:%d Setting required time on object %d to R %f and F %f\n",debug,
     //	   ObjId, Rise, Fall);
 }
@@ -488,6 +487,7 @@ Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
 {
     int fUseZeroDefaultOutputRequired = 1;
     Abc_ManTime_t * p;
+    Abc_Time_t* pTime;
     Abc_Obj_t * pObj; int i;
     p = pNtk->pManTime = ABC_ALLOC( Abc_ManTime_t, 1 );
     memset( p, 0, sizeof(Abc_ManTime_t) );
@@ -501,8 +501,6 @@ Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
     //    p->tReqDef.Rise = fUseZeroDefaultOutputRequired ? 0 : ABC_INFINITY;
     //    p->tReqDef.Fall = fUseZeroDefaultOutputRequired ? 0 : ABC_INFINITY;
 
-
-    Abc_Time_t* pTime;
     // extend manager
     Abc_ManTimeExpand( p, Abc_NtkObjNumMax(pNtk) + 1, 0 );
     // set the default timing for CIs
