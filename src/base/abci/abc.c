@@ -31219,12 +31219,13 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, nArgcNew;
     int fUnique = 0;
     int fVerilog = 0;
+    int fVerBufs = 0;
     int fMiniAig = 0;
     int fMiniLut = 0;
     int fWriteNewLine = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "upmlnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upbmlnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31233,6 +31234,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fVerilog ^= 1;
+            break;
+        case 'b':
+            fVerBufs ^= 1;
             break;
         case 'm':
             fMiniAig ^= 1;
@@ -31272,7 +31276,7 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManStop( pGia );
     }
     else if ( fVerilog )
-        Gia_ManDumpVerilog( pAbc->pGia, pFileName, NULL );
+        Gia_ManDumpVerilog( pAbc->pGia, pFileName, NULL, fVerBufs );
     else if ( fMiniAig )
         Gia_ManWriteMiniAig( pAbc->pGia, pFileName );
     else if ( fMiniLut )
@@ -31282,10 +31286,11 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-upmlnvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upbmlnvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
+    Abc_Print( -2, "\t-b     : toggle writing additional buffers in Verilog [default = %s]\n", fVerBufs? "yes" : "no" );
     Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
     Abc_Print( -2, "\t-n     : toggle writing \'\\n\' after \'c\' in the AIGER file [default = %s]\n", fWriteNewLine? "yes": "no" );
