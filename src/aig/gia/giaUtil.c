@@ -2109,11 +2109,13 @@ void Gia_AigerWriteLut( Gia_Man_t * p, char * pFileName )
     Gia_ManForEachObj( p, pObj, i )
         if ( i && Gia_ObjIsLut(p, i) )
         {
+            word truth;
             pLuts[iLut].Type = 3;
             Gia_LutForEachFanin( p, i, iFan, k )
                 pLuts[iLut].pFans[k] = Gia_ManObj(p, iFan)->Value;
             pLuts[iLut].nFans = k;
-            *(word *)pLuts[iLut].pTruth = Gia_LutComputeTruth6(p, i, vTruths);
+            truth = Gia_LutComputeTruth6(p, i, vTruths);
+            memcpy( pLuts[iLut].pTruth, &truth, sizeof(word) );
             pObj->Value = pLuts[iLut].Out = Abc_Var2Lit( iLut, 0 );
             iLut++;
         }
