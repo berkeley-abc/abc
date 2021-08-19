@@ -1727,15 +1727,19 @@ usage:
 ******************************************************************************/
 int Abc_CommandInvGet( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv );
+    extern Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv, Vec_Ptr_t * vNamesIn );
     Abc_Ntk_t * pMainNtk;
     Wlc_Ntk_t * pNtk = Wlc_AbcGetNtk(pAbc);
-    int c, fVerbose  = 0;
+    int c, i, fVerbose = 0, fFlopNamesFromGia = 0;
+    Vec_Ptr_t * vNamesIn = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fvh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'f':
+                fFlopNamesFromGia ^= 1;
+                break;
             case 'v':
                 fVerbose ^= 1;
                 break;
@@ -1750,16 +1754,38 @@ int Abc_CommandInvGet( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 1, "Abc_CommandInvGet(): Invariant is not available.\n" );
         return 0;
     }
+    // See if we shall and can copy the PI names from the current GIA
+    if ( fFlopNamesFromGia )
+    {
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( 1, "Abc_CommandInvGet(): No network in &-space, cannot copy names.\n" );
+            fFlopNamesFromGia = 0;
+        }
+        else
+        {
+            vNamesIn = Vec_PtrStart( Gia_ManRegNum(pAbc->pGia) );
+            for ( i = 0; i < Gia_ManRegNum(pAbc->pGia); ++i )
+            {
+                // Only the registers
+                Vec_PtrSetEntry( vNamesIn, i, Extra_UtilStrsav( (const char*)Vec_PtrEntry( pAbc->pGia->vNamesIn, Gia_ManPiNum(pAbc->pGia)+i ) ) );
+            }
+        }
+    }
     // derive the network
-    pMainNtk = Wlc_NtkGetInv( pNtk, Wlc_AbcGetInv(pAbc) );
+    pMainNtk = Wlc_NtkGetInv( pNtk, Wlc_AbcGetInv(pAbc), vNamesIn );
+    // Delete names
+    if (vNamesIn)
+        Vec_PtrFree( vNamesIn );
     // replace the current network
     if ( pMainNtk )
         Abc_FrameReplaceCurrentNetwork( pAbc, pMainNtk );
     return 0;
 usage:
-    Abc_Print( -2, "usage: inv_get [-vh]\n" );
+    Abc_Print( -2, "usage: inv_get [-fvh]\n" );
     Abc_Print( -2, "\t         places invariant found by PDR as the current network in the main-space\n" );
     Abc_Print( -2, "\t         (in the case of \'sat\' or \'undecided\', inifity clauses are used)\n" );
+    Abc_Print( -2, "\t-f     : toggle reading flop names from the &-space [default = %s]\n", fFlopNamesFromGia? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

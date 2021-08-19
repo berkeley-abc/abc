@@ -140,7 +140,7 @@ void Wlc_NtkPrintInvStats( Wlc_Ntk_t * pNtk, Vec_Int_t * vCounts, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv )
+Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv, Vec_Ptr_t * vNamesIn )
 {
     extern Vec_Int_t * Pdr_InvCounts( Vec_Int_t * vInv );
     extern Vec_Str_t * Pdr_InvPrintStr( Vec_Int_t * vInv, Vec_Int_t * vCounts );
@@ -166,8 +166,14 @@ Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv )
             if ( Entry == 0 )
                 continue;
             pMainObj = Abc_NtkCreatePi( pMainNtk );
-            sprintf( Buffer, "pi%d", i );
-            Abc_ObjAssignName( pMainObj, Buffer, NULL );
+            if (vNamesIn != NULL && i < Vec_PtrSize(vNamesIn)) {
+                Abc_ObjAssignName( pMainObj, (char *)Vec_PtrEntry(vNamesIn, i), NULL );
+            }
+            else
+            {
+                sprintf( Buffer, "pi%d", i );
+                Abc_ObjAssignName( pMainObj, Buffer, NULL );
+            }
         }
         if ( Abc_NtkPiNum(pMainNtk) != nInputs )
         {
