@@ -1784,7 +1784,7 @@ int Abc_CommandInvGet( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: inv_get [-fvh]\n" );
     Abc_Print( -2, "\t         places invariant found by PDR as the current network in the main-space\n" );
-    Abc_Print( -2, "\t         (in the case of \'sat\' or \'undecided\', inifity clauses are used)\n" );
+    Abc_Print( -2, "\t         (in the case of \'sat\' or \'undecided\', infinity clauses are used)\n" );
     Abc_Print( -2, "\t-f     : toggle reading flop names from the &-space [default = %s]\n", fFlopNamesFromGia? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
