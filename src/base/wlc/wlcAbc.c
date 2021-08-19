@@ -166,6 +166,8 @@ Abc_Ntk_t * Wlc_NtkGetInv( Wlc_Ntk_t * pNtk, Vec_Int_t * vInv, Vec_Ptr_t * vName
             if ( Entry == 0 )
                 continue;
             pMainObj = Abc_NtkCreatePi( pMainNtk );
+            // If vNamesIn is given, take names from there for as many entries as possible
+            // otherwise generate names from counter
             if (vNamesIn != NULL && i < Vec_PtrSize(vNamesIn)) {
                 Abc_ObjAssignName( pMainObj, (char *)Vec_PtrEntry(vNamesIn, i), NULL );
             }
