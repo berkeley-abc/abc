@@ -2320,6 +2320,31 @@ Gia_Man_t * Gia_ManDupTrimmed2( Gia_Man_t * p )
     assert( !Gia_ManHasDangling( pNew ) );
     return pNew;
 }
+Gia_Man_t * Gia_ManDupTrimmed3( Gia_Man_t * p )
+{
+    Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // mark duplicated POs
+    Gia_ManForEachPo( p, pObj, i )
+        Vec_IntWriteEntry( vMap, Gia_ObjFaninId0p(p, pObj), i );
+    Gia_ManForEachPo( p, pObj, i )
+        if ( Vec_IntEntry(vMap, Gia_ObjFaninId0p(p, pObj)) == i )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Vec_IntFree( vMap );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
 
 /**Function*************************************************************
 

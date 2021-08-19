@@ -2819,6 +2819,108 @@ void Gia_ManDumpSuppFileTest( Gia_Man_t * p, char * pFileName )
     Vec_StrFree( vRes );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Compute support diffs.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManConvertSupp_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( !Gia_ObjIsAnd(pObj) )
+        return;
+    if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        return;
+    Gia_ObjSetTravIdCurrent(p, pObj);
+    Gia_ManConvertSupp_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManConvertSupp_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+Gia_Man_t * Gia_ManConvertSupp( Gia_Man_t * p )
+{
+    int fOnly1 = 0;
+    int fVerbose = 1;
+    abctime clk = Abc_Clock();
+    Gia_Man_t * pNew, * pTemp; 
+    Gia_Obj_t * pObjPi, * pObjRi, * pObjRo; 
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
+    Vec_Int_t * vAnds = Vec_IntAlloc( 100 );
+    int i, n, iLits[2];
+    assert( Gia_ManRegNum(p) && Gia_ManRegNum(p) % 8 == 0 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObjPi, i )
+        pObjPi->Value = Gia_ManAppendCi( pNew );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachRi( p, pObjRi, i )
+    {
+        pObjRo = Gia_ObjRiToRo(p, pObjRi);
+        if ( (i - Gia_ManPoNum(p)) % 8 != 0 )
+            continue;
+        if ( fOnly1 )
+        {
+            assert( pObjRo->Value == ~0 );
+            for ( n = 0; n < 2; n++ )
+            {
+                pObjRo->Value = n;
+                Gia_ManIncrementTravId( p );
+                Gia_ManConvertSupp_rec( pNew, p, Gia_ObjFanin0(pObjRi) );
+                iLits[n] = Gia_ObjFanin0Copy(pObjRi);
+            }
+            pObjRo->Value = ~0;
+            Gia_ManAppendCo( pNew, Abc_LitNot(Gia_ManHashAnd( pNew, iLits[1], Abc_LitNot(iLits[0]) )) );
+        }
+        else
+        {
+            int Fanin = Gia_ObjFaninId0p( p, pObjRi );
+            Vec_Int_t * vNodes = Gia_ManCollectNodesCis( p, &Fanin, 1 ); 
+            Gia_Obj_t * pObj; int i, m;
+            Vec_IntClear( vSupp );
+            Vec_IntClear( vAnds );
+            Gia_ManForEachObjVec( vNodes, p, pObj, i )
+                Vec_IntPush( Gia_ObjIsAnd(pObj) ? vAnds : vSupp, Gia_ObjId(p, pObj) );
+            Vec_IntFree( vNodes );
+            Vec_IntSort( vSupp, 0 );
+            for ( m = 0; m < 4; m++ )
+            {
+                Gia_ManForEachObjVec( vSupp, p, pObj, i )
+                    if ( i >= Vec_IntSize(vSupp)-5 )
+                        pObj->Value = (i == Vec_IntSize(vSupp)-5+m) ? 1 : 0;
+                Gia_ManForEachObjVec( vAnds, p, pObj, i )
+                    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+                //if ( m == 4 )
+                //    Gia_ManAppendCo( pNew, 0 );   
+                //else
+                    Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObjRi) );
+                //Gia_ManAppendCo( pNew, Abc_Var2Lit( Vec_IntEntry(vSupp, Vec_IntSize(vSupp)-5+m), 0 ) );
+                Gia_ManForEachObjVec( vSupp, p, pObj, i )
+                    if ( i >= Vec_IntSize(vSupp)-5 )
+                        pObj->Value = Abc_Var2Lit( 1 + Gia_ObjCioId(pObj), 0 );
+            }
+        }
+    }
+    Vec_IntFree( vSupp );
+    Vec_IntFree( vAnds );
+    Gia_ManHashStop( pNew );
+    //Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    if ( fVerbose )
+        printf( "Transformed %d outputs,  ", Gia_ManPoNum(pNew) );
+    if ( fVerbose )
+        Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

@@ -32628,8 +32628,9 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fTrimCos = 1;
     int fDualOut = 0;
     int fPoFedByPi = 0;
+    int fPoFedByPo = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Viocdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Viocpdh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32653,6 +32654,9 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fPoFedByPi ^= 1;
             break;
+        case 'p':
+            fPoFedByPo ^= 1;
+            break;
         case 'd':
             fDualOut ^= 1;
             break;
@@ -32674,16 +32678,23 @@ int Abc_CommandAbc9Trim( Abc_Frame_t * pAbc, int argc, char ** argv )
         pTemp = Gia_ManDupTrimmed2( pTemp2 = pTemp );
         Gia_ManStop( pTemp2 );
     }
+    if ( fPoFedByPo )
+    {
+        extern Gia_Man_t * Gia_ManDupTrimmed3( Gia_Man_t * p );
+        pTemp = Gia_ManDupTrimmed3( pTemp2 = pTemp );
+        Gia_ManStop( pTemp2 );
+    }
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &trim [-V num] [-iocdh]\n" );
+    Abc_Print( -2, "usage: &trim [-V num] [-iocpdh]\n" );
     Abc_Print( -2, "\t         removes PIs without fanout and PO driven by constants\n" );
     Abc_Print( -2, "\t-V num : the value (0 or 1) of POs to remove [default = both]\n" );
     Abc_Print( -2, "\t-i     : toggle removing PIs [default = %s]\n", fTrimCis? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle removing POs [default = %s]\n", fTrimCos? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle additionally removing POs fed by PIs [default = %s]\n", fPoFedByPi? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle additionally removing duplicated POs [default = %s]\n", fPoFedByPo? "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle using dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -49291,7 +49302,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );
         return 1;
     }
-    Abc_FrameUpdateGia( pAbc, Gia_ManPerformNewResub(pAbc->pGia, 100, 8, 1, 1) );
+    Abc_FrameUpdateGia( pAbc, Gia_ManPerformNewResub(pAbc->pGia, 100, 6, 1, 1) );
 //    printf( "AIG in \"%s\" has the sum of output support sizes equal to %d.\n", pAbc->pGia->pSpec, Gia_ManSumTotalOfSupportSizes(pAbc->pGia) );
     return 0;
 usage:
