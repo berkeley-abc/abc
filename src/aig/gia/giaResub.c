@@ -1581,6 +1581,47 @@ void Gia_ManResubTest3_()
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManResubPair( Vec_Wrd_t * vOn, Vec_Wrd_t * vOff, int nWords, int nIns )
+{
+    Gia_ResbMan_t * p = Gia_ResbAlloc( nWords*2 );
+    Vec_Ptr_t * vDivs = Vec_PtrAllocSimInfo( nIns+2, nWords*2 );
+    word * pSim; int i;
+    Vec_PtrForEachEntry( word *, vDivs, pSim, i )
+    {
+        if ( i == 0 )
+        {
+            memset( pSim,        0x00, sizeof(word)*nWords );
+            memset( pSim+nWords, 0xFF, sizeof(word)*nWords );
+        }
+        else if ( i == 1 )
+        {
+            memset( pSim,        0xFF, sizeof(word)*nWords );
+            memset( pSim+nWords, 0x00, sizeof(word)*nWords );
+        }
+        else
+        {
+            memmove( pSim,        Vec_WrdEntryP(vOn,  (i-2)*nWords), sizeof(word)*nWords );
+            memmove( pSim+nWords, Vec_WrdEntryP(vOff, (i-2)*nWords), sizeof(word)*nWords );
+        }
+    }
+    Gia_ManResubPerform( p, vDivs, nWords*2, 100, 0, 50, 1, 1, 0 );
+    Gia_ManResubPrint( p->vGates, Vec_PtrSize(vDivs) );
+    printf( "\n" );
+    //Vec_PtrFree( vDivs );
+    Gia_ResbFree( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Top level.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManCheckResub( Vec_Ptr_t * vDivs, int nWords )
 {
     //int i, nVars = 6, pVarSet[10] = { 2, 189, 2127, 2125, 177, 178 };

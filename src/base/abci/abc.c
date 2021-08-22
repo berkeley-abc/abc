@@ -36013,6 +36013,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Gia_Man_t * Gia_ManPairWiseMiter( Gia_Man_t * p );
     FILE * pFile;
     Gia_Man_t * pAux;
     Gia_Man_t * pSecond;
@@ -36023,13 +36024,14 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nInsDup  = 0;
     int fDualOut = 0;
     int fSeq     = 0;
+    int fPairWise= 0;
     int fTrans   = 0;
     int fTransX  = 0;
     int fConvert = 0;
     int fTransZ  = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Idstxyzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Idsptxyzvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36049,6 +36051,9 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             fSeq ^= 1;
+            break;
+        case 'p':
+            fPairWise ^= 1;
             break;
         case 't':
             fTrans ^= 1;
@@ -36070,6 +36075,17 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+    if ( fPairWise )
+    {
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Miter(): There is no AIG.\n" );
+            return 1;
+        }
+        pAux = Gia_ManPairWiseMiter( pAbc->pGia );
+        Abc_FrameUpdateGia( pAbc, pAux );
+        return 0;
     }
     if ( fTrans || fTransX || fTransZ || fConvert )
     {
@@ -36144,11 +36160,12 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &miter [-I num] [-dstxyzvh] <file>\n" );
+    Abc_Print( -2, "usage: &miter [-I num] [-dsptxyzvh] <file>\n" );
     Abc_Print( -2, "\t         creates miter of two designs (current AIG vs. <file>)\n" );
     Abc_Print( -2, "\t-I num : the number of last PIs to replicate [default = %d]\n", nInsDup );
     Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle creating sequential miter [default = %s]\n", fSeq? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle creating pair-wise miter [default = %s]\n", fPairWise? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggle XORing POs of dual-output miter [default = %s]\n", fTrans? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle XORing POs of two-word miter [default = %s]\n", fTransX? "yes": "no" );
     Abc_Print( -2, "\t-y     : toggle convering two-word miter into dual-output miter [default = %s]\n", fConvert? "yes": "no" );

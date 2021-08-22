@@ -2923,6 +2923,166 @@ Gia_Man_t * Gia_ManConvertSupp( Gia_Man_t * p )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Transform flops.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManTransformCond2( Gia_Man_t * p )
+{
+    int fOnly1 = 0;
+    int fVerbose = 1;
+    abctime clk = Abc_Clock();
+    Gia_Man_t * pNew, * pTemp; 
+    Gia_Obj_t * pObjPi, * pObjRi, * pObjRo; 
+    int i, n, iTempLit, iLits[2];
+    assert( Gia_ManRegNum(p) > 0 );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObjPi, i )
+        pObjPi->Value = Gia_ManAppendCi( pNew );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachRi( p, pObjRi, i )
+    {
+        //if ( (i - Gia_ManPoNum(p)) % 8 != 0 )
+        //    continue;
+        pObjRo = Gia_ObjRiToRo(p, pObjRi);
+        iTempLit = pObjRo->Value;
+        for ( n = 0; n < 2; n++ )
+        {
+            pObjRo->Value = n;
+            Gia_ManIncrementTravId( p );
+            Gia_ManConvertSupp_rec( pNew, p, Gia_ObjFanin0(pObjRi) );
+            iLits[n] = Gia_ObjFanin0Copy(pObjRi);
+        }
+        pObjRo->Value = iTempLit;
+        Gia_ManAppendCo( pNew, Abc_LitNot(Gia_ManHashAnd( pNew, iLits[1], Abc_LitNot(iLits[0]) )) );
+        Gia_ManAppendCo( pNew, Abc_LitNot(Gia_ManHashAnd( pNew, iLits[0], Abc_LitNot(iLits[1]) )) );
+    }
+    Gia_ManHashStop( pNew );
+    //Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    if ( fVerbose )
+        printf( "Created %d outputs.  ", Gia_ManPoNum(pNew) );
+    if ( fVerbose )
+        Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Transform flops.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Gia_ManDetectSims( Gia_Man_t * p, int iCo, int nWords )
+{
+    extern int Cec4_ManGeneratePatterns_rec( Gia_Man_t * p, Gia_Obj_t * pObj, int Value, Vec_Int_t * vPat, Vec_Int_t * vVisit );
+    Vec_Wrd_t * vSim = Vec_WrdStart( nWords * Gia_ManCiNum(p) );
+    Vec_Int_t * vPat = Vec_IntAlloc( Gia_ManCiNum(p) );
+    Vec_Int_t * vVis = Vec_IntAlloc( Gia_ManAndNum(p) );
+    Gia_Obj_t * pObj = Gia_ManCo( p, iCo ), * pTemp; int iLit, i, k, nTries = 0;
+    if ( Gia_ObjFanin0(pObj) == Gia_ManConst0(p) )
+        return NULL;
+    Gia_ManForEachObj( p, pTemp, k )
+        assert( !pTemp->fMark0 && !pTemp->fMark1 );
+    for ( i = 0; i < 64*nWords; )
+    {
+        int Res = Cec4_ManGeneratePatterns_rec( p, Gia_ObjFanin0(pObj), !Gia_ObjFaninC0(pObj), vPat, vVis );
+        if ( Res )
+        {
+            Vec_IntForEachEntry( vPat, iLit, k )
+            {
+                if ( Abc_LitIsCompl(iLit) )
+                    continue;
+                pTemp = Gia_ManObj( p, Abc_Lit2Var(iLit) );
+                assert( Gia_ObjIsCi(pTemp) );
+                Abc_InfoSetBit( (unsigned *)Vec_WrdEntryP(vSim, nWords*Gia_ObjCioId(pTemp)), i );
+            }
+            i++;
+        }
+        Gia_ManForEachObjVec( vVis, p, pTemp, k )
+            pTemp->fMark0 = pTemp->fMark1 = 0;
+        nTries++;
+    }
+    //printf( "%d ", nTries );
+    Vec_IntFree( vPat );
+    Vec_IntFree( vVis );
+    return vSim;
+}
+Vec_Wrd_t * Vec_WrdInterleave( Vec_Wrd_t * p1, Vec_Wrd_t * p2, int nWords, int nIns )
+{
+    Vec_Wrd_t * p = Vec_WrdAlloc( Vec_WrdSize(p1)+Vec_WrdSize(p2) );
+    int i, k;
+    assert( Vec_WrdSize(p1) == nWords*nIns );
+    assert( Vec_WrdSize(p2) == nWords*nIns );
+    for ( i = 0; i < nIns; i++ )
+    {
+        for ( k = 0; k < nWords; k++ )
+            Vec_WrdPush( p, Vec_WrdEntry(p1, i*nWords+k) );
+        for ( k = 0; k < nWords; k++ )
+            Vec_WrdPush( p, Vec_WrdEntry(p2, i*nWords+k) );
+    }
+    return p;
+}
+Gia_Man_t * Gia_ManTransformCond( Gia_Man_t * p )
+{
+    extern void Gia_ManResubPair( Vec_Wrd_t * vOn, Vec_Wrd_t * vOff, int nWords, int nIns );
+    abctime clk = Abc_Clock();
+    Vec_Wrd_t * vSims;
+    Vec_Wrd_t * vSim[4];
+    Vec_Wrd_t * vInt[6];
+    int i;
+    for ( i = 0; i < Gia_ManCoNum(p); i++ )
+    {
+        vSims = Gia_ManDetectSims( p, i, 1 );
+        if ( i >= Gia_ManCoNum(p)-4 )
+            vSim[i-(Gia_ManCoNum(p)-4)] = vSims;
+        else
+            Vec_WrdFreeP( &vSims );
+        //Vec_PtrPush( vAll, vSims );
+    }
+    vInt[0] = Vec_WrdInterleave( vSim[0], vSim[1], 1, Gia_ManCiNum(p) );
+    vInt[1] = Vec_WrdInterleave( vSim[0], vSim[2], 1, Gia_ManCiNum(p) );
+    vInt[2] = Vec_WrdInterleave( vSim[0], vSim[3], 1, Gia_ManCiNum(p) );
+    vInt[3] = Vec_WrdInterleave( vSim[1], vSim[2], 1, Gia_ManCiNum(p) );
+    vInt[4] = Vec_WrdInterleave( vSim[1], vSim[3], 1, Gia_ManCiNum(p) );
+    vInt[5] = Vec_WrdInterleave( vSim[2], vSim[3], 1, Gia_ManCiNum(p) );
+
+    Gia_ManResubPair( vInt[0], vInt[5], 2, Gia_ManCiNum(p) );
+    Gia_ManResubPair( vInt[1], vInt[4], 2, Gia_ManCiNum(p) );
+    Gia_ManResubPair( vInt[2], vInt[3], 2, Gia_ManCiNum(p) );
+
+    Gia_ManResubPair( vInt[5], vInt[0], 2, Gia_ManCiNum(p) );
+    Gia_ManResubPair( vInt[4], vInt[1], 2, Gia_ManCiNum(p) );
+    Gia_ManResubPair( vInt[3], vInt[2], 2, Gia_ManCiNum(p) );
+
+/*
+    for ( i = 0; i < 4; i++ )
+    for ( k = i+1; k < 4; k++ )
+        Gia_ManResubPair( vSim[i], vSim[k], 1, Gia_ManCiNum(p) );
+*/
+    Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
+    return NULL;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
