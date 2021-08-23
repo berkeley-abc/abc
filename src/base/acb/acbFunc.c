@@ -776,6 +776,31 @@ Gia_Man_t * Acb_NtkToGia( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Int_t * vNodes, 
     Gia_ManStop( pOne );
     return pNew;
 }
+int Acb_NtkSaveNames( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Int_t * vNodes, Vec_Int_t * vRoots, Vec_Int_t * vDivs, Vec_Int_t * vTargets, Gia_Man_t * pNew )
+{
+    int i, iObj;
+    assert( pNew->vNamesIn == NULL );
+
+    pNew->vNamesIn = Vec_PtrAlloc( Gia_ManCiNum(pNew) );
+    Acb_NtkForEachCiVec( vSupp, p, iObj, i )
+        Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Acb_ObjNameStr(p, iObj)) );
+    if ( vTargets )
+        Vec_IntForEachEntry( vTargets, iObj, i )
+            Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Acb_ObjNameStr(p, iObj)) );
+
+    pNew->vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pNew) );
+    Acb_NtkForEachCoDriverVec( vRoots, p, iObj, i )
+        Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Acb_ObjNameStr(p, iObj)) );
+    if ( vDivs )
+        Vec_IntForEachEntry( vDivs, iObj, i )
+        {
+            char Buffer[100];
+            assert( strlen(Acb_ObjNameStr(p, iObj)) < 90 );
+            sprintf( Buffer, "%s_%d", Acb_ObjNameStr(p, iObj), Acb_ObjWeight(p, iObj) );
+            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+        }
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -2622,6 +2647,10 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     char * pSop = NULL;
     int i;
 
+//    int Value = Acb_NtkSaveNames( pNtkF, vSupp, vNodesF, vRoots, vDivs, &pNtkF->vTargets, pGiaF ); 
+//    Gia_AigerWrite( pGiaF, pFileBase, 0, 0, 0 );
+//    return 0;
+
     if ( fVerbose )
     {
         printf( "The number of targets = %d.\n", nTargets );
@@ -2770,6 +2799,16 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     if ( pFileName[3] == NULL ) Acb_GenerateFilePatch( vPatch, "patch.v" );
     Acb_GenerateFileOut( vInst, pFileName[0], pFileName[3] ? pFileName[3] : (char *)"out.v", vPatch );
     printf( "Finished dumping resulting file \"%s\".\n\n", pFileName[3] ? pFileName[3] : "out.v" );
+/*
+    {
+        char * pFileBase = Extra_FileNameGenericAppend( pFileName[0], "_patch.v" );
+        Acb_GenerateFilePatch( vPatch, pFileBase );
+        pFileBase = Extra_FileNameGenericAppend( pFileName[0], "_out.v" );
+        Acb_GenerateFileOut( vInst, pFileName[0], pFileName[3] ? pFileName[3] : pFileBase, vPatch );
+        Acb_GenerateFileOut( vInst, pFileName[0], pFileName[3] ? pFileName[3] : "out.v", vPatch );
+        printf( "Finished dumping resulting file \"%s\".\n\n", pFileName[3] ? pFileName[3] : pFileBase );
+    }
+*/
     //Gia_AigerWrite( pGiaG, "test.aig", 0, 0, 0 );
 cleanup:
     // cleanup

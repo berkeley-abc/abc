@@ -2937,7 +2937,6 @@ Gia_Man_t * Gia_ManConvertSupp( Gia_Man_t * p )
 ***********************************************************************/
 Gia_Man_t * Gia_ManTransformCond2( Gia_Man_t * p )
 {
-    int fOnly1 = 0;
     int fVerbose = 1;
     abctime clk = Abc_Clock();
     Gia_Man_t * pNew, * pTemp; 

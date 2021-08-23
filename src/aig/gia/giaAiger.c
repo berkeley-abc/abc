@@ -176,6 +176,7 @@ Vec_Str_t * Gia_AigerWriteLiterals( Vec_Int_t * vLits )
 Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSimple, int fSkipStrash, int fCheck )
 {
     Gia_Man_t * pNew, * pTemp;
+    Vec_Ptr_t * vNamesIn = NULL, * vNamesOut = NULL, * vNamesRegIn = NULL, * vNamesRegOut = NULL;
     Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
     Vec_Int_t * vNodes, * vDrivers, * vInits = NULL;
     int iObj, iNode0, iNode1, fHieOnly = 0;
@@ -377,6 +378,88 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
     pCur = pSymbols;
     if ( pCur < (unsigned char *)pContents + nFileSize && *pCur != 'c' )
     {
+        int fReadNames = 1;
+        if ( fReadNames )
+        {
+            int fError = 0;
+            while ( !fError && pCur < (unsigned char *)pContents + nFileSize && *pCur != 'c' )
+            {
+                int iTerm;
+                char * pType = (char *)pCur;
+                char * pName = NULL;
+                // check terminal type
+                if ( *pCur != 'i' && *pCur != 'o' && *pCur != 'l'  )
+                {
+                    fError = 1;
+                    break;
+                }
+                // get terminal number
+                iTerm = atoi( (char *)++pCur );  while ( *pCur++ != ' ' );
+                // skip spaces
+                while ( *pCur == ' ' )
+                    pCur++;
+                // skip till the end of line
+                for ( pName = pCur; *pCur && *pCur != '\n'; pCur++ );
+                if ( *pCur == '\n' )
+                    *pCur = 0;
+                // save the name
+                if ( *pType == 'i' )
+                {
+                    if ( vNamesIn == NULL )
+                        vNamesIn = Vec_PtrAlloc( nInputs + nLatches );
+                    if ( Vec_PtrSize(vNamesIn) != iTerm )
+                    {
+                        fError = 1;
+                        break;
+                    }
+                    Vec_PtrPush( vNamesIn, Abc_UtilStrsav(pName) );
+                }
+                else if ( *pType == 'o' )
+                {
+                    if ( vNamesOut == NULL )
+                        vNamesOut = Vec_PtrAlloc( nOutputs + nLatches );
+                    if ( Vec_PtrSize(vNamesOut) != iTerm )
+                    {
+                        fError = 1;
+                        break;
+                    }
+                    Vec_PtrPush( vNamesOut, Abc_UtilStrsav(pName) );
+                }
+                else if ( *pType == 'l' )
+                {
+                    char Buffer[1000];
+                    assert( strlen(pName) < 995 );
+                    sprintf( Buffer, "%s_in", pName );
+                    if ( vNamesRegIn == NULL )
+                        vNamesRegIn = Vec_PtrAlloc( nLatches );
+                    if ( vNamesRegOut == NULL )
+                        vNamesRegOut = Vec_PtrAlloc( nLatches );
+                    if ( Vec_PtrSize(vNamesRegIn) != iTerm )
+                    {
+                        fError = 1;
+                        break;
+                    }
+                    Vec_PtrPush( vNamesRegIn,  Abc_UtilStrsav(Buffer) );
+                    Vec_PtrPush( vNamesRegOut, Abc_UtilStrsav(pName) );
+                }
+                else
+                {
+                    fError = 1;
+                    break;
+                }
+                pCur++;
+            }
+            if ( fError )
+            {
+                printf( "Error occurred when reading signal names.\n" );
+                if ( vNamesIn ) Vec_PtrFreeFree( vNamesIn ), vNamesIn = NULL;
+                if ( vNamesOut ) Vec_PtrFreeFree( vNamesOut ), vNamesOut = NULL;
+                if ( vNamesRegIn ) Vec_PtrFreeFree( vNamesRegIn ), vNamesRegIn = NULL;
+                if ( vNamesRegOut ) Vec_PtrFreeFree( vNamesRegOut ), vNamesRegOut = NULL;
+            }
+        }
+        else
+        {
         int fBreakUsed = 0;
         unsigned char * pCurOld = pCur;
         pNew->vUserPiIds = Vec_IntStartFull( nInputs );
@@ -504,6 +587,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                     Vec_IntFreeP( &vPoTypes );
             }
             Vec_IntFree( vPoNames );
+        }
         }
     }
 
@@ -867,6 +951,35 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
         Abc_Print( 0, "Structural hashing enabled while reading AIGER invalidated the mapping.  Consider using \"&r -s\".\n" );
         Vec_IntFreeP( &pNew->vMapping );
     }
+    if ( vNamesIn && Gia_ManPiNum(pNew) != Vec_PtrSize(vNamesIn) )
+        Abc_Print( 0, "The number of inputs does not match the number of input names.\n" );
+    else if ( vNamesOut && Gia_ManPoNum(pNew) != Vec_PtrSize(vNamesOut) )
+        Abc_Print( 0, "The number of output does not match the number of output names.\n" );
+    else if ( vNamesRegOut && Gia_ManRegNum(pNew) != Vec_PtrSize(vNamesRegOut) )
+        Abc_Print( 0, "The number of inputs does not match the number of flop names.\n" );
+    else if ( vNamesIn && vNamesOut )
+    {
+        pNew->vNamesIn  = vNamesIn;   vNamesIn = NULL;
+        pNew->vNamesOut = vNamesOut;  vNamesOut = NULL;
+        if ( vNamesRegOut )
+        {
+            Vec_PtrAppend( pNew->vNamesIn, vNamesRegOut );
+            Vec_PtrClear( vNamesRegOut );
+            Vec_PtrFree( vNamesRegOut );
+            vNamesRegOut = NULL;
+        }
+        if ( vNamesRegIn )
+        {
+            Vec_PtrAppend( pNew->vNamesOut, vNamesRegIn );
+            Vec_PtrClear( vNamesRegIn );
+            Vec_PtrFree( vNamesRegIn );
+            vNamesRegIn = NULL;
+        }
+    }
+    if ( vNamesIn ) Vec_PtrFreeFree( vNamesIn );
+    if ( vNamesOut ) Vec_PtrFreeFree( vNamesOut );
+    if ( vNamesRegIn ) Vec_PtrFreeFree( vNamesRegIn );
+    if ( vNamesRegOut ) Vec_PtrFreeFree( vNamesRegOut );
     return pNew;
 }
 
