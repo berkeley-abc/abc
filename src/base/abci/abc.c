@@ -47282,7 +47282,16 @@ int Abc_CommandAbc9Mfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 */
-    pTemp = Gia_ManPerformMfs( pAbc->pGia, pPars );
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 )
+        pTemp = Gia_ManPerformMfs( pAbc->pGia, pPars );
+    else
+    {
+        int nRegs = Gia_ManRegNum(pAbc->pGia);
+        pAbc->pGia->nRegs = 0;
+        pTemp = Gia_ManPerformMfs( pAbc->pGia, pPars );
+        Gia_ManSetRegNum( pAbc->pGia, nRegs );
+        Gia_ManSetRegNum( pTemp, nRegs );
+    }
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
