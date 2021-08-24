@@ -2618,7 +2618,7 @@ Gia_Man_t * Gia_ManComputeCofs2( Gia_Man_t * p )
     Gia_ManForEachCi( p, pObj, i )
     {
         pObj->Value = Gia_ManAppendCi(pNew);
-        assert( pObj->Value = Abc_Var2Lit( 1 + Gia_ObjCioId(pObj), 0 ) );
+        assert( (int)pObj->Value == Abc_Var2Lit( 1 + Gia_ObjCioId(pObj), 0 ) );
     }
     Gia_ManHashAlloc( pNew );
     Gia_ManForEachRi( p, pSink, o )

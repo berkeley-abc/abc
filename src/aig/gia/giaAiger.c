@@ -399,7 +399,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 while ( *pCur == ' ' )
                     pCur++;
                 // skip till the end of line
-                for ( pName = pCur; *pCur && *pCur != '\n'; pCur++ );
+                for ( pName = (char *)pCur; *pCur && *pCur != '\n'; pCur++ );
                 if ( *pCur == '\n' )
                     *pCur = 0;
                 // save the name

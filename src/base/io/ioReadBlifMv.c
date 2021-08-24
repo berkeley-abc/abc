@@ -1657,7 +1657,7 @@ static int Io_MvWriteValues( Abc_Obj_t * pNode, Vec_Str_t * vFunc )
 ***********************************************************************/
 static int Io_MvParseLiteralMv( Io_MvMod_t * p, Abc_Obj_t * pNode, char * pToken, Vec_Str_t * vFunc, int iLit )
 {
-    char Buffer[10];
+    char Buffer[16];
     Io_MvVar_t * pVar;
     Abc_Obj_t * pFanin, * pNet;
     char * pCur, * pNext;

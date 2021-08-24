@@ -863,7 +863,7 @@ void Abc_NtkAddFrame( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame )
 {
     int fVerbose = 0;
     int NodeBef = Abc_NtkNodeNum(pNtkFrames);
-    char Buffer[10];
+    char Buffer[16];
     Abc_Obj_t * pNode, * pLatch;
     int i;
     // create the prefix to be added to the node names
@@ -1008,7 +1008,7 @@ Abc_Ntk_t * Abc_NtkFrames2( Abc_Ntk_t * pNtk, int nFrames, int fInitial, AddFram
 void Abc_NtkAddFrame2( Abc_Ntk_t * pNtkFrames, Abc_Ntk_t * pNtk, int iFrame, Vec_Ptr_t * vNodes, AddFrameMapping addFrameMapping, void* arg )
 {
 /*
-    char Buffer[10];
+    char Buffer[16];
     Abc_Obj_t * pNode, * pNodeNew, * pLatch;
     Abc_Obj_t * pConst1, * pConst1New;
     int i;

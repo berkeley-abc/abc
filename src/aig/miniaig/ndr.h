@@ -517,7 +517,7 @@ static inline void Ndr_WriteVerilog( char * pFileName, void * pDesign, char ** p
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; int Mod;
 
     FILE * pFile = pFileName ? fopen( pFileName, "wb" ) : stdout;
-    if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ); return; }
+    if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ? pFileName : "stdout" ); return; }
 
     Ndr_DesForEachMod( p, Mod )
         Ndr_WriteVerilogModule( pFile, p, Mod, pNames, fSimple );
@@ -633,7 +633,7 @@ static inline void Ndr_Write( char * pFileName, void * pDesign )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; int RetValue;
     FILE * pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ); return; }
+    if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ? pFileName : "stdout" ); return; }
     RetValue = (int)fwrite( p->pBody, 4, p->pBody[0], pFile );
     RetValue = (int)fwrite( p->pHead, 1, p->pBody[0], pFile );
     fclose( pFile );

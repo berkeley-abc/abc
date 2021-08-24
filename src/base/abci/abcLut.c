@@ -896,6 +896,7 @@ Abc_Ntk_t * Abc_NtkSpecialMapping( Abc_Ntk_t * pNtk, int fVerbose )
     }
 
     if ( fVerbose )
+    {
     Abc_NtkForEachNode( pNtk, pObj, i )
     {
         printf( "Node %4d : ", i );
@@ -908,6 +909,7 @@ Abc_Ntk_t * Abc_NtkSpecialMapping( Abc_Ntk_t * pNtk, int fVerbose )
         else
             printf( "        " );
         Vec_IntPrint( Vec_WecEntry(vSupps, i) );
+    }
     }
 
     Abc_NtkCleanCopy( pNtk );
