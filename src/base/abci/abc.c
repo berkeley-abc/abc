@@ -770,6 +770,11 @@ void Abc_FrameUpdateGia( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
         pNew->vNamesOut = pAbc->pGia->vNamesOut;
         pAbc->pGia->vNamesOut = NULL;
     }
+    if (!pNew->vNamesNode && pAbc->pGia && pAbc->pGia->vNamesNode && Gia_ManObjNum(pNew) == Vec_PtrSize(pAbc->pGia->vNamesNode))
+    {
+        pNew->vNamesNode = pAbc->pGia->vNamesNode;
+        pAbc->pGia->vNamesNode = NULL;
+    }
     // update
     if ( pAbc->pGia2 )
         Gia_ManStop( pAbc->pGia2 );
@@ -30088,6 +30093,7 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Abc3_ReadShowHie( char * pFileName, int fFlat );
     extern Gia_Man_t * Gia_MiniAigSuperDerive( char * pFileName, int fVerbose );
+    extern Gia_Man_t * Gia_FileSimpleRead( char * pFileName, int fNames, char * pFileW );
     Gia_Man_t * pAig = NULL;
     FILE * pFile;
     char ** pArgvNew;
@@ -30099,8 +30105,9 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose = 0;
     int fGiaSimple = 0;
     int fSkipStrash = 0;
+    int fNewReader = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "csmnlvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "csmnlpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30118,6 +30125,9 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'l':
             fMiniLut ^= 1;
+            break;
+        case 'p':
+            fNewReader ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -30150,7 +30160,9 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
 
-    if ( fMiniAig )
+    if ( fNewReader )
+        pAig = Gia_FileSimpleRead( FileName, fGiaSimple, NULL );
+    else if ( fMiniAig )
         pAig = Gia_ManReadMiniAig( FileName );
     else if ( fMiniAig2 )
         pAig = Gia_MiniAigSuperDerive( FileName, fVerbose );
@@ -30702,6 +30714,8 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
         }
     }
+    if ( pAbc->pGia->vNamesNode )
+        Abc_Print( 0, "Internal nodes names are not transferred.\n" );
 
     // decouple CI/CO with the same name
     if ( pAbc->pGia->vNamesIn || pAbc->pGia->vNamesOut )

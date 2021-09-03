@@ -275,6 +275,13 @@ static inline void Vec_WecClear( Vec_Wec_t * p )
         Vec_IntClear( vVec );
     p->nSize = 0;
 }
+static inline void Vec_WecClearLevels( Vec_Wec_t * p )
+{
+    Vec_Int_t * vVec;
+    int i;
+    Vec_WecForEachLevel( p, vVec, i )
+        Vec_IntClear( vVec );
+}
 
 /**Function*************************************************************
 

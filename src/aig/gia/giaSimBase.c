@@ -134,6 +134,27 @@ Vec_Wrd_t * Gia_ManSimPatSim( Gia_Man_t * pGia )
         Gia_ManSimPatSimPo( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
     return vSims;
 }
+Vec_Wrd_t * Gia_ManSimPatSimOut( Gia_Man_t * pGia, Vec_Wrd_t * vSimsPi, int fOuts )
+{
+    Gia_Obj_t * pObj;
+    int i, nWords = Vec_WrdSize(vSimsPi) / Gia_ManCiNum(pGia);
+    Vec_Wrd_t * vSimsCo = fOuts ? Vec_WrdStart( Gia_ManCoNum(pGia) * nWords ) : NULL;
+    Vec_Wrd_t * vSims = Vec_WrdStart( Gia_ManObjNum(pGia) * nWords );
+    assert( Vec_WrdSize(vSimsPi) % Gia_ManCiNum(pGia) == 0 );
+    Gia_ManSimPatAssignInputs( pGia, nWords, vSims, vSimsPi );
+    Gia_ManForEachAnd( pGia, pObj, i ) 
+        Gia_ManSimPatSimAnd( pGia, i, pObj, nWords, vSims );
+    Gia_ManForEachCo( pGia, pObj, i )
+        Gia_ManSimPatSimPo( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
+    Gia_ManForEachCo( pGia, pObj, i )
+        Gia_ManSimPatSimPo( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
+    if ( !fOuts )
+        return vSims;
+    Gia_ManForEachCo( pGia, pObj, i )
+        memcpy( Vec_WrdEntryP(vSimsCo, i*nWords), Vec_WrdEntryP(vSims, Gia_ObjId(pGia, pObj)*nWords), sizeof(word)*nWords );
+    Vec_WrdFree( vSims );
+    return vSimsCo;
+}
 void Gia_ManSimPatResim( Gia_Man_t * pGia, Vec_Int_t * vObjs, int nWords, Vec_Wrd_t * vSims )
 {
     Gia_Obj_t * pObj; int i;
@@ -549,7 +570,6 @@ Vec_Wrd_t * Gia_ManSimBitPacking( Gia_Man_t * p, Vec_Int_t * vCexStore, int nCex
     Vec_WrdFree( vSimsCare );
     return vSimsRes;
 }
-
 
 /**Function*************************************************************
 

@@ -344,6 +344,12 @@ static inline void Abc_TtOrXor( word * pOut, word * pIn1, word * pIn2, int nWord
     for ( w = 0; w < nWords; w++ )
         pOut[w] |= pIn1[w] ^ pIn2[w];
 }
+static inline void Abc_TtAndXor( word * pOut, word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] &= pIn1[w] ^ pIn2[w];
+}
 static inline void Abc_TtOrAnd( word * pOut, word * pIn1, word * pIn2, int nWords )
 {
     int w;

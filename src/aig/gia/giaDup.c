@@ -1610,6 +1610,52 @@ Gia_Man_t * Gia_ManDupDfsOnePo( Gia_Man_t * p, int iPo )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManDupDfsRehash_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+}
+Gia_Man_t * Gia_ManDupDfsRehash( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    pNew->nConstrs = p->nConstrs;
+    if ( p->pCexSeq )
+        pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Cofactors w.r.t. a primary input variable.]
 
   Description []

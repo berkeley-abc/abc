@@ -176,7 +176,7 @@ Vec_Str_t * Gia_AigerWriteLiterals( Vec_Int_t * vLits )
 Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSimple, int fSkipStrash, int fCheck )
 {
     Gia_Man_t * pNew, * pTemp;
-    Vec_Ptr_t * vNamesIn = NULL, * vNamesOut = NULL, * vNamesRegIn = NULL, * vNamesRegOut = NULL;
+    Vec_Ptr_t * vNamesIn = NULL, * vNamesOut = NULL, * vNamesRegIn = NULL, * vNamesRegOut = NULL, * vNamesNode = NULL;
     Vec_Int_t * vLits = NULL, * vPoTypes = NULL;
     Vec_Int_t * vNodes, * vDrivers, * vInits = NULL;
     int iObj, iNode0, iNode1, fHieOnly = 0;
@@ -388,7 +388,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 char * pType = (char *)pCur;
                 char * pName = NULL;
                 // check terminal type
-                if ( *pCur != 'i' && *pCur != 'o' && *pCur != 'l'  )
+                if ( *pCur != 'i' && *pCur != 'o' && *pCur != 'l' && *pCur != 'n' )
                 {
                     fError = 1;
                     break;
@@ -442,6 +442,18 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                     Vec_PtrPush( vNamesRegIn,  Abc_UtilStrsav(Buffer) );
                     Vec_PtrPush( vNamesRegOut, Abc_UtilStrsav(pName) );
                 }
+                else if ( *pType == 'n' )
+                {
+                    if ( Vec_IntSize(&pNew->vHTable) != 0 )
+                    {
+                        printf( "Structural hashing should be disabled to read internal nodes names.\n" );
+                        fError = 1;
+                        break;
+                    }
+                    if ( vNamesNode == NULL )
+                        vNamesNode = Vec_PtrStart( Gia_ManObjNum(pNew) );
+                    Vec_PtrWriteEntry( vNamesNode, iTerm, Abc_UtilStrsav(pName) );
+                }
                 else
                 {
                     fError = 1;
@@ -451,11 +463,12 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             }
             if ( fError )
             {
-                printf( "Error occurred when reading signal names.\n" );
+                printf( "Error occurred when reading signal names. Signal names ignored.\n" );
                 if ( vNamesIn ) Vec_PtrFreeFree( vNamesIn ), vNamesIn = NULL;
                 if ( vNamesOut ) Vec_PtrFreeFree( vNamesOut ), vNamesOut = NULL;
                 if ( vNamesRegIn ) Vec_PtrFreeFree( vNamesRegIn ), vNamesRegIn = NULL;
                 if ( vNamesRegOut ) Vec_PtrFreeFree( vNamesRegOut ), vNamesRegOut = NULL;
+                if ( vNamesNode )    Vec_PtrFreeFree( vNamesNode ),    vNamesNode = NULL;
             }
         }
         else
@@ -976,6 +989,10 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             vNamesRegIn = NULL;
         }
     }
+    if ( vNamesNode && Gia_ManObjNum(pNew) != Vec_PtrSize(vNamesNode) )
+        Abc_Print( 0, "The size of the node name array does not match the number of objects. Names are not entered.\n" );
+    else if ( vNamesNode )
+        pNew->vNamesNode = vNamesNode, vNamesNode = NULL;
     if ( vNamesIn ) Vec_PtrFreeFree( vNamesIn );
     if ( vNamesOut ) Vec_PtrFreeFree( vNamesOut );
     if ( vNamesRegIn ) Vec_PtrFreeFree( vNamesRegIn );
@@ -1310,6 +1327,14 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
         // write POs
         Gia_ManForEachPo( p, pObj, i )
             fprintf( pFile, "o%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesOut, i) );
+    }
+    if ( p->vNamesNode && Vec_PtrSize(p->vNamesNode) != Gia_ManObjNum(p) )
+        Abc_Print( 0, "The size of the node name array does not match the number of objects. Names are not written.\n" );
+    else if ( p->vNamesNode )
+    {
+        Gia_ManForEachAnd( p, pObj, i )
+            if ( Vec_PtrEntry(p->vNamesNode, i) )
+                fprintf( pFile, "n%d %s\n", i, (char *)Vec_PtrEntry(p->vNamesNode, i) );
     }
 
     // write the comment

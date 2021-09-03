@@ -2222,10 +2222,11 @@ void Gia_ManTransferTiming( Gia_Man_t * p, Gia_Man_t * pGia )
         p->DefOutReqs  = pGia->DefOutReqs;
         p->And2Delay   = pGia->And2Delay;
     }
-    if ( pGia->vNamesIn || pGia->vNamesOut )
+    if ( pGia->vNamesIn || pGia->vNamesOut || pGia->vNamesNode )
     {
         p->vNamesIn     = pGia->vNamesIn;     pGia->vNamesIn     = NULL;
         p->vNamesOut    = pGia->vNamesOut;    pGia->vNamesOut    = NULL;
+        p->vNamesNode   = pGia->vNamesNode;   pGia->vNamesNode   = NULL;
     }
     if ( pGia->vConfigs || pGia->pCellStr )
     {

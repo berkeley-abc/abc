@@ -106,6 +106,7 @@ extern char *       Extra_FileNameGenericAppend( char * pBase, char * pSuffix );
 extern void         Extra_FileNameCorrectPath( char * FileName );
 extern char *       Extra_FileNameWithoutPath( char * FileName );
 extern char *       Extra_FilePathWithoutName( char * FileName );
+extern char *       Extra_FileInTheSameDir( char * pPathFile, char * pFileName );
 extern char *       Extra_FileDesignName( char * pFileName );
 extern int          Extra_FileCheck( char * pFileName );
 extern int          Extra_FileSize( char * pFileName );

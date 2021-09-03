@@ -240,12 +240,21 @@ char * Extra_FilePathWithoutName( char * FileName )
     for ( pRes = FileName + strlen(FileName) - 1; pRes >= FileName; pRes-- )
         if ( *pRes == '\\' || *pRes == '/' )
         {
-           *pRes = 0;
+           pRes[1] = '\0';
            Extra_FileNameCorrectPath( FileName );
            return FileName;
         }
     ABC_FREE( FileName );
     return NULL;
+}
+char * Extra_FileInTheSameDir( char * pPathFile, char * pFileName )
+{
+    static char pBuffer[1000];
+    char * pPath = Extra_FilePathWithoutName( pPathFile );
+    assert( strlen(pPath) + strlen(pFileName) < 990 );
+    sprintf( pBuffer, "%s%s", pPath, pFileName );
+    ABC_FREE( pPath );
+    return pBuffer;
 }
 char * Extra_FileDesignName( char * pFileName )
 {

@@ -90,6 +90,7 @@ void Gia_ManStop( Gia_Man_t * p )
     assert( p->pManTime == NULL );
     Vec_PtrFreeFree( p->vNamesIn );
     Vec_PtrFreeFree( p->vNamesOut );
+    Vec_PtrFreeFree( p->vNamesNode );
     Vec_IntFreeP( &p->vSwitching );
     Vec_IntFreeP( &p->vSuper );
     Vec_IntFreeP( &p->vStore );
@@ -148,6 +149,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vCoReqs );
     Vec_IntFreeP( &p->vCoArrs );
     Vec_IntFreeP( &p->vCoAttrs );
+    Vec_IntFreeP( &p->vWeights );
     Gia_ManStopP( &p->pAigExtra );
     Vec_IntFree( p->vCis );
     Vec_IntFree( p->vCos );
@@ -202,6 +204,7 @@ double Gia_ManMemory( Gia_Man_t * p )
     Memory += Vec_FltMemory( p->vOutReqs );
     Memory += Vec_PtrMemory( p->vNamesIn );
     Memory += Vec_PtrMemory( p->vNamesOut );
+    Memory += Vec_PtrMemory( p->vNamesNode );
     return Memory;
 }
 
