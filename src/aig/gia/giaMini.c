@@ -589,6 +589,23 @@ int * Abc_FrameReadMiniLutNameMapping( Abc_Frame_t * pAbc )
     Gia_ManStop( pGia );
     return pRes;
 }
+int * Abc_FrameReadMiniLutSwitching( Abc_Frame_t * pAbc )
+{
+    Vec_Int_t * vSwitching;
+    int i, iObj, * pRes = NULL;
+    if ( pAbc->pGiaMiniLut == NULL )
+    {
+        printf( "GIA derived from MiniLut is not available.\n" );
+        return NULL;
+    }
+    vSwitching = Gia_ManComputeSwitchProbs( pAbc->pGiaMiniLut, 48, 16, 0 );
+    pRes = ABC_CALLOC( int, Vec_IntSize(pAbc->vCopyMiniLut) );
+    Vec_IntForEachEntry( pAbc->vCopyMiniLut, iObj, i )
+        if ( iObj >= 0 )
+            pRes[i] = Vec_IntEntry( vSwitching, iObj );
+    Vec_IntFree( vSwitching );
+    return pRes;
+}
 
 /**Function*************************************************************
 
