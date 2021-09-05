@@ -1472,8 +1472,8 @@ Vec_Int_t * Gia_ManResubOne( Vec_Ptr_t * vDivs, int nWords, int nLimit, int nDiv
     Gia_ManResubPerform( p, vDivs, nWords, nLimit, nDivsMax, iChoice, fUseXor, fDebug, fVerbose, Depth );
     if ( fVerbose )
         Gia_ManResubPrint( p->vGates, Vec_PtrSize(vDivs) );
-    if ( fVerbose )
-        printf( "\n" );
+    //if ( fVerbose )
+    //    printf( "\n" );
     if ( !Gia_ManResubVerify(p, pFunc) )
     {
         Gia_ManResubPrint( p->vGates, Vec_PtrSize(vDivs) );

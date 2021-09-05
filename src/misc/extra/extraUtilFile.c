@@ -249,11 +249,14 @@ char * Extra_FilePathWithoutName( char * FileName )
 }
 char * Extra_FileInTheSameDir( char * pPathFile, char * pFileName )
 {
-    static char pBuffer[1000];
-    char * pPath = Extra_FilePathWithoutName( pPathFile );
-    assert( strlen(pPath) + strlen(pFileName) < 990 );
-    sprintf( pBuffer, "%s%s", pPath, pFileName );
-    ABC_FREE( pPath );
+    static char pBuffer[1000]; char * pThis;
+    assert( strlen(pPathFile) + strlen(pFileName) < 990 );
+    memmove( pBuffer, pPathFile, strlen(pPathFile) );
+    for ( pThis = pBuffer + strlen(pPathFile) - 1; pThis >= pBuffer; pThis-- )
+        if ( *pThis == '\\' || *pThis == '/' )
+            break;
+    memmove( ++pThis, pFileName, strlen(pFileName) );
+    pThis[strlen(pFileName)] = '\0';
     return pBuffer;
 }
 char * Extra_FileDesignName( char * pFileName )
