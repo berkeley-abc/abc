@@ -189,10 +189,8 @@ void Abc_NtkTimeSetDefaultRequired( Abc_Ntk_t * pNtk, float Rise, float Fall )
     pNtk->pManTime->tReqDef.Rise  = Rise;
     pNtk->pManTime->tReqDef.Fall  = Fall;
     // set the required times for each output
-    Abc_NtkForEachCo( pNtk, pObj, i ){
-        Abc_NtkTimeSetRequired( pNtk, Abc_ObjId(pObj), Rise, Fall );
-	//	printf("Debug: Setting *default* required time on object %d to R %f F %f\n",
-	//	       Abc_ObjId(pObj),Rise,Fall);
+        Abc_NtkForEachCo( pNtk, pObj, i ){
+            Abc_NtkTimeSetRequired( pNtk, Abc_ObjId(pObj), Rise, Fall );
     }
 }
 
@@ -211,8 +209,7 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
 {
     Vec_Ptr_t * vTimes;
     Abc_Time_t * pTime;
-    static int debug;
-    debug++;
+
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
@@ -221,16 +218,13 @@ void Abc_NtkTimeSetArrival( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall 
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    //    printf("Debug:%d  Setting arrival time on object %d to R %f and F %f\n",debug,
-    //	   ObjId, Rise, Fall);
+
     
 }
 void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall )
 {
     Vec_Ptr_t * vTimes;
     Abc_Time_t * pTime;
-    static int debug;
-    debug++;
     if ( pNtk->pManTime == NULL )
         pNtk->pManTime = Abc_ManTimeStart(pNtk);
     Abc_ManTimeExpand( pNtk->pManTime, ObjId + 1, 1 );
@@ -239,8 +233,6 @@ void Abc_NtkTimeSetRequired( Abc_Ntk_t * pNtk, int ObjId, float Rise, float Fall
     pTime = (Abc_Time_t *)vTimes->pArray[ObjId];
     pTime->Rise  = Rise;
     pTime->Fall  = Fall;
-    //      printf("Debug:%d Setting required time on object %d to R %f and F %f\n",debug,
-    //	   ObjId, Rise, Fall);
 }
 
 /**Function*************************************************************
@@ -485,7 +477,7 @@ void Abc_NtkTimePrepare( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
 {
-    //int fUseZeroDefaultOutputRequired = 1;
+    int fUseZeroDefaultOutputRequired = 1;
     Abc_ManTime_t * p;
     Abc_Time_t* pTime;
     Abc_Obj_t * pObj; int i;
@@ -496,34 +488,45 @@ Abc_ManTime_t * Abc_ManTimeStart( Abc_Ntk_t * pNtk )
     // set default default input=arrivals (assumed to be 0)
     // set default default output-requireds (can be either 0 or +infinity, based on the flag)
 
-    //AF: hack support the values read in. Not defaults !
-    
-    //    p->tReqDef.Rise = fUseZeroDefaultOutputRequired ? 0 : ABC_INFINITY;
-    //    p->tReqDef.Fall = fUseZeroDefaultOutputRequired ? 0 : ABC_INFINITY;
-
     // extend manager
     Abc_ManTimeExpand( p, Abc_NtkObjNumMax(pNtk) + 1, 0 );
     // set the default timing for CIs
     Abc_NtkForEachCi( pNtk, pObj, i ){
+
+      //get the constrained value, if there is one
       Vec_Ptr_t * vTimes;
       vTimes = pNtk->pManTime->vArrs;
       pTime = (Abc_Time_t *)vTimes->pArray[Abc_ObjId(pObj)];
-      if (pTime){
-	p->tArrDef.Fall = pTime -> Fall;
-	p->tArrDef.Rise = pTime -> Rise;    
+      //unconstrained arrival defaults. Note that
+      //unconstrained value in vTimes set to -ABC_INFINITY.
+      if (pTime &&
+          (!(p-> tArrDef.Fall == -ABC_INFINITY ||
+             p-> tArrDef.Rise != -ABC_INFINITY ))
+          ){
+        p->tArrDef.Fall = pTime -> Fall;
+        p->tArrDef.Rise = pTime -> Rise;    
       }
-      
+      else {
+        //use the default arrival time 0 (implicit in memset 0, above).
+        p->tArrDef.Rise = 0;
+        p->tArrDef.Fall = 0;
+      }
       Abc_NtkTimeSetArrival( pNtk, Abc_ObjId(pObj), p->tArrDef.Rise, p->tArrDef.Rise );
     }
-    
-    // set the default timing for COs
+
+
     Abc_NtkForEachCo( pNtk, pObj, i ){
       Vec_Ptr_t * vTimes;
       vTimes = pNtk->pManTime->vArrs;
       pTime = (Abc_Time_t *)vTimes->pArray[Abc_ObjId(pObj)];
       if (pTime){
-	p->tReqDef.Fall = pTime -> Fall;
-	p->tReqDef.Rise = pTime -> Rise;    
+        p->tReqDef.Fall = pTime -> Fall;
+        p->tReqDef.Rise = pTime -> Rise;    
+      }
+      else{
+        //use the default
+        p->tReqDef.Rise = fUseZeroDefaultOutputRequired ? 0 : ABC_INFINITY;
+        p->tReqDef.Fall = fUseZeroDefaultOutputRequired ? 0 : ABC_INFINITY;
       }
       Abc_NtkTimeSetRequired( pNtk, Abc_ObjId(pObj), p->tReqDef.Rise, p->tReqDef.Rise );
     }
@@ -609,8 +612,7 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
         memcpy( pNtkNew->pManTime->tOutLoad, pNtkOld->pManTime->tOutLoad, sizeof(Abc_Time_t) * Abc_NtkCoNum(pNtkOld) );
     }
 
-    printf("State of abc timing manager\n");
-    Abc_NtkTimePrint(pNtkNew);
+
 }
 
 /**Function*************************************************************
