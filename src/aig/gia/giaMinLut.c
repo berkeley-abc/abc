@@ -597,7 +597,7 @@ void Gia_ManPermuteSupp( Gia_Man_t * p, int iOut, int nOuts, Vec_Int_t * vSupp )
     for ( i = 0; i < nOuts; i++ )
         Gia_ManPermuteSupp_rec( p, Gia_ObjFaninId0p(p, Gia_ManCo(p, iOut+i)), vLevels, vCounts );
     Gia_ManForEachObjVec( vSupp, p, pObj, i )
-        pCost[i] = 10000 * Vec_IntEntry(vLevels, Gia_ObjCioId(pObj)) / Vec_IntEntry(vCounts, Gia_ObjCioId(pObj));
+        pCost[i] = 10000 * Vec_IntEntry(vLevels, Gia_ObjCioId(pObj)) / Abc_MaxInt(1, Vec_IntEntry(vCounts, Gia_ObjCioId(pObj)));
     Vec_IntFree( vCounts );
     Vec_IntFree( vLevels );
     Vec_IntSelectSortCost2( Vec_IntArray(vSupp), Vec_IntSize(vSupp), pCost );
@@ -777,6 +777,21 @@ Gia_Man_t * Gia_ManPerformLNetOptNew( Gia_Man_t * p, char * pFileName, int nIns,
     Gia_ManHashStart( pNew );
     for ( g = 0; g < Gia_ManCoNum(p); g += nOuts )
     {
+        for ( k = 0; k < nOuts; k++ )
+            if ( Gia_ObjIsAnd(Gia_ObjFanin0(Gia_ManCo( p, g+k ))) )
+                break;
+        if ( k == nOuts )
+        {
+            for ( k = 0; k < nOuts; k++ )
+            {
+                Gia_Obj_t * pObj = Gia_ManCo( p, g+k );
+                pObj->Value = Gia_ObjFanin0Copy(pObj);
+            }
+            continue;
+        }
+        else
+        {
+
         Vec_Int_t * vSupp = Gia_ManCollectSuppNew( p, g, nOuts );
         int Care = 1 << Vec_IntSize(vSupp), Temp = fVerbose ? printf( "Group %3d / %3d / %3d : Supp = %3d   %s", g, nOuts, Gia_ManCoNum(p), Vec_IntSize(vSupp), vSimI ? "":"\n" ) : 0;
         word * pCare = vSimI ? Gia_ManCountFraction( p, vSimI, vSupp, Thresh, fVerbose, &Care ) : ABC_FALLOC( word, Abc_Truth6WordNum(Vec_IntSize(vSupp)) );
@@ -808,6 +823,8 @@ Gia_Man_t * Gia_ManPerformLNetOptNew( Gia_Man_t * p, char * pFileName, int nIns,
         Gia_ManStop( pMin );
         Vec_IntFree( vSupp );
         Temp = 0;
+        
+        }
     }
     CareAve /= Gia_ManCoNum(p)/nOuts;
     Gia_ManHashStop( pNew );
