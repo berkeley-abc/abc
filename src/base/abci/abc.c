@@ -86,7 +86,9 @@ static int Abc_CommandPrintMffc              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandPrintFactor            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintLevel             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintSupport           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+#ifdef ABC_USE_CUDD
 static int Abc_CommandPrintMint              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+#endif
 static int Abc_CommandPrintSymms             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintUnate             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintAuto              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -827,7 +829,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_factor",  Abc_CommandPrintFactor,      0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_level",   Abc_CommandPrintLevel,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_supp",    Abc_CommandPrintSupport,     0 );
+#ifdef ABC_USE_CUDD
     Cmd_CommandAdd( pAbc, "Printing",     "print_mint",    Abc_CommandPrintMint,        0 );
+#endif
     Cmd_CommandAdd( pAbc, "Printing",     "print_symm",    Abc_CommandPrintSymms,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_unate",   Abc_CommandPrintUnate,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_auto",    Abc_CommandPrintAuto,        0 );
@@ -2109,6 +2113,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+#ifdef ABC_USE_CUDD
 int Abc_CommandPrintMint( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -2147,6 +2152,7 @@ int Abc_CommandPrintMint( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "This command works only for logic networks with local functions represented by BDDs.\n" );
         return 1;
     }
+
     Abc_NtkForEachNode( pNtk, pObj, c )
         printf( "ObjId %3d : SuppSize = %5d   MintCount = %32.0f\n", c, Abc_ObjFaninNum(pObj), 
             Cudd_CountMinterm((DdManager *)pNtk->pManFunc, (DdNode *)pObj->pData, Abc_ObjFaninNum(pObj)) );
@@ -2159,6 +2165,7 @@ usage:
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
+#endif
 
 /**Function*************************************************************
 
