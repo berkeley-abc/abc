@@ -602,7 +602,7 @@ int * Abc_FrameReadMiniLutSwitching( Abc_Frame_t * pAbc )
     pRes = ABC_CALLOC( int, Vec_IntSize(pAbc->vCopyMiniLut) );
     Vec_IntForEachEntry( pAbc->vCopyMiniLut, iObj, i )
         if ( iObj >= 0 )
-            pRes[i] = Vec_IntEntry( vSwitching, iObj );
+            pRes[i] = Vec_IntEntry( vSwitching, Abc_Lit2Var(iObj) );
     Vec_IntFree( vSwitching );
     return pRes;
 }
