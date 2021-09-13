@@ -1039,7 +1039,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Sequential",   "zero",          Abc_CommandZero,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "undc",          Abc_CommandUndc,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "onehot",        Abc_CommandOneHot,           1 );
-//    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
+    Cmd_CommandAdd( pAbc, "Sequential",   "pipe",          Abc_CommandPipe,             1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "retime",        Abc_CommandRetime,           1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "dretime",       Abc_CommandDRetime,          1 );
     Cmd_CommandAdd( pAbc, "Sequential",   "fretime",       Abc_CommandFlowRetime,       1 );
@@ -20530,9 +20530,15 @@ int Abc_CommandPipe( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( Abc_NtkIsComb(pNtk) )
+    if ( !Abc_NtkIsLogic(pNtk) )
     {
-        Abc_Print( 0, "The current network is combinational.\n" );
+        Abc_Print( 0, "Abc_CommandPipe(): Expecting a logic network (run command \"logic\").\n" );
+        return 0;
+    }
+
+    if ( !Abc_NtkIsComb(pNtk) )
+    {
+        Abc_Print( 0, "Abc_CommandPipe(): Expecting a combinational network.\n" );
         return 0;
     }
 
