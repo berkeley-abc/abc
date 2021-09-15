@@ -1888,6 +1888,132 @@ void Gia_ManTryResub( Gia_Man_t * p )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [Deriving a subset.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManDeriveShrink( Vec_Wrd_t * vFuncs, int nWords )
+{
+    int i, k = 0, nFuncs = Vec_WrdSize(vFuncs) / nWords / 2;
+    assert( 2 * nFuncs * nWords == Vec_WrdSize(vFuncs) );
+    for ( i = 0; i < nFuncs; i++ )
+    {
+        word * pFunc0 = Vec_WrdEntryP(vFuncs, (2*i+0)*nWords);
+        word * pFunc1 = Vec_WrdEntryP(vFuncs, (2*i+1)*nWords);
+        if ( Abc_TtIsConst0(pFunc0, nWords) || Abc_TtIsConst0(pFunc1, nWords) )
+            continue;
+        if ( k < i ) Abc_TtCopy( Vec_WrdEntryP(vFuncs, (2*k+0)*nWords), pFunc0, nWords, 0 );
+        if ( k < i ) Abc_TtCopy( Vec_WrdEntryP(vFuncs, (2*k+1)*nWords), pFunc1, nWords, 0 );
+        k++;
+    }
+    Vec_WrdShrink( vFuncs, 2*k*nWords );
+    return k;
+}
+void Gia_ManDeriveCounts( Vec_Wrd_t * vFuncs, int nWords, Vec_Int_t * vCounts )
+{
+    int i, nFuncs = Vec_WrdSize(vFuncs) / nWords / 2;
+    assert( 2 * nFuncs * nWords == Vec_WrdSize(vFuncs) );
+    Vec_IntClear( vCounts );
+    for ( i = 0; i < 2*nFuncs; i++ )
+        Vec_IntPush( vCounts, Abc_TtCountOnesVec(Vec_WrdEntryP(vFuncs, i*nWords), nWords) );
+}
+int Gia_ManDeriveCost( Vec_Wrd_t * vFuncs, int nWords, word * pMask, Vec_Int_t * vCounts )
+{
+    int i, Res = 0, nFuncs = Vec_WrdSize(vFuncs) / nWords / 2;
+    assert( 2 * nFuncs * nWords == Vec_WrdSize(vFuncs) );
+    assert( Vec_IntSize(vCounts) * nWords == Vec_WrdSize(vFuncs) );
+    for ( i = 0; i < nFuncs; i++ )
+    {
+        int Total[2] = { Vec_IntEntry(vCounts, 2*i+0), Vec_IntEntry(vCounts, 2*i+1) };
+        int This[2]  = { Abc_TtCountOnesVecMask(Vec_WrdEntryP(vFuncs, (2*i+0)*nWords), pMask, nWords, 0),
+                         Abc_TtCountOnesVecMask(Vec_WrdEntryP(vFuncs, (2*i+1)*nWords), pMask, nWords, 0) };
+        assert( Total[0] >= This[0] && Total[1] >= This[1] );
+        Res += This[0] * This[1] + (Total[0] - This[0]) * (Total[1] - This[1]);
+    }
+    return Res;
+}
+int Gia_ManDeriveSimpleCost( Vec_Int_t * vCounts )
+{
+    int i, Ent1, Ent2, Res = 0;
+    Vec_IntForEachEntryDouble( vCounts, Ent1, Ent2, i )
+        Res += Ent1*Ent2;
+    return Res;
+}
+void Gia_ManDeriveNext( Vec_Wrd_t * vFuncs, int nWords, word * pMask )
+{
+    int i, iStop = Vec_WrdSize(vFuncs); word Data;
+    int nFuncs = Vec_WrdSize(vFuncs) / nWords / 2;
+    assert( 2 * nFuncs * nWords == Vec_WrdSize(vFuncs) );
+    Vec_WrdForEachEntryStop( vFuncs, Data, i, iStop )
+        Vec_WrdPush( vFuncs, Data );
+    for ( i = 0; i < nFuncs; i++ )
+    {
+        word * pFunc0n = Vec_WrdEntryP(vFuncs, (2*i+0)*nWords);
+        word * pFunc1n = Vec_WrdEntryP(vFuncs, (2*i+1)*nWords);
+        word * pFunc0p = Vec_WrdEntryP(vFuncs, (2*i+0)*nWords + iStop);
+        word * pFunc1p = Vec_WrdEntryP(vFuncs, (2*i+1)*nWords + iStop);
+        Abc_TtAnd( pFunc0p, pFunc0n, pMask, nWords, 0 );
+        Abc_TtAnd( pFunc1p, pFunc1n, pMask, nWords, 0 );
+        Abc_TtSharp( pFunc0n, pFunc0n, pMask, nWords );
+        Abc_TtSharp( pFunc1n, pFunc1n, pMask, nWords );
+    }
+}
+Vec_Int_t * Gia_ManDeriveSubset( Gia_Man_t * p, Vec_Wrd_t * vFuncs, Vec_Int_t * vObjs, Vec_Wrd_t * vSims, int nWords, int fVerbose )
+{
+    int i, k, iObj, CostBestPrev, nFuncs = Vec_WrdSize(vFuncs) / nWords;
+    Vec_Int_t * vRes    = Vec_IntAlloc( 100 );
+    Vec_Int_t * vCounts = Vec_IntAlloc( nFuncs * 2 );
+    Vec_Wrd_t * vFSims  = Vec_WrdDup( vFuncs );
+    assert( nFuncs * nWords == Vec_WrdSize(vFuncs) );
+    assert( Gia_ManObjNum(p) * nWords == Vec_WrdSize(vSims) );
+    assert( Vec_IntSize(vObjs) <= Gia_ManCandNum(p) );
+    nFuncs = Gia_ManDeriveShrink( vFSims, nWords );
+    Gia_ManDeriveCounts( vFSims, nWords, vCounts );
+    assert( Vec_IntSize(vCounts) * nWords == Vec_WrdSize(vFSims) );
+    CostBestPrev = Gia_ManDeriveSimpleCost( vCounts );
+    if ( fVerbose )
+    printf( "Processing %d functions and %d objects with cost %d\n", nFuncs, Vec_IntSize(vObjs), CostBestPrev );
+    for ( i = 0; nFuncs > 0; i++ )
+    {
+        int iObjBest = -1, CountThis, Count0 = ABC_INFINITY, CountBest = ABC_INFINITY;
+        Vec_IntForEachEntry( vObjs, iObj, k )
+        {
+            if ( Vec_IntFind(vRes, iObj) >= 0 )
+                continue;
+            CountThis = Gia_ManDeriveCost( vFSims, nWords, Vec_WrdEntryP(vSims, iObj*nWords), vCounts );
+            if ( CountBest > CountThis )
+            {
+                CountBest = CountThis;
+                iObjBest = iObj;
+            }
+            if ( !k ) Count0 = CountThis;
+        }
+        if ( Count0 < CostBestPrev )
+        {
+            CountBest = Count0;
+            iObjBest = Vec_IntEntry(vObjs, 0);
+        }
+        Gia_ManDeriveNext( vFSims, nWords, Vec_WrdEntryP(vSims, iObjBest*nWords) );
+        nFuncs = Gia_ManDeriveShrink( vFSims, nWords );
+        Gia_ManDeriveCounts( vFSims, nWords, vCounts );
+        assert( CountBest == Gia_ManDeriveSimpleCost(vCounts) );
+        Vec_IntPush( vRes, iObjBest );
+        CostBestPrev = CountBest;
+        if ( fVerbose )
+        printf( "Iter %2d :  Funcs = %6d.  Object %6d.  Cost %6d.\n", i, nFuncs, iObjBest, CountBest );
+    }
+    Vec_IntFree( vCounts );
+    Vec_WrdFree( vFSims );
+    return vRes;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

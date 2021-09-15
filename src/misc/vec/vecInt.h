@@ -780,6 +780,12 @@ static inline void Vec_IntPushArray( Vec_Int_t * p, int * pEntries, int nEntries
     for ( i = 0; i < nEntries; i++ )
         Vec_IntPush( p, pEntries[i] );
 }
+static inline void Vec_IntShift( Vec_Int_t * p, int Shift )
+{
+    p->nSize  -= Shift;
+    p->nCap   -= Shift;
+    p->pArray += Shift;
+}
 
 /**Function*************************************************************
 

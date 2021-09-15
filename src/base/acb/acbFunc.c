@@ -472,6 +472,8 @@ Gia_Man_t * Gia_FileSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames, int fN
             Vec_IntPush( vTypes, Vec_IntSize(vFanins) );
             vCur = vFanins;
         }
+        else if ( pFileW && vCur == vWires && Abc_NamStr(pNames, Token)[0] == 't' )
+            Vec_IntPush( vInputs, Token );
         else 
             Vec_IntPush( vCur, Token );
     }
@@ -526,7 +528,7 @@ Gia_Man_t * Gia_FileSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames, int fN
     pNew->vNamesOut = Vec_PtrAlloc( Vec_IntSize(vOutputs) );
     Vec_IntForEachEntry( vOutputs, Token, i )
         Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Abc_NamStr(pNames, Token)) );
-    if ( pFileW )
+    if ( pFileW && fNames )
     {
         extern Vec_Int_t * Acb_ReadWeightMap( char * pFileName, Abc_Nam_t * pNames );
         Vec_Int_t * vT2W = Acb_ReadWeightMap( pFileW, pNames );
@@ -618,7 +620,7 @@ char ** Acb_PrepareNames( Abc_Nam_t * p )
 Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW )
 {
     extern Acb_Ntk_t * Acb_NtkFromNdr( char * pFileName, void * pModule, Abc_Nam_t * pNames, Vec_Int_t * vWeights, int nNameIdMax );
-    Acb_Ntk_t * pNtk; //char ** ppNames;
+    Acb_Ntk_t * pNtk; 
     Abc_Nam_t * pNames = Acb_VerilogStartNames();
     Vec_Int_t * vBuffer = Acb_VerilogSimpleLex( pFileName, pNames );
     void * pModule = vBuffer ? Acb_VerilogSimpleParse( vBuffer, pNames ) : NULL;
@@ -633,9 +635,12 @@ Acb_Ntk_t * Acb_VerilogSimpleRead( char * pFileName, char * pFileNameW )
         printf( "Cannot read weight file \"%s\".\n", pFileNameW );
         return NULL;
     }
-    //ppNames = Acb_PrepareNames(pNames);
-    //Ndr_WriteVerilog( Extra_FileNameGenericAppend(pFileName, "_ndr.v"), pModule, ppNames, 1 );
-    //ABC_FREE( ppNames );
+    if ( 0 )
+    {
+        char ** ppNames = Acb_PrepareNames(pNames);
+        Ndr_WriteVerilog( Extra_FileNameGenericAppend(pFileName, "_ndr.v"), pModule, ppNames, 1 );
+        ABC_FREE( ppNames );
+    }
     pNtk = Acb_NtkFromNdr( pFileName, pModule, pNames, vWeights, Abc_NamObjNumMax(pNames) );
     Ndr_Delete( pModule );
     Vec_IntFree( vBuffer );
@@ -2391,7 +2396,7 @@ Vec_Str_t * Acb_GeneratePatch2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * 
     extern Vec_Wec_t * Abc_GiaSynthesize( Vec_Ptr_t * vGias, Gia_Man_t * pMulti );
     Vec_Wec_t * vGates = Abc_GiaSynthesize( NULL, pGia );  Vec_Int_t * vGate;
     int nIns = Vec_PtrSize(vIns), nOuts = Vec_PtrSize(vOuts); char * pName;
-    int i, k, iObj, nWires = Vec_WecSize(vGates) - nIns - nOuts, fFirst = 1;
+    int i, k, iObj, nWires = Vec_WecSize(vGates) - nIns - nOuts, nTwoIns = 0, fFirst = 1;
     Vec_Ptr_t * vNames = Acb_GenerateSignalNames2( vGates, vIns, vOuts );
 
     Vec_Str_t * vStr = Vec_StrAlloc( 100 );
@@ -2400,7 +2405,7 @@ Vec_Str_t * Acb_GeneratePatch2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * 
     Vec_PtrForEachEntry( char *, vOuts, pName, i )
         Vec_StrPrintF( vStr, "%s %s", i ? ",":"", pName );
     Vec_PtrForEachEntry( char *, vIns, pName, i )
-        Vec_StrPrintF( vStr, ", %s", pName );
+        Vec_StrPrintF( vStr, ", %s%s", i ? "":"  ", pName );
     Vec_StrAppend( vStr, " );\n\n" );
 
     Vec_StrAppend( vStr, "  output" );
@@ -2422,8 +2427,9 @@ Vec_Str_t * Acb_GeneratePatch2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * 
             if ( !strncmp(pName, "ww", 2) )
                 Vec_StrPrintF( vStr, "%s %s", fFirst ? "":",", pName ), fFirst = 0;
         }
-        Vec_StrAppend( vStr, ";\n\n" );
+        Vec_StrAppend( vStr, ";\n" );
     }
+    Vec_StrAppend( vStr, "\n" );
 
     // create internal nodes
     Vec_WecForEachLevelStartStop( vGates, vGate, i, nIns, nIns+nWires )
@@ -2434,6 +2440,7 @@ Vec_Str_t * Acb_GeneratePatch2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * 
             Vec_IntForEachEntryStart( vGate, iObj, k, 1 )
                 Vec_StrPrintF( vStr, "%s %s", k > 1 ? ",":"", (char *)Vec_PtrEntry(vNames, iObj) );
             Vec_StrAppend( vStr, " );\n" );
+            nTwoIns += Vec_IntSize(vGate) - 3;
         }
         else
         {
@@ -2449,7 +2456,7 @@ Vec_Str_t * Acb_GeneratePatch2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * 
     Vec_PtrFreeFree( vNames );
     Vec_WecFree( vGates );
 
-    printf( "Synthesized patch with %d inputs, %d outputs and %d gates.\n", nIns, nOuts, nWires );
+    printf( "Synthesized patch with %d inputs, %d outputs and %d gates (including %d two-input gates).\n", nIns, nOuts, nWires, nTwoIns );
     return vStr;
 }
 void Acb_GenerateFile2( Gia_Man_t * pGia, Vec_Ptr_t * vIns, Vec_Ptr_t * vOuts, char * pFileName, char * pFileNameOut, int fSkipMffc )

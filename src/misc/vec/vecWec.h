@@ -559,6 +559,29 @@ static inline void Vec_WecSortByLastInt( Vec_Wec_t * p, int fReverse )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_WecKeepLevels( Vec_Wec_t * p, int Limit )
+{
+    Vec_Int_t * vLevel; int i, k = 0;
+    Vec_WecForEachLevel( p, vLevel, i )
+        if ( Vec_IntSize(vLevel) > Limit )
+        {
+            ABC_SWAP( Vec_Int_t, Vec_WecArray(p)[i], Vec_WecArray(p)[k] );
+            k++;
+        }
+    Vec_WecShrink( p, k );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_WecPrint( Vec_Wec_t * p, int fSkipSingles )
 {
     Vec_Int_t * vVec;
