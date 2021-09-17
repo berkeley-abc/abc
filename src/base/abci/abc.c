@@ -30176,7 +30176,7 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fNewReader )
         pAig = Gia_FileSimpleRead( FileName, fGiaSimple, NULL );
     else if ( fMiniAig )
-        pAig = Gia_ManReadMiniAig( FileName );
+        pAig = Gia_ManReadMiniAig( FileName, fGiaSimple || fSkipStrash );
     else if ( fMiniAig2 )
         pAig = Gia_MiniAigSuperDerive( FileName, fVerbose );
     else if ( fMiniLut )

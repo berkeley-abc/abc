@@ -59,7 +59,7 @@ int Gia_ObjFromMiniFanin1Copy( Gia_Man_t * pGia, Vec_Int_t * vCopies, Mini_Aig_t
     int Lit = Mini_AigNodeFanin1( p, Id );
     return Abc_LitNotCond( Vec_IntEntry(vCopies, Abc_Lit2Var(Lit)), Abc_LitIsCompl(Lit) );
 }
-Gia_Man_t * Gia_ManFromMiniAig( Mini_Aig_t * p, Vec_Int_t ** pvCopies )
+Gia_Man_t * Gia_ManFromMiniAig( Mini_Aig_t * p, Vec_Int_t ** pvCopies, int fGiaSimple )
 {
     Gia_Man_t * pGia, * pTemp;
     Vec_Int_t * vCopies;
@@ -73,7 +73,10 @@ Gia_Man_t * Gia_ManFromMiniAig( Mini_Aig_t * p, Vec_Int_t ** pvCopies )
     vCopies = Vec_IntAlloc( nNodes );
     Vec_IntPush( vCopies, 0 );
     // iterate through the objects
-    Gia_ManHashAlloc( pGia );
+    if ( fGiaSimple )
+        pGia->fGiaSimple = fGiaSimple;
+    else
+        Gia_ManHashAlloc( pGia );
     for ( i = 1; i < nNodes; i++ )
     {
         if ( Mini_AigNodeIsPi( p, i ) )
@@ -85,17 +88,19 @@ Gia_Man_t * Gia_ManFromMiniAig( Mini_Aig_t * p, Vec_Int_t ** pvCopies )
         else assert( 0 );
         Vec_IntPush( vCopies, iGiaLit );
     }
-    Gia_ManHashStop( pGia );
     assert( Vec_IntSize(vCopies) == nNodes );
     if ( pvCopies )
         *pvCopies = vCopies;
     else
         Vec_IntFree( vCopies );
     Gia_ManSetRegNum( pGia, Mini_AigRegNum(p) );
-    pGia = Gia_ManCleanup( pTemp = pGia );
-    if ( pvCopies )
-        Gia_ManDupRemapLiterals( *pvCopies, pTemp );
-    Gia_ManStop( pTemp );
+    if ( !fGiaSimple )
+    {
+        pGia = Gia_ManCleanup( pTemp = pGia );
+        if ( pvCopies )
+            Gia_ManDupRemapLiterals( *pvCopies, pTemp );
+        Gia_ManStop( pTemp );
+    }
     return pGia;
 }
 
@@ -150,7 +155,7 @@ void Abc_FrameGiaInputMiniAig( Abc_Frame_t * pAbc, void * p )
         printf( "ABC framework is not initialized by calling Abc_Start()\n" );
     Gia_ManStopP( &pAbc->pGiaMiniAig );
     Vec_IntFreeP( &pAbc->vCopyMiniAig );
-    pGia = Gia_ManFromMiniAig( (Mini_Aig_t *)p, &pAbc->vCopyMiniAig );
+    pGia = Gia_ManFromMiniAig( (Mini_Aig_t *)p, &pAbc->vCopyMiniAig, 0 );
     Abc_FrameUpdateGia( pAbc, pGia );
     pAbc->pGiaMiniAig = Gia_ManDup( pGia );
 //    Gia_ManDelete( pGia );
@@ -177,10 +182,10 @@ void * Abc_FrameGiaOutputMiniAig( Abc_Frame_t * pAbc )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManReadMiniAig( char * pFileName )
+Gia_Man_t * Gia_ManReadMiniAig( char * pFileName, int fGiaSimple )
 {
     Mini_Aig_t * p = Mini_AigLoad( pFileName );
-    Gia_Man_t * pGia = Gia_ManFromMiniAig( p, NULL );
+    Gia_Man_t * pGia = Gia_ManFromMiniAig( p, NULL, fGiaSimple );
     ABC_FREE( pGia->pName );
     pGia->pName = Extra_FileNameGeneric( pFileName ); 
     Mini_AigStop( p );
@@ -281,7 +286,6 @@ Gia_Man_t * Gia_ManFromMiniLut2( Mini_Lut_t * p, Vec_Int_t ** pvCopies )
     Vec_Int_t * vCover = Vec_IntAlloc( 1000 );
     Vec_Int_t * vLits = Vec_IntAlloc( 100 );
     int i, k, Fan, iGiaLit, nNodes;
-    int LutSize = Abc_MaxInt( 2, Mini_LutSize(p) );
     // get the number of nodes
     nNodes = Mini_LutNodeNum(p);
     // create ABC network
