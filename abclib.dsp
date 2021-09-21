@@ -5171,14 +5171,6 @@ SOURCE=.\src\aig\gia\giaSim2.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\src\aig\gia\giaSim4.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\src\aig\gia\giaSim5.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\src\aig\gia\giaSimBase.c
 # End Source File
 # Begin Source File

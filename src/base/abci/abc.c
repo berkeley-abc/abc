@@ -140,7 +140,6 @@ static int Abc_CommandTestRPO                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestTruth              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunEco                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandRunSim                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunTest                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -883,7 +882,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "testtruth",     Abc_CommandTestTruth,        0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "runeco",        Abc_CommandRunEco,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "rungen",        Abc_CommandRunGen,           0 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "runsim",        Abc_CommandRunSim,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "xec",           Abc_CommandRunTest,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
@@ -7239,159 +7237,6 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandRunSim( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    extern void Acb_NtkRunSim( char * pFileName[4], int nTimeout, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fInputs, int fSkipMffc, int fVerbose, int fVeryVerbose );
-    char * pFileNames[4] = {NULL, NULL, "out.v", NULL};
-    int c, nTimeout = 0, nWords = 8, nBeam = 4, LevL = -1, LevU = -1, fOrder = 0, fFancy = 0, fUseBuf = 0, fRandom = 0, fUseWeights = 0, fInputs = 0, fSkipMffc = 0, fVerbose = 0, fVeryVerbose = 0;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TWBLUofbruimvwh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nTimeout = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nTimeout < 0 )
-                goto usage;
-            break;
-        case 'W':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nWords = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nWords < 0 )
-                goto usage;
-            break;
-        case 'B':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nBeam = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nBeam < 0 )
-                goto usage;
-            break;
-        case 'L':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            LevL = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( LevL < 0 )
-                goto usage;
-            break;
-        case 'U':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-U\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            LevU = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( LevU < 0 )
-                goto usage;
-            break;
-        case 'o':
-            fOrder ^= 1;
-            break;
-        case 'f':
-            fFancy ^= 1;
-            break;
-        case 'b':
-            fUseBuf ^= 1;
-            break;
-        case 'r':
-            fRandom ^= 1;
-            break;
-        case 'u':
-            fUseWeights ^= 1;
-            break;
-        case 'i':
-            fInputs ^= 1;
-            break;
-        case 'm':
-            fSkipMffc ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'w':
-            fVeryVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( argc - globalUtilOptind < 2 || argc - globalUtilOptind > 4 )
-    {
-        Abc_Print( 1, "Expecting two or three file names on the command line.\n" );
-        goto usage;
-    }
-    Gia_ManRandom(1);
-    for ( c = 0; c < argc - globalUtilOptind; c++ )
-        pFileNames[c] = argv[globalUtilOptind+c];
-    for ( c = 0; c < argc - globalUtilOptind - 1; c++ )
-    {
-        FILE * pFile = fopen( pFileNames[c], "rb" );
-        if ( pFile == NULL )
-        {
-            printf( "Cannot open input file \"%s\".\n", pFileNames[c] );
-            return 0;
-        }
-        else
-            fclose( pFile );
-    }
-    Acb_NtkRunSim( pFileNames, nTimeout, nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fRandom, fUseWeights, fInputs, fSkipMffc, fVerbose, fVeryVerbose );
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: runsim [-TWBLU] [-ofbruimvwh] [-N <num>] <file1> <file2> <file3>\n" );
-    Abc_Print( -2, "\t           experimental simulation command\n" );
-    Abc_Print( -2, "\t-T <num> : the timeout in seconds [default = %d]\n", nTimeout );
-    Abc_Print( -2, "\t-W <num> : the number of words of simulation info [default = %d]\n", nWords );
-    Abc_Print( -2, "\t-B <num> : the beam width parameter [default = %d]\n", nBeam );
-    Abc_Print( -2, "\t-L <num> : the lower bound on level [default = %d]\n", LevL );
-    Abc_Print( -2, "\t-U <num> : the upper bound on level [default = %d]\n", LevU );
-    Abc_Print( -2, "\t-o       : toggle using a different node ordering [default = %s]\n", fOrder? "yes": "no" );
-    Abc_Print( -2, "\t-f       : toggle using experimental feature [default = %s]\n",      fFancy? "yes": "no" );
-    Abc_Print( -2, "\t-b       : toggle using buffers [default = %s]\n",                   fUseBuf? "yes": "no" );
-    Abc_Print( -2, "\t-r       : toggle using random permutation of support variables [default = %s]\n",      fRandom? "yes": "no" );
-    Abc_Print( -2, "\t-u       : toggle using topological info to select support variables [default = %s]\n", fUseWeights? "yes": "no" );
-    Abc_Print( -2, "\t-i       : toggle using primary inputs as support variables [default = %s]\n",          fInputs? "yes": "no" );
-    Abc_Print( -2, "\t-m       : toggle MFFC nodes as candidate divisors [default = %s]\n",                   fSkipMffc? "yes": "no" );
-    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n",                       fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-w       : toggle printing more verbose information [default = %s]\n",                  fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h       : print the command usage\n");
-    return 1;
-}
-
 
 /**Function*************************************************************
 

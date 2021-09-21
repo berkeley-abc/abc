@@ -119,7 +119,6 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Bac_Init( pAbc );
     Cba_Init( pAbc );
     Pla_Init( pAbc );
-    Sim_Init( pAbc );
     Test_Init( pAbc );
     Glucose_Init( pAbc );
     Glucose2_Init( pAbc );
@@ -160,7 +159,6 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Bac_End( pAbc );
     Cba_End( pAbc );
     Pla_End( pAbc );
-    Sim_End( pAbc );
     Test_End( pAbc );
     Glucose_End( pAbc );
 }
