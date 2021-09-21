@@ -1259,27 +1259,6 @@ void Acb_Ntk4DumpWeights( char * pFileNameIn, Vec_Ptr_t * vObjNames, char * pFil
     Vec_IntFree( vObjs );
 }
 
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-void Acb_NtkRunSim( char * pFileName[4], int nTimeout, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fRandom, int fUseWeights, int fInputs, int fSkipMffc, int fVerbose, int fVeryVerbose )
-{
-    extern int Gia_Sim4Try( char * pFileName0, char * pFileName1, char * pFileName2, int nTimeout, int nWords, int nBeam, int LevL, int LevU, int fOrder, int fFancy, int fUseBuf, int fSkipMffc, int fVerbose );
-    extern void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fVerbose, int fVeryVerbose );
-    char * pFileNames[4] = { pFileName[2], pFileName[1], fUseWeights ? (char *)"weights.txt" : NULL, pFileName[2] };
-    if ( Gia_Sim4Try( pFileName[0], pFileName[1], pFileName[2], nTimeout, nWords, nBeam, LevL, LevU, fOrder, fFancy, fUseBuf, fSkipMffc, fVerbose ) )
-        Acb_NtkRunEco( pFileNames, nTimeout, 1, fRandom, fInputs, 0, fVerbose, fVeryVerbose );
-} 
-
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

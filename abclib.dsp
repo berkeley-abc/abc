@@ -5095,6 +5095,14 @@ SOURCE=.\src\aig\gia\giaQbf.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaReshape1.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaReshape2.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaResub.c
 # End Source File
 # Begin Source File
