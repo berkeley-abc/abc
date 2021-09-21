@@ -42,7 +42,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManReshape1( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManReshape1( Gia_Man_t * p, int fUseSimple, int fVerbose, int fVeryVerbose )
 {
     return NULL;
 }

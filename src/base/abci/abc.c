@@ -35498,19 +35498,23 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Reshape( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManReshape1( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose );
-    extern Gia_Man_t * Gia_ManReshape2( Gia_Man_t * pGia, int fVerbose, int fVeryVerbose );
+    extern Gia_Man_t * Gia_ManReshape1( Gia_Man_t * pGia, int fUseSimple, int fVerbose, int fVeryVerbose );
+    extern Gia_Man_t * Gia_ManReshape2( Gia_Man_t * pGia, int fUseSimple, int fVerbose, int fVeryVerbose );
     Gia_Man_t * pTemp;
     int fUseReshape1 =  0;
+    int fUseSimple   =  0;
     int c, fVerbose  =  0;
     int fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "avwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "asvwh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'a':
             fUseReshape1 ^= 1;
+            break;
+        case 's':
+            fUseSimple ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -35530,16 +35534,17 @@ int Abc_CommandAbc9Reshape( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fUseReshape1 )
-        pTemp = Gia_ManReshape1( pAbc->pGia, fVerbose, fVeryVerbose );
+        pTemp = Gia_ManReshape1( pAbc->pGia, fUseSimple, fVerbose, fVeryVerbose );
     else
-        pTemp = Gia_ManReshape2( pAbc->pGia, fVerbose, fVeryVerbose );
+        pTemp = Gia_ManReshape2( pAbc->pGia, fUseSimple, fVerbose, fVeryVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &reshape [-avwh]\n" );
+    Abc_Print( -2, "usage: &reshape [-asvwh]\n" );
     Abc_Print( -2, "\t           performs AIG resubstitution\n" );
     Abc_Print( -2, "\t-a       : toggles selecting the algorithm [default = %s]\n",         fUseReshape1? "yes": "no" );
+    Abc_Print( -2, "\t-s       : toggles using simple method [default = %s]\n",             fUseSimple? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles printing verbose information [default = %s]\n",    fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles printing additional information [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
