@@ -854,12 +854,18 @@ Vec_Int_t * Acb_NtkFindDivsCis( Acb_Ntk_t * p, Vec_Int_t * vSupp )
     printf( "Divisors are %d support variables (CIs in the TFO of the targets).\n", Vec_IntSize(vSupp) );
     return vDivs;
 }
-Vec_Int_t * Acb_NtkFindDivs( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Bit_t * vBlock, int fVerbose )
+Vec_Int_t * Acb_NtkFindDivs( Acb_Ntk_t * p, Vec_Int_t * vSupp, Vec_Bit_t * vBlock, int fUnitW, int fVerbose )
 {
     int fPrintWeights = 0;
     int nDivLimit = 5000;
     int i, iObj;
     Vec_Int_t * vDivs = Vec_IntAlloc( 1000 );
+    if ( fUnitW )
+    {
+        Acb_NtkForEachNode( p, iObj )
+            if ( Acb_ObjWeight(p, iObj) > 0 )
+                Vec_IntWriteEntry( &p->vObjWeight, iObj, 1 );
+    }
     // mark inputs
     Acb_NtkIncTravId( p );
     Acb_NtkForEachCiVec( vSupp, p, iObj, i )
@@ -2863,7 +2869,7 @@ Vec_Ptr_t * Acb_TransformPatchFunctions( Vec_Ptr_t * vSops, Vec_Wec_t * vSupps, 
   SeeAlso     []
 
 ***********************************************************************/
-int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fVerbose, int fVeryVerbose )
+int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4], int nTimeout, int fCisOnly, int fInputs, int fCheck, int fUnitW, int fVerbose, int fVeryVerbose )
 {
     extern Gia_Man_t * Abc_SopSynthesizeOne( char * pSop, int fClp );
 
@@ -2879,7 +2885,7 @@ int Acb_NtkEcoPerform( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG, char * pFileName[4]
     Vec_Int_t * vSuppF  = Acb_NtkFindSupp( pNtkF, vRoots );
     Vec_Int_t * vSuppG  = Acb_NtkFindSupp( pNtkG, vRoots );
     Vec_Int_t * vSupp   = Vec_IntTwoMerge( vSuppF, vSuppG );
-    Vec_Int_t * vDivs   = (fCisOnly || fInputs) ? Acb_NtkFindDivsCis( pNtkF, vSupp ) : Acb_NtkFindDivs( pNtkF, vSupp, vBlock, fVerbose );
+    Vec_Int_t * vDivs   = (fCisOnly || fInputs) ? Acb_NtkFindDivsCis( pNtkF, vSupp ) : Acb_NtkFindDivs( pNtkF, vSupp, vBlock, fUnitW, fVerbose );
     Vec_Int_t * vNodesF = Acb_NtkFindNodes( pNtkF, vRoots, vDivs );
     Vec_Int_t * vNodesG = Acb_NtkFindNodes( pNtkG, vRoots, NULL );
 
@@ -3129,7 +3135,7 @@ void Acb_NtkTestRun2( char * pFileNames[3], int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fVerbose, int fVeryVerbose )
+void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom, int fInputs, int fUnitW, int fVerbose, int fVeryVerbose )
 {
     char Command[1000]; int Result = 1;
     Acb_Ntk_t * pNtkF = Acb_VerilogSimpleRead( pFileNames[0], pFileNames[2] );
@@ -3151,10 +3157,10 @@ void Acb_NtkRunEco( char * pFileNames[4], int nTimeout, int fCheck, int fRandom,
 
     Acb_IntallLibrary( Abc_FrameReadSignalNames() != NULL );
 
-    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fVerbose, fVeryVerbose ) )
+    if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 0, fInputs, fCheck, fUnitW, fVerbose, fVeryVerbose ) )
     {
 //        printf( "General computation timed out. Trying inputs only.\n\n" );
-//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fVerbose, fVeryVerbose ) )
+//        if ( !Acb_NtkEcoPerform( pNtkF, pNtkG, pFileNames, nTimeout, 1, fInputs, fCheck, fUnitW, fVerbose, fVeryVerbose ) )
 //            printf( "Input-only computation also timed out.\n\n" );
         printf( "Computation did not succeed.\n" );
         Result = 0;

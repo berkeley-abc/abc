@@ -864,6 +864,52 @@ static inline void Vec_IntPushOrderCost( Vec_Int_t * p, int Entry, Vec_Int_t * v
 
 /**Function*************************************************************
 
+  Synopsis    [Check if the array is ordered.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_IntIsOrdered( Vec_Int_t * p, int fReverse )
+{
+    int i;
+    if ( fReverse )
+    {
+        for ( i = 1; i < p->nSize; i++ )
+            if ( p->pArray[i-1] < p->pArray[i] )
+                return 0;
+    }
+    else
+    {
+        for ( i = 1; i < p->nSize; i++ )
+            if ( p->pArray[i-1] > p->pArray[i] )
+                return 0;
+    }
+    return 1;
+}
+static inline int Vec_IntIsOrderedCost( Vec_Int_t * p, Vec_Int_t * vCost, int fReverse )
+{
+    int i;
+    if ( fReverse )
+    {
+        for ( i = 1; i < p->nSize; i++ )
+            if ( Vec_IntEntry(vCost, p->pArray[i-1]) < Vec_IntEntry(vCost, p->pArray[i]) )
+                return 0;
+    }
+    else
+    {
+        for ( i = 1; i < p->nSize; i++ )
+            if ( Vec_IntEntry(vCost, p->pArray[i-1]) > Vec_IntEntry(vCost, p->pArray[i]) )
+                return 0;
+    }
+    return 1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Inserts the entry while preserving the increasing order.]
 
   Description []

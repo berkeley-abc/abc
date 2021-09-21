@@ -164,7 +164,7 @@ void Abc_NamSave( Abc_Nam_t * p, char * pFileName )
 Abc_Nam_t * Abc_NamLoad( char * pFileName )
 {
     Abc_Nam_t * p;
-    int fFound, NameId, nLineSize = 1 << 20;
+    int fFound, NameId = -1, nLineSize = 1 << 20;
     char * pBuffer = ABC_ALLOC( char, nLineSize+1 );
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL ) { printf( "Count node open output file %s\n", pFileName ); return NULL; }

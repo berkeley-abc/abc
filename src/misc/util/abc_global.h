@@ -515,6 +515,7 @@ static inline void Abc_ReverseOrder( int * pA, int nA )
 // sorting
 extern void   Abc_MergeSort( int * pInput, int nSize );
 extern int *  Abc_MergeSortCost( int * pCosts, int nSize );
+extern void   Abc_MergeSortCost2( int * pInput, int nSize, int * pCost );
 extern void   Abc_QuickSort1( word * pData, int nSize, int fDecrease );
 extern void   Abc_QuickSort2( word * pData, int nSize, int fDecrease );
 extern void   Abc_QuickSort3( word * pData, int nSize, int fDecrease );
