@@ -146,14 +146,67 @@ Vec_Wrd_t * Gia_ManSimPatSimOut( Gia_Man_t * pGia, Vec_Wrd_t * vSimsPi, int fOut
         Gia_ManSimPatSimAnd( pGia, i, pObj, nWords, vSims );
     Gia_ManForEachCo( pGia, pObj, i )
         Gia_ManSimPatSimPo( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
-    Gia_ManForEachCo( pGia, pObj, i )
-        Gia_ManSimPatSimPo( pGia, Gia_ObjId(pGia, pObj), pObj, nWords, vSims );
     if ( !fOuts )
         return vSims;
     Gia_ManForEachCo( pGia, pObj, i )
         memcpy( Vec_WrdEntryP(vSimsCo, i*nWords), Vec_WrdEntryP(vSims, Gia_ObjId(pGia, pObj)*nWords), sizeof(word)*nWords );
     Vec_WrdFree( vSims );
     return vSimsCo;
+}
+static inline void Gia_ManSimPatSimAnd3( Gia_Man_t * p, int i, Gia_Obj_t * pObj, int nWords, Vec_Wrd_t * vSims, Vec_Wrd_t * vSimsC )
+{
+    word pComps[2] = { ~(word)0, 0 };
+    word Diff0 = pComps[Gia_ObjFaninC0(pObj)];
+    word Diff1 = pComps[Gia_ObjFaninC1(pObj)];
+    word * pSims0 = Vec_WrdArray(vSims) + nWords*Gia_ObjFaninId0(pObj, i);
+    word * pSims1 = Vec_WrdArray(vSims) + nWords*Gia_ObjFaninId1(pObj, i);
+    word * pSims2 = Vec_WrdArray(vSims) + nWords*i; 
+    word * pSimsC0 = Vec_WrdArray(vSimsC) + nWords*Gia_ObjFaninId0(pObj, i);
+    word * pSimsC1 = Vec_WrdArray(vSimsC) + nWords*Gia_ObjFaninId1(pObj, i);
+    word * pSimsC2 = Vec_WrdArray(vSimsC) + nWords*i; int w;
+    if ( Gia_ObjIsXor(pObj) )
+        for ( w = 0; w < nWords; w++ )
+        {
+            pSimsC0[w] |= pSimsC2[w];
+            pSimsC1[w] |= pSimsC2[w];
+        }
+    else
+        for ( w = 0; w < nWords; w++ )
+        {
+            pSimsC0[w] |= (pSims2[w] | (pSims0[w] ^ Diff0)) & pSimsC2[w];
+            pSimsC1[w] |= (pSims2[w] | (pSims1[w] ^ Diff1)) & pSimsC2[w];
+        }
+}
+Vec_Wrd_t * Gia_ManSimPatSimIn( Gia_Man_t * pGia, Vec_Wrd_t * vSims, int fIns )
+{
+    Gia_Obj_t * pObj;
+    int i, Id, nWords = Vec_WrdSize(vSims) / Gia_ManObjNum(pGia);
+    Vec_Wrd_t * vSimsCi = fIns ? Vec_WrdStart( Gia_ManCiNum(pGia) * nWords ) : NULL;
+    Vec_Wrd_t * vSimsC  = Vec_WrdStart( Vec_WrdSize(vSims) );
+    assert( Vec_WrdSize(vSims) % Gia_ManObjNum(pGia) == 0 );
+    Gia_ManForEachCoDriverId( pGia, Id, i )
+        memset( Vec_WrdEntryP(vSimsC, Id*nWords), 0xFF, sizeof(word)*nWords );
+    Gia_ManForEachAndReverse( pGia, pObj, i ) 
+        Gia_ManSimPatSimAnd3( pGia, i, pObj, nWords, vSims, vSimsC );
+    if ( !fIns )
+        return vSimsC;
+    Gia_ManForEachCi( pGia, pObj, i )
+        memcpy( Vec_WrdEntryP(vSimsCi, i*nWords), Vec_WrdEntryP(vSimsC, Gia_ObjId(pGia, pObj)*nWords), sizeof(word)*nWords );
+    Vec_WrdFree( vSimsC );
+    return vSimsCi;
+}
+void Gia_ManSimPatSimInTest( Gia_Man_t * pGia )
+{
+    int nWords = 10;
+    Vec_Wrd_t * vSimsCi = Vec_WrdStartRandom( Gia_ManCiNum(pGia) * nWords );
+    Vec_Wrd_t * vSims   = Gia_ManSimPatSimOut( pGia, vSimsCi, 0 );
+    Vec_Wrd_t * vSims2  = Gia_ManSimPatSimIn( pGia, vSims, 0 );
+    int nOnes  = Abc_TtCountOnesVec( Vec_WrdArray(vSims2), Vec_WrdSize(vSims2) );
+    int nTotal = 64*nWords*Gia_ManCandNum(pGia);
+    printf( "Ratio = %6.2f %%\n", 100.0*nOnes/nTotal );
+    Vec_WrdFree( vSims );
+    Vec_WrdFree( vSims2 );
+    Vec_WrdFree( vSimsCi );
 }
 void Gia_ManSimPatResim( Gia_Man_t * pGia, Vec_Int_t * vObjs, int nWords, Vec_Wrd_t * vSims )
 {
