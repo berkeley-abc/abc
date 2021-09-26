@@ -329,7 +329,12 @@ static inline int      Abc_Lit2Att4( int Lit )                { assert(Lit >= 0)
 typedef ABC_INT64_T abctime;
 static inline abctime Abc_Clock()
 {
-#if (defined(LIN) || defined(LIN64)) && !(__APPLE__ & __MACH__) && !defined(__MINGW32__)
+#if defined(__APPLE__) && defined(__MACH__)
+  #define APPLE_MACH (__APPLE__ & __MACH__)
+#else
+  #define APPLE_MACH 0
+#endif
+#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__)
     struct timespec ts;
     if ( clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) < 0 ) 
         return (abctime)-1;

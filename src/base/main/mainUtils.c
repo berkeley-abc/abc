@@ -52,7 +52,14 @@ static char * DateReadFromDateString( char * datestr );
 char * Abc_UtilsGetVersion( Abc_Frame_t * pAbc )
 {
     static char Version[1000];
+#if __GNUC__
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wdate-time"
+#endif
     sprintf(Version, "%s (compiled %s %s)", ABC_VERSION, __DATE__, __TIME__);
+#if __GNUC__
+    #pragma GCC diagnostic pop
+#endif
     return Version;
 }
 
