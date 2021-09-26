@@ -610,7 +610,7 @@ Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLu
     // cofactor w.r.t. the bound set variables
     vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, nLutSize );
     vUniq = Vec_PtrDup( vCofs );
-    Vec_PtrUniqify( vUniq, (int (*)())Vec_PtrSortCompare );
+    Vec_PtrUniqify( vUniq, (int (*)(const void *, const void *))Vec_PtrSortCompare );
     // only perform decomposition with it is support reduring with two less vars
     if( Vec_PtrSize(vUniq) > (1 << (nLutSize-2)) )
     {

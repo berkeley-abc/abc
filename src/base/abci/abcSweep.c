@@ -888,7 +888,7 @@ int Abc_NtkReplaceAutonomousLogic( Abc_Ntk_t * pNtk )
             Vec_PtrPush( vNodes, pFanin );
         }
     }
-    Vec_PtrUniqify( vNodes, (int (*)(void))Abc_ObjPointerCompare );
+    Vec_PtrUniqify( vNodes, (int (*)(const void *, const void *))Abc_ObjPointerCompare );
     // replace these nodes by the PIs
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {

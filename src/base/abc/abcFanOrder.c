@@ -476,9 +476,9 @@ void Abc_NodeSortCubes( Abc_Obj_t * pNode, Vec_Ptr_t * vCubes, Vec_Str_t * vStor
         Vec_PtrPush( vCubes, pCube );
     }
     if ( fWeight )
-        Vec_PtrSort( vCubes, (int (*)())Abc_NodeCompareCubes2 );
+        Vec_PtrSort( vCubes, (int (*)(const void *, const void *))Abc_NodeCompareCubes2 );
     else
-        Vec_PtrSort( vCubes, (int (*)())Abc_NodeCompareCubes1 );
+        Vec_PtrSort( vCubes, (int (*)(const void *, const void *))Abc_NodeCompareCubes1 );
     Vec_StrGrow( vStore, Vec_PtrSize(vCubes) * (nVars + 3) );
     pPivot = Vec_StrArray( vStore );
     Vec_PtrForEachEntry( char *, vCubes, pCube, i )

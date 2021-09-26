@@ -3582,7 +3582,7 @@ Gia_Man_t * Gia_ManDupCones( Gia_Man_t * p, int * pPos, int nPos, int fTrimPis )
     Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
     Vec_PtrForEachEntry( Gia_Obj_t *, vRoots, pObj, i )
         Gia_ManDupCones_rec( p, pObj, vLeaves, vNodes, vRoots );
-    Vec_PtrSort( vLeaves, (int (*)(void))Gia_ObjCompareByCioId );
+    Vec_PtrSort( vLeaves, (int (*)(const void *, const void *))Gia_ObjCompareByCioId );
 
     // start the new manager
 //    Gia_ManFillValue( p );
@@ -3644,7 +3644,7 @@ Gia_Man_t * Gia_ManDupAndCones( Gia_Man_t * p, int * pAnds, int nAnds, int fTrim
     Gia_ObjSetTravIdCurrent( p, Gia_ManConst0(p) );
     Vec_PtrForEachEntry( Gia_Obj_t *, vRoots, pObj, i )
         Gia_ManDupCones_rec( p, pObj, vLeaves, vNodes, vRoots );
-    Vec_PtrSort( vLeaves, (int (*)(void))Gia_ObjCompareByCioId );
+    Vec_PtrSort( vLeaves, (int (*)(const void *, const void *))Gia_ObjCompareByCioId );
 
     // start the new manager
 //    Gia_ManFillValue( p );
@@ -4381,7 +4381,7 @@ Gia_Man_t * Gia_ManDupDemiter( Gia_Man_t * p, int fVerbose )
     vSuperPtr = Vec_PtrAlloc( Vec_IntSize(vSuper) );
     Vec_IntForEachEntry( vSuper, iLit, i )
         Vec_PtrPush( vSuperPtr, Gia_Lit2Obj(p, iLit) );
-    Vec_PtrSort( vSuperPtr, (int (*)(void))Gia_ManSortByValue );
+    Vec_PtrSort( vSuperPtr, (int (*)(const void *, const void *))Gia_ManSortByValue );
     // create new manager
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );

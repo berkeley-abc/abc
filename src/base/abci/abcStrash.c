@@ -712,7 +712,7 @@ Vec_Ptr_t * Abc_NodeGetSuper( Abc_Obj_t * pNode )
     Vec_PtrFree( vSuper );
     vSuper = vFront;
     // uniquify and return the frontier
-    Vec_PtrUniqify( vSuper, (int (*)())Vec_CompareNodeIds );
+    Vec_PtrUniqify( vSuper, (int (*)(const void *, const void *))Vec_CompareNodeIds );
     return vSuper;
 }
 

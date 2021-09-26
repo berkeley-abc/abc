@@ -91,7 +91,7 @@ void Abc_CollectTopOr( Abc_Obj_t * pObj, Vec_Ptr_t * vSuper )
     if ( Abc_ObjIsComplement(pObj) )
     {
         Abc_CollectTopOr_rec( Abc_ObjNot(pObj), vSuper );
-        Vec_PtrUniqify( vSuper, (int (*)())Abc_ObjCompareById );
+        Vec_PtrUniqify( vSuper, (int (*)(const void *, const void *))Abc_ObjCompareById );
     }
     else
         Vec_PtrPush( vSuper, Abc_ObjNot(pObj) );

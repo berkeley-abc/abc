@@ -703,7 +703,7 @@ void Abc_ObjSortInReverseOrder( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
     vOrder = Abc_NtkDfsReverse( pNtk );
     Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pNode, i )
         pNode->iTemp = i;
-    Vec_PtrSort( vNodes, (int (*)())Abc_ObjCompareByNumber );
+    Vec_PtrSort( vNodes, (int (*)(const void *, const void *))Abc_ObjCompareByNumber );
     Vec_PtrForEachEntry( Abc_Obj_t *, vOrder, pNode, i )
         pNode->iTemp = 0;
     Vec_PtrFree( vOrder );

@@ -157,7 +157,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
     assert( p->iUseFrame > 0 );
     Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, iStartFrame, kMax )
     {
-        Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
+        Vec_PtrSort( vArrayK, (int (*)(const void *, const void *))Pdr_SetCompare );
         vArrayK1 = Vec_VecEntry( p->vClauses, k+1 );
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
         {
@@ -216,7 +216,7 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
 
     // clean up the last one
     vArrayK = Vec_VecEntry( p->vClauses, kMax );
-    Vec_PtrSort( vArrayK, (int (*)(void))Pdr_SetCompare );
+    Vec_PtrSort( vArrayK, (int (*)(const void *, const void *))Pdr_SetCompare );
     Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
     {
         // remove cubes in the same frame that are contained by pCubeK

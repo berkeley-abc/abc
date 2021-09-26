@@ -938,8 +938,8 @@ static int Vec_PtrSortComparePtr( void ** pp1, void ** pp2 )
   SeeAlso     []
 
 ***********************************************************************/
-static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() ) ___unused;
-static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(const void *, const void *) ) ___unused;
+static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(const void *, const void *) )
 {
     if ( p->nSize < 2 )
         return;
@@ -962,8 +962,8 @@ static void Vec_PtrSort( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
   SeeAlso     []
 
 ***********************************************************************/
-static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() ) ___unused;
-static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
+static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(const void *, const void *) ) ___unused;
+static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(const void *, const void *) )
 {
     int i, k;
     if ( p->nSize < 2 )
@@ -974,15 +974,15 @@ static void Vec_PtrUniqify( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)() )
             p->pArray[k++] = p->pArray[i];
     p->nSize = k;
 }
-static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(void**, void**), void (*Vec_PtrObjFree)(void*), Vec_Int_t * vCounts ) ___unused;
-static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(void**, void**), void (*Vec_PtrObjFree)(void*), Vec_Int_t * vCounts )
+static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(const void *, const void *), void (*Vec_PtrObjFree)(void*), Vec_Int_t * vCounts ) ___unused;
+static void Vec_PtrUniqify2( Vec_Ptr_t * p, int (*Vec_PtrSortCompare)(const void *, const void *), void (*Vec_PtrObjFree)(void*), Vec_Int_t * vCounts )
 {
     int i, k;
     if ( vCounts )
         Vec_IntFill( vCounts, 1, 1 );
     if ( p->nSize < 2 )
         return;
-    Vec_PtrSort( p, (int (*)())Vec_PtrSortCompare );
+    Vec_PtrSort( p, Vec_PtrSortCompare );
     for ( i = k = 1; i < p->nSize; i++ )
         if ( Vec_PtrSortCompare(p->pArray+i, p->pArray+k-1) != 0 )
         {

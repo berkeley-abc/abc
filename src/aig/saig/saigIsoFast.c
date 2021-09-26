@@ -303,7 +303,7 @@ Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig )
 
     // sort the infos
     clk = Abc_Clock();
-    Vec_PtrSort( vInfos, (int (*)(void))Iso_StoCompareVecInt );
+    Vec_PtrSort( vInfos, (int (*)(const void *, const void *))Iso_StoCompareVecInt );
 
     // create classes
     clk = Abc_Clock();
