@@ -377,7 +377,7 @@ void Bdc_ManDecomposeTest( unsigned uTruth, int nVars )
 ***********************************************************************/
 int Bdc_ManBidecNodeNum( word * pFunc, word * pCare, int nVars, int fVerbose )
 {
-    int nNodes, nTtWords = Abc_Truth6WordNum(nVars);
+    int nNodes;
     Bdc_Man_t * pManDec;
     Bdc_Par_t Pars = {0}, * pPars = &Pars;
     pPars->nVarsMax = nVars;
@@ -426,7 +426,7 @@ void Bdc_ManBidecResubInt( Bdc_Man_t * p, Vec_Int_t * vRes )
 Vec_Int_t * Bdc_ManBidecResub( word * pFunc, word * pCare, int nVars )
 {
     Vec_Int_t * vRes = NULL;
-    int nNodes, nTtWords = Abc_Truth6WordNum(nVars);
+    int nNodes;
     Bdc_Man_t * pManDec; 
     Bdc_Par_t Pars = {0}, * pPars = &Pars;
     pPars->nVarsMax = nVars;
