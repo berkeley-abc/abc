@@ -119,6 +119,10 @@ static inline void Vec_QueClear( Vec_Que_t * p )
     }
     p->nSize = 1;
 }
+static inline double Vec_QueMemory( Vec_Que_t * p )
+{
+    return !p ? 0.0 : 2.0 * sizeof(int) * (size_t)p->nCap + sizeof(Vec_Que_t) ;
+}
 
 /**Function*************************************************************
 

@@ -216,6 +216,7 @@ struct Gia_Man_t_
     Vec_Wrd_t *    vSimsPo;
     Vec_Int_t *    vClassOld;
     Vec_Int_t *    vClassNew;
+    Vec_Int_t *    vPats;
     // incremental simulation
     int            fIncrSim;
     int            iNextPi;
@@ -1275,6 +1276,11 @@ extern void                Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes );
 extern Gia_Man_t *         Gia_ManDupCof( Gia_Man_t * p, int iVar );
 extern Gia_Man_t *         Gia_ManDupCofAllInt( Gia_Man_t * p, Vec_Int_t * vSigs, int fVerbose );
 extern Gia_Man_t *         Gia_ManDupCofAll( Gia_Man_t * p, int nFanLim, int fVerbose );
+/*=== giaDecs.c ============================================================*/
+extern int                 Gia_ResubVarNum( Vec_Int_t * vResub );
+extern word                Gia_ResubToTruth6( Vec_Int_t * vResub );
+extern int                 Gia_ManEvalSolutionOne( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * vSet, int nWords, int fVerbose );
+extern Vec_Int_t *         Gia_ManDeriveSolutionOne( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * vSet, int nWords, int Type );
 /*=== giaDfs.c ============================================================*/
 extern void                Gia_ManCollectCis( Gia_Man_t * p, int * pNodes, int nNodes, Vec_Int_t * vSupp );
 extern void                Gia_ManCollectAnds_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vNodes );

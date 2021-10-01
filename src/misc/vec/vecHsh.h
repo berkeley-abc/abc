@@ -492,6 +492,10 @@ static inline int Hsh_VecSize( Hsh_VecMan_t * p )
 {
     return Vec_IntSize(p->vMap);
 }
+static inline double Hsh_VecManMemory( Hsh_VecMan_t * p )
+{
+    return !p ? 0.0 : Vec_IntMemory(p->vTable) + Vec_IntMemory(p->vData) + Vec_IntMemory(p->vMap);
+}
 
 /**Function*************************************************************
 

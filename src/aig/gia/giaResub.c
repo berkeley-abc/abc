@@ -651,6 +651,37 @@ Gia_Man_t * Gia_ManConstructFromGates2( Vec_Wec_t * vFuncs, Vec_Wec_t * vDivs, i
         Vec_IntFree( vSupp );
     return pNew;
 }
+Vec_Int_t * Gia_ManToGates( Gia_Man_t * p )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 2*Gia_ManAndNum(p) + 1 );
+    Gia_Obj_t * pRoot = Gia_ManCo( p, 0 );
+    int iRoot = Gia_ObjFaninId0p(p, pRoot) - 1;
+    int nVars = Gia_ManCiNum(p);
+    assert( Gia_ManCoNum(p) == 1 );
+    if ( iRoot == -1 )
+        Vec_IntPush( vRes, Gia_ObjFaninC0(pRoot) );
+    else if ( iRoot < nVars )
+        Vec_IntPush( vRes, 4 + Abc_Var2Lit(iRoot, Gia_ObjFaninC0(pRoot)) );
+    else
+    {
+        Gia_Obj_t * pObj, * pLast = NULL; int i;
+        Gia_ManForEachCi( p, pObj, i )
+            assert( Gia_ObjId(p, pObj) == i+1 );
+        Gia_ManForEachAnd( p, pObj, i )
+        {
+            int iLit0 = Abc_Var2Lit( Gia_ObjFaninId0(pObj, i) - 1, Gia_ObjFaninC0(pObj) );
+            int iLit1 = Abc_Var2Lit( Gia_ObjFaninId1(pObj, i) - 1, Gia_ObjFaninC1(pObj) );
+            if ( iLit0 > iLit1 )
+                iLit0 ^= iLit1, iLit1 ^= iLit0, iLit0 ^= iLit1;
+            Vec_IntPushTwo( vRes, 4 + iLit0, 4 + iLit1 );
+            pLast = pObj;
+        }
+        assert( pLast == Gia_ObjFanin0(pRoot) );
+        Vec_IntPush( vRes, 4 + Abc_Var2Lit(iRoot, Gia_ObjFaninC0(pRoot)) );
+    }
+    assert( Vec_IntSize(vRes) == 2*Gia_ManAndNum(p) + 1 );
+    return vRes;
+}
 
 /**Function*************************************************************
 
@@ -1378,7 +1409,10 @@ int Gia_ManResubPerform_rec( Gia_ResbMan_t * p, int nLimit, int Depth )
             if ( iResLit >= 0 ) 
             {
                 int iNode = nVars + Vec_IntSize(p->vGates)/2;
-                Vec_IntPushTwo( p->vGates, Abc_LitNot(iDiv), Abc_LitNotCond(iResLit, fUseOr) );
+                if ( iDiv < iResLit )
+                    Vec_IntPushTwo( p->vGates, Abc_LitNot(iDiv), Abc_LitNotCond(iResLit, fUseOr) );
+                else
+                    Vec_IntPushTwo( p->vGates, Abc_LitNotCond(iResLit, fUseOr), Abc_LitNot(iDiv) );
                 return Abc_Var2Lit( iNode, fUseOr );
             }
         }

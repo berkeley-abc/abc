@@ -16,6 +16,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaCSat2.c \
     src/aig/gia/giaCTas.c \
     src/aig/gia/giaCut.c \
+    src/aig/gia/giaDecs.c \
     src/aig/gia/giaDeep.c \
     src/aig/gia/giaDfs.c \
     src/aig/gia/giaDup.c \
@@ -89,6 +90,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaStr.c \
     src/aig/gia/giaSupMin.c \
     src/aig/gia/giaSupp.c \
+    src/aig/gia/giaSupps.c \
     src/aig/gia/giaSweep.c \
     src/aig/gia/giaSweeper.c \
     src/aig/gia/giaSwitch.c \

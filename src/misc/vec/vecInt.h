@@ -1154,6 +1154,17 @@ static inline int Vec_IntFindMax( Vec_Int_t * p )
             Best = p->pArray[i];
     return Best;
 }
+static inline int Vec_IntArgMax( Vec_Int_t * p )
+{
+    int i, Best, Arg = 0;
+    if ( p->nSize == 0 )
+        return -1;
+    Best = p->pArray[0];
+    for ( i = 1; i < p->nSize; i++ )
+        if ( Best < p->pArray[i] )
+            Best = p->pArray[i], Arg = i;
+    return Arg;
+}
 
 /**Function*************************************************************
 
@@ -1176,6 +1187,17 @@ static inline int Vec_IntFindMin( Vec_Int_t * p )
         if ( Best > p->pArray[i] )
             Best = p->pArray[i];
     return Best;
+}
+static inline int Vec_IntArgMin( Vec_Int_t * p )
+{
+    int i, Best, Arg = 0;
+    if ( p->nSize == 0 )
+        return 0;
+    Best = p->pArray[0];
+    for ( i = 1; i < p->nSize; i++ )
+        if ( Best > p->pArray[i] )
+            Best = p->pArray[i], Arg = i;
+    return Arg;
 }
 
 /**Function*************************************************************
@@ -2149,6 +2171,13 @@ static inline int Vec_IntCompareVec( Vec_Int_t * p1, Vec_Int_t * p2 )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_IntClearAppend( Vec_Int_t * vVec1, Vec_Int_t * vVec2 )
+{
+    int Entry, i;
+    Vec_IntClear( vVec1 );
+    Vec_IntForEachEntry( vVec2, Entry, i )
+        Vec_IntPush( vVec1, Entry );
+}
 static inline void Vec_IntAppend( Vec_Int_t * vVec1, Vec_Int_t * vVec2 )
 {
     int Entry, i;
@@ -2190,6 +2219,67 @@ static inline void Vec_IntRemapArray( Vec_Int_t * vOld2New, Vec_Int_t * vOld, Ve
     Vec_IntForEachEntry( vOld2New, iNew, iOld )
         if ( iNew > 0 && iNew < nNew && iOld < Vec_IntSize(vOld) && Vec_IntEntry(vOld, iOld) != 0 )
             Vec_IntWriteEntry( vNew, iNew, Vec_IntEntry(vOld, iOld) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [File interface.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntDumpBin( char * pFileName, Vec_Int_t * p, int fVerbose )
+{
+    int RetValue;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    RetValue = fwrite( Vec_IntArray(p), 1, sizeof(int)*Vec_IntSize(p), pFile );
+    fclose( pFile );
+    if ( RetValue != (int)sizeof(int)*Vec_IntSize(p) )
+        printf( "Error reading data from file.\n" );
+    if ( fVerbose )
+        printf( "Written %d integers into file \"%s\".\n", Vec_IntSize(p), pFileName );
+}
+static inline Vec_Int_t * Vec_IntReadBin( char * pFileName, int fVerbose )
+{
+    Vec_Int_t * p = NULL; int nSize, RetValue;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return NULL;
+    }
+    fseek( pFile, 0, SEEK_END );
+    nSize = ftell( pFile );
+    if ( nSize == 0 )
+    {
+        printf( "The input file is empty.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    if ( nSize % sizeof(int) > 0 )
+    {
+        printf( "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", nSize % sizeof(int) );
+        fclose( pFile );
+        return NULL;
+    }
+    rewind( pFile );
+    p = Vec_IntStart( nSize/sizeof(int) );
+    RetValue = fread( Vec_IntArray(p), 1, nSize, pFile );
+    fclose( pFile );
+    if ( RetValue != nSize )
+        printf( "Error reading data from file.\n" );
+    if ( fVerbose )
+        printf( "Read %d integers from file \"%s\".\n", nSize/sizeof(int), pFileName );
+    return p;
 }
 
 ABC_NAMESPACE_HEADER_END

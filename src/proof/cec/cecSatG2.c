@@ -98,11 +98,13 @@ struct Cec4_Man_t_
     Vec_Int_t *      vCands;
     Vec_Int_t *      vVisit;
     Vec_Int_t *      vPat;
+    Vec_Int_t *      vPats;
     Vec_Int_t *      vDisprPairs;
     Vec_Bit_t *      vFails;
     int              iPosRead;       // candidate reading position
     int              iPosWrite;      // candidate writing position
     int              iLastConst;     // last const node proved
+    int              nPatsAll;
     // refinement
     Vec_Int_t *      vRefClasses;
     Vec_Int_t *      vRefNodes;
@@ -144,6 +146,63 @@ static inline void   Cec4_ObjCleanSatId( Gia_Man_t * p, Gia_Obj_t * pObj )      
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Cec4_EvalCombine( Vec_Int_t * vPats, int nPats, int nInputs, int nWords )
+{
+    //Vec_Wrd_t * vSimsPi = Vec_WrdStart( nInputs * nWords );
+    Vec_Wrd_t * vSimsPi = Vec_WrdStartRandom( nInputs * nWords );
+    int i, k, iPat = 0; 
+    for ( i = 0; i < Vec_IntSize(vPats); )
+    {
+        int Size = Vec_IntEntry(vPats, i);
+        assert( Size > 0 );
+        for ( k = 1; k <= Size; k++ )
+        {
+            int iLit = Vec_IntEntry( vPats, i+k );
+            word * pSim;
+            if ( iLit == 0 )
+                continue;
+            assert( Abc_Lit2Var(iLit) > 0 && Abc_Lit2Var(iLit) <= nInputs );
+            pSim = Vec_WrdEntryP( vSimsPi, (Abc_Lit2Var(iLit)-1)*nWords );
+            if ( Abc_InfoHasBit( (unsigned*)pSim, iPat ) != Abc_LitIsCompl(iLit) )
+                Abc_InfoXorBit( (unsigned*)pSim, iPat );
+        }
+        iPat++;
+        i += Size + 1;
+    }
+    assert( iPat == nPats );
+    return vSimsPi;
+}
+void Cec4_EvalPatterns( Gia_Man_t * p, Vec_Int_t * vPats, int nPats )
+{
+    int nWords = Abc_Bit6WordNum(nPats);
+    Vec_Wrd_t * vSimsPi = Cec4_EvalCombine( vPats, nPats, Gia_ManCiNum(p), nWords );
+    Vec_Wrd_t * vSimsPo = Gia_ManSimPatSimOut( p, vSimsPi, 1 );
+    int i, Count = 0, nErrors = 0;
+    for ( i = 0; i < Gia_ManCoNum(p); i++ )
+    {
+        int CountThis = Abc_TtCountOnesVec( Vec_WrdEntryP(vSimsPo, i*nWords), nWords );
+        if ( CountThis == 0 )
+            continue;
+        printf( "%d ", CountThis );
+        nErrors += CountThis;
+        Count++;
+    }
+    printf( "\nDetected %d error POs with %d errors (average %.2f).\n", Count, nErrors, 1.0*nErrors/Abc_MaxInt(1, Count) );
+    Vec_WrdFree( vSimsPi );
+    Vec_WrdFree( vSimsPo );
+}
 
 /**Function*************************************************************
 
@@ -198,6 +257,7 @@ Cec4_Man_t * Cec4_ManCreate( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     p->vCands        = Vec_IntAlloc( 100 );
     p->vVisit        = Vec_IntAlloc( 100 );
     p->vPat          = Vec_IntAlloc( 100 );
+    p->vPats         = Vec_IntAlloc( 10000 );
     p->vDisprPairs   = Vec_IntAlloc( 100 );
     p->vFails        = Vec_BitStart( Gia_ManObjNum(pAig) );
     //pAig->pData     = p->pSat; // point AIG manager to the solver
@@ -226,6 +286,12 @@ void Cec4_ManDestroy( Cec4_Man_t * p )
         ABC_PRTP( "TOTAL        ", timeTotal,        timeTotal );
         fflush( stdout );
     }
+    //printf( "Recorded %d patterns with %d literals (average %.2f).\n", 
+    //    p->nPatsAll, Vec_IntSize(p->vPats) - p->nPatsAll, 1.0*Vec_IntSize(p->vPats)/Abc_MaxInt(1, p->nPatsAll)-1 );
+    //Cec4_EvalPatterns( p->pAig, p->vPats, p->nPatsAll );
+    //Vec_IntFreeP( &p->vPats );
+    Vec_IntFreeP( &p->pAig->vPats );
+    p->pAig->vPats = p->vPats;
     Vec_WrdFreeP( &p->pAig->vSims );
     Vec_WrdFreeP( &p->pAig->vSimsPi );
     Gia_ManCleanMark01( p->pAig );
@@ -1392,6 +1458,9 @@ int Cec4_ManGeneratePatterns( Cec4_Man_t * p )
             if ( Res )
             {
                 int Ret = Cec4_ManPackAddPattern( p->pAig, p->vPat, 1 );
+                Vec_IntPush( p->vPats, Vec_IntSize(p->vPat) );
+                Vec_IntAppend( p->vPats, p->vPat );
+                p->nPatsAll++;
                 //Vec_IntPushTwo( p->vDisprPairs, iRepr, iCand );
                 Packs += Ret;
                 if ( Ret == 64 * p->pAig->nSimWords )
@@ -1566,6 +1635,9 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
         p->pAig->iPatsPi++;
         Vec_IntForEachEntry( p->vPat, iLit, i )
             Cec4_ObjSimSetInputBit( p->pAig, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit) );
+        Vec_IntPush( p->vPats, Vec_IntSize(p->vPat) );
+        Vec_IntAppend( p->vPats, p->vPat );
+        p->nPatsAll++;
         //Cec4_ManPackAddPattern( p->pAig, p->vPat, 0 );
         //assert( iPatsOld + 1 == p->pAig->iPatsPi );
         if ( fEasy )

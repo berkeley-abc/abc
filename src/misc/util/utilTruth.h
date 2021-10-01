@@ -356,6 +356,12 @@ static inline void Abc_TtOrAnd( word * pOut, word * pIn1, word * pIn2, int nWord
     for ( w = 0; w < nWords; w++ )
         pOut[w] |= pIn1[w] & pIn2[w];
 }
+static inline void Abc_TtSharpOr( word * pOut, word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        pOut[w] = (pOut[w] & ~pIn1[w]) | pIn2[w];
+}
 static inline void Abc_TtXor( word * pOut, word * pIn1, word * pIn2, int nWords, int fCompl )
 {
     int w;
@@ -2104,18 +2110,25 @@ static inline int Abc_TtCountOnesVec( word * x, int nWords )
 {
     int w, Count = 0;
     for ( w = 0; w < nWords; w++ )
-        Count += Abc_TtCountOnes( x[w] );
+        if ( x[w] )
+            Count += Abc_TtCountOnes( x[w] );
     return Count;
 }
 static inline int Abc_TtCountOnesVecMask( word * x, word * pMask, int nWords, int fCompl )
 {
     int w, Count = 0;
     if ( fCompl )
+    {
         for ( w = 0; w < nWords; w++ )
-            Count += Abc_TtCountOnes( pMask[w] & ~x[w] );
+            if ( pMask[w] & ~x[w] )
+                Count += Abc_TtCountOnes( pMask[w] & ~x[w] );
+    }
     else
+    {
         for ( w = 0; w < nWords; w++ )
-            Count += Abc_TtCountOnes( pMask[w] & x[w] );
+            if ( pMask[w] & x[w] )
+                Count += Abc_TtCountOnes( pMask[w] & x[w] );
+    }
     return Count;
 }
 static inline int Abc_TtCountOnesVecMask2( word * x0, word * x1, int fComp0, int fComp1, word * pMask, int nWords )
@@ -2139,7 +2152,8 @@ static inline int Abc_TtCountOnesVecXor( word * x, word * y, int nWords )
 {
     int w, Count = 0;
     for ( w = 0; w < nWords; w++ )
-        Count += Abc_TtCountOnes( x[w] ^ y[w] );
+        if ( x[w] ^ y[w] )
+            Count += Abc_TtCountOnes( x[w] ^ y[w] );
     return Count;
 }
 static inline int Abc_TtCountOnesVecXorMask( word * x, word * y, int fCompl, word * pMask, int nWords )
@@ -2162,6 +2176,16 @@ static inline int Abc_TtAndXorSum( word * pOut, word * pIn1, word * pIn2, int nW
         Count += Abc_TtCountOnes( pOut[w] );
     }
     return Count;
+}
+static inline void Abc_TtIsfPrint( word * pOff, word * pOn, int nWords )
+{
+    int nTotal  = 64*nWords;
+    int nOffset = Abc_TtCountOnesVec(pOff, nWords);
+    int nOnset  = Abc_TtCountOnesVec(pOn, nWords);
+    int nDcset  = nTotal - nOffset - nOnset;
+    printf( "OFF =%6d (%6.2f %%)  ", nOffset, 100.0*nOffset/nTotal );
+    printf( "ON =%6d (%6.2f %%)  ",  nOnset,  100.0*nOnset/nTotal );
+    printf( "DC =%6d (%6.2f %%)",    nDcset,  100.0*nDcset/nTotal );
 }
 
 /**Function*************************************************************
@@ -2261,6 +2285,22 @@ static inline int Abc_TtFindLastDiffBit2( word * pIn1, word * pIn2, int nWords )
     for ( w = nWords - 1; w >= 0; w-- )
         if ( pIn1[w] ^ pIn2[w] )
             return 64*w + Abc_Tt6LastBit(pIn1[w] ^ pIn2[w]);
+    return -1;
+}
+static inline int Abc_TtFindFirstAndBit2( word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = 0; w < nWords; w++ )
+        if ( pIn1[w] & pIn2[w] )
+            return 64*w + Abc_Tt6FirstBit(pIn1[w] & pIn2[w]);
+    return -1;
+}
+static inline int Abc_TtFindLastAndBit2( word * pIn1, word * pIn2, int nWords )
+{
+    int w;
+    for ( w = nWords - 1; w >= 0; w-- )
+        if ( pIn1[w] & pIn2[w] )
+            return 64*w + Abc_Tt6LastBit(pIn1[w] & pIn2[w]);
     return -1;
 }
 static inline int Abc_TtFindFirstZero( word * pIn, int nVars )
