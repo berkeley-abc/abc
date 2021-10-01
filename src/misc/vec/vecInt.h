@@ -2267,18 +2267,18 @@ static inline Vec_Int_t * Vec_IntReadBin( char * pFileName, int fVerbose )
     }
     if ( nSize % sizeof(int) > 0 )
     {
-        printf( "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", nSize % sizeof(int) );
+        printf( "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", (int)(nSize % sizeof(int)) );
         fclose( pFile );
         return NULL;
     }
     rewind( pFile );
-    p = Vec_IntStart( nSize/sizeof(int) );
+    p = Vec_IntStart( (int)(nSize/sizeof(int)) );
     RetValue = fread( Vec_IntArray(p), 1, nSize, pFile );
     fclose( pFile );
     if ( RetValue != nSize )
         printf( "Error reading data from file.\n" );
     if ( fVerbose )
-        printf( "Read %d integers from file \"%s\".\n", nSize/sizeof(int), pFileName );
+        printf( "Read %d integers from file \"%s\".\n", (int)(nSize/sizeof(int)), pFileName );
     return p;
 }
 
