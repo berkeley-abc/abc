@@ -307,7 +307,7 @@ void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerb
     nEnd = Gia_ManAndNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
     if ( fVerbose )
     printf( "Cumulatively reduced %d AIG nodes after %d iterations.  ", 
-        nBeg - nEnd, nIters, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
+        nBeg - nEnd, nIters );
     if ( fVerbose )
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
 }
