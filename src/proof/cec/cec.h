@@ -101,6 +101,7 @@ struct Cec_ParFra_t_
     int              nRounds;       // the number of simulation rounds
     int              nItersMax;     // the maximum number of iterations of SAT sweeping
     int              nBTLimit;      // conflict limit at a node
+    int              nBTLimitPo;    // conflict limit at an output
     int              TimeLimit;     // the runtime limit in seconds
     int              nLevelMax;     // restriction on the level nodes to be swept
     int              nDepthMax;     // the depth in terms of steps of speculative reduction

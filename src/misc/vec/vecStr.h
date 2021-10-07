@@ -561,6 +561,11 @@ static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
     }
     p->pArray[p->nSize++] = Entry;
 }
+static inline void Vec_StrPushTwo( Vec_Str_t * p, char Entry1, char Entry2 )
+{
+    Vec_StrPush( p, Entry1 );
+    Vec_StrPush( p, Entry2 );
+}
 static inline void Vec_StrPushBuffer( Vec_Str_t * p, char * pBuffer, int nSize )
 {
     if ( p->nSize + nSize > p->nCap )
