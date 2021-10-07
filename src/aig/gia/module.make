@@ -87,6 +87,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaSpeedup.c \
     src/aig/gia/giaSplit.c \
     src/aig/gia/giaStg.c \
+    src/aig/gia/giaStoch.c \
     src/aig/gia/giaStr.c \
     src/aig/gia/giaSupMin.c \
     src/aig/gia/giaSupp.c \
