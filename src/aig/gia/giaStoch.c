@@ -63,12 +63,36 @@ static void Vec_PtrFreeFunc( Vec_Ptr_t * p, void (*pFuncItemFree)(void *) )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManDupMapping( Gia_Man_t * pNew, Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj, * pFanin; int i, k;
+    Vec_Int_t * vMapping = p->vMapping ? Vec_IntAlloc( Vec_IntSize(p->vMapping) ) : NULL;
+    if ( p->vMapping == NULL )
+        return;
+    Vec_IntFill( vMapping, Gia_ManObjNum(p), 0 );
+    Gia_ManForEachLut( p, i )
+    {
+        pObj = Gia_ManObj( p, i );
+        Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pObj->Value), Vec_IntSize(vMapping) );
+        Vec_IntPush( vMapping, Gia_ObjLutSize(p, i) );
+        Gia_LutForEachFaninObj( p, i, pFanin, k )
+            Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->Value)  );
+        Vec_IntPush( vMapping, Abc_Lit2Var(pObj->Value) );
+    }
+    pNew->vMapping = vMapping;
+}
+Gia_Man_t * Gia_ManDupWithMapping( Gia_Man_t * pGia )
+{
+    Gia_Man_t * pCopy = Gia_ManDup(pGia);
+    Gia_ManDupMapping( pCopy, pGia );
+    return pCopy;
+}
 void Gia_ManStochSynthesis( Vec_Ptr_t * vAigs, char * pScript )
 {
     Gia_Man_t * pGia, * pNew; int i;
     Vec_PtrForEachEntry( Gia_Man_t *, vAigs, pGia, i )
     {
-        Gia_Man_t * pCopy = Gia_ManDup(pGia);
+        Gia_Man_t * pCopy = Gia_ManDupWithMapping(pGia);
         Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pGia );
         if ( Abc_FrameIsBatchMode() )
         {
@@ -90,10 +114,21 @@ void Gia_ManStochSynthesis( Vec_Ptr_t * vAigs, char * pScript )
             Abc_FrameSetBatchMode( 0 );
         }
         pNew = Abc_FrameReadGia(Abc_FrameGetGlobalFrame());
-        if ( Gia_ManAndNum(pNew) < Gia_ManAndNum(pCopy) )
+        if ( Gia_ManHasMapping(pNew) && Gia_ManHasMapping(pCopy) )
         {
-            Gia_ManStop( pCopy );
-            pCopy = Gia_ManDup( pNew );
+            if ( Gia_ManLutNum(pNew) < Gia_ManLutNum(pCopy) )
+            {
+                Gia_ManStop( pCopy );
+                pCopy = Gia_ManDupWithMapping( pNew );
+            }
+        }
+        else
+        {
+            if ( Gia_ManAndNum(pNew) < Gia_ManAndNum(pCopy) )
+            {
+                Gia_ManStop( pCopy );
+                pCopy = Gia_ManDup( pNew );
+            }
         }
         Vec_PtrWriteEntry( vAigs, i, pCopy );
     }
@@ -110,12 +145,38 @@ void Gia_ManStochSynthesis( Vec_Ptr_t * vAigs, char * pScript )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManCollectNodes_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vAnds )
+{
+    Gia_Obj_t * pObj;
+    if ( Gia_ObjUpdateTravIdCurrentId( p, iObj ) )
+        return;
+    pObj = Gia_ManObj( p, iObj );
+    if ( Gia_ObjIsCi(pObj) || iObj == 0 )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManCollectNodes_rec( p, Gia_ObjFaninId0(pObj, iObj), vAnds );
+    Gia_ManCollectNodes_rec( p, Gia_ObjFaninId1(pObj, iObj), vAnds );
+    Vec_IntPush( vAnds, iObj );
+}
+void Gia_ManCollectNodes( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos )
+{
+    int i, iObj;
+    if ( !Gia_ManHasMapping(p) )
+        return;
+    Vec_IntClear( vAnds );
+    Gia_ManIncrementTravId( p );
+    Vec_IntForEachEntry( vCis, iObj, i )
+        Gia_ObjSetTravIdCurrentId( p, iObj );
+    Vec_IntForEachEntry( vCos, iObj, i )
+        Gia_ManCollectNodes_rec( p, iObj, vAnds );
+}
 Gia_Man_t * Gia_ManDupDivideOne( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos )
 {
-    Gia_Man_t * pNew;
-    Gia_Obj_t * pObj; int i;
+    Vec_Int_t * vMapping; int i;
+    Gia_Man_t * pNew; Gia_Obj_t * pObj; 
     pNew = Gia_ManStart( 1+Vec_IntSize(vCis)+Vec_IntSize(vAnds)+Vec_IntSize(vCos) );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManFillValue(p);
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObjVec( vCis, p, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
@@ -124,17 +185,37 @@ Gia_Man_t * Gia_ManDupDivideOne( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vA
     Gia_ManForEachObjVec( vCos, p, pObj, i )
         Gia_ManAppendCo( pNew, pObj->Value );
     assert( Gia_ManCiNum(pNew) > 0 && Gia_ManCoNum(pNew) > 0 );
+    if ( !Gia_ManHasMapping(p) )
+        return pNew;
+    vMapping = Vec_IntAlloc( 4*Gia_ManObjNum(pNew) );
+    Vec_IntFill( vMapping, Gia_ManObjNum(pNew), 0 );
+    Gia_ManForEachObjVec( vAnds, p, pObj, i )
+    {
+        Gia_Obj_t * pFanin; int k; 
+        int iObj = Gia_ObjId(p, pObj);
+        if ( !Gia_ObjIsLut(p, iObj) )
+            continue;
+        Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pObj->Value), Vec_IntSize(vMapping) );
+        Vec_IntPush( vMapping, Gia_ObjLutSize(p, iObj) );
+        Gia_LutForEachFaninObj( p, iObj, pFanin, k )
+            Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->Value)  );
+        Vec_IntPush( vMapping, Abc_Lit2Var(pObj->Value) );
+    }
+    pNew->vMapping = vMapping;
     return pNew;
 }
 Vec_Ptr_t * Gia_ManDupDivide( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, char * pScript )
 {
     Vec_Ptr_t * vAigs = Vec_PtrAlloc( Vec_WecSize(vCis) );  int i;
     for ( i = 0; i < Vec_WecSize(vCis); i++ )
+    {
+        Gia_ManCollectNodes( p, Vec_WecEntry(vCis, i), Vec_WecEntry(vAnds, i), Vec_WecEntry(vCos, i) );
         Vec_PtrPush( vAigs, Gia_ManDupDivideOne(p, Vec_WecEntry(vCis, i), Vec_WecEntry(vAnds, i), Vec_WecEntry(vCos, i)) );
+    }
     Gia_ManStochSynthesis( vAigs, pScript );
     return vAigs;
 }
-Gia_Man_t * Gia_ManDupStitch( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, Vec_Ptr_t * vAigs )
+Gia_Man_t * Gia_ManDupStitch( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, Vec_Ptr_t * vAigs, int fHash )
 {
     Gia_Man_t * pGia, * pNew;
     Gia_Obj_t * pObj; int i, k;
@@ -145,7 +226,8 @@ Gia_Man_t * Gia_ManDupStitch( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
-    Gia_ManHashAlloc( pNew );
+    if ( fHash )
+        Gia_ManHashAlloc( pNew );
     Vec_PtrForEachEntry( Gia_Man_t *, vAigs, pGia, i )
     {
         Vec_Int_t * vCi = Vec_WecEntry( vCis, i );
@@ -154,16 +236,49 @@ Gia_Man_t * Gia_ManDupStitch( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds
         Gia_ManConst0(pGia)->Value = 0;
         Gia_ManForEachObjVec( vCi, p, pObj, k )
             Gia_ManCi(pGia, k)->Value = pObj->Value;
-        Gia_ManForEachAnd( pGia, pObj, k )
-            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( fHash )
+            Gia_ManForEachAnd( pGia, pObj, k )
+                pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) ); 
+        else
+            Gia_ManForEachAnd( pGia, pObj, k )
+                pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) ); 
         Gia_ManForEachObjVec( vCo, p, pObj, k )
             pObj->Value = Gia_ObjFanin0Copy(Gia_ManCo(pGia, k));
     }
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    pNew = Gia_ManCleanup( pGia = pNew );
-    Gia_ManStop( pGia );
+    if ( fHash )
+    {
+        pNew = Gia_ManCleanup( pGia = pNew );
+        Gia_ManStop( pGia );
+    }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+Gia_Man_t * Gia_ManDupStitchMap( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, Vec_Ptr_t * vAigs )
+{
+    Vec_Int_t * vMapping; int n;
+    Gia_Man_t * pGia, * pNew = Gia_ManDupStitch( p, vCis, vAnds, vCos, vAigs, !Gia_ManHasMapping(p) ); 
+    if ( !Gia_ManHasMapping(p) )
+        return pNew;
+    vMapping = Vec_IntAlloc( Vec_IntSize(p->vMapping) );
+    Vec_IntFill( vMapping, Gia_ManObjNum(pNew), 0 );
+    Vec_PtrForEachEntry( Gia_Man_t *, vAigs, pGia, n )
+    {
+        Gia_Obj_t * pFanin; int iObj, k; 
+        //printf( "Gia %d has %d Luts\n", n, Gia_ManLutNum(pGia) );
+
+        Gia_ManForEachLut( pGia, iObj )
+        {
+            Gia_Obj_t * pObj = Gia_ManObj( pGia, iObj );
+            Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pObj->Value), Vec_IntSize(vMapping) );
+            Vec_IntPush( vMapping, Gia_ObjLutSize(pGia, iObj) );
+            Gia_LutForEachFaninObj( pGia, iObj, pFanin, k )
+                Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->Value)  );
+            Vec_IntPush( vMapping, Abc_Lit2Var(pObj->Value) );
+        }
+    }
+    pNew->vMapping = vMapping;
     return pNew;
 }
 
@@ -178,19 +293,6 @@ Gia_Man_t * Gia_ManDupStitch( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManStochCollect_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vAnds )
-{
-    Gia_Obj_t * pObj;
-    if ( Gia_ObjUpdateTravIdCurrentId( p, iObj ) )
-        return;
-    pObj = Gia_ManObj( p, iObj );
-    if ( Gia_ObjIsCi(pObj) || iObj == 0 )
-        return;
-    assert( Gia_ObjIsAnd(pObj) );
-    Gia_ManStochCollect_rec( p, Gia_ObjFaninId0(pObj, iObj), vAnds );
-    Gia_ManStochCollect_rec( p, Gia_ObjFaninId1(pObj, iObj), vAnds );
-    Vec_IntPush( vAnds, iObj );
-}
 Vec_Wec_t * Gia_ManStochNodes( Gia_Man_t * p, int nMaxSize, int Seed )
 {
     Vec_Wec_t * vRes = Vec_WecAlloc( 100 ); 
@@ -203,7 +305,7 @@ Vec_Wec_t * Gia_ManStochNodes( Gia_Man_t * p, int nMaxSize, int Seed )
         Gia_Obj_t * pObj = Gia_ManCo( p, (iStart+i) % Gia_ManCoNum(p) );
         if ( Vec_IntSize(vPart) > nMaxSize )
             vPart = Vec_WecPushLevel( vRes );
-        Gia_ManStochCollect_rec( p, Gia_ObjFaninId0p(p, pObj), vPart );
+        Gia_ManCollectNodes_rec( p, Gia_ObjFaninId0p(p, pObj), vPart );
     }
     if ( Vec_IntSize(vPart) == 0 )
         Vec_WecShrink( vRes, Vec_WecSize(vRes)-1 );
@@ -213,45 +315,83 @@ Vec_Wec_t * Gia_ManStochNodes( Gia_Man_t * p, int nMaxSize, int Seed )
 Vec_Wec_t * Gia_ManStochInputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
 {
     Vec_Wec_t * vRes = Vec_WecAlloc( 100 ); 
-    Vec_Int_t * vLevel; Gia_Obj_t * pObj; int i, k, iObj;
+    Vec_Int_t * vLevel; Gia_Obj_t * pObj; int i, k, iObj, iFan, f;
     Vec_WecForEachLevel( vAnds, vLevel, i )
     {
         Vec_Int_t * vVec = Vec_WecPushLevel( vRes );
+        assert( Vec_IntSize(vVec) == 0 );
         Gia_ManIncrementTravId( p );
         Vec_IntForEachEntry( vLevel, iObj, k )
             Gia_ObjSetTravIdCurrentId( p, iObj );
-        Gia_ManForEachObjVec( vLevel, p, pObj, k )
+        if ( Gia_ManHasMapping(p) )
         {
-            iObj = Gia_ObjFaninId0p(p, pObj);
-            if ( !Gia_ObjUpdateTravIdCurrentId(p, iObj) )
-                Vec_IntPush( vVec, iObj );
-            iObj = Gia_ObjFaninId1p(p, pObj);
-            if ( !Gia_ObjUpdateTravIdCurrentId(p, iObj) )
-                Vec_IntPush( vVec, iObj );
+            Vec_IntForEachEntry( vLevel, iObj, k )
+                if ( Gia_ObjIsLut(p, iObj) )
+                    Gia_LutForEachFanin( p, iObj, iFan, f )
+                        if ( !Gia_ObjUpdateTravIdCurrentId(p, iFan) )
+                            Vec_IntPush( vVec, iFan );
         }
+        else
+        {
+            Gia_ManForEachObjVec( vLevel, p, pObj, k )
+            {
+                iObj = Gia_ObjFaninId0p(p, pObj);
+                if ( !Gia_ObjUpdateTravIdCurrentId(p, iObj) )
+                    Vec_IntPush( vVec, iObj );
+                iObj = Gia_ObjFaninId1p(p, pObj);
+                if ( !Gia_ObjUpdateTravIdCurrentId(p, iObj) )
+                    Vec_IntPush( vVec, iObj );
+            }
+        }
+        assert( Vec_IntSize(vVec) > 0 );
     }
     return vRes;
 }
 Vec_Wec_t * Gia_ManStochOutputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
 {
     Vec_Wec_t * vRes = Vec_WecAlloc( 100 ); 
-    Vec_Int_t * vLevel; Gia_Obj_t * pObj; int i, k;
-    Gia_ManCreateRefs( p );
-    Vec_WecForEachLevel( vAnds, vLevel, i )
+    Vec_Int_t * vLevel; Gia_Obj_t * pObj; int i, k, iObj, iFan, f;
+    if ( Gia_ManHasMapping(p) )
     {
-        Vec_Int_t * vVec = Vec_WecPushLevel( vRes );
-        Gia_ManForEachObjVec( vLevel, p, pObj, k )
+        Gia_ManSetLutRefs( p );
+        Vec_WecForEachLevel( vAnds, vLevel, i )
         {
-            Gia_ObjRefDecId( p, Gia_ObjFaninId0p(p, pObj) );
-            Gia_ObjRefDecId( p, Gia_ObjFaninId1p(p, pObj) );
+            Vec_Int_t * vVec = Vec_WecPushLevel( vRes );
+            assert( Vec_IntSize(vVec) == 0 );
+            Vec_IntForEachEntry( vLevel, iObj, k )
+                if ( Gia_ObjIsLut(p, iObj) )
+                    Gia_LutForEachFanin( p, iObj, iFan, f )
+                        Gia_ObjLutRefDecId( p, iFan );
+            Vec_IntForEachEntry( vLevel, iObj, k )
+                if ( Gia_ObjIsLut(p, iObj) )
+                    if ( Gia_ObjLutRefNumId(p, iObj) )
+                        Vec_IntPush( vVec, iObj );
+            Vec_IntForEachEntry( vLevel, iObj, k )
+                if ( Gia_ObjIsLut(p, iObj) )
+                    Gia_LutForEachFanin( p, iObj, iFan, f )
+                        Gia_ObjLutRefIncId( p, iFan );
+            assert( Vec_IntSize(vVec) > 0 );
         }
-        Gia_ManForEachObjVec( vLevel, p, pObj, k )
-            if ( Gia_ObjRefNum(p, pObj) )
-                Vec_IntPush( vVec, Gia_ObjId(p, pObj) );
-        Gia_ManForEachObjVec( vLevel, p, pObj, k )
+    }
+    else
+    {
+        Gia_ManCreateRefs( p );
+        Vec_WecForEachLevel( vAnds, vLevel, i )
         {
-            Gia_ObjRefIncId( p, Gia_ObjFaninId0p(p, pObj) );
-            Gia_ObjRefIncId( p, Gia_ObjFaninId1p(p, pObj) );
+            Vec_Int_t * vVec = Vec_WecPushLevel( vRes );
+            Gia_ManForEachObjVec( vLevel, p, pObj, k )
+            {
+                Gia_ObjRefDecId( p, Gia_ObjFaninId0p(p, pObj) );
+                Gia_ObjRefDecId( p, Gia_ObjFaninId1p(p, pObj) );
+            }
+            Gia_ManForEachObjVec( vLevel, p, pObj, k )
+                if ( Gia_ObjRefNum(p, pObj) )
+                    Vec_IntPush( vVec, Gia_ObjId(p, pObj) );
+            Gia_ManForEachObjVec( vLevel, p, pObj, k )
+            {
+                Gia_ObjRefIncId( p, Gia_ObjFaninId0p(p, pObj) );
+                Gia_ObjRefIncId( p, Gia_ObjFaninId1p(p, pObj) );
+            }
         }
     }
     return vRes;
@@ -270,9 +410,11 @@ Vec_Wec_t * Gia_ManStochOutputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
 ***********************************************************************/
 void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript )
 {
-    abctime nTimeToStop = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
-    abctime clkStart    = Abc_Clock();
-    int i, nEnd, nBeg   = Gia_ManAndNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
+    abctime nTimeToStop  = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
+    abctime clkStart     = Abc_Clock();
+    int fMapped          = Gia_ManHasMapping(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
+    int nLutEnd, nLutBeg = fMapped ? Gia_ManLutNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame())) : 0;
+    int i, nEnd, nBeg    = Gia_ManAndNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
     Abc_Random(1);
     for ( i = 0; i < 10+Seed; i++ )
         Abc_Random(0);
@@ -281,16 +423,19 @@ void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerb
     for ( i = 0; i < nIters; i++ )
     {
         abctime clk = Abc_Clock();
-        Gia_Man_t * pGia  = Gia_ManDup( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) );
+        Gia_Man_t * pGia  = Gia_ManDupWithMapping( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) );
         Vec_Wec_t * vAnds = Gia_ManStochNodes( pGia, nMaxSize, Abc_Random(0) & 0x7FFFFFFF );
         Vec_Wec_t * vIns  = Gia_ManStochInputs( pGia, vAnds );
         Vec_Wec_t * vOuts = Gia_ManStochOutputs( pGia, vAnds );
         Vec_Ptr_t * vAigs = Gia_ManDupDivide( pGia, vIns, vAnds, vOuts, pScript );
-        Gia_Man_t * pNew  = Gia_ManDupStitch( pGia, vIns, vAnds, vOuts, vAigs );
+        Gia_Man_t * pNew  = Gia_ManDupStitchMap( pGia, vIns, vAnds, vOuts, vAigs );
+        int fMapped = Gia_ManHasMapping(pGia) && Gia_ManHasMapping(pNew);
         Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
         if ( fVerbose )
-        printf( "Iteration %3d : Using %3d partitions. Reducing %6d nodes to %6d nodes.  ", 
-            i, Vec_PtrSize(vAigs), Gia_ManAndNum(pGia), Gia_ManAndNum(pNew) ); 
+        printf( "Iteration %3d : Using %3d partitions. Reducing %6d to %6d %s.  ", 
+            i, Vec_PtrSize(vAigs), fMapped ? Gia_ManLutNum(pGia) : Gia_ManAndNum(pGia), 
+                                   fMapped ? Gia_ManLutNum(pNew) : Gia_ManAndNum(pNew),
+                                   fMapped ? "LUTs" : "ANDs" ); 
         if ( fVerbose )
         Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
         Gia_ManStop( pGia );
@@ -304,10 +449,12 @@ void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerb
             break;
         }
     }
-    nEnd = Gia_ManAndNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
+    fMapped &= Gia_ManHasMapping(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
+    nLutEnd  = fMapped ? Gia_ManLutNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame())) : 0;
+    nEnd     = Gia_ManAndNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
     if ( fVerbose )
-    printf( "Cumulatively reduced %d AIG nodes after %d iterations.  ", 
-        nBeg - nEnd, nIters );
+    printf( "Cumulatively reduced %d %s after %d iterations.  ", 
+        fMapped ? nLutBeg - nLutEnd : nBeg - nEnd, fMapped ? "LUTs" : "ANDs", nIters );
     if ( fVerbose )
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
 }

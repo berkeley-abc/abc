@@ -303,6 +303,15 @@ static inline void Vec_WecPush( Vec_Wec_t * p, int Level, int Entry )
     }
     Vec_IntPush( Vec_WecEntry(p, Level), Entry );
 }
+static inline void Vec_WecPushTwo( Vec_Wec_t * p, int Level, int Entry1, int Entry2 )
+{
+    if ( p->nSize < Level + 1 )
+    {
+        Vec_WecGrow( p, Abc_MaxInt(2*p->nSize, Level + 1) );
+        p->nSize = Level + 1;
+    }
+    Vec_IntPushTwo( Vec_WecEntry(p, Level), Entry1, Entry2 );
+}
 static inline Vec_Int_t * Vec_WecPushLevel( Vec_Wec_t * p )
 {
     if ( p->nSize == p->nCap )
