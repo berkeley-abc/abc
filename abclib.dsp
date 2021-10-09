@@ -4903,6 +4903,10 @@ SOURCE=.\src\aig\gia\giaCSat2.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaCSat3.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaCSatOld.c
 # End Source File
 # Begin Source File
