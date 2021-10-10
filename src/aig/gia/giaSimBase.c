@@ -2522,6 +2522,106 @@ int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int 
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Serialization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManSim2ArrayOne( Vec_Wrd_t * vSimsPi, Vec_Int_t * vRes )
+{
+    word * pInfo = Vec_WrdArray(vSimsPi); int w, i;
+    word * pCare = pInfo + Vec_WrdSize(vSimsPi);
+    Vec_IntClear( vRes );
+    for ( w = 0; w < Vec_WrdSize(vSimsPi); w++ )
+        if ( pCare[w] )
+            for ( i = 0; i < 64; i++ )
+                if ( Abc_TtGetBit(pCare, w*64+i) )
+                    Vec_IntPush( vRes, Abc_Var2Lit(w*64+i, Abc_TtGetBit(pInfo, w*64+i)) );
+    Vec_IntPush( vRes, Vec_WrdSize(vSimsPi) );
+}
+Vec_Wec_t * Gia_ManSim2Array( Vec_Ptr_t * vSims )
+{
+    Vec_Wec_t * vRes = Vec_WecStart( Vec_PtrSize(vSims) );
+    Vec_Int_t * vLevel; int i;
+    Vec_WecForEachLevel( vRes, vLevel, i )
+        Gia_ManSim2ArrayOne( (Vec_Wrd_t *)Vec_PtrEntry(vSims, i), vLevel );
+    return vRes;
+}
+
+Vec_Wrd_t * Gia_ManArray2SimOne( Vec_Int_t * vRes )
+{
+    int i, iLit, nWords = Vec_IntEntryLast(vRes);
+    Vec_Wrd_t * vSimsPi = Vec_WrdStart( 2*nWords );
+    word * pInfo = Vec_WrdArray(vSimsPi);
+    word * pCare = pInfo + nWords;
+    Vec_IntPop( vRes );
+    Vec_IntForEachEntry( vRes, iLit, i )
+    {
+        Abc_TtXorBit( pCare, Abc_Lit2Var(iLit) );
+        if ( Abc_LitIsCompl(iLit) )
+            Abc_TtXorBit( pInfo, Abc_Lit2Var(iLit) );
+    }
+    Vec_IntPush( vRes, nWords );
+    Vec_WrdShrink( vSimsPi, Vec_WrdSize(vSimsPi)/2 );
+    return vSimsPi;
+}
+Vec_Ptr_t * Gia_ManArray2Sim( Vec_Wec_t * vRes )
+{
+    Vec_Ptr_t * vSims = Vec_PtrAlloc( Vec_WecSize(vRes) );
+    Vec_Int_t * vLevel; int i;
+    Vec_WecForEachLevel( vRes, vLevel, i )
+        Vec_PtrPush( vSims, Gia_ManArray2SimOne(vLevel) );
+    return vSims;
+}
+
+void Gia_ManSimArrayTest( Vec_Wrd_t * vSimsPi )
+{
+    Vec_Ptr_t * vTemp = Vec_PtrAlloc( 2 );
+    Vec_PtrPushTwo( vTemp, vSimsPi, vSimsPi );
+    {
+        Vec_Wec_t * vRes = Gia_ManSim2Array( vTemp );
+        Vec_WecDumpBin( "temp.sims", vRes, 1 );
+        {
+            Vec_Wec_t * vRes = Vec_WecReadBin( "temp.sims", 1 );
+            Vec_Ptr_t * vTemp2 = Gia_ManArray2Sim( vRes );
+            Vec_Wrd_t * vSimsPi2 = (Vec_Wrd_t *)Vec_PtrEntry( vTemp2, 0 );
+            Vec_Wrd_t * vSimsPi3 = (Vec_Wrd_t *)Vec_PtrEntry( vTemp2, 1 );
+
+            Abc_TtAnd( Vec_WrdArray(vSimsPi), Vec_WrdArray(vSimsPi), Vec_WrdArray(vSimsPi)+Vec_WrdSize(vSimsPi), Vec_WrdSize(vSimsPi), 0 );
+
+            vSimsPi->nSize *= 2;
+            vSimsPi2->nSize *= 2;
+            vSimsPi3->nSize *= 2;
+            Vec_WrdDumpHex( "test1.hex", vSimsPi,  1, 1 );
+            Vec_WrdDumpHex( "test2.hex", vSimsPi2, 1, 1 );
+            Vec_WrdDumpHex( "test3.hex", vSimsPi3, 1, 1 );
+            vSimsPi->nSize /= 2;
+            vSimsPi2->nSize /= 2;
+            vSimsPi3->nSize /= 2;
+
+            if ( Vec_WrdEqual( vSimsPi, vSimsPi2 ) )
+                printf( "Success.\n" );
+            else
+                printf( "Failure.\n" );
+            if ( Vec_WrdEqual( vSimsPi, vSimsPi3 ) )
+                printf( "Success.\n" );
+            else
+                printf( "Failure.\n" );
+            Vec_WrdFree( vSimsPi2 );
+            Vec_WrdFree( vSimsPi3 );
+            Vec_PtrFree( vTemp2 );
+            Vec_WecFree( vRes );
+        }
+        Vec_WecFree( vRes );
+    }
+    Vec_PtrFree( vTemp );
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

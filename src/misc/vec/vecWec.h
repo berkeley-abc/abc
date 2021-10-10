@@ -791,6 +791,83 @@ static inline void Vec_WecRemoveEmpty( Vec_Wec_t * vCubes )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    [File interface.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_WecDumpBin( char * pFileName, Vec_Wec_t * p, int fVerbose )
+{
+    Vec_Int_t * vLevel;
+    int i, nSize, RetValue;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    nSize = Vec_WecSize(p);
+    RetValue = fwrite( &nSize, 1, sizeof(int), pFile );
+    Vec_WecForEachLevel( p, vLevel, i )
+    {
+        nSize = Vec_IntSize(vLevel);
+        RetValue += fwrite( &nSize, 1, sizeof(int), pFile );
+        RetValue += fwrite( Vec_IntArray(vLevel), 1, sizeof(int)*nSize, pFile );
+    }
+    fclose( pFile );
+    if ( RetValue != (int)sizeof(int)*(Vec_WecSizeSize(p)+Vec_WecSize(p)+1) )
+        printf( "Error writing data into file.\n" );
+    if ( fVerbose )
+        printf( "Written %d integer arrays into file \"%s\".\n", Vec_WecSize(p), pFileName );
+}
+static inline Vec_Wec_t * Vec_WecReadBin( char * pFileName, int fVerbose )
+{
+    Vec_Wec_t * p = NULL; Vec_Int_t * vLevel; int i, nSize, RetValue;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return NULL;
+    }
+    fseek( pFile, 0, SEEK_END );
+    nSize = ftell( pFile );
+    if ( nSize == 0 )
+    {
+        printf( "The input file is empty.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    if ( nSize % sizeof(int) > 0 )
+    {
+        printf( "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", (int)(nSize % sizeof(int)) );
+        fclose( pFile );
+        return NULL;
+    }
+    rewind( pFile );
+    RetValue = fread( &nSize, 1, sizeof(int), pFile );
+    assert( RetValue == 4 );
+    p = Vec_WecStart( nSize );
+    Vec_WecForEachLevel( p, vLevel, i )
+    {
+        RetValue = fread( &nSize, 1, sizeof(int), pFile );
+        assert( RetValue == 4 );
+        Vec_IntFill( vLevel, nSize, 0 );
+        RetValue = fread( Vec_IntArray(vLevel), 1, sizeof(int)*nSize, pFile );
+        assert( RetValue == 4*nSize );
+    }
+    fclose( pFile );
+    if ( fVerbose )
+        printf( "Read %d integer arrays from file \"%s\".\n", Vec_WecSize(p), pFileName );
+    return p;
+}
+
+
 ABC_NAMESPACE_HEADER_END
 
 #endif
