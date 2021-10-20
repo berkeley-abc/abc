@@ -1,0 +1,718 @@
+The system is: Darwin - 20.6.0 - x86_64
+Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/cc 
+Build flags: 
+Id flags: -c 
+
+The output was:
+0
+
+
+Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.o"
+
+The C compiler identification is AppleClang, found in "/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/3.12.1/CompilerIdC/CMakeCCompilerId.o"
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/c++ 
+Build flags: 
+Id flags: -c 
+
+The output was:
+0
+
+
+Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.o"
+
+The CXX compiler identification is AppleClang, found in "/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/3.12.1/CompilerIdCXX/CMakeCXXCompilerId.o"
+
+Determining if the C compiler works passed with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_e9fed/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_e9fed.dir/build.make CMakeFiles/cmTC_e9fed.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_e9fed.dir/testCCompiler.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -o CMakeFiles/cmTC_e9fed.dir/testCCompiler.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/testCCompiler.c
+Linking C executable cmTC_e9fed
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e9fed.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_e9fed.dir/testCCompiler.c.o  -o cmTC_e9fed 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+Detecting C compiler ABI info compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_7a305/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_7a305.dir/build.make CMakeFiles/cmTC_7a305.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -o CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o   -c /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.12/Modules/CMakeCCompilerABI.c
+Linking C executable cmTC_7a305
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7a305.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  -v -Wl,-v CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o  -o cmTC_7a305 
+Apple clang version 12.0.5 (clang-1205.0.22.11)
+Target: x86_64-apple-darwin20.6.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+ "/Library/Developer/CommandLineTools/usr/bin/ld" -demangle -lto_library /Library/Developer/CommandLineTools/usr/lib/libLTO.dylib -dynamic -arch x86_64 -platform_version macos 11.0.0 11.3 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -o cmTC_7a305 -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o -lSystem /Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a
+@(#)PROGRAM:ld  PROJECT:ld64-650.9
+BUILD 13:09:02 May 28 2021
+configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em
+Library search paths:
+	/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib
+Framework search paths:
+	/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks/
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+Parsed C implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:"/usr/local/bin/gmake" "cmTC_7a305/fast"]
+  ignore line: [/usr/local/bin/gmake -f CMakeFiles/cmTC_7a305.dir/build.make CMakeFiles/cmTC_7a305.dir/build]
+  ignore line: [gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp']
+  ignore line: [Building C object CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o]
+  ignore line: [/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -o CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o   -c /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.12/Modules/CMakeCCompilerABI.c]
+  ignore line: [Linking C executable cmTC_7a305]
+  ignore line: [/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7a305.dir/link.txt --verbose=1]
+  ignore line: [/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  -v -Wl,-v CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o  -o cmTC_7a305 ]
+  ignore line: [Apple clang version 12.0.5 (clang-1205.0.22.11)]
+  ignore line: [Target: x86_64-apple-darwin20.6.0]
+  ignore line: [Thread model: posix]
+  ignore line: [InstalledDir: /Library/Developer/CommandLineTools/usr/bin]
+  link line: [ "/Library/Developer/CommandLineTools/usr/bin/ld" -demangle -lto_library /Library/Developer/CommandLineTools/usr/lib/libLTO.dylib -dynamic -arch x86_64 -platform_version macos 11.0.0 11.3 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -o cmTC_7a305 -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o -lSystem /Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a]
+    arg [/Library/Developer/CommandLineTools/usr/bin/ld] ==> ignore
+    arg [-demangle] ==> ignore
+    arg [-lto_library] ==> ignore, skip following value
+    arg [/Library/Developer/CommandLineTools/usr/lib/libLTO.dylib] ==> skip value of -lto_library
+    arg [-dynamic] ==> ignore
+    arg [-arch] ==> ignore
+    arg [x86_64] ==> ignore
+    arg [-platform_version] ==> ignore
+    arg [macos] ==> ignore
+    arg [11.0.0] ==> ignore
+    arg [11.3] ==> ignore
+    arg [-syslibroot] ==> ignore
+    arg [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_7a305] ==> ignore
+    arg [-search_paths_first] ==> ignore
+    arg [-headerpad_max_install_names] ==> ignore
+    arg [-v] ==> ignore
+    arg [CMakeFiles/cmTC_7a305.dir/CMakeCCompilerABI.c.o] ==> ignore
+    arg [-lSystem] ==> lib [System]
+    arg [/Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a] ==> lib [/Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a]
+  Library search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib]
+  Framework search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks/]
+  remove lib [System]
+  remove lib [/Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a]
+  collapse library dir [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib]
+  collapse framework dir [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks/] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks]
+  implicit libs: []
+  implicit dirs: [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib]
+  implicit fwks: [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks]
+
+
+
+
+Detecting C [-std=c11] compiler features compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_03624/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_03624.dir/build.make CMakeFiles/cmTC_03624.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_03624.dir/feature_tests.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -std=c11 -o CMakeFiles/cmTC_03624.dir/feature_tests.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/feature_tests.c
+Linking C executable cmTC_03624
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_03624.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_03624.dir/feature_tests.c.o  -o cmTC_03624 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:1c_restrict
+    Feature record: C_FEATURE:1c_static_assert
+    Feature record: C_FEATURE:1c_variadic_macros
+
+
+Detecting C [-std=c99] compiler features compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_e30b7/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_e30b7.dir/build.make CMakeFiles/cmTC_e30b7.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_e30b7.dir/feature_tests.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -std=c99 -o CMakeFiles/cmTC_e30b7.dir/feature_tests.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/feature_tests.c
+Linking C executable cmTC_e30b7
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e30b7.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_e30b7.dir/feature_tests.c.o  -o cmTC_e30b7 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:1c_restrict
+    Feature record: C_FEATURE:0c_static_assert
+    Feature record: C_FEATURE:1c_variadic_macros
+
+
+Detecting C [-std=c90] compiler features compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_7f022/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_7f022.dir/build.make CMakeFiles/cmTC_7f022.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_7f022.dir/feature_tests.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -std=c90 -o CMakeFiles/cmTC_7f022.dir/feature_tests.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/feature_tests.c
+Linking C executable cmTC_7f022
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7f022.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc   -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_7f022.dir/feature_tests.c.o  -o cmTC_7f022 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+    Feature record: C_FEATURE:1c_function_prototypes
+    Feature record: C_FEATURE:0c_restrict
+    Feature record: C_FEATURE:0c_static_assert
+    Feature record: C_FEATURE:0c_variadic_macros
+Determining if the CXX compiler works passed with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_9faa7/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_9faa7.dir/build.make CMakeFiles/cmTC_9faa7.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_9faa7.dir/testCXXCompiler.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -o CMakeFiles/cmTC_9faa7.dir/testCXXCompiler.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/testCXXCompiler.cxx
+Linking CXX executable cmTC_9faa7
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9faa7.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_9faa7.dir/testCXXCompiler.cxx.o  -o cmTC_9faa7 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+Detecting CXX compiler ABI info compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_610bd/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_610bd.dir/build.make CMakeFiles/cmTC_610bd.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -o CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o -c /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.12/Modules/CMakeCXXCompilerABI.cpp
+Linking CXX executable cmTC_610bd
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_610bd.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  -v -Wl,-v CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_610bd 
+Apple clang version 12.0.5 (clang-1205.0.22.11)
+Target: x86_64-apple-darwin20.6.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+ "/Library/Developer/CommandLineTools/usr/bin/ld" -demangle -lto_library /Library/Developer/CommandLineTools/usr/lib/libLTO.dylib -dynamic -arch x86_64 -platform_version macos 11.0.0 11.3 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -o cmTC_610bd -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o -lc++ -lSystem /Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a
+@(#)PROGRAM:ld  PROJECT:ld64-650.9
+BUILD 13:09:02 May 28 2021
+configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em
+Library search paths:
+	/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib
+Framework search paths:
+	/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks/
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+Parsed CXX implicit link information from above output:
+  link line regex: [^( *|.*[/\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\]+-)?ld|collect2)[^/\]*( |$)]
+  ignore line: [Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp]
+  ignore line: []
+  ignore line: [Run Build Command:"/usr/local/bin/gmake" "cmTC_610bd/fast"]
+  ignore line: [/usr/local/bin/gmake -f CMakeFiles/cmTC_610bd.dir/build.make CMakeFiles/cmTC_610bd.dir/build]
+  ignore line: [gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp']
+  ignore line: [Building CXX object CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o]
+  ignore line: [/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -o CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o -c /Applications/CLion.app/Contents/bin/cmake/mac/share/cmake-3.12/Modules/CMakeCXXCompilerABI.cpp]
+  ignore line: [Linking CXX executable cmTC_610bd]
+  ignore line: [/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_610bd.dir/link.txt --verbose=1]
+  ignore line: [/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names  -v -Wl,-v CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o  -o cmTC_610bd ]
+  ignore line: [Apple clang version 12.0.5 (clang-1205.0.22.11)]
+  ignore line: [Target: x86_64-apple-darwin20.6.0]
+  ignore line: [Thread model: posix]
+  ignore line: [InstalledDir: /Library/Developer/CommandLineTools/usr/bin]
+  link line: [ "/Library/Developer/CommandLineTools/usr/bin/ld" -demangle -lto_library /Library/Developer/CommandLineTools/usr/lib/libLTO.dylib -dynamic -arch x86_64 -platform_version macos 11.0.0 11.3 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -o cmTC_610bd -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o -lc++ -lSystem /Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a]
+    arg [/Library/Developer/CommandLineTools/usr/bin/ld] ==> ignore
+    arg [-demangle] ==> ignore
+    arg [-lto_library] ==> ignore, skip following value
+    arg [/Library/Developer/CommandLineTools/usr/lib/libLTO.dylib] ==> skip value of -lto_library
+    arg [-dynamic] ==> ignore
+    arg [-arch] ==> ignore
+    arg [x86_64] ==> ignore
+    arg [-platform_version] ==> ignore
+    arg [macos] ==> ignore
+    arg [11.0.0] ==> ignore
+    arg [11.3] ==> ignore
+    arg [-syslibroot] ==> ignore
+    arg [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk] ==> ignore
+    arg [-o] ==> ignore
+    arg [cmTC_610bd] ==> ignore
+    arg [-search_paths_first] ==> ignore
+    arg [-headerpad_max_install_names] ==> ignore
+    arg [-v] ==> ignore
+    arg [CMakeFiles/cmTC_610bd.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+    arg [-lc++] ==> lib [c++]
+    arg [-lSystem] ==> lib [System]
+    arg [/Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a] ==> lib [/Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a]
+  Library search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib]
+  Framework search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks/]
+  remove lib [System]
+  remove lib [/Library/Developer/CommandLineTools/usr/lib/clang/12.0.5/lib/darwin/libclang_rt.osx.a]
+  collapse library dir [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib]
+  collapse framework dir [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks/] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks]
+  implicit libs: [c++]
+  implicit dirs: [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/usr/lib]
+  implicit fwks: [/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk/System/Library/Frameworks]
+
+
+
+
+Detecting CXX [-std=c++1z] compiler features compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_f72fd/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_f72fd.dir/build.make CMakeFiles/cmTC_f72fd.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_f72fd.dir/feature_tests.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -std=c++1z -o CMakeFiles/cmTC_f72fd.dir/feature_tests.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_f72fd
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f72fd.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_f72fd.dir/feature_tests.cxx.o  -o cmTC_f72fd 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:1cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:1cxx_alias_templates
+    Feature record: CXX_FEATURE:1cxx_alignas
+    Feature record: CXX_FEATURE:1cxx_alignof
+    Feature record: CXX_FEATURE:1cxx_attributes
+    Feature record: CXX_FEATURE:1cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:1cxx_auto_type
+    Feature record: CXX_FEATURE:1cxx_binary_literals
+    Feature record: CXX_FEATURE:1cxx_constexpr
+    Feature record: CXX_FEATURE:1cxx_contextual_conversions
+    Feature record: CXX_FEATURE:1cxx_decltype
+    Feature record: CXX_FEATURE:1cxx_decltype_auto
+    Feature record: CXX_FEATURE:1cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:1cxx_default_function_template_args
+    Feature record: CXX_FEATURE:1cxx_defaulted_functions
+    Feature record: CXX_FEATURE:1cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:1cxx_delegating_constructors
+    Feature record: CXX_FEATURE:1cxx_deleted_functions
+    Feature record: CXX_FEATURE:1cxx_digit_separators
+    Feature record: CXX_FEATURE:1cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:1cxx_explicit_conversions
+    Feature record: CXX_FEATURE:1cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:1cxx_extern_templates
+    Feature record: CXX_FEATURE:1cxx_final
+    Feature record: CXX_FEATURE:1cxx_func_identifier
+    Feature record: CXX_FEATURE:1cxx_generalized_initializers
+    Feature record: CXX_FEATURE:1cxx_generic_lambdas
+    Feature record: CXX_FEATURE:1cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:1cxx_inline_namespaces
+    Feature record: CXX_FEATURE:1cxx_lambdas
+    Feature record: CXX_FEATURE:1cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:1cxx_local_type_template_args
+    Feature record: CXX_FEATURE:1cxx_long_long_type
+    Feature record: CXX_FEATURE:1cxx_noexcept
+    Feature record: CXX_FEATURE:1cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:1cxx_nullptr
+    Feature record: CXX_FEATURE:1cxx_override
+    Feature record: CXX_FEATURE:1cxx_range_for
+    Feature record: CXX_FEATURE:1cxx_raw_string_literals
+    Feature record: CXX_FEATURE:1cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:1cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:1cxx_return_type_deduction
+    Feature record: CXX_FEATURE:1cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:1cxx_rvalue_references
+    Feature record: CXX_FEATURE:1cxx_sizeof_member
+    Feature record: CXX_FEATURE:1cxx_static_assert
+    Feature record: CXX_FEATURE:1cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:1cxx_thread_local
+    Feature record: CXX_FEATURE:1cxx_trailing_return_types
+    Feature record: CXX_FEATURE:1cxx_unicode_literals
+    Feature record: CXX_FEATURE:1cxx_uniform_initialization
+    Feature record: CXX_FEATURE:1cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:1cxx_user_literals
+    Feature record: CXX_FEATURE:1cxx_variable_templates
+    Feature record: CXX_FEATURE:1cxx_variadic_macros
+    Feature record: CXX_FEATURE:1cxx_variadic_templates
+
+
+Detecting CXX [-std=c++14] compiler features compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_67524/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_67524.dir/build.make CMakeFiles/cmTC_67524.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_67524.dir/feature_tests.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -std=c++14 -o CMakeFiles/cmTC_67524.dir/feature_tests.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_67524
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_67524.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_67524.dir/feature_tests.cxx.o  -o cmTC_67524 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:1cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:1cxx_alias_templates
+    Feature record: CXX_FEATURE:1cxx_alignas
+    Feature record: CXX_FEATURE:1cxx_alignof
+    Feature record: CXX_FEATURE:1cxx_attributes
+    Feature record: CXX_FEATURE:1cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:1cxx_auto_type
+    Feature record: CXX_FEATURE:1cxx_binary_literals
+    Feature record: CXX_FEATURE:1cxx_constexpr
+    Feature record: CXX_FEATURE:1cxx_contextual_conversions
+    Feature record: CXX_FEATURE:1cxx_decltype
+    Feature record: CXX_FEATURE:1cxx_decltype_auto
+    Feature record: CXX_FEATURE:1cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:1cxx_default_function_template_args
+    Feature record: CXX_FEATURE:1cxx_defaulted_functions
+    Feature record: CXX_FEATURE:1cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:1cxx_delegating_constructors
+    Feature record: CXX_FEATURE:1cxx_deleted_functions
+    Feature record: CXX_FEATURE:1cxx_digit_separators
+    Feature record: CXX_FEATURE:1cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:1cxx_explicit_conversions
+    Feature record: CXX_FEATURE:1cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:1cxx_extern_templates
+    Feature record: CXX_FEATURE:1cxx_final
+    Feature record: CXX_FEATURE:1cxx_func_identifier
+    Feature record: CXX_FEATURE:1cxx_generalized_initializers
+    Feature record: CXX_FEATURE:1cxx_generic_lambdas
+    Feature record: CXX_FEATURE:1cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:1cxx_inline_namespaces
+    Feature record: CXX_FEATURE:1cxx_lambdas
+    Feature record: CXX_FEATURE:1cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:1cxx_local_type_template_args
+    Feature record: CXX_FEATURE:1cxx_long_long_type
+    Feature record: CXX_FEATURE:1cxx_noexcept
+    Feature record: CXX_FEATURE:1cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:1cxx_nullptr
+    Feature record: CXX_FEATURE:1cxx_override
+    Feature record: CXX_FEATURE:1cxx_range_for
+    Feature record: CXX_FEATURE:1cxx_raw_string_literals
+    Feature record: CXX_FEATURE:1cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:1cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:1cxx_return_type_deduction
+    Feature record: CXX_FEATURE:1cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:1cxx_rvalue_references
+    Feature record: CXX_FEATURE:1cxx_sizeof_member
+    Feature record: CXX_FEATURE:1cxx_static_assert
+    Feature record: CXX_FEATURE:1cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:1cxx_thread_local
+    Feature record: CXX_FEATURE:1cxx_trailing_return_types
+    Feature record: CXX_FEATURE:1cxx_unicode_literals
+    Feature record: CXX_FEATURE:1cxx_uniform_initialization
+    Feature record: CXX_FEATURE:1cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:1cxx_user_literals
+    Feature record: CXX_FEATURE:1cxx_variable_templates
+    Feature record: CXX_FEATURE:1cxx_variadic_macros
+    Feature record: CXX_FEATURE:1cxx_variadic_templates
+
+
+Detecting CXX [-std=c++11] compiler features compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_c2ed2/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_c2ed2.dir/build.make CMakeFiles/cmTC_c2ed2.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_c2ed2.dir/feature_tests.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -std=c++11 -o CMakeFiles/cmTC_c2ed2.dir/feature_tests.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_c2ed2
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_c2ed2.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_c2ed2.dir/feature_tests.cxx.o  -o cmTC_c2ed2 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:0cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:1cxx_alias_templates
+    Feature record: CXX_FEATURE:1cxx_alignas
+    Feature record: CXX_FEATURE:1cxx_alignof
+    Feature record: CXX_FEATURE:1cxx_attributes
+    Feature record: CXX_FEATURE:0cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:1cxx_auto_type
+    Feature record: CXX_FEATURE:0cxx_binary_literals
+    Feature record: CXX_FEATURE:1cxx_constexpr
+    Feature record: CXX_FEATURE:0cxx_contextual_conversions
+    Feature record: CXX_FEATURE:1cxx_decltype
+    Feature record: CXX_FEATURE:0cxx_decltype_auto
+    Feature record: CXX_FEATURE:1cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:1cxx_default_function_template_args
+    Feature record: CXX_FEATURE:1cxx_defaulted_functions
+    Feature record: CXX_FEATURE:1cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:1cxx_delegating_constructors
+    Feature record: CXX_FEATURE:1cxx_deleted_functions
+    Feature record: CXX_FEATURE:0cxx_digit_separators
+    Feature record: CXX_FEATURE:1cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:1cxx_explicit_conversions
+    Feature record: CXX_FEATURE:1cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:1cxx_extern_templates
+    Feature record: CXX_FEATURE:1cxx_final
+    Feature record: CXX_FEATURE:1cxx_func_identifier
+    Feature record: CXX_FEATURE:1cxx_generalized_initializers
+    Feature record: CXX_FEATURE:0cxx_generic_lambdas
+    Feature record: CXX_FEATURE:1cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:1cxx_inline_namespaces
+    Feature record: CXX_FEATURE:1cxx_lambdas
+    Feature record: CXX_FEATURE:0cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:1cxx_local_type_template_args
+    Feature record: CXX_FEATURE:1cxx_long_long_type
+    Feature record: CXX_FEATURE:1cxx_noexcept
+    Feature record: CXX_FEATURE:1cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:1cxx_nullptr
+    Feature record: CXX_FEATURE:1cxx_override
+    Feature record: CXX_FEATURE:1cxx_range_for
+    Feature record: CXX_FEATURE:1cxx_raw_string_literals
+    Feature record: CXX_FEATURE:1cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:0cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:0cxx_return_type_deduction
+    Feature record: CXX_FEATURE:1cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:1cxx_rvalue_references
+    Feature record: CXX_FEATURE:1cxx_sizeof_member
+    Feature record: CXX_FEATURE:1cxx_static_assert
+    Feature record: CXX_FEATURE:1cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:1cxx_thread_local
+    Feature record: CXX_FEATURE:1cxx_trailing_return_types
+    Feature record: CXX_FEATURE:1cxx_unicode_literals
+    Feature record: CXX_FEATURE:1cxx_uniform_initialization
+    Feature record: CXX_FEATURE:1cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:1cxx_user_literals
+    Feature record: CXX_FEATURE:0cxx_variable_templates
+    Feature record: CXX_FEATURE:1cxx_variadic_macros
+    Feature record: CXX_FEATURE:1cxx_variadic_templates
+
+
+Detecting CXX [-std=c++98] compiler features compiled with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_04fa0/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_04fa0.dir/build.make CMakeFiles/cmTC_04fa0.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_04fa0.dir/feature_tests.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -std=c++98 -o CMakeFiles/cmTC_04fa0.dir/feature_tests.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/feature_tests.cxx
+Linking CXX executable cmTC_04fa0
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_04fa0.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++    -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_04fa0.dir/feature_tests.cxx.o  -o cmTC_04fa0 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+
+    Feature record: CXX_FEATURE:0cxx_aggregate_default_initializers
+    Feature record: CXX_FEATURE:0cxx_alias_templates
+    Feature record: CXX_FEATURE:0cxx_alignas
+    Feature record: CXX_FEATURE:0cxx_alignof
+    Feature record: CXX_FEATURE:0cxx_attributes
+    Feature record: CXX_FEATURE:0cxx_attribute_deprecated
+    Feature record: CXX_FEATURE:0cxx_auto_type
+    Feature record: CXX_FEATURE:0cxx_binary_literals
+    Feature record: CXX_FEATURE:0cxx_constexpr
+    Feature record: CXX_FEATURE:0cxx_contextual_conversions
+    Feature record: CXX_FEATURE:0cxx_decltype
+    Feature record: CXX_FEATURE:0cxx_decltype_auto
+    Feature record: CXX_FEATURE:0cxx_decltype_incomplete_return_types
+    Feature record: CXX_FEATURE:0cxx_default_function_template_args
+    Feature record: CXX_FEATURE:0cxx_defaulted_functions
+    Feature record: CXX_FEATURE:0cxx_defaulted_move_initializers
+    Feature record: CXX_FEATURE:0cxx_delegating_constructors
+    Feature record: CXX_FEATURE:0cxx_deleted_functions
+    Feature record: CXX_FEATURE:0cxx_digit_separators
+    Feature record: CXX_FEATURE:0cxx_enum_forward_declarations
+    Feature record: CXX_FEATURE:0cxx_explicit_conversions
+    Feature record: CXX_FEATURE:0cxx_extended_friend_declarations
+    Feature record: CXX_FEATURE:0cxx_extern_templates
+    Feature record: CXX_FEATURE:0cxx_final
+    Feature record: CXX_FEATURE:0cxx_func_identifier
+    Feature record: CXX_FEATURE:0cxx_generalized_initializers
+    Feature record: CXX_FEATURE:0cxx_generic_lambdas
+    Feature record: CXX_FEATURE:0cxx_inheriting_constructors
+    Feature record: CXX_FEATURE:0cxx_inline_namespaces
+    Feature record: CXX_FEATURE:0cxx_lambdas
+    Feature record: CXX_FEATURE:0cxx_lambda_init_captures
+    Feature record: CXX_FEATURE:0cxx_local_type_template_args
+    Feature record: CXX_FEATURE:0cxx_long_long_type
+    Feature record: CXX_FEATURE:0cxx_noexcept
+    Feature record: CXX_FEATURE:0cxx_nonstatic_member_init
+    Feature record: CXX_FEATURE:0cxx_nullptr
+    Feature record: CXX_FEATURE:0cxx_override
+    Feature record: CXX_FEATURE:0cxx_range_for
+    Feature record: CXX_FEATURE:0cxx_raw_string_literals
+    Feature record: CXX_FEATURE:0cxx_reference_qualified_functions
+    Feature record: CXX_FEATURE:0cxx_relaxed_constexpr
+    Feature record: CXX_FEATURE:0cxx_return_type_deduction
+    Feature record: CXX_FEATURE:0cxx_right_angle_brackets
+    Feature record: CXX_FEATURE:0cxx_rvalue_references
+    Feature record: CXX_FEATURE:0cxx_sizeof_member
+    Feature record: CXX_FEATURE:0cxx_static_assert
+    Feature record: CXX_FEATURE:0cxx_strong_enums
+    Feature record: CXX_FEATURE:1cxx_template_template_parameters
+    Feature record: CXX_FEATURE:0cxx_thread_local
+    Feature record: CXX_FEATURE:0cxx_trailing_return_types
+    Feature record: CXX_FEATURE:0cxx_unicode_literals
+    Feature record: CXX_FEATURE:0cxx_uniform_initialization
+    Feature record: CXX_FEATURE:0cxx_unrestricted_unions
+    Feature record: CXX_FEATURE:0cxx_user_literals
+    Feature record: CXX_FEATURE:0cxx_variable_templates
+    Feature record: CXX_FEATURE:0cxx_variadic_macros
+    Feature record: CXX_FEATURE:0cxx_variadic_templates
+Performing C SOURCE FILE Test C_COMPILER_SUPPORTS__-Wall succeeded with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_0b705/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_0b705.dir/build.make CMakeFiles/cmTC_0b705.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_0b705.dir/src.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DC_COMPILER_SUPPORTS__-Wall -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wall -o CMakeFiles/cmTC_0b705.dir/src.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.c
+In file included from <built-in>:367:
+<command line>:1:30: warning: ISO C99 requires whitespace after the macro name [-Wc99-extensions]
+#define C_COMPILER_SUPPORTS__-Wall 1
+                             ^
+1 warning generated.
+Linking C executable cmTC_0b705
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0b705.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DC_COMPILER_SUPPORTS__-Wall -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_0b705.dir/src.c.o  -o cmTC_0b705 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main(void) { return 0; }
+Performing C++ SOURCE FILE Test CXX_COMPILER_SUPPORTS__-Wall succeeded with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_ca970/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_ca970.dir/build.make CMakeFiles/cmTC_ca970.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_ca970.dir/src.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -DCXX_COMPILER_SUPPORTS__-Wall -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wall -o CMakeFiles/cmTC_ca970.dir/src.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+In file included from <built-in>:380:
+<command line>:1:32: warning: whitespace recommended after macro name
+#define CXX_COMPILER_SUPPORTS__-Wall 1
+                               ^
+1 warning generated.
+Linking CXX executable cmTC_ca970
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_ca970.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++   -DCXX_COMPILER_SUPPORTS__-Wall -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_ca970.dir/src.cxx.o  -o cmTC_ca970 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main() { return 0; }
+Performing C SOURCE FILE Test C_COMPILER_SUPPORTS__-Wno-unused-function succeeded with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_0ca90/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_0ca90.dir/build.make CMakeFiles/cmTC_0ca90.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_0ca90.dir/src.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DC_COMPILER_SUPPORTS__-Wno-unused-function -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wno-unused-function -o CMakeFiles/cmTC_0ca90.dir/src.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.c
+In file included from <built-in>:367:
+<command line>:1:30: warning: ISO C99 requires whitespace after the macro name [-Wc99-extensions]
+#define C_COMPILER_SUPPORTS__-Wno-unused-function 1
+                             ^
+1 warning generated.
+Linking C executable cmTC_0ca90
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0ca90.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DC_COMPILER_SUPPORTS__-Wno-unused-function -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_0ca90.dir/src.c.o  -o cmTC_0ca90 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main(void) { return 0; }
+Performing C++ SOURCE FILE Test CXX_COMPILER_SUPPORTS__-Wno-unused-function succeeded with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_fd591/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_fd591.dir/build.make CMakeFiles/cmTC_fd591.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_fd591.dir/src.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -DCXX_COMPILER_SUPPORTS__-Wno-unused-function -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wno-unused-function -o CMakeFiles/cmTC_fd591.dir/src.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+In file included from <built-in>:380:
+<command line>:1:32: warning: whitespace recommended after macro name
+#define CXX_COMPILER_SUPPORTS__-Wno-unused-function 1
+                               ^
+1 warning generated.
+Linking CXX executable cmTC_fd591
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_fd591.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++   -DCXX_COMPILER_SUPPORTS__-Wno-unused-function -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_fd591.dir/src.cxx.o  -o cmTC_fd591 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main() { return 0; }
+Performing C SOURCE FILE Test C_COMPILER_SUPPORTS__-Wno-write-strings succeeded with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_48604/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_48604.dir/build.make CMakeFiles/cmTC_48604.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_48604.dir/src.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DC_COMPILER_SUPPORTS__-Wno-write-strings -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wno-write-strings -o CMakeFiles/cmTC_48604.dir/src.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.c
+In file included from <built-in>:367:
+<command line>:1:30: warning: ISO C99 requires whitespace after the macro name [-Wc99-extensions]
+#define C_COMPILER_SUPPORTS__-Wno-write-strings 1
+                             ^
+1 warning generated.
+Linking C executable cmTC_48604
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_48604.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DC_COMPILER_SUPPORTS__-Wno-write-strings -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_48604.dir/src.c.o  -o cmTC_48604 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main(void) { return 0; }
+Performing C++ SOURCE FILE Test CXX_COMPILER_SUPPORTS__-Wno-write-strings succeeded with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_9f839/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_9f839.dir/build.make CMakeFiles/cmTC_9f839.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_9f839.dir/src.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -DCXX_COMPILER_SUPPORTS__-Wno-write-strings -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wno-write-strings -o CMakeFiles/cmTC_9f839.dir/src.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+In file included from <built-in>:380:
+<command line>:1:32: warning: whitespace recommended after macro name
+#define CXX_COMPILER_SUPPORTS__-Wno-write-strings 1
+                               ^
+1 warning generated.
+Linking CXX executable cmTC_9f839
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9f839.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++   -DCXX_COMPILER_SUPPORTS__-Wno-write-strings -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_9f839.dir/src.cxx.o  -o cmTC_9f839 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main() { return 0; }
+Performing C SOURCE FILE Test C_COMPILER_SUPPORTS__-Wno-sign-compare succeeded with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_2d018/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_2d018.dir/build.make CMakeFiles/cmTC_2d018.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_2d018.dir/src.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DC_COMPILER_SUPPORTS__-Wno-sign-compare -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wno-sign-compare -o CMakeFiles/cmTC_2d018.dir/src.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.c
+In file included from <built-in>:367:
+<command line>:1:30: warning: ISO C99 requires whitespace after the macro name [-Wc99-extensions]
+#define C_COMPILER_SUPPORTS__-Wno-sign-compare 1
+                             ^
+1 warning generated.
+Linking C executable cmTC_2d018
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2d018.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DC_COMPILER_SUPPORTS__-Wno-sign-compare -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_2d018.dir/src.c.o  -o cmTC_2d018 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main(void) { return 0; }
+Performing C++ SOURCE FILE Test CXX_COMPILER_SUPPORTS__-Wno-sign-compare succeeded with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_7af60/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_7af60.dir/build.make CMakeFiles/cmTC_7af60.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_7af60.dir/src.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -DCXX_COMPILER_SUPPORTS__-Wno-sign-compare -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wno-sign-compare -o CMakeFiles/cmTC_7af60.dir/src.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+In file included from <built-in>:380:
+<command line>:1:32: warning: whitespace recommended after macro name
+#define CXX_COMPILER_SUPPORTS__-Wno-sign-compare 1
+                               ^
+1 warning generated.
+Linking CXX executable cmTC_7af60
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_7af60.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++   -DCXX_COMPILER_SUPPORTS__-Wno-sign-compare -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_7af60.dir/src.cxx.o  -o cmTC_7af60 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main() { return 0; }

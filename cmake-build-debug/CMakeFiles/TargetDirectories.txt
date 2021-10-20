@@ -1,0 +1,5 @@
+/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/abc.dir
+/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/libabc-pic.dir
+/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/libabc.dir

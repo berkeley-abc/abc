@@ -1,0 +1,64 @@
+Compiling the C compiler identification source file "CMakeCCompilerId.c" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/cc 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lSystem
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" failed.
+Compiler: /Library/Developer/CommandLineTools/usr/bin/c++ 
+Build flags: 
+Id flags:  
+
+The output was:
+1
+ld: library not found for -lc++
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+
+
+Performing C SOURCE FILE Test C_COMPILER_SUPPORTS__-Wno-unused-but-set-variable failed with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_e1f0a/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_e1f0a.dir/build.make CMakeFiles/cmTC_e1f0a.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building C object CMakeFiles/cmTC_e1f0a.dir/src.c.o
+/Library/Developer/CommandLineTools/usr/bin/cc   -DC_COMPILER_SUPPORTS__-Wno-unused-but-set-variable -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wno-unused-but-set-variable -o CMakeFiles/cmTC_e1f0a.dir/src.c.o   -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.c
+warning: unknown warning option '-Wno-unused-but-set-variable'; did you mean '-Wno-unused-const-variable'? [-Wunknown-warning-option]
+In file included from <built-in>:367:
+<command line>:1:30: warning: ISO C99 requires whitespace after the macro name [-Wc99-extensions]
+#define C_COMPILER_SUPPORTS__-Wno-unused-but-set-variable 1
+                             ^
+2 warnings generated.
+Linking C executable cmTC_e1f0a
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_e1f0a.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/cc  -DC_COMPILER_SUPPORTS__-Wno-unused-but-set-variable -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_e1f0a.dir/src.c.o  -o cmTC_e1f0a 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main(void) { return 0; }
+Performing C++ SOURCE FILE Test CXX_COMPILER_SUPPORTS__-Wno-unused-but-set-variable failed with the following output:
+Change Dir: /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command:"/usr/local/bin/gmake" "cmTC_51d7f/fast"
+/usr/local/bin/gmake -f CMakeFiles/cmTC_51d7f.dir/build.make CMakeFiles/cmTC_51d7f.dir/build
+gmake[1]: Entering directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_51d7f.dir/src.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -DCXX_COMPILER_SUPPORTS__-Wno-unused-but-set-variable -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk   -Wno-unused-but-set-variable -o CMakeFiles/cmTC_51d7f.dir/src.cxx.o -c /Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+warning: unknown warning option '-Wno-unused-but-set-variable'; did you mean '-Wno-unused-const-variable'? [-Wunknown-warning-option]
+In file included from <built-in>:380:
+<command line>:1:32: warning: whitespace recommended after macro name
+#define CXX_COMPILER_SUPPORTS__-Wno-unused-but-set-variable 1
+                               ^
+2 warnings generated.
+Linking CXX executable cmTC_51d7f
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -E cmake_link_script CMakeFiles/cmTC_51d7f.dir/link.txt --verbose=1
+/Library/Developer/CommandLineTools/usr/bin/c++   -DCXX_COMPILER_SUPPORTS__-Wno-unused-but-set-variable -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names   CMakeFiles/cmTC_51d7f.dir/src.cxx.o  -o cmTC_51d7f 
+gmake[1]: Leaving directory '/Users/hakuchan/Desktop/original_abc/abc_if_func/cmake-build-debug/CMakeFiles/CMakeTmp'
+
+Source file was:
+int main() { return 0; }
