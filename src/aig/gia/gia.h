@@ -217,6 +217,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vClassOld;
     Vec_Int_t *    vClassNew;
     Vec_Int_t *    vPats;
+    Vec_Bit_t *    vPolars;
     // incremental simulation
     int            fIncrSim;
     int            iNextPi;
@@ -1592,6 +1593,12 @@ extern int                 Gia_ManIncrSimCheckEqual( Gia_Man_t * p, int iLit0, i
 /*=== giaSimBase.c ============================================================*/
 extern Vec_Wrd_t *         Gia_ManSimPatSim( Gia_Man_t * p );
 extern Vec_Wrd_t *         Gia_ManSimPatSimOut( Gia_Man_t * pGia, Vec_Wrd_t * vSimsPi, int fOuts );
+extern void                Gia_ManSim2ArrayOne( Vec_Wrd_t * vSimsPi, Vec_Int_t * vRes );
+extern Vec_Wec_t *         Gia_ManSim2Array( Vec_Ptr_t * vSims );
+extern Vec_Wrd_t *         Gia_ManArray2SimOne( Vec_Int_t * vRes );
+extern Vec_Ptr_t *         Gia_ManArray2Sim( Vec_Wec_t * vRes );
+extern void                Gia_ManPtrWrdDumpBin( char * pFileName, Vec_Ptr_t * p, int fVerbose );
+extern Vec_Ptr_t *         Gia_ManPtrWrdReadBin( char * pFileName, int fVerbose );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );

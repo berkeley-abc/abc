@@ -78,6 +78,8 @@ static inline char   Min_LitValL( Min_Man_t * p, int i )           { return Vec_
 static inline void   Min_LitSetValL( Min_Man_t * p, int i, char v ){ assert(v==0 || v==1); Vec_StrWriteEntry(&p->vValsL, i, v); Vec_StrWriteEntry(&p->vValsL, i^1, (char)!v); Vec_IntPush(&p->vVis, Abc_Lit2Var(i)); }
 static inline void   Min_ObjCleanValL( Min_Man_t * p, int i )      { ((short *)Vec_StrArray(&p->vValsL))[i]  = 0x0202;     }
 static inline void   Min_ObjMarkValL( Min_Man_t * p, int i )       { ((short *)Vec_StrArray(&p->vValsL))[i] |= 0x0404;     }
+static inline void   Min_ObjMark2ValL( Min_Man_t * p, int i )      { ((short *)Vec_StrArray(&p->vValsL))[i] |= 0x0808;     }
+static inline void   Min_ObjUnmark2ValL( Min_Man_t * p, int i )    { ((short *)Vec_StrArray(&p->vValsL))[i] &= 0xF7F7;     }
 
 static inline int    Min_LitIsCi( Min_Man_t * p, int v )           { return v > 1 && v < p->FirstAndLit;                   }
 static inline int    Min_LitIsNode( Min_Man_t * p, int v )         { return v >= p->FirstAndLit && v < p->FirstCoLit;      }
@@ -270,7 +272,7 @@ char Min_LitVerify_rec( Min_Man_t * p, int iLit )
         int iLit1 = Min_LitFan(p, iLit^1);
         char Val0 = Min_LitVerify_rec( p, iLit0 );
         char Val1 = Min_LitVerify_rec( p, iLit1 );
-        assert( Min_LitIsNode(p, iLit) ); // internal node
+        assert( Val0 < 3 && Val1 < 3 );
         if ( Min_LitIsXor(iLit, iLit0, iLit1) )
             Val = Min_XsimXor( Val0, Val1 );
         else
@@ -280,8 +282,11 @@ char Min_LitVerify_rec( Min_Man_t * p, int iLit )
             Val ^= Abc_LitIsCompl(iLit);
             Min_LitSetValL( p, iLit, Val );
         }
+        else
+            Vec_IntPush( &p->vVis, Abc_Lit2Var(iLit) );
+        Min_ObjMark2ValL( p, Abc_Lit2Var(iLit) );
     }
-    return Val;
+    return Val&3;
 }
 char Min_LitVerify( Min_Man_t * p, int iLit, Vec_Int_t * vLits )
 {
@@ -313,7 +318,7 @@ void Min_LitMinimize( Min_Man_t * p, int iLit, Vec_Int_t * vLits )
     Vec_IntForEachEntryReverse( &p->vVis, iObj, i )
     {
         int iLit = Abc_Var2Lit( iObj, 0 );
-        int Value = Min_LitValL(p, iLit);
+        int Value = 7 & Min_LitValL(p, iLit);
         if ( Value >= 4 )
         {
             if ( Min_LitIsCi(p, iLit) )
@@ -324,7 +329,7 @@ void Min_LitMinimize( Min_Man_t * p, int iLit, Vec_Int_t * vLits )
                 int iLit1 = Min_LitFan(p, iLit^1);
                 char Val0 = Min_LitValL( p, iLit0 );
                 char Val1 = Min_LitValL( p, iLit1 );
-                if ( Value == 5 ) // value == 1
+                if ( Value&1 ) // value == 1
                 {
                     assert( (Val0&1) && (Val1&1) );
                     Min_ObjMarkValL( p, Abc_Lit2Var(iLit0) );
@@ -610,7 +615,7 @@ int Min_LitJustify_rec( Min_Man_t * p, int iLit )
 }
 int Min_LitJustify( Min_Man_t * p, int iLit )
 { 
-    int Res, fCheck = 1;
+    int Res, fCheck = 0;
     Vec_IntClear( &p->vPat );
     if ( iLit < 2 )  return 1;
     assert( !Min_LitIsCo(p, iLit) );
@@ -621,7 +626,6 @@ int Min_LitJustify( Min_Man_t * p, int iLit )
     Min_ManCleanVisitedValL( p );
     if ( Res )
     {
-        Vec_IntSort( &p->vPat, 0 );
         if ( fCheck && Min_LitVerify(p, iLit, &p->vPat) != 1 )
             printf( "Verification FAILED for literal %d.\n", iLit );
         //else
@@ -912,7 +916,7 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
                     if ( 1 ) // minimization 
                     {
                         //printf( "%d -> ", Vec_IntSize(vPatBest) );
-                        for ( i = 0; i < 10; i++ )
+                        for ( i = 0; i < 20; i++ )
                         {
                             Min_LitMinimize( pNew, Min_ObjLit0(pNew, iObj), vLits );
                             if ( Vec_IntSize(vPatBest) > Vec_IntSize(&pNew->vPat) )
@@ -921,6 +925,7 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
                         //printf( "%d   ", Vec_IntSize(vPatBest) );
                     }
                     assert( Vec_IntSize(vPatBest) > 0 );
+                    Vec_IntSort( vPatBest, 0 );
                     nCurrCexes += Min_ManAccumulate( vCexes, nOuts*nMinCexes, (nOuts+1)*nMinCexes, vPatBest );
                     nGoodCalls++;
                 }
@@ -1054,46 +1059,69 @@ int Min_ManBitPackOne( Vec_Wrd_t * vSimsPi, int iPat0, int nWords, Vec_Int_t * v
             break;
     return iPat;
 }
-Vec_Wrd_t * Min_ManBitPack( Gia_Man_t * p, Vec_Wec_t * vCexes, int fRandom, int nMinCexes, Vec_Int_t * vScores, int fVerbose )
+Vec_Ptr_t * Min_ReloadCexes( Vec_Wec_t * vCexes, int nMinCexes )
+{
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( Vec_WecSize(vCexes) );
+    int i, c, nOuts = Vec_WecSize(vCexes)/nMinCexes;
+    for ( i = 0; i < nMinCexes; i++ )
+    for ( c = 0; c < nOuts; c++ )
+    {
+        Vec_Int_t * vLevel = Vec_WecEntry( vCexes, c*nMinCexes+i );
+        if ( Vec_IntSize(vLevel) )
+            Vec_PtrPush( vRes, vLevel );
+    }
+    return vRes;
+}
+
+Vec_Wrd_t * Min_ManBitPack( Gia_Man_t * p, int nWords0, Vec_Wec_t * vCexes, int fRandom, int nMinCexes, Vec_Int_t * vScores, int fVerbose )
 {
     abctime clk = Abc_Clock();
     int fVeryVerbose = 0;
     Vec_Wrd_t * vSimsPi = NULL;
     Vec_Int_t * vLevel; 
     int w, nBits, nTotal = 0, fFailed = ABC_INFINITY;
-    Vec_Int_t * vOrder = Vec_IntStartNatural( Vec_WecSize(vCexes)/nMinCexes );
-    assert( Vec_IntSize(vOrder) == Vec_IntSize(vScores) );
-    assert( Vec_WecSize(vCexes)%nMinCexes == 0 );
-    Abc_MergeSortCost2Reverse( Vec_IntArray(vOrder), Vec_IntSize(vOrder), Vec_IntArray(vScores) );
+    Vec_Int_t * vOrder  = NULL;
+    Vec_Ptr_t * vReload = NULL;
+    if ( 0 )
+    {
+        vOrder = Vec_IntStartNatural( Vec_WecSize(vCexes)/nMinCexes );
+        assert( Vec_IntSize(vOrder) == Vec_IntSize(vScores) );
+        assert( Vec_WecSize(vCexes)%nMinCexes == 0 );
+        Abc_MergeSortCost2Reverse( Vec_IntArray(vOrder), Vec_IntSize(vOrder), Vec_IntArray(vScores) );
+    }
+    else
+        vReload = Min_ReloadCexes( vCexes, nMinCexes );
     if ( fVerbose )
         printf( "Packing: " );
-    //for ( w = 1; fFailed > 100; w++ )
-    for ( w = 1; fFailed > 0; w++ )
+    for ( w = nWords0 ? nWords0 : 1; nWords0 ? w <= nWords0 : fFailed > 0; w++ )
     {
-        int i, k, iOut, iPatUsed, iPat = 0;
+        int i, iPatUsed, iPat = 0;
+        //int k, iOut;
         Vec_WrdFreeP( &vSimsPi );
         vSimsPi = fRandom ? Vec_WrdStartRandom(2 * Gia_ManCiNum(p) * w) : Vec_WrdStart(2 * Gia_ManCiNum(p) * w);
         Vec_WrdShrink( vSimsPi, Vec_WrdSize(vSimsPi)/2 );
         Abc_TtClear( Vec_WrdLimit(vSimsPi), Vec_WrdSize(vSimsPi) );
         fFailed = nTotal = 0;
-        Vec_IntForEachEntry( vOrder, iOut, k )
-        Vec_WecForEachLevelStartStop( vCexes, vLevel, i, iOut*nMinCexes, (iOut+1)*nMinCexes )
+        //Vec_IntForEachEntry( vOrder, iOut, k )
+        //Vec_WecForEachLevelStartStop( vCexes, vLevel, i, iOut*nMinCexes, (iOut+1)*nMinCexes )
+        Vec_PtrForEachEntry( Vec_Int_t *, vReload, vLevel, i )
         {
-            if ( fVeryVerbose && i%nMinCexes == 0 )
-                printf( "\n" );
+            //if ( fVeryVerbose && i%nMinCexes == 0 )
+            //    printf( "\n" );
             if ( Vec_IntSize(vLevel) == 0 )
                 continue;
             iPatUsed = Min_ManBitPackOne( vSimsPi, iPat, w, vLevel );
             fFailed += iPatUsed == iPat;
-            iPat = (iPatUsed + 1) % (64*w - 1);
-            if ( fVeryVerbose )
-            printf( "Adding output %3d cex %3d to pattern %3d   ", i/nMinCexes, i%nMinCexes, iPatUsed );
-            if ( fVeryVerbose )
-            Vec_IntPrint( vLevel );
+            iPat = (iPatUsed + 1) % (64*(w-1) - 1);
+            //if ( fVeryVerbose )
+            //printf( "Adding output %3d cex %3d to pattern %3d   ", i/nMinCexes, i%nMinCexes, iPatUsed );
+            //if ( fVeryVerbose )
+            //Vec_IntPrint( vLevel );
             nTotal++;
         }
         if ( fVerbose )
             printf( "W = %d (F = %d)  ", w, fFailed );
+//        printf( "Failed patterns = %d\n", fFailed );
     }
     if ( fVerbose )
         printf( "Total = %d\n", nTotal );
@@ -1104,7 +1132,8 @@ Vec_Wrd_t * Min_ManBitPack( Gia_Man_t * p, Vec_Wec_t * vCexes, int fRandom, int 
             Vec_WrdSize(vSimsPi)/Gia_ManCiNum(p), nBits, 100.0*nBits/64/Vec_WrdSize(vSimsPi) );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
-    Vec_IntFree( vOrder );
+    Vec_IntFreeP( &vOrder );
+    Vec_PtrFreeP( &vReload );
     return vSimsPi;
 }
 
@@ -1205,37 +1234,42 @@ Vec_Int_t * Min_ManGetUnsolved( Gia_Man_t * p )
     Gia_ManForEachCoDriverId( p, Driver, i )
         if ( Driver > 0 )
             Vec_IntPush( vRes, i );
+    if ( Vec_IntSize(vRes) == 0 )
+        Vec_IntFreeP( &vRes );
     return vRes;
 }
-Vec_Wrd_t * Min_ManCollect( Gia_Man_t * p, int nConf, int nConf2, int nMaxTries, int nMinCexes, int fUseSim, int fUseSat, int fVerbose )
+Vec_Wrd_t * Min_ManRemapSims( int nInputs, Vec_Int_t * vMap, Vec_Wrd_t * vSimsPi )
 {
-    abctime clk = Abc_Clock();
-    Vec_Int_t * vStats[3] = {0}; int i, iObj;
-    extern Gia_Man_t *    Cec4_ManSimulateTest4( Gia_Man_t * p, int nBTLimit, int nBTLimitPo, int fVerbose );
-    Gia_Man_t * pSwp    = Cec4_ManSimulateTest4( p, nConf, nConf2, 0 );
-    abctime clkSweep    = Abc_Clock() - clk;
-    int nArgs           = fVerbose ? printf( "Generating patterns: Conf = %d (%d). Tries = %d. Pats = %d. Sim = %d. SAT = %d.\n", 
-                          nConf, nConf2, nMaxTries, nMinCexes, fUseSim, fUseSat ) : 0;
-    Vec_Int_t * vOuts   = Min_ManGetUnsolved( pSwp );
-    Gia_Man_t * pSwp2   = Gia_ManDupSelectedOutputs( pSwp, vOuts );
+    int i, iObj, nWords = Vec_WrdSize(vSimsPi)/Vec_IntSize(vMap);
+    Vec_Wrd_t * vSimsNew = Vec_WrdStart( 2 * nInputs * nWords );
+    assert( Vec_WrdSize(vSimsPi)%Vec_IntSize(vMap) == 0 );
+    Vec_WrdShrink( vSimsNew, Vec_WrdSize(vSimsNew)/2 );
+    Vec_IntForEachEntry( vMap, iObj, i )
+    {
+        Abc_TtCopy( Vec_WrdArray(vSimsNew) + (iObj-1)*nWords, Vec_WrdArray(vSimsPi) + i*nWords, nWords, 0 );
+        Abc_TtCopy( Vec_WrdLimit(vSimsNew) + (iObj-1)*nWords, Vec_WrdLimit(vSimsPi) + i*nWords, nWords, 0 );
+    }
+    return vSimsNew;
+}
+Vec_Wrd_t * Gia_ManCollectSims( Gia_Man_t * pSwp, int nWords, Vec_Int_t * vOuts, int nMaxTries, int nMinCexes, int fUseSim, int fUseSat, int fVerbose, int fVeryVerbose )
+{
+    Vec_Int_t * vStats[3] = {0};  int i, iObj;
+    Vec_Int_t * vMap    = Vec_IntAlloc( 100 );
+    Gia_Man_t * pSwp2   = Gia_ManDupCones2( pSwp, Vec_IntArray(vOuts), Vec_IntSize(vOuts), vMap );
     Vec_Wec_t * vCexes  = Min_ManComputeCexes( pSwp2, NULL, nMaxTries, nMinCexes, vStats, fUseSim, fUseSat, fVerbose );
-    Vec_Wrd_t * vSimsPi = Min_ManBitPack( p, vCexes, 1, nMinCexes, vStats[0], fVerbose );
+    Vec_Wrd_t * vSimsPi = Min_ManBitPack( pSwp2, nWords, vCexes, 1, nMinCexes, vStats[0], fVerbose );
     Vec_Wrd_t * vSimsPo = Gia_ManSimPatSimOut( pSwp2, vSimsPi, 1 );
     Vec_Int_t * vCounts = Patt_ManOutputErrorCoverage( vSimsPo, Vec_IntSize(vOuts) );
     if ( fVerbose )
-    {
         Patt_ManProfileErrorsOne( vSimsPo, Vec_IntSize(vOuts) );
-        Abc_PrintTime( 1, "Sweep time", clkSweep );
-        Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
-    }
-    if ( 0 )
+    if ( fVeryVerbose )
     {
         printf( "Unsolved = %4d  ", Vec_IntSize(vOuts) );
         Gia_ManPrintStats( pSwp2, NULL );
         Vec_IntForEachEntry( vOuts, iObj, i )
         {
             printf( "%4d : ", i );
-            printf( "Out = %5d  ", iObj );
+            printf( "Out = %5d  ",    Vec_IntEntry(vMap, i) );
             printf( "SimAll =%8d  ",  Vec_IntEntry(vStats[0], i) );
             printf( "SimGood =%8d  ", Vec_IntEntry(vStats[1], i) );
             printf( "PatsAll =%8d  ", Vec_IntEntry(vStats[2], i) );
@@ -1250,19 +1284,39 @@ Vec_Wrd_t * Min_ManCollect( Gia_Man_t * p, int nConf, int nConf2, int nMaxTries,
     Vec_IntFree( vCounts );
     Vec_WrdFree( vSimsPo );
     Vec_WecFree( vCexes );
-    Vec_IntFree( vOuts );
-    Gia_ManStop( pSwp );
     Gia_ManStop( pSwp2 );
+    //printf( "Compressing inputs: %5d -> %5d\n", Gia_ManCiNum(pSwp), Vec_IntSize(vMap) );
+    vSimsPi = Min_ManRemapSims( Gia_ManCiNum(pSwp), vMap, vSimsPo = vSimsPi );
+    Vec_WrdFree( vSimsPo );
+    Vec_IntFree( vMap );
+    return vSimsPi;
+}
+Vec_Wrd_t * Min_ManCollect( Gia_Man_t * p, int nConf, int nConf2, int nMaxTries, int nMinCexes, int fUseSim, int fUseSat, int fVerbose, int fVeryVerbose )
+{
+    abctime clk = Abc_Clock();
+    extern Gia_Man_t *    Cec4_ManSimulateTest4( Gia_Man_t * p, int nBTLimit, int nBTLimitPo, int fVerbose );
+    Gia_Man_t * pSwp    = Cec4_ManSimulateTest4( p, nConf, nConf2, 0 );
+    abctime clkSweep    = Abc_Clock() - clk;
+    int nArgs           = fVerbose ? printf( "Generating patterns: Conf = %d (%d). Tries = %d. Pats = %d. Sim = %d. SAT = %d.\n", 
+                          nConf, nConf2, nMaxTries, nMinCexes, fUseSim, fUseSat ) : 0;
+    Vec_Int_t * vOuts   = Min_ManGetUnsolved( pSwp );
+    Vec_Wrd_t * vSimsPi = vOuts ? Gia_ManCollectSims( pSwp, 0, vOuts, nMaxTries, nMinCexes, fUseSim, fUseSat, fVerbose, fVeryVerbose ) : NULL;
+    if ( vOuts == NULL )
+        printf( "There is no satisfiable outputs.\n" );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Sweep time", clkSweep );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );
+    Vec_IntFreeP( &vOuts );
+    Gia_ManStop( pSwp ); 
     nArgs = 0;
     return vSimsPi;
 }
 void Min_ManTest2( Gia_Man_t * p )
 {
-    Vec_Wrd_t * vSimsPi = Min_ManCollect( p, 100000, 100000, 10000, 20, 1, 1, 0 );
+    Vec_Wrd_t * vSimsPi = Min_ManCollect( p, 100000, 100000, 10000, 20, 1, 0, 1, 1 );
     Vec_WrdFreeP( &vSimsPi );
 }
-
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

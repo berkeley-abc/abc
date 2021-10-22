@@ -382,6 +382,10 @@ static inline int Vec_WrdSize( Vec_Wrd_t * p )
 {
     return p->nSize;
 }
+static inline int Vec_WrdChangeSize( Vec_Wrd_t * p, int Shift )
+{
+    return p->nSize += Shift;
+}
 
 /**Function*************************************************************
 

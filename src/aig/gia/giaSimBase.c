@@ -2622,6 +2622,84 @@ void Gia_ManSimArrayTest( Vec_Wrd_t * vSimsPi )
     }
     Vec_PtrFree( vTemp );
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Serialization.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPtrWrdDumpBin( char * pFileName, Vec_Ptr_t * p, int fVerbose )
+{
+    Vec_Wrd_t * vLevel;
+    int i, nSize, RetValue;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    nSize = Vec_PtrSize(p);
+    RetValue = fwrite( &nSize, 1, sizeof(int), pFile );
+    Vec_PtrForEachEntry( Vec_Wrd_t *, p, vLevel, i )
+    {
+        nSize = Vec_WrdSize(vLevel);
+        RetValue += fwrite( &nSize, 1, sizeof(int), pFile );
+        RetValue += fwrite( Vec_WrdArray(vLevel), 1, sizeof(word)*nSize, pFile );
+    }
+    fclose( pFile );
+    if ( fVerbose )
+        printf( "Written %d arrays into file \"%s\".\n", Vec_PtrSize(p), pFileName );
+}
+Vec_Ptr_t * Gia_ManPtrWrdReadBin( char * pFileName, int fVerbose )
+{
+    Vec_Ptr_t * p = NULL; Vec_Wrd_t * vLevel; int i, nSize, RetValue;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return NULL;
+    }
+    fseek( pFile, 0, SEEK_END );
+    nSize = ftell( pFile );
+    if ( nSize == 0 )
+    {
+        printf( "The input file is empty.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    if ( nSize % (int)sizeof(int) > 0 )
+    {
+        printf( "Cannot read file with integers because it is not aligned at 4 bytes (remainder = %d).\n", nSize % (int)sizeof(int) );
+        fclose( pFile );
+        return NULL;
+    }
+    rewind( pFile );
+    RetValue = fread( &nSize, 1, sizeof(int), pFile );
+    assert( RetValue == 4 );
+    p = Vec_PtrAlloc( nSize );
+    for ( i = 0; i < nSize; i++ )
+        Vec_PtrPush( p, Vec_WrdAlloc(100) );
+    Vec_PtrForEachEntry( Vec_Wrd_t *, p, vLevel, i )
+    {
+        RetValue = fread( &nSize, 1, sizeof(int), pFile );
+        assert( RetValue == 4 );
+        Vec_WrdFill( vLevel, nSize, 0 );
+        RetValue = fread( Vec_WrdArray(vLevel), 1, sizeof(word)*nSize, pFile );
+        assert( RetValue == 8*nSize );
+    }
+    fclose( pFile );
+    if ( fVerbose )
+        printf( "Read %d arrays from file \"%s\".\n", Vec_PtrSize(p), pFileName );
+    return p;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

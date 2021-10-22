@@ -607,6 +607,26 @@ static inline void Vec_PtrFreeFree( Vec_Ptr_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static void Vec_PtrFreeFunc( Vec_Ptr_t * p, void (*pFuncItemFree)(void *) ) ___unused;
+static void Vec_PtrFreeFunc( Vec_Ptr_t * p, void (*pFuncItemFree)(void *) )
+{
+    void * pItem; int i;
+    Vec_PtrForEachEntry( void *, p, pItem, i )
+        if ( pItem ) pFuncItemFree( pItem );
+    Vec_PtrFree( p );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Copies the interger array.]
 
   Description []

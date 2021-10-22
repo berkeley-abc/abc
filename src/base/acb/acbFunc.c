@@ -506,6 +506,7 @@ Gia_Man_t * Gia_FileSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames, int fN
     // create names
     if ( fNames ) 
     {
+        pNew->vPolars = Vec_BitStart( Gia_ManObjNum(pNew) );
         pNew->vNamesNode = Vec_PtrStart( Gia_ManObjNum(pNew) );
         Vec_IntForEachEntry( vMap, iLit, Token )
         {
@@ -514,6 +515,7 @@ Gia_Man_t * Gia_FileSimpleParse( Vec_Int_t * vBuffer, Abc_Nam_t * pNames, int fN
             sprintf( Buffer, "%c_%s", Abc_LitIsCompl(iLit) ? 'c' : 'd', Abc_NamStr(pNames, Token) );
             assert( Vec_PtrEntry(pNew->vNamesNode, Abc_Lit2Var(iLit)) == NULL );
             Vec_PtrWriteEntry( pNew->vNamesNode, Abc_Lit2Var(iLit), Abc_UtilStrsav(Buffer) );
+            Vec_BitWriteEntry( pNew->vPolars, Abc_Lit2Var(iLit), Abc_LitIsCompl(iLit) );
         }
     }
     else

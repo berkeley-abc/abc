@@ -2106,12 +2106,15 @@ static inline int Abc_TtCountOnes( word x )
     x = x + (x >> 32); 
     return (int)(x & 0xFF);
 }
+static inline int Abc_TtCountOnes2( word x )
+{
+    return x ? Abc_TtCountOnes(x) : 0;
+}
 static inline int Abc_TtCountOnesVec( word * x, int nWords )
 {
     int w, Count = 0;
     for ( w = 0; w < nWords; w++ )
-        if ( x[w] )
-            Count += Abc_TtCountOnes( x[w] );
+        Count += Abc_TtCountOnes2( x[w] );
     return Count;
 }
 static inline int Abc_TtCountOnesVecMask( word * x, word * pMask, int nWords, int fCompl )
@@ -2120,14 +2123,12 @@ static inline int Abc_TtCountOnesVecMask( word * x, word * pMask, int nWords, in
     if ( fCompl )
     {
         for ( w = 0; w < nWords; w++ )
-            if ( pMask[w] & ~x[w] )
-                Count += Abc_TtCountOnes( pMask[w] & ~x[w] );
+            Count += Abc_TtCountOnes2( pMask[w] & ~x[w] );
     }
     else
     {
         for ( w = 0; w < nWords; w++ )
-            if ( pMask[w] & x[w] )
-                Count += Abc_TtCountOnes( pMask[w] & x[w] );
+            Count += Abc_TtCountOnes2( pMask[w] & x[w] );
     }
     return Count;
 }
@@ -2136,24 +2137,23 @@ static inline int Abc_TtCountOnesVecMask2( word * x0, word * x1, int fComp0, int
     int w, Count = 0;
     if ( !fComp0 && !fComp1 )
         for ( w = 0; w < nWords; w++ )
-            Count += Abc_TtCountOnes( pMask[w] &  x0[w] &  x1[w] );
+            Count += Abc_TtCountOnes2( pMask[w] &  x0[w] &  x1[w] );
     else if (  fComp0 && !fComp1 )
         for ( w = 0; w < nWords; w++ )
-            Count += Abc_TtCountOnes( pMask[w] & ~x0[w] &  x1[w] );
+            Count += Abc_TtCountOnes2( pMask[w] & ~x0[w] &  x1[w] );
     else if ( !fComp0 &&  fComp1 )
         for ( w = 0; w < nWords; w++ )
-            Count += Abc_TtCountOnes( pMask[w] &  x0[w] & ~x1[w] );
+            Count += Abc_TtCountOnes2( pMask[w] &  x0[w] & ~x1[w] );
     else 
         for ( w = 0; w < nWords; w++ )
-            Count += Abc_TtCountOnes( pMask[w] & ~x0[w] & ~x1[w] );
+            Count += Abc_TtCountOnes2( pMask[w] & ~x0[w] & ~x1[w] );
     return Count;
 }
 static inline int Abc_TtCountOnesVecXor( word * x, word * y, int nWords )
 {
     int w, Count = 0;
     for ( w = 0; w < nWords; w++ )
-        if ( x[w] ^ y[w] )
-            Count += Abc_TtCountOnes( x[w] ^ y[w] );
+        Count += Abc_TtCountOnes2( x[w] ^ y[w] );
     return Count;
 }
 static inline int Abc_TtCountOnesVecXorMask( word * x, word * y, int fCompl, word * pMask, int nWords )
@@ -2161,10 +2161,10 @@ static inline int Abc_TtCountOnesVecXorMask( word * x, word * y, int fCompl, wor
     int w, Count = 0;
     if ( fCompl )
         for ( w = 0; w < nWords; w++ )
-            Count += Abc_TtCountOnes( pMask[w] & (x[w] ^ ~y[w]) );
+            Count += Abc_TtCountOnes2( pMask[w] & (x[w] ^ ~y[w]) );
     else
         for ( w = 0; w < nWords; w++ )
-            Count += Abc_TtCountOnes( pMask[w] & (x[w] ^ y[w]) );
+            Count += Abc_TtCountOnes2( pMask[w] & (x[w] ^ y[w]) );
     return Count;
 }
 static inline int Abc_TtAndXorSum( word * pOut, word * pIn1, word * pIn2, int nWords )
@@ -2173,7 +2173,7 @@ static inline int Abc_TtAndXorSum( word * pOut, word * pIn1, word * pIn2, int nW
     for ( w = 0; w < nWords; w++ )
     {
         pOut[w] &= pIn1[w] ^ pIn2[w];
-        Count += Abc_TtCountOnes( pOut[w] );
+        Count += Abc_TtCountOnes2( pOut[w] );
     }
     return Count;
 }

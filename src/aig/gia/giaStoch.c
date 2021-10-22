@@ -43,26 +43,6 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-static void Vec_PtrFreeFunc( Vec_Ptr_t * p, void (*pFuncItemFree)(void *) ) ___unused;
-static void Vec_PtrFreeFunc( Vec_Ptr_t * p, void (*pFuncItemFree)(void *) )
-{
-    void * pItem; int i;
-    Vec_PtrForEachEntry( void *, p, pItem, i )
-        pFuncItemFree( pItem );
-    Vec_PtrFree( p );
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 void Gia_ManDupMapping( Gia_Man_t * pNew, Gia_Man_t * p )
 {
     Gia_Obj_t * pObj, * pFanin; int i, k;
