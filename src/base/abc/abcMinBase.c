@@ -72,7 +72,7 @@ int Abc_NtkMinimumBase( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
+int Abc_NodeMinimumBase_buggy( Abc_Obj_t * pNode )
 {
     Vec_Str_t * vSupport;
     Vec_Ptr_t * vFanins;
@@ -104,6 +104,55 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
     Cudd_RecursiveDeref( (DdManager *)pNode->pNtk->pManFunc, bTemp );
     Vec_PtrFree( vFanins );
     Vec_StrFree( vSupport );
+    return 1;
+}
+
+int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
+{
+    DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
+    DdNode * bTemp, ** pbVars;
+    Vec_Str_t * vSupport;
+    int i, nVars, j, iFanin, iFanin2, k = 0;
+
+    assert( Abc_NtkIsBddLogic(pNode->pNtk) );
+    assert( Abc_ObjIsNode(pNode) );
+
+    // compute support
+    vSupport = Vec_StrAlloc( 10 );
+    nVars = Abc_NodeSupport( Cudd_Regular(pNode->pData), vSupport, Abc_ObjFaninNum(pNode) );
+    if ( nVars == Abc_ObjFaninNum(pNode) )
+    {
+        Vec_StrFree( vSupport );
+        return 0;
+    }
+
+    // remove unused fanins
+    pbVars = ABC_CALLOC( DdNode *, Abc_ObjFaninNum(pNode) );
+    Vec_IntForEachEntry( &pNode->vFanins, iFanin, i )
+    {
+        Abc_Obj_t * pFanin = Abc_NtkObj( pNode->pNtk, iFanin );
+        if ( !Vec_StrEntry(vSupport, i) )
+        {
+            if ( !Vec_IntRemove( &pFanin->vFanouts, pNode->Id ) )
+                printf( "The obj %d is not found among the fanouts of obj %d ...\n", pNode->Id, iFanin );
+            continue;
+        }
+        Vec_IntForEachEntryStop( &pNode->vFanins, iFanin2, j, k )
+            if ( iFanin == iFanin2 )
+                break;
+        if ( j == k )
+            Vec_IntWriteEntry( &pNode->vFanins, k++, iFanin );
+        else if ( !Vec_IntRemove( &pFanin->vFanouts, pNode->Id ) )
+            printf( "The obj %d is not found among the fanouts of obj %d ...\n", pNode->Id, iFanin );
+        pbVars[i] = Cudd_bddIthVar( dd, j );
+    }
+    Vec_IntShrink( &pNode->vFanins, k );
+
+    // update the function of the node
+    pNode->pData = Cudd_bddVectorCompose( dd, bTemp = (DdNode *)pNode->pData, pbVars );   Cudd_Ref( (DdNode *)pNode->pData );
+    Cudd_RecursiveDeref( dd, bTemp );
+    Vec_StrFree( vSupport );
+    ABC_FREE( pbVars );
     return 1;
 }
 
@@ -447,7 +496,7 @@ int Abc_NtkEliminate( Abc_Ntk_t * pNtk, int nMaxSize, int fReverse, int fVerbose
         return 0;
     }
     // prepare nodes for sweeping
-    Abc_NtkRemoveDupFanins( pNtk );
+    //Abc_NtkRemoveDupFanins( pNtk );
     Abc_NtkMinimumBase( pNtk );
     Abc_NtkCleanup( pNtk, 0 );
     // get the nodes in the given order
@@ -740,7 +789,7 @@ int Abc_NtkEliminateSpecial( Abc_Ntk_t * pNtk, int nMaxSize, int fVerbose )
     }
 
     // prepare nodes for sweeping
-    Abc_NtkRemoveDupFanins( pNtk );
+    //Abc_NtkRemoveDupFanins( pNtk );
     Abc_NtkMinimumBase( pNtk );
     Abc_NtkCleanup( pNtk, 0 );
 
