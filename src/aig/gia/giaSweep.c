@@ -389,7 +389,7 @@ Vec_Int_t * Gia_ManComputeCarryOuts( Gia_Man_t * p )
     int i, iLast, iBox, nBoxes =  Tim_ManBoxNum( pManTime );
     Vec_Int_t * vCarryOuts = Vec_IntAlloc( nBoxes );
 
-    // Create and populare reference count (and free later) only if not already
+    // Create and populate reference count (and free later) only if not already
     // done.
     int createRefs = (p->pRefs == NULL);
     if (createRefs) {
