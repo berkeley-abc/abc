@@ -1,0 +1,97 @@
+name: ci
+
+on:
+  workflow_dispatch:
+  # pull_request:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+      - '**.sh'
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      fail-fast: false
+      matrix:
+
+        name: [ 
+          ubuntu-20.04-gcc,
+          ubuntu-20.04-clang,
+          macOS-10.15-clang,
+          macOS-10.15-gcc,
+        ]
+
+        include:
+          - name: ubuntu-20.04-gcc
+            os: ubuntu-20.04
+            compiler: gcc
+            version: "9"
+
+          - name: ubuntu-20.04-clang
+            os: ubuntu-20.04
+            compiler: clang
+            version: "10"
+
+          - name: macOS-10.15-clang
+            os: macOS-10.15
+            compiler: xcode
+            version: "12.2"
+
+          - name: macOS-10.15-gcc
+            os: macOS-10.15
+            compiler: gcc
+            version: "10"
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name:  Install and setup Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get -y -qq update
+          sudo apt-get install -y libreadline-dev ncurses-dev
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CCC=g++-${{ matrix.version }}" >> $GITHUB_ENV
+          else
+            sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
+            echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+            echo "CCC=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+          fi
+
+      - name: Build and test Linux
+        if: runner.os == 'Linux'
+        run: |
+          make ABC_MAKE_VERBOSE=1 ABC_USE_NAMESPACE=xxx OPTFLAGS= ABC_USE_PIC=1 abc
+          make ABC_MAKE_VERBOSE=1 ABC_USE_NAMESPACE=xxx OPTFLAGS= ABC_USE_PIC=1 test
+      
+      - name:  Install and setup MacOS packages
+        if: runner.os == 'macOS'
+        run: |
+          brew install ncurses readline
+          if [ "${{ matrix.compiler }}" = "gcc" ]; then
+            brew install gcc@${{ matrix.version }}
+            export "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+            export "CCC=g++-${{ matrix.version }}" >> $GITHUB_ENV
+          else
+            ls -ls /Applications/
+            sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
+            export "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+            export "CCC=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+          fi
+
+      - name: Build and test MacOS
+        if: runner.os == 'macOS'
+        run: |
+          make ABC_MAKE_VERBOSE=1 ABC_USE_NAMESPACE=xxx OPTFLAGS= ABC_USE_PIC=1 abc
+          make ABC_MAKE_VERBOSE=1 ABC_USE_NAMESPACE=xxx OPTFLAGS= ABC_USE_PIC=1 test
