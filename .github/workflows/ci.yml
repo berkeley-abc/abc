@@ -70,7 +70,7 @@ jobs:
           CXX: ${{ env.CXX }}
         run: |
           make ABC_MAKE_VERBOSE=1 ABC_USE_NAMESPACE=xxx OPTFLAGS= ABC_USE_PIC=1 abc test
-
+      
       - name:  Install and setup MacOS packages
         if: runner.os == 'macOS'
         run: |
