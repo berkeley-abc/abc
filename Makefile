@@ -2,7 +2,7 @@
 CC   ?= gcc
 CXX  ?= g++
 AR   ?= ar
-LD   := $(CXX)
+LD   := $(CC)
 LN   ?= ln
 MV   ?= mv
 
@@ -69,10 +69,13 @@ endif
 
 # compile ABC using the C++ comipler and put everything in the namespace $(ABC_NAMESPACE)
 ifdef ABC_USE_NAMESPACE
-  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -std=c++11 -fpermissive
+  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -std=c++11 -fvisibility=hidden -fpermissive
   CC := $(CXX)
+  LD = $(CXX)
   DLIBS := -lstdc++
   $(info $(MSG_PREFIX)Compiling in namespace $(ABC_NAMESPACE))
+else
+  ABC_USE_LIBSTDCXX := 1
 endif
 
 # compile CUDD with ABC
@@ -136,7 +139,10 @@ CFLAGS += -Wno-unused-but-set-variable
 endif
 else
 $(info $(MSG_PREFIX)Found GCC_MAJOR>=5)
+CLANG_HEADER=$(shell $(CC) --version | grep -w clang)
+ifeq (,$(CLANG_HEADER))
 CFLAGS += -Wno-unused-but-set-variable
+endif
 endif
 endif
 
