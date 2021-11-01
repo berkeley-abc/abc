@@ -1,35 +1,35 @@
 abc_libabc_add_sources(
     NAME aig_aig
     SOURCES
+        aigRet.c
         aigDup.c
-        aigCuts.c
-        aigPartSat.c
-        aigInter.c
-        aigMem.c
-        aigMan.c
-        aigRepr.c
-        aigPartReg.c
-        aigShow.c
+        aigPack.c
+        aigSplit.c
+        aigRetF.c
+        aigObj.c
         aigCheck.c
-        aigTruth.c
+        aigPartReg.c
+        aigTsim.c
+        aigJust.c
+        aigTiming.c
         aigScl.c
         aigTable.c
-        aigObj.c
-        aigDfs.c
-        aigRet.c
-        aigJust.c
-        aigFrames.c
+        aigWin.c
+        aigShow.c
+        aigFanout.c
         aigOper.c
-        aigPack.c
+        aigMffc.c
+        aigFrames.c
+        aigMem.c
+        aigOrder.c
         aigPart.c
         aigUtil.c
-        aigTsim.c
-        aigTiming.c
-        aigFanout.c
         aigCanon.c
-        aigOrder.c
-        aigRetF.c
-        aigWin.c
-        aigMffc.c
-        aigSplit.c
+        aigDfs.c
+        aigTruth.c
+        aigCuts.c
+        aigPartSat.c
+        aigRepr.c
+        aigMan.c
+        aigInter.c
 )

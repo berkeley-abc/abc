@@ -1,19 +1,22 @@
 abc_libabc_add_sources(
     NAME proof_cec
     SOURCES
-        cecCec.c
-        cecSplit.c
-        cecPat.c
-        cecSeq.c
-        cecSweep.c
-        cecCore.c
-        cecCorr.c
-        cecSynth.c
-        cecIso.c
-        cecMan.c
-        cecSatG.c
-        cecSolve.c
         cecSat.c
+        cecSynth.c
+        cecSim.c
+        cecCec.c
         cecChoice.c
+        cecSatG2.c
+        cecCorr.c
+        cecSatG.c
         cecClass.c
+        cecSolve.c
+        cecCore.c
+        cecSweep.c
+        cecPat.c
+        cecSplit.c
+        cecSeq.c
+        cecMan.c
+        cecSolveG.c
+        cecIso.c
 )

@@ -1,16 +1,16 @@
 abc_libabc_add_sources(
     NAME opt_dau
     SOURCES
-        dauCore.c
+        dauTree.c
         dauDsd.c
-        dauNpn.c
-        dauNpn2.c
+        dauEnum.c
+        dauNonDsd.c
+        dauCount.c
+        dauDivs.c
+        dauCanon.c
         dauMerge.c
         dauGia.c
-        dauCanon.c
-        dauCount.c
-        dauTree.c
-        dauEnum.c
-        dauDivs.c
-        dauNonDsd.c
+        dauCore.c
+        dauNpn.c
+        dauNpn2.c
 )

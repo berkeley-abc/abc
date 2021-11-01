@@ -1,13 +1,13 @@
 abc_libabc_add_sources(
     NAME opt_dar
     SOURCES
+        darCore.c
         darPrec.c
-        darRefact.c
+        darBalance.c
+        darLib.c
         darScript.c
         darCut.c
         darData.c
         darMan.c
-        darBalance.c
-        darLib.c
-        darCore.c
+        darRefact.c
 )

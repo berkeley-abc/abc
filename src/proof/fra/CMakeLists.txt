@@ -1,21 +1,21 @@
 abc_libabc_add_sources(
     NAME proof_fra
     SOURCES
-        fraCnf.c
-        fraInd.c
-        fraBmc.c
-        fraClaus.c
-        fraCec.c
-        fraPart.c
+        fraImp.c
         fraClass.c
-        fraSec.c
-        fraCore.c
+        fraSim.c
         fraHot.c
+        fraBmc.c
+        fraCec.c
+        fraCore.c
+        fraLcr.c
+        fraPart.c
         fraClau.c
+        fraMan.c
+        fraCnf.c
+        fraClaus.c
         fraIndVer.c
         fraSat.c
-        fraSim.c
-        fraLcr.c
-        fraMan.c
-        fraImp.c
+        fraSec.c
+        fraInd.c
 )

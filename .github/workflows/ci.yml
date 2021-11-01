@@ -22,10 +22,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        python-version: [3.8]
 
         name: [
           ubuntu-20.04-gcc,
-          ubuntu-20.04-clang,
+          ubuntu-18.04-gcc,
           macOS-10.15-gcc,
         ]
 
@@ -33,12 +34,12 @@ jobs:
           - name: ubuntu-20.04-gcc
             os: ubuntu-20.04
             compiler: gcc
-            version: "9"
+            version: "10"
 
-          - name: ubuntu-20.04-clang
-            os: ubuntu-20.04
-            compiler: clang
-            version: "6"
+          - name: ubuntu-18.04-gcc
+            os: ubuntu-18.04
+            compiler: gcc
+            version: "9"
 
           - name: macOS-10.15-gcc
             os: macOS-10.15
@@ -46,49 +47,60 @@ jobs:
             version: "10"
 
     steps:
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
-      - name:  Install and setup Linux packages
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get -y -qq update
-          sudo apt-get install -y libreadline-dev ncurses-dev
-          if [ "${{ matrix.compiler }}" = "gcc" ]; then
-            sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
-            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
-            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
-          else
-            sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
-            echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
-            echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
-          fi
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Build and test Linux
-        if: runner.os == 'Linux'
-        env:
-          CC: ${{ env.CC }}
-          CXX: ${{ env.CXX }}
-        run: |
-          make ABC_MAKE_VERBOSE=1 ABC_USE_NAMESPACE=xxx OPTFLAGS= ABC_USE_PIC=1 abc test
-      
-      - name:  Install and setup MacOS packages
-        if: runner.os == 'macOS'
-        run: |
-          if [ "${{ matrix.compiler }}" = "gcc" ]; then
-            brew install gcc@${{ matrix.version }}
-            echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
-            echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
-          else
-            ls -ls /Applications/
-            sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.2.app
-            echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
-            echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
-          fi
+    - name: Install Tox
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
 
-      - name: Build and test MacOS
-        if: runner.os == 'macOS'
-        env:
-          CC: ${{ env.CC }}
-          CXX: ${{ env.CXX }}
-        run: |
-          make ABC_MAKE_VERBOSE=1 ABC_USE_NAMESPACE=xxx OPTFLAGS= ABC_USE_PIC=1 abc test
+    - name:  Install and setup Linux packages
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get -y -qq update
+        sudo apt-get install -y libreadline-dev ncurses-dev
+        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+          sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+          echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+        else
+          sudo apt-get install -y clang-${{ matrix.version }} g++-multilib
+          echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+        fi
+
+    - name: Build and test Linux
+      if: runner.os == 'Linux'
+      env:
+        CC: ${{ env.CC }}
+        CXX: ${{ env.CXX }}
+      run: |
+        tox -e build
+
+    - name:  Install and setup MacOS packages
+      if: runner.os == 'macOS'
+      run: |
+        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+          brew install gcc@${{ matrix.version }}
+          echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+        else
+          ls -ls /Applications/
+          sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
+          echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+        fi
+
+    - name: Build and test MacOS
+      if: runner.os == 'macOS'
+      env:
+        CC: ${{ env.CC }}
+        CXX: ${{ env.CXX }}
+      run: |
+        tox -e ctest

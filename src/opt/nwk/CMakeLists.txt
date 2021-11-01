@@ -1,18 +1,18 @@
 abc_libabc_add_sources(
     NAME opt_nwk
     SOURCES
-        nwkObj.c
         nwkStrash.c
-        nwkMap.c
         nwkDfs.c
-        nwkMerge.c
-        nwkMan.c
-        nwkTiming.c
-        nwkFanio.c
         nwkFlow.c
+        nwkFanio.c
+        nwkMap.c
+        nwkObj.c
+        nwkTiming.c
+        nwkMerge.c
+        nwkUtil.c
+        nwkAig.c
         nwkSpeedup.c
         nwkCheck.c
+        nwkMan.c
         nwkBidec.c
-        nwkAig.c
-        nwkUtil.c
 )
