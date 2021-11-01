@@ -1,10 +1,10 @@
 abc_libabc_add_sources(
     NAME base_exor
     SOURCES
-        exorBits.c
-        exorUtil.c
-        exorList.c
         exorLink.c
+        exorList.c
         exorCubes.c
+        exorBits.c
         exor.c
+        exorUtil.c
 )

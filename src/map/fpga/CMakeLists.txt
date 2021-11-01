@@ -1,17 +1,17 @@
 abc_libabc_add_sources(
     NAME map_fpga
     SOURCES
-        fpgaFanout.c
-        fpgaCreate.c
+        fpgaTime.c
+        fpgaCut.c
         fpgaVec.c
         fpgaCore.c
-        fpgaSwitch.c
         fpgaCutUtils.c
-        fpgaCut.c
-        fpgaTruth.c
-        fpga.c
-        fpgaTime.c
-        fpgaMatch.c
         fpgaUtils.c
+        fpgaFanout.c
+        fpga.c
         fpgaLib.c
+        fpgaTruth.c
+        fpgaCreate.c
+        fpgaMatch.c
+        fpgaSwitch.c
 )

@@ -3,7 +3,7 @@ abc_libabc_add_sources(
     SOURCES
         sscCore.c
         sscSat.c
+        sscUtil.c
         sscSim.c
         sscClass.c
-        sscUtil.c
 )
