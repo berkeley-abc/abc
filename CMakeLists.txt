@@ -1,7 +1,43 @@
 cmake_minimum_required(VERSION 3.3.0 FATAL_ERROR)
-project(abc C CXX)
+
+# with at least one base tag, this can have dynamic (git) versioning:
+#  git describe last tag = 1.1.0
+#  git describe last tag + rev count = 1.1.0.45
+#
+# for now, set -DSCM_VERSION_INFO in the build env to override
+if(NOT SCM_VERSION_INFO)
+    set(LIBRARY_VERSION 1.1.0)
+    set(SCM_VERSION_INFO ${LIBRARY_VERSION})
+endif()
+set(LIBRARY_SOVERSION 1)
+
+project(
+    abc
+    LANGUAGES C CXX
+    VERSION ${SCM_VERSION_INFO}
+)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
+    set(CLANG_DEFAULT_CXX_STDLIB libc++)
+    set(CLANG_DEFAULT_RTLIB compiler-rt)
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE
+        "RelWithDebInfo"
+        CACHE STRING "Default build type: RelWithDebInfo" FORCE
+    )
+endif()
 
 include(CMakeParseArguments)
+include(CTest)
 include(GNUInstallDirs)
 
 set(ABC_USE_NAMESPACE "" CACHE STRING "ABC namespace")
@@ -14,6 +50,21 @@ option(ABC_USE_LIBSTDCXX "Link explicitly to stdc++")
 
 add_library(abc_interface INTERFACE)
 
+set(ABC_HEADERS
+    src/base/main/abcapis_old.h
+    src/base/main/abcapis.h
+)
+
+string(REPLACE "src/" "${CMAKE_CURRENT_SOURCE_DIR}/src/" ABC_HEADERS
+               "${ABC_HEADERS}"
+)
+
+# Cache variable so this can be used in parent projects
+set(abc_INCLUDE_DIR
+    "${CMAKE_CURRENT_LIST_DIR}/src"
+    CACHE INTERNAL "Directory where common headers are located"
+)
+
 set(ABC_MODULES
     src/base/abc src/base/abci src/base/cmd src/base/io src/base/main src/base/exor
     src/base/ver src/base/wlc src/base/wln src/base/acb src/base/bac src/base/cba src/base/pla src/base/test
@@ -25,7 +76,7 @@ set(ABC_MODULES
     src/opt/cut src/opt/fxu src/opt/fxch src/opt/rwr src/opt/mfs src/opt/sim
     src/opt/ret src/opt/fret src/opt/res src/opt/lpk src/opt/nwk src/opt/rwt
     src/opt/cgt src/opt/csw src/opt/dar src/opt/dau src/opt/dsc src/opt/sfm src/opt/sbd
-    src/sat/bsat src/sat/xsat src/sat/satoko src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc src/sat/glucose
+    src/sat/bsat src/sat/xsat src/sat/satoko src/sat/csat src/sat/msat src/sat/psat src/sat/cnf src/sat/bmc src/sat/glucose src/sat/glucose2
     src/bool/bdc src/bool/deco src/bool/dec src/bool/kit src/bool/lucky
     src/bool/rsb src/bool/rpo
     src/proof/pdr src/proof/abs src/proof/live src/proof/ssc src/proof/int
@@ -42,7 +93,12 @@ if(ABC_EXTERNAL_MODULES)
 endif()
 
 target_compile_definitions(abc_interface INTERFACE $<$<CONFIG:Debug>:_DEBUG> $<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
-target_include_directories(abc_interface INTERFACE "${abc_SOURCE_DIR}/src")
+target_include_directories(
+    abc_interface
+    INTERFACE $<BUILD_INTERFACE:${abc_INCLUDE_DIR}>
+              $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
 target_link_libraries(abc_interface
     INTERFACE ${CMAKE_DL_LIBS}
 )
@@ -64,13 +120,14 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     target_compile_options(abc_interface
         INTERFACE
-            -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare
+            -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare -Wno-deprecated
     )
     target_link_libraries(abc_interface INTERFACE m)
     if(WIN32 OR ABC_USE_NAMESPACE)
         target_compile_options(abc_interface
             INTERFACE
                 $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
+                $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden>
         )
     endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -93,11 +150,15 @@ endif()
 if(ABC_USE_NAMESPACE)
     message(STATUS "Compiling in namespace ${ABC_USE_NAMESPACE}")
     target_compile_definitions(abc_interface INTERFACE "ABC_NAMESPACE=${ABC_USE_NAMESPACE}")
+else()
+    set(ABC_USE_STDINT_H 1)
 endif()
 
 include(CheckTypeSize)
 check_type_size("(void*)0" SIZEOF_VOID_P)
+
 if(ABC_USE_STDINT_H)
+    message(STATUS "Setting ABC_USE_STDINT_H ${ABC_USE_STDINT_H}")
     target_compile_definitions(abc_interface INTERFACE "ABC_USE_STDINT_H=1")
 else()
     check_type_size("(long)0" SIZEOF_LONG)
@@ -209,7 +270,7 @@ if(ABC_USE_PIC)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
-if(ABC_USE_LIBSTDCXX)
+if(ABC_USE_LIBSTDCXX OR NOT ABC_USE_NAMESPACE)
     message(STATUS "Using explicit -lstdc++")
     target_link_libraries(abc_interface
         INTERFACE stdc++
@@ -270,17 +331,37 @@ target_link_libraries(libabc PUBLIC abc_interface)
 set_target_properties(libabc
     PROPERTIES OUTPUT_NAME "abc"
 )
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set_target_properties(libabc
         PROPERTIES OUTPUT_NAME "abc$<$<CONFIG:Debug>:d>$<$<NOT:$<CONFIG:Debug>>:r>"
     )
 endif()
 
-install(TARGETS libabc
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+if(BUILD_SHARED_LIBS)
+    set_target_properties(
+        libabc PROPERTIES VERSION ${LIBRARY_VERSION}
+                          SOVERSION ${LIBRARY_SOVERSION}
+    )
+endif()
+
+install(FILES ${ABC_HEADERS}
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/abc
 )
+
+install(
+    TARGETS abc_interface libabc
+    EXPORT abcConfig
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(EXPORT abcConfig
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/abc NAMESPACE abc::)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     if(BUILD_SHARED_LIBS)
         install(FILES $<TARGET_PDB_FILE:libabc> DESTINATION bin OPTIONAL)

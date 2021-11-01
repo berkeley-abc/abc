@@ -1,13 +1,13 @@
 abc_libabc_add_sources(
     NAME opt_sbd
     SOURCES
-        sbdCut2.c
-        sbdCore.c
         sbdLut.c
         sbdSat.c
-        sbd.c
-        sbdPath.c
+        sbdCut2.c
         sbdCnf.c
-        sbdCut.c
+        sbdCore.c
         sbdWin.c
+        sbdPath.c
+        sbd.c
+        sbdCut.c
 )

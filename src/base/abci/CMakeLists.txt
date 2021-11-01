@@ -1,79 +1,80 @@
 abc_libabc_add_sources(
     NAME base_abci
     SOURCES
-        abcExtract.c
-        abcQuant.c
-        abcDebug.c
-        abcIvy.c
+        abcBalance.c
+        abcLutmin.c
+        abcLut.c
+        abcRunGen.c
+        abcSense.c
+        abcPart.c
+        abcDec.c
+        abcMulti.c
+        abcQbf.c
+        abcRewrite.c
+        abcReconv.c
+        abcRr.c
+        abcCut.c
         abcReach.c
-        abcHaig.c
-        abcAuto.c
-        abcFxu.c
-        abcAttach.c
-        abcDetect.c
-        abcRpo.c
-        abcBm.c
-        abcOdc.c
-        abcMfs.c
         abcSymm.c
-        abcFx.c
-        abcCas.c
-        abcDress3.c
+        abcSweep.c
+        abcDsd.c
         abcDress2.c
         abcStrash.c
-        abcReconv.c
-        abcMini.c
-        abcProve.c
-        abcSpeedup.c
-        abcExact.c
-        abcRefactor.c
-        abcRestruct.c
-        abcRec3.c
-        abcLutmin.c
-        abcTim.c
-        abcNtbdd.c
-        abcTiming.c
-        abcFraig.c
-        abcXsim.c
-        abcQbf.c
-        abcSense.c
-        abcEco.c
-        abcDec.c
-        abcCut.c
+        abcOdc.c
         abcUnreach.c
-        abcIf.c
-        abcBmc.c
-        abcDar.c
-        abcBalance.c
-        abcMerge.c
-        abcReorder.c
-        abcResub.c
-        abcMiter.c
-        abcRr.c
-        abcDress.c
-        abcSweep.c
-        abcPart.c
-        abcBidec.c
-        abcLog.c
-        abcCascade.c
-        abcScorr.c
-        abcUnate.c
-        abcCollapse.c
-        abcVerify.c
-        abcRewrite.c
-        abcDsd.c
-        abcMulti.c
-        abcMap.c
-        abcNpnSave.c
+        abcRestruct.c
         abc.c
-        abcIfif.c
-        abcLut.c
+        abcMfs.c
         abcGen.c
         abcSaucy.c
-        abcPrint.c
-        abcNpn.c
-        abcOrder.c
-        abcSat.c
+        abcHaig.c
+        abcSpeedup.c
+        abcCas.c
+        abcDebug.c
+        abcRpo.c
+        abcExtract.c
+        abcDar.c
+        abcXsim.c
+        abcReorder.c
+        abcEco.c
+        abcExact.c
+        abcIfif.c
+        abcCascade.c
+        abcBm.c
+        abcBmc.c
+        abcRefactor.c
+        abcResub.c
+        abcIvy.c
+        abcFx.c
+        abcMap.c
+        abcDetect.c
+        abcMini.c
+        abcMerge.c
+        abcRec3.c
+        abcProve.c
+        abcVerify.c
+        abcFxu.c
         abcRenode.c
+        abcLog.c
+        abcDress.c
+        abcTiming.c
+        abcOrder.c
+        abcBidec.c
+        abcSat.c
+        abcIf.c
+        abcPrint.c
+        abcUnate.c
+        abcFraig.c
+        abcScorr.c
+        abcMiter.c
+        abcTim.c
+        abcCollapse.c
+        abcAttach.c
+        abcNpn.c
+        abcDress3.c
+        abcNpnSave.c
         abcIfMux.c
+        abcNtbdd.c
+        abcQuant.c
+        abcAuto.c
 )
