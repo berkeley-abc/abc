@@ -1,36 +1,36 @@
 abc_libabc_add_sources(
     NAME sat_bmc
     SOURCES
-        bmcBmc.c
-        bmcBmcS.c
-        bmcMaj2.c
-        bmcMaj.c
-        bmcBmci.c
-        bmcChain.c
-        bmcCexMin2.c
-        bmcMaj3.c
-        bmcCexTools.c
         bmcClp.c
-        bmcUnroll.c
-        bmcMesh.c
-        bmcBmcAnd.c
-        bmcLoad.c
-        bmcMaxi.c
-        bmcFault.c
-        bmcBCore.c
-        bmcCexMin1.c
         bmcCexDepth.c
-        bmcBmc2.c
-        bmcMulti.c
+        bmcChain.c
+        bmcBmcS.c
+        bmcMaxi.c
+        bmcBmc.c
+        bmcCexMin1.c
+        bmcMesh2.c
+        bmcInse.c
+        bmcMesh.c
+        bmcMaj.c
+        bmcExpand.c
         bmcBmc3.c
         bmcEco.c
-        bmcICheck.c
-        bmcCexCare.c
+        bmcCexTools.c
+        bmcBmci.c
+        bmcCexMin2.c
         bmcGen.c
-        bmcExpand.c
-        bmcMesh2.c
-        bmcFx.c
+        bmcICheck.c
         bmcCexCut.c
-        bmcInse.c
+        bmcBmc2.c
+        bmcFault.c
+        bmcLoad.c
+        bmcMaj2.c
+        bmcUnroll.c
+        bmcMulti.c
+        bmcBCore.c
+        bmcCexCare.c
         bmcBmcG.c
+        bmcBmcAnd.c
+        bmcFx.c
+        bmcMaj3.c
 )

@@ -1,10 +1,12 @@
 abc_libabc_add_sources(
     NAME base_wln
     SOURCES
-        wlnNtk.c
+        wlnWlc.c
+        wlnMem.c
         wlnObj.c
-        wlnWriteVer.c
+        wlnNtk.c
         wlnRetime.c
-        wln.c
+        wlnWriteVer.c
         wlnNdr.c
+        wln.c
 )
