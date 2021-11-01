@@ -1,15 +1,15 @@
 abc_libabc_add_sources(
     NAME bdd_extrab
     SOURCES
-        extraBddImage.c
-        extraBddKmap.c
-        extraBddUnate.c
         extraBddAuto.c
-        extraBddThresh.c
-        extraBddCas.c
+        extraBddKmap.c
+        extraBddSymm.c
         extraBddMaxMin.c
+        extraBddCas.c
         extraBddMisc.c
         extraBddTime.c
         extraBddSet.c
-        extraBddSymm.c
+        extraBddUnate.c
+        extraBddImage.c
+        extraBddThresh.c
 )
