@@ -1953,9 +1953,9 @@ static inline void Vec_IntTwoMerge1( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
         if ( *pBeg1 == *pBeg2 )
             *pBeg++ = *pBeg1++, pBeg2++;
         else if ( *pBeg1 < *pBeg2 )
-            *pBeg1++;
+            pBeg1++;
         else 
-            *pBeg2++;
+            pBeg2++;
     }
     assert( vArr1->nSize >= pBeg - vArr1->pArray );
     vArr1->nSize = pBeg - vArr1->pArray;
@@ -1982,11 +1982,11 @@ static inline void Vec_IntTwoRemove1( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
     while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
     {
         if ( *pBeg1 == *pBeg2 )
-            *pBeg1++, pBeg2++;
+            pBeg1++, pBeg2++;
         else if ( *pBeg1 < *pBeg2 )
             *pBeg++ = *pBeg1++;
         else 
-            *pBeg2++;
+            pBeg2++;
     }
     while ( pBeg1 < pEnd1 )
         *pBeg++ = *pBeg1++;
