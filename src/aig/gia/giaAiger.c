@@ -1702,8 +1702,8 @@ int * Aiger_Read( char * pFileName, int * pnObjs, int * pnIns, int * pnLats, int
         int uLit  = 2*(1 + nIns + nLats + i);
         int uLit1 = uLit  - Aiger_ReadUnsigned( pFile );
         int uLit0 = uLit1 - Aiger_ReadUnsigned( pFile );
-        pObjs[2*(1+nIns+i)+0] = uLit0;
-        pObjs[2*(1+nIns+i)+1] = uLit1;
+        pObjs[2*(1+nIns+nLats+i)+0] = uLit0;
+        pObjs[2*(1+nIns+nLats+i)+1] = uLit1;
     }
     fclose( pFile );
     if ( pnObjs ) *pnObjs = nObjs;
@@ -1729,8 +1729,8 @@ void Aiger_Write( char * pFileName, int * pObjs, int nObjs, int nIns, int nLats,
     for ( i = 0; i < nAnds; i++ )
     {
         int uLit  = 2*(1 + nIns + nLats + i);
-        int uLit0 = pObjs[2*(1+nIns+i)+0];
-        int uLit1 = pObjs[2*(1+nIns+i)+1];
+        int uLit0 = pObjs[2*(1+nIns+nLats+i)+0];
+        int uLit1 = pObjs[2*(1+nIns+nLats+i)+1];
         Aiger_WriteUnsigned( pFile, uLit  - uLit1 );
         Aiger_WriteUnsigned( pFile, uLit1 - uLit0 );
     }

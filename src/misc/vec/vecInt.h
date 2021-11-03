@@ -1934,6 +1934,70 @@ static inline int Vec_IntTwoRemove( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
 
   Synopsis    [Returns the result of merging the two vectors.]
 
+  Description [Keeps only those entries of vArr1, which are in vArr2.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntTwoMerge1( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
+{
+    int * pBeg  = vArr1->pArray;
+    int * pBeg1 = vArr1->pArray;
+    int * pBeg2 = vArr2->pArray;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            *pBeg++ = *pBeg1++, pBeg2++;
+        else if ( *pBeg1 < *pBeg2 )
+            *pBeg1++;
+        else 
+            *pBeg2++;
+    }
+    assert( vArr1->nSize >= pBeg - vArr1->pArray );
+    vArr1->nSize = pBeg - vArr1->pArray;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the result of subtracting for two vectors.]
+
+  Description [Keeps only those entries of vArr1, which are not in vArr2.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_IntTwoRemove1( Vec_Int_t * vArr1, Vec_Int_t * vArr2 )
+{
+    int * pBeg  = vArr1->pArray;
+    int * pBeg1 = vArr1->pArray;
+    int * pBeg2 = vArr2->pArray;
+    int * pEnd1 = vArr1->pArray + vArr1->nSize;
+    int * pEnd2 = vArr2->pArray + vArr2->nSize;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            *pBeg1++, pBeg2++;
+        else if ( *pBeg1 < *pBeg2 )
+            *pBeg++ = *pBeg1++;
+        else 
+            *pBeg2++;
+    }
+    while ( pBeg1 < pEnd1 )
+        *pBeg++ = *pBeg1++;
+    assert( vArr1->nSize >= pBeg - vArr1->pArray );
+    vArr1->nSize = pBeg - vArr1->pArray;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the result of merging the two vectors.]
+
   Description [Assumes that the vectors are sorted in the increasing order.]
                
   SideEffects []

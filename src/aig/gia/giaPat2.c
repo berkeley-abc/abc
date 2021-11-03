@@ -1242,6 +1242,8 @@ Vec_Wrd_t * Min_ManRemapSims( int nInputs, Vec_Int_t * vMap, Vec_Wrd_t * vSimsPi
 {
     int i, iObj, nWords = Vec_WrdSize(vSimsPi)/Vec_IntSize(vMap);
     Vec_Wrd_t * vSimsNew = Vec_WrdStart( 2 * nInputs * nWords );
+    //Vec_Wrd_t * vSimsNew = Vec_WrdStartRandom( nInputs * nWords );
+    //Vec_WrdFillExtra( vSimsNew, 2 * nInputs * nWords, 0 );
     assert( Vec_WrdSize(vSimsPi)%Vec_IntSize(vMap) == 0 );
     Vec_WrdShrink( vSimsNew, Vec_WrdSize(vSimsNew)/2 );
     Vec_IntForEachEntry( vMap, iObj, i )
