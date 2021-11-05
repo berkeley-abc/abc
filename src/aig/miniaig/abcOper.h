@@ -29,7 +29,9 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifndef _YOSYS_
 ABC_NAMESPACE_HEADER_START 
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -264,9 +266,9 @@ static inline const char * Abc_OperNameSimple( int Type )
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-
+#ifndef _YOSYS_
 ABC_NAMESPACE_HEADER_END
-
+#endif
 
 #endif
 

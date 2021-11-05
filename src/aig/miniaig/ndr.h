@@ -33,7 +33,9 @@
 
 #include "abcOper.h"
 
+#ifndef _YOSYS_
 ABC_NAMESPACE_HEADER_START 
+#endif
 
 #ifdef _WIN32
 #define inline __inline
@@ -215,8 +217,9 @@ static inline void Ndr_DataPushString( Ndr_Data_t * p, int ObjType, int Type, ch
         return;
     if ( ObjType == ABC_OPER_LUT )
     {
-        word Truth = (word)pFunc;
-        Ndr_DataPushArray( p, Type, 2, (int *)&Truth );
+        //word Truth = (word)pFunc;
+        //Ndr_DataPushArray( p, Type, 2, (int *)&Truth );
+        Ndr_DataPushArray( p, Type, 2, (int *)&pFunc );
     }
     else
     {
@@ -662,7 +665,7 @@ static inline void Ndr_ModuleTest()
     // array of fanins of node s
     int Fanins[2] = { NameIdA, NameIdC };
     // map name IDs into char strings
-    char * ppNames[5] = { NULL, "add10", "a", "s", "const10" };
+    //char * ppNames[5] = { NULL, "add10", "a", "s", "const10" };
 
     // create a new module
     void * pDesign = Ndr_Create( 1 );
@@ -671,13 +674,13 @@ static inline void Ndr_ModuleTest()
 
     // add objects to the modele
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   3, 0, 0,   0, NULL,      1, &NameIdA,   NULL      ); // no fanins
-    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CONST,    0,   3, 0, 0,   0, NULL,      1, &NameIdC,   "4'b1010" ); // no fanins
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CONST,    0,   3, 0, 0,   0, NULL,      1, &NameIdC,   (char*)"4'b1010" ); // no fanins
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_ARI_ADD,  0,   3, 0, 0,   2, Fanins,    1, &NameIdS,   NULL      ); // fanins are a and const10 
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdS,  0, NULL,       NULL      ); // fanin is a
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
-    Ndr_Write( "add4.ndr", pDesign );
+    //Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
+    Ndr_Write( (char*)"add4.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 
@@ -706,6 +709,7 @@ static inline void Ndr_ModuleTest()
 
 static inline void Ndr_ModuleTestAdder()
 {
+/*
     // map name IDs into char strings
     char * ppNames[20] = {  NULL, 
                            "a", "b", "s", "co",          // 1,  2,  3,  4
@@ -713,6 +717,7 @@ static inline void Ndr_ModuleTestAdder()
                            "r0", "s0", "rco",            // 9,  10, 11
                            "r1", "s1", "add8"            // 12, 13, 14
                          };
+*/
     // fanins 
     int FaninA        =  1;
     int FaninB        =  2;
@@ -764,8 +769,8 @@ static inline void Ndr_ModuleTestAdder()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   0, 0, 0,   1, &FaninCO,  0, NULL,       NULL ); 
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
-    Ndr_Write( "add8.ndr", pDesign );
+    //Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
+    Ndr_Write( (char*)"add8.ndr", pDesign );
     Ndr_Delete( pDesign );
 
 }
@@ -792,6 +797,7 @@ static inline void Ndr_ModuleTestAdder()
 
 static inline void Ndr_ModuleTestHierarchy()
 {
+/*
     // map name IDs into char strings
     char * ppNames[20] = {  NULL, 
                            "mux21w", "mux41w",     // 1,  2
@@ -801,6 +807,7 @@ static inline void Ndr_ModuleTestHierarchy()
                            "t0", "t1",             // 12, 13
                            "i0", "i1", "i2"        // 14, 15, 16
                          };
+*/
     // fanins 
     int FaninSel      =  3;
     int FaninSel0     = 10;
@@ -850,8 +857,8 @@ static inline void Ndr_ModuleTestHierarchy()
     Ndr_AddObject( pDesign, Module41, ABC_OPER_CO,        0,   3, 0, 0,   1, &FaninOut,   0, NULL,       NULL ); 
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
-    Ndr_Write( "mux41w.ndr", pDesign );
+    //Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
+    Ndr_Write( (char*)"mux41w.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 
@@ -879,6 +886,7 @@ static inline void Ndr_ModuleTestHierarchy()
 
 static inline void Ndr_ModuleTestMemory()
 {
+/*
     // map name IDs into char strings
     char * ppNames[20] = {  NULL, 
                            "clk", "raddr", "waddr", "data", "mem_init", "out",  // 1, 2, 3, 4, 5, 6
@@ -888,6 +896,7 @@ static inline void Ndr_ModuleTestMemory()
                            "i_read1", "i_read2",                                // 15, 16
                            "i_write1", "i_write2", "memtest"                    // 17, 18, 19
                          };
+*/
     // inputs
     int NameIdClk     = 1;
     int NameIdRaddr   = 2;
@@ -939,8 +948,8 @@ static inline void Ndr_ModuleTestMemory()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_COMP_NOTEQU,  0,     0, 0, 0,   2, FaninsComp,   1, &NameIdComp,    NULL );
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
-    Ndr_Write( "memtest.ndr", pDesign );
+    //Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
+    Ndr_Write( (char*)"memtest.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 
@@ -954,7 +963,7 @@ static inline void Ndr_ModuleTestMemory()
 static inline void Ndr_ModuleTestFlop()
 {
     // map name IDs into char strings
-    char * ppNames[12] = { NULL, "flop", "data", "clk", "reset", "set", "enable", "async", "sre", "init", "q" };
+    //char * ppNames[12] = { NULL, "flop", "data", "clk", "reset", "set", "enable", "async", "sre", "init", "q" };
     // name IDs
     int NameIdData   =  2;
     int NameIdClk    =  3;
@@ -988,8 +997,8 @@ static inline void Ndr_ModuleTestFlop()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdQ,  0, NULL,          NULL );
 
     // write Verilog for verification
-    Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
-    Ndr_Write( "flop.ndr", pDesign );
+    //Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
+    Ndr_Write( (char*)"flop.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 
@@ -1043,7 +1052,7 @@ static inline void Ndr_ModuleTestSelSel()
 
     // write Verilog for verification
     //Ndr_WriteVerilog( NULL, pDesign, ppNames, 0 );
-    Ndr_Write( "sel.ndr", pDesign );
+    Ndr_Write( (char*)"sel.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 
@@ -1076,7 +1085,7 @@ static inline void Ndr_ModuleTestDec()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_SEL_DEC,  0,   3, 0, 0,   1, &NameIdIn,  1, &NameIdOut,    NULL );
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   3, 0, 0,   1, &NameIdOut, 0, NULL,          NULL );
 
-    Ndr_Write( "dec.ndr", pDesign );
+    Ndr_Write( (char*)"dec.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 
@@ -1112,7 +1121,7 @@ static inline void Ndr_ModuleTestAddSub()
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_ARI_ADDSUB,  0,   3, 0, 0,   4, Fanins,     1, &NameIdOut,    NULL );
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,          0,   3, 0, 0,   1, &NameIdOut, 0, NULL,          NULL );
 
-    Ndr_Write( "addsub.ndr", pDesign );
+    Ndr_Write( (char*)"addsub.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 
@@ -1136,16 +1145,20 @@ static inline void Ndr_ModuleTestLut()
 
     int ModuleID = Ndr_AddModule( pDesign, 1 );
 
+    unsigned pTruth[2] = { 0x88888888, 0x88888888 };
+
     // add objects to the modele
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CI,       0,   1, 0, 0,   0, NULL,       1, &NameIdIn,     NULL );
-    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_LUT,      0,   0, 0, 0,   1, &NameIdIn,  1, &NameIdOut,    (char *)(ABC_CONST(0x8)) );
+    Ndr_AddObject( pDesign, ModuleID, ABC_OPER_LUT,      0,   0, 0, 0,   1, &NameIdIn,  1, &NameIdOut,    (char *)pTruth );
     Ndr_AddObject( pDesign, ModuleID, ABC_OPER_CO,       0,   0, 0, 0,   1, &NameIdOut, 0, NULL,          NULL );
 
-    Ndr_Write( "lut_test.ndr", pDesign );
+    Ndr_Write( (char*)"lut_test.ndr", pDesign );
     Ndr_Delete( pDesign );
 }
 
+#ifndef _YOSYS_
 ABC_NAMESPACE_HEADER_END
+#endif
 
 #endif
 
