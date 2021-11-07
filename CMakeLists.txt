@@ -140,10 +140,14 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     )
 endif()
 if(WIN32)
+    if(MINGW OR MSYS)
+        add_definitions(-DWIN32 -D__MINGW32__)
+    endif()
     target_compile_definitions(abc_interface
         INTERFACE
             $<$<BOOL:${BUILD_SHARED_LIBS}>:ABC_DLL=ABC_DLLEXPORT>
             $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:WIN32_NO_DLL>
+            $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:ABC_NO_DYNAMIC_LINKING>
     )
 endif()
 
@@ -155,18 +159,19 @@ else()
 endif()
 
 include(CheckTypeSize)
-check_type_size("(void*)0" SIZEOF_VOID_P)
 
 if(ABC_USE_STDINT_H)
+    check_type_size("void*" SIZEOF_VOID_P LANGUAGE C)
     message(STATUS "Setting ABC_USE_STDINT_H ${ABC_USE_STDINT_H}")
     target_compile_definitions(abc_interface INTERFACE "ABC_USE_STDINT_H=1")
 else()
-    check_type_size("(long)0" SIZEOF_LONG)
-    check_type_size("(int)0" SIZEOF_INT)
-    if(UNIX OR APPLE)
-        set(ARCH_PREFIX "LIN")
-    elseif(WIN32)
+    check_type_size("void*" SIZEOF_VOID_P LANGUAGE CXX)
+    check_type_size(long SIZEOF_LONG LANGUAGE CXX)
+    check_type_size(int SIZEOF_INT LANGUAGE CXX)
+    if(WIN32 OR MINGW OR MSYS)
         set(ARCH_PREFIX "NT")
+    elseif(UNIX OR APPLE)
+        set(ARCH_PREFIX "LIN")
     else()
         message(FATAL_ERROR "Unknown arch")
     endif()
@@ -184,6 +189,7 @@ else()
         "${ARCH_PREFIX}${ARCH_SUFFIX}"
     )
 endif()
+
 if(CMAKE_SYSTEM_PROCESS STREQUAL "arm")
     target_compile_definitions(abc_interface INTERFACE
         ABC_MEMALIGN=4
@@ -260,7 +266,7 @@ if(NOT ABC_USE_NO_PTHREADS)
         set(THREADS_PREFER_PTHREAD_FLAG ON)
         find_package(Threads REQUIRED)
         target_link_libraries(abc_interface
-            INTERFACE Threads::Threads
+            INTERFACE ${CMAKE_THREAD_LIBS_INIT}
         )
     endif()
 endif()
@@ -286,7 +292,7 @@ define_property(GLOBAL
 define_property(GLOBAL
     PROPERTY ABC_SOURCES
     BRIEF_DOCS "Sources of executables of abc"
-    FULL_DOCS "All source files of libabc"
+    FULL_DOCS "All source files of abc"
 )
 
 function(abc_libabc_add_sources)
@@ -342,6 +348,7 @@ if(BUILD_SHARED_LIBS)
     set_target_properties(
         libabc PROPERTIES VERSION ${LIBRARY_VERSION}
                           SOVERSION ${LIBRARY_SOVERSION}
+                          WINDOWS_EXPORT_ALL_SYMBOLS TRUE
     )
 endif()
 
