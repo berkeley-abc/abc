@@ -435,7 +435,7 @@ void CecG_CnfNodeAddToSolver( Cec_ManSat_t * p, Gia_Obj_t * pObj )
 void CecG_ManSatSolverRecycle( Cec_ManSat_t * p )
 {
     int Lit;
-    if ( p->pSat )
+    if ( p->pSat2 )
     {
         Gia_Obj_t * pObj;
         int i;
@@ -443,20 +443,20 @@ void CecG_ManSatSolverRecycle( Cec_ManSat_t * p )
             CecG_ObjSetSatNum( p, pObj, 0 );
         Vec_PtrClear( p->vUsedNodes );
 //        memset( p->pSatVars, 0, sizeof(int) * Gia_ManObjNumMax(p->pAigTotal) );
-        sat_solver_stop( p->pSat );
+        sat_solver_stop( p->pSat2 );
     }
-    p->pSat = (struct sat_solver_t*)sat_solver_start();
+    p->pSat2 = sat_solver_start();
     assert( 0 <= p->pPars->SolverType && p->pPars->SolverType <= 2 );
-    sat_solver_set_jftr( p->pSat, p->pPars->SolverType );
+    sat_solver_set_jftr( p->pSat2, p->pPars->SolverType );
     //sat_solver_setnvars( p->pSat, 1000 ); // minisat only
     //p->pSat->factors = ABC_CALLOC( double, p->pSat->cap );
     // var 0 is not used
     // var 1 is reserved for const0 node - add the clause
 
 //    p->nSatVars = 0;
-    CecG_ObjSetSatNum( p, Gia_ManConst0(p->pAig), sat_solver_addvar( p->pSat ) );
+    CecG_ObjSetSatNum( p, Gia_ManConst0(p->pAig), sat_solver_addvar( p->pSat2 ) );
     Lit = toLitCond( CecG_ObjSatNum( p, Gia_ManConst0(p->pAig) ), 1 );
-    sat_solver_addclause( p->pSat, &Lit, 1 );
+    sat_solver_addclause( p->pSat2, &Lit, 1 );
 //    if ( p->pPars->fPolarFlip ) // no need to normalize const0 node (bug fix by SS on 9/17/2012)
 //        Lit = lit_neg( Lit );
 
