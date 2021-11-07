@@ -260,7 +260,7 @@ if(NOT ABC_USE_NO_PTHREADS)
         set(THREADS_PREFER_PTHREAD_FLAG ON)
         find_package(Threads REQUIRED)
         target_link_libraries(abc_interface
-            INTERFACE Threads::Threads
+            INTERFACE ${CMAKE_THREAD_LIBS_INIT}
         )
     endif()
 endif()
