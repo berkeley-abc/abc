@@ -421,8 +421,8 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
     {
         for ( i = 0; i < Gia_ManCoNum(pOne); i += 2 )
         {
-            int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
-            int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
+            int pLitsF[2] = { static_cast<int>(Gia_ManCo(pOne, i)->Value), static_cast<int>(Gia_ManCo(pOne, i+1)->Value) };
+            int pLitsS[2] = { static_cast<int>(Gia_ManCo(pTwo, i)->Value), static_cast<int>(Gia_ManCo(pTwo, i+1)->Value) };
             Gia_ManAppendCo( pNew, pLitsF[0] );
             Gia_ManAppendCo( pNew, pLitsS[0] );
         }
@@ -431,8 +431,8 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
     {
         for ( i = 0; i < Gia_ManCoNum(pOne); i += 2 )
         {
-            int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
-            int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
+            int pLitsF[2] = { static_cast<int>(Gia_ManCo(pTwo, i)->Value), static_cast<int>(Gia_ManCo(pOne, i+1)->Value) };
+            int pLitsS[2] = { static_cast<int>(Gia_ManCo(pTwo, i)->Value), static_cast<int>(Gia_ManCo(pTwo, i+1)->Value) };
             Gia_ManAppendCo( pNew, pLitsF[1] );
             Gia_ManAppendCo( pNew, pLitsS[1] );
         }
@@ -441,8 +441,8 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
     {
         for ( i = 0; i < Gia_ManCoNum(pOne); i += 2 )
         {
-            int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
-            int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
+            int pLitsF[2] = { static_cast<int>(Gia_ManCo(pOne, i)->Value), static_cast<int>(Gia_ManCo(pOne, i+1)->Value) };
+            int pLitsS[2] = { static_cast<int>(Gia_ManCo(pTwo, i)->Value), static_cast<int>(Gia_ManCo(pTwo, i+1)->Value) };
             Gia_ManAppendCo( pNew, Gia_ManDualCompare( pNew, pLitsF, pLitsS ) );
         }
     }
