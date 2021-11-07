@@ -36,6 +36,7 @@ jobs:
           mingw-w64-${{ matrix.arch }}-gcc
           mingw-w64-${{ matrix.arch }}-cmake
           mingw-w64-${{ matrix.arch }}-ninja
+          mingw-w64-${{ matrix.arch }}-pkgconf
           mingw-w64-${{ matrix.arch }}-readline
 
     - name: Setup msys POSIX environment
@@ -45,7 +46,9 @@ jobs:
         msystem: MSYS
         update: false
         install: >-
+          msys2-devel
           base-devel
+          pkgconf
           git
           gcc
           make
@@ -56,6 +59,9 @@ jobs:
         cmake
         -Wdev
         -B build
+        -DABC_USE_NO_PTHREADS=ON
+        -DABC_USE_NO_READLINE=ON
+        -DABC_USE_NAMESPACE=xxx
         -DCMAKE_BUILD_TYPE=Debug
         -DCMAKE_INSTALL_PREFIX=$PWD/_dist
       env:
