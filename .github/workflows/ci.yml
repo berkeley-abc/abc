@@ -26,8 +26,10 @@ jobs:
 
         name: [
           ubuntu-20.04-gcc,
+          ubuntu-20.04-clang,
           ubuntu-18.04-gcc,
           macOS-10.15-gcc,
+          macOS-10.15-clang,
         ]
 
         include:
@@ -35,16 +37,31 @@ jobs:
             os: ubuntu-20.04
             compiler: gcc
             version: "10"
+            toxcmd: build
+
+          - name: ubuntu-20.04-clang
+            os: ubuntu-20.04
+            compiler: clang
+            version: "10"
+            toxcmd: clang
 
           - name: ubuntu-18.04-gcc
             os: ubuntu-18.04
             compiler: gcc
             version: "9"
+            toxcmd: abc,tests
 
           - name: macOS-10.15-gcc
             os: macOS-10.15
             compiler: gcc
-            version: "10"
+            version: "11"
+            toxcmd: ctest
+
+          - name: macOS-10.15-clang
+            os: macOS-10.15
+            compiler: xcode
+            version: "12.3"
+            toxcmd: clang
 
     steps:
     - uses: actions/checkout@v2
@@ -81,7 +98,7 @@ jobs:
         CC: ${{ env.CC }}
         CXX: ${{ env.CXX }}
       run: |
-        tox -e build
+        tox -e ${{ matrix.toxcmd }}
 
     - name:  Install and setup MacOS packages
       if: runner.os == 'macOS'
@@ -103,4 +120,4 @@ jobs:
         CC: ${{ env.CC }}
         CXX: ${{ env.CXX }}
       run: |
-        tox -e ctest
+        tox -e ${{ matrix.toxcmd }}
