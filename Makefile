@@ -168,7 +168,7 @@ CXXFLAGS += $(CFLAGS) -std=c++17 -fno-exceptions
 $(info $(MSG_PREFIX)Using CXXFLAGS=$(CXXFLAGS))
 
 SRC  :=
-GARBAGE := core core.* *.stackdump ./tags $(PROG) demo arch_flags
+GARBAGE := core core.* *.stackdump ./tags $(PROG) demo arch_flags result.blif
 
 .PHONY: all default tags clean docs cmake_info
 

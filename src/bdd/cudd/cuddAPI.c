@@ -3503,7 +3503,7 @@ Cudd_StdPostReordHook(
   const char *str,
   void *data)
 {
-    long initialTime = (long) data;
+    long initialTime = (ABC_PTRINT_T) data;
     int retval;
     long finalTime = util_cpu_time();
     double totalTimeSec = (double)(finalTime - initialTime) / 1000.0;

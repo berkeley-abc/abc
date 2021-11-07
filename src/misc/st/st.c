@@ -17,7 +17,7 @@ ABC_NAMESPACE_IMPL_START
 
 
 #define st__NUMCMP(x,y) ((x) != (y))
-#define st__NUMHASH(x,size) (Abc_AbsInt((long)x)%(size))
+#define st__NUMHASH(x,size) (Abc_AbsInt((ABC_PTRINT_T)x)%(size))
 //#define st__PTRHASH(x,size) ((int)((ABC_PTRUINT_T)(x)>>2)%size)  // 64-bit bug fix 9/17/2007
 #define st__PTRHASH(x,size) ((int)(((ABC_PTRUINT_T)(x)>>2)%size))
 #define EQUAL(func, x, y) \
@@ -144,7 +144,7 @@ int
     return 0;
     } else {
     if (value != 0) {
-        *value = (long) ptr->record;
+        *value = (ABC_PTRINT_T) ptr->record;
     }
     return 1;
     }
@@ -411,7 +411,7 @@ int
 
     *last = ptr->next;
     if (value != NULL) *value = ptr->record;
-    *keyp = (long) ptr->key;
+    *keyp = (ABC_PTRINT_T) ptr->key;
     ABC_FREE(ptr);
     table->num_entries--;
     return 1;
@@ -544,7 +544,7 @@ int
     }
     *key_p = gen->entry->key;
     if (value_p != 0) {
-    *value_p = (long) gen->entry->record;
+    *value_p = (ABC_PTRINT_T) gen->entry->record;
     }
     gen->entry = gen->entry->next;
     return 1;
