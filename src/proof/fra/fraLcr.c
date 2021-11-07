@@ -208,8 +208,8 @@ int Fra_LcrNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
     assert( Aig_ObjIsCi(pObj0) );
     assert( Aig_ObjIsCi(pObj1) );
     // find the partition to which these nodes belong
-    nPart0 = pLcr->pInToOutPart[(long)pObj0->pNext];
-    nPart1 = pLcr->pInToOutPart[(long)pObj1->pNext];
+    nPart0 = pLcr->pInToOutPart[(ABC_PTRINT_T)pObj0->pNext];
+    nPart1 = pLcr->pInToOutPart[(ABC_PTRINT_T)pObj1->pNext];
     // if this is the result of refinement of the class created const-1 nodes
     // the nodes may end up in different partions - we assume them equivalent
     if ( nPart0 != nPart1 )
@@ -220,8 +220,8 @@ int Fra_LcrNodesAreEqual( Aig_Obj_t * pObj0, Aig_Obj_t * pObj1 )
     assert( nPart0 == nPart1 );
     pFraig = (Aig_Man_t *)Vec_PtrEntry( pLcr->vFraigs, nPart0 );
     // get the fraig outputs
-    pOut0 = Aig_ManCo( pFraig, pLcr->pInToOutNum[(long)pObj0->pNext] );
-    pOut1 = Aig_ManCo( pFraig, pLcr->pInToOutNum[(long)pObj1->pNext] );
+    pOut0 = Aig_ManCo( pFraig, pLcr->pInToOutNum[(ABC_PTRINT_T)pObj0->pNext] );
+    pOut1 = Aig_ManCo( pFraig, pLcr->pInToOutNum[(ABC_PTRINT_T)pObj1->pNext] );
     return Aig_ObjFanin0(pOut0) == Aig_ObjFanin0(pOut1);
 }
 
@@ -245,10 +245,10 @@ int Fra_LcrNodeIsConst( Aig_Obj_t * pObj )
     int nPart;
     assert( Aig_ObjIsCi(pObj) );
     // find the partition to which these nodes belong
-    nPart = pLcr->pInToOutPart[(long)pObj->pNext];
+    nPart = pLcr->pInToOutPart[(ABC_PTRINT_T)pObj->pNext];
     pFraig = (Aig_Man_t *)Vec_PtrEntry( pLcr->vFraigs, nPart );
     // get the fraig outputs
-    pOut = Aig_ManCo( pFraig, pLcr->pInToOutNum[(long)pObj->pNext] );
+    pOut = Aig_ManCo( pFraig, pLcr->pInToOutNum[(ABC_PTRINT_T)pObj->pNext] );
     return Aig_ObjFanin0(pOut) == Aig_ManConst1(pFraig);
 }
 
@@ -316,7 +316,7 @@ Aig_Man_t * Fra_LcrDeriveAigForPartitioning( Fra_Lcr_t * pLcr )
         for ( c = 0; ppClass[c]; c++ )
         {
             assert( Aig_ObjIsCi(ppClass[c]) );
-            pObjPo  = Aig_ManCo( pLcr->pAig, Offset+(long)ppClass[c]->pNext );
+            pObjPo  = Aig_ManCo( pLcr->pAig, Offset+(ABC_PTRINT_T)ppClass[c]->pNext );
             pObjNew = Fra_LcrManDup_rec( pNew, pLcr->pAig, Aig_ObjFanin0(pObjPo) );
             pMiter  = Aig_Exor( pNew, pMiter, pObjNew );
         }
@@ -326,7 +326,7 @@ Aig_Man_t * Fra_LcrDeriveAigForPartitioning( Fra_Lcr_t * pLcr )
     Vec_PtrForEachEntry( Aig_Obj_t *, pLcr->pCla->vClasses1, pObj, i )
     {
         assert( Aig_ObjIsCi(pObj) );
-        pObjPo = Aig_ManCo( pLcr->pAig, Offset+(long)pObj->pNext );
+        pObjPo = Aig_ManCo( pLcr->pAig, Offset+(ABC_PTRINT_T)pObj->pNext );
         pMiter = Fra_LcrManDup_rec( pNew, pLcr->pAig, Aig_ObjFanin0(pObjPo) );
         Aig_ObjCreateCo( pNew, pMiter );
     }
@@ -361,17 +361,17 @@ void Fra_LcrRemapPartitions( Vec_Ptr_t * vParts, Fra_Cla_t * pCla, int * pInToOu
                 ppClass = (Aig_Obj_t **)Vec_PtrEntry( pCla->vClasses, Out );
                 for ( c = 0; ppClass[c]; c++ )
                 {
-                    pInToOutPart[(long)ppClass[c]->pNext] = i;
-                    pInToOutNum[(long)ppClass[c]->pNext] = Vec_IntSize(vOneNew);
-                    Vec_IntPush( vOneNew, Offset+(long)ppClass[c]->pNext );
+                    pInToOutPart[(ABC_PTRINT_T)ppClass[c]->pNext] = i;
+                    pInToOutNum[(ABC_PTRINT_T)ppClass[c]->pNext] = Vec_IntSize(vOneNew);
+                    Vec_IntPush( vOneNew, Offset+(ABC_PTRINT_T)ppClass[c]->pNext );
                 }
             }
             else
             {
                 pObjPi = (Aig_Obj_t *)Vec_PtrEntry( pCla->vClasses1, Out - Vec_PtrSize(pCla->vClasses) );
-                pInToOutPart[(long)pObjPi->pNext] = i;
-                pInToOutNum[(long)pObjPi->pNext] = Vec_IntSize(vOneNew);
-                Vec_IntPush( vOneNew, Offset+(long)pObjPi->pNext );
+                pInToOutPart[(ABC_PTRINT_T)pObjPi->pNext] = i;
+                pInToOutNum[(ABC_PTRINT_T)pObjPi->pNext] = Vec_IntSize(vOneNew);
+                Vec_IntPush( vOneNew, Offset+(ABC_PTRINT_T)pObjPi->pNext );
             }
         }
         // replace the class
@@ -471,14 +471,14 @@ void Fra_ClassNodesMark( Fra_Lcr_t * p )
     // mark the nodes remaining in the classes
     Vec_PtrForEachEntry( Aig_Obj_t *, p->pCla->vClasses1, pObj, i )
     {
-        pObj = Aig_ManCo( p->pCla->pAig, Offset+(long)pObj->pNext );
+        pObj = Aig_ManCo( p->pCla->pAig, Offset+(ABC_PTRINT_T)pObj->pNext );
         pObj->fMarkA = 1;
     }
     Vec_PtrForEachEntry( Aig_Obj_t **, p->pCla->vClasses, ppClass, i )
     {
         for ( c = 0; ppClass[c]; c++ )
         {
-            pObj = Aig_ManCo( p->pCla->pAig, Offset+(long)ppClass[c]->pNext );
+            pObj = Aig_ManCo( p->pCla->pAig, Offset+(ABC_PTRINT_T)ppClass[c]->pNext );
             pObj->fMarkA = 1;
         }
     }
@@ -504,14 +504,14 @@ void Fra_ClassNodesUnmark( Fra_Lcr_t * p )
     // mark the nodes remaining in the classes
     Vec_PtrForEachEntry( Aig_Obj_t *, p->pCla->vClasses1, pObj, i )
     {
-        pObj = Aig_ManCo( p->pCla->pAig, Offset+(long)pObj->pNext );
+        pObj = Aig_ManCo( p->pCla->pAig, Offset+(ABC_PTRINT_T)pObj->pNext );
         pObj->fMarkA = 0;
     }
     Vec_PtrForEachEntry( Aig_Obj_t **, p->pCla->vClasses, ppClass, i )
     {
         for ( c = 0; ppClass[c]; c++ )
         {
-            pObj = Aig_ManCo( p->pCla->pAig, Offset+(long)ppClass[c]->pNext );
+            pObj = Aig_ManCo( p->pCla->pAig, Offset+(ABC_PTRINT_T)ppClass[c]->pNext );
             pObj->fMarkA = 0;
         }
     }
