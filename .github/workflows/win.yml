@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         include: [
-          { msystem: MSYS,     arch: x86_64 },
           { msystem: MINGW64,  arch: x86_64 },
-          { msystem: MINGW32,  arch: i686   }
+          { msystem: CLANG64,  arch: clang-x86_64 },
+          { msystem: MINGW32,  arch: i686   },
         ]
     defaults:
       run:
@@ -26,41 +26,23 @@ jobs:
 
     - name: Setup MinGW native environment
       uses: msys2/setup-msys2@v2
-      if: contains(matrix.msystem, 'MINGW')
       with:
         msystem: ${{ matrix.msystem }}
         update: false
         install: >-
           git
           make
-          mingw-w64-${{ matrix.arch }}-gcc
+          mingw-w64-${{ matrix.arch }}-toolchain
           mingw-w64-${{ matrix.arch }}-cmake
           mingw-w64-${{ matrix.arch }}-ninja
           mingw-w64-${{ matrix.arch }}-pkgconf
           mingw-w64-${{ matrix.arch }}-readline
-
-    - name: Setup msys POSIX environment
-      uses: msys2/setup-msys2@v2
-      if: contains(matrix.msystem, 'MSYS')
-      with:
-        msystem: MSYS
-        update: false
-        install: >-
-          msys2-devel
-          base-devel
-          pkgconf
-          git
-          gcc
-          make
-          cmake
-          ninja
 
     - run: >-
         cmake
         -Wdev
         -B build
         -DABC_USE_NO_PTHREADS=ON
-        -DABC_USE_NO_READLINE=ON
         -DABC_USE_NAMESPACE=xxx
         -DCMAKE_BUILD_TYPE=Debug
         -DCMAKE_INSTALL_PREFIX=$PWD/_dist
