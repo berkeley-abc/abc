@@ -736,7 +736,7 @@ Str_Ntk_t * Str_ManNormalizeInt( Gia_Man_t * p, Vec_Wec_t * vGroups, Vec_Int_t *
     if ( p->vStore == NULL )
         p->vStore = Vec_IntAlloc( STR_SUPER );
     Gia_ManFillValue( p );
-    pNtk = Str_NtkCreate( Gia_ManObjNum(p), 1 + Gia_ManCoNum(p) + 2 * Gia_ManAndNum(p) + Gia_ManMuxNum(p) );
+    pNtk = Str_NtkCreate( Gia_ManObjNum(p) + 10000, 1 + Gia_ManCoNum(p) + 2 * Gia_ManAndNum(p) + Gia_ManMuxNum(p) + 10000 );
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachObj1( p, pObj, i )
     {
@@ -749,7 +749,7 @@ Str_Ntk_t * Str_ManNormalizeInt( Gia_Man_t * p, Vec_Wec_t * vGroups, Vec_Int_t *
             pObj->Value = Str_ObjCreate( pNtk, STR_PO, 1, &iFanin );
         }
     }
-    assert( pNtk->nObjs <= Gia_ManObjNum(p) );
+    //assert( pNtk->nObjs <= Gia_ManObjNum(p) );
     return pNtk;
 }
 Str_Ntk_t * Str_ManNormalize( Gia_Man_t * p )
