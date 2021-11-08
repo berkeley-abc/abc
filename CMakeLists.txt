@@ -140,10 +140,12 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     )
 endif()
 if(WIN32)
+    add_definitions(-DWIN32 -D__MINGW32__)
     target_compile_definitions(abc_interface
         INTERFACE
             $<$<BOOL:${BUILD_SHARED_LIBS}>:ABC_DLL=ABC_DLLEXPORT>
             $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:WIN32_NO_DLL>
+            $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:ABC_NO_DYNAMIC_LINKING>
     )
 endif()
 
@@ -286,7 +288,7 @@ define_property(GLOBAL
 define_property(GLOBAL
     PROPERTY ABC_SOURCES
     BRIEF_DOCS "Sources of executables of abc"
-    FULL_DOCS "All source files of libabc"
+    FULL_DOCS "All source files of abc"
 )
 
 function(abc_libabc_add_sources)
@@ -342,6 +344,7 @@ if(BUILD_SHARED_LIBS)
     set_target_properties(
         libabc PROPERTIES VERSION ${LIBRARY_VERSION}
                           SOVERSION ${LIBRARY_SOVERSION}
+                          WINDOWS_EXPORT_ALL_SYMBOLS TRUE
     )
 endif()
 
