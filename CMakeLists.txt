@@ -159,14 +159,15 @@ else()
 endif()
 
 include(CheckTypeSize)
-check_type_size("(void*)0" SIZEOF_VOID_P)
 
 if(ABC_USE_STDINT_H)
+    check_type_size("void*" SIZEOF_VOID_P LANGUAGE C)
     message(STATUS "Setting ABC_USE_STDINT_H ${ABC_USE_STDINT_H}")
     target_compile_definitions(abc_interface INTERFACE "ABC_USE_STDINT_H=1")
 else()
-    check_type_size("(long)0" SIZEOF_LONG)
-    check_type_size("(int)0" SIZEOF_INT)
+    check_type_size("void*" SIZEOF_VOID_P LANGUAGE CXX)
+    check_type_size(long SIZEOF_LONG LANGUAGE CXX)
+    check_type_size(int SIZEOF_INT LANGUAGE CXX)
     if(WIN32 OR MINGW OR MSYS)
         set(ARCH_PREFIX "NT")
     elseif(UNIX OR APPLE)
@@ -188,6 +189,7 @@ else()
         "${ARCH_PREFIX}${ARCH_SUFFIX}"
     )
 endif()
+
 if(CMAKE_SYSTEM_PROCESS STREQUAL "arm")
     target_compile_definitions(abc_interface INTERFACE
         ABC_MEMALIGN=4

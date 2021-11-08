@@ -46,9 +46,6 @@ jobs:
         -DABC_USE_NAMESPACE=xxx
         -DCMAKE_BUILD_TYPE=Debug
         -DCMAKE_INSTALL_PREFIX=$PWD/_dist
-      env:
-        CC: gcc
-        CXX: g++
 
     - name: CMake build
       run: |
