@@ -42,7 +42,7 @@ jobs:
         cmake
         -Wdev
         -B build
-        -DABC_USE_NO_PTHREADS=ON
+        -DBUILD_SHARED_LIBS=ON
         -DABC_USE_NAMESPACE=xxx
         -DCMAKE_BUILD_TYPE=Debug
         -DCMAKE_INSTALL_PREFIX=$PWD/_dist
