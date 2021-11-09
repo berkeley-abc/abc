@@ -117,11 +117,11 @@ long lastTimeG;
 /*---------------------------------------------------------------------------*/
 
 
-#define FactorsNotStored(factors)  ((int)((long)(factors) & 01))
+#define FactorsNotStored(factors)  ((int)((ABC_PTRINT_T)(factors) & 01))
 
-#define FactorsComplement(factors) ((Conjuncts *)((long)(factors) | 01))
+#define FactorsComplement(factors) ((Conjuncts *)((ABC_PTRINT_T)(factors) | 01))
 
-#define FactorsUncomplement(factors) ((Conjuncts *)((long)(factors) ^ 01))
+#define FactorsUncomplement(factors) ((Conjuncts *)((ABC_PTRINT_T)(factors) ^ 01))
 
 /**AutomaticStart*************************************************************/
 
