@@ -2110,7 +2110,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         // complement flop inputs whose init state is 1
         for ( i = 0; i < nFf2Regs; i++ )
             Gia_ManAppendCo( pNew, Gia_ManAppendCi(pNew) );
-        //Gia_ManSetRegNum( pNew, nFf2Regs );
+        Gia_ManSetRegNum( pNew, nFf2Regs );
     }
     else
     {

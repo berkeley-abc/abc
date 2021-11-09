@@ -368,7 +368,7 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
     Ndr_Data_t * p = (Ndr_Data_t *)pData;  
     Wlc_Obj_t * pObj; Vec_Int_t * vName2Obj, * vFanins = Vec_IntAlloc( 100 );
     int Mod = 2, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax;
-    Vec_Wrd_t * vTruths = NULL;
+    Vec_Wrd_t * vTruths = NULL; int nTruths[2] = {0};
     Wlc_Ntk_t * pTemp, * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, Mod)+1 );
     Wlc_NtkCheckIntegrity( pData );
     Vec_IntClear( &pNtk->vFfs );
@@ -415,11 +415,14 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
             Vec_IntPush( &pNtk->vFfs2, iObj );
         if ( Type == ABC_OPER_LUT )
         {
+            word * pTruth;
             if ( vTruths == NULL )
                 vTruths = Vec_WrdStart( 1000 );
             if ( NameId >= Vec_WrdSize(vTruths) )
                 Vec_WrdFillExtra( vTruths, 2*NameId, 0 );
-            Vec_WrdWriteEntry( vTruths, NameId, *((word *)Ndr_ObjReadBodyP(p, Obj, NDR_FUNCTION)) );
+            pTruth = (word *)Ndr_ObjReadBodyP(p, Obj, NDR_FUNCTION);
+            Vec_WrdWriteEntry( vTruths, NameId, pTruth ? *pTruth : 0 );
+            nTruths[ pTruth != NULL ]++;
         }
         if ( Type == ABC_OPER_SLICE )
             Vec_IntPushTwo( vFanins, End, Beg );
@@ -437,6 +440,8 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
             Wlc_ObjFanin1(pNtk, pObj)->Signed = 1;
         }
     }
+    if ( nTruths[0] )
+        printf( "Warning! The number of LUTs without function is %d (out of %d).\n", nTruths[0], nTruths[0]+nTruths[1] );
     // mark primary outputs
     Ndr_ModForEachPo( p, Mod, Obj )
     {
