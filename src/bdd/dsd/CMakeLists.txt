@@ -3,8 +3,8 @@ abc_libabc_add_sources(
     SOURCES
         dsdCheck.c
         dsdProc.c
-        dsdApi.c
         dsdTree.c
-        dsdLocal.c
         dsdMan.c
+        dsdLocal.c
+        dsdApi.c
 )

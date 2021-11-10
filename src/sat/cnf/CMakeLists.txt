@@ -1,13 +1,13 @@
 abc_libabc_add_sources(
     NAME sat_cnf
     SOURCES
-        cnfUtil.c
-        cnfWrite.c
-        cnfData.c
-        cnfCore.c
+        cnfFast.c
         cnfMap.c
+        cnfCore.c
+        cnfData.c
+        cnfUtil.c
         cnfMan.c
         cnfCut.c
+        cnfWrite.c
         cnfPost.c
-        cnfFast.c
 )
