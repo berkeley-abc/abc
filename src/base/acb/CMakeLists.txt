@@ -1,13 +1,13 @@
 abc_libabc_add_sources(
     NAME base_acb
     SOURCES
-        acbTest.c
-        acbFunc.c
-        acbAbc.c
         acbCom.c
+        acbSets.c
+        acbAbc.c
         acbMfs.c
         acbAig.c
-        acbUtil.c
-        acbSets.c
         acbPush.c
+        acbTest.c
+        acbUtil.c
+        acbFunc.c
 )

@@ -1,13 +1,13 @@
 abc_libabc_add_sources(
     NAME opt_sim
     SOURCES
-        simSymSat.c
-        simMan.c
         simSwitch.c
-        simSymStr.c
-        simSym.c
-        simSupp.c
-        simUtils.c
-        simSeq.c
+        simSymSat.c
         simSymSim.c
+        simSym.c
+        simMan.c
+        simSeq.c
+        simUtils.c
+        simSupp.c
+        simSymStr.c
 )
