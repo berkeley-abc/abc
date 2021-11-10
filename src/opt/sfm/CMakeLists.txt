@@ -1,14 +1,14 @@
 abc_libabc_add_sources(
     NAME opt_sfm
     SOURCES
+        sfmCore.c
+        sfmDec.c
+        sfmTim.c
+        sfmSat.c
+        sfmLib.c
         sfmNtk.c
         sfmArea.c
-        sfmMit.c
-        sfmTim.c
-        sfmDec.c
-        sfmCore.c
-        sfmSat.c
-        sfmCnf.c
-        sfmLib.c
         sfmWin.c
+        sfmMit.c
+        sfmCnf.c
 )

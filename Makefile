@@ -167,7 +167,7 @@ CXXFLAGS += $(CFLAGS)
 $(info $(MSG_PREFIX)Using CXXFLAGS=$(CXXFLAGS))
 
 SRC  :=
-GARBAGE := core core.* *.stackdump ./tags $(PROG) demo arch_flags result.blif
+GARBAGE := core core.* *.stackdump ./tags $(PROG) demo* arch_flags result.blif
 
 .PHONY: all default tags clean docs cmake_info
 
@@ -180,7 +180,6 @@ OBJ := \
 	$(patsubst %.y, %.o,  $(filter %.y, $(SRC)))
 
 LIBOBJ := $(filter-out src/base/main/main.o,$(OBJ))
-MAINOBJ := src/base/main/main.o
 DEMOOBJ := src/demo.o
 
 DEP := $(OBJ:.o=.d)
@@ -226,31 +225,34 @@ clean:
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
-lib: lib$(PROG).so.$(VERSION)
+test: $(PROG)
+	./abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
 
-test: demo
-	./demo i10.aig
-
-demo: $(DEMOOBJ) lib$(PROG).a
-	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
-	+$(VERBOSE)$(LD) -o $@ $(DEMOOBJ) lib$(PROG).a $(LDFLAGS) $(DLIBS) $(LIBS)
-
-$(PROG): $(MAINOBJ) lib$(PROG).so
-	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
-	+$(VERBOSE)$(LD) -o $@ $(MAINOBJ) -L. -l$(PROG) $(LDFLAGS) $(LIBS)
+$(PROG): $(OBJ)
+	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
+	$(VERBOSE)$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	$(VERBOSE)$(AR) rsv $@ $?
 
+ifdef ABC_USE_SONAME
+lib: lib$(PROG).so.$(VERSION)
+
 lib$(PROG).so.$(VERSION): $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	+$(VERBOSE)$(LD) -shared -Wl,-soname=$(SONAME) -o $@ $^ $(LIBS)
-
-lib$(PROG).so: lib$(PROG).so.$(VERSION)
 	ldconfig -v -n .
 	@$(LN) -sf lib$(PROG).so.$(VERSION) lib$(PROG).so
 	@$(LN) -sf lib$(PROG).so.$(VERSION) $(SONAME)
+
+else
+lib: lib$(PROG).so
+
+lib$(PROG).so: $(LIBOBJ)
+	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
+	+$(VERBOSE)$(LD) -shared -o $@ $^ $(LIBS)
+endif
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)

@@ -1,4 +1,6 @@
-on: [push]
+on:
+  workflow_dispatch:
+  push:
 
 jobs:
 
@@ -41,7 +43,7 @@ jobs:
        copy _TEST/abc.exe staging/
        copy UpgradeLog.htm staging/
 
-    - name: Upload pacakge artifact
+    - name: Upload package artifact
       uses: actions/upload-artifact@v1
       with:
         name: package

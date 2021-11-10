@@ -1,4 +1,7 @@
-cmake_minimum_required(VERSION 3.3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10.0)
+
+# Add cmake modules of this project to the module path
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # with at least one base tag, this can have dynamic (git) versioning:
 #  git describe last tag = 1.1.0
@@ -40,13 +43,35 @@ include(CMakeParseArguments)
 include(CTest)
 include(GNUInstallDirs)
 
+# LTO requires cmake min version 3.9 and clang LTO requires lld
+if(ABC_ENABLE_LTO AND CMAKE_BUILD_TYPE MATCHES "Release")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        find_package(LLVM CONFIG)
+    endif()
+
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT ipo_supported OUTPUT error)
+
+    if(ipo_supported)
+        message(STATUS "IPO / LTO supported")
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else()
+        message(WARNING "IPO / LTO not supported: <${error}>")
+    endif()
+endif()
+
+
 set(ABC_USE_NAMESPACE "" CACHE STRING "ABC namespace")
 option(ABC_USE_STDINT_H "Use C99 stdint.h header for platform-dependent types")
 option(ABC_USE_NO_CUDD "Compile CUDD with ABC")
 option(ABC_USE_NO_READLINE "Whether to use libreadline")
-option(ABC_USE_NO_PTHREADS "Whether to compile with thread support")
+option(ABC_USE_NO_PTHREADS "Whether to compile with pthread support")
 option(ABC_USE_PIC "Whether to compile into position independent code")
 option(ABC_USE_LIBSTDCXX "Link explicitly to stdc++")
+option(ABC_USE_SONAME "Set library soname")
+option(BUILD_TESTING "Build and run tests" ON)
+option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
+option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
 
 add_library(abc_interface INTERFACE)
 
@@ -85,6 +110,14 @@ set(ABC_MODULES
     src/aig/miniaig
 )
 
+if(NOT ABC_SKIP_EXE)
+    message(STATUS "Building abc main executable")
+    set(BUILD_MAIN_EXE
+        TRUE
+        CACHE BOOL "Building executable" FORCE
+    )
+endif()
+
 file(GLOB "src/ext*" ABC_EXTERNAL_MODULES)
 
 if(ABC_EXTERNAL_MODULES)
@@ -99,9 +132,7 @@ target_include_directories(
               $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(abc_interface
-    INTERFACE ${CMAKE_DL_LIBS}
-)
+target_link_libraries(abc_interface INTERFACE ${CMAKE_DL_LIBS})
 
 if(NOT ABC_USE_NO_CUDD)
     message(STATUS "Compiling with CUDD")
@@ -113,7 +144,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.6.0"))
     target_compile_options(abc_interface
-        INTERFACE -Wno-unused-but-set-variable
+        INTERFACE -fno-aggressive-loop-optimizations -Wno-unused-but-set-variable
     )
 endif()
 
@@ -137,6 +168,8 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             "_MBCS"
             "_SCL_SECURE_NO_WARNINGS"
             "_CRT_SECURE_NO_WARNINGS"
+            "HAVE_STRUCT_TIMESPEC"
+            "_XKEYCHECK_H"
     )
 endif()
 if(WIN32)
@@ -259,8 +292,11 @@ if(NOT ABC_USE_NO_PTHREADS)
         if(NOT ABC_PTHREAD_INCLUDES OR NOT ABC_PTHREAD_LIBRARIES)
             message(FATAL_ERROR "Could not find pthread")
         endif()
-        target_include_directories(abc_interface INTERFACE "${ABC_PTHREAD_INCLUDES}")
-        target_link_libraries(abc_interface INTERFACE "${ABC_PTHREAD_LIBRARIES}")
+        target_include_directories(
+            abc_interface
+            INTERFACE $<BUILD_INTERFACE:${ABC_PTHREAD_INCLUDES}>
+        )
+        target_link_libraries(abc_interface INTERFACE ${ABC_PTHREAD_LIBRARIES})
     else()
         set(CMAKE_THREAD_PREFER_PTHREAD ON)
         set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -277,10 +313,12 @@ if(ABC_USE_PIC)
 endif()
 
 if(ABC_USE_LIBSTDCXX OR NOT ABC_USE_NAMESPACE)
-    message(STATUS "Using explicit -lstdc++")
-    target_link_libraries(abc_interface
-        INTERFACE stdc++
-    )
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        message(STATUS "Using explicit -lstdc++")
+        target_link_libraries(abc_interface
+            INTERFACE stdc++
+        )
+    endif()
 endif()
 
 define_property(GLOBAL
@@ -345,15 +383,17 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 if(BUILD_SHARED_LIBS)
-    set_target_properties(
-        libabc PROPERTIES VERSION ${LIBRARY_VERSION}
-                          SOVERSION ${LIBRARY_SOVERSION}
-                          WINDOWS_EXPORT_ALL_SYMBOLS TRUE
-    )
+    if(ABC_USE_SONAME)
+        set_target_properties(
+            libabc PROPERTIES VERSION ${LIBRARY_VERSION}
+                              SOVERSION ${LIBRARY_SOVERSION}
+                              WINDOWS_EXPORT_ALL_SYMBOLS TRUE
+        )
+    endif()
 endif()
 
 install(FILES ${ABC_HEADERS}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/abc
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/abc
 )
 
 install(
@@ -375,11 +415,40 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     endif()
 endif()
 
-enable_testing()
-add_test(NAME base_i10
-    COMMAND abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
-    WORKING_DIRECTORY "${abc_SOURCE_DIR}"
-)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if(ABC_ENABLE_LTO AND ipo_supported)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld")
+    endif()
+endif()
+
+if(BUILD_TESTING)
+    set(test_SRCS src/demo.c)
+    if(ABC_USE_NAMESPACE)
+        set_source_files_properties(${test_SRCS} PROPERTIES LANGUAGE CXX)
+    endif()
+    add_executable(base_test ${test_SRCS})
+    target_link_libraries(base_test PUBLIC libabc)
+
+    enable_testing()
+    add_test(NAME base_test
+        COMMAND base_test i10.aig
+        WORKING_DIRECTORY "${abc_SOURCE_DIR}"
+    )
+
+    # Add source-based llvm code coverage targets.
+    # Note this requires recent clang/llvm tooling.
+    if(COVERAGE_BUILD)
+        add_test(NAME main_test
+            COMMAND abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+            WORKING_DIRECTORY "${abc_SOURCE_DIR}"
+        )
+
+        include(coverage)
+        add_coverage(abc)
+        add_coverage(base_test)
+    endif()
+endif()
 
 add_custom_target(etags
     etags ${LIBABC_SOURCES} ${ABC_SOURCES}
