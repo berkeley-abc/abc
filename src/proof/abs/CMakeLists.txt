@@ -1,20 +1,20 @@
 abc_libabc_add_sources(
     NAME proof_abs
     SOURCES
-        absRpm.c
-        absVta.c
-        absPth.c
         absIter.c
+        absRefSelect.c
+        absOut.c
+        absGla.c
+        absOldSim.c
         absOldRef.c
+        absOldCex.c
+        absDup.c
+        absPth.c
         absRef.c
         absUtil.c
-        absOldCex.c
-        absGla.c
-        absRpmOld.c
-        absOut.c
-        absDup.c
-        absOldSim.c
-        absGlaOld.c
-        absRefSelect.c
+        absVta.c
         absOldSat.c
+        absGlaOld.c
+        absRpm.c
+        absRpmOld.c
 )

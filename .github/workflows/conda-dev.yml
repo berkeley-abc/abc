@@ -1,0 +1,86 @@
+name: CondaDev
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  build:
+    name: abc ${{ matrix.python-version }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9']
+        use_namespace: [false, true]
+        include:
+          - os: 'ubuntu-22.04'
+            generator: 'Ninja'
+            build_type: 'Release'
+          - os: 'ubuntu-20.04'
+            generator: 'Ninja'
+            build_type: 'RelWithDebInfo'
+          - os: 'macOS-11'
+            generator: 'Ninja'
+            build_type: 'Release'
+          - os: 'windows-2019'
+            generator: 'Ninja'
+            build_type: 'Release'
+            extra_args: '-DABC_USE_NO_PTHREADS=ON -DABC_USE_NO_READLINE=ON'
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+      PYTHONIOENCODING: utf-8
+      CMAKE_ARGS: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=xxx' || '' }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup base python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Cache conda
+      id: cache
+      uses: actions/cache@v2
+      env:
+        # Increase this value to reset cache if environment.devenv.yml has not changed
+        CACHE_NUMBER: 1
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.devenv.yml') }}
+
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+        channels: conda-forge
+        channel-priority: strict
+        use-only-tar-bz2: true
+
+    - name: Configure condadev environment
+      shell: bash -l {0}
+      env:
+        PY_VER: ${{ matrix.python-version }}
+      run: |
+        conda config --set always_yes yes --set changeps1 no
+        conda config --add channels conda-forge
+        conda install conda-devenv=2.1.1
+        conda devenv
+
+    - name: Build and test
+      shell: bash -l {0}
+      env:
+        PY_VER: ${{ matrix.python-version }}
+      run: |
+        source activate abc-test
+        ctest --build-generator "${{ matrix.generator }}" \
+          --build-and-test . build \
+          --build-options ${CMAKE_ARGS} ${{ matrix.extra_args }} \
+          -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          --test-command ctest --rerun-failed --output-on-failure -V
