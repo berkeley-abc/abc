@@ -1,12 +1,12 @@
 abc_libabc_add_sources(
     NAME misc_util
     SOURCES
-        utilColor.c
         utilIsop.c
+        utilNam.c
+        utilFile.c
         utilSort.c
         utilCex.c
-        utilNam.c
         utilSignal.c
+        utilColor.c
         utilBridge.c
-        utilFile.c
 )

@@ -1,17 +1,17 @@
 abc_libabc_add_sources(
     NAME map_amap
     SOURCES
-        amapMan.c
-        amapOutput.c
+        amapRead.c
+        amapMatch.c
+        amapRule.c
         amapGraph.c
         amapLib.c
-        amapMatch.c
-        amapCore.c
-        amapLiberty.c
-        amapPerm.c
-        amapRule.c
-        amapParse.c
-        amapRead.c
         amapMerge.c
+        amapPerm.c
         amapUniq.c
+        amapLiberty.c
+        amapParse.c
+        amapOutput.c
+        amapMan.c
+        amapCore.c
 )

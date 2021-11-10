@@ -2,7 +2,7 @@ abc_libabc_add_sources(
     NAME opt_fxch
     SOURCES
         Fxch.c
+        FxchDiv.c
         FxchSCHashTable.c
         FxchMan.c
-        FxchDiv.c
 )
