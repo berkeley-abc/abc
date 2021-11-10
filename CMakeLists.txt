@@ -147,6 +147,8 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             "_MBCS"
             "_SCL_SECURE_NO_WARNINGS"
             "_CRT_SECURE_NO_WARNINGS"
+            "HAVE_STRUCT_TIMESPEC"
+            "_XKEYCHECK_H"
     )
 endif()
 if(WIN32)
@@ -269,8 +271,11 @@ if(NOT ABC_USE_NO_PTHREADS)
         if(NOT ABC_PTHREAD_INCLUDES OR NOT ABC_PTHREAD_LIBRARIES)
             message(FATAL_ERROR "Could not find pthread")
         endif()
-        target_include_directories(abc_interface INTERFACE "${ABC_PTHREAD_INCLUDES}")
-        target_link_libraries(abc_interface INTERFACE "${ABC_PTHREAD_LIBRARIES}")
+        target_include_directories(
+            abc_interface
+            INTERFACE $<BUILD_INTERFACE:${ABC_PTHREAD_INCLUDES}>
+        )
+        target_link_libraries(abc_interface INTERFACE ${ABC_PTHREAD_LIBRARIES})
     else()
         set(CMAKE_THREAD_PREFER_PTHREAD ON)
         set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -287,10 +292,12 @@ if(ABC_USE_PIC)
 endif()
 
 if(ABC_USE_LIBSTDCXX OR NOT ABC_USE_NAMESPACE)
-    message(STATUS "Using explicit -lstdc++")
-    target_link_libraries(abc_interface
-        INTERFACE stdc++
-    )
+    if(UNIX)
+        message(STATUS "Using explicit -lstdc++")
+        target_link_libraries(abc_interface
+            INTERFACE stdc++
+        )
+    endif()
 endif()
 
 define_property(GLOBAL

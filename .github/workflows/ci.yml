@@ -25,6 +25,7 @@ jobs:
         python-version: [3.8]
 
         name: [
+          windows-2019-cl,
           ubuntu-20.04-gcc,
           ubuntu-20.04-clang,
           ubuntu-18.04-gcc,
@@ -33,6 +34,10 @@ jobs:
         ]
 
         include:
+          - name: windows-2019-cl
+            os: windows-2019
+            compiler: cl
+
           - name: ubuntu-20.04-gcc
             os: ubuntu-20.04
             compiler: gcc
@@ -71,6 +76,9 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.8
 
     - name: Install Tox
       run: |
@@ -121,3 +129,21 @@ jobs:
         CXX: ${{ env.CXX }}
       run: |
         tox -e ${{ matrix.toxcmd }}
+
+    - name: Configure Windows
+      if: runner.os == 'Windows'
+      run: >
+        cmake -S . -B build
+        -DABC_USE_NO_READLINE=ON
+        -DCMAKE_BUILD_TYPE=Release
+      env:
+        CC: cl
+        CXX: cl
+
+    - name: Build Windows
+      if: runner.os == 'Windows'
+      run: cmake --build build -j 2
+
+    - name: Test Windows
+      if: runner.os == 'Windows'
+      run: ctest -V --test-dir build/
