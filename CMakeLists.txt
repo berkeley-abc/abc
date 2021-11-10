@@ -47,6 +47,8 @@ option(ABC_USE_NO_READLINE "Whether to use libreadline")
 option(ABC_USE_NO_PTHREADS "Whether to compile with thread support")
 option(ABC_USE_PIC "Whether to compile into position independent code")
 option(ABC_USE_LIBSTDCXX "Link explicitly to stdc++")
+option(BUILD_TESTING "build and run tests" ON)
+option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
 
 add_library(abc_interface INTERFACE)
 
@@ -84,6 +86,14 @@ set(ABC_MODULES
     src/aig/aig src/aig/saig src/aig/gia src/aig/ioa src/aig/ivy src/aig/hop
     src/aig/miniaig
 )
+
+if(NOT ABC_SKIP_EXE)
+    message(STATUS "Building abc main executable")
+    set(BUILD_MAIN_EXE
+        TRUE
+        CACHE BOOL "Building executable" FORCE
+    )
+endif()
 
 file(GLOB "src/ext*" ABC_EXTERNAL_MODULES)
 
@@ -353,7 +363,7 @@ if(BUILD_SHARED_LIBS)
 endif()
 
 install(FILES ${ABC_HEADERS}
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/abc
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/abc
 )
 
 install(
@@ -375,11 +385,20 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     endif()
 endif()
 
-enable_testing()
-add_test(NAME base_i10
-    COMMAND abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
-    WORKING_DIRECTORY "${abc_SOURCE_DIR}"
-)
+if(BUILD_TESTING)
+    set(demo_SRCS src/demo.c)
+    if(ABC_USE_NAMESPACE)
+        set_source_files_properties(${demo_SRCS} PROPERTIES LANGUAGE CXX)
+    endif()
+    add_executable(demo ${demo_SRCS})
+    target_link_libraries(demo PUBLIC libabc)
+
+    enable_testing()
+    add_test(NAME demo_test
+        COMMAND demo i10.aig
+        WORKING_DIRECTORY "${abc_SOURCE_DIR}"
+    )
+endif()
 
 add_custom_target(etags
     etags ${LIBABC_SOURCES} ${ABC_SOURCES}

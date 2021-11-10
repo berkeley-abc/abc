@@ -57,6 +57,7 @@ typedef struct Abc_Frame_t_      Abc_Frame_t;
 #define ABC_DLL ABC_DLLIMPORT
 #endif
 
+#pragma GCC visibility push(default)
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -109,6 +110,7 @@ extern ABC_DLL void * Abc_FrameReadCex( Abc_Frame_t * pAbc );
 // procedure to return sequential equivalences
 extern ABC_DLL int *  Abc_FrameReadMiniAigEquivClasses( Abc_Frame_t * pAbc );
 
+#pragma GCC visibility pop
 ABC_NAMESPACE_HEADER_END
 
 #endif
