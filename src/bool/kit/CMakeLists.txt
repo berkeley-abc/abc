@@ -1,16 +1,16 @@
 abc_libabc_add_sources(
     NAME bool_kit
     SOURCES
-        kitPla.c
+        kitBdd.c
         kitCloud.c
-        kitTruth.c
+        kitGraph.c
         kitIsop.c
         kitSop.c
-        kitBdd.c
         kitHop.c
+        kitTruth.c
+        kitPla.c
         kitDsd.c
         kitFactor.c
         kitAig.c
         cloud.c
-        kitGraph.c
 )

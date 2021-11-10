@@ -1,11 +1,11 @@
 abc_libabc_add_sources(
     NAME map_cov
     SOURCES
-        covMinSop.c
+        covBuild.c
         covMinMan.c
         covMinUtil.c
-        covBuild.c
+        covMinEsop.c
+        covMinSop.c
         covCore.c
         covMan.c
-        covMinEsop.c
 )
