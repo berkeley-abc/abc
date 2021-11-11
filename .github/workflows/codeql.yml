@@ -1,0 +1,48 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+#  schedule:
+#    - cron: '21 20 * * 5'
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  analyze:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'cpp']
+        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{github.workspace}}/build
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{github.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON -DABC_USE_NAMESPACE=xxx
+
+    - name: Initialize CodeQl
+      uses: github/codeql-action/init@v1
+      with:
+        queries: +security-and-quality
+        languages: ${{ matrix.language }}
+        setup-python-dependencies: false
+
+    - name: Build
+      working-directory: ${{github.workspace}}/build
+      shell: bash
+      run: cmake --build . --config $BUILD_TYPE
+
+    - name: Perform CodeQl Analysis
+      uses: github/codeql-action/analyze@v1
