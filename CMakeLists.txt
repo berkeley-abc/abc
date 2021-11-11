@@ -109,9 +109,7 @@ target_include_directories(
               $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(abc_interface
-    INTERFACE ${CMAKE_DL_LIBS}
-)
+target_link_libraries(abc_interface INTERFACE ${CMAKE_DL_LIBS})
 
 if(NOT ABC_USE_NO_CUDD)
     message(STATUS "Compiling with CUDD")
@@ -123,7 +121,7 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.6.0"))
     target_compile_options(abc_interface
-        INTERFACE -Wno-unused-but-set-variable
+        INTERFACE -fno-aggressive-loop-optimizations -Wno-unused-but-set-variable
     )
 endif()
 
@@ -393,15 +391,15 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 if(BUILD_TESTING)
-    set(demo_SRCS src/demo.c)
+    set(test_SRCS src/demo.c)
     if(ABC_USE_NAMESPACE)
-        set_source_files_properties(${demo_SRCS} PROPERTIES LANGUAGE CXX)
+        set_source_files_properties(${test_SRCS} PROPERTIES LANGUAGE CXX)
     endif()
-    add_executable(demo ${demo_SRCS})
+    add_executable(demo ${test_SRCS})
     target_link_libraries(demo PUBLIC libabc)
 
     enable_testing()
-    add_test(NAME demo_test
+    add_test(NAME base_i10
         COMMAND demo i10.aig
         WORKING_DIRECTORY "${abc_SOURCE_DIR}"
     )
