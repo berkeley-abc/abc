@@ -292,7 +292,7 @@ if(ABC_USE_PIC)
 endif()
 
 if(ABC_USE_LIBSTDCXX OR NOT ABC_USE_NAMESPACE)
-    if(UNIX)
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         message(STATUS "Using explicit -lstdc++")
         target_link_libraries(abc_interface
             INTERFACE stdc++

@@ -134,6 +134,8 @@ jobs:
       if: runner.os == 'Windows'
       run: >
         cmake -S . -B build
+        -DBUILD_SHARED_LIBS=ON
+        -DABC_USE_NO_PTHREADS=ON
         -DABC_USE_NO_READLINE=ON
         -DCMAKE_BUILD_TYPE=Release
       env:
@@ -142,8 +144,8 @@ jobs:
 
     - name: Build Windows
       if: runner.os == 'Windows'
-      run: cmake --build build -j 2
+      run: cmake --build build --config Release -j 2
 
     - name: Test Windows
       if: runner.os == 'Windows'
-      run: ctest -V --test-dir build/
+      run: ctest -V -C Release --test-dir build/
