@@ -1,10 +1,10 @@
 name: "CodeQL"
 
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+#on:
+  #push:
+    #branches: [ master ]
+  #pull_request:
+    #branches: [ master ]
 #  schedule:
 #    - cron: '21 20 * * 5'
 
@@ -18,11 +18,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'cpp']
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python' ]
+        language: [ 'cpp']
+        # compiler version (currently clang)
+        version: 12
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      if: matrix.language == 'cpp'
+      run: |
+        sudo apt-get -qq update
+        sudo apt-get install -y clang-${{ matrix.version }} lld-${{ matrix.version }} g++-multilib
+        echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+        echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{github.workspace}}/build
@@ -30,7 +40,7 @@ jobs:
     - name: Configure CMake
       shell: bash
       working-directory: ${{github.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON -DABC_USE_NAMESPACE=xxx
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON -DABC_USE_NAMESPACE=xxx -DABC_USE_NO_READLINE=ON
 
     - name: Initialize CodeQl
       uses: github/codeql-action/init@v1

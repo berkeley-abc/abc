@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10.0)
 
 # with at least one base tag, this can have dynamic (git) versioning:
 #  git describe last tag = 1.1.0
@@ -39,6 +39,24 @@ endif()
 include(CMakeParseArguments)
 include(CTest)
 include(GNUInstallDirs)
+
+# LTO requires cmake min version 3.9 and clang LTO requires lld
+if(ABC_ENABLE_LTO AND CMAKE_BUILD_TYPE MATCHES "Release")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        find_package(LLVM CONFIG)
+    endif()
+
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT ipo_supported OUTPUT error)
+
+    if(ipo_supported)
+        message(STATUS "IPO / LTO supported")
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+    else()
+        message(WARNING "IPO / LTO not supported: <${error}>")
+    endif()
+endif()
+
 
 set(ABC_USE_NAMESPACE "" CACHE STRING "ABC namespace")
 option(ABC_USE_STDINT_H "Use C99 stdint.h header for platform-dependent types")
@@ -387,6 +405,13 @@ install(EXPORT abcConfig
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     if(BUILD_SHARED_LIBS)
         install(FILES $<TARGET_PDB_FILE:libabc> DESTINATION bin OPTIONAL)
+    endif()
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if(ABC_ENABLE_LTO AND ipo_supported)
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=lld")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=lld")
     endif()
 endif()
 

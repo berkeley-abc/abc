@@ -1,14 +1,12 @@
-[![.github/workflows/build-posix.yml](https://github.com/berkeley-abc/abc/actions/workflows/build-posix.yml/badge.svg)](https://github.com/berkeley-abc/abc/actions/workflows/build-posix.yml)
-[![.github/workflows/build-windows.yml](https://github.com/berkeley-abc/abc/actions/workflows/build-windows.yml/badge.svg)](https://github.com/berkeley-abc/abc/actions/workflows/build-windows.yml)
-[![.github/workflows/build-posix-cmake.yml](https://github.com/berkeley-abc/abc/actions/workflows/build-posix-cmake.yml/badge.svg)](https://github.com/berkeley-abc/abc/actions/workflows/build-posix-cmake.yml)
+# ABC: Sequential Logic Synthesis and Formal Verification
 
 [![ci](https://github.com/sarnold/abc/actions/workflows/ci.yml/badge.svg)](https://github.com/sarnold/abc/actions/workflows/ci.yml)
 [![msystem](https://github.com/sarnold/abc/actions/workflows/win.yml/badge.svg)](https://github.com/sarnold/abc/actions/workflows/win.yml)
 
+[![.github/workflows/build-posix.yml](https://github.com/berkeley-abc/abc/actions/workflows/build-posix.yml/badge.svg)](https://github.com/berkeley-abc/abc/actions/workflows/build-posix.yml)
+[![.github/workflows/build-windows.yml](https://github.com/berkeley-abc/abc/actions/workflows/build-windows.yml/badge.svg)](https://github.com/berkeley-abc/abc/actions/workflows/build-windows.yml)
+[![.github/workflows/build-posix-cmake.yml](https://github.com/berkeley-abc/abc/actions/workflows/build-posix-cmake.yml/badge.svg)](https://github.com/berkeley-abc/abc/actions/workflows/build-posix-cmake.yml)
 
-# ABC: System for Sequential Logic Synthesis and Formal Verification
-
-ABC is always changing but the current snapshot is believed to be stable. 
 
 ## Compiling:
 
