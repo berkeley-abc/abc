@@ -113,6 +113,7 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
     DdNode * bTemp, ** pbVars;
     Vec_Str_t * vSupport;
     int i, nVars, j, iFanin, iFanin2, k = 0;
+    int fDupFanins = 0;
 
     assert( Abc_NtkIsBddLogic(pNode->pNtk) );
     assert( Abc_ObjIsNode(pNode) );
@@ -140,6 +141,7 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
         Vec_IntForEachEntryStop( &pNode->vFanins, iFanin2, j, k )
             if ( iFanin == iFanin2 )
                 break;
+        fDupFanins |= (int)(j < k);
         if ( j == k )
             Vec_IntWriteEntry( &pNode->vFanins, k++, iFanin );
         else if ( !Vec_IntRemove( &pFanin->vFanouts, pNode->Id ) )
@@ -153,6 +155,10 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
     Cudd_RecursiveDeref( dd, bTemp );
     Vec_StrFree( vSupport );
     ABC_FREE( pbVars );
+
+    // try again if node had duplicated fanins
+    if ( fDupFanins )
+        Abc_NodeMinimumBase( pNode );
     return 1;
 }
 
