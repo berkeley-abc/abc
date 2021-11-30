@@ -1204,7 +1204,11 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Aig_ManForEachCo( pMan, pObj, i )
         Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), (Abc_Obj_t *)Aig_ObjChild0Copy(pObj) );
     if ( !Abc_NtkCheck( pNtkNew ) )
-        Abc_Print( 1, "Abc_NtkFromDar(): Network check has failed.\n" );
+    {
+        Abc_Print( 1, "Abc_NtkFromDar(): Network check has failed. Returning original network.\n" );
+        Abc_NtkDelete( pNtkNew );
+        pNtkNew = Abc_NtkDup( pNtkOld );
+    }
 
     // verify topological order
     if ( 0 )

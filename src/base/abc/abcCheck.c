@@ -177,7 +177,10 @@ int Abc_NtkDoCheck( Abc_Ntk_t * pNtk )
 
     // check the nodes
     if ( Abc_NtkIsStrash(pNtk) )
-        Abc_AigCheck( (Abc_Aig_t *)pNtk->pManFunc );
+    {
+        if ( !Abc_AigCheck( (Abc_Aig_t *)pNtk->pManFunc ) )
+            return 0;
+    }
     else
     {
         Abc_NtkForEachNode( pNtk, pNode, i )
