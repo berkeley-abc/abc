@@ -1930,9 +1930,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
 
         // create combinational outputs in the normal manager
         pFans0  = Wlc_ObjFaninNum(pObj) > 0 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId0(pObj)) ) : NULL;
-        pFans1  = Wlc_ObjFaninNum(pObj) > 1 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId1(pObj)) ) : NULL;
-        pFans2  = Wlc_ObjFaninNum(pObj) > 2 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId2(pObj)) ) : NULL;
-        pFans3  = Wlc_ObjFaninNum(pObj) > 3 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId(pObj,3)) ) : NULL;
+        pFans1  = Wlc_ObjFaninNum(pObj) > 2 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId(pObj,2)) ) : NULL; // reset
+        pFans2  = Wlc_ObjFaninNum(pObj) > 3 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId(pObj,3)) ) : NULL; // set
+        pFans3  = Wlc_ObjFaninNum(pObj) > 4 ? Vec_IntEntryP( vBits, Wlc_ObjCopy(p, Wlc_ObjFaninId(pObj,4)) ) : NULL; // enable
         for ( k = 0; k < nRange; k++ )
             Gia_ManAppendCo( pNew, pFans0[k] );
         Gia_ManAppendCo( pNew, pFans1[0] );
