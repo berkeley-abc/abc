@@ -6961,6 +6961,7 @@ usage:
     Abc_Print( -2, "\t               9: adjustable algorithm (heuristic) by XueGong Zhou at Fudan University, Shanghai\n" );
     Abc_Print( -2, "\t              10: adjustable algorithm (exact)     by XueGong Zhou at Fudan University, Shanghai\n" );
     Abc_Print( -2, "\t              11: new cost-aware exact algorithm   by XueGong Zhou at Fudan University, Shanghai\n" );
+    Abc_Print( -2, "\t              12: new fast hybrid semi-canonical form (permutation only)\n" );
     Abc_Print( -2, "\t-N <num> : the number of support variables (binary files only) [default = unused]\n" );
     Abc_Print( -2, "\t-d       : toggle dumping resulting functions into a file [default = %s]\n", fDumpRes? "yes": "no" );
     Abc_Print( -2, "\t-b       : toggle dumping in binary format [default = %s]\n", fBinary? "yes": "no" );

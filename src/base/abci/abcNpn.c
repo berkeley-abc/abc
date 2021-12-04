@@ -208,6 +208,8 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         pAlgoName = "adjustable algorithm (exact)     ";
     else if ( NpnType == 11 )
         pAlgoName = "new cost-aware exact algorithm   ";
+    else if ( NpnType == 12 )
+        pAlgoName = "new hybrid fast (P) ";
 
     assert( p->nVars <= 16 );
     if ( pAlgoName )
@@ -356,6 +358,17 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
         }
 		Abc_TtHieManStop(pMan);
     }
+    else if ( NpnType == 12 )
+    {
+        for ( i = 0; i < p->nFuncs; i++ )
+        {
+            if ( fVerbose )
+                printf( "%7d : ", i );
+            uCanonPhase = Abc_TtCanonicizePerm( p->pFuncs[i], p->nVars, pCanonPerm );
+            if ( fVerbose )
+                Extra_PrintHex( stdout, (unsigned *)p->pFuncs[i], p->nVars ), Abc_TruthNpnPrint(pCanonPerm, uCanonPhase, p->nVars), printf( "\n" );
+        }
+    }
     else assert( 0 );
     clk = Abc_Clock() - clk;
     printf( "Classes =%9d  ", Abc_TruthNpnCountUnique(p) );
@@ -419,7 +432,7 @@ int Abc_NpnTest( char * pFileName, int NpnType, int nVarNum, int fDumpRes, int f
 {
     if ( fVerbose )
         printf( "Using truth tables from file \"%s\"...\n", pFileName );
-    if ( NpnType >= 0 && NpnType <= 11 )
+    if ( NpnType >= 0 && NpnType <= 12 )
         Abc_TruthNpnTest( pFileName, NpnType, nVarNum, fDumpRes, fBinary, fVerbose );
     else
         printf( "Unknown canonical form value (%d).\n", NpnType );

@@ -1027,7 +1027,7 @@ int Abc_TtCofactorPerm( word * pTruth, int i, int nWords, int fSwapOnly, char * 
   SeeAlso     []
 
 ***********************************************************************/
-#define CANON_VERIFY
+//#define CANON_VERIFY
 unsigned Abc_TtCanonicize( word * pTruth, int nVars, char * pCanonPerm )
 {
     int pStoreIn[17];
