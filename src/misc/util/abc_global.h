@@ -143,6 +143,11 @@ ABC_NAMESPACE_HEADER_START
 
 #endif
 
+#if     defined(__APPLE__)
+#include <stddef.h>
+#define ABC_USE_STDINT_H
+#endif
+
 /**
  * Pointer difference type; replacement for ptrdiff_t.
  * This is a signed integral type that is the same size as a pointer.
