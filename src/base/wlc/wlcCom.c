@@ -32,6 +32,7 @@ ABC_NAMESPACE_IMPL_START
 
 static int  Abc_CommandReadWlc    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandWriteWlc   ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int  Abc_CommandYosys      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandPs         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandCone       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int  Abc_CommandAbs        ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -79,6 +80,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
 {
     Cmd_CommandAdd( pAbc, "Word level", "%read",        Abc_CommandReadWlc,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%write",       Abc_CommandWriteWlc,   0 );
+    Cmd_CommandAdd( pAbc, "Word level", "%yosys",       Abc_CommandYosys,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%ps",          Abc_CommandPs,         0 );
     Cmd_CommandAdd( pAbc, "Word level", "%cone",        Abc_CommandCone,       0 );
     Cmd_CommandAdd( pAbc, "Word level", "%abs",         Abc_CommandAbs,        0 );
@@ -295,6 +297,124 @@ usage:
     return 1;
 }
 
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fVerbose );
+    extern Wln_Ntk_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fVerbose );
+
+    FILE * pFile;
+    char * pFileName = NULL;
+    char * pTopModule= NULL;
+    int fCollapse    =    0;
+    int fBlast       =    0;
+    int fInvert      =    0;
+    int fSkipStrash  =    0;
+    int c, fVerbose  =    0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Tcaisvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pTopModule = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'c':
+            fCollapse ^= 1;
+            break;
+        case 'a':
+            fBlast ^= 1;
+            break;
+        case 'i':
+            fInvert ^= 1;
+            break;
+        case 's':
+            fSkipStrash ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        printf( "Abc_CommandReadWlc(): Input file name should be given on the command line.\n" );
+        return 0;
+    }
+    // get the file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        Abc_Print( 1, "Cannot open input file \"%s\". ", pFileName );
+        if ( (pFileName = Extra_FileGetSimilarName( pFileName, ".v", ".sv", NULL, NULL, NULL )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", pFileName );
+        Abc_Print( 1, "\n" );
+        return 0;
+    }
+    fclose( pFile );
+
+    // perform reading
+    if ( fBlast )
+    {
+        Gia_Man_t * pNew = NULL;
+        if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
+            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, fSkipStrash, fInvert, fVerbose );
+        else if ( !strcmp( Extra_FileNameExtension(pFileName), "sv" )  )
+            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, fSkipStrash, fInvert, fVerbose );
+        else
+        {
+            printf( "Abc_CommandYosys(): Unknown file extension.\n" );
+            return 0;
+        }
+        Abc_FrameUpdateGia( pAbc, pNew );
+    }
+    else
+    {
+        Wln_Ntk_t * pNtk = NULL;
+        if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
+            pNtk = Wln_ReadSystemVerilog( pFileName, pTopModule, fVerbose );
+        else if ( !strcmp( Extra_FileNameExtension(pFileName), "sv" )  )
+            pNtk = Wln_ReadSystemVerilog( pFileName, pTopModule, fVerbose );
+        else
+        {
+            printf( "Abc_CommandYosys(): Unknown file extension.\n" );
+            return 0;
+        }
+        //Wlc_AbcUpdateNtk( pAbc, pNtk );
+    }
+    return 0;
+usage:
+    Abc_Print( -2, "usage: %%yosys [-T <module>] [-caisvh] <file_name>\n" );
+    Abc_Print( -2, "\t         reads Verilog or SystemVerilog using Yosys\n" );
+    Abc_Print( -2, "\t-T     : specify the top module name (default uses \"-auto-top\"\n" );
+    Abc_Print( -2, "\t-c     : toggle collapsing the design using Yosys [default = %s]\n", fCollapse? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle bit-blasting the design using Yosys [default = %s]\n", fBlast? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggle interting the outputs (useful for miters) [default = %s]\n", fInvert? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggle no structural hashing during bit-blasting [default = %s]\n", fSkipStrash? "no strash": "strash" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 /**Function********************************************************************
 
