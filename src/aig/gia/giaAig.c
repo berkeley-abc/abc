@@ -611,6 +611,27 @@ Gia_Man_t * Gia_ManCompress2( Gia_Man_t * p, int fUpdateLevel, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManTestChoices( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; int i;
+    Vec_Int_t * vPointed = Vec_IntStart( Gia_ManObjNum(p) );
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Gia_ObjSibl(p, i) )
+            Vec_IntWriteEntry( vPointed, Gia_ObjSibl(p, i), 1 );
+    Gia_ManCreateRefs( p );
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Vec_IntEntry(vPointed, i) && Gia_ObjRefNumId(p, i) > 0 )
+        {
+            printf( "Gia_ManCheckChoices: Member %d", i );
+            printf( " of a choice node has %d fanouts.\n", Gia_ObjRefNumId(p, i) );
+            ABC_FREE( p->pRefs );
+            Vec_IntFree( vPointed );
+            return 0;
+        }
+    ABC_FREE( p->pRefs );
+    Vec_IntFree( vPointed );
+    return 1;
+}
 Gia_Man_t * Gia_ManPerformDch( Gia_Man_t * p, void * pPars )
 {
     int fUseMapping = 0;
@@ -628,6 +649,11 @@ Gia_Man_t * Gia_ManPerformDch( Gia_Man_t * p, void * pPars )
 //    pGia = Gia_ManFromAig( pNew );
     pGia = Gia_ManFromAigChoices( pNew );
     Aig_ManStop( pNew );
+    if ( !p->pManTime && !Gia_ManTestChoices(pGia) )
+    {
+        Gia_ManStop( pGia );
+        pGia = Gia_ManDup( p );
+    }
     Gia_ManTransferTiming( pGia, p );
     return pGia;
 }
