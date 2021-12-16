@@ -21,6 +21,13 @@
 #include "wln.h"
 #include "base/main/main.h"
 
+#ifdef WIN32
+#include <process.h> 
+#define unlink _unlink
+#else
+#include <unistd.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -110,11 +117,7 @@ Wln_Ntk_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fVer
         printf( "Dumped the design into file \"%s\".\n", pFileTemp );
         return NULL;
     }
-#ifdef WIN32
-    _unlink( pFileTemp );
-#else
     unlink( pFileTemp );
-#endif
     return pNtk;
 }
 Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fVerbose )
@@ -139,11 +142,7 @@ Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSk
     ABC_FREE( pGia->pName );
     pGia->pName = pTopModule ? Abc_UtilStrsav(pTopModule) :
         Extra_FileNameGeneric( Extra_FileNameWithoutPath(pFileName) );
-#ifdef WIN32
-    _unlink( pFileTemp );
-#else
     unlink( pFileTemp );
-#endif
     // complement the outputs
     if ( fInvert )
     {
