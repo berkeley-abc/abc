@@ -310,7 +310,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fVerbose );
+    extern Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fTechMap, int fVerbose );
     extern Wln_Ntk_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fVerbose );
 
     FILE * pFile;
@@ -319,10 +319,11 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCollapse    =    0;
     int fBlast       =    0;
     int fInvert      =    0;
+    int fTechMap     =    0;
     int fSkipStrash  =    0;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Tcaisvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Tcaismvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -346,6 +347,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             fSkipStrash ^= 1;
+            break;
+        case 'm':
+            fTechMap ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -378,9 +382,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Gia_Man_t * pNew = NULL;
         if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, fSkipStrash, fInvert, fVerbose );
+            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, fSkipStrash, fInvert, fTechMap, fVerbose );
         else if ( !strcmp( Extra_FileNameExtension(pFileName), "sv" )  )
-            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, fSkipStrash, fInvert, fVerbose );
+            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, fSkipStrash, fInvert, fTechMap, fVerbose );
         else
         {
             printf( "Abc_CommandYosys(): Unknown file extension.\n" );
@@ -404,13 +408,14 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%yosys [-T <module>] [-caisvh] <file_name>\n" );
+    Abc_Print( -2, "usage: %%yosys [-T <module>] [-caismvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads Verilog or SystemVerilog using Yosys\n" );
     Abc_Print( -2, "\t-T     : specify the top module name (default uses \"-auto-top\"\n" );
     Abc_Print( -2, "\t-c     : toggle collapsing the design using Yosys [default = %s]\n", fCollapse? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle bit-blasting the design using Yosys [default = %s]\n", fBlast? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle interting the outputs (useful for miters) [default = %s]\n", fInvert? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle no structural hashing during bit-blasting [default = %s]\n", fSkipStrash? "no strash": "strash" );
+    Abc_Print( -2, "\t-m     : toggle using \"techmap\" to blast operators [default = %s]\n", fTechMap? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

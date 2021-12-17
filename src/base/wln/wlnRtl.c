@@ -120,15 +120,15 @@ Wln_Ntk_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fVer
     unlink( pFileTemp );
     return pNtk;
 }
-Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fVerbose )
+Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fTechMap, int fVerbose )
 {
     Gia_Man_t * pGia = NULL;
     char Command[1000];
     char * pFileTemp = "_temp_.aig";
     int fSVlog = strstr(pFileName, ".sv") != NULL;
-    sprintf( Command, "%s -qp \"read_verilog %s%s; hierarchy %s%s; flatten; proc; aigmap; write_aiger %s\"", 
+    sprintf( Command, "%s -qp \"read_verilog %s%s; hierarchy %s%s; flatten; proc; %saigmap; write_aiger %s\"", 
         Wln_GetYosysName(), fSVlog ? "-sv ":"", pFileName, 
-        pTopModule ? "-top " : "-auto-top", pTopModule ? pTopModule : "", pFileTemp );
+        pTopModule ? "-top " : "-auto-top", pTopModule ? pTopModule : "", fTechMap ? "techmap; setundef -zero; " : "", pFileTemp );
     if ( fVerbose )
     printf( "%s\n", Command );
     if ( !Wln_ConvertToRtl(Command, pFileTemp) )
