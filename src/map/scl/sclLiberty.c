@@ -955,6 +955,8 @@ int Scl_LibertyReadPinDirection( Scl_Tree_t * p, Scl_Item_t * pPin )
             return 0;
         if ( !strcmp(pToken, "output") )
             return 1;
+        if ( !strcmp(pToken, "internal") )
+            return 2;
         break;
     }
     return -1;
@@ -1525,7 +1527,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             float CapOne, CapRise, CapFall;
             if ( Scl_LibertyReadPinFormula(p, pPin) != NULL ) // skip output pin
                 continue;
-            assert( Scl_LibertyReadPinDirection(p, pPin) == 0 );
+            assert( Scl_LibertyReadPinDirection(p, pPin) == 0 || Scl_LibertyReadPinDirection(p, pPin) == 2);
             pName = Scl_LibertyReadString(p, pPin->Head);
             Vec_PtrPush( vNameIns, Abc_UtilStrsav(pName) );
             Vec_StrPutS_( vOut, pName );
@@ -1545,6 +1547,8 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
         Scl_ItemForEachChildName( p, pCell, pPin, "pin" )
         {
             if ( !Scl_LibertyReadPinFormula(p, pPin) ) // skip input pin
+                continue;
+            if (Scl_LibertyReadPinDirection(p, pPin) == 2) // skip internal pin
                 continue;
             assert( Scl_LibertyReadPinDirection(p, pPin) == 1 );
             pName = Scl_LibertyReadString(p, pPin->Head);
