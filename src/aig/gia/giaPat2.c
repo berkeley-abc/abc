@@ -890,6 +890,8 @@ int Min_ManCountSize( Vec_Wec_t * vCexes, int iFirst, int iLimit )
 }
 Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTries, int nMinCexes, Vec_Int_t * vStats[3], int fUseSim, int fUseSat, int fVerbose )
 {
+    int fUseSynthesis  = 1;
+    abctime clkSim = Abc_Clock(), clkSat = Abc_Clock();
     Vec_Int_t * vOuts  = vOuts0 ? vOuts0 : Vec_IntStartNatural( Gia_ManCoNum(p) );
     Min_Man_t * pNew   = Min_ManFromGia( p, vOuts ); 
     Vec_Wec_t * vCexes = Vec_WecStart( Vec_IntSize(vOuts) * nMinCexes );
@@ -945,6 +947,7 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
     assert( Vec_IntSize(vOuts) == Vec_IntSize(vStats[0]) );
     assert( Vec_IntSize(vOuts) == Vec_IntSize(vStats[1]) );
     assert( Vec_IntSize(vOuts) == Vec_IntSize(vStats[2]) );
+    clkSim = Abc_Clock() - clkSim;
 
     if ( fUseSat )
     Gia_ManForEachCoVec( vOuts, p, pObj, i )
@@ -952,11 +955,13 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
         if ( Vec_IntEntry(vStats[2], i) >= nMinCexes || Vec_IntEntry(vStats[1], i) > 10*Vec_IntEntry(vStats[2], i) )
             continue;
         {
+            abctime clk = Abc_Clock();
             int iObj  = Min_ManCo(pNew, i);
             int Index = Gia_ObjCioId(pObj);
             Vec_Int_t * vMap = Vec_IntAlloc( 100 );
             Gia_Man_t * pCon = Gia_ManDupCones2( p, &Index, 1, vMap );
-            Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pCon, 8, 0, 0, 0, 0 );
+            Gia_Man_t * pCon1= fUseSynthesis ? Gia_ManAigSyn2( pCon, 0, 1, 0, 100, 0, 0, 0 ) : NULL;
+            Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( fUseSynthesis ? pCon1 : pCon, 8, 0, 0, 0, 0 );
             sat_solver* pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
             int Lit          = Abc_Var2Lit( 1, 0 );
             int status       = sat_solver_addclause( pSat, &Lit, &Lit+1 );
@@ -972,8 +977,11 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
                     while ( nAllCalls++ < 100 )
                     {
                         int v, iVar = pCnf->nVars - Gia_ManPiNum(pCon), nVars = Gia_ManPiNum(pCon);
-                        sat_solver_randomize( pSat, iVar, nVars );
+                        if ( nAllCalls > 1 )
+                            sat_solver_randomize( pSat, iVar, nVars );
                         status = sat_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
+                        if ( status != l_True )
+                            break;
                         assert( status == l_True );
                         Vec_IntClear( vLits );
                         for ( v = 0; v < nVars; v++ )
@@ -1004,11 +1012,22 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
             sat_solver_delete( pSat );
             Cnf_DataFree( pCnf );
             Gia_ManStop( pCon );
+            Gia_ManStopP( &pCon1 );
             Vec_IntFree( vMap );
+            if ( fVerbose )
+            {
+                printf( "SAT solving for output %3d (cexes = %5d) : ", i, nCurrCexes );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
         }
     }
+    clkSat = Abc_Clock() - clkSat - clkSim;
     if ( fVerbose )
         printf( "Used simulation for %d and SAT for %d outputs (out of %d).\n", nSimOuts, nSatOuts, nOuts );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Simulation time ", clkSim );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "SAT solving time", clkSat );
     //Vec_WecPrint( vCexes, 0 );
     if ( vOuts != vOuts0 )
         Vec_IntFreeP( &vOuts );
@@ -1076,7 +1095,7 @@ Vec_Ptr_t * Min_ReloadCexes( Vec_Wec_t * vCexes, int nMinCexes )
 Vec_Wrd_t * Min_ManBitPack( Gia_Man_t * p, int nWords0, Vec_Wec_t * vCexes, int fRandom, int nMinCexes, Vec_Int_t * vScores, int fVerbose )
 {
     abctime clk = Abc_Clock();
-    int fVeryVerbose = 0;
+    //int fVeryVerbose = 0;
     Vec_Wrd_t * vSimsPi = NULL;
     Vec_Int_t * vLevel; 
     int w, nBits, nTotal = 0, fFailed = ABC_INFINITY;
@@ -1259,39 +1278,51 @@ Vec_Wrd_t * Gia_ManCollectSims( Gia_Man_t * pSwp, int nWords, Vec_Int_t * vOuts,
     Vec_Int_t * vMap    = Vec_IntAlloc( 100 );
     Gia_Man_t * pSwp2   = Gia_ManDupCones2( pSwp, Vec_IntArray(vOuts), Vec_IntSize(vOuts), vMap );
     Vec_Wec_t * vCexes  = Min_ManComputeCexes( pSwp2, NULL, nMaxTries, nMinCexes, vStats, fUseSim, fUseSat, fVerbose );
-    Vec_Wrd_t * vSimsPi = Min_ManBitPack( pSwp2, nWords, vCexes, 1, nMinCexes, vStats[0], fVerbose );
-    Vec_Wrd_t * vSimsPo = Gia_ManSimPatSimOut( pSwp2, vSimsPi, 1 );
-    Vec_Int_t * vCounts = Patt_ManOutputErrorCoverage( vSimsPo, Vec_IntSize(vOuts) );
-    if ( fVerbose )
-        Patt_ManProfileErrorsOne( vSimsPo, Vec_IntSize(vOuts) );
-    if ( fVeryVerbose )
+    if ( Vec_IntSum(vStats[2]) == 0 )
     {
-        printf( "Unsolved = %4d  ", Vec_IntSize(vOuts) );
-        Gia_ManPrintStats( pSwp2, NULL );
-        Vec_IntForEachEntry( vOuts, iObj, i )
-        {
-            printf( "%4d : ", i );
-            printf( "Out = %5d  ",    Vec_IntEntry(vMap, i) );
-            printf( "SimAll =%8d  ",  Vec_IntEntry(vStats[0], i) );
-            printf( "SimGood =%8d  ", Vec_IntEntry(vStats[1], i) );
-            printf( "PatsAll =%8d  ", Vec_IntEntry(vStats[2], i) );
-            printf( "Count = %5d  ",  Vec_IntEntry(vCounts, i) );
-            printf( "\n" );
-            if ( i == 20 )
-                break;
-        }
+        for ( i = 0; i < 3; i++ )
+            Vec_IntFree( vStats[i] );
+        Vec_IntFree( vMap );
+        Gia_ManStop( pSwp2 );
+        Vec_WecFree( vCexes );
+        return NULL;
     }
-    for ( i = 0; i < 3; i++ )
-        Vec_IntFree( vStats[i] );
-    Vec_IntFree( vCounts );
-    Vec_WrdFree( vSimsPo );
-    Vec_WecFree( vCexes );
-    Gia_ManStop( pSwp2 );
-    //printf( "Compressing inputs: %5d -> %5d\n", Gia_ManCiNum(pSwp), Vec_IntSize(vMap) );
-    vSimsPi = Min_ManRemapSims( Gia_ManCiNum(pSwp), vMap, vSimsPo = vSimsPi );
-    Vec_WrdFree( vSimsPo );
-    Vec_IntFree( vMap );
-    return vSimsPi;
+    else
+    {
+        Vec_Wrd_t * vSimsPi = Min_ManBitPack( pSwp2, nWords, vCexes, 1, nMinCexes, vStats[0], fVerbose );
+        Vec_Wrd_t * vSimsPo = Gia_ManSimPatSimOut( pSwp2, vSimsPi, 1 );
+        Vec_Int_t * vCounts = Patt_ManOutputErrorCoverage( vSimsPo, Vec_IntSize(vOuts) );
+        if ( fVerbose )
+            Patt_ManProfileErrorsOne( vSimsPo, Vec_IntSize(vOuts) );
+        if ( fVeryVerbose )
+        {
+            printf( "Unsolved = %4d  ", Vec_IntSize(vOuts) );
+            Gia_ManPrintStats( pSwp2, NULL );
+            Vec_IntForEachEntry( vOuts, iObj, i )
+            {
+                printf( "%4d : ", i );
+                printf( "Out = %5d  ",    Vec_IntEntry(vMap, i) );
+                printf( "SimAll =%8d  ",  Vec_IntEntry(vStats[0], i) );
+                printf( "SimGood =%8d  ", Vec_IntEntry(vStats[1], i) );
+                printf( "PatsAll =%8d  ", Vec_IntEntry(vStats[2], i) );
+                printf( "Count = %5d  ",  Vec_IntEntry(vCounts, i) );
+                printf( "\n" );
+                if ( i == 20 )
+                    break;
+            }
+        }
+        for ( i = 0; i < 3; i++ )
+            Vec_IntFree( vStats[i] );
+        Vec_IntFree( vCounts );
+        Vec_WrdFree( vSimsPo );
+        Vec_WecFree( vCexes );
+        Gia_ManStop( pSwp2 );
+        //printf( "Compressing inputs: %5d -> %5d\n", Gia_ManCiNum(pSwp), Vec_IntSize(vMap) );
+        vSimsPi = Min_ManRemapSims( Gia_ManCiNum(pSwp), vMap, vSimsPo = vSimsPi );
+        Vec_WrdFree( vSimsPo );
+        Vec_IntFree( vMap );
+        return vSimsPi;
+    }
 }
 Vec_Wrd_t * Min_ManCollect( Gia_Man_t * p, int nConf, int nConf2, int nMaxTries, int nMinCexes, int fUseSim, int fUseSat, int fVerbose, int fVeryVerbose )
 {
