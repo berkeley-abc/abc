@@ -86,7 +86,7 @@ double Gluco2::memUsed(void) {
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
     return (double)ru.ru_maxrss / 1024; }
-double memUsedPeak(void) { return memUsed(); }
+double Gluco2::memUsedPeak(void) { return memUsed(); }
 
 ABC_NAMESPACE_IMPL_END
 
