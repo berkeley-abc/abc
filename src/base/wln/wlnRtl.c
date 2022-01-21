@@ -37,21 +37,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Wln_Ntk_t * Wln_ReadRtl( char * pFileName )
-{
-    return NULL;
-}
 
 /**Function*************************************************************
 
@@ -96,28 +81,31 @@ int Wln_ConvertToRtl( char * pCommand, char * pFileTemp )
     fclose( pFile );
     return 1;
 }
-Wln_Ntk_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fVerbose )
+Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fCollapse, int fVerbose )
 {
-    Wln_Ntk_t * pNtk = NULL;
+    Rtl_Lib_t * pNtk = NULL;
     char Command[1000];
     char * pFileTemp = "_temp_.rtlil";
     int fSVlog = strstr(pFileName, ".sv") != NULL;
-    sprintf( Command, "%s -qp \"read_verilog %s%s; hierarchy %s%s; flatten; proc; write_rtlil %s\"", 
+    if ( strstr(pFileName, ".rtl") )
+        return Rtl_LibReadFile( pFileName, pFileName );
+    sprintf( Command, "%s -qp \"read_verilog %s%s; hierarchy %s%s; %sproc; write_rtlil %s\"", 
         Wln_GetYosysName(), fSVlog ? "-sv ":"", pFileName, 
-        pTopModule ? "-top " : "-auto-top", pTopModule ? pTopModule : "", pFileTemp );
+        pTopModule ? "-top " : "-auto-top", 
+        pTopModule ? pTopModule : "", 
+        fCollapse ? "flatten; " : "",
+        pFileTemp );
     if ( fVerbose )
     printf( "%s\n", Command );
     if ( !Wln_ConvertToRtl(Command, pFileTemp) )
-    {
         return NULL;
-    }
-    pNtk = Wln_ReadRtl( pFileTemp );
+    pNtk = Rtl_LibReadFile( pFileTemp, pFileName );
     if ( pNtk == NULL )
     {
         printf( "Dumped the design into file \"%s\".\n", pFileTemp );
         return NULL;
     }
-    unlink( pFileTemp );
+    //unlink( pFileTemp );
     return pNtk;
 }
 Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fTechMap, int fVerbose )
@@ -125,10 +113,16 @@ Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSk
     Gia_Man_t * pGia = NULL;
     char Command[1000];
     char * pFileTemp = "_temp_.aig";
-    int fSVlog = strstr(pFileName, ".sv") != NULL;
-    sprintf( Command, "%s -qp \"read_verilog %s%s; hierarchy %s%s; flatten; proc; %saigmap; write_aiger %s\"", 
-        Wln_GetYosysName(), fSVlog ? "-sv ":"", pFileName, 
-        pTopModule ? "-top " : "-auto-top", pTopModule ? pTopModule : "", fTechMap ? "techmap; setundef -zero; " : "", pFileTemp );
+    int fRtlil = strstr(pFileName, ".rtl") != NULL;
+    int fSVlog = strstr(pFileName, ".sv")  != NULL;
+    sprintf( Command, "%s -qp \"%s%s%s; hierarchy %s%s; flatten; proc; %saigmap; write_aiger %s\"", 
+        Wln_GetYosysName(), 
+        fRtlil ? "read_rtlil" : "read_verilog",
+        fSVlog ? " -sv ":" ", 
+        pFileName, 
+        pTopModule ? "-top " : "-auto-top", 
+        pTopModule ? pTopModule : "", 
+        fTechMap ? "techmap; setundef -zero; " : "", pFileTemp );
     if ( fVerbose )
     printf( "%s\n", Command );
     if ( !Wln_ConvertToRtl(Command, pFileTemp) )

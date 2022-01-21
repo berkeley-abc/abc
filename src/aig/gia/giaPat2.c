@@ -1025,9 +1025,9 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
     if ( fVerbose )
         printf( "Used simulation for %d and SAT for %d outputs (out of %d).\n", nSimOuts, nSatOuts, nOuts );
     if ( fVerbose )
-        Abc_PrintTime( 1, "Simulation time ", clkSim );
+        Abc_PrintTime( 1, "Simulation time  ", clkSim );
     if ( fVerbose )
-        Abc_PrintTime( 1, "SAT solving time", clkSat );
+        Abc_PrintTime( 1, "SAT solving time ", clkSat );
     //Vec_WecPrint( vCexes, 0 );
     if ( vOuts != vOuts0 )
         Vec_IntFreeP( &vOuts );

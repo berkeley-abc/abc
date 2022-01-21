@@ -1086,6 +1086,20 @@ Gia_Man_t * Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(pOne) + Gia_ManRegNum(pTwo) );
     return pNew;
 }
+void Gia_ManDupRebuild( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vLits )
+{
+    Gia_Obj_t * pObj; int i;
+    assert( Vec_IntSize(vLits) == Gia_ManCiNum(p) );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Vec_IntEntry(vLits, i);
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Vec_IntClear( vLits );
+    Gia_ManForEachCo( p, pObj, i )
+        Vec_IntPush( vLits, Gia_ObjFanin0Copy(pObj) );
+    assert( Vec_IntSize(vLits) == Gia_ManCoNum(p) );
+}
 
 /**Function*************************************************************
 

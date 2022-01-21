@@ -226,6 +226,10 @@ static inline const char * Abc_OperName( int Type )
     if ( Type == ABC_OPER_ZEROPAD      )   return "zPad";   
     if ( Type == ABC_OPER_SIGNEXT      )   return "sExt";   
 
+    if ( Type == ABC_OPER_BIT_MUX      )   return "mux";       
+    if ( Type == ABC_OPER_SEL_NMUX     )   return "nmux";   
+    if ( Type == ABC_OPER_SEL_SEL      )   return "pmux";   
+
     if ( Type == ABC_OPER_CONST        )   return "const";  
     if ( Type == ABC_OPER_TABLE        )   return "table";  
     if ( Type == ABC_OPER_LUT          )   return "lut";  

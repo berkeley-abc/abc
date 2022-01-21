@@ -251,6 +251,10 @@ extern void           Wln_NtkRetimeCreateDelayInfo( Wln_Ntk_t * pNtk );
 /*=== wlcWriteVer.c ========================================================*/
 extern void           Wln_WriteVer( Wln_Ntk_t * p, char * pFileName );
 
+/*=== wlcRead.c ========================================================*/
+typedef struct Rtl_Lib_t_ Rtl_Lib_t;
+extern Rtl_Lib_t *    Rtl_LibReadFile( char * pFileName, char * pFileSpec );
+extern void           Rtl_LibFree( Rtl_Lib_t * p );
 
 ABC_NAMESPACE_HEADER_END
 
