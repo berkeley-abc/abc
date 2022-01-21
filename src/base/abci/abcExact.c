@@ -1034,7 +1034,7 @@ static word * Ses_ManDeriveTruth( Ses_Man_t * pSes, char * pSol, int fInvert )
     for ( i = 0; i < nGates; ++i )
     {
         f = *p++;
-        assert( *p++ == 2 );
+        assert( *p == 2 ), p++;
         j = *p++;
         k = *p++;
 

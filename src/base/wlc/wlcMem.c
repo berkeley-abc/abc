@@ -800,7 +800,7 @@ void Wlc_NtkTrace_rec( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int iFrame, Vec_Int_t * 
     {
         int Index = 3*(iFrame*Vec_IntSize(vMemObjs) + iNum);
         int Value = (int)Vec_WrdEntry( vValues, Index );
-        assert( Value == 0 && Value == 1 );
+        assert( Value == 0 || Value == 1 );
         Wlc_NtkTrace_rec( p, Value ? Wlc_ObjFanin2(p, pObj) : Wlc_ObjFanin1(p, pObj), iFrame, vMemObjs, vValues, ValueA, vRes );
         Vec_IntPush( vRes, (iObj << 11) | (iFrame << 1) | Value );
     }
