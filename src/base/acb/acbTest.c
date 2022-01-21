@@ -466,7 +466,7 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
 ***********************************************************************/
 void Acb_OutputFile( char * pFileName, Acb_Ntk_t * pNtkF, int * pModel )
 {
-    char * pFileName0 = pFileName? pFileName : "output";
+    const char * pFileName0 = pFileName? pFileName : "output";
     FILE * pFile = fopen( pFileName0, "wb" );
     if ( pFile == NULL )
     {
