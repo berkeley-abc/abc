@@ -953,7 +953,7 @@ void Rtl_NtkPrintConst( Rtl_Ntk_t * p, int * pConst )
     }
     fprintf( Rtl_NtkFile(p), " %d\'", pConst[0] );
     for ( i = pConst[0] - 1; i >= 0; i-- )
-        fprintf( Rtl_NtkFile(p), "%d", Abc_InfoHasBit(pConst+1,i) );
+        fprintf( Rtl_NtkFile(p), "%d", Abc_InfoHasBit((unsigned *)pConst+1,i) );
 }
 void Rtl_NtkPrintSlice( Rtl_Ntk_t * p, int * pSlice )
 {
@@ -1079,7 +1079,7 @@ int Rtl_NtkReadConst( Rtl_Ntk_t * p, char * pConst )
         pArray = Vec_IntEntryP( vConst, RetVal + 1 );
         for ( i = Length-1; i >= Length-Width; i-- )
             if ( pConst[i] == '1' )
-                Abc_InfoSetBit( pArray, Length-1-i );
+                Abc_InfoSetBit( (unsigned *)pArray, Length-1-i );
     }
     else
     {
@@ -1145,7 +1145,7 @@ int Rtl_NtkReadWire( Rtl_Ntk_t * p, int iPos )
     Vec_IntClear( &p->pLib->vAttrTemp );
     Vec_IntForEachEntryStart( p->pLib->vTokens, Entry, i, iPos )
     {
-        char * pTok = Rtl_NtkTokStr(p, i);
+        //char * pTok = Rtl_NtkTokStr(p, i);
         if ( Entry == -1 )
             break;
         else if ( Rtl_NtkTokCheck(p, Entry, RTL_WIDTH) )
@@ -1288,7 +1288,7 @@ int Rtl_NtkReadNtk( Rtl_Lib_t * pLib, int Mod )
 void Rtl_NtkReportUndefs( Rtl_Ntk_t * p )
 {
     Vec_Int_t * vNames, * vCounts;
-    int i, iName, * pCell, nUndef = 0;
+    int i, iName, * pCell;
     vNames  = Vec_IntAlloc( 10 );
     vCounts = Vec_IntAlloc( 10 );
     Rtl_NtkForEachCell( p, pCell, i )
@@ -1429,7 +1429,7 @@ void Rtl_NtkCollectConstRange( Rtl_Ntk_t * p, int * pConst )
         nLimit = 32;
     //assert( pConst[0] > 0 );
     for ( i = 0; i < nLimit; i++ )
-        Vec_IntPush( &p->vBitTemp, Abc_InfoHasBit(pConst+1,i) );
+        Vec_IntPush( &p->vBitTemp, Abc_InfoHasBit((unsigned *)pConst+1,i) );
 }
 void Rtl_NtkCollectSliceRange( Rtl_Ntk_t * p, int * pSlice )
 {
@@ -1671,7 +1671,7 @@ void Rtl_LibBlast( Rtl_Lib_t * pLib )
 void Rtl_LibPreprocess( Rtl_Lib_t * pLib )
 {
     abctime clk = Abc_Clock(); 
-    Rtl_Ntk_t * p1, * p2, * p;
+    Rtl_Ntk_t * p1 = NULL, * p2 = NULL, * p;
     int i, k, Status, fFound = 0;
     printf( "Performing preprocessing for verification.\n" );
     // find similar modules
