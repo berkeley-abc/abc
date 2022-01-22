@@ -24,12 +24,12 @@ jobs:
 
     - name: Install brew dependencies
       run: |
-        HOMEBREW_NO_AUTO_UPDATE=1 brew install readline
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install readline ninja
       if: ${{ contains(matrix.os, 'macos') }}
 
     - name: Install APT dependencies
       run: |
-        sudo apt install -y libreadline-dev
+        sudo apt install -y libreadline-dev ninja-build
       if: ${{ !contains(matrix.os, 'macos') }}
 
     - name: Configure CMake
