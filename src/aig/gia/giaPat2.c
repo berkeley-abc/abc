@@ -346,7 +346,7 @@ void Min_LitMinimize( Min_Man_t * p, int iLit, Vec_Int_t * vLits )
                         Min_ObjMarkValL( p, Abc_Lit2Var(iLit1) );
                     else if ( Val0 == 4 && Val1 != 4 )
                         Min_ObjMarkValL( p, Abc_Lit2Var(iLit0) );
-                    else if ( Val1 == 4 && Val1 != 4 )
+                    else if ( Val1 == 4 && Val0 != 4 )
                         Min_ObjMarkValL( p, Abc_Lit2Var(iLit1) );
                     else if ( Abc_Random(0) & 1 )
                         Min_ObjMarkValL( p, Abc_Lit2Var(iLit0) );
