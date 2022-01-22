@@ -445,7 +445,7 @@ void CecG_ManSatSolverRecycle( Cec_ManSat_t * p )
 //        memset( p->pSatVars, 0, sizeof(int) * Gia_ManObjNumMax(p->pAigTotal) );
         sat_solver_stop( p->pSat );
     }
-    p->pSat = sat_solver_start();
+    p->pSat = (struct sat_solver_t*)sat_solver_start();
     assert( 0 <= p->pPars->SolverType && p->pPars->SolverType <= 2 );
     sat_solver_set_jftr( p->pSat, p->pPars->SolverType );
     //sat_solver_setnvars( p->pSat, 1000 ); // minisat only

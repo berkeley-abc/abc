@@ -61,9 +61,9 @@ ifneq ($(findstring arm,$(shell uname -m)),)
 	CFLAGS += -DABC_MEMALIGN=4
 endif
 
-# compile ABC using the C++ comipler and put everything in the namespace $(ABC_NAMESPACE)
+# compile ABC using the C++ compiler and put everything in the namespace $(ABC_NAMESPACE)
 ifdef ABC_USE_NAMESPACE
-  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -fpermissive
+  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -fpermissive -x c++
   CC := $(CXX)
   $(info $(MSG_PREFIX)Compiling in namespace $(ABC_NAMESPACE))
 endif
