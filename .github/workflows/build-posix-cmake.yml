@@ -1,0 +1,62 @@
+on: [push]
+
+jobs:
+
+  build-posix:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        use_namespace: [false, true]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      MAKE_ARGS: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=ON' || '' }}
+      DEMO_ARGS: ${{ matrix.use_namespace && '-DABC_NAMESPACE=xxx' || '' }}
+      DEMO_GCC: ${{ matrix.use_namespace && 'g++ -x c++' || 'gcc' }}
+
+    steps:
+
+    - name: Git Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Install brew dependencies
+      run: |
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install readline
+      if: ${{ contains(matrix.os, 'macos') }}
+
+    - name: Install APT dependencies
+      run: |
+        sudo apt install -y libreadline-dev
+      if: ${{ !contains(matrix.os, 'macos') }}
+
+    - name: Configure CMake
+      run: |
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -B build
+
+    - name: Build CMake
+      run: |
+        cmake --build build
+
+    - name: Test Executable
+      run: |
+        ./build/abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+
+    - name: Test Library
+      run: |
+        ${DEMO_GCC} ${DEMO_ARGS} -Wall -c src/demo.c -o demo.o
+        g++ -o demo demo.o build/libabc.a -lm -ldl -lreadline -lpthread
+        ./demo i10.aig
+
+    - name: Stage Executable
+      run: |
+       mkdir staging
+       cp abc libabc.a staging/
+
+    - name: Upload pacakge artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: package
+        path: staging/
