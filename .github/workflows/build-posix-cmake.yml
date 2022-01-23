@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     env:
-      MAKE_ARGS: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=ON' || '' }}
+      CMAKE_ARGS: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=xxx' || '' }}
       DEMO_ARGS: ${{ matrix.use_namespace && '-DABC_NAMESPACE=xxx' || '' }}
       DEMO_GCC: ${{ matrix.use_namespace && 'g++ -x c++' || 'gcc' }}
 
@@ -34,7 +34,7 @@ jobs:
 
     - name: Configure CMake
       run: |
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -B build
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ${CMAKE_ARGS} -B build
 
     - name: Build CMake
       run: |
@@ -53,7 +53,7 @@ jobs:
     - name: Stage Executable
       run: |
        mkdir staging
-       cp abc libabc.a staging/
+       cp build/abc build/libabc.a staging/
 
     - name: Upload pacakge artifact
       uses: actions/upload-artifact@v1

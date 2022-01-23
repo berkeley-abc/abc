@@ -47,9 +47,14 @@ if(ABC_USE_NAMESPACE)
     set(ABC_USE_NAMESPACE_FLAGS "ABC_USE_NAMESPACE=${ABC_USE_NAMESPACE}")
 endif()
 
+if( APPLE )
+    set(make_env ${CMAKE_COMMAND} -E env SDKROOT=${CMAKE_OSX_SYSROOT})
+endif()
+
 # run make to extract compiler options, linker options and list of source files
 execute_process(
   COMMAND
+    ${make_env}
     make
         ${ABC_READLINE_FLAGS}
         ${ABC_USE_NAMESPACE_FLAGS}
