@@ -105,7 +105,7 @@ extern void              bmcg_sat_solver_start_new_round( bmcg_sat_solver * s );
 extern void              bmcg_sat_solver_mark_cone( bmcg_sat_solver * s, int var );
 
 
-extern void              Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars );
+extern void              Glucose_SolveCnf( char * pFilename, Glucose_Pars * pPars, int fDumpCnf );
 extern int               Glucose_SolveAig( Gia_Man_t * p, Glucose_Pars * pPars );
 
 ABC_NAMESPACE_HEADER_END
