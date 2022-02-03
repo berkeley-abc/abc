@@ -27,12 +27,13 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define MAX_LINE 10000
+#define MAX_LINE 1000000
 
-#define MAX_MAP     32
-#define CELL_NUM     8
-#define WIRE_NUM     5
-#define TEMP_NUM     5
+#define MAX_MAP       32
+#define CELL_NUM       8
+#define WIRE_NUM       5
+#define TEMP_NUM       5
+#define CONST_SHIFT   99
 
 //typedef struct Rtl_Lib_t_  Rtl_Lib_t;
 struct Rtl_Lib_t_ 
@@ -58,14 +59,16 @@ struct Rtl_Ntk_t_
     int                   nInputs;   // word-level inputs
     int                   nOutputs;  // word-level outputs
     Vec_Int_t             vWires;    // wires (name{upto,signed,in,out}+width+offset+number)
-    Vec_Int_t             vCells;    // instances ([0]type+[1]name+[2]mod+[3]ins+[4]nattr+[5]nparams+[6]nconns+[6]mark+(attr+params+conns))
+    Vec_Int_t             vCells;    // instances ([0]type+[1]name+[2]mod+[3]ins+[4]nattr+[5]nparams+[6]nconns+[7]mark+(attr+params+conns))
     Vec_Int_t             vConns;    // connection pairs
     Vec_Int_t             vStore;    // storage for cells
     Vec_Int_t             vAttrs;    // attributes
     Rtl_Lib_t *           pLib;      // parent
     Vec_Int_t             vOrder;    // topological order
     Vec_Int_t             vLits;     // bit-level view
+    Vec_Int_t             vDrivers;  // bit-level view
     Vec_Int_t             vBitTemp;  // storage for bits
+    Vec_Int_t             vBitTemp2; // storage for bits
     Gia_Man_t *           pGia;      // derived by bit-blasting
     int                   Slice0;    // first slice
     int                   Slice1;    // last slice
@@ -187,7 +190,9 @@ void Rtl_NtkFree( Rtl_Ntk_t * p )
     ABC_FREE( p->vAttrs.pArray );
     ABC_FREE( p->vOrder.pArray );
     ABC_FREE( p->vLits.pArray );
+    ABC_FREE( p->vDrivers.pArray );
     ABC_FREE( p->vBitTemp.pArray );
+    ABC_FREE( p->vBitTemp2.pArray );
     ABC_FREE( p );
 }
 void Rtl_NtkCountPio( Rtl_Ntk_t * p, int Counts[4] )
@@ -229,8 +234,8 @@ void Rtl_NtkPrintStats( Rtl_Ntk_t * p, int nNameSymbs )
 {
     int Counts[4] = {0};     Rtl_NtkCountPio( p, Counts );
     printf( "%*s : ",        nNameSymbs, Rtl_NtkName(p) );
-    printf( "PI = %3d (%3d)  ", Counts[0], Counts[1] );
-    printf( "PO = %3d (%3d)  ", Counts[2], Counts[3] );
+    printf( "PI = %5d (%5d)  ", Counts[0], Counts[1] );
+    printf( "PO = %5d (%5d)  ", Counts[2], Counts[3] );
     printf( "Wire = %6d   ", Rtl_NtkWireNum(p) );
     printf( "Cell = %6d   ", Rtl_NtkCellNum(p) );
     printf( "Con = %6d",     Rtl_NtkConNum(p) );
@@ -897,22 +902,23 @@ void Rtl_TokenRespace( char * p )
 Vec_Int_t * Rtl_NtkReadFile( char * pFileName, Abc_Nam_t * p )
 {
     Vec_Int_t * vTokens;
-    char * pTemp, Buffer[MAX_LINE]; 
+    char * pTemp, * pBuffer; 
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
         printf( "Cannot open file \"%s\" for reading.\n", pFileName );
         return NULL;
     }
+    pBuffer = ABC_ALLOC( char, MAX_LINE );
     Abc_NamStrFindOrAdd( p, "module", NULL );
     assert( Abc_NamObjNumMax(p) == 2 );
     vTokens = Vec_IntAlloc( 1000 );
-    while ( fgets( Buffer, MAX_LINE, pFile ) != NULL )
+    while ( fgets( pBuffer, MAX_LINE, pFile ) != NULL )
     {
-        if ( Buffer[0] == '#' )
+        if ( pBuffer[0] == '#' )
             continue;
-        Rtl_TokenUnspace( Buffer );
-        pTemp = strtok( Buffer, " \t\r\n" );
+        Rtl_TokenUnspace( pBuffer );
+        pTemp = strtok( pBuffer, " \t\r\n" );
         if ( pTemp == NULL )
             continue;
         while ( pTemp )
@@ -923,6 +929,7 @@ Vec_Int_t * Rtl_NtkReadFile( char * pFileName, Abc_Nam_t * p )
         }
         Vec_IntPush( vTokens, -1 );
     }
+    ABC_FREE( pBuffer );
     fclose( pFile );
     return vTokens;
 }
@@ -1406,6 +1413,117 @@ Rtl_Lib_t * Rtl_LibReadFile( char * pFileName, char * pFileSpec )
   SeeAlso     []
 
 ***********************************************************************/
+extern int Rtl_NtkMapSignalRange( Rtl_Ntk_t * p, int Sig, int iCell, int iBit );
+
+int Rtl_NtkMapWireRange( Rtl_Ntk_t * p, int NameId, int Left, int Right, int iCell, int iBit )
+{
+    //char * pName = Rtl_NtkStr( p, NameId );
+    int Wire  = Rtl_WireMapNameToId( p, NameId );
+    int First = Rtl_WireBitStart( p, Wire );
+    int Width = Rtl_WireWidth( p, Wire ), i, k = 0;
+    Left  = Left  == -1 ? Width-1 :  Left;
+    Right = Right == -1 ? 0       : Right;
+    assert ( Right >= 0 && Right <= Left );
+    for ( i = Right; i <= Left; i++ )
+    {
+        assert( Vec_IntEntry(&p->vDrivers, 2*(First+i)) == -4 );
+        Vec_IntWriteEntry(&p->vDrivers, 2*(First+i)+0, iCell );
+        Vec_IntWriteEntry(&p->vDrivers, 2*(First+i)+1, iBit + (i - Right) );
+    }
+    return Left - Right + 1;
+}
+int Rtl_NtkMapSliceRange( Rtl_Ntk_t * p, int * pSlice, int iCell, int iBit )
+{
+    return Rtl_NtkMapWireRange( p, pSlice[0], pSlice[1], pSlice[2], iCell, iBit );
+}
+int Rtl_NtkMapConcatRange( Rtl_Ntk_t * p, int * pConcat, int iCell, int iBit )
+{
+    int i, k = 0;
+    for ( i = 1; i <= pConcat[0]; i++ )
+        k += Rtl_NtkMapSignalRange( p, pConcat[i], iCell, iBit+k );
+    return k;
+}
+int Rtl_NtkMapSignalRange( Rtl_Ntk_t * p, int Sig, int iCell, int iBit )
+{
+    int nBits = ABC_INFINITY;
+    if ( Rtl_SigIsNone(Sig) )
+        nBits = Rtl_NtkMapWireRange( p, Sig >> 2, -1, -1, iCell, iBit );
+    if ( Rtl_SigIsSlice(Sig) )
+        nBits = Rtl_NtkMapSliceRange( p, Vec_IntEntryP(&p->pLib->vSlices, Sig >> 2), iCell, iBit );
+    if ( Rtl_SigIsConcat(Sig) )
+        nBits = Rtl_NtkMapConcatRange( p, Vec_IntEntryP(&p->pLib->vConcats, Sig >> 2), iCell, iBit );
+    if ( Rtl_SigIsConst(Sig) )
+        assert( 0 );
+    return nBits;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+extern void Rtl_NtkCollectSignalInfo( Rtl_Ntk_t * p, int Sig );
+
+void Rtl_NtkCollectWireInfo( Rtl_Ntk_t * p, int NameId, int Left, int Right )
+{
+    int Wire  = Rtl_WireMapNameToId( p, NameId );
+    int First = Rtl_WireBitStart( p, Wire );
+    int Width = Rtl_WireWidth( p, Wire ), i;
+    Left  = Left  == -1 ? Width-1 :  Left;
+    Right = Right == -1 ? 0       : Right;
+    assert ( Right >= 0 && Right <= Left );
+    for ( i = Right; i <= Left; i++ )
+        Vec_IntPush( &p->vBitTemp, First+i );
+}
+void Rtl_NtkCollectConstInfo( Rtl_Ntk_t * p, int * pConst )
+{
+    int i, nLimit = pConst[0];
+    if ( nLimit == -1 )
+        nLimit = 32;
+    for ( i = 0; i < nLimit; i++ )
+        Vec_IntPush( &p->vBitTemp, Abc_InfoHasBit((unsigned *)pConst+1,i)-CONST_SHIFT );
+}
+void Rtl_NtkCollectSliceInfo( Rtl_Ntk_t * p, int * pSlice )
+{
+    Rtl_NtkCollectWireInfo( p, pSlice[0], pSlice[1], pSlice[2] );
+}
+void Rtl_NtkCollectConcatInfo( Rtl_Ntk_t * p, int * pConcat )
+{
+    int i;
+    for ( i = pConcat[0]; i >= 1; i-- )
+        Rtl_NtkCollectSignalInfo( p, pConcat[i] );
+}
+void Rtl_NtkCollectSignalInfo( Rtl_Ntk_t * p, int Sig )
+{
+    if ( Rtl_SigIsNone(Sig) )
+        Rtl_NtkCollectWireInfo( p, Sig >> 2, -1, -1 );
+    else if ( Rtl_SigIsConst(Sig) )
+        Rtl_NtkCollectConstInfo( p, Vec_IntEntryP(&p->pLib->vConsts, Sig >> 2) );
+    else if ( Rtl_SigIsSlice(Sig) )
+        Rtl_NtkCollectSliceInfo( p, Vec_IntEntryP(&p->pLib->vSlices, Sig >> 2) );
+    else if ( Rtl_SigIsConcat(Sig) )
+        Rtl_NtkCollectConcatInfo( p, Vec_IntEntryP(&p->pLib->vConcats, Sig >> 2) );
+    else assert( 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 extern void Rtl_NtkCollectSignalRange( Rtl_Ntk_t * p, int Sig );
 
 void Rtl_NtkCollectWireRange( Rtl_Ntk_t * p, int NameId, int Left, int Right )
@@ -1427,7 +1545,6 @@ void Rtl_NtkCollectConstRange( Rtl_Ntk_t * p, int * pConst )
     int i, nLimit = pConst[0];
     if ( nLimit == -1 )
         nLimit = 32;
-    //assert( pConst[0] > 0 );
     for ( i = 0; i < nLimit; i++ )
         Vec_IntPush( &p->vBitTemp, Abc_InfoHasBit((unsigned *)pConst+1,i) );
 }
@@ -1609,6 +1726,20 @@ void Rtl_NtkBlastOperator( Gia_Man_t * pNew, Rtl_Ntk_t * p, int * pCell )
     assert( nBits == Vec_IntSize(vRes) );
     //printf( "Finished blasting cell %s (Value = %d).\n", Rtl_CellNameStr(p, pCell), Vec_IntEntry(vRes, 0) );
 }
+char * Rtl_ShortenName( char * pName, int nSize )
+{
+    static char Buffer[1000];
+    if ( (int)strlen(pName) <= nSize )
+        return pName;
+    Buffer[0] = 0;
+    strcat( Buffer, pName );
+    Buffer[nSize-4] = ' ';
+    Buffer[nSize-3] = '.';
+    Buffer[nSize-2] = '.';
+    Buffer[nSize-1] = '.';
+    Buffer[nSize-0] = 0;
+    return Buffer;
+}
 Gia_Man_t * Rtl_NtkBlast( Rtl_Ntk_t * p )
 {
     Gia_Man_t * pTemp, * pNew = Gia_ManStart( 1000 );
@@ -1642,10 +1773,9 @@ Gia_Man_t * Rtl_NtkBlast( Rtl_Ntk_t * p )
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
 
-sprintf( Buffer, "temp%d.aig", counter++ );
-//sprintf( Buffer, "temp%d.aig", counter );
+sprintf( Buffer, "old%02d.aig", counter++ );
 Gia_AigerWrite( pNew, Buffer, 0, 0, 0 );
-printf( "Dumpted blasted AIG into file \"%s\" for module \"%s\".\n", Buffer, Rtl_NtkName(p) );
+printf( "Dumped \"%s\" with AIG for module %-20s : ", Buffer, Rtl_ShortenName(Rtl_NtkName(p), 20) );
 Gia_ManPrintStats( pNew, NULL );
     return pNew;
 }
@@ -1656,6 +1786,234 @@ void Rtl_LibBlast( Rtl_Lib_t * pLib )
         if ( p->pGia == NULL )
             p->pGia = Rtl_NtkBlast( p );
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// -4 unassigned
+// -3 other bit
+// -2 constant
+// -1 primary input
+// 0+ cell
+int Rtl_NtkBlastCons( Rtl_Ntk_t * p )
+{
+    int c, i, iBit0, iBit1, * pCon, * pDri0, * pDri1, nChanges = 0;
+    Rtl_NtkForEachCon( p, pCon, c )
+    {
+        Vec_IntClear( &p->vBitTemp );
+        Rtl_NtkCollectSignalInfo( p, pCon[1] );
+        Vec_IntClearAppend( &p->vBitTemp2, &p->vBitTemp );
+
+        Vec_IntClear( &p->vBitTemp );
+        Rtl_NtkCollectSignalInfo( p, pCon[0] );
+        assert( Vec_IntSize(&p->vBitTemp2) == Vec_IntSize(&p->vBitTemp) );
+
+        Vec_IntForEachEntryTwo( &p->vBitTemp, &p->vBitTemp2, iBit0, iBit1, i )
+        {
+            pDri0 = iBit0 >= 0 ? Vec_IntEntryP(&p->vDrivers, 2*iBit0) : NULL;
+            pDri1 = iBit1 >= 0 ? Vec_IntEntryP(&p->vDrivers, 2*iBit1) : NULL;
+            assert( iBit0 >= 0 || iBit1 >= 0 );
+            if ( iBit0 < 0 )
+            {
+                if ( pDri1[0] == -4 )
+                {
+                    assert( pDri1[1] == -4 );
+                    pDri1[0] = -2;
+                    pDri1[1] = iBit0+CONST_SHIFT;
+                    nChanges++;
+                }
+                continue;
+            }
+            if ( iBit1 < 0 )
+            {
+                if ( pDri0[0] == -4 )
+                {
+                    assert( pDri0[1] == -4 );
+                    pDri0[0] = -2;
+                    pDri0[1] = iBit1+CONST_SHIFT;
+                    nChanges++;
+                }
+                continue;
+            }
+            if ( pDri0[0] == -4 && pDri1[0] != -4 )
+            {
+                assert( pDri0[1] == -4 );
+                pDri0[0] = -3;
+                pDri0[1] = iBit1;
+                nChanges++;
+                continue;
+            }
+            if ( pDri1[0] == -4 && pDri0[0] != -4 )
+            {
+                assert( pDri1[1] == -4 );
+                pDri1[0] = -3;
+                pDri1[1] = iBit0;
+                nChanges++;
+                continue;
+            }
+        }
+    }
+    //printf( "Changes %d\n", nChanges );
+    return nChanges;
+}
+void Rtl_NtkBlastMap( Rtl_Ntk_t * p, int nBits )
+{
+    int i, k, Par, Val, * pCell, iBit = 0, fChange = 1;
+    Vec_IntFill( &p->vDrivers, 2*nBits, -4 );
+    for ( i = 0; i < p->nInputs; i++ )
+    {
+        int First = Rtl_WireBitStart( p, i );
+        int Width = Rtl_WireWidth( p, i );
+        for ( k = 0; k < Width; k++ )
+        {
+            assert( Vec_IntEntry(&p->vDrivers, 2*(First+k)) == -4 );
+            Vec_IntWriteEntry(&p->vDrivers, 2*(First+k)+0, -1 );
+            Vec_IntWriteEntry(&p->vDrivers, 2*(First+k)+1, iBit++ );
+        }
+    }
+    Rtl_NtkForEachCell( p, pCell, i )
+    {
+        int iBit = 0;
+        Rtl_CellForEachOutput( p, pCell, Par, Val, k )
+            iBit += Rtl_NtkMapSignalRange( p, Val, i, iBit );
+    }
+    for ( i = 0; i < 100; i++ )
+        if ( !Rtl_NtkBlastCons(p) )
+            break;
+    if ( i == 100 )
+        printf( "Mapping connections did not succeed after %d iterations.\n", i );
+//    else
+//        printf( "Mapping connections converged after %d iterations.\n", i );
+}
+int Rtl_NtkCollectOrComputeBit( Rtl_Ntk_t * p, int iBit )
+{
+    extern void Rtl_NtkBlast2_rec( Rtl_Ntk_t * p, int iBit, int * pDriver );
+    if ( Vec_IntEntry(&p->vLits, iBit) == -1 )
+    {
+        int * pDriver = Vec_IntEntryP(&p->vDrivers, 2*iBit);
+        assert( pDriver[0] != -4 );
+        Rtl_NtkBlast2_rec( p, iBit, pDriver );
+    }
+    assert( Vec_IntEntry(&p->vLits, iBit) >= 0 );
+    return Vec_IntEntry(&p->vLits, iBit);
+}
+int Rtl_NtkBlast2Spec( Rtl_Ntk_t * p, int * pCell, int iInput )
+{
+    int i, Par, Val, pLits[3] = {-1, -1, -1}, iBit;
+    Rtl_CellForEachInput( p, pCell, Par, Val, i )
+    {
+        Vec_Int_t * vTemp;
+        Vec_IntClear( &p->vBitTemp );
+        Rtl_NtkCollectSignalInfo( p, Val );
+        vTemp = Vec_IntDup( &p->vBitTemp );
+        iBit = Vec_IntEntry( vTemp, i==2 ? 0 : iInput );
+        if ( iBit >= 0 )
+            pLits[i] = Rtl_NtkCollectOrComputeBit( p, iBit );
+        else
+            pLits[i] = iBit+CONST_SHIFT;
+        assert( pLits[i] >= 0 );
+        Vec_IntFree( vTemp );
+    }
+    return Gia_ManHashMux(p->pGia, pLits[2], pLits[1], pLits[0]);
+}
+void Rtl_NtkBlastPrepareInputs( Rtl_Ntk_t * p, int * pCell )
+{
+    int i, k, Par, Val, iBit;
+    Rtl_CellForEachInput( p, pCell, Par, Val, i )
+    {
+        Vec_Int_t * vTemp;
+        Vec_IntClear( &p->vBitTemp );
+        Rtl_NtkCollectSignalInfo( p, Val );
+        vTemp = Vec_IntDup( &p->vBitTemp );
+        Vec_IntForEachEntry( vTemp, iBit, k )
+            if ( iBit >= 0 )
+                Rtl_NtkCollectOrComputeBit( p, iBit );
+        Vec_IntFree( vTemp );
+    }
+}
+void Rtl_NtkBlast2_rec( Rtl_Ntk_t * p, int iBit, int * pDriver )
+{
+    assert( pDriver[0] != -1 );
+    if ( pDriver[0] == -3 )
+    {
+        int * pDriver1 = Vec_IntEntryP( &p->vDrivers, 2*pDriver[1] );
+        if ( Vec_IntEntry(&p->vLits, pDriver[1]) == -1 )
+            Rtl_NtkBlast2_rec( p, pDriver[1], pDriver1 );
+        assert( Vec_IntEntry(&p->vLits, pDriver[1]) >= 0 );
+        Vec_IntWriteEntry( &p->vLits, iBit, Vec_IntEntry(&p->vLits, pDriver[1]) );
+        return;
+    }
+    if ( pDriver[0] == -2 )
+    {
+        Vec_IntWriteEntry( &p->vLits, iBit, pDriver[1] );
+        return;
+    }
+    else
+    {
+        int * pCell = Rtl_NtkCell(p, pDriver[0]);
+        assert( pDriver[0] >= 0 );
+        if ( Rtl_CellModule(pCell) == ABC_OPER_SEL_NMUX ) // special case
+        {
+            int iLit = Rtl_NtkBlast2Spec( p, pCell, pDriver[1] );
+            Vec_IntWriteEntry( &p->vLits, iBit, iLit );
+            return;
+        }
+        Rtl_NtkBlastPrepareInputs( p, pCell );
+        if ( Rtl_CellModule(pCell) >= ABC_INFINITY )
+            Rtl_NtkBlastHierarchy( p->pGia, p, pCell );
+        else if ( Rtl_CellModule(pCell) < ABC_OPER_LAST )
+            Rtl_NtkBlastOperator( p->pGia, p, pCell );
+        else
+            printf( "Cannot blast black box %s in module %s.\n", Rtl_NtkStr(p, Rtl_CellType(pCell)), Rtl_NtkName(p) );
+    }
+}
+Gia_Man_t * Rtl_NtkBlast2( Rtl_Ntk_t * p )
+{
+    Gia_Man_t * pTemp;
+    int i, b, nBits = Rtl_NtkRangeWires( p );
+    char Buffer[100]; static int counter = 0;
+    Vec_IntFill( &p->vLits, nBits, -1 );
+    Rtl_NtkMapWires( p, 0 );
+    Rtl_NtkBlastMap( p, nBits );
+    assert( p->pGia == NULL );
+    p->pGia = Gia_ManStart( 1000 );
+    Rtl_NtkBlastInputs( p->pGia, p );
+    Gia_ManHashAlloc( p->pGia );
+    for ( i = 0; i < p->nOutputs; i++ )
+    {
+        int First = Rtl_WireBitStart( p, p->nInputs + i );
+        int Width = Rtl_WireWidth( p, p->nInputs + i );
+        for ( b = 0; b < Width; b++ )
+            Rtl_NtkCollectOrComputeBit( p, First+b );
+    }
+    Gia_ManHashStop( p->pGia );
+    Rtl_NtkBlastOutputs( p->pGia, p );
+    Rtl_NtkMapWires( p, 1 );
+    p->pGia = Gia_ManCleanup( pTemp = p->pGia );
+    Gia_ManStop( pTemp );
+
+sprintf( Buffer, "new%02d.aig", counter++ );
+Gia_AigerWrite( p->pGia, Buffer, 0, 0, 0 );
+printf( "Dumped \"%s\" with AIG for module %-20s : ", Buffer, Rtl_ShortenName(Rtl_NtkName(p), 20) );
+Gia_ManPrintStats( p->pGia, NULL );
+    return p->pGia;
+}
+void Rtl_LibBlast2( Rtl_Lib_t * pLib )
+{
+    Rtl_Ntk_t * p; int i;
+    Vec_PtrForEachEntry( Rtl_Ntk_t *, pLib->vNtks, p, i )
+        if ( p->pGia == NULL )
+            p->pGia = Rtl_NtkBlast2( p );
+}
+
 
 /**Function*************************************************************
 
@@ -1705,21 +2063,31 @@ finish:
     Vec_PtrForEachEntry( Rtl_Ntk_t *, pLib->vNtks, p, i )
         if ( p != p1 && p != p2 )
             Gia_ManStopP( &p->pGia );
-    Rtl_LibBlast( pLib );
+    //Rtl_LibBlast( pLib );
+    Rtl_LibBlast2( pLib );
 }
 void Rtl_LibSolve( Rtl_Lib_t * pLib )
 {
+    extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
     abctime clk = Abc_Clock(); int Status;
     Rtl_Ntk_t * pTop = Rtl_LibTop( pLib );
-    Gia_Man_t * pCopy = Gia_ManDup( pTop->pGia );
-    Gia_ManInvertPos( pCopy );
-    Gia_ManAppendCo( pCopy, 0 );
-    Status = Cec_ManVerifySimple( pCopy );
-    Gia_ManStop( pCopy );
-    if ( Status == 1 )
-        printf( "Verification problem solved!  " );
+    Gia_Man_t * pSwp = Cec4_ManSimulateTest3( pTop->pGia, 1000000, 0 );
+    int RetValue = Gia_ManAndNum(pSwp) == 0;
+    Gia_ManStop( pSwp );
+    if ( RetValue )
+        printf( "Verification problem solved after SAT sweeping!  " );
     else
-        printf( "Verification problem is NOT solved!  " );
+    {
+        Gia_Man_t * pCopy = Gia_ManDup( pTop->pGia );
+        Gia_ManInvertPos( pCopy );
+        Gia_ManAppendCo( pCopy, 0 );
+        Status = Cec_ManVerifySimple( pCopy );
+        Gia_ManStop( pCopy );
+        if ( Status == 1 )
+            printf( "Verification problem solved after CEC!  " );
+        else
+            printf( "Verification problem is NOT solved!  " );
+    }
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 

@@ -49,6 +49,34 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+#define MAX_LINE 1000000
+
+void Rtl_NtkCleanFile( char * pFileName )
+{
+    char * pBuffer, * pFileName2 = "_temp__.rtlil"; 
+    FILE * pFile = fopen( pFileName, "rb" );
+    FILE * pFile2;
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return;
+    }
+    pFile2 = fopen( pFileName2, "wb" );
+    if ( pFile2 == NULL )
+    {
+        fclose( pFile );
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName2 );
+        return;
+    }
+    pBuffer = ABC_ALLOC( char, MAX_LINE );
+    while ( fgets( pBuffer, MAX_LINE, pFile ) != NULL )
+        if ( !strstr(pBuffer, "attribute \\src") )
+            fputs( pBuffer, pFile2 );
+    ABC_FREE( pBuffer );
+    fclose( pFile );
+    fclose( pFile2 );
+}
+
 char * Wln_GetYosysName()
 {
     char * pYosysName = NULL;
@@ -105,7 +133,8 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fCol
         printf( "Dumped the design into file \"%s\".\n", pFileTemp );
         return NULL;
     }
-    //unlink( pFileTemp );
+    Rtl_NtkCleanFile( pFileTemp );
+    unlink( pFileTemp );
     return pNtk;
 }
 Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fTechMap, int fVerbose )

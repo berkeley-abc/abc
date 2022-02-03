@@ -539,7 +539,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     Abc_Print( 1, "  %s =%8d", p->pMuxes? "nod" : "and", Gia_ManAndNum(p) );
     SetConsoleTextAttribute( hConsole, 13 ); // magenta
     Abc_Print( 1, "  lev =%5d", Gia_ManLevelNum(p) ); 
-    Abc_Print( 1, " (%.2f)", Gia_ManLevelAve(p) ); 
+    Abc_Print( 1, " (%7.2f)", Gia_ManLevelAve(p) ); 
     SetConsoleTextAttribute( hConsole, 7 ); // normal
     }
 #else

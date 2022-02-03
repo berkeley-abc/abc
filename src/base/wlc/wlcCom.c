@@ -2130,18 +2130,22 @@ int Abc_CommandSolve( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Rtl_LibOrderWires( Rtl_Lib_t * pLib );
     extern void Rtl_LibOrderCells( Rtl_Lib_t * pLib );
     extern void Rtl_LibBlast( Rtl_Lib_t * pLib );
+    extern void Rtl_LibBlast2( Rtl_Lib_t * pLib );
     extern void Rtl_LibReorderModules( Rtl_Lib_t * pLib );
     extern void Rtl_LibSolve( Rtl_Lib_t * pLib );
     extern void Rtl_LibPreprocess( Rtl_Lib_t * pLib );
 
     Gia_Man_t * pGia = NULL;
     Rtl_Lib_t * pLib = Wlc_AbcGetRtl(pAbc);
-    int c, fPrepro = 0, fVerbose  = 0;
+    int c, fOldBlast = 0, fPrepro = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "pvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "opvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'o':
+            fOldBlast ^= 1;
+            break;
         case 'p':
             fPrepro ^= 1;
             break;
@@ -2157,9 +2161,14 @@ int Abc_CommandSolve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Rtl_LibPrintStats( pLib );
     //Rtl_LibPrint( NULL, pLib );
     Rtl_LibOrderWires( pLib );
-    Rtl_LibOrderCells( pLib );
 
-    Rtl_LibBlast( pLib );
+    if ( fOldBlast )
+    {
+        Rtl_LibOrderCells( pLib );
+        Rtl_LibBlast( pLib );
+    }
+    else
+        Rtl_LibBlast2( pLib );
     //Rtl_LibReorderModules( pLib );
     //Rtl_LibPrintStats( pLib );
 
@@ -2172,8 +2181,9 @@ int Abc_CommandSolve( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_ManStopP( &pGia );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%solve [-pvh]\n" );
+    Abc_Print( -2, "usage: %%solve [-opvh]\n" );
     Abc_Print( -2, "\t         experiments with word-level networks\n" );
+    Abc_Print( -2, "\t-o     : toggle using old bit-blasting procedure [default = %s]\n", fOldBlast? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle preprocessing for verification [default = %s]\n", fPrepro? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
