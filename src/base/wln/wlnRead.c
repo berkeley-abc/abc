@@ -1420,7 +1420,7 @@ int Rtl_NtkMapWireRange( Rtl_Ntk_t * p, int NameId, int Left, int Right, int iCe
     //char * pName = Rtl_NtkStr( p, NameId );
     int Wire  = Rtl_WireMapNameToId( p, NameId );
     int First = Rtl_WireBitStart( p, Wire );
-    int Width = Rtl_WireWidth( p, Wire ), i, k = 0;
+    int Width = Rtl_WireWidth( p, Wire ), i;
     Left  = Left  == -1 ? Width-1 :  Left;
     Right = Right == -1 ? 0       : Right;
     assert ( Right >= 0 && Right <= Left );
@@ -1866,7 +1866,7 @@ int Rtl_NtkBlastCons( Rtl_Ntk_t * p )
 }
 void Rtl_NtkBlastMap( Rtl_Ntk_t * p, int nBits )
 {
-    int i, k, Par, Val, * pCell, iBit = 0, fChange = 1;
+    int i, k, Par, Val, * pCell, iBit = 0;
     Vec_IntFill( &p->vDrivers, 2*nBits, -4 );
     for ( i = 0; i < p->nInputs; i++ )
     {
