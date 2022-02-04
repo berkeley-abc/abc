@@ -77,6 +77,32 @@ void Rtl_NtkCleanFile( char * pFileName )
     fclose( pFile2 );
 }
 
+void Rtl_NtkCleanFile2( char * pFileName )
+{
+    char * pBuffer, * pFileName2 = "_temp__.v"; 
+    FILE * pFile = fopen( pFileName, "rb" );
+    FILE * pFile2;
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return;
+    }
+    pFile2 = fopen( pFileName2, "wb" );
+    if ( pFile2 == NULL )
+    {
+        fclose( pFile );
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName2 );
+        return;
+    }
+    pBuffer = ABC_ALLOC( char, MAX_LINE );
+    while ( fgets( pBuffer, MAX_LINE, pFile ) != NULL )
+        if ( !strstr(pBuffer, "//") )
+            fputs( pBuffer, pFile2 );
+    ABC_FREE( pBuffer );
+    fclose( pFile );
+    fclose( pFile2 );
+}
+
 char * Wln_GetYosysName()
 {
     char * pYosysName = NULL;

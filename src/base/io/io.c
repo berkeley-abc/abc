@@ -1115,7 +1115,7 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk;
     char * pStr = NULL;
-    char * pSopCover;
+    Vec_Ptr_t * vSops;
     int fHex  = 1;
     int fFile = 0;
     int c;
@@ -1145,25 +1145,23 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
         pStr = Extra_FileReadContents( argv[globalUtilOptind] );
     else
         pStr = argv[globalUtilOptind];
-    while ( pStr[ strlen(pStr) - 1 ] == '\n' || pStr[ strlen(pStr) - 1 ] == '\r' )
-        pStr[ strlen(pStr) - 1 ] = '\0';
 
     // convert truth table to SOP
     if ( fHex )
-        pSopCover = Abc_SopFromTruthHex(pStr);
+        vSops = Abc_SopFromTruthsHex(pStr);
     else
-        pSopCover = Abc_SopFromTruthBin(pStr);
+        vSops = Abc_SopFromTruthsBin(pStr);
     if ( fFile )
         ABC_FREE( pStr );
-    if ( pSopCover == NULL || pSopCover[0] == 0 )
+    if ( Vec_PtrSize(vSops) == 0 )
     {
-        ABC_FREE( pSopCover );
+        Vec_PtrFreeFree( vSops );
         fprintf( pAbc->Err, "Reading truth table has failed.\n" );
         return 1;
     }
 
-    pNtk = Abc_NtkCreateWithNode( pSopCover );
-    ABC_FREE( pSopCover );
+    pNtk = Abc_NtkCreateWithNodes( vSops );
+    Vec_PtrFreeFree( vSops );
     if ( pNtk == NULL )
     {
         fprintf( pAbc->Err, "Deriving the network has failed.\n" );
@@ -1176,9 +1174,9 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pAbc->Err, "usage: read_truth [-xfh] <truth> <file>\n" );
-    fprintf( pAbc->Err, "\t         creates network with node having given truth table\n" );
-    fprintf( pAbc->Err, "\t-x     : toggles between bin and hex representation [default = %s]\n", fHex?  "hex":"bin" );
-    fprintf( pAbc->Err, "\t-f     : toggles reading truth table from file [default = %s]\n",      fFile? "yes": "no" );
+    fprintf( pAbc->Err, "\t         creates network with node(s) having given truth table(s)\n" );
+    fprintf( pAbc->Err, "\t-x     : toggles between bin and hex notation [default = %s]\n", fHex?  "hex":"bin" );
+    fprintf( pAbc->Err, "\t-f     : toggles reading truth table(s) from file [default = %s]\n",      fFile? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\ttruth  : truth table with most signficant bit first (e.g. 1000 for AND(a,b))\n" );
     fprintf( pAbc->Err, "\tfile   : file name with the truth table\n" );
@@ -3250,19 +3248,23 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     word * pTruth;
     int nBytes;
     int fReverse = 0;
-    int fBinary = 0;
+    int fHex = 1;
+    int fBinaryFile = 0;
     int c, i;
  
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rbh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rxbh" ) ) != EOF )
     {
         switch ( c )
         {
             case 'r':
                 fReverse ^= 1;
                 break;
+            case 'x':
+                fHex ^= 1;
+                break;
             case 'b':
-                fBinary ^= 1;
+                fBinaryFile ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -3300,19 +3302,22 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     Gia_ManForEachCo( pAbc->pGia, pObj, i )
     {
         pTruth = Gia_ObjComputeTruthTable( pAbc->pGia, pObj );
-        if ( fBinary )
+        if ( fBinaryFile )
             fwrite( pTruth, nBytes, 1, pFile );
-        else
+        else if ( fHex )
             Extra_PrintHex( pFile, (unsigned *)pTruth, Gia_ManPiNum(pAbc->pGia) ), fprintf( pFile, "\n" );
+        else
+            Extra_PrintBinary( pFile, (unsigned *)pTruth, 1 << Gia_ManPiNum(pAbc->pGia) ), fprintf( pFile, "\n" );
     }
     fclose( pFile );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: &write_truths [-rbh] <file>\n" );
+    fprintf( pAbc->Err, "usage: &write_truths [-rxbh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes truth tables of each PO of GIA manager into a file\n" );
     fprintf( pAbc->Err, "\t-r     : toggle reversing bits in the truth table [default = %s]\n", fReverse? "yes":"no" );
-    fprintf( pAbc->Err, "\t-b     : toggle using binary format [default = %s]\n", fBinary? "yes":"no" );
+    fprintf( pAbc->Err, "\t-x     : toggle writing in the hex notation [default = %s]\n", fHex? "yes":"no" );
+    fprintf( pAbc->Err, "\t-b     : toggle using binary file format [default = %s]\n", fBinaryFile? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

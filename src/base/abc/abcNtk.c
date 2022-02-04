@@ -1272,6 +1272,52 @@ Abc_Ntk_t * Abc_NtkCreateWithNode( char * pSop )
 
 /**Function*************************************************************
 
+  Synopsis    [Creates the network composed of one node with the given SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreateWithNodes( Vec_Ptr_t * vSop )
+{    
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pFanin, * pNode, * pNodePo;
+    Vec_Ptr_t * vNames;
+    int i, k, nVars; char Buffer[10];
+    char * pSop = (char *)Vec_PtrEntry(vSop, 0);
+    // start the network
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
+    pNtkNew->pName = Extra_UtilStrsav("ex");
+    // create PIs
+    Vec_PtrPush( pNtkNew->vObjs, NULL );
+    nVars = Abc_SopGetVarNum( pSop );
+    vNames = Abc_NodeGetFakeNames( nVars );
+    for ( i = 0; i < nVars; i++ )
+        Abc_ObjAssignName( Abc_NtkCreatePi(pNtkNew), (char *)Vec_PtrEntry(vNames, i), NULL );
+    Abc_NodeFreeNames( vNames );
+    // create the node, add PIs as fanins, set the function
+    Vec_PtrForEachEntry( char *, vSop, pSop, i )
+    {
+        pNode = Abc_NtkCreateNode( pNtkNew );
+        Abc_NtkForEachPi( pNtkNew, pFanin, k )
+            Abc_ObjAddFanin( pNode, pFanin );
+        pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, pSop );
+        // create the only PO
+        pNodePo = Abc_NtkCreatePo(pNtkNew);
+        Abc_ObjAddFanin( pNodePo, pNode );
+        sprintf( Buffer, "F%d", i );
+        Abc_ObjAssignName( pNodePo, Buffer, NULL );
+    }
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkCreateWithNode(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Deletes the Ntk.]
 
   Description []
