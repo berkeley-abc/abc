@@ -133,7 +133,7 @@ void * Abc_NtkToFraig( Abc_Ntk_t * pNtk, void * pParams, int fAllNodes, int fExd
             Extra_ProgressBarUpdate( pProgress, i, NULL );
         pNode->pCopy = (Abc_Obj_t *)Fraig_NodeAnd( pMan, 
                 Fraig_NotCond( Abc_ObjFanin0(pNode)->pCopy, (int)Abc_ObjFaninC0(pNode) ),
-                Fraig_NotCond( Abc_ObjFanin1(pNode)->pCopy, (int)Abc_ObjFaninC1(pNode) ) );
+                Fraig_NotCond( Abc_ObjFanin1(pNode)->pCopy, (int)Abc_ObjFaninC1(pNode) ), ((Fraig_Params_t *)pParams)->approximate );
     }
     if ( pProgress )
         Extra_ProgressBarStop( pProgress );
@@ -189,7 +189,7 @@ Fraig_Node_t * Abc_NtkToFraigExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtkMain, Abc
     Abc_AigForEachAnd( pNtkStrash, pObj, i )
         pObj->pCopy = (Abc_Obj_t *)Fraig_NodeAnd( pMan, 
                 Fraig_NotCond( Abc_ObjFanin0(pObj)->pCopy, (int)Abc_ObjFaninC0(pObj) ),
-                Fraig_NotCond( Abc_ObjFanin1(pObj)->pCopy, (int)Abc_ObjFaninC1(pObj) ) );
+                Fraig_NotCond( Abc_ObjFanin1(pObj)->pCopy, (int)Abc_ObjFaninC1(pObj) ),0 );
     // get the EXDC to be returned
     pObj = Abc_NtkPo( pNtkStrash, 0 );
     gResult = Fraig_NotCond( Abc_ObjFanin0(pObj)->pCopy, (int)Abc_ObjFaninC0(pObj) );
@@ -234,7 +234,7 @@ void Abc_NtkFraigRemapUsingExdc( Fraig_Man_t * pMan, Abc_Ntk_t * pNtk )
     Abc_NtkForEachNode( pNtk, pNode, i )
         if ( pNode->pCopy )
         {
-            gNodeNew = Fraig_NodeAnd( pMan, (Fraig_Node_t *)pNode->pCopy, Fraig_Not(gNodeExdc) );
+            gNodeNew = Fraig_NodeAnd( pMan, (Fraig_Node_t *)pNode->pCopy, Fraig_Not(gNodeExdc) ,0);
             if ( !stmm_find_or_add( tTable, (char *)Fraig_Regular(gNodeNew), (char ***)&ppSlot ) )
                 *ppSlot = NULL;
             pNode->pNext = *ppSlot;

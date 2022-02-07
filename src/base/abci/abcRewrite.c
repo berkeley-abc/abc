@@ -58,7 +58,7 @@ extern void  Abc_PlaceUpdate( Vec_Ptr_t * vAddedCells, Vec_Ptr_t * vUpdatedNets 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose, int fPlaceEnable )
+int Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose, int fPlaceEnable, int fApproximationEnable  )
 {
     extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
@@ -122,7 +122,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
             continue;
 
         // for each cut, try to resynthesize it
-        nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUpdateLevel, fUseZeros, fPlaceEnable );
+        nGain = Rwr_NodeRewrite( pManRwr, pManCut, pNode, fUpdateLevel, fUseZeros, fPlaceEnable, fApproximationEnable );
         if ( !(nGain > 0 || (nGain == 0 && fUseZeros)) )
             continue;
         // if we end up here, a rewriting step is accepted

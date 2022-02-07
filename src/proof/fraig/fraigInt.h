@@ -354,7 +354,7 @@ extern unsigned            Aig_ManRandom( int fReset );
 ////////////////////////////////////////////////////////////////////////
 
 /*=== fraigCanon.c =============================================================*/
-extern Fraig_Node_t *      Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_Node_t * p2 );
+extern Fraig_Node_t *      Fraig_NodeAndCanon( Fraig_Man_t * pMan, Fraig_Node_t * p1, Fraig_Node_t * p2, int enable_approximation );
 /*=== fraigFanout.c =============================================================*/
 extern void                Fraig_NodeAddFaninFanout( Fraig_Node_t * pFanin, Fraig_Node_t * pFanout );
 extern void                Fraig_NodeRemoveFaninFanout( Fraig_Node_t * pFanin, Fraig_Node_t * pFanoutToRemove );

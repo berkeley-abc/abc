@@ -7320,6 +7320,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fVerbose;
     int fVeryVerbose;
     int fPlaceEnable;
+    int fApproximationEnable;
     // external functions
     extern void Rwr_Precompute();
 
@@ -7330,8 +7331,9 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     fVerbose     = 0;
     fVeryVerbose = 0;
     fPlaceEnable = 0;
+    fApproximationEnable = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lxzvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lxzvwha" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7352,6 +7354,15 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fPlaceEnable ^= 1;
+            break;
+        case 'a':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-a\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            fApproximationEnable = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'h':
             goto usage;
@@ -7383,7 +7394,7 @@ int Abc_CommandRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkRewrite( pNtk, fUpdateLevel, fUseZeros, fVerbose, fVeryVerbose, fPlaceEnable ) )
+    if ( !Abc_NtkRewrite( pNtk, fUpdateLevel, fUseZeros, fVerbose, fVeryVerbose, fPlaceEnable, fApproximationEnable ) )
     {
         Abc_Print( -1, "Rewriting has failed.\n" );
         return 1;
@@ -7397,6 +7408,8 @@ usage:
     Abc_Print( -2, "\t-z     : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printout subgraph statistics [default = %s]\n", fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-a     : toggle how many bits are neglected to do approximation while rewriting [default = %d] [max = 3]\n", fApproximationEnable);
+
 //    Abc_Print( -2, "\t-p     : toggle placement-aware rewriting [default = %s]\n", fPlaceEnable? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -16496,8 +16509,9 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     pParams->fTryProve  =    0; // tries to solve the final miter
     pParams->fVerbose   =    0; // the verbosiness flag
     pParams->fVerboseP  =    0; // the verbosiness flag
+    pParams->approximate=    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "RDCrscptvaeh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "RDCrscptvaehx" ) ) != EOF )
     {
         switch ( c )
         {
@@ -16558,6 +16572,9 @@ int Abc_CommandFraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'e':
             fExdc ^= 1;
+            break;
+        case 'x':
+            pParams->approximate ^= 1;
             break;
         case 'h':
             goto usage;
@@ -16634,6 +16651,7 @@ usage:
     Abc_Print( -2, "\t-e     : toggle functional sweeping using EXDC [default = %s]\n",       fExdc? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle between all nodes and DFS nodes [default = %s]\n",      fAllNodes? "all": "dfs" );
     Abc_Print( -2, "\t-t     : toggle using partitioned representation [default = %s]\n",     fPartition? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggle doing approximations [default = %s]\n",     pParams->approximate? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
