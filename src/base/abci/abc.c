@@ -37868,7 +37868,22 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     // compute the miter
-    pMiter = Gia_ManMiter( pGias[0], pGias[1], 0, !fUseNew, 0, 0, pPars->fVerbose );
+    if ( Gia_ManCiNum(pGias[0]) < 6 )
+    {
+        Gia_Man_t * pGias0 = Gia_ManDup( pGias[0] );
+        Gia_Man_t * pGias1 = Gia_ManDup( pGias[1] );
+        for ( c = Gia_ManCiNum(pGias[0]); c < 6; c++ )
+        {
+            Gia_ManAppendCi(pGias0);
+            Gia_ManAppendCi(pGias1);
+        }
+        pMiter = Gia_ManMiter( pGias0, pGias1, 0, !fUseNew, 0, 0, pPars->fVerbose );
+        Gia_ManStop( pGias0 );
+        Gia_ManStop( pGias1 );
+    }
+    else
+        pMiter = Gia_ManMiter( pGias[0], pGias[1], 0, !fUseNew, 0, 0, pPars->fVerbose );
+
     if ( pMiter )
     {
         if ( fDumpMiter )

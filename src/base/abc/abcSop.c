@@ -924,7 +924,7 @@ int Abc_SopCheckReadTruth( Vec_Ptr_t * vRes, char * pToken, int fHex )
     int Log2 = Abc_Base2Log( strlen(pToken) );
     if ( (1 << Log2) != (int)strlen(pToken) )
     {
-        printf( "The truth table length (%d) is not power-of-2.\n", strlen(pToken) );
+        printf( "The truth table length (%d) is not power-of-2.\n", (int)strlen(pToken) );
         Vec_PtrFreeData( vRes );
         Vec_PtrShrink( vRes, 0 );
         return 0;

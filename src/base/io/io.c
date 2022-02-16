@@ -1142,7 +1142,17 @@ int IoCommandReadTruth( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
 
     if ( fFile )
+    {
+        FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
+        if ( pFile == NULL )
+        {
+            printf( "The file \"%s\" cannot be found.\n", argv[globalUtilOptind] );
+            return 1;
+        }
+        else 
+            fclose( pFile );
         pStr = Extra_FileReadContents( argv[globalUtilOptind] );
+    }
     else
         pStr = argv[globalUtilOptind];
 
