@@ -1131,6 +1131,14 @@ SOURCE=.\src\base\wln\wlnBlast.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\wln\wlnCom.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\wln\wlnGuide.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\wln\wlnMem.c
 # End Source File
 # Begin Source File

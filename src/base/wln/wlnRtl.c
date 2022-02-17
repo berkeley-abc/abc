@@ -145,7 +145,7 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fCol
         return Rtl_LibReadFile( pFileName, pFileName );
     sprintf( Command, "%s -qp \"read_verilog %s%s; hierarchy %s%s; %sproc; write_rtlil %s\"", 
         Wln_GetYosysName(), fSVlog ? "-sv ":"", pFileName, 
-        pTopModule ? "-top " : "-auto-top", 
+        pTopModule ? "-top "    : "", 
         pTopModule ? pTopModule : "", 
         fCollapse ? "flatten; " : "",
         pFileTemp );

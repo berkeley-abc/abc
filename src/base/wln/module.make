@@ -1,5 +1,7 @@
 SRC +=    src/base/wln/wln.c \
     src/base/wln/wlnBlast.c \
+    src/base/wln/wlnCom.c \
+    src/base/wln/wlnGuide.c \
     src/base/wln/wlnMem.c \
     src/base/wln/wlnNdr.c \
     src/base/wln/wlnNtk.c \

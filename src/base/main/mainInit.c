@@ -49,6 +49,8 @@ extern void Scl_Init( Abc_Frame_t * pAbc );
 extern void Scl_End( Abc_Frame_t * pAbc );
 extern void Wlc_Init( Abc_Frame_t * pAbc );
 extern void Wlc_End( Abc_Frame_t * pAbc );
+extern void Wln_Init( Abc_Frame_t * pAbc );
+extern void Wln_End( Abc_Frame_t * pAbc );
 extern void Bac_Init( Abc_Frame_t * pAbc );
 extern void Bac_End( Abc_Frame_t * pAbc );
 extern void Cba_Init( Abc_Frame_t * pAbc );
@@ -116,6 +118,7 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Load_Init( pAbc );
     Scl_Init( pAbc );
     Wlc_Init( pAbc );
+    Wln_Init( pAbc );
     Bac_Init( pAbc );
     Cba_Init( pAbc );
     Pla_Init( pAbc );
@@ -156,6 +159,7 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Load_End( pAbc );
     Scl_End( pAbc );
     Wlc_End( pAbc );
+    Wln_End( pAbc );
     Bac_End( pAbc );
     Cba_End( pAbc );
     Pla_End( pAbc );

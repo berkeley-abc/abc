@@ -78,6 +78,8 @@ struct Rtl_Ntk_t_
 static inline int         Rtl_LibNtkNum( Rtl_Lib_t * pLib )                { return Vec_PtrSize(pLib->vNtks);                  }
 static inline Rtl_Ntk_t * Rtl_LibNtk( Rtl_Lib_t * pLib, int i )            { return (Rtl_Ntk_t *)Vec_PtrEntry(pLib->vNtks, i); }
 static inline Rtl_Ntk_t * Rtl_LibTop( Rtl_Lib_t * pLib )                   { return Rtl_LibNtk( pLib, Rtl_LibNtkNum(pLib)-1 ); }
+static inline char *      Rtl_LibStr( Rtl_Lib_t * pLib, int h )            { return Abc_NamStr(pLib->pManName, h);             }
+static inline int         Rtl_LibStrId( Rtl_Lib_t * pLib, char * s )       { return Abc_NamStrFind(pLib->pManName, s);         }
 
 static inline Rtl_Ntk_t * Rtl_NtkModule( Rtl_Ntk_t * p, int i )            { return Rtl_LibNtk( p->pLib, i );                  }
 
@@ -241,6 +243,50 @@ void Rtl_NtkPrintStats( Rtl_Ntk_t * p, int nNameSymbs )
     printf( "Con = %6d",     Rtl_NtkConNum(p) );
     printf( "\n" );
     //Rtl_NtkPrintOpers( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Rtl_NtkPrintHieStats( Rtl_Ntk_t * p, int nOffset )
+{
+    Vec_Int_t * vFound = Vec_IntAlloc( 100 );
+    int i, * pCell;
+    for ( i = 0; i < 5*(nOffset-1); i++ )
+        printf( " " );
+    if ( nOffset )
+        printf( "|--> " );
+    printf( "%s\n", Rtl_NtkName(p) );
+    Rtl_NtkForEachCell( p, pCell, i )
+        if ( Rtl_CellModule(pCell) >= ABC_INFINITY )
+        {
+            Rtl_Ntk_t * pModel = Rtl_NtkModule( p, Rtl_CellModule(pCell)-ABC_INFINITY );
+            assert( pCell[6] == pModel->nInputs+pModel->nOutputs );
+            if ( Vec_IntFind(vFound, pModel->NameId) >= 0 )
+                continue;
+            Vec_IntPush( vFound, pModel->NameId );
+            Rtl_NtkPrintHieStats( pModel, nOffset+1 );
+        }
+    Vec_IntFree( vFound );
+}
+void Rtl_LibPrintHieStats( Rtl_Lib_t * p )
+{
+    Rtl_Ntk_t * pNtk; int i;
+    printf( "Hierarchy found in \"%s\":\n", p->pSpec );
+    Vec_PtrForEachEntry( Rtl_Ntk_t *, p->vNtks, pNtk, i )
+    {
+        printf( "\n" );
+        printf( "MODULE %d: ", i );
+        Rtl_NtkPrintHieStats( pNtk, 0 );  
+    }
 }
 
 /**Function*************************************************************
@@ -1398,6 +1444,7 @@ Rtl_Lib_t * Rtl_LibReadFile( char * pFileName, char * pFileSpec )
             i = Rtl_NtkReadAttribute2( p, i+1 );
     Rtl_LibSetParents( p );
     Rtl_LibReorderModules( p );
+    Rtl_LibOrderWires( p );
     return p;
 }
 
@@ -1733,7 +1780,7 @@ char * Rtl_ShortenName( char * pName, int nSize )
         return pName;
     Buffer[0] = 0;
     strcat( Buffer, pName );
-    Buffer[nSize-4] = ' ';
+    //Buffer[nSize-4] = ' ';
     Buffer[nSize-3] = '.';
     Buffer[nSize-2] = '.';
     Buffer[nSize-1] = '.';
@@ -1941,6 +1988,7 @@ void Rtl_NtkBlastPrepareInputs( Rtl_Ntk_t * p, int * pCell )
 }
 void Rtl_NtkBlast2_rec( Rtl_Ntk_t * p, int iBit, int * pDriver )
 {
+    //char * pName = Rtl_NtkName(p);
     assert( pDriver[0] != -1 );
     if ( pDriver[0] == -3 )
     {
@@ -1981,6 +2029,7 @@ Gia_Man_t * Rtl_NtkBlast2( Rtl_Ntk_t * p )
     int i, b, nBits = Rtl_NtkRangeWires( p );
     char Buffer[100]; static int counter = 0;
     Vec_IntFill( &p->vLits, nBits, -1 );
+printf( "Blasting %s...\r", Rtl_NtkName(p) );
     Rtl_NtkMapWires( p, 0 );
     Rtl_NtkBlastMap( p, nBits );
     assert( p->pGia == NULL );
@@ -2066,11 +2115,11 @@ finish:
     //Rtl_LibBlast( pLib );
     Rtl_LibBlast2( pLib );
 }
-void Rtl_LibSolve( Rtl_Lib_t * pLib )
+void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk )
 {
     extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
     abctime clk = Abc_Clock(); int Status;
-    Rtl_Ntk_t * pTop = Rtl_LibTop( pLib );
+    Rtl_Ntk_t * pTop = pNtk ? (Rtl_Ntk_t *)pNtk : Rtl_LibTop( pLib );
     Gia_Man_t * pSwp = Cec4_ManSimulateTest3( pTop->pGia, 1000000, 0 );
     int RetValue = Gia_ManAndNum(pSwp) == 0;
     Gia_ManStop( pSwp );
@@ -2091,6 +2140,83 @@ void Rtl_LibSolve( Rtl_Lib_t * pLib )
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wln_SolveEqual( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
+{
+    Rtl_Ntk_t * pNtk1 = Rtl_LibNtk( p, iNtk1 );
+    Rtl_Ntk_t * pNtk2 = Rtl_LibNtk( p, iNtk2 );
+    printf( "Proving equivalence of \"%s\" and \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
+/*
+    if ( Gia_ManCiNum(pNtk1->pGia) != Gia_ManCiNum(pNtk2->pGia) || 
+         Gia_ManCoNum(pNtk1->pGia) != Gia_ManCoNum(pNtk2->pGia) )
+    {
+        printf( "The number of inputs/outputs does not match.\n" );
+    }
+    else
+    {
+        int Status = Cec_ManVerifyTwo( pNtk1->pGia, pNtk2->pGia, 0 );
+        if ( Status == 1 )
+            printf( "The networks are equivalence.\n" );
+        else
+            printf( "The networks are NOT equivalent.\n" );
+    }
+*/
+}
+void Wln_SolveInverse( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
+{
+    Rtl_Ntk_t * pNtk1 = Rtl_LibNtk( p, iNtk1 );
+    Rtl_Ntk_t * pNtk2 = Rtl_LibNtk( p, iNtk2 );
+    printf( "Proving inverse equivalence of \"%s\" and \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
+}
+void Wln_SolveProperty( Rtl_Lib_t * p, int iNtk )
+{
+    Rtl_Ntk_t * pNtk = Rtl_LibNtk( p, iNtk );
+    printf( "Proving property \"%s\".\n", Rtl_NtkName(pNtk) );
+    Rtl_LibSolve( p, pNtk );
+}
+void Wln_SolveWithGuidance( char * pFileName, Rtl_Lib_t * p )
+{
+    extern Vec_Int_t * Wln_ReadGuidance( char * pFileName, Abc_Nam_t * p );
+    Vec_Int_t * vGuide = Wln_ReadGuidance( pFileName, p->pManName ); int i;
+    Vec_IntFillExtra( p->vMap, Abc_NamObjNumMax(p->pManName), -1 );
+    Rtl_LibBlast2( p );
+    for ( i = 0; i < Vec_IntSize(vGuide); i += 4 )
+    {
+        int Prove = Vec_IntEntry( vGuide, i+0 );
+        int Type  = Vec_IntEntry( vGuide, i+1 );
+        int Name1 = Vec_IntEntry( vGuide, i+2 );
+        int Name2 = Vec_IntEntry( vGuide, i+3 );
+        int iNtk1 = Rtl_LibFindModule( p, Name1 );
+        int iNtk2 = Name2 == -1 ? -1 : Rtl_LibFindModule( p, Name2 );
+        if ( Prove != Rtl_LibStrId(p, "prove") )
+            printf( "Unknown task in line %d.\n", i/4 );
+        else if ( iNtk1 == -1 )
+            printf( "Network %s cannot be found in this design.\n", Rtl_LibStr(p, Name1) );
+        else
+        {
+            if ( Type == Rtl_LibStrId(p, "equal") )
+                Wln_SolveEqual( p, iNtk1, iNtk2 );
+            else if ( Type == Rtl_LibStrId(p, "inverse") )
+                Wln_SolveInverse( p, iNtk1, iNtk2 );
+            else if ( Type == Rtl_LibStrId(p, "property") )
+                Wln_SolveProperty( p, iNtk1 );
+            continue;
+        }
+        break;
+    }
+    Vec_IntFree( vGuide );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
