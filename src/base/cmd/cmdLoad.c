@@ -114,7 +114,8 @@ Vec_Ptr_t * CmdCollectFileNames()
 {
     Vec_Ptr_t * vFileNames;
     struct _finddata_t c_file;
-    long   hFile;
+    //long   hFile;
+    ABC_PTRINT_T hFile;
     if( (hFile = _findfirst( "*.exe", &c_file )) == -1L )
     {
 //        Abc_Print( 0, "No files with extention \"%s\" in the current directory.\n", "exe" );
