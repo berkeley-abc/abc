@@ -1161,7 +1161,7 @@ int CmdCommandScanDir( Abc_Frame_t * pAbc, int argc, char **argv )
     struct _finddata_t c_file;
     char * pDirStr = NULL;
     char*  pDirCur = NULL;
-    long   hFile;
+    ABC_PTRINT_T hFile;
     char   c;
 
     Extra_UtilGetoptReset();
@@ -1354,7 +1354,7 @@ void CnfDupFileUnzip( char * pOldName )
 int CmdCommandRenameFiles( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     struct _finddata_t c_file;
-    long   hFile;
+    ABC_PTRINT_T hFile;
     char pNewName[1000];
     char * pDirStr = NULL;
     char * pDirCur = NULL;
@@ -1515,7 +1515,7 @@ usage:
 int CmdCommandLs( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     struct _finddata_t c_file;
-    long   hFile;
+    ABC_PTRINT_T hFile;
     int    fLong = 0;
     int    fOnlyBLIF = 0;
     char   Buffer[25];
@@ -1618,7 +1618,7 @@ usage:
 int CmdCommandScrGen( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     struct _finddata_t c_file;
-    long   hFile;
+    ABC_PTRINT_T hFile;
     FILE * pFile = NULL;
     char * pFileStr = "test.s";
     char * pDirStr = NULL;
