@@ -325,7 +325,7 @@ void Abc_NtkManRefPrintStats( Abc_ManRef_t * p )
 ***********************************************************************/
 int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose )
 {
-    extern void           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
+    extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     Abc_ManRef_t * pManRef;
     Abc_ManCut_t * pManCut;
@@ -333,7 +333,7 @@ int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int f
     Vec_Ptr_t * vFanins;
     Abc_Obj_t * pNode;
     abctime clk, clkStart = Abc_Clock();
-    int i, nNodes;
+    int i, nNodes, RetValue = 1;
 
     assert( Abc_NtkIsStrash(pNtk) );
     // cleanup the AIG
@@ -377,7 +377,12 @@ pManRef->timeRes += Abc_Clock() - clk;
             continue;
         // acceptable replacement found, update the graph
 clk = Abc_Clock();
-        Dec_GraphUpdateNetwork( pNode, pFForm, fUpdateLevel, pManRef->nLastGain );
+        if ( !Dec_GraphUpdateNetwork( pNode, pFForm, fUpdateLevel, pManRef->nLastGain ) )
+        {
+            Dec_GraphFree( pFForm );
+            RetValue = -1;
+            break;
+        }
 pManRef->timeNtk += Abc_Clock() - clk;
         Dec_GraphFree( pFForm );
     }
@@ -394,18 +399,21 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
     // put the nodes into the DFS order and reassign their IDs
     Abc_NtkReassignIds( pNtk );
 //    Abc_AigCheckFaninOrder( pNtk->pManFunc );
-    // fix the levels
-    if ( fUpdateLevel )
-        Abc_NtkStopReverseLevels( pNtk );
-    else
-        Abc_NtkLevel( pNtk );
-    // check
-    if ( !Abc_NtkCheck( pNtk ) )
+    if ( RetValue != -1 )
     {
-        printf( "Abc_NtkRefactor: The network check has failed.\n" );
-        return 0;
+        // fix the levels
+        if ( fUpdateLevel )
+            Abc_NtkStopReverseLevels( pNtk );
+        else
+            Abc_NtkLevel( pNtk );
+        // check
+        if ( !Abc_NtkCheck( pNtk ) )
+        {
+            printf( "Abc_NtkRefactor: The network check has failed.\n" );
+            return 0;
+        }
     }
-    return 1;
+    return RetValue;
 }
 
 

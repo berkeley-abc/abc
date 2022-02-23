@@ -847,7 +847,7 @@ Abc_Obj_t * Abc_AigMiter2( Abc_Aig_t * pMan, Vec_Ptr_t * vPairs )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, int fUpdateLevel )
+int Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, int fUpdateLevel )
 {
     assert( Vec_PtrSize(pMan->vStackReplaceOld) == 0 );
     assert( Vec_PtrSize(pMan->vStackReplaceNew) == 0 );
@@ -859,6 +859,8 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, int f
     {
         pOld = (Abc_Obj_t *)Vec_PtrPop( pMan->vStackReplaceOld );
         pNew = (Abc_Obj_t *)Vec_PtrPop( pMan->vStackReplaceNew );
+        if ( Abc_ObjFanoutNum(pOld) != 0 )
+            return 0;
         Abc_AigReplace_int( pMan, pOld, pNew, fUpdateLevel );
     }
     if ( fUpdateLevel )
@@ -867,6 +869,7 @@ void Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, int f
         if ( pMan->pNtkAig->vLevelsR ) 
             Abc_AigUpdateLevelR_int( pMan );
     }
+    return 1;
 }
 
 /**Function*************************************************************
