@@ -859,7 +859,7 @@ int Abc_AigReplace( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, int fU
     {
         pOld = (Abc_Obj_t *)Vec_PtrPop( pMan->vStackReplaceOld );
         pNew = (Abc_Obj_t *)Vec_PtrPop( pMan->vStackReplaceNew );
-        if ( Abc_ObjFanoutNum(pOld) != 0 )
+        if ( Abc_ObjFanoutNum(pOld) == 0 )
             return 0;
         Abc_AigReplace_int( pMan, pOld, pNew, fUpdateLevel );
     }
