@@ -2588,6 +2588,50 @@ Gia_Man_t * Wlc_BlastArray( char * pFileName )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Wlc_ComputePerm( Wlc_Ntk_t * pNtk, int nPis )
+{
+    Vec_Int_t * vPerm  = Vec_IntAlloc( 100 );
+    Vec_Int_t * vSizes = Vec_IntAlloc( 100 );
+    Vec_Int_t * vOffs  = Vec_IntAlloc( 100 );
+    Wlc_Obj_t * pObj; 
+    int i, k, First, Size, nBitCis = 0, fChange = 1;
+    Wlc_NtkForEachPi( pNtk, pObj, i )
+    {
+        Vec_IntPush( vOffs, nBitCis );
+        Vec_IntPush( vSizes, Wlc_ObjRange(pObj) );
+        nBitCis += Wlc_ObjRange(pObj);
+    }
+    for ( k = 0; fChange; k++ )
+    {
+        fChange = 0;
+        Vec_IntForEachEntryTwo( vOffs, vSizes, First, Size, i )
+            if ( k < Size )
+            {
+                Vec_IntPush( vPerm, First+k );
+                fChange = 1;
+            }
+    }
+    assert( Vec_IntSize(vPerm) == nBitCis );
+    Vec_IntFree( vOffs );
+    Vec_IntFree( vSizes );
+    Vec_IntReverseOrder( vPerm );
+    for ( i = Vec_IntSize(vPerm); i < nPis; i++ )
+        Vec_IntPush( vPerm, i );
+    //Vec_IntPrint( vPerm );
+    return vPerm;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
