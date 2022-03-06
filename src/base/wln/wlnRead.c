@@ -154,10 +154,11 @@ static inline int         Rtl_SigIsConcat( int s )                         { ret
 #define Rtl_CellForEachOutput( p, pCell, Par, Val, i ) \
     Rtl_CellForEachConnect( p, pCell, Par, Val, i ) if ( i <  Rtl_CellInputNum(pCell) ) continue; else
 
+extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
 
 /**Function*************************************************************
 
@@ -2214,7 +2215,6 @@ finish:
 }
 void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk )
 {
-    extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
     abctime clk = Abc_Clock(); int Status;
     Rtl_Ntk_t * pTop = pNtk ? (Rtl_Ntk_t *)pNtk : Rtl_LibTop( pLib );
     Gia_Man_t * pSwp = Cec4_ManSimulateTest3( pTop->pGia, 1000000, 0 );
