@@ -41,26 +41,48 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Wln_ReadGuidance( char * pFileName, Abc_Nam_t * p )
+int Wln_ReadFindToken( char * pToken, Abc_Nam_t * p )
 {
-    char Buffer[1000] = {'\\'}, * pBuffer = Buffer+1;
-    Vec_Int_t * vTokens = Vec_IntAlloc( 100 );
-    FILE * pFile = fopen( pFileName, "rb" );
-    while ( fscanf( pFile, "%s", pBuffer ) == 1 )
+    char * pBuffer = Abc_UtilStrsavTwo( "\\", pToken );
+    int RetValue = Abc_NamStrFindOrAdd( p, pBuffer, NULL );
+    ABC_FREE( pBuffer );
+    return RetValue;
+}
+void Wln_PrintGuidance( Vec_Wec_t * vGuide, Abc_Nam_t * p )
+{
+    Vec_Int_t * vLevel; int i, k, Obj; 
+    Vec_WecForEachLevel( vGuide, vLevel, i )
     {
-        if ( pBuffer[(int)strlen(pBuffer)-1] == '\r' )
-            pBuffer[(int)strlen(pBuffer)-1] = 0;
-        if ( !strcmp(pBuffer, "prove") && Vec_IntSize(vTokens) % 4 == 3 ) // account for "property"
-            Vec_IntPush( vTokens, -1 );
-        if ( Vec_IntSize(vTokens) % 4 == 2 || Vec_IntSize(vTokens) % 4 == 3 )
-            Vec_IntPush( vTokens, Abc_NamStrFindOrAdd(p, Buffer, NULL) );
-        else
-            Vec_IntPush( vTokens, Abc_NamStrFindOrAdd(p, pBuffer, NULL) );
+        Vec_IntForEachEntry( vLevel, Obj, k )
+            printf( "%s ", Obj >= 0 ? Abc_NamStr(p, Obj) : "[unknown]" );
+        printf( "\n" );
+    }
+}
+Vec_Wec_t * Wln_ReadGuidance( char * pFileName, Abc_Nam_t * p )
+{
+    char * pBuffer = ABC_CALLOC( char, 10000 ), * pToken;
+    Vec_Wec_t * vTokens = Vec_WecAlloc( 100 ); Vec_Int_t * vLevel;
+    FILE * pFile = fopen( pFileName, "rb" );
+    while ( fgets( pBuffer, 10000, pFile ) )
+    {
+        if ( pBuffer[0] == '#' )
+            continue;
+        vLevel = Vec_WecPushLevel( vTokens );
+        pToken = strtok( pBuffer, " \t\r\n" );
+        while ( pToken )
+        {
+            Vec_IntPush( vLevel, Vec_IntSize(vLevel) < 2 ? Abc_NamStrFindOrAdd(p, pToken, NULL) : Wln_ReadFindToken(pToken, p) );
+            pToken = strtok( NULL, " \t\r\n" );
+        }
+        if ( Vec_IntSize(vLevel) % 4 == 3 ) // account for "property"
+            Vec_IntPush( vLevel, -1 );
+        assert( Vec_IntSize(vLevel) % 4 == 0 );
     }
     fclose( pFile );
-    if ( Vec_IntSize(vTokens) % 4 == 3 ) // account for "property"
-        Vec_IntPush( vTokens, -1 );
-    assert( Vec_IntSize(vTokens) % 4 == 0 );
+    if ( Vec_WecSize(vTokens) == 0 )
+        printf( "Guidance is empty.\n" );
+    //Wln_PrintGuidance( vTokens, p );
+    ABC_FREE( pBuffer );
     return vTokens;
 }
 

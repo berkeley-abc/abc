@@ -276,7 +276,7 @@ usage:
 int Abc_CommandSolve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Rtl_LibBlast( Rtl_Lib_t * pLib );
-    extern void Rtl_LibBlast2( Rtl_Lib_t * pLib );
+    extern void Rtl_LibBlast2( Rtl_Lib_t * pLib, Vec_Int_t * vRoots );
     extern void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk );
     extern void Rtl_LibPreprocess( Rtl_Lib_t * pLib );
     extern void Wln_SolveWithGuidance( char * pFileName, Rtl_Lib_t * p );
@@ -327,7 +327,7 @@ int Abc_CommandSolve( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( fOldBlast )
             Rtl_LibBlast( pLib );
         else
-            Rtl_LibBlast2( pLib );
+            Rtl_LibBlast2( pLib, NULL );
         if ( fPrepro )
             Rtl_LibPreprocess( pLib );
         Rtl_LibSolve( pLib, NULL );
