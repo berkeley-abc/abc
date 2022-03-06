@@ -465,6 +465,21 @@ int Cec_ManVerifyTwo( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose )
     Gia_ManStop( pMiter );
     return RetValue;
 }
+int Cec_ManVerifyTwoInv( Gia_Man_t * p0, Gia_Man_t * p1, int fVerbose )
+{
+    Cec_ParCec_t ParsCec, * pPars = &ParsCec;
+    Gia_Man_t * pMiter;
+    int RetValue;
+    Cec_ManCecSetDefaultParams( pPars );
+    pPars->fVerbose = fVerbose;
+    pMiter = Gia_ManMiterInverse( p0, p1, 1, pPars->fVerbose );
+    if ( pMiter == NULL )
+        return -1;
+    RetValue = Cec_ManVerify( pMiter, pPars );
+    p0->pCexComb = pMiter->pCexComb; pMiter->pCexComb = NULL;
+    Gia_ManStop( pMiter );
+    return RetValue;
+}
 
 /**Function*************************************************************
 

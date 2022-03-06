@@ -2137,6 +2137,7 @@ void Rtl_LibSetReplace( Rtl_Lib_t * p, Vec_Wec_t * vGuide )
         pNtk->iCopy = -1;
     Vec_WecForEachLevel( vGuide, vLevel, i )
     {
+        int Type  = Vec_IntEntry( vLevel, 1 );
         int Name1 = Vec_IntEntry( vLevel, 2 );
         int Name2 = Vec_IntEntry( vLevel, 3 );
         int iNtk  = Rtl_LibFindTwoModules( p, Name1, Name2 );
@@ -2145,6 +2146,8 @@ void Rtl_LibSetReplace( Rtl_Lib_t * p, Vec_Wec_t * vGuide )
             printf( "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
             break;
         }
+        if ( Type != Rtl_LibStrId(p, "equal") )
+            continue;
         iNtk1 = iNtk >> 16;
         iNtk2 = iNtk & 0xFFFF;
         pNtk1 = Rtl_LibNtk(p, iNtk1);
@@ -2215,9 +2218,9 @@ void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk )
     abctime clk = Abc_Clock(); int Status;
     Rtl_Ntk_t * pTop = pNtk ? (Rtl_Ntk_t *)pNtk : Rtl_LibTop( pLib );
     Gia_Man_t * pSwp = Cec4_ManSimulateTest3( pTop->pGia, 1000000, 0 );
-    int RetValue = Gia_ManAndNum(pSwp) == 0;
+    int RetValue = Gia_ManAndNum(pSwp);
     Gia_ManStop( pSwp );
-    if ( RetValue )
+    if ( RetValue == 0 )
         printf( "Verification problem solved after SAT sweeping!  " );
     else
     {
@@ -2229,7 +2232,7 @@ void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk )
         if ( Status == 1 )
             printf( "Verification problem solved after CEC!  " );
         else
-            printf( "Verification problem is NOT solved!  " );
+            printf( "Verification problem is NOT solved (miter has %d nodes)!  ", RetValue );
     }
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
@@ -2248,35 +2251,113 @@ void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk )
 ***********************************************************************/
 void Wln_SolveEqual( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
 {
+    abctime clk = Abc_Clock(); 
     Rtl_Ntk_t * pNtk1 = Rtl_LibNtk( p, iNtk1 );
     Rtl_Ntk_t * pNtk2 = Rtl_LibNtk( p, iNtk2 );
-    printf( "Proving equivalence of \"%s\" and \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
-/*
+    printf( "\nProving equivalence of \"%s\" and \"%s\"...\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
     if ( Gia_ManCiNum(pNtk1->pGia) != Gia_ManCiNum(pNtk2->pGia) || 
          Gia_ManCoNum(pNtk1->pGia) != Gia_ManCoNum(pNtk2->pGia) )
     {
         printf( "The number of inputs/outputs does not match.\n" );
     }
+    else if ( 1 )
+    {
+        Gia_Man_t * pGia = Gia_ManMiter( pNtk1->pGia, pNtk2->pGia, 0, 0, 0, 0, 0 );
+        Gia_Man_t * pNew = Cec4_ManSimulateTest3( pGia, 10000000, 0 );
+        //printf( "Miter %d -> %d\n",  Gia_ManAndNum(pGia),  Gia_ManAndNum(pNew) );
+        if ( Gia_ManAndNum(pNew) == 0 )
+            Abc_Print( 1, "Networks are equivalent.  " );
+        else
+            Abc_Print( 1, "Networks are UNDECIDED.  " );
+        Gia_ManStopP( &pNew );
+        Gia_ManStopP( &pGia );
+    }
     else
     {
         int Status = Cec_ManVerifyTwo( pNtk1->pGia, pNtk2->pGia, 0 );
         if ( Status == 1 )
-            printf( "The networks are equivalence.\n" );
+            printf( "The networks are equivalent.  " );
         else
-            printf( "The networks are NOT equivalent.\n" );
+            printf( "The networks are NOT equivalent.  " );
     }
-*/
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+}
+int Gia_ManFindFirst( Rtl_Ntk_t * p, int * pnOuts )
+{
+    int i, * pWire, iFirst = -1, Counts[4] = {0}, nBits = 0;
+    assert( p->nOutputs == 1 );
+    Rtl_NtkForEachWire( p, pWire, i )
+    {
+        if ( pWire[0] & 1 ) // PI
+            Counts[0]++, Counts[1] += pWire[1];
+        if ( pWire[0] & 2 ) // PO
+            Counts[2]++, Counts[3] += pWire[1];
+    }
+    assert( p->nInputs  == Counts[0] );
+    assert( p->nOutputs == Counts[2] );
+    *pnOuts = Counts[3];
+    Rtl_NtkForEachWire( p, pWire, i )
+    {
+        if ( pWire[0] & 1 ) // PI
+        {
+            if ( pWire[1] == Counts[3] )
+                return nBits;
+            nBits += pWire[1];
+        }
+    }
+    return -1;
+}
+Gia_Man_t * Gia_ManMoveSharedFirst( Gia_Man_t * pGia, int iFirst, int nBits )
+{
+    Vec_Int_t * vPiPerm = Vec_IntAlloc( Gia_ManPiNum(pGia) );
+    Gia_Man_t * pTemp; int i, n;
+    for ( n = 0; n < 2; n++ )
+        for ( i = 0; i < Gia_ManPiNum(pGia); i++ )
+            if ( n == (i >= iFirst && i < iFirst + nBits) )
+                Vec_IntPush( vPiPerm, i );
+    pTemp = Gia_ManDupPerm( pGia, vPiPerm );
+    Vec_IntFree( vPiPerm );
+    return pTemp;
 }
 void Wln_SolveInverse( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
 {
+    abctime clk = Abc_Clock(); 
     Rtl_Ntk_t * pNtk1 = Rtl_LibNtk( p, iNtk1 );
     Rtl_Ntk_t * pNtk2 = Rtl_LibNtk( p, iNtk2 );
-    printf( "Proving inverse equivalence of \"%s\" and \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
+    int Res = printf( "\nProving inverse equivalence of \"%s\" and \"%s\".\n", Rtl_NtkName(pNtk1), Rtl_NtkName(pNtk2) );
+    int nOuts1, iFirst1 = Gia_ManFindFirst( pNtk1, &nOuts1 );
+    int nOuts2, iFirst2 = Gia_ManFindFirst( pNtk2, &nOuts2 );
+    Gia_Man_t * pGia1 = Gia_ManMoveSharedFirst( pNtk1->pGia, iFirst1, nOuts1 );
+    Gia_Man_t * pGia2 = Gia_ManMoveSharedFirst( pNtk2->pGia, iFirst2, nOuts2 );
+    if ( 1 )
+    {
+        Gia_Man_t * pGia  = Gia_ManMiterInverse( pGia1, pGia2, 0, 0 );
+        Gia_Man_t * pNew  = Cec4_ManSimulateTest3( pGia, 10000000, 0 );
+        //printf( "Miter %d -> %d\n",  Gia_ManAndNum(pGia),  Gia_ManAndNum(pNew) );
+        if ( Gia_ManAndNum(pNew) == 0 )
+            Abc_Print( 1, "Networks are equivalent.  " );
+        else
+            Abc_Print( 1, "Networks are UNDECIDED.  " );
+        Gia_ManStopP( &pNew );
+        Gia_ManStopP( &pGia );
+    }
+    else
+    {
+        int Status = Cec_ManVerifyTwoInv( pGia1, pGia2, 0 );
+        if ( Status == 1 )
+            printf( "The networks are equivalent.  " );
+        else
+            printf( "The networks are NOT equivalent.  " );
+    }
+    Res = 0;
+    Gia_ManStopP( &pGia1 );
+    Gia_ManStopP( &pGia2 );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 }
 void Wln_SolveProperty( Rtl_Lib_t * p, int iNtk )
 {
     Rtl_Ntk_t * pNtk = Rtl_LibNtk( p, iNtk );
-    printf( "Proving property \"%s\".\n", Rtl_NtkName(pNtk) );
+    printf( "\nProving property \"%s\".\n", Rtl_NtkName(pNtk) );
     Rtl_LibSolve( p, pNtk );
 }
 Vec_Int_t * Wln_ReadNtkRoots( Rtl_Lib_t * p, Vec_Wec_t * vGuide ) 
