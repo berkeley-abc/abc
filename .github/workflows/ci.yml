@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.8]
+        python-version: [3.9]
 
         name: [
           windows-2019-cl,
@@ -65,8 +65,8 @@ jobs:
           - name: macOS-10.15-clang
             os: macOS-10.15
             compiler: xcode
-            version: "12.3"
-            toxcmd: clang
+            version: "12.4"
+            toxcmd: build
 
     steps:
     - uses: actions/checkout@v2
@@ -90,7 +90,7 @@ jobs:
       run: |
         sudo apt-get -y -qq update
         sudo apt-get install -y libreadline-dev ncurses-dev
-        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+        if [ "${{ matrix.compiler }}" = gcc ]; then
           sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
           echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
           echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
@@ -108,10 +108,18 @@ jobs:
       run: |
         tox -e ${{ matrix.toxcmd }}
 
+    - uses: actions/upload-artifact@v2
+      if: matrix.name == 'ubuntu-20.04-clang'
+      with:
+        name: src_coverage_data
+        path: |
+          build/coverage/html
+          build/coverage/lcov.info
+
     - name:  Install and setup MacOS packages
       if: runner.os == 'macOS'
       run: |
-        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+        if [ "${{ matrix.compiler }}" = gcc ]; then
           brew install gcc@${{ matrix.version }}
           echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
           echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV

@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.10.0)
 
+# Add cmake modules of this project to the module path
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
 # with at least one base tag, this can have dynamic (git) versioning:
 #  git describe last tag = 1.1.0
 #  git describe last tag + rev count = 1.1.0.45
@@ -65,7 +68,8 @@ option(ABC_USE_NO_READLINE "Whether to use libreadline")
 option(ABC_USE_NO_PTHREADS "Whether to compile with thread support")
 option(ABC_USE_PIC "Whether to compile into position independent code")
 option(ABC_USE_LIBSTDCXX "Link explicitly to stdc++")
-option(BUILD_TESTING "build and run tests" ON)
+option(BUILD_TESTING "Build and run tests" ON)
+option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
 option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
 
 add_library(abc_interface INTERFACE)
@@ -420,14 +424,27 @@ if(BUILD_TESTING)
     if(ABC_USE_NAMESPACE)
         set_source_files_properties(${test_SRCS} PROPERTIES LANGUAGE CXX)
     endif()
-    add_executable(demo ${test_SRCS})
-    target_link_libraries(demo PUBLIC libabc)
+    add_executable(base_test ${test_SRCS})
+    target_link_libraries(base_test PUBLIC libabc)
 
     enable_testing()
-    add_test(NAME base_i10
-        COMMAND demo i10.aig
+    add_test(NAME base_test
+        COMMAND base_test i10.aig
         WORKING_DIRECTORY "${abc_SOURCE_DIR}"
     )
+
+    # Add source-based llvm code coverage targets.
+    # Note this requires recent clang/llvm tooling.
+    if(COVERAGE_BUILD)
+        add_test(NAME main_test
+            COMMAND abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+            WORKING_DIRECTORY "${abc_SOURCE_DIR}"
+        )
+
+        include(coverage)
+        add_coverage(abc)
+        add_coverage(base_test)
+    endif()
 endif()
 
 add_custom_target(etags
