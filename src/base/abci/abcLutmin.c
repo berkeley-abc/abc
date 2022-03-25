@@ -112,6 +112,7 @@ void Abc_NtkCheckAbsorb( Abc_Ntk_t * pNtk, int nLutSize )
         Counter,  100.0 * Counter  / Abc_NtkNodeNum(pNtk), 
         Counter2, 100.0 * Counter2 / Abc_NtkNodeNum(pNtk) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    Vec_IntFree( vCounts );
 }
 
 /**Function*************************************************************

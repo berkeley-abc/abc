@@ -2483,6 +2483,8 @@ saucy_search(
 
     /* Keep running till we're out of automorphisms */
     while (do_search(s));
+
+    ABC_FREE(g);
 }
 
 void
