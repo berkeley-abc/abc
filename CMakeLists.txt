@@ -68,6 +68,7 @@ option(ABC_USE_NO_READLINE "Whether to use libreadline")
 option(ABC_USE_NO_PTHREADS "Whether to compile with thread support")
 option(ABC_USE_PIC "Whether to compile into position independent code")
 option(ABC_USE_LIBSTDCXX "Link explicitly to stdc++")
+option(ABC_USE_SONAME "Set library soname" OFF)
 option(BUILD_TESTING "Build and run tests" ON)
 option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
 option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
@@ -381,7 +382,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     )
 endif()
 
-if(BUILD_SHARED_LIBS)
+if(ABC_USE_SONAME AND BUILD_SHARED_LIBS)
     set_target_properties(
         libabc PROPERTIES VERSION ${LIBRARY_VERSION}
                           SOVERSION ${LIBRARY_SOVERSION}
