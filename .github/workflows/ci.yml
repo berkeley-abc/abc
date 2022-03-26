@@ -66,7 +66,7 @@ jobs:
             os: macOS-10.15
             compiler: xcode
             version: "12.4"
-            toxcmd: build
+            toxcmd: "build Xcode"
 
     steps:
     - uses: actions/checkout@v2
@@ -126,17 +126,16 @@ jobs:
         else
           ls -ls /Applications/
           sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
-          echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
-          echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
         fi
 
     - name: Build and test MacOS
       if: runner.os == 'macOS'
-      env:
-        CC: ${{ env.CC }}
-        CXX: ${{ env.CXX }}
       run: |
-        tox -e ${{ matrix.toxcmd }}
+        if [ "${{ matrix.compiler }}" = gcc ]; then
+          CC=${{ env.CC }} CXX=${{ env.CXX }} tox -e ${{ matrix.toxcmd }}
+        else
+          tox -e ${{ matrix.toxcmd }}
+        fi
 
     - name: Configure Windows
       if: runner.os == 'Windows'
