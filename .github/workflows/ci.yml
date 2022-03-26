@@ -54,13 +54,13 @@ jobs:
             os: ubuntu-18.04
             compiler: gcc
             version: "9"
-            toxcmd: abc,tests
+            toxcmd: soname,tests
 
           - name: macOS-10.15-gcc
             os: macOS-10.15
             compiler: gcc
             version: "11"
-            toxcmd: ctest
+            toxcmd: abc,tests
 
           - name: macOS-10.15-clang
             os: macOS-10.15

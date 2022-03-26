@@ -226,8 +226,6 @@ clean:
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
-lib: lib$(PROG).so.$(VERSION)
-
 test: demo
 	./demo i10.aig
 
@@ -235,7 +233,7 @@ demo: $(DEMOOBJ) lib$(PROG).a
 	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
 	+$(VERBOSE)$(LD) -o $@ $(DEMOOBJ) lib$(PROG).a $(LDFLAGS) $(DLIBS) $(LIBS)
 
-$(PROG): $(MAINOBJ) lib$(PROG).so
+$(PROG): $(MAINOBJ) lib
 	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
 	+$(VERBOSE)$(LD) -o $@ $(MAINOBJ) -L. -l$(PROG) $(LDFLAGS) $(LIBS)
 
@@ -243,14 +241,23 @@ lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	$(VERBOSE)$(AR) rsv $@ $?
 
+ifdef ABC_USE_SONAME
+lib: lib$(PROG).so.$(VERSION)
+
 lib$(PROG).so.$(VERSION): $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
 	+$(VERBOSE)$(LD) -shared -Wl,-soname=$(SONAME) -o $@ $^ $(LIBS)
-
-lib$(PROG).so: lib$(PROG).so.$(VERSION)
 	ldconfig -v -n .
 	@$(LN) -sf lib$(PROG).so.$(VERSION) lib$(PROG).so
 	@$(LN) -sf lib$(PROG).so.$(VERSION) $(SONAME)
+
+else
+lib: lib$(PROG).so
+
+lib$(PROG).so: $(LIBOBJ)
+	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
+	+$(VERBOSE)$(LD) -shared -o $@ $^ $(LIBS)
+endif
 
 docs:
 	@echo "$(MSG_PREFIX)\`\` Building documentation." $(notdir $@)
