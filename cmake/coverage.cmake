@@ -29,7 +29,7 @@ if(COVERAGE_BUILD)
     )
 
     if(LLVM_COV_PATH AND LLVM_PROFDATA_PATH)
-        set(RIPC_HAVE_LLVM_COVERAGE_TOOLS TRUE)
+        set(ABC_HAVE_LLVM_COVERAGE_TOOLS TRUE)
 
         message(STATUS "Found llvm-cov: ${LLVM_COV_PATH}")
         message(STATUS "Found llvm-profdata: ${LLVM_PROFDATA_PATH}")
