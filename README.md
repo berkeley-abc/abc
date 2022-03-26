@@ -1,4 +1,4 @@
-# ABC: Sequential Logic Synthesis and Formal Verification
+# ABC
 
 [![ci](https://github.com/sarnold/abc/actions/workflows/ci.yml/badge.svg)](https://github.com/sarnold/abc/actions/workflows/ci.yml)
 [![msystem](https://github.com/sarnold/abc/actions/workflows/win.yml/badge.svg)](https://github.com/sarnold/abc/actions/workflows/win.yml)
