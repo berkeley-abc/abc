@@ -180,7 +180,6 @@ OBJ := \
 	$(patsubst %.y, %.o,  $(filter %.y, $(SRC)))
 
 LIBOBJ := $(filter-out src/base/main/main.o,$(OBJ))
-MAINOBJ := src/base/main/main.o
 DEMOOBJ := src/demo.o
 
 DEP := $(OBJ:.o=.d)
@@ -226,16 +225,12 @@ clean:
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
-test: demo
-	./demo i10.aig
+test: $(PROG)
+	./abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
 
-demo: $(DEMOOBJ) lib$(PROG).a
-	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
-	+$(VERBOSE)$(LD) -o $@ $(DEMOOBJ) lib$(PROG).a $(LDFLAGS) $(DLIBS) $(LIBS)
-
-$(PROG): $(MAINOBJ) lib
-	@echo "$(MSG_PREFIX)\`\` Linking binary:" $(notdir $@)
-	+$(VERBOSE)$(LD) -o $@ $(MAINOBJ) -L. -l$(PROG) $(LDFLAGS) $(LIBS)
+$(PROG): $(OBJ)
+	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
+	$(VERBOSE)$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
