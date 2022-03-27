@@ -1,6 +1,6 @@
 on:
   workflow_dispatch:
-  #push:
+  push:
 
 jobs:
 
@@ -11,6 +11,9 @@ jobs:
         use_namespace: [false, true]
 
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
 
     env:
       CMAKE_ARGS: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=xxx' || '' }}
@@ -22,7 +25,10 @@ jobs:
     - name: Git Checkout
       uses: actions/checkout@v2
       with:
-        submodules: recursive
+        fetch-depth: 0
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v1.8
 
     - name: Install brew dependencies
       run: |
@@ -35,8 +41,12 @@ jobs:
       if: ${{ !contains(matrix.os, 'macos') }}
 
     - name: Configure CMake
-      run: |
-        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ${CMAKE_ARGS} -B build
+      run: >
+        cmake -S . -B build
+        -G Ninja
+        ${CMAKE_ARGS}
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX=./staging
 
     - name: Build CMake
       run: |
@@ -44,7 +54,7 @@ jobs:
 
     - name: Test Executable
       run: |
-        ./build/abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+        ./build/src/base/main/abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
 
     - name: Test Library
       run: |
@@ -54,10 +64,9 @@ jobs:
 
     - name: Stage Executable
       run: |
-       mkdir staging
-       cp build/abc build/libabc.a staging/
+        cmake --build build --target install
 
-    - name: Upload pacakge artifact
+    - name: Upload package artifact
       uses: actions/upload-artifact@v1
       with:
         name: package

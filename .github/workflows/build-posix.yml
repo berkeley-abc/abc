@@ -1,6 +1,6 @@
 on:
   workflow_dispatch:
-  #push:
+  push:
 
 jobs:
 
@@ -58,7 +58,7 @@ jobs:
        mkdir staging
        cp abc libabc.a staging/
 
-    - name: Upload pacakge artifact
+    - name: Upload package artifact
       uses: actions/upload-artifact@v1
       with:
         name: package
