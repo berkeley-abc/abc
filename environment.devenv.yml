@@ -8,3 +8,6 @@ dependencies:
   - cxx-compiler
   - make  # [unix]
   - readline=8.1  # [unix]
+  - zlib
+  - libpng
+  - dirent  # [win]

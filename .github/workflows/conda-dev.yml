@@ -30,7 +30,7 @@ jobs:
           - os: 'windows-2019'
             generator: 'Ninja'
             build_type: 'Release'
-            win_args: '-DABC_USE_NO_PTHREADS=ON -DABC_USE_NO_READLINE=ON'
+            extra_args: '-DABC_USE_NO_PTHREADS=ON -DABC_USE_NO_READLINE=ON'
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -81,6 +81,6 @@ jobs:
         source activate abc-test
         ctest --build-generator "${{ matrix.generator }}" \
           --build-and-test . build \
-          --build-options ${CMAKE_ARGS} ${{ matrix.win_args }} \
+          --build-options ${CMAKE_ARGS} ${{ matrix.extra_args }} \
           -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
           --test-command ctest --rerun-failed --output-on-failure -V
