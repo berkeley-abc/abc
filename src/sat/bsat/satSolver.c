@@ -515,9 +515,9 @@ static inline int sat_clause_compute_lbd( sat_solver* s, clause* c )
     for (i = 0; i < (int)c->size; i++)
     {
         lev = var_level(s, lit_var(c->lits[i]));
-        if ( !(minl & (1 << (lev & 31))) )
+        if ( !(minl & (1UL << (lev & 31))) )
         {
-            minl |= 1 << (lev & 31);
+            minl |= 1UL << (lev & 31);
             lbd++;
 //            printf( "%d ", lev );
         }
@@ -793,7 +793,7 @@ static int sat_solver_lit_removable(sat_solver* s, int x, int minl)
             for (i = 1; i < clause_size(c); i++){
                 int v = lit_var(lits[i]);
                 if (!var_tag(s,v) && var_level(s, v)){
-                    if (s->reasons[v] != 0 && ((1 << (var_level(s, v) & 31)) & minl)){
+                    if (s->reasons[v] != 0 && ((1UL << (var_level(s, v) & 31)) & minl)){
                         veci_push(&s->stack,lit_var(lits[i]));
                         var_set_tag(s, v, 1);
                     }else{
@@ -963,7 +963,7 @@ static void sat_solver_analyze(sat_solver* s, int h, veci* learnt)
     minl = 0;
     for (i = 1; i < veci_size(learnt); i++){
         int lev = var_level(s, lit_var(lits[i]));
-        minl    |= 1 << (lev & 31);
+        minl    |= 1UL << (lev & 31);
     }
 
     // simplify (full)
