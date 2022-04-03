@@ -113,7 +113,7 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
     DdNode * bTemp, ** pbVars;
     Vec_Str_t * vSupport;
     int i, nVars, j, iFanin, iFanin2, k = 0;
-    int fDupFanins = 0;
+    int ddSize, fDupFanins = 0;
 
     assert( Abc_NtkIsBddLogic(pNode->pNtk) );
     assert( Abc_ObjIsNode(pNode) );
@@ -127,8 +127,14 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
         return 0;
     }
 
-    // remove unused fanins
-    pbVars = ABC_CALLOC( DdNode *, Abc_ObjFaninNum(pNode) );
+    // remove unused fanins.
+
+    // By default, every BDD variable stays equivalent to itself.
+    ddSize = Cudd_ReadSize( dd );
+    pbVars = ABC_CALLOC( DdNode *, ddSize );
+    for (i = 0; i < ddSize; i += 1 ) {
+      pbVars[i] = Cudd_bddIthVar( dd, i );
+    }
     Vec_IntForEachEntry( &pNode->vFanins, iFanin, i )
     {
         Abc_Obj_t * pFanin = Abc_NtkObj( pNode->pNtk, iFanin );
@@ -146,13 +152,18 @@ int Abc_NodeMinimumBase( Abc_Obj_t * pNode )
             Vec_IntWriteEntry( &pNode->vFanins, k++, iFanin );
         else if ( !Vec_IntRemove( &pFanin->vFanouts, pNode->Id ) )
             printf( "The obj %d is not found among the fanouts of obj %d ...\n", pNode->Id, iFanin );
+
+        // i-th variable becomes equivalent to j-th variable (can be itself)
         pbVars[i] = Cudd_bddIthVar( dd, j );
     }
     Vec_IntShrink( &pNode->vFanins, k );
 
     // update the function of the node
-    pNode->pData = Cudd_bddVectorCompose( dd, bTemp = (DdNode *)pNode->pData, pbVars );   Cudd_Ref( (DdNode *)pNode->pData );
-    Cudd_RecursiveDeref( dd, bTemp );
+    if ( ! Cudd_IsConstant((DdNode *) pNode->pData ) ) {
+      pNode->pData = Cudd_bddVectorCompose( dd, bTemp = (DdNode *)pNode->pData, pbVars );
+      Cudd_Ref( (DdNode *)pNode->pData );
+      Cudd_RecursiveDeref( dd, bTemp );
+    }
     Vec_StrFree( vSupport );
     ABC_FREE( pbVars );
 
