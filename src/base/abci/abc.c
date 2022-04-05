@@ -32624,9 +32624,10 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fNormal  = 0;
     int fRevFans = 0;
     int fRevOuts = 0;
+    int fLeveled = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "nfovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "nfolvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32638,6 +32639,9 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'o':
             fRevOuts ^= 1;
+            break;
+        case 'l':
+            fLeveled ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -32653,7 +32657,9 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Dfs(): There is no AIG.\n" );
         return 1;
     }
-    if ( fNormal )
+    if ( fLeveled )
+        pTemp = Gia_ManDupLevelized( pAbc->pGia );
+    else if ( fNormal )
         pTemp = Gia_ManDupOrderAiger( pAbc->pGia );
     else 
         pTemp = Gia_ManDupOrderDfsReverse( pAbc->pGia, fRevFans, fRevOuts );
@@ -32661,12 +32667,13 @@ int Abc_CommandAbc9Dfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &dfs [-nfovh]\n" );
+    Abc_Print( -2, "usage: &dfs [-nfolvh]\n" );
     Abc_Print( -2, "\t        orders objects in the DFS order\n" );
-    Abc_Print( -2, "\t-n    : toggle using normalized ordering [default = %s]\n", fNormal? "yes": "no" );
-    Abc_Print( -2, "\t-f    : toggle using reverse fanin traversal order [default = %s]\n", fRevFans? "yes": "no" );
+    Abc_Print( -2, "\t-n    : toggle using normalized ordering [default = %s]\n",            fNormal? "yes": "no" );
+    Abc_Print( -2, "\t-f    : toggle using reverse fanin traversal order [default = %s]\n",  fRevFans? "yes": "no" );
     Abc_Print( -2, "\t-o    : toggle using reverse output traversal order [default = %s]\n", fRevOuts? "yes": "no" );
-    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-l    : toggle using levelized order [default = %s]\n",                fLeveled? "yes": "no" );
+    Abc_Print( -2, "\t-v    : toggle printing verbose information [default = %s]\n",         fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
