@@ -658,6 +658,33 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkFromGiaCollapse( Gia_Man_t * pGia )
+{
+    Aig_Man_t * pMan = Gia_ManToAig( pGia, 0 ); int Res;
+    Abc_Ntk_t * pNtk = Abc_NtkFromAigPhase( pMan ), * pTemp;
+    //pNtk->pName      = Extra_UtilStrsav(pGia->pName);
+    Aig_ManStop( pMan );
+    // collapse the network 
+    pNtk = Abc_NtkCollapse( pTemp = pNtk, 10000, 0, 1, 0, 0, 0 );
+    Abc_NtkDelete( pTemp );
+    if ( pNtk == NULL )
+        return 0;
+    Res = Abc_NtkGetBddNodeNum( pNtk );
+    Abc_NtkDelete( pNtk );
+    return Res == 0;
+}
+
 
 /**Function*************************************************************
 
