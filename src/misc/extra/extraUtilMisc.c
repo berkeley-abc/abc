@@ -1290,7 +1290,7 @@ void Extra_TruthExpand( int nVars, int nWords, unsigned * puTruth, unsigned uPha
         { 0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF }, 
         { 0x00000000,0x00000000,0x00000000,0x00000000,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF } 
     };
-    static char Cases[256] = {
+    static signed char Cases[256] = {
          0, // 00000000
          0, // 00000001
          1, // 00000010
