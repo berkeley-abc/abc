@@ -157,6 +157,7 @@ static inline int         Rtl_SigIsConcat( int s )                         { ret
 
 extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
 extern int         Abc_NtkFromGiaCollapse( Gia_Man_t * pGia );
+extern int         Wln_ReadFindToken( char * pToken, Abc_Nam_t * p );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -1434,6 +1435,18 @@ void Rtl_LibReorderModules_rec( Rtl_Ntk_t * p, Vec_Ptr_t * vNew )
     p->iCopy = Vec_PtrSize(vNew);
     Vec_PtrPush( vNew, p );
 }
+int Rtl_LibCountInsts( Rtl_Lib_t * p, Rtl_Ntk_t * pOne )
+{
+    Rtl_Ntk_t * pNtk; int n, i, * pCell, Count = 0;
+    Vec_PtrForEachEntry( Rtl_Ntk_t *, p->vNtks, pNtk, n )
+        Rtl_NtkForEachCell( pNtk, pCell, i )
+        {
+            Rtl_Ntk_t * pMod = Rtl_CellNtk( pNtk, pCell );
+            if ( pMod && pMod == pOne ) 
+                Count++;
+        }
+    return Count;
+}
 void Rtl_NtkUpdateBoxes( Rtl_Ntk_t * p )
 {
     int i, * pCell;
@@ -1755,7 +1768,7 @@ void Rtl_NtkBlastHierarchy( Gia_Man_t * pNew, Rtl_Ntk_t * p, int * pCell )
     extern void Gia_ManDupRebuild( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vLits, int fBufs );
     extern int Gia_ManFindFirst( Rtl_Ntk_t * p, int * pnOuts );
     Rtl_Ntk_t * pModel = Rtl_NtkModule( p, Rtl_CellModule(pCell)-ABC_INFINITY );
-    int nOuts1, iFirst1 = Gia_ManFindFirst( pModel, &nOuts1 );
+    int nIns = 0, nOuts = 0, nOuts1, iFirst1 = Gia_ManFindFirst( pModel, &nOuts1 );
     int k, Par, Val, nBits = 0;
     //printf( "Blasting %s -> %s...\n", Rtl_NtkName(p), Rtl_NtkName(pModel) );
     Vec_IntClear( &p->vBitTemp );
@@ -1766,19 +1779,22 @@ void Rtl_NtkBlastHierarchy( Gia_Man_t * pNew, Rtl_Ntk_t * p, int * pCell )
     assert( pModel->pGia );
     if ( pModel->fRoot )
     {
+        nIns = Vec_IntSize(&p->vBitTemp);
         Vec_IntForEachEntry( &p->vBitTemp, Val, k )
-            Vec_IntWriteEntry( &p->vBitTemp, k, (k >= iFirst1 && k < iFirst1 + nOuts1) ? Gia_ManAppendBuf(pNew, Val) : Val );
-        Vec_IntPush( pNew->vBarBufs, Abc_Var2Lit(pModel->NameId, 0) );
+            //Vec_IntWriteEntry( &p->vBitTemp, k, (k >= iFirst1 && k < iFirst1 + nOuts1) ? Gia_ManAppendBuf(pNew, Val) : Val );
+            Vec_IntWriteEntry( &p->vBitTemp, k, Gia_ManAppendBuf(pNew, Val) );
+        Vec_IntPush( pNew->vBarBufs, (nIns << 16) | Abc_Var2Lit(pModel->NameId, 0) );
     }
     Gia_ManDupRebuild( pNew, pModel->pGia, &p->vBitTemp, !pModel->fRoot );
     if ( !pModel->fRoot )
         Vec_IntAppend( pNew->vBarBufs, pModel->pGia->vBarBufs );
     if ( pModel->fRoot )
     {
+        nOuts = Vec_IntSize(&p->vBitTemp);
         Vec_IntForEachEntry( &p->vBitTemp, Val, k )
             Vec_IntWriteEntry( &p->vBitTemp, k, Gia_ManAppendBuf(pNew, Val) );
-        Vec_IntPush( pNew->vBarBufs, Abc_Var2Lit(pModel->NameId, 1) );
-        printf( "Added %d and %d output buffers for module %s.\n", nOuts1, Vec_IntSize(&p->vBitTemp), Rtl_NtkName(pModel) );
+        Vec_IntPush( pNew->vBarBufs, (nOuts << 16) | Abc_Var2Lit(pModel->NameId, 1) );
+        printf( "Added %d input buffers and %d output buffers for module %s.\n", nIns, nOuts, Rtl_NtkName(pModel) );
     }
     Rtl_CellForEachOutput( p, pCell, Par, Val, k )
         nBits += Rtl_NtkInsertSignalRange( p, Val, Vec_IntArray(&p->vBitTemp)+nBits, Vec_IntSize(&p->vBitTemp)-nBits );
@@ -1847,7 +1863,7 @@ void Rtl_NtkPrintBufs( Rtl_Ntk_t * p, Vec_Int_t * vBufs )
     if ( Vec_IntSize(vBufs) )
         printf( "Found %d buffers:  ", p->pGia->nBufs );
     Vec_IntForEachEntry( vBufs, Lit, i )
-        printf( "%s (%c)  ", Rtl_LibStr(p->pLib, Abc_Lit2Var(Lit)), Abc_LitIsCompl(Lit)? 'o' : 'i' );
+        printf( "%s (%c%d)  ", Rtl_LibStr(p->pLib, Abc_Lit2Var(Lit&0xFFFF)), Abc_LitIsCompl(Lit)? 'o' : 'i', Lit >> 16 );
     if ( Vec_IntSize(vBufs) )
         printf( "\n" );
 }
@@ -2145,11 +2161,11 @@ void Rtl_LibBlast2( Rtl_Lib_t * pLib, Vec_Int_t * vRoots, int fInv )
     if ( vRoots )
     {
         Vec_PtrForEachEntry( Rtl_Ntk_t *, pLib->vNtks, pNtk, i )
-            pNtk->iCopy = -2, pNtk->fRoot = 0;
+            pNtk->iCopy = -2;//, pNtk->fRoot = 0;
         Vec_IntForEachEntry( vRoots, iNtk, i )
         {
             Rtl_Ntk_t * pNtk = Rtl_LibNtk(pLib, iNtk);
-            pNtk->fRoot = fInv;
+            //pNtk->fRoot = fInv;
             Rtl_LibMark_rec( pNtk );
         }
     }
@@ -2259,6 +2275,9 @@ void Rtl_LibSolve( Rtl_Lib_t * pLib, void * pNtk )
     Gia_Man_t * pGia2 = Gia_ManReduceBuffers( pLib, pTop->pGia );
     Gia_Man_t * pSwp  = Cec4_ManSimulateTest3( pGia2, 1000000, 0 );
     int RetValue = Gia_ManAndNum(pSwp);
+    char * pFileName = "miter_to_solve.aig";
+    printf( "Dumped the miter into file \"%s\".\n", pFileName );
+    Gia_AigerWrite( pGia2, pFileName, 0, 0, 0 );
     Gia_ManStop( pSwp );
     Gia_ManStop( pGia2 );
     if ( RetValue == 0 )
@@ -2423,6 +2442,7 @@ void Wln_SolveInverse( Rtl_Lib_t * p, int iNtk1, int iNtk2 )
         Gia_Man_t * pGia2 = Gia_ManDupNoBuf( pGia );
         printf( "Dumping inverse miter into file \"%s\".\n", pFileName );
         Gia_AigerWrite( pGia2, pFileName, 0, 0, 0 );
+        printf( "Dumped the miter into file \"%s\".\n", pFileName );
         if ( Abc_NtkFromGiaCollapse( pGia2 ) )
             Abc_Print( 1, "Networks are equivalent after collapsing.  " );
         else
@@ -2532,6 +2552,122 @@ void Wln_SolveWithGuidance( char * pFileName, Rtl_Lib_t * p )
     Rtl_LibBlastClean( p );
     Vec_WecFree( vGuide );
     Vec_IntFree( vRoots );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Rtl_LibReturnNtk( Rtl_Lib_t * p, char * pModule )
+{
+    int NameId = Wln_ReadFindToken( pModule, p->pManName );
+    int iNtk   = NameId ? Rtl_LibFindModule( p, NameId )  : -1;
+    if ( iNtk == -1 )
+    {
+        printf( "Cannot find module \"%s\" in the current design.\n", pModule );
+        return -1;
+    }
+    return iNtk;
+}
+Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fVerbose )
+{
+    Gia_Man_t * pGia = NULL;
+    int NameId = Wln_ReadFindToken( pTopModule, p->pManName );
+    int iNtk   = NameId ? Rtl_LibFindModule( p, NameId ) : -1;
+    if ( iNtk == -1 )
+    {
+        printf( "Cannot find top module \"%s\".\n", pTopModule );
+        return NULL;
+    }
+    else
+    {
+        abctime clk = Abc_Clock(); 
+        Rtl_Ntk_t * pTop = Rtl_LibNtk(p, iNtk);
+        Vec_Int_t * vRoots = Vec_IntAlloc( 1 );
+        Vec_IntPush( vRoots, iNtk );
+        Rtl_LibBlast2( p, vRoots, 1 );
+        pGia = Gia_ManDup( pTop->pGia );
+        if ( pTop->pGia->vBarBufs )
+            pGia->vBarBufs = Vec_IntDup( pTop->pGia->vBarBufs );
+        printf( "Finished computing global AIG for the top module \"%s\".  ", Rtl_NtkStr(pTop, NameId) );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        Rtl_NtkPrintBufs( pTop, pGia->vBarBufs );
+        Rtl_LibBlastClean( p );
+        Vec_IntFree( vRoots );
+    }
+    return pGia;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wln_LibGraftOne( Rtl_Lib_t * p, char * pModule1, char * pModule2, int fVerbose )
+{
+    int Name1 = Wln_ReadFindToken( pModule1, p->pManName );
+    int Name2 = Wln_ReadFindToken( pModule2, p->pManName );
+    int iNtk  = Rtl_LibFindTwoModules( p, Name1, Name2 ); 
+    if ( iNtk == -1 )
+    {
+        printf( "Cannot find networks \"%s\" and \"%s\" in the design.\n", Rtl_LibStr(p, Name1), Rtl_LibStr(p, Name2) ); 
+        return;
+    }
+    else
+    {
+        int iNtk1 = iNtk >> 16;
+        int iNtk2 = iNtk & 0xFFFF;
+        Rtl_Ntk_t * pNtk1 = Rtl_LibNtk(p, iNtk1);
+        Rtl_Ntk_t * pNtk2 = Rtl_LibNtk(p, iNtk2);
+        assert( iNtk1 != iNtk2 );
+        printf( "Replacing \"%s\" (appearing %d times) by \"%s\" (appearing %d times).\n", 
+            Rtl_NtkName(pNtk1), Rtl_LibCountInsts(p, pNtk1), Rtl_NtkName(pNtk2), Rtl_LibCountInsts(p, pNtk2) );
+        pNtk1->iCopy = iNtk2;
+    //    Rtl_LibSetReplace( p, vGuide );
+        Rtl_LibUpdateBoxes( p );
+        Rtl_LibReorderModules( p );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wln_LibMarkHierarchy( Rtl_Lib_t * p, char ** ppModule, int nModules, int fVerbose )
+{
+    Rtl_Ntk_t * pNtk; int i;
+    if ( nModules == 0 ) // clean labels
+        Vec_PtrForEachEntry( Rtl_Ntk_t *, p->vNtks, pNtk, i )
+            pNtk->fRoot = 0;
+    for ( i = 0; i < nModules; i++ )
+    {
+        int iNtk = Rtl_LibReturnNtk( p, ppModule[i] );
+        if ( iNtk == -1 )
+            continue;
+        pNtk = Rtl_LibNtk( p, iNtk );
+        pNtk->fRoot = 1;
+        printf( "Marking module \"%s\" (appearing %d times in the hierarchy).\n", ppModule[i], Rtl_LibCountInsts(p, pNtk) );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

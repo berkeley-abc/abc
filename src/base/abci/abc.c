@@ -519,6 +519,8 @@ static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9IsoNpn             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9IsoSt              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Compare            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9RevEng             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Uif                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9CexInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cycle              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cone               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1263,6 +1265,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&isonpn",       Abc_CommandAbc9IsoNpn,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&isost",        Abc_CommandAbc9IsoSt,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&compare",      Abc_CommandAbc9Compare,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&reveng",       Abc_CommandAbc9RevEng,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&uif",          Abc_CommandAbc9Uif,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cexinfo",      Abc_CommandAbc9CexInfo,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cycle",        Abc_CommandAbc9Cycle,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cone",         Abc_CommandAbc9Cone,         0 );
@@ -43708,6 +43712,144 @@ int Abc_CommandAbc9Compare( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &compare <file1> <file2> [-vh]\n" );
     Abc_Print( -2, "\t         compared two AIGs for structural similarity\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9RevEng( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManCompareSims( Gia_Man_t * pHie, Gia_Man_t * pFlat, int nWords, int fVerbose );
+    Gia_Man_t * pGia0, * pGia1;
+    char ** pArgvNew; int nArgcNew;
+    int c, nWords = 4, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Wvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9RevEng(): There is no AIG.\n" );
+        return 1;
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9RevEng(): This command expects one AIG file name on the command line.\n" );
+        return 1;
+    }
+    pGia0 = pAbc->pGia;
+    pGia1 = Gia_AigerRead( pArgvNew[0], 0, 0, 0 );
+    if ( pGia0 == NULL || pGia1 == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9RevEng(): Reading input files did not work.\n" );
+        return 1;
+    }
+    Gia_ManCompareSims( pGia0, pGia1, nWords, fVerbose );
+    Gia_ManStop( pGia1 );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &reveng [-W num] [-vh] <file>\n" );
+    Abc_Print( -2, "\t         compares two AIGs for structural similarity\n" );
+    Abc_Print( -2, "\t         the current AIG is expected to contain some hierarchy\n" );
+    Abc_Print( -2, "\t         the given AIG from <file> is expected to be flat\n" );
+    Abc_Print( -2, "\t-W num : the number of 64-bit words of simulation info [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Uif( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManDupUif( Gia_Man_t * p );
+    extern Gia_Man_t * Gia_ManDupBlackBox( Gia_Man_t * p );
+    Gia_Man_t * pNew = NULL, * pTemp = NULL;
+    int c, fBlackBox = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "bvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'b':
+            fBlackBox ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Uif(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( pAbc->pGia->vBarBufs == NULL || Vec_IntSize(pAbc->pGia->vBarBufs) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Uif(): Hierarchy is not defined.\n" );
+        return 1;
+    }
+    pNew = Gia_ManDupUif( pAbc->pGia );
+    if ( fBlackBox )
+    {
+        pNew = Gia_ManDupBlackBox( pTemp = pNew );
+        Gia_ManStop( pTemp );
+    }
+    Abc_FrameUpdateGia( pAbc, pNew );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &uif [-bvh]\n" );
+    Abc_Print( -2, "\t         eagerly adds UIF constraints when hierarchy is present\n" );
+    Abc_Print( -2, "\t-b     : toggle blackboxing while adding constraints [default = %s]\n", fBlackBox? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
