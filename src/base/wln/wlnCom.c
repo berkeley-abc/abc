@@ -221,15 +221,18 @@ usage:
 ******************************************************************************/
 int Abc_CommandGraft( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Wln_LibGraftOne( Rtl_Lib_t * p, char * pModule1, char * pModule2, int fVerbose );
+    extern void Wln_LibGraftOne( Rtl_Lib_t * p, char * pModule1, char * pModule2, int fInv, int fVerbose );
     Rtl_Lib_t * pLib = Wln_AbcGetRtl(pAbc);
     char ** pArgvNew; int nArgcNew;
-    int c,  fVerbose  = 0;
+    int c, fInv = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ivh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'i':
+            fInv ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -251,11 +254,12 @@ int Abc_CommandGraft( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandGraft(): This command expects one AIG file name on the command line.\n" );
         return 1;
     }
-    Wln_LibGraftOne( pLib, pArgvNew[0], pArgvNew[1], fVerbose );
+    Wln_LibGraftOne( pLib, pArgvNew[0], pArgvNew[1], fInv, fVerbose );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%graft [-vh] <module1_name> <module2_name>\n" );
+    Abc_Print( -2, "usage: %%graft [-ivh] <module1_name> <module2_name>\n" );
     Abc_Print( -2, "\t         replace instances of module1 by those of module2\n" );
+    Abc_Print( -2, "\t-i     : toggle using inverse grafting [default = %s]\n", fInv? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

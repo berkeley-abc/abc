@@ -48,6 +48,7 @@ struct Rtl_Lib_t_
     Vec_Int_t *           vTokens;   // temp tokens
     int                   pMap[MAX_MAP];  // temp map
     Vec_Int_t *           vMap;      // mapping NameId into wires
+    Vec_Int_t *           vInverses; // inverse equivalences
     Vec_Int_t             vAttrTemp; // temp
     Vec_Int_t             vTemp[TEMP_NUM];  // temp
 };
@@ -325,6 +326,7 @@ void Rtl_LibFree( Rtl_Lib_t * p )
     for ( i = 0; i < TEMP_NUM; i++ )
         ABC_FREE( p->vTemp[i].pArray );
     Vec_IntFreeP( &p->vMap );
+    Vec_IntFreeP( &p->vInverses );
     Vec_IntFreeP( &p->vTokens );
     Abc_NamStop( p->pManName );
     Vec_PtrFree( p->vNtks );
@@ -1764,20 +1766,38 @@ void Rtl_NtkBlastConnect( Gia_Man_t * pNew, Rtl_Ntk_t * p, int * pCon )
 }
 void Rtl_NtkBlastHierarchy( Gia_Man_t * pNew, Rtl_Ntk_t * p, int * pCell )
 {
+    extern void Rtl_NtkPrintBufs( Rtl_Ntk_t * p, Vec_Int_t * vBufs );
     extern Gia_Man_t * Rtl_NtkBlast( Rtl_Ntk_t * p );
     extern void Gia_ManDupRebuild( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vLits, int fBufs );
     extern int Gia_ManFindFirst( Rtl_Ntk_t * p, int * pnOuts );
     Rtl_Ntk_t * pModel = Rtl_NtkModule( p, Rtl_CellModule(pCell)-ABC_INFINITY );
     int nIns = 0, nOuts = 0, nOuts1, iFirst1 = Gia_ManFindFirst( pModel, &nOuts1 );
-    int k, Par, Val, nBits = 0;
-    //printf( "Blasting %s -> %s...\n", Rtl_NtkName(p), Rtl_NtkName(pModel) );
+    int k, Par, Val, iThis = -1, nBits = 0;
+    int fFound = 0;
+    //int fFound = p->pLib->vInverses && (iThis = Vec_IntFind(p->pLib->vInverses, pModel->NameId)) >= 0;
     Vec_IntClear( &p->vBitTemp );
     Rtl_CellForEachInput( p, pCell, Par, Val, k )
         Rtl_NtkCollectSignalRange( p, Val );
 //    if ( pModel->pGia == NULL )
 //        pModel->pGia = Rtl_NtkBlast( pModel );
     assert( pModel->pGia );
-    if ( pModel->fRoot )
+    if ( fFound )
+    {
+        // check if the previous one is the inverse one
+        int iThat = Vec_IntEntry( p->pLib->vInverses, iThis ^ 1 );
+        //printf( "Blasting %s -> %s...\n", Rtl_NtkName(p), Rtl_NtkName(pModel) );
+        //Rtl_NtkPrintBufs( p, pNew->vBarBufs );
+        if ( Vec_IntEntry(pNew->vBarBufs, Vec_IntSize(pNew->vBarBufs)-1) == Abc_Var2Lit(iThat, 1) &&
+             Vec_IntEntry(pNew->vBarBufs, Vec_IntSize(pNew->vBarBufs)-2) == Abc_Var2Lit(iThat, 0) )
+        {
+            //printf( "Found matching boundary.\n" );
+        }
+        nIns = nOuts1;
+        Vec_IntForEachEntry( &p->vBitTemp, Val, k )
+            Vec_IntWriteEntry( &p->vBitTemp, k, (k >= iFirst1 && k < iFirst1 + nOuts1) ? Gia_ManAppendBuf(pNew, Val) : Val );
+        Vec_IntPush( pNew->vBarBufs, (nIns << 16) | Abc_Var2Lit(pModel->NameId, 0) );
+    }
+    else if ( pModel->fRoot )
     {
         nIns = Vec_IntSize(&p->vBitTemp);
         Vec_IntForEachEntry( &p->vBitTemp, Val, k )
@@ -1788,7 +1808,7 @@ void Rtl_NtkBlastHierarchy( Gia_Man_t * pNew, Rtl_Ntk_t * p, int * pCell )
     Gia_ManDupRebuild( pNew, pModel->pGia, &p->vBitTemp, !pModel->fRoot );
     if ( !pModel->fRoot )
         Vec_IntAppend( pNew->vBarBufs, pModel->pGia->vBarBufs );
-    if ( pModel->fRoot )
+    if ( pModel->fRoot || fFound )
     {
         nOuts = Vec_IntSize(&p->vBitTemp);
         Vec_IntForEachEntry( &p->vBitTemp, Val, k )
@@ -2616,7 +2636,7 @@ Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-void Wln_LibGraftOne( Rtl_Lib_t * p, char * pModule1, char * pModule2, int fVerbose )
+void Wln_LibGraftOne( Rtl_Lib_t * p, char * pModule1, char * pModule2, int fInv, int fVerbose )
 {
     int Name1 = Wln_ReadFindToken( pModule1, p->pManName );
     int Name2 = Wln_ReadFindToken( pModule2, p->pManName );
@@ -2633,12 +2653,23 @@ void Wln_LibGraftOne( Rtl_Lib_t * p, char * pModule1, char * pModule2, int fVerb
         Rtl_Ntk_t * pNtk1 = Rtl_LibNtk(p, iNtk1);
         Rtl_Ntk_t * pNtk2 = Rtl_LibNtk(p, iNtk2);
         assert( iNtk1 != iNtk2 );
-        printf( "Replacing \"%s\" (appearing %d times) by \"%s\" (appearing %d times).\n", 
-            Rtl_NtkName(pNtk1), Rtl_LibCountInsts(p, pNtk1), Rtl_NtkName(pNtk2), Rtl_LibCountInsts(p, pNtk2) );
-        pNtk1->iCopy = iNtk2;
-    //    Rtl_LibSetReplace( p, vGuide );
-        Rtl_LibUpdateBoxes( p );
-        Rtl_LibReorderModules( p );
+        if ( fInv )
+        {
+            printf( "Setting \"%s\" (appearing %d times) and \"%s\" (appearing %d times) as inverse-equivalent.\n", 
+                Rtl_NtkName(pNtk1), Rtl_LibCountInsts(p, pNtk1), Rtl_NtkName(pNtk2), Rtl_LibCountInsts(p, pNtk2) );
+            if ( p->vInverses == NULL )
+                p->vInverses = Vec_IntAlloc( 10 );
+            Vec_IntPushTwo( p->vInverses, pNtk1->NameId, pNtk2->NameId );
+        }
+        else
+        {
+            printf( "Replacing \"%s\" (appearing %d times) by \"%s\" (appearing %d times).\n", 
+                Rtl_NtkName(pNtk1), Rtl_LibCountInsts(p, pNtk1), Rtl_NtkName(pNtk2), Rtl_LibCountInsts(p, pNtk2) );
+            pNtk1->iCopy = iNtk2;
+        //    Rtl_LibSetReplace( p, vGuide );
+            Rtl_LibUpdateBoxes( p );
+            Rtl_LibReorderModules( p );
+        }
     }
 }
 

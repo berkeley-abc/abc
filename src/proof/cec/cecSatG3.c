@@ -2125,6 +2125,8 @@ Gia_Man_t * Cec5_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars, int fCbs,
 {
     Gia_Man_t * pNew = NULL;
     Cec5_ManPerformSweeping( p, pPars, &pNew, 0, fCbs, approxLim, subBatchSz, adaRecycle );
+    if ( pNew == NULL )
+        pNew = Gia_ManDup( p );
     return pNew;
 }
 
