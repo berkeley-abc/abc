@@ -2302,7 +2302,7 @@ Abc_Ntk_t * Abc_NtkDarLcorr( Abc_Ntk_t * pNtk, int nFramesP, int nConfMax, int f
   SeeAlso     []
  
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, int fVerbose )
+Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, int nLimitMax, int fVerbose )
 {
     Ssw_Pars_t Pars, * pPars = &Pars;
     Aig_Man_t * pMan, * pTemp;
@@ -2314,6 +2314,7 @@ Abc_Ntk_t * Abc_NtkDarLcorrNew( Abc_Ntk_t * pNtk, int nVarsMax, int nConfMax, in
     pPars->fLatchCorrOpt = 1;
     pPars->nBTLimit      = nConfMax;
     pPars->nSatVarMax    = nVarsMax;
+    pPars->nLimitMax     = nLimitMax;
     pPars->fVerbose      = fVerbose;
     pMan = Ssw_SignalCorrespondence( pTemp = pMan, pPars );
     Aig_ManStop( pTemp );

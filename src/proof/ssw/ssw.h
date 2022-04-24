@@ -55,6 +55,7 @@ struct Ssw_Pars_t_
     int              nResimDelta;   // the number of nodes to resimulate
     int              nStepsMax;     // (scorr only) the max number of induction steps
     int              TimeLimit;     // time out in seconds
+    int              nLimitMax;     // the limit on the number of iterations
     int              fPolarFlip;    // uses polarity adjustment
     int              fLatchCorr;    // perform register correspondence
     int              fConstCorr;    // perform constant correspondence

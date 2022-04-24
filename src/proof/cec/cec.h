@@ -149,6 +149,7 @@ struct Cec_ParCor_t_
     int              nBTLimit;      // conflict limit at a node
     int              nLevelMax;     // (scorr only) the max number of levels
     int              nStepsMax;     // (scorr only) the max number of induction steps
+    int              nLimitMax;     // (scorr only) stop after this many iterations if little or no improvement
     int              fLatchCorr;    // consider only latch outputs
     int              fConstCorr;    // consider only constants
     int              fUseRings;     // use rings

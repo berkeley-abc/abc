@@ -756,6 +756,21 @@ void Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIte
     Abc_Print( 1, "%c  ", Gia_ObjIsConst( p, Gia_ObjFaninId0p(p, Gia_ManPo(p, 0)) ) ? '+' : '-' );
     Abc_PrintTime( 1, "T", Time );
 }
+int Cec_ManCountLits( Gia_Man_t * p )
+{ 
+    int i, CounterX = 0, Counter0 = 0, Counter = 0;
+    for ( i = 1; i < Gia_ManObjNum(p); i++ )
+    {
+        if ( Gia_ObjIsNone(p, i) )
+            CounterX++;
+        else if ( Gia_ObjIsConst(p, i) )
+            Counter0++;
+        else if ( Gia_ObjIsHead(p, i) )
+            Counter++;
+    }
+    CounterX -= Gia_ManCoNum(p);
+    return Gia_ManCiNum(p) + Gia_ManAndNum(p) - Counter - CounterX;
+}
 
 /**Function*************************************************************
 
@@ -777,7 +792,7 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
     Vec_Int_t * vCexStore;
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
-    int fChanges, RetValue;
+    int fChanges, RetValue, i;
     // prepare simulation manager
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nWords     = pPars->nWords;
@@ -791,7 +806,7 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
     pParsSat->nBTLimit = pPars->nBTLimit;
     pParsSat->fVerbose = pPars->fVerbose;
     fChanges = 1;
-    while ( fChanges )
+    for ( i = 0; fChanges && (!pPars->nLimitMax || i < pPars->nLimitMax); i++ )
     {
         abctime clkBmc = Abc_Clock();
         fChanges = 0;
@@ -918,7 +933,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
-    int r, RetValue;
+    int r, RetValue, nPrev[4] = {0};
     abctime clkTotal = Abc_Clock();
     abctime clkSat = 0, clkSim = 0, clkSrm = 0;
     abctime clk2, clk = Abc_Clock();
@@ -1030,6 +1045,21 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             printf( "because the property output is no longer a candidate constant.\n" );
             Cec_ManSimStop( pSim );
             return 0;
+        }
+        if ( pPars->nLimitMax )
+        {
+            int nCur = Cec_ManCountLits(pAig);
+            if ( r > 4 && nPrev[0] - nCur <= 4*pPars->nLimitMax )
+            {
+                printf( "Iterative refinement is stopped after iteration %d\n", r );
+                printf( "because refinement does not proceed quickly.\n" );
+                Cec_ManSimStop( pSim );
+                return 0;
+            }
+            nPrev[0] = nPrev[1];
+            nPrev[1] = nPrev[2];
+            nPrev[2] = nPrev[3];
+            nPrev[3] = nCur;
         }
     }
     if ( pPars->fVerbose )
