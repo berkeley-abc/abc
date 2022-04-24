@@ -5232,26 +5232,39 @@ Gia_Man_t * Gia_ManDupAddPis( Gia_Man_t * p, int nMulti )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Int_t * Gia_ManDupUifBoxTypes( Vec_Int_t * vBarBufs )
+{
+    Vec_Int_t * vTypes = Vec_IntAlloc( 10 );
+    int i, Entry;
+    Vec_IntForEachEntry( vBarBufs, Entry, i )
+        if ( Vec_IntFind(vTypes, Entry & 0xFFFE) < 0 )
+            Vec_IntPush( vTypes, Entry & 0xFFFE );
+    return vTypes;
+}
 Vec_Wec_t ** Gia_ManDupUifBuildMap( Gia_Man_t * p )
 {
-    Vec_Wec_t ** pvMap = ABC_ALLOC( Vec_Wec_t *, 2 ); 
+    Vec_Int_t * vTypes = Gia_ManDupUifBoxTypes( p->vBarBufs );
+    Vec_Wec_t ** pvMap = ABC_ALLOC( Vec_Wec_t *, 2*Vec_IntSize(vTypes) ); 
     Vec_Int_t * vBufs = Vec_IntAlloc( p->nBufs ); 
     Gia_Obj_t * pObj; int i, Item, j, k = 0;
-    pvMap[0] = Vec_WecAlloc(10);
-    pvMap[1] = Vec_WecAlloc(10);
     Gia_ManForEachObj1( p, pObj, i )
         if ( Gia_ObjIsBuf(pObj) )
             Vec_IntPush( vBufs, i );
     assert( p->nBufs == Vec_IntSize(vBufs) );
+    for ( i = 0; i < 2*Vec_IntSize(vTypes); i++ )
+        pvMap[i] = Vec_WecAlloc( 10 );
     Vec_IntForEachEntry( p->vBarBufs, Item, i )
     {
-        Vec_Int_t * vVec = Vec_WecPushLevel(pvMap[Item&1]);
+        int Type = Vec_IntFind( vTypes, Item & 0xFFFE );
+        Vec_Int_t * vVec = Vec_WecPushLevel(pvMap[2*Type + (Item&1)]);
         for ( j = 0; j < (Item >> 16); j++ )
             Vec_IntPush( vVec, Vec_IntEntry(vBufs, k++) );
     }
+    Vec_IntFree( vTypes );
     Vec_IntFree( vBufs );
     assert( p->nBufs == k );
-    assert( Vec_WecSize(pvMap[0]) == Vec_WecSize(pvMap[1]) );
+    for ( i = 0; i < Vec_IntSize(vTypes); i++ )
+        assert( Vec_WecSize(pvMap[2*i+0]) == Vec_WecSize(pvMap[2*i+1]) );
     return pvMap;
 }
 int Gia_ManDupUifConstrOne( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vVec0, Vec_Int_t * vVec1 )
@@ -5264,22 +5277,26 @@ int Gia_ManDupUifConstrOne( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vVec0, 
     Vec_IntFree( vTemp );
     return iRes;
 }
-int Gia_ManDupUifConstr( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Wec_t ** pvMap )
+int Gia_ManDupUifConstr( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Wec_t ** pvMap, int nTypes )
 {
-    int i, k, iUif = 1;
-    assert( Vec_WecSize(pvMap[0]) == Vec_WecSize(pvMap[1]) );
-    for ( i = 0;     i < Vec_WecSize(pvMap[0]); i++ )
-    for ( k = i + 1; k < Vec_WecSize(pvMap[0]); k++ )
+    int t, i, k, iUif = 1;
+    for ( t = 0; t < nTypes; t++ )
     {
-        int iCond1 = Gia_ManDupUifConstrOne( pNew, p, Vec_WecEntry(pvMap[0], i), Vec_WecEntry(pvMap[0], k) );
-        int iCond2 = Gia_ManDupUifConstrOne( pNew, p, Vec_WecEntry(pvMap[1], i), Vec_WecEntry(pvMap[1], k) );
-        int iRes = Gia_ManHashOr( pNew, Abc_LitNot(iCond1), iCond2 );
-        iUif = Gia_ManHashAnd( pNew, iUif, iRes );
+        assert( Vec_WecSize(pvMap[2*t+0]) == Vec_WecSize(pvMap[2*t+1]) );
+        for ( i = 0;     i < Vec_WecSize(pvMap[2*t+0]); i++ )
+        for ( k = i + 1; k < Vec_WecSize(pvMap[2*t+0]); k++ )
+        {
+            int iCond1 = Gia_ManDupUifConstrOne( pNew, p, Vec_WecEntry(pvMap[2*t+0], i), Vec_WecEntry(pvMap[2*t+0], k) );
+            int iCond2 = Gia_ManDupUifConstrOne( pNew, p, Vec_WecEntry(pvMap[2*t+1], i), Vec_WecEntry(pvMap[2*t+1], k) );
+            int iRes = Gia_ManHashOr( pNew, Abc_LitNot(iCond1), iCond2 );
+            iUif = Gia_ManHashAnd( pNew, iUif, iRes );
+        }
     }
     return iUif;
 }
 Gia_Man_t * Gia_ManDupUif( Gia_Man_t * p )
 {
+    Vec_Int_t * vTypes = Gia_ManDupUifBoxTypes( p->vBarBufs );
     Vec_Wec_t ** pvMap = Gia_ManDupUifBuildMap( p );
     Gia_Man_t * pNew, * pTemp; Gia_Obj_t * pObj;
     int i, iUif = 0;
@@ -5299,16 +5316,18 @@ Gia_Man_t * Gia_ManDupUif( Gia_Man_t * p )
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ObjFanin0Copy(pObj);
     }
-    iUif = Gia_ManDupUifConstr( pNew, p, pvMap );
+    iUif = Gia_ManDupUifConstr( pNew, p, pvMap, Vec_IntSize(vTypes) );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ManHashAnd(pNew, pObj->Value, iUif) );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-    Vec_WecFree( pvMap[0] );
-    Vec_WecFree( pvMap[1] );
+    for ( i = 0; i < 2*Vec_IntSize(vTypes); i++ )
+        Vec_WecFree( pvMap[i] );
     ABC_FREE( pvMap );
     if ( p->vBarBufs )
         pNew->vBarBufs = Vec_IntDup( p->vBarBufs );
+    printf( "Added UIF constraints for %d type%s of boxes.\n", Vec_IntSize(vTypes), Vec_IntSize(vTypes) > 1 ? "s" :"" );
+    Vec_IntFree( vTypes );
     return pNew;
 }
 
