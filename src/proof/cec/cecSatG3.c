@@ -1564,9 +1564,8 @@ void Cec5_ManLoadInstance( Cec5_Man_t * p, int iObj0, int iObj1, int * piVar0, i
     int iVar1 = Cec5_ObjGetCnfVar( p, iObj1 );
     if( p->pPars->jType > 0 )
     {
-        extern void glucose2_markapprox( void * pSat, int v0, int v1, int nlim );
         int nlim = p->approxLim;
-        glucose2_markapprox( p->pSat, iVar0, iVar1, nlim );
+        bmcg2_sat_solver_markapprox( p->pSat, iVar0, iVar1, nlim );
     }
 
     * piVar0 = iVar0;

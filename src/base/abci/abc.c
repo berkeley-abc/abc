@@ -36999,7 +36999,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Gia_Man_t * Cec5_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars, int fCbs, int approxLim, int subBatchSz, int adaRecycle );
     Cec_ParFra_t ParsFra, * pPars = &ParsFra; Gia_Man_t * pTemp;
     int c, fUseAlgo = 0, fUseAlgoG = 0, fUseAlgoX = 0, fUseAlgoY = 0;
-    int fUseAlgoG3 = 0, fCbs = 1, approxLim = 600, subBatchSz = 1, adaRecycle = 500;
+    int fCbs = 1, approxLim = 600, subBatchSz = 1, adaRecycle = 500;
     Cec4_ManSetParams( pPars );
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPrmdckngxywvh" ) ) != EOF )
