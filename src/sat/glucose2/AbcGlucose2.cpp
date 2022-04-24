@@ -1536,6 +1536,12 @@ int Glucose2_SolveAig(Gia_Man_t * p, Glucose2_Pars * pPars)
     return (ret == l_True ? 10 : ret == l_False ? 20 : 0);
 }
 
+extern "C" {
+    void glucose2_markapprox( void * pSat, int v0, int v1, int nlim ){
+        ((Gluco2::Solver*) pSat)->markApprox(v0, v1, nlim);
+    }
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

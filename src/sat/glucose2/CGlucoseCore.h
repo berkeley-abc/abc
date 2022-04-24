@@ -613,6 +613,85 @@ inline void Solver::prelocate( int base_var_num ){
 	polarity   .prelocate( base_var_num );
 }
 
+
+inline void Solver::markTill( Var v, int nlim ){
+	if( var2TravId[v] == travId )
+		return;
+
+	vMarked.push(v);
+	
+	if( vMarked.size() >= nlim )
+		return;
+	if( var2TravId[v] == travId-1 || !isTwoFanin(v) )
+		goto finalize;
+
+	markTill( getFaninVar0(v), nlim );
+	markTill( getFaninVar1(v), nlim );
+finalize:
+	var2TravId[v] = travId;
+}
+
+inline void Solver::markApprox( Var v0, Var v1, int nlim ){
+    int i;
+	if( travId <= 1 || nSkipMark>=4 || 0 == nlim )
+		goto finalize;
+
+	vMarked.shrink_( vMarked.size() );
+	travId ++ ; // travId = t+1
+	assert(travId>1);
+
+	markTill(v0, nlim);
+	if( vMarked.size() >= nlim )
+		goto finalize;
+
+	markTill(v1, nlim);
+	if( vMarked.size() >= nlim )
+		goto finalize;
+
+	travId -- ; // travId = t
+	for(i = 0; i < vMarked.size(); i ++){
+		var2TravId  [ vMarked[i] ]      = travId;   // set new nodes to time t 
+		var2NodeData[ vMarked[i] ].sort = 0;
+	}
+	nSkipMark ++ ;
+	return;
+finalize:
+
+	travId ++ ;
+	nSkipMark = 0;
+	markCone(v0);
+	markCone(v1);
+}
+
+inline void Solver::loadJust_rec( Var v ){
+	//assert( value(v) != l_Undef );
+	if( var2TravId[v] == travId || value(v) == l_Undef )
+		return;
+	assert( var2TravId[v] == travId-1 );
+	var2TravId[v] = travId;
+	vMarked.push(v);
+
+	if( !isTwoFanin(v) ){
+		JustModel.push( mkLit( v, value(v) == l_False ) );
+		return;
+	}
+	loadJust_rec( getFaninVar0(v) );
+	loadJust_rec( getFaninVar1(v) );
+}
+inline void Solver::loadJust(){
+    int i;
+	travId ++ ;
+	JustModel.shrink_(JustModel.size());
+	vMarked.shrink_(vMarked.size());
+	JustModel.push(toLit(0));
+	for(i = 0; i < assumptions.size(); i ++)
+		loadJust_rec( var(assumptions[i]) );
+	JustModel[0] = toLit( JustModel.size()-1 );
+	travId -- ;
+	for(i = 0; i < vMarked.size(); i ++)
+		var2TravId[ vMarked[i] ] = travId;
+}
+
 };
 
 ABC_NAMESPACE_IMPL_END

@@ -453,7 +453,15 @@ protected:
     Heap2<JustOrderLt2, JustKey> jheap;
     vec<int> jlevel;
     vec<int> jnext;
+
+    int nSkipMark;
+    void loadJust_rec( Var v );
+    void loadJust();
+    vec<Var> vMarked;
 public:
+    void markTill( Var v0, int nlim );
+    void markApprox( Var v0, Var v1, int nlim );
+
     void prelocate( int var_num );
     void setVarFaninLits( Var v, Lit lit1, Lit lit2 );
     void setVarFaninLits( int v, int lit1, int lit2 ){ setVarFaninLits( Var(v), toLit(lit1), toLit(lit2) ); }

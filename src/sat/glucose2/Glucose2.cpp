@@ -186,6 +186,7 @@ Solver::Solver() :
   itpc = ca.alloc(tmp);
   ca[itpc].shrink( ca[itpc].size() );
 
+  nSkipMark = 0;
   #endif
 }
 
@@ -1452,15 +1453,20 @@ printf("c ==================================[ Search Statistics (every %6d confl
     if (status == l_True){
 
         if( justUsage() ){
-            JustModel.shrink_(JustModel.size());
-            assert(jheap.empty());
-            //JustModel.growTo(nVars());
-            int i = 0, j = 0;
-            JustModel.push(toLit(0));
-            for (; i < trail.size(); i++) 
-                if( isRoundWatch(var(trail[i])) && !isTwoFanin(var(trail[i])) )
-                    JustModel.push(trail[i]), j++;
-            JustModel[0] = toLit(j);
+            if( nSkipMark ){
+                loadJust();
+            } else {
+                JustModel.shrink_(JustModel.size());
+                assert(jheap.empty());
+                //JustModel.growTo(nVars());
+                int i = 0, j = 0;
+                JustModel.push(toLit(0));
+                for (; i < trail.size(); i++) 
+                    if( isRoundWatch(var(trail[i])) && !isTwoFanin(var(trail[i])) )
+                        JustModel.push(trail[i]), j++;
+                JustModel[0] = toLit(j);
+            }
+            
         } else {
             // Extend & copy model:
             model.shrink_(model.size());
@@ -1743,6 +1749,9 @@ void Solver::reset()
         itpc = ca.alloc(tmp);
         ca[itpc].shrink( ca[itpc].size() );
     }
+
+    vMarked.shrink_( vMarked.size() );
+    nSkipMark = 0;
     #endif
 }
 
