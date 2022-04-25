@@ -79,7 +79,6 @@ void Wln_End( Abc_Frame_t * pAbc )
     Wln_AbcUpdateRtl( pAbc, NULL );
 }
 
-
 /**Function********************************************************************
 
   Synopsis    []
