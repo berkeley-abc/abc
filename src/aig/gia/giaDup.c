@@ -5260,11 +5260,11 @@ Vec_Wec_t ** Gia_ManDupUifBuildMap( Gia_Man_t * p )
         for ( j = 0; j < (Item >> 16); j++ )
             Vec_IntPush( vVec, Vec_IntEntry(vBufs, k++) );
     }
-    Vec_IntFree( vTypes );
-    Vec_IntFree( vBufs );
     assert( p->nBufs == k );
     for ( i = 0; i < Vec_IntSize(vTypes); i++ )
         assert( Vec_WecSize(pvMap[2*i+0]) == Vec_WecSize(pvMap[2*i+1]) );
+    Vec_IntFree( vTypes );
+    Vec_IntFree( vBufs );
     return pvMap;
 }
 int Gia_ManDupUifConstrOne( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vVec0, Vec_Int_t * vVec1 )
