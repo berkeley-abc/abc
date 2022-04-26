@@ -220,7 +220,7 @@ usage:
 ******************************************************************************/
 int Abc_CommandGraft( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Wln_LibGraftOne( Rtl_Lib_t * p, char * pModule1, char * pModule2, int fInv, int fVerbose );
+    extern void Wln_LibGraftOne( Rtl_Lib_t * p, char ** pModules, int nModules, int fInv, int fVerbose );
     Rtl_Lib_t * pLib = Wln_AbcGetRtl(pAbc);
     char ** pArgvNew; int nArgcNew;
     int c, fInv = 0, fVerbose  = 0;
@@ -248,12 +248,12 @@ int Abc_CommandGraft( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( nArgcNew != 2 )
+    if ( nArgcNew != 0 && nArgcNew != 2 )
     {
         Abc_Print( -1, "Abc_CommandGraft(): This command expects one AIG file name on the command line.\n" );
         return 1;
     }
-    Wln_LibGraftOne( pLib, pArgvNew[0], pArgvNew[1], fInv, fVerbose );
+    Wln_LibGraftOne( pLib, pArgvNew, nArgcNew, fInv, fVerbose );
     return 0;
 usage:
     Abc_Print( -2, "usage: %%graft [-ivh] <module1_name> <module2_name>\n" );
@@ -302,7 +302,7 @@ int Abc_CommandHierarchy( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pArgvNew = argv + globalUtilOptind;
     nArgcNew = argc - globalUtilOptind;
-    if ( nArgcNew < 1 )
+    if ( nArgcNew < 0 )
     {
         Abc_Print( -1, "Abc_CommandHierarchy(): This command expects one AIG file name on the command line.\n" );
         return 1;
