@@ -2776,7 +2776,7 @@ void Wln_LibGraftOne( Rtl_Lib_t * p, char ** pModules, int nModules, int fInv, i
             {
                 int iNtk1 = Rtl_LibFindModule(p, iName1);
                 int iNtk2 = Rtl_LibFindModule(p, iName2);
-                Rtl_Ntk_t * pNtk1 = Rtl_LibNtk( p, iNtk1 );
+                //Rtl_Ntk_t * pNtk1 = Rtl_LibNtk( p, iNtk1 );
                 Rtl_Ntk_t * pNtk2 = Rtl_LibNtk( p, iNtk2 );
                 pNtk2->iCopy = iNtk1;
             }
