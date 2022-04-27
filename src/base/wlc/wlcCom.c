@@ -88,7 +88,7 @@ void Wlc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Word level", "%memabs2",     Abc_CommandMemAbs2,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blast",       Abc_CommandBlast,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%blastmem",    Abc_CommandBlastMem,   0 );
-    Cmd_CommandAdd( pAbc, "Word level", "%graft",       Abc_CommandGraft,      0 );
+//    Cmd_CommandAdd( pAbc, "Word level", "%graft",       Abc_CommandGraft,      0 );
     Cmd_CommandAdd( pAbc, "Word level", "%retime",      Abc_CommandRetime,     0 );
     Cmd_CommandAdd( pAbc, "Word level", "%profile",     Abc_CommandProfile,    0 );
     Cmd_CommandAdd( pAbc, "Word level", "%short_names", Abc_CommandShortNames, 0 );
