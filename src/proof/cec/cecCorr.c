@@ -1054,6 +1054,8 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
                 printf( "Iterative refinement is stopped after iteration %d\n", r );
                 printf( "because refinement does not proceed quickly.\n" );
                 Cec_ManSimStop( pSim );
+                ABC_FREE( pAig->pReprs );
+                ABC_FREE( pAig->pNexts );
                 return 0;
             }
             nPrev[0] = nPrev[1];
