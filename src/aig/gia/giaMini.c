@@ -182,13 +182,56 @@ void * Abc_FrameGiaOutputMiniAig( Abc_Frame_t * pAbc )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManReadMiniAigNames( char * pFileName, Gia_Man_t * pGia )
+{
+    char * filename3 = Abc_UtilStrsavTwo( pFileName, ".ilo" ); 
+    FILE * pFile = fopen( filename3, "rb" );
+    if ( pFile )
+    {
+        char Buffer[5000], * pName; int i, iLines = 0;
+        Vec_Ptr_t * vTemp = Vec_PtrAlloc( Gia_ManRegNum(pGia) );
+        assert( pGia->vNamesIn == NULL );
+        pGia->vNamesIn = Vec_PtrAlloc( Gia_ManCiNum(pGia) );
+        assert( pGia->vNamesOut == NULL );
+        pGia->vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pGia) );
+        while ( fgets(Buffer, 5000, pFile) )
+        {
+            if ( Buffer[strlen(Buffer)-1] == '\n' )
+                Buffer[strlen(Buffer)-1] = 0;
+            if ( iLines < Gia_ManPiNum(pGia) )
+                Vec_PtrPush( pGia->vNamesIn, Abc_UtilStrsav(Buffer) );
+            else if ( iLines < Gia_ManCiNum(pGia) )
+                Vec_PtrPush( vTemp, Abc_UtilStrsav(Buffer) );
+            else 
+                Vec_PtrPush( pGia->vNamesOut, Abc_UtilStrsav(Buffer) );
+            iLines++;
+        }
+        Vec_PtrForEachEntry( char *, vTemp, pName, i )
+        {
+            Vec_PtrPush( pGia->vNamesIn,  Abc_UtilStrsav(pName) );
+            Vec_PtrPush( pGia->vNamesOut, Abc_UtilStrsavTwo(pName, "_in") );
+        }
+        Vec_PtrFreeFree( vTemp );
+        fclose( pFile );
+        printf( "Read ILO names into file \"%s\".\n", filename3 );
+    }
+    ABC_FREE( filename3 );
+}
 Gia_Man_t * Gia_ManReadMiniAig( char * pFileName, int fGiaSimple )
 {
     Mini_Aig_t * p = Mini_AigLoad( pFileName );
-    Gia_Man_t * pGia = Gia_ManFromMiniAig( p, NULL, fGiaSimple );
+    Gia_Man_t * pTemp, * pGia = Gia_ManFromMiniAig( p, NULL, fGiaSimple );
     ABC_FREE( pGia->pName );
     pGia->pName = Extra_FileNameGeneric( pFileName ); 
     Mini_AigStop( p );
+    Gia_ManReadMiniAigNames( pFileName, pGia );
+    if ( !Gia_ManIsNormalized(pGia) )
+    {
+        pGia = Gia_ManDupNormalize( pTemp = pGia, 0 );
+        ABC_SWAP( Vec_Ptr_t *, pTemp->vNamesIn,  pGia->vNamesIn  );
+        ABC_SWAP( Vec_Ptr_t *, pTemp->vNamesOut, pGia->vNamesOut );
+        Gia_ManStop( pTemp );
+    }
     return pGia;
 }
 void Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName )

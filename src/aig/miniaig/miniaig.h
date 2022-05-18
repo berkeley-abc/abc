@@ -30,7 +30,9 @@
 #include <string.h>
 #include <assert.h>
 
+#ifndef _VERIFIC_DATABASE_H_
 ABC_NAMESPACE_HEADER_START
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -92,13 +94,13 @@ static void Mini_AigPush( Mini_Aig_t * p, int Lit0, int Lit1 )
 static int Mini_AigNodeFanin0( Mini_Aig_t * p, int Id )
 {
     assert( Id >= 0 && 2*Id < p->nSize );
-    assert( p->pArray[2*Id] == 0x7FFFFFFF || p->pArray[2*Id] < 2*Id );
+    assert( p->pArray[2*Id] == MINI_AIG_NULL || p->pArray[2*Id] < 2*Id );
     return p->pArray[2*Id];
 }
 static int Mini_AigNodeFanin1( Mini_Aig_t * p, int Id )
 {
     assert( Id >= 0 && 2*Id < p->nSize );
-    assert( p->pArray[2*Id+1] == 0x7FFFFFFF || p->pArray[2*Id+1] < 2*Id );
+    assert( p->pArray[2*Id+1] == MINI_AIG_NULL || p->pArray[2*Id+1] < 2*Id );
     return p->pArray[2*Id+1];
 }
 
@@ -170,7 +172,7 @@ static int Mini_AigAndNum( Mini_Aig_t * p )
 }
 static void Mini_AigPrintStats( Mini_Aig_t * p )
 {
-    printf( "PI = %d. PO = %d. Node = %d.\n", Mini_AigPiNum(p), Mini_AigPoNum(p), Mini_AigAndNum(p) );
+    printf( "MiniAIG stats:  PI = %d  PO = %d  FF = %d  AND = %d\n", Mini_AigPiNum(p), Mini_AigPoNum(p), Mini_AigRegNum(p), Mini_AigAndNum(p) );
 }
 
 // serialization
@@ -233,7 +235,10 @@ static int Mini_AigAnd( Mini_Aig_t * p, int Lit0, int Lit1 )
     int Lit = p->nSize;
     assert( Lit0 >= 0 && Lit0 < Lit );
     assert( Lit1 >= 0 && Lit1 < Lit );
-    Mini_AigPush( p, Lit0, Lit1 );
+    if ( Lit0 < Lit1 )
+        Mini_AigPush( p, Lit0, Lit1 );
+    else
+        Mini_AigPush( p, Lit1, Lit0 );
     return Lit;
 }
 static int Mini_AigOr( Mini_Aig_t * p, int Lit0, int Lit1 )
@@ -249,6 +254,42 @@ static int Mini_AigMux( Mini_Aig_t * p, int LitC, int Lit1, int Lit0 )
 static int Mini_AigXor( Mini_Aig_t * p, int Lit0, int Lit1 )
 {
     return Mini_AigMux( p, Lit0, Mini_AigLitNot(Lit1), Lit1 );
+}
+static int Mini_AigXorSpecial( Mini_Aig_t * p, int Lit0, int Lit1 )
+{
+    int Lit = p->nSize;
+    assert( Lit0 >= 0 && Lit0 < Lit );
+    assert( Lit1 >= 0 && Lit1 < Lit );
+    if ( Lit0 > Lit1 )
+        Mini_AigPush( p, Lit0, Lit1 );
+    else
+        Mini_AigPush( p, Lit1, Lit0 );
+    return Lit;
+}
+static int Mini_AigAndMulti( Mini_Aig_t * p, int * pLits, int nLits )
+{
+    int i;
+    assert( nLits > 0 );
+    while ( nLits > 1 )
+    {
+        for ( i = 0; i < nLits/2; i++ )
+            pLits[i] = Mini_AigAnd(p, pLits[2*i], pLits[2*i+1]);
+        if ( nLits & 1 )
+            pLits[i++] = pLits[nLits-1];
+        nLits = i;
+    }
+    return pLits[0];
+}
+static int Mini_AigMuxMulti( Mini_Aig_t * p, int * pCtrl, int * pData, int nData )
+{
+    int Res0, Res1;
+    assert( nData > 0 );
+    if ( nData == 1 )
+        return pData[0];
+    assert( nData % 2 == 0 );
+    Res0 = Mini_AigMuxMulti( p, pCtrl+1, pData,         nData/2 );
+    Res1 = Mini_AigMuxMulti( p, pCtrl+1, pData+nData/2, nData/2 );
+    return Mini_AigMux( p, pCtrl[0], Res1, Res0 );
 }
 
 static unsigned s_MiniTruths5[5] = {
@@ -340,11 +381,11 @@ static int Mini_AigCheck( Mini_Aig_t * p )
 static void Mini_AigDumpVerilog( char * pFileName, char * pModuleName, Mini_Aig_t * p )
 {
     int i, k, iFaninLit0, iFaninLit1, Length = strlen(pModuleName), nPos = Mini_AigPoNum(p); 
-    Vec_Bit_t * vObjIsPi = Vec_BitStart( Mini_AigNodeNum(p) );
+    char * pObjIsPi = MINI_AIG_CALLOC( char, Mini_AigNodeNum(p) );
     FILE * pFile = fopen( pFileName, "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open output file %s\n", pFileName ); return; }
+    if ( pFile == NULL ) { printf( "Cannot open output file %s\n", pFileName ); MINI_AIG_FREE( pObjIsPi ); return; }
     // write interface
-    fprintf( pFile, "// This MiniAIG dump was produced by ABC on %s\n\n", Extra_TimeStamp() );
+    //fprintf( pFile, "// This MiniAIG dump was produced by ABC on %s\n\n", Extra_TimeStamp() );
     fprintf( pFile, "module %s (\n", pModuleName );
     if ( Mini_AigPiNum(p) > 0 )
     {
@@ -354,7 +395,7 @@ static void Mini_AigDumpVerilog( char * pFileName, char * pModuleName, Mini_Aig_
         {
             if ( k++ % 12 == 0 ) fprintf( pFile, "\n%*s", Length+10, "" );
             fprintf( pFile, "i%d, ", i );
-            Vec_BitWriteEntry( vObjIsPi, i, 1 );
+            pObjIsPi[i] = 1;
         }
     }
     fprintf( pFile, "\n%*soutput wire", Length+10, "" );
@@ -371,9 +412,9 @@ static void Mini_AigDumpVerilog( char * pFileName, char * pModuleName, Mini_Aig_
         iFaninLit0 = Mini_AigNodeFanin0( p, i );
         iFaninLit1 = Mini_AigNodeFanin1( p, i );
         fprintf( pFile, "  assign n%d = ", i );
-        fprintf( pFile, "%s%c%d", (iFaninLit0 & 1) ? "~":"", Vec_BitEntry(vObjIsPi, iFaninLit0 >> 1) ? 'i':'n', iFaninLit0 >> 1 );
+        fprintf( pFile, "%s%c%d", (iFaninLit0 & 1) ? "~":"", pObjIsPi[iFaninLit0 >> 1] ? 'i':'n', iFaninLit0 >> 1 );
         fprintf( pFile, " & " );
-        fprintf( pFile, "%s%c%d", (iFaninLit1 & 1) ? "~":"", Vec_BitEntry(vObjIsPi, iFaninLit1 >> 1) ? 'i':'n', iFaninLit1 >> 1  );
+        fprintf( pFile, "%s%c%d", (iFaninLit1 & 1) ? "~":"", pObjIsPi[iFaninLit1 >> 1] ? 'i':'n', iFaninLit1 >> 1  );
         fprintf( pFile, ";\n" );
     }
     // write assigns
@@ -382,19 +423,205 @@ static void Mini_AigDumpVerilog( char * pFileName, char * pModuleName, Mini_Aig_
     {
         iFaninLit0 = Mini_AigNodeFanin0( p, i );
         fprintf( pFile, "  assign o%d = ", i );
-        fprintf( pFile, "%s%c%d", (iFaninLit0 & 1) ? "~":"", Vec_BitEntry(vObjIsPi, iFaninLit0 >> 1) ? 'i':'n', iFaninLit0 >> 1 );
+        fprintf( pFile, "%s%c%d", (iFaninLit0 & 1) ? "~":"", pObjIsPi[iFaninLit0 >> 1] ? 'i':'n', iFaninLit0 >> 1 );
         fprintf( pFile, ";\n" );
     }
     fprintf( pFile, "\nendmodule // %s \n\n\n", pModuleName );
-    Vec_BitFree( vObjIsPi );
+    MINI_AIG_FREE( pObjIsPi );
     fclose( pFile );
 }
+
+// checks if MiniAIG is normalized (first inputs, then internal nodes, then outputs)
+static int Mini_AigIsNormalized( Mini_Aig_t * p )
+{
+    int nCiNum = Mini_AigPiNum(p);
+    int nCoNum = Mini_AigPoNum(p);
+    int i, nOffset = 1;
+    for ( i = 0; i < nCiNum; i++ )
+        if ( !Mini_AigNodeIsPi( p, nOffset+i ) )
+            return 0;
+    nOffset = Mini_AigNodeNum(p) - nCoNum;
+    for ( i = 0; i < nCoNum; i++ )
+        if ( !Mini_AigNodeIsPo( p, nOffset+i ) )
+            return 0;
+    return 1;
+}
+
+
+////////////////////////////////////////////////////////////////////////
+///         MiniAIG reading from / write into AIGER                  ///
+////////////////////////////////////////////////////////////////////////
+
+static unsigned Mini_AigerReadUnsigned( FILE * pFile )
+{
+    unsigned x = 0, i = 0;
+    unsigned char ch;
+    while ((ch = fgetc(pFile)) & 0x80)
+        x |= (ch & 0x7f) << (7 * i++);
+    return x | (ch << (7 * i));
+}
+static void Mini_AigerWriteUnsigned( FILE * pFile, unsigned x )
+{
+    unsigned char ch;
+    while (x & ~0x7f)
+    {
+        ch = (x & 0x7f) | 0x80;
+        fputc( ch, pFile );
+        x >>= 7;
+    }
+    ch = x;
+    fputc( ch, pFile );
+}
+static int * Mini_AigerReadInt( char * pFileName, int * pnObjs, int * pnIns, int * pnLatches, int * pnOuts, int * pnAnds )
+{
+    int i, Temp, nTotal, nObjs, nIns, nLatches, nOuts, nAnds, * pObjs;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Mini_AigerRead(): Cannot open the output file \"%s\".\n", pFileName );
+        return NULL;
+    }
+    if ( fgetc(pFile) != 'a' || fgetc(pFile) != 'i' || fgetc(pFile) != 'g' )
+    {
+        fprintf( stdout, "Mini_AigerRead(): Can only read binary AIGER.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    if ( fscanf(pFile, "%d %d %d %d %d", &nTotal, &nIns, &nLatches, &nOuts, &nAnds) != 5 )
+    {
+        fprintf( stdout, "Mini_AigerRead(): Cannot read the header line.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    if ( nTotal != nIns + nLatches + nAnds )
+    {
+        fprintf( stdout, "The number of objects does not match.\n" );
+        fclose( pFile );
+        return NULL;
+    }
+    nObjs = 1 + nIns + 2*nLatches + nOuts + nAnds;
+    pObjs = MINI_AIG_CALLOC( int, nObjs * 2 );
+    for ( i = 0; i <= nIns + nLatches; i++ )
+        pObjs[2*i] = pObjs[2*i+1] = MINI_AIG_NULL;
+    // read flop input literals
+    for ( i = 0; i < nLatches; i++ )
+    {
+        while ( fgetc(pFile) != '\n' );
+        fscanf( pFile, "%d", &Temp );
+        pObjs[2*(nObjs-nLatches+i)+0] = Temp;
+        pObjs[2*(nObjs-nLatches+i)+1] = MINI_AIG_NULL;
+    }
+    // read output literals
+    for ( i = 0; i < nOuts; i++ )
+    {
+        while ( fgetc(pFile) != '\n' );
+        fscanf( pFile, "%d", &Temp );
+        pObjs[2*(nObjs-nOuts-nLatches+i)+0] = Temp;
+        pObjs[2*(nObjs-nOuts-nLatches+i)+1] = MINI_AIG_NULL;
+    }
+    // read the binary part
+    while ( fgetc(pFile) != '\n' );
+    for ( i = 0; i < nAnds; i++ )
+    {
+        int uLit  = 2*(1+nIns+nLatches+i);
+        int uLit1 = uLit  - Mini_AigerReadUnsigned( pFile );
+        int uLit0 = uLit1 - Mini_AigerReadUnsigned( pFile );
+        pObjs[uLit+0] = uLit0;
+        pObjs[uLit+1] = uLit1;
+    }
+    fclose( pFile );
+    if ( pnObjs )    *pnObjs = nObjs;
+    if ( pnIns )     *pnIns  = nIns;
+    if ( pnLatches ) *pnLatches = nLatches;
+    if ( pnOuts )    *pnOuts = nOuts;
+    if ( pnAnds )    *pnAnds = nAnds;
+    return pObjs;
+}
+static Mini_Aig_t * Mini_AigerRead( char * pFileName, int fVerbose )
+{
+    Mini_Aig_t * p;
+    int nObjs, nIns, nLatches, nOuts, nAnds, * pObjs = Mini_AigerReadInt( pFileName, &nObjs, &nIns, &nLatches, &nOuts, &nAnds );
+    if ( pObjs == NULL )
+        return NULL;
+    p = MINI_AIG_CALLOC( Mini_Aig_t, 1 );
+    p->nCap   = 2*nObjs;
+    p->nSize  = 2*nObjs;
+    p->nRegs  = nLatches;
+    p->pArray = pObjs;
+    if ( fVerbose )
+        printf( "Loaded MiniAIG from the AIGER file \"%s\".\n", pFileName );
+    return p;
+}
+
+static void Mini_AigerWriteInt( char * pFileName, int * pObjs, int nObjs, int nIns, int nLatches, int nOuts, int nAnds )
+{
+    FILE * pFile = fopen( pFileName, "wb" ); int i;
+    if ( pFile == NULL )
+    {
+        fprintf( stdout, "Mini_AigerWrite(): Cannot open the output file \"%s\".\n", pFileName );
+        return;
+    }
+    fprintf( pFile, "aig %d %d %d %d %d\n", nIns + nLatches + nAnds, nIns, nLatches, nOuts, nAnds );
+    for ( i = 0; i < nLatches; i++ )
+        fprintf( pFile, "%d\n", pObjs[2*(nObjs-nLatches+i)+0] );
+    for ( i = 0; i < nOuts; i++ )
+        fprintf( pFile, "%d\n", pObjs[2*(nObjs-nOuts-nLatches+i)+0] );
+    for ( i = 0; i < nAnds; i++ )
+    {
+        int uLit  = 2*(1+nIns+nLatches+i);
+        int uLit0 = pObjs[uLit+0];
+        int uLit1 = pObjs[uLit+1];
+        Mini_AigerWriteUnsigned( pFile, uLit  - uLit1 );
+        Mini_AigerWriteUnsigned( pFile, uLit1 - uLit0 );
+    }
+    fprintf( pFile, "c\n" );
+    fclose( pFile );
+}
+static void Mini_AigerWrite( char * pFileName, Mini_Aig_t * p, int fVerbose )
+{
+    int i, nIns = 0, nOuts = 0, nAnds = 0;
+    assert( Mini_AigIsNormalized(p) );
+    for ( i = 1; i < Mini_AigNodeNum(p); i++ )
+    {
+        if ( Mini_AigNodeIsPi(p, i) )
+            nIns++;
+        else if ( Mini_AigNodeIsPo(p, i) )
+            nOuts++;
+        else 
+            nAnds++;
+    }
+    Mini_AigerWriteInt( pFileName, p->pArray, p->nSize/2, nIns - p->nRegs, p->nRegs, nOuts - p->nRegs, nAnds );
+    if ( fVerbose )
+        printf( "Written MiniAIG into the AIGER file \"%s\".\n", pFileName );
+}
+static void Mini_AigerTest( char * pFileNameIn, char * pFileNameOut )
+{
+    Mini_Aig_t * p = Mini_AigerRead( pFileNameIn, 1 );
+    if ( p == NULL )
+        return;
+    printf( "Finished reading input file \"%s\".\n", pFileNameIn );
+    Mini_AigerWrite( pFileNameOut, p, 1 );
+    printf( "Finished writing output file \"%s\".\n", pFileNameOut );
+    Mini_AigStop( p );
+}
+
+/*
+int main( int argc, char ** argv )
+{
+    if ( argc != 3 )
+        return 0;
+    Mini_AigerTest( argv[1], argv[2] );
+    return 1;
+}
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+#ifndef _VERIFIC_DATABASE_H_
 ABC_NAMESPACE_HEADER_END
+#endif
 
 #endif
 
