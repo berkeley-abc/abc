@@ -459,7 +459,7 @@ FILE * CmdFileOpen( Abc_Frame_t * pAbc, char *sFileName, char *sMode, char **pFi
         else
         {
             // print the path/name of the resource file 'abc.rc' that is being loaded
-            if ( !silent && strlen(sRealName) >= 6 && strcmp( sRealName + strlen(sRealName) - 6, "abc.rc" ) == 0 )            
+            if ( !silent && strlen(sRealName) >= 6 && strcmp( sRealName + strlen(sRealName) - 6, "abc.rc" ) == 0 )
                 Abc_Print( 1, "Loading resource file \"%s\".\n", sRealName );
         }
     }

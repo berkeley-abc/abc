@@ -19704,10 +19704,10 @@ usage:
 int Abc_CommandDsdMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     char * pStruct = NULL;
-    int c, fVerbose = 0, fFast = 0, fAdd = 0, fSpec = 0, LutSize = 0, nConfls = 10000, nProcs = 1;
+    int c, fVerbose = 0, fFast = 0, fAdd = 0, fSpec = 0, LutSize = 0, nConfls = 10000, nProcs = 1, nInputs = 0;
     If_DsdMan_t * pDsdMan = (If_DsdMan_t *)Abc_FrameReadManDsd();
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCPSfasvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCPISfasvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19738,6 +19738,15 @@ int Abc_CommandDsdMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             nProcs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            nInputs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
         case 'S':
@@ -19780,18 +19789,19 @@ int Abc_CommandDsdMatch( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "DSD manager matched with cell %s should be cleaned by \"dsd_filter -m\" before matching with cell %s.\n", pStructCur, pStruct );
             return 0;
         }
-        Id_DsdManTuneStr( pDsdMan, pStruct, nConfls, nProcs, fVerbose );
+        Id_DsdManTuneStr( pDsdMan, pStruct, nConfls, nProcs, nInputs, fVerbose );
     }
     else
         If_DsdManTune( pDsdMan, LutSize, fFast, fAdd, fSpec, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: dsd_match [-KCP num] [-fasvh] [-S str]\n" );
+    Abc_Print( -2, "usage: dsd_match [-KCPI num] [-fasvh] [-S str]\n" );
     Abc_Print( -2, "\t         matches DSD structures with the given cell\n" );
     Abc_Print( -2, "\t-K num : LUT size used for tuning [default = %d]\n",        LutSize );
     Abc_Print( -2, "\t-C num : the maximum number of conflicts [default = %d]\n", nConfls );
     Abc_Print( -2, "\t-P num : the maximum number of processes [default = %d]\n", nProcs );
+    Abc_Print( -2, "\t-I num : skip checking if support is less than this [default = %d]\n", nInputs );
     Abc_Print( -2, "\t-f     : toggles using fast check [default = %s]\n",        fFast? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggles adding tuning to the current one [default = %s]\n",    fAdd? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggles using specialized check [default = %s]\n", fSpec? "yes": "no" );
@@ -44186,7 +44196,7 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     nRegs = Gia_ManRegNum( pAbc->pGia );
     if ( fComb )
-        Gia_ManSetRegNum( pAbc->pGia, 0 );
+        pAbc->pGia->nRegs = 0;
     if ( iOutNum < 0 || iOutNum + nOutRange > Gia_ManPoNum(pAbc->pGia) )
     {
         Abc_Print( -1, "Abc_CommandAbc9Cone(): Range of outputs to extract is incorrect.\n" );

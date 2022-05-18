@@ -2554,7 +2554,7 @@ void Id_DsdManTuneStr1( If_DsdMan_t * p, char * pStruct, int nConfls, int fVerbo
 
 ***********************************************************************/
 #ifndef ABC_USE_PTHREADS
-void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs, int fVerbose )
+void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs, int nInputs, int fVerbose )
 {
     Id_DsdManTuneStr1( p, pStruct, nConfls, fVerbose );
 }
@@ -2600,7 +2600,7 @@ void * Ifn_WorkerThread( void * pArg )
     assert( 0 );
     return NULL;
 }
-void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs, int fVerbose )
+void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs, int nInputs, int fVerbose )
 {
     int fVeryVerbose = 0;
     ProgressBar * pProgress = NULL;
@@ -2703,8 +2703,8 @@ void Id_DsdManTuneStr( If_DsdMan_t * p, char * pStruct, int nConfls, int nProcs,
                         Extra_ProgressBarUpdate( pProgress, k, NULL );
                     pObj  = If_DsdVecObj( &p->vObjs, k );
                     nVars = If_DsdObjSuppSize(pObj);
-                    //if ( nVars <= LutSize )
-                    //    continue;
+                    if ( nInputs && nVars < nInputs )
+                        continue;
                     clk = Abc_Clock();
                     If_DsdManComputeTruthPtr( p, Abc_Var2Lit(k, 0), NULL, ThData[i].pTruth );
                     clkUsed += Abc_Clock() - clk;

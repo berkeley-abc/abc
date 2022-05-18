@@ -2733,6 +2733,7 @@ Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fVerbose )
         Vec_IntPush( vRoots, iNtk );
         Rtl_LibBlast2( p, vRoots, 1 );
         pGia = Gia_ManDup( pTop->pGia );
+        //Gia_AigerWrite( pGia, "temp_miter.aig", 0, 0, 0 );
         if ( pTop->pGia->vBarBufs )
             pGia->vBarBufs = Vec_IntDup( pTop->pGia->vBarBufs );
         printf( "Derived global AIG for the top module \"%s\".  ", Rtl_NtkStr(pTop, NameId) );
