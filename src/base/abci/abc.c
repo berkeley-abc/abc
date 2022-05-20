@@ -37774,10 +37774,10 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile;
     Gia_Man_t * pGias[2] = {NULL, NULL}, * pMiter;
     char ** pArgvNew;
-    int c, nArgcNew, fUseSim = 0, fUseNew = 0, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
+    int c, nArgcNew, fUseSim = 0, fUseNewX = 0, fUseNewY = 0, fMiter = 0, fDualOutput = 0, fDumpMiter = 0;
     Cec_ManCecSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasxtvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTnmdasxytvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -37819,7 +37819,10 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fSilent ^= 1;
             break;
         case 'x':
-            fUseNew ^= 1;
+            fUseNewX ^= 1;
+            break;
+        case 'y':
+            fUseNewY ^= 1;
             break;
         case 't':
             fUseSim ^= 1;
@@ -37985,12 +37988,12 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Gia_ManAppendCi(pGias0);
             Gia_ManAppendCi(pGias1);
         }
-        pMiter = Gia_ManMiter( pGias0, pGias1, 0, !fUseNew, 0, 0, pPars->fVerbose );
+        pMiter = Gia_ManMiter( pGias0, pGias1, 0, !fUseNewX && !fUseNewY, 0, 0, pPars->fVerbose );
         Gia_ManStop( pGias0 );
         Gia_ManStop( pGias1 );
     }
     else
-        pMiter = Gia_ManMiter( pGias[0], pGias[1], 0, !fUseNew, 0, 0, pPars->fVerbose );
+        pMiter = Gia_ManMiter( pGias[0], pGias[1], 0, !fUseNewX && !fUseNewY, 0, 0, pPars->fVerbose );
 
     if ( pMiter )
     {
@@ -38022,11 +38025,23 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( 1, "Networks are UNDECIDED.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
         }
-        else if ( fUseNew )
+        else if ( fUseNewX )
         {
             abctime clk = Abc_Clock();
             extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
             Gia_Man_t * pNew = Cec4_ManSimulateTest3( pMiter, pPars->nBTLimit, pPars->fVerbose );
+            if ( Gia_ManAndNum(pNew) == 0 )
+                Abc_Print( 1, "Networks are equivalent.  " );
+            else
+                Abc_Print( 1, "Networks are UNDECIDED.  " );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            Gia_ManStop( pNew );
+        }
+        else if ( fUseNewY )
+        {
+            abctime clk = Abc_Clock();
+            extern Gia_Man_t * Cec5_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
+            Gia_Man_t * pNew = Cec5_ManSimulateTest3( pMiter, pPars->nBTLimit, pPars->fVerbose );
             if ( Gia_ManAndNum(pNew) == 0 )
                 Abc_Print( 1, "Networks are equivalent.  " );
             else
@@ -38047,7 +38062,7 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasxtvwh]\n" );
+    Abc_Print( -2, "usage: &cec [-CT num] [-nmdasxytvwh]\n" );
     Abc_Print( -2, "\t         new combinational equivalence checker\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
@@ -38056,7 +38071,8 @@ usage:
     Abc_Print( -2, "\t-d     : toggle using dual output miter [default = %s]\n", fDualOutput? "yes":"no");
     Abc_Print( -2, "\t-a     : toggle writing dual-output miter [default = %s]\n", fDumpMiter? "yes":"no");
     Abc_Print( -2, "\t-s     : toggle silent operation [default = %s]\n", pPars->fSilent ? "yes":"no");
-    Abc_Print( -2, "\t-x     : toggle using new solver [default = %s]\n", fUseNew? "yes":"no");
+    Abc_Print( -2, "\t-x     : toggle using new solver [default = %s]\n", fUseNewX? "yes":"no");
+    Abc_Print( -2, "\t-y     : toggle using new solver [default = %s]\n", fUseNewY? "yes":"no");
     Abc_Print( -2, "\t-t     : toggle using simulation [default = %s]\n", fUseSim? "yes":"no");
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", pPars->fVerbose? "yes":"no");
     Abc_Print( -2, "\t-w     : toggle printing SAT solver statistics [default = %s]\n", pPars->fVeryVerbose? "yes":"no");

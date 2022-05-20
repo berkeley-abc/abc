@@ -2321,6 +2321,17 @@ int Cec5_ManSweepNodeCbs( Cec5_Man_t * p, CbsP_Man_t * pCbs, int iObj, int iRepr
     }
     return RetValue;
 }
+Gia_Man_t * Cec5_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose )
+{
+    int fCbs = 1, approxLim = 600, subBatchSz = 1, adaRecycle = 500;
+    Gia_Man_t * pNew = NULL;
+    Cec_ParFra_t ParsFra, * pPars = &ParsFra;
+    Cec5_ManSetParams( pPars );
+    pPars->fVerbose = fVerbose;
+    pPars->nBTLimit = nBTLimit;
+    Cec5_ManPerformSweeping( p, pPars, &pNew, 0, fCbs, approxLim, subBatchSz, adaRecycle );
+    return pNew;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
