@@ -280,17 +280,36 @@ static int Mini_AigAndMulti( Mini_Aig_t * p, int * pLits, int nLits )
     }
     return pLits[0];
 }
-static int Mini_AigMuxMulti( Mini_Aig_t * p, int * pCtrl, int * pData, int nData )
+static int Mini_AigMuxMulti( Mini_Aig_t * p, int * pCtrl, int nCtrl, int * pData, int nData )
+{
+    int i, c;
+    assert( nData > 0 );
+    if ( nCtrl == 0 )
+        return pData[0];
+    assert( nData <= (1 << nCtrl) );
+    for ( c = 0; c < nCtrl; c++ )
+    {
+        for ( i = 0; i < nData/2; i++ )
+            pData[i] = Mini_AigMux( p, pCtrl[c], pData[2*i+1], pData[2*i] );
+        if ( nData & 1 )
+            pData[i++] = Mini_AigMux( p, pCtrl[c], 0, pData[nData-1] );
+        nData = i;
+    }
+    assert( nData == 1 );
+    return pData[0];
+}
+static int Mini_AigMuxMulti_rec( Mini_Aig_t * p, int * pCtrl, int * pData, int nData )
 {
     int Res0, Res1;
     assert( nData > 0 );
     if ( nData == 1 )
         return pData[0];
     assert( nData % 2 == 0 );
-    Res0 = Mini_AigMuxMulti( p, pCtrl+1, pData,         nData/2 );
-    Res1 = Mini_AigMuxMulti( p, pCtrl+1, pData+nData/2, nData/2 );
+    Res0 = Mini_AigMuxMulti_rec( p, pCtrl+1, pData,         nData/2 );
+    Res1 = Mini_AigMuxMulti_rec( p, pCtrl+1, pData+nData/2, nData/2 );
     return Mini_AigMux( p, pCtrl[0], Res1, Res0 );
 }
+
 
 static unsigned s_MiniTruths5[5] = {
     0xAAAAAAAA,
