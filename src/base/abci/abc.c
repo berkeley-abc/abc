@@ -337,6 +337,7 @@ static int Abc_CommandXSat                   ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandSatoko                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Satoko             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sat3               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Kissat             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPSat                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandProve                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandIProve                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1084,6 +1085,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Verification", "satoko",        Abc_CommandSatoko,           0 );
     Cmd_CommandAdd( pAbc, "Verification", "&satoko",       Abc_CommandAbc9Satoko,       0 );
     Cmd_CommandAdd( pAbc, "Verification", "&sat3",         Abc_CommandAbc9Sat3,         0 );
+    Cmd_CommandAdd( pAbc, "Verification", "&kissat",       Abc_CommandAbc9Kissat,       0 );
     Cmd_CommandAdd( pAbc, "Verification", "psat",          Abc_CommandPSat,             0 );
     Cmd_CommandAdd( pAbc, "Verification", "prove",         Abc_CommandProve,            1 );
     Cmd_CommandAdd( pAbc, "Verification", "iprove",        Abc_CommandIProve,           1 );
@@ -25873,6 +25875,117 @@ usage:
     Abc_Print( -2, "\t-i     : split multi-output miter and solve incrementally [default = %s]\n", fIncrem? "yes": "no" );
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", opts.verbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Kissat( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
+    extern void Gia_ManKissatCall( Abc_Frame_t * pAbc, char * pFileName, char * pArgs, int nConfs, int nTimeLimit, int fSat, int fUnsat, int fPrintCex, int fVerbose );
+    int c, nConfs = 0, nTimeLimit = 0, fSat = 0, fUnsat = 0, fPrintCex = 0, fVerbose = 0;
+    char * pArgs = NULL;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTAsucvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nConfs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nConfs < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeLimit < 0 )
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pArgs = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 's':
+            fSat ^= 1;
+            break;
+        case 'u':
+            fUnsat ^= 1;
+            break;
+        case 'c':
+            fPrintCex ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind + 1 )
+    {
+        Gia_ManKissatCall( pAbc, argv[globalUtilOptind], pArgs, nConfs, nTimeLimit, fSat, fUnsat, fPrintCex, fVerbose );
+        return 0;
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Satoko(): There is no AIG.\n" );
+        return 1;
+    }
+    else
+    {
+        int nLutSize    = 8;
+        int fCnfObjIds  = 0;
+        int fAddOrCla   = 1;
+        char * pFileName = "_temp_.cnf";
+        Mf_ManDumpCnf( pAbc->pGia, pFileName, nLutSize, fCnfObjIds, fAddOrCla, fVerbose );
+        Gia_ManKissatCall( pAbc, pFileName, pArgs, nConfs, nTimeLimit, fSat, fUnsat, fPrintCex, fVerbose );
+        unlink( pFileName );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &kissat [-CT num] [-sucvh] [-A string] <file.cnf>\n" );
+    Abc_Print( -2, "\t             run SAT solver Kissat, by Armin Biere (https://github.com/arminbiere/kissat)\n" );
+    Abc_Print( -2, "\t-C num     : limit on the number of conflicts [default = %d]\n", nConfs );
+    Abc_Print( -2, "\t-T num     : runtime limit in seconds [default = %d]\n", nTimeLimit );
+    Abc_Print( -2, "\t-s         : expect a satisfiable problem [default = %s]\n", fSat ? "yes": "no" );
+    Abc_Print( -2, "\t-u         : expect an unsatisfiable problem [default = %s]\n", fUnsat ? "yes": "no" );
+    Abc_Print( -2, "\t-c         : prints satisfying assignment if satisfiable [default = %s]\n", fPrintCex ? "yes": "no" );
+    Abc_Print( -2, "\t-v         : prints verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-A num     : string containing additional command-line args for the Kissat binary [default = %s]\n", pArgs ? pArgs : "unused" );
+    Abc_Print( -2, "\t             (in particular, <&kissat -A \"--help\"> prints all command-line args of Kissat)\n" );
+    Abc_Print( -2, "\t<file.cnf> : (optional) CNF file to solve\n");
+    Abc_Print( -2, "\t-h         : print the command usage\n");
     return 1;
 }
 

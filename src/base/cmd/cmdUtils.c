@@ -20,6 +20,7 @@
 
 #include "base/abc/abc.h"
 #include "base/main/mainInt.h"
+#include "misc/util/utilSignal.h"
 #include "cmdInt.h"
 #include <ctype.h>
 
@@ -748,6 +749,83 @@ void CmdPrintTable( st__table * tTable, int fAliases )
     }
     ABC_FREE( ppNames );
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+                
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManKissatCall( Abc_Frame_t * pAbc, char * pFileName, char * pArgs, int nConfs, int nTimeLimit, int fSat, int fUnsat, int fPrintCex, int fVerbose )
+{
+    char Command[1000], Buffer[100];
+    char * pNameWin = "kissat.exe";
+    char * pNameUnix = "kissat";
+    char * pKissatName = NULL;
+    FILE * pFile = NULL;
+
+    // get the names from the resource file
+    if ( Cmd_FlagReadByName(pAbc, "kissatwin") )
+        pNameWin = Cmd_FlagReadByName(pAbc, "kissatwin");
+    if ( Cmd_FlagReadByName(pAbc, "kissatunix") )
+        pNameUnix = Cmd_FlagReadByName(pAbc, "kissatunix");
+
+    // check if the binary is available
+    if ( (pFile = fopen( pNameWin, "r" )) )
+        pKissatName = pNameWin;
+    else if ( (pFile = fopen( pNameUnix, "r" )) )
+        pKissatName = pNameUnix;
+    else if ( pFile == NULL )
+    {
+        fprintf( stdout, "Cannot find Kissat binary \"%s\" or \"%s\" in the current directory.\n", pNameWin, pNameUnix );
+        return;
+    }
+    fclose( pFile );
+
+    sprintf( Command, "%s",  pKissatName );
+    if ( pArgs )
+    {
+        strcat( Command, " " );
+        strcat( Command, pArgs );
+    }
+    if ( !pArgs || (strcmp(pArgs, "-h") && strcmp(pArgs, "--help")) )
+    {
+        if ( !fVerbose )
+            strcat( Command, " -q" );
+        if ( !fPrintCex )
+            strcat( Command, " -n" );
+        if ( fSat )
+            strcat( Command, " --sat" );
+        if ( fUnsat )
+            strcat( Command, " --unsat" );
+        if ( nConfs )
+        {
+            sprintf( Buffer, " --conflicts=%d", nConfs );
+            strcat( Command, Buffer );
+        }
+        if ( nTimeLimit )
+        {
+            sprintf( Buffer, " --time=%d", nTimeLimit );
+            strcat( Command, Buffer );
+        }
+        strcat( Command, " " );
+        strcat( Command, pFileName );
+    }
+    if ( fVerbose )
+        printf( "Running command:  %s\n", Command );
+    if ( Util_SignalSystem( Command ) == -1 )
+    {
+        fprintf( stdout, "The following command has returned a strange exit status:\n" );
+        fprintf( stdout, "\"%s\"\n", Command );
+    }
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
