@@ -160,7 +160,7 @@ void Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName )
 void Abc_UtilsSource( Abc_Frame_t * pAbc )
 {  
 #ifdef WIN32
-    if ( Cmd_CommandExecute(pAbc, "source -s abc.rc") )
+    if ( Cmd_CommandExecute(pAbc, "source abc.rc") )
     {
         if ( Cmd_CommandExecute(pAbc, "source ..\\abc.rc") == 0 )
             printf( "Loaded \"abc.rc\" from the parent directory.\n" );

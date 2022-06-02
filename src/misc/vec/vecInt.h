@@ -61,6 +61,8 @@ struct Vec_Int_t_
     for ( i = Start; (i < Stop) && (((Entry) = Vec_IntEntry(vVec, i)), 1); i++ )
 #define Vec_IntForEachEntryReverse( vVec, pEntry, i )                                       \
     for ( i = Vec_IntSize(vVec) - 1; (i >= 0) && (((pEntry) = Vec_IntEntry(vVec, i)), 1); i-- )
+#define Vec_IntForEachEntryReverseStart( vVec, pEntry, i, Start )                           \
+    for ( i = Start; (i >= 0) && (((pEntry) = Vec_IntEntry(vVec, i)), 1); i-- )
 #define Vec_IntForEachEntryTwo( vVec1, vVec2, Entry1, Entry2, i )                           \
     for ( i = 0; (i < Vec_IntSize(vVec1)) && (((Entry1) = Vec_IntEntry(vVec1, i)), 1) && (((Entry2) = Vec_IntEntry(vVec2, i)), 1); i++ )
 #define Vec_IntForEachEntryTwoStart( vVec1, vVec2, Entry1, Entry2, i, Start )               \

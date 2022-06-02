@@ -1471,6 +1471,24 @@ static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
             printf( "%d", Abc_InfoHasBit( (unsigned *)pThis, k ) );
     printf( "\n" );
 }
+static inline void Abc_TtPrintBinary1( FILE * pFile, word * pTruth, int nVars )
+{
+    word * pThis, * pLimit = pTruth + Abc_TtWordNum(nVars);
+    int k, Limit = Abc_MinInt( 64, (1 << nVars) );
+    assert( nVars >= 2 );
+    for ( pThis = pTruth; pThis < pLimit; pThis++ )
+        for ( k = 0; k < Limit; k++ )
+            fprintf( pFile, "%d", Abc_InfoHasBit( (unsigned *)pThis, k ) );
+}
+static inline void Abc_TtPrintBinary2( FILE * pFile, word * pTruth, int nVars )
+{
+    word * pThis;
+    int k, Limit = Abc_MinInt( 64, (1 << nVars) );
+    assert( nVars >= 2 );
+    for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
+        for ( k = Limit-1; k >= 0; k-- )
+            fprintf( pFile, "%d", Abc_InfoHasBit( (unsigned *)pThis, k ) );
+}
 
 /**Function*************************************************************
 

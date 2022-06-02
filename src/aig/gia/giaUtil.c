@@ -3080,7 +3080,55 @@ Gia_Man_t * Gia_ManTransformCond( Gia_Man_t * p )
     Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
     return NULL;
 }
-
+void Gia_ManWriteSol( Gia_Man_t * p, char * pFileName )
+{
+    char * pBasicName = Extra_FileNameGeneric( pFileName ); 
+    char * pFileName2 = Abc_UtilStrsavTwo( pBasicName, ".sol" ); 
+    FILE * pFile = fopen( pFileName2, "wb" );
+    ABC_FREE( pBasicName );
+    if ( pFile == NULL )
+        printf( "Cannot open output file \"%s\".\n", pFileName2 );
+    else
+    {
+        Gia_Obj_t * pObj; int i;
+        Gia_ManForEachAnd( p, pObj, i )
+            fprintf( pFile, "%d %d ", Gia_ObjFaninLit0(pObj, i), Gia_ObjFaninLit1(pObj, i) );
+        Gia_ManForEachCo( p, pObj, i )
+            fprintf( pFile, "%d %d ", Gia_ObjFaninLit0p(p, pObj), Gia_ObjFaninLit0p(p, pObj) );
+        fclose( pFile );   
+        printf( "Finished writing solution file \"%s\".\n", pFileName2 );
+    }
+    ABC_FREE( pFileName2 );
+}
+void Gia_ManWriteResub( Gia_Man_t * p, char * pFileName )
+{
+    FILE * pFile = fopen( pFileName, "wb" ); 
+    if ( pFile == NULL )
+        printf( "Cannot open output file \"%s\".\n", pFileName );
+    else
+    {
+        Vec_Wrd_t * vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(p) );
+        Vec_Wrd_t * vSimsPo = Gia_ManSimPatSimOut( p, vSimsPi, 1 );
+        int i, k, nWords = Vec_WrdSize(vSimsPi) / Gia_ManCiNum(p);
+        word * pTemp = ABC_ALLOC( word, nWords );
+        fprintf( pFile, "%d %d %d %d\n", Gia_ManCiNum(p), 0, Gia_ManCoNum(p), 1 << Gia_ManCiNum(p) );
+        for ( i = 0; i < Gia_ManCiNum(p); i++ )
+            Abc_TtPrintBinary1( pFile, Vec_WrdEntryP(vSimsPi, i*nWords), Gia_ManCiNum(p) ), fprintf(pFile, "\n");
+        for ( i = 0; i < (1 << Gia_ManCoNum(p)); i++ )
+        {
+            Abc_TtFill( pTemp, nWords );
+            for ( k = 0; k < Gia_ManCoNum(p); k++ )
+                Abc_TtAndCompl( pTemp, pTemp, 0, Vec_WrdEntryP(vSimsPo, k*nWords), !((i>>k)&1), nWords );
+            Abc_TtPrintBinary1( pFile, pTemp, Gia_ManCiNum(p) ), fprintf(pFile, "\n");
+        }
+        ABC_FREE( pTemp );
+        fclose( pFile );
+        Vec_WrdFree( vSimsPi );
+        Vec_WrdFree( vSimsPo );
+        printf( "Finished writing resub file \"%s\".\n", pFileName );
+        Gia_ManWriteSol( p, pFileName );
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
