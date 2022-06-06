@@ -336,7 +336,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pTopModule = NULL;
     int c, fInv = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Tivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Tcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -349,7 +349,7 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
             pTopModule = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
-        case 'i':
+        case 'c':
             fInv ^= 1;
             break;
         case 'v':
@@ -372,10 +372,10 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%collapse [-T <module>] [-ivh] <file_name>\n" );
+    Abc_Print( -2, "usage: %%collapse [-T <module>] [-cvh] <file_name>\n" );
     Abc_Print( -2, "\t         collapse hierarchical design into an AIG\n" );
     Abc_Print( -2, "\t-T     : specify the top module of the design [default = none]\n" );
-    Abc_Print( -2, "\t-i     : toggle complementing miter outputs after collapsing [default = %s]\n", fInv? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggle complementing miter outputs after collapsing [default = %s]\n", fInv? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
