@@ -30138,6 +30138,7 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc3_ReadShowHie( char * pFileName, int fFlat );
     extern Gia_Man_t * Gia_MiniAigSuperDerive( char * pFileName, int fVerbose );
     extern Gia_Man_t * Gia_FileSimpleRead( char * pFileName, int fNames, char * pFileW );
+    extern Gia_Man_t * Gia_ManCreateXors( Gia_Man_t * p );
     Gia_Man_t * pAig = NULL;
     FILE * pFile;
     char ** pArgvNew;
@@ -30150,8 +30151,9 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fGiaSimple = 0;
     int fSkipStrash = 0;
     int fNewReader = 0;
+    int fDetectXors = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "csmnlpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "csxmnlpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30160,6 +30162,9 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             fSkipStrash ^= 1;
+            break;
+        case 'x':
+            fDetectXors ^= 1;
             break;
         case 'm':
             fMiniAig ^= 1;
@@ -30215,16 +30220,25 @@ int Abc_CommandAbc9Read( Abc_Frame_t * pAbc, int argc, char ** argv )
 //    else if ( Extra_FileIsType( FileName, ".v", NULL, NULL ) )
 //        Abc3_ReadShowHie( FileName, fSkipStrash );
     else
+    {
         pAig = Gia_AigerRead( FileName, fGiaSimple, fSkipStrash, 0 );
+        if ( fDetectXors )
+        {
+            Gia_Man_t * pTemp;
+            pAig = Gia_ManCreateXors( pTemp = pAig );
+            Gia_ManStop( pTemp );
+        }
+    }
     if ( pAig )
         Abc_FrameUpdateGia( pAbc, pAig );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &r [-csmnlvh] <file>\n" );
+    Abc_Print( -2, "usage: &r [-csxmnlvh] <file>\n" );
     Abc_Print( -2, "\t         reads the current AIG from the AIGER file\n" );
     Abc_Print( -2, "\t-c     : toggles reading simple AIG [default = %s]\n", fGiaSimple? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggles structural hashing while reading [default = %s]\n", !fSkipStrash? "yes": "no" );
+    Abc_Print( -2, "\t-x     : toggles detecting XORs while reading [default = %s]\n", fDetectXors? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles reading MiniAIG rather than AIGER file [default = %s]\n", fMiniAig? "yes": "no" );
     Abc_Print( -2, "\t-n     : toggles reading MiniAIG as a set of supergates [default = %s]\n", fMiniAig2? "yes": "no" );
     Abc_Print( -2, "\t-l     : toggles reading MiniLUT rather than AIGER file [default = %s]\n", fMiniLut? "yes": "no" );
@@ -32979,7 +32993,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Sim2( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int fVerbose );
+    extern int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int TimeLimit, int fVerbose );
     Gia_Man_t * pGias[2]; FILE * pFile;
     char ** pArgvNew; int nArgcNew;
     int c, RetValue = 0, fVerbose = 0, nWords = 16, nRounds = 10, RandSeed = 1, TimeLimit = 0;
@@ -33126,7 +33140,7 @@ int Abc_CommandAbc9Sim2( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "The number of COs does not match.\n" );
         return 1;
     }
-    RetValue = Gia_ManSimTwo( pGias[0], pGias[1], nWords, nRounds, fVerbose );
+    RetValue = Gia_ManSimTwo( pGias[0], pGias[1], nWords, nRounds, TimeLimit, fVerbose );
     if ( pGias[0] != pAbc->pGia )
         Gia_ManStopP( &pGias[0] );
     Gia_ManStopP( &pGias[1] );

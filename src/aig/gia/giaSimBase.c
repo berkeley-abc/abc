@@ -2485,15 +2485,21 @@ void Gia_ManSimGen( Gia_Man_t * pGia )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int fVerbose )
+int Gia_ManSimTwo( Gia_Man_t * p0, Gia_Man_t * p1, int nWords, int nRounds, int TimeLimit, int fVerbose )
 {
     Vec_Wrd_t * vSim0, * vSim1, * vSim2;
     abctime clk = Abc_Clock();
     int n, i, RetValue = 1;
+    int TimeStop  = TimeLimit ? TimeLimit * CLOCKS_PER_SEC + Abc_Clock() : 0; // in CPU ticks
     printf( "Simulating %d round with %d machine words.\n", nRounds, nWords );
     Abc_RandomW(0);
     for ( n = 0; RetValue && n < nRounds; n++ )
     {
+        if ( TimeStop && Abc_Clock() > TimeStop )
+        {
+            printf( "Computation timed out after %d seconds and %d rounds.\n", TimeLimit, n );
+            break;
+        }
         vSim0 = Vec_WrdStartRandom( Gia_ManCiNum(p0) * nWords );
         p0->vSimsPi = vSim0;
         p1->vSimsPi = vSim0;

@@ -149,6 +149,73 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
 
 /**Function*************************************************************
 
+  Synopsis    [Creates AIG with XORs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCreateXors( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew; Gia_Obj_t * pObj, * pFan0, * pFan1; 
+    Vec_Int_t * vRefs = Vec_IntStart( Gia_ManObjNum(p) );
+    int i, iLit0, iLit1, nXors = 0, nObjs = 0;
+    Gia_ManForEachObj( p, pObj, i )
+        pObj->fMark0 = 0;
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1) )
+        {
+            Vec_IntAddToEntry( vRefs, Gia_ObjId(p, Gia_Regular(pFan0)), 1 );
+            Vec_IntAddToEntry( vRefs, Gia_ObjId(p, Gia_Regular(pFan1)), 1 );
+            pObj->fMark0 = 1;
+            nXors++;
+        }
+        else
+        {
+            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0(pObj, i), 1 );
+            Vec_IntAddToEntry( vRefs, Gia_ObjFaninId1(pObj, i), 1 );
+        }
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        Vec_IntAddToEntry( vRefs, Gia_ObjFaninId0p(p, pObj), 1 );
+    Gia_ManForEachAnd( p, pObj, i )
+        nObjs += Vec_IntEntry(vRefs, i) > 0;
+    pNew = Gia_ManStart( 1 + Gia_ManCiNum(p) + Gia_ManCoNum(p) + nObjs );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( pObj->fMark0 )
+        {
+            Gia_ObjRecognizeExor(pObj, &pFan0, &pFan1);
+            iLit0 = Abc_LitNotCond( Gia_Regular(pFan0)->Value, Gia_IsComplement(pFan0) );
+            iLit1 = Abc_LitNotCond( Gia_Regular(pFan1)->Value, Gia_IsComplement(pFan1) );
+            pObj->Value = Gia_ManAppendXorReal( pNew, iLit0, iLit1 );
+        }
+        else if ( Vec_IntEntry(vRefs, i) > 0 )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+    assert( pNew->nObjs == pNew->nObjsAlloc );
+    pNew->pMuxes = ABC_CALLOC( unsigned, pNew->nObjs );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Vec_IntFree( vRefs );
+    //printf( "Created %d XORs.\n", nXors );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derives GIA without MUXes.]
 
   Description []
