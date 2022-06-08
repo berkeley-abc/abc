@@ -608,7 +608,7 @@ void Abc_ManTimeDup( Abc_Ntk_t * pNtkOld, Abc_Ntk_t * pNtkNew )
     }
     if ( pNtkOld->pManTime->tOutLoad )
     {
-        pNtkNew->pManTime->tOutLoad = ABC_ALLOC( Abc_Time_t, Abc_NtkCiNum(pNtkOld) );
+        pNtkNew->pManTime->tOutLoad = ABC_ALLOC( Abc_Time_t, Abc_NtkCoNum(pNtkOld) );
         memcpy( pNtkNew->pManTime->tOutLoad, pNtkOld->pManTime->tOutLoad, sizeof(Abc_Time_t) * Abc_NtkCoNum(pNtkOld) );
     }
 
