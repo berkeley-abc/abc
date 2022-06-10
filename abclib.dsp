@@ -5155,6 +5155,10 @@ SOURCE=.\src\aig\gia\giaResub3.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaResub6.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaRetime.c
 # End Source File
 # Begin Source File

@@ -138,6 +138,7 @@ int Supp_DeriveLines( Supp_Man_t * p )
 {
     int n, i, iObj, nWords = p->nWords;
     int nDivWords = Abc_Bit6WordNum( Vec_IntSize(p->vCands) );
+    //Vec_IntPrint( p->vCands );
     for ( n = 0; n < 2; n++ )
     {
         p->vDivs[n] = Vec_WrdStart( 64*nWords*nDivWords );
@@ -656,6 +657,79 @@ int Supp_ManReconstruct( Supp_Man_t * p, int fVerbose )
     return Supp_ManRandomSolution( p, iSet, fVerbose );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int s_Counter = 0;
+
+void Supp_DeriveDumpSims( FILE * pFile, Vec_Wrd_t * vDivs, int nWords )
+{
+    int i, k, nDivs = Vec_WrdSize(vDivs)/nWords;
+    for ( i = 0; i < nDivs; i++ )
+    {
+        word * pSim = Vec_WrdEntryP(vDivs, i*nWords);
+        for ( k = 0; k < 64*nWords; k++ )
+            fprintf( pFile, "%c", '0'+Abc_TtGetBit(pSim, k) );
+        fprintf( pFile, "\n" );
+    }
+}
+void Supp_DeriveDumpProb( Vec_Wrd_t * vIsfs, Vec_Wrd_t * vDivs, int nWords )
+{
+    char Buffer[100]; int nDivs = Vec_WrdSize(vDivs)/nWords;
+    int RetValue = sprintf( Buffer, "case01_%02d.resub", s_Counter );
+    FILE * pFile = fopen( Buffer, "wb" );
+    if ( pFile == NULL )
+        printf( "Cannot open output file.\n" );
+    fprintf( pFile, "resyn %d %d %d %d\n", 0, nDivs, 1, 64*nWords );
+    //fprintf( pFile, "%d %d %d %d\n", 0, nDivs, 1, 64*nWords );
+    Supp_DeriveDumpSims( pFile, vDivs, nWords );
+    Supp_DeriveDumpSims( pFile, vIsfs, nWords );
+    fclose ( pFile );
+    RetValue = 0;
+}
+void Supp_DeriveDumpSol( Vec_Int_t * vSet, Vec_Int_t * vRes, int nDivs )
+{
+    char Buffer[100];
+    int RetValue = sprintf( Buffer, "case01_%02d.sol", s_Counter );
+    int i, iLit, iLitRes = -1, nSupp = Vec_IntSize(vSet);
+    FILE * pFile = fopen( Buffer, "wb" );
+    if ( pFile == NULL )
+        printf( "Cannot open output file.\n" );
+    fprintf( pFile, "sol name aig %d\n", Vec_IntSize(vRes)/2 );
+    //Vec_IntPrint( vSet );
+    //Vec_IntPrint( vRes );
+    Vec_IntForEachEntry( vRes, iLit, i )
+    {
+        assert( iLit != 2 && iLit != 3 );
+        if ( iLit < 2 )
+            iLitRes = iLit;
+        else if ( iLit-4 < 2*nSupp )
+        {
+            int iDiv = Vec_IntEntry(vSet, Abc_Lit2Var(iLit-4));
+            assert( iDiv >= 0 && iDiv < nDivs );
+            iLitRes = Abc_Var2Lit(1+iDiv, Abc_LitIsCompl(iLit));
+        }
+        else
+            iLitRes = iLit + 2*((nDivs+1)-(nSupp+2));
+        fprintf( pFile, "%d ", iLitRes );
+    }
+    if ( Vec_IntSize(vRes) & 1 )
+        fprintf( pFile, "%d ", iLitRes );
+    fprintf( pFile, "\n" );
+    fclose( pFile );
+    RetValue = 0;
+    printf( "Dumped solution info file \"%s\".\n", Buffer );
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -705,6 +779,7 @@ Vec_Int_t * Supp_ManFindBestSolution( Supp_Man_t * p, Vec_Wec_t * vSols, int fVe
             Vec_IntForEachEntry( vSet, iObj, i )
                 Vec_IntPush( *pvDivs, Vec_IntEntry(p->vCands, iObj) );
         }
+        //Supp_DeriveDumpSol( vSet, vRes, Vec_WrdSize(p->vDivs[1])/p->nWords );
     }
     return vRes;
 }
@@ -802,10 +877,39 @@ Vec_Int_t * Supp_ManCompute( Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * 
             Supp_PrintOne( p, iBest );
     }
     vRes = Supp_ManFindBestSolution( p, p->vSolutions, fVerbose, pvDivs );
+    //Supp_DeriveDumpProb( vIsfs, p->vDivs[1], p->nWords );
+    s_Counter++;
+    //Vec_IntPrint( vRes );
     Supp_ManDelete( p );
 //    if ( vRes && Vec_IntSize(vRes) == 0 )
 //        Vec_IntFreeP( &vRes );
     return vRes;
+}
+void Supp_ManComputeTest( Gia_Man_t * p )
+{
+    Vec_Wrd_t * vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(p) );
+    Vec_Wrd_t * vSims   = Gia_ManSimPatSimOut( p, vSimsPi, 0 );
+    int i, iPoId, nWords = Vec_WrdSize(vSimsPi) / Gia_ManCiNum(p);
+    Vec_Wrd_t * vIsfs = Vec_WrdStart( 2*nWords );
+    Vec_Int_t * vCands = Vec_IntAlloc( 4 );
+    Vec_Int_t * vRes;
+
+//    for ( i = 0; i < Gia_ManCiNum(p)+5; i++ )
+    for ( i = 0; i < Gia_ManCiNum(p); i++ )
+        Vec_IntPush( vCands, 1+i );
+
+    iPoId = Gia_ObjId(p, Gia_ManPo(p, 0));
+    Abc_TtCopy( Vec_WrdEntryP(vIsfs, 0*nWords), Vec_WrdEntryP(vSims, iPoId*nWords), nWords, 1 );
+    Abc_TtCopy( Vec_WrdEntryP(vIsfs, 1*nWords), Vec_WrdEntryP(vSims, iPoId*nWords), nWords, 0 );
+
+    vRes = Supp_ManCompute( vIsfs, vCands, NULL, vSims, NULL, nWords, p, NULL, 1, 1, 0 );
+    Vec_IntPrint( vRes );
+
+    Vec_WrdFree( vSimsPi );
+    Vec_WrdFree( vSims );
+    Vec_WrdFree( vIsfs );
+    Vec_IntFree( vCands );
+    Vec_IntFree( vRes );
 }
 
 ////////////////////////////////////////////////////////////////////////
