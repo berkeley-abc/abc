@@ -46,6 +46,7 @@ struct Supp_Man_t_
     Gia_Man_t * pGia;       // used for object names
     // computed data
     Vec_Wrd_t * vDivs[2];   // simulation values
+    Vec_Wrd_t * vDivsC[2];  // simulation values
     Vec_Wrd_t * vPats[2];   // simulation values
     Vec_Ptr_t * vMatrix;    // simulation values
     Vec_Wrd_t * vMask;      // simulation values
@@ -143,9 +144,10 @@ int Supp_DeriveLines( Supp_Man_t * p )
     {
         p->vDivs[n] = Vec_WrdStart( 64*nWords*nDivWords );
         p->vPats[n] = Vec_WrdStart( 64*nWords*nDivWords );
+        //p->vDivsC[n] = Vec_WrdStart( 64*nWords*nDivWords );
         if ( p->vSimsC )
             Vec_IntForEachEntry( p->vCands, iObj, i )
-                Abc_TtAndSharp( Vec_WrdEntryP(p->vDivs[n], i*nWords), Vec_WrdEntryP(p->vSimsC, iObj*nWords), Vec_WrdEntryP(p->vSims, iObj*nWords), nWords, !n );
+                Abc_TtAndSharp( Vec_WrdEntryP(p->vDivsC[n], i*nWords), Vec_WrdEntryP(p->vSimsC, iObj*nWords), Vec_WrdEntryP(p->vSims, iObj*nWords), nWords, !n );
         else
             Vec_IntForEachEntry( p->vCands, iObj, i )
                 Abc_TtCopy( Vec_WrdEntryP(p->vDivs[n], i*nWords), Vec_WrdEntryP(p->vSims, iObj*nWords), nWords, !n );
@@ -195,6 +197,8 @@ void Supp_ManDelete( Supp_Man_t * p )
     Supp_ManCleanMatrix( p );
     Vec_WrdFreeP( &p->vDivs[0] );
     Vec_WrdFreeP( &p->vDivs[1] );
+    Vec_WrdFreeP( &p->vDivsC[0] );
+    Vec_WrdFreeP( &p->vDivsC[1] );
     Vec_WrdFreeP( &p->vPats[0] );
     Vec_WrdFreeP( &p->vPats[1] );
     Vec_PtrFreeP( &p->vMatrix );
@@ -682,10 +686,27 @@ void Supp_DeriveDumpSims( FILE * pFile, Vec_Wrd_t * vDivs, int nWords )
         fprintf( pFile, "\n" );
     }
 }
+void Supp_DeriveDumpSimsC( FILE * pFile, Vec_Wrd_t * vDivs[2], int nWords )
+{
+    int i, k, nDivs = Vec_WrdSize(vDivs[0])/nWords;
+    for ( i = 0; i < nDivs; i++ )
+    {
+        word * pSim0 = Vec_WrdEntryP(vDivs[0], i*nWords);
+        word * pSim1 = Vec_WrdEntryP(vDivs[1], i*nWords);
+        for ( k = 0; k < 64*nWords; k++ )
+            if ( Abc_TtGetBit(pSim0, k) )
+                fprintf( pFile, "0" );
+            else if ( Abc_TtGetBit(pSim1, k) )
+                fprintf( pFile, "1" );
+            else
+                fprintf( pFile, "-" );
+        fprintf( pFile, "\n" );
+    }
+}
 void Supp_DeriveDumpProb( Vec_Wrd_t * vIsfs, Vec_Wrd_t * vDivs, int nWords )
 {
     char Buffer[100]; int nDivs = Vec_WrdSize(vDivs)/nWords;
-    int RetValue = sprintf( Buffer, "case01_%02d.resub", s_Counter );
+    int RetValue = sprintf( Buffer, "%02d.resub", s_Counter );
     FILE * pFile = fopen( Buffer, "wb" );
     if ( pFile == NULL )
         printf( "Cannot open output file.\n" );
@@ -696,10 +717,24 @@ void Supp_DeriveDumpProb( Vec_Wrd_t * vIsfs, Vec_Wrd_t * vDivs, int nWords )
     fclose ( pFile );
     RetValue = 0;
 }
+void Supp_DeriveDumpProbC( Vec_Wrd_t * vIsfs, Vec_Wrd_t * vDivs[2], int nWords )
+{
+    char Buffer[100]; int nDivs = Vec_WrdSize(vDivs[0])/nWords;
+    int RetValue = sprintf( Buffer, "%02d.resub", s_Counter );
+    FILE * pFile = fopen( Buffer, "wb" );
+    if ( pFile == NULL )
+        printf( "Cannot open output file.\n" );
+    fprintf( pFile, "resyn %d %d %d %d\n", 0, nDivs, 1, 64*nWords );
+    //fprintf( pFile, "%d %d %d %d\n", 0, nDivs, 1, 64*nWords );
+    Supp_DeriveDumpSimsC( pFile, vDivs, nWords );
+    Supp_DeriveDumpSims( pFile, vIsfs, nWords );
+    fclose ( pFile );
+    RetValue = 0;
+}
 void Supp_DeriveDumpSol( Vec_Int_t * vSet, Vec_Int_t * vRes, int nDivs )
 {
     char Buffer[100];
-    int RetValue = sprintf( Buffer, "case01_%02d.sol", s_Counter );
+    int RetValue = sprintf( Buffer, "%02d.sol", s_Counter );
     int i, iLit, iLitRes = -1, nSupp = Vec_IntSize(vSet);
     FILE * pFile = fopen( Buffer, "wb" );
     if ( pFile == NULL )
@@ -779,7 +814,10 @@ Vec_Int_t * Supp_ManFindBestSolution( Supp_Man_t * p, Vec_Wec_t * vSols, int fVe
             Vec_IntForEachEntry( vSet, iObj, i )
                 Vec_IntPush( *pvDivs, Vec_IntEntry(p->vCands, iObj) );
         }
+        //Supp_DeriveDumpProbC( p->vIsfs, p->vDivsC, p->nWords );
+        //Supp_DeriveDumpProb( p->vIsfs, p->vDivs[1], p->nWords );
         //Supp_DeriveDumpSol( vSet, vRes, Vec_WrdSize(p->vDivs[1])/p->nWords );
+        //s_Counter++;
     }
     return vRes;
 }
@@ -877,8 +915,6 @@ Vec_Int_t * Supp_ManCompute( Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * 
             Supp_PrintOne( p, iBest );
     }
     vRes = Supp_ManFindBestSolution( p, p->vSolutions, fVerbose, pvDivs );
-    //Supp_DeriveDumpProb( vIsfs, p->vDivs[1], p->nWords );
-    s_Counter++;
     //Vec_IntPrint( vRes );
     Supp_ManDelete( p );
 //    if ( vRes && Vec_IntSize(vRes) == 0 )

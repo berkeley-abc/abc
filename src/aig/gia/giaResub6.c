@@ -119,7 +119,7 @@ Res6_Man_t * Res6_ManRead( char * pFileName )
         printf( "Cannot open input file \"%s\".\n", pFileName );
     else
     {
-        int i, k, nIns, nNodes, nOuts, nPats, iLit = 0;
+        int i, k, nIns, nNodes, nOuts, nPats;
         char Temp[100], Buffer[100];
         char * pLine = fgets( Buffer, 100, pFile );
         if ( pLine == NULL )
@@ -279,11 +279,57 @@ static inline void Res6_LitPrint( int iLit, int nDivs )
             printf( "%d", Abc_Lit2Var(iLit) );
     }
 }
+Vec_Int_t * Res6_FindSupport( Vec_Int_t * vSol, int nDivs )
+{
+    int i, iLit;
+    Vec_Int_t * vSupp = Vec_IntAlloc( 10 );
+    Vec_IntForEachEntry( vSol, iLit, i )
+        if ( iLit >= 2 && iLit < 2*nDivs )
+            Vec_IntPushUnique( vSupp, Abc_Lit2Var(iLit) );
+    return vSupp;
+}
+void Res6_PrintSuppSims( Vec_Int_t * vSol, word ** ppLits, int nWords, int nDivs )
+{
+    Vec_Int_t * vSupp = Res6_FindSupport( vSol, nDivs );
+    int i, k, iObj;
+    Vec_IntForEachEntry( vSupp, iObj, i )
+    {
+        for ( k = 0; k < 64*nWords; k++ )
+            if ( Abc_TtGetBit(ppLits[2*iObj+1], k) )
+                printf( "0" );
+            else if ( Abc_TtGetBit(ppLits[2*iObj], k) )
+                printf( "1" );
+            else
+                printf( "-" );
+        printf( "\n" );
+    }
+    for ( k = 0; k < 64*nWords; k++ )
+    {
+        Vec_IntForEachEntry( vSupp, iObj, i )
+            if ( Abc_TtGetBit(ppLits[2*iObj+1], k) )
+                printf( "0" );
+            else if ( Abc_TtGetBit(ppLits[2*iObj+0], k) )
+                printf( "1" );
+            else
+                printf( "-" );
+        printf( "\n" );
+        if ( k == 9 )
+            break;
+    }
+    Vec_IntFree( vSupp );
+}                        
+int Res6_FindSupportSize( Vec_Int_t * vSol, int nDivs )
+{
+    Vec_Int_t * vSupp = Res6_FindSupport( vSol, nDivs );
+    int Res = Vec_IntSize(vSupp);
+    Vec_IntFree( vSupp );
+    return Res;
+}
 void Res6_PrintSolution( Vec_Int_t * vSol, int nDivs )
 {
     int iNode, nNodes = Vec_IntSize(vSol)/2-1;
     assert( Vec_IntSize(vSol) % 2 == 0 );
-    printf( "Solution:  In+Div = %d  Node = %d  Out = %d\n", nDivs-1, nNodes, 1 );
+    printf( "Solution:  In = %d  Div = %d  Node = %d  Out = %d\n", Res6_FindSupportSize(vSol, nDivs), nDivs-1, nNodes, 1 );
     for ( iNode = 0; iNode <= nNodes; iNode++ )
     {
         int * pLits = Vec_IntEntryP( vSol, 2*iNode );
@@ -386,6 +432,8 @@ void Res6_ManResubCheck( char * pFileNameRes, char * pFileNameSol, int fVerbose 
             Res6_ManPrintProblem( p, 0 );
         if ( fVerbose )
             Res6_PrintSolution( vSol, p->nDivs );
+        //if ( fVerbose )
+        //    Res6_PrintSuppSims( vSol, p->ppLits, p->nWords, p->nDivs );
         Res6_ManResubVerify( p, vSol );
         Vec_IntFree( vSol );
         Res6_ManStop( p );
