@@ -2497,7 +2497,7 @@ void Kit_DsdVerify( Kit_DsdNtk_t * pNtk, unsigned * pTruth, int nVars )
     p = Kit_DsdManAlloc( nVars, Kit_DsdNtkObjNum(pNtk)+2 );
     pTruthC = Kit_DsdTruthCompute( p, pNtk );
     if ( !Extra_TruthIsEqual( pTruth, pTruthC, nVars ) )
-        printf( "Verification failed.\n" );
+        printf( "Verification failed for gate with %d inputs.\n", nVars );
     Kit_DsdManFree( p );
 }
 

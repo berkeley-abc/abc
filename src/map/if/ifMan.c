@@ -273,6 +273,8 @@ void If_ManStop( If_Man_t * p )
     Vec_IntFreeP( &p->vPairRes );
     Vec_StrFreeP( &p->vPairPerms );
     Vec_PtrFreeP( &p->vVisited );
+    Vec_StrFreeP( &p->vMarks );
+    Vec_IntFreeP( &p->vVisited2 );
     if ( p->vPairHash )
         Hash_IntManStop( p->vPairHash );
     for ( i = 6; i <= Abc_MaxInt(6,p->pPars->nLutSize); i++ )

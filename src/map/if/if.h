@@ -275,6 +275,8 @@ struct If_Man_t_
     void *             pUserMan;
     Vec_Int_t *        vDump;
     int                pDumpIns[16];
+    Vec_Str_t *        vMarks;
+    Vec_Int_t *        vVisited2;
 
     // timing manager
     Tim_Man_t *        pManTim;
