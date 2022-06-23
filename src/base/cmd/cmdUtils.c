@@ -767,14 +767,14 @@ void Gia_ManKissatCall( Abc_Frame_t * pAbc, char * pFileName, char * pArgs, int 
     char * pNameWin = "kissat.exe";
     char * pNameUnix = "kissat";
     char * pKissatName = NULL;
-    FILE * pFile = NULL;
+    //FILE * pFile = NULL;
 
     // get the names from the resource file
     if ( Cmd_FlagReadByName(pAbc, "kissatwin") )
         pNameWin = Cmd_FlagReadByName(pAbc, "kissatwin");
     if ( Cmd_FlagReadByName(pAbc, "kissatunix") )
         pNameUnix = Cmd_FlagReadByName(pAbc, "kissatunix");
-
+/*
     // check if the binary is available
     if ( (pFile = fopen( pNameWin, "r" )) )
         pKissatName = pNameWin;
@@ -786,6 +786,13 @@ void Gia_ManKissatCall( Abc_Frame_t * pAbc, char * pFileName, char * pArgs, int 
         return;
     }
     fclose( pFile );
+*/
+
+#ifdef _WIN32
+    pKissatName = pNameWin;
+#else
+    pKissatName = pNameUnix;
+#endif
 
     sprintf( Command, "%s",  pKissatName );
     if ( pArgs )
