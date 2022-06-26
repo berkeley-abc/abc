@@ -84,6 +84,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaShrink.c \
     src/aig/gia/giaShrink6.c \
     src/aig/gia/giaShrink7.c \
+    src/aig/gia/giaSif.c \
     src/aig/gia/giaSim.c \
     src/aig/gia/giaSim2.c \
     src/aig/gia/giaSimBase.c \

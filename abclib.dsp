@@ -5215,6 +5215,10 @@ SOURCE=.\src\aig\gia\giaShrink7.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaSif.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaSim.c
 # End Source File
 # Begin Source File
