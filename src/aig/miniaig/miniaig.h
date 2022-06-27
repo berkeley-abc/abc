@@ -368,6 +368,20 @@ static inline int Mini_AigTruth( Mini_Aig_t * p, int * pVarLits, int nVars, unsi
     Lit1 = Mini_AigTruth( p, pVarLits, Var, Mini_AigTt5Cofactor1(Truth, Var) );
     return Mini_AigMuxProp( p, pVarLits[Var], Lit1, Lit0 );
 }
+static char * Mini_AigPhase( Mini_Aig_t * p )
+{
+    char * pRes = MINI_AIG_CALLOC( char, Mini_AigNodeNum(p) );
+    int i;
+    Mini_AigForEachAnd( p, i )
+    {
+        int iFaninLit0 = Mini_AigNodeFanin0( p, i );
+        int iFaninLit1 = Mini_AigNodeFanin1( p, i );
+        int Phase0 = pRes[Mini_AigLit2Var(iFaninLit0)] ^ Mini_AigLitIsCompl(iFaninLit0);
+        int Phase1 = pRes[Mini_AigLit2Var(iFaninLit1)] ^ Mini_AigLitIsCompl(iFaninLit1);
+        pRes[i] = Phase0 & Phase1;
+    }
+    return pRes;
+}
 
 // procedure to check the topological order during AIG construction
 static int Mini_AigCheck( Mini_Aig_t * p )

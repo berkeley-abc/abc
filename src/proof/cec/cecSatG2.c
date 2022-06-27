@@ -1877,9 +1877,9 @@ void Cec4_ManSimulateTest2( Gia_Man_t * p, int nConfs, int fVerbose )
     abctime clk = Abc_Clock();
     Cec_ParFra_t ParsFra, * pPars = &ParsFra;
     Cec4_ManSetParams( pPars );
-    Cec4_ManPerformSweeping( p, pPars, NULL, 0 );
     pPars->fVerbose = fVerbose;
     pPars->nBTLimit = nConfs;
+    Cec4_ManPerformSweeping( p, pPars, NULL, 0 );
     if ( fVerbose )
         Abc_PrintTime( 1, "New choice computation time", Abc_Clock() - clk );
 }
@@ -1910,6 +1910,139 @@ int Cec4_ManSimulateOnlyTest( Gia_Man_t * p, int fVerbose )
     Cec4_ManSetParams( pPars );
     pPars->fVerbose = fVerbose;
     return Cec4_ManPerformSweeping( p, pPars, NULL, 1 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Internal simulation APIs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec4_ManSimulateTest5Int( Gia_Man_t * p, int nConfs, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Cec_ParFra_t ParsFra, * pPars = &ParsFra;
+    Cec4_ManSetParams( pPars );
+    pPars->fVerbose = fVerbose;
+    pPars->nBTLimit = nConfs;
+    Cec4_ManPerformSweeping( p, pPars, NULL, 0 );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Equivalence detection time", Abc_Clock() - clk );
+}
+Gia_Man_t * Gia_ManLocalRehash( Gia_Man_t * p )  
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_ManAppendCi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManHashStop( pNew );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        int iLitNew = Gia_ManObj(pTemp, Abc_Lit2Var(pObj->Value))->Value;
+        if ( iLitNew == ~0 )
+            pObj->Value = iLitNew;
+        else
+            pObj->Value = Abc_LitNotCond(iLitNew, Abc_LitIsCompl(pObj->Value));
+    }
+    Gia_ManStop( pTemp );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+Vec_Int_t * Cec4_ManComputeMapping( Gia_Man_t * p, Gia_Man_t * pAig, int fVerbose )
+{
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vReprs = Vec_IntStartFull( Gia_ManObjNum(p) );
+    int * pAig2Abc = ABC_FALLOC( int, Gia_ManObjNum(pAig) );
+    int i, nConsts = 0, nReprs = 0;
+    pAig2Abc[0] = 0;
+    Gia_ManForEachCand( p, pObj, i )
+    {
+        int iLitGia = pObj->Value, iReprGia;
+        if ( iLitGia == -1 )
+            continue;
+        iReprGia = Gia_ObjReprSelf( pAig, Abc_Lit2Var(iLitGia) );
+        if ( pAig2Abc[iReprGia] == -1 )
+            pAig2Abc[iReprGia] = i;
+        else
+        {
+            int iLitGia2 = Gia_ManObj(p, pAig2Abc[iReprGia] )->Value;
+            assert( Gia_ObjReprSelf(pAig, Abc_Lit2Var(iLitGia)) == Gia_ObjReprSelf(pAig, Abc_Lit2Var(iLitGia2)) );
+            assert( i > pAig2Abc[iReprGia] );
+            Vec_IntWriteEntry( vReprs, i, pAig2Abc[iReprGia] );
+            if ( pAig2Abc[iReprGia] == 0 )
+                nConsts++;
+            else
+                nReprs++;
+        }
+    }
+    ABC_FREE( pAig2Abc );
+    if ( fVerbose )
+        printf( "Found %d const reprs and %d other reprs.\n", nConsts, nReprs );
+    return vReprs;
+}
+void Cec4_ManVerifyEquivs( Gia_Man_t * p, Vec_Int_t * vRes, int fVerbose )
+{
+    int i, iRepr, nWords = 4; word * pSim0, * pSim1;
+    Vec_Wrd_t * vSimsCi = Vec_WrdStartRandom( Gia_ManCiNum(p) * nWords );
+    int nObjs = Vec_WrdShiftOne( vSimsCi, nWords ), nFails = 0;
+    Vec_Wrd_t * vSims   = Gia_ManSimPatSimOut( p, vSimsCi, 0 );
+    assert( Vec_IntSize(vRes) == Gia_ManObjNum(p) );
+    assert( nObjs == Gia_ManCiNum(p) );
+    Vec_IntForEachEntry( vRes, iRepr, i )
+    {
+        if ( iRepr == -1 )
+            continue;
+        assert( i > iRepr );
+        pSim0 = Vec_WrdEntryP( vSims, nWords*i );
+        pSim1 = Vec_WrdEntryP( vSims, nWords*iRepr );
+        if ( (pSim0[0] ^ pSim1[0]) & 1 )
+            nFails += !Abc_TtOpposite(pSim0, pSim1, nWords);
+        else
+            nFails += !Abc_TtEqual(pSim0, pSim1, nWords);
+    }
+    Vec_WrdFree( vSimsCi );
+    Vec_WrdFree( vSims );
+    if ( nFails )
+        printf( "Verification failed at %d nodes.\n", nFails );
+    else if ( fVerbose )
+        printf( "Verification succeeded for all (%d) nodes.\n", Gia_ManCandNum(p) );
+}
+void Cec4_ManConvertToLits( Gia_Man_t * p, Vec_Int_t * vRes )
+{
+    Gia_Obj_t * pObj; int i, iRepr;
+    Gia_ManSetPhase( p );
+    Gia_ManForEachObj( p, pObj, i )
+        if ( (iRepr = Vec_IntEntry(vRes, i)) >= 0 )
+            Vec_IntWriteEntry( vRes, i, Abc_Var2Lit(iRepr, Gia_ManObj(p, iRepr)->fPhase ^ pObj->fPhase) );
+}
+void Cec4_ManSimulateTest5( Gia_Man_t * p, int nConfs, int fVerbose )
+{
+    Vec_Int_t * vRes = NULL;
+    Gia_Man_t * pAig = Gia_ManLocalRehash( p );
+    Cec4_ManSimulateTest5Int( pAig, nConfs, fVerbose );
+    vRes = Cec4_ManComputeMapping( p, pAig, fVerbose );
+    Cec4_ManVerifyEquivs( p, vRes, fVerbose );
+    Cec4_ManConvertToLits( p, vRes );
+    Vec_IntDumpBin( "_temp_.equiv", vRes, fVerbose );
+    Vec_IntFree( vRes );
+    Gia_ManStop( pAig );
 }
 
 ////////////////////////////////////////////////////////////////////////

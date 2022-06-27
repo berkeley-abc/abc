@@ -466,6 +466,7 @@ void Gia_ManTestXor( Gia_Man_t * p )
     }
     Vec_WrdFree( vSimsPi );
     Vec_WrdFree( vSims );
+    nWords = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////

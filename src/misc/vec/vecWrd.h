@@ -195,6 +195,14 @@ static inline Vec_Wrd_t * Vec_WrdStartTruthTables( int nVars )
     }
     return p;
 }
+static inline int Vec_WrdShiftOne( Vec_Wrd_t * p, int nWords )
+{
+    int i, nObjs = p->nSize/nWords;
+    assert( nObjs * nWords == p->nSize );
+    for ( i = 0; i < nObjs; i++ )
+        p->pArray[i*nWords] <<= 1;
+    return nObjs;
+}
 
 /**Function*************************************************************
 
