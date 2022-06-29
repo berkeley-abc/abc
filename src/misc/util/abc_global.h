@@ -94,8 +94,6 @@
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-ABC_NAMESPACE_HEADER_START
-
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -142,6 +140,8 @@ ABC_NAMESPACE_HEADER_START
 #endif
 
 #endif
+
+ABC_NAMESPACE_HEADER_START
 
 /**
  * Pointer difference type; replacement for ptrdiff_t.
