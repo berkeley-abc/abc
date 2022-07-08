@@ -137,11 +137,11 @@ endif
 
 # LIBS := -ldl -lrt
 LIBS += -lm
-ifneq ($(OS), FreeBSD)
+ifneq ($(OS), $(filter $(OS), FreeBSD OpenBSD))
   LIBS += -ldl
 endif
 
-ifneq ($(findstring Darwin, $(shell uname)), Darwin)
+ifneq ($(OS), $(filter $(OS), FreeBSD OpenBSD Darwin))
    LIBS += -lrt
 endif
 
