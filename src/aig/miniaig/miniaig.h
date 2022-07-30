@@ -648,6 +648,25 @@ int main( int argc, char ** argv )
 }
 */
 
+/*
+#include "aig/miniaig/miniaig.h"
+
+// this procedure creates a MiniAIG for function F = a*b + ~c and writes it into a file "test.aig"
+void Mini_AigTest()
+{
+    Mini_Aig_t * p = Mini_AigStart();    // create empty AIG manager (contains only const0 node)
+    int litApos = Mini_AigCreatePi( p ); // create input A (returns pos lit of A)
+    int litBpos = Mini_AigCreatePi( p ); // create input B (returns pos lit of B)
+    int litCpos = Mini_AigCreatePi( p ); // create input C (returns pos lit of C)
+    int litCneg = Mini_AigLitNot( litCpos ); // neg lit of C
+    int litAnd  = Mini_AigAnd( p, litApos, litBpos ); // lit for a*b
+    int litOr   = Mini_AigOr( p, litAnd, litCneg );   // lit for a*b + ~c
+    Mini_AigCreatePo( p, litOr );                     // create primary output
+    Mini_AigerWrite( "test.aig", p, 1 );              // write the result into a file
+    Mini_AigStop( p );                                // deallocate MiniAIG
+}
+*/
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////

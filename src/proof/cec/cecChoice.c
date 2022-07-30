@@ -418,7 +418,6 @@ Aig_Man_t * Cec_ComputeChoicesNew( Gia_Man_t * pGia, int nConfs, int fVerbose )
     Aig_Man_t * pAig;
     Cec4_ManSimulateTest2( pGia, nConfs, fVerbose );
     pGia = Gia_ManEquivToChoices( pGia, 3 );
-    Gia_ManSetRegNum( pGia, Gia_ManRegNum(pGia) );
     pAig = Gia_ManToAig( pGia, 1 );
     Gia_ManStop( pGia );
     return pAig;

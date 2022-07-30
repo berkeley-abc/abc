@@ -733,7 +733,7 @@ void Gia_RsbCiWindowTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int  Gia_ObjFaninId( Gia_Obj_t * pObj, int iObj, int n )          { return n ? Gia_ObjFaninId1(pObj, iObj) : Gia_ObjFaninId0(pObj, iObj);  }
+//static inline int  Gia_ObjFaninId( Gia_Obj_t * pObj, int iObj, int n )          { return n ? Gia_ObjFaninId1(pObj, iObj) : Gia_ObjFaninId0(pObj, iObj);  }
 
 static inline int  Gia_ObjTravIsTopTwo( Gia_Man_t * p, int iNodeA )            { return (p->pTravIds[iNodeA] >= p->nTravIds - 1);       }
 static inline int  Gia_ObjTravIsSame( Gia_Man_t * p, int iNodeA, int iNodeB )  { return (p->pTravIds[iNodeA] == p->pTravIds[iNodeB]);   }

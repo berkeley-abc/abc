@@ -77,6 +77,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaSatLut.c \
     src/aig/gia/giaSatMap.c \
     src/aig/gia/giaSatoko.c \
+    src/aig/gia/giaSatSyn.c \
     src/aig/gia/giaSat3.c \
     src/aig/gia/giaScl.c \
     src/aig/gia/giaScript.c \
