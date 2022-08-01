@@ -32396,13 +32396,14 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pTemp;
     int c, Limit = 2;
     int Multi = 0;
+    int fAddBuffs  = 0;
     int fAddStrash = 0;
-    int fCollapse = 0;
-    int fAddMuxes = 0;
-    int fStrMuxes = 0;
+    int fCollapse  = 0;
+    int fAddMuxes  = 0;
+    int fStrMuxes  = 0;
     int fRehashMap = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LMacmrsh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LMbacmrsh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32427,6 +32428,9 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( Multi <= 0 )
                 goto usage;
+            break;
+        case 'b':
+            fAddBuffs ^= 1;
             break;
         case 'a':
             fAddStrash ^= 1;
@@ -32453,6 +32457,13 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Strash(): There is no AIG.\n" );
         return 1;
+    }
+    if ( fAddBuffs )
+    {
+        extern Gia_Man_t * Gia_ManDupAddBufs( Gia_Man_t * p );
+        pTemp = Gia_ManDupAddBufs( pAbc->pGia );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+        return 0;
     }
     if ( Multi > 0 )
     {
@@ -32528,8 +32539,9 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &st [-LM num] [-acmrsh]\n" );
+    Abc_Print( -2, "usage: &st [-LM num] [-bacmrsh]\n" );
     Abc_Print( -2, "\t         performs structural hashing\n" );
+    Abc_Print( -2, "\t-b     : toggle adding buffers at the inputs and outputs [default = %s]\n", fAddBuffs? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle collapsing hierarchical AIG [default = %s]\n", fCollapse? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle converting to larger gates [default = %s]\n", fAddMuxes? "yes": "no" );

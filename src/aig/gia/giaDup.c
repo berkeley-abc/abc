@@ -860,6 +860,27 @@ Gia_Man_t * Gia_ManDupMap( Gia_Man_t * p, Vec_Int_t * vMap )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }
+Gia_Man_t * Gia_ManDupAddBufs( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) + Gia_ManCiNum(p) + Gia_ManCoNum(p) );
+    Gia_ManHashStart( pNew );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendBuf( pNew, pObj->Value );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
+    Gia_ManHashStop( pNew );
+    return pNew;
+}
 
 /**Function*************************************************************
 
