@@ -2717,13 +2717,89 @@ Vec_Ptr_t * Gia_ManPtrWrdReadBin( char * pFileName, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Int_t * Gia_ManProcessBuffs( Gia_Man_t * pHie, Vec_Wrd_t * vSimsH, int nWords, Vec_Mem_t * vStore, Vec_Int_t * vLabels )
+{
+    Vec_Int_t * vPoSigs = Vec_IntAlloc( Gia_ManBufNum(pHie) );
+    Vec_Int_t * vMap;
+    Vec_Wec_t * vNodes = Vec_WecStart( Gia_ManBufNum(pHie) );
+    Gia_Obj_t * pObj; int i, Sig, Value;
+    Gia_ManForEachBuf( pHie, pObj, i )
+    {
+        word * pSim = Vec_WrdEntryP(vSimsH, Gia_ObjId(pHie, pObj)*nWords);
+        int fCompl = pSim[0] & 1;
+        if ( fCompl )
+            Abc_TtNot( pSim, nWords );
+        Vec_IntPush( vPoSigs, Vec_MemHashInsert(vStore, pSim) );
+        if ( fCompl )
+            Abc_TtNot( pSim, nWords );
+    }
+    Vec_IntPrint( vPoSigs );
+    vMap = Vec_IntStartFull( Vec_MemEntryNum(vStore) );
+    Vec_IntForEachEntry( vPoSigs, Sig, i )
+    {
+        assert( Vec_IntEntry(vMap, Sig) == -1 );
+        Vec_IntWriteEntry( vMap, Sig, i );
+    }
+    Vec_IntForEachEntry( vLabels, Sig, i )
+    {
+        if ( Sig < 0 )
+            continue;
+        Value = Vec_IntEntry(vMap, Sig);
+        if ( Value == -1 )
+            continue;
+        assert( Value >= 0 && Value < Gia_ManBufNum(pHie) );
+        Vec_WecPush( vNodes, Value, i );
+    }
+    Vec_WecPrint( vNodes, 0 );
+    Vec_WecFree( vNodes );
+    Vec_IntFree( vMap );
+    Vec_IntFree( vPoSigs );
+    return NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManUpdateCoPhase( Gia_Man_t * pNew, Gia_Man_t * pOld )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_ManSetPhase( pNew );
+    Gia_ManSetPhase( pOld );
+    Gia_ManForEachCo( pNew, pObj, i )
+        if ( pObj->fPhase ^ Gia_ManCo(pOld, i)->fPhase )
+        {
+            printf( "Updating out %d.\n", i );
+            Gia_ObjFlipFaninC0( pObj );
+        }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManCompareSims( Gia_Man_t * pHie, Gia_Man_t * pFlat, int nWords, int fVerbose )
 {
     abctime clk = Abc_Clock();
     Vec_Wrd_t * vSims  = pFlat->vSimsPi = pHie->vSimsPi = Vec_WrdStartRandom( Gia_ManCiNum(pFlat) * nWords );
     Vec_Wrd_t * vSims0 = Gia_ManSimPatSim( pFlat );
     Vec_Wrd_t * vSims1 = Gia_ManSimPatSim( pHie );
-    Gia_Obj_t * pObj; int * pSpot, * pSpot2, i, nC0s = 0, nC1s = 0, nUnique = 0, nFound[3] = {0}, nBoundary = 0, nMatched = 0;
+    Vec_Int_t * vLabels = Vec_IntStartFull( Gia_ManObjNum(pFlat) );
+    Gia_Obj_t * pObj; int fCompl, Value, * pSpot, * pSpot2, i, nC0s = 0, nC1s = 0, nUnique = 0, nFound[3] = {0}, nBoundary = 0, nMatched = 0;
     Vec_Mem_t * vStore = Vec_MemAlloc( nWords, 12 ); // 2^12 N-word entries per page
     pFlat->vSimsPi = NULL;
     pHie->vSimsPi = NULL;
@@ -2739,7 +2815,13 @@ void Gia_ManCompareSims( Gia_Man_t * pHie, Gia_Man_t * pFlat, int nWords, int fV
         word * pSim = Vec_WrdEntryP(vSims0, i*nWords);
         nC0s += Abc_TtIsConst0(pSim, nWords);
         nC1s += Abc_TtIsConst1(pSim, nWords);
-        Vec_MemHashInsert( vStore, pSim );
+        fCompl = pSim[0] & 1;
+        if ( fCompl )
+            Abc_TtNot( pSim, nWords );
+        Value = Vec_MemHashInsert( vStore, pSim );
+        if ( fCompl )
+            Abc_TtNot( pSim, nWords );
+        Vec_IntWriteEntry( vLabels, i, Value );
     }
     nUnique = Vec_MemEntryNum( vStore );
     printf( "Simulating %d patterns through the second (flat) AIG leads to %d unique objects (%.2f %% out of %d). Const0 = %d. Const1 = %d.\n", 
@@ -2765,10 +2847,12 @@ void Gia_ManCompareSims( Gia_Man_t * pHie, Gia_Man_t * pFlat, int nWords, int fV
         //if ( Gia_ObjIsBuf(pObj) )
         //    printf( "%d(%d) ", i, nBoundary-1 );
     }
+    Gia_ManProcessBuffs( pHie, vSims1, nWords, vStore, vLabels );
     Vec_MemHashFree( vStore );
     Vec_MemFree( vStore );
     Vec_WrdFree( vSims0 );
     Vec_WrdFree( vSims1 );
+    Vec_IntFree( vLabels );
 
     printf( "The first (hierarchical) AIG has %d (%.2f %%) matches, %d (%.2f %%) mismatches, including %d (%.2f %%) on the boundary.  ", 
         nMatched,  100.0*nMatched /Abc_MaxInt(1, Gia_ManCandNum(pHie)), 

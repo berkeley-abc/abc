@@ -1736,6 +1736,42 @@ int Rtl_NtkInsertSignalRange( Rtl_Ntk_t * p, int Sig, int * pLits, int nLits )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Int_t * Rtl_NtkRevPermInput( Rtl_Ntk_t * p )
+{
+    Vec_Int_t * vNew = Vec_IntAlloc( 100 ); int b, i, Count = 0;
+    for ( i = 0; i < p->nInputs; i++ )
+    {
+        int Width = Rtl_WireWidth( p, i );
+        for ( b = 0; b < Width; b++ )
+            Vec_IntPush( vNew, Count + Width-1-b );
+        Count += Width;
+    }
+    return vNew;
+}
+Vec_Int_t * Rtl_NtkRevPermOutput( Rtl_Ntk_t * p )
+{
+    Vec_Int_t * vNew = Vec_IntAlloc( 100 );  int b, i, Count = 0;
+    for ( i = 0; i < p->nOutputs; i++ )
+    {
+        int Width = Rtl_WireWidth( p, p->nInputs + i );
+        for ( b = 0; b < Width; b++ )
+            Vec_IntPush( vNew, Count + Width-1-b );
+        Count += Width;
+    }
+    return vNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Rtl_NtkBlastInputs( Gia_Man_t * pNew, Rtl_Ntk_t * p )
 {
     int b, i;
@@ -2704,6 +2740,41 @@ Gia_Man_t * Rtl_ReduceInverse( Rtl_Lib_t * pLib, Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_ManDupPermIO( Gia_Man_t * p, Vec_Int_t * vPermI, Vec_Int_t * vPermO )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Vec_IntSize(vPermI) == Gia_ManCiNum(p) );
+    assert( Vec_IntSize(vPermO) == Gia_ManCoNum(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        Gia_ManCi(p, Vec_IntEntry(vPermI, i))->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        assert( Abc_Lit2Var(pObj->Value) == i );
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManCo(p, Vec_IntEntry(vPermO, i))) );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Rtl_LibReturnNtk( Rtl_Lib_t * p, char * pModule )
 {
     int NameId = Wln_ReadFindToken( pModule, p->pManName );
@@ -2715,7 +2786,7 @@ int Rtl_LibReturnNtk( Rtl_Lib_t * p, char * pModule )
     }
     return iNtk;
 }
-Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fVerbose )
+Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fRev, int fVerbose )
 {
     Gia_Man_t * pGia = NULL;
     int NameId = Wln_ReadFindToken( pTopModule, p->pManName );
@@ -2733,6 +2804,16 @@ Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fVerbose )
         Vec_IntPush( vRoots, iNtk );
         Rtl_LibBlast2( p, vRoots, 1 );
         pGia = Gia_ManDup( pTop->pGia );
+        if ( fRev )
+        {
+            Gia_Man_t * pTemp;
+            Vec_Int_t * vPermI = Rtl_NtkRevPermInput( pTop );
+            Vec_Int_t * vPermO = Rtl_NtkRevPermOutput( pTop );
+            pGia = Gia_ManDupPermIO( pTemp = pGia, vPermI, vPermO );
+            Vec_IntFree( vPermI );
+            Vec_IntFree( vPermO );
+            Gia_ManStop( pTemp );
+        }
         //Gia_AigerWrite( pGia, "temp_miter.aig", 0, 0, 0 );
         if ( pTop->pGia->vBarBufs )
             pGia->vBarBufs = Vec_IntDup( pTop->pGia->vBarBufs );

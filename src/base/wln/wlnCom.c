@@ -330,13 +330,13 @@ usage:
 ******************************************************************************/
 int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fVerbose );
+    extern Gia_Man_t * Rtl_LibCollapse( Rtl_Lib_t * p, char * pTopModule, int fRev, int fVerbose );
     Gia_Man_t * pNew = NULL;
     Rtl_Lib_t * pLib = Wln_AbcGetRtl(pAbc);
     char * pTopModule = NULL;
-    int c, fInv = 0, fVerbose  = 0;
+    int c, fInv = 0, fRev = 0, fVerbose  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Tcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Tcrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -352,6 +352,9 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fInv ^= 1;
             break;
+        case 'r':
+            fRev ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -366,16 +369,17 @@ int Abc_CommandCollapse( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf( "The design is not entered.\n" );
         return 1;
     }
-    pNew = Rtl_LibCollapse( pLib, pTopModule, fVerbose );
+    pNew = Rtl_LibCollapse( pLib, pTopModule, fRev, fVerbose );
     if ( fInv )
         Gia_ManInvertPos( pNew );
     Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%collapse [-T <module>] [-cvh] <file_name>\n" );
+    Abc_Print( -2, "usage: %%collapse [-T <module>] [-crvh] <file_name>\n" );
     Abc_Print( -2, "\t         collapse hierarchical design into an AIG\n" );
     Abc_Print( -2, "\t-T     : specify the top module of the design [default = none]\n" );
     Abc_Print( -2, "\t-c     : toggle complementing miter outputs after collapsing [default = %s]\n", fInv? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle bit order reversal in the word-level IO [default = %s]\n", fRev? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
