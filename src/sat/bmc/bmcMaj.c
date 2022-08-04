@@ -422,6 +422,8 @@ struct Exa_Man_t_
     int               VarVals[MAJ_NOBJS]; // values of the first nVars variables
     Vec_Wec_t *       vOutLits;  // output vars
     bmcg_sat_solver * pSat;      // SAT solver
+    FILE *            pFile;
+    int               nCnfClauses;
 };
 
 static inline word *  Exa_ManTruth( Exa_Man_t * p, int v ) { return Vec_WrdEntryP( p->vInfo, p->nWords * v ); }
@@ -502,10 +504,26 @@ Exa_Man_t * Exa_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     bmcg_sat_solver_set_nvars( p->pSat, p->iVar );
     if ( pPars->RuntimeLim )
         bmcg_sat_solver_set_runtime_limit( p->pSat, Abc_Clock() + pPars->RuntimeLim * CLOCKS_PER_SEC );
+    if ( pPars->fDumpCnf )
+    {
+        char Buffer[1000];
+        sprintf( Buffer, "%s_%d_%d.cnf", p->pPars->pTtStr, 2, p->nNodes );
+        p->pFile = fopen( Buffer, "wb" );
+        fputs( "p cnf                \n", p->pFile );
+    }
     return p;
 }
 void Exa_ManFree( Exa_Man_t * p )
 {
+    if ( p->pFile ) 
+    {
+        char Buffer[1000];
+        sprintf( Buffer, "%s_%d_%d.cnf", p->pPars->pTtStr, 2, p->nNodes );
+        rewind( p->pFile );
+        fprintf( p->pFile, "p cnf %d %d", bmcg_sat_solver_varnum(p->pSat), p->nCnfClauses );
+        fclose( p->pFile );
+        printf( "CNF was dumped into file \"%s\".\n", Buffer );
+    }
     bmcg_sat_solver_stop( p->pSat );
     Vec_WrdFree( p->vInfo );
     Vec_WecFree( p->vOutLits );
@@ -666,6 +684,72 @@ void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
   SeeAlso     []
 
 ***********************************************************************/
+static inline int Exa_ManAddClause( Exa_Man_t * p, int * pLits, int nLits )
+{
+    int i;
+    if ( p->pFile )
+    {
+        p->nCnfClauses++;
+        for ( i = 0; i < nLits; i++ )
+            fprintf( p->pFile, "%s%d ", Abc_LitIsCompl(pLits[i]) ? "-" : "", Abc_Lit2Var(pLits[i]) );
+        fprintf( p->pFile, "0\n" );
+    }
+    return bmcg_sat_solver_addclause( p->pSat, pLits, nLits );
+}
+int Exa_ManAddCnfAdd( Exa_Man_t * p, int * pnAdded )
+{
+    int pLits[MAJ_NOBJS], pLits2[2], i, j, k, n, m;
+    *pnAdded = 0;
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+        for ( k = 0; k < 2; k++ )
+        {
+            int nLits = 0;
+            for ( j = 0; j < p->nObjs; j++ )
+                if ( p->VarMarks[i][k][j] && bmcg_sat_solver_read_cex_varvalue(p->pSat, p->VarMarks[i][k][j]) )
+                    pLits[nLits++] = Abc_Var2Lit( p->VarMarks[i][k][j], 0 );
+            assert( nLits > 0 );
+            // input uniqueness
+            for ( n = 0;   n < nLits; n++ )
+            for ( m = n+1; m < nLits; m++ )
+            {
+                (*pnAdded)++;
+                pLits2[0] = Abc_LitNot(pLits[n]);
+                pLits2[1] = Abc_LitNot(pLits[m]);
+                if ( !Exa_ManAddClause( p, pLits2, 2 ) )
+                    return 0;
+            }
+            if ( k == 1 )
+                break;
+            // symmetry breaking
+            for ( j = 0; j < p->nObjs; j++ ) if ( p->VarMarks[i][k][j]   && bmcg_sat_solver_read_cex_varvalue(p->pSat, p->VarMarks[i][k][j]) )
+            for ( n = j; n < p->nObjs; n++ ) if ( p->VarMarks[i][k+1][n] && bmcg_sat_solver_read_cex_varvalue(p->pSat, p->VarMarks[i][k+1][j]) )
+            {
+                (*pnAdded)++;
+                pLits2[0] = Abc_Var2Lit( p->VarMarks[i][k][j], 1 );
+                pLits2[1] = Abc_Var2Lit( p->VarMarks[i][k+1][n], 1 );
+                if ( !Exa_ManAddClause( p, pLits2, 2 ) )
+                    return 0;
+            }
+        }
+    }
+    return 1;
+}
+int Exa_ManSolverSolve( Exa_Man_t * p )
+{
+    int nAdded = 1;
+    while ( nAdded )
+    {
+        int status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
+        if ( status != GLUCOSE_SAT )
+            return status;
+        status = Exa_ManAddCnfAdd( p, &nAdded );
+        //printf( "Added %d clauses.\n", nAdded );
+        if ( status != GLUCOSE_SAT )
+            return status;
+    }
+    return GLUCOSE_SAT;
+}
 int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
 {
     int pLits[MAJ_NOBJS], pLits2[2], i, j, k, n, m;
@@ -680,27 +764,33 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
                 if ( p->VarMarks[i][k][j] )
                     pLits[nLits++] = Abc_Var2Lit( p->VarMarks[i][k][j], 0 );
             assert( nLits > 0 );
-            // input uniqueness
-            if ( !bmcg_sat_solver_addclause( p->pSat, pLits, nLits ) )
+            if ( !Exa_ManAddClause( p, pLits, nLits ) )
                 return 0;
-            for ( n = 0;   n < nLits; n++ )
-            for ( m = n+1; m < nLits; m++ )
+            // input uniqueness
+            if ( !p->pPars->fDynConstr )
             {
-                pLits2[0] = Abc_LitNot(pLits[n]);
-                pLits2[1] = Abc_LitNot(pLits[m]);
-                if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
-                    return 0;
+                for ( n = 0;   n < nLits; n++ )
+                for ( m = n+1; m < nLits; m++ )
+                {
+                    pLits2[0] = Abc_LitNot(pLits[n]);
+                    pLits2[1] = Abc_LitNot(pLits[m]);
+                    if ( !Exa_ManAddClause( p, pLits2, 2 ) )
+                        return 0;
+                }
             }
             if ( k == 1 )
                 break;
             // symmetry breaking
-            for ( j = 0; j < p->nObjs; j++ ) if ( p->VarMarks[i][k][j] )
-            for ( n = j; n < p->nObjs; n++ ) if ( p->VarMarks[i][k+1][n] )
+            if ( !p->pPars->fDynConstr )
             {
-                pLits2[0] = Abc_Var2Lit( p->VarMarks[i][k][j], 1 );
-                pLits2[1] = Abc_Var2Lit( p->VarMarks[i][k+1][n], 1 );
-                if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
-                    return 0;
+                for ( j = 0; j < p->nObjs; j++ ) if ( p->VarMarks[i][k][j] )
+                for ( n = j; n < p->nObjs; n++ ) if ( p->VarMarks[i][k+1][n] )
+                {
+                    pLits2[0] = Abc_Var2Lit( p->VarMarks[i][k][j], 1 );
+                    pLits2[1] = Abc_Var2Lit( p->VarMarks[i][k+1][n], 1 );
+                    if ( !Exa_ManAddClause( p, pLits2, 2 ) )
+                        return 0;
+                }
             }
         }
 #ifdef USE_NODE_ORDER
@@ -711,7 +801,7 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
         {
             pLits2[0] = Abc_Var2Lit( p->VarMarks[i][0][n], 1 );
             pLits2[1] = Abc_Var2Lit( p->VarMarks[j][0][m], 1 );
-            if ( !bmcg_sat_solver_addclause( p->pSat, pLits2, 2 ) )
+            if ( !Exa_ManAddClause( p, pLits2, 2 ) )
                 return 0;
         }
 #endif
@@ -721,7 +811,7 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
             pLits[0] = Abc_Var2Lit( iVarStart,   k==1 );
             pLits[1] = Abc_Var2Lit( iVarStart+1, k==2 );
             pLits[2] = Abc_Var2Lit( iVarStart+2, k!=0 );
-            if ( !bmcg_sat_solver_addclause( p->pSat, pLits, 3 ) )
+            if ( !Exa_ManAddClause( p, pLits, 3 ) )
                 return 0;
         }
         if ( fOnlyAnd )
@@ -729,7 +819,7 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
             pLits[0] = Abc_Var2Lit( iVarStart,   1 );
             pLits[1] = Abc_Var2Lit( iVarStart+1, 1 );
             pLits[2] = Abc_Var2Lit( iVarStart+2, 0 );
-            if ( !bmcg_sat_solver_addclause( p->pSat, pLits, 3 ) )
+            if ( !Exa_ManAddClause( p, pLits, 3 ) )
                 return 0;
         }
     }
@@ -738,7 +828,7 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
     {
         Vec_Int_t * vArray = Vec_WecEntry(p->vOutLits, i);
         assert( Vec_IntSize(vArray) > 0 );
-        if ( !bmcg_sat_solver_addclause( p->pSat, Vec_IntArray(vArray), Vec_IntSize(vArray) ) )
+        if ( !Exa_ManAddClause( p, Vec_IntArray(vArray), Vec_IntSize(vArray) ) )
             return 0;
     }
     return 1;
@@ -770,7 +860,7 @@ int Exa_ManAddCnf( Exa_Man_t * p, int iMint )
                         pLits[nLits++] = Abc_Var2Lit( iBaseSatVarJ + 2, !n );
                     else if ( p->VarVals[j] == n )
                         continue;
-                    if ( !bmcg_sat_solver_addclause( p->pSat, pLits, nLits ) )
+                    if ( !Exa_ManAddClause( p, pLits, nLits ) )
                         return 0;
                 }
             }
@@ -790,7 +880,7 @@ int Exa_ManAddCnf( Exa_Man_t * p, int iMint )
                 if ( i != p->nObjs - 1 ) pLits[nLits++] = Abc_Var2Lit( iBaseSatVarI + 2, !n );
                 if ( k > 0 )             pLits[nLits++] = Abc_Var2Lit( iVarStart +  k-1,  n );
                 assert( nLits <= 4 );
-                if ( !bmcg_sat_solver_addclause( p->pSat, pLits, nLits ) )
+                if ( !Exa_ManAddClause( p, pLits, nLits ) )
                     return 0;
             }
         }
@@ -815,7 +905,10 @@ void Exa_ManExactSynthesis( Bmc_EsPar_t * pPars )
         abctime clk = Abc_Clock();
         if ( !Exa_ManAddCnf( p, iMint ) )
             break;
-        status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
+        if ( pPars->fDynConstr )
+            status = Exa_ManSolverSolve( p );
+        else
+            status = bmcg_sat_solver_solve( p->pSat, NULL, 0 );
         if ( pPars->fVerbose )
         {
             printf( "Iter %3d : ", i );
