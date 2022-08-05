@@ -453,7 +453,7 @@ int Exa_ManMarkup( Exa_Man_t * p )
     int i, k, j;
     assert( p->nObjs <= MAJ_NOBJS );
     // assign functionality
-    p->iVar = 1 + p->nNodes * 3;
+    p->iVar = 1 + 3*p->nNodes;//
     // assign connectivity variables
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
@@ -560,7 +560,7 @@ static inline int Exa_ManEval( Exa_Man_t * p )
     int i, k, iMint; word * pFanins[2];
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
-        int iVarStart = 1 + 3*(i - p->nVars);
+        int iVarStart = 1 + 3*(i - p->nVars);//
         for ( k = 0; k < 2; k++ )
             pFanins[k] = Exa_ManTruth( p, Exa_ManFindFanin(p, i, k) );
         Abc_TtConst0( Exa_ManTruth(p, i), p->nWords );
@@ -614,7 +614,7 @@ void Exa_ManDumpBlif( Exa_Man_t * p, int fCompl )
     fprintf( pFile, ".outputs F\n" );
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
-        int iVarStart = 1 + 3*(i - p->nVars);
+        int iVarStart = 1 + 3*(i - p->nVars);//
         int Val1 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart);
         int Val2 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart+1);
         int Val3 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart+2);
@@ -652,7 +652,7 @@ void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
 //    for ( i = p->nVars + 2; i < p->nObjs; i++ )
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
-        int iVarStart = 1 + 3*(i - p->nVars);
+        int iVarStart = 1 + 3*(i - p->nVars);//
         int Val1 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart);
         int Val2 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart+1);
         int Val3 = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart+2);
@@ -752,11 +752,11 @@ int Exa_ManSolverSolve( Exa_Man_t * p )
 }
 int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
 {
-    int pLits[MAJ_NOBJS], pLits2[2], i, j, k, n, m;
+    int pLits[MAJ_NOBJS], pLits2[3], i, j, k, n, m;
     // input constraints
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
-        int iVarStart = 1 + 3*(i - p->nVars);
+        int iVarStart = 1 + 3*(i - p->nVars);//
         for ( k = 0; k < 2; k++ )
         {
             int nLits = 0;
@@ -805,6 +805,23 @@ int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
                 return 0;
         }
 #endif
+        // unique functions
+        for ( j = p->nVars; j < i; j++ )
+        for ( k = 0; k < 2; k++ ) if ( p->VarMarks[i][k][j] )
+        {
+            pLits2[0] = Abc_Var2Lit( p->VarMarks[i][k][j], 1 );
+            for ( n = 0; n < p->nObjs; n++ ) 
+            for ( m = 0; m < 2; m++ )
+            {
+                if ( p->VarMarks[i][!k][n] && p->VarMarks[j][m][n] )
+                {
+                    pLits2[1] = Abc_Var2Lit( p->VarMarks[i][!k][n], 1 );
+                    pLits2[2] = Abc_Var2Lit( p->VarMarks[j][m][n], 1 );
+                    if ( !Exa_ManAddClause( p, pLits2, 3 ) )
+                        return 0;
+                }
+            }
+        }
         // two input functions
         for ( k = 0; k < 3; k++ )
         {
@@ -844,7 +861,7 @@ int Exa_ManAddCnf( Exa_Man_t * p, int iMint )
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
         // fanin connectivity
-        int iVarStart = 1 + 3*(i - p->nVars);
+        int iVarStart = 1 + 3*(i - p->nVars);//
         int iBaseSatVarI = p->iVar + 3*(i - p->nVars);
         for ( k = 0; k < 2; k++ )
         {
