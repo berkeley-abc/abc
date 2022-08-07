@@ -1918,7 +1918,7 @@ void Exa4_ManPrintSolution( Exa4_Man_t * p, Vec_Int_t * vValues, int fFancy )
             int Val2 = Vec_IntEntry(vValues, iVarStart+1);
             int Val3 = Vec_IntEntry(vValues, iVarStart+2);
             int Val4 = Vec_IntEntry(vValues, iVarStart+3);
-            int Val5 = Vec_IntEntry(vValues, iVarStart+4);
+            //int Val5 = Vec_IntEntry(vValues, iVarStart+4);
             printf( "%2d  = ", i );
             for ( k = 0; k < 2; k++ )
             {
@@ -1979,10 +1979,10 @@ void Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int n
 }
 void Exa_ManExactSynthesis4_( Bmc_EsPar_t * pPars )
 {
-    int i, m, fCompl = 0;
+    int i, m;
     Vec_Wrd_t * vSimsIn  = Vec_WrdStart( 8 );
     Vec_Wrd_t * vSimsOut = Vec_WrdStart( 8 );
-    int Truths[2] = { 0x96969696, 0xE8E8E8E8 };
+    int Truths[2] = { 0x96, 0xE8 };
     for ( m = 0; m < 8; m++ )
     {
         int iOutMint = 0;
