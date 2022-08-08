@@ -1480,7 +1480,7 @@ void Exa_ManIsNormalized( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut )
     if ( Count )
         printf( "The data for %d divisors are not normalized.\n", Count );
     if ( !(Vec_WrdEntry(vSimsOut, 0) & 1) )
-        printf( "The data for the outputs is not normalized.\n", Count );
+        printf( "The output data is not normalized.\n" );
 //    else if ( Count == 0 )
 //        printf( "The data is fully normalized.\n" );
 }
