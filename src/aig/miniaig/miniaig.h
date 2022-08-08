@@ -144,6 +144,18 @@ static Mini_Aig_t * Mini_AigStart()
     Mini_AigPush( p, MINI_AIG_NULL, MINI_AIG_NULL );
     return p;
 }
+static Mini_Aig_t * Mini_AigStartSupport( int nIns, int nObjsAlloc )
+{
+    Mini_Aig_t * p; int i;
+    assert( 1+nIns < nObjsAlloc );
+    p = MINI_AIG_CALLOC( Mini_Aig_t, 1 );
+    p->nCap   = 2*nObjsAlloc;
+    p->nSize  = 2*(1+nIns);
+    p->pArray = MINI_AIG_ALLOC( int, p->nCap );
+    for ( i = 0; i < p->nSize; i++ )
+        p->pArray[i] = MINI_AIG_NULL;
+    return p;
+}
 static void Mini_AigStop( Mini_Aig_t * p )
 {
     MINI_AIG_FREE( p->pArray );
@@ -169,6 +181,31 @@ static int Mini_AigAndNum( Mini_Aig_t * p )
     Mini_AigForEachAnd( p, i )
         nNodes++;
     return nNodes;
+}
+static int Mini_AigXorNum( Mini_Aig_t * p )
+{
+    int i, nNodes = 0;
+    Mini_AigForEachAnd( p, i )
+        nNodes += p->pArray[2*i] > p->pArray[2*i+1];
+    return nNodes;
+}
+static int Mini_AigLevelNum( Mini_Aig_t * p )
+{
+    int i, Level = 0;
+    int * pLevels = MINI_AIG_CALLOC( int, Mini_AigNodeNum(p) );
+    Mini_AigForEachAnd( p, i )
+    {
+        int Lel0 = pLevels[Mini_AigLit2Var(Mini_AigNodeFanin0(p, i))];
+        int Lel1 = pLevels[Mini_AigLit2Var(Mini_AigNodeFanin1(p, i))];
+        pLevels[i] = 1 + (Lel0 > Lel1 ? Lel0 : Lel1);
+    }
+    Mini_AigForEachPo( p, i )
+    {
+        int Lel0 = pLevels[Mini_AigLit2Var(Mini_AigNodeFanin0(p, i))];
+        Level = Level > Lel0 ? Level : Lel0;
+    }
+    MINI_AIG_FREE( pLevels );
+    return Level;
 }
 static void Mini_AigPrintStats( Mini_Aig_t * p )
 {
