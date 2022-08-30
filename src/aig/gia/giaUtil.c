@@ -3130,6 +3130,37 @@ void Gia_ManWriteResub( Gia_Man_t * p, char * pFileName )
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Transform flops.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintArray( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; int i, nSize = Gia_ManObjNum(p);
+    printf( "static int s_ArraySize = %d;\n", nSize );
+    printf( "static int s_ArrayData[%d] = {\n", 2*nSize );
+    printf( "    0, 0," );
+    printf( "\n    " );
+    Gia_ManForEachCi( p, pObj, i )
+        printf( "0, 0,  " );
+    printf( "\n    " );
+    Gia_ManForEachAnd( p, pObj, i )
+        printf( "%d, %d,  ", Gia_ObjFaninLit0p(p, pObj), Gia_ObjFaninLit1p(p, pObj) );
+    printf( "\n    " );
+    Gia_ManForEachCo( p, pObj, i )
+        printf( "%d, %d,  ", Gia_ObjFaninLit0p(p, pObj), Gia_ObjFaninLit0p(p, pObj) );
+    printf( "\n" );
+    printf( "};\n" );
+
+}
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
