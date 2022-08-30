@@ -14098,6 +14098,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Mnist_ExperimentWithScaling( nDecMax );
     //Gyx_ProblemSolveTest();
     {
+        extern Abc_Ntk_t * Abc_NtkFromArray();
         Abc_Ntk_t * pNtkRes = Abc_NtkFromArray();
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
@@ -50205,6 +50206,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Gia_ManPrintArray( Gia_Man_t * p );
     extern Gia_Man_t * Gia_ManPerformNewResub( Gia_Man_t * p, int nWinCount, int nCutSize, int nProcs, int fVerbose );
     extern void Gia_RsbEnumerateWindows( Gia_Man_t * p, int nInputsMax, int nLevelsMax );
     extern int Gia_ManSumTotalOfSupportSizes( Gia_Man_t * p );

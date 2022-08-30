@@ -3199,7 +3199,7 @@ Vec_Int_t * Gia_ManRelDeriveSimple( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t 
 
 void Gia_ManRelSolve( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t * vIns, Vec_Int_t * vOuts, Vec_Int_t * vRel, Vec_Int_t * vDivs )
 {
-    extern Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fVerbose );
+    extern Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fVerbose );
 
     int i, m, iObj, Entry, iMint = 0, nMints = Vec_IntSize(vRel) - Vec_IntCountEntry(vRel, -1);
     Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nMints );
@@ -3232,7 +3232,7 @@ void Gia_ManRelSolve( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t * vIns, Vec_In
     }
     assert( iMint == nMints );
     printf( "Created %d minterms.\n", iMint );
-    Exa4_ManGenTest( vSimsIn, vSimsOut, Vec_IntSize(vIns), Vec_IntSize(vDivs), Vec_IntSize(vOuts), 10, 0, 0, 0, 0, 1 );
+    Exa4_ManGenTest( vSimsIn, vSimsOut, Vec_IntSize(vIns), Vec_IntSize(vDivs), Vec_IntSize(vOuts), 10, 0, 0, 0, 0, 0, 1 );
     Vec_WrdFree( vSimsIn );
     Vec_WrdFree( vSimsOut );
 }
