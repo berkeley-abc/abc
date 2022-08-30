@@ -22,6 +22,7 @@
 #include "misc/util/utilTruth.h"
 #include "misc/extra/extra.h"
 //#include <immintrin.h>
+#include "aig/miniaig/miniaig.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -3198,7 +3199,7 @@ Vec_Int_t * Gia_ManRelDeriveSimple( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t 
 
 void Gia_ManRelSolve( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t * vIns, Vec_Int_t * vOuts, Vec_Int_t * vRel, Vec_Int_t * vDivs )
 {
-    extern void Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fVerbose );
+    extern Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fVerbose );
 
     int i, m, iObj, Entry, iMint = 0, nMints = Vec_IntSize(vRel) - Vec_IntCountEntry(vRel, -1);
     Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nMints );
