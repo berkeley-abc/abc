@@ -535,10 +535,23 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
   SeeAlso     []
 
 ***********************************************************************/
+void Ndr_DumpNdr( void * pDesign )
+{
+    int i;
+    char ** pNames = ABC_CALLOC( char *, 10000 );
+    for ( i = 0; i < 10000; i++ )
+    {
+        char Buffer[100];
+        sprintf( Buffer, "s%d", i );
+        pNames[i] = Abc_UtilStrsav( Buffer );
+    }
+    Ndr_WriteVerilog( "temp.v", pDesign, pNames, 0 );
+}
 Wlc_Ntk_t * Wlc_ReadNdr( char * pFileName )
 {
     void * pData = Ndr_Read( pFileName );
     Wlc_Ntk_t * pNtk = Wlc_NtkFromNdr( pData );
+    //Ndr_DumpNdr( pData );
     //char * ppNames[10] = { NULL, "a", "b", "c", "d", "e", "f", "g", "h", "i" };
     //Ndr_WriteVerilog( NULL, pData, ppNames, 0 );
     //Ndr_Delete( pData );

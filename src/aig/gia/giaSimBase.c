@@ -2943,7 +2943,7 @@ Vec_Wrd_t * Gia_ManRelDerive( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vSim
 Vec_Wrd_t * Gia_ManRelDerive2( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vSims )
 {
     int nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p); Gia_Obj_t * pObj;
-    int i, Id, m, Index, iMint = 0, nMints = 1 << Vec_IntSize(vObjs); 
+    int i, Id, m, Index, nMints = 1 << Vec_IntSize(vObjs); 
     Vec_Wrd_t * vPos, * vRel = Vec_WrdStart( Gia_ManCoNum(p) * nWords * nMints );
     for ( m = 0; m < nMints; m++ )
     {
@@ -2991,15 +2991,83 @@ void Gia_ManRelPrint( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vSims, Vec_W
         printf( "\n" );
     }
 }
+void Gia_ManRelPrint2( Gia_Man_t * p, Vec_Int_t * vObjs, Vec_Wrd_t * vSims, Vec_Wrd_t * vRel )
+{
+    int w, nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
+    int i, Id, m, nMints = 1 << Vec_IntSize(vObjs);
+    int nWordsM = Abc_Truth6WordNum(Vec_IntSize(vObjs));
+    Vec_Wrd_t * vRes = Vec_WrdStart( 64*nWords * nWordsM );
+    printf( "Relation has %d inputs and %d outputs:\n", Gia_ManCiNum(p), Vec_IntSize(vObjs) );
+    for ( w = 0; w < 64*nWords; w++ )
+    {
+        int iMint = 0;
+        int nValid = 0;
+        Gia_ManForEachCiId( p, Id, i )
+            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+        printf( " " );
+        Vec_IntForEachEntry( vObjs, Id, i )
+        {
+            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+            if ( Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) )
+                iMint |= 1 << i;
+        }
+        printf( " " );
+        Gia_ManForEachCoId( p, Id, i )
+            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vSims, Id*nWords), w) );
+        printf( " " );
+        for ( m = 0; m < nMints; m++ )
+        {
+            int Count = 0;
+            Gia_ManForEachCoId( p, Id, i )
+                Count += Abc_TtGetBit(Vec_WrdEntryP(vRel, (m*Gia_ManCoNum(p)+i)*nWords), w);
+            printf( "%d", Count == 0 );
+            nValid += Count > 0;
+            if ( Count == 0 )
+                Abc_TtSetBit( Vec_WrdEntryP(vRes, w*nWordsM), m );
+        }
+        printf( " " );
+        for ( m = 0; m < nMints; m++ )
+            printf( "%d", Abc_TtGetBit(Vec_WrdEntryP(vRes, w*nWordsM), m) );
+        printf( " " );
+        assert( Abc_TtGetBit(Vec_WrdEntryP(vRes, w*nWordsM), iMint) );
+        for ( i = 0; i < Vec_IntSize(vObjs); i++ )
+            if ( Abc_TtGetBit(Vec_WrdEntryP(vRes, w*nWordsM), iMint ^ (1 << i)) )
+                printf( "-" );
+            else
+                printf( "%d", (iMint >> i) & 1 );
+        printf( " %d", nMints-nValid );
+        printf( "\n" );
+    }
+    Vec_WrdFree( vRes );
+}
 Vec_Int_t * Gia_ManRelInitObjs()
 {
-    Vec_Int_t * vRes = Vec_IntAlloc( 3 );
-    Vec_IntPush( vRes, 41 );
-    Vec_IntPush( vRes, 46 );
+    Vec_Int_t * vRes = Vec_IntAlloc( 10 );
+    /*
+    Vec_IntPush( vRes, 33 );
+    Vec_IntPush( vRes, 52 );
     Vec_IntPush( vRes, 53 );
+    Vec_IntPush( vRes, 65 );
+    Vec_IntPush( vRes, 79 );
+    Vec_IntPush( vRes, 81 );
+    */
+    /*
+    Vec_IntPush( vRes, 60 );
+    Vec_IntPush( vRes, 61 );
+    Vec_IntPush( vRes, 71 );
+    Vec_IntPush( vRes, 72 );
+    */
+    /*
+    Vec_IntPush( vRes, 65 );
+    Vec_IntPush( vRes, 79 );
+    Vec_IntPush( vRes, 81 );
+    */
+    Vec_IntPush( vRes, 52 );
+    Vec_IntPush( vRes, 54 );
+    Vec_IntPrint( vRes );
     return vRes;
 }
-void Gia_ManRelDeriveTest( Gia_Man_t * p )
+void Gia_ManRelDeriveTest2( Gia_Man_t * p )
 {
     Vec_Int_t * vObjs = Gia_ManRelInitObjs();
     Vec_Wrd_t * vSims, * vRel, * vRel2; int nWords;
@@ -3009,13 +3077,188 @@ void Gia_ManRelDeriveTest( Gia_Man_t * p )
     vSims  = Gia_ManSimPatSim( p );
     vRel   = Gia_ManRelDerive( p, vObjs, vSims );
     vRel2  = Gia_ManRelDerive2( p, vObjs, vSims );
-    assert( !memcmp(vRel2->pArray, vRel->pArray, sizeof(word)*Vec_WrdSize(vRel)) );
-    Gia_ManRelPrint( p, vObjs, vSims, vRel );
+    //assert( !memcmp(vRel2->pArray, vRel->pArray, sizeof(word)*Vec_WrdSize(vRel)) );
+    Gia_ManRelPrint2( p, vObjs, vSims, vRel );
     Vec_WrdFree( vRel2 );
     Vec_WrdFree( vRel );
     Vec_WrdFree( vSims );
     Vec_IntFree( vObjs );
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManRelInitIns()
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 10 );
+    Vec_IntPush( vRes, 12 );
+    Vec_IntPush( vRes, 18 );
+    Vec_IntPush( vRes, 21 );
+    Vec_IntPush( vRes, 34 );
+    Vec_IntPush( vRes, 45 );
+    Vec_IntPush( vRes, 59 );
+    return vRes;
+}
+Vec_Int_t * Gia_ManRelInitOuts()
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 10 );
+    Vec_IntPush( vRes, 65 );
+    Vec_IntPush( vRes, 66 );
+    return vRes;
+}
+Vec_Int_t * Gia_ManRelInitMffc( Gia_Man_t * p, Vec_Int_t * vOuts )
+{
+    Gia_Obj_t * pObj; int i;
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    Vec_IntSort( vOuts, 0 );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachObjVec( vOuts, p, pObj, i )
+        Gia_ObjSetTravIdCurrent( p, pObj );
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( !Gia_ObjIsTravIdPrevious(p, Gia_ObjFanin0(pObj)) )
+            Gia_ObjSetTravIdCurrent( p, Gia_ObjFanin0(pObj) );
+    Gia_ManForEachAndReverse( p, pObj, i )
+        if ( Gia_ObjIsTravIdPrevious(p, pObj) )
+            continue;
+        else if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+        {
+            if ( !Gia_ObjIsTravIdPrevious(p, Gia_ObjFanin0(pObj)) )
+                Gia_ObjSetTravIdCurrent( p, Gia_ObjFanin0(pObj) );
+            if ( !Gia_ObjIsTravIdPrevious(p, Gia_ObjFanin1(pObj)) )
+                Gia_ObjSetTravIdCurrent( p, Gia_ObjFanin1(pObj) );
+        }
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( !Gia_ObjIsTravIdCurrent(p, pObj) )
+            Vec_IntPush( vRes, i );
+    printf( "MFFC: " );
+    Vec_IntPrint( vRes );
+    return vRes;
+}
+Vec_Int_t * Gia_ManRelInitDivs( Gia_Man_t * p, Vec_Int_t * vIns, Vec_Int_t * vOuts )
+{
+    Gia_Obj_t * pObj; int i; 
+    Vec_Int_t * vMffc = Gia_ManRelInitMffc( p, vOuts );
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 ); 
+    Vec_IntSort( vIns, 0 );
+
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachObjVec( vMffc, p, pObj, i )
+        Gia_ObjSetTravIdCurrent( p, pObj );
+    Vec_IntFree( vMffc );
+
+    Vec_IntPush( vRes, 0 );
+    Vec_IntAppend( vRes, vIns );
+
+    Gia_ManIncrementTravId( p );
+    Gia_ManForEachObjVec( vIns, p, pObj, i )
+        Gia_ObjSetTravIdCurrent( p, pObj );
+
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+            continue;
+        else if ( Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin0(pObj)) && Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin1(pObj)) )
+        {
+            if ( !Gia_ObjIsTravIdPrevious(p, pObj) )
+                Vec_IntPush( vRes, i );
+            Gia_ObjSetTravIdCurrent( p, pObj );
+        }
+    printf( "Divisors: " );
+    Vec_IntPrint( vRes );
+    return vRes;
+}
+
+Vec_Int_t * Gia_ManRelDeriveSimple( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t * vIns, Vec_Int_t * vOuts )
+{
+    Vec_Int_t * vRes = Vec_IntStartFull( 1 << Vec_IntSize(vIns) );
+    int w, nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
+    for ( w = 0; w < 64*nWords; w++ )
+    {
+        int i, iObj, iMint = 0, iMint2 = 0;
+        Vec_IntForEachEntry( vIns, iObj, i )
+            if ( Abc_TtGetBit(Vec_WrdEntryP(vSims, iObj*nWords), w) )
+                iMint |= 1 << i;
+        if ( Vec_IntEntry(vRes, iMint) >= 0 )
+            continue;
+        Vec_IntForEachEntry( vOuts, iObj, i )
+            if ( Abc_TtGetBit(Vec_WrdEntryP(vSims, iObj*nWords), w) )
+                iMint2 |= 1 << i;
+        Vec_IntWriteEntry( vRes, iMint, iMint2 );
+    }
+    return vRes;
+}
+
+void Gia_ManRelSolve( Gia_Man_t * p, Vec_Wrd_t * vSims, Vec_Int_t * vIns, Vec_Int_t * vOuts, Vec_Int_t * vRel, Vec_Int_t * vDivs )
+{
+    extern void Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fVerbose );
+
+    int i, m, iObj, Entry, iMint = 0, nMints = Vec_IntSize(vRel) - Vec_IntCountEntry(vRel, -1);
+    Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nMints );
+    Vec_Wrd_t * vSimsOut = Vec_WrdStart( nMints );
+    int Entry0 = Vec_IntEntry( vRel, 0 );
+
+    word Value, Phase = 0;
+    int nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
+    Vec_IntForEachEntry( vDivs, iObj, i )
+        if ( Vec_WrdEntry(vSims, iObj*nWords) & 1 )
+            Phase |= 1 << i;
+
+    assert( Entry0 >= 0 );
+    printf( "Entry0 = %d\n", Entry0 );
+    Entry0 ^= 1;
+//    for ( m = 0; m < nMints; m++ )
+    Vec_IntForEachEntry( vRel, Entry, m )
+    {
+        if ( Entry == -1 )
+            continue;
+        Abc_TtSetBit( Vec_WrdEntryP(vSimsOut, iMint), Entry0 ^ Entry );
+
+        Value = 0;
+        Vec_IntForEachEntry( vDivs, iObj, i )
+            if ( Abc_TtGetBit(Vec_WrdEntryP(vSims, iObj*nWords), m) )
+                Abc_TtSetBit( &Value, i );
+        Vec_WrdEntryP(vSimsOut, iMint)[0] = Value ^ Phase;
+
+        iMint++;
+    }
+    assert( iMint == nMints );
+    printf( "Created %d minterms.\n", iMint );
+    Exa4_ManGenTest( vSimsIn, vSimsOut, Vec_IntSize(vIns), Vec_IntSize(vDivs), Vec_IntSize(vOuts), 10, 0, 0, 0, 0, 1 );
+    Vec_WrdFree( vSimsIn );
+    Vec_WrdFree( vSimsOut );
+}
+void Gia_ManRelDeriveTest( Gia_Man_t * p )
+{
+    Vec_Int_t * vIns  = Gia_ManRelInitIns();
+    Vec_Int_t * vOuts = Gia_ManRelInitOuts();
+    Vec_Wrd_t * vSims; Vec_Int_t * vRel, * vDivs; int nWords;
+    Vec_WrdFreeP( &p->vSimsPi );
+    p->vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(p) );
+    nWords = Vec_WrdSize(p->vSimsPi) / Gia_ManCiNum(p);
+    vSims  = Gia_ManSimPatSim( p );
+    vRel   = Gia_ManRelDeriveSimple( p, vSims, vIns, vOuts );
+    vDivs  = Gia_ManRelInitDivs( p, vIns, vOuts );
+    //printf( "Neg = %d\n", Vec_IntCountEntry(vRel, -1) );
+
+    Gia_ManRelSolve( p, vSims, vIns, vOuts, vRel, vDivs );
+
+    Vec_IntFree( vDivs );
+    Vec_IntPrint( vRel );
+    Vec_IntFree( vRel );
+    Vec_WrdFree( vSims );
+    Vec_IntFree( vIns );
+    Vec_IntFree( vOuts );
+}
+
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

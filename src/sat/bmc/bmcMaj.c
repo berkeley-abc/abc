@@ -27,6 +27,13 @@
 ABC_NAMESPACE_IMPL_START
 
 
+#ifdef WIN32
+#include <process.h> 
+#define unlink _unlink
+#else
+#include <unistd.h>
+#endif
+
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -1252,7 +1259,7 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
         }
 //#ifdef USE_NODE_ORDER
         // node ordering
-        if ( p->pPars->fUseIncr )
+        if ( p->pPars->fOrderNodes )
         {
             for ( j = p->nVars; j < i; j++ )
             for ( n = 0;   n < p->nObjs; n++ ) if ( p->VarMarks[i][0][n] )
@@ -1616,6 +1623,7 @@ Vec_Int_t * Exa4_ManParse( char * pFileName )
             assert( 0 );
     }
     fclose( pFile );
+    unlink( pFileName );
     return vRes;
 }
 Vec_Int_t * Exa4_ManSolve( char * pFileNameIn, char * pFileNameOut, int TimeOut, int fVerbose )
