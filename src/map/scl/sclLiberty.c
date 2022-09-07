@@ -63,7 +63,7 @@ struct Scl_Tree_t_
 {
     char *          pFileName;    // input Liberty file name
     char *          pContents;    // file contents
-    int             nContents;    // file size
+    long            nContents;    // file size
     int             nLines;       // line counter
     int             nItems;       // number of items
     int             nItermAlloc;  // number of items allocated
@@ -506,10 +506,10 @@ void Scl_LibertyFixFileName( char * pFileName )
         if ( *pHead == '>' )
             *pHead = '\\';
 }
-int Scl_LibertyFileSize( char * pFileName )
+long Scl_LibertyFileSize( char * pFileName )
 {
     FILE * pFile;
-    int nFileSize;
+    long nFileSize;
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
     {
@@ -521,7 +521,7 @@ int Scl_LibertyFileSize( char * pFileName )
     fclose( pFile );
     return nFileSize;
 }
-char * Scl_LibertyFileContents( char * pFileName, int nContents )
+char * Scl_LibertyFileContents( char * pFileName, long nContents )
 {
     FILE * pFile = fopen( pFileName, "rb" );
     char * pContents = ABC_ALLOC( char, nContents+1 );
@@ -558,7 +558,7 @@ void Scl_LibertyStringDump( char * pFileName, Vec_Str_t * vStr )
 Scl_Tree_t * Scl_LibertyStart( char * pFileName )
 {
     Scl_Tree_t * p;
-    int RetValue;
+    long RetValue;
     // read the file into the buffer
     Scl_LibertyFixFileName( pFileName );
     RetValue = Scl_LibertyFileSize( pFileName );
