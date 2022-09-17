@@ -105,5 +105,6 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaTis.c \
     src/aig/gia/giaTruth.c \
     src/aig/gia/giaTsim.c \
+    src/aig/gia/giaTtopt.cpp \
     src/aig/gia/giaUnate.c \
     src/aig/gia/giaUtil.c
