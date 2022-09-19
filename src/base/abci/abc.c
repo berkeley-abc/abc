@@ -42211,8 +42211,6 @@ usage:
 #ifndef _WIN32
 int Abc_CommandAbc9Ttopt( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds );
-    extern Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, char * pFileName, int nRarity );
     Gia_Man_t * pTemp;
     char * pFileName = NULL;
     int c, nIns = 6, nOuts = 2, Limit = 0, nRounds = 20, fVerbose = 0;
