@@ -1,4 +1,22 @@
-// Author : Yukio Miyasaka
+/**CFile****************************************************************
+
+  FileName    [giaTtopt.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Scalable AIG package.]
+
+  Synopsis    [Truth-table-based logic synthesis.]
+
+  Author      [Yukio Miyasaka]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - June 20, 2005.]
+
+  Revision    [$Id: giaTtopt.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+
+***********************************************************************/
 
 #ifdef _WIN32
 #ifndef __MINGW32__
@@ -1091,7 +1109,7 @@ public:
 extern "C"
 Vec_Int_t * Gia_ManCollectSuppNew( Gia_Man_t * p, int iOut, int nOuts );
 
-extern "C"
+//extern "C"
 Gia_Man_t * Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds )
 {
     Gia_Man_t * pNew;
@@ -1143,7 +1161,7 @@ Gia_Man_t * Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds )
 extern "C"
 word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp, int Thresh, int fVerbose, int * pCare );
 
-extern "C"
+//extern "C"
 Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, char * pFileName, int nRarity )
 {
     int fVerbose = 0;
