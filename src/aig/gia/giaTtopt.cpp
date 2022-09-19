@@ -1211,11 +1211,13 @@ Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, c
 }
 #endif
 
+extern "C"
 Gia_Man_t * Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds )
 {
     return NULL;
 }
 
+extern "C"
 Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, char * pFileName, int nRarity )
 {
     return NULL;
