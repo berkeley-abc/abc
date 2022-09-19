@@ -135,7 +135,7 @@ int Wln_ConvertToRtl( char * pCommand, char * pFileTemp )
     fclose( pFile );
     return 1;
 }
-Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fCollapse, int fVerbose )
+Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fCollapse, int fVerbose )
 {
     Rtl_Lib_t * pNtk = NULL;
     char Command[1000];
@@ -143,8 +143,10 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fCol
     int fSVlog = strstr(pFileName, ".sv") != NULL;
     if ( strstr(pFileName, ".rtl") )
         return Rtl_LibReadFile( pFileName, pFileName );
-    sprintf( Command, "%s -qp \"read_verilog %s%s; hierarchy %s%s; %sproc; write_rtlil %s\"", 
-        Wln_GetYosysName(), fSVlog ? "-sv ":"", pFileName, 
+    sprintf( Command, "%s -qp \"read_verilog %s %s%s; hierarchy %s%s; %sproc; write_rtlil %s\"", 
+        Wln_GetYosysName(), 
+        pDefines  ? pDefines    : "",
+        fSVlog ? "-sv ":"", pFileName, 
         pTopModule ? "-top "    : "", 
         pTopModule ? pTopModule : "", 
         fCollapse ? "flatten; " : "",
@@ -163,16 +165,17 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, int fCol
     unlink( pFileTemp );
     return pNtk;
 }
-Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, int fSkipStrash, int fInvert, int fTechMap, int fVerbose )
+Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fVerbose )
 {
     Gia_Man_t * pGia = NULL;
     char Command[1000];
     char * pFileTemp = "_temp_.aig";
     int fRtlil = strstr(pFileName, ".rtl") != NULL;
     int fSVlog = strstr(pFileName, ".sv")  != NULL;
-    sprintf( Command, "%s -qp \"%s%s%s; hierarchy %s%s; flatten; proc; %saigmap; write_aiger %s\"", 
+    sprintf( Command, "%s -qp \"%s %s%s%s; hierarchy %s%s; flatten; proc; %saigmap; write_aiger %s\"", 
         Wln_GetYosysName(), 
         fRtlil ? "read_rtlil" : "read_verilog",
+        pDefines  ? pDefines    : "",
         fSVlog ? " -sv ":" ", 
         pFileName, 
         pTopModule ? "-top " : "-auto-top", 

@@ -289,9 +289,17 @@ void Rtl_NtkBlastNode( Gia_Man_t * pNew, int Type, int nIns, Vec_Int_t * vDatas,
         {
             int fBooth  = 1;
             int fCla    = 0;
-            int fSigned = fSign0 && fSign1;
+            int fSigned = fSign0 && fSign1;   
+            //int i, iObj;
             Vec_IntShrink( vArg0, nSizeArg0 );
             Vec_IntShrink( vArg1, nSizeArg1 );
+
+            //printf( "Adding %d + %d + %d buffers\n", nSizeArg0, nSizeArg1, nRange ); 
+            //Vec_IntForEachEntry( vArg0, iObj, i )
+            //    Vec_IntWriteEntry( vArg0, i, Gia_ManAppendBuf(pNew, iObj) );
+            //Vec_IntForEachEntry( vArg1, iObj, i )
+            //    Vec_IntWriteEntry( vArg1, i, Gia_ManAppendBuf(pNew, iObj) );
+
             if ( Wlc_NtkCountConstBits(Vec_IntArray(vArg0), Vec_IntSize(vArg0)) < Wlc_NtkCountConstBits(Vec_IntArray(vArg1), Vec_IntSize(vArg1)) )
                 ABC_SWAP( Vec_Int_t, *vArg0, *vArg1 )
             if ( fBooth )
@@ -303,6 +311,9 @@ void Rtl_NtkBlastNode( Gia_Man_t * pNew, int Type, int nIns, Vec_Int_t * vDatas,
             else
                 Vec_IntShrink( vRes, nRange );
             assert( Vec_IntSize(vRes) == nRange );
+
+            //Vec_IntForEachEntry( vRes, iObj, i )
+            //    Vec_IntWriteEntry( vRes, i, Gia_ManAppendBuf(pNew, iObj) );
             return;
         }
         if ( Type == ABC_OPER_ARI_DIV || Type == ABC_OPER_ARI_MOD )

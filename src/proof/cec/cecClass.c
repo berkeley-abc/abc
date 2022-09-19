@@ -265,10 +265,13 @@ void Cec_ManSimClassCreate( Gia_Man_t * p, Vec_Int_t * vClass )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManSimClassRefineOne( Cec_ManSim_t * p, int i )
+static int s_Count = 0;
+
+int Cec_ManSimClassRefineOne_rec( Cec_ManSim_t * p, int i )
 {
     unsigned * pSim0, * pSim1;
     int Ent;
+    s_Count++;
     Vec_IntClear( p->vClassOld );
     Vec_IntClear( p->vClassNew );
     Vec_IntPush( p->vClassOld, i );
@@ -290,8 +293,21 @@ int Cec_ManSimClassRefineOne( Cec_ManSim_t * p, int i )
     Cec_ManSimClassCreate( p->pAig, p->vClassOld );
     Cec_ManSimClassCreate( p->pAig, p->vClassNew );
     if ( Vec_IntSize(p->vClassNew) > 1 )
-        return 1 + Cec_ManSimClassRefineOne( p, Vec_IntEntry(p->vClassNew,0) );
+        return 1 + Cec_ManSimClassRefineOne_rec( p, Vec_IntEntry(p->vClassNew,0) );
     return 1;
+}
+int Cec_ManSimClassRefineOne_( Cec_ManSim_t * p, int i )
+{
+    int Res;
+    s_Count = 0;
+    Res = Cec_ManSimClassRefineOne_rec( p, i );
+    if ( s_Count > 10 )
+    printf( "%d ", s_Count );
+    return Res;
+}
+int Cec_ManSimClassRefineOne( Cec_ManSim_t * p, int i )
+{
+    return Cec_ManSimClassRefineOne_rec( p, i );
 }
 
 /**Function*************************************************************
