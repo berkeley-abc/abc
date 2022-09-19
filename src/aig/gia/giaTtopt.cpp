@@ -1,42 +1,20 @@
 // Author : Yukio Miyasaka
-#if 0
-
-#include <iostream>
-#include <fstream>
-#include <string>
 #include <vector>
-#include <list>
 #include <algorithm>
-#include <numeric>
-#include <random>
 #include <cassert>
-#include <map>
 #include <bitset>
-#include <unordered_map>
-
-#endif
 
 #include "gia.h"
+#include "misc/vec/vecHash.h"
 
 ABC_NAMESPACE_IMPL_START
 
-#if 0
-
 namespace Ttopt {
-
-struct PairHasher {
-  std::size_t operator()(const std::pair<int, int> & k) const {
-    std::hash<int> hasher;
-    std::size_t seed = hasher(k.first) + 0x9e3779b9;
-    seed = hasher(k.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-    return seed;
-  }
-};
 
 class TruthTable {
 public:
-  const int ww = 64; // word width
-  const int lww = 6; // log word width
+  static const int ww; // word width
+  static const int lww; // log word width
   typedef std::bitset<64> bsw;
 
   int nInputs;
@@ -54,11 +32,11 @@ public:
   std::vector<std::vector<std::vector<int> > > vvRedundantIndicesSaved;
   std::vector<std::vector<int> > vLevelsSaved;
 
-  std::mt19937 rng;
   static const word ones[];
   static const word swapmask[];
 
   TruthTable(int nInputs, int nOutputs): nInputs(nInputs), nOutputs(nOutputs) {
+    srand(0xABC);
     if(nInputs >= lww) {
       nSize = 1 << (nInputs - lww);
       nTotalSize = nSize * nOutputs;
@@ -69,45 +47,12 @@ public:
       t.resize(nTotalSize);
     }
     vLevels.resize(nInputs);
-    std::iota(vLevels.begin(), vLevels.end(), 0);
-  }
-
-  std::string BinaryToString(int bin, int size) {
-    std::string str;
-    for(int i = 0; i < size; i++) {
-      str += (bin & 1) + '0';
-      bin = bin >> 1;
-    }
-    return str;
-  }
-  void GeneratePla(std::string filename) {
-    std::ofstream f(filename);
-    f << ".i " << nInputs << std::endl;
-    f << ".o " << nOutputs << std::endl;
-    if(nSize) {
-      for(int index = 0; index < nSize; index++) {
-        for(int pos = 0; pos < ww; pos++) {
-          int pat = (index << lww) + pos;
-          f << BinaryToString(pat, nInputs) << " ";
-          for(int i = 0; i < nOutputs; i++) {
-            f << ((t[nSize * i + index] >> pos) & 1);
-          }
-          f << std::endl;
-        }
-      }
-    } else {
-      for(int pos = 0; pos < (1 << nInputs); pos++) {
-        f << BinaryToString(pos, nInputs) << " ";
-        for(int i = 0; i < nOutputs; i++) {
-          int padding = i * (1 << nInputs);
-          f << ((t[padding / ww] >> (pos + padding % ww)) & 1);
-        }
-        f << std::endl;
-      }
+    for(int i = 0; i < nInputs; i++) {
+      vLevels[i] = i;
     }
   }
 
-  virtual void Save(uint i) {
+  virtual void Save(unsigned i) {
     if(savedt.size() < i + 1) {
       savedt.resize(i + 1);
       vLevelsSaved.resize(i + 1);
@@ -116,13 +61,13 @@ public:
     vLevelsSaved[i] = vLevels;
   }
 
-  virtual void Load(uint i) {
+  virtual void Load(unsigned i) {
     assert(i < savedt.size());
     t = savedt[i];
     vLevels = vLevelsSaved[i];
   }
 
-  virtual void SaveIndices(uint i) {
+  virtual void SaveIndices(unsigned i) {
     if(vvIndicesSaved.size() < i + 1) {
       vvIndicesSaved.resize(i + 1);
       vvRedundantIndicesSaved.resize(i + 1);
@@ -131,7 +76,7 @@ public:
     vvRedundantIndicesSaved[i] = vvRedundantIndices;
   }
 
-  virtual void LoadIndices(uint i) {
+  virtual void LoadIndices(unsigned i) {
     vvIndices = vvIndicesSaved[i];
     vvRedundantIndices = vvRedundantIndicesSaved[i];
   }
@@ -206,7 +151,7 @@ public:
       if(fZero || fOne) {
         return -2 ^ fOne;
       }
-      for(uint j = 0; j < vvIndices[lev].size(); j++) {
+      for(unsigned j = 0; j < vvIndices[lev].size(); j++) {
         int index2 = vvIndices[lev][j];
         bool fEq = true;
         bool fCompl = true;
@@ -226,7 +171,7 @@ public:
       if(!(value ^ ones[logwidth])) {
         return -1;
       }
-      for(uint j = 0; j < vvIndices[lev].size(); j++) {
+      for(unsigned j = 0; j < vvIndices[lev].size(); j++) {
         int index2 = vvIndices[lev][j];
         word value2 = value ^ GetValue(index2, lev);
         if(!(value2)) {
@@ -260,7 +205,8 @@ public:
   }
 
   virtual void BDDBuildLevel(int lev) {
-    for(int index: vvIndices[lev-1]) {
+    for(unsigned i = 0; i < vvIndices[lev-1].size(); i++) {
+      int index = vvIndices[lev-1][i];
       int cof0 = BDDBuildOne(index << 1, lev);
       int cof1 = BDDBuildOne((index << 1) ^ 1, lev);
       if(cof0 == cof1) {
@@ -292,7 +238,8 @@ public:
     }
     if(lev < nInputs - 2) {
       vvRedundantIndices[lev+1].clear();
-      for(int index: vvIndices[lev+1]) {
+      for(unsigned i = 0; i < vvIndices[lev+1].size(); i++) {
+        int index = vvIndices[lev+1][i];
         if(IsEq(index << 1, (index << 1) ^ 1, lev + 2)) {
           vvRedundantIndices[lev+1].push_back(index);
         }
@@ -303,8 +250,8 @@ public:
 
   virtual void Swap(int lev) {
     assert(lev < nInputs - 1);
-    auto it0 = std::find(vLevels.begin(), vLevels.end(), lev);
-    auto it1 = std::find(vLevels.begin(), vLevels.end(), lev + 1);
+    std::vector<int>::iterator it0 = std::find(vLevels.begin(), vLevels.end(), lev);
+    std::vector<int>::iterator it1 = std::find(vLevels.begin(), vLevels.end(), lev + 1);
     std::swap(*it0, *it1);
     if(nInputs - lev - 1 > lww) {
       int nScopeSize = 1 << (nInputs - lev - 2 - lww);
@@ -341,7 +288,7 @@ public:
   virtual int BDDSwap(int lev) {
     Swap(lev);
     for(int i = lev + 2; i < nInputs; i++) {
-      for(uint j = 0; j < vvIndices[i].size(); j++) {
+      for(unsigned j = 0; j < vvIndices[i].size(); j++) {
         SwapIndex(vvIndices[i][j], i - (lev + 2));
       }
     }
@@ -354,10 +301,23 @@ public:
     Save(0);
     SaveIndices(0);
     std::vector<int> vars(nInputs);
-    std::iota(vars.begin(), vars.end(), 0);
-    std::sort(vars.begin(), vars.end(), [&](int i1, int i2) {return BDDNodeCountLevel(vLevels[i1]) > BDDNodeCountLevel(vLevels[i2]);});
+    for(int i = 0; i < nInputs; i++) {
+      vars[i] = i;
+    }
+    std::vector<unsigned> vCounts(nInputs);
+    for(int i = 0; i < nInputs; i++) {
+      vCounts[i] = BDDNodeCountLevel(vLevels[i]);
+    }
+    for(int i = 1; i < nInputs; i++) {
+      int j = i;
+      while(j > 0 && vCounts[vars[j-1]] < vCounts[vars[j]]) {
+        std::swap(vars[j], vars[j-1]);
+        j--;
+      }
+    }
     bool turn = true;
-    for(int var: vars) {
+    for(unsigned j = 0; j < vars.size(); j++) {
+      int var = vars[j];
       bool updated = false;
       int lev = vLevels[var];
       for(int i = lev; i < nInputs - 1; i++) {
@@ -411,8 +371,13 @@ public:
     Save(2);
     for(int i = 0; i < nRound; i++) {
       std::vector<int> vLevelsNew(nInputs);
-      std::iota(vLevelsNew.begin(), vLevelsNew.end(), 0);
-      std::shuffle(vLevelsNew.begin(), vLevelsNew.end(), rng);
+      for(int j = 0; j < nInputs; j++) {
+        vLevelsNew[j] = j;
+      }
+      for(int j = nInputs - 1; j > 0; j--) {
+        int d = rand() % j;
+        std::swap(vLevelsNew[j], vLevelsNew[d]);
+      }
       Reo(vLevelsNew);
       int r = SiftReo();
       if(best > r) {
@@ -465,6 +430,9 @@ public:
   }
 };
 
+const int TruthTable::ww = 64;
+const int TruthTable::lww = 6;
+
 const word TruthTable::ones[7] = {ABC_CONST(0x0000000000000001),
                                   ABC_CONST(0x0000000000000003),
                                   ABC_CONST(0x000000000000000f),
@@ -481,25 +449,27 @@ const word TruthTable::swapmask[5] = {ABC_CONST(0x2222222222222222),
   
 class TruthTableReo : public TruthTable {
 public:
-  bool fBuilt = false;
+  bool fBuilt;
   std::vector<std::vector<int> > vvChildren;
   std::vector<std::vector<std::vector<int> > > vvChildrenSaved;
 
-  TruthTableReo(int nInputs, int nOutputs): TruthTable(nInputs, nOutputs) {}
+  TruthTableReo(int nInputs, int nOutputs): TruthTable(nInputs, nOutputs) {
+    fBuilt = false;
+  }
 
-  void Save(uint i) override {
+  void Save(unsigned i) {
     if(vLevelsSaved.size() < i + 1) {
       vLevelsSaved.resize(i + 1);
     }
     vLevelsSaved[i] = vLevels;
   }
 
-  void Load(uint i) override {
+  void Load(unsigned i) {
     assert(i < vLevelsSaved.size());
     vLevels = vLevelsSaved[i];
   }
 
-  void SaveIndices(uint i) override {
+  void SaveIndices(unsigned i) {
     TruthTable::SaveIndices(i);
     if(vvChildrenSaved.size() < i + 1) {
       vvChildrenSaved.resize(i + 1);
@@ -507,19 +477,20 @@ public:
     vvChildrenSaved[i] = vvChildren;
   }
 
-  void LoadIndices(uint i) override {
+  void LoadIndices(unsigned i) {
     TruthTable::LoadIndices(i);
     vvChildren = vvChildrenSaved[i];
   }
 
-  void BDDBuildStartup() override {
+  void BDDBuildStartup() {
     vvChildren.clear();
     vvChildren.resize(nInputs);
     TruthTable::BDDBuildStartup();
   }
 
-  void BDDBuildLevel(int lev) override {
-    for(int index: vvIndices[lev-1]) {
+  void BDDBuildLevel(int lev) {
+    for(unsigned i = 0; i < vvIndices[lev-1].size(); i++) {
+      int index = vvIndices[lev-1][i];
       int cof0 = BDDBuildOne(index << 1, lev);
       int cof1 = BDDBuildOne((index << 1) ^ 1, lev);
       vvChildren[lev-1].push_back(cof0);
@@ -530,7 +501,7 @@ public:
     }
   }
 
-  int BDDBuild() override {
+  int BDDBuild() {
     if(fBuilt) {
       return BDDNodeCount();
     }
@@ -542,7 +513,7 @@ public:
     return BDDNodeCount();
   }
 
-  int BDDRebuildOne(int index, int cof0, int cof1, int lev, std::unordered_map<std::pair<int, int>, int, PairHasher> &unique, std::vector<int> &vChildrenLow) {
+  int BDDRebuildOne(int index, int cof0, int cof1, int lev, Hash_IntMan_t *unique, std::vector<int> &vChildrenLow) {
     if(cof0 < 0 && cof0 == cof1) {
       return cof0;
     }
@@ -551,11 +522,12 @@ public:
       cof0 ^= 1;
       cof1 ^= 1;
     }
-    if(unique.count({cof0, cof1})) {
-      return (unique[{cof0, cof1}] << 1) ^ fCompl;
+    int *place = Hash_Int2ManLookup(unique, cof0, cof1);
+    if(*place) {
+      return (Hash_IntObjData2(unique, *place) << 1) ^ fCompl;
     }
     vvIndices[lev].push_back(index);
-    unique[{cof0, cof1}] = vvIndices[lev].size() - 1;
+    Hash_Int2ManInsert(unique, cof0, cof1, vvIndices[lev].size() - 1);
     vChildrenLow.push_back(cof0);
     vChildrenLow.push_back(cof1);
     if(cof0 == cof1) {
@@ -564,15 +536,14 @@ public:
     return ((vvIndices[lev].size() - 1) << 1) ^ fCompl;
   }
 
-  int BDDRebuild(int lev) override {
+  int BDDRebuild(int lev) {
     vvRedundantIndices[lev].clear();
     vvRedundantIndices[lev+1].clear();
     std::vector<int> vChildrenHigh;
     std::vector<int> vChildrenLow;
-    std::unordered_map<std::pair<int, int>, int, PairHasher> unique;
-    unique.reserve(2 * vvIndices[lev+1].size());
+    Hash_IntMan_t *unique = Hash_IntManStart(2 * vvIndices[lev+1].size());
     vvIndices[lev+1].clear();
-    for(uint i = 0; i < vvIndices[lev].size(); i++) {
+    for(unsigned i = 0; i < vvIndices[lev].size(); i++) {
       int index = vvIndices[lev][i];
       int cof0index = vvChildren[lev][i+i] >> 1;
       int cof1index = vvChildren[lev][i+i+1] >> 1;
@@ -601,25 +572,26 @@ public:
         vvRedundantIndices[lev].push_back(index);
       }
     }
+    Hash_IntManStop(unique);
     vvChildren[lev] = vChildrenHigh;
     vvChildren[lev+1] = vChildrenLow;
     return BDDNodeCount();
   }
 
-  void Swap(int lev) override {
+  void Swap(int lev) {
     assert(lev < nInputs - 1);
-    auto it0 = std::find(vLevels.begin(), vLevels.end(), lev);
-    auto it1 = std::find(vLevels.begin(), vLevels.end(), lev + 1);
+    std::vector<int>::iterator it0 = std::find(vLevels.begin(), vLevels.end(), lev);
+    std::vector<int>::iterator it1 = std::find(vLevels.begin(), vLevels.end(), lev + 1);
     std::swap(*it0, *it1);
     BDDRebuild(lev);
   }
 
-  int BDDSwap(int lev) override {
+  int BDDSwap(int lev) {
     Swap(lev);
     return BDDNodeCount();
   }
 
-  virtual void BDDGenerateAig(Gia_Man_t *pNew, Vec_Int_t *vSupp) override {
+  virtual void BDDGenerateAig(Gia_Man_t *pNew, Vec_Int_t *vSupp) {
     abort();
   }
 };
@@ -712,7 +684,7 @@ public:
     }
   }
 
-  void Save(uint i) override {
+  void Save(unsigned i) {
     TruthTable::Save(i);
     if(savedcare.size() < i + 1) {
       savedcare.resize(i + 1);
@@ -720,12 +692,12 @@ public:
     savedcare[i] = care;
   }
 
-  void Load(uint i) override {
+  void Load(unsigned i) {
     TruthTable::Load(i);
     care = savedcare[i];
   }
 
-  void SaveIndices(uint i) override {
+  void SaveIndices(unsigned i) {
     TruthTable::SaveIndices(i);
     if(vvMergedIndicesSaved.size() < i + 1) {
       vvMergedIndicesSaved.resize(i + 1);
@@ -733,12 +705,12 @@ public:
     vvMergedIndicesSaved[i] = vvMergedIndices;
   }
 
-  void LoadIndices(uint i) override {
+  void LoadIndices(unsigned i) {
     TruthTable::LoadIndices(i);
     vvMergedIndices = vvMergedIndicesSaved[i];
   }
 
-  void Swap(int lev) override {
+  void Swap(int lev) {
     TruthTable::Swap(lev);
     if(nInputs - lev - 1 > lww) {
       int nScopeSize = 1 << (nInputs - lev - 2 - lww);
@@ -899,10 +871,10 @@ public:
 
   void Merge(int index1, int index2, int lev, bool fCompl) {
     MergeCare(index1, index2, lev);
-    vvMergedIndices[lev].push_back({(index1 << 1) ^ fCompl, index2});
+    vvMergedIndices[lev].push_back(std::make_pair((index1 << 1) ^ fCompl, index2));
   }
 
-  int BDDBuildOne(int index, int lev) override {
+  int BDDBuildOne(int index, int lev) {
     int r = BDDFind(index, lev);
     if(r >= -2) {
       if(r >= 0) {
@@ -916,13 +888,13 @@ public:
 
   void CompleteMerge() {
     for(int i = nInputs - 1; i >= 0; i--) {
-      for(auto it = vvMergedIndices[i].rbegin(); it != vvMergedIndices[i].rend(); it++) {
+      for(std::vector<std::pair<int, int> >::reverse_iterator it = vvMergedIndices[i].rbegin(); it != vvMergedIndices[i].rend(); it++) {
         CopyFunc((*it).second, (*it).first >> 1, i, (*it).first & 1);
       }
     }
   }
 
-  void BDDBuildStartup() override {
+  void BDDBuildStartup() {
     RestoreCare();
     vvIndices.clear();
     vvIndices.resize(nInputs);
@@ -938,12 +910,13 @@ public:
   }
 
   virtual void BDDRebuildByMerge(int lev) {
-    for(auto &p: vvMergedIndices[lev]) {
+    for(unsigned i = 0; i < vvMergedIndices[lev].size(); i++) {
+      std::pair<int, int> &p = vvMergedIndices[lev][i];
       MergeCare(p.first >> 1, p.second, lev);
     }
   }
 
-  int BDDRebuild(int lev) override {
+  int BDDRebuild(int lev) {
     RestoreCare();
     for(int i = lev; i < nInputs; i++) {
       vvIndices[i].clear();
@@ -969,7 +942,7 @@ public:
     return BDDNodeCount();
   }
 
-  int BDDSwap(int lev) override {
+  int BDDSwap(int lev) {
     Swap(lev);
     return BDDRebuild(lev);
   }
@@ -993,7 +966,8 @@ public:
   virtual void Optimize() {
     OptimizationStartup();
     for(int i = 1; i < nInputs; i++) {
-      for(int index: vvIndices[i-1]) {
+      for(unsigned j = 0; j < vvIndices[i-1].size(); j++) {
+        int index = vvIndices[i-1][j];
         BDDBuildOne(index << 1, i);
         BDDBuildOne((index << 1) ^ 1, i);
       }
@@ -1021,7 +995,8 @@ public:
       if(fZero || fOne) {
         return -2 ^ fOne;
       }
-      for(int index2: vvIndices[lev]) {
+      for(unsigned j = 0; j < vvIndices[lev].size(); j++) {
+        int index2 = vvIndices[lev][j];
         bool fEq = true;
         bool fCompl = true;
         for(int i = 0; i < nScopeSize && (fEq || fCompl); i++) {
@@ -1044,7 +1019,8 @@ public:
       if(!((value ^ one) & cvalue)) {
         return -1;
       }
-      for(int index2: vvIndices[lev]) {
+      for(unsigned j = 0; j < vvIndices[lev].size(); j++) {
+        int index2 = vvIndices[lev][j];
         word value2 = value ^ GetValue(index2, lev);
         word cvalue2 = cvalue & GetCare(index2, lev);
         if(!(value2 & cvalue2)) {
@@ -1058,14 +1034,14 @@ public:
     return -3;
   }
 
-  int BDDBuildOne(int index, int lev) override {
+  int BDDBuildOne(int index, int lev) {
     int r = BDDFindTSM(index, lev);
     if(r >= -2) {
       if(r >= 0) {
         CopyFuncMasked(r >> 1, index, lev, r & 1);
         Merge(r >> 1, index, lev, r & 1);
       } else {
-        vvMergedIndices[lev].push_back({r, index});
+        vvMergedIndices[lev].push_back(std::make_pair(r, index));
       }
       return r;
     }
@@ -1073,15 +1049,16 @@ public:
     return index << 1;
   }
 
-  int BDDBuild() override {
+  int BDDBuild() {
     TruthTable::Save(3);
     int r = TruthTable::BDDBuild();
     TruthTable::Load(3);
     return r;
   }
 
-  void BDDRebuildByMerge(int lev) override {
-    for(auto &p: vvMergedIndices[lev]) {
+  void BDDRebuildByMerge(int lev) {
+    for(unsigned i = 0; i < vvMergedIndices[lev].size(); i++) {
+      std::pair<int, int> &p = vvMergedIndices[lev][i];
       if(p.first >= 0) {
         CopyFuncMasked(p.first >> 1, p.second, lev, p.first & 1);
         MergeCare(p.first >> 1, p.second, lev);
@@ -1089,7 +1066,7 @@ public:
     }
   }
 
-  int BDDRebuild(int lev) override {
+  int BDDRebuild(int lev) {
     TruthTable::Save(3);
     int r = TruthTableCare::BDDRebuild(lev);
     TruthTable::Load(3);
@@ -1208,19 +1185,6 @@ Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, c
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Vec_WrdFreeP( &vSimI );
     return pNew;
-}
-#endif
-
-extern "C"
-Gia_Man_t * Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds )
-{
-    return NULL;
-}
-
-extern "C"
-Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, char * pFileName, int nRarity )
-{
-    return NULL;
 }
 
 ABC_NAMESPACE_IMPL_END
