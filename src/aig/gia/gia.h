@@ -1548,6 +1548,9 @@ extern Gia_Man_t *         Gia_ManReadMiniAig( char * pFileName, int fGiaSimple 
 extern void                Gia_ManWriteMiniAig( Gia_Man_t * pGia, char * pFileName );
 extern Gia_Man_t *         Gia_ManReadMiniLut( char * pFileName );
 extern void                Gia_ManWriteMiniLut( Gia_Man_t * pGia, char * pFileName );
+/*=== giaMinLut.c ===========================================================*/
+extern word *              Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp, int Thresh, int fVerbose, int * pCare );
+extern Vec_Int_t *         Gia_ManCollectSuppNew( Gia_Man_t * p, int iOut, int nOuts );
 /*=== giaMuxes.c ===========================================================*/
 extern void                Gia_ManCountMuxXor( Gia_Man_t * p, int * pnMuxes, int * pnXors );
 extern void                Gia_ManPrintMuxStats( Gia_Man_t * p );

@@ -1106,10 +1106,6 @@ public:
 
 }
 
-extern "C"
-Vec_Int_t * Gia_ManCollectSuppNew( Gia_Man_t * p, int iOut, int nOuts );
-
-//extern "C"
 Gia_Man_t * Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds )
 {
     Gia_Man_t * pNew;
@@ -1158,10 +1154,6 @@ Gia_Man_t * Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds )
     return pNew;
 }
 
-extern "C"
-word * Gia_ManCountFraction( Gia_Man_t * p, Vec_Wrd_t * vSimI, Vec_Int_t * vSupp, int Thresh, int fVerbose, int * pCare );
-
-//extern "C"
 Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, char * pFileName, int nRarity )
 {
     int fVerbose = 0;
