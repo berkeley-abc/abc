@@ -1,4 +1,6 @@
 // Author : Yukio Miyasaka
+#if 0
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -12,9 +14,13 @@
 #include <bitset>
 #include <unordered_map>
 
+#endif
+
 #include "gia.h"
 
 ABC_NAMESPACE_IMPL_START
+
+#if 0
 
 namespace Ttopt {
 
@@ -1203,5 +1209,17 @@ Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, c
     Vec_WrdFreeP( &vSimI );
     return pNew;
 }
+#endif
+
+Gia_Man_t * Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds )
+{
+    return NULL;
+}
+
+Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, char * pFileName, int nRarity )
+{
+    return NULL;
+}
 
 ABC_NAMESPACE_IMPL_END
+
