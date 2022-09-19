@@ -1,4 +1,11 @@
 // Author : Yukio Miyasaka
+
+#ifdef _WIN32
+#ifndef __MINGW32__
+#pragma warning(disable : 4786) // warning C4786: identifier was truncated to '255' characters in the browser information
+#endif
+#endif
+
 #include <vector>
 #include <algorithm>
 #include <cassert>
@@ -301,14 +308,15 @@ public:
     Save(0);
     SaveIndices(0);
     std::vector<int> vars(nInputs);
-    for(int i = 0; i < nInputs; i++) {
+    int i;
+    for(i = 0; i < nInputs; i++) {
       vars[i] = i;
     }
     std::vector<unsigned> vCounts(nInputs);
-    for(int i = 0; i < nInputs; i++) {
+    for(i = 0; i < nInputs; i++) {
       vCounts[i] = BDDNodeCountLevel(vLevels[i]);
     }
-    for(int i = 1; i < nInputs; i++) {
+    for(i = 1; i < nInputs; i++) {
       int j = i;
       while(j > 0 && vCounts[vars[j-1]] < vCounts[vars[j]]) {
         std::swap(vars[j], vars[j-1]);
@@ -316,7 +324,8 @@ public:
       }
     }
     bool turn = true;
-    for(unsigned j = 0; j < vars.size(); j++) {
+    unsigned j;
+    for(j = 0; j < vars.size(); j++) {
       int var = vars[j];
       bool updated = false;
       int lev = vLevels[var];
@@ -371,10 +380,11 @@ public:
     Save(2);
     for(int i = 0; i < nRound; i++) {
       std::vector<int> vLevelsNew(nInputs);
-      for(int j = 0; j < nInputs; j++) {
+      int j;
+      for(j = 0; j < nInputs; j++) {
         vLevelsNew[j] = j;
       }
-      for(int j = nInputs - 1; j > 0; j--) {
+      for(j = nInputs - 1; j > 0; j--) {
         int d = rand() % j;
         std::swap(vLevelsNew[j], vLevelsNew[d]);
       }
@@ -420,10 +430,11 @@ public:
     vvIndices.resize(nInputs);
     std::vector<std::vector<int> > vvNodes(nInputs);
     std::vector<int> vInputs(nInputs);
-    for(int i = 0; i < nInputs; i++) {
+    int i;
+    for(i = 0; i < nInputs; i++) {
       vInputs[vLevels[i]] = Vec_IntEntry(vSupp, nInputs - i - 1) << 1;
     }
-    for(int i = 0; i < nOutputs; i++) {
+    for(i = 0; i < nOutputs; i++) {
       int node = BDDGenerateAigRec(pNew, vInputs, vvNodes, i, 0);
       Gia_ManAppendCo(pNew, node);
     }
@@ -918,17 +929,18 @@ public:
 
   int BDDRebuild(int lev) {
     RestoreCare();
-    for(int i = lev; i < nInputs; i++) {
+    int i;
+    for(i = lev; i < nInputs; i++) {
       vvIndices[i].clear();
       vvMergedIndices[i].clear();
       if(i) {
         vvRedundantIndices[i-1].clear();
       }
     }
-    for(int i = 0; i < lev; i++) {
+    for(i = 0; i < lev; i++) {
       BDDRebuildByMerge(i);
     }
-    for(int i = lev; i < nInputs; i++) {
+    for(i = lev; i < nInputs; i++) {
       if(!i) {
         for(int j = 0; j < nOutputs; j++) {
           if(!IsDC(j, 0)) {

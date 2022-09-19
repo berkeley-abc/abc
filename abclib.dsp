@@ -5299,6 +5299,10 @@ SOURCE=.\src\aig\gia\giaTsim.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaTtopt.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaUnate.c
 # End Source File
 # Begin Source File
