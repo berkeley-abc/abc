@@ -123,8 +123,8 @@ public:
     if(logwidth > lww) {
       int nScopeSize = 1 << (logwidth - lww);
       for(int i = 0; i < nScopeSize && (fEq || fCompl); i++) {
-        fEq &= t[nScopeSize * index1 + i] == t[nScopeSize * index2 + i];
-        fCompl &= t[nScopeSize * index1 + i] == ~t[nScopeSize * index2 + i];
+        fEq &= (t[nScopeSize * index1 + i] == t[nScopeSize * index2 + i]);
+        fCompl &= (t[nScopeSize * index1 + i] == ~t[nScopeSize * index2 + i]);
       }
     } else {
       word value = GetValue(index1, lev) ^ GetValue(index2, lev);
@@ -174,18 +174,18 @@ public:
         fOne &= !(~value);
       }
       if(fZero || fOne) {
-        return -2 ^ fOne;
+        return -2 ^ (int)fOne;
       }
       for(unsigned j = 0; j < vvIndices[lev].size(); j++) {
         int index2 = vvIndices[lev][j];
         bool fEq = true;
         bool fCompl = true;
         for(int i = 0; i < nScopeSize && (fEq || fCompl); i++) {
-          fEq &= t[nScopeSize * index + i] == t[nScopeSize * index2 + i];
-          fCompl &= t[nScopeSize * index + i] == ~t[nScopeSize * index2 + i];
+          fEq &= (t[nScopeSize * index + i] == t[nScopeSize * index2 + i]);
+          fCompl &= (t[nScopeSize * index + i] == ~t[nScopeSize * index2 + i]);
         }
         if(fEq || fCompl) {
-          return (j << 1) ^ fCompl;
+          return (j << 1) ^ (int)fCompl;
         }
       }
     } else {
@@ -553,7 +553,7 @@ public:
     }
     int *place = Hash_Int2ManLookup(unique, cof0, cof1);
     if(*place) {
-      return (Hash_IntObjData2(unique, *place) << 1) ^ fCompl;
+      return (Hash_IntObjData2(unique, *place) << 1) ^ (int)fCompl;
     }
     vvIndices[lev].push_back(index);
     Hash_Int2ManInsert(unique, cof0, cof1, vvIndices[lev].size() - 1);
@@ -562,7 +562,7 @@ public:
     if(cof0 == cof1) {
       vvRedundantIndices[lev].push_back(index);
     }
-    return ((vvIndices[lev].size() - 1) << 1) ^ fCompl;
+    return ((vvIndices[lev].size() - 1) << 1) ^ (int)fCompl;
   }
 
   int BDDRebuild(int lev) {
@@ -580,18 +580,18 @@ public:
       bool cof1c = vvChildren[lev][i+i+1] & 1;
       int cof00, cof01, cof10, cof11;
       if(cof0index < 0) {
-        cof00 = -2 ^ cof0c;
-        cof01 = -2 ^ cof0c;
+        cof00 = -2 ^ (int)cof0c;
+        cof01 = -2 ^ (int)cof0c;
       } else {
-        cof00 = vvChildren[lev+1][cof0index+cof0index] ^ cof0c;
-        cof01 = vvChildren[lev+1][cof0index+cof0index+1] ^ cof0c;
+        cof00 = vvChildren[lev+1][cof0index+cof0index] ^ (int)cof0c;
+        cof01 = vvChildren[lev+1][cof0index+cof0index+1] ^ (int)cof0c;
       }
       if(cof1index < 0) {
-        cof10 = -2 ^ cof1c;
-        cof11 = -2 ^ cof1c;
+        cof10 = -2 ^ (int)cof1c;
+        cof11 = -2 ^ (int)cof1c;
       } else {
-        cof10 = vvChildren[lev+1][cof1index+cof1index] ^ cof1c;
-        cof11 = vvChildren[lev+1][cof1index+cof1index+1] ^ cof1c;
+        cof10 = vvChildren[lev+1][cof1index+cof1index] ^ (int)cof1c;
+        cof11 = vvChildren[lev+1][cof1index+cof1index+1] ^ (int)cof1c;
       }
       int newcof0 = BDDRebuildOne(index << 1, cof00, cof10, lev + 1, unique, vChildrenLow);
       int newcof1 = BDDRebuildOne((index << 1) ^ 1, cof01, cof11, lev + 1, unique, vChildrenLow);
@@ -900,7 +900,7 @@ public:
 
   void Merge(int index1, int index2, int lev, bool fCompl) {
     MergeCare(index1, index2, lev);
-    vvMergedIndices[lev].push_back(std::make_pair((index1 << 1) ^ fCompl, index2));
+    vvMergedIndices[lev].push_back(std::make_pair((index1 << 1) ^ (int)fCompl, index2));
   }
 
   int BDDBuildOne(int index, int lev) {
@@ -1023,7 +1023,7 @@ public:
         fOne &= !(~value & cvalue);
       }
       if(fZero || fOne) {
-        return -2 ^ fOne;
+        return -2 ^ (int)fOne;
       }
       for(unsigned j = 0; j < vvIndices[lev].size(); j++) {
         int index2 = vvIndices[lev][j];
@@ -1036,7 +1036,7 @@ public:
           fCompl &= !(~value & cvalue);
         }
         if(fEq || fCompl) {
-          return (index2 << 1) ^ !fEq;
+          return (index2 << 1) ^ (int)!fEq;
         }
       }
     } else {
