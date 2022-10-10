@@ -767,7 +767,7 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
          (p->pPars->fUseDsd || p->pPars->pFuncCell2 || p->pPars->fUseBat || 
           p->pPars->pLutStruct || p->pPars->fUserRecLib || p->pPars->fUserSesLib || 
           p->pPars->fEnableCheck07 || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec || 
-          p->pPars->fUseDsdTune || p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u) )
+          p->pPars->fUseDsdTune || p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u || p->pPars->fUseCheck1 || p->pPars->fUseCheck2) )
     {
         If_Cut_t * pFirst = pCutSet->ppCuts[0];
         if ( pFirst->fUseless || If_ManSortCompare(p, pFirst, pCut) == 1 )

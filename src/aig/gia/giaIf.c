@@ -1891,7 +1891,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
             if ( !pIfMan->pPars->fUseTtPerm && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && 
                  !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize && 
                  !pIfMan->pPars->fEnableCheck75 && !pIfMan->pPars->fEnableCheck75u && !pIfMan->pPars->fEnableCheck07 && !pIfMan->pPars->fUseDsdTune && 
-                 !pIfMan->pPars->fUseCofVars && !pIfMan->pPars->fUseAndVars )
+                 !pIfMan->pPars->fUseCofVars && !pIfMan->pPars->fUseAndVars && !pIfMan->pPars->fUseCheck1 && !pIfMan->pPars->fUseCheck2 )
                 If_CutRotatePins( pIfMan, pCutBest );
             // collect leaves of the best cut
             Vec_IntClear( vLeaves );

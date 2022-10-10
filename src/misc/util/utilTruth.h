@@ -1589,7 +1589,31 @@ static inline int Abc_Tt6SupportAndSize( word t, int nVars, int * pSuppSize )
             Supp |= (1 << v), (*pSuppSize)++;
     return Supp;
 }
-
+static inline int Abc_Tt6Check1( word t, int nVars )
+{
+    int n, v, u;
+    for ( n = 0; n < 2; n++ )
+    for ( v = 0; v < nVars; v++ )
+    {
+        word Cof = n ? Abc_Tt6Cofactor1(t, v) : Abc_Tt6Cofactor0(t, v);
+        for ( u = 0; u < nVars; u++ )
+            if ( v != u && !Abc_Tt6HasVar(Cof, u) )
+                return 1;
+    }
+    return 0;
+}
+static inline int Abc_Tt6Check2( word t, int nVars )
+{
+    int n, v;
+    for ( n = 0; n < 2; n++ )
+    for ( v = 0; v < nVars; v++ )
+    {
+        word Cof = n ? Abc_Tt6Cofactor1(t, v) : Abc_Tt6Cofactor0(t, v);
+        if ( Cof == 0 || ~Cof == 0 )
+            return 1;
+    }
+    return 0;
+}
 /**Function*************************************************************
 
   Synopsis    [Checks if there is a var whose both cofs have supp <= nSuppLim.]

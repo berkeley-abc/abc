@@ -167,7 +167,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     int fFunc0R, fFunc1R;
     int i, k, v, iCutDsd, fChange;
     int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUserSesLib || 
-        p->pPars->fUseDsdTune || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec || p->pPars->pLutStruct || p->pPars->pFuncCell2;
+        p->pPars->fUseDsdTune || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec || p->pPars->pLutStruct || p->pPars->pFuncCell2 || p->pPars->fUseCheck1 || p->pPars->fUseCheck2;
     int fUseAndCut = (p->pPars->nAndDelay > 0) || (p->pPars->nAndArea > 0);
     assert( !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
     assert( !If_ObjIsAnd(pObj->pFanin1) || pObj->pFanin1->pCutSet->nCuts > 0 );

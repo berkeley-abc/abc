@@ -39554,7 +39554,8 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fUse34Spec ^= 1;
             break;
         case 'b':
-            pPars->fUseBat ^= 1;
+            //pPars->fUseBat ^= 1;
+            pPars->fUseCheck1 ^= 1;
             break;
         case 'g':
             pPars->fDelayOpt ^= 1;
@@ -39575,7 +39576,8 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fEnableCheck75u ^= 1;
             break;
         case 'i':
-            pPars->fUseCofVars ^= 1;
+            //pPars->fUseCofVars ^= 1;
+            pPars->fUseCheck2 ^= 1;
             break;
 //        case 'j':
 //            pPars->fEnableCheck07 ^= 1;
@@ -39686,6 +39688,16 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         pPars->pFuncCell = If_CutPerformCheck07;
+        pPars->fCutMin = 1;
+    }
+    if ( pPars->fUseCheck1 || pPars->fUseCheck2 )
+    {
+        if ( pPars->nLutSize > 6 )
+        {
+            Abc_Print( -1, "This feature only works for no more than 6-LUTs.\n" );
+            return 1;
+        }
+        pPars->pFuncCell = pPars->fUseCheck2 ? If_MatchCheck2 : If_MatchCheck1;
         pPars->fCutMin = 1;
     }
     if ( pPars->fUseCofVars )
