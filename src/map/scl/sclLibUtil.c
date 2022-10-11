@@ -72,6 +72,8 @@ void Abc_SclHashCells( SC_Lib * p )
     SC_LibForEachCell( p, pCell, i )
     {
         pPlace = Abc_SclHashLookup( p, pCell->pName );
+        if ( *pPlace != -1 && pCell->pName )
+            printf( "There are two standard cells with the same name (%s).\n", pCell->pName );
         assert( *pPlace == -1 );
         *pPlace = i;
     }
