@@ -1869,7 +1869,7 @@ void Gia_ManEquivToChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
     Gia_Obj_t * pRepr, * pReprNew, * pObjNew;
     if ( ~pObj->Value )
         return;
-    if ( (pRepr = Gia_ObjReprObj(p, Gia_ObjId(p, pObj))) )
+    if ( (pRepr = Gia_ObjReprObj(p, Gia_ObjId(p, pObj))) && !Gia_ObjFailed(p,Gia_ObjId(p,pObj))  )
     {
         if ( Gia_ObjIsConst0(pRepr) )
         {
