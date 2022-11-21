@@ -97,9 +97,9 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
             p->pPars->nLutSize, 8 * p->nTruth6Words[p->pPars->nLutSize], p->nCutBytes, p->nObjBytes, p->nSetBytes, p->pPars->fCutMin? "yes":"no" );
     // room for temporary truth tables
     p->puTemp[0] = p->pPars->fTruth? ABC_ALLOC( unsigned, 8 * p->nTruth6Words[p->pPars->nLutSize] ) : NULL;
-    p->puTemp[1] = p->puTemp[0] + p->nTruth6Words[p->pPars->nLutSize]*2;
-    p->puTemp[2] = p->puTemp[1] + p->nTruth6Words[p->pPars->nLutSize]*2;
-    p->puTemp[3] = p->puTemp[2] + p->nTruth6Words[p->pPars->nLutSize]*2;
+    p->puTemp[1] = p->pPars->fTruth? p->puTemp[0] + p->nTruth6Words[p->pPars->nLutSize]*2 : NULL;
+    p->puTemp[2] = p->pPars->fTruth? p->puTemp[1] + p->nTruth6Words[p->pPars->nLutSize]*2 : NULL;
+    p->puTemp[3] = p->pPars->fTruth? p->puTemp[2] + p->nTruth6Words[p->pPars->nLutSize]*2 : NULL;
     p->puTempW   = p->pPars->fTruth? ABC_ALLOC( word, p->nTruth6Words[p->pPars->nLutSize] ) : NULL;
     if ( pPars->fUseDsd )
     {
