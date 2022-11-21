@@ -511,13 +511,14 @@ static void sortrnd(void** array, int size, int(*comp)(const void *, const void 
 
 static inline int sat_clause_compute_lbd( sat_solver* s, clause* c )
 {
-    int i, lev, minl = 0, lbd = 0;
-    for (i = 0; i < (int)c->size; i++)
+    unsigned int i, lev, minl = 0;
+    int lbd = 0;
+    for (i = 0; i < c->size; i++)
     {
         lev = var_level(s, lit_var(c->lits[i]));
-        if ( !(minl & (1 << (lev & 31))) )
+        if ( !(minl & (1U << (lev & 31))) )
         {
-            minl |= 1 << (lev & 31);
+            minl |= 1U << (lev & 31);
             lbd++;
 //            printf( "%d ", lev );
         }
