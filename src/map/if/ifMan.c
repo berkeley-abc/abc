@@ -96,11 +96,19 @@ If_Man_t * If_ManStart( If_Par_t * pPars )
         Abc_Print( 1, "K = %d. Memory (bytes): Truth = %4d. Cut = %4d. Obj = %4d. Set = %4d. CutMin = %s\n", 
             p->pPars->nLutSize, 8 * p->nTruth6Words[p->pPars->nLutSize], p->nCutBytes, p->nObjBytes, p->nSetBytes, p->pPars->fCutMin? "yes":"no" );
     // room for temporary truth tables
-    p->puTemp[0] = p->pPars->fTruth? ABC_ALLOC( unsigned, 8 * p->nTruth6Words[p->pPars->nLutSize] ) : NULL;
-    p->puTemp[1] = p->puTemp[0] + p->nTruth6Words[p->pPars->nLutSize]*2;
-    p->puTemp[2] = p->puTemp[1] + p->nTruth6Words[p->pPars->nLutSize]*2;
-    p->puTemp[3] = p->puTemp[2] + p->nTruth6Words[p->pPars->nLutSize]*2;
-    p->puTempW   = p->pPars->fTruth? ABC_ALLOC( word, p->nTruth6Words[p->pPars->nLutSize] ) : NULL;
+    if ( p->pPars->fTruth )
+    {
+        p->puTemp[0] = p->pPars->fTruth? ABC_ALLOC( unsigned, 8 * p->nTruth6Words[p->pPars->nLutSize] ) : NULL;
+        p->puTemp[1] = p->puTemp[0] + p->nTruth6Words[p->pPars->nLutSize]*2;
+        p->puTemp[2] = p->puTemp[1] + p->nTruth6Words[p->pPars->nLutSize]*2;
+        p->puTemp[3] = p->puTemp[2] + p->nTruth6Words[p->pPars->nLutSize]*2;
+        p->puTempW   = p->pPars->fTruth? ABC_ALLOC( word, p->nTruth6Words[p->pPars->nLutSize] ) : NULL;
+    }
+    else
+    {
+        p->puTemp[0] = p->puTemp[1] = p->puTemp[2] = p->puTemp[3] = NULL;
+        p->puTempW = NULL;
+    }
     if ( pPars->fUseDsd )
     {
         for ( v = 6; v <= Abc_MaxInt(6,p->pPars->nLutSize); v++ )
