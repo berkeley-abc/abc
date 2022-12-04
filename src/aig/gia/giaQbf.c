@@ -499,8 +499,8 @@ void Gia_QbfDumpFileInv( Gia_Man_t * pGia, int nPars )
         Vec_IntWriteEntry( vVarMap, pCnf->pVarNums[Gia_ManCiIdToId(pGia, i)], i < nPars ? 1 : 2 );
     // create various maps
     vExists1 = Vec_IntAlloc( nPars );
-    vForAlls = Vec_IntAlloc( nPars );
-    vExists2 = Vec_IntAlloc( Gia_ManCiNum(pGia) - 2*nPars );
+    vForAlls = Vec_IntAlloc( Gia_ManCiNum(pGia) - nPars );
+    vExists2 = Vec_IntAlloc( pCnf->nVars - Gia_ManCiNum(pGia)  );
     Vec_IntForEachEntry( vVarMap, Entry, i )
         if ( Entry == 1 )
             Vec_IntPush( vExists1, i );
