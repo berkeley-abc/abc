@@ -482,6 +482,45 @@ void Gia_QbfDumpFile( Gia_Man_t * pGia, int nPars )
     Vec_IntFree( vVarMap );
     printf( "The 2QBF formula was written into file \"%s\".\n", pFileName );
 }
+void Gia_QbfDumpFileInv( Gia_Man_t * pGia, int nPars )
+{
+    // original problem: \exists p \forall x \exists y.  M(p,x,y)
+    // negated problem:  \forall p \exists x \exists y. !M(p,x,y)
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pGia, 8, 0, 1, 0, 0 );
+    Vec_Int_t * vVarMap, * vForAlls, * vExists1, * vExists2;
+    Gia_Obj_t * pObj;
+    char * pFileName;
+    int i, Entry;
+    // complement the last clause
+    //int * pLit = pCnf->pClauses[pCnf->nClauses] - 1; *pLit ^= 1;
+    // create var map
+    vVarMap = Vec_IntStart( pCnf->nVars );
+    Gia_ManForEachCi( pGia, pObj, i )
+        Vec_IntWriteEntry( vVarMap, pCnf->pVarNums[Gia_ManCiIdToId(pGia, i)], i < nPars ? 1 : 2 );
+    // create various maps
+    vExists1 = Vec_IntAlloc( nPars );
+    vForAlls = Vec_IntAlloc( nPars );
+    vExists2 = Vec_IntAlloc( Gia_ManCiNum(pGia) - 2*nPars );
+    Vec_IntForEachEntry( vVarMap, Entry, i )
+        if ( Entry == 1 )
+            Vec_IntPush( vExists1, i );
+        else if ( Entry == 2 )
+            Vec_IntPush( vForAlls, i );
+        else
+            Vec_IntPush( vExists2, i );
+    // generate CNF
+    pFileName = Extra_FileNameGenericAppend( pGia->pSpec, ".qdimacs" );
+    Cnf_DataWriteIntoFileInv( pCnf, pFileName, 0, vExists1, vForAlls, vExists2 );
+    Cnf_DataFree( pCnf );
+    Vec_IntFree( vExists1 );
+    Vec_IntFree( vForAlls );
+    Vec_IntFree( vExists2 );
+    Vec_IntFree( vVarMap );
+    printf( "The 2QBF formula was written into file \"%s\".\n", pFileName );
+}
+
+
+
 
 /**Function*************************************************************
 
