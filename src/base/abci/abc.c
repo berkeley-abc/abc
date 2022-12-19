@@ -1886,18 +1886,24 @@ usage:
 ***********************************************************************/
 int Abc_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Abc_NodePrintSop( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames );
+    extern void Abc_NtkPrintSop( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames );
+
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     Abc_Obj_t * pNode;
-    int c;
+    int c, fSop = 0;
     int fUseRealNames;
 
     // set defaults
     fUseRealNames = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "nh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 's':
+            fSop ^= 1;
+            break;
         case 'n':
             fUseRealNames ^= 1;
             break;
@@ -1934,16 +1940,23 @@ int Abc_CommandPrintFactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "Cannot find node \"%s\".\n", argv[globalUtilOptind] );
             return 1;
         }
-        Abc_NodePrintFactor( stdout, pNode, fUseRealNames );
+        if ( fSop )
+            Abc_NodePrintSop( stdout, pNode, fUseRealNames );
+        else
+            Abc_NodePrintFactor( stdout, pNode, fUseRealNames );
         return 0;
     }
     // print the nodes
-    Abc_NtkPrintFactor( stdout, pNtk, fUseRealNames );
+    if ( fSop )
+        Abc_NtkPrintSop( stdout, pNtk, fUseRealNames );
+    else
+        Abc_NtkPrintFactor( stdout, pNtk, fUseRealNames );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_factor [-nh] <node>\n" );
-    Abc_Print( -2, "\t        prints the factored forms of nodes\n" );
+    Abc_Print( -2, "usage: print_factor [-snh] <node>\n" );
+    Abc_Print( -2, "\t        prints the factored forms (FFs) of nodes\n" );
+    Abc_Print( -2, "\t-s    : toggles printing SOP instead of FF [default = %s]\n", fSop? "SOP": "FF" );
     Abc_Print( -2, "\t-n    : toggles real/dummy fanin names [default = %s]\n", fUseRealNames? "real": "dummy" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tnode  : (optional) one node to consider\n");
