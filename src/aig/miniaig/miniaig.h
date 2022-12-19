@@ -103,6 +103,12 @@ static int Mini_AigNodeFanin1( Mini_Aig_t * p, int Id )
     assert( p->pArray[2*Id+1] == MINI_AIG_NULL || p->pArray[2*Id+1] < 2*Id );
     return p->pArray[2*Id+1];
 }
+static void Mini_AigFlipLastPo( Mini_Aig_t * p )
+{
+    assert( p->pArray[p->nSize-1] == MINI_AIG_NULL );
+    assert( p->pArray[p->nSize-2] != MINI_AIG_NULL );
+    p->pArray[p->nSize-2] ^= 1;
+}
 
 // working with variables and literals
 static int      Mini_AigVar2Lit( int Var, int fCompl )         { return Var + Var + fCompl;   }

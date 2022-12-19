@@ -2721,6 +2721,147 @@ void Exa_ManExactSynthesis5( Bmc_EsPar_t * pPars )
     Vec_WrdFree( vSimsOut );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Mini_AigPrintArray( FILE * pFile, Mini_Aig_t * p )
+{
+    int i, Count = 0;
+    fprintf( pFile, "    { " );
+    Mini_AigForEachAnd( p, i )
+        fprintf( pFile, "%2d,%2d, ", Mini_AigNodeFanin0(p, i), Mini_AigNodeFanin1(p, i) ), Count++;
+    Mini_AigForEachPo( p, i )
+        fprintf( pFile, "%2d,%2d", Mini_AigNodeFanin0(p, i), Mini_AigNodeFanin0(p, i) ), Count++;
+    for ( i = Count; i < 8; i++ )
+        fprintf( pFile, ", %2d,%2d", 0, 0 );
+    fprintf( pFile, " }" );
+}
+word Mini_AigWriteEntry( Mini_Aig_t * p )
+{
+    word Res = 0; int i, k = 0;
+    Mini_AigForEachAnd( p, i )
+    {
+        int iLit0 = Mini_AigNodeFanin0(p, i);
+        int iLit1 = Mini_AigNodeFanin1(p, i);
+        int Pair;
+        if ( k < 4 )
+        {
+            assert( (iLit1 & 0xF) != (iLit0 & 0xF) );
+            Pair = ((iLit1 & 0xF) << 4) | (iLit0 & 0xF);
+            Res |= (word)Pair << (k*8);
+        }
+        else
+        {
+            assert( (iLit1 & 0x1F) != (iLit0 & 0x1F) );
+            Pair = ((iLit1 & 0x1F) << 5) | (iLit0 & 0x1F);
+            Res |= (word)Pair << (32 + (k-4)*10);
+        }
+        k++;
+    }
+    Mini_AigForEachPo( p, i )
+        if ( Mini_AigNodeFanin0(p, i) & 1 )
+            Res |= (word)1 << 62;
+    return Res;
+}
+word Abc_TtConvertEntry( word Res )
+{
+    unsigned First  = (unsigned)Res;
+    unsigned Second = (unsigned)(Res >> 32);
+    word Fun0, Fun1, Nodes[16] = {0}; int i, k = 5;
+    for ( i = 0; i < 4; i++ )
+        Nodes[i+1] = s_Truths6[i];
+    for ( i = 0; i < 4; i++ )
+    {
+        int Lit0, Lit1, Pair = (First >> (i*8)) & 0xFF;
+        if ( Pair == 0 )
+            break;
+        Lit0 = Pair & 0xF;
+        Lit1 = Pair >> 4;
+        assert( Lit0 != Lit1 );
+        Fun0 = (Lit0 & 1) ? ~Nodes[Lit0 >> 1] : Nodes[Lit0 >> 1];
+        Fun1 = (Lit1 & 1) ? ~Nodes[Lit1 >> 1] : Nodes[Lit1 >> 1];
+        Nodes[k++] = Lit0 < Lit1 ? Fun0 & Fun1  : Fun0 ^ Fun1;
+    }
+    for ( i = 0; i < 3; i++ )
+    {
+        int Lit0, Lit1, Pair = (Second >> (i*10)) & 0x3FF;
+        if ( Pair == 0 )
+            break;
+        Lit0 = Pair & 0x1F;
+        Lit1 = Pair >> 5;
+        assert( Lit0 != Lit1 );
+        Fun0 = (Lit0 & 1) ? ~Nodes[Lit0 >> 1] : Nodes[Lit0 >> 1];
+        Fun1 = (Lit1 & 1) ? ~Nodes[Lit1 >> 1] : Nodes[Lit1 >> 1];
+        Nodes[k++] = Lit0 < Lit1 ? Fun0 & Fun1  : Fun0 ^ Fun1;
+    }
+    return (Res >> 62) ? ~Nodes[k-1] : Nodes[k-1];
+}
+word Exa_ManExactSynthesis4VarsOne( int Index, int Truth, int nNodes )
+{
+    Mini_Aig_t * pMini = NULL;
+    int i, m, nMints = 16, fCompl = 0;
+    Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nMints );
+    Vec_Wrd_t * vSimsOut = Vec_WrdStart( nMints );
+    word pTruth[16] = { Abc_Tt6Stretch((word)Truth, 4) };
+    if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, 1 ); }
+    for ( m = 0; m < nMints; m++ )
+    {
+        Abc_TtSetBit( Vec_WrdEntryP(vSimsOut, m), Abc_TtGetBit(pTruth, m) );
+        for ( i = 0; i < 4; i++ )
+            if ( (m >> i) & 1 )
+                Abc_TtSetBit( Vec_WrdEntryP(vSimsIn, m), 1+i );
+    }
+    assert( Vec_WrdSize(vSimsIn) == 16 );
+    pMini = Exa5_ManGenTest( vSimsIn, vSimsOut, 4, 5, 1, nNodes, 0, 0, 0, 0, 0, 0 );
+    if ( pMini && fCompl ) Mini_AigFlipLastPo( pMini );
+    Vec_WrdFree( vSimsIn );
+    Vec_WrdFree( vSimsOut );
+    if ( pMini )
+    {
+        /*
+        FILE * pTable = fopen( "min_xaig4.txt", "a+" );
+        Mini_AigPrintArray( pTable, pMini );
+        fprintf( pTable, ", // %d : 0x%04x (%d)\n", Index, Truth, nNodes );
+        fclose( pTable );
+        */
+        word Res = Mini_AigWriteEntry( pMini );
+        int uTruth = 0xFFFF & (int)Abc_TtConvertEntry( Res );
+        if ( uTruth == Truth )
+            printf( "Check ok.\n" );
+        else
+            printf( "Check NOT ok!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n" );
+        Mini_AigStop( pMini );
+        return Res;
+    }
+    return 0;
+}
+void Exa_ManExactSynthesis4Vars()
+{
+    int i, k, nFuncs = 1 << 15;
+    Vec_Wrd_t * vRes = Vec_WrdAlloc( nFuncs );
+    Vec_WrdPush( vRes, 0 );
+    for ( i = 1; i < nFuncs; i++ )
+    {
+        word Res = 0;
+        printf( "\nFunction %d:\n", i );
+        for ( k = 1; k < 8; k++ )
+            if ( (Res = Exa_ManExactSynthesis4VarsOne( i, i, k )) )
+                break;
+        assert( Res );
+        Vec_WrdPush( vRes, Res );
+    }
+    Vec_WrdDumpBin( "minxaig4.data", vRes, 1 );
+    Vec_WrdFree( vRes );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

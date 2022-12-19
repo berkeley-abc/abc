@@ -14103,6 +14103,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Extra_SimulationTest( nDivMax, nNumOnes, fNewOrder );
     //Mnist_ExperimentWithScaling( nDecMax );
     //Gyx_ProblemSolveTest();
+    Exa_ManExactSynthesis4Vars();
     {
         extern Abc_Ntk_t * Abc_NtkFromArray();
         Abc_Ntk_t * pNtkRes = Abc_NtkFromArray();

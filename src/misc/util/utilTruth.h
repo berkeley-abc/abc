@@ -664,6 +664,65 @@ static inline void Abc_TtIthVar( word * pOut, int iVar, int nVars )
                 pOut[k] = 0;
     }
 }
+static inline void Abc_TtTruth2( word * pOut, word * pIn0, word * pIn1, int Truth, int nWords )
+{
+    int w;
+    assert( Truth >= 0 && Truth <= 0xF );
+    switch ( Truth )
+    {
+        case 0x0 : for ( w = 0; w < nWords; w++ ) pOut[w] =  0;                  break; // 0000
+        case 0x1 : for ( w = 0; w < nWords; w++ ) pOut[w] = ~pIn1[w] & ~pIn0[w]; break; // 0001
+        case 0x2 : for ( w = 0; w < nWords; w++ ) pOut[w] = ~pIn1[w] &  pIn0[w]; break; // 0010
+        case 0x3 : for ( w = 0; w < nWords; w++ ) pOut[w] = ~pIn1[w]           ; break; // 0011
+        case 0x4 : for ( w = 0; w < nWords; w++ ) pOut[w] =  pIn1[w] & ~pIn0[w]; break; // 0100
+        case 0x5 : for ( w = 0; w < nWords; w++ ) pOut[w] =            ~pIn0[w]; break; // 0101
+        case 0x6 : for ( w = 0; w < nWords; w++ ) pOut[w] =  pIn1[w] ^  pIn0[w]; break; // 0110
+        case 0x7 : for ( w = 0; w < nWords; w++ ) pOut[w] = ~pIn1[w] | ~pIn0[w]; break; // 0111
+        case 0x8 : for ( w = 0; w < nWords; w++ ) pOut[w] =  pIn1[w] &  pIn0[w]; break; // 1000
+        case 0x9 : for ( w = 0; w < nWords; w++ ) pOut[w] =  pIn1[w] ^ ~pIn0[w]; break; // 1001
+        case 0xA : for ( w = 0; w < nWords; w++ ) pOut[w] =             pIn0[w]; break; // 1010
+        case 0xB : for ( w = 0; w < nWords; w++ ) pOut[w] = ~pIn1[w] |  pIn0[w]; break; // 1011
+        case 0xC : for ( w = 0; w < nWords; w++ ) pOut[w] =  pIn1[w]           ; break; // 1100
+        case 0xD : for ( w = 0; w < nWords; w++ ) pOut[w] =  pIn1[w] | ~pIn0[w]; break; // 1101
+        case 0xE : for ( w = 0; w < nWords; w++ ) pOut[w] =  pIn1[w] |  pIn0[w]; break; // 1110
+        case 0xF : for ( w = 0; w < nWords; w++ ) pOut[w] = ~(word)0;            break; // 1111
+        default  : assert( 0 );
+    }
+}
+static inline void Abc_TtTruth4( word Entry, word ** pNodes, word * pOut, int nWords, int fCompl )
+{
+    unsigned First  = (unsigned)Entry;
+    unsigned Second = (unsigned)(Entry >> 32);
+    int i, k = 5;
+    for ( i = 0; i < 4; i++ )
+    {
+        int Lit0, Lit1, Pair = (First >> (i*8)) & 0xFF;
+        if ( Pair == 0 )
+            break;
+        Lit0 = Pair & 0xF;
+        Lit1 = Pair >> 4;
+        assert( Lit0 != Lit1 );
+        if ( Lit0 < Lit1 )
+            Abc_TtAndCompl( pNodes[k++], pNodes[Lit0 >> 1], Lit0 & 1, pNodes[Lit1 >> 1], Lit1 & 1, nWords );
+        else
+            Abc_TtXor( pNodes[k++], pNodes[Lit0 >> 1], pNodes[Lit1 >> 1], nWords, (Lit0 & 1) ^ (Lit1 & 1) );
+    }
+    for ( i = 0; i < 3; i++ )
+    {
+        int Lit0, Lit1, Pair = (Second >> (i*10)) & 0x3FF;
+        if ( Pair == 0 )
+            break;
+        Lit0 = Pair & 0x1F;
+        Lit1 = Pair >> 5;
+        assert( Lit0 != Lit1 );
+        if ( Lit0 < Lit1 )
+            Abc_TtAndCompl( pNodes[k++], pNodes[Lit0 >> 1], Lit0 & 1, pNodes[Lit1 >> 1], Lit1 & 1, nWords );
+        else
+            Abc_TtXor( pNodes[k++], pNodes[Lit0 >> 1], pNodes[Lit1 >> 1], nWords, (Lit0 & 1) ^ (Lit1 & 1) );
+    }
+    assert( k > 5 );
+    Abc_TtCopy( pOut, pNodes[k-1], nWords, (int)(Entry >> 62) ^ fCompl );
+}
 
 /**Function*************************************************************
 
