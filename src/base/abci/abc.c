@@ -8787,6 +8787,7 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars );
     extern void Exa_ManExactSynthesis4( Bmc_EsPar_t * pPars );
     extern void Exa_ManExactSynthesis5( Bmc_EsPar_t * pPars );
+    extern void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName );
     int c, fKissat = 0, fKissat2 = 0;
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
@@ -8865,7 +8866,14 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     if ( argc == globalUtilOptind + 1 )
+    {
+        if ( strstr(argv[globalUtilOptind], ".") )
+        {
+            Exa_ManExactSynthesis6( pPars, argv[globalUtilOptind] );
+            return 0;
+        }
         pPars->pTtStr = argv[globalUtilOptind];
+    }
     if ( pPars->pTtStr == NULL )
     {
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
@@ -14116,7 +14124,6 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Extra_SimulationTest( nDivMax, nNumOnes, fNewOrder );
     //Mnist_ExperimentWithScaling( nDecMax );
     //Gyx_ProblemSolveTest();
-    Exa_ManExactSynthesis4Vars();
     {
         extern Abc_Ntk_t * Abc_NtkFromArray();
         Abc_Ntk_t * pNtkRes = Abc_NtkFromArray();
@@ -50429,8 +50436,7 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManStop( pTemp );
         return 0;
     }
-    //Abc_FrameUpdateGia( pAbc, Gia_ManPerformNewResub(pAbc->pGia, 100, 6, 1, 1) );
-    Gia_ManPrintArray( pAbc->pGia );
+    Abc_FrameUpdateGia( pAbc, Gia_ManPerformNewResub(pAbc->pGia, 100, 6, 1, 1) );
 //    printf( "AIG in \"%s\" has the sum of output support sizes equal to %d.\n", pAbc->pGia->pSpec, Gia_ManSumTotalOfSupportSizes(pAbc->pGia) );
     return 0;
 usage:

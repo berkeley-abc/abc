@@ -1520,6 +1520,20 @@ static inline int Abc_TtReadHexNumber( word * pTruth, char * pString )
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Abc_TtPrintBits( word * pTruth, int nBits )
+{
+    int k;
+    for ( k = 0; k < nBits; k++ )
+        printf( "%d", Abc_InfoHasBit( (unsigned *)pTruth, k ) );
+    printf( "\n" );
+}
+static inline void Abc_TtPrintBits2( word * pTruth, int nBits )
+{
+    int k;
+    for ( k = nBits-1; k >= 0; k-- )
+        printf( "%d", Abc_InfoHasBit( (unsigned *)pTruth, k ) );
+    printf( "\n" );
+}
 static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
 {
     word * pThis, * pLimit = pTruth + Abc_TtWordNum(nVars);
