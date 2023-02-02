@@ -1162,7 +1162,7 @@ Ivy_Man_t * Gia_ManToIvySimple( Gia_Man_t * p )
     Gia_Obj_t * pObj; int i;
     Ivy_Obj_t ** ppNodes = ABC_FALLOC( Ivy_Obj_t *, Gia_ManObjNum(p) );
     // create the new manager
-    pNew = Ivy_ManStart( Gia_ManObjNum(p) );
+    pNew = Ivy_ManStart();
     // create the PIs
     Gia_ManForEachObj( p, pObj, i )
     {
