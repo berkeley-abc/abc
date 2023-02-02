@@ -25,6 +25,7 @@
 #include "proof/fraig/fraig.h"
 #include "map/mio/mio.h"
 #include "aig/aig/aig.h"
+#include "aig/gia/gia.h"
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -1140,6 +1141,105 @@ Vec_Int_t * Abc_NtkCollectLatchValuesIvy( Abc_Ntk_t * pNtk, int fUseDcs )
     }
     return vArray;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [Convert Ivy into Gia.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline Ivy_Obj_t * Gia_ObjChild0Copy3( Ivy_Obj_t ** ppNodes, Gia_Obj_t * pObj, int Id )  { return Ivy_NotCond( ppNodes[Gia_ObjFaninId0(pObj, Id)], Gia_ObjFaninC0(pObj) ); }
+static inline Ivy_Obj_t * Gia_ObjChild1Copy3( Ivy_Obj_t ** ppNodes, Gia_Obj_t * pObj, int Id )  { return Ivy_NotCond( ppNodes[Gia_ObjFaninId1(pObj, Id)], Gia_ObjFaninC1(pObj) ); }
+
+Ivy_Man_t * Gia_ManToIvySimple( Gia_Man_t * p )
+{
+    Ivy_Man_t * pNew;
+    Gia_Obj_t * pObj; int i;
+    Ivy_Obj_t ** ppNodes = ABC_FALLOC( Ivy_Obj_t *, Gia_ManObjNum(p) );
+    // create the new manager
+    pNew = Ivy_ManStart( Gia_ManObjNum(p) );
+    // create the PIs
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            ppNodes[i] = Ivy_And( pNew, Gia_ObjChild0Copy3(ppNodes, pObj, i), Gia_ObjChild1Copy3(ppNodes, pObj, i) );
+        else if ( Gia_ObjIsCi(pObj) )
+            ppNodes[i] = Ivy_ObjCreatePi( pNew );
+        else if ( Gia_ObjIsCo(pObj) )
+            ppNodes[i] = Ivy_ObjCreatePo( pNew, Gia_ObjChild0Copy3(ppNodes, pObj, Gia_ObjId(p, pObj)) );
+        else if ( Gia_ObjIsConst0(pObj) )
+            ppNodes[i] = Ivy_Not(Ivy_ManConst1(pNew));
+        else
+            assert( 0 );
+        assert( i == 0 || Ivy_ObjId(ppNodes[i]) == i );
+    }
+    ABC_FREE( ppNodes );
+    return pNew;
+}
+static inline int Gia_ObjChild0Copy4( int * pNodes, Ivy_Obj_t * pObj )  { return Abc_LitNotCond( pNodes[Ivy_Regular(pObj->pFanin0)->Id], Ivy_IsComplement(pObj->pFanin0) ); }
+static inline int Gia_ObjChild1Copy4( int * pNodes, Ivy_Obj_t * pObj )  { return Abc_LitNotCond( pNodes[Ivy_Regular(pObj->pFanin1)->Id], Ivy_IsComplement(pObj->pFanin1) ); }
+
+Gia_Man_t * Gia_ManFromIvySimple( Ivy_Man_t * p )
+{
+    Gia_Man_t * pNew;
+    Ivy_Obj_t * pObj;
+    int i, * pNodes = ABC_FALLOC( int, Ivy_ManObjIdMax(p) + 1 );
+    pNew = Gia_ManStart( Ivy_ManObjIdMax(p) );
+    pNew->pName = Abc_UtilStrsav( "from_ivy" );
+    Ivy_ManForEachObj( p, pObj, i )
+    {
+        if ( Ivy_ObjIsAnd(pObj) )
+            pNodes[pObj->Id] = Gia_ManAppendAnd( pNew, Gia_ObjChild0Copy4(pNodes, pObj), Gia_ObjChild1Copy4(pNodes, pObj) );
+        else if ( Ivy_ObjIsCi(pObj) )
+            pNodes[pObj->Id] = Gia_ManAppendCi( pNew );
+        else if ( Ivy_ObjIsCo(pObj) )
+            pNodes[pObj->Id] = Gia_ManAppendCo( pNew, Gia_ObjChild0Copy4(pNodes, pObj) );
+        else if ( Ivy_ObjIsConst1(pObj) )
+            pNodes[pObj->Id] = 1;
+        else
+            assert( 0 );
+    }
+    ABC_FREE( pNodes );
+    return pNew;
+}
+Gia_Man_t * Gia_ManIvyFraig( Gia_Man_t * p, int nConfLimit, int fUseProve, int fVerbose )
+{
+    Ivy_FraigParams_t Params, * pParams = &Params; 
+    Gia_Man_t * pNew;
+    Ivy_Man_t * pMan, * pTemp;
+    pMan = Gia_ManToIvySimple( p );
+    if ( pMan == NULL )
+        return NULL;
+    Ivy_FraigParamsDefault( pParams );
+    pParams->nBTLimitNode = nConfLimit;
+    pParams->fVerbose     = fVerbose;
+    pParams->fProve       = fUseProve;
+    pParams->fDoSparse    = 1;
+    pMan = Ivy_FraigPerform( pTemp = pMan, pParams );
+    pNew = Gia_ManFromIvySimple( pMan );
+    if ( pMan->pData )
+    {
+        p->pCexSeq = Abc_CexDeriveFromCombModel( (int *)pMan->pData, Ivy_ManPiNum(pMan), 0, -1 );
+        p->pCexSeq->iPo = Gia_ManFindFailedPoCex( p, p->pCexSeq, 0 );
+        ABC_FREE( pMan->pData );
+    }
+    Ivy_ManStop( pTemp );
+    Ivy_ManStop( pMan );
+    return pNew;
+}
+Gia_Man_t * Gia_ManIvyFraigTest( Gia_Man_t * p, int nConfLimit, int fVerbose )
+{
+    Ivy_Man_t * pMan = Gia_ManToIvySimple( p );
+    Gia_Man_t * pNew = Gia_ManFromIvySimple( pMan );
+    Ivy_ManStop( pMan );
+    return pNew;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
