@@ -5,7 +5,7 @@
 #endif
 
 #include "extraUtilBdd.h"
-#include "aig/gia/gia.h"
+#include "extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -749,7 +749,7 @@ void Abc_NewBddAig2Bdd(Gia_Man_t * pGia, NewBdd::Man & bdd, vector<NewBdd::Node>
     }
   }
   Gia_ManForEachCo(pGia, pObj, i) {
-    int i0 = Gia_ObjId(pGia, pObj);
+    int i0 = Gia_ObjId(pGia, Gia_ObjFanin0(pObj));
     int c0 = Gia_ObjFaninC0(pObj);
     vNodes.push_back(nodes[i0] ^ c0);
   }
@@ -789,6 +789,17 @@ Gia_Man_t * Abc_NewBddBdd2Aig(NewBdd::Man const & bdd, vector<NewBdd::Node> cons
   pGia = Gia_ManCleanup(pTemp = pGia);
   Gia_ManStop(pTemp);
   return pGia;
+}
+
+Gia_Man_t * Abc_NewBddTest(Gia_Man_t * pGia) {
+  Gia_Man_t * pNew;
+  NewBdd::Man bdd(Gia_ManCiNum(pGia));
+  //bdd.SetParameters(fGc, fReo? 10: -1);
+  vector<NewBdd::Node> vNodes;
+  Abc_NewBddAig2Bdd(pGia, bdd, vNodes, false);
+  cout << NewBdd::Node::CountNodes(vNodes) << endl;
+  pNew = Abc_NewBddBdd2Aig(bdd, vNodes);
+  return pNew;
 }
 
 ABC_NAMESPACE_IMPL_END
