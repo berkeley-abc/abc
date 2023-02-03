@@ -1,5 +1,5 @@
-#ifndef ABC__misc__extra__extraUtilBdd_h
-#define ABC__misc__extra__extraUtilBdd_h
+#ifndef ABC__aig__gia__giaNewBdd_h
+#define ABC__aig__gia__giaNewBdd_h
 
 #include <limits>
 #include <vector>

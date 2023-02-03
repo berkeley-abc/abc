@@ -1,5 +1,4 @@
-SRC +=    src/misc/extra/extraUtilBdd.cpp \
-    src/misc/extra/extraUtilBitMatrix.c \
+SRC +=    src/misc/extra/extraUtilBitMatrix.c \
     src/misc/extra/extraUtilCanon.c \
     src/misc/extra/extraUtilCfs.c \
     src/misc/extra/extraUtilCube.c \

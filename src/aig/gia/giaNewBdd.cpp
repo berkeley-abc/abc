@@ -4,8 +4,8 @@
 #endif
 #endif
 
-#include "extraUtilBdd.h"
-#include "extra.h"
+#include "gia.h"
+#include "giaNewBdd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -716,7 +716,7 @@ namespace NewBdd {
 }
 
 
-void Abc_NewBddAig2Bdd(Gia_Man_t * pGia, NewBdd::Man & bdd, vector<NewBdd::Node> & vNodes, bool fVerbose) {
+void Gia_ManNewBddAig2Bdd(Gia_Man_t * pGia, NewBdd::Man & bdd, vector<NewBdd::Node> & vNodes, bool fVerbose) {
   int i;
   Gia_Obj_t * pObj;
   vector<int> vCounts(pGia->nObjs);
@@ -755,7 +755,7 @@ void Abc_NewBddAig2Bdd(Gia_Man_t * pGia, NewBdd::Man & bdd, vector<NewBdd::Node>
   }
 }
 
-int Abc_NewBddBdd2Aig_rec(Gia_Man_t * pGia, NewBdd::Node const & x, vector<int> & values) {
+int Gia_ManNewBddBdd2Aig_rec(Gia_Man_t * pGia, NewBdd::Node const & x, vector<int> & values) {
   if(x.IsConst0()) {
     return Gia_ManConst0Lit();
   }
@@ -766,14 +766,14 @@ int Abc_NewBddBdd2Aig_rec(Gia_Man_t * pGia, NewBdd::Node const & x, vector<int> 
     return Abc_LitNotCond(values[x.Id()], x.IsCompl());
   }
   int v = Gia_ManCiLit(pGia, x.Var());
-  int i1 = Abc_LitNotCond(Abc_NewBddBdd2Aig_rec(pGia, x.Then(), values), x.IsCompl());
-  int i0 = Abc_LitNotCond(Abc_NewBddBdd2Aig_rec(pGia, x.Else(), values), x.IsCompl());
+  int i1 = Abc_LitNotCond(Gia_ManNewBddBdd2Aig_rec(pGia, x.Then(), values), x.IsCompl());
+  int i0 = Abc_LitNotCond(Gia_ManNewBddBdd2Aig_rec(pGia, x.Else(), values), x.IsCompl());
   int r = Gia_ManHashMux(pGia, v, i1, i0);
   values[x.Id()] = r;
   return Abc_LitNotCond(r, x.IsCompl());
 }
 
-Gia_Man_t * Abc_NewBddBdd2Aig(NewBdd::Man const & bdd, vector<NewBdd::Node> const & vNodes) {
+Gia_Man_t * Gia_ManNewBddBdd2Aig(NewBdd::Man const & bdd, vector<NewBdd::Node> const & vNodes) {
   Gia_Man_t * pGia, *pTemp;
   pGia = Gia_ManStart(1 + bdd.GetNumVars() + 3 * NewBdd::Node::CountNodes(vNodes));
   Gia_ManHashAlloc(pGia);
@@ -783,7 +783,7 @@ Gia_Man_t * Abc_NewBddBdd2Aig(NewBdd::Man const & bdd, vector<NewBdd::Node> cons
     values[bdd.Lit2Bvar(bdd.IthVar(i))] = Gia_ManAppendCi(pGia);
   }
   for(unsigned i = 0; i < vNodes.size(); i++) {
-    int j = Abc_NewBddBdd2Aig_rec(pGia, vNodes[i], values);
+    int j = Gia_ManNewBddBdd2Aig_rec(pGia, vNodes[i], values);
     Gia_ManAppendCo(pGia, j);
   }
   pGia = Gia_ManCleanup(pTemp = pGia);
@@ -791,14 +791,14 @@ Gia_Man_t * Abc_NewBddBdd2Aig(NewBdd::Man const & bdd, vector<NewBdd::Node> cons
   return pGia;
 }
 
-Gia_Man_t * Abc_NewBddTest(Gia_Man_t * pGia) {
+Gia_Man_t * Gia_ManNewBddTest(Gia_Man_t * pGia) {
   Gia_Man_t * pNew;
   NewBdd::Man bdd(Gia_ManCiNum(pGia));
   //bdd.SetParameters(fGc, fReo? 10: -1);
   vector<NewBdd::Node> vNodes;
-  Abc_NewBddAig2Bdd(pGia, bdd, vNodes, false);
+  Gia_ManNewBddAig2Bdd(pGia, bdd, vNodes, false);
   cout << NewBdd::Node::CountNodes(vNodes) << endl;
-  pNew = Abc_NewBddBdd2Aig(bdd, vNodes);
+  pNew = Gia_ManNewBddBdd2Aig(bdd, vNodes);
   return pNew;
 }
 
