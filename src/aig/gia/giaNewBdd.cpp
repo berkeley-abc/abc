@@ -4,7 +4,6 @@
 #endif
 #endif
 
-#include "gia.h"
 #include "giaNewBdd.h"
 
 ABC_NAMESPACE_IMPL_START

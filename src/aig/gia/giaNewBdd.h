@@ -6,7 +6,7 @@
 #include <cmath>
 #include <iostream>
 
-#include "misc/util/abc_global.h"
+#include "gia.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -555,7 +555,8 @@ namespace NewBdd {
 
 }
 
-
+extern void Gia_ManNewBddAig2Bdd(Gia_Man_t * pGia, NewBdd::Man & bdd, std::vector<NewBdd::Node> & vNodes, bool fVerbose);
+extern Gia_Man_t * Gia_ManNewBddBdd2Aig(NewBdd::Man const & bdd, std::vector<NewBdd::Node> const & vNodes);
 
 ABC_NAMESPACE_HEADER_END
 
