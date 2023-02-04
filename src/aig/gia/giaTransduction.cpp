@@ -73,7 +73,7 @@ Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType) : nVerb
       cout << "\t\t\tImport po " << i << endl;
     }
     int i0 = Gia_ObjId(pGia, Gia_ObjFanin0(pObj));
-    bool c0 = Gia_ObjFaninC0(pObj);
+    int c0 = Gia_ObjFaninC0(pObj);
     Connect(nObjs, v[i0] ^ c0);
     vvCs[nObjs][0] = NewBdd::Node::Const0(bdd);
     vPos.push_back(nObjs);
