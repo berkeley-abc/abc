@@ -1771,7 +1771,7 @@ extern Gia_Man_t *         Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts,
 extern Gia_Man_t *         Gia_ManNewBddTest( Gia_Man_t * p );
 
 /*=== giaTransduction.cpp ===========================================================*/
-extern Gia_Man_t *         Gia_ManTransductionTest( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManTransductionTest( Gia_Man_t * p , int fCspf, int fRandom, int nSortType, int nPiShuffle );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;
