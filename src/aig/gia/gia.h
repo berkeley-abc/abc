@@ -1768,10 +1768,11 @@ extern Gia_Man_t *         Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int
 extern Gia_Man_t *         Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, char * pFileName, int nRarity );
 
 /*=== giaNewBdd.cpp ===========================================================*/
-extern Gia_Man_t *         Gia_ManNewBddTest( Gia_Man_t * p );
+extern Gia_Man_t *         Gia_ManNewBddTest( Gia_Man_t * p, int fGc, int fReo );
 
 /*=== giaTransduction.cpp ===========================================================*/
-extern Gia_Man_t *         Gia_ManTransductionTest( Gia_Man_t * p , int fCspf, int fRandom, int nSortType, int nPiShuffle );
+extern Gia_Man_t *         Gia_ManTransductionTest( Gia_Man_t * p , int fMspf, int fRandom, int nSortType, int nPiShuffle );
+extern Gia_Man_t *         Gia_ManTransduction( Gia_Man_t * pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int nVerbose );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;

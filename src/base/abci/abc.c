@@ -502,6 +502,7 @@ static int Abc_CommandAbc9LNetEval           ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9LNetOpt            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //#ifndef _WIN32
 static int Abc_CommandAbc9Ttopt              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Transduction       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //#endif
 static int Abc_CommandAbc9LNetMap            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Unmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1257,6 +1258,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&lnetopt",      Abc_CommandAbc9LNetOpt,      0 );
 //#ifndef _WIN32
     Cmd_CommandAdd( pAbc, "ABC9",         "&ttopt",        Abc_CommandAbc9Ttopt,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&transduction", Abc_CommandAbc9Transduction, 0 );
 //#endif
     Cmd_CommandAdd( pAbc, "ABC9",         "&lnetmap",      Abc_CommandAbc9LNetMap,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&unmap",        Abc_CommandAbc9Unmap,        0 );
@@ -42433,6 +42435,116 @@ usage:
     Abc_Print( -2, "\t           The paper describing the method: Y. Miyasaka et al. \"Synthesizing\n" );
     Abc_Print( -2, "\t           a class of practical Boolean functions using truth tables\". Proc. IWLS 2022.\n" );
     Abc_Print( -2, "\t           https://people.eecs.berkeley.edu/~alanmi/publications/2022/iwls22_reo.pdf\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pTemp;
+    int c, nType = 6, fMspf = 1, nRandom = 0, nSortType = 0, nPiShuffle = 0, nParameter = 0, nVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TRSIPVm" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nType = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nRandom = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nSortType = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nPiShuffle = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nParameter = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nVerbose = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'm':
+            fMspf ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    //pTemp = Gia_ManNewBddTest( pAbc->pGia );
+    //pTemp = Gia_ManTransductionTest( pAbc->pGia, 1, 1, 0, 0 );
+    pTemp = Gia_ManTransduction( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, nVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &transduction [-TRSIPV num] [-mh] <file>\n" );
+    Abc_Print( -2, "\t           performs transduction-based AIG optimization\n" );
+    Abc_Print( -2, "\t-T num   : transduction type [default = %d]\n",                                  nType );
+    Abc_Print( -2, "\t-R num   : random seed to set all parameters (0 = no random) ([default = %d]\n", nRandom );
+    Abc_Print( -2, "\t-S num   : fanin sort type [default = %d]\n",                                    nSortType );
+    Abc_Print( -2, "\t-I num   : random seed to shuffle pis (0 = no shuffle) [default = %d]\n",        nPiShuffle );
+    Abc_Print( -2, "\t-P num   : internal parameter [default = %d]\n",                                 nParameter );
+    Abc_Print( -2, "\t-V num   : verbosity level [default = %d]\n",                                    nVerbose);
+    Abc_Print( -2, "\t-m       : toggles using MSPF [default = %s]\n", fMspf? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    Abc_Print( -2, "\t<file>   : file name with simulation information\n");
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t           This command was contributed by Yukio Miyasaka.\n" );
     return 1;
 }
 

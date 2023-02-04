@@ -13,8 +13,6 @@ ABC_NAMESPACE_IMPL_START
 
 using namespace std;
 
-namespace Transduction {
-
 Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType) : nVerbose(nVerbose), SortType(SortType), state(PfState::none) {
   int i;
   Gia_Obj_t * pObj;
@@ -65,7 +63,7 @@ Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType) : nVerb
       Connect(nObjs , v[i0] ^ c0);
       Connect(nObjs, v[i1] ^ c1);
       v[id] = nObjs << 1;
-      vObjs.push_back(nObjs);
+      vGates.push_back(nObjs);
       nObjs++;
     }
   }
@@ -118,10 +116,10 @@ Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType) : nVerb
     if(nVerbose > 3) {
       cout << "\t\t\tRemove unused" << endl;
     }
-    for(list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
+    for(list<int>::reverse_iterator it = vGates.rbegin(); it != vGates.rend();) {
       if(vvFos[*it].empty()) {
         RemoveFis(*it, false);
-        it = list<int>::reverse_iterator(vObjs.erase(--(it.base())));
+        it = list<int>::reverse_iterator(vGates.erase(--(it.base())));
         continue;
       }
       it++;
@@ -150,9 +148,9 @@ Gia_Man_t * Transduction::Aig() const {
   vector<int> values(nObjsAlloc);
   values[0] = Gia_ManConst0Lit();
   for(unsigned i = 0; i < vPis.size(); i++) {
-    values[vPis[i]] = Gia_ManAppendCi(pGia);
+    values[i + 1] = Gia_ManAppendCi(pGia);
   }
-  for(list<int>::const_iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(list<int>::const_iterator it = vGates.begin(); it != vGates.end(); it++) {
     assert(vvFis[*it].size() > 1);
     int i0 = vvFis[*it][0] >> 1;
     int i1 = vvFis[*it][1] >> 1;
@@ -180,13 +178,13 @@ void Transduction::SortObjs_rec(list<int>::iterator const & it) {
   for(unsigned j = 0; j < vvFis[*it].size(); j++) {
     int i0 = vvFis[*it][j] >> 1;
     if(!vvFis[i0].empty()) {
-      list<int>::iterator it_i0 = find(it, vObjs.end(), i0);
-      if(it_i0 != vObjs.end()) {
+      list<int>::iterator it_i0 = find(it, vGates.end(), i0);
+      if(it_i0 != vGates.end()) {
         if(nVerbose > 6) {
           cout << "\t\t\t\t\t\tMove " << i0 << " before " << *it << endl;
         }
-        vObjs.erase(it_i0);
-        it_i0 = vObjs.insert(it, i0);
+        vGates.erase(it_i0);
+        it_i0 = vGates.insert(it, i0);
         SortObjs_rec(it_i0);
       }
     }
@@ -227,7 +225,7 @@ void Transduction::Build(bool fPfUpdate) {
   if(nVerbose > 3) {
     cout << "\t\t\tBuild" << endl;
   }
-  for(list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
     if(vUpdates[*it]) {
       NewBdd::Node x = vFs[*it];
       Build(*it, vFs);
@@ -239,17 +237,17 @@ void Transduction::Build(bool fPfUpdate) {
     }
   }
   if(fPfUpdate) {
-    for(list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+    for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
       vPfUpdates[*it] = vPfUpdates[*it] || vUpdates[*it];
     }
   }
-  for(list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
     vUpdates[*it] = false;
   }
   assert(AllFalse(vUpdates));
 }
 bool Transduction::BuildDebug() {
-  for(list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
     vUpdates[*it] = true;
   }
   vector<NewBdd::Node> vFsOld = vFs;
@@ -279,7 +277,7 @@ bool Transduction::RankCompare(int a, int b) const {
   bool bc = b & 1;
   switch(SortType) {
   case 0:
-    return find(find(vObjs.begin(), vObjs.end(), a0), vObjs.end(), b0) == vObjs.end();
+    return find(find(vGates.begin(), vGates.end(), a0), vGates.end(), b0) == vGates.end();
   case 1:
     return (vFs[a0] ^ ac).OneCount() < (vFs[b0] ^ bc).OneCount();
   case 2:
@@ -397,19 +395,19 @@ int Transduction::Cspf(bool fSortRemove, int block, int block_i0) {
     cout << endl;
   }
   if(state != PfState::cspf) {
-    for(list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+    for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
       vPfUpdates[*it] = true;
     }
     state = PfState::cspf;
   }
   int count = 0;
-  for(list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
+  for(list<int>::reverse_iterator it = vGates.rbegin(); it != vGates.rend();) {
     if(vvFos[*it].empty()) {
       if(nVerbose > 3) {
         cout << "\t\t\tRemove unused " << *it << endl;
       }
       count += RemoveFis(*it);
-      it = list<int>::reverse_iterator(vObjs.erase(--(it.base())));
+      it = list<int>::reverse_iterator(vGates.erase(--(it.base())));
       continue;
     }
     if(!vPfUpdates[*it]) {
@@ -433,7 +431,7 @@ int Transduction::Cspf(bool fSortRemove, int block, int block_i0) {
     assert(!vvFis[*it].empty());
     if(vvFis[*it].size() == 1) {
       count += Replace(*it, vvFis[*it][0]);
-      it = list<int>::reverse_iterator(vObjs.erase(--(it.base())));
+      it = list<int>::reverse_iterator(vGates.erase(--(it.base())));
       continue;
     }
     it++;
@@ -486,7 +484,7 @@ void Transduction::BuildFoConeCompl(int i, vector<NewBdd::Node> & vPoFsCompl) co
   for(unsigned j = 0; j < vvFos[i].size(); j++) {
     vUpdatesCompl[vvFos[i][j]] = true;
   }
-  for(list<int>::const_iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(list<int>::const_iterator it = vGates.begin(); it != vGates.end(); it++) {
     if(vUpdatesCompl[*it]) {
       NewBdd::Node x = vFsCompl[*it];
       Build(*it, vFsCompl);
@@ -562,19 +560,19 @@ int Transduction::Mspf(bool fSort, int block, int block_i0) {
   assert(AllFalse(vUpdates));
   vFoConeShared.resize(nObjsAlloc);
   if(state != PfState::mspf) {
-    for(list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+    for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
       vPfUpdates[*it] = true;
     }
     state = PfState::mspf;
   }
   int count = 0;
-  for(list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
+  for(list<int>::reverse_iterator it = vGates.rbegin(); it != vGates.rend();) {
     if(vvFos[*it].empty()) {
       if(nVerbose > 3) {
         cout << "\t\t\tRemove unused " << *it << endl;
       }
       count += RemoveFis(*it);
-      it = list<int>::reverse_iterator(vObjs.erase(--(it.base())));
+      it = list<int>::reverse_iterator(vGates.erase(--(it.base())));
       continue;
     }
     if(!vFoConeShared[*it] && !vPfUpdates[*it] && (vvFos[*it].size() == 1 || !IsFoConeShared(*it))) {
@@ -604,16 +602,16 @@ int Transduction::Mspf(bool fSort, int block, int block_i0) {
       }
       if((vGs[*it] | vFs[*it]).IsConst1()) {
         count += ReplaceByConst(*it, 1);
-        vObjs.erase(--(it.base()));
+        vGates.erase(--(it.base()));
         Build();
-        it = vObjs.rbegin();
+        it = vGates.rbegin();
         continue;
       }
       if((vGs[*it] | ~vFs[*it]).IsConst1()) {
         count += ReplaceByConst(*it, 0);
-        vObjs.erase(--(it.base()));
+        vGates.erase(--(it.base()));
         Build();
-        it = vObjs.rbegin();
+        it = vGates.rbegin();
         continue;
       }
     }
@@ -625,10 +623,10 @@ int Transduction::Mspf(bool fSort, int block, int block_i0) {
       assert(!vvFis[*it].empty());
       if(vvFis[*it].size() == 1) {
         count += Replace(*it, vvFis[*it][0]);
-        vObjs.erase(--(it.base()));
+        vGates.erase(--(it.base()));
       }
       Build();
-      it = vObjs.rbegin();
+      it = vGates.rbegin();
       continue;
     }
     vPfUpdates[*it] = false;
@@ -647,6 +645,24 @@ bool Transduction::MspfDebug() {
   return vGsOld != vGs || vvCsOld != vvCs;
 }
 
+int Transduction::Pf(bool fSort) {
+  if(state == PfState::cspf) {
+    return Cspf(fSort);
+  } else if(state == PfState::mspf) {
+    return Mspf(fSort);
+  }
+  return 0;
+}
+
+bool Transduction::PfDebug() {
+  if(state == PfState::cspf) {
+    return CspfDebug();
+  } else if(state == PfState::mspf) {
+    return MspfDebug();
+  }
+  return false;
+}
+
 bool Transduction::TryConnect(int i, int f) {
   if(find(vvFis[i].begin(), vvFis[i].end(), f) == vvFis[i].end()) {
     int i0 = f >> 1;
@@ -654,7 +670,7 @@ bool Transduction::TryConnect(int i, int f) {
     NewBdd::Node x = ~vFs[i] | vGs[i] | (vFs[i0] ^ c0);
     if(x.IsConst1()) {
       if(nVerbose > 3) {
-        cout << "\t\t\tConnect " << (f >> 1) << "(" << (f & 1) << ")" << std::endl;
+        cout << "\t\t\tConnect " << (f >> 1) << "(" << (f & 1) << ")" << endl;
       }
       Connect(i, f, true);
       return true;
@@ -684,7 +700,7 @@ int Transduction::TrivialMergeOne(int i) {
       continue;
     }
     vPfUpdates[i] = vPfUpdates[i] | vPfUpdates[i0];
-    vvFos[i0].erase(std::find(vvFos[i0].begin(), vvFos[i0].end(), i));
+    vvFos[i0].erase(find(vvFos[i0].begin(), vvFos[i0].end(), i));
     count++;
     vector<int>::iterator itfi = vFisOld.begin() + j;
     vector<NewBdd::Node>::iterator itc = vCsOld.begin() + j;
@@ -703,7 +719,7 @@ int Transduction::TrivialMergeOne(int i) {
       }
     }
     count += RemoveFis(i0, false);
-    vObjs.erase(find(vObjs.begin(), vObjs.end(), i0));
+    vGates.erase(find(vGates.begin(), vGates.end(), i0));
     vFisOld.erase(itfi);
     vCsOld.erase(itc);
     j--;
@@ -715,7 +731,7 @@ int Transduction::TrivialMerge() {
     cout << "\t\tTrivial merge" << endl;
   }
   int count = 0;
-  for(list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
+  for(list<int>::reverse_iterator it = vGates.rbegin(); it != vGates.rend();) {
     count += TrivialMergeOne(*it);
     it++;
   }
@@ -753,7 +769,7 @@ int Transduction::TrivialDecomposeOne(list<int>::iterator const & it, int & pos)
       }
     }
     Connect(*it, pos << 1, false, false, vGs[pos]);
-    vObjs.insert(it, pos);
+    vGates.insert(it, pos);
     Build(pos, vFs);
   }
   return count;
@@ -764,7 +780,7 @@ int Transduction::TrivialDecompose() {
   }
   int count = 0;
   int pos = vPis.size() + 1;
-  for(list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
     if(vvFis[*it].size() > 2) {
       count += TrivialDecomposeOne(it, pos);
     }
@@ -777,7 +793,7 @@ int Transduction::Merge(bool fMspf) {
     cout << "Merge" << endl;
   }
   int count = fMspf? Mspf(true): Cspf(true);
-  list<int> targets = vObjs;
+  list<int> targets = vGates;
   for(list<int>::reverse_iterator it = targets.rbegin(); it != targets.rend(); it++) {
     if(nVerbose > 1) {
       cout << "\tMerge " << *it << endl;
@@ -828,11 +844,11 @@ int Transduction::Decompose() {
   }
   int count = 0;
   int pos = vPis.size() + 1;
-  for(list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
     set<int> s1(vvFis[*it].begin(), vvFis[*it].end());
     assert(s1.size() == vvFis[*it].size());
     list<int>::iterator it2 = it;
-    for(it2++; it2 != vObjs.end(); it2++) {
+    for(it2++; it2 != vGates.end(); it2++) {
       set<int> s2(vvFis[*it2].begin(), vvFis[*it2].end());
       set<int> s;
       set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), inserter(s, s.begin()));
@@ -843,7 +859,7 @@ int Transduction::Decompose() {
               cout << "\tReplace " << *it2 << " by " << *it << endl;
             }
             count += Replace(*it2, *it << 1, false);
-            it2 = vObjs.erase(it2);
+            it2 = vGates.erase(it2);
             it2--;
           } else {
             if(nVerbose > 1) {
@@ -863,8 +879,8 @@ int Transduction::Decompose() {
           continue;
         }
         if(s == s2) {
-          it = vObjs.insert(it, *it2);
-          vObjs.erase(it2);
+          it = vGates.insert(it, *it2);
+          vGates.erase(it2);
         } else {
           CreateNewGate(pos);
           if(nVerbose > 1) {
@@ -881,7 +897,7 @@ int Transduction::Decompose() {
             Connect(pos, *it3, false, false);
           }
           count -= s.size();
-          it = vObjs.insert(it, pos);
+          it = vGates.insert(it, pos);
           Build(pos, vFs);
           vPfUpdates[*it] = true;
         }
@@ -905,9 +921,8 @@ int Transduction::Resub(bool fMspf) {
   }
   int count = fMspf? Mspf(true): Cspf(true);
   int nodes = CountNodes();
-  TransductionBackup b;
-  Save(b);
-  list<int> targets = vObjs;
+  Backup * b = Save();
+  list<int> targets = vGates;
   for(list<int>::reverse_iterator it = targets.rbegin(); it != targets.rend(); it++) {
     if(nVerbose > 1) {
       cout << "\tResubstitute " << *it << endl;
@@ -922,7 +937,7 @@ int Transduction::Resub(bool fMspf) {
     bool fConnect = false;
     vector<bool> vMarks(nObjsAlloc);
     MarkFoCone_rec(vMarks, *it);
-    list<int> targets2 = vObjs;
+    list<int> targets2 = vGates;
     for(list<int>::iterator it2 = targets2.begin(); it2 != targets2.end(); it2++) {
       if(!vMarks[*it2] && !vvFos[*it2].empty()) {
         int f = *it2 << 1;
@@ -952,13 +967,15 @@ int Transduction::Resub(bool fMspf) {
     }
     if(!vvFos[*it].empty() && vvFis[*it].size() > 2) {
       // decompose
-      list<int>::iterator it2 = find(vObjs.begin(), vObjs.end(), *it);
+      list<int>::iterator it2 = find(vGates.begin(), vGates.end(), *it);
       int pos = nObjsAlloc;
       count += TrivialDecomposeOne(it2, pos);
     }
     nodes = CountNodes();
-    Save(b);
+    delete b;
+    b = Save();
   }
+  delete b;
   return count;
 }
 
@@ -967,7 +984,7 @@ int Transduction::ResubMono(bool fMspf) {
     cout << "Resubstitution mono" << endl;
   }
   int count = fMspf? Mspf(true): Cspf(true);
-  list<int> targets = vObjs;
+  list<int> targets = vGates;
   for(list<int>::reverse_iterator it = targets.rbegin(); it != targets.rend(); it++) {
     if(nVerbose > 1) {
       cout << "\tResubstitute mono " << *it << endl;
@@ -978,8 +995,7 @@ int Transduction::ResubMono(bool fMspf) {
     // merge
     count += TrivialMergeOne(*it);
     // resub
-    TransductionBackup b;
-    Save(b);
+    Backup * b = Save();
     for(unsigned i = 0; i < vPis.size(); i++) {
       if(vvFos[*it].empty()) {
         break;
@@ -1001,7 +1017,8 @@ int Transduction::ResubMono(bool fMspf) {
             vPfUpdates[*it] = true;
             count += fMspf? Mspf(true): Cspf(true);
           }
-          Save(b);
+          delete b;
+          b = Save();
         } else {
           Load(b);
           count++;
@@ -1009,11 +1026,12 @@ int Transduction::ResubMono(bool fMspf) {
       }
     }
     if(vvFos[*it].empty()) {
+      delete b;
       continue;
     }
     vector<bool> vMarks(nObjsAlloc);
     MarkFoCone_rec(vMarks, *it);
-    list<int> targets2 = vObjs;
+    list<int> targets2 = vGates;
     for(list<int>::iterator it2 = targets2.begin(); it2 != targets2.end(); it2++) {
       if(vvFos[*it].empty()) {
         break;
@@ -1036,7 +1054,8 @@ int Transduction::ResubMono(bool fMspf) {
               vPfUpdates[*it] = true;
               count += fMspf? Mspf(true): Cspf(true);
             }
-            Save(b);
+            delete b;
+            b = Save();
           } else {
             Load(b);
             count++;
@@ -1044,12 +1063,13 @@ int Transduction::ResubMono(bool fMspf) {
         }
       }
     }
+    delete b;
     if(vvFos[*it].empty()) {
       continue;
     }
     // decompose
     if(vvFis[*it].size() > 2) {
-      list<int>::iterator it2 = find(vObjs.begin(), vObjs.end(), *it);
+      list<int>::iterator it2 = find(vGates.begin(), vGates.end(), *it);
       int pos = nObjsAlloc;
       count += TrivialDecomposeOne(it2, pos);
     }
@@ -1088,8 +1108,7 @@ int Transduction::RepeatResubOuter(bool fMspf, bool fInner, bool fOuter) {
 }
 
 int Transduction::Optimize(bool fFirstMerge, bool fMspfMerge, bool fMspfResub, bool fInner, bool fOuter) {
-  TransductionBackup b;
-  Save(b);
+  Backup * b = Save();
   int count = 0;
   int diff = 0;
   if(fFirstMerge) {
@@ -1098,26 +1117,28 @@ int Transduction::Optimize(bool fFirstMerge, bool fMspfMerge, bool fMspfResub, b
   diff += RepeatResubOuter(fMspfResub, fInner, fOuter);
   if(diff > 0) {
     count = diff;
-    Save(b);
+    delete b;
+    b = Save();
     diff = 0;
   }
   while(true) {
     diff += Merge(fMspfMerge) + Decompose() + RepeatResubOuter(fMspfResub, fInner, fOuter);
     if(diff > 0) {
       count += diff;
-      Save(b);
+      delete b;
+      b = Save();
       diff = 0;
     } else {
       Load(b);
       break;
     }
   }
+  delete b;
   return count;
 }
 
-}
 
-Gia_Man_t * Gia_ManTransductionTest(Gia_Man_t * pGia, int fCspf, int fRandom, int nSortType, int nPiShuffle) {
+Gia_Man_t * Gia_ManTransductionTest(Gia_Man_t * pGia, int fMspf, int fRandom, int nSortType, int nPiShuffle) {
   srand(time(NULL));
   if(fRandom) {
     nSortType = rand() % 4;
@@ -1125,11 +1146,11 @@ Gia_Man_t * Gia_ManTransductionTest(Gia_Man_t * pGia, int fCspf, int fRandom, in
   }
   cout << "nSortType = " << nSortType << "; nPiShuffle = " << nPiShuffle << ";" << endl;
   // prepare tests
-  int N = 100;
-  int M = 11;
-  if(fCspf) {
-    N = 10;
-    M = 7;
+  int N = 10;
+  int M = 7;
+  if(fMspf) {
+    N = 100;
+    M = 11;
   }
   vector<int> Tests;
   for(int i = 0; i < N; i++) {
@@ -1143,89 +1164,115 @@ Gia_Man_t * Gia_ManTransductionTest(Gia_Man_t * pGia, int fCspf, int fRandom, in
   }
   cout << "};" << endl;
   // init
-  Transduction::Transduction t(pGia, 0, nSortType);
+  Transduction t(pGia, 0, nSortType);
   if(nPiShuffle) {
     t.ShufflePis(nPiShuffle);
   }
   int nodes = t.CountNodes();
   int count = t.CountWires();
-  Transduction::TransductionBackup b;
-  t.Save(b);
+  Transduction::Backup * b = t.Save();
   // transduction
   for(unsigned i = 0; i < Tests.size(); i++) {
     switch(Tests[i]) {
     case 0:
       count -= t.TrivialMerge();
-      if(t.State() == Transduction::PfState::cspf) {
-        assert(!t.CspfDebug());
-      } else if(t.State() == Transduction::PfState::mspf) {
-        assert(!t.MspfDebug());
-      }
       break;
     case 1:
       count -= t.TrivialDecompose();
-      if(t.State() == Transduction::PfState::cspf) {
-        assert(!t.CspfDebug());
-      } else if(t.State() == Transduction::PfState::mspf) {
-        assert(!t.MspfDebug());
-      }
       break;
     case 2:
       count -= t.Decompose();
-      if(t.State() == Transduction::PfState::cspf) {
-        count -= t.Cspf(true);
-        assert(!t.CspfDebug());
-      } else if(t.State() == Transduction::PfState::mspf) {
-        count -= t.Mspf();
-        assert(!t.MspfDebug());
-      }
+      count -= t.Pf(true);
       break;
     case 3:
       count -= t.Cspf(true);
-      assert(!t.CspfDebug());
       break;
     case 4:
       count -= t.Resub();
-      assert(!t.CspfDebug());
       break;
     case 5:
       count -= t.ResubMono();
-      assert(!t.CspfDebug());
       break;
     case 6:
       count -= t.Merge();
-      assert(!t.CspfDebug());
       break;
     case 7:
       count -= t.Mspf(true);
-      assert(!t.MspfDebug());
       break;
     case 8:
       count -= t.Resub(true);
-      assert(!t.MspfDebug());
       break;
     case 9:
       count -= t.ResubMono(true);
-      assert(!t.MspfDebug());
       break;
     case 10:
       count -= t.Merge(true);
-      assert(!t.MspfDebug());
       break;
     }
     cout << "Test " << setw(2) << Tests[i] << " : ";
     t.PrintStats();
+    assert(!t.PfDebug());
     assert(t.Verify());
     assert(count == t.CountWires());
     if(t.CountNodes() < nodes) {
       nodes = t.CountNodes();
-      t.Save(b);
+      delete b;
+      b = t.Save();
     }
   }
   // write
   t.Load(b);
+  delete b;
   cout << "Best    : ";
   t.PrintStats();
+  return t.Aig();
+}
+
+Gia_Man_t * Gia_ManTransduction(Gia_Man_t * pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int nVerbose) {
+  if(nRandom) {
+    srand(nRandom);
+    nSortType = rand() % 4;
+    nPiShuffle = rand();
+    nParameter = rand() % 16;
+  }
+  Transduction t(pGia, nVerbose, nSortType);
+  if(nPiShuffle) {
+    t.ShufflePis(nPiShuffle);
+  }
+  int count = t.CountWires();
+  switch(nType) {
+  case 0:
+    count -= fMspf? t.Mspf(true): t.Cspf(true);
+    break;
+  case 1:
+    count -= t.Resub(fMspf);
+    break;
+  case 2:
+    count -= t.ResubMono(fMspf);
+    break;
+  case 3:
+    count -= t.Merge(fMspf) + t.Decompose() + (fMspf? t.Mspf(true): t.Cspf(true));
+    break;
+  case 4:
+    count -= t.RepeatResub(false, fMspf);
+    break;
+  case 5:
+    count -= t.RepeatResub(true, fMspf);
+    break;
+  case 6: {
+    bool fFirstMerge = nParameter % 2;
+    bool fMspfMerge = fMspf? (nParameter / 2) % 2: false;
+    bool fInner = (nParameter / 4) % 2;
+    bool fOuter = (nParameter / 8) % 2;
+    count -= t.Optimize(fFirstMerge, fMspfMerge, fMspf, fInner, fOuter);
+    break;
+  }
+  default:
+    cout << "Invalid transduction type" << endl;
+    assert(0);
+  }
+  assert(t.Verify());
+  assert(count == t.CountWires());
   return t.Aig();
 }
 

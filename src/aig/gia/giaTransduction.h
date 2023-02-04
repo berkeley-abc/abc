@@ -11,25 +11,25 @@
 
 ABC_NAMESPACE_HEADER_START
 
-namespace Transduction {
-
-enum class PfState {none, cspf, mspf};
-
-struct TransductionBackup {
-  PfState state;
-  int nObjsAlloc;
-  std::list<int> vObjs;
-  std::vector<std::vector<int> > vvFis;
-  std::vector<std::vector<int> > vvFos;
-  std::vector<NewBdd::Node> vFs;
-  std::vector<NewBdd::Node> vGs;
-  std::vector<std::vector<NewBdd::Node> > vvCs;
-  std::vector<bool> vUpdates;
-  std::vector<bool> vPfUpdates;
-  std::vector<bool> vFoConeShared;
-};
-
 class Transduction {
+private:
+  enum class PfState {none, cspf, mspf};
+
+public:
+  struct Backup {
+    PfState state;
+    int nObjsAlloc;
+    std::list<int> vGates;
+    std::vector<std::vector<int> > vvFis;
+    std::vector<std::vector<int> > vvFos;
+    std::vector<NewBdd::Node> vFs;
+    std::vector<NewBdd::Node> vGs;
+    std::vector<std::vector<NewBdd::Node> > vvCs;
+    std::vector<bool> vUpdates;
+    std::vector<bool> vPfUpdates;
+    std::vector<bool> vFoConeShared;
+  };
+
 public:
   Transduction(Gia_Man_t * pGia, int nVerbose = 0, int SortType = 0);
   ~Transduction();
@@ -38,15 +38,14 @@ public:
 
   Gia_Man_t * Aig() const;
 
-  inline PfState State() const;
   inline int CountGates() const;
   inline int CountWires() const;
   inline int CountNodes() const;
   inline void PrintStats() const;
   inline bool Verify() const;
 
-  inline void Save(TransductionBackup & b) const;
-  inline void Load(TransductionBackup const & b);
+  Backup * Save() const;
+  inline void Load(Backup const * b);
 
   int TrivialMerge();
   int TrivialDecompose();
@@ -58,6 +57,9 @@ public:
 
   int Mspf(bool fSort = false, int block = -1, int block_i0 = -1);
   bool MspfDebug();
+
+  int Pf(bool fSort = false);
+  bool PfDebug();
 
   int Resub(bool fMspf = false);
   int ResubMono(bool fMspf = false);
@@ -76,7 +78,7 @@ private:
   int nObjsAlloc;
   std::vector<int> vPis;
   std::vector<int> vPos;
-  std::list<int> vObjs;
+  std::list<int> vGates;
   std::vector<std::vector<int> > vvFis;
   std::vector<std::vector<int> > vvFos;
 
@@ -129,15 +131,12 @@ private:
   bool TryConnect(int i, int f);
 };
 
-PfState Transduction::State() const {
-  return state;
-}
 int Transduction::CountGates() const {
-  return vObjs.size();
+  return vGates.size();
 }
 int Transduction::CountWires() const {
   int count = 0;
-  for(std::list<int>::const_iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(std::list<int>::const_iterator it = vGates.begin(); it != vGates.end(); it++) {
     count += vvFis[*it].size();
   }
   return count;
@@ -162,35 +161,26 @@ bool Transduction::Verify() const {
   return true;
 }
 
-void Transduction::Save(TransductionBackup & b) const {
-  b.state = state;
-  b.nObjsAlloc = nObjsAlloc;
-  b.vObjs = vObjs;
-  b.vvFis = vvFis;
-  b.vvFos = vvFos;
-  b.vFs = vFs;
-  b.vGs = vGs;
-  b.vvCs = vvCs;
-  b.vUpdates = vUpdates;
-  b.vPfUpdates = vPfUpdates;
-  b.vFoConeShared = vFoConeShared;
+Transduction::Backup * Transduction::Save() const {
+  Transduction::Backup * b = new Transduction::Backup{state, nObjsAlloc, vGates, vvFis, vvFos, vFs, vGs, vvCs, vUpdates, vPfUpdates, vFoConeShared};
+  return b;
 }
-void Transduction::Load(TransductionBackup const & b) {
-  state = b.state;
-  nObjsAlloc = b.nObjsAlloc;
-  vObjs = b.vObjs;
-  vvFis = b.vvFis;
-  vvFos = b.vvFos;
-  vFs = b.vFs;
-  vGs = b.vGs;
-  vvCs = b.vvCs;
-  vUpdates = b.vUpdates;
-  vPfUpdates = b.vPfUpdates;
-  vFoConeShared = b.vFoConeShared;
+void Transduction::Load(Transduction::Backup const * b) {
+  state = b->state;
+  nObjsAlloc = b->nObjsAlloc;
+  vGates = b->vGates;
+  vvFis = b->vvFis;
+  vvFos = b->vvFos;
+  vFs = b->vFs;
+  vGs = b->vGs;
+  vvCs = b->vvCs;
+  vUpdates = b->vUpdates;
+  vPfUpdates = b->vPfUpdates;
+  vFoConeShared = b->vFoConeShared;
 }
 
 bool Transduction::AllFalse(std::vector<bool> const & v) const {
-  for(std::list<int>::const_iterator it = vObjs.begin(); it != vObjs.end(); it++) {
+  for(std::list<int>::const_iterator it = vGates.begin(); it != vGates.end(); it++) {
     if(v[*it]) {
       return false;
     }
@@ -211,14 +201,14 @@ void Transduction::Connect(int i, int f, bool fSort, bool fUpdate, NewBdd::Node 
   }
   vvCs[i].push_back(c);
   if(fSort && !vvFos[i].empty() && !vvFis[i0].empty()) {
-    std::list<int>::iterator it = std::find(vObjs.begin(), vObjs.end(), i);
-    std::list<int>::iterator it_i0 = std::find(it, vObjs.end(), i0);
-    if(it_i0 != vObjs.end()) {
+    std::list<int>::iterator it = std::find(vGates.begin(), vGates.end(), i);
+    std::list<int>::iterator it_i0 = std::find(it, vGates.end(), i0);
+    if(it_i0 != vGates.end()) {
       if(nVerbose > 6) {
         std::cout << "\t\t\t\t\t\tMove " << i0 << " before " << *it << std::endl;
       }
-      vObjs.erase(it_i0);
-      it_i0 = vObjs.insert(it, i0);
+      vGates.erase(it_i0);
+      it_i0 = vGates.insert(it, i0);
       SortObjs_rec(it_i0);
     }
   }
@@ -335,8 +325,6 @@ void Transduction::CreateNewGate(int & pos) {
     vUpdates.resize(nObjsAlloc);
     vPfUpdates.resize(nObjsAlloc);
   }
-}
-
 }
   
 ABC_NAMESPACE_HEADER_END

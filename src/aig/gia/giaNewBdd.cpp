@@ -790,10 +790,10 @@ Gia_Man_t * Gia_ManNewBddBdd2Aig(NewBdd::Man const & bdd, vector<NewBdd::Node> c
   return pGia;
 }
 
-Gia_Man_t * Gia_ManNewBddTest(Gia_Man_t * pGia) {
+Gia_Man_t * Gia_ManNewBddTest(Gia_Man_t * pGia, int fGc, int fReo) {
   Gia_Man_t * pNew;
   NewBdd::Man bdd(Gia_ManCiNum(pGia));
-  //bdd.SetParameters(fGc, fReo? 10: -1);
+  bdd.SetParameters(fGc, fReo? 10: -1);
   vector<NewBdd::Node> vNodes;
   Gia_ManNewBddAig2Bdd(pGia, bdd, vNodes, false);
   cout << NewBdd::Node::CountNodes(vNodes) << endl;
