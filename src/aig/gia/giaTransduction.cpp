@@ -13,7 +13,7 @@ ABC_NAMESPACE_IMPL_START
 
 using namespace std;
 
-Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType) : nVerbose(nVerbose), SortType(SortType), state(PfState::none) {
+Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType) : nVerbose(nVerbose), SortType(SortType), state(0) {
   int i;
   Gia_Obj_t * pObj;
   if(nVerbose > 2) {
@@ -394,11 +394,11 @@ int Transduction::Cspf(bool fSortRemove, int block, int block_i0) {
     }
     cout << endl;
   }
-  if(state != PfState::cspf) {
+  if(state != 1) {
     for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
       vPfUpdates[*it] = true;
     }
-    state = PfState::cspf;
+    state = 1;
   }
   int count = 0;
   for(list<int>::reverse_iterator it = vGates.rbegin(); it != vGates.rend();) {
@@ -444,7 +444,7 @@ int Transduction::Cspf(bool fSortRemove, int block, int block_i0) {
 bool Transduction::CspfDebug() {
   vector<NewBdd::Node> vGsOld = vGs;
   vector<vector<NewBdd::Node> > vvCsOld = vvCs;
-  state = PfState::none;
+  state = 0;
   Cspf();
   return vGsOld != vGs || vvCsOld != vvCs;
 }
@@ -559,11 +559,11 @@ int Transduction::Mspf(bool fSort, int block, int block_i0) {
   }
   assert(AllFalse(vUpdates));
   vFoConeShared.resize(nObjsAlloc);
-  if(state != PfState::mspf) {
+  if(state != 2) {
     for(list<int>::iterator it = vGates.begin(); it != vGates.end(); it++) {
       vPfUpdates[*it] = true;
     }
-    state = PfState::mspf;
+    state = 2;
   }
   int count = 0;
   for(list<int>::reverse_iterator it = vGates.rbegin(); it != vGates.rend();) {
@@ -640,24 +640,24 @@ int Transduction::Mspf(bool fSort, int block, int block_i0) {
 bool Transduction::MspfDebug() {
   vector<NewBdd::Node> vGsOld = vGs;
   vector<vector<NewBdd::Node> > vvCsOld = vvCs;
-  state = PfState::none;
+  state = 0;
   Mspf();
   return vGsOld != vGs || vvCsOld != vvCs;
 }
 
 int Transduction::Pf(bool fSort) {
-  if(state == PfState::cspf) {
+  if(state == 1) {
     return Cspf(fSort);
-  } else if(state == PfState::mspf) {
+  } else if(state == 2) {
     return Mspf(fSort);
   }
   return 0;
 }
 
 bool Transduction::PfDebug() {
-  if(state == PfState::cspf) {
+  if(state == 1) {
     return CspfDebug();
-  } else if(state == PfState::mspf) {
+  } else if(state == 2) {
     return MspfDebug();
   }
   return false;
@@ -715,7 +715,7 @@ int Transduction::TrivialMergeOne(int i) {
         itc++;
         count--;
       } else {
-        assert(state == PfState::none);
+        assert(state == 0);
       }
     }
     count += RemoveFis(i0, false);
@@ -755,9 +755,9 @@ int Transduction::TrivialDecomposeOne(list<int>::iterator const & it, int & pos)
     Connect(pos, f1, false, false, c1);
     Connect(pos, f0, false, false, c0);
     if(!vPfUpdates[*it]) {
-      if(state == PfState::cspf) {
+      if(state == 1) {
         vGs[pos] = vGs[*it];
-      } else if(state == PfState::mspf) {
+      } else if(state == 2) {
         NewBdd::Node x = NewBdd::Node::Const1(bdd);
         for(unsigned j = 0; j < vvFis[*it].size(); j++) {
           int i0 = vvFis[*it][j] >> 1;

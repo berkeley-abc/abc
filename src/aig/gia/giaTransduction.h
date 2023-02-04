@@ -12,12 +12,9 @@
 ABC_NAMESPACE_HEADER_START
 
 class Transduction {
-private:
-  enum class PfState {none, cspf, mspf};
-
 public:
   struct Backup {
-    PfState state;
+    int state;
     int nObjsAlloc;
     std::list<int> vGates;
     std::vector<std::vector<int> > vvFis;
@@ -73,7 +70,7 @@ private:
   int nVerbose;
   int SortType;
 
-  PfState state;
+  int state;
 
   int nObjsAlloc;
   std::vector<int> vPis;
@@ -162,7 +159,18 @@ bool Transduction::Verify() const {
 }
 
 Transduction::Backup * Transduction::Save() const {
-  Transduction::Backup * b = new Transduction::Backup{state, nObjsAlloc, vGates, vvFis, vvFos, vFs, vGs, vvCs, vUpdates, vPfUpdates, vFoConeShared};
+  Transduction::Backup * b = new Transduction::Backup;
+  b->state = state;
+  b->nObjsAlloc = nObjsAlloc;
+  b->vGates = vGates;
+  b->vvFis = vvFis;
+  b->vvFos = vvFos;
+  b->vFs = vFs;
+  b->vGs = vGs;
+  b->vvCs = vvCs;
+  b->vUpdates = vUpdates;
+  b->vPfUpdates = vPfUpdates;
+  b->vFoConeShared = vFoConeShared;
   return b;
 }
 void Transduction::Load(Transduction::Backup const * b) {
@@ -267,7 +275,7 @@ int Transduction::Replace(int i, int f, bool fUpdate) {
     int fc = f ^ (vvFis[k][l] & 1);
     std::vector<int>::iterator it = std::find(vvFis[k].begin(), vvFis[k].end(), fc);
     if(it != vvFis[k].end()) {
-      assert(state == PfState::none);
+      assert(state == 0);
       vvCs[k].erase(vvCs[k].begin() + l);
       vvFis[k].erase(vvFis[k].begin() + l);
       count++;
