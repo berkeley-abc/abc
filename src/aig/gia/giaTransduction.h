@@ -275,7 +275,6 @@ int Transduction::Replace(int i, int f, bool fUpdate) {
     int fc = f ^ (vvFis[k][l] & 1);
     std::vector<int>::iterator it = std::find(vvFis[k].begin(), vvFis[k].end(), fc);
     if(it != vvFis[k].end()) {
-      assert(state == 0);
       vvCs[k].erase(vvCs[k].begin() + l);
       vvFis[k].erase(vvFis[k].begin() + l);
       count++;
