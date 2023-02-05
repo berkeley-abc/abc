@@ -67,7 +67,7 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
     int nBoxes   = Gia_ManBoxNum(p), nVars;
     int nRealPis = nBoxes ? Tim_ManPiNum(pManTime) : Gia_ManPiNum(p);
     int nRealPos = nBoxes ? Tim_ManPoNum(pManTime) : Gia_ManPoNum(p);
-    int i, j, k, curCi, curCo, nBoxIns, nBoxOuts;
+    int i, j, k, curCi, curCo, nBoxIns, nBoxOuts, w, nWords;
     int Id, iFan, nMfsVars, nBbIns = 0, nBbOuts = 0, Counter = 0;
     int nLutSizeMax = Gia_ManLutSizeMax( p );
     nLutSizeMax = Abc_MaxInt( nLutSizeMax, 6 );
@@ -113,15 +113,11 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
         pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ManObj(p, Id), vLeaves );
         nVars = Abc_TtMinBase( pTruth, Vec_IntArray(vArray), Vec_IntSize(vArray), Vec_IntSize(vLeaves) );
         Vec_IntShrink( vArray, nVars );
-        if ( nVars <= 6 )
-            Vec_WrdWriteEntry( vTruths, Counter, pTruth[0] );
-        else
-        {
-            int w, nWords = Abc_Truth6WordNum( nVars );
-            Vec_IntWriteEntry( vStarts, Counter, Vec_WrdSize(vTruths2) );
-            for ( w = 0; w < nWords; w++ )
-                Vec_WrdPush( vTruths2, pTruth[w] );
-        }
+        Vec_WrdWriteEntry( vTruths, Counter, pTruth[0] );
+        nWords = Abc_Truth6WordNum( nVars );
+        Vec_IntWriteEntry( vStarts, Counter, Vec_WrdSize(vTruths2) );
+        for ( w = 0; w < nWords; w++ )
+            Vec_WrdPush( vTruths2, pTruth[w] );
         if ( Gia_ObjLutIsMux(p, Id) )
         {
             Vec_StrWriteEntry( vFixed, Counter, (char)1 );
@@ -143,6 +139,8 @@ Sfm_Ntk_t * Gia_ManExtractMfs( Gia_Man_t * p )
             Vec_StrWriteEntry( vEmpty, Counter, (char)1 );
             uTruth = Gia_ObjFaninC0(pObj) ? ~uTruths6[0]: uTruths6[0];
             Vec_WrdWriteEntry( vTruths, Counter, uTruth );
+            Vec_IntWriteEntry( vStarts, Counter, Vec_WrdSize(vTruths2) );
+            Vec_WrdPush( vTruths2, uTruth );
         }
         Gia_ObjSetCopyArray( p, Gia_ObjId(p, pObj), Counter++ );
     }

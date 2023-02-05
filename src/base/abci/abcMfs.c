@@ -100,6 +100,8 @@ Vec_Int_t * Abc_NtkAssignStarts( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, int * pnT
         Vec_IntWriteEntry( vStarts, pObj->iTemp, Counter );
         Counter += Abc_Truth6WordNum( Abc_ObjFaninNum(pObj) );
     }
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Vec_IntWriteEntry( vStarts, pObj->iTemp, Counter++ );
     *pnTotal = Counter;
     return vStarts;
 }
@@ -167,6 +169,8 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
         if ( Abc_ObjFaninNum(pObj) <= 6 )
         {
             word uTruth = Abc_SopToTruth((char *)pObj->pData, Abc_ObjFaninNum(pObj));
+            int Offset  = Vec_IntEntry( vStarts, pObj->iTemp );
+            Vec_WrdWriteEntry( vTruths2, Offset, uTruth );
             Vec_WrdWriteEntry( vTruths, pObj->iTemp, uTruth );
             if ( uTruth == 0 || ~uTruth == 0 )
                 continue;
@@ -177,6 +181,7 @@ Sfm_Ntk_t * Abc_NtkExtractMfs( Abc_Ntk_t * pNtk, int nFirstFixed )
             int Offset  = Vec_IntEntry( vStarts, pObj->iTemp );
             word * pRes = Vec_WrdEntryP( vTruths2, Offset );
             Abc_SopToTruthBig( (char *)pObj->pData, Abc_ObjFaninNum(pObj), pTruths, pCube, pRes );
+            Vec_WrdWriteEntry( vTruths, pObj->iTemp, pRes[0] );
             // check const0
             for ( k = 0; k < nWords; k++ )
                 if ( pRes[k] )
@@ -324,11 +329,13 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
         }
         // update fanins
         vArray = Sfm_NodeReadFanins( p, pNode->iTemp );
-        Vec_IntForEachEntry( vArray, Fanin, k )
-            Abc_ObjAddFanin( pNode, Abc_NtkObj(pNtk, Vec_IntEntry(vMap, Fanin)) );
         pTruth = Sfm_NodeReadTruth( p, pNode->iTemp );
         pNode->pData = Abc_SopCreateFromTruthIsop( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), pTruth, vCover );
+        if ( Abc_SopGetVarNum((char *)pNode->pData) == 0 )
+            continue;
         assert( Abc_SopGetVarNum((char *)pNode->pData) == Vec_IntSize(vArray) );
+        Vec_IntForEachEntry( vArray, Fanin, k )
+            Abc_ObjAddFanin( pNode, Abc_NtkObj(pNtk, Vec_IntEntry(vMap, Fanin)) );
     }
     Vec_IntFree( vCover );
     Vec_IntFree( vMap );

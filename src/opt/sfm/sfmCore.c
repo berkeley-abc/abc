@@ -115,6 +115,7 @@ int Sfm_NodeResubSolve( Sfm_Ntk_t * p, int iNode, int f, int fRemoveOnly )
     int fVeryVerbose = 0;//p->pPars->fVeryVerbose && Vec_IntSize(p->vDivs) < 200;// || pNode->Id == 556;
     int i, iFanin, iVar = -1;
     int iFaninRem = -1, iFaninSkip = -1;
+    int nFanins = Sfm_ObjFaninNum(p, iNode); 
     word uTruth, uSign, uMask;
     abctime clk;
     assert( Sfm_ObjIsNode(p, iNode) );
@@ -214,7 +215,10 @@ finish:
     if ( fSkipUpdate )
         return 0;
     // update the network
-    Sfm_NtkUpdate( p, iNode, f, (iVar == -1 ? iVar : Vec_IntEntry(p->vDivs, iVar)), uTruth );
+    Sfm_NtkUpdate( p, iNode, f, (iVar == -1 ? iVar : Vec_IntEntry(p->vDivs, iVar)), uTruth, p->pTruth );
+    // the number of fanins cannot increase
+    assert( nFanins >= Sfm_ObjFaninNum(p, iNode) );
+    //printf( "Modifying node %d with %d fanins (resulting in %d fanins).\n", iNode, nFanins, Sfm_ObjFaninNum(p, iNode) );
     return 1;
 }
 
@@ -304,7 +308,7 @@ int Sfm_NodeResub( Sfm_Ntk_t * p, int iNode )
                 return 1;
         }
     // try simplifying local functions
-    if ( p->pPars->fUseDcs )
+    if ( p->pPars->fUseDcs && Sfm_ObjFaninNum(p, iNode) <= 6 )
         if ( Sfm_NodeResubOne( p, iNode ) )
             return 1;
 /*
@@ -360,7 +364,7 @@ void Sfm_NtkPrint( Sfm_Ntk_t * p )
 ***********************************************************************/
 int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
 {
-    int i, k, Counter = 0;
+    int i, k, Counter = 0, CounterLarge = 0;
     //Sfm_NtkPrint( p );
     p->timeTotal = Abc_Clock();
     if ( pPars->fVerbose )
@@ -382,8 +386,13 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
             continue;
         if ( p->pPars->nDepthMax && Sfm_ObjLevel(p, i) > p->pPars->nDepthMax )
             continue;
-        if ( Sfm_ObjFaninNum(p, i) < 2 || Sfm_ObjFaninNum(p, i) > 6 )
+        if ( Sfm_ObjFaninNum(p, i) < 2 )
             continue;
+        if ( Sfm_ObjFaninNum(p, i) > SFM_SUPP_MAX )
+        {
+            CounterLarge++;
+            continue;
+        }
         for ( k = 0; Sfm_NodeResub(p, i); k++ )
         {
 //            Counter++;
@@ -396,6 +405,8 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
     p->nTotalNodesEnd = Vec_WecSizeUsedLimits( &p->vFanins, Sfm_NtkPiNum(p), Vec_WecSize(&p->vFanins) - Sfm_NtkPoNum(p) );
     p->nTotalEdgesEnd = Vec_WecSizeSize(&p->vFanins) - Sfm_NtkPoNum(p);
     p->timeTotal = Abc_Clock() - p->timeTotal;
+    if ( pPars->fVerbose && CounterLarge )
+        printf( "MFS skipped %d (out of %d) nodes with more than %d fanins.\n", CounterLarge, p->nNodes, SFM_SUPP_MAX );
     if ( pPars->fVerbose )
         Sfm_NtkPrintStats( p );
     //Sfm_NtkPrint( p );

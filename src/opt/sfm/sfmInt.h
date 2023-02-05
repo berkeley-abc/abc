@@ -39,6 +39,7 @@
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
 #include "base/abc/abc.h"
+#include "misc/util/utilTruth.h"
 #include "sfm.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -47,7 +48,8 @@
 
 ABC_NAMESPACE_HEADER_START
 
-#define SFM_FANIN_MAX 6
+#define SFM_FANIN_MAX 12
+#define SFM_WORDS_MAX ((SFM_FANIN_MAX>6) ? (1<<(SFM_FANIN_MAX-6)) : 1)
 #define SFM_SAT_UNDEC 0x1234567812345678
 #define SFM_SAT_SAT   0x8765432187654321
 
@@ -123,6 +125,10 @@ struct Sfm_Ntk_t_
     Vec_Int_t *       vValues;     // SAT variable values
     Vec_Wec_t *       vClauses;    // CNF clauses for the node
     Vec_Int_t *       vFaninMap;   // mapping fanins into their SAT vars
+    word              TtElems[SFM_FANIN_MAX][SFM_WORDS_MAX];
+    word *            pTtElems[SFM_FANIN_MAX];
+    word              pTruth[SFM_WORDS_MAX];
+    word              pCube[SFM_WORDS_MAX];
     // nodes
     int               nTotalNodesBeg;
     int               nTotalEdgesBeg;
@@ -216,7 +222,7 @@ extern int          Sfm_LibImplementGatesDelay( Sfm_Lib_t * p, int * pFanins, Mi
 /*=== sfmNtk.c ==========================================================*/
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );
 extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p );
-extern void         Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth );
+extern void         Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth, word * pTruth );
 /*=== sfmSat.c ==========================================================*/
 extern int          Sfm_NtkWindowToSolver( Sfm_Ntk_t * p );
 extern word         Sfm_ComputeInterpolant( Sfm_Ntk_t * p );
