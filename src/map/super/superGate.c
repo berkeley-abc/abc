@@ -147,9 +147,12 @@ void Super_Precompute( Mio_Library_t * pLibGen, int nVarsMax, int nLevels, int n
         return;
     }
     vStr = Super_PrecomputeStr( pLibGen, nVarsMax, nLevels, nGatesMax, tDelayMax, tAreaMax, TimeLimit, fSkipInv, fVerbose );
-    fwrite( Vec_StrArray(vStr), 1, Vec_StrSize(vStr), pFile );
+    if ( vStr ) 
+    {
+        fwrite( Vec_StrArray(vStr), 1, Vec_StrSize(vStr), pFile );
+        Vec_StrFree( vStr );
+    }
     fclose( pFile );
-    Vec_StrFree( vStr );
     // report the result of writing
     if ( fVerbose )
     {
