@@ -28,7 +28,7 @@ public:
   };
 
 public:
-  Transduction(Gia_Man_t * pGia, int nVerbose = 0, int SortType = 0);
+  Transduction(Gia_Man_t * pGia, int nVerbose = 0, int SortType = 0, Gia_Man_t * pExdc = NULL);
   ~Transduction();
 
   void ShufflePis(int seed);
@@ -151,7 +151,7 @@ bool Transduction::Verify() const {
   for(unsigned j = 0; j < vPos.size(); j++) {
     int i0 = vvFis[vPos[j]][0] >> 1;
     bool c0 = vvFis[vPos[j]][0] & 1;
-    if((vFs[i0] ^ c0) != vPoFs[j]) {
+    if(!(((vFs[i0] ^ c0) ^ vPoFs[j]) & ~vvCs[vPos[j]][0]).IsConst0()) {
       return false;
     }
   }

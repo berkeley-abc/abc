@@ -42451,7 +42451,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp;
+    Gia_Man_t * pTemp, * pExdc = NULL;
     int c, nType = 6, fMspf = 1, nRandom = 0, nSortType = 0, nPiShuffle = 0, nParameter = 0, nVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "TRSIPVm" ) ) != EOF )
@@ -42520,14 +42520,40 @@ int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( argc > globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Wrong number of auguments.\n" );
+        goto usage;
+    }
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
+    if ( argc == globalUtilOptind + 1 )
+    {
+        FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", argv[globalUtilOptind] );
+            return 1;
+        }
+        fclose( pFile );
+        pExdc = Gia_AigerRead( argv[globalUtilOptind], 0, 0, 0 );
+        if ( pExdc == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 1;
+        }
+    }
+
     //pTemp = Gia_ManNewBddTest( pAbc->pGia );
     //pTemp = Gia_ManTransductionTest( pAbc->pGia, 1, 1, 0, 0 );
-    pTemp = Gia_ManTransduction( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, nVerbose );
+    pTemp = Gia_ManTransduction( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, pExdc, nVerbose );
+    if ( pExdc != NULL )
+    {
+        Gia_ManStop( pExdc );
+    }
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
@@ -42542,7 +42568,7 @@ usage:
     Abc_Print( -2, "\t-V num   : verbosity level [default = %d]\n",                                    nVerbose);
     Abc_Print( -2, "\t-m       : toggles using MSPF [default = %s]\n", fMspf? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
-    Abc_Print( -2, "\t<file>   : file name with simulation information\n");
+    Abc_Print( -2, "\t<file>   : AIGER specifying external don't-cares\n");
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Yukio Miyasaka.\n" );
     return 1;

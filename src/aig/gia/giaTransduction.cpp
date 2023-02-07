@@ -13,7 +13,7 @@ ABC_NAMESPACE_IMPL_START
 
 using namespace std;
 
-Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType) : nVerbose(nVerbose), SortType(SortType), state(0) {
+Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType, Gia_Man_t * pExdc) : nVerbose(nVerbose), SortType(SortType), state(0) {
   int i;
   Gia_Obj_t * pObj;
   if(nVerbose > 2) {
@@ -82,8 +82,17 @@ Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType) : nVerb
   // build bdd
   bdd->SetParameters(1, 12);
   Build(false);
+  vector<NewBdd::Node> vExdc;
+  if(pExdc) {
+    Gia_ManNewBddAig2Bdd(pExdc, *bdd, vExdc, false);
+  }
   bdd->Reorder();
   bdd->SetParameters(1);
+  if(pExdc) {
+    for(unsigned i = 0; i < vPos.size(); i++) {
+      vvCs[vPos[i]][0] = vExdc[i];
+    }
+  }
   // check and store outputs
   bool fRemoved = false;
   for(unsigned i = 0; i < vPos.size(); i++) {
@@ -1228,14 +1237,14 @@ Gia_Man_t * Gia_ManTransductionTest(Gia_Man_t * pGia, int fMspf, int fRandom, in
   return t.Aig();
 }
 
-Gia_Man_t * Gia_ManTransduction(Gia_Man_t * pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int nVerbose) {
+Gia_Man_t * Gia_ManTransduction(Gia_Man_t * pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, Gia_Man_t * pExdc, int nVerbose) {
   if(nRandom) {
     srand(nRandom);
     nSortType = rand() % 4;
     nPiShuffle = rand();
     nParameter = rand() % 16;
   }
-  Transduction t(pGia, nVerbose, nSortType);
+  Transduction t(pGia, nVerbose, nSortType, pExdc);
   if(nPiShuffle) {
     t.ShufflePis(nPiShuffle);
   }
