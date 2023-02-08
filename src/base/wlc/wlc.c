@@ -705,6 +705,81 @@ Gia_Man_t * Wlc_ManGenProd( int nInputs, int fVerbose )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Extra_PrintTernary( FILE * pFile, word * pFunc, word * pCare, int nBits )
+{
+    int i;
+    for ( i = nBits-1; i >= 0; i-- )
+        if ( Abc_TtGetBit(pCare, i) )
+            fprintf( pFile, "%c", '0' + Abc_TtGetBit(pFunc, i) );
+        else
+            fprintf( pFile, "-" );
+    fprintf( pFile, "\n" );
+}
+void Wlc_AdderTreeGen( int n )
+{
+    word Care[1<<10] = {0}; 
+    word Truth[8][1<<10] = {{0}};
+    int nIns = 0, pIns[16][2] = {{0}};
+    int i, k, x, Res, Mint, nMints = 1 << (n*n);
+    assert( n >= 2 && n <= 4 );
+    for ( x = 0; x < 2*n; x++ )
+    {
+        for ( i = 0; i < n; i++ )
+        for ( k = 0; k < n; k++ )
+            if ( i + k == x )
+                pIns[nIns][0] = i, pIns[nIns][1] = k, nIns++;
+    }
+    for ( x = 0; x < nIns; x++ )
+        printf( "(%d, %d) ", pIns[x][0], pIns[x][1] );
+    printf( "\n" );
+    for ( i = 0; i < (1<<n); i++ )
+    for ( k = 0; k < (1<<n); k++ )
+    {
+        Mint = 0;
+        for ( x = 0; x < nIns; x++ )
+            if ( ((i >> pIns[x][0]) & 1) && ((k >> pIns[x][1]) & 1) )
+                Mint |= 1 << x;
+        assert( Mint < (1<<16) );
+        Abc_TtSetBit( Care, Mint );
+
+        Res = i * k;
+        for ( x = 0; x < 2*n; x++ )
+            if ( (Res >> x) & 1 )
+                Abc_TtSetBit( Truth[x], Mint );
+    }
+    if ( n == 2 )
+    {
+        Care[0] = Abc_Tt6Stretch( Care[0], n*n );
+        for ( i = 0; i < 2*n; i++ )
+            Truth[i][0] = Abc_Tt6Stretch( Truth[i][0], n*n );
+        nMints = 64;
+    }
+    for ( x = 0; x < nMints; x++ )
+        printf( "%d", Abc_TtGetBit(Care, x) );
+    printf( "\n\n" );
+    for ( i = 0; i < 2*n; i++, printf( "\n" ) )
+    for ( x = 0; x < nMints; x++ )
+        printf( "%d", Abc_TtGetBit(Truth[i], x) );
+    if ( 1 )
+    {
+        FILE * pFile = fopen( "tadd.truth", "wb" );
+        for ( i = 0; i < 2*n; i++ )
+            Extra_PrintTernary( pFile, Truth[i], Care, nMints );
+        fclose( pFile );
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
