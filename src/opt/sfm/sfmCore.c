@@ -218,7 +218,9 @@ finish:
     Sfm_NtkUpdate( p, iNode, f, (iVar == -1 ? iVar : Vec_IntEntry(p->vDivs, iVar)), uTruth, p->pTruth );
     // the number of fanins cannot increase
     assert( nFanins >= Sfm_ObjFaninNum(p, iNode) );
-    //printf( "Modifying node %d with %d fanins (resulting in %d fanins).\n", iNode, nFanins, Sfm_ObjFaninNum(p, iNode) );
+    //printf( "Modifying node %d with %d fanins (resulting in %d fanins).  ", iNode, nFanins, Sfm_ObjFaninNum(p, iNode) );
+    //Abc_TtPrintHexRev( stdout, p->pTruth, Sfm_ObjFaninNum(p, iNode) );
+    //printf( "\n" );
     return 1;
 }
 
@@ -386,8 +388,8 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
             continue;
         if ( p->pPars->nDepthMax && Sfm_ObjLevel(p, i) > p->pPars->nDepthMax )
             continue;
-        if ( Sfm_ObjFaninNum(p, i) < 2 )
-            continue;
+        //if ( Sfm_ObjFaninNum(p, i) < 2 )
+        //    continue;
         if ( Sfm_ObjFaninNum(p, i) > SFM_SUPP_MAX )
         {
             CounterLarge++;

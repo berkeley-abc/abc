@@ -76,7 +76,7 @@ int Sfm_TruthToCnf( word Truth, word * pTruth, int nVars, Vec_Int_t * vCover, Ve
     {
         if ( Truth == 0 || ~Truth == 0 )
         {
-            //assert( nVars == 0 );
+            assert( nVars == 0 );
             Vec_StrPush( vCnf, (char)(Truth == 0) );
             Vec_StrPush( vCnf, (char)-1 );
             return 1;
@@ -92,6 +92,7 @@ int Sfm_TruthToCnf( word Truth, word * pTruth, int nVars, Vec_Int_t * vCover, Ve
         {
             Vec_StrPush( vCnf, (char)1 );
             Vec_StrPush( vCnf, (char)-1 );
+            assert( 0 );
             return 1;
         }
         // const1
@@ -102,6 +103,7 @@ int Sfm_TruthToCnf( word Truth, word * pTruth, int nVars, Vec_Int_t * vCover, Ve
         {
             Vec_StrPush( vCnf, (char)0 );
             Vec_StrPush( vCnf, (char)-1 );
+            assert( 0 );
             return 1;
         }
     }
@@ -196,6 +198,7 @@ void Sfm_TranslateCnf( Vec_Wec_t * vRes, Vec_Str_t * vCnf, Vec_Int_t * vFaninMap
     Vec_Int_t * vClause;
     signed char Entry;
     int i, Lit;
+    assert( Vec_StrEntry(vCnf, 1) != -1 || Vec_IntSize(vFaninMap) == 1 );
     Vec_WecClear( vRes );
     vClause = Vec_WecPushLevel( vRes );
     Vec_StrForEachEntry( vCnf, Entry, i )

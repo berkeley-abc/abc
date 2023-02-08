@@ -322,7 +322,7 @@ void Sfm_NtkUpdateLevelR_rec( Sfm_Ntk_t * p, int iNode )
 void Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth, word * pTruth )
 {
     int iFanin = Sfm_ObjFanin( p, iNode, f );
-    int nWords = Abc_Truth6WordNum( Sfm_ObjFaninNum(p, iNode) );
+    int nWords = Abc_Truth6WordNum( Sfm_ObjFaninNum(p, iNode) - (int)(iFaninNew == -1) );
     assert( Sfm_ObjIsNode(p, iNode) );
     assert( iFanin != iFaninNew );
     assert( Sfm_ObjFaninNum(p, iNode) <= SFM_FANIN_MAX );
