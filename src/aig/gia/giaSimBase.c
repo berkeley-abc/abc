@@ -3656,6 +3656,39 @@ Gia_Man_t * Gia_ManChangeTest3( Gia_Man_t * p )
 
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Str_t * Gia_ManComputeRange( Gia_Man_t * p )
+{
+    Vec_Wrd_t * vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(p) );
+    Vec_Wrd_t * vSims   = Gia_ManSimPatSimOut( p, vSimsPi, 1 );
+    int n, nWords = Vec_WrdSize(vSimsPi) / Gia_ManCiNum(p);
+    int i, nLimit = Gia_ManCiNum(p) < 6 ? 1 << Gia_ManCiNum(p) : 64*nWords;
+    Vec_Str_t * vOut = Vec_StrAlloc( nLimit*(Gia_ManCoNum(p) + 3) );
+    assert( Vec_WrdSize(vSims) == nWords * Gia_ManCoNum(p) );
+    for ( n = 0; n < nLimit; n++ )
+    {
+        for ( i = 0; i < Gia_ManCoNum(p); i++ )
+            Vec_StrPush( vOut, (char)('0' + Abc_TtGetBit(Vec_WrdEntryP(vSims, i*nWords), n)) );
+        Vec_StrPush( vOut, ' ' );
+        Vec_StrPush( vOut, '1' );
+        Vec_StrPush( vOut, '\n' );
+    }
+    Vec_StrPush( vOut, '\0' );
+    Vec_WrdFree( vSims );
+    Vec_WrdFree( vSimsPi );
+    return vOut;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

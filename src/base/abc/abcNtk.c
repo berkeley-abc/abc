@@ -1231,6 +1231,41 @@ Abc_Ntk_t * Abc_NtkCreateFromNode( Abc_Ntk_t * pNtk, Abc_Obj_t * pNode )
 
 /**Function*************************************************************
 
+  Synopsis    [Creates the network composed of one node.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkCreateFromRange( Abc_Ntk_t * pNtk )
+{    
+    Abc_Ntk_t * pNtkNew; 
+    Abc_Obj_t * pObj, * pNodeNew, * pNodePo;
+    Gia_Man_t * p = Abc_NtkClpGia( pNtk );  int i;
+    Vec_Str_t * vStr = Gia_ManComputeRange( p );
+    Gia_ManStop( p );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
+    pNtkNew->pName = Extra_UtilStrsav("range");
+    Abc_NtkForEachCo( pNtk, pObj, i )
+        Abc_ObjAssignName( Abc_NtkCreatePi(pNtkNew), Abc_ObjName(pObj), NULL );
+    pNodeNew = Abc_NtkCreateObj( pNtkNew, ABC_OBJ_NODE );
+    pNodeNew->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, Vec_StrArray(vStr) );
+    Vec_StrFree( vStr );
+    Abc_NtkForEachCi( pNtkNew, pObj, i )
+        Abc_ObjAddFanin( pNodeNew, pObj );
+    pNodePo = Abc_NtkCreatePo( pNtkNew );
+    Abc_ObjAddFanin( pNodePo, pNodeNew );
+    Abc_ObjAssignName( pNodePo, "range", NULL );
+    if ( !Abc_NtkCheck( pNtkNew ) )
+        fprintf( stdout, "Abc_NtkCreateFromNode(): Network check has failed.\n" );
+    return pNtkNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Creates the network composed of one node with the given SOP.]
 
   Description []

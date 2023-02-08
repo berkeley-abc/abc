@@ -1610,6 +1610,7 @@ extern Vec_Wrd_t *         Gia_ManArray2SimOne( Vec_Int_t * vRes );
 extern Vec_Ptr_t *         Gia_ManArray2Sim( Vec_Wec_t * vRes );
 extern void                Gia_ManPtrWrdDumpBin( char * pFileName, Vec_Ptr_t * p, int fVerbose );
 extern Vec_Ptr_t *         Gia_ManPtrWrdReadBin( char * pFileName, int fVerbose );
+extern Vec_Str_t *         Gia_ManComputeRange( Gia_Man_t * p );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
 extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );
