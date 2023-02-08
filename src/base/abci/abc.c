@@ -586,6 +586,7 @@ static int Abc_CommandAbc9Gla2Fla            ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandAbc9Gen                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Cfs                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9ProdAdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1345,6 +1346,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&gen",          Abc_CommandAbc9Gen,                    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cfs",          Abc_CommandAbc9Cfs,                    0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&prodadd",      Abc_CommandAbc9ProdAdd,                0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -36297,6 +36299,7 @@ usage:
 int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManPairWiseMiter( Gia_Man_t * p );
+    extern Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare );
     FILE * pFile;
     Gia_Man_t * pAux;
     Gia_Man_t * pSecond;
@@ -36312,9 +36315,10 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fTransX  = 0;
     int fConvert = 0;
     int fTransZ  = 0;
+    int fWithCare= 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Idsptxyzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Idsptxyzcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36349,6 +36353,9 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'z':
             fTransZ ^= 1;
+            break;
+        case 'c':
+            fWithCare ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -36437,13 +36444,16 @@ int Abc_CommandAbc9Miter( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // compute the miter
-    pAux = Gia_ManMiter( pAbc->pGia, pSecond, nInsDup, fDualOut, fSeq, 0, fVerbose );
+    if ( fWithCare )
+        pAux = Gia_ManDupWithCare( pAbc->pGia, pSecond );
+    else
+        pAux = Gia_ManMiter( pAbc->pGia, pSecond, nInsDup, fDualOut, fSeq, 0, fVerbose );
     Gia_ManStop( pSecond );
     Abc_FrameUpdateGia( pAbc, pAux );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &miter [-I num] [-dsptxyzvh] <file>\n" );
+    Abc_Print( -2, "usage: &miter [-I num] [-dsptxyzcvh] <file>\n" );
     Abc_Print( -2, "\t         creates miter of two designs (current AIG vs. <file>)\n" );
     Abc_Print( -2, "\t-I num : the number of last PIs to replicate [default = %d]\n", nInsDup );
     Abc_Print( -2, "\t-d     : toggle creating dual-output miter [default = %s]\n", fDualOut? "yes": "no" );
@@ -36452,7 +36462,8 @@ usage:
     Abc_Print( -2, "\t-t     : toggle XORing POs of dual-output miter [default = %s]\n", fTrans? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle XORing POs of two-word miter [default = %s]\n", fTransX? "yes": "no" );
     Abc_Print( -2, "\t-y     : toggle convering two-word miter into dual-output miter [default = %s]\n", fConvert? "yes": "no" );
-    Abc_Print( -2, "\t-z     : toggle odering sides of the dual-output miter [default = %s]\n", fTransZ? "yes": "no" );
+    Abc_Print( -2, "\t-z     : toggle ordering sides of the dual-output miter [default = %s]\n", fTransZ? "yes": "no" );
+    Abc_Print( -2, "\t-c     : toggle duplicating AIG with the care set [default = %s]\n", fWithCare? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : AIGER file with the design to miter\n");
@@ -50375,6 +50386,96 @@ usage:
     Abc_Print( -2, "\t-c      : toggle inserting constants [default = %s]\n",              fConstSim? "yes": "no" );
     Abc_Print( -2, "\t-d      : toggle using only DAG nodes [default = %s]\n",             fDagNodes? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n",     fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9ProdAdd( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla );
+    Gia_Man_t * pTemp = NULL;
+    int nArgA       =   4;
+    int nArgB       =   4;
+    int Seed        =   0;
+    int fSigned     =   0;
+    int fCla        =   0;
+    int c, fVerbose =   0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ABSscvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nArgA = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nArgA < 0 )
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nArgB = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nArgB < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
+        case 's':
+            fSigned ^= 1;
+            break;
+        case 'c':
+            fCla ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    Gia_ManProdAdderGen( nArgA, nArgB, Seed, fSigned, fCla );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &prodadd [-ABSscvh]\n" );
+    Abc_Print( -2, "\t          generates partial products and adder trees\n" );
+    Abc_Print( -2, "\t-A num  : the bit-width of the first arg [default = %d]\n",           nArgA );
+    Abc_Print( -2, "\t-B num  : the bit-width of the second arg [default = %d]\n",          nArgB );
+    Abc_Print( -2, "\t-S num  : random seed used the node ordering [default = %d]\n",       Seed );
+    Abc_Print( -2, "\t-s      : toggle using signed operation [default = %s]\n",            fSigned? "yes": "no" );
+    Abc_Print( -2, "\t-c      : toggle using CLA in the adder tree [default = %s]\n",       fCla? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n",      fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }

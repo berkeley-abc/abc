@@ -5407,6 +5407,48 @@ Gia_Man_t * Gia_ManDupBlackBox( Gia_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Duplicates with the care set.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, iCare = -1;
+    assert( Gia_ManCiNum(pCare) == Gia_ManCiNum(p) );
+    assert( Gia_ManCoNum(pCare) == 1 );
+    assert( Gia_ManRegNum(p) == 0 );
+    assert( Gia_ManRegNum(pCare) == 0 );
+    pNew = Gia_ManStart( 2*Gia_ManObjNum(p) + Gia_ManObjNum(pCare) );
+    pNew->pName = Abc_UtilStrsavTwo( pNew->pName, "_care" );
+    Gia_ManConst0(pCare)->Value = 0;
+    Gia_ManForEachCi( pCare, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( pCare, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( pCare, pObj, i )
+        iCare = Gia_ObjFanin0Copy(pObj);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManCi(pCare, i)->Value;
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        pObj->Value = Gia_ManAppendAnd( pNew, iCare, pObj->Value );
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
