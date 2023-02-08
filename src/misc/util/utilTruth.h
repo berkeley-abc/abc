@@ -1396,30 +1396,45 @@ static inline void Abc_TtPrintHex( word * pTruth, int nVars )
 {
     word * pThis, * pLimit = pTruth + Abc_TtWordNum(nVars);
     int k;
-    assert( nVars >= 2 );
-    for ( pThis = pTruth; pThis < pLimit; pThis++ )
-        for ( k = 0; k < 16; k++ )
-            printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+    if ( nVars < 2 )
+        printf( "%c", Abc_TtPrintDigit((int)pTruth[0] & 15) );
+    else
+    {
+        assert( nVars >= 2 );
+        for ( pThis = pTruth; pThis < pLimit; pThis++ )
+            for ( k = 0; k < 16; k++ )
+                printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+    }
     printf( "\n" );
 }
 static inline void Abc_TtPrintHexRev( FILE * pFile, word * pTruth, int nVars )
 {
     word * pThis;
     int k, StartK = nVars >= 6 ? 16 : (1 << (nVars - 2));
-    assert( nVars >= 2 );
-    for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
-        for ( k = StartK - 1; k >= 0; k-- )
-            fprintf( pFile, "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+    if ( nVars < 2 )
+        fprintf( pFile, "%c", Abc_TtPrintDigit((int)pTruth[0] & 15) );
+    else
+    {
+        assert( nVars >= 2 );
+        for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
+            for ( k = StartK - 1; k >= 0; k-- )
+                fprintf( pFile, "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+    }
 //    printf( "\n" );
 }
 static inline void Abc_TtPrintHexSpecial( word * pTruth, int nVars )
 {
     word * pThis;
     int k;
-    assert( nVars >= 2 );
-    for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
-        for ( k = 0; k < 16; k++ )
-            printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+    if ( nVars < 2 )
+        printf( "%c", Abc_TtPrintDigit((int)pTruth[0] & 15) );
+    else
+    {
+        assert( nVars >= 2 );
+        for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
+            for ( k = 0; k < 16; k++ )
+                printf( "%c", Abc_TtPrintDigit((int)(pThis[0] >> (k << 2)) & 15) );
+    }
     printf( "\n" );
 }
 static inline int Abc_TtWriteHexRev( char * pStr, word * pTruth, int nVars )
@@ -1427,10 +1442,15 @@ static inline int Abc_TtWriteHexRev( char * pStr, word * pTruth, int nVars )
     word * pThis;
     char * pStrInit = pStr;
     int k, StartK = nVars >= 6 ? 16 : (1 << (nVars - 2));
-    assert( nVars >= 2 );
-    for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
-        for ( k = StartK - 1; k >= 0; k-- )
-            *pStr++ = Abc_TtPrintDigit( (int)(pThis[0] >> (k << 2)) & 15 );
+    if ( nVars < 2 )
+        *pStr++ = Abc_TtPrintDigit((int)pTruth[0] & 15);
+    else
+    {
+        assert( nVars >= 2 );
+        for ( pThis = pTruth + Abc_TtWordNum(nVars) - 1; pThis >= pTruth; pThis-- )
+            for ( k = StartK - 1; k >= 0; k-- )
+                *pStr++ = Abc_TtPrintDigit( (int)(pThis[0] >> (k << 2)) & 15 );
+    }
     return pStr - pStrInit;
 }
 static inline void Abc_TtPrintHexArrayRev( FILE * pFile, word * pTruth, int nDigits )
