@@ -5449,6 +5449,89 @@ Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla )
+{
+    extern void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vLevels, Vec_Int_t * vRes, int fSigned, int fCla );
+    int i, k, x, fCompl, iLit; char  pNameP[32], pNameT[32];
+    Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
+    Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB );
+    Vec_Int_t * vRes = Vec_IntAlloc( nArgA + nArgB );
+    Vec_Int_t * vArgA = Vec_IntAlloc( nArgA );
+    Vec_Int_t * vArgB = Vec_IntAlloc( nArgB ), * vLevel;
+    Gia_Man_t * pProd = Gia_ManStart( 1000 );
+    Gia_Man_t * pTree = Gia_ManStart( 1000 ), * pTemp;
+    Gia_ManHashAlloc( pTree );
+    pProd->pName = Abc_UtilStrsav( "prod" );
+    pTree->pName = Abc_UtilStrsav( "tree" );
+    for ( x = 0; x < nArgA; x++ )
+        Vec_IntPush( vArgA, Gia_ManAppendCi(pProd) );
+    for ( x = 0; x < nArgB; x++ )
+        Vec_IntPush( vArgB, Gia_ManAppendCi(pProd) );
+    for ( x = 0; x < nArgA + nArgB; x++ )
+    {
+        for ( i = 0; i < nArgA; i++ )
+        for ( k = 0; k < nArgB; k++ )
+        {
+            if ( i + k != x )
+                continue;
+            fCompl = fSigned && ((i == nArgA-1) ^ (k == nArgB-1));
+            iLit = Abc_LitNotCond(Gia_ManAppendAnd(pProd, Vec_IntEntry(vArgA, i), Vec_IntEntry(vArgB, k)), fCompl);
+            Gia_ManAppendCo( pProd, iLit );
+            Vec_WecPush( vProds,  i+k, Gia_ManAppendCi(pTree) );
+            Vec_WecPush( vLevels, i+k, 0 );
+        }
+    }
+    if ( fSigned )
+    {
+        Vec_WecPush( vProds,  nArgA, 1 );
+        Vec_WecPush( vLevels, nArgA, 0 );
+
+        Vec_WecPush( vProds,  nArgA+nArgB-1, 1 );
+        Vec_WecPush( vLevels, nArgA+nArgB-1, 0 );
+    }
+    if ( Seed )
+    {
+        Abc_Random( 1 );
+        for ( x = 0; x < Seed; x++ )
+            Abc_Random( 0 );
+        Vec_WecForEachLevel( vProds, vLevel, x )
+            if ( Vec_IntSize(vLevel) > 1 )
+                Vec_IntRandomizeOrder( vLevel );
+    }
+    Wlc_BlastReduceMatrix( pTree, vProds, vLevels, vRes, fSigned, fCla );
+    Vec_IntShrink( vRes, nArgA + nArgB );
+    assert( Vec_IntSize(vRes) == nArgA + nArgB );
+    Vec_IntForEachEntry( vRes, iLit, x )
+        Gia_ManAppendCo( pTree, iLit );
+    pTree = Gia_ManCleanup( pTemp = pTree );
+    Gia_ManStop( pTemp );
+
+    sprintf( pNameP, "prod%d%d.aig", nArgA, nArgB );
+    sprintf( pNameT, "tree%d%d.aig", nArgA, nArgB );
+    Gia_AigerWrite( pProd, pNameP, 0, 0, 0 );
+    Gia_AigerWrite( pTree, pNameT, 0, 0, 0 );
+    Gia_ManStop( pProd );
+    Gia_ManStop( pTree );
+    printf( "Dumped files \"%s\" and \"%s\".\n", pNameP, pNameT );
+
+    Vec_WecFree( vProds );
+    Vec_WecFree( vLevels );
+    Vec_IntFree( vArgA );
+    Vec_IntFree( vArgB );
+    Vec_IntFree( vRes );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

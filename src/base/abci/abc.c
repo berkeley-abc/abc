@@ -50403,7 +50403,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ProdAdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla );
     Gia_Man_t * pTemp = NULL;
     int nArgA       =   4;
     int nArgB       =   4;
