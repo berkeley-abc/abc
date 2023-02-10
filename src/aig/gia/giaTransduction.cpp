@@ -90,7 +90,7 @@ Transduction::Transduction(Gia_Man_t * pGia, int nVerbose, int SortType, Gia_Man
   bdd->SetParameters(1);
   if(pExdc) {
     for(unsigned i = 0; i < vPos.size(); i++) {
-      vvCs[vPos[i]][0] = vExdc[i];
+      vvCs[vPos[i]][0] = vExdc.size() == 1? vExdc[0]: vExdc[i];
     }
   }
   // check and store outputs
