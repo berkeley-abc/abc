@@ -2874,6 +2874,40 @@ void Exa_ManExactSynthesis4Vars()
   SeeAlso     []
 
 ***********************************************************************/
+void Exa6_SortSims( Vec_Wrd_t * vSimsDiv, Vec_Wrd_t * vSimsOut )
+{
+    word * pSims = Vec_WrdArray( vSimsDiv );
+    word * pOuts = Vec_WrdArray( vSimsOut ), temp;
+    int i, j, best_i, nSize = Vec_WrdSize(vSimsDiv);
+    assert( Vec_WrdSize(vSimsOut) == nSize );
+    for ( i = 0; i < nSize-1; i++ )
+    {
+        best_i = i;
+        for ( j = i+1; j < nSize; j++ )
+            if ( pSims[j] < pSims[best_i] )
+                best_i = j;
+        if ( i == best_i )
+            continue;
+        temp = pSims[i]; 
+        pSims[i] = pSims[best_i]; 
+        pSims[best_i] = temp;
+        temp = pOuts[i]; 
+        pOuts[i] = pOuts[best_i]; 
+        pOuts[best_i] = temp;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Exa6_ReadFile( char * pFileName, Vec_Wrd_t ** pvSimsDiv, Vec_Wrd_t ** pvSimsOut, int * pnDivs, int * pnOuts )
 {
     int nIns = 0, nDivs = 0, nOuts = 0, nPats = 0, iLine = 0;
@@ -2899,6 +2933,21 @@ int Exa6_ReadFile( char * pFileName, Vec_Wrd_t ** pvSimsDiv, Vec_Wrd_t ** pvSims
             {
                 Abc_Print( -1, "Cannot read the parameter line in file \"%s\".\n", pFileName );
                 fclose( pFile );
+                return 0;
+            }
+            if ( nIns + nDivs >= 64 )
+            {
+                printf( "The number of variables and divisors should not exceed 64.\n" );
+                return 0;
+            }
+            if ( nOuts > 6 )
+            {
+                printf( "The number of outputs should not exceed 6.\n" );
+                return 0;
+            }
+            if ( nPats >= 1000 )
+            {
+                printf( "The number of patterns should not exceed 1000.\n" );
                 return 0;
             }
             assert( nIns + nDivs < 64 && nOuts <= 6 && (nIns == 0 || nPats <= (1 << nIns)) && nPats < 1000 );
@@ -3330,7 +3379,7 @@ int Exa6_ManGenStart( Exa6_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes,
             for ( j = i+1; j < p->nObjs; j++ )
                 if ( p->VarMarks[j][k][i] )
                     pLits[nLits++] = Abc_Var2Lit( p->VarMarks[j][k][i], 0 );
-        Exa6_ManAddClause( p, pLits, nLits );
+        //Exa6_ManAddClause( p, pLits, nLits );
         if ( fUniqFans )
             for ( n = 0;   n < nLits; n++ )
             for ( m = n+1; m < nLits; m++ )
@@ -3354,9 +3403,12 @@ void Exa6_ManGenMint( Exa6_Man_t * p, int iMint, int fOnlyAnd, int fFancy )
     int iOutMint = Abc_Tt6FirstBit( Vec_WrdEntry(p->vSimsOut, iMint) );
     int fOnlyOne = Abc_TtSuppOnlyOne( (int)Vec_WrdEntry(p->vSimsOut, iMint) );
     int i, k, n, j, VarVals[MAJ_NOBJS];
+    int fAllOnes = Abc_TtCountOnes( Vec_WrdEntry(p->vSimsOut, iMint) ) == (1 << p->nOuts);
+    if ( fAllOnes )
+        return;
     assert( p->nObjs <= MAJ_NOBJS );
     assert( iMint < Vec_WrdSize(p->vSimsIn) );
-    assert( p->nOuts < 5 );
+    assert( p->nOuts <= 6 );
     for ( i = 0; i < p->nDivs; i++ )
         VarVals[i] = (Vec_WrdEntry(p->vSimsIn, iMint) >> i) & 1;
     for ( i = 0; i < p->nNodes; i++ )
@@ -3384,7 +3436,7 @@ void Exa6_ManGenMint( Exa6_Man_t * p, int iMint, int fOnlyAnd, int fFancy )
                 {
                     int iLit = (pCover[c] >> (2*i)) & 3;
                     if ( iLit == 1 || iLit == 2 )
-                        pLits[nLits++] = Abc_Var2Lit(iOutVar + i, iLit == 1);
+                        pLits[nLits++] = Abc_Var2Lit(iOutVar + i, iLit != 1);
                 }
                 Exa6_ManAddClause( p, pLits, nLits );
             }
@@ -3559,7 +3611,7 @@ Mini_Aig_t * Exa6_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIn
     if ( vValues ) pMini = Exa6_ManMiniAig( p, vValues, fFancy );
     //if ( vValues ) Exa6_ManPrintSolution( p, vValues, fFancy );
     if ( vValues ) Exa_ManMiniPrint( pMini, p->nIns );
-    if ( vValues ) Exa_ManMiniVerify( pMini, vSimsIn, vSimsOut );
+    if ( vValues && nIns <= 6 ) Exa_ManMiniVerify( pMini, vSimsIn, vSimsOut );
     Vec_IntFreeP( &vValues );
     Exa6_ManFree( p );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
@@ -3658,7 +3710,8 @@ Mini_Aig_t * Exa_ManExactSynthesis6Int( Vec_Wrd_t * vSimsDiv, Vec_Wrd_t * vSimsO
             Mini_AigStop( pTemp );        
         }
         Mini_AigerWrite( "exa6.aig", pMini, 1 );
-        Exa_ManMiniVerify( pMini, vSimsDiv, vSimsOut );
+        if ( nVars <= 6 )
+            Exa_ManMiniVerify( pMini, vSimsDiv, vSimsOut );
         printf( "\n" );
         //Mini_AigStop( pMini );
     }
@@ -3668,9 +3721,13 @@ Mini_Aig_t * Exa_ManExactSynthesis6Int( Vec_Wrd_t * vSimsDiv, Vec_Wrd_t * vSimsO
 }
 void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName )
 {
+    Mini_Aig_t * pMini = NULL;
     Vec_Wrd_t * vSimsDiv = NULL, * vSimsOut = NULL;
     int nDivs, nOuts, nVars = Exa6_ReadFile( pFileName, &vSimsDiv, &vSimsOut, &nDivs, &nOuts );
-    Mini_Aig_t * pMini = Exa_ManExactSynthesis6Int( vSimsDiv, vSimsOut, nVars, nDivs, nOuts, pPars->nNodes, pPars->fOnlyAnd, pPars->fVerbose );
+    if ( nVars == 0 )
+        return;
+    Exa6_SortSims( vSimsDiv, vSimsOut );
+    pMini = Exa_ManExactSynthesis6Int( vSimsDiv, vSimsOut, nVars, nDivs, nOuts, pPars->nNodes, pPars->fOnlyAnd, pPars->fVerbose );
     Vec_WrdFreeP( &vSimsDiv );
     Vec_WrdFreeP( &vSimsOut );
     if ( pMini ) Mini_AigStop( pMini );
