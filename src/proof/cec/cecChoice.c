@@ -422,6 +422,17 @@ Aig_Man_t * Cec_ComputeChoicesNew( Gia_Man_t * pGia, int nConfs, int fVerbose )
     Gia_ManStop( pGia );
     return pAig;
 }
+Aig_Man_t * Cec_ComputeChoicesNew2( Gia_Man_t * pGia, int nConfs, int fVerbose )
+{
+    extern Gia_Man_t * Cec5_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
+    Aig_Man_t * pAig;
+    Gia_Man_t * pNew = Cec5_ManSimulateTest3( pGia, nConfs, fVerbose );
+    Gia_ManStop( pNew );
+    pGia = Gia_ManEquivToChoices( pGia, 3 );
+    pAig = Gia_ManToAig( pGia, 1 );
+    Gia_ManStop( pGia );
+    return pAig;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
