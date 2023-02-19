@@ -94,7 +94,7 @@ namespace NewBdd {
     nCacheHits = 0;
     CacheThold = nCache;
     CacheHitRate = 1;
-    MinBvarRemoved = BvarMax();
+    RemovedHead = 0;
     SetParameters();
   }
   Man::~Man() {
@@ -170,32 +170,31 @@ namespace NewBdd {
     if(nVerbose >= 2) {
       cout << "Garbage collect" << endl;
     }
-    bvar MinBvarRemovedOld = MinBvarRemoved;
     if(!vEdges.empty()) {
       for(bvar a = (bvar)nVars + 1; a < nObjs; a++) {
         if(!EdgeOfBvar(a) && VarOfBvar(a) != VarMax()) {
           RemoveBvar(a);
         }
       }
-      return MinBvarRemoved != MinBvarRemovedOld;
-    }
-    for(bvar a = (bvar)nVars + 1; a < nObjs; a++) {
-      if(RefOfBvar(a)) {
-        SetMark_rec(Bvar2Lit(a));
+    } else {
+      for(bvar a = (bvar)nVars + 1; a < nObjs; a++) {
+        if(RefOfBvar(a)) {
+          SetMark_rec(Bvar2Lit(a));
+        }
       }
-    }
-    for(bvar a = (bvar)nVars + 1; a < nObjs; a++) {
-      if(!MarkOfBvar(a) && VarOfBvar(a) != VarMax()) {
-        RemoveBvar(a);
+      for(bvar a = (bvar)nVars + 1; a < nObjs; a++) {
+        if(!MarkOfBvar(a) && VarOfBvar(a) != VarMax()) {
+          RemoveBvar(a);
+        }
       }
-    }
-    for(bvar a = (bvar)nVars + 1; a < nObjs; a++) {
-      if(RefOfBvar(a)) {
-        ResetMark_rec(Bvar2Lit(a));
+      for(bvar a = (bvar)nVars + 1; a < nObjs; a++) {
+        if(RefOfBvar(a)) {
+          ResetMark_rec(Bvar2Lit(a));
+        }
       }
     }
     CacheClear();
-    return MinBvarRemoved != MinBvarRemovedOld;
+    return RemovedHead;
   }
 
   void Man::Reorder(bool fVerbose) {
@@ -490,11 +489,9 @@ namespace NewBdd {
       while(*q) {
         if(!EdgeOfBvar(*q)) {
           SetVarOfBvar(*q, VarMax());
-          if(MinBvarRemoved > *q) {
-            MinBvarRemoved = *q;
-          }
           bvar next = vNexts[*q];
-          vNexts[*q] = 0;
+          vNexts[*q] = RemovedHead;
+          RemovedHead = *q;
           *q = next;
           vUniqueCounts[v1]--;
           continue;
