@@ -7464,22 +7464,24 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pDup;
     int c, RetValue;
     int nNodeSizeMax;
+    int nMinSaved;
     int nConeSizeMax;
     int fUpdateLevel;
     int fUseZeros;
     int fUseDcs;
     int fVerbose;
-    extern int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose );
+    extern int Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMinSaved, int nConeSizeMax, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose );
 
     // set defaults
     nNodeSizeMax = 10;
+    nMinSaved    =  1;
     nConeSizeMax = 16;
     fUpdateLevel =  1;
     fUseZeros    =  0;
     fUseDcs      =  0;
     fVerbose     =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nlzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMClzvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7492,6 +7494,17 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             nNodeSizeMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nNodeSizeMax < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMinSaved = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMinSaved < 0 )
                 goto usage;
             break;
         case 'C':
@@ -7523,6 +7536,10 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( fUseZeros )
+        nMinSaved = 0;
+    if ( nMinSaved == 0 )
+        fUseZeros = 1;
 
     if ( pNtk == NULL )
     {
@@ -7553,7 +7570,7 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // modify the current network
     pDup = Abc_NtkDup( pNtk );
-    RetValue = Abc_NtkRefactor( pNtk, nNodeSizeMax, nConeSizeMax, fUpdateLevel, fUseZeros, fUseDcs, fVerbose );
+    RetValue = Abc_NtkRefactor( pNtk, nNodeSizeMax, nMinSaved, nConeSizeMax, fUpdateLevel, fUseZeros, fUseDcs, fVerbose );
     if ( RetValue == -1 )
     {
         Abc_FrameReplaceCurrentNetwork( pAbc, pDup );
@@ -7571,9 +7588,10 @@ int Abc_CommandRefactor( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: refactor [-N <num>] [-lzvh]\n" );
+    Abc_Print( -2, "usage: refactor [-NM <num>] [-lzvh]\n" );
     Abc_Print( -2, "\t           performs technology-independent refactoring of the AIG\n" );
     Abc_Print( -2, "\t-N <num> : the max support of the collapsed node [default = %d]\n", nNodeSizeMax );
+    Abc_Print( -2, "\t-M <num> : the min number of nodes saved after one step (0 <= num) [default = %d]\n", nMinSaved );
 //    Abc_Print( -2, "\t-C <num> : the max support of the containing cone [default = %d]\n", nConeSizeMax );
     Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
@@ -7701,22 +7719,24 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int nCutsMax;
     int nNodesMax;
     int nLevelsOdc;
+    int nMinSaved;
     int fUpdateLevel;
     int fUseZeros;
     int fVerbose;
     int fVeryVerbose;
-    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutsMax, int nNodesMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose );
+    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutsMax, int nNodesMax, int nMinSaved, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose );
 
     // set defaults
     nCutsMax     =  8;
     nNodesMax    =  1;
     nLevelsOdc   =  0;
+    nMinSaved    =  1;
     fUpdateLevel =  1;
     fUseZeros    =  0;
     fVerbose     =  0;
     fVeryVerbose =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KNFlzvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KNMFlzvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7740,6 +7760,17 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             nNodesMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nNodesMax < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMinSaved = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMinSaved < 0 )
                 goto usage;
             break;
         case 'F':
@@ -7771,6 +7802,10 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( fUseZeros )
+        nMinSaved = 0;
+    if ( nMinSaved == 0 )
+        fUseZeros = 1;
 
     if ( pNtk == NULL )
     {
@@ -7799,7 +7834,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkResubstitute( pNtk, nCutsMax, nNodesMax, nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose ) )
+    if ( !Abc_NtkResubstitute( pNtk, nCutsMax, nNodesMax, nMinSaved, nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose ) )
     {
         Abc_Print( -1, "Refactoring has failed.\n" );
         return 1;
@@ -7807,10 +7842,11 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: resub [-KN <num>] [-lzvwh]\n" );
+    Abc_Print( -2, "usage: resub [-KNMF <num>] [-lzvwh]\n" );
     Abc_Print( -2, "\t           performs technology-independent restructuring of the AIG\n" );
     Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );
     Abc_Print( -2, "\t-N <num> : the max number of nodes to add (0 <= num <= 3) [default = %d]\n", nNodesMax );
+    Abc_Print( -2, "\t-M <num> : the min number of nodes saved after one step (0 <= num) [default = %d]\n", nMinSaved );
     Abc_Print( -2, "\t-F <num> : the number of fanout levels for ODC computation [default = %d]\n", nLevelsOdc );
     Abc_Print( -2, "\t-l       : toggle preserving the number of levels [default = %s]\n", fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
@@ -14788,7 +14824,7 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Dar_ManDefaultRwrParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CNflzrvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CNMflzrvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -14812,6 +14848,17 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nSubgMax = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nSubgMax < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMinSaved = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMinSaved < 0 )
                 goto usage;
             break;
         case 'f':
@@ -14838,6 +14885,10 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( pPars->fUseZeros )
+        pPars->nMinSaved = 0;
+    if ( pPars->nMinSaved == 0 )
+        pPars->fUseZeros = 1;
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
@@ -14859,10 +14910,11 @@ int Abc_CommandDRewrite( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: drw [-C num] [-N num] [-lfzrvwh]\n" );
+    Abc_Print( -2, "usage: drw [-C num] [-NM num] [-lfzrvwh]\n" );
     Abc_Print( -2, "\t         performs combinational AIG rewriting\n" );
     Abc_Print( -2, "\t-C num : the max number of cuts at a node [default = %d]\n", pPars->nCutsMax );
     Abc_Print( -2, "\t-N num : the max number of subgraphs tried [default = %d]\n", pPars->nSubgMax );
+    Abc_Print( -2, "\t-M num : the min number of nodes saved after one step (0 <= num) [default = %d]\n", pPars->nMinSaved );
     Abc_Print( -2, "\t-l     : toggle preserving the number of levels [default = %s]\n", pPars->fUpdateLevel? "yes": "no" );
     Abc_Print( -2, "\t-f     : toggle representing fanouts [default = %s]\n", pPars->fFanout? "yes": "no" );
     Abc_Print( -2, "\t-z     : toggle using zero-cost replacements [default = %s]\n", pPars->fUseZeros? "yes": "no" );

@@ -878,7 +878,7 @@ extern ABC_DLL void               Abc_NodeMffcConeSupp( Abc_Obj_t * pNode, Vec_P
 extern ABC_DLL int                Abc_NodeDeref_rec( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeRef_rec( Abc_Obj_t * pNode );
 /*=== abcRefactor.c ==========================================================*/
-extern ABC_DLL int                Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nConeSizeMax, int  fUpdateLevel, int  fUseZeros, int  fUseDcs, int  fVerbose );
+extern ABC_DLL int                Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMinSaved, int nConeSizeMax, int  fUpdateLevel, int  fUseZeros, int  fUseDcs, int  fVerbose );
 /*=== abcRewrite.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose, int fPlaceEnable );
 /*=== abcSat.c ==========================================================*/

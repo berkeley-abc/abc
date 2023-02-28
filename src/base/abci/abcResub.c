@@ -134,7 +134,7 @@ extern abctime s_ResubTime;
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose )
+int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinSaved, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose )
 {
     extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
@@ -214,6 +214,11 @@ clk = Abc_Clock();
 pManRes->timeRes += Abc_Clock() - clk;
         if ( pFForm == NULL )
             continue;
+        if ( pManRes->nLastGain < nMinSaved )
+        {
+            Dec_GraphFree( pFForm );
+            continue;
+        }
         pManRes->nTotalGain += pManRes->nLastGain;
 /*
         if ( pManRes->nLeaves == 4 && pManRes->nMffc == 2 && pManRes->nLastGain == 1 )

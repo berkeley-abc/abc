@@ -51,14 +51,14 @@ void Abc_NtkSynthesize( Abc_Ntk_t ** ppNtk, int fMoreEffort )
     pNtk = *ppNtk;
 
     Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
-    Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
+    Abc_NtkRefactor( pNtk, 10, 1, 16, 0, 0, 0, 0 );
     pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
     Abc_NtkDelete( pNtkTemp );
 
     if ( fMoreEffort )
     {
         Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
-        Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
+        Abc_NtkRefactor( pNtk, 10, 1, 16, 0, 0, 0, 0 );
         pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
         Abc_NtkDelete( pNtkTemp );
 

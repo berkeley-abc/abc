@@ -557,7 +557,7 @@ int Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars )
         pNtk = Abc_NtkBalance( pNtkTemp = pNtk, 0, 0, 0 );          
         Abc_NtkDelete( pNtkTemp );
         Abc_NtkRewrite( pNtk, 0, 0, 0, 0, 0 );
-        Abc_NtkRefactor( pNtk, 10, 16, 0, 0, 0, 0 );
+        Abc_NtkRefactor( pNtk, 10, 1, 16, 0, 0, 0, 0 );
 //printf( "After rwsat = %d. ", Abc_NtkNodeNum(pNtk) );
 //ABC_PRT( "Time", Abc_Clock() - clk );
     }
