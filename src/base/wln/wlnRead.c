@@ -576,7 +576,7 @@ void Rtl_NtkNormRanges( Rtl_Ntk_t * p )
         int Offset = Rtl_WireOffset( p, Wire );
         int First  = Rtl_WireFirst( p, Wire );
         assert( First >> 4 == NameId );
-        if ( Offset );
+        if ( Offset )
         {
             Left  -= Offset;
             Right -= Offset;
@@ -1098,13 +1098,13 @@ void Rtl_NtkPrintWire( Rtl_Ntk_t * p, int * pWire )
 void Rtl_NtkPrintCell( Rtl_Ntk_t * p, int * pCell )
 {
     int i, Par, Val;
-    Rtl_CellForEachAttr( p, pCell, Par, Val, i )
-        fprintf( Rtl_NtkFile(p), "  attribute %s %s\n", Rtl_NtkStr(p, Par), Rtl_NtkStr(p, Val) );
+    Rtl_CellForEachAttr( p, pCell, Par, Val, i )  {
+        fprintf( Rtl_NtkFile(p), "  attribute %s %s\n", Rtl_NtkStr(p, Par), Rtl_NtkStr(p, Val) );  }
         fprintf( Rtl_NtkFile(p), "  cell %s %s\n", Rtl_NtkStr(p, Rtl_CellType(pCell)), Rtl_NtkStr(p, pCell[1]) );
     Rtl_CellForEachParam( p, pCell, Par, Val, i )
         fprintf( Rtl_NtkFile(p), "    parameter" ), Rtl_NtkPrintSig(p, Par), Rtl_NtkPrintSig(p, Val), printf( "\n" );
-    Rtl_CellForEachConnect( p, pCell, Par, Val, i )
-        fprintf( Rtl_NtkFile(p), "    connect" ), Rtl_NtkPrintSig(p, Par), Rtl_NtkPrintSig(p, Val), printf( "\n" );
+    Rtl_CellForEachConnect( p, pCell, Par, Val, i ) {
+        fprintf( Rtl_NtkFile(p), "    connect" ), Rtl_NtkPrintSig(p, Par), Rtl_NtkPrintSig(p, Val), printf( "\n" ); }
         fprintf( Rtl_NtkFile(p), "  end\n" );
 }
 void Rtl_NtkPrintConnection( Rtl_Ntk_t * p, int * pCon )

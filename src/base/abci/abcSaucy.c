@@ -2650,7 +2650,8 @@ saucy_alloc(Abc_Ntk_t * pNtk)
     if (s->ninduce && s->sinduce && s->left.cfront && s->left.clen
         && s->right.cfront && s->right.clen
         && s->stuff && s->bucket && s->count && s->ccount
-        && s->clist && s->nextnon-1 && s->prevnon
+        //&& s->clist && s->nextnon-1 && s->prevnon
+        && s->clist && s->nextnon[-1] && s->prevnon
         && s->start && s->gamma && s->theta && s->left.unlab
         && s->right.lab && s->right.unlab
         && s->left.lab &&  s->splitvar && s->splitwho && s->junk

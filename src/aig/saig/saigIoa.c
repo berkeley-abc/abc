@@ -45,7 +45,7 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 char * Saig_ObjName( Aig_Man_t * p, Aig_Obj_t * pObj )
 {
-    static char Buffer[100];
+    static char Buffer[1000];
     if ( Aig_ObjIsNode(pObj) || Aig_ObjIsConst1(pObj) )
         sprintf( Buffer, "n%0*d", (unsigned char)Abc_Base10Log(Aig_ManObjNumMax(p)), Aig_ObjId(pObj) );
     else if ( Saig_ObjIsPi(p, pObj) )

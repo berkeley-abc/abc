@@ -256,7 +256,7 @@ Wln_Ntk_t * Wln_NtkFromNdr( void * pData, int fDump )
     pNtk->pManName = Abc_NamStart( NameIdMax+1, 10 );
     for ( i = 1; i <= NameIdMax; i++ )
     {
-        char pName[1000]; sprintf( pName, "s%0*d", nDigits, i );
+        char pName[1000]; sprintf( pName, "s%0*d", (unsigned char)nDigits, i );
         NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pName, &fFound );
         assert( !fFound && i == NameId );
     }
