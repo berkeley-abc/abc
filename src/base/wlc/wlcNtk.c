@@ -1293,9 +1293,9 @@ void Wlc_NtkShortNames( Wlc_Ntk_t * p )
 {
     Wlc_Obj_t * pObj;
     char pBuffer[100];
-    int nDigits, NameId, fFound, i;
+    int NameId, fFound, i;
     int nFlops = Wlc_NtkCoNum(p) - Wlc_NtkPoNum(p);
-    nDigits = Abc_Base10Log( nFlops );
+    unsigned char nDigits = (unsigned char)Abc_Base10Log( nFlops );
     Wlc_NtkForEachCo( p, pObj, i )
     {
         if ( Wlc_ObjIsPo(pObj) )

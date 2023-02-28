@@ -1711,7 +1711,7 @@ void Mio_LibraryShortNames( Mio_Library_t * pLib )
 {
     char Buffer[10000];
     Mio_Gate_t * pGate; Mio_Pin_t * pPin;
-    int c = 0, i, nDigits = Abc_Base10Log( Mio_LibraryReadGateNum(pLib) );
+    int c = 0, i; unsigned char nDigits = (unsigned char)Abc_Base10Log( Mio_LibraryReadGateNum(pLib) );
     // itereate through classes
     Mio_LibraryForEachGate( pLib, pGate )
     {

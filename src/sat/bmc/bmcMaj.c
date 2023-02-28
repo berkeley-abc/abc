@@ -3117,7 +3117,7 @@ Gia_Man_t * Gia_ManDupMini( Gia_Man_t * p, Vec_Int_t * vIns, Vec_Int_t * vDivs, 
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj; int i, k;
     Vec_Int_t * vCopies = Vec_IntStartFull( Mini_AigNodeNum(pMini) );
-    int nPis = Mini_AigPiNum(pMini);
+    //int nPis = Mini_AigPiNum(pMini);
     Vec_IntWriteEntry( vCopies, 0, 0 );
     assert( Mini_AigPiNum(pMini) == Vec_IntSize(vIns)+Vec_IntSize(vDivs) );
     assert( Mini_AigPoNum(pMini) == Vec_IntSize(vOuts) );

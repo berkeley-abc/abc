@@ -30991,8 +30991,8 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pGia->vNamesOut )
     {
         char pSuffix[100];
-        Abc_Obj_t * pObj;
-        int i, nDigits = Abc_Base10Log( Abc_NtkLatchNum(pNtk) );
+        Abc_Obj_t * pObj; int i;
+        unsigned char nDigits = (unsigned char)Abc_Base10Log( Abc_NtkLatchNum(pNtk) );
         Abc_NtkForEachCo( pNtk, pObj, i ) {
             if (i < Vec_PtrSize(pAbc->pGia->vNamesOut)) {
                 Nm_ManDeleteIdName(pNtk->pManName, pObj->Id);
@@ -44775,8 +44775,8 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fExtractAll )
     {
         char Buffer[1000];
-        Gia_Obj_t * pObj;
-        int i, nDigits = Abc_Base10Log(Gia_ManPoNum(pAbc->pGia));
+        Gia_Obj_t * pObj; int i;
+        unsigned char nDigits = (unsigned char)Abc_Base10Log(Gia_ManPoNum(pAbc->pGia));
         Gia_ManForEachPo( pAbc->pGia, pObj, i )
         {
             Gia_Man_t * pOne = Gia_ManDupDfsCone( pAbc->pGia, pObj );
@@ -50514,7 +50514,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ProdAdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Gia_Man_t * pTemp = NULL;
     int nArgA       =   4;
     int nArgB       =   4;
     int Seed        =   0;

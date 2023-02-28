@@ -1321,7 +1321,7 @@ Abc_Ntk_t * Abc_NtkCreateWithNodes( Vec_Ptr_t * vSop )
     Abc_Ntk_t * pNtkNew; 
     Abc_Obj_t * pFanin, * pNode, * pNodePo;
     Vec_Ptr_t * vNames;
-    int i, k, nVars; char Buffer[10];
+    int i, k, nVars; char Buffer[100];
     char * pSop = (char *)Vec_PtrEntry(vSop, 0);
     // start the network
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );

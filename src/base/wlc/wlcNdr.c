@@ -367,7 +367,8 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pData;  
     Wlc_Obj_t * pObj; Vec_Int_t * vName2Obj, * vFanins = Vec_IntAlloc( 100 );
-    int Mod = 2, i, k, Obj, * pArray, nDigits, fFound, NameId, NameIdMax;
+    int Mod = 2, i, k, Obj, * pArray, fFound, NameId, NameIdMax;
+    unsigned char nDigits;
     Vec_Wrd_t * vTruths = NULL; int nTruths[2] = {0};
     Wlc_Ntk_t * pTemp, * pNtk = Wlc_NtkAlloc( "top", Ndr_DataObjNum(p, Mod)+1 );
     Wlc_NtkCheckIntegrity( pData );
@@ -488,7 +489,7 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
     Vec_IntFree(vName2Obj);
     // create fake object names
     NameIdMax = Vec_IntFindMax(&pNtk->vNameIds);
-    nDigits = Abc_Base10Log( NameIdMax+1 );
+    nDigits = (unsigned char)Abc_Base10Log( NameIdMax+1 );
     pNtk->pManName = Abc_NamStart( NameIdMax+1, 10 );
     for ( i = 1; i <= NameIdMax; i++ )
     {

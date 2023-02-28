@@ -851,7 +851,7 @@ Gia_Man_t * Gia_ManDupCones2( Gia_Man_t * p, int * pOuts, int nOuts, Vec_Int_t *
 ***********************************************************************/
 int Min_ManRemoveItem( Vec_Wec_t * vCexes, int iItem, int iFirst, int iLimit )
 {
-    Vec_Int_t * vLevel, * vLevel0 = Vec_WecEntry(vCexes, iItem);  int i;
+    Vec_Int_t * vLevel = NULL, * vLevel0 = Vec_WecEntry(vCexes, iItem);  int i;
     assert( iFirst <= iItem && iItem < iLimit );
     Vec_WecForEachLevelReverseStartStop( vCexes, vLevel, i, iLimit, iFirst )
         if ( Vec_IntSize(vLevel) > 0 )

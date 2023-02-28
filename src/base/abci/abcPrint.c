@@ -1172,7 +1172,7 @@ void Abc_NodePrintSop( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames )
         {
             for ( pCur = pCube; *pCur != ' '; pCur++ )
                 if ( *pCur != '-' )
-                    fprintf( pFile, " %s%c", *pCur == '0' ? "!" : "",  'a' + pCur-pCube );
+                    fprintf( pFile, " %s%c", *pCur == '0' ? "!" : "",  (char)('a' + pCur-pCube) );
         }
     }
     fprintf( pFile, "\n" );
