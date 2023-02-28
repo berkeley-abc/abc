@@ -15,9 +15,10 @@
   Revision    [$Id: mapperLib.c,v 1.6 2005/01/23 06:59:44 alanmi Exp $]
 
 ***********************************************************************/
-#define _BSD_SOURCE
+//#define _BSD_SOURCE
 
 #ifndef WIN32
+#define _DEFAULT_SOURCE
 #include <unistd.h>
 #endif
 

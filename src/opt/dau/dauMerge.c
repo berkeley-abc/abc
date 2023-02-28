@@ -48,7 +48,7 @@ typedef struct Dau_Sto_t_ Dau_Sto_t;
 struct Dau_Sto_t_
 {
     int      iVarUsed;                          // counter of used variables
-    char     pOutput[DAU_MAX_STR];              // storage for reduced function
+    char     pOutput[2*DAU_MAX_STR+10];         // storage for reduced function
     char *   pPosOutput;                        // place in the output
     char     pStore[DAU_MAX_VAR][DAU_MAX_STR];  // storage for definitions
     char *   pPosStore[DAU_MAX_VAR];            // place in the store

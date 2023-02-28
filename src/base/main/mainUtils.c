@@ -261,7 +261,7 @@ void Abc_UtilsSource( Abc_Frame_t * pAbc )
 ******************************************************************************/
 char * DateReadFromDateString( char * datestr )
 {
-  static char result[25];
+  static char result[100];
   char        day[10];
   char        month[10];
   char        zone[10];
