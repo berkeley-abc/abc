@@ -1292,7 +1292,7 @@ Wlc_Ntk_t * Wlc_NtkDupSingleNodes( Wlc_Ntk_t * p )
 void Wlc_NtkShortNames( Wlc_Ntk_t * p )
 {
     Wlc_Obj_t * pObj;
-    char pBuffer[100];
+    char pBuffer[1000];
     int NameId, fFound, i;
     int nFlops = Wlc_NtkCoNum(p) - Wlc_NtkPoNum(p);
     unsigned char nDigits = (unsigned char)Abc_Base10Log( nFlops );

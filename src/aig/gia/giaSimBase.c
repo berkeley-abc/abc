@@ -3439,7 +3439,7 @@ int Gia_ManRelCheck( Gia_Man_t * p, Vec_Int_t * vIns, Vec_Int_t * vDivs, Vec_Int
 void Gia_ManRelCompute( Gia_Man_t * p, Vec_Int_t * vIns, Vec_Int_t * vDivs, Vec_Int_t * vOuts, Vec_Wrd_t ** pvSimsIn, Vec_Wrd_t ** pvSimsOut )
 {
     Vec_Wrd_t * vSims, * vRel; 
-    Vec_Wrd_t * vSimsDiv = NULL, * vSimsOut = NULL;
+    //Vec_Wrd_t * vSimsDiv = NULL, * vSimsOut = NULL;
 
     Vec_WrdFreeP( &p->vSimsPi );
     p->vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(p) );

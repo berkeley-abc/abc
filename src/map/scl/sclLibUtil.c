@@ -197,11 +197,11 @@ void Abc_SclShortNames( SC_Lib * p )
     char Buffer[10000];
     SC_Cell * pClass, * pCell; SC_Pin * pPin;
     int i, k, n, nClasses = Abc_SclLibClassNum(p);
-    int nDigits = Abc_Base10Log( nClasses );
+    unsigned char nDigits = (unsigned char)Abc_Base10Log( nClasses );
     // itereate through classes
     SC_LibForEachCellClass( p, pClass, i )
     {
-        int nDigits2 = Abc_Base10Log( Abc_SclClassCellNum(pClass) );
+        unsigned char nDigits2 = (unsigned char)Abc_Base10Log( Abc_SclClassCellNum(pClass) );
         SC_RingForEachCell( pClass, pCell, k )
         {
             ABC_FREE( pCell->pName );
@@ -214,13 +214,13 @@ void Abc_SclShortNames( SC_Lib * p )
             SC_CellForEachPinIn( pCell, pPin, n )
             {
                 ABC_FREE( pPin->pName );
-                sprintf( Buffer, "%c", 'a'+n );
+                sprintf( Buffer, "%c", (char)('a'+n) );
                 pPin->pName = Abc_UtilStrsav( Buffer );
             }
             SC_CellForEachPinOut( pCell, pPin, n )
             {
                 ABC_FREE( pPin->pName );
-                sprintf( Buffer, "%c", 'z'-n+pCell->n_inputs );
+                sprintf( Buffer, "%c", (char)('z'-n+pCell->n_inputs) );
                 pPin->pName = Abc_UtilStrsav( Buffer );
             }
         }

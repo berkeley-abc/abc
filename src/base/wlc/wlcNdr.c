@@ -493,7 +493,7 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
     pNtk->pManName = Abc_NamStart( NameIdMax+1, 10 );
     for ( i = 1; i <= NameIdMax; i++ )
     {
-        char pName[100]; sprintf( pName, "s%0*d", nDigits, i );
+        char pName[1000]; sprintf( pName, "s%0*d", nDigits, i );
         NameId = Abc_NamStrFindOrAdd( pNtk->pManName, pName, &fFound );
         assert( !fFound && i == NameId );
     }

@@ -182,7 +182,7 @@ void Kit_IsopResubInt( Kit_Graph_t * pGraph, Vec_Int_t * vRes )
         Vec_IntPush( vRes, 4 + Abc_Var2Lit(Kit_GraphVarInt(pGraph), Kit_GraphIsComplement(pGraph)) );
     else
     {
-        Kit_Node_t * pNode; int i;
+        Kit_Node_t * pNode = NULL; int i;
         Kit_GraphForEachNode( pGraph, pNode, i )
         {
             Kit_Node_t * pFan0 = Kit_GraphNodeFanin0( pGraph, pNode );

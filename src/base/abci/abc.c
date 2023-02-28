@@ -30990,7 +30990,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     // transfer PO names to pNtk
     if ( pAbc->pGia->vNamesOut )
     {
-        char pSuffix[100];
+        char pSuffix[1000];
         Abc_Obj_t * pObj; int i;
         unsigned char nDigits = (unsigned char)Abc_Base10Log( Abc_NtkLatchNum(pNtk) );
         Abc_NtkForEachCo( pNtk, pObj, i ) {

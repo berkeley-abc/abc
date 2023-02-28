@@ -91,7 +91,7 @@ struct If_DsdMan_t_
     Vec_Mem_t *    vTtMem[IF_MAX_FUNC_LUTSIZE+1];  // truth table memory and hash table
     Vec_Ptr_t *    vTtDecs[IF_MAX_FUNC_LUTSIZE+1]; // truth table decompositions
     Vec_Wec_t *    vIsops[IF_MAX_FUNC_LUTSIZE+1];  // ISOP for each function
-    int *          pSched[IF_MAX_FUNC_LUTSIZE];    // grey code schedules
+    int *          pSched[IF_MAX_FUNC_LUTSIZE+1];  // grey code schedules
     int            nTtBits;        // the number of truth table bits
     int            nConfigWords;   // the number of words for config data per node
     Vec_Wrd_t *    vConfigs;       // permutations

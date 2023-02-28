@@ -370,7 +370,7 @@ Abc_Ntk_t * Io_ReadPlaNetwork( Extra_FileReader_t * p, int fZeros, int fBoth, in
     Abc_Ntk_t * pNtk;
     Abc_Obj_t * pTermPi, * pTermPo, * pNode;
     Vec_Str_t ** ppSops = NULL;
-    char Buffer[100];
+    char Buffer[1000];
     int nInputs = -1, nOutputs = -1, nProducts = -1;
     char * pCubeIn, * pCubeOut;
     int i, k, iLine, nCubes;
