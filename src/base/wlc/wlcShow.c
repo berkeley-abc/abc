@@ -358,7 +358,7 @@ void Wlc_NtkDumpDot( Wlc_Ntk_t * p, char * pFileName, Vec_Int_t * vBold )
 ***********************************************************************/
 void Wlc_NtkShow( Wlc_Ntk_t * p, Vec_Int_t * vBold )
 {
-    extern void Abc_ShowFile( char * FileNameDot );
+    extern void Abc_ShowFile( char * FileNameDot, int fKeepDot );
     FILE * pFile;
     char FileNameDot[200];
     char * pName = Extra_FileDesignName(p->pName);
@@ -377,7 +377,7 @@ void Wlc_NtkShow( Wlc_Ntk_t * p, Vec_Int_t * vBold )
     // generate the file
     Wlc_NtkDumpDot( p, FileNameDot, vBold );
     // visualize the file 
-    Abc_ShowFile( FileNameDot );
+    Abc_ShowFile( FileNameDot, 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////

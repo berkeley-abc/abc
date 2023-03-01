@@ -40,7 +40,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-extern void Abc_ShowFile( char * FileNameDot );
+extern void Abc_ShowFile( char * FileNameDot, int fKeepDot );
 static void Abc_ShowGetFileName( char * pName, char * pBuffer );
 
 ////////////////////////////////////////////////////////////////////////
@@ -71,7 +71,7 @@ void Abc_NodeShowBddOne( DdManager * dd, DdNode * bFunc )
     }
     Cudd_DumpDot( dd, 1, (DdNode **)&bFunc, NULL, NULL, pFile );
     fclose( pFile );
-    Abc_ShowFile( FileNameDot );
+    Abc_ShowFile( FileNameDot, 0 );
 }
 
 /**Function*************************************************************
@@ -119,7 +119,7 @@ void Abc_NodeShowBdd( Abc_Obj_t * pNode, int fCompl )
     fclose( pFile );
 
     // visualize the file 
-    Abc_ShowFile( FileNameDot );
+    Abc_ShowFile( FileNameDot, 0 );
 }
 void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl, int fReorder )
 {
@@ -181,7 +181,7 @@ void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl, int fReorder )
     Abc_NtkCleanCopy( pNtk );
 
     // visualize the file 
-    Abc_ShowFile( FileNameDot );
+    Abc_ShowFile( FileNameDot, 0 );
 }
 
 #else
@@ -246,7 +246,7 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
     Abc_NtkManCutStop( p );
 
     // visualize the file 
-    Abc_ShowFile( FileNameDot );
+    Abc_ShowFile( FileNameDot, 0 );
 }
 
 /**Function*************************************************************
@@ -260,7 +260,7 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse )
+void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse, int fKeepDot )
 {
     FILE * pFile;
     Abc_Ntk_t * pNtk;
@@ -307,7 +307,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse )
     Vec_PtrFree( vNodes );
 
     // visualize the file 
-    Abc_ShowFile( FileNameDot );
+    Abc_ShowFile( FileNameDot, fKeepDot );
     Abc_NtkDelete( pNtk );
 }
 
@@ -323,7 +323,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_ShowFile( char * FileNameDot )
+void Abc_ShowFile( char * FileNameDot, int fKeepDot )
 {
     FILE * pFile;
     char * FileGeneric;
@@ -386,7 +386,7 @@ void Abc_ShowFile( char * FileNameDot )
 
     // spawn the viewer
 #ifdef WIN32
-    _unlink( FileNameDot );
+    if ( !fKeepDot ) _unlink( FileNameDot );
     if ( _spawnl( _P_NOWAIT, pGsNameWin, pGsNameWin, FileNamePs, NULL ) == -1 )
         if ( _spawnl( _P_NOWAIT, "C:\\Program Files\\Ghostgum\\gsview\\gsview32.exe", 
             "C:\\Program Files\\Ghostgum\\gsview\\gsview32.exe", FileNamePs, NULL ) == -1 )
@@ -399,7 +399,7 @@ void Abc_ShowFile( char * FileNameDot )
 #else
     {
         char CommandPs[1000];
-        unlink( FileNameDot );
+        if ( !fKeepDot ) unlink( FileNameDot );
         sprintf( CommandPs,  "%s %s &", pGsNameUnix, FileNamePs ); 
         if ( system( CommandPs ) == -1 )
         {
@@ -516,7 +516,7 @@ void Abc_NtkShowFlopDependency( Abc_Ntk_t * pNtk )
     // write the DOT file
     Abc_NtkWriteFlopDependency( pNtk, FileNameDot );
     // visualize the file 
-    Abc_ShowFile( FileNameDot );
+    Abc_ShowFile( FileNameDot, 0 );
 }
 
 

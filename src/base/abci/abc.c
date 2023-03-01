@@ -3160,7 +3160,8 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fGateNames;
     int fUseReverse;
     int fFlopDep;
-    extern void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse );
+    int fKeepDot;
+    extern void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse, int fKeepDot );
     extern void Abc_NtkShowFlopDependency( Abc_Ntk_t * pNtk );
 
     // set defaults
@@ -3168,8 +3169,9 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
     fGateNames  = 0;
     fUseReverse = 1;
     fFlopDep    = 0;
+    fKeepDot    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rsgfh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rsgfdh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3185,6 +3187,9 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'f':
             fFlopDep ^= 1;
             break;
+        case 'd':
+            fKeepDot ^= 1;
+            break;
         default:
             goto usage;
         }
@@ -3199,11 +3204,11 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fFlopDep )
         Abc_NtkShowFlopDependency( pNtk );
     else
-        Abc_NtkShow( pNtk, fGateNames, fSeq, fUseReverse );
+        Abc_NtkShow( pNtk, fGateNames, fSeq, fUseReverse, fKeepDot );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: show [-srgfh]\n" );
+    Abc_Print( -2, "usage: show [-srgfdh]\n" );
     Abc_Print( -2, "       visualizes the network structure using DOT and GSVIEW\n" );
 #ifdef WIN32
     Abc_Print( -2, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
@@ -3213,6 +3218,7 @@ usage:
     Abc_Print( -2, "\t-r    : toggles ordering nodes in reverse order [default = %s].\n", fUseReverse? "yes": "no" );
     Abc_Print( -2, "\t-g    : toggles printing gate names for mapped network [default = %s].\n", fGateNames? "yes": "no" );
     Abc_Print( -2, "\t-f    : toggles visualizing flop dependency graph [default = %s].\n", fFlopDep? "yes": "no" );
+    Abc_Print( -2, "\t-d    : toggles keeping the .dot file used to produce the .ps file [default = %s].\n", fKeepDot? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
