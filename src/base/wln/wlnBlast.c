@@ -72,8 +72,8 @@ void Rtl_NtkBlastNode( Gia_Man_t * pNew, int Type, int nIns, Vec_Int_t * vDatas,
     extern void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds );
     extern void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds );
     extern void Wlc_BlastZeroCondition( Gia_Man_t * pNew, int * pDiv, int nDiv, Vec_Int_t * vRes );
-    extern void Wlc_BlastDivider( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes );
-    extern void Wlc_BlastDividerSigned( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes );
+    extern void Wlc_BlastDividerTop( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes, int fNonRest );
+    extern void Wlc_BlastDividerSigned( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes, int fNonRest );
     extern void Wlc_BlastPower( Gia_Man_t * pNew, int * pNum, int nNum, int * pExp, int nExp, Vec_Int_t * vTemp, Vec_Int_t * vRes );
 
     int k, iLit, iLit0, iLit1;
@@ -321,9 +321,9 @@ void Rtl_NtkBlastNode( Gia_Man_t * pNew, int Type, int nIns, Vec_Int_t * vDatas,
             int fDivBy0 = 1; // correct with 1
             int fSigned = fSign0 && fSign1;
             if ( fSigned )
-                Wlc_BlastDividerSigned( pNew, Vec_IntArray(vArg0), nRangeMax, Vec_IntArray(vArg1), nRangeMax, Type == ABC_OPER_ARI_DIV, vRes );
+                Wlc_BlastDividerSigned( pNew, Vec_IntArray(vArg0), nRangeMax, Vec_IntArray(vArg1), nRangeMax, Type == ABC_OPER_ARI_DIV, vRes, 0 );
             else
-                Wlc_BlastDivider( pNew, Vec_IntArray(vArg0), nRangeMax, Vec_IntArray(vArg1), nRangeMax, Type == ABC_OPER_ARI_DIV, vRes );
+                Wlc_BlastDividerTop( pNew, Vec_IntArray(vArg0), nRangeMax, Vec_IntArray(vArg1), nRangeMax, Type == ABC_OPER_ARI_DIV, vRes, 0 );
             Vec_IntShrink( vRes, nRange );
             if ( !fDivBy0 )
                 Wlc_BlastZeroCondition( pNew, Vec_IntArray(vArg1), nRange, vRes );
