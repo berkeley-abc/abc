@@ -143,13 +143,15 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, char * p
     int fSVlog = strstr(pFileName, ".sv") != NULL;
     if ( strstr(pFileName, ".rtl") )
         return Rtl_LibReadFile( pFileName, pFileName );
-    sprintf( Command, "%s -qp \"read_verilog %s %s%s; hierarchy %s%s; %sproc; write_rtlil %s\"", 
+    sprintf( Command, "%s -qp \"read_verilog %s%s %s%s; hierarchy %s%s; %sproc; write_rtlil %s\"",
         Wln_GetYosysName(), 
-        pDefines  ? pDefines    : "",
-        fSVlog ? "-sv ":"", pFileName, 
+        pDefines   ? "-D"       : "",
+        pDefines   ? pDefines   : "",
+        fSVlog     ? "-sv "     : "",
+        pFileName,
         pTopModule ? "-top "    : "", 
         pTopModule ? pTopModule : "", 
-        fCollapse ? "flatten; " : "",
+        fCollapse  ? "flatten; ": "",
         pFileTemp );
     if ( fVerbose )
     printf( "%s\n", Command );
@@ -172,13 +174,14 @@ Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * 
     char * pFileTemp = "_temp_.aig";
     int fRtlil = strstr(pFileName, ".rtl") != NULL;
     int fSVlog = strstr(pFileName, ".sv")  != NULL;
-    sprintf( Command, "%s -qp \"%s %s%s%s; hierarchy %s%s; flatten; proc; %saigmap; write_aiger %s\"", 
+    sprintf( Command, "%s -qp \"%s %s%s %s%s; hierarchy %s%s; flatten; proc; %saigmap; write_aiger %s\"",
         Wln_GetYosysName(), 
-        fRtlil ? "read_rtlil" : "read_verilog",
+        fRtlil ? "read_rtlil"   : "read_verilog",
+        pDefines  ? "-D"        : "",
         pDefines  ? pDefines    : "",
-        fSVlog ? " -sv ":" ", 
-        pFileName, 
-        pTopModule ? "-top " : "-auto-top", 
+        fSVlog    ? "-sv "      : "",
+        pFileName,
+        pTopModule ? "-top "    : "-auto-top",
         pTopModule ? pTopModule : "", 
         fTechMap ? "techmap; setundef -zero; " : "", pFileTemp );
     if ( fVerbose )

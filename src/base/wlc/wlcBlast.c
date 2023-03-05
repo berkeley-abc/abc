@@ -1131,13 +1131,14 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
             int This = i == nArgA ? FillA : pArgA[i];
             int Prev = i ? pArgA[i-1] : 0;
             int Part = Gia_ManHashOr( pNew, Gia_ManHashAnd(pNew, One, This), Gia_ManHashAnd(pNew, Two, Prev) );
-            
             pp = Gia_ManHashXor( pNew, Part, Neg );
             if ( pp == 0 || (fSigned && i == nArgA) )
                 continue;
-
-            Vec_WecPush( vProds,  k+i, pp );
-            Vec_WecPush( vLevels, k+i, 0 );
+            if ( pp )
+            {
+                Vec_WecPush( vProds,  k+i, pp );
+                Vec_WecPush( vLevels, k+i, 0 );
+            }
         }
         if ( fSigned ) i--;
         // perform sign extension
@@ -1150,13 +1151,19 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
             Vec_WecPush( vProds,  k+i+1, Sign );
             Vec_WecPush( vLevels, k+i+1, 0 );
 
+            if ( Sign != 1 )
+            {
             Vec_WecPush( vProds,  k+i+2, Abc_LitNot(Sign) );
             Vec_WecPush( vLevels, k+i+2, 0 );
+            }
         }
         else 
         {
+            if ( Sign != 1 )
+            {
             Vec_WecPush( vProds,  k+i, Abc_LitNot(Sign) );
             Vec_WecPush( vLevels, k+i, 0 );
+            }
 
             Vec_WecPush( vProds,  k+i+1, 1 );
             Vec_WecPush( vLevels, k+i+1, 0 );
