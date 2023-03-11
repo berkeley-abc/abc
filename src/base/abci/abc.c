@@ -33847,11 +33847,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fOutputs = 0, nWords = 4, fVerbose = 0;
+    int c, fOutputs = 0, nWords = 4, fTruth = 0, fVerbose = 0;
     char ** pArgvNew;
     int nArgcNew;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Wovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Wtovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33865,6 +33865,9 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nWords < 0 )
                 goto usage;
+            break;
+        case 't':
+            fTruth ^= 1;
             break;
         case 'o':
             fOutputs ^= 1;
@@ -33886,6 +33889,19 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( Gia_ManRegNum(pAbc->pGia) > 0 )
     {
         Abc_Print( -1, "Abc_CommandAbc9ReadSim(): This command works only for combinational AIGs.\n" );
+        return 0;
+    }
+    if ( fTruth )
+    {
+        if ( Gia_ManCiNum(pAbc->pGia) > 20 )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9ReadSim(): More than 20 inputs.\n" );
+            return 1;
+        }
+        Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
+        pAbc->pGia->vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(pAbc->pGia) );
+        Vec_WrdFreeP( &pAbc->pGia->vSimsPo );
+        pAbc->pGia->vSimsPo = Gia_ManSimPatSimOut( pAbc->pGia, pAbc->pGia->vSimsPi, 1 );
         return 0;
     }
     pArgvNew = argv + globalUtilOptind;
@@ -33926,9 +33942,10 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sim_read [-W num] [-ovh] <file>\n" );
+    Abc_Print( -2, "usage: &sim_read [-W num] [-tovh] <file>\n" );
     Abc_Print( -2, "\t         reads simulation patterns from file\n" );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-t     : toggle creating exhaustive simulation info [default = %s]\n", fTruth? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle reading output information [default = %s]\n", fOutputs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -33949,16 +33966,19 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9WriteSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fOutputs = 0, fVerbose = 0;
+    int c, fOutputs = 0, fTrans = 0, fVerbose = 0;
     char ** pArgvNew;
     int nArgcNew;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "otvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'o':
             fOutputs ^= 1;
+            break;
+        case 't':
+            fTrans ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -33993,20 +34013,48 @@ int Abc_CommandAbc9WriteSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( fOutputs )
     {
+        extern void Extra_BitMatrixTransposeP( Vec_Wrd_t * vSimsIn, int nWordsIn, Vec_Wrd_t * vSimsOut, int nWordsOut );
+        Vec_Wrd_t * vTemp;
         assert( Vec_WrdSize(pAbc->pGia->vSimsPo) % Gia_ManCoNum(pAbc->pGia) == 0 );
-        Vec_WrdDumpHex( pArgvNew[0], pAbc->pGia->vSimsPo, Vec_WrdSize(pAbc->pGia->vSimsPo) / Gia_ManCoNum(pAbc->pGia), 1 );
+        if ( fTrans )
+        {
+            int nSize = Vec_WrdSize(pAbc->pGia->vSimsPo);
+            int nWords = Vec_WrdSize(pAbc->pGia->vSimsPo) / Gia_ManCoNum(pAbc->pGia);
+            Vec_WrdFillExtra( pAbc->pGia->vSimsPo, nWords * 64 * ((Gia_ManCoNum(pAbc->pGia) + 63)/64), 0 );
+            vTemp = Vec_WrdStart( Vec_WrdSize(pAbc->pGia->vSimsPo) );
+            Extra_BitMatrixTransposeP( pAbc->pGia->vSimsPo, nWords, vTemp, (Gia_ManCoNum(pAbc->pGia) + 63)/64 );
+            Vec_WrdDumpHex( pArgvNew[0], vTemp, (Gia_ManCoNum(pAbc->pGia) + 63)/64, 1 );
+            Vec_WrdShrink( pAbc->pGia->vSimsPo, nSize );
+            Vec_WrdFree( vTemp );
+        }
+        else
+            Vec_WrdDumpHex( pArgvNew[0], pAbc->pGia->vSimsPo, Vec_WrdSize(pAbc->pGia->vSimsPo) / Gia_ManCoNum(pAbc->pGia), 1 );
     }
     else
     {
+        Vec_Wrd_t * vTemp;
         assert( Vec_WrdSize(pAbc->pGia->vSimsPi) % Gia_ManCiNum(pAbc->pGia) == 0 );
-        Vec_WrdDumpHex( pArgvNew[0], pAbc->pGia->vSimsPi, Vec_WrdSize(pAbc->pGia->vSimsPi) / Gia_ManCiNum(pAbc->pGia), 1 );
+        if ( fTrans )
+        {
+            int nSize = Vec_WrdSize(pAbc->pGia->vSimsPi);
+            int nWords = Vec_WrdSize(pAbc->pGia->vSimsPi) / Gia_ManCiNum(pAbc->pGia);
+            Vec_WrdFillExtra( pAbc->pGia->vSimsPi, nWords * 64 * ((Gia_ManCiNum(pAbc->pGia) + 63)/64), 0 );
+            vTemp = Vec_WrdStart( Vec_WrdSize(pAbc->pGia->vSimsPi) );
+            Extra_BitMatrixTransposeP( pAbc->pGia->vSimsPi, nWords, vTemp, (Gia_ManCiNum(pAbc->pGia) + 63)/64 );
+            Vec_WrdDumpHex( pArgvNew[0], vTemp, (Gia_ManCiNum(pAbc->pGia) + 63)/64, 1 );
+            Vec_WrdShrink( pAbc->pGia->vSimsPi, nSize );
+            Vec_WrdFree( vTemp );
+        }
+        else
+            Vec_WrdDumpHex( pArgvNew[0], pAbc->pGia->vSimsPi, Vec_WrdSize(pAbc->pGia->vSimsPi) / Gia_ManCiNum(pAbc->pGia), 1 );
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sim_write [-vh] <file>\n" );
+    Abc_Print( -2, "usage: &sim_write [-otvh] <file>\n" );
     Abc_Print( -2, "\t         writes simulation patterns into a file\n" );
     Abc_Print( -2, "\t-o     : toggle writing output information [default = %s]\n", fOutputs? "yes": "no" );
+    Abc_Print( -2, "\t-t     : toggle transposing the simulation information [default = %s]\n", fTrans? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : file to store the simulation info\n");
