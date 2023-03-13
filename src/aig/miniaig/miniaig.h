@@ -162,6 +162,34 @@ static Mini_Aig_t * Mini_AigStartSupport( int nIns, int nObjsAlloc )
         p->pArray[i] = MINI_AIG_NULL;
     return p;
 }
+static Mini_Aig_t * Mini_AigStartArray( int nIns, int n0InAnds, int * p0InAnds, int nOuts, int * pOuts )
+{
+    Mini_Aig_t * p; int i;
+    assert( 1+nIns <= n0InAnds );
+    p = MINI_AIG_CALLOC( Mini_Aig_t, 1 );
+    p->nCap   = 2*(n0InAnds + nOuts);
+    p->nSize  = 2*(n0InAnds + nOuts);
+    p->pArray = MINI_AIG_ALLOC( int, p->nCap );
+    for ( i = 0; i < 2*(1 + nIns); i++ )
+        p->pArray[i] = MINI_AIG_NULL;
+    memcpy( p->pArray + 2*(1 + nIns), p0InAnds + 2*(1 + nIns), 2*(n0InAnds - 1 - nIns)*sizeof(int) );
+    for ( i = 0; i < nOuts; i++ )
+    {
+        p->pArray[2*(n0InAnds + i)+0] = pOuts[i];
+        p->pArray[2*(n0InAnds + i)+1] = MINI_AIG_NULL;
+    }
+    return p;
+}
+static Mini_Aig_t * Mini_AigDup( Mini_Aig_t * p )
+{
+    Mini_Aig_t * pNew;
+    pNew = MINI_AIG_CALLOC( Mini_Aig_t, 1 );
+    pNew->nCap   = p->nCap;
+    pNew->nSize  = p->nSize;
+    pNew->pArray = MINI_AIG_ALLOC( int, p->nSize );
+    memcpy( pNew->pArray, p->pArray, p->nSize * sizeof(int) );
+    return pNew;
+}
 static void Mini_AigStop( Mini_Aig_t * p )
 {
     MINI_AIG_FREE( p->pArray );
@@ -352,6 +380,32 @@ static int Mini_AigMuxMulti_rec( Mini_Aig_t * p, int * pCtrl, int * pData, int n
     Res1 = Mini_AigMuxMulti_rec( p, pCtrl+1, pData+nData/2, nData/2 );
     return Mini_AigMux( p, pCtrl[0], Res1, Res0 );
 }
+static Mini_Aig_t * Mini_AigTransformXor( Mini_Aig_t * p )
+{
+    Mini_Aig_t * pNew = Mini_AigStart();
+    int i, * pCopy = MINI_AIG_ALLOC( int, Mini_AigNodeNum(p) );
+    Mini_AigForEachPi( p, i )
+        pCopy[i] = Mini_AigCreatePi(pNew);
+    Mini_AigForEachAnd( p, i )
+    {
+        int iLit0 = Mini_AigNodeFanin0(p, i);
+        int iLit1 = Mini_AigNodeFanin1(p, i);
+        iLit0 = Mini_AigLitNotCond( pCopy[Mini_AigLit2Var(iLit0)], Mini_AigLitIsCompl(iLit0) );
+        iLit1 = Mini_AigLitNotCond( pCopy[Mini_AigLit2Var(iLit1)], Mini_AigLitIsCompl(iLit1) );
+        if ( iLit0 < iLit1 )
+            pCopy[i] = Mini_AigAnd( pNew, iLit0, iLit1 );
+        else
+            pCopy[i] = Mini_AigXor( pNew, iLit0, iLit1 );
+    }
+    Mini_AigForEachPo( p, i )
+    {
+        int iLit0 = Mini_AigNodeFanin0( p, i );
+        iLit0 = Mini_AigLitNotCond( pCopy[Mini_AigLit2Var(iLit0)], Mini_AigLitIsCompl(iLit0) );
+        pCopy[i] = Mini_AigCreatePo( pNew, iLit0 );
+    }
+    MINI_AIG_FREE( pCopy );
+    return pNew;
+}
 
 
 static unsigned s_MiniTruths5[5] = {
@@ -506,6 +560,76 @@ static void Mini_AigDumpVerilog( char * pFileName, char * pModuleName, Mini_Aig_
     MINI_AIG_FREE( pObjIsPi );
     fclose( pFile );
 }
+
+// procedure to dump MiniAIG into a BLIF file
+static void Mini_AigDumpBlif( char * pFileName, char * pModuleName, Mini_Aig_t * p, int fVerbose )
+{
+    int i, k, iFaninLit0, iFaninLit1, Length = strlen(pModuleName), nPis = Mini_AigPiNum(p), nPos = Mini_AigPoNum(p);
+    char * pObjIsPi = MINI_AIG_FALLOC( char, Mini_AigNodeNum(p) );
+    FILE * pFile = fopen( pFileName, "wb" );
+    assert( nPis <= 26 );
+    if ( pFile == NULL ) { printf( "Cannot open output file %s\n", pFileName ); MINI_AIG_FREE( pObjIsPi ); return; }
+    // write interface
+    //fprintf( pFile, "// This MiniAIG dump was produced by ABC on %s\n\n", Extra_TimeStamp() );
+    fprintf( pFile, ".model %s\n", pModuleName );
+    if ( nPis > 0 )
+    {
+        k = 0;
+        fprintf( pFile, ".inputs" );
+        Mini_AigForEachPi( p, i )
+        {
+            pObjIsPi[i] = k;
+            fprintf( pFile, " %c", (char)('a'+k++) );
+        }
+    }
+    k = 0;
+    fprintf( pFile, "\n.outputs" );
+    Mini_AigForEachPo( p, i )
+        fprintf( pFile, " o%d", k++ );
+    fprintf( pFile, "\n\n" );
+    // write LUTs
+    Mini_AigForEachAnd( p, i )
+    {
+        iFaninLit0 = Mini_AigNodeFanin0( p, i );
+        iFaninLit1 = Mini_AigNodeFanin1( p, i );
+        fprintf( pFile, ".names" );
+        if ( pObjIsPi[iFaninLit0 >> 1] >= 0 )
+            fprintf( pFile, " %c", (char)('a'+pObjIsPi[iFaninLit0 >> 1]) );
+        else
+            fprintf( pFile, " n%d", iFaninLit0 >> 1 );
+        if ( pObjIsPi[iFaninLit1 >> 1] >= 0 )
+            fprintf( pFile, " %c", (char)('a'+pObjIsPi[iFaninLit1 >> 1]) );
+        else
+            fprintf( pFile, " n%d", iFaninLit1 >> 1 );
+        fprintf( pFile, " n%d\n", i );
+        if ( iFaninLit0 < iFaninLit1 )
+            fprintf( pFile, "%d%d 1\n", !(iFaninLit0 & 1), !(iFaninLit1 & 1) );
+        else if ( !(iFaninLit0 & 1) == !(iFaninLit1 & 1) )
+            fprintf( pFile, "10 1\n01 1\n" );
+        else
+            fprintf( pFile, "00 1\n11 1\n" );
+    }
+    // write assigns
+    fprintf( pFile, "\n" );
+    k = 0;
+    Mini_AigForEachPo( p, i )
+    {
+        iFaninLit0 = Mini_AigNodeFanin0( p, i );
+        fprintf( pFile, ".names" );
+        if ( pObjIsPi[iFaninLit0 >> 1] >= 0 )
+            fprintf( pFile, " %c", (char)('a'+pObjIsPi[iFaninLit0 >> 1]) );
+        else
+            fprintf( pFile, " n%d", iFaninLit0 >> 1 );
+        fprintf( pFile, " o%d\n", k++ );
+        fprintf( pFile, "%d 1\n", !(iFaninLit0 & 1) );
+    }
+    fprintf( pFile, ".end\n\n" );
+    MINI_AIG_FREE( pObjIsPi );
+    fclose( pFile );
+    if ( fVerbose )
+        printf( "Written MiniAIG into the BLIF file \"%s\".\n", pFileName );
+}
+
 
 // checks if MiniAIG is normalized (first inputs, then internal nodes, then outputs)
 static int Mini_AigIsNormalized( Mini_Aig_t * p )
