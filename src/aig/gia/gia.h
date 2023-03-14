@@ -1140,7 +1140,7 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
 #define Gia_ManForEachLutReverse( p, i )                                \
     for ( i = Gia_ManObjNum(p) - 1; i > 0; i-- ) if ( !Gia_ObjIsLut(p, i) ) {} else
 #define Gia_LutForEachFanin( p, i, iFan, k )                            \
-    for ( k = 0; k < Gia_ObjLutSize(p,i) && ((iFan = Gia_ObjLutFanins(p,i)[k]),1); k++ )
+    for ( k = 0; k < Gia_ObjLutSize(p,i) && ((iFan = Gia_ObjLutFanins(p,i)[k]),1); k++ ) if (iFan >= 0)
 #define Gia_LutForEachFaninObj( p, i, pFanin, k )                       \
     for ( k = 0; k < Gia_ObjLutSize(p,i) && ((pFanin = Gia_ManObj(p, Gia_ObjLutFanins(p,i)[k])),1); k++ )
 
