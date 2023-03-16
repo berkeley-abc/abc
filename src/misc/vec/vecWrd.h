@@ -1284,7 +1284,46 @@ static inline void Vec_WrdAppend( Vec_Wrd_t * vVec1, Vec_Wrd_t * vVec2 )
   SeeAlso     []
 
 ***********************************************************************/
-static inline void Gia_ManSimPatWriteOne( FILE * pFile, word * pSim, int nWords )
+static inline void Vec_WrdDumpBoolOne( FILE * pFile, word * pSim, int nBits, int fReverse )
+{
+    int k;
+    if ( fReverse )
+        for ( k = nBits-1; k >= 0; k-- )
+            fprintf( pFile, "%d", (pSim[k/64] >> (k%64)) & 1 );
+    else
+        for ( k = 0; k < nBits; k++ )
+            fprintf( pFile, "%d", (pSim[k/64] >> (k%64)) & 1 );
+    fprintf( pFile, "\n" );
+}
+static inline void Vec_WrdDumpBool( char * pFileName, Vec_Wrd_t * p, int nWords, int nBits, int fReverse, int fVerbose )
+{
+    int i, nNodes = Vec_WrdSize(p) / nWords;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    assert( Vec_WrdSize(p) % nWords == 0 );
+    for ( i = 0; i < nNodes; i++ )
+        Vec_WrdDumpBoolOne( pFile, Vec_WrdEntryP(p, i*nWords), nBits, fReverse );
+    fclose( pFile );
+    if ( fVerbose )
+        printf( "Written %d bits of simulation data for %d objects into file \"%s\".\n", nBits, Vec_WrdSize(p)/nWords, pFileName );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_WrdDumpHexOne( FILE * pFile, word * pSim, int nWords )
 {
     int k, Digit, nDigits = nWords*16;
     for ( k = 0; k < nDigits; k++ )
@@ -1302,7 +1341,7 @@ static inline void Vec_WrdPrintHex( Vec_Wrd_t * p, int nWords )
     int i, nNodes = Vec_WrdSize(p) / nWords;
     assert( Vec_WrdSize(p) % nWords == 0 );
     for ( i = 0; i < nNodes; i++ )
-        Gia_ManSimPatWriteOne( stdout, Vec_WrdEntryP(p, i*nWords), nWords );
+        Vec_WrdDumpHexOne( stdout, Vec_WrdEntryP(p, i*nWords), nWords );
 }
 static inline void Vec_WrdDumpHex( char * pFileName, Vec_Wrd_t * p, int nWords, int fVerbose )
 {
@@ -1315,7 +1354,7 @@ static inline void Vec_WrdDumpHex( char * pFileName, Vec_Wrd_t * p, int nWords, 
     }
     assert( Vec_WrdSize(p) % nWords == 0 );
     for ( i = 0; i < nNodes; i++ )
-        Gia_ManSimPatWriteOne( pFile, Vec_WrdEntryP(p, i*nWords), nWords );
+        Vec_WrdDumpHexOne( pFile, Vec_WrdEntryP(p, i*nWords), nWords );
     fclose( pFile );
     if ( fVerbose )
         printf( "Written %d words of simulation data for %d objects into file \"%s\".\n", nWords, Vec_WrdSize(p)/nWords, pFileName );
