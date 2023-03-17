@@ -392,7 +392,7 @@ static Mini_Aig_t * Mini_AigTransformXor( Mini_Aig_t * p )
         int iLit1 = Mini_AigNodeFanin1(p, i);
         iLit0 = Mini_AigLitNotCond( pCopy[Mini_AigLit2Var(iLit0)], Mini_AigLitIsCompl(iLit0) );
         iLit1 = Mini_AigLitNotCond( pCopy[Mini_AigLit2Var(iLit1)], Mini_AigLitIsCompl(iLit1) );
-        if ( iLit0 < iLit1 )
+        if ( iLit0 <= iLit1 )
             pCopy[i] = Mini_AigAnd( pNew, iLit0, iLit1 );
         else
             pCopy[i] = Mini_AigXor( pNew, iLit0, iLit1 );
@@ -564,15 +564,15 @@ static void Mini_AigDumpVerilog( char * pFileName, char * pModuleName, Mini_Aig_
 // procedure to dump MiniAIG into a BLIF file
 static void Mini_AigDumpBlif( char * pFileName, char * pModuleName, Mini_Aig_t * p, int fVerbose )
 {
-    int i, k, iFaninLit0, iFaninLit1, Length = strlen(pModuleName), nPis = Mini_AigPiNum(p), nPos = Mini_AigPoNum(p);
+    int i, k, iFaninLit0, iFaninLit1;
     char * pObjIsPi = MINI_AIG_FALLOC( char, Mini_AigNodeNum(p) );
     FILE * pFile = fopen( pFileName, "wb" );
-    assert( nPis <= 26 );
+    assert( Mini_AigPiNum(p) <= 26 );
     if ( pFile == NULL ) { printf( "Cannot open output file %s\n", pFileName ); MINI_AIG_FREE( pObjIsPi ); return; }
     // write interface
     //fprintf( pFile, "// This MiniAIG dump was produced by ABC on %s\n\n", Extra_TimeStamp() );
     fprintf( pFile, ".model %s\n", pModuleName );
-    if ( nPis > 0 )
+    if ( Mini_AigPiNum(p) )
     {
         k = 0;
         fprintf( pFile, ".inputs" );
