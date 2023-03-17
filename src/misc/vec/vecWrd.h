@@ -1289,10 +1289,10 @@ static inline void Vec_WrdDumpBoolOne( FILE * pFile, word * pSim, int nBits, int
     int k;
     if ( fReverse )
         for ( k = nBits-1; k >= 0; k-- )
-            fprintf( pFile, "%d", (pSim[k/64] >> (k%64)) & 1 );
+            fprintf( pFile, "%d", (int)((pSim[k/64] >> (k%64)) & 1) );
     else
         for ( k = 0; k < nBits; k++ )
-            fprintf( pFile, "%d", (pSim[k/64] >> (k%64)) & 1 );
+            fprintf( pFile, "%d", (int)((pSim[k/64] >> (k%64)) & 1) );
     fprintf( pFile, "\n" );
 }
 static inline void Vec_WrdDumpBool( char * pFileName, Vec_Wrd_t * p, int nWords, int nBits, int fReverse, int fVerbose )
