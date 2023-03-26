@@ -324,12 +324,20 @@ Vec_Int_t * Gia_ManStartMappingFanoutMap( Gia_Man_t * p, Vec_Int_t * vFanoutNums
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManStaticMappingFanoutStart( Gia_Man_t * p )
+void Gia_ObjCheckDupMappingFanins( Gia_Man_t * p, int iObj )
+{
+    int * pFanins = Gia_ObjLutFanins( p, iObj );
+    int i, k, nFanins = Gia_ObjLutSize( p, iObj );
+    for ( i = 0; i < nFanins; i++ )
+    for ( k = i + 1; k < nFanins; k++ )
+        assert( pFanins[i] != pFanins[k] );
+}
+void Gia_ManStaticMappingFanoutStart( Gia_Man_t * p, Vec_Int_t ** pvIndex )
 {
     Vec_Int_t * vCounts;
     int * pRefsOld;
     Gia_Obj_t * pObj, * pFanin;
-    int i, k, iFan, iFanout;
+    int i, k, iFan, iFanout, Index;
     assert( p->vFanoutNums == NULL );
     assert( p->vFanout == NULL );
     // recompute reference counters
@@ -339,17 +347,22 @@ void Gia_ManStaticMappingFanoutStart( Gia_Man_t * p )
     p->pLutRefs = pRefsOld;
     // start the fanout maps
     p->vFanout = Gia_ManStartMappingFanoutMap( p, p->vFanoutNums );
+    if ( pvIndex )
+        *pvIndex = Vec_IntStart( Vec_IntSize(p->vFanout) );
     // incrementally add fanouts
     vCounts = Vec_IntStart( Gia_ManObjNum(p) );
     Gia_ManForEachLut( p, i )
     {
+        Gia_ObjCheckDupMappingFanins( p, i );
         pObj = Gia_ManObj( p, i );
-        Gia_LutForEachFanin( p, i, iFan, k )
+        Gia_LutForEachFaninIndex( p, i, iFan, k, Index )
         {
             pFanin = Gia_ManObj( p, iFan );
             iFanout = Vec_IntEntry( vCounts, iFan );
             Gia_ObjSetFanout( p, pFanin, iFanout, pObj );
             Vec_IntAddToEntry( vCounts, iFan, 1 );
+            if ( pvIndex )
+                Vec_IntWriteEntry( *pvIndex, Vec_IntEntry(p->vFanout, iFan) + iFanout, Index );
         }
     }
     Gia_ManForEachCo( p, pObj, i )

@@ -1789,7 +1789,7 @@ void Mf_ManOptimization( Mf_Man_t * p )
     Gia_Man_t * pGia = p->pGia0;
     int i, Count, nNodes = Mf_ManMappingFromMapping( p );
     Gia_ManLevelNum( pGia );
-    Gia_ManStaticMappingFanoutStart( pGia );
+    Gia_ManStaticMappingFanoutStart( pGia, NULL );
     Mf_ManPrintFanoutProfile( p, pGia->vFanoutNums );
     printf( "\nIndividual logic cones for mapping with %d nodes:\n", nNodes );
     Vec_IntForEachEntry( pGia->vFanoutNums, Count, i )

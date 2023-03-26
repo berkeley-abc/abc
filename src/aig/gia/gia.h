@@ -1105,10 +1105,12 @@ static inline Gia_Obj_t * Gia_ObjFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i 
 static inline void        Gia_ObjSetFanout( Gia_Man_t * p, Gia_Obj_t * pObj, int i, Gia_Obj_t * pFan )   { Vec_IntWriteEntry( p->vFanout, Gia_ObjFoffset(p, pObj) + i, Gia_ObjId(p, pFan) ); }
 static inline void        Gia_ObjSetFanoutInt( Gia_Man_t * p, Gia_Obj_t * pObj, int i, int x )           { Vec_IntWriteEntry( p->vFanout, Gia_ObjFoffset(p, pObj) + i, x );                  }
 
-#define Gia_ObjForEachFanoutStatic( p, pObj, pFanout, i )      \
-    for ( i = 0; (i < Gia_ObjFanoutNum(p, pObj))   && (((pFanout) = Gia_ObjFanout(p, pObj, i)), 1); i++ )
-#define Gia_ObjForEachFanoutStaticId( p, Id, FanId, i )      \
-    for ( i = 0; (i < Gia_ObjFanoutNumId(p, Id))   && (((FanId) = Gia_ObjFanoutId(p, Id, i)), 1); i++ )
+#define Gia_ObjForEachFanoutStatic( p, pObj, pFanout, i )         \
+    for ( i = 0; (i < Gia_ObjFanoutNum(p, pObj)) && (((pFanout) = Gia_ObjFanout(p, pObj, i)), 1); i++ )
+#define Gia_ObjForEachFanoutStaticId( p, Id, FanId, i )           \
+    for ( i = 0; (i < Gia_ObjFanoutNumId(p, Id)) && ((FanId = Gia_ObjFanoutId(p, Id, i)), 1); i++ )
+#define Gia_ObjForEachFanoutStaticIndex( p, Id, FanId, i, Index ) \
+    for ( i = 0; (i < Gia_ObjFanoutNumId(p, Id)) && (Index = Vec_IntEntry(p->vFanout, Id)+i) && ((FanId = Vec_IntEntry(p->vFanout, Index)), 1); i++ )
 
 static inline int         Gia_ManHasMapping( Gia_Man_t * p )                { return p->vMapping != NULL;                                                   }
 static inline int         Gia_ObjIsLut( Gia_Man_t * p, int Id )             { return Vec_IntEntry(p->vMapping, Id) != 0;                                    }
@@ -1141,6 +1143,8 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
     for ( i = Gia_ManObjNum(p) - 1; i > 0; i-- ) if ( !Gia_ObjIsLut(p, i) ) {} else
 #define Gia_LutForEachFanin( p, i, iFan, k )                            \
     for ( k = 0; k < Gia_ObjLutSize(p,i) && ((iFan = Gia_ObjLutFanins(p,i)[k]),1); k++ )
+#define Gia_LutForEachFaninIndex( p, i, iFan, k, Index )                            \
+    for ( k = 0; k < Gia_ObjLutSize(p,i) && (Index = Vec_IntEntry(p->vMapping, i)+1+k) && ((iFan = Vec_IntEntry(p->vMapping, Index)),1); k++ )
 #define Gia_LutForEachFaninObj( p, i, pFanin, k )                       \
     for ( k = 0; k < Gia_ObjLutSize(p,i) && ((pFanin = Gia_ManObj(p, Gia_ObjLutFanins(p,i)[k])),1); k++ )
 
@@ -1437,7 +1441,7 @@ extern void                Gia_ManFanoutStart( Gia_Man_t * p );
 extern void                Gia_ManFanoutStop( Gia_Man_t * p );
 extern void                Gia_ManStaticFanoutStart( Gia_Man_t * p );
 extern void                Gia_ManStaticFanoutStop( Gia_Man_t * p );
-extern void                Gia_ManStaticMappingFanoutStart( Gia_Man_t * p );
+extern void                Gia_ManStaticMappingFanoutStart( Gia_Man_t * p, Vec_Int_t ** pvIndex );
 /*=== giaForce.c =========================================================*/
 extern void                For_ManExperiment( Gia_Man_t * pGia, int nIters, int fClustered, int fVerbose );
 /*=== giaFrames.c =========================================================*/
