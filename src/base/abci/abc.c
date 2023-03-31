@@ -40539,11 +40539,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Sif( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManTestSif( Gia_Man_t * p, int nLutSize, int fVerbose );
+    extern Gia_Man_t * Gia_ManSifPerform( Gia_Man_t * p, int nLutSize, int fEvalOnly, int fVerbose );
     Gia_Man_t * pNew;
-    int c, nLutSize = 6, fVerbose = 0;
+    int c, nLutSize = 6, fEvalOnly = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Kvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kevh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -40561,6 +40561,9 @@ int Abc_CommandAbc9Sif( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             break;
+        case 'e':
+            fEvalOnly ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -40574,15 +40577,16 @@ int Abc_CommandAbc9Sif( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
-    pNew = Gia_ManTestSif( pAbc->pGia, nLutSize, fVerbose );
+    pNew = Gia_ManSifPerform( pAbc->pGia, nLutSize, fEvalOnly, fVerbose );
     if ( pNew != NULL )
         Abc_FrameUpdateGia( pAbc, pNew );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sif [-K num] [-vh]\n" );
+    Abc_Print( -2, "usage: &sif [-K num] [-evh]\n" );
     Abc_Print( -2, "\t           performs technology mapping\n" );
     Abc_Print( -2, "\t-K num   : sets the LUT size for the mapping [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-e       : toggles the evaluation mode [default = %s]\n", fEvalOnly? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

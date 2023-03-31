@@ -1238,6 +1238,8 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
     for ( i = 0; (i < Gia_ManRegNum(p)) && ((pObj) = Gia_ManCo(p, Gia_ManPoNum(p)+i)); i++ )
 #define Gia_ManForEachRiRo( p, pObjRi, pObjRo, i )                      \
     for ( i = 0; (i < Gia_ManRegNum(p)) && ((pObjRi) = Gia_ManCo(p, Gia_ManPoNum(p)+i)) && ((pObjRo) = Gia_ManCi(p, Gia_ManPiNum(p)+i)); i++ )
+#define Gia_ManForEachRoToRiVec( vRoIds, p, pObj, i )                   \
+    for ( i = 0; (i < Vec_IntSize(vRoIds)) && ((pObj) = Gia_ObjRoToRi(p, Gia_ManObj(p, Vec_IntEntry(vRoIds, i)))); i++ )
  
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
