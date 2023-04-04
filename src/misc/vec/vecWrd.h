@@ -1219,6 +1219,36 @@ static inline Vec_Wrd_t * Vec_WrdUniqifyHash( Vec_Wrd_t * vData, int nWordSize )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the number of common entries.]
+
+  Description [Assumes that the vectors are sorted in the increasing order.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Vec_WrdTwoCountCommon( Vec_Wrd_t * vArr1, Vec_Wrd_t * vArr2 )
+{
+    word * pBeg1 = vArr1->pArray;
+    word * pBeg2 = vArr2->pArray;
+    word * pEnd1 = vArr1->pArray + vArr1->nSize;
+    word * pEnd2 = vArr2->pArray + vArr2->nSize;
+    int Counter = 0;
+    while ( pBeg1 < pEnd1 && pBeg2 < pEnd2 )
+    {
+        if ( *pBeg1 == *pBeg2 )
+            pBeg1++, pBeg2++, Counter++;
+        else if ( *pBeg1 < *pBeg2 )
+            pBeg1++;
+        else
+            pBeg2++;
+    }
+    return Counter;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Comparison procedure for two integers.]
 
   Description []

@@ -1864,6 +1864,8 @@ finalize:
     Cec4_ManDestroy( pMan );
     //Gia_ManStaticFanoutStop( p );
     //Gia_ManEquivPrintClasses( p, 1, 0 );
+    if ( *ppNew == NULL )
+        *ppNew = Gia_ManDup(p);
     return p->pCexSeq ? 0 : 1;
 }
 Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )

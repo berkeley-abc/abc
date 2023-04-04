@@ -359,7 +359,7 @@ Vec_Int_t * Gia_ManSifTimesToCounts( Gia_Man_t * p, Vec_Int_t * vTimes, int Peri
 }
 Gia_Man_t * Gia_ManSifTransform( Gia_Man_t * p, Vec_Int_t * vCuts, Vec_Int_t * vTimes, int nLutSize, int Period, int fVerbose )
 {
-    Gia_Man_t * pTemp = NULL, * pNew = NULL; Vec_Int_t * vCounts = NULL, * vTimesNew = NULL;
+    Gia_Man_t * pNew = NULL; Vec_Int_t * vCounts = NULL;
     if ( fVerbose )
         printf( "Current area = %d.  Period = %d.  ", Gia_ManSifArea(p, vCuts, nLutSize+1), Period );
     if ( fVerbose )
