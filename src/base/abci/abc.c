@@ -14226,11 +14226,13 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Extra_SimulationTest( nDivMax, nNumOnes, fNewOrder );
     //Mnist_ExperimentWithScaling( nDecMax );
     //Gyx_ProblemSolveTest();
+/*
     {
         extern Abc_Ntk_t * Abc_NtkFromArray();
         Abc_Ntk_t * pNtkRes = Abc_NtkFromArray();
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
+*/
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );
