@@ -675,6 +675,10 @@ SOURCE=.\src\base\io\ioWriteDot.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioWriteEdgelist.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioWriteEqn.c
 # End Source File
 # Begin Source File
