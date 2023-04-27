@@ -917,7 +917,7 @@ static inline void Cec5_ObjSimCi( Gia_Man_t * p, int iObj )
     int w;
     word * pSim = Cec5_ObjSim( p, iObj );
     for ( w = 0; w < p->nSimWords; w++ )
-        pSim[w] = Gia_ManRandomW( 0 );
+        pSim[w] = Abc_RandomW( 0 );
     pSim[0] <<= 1;
 }
 static inline void Cec5_ObjClearSimCi( Gia_Man_t * p, int iObj )
@@ -1902,7 +1902,7 @@ int Cec5_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         assert( Gia_ObjId(p, pObj) == i+1 );
 
     // check if any output trivially fails under all-0 pattern
-    Gia_ManRandom( 1 );
+    Abc_Random( 1 );
     Gia_ManSetPhase( p );
     if ( pPars->nLevelMax )
         Gia_ManLevelNum(p);
