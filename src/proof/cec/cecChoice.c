@@ -412,11 +412,33 @@ Aig_Man_t * Cec_ComputeChoices( Gia_Man_t * pGia, Dch_Pars_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManRemoveWrongChoices( Gia_Man_t * p )
+{
+    int i, iObj, iPrev, Counter = 0;
+    Gia_ManForEachClass( p, i )
+    {
+        for ( iPrev = i, iObj = Gia_ObjNext(p, i); -1 < iObj; iObj = Gia_ObjNext(p, iPrev) )
+        {
+            Gia_Obj_t * pRepr = Gia_ObjReprObj(p, iObj);
+            if( !Gia_ObjFailed(p,iObj) && Abc_Lit2Var(Gia_ManObj(p,iObj)->Value) == Abc_Lit2Var(pRepr->Value) )
+            {
+                iPrev = iObj;
+                continue;
+            }
+            Gia_ObjSetRepr( p, iObj, GIA_VOID );
+            Gia_ObjSetNext( p, iPrev, Gia_ObjNext(p, iObj) );
+            Gia_ObjSetNext( p, iObj, 0 );
+            Counter++;
+        }
+    }
+    //Abc_Print( 1, "Removed %d wrong choices.\n", Counter );
+}
 Aig_Man_t * Cec_ComputeChoicesNew( Gia_Man_t * pGia, int nConfs, int fVerbose )
 {
     extern void Cec4_ManSimulateTest2( Gia_Man_t * p, int nConfs, int fVerbose );
     Aig_Man_t * pAig;
     Cec4_ManSimulateTest2( pGia, nConfs, fVerbose );
+    Gia_ManRemoveWrongChoices( pGia );
     pGia = Gia_ManEquivToChoices( pGia, 3 );
     pAig = Gia_ManToAig( pGia, 1 );
     Gia_ManStop( pGia );
@@ -428,6 +450,7 @@ Aig_Man_t * Cec_ComputeChoicesNew2( Gia_Man_t * pGia, int nConfs, int fVerbose )
     Aig_Man_t * pAig;
     Gia_Man_t * pNew = Cec5_ManSimulateTest3( pGia, nConfs, fVerbose );
     Gia_ManStop( pNew );
+    Gia_ManRemoveWrongChoices( pGia );
     pGia = Gia_ManEquivToChoices( pGia, 3 );
     pAig = Gia_ManToAig( pGia, 1 );
     Gia_ManStop( pGia );
