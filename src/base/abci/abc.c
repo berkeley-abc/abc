@@ -42586,9 +42586,9 @@ usage:
 int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp, * pExdc = NULL;
-    int c, nType = 8, fMspf = 1, nRandom = 0, nSortType = 0, nPiShuffle = 0, nParameter = 0, fLevel = 0, fBdd = 0, nVerbose = 0;
+    int c, nType = 8, fMspf = 1, nRandom = 0, nSortType = 0, nPiShuffle = 0, nParameter = 0, fLevel = 0, fTruth = 0, nVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TSIPRVbml" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TSIPRVtml" ) ) != EOF )
     {
         switch ( c )
         {
@@ -42646,8 +42646,8 @@ int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
             nVerbose = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
-        case 'b':
-            fBdd ^= 1;
+        case 't':
+            fTruth ^= 1;
             break;
         case 'm':
             fMspf ^= 1;
@@ -42687,10 +42687,10 @@ int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( fBdd )
-        pTemp = Gia_ManTransductionBdd( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, fLevel, pExdc, nVerbose );
-    else
+    if ( fTruth )
         pTemp = Gia_ManTransductionTt( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, fLevel, pExdc, nVerbose );
+    else
+        pTemp = Gia_ManTransductionBdd( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, fLevel, pExdc, nVerbose );
     if ( pExdc != NULL )
         Gia_ManStop( pExdc );
     Abc_FrameUpdateGia( pAbc, pTemp );
@@ -42714,7 +42714,7 @@ usage:
     Abc_Print( -2, "\t-P num   : internal parameter [default = %d]\n",                                 nParameter );
     Abc_Print( -2, "\t-R num   : random seed to set all parameters (0 = no random) ([default = %d]\n", nRandom );
     Abc_Print( -2, "\t-V num   : verbosity level [default = %d]\n",                                    nVerbose);
-    Abc_Print( -2, "\t-b       : toggles using BDD instead of truth table [default = %s]\n", fBdd? "yes": "no" );
+    Abc_Print( -2, "\t-b       : toggles using truth table instead of BDD [default = %s]\n", fTruth? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles using MSPF [default = %s]\n", fMspf? "yes": "no" );
     Abc_Print( -2, "\t-l       : toggles level preserving optimization [default = %s]\n", fLevel? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
