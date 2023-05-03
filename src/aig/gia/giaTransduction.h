@@ -593,10 +593,10 @@ private: // CSPF
         std::cout << " (block " << block << ")";
       std::cout << std::endl;
     }
-    if(state != PfState::cspf)
+    if(state != cspf)
       for(std::list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++)
         vPfUpdates[*it] = true;
-    state = PfState::cspf;
+    state = cspf;
     int count = 0;
     for(std::list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
       if(vvFos[*it].empty()) {
@@ -688,10 +688,10 @@ private: // MSPF
     }
     assert(AllFalse(vUpdates));
     vFoConeShared.resize(nObjsAlloc);
-    if(state != PfState::mspf)
+    if(state != mspf)
       for(std::list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++)
         vPfUpdates[*it] = true;
-    state = PfState::mspf;
+    state = mspf;
     int count = 0;
     for(std::list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
       if(vvFos[*it].empty()) {
@@ -795,7 +795,7 @@ private: // Merge/decompose one
           itc++;
           count--;
         } else {
-          assert(state == PfState::none);
+          assert(state == none);
         }
       }
       count += Remove(i0, false);
@@ -823,9 +823,9 @@ private: // Merge/decompose one
       Connect(pos, f1, false, false, c1);
       Connect(pos, f0, false, false, c0);
       if(!vPfUpdates[*it]) {
-        if(state == PfState::cspf)
+        if(state == cspf)
           this->Update(vGs[pos], vGs[*it]);
-        else if(state == PfState::mspf) {
+        else if(state == mspf) {
           lit x = this->man->Const1();
           this->IncRef(x);
           for(unsigned j = 0; j < vvFis[*it].size(); j++)
@@ -1463,7 +1463,7 @@ public: // Constructor
     vPoFs.resize(vPos.size(), LitMax);
     for(unsigned i = 0; i < vPos.size(); i++)
       this->Update(vPoFs[i], LitFi(vPos[i], 0));
-    state = PfState::none;
+    state = none;
     if(nPiShuffle)
       ShufflePis(nPiShuffle);
     if(fLevel)
@@ -1531,7 +1531,7 @@ public: // Debug and print
     this->CopyVec(vGsOld, vGs);
     std::vector<std::vector<lit> > vvCsOld;
     this->CopyVec(vvCsOld, vvCs);
-    state = PfState::none;
+    state = none;
     Cspf(false);
     bool r = this->LitVecIsEq(vGsOld, vGs) && this->LitVecIsEq(vvCsOld, vvCs);
     this->DelVec(vGsOld);
@@ -1543,7 +1543,7 @@ public: // Debug and print
     this->CopyVec(vGsOld, vGs);
     std::vector<std::vector<lit> > vvCsOld;
     this->CopyVec(vvCsOld, vvCs);
-    state = PfState::none;
+    state = none;
     Mspf(false);
     bool r = this->LitVecIsEq(vGsOld, vGs) && this->LitVecIsEq(vvCsOld, vvCs);
     this->DelVec(vGsOld);
