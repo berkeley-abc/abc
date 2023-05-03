@@ -163,7 +163,7 @@ namespace NewTt {
       if(p.nObjsMaxLog < p.nObjsAllocLog)
         throw std::invalid_argument("nObjsMax must not be smaller than nObjsAlloc");
       if(nVars >= lww())
-        nSize = 1 << (nVars - lww());
+        nSize = 1ull << (nVars - lww());
       else
         nSize = 1;
       if(!nSize)

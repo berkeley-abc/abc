@@ -1360,7 +1360,7 @@ private: // Setup
       if(nVerbose > 3)
         std::cout << "\t\t\tImport po " << i << std::endl;
       int i0 = Gia_ObjId(pGia, Gia_ObjFanin0(pObj));
-      bool c0 = Gia_ObjFaninC0(pObj);
+      int c0 = Gia_ObjFaninC0(pObj);
       Connect(nObjs, v[i0] ^ c0);
       vPos.push_back(nObjs);
       nObjs++;
