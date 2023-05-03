@@ -22,12 +22,20 @@ namespace NewTt {
   static inline size SizeMax() { return std::numeric_limits<size>::max(); }
 
   struct Param {
-    int  nObjsAllocLog      = 15;
-    int  nObjsMaxLog        = 20;
-    int  nVerbose           = 0;
-    bool fCountOnes         = false;
-    int  nGbc               = 0;
-    int  nReo               = BvarMax(); // dummy
+    int  nObjsAllocLog;
+    int  nObjsMaxLog;
+    int  nVerbose;
+    bool fCountOnes;
+    int  nGbc;
+    int  nReo; // dummy
+    Param() {
+      nObjsAllocLog = 15;
+      nObjsMaxLog   = 20;
+      nVerbose      = 0;
+      fCountOnes    = false;
+      nGbc          = 0;
+      nReo          = BvarMax();
+    }
   };
 
   class Man {

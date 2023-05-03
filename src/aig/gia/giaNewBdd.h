@@ -137,20 +137,36 @@ namespace NewBdd {
   };
 
   struct Param {
-    int    nObjsAllocLog  = 20;
-    int    nObjsMaxLog    = 25;
-    int    nUniqueSizeLog = 10;
-    double UniqueDensity  = 4;
-    int    nCacheSizeLog  = 15;
-    int    nCacheMaxLog   = 20;
-    int    nCacheVerbose  = 0;
-    bool   fCountOnes     = false;
-    int    nGbc           = 0;
-    bvar   nReo           = BvarMax();
-    double MaxGrowth      = 1.2;
-    bool   fReoVerbose    = false;
-    int    nVerbose       = 0;
-    std::vector<var> *pVar2Level = NULL;
+    int    nObjsAllocLog;
+    int    nObjsMaxLog;
+    int    nUniqueSizeLog;
+    double UniqueDensity;
+    int    nCacheSizeLog;
+    int    nCacheMaxLog;
+    int    nCacheVerbose;
+    bool   fCountOnes;
+    int    nGbc;
+    bvar   nReo;
+    double MaxGrowth;
+    bool   fReoVerbose;
+    int    nVerbose;
+    std::vector<var> *pVar2Level;
+    Param() {
+      nObjsAllocLog  = 20;
+      nObjsMaxLog    = 25;
+      nUniqueSizeLog = 10;
+      UniqueDensity  = 4;
+      nCacheSizeLog  = 15;
+      nCacheMaxLog   = 20;
+      nCacheVerbose  = 0;
+      fCountOnes     = false;
+      nGbc           = 0;
+      nReo           = BvarMax();
+      MaxGrowth      = 1.2;
+      fReoVerbose    = false;
+      nVerbose       = 0;
+      pVar2Level     = NULL;
+    }
   };
 
   class Man {
