@@ -7,6 +7,8 @@
 #include <iomanip>
 #include <cmath>
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace NewBdd {
 
   typedef unsigned short     var;
@@ -795,5 +797,7 @@ namespace NewBdd {
   };
 
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

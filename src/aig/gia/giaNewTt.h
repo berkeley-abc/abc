@@ -7,6 +7,8 @@
 #include <vector>
 #include <bitset>
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace NewTt {
 
   typedef int                bvar;
@@ -245,5 +247,7 @@ namespace NewTt {
   };
 
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

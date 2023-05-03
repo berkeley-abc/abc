@@ -11,6 +11,8 @@
 
 #include "gia.h"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace Transduction {
   
 enum PfState {none, cspf, mspf};
@@ -1595,5 +1597,7 @@ public: // Debug and print
 };
 
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif
