@@ -1,3 +1,6 @@
+
+#ifndef _WIN32
+
 #ifdef _WIN32
 #ifndef __MINGW32__
 #pragma warning(disable : 4786) // warning C4786: identifier was truncated to '255' characters in the browser information
@@ -123,3 +126,22 @@ Gia_Man_t *Gia_ManTransductionTt(Gia_Man_t *pGia, int nType, int fMspf, int nRan
 }
 
 ABC_NAMESPACE_IMPL_END
+
+#else
+
+#include "gia.h"
+
+ABC_NAMESPACE_IMPL_START
+
+Gia_Man_t * Gia_ManTransductionBdd(Gia_Man_t *pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t *pExdc, int fNewLine, int nVerbose)
+{
+    return NULL;
+}
+Gia_Man_t * Gia_ManTransductionTt(Gia_Man_t *pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t *pExdc, int fNewLine, int nVerbose)
+{
+    return NULL;
+}
+
+ABC_NAMESPACE_IMPL_END
+
+#endif
