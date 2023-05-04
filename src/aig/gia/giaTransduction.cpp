@@ -41,13 +41,13 @@ Gia_Man_t *Gia_ManTransductionBdd(Gia_Man_t *pGia, int nType, int fMspf, int nRa
     break;
   case 6: {
     bool fInner = (nParameter / 4) % 2;
-    count -= t.RepeatResubInner(fMspf, fInner);
+    count -= t.RepeatInner(fMspf, fInner);
     break;
   }
   case 7: {
     bool fInner = (nParameter / 4) % 2;
     bool fOuter = (nParameter / 8) % 2;
-    count -= t.RepeatResubOuter(fMspf, fInner, fOuter);
+    count -= t.RepeatOuter(fMspf, fInner, fOuter);
     break;
   }
   case 8: {
@@ -55,12 +55,11 @@ Gia_Man_t *Gia_ManTransductionBdd(Gia_Man_t *pGia, int nType, int fMspf, int nRa
     bool fMspfMerge = fMspf? (nParameter / 2) % 2: false;
     bool fInner = (nParameter / 4) % 2;
     bool fOuter = (nParameter / 8) % 2;
-    count -= t.Optimize(fFirstMerge, fMspfMerge, fMspf, fInner, fOuter);
+    count -= t.RepeatAll(fFirstMerge, fMspfMerge, fMspf, fInner, fOuter);
     break;
   }
   default:
-    std::cout << "Invalid transduction type" << std::endl;
-    assert(0);
+    std::cout << "Unknown transduction type " << nType << std::endl;
   }
   assert(t.Verify());
   assert(count == t.CountWires());
@@ -98,13 +97,13 @@ Gia_Man_t *Gia_ManTransductionTt(Gia_Man_t *pGia, int nType, int fMspf, int nRan
     break;
   case 6: {
     bool fInner = (nParameter / 4) % 2;
-    count -= t.RepeatResubInner(fMspf, fInner);
+    count -= t.RepeatInner(fMspf, fInner);
     break;
   }
   case 7: {
     bool fInner = (nParameter / 4) % 2;
     bool fOuter = (nParameter / 8) % 2;
-    count -= t.RepeatResubOuter(fMspf, fInner, fOuter);
+    count -= t.RepeatOuter(fMspf, fInner, fOuter);
     break;
   }
   case 8: {
@@ -112,12 +111,11 @@ Gia_Man_t *Gia_ManTransductionTt(Gia_Man_t *pGia, int nType, int fMspf, int nRan
     bool fMspfMerge = fMspf? (nParameter / 2) % 2: false;
     bool fInner = (nParameter / 4) % 2;
     bool fOuter = (nParameter / 8) % 2;
-    count -= t.Optimize(fFirstMerge, fMspfMerge, fMspf, fInner, fOuter);
+    count -= t.RepeatAll(fFirstMerge, fMspfMerge, fMspf, fInner, fOuter);
     break;
   }
   default:
-    std::cout << "Invalid transduction type" << std::endl;
-    assert(0);
+    std::cout << "Unknown transduction type " << nType << std::endl;
   }
   assert(t.Verify());
   assert(count == t.CountWires());

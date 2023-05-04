@@ -42586,7 +42586,7 @@ usage:
 int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp, * pExdc = NULL;
-    int c, nType = 8, fMspf = 1, nRandom = 0, nSortType = 0, nPiShuffle = 0, nParameter = 0, fLevel = 0, fTruth = 0, fNewLine = 0, nVerbose = 0;
+    int c, nType = 1, fMspf = 0, nRandom = 0, nSortType = 0, nPiShuffle = 0, nParameter = 0, fLevel = 0, fTruth = 0, fNewLine = 0, nVerbose = 2;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "TSIPRVtmnl" ) ) != EOF )
     {
@@ -42692,7 +42692,7 @@ int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     if ( fLevel && (nType == 3 || nType == 8) )
     {
-        Abc_Print( -1, "Level preserving optimization does not work with type 3 and 8.\n" );
+        Abc_Print( -1, "Level preserving optimization does not work with transduction type 3 and 8.\n" );
         return 1;
     }
 
@@ -42715,12 +42715,17 @@ usage:
     Abc_Print( -2, "\t                3: ResubShared\n" );
     Abc_Print( -2, "\t                4: repeat Resub\n" );
     Abc_Print( -2, "\t                5: repeat ResubMono\n" );
-    Abc_Print( -2, "\t                6: RepeatResubInner\n" );
-    Abc_Print( -2, "\t                7: RepeatResubOuter\n" );
-    Abc_Print( -2, "\t                8: Optimize\n" );
+    Abc_Print( -2, "\t                6: script RepeatInner\n" );
+    Abc_Print( -2, "\t                7: script RepeatOuter\n" );
+    Abc_Print( -2, "\t                8: script RepeatAll\n" );
     Abc_Print( -2, "\t-S num   : fanin sort type [default = %d]\n",                                    nSortType );
-    Abc_Print( -2, "\t-I num   : random seed to shuffle pis (0 = no shuffle) [default = %d]\n",        nPiShuffle );
-    Abc_Print( -2, "\t-P num   : internal parameter [default = %d]\n",                                 nParameter );
+    Abc_Print( -2, "\t                0: topological order\n" );
+    Abc_Print( -2, "\t                1: number of ones\n" );
+    Abc_Print( -2, "\t                2: number of ones before complemented edges\n" );
+    Abc_Print( -2, "\t                3: pseudo random\n" );
+    Abc_Print( -2, "\t                4: no sorting\n" );
+    Abc_Print( -2, "\t-I num   : random seed to shuffle PIs (0 = no shuffle) [default = %d]\n",        nPiShuffle );
+    Abc_Print( -2, "\t-P num   : parameters for scripts [default = %d]\n",                                 nParameter );
     Abc_Print( -2, "\t-R num   : random seed to set all parameters (0 = no random) ([default = %d]\n", nRandom );
     Abc_Print( -2, "\t-V num   : verbosity level [default = %d]\n",                                    nVerbose);
     Abc_Print( -2, "\t-t       : toggles using truth table instead of BDD [default = %s]\n", fTruth? "yes": "no" );

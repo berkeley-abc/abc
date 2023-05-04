@@ -1386,7 +1386,7 @@ public: // Optimization scripts
       count += diff;
     return count;
   }
-  int RepeatResubInner(bool fMspf, bool fInner) {
+  int RepeatInner(bool fMspf, bool fInner) {
     int count = 0;
     while(int diff = RepeatResub(true, fMspf) + RepeatResub(false, fMspf)) {
       count += diff;
@@ -1395,30 +1395,30 @@ public: // Optimization scripts
     }
     return count;
   }
-  int RepeatResubOuter(bool fMspf, bool fInner, bool fOuter) {
+  int RepeatOuter(bool fMspf, bool fInner, bool fOuter) {
     int count = 0;
-    while(int diff = fMspf? RepeatResubInner(false, fInner) + RepeatResubInner(true, fInner): RepeatResubInner(false, fInner)) {
+    while(int diff = fMspf? RepeatInner(false, fInner) + RepeatInner(true, fInner): RepeatInner(false, fInner)) {
       count += diff;
       if(!fOuter)
         break;
     }
     return count;
   }
-  int Optimize(bool fFirstMerge, bool fMspfMerge, bool fMspfResub, bool fInner, bool fOuter) {
+  int RepeatAll(bool fFirstMerge, bool fMspfMerge, bool fMspfResub, bool fInner, bool fOuter) {
     TransductionBackup<Man, lit, LitMax> b;
     Save(b);
     int count = 0;
     int diff = 0;
     if(fFirstMerge)
       diff = ResubShared(fMspfMerge);
-    diff += RepeatResubOuter(fMspfResub, fInner, fOuter);
+    diff += RepeatOuter(fMspfResub, fInner, fOuter);
     if(diff > 0) {
       count = diff;
       Save(b);
       diff = 0;
     }
     while(true) {
-      diff += ResubShared(fMspfMerge) + RepeatResubOuter(fMspfResub, fInner, fOuter);
+      diff += ResubShared(fMspfMerge) + RepeatOuter(fMspfResub, fInner, fOuter);
       if(diff > 0) {
         count += diff;
         Save(b);
@@ -1591,7 +1591,7 @@ public: // Constructor
     startclk = Abc_Clock();
     p.nGbc = 1;
     p.nReo = 4000;
-    if(nSortType)
+    if(nSortType && nSortType < 4)
       p.fCountOnes = true;
     this->man = new Man(Gia_ManCiNum(pGia), p);
     ImportAig(pGia);
