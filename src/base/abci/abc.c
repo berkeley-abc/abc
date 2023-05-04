@@ -42586,9 +42586,9 @@ usage:
 int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp, * pExdc = NULL;
-    int c, nType = 8, fMspf = 1, nRandom = 0, nSortType = 0, nPiShuffle = 0, nParameter = 0, fLevel = 0, fTruth = 0, nVerbose = 0;
+    int c, nType = 8, fMspf = 1, nRandom = 0, nSortType = 0, nPiShuffle = 0, nParameter = 0, fLevel = 0, fTruth = 0, fNewLine = 0, nVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TSIPRVtml" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TSIPRVtmnl" ) ) != EOF )
     {
         switch ( c )
         {
@@ -42652,6 +42652,9 @@ int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fMspf ^= 1;
             break;
+        case 'n':
+            fNewLine ^= 1;
+            break;
         case 'l':
             fLevel ^= 1;
             break;
@@ -42687,10 +42690,16 @@ int Abc_CommandAbc9Transduction( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
+    if ( fLevel && (nType == 3 || nType == 8) )
+    {
+        Abc_Print( -1, "Level preserving optimization does not work with type 3 and 8.\n" );
+        return 1;
+    }
+
     if ( fTruth )
-        pTemp = Gia_ManTransductionTt( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, fLevel, pExdc, nVerbose );
+        pTemp = Gia_ManTransductionTt( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, fLevel, pExdc, fNewLine, nVerbose );
     else
-        pTemp = Gia_ManTransductionBdd( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, fLevel, pExdc, nVerbose );
+        pTemp = Gia_ManTransductionBdd( pAbc->pGia, nType, fMspf, nRandom, nSortType, nPiShuffle, nParameter, fLevel, pExdc, fNewLine, nVerbose );
     if ( pExdc != NULL )
         Gia_ManStop( pExdc );
     Abc_FrameUpdateGia( pAbc, pTemp );
@@ -42714,8 +42723,9 @@ usage:
     Abc_Print( -2, "\t-P num   : internal parameter [default = %d]\n",                                 nParameter );
     Abc_Print( -2, "\t-R num   : random seed to set all parameters (0 = no random) ([default = %d]\n", nRandom );
     Abc_Print( -2, "\t-V num   : verbosity level [default = %d]\n",                                    nVerbose);
-    Abc_Print( -2, "\t-b       : toggles using truth table instead of BDD [default = %s]\n", fTruth? "yes": "no" );
+    Abc_Print( -2, "\t-t       : toggles using truth table instead of BDD [default = %s]\n", fTruth? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggles using MSPF [default = %s]\n", fMspf? "yes": "no" );
+    Abc_Print( -2, "\t-n       : toggles printing with a new line [default = %s]\n", fNewLine? "yes": "no" );
     Abc_Print( -2, "\t-l       : toggles level preserving optimization [default = %s]\n", fLevel? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     Abc_Print( -2, "\t<file>   : AIGER specifying external don't-cares\n");

@@ -10,7 +10,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-Gia_Man_t *Gia_ManTransductionBdd(Gia_Man_t *pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t *pExdc, int nVerbose) {
+Gia_Man_t *Gia_ManTransductionBdd(Gia_Man_t *pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t *pExdc, int fNewLine, int nVerbose) {
   if(nRandom) {
     srand(nRandom);
     nSortType = rand() % 4;
@@ -18,7 +18,7 @@ Gia_Man_t *Gia_ManTransductionBdd(Gia_Man_t *pGia, int nType, int fMspf, int nRa
     nParameter = rand() % 16;
   }
   NewBdd::Param p;
-  Transduction::Transduction<NewBdd::Man, NewBdd::Param, NewBdd::lit, 0xffffffff> t(pGia, nVerbose, nSortType, nPiShuffle, fLevel, pExdc, p);
+  Transduction::Transduction<NewBdd::Man, NewBdd::Param, NewBdd::lit, 0xffffffff> t(pGia, nVerbose, fNewLine, nSortType, nPiShuffle, fLevel, pExdc, p);
   int count = t.CountWires();
   switch(nType) {
   case 0:
@@ -67,7 +67,7 @@ Gia_Man_t *Gia_ManTransductionBdd(Gia_Man_t *pGia, int nType, int fMspf, int nRa
   return t.GenerateAig();
 }
 
-Gia_Man_t *Gia_ManTransductionTt(Gia_Man_t *pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t *pExdc, int nVerbose) {
+Gia_Man_t *Gia_ManTransductionTt(Gia_Man_t *pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t *pExdc, int fNewLine, int nVerbose) {
   if(nRandom) {
     srand(nRandom);
     nSortType = rand() % 4;
@@ -75,7 +75,7 @@ Gia_Man_t *Gia_ManTransductionTt(Gia_Man_t *pGia, int nType, int fMspf, int nRan
     nParameter = rand() % 16;
   }
   NewTt::Param p;
-  Transduction::Transduction<NewTt::Man, NewTt::Param, NewTt::lit, 0xffffffff> t(pGia, nVerbose, nSortType, nPiShuffle, fLevel, pExdc, p);
+  Transduction::Transduction<NewTt::Man, NewTt::Param, NewTt::lit, 0xffffffff> t(pGia, nVerbose, fNewLine, nSortType, nPiShuffle, fLevel, pExdc, p);
   int count = t.CountWires();
   switch(nType) {
   case 0:

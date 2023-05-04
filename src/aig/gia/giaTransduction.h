@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <sstream>
 #include <vector>
 #include <list>
 #include <set>
@@ -140,6 +141,9 @@ private:
   std::vector<bool> vFoConeShared;
   std::vector<lit> vPoFs;
 
+  bool fNewLine;
+  abctime startclk;
+
 private: // Helper functions
   inline bool AllFalse(std::vector<bool> const &v) const {
     for(std::list<int>::const_iterator it = vObjs.begin(); it != vObjs.end(); it++)
@@ -167,6 +171,35 @@ public: // Counting
       count = std::max(count, vLevels[vvFis[vPos[i]][0] >> 1]);
     return count;
   }
+  inline void Print(std::string str, bool nl) const {
+    if(!fNewLine)
+      std::cout << "\33[2K\r";
+    std::cout << str;
+    if(fNewLine || nl)
+      std::cout << std::endl;
+    else
+      std::cout << std::flush;
+  }
+  inline void PrintStats(std::string prefix, bool nl, int prefix_size = 0) const {
+    if(!prefix_size)
+      prefix_size = prefix.size();
+    std::stringstream ss;
+    ss << std::left << std::setw(prefix_size) << prefix << ": " << std::right;
+    ss << "#nodes = " << std::setw(5) << CountNodes();
+    if(fLevel)
+      ss << ", #level = " << std::setw(5) << CountLevels();
+    ss << ", elapsed = " << std::setprecision(2) << std::fixed << std::setw(8) << 1.0 * (Abc_Clock() - startclk) / CLOCKS_PER_SEC << "s";
+    Print(ss.str(), nl);
+  }
+  inline void PrintPfHeader(std::string prefix, int block, int block_i0) {
+    std::stringstream ss;
+    ss << "\t\t" << prefix;
+    if(block_i0 != -1)
+      ss << " (blocking Wire " << block_i0 << " -> " << block << ")";
+    else if(block != -1)
+      ss << " (blocking Gate " << block << ")";
+    Print(ss.str(), true);
+  }
 
 private: // MIAIG
   void SortObjs_rec(std::list<int>::iterator const &it) {
@@ -175,8 +208,8 @@ private: // MIAIG
       if(!vvFis[i0].empty()) {
         std::list<int>::iterator it_i0 = std::find(it, vObjs.end(), i0);
         if(it_i0 != vObjs.end()) {
-          if(nVerbose > 6)
-            std::cout << "\t\t\t\t\t\tMove " << i0 << " before " << *it << std::endl;
+          // if(nVerbose > 6)
+          //   std::cout << "\t\t\t\t\t\tMove " << i0 << " before " << *it << std::endl;
           vObjs.erase(it_i0);
           it_i0 = vObjs.insert(it, i0);
           SortObjs_rec(it_i0);
@@ -186,8 +219,12 @@ private: // MIAIG
   }
   inline void Connect(int i, int f, bool fSort = false, bool fUpdate = true, lit c = LitMax) {
     int i0 = f >> 1;
-    if(nVerbose > 5)
-      std::cout << "\t\t\t\t\tConnect " << i0 << "(" << (f & 1) << ")" << " to " << i << std::endl;
+    if(nVerbose > 5) {
+      std::stringstream ss;
+      ss << "\t\t\t\t\tadd Wire " << std::setw(5) << i0 << "(" << (f & 1) << ")"
+         << " -> " << std::setw(5) << i;
+      Print(ss.str(), true);
+    }
     assert(std::find(vvFis[i].begin(), vvFis[i].end(), f) == vvFis[i].end());
     vvFis[i].push_back(f);
     vvFos[i0].push_back(i);
@@ -199,8 +236,8 @@ private: // MIAIG
       std::list<int>::iterator it = find(vObjs.begin(), vObjs.end(), i);
       std::list<int>::iterator it_i0 = find(it, vObjs.end(), i0);
       if(it_i0 != vObjs.end()) {
-        if(nVerbose > 6)
-          std::cout << "\t\t\t\t\t\tMove " << i0 << " before " << *it << std::endl;
+        // if(nVerbose > 6)
+        //   std::cout << "\t\t\t\t\t\tMove " << i0 << " before " << *it << std::endl;
         vObjs.erase(it_i0);
         it_i0 = vObjs.insert(it, i0);
         SortObjs_rec(it_i0);
@@ -208,8 +245,12 @@ private: // MIAIG
     }
   }
   inline void Disconnect(int i, int i0, unsigned j, bool fUpdate = true, bool fPfUpdate = true) {
-    if(nVerbose > 5)
-      std::cout << "\t\t\t\t\tDisconnect " << i0 << "(" << (vvFis[i][j] & 1) << ")" << " from " << i << std::endl;
+    if(nVerbose > 5) {
+      std::stringstream ss;
+      ss << "\t\t\t\t\tremove Wire " << std::setw(5) << i0 << "(" << (vvFis[i][j] & 1) << ")"
+         << " -> " << std::setw(5) << i;
+      Print(ss.str(), true);
+    }
     vvFos[i0].erase(std::find(vvFos[i0].begin(), vvFos[i0].end(), i));
     vvFis[i].erase(vvFis[i].begin() + j);
     this->DecRef(vvCs[i][j]);
@@ -220,8 +261,11 @@ private: // MIAIG
       vPfUpdates[i0] = true;
   }
   inline int Remove(int i, bool fPfUpdate = true) {
-    if(nVerbose > 4)
-      std::cout << "\t\t\t\tRemove " << i << std::endl;
+    if(nVerbose > 5) {
+      std::stringstream ss;
+      ss << "\t\t\t\t\tremove Gate " << std::setw(5) << i;
+      Print(ss.str(), true);
+    }
     assert(vvFos[i].empty());
     for(unsigned j = 0; j < vvFis[i].size(); j++) {
       int i0 = vvFis[i][j] >> 1;
@@ -245,8 +289,12 @@ private: // MIAIG
     return -1;
   }
   inline int Replace(int i, int f, bool fUpdate = true) {
-    if(nVerbose > 4)
-      std::cout << "\t\t\t\tReplace " << i << " by " << (f >> 1) << "(" << (f & 1) << ")" << std::endl;
+    if(nVerbose > 4) {
+      std::stringstream ss;
+      ss << "\t\t\t\treplace Gate " << std::setw(5) << i
+         << " by Node " << std::setw(5) << (f >> 1) << "(" << (f & 1) << ")";
+      Print(ss.str(), true);
+    }
     assert(i != (f >> 1));
     int count = 0;
     for(unsigned j = 0; j < vvFos[i].size(); j++) {
@@ -271,8 +319,11 @@ private: // MIAIG
     return count + Remove(i);
   }
   int ReplaceByConst(int i, bool c) {
-    if(nVerbose > 4)
-      std::cout << "\t\t\t\tReplace " << i << " by " << c << std::endl;
+    if(nVerbose > 4) {
+      std::stringstream ss;
+      ss << "\t\t\t\treplace Gate " << std::setw(5) << i << " by Const " << c;
+      Print(ss.str(), true);
+    }
     int count = 0;
     for(unsigned j = 0; j < vvFos[i].size(); j++) {
       int k = vvFos[i][j];
@@ -297,8 +348,11 @@ private: // MIAIG
   inline void NewGate(int &pos) {
     while(pos != nObjsAlloc && (!vvFis[pos].empty() || !vvFos[pos].empty()))
       pos++;
-    if(nVerbose > 4)
-      std::cout << "\t\t\t\tCreate " << pos << std::endl;
+    if(nVerbose > 5) {
+      std::stringstream ss;
+      ss << "\t\t\t\t\tcreate Gate " << std::setw(5) << pos;
+      Print(ss.str(), true);
+    }
     if(pos == nObjsAlloc) {
       nObjsAlloc++;
       vvFis.resize(nObjsAlloc);
@@ -447,8 +501,11 @@ private: // Cost function
     }
   }
   inline bool SortFis(int i) {
-    if(nVerbose > 4)
-      std::cout << "\t\t\t\tSort fanins " << i << std::endl;
+    if(nVerbose > 5) {
+      std::stringstream ss;
+      ss << "\t\t\t\tsort FIs Gate " << std::setw(5) << i;
+      Print(ss.str(), true);
+    }
     bool fSort = false;
     for(int p = 1; p < (int)vvFis[i].size(); p++) {
       int f = vvFis[i][p];
@@ -465,8 +522,12 @@ private: // Cost function
       }
     }
     if(nVerbose > 5)
-      for(unsigned j = 0; j < vvFis[i].size(); j++)
-        std::cout << "\t\t\t\t\tFanin " << j << " : " << (vvFis[i][j] >> 1) << "(" << (vvFis[i][j] & 1) << ")" << std::endl;
+      for(unsigned j = 0; j < vvFis[i].size(); j++) {
+        std::stringstream ss;
+        ss << "\t\t\t\t\tFI " << j << " = "
+           << std::setw(5) << (vvFis[i][j] >> 1) << "(" << (vvFis[i][j] & 1) << ")";
+        Print(ss.str(), true);
+      }
     return fSort;
   }
 
@@ -482,15 +543,18 @@ private: // Symbolic simulation
     return this->man->LitNotCond(vFs_[i0], c0);
   }
   inline void Build(int i, std::vector<lit> &vFs_) const {
-    if(nVerbose > 4)
-      std::cout << "\t\t\t\tBuild " << i << std::endl;
+    if(nVerbose > 6) {
+      std::stringstream ss;
+      ss << "\t\t\t\tbuilding Gate" << std::setw(5) << i;
+      Print(ss.str(), nVerbose > 7);
+    }
     this->Update(vFs_[i], this->man->Const1());
     for(unsigned j = 0; j < vvFis[i].size(); j++)
       this->Update(vFs_[i], this->man->And(vFs_[i], LitFi(i, j, vFs_)));
   }
   inline void Build(bool fPfUpdate = true) {
-    if(nVerbose > 3)
-      std::cout << "\t\t\tBuild" << std::endl;
+    if(nVerbose > 6)
+      Print("\t\t\tBuild", true);
     for(std::list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++)
       if(vUpdates[*it]) {
         lit x = vFs[*it];
@@ -509,8 +573,11 @@ private: // Symbolic simulation
     assert(AllFalse(vUpdates));
   }
   void BuildFoConeCompl(int i, std::vector<lit> &vPoFsCompl) const {
-    if(nVerbose > 3)
-      std::cout << "\t\t\tBuild with complemented " << i << std::endl;
+    if(nVerbose > 6) {
+      std::stringstream ss;
+      ss << "\t\t\tBuild with complemented Gate " << std::setw(5) << i;
+      Print(ss.str(), true);
+    }
     std::vector<lit> vFsCompl;
     this->CopyVec(vFsCompl, vFs);
     vFsCompl[i] = this->man->LitNot(vFs[i]);
@@ -545,8 +612,12 @@ private: // CSPF
       this->DecRef(x);
       if(this->man->IsConst1(x)) {
         int i0 = vvFis[i][j] >> 1;
-        if(nVerbose > 4)
-          std::cout << "\t\t\t\tRRF remove wire " << i0 << "(" << (vvFis[i][j] & 1) << ")" << " -> " << i << std::endl;
+        if(nVerbose > 4) {
+          std::stringstream ss;
+          ss << "\t\t\t\t[Rrfi] remove Wire " << std::setw(5) << i0 << "(" << (vvFis[i][j] & 1) << ")"
+             << " -> " << std::setw(5) << i;
+          Print(ss.str(), true);
+        }
         Disconnect(i, i0, j--);
         count++;
       }
@@ -572,8 +643,12 @@ private: // CSPF
       this->Update(x, this->man->Or(this->man->LitNot(x), vGs[i]));
       int i0 = vvFis[i][j] >> 1;
       if(this->man->IsConst1(this->man->Or(x, LitFi(i, j)))) {
-        if(nVerbose > 4)
-          std::cout << "\t\t\t\tCspf remove wire " << i0 << "(" << (vvFis[i][j] & 1) << ")" << " -> " << i << std::endl;
+        if(nVerbose > 4) {
+          std::stringstream ss;
+          ss << "\t\t\t\t[Cspf] remove Wire " << std::setw(5) << i0 << "(" << (vvFis[i][j] & 1) << ")"
+             << " -> " << std::setw(5) << i;
+          Print(ss.str(), true);
+        }
         Disconnect(i, i0, j--);
         count++;
       } else if(!this->man->LitIsEq(vvCs[i][j], x)) {
@@ -585,14 +660,8 @@ private: // CSPF
     return count;
   }
   int Cspf(bool fSortRemove, int block = -1, int block_i0 = -1) {
-    if(nVerbose > 2) {
-      std::cout << "\t\tCspf";
-      if(block_i0 != -1)
-        std::cout << " (block " << block_i0 << " -> " << block << ")";
-      else if(block != -1)
-        std::cout << " (block " << block << ")";
-      std::cout << std::endl;
-    }
+    if(nVerbose > 3)
+      PrintPfHeader("Cspf", block, block_i0);
     if(state != cspf)
       for(std::list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++)
         vPfUpdates[*it] = true;
@@ -600,8 +669,11 @@ private: // CSPF
     int count = 0;
     for(std::list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
       if(vvFos[*it].empty()) {
-        if(nVerbose > 3)
-          std::cout << "\t\t\tRemove unused " << *it << std::endl;
+        if(nVerbose > 3) {
+          std::stringstream ss;
+          ss << "\t\t\tremove unused Gate " << std::setw(5) << *it;
+          Print(ss.str(), nVerbose > 4);
+        }
         count += Remove(*it);
         it = std::list<int>::reverse_iterator(vObjs.erase(--(it.base())));
         continue;
@@ -610,8 +682,13 @@ private: // CSPF
         it++;
         continue;
       }
-      if(nVerbose > 3)
-        std::cout << "\t\t\tCspf " << *it << std::endl;
+      if(nVerbose > 3) {
+        std::stringstream ss;
+        ss << "\t\t\tprocessing Gate " << std::setw(5) << *it
+           << " (" << std::setw(5) << std::distance(vObjs.rbegin(), it) + 1
+           << "/" << std::setw(5) << vObjs.size() << ")";
+        Print(ss.str(), nVerbose > 4);
+      }
       CalcG(*it);
       if(fSortRemove) {
         if(*it != block)
@@ -664,8 +741,12 @@ private: // MSPF
       this->Update(x, this->man->Or(this->man->LitNot(x), vGs[i]));
       int i0 = vvFis[i][j] >> 1;
       if(i0 != block_i0 && this->man->IsConst1(this->man->Or(x, LitFi(i, j)))) {
-        if(nVerbose > 4)
-          std::cout << "\t\t\t\tMspf remove wire " << i0 << "(" << (vvFis[i][j] & 1) << ")" << " -> " << i << std::endl;
+        if(nVerbose > 4) {
+          std::stringstream ss;
+          ss << "\t\t\t\t[Mspf] remove Wire " << std::setw(5) << i0 << "(" << (vvFis[i][j] & 1) << ")"
+             << " -> " << std::setw(5) << i;
+          Print(ss.str(), true);
+        }
         Disconnect(i, i0, j);
         this->DecRef(x);
         return RemoveRedundantFis(i, block_i0, j) + 1;
@@ -678,14 +759,8 @@ private: // MSPF
     return 0;
   }
   int Mspf(bool fSort, int block = -1, int block_i0 = -1) {
-    if(nVerbose > 2) {
-      std::cout << "\t\tMspf";
-      if(block_i0 != -1)
-        std::cout << " (block " << block_i0 << " -> " << block << ")";
-      else if(block != -1)
-        std::cout << " (block " << block << ")";
-      std::cout << std::endl;
-    }
+    if(nVerbose > 3)
+      PrintPfHeader("Mspf", block, block_i0);
     assert(AllFalse(vUpdates));
     vFoConeShared.resize(nObjsAlloc);
     if(state != mspf)
@@ -693,10 +768,14 @@ private: // MSPF
         vPfUpdates[*it] = true;
     state = mspf;
     int count = 0;
+    int restarts = 0;
     for(std::list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
       if(vvFos[*it].empty()) {
-        if(nVerbose > 3)
-          std::cout << "\t\t\tRemove unused " << *it << std::endl;
+        if(nVerbose > 3) {
+          std::stringstream ss;
+          ss << "\t\t\tremove unused Gate " << std::setw(5) << *it;
+          Print(ss.str(), nVerbose > 4);
+        }
         count += Remove(*it);
         it = std::list<int>::reverse_iterator(vObjs.erase(--(it.base())));
         continue;
@@ -705,8 +784,14 @@ private: // MSPF
         it++;
         continue;
       }
-      if(nVerbose > 3)
-        std::cout << "\t\t\tMspf " << *it << std::endl;
+      if(nVerbose > 3) {
+        std::stringstream ss;
+        ss << "\t\t\tprocessing Gate " << std::setw(5) << *it
+           << " (" << std::setw(5) << std::distance(vObjs.rbegin(), it) + 1
+           << "/" << std::setw(5) << vObjs.size() << ")"
+           << ", #restarts = " << std::setw(3) << restarts;
+        Print(ss.str(), nVerbose > 4);
+      }
       if(vvFos[*it].size() == 1 || !IsFoConeShared(*it)) {
         if(vFoConeShared[*it]) {
           vFoConeShared[*it] = false;
@@ -733,6 +818,7 @@ private: // MSPF
           vObjs.erase(--(it.base()));
           Build();
           it = vObjs.rbegin();
+          restarts++;
           continue;
         }
       }
@@ -747,6 +833,7 @@ private: // MSPF
         }
         Build();
         it = vObjs.rbegin();
+        restarts++;
         continue;
       }
       vPfUpdates[*it] = false;
@@ -761,8 +848,6 @@ private: // MSPF
 
 private: // Merge/decompose one
   inline int TrivialMergeOne(int i) {
-    if(nVerbose > 3)
-      std::cout << "\t\t\tTrivial merge " << i << std::endl;
     int count = 0;
     std::vector<int> vFisOld = vvFis[i];
     std::vector<lit> vCsOld = vvCs[i];
@@ -772,8 +857,12 @@ private: // Merge/decompose one
       int i0 = vFisOld[j] >> 1;
       int c0 = vFisOld[j] & 1;
       if(vvFis[i0].empty() || vvFos[i0].size() > 1 || c0) {
-        if(nVerbose > 5)
-          std::cout << "\t\t\t\t\tFanin " << j << " : " << i0 << "(" << c0 << ")" << std::endl;
+        if(nVerbose > 3) {
+          std::stringstream ss;
+          ss << "\t\t[TrivialMerge] adding Wire " << std::setw(5) << i0 << "(" << c0 << ")"
+             << " -> " << std::setw(5) << i;
+          Print(ss.str(), true);
+        }
         vvFis[i].push_back(vFisOld[j]);
         vvCs[i].push_back(vCsOld[j]);
         continue;
@@ -808,8 +897,11 @@ private: // Merge/decompose one
     return count;
   }
   inline int TrivialDecomposeOne(std::list<int>::iterator const &it, int &pos) {
-    if(nVerbose > 3)
-      std::cout << "\t\t\tTrivial decompose " << *it << std::endl;
+    if(nVerbose > 2) {
+      std::stringstream ss;
+      ss << "\tTrivialDecompose Gate " << std::setw(5) << *it;
+      Print(ss.str() , nVerbose > 3);
+    }
     assert(vvFis[*it].size() > 2);
     int count = 2 - vvFis[*it].size();
     while(vvFis[*it].size() > 2) {
@@ -841,8 +933,11 @@ private: // Merge/decompose one
     return count;
   }
   inline int BalancedDecomposeOne(std::list<int>::iterator const &it, int &pos) {
-    if(nVerbose > 3)
-      std::cout << "\t\t\tBalanced decompose " << *it << std::endl;
+    if(nVerbose > 2) {
+      std::stringstream ss;
+      ss << "\tBalancedDecompose Gate " << std::setw(5) << *it;
+      Print(ss.str(), nVerbose > 3);
+    }
     assert(fLevel);
     assert(vvFis[*it].size() > 2);
     for(int p = 1; p < (int)vvFis[*it].size(); p++) {
@@ -891,8 +986,6 @@ private: // Merge/decompose one
 
 public: // Merge/decompose
   int TrivialMerge() {
-    if(nVerbose > 2)
-      std::cout << "\t\tTrivial merge" << std::endl;
     int count = 0;
     for(std::list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
       count += TrivialMergeOne(*it);
@@ -901,8 +994,6 @@ public: // Merge/decompose
     return count;
   }
   int TrivialDecompose() {
-    if(nVerbose > 2)
-      std::cout << "\t\tTrivial decompose" << std::endl;
     int count = 0;
     int pos = vPis.size() + 1;
     for(std::list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++)
@@ -911,8 +1002,6 @@ public: // Merge/decompose
     return count;
   }
   int Decompose() {
-    if(nVerbose)
-      std::cout << "Decompose" << std::endl;
     int count = 0;
     int pos = vPis.size() + 1;
     for(std::list<int>::iterator it = vObjs.begin(); it != vObjs.end(); it++) {
@@ -926,14 +1015,22 @@ public: // Merge/decompose
         if(s.size() > 1) {
           if(s == s1) {
             if(s == s2) {
-              if(nVerbose > 1)
-                std::cout << "\tReplace " << *it2 << " by " << *it << std::endl;
+              if(nVerbose > 2) {
+                std::stringstream ss;
+                ss << "\treplace Gate " << std::setw(5) << *it2
+                   << " by Gate " << std::setw(5) << *it;
+                Print(ss.str() , nVerbose > 3);
+              }
               count += Replace(*it2, *it << 1, false);
               it2 = vObjs.erase(it2);
               it2--;
             } else {
-              if(nVerbose > 1)
-                std::cout << "\tDecompose " << *it2 << " by " << *it << std::endl;
+              if(nVerbose > 2) {
+                std::stringstream ss;
+                ss << "\tdecompose Gate " << std::setw(5) << *it2
+                   << " by Gate " << std::setw(5) << *it;
+                Print(ss.str() , nVerbose > 3);
+              }
               for(std::set<int>::iterator it3 = s.begin(); it3 != s.end(); it3++) {
                 unsigned j = find(vvFis[*it2].begin(), vvFis[*it2].end(), *it3) - vvFis[*it2].begin();
                 Disconnect(*it2, *it3 >> 1, j, false);
@@ -952,13 +1049,19 @@ public: // Merge/decompose
             vObjs.erase(it2);
           } else {
             NewGate(pos);
-            if(nVerbose > 1)
-              std::cout << "\tCreate " << pos << " for intersection of " << *it << " and " << *it2  << std::endl;
             if(nVerbose > 2) {
-              std::cout << "\t\tIntersection :";
+              std::stringstream ss;
+              ss << "\tdecompose Gate " << std::setw(5) << *it
+                 << " and " << std::setw(5) << *it2
+                 << " by a new Gate " << std::setw(5) <<  pos;
+              Print(ss.str() , nVerbose > 3);
+            }
+            if(nVerbose > 4) {
+              std::stringstream ss;
+              ss << "\t\tIntersection:";
               for(std::set<int>::iterator it3 = s.begin(); it3 != s.end(); it3++)
-                std::cout << " " << (*it3 >> 1) << "(" << (*it3 & 1) << ")";
-              std::cout << std::endl;
+                ss << " " << (*it3 >> 1) << "(" << (*it3 & 1) << ")";
+              Print(ss.str(), true);
             }
             for(std::set<int>::iterator it3 = s.begin(); it3 != s.end(); it3++)
               Connect(pos, *it3, false, false);
@@ -971,11 +1074,8 @@ public: // Merge/decompose
           it2 = it;
         }
       }
-      if(vvFis[*it].size() > 2) {
-        if(nVerbose > 1)
-          std::cout << "\tTrivial decompose " << *it << std::endl;
+      if(vvFis[*it].size() > 2)
         count += TrivialDecomposeOne(it, pos);
-      }
     }
     return count;
   }
@@ -1023,8 +1123,12 @@ private: // Connectable condition
       this->IncRef(x);
       if(this->man->IsConst1(this->man->Or(x, this->man->LitNotCond(vFs[i0], c0)))) {
         this->DecRef(x);
-        if(nVerbose > 3)
-          std::cout << "\t\t\tConnect " << i0 << "(" << c0 << ")" << std::endl;
+        if(nVerbose > 3) {
+          std::stringstream ss;
+          ss << "\t\t[TryConnect] adding Wire " << std::setw(5) << i0 << "(" << c0 << ")"
+             << " -> " << std::setw(5) << i;
+          Print(ss.str(), true);
+        }
         Connect(i, f, true);
         return true;
       }
@@ -1035,8 +1139,6 @@ private: // Connectable condition
 
 public: // Resubs
   int Resub(bool fMspf) {
-    if(nVerbose)
-      std::cout << "Resubstitution" << std::endl;
     int count = fMspf? Mspf(true): Cspf(true);
     int nodes = CountNodes();
     TransductionBackup<Man, lit, LitMax> b;
@@ -1044,8 +1146,13 @@ public: // Resubs
     int count_ = count;
     std::list<int> targets = vObjs;
     for(std::list<int>::reverse_iterator it = targets.rbegin(); it != targets.rend(); it++) {
-      if(nVerbose > 1)
-        std::cout << "\tResubstitute " << *it << std::endl;
+      if(nVerbose > 1) {
+        std::stringstream ss;
+        ss << "[Resub] processing Gate " << std::setw(5) << *it
+           << " (" << std::setw(5) << std::distance(targets.rbegin(), it) + 1
+           << "/" << std::setw(5) << targets.size() << ")";
+        PrintStats(ss.str(), nVerbose > 2);
+      }
       if(vvFos[*it].empty())
         continue;
       count += TrivialMergeOne(*it);
@@ -1106,16 +1213,21 @@ public: // Resubs
       Save(b);
       count_ = count;
     }
+    if(nVerbose)
+      PrintStats("Resub", true, 11);
     return count;
   }
   int ResubMono(bool fMspf) {
-    if(nVerbose)
-      std::cout << "Resubstitution mono" << std::endl;
     int count = fMspf? Mspf(true): Cspf(true);
     std::list<int> targets = vObjs;
     for(std::list<int>::reverse_iterator it = targets.rbegin(); it != targets.rend(); it++) {
-      if(nVerbose > 1)
-        std::cout << "\tResubstitute mono " << *it << std::endl;
+      if(nVerbose > 1) {
+        std::stringstream ss;
+        ss << "[ResubMono] processing Gate " << std::setw(5) << *it
+           << " (" << std::setw(5) << std::distance(targets.rbegin(), it) + 1
+           << "/" << std::setw(5) << targets.size() << ")";
+        PrintStats(ss.str(), nVerbose > 2);
+      }
       if(vvFos[*it].empty())
         continue;
       count += TrivialMergeOne(*it);
@@ -1125,6 +1237,11 @@ public: // Resubs
       for(unsigned i = 0; i < vPis.size(); i++) {
         if(vvFos[*it].empty())
           break;
+        if(nVerbose > 2) {
+          std::stringstream ss;
+          ss << "\ttrying a new fanin PI " << std::setw(2) << i;
+          PrintStats(ss.str(), nVerbose > 3);
+        }
         if(TryConnect(*it, vPis[i], false) || TryConnect(*it, vPis[i], true)) {
           count--;
           int diff;
@@ -1162,6 +1279,13 @@ public: // Resubs
       for(std::list<int>::iterator it2 = targets2.begin(); it2 != targets2.end(); it2++) {
         if(vvFos[*it].empty())
           break;
+        if(nVerbose > 2) {
+          std::stringstream ss;
+          ss << "\ttrying a new fanin Gate " << std::setw(5) << *it2
+             << " (" << std::setw(5) << std::distance(targets2.begin(), it2) + 1
+             << "/" << std::setw(5) << targets2.size() << ")";
+          PrintStats(ss.str(), nVerbose > 3);
+        }
         if(!vMarks[*it2] && !vvFos[*it2].empty())
           if(TryConnect(*it, *it2, false) || TryConnect(*it, *it2, true)) {
             count--;
@@ -1203,16 +1327,21 @@ public: // Resubs
           count += TrivialDecomposeOne(it2, pos);
       }
     }
+    if(nVerbose)
+      PrintStats("ResubMono", true, 11);
     return count;
   }
   int ResubShared(bool fMspf) {
-    if(nVerbose)
-      std::cout << "Merge" << std::endl;
     int count = fMspf? Mspf(true): Cspf(true);
     std::list<int> targets = vObjs;
     for(std::list<int>::reverse_iterator it = targets.rbegin(); it != targets.rend(); it++) {
-      if(nVerbose > 1)
-        std::cout << "\tMerge " << *it << std::endl;
+      if(nVerbose > 1) {
+        std::stringstream ss;
+        ss << "[ResubShared] processing Gate " << std::setw(5) << *it
+           << " (" << std::setw(5) << std::distance(targets.rbegin(), it) + 1
+           << "/" << std::setw(5) << targets.size() << ")";
+        PrintStats(ss.str(), nVerbose > 2);
+      }
       if(vvFos[*it].empty())
         continue;
       count += TrivialMergeOne(*it);
@@ -1244,7 +1373,10 @@ public: // Resubs
         }
       }
     }
-    return count + Decompose();
+    count += Decompose();
+    if(nVerbose)
+      PrintStats("ResubShared", true, 11);
+    return count;
   }
 
 public: // Optimization scripts
@@ -1311,8 +1443,6 @@ private: // Setup
   void ImportAig(Gia_Man_t *pGia) {
     int i;
     Gia_Obj_t *pObj;
-    if(nVerbose > 2)
-      std::cout << "\t\tImport aig" << std::endl;
     nObjsAlloc = Gia_ManObjNum(pGia);
     vvFis.resize(nObjsAlloc);
     vvFos.resize(nObjsAlloc);
@@ -1337,8 +1467,11 @@ private: // Setup
     }
     Gia_ManForEachAnd(pGia, pObj, i) {
       int id = Gia_ObjId(pGia, pObj);
-      if(nVerbose > 3)
-        std::cout << "\t\t\tImport node " << id << std::endl;
+      if(nVerbose > 5) {
+        std::stringstream ss;
+        ss << "\t\t\t\timport Gate " << std::setw(5) << id;
+        Print(ss.str(), true);
+      }
       int i0 = Gia_ObjId(pGia, Gia_ObjFanin0(pObj));
       int i1 = Gia_ObjId(pGia, Gia_ObjFanin1(pObj));
       int c0 = Gia_ObjFaninC0(pObj);
@@ -1357,8 +1490,11 @@ private: // Setup
       }
     }
     Gia_ManForEachCo(pGia, pObj, i) {
-      if(nVerbose > 3)
-        std::cout << "\t\t\tImport po " << i << std::endl;
+      if(nVerbose > 5) {
+        std::stringstream ss;
+        ss << "\t\t\t\timport PO " << std::setw(2) << i;
+        Print(ss.str(), true);
+      }
       int i0 = Gia_ObjId(pGia, Gia_ObjFanin0(pObj));
       int c0 = Gia_ObjFaninC0(pObj);
       Connect(nObjs, v[i0] ^ c0);
@@ -1367,6 +1503,8 @@ private: // Setup
     }
   }
   void Aig2Bdd(Gia_Man_t *pGia, std::vector<lit> &vNodes) {
+    if(nVerbose > 6)
+      Print("\t\t\tBuild Exdc", true);
     int i;
     Gia_Obj_t *pObj;
     std::vector<int> vCounts(pGia->nObjs);
@@ -1380,8 +1518,11 @@ private: // Setup
       nodes[Gia_ObjId(pGia, pObj)] = this->man->IthVar(i);
     Gia_ManForEachAnd(pGia, pObj, i) {
       int id = Gia_ObjId(pGia, pObj);
-      if(nVerbose > 3)
-        std::cout << "Aig2Bdd: gate " << i << " / " << Gia_ManAndNum(pGia) << std::endl;
+      if(nVerbose > 6) {
+        std::stringstream ss;
+        ss << "\t\t\t\tbuilding Exdc (" << i << " / " << Gia_ManAndNum(pGia) << ")";
+        Print(ss.str(), nVerbose > 7);
+      }
       int i0 = Gia_ObjId(pGia, Gia_ObjFanin0(pObj));
       int i1 = Gia_ObjId(pGia, Gia_ObjFanin1(pObj));
       bool c0 = Gia_ObjFaninC0(pObj);
@@ -1408,14 +1549,20 @@ private: // Setup
       lit c = vvCs[vPos[i]][0];
       if(i0) {
         if(this->man->IsConst1(this->man->Or(LitFi(vPos[i], 0), c))) {
-          if(nVerbose > 3)
-            std::cout << "\t\t\tConst 1 output : po " << i << std::endl;
+          if(nVerbose > 3) {
+            std::stringstream ss;
+            ss << "\t\tPO " << std::setw(2) << i << " is Const 1";
+            Print(ss.str(), true);
+          }
           Disconnect(vPos[i], i0, 0, false, false);
           Connect(vPos[i], 1, false, false, c);
           fRemoved |= vvFos[i0].empty();
         } else if(this->man->IsConst1(this->man->Or(this->man->LitNot(LitFi(vPos[i], 0)), c))) {
-          if(nVerbose > 3)
-            std::cout << "\t\t\tConst 0 output : po " << i << std::endl;
+          if(nVerbose > 3) {
+            std::stringstream ss;
+            ss << "\t\tPO " << std::setw(2) << i << " is Const 0";
+            Print(ss.str(), true);
+          }
           Disconnect(vPos[i], i0, 0, false, false);
           Connect(vPos[i], 0, false, false, c);
           fRemoved |= vvFos[i0].empty();
@@ -1423,10 +1570,13 @@ private: // Setup
       }
     }
     if(fRemoved) {
-      if(nVerbose > 3)
-        std::cout << "\t\t\tRemove unused" << std::endl;
       for(std::list<int>::reverse_iterator it = vObjs.rbegin(); it != vObjs.rend();) {
         if(vvFos[*it].empty()) {
+          if(nVerbose > 3) {
+            std::stringstream ss;
+            ss << "\t\tremove unused Gate " << std::setw(5) << *it;
+            Print(ss.str(), true);
+          }
           Remove(*it, false);
           it = std::list<int>::reverse_iterator(vObjs.erase(--(it.base())));
           continue;
@@ -1437,7 +1587,8 @@ private: // Setup
   }
 
 public: // Constructor
-  Transduction(Gia_Man_t *pGia, int nVerbose, int nSortType, int nPiShuffle, bool fLevel, Gia_Man_t *pExdc, Param &p): nVerbose(nVerbose), nSortType(nSortType), fLevel(fLevel) {
+  Transduction(Gia_Man_t *pGia, int nVerbose, bool fNewLine, int nSortType, int nPiShuffle, bool fLevel, Gia_Man_t *pExdc, Param &p): nVerbose(nVerbose), nSortType(nSortType), fLevel(fLevel), fNewLine(fNewLine) {
+    startclk = Abc_Clock();
     p.nGbc = 1;
     p.nReo = 4000;
     if(nSortType)
@@ -1468,6 +1619,8 @@ public: // Constructor
       ShufflePis(nPiShuffle);
     if(fLevel)
       ComputeLevel();
+    if(nVerbose)
+      PrintStats("Init", true, 11);
   }
   ~Transduction() {
     this->DelVec(vFs);
@@ -1560,17 +1713,6 @@ public: // Debug and print
         return false;
     }
     return true;
-  }
-  void PrintStats() const {
-    int gates = CountGates();
-    int wires = CountWires();
-    int nodes = wires - gates;
-    std::cout << "nodes = " << std::setw(5) << nodes << ", "
-              << "gates = " << std::setw(5) << gates << ", "
-              << "wires = " << std::setw(5) << wires;
-    if(fLevel)
-      std::cout << ", level = " << std::setw(5) << CountLevels();
-    std::cout << std::endl;
   }
   void PrintObjs() const {
     for(std::list<int>::const_iterator it = vObjs.begin(); it != vObjs.end(); it++) {
