@@ -1769,9 +1769,13 @@ extern int                 Gia_ManCountPosWithNonZeroDrivers( Gia_Man_t * p );
 extern void                Gia_ManUpdateCopy( Vec_Int_t * vCopy, Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManComputeDistance( Gia_Man_t * p, int iObj, Vec_Int_t * vObjs, int fVerbose );
 
-/*=== giaTtopt.c ===========================================================*/
+/*=== giaTtopt.cpp ===========================================================*/
 extern Gia_Man_t *         Gia_ManTtopt( Gia_Man_t * p, int nIns, int nOuts, int nRounds );
 extern Gia_Man_t *         Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, char * pFileName, int nRarity );
+
+/*=== giaTransduction.cpp ===========================================================*/
+extern Gia_Man_t *         Gia_ManTransductionBdd( Gia_Man_t * pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t * pExdc, int fNewLine, int nVerbose );
+extern Gia_Man_t *         Gia_ManTransductionTt( Gia_Man_t * pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t * pExdc, int fNewLine, int nVerbose );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;
