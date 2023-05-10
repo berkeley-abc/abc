@@ -1,3 +1,23 @@
+/**CFile****************************************************************
+
+  FileName    [giaNewTt.h]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Scalable AIG package.]
+
+  Synopsis    [Implementation of transduction method.]
+
+  Author      [Yukio Miyasaka]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - May 2023.]
+
+  Revision    [$Id: giaNewTt.h,v 1.00 2023/05/10 00:00:00 Exp $]
+
+***********************************************************************/
+
 #ifndef ABC__aig__gia__giaNewTt_h
 #define ABC__aig__gia__giaNewTt_h
 

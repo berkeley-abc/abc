@@ -1,3 +1,23 @@
+/**CFile****************************************************************
+
+  FileName    [giaTranStoch.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Scalable AIG package.]
+
+  Synopsis    [Implementation of transduction method.]
+
+  Author      [Yukio Miyasaka]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - May 2023.]
+
+  Revision    [$Id: giaTranStoch.c,v 1.00 2023/05/10 00:00:00 Exp $]
+
+***********************************************************************/
+
 #include <base/abc/abc.h>
 #include <aig/aig/aig.h>
 #include <opt/dar/dar.h>
@@ -147,7 +167,7 @@ Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
 Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fCspf, int fMerge, int fResetHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, int nVerbose ) {
   int i, j = 0;
   Gia_Man_t * pNew, * pBest, * pStart;
-  Abc_Ntk_t * pNtk, * pNtkRes;
+  Abc_Ntk_t * pNtk, * pNtkRes; Vec_Ptr_t * vpStarts;
   Gia_ManTranStochParam Par, *p = &Par;
   p->nRestarts = nRestarts;
   p->nHops = nHops;
@@ -159,7 +179,7 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
   p->fNewLine = fNewLine;
   p->nVerbose = nVerbose;
   // setup start points
-  Vec_Ptr_t * vpStarts = Vec_PtrAlloc( 4 );
+  vpStarts = Vec_PtrAlloc( 4 );
   Vec_PtrPush( vpStarts, Gia_ManDup( pGia ) );
   if ( !fOriginalOnly ) {
     { // &put; collapse; st; &get;

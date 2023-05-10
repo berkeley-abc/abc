@@ -1,3 +1,22 @@
+/**CFile****************************************************************
+
+  FileName    [giaTransduction.c]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Scalable AIG package.]
+
+  Synopsis    [Implementation of transduction method.]
+
+  Author      [Yukio Miyasaka]
+  
+  Affiliation [UC Berkeley]
+
+  Date        [Ver. 1.0. Started - May 2023.]
+
+  Revision    [$Id: giaTransduction.c,v 1.00 2023/05/10 00:00:00 Exp $]
+
+***********************************************************************/
 
 #ifndef _WIN32
 
