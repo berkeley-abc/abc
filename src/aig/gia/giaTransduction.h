@@ -1623,6 +1623,8 @@ public: // Constructor
       PrintStats("Init", true, 11);
   }
   ~Transduction() {
+    if(nVerbose)
+      PrintStats("End", true, 11);
     this->DelVec(vFs);
     this->DelVec(vGs);
     this->DelVec(vvCs);

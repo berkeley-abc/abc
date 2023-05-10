@@ -5323,6 +5323,10 @@ SOURCE=.\src\aig\gia\giaTransduction.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaTranStoch.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaUnate.c
 # End Source File
 # Begin Source File
