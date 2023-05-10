@@ -5428,7 +5428,7 @@ Gia_Man_t * Gia_ManDupWithCare( Gia_Man_t * p, Gia_Man_t * pCare )
     assert( Gia_ManRegNum(p) == 0 );
     assert( Gia_ManRegNum(pCare) == 0 );
     pNew = Gia_ManStart( 2*Gia_ManObjNum(p) + Gia_ManObjNum(pCare) );
-    pNew->pName = Abc_UtilStrsavTwo( pNew->pName, "_care" );
+    pNew->pName = Abc_UtilStrsavTwo( pNew->pName ? pNew->pName : (char *)"test", (char *)"_care" );
     Gia_ManConst0(pCare)->Value = 0;
     Gia_ManForEachCi( pCare, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
