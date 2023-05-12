@@ -42754,8 +42754,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9TranStoch( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fCspf, int fMerge, int fResetHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, int nVerbose );
-    Gia_Man_t * pTemp;
+    extern Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fCspf, int fMerge, int fResetHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose );
+    Gia_Man_t * pTemp, * pExdc = NULL;
     int c, nRestarts = 0, nHops = 10, nSeedBase = 0, fCspf = 0, fMerge = 1, fResetHop = 1, fTruth = 0, fSingle = 0, fOriginalOnly = 0, fNewLine = 0, nVerbose = 1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "NMRVcmrtsonh" ) ) != EOF )
@@ -42824,18 +42824,41 @@ int Abc_CommandAbc9TranStoch( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( argc > globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Wrong number of auguments.\n" );
+        goto usage;
+    }
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
+    if ( argc == globalUtilOptind + 1 )
+    {
+        FILE * pFile = fopen( argv[globalUtilOptind], "rb" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Cannot open input file \"%s\". ", argv[globalUtilOptind] );
+            return 1;
+        }
+        fclose( pFile );
+        pExdc = Gia_AigerRead( argv[globalUtilOptind], 0, 0, 0 );
+        if ( pExdc == NULL )
+        {
+            Abc_Print( -1, "Reading AIGER has failed.\n" );
+            return 1;
+        }
+    }
 
-    pTemp = Gia_ManTranStoch( pAbc->pGia, nRestarts, nHops, nSeedBase, fCspf, fMerge, fResetHop, fTruth, fSingle, fOriginalOnly, fNewLine, nVerbose );
+    pTemp = Gia_ManTranStoch( pAbc->pGia, nRestarts, nHops, nSeedBase, fCspf, fMerge, fResetHop, fTruth, fSingle, fOriginalOnly, fNewLine, pExdc, nVerbose );
+    if ( pExdc != NULL )
+        Gia_ManStop( pExdc );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &transtoch [-NMRV num] [-cmrtsonh]\n" );
+    Abc_Print( -2, "usage: &transtoch [-NMRV num] [-cmrtsonh] <file>\n" );
     Abc_Print( -2, "\t           iterates transduction with randomized parameters\n" );
     Abc_Print( -2, "\t-N num   : number of restarts [default = %d]\n", nRestarts );
     Abc_Print( -2, "\t-M num   : number of hops (if; mfs2; strash) [default = %d]\n", nHops );
@@ -42849,6 +42872,7 @@ usage:
     Abc_Print( -2, "\t-o       : toggles starting from the given AIG [default = %s]\n", fOriginalOnly? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles printing with a new line [default = %s]\n", fNewLine? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n" );
+    Abc_Print( -2, "\t<file>   : AIGER specifying external don't-cares\n" );
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Yukio Miyasaka.\n" );
     return 1;
