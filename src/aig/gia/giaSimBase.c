@@ -3673,7 +3673,7 @@ Vec_Str_t * Gia_ManComputeRange( Gia_Man_t * p )
     Vec_Wrd_t * vSims   = Gia_ManSimPatSimOut( p, vSimsPi, 1 );
     int n, nWords = Vec_WrdSize(vSimsPi) / Gia_ManCiNum(p);
     int i, nLimit = Gia_ManCiNum(p) < 6 ? 1 << Gia_ManCiNum(p) : 64*nWords;
-    Vec_Str_t * vOut = Vec_StrAlloc( nLimit*(Gia_ManCoNum(p) + 3) );
+    Vec_Str_t * vOut = Vec_StrAlloc( nLimit*(Gia_ManCoNum(p) + 3)+1 );
     assert( Vec_WrdSize(vSims) == nWords * Gia_ManCoNum(p) );
     for ( n = 0; n < nLimit; n++ )
     {
