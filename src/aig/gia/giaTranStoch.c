@@ -80,6 +80,7 @@ struct Gia_ManTranStochParam {
   int fResetHop;
   int fTruth;
   int fNewLine;
+  Gia_Man_t * pExdc;
   int nVerbose;
 };
 
@@ -92,9 +93,9 @@ Gia_Man_t * Gia_ManTranStochOpt1( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
   do {
     n = Gia_ManAndNum( pGia );
     if ( p->fTruth )
-      pNew = Gia_ManTransductionTt( pGia, (p->fMerge? 8: 7), !p->fCspf, p->nSeed++, 0, 0, 0, 0, NULL, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
+      pNew = Gia_ManTransductionTt( pGia, (p->fMerge? 8: 7), !p->fCspf, p->nSeed++, 0, 0, 0, 0, p->pExdc, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
     else
-      pNew = Gia_ManTransductionBdd( pGia, (p->fMerge? 8: 7), !p->fCspf, p->nSeed++, 0, 0, 0, 0, NULL, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
+      pNew = Gia_ManTransductionBdd( pGia, (p->fMerge? 8: 7), !p->fCspf, p->nSeed++, 0, 0, 0, 0, p->pExdc, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
     Gia_ManStop( pGia );
     pGia = pNew;    
     pNew = Gia_ManCompress2( pGia, 1, 0 );
@@ -152,7 +153,7 @@ Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
     p->nSeed = 1234 * (i + p->nSeedBase);
     pNew = Gia_ManTranStochOpt2( p, pOld );
     if ( p->nRestarts && p->nVerbose )
-      printf( "*  res %d               : #nodes = %5d\n", i, Gia_ManAndNum( pNew ) );
+      printf( "*  res %2d              : #nodes = %5d\n", i, Gia_ManAndNum( pNew ) );
     if ( n > Gia_ManAndNum( pNew ) ) {
       n = Gia_ManAndNum( pNew );
       Gia_ManStop( pBest );
@@ -164,7 +165,7 @@ Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
   return pBest;
 }
 
-Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fCspf, int fMerge, int fResetHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, int nVerbose ) {
+Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fCspf, int fMerge, int fResetHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose ) {
   int i, j = 0;
   Gia_Man_t * pNew, * pBest, * pStart;
   Abc_Ntk_t * pNtk, * pNtkRes; Vec_Ptr_t * vpStarts;
@@ -177,6 +178,7 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
   p->fResetHop = fResetHop;
   p->fTruth = fTruth;
   p->fNewLine = fNewLine;
+  p->pExdc = pExdc;
   p->nVerbose = nVerbose;
   // setup start points
   vpStarts = Vec_PtrAlloc( 4 );
