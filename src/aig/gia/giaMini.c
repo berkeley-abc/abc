@@ -769,6 +769,8 @@ Vec_Int_t * Gia_ManMapEquivAfterScorr( Gia_Man_t * p, Vec_Int_t * vMap )
     {
         if ( iObjLit == -1 )
             continue;
+        if ( Gia_ObjHasRepr(p, Abc_Lit2Var(iObjLit)) && !Gia_ObjProved(p, Abc_Lit2Var(iObjLit)) )
+            continue;
         iReprGia = Gia_ObjReprSelf( p, Abc_Lit2Var(iObjLit) );
         iReprMini = Vec_IntEntry( vGia2Mini, iReprGia );
         if ( iReprMini == -1 )
