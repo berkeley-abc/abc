@@ -16,6 +16,7 @@ extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
 extern int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars );
 extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
 extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int nLitCountMax, int fCanonDivs, int fVerbose, int fVeryVerbose );
+extern Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars );
 
 Abc_Ntk_t * Gia_ManTranStochPut( Gia_Man_t * pGia ) {
   Abc_Ntk_t * pNtk;
@@ -49,6 +50,13 @@ void Gia_ManTranStochFx( Abc_Ntk_t * pNtk ) {
   Abc_NtkFxPerform( pNtk, p->nNodesExt, p->LitCountMax, p->fCanonDivs, p->fVerbose, p->fVeryVerbose );
   Abc_NtkFxuFreeInfo( p );
 }
+Abc_Ntk_t * Gia_ManTranStochDrw( Abc_Ntk_t * pNtk ) {
+  Dar_RwrPar_t Pars, * pPars = &Pars;
+  Dar_ManDefaultRwrParams( pPars );
+  pPars->nMinSaved = 0;
+  pPars->fUseZeros = 1;
+  return Abc_NtkDRewrite( pNtk, pPars );
+}
 
 struct Gia_ManTranStochParam {
   int nSeed;
@@ -61,6 +69,7 @@ struct Gia_ManTranStochParam {
   int fTruth;
   int fNewLine;
   Gia_Man_t * pExdc;
+  int fZeroCostHop;
   int nVerbose;
 };
 
@@ -109,13 +118,19 @@ Gia_Man_t * Gia_ManTranStochOpt2( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
       break;
     pNtk = Gia_ManTranStochPut( pGia );
     Gia_ManStop( pGia );
-    pNtkRes = Gia_ManTranStochIf( pNtk );
-    Abc_NtkDelete( pNtk );
-    pNtk = pNtkRes;
-    Gia_ManTranStochMfs2( pNtk );
-    pNtkRes = Abc_NtkStrash( pNtk, 0, 1, 0 );
-    Abc_NtkDelete( pNtk );
-    pNtk = pNtkRes;
+    if ( p->fZeroCostHop ) {
+      pNtkRes = Gia_ManTranStochDrw( pNtk );
+      Abc_NtkDelete( pNtk );
+      pNtk = pNtkRes;
+    } else {
+      pNtkRes = Gia_ManTranStochIf( pNtk );
+      Abc_NtkDelete( pNtk );
+      pNtk = pNtkRes;
+      Gia_ManTranStochMfs2( pNtk );
+      pNtkRes = Abc_NtkStrash( pNtk, 0, 1, 0 );
+      Abc_NtkDelete( pNtk );
+      pNtk = pNtkRes;
+    }
     pGia = Gia_ManTranStochGet( pNtk );
     Abc_NtkDelete( pNtk );
     if ( p->nVerbose )
@@ -145,7 +160,7 @@ Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
   return pBest;
 }
 
-Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose ) {
+Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose ) {
   int i, j = 0;
   Gia_Man_t * pNew, * pBest, * pStart;
   Abc_Ntk_t * pNtk, * pNtkRes;
@@ -156,6 +171,7 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
   p->fMspf = fMspf;
   p->fMerge = fMerge;
   p->fResetHop = fResetHop;
+  p->fZeroCostHop = fZeroCostHop;
   p->fTruth = fTruth;
   p->fNewLine = fNewLine;
   p->pExdc = pExdc;
