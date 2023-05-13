@@ -55,7 +55,7 @@ struct Gia_ManTranStochParam {
   int nHops;
   int nRestarts;
   int nSeedBase;
-  int fCspf;
+  int fMspf;
   int fMerge;
   int fResetHop;
   int fTruth;
@@ -73,9 +73,9 @@ Gia_Man_t * Gia_ManTranStochOpt1( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
   do {
     n = Gia_ManAndNum( pGia );
     if ( p->fTruth )
-      pNew = Gia_ManTransductionTt( pGia, (p->fMerge? 8: 7), !p->fCspf, p->nSeed++, 0, 0, 0, 0, p->pExdc, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
+      pNew = Gia_ManTransductionTt( pGia, (p->fMerge? 8: 7), p->fMspf, p->nSeed++, 0, 0, 0, 0, p->pExdc, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
     else
-      pNew = Gia_ManTransductionBdd( pGia, (p->fMerge? 8: 7), !p->fCspf, p->nSeed++, 0, 0, 0, 0, p->pExdc, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
+      pNew = Gia_ManTransductionBdd( pGia, (p->fMerge? 8: 7), p->fMspf, p->nSeed++, 0, 0, 0, 0, p->pExdc, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
     Gia_ManStop( pGia );
     pGia = pNew;    
     pNew = Gia_ManCompress2( pGia, 1, 0 );
@@ -145,7 +145,7 @@ Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
   return pBest;
 }
 
-Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fCspf, int fMerge, int fResetHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose ) {
+Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose ) {
   int i, j = 0;
   Gia_Man_t * pNew, * pBest, * pStart;
   Abc_Ntk_t * pNtk, * pNtkRes;
@@ -153,7 +153,7 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
   p->nRestarts = nRestarts;
   p->nHops = nHops;
   p->nSeedBase = nSeedBase;
-  p->fCspf = fCspf;
+  p->fMspf = fMspf;
   p->fMerge = fMerge;
   p->fResetHop = fResetHop;
   p->fTruth = fTruth;
