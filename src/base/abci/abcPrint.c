@@ -46,7 +46,7 @@ ABC_NAMESPACE_IMPL_START
 
 abctime s_MappingTime = 0;
 int s_MappingMem = 0;
-abctime s_ResubTime = 0;
+//abctime s_ResubTime = 0;
 abctime s_ResynTime = 0;
 
 ////////////////////////////////////////////////////////////////////////

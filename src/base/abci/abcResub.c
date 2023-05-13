@@ -117,7 +117,7 @@ static Dec_Graph_t * Abc_ManResubDivs3( Abc_ManRes_t * p, int Required );
 static Vec_Ptr_t *   Abc_CutFactorLarge( Abc_Obj_t * pNode, int nLeavesMax );
 static int           Abc_CutVolumeCheck( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves );
 
-extern abctime s_ResubTime;
+//extern abctime s_ResubTime;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -271,7 +271,7 @@ pManRes->timeTotal = Abc_Clock() - clkStart;
         printf( "Abc_NtkRefactor: The network check has failed.\n" );
         return 0;
     }
-s_ResubTime = Abc_Clock() - clkStart;
+//s_ResubTime = Abc_Clock() - clkStart;
     return 1;
 }
 
