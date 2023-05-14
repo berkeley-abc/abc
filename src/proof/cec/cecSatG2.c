@@ -1862,6 +1862,9 @@ finalize:
             pMan->nSatUndec,  
             pMan->nSimulates, pMan->nRecycles, 100.0*pMan->nGates[1]/Abc_MaxInt(1, pMan->nGates[0]+pMan->nGates[1]) );
     Cec4_ManDestroy( pMan );
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Gia_ObjHasRepr(p, i) && !Gia_ObjProved(p, i) )
+            Gia_ObjSetRepr(p, i, GIA_VOID);
     //Gia_ManStaticFanoutStop( p );
     //Gia_ManEquivPrintClasses( p, 1, 0 );
     if ( ppNew && *ppNew == NULL )
