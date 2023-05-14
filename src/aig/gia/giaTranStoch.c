@@ -9,6 +9,17 @@
 #include <opt/sfm/sfm.h>
 #include <opt/fxu/fxu.h>
 
+#ifdef ABC_USE_PTHREADS
+
+#ifdef _WIN32
+#include "../lib/pthread.h"
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 extern Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
@@ -16,7 +27,6 @@ extern Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars );
 extern int Abc_NtkPerformMfs( Abc_Ntk_t * pNtk, Sfm_Par_t * pPars );
 extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
 extern int Abc_NtkFxPerform( Abc_Ntk_t * pNtk, int nNewNodesMax, int nLitCountMax, int fCanonDivs, int fVerbose, int fVeryVerbose );
-extern Abc_Ntk_t * Abc_NtkDRewrite( Abc_Ntk_t * pNtk, Dar_RwrPar_t * pPars );
 
 Abc_Ntk_t * Gia_ManTranStochPut( Gia_Man_t * pGia ) {
   Abc_Ntk_t * pNtk;
@@ -50,15 +60,23 @@ void Gia_ManTranStochFx( Abc_Ntk_t * pNtk ) {
   Abc_NtkFxPerform( pNtk, p->nNodesExt, p->LitCountMax, p->fCanonDivs, p->fVerbose, p->fVeryVerbose );
   Abc_NtkFxuFreeInfo( p );
 }
-Abc_Ntk_t * Gia_ManTranStochDrw( Abc_Ntk_t * pNtk ) {
-  Dar_RwrPar_t Pars, * pPars = &Pars;
-  Dar_ManDefaultRwrParams( pPars );
-  pPars->nMinSaved = 0;
+Gia_Man_t * Gia_ManTranStochRefactor( Gia_Man_t * pGia ) {
+  Gia_Man_t * pNew;
+  Aig_Man_t * pAig, * pTemp;
+  Dar_RefPar_t Pars, * pPars = &Pars;
+  Dar_ManDefaultRefParams( pPars );
   pPars->fUseZeros = 1;
-  return Abc_NtkDRewrite( pNtk, pPars );
+  pAig = Gia_ManToAig( pGia, 0 );
+  Dar_ManRefactor( pAig, pPars );
+  pAig = Aig_ManDupDfs( pTemp = pAig );
+  Aig_ManStop( pTemp );
+  pNew = Gia_ManFromAig( pAig );
+  Aig_ManStop( pAig );
+  return pNew;
 }
 
 struct Gia_ManTranStochParam {
+  Gia_Man_t * pStart;
   int nSeed;
   int nHops;
   int nRestarts;
@@ -66,14 +84,36 @@ struct Gia_ManTranStochParam {
   int fMspf;
   int fMerge;
   int fResetHop;
+  int fZeroCostHop;
+  int fRefactor;
   int fTruth;
   int fNewLine;
   Gia_Man_t * pExdc;
-  int fZeroCostHop;
   int nVerbose;
+
+#ifdef ABC_USE_PTHREADS
+  int nSp;
+  int nIte;
+  Gia_Man_t * pRes;
+  int fWorking;
+  pthread_mutex_t * mutex;
+#endif
 };
 
 typedef struct Gia_ManTranStochParam Gia_ManTranStochParam;
+
+void Gia_ManTranStochLock( Gia_ManTranStochParam * p ) {
+#ifdef ABC_USE_PTHREADS
+  if ( p->fWorking )
+    pthread_mutex_lock( p->mutex );
+#endif
+}
+void Gia_ManTranStochUnlock( Gia_ManTranStochParam * p ) {
+#ifdef ABC_USE_PTHREADS
+  if ( p->fWorking )
+    pthread_mutex_unlock( p->mutex );
+#endif
+}
   
 Gia_Man_t * Gia_ManTranStochOpt1( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) {
   Gia_Man_t * pGia, * pNew;
@@ -86,10 +126,18 @@ Gia_Man_t * Gia_ManTranStochOpt1( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
     else
       pNew = Gia_ManTransductionBdd( pGia, (p->fMerge? 8: 7), p->fMspf, p->nSeed++, 0, 0, 0, 0, p->pExdc, p->fNewLine, p->nVerbose > 0? p->nVerbose - 1: 0 );
     Gia_ManStop( pGia );
-    pGia = pNew;    
-    pNew = Gia_ManCompress2( pGia, 1, 0 );
-    Gia_ManStop( pGia );
     pGia = pNew;
+    if ( p->fRefactor ) {
+      pNew = Gia_ManTranStochRefactor( pGia );
+      Gia_ManStop( pGia );
+      pGia = pNew;
+    } else {
+      Gia_ManTranStochLock( p );
+      pNew = Gia_ManCompress2( pGia, 1, 0 );
+      Gia_ManTranStochUnlock( p );
+      Gia_ManStop( pGia );
+      pGia = pNew;
+    }
     if ( p->nVerbose )
       printf( "*                ite %d : #nodes = %5d\n", i, Gia_ManAndNum( pGia ) );
     i++;
@@ -97,11 +145,11 @@ Gia_Man_t * Gia_ManTranStochOpt1( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
   return pGia;
 }
 
-Gia_Man_t * Gia_ManTranStochOpt2( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) {
-  int i, n = Gia_ManAndNum( pOld );
+Gia_Man_t * Gia_ManTranStochOpt2( Gia_ManTranStochParam * p ) {
+  int i, n = Gia_ManAndNum( p->pStart );
   Gia_Man_t * pGia, * pBest, * pNew;
   Abc_Ntk_t * pNtk, * pNtkRes;
-  pGia = Gia_ManDup( pOld );
+  pGia = Gia_ManDup( p->pStart );
   pBest = Gia_ManDup( pGia );
   for ( i = 0; 1; i++ ) {
     pNew = Gia_ManTranStochOpt1( p, pGia );
@@ -116,23 +164,27 @@ Gia_Man_t * Gia_ManTranStochOpt2( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
     }
     if ( i == p->nHops )
       break;
-    pNtk = Gia_ManTranStochPut( pGia );
-    Gia_ManStop( pGia );
     if ( p->fZeroCostHop ) {
-      pNtkRes = Gia_ManTranStochDrw( pNtk );
-      Abc_NtkDelete( pNtk );
-      pNtk = pNtkRes;
+      pNew = Gia_ManTranStochRefactor( pGia );
+      Gia_ManStop( pGia );
+      pGia = pNew;
     } else {
+      Gia_ManTranStochLock( p );
+      pNtk = Gia_ManTranStochPut( pGia );
+      Gia_ManTranStochUnlock( p );
+      Gia_ManStop( pGia );
       pNtkRes = Gia_ManTranStochIf( pNtk );
       Abc_NtkDelete( pNtk );
       pNtk = pNtkRes;
       Gia_ManTranStochMfs2( pNtk );
+      Gia_ManTranStochLock( p );
       pNtkRes = Abc_NtkStrash( pNtk, 0, 1, 0 );
+      Gia_ManTranStochUnlock( p );
       Abc_NtkDelete( pNtk );
       pNtk = pNtkRes;
+      pGia = Gia_ManTranStochGet( pNtk );
+      Abc_NtkDelete( pNtk );
     }
-    pGia = Gia_ManTranStochGet( pNtk );
-    Abc_NtkDelete( pNtk );
     if ( p->nVerbose )
       printf( "*         hop %d        : #nodes = %5d\n", i, Gia_ManAndNum( pGia ) );
   }
@@ -140,13 +192,13 @@ Gia_Man_t * Gia_ManTranStochOpt2( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
   return pBest;
 }
 
-Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) {
-  int i, n = Gia_ManAndNum( pOld );
+Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p ) {
+  int i, n = Gia_ManAndNum( p->pStart );
   Gia_Man_t * pBest, * pNew;
-  pBest = Gia_ManDup( pOld );
+  pBest = Gia_ManDup( p->pStart );
   for ( i = 0; i <= p->nRestarts; i++ ) {
     p->nSeed = 1234 * (i + p->nSeedBase);
-    pNew = Gia_ManTranStochOpt2( p, pOld );
+    pNew = Gia_ManTranStochOpt2( p );
     if ( p->nRestarts && p->nVerbose )
       printf( "*  res %2d              : #nodes = %5d\n", i, Gia_ManAndNum( pNew ) );
     if ( n > Gia_ManAndNum( pNew ) ) {
@@ -160,7 +212,28 @@ Gia_Man_t * Gia_ManTranStochOpt3( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) 
   return pBest;
 }
 
-Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose ) {
+#ifdef ABC_USE_PTHREADS
+void * Gia_ManTranStochWorkerThread( void * pArg ) {
+  Gia_ManTranStochParam * p = (Gia_ManTranStochParam *)pArg;
+  volatile int * pPlace = &p->fWorking;
+  while ( 1 ) {
+    while ( *pPlace == 0 );
+    assert( p->fWorking );
+    if ( p->pStart == NULL ) {
+      pthread_exit( NULL );
+      assert( 0 );
+      return NULL;
+    }
+    p->nSeed = 1234 * (p->nIte + p->nSeedBase);
+    p->pRes = Gia_ManTranStochOpt2( p );
+    p->fWorking = 0;
+  }
+  assert( 0 );
+  return NULL;
+}
+#endif
+
+Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fRefactor, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nThreads, int nVerbose ) {
   int i, j = 0;
   Gia_Man_t * pNew, * pBest, * pStart;
   Abc_Ntk_t * pNtk, * pNtkRes;
@@ -172,10 +245,14 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
   p->fMerge = fMerge;
   p->fResetHop = fResetHop;
   p->fZeroCostHop = fZeroCostHop;
+  p->fRefactor = fRefactor;
   p->fTruth = fTruth;
   p->fNewLine = fNewLine;
   p->pExdc = pExdc;
   p->nVerbose = nVerbose;
+#ifdef ABC_USE_PTHREADS
+  p->fWorking = 0;
+#endif
   // setup start points
   Vec_Ptr_t * vpStarts = Vec_PtrAlloc( 4 );
   Vec_PtrPush( vpStarts, Gia_ManDup( pGia ) );
@@ -228,21 +305,97 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
   }
   // optimize
   pBest = Gia_ManDup( pGia );
-  Vec_PtrForEachEntry( Gia_Man_t *, vpStarts, pStart, i ) {
-    if ( p->nVerbose )
-      printf( "*begin starting point %d: #nodes = %5d\n", i + j, Gia_ManAndNum( pStart ) );
-    pNew = Gia_ManTranStochOpt3( p, pStart );
-    if ( p->nVerbose )
-      printf( "*end   starting point %d: #nodes = %5d\n", i + j, Gia_ManAndNum( pNew ) );
-    if ( Gia_ManAndNum( pBest ) > Gia_ManAndNum( pNew ) ) {
-      Gia_ManStop( pBest );
-      pBest = pNew;
-    } else {
-      Gia_ManStop( pNew );
+  if ( nThreads == 1 ) {
+    Vec_PtrForEachEntry( Gia_Man_t *, vpStarts, pStart, i ) {
+      if ( p->nVerbose )
+        printf( "*begin starting point %d: #nodes = %5d\n", i + j, Gia_ManAndNum( pStart ) );
+      p->pStart = pStart;
+      pNew = Gia_ManTranStochOpt3( p );
+      if ( p->nVerbose )
+        printf( "*end   starting point %d: #nodes = %5d\n", i + j, Gia_ManAndNum( pNew ) );
+      if ( Gia_ManAndNum( pBest ) > Gia_ManAndNum( pNew ) ) {
+        Gia_ManStop( pBest );
+        pBest = pNew;
+      } else {
+        Gia_ManStop( pNew );
+      }
+      Gia_ManStop( pStart );
     }
-    Gia_ManStop( pStart );
+  } else {
+#ifdef ABC_USE_PTHREADS
+    static pthread_mutex_t mutex;
+    int k, status, nIte, fAssigned, fWorking;
+    Gia_ManTranStochParam ThData[100];
+    pthread_t WorkerThread[100];
+    p->pRes = NULL;
+    p->mutex = &mutex;
+    if ( p->nVerbose )
+      p->nVerbose--;
+    for ( i = 0; i < nThreads; i++ ) {
+      ThData[i] = *p;
+      status = pthread_create( WorkerThread + i, NULL, Gia_ManTranStochWorkerThread, (void *)(ThData + i) );
+      assert( status == 0 );
+    }
+    Vec_PtrForEachEntry( Gia_Man_t *, vpStarts, pStart, k ) {
+      for ( nIte = 0; nIte <= p->nRestarts; nIte++ ) {
+        fAssigned = 0;
+        while ( !fAssigned ) {
+          for ( i = 0; i < nThreads; i++ ) {
+            if ( ThData[i].fWorking )
+              continue;
+            if ( ThData[i].pRes != NULL ) {
+              if( nVerbose )
+                printf( "*sp %d res %4d        : #nodes = %5d\n", ThData[i].nSp, ThData[i].nIte, Gia_ManAndNum( ThData[i].pRes ) );
+              if ( Gia_ManAndNum( pBest ) > Gia_ManAndNum( ThData[i].pRes ) ) {
+                Gia_ManStop( pBest );
+                pBest = ThData[i].pRes;
+              } else {
+                Gia_ManStop( ThData[i].pRes );
+              }
+              ThData[i].pRes = NULL;
+            }
+            ThData[i].nSp = j + k;
+            ThData[i].nIte = nIte;
+            ThData[i].pStart = pStart;
+            ThData[i].fWorking = 1;
+            fAssigned = 1;
+            break;
+          }
+        }
+      }
+    }
+    fWorking = 1;
+    while ( fWorking ) {
+      fWorking = 0;
+      for ( i = 0; i < nThreads; i++ ) {
+        if( ThData[i].fWorking ) {
+          fWorking = 1;
+          continue;
+        }
+        if ( ThData[i].pRes != NULL ) {
+          if( nVerbose )
+            printf( "*sp %d res %4d        : #nodes = %5d\n", ThData[i].nSp, ThData[i].nIte, Gia_ManAndNum( ThData[i].pRes ) );
+          if ( Gia_ManAndNum( pBest ) > Gia_ManAndNum( ThData[i].pRes ) ) {
+            Gia_ManStop( pBest );
+            pBest = ThData[i].pRes;
+          } else {
+            Gia_ManStop( ThData[i].pRes );
+          }
+          ThData[i].pRes = NULL;
+        }
+      }
+    }
+    for ( i = 0; i < nThreads; i++ ) {
+      ThData[i].pStart = NULL;
+      ThData[i].fWorking = 1;
+    }
+#else
+    printf( "ERROR: pthread is off" );
+#endif
+    Vec_PtrForEachEntry( Gia_Man_t *, vpStarts, pStart, i )
+      Gia_ManStop( pStart );
   }
-  if ( p->nVerbose )
+  if ( nVerbose )
     printf( "best: %d\n", Gia_ManAndNum( pBest ) );
   Vec_PtrFree( vpStarts );
   return pBest;

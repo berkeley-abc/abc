@@ -42754,11 +42754,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9TranStoch( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nVerbose );
+    extern Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nSeedBase, int fMspf, int fMerge, int fResetHop, int fZeroCostHop, int fRefactor, int fTruth, int fSingle, int fOriginalOnly, int fNewLine, Gia_Man_t * pExdc, int nThreads, int nVerbose );
     Gia_Man_t * pTemp, * pExdc = NULL;
-    int c, nRestarts = 0, nHops = 10, nSeedBase = 0, fMspf = 1, fMerge = 1, fResetHop = 1, fZeroCostHop = 0, fTruth = 0, fSingle = 0, fOriginalOnly = 0, fNewLine = 0, nVerbose = 1;
+    int c, nRestarts = 0, nHops = 10, nSeedBase = 0, fMspf = 1, fMerge = 1, fResetHop = 1, fZeroCostHop = 0, fRefactor = 0, fTruth = 0, fSingle = 0, fOriginalOnly = 0, fNewLine = 0, nThreads = 1, nVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMRVmgrztsonh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMRPVmgrzftsonh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -42789,6 +42789,15 @@ int Abc_CommandAbc9TranStoch( Abc_Frame_t * pAbc, int argc, char ** argv )
             nSeedBase = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nThreads = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'V':
             if ( globalUtilOptind >= argc )
             {
@@ -42809,6 +42818,9 @@ int Abc_CommandAbc9TranStoch( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'z':
             fZeroCostHop ^= 1;
+            break;
+        case 'f':
+            fRefactor ^= 1;
             break;
         case 't':
             fTruth ^= 1;
@@ -42854,23 +42866,25 @@ int Abc_CommandAbc9TranStoch( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    pTemp = Gia_ManTranStoch( pAbc->pGia, nRestarts, nHops, nSeedBase, fMspf, fMerge, fResetHop, fZeroCostHop, fTruth, fSingle, fOriginalOnly, fNewLine, pExdc, nVerbose );
+    pTemp = Gia_ManTranStoch( pAbc->pGia, nRestarts, nHops, nSeedBase, fMspf, fMerge, fResetHop, fZeroCostHop, fRefactor, fTruth, fSingle, fOriginalOnly, fNewLine, pExdc, nThreads, nVerbose );
     if ( pExdc != NULL )
         Gia_ManStop( pExdc );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &transtoch [-NMRV num] [-mgrztsonh] <file>\n" );
+    Abc_Print( -2, "usage: &transtoch [-NMRPV num] [-mgrzftsonh] <file>\n" );
     Abc_Print( -2, "\t           iterates transduction with randomized parameters\n" );
     Abc_Print( -2, "\t-N num   : number of restarts [default = %d]\n", nRestarts );
     Abc_Print( -2, "\t-M num   : number of hops (if; mfs2; strash) [default = %d]\n", nHops );
     Abc_Print( -2, "\t-R num   : random seed [default = %d]\n", nSeedBase );
+    Abc_Print( -2, "\t-P num   : number of threads [default = %d]\n", nThreads );
     Abc_Print( -2, "\t-V num   : verbosity level [default = %d]\n", nVerbose);
     Abc_Print( -2, "\t-m       : toggles using MSPF instead of CSPF [default = %s]\n", fMspf? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggles using ResubShared [default = %s]\n", fMerge? "yes": "no" );
     Abc_Print( -2, "\t-r       : toggles resetting hop count when new minimum is found [default = %s]\n", fResetHop? "yes": "no" );
-    Abc_Print( -2, "\t-z       : toggles using \"drw -z\" instead of \"if;mfs2;st\" for hop [default = %s]\n", fZeroCostHop? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggles using \"drf -z\" instead of \"if;mfs2;st\" for hop [default = %s]\n", fZeroCostHop? "yes": "no" );
+    Abc_Print( -2, "\t-f       : toggles using \"drf -z\" instead of \"&dc2\" for ite [default = %s]\n", fRefactor? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles using truth table instead of BDD [default = %s]\n", fTruth? "yes": "no" );
     Abc_Print( -2, "\t-s       : toggles starting from the smallest starting point [default = %s]\n", fSingle? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles starting from the given AIG [default = %s]\n", fOriginalOnly? "yes": "no" );
