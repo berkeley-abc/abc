@@ -29,6 +29,7 @@
 #include <set>
 #include <algorithm>
 #include <cassert>
+#include <iterator>
 
 #include "gia.h"
 
@@ -1031,7 +1032,7 @@ public: // Merge/decompose
       for(it2++; it2 != vObjs.end(); it2++) {
         std::set<int> s2(vvFis[*it2].begin(), vvFis[*it2].end());
         std::set<int> s;
-        std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), inserter(s, s.begin()));
+        std::set_intersection(s1.begin(), s1.end(), s2.begin(), s2.end(), std::inserter(s, s.begin()));
         if(s.size() > 1) {
           if(s == s1) {
             if(s == s2) {
