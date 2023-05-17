@@ -1871,6 +1871,7 @@ void Cec5_ManExtend( Cec5_Man_t * pMan, CbsP_Man_t * pCbs ){
 int Cec5_ManSweepNodeCbs( Cec5_Man_t * p, CbsP_Man_t * pCbs, int iObj, int iRepr, int fTagFail );
 int Cec5_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** ppNew, int fSimOnly, int fCbs, int approxLim, int subBatchSz, int adaRecycle )
 {
+    extern void Gia_ManRemoveWrongChoices( Gia_Man_t * p );
     Gia_Obj_t * pObj, * pRepr; 
     CbsP_Man_t * pCbs = NULL;
     int i, fSimulate = 1;
@@ -2119,6 +2120,7 @@ finalize:
         CbsP_ManStop(pCbs);
     //Gia_ManStaticFanoutStop( p );
     //Gia_ManEquivPrintClasses( p, 1, 0 );
+    Gia_ManRemoveWrongChoices( p );
     return p->pCexSeq ? 0 : 1;
 }
 Gia_Man_t * Cec5_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars, int fCbs, int approxLim, int subBatchSz, int adaRecycle )
