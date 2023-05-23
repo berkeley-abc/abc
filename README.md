@@ -74,7 +74,7 @@ If the bug still persists, please provide the following information:
  1. ABC version (when it was downloaded from GitHub)
  1. Linux distribution and version (32-bit or 64-bit)
  1. The exact command-line and error message when trying to run the tool
- 1. The output of the `ldd` command run on the exeutable (e.g. `ldd abc`).
+ 1. The output of the `ldd` command run on the executable (e.g. `ldd abc`).
  1. Versions of relevant tools or packages used.
 
 
