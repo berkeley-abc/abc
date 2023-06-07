@@ -1024,7 +1024,7 @@ int Wlc_NtkMemAbstract( Wlc_Ntk_t * p, int nIterMax, int fDumpAbs, int fPdrVerbo
         pAig = Gia_ManToAigSimple( pAbs );
         Gia_ManStop( pAbs );
         pAig->nConstrs = 1;
-        pAig = Saig_ManDupFoldConstrsFunc( pTempAig = pAig, 0, 0 );
+        pAig = Saig_ManDupFoldConstrsFunc( pTempAig = pAig, 0, 0, 1 );
         Aig_ManStop( pTempAig );
         pAbs = Gia_ManFromAigSimple( pAig );
         Aig_ManStop( pAig );
