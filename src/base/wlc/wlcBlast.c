@@ -575,6 +575,26 @@ void Wlc_BlastMultiplier( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA,
         Wlc_BlastFullAdderCtrl( pNew, 1, pArgC[a], pArgS[a], Carry, &Carry, &pRes[nArgB+a], 0 );
     //Vec_IntWriteEntry( vRes, nArgA + nArgB, Carry );
 }
+void Wlc_BlastMultiplierC( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vTemp, Vec_Int_t * vRes, int fSigned )
+{
+    int * pRes, * pArgC, * pArgS, a, b, Carry = !fSigned; // change
+    assert( nArgA > 0 && nArgB > 0 );
+    assert( fSigned == 0 || fSigned == 1 );
+    Vec_IntFill( vRes, nArgA + nArgB, 0 );
+    pRes = Vec_IntArray( vRes );
+    Vec_IntFill( vTemp, 2 * nArgA, 1 ); // change
+    pArgC = Vec_IntArray( vTemp );
+    pArgS = pArgC + nArgA;
+    for ( b = 0; b < nArgB; b++ )
+        for ( a = 0; a < nArgA; a++ )
+            Wlc_BlastFullAdderCtrl( pNew, pArgA[a], pArgB[b], pArgS[a], pArgC[a], 
+                &pArgC[a], a ? &pArgS[a-1] : &pRes[b], !(fSigned && ((a+1 == nArgA) ^ (b+1 == nArgB))) ); // change
+    pArgS[nArgA-1] = !fSigned; // change
+    for ( a = 0; a < nArgA; a++ )
+        Wlc_BlastFullAdderCtrl( pNew, 1, pArgC[a], pArgS[a], Carry, &Carry, &pRes[nArgB+a], 0 );
+    for ( b = 0; b < nArgA + nArgB; b++ ) // change
+        pRes[b] = Abc_LitNot(pRes[b]);
+}
 void Wlc_BlastDivider( Gia_Man_t * pNew, int * pNum, int nNum, int * pDiv, int nDiv, int fQuo, Vec_Int_t * vRes )
 {
     int * pRes  = Wlc_VecCopy( vRes, pNum, nNum );
@@ -1817,6 +1837,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                     Wlc_BlastMultiplier3( pNew, pArg0, pArg1, nRange0, nRange1, vRes, Wlc_ObjIsSignedFanin01(p, pObj), pPar->fCla, NULL );
                 else
                     Wlc_BlastMultiplier( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
+                    //Wlc_BlastMultiplierC( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
                 if ( nRange > Vec_IntSize(vRes) )
                     Vec_IntFillExtra( vRes, nRange, fSigned ? Vec_IntEntryLast(vRes) : 0 );
                 else
