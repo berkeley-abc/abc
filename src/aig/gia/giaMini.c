@@ -813,6 +813,13 @@ int * Abc_FrameReadMiniAigEquivClasses( Abc_Frame_t * pAbc )
         printf( "Equivalence classes of internal GIA are not available.\n" );
         return NULL;
     }
+    else if ( 0 )
+    {
+        int i;
+        for ( i = 1; i < Gia_ManObjNum(pAbc->pGia2); i++ )
+            if ( Gia_ObjHasRepr(pAbc->pGia2, i) )
+                printf( "Obj %3d : Repr %3d   Proved %d   Failed %d\n", i, Gia_ObjRepr(pAbc->pGia2, i), Gia_ObjProved(pAbc->pGia2, i), Gia_ObjFailed(pAbc->pGia2, i) );
+    }
     if ( Gia_ManObjNum(pAbc->pGia2) != Gia_ManObjNum(pAbc->pGiaMiniAig) )
         printf( "Internal GIA with equivalence classes is not directly derived from MiniAig.\n" );
     // derive the set of equivalent node pairs

@@ -1731,7 +1731,21 @@ Gia_Obj_t * Cec4_ManFindRepr( Gia_Man_t * p, Cec4_Man_t * pMan, int iObj )
 }
 void Gia_ManRemoveWrongChoices( Gia_Man_t * p )
 {
-    int i, iObj, iPrev, Counter = 0;
+    int i = 0, iObj, iPrev, Counter = 0;
+    for ( iPrev = i, iObj = Gia_ObjNext(p, i); -1 < iObj; iObj = Gia_ObjNext(p, iPrev) )
+    {
+        Gia_Obj_t * pRepr = Gia_ObjReprObj(p, iObj);
+        assert( pRepr = Gia_ManConst0(p) );
+        if( !Gia_ObjFailed(p,iObj) && Abc_Lit2Var(Gia_ManObj(p,iObj)->Value) == Abc_Lit2Var(pRepr->Value) )
+        {
+            iPrev = iObj;
+            continue;
+        }
+        Gia_ObjSetRepr( p, iObj, GIA_VOID );
+        Gia_ObjSetNext( p, iPrev, Gia_ObjNext(p, iObj) );
+        Gia_ObjSetNext( p, iObj, 0 );
+        Counter++;
+    }
     Gia_ManForEachClass( p, i )
     {
         for ( iPrev = i, iObj = Gia_ObjNext(p, i); -1 < iObj; iObj = Gia_ObjNext(p, iPrev) )
