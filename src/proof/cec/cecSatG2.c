@@ -1735,7 +1735,7 @@ void Gia_ManRemoveWrongChoices( Gia_Man_t * p )
     for ( iPrev = i, iObj = Gia_ObjNext(p, i); -1 < iObj; iObj = Gia_ObjNext(p, iPrev) )
     {
         Gia_Obj_t * pRepr = Gia_ObjReprObj(p, iObj);
-        assert( pRepr = Gia_ManConst0(p) );
+        assert( pRepr == Gia_ManConst0(p) );
         if( !Gia_ObjFailed(p,iObj) && Abc_Lit2Var(Gia_ManObj(p,iObj)->Value) == Abc_Lit2Var(pRepr->Value) )
         {
             iPrev = iObj;
