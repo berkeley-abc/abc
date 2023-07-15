@@ -31276,12 +31276,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SaveAig( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fArea = 0;
+    int c, fClear = 0, fArea = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cah" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            fClear ^= 1;
+            break;
         case 'a':
             fArea ^= 1;
             break;
@@ -31296,7 +31299,14 @@ int Abc_CommandAbc9SaveAig( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
+    if ( fClear && pAbc->pGiaSaved != NULL )
+    {
+        Gia_ManStopP( &pAbc->pGiaSaved );
+        return 0;
+    }
     if ( fArea && pAbc->pGiaSaved != NULL && Gia_ManAndNum(pAbc->pGiaSaved) <= Gia_ManAndNum(pAbc->pGia) )
+        return 0;
+    if ( !fArea && pAbc->pGiaSaved != NULL && !(Gia_ManLevelNum(pAbc->pGiaSaved) > Gia_ManLevelNum(pAbc->pGia) || (Gia_ManLevelNum(pAbc->pGiaSaved) == Gia_ManLevelNum(pAbc->pGia) && Gia_ManAndNum(pAbc->pGiaSaved) > Gia_ManAndNum(pAbc->pGia))) )
         return 0;
     // save the design as best
     Gia_ManStopP( &pAbc->pGiaSaved );
@@ -31304,8 +31314,9 @@ int Abc_CommandAbc9SaveAig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &saveaig [-ah]\n" );
+    Abc_Print( -2, "usage: &saveaig [-cah]\n" );
     Abc_Print( -2, "\t        saves the current AIG into the internal storage\n" );
+    Abc_Print( -2, "\t-c    : toggle clearing the saved AIG [default = %s]\n", fClear? "yes": "no" );
     Abc_Print( -2, "\t-a    : toggle saving AIG with the smaller area [default = %s]\n", fArea? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
