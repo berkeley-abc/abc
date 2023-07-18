@@ -279,7 +279,7 @@ Cudd_LargestCube(
   DdNode * f,
   int * length)
 {
-    register    DdNode  *F;
+       DdNode  *F;
     st__table    *visited;
     DdNode      *sol;
     cuddPathPair *rootPair;
@@ -351,7 +351,7 @@ Cudd_ShortestLength(
   DdNode * f,
   int * weight)
 {
-    register    DdNode  *F;
+       DdNode  *F;
     st__table    *visited;
     cuddPathPair *my_pair;
     int         complement, cost;

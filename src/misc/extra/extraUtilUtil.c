@@ -97,8 +97,8 @@ void Extra_UtilGetoptReset()
 ***********************************************************************/
 int Extra_UtilGetopt( int argc, char *argv[], const char *optstring )
 {
-    register int c;
-    register const char *place;
+    int c;
+    const char *place;
 
     globalUtilOptarg = NULL;
 

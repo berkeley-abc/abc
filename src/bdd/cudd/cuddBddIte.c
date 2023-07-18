@@ -1203,8 +1203,8 @@ bddVarToCanonical(
   unsigned int * topgp,
   unsigned int * tophp)
 {
-    register DdNode             *F, *G, *H, *r, *f, *g, *h;
-    register unsigned int       topf, topg, toph;
+    DdNode             *F, *G, *H, *r, *f, *g, *h;
+    unsigned int       topf, topg, toph;
     DdNode                      *one = dd->one;
     int                         comple, change;
 
@@ -1305,7 +1305,7 @@ bddVarToCanonicalSimple(
   unsigned int * topgp,
   unsigned int * tophp)
 {
-    register DdNode             *r, *f, *g, *h;
+    DdNode             *r, *f, *g, *h;
     int                         comple, change;
 
     f = *fp;
