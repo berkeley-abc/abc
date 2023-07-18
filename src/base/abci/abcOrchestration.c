@@ -39,6 +39,8 @@ extern void  Abc_PlaceBegin( Abc_Ntk_t * pNtk );
 extern void  Abc_PlaceEnd( Abc_Ntk_t * pNtk );
 extern void  Abc_PlaceUpdate( Vec_Ptr_t * vAddedCells, Vec_Ptr_t * vUpdatedNets );
 
+extern int         Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
+
 #define ABC_RS_DIV1_MAX    150   // the max number of divisors to consider
 #define ABC_RS_DIV2_MAX    500   // the max number of pair-wise divisors to consider
 
@@ -168,7 +170,6 @@ struct Abc_ManRef_t_
 
 int Abc_NtkRewrite3( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rw, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose, int fPlaceEnable )
 {
-    extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     Cut_Man_t * pManCut;
     Rwr_Man_t * pManRwr;
@@ -469,7 +470,6 @@ void Abc_NtkManRefPrintStats_1( Abc_ManRef_t * p )
 
 int Abc_NtkRefactor3( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_ref, int nNodeSizeMax, int nConeSizeMax, int fUpdateLevel, int fUseZeros, int fUseDcs, int fVerbose )
 {
-    extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     Abc_ManRef_t * pManRef;
     Abc_ManCut_t * pManCut;
@@ -571,7 +571,6 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
 
 int Abc_NtkResubstitute3( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_res, int nCutMax, int nStepsMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose )
 {
-    extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     Abc_ManRes_t * pManRes;
     Abc_ManCut_t * pManCut;
@@ -2666,7 +2665,6 @@ Vec_Ptr_t * Abc_CutFactorLarge( Abc_Obj_t * pNode, int nLeavesMax )
 
 int Abc_NtkOrchSA( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rwr, Vec_Int_t **pGain_res,Vec_Int_t **pGain_ref, Vec_Int_t **PolicyList, char * DecisionFile, int fUseZeros_rwr, int fUseZeros_ref, int fPlaceEnable, int nCutMax, int nStepsMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int nNodeSizeMax, int nConeSizeMax, int fUseDcs )
 {
-    extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     // For resub
     Abc_ManRes_t * pManRes;
@@ -3238,7 +3236,7 @@ int Abc_NtkOrchLocal( Abc_Ntk_t * pNtk, int fUseZeros_rwr, int fUseZeros_ref, in
     Abc_ManCut_t * pManCutRes;
     Odc_Man_t * pManOdc = NULL;
     Dec_Graph_t * pFFormRes;
-    Dec_Graph_t * pFFormRef_zeros;
+    //Dec_Graph_t * pFFormRef_zeros;
     Vec_Ptr_t * vLeaves;
     // For rewrite
     Cut_Man_t * pManCutRwr;
@@ -3250,12 +3248,12 @@ int Abc_NtkOrchLocal( Abc_Ntk_t * pNtk, int fUseZeros_rwr, int fUseZeros_ref, in
     Dec_Graph_t * pFFormRef;
     Vec_Ptr_t * vFanins;
 
-    Abc_Obj_t * pNode, * pFanin;
-    int fanin_i;
+    Abc_Obj_t * pNode;//, * pFanin;
+    //int fanin_i;
     //FILE * fpt;
     abctime clk, clkStart = Abc_Clock();
     abctime s_ResubTime;
-    int i, nNodes, nGain, nGain_zeros, fCompl, RetValue = 1;
+    int i, nNodes, nGain, fCompl, RetValue = 1;//, nGain_zeros;
     //int decisionOps = 0;
     int ops_rwr = 0;
     int ops_res = 0;
@@ -3316,7 +3314,7 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
 
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
-        int iterNode = pNode->Id;
+        //int iterNode = pNode->Id;
         //printf("Nodes ID: %d\n", pNode->Id);
         Extra_ProgressBarUpdate( pProgress, i, NULL );
         // skip the constant node
@@ -3494,13 +3492,12 @@ s_ResubTime = Abc_Clock() - clkStart;
 // priority order orchestration (runtime improved TBD)
 int Abc_NtkOchestration( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rwr, Vec_Int_t **pGain_res,Vec_Int_t **pGain_ref, int sOpsOrder, int fUseZeros_rwr, int fUseZeros_ref, int fPlaceEnable, int nCutMax, int nStepsMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int nNodeSizeMax, int nConeSizeMax, int fUseDcs )
 {
-    extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     // For resub
     Abc_ManRes_t * pManRes;
     Abc_ManCut_t * pManCutRes;
     Odc_Man_t * pManOdc = NULL;
-    Dec_Graph_t * pFFormRes;
+    Dec_Graph_t * pFFormRes = NULL;
     Vec_Ptr_t * vLeaves;
     // For rewrite
     Cut_Man_t * pManCutRwr;
@@ -3524,7 +3521,7 @@ int Abc_NtkOchestration( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rwr, Vec_Int_t **pG
     int ops_null = 0;
     fUseZeros_rwr = 0;
     fUseZeros_ref = 0;
-    clock_t begin= clock();
+    //clock_t begin= clock();
     assert( Abc_NtkIsStrash(pNtk) );
 
     // cleanup the AIG
@@ -3572,8 +3569,8 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
   // refactor
     pManRef->nNodesBeg = Abc_NtkNodeNum(pNtk);
 
-clock_t resyn_end=clock();
-double resyn_time_spent = (double)(resyn_end-begin)/CLOCKS_PER_SEC;
+//clock_t resyn_end=clock();
+//double resyn_time_spent = (double)(resyn_end-begin)/CLOCKS_PER_SEC;
 //printf("time %f\n", resyn_time_spent);
     nNodes = Abc_NtkObjNumMax(pNtk);
     //printf("nNodes: %d\n", nNodes);
@@ -4315,8 +4312,8 @@ pManRef->timeTotal = Abc_Clock() - clkStart;
         return 0;
     }
 s_ResubTime = Abc_Clock() - clkStart;
-clock_t end=clock();
-double time_spent = (double)(end-begin)/CLOCKS_PER_SEC;
+//clock_t end=clock();
+//double time_spent = (double)(end-begin)/CLOCKS_PER_SEC;
 //printf("time %f\n", time_spent);
     return 1;
 }
@@ -4324,7 +4321,6 @@ double time_spent = (double)(end-begin)/CLOCKS_PER_SEC;
 // random orchestration with rw, rwz, rf, rfz, rs
 int Abc_NtkOchestration3( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rwr, Vec_Int_t **pGain_res, Vec_Int_t **pGain_ref, Vec_Int_t **pOps_num, int fUseZeros, int fUseZeros_rwr, int fUseZeros_ref, int fPlaceEnable, int nCutMax, int nStepsMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int nNodeSizeMax, int nConeSizeMax, int fUseDcs )
 {
-    extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     // For resub
     Abc_ManRes_t * pManRes;
@@ -4687,7 +4683,6 @@ s_ResubTime = Abc_Clock() - clkStart;
 // random orchestration with rw, rs, rf
 int Abc_NtkOchestration2( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rwr, Vec_Int_t **pGain_res, Vec_Int_t **pGain_ref, Vec_Int_t **pOps_num, int fUseZeros, int fUseZeros_rwr, int fUseZeros_ref, int fPlaceEnable, int nCutMax, int nStepsMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int nNodeSizeMax, int nConeSizeMax, int fUseDcs )
 {
-    extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
     // For resub
     Abc_ManRes_t * pManRes;
@@ -5110,7 +5105,7 @@ int Abc_NtkOrchGNN( Abc_Ntk_t * pNtk,  char * edgelistFile, char * featFile, int
     //FILE * fpt;
     abctime clk, clkStart = Abc_Clock();
     abctime s_ResubTime;
-    int i, nNodes, nGain, nGain_zeros, fCompl, RetValue = 1;
+    int i, nNodes, nGain, nGain_zeros;//, fCompl, RetValue = 1;
     int rwr_ok = 0;
     int res_ok = 0;
     int ref_ok = 0;
