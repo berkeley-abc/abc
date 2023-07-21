@@ -7380,7 +7380,7 @@ int Abc_CommandOrchestrate( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     int fVerbose; //rewrite/rs/rf verbose
     int fVeryVerbose; //very verbose option for all 
-    size_t NtkSize;
+    //size_t NtkSize;
     extern void Rwr_Precompute();
 
     //local greedy
@@ -43941,14 +43941,25 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Permute( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManDupPiPerm( Gia_Man_t * p );
+    extern Gia_Man_t * Gia_ManDupRandPerm( Gia_Man_t * p );
     Gia_Man_t * pTemp;
-    int c, fVerbose = 0;
+    int c, RandSeed = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Svh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            RandSeed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( RandSeed < 0 )
+                goto usage;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -43960,16 +43971,25 @@ int Abc_CommandAbc9Permute( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Posplit(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Permute(): There is no AIG.\n" );
         return 1;
     }
-    pTemp = Gia_ManDupPiPerm( pAbc->pGia );
+    if ( Gia_ManRegNum(pAbc->pGia) > 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Permute(): This command does not work for sequential AIGs.\n" );
+        return 1;
+    }
+    Abc_Random(1);
+    for ( c = 0; c < RandSeed; c++ )
+        Abc_Random(0);
+    pTemp = Gia_ManDupRandPerm( pAbc->pGia );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &permute [-vh]\n" );
-    Abc_Print( -2, "\t         permutes primary inputs\n" );
+    Abc_Print( -2, "usage: &permute [-S num] [-vh]\n" );
+    Abc_Print( -2, "\t         generates a random NPNP transformation of the combinational AIG\n" );
+    Abc_Print( -2, "\t-S num : the seed used to randomize the process [default = %d]\n", RandSeed );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

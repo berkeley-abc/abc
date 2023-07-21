@@ -1071,6 +1071,51 @@ Gia_Man_t * Gia_ManDupPiPerm( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManCreatePerm( int n )
+{
+    Vec_Int_t * vPerm = Vec_IntStartNatural( n );
+    int i, * pPerm = Vec_IntArray( vPerm );
+    for ( i = 0; i < n; i++ )
+    {
+        int j = Abc_Random(0) % n;
+        ABC_SWAP( int, pPerm[i], pPerm[j] );
+        
+    }
+    return vPerm;
+}
+Gia_Man_t * Gia_ManDupRandPerm( Gia_Man_t * p )
+{
+    Vec_Int_t * vPiPerm = Gia_ManCreatePerm( Gia_ManCiNum(p) );
+    Vec_Int_t * vPoPerm = Gia_ManCreatePerm( Gia_ManCoNum(p) );
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        Gia_ManPi(p, Vec_IntEntry(vPiPerm,i))->Value = Gia_ManAppendCi(pNew) ^ (Abc_Random(0) & 1);
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachPo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, Vec_IntEntry(vPoPerm,i))) ^ (Abc_Random(0) & 1) );
+    Vec_IntFree( vPiPerm );
+    Vec_IntFree( vPoPerm );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Appends second AIG without any changes.]
 
   Description []
