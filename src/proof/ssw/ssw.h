@@ -42,6 +42,7 @@ struct Ssw_Pars_t_
 {
     int              nPartSize;     // size of the partition
     int              nOverSize;     // size of the overlap between partitions
+    int              nProcs;        // the number of processors
     int              nFramesK;      // the induction depth
     int              nFramesAddSim; // the number of additional frames to simulate
     int              fConstrs;      // treat the last nConstrs POs as seq constraints
