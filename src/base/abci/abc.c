@@ -45032,17 +45032,21 @@ usage:
 int Abc_CommandAbc9Compare( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_Iso4TestTwo( Gia_Man_t * pGia0, Gia_Man_t * pGia1 );
+    extern void Gia_ManComparePrint( Gia_Man_t * p, Gia_Man_t * q );
     Gia_Man_t * pGia0, * pGia1;
     char ** pArgvNew; int nArgcNew;
-    int c, fVerbose = 0;
+    int c, fFunc = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'f':
+            fFunc ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
-            break;
+            break;        
         case 'h':
             goto usage;
         default:
@@ -45063,14 +45067,18 @@ int Abc_CommandAbc9Compare( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Compare(): Reading input files did not work.\n" );
         return 1;
     }
-    Gia_Iso4TestTwo( pGia0, pGia1 );
+    if ( fFunc )
+        Gia_ManComparePrint( pGia0, pGia1 );
+    else
+        Gia_Iso4TestTwo( pGia0, pGia1 );
     Gia_ManStop( pGia0 );
     Gia_ManStop( pGia1 );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &compare <file1> <file2> [-vh]\n" );
+    Abc_Print( -2, "usage: &compare <file1> <file2> [-fvh]\n" );
     Abc_Print( -2, "\t         compared two AIGs for structural similarity\n" );
+    Abc_Print( -2, "\t-f     : toggle functional comparison [default = %s]\n", fFunc? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
