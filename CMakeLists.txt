@@ -168,16 +168,16 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             "_MBCS"
             "_SCL_SECURE_NO_WARNINGS"
             "_CRT_SECURE_NO_WARNINGS"
-            "HAVE_STRUCT_TIMESPEC"
             "_XKEYCHECK_H"
     )
 endif()
 if(WIN32)
     if(MINGW OR MSYS)
-        add_definitions(-DWIN32 -D__MINGW32__)
+        add_definitions(-DWIN32 -D__MINGW32__ -DHAVE_STRUCT_TIMESPEC)
     endif()
     target_compile_definitions(abc_interface
         INTERFACE
+            $<$<BOOL:${ABC_USE_NO_PTHREADS}>:HAVE_STRUCT_TIMESPEC>
             $<$<BOOL:${BUILD_SHARED_LIBS}>:ABC_DLL=ABC_DLLEXPORT>
             $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:WIN32_NO_DLL>
             $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:ABC_NO_DYNAMIC_LINKING>
