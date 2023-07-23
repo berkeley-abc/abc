@@ -1265,6 +1265,42 @@ int Abc_NtkToAig( Abc_Ntk_t * pNtk )
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ObjFaninSort( Abc_Obj_t * pObj )
+{
+    Vec_Int_t * vFanins = Abc_ObjFaninVec( pObj );
+    char * pCube, * pSop = (char*)pObj->pData;
+    int i, j, nVars = Abc_SopGetVarNum( pSop );
+    assert( nVars == Vec_IntSize(vFanins) );
+    for ( i = 0;   i < Vec_IntSize(vFanins); i++ )
+    for ( j = i+1; j < Vec_IntSize(vFanins); j++ )
+    {
+        if ( Vec_IntEntry(vFanins, i) < Vec_IntEntry(vFanins, j) )
+            continue;
+        ABC_SWAP( int, Vec_IntArray(vFanins)[i], Vec_IntArray(vFanins)[j] );
+        for ( pCube = pSop; *pCube; pCube += nVars + 3 ) {
+            ABC_SWAP( char, pCube[i], pCube[j] );
+        }
+    }
+}
+void Abc_NtkFaninSort( Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pObj; int i;
+    assert( Abc_NtkIsSopLogic(pNtk) );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+        Abc_ObjFaninSort( pObj );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

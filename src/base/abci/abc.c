@@ -11017,6 +11017,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Abc_NtkFaninSort( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, fCubeSort = 1, fMode = -1, nCubeLimit = 1000000;
 
@@ -11072,6 +11073,8 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Converting to SOP has failed.\n" );
         return 0;
     }
+    if ( !fCubeSort )
+        Abc_NtkFaninSort( pNtk );
     return 0;
 
 usage:
@@ -13365,6 +13368,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fFpga;
     int fOneHot;
     int fRandom;
+    int fGraph;
     int fVerbose;
     char * FileName;
     char Command[1000];
@@ -13376,6 +13380,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars );
     extern void Abc_GenOneHot( char * pFileName, int nVars );
     extern void Abc_GenRandom( char * pFileName, int nPis );
+    extern void Abc_GenGraph( char * pFileName, int nPis );
     extern void Abc_GenAdderTree( char * pFileName, int nArgs, int nBits );
 
     // set defaults
@@ -13390,9 +13395,10 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     fFpga = 0;
     fOneHot = 0;
     fRandom = 0;
+    fGraph = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NAKLatsembfnrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NAKLatsembfnrgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13467,6 +13473,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fRandom ^= 1;
             break;
+        case 'g':
+            fGraph ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -13506,6 +13515,8 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenOneHot( FileName, nVars );
     else if ( fRandom )
         Abc_GenRandom( FileName, nVars );
+    else if ( fGraph )
+        Abc_GenGraph( FileName, nVars );
     else if ( fAdderTree )
     {
         printf( "Generating adder tree with %d arguments and %d bits.\n", nArgs, nVars );
@@ -13525,7 +13536,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: gen [-NAKL num] [-atsembfnrvh] <file>\n" );
+    Abc_Print( -2, "usage: gen [-NAKL num] [-atsembfnrgvh] <file>\n" );
     Abc_Print( -2, "\t         generates simple circuits\n" );
     Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-A num : the number of agruments (for adder tree) [default = %d]\n", nArgs );
@@ -13538,6 +13549,7 @@ usage:
     Abc_Print( -2, "\t-m     : generate a multiplier [default = %s]\n", fMulti? "yes": "no" );
     Abc_Print( -2, "\t-b     : generate a signed Booth multiplier [default = %s]\n", fBooth? "yes": "no" );
     Abc_Print( -2, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );
+    Abc_Print( -2, "\t-g     : generate a graph structure [default = %s]\n", fGraph? "yes": "no" );
     Abc_Print( -2, "\t-n     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );
     Abc_Print( -2, "\t-r     : generate random single-output function [default = %s]\n", fRandom? "yes": "no" );
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
