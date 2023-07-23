@@ -70,16 +70,17 @@ jobs:
             toxcmd: "base Xcode"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         fetch-depth: 0
 
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1.8
+      uses: jwlawson/actions-setup-cmake@v1
+      if: runner.os == 'Windows'
 
     - name: Install Tox
       run: |
@@ -110,7 +111,7 @@ jobs:
       run: |
         tox -e ${{ matrix.toxcmd }}
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       if: matrix.name == 'ubuntu-20.04-clang'
       with:
         name: src_coverage_data
