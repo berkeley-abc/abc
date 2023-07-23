@@ -13,6 +13,7 @@ abc_libabc_add_sources(
         ioWriteVerilog.c
         ioReadPlaMo.c
         ioWritePla.c
+        ioWriteEdgelist.c
         ioWriteBaf.c
         ioWriteBench.c
         ioReadEdif.c
