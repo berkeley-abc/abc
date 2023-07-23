@@ -15,6 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: ['ubuntu-22.04', 'ubuntu-20.04', 'macOS-11', 'windows-2019']
         python-version: ['3.9']
         use_namespace: [false, true]
         include:
