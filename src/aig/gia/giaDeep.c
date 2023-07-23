@@ -120,6 +120,7 @@ Gia_Man_t * Gia_ManDeepSynOne( int nNoImpr, int TimeOut, int nAnds, int Seed, in
         }
         if ( nTimeToStop && Abc_Clock() > nTimeToStop )
         {
+            if ( !Abc_FrameIsBatchMode() )
             printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
             break;
         }
