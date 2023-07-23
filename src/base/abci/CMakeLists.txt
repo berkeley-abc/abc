@@ -3,6 +3,7 @@ abc_libabc_add_sources(
     SOURCES
         abcFx.c
         abcLutmin.c
+        abcOrchestration.c
         abcMap.c
         abcExtract.c
         abcBm.c

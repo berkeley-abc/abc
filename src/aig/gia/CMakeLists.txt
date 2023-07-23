@@ -85,12 +85,14 @@ abc_libabc_add_sources(
         giaCSat3.c
         giaEra2.c
         giaIff.c
+        giaTranStoch.c
         giaSpeedup.c
         giaAiger.c
         gia.c
         giaDfs.c
         giaShrink7.c
         giaMem.c
+        giaTransduction.cpp
         giaSupMin.c
         giaStoch.c
         giaJf.c
