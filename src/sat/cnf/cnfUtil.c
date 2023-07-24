@@ -469,6 +469,47 @@ int Cnf_DataSolveFromFile( char * pFileName, int nConfLimit, int nLearnedStart, 
     return RetValue;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cnf_DataBestVar( Cnf_Dat_t * p, int * pSkip )
+{
+    int * pNums = ABC_CALLOC( int, p->nVars );
+    int i, * pLit, NumMax = -1, iVarMax = -1;
+    for ( i = 0; i < p->nClauses; i++ )
+        for ( pLit = p->pClauses[i]; pLit < p->pClauses[i+1]; pLit++ )
+            pNums[Abc_Lit2Var(*pLit)]++;
+    for ( i = 0; i < p->nVars; i++ )
+        if ( (!pSkip || !pSkip[i]) && NumMax < pNums[i] )
+            NumMax = pNums[i], iVarMax = i;
+    ABC_FREE( pNums );
+    return iVarMax;
+}
+void Cnf_Experiment1()
+{
+    Cnf_Dat_t * pTemp, * p = Cnf_DataReadFromFile( "../166b.cnf" ); int i;
+    int * pSkip = ABC_CALLOC( int, p->nVars );
+    for ( i = 0; i < 100; i++ )
+    {
+        int iVar = Cnf_DataBestVar( p, pSkip );
+        char FileName[100]; sprintf( FileName, "cnf/%03d.cnf", i );
+        Cnf_DataWriteIntoFile( p, FileName, 0, NULL, NULL );
+        printf( "Dumped file \"%s\".\n", FileName );
+        p = Cnf_DataDupCof( pTemp = p, Abc_Var2Lit(iVar, 0) );
+        Cnf_DataFree( pTemp );
+        pSkip[iVar] = 1;
+    }
+    Cnf_DataFree( p );
+    ABC_FREE( pSkip );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
