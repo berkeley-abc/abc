@@ -175,6 +175,23 @@ Cnf_Dat_t * Cnf_DataDupCof( Cnf_Dat_t * p, int Lit )
     assert( pCnf->pClauses[p->nClauses+1] == pCnf->pClauses[0] + p->nLiterals+1 );
     return pCnf;
 }
+Cnf_Dat_t * Cnf_DataDupCofArray( Cnf_Dat_t * p, Vec_Int_t * vLits )
+{
+    Cnf_Dat_t * pCnf;
+    int i, iLit;
+    pCnf = Cnf_DataAlloc( p->pMan, p->nVars, p->nClauses+Vec_IntSize(vLits), p->nLiterals+Vec_IntSize(vLits) );
+    memcpy( pCnf->pClauses[0], p->pClauses[0], sizeof(int) * p->nLiterals );
+    if ( pCnf->pVarNums )
+    memcpy( pCnf->pVarNums, p->pVarNums, sizeof(int) * Aig_ManObjNumMax(p->pMan) );
+    for ( i = 1; i < p->nClauses; i++ )
+        pCnf->pClauses[i] = pCnf->pClauses[0] + (p->pClauses[i] - p->pClauses[0]);
+    Vec_IntForEachEntry( vLits, iLit, i ) {
+        pCnf->pClauses[p->nClauses+i] = pCnf->pClauses[0] + p->nLiterals+i;
+        pCnf->pClauses[p->nClauses+i][0] = iLit;
+    }
+    assert( pCnf->pClauses[p->nClauses+Vec_IntSize(vLits)] == pCnf->pClauses[0] + p->nLiterals+Vec_IntSize(vLits) );
+    return pCnf;
+}
 
 /**Function*************************************************************
 

@@ -540,6 +540,7 @@ static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SplitProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SplitSat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SBmc               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ChainBmc           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1300,6 +1301,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gprove",       Abc_CommandAbc9GroupProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&splitprove",   Abc_CommandAbc9SplitProve,   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&splitsat",     Abc_CommandAbc9SplitSat,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmcs",         Abc_CommandAbc9SBmc,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&chainbmc",     Abc_CommandAbc9ChainBmc,     0 );
@@ -46078,6 +46080,159 @@ usage:
     Abc_Print( -2, "\t-s     : enable silent computation (no reporting) [default = %s]\n",    fSilent? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n",    fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SplitSat( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Cnf_SplitSat( char * pFileName, int iVarBeg, int iVarEnd, int nLits, int Value, int TimeOut, int nProcs, int nIters, int Seed, int fVerbose );
+    int c, iVarBeg = 0, iVarEnd = ABC_INFINITY, nLits = 10, Value = 2, TimeOut = 5, nProcs = 1, nIters = 1, Seed = 0, fVerbose = 0; char * pFileName = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BENVTPISvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            iVarBeg = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iVarBeg < 0 )
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            iVarEnd = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iVarEnd < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nLits = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLits < 0 )
+                goto usage;
+            break;                                    
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            Value = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Value < 0 || Value > 2 )
+                goto usage;
+            break;                  
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            TimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOut < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nProcs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nProcs <= 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    // get the file name
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SplitSat(): CNF file names should be given on the command line.\n" );
+        return 1;
+    }
+    {        
+        FILE * pFile;
+        pFileName = argv[globalUtilOptind];
+        pFile = fopen( pFileName, "r" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Cannot open file \"%s\" with the input test patterns.\n", pFileName );
+            return 0;
+        }
+        fclose( pFile );
+    }
+    Cnf_SplitSat( pFileName, iVarBeg, iVarEnd, nLits, Value, TimeOut, nProcs, nIters, Seed, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &splitsat [-BENVTPIS num] [-vh]\n" );
+    Abc_Print( -2, "\t         solves CNF-based SAT problem by randomized case-splitting\n" );
+    Abc_Print( -2, "\t-B num : the first CNF variable to use for splitting [default = %d]\n",         iVarBeg );
+    Abc_Print( -2, "\t-E num : the last CNF variable to use for splitting [default = %d]\n",          iVarEnd );
+    Abc_Print( -2, "\t-N num : the number of CNF variables to use for splitting [default = %d]\n",    nLits );
+    Abc_Print( -2, "\t-V num : the variable values to use (0, 1, or 2 for \"any\") [default = %d]\n", Value );
+    Abc_Print( -2, "\t-T num : the runtime limit in seconds per subproblem [default = %d]\n",         TimeOut );
+    Abc_Print( -2, "\t-P num : the number of concurrent processes [default = %d]\n",                  nProcs );
+    Abc_Print( -2, "\t-I num : the max number of iterations (0 = infinity) [default = %d]\n",         nIters );
+    Abc_Print( -2, "\t-S num : the random seed used to generate cofactors [default = %d]\n",          Seed );    
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                 fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
