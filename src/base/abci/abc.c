@@ -46097,10 +46097,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SplitSat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Cnf_SplitSat( char * pFileName, int iVarBeg, int iVarEnd, int nLits, int Value, int TimeOut, int nProcs, int nIters, int Seed, int fVerbose );
-    int c, iVarBeg = 0, iVarEnd = ABC_INFINITY, nLits = 10, Value = 2, TimeOut = 5, nProcs = 1, nIters = 1, Seed = 0, fVerbose = 0; char * pFileName = NULL;
+    extern void Cnf_SplitSat( char * pFileName, int iVarBeg, int iVarEnd, int nLits, int Value, int TimeOut, int nProcs, int nIters, int Seed, int fPrepro, int fVerbose );
+    int c, iVarBeg = 0, iVarEnd = ABC_INFINITY, nLits = 10, Value = 2, TimeOut = 5, nProcs = 1, nIters = 1, Seed = 0, fPrepro = 0, fVerbose = 0; char * pFileName = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "BENVTPISvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BENVTPISpvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -46192,6 +46192,9 @@ int Abc_CommandAbc9SplitSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( Seed < 0 )
                 goto usage;
             break;            
+        case 'p':
+            fPrepro ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -46218,11 +46221,11 @@ int Abc_CommandAbc9SplitSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         fclose( pFile );
     }
-    Cnf_SplitSat( pFileName, iVarBeg, iVarEnd, nLits, Value, TimeOut, nProcs, nIters, Seed, fVerbose );
+    Cnf_SplitSat( pFileName, iVarBeg, iVarEnd, nLits, Value, TimeOut, nProcs, nIters, Seed, fPrepro, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &splitsat [-BENVTPIS num] [-vh]\n" );
+    Abc_Print( -2, "usage: &splitsat [-BENVTPIS num] [-pvh]\n" );
     Abc_Print( -2, "\t         solves CNF-based SAT problem by randomized case-splitting\n" );
     Abc_Print( -2, "\t-B num : the first CNF variable to use for splitting [default = %d]\n",         iVarBeg );
     Abc_Print( -2, "\t-E num : the last CNF variable to use for splitting [default = %d]\n",          iVarEnd );
@@ -46232,6 +46235,7 @@ usage:
     Abc_Print( -2, "\t-P num : the number of concurrent processes [default = %d]\n",                  nProcs );
     Abc_Print( -2, "\t-I num : the max number of iterations (0 = infinity) [default = %d]\n",         nIters );
     Abc_Print( -2, "\t-S num : the random seed used to generate cofactors [default = %d]\n",          Seed );    
+    Abc_Print( -2, "\t-p     : toggle using SatELIte (http://minisat.se/SatELite.html) [default = %s]\n", fPrepro? "yes": "no" );    
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                 fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

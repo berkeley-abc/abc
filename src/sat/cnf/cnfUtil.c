@@ -74,11 +74,15 @@ Vec_Int_t *Cnf_RunSolverOnce(int Id, int Rand, int TimeOut, int fVerbose)
     else
         sprintf(pCommand, "%s --seed=%d %s %s > %s", pKissat, Rand, fVerboseSolver ? "" : "-q", FileNameIn, FileNameOut);
     //printf( "Thread command: %s\n", pCommand);
-    if (system(pCommand) == -1) {
-        fprintf(stdout, "Command \"%s\" did not succeed.\n", pCommand);
-        return 0;
+    FILE * pFile = fopen(FileNameIn, "rb");
+    if ( pFile != NULL ) {
+        fclose( pFile );
+        if (system(pCommand) == -1) {
+            fprintf(stdout, "Command \"%s\" did not succeed.\n", pCommand);
+            return 0;
+        }
+        vRes = Exa4_ManParse(FileNameOut); // FileNameOut is removed here
     }
-    vRes = Exa4_ManParse(FileNameOut); // FileNameOut is removed here
     if (fVerbose) {
         double SolvingTime = ((double)(Abc_Clock() - clkTotal))/((double)CLOCKS_PER_SEC);
         if (vRes)
@@ -741,7 +745,7 @@ Vec_Int_t *Cnf_GenRandLits(int iVarBeg, int iVarEnd, int nLits, int Value, int R
     fflush(stdout);
     return vLits;
 }
-void Cnf_SplitCnfFile(char * pFileName, int nParts, int iVarBeg, int iVarEnd, int nLits, int Value, int Rand, int fVerbose)
+void Cnf_SplitCnfFile(char * pFileName, int nParts, int iVarBeg, int iVarEnd, int nLits, int Value, int Rand, int fPrepro, int fVerbose)
 {
     Cnf_Dat_t *p = Cnf_DataReadFromFile(pFileName); int k;
     if (iVarEnd == ABC_INFINITY)
@@ -751,7 +755,18 @@ void Cnf_SplitCnfFile(char * pFileName, int nParts, int iVarBeg, int iVarEnd, in
         Vec_Int_t *vLits = Cnf_GenRandLits(iVarBeg, iVarEnd, nLits, Value, Rand, fVerbose);
         Cnf_Dat_t *pCnf = Cnf_DataDupCofArray(p, vLits);
         char FileName[100];  sprintf(FileName, "%02d.cnf", k);
-        Cnf_DataWriteIntoFile(pCnf, FileName, 0, NULL, NULL);
+        if ( fPrepro ) {
+            char Command[1000];   
+            sprintf(Command, "satelite --verbosity=0 -pre temp.cnf %s", FileName);
+            Cnf_DataWriteIntoFile(pCnf, "temp.cnf", 0, NULL, NULL);
+            if (system(Command) == -1) {
+                fprintf(stdout, "Command \"%s\" did not succeed. Preprocessing skipped.\n", Command);
+                Cnf_DataWriteIntoFile(pCnf, FileName, 0, NULL, NULL);
+            }
+            unlink("temp.cnf");
+        }
+        else 
+            Cnf_DataWriteIntoFile(pCnf, FileName, 0, NULL, NULL);
         Cnf_DataFree(pCnf);
         Vec_IntFree(vLits);
     }    
@@ -765,7 +780,7 @@ void Cnf_SplitCnfCleanup(int nParts)
         unlink(FileName);
     }   
 }
-void Cnf_SplitSat(char *pFileName, int iVarBeg, int iVarEnd, int nLits, int Value, int TimeOut, int nProcs, int nIters, int Seed, int fVerbose)
+void Cnf_SplitSat(char *pFileName, int iVarBeg, int iVarEnd, int nLits, int Value, int TimeOut, int nProcs, int nIters, int Seed, int fPrepro, int fVerbose)
 {
     abctime clk = Abc_Clock();
     Vec_Int_t *vSol = NULL;
@@ -778,9 +793,14 @@ void Cnf_SplitSat(char *pFileName, int iVarBeg, int iVarEnd, int nLits, int Valu
     Rand = Abc_Random(0);
     for (i = 0; i < nIters && !vSol; i++)
     {
-        Cnf_SplitCnfFile(pFileName, nProcs, iVarBeg, iVarEnd, nLits, Value, Rand, fVerbose);
+        abctime clk2 = Abc_Clock();
+        Cnf_SplitCnfFile(pFileName, nProcs, iVarBeg, iVarEnd, nLits, Value, Rand, fPrepro, fVerbose);
         vSol = Cnf_RunSolver(nProcs, TimeOut, fVerbose);
         Cnf_SplitCnfCleanup(nProcs);
+        if (fVerbose) {
+            printf( "Finished iteration %d.  ", i);    
+            Abc_PrintTime(0, "Time", Abc_Clock() - clk2);
+        }
     }
     printf("%solution is found.  ", vSol ? "S" : "No s");
     Abc_PrintTime(0, "Total time", Abc_Clock() - clk);
