@@ -540,6 +540,7 @@ static int Abc_CommandAbc9PoPart             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GroupProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MultiProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SplitProve         ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SplitSat           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bmc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SBmc               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9ChainBmc           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1300,6 +1301,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gprove",       Abc_CommandAbc9GroupProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&mprove",       Abc_CommandAbc9MultiProve,   0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&splitprove",   Abc_CommandAbc9SplitProve,   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&splitsat",     Abc_CommandAbc9SplitSat,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmc",          Abc_CommandAbc9Bmc,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmcs",         Abc_CommandAbc9SBmc,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&chainbmc",     Abc_CommandAbc9ChainBmc,     0 );
@@ -11017,6 +11019,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Abc_NtkFaninSort( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c, fCubeSort = 1, fMode = -1, nCubeLimit = 1000000;
 
@@ -11072,6 +11075,8 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Converting to SOP has failed.\n" );
         return 0;
     }
+    if ( !fCubeSort )
+        Abc_NtkFaninSort( pNtk );
     return 0;
 
 usage:
@@ -13365,6 +13370,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fFpga;
     int fOneHot;
     int fRandom;
+    int fGraph;
     int fVerbose;
     char * FileName;
     char Command[1000];
@@ -13376,6 +13382,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_GenFpga( char * pFileName, int nLutSize, int nLuts, int nVars );
     extern void Abc_GenOneHot( char * pFileName, int nVars );
     extern void Abc_GenRandom( char * pFileName, int nPis );
+    extern void Abc_GenGraph( char * pFileName, int nPis );
     extern void Abc_GenAdderTree( char * pFileName, int nArgs, int nBits );
 
     // set defaults
@@ -13390,9 +13397,10 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     fFpga = 0;
     fOneHot = 0;
     fRandom = 0;
+    fGraph = 0;
     fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NAKLatsembfnrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NAKLatsembfnrgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13467,6 +13475,9 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fRandom ^= 1;
             break;
+        case 'g':
+            fGraph ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -13506,6 +13517,8 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_GenOneHot( FileName, nVars );
     else if ( fRandom )
         Abc_GenRandom( FileName, nVars );
+    else if ( fGraph )
+        Abc_GenGraph( FileName, nVars );
     else if ( fAdderTree )
     {
         printf( "Generating adder tree with %d arguments and %d bits.\n", nArgs, nVars );
@@ -13525,7 +13538,7 @@ int Abc_CommandGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: gen [-NAKL num] [-atsembfnrvh] <file>\n" );
+    Abc_Print( -2, "usage: gen [-NAKL num] [-atsembfnrgvh] <file>\n" );
     Abc_Print( -2, "\t         generates simple circuits\n" );
     Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-A num : the number of agruments (for adder tree) [default = %d]\n", nArgs );
@@ -13538,6 +13551,7 @@ usage:
     Abc_Print( -2, "\t-m     : generate a multiplier [default = %s]\n", fMulti? "yes": "no" );
     Abc_Print( -2, "\t-b     : generate a signed Booth multiplier [default = %s]\n", fBooth? "yes": "no" );
     Abc_Print( -2, "\t-f     : generate a LUT FPGA structure [default = %s]\n", fFpga? "yes": "no" );
+    Abc_Print( -2, "\t-g     : generate a graph structure [default = %s]\n", fGraph? "yes": "no" );
     Abc_Print( -2, "\t-n     : generate one-hotness conditions [default = %s]\n", fOneHot? "yes": "no" );
     Abc_Print( -2, "\t-r     : generate random single-output function [default = %s]\n", fRandom? "yes": "no" );
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -45032,17 +45046,21 @@ usage:
 int Abc_CommandAbc9Compare( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_Iso4TestTwo( Gia_Man_t * pGia0, Gia_Man_t * pGia1 );
+    extern void Gia_ManComparePrint( Gia_Man_t * p, Gia_Man_t * q );
     Gia_Man_t * pGia0, * pGia1;
     char ** pArgvNew; int nArgcNew;
-    int c, fVerbose = 0;
+    int c, fFunc = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'f':
+            fFunc ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
-            break;
+            break;        
         case 'h':
             goto usage;
         default:
@@ -45063,14 +45081,18 @@ int Abc_CommandAbc9Compare( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Compare(): Reading input files did not work.\n" );
         return 1;
     }
-    Gia_Iso4TestTwo( pGia0, pGia1 );
+    if ( fFunc )
+        Gia_ManComparePrint( pGia0, pGia1 );
+    else
+        Gia_Iso4TestTwo( pGia0, pGia1 );
     Gia_ManStop( pGia0 );
     Gia_ManStop( pGia1 );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &compare <file1> <file2> [-vh]\n" );
+    Abc_Print( -2, "usage: &compare <file1> <file2> [-fvh]\n" );
     Abc_Print( -2, "\t         compared two AIGs for structural similarity\n" );
+    Abc_Print( -2, "\t-f     : toggle functional comparison [default = %s]\n", fFunc? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -46058,6 +46080,163 @@ usage:
     Abc_Print( -2, "\t-s     : enable silent computation (no reporting) [default = %s]\n",    fSilent? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n",    fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9SplitSat( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Cnf_SplitSat( char * pFileName, int iVarBeg, int iVarEnd, int nLits, int Value, int TimeOut, int nProcs, int nIters, int Seed, int fPrepro, int fVerbose );
+    int c, iVarBeg = 0, iVarEnd = ABC_INFINITY, nLits = 10, Value = 2, TimeOut = 5, nProcs = 1, nIters = 1, Seed = 0, fPrepro = 0, fVerbose = 0; char * pFileName = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BENVTPISpvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            iVarBeg = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iVarBeg < 0 )
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            iVarEnd = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iVarEnd < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nLits = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLits < 0 )
+                goto usage;
+            break;                                    
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            Value = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Value < 0 || Value > 2 )
+                goto usage;
+            break;                  
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            TimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOut < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nProcs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nProcs <= 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;            
+        case 'p':
+            fPrepro ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    // get the file name
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9SplitSat(): CNF file names should be given on the command line.\n" );
+        return 1;
+    }
+    {        
+        FILE * pFile;
+        pFileName = argv[globalUtilOptind];
+        pFile = fopen( pFileName, "r" );
+        if ( pFile == NULL )
+        {
+            Abc_Print( -1, "Cannot open file \"%s\" with the input test patterns.\n", pFileName );
+            return 0;
+        }
+        fclose( pFile );
+    }
+    Cnf_SplitSat( pFileName, iVarBeg, iVarEnd, nLits, Value, TimeOut, nProcs, nIters, Seed, fPrepro, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &splitsat [-BENVTPIS num] [-pvh]\n" );
+    Abc_Print( -2, "\t         solves CNF-based SAT problem by randomized case-splitting\n" );
+    Abc_Print( -2, "\t-B num : the first CNF variable to use for splitting [default = %d]\n",         iVarBeg );
+    Abc_Print( -2, "\t-E num : the last CNF variable to use for splitting [default = %d]\n",          iVarEnd );
+    Abc_Print( -2, "\t-N num : the number of CNF variables to use for splitting [default = %d]\n",    nLits );
+    Abc_Print( -2, "\t-V num : the variable values to use (0, 1, or 2 for \"any\") [default = %d]\n", Value );
+    Abc_Print( -2, "\t-T num : the runtime limit in seconds per subproblem [default = %d]\n",         TimeOut );
+    Abc_Print( -2, "\t-P num : the number of concurrent processes [default = %d]\n",                  nProcs );
+    Abc_Print( -2, "\t-I num : the max number of iterations (0 = infinity) [default = %d]\n",         nIters );
+    Abc_Print( -2, "\t-S num : the random seed used to generate cofactors [default = %d]\n",          Seed );    
+    Abc_Print( -2, "\t-p     : toggle using SatELIte (http://minisat.se/SatELite.html) [default = %s]\n", fPrepro? "yes": "no" );    
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",                 fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -49418,10 +49597,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9StochSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript );
-    int c, nMaxSize = 1000, nIters = 10, TimeOut = 0, Seed = 0, fVerbose = 0; char * pScript;
+    extern void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs );
+    int c, nMaxSize = 1000, nIters = 10, TimeOut = 0, Seed = 0, nProcs = 1, fVerbose = 0; char * pScript;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NITSvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NITSPvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -49469,6 +49648,17 @@ int Abc_CommandAbc9StochSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( Seed < 0 )
                 goto usage;
             break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nProcs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nProcs < 0 )
+                goto usage;
+            break;            
         case 'v':
             fVerbose ^= 1;
             break;
@@ -49489,17 +49679,18 @@ int Abc_CommandAbc9StochSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
     }
     pScript = Abc_UtilStrsav( argv[globalUtilOptind] );
-    Gia_ManStochSyn( nMaxSize, nIters, TimeOut, Seed, fVerbose, pScript );
+    Gia_ManStochSyn( nMaxSize, nIters, TimeOut, Seed, fVerbose, pScript, nProcs );
     ABC_FREE( pScript );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &stochsyn [-NITS <num>] [-tvh] <script>\n" );
+    Abc_Print( -2, "usage: &stochsyn [-NITSP <num>] [-tvh] <script>\n" );
     Abc_Print( -2, "\t           performs stochastic synthesis\n" );
     Abc_Print( -2, "\t-N <num> : the max partition size (in AIG nodes or LUTs) [default = %d]\n", nMaxSize );
     Abc_Print( -2, "\t-I <num> : the number of iterations [default = %d]\n",                   nIters  );
     Abc_Print( -2, "\t-T <num> : the timeout in seconds (0 = no timeout) [default = %d]\n",    TimeOut );
     Abc_Print( -2, "\t-S <num> : user-specified random seed (0 <= num <= 100) [default = %d]\n", Seed  );
+    Abc_Print( -2, "\t-P <num> : the number of concurrent processes (1 <= num <= 100) [default = %d]\n", nProcs );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",       fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\t<script> : synthesis script to use for each partition\n");

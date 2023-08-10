@@ -1637,22 +1637,6 @@ Vec_Int_t * Exa4_ManSolve( char * pFileNameIn, char * pFileNameOut, int TimeOut,
     char * pKissat = "kissat";
 #endif
     char Command[1000], * pCommand = (char *)&Command;
-    {
-        FILE * pFile = fopen( pKissat, "rb" );
-        if ( pFile == NULL )
-        {
-            printf( "Cannot find the Kissat binary \"%s\".\n", pKissat );
-            pKissat = "./kissat";
-            pFile = fopen( pKissat, "rb" );
-            if ( pFile == NULL )
-            {
-                printf( "Cannot find the Kissat binary \"%s\".\n", pKissat );
-                return NULL;
-            }
-            fclose( pFile );        
-        }
-        fclose( pFile );        
-    }
     if ( TimeOut )
         sprintf( pCommand, "%s --time=%d %s %s > %s", pKissat, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
     else

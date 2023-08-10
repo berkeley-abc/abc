@@ -6,6 +6,7 @@ ReleaseLib/
 ReleaseExe/
 ReleaseExt/
 
+_/
 _TEST/
 lib/abc*
 lib/m114*

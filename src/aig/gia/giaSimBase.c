@@ -3689,6 +3689,58 @@ Vec_Str_t * Gia_ManComputeRange( Gia_Man_t * p )
     return vOut;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManComparePrint( Gia_Man_t * p, Gia_Man_t * q )
+{
+    Vec_Wrd_t * vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(p) );
+    Vec_Wrd_t * vSimsP  = Gia_ManSimPatSimOut( p, vSimsPi, 0 );
+    Vec_Wrd_t * vSimsQ  = Gia_ManSimPatSimOut( q, vSimsPi, 0 );
+    int i, k, nWords = Vec_WrdSize(vSimsPi) / Gia_ManCiNum(p), Count = 0;
+    Gia_Obj_t * pObjP, * pObjQ;
+    Gia_ManSetPhase( p );
+    Gia_ManSetPhase( q );
+    Gia_ManForEachObj( p, pObjP, i ) {
+        word * pSim = Vec_WrdEntryP( vSimsP, i * nWords );
+        if ( pSim[0] & 1 ) Abc_TtNot( pSim, nWords );
+    }
+    Gia_ManForEachObj( q, pObjQ, i ) {
+        word * pSim = Vec_WrdEntryP( vSimsQ, i * nWords );
+        if ( pSim[0] & 1 ) Abc_TtNot( pSim, nWords );
+    }    
+    Gia_ManForEachAnd( q, pObjQ, i ) {
+        word * pSimQ = Vec_WrdEntryP( vSimsQ, i * nWords );
+        int fFirst = 1;
+        Gia_ManForEachObj( p, pObjP, k ) {
+            word * pSimP = Vec_WrdEntryP( vSimsP, k * nWords );
+            if ( !Abc_TtEqual(pSimQ, pSimP, nWords) )
+                continue;
+            if ( fFirst ) {
+                printf( "%5d :", i );
+                fFirst = 0;
+                Count++;
+            }
+            printf( " %5d(%d)", k, pObjQ->fPhase ^ pObjP->fPhase );
+        }
+        if ( !fFirst )
+            printf( "\n");
+    }   
+    printf( "Found %d equivalent nodes.\n", Count );
+    Vec_WrdFree( vSimsP );
+    Vec_WrdFree( vSimsQ );
+    Vec_WrdFree( vSimsPi );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

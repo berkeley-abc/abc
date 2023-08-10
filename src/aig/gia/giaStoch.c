@@ -22,6 +22,19 @@
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
 
+
+#ifdef ABC_USE_PTHREADS
+
+#ifdef _WIN32
+#include "../lib/pthread.h"
+#else
+#include <pthread.h>
+#include <unistd.h>
+#endif
+
+#endif
+
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -31,6 +44,169 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Processing on a single core.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int TimeSecs )
+{
+    Gia_Man_t * pNew;
+    char FileName[100], Command[1000];
+    sprintf( FileName, "%06x.aig", Rand );
+    Gia_AigerWrite( p, FileName, 0, 0, 0 );
+    sprintf( Command, "./abc -q \"&read %s; %s; &write %s\"", FileName, pScript, FileName );
+    if ( system( (char *)Command ) )    
+    {
+        fprintf( stderr, "The following command has returned non-zero exit status:\n" );
+        fprintf( stderr, "\"%s\"\n", (char *)Command );
+        fprintf( stderr, "Sorry for the inconvenience.\n" );
+        fflush( stdout );
+        unlink( FileName );
+        return Gia_ManDup(p);
+    }    
+    pNew = Gia_AigerRead( FileName, 0, 0, 0 );
+    unlink( FileName );
+    if ( pNew && Gia_ManAndNum(pNew) < Gia_ManAndNum(p) )
+        return pNew;
+    Gia_ManStopP( &pNew );
+    return Gia_ManDup(p);
+}
+void Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSecs, int fVerbose )
+{
+    Gia_Man_t * pGia, * pNew; int i;
+    Vec_Int_t * vRands = Vec_IntAlloc( Vec_PtrSize(vGias) ); 
+    Abc_Random(1);
+    for ( i = 0; i < Vec_PtrSize(vGias); i++ )
+        Vec_IntPush( vRands, Abc_Random(0) % 0x1000000 );
+    Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i ) 
+    {
+        pNew = Gia_StochProcessOne( pGia, pScript, Vec_IntEntry(vRands, i), TimeSecs );
+        Gia_ManStop( pGia );
+        Vec_PtrWriteEntry( vGias, i, pNew );
+    }
+    Vec_IntFree( vRands );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Processing on a many cores.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+#ifndef ABC_USE_PTHREADS
+
+void Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int TimeSecs, int fVerbose )
+{
+    Gia_StochProcessArray( vGias, pScript, TimeSecs, fVerbose );
+}
+
+#else // pthreads are used
+
+
+#define PAR_THR_MAX 100
+typedef struct Gia_StochThData_t_
+{
+    Vec_Ptr_t *  vGias;
+    char *       pScript;
+    int          Index;
+    int          Rand;
+    int          nTimeOut;
+    int          fWorking;
+} Gia_StochThData_t;
+
+void * Gia_StochWorkerThread( void * pArg )
+{
+    Gia_StochThData_t * pThData = (Gia_StochThData_t *)pArg;
+    volatile int * pPlace = &pThData->fWorking;
+    Gia_Man_t * pGia, * pNew;
+    while ( 1 )
+    {
+        while ( *pPlace == 0 );
+        assert( pThData->fWorking );
+        if ( pThData->Index == -1 )
+        {
+            pthread_exit( NULL );
+            assert( 0 );
+            return NULL;
+        }
+        pGia = (Gia_Man_t *)Vec_PtrEntry( pThData->vGias, pThData->Index );
+        pNew = Gia_StochProcessOne( pGia, pThData->pScript, pThData->Rand, pThData->nTimeOut );
+        Gia_ManStop( pGia );
+        Vec_PtrWriteEntry( pThData->vGias, pThData->Index, pNew );
+        pThData->fWorking = 0;
+    }
+    assert( 0 );
+    return NULL;
+}
+
+void Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int TimeSecs, int fVerbose )
+{
+    Gia_StochThData_t ThData[PAR_THR_MAX];
+    pthread_t WorkerThread[PAR_THR_MAX];
+    int i, k, status;
+    if ( fVerbose )
+        printf( "Running concurrent synthesis with %d processes.\n", nProcs );
+    fflush( stdout );
+    if ( nProcs < 2 )
+        return Gia_StochProcessArray( vGias, pScript, TimeSecs, fVerbose );
+    // subtract manager thread
+    nProcs--;
+    assert( nProcs >= 1 && nProcs <= PAR_THR_MAX );
+    // start threads
+    Abc_Random(1);
+    for ( i = 0; i < nProcs; i++ )
+    {
+        ThData[i].vGias    = vGias;
+        ThData[i].pScript  = pScript;
+        ThData[i].Index    = -1;
+        ThData[i].Rand     = Abc_Random(0) % 0x1000000;
+        ThData[i].nTimeOut = TimeSecs;
+        ThData[i].fWorking = 0;
+        status = pthread_create( WorkerThread + i, NULL, Gia_StochWorkerThread, (void *)(ThData + i) );  assert( status == 0 );
+    }
+    // look at the threads
+    for ( k = 0; k < Vec_PtrSize(vGias); k++ )
+    {
+        for ( i = 0; i < nProcs; i++ )
+        {
+            if ( ThData[i].fWorking )
+                continue;
+            ThData[i].Index = k;
+            ThData[i].fWorking = 1;   
+            break;
+        }
+        if ( i == nProcs )
+            k--;
+    }
+    // wait till threads finish
+    for ( i = 0; i < nProcs; i++ )
+        if ( ThData[i].fWorking )
+            i = -1;
+    // stop threads
+    for ( i = 0; i < nProcs; i++ )
+    {
+        assert( !ThData[i].fWorking );
+        // stop
+        ThData[i].Index = -1;
+        ThData[i].fWorking = 1;
+    }
+}
+
+#endif // pthreads are used
+
 
 /**Function*************************************************************
 
@@ -184,7 +360,7 @@ Gia_Man_t * Gia_ManDupDivideOne( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vA
     pNew->vMapping = vMapping;
     return pNew;
 }
-Vec_Ptr_t * Gia_ManDupDivide( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, char * pScript )
+Vec_Ptr_t * Gia_ManDupDivide( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, char * pScript, int nProcs, int TimeOut )
 {
     Vec_Ptr_t * vAigs = Vec_PtrAlloc( Vec_WecSize(vCis) );  int i;
     for ( i = 0; i < Vec_WecSize(vCis); i++ )
@@ -192,7 +368,8 @@ Vec_Ptr_t * Gia_ManDupDivide( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds
         Gia_ManCollectNodes( p, Vec_WecEntry(vCis, i), Vec_WecEntry(vAnds, i), Vec_WecEntry(vCos, i) );
         Vec_PtrPush( vAigs, Gia_ManDupDivideOne(p, Vec_WecEntry(vCis, i), Vec_WecEntry(vAnds, i), Vec_WecEntry(vCos, i)) );
     }
-    Gia_ManStochSynthesis( vAigs, pScript );
+    //Gia_ManStochSynthesis( vAigs, pScript );
+    Gia_StochProcess( vAigs, pScript, nProcs, TimeOut, 0 );
     return vAigs;
 }
 Gia_Man_t * Gia_ManDupStitch( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, Vec_Ptr_t * vAigs, int fHash )
@@ -388,7 +565,7 @@ Vec_Wec_t * Gia_ManStochOutputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript )
+void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs )
 {
     abctime nTimeToStop  = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
     abctime clkStart     = Abc_Clock();
@@ -407,7 +584,7 @@ void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerb
         Vec_Wec_t * vAnds = Gia_ManStochNodes( pGia, nMaxSize, Abc_Random(0) & 0x7FFFFFFF );
         Vec_Wec_t * vIns  = Gia_ManStochInputs( pGia, vAnds );
         Vec_Wec_t * vOuts = Gia_ManStochOutputs( pGia, vAnds );
-        Vec_Ptr_t * vAigs = Gia_ManDupDivide( pGia, vIns, vAnds, vOuts, pScript );
+        Vec_Ptr_t * vAigs = Gia_ManDupDivide( pGia, vIns, vAnds, vOuts, pScript, nProcs, TimeOut );
         Gia_Man_t * pNew  = Gia_ManDupStitchMap( pGia, vIns, vAnds, vOuts, vAigs );
         int fMapped = Gia_ManHasMapping(pGia) && Gia_ManHasMapping(pNew);
         Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
