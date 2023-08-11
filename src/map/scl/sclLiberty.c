@@ -639,7 +639,7 @@ int Scl_LibertyReadCellIsDontUse( Scl_Tree_t * p, Scl_Item_t * pCell )
 {
     Scl_Item_t * pAttr;
     Scl_ItemForEachChild( p, pCell, pAttr )
-        if ( !Scl_LibertyCompare(p, pAttr->Key, "dont_use") )
+        if ( !Scl_LibertyCompare(p, pAttr->Key, "dont_use") && !Scl_LibertyCompare(p, pAttr->Head, "\"true\""))
             return 1;
     return 0;
 }
