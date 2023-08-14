@@ -984,29 +984,41 @@ char * Abc_SopFromTruthBin( char * pTruth )
         if ( Digit == 1 )
             Vec_IntPush( vMints, nTruthSize - 1 - i );
     }
+/*    
     if ( Vec_IntSize( vMints ) == 0 || Vec_IntSize( vMints ) == nTruthSize )
     {
         Vec_IntFree( vMints );
         printf( "Cannot create constant function.\n" );
         return NULL;
     }
-
-    // create the SOP representation of the minterms
-    Length = Vec_IntSize(vMints) * (nVars + 3);
-    pSopCover = ABC_ALLOC( char, Length + 1 );
-    pSopCover[Length] = 0;
-    Vec_IntForEachEntry( vMints, Mint, i )
+*/
+    if ( Vec_IntSize(vMints) == 0 || Vec_IntSize(vMints) == (1 << nVars) )
     {
-        pCube = pSopCover + i * (nVars + 3);
-        for ( b = 0; b < nVars; b++ )
-//            if ( Mint & (1 << (nVars-1-b)) )
-            if ( Mint & (1 << b) )
-                pCube[b] = '1';
-            else
-                pCube[b] = '0';
-        pCube[nVars + 0] = ' ';
-        pCube[nVars + 1] = '1';
-        pCube[nVars + 2] = '\n';
+        pSopCover = ABC_ALLOC( char, 4 );
+        pSopCover[0] = ' ';
+        pSopCover[1] = '0' + (Vec_IntSize(vMints) > 0);
+        pSopCover[2] = '\n';                        
+        pSopCover[3] = 0;
+    }
+    else
+    {
+        // create the SOP representation of the minterms
+        Length = Vec_IntSize(vMints) * (nVars + 3);
+        pSopCover = ABC_ALLOC( char, Length + 1 );
+        pSopCover[Length] = 0;
+        Vec_IntForEachEntry( vMints, Mint, i )
+        {
+            pCube = pSopCover + i * (nVars + 3);
+            for ( b = 0; b < nVars; b++ )
+    //            if ( Mint & (1 << (nVars-1-b)) )
+                if ( Mint & (1 << b) )
+                    pCube[b] = '1';
+                else
+                    pCube[b] = '0';
+            pCube[nVars + 0] = ' ';
+            pCube[nVars + 1] = '1';
+            pCube[nVars + 2] = '\n';
+        }
     }
     Vec_IntFree( vMints );
     return pSopCover;
@@ -1074,37 +1086,34 @@ char * Abc_SopFromTruthHex( char * pTruth )
     }
 
     // create the SOP representation of the minterms
-    Length = Vec_IntSize(vMints) * (nVars + 3);
-    pSopCover = ABC_ALLOC( char, Length + 1 );
-    pSopCover[Length] = 0;
-    Vec_IntForEachEntry( vMints, Mint, i )
+    if ( Vec_IntSize(vMints) == 0 || Vec_IntSize(vMints) == (1 << nVars) )
     {
-        pCube = pSopCover + i * (nVars + 3);
-        for ( b = 0; b < nVars; b++ )
-//            if ( Mint & (1 << (nVars-1-b)) )
-            if ( Mint & (1 << b) )
-                pCube[b] = '1';
-            else
-                pCube[b] = '0';
-        pCube[nVars + 0] = ' ';
-        pCube[nVars + 1] = '1';
-        pCube[nVars + 2] = '\n';
+        pSopCover = ABC_ALLOC( char, 4 );
+        pSopCover[0] = ' ';
+        pSopCover[1] = '0' + (Vec_IntSize(vMints) > 0);
+        pSopCover[2] = '\n';                        
+        pSopCover[3] = 0;
     }
-/*
-    // create TT representation
+    else
     {
-        extern void Bdc_ManDecomposeTest( unsigned uTruth, int nVars );
-        unsigned uTruth = 0;
-        int nVarsAll = 4;
-        assert( nVarsAll == 4 );
-        assert( nVars <= nVarsAll );
+        Length = Vec_IntSize(vMints) * (nVars + 3);
+        pSopCover = ABC_ALLOC( char, Length + 1 );
+        pSopCover[Length] = 0;
         Vec_IntForEachEntry( vMints, Mint, i )
-            uTruth |= (1 << Mint);
-//        uTruth = uTruth | (uTruth << 8) | (uTruth << 16) | (uTruth << 24);
-        uTruth = uTruth | (uTruth << 16);
-        Bdc_ManDecomposeTest( uTruth, nVarsAll );
+        {
+            pCube = pSopCover + i * (nVars + 3);
+            for ( b = 0; b < nVars; b++ )
+    //            if ( Mint & (1 << (nVars-1-b)) )
+                if ( Mint & (1 << b) )
+                    pCube[b] = '1';
+                else
+                    pCube[b] = '0';
+            pCube[nVars + 0] = ' ';
+            pCube[nVars + 1] = '1';
+            pCube[nVars + 2] = '\n';
+        }
     }
-*/
+
     Vec_IntFree( vMints );
     return pSopCover;
 }
