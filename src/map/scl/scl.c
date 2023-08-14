@@ -156,9 +156,13 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUnit = 0;
     int fVerbose = 1;
     int fVeryVerbose = 0;
+    
+    SC_DontUse dont_use = {0};
+    dont_use.dont_use_list = ABC_ALLOC(char *, argc);
+    dont_use.size = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMdnuvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMXdnuvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -195,6 +199,16 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nGatesMin < 0 ) 
                 goto usage;
             break;
+        case 'X':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-X\" should be followed by a string.\n" );
+                goto usage;
+            }
+            dont_use.dont_use_list[dont_use.size] = argv[globalUtilOptind];
+            dont_use.size++;
+            globalUtilOptind++;
+            break;
         case 'd':
             fDump ^= 1;
             break;
@@ -223,11 +237,13 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( (pFile = fopen( pFileName, "rb" )) == NULL )
     {
         fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
+        ABC_FREE(dont_use.dont_use_list);
         return 1;
     }
     fclose( pFile );
     // read new library
-    pLib = Abc_SclReadLiberty( pFileName, fVerbose, fVeryVerbose );
+    pLib = Abc_SclReadLiberty( pFileName, fVerbose, fVeryVerbose, dont_use);
+    ABC_FREE(dont_use.dont_use_list);
     if ( pLib == NULL )
     {
         fprintf( pAbc->Err, "Reading SCL library from file \"%s\" has failed. \n", pFileName );
@@ -261,11 +277,12 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnuvwh] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnuvwh] [-X cell_name] <file>\n" );
     fprintf( pAbc->Err, "\t           reads Liberty library from file\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
     fprintf( pAbc->Err, "\t-M num   : skip gate classes whose size is less than this [default = %d]\n", nGatesMin );
+    fprintf( pAbc->Err, "\t-X name  : adds name to the list of cells ABC shouldn't use. Flag can be passed multiple times\n");
     fprintf( pAbc->Err, "\t-d       : toggle dumping the parsed library into file \"*_temp.lib\" [default = %s]\n", fDump? "yes": "no" );
     fprintf( pAbc->Err, "\t-n       : toggle replacing gate/pin names by short strings [default = %s]\n", fShortNames? "yes": "no" );
     fprintf( pAbc->Err, "\t-u       : toggle setting unit area for all cells [default = %s]\n", fUnit? "yes": "no" );
