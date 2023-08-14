@@ -164,6 +164,7 @@ static int Abc_CommandAllExact               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestExact              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMajGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrchestrate            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAIGArgumentation       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -917,6 +918,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "faultclasses",  Abc_CommandFaultClasses,     0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "exact",         Abc_CommandExact,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "orchestrate",  Abc_CommandOrchestrate,     1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "aigarg",       Abc_CommandAIGArgumentation,     1 );
 
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_start",  Abc_CommandBmsStart,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_stop",   Abc_CommandBmsStop,          0 );
@@ -7534,6 +7536,171 @@ usage:
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description [AIG RTL Argumentation]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAIGArgumentation( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pDup;
+    int c, RetValue;
+    int nNodeSizeMax;
+    int nConeSizeMax;
+    int fUpdateLevel;
+    int fUseZeros_rwr;
+    int fUseZeros_ref;
+    int fUseDcs;
+    int fVerbose;
+    int RS_CUT_MIN =  4;
+    int RS_CUT_MAX = 16;
+
+    int fPrecompute;
+    int fPlaceEnable;
+    int nNodesMax;
+    int nCutsMax;
+    int nLevelsOdc;
+    int fVeryVerbose;
+    int Rand_Seed;
+    //int sOpsOrder;
+    size_t NtkSize;
+    char *DecisionFile;
+    //FILE *maskFile;
+    extern void Rwr_Precompute();
+    extern int Abc_NtkOrchRand( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rwr, Vec_Int_t **pGain_res,Vec_Int_t **pGain_ref, Vec_Int_t **DecisionMask, char *DecisionFile, int Rand_Seed, int fUseZeros_rwr, int fUseZeros_ref, int fPlaceEnable, int nCutsMax, int nNodesMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int nNodeSizeMax, int nConeSizeMax, int fUseDcs );
+    // set defaults
+    nNodeSizeMax = 10;
+    nConeSizeMax = 16;
+    fUpdateLevel =  1;
+    fUseZeros_rwr =  0;
+    fUseZeros_ref =  0;
+    fUseDcs      =  0;
+    fVerbose     =  0;
+    fVeryVerbose = 0;
+    fPlaceEnable = 0;
+    fPrecompute  = 0;
+    nCutsMax     =  8;
+    nNodesMax    =  1;
+    nLevelsOdc   =  0;
+    Rand_Seed = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "zZdsh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+            break;
+        case 'z':
+            fUseZeros_rwr ^= 1;
+            break;
+        case 'Z':
+            fUseZeros_ref ^= 1;
+            break;
+        case 'd':
+            if ( globalUtilOptind >= argc )
+            {
+                goto usage;
+            }
+            DecisionFile = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 's':
+            if ( globalUtilOptind >= argc )
+            {
+                goto usage;
+            }
+            Rand_Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        }
+    }
+    if ( fPrecompute )
+    {
+        Rwr_Precompute();
+        return 0;
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( nCutsMax < RS_CUT_MIN || nCutsMax > RS_CUT_MAX )
+    {
+        Abc_Print( -1, "Can only compute cuts for %d <= K <= %d.\n", RS_CUT_MIN, RS_CUT_MAX );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "This command can only be applied to an AIG (run \"strash\").\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetChoiceNum(pNtk) )
+    {
+        Abc_Print( -1, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
+        return 1;
+    }
+    if ( nNodeSizeMax > 15 )
+    {
+        Abc_Print( -1, "The cone size cannot exceed 15.\n" );
+        return 1;
+    }
+
+    if ( fUseDcs && nNodeSizeMax >= nConeSizeMax )
+    {
+        Abc_Print( -1, "For don't-care to work, containing cone should be larger than collapsed node.\n" );
+        return 1;
+    }
+    NtkSize = Abc_NtkObjNumMax(pNtk);
+
+
+
+    Vec_Int_t *DecisionMask = Vec_IntAlloc(1);
+    for (int i=0; i<NtkSize;i++){
+           Vec_IntPush(DecisionMask, atoi("-1"));}
+
+    Vec_Int_t *pGain_rwr;
+    Vec_Int_t *pGain_res;
+    Vec_Int_t *pGain_ref;
+    // modify the current network
+    pDup = Abc_NtkDup( pNtk );
+    RetValue = Abc_NtkOrchRand( pNtk, &pGain_rwr, &pGain_res, &pGain_ref, &DecisionMask, DecisionFile, Rand_Seed, fUseZeros_rwr, fUseZeros_ref, fPlaceEnable, nCutsMax, nNodesMax, nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose, nNodeSizeMax, nConeSizeMax, fUseDcs );
+    //printf("Vector check: %d %d\n", DecisionList->nSize, DecisionList->pArray[0]); 
+    if ( RetValue == -1 )
+    {
+        Abc_FrameReplaceCurrentNetwork( pAbc, pDup );
+        printf( "An error occurred during computation. The original network is restored.\n" );
+    }
+    else
+    {
+        Abc_NtkDelete( pDup );
+        if ( RetValue == 0 )
+        {
+            Abc_Print( 0, "Orchestration evaluation for RL has failed.\n" );
+            return 1;
+        }
+    }
+    // Vec_IntPrint(pGain_rwr);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: aigarg [-s <num>] [-d <file>][-zZdsh]\n" );
+    Abc_Print( -2, "\t           performs technology-independent AIG random synthesis (node level) for RTL argumentation\n" );
+    Abc_Print( -2, "\t-z       : toggle using zero-cost replacements for rwr for aigarg [default = %s]\n", fUseZeros_rwr? "yes": "no" );
+    Abc_Print( -2, "\t-Z       : toggle using zero-cost replacements for ref for aigarg [default = %s]\n", fUseZeros_ref? "yes": "no" );
+    Abc_Print( -2, "\t-d       : record random synthesis decision made during argumentation [required filename; e.g., test.csv]\n");
+    Abc_Print( -2, "\t-s       : set the random seed for random argumentation\n");
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\tExample       : read i10.aig;st;aigarg -s 1 -d test.csv;write i10_arg_1.aig;cec i10.aig i10_arg_1.aig\n");
+    return 1;
+}
 
 
 
