@@ -17,6 +17,8 @@
   Revision    [$Id: sclLiberty.c,v 1.0 2012/08/24 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
+#include <string.h>
+#include <fnmatch.h>
 
 #include "sclLib.h"
 #include "misc/st/st.h"
@@ -635,12 +637,20 @@ int Scl_LibertyReadCellIsFlop( Scl_Tree_t * p, Scl_Item_t * pCell )
             return 1;
     return 0;
 }
-int Scl_LibertyReadCellIsDontUse( Scl_Tree_t * p, Scl_Item_t * pCell )
+int Scl_LibertyReadCellIsDontUse( Scl_Tree_t * p, Scl_Item_t * pCell, SC_DontUse dont_use )
 {
     Scl_Item_t * pAttr;
     Scl_ItemForEachChild( p, pCell, pAttr )
+    {
         if ( !Scl_LibertyCompare(p, pAttr->Key, "dont_use") )
             return 1;
+        const char * cell_name = Scl_LibertyReadString(p, pCell->Head);
+        for (int i = 0; i < dont_use.size; i++) {
+            if (fnmatch(dont_use.dont_use_list[i], cell_name, 0) == 0) {
+                return 1;
+            }
+        }
+    }
     return 0;
 }
 char * Scl_LibertyReadCellArea( Scl_Tree_t * p, Scl_Item_t * pCell )
@@ -703,7 +713,7 @@ int Scl_LibertyReadCellOutputNum( Scl_Tree_t * p, Scl_Item_t * pCell )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose )
+Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose, SC_DontUse dont_use )
 {
     Vec_Str_t * vStr;
     Scl_Item_t * pCell, * pOutput, * pInput;
@@ -718,7 +728,7 @@ Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose )
             if ( fVerbose )  printf( "Scl_LibertyReadGenlib() skipped sequential cell \"%s\".\n", Scl_LibertyReadString(p, pCell->Head) );
             continue;
         }
-        if ( Scl_LibertyReadCellIsDontUse(p, pCell) )
+        if ( Scl_LibertyReadCellIsDontUse(p, pCell, dont_use) )
         {
             if ( fVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Scl_LibertyReadString(p, pCell->Head) );
             continue;
@@ -768,20 +778,6 @@ Vec_Str_t * Scl_LibertyReadGenlibStr( Scl_Tree_t * p, int fVerbose )
 //    printf( "%s", Vec_StrArray(vStr) );
     return vStr;
 }
-Vec_Str_t * Scl_LibertyParseGenlibStr( char * pFileName, int fVerbose )
-{
-    Scl_Tree_t * p;
-    Vec_Str_t * vStr;
-    p = Scl_LibertyParse( pFileName, fVerbose );
-    if ( p == NULL )
-        return NULL;
-//    Scl_LibertyRead( p, "temp_.lib" );
-    vStr = Scl_LibertyReadGenlibStr( p, fVerbose );
-    Scl_LibertyStop( p, fVerbose );
-//    Scl_LibertyStringDump( "test_genlib.lib", vStr );
-    return vStr;
-}
-
 
 /**Function*************************************************************
 
@@ -1429,7 +1425,7 @@ Vec_Ptr_t * Scl_LibertyReadTemplates( Scl_Tree_t * p )
 //    Scl_LibertyPrintTemplates( vRes );
     return vRes;
 }
-Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbose )
+Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbose, SC_DontUse dont_use )
 {
     int fUseFirstTable = 0;
     Vec_Str_t * vOut;
@@ -1472,7 +1468,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             nSkipped[0]++;
             continue;
         }
-        if ( Scl_LibertyReadCellIsDontUse(p, pCell) )
+        if ( Scl_LibertyReadCellIsDontUse(p, pCell, dont_use) )
         {
             if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" due to dont_use attribute.\n", Scl_LibertyReadString(p, pCell->Head) );
             nSkipped[3]++;
@@ -1500,7 +1496,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     {
         if ( Scl_LibertyReadCellIsFlop(p, pCell) )
             continue;
-        if ( Scl_LibertyReadCellIsDontUse(p, pCell) )
+        if ( Scl_LibertyReadCellIsDontUse(p, pCell, dont_use) )
             continue;
         if ( Scl_LibertyReadCellIsThreeState(p, pCell) )
             continue;
@@ -1677,7 +1673,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     }
     return vOut;
 }
-SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
+SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose, SC_DontUse dont_use )
 {
     SC_Lib * pLib;
     Scl_Tree_t * p;
@@ -1687,7 +1683,7 @@ SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose )
         return NULL;
 //    Scl_LibertyParseDump( p, "temp_.lib" );
     // collect relevant data
-    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose );
+    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose, dont_use );
     Scl_LibertyStop( p, fVeryVerbose );
     if ( vStr == NULL )
         return NULL;
@@ -1725,7 +1721,8 @@ void Scl_LibertyTest()
     if ( p == NULL )
         return;
 //    Scl_LibertyParseDump( p, "temp_.lib" );
-    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose );
+    SC_DontUse dont_use = {0};
+    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose, dont_use);
     Scl_LibertyStringDump( "test_scl.lib", vStr );
     Vec_StrFree( vStr );
     Scl_LibertyStop( p, fVerbose );

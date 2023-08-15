@@ -59,6 +59,13 @@ typedef enum      // -- timing sense, positive-, negative- or non-unate
     sc_ts_Non,
 } SC_TSense;
 
+typedef struct SC_DontUse_ SC_DontUse;
+struct SC_DontUse_
+{
+    int        size;
+    char **    dont_use_list;
+};
+
 typedef struct SC_Pair_         SC_Pair;
 struct SC_Pair_ 
 {
@@ -734,7 +741,7 @@ static inline void Scl_LibHandleInputDriver2( SC_Cell * pCell, SC_PairI * pLoadI
 }
 
 /*=== sclLiberty.c ===============================================================*/
-extern SC_Lib *      Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose );
+extern SC_Lib *      Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose, SC_DontUse dont_use );
 /*=== sclLibScl.c ===============================================================*/
 extern SC_Lib *      Abc_SclReadFromGenlib( void * pLib );
 extern SC_Lib *      Abc_SclReadFromStr( Vec_Str_t * vOut );
