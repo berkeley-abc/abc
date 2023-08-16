@@ -18,7 +18,12 @@
 
 ***********************************************************************/
 #include <string.h>
+#ifdef _WIN32
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
+#else 
 #include <fnmatch.h>
+#endif
 
 #include "sclLib.h"
 #include "misc/st/st.h"
@@ -75,6 +80,14 @@ struct Scl_Tree_t_
     Vec_Str_t *     vBuffer;      // temp string buffer
 };
 
+
+static inline int          Scl_LibertyGlobMatch(const char * pattern, const char * string) {
+    #ifdef _WIN32
+    return PathMatchSpec(string, pattern);
+    #else
+    return fnmatch(pattern, string, 0) == 0;
+    #endif
+}
 static inline Scl_Item_t *  Scl_LibertyRoot( Scl_Tree_t * p )                                      { return p->pItems;                                                 }
 static inline Scl_Item_t *  Scl_LibertyItem( Scl_Tree_t * p, int v )                               { assert( v < p->nItems ); return v < 0 ? NULL : p->pItems + v;     }
 static inline int           Scl_LibertyCompare( Scl_Tree_t * p, Scl_Pair_t Pair, char * pStr )     { return strncmp( p->pContents+Pair.Beg, pStr, Pair.End-Pair.Beg ) || ((int)strlen(pStr) != Pair.End-Pair.Beg); }
@@ -646,7 +659,7 @@ int Scl_LibertyReadCellIsDontUse( Scl_Tree_t * p, Scl_Item_t * pCell, SC_DontUse
             return 1;
         const char * cell_name = Scl_LibertyReadString(p, pCell->Head);
         for (int i = 0; i < dont_use.size; i++) {
-            if (fnmatch(dont_use.dont_use_list[i], cell_name, 0) == 0) {
+            if (Scl_LibertyGlobMatch(dont_use.dont_use_list[i], cell_name)) {
                 return 1;
             }
         }
