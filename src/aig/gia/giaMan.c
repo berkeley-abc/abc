@@ -803,7 +803,7 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
     Vec_Int_t * vLeaves, * vTruth, * vVisited;
     int * pLutClass, ClassCounts[222] = {0};
     int i, k, iFan, Class, OtherClasses, OtherClasses2, nTotal, Counter, Counter2;
-    unsigned * pTruth;
+    unsigned * pTruth; int nLutSize = 0;
     assert( Gia_ManHasMapping(p) );
     assert(  Gia_ManLutSizeMax( p ) <= 4 );
     vLeaves   = Vec_IntAlloc( 100 );
@@ -813,6 +813,7 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
     Gia_ManCleanTruth( p );
     Gia_ManForEachLut( p, i )
     {
+        nLutSize = Abc_MaxInt( nLutSize, Gia_ObjLutSize(p,i) );
         if ( Gia_ObjLutSize(p,i) > 4 )
             continue;
         Vec_IntClear( vLeaves );
@@ -872,6 +873,55 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
     Abc_Print( 1, "Approximate number of 4:1 MUX structures: All = %6d  (%7.2f %%)  MFFC = %6d  (%7.2f %%)\n", 
         OtherClasses,  100.0 * OtherClasses  / (nTotal+1),
         OtherClasses2, 100.0 * OtherClasses2 / (nTotal+1) );
+    // print information about LUT pairs
+    if ( nLutSize <= 4 )
+    {
+        int nTopPairs = 100, nTopShow = 30;
+        int i, j, k, iFan, * pVec = NULL;
+        Vec_Int_t * vPairs = Vec_IntAlloc( 3 * nTopPairs );
+        Gia_ManForEachLut( p, j ) {
+            Gia_LutForEachFanin( p, j, iFan, k ) {
+                int Num1 = pLutClass[iFan];
+                int Num2 = pLutClass[j];
+                assert( Vec_IntSize(vPairs) % 3 == 0 );
+                for ( i = 0; i < Vec_IntSize(vPairs); i += 3 )
+                    if ( Vec_IntEntry(vPairs, i+0) == Num1 && Vec_IntEntry(vPairs, i+1) == Num2 )
+                        break;
+                if ( i == Vec_IntSize(vPairs) ) {
+                    if ( Vec_IntSize(vPairs) < 3*nTopPairs ) {
+                        Vec_IntPush( vPairs, Num1 );
+                        Vec_IntPush( vPairs, Num2 );
+                        Vec_IntPush( vPairs, 1 );
+                    }
+                    continue;
+                }
+                // found this pair
+                assert( Vec_IntEntry(vPairs, i+0) == Num1 );
+                assert( Vec_IntEntry(vPairs, i+1) == Num2 );                
+                Vec_IntAddToEntry( vPairs, i+2, 1 );
+                // sort 
+                pVec = Vec_IntArray( vPairs );
+                while ( i > 0 && pVec[i+2] > pVec[i-1] ) {
+                    ABC_SWAP( int, pVec[i+0], pVec[i-3] )
+                    ABC_SWAP( int, pVec[i+1], pVec[i-2] )
+                    ABC_SWAP( int, pVec[i+2], pVec[i-1] )
+                    i -= 3;
+                }
+                while ( i < Vec_IntSize(vPairs) - 3 && pVec[i+2] < pVec[i+5] ) {
+                    ABC_SWAP( int, pVec[i+0], pVec[i+3] )
+                    ABC_SWAP( int, pVec[i+1], pVec[i+4] )
+                    ABC_SWAP( int, pVec[i+2], pVec[i+5] )
+                    i += 3;
+                    assert( 0 );
+                }                
+            }
+        }
+        pVec = Vec_IntArray( vPairs );
+        nTopShow = Abc_MinInt( nTopShow, Vec_IntSize(vPairs)/3 );
+        for ( i = 0; i < 3*nTopShow; i += 3 )
+            printf( "%3d : (%3d %3d) x %3d\n", i/3, pVec[i+0], pVec[i+1], pVec[i+2] );
+        Vec_IntFree( vPairs );
+    }    
     ABC_FREE( pLutClass );
 }
 
