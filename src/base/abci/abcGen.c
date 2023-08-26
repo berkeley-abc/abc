@@ -706,7 +706,7 @@ void Abc_GenRandom( char * pFileName, int nPis )
     unsigned * pTruth;
     int i, b, w, nWords = Abc_TruthWordNum( nPis );
     int nDigitsIn;
-    Aig_ManRandom( 1 );
+    //Aig_ManRandom( 1 );
     pTruth = ABC_ALLOC( unsigned, nWords );
     for ( w = 0; w < nWords; w++ )
         pTruth[w] = Aig_ManRandom( 0 );
