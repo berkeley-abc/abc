@@ -164,7 +164,7 @@ static int Abc_CommandAllExact               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestExact              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMajGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrchestrate            ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAIGArgumentation       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAIGAugmentation       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -918,7 +918,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "faultclasses",  Abc_CommandFaultClasses,     0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "exact",         Abc_CommandExact,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "orchestrate",  Abc_CommandOrchestrate,     1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "aigarg",       Abc_CommandAIGArgumentation,     1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "aigaug",       Abc_CommandAIGAugmentation,     1 );
 
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_start",  Abc_CommandBmsStart,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_stop",   Abc_CommandBmsStop,          0 );
@@ -7540,14 +7540,14 @@ usage:
 
   Synopsis    []
 
-  Description [AIG RTL Argumentation]
+  Description [AIG RTL Augmentation]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAIGArgumentation( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandAIGAugmentation( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pDup;
     int c, RetValue;
@@ -7690,15 +7690,15 @@ int Abc_CommandAIGArgumentation( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: aigarg [-s <num>] [-d <file>][-zZdsh]\n" );
+    Abc_Print( -2, "usage: aigaug [-s <num>] [-d <file>][-zZdsh]\n" );
     Abc_Print( -2, "\t           performs technology-independent AIG random synthesis (node level) for RTL argumentation\n" );
-    Abc_Print( -2, "\t-z       : toggle using zero-cost replacements for rwr for aigarg [default = %s]\n", fUseZeros_rwr? "yes": "no" );
-    Abc_Print( -2, "\t-Z       : toggle using zero-cost replacements for ref for aigarg [default = %s]\n", fUseZeros_ref? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggle using zero-cost replacements for rwr for aigaug [default = %s]\n", fUseZeros_rwr? "yes": "no" );
+    Abc_Print( -2, "\t-Z       : toggle using zero-cost replacements for ref for aigaug [default = %s]\n", fUseZeros_ref? "yes": "no" );
     Abc_Print( -2, "\t-d       : record random synthesis decision made during argumentation [required filename; e.g., test.csv]\n");
     Abc_Print( -2, "\t-s       : set the random seed for random argumentation\n");
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    Abc_Print( -2, "\tExample       : read i10.aig;st;aigarg -s 1 -d test.csv;write i10_arg_1.aig;cec i10.aig i10_arg_1.aig\n");
+    Abc_Print( -2, "\tExample       : read i10.aig;st;aigaug -s 1 -d test.csv;write i10_arg_1.aig;cec i10.aig i10_arg_1.aig\n");
     return 1;
 }
 
