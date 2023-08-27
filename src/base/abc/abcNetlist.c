@@ -220,7 +220,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
         if ( pObj->pCopy->pCopy ) // the net of the new object is already created
             continue;
         // create the new net
-        sprintf( Buffer, "new_%s_", Abc_ObjName(pObj) );
+        sprintf( Buffer, "new_%s", Abc_ObjName(pObj) );
         //pNet = Abc_NtkFindOrCreateNet( pNtkNew, Abc_ObjName(pObj) ); // here we create net names such as "n48", where 48 is the ID of the node
         pNet = Abc_NtkFindOrCreateNet( pNtkNew, Buffer ); 
         Abc_ObjAddFanin( pNet, pObj->pCopy );
