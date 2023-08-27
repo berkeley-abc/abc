@@ -426,7 +426,7 @@ Abc_Ntk_t * Abc_NtkConvertOnehot( Abc_Ntk_t * pNtk )
         return Abc_NtkDup( pNtk );
     if ( nFlops > 16 )
     {
-        printf( "Cannot reencode %d flops because it will lead to 2^%d states.\n", nFlops, nFlops );
+        printf( "Cannot re-encode %d flops because it will lead to 2^%d states.\n", nFlops, nFlops );
         return NULL;
     }
     // check if there are latches with DC values

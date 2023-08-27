@@ -860,7 +860,7 @@ Gia_Man_t * Gia_ManDupWithNaturalBoxes( Gia_Man_t * p, int nFaddMin, int fVerbos
     if ( Gia_ManRegNum(p) )
     {
         if ( fVerbose )
-            printf( "Warning: Sequential design is coverted into combinational one by adding white boxes.\n" );
+            printf( "Warning: Sequential design is converted into combinational one by adding white boxes.\n" );
         pNew->nRegs = 0;
     }
     assert( !Gia_ManHasDangling(pNew) );

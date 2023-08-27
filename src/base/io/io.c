@@ -1192,7 +1192,7 @@ usage:
     fprintf( pAbc->Err, "\t-x     : toggles between bin and hex notation [default = %s]\n", fHex?  "hex":"bin" );
     fprintf( pAbc->Err, "\t-f     : toggles reading truth table(s) from file [default = %s]\n",      fFile? "yes": "no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
-    fprintf( pAbc->Err, "\ttruth  : truth table with most signficant bit first (e.g. 1000 for AND(a,b))\n" );
+    fprintf( pAbc->Err, "\ttruth  : truth table with most significant bit first (e.g. 1000 for AND(a,b))\n" );
     fprintf( pAbc->Err, "\tfile   : file name with the truth table\n" );
     return 1;
 }
