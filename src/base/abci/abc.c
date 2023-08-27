@@ -7691,11 +7691,11 @@ int Abc_CommandAIGAugmentation( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: aigaug [-s <num>] [-d <file>][-zZdsh]\n" );
-    Abc_Print( -2, "\t           performs technology-independent AIG random synthesis (node level) for RTL argumentation\n" );
+    Abc_Print( -2, "\t           performs technology-independent AIG random synthesis (node level) for RTL augmentation\n" );
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements for rwr for aigaug [default = %s]\n", fUseZeros_rwr? "yes": "no" );
     Abc_Print( -2, "\t-Z       : toggle using zero-cost replacements for ref for aigaug [default = %s]\n", fUseZeros_ref? "yes": "no" );
-    Abc_Print( -2, "\t-d       : record random synthesis decision made during argumentation [required filename; e.g., test.csv]\n");
-    Abc_Print( -2, "\t-s       : set the random seed for random argumentation\n");
+    Abc_Print( -2, "\t-d       : record random synthesis decision made during augmentation [required filename; e.g., test.csv]\n");
+    Abc_Print( -2, "\t-s       : set the random seed for random augmentation\n");
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\tExample       : read i10.aig;st;aigaug -s 1 -d test.csv;write i10_arg_1.aig;cec i10.aig i10_arg_1.aig\n");
