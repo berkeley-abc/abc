@@ -101,6 +101,7 @@ struct Cec4_Man_t_
     Vec_Int_t *      vDisprPairs;
     Vec_Bit_t *      vFails;
     Vec_Bit_t *      vCoDrivers;
+    Vec_Int_t *      vPairs;   
     int              iPosRead;       // candidate reading position
     int              iPosWrite;      // candidate writing position
     int              iLastConst;     // last const node proved
@@ -250,6 +251,7 @@ Cec4_Man_t * Cec4_ManCreate( Gia_Man_t * pAig, Cec_ParFra_t * pPars )
     p->vPat          = Vec_IntAlloc( 100 );
     p->vDisprPairs   = Vec_IntAlloc( 100 );
     p->vFails        = Vec_BitStart( Gia_ManObjNum(pAig) );
+    p->vPairs        = pPars->fUseCones ? Vec_IntAlloc( 100 ) : NULL;
     //pAig->pData     = p->pSat; // point AIG manager to the solver
     //Vec_IntFreeP( &p->pAig->vPats );
     //p->pAig->vPats = Vec_IntAlloc( 1000 );
@@ -304,6 +306,7 @@ void Cec4_ManDestroy( Cec4_Man_t * p )
     Vec_IntFreeP( &p->vPat );
     Vec_IntFreeP( &p->vDisprPairs );
     Vec_BitFreeP( &p->vFails );
+    Vec_IntFreeP( &p->vPairs );
     Vec_BitFreeP( &p->vCoDrivers );
     Vec_IntFreeP( &p->vRefClasses );
     Vec_IntFreeP( &p->vRefNodes );
@@ -1686,12 +1689,26 @@ int Cec4_ManSweepNode( Cec4_Man_t * p, int iObj, int iRepr )
     {
         p->nSatUndec++;
         assert( status == GLUCOSE_UNDEC );
-        Gia_ObjSetFailed( p->pAig, iObj );
-        Vec_BitWriteEntry( p->vFails, iObj, 1 );
-        //if ( iRepr )
-        //Vec_BitWriteEntry( p->vFails, iRepr, 1 );
-        p->timeSatUndec += Abc_Clock() - clk;
-        RetValue = 2;
+        if ( p->vPairs ) // speculate
+        {
+            Vec_IntPushTwo( p->vPairs, Abc_Var2Lit(iRepr, 0), Abc_Var2Lit(iObj, fCompl) );
+            p->timeSatUndec += Abc_Clock() - clk;
+            // mark as proved
+            pObj->Value = Abc_LitNotCond( pRepr->Value, fCompl );
+            Gia_ObjSetProved( p->pAig, iObj );
+            if ( iRepr == 0 )
+                p->iLastConst = iObj;
+            RetValue = 1;
+        }
+        else
+        {
+            Gia_ObjSetFailed( p->pAig, iObj );
+            Vec_BitWriteEntry( p->vFails, iObj, 1 );
+            //if ( iRepr )
+            //Vec_BitWriteEntry( p->vFails, iRepr, 1 );
+            p->timeSatUndec += Abc_Clock() - clk;
+            RetValue = 2;
+        }
     }
     return RetValue;
 }
@@ -1896,6 +1913,18 @@ finalize:
             pMan->nSatSat,   pMan->nConflicts[0][0], (float)pMan->nConflicts[0][1]/Abc_MaxInt(1, pMan->nSatSat  -pMan->nConflicts[0][0]), pMan->nConflicts[0][2],  
             pMan->nSatUndec,  
             pMan->nSimulates, pMan->nRecycles, 100.0*pMan->nGates[1]/Abc_MaxInt(1, pMan->nGates[0]+pMan->nGates[1]) );
+    if ( pMan->vPairs && Vec_IntSize(pMan->vPairs) )
+    {
+        extern char * Extra_FileNameGeneric( char * FileName );
+        char pFileName[1000], * pBase = Extra_FileNameGeneric(p->pName);
+        extern Gia_Man_t * Gia_ManDupMiterCones( Gia_Man_t * p, Vec_Int_t * vPairs );
+        Gia_Man_t * pM = Gia_ManDupMiterCones( p, pMan->vPairs );
+        sprintf( pFileName, "%s_miter.aig", pBase );
+        Gia_AigerWrite( pM, pFileName, 0, 0, 0 );
+        Gia_ManStop( pM );
+        ABC_FREE( pBase );
+        printf( "Dumped miter \"%s\" with %d pairs.\n", pFileName, pMan->vPairs ? Vec_IntSize(pMan->vPairs) : -1 );
+    }
     Cec4_ManDestroy( pMan );
     //Gia_ManStaticFanoutStop( p );
     //Gia_ManEquivPrintClasses( p, 1, 0 );

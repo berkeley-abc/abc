@@ -1606,6 +1606,47 @@ Gia_Man_t * Gia_ManDupTimes( Gia_Man_t * p, int nTimes )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates while adding self-loops to the registers.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupMiterCones( Gia_Man_t * p, Vec_Int_t * vPairs )
+{
+    Vec_Int_t * vTemp = Vec_IntAlloc( 100 );
+    Gia_Man_t * pNew, * pTemp; 
+    Gia_Obj_t * pObj;
+    int i, iLit0, iLit1;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) + 3 * Vec_IntSize(vPairs) );
+    pNew->pName = Abc_UtilStrsav( "miter" );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Vec_IntForEachEntryDouble( vPairs, iLit0, iLit1, i )
+    {
+        int Lit0 = Abc_LitNotCond( Gia_ManObj(p, Abc_Lit2Var(iLit0))->Value, Abc_LitIsCompl(iLit0) );
+        int Lit1 = Abc_LitNotCond( Gia_ManObj(p, Abc_Lit2Var(iLit1))->Value, Abc_LitIsCompl(iLit1) );
+        Vec_IntPush( vTemp, Gia_ManHashXor(pNew, Lit0, Lit1) );
+    }
+    Vec_IntForEachEntry( vTemp, iLit0, i )
+        Gia_ManAppendCo( pNew, iLit0 );
+    Vec_IntFree( vTemp );
+    Gia_ManHashStop( pNew );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates the AIG in the DFS order.]
 
   Description []
