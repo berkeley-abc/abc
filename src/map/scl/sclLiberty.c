@@ -867,7 +867,7 @@ int Scl_LibertyReadTimeUnit( Scl_Tree_t * p )
             return 12;
         break;
     }
-    printf( "Libery parser cannot read \"time_unit\".  Assuming   time_unit : \"1ns\".\n" );
+    printf( "Liberty parser cannot read \"time_unit\".  Assuming   time_unit : \"1ns\".\n" );
     return 9;
 }
 void Scl_LibertyReadLoadUnit( Scl_Tree_t * p, Vec_Str_t * vOut )
@@ -887,7 +887,7 @@ void Scl_LibertyReadLoadUnit( Scl_Tree_t * p, Vec_Str_t * vOut )
         else break;
         return;
     }
-    printf( "Libery parser cannot read \"capacitive_load_unit\". Assuming   capacitive_load_unit(1, pf).\n" );
+    printf( "Liberty parser cannot read \"capacitive_load_unit\". Assuming   capacitive_load_unit(1, pf).\n" );
     Vec_StrPutF_( vOut, 1.0 );
     Vec_StrPutI_( vOut, 12 );
 }
