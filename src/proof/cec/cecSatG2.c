@@ -1919,11 +1919,11 @@ finalize:
         char pFileName[1000], * pBase = Extra_FileNameGeneric(p->pName);
         extern Gia_Man_t * Gia_ManDupMiterCones( Gia_Man_t * p, Vec_Int_t * vPairs );
         Gia_Man_t * pM = Gia_ManDupMiterCones( p, pMan->vPairs );
-        sprintf( pFileName, "%s_miter.aig", pBase );
+        sprintf( pFileName, "%s_sm.aig", pBase );
         Gia_AigerWrite( pM, pFileName, 0, 0, 0 );
         Gia_ManStop( pM );
         ABC_FREE( pBase );
-        printf( "Dumped miter \"%s\" with %d pairs.\n", pFileName, pMan->vPairs ? Vec_IntSize(pMan->vPairs) : -1 );
+        printf( "Dumped miter \"%s\" with %d pairs.\n", pFileName, pMan->vPairs ? Vec_IntSize(pMan->vPairs)/2 : -1 );
     }
     Cec4_ManDestroy( pMan );
     //Gia_ManStaticFanoutStop( p );
