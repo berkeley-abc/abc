@@ -774,7 +774,7 @@ void Abc_FrameUpdateGia( Abc_Frame_t * pAbc, Gia_Man_t * pNew )
 {
     if ( pNew == NULL )
     {
-        Abc_Print( -1, "Abc_FrameUpdateGia(): Tranformation has failed.\n" );
+        Abc_Print( -1, "Abc_FrameUpdateGia(): Transformation has failed.\n" );
         return;
     }
     if ( Gia_ManPoNum(pNew) == 0 )
@@ -7001,7 +7001,7 @@ int Abc_CommandTestNpn( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: testnpn [-AN <num>] [-dbvh] <file>\n" );
     Abc_Print( -2, "\t           testbench for computing (semi-)canonical forms\n" );
-    Abc_Print( -2, "\t           of completely-specified Boolean functions up to 16 varibles\n" );
+    Abc_Print( -2, "\t           of completely-specified Boolean functions up to 16 variables\n" );
     Abc_Print( -2, "\t-A <num> : semi-caninical form computation algorithm [default = %d]\n", NpnType );
     Abc_Print( -2, "\t               0: uniqifying truth tables\n" );
     Abc_Print( -2, "\t               1: exact NPN canonical form by brute-force enumeration\n" );
@@ -13541,7 +13541,7 @@ usage:
     Abc_Print( -2, "usage: gen [-NAKL num] [-atsembfnrgvh] <file>\n" );
     Abc_Print( -2, "\t         generates simple circuits\n" );
     Abc_Print( -2, "\t-N num : the number of variables [default = %d]\n", nVars );
-    Abc_Print( -2, "\t-A num : the number of agruments (for adder tree) [default = %d]\n", nArgs );
+    Abc_Print( -2, "\t-A num : the number of arguments (for adder tree) [default = %d]\n", nArgs );
     Abc_Print( -2, "\t-K num : the LUT size (to be used with switch -f) [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-L num : the LUT count (to be used with switch -f) [default = %d]\n", nLuts );
     Abc_Print( -2, "\t-a     : generate ripple-carry adder [default = %s]\n", fAdder? "yes": "no" );
@@ -20139,7 +20139,7 @@ usage:
     Abc_Print( -2, "\t         prints statistics of the DSD manager\n" );
     Abc_Print( -2, "\t-N num : show structures whose ID divides by N [default = %d]\n",   Number );
     Abc_Print( -2, "\t-S num : show structures whose support size is S [default = %d]\n", Support );
-    Abc_Print( -2, "\t-o     : toggles printing occurence distribution [default = %s]\n", fOccurs? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggles printing occurrence distribution [default = %s]\n", fOccurs? "yes": "no" );
     Abc_Print( -2, "\t-t     : toggles dumping truth tables [default = %s]\n",            fTtDump? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggles processing second manager [default = %s]\n",       fSecond? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles verbose output [default = %s]\n",                  fVerbose? "yes": "no" );
@@ -26178,7 +26178,7 @@ usage:
     Abc_Print( -2, "\t-Q num : Min clause LBD for binary resolution [default = %d]\n", opts.clause_min_lbd_bin_resol );
     Abc_Print( -2, "\n\tConstants used for branching (VSIDS heuristic):\n");
     Abc_Print( -2, "\t-R num : Clause activity decay factor (when using float clause activity) [default = %f]\n", opts.clause_decay );
-    Abc_Print( -2, "\t-S num : Varibale activity decay factor [default = %f]\n", opts.var_decay );
+    Abc_Print( -2, "\t-S num : Variable activity decay factor [default = %f]\n", opts.var_decay );
 #ifdef SATOKO_ACT_VAR_FIXED
     Abc_Print( -2, "\t-T num : Variable activity limit valeu [default = 0x%08X]\n", opts.var_act_limit );
     Abc_Print( -2, "\t-U num : Variable activity re-scale factor [default = 0x%08X]\n", opts.var_act_rescale );
@@ -27532,7 +27532,7 @@ usage:
     Abc_Print( -2, "\t-S num : the starting time frame [default = %d]\n", pPars->nStart );
     Abc_Print( -2, "\t-F num : the max number of time frames (0 = unused) [default = %d]\n",      pPars->nFramesMax );
     Abc_Print( -2, "\t-T num : runtime limit, in seconds [default = %d]\n",                       pPars->nTimeOut );
-    Abc_Print( -2, "\t-H num : runtime limit per output, in miliseconds (with \"-a\") [default = %d]\n",    pPars->nTimeOutOne );
+    Abc_Print( -2, "\t-H num : runtime limit per output, in milliseconds (with \"-a\") [default = %d]\n",    pPars->nTimeOutOne );
     Abc_Print( -2, "\t-G num : runtime gap since the last CEX, in seconds [default = %d]\n",      pPars->nTimeOutGap );
     Abc_Print( -2, "\t-C num : max conflicts at an output [default = %d]\n",                      pPars->nConfLimit );
     Abc_Print( -2, "\t-D num : max conflicts after jumping (0 = infinity) [default = %d]\n",      pPars->nConfLimitJump );
@@ -29066,7 +29066,7 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Obj_t * pNodePo;
         FILE * hadi = fopen("hadi.txt", "w");
         Abc_NtkForEachPo( pNtk, pNodePo, i ) {
-            printf("Ouput %s\n\n", Abc_ObjName(pNodePo));
+            printf("Output %s\n\n", Abc_ObjName(pNodePo));
             saucyGateWay( pNtk, pNodePo, gFile, 0, fLookForSwaps, fFixOutputs, fFixInputs, fQuiet, fPrintTree );
             printf("----------------------------------------\n");
         }
@@ -29092,7 +29092,7 @@ int Abc_CommandSaucy( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: saucy3 [-O <name>] [-F <file>] [-iosqvh]\n\n" );
-    Abc_Print( -2, "\t            computes functional symmetries of the netowrk\n" );
+    Abc_Print( -2, "\t            computes functional symmetries of the network\n" );
     Abc_Print( -2, "\t            prints symmetry generators to the standard output\n" );
     Abc_Print( -2, "\t-O <name> : (optional) compute symmetries only for output given by name\n");
     Abc_Print( -2, "\t            only inputs in the output cone are permuted\n");
@@ -29480,7 +29480,7 @@ usage:
     Abc_Print( -2, "\t-D num : limit on conflicts during ind-generalization (0 = no limit) [default = %d]\n",pPars->nConfGenLimit );
     Abc_Print( -2, "\t-Q num : limit on proof obligations before a restart (0 = no limit) [default = %d]\n", pPars->nRestLimit );
     Abc_Print( -2, "\t-T num : runtime limit, in seconds (0 = no limit) [default = %d]\n",                   pPars->nTimeOut );
-    Abc_Print( -2, "\t-H num : runtime limit per output, in miliseconds (with \"-a\") [default = %d]\n",     pPars->nTimeOutOne );
+    Abc_Print( -2, "\t-H num : runtime limit per output, in milliseconds (with \"-a\") [default = %d]\n",    pPars->nTimeOutOne );
     Abc_Print( -2, "\t-G num : runtime gap since the last CEX (0 = no limit) [default = %d]\n",              pPars->nTimeOutGap );
     Abc_Print( -2, "\t-S num : * value to seed the SAT solver with [default = %d]\n",                          pPars->nRandomSeed );
     Abc_Print( -2, "\t-L file: the log file name [default = %s]\n",                                          pLogFileName ? pLogFileName : "no logging" );
@@ -34807,7 +34807,7 @@ usage:
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-s     : toggle seq vs. comb simulation [default = %s]\n", pPars->fSeqSimulate? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
-    Abc_Print( -2, "\t-d     : toggle using two POs intead of XOR [default = %s]\n", pPars->fDualOut? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle using two POs instead of XOR [default = %s]\n", pPars->fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -35258,7 +35258,7 @@ usage:
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-T num : approximate runtime limit in seconds [default = %d]\n", pPars->TimeLimit );
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
-    Abc_Print( -2, "\t-d     : toggle using two POs intead of XOR [default = %s]\n", pPars->fDualOut? "yes": "no" );
+    Abc_Print( -2, "\t-d     : toggle using two POs instead of XOR [default = %s]\n", pPars->fDualOut? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -45965,7 +45965,7 @@ usage:
     Abc_Print( -2, "\t-L num : approximate local runtime limit in seconds [default = %d]\n",      pPars->TimeOutLoc );
     Abc_Print( -2, "\t-M num : percentage of local runtime limit increase [default = %d]\n",      pPars->TimeOutInc );
     Abc_Print( -2, "\t-G num : approximate gap runtime limit in seconds [default = %d]\n",        pPars->TimeOutGap );
-    Abc_Print( -2, "\t-H num : timeout per output in miliseconds [default = %d]\n",               pPars->TimePerOut );
+    Abc_Print( -2, "\t-H num : timeout per output in milliseconds [default = %d]\n",              pPars->TimePerOut );
     Abc_Print( -2, "\t-s     : toggle using combinational synthesis [default = %s]\n",            pPars->fUseSyn?      "yes": "no" );
     Abc_Print( -2, "\t-d     : toggle dumping invariant into a file [default = %s]\n",            pPars->fDumpFinal?   "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",             pPars->fVerbose?     "yes": "no" );
