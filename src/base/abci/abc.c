@@ -17814,7 +17814,7 @@ int Abc_CommandRecPs3( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkRecIsRunning3() )
     {
-        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start2\".\n" );
+        Abc_Print( -1, "This command works for AIGs only after calling \"rec_start3\".\n" );
         return 0;
     }
     Abc_NtkRecPs3(fPrintLib);
@@ -17866,7 +17866,7 @@ int Abc_CommandRecAdd3( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( !Abc_NtkRecIsRunning3() )
     {
-        Abc_Print( -1, "This command works for AIGs after calling \"rec_start2\".\n" );
+        Abc_Print( -1, "This command works for AIGs after calling \"rec_start3\".\n" );
         return 0;
     }
     Abc_NtkRecAdd3( pNtk, fUseSOPB );

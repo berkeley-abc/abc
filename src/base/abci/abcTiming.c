@@ -652,7 +652,7 @@ void Abc_NtkTimePrint( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
-  Synopsis    [Expends the storage for timing information.]
+  Synopsis    [Expands the storage for timing information.]
 
   Description []
                
