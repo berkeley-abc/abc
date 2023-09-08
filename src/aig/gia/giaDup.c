@@ -5642,6 +5642,7 @@ Gia_Man_t * Gia_ManDupAddFlop( Gia_Man_t * p )
     Gia_Obj_t * pObj;
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) + 2 );
+    pNew->pName = Abc_UtilStrsav(p->pName);
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
@@ -5652,6 +5653,69 @@ Gia_Man_t * Gia_ManDupAddFlop( Gia_Man_t * p )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManAppendCo( pNew, 0 );    
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p)+1 );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
+{
+    Vec_Int_t * vLits;
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, iLit;
+    if ( Gia_ManBufNum(p1) == 0 ) {
+        printf( "The first AIG should have a boundary.\n" );
+        return NULL;
+    }
+    if ( Gia_ManBufNum(p2) != 0 ) {
+        printf( "The second AIG should have no boundary.\n" );
+        return NULL;
+    }
+    assert( Gia_ManBufNum(p1) > 0 );
+    assert( Gia_ManBufNum(p2) == 0 );
+    assert( Gia_ManRegNum(p1) == 0 );
+    assert( Gia_ManRegNum(p2) == 0 );        
+    assert( Gia_ManCiNum(p1) == Gia_ManCiNum(p2) );
+    assert( Gia_ManCoNum(p1) == Gia_ManCoNum(p2) );
+    vLits = Vec_IntAlloc( Gia_ManBufNum(p1) );
+    if ( fVerbose )
+        printf( "Creating a boundary miter with %d inputs, %d outputs, and %d buffers.\n", 
+            Gia_ManCiNum(p1), Gia_ManCoNum(p1), Gia_ManBufNum(p1) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p1) + Gia_ManObjNum(p2) );
+    pNew->pName = ABC_ALLOC( char, strlen(p1->pName) + 10 );
+    sprintf( pNew->pName, "%s_bmiter", p1->pName );
+    Gia_ManHashStart( pNew );
+    Gia_ManConst0(p1)->Value = 0;
+    Gia_ManConst0(p2)->Value = 0;
+    Gia_ManForEachCi( p1, pObj, i )
+        pObj->Value = Gia_ManCi(p2, i)->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p2, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachAnd( p1, pObj, i ) {
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( Gia_ObjIsBuf(pObj) )
+            Vec_IntPush( vLits, pObj->Value );
+    }
+    Gia_ManForEachCo( p2, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachCo( p1, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Vec_IntForEachEntry( vLits, iLit, i )
+        Gia_ManAppendCo( pNew, iLit );
+    Vec_IntFree( vLits );
+    Gia_ManHashStop( pNew );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );    
     return pNew;
 }
 
