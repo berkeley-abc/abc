@@ -1542,7 +1542,7 @@ int IoCommandWrite( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( !strcmp( Extra_FileNameExtension(pFileName), "genlib" )  )
         sprintf( Command, "write_genlib %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "lib" ) )
-        sprintf( Command, "write_liberty %s", pFileName );
+        sprintf( Command, "write_lib %s", pFileName );
     else if ( !strcmp( Extra_FileNameExtension(pFileName), "dsd" ) )
         sprintf( Command, "dsd_save %s", pFileName );
     if ( Command[0] )
