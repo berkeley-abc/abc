@@ -842,7 +842,7 @@ void Glucose_SolveCnf( char * pFileName, Glucose_Pars * pPars, int fDumpCnf )
     if ( pPars->pre ) 
     {
         S.eliminate(true);
-        printf( "c Simplication removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
+        printf( "c Simplification removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
 
         if ( fDumpCnf )
@@ -1510,7 +1510,7 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
     if (pPars->pre) 
     {
         S.eliminate(true);
-        printf( "c Simplication removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
+        printf( "c Simplification removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     }
     
