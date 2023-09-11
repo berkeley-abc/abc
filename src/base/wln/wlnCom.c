@@ -206,7 +206,7 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: %%yosys [-T <module>] [-D <defines>] [-bismcvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads Verilog or SystemVerilog using Yosys\n" );
-    Abc_Print( -2, "\t-T     : specify the top module name (default uses \"-auto-top\"\n" );
+    Abc_Print( -2, "\t-T     : specify the top module name (default uses \"-auto-top\")\n" );
     Abc_Print( -2, "\t-D     : specify defines to be used by Yosys (default \"not used\")\n" );
     Abc_Print( -2, "\t-b     : toggle bit-blasting the design into an AIG using Yosys [default = %s]\n", fBlast? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle inverting the outputs (useful for miters) [default = %s]\n", fInvert? "yes": "no" );
