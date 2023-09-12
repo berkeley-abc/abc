@@ -1136,9 +1136,9 @@ int Scl_CommandBuffer( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pAbc->Err, "usage: buffer [-GSN num] [-sbpcvwh]\n" );
-    fprintf( pAbc->Err, "\t           performs buffering and sizing and mapped network\n" );
+    fprintf( pAbc->Err, "\t           performs buffering and sizing on mapped network\n" );
     fprintf( pAbc->Err, "\t-G <num> : target gain percentage [default = %d]\n", pPars->GainRatio );
-    fprintf( pAbc->Err, "\t-S <num> : target slew in pisoseconds [default = %d]\n", pPars->Slew );
+    fprintf( pAbc->Err, "\t-S <num> : target slew in picoseconds [default = %d]\n", pPars->Slew );
     fprintf( pAbc->Err, "\t-N <num> : the maximum fanout count [default = %d]\n", pPars->nDegree );
     fprintf( pAbc->Err, "\t-s       : toggle performing only sizing [default = %s]\n", pPars->fSizeOnly? "yes": "no" );
     fprintf( pAbc->Err, "\t-b       : toggle using buffers instead of inverters [default = %s]\n", pPars->fAddBufs? "yes": "no" );
