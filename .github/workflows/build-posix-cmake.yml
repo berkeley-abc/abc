@@ -44,6 +44,10 @@ jobs:
       run: |
         cmake --build build
 
+    - name: Run Unit Tests
+      run: |
+        ctest --output-on-failure
+
     - name: Test Executable
       run: |
         ./build/abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
