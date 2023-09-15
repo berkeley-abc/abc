@@ -595,6 +595,7 @@ static int Abc_CommandAbc9Cfs                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ProdAdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1364,6 +1365,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&prodadd",      Abc_CommandAbc9ProdAdd,                0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&addflop",      Abc_CommandAbc9AddFlop,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -31762,13 +31764,14 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUnique = 0;
     int fVerilog = 0;
     int fInter   = 0;
+    int fInterComb = 0;
     int fVerBufs = 0;
     int fMiniAig = 0;
     int fMiniLut = 0;
     int fWriteNewLine = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "upibmlnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upicbmlnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31781,6 +31784,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'i':
             fInter ^= 1;
             break;
+        case 'c':
+            fInterComb ^= 1;
+            break;            
         case 'b':
             fVerBufs ^= 1;
             break;
@@ -31822,7 +31828,7 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManStop( pGia );
     }
     else if ( fVerilog )
-        Gia_ManDumpVerilog( pAbc->pGia, pFileName, NULL, fVerBufs, fInter );
+        Gia_ManDumpVerilog( pAbc->pGia, pFileName, NULL, fVerBufs, fInter, fInterComb );
     else if ( fMiniAig )
         Gia_ManWriteMiniAig( pAbc->pGia, pFileName );
     else if ( fMiniLut )
@@ -31832,11 +31838,12 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-upibmlnvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upicbmlnvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
     Abc_Print( -2, "\t-i     : toggle writing the interface module in Verilog [default = %s]\n", fInter? "yes" : "no" );
+    Abc_Print( -2, "\t-c     : toggle writing the interface module in Verilog [default = %s]\n", fInterComb? "yes" : "no" );
     Abc_Print( -2, "\t-b     : toggle writing additional buffers in Verilog [default = %s]\n", fVerBufs? "yes" : "no" );
     Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
@@ -51568,6 +51575,50 @@ usage:
     Abc_Print( -2, "\t<file> : the implementation file\n");    
     return 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GenHie( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_GenSandwich( char ** pFNames, int nFNames );
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    char ** pArgvNew = argv + globalUtilOptind;
+    int     nArgcNew = argc - globalUtilOptind;
+    Gia_GenSandwich( pArgvNew, nArgcNew );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &gen_hie [-vh] <file[1]> <file[2]> ...  <file[N]>\n" );
+    Abc_Print( -2, "\t          generates a hierarchical design\n" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<files> : the AIG files for the instance modules\n");    
+    Abc_Print( -2, "\t          (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
+    return 1;}
+
 
 /**Function*************************************************************
 
