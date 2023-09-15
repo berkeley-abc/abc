@@ -51592,6 +51592,8 @@ int Abc_CommandAbc9GenHie( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_GenSandwich( char ** pFNames, int nFNames );
     int c, fVerbose = 0;
+    char ** pArgvNew;
+    int     nArgcNew;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
@@ -51606,8 +51608,8 @@ int Abc_CommandAbc9GenHie( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    char ** pArgvNew = argv + globalUtilOptind;
-    int     nArgcNew = argc - globalUtilOptind;
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
     Gia_GenSandwich( pArgvNew, nArgcNew );
     return 0;
 usage:
