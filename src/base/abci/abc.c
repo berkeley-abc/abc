@@ -7576,7 +7576,11 @@ int Abc_CommandAIGAugmentation( Abc_Frame_t * pAbc, int argc, char ** argv )
     int Rand_Seed;
     //int sOpsOrder;
     size_t NtkSize;
-    char *DecisionFile;
+    char *DecisionFile = NULL;
+    Vec_Int_t *DecisionMask;
+    Vec_Int_t *pGain_rwr;
+    Vec_Int_t *pGain_res;
+    Vec_Int_t *pGain_ref;    
     //FILE *maskFile;
     extern void Rwr_Precompute();
     extern int Abc_NtkOrchRand( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rwr, Vec_Int_t **pGain_res,Vec_Int_t **pGain_ref, Vec_Int_t **DecisionMask, char *DecisionFile, int Rand_Seed, int fUseZeros_rwr, int fUseZeros_ref, int fPlaceEnable, int nCutsMax, int nNodesMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int nNodeSizeMax, int nConeSizeMax, int fUseDcs );
@@ -7665,15 +7669,9 @@ int Abc_CommandAIGAugmentation( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     NtkSize = Abc_NtkObjNumMax(pNtk);
 
-
-
-    Vec_Int_t *DecisionMask = Vec_IntAlloc(1);
+    DecisionMask = Vec_IntAlloc(1);
     for (int i=0; i<NtkSize;i++){
            Vec_IntPush(DecisionMask, atoi("-1"));}
-
-    Vec_Int_t *pGain_rwr;
-    Vec_Int_t *pGain_res;
-    Vec_Int_t *pGain_ref;
     // modify the current network
     pDup = Abc_NtkDup( pNtk );
     RetValue = Abc_NtkOrchRand( pNtk, &pGain_rwr, &pGain_res, &pGain_ref, &DecisionMask, DecisionFile, Rand_Seed, fUseZeros_rwr, fUseZeros_ref, fPlaceEnable, nCutsMax, nNodesMax, nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose, nNodeSizeMax, nConeSizeMax, fUseDcs );
