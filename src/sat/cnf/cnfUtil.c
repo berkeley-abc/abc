@@ -21,8 +21,6 @@
 #include "cnf.h"
 #include "sat/bsat/satSolver.h"
 
-ABC_NAMESPACE_IMPL_START
-
 #ifdef _MSC_VER
 #define unlink _unlink
 #else
@@ -38,6 +36,8 @@ ABC_NAMESPACE_IMPL_START
 #endif
 
 #endif
+
+ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///

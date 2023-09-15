@@ -328,7 +328,7 @@ Vec_Vec_t * Saig_IsoDetectFast( Aig_Man_t * pAig )
 
     // report the results
 //    Vec_VecPrintInt( (Vec_Vec_t *)vClasses );
-    printf( "Devided %d outputs into %d cand equiv classes.\n", Saig_ManPoNum(pAig), Vec_PtrSize(vClasses) );
+    printf( "Divided %d outputs into %d cand equiv classes.\n", Saig_ManPoNum(pAig), Vec_PtrSize(vClasses) );
 
     Vec_PtrForEachEntry( Vec_Int_t *, vClasses, vLevel, i )
         if ( Vec_IntSize(vLevel) > 1 )

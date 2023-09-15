@@ -157,8 +157,10 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
         fprintf( stdout, "Reading network from file has failed.\n" );
         return NULL;
     }
-    if ( fCheck && (Abc_NtkBlackboxNum(pNtk) || Abc_NtkWhiteboxNum(pNtk)) )
+
+    if ( fCheck && (Abc_NtkBlackboxNum(pNtk) || Abc_NtkWhiteboxNum(pNtk)) && pNtk->pDesign )
     {
+
         int i, fCycle = 0;
         Abc_Ntk_t * pModel;
 //        fprintf( stdout, "Warning: The network contains hierarchy.\n" );
@@ -390,7 +392,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             pNtkTemp = Abc_NtkToNetlist( pNtk );
         else
         {
-            fprintf( stdout, "Latches are writen into the PLA file at PI/PO pairs.\n" );
+            fprintf( stdout, "Latches are written into the PLA file at PI/PO pairs.\n" );
             pNtkCopy = Abc_NtkDup( pNtk );
             Abc_NtkMakeComb( pNtkCopy, 0 );
             pNtkTemp = Abc_NtkToNetlist( pNtk );

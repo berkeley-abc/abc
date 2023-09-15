@@ -953,9 +953,12 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             }
         }
         pInit[i] = 0;
-        pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, 0, fGiaSimple, 1 );
-        pNew->nConstrs = pTemp->nConstrs; pTemp->nConstrs = 0;
-        Gia_ManStop( pTemp );
+        if ( !fSkipStrash ) 
+        {
+            pNew = Gia_ManDupZeroUndc( pTemp = pNew, pInit, 0, fGiaSimple, 1 );
+            pNew->nConstrs = pTemp->nConstrs; pTemp->nConstrs = 0;
+            Gia_ManStop( pTemp );
+        }
         ABC_FREE( pInit );
     }
     Vec_IntFreeP( &vInits );

@@ -22,6 +22,11 @@
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
 
+#ifdef _MSC_VER
+#define unlink _unlink
+#else
+#include <unistd.h>
+#endif
 
 #ifdef ABC_USE_PTHREADS
 
@@ -29,7 +34,6 @@
 #include "../lib/pthread.h"
 #else
 #include <pthread.h>
-#include <unistd.h>
 #endif
 
 #endif

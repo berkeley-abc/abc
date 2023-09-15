@@ -394,9 +394,17 @@ ABC_NAMESPACE_IMPL_START
 
 double Extra_CpuTimeDouble()
 {
+/*    
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
     return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000; 
+*/
+  struct timespec ts;
+  if ( clock_gettime(CLOCK_MONOTONIC, &ts) < 0 ) 
+      return (double)-1;
+  double res = ((double) ts.tv_sec);
+  res += ((double) ts.tv_nsec) / 1000000000;
+  return res;    
 }
 #endif
 

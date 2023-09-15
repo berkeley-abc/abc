@@ -548,10 +548,10 @@ typedef struct buflist {
   struct buflist * next;
 } buflist;
 
-char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize )
+char * Io_MvLoadFileBz2( char * pFileName, long * pnFileSize )
 {
     FILE    * pFile;
-    int       nFileSize = 0;
+    long       nFileSize = 0;
     char    * pContents;
     BZFILE  * b;
     int       bzError, RetValue;
@@ -628,12 +628,12 @@ char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize )
   SeeAlso     []
 
 ***********************************************************************/
-static char * Io_MvLoadFileGz( char * pFileName, int * pnFileSize )
+static char * Io_MvLoadFileGz( char * pFileName, long * pnFileSize )
 {
     const int READ_BLOCK_SIZE = 100000;
     gzFile pFile;
     char * pContents;
-    int amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
+    long amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
     pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
     pContents = ABC_ALLOC( char, nFileSize );        
     readBlock = 0;
@@ -665,7 +665,7 @@ static char * Io_MvLoadFileGz( char * pFileName, int * pnFileSize )
 static char * Io_MvLoadFile( char * pFileName )
 {
     FILE * pFile;
-    int nFileSize;
+    long nFileSize;
     char * pContents;
     int RetValue;
     if ( !strncmp(pFileName+strlen(pFileName)-4,".bz2",4) )

@@ -922,6 +922,8 @@ int Abc_SopCheckReadTruth( Vec_Ptr_t * vRes, char * pToken, int fHex )
 {
     char * pBase; int nVars;
     int Log2 = Abc_Base2Log( strlen(pToken) );
+    if ( fHex && strlen(pToken) == 1 )
+        Log2 = 0;     
     if ( (1 << Log2) != (int)strlen(pToken) )
     {
         printf( "The truth table length (%d) is not power-of-2.\n", (int)strlen(pToken) );

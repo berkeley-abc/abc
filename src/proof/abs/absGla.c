@@ -1539,7 +1539,7 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
         Abc_Print( 1, "LrnStart = %d  LrnDelta = %d  LrnRatio = %d %%  Skip = %d  SimpleCNF = %d  Dump = %d\n", 
             pPars->nLearnedStart, pPars->nLearnedDelta, pPars->nLearnedPerce, pPars->fUseSkip, pPars->fUseSimple, pPars->fDumpVabs|pPars->fDumpMabs );
         if ( pPars->fDumpVabs || pPars->fDumpMabs )
-            Abc_Print( 1, "%s will be continously dumped into file \"%s\".\n", 
+            Abc_Print( 1, "%s will be continuously dumped into file \"%s\".\n", 
                 pPars->fDumpVabs ? "Abstracted model" : "Miter with abstraction map",
                 Ga2_GlaGetFileName(p, pPars->fDumpVabs) );
         if ( pPars->fDumpMabs )

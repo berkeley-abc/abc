@@ -548,7 +548,7 @@ p->time3 += Abc_Clock() - clk;
   SeeAlso     []
 
 ***********************************************************************/
-int Fraig_NodeIsImplication( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit )
+int Fraig_NodeIsImplification( Fraig_Man_t * p, Fraig_Node_t * pOld, Fraig_Node_t * pNew, int nBTLimit )
 {
     int RetValue, RetValue1, i, fComp;
     abctime clk;

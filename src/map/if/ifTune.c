@@ -269,7 +269,7 @@ int Ifn_NtkParseInt_rec( char * pStr, Ifn_Ntk_t * p, char ** ppFinal, int * piNo
             pFanins[nFanins++] = *piNode - 1;
         }
         else
-            return Ifn_ErrorMessage( "Substring \"%s\" contans unrecognized symbol \'%c\'.\n", pStr, pStr[0] );
+            return Ifn_ErrorMessage( "Substring \"%s\" contains unrecognized symbol \'%c\'.\n", pStr, pStr[0] );
     }
     assert( pStr == pLim );
     pObj = p->Nodes + (*piNode)++;
@@ -400,7 +400,7 @@ int Ifn_NtkParseInt2( char * pStr, Ifn_Ntk_t * p )
         else if ( pStr[k+2] == '{' )
             p->Nodes[i].Type = IFN_DSD_PRIME, Next = '}';
         else 
-            return Ifn_ErrorMessage( "Cannot find openning operation symbol in the definition of signal \'%c\'.\n", 'a' + i );
+            return Ifn_ErrorMessage( "Cannot find opening operation symbol in the definition of signal \'%c\'.\n", 'a' + i );
         for ( n = k + 3; pStr[n]; n++ )
             if ( pStr[n] == Next )
                 break;

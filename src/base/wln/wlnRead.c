@@ -2748,6 +2748,7 @@ Gia_Man_t * Gia_ManDupPermIO( Gia_Man_t * p, Vec_Int_t * vPermI, Vec_Int_t * vPe
     assert( Vec_IntSize(vPermI) == Gia_ManCiNum(p) );
     assert( Vec_IntSize(vPermO) == Gia_ManCoNum(p) );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav(p->pName);
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         Gia_ManCi(p, Vec_IntEntry(vPermI, i))->Value = Gia_ManAppendCi(pNew);
