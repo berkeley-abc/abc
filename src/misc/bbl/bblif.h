@@ -237,7 +237,7 @@ extern void        Bbl_ManDumpBinaryBlif( Bbl_Man_t * p, char * pFileName );
 // (3) reading the data manager from file
 extern Bbl_Man_t * Bbl_ManReadBinaryBlif( char * pFileName );
 
-// (4) returning the mapped network after reading the data manaager from file
+// (4) returning the mapped network after reading the data manager from file
 extern char *      Bbl_ManName( Bbl_Man_t * p );
 extern int         Bbl_ObjIsInput( Bbl_Obj_t * p );
 extern int         Bbl_ObjIsOutput( Bbl_Obj_t * p );
