@@ -241,6 +241,9 @@ struct Gia_Man_t_
     Vec_Int_t      vSuppVars;     // used variables
     Vec_Int_t      vVarMap;       // used variables
     Gia_Dat_t *    pUData;
+    // retiming data
+    Vec_Str_t *    vStopsF;
+    Vec_Str_t *    vStopsB;    
 };
 
 

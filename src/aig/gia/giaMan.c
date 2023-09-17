@@ -156,6 +156,8 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntErase( &p->vHash );
     Vec_IntErase( &p->vHTable );
     Vec_IntErase( &p->vRefs );
+    Vec_StrFreeP( &p->vStopsF );
+    Vec_StrFreeP( &p->vStopsB );    
     ABC_FREE( p->pData2 );
     ABC_FREE( p->pTravIds );
     ABC_FREE( p->pPlacement );
