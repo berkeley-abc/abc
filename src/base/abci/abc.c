@@ -164,6 +164,7 @@ static int Abc_CommandAllExact               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandTestExact              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMajGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrchestrate            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAIGAugmentation       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -595,6 +596,7 @@ static int Abc_CommandAbc9Cfs                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9ProdAdd            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -919,6 +921,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "faultclasses",  Abc_CommandFaultClasses,     0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "exact",         Abc_CommandExact,            1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "orchestrate",  Abc_CommandOrchestrate,     1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "aigaug",       Abc_CommandAIGAugmentation,     1 );
 
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_start",  Abc_CommandBmsStart,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_stop",   Abc_CommandBmsStop,          0 );
@@ -1364,6 +1367,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&prodadd",      Abc_CommandAbc9ProdAdd,                0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&addflop",      Abc_CommandAbc9AddFlop,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -7538,6 +7542,169 @@ usage:
 }
 
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description [AIG RTL Augmentation]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAIGAugmentation( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pDup;
+    int c, RetValue;
+    int nNodeSizeMax;
+    int nConeSizeMax;
+    int fUpdateLevel;
+    int fUseZeros_rwr;
+    int fUseZeros_ref;
+    int fUseDcs;
+    int fVerbose;
+    int RS_CUT_MIN =  4;
+    int RS_CUT_MAX = 16;
+
+    int fPrecompute;
+    int fPlaceEnable;
+    int nNodesMax;
+    int nCutsMax;
+    int nLevelsOdc;
+    int fVeryVerbose;
+    int Rand_Seed;
+    //int sOpsOrder;
+    size_t NtkSize;
+    char *DecisionFile = NULL;
+    Vec_Int_t *DecisionMask;
+    Vec_Int_t *pGain_rwr;
+    Vec_Int_t *pGain_res;
+    Vec_Int_t *pGain_ref;    
+    //FILE *maskFile;
+    extern void Rwr_Precompute();
+    extern int Abc_NtkOrchRand( Abc_Ntk_t * pNtk, Vec_Int_t **pGain_rwr, Vec_Int_t **pGain_res,Vec_Int_t **pGain_ref, Vec_Int_t **DecisionMask, char *DecisionFile, int Rand_Seed, int fUseZeros_rwr, int fUseZeros_ref, int fPlaceEnable, int nCutsMax, int nNodesMax, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int nNodeSizeMax, int nConeSizeMax, int fUseDcs );
+    // set defaults
+    nNodeSizeMax = 10;
+    nConeSizeMax = 16;
+    fUpdateLevel =  1;
+    fUseZeros_rwr =  0;
+    fUseZeros_ref =  0;
+    fUseDcs      =  0;
+    fVerbose     =  0;
+    fVeryVerbose = 0;
+    fPlaceEnable = 0;
+    fPrecompute  = 0;
+    nCutsMax     =  8;
+    nNodesMax    =  1;
+    nLevelsOdc   =  0;
+    Rand_Seed = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "zZdsh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+            break;
+        case 'z':
+            fUseZeros_rwr ^= 1;
+            break;
+        case 'Z':
+            fUseZeros_ref ^= 1;
+            break;
+        case 'd':
+            if ( globalUtilOptind >= argc )
+            {
+                goto usage;
+            }
+            DecisionFile = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 's':
+            if ( globalUtilOptind >= argc )
+            {
+                goto usage;
+            }
+            Rand_Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        }
+    }
+    if ( fPrecompute )
+    {
+        Rwr_Precompute();
+        return 0;
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( nCutsMax < RS_CUT_MIN || nCutsMax > RS_CUT_MAX )
+    {
+        Abc_Print( -1, "Can only compute cuts for %d <= K <= %d.\n", RS_CUT_MIN, RS_CUT_MAX );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "This command can only be applied to an AIG (run \"strash\").\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetChoiceNum(pNtk) )
+    {
+        Abc_Print( -1, "AIG resynthesis cannot be applied to AIGs with choice nodes.\n" );
+        return 1;
+    }
+    if ( nNodeSizeMax > 15 )
+    {
+        Abc_Print( -1, "The cone size cannot exceed 15.\n" );
+        return 1;
+    }
+
+    if ( fUseDcs && nNodeSizeMax >= nConeSizeMax )
+    {
+        Abc_Print( -1, "For don't-care to work, containing cone should be larger than collapsed node.\n" );
+        return 1;
+    }
+    NtkSize = Abc_NtkObjNumMax(pNtk);
+
+    DecisionMask = Vec_IntAlloc(1);
+    for (int i=0; i<NtkSize;i++){
+           Vec_IntPush(DecisionMask, atoi("-1"));}
+    // modify the current network
+    pDup = Abc_NtkDup( pNtk );
+    RetValue = Abc_NtkOrchRand( pNtk, &pGain_rwr, &pGain_res, &pGain_ref, &DecisionMask, DecisionFile, Rand_Seed, fUseZeros_rwr, fUseZeros_ref, fPlaceEnable, nCutsMax, nNodesMax, nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose, nNodeSizeMax, nConeSizeMax, fUseDcs );
+    //printf("Vector check: %d %d\n", DecisionList->nSize, DecisionList->pArray[0]); 
+    if ( RetValue == -1 )
+    {
+        Abc_FrameReplaceCurrentNetwork( pAbc, pDup );
+        printf( "An error occurred during computation. The original network is restored.\n" );
+    }
+    else
+    {
+        Abc_NtkDelete( pDup );
+        if ( RetValue == 0 )
+        {
+            Abc_Print( 0, "Orchestration evaluation for RL has failed.\n" );
+            return 1;
+        }
+    }
+    // Vec_IntPrint(pGain_rwr);
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: aigaug [-s <num>] [-d <file>][-zZdsh]\n" );
+    Abc_Print( -2, "\t           performs technology-independent AIG random synthesis (node level) for RTL augmentation\n" );
+    Abc_Print( -2, "\t-z       : toggle using zero-cost replacements for rwr for aigaug [default = %s]\n", fUseZeros_rwr? "yes": "no" );
+    Abc_Print( -2, "\t-Z       : toggle using zero-cost replacements for ref for aigaug [default = %s]\n", fUseZeros_ref? "yes": "no" );
+    Abc_Print( -2, "\t-d       : record random synthesis decision made during augmentation [required filename; e.g., test.csv]\n");
+    Abc_Print( -2, "\t-s       : set the random seed for random augmentation\n");
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\tExample       : read i10.aig;st;aigaug -s 1 -d test.csv;write i10_arg_1.aig;cec i10.aig i10_arg_1.aig\n");
+    return 1;
+}
 
 
 
@@ -31762,13 +31929,14 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUnique = 0;
     int fVerilog = 0;
     int fInter   = 0;
+    int fInterComb = 0;
     int fVerBufs = 0;
     int fMiniAig = 0;
     int fMiniLut = 0;
     int fWriteNewLine = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "upibmlnvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upicbmlnvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -31781,6 +31949,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'i':
             fInter ^= 1;
             break;
+        case 'c':
+            fInterComb ^= 1;
+            break;            
         case 'b':
             fVerBufs ^= 1;
             break;
@@ -31822,7 +31993,7 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManStop( pGia );
     }
     else if ( fVerilog )
-        Gia_ManDumpVerilog( pAbc->pGia, pFileName, NULL, fVerBufs, fInter );
+        Gia_ManDumpVerilog( pAbc->pGia, pFileName, NULL, fVerBufs, fInter, fInterComb );
     else if ( fMiniAig )
         Gia_ManWriteMiniAig( pAbc->pGia, pFileName );
     else if ( fMiniLut )
@@ -31832,11 +32003,12 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-upibmlnvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upicbmlnvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
     Abc_Print( -2, "\t-i     : toggle writing the interface module in Verilog [default = %s]\n", fInter? "yes" : "no" );
+    Abc_Print( -2, "\t-c     : toggle writing the interface module in Verilog [default = %s]\n", fInterComb? "yes" : "no" );
     Abc_Print( -2, "\t-b     : toggle writing additional buffers in Verilog [default = %s]\n", fVerBufs? "yes" : "no" );
     Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
@@ -51568,6 +51740,67 @@ usage:
     Abc_Print( -2, "\t<file> : the implementation file\n");    
     return 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GenHie( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_GenSandwich( char ** pFNames, int nFNames, char * pFileName );
+    char * pFileName = (char *)"sandwich.v";
+    int c, fVerbose = 0;
+    char ** pArgvNew;
+    int     nArgcNew;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pFileName = argv[globalUtilOptind++];
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;    
+    if ( nArgcNew < 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GenHie(): At least one AIG file should be given on the command line.\n" );
+        return 0;
+    }        
+    Gia_GenSandwich( pArgvNew, nArgcNew, pFileName );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &gen_hie [-F <file>] [-vh] <file[1]> <file[2]> ...  <file[N]>\n" );
+    Abc_Print( -2, "\t            generates a hierarchical design in Verilog\n" );
+    Abc_Print( -2, "\t-F <file> : the output file name (optional) [default = \"sandwich.v\"]\n" );
+    Abc_Print( -2, "\t-v        : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h        : print the command usage\n");
+    Abc_Print( -2, "\t<files>   : the AIG files for the instance modules\n");    
+    Abc_Print( -2, "\t            (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
+    return 1;}
+
 
 /**Function*************************************************************
 
