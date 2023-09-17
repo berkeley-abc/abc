@@ -1728,10 +1728,9 @@ void Gia_FreeMany( Gia_Man_t ** pGias, int nGias )
     for ( i = 0; i < nGias; i++ )
         Gia_ManStopP( &pGias[i] );
 }
-void Gia_GenSandwich( char ** pFNames, int nFNames )
+void Gia_GenSandwich( char ** pFNames, int nFNames, char * pFileName )
 {
     FILE * pFile = NULL;
-    char * pFileName = (char *)"sandwich.v";
     Gia_Man_t * pGias[16] = {0};
     int i, k;
     assert( nFNames <= 16 );

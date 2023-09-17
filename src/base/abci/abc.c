@@ -51755,15 +51755,24 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9GenHie( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Gia_GenSandwich( char ** pFNames, int nFNames );
+    extern void Gia_GenSandwich( char ** pFNames, int nFNames, char * pFileName );
+    char * pFileName = (char *)"sandwich.v";
     int c, fVerbose = 0;
     char ** pArgvNew;
     int     nArgcNew;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pFileName = argv[globalUtilOptind++];
+            break;            
         case 'v':
             fVerbose ^= 1;
             break;
@@ -51774,16 +51783,22 @@ int Abc_CommandAbc9GenHie( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     pArgvNew = argv + globalUtilOptind;
-    nArgcNew = argc - globalUtilOptind;
-    Gia_GenSandwich( pArgvNew, nArgcNew );
+    nArgcNew = argc - globalUtilOptind;    
+    if ( nArgcNew < 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GenHie(): At least one AIG file should be given on the command line.\n" );
+        return 0;
+    }        
+    Gia_GenSandwich( pArgvNew, nArgcNew, pFileName );
     return 0;
 usage:
-    Abc_Print( -2, "usage: &gen_hie [-vh] <file[1]> <file[2]> ...  <file[N]>\n" );
-    Abc_Print( -2, "\t          generates a hierarchical design\n" );
-    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h      : print the command usage\n");
-    Abc_Print( -2, "\t<files> : the AIG files for the instance modules\n");    
-    Abc_Print( -2, "\t          (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
+    Abc_Print( -2, "usage: &gen_hie [-F <file>] [-vh] <file[1]> <file[2]> ...  <file[N]>\n" );
+    Abc_Print( -2, "\t            generates a hierarchical design in Verilog\n" );
+    Abc_Print( -2, "\t-F <file> : the output file name (optional) [default = \"sandwich.v\"]\n" );
+    Abc_Print( -2, "\t-v        : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h        : print the command usage\n");
+    Abc_Print( -2, "\t<files>   : the AIG files for the instance modules\n");    
+    Abc_Print( -2, "\t            (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
     return 1;}
 
 
