@@ -440,7 +440,7 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
             }
             if ( *pCur != '\n' )
             {
-                fprintf( stdout, "The initial value of latch number %d is not recongnized.\n", i );
+                fprintf( stdout, "The initial value of latch number %d is not recognized.\n", i );
                 return NULL;
             }
             pCur++;
