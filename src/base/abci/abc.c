@@ -844,14 +844,18 @@ Gia_Man_t * Abc_FrameGetGia( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void Abc_Init( Abc_Frame_t * pAbc )
 {
+    Cmd_CommandAdd( pAbc, "Printing",     "ps",            Abc_CommandPrintStats,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_exdc",    Abc_CommandPrintExdc,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_latch",   Abc_CommandPrintLatch,       0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "pfan",          Abc_CommandPrintFanio,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_fanio",   Abc_CommandPrintFanio,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_mffc",    Abc_CommandPrintMffc,        0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "pf",            Abc_CommandPrintFactor,      0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_factor",  Abc_CommandPrintFactor,      0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_level",   Abc_CommandPrintLevel,       0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "psu",           Abc_CommandPrintSupport,     0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_supp",    Abc_CommandPrintSupport,     0 );
 #ifdef ABC_USE_CUDD
     Cmd_CommandAdd( pAbc, "Printing",     "print_mint",    Abc_CommandPrintMint,        0 );
@@ -860,6 +864,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_unate",   Abc_CommandPrintUnate,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_auto",    Abc_CommandPrintAuto,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_kmap",    Abc_CommandPrintKMap,        0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "pg",            Abc_CommandPrintGates,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_gates",   Abc_CommandPrintGates,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_sharing", Abc_CommandPrintSharing,     0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_xcut",    Abc_CommandPrintXCut,        0 );
@@ -873,9 +878,12 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "show_bdd",      Abc_CommandShowBdd,          0 );
     Cmd_CommandAdd( pAbc, "Printing",     "show_cut",      Abc_CommandShowCut,          0 );
 
+    Cmd_CommandAdd( pAbc, "Synthesis",    "clp",           Abc_CommandCollapse,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "collapse",      Abc_CommandCollapse,         1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "satclp",        Abc_CommandSatClp,           1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "st",            Abc_CommandStrash,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "strash",        Abc_CommandStrash,           1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "b",             Abc_CommandBalance,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "balance",       Abc_CommandBalance,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "mux_struct",    Abc_CommandMuxStruct,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "multi",         Abc_CommandMulti,            1 );
