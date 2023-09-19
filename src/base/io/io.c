@@ -2556,7 +2556,7 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
         {
             // output flop values (unaffected by the minimization)
             Abc_NtkForEachLatch( pNtk, pObj, i )
-                fprintf( pFile, "%s@0=%c\n", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+!Abc_LatchIsInit0(pObj) );
+                fprintf( pFile, "%s@0=%c\n", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+Abc_InfoHasBit(pCex->pData, i) );
             // output PI values (while skipping the minimized ones)
             for ( f = 0; f <= pCex->iFrame; f++ )
                 Abc_NtkForEachPi( pNtk, pObj, i )
@@ -2568,7 +2568,7 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
     else
     {
         Abc_NtkForEachLatch( pNtk, pObj, i )
-            fprintf( pFile, "%c", '0'+!Abc_LatchIsInit0(pObj) );
+            fprintf( pFile, "%c", '0'+Abc_InfoHasBit(pCex->pData, i) );
 
         for ( i = pCex->nRegs; i < pCex->nBits; i++ )
         {
