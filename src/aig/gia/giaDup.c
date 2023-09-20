@@ -5719,6 +5719,139 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
     return pNew;
 }
 
+/**Function*************************************************************
+  Synopsis    [Duplicates AIG while putting objects in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManImplFromBMiter( Gia_Man_t * p, int nPo, int nBInput )
+{
+    Gia_Man_t * pNew, *pTemp;
+    Gia_Obj_t * pObj, *pObj2;
+    int i;
+    int nBoundI = 0, nBoundO = 0;
+    int nExtra;
+    Gia_ManFillValue( p );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    // pNew->pName = Abc_UtilStrsav( p->pName );
+    // pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+
+    // add po of impl
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        if ( i < nPo )
+        {
+            Gia_ManDupOrderDfs_rec( pNew, p, pObj );
+        }
+    }
+    nExtra = Gia_ManAndNum( pNew );
+
+    // add boundary as buf
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        if ( i >= 2 * nPo )
+        {
+            pObj2 = Gia_ObjFanin0(pObj);
+            if (~pObj2->Value)   // visited boundary
+            {
+                if ( i >=  2 * nPo + nBInput )
+                {
+                    nBoundO ++;
+                }
+                else nBoundI ++;
+            }
+
+            Gia_ManDupOrderDfs_rec( pNew, p, pObj2 );
+            Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        }
+    }
+    nExtra = Gia_ManAndNum( pNew ) - nExtra - Gia_ManBufNum( pNew );
+
+    Gia_ManForEachCi( p, pObj, i )
+        if ( !~pObj->Value )
+            pObj->Value = Gia_ManAppendCi(pNew);
+    assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(p) );
+
+    Gia_ManDupRemapCis( pNew, p );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+
+
+    printf( "synthesized implementation:\n" );
+    printf( "\t%d / %d input boundary recovered.\n", nBoundI, nBInput );
+    printf( "\t%d / %d output boundary recovered.\n", nBoundO, Gia_ManCoNum(p)-2*nPo-nBInput );
+    printf( "\t%d / %d unused nodes in the box.\n", nExtra, Gia_ManAndNum(pNew) - Gia_ManBufNum( pNew ) );
+
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIG while putting objects in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManMiterFromBMiter( Gia_Man_t * p, int nPo )
+{
+    Gia_Man_t * pNew, *pTemp;
+    Gia_Obj_t * pObj, *pObj2;
+    int i, iXor, iPo, i1, i2;
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( "miter" );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+
+    // create primary inputs
+    Gia_ManForEachCi( p, pObj, i )
+        if ( !~pObj->Value )
+            pObj->Value = Gia_ManAppendCi(pNew);
+
+    Gia_ManForEachCo( p, pObj, i )
+    {
+        if ( i == nPo )
+        {
+            break;
+        }
+        else
+        {
+            pObj2 = Gia_ManCo( p, i + nPo );
+
+            i1 = Gia_ManDupOrderDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
+            i2 = Gia_ManDupOrderDfs_rec( pNew, p, Gia_ObjFanin0(pObj2) );
+            
+            iXor = Gia_ManAppendXor2( pNew, Gia_ObjFaninC0(pObj) ? i1+1 : i1 , Gia_ObjFaninC0(pObj2 ) ? i2+1 : i2  );
+            if ( i > 0 )
+            {
+                iPo = Gia_ManAppendOr2( pNew, iPo, iXor );
+            }
+            else
+            {
+                iPo = iXor;
+            }
+        }
+    }
+    Gia_ManAppendCo( pNew, iPo );
+
+
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
+    Gia_ManStop( pTemp );
+
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

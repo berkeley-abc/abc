@@ -597,6 +597,7 @@ static int Abc_CommandAbc9ProdAdd            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9RecoverBoundary    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1376,6 +1377,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&addflop",      Abc_CommandAbc9AddFlop,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&rb",           Abc_CommandAbc9RecoverBoundary,        0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -51809,6 +51811,133 @@ usage:
     Abc_Print( -2, "\t            (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
     return 1;}
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9RecoverBoundary( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fVerbose );
+    extern Gia_Man_t * Gia_ManImplFromBMiter( Gia_Man_t * p, int nPo, int nBInput );
+    extern Gia_Man_t * Gia_ManMiterFromBMiter( Gia_Man_t * p, int nPo );
+    int c, nIters = 1, nNoImpr = ABC_INFINITY, TimeOut = 20, nAnds = 0, Seed = 0, fUseTwo = 0, fVerbose = 0;
+
+    int fKeepBMiter = 0;
+    Gia_Man_t * pMiter;
+    Gia_Man_t * pImpl;
+    Gia_Man_t * pDup;
+    Gia_Obj_t* pObj;
+    Gia_Man_t * pSpec = NULL;
+    char ** pArgvNew;
+    int i, nArgcNew, nPo;
+    int nBInput = -1;
+    char *FileName;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vkhI," ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBInput = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBInput < 0 )
+                goto usage;
+            break;
+        case 'k':
+            fKeepBMiter ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 1 )
+    {
+        Abc_Print( -1, "There is no file name.\n" );
+        return 1;
+    }
+
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9RecoverBoundary(): There is no AIG.\n" );
+        return 0;
+    }
+    FileName = pArgvNew[0];
+
+
+    // printing
+
+    // Gia_ManForEachCo( pAbc->pGia, pObj, i ){
+    //     printf("Original node: %s id: %i\n", Gia_ObjCoName(pAbc->pGia, i), i);
+    // }
+
+
+    /* 
+    // perform heavy synthesis
+    pTemp = Gia_ManDeepSyn( pAbc->pGia, nIters, nNoImpr, TimeOut, nAnds, Seed, fUseTwo, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    // print spec/impl and boundary information
+    Gia_ManForEachCo( pAbc->pGia, pObj, i ){
+        printf("Output node: %s id: %i\n", Gia_ObjCoName(pAbc->pGia, i), i);
+    }
+    */
+
+
+
+    // check boundary recovery status
+    pSpec = Gia_AigerRead( FileName, false, true, 0 );
+    if ( !pSpec )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9RecoverBoundary(): fail to read spec.\n" );
+        return 1;
+    }
+    nPo = Gia_ManCoNum( pSpec );
+
+    // duplicate 
+    pDup = Gia_ManDup( pAbc->pGia );
+
+    // option 1: remove po and keep the buffers
+    // default nbinput: 
+    if ( nBInput ==  -1 ) nBInput = (Gia_ManCoNum(pDup)-2*nPo)/2;
+    pImpl = Gia_ManImplFromBMiter( pDup, nPo, nBInput );
+
+    // option 2: build miter (with uif?)
+    if (!fKeepBMiter )
+    {
+        pMiter = Gia_ManMiterFromBMiter( pAbc->pGia, nPo );
+        Abc_FrameUpdateGia( pAbc, pMiter );
+    }
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &rb [-vkh] <file>\n" );
+    Abc_Print( -2, "\t         generate an implementation aig with specification boundary\n" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-k     : keep the bmiter and print the boundary status only.\n");
+    Abc_Print( -2, "\t-I num : the number of inputs in the boundary\n");
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : the specification file\n");    
+    return 1;
+}
 
 /**Function*************************************************************
 
