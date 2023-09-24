@@ -9343,8 +9343,7 @@ usage:
     Abc_Print( -2, "\t           synthesizes the smallest circuit composed of two-input gates\n" );
     Abc_Print( -2, "\t           for the only NPN class of 5-input functions that requires 12 gates;\n" );
     Abc_Print( -2, "\t           all other functions can be realized with 11 two-input gates or less\n" );
-    Abc_Print( -2, "\t           (see Section 7.1.2 \"Boolean evaluation\" in the book by Donald Knuth\n" );
-    Abc_Print( -2, "\t           http://www.cs.utsa.edu/~wagner/knuth/fasc0c.pdf)\n" );
+    Abc_Print( -2, "\t           (see Section 7.1.2 \"Boolean evaluation\" in the book The Art of Computer Programming by Donald Knuth)\n" );
     return 1;
 }
 
