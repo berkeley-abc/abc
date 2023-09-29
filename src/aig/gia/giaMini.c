@@ -1311,18 +1311,42 @@ Vec_Str_t * Gia_ManRetimableB( Gia_Man_t * p, int * pRst, int * pSet, int * pEna
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_FrameSetRetimingData( Abc_Frame_t * pAbc, int * pRst, int * pSet, int * pEna )
+void Abc_FrameRemapLits( int * pLits, int nLits, Vec_Int_t * vMap )
+{
+    for ( int i = 0; i < nLits; i++ )
+        pLits[i] = Abc_Lit2LitL( Vec_IntArray(vMap), pLits[i] );
+}
+void Abc_FrameSetRetimingData( Abc_Frame_t * pAbc, int * pRst, int * pSet, int * pEna, int nRegs )
 {
     Gia_Man_t * pGia;
+    int * pRstNew = ABC_CALLOC( int, nRegs );
+    int * pSetNew = ABC_CALLOC( int, nRegs );
+    int * pEnaNew = ABC_CALLOC( int, nRegs );
     if ( pAbc == NULL )
         printf( "ABC framework is not initialized by calling Abc_Start()\n" );
     pGia = Abc_FrameReadGia( pAbc );
     if ( pGia == NULL )
         printf( "Current network in ABC framework is not defined.\n" );
+    else {
+        assert( nRegs == Gia_ManRegNum(pGia) );
+        memmove( pRstNew, pRst, sizeof(int)*nRegs ); 
+        memmove( pSetNew, pSet, sizeof(int)*nRegs ); 
+        memmove( pEnaNew, pEna, sizeof(int)*nRegs ); 
+    }
+    if ( pAbc->vCopyMiniAig == NULL )
+        printf( "Mapping of MiniAig nodes is not available.\n" );
+    else {
+        Abc_FrameRemapLits( pRstNew, nRegs, pAbc->vCopyMiniAig );
+        Abc_FrameRemapLits( pSetNew, nRegs, pAbc->vCopyMiniAig );
+        Abc_FrameRemapLits( pEnaNew, nRegs, pAbc->vCopyMiniAig );        
+    }      
     assert( pGia->vStopsF == NULL );
     assert( pGia->vStopsB == NULL );
-    pGia->vStopsF = Gia_ManRetimableF( pGia, pRst, pSet, pEna );
-    pGia->vStopsB = Gia_ManRetimableB( pGia, pRst, pSet, pEna );    
+    pGia->vStopsF = Gia_ManRetimableF( pGia, pRstNew, pSetNew, pEnaNew );
+    pGia->vStopsB = Gia_ManRetimableB( pGia, pRstNew, pSetNew, pEnaNew );
+    ABC_FREE( pRstNew );
+    ABC_FREE( pSetNew );
+    ABC_FREE( pEnaNew );
 }
 
 ////////////////////////////////////////////////////////////////////////
