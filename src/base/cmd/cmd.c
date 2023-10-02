@@ -59,6 +59,7 @@ static int CmdCommandScrGen        ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandScrGenLinux   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 #endif
 static int CmdCommandVersion       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandSGen          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandSis           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -111,6 +112,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "scrgen",        CmdCommandScrGenLinux,     0 );
 #endif
     Cmd_CommandAdd( pAbc, "Basic", "version",       CmdCommandVersion,         0 );
+    Cmd_CommandAdd( pAbc, "Basic", "sgen",          CmdCommandSGen,            0 );
 
     Cmd_CommandAdd( pAbc, "Various", "sis",         CmdCommandSis,             1 );
     Cmd_CommandAdd( pAbc, "Various", "mvsis",       CmdCommandMvsis,           1 );
@@ -2761,6 +2763,79 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int CmdCommandSGen( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Cmd_CommandSGen( Abc_Frame_t * pAbc, int nParts, int nIters, int fVerbose );
+    int c, nParts    = 10;
+    int nIters       = 10;
+    int fVerbose     =  0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NIvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nParts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nParts < 0 ) 
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a string (possibly in quotes).\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        Abc_Print( -2, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(Abc_FrameReadNtk(pAbc)) )    
+    {
+        Abc_Print( -2, "The current network is not an AIG.\n" );
+        return 1;
+    }
+    Cmd_CommandSGen( pAbc, nParts, nIters, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: sgen [-N num] [-I num] [-vh]\n" );
+    Abc_Print( -2, "\t         experiment with script generation\n" );
+    Abc_Print( -2, "\t-N num : the number of commands to use [default = %d]\n", nParts );
+    Abc_Print( -2, "\t-I num : the number of iterations to perform [default = %d]\n", nIters );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
