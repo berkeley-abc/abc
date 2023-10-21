@@ -7186,6 +7186,7 @@ int Abc_CommandRunSat( Abc_Frame_t * pAbc, int argc, char ** argv )
     FILE * pFile = NULL;
     char * pFileCnf = NULL;
     int c, i, fWalk = 0, fKissat = 0, nIters = 10, fVerbose = 0;
+    abctime clk;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Ikwvh" ) ) != EOF )
     {
@@ -7230,7 +7231,7 @@ int Abc_CommandRunSat( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-    abctime clk = Abc_Clock();
+    clk = Abc_Clock();
     for ( i = 0; i < nIters; i++ ) {
         char pCommand[1000];
         if ( fKissat )
