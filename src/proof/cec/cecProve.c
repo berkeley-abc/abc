@@ -283,24 +283,27 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
         Cec_GiaInitThreads( ThData, nProcs, pScorr, nTimeOut2, fVerbose, NULL );
 
         // meanwhile, perform scorr
-        Gia_Man_t * pScorr2 = Cec_GiaScorrOld( pScorr );
-        clkScorr2 = Abc_Clock() - clkStart;
-        if ( Gia_ManAndNum(pScorr2) == 0 )
-            RetValue = 1;
-    
-        RetValue = Cec_GiaWaitThreads( ThData, nProcs, p, RetValue, &RetEngine );      
-        if ( RetValue == -1 )
+        if ( Gia_ManAndNum(pScorr) < 100000 )
         {
-            if ( !fSilent && fVerbose ) {
-                printf( "Reduced the miter from %d to %d nodes. ", Gia_ManAndNum(pScorr), Gia_ManAndNum(pScorr2) );
-                Abc_PrintTime( 1, "Time", clkScorr2 );
-            }
-            Cec_GiaInitThreads( ThData, nProcs, pScorr2, nTimeOut3, fVerbose, NULL );
+            Gia_Man_t * pScorr2 = Cec_GiaScorrOld( pScorr );
+            clkScorr2 = Abc_Clock() - clkStart;
+            if ( Gia_ManAndNum(pScorr2) == 0 )
+                RetValue = 1;
+        
+            RetValue = Cec_GiaWaitThreads( ThData, nProcs, p, RetValue, &RetEngine );      
+            if ( RetValue == -1 )
+            {
+                if ( !fSilent && fVerbose ) {
+                    printf( "Reduced the miter from %d to %d nodes. ", Gia_ManAndNum(pScorr), Gia_ManAndNum(pScorr2) );
+                    Abc_PrintTime( 1, "Time", clkScorr2 );
+                }
+                Cec_GiaInitThreads( ThData, nProcs, pScorr2, nTimeOut3, fVerbose, NULL );
 
-            RetValue = Cec_GiaWaitThreads( ThData, nProcs, p, RetValue, &RetEngine );
-            // do something else      
+                RetValue = Cec_GiaWaitThreads( ThData, nProcs, p, RetValue, &RetEngine );
+                // do something else      
+            }
+            Gia_ManStop( pScorr2 );   
         }
-        Gia_ManStop( pScorr2 );   
     }
     Gia_ManStop( pScorr );    
 
@@ -312,12 +315,13 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
     }
     if ( !fSilent )
     {
+        printf( "Problem \"%s\" is ", p->pSpec );
         if ( RetValue == 0 )
-            printf( "Problem is SAT (solved by %d)  ", RetEngine );
+            printf( "SAT (solved by %d).", RetEngine );
         else if ( RetValue == 1 )
-            printf( "Problem is UNSAT (solved by %d)  ", RetEngine );
+            printf( "UNSAT (solved by %d).", RetEngine );
         else if ( RetValue == -1 )
-            printf( "Problem is UNDECIDED " );
+            printf( "UNDECIDED." );
         else assert( 0 );
         printf( "   " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkTotal );
