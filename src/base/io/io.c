@@ -1224,17 +1224,21 @@ usage:
 ***********************************************************************/
 int IoCommandReadCnf( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Vec_Ptr_t * Io_FileReadCnf( char * pFileName );
+    extern Vec_Ptr_t * Io_FileReadCnf( char * pFileName, int fMulti );
     FILE * pFile;
     Abc_Ntk_t * pNtk;
     Vec_Ptr_t * vSops;
+    int fMulti = 0;
     int c;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "mh" ) ) != EOF )
     {
         switch ( c )
         {
+            case 'm':
+                fMulti ^= 1;
+                break;            
             case 'h':
                 goto usage;
             default:
@@ -1253,7 +1257,7 @@ int IoCommandReadCnf( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else 
         fclose( pFile );
-    vSops = Io_FileReadCnf( argv[globalUtilOptind] );
+    vSops = Io_FileReadCnf( argv[globalUtilOptind], fMulti );
     if ( Vec_PtrSize(vSops) == 0 )
     {
         Vec_PtrFreeFree( vSops );
@@ -1273,8 +1277,9 @@ int IoCommandReadCnf( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_cnf [-h] <file>\n" );
+    fprintf( pAbc->Err, "usage: read_cnf [-mh] <file>\n" );
     fprintf( pAbc->Err, "\t         creates network with one node\n" );
+    fprintf( pAbc->Err, "\t-m     : toggles generating multi-output network [default = %s]\n", fMulti?  "yes":"no" );    
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : file name with the truth table\n" );
     return 1;

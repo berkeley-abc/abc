@@ -931,8 +931,9 @@ void Io_TransformSF2PLA( char * pNameIn, char * pNameOut )
   SeeAlso     []
 
 ***********************************************************************/
-char * Io_ConvertNumsToSop( Vec_Wec_t * vNums, int nVars )
+Vec_Ptr_t * Io_ConvertNumsToSop( Vec_Wec_t * vNums, int nVars )
 {
+    Vec_Ptr_t * vSops = Vec_PtrAlloc(1);
     Vec_Int_t * vLevel; int i, k, Num;
     int nSize = (nVars + 3)*Vec_WecSize(vNums);
     char * pStr = ABC_ALLOC( char, nSize+1 );
@@ -947,11 +948,30 @@ char * Io_ConvertNumsToSop( Vec_Wec_t * vNums, int nVars )
         pCube[nVars+1] = '0';
         pCube[nVars+2] = '\n';                
     }
-    return pStr;
+    Vec_PtrPush( vSops, pStr );
+    return vSops;
 }
-Vec_Ptr_t * Io_FileReadCnf( char * pFileName )
+Vec_Ptr_t * Io_ConvertNumsToSopMulti( Vec_Wec_t * vNums, int nVars )
 {
-    Vec_Ptr_t * vSops = Vec_PtrAlloc( 1 );
+    Vec_Ptr_t * vSops = Vec_PtrAlloc( Vec_WecSize(vNums) );
+    Vec_Int_t * vLevel; int i, k, Num;
+    Vec_WecForEachLevel( vNums, vLevel, i )
+    {
+        char * pCube = ABC_ALLOC( char, nVars + 4 );
+        memset( pCube, '-', nVars );
+        Vec_IntForEachEntry( vLevel, Num, k )
+            pCube[Abc_Lit2Var(Num)] = '0' + Abc_LitIsCompl(Num);
+        pCube[nVars+0] = ' ';
+        pCube[nVars+1] = '0';
+        pCube[nVars+2] = '\n';     
+        pCube[nVars+3] = '\0';    
+        Vec_PtrPush( vSops, pCube );               
+    }
+    return vSops;
+}
+Vec_Ptr_t * Io_FileReadCnf( char * pFileName, int fMulti )
+{
+    Vec_Ptr_t * vSops = NULL;
     Vec_Wec_t * vNums = Vec_WecAlloc( 100 );
     Vec_Int_t * vLevel;
     char * pThis, pLine[10000];
@@ -1002,7 +1022,10 @@ Vec_Ptr_t * Io_FileReadCnf( char * pFileName )
     if ( nClas != Vec_WecSize(vNums) )
         printf( "Warning: The number of clauses (%d) listed is different from the actual number (%d).\n", nClas, Vec_WecSize(vNums) );
     //Vec_WecPrint( vNums, 0 );
-    Vec_PtrPush( vSops, Io_ConvertNumsToSop(vNums, nVars) );
+    if ( fMulti )
+        vSops = Io_ConvertNumsToSopMulti(vNums, nVars);
+    else
+        vSops = Io_ConvertNumsToSop(vNums, nVars);
     Vec_WecFree( vNums );
     return vSops;
 }
