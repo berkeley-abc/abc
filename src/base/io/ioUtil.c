@@ -944,7 +944,7 @@ char * Io_ConvertNumsToSop( Vec_Wec_t * vNums, int nVars )
         Vec_IntForEachEntry( vLevel, Num, k )
             pCube[Abc_Lit2Var(Num)] = '0' + Abc_LitIsCompl(Num);
         pCube[nVars+0] = ' ';
-        pCube[nVars+1] = '1';
+        pCube[nVars+1] = '0';
         pCube[nVars+2] = '\n';                
     }
     return pStr;

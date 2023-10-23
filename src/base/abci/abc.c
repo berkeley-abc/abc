@@ -46383,10 +46383,10 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int fVerbose, int fVeryVerbose, int fSilent );
-    int c, nProcs = 5, nTimeOut = 3, fVerbose = 0, fVeryVerbose = 0, fSilent = 0;
+    extern int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, int nTimeOut3, int fVerbose, int fVeryVerbose, int fSilent );
+    int c, nProcs = 5, nTimeOut = 3, nTimeOut2 = 10, nTimeOut3 = 100, fVerbose = 0, fVeryVerbose = 0, fSilent = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PTsvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PTUWsvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -46412,6 +46412,28 @@ int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nTimeOut <= 0 )
                 goto usage;
             break;
+        case 'U':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-U\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nTimeOut2 = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut2 <= 0 )
+                goto usage;
+            break;    
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nTimeOut3 = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut3 <= 0 )
+                goto usage;
+            break;                          
         case 's':
             fSilent ^= 1;
             break;
@@ -46437,15 +46459,17 @@ int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SProve(): The problem is combinational.\n" );
         return 1;
     }
-    pAbc->Status = Cec_GiaProveTest( pAbc->pGia, nProcs, nTimeOut, fVerbose, fVeryVerbose, fSilent );
+    pAbc->Status = Cec_GiaProveTest( pAbc->pGia, nProcs, nTimeOut, nTimeOut2, nTimeOut3, fVerbose, fVeryVerbose, fSilent );
     Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq ); 
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sprove [-PT num] [-svwh]\n" );
+    Abc_Print( -2, "usage: &sprove [-PTUW num] [-svwh]\n" );
     Abc_Print( -2, "\t         proves CEC problem by case-splitting\n" );
     Abc_Print( -2, "\t-P num : the number of concurrent processes [default = %d]\n",          nProcs );
     Abc_Print( -2, "\t-T num : runtime limit in seconds per subproblem [default = %d]\n",     nTimeOut );
+    Abc_Print( -2, "\t-U num : runtime limit in seconds per subproblem [default = %d]\n",     nTimeOut2 );
+    Abc_Print( -2, "\t-W num : runtime limit in seconds per subproblem [default = %d]\n",     nTimeOut3 );    
     Abc_Print( -2, "\t-s     : enable silent computation (no reporting) [default = %s]\n",    fSilent? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n",    fVeryVerbose? "yes": "no" );
