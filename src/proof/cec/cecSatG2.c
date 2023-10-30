@@ -143,6 +143,9 @@ static inline int    Cec4_ObjSatId( Gia_Man_t * p, Gia_Obj_t * pObj )           
 static inline int    Cec4_ObjSetSatId( Gia_Man_t * p, Gia_Obj_t * pObj, int Num ) { assert(Cec4_ObjSatId(p, pObj) == -1); Gia_ObjSetCopy2Array(p, Gia_ObjId(p, pObj), Num); Vec_IntPush(&p->vSuppVars, Gia_ObjId(p, pObj)); if ( Gia_ObjIsCi(pObj) ) Vec_IntPushTwo(&p->vCopiesTwo, Gia_ObjId(p, pObj), Num); assert(Vec_IntSize(&p->vVarMap) == Num); Vec_IntPush(&p->vVarMap, Gia_ObjId(p, pObj)); return Num;  }
 static inline void   Cec4_ObjCleanSatId( Gia_Man_t * p, Gia_Obj_t * pObj )        { assert(Cec4_ObjSatId(p, pObj) != -1); Gia_ObjSetCopy2Array(p, Gia_ObjId(p, pObj), -1);               }
 
+
+extern Vec_Int_t* vLitBmiter;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -1887,7 +1890,43 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
             continue;
         }
         if ( Cec4_ManSweepNode(pMan, i, Gia_ObjId(p, pRepr)) && Gia_ObjProved(p, i) )
+        {
+            if ( Vec_IntEntry( vLitBmiter, pRepr->Value ) == 3 )
+            {
+                switch ( Vec_IntEntry( vLitBmiter, pObj -> Value ) )
+                {
+                    case 1:
+                    case 4:
+                        Vec_IntUpdateEntry( vLitBmiter, pRepr->Value, 4 );
+                        break;
+                    case 2:
+                    case 5:
+                        Vec_IntUpdateEntry( vLitBmiter, pRepr->Value, 5 );
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else 
+            {
+                if ( Vec_IntEntry(vLitBmiter, pObj->Value ) == 3 ) 
+                    switch ( Vec_IntEntry( vLitBmiter, pRepr -> Value ) )
+                    {
+                        case 1:
+                        case 4:
+                            Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 4 );
+                            break;
+                        case 2:
+                        case 5:
+                            Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 5 );
+                            break;
+                        default:
+                            break;
+
+                    }
+            }
             pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
+        }
     }
     if ( p->iPatsPi > 0 )
     {
@@ -1933,10 +1972,28 @@ finalize:
     Gia_ManRemoveWrongChoices( p );
     return p->pCexSeq ? 0 : 1;
 }
+extern Vec_Int_t * vLitBmiter;
 Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
 {
     Gia_Man_t * pNew = NULL;
     Cec4_ManPerformSweeping( p, pPars, &pNew, 0 );
+
+    int e, i, c1=0, c2=0, c3=0, c4=0, c5=0;
+    Vec_IntForEachEntry( vLitBmiter, e, i )
+    {
+        if ( i%2 ) continue;
+        switch (e)
+        {
+        case 1: c1++; break;
+        case 2: c2++; break;
+        case 3: c3++; break;
+        case 4: c4++; break;
+        case 5: c5++; break;
+        default:
+            break;
+        }
+    }
+    printf("category %d %d %d %d %d\n", c1, c2, c3+c4+c5, c4, c5);
     return pNew;
 }
 void Cec4_ManSimulateTest2( Gia_Man_t * p, int nConfs, int fVerbose )

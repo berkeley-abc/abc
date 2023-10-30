@@ -30,6 +30,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
+Vec_Int_t* vLitBmiter;
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -5699,13 +5701,107 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
     Gia_ManConst0(p2)->Value = 0;
     Gia_ManForEachCi( p1, pObj, i )
         pObj->Value = Gia_ManCi(p2, i)->Value = Gia_ManAppendCi( pNew );
+
+    // TODO: record the corresponding impl node of each lit
+    vLitBmiter = Vec_IntAlloc( Gia_ManObjNum(p2) );
+    Vec_IntFill( vLitBmiter, Gia_ManObjNum(p2) + Gia_ManObjNum(p1), 0 );
+
     Gia_ManForEachAnd( p2, pObj, i )
+    {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 3 );
+    }
+
+    // TODO: find nodes in spec
+
+    Vec_Int_t * vTypeSpec = Vec_IntAlloc( 16 );
+    Vec_IntFill( vTypeSpec, Gia_ManObjNum(p1), 0 );
+    int n = Gia_ManBufNum(p1) / 2;
+
+    Gia_ManStaticFanoutStart( p1 );
+    Vec_Ptr_t * vQ = Vec_PtrAlloc(16);
+    Gia_Obj_t * pObj2;
+    int c1 = 0;
+    int c2 = 0;
+    int count;
+    Gia_ManForEachBuf( p1, pObj, i )
+    {
+        if ( count < n ) 
+        {
+            Vec_IntSetEntry( vTypeSpec, Gia_ObjId( p1, pObj ), 1 );
+            c1++;
+            count ++;
+
+            Vec_PtrPush( vQ, Gia_ObjFanin0(pObj) );
+            Vec_PtrPush( vQ, Gia_ObjFanin1(pObj) );
+            while ( Vec_PtrSize(vQ) != 0 )
+            {
+                pObj2 = Vec_PtrPop(vQ);
+                if ( Vec_IntEntry( vTypeSpec, Gia_ObjId(p1, pObj2) ) != 0 ) continue;
+                c1 ++;
+                Vec_IntSetEntry( vTypeSpec, Gia_ObjId(p1, pObj2), 1 );
+                if ( Gia_ObjFaninNum(p1, pObj2) > 0 ) Vec_PtrPush( vQ, Gia_ObjFanin0(pObj2) );
+                if ( Gia_ObjFaninNum(p1, pObj2) > 1 ) Vec_PtrPush( vQ, Gia_ObjFanin1(pObj2) );
+            }
+
+        }
+        else
+        {
+            Vec_IntSetEntry( vTypeSpec, Gia_ObjId( p1, pObj ), 2 );
+            c2 ++;
+
+            int j;
+            // pObj = Gia_ObjFanin0(pObj);
+            Gia_ObjForEachFanoutStatic(p1, pObj, pObj2, j)
+            {
+                Vec_PtrPush( vQ, pObj2 );
+            }
+            while ( Vec_PtrSize(vQ) != 0 )
+            {
+                pObj2 = Vec_PtrPop(vQ);
+                if ( Vec_IntEntry( vTypeSpec, Gia_ObjId(p1, pObj2) ) != 0 ) continue;
+                Vec_IntSetEntry( vTypeSpec, Gia_ObjId(p1, pObj2), 2 );
+                c2 ++;
+                for( int j = 0; j < Gia_ObjFanoutNum(p1, pObj2); j++ )
+                {
+                    Vec_PtrPush( vQ, Gia_ObjFanout(p1, pObj2, j) );
+                }
+            }
+
+        }
+    }
+
+    Gia_ManStaticFanoutStop( p1 );
+
+    printf( "category %d %d %d\n", c1, c2, Gia_ManObjNum(p1) );
+
+
+    // TODO: record hashed equivalent nodes
+
     Gia_ManForEachAnd( p1, pObj, i ) {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) > 0  )
+        {
+            if ( Vec_IntGetEntry( vLitBmiter, pObj->Value ) == 3 ) // eq node in impl
+            {
+                Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 3 + Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) );
+            }
+            else
+            {
+                Vec_IntUpdateEntry( vLitBmiter, pObj->Value, Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) );
+            }
+        }
         if ( Gia_ObjIsBuf(pObj) )
             Vec_IntPush( vLits, pObj->Value );
     }
+
+    // int e;
+    // Vec_IntForEachEntry( vLitBmiter, e, i )
+    // {
+    //     printf( "%d ", e );
+    // }
+    // printf("\n");
+
     Gia_ManForEachCo( p2, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     //Gia_ManForEachCo( p1, pObj, i )
