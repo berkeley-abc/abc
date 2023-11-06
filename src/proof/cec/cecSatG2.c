@@ -1978,6 +1978,7 @@ Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
     Gia_Man_t * pNew = NULL;
     Cec4_ManPerformSweeping( p, pPars, &pNew, 0 );
 
+    // TODO
     int e, i, c1=0, c2=0, c3=0, c4=0, c5=0;
     Vec_IntForEachEntry( vLitBmiter, e, i )
     {
