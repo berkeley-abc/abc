@@ -865,7 +865,7 @@ void Abc_SclUpsizeRemoveDangling( SC_Man * p, Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
+void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars, void * pFuncFanin )
 {
     SC_Man * p;
     Vec_Int_t * vPathPos = NULL;    // critical POs
@@ -891,6 +891,7 @@ void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
         pPars->Window += (Abc_NtkNodeNum(pNtk) > 40000);
     // prepare the manager; collect init stats
     p = Abc_SclManStart( pLib, pNtk, pPars->fUseWireLoads, pPars->fUseDept, 0, pPars->BuffTreeEst );
+    p->pFuncFanin = (float (*)(void *, Abc_Obj_t *, Abc_Obj_t *, int, int))pFuncFanin;    
     p->timeTotal  = Abc_Clock();
     assert( p->vGatesBest == NULL );
     p->vGatesBest = Vec_IntDup( p->pNtk->vGates );
@@ -1024,12 +1025,12 @@ void Abc_SclUpsizePerformInt( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPa
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars )
+void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars, void * pFuncFanin )
 {
     Abc_Ntk_t * pNtkNew = pNtk;
     if ( pNtk->nBarBufs2 > 0 )
         pNtkNew = Abc_NtkDupDfsNoBarBufs( pNtk );
-    Abc_SclUpsizePerformInt( pLib, pNtkNew, pPars );
+    Abc_SclUpsizePerformInt( pLib, pNtkNew, pPars, pFuncFanin );
     if ( pNtk->nBarBufs2 > 0 )
         Abc_SclTransferGates( pNtk, pNtkNew );
     if ( pNtk->nBarBufs2 > 0 )
