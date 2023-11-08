@@ -120,6 +120,7 @@ struct Cec_ParFra_t_
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
     int              iOutFail;      // the failed output
+    int              fBMiterInfo;   // printing BMiter information
 };
 
 // combinational equivalence checking parameters

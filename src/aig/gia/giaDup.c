@@ -5669,7 +5669,7 @@ Gia_Man_t * Gia_ManDupAddFlop( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
+Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, int biNum)
 {
     Vec_Int_t * vLits;
     Gia_Man_t * pNew, * pTemp;
@@ -5717,6 +5717,9 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
     Vec_Int_t * vTypeSpec = Vec_IntAlloc( 16 );
     Vec_IntFill( vTypeSpec, Gia_ManObjNum(p1), 0 );
     int n = Gia_ManBufNum(p1) / 2;
+    if(biNum > 0){
+        n = biNum;
+    }
 
     Gia_ManStaticFanoutStart( p1 );
     Vec_Ptr_t * vQ = Vec_PtrAlloc(16);

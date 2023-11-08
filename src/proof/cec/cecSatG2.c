@@ -222,6 +222,7 @@ void Cec4_ManSetParams( Cec_ParFra_t * pPars )
     pPars->nSatVarMax     =    1000;    // the max number of SAT variables before recycling SAT solver
     pPars->nCallsRecycle  =     500;    // calls to perform before recycling SAT solver
     pPars->nGenIters      =     100;    // pattern generation iterations
+    pPars->fBMiterInfo    =       0;    // printing BMiter information
 }
 
 /**Function*************************************************************
@@ -1891,39 +1892,41 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         }
         if ( Cec4_ManSweepNode(pMan, i, Gia_ObjId(p, pRepr)) && Gia_ObjProved(p, i) )
         {
-            if ( Vec_IntEntry( vLitBmiter, pRepr->Value ) == 3 )
-            {
-                switch ( Vec_IntEntry( vLitBmiter, pObj -> Value ) )
+            if (pPars->fBMiterInfo){
+                if ( Vec_IntEntry( vLitBmiter, pRepr->Value ) == 3 )
                 {
-                    case 1:
-                    case 4:
-                        Vec_IntUpdateEntry( vLitBmiter, pRepr->Value, 4 );
-                        break;
-                    case 2:
-                    case 5:
-                        Vec_IntUpdateEntry( vLitBmiter, pRepr->Value, 5 );
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else 
-            {
-                if ( Vec_IntEntry(vLitBmiter, pObj->Value ) == 3 ) 
-                    switch ( Vec_IntEntry( vLitBmiter, pRepr -> Value ) )
+                    switch ( Vec_IntEntry( vLitBmiter, pObj -> Value ) )
                     {
                         case 1:
                         case 4:
-                            Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 4 );
+                            Vec_IntUpdateEntry( vLitBmiter, pRepr->Value, 4 );
                             break;
                         case 2:
                         case 5:
-                            Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 5 );
+                            Vec_IntUpdateEntry( vLitBmiter, pRepr->Value, 5 );
                             break;
                         default:
                             break;
-
                     }
+                }
+                else 
+                {
+                    if ( Vec_IntEntry(vLitBmiter, pObj->Value ) == 3 ) 
+                        switch ( Vec_IntEntry( vLitBmiter, pRepr -> Value ) )
+                        {
+                            case 1:
+                            case 4:
+                                Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 4 );
+                                break;
+                            case 2:
+                            case 5:
+                                Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 5 );
+                                break;
+                            default:
+                                break;
+
+                        }
+                }
             }
             pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
         }
@@ -1979,22 +1982,24 @@ Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
     Cec4_ManPerformSweeping( p, pPars, &pNew, 0 );
 
     // TODO
-    int e, i, c1=0, c2=0, c3=0, c4=0, c5=0;
-    Vec_IntForEachEntry( vLitBmiter, e, i )
-    {
-        if ( i%2 ) continue;
-        switch (e)
+    if (pPars -> fBMiterInfo){
+        int e, i, c1=0, c2=0, c3=0, c4=0, c5=0;
+        Vec_IntForEachEntry( vLitBmiter, e, i )
         {
-        case 1: c1++; break;
-        case 2: c2++; break;
-        case 3: c3++; break;
-        case 4: c4++; break;
-        case 5: c5++; break;
-        default:
-            break;
+            if ( i%2 ) continue;
+            switch (e)
+            {
+            case 1: c1++; break;
+            case 2: c2++; break;
+            case 3: c3++; break;
+            case 4: c4++; break;
+            case 5: c5++; break;
+            default:
+                break;
+            }
         }
+        printf("category %d %d %d %d %d\n", c1, c2, c3+c4+c5, c4, c5);
     }
-    printf("category %d %d %d %d %d\n", c1, c2, c3+c4+c5, c4, c5);
     return pNew;
 }
 void Cec4_ManSimulateTest2( Gia_Man_t * p, int nConfs, int fVerbose )
