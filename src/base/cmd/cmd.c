@@ -1867,10 +1867,11 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pWriteExt = NULL;    
     char   Line[2000], * pName;
     int    nFileNameMax;
+    int    fBatch = 0;
     int    c, k;
 
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "FRCWEh") ) != EOF )
+    while ( (c = Extra_UtilGetopt(argc, argv, "FRCWEbh") ) != EOF )
     {
         switch (c)
         {
@@ -1919,6 +1920,9 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
             pWriteExt = argv[globalUtilOptind];
             globalUtilOptind++;
             break;            
+        case 'b':
+            fBatch ^= 1;
+            break;
         default:
             goto usage;
         }
@@ -1952,7 +1956,7 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
             char * pExt = strstr(pName, ".");
             if ( !pExt || !strcmp(pExt, ".") || !strcmp(pExt, "..") || !strcmp(pExt, ".s") || !strcmp(pExt, ".txt") )
                 continue;
-            sprintf( Line, "%sread %s%s%-*s ; %s", fAndSpace ? "&" : "", pDirStr?pDirStr:"", pDirStr?"/":"", nFileNameMax, pName, pComStr );
+            sprintf( Line, "%s%sread %s%s%-*s ; %s", fBatch ? "./abc -q \"":"", fAndSpace ? "&" : "", pDirStr?pDirStr:"", pDirStr?"/":"", nFileNameMax, pName, pComStr );
             for ( c = (int)strlen(Line)-1; c >= 0; c-- )
                 if ( Line[c] == '\\' )
                     Line[c] = '/';
@@ -1966,6 +1970,8 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
                         Line[c] = '/';
                 fprintf( pFile, "%s", Line );
             }
+            if ( fBatch )
+                fprintf( pFile, "\"" );
             fprintf( pFile, "\n" );
         }
     }
@@ -1975,13 +1981,14 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: scrgen -F <str> -R <str> -C <str> -W <str> -E <str> -h\n" );
+    fprintf( pAbc->Err, "usage: scrgen -F <str> -R <str> -C <str> -W <str> -E <str> -bh\n" );
     fprintf( pAbc->Err, "\t          generates script for running ABC\n" );
     fprintf( pAbc->Err, "\t-F str  : the name of the script file [default = \"test.s\"]\n" );
     fprintf( pAbc->Err, "\t-R str  : the directory to read files from [default = current]\n" );
     fprintf( pAbc->Err, "\t-C str  : the sequence of commands to run [default = \"ps\"]\n" );
     fprintf( pAbc->Err, "\t-W str  : the directory to write the resulting files [default = no writing]\n" );
     fprintf( pAbc->Err, "\t-E str  : the output files extension (with \".\") [default = the same as input files]\n" );
+    fprintf( pAbc->Err, "\t-b      : toggles adding batch mode support [default = %s]\n", fBatch? "yes": "no" );    
     fprintf( pAbc->Err, "\t-h      : print the command usage\n\n");
     fprintf( pAbc->Err, "\tExample : scrgen -F test1.s -R a/in -C \"ps; st; ps\" -W a/out -E .blif\n" );
     return 1;
@@ -2542,18 +2549,18 @@ usage:
 ***********************************************************************/
 int CmdCommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCores );
+    extern void Cmd_RunStarter( char * pFileName, char * pBinary, char * pCommand, int nCores, int fVerbose );
     FILE * pFile;
     char * pFileName;
     char * pCommand = NULL;
     int c, nCores    =  3;
     int fVerbose     =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NCvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PCvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'N':
+        case 'P':
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
@@ -2600,13 +2607,13 @@ int CmdCommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
     // run commands
-    Cmd_RunStarter( pFileName, pAbc->sBinary, pCommand, nCores );
+    Cmd_RunStarter( pFileName, pAbc->sBinary, pCommand, nCores, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: starter [-N num] [-C cmd] [-vh] <file>\n" );
+    Abc_Print( -2, "usage: starter [-P num] [-C cmd] [-vh] <file>\n" );
     Abc_Print( -2, "\t         runs command lines listed in <file> concurrently on <num> CPUs\n" );
-    Abc_Print( -2, "\t-N num : the number of concurrent jobs including the controller [default = %d]\n", nCores );
+    Abc_Print( -2, "\t-P num : the number of concurrent jobs including the controller [default = %d]\n", nCores );
     Abc_Print( -2, "\t-C cmd : (optional) ABC command line to execute on benchmarks in <file>\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

@@ -453,7 +453,7 @@ Aig_Obj_t * Aig_Miter( Aig_Man_t * p, Vec_Ptr_t * vPairs )
 Aig_Obj_t * Aig_MiterTwo( Aig_Man_t * p, Vec_Ptr_t * vNodes1, Vec_Ptr_t * vNodes2 )
 {
     int i;
-    assert( vNodes1->nSize > 0 && vNodes1->nSize > 0 );
+    assert( vNodes1->nSize > 0 && vNodes2->nSize > 0 );
     assert( vNodes1->nSize == vNodes2->nSize );
     for ( i = 0; i < vNodes1->nSize; i++ )
         vNodes1->pArray[i] = Aig_Not( Aig_Exor( p, (Aig_Obj_t *)vNodes1->pArray[i], (Aig_Obj_t *)vNodes2->pArray[i] ) );

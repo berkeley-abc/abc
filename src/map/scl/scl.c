@@ -1604,7 +1604,7 @@ int Scl_CommandUpsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, pPars );
+    Abc_SclUpsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, pPars, NULL );
     return 0;
 
 usage:
@@ -1781,7 +1781,7 @@ int Scl_CommandDnsize( Abc_Frame_t * pAbc, int argc, char **argv )
         return 1;
     }
 
-    Abc_SclDnsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, pPars );
+    Abc_SclDnsizePerform( (SC_Lib *)pAbc->pLibScl, pNtk, pPars, NULL );
     return 0;
 
 usage:

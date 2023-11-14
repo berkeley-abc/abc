@@ -95,6 +95,7 @@ struct SC_Man_
     abctime        timeSize;      // incremental sizing
     abctime        timeTime;      // timing update
     abctime        timeOther;     // everything else
+    float        (*pFuncFanin)(void * p, Abc_Obj_t * pObj, Abc_Obj_t * pFanin, int iFanin, int fRise); // called to get info about the node's fanin
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -127,7 +128,7 @@ static inline double    Abc_SclObjSlackMax( SC_Man * p, Abc_Obj_t * pObj, float 
 static inline void      Abc_SclObjDupFanin( SC_Man * p, Abc_Obj_t * pObj )          { assert( Abc_ObjIsCo(pObj) ); *Abc_SclObjTime(p, pObj) = *Abc_SclObjTime(p, Abc_ObjFanin0(pObj));  }
 static inline float     Abc_SclObjInDrive( SC_Man * p, Abc_Obj_t * pObj )           { return Vec_FltEntry( p->vInDrive, pObj->iData );                                    }
 static inline void      Abc_SclObjSetInDrive( SC_Man * p, Abc_Obj_t * pObj, float c){ Vec_FltWriteEntry( p->vInDrive, pObj->iData, c );                                   }
-
+static inline void      Abc_SclManSetFaninCallBack( SC_Man * p, void * pCallBack )  { p->pFuncFanin = (float (*)(void *, Abc_Obj_t *, Abc_Obj_t *, int, int))pCallBack;   } 
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -551,7 +552,7 @@ extern int           Abc_SclCheckNtk( Abc_Ntk_t * p, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclPerformBuffering( Abc_Ntk_t * p, int DegreeR, int Degree, int fUseInvs, int fVerbose );
 extern Abc_Ntk_t *   Abc_SclBufPerform( Abc_Ntk_t * pNtk, int FanMin, int FanMax, int fBufPis, int fSkipDup, int fVerbose );
 /*=== sclDnsize.c ===============================================================*/
-extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
+extern void          Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars, void * pFuncFanin );
 /*=== sclLoad.c ===============================================================*/
 extern Vec_Flt_t *   Abc_SclFindWireCaps( SC_WireLoad * pWL, int nFanoutMax );
 extern float         Abc_SclFindWireLoad( Vec_Flt_t * vWireCaps, int nFans );
@@ -573,7 +574,7 @@ extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nT
 extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
 /*=== sclUpsize.c ===============================================================*/
 extern int           Abc_SclCountNearCriticalNodes( SC_Man * p );
-extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars );
+extern void          Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars, void * pFuncFanin );
 /*=== sclUtil.c ===============================================================*/
 extern void          Abc_SclMioGates2SclGates( SC_Lib * pLib, Abc_Ntk_t * p );
 extern void          Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p );

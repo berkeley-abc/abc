@@ -237,7 +237,7 @@ Abc_Obj_t * Abc_NodeBddToMuxes_rec( DdManager * dd, DdNode * bFunc, Abc_Ntk_t * 
 {
     Abc_Obj_t * pNodeNew, * pNodeNew0, * pNodeNew1, * pNodeNewC;
     assert( !Cudd_IsComplement(bFunc) );
-    assert( b1 == a1 );
+    //assert( b1 == a1 );
     if ( bFunc == a1 )
         return Abc_NtkCreateNodeConst1(pNtkNew);
     if ( bFunc == a0 )
