@@ -20,8 +20,8 @@ int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, 
   ac_decomposition_stats st;
 
   ac_decomposition_impl acd( tt, nVars, ps, &st );
-  acd.run( *pdelay );
-  int val = acd.compute_decomposition();
+  int val = acd.run( *pdelay );
+  // int val = acd.compute_decomposition();
 
   if ( val < 0 )
   {

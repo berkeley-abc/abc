@@ -134,8 +134,8 @@ public:
 
       /* add cost if not support reducing */
       uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
-      /* check for feasible solution that improves the cost */
-      if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost )
+      /* check for feasible solution that improves the cost */ /* TODO: remove limit on cost */
+      if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost < 12 )
       {
         best_tt = tt_p;
         permutations = perm;
