@@ -62,6 +62,7 @@ void If_ManSetDefaultPars( If_Par_t * pPars )
     pPars->fPower      =  0;
     pPars->fCutMin     =  0;
     pPars->fBidec      =  0;
+    pPars->fAcd        =  0;
     pPars->fVerbose    =  0;
 }
 
@@ -106,8 +107,15 @@ int If_ManPerformMappingComb( If_Man_t * p )
     If_Obj_t * pObj;
     abctime clkTotal = Abc_Clock();
     int i;
+    p->useLimitAdc = 1;
+
     //p->vVisited2 = Vec_IntAlloc( 100 );
     //p->vMarks = Vec_StrStart( If_ManObjNum(p) );
+
+    // if ( p->pPars->fAcd )
+    // {
+    //     p->pPars->nLutSize = 6;
+    // }
 
     // set arrival times and fanout estimates
     If_ManForEachCi( p, pObj, i )
@@ -121,6 +129,16 @@ int If_ManPerformMappingComb( If_Man_t * p )
     {
         // map for delay
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 1, "Delay" );
+
+        if ( p->pPars->fAcd )
+        {
+            // p->pPars->nLutSize = oldLutSize;
+            p->useLimitAdc = 0;
+            If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 0, "Delay" );
+            p->useLimitAdc = 1;
+            // p->pPars->nLutSize = 6;
+        }
+
         // map for delay second option
         p->pPars->fFancy = 1;
         If_ManResetOriginalRefs( p );

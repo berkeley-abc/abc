@@ -40,6 +40,7 @@
 #include "opt/dau/dau.h"
 #include "misc/vec/vecHash.h"
 #include "misc/vec/vecWec.h"
+#include "ACD/ac_wrapper.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -126,7 +127,6 @@ struct If_Par_t_
     int                fDsdBalance;   // special delay optimization
     int                fUserRecLib;   // use recorded library
     int                fUserSesLib;   // use SAT-based synthesis
-    int                fUserLutDec;   // use LUT-based decomposition
     int                fBidec;        // use bi-decomposition
     int                fUse34Spec;    // use specialized matching
     int                fUseBat;       // use one specialized feature
@@ -146,6 +146,7 @@ struct If_Par_t_
     int                fDeriveLuts;   // enables deriving LUT structures
     int                fDoAverage;    // optimize average rather than maximum level
     int                fHashMapping;  // perform AIG hashing after mapping
+    int                fAcd;  // perform AIG hashing after mapping
     int                fVerbose;      // the verbosity flag
     int                fVerboseTrace; // the verbosity flag
     char *             pLutStruct;    // LUT structure
@@ -280,6 +281,7 @@ struct If_Man_t_
     int                pDumpIns[16];
     Vec_Str_t *        vMarks;
     Vec_Int_t *        vVisited2;
+    int                useLimitAdc;
 
     // timing manager
     Tim_Man_t *        pManTim;
@@ -303,6 +305,7 @@ struct If_Cut_t_
     int                iCutFunc;      // TT ID of the cut
     int                uMaskFunc;     // polarity bitmask
     unsigned           uSign;         // cut signature
+    unsigned           acdDelay;      // Computed pin delay during ACD
     unsigned           Cost    : 12;  // the user's cost of the cut (related to IF_COST_MAX)
     unsigned           fCompl  :  1;  // the complemented attribute 
     unsigned           fUser   :  1;  // using the user's area and delay
@@ -552,6 +555,7 @@ extern int             If_CutPerformCheck45( If_Man_t * p, unsigned * pTruth, in
 extern int             If_CutPerformCheck54( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck75( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern float           If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float WireDelay );
+// extern int             If_CutPerformAcd( If_Man_t * p, unsigned nVars, int lutSize, unsigned * pdelay, int use_late_arrival, unsigned * cost );
 extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
                            char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
 extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
@@ -566,6 +570,9 @@ extern int             If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * p
 extern int             If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 extern int             If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutLutBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
+extern int             If_AcdEval( If_Man_t * p, If_Cut_t * pCut, int best_delay );
+extern int             If_AcdReEval( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_AcdLeafProp( If_Man_t * p, If_Cut_t * pCut, int i, float required );
 /*=== ifDsd.c =============================================================*/
 extern If_DsdMan_t *   If_DsdManAlloc( int nVars, int nLutSize );
 extern void            If_DsdManAllocIsops( If_DsdMan_t * p, int nLutSize );
@@ -693,6 +700,8 @@ extern int             If_ManCountSpecialPos( If_Man_t * p );
 extern void            If_CutTraverse( If_Man_t * p, If_Obj_t * pRoot, If_Cut_t * pCut, Vec_Ptr_t * vNodes );
 extern void            If_ObjPrint( If_Obj_t * pObj );
 
+extern int             acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost );
+extern int             acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned char *decomposition );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -411,6 +411,132 @@ int If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut )
         return DelayMax + 2;
     }
 }
+
+int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, int best_delay )
+{
+    pCut->fUser = 1;
+    pCut->Cost = pCut->nLeaves > 1 ? 1 : 0;
+    pCut->acdDelay = 0;
+    if ( pCut->nLeaves == 0 ) // const
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 0 );
+        return 0;
+    }
+    if ( pCut->nLeaves == 1 ) // variable
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 1 );
+        return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
+    }
+
+    // int LutSize = p->pPars->pLutStruct[0] - '0';
+    int LutSize = 6;
+    int i, leaf_delay;
+    int DelayMax = -1, nLeafMax = 0;
+    unsigned uLeafMask = 0;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+    {
+        leaf_delay = If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay;
+
+        if ( DelayMax < leaf_delay )
+        {
+            DelayMax = leaf_delay;
+            nLeafMax = 1;
+            uLeafMask = (1 << i);
+        }
+        else if ( DelayMax == leaf_delay )
+        {
+            nLeafMax++;
+            uLeafMask |= (1 << i);
+        }
+    }
+    if ( If_CutLeaveNum(pCut) <= LutSize )
+    {
+        pCut->acdDelay = ( 1 << LutSize ) - 1;
+        return DelayMax + 1;
+    }
+    // else if ( DelayMax + 1 >= best_delay )
+    // {
+    //     return DelayMax + 2;
+    // }
+
+    /* compute the decomposition */
+    int use_late_arrival = DelayMax + 2 >= best_delay;
+    unsigned cost = 1;
+    
+    /* TODO: have checks based on delay */
+    if ( use_late_arrival && nLeafMax > LutSize / 2 )
+    {
+        pCut->Cost = IF_COST_MAX;
+        return ABC_INFINITY;
+    }
+    
+    /* remove from critical set */
+    if ( !use_late_arrival )
+      uLeafMask = 0;
+
+    
+    word *pTruth = If_CutTruthW( p, pCut );
+    int val = acd_evaluate( pTruth, pCut->nLeaves, LutSize, &uLeafMask, &cost );
+
+    /* not feasible decomposition */
+    pCut->acdDelay = uLeafMask;
+    if ( val < 0 )
+    {
+        pCut->Cost = IF_COST_MAX;
+        return ABC_INFINITY;
+    }
+
+    pCut->Cost = cost;
+
+    return DelayMax + ( use_late_arrival ? 1 : 2 );
+}
+
+int If_AcdReEval( If_Man_t * p, If_Cut_t * pCut )
+{
+    // pCut->fUser = 1;
+
+    if ( pCut->nLeaves == 0 ) // const
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 0 );
+        return 0;
+    }
+    if ( pCut->nLeaves == 1 ) // variable
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 1 );
+        return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
+    }
+
+    // int LutSize = p->pPars->pLutStruct[0] - '0';
+    int LutSize = 6;
+    int i, leaf_delay;
+    int DelayMax = -1, nLeafMax = 0;
+    unsigned uLeafMask = 0;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+    {
+        leaf_delay = If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay;
+        leaf_delay += ( ( pCut->acdDelay >> i ) & 1 ) == 0 ? 2 : 1;
+        DelayMax = Abc_MaxInt( leaf_delay, DelayMax );
+    }
+
+    return DelayMax;
+}
+
+float If_AcdLeafProp( If_Man_t * p, If_Cut_t * pCut, int i, float required )
+{
+    if ( pCut->nLeaves == 0 ) // const
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 0 );
+        return required;
+    }
+    if ( pCut->nLeaves == 1 ) // variable
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 1 );
+        return 0;
+    }
+
+    return ( ( pCut->acdDelay >> i ) & 1 ) == 0 ? 2 : 1;
+}
+
 /*
 int If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut )
 {

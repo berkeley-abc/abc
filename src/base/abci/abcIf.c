@@ -116,7 +116,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     pPars->pTimesReq = Abc_NtkGetCoRequiredFloats(pNtk);
 
     // update timing info to reflect logic level
-    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib || pPars->fUserSesLib || pPars->fUserLutDec) && pNtk->pManTime )
+    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib || pPars->fUserSesLib || pPars->fAcd) && pNtk->pManTime )
     {
         int c;
         if ( pNtk->AndGateDelay == 0.0 )
@@ -427,28 +427,143 @@ Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pC
 }
 
 /**Function*************************************************************
+   Synopsis    [Implements decomposed LUT-structure of the cut.]
+   Description []
+                
+   SideEffects []
+   SeeAlso     []
+ ***********************************************************************/
+ void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCutBest, If_Obj_t * pIfObj, Vec_Int_t * vCover, Abc_Obj_t * pNodeTop )
+ {
+    extern Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
+    assert( !pIfMan->pPars->fUseTtPerm );
 
-  Synopsis    [Implements decomposed LUT-structure of the cut.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-Hop_Obj_t * Abc_DecRecordToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCutBest, If_Obj_t * pIfObj, Vec_Int_t * vCover )
-{
     // get the truth table
+    word * pTruth = If_CutTruthW(pIfMan, pCutBest);
+    int v;
+    If_Obj_t * pIfLeaf;
+
+    if ( pCutBest->nLeaves <= 6 )
+    {
+        /* add fanins */
+        If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, v )
+            Abc_ObjAddFanin( pNodeTop, (Abc_Obj_t *)If_ObjCopy( pIfLeaf ) );
+        
+        pNodeTop->Level = Abc_ObjLevelNew( pNodeTop );
+
+        pNodeTop->pData = Kit_TruthToHop( (Hop_Man_t *)pNtkNew->pManFunc, (unsigned *)pTruth, If_CutLeaveNum(pCutBest), vCover );
+        return;
+    }
+
+    // get the delay profile
+    unsigned delayProfile = pCutBest->acdDelay;
+
+    // If_Obj_t * pLeaf;
+    // int i, leafDelay;
+    // int DelayMax = -1, nLeafMax = 0;
+    // unsigned uLeafMask = 0;
+
+    // If_CutForEachLeaf( pIfMan, pCutBest, pLeaf, i )
+    // {
+    //     leafDelay = If_ObjCutBest(pLeaf)->Delay;
+
+    //     if ( DelayMax < leafDelay )
+    //     {
+    //         DelayMax = leafDelay;
+    //         nLeafMax = 1;
+    //         uLeafMask = (1 << i);
+    //     }
+    //     else if ( DelayMax == leafDelay )
+    //     {
+    //         nLeafMax++;
+    //         uLeafMask |= (1 << i);
+    //     }
+    // }
+
     // perform LUT-decomposition and return the LUT-structure
+    unsigned char decompArray[92];
+    int val = acd_decompose( pTruth, pCutBest->nLeaves, 6, &(delayProfile), decompArray );
+
+    assert( val == 0 );
+    // assert( DelayMax + 2 >= pCutBest->Delay );
+
     // convert the LUT-structure into a set of logic nodes in Abc_Ntk_t 
+    unsigned char bytes_check = decompArray[0];
+    assert( bytes_check <= 92 );
+
+    int byte_p = 2;
+    unsigned char i, j, k, num_fanins, num_words, num_bytes;
+    int level, fanin;
+    word *tt;
+    Abc_Obj_t *pNewNodes[5];
+
+    /* create intermediate LUTs*/
+    assert( decompArray[1] - 1 <= 5 );
+    Abc_Obj_t * pFanin;
+    for ( i = 0; i < decompArray[1]; ++i )
+    {
+        if ( i < decompArray[1] - 1 )
+        {
+            pNewNodes[i] = Abc_NtkCreateNode( pNtkNew );
+        }
+        else
+        {
+            pNewNodes[i] = pNodeTop;
+        }
+        num_fanins = decompArray[byte_p++];
+        level = 0;
+        for ( j = 0; j < num_fanins; ++j )
+        {
+            fanin = (int)decompArray[byte_p++];
+            if ( fanin < If_CutLeaveNum(pCutBest) )
+            {
+                pFanin = (Abc_Obj_t *)If_ObjCopy( If_CutLeaf(pIfMan, pCutBest, fanin) );
+            }
+            else
+            {
+                assert( fanin - If_CutLeaveNum(pCutBest) < i );
+                pFanin = pNewNodes[fanin - If_CutLeaveNum(pCutBest)];
+            }
+            Abc_ObjAddFanin( pNewNodes[i], pFanin );
+            level = Abc_MaxInt( level, Abc_ObjLevel(pFanin) );
+        }
+
+        pNewNodes[i]->Level = level + (int)(Abc_ObjFaninNum(pNewNodes[i]) > 0);
+
+        /* extract the truth table */
+        tt = pIfMan->puTempW;
+        num_words = ( num_fanins <= 6 ) ? 1 : ( 1 << ( num_fanins - 6 ) );
+        num_bytes = ( num_fanins <= 3 ) ? 1 : ( 1 << ( Abc_MinInt( (int)num_fanins, 6 ) - 3 ) );
+        for ( j = 0; j < num_words; ++j )
+        {
+            tt[j] = 0;
+            for ( k = 0; k < num_bytes; ++k )
+            {
+                tt[j] |= ( (word)(decompArray[byte_p++]) ) << ( k << 3 );
+            }
+        }
+
+        /* extend truth table if size < 5 */
+        assert( num_fanins != 1 );
+        if ( num_fanins == 2 )
+        {
+            tt[0] |= tt[0] << 4;
+        }
+        while ( num_bytes < 4 )
+        {
+            tt[0] |= tt[0] << ( num_bytes << 3 );
+            num_bytes <<= 1;
+        }
+
+        /* add node data */
+        pNewNodes[i]->pData = Kit_TruthToHop( (Hop_Man_t *)pNtkNew->pManFunc, (unsigned *)tt, (int) num_fanins, vCover );
+    }
+
+    /* check correct read */
+    assert( byte_p == decompArray[0] );
 
     // this is a placeholder, which takes the truth table and converts it into an AIG without LUT-decomposition
-    extern Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
-    word * pTruth = If_CutTruthW(pIfMan, pCutBest);
-    assert( !pIfMan->pPars->fUseTtPerm );
-    return Kit_TruthToHop( (Hop_Man_t *)pMan, (unsigned *)pTruth, If_CutLeaveNum(pCutBest), vCover );
-}
+ }
 
 /**Function*************************************************************
 
@@ -488,12 +603,17 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
 //    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
     if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm && 
-         !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->fUserLutDec && !pIfMan->pPars->nGateSize )
+         !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fAcd && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
         If_CutRotatePins( pIfMan, pCutBest );
     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
     {
         If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )
             Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
+    }
+    else if ( pIfMan->pPars->fAcd )
+    {
+        If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
+            Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
     }
     else
     {
@@ -548,10 +668,10 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
             pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj ); 
         }
-        else if ( pIfMan->pPars->fUserLutDec )
+        else if ( pIfMan->pPars->fAcd )
         {
-            extern Hop_Obj_t * Abc_DecRecordToHop( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vMemory );
-            pNodeNew->pData = Abc_DecRecordToHop( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj, vCover ); 
+            extern void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vMemory, Abc_Obj_t * pNodeTop );
+            Abc_DecRecordToHop( pNtkNew, pIfMan, pCutBest, pIfObj, vCover, pNodeNew ); 
         }
         else
         {

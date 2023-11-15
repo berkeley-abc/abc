@@ -17,6 +17,7 @@ OS := $(shell uname -s)
 
 MODULES := \
 	$(wildcard src/ext*) \
+	src/acd \
 	src/base/abc src/base/abci src/base/cmd src/base/io src/base/main src/base/exor \
 	src/base/ver src/base/wlc src/base/wln src/base/acb src/base/bac src/base/cba src/base/pla src/base/test \
 	src/map/mapper src/map/mio src/map/super src/map/if \
@@ -56,7 +57,7 @@ ARCHFLAGS := $(ARCHFLAGS)
 
 OPTFLAGS  ?= -g -O
 
-CFLAGS    += -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(ARCHFLAGS)
+CFLAGS    += -std=c17 -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare $(ARCHFLAGS)
 ifneq ($(findstring arm,$(shell uname -m)),)
 	CFLAGS += -DABC_MEMALIGN=4
 endif
@@ -151,7 +152,7 @@ ifdef ABC_USE_LIBSTDCXX
 endif
 
 $(info $(MSG_PREFIX)Using CFLAGS=$(CFLAGS))
-CXXFLAGS += $(CFLAGS)
+CXXFLAGS += $(CFLAGS) -std=c++17
 
 SRC  :=
 GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
