@@ -84,7 +84,7 @@ private:
     uint64_t column{ 0 };
     uint32_t cost{ 0 };
     uint32_t index{ 0 };
-    uint32_t sort_cost{ 0 };
+    float sort_cost{ 0 };
   };
 
 private:
@@ -129,6 +129,7 @@ public:
     uint32_t offset = std::max( static_cast<uint32_t>( late_arriving ), 1u );
     for ( uint32_t i = offset; i <= ps.lut_size / 2 && i <= 3; ++i )
     {
+      /* TODO: add shared set */
       auto evaluate_fn = [&]( STT const& tt ) { return column_multiplicity( tt, i ); };
       auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, offset, evaluate_fn, false );
 
@@ -179,12 +180,22 @@ public:
     std::vector<STT> isets = compute_isets( best_free_set );
 
     generate_support_minimization_encodings();
-    solve_min_support_exact( isets, best_free_set );
+
+    /* always solves exactly for power of 2 */
+    if ( __builtin_popcount( best_multiplicity ) == 1 )
+      solve_min_support_exact( isets, best_free_set );
+    else
+      solve_min_support_heuristic( isets, best_free_set );
 
     /* unfeasible decomposition */
     if ( best_bound_sets.empty() )
     {
-      return -1;
+      solve_min_support_exact( isets, best_free_set );
+
+      if ( best_bound_sets.empty() )
+      {
+        return -1;
+      }
     }
 
     return 0;
@@ -995,7 +1006,7 @@ private:
     }
 
     /* solve the covering problem */
-    std::array<uint32_t, 5> solution = covering_solve_exact<true>( matrix, 100, ps.max_iter );
+    std::array<uint32_t, 5> solution = covering_solve_exact<false, true>( matrix, 100, ps.max_iter );
 
     /* check for failed decomposition */
     if ( solution[0] == UINT32_MAX )
@@ -1047,6 +1058,72 @@ private:
     }
   }
 
+  void solve_min_support_heuristic( std::vector<STT> const& isets, uint32_t free_set_size )
+  {
+    std::vector<encoding_matrix> matrix;
+    matrix.reserve( support_minimization_encodings.size() );
+    best_bound_sets.clear();
+
+    /* create covering matrix */
+    if ( !create_covering_matrix<true>( isets, matrix, free_set_size, false ) )
+    {
+      return;
+    }
+
+    /* solve the covering problem: heuristic pass + local search */
+    std::array<uint32_t, 5> solution = covering_solve_heuristic( matrix );
+
+    /* check for failed decomposition */
+    if ( solution[0] == UINT32_MAX )
+    {
+      return;
+    }
+
+    /* compute best bound sets */
+    uint32_t num_luts = 1 + solution[4];
+    uint32_t num_levels = 2;
+    uint32_t num_edges = free_set_size + solution[4];
+    uint32_t isets_support = num_vars - free_set_size;
+    best_care_sets.clear();
+    best_iset_onset.clear();
+    best_iset_offset.clear();
+    for ( uint32_t i = 0; i < solution[4]; ++i )
+    {
+      STT tt;
+      STT care;
+
+      const uint32_t onset = support_minimization_encodings[matrix[solution[i]].index][0];
+      const uint32_t offset = support_minimization_encodings[matrix[solution[i]].index][1];
+      for ( uint32_t j = 0; j < best_multiplicity; ++j )
+      {
+        if ( ( ( onset >> j ) & 1 ) )
+        {
+          tt |= isets[j];
+        }
+        if ( ( ( offset >> j ) & 1 ) )
+        {
+          care |= isets[j];
+        }
+      }
+
+      care |= tt;
+      num_edges += matrix[solution[i]].cost & ( ( 1 << isets_support ) - 1 );
+
+      best_bound_sets.push_back( tt );
+      best_care_sets.push_back( care );
+      best_iset_onset.push_back( onset );
+      best_iset_offset.push_back( offset );
+    }
+
+    if ( pst != nullptr )
+    {
+      pst->num_luts = num_luts;
+      pst->num_levels = num_levels;
+      pst->num_edges = num_edges;
+    }
+  }
+
+  template<bool UseHeuristic = false>
   bool create_covering_matrix( std::vector<STT> const& isets, std::vector<encoding_matrix>& matrix, uint32_t free_set_size, bool sort )
   {
     assert( best_multiplicity < 12 );
@@ -1119,7 +1196,15 @@ private:
         cost |= 1 << iset_support;
       }
 
-      uint32_t sort_cost = cost + ( ( combinations - __builtin_popcountl( column ) ) << num_vars );
+      float sort_cost = 0;
+      if constexpr ( UseHeuristic )
+      {
+        sort_cost = ( (float) cost ) / ( __builtin_popcountl( column ) );
+      }
+      else
+      {
+        sort_cost = cost + ( ( combinations - __builtin_popcountl( column ) ) << num_vars );
+      }
 
       /* insert */
       matrix.emplace_back( encoding_matrix{ column, cost, i, sort_cost } );
@@ -1128,10 +1213,10 @@ private:
     }
 
     /* necessary condition for the existance of a solution */
-    if ( __builtin_popcountl( sol_existance ) != combinations )
-    {
-      return false;
-    }
+    // if ( __builtin_popcountl( sol_existance ) != combinations )
+    // {
+    //   return false;
+    // }
 
     if ( !sort )
     {
@@ -1154,7 +1239,7 @@ private:
     return true;
   }
 
-  template<bool limit_iter = false>
+  template<bool limit_iter = false, bool limit_sol = true>
   std::array<uint32_t, 5> covering_solve_exact( std::vector<encoding_matrix>& matrix, uint32_t max_iter = 100, int32_t limit = 2000 )
   {
     /* last value of res contains the size of the bound set */
@@ -1195,7 +1280,14 @@ private:
         /* limit */
         if constexpr ( limit_iter )
         {
-          if ( limit <= 0 || ( best_cost < UINT32_MAX && max_iter == 0 ) )
+          if ( limit <= 0 )
+          {
+            looping = false;
+          }
+        }
+        if constexpr ( limit_sol )
+        {
+          if ( best_cost < UINT32_MAX && max_iter == 0 )
           {
             looping = false;
           }
@@ -1209,7 +1301,14 @@ private:
           /* limit */
           if constexpr ( limit_iter )
           {
-            if ( limit <= 0 || ( best_cost < UINT32_MAX && max_iter == 0 ) )
+            if ( limit <= 0 )
+            {
+              looping = false;
+            }
+          }
+          if constexpr ( limit_sol )
+          {
+            if ( best_cost < UINT32_MAX && max_iter == 0 )
             {
               looping = false;
             }
@@ -1226,7 +1325,14 @@ private:
             /* limit */
             if constexpr ( limit_iter )
             {
-              if ( limit-- <= 0 || ( best_cost < UINT32_MAX && max_iter-- == 0 ) )
+              if ( limit-- <= 0 )
+              {
+                looping = false;
+              }
+            }
+            if constexpr ( limit_sol )
+            {
+              if ( best_cost < UINT32_MAX && max_iter-- == 0 )
               {
                 looping = false;
               }
@@ -1256,7 +1362,14 @@ private:
         /* limit */
         if constexpr ( limit_iter )
         {
-          if ( limit <= 0 || ( best_cost < UINT32_MAX && max_iter == 0 ) )
+          if ( limit <= 0 )
+          {
+            looping = false;
+          }
+        }
+        if constexpr ( limit_sol )
+        {
+          if ( best_cost < UINT32_MAX && max_iter == 0 )
           {
             looping = false;
           }
@@ -1270,7 +1383,14 @@ private:
           /* limit */
           if constexpr ( limit_iter )
           {
-            if ( limit <= 0 || ( best_cost < UINT32_MAX && max_iter == 0 ) )
+            if ( limit <= 0 )
+            {
+              looping = false;
+            }
+          }
+          if constexpr ( limit_sol )
+          {
+            if ( best_cost < UINT32_MAX && max_iter == 0 )
             {
               looping = false;
             }
@@ -1290,7 +1410,14 @@ private:
             /* limit */
             if constexpr ( limit_iter )
             {
-              if ( limit <= 0 || ( best_cost < UINT32_MAX && max_iter == 0 ) )
+              if ( limit <= 0 )
+              {
+                looping = false;
+              }
+            }
+            if constexpr ( limit_sol )
+            {
+              if ( best_cost < UINT32_MAX && max_iter == 0 )
               {
                 looping = false;
               }
@@ -1307,7 +1434,14 @@ private:
               /* limit */
               if constexpr ( limit_iter )
               {
-                if ( limit-- <= 0 || ( best_cost < UINT32_MAX && max_iter-- == 0 ) )
+                if ( limit-- <= 0 )
+                {
+                  looping = false;
+                }
+              }
+              if constexpr ( limit_sol )
+              {
+                if ( best_cost-- < UINT32_MAX && max_iter == 0 )
                 {
                   looping = false;
                 }
@@ -1330,6 +1464,63 @@ private:
           }
         }
       }
+    }
+
+    return res;
+  }
+
+  std::array<uint32_t, 5> covering_solve_heuristic( std::vector<encoding_matrix>& matrix )
+  {
+    /* last value of res contains the size of the bound set */
+    std::array<uint32_t, 5> res = { UINT32_MAX };
+    uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
+    uint64_t column = 0;
+
+    uint32_t best = 0;
+    float best_cost = std::numeric_limits<float>::max();
+    for ( uint32_t i = 0; i < matrix.size(); ++i )
+    {
+      if ( matrix[i].sort_cost < best_cost )
+      {
+        best = i;
+        best_cost = matrix[i].sort_cost;
+      }
+    }
+
+    /* select */
+    column = matrix[best].column;
+    std::swap( matrix[0], matrix[best] );
+
+    /* get max number of BS's */
+    uint32_t iter = 1;
+
+    while ( iter < ps.lut_size - best_free_set && __builtin_popcountl( column ) != combinations )
+    {
+      /* select column that minimizes the cost */
+      best = 0;
+      best_cost = std::numeric_limits<float>::max();
+      for ( uint32_t i = iter; i < matrix.size(); ++i )
+      {
+        float local_cost = ( (float) matrix[i].cost ) / __builtin_popcountl( matrix[i].column & ~column );
+        if ( local_cost < best_cost )
+        {
+          best = i;
+          best_cost = local_cost;
+        }
+      }
+
+      column |= matrix[best].column;
+      std::swap( matrix[iter], matrix[best] );
+      ++iter;
+    }
+
+    if ( __builtin_popcountl( column ) != combinations )
+    {
+      for ( uint32_t i = 0; i < iter; ++i )
+      {
+        res[i] = i;
+      }
+      res[4] = iter;
     }
 
     return res;
