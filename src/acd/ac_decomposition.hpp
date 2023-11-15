@@ -1079,6 +1079,9 @@ private:
       return;
     }
 
+    /* improve solution with local search */
+    covering_improve( matrix, solution );
+
     /* compute best bound sets */
     uint32_t num_luts = 1 + solution[4];
     uint32_t num_levels = 2;
@@ -1524,6 +1527,51 @@ private:
     }
 
     return res;
+  }
+
+  bool covering_improve( std::vector<encoding_matrix>& matrix, std::array<uint32_t, 5>& solution )
+  {
+    /* performs one iteration of local search */
+    uint32_t best_cost = 0, local_cost = 0;
+    uint32_t num_elements = solution[4];
+    uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
+    bool improved = false;
+
+    /* compute current cost */
+    for ( uint32_t i = 0; i < num_elements; ++i )
+    {
+      best_cost += matrix[solution[i]].cost;
+    }
+
+    uint64_t column;
+    for ( uint32_t i = 0; i < num_elements; ++i )
+    {
+      /* remove element i */
+      local_cost = 0;
+      column = 0;
+      for ( uint32_t j = 0; j < num_elements; ++j )
+      {
+        if ( j == i )
+          continue;
+        local_cost += matrix[solution[j]].cost;
+        column |= matrix[solution[j]].column;
+      }
+
+      /* search for a better replecemnts */
+      for ( uint32_t j = 0; j < matrix.size(); ++j )
+      {
+        if ( __builtin_popcount( column | matrix[j].column ) != combinations )
+          continue;
+        if ( local_cost + matrix[j].cost < best_cost )
+        {
+          solution[i] = j;
+          best_cost = local_cost + matrix[j].cost;
+          improved = true;
+        }
+      }
+    }
+
+    return improved;
   }
 
   void adjust_truth_table_on_dc( STT& tt, STT& care, uint32_t var_index )
