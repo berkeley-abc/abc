@@ -1080,7 +1080,8 @@ private:
     }
 
     /* improve solution with local search */
-    covering_improve( matrix, solution );
+    while ( covering_improve( matrix, solution ) )
+      ;
 
     /* compute best bound sets */
     uint32_t num_luts = 1 + solution[4];
@@ -1202,7 +1203,7 @@ private:
       float sort_cost = 0;
       if constexpr ( UseHeuristic )
       {
-        sort_cost = ( (float) cost ) / ( __builtin_popcountl( column ) );
+        sort_cost = 1.0f / ( __builtin_popcountl( column ) );
       }
       else
       {
@@ -1504,7 +1505,7 @@ private:
       best_cost = std::numeric_limits<float>::max();
       for ( uint32_t i = iter; i < matrix.size(); ++i )
       {
-        float local_cost = ( (float) matrix[i].cost ) / __builtin_popcountl( matrix[i].column & ~column );
+        float local_cost = 1.0f / __builtin_popcountl( matrix[i].column & ~column );
         if ( local_cost < best_cost )
         {
           best = i;
@@ -1517,7 +1518,7 @@ private:
       ++iter;
     }
 
-    if ( __builtin_popcountl( column ) != combinations )
+    if ( __builtin_popcountl( column ) == combinations )
     {
       for ( uint32_t i = 0; i < iter; ++i )
       {
