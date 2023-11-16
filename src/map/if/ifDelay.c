@@ -412,7 +412,7 @@ int If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut )
     }
 }
 
-int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, int best_delay )
+int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay )
 {
     pCut->fUser = 1;
     pCut->Cost = pCut->nLeaves > 1 ? 1 : 0;
@@ -460,20 +460,34 @@ int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, int best_delay )
     // }
 
     /* compute the decomposition */
-    int use_late_arrival = DelayMax + 2 >= best_delay;
+    int use_late_arrival;
     unsigned cost = 1;
-    
-    /* TODO: have checks based on delay */
-    if ( use_late_arrival && nLeafMax > LutSize / 2 )
+
+    if ( optDelay )
     {
-        pCut->Cost = IF_COST_MAX;
-        return ABC_INFINITY;
+        /* checks based on delay: must be better than the previous best cut */
+        use_late_arrival = DelayMax + 2 >= If_ObjCutBest(pObj)->Delay;
     }
-    
-    /* remove from critical set */
-    if ( !use_late_arrival && nLeafMax > LutSize / 2 )
+    else
     {
-      uLeafMask = 0;
+        /* checks based on delay: look at the required time */
+        use_late_arrival = DelayMax + 2 > pObj->Required + p->fEpsilon;
+    }
+
+    /* Too many late-arriving signals */
+    if ( nLeafMax > LutSize / 2 )
+    {
+        if ( use_late_arrival )
+        {
+            /* unfeasible decomposition */
+            pCut->Cost = IF_COST_MAX;
+            return ABC_INFINITY;
+        }
+        else
+        {
+            /* remove critical signals as not needed */
+            uLeafMask = 0;
+        }
     }
 
     word *pTruth = If_CutTruthW( p, pCut );
