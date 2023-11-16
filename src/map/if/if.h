@@ -700,7 +700,7 @@ extern int             If_ManCountSpecialPos( If_Man_t * p );
 extern void            If_CutTraverse( If_Man_t * p, If_Obj_t * pRoot, If_Cut_t * pCut, Vec_Ptr_t * vNodes );
 extern void            If_ObjPrint( If_Obj_t * pObj );
 
-extern int             acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost );
+extern int             acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost, int try_no_late_arrival );
 extern int             acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned char *decomposition );
 
 ABC_NAMESPACE_HEADER_END

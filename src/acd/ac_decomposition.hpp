@@ -62,6 +62,9 @@ struct ac_decomposition_params
 
   /*! \brief Perform decomposition if support reducing. */
   bool support_reducing_only{ true };
+
+  /*! \brief If decomposition with delay profile fails, ignore it. */
+  bool try_no_late_arrival{ false };
 };
 
 /*! \brief Statistics for ac_decomposition */
@@ -157,28 +160,43 @@ public:
       }
     }
 
-    if ( best_multiplicity == UINT32_MAX )
+    if ( best_multiplicity == UINT32_MAX && ( !ps.try_no_late_arrival || late_arriving == 0 ) )
       return -1;
 
-    /* compute isets */
-    // std::vector<STT> isets = compute_isets( free_set_size );
+    /* try without the delay profile */
+    if ( best_multiplicity == UINT32_MAX && ps.try_no_late_arrival )
+    {
+      if ( ps.support_reducing_only )
+      {
+        start = std::max( 1u, num_vars - ps.lut_size );
+      }
 
-    // generate_support_minimization_encodings();
-    // solve_min_support_exact( isets, free_set_size );
+      for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= 3; ++i )
+      {
+        /* TODO: add shared set */
+        auto evaluate_fn = [&]( STT const& tt ) { return column_multiplicity( tt, i ); };
+        auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, 0, evaluate_fn );
 
-    /* unfeasible decomposition */
-    // if ( best_bound_sets.empty() )
-    // {
-    //   return -1;
-    // }
+        /* additional cost if not support reducing */
+        uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
+        /* check for feasible solution that improves the cost */ /* TODO: remove limit on cost */
+        if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost < 10 )
+        {
+          best_tt = tt_p;
+          permutations = perm;
+          best_multiplicity = cost;
+          best_cost = cost + additional_cost;
+          free_set_size = i;
+        }
+      }
+    }
+
+    if ( best_multiplicity == UINT32_MAX )
+      return -1;
 
     pst->num_luts = ps.lut_size - free_set_size;
     best_free_set = free_set_size;
 
-    /* TODO generate decomposition only when returning the result */
-    // dec_result = generate_decomposition( free_set_size );
-
-    /* TODO: change return value */
     return 0;
   }
 

@@ -471,12 +471,13 @@ int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, int best_delay )
     }
     
     /* remove from critical set */
-    if ( !use_late_arrival )
+    if ( !use_late_arrival && nLeafMax > LutSize / 2 )
+    {
       uLeafMask = 0;
+    }
 
-    
     word *pTruth = If_CutTruthW( p, pCut );
-    int val = acd_evaluate( pTruth, pCut->nLeaves, LutSize, &uLeafMask, &cost );
+    int val = acd_evaluate( pTruth, pCut->nLeaves, LutSize, &uLeafMask, &cost, !use_late_arrival );
 
     /* not feasible decomposition */
     pCut->acdDelay = uLeafMask;
@@ -507,10 +508,8 @@ int If_AcdReEval( If_Man_t * p, If_Cut_t * pCut )
     }
 
     // int LutSize = p->pPars->pLutStruct[0] - '0';
-    int LutSize = 6;
     int i, leaf_delay;
-    int DelayMax = -1, nLeafMax = 0;
-    unsigned uLeafMask = 0;
+    int DelayMax = -1;
     for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
     {
         leaf_delay = If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay;

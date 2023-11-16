@@ -4,7 +4,7 @@
 
 // ABC_NAMESPACE_IMPL_START
 
-int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost )
+int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost, int try_no_late_arrival )
 {
   using namespace mockturtle;
 
@@ -17,6 +17,7 @@ int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, 
 
   ac_decomposition_params ps;
   ps.lut_size = lutSize;
+  ps.try_no_late_arrival = static_cast<bool>( try_no_late_arrival );
   ac_decomposition_stats st;
 
   ac_decomposition_impl acd( tt, nVars, ps, &st );
