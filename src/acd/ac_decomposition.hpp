@@ -997,7 +997,7 @@ private:
     best_bound_sets.clear();
 
     /* create covering matrix */
-    if ( !create_covering_matrix<true>( isets, matrix, free_set_size, false ) )
+    if ( !create_covering_matrix<true>( isets, matrix, free_set_size, true ) )
     {
       return;
     }
@@ -1148,29 +1148,24 @@ private:
       sol_existance |= column;
     }
 
-    /* necessary condition for the existance of a solution */
-    // if ( __builtin_popcountl( sol_existance ) != combinations )
-    // {
-    //   return false;
-    // }
-
     if ( !sort )
     {
       return true;
     }
 
-    std::sort( matrix.begin(), matrix.end(), [&]( auto const& a, auto const& b ) {
-      return a.sort_cost < b.sort_cost;
-    } );
-
-    /* print */
-    // if ( best_multiplicity < 6 )
-    // {
-    //   for ( uint32_t i = 0; i < columns.size(); ++i )
-    //   {
-    //     std::cout << indexes[i] << " " << costs[i] << " \t" << columns[i] << "\n";
-    //   }
-    // }
+    if constexpr ( UseHeuristic )
+    {
+      std::sort( matrix.begin(), matrix.end(), [&]( auto const& a, auto const& b ) {
+        return a.cost < b.cost;
+      } );
+      return true;
+    }
+    else
+    {
+      std::sort( matrix.begin(), matrix.end(), [&]( auto const& a, auto const& b ) {
+        return a.sort_cost < b.sort_cost;
+      } );
+    }
 
     return true;
   }
