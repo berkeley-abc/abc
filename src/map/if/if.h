@@ -570,7 +570,7 @@ extern int             If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * p
 extern int             If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 extern int             If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutLutBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
-extern int             If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay );
+extern int             If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay, int fFirst );
 extern int             If_AcdReEval( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_AcdLeafProp( If_Man_t * p, If_Cut_t * pCut, int i, float required );
 /*=== ifDsd.c =============================================================*/

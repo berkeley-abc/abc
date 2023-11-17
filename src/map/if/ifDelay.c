@@ -412,7 +412,7 @@ int If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut )
     }
 }
 
-int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay )
+int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay, int fFirst )
 {
     pCut->fUser = 1;
     pCut->Cost = pCut->nLeaves > 1 ? 1 : 0;
@@ -428,7 +428,6 @@ int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay )
         return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
     }
 
-    // int LutSize = p->pPars->pLutStruct[0] - '0';
     int LutSize = 6;
     int i, leaf_delay;
     int DelayMax = -1, nLeafMax = 0;
@@ -454,24 +453,23 @@ int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay )
         pCut->acdDelay = ( 1 << LutSize ) - 1;
         return DelayMax + 1;
     }
-    // else if ( DelayMax + 1 >= best_delay )
-    // {
-    //     return DelayMax + 2;
-    // }
 
     /* compute the decomposition */
-    int use_late_arrival;
+    int use_late_arrival = 0;
     unsigned cost = 1;
 
-    if ( optDelay )
+    if ( !fFirst )
     {
-        /* checks based on delay: must be better than the previous best cut */
-        use_late_arrival = DelayMax + 2 >= If_ObjCutBest(pObj)->Delay;
-    }
-    else
-    {
-        /* checks based on delay: look at the required time */
-        use_late_arrival = DelayMax + 2 > pObj->Required + p->fEpsilon;
+        if ( optDelay )
+        {
+            /* checks based on delay: must be better than the previous best cut */
+            use_late_arrival = DelayMax + 2 >= If_ObjCutBest(pObj)->Delay;
+        }
+        else
+        {
+            /* checks based on delay: look at the required time */
+            use_late_arrival = DelayMax + 2 > pObj->Required + p->fEpsilon;
+        }
     }
 
     /* Too many late-arriving signals */
@@ -490,6 +488,7 @@ int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay )
         }
     }
 
+    /* returns the delay of the decomposition */
     word *pTruth = If_CutTruthW( p, pCut );
     int val = acd_evaluate( pTruth, pCut->nLeaves, LutSize, &uLeafMask, &cost, !use_late_arrival );
 
@@ -503,7 +502,7 @@ int If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay )
 
     pCut->Cost = cost;
 
-    return DelayMax + ( use_late_arrival ? 1 : 2 );
+    return DelayMax + val;
 }
 
 int If_AcdReEval( If_Man_t * p, If_Cut_t * pCut )

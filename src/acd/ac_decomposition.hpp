@@ -166,6 +166,7 @@ public:
     /* try without the delay profile */
     if ( best_multiplicity == UINT32_MAX && ps.try_no_late_arrival )
     {
+      delay_profile = 0;
       if ( ps.support_reducing_only )
       {
         start = std::max( 1u, num_vars - ps.lut_size );
@@ -197,7 +198,8 @@ public:
     pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3 : best_multiplicity <= 8 ? 4 : 5;
     best_free_set = free_set_size;
 
-    return 0;
+    /* return number of levels */
+    return delay_profile == 0 ? 2 : 1;
   }
 
   int compute_decomposition()

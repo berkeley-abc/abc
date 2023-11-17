@@ -128,16 +128,11 @@ int If_ManPerformMappingComb( If_Man_t * p )
     if ( p->pPars->fPreprocess && !p->pPars->fArea )
     {
         // map for delay
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 1, "Delay" );
-
         if ( p->pPars->fAcd )
-        {
-            // p->pPars->nLutSize = oldLutSize;
             p->useLimitAdc = 0;
-            If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 0, "Delay" );
+        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 1, "Delay" );
+        if ( p->pPars->fAcd )
             p->useLimitAdc = 1;
-            // p->pPars->nLutSize = 6;
-        }
 
         // map for delay second option
         p->pPars->fFancy = 1;
@@ -160,17 +155,33 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // area flow oriented mapping
     for ( i = 0; i < p->pPars->nFlowIters; i++ )
     {
+        // if ( p->pPars->fAcd && i == 0 )
+        // {
+        //     p->useLimitAdc = 0;
+        // }
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 0, 0, "Flow" );
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
+        // if ( p->pPars->fAcd && i == 0 )
+        // {
+        //     p->useLimitAdc = 1;
+        // }
     }
 
     // area oriented mapping
     for ( i = 0; i < p->pPars->nAreaIters; i++ )
     {
+        // if ( p->pPars->fAcd && i == 0 )
+        // {
+        //     p->useLimitAdc = 0;
+        // }
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, 0, "Area" );
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
+        // if ( p->pPars->fAcd && i == 0 )
+        // {
+        //     p->useLimitAdc = 1;
+        // }
     }
 
     if ( p->pPars->fVerbose )

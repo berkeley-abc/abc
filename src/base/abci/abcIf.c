@@ -458,34 +458,10 @@ Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pC
     // get the delay profile
     unsigned delayProfile = pCutBest->acdDelay;
 
-    // If_Obj_t * pLeaf;
-    // int i, leafDelay;
-    // int DelayMax = -1, nLeafMax = 0;
-    // unsigned uLeafMask = 0;
-
-    // If_CutForEachLeaf( pIfMan, pCutBest, pLeaf, i )
-    // {
-    //     leafDelay = If_ObjCutBest(pLeaf)->Delay;
-
-    //     if ( DelayMax < leafDelay )
-    //     {
-    //         DelayMax = leafDelay;
-    //         nLeafMax = 1;
-    //         uLeafMask = (1 << i);
-    //     }
-    //     else if ( DelayMax == leafDelay )
-    //     {
-    //         nLeafMax++;
-    //         uLeafMask |= (1 << i);
-    //     }
-    // }
-
     // perform LUT-decomposition and return the LUT-structure
     unsigned char decompArray[92];
     int val = acd_decompose( pTruth, pCutBest->nLeaves, 6, &(delayProfile), decompArray );
-
     assert( val == 0 );
-    // assert( DelayMax + 2 >= pCutBest->Delay );
 
     // convert the LUT-structure into a set of logic nodes in Abc_Ntk_t 
     unsigned char bytes_check = decompArray[0];
@@ -561,8 +537,6 @@ Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pC
 
     /* check correct read */
     assert( byte_p == decompArray[0] );
-
-    // this is a placeholder, which takes the truth table and converts it into an AIG without LUT-decomposition
  }
 
 /**Function*************************************************************

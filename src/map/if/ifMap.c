@@ -431,7 +431,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj );
         else if ( p->pPars->fAcd )
         {
-            pCut->Delay = If_AcdEval( p, pCut, pObj, Mode == 0 );
+            pCut->Delay = If_AcdEval( p, pCut, pObj, Mode == 0, fFirst );
             pCut->fUseless = pCut->Delay == ABC_INFINITY;
         }
         else if ( p->pPars->fUserSesLib )

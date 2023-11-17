@@ -22,7 +22,6 @@ int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, 
 
   ac_decomposition_impl acd( tt, nVars, ps, &st );
   int val = acd.run( *pdelay );
-  // int val = acd.compute_decomposition();
 
   if ( val < 0 )
   {
@@ -33,7 +32,7 @@ int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, 
   *pdelay = acd.get_profile();
   *cost = st.num_luts;
 
-  return 0;
+  return val;
 }
 
 int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned char *decomposition )
