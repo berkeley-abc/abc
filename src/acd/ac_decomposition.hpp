@@ -150,7 +150,7 @@ public:
       /* additional cost if not support reducing */
       uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
       /* check for feasible solution that improves the cost */ /* TODO: remove limit on cost */
-      if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost < 10 )
+      if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost < 12 )
       {
         best_tt = tt_p;
         permutations = perm;
@@ -194,7 +194,7 @@ public:
     if ( best_multiplicity == UINT32_MAX )
       return -1;
 
-    pst->num_luts = ps.lut_size - free_set_size;
+    pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3 : best_multiplicity <= 8 ? 4 : 5;
     best_free_set = free_set_size;
 
     return 0;
@@ -845,10 +845,10 @@ private:
   void generate_support_minimization_encodings()
   {
     uint32_t count = 0;
-    uint32_t num_combs_exact[4] = { 2, 6, 70, 12870 };
+    uint32_t num_combs_exact[4] = { 1, 3, 35, 6435 };
 
     /* enable don't cares only if not a power of 2 */
-    uint32_t num_combs = 3;
+    uint32_t num_combs = 2;
     if ( __builtin_popcount( best_multiplicity ) == 1 )
     {
       for ( uint32_t i = 0; i < 4; ++i )
@@ -912,6 +912,12 @@ private:
     onset |= 1 << var;
     generate_support_minimization_encodings_rec<enable_dcset>( onset, offset, var + 1, count );
     onset &= ~( 1 << var );
+
+    /* remove symmetries */
+    if ( var == 0 )
+    {
+      return;
+    }
 
     /* move var in OFFSET */
     offset |= 1 << var;
@@ -1181,7 +1187,12 @@ private:
     assert( best_multiplicity <= 16 );
 
     /* determine the number of needed loops*/
-    if ( best_multiplicity <= 4 )
+    if ( best_multiplicity <= 2 )
+    {
+      res[4] = 1;
+      res[0] = 0;
+    }
+    else if ( best_multiplicity <= 4 )
     {
       res[4] = 2;
       for ( uint32_t i = 0; i < matrix.size() - 1; ++i )
