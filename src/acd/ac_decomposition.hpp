@@ -58,6 +58,9 @@ struct ac_decomposition_params
   /*! \brief LUT size for decomposition. */
   uint32_t lut_size{ 6 };
 
+  /*! \brief Perform decomposition if support reducing. */
+  uint32_t max_free_set_vars{ 4 };
+
   /*! \brief Maximum number of iterations for covering. */
   uint32_t max_iter{ 5000 };
 
@@ -88,14 +91,14 @@ class ac_decomposition_impl
 private:
   struct encoding_matrix
   {
-    uint64_t column;
+    uint64_t column[2];
     uint32_t cost{ 0 };
     uint32_t index{ 0 };
     float sort_cost{ 0 };
   };
 
 private:
-  static constexpr uint32_t max_num_vars = 9;
+  static constexpr uint32_t max_num_vars = 10;
   using STT = kitty::static_truth_table<max_num_vars>;
 
 public:
@@ -118,7 +121,7 @@ public:
     uint32_t late_arriving = __builtin_popcount( delay_profile );
 
     /* return a high cost if too many late arriving variables */
-    if ( late_arriving > ps.lut_size / 2 || late_arriving > 3 )
+    if ( late_arriving > ps.lut_size - 1 || late_arriving > ps.max_free_set_vars )
     {
       return -1;
     }
@@ -150,15 +153,15 @@ public:
                   [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }
               };
 
-    for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= 3; ++i )
+    for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
     {
       /* TODO: add shared set */
       auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, offset, column_multiplicity_fn[i - 1] );
 
       /* additional cost if not support reducing */
       uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
-      /* check for feasible solution that improves the cost */ /* TODO: remove limit on cost */
-      if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost < 12 )
+      /* check for feasible solution that improves the cost */
+      if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost <= 16 )
       {
         best_tt = tt_p;
         permutations = perm;
@@ -180,15 +183,15 @@ public:
         start = std::max( 1u, num_vars - ps.lut_size );
       }
 
-      for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= 3; ++i )
+      for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
       {
         /* TODO: add shared set */
         auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, 0, column_multiplicity_fn[i - 1] );
 
         /* additional cost if not support reducing */
         uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
-        /* check for feasible solution that improves the cost */ /* TODO: remove limit on cost */
-        if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost < 10 )
+        /* check for feasible solution that improves the cost */
+        if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost <= 16 )
         {
           best_tt = tt_p;
           permutations = perm;
@@ -220,7 +223,7 @@ public:
     generate_support_minimization_encodings();
 
     /* always solves exactly for power of 2 */
-    if ( __builtin_popcount( best_multiplicity ) == 1 )
+    if ( __builtin_popcount( best_multiplicity ) == 1 && best_multiplicity <= 8 )
       solve_min_support_exact( isets, best_free_set );
     else
       solve_min_support_heuristic( isets, best_free_set );
@@ -876,9 +879,8 @@ private:
   template<bool UseHeuristic = false>
   bool create_covering_matrix( std::vector<STT> const& isets, std::vector<encoding_matrix>& matrix, uint32_t free_set_size, bool sort )
   {
-    assert( best_multiplicity < 12 );
+    assert( best_multiplicity <= 16 );
     uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
-    uint64_t sol_existance = 0;
     uint32_t iset_support = num_vars - free_set_size;
 
     /* insert dichotomies */
@@ -897,7 +899,7 @@ private:
       }
 
       /* compute function and distinguishable seed dichotomies */
-      uint64_t column = 0;
+      uint64_t column[2] = { 0, 0 };
       STT tt;
       STT care;
       uint32_t pair_pointer = 0;
@@ -921,7 +923,7 @@ private:
           /* if is are in diffent sets */
           if ( ( ( ( onset_shift & ( offset >> k ) ) | ( ( onset >> k ) & offset_shift ) ) & 1 ) )
           {
-            column |= UINT64_C( 1 ) << ( pair_pointer );
+            column[pair_pointer >> 6u] |= UINT64_C( 1 ) << ( pair_pointer & 0x3F );
           }
 
           ++pair_pointer;
@@ -949,17 +951,15 @@ private:
       float sort_cost = 0;
       if constexpr ( UseHeuristic )
       {
-        sort_cost = 1.0f / ( __builtin_popcountl( column ) );
+        sort_cost = 1.0f / ( __builtin_popcountl( column[0] ) + __builtin_popcountl( column[1] ) );
       }
       else
       {
-        sort_cost = cost + ( ( combinations - __builtin_popcountl( column ) ) << num_vars );
+        sort_cost = cost + ( ( combinations - __builtin_popcountl( column[0] + __builtin_popcountl( column[1] ) ) ) << num_vars );
       }
 
       /* insert */
-      matrix.emplace_back( encoding_matrix{ column, cost, i, sort_cost } );
-
-      sol_existance |= column;
+      matrix.emplace_back( encoding_matrix{ { column[0], column[1] }, cost, i, sort_cost } );
     }
 
     if ( !sort )
@@ -1013,7 +1013,7 @@ private:
             continue;
 
           /* check validity */
-          if ( __builtin_popcountl( matrix[i].column | matrix[j].column ) == combinations )
+          if ( __builtin_popcountl( matrix[i].column[0] | matrix[j].column[0] ) + __builtin_popcountl( matrix[i].column[1] | matrix[j].column[1] ) == combinations )
           {
             res[0] = i;
             res[1] = j;
@@ -1045,7 +1045,8 @@ private:
 
         for ( uint32_t j = 1; j < matrix.size() - 1 && looping; ++j )
         {
-          uint64_t current_columns = matrix[i].column | matrix[j].column;
+          uint64_t current_columns0 = matrix[i].column[0] | matrix[j].column[0];
+          uint64_t current_columns1 = matrix[i].column[1] | matrix[j].column[1];
           uint32_t current_cost = matrix[i].cost + matrix[j].cost;
 
           /* limit */
@@ -1093,7 +1094,7 @@ private:
               continue;
 
             /* check validity */
-            if ( __builtin_popcountl( current_columns | matrix[k].column ) == combinations )
+            if ( __builtin_popcountl( current_columns0 | matrix[k].column[0] ) + __builtin_popcountl( current_columns1 | matrix[k].column[1] ) == combinations )
             {
               res[0] = i;
               res[1] = j;
@@ -1127,7 +1128,8 @@ private:
 
         for ( uint32_t j = 1; j < matrix.size() - 2 && looping; ++j )
         {
-          uint64_t current_columns0 = matrix[i].column | matrix[j].column;
+          uint64_t current_columns0 = matrix[i].column[0] | matrix[j].column[0];
+          uint64_t current_columns1 = matrix[i].column[1] | matrix[j].column[1];
           uint32_t current_cost0 = matrix[i].cost + matrix[j].cost;
 
           /* limit */
@@ -1154,7 +1156,8 @@ private:
 
           for ( uint32_t k = 2; k < matrix.size() - 1 && looping; ++k )
           {
-            uint64_t current_columns1 = current_columns0 | matrix[k].column;
+            uint64_t current_columns00 = current_columns0 | matrix[k].column[0];
+            uint64_t current_columns11 = current_columns1 | matrix[k].column[1];
             uint32_t current_cost1 = current_cost0 + matrix[k].cost;
 
             /* limit */
@@ -1202,7 +1205,7 @@ private:
                 continue;
 
               /* check validity */
-              if ( __builtin_popcountl( current_columns1 | matrix[t].column ) == combinations )
+              if ( __builtin_popcountl( current_columns00 | matrix[t].column[0] ) + __builtin_popcountl( current_columns11 | matrix[t].column[1] ) == combinations )
               {
                 res[0] = i;
                 res[1] = j;
@@ -1224,7 +1227,7 @@ private:
     /* last value of res contains the size of the bound set */
     std::array<uint32_t, 5> res = { UINT32_MAX };
     uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
-    uint64_t column = 0;
+    uint64_t column0 = 0, column1 = 0;
 
     uint32_t best = 0;
     float best_cost = std::numeric_limits<float>::max();
@@ -1238,20 +1241,21 @@ private:
     }
 
     /* select */
-    column = matrix[best].column;
+    column0 = matrix[best].column[0];
+    column1 = matrix[best].column[1];
     std::swap( matrix[0], matrix[best] );
 
     /* get max number of BS's */
     uint32_t iter = 1;
 
-    while ( iter < ps.lut_size - best_free_set && __builtin_popcountl( column ) != combinations )
+    while ( iter < ps.lut_size - best_free_set && __builtin_popcountl( column0 ) + __builtin_popcountl( column1 ) != combinations )
     {
       /* select column that minimizes the cost */
       best = 0;
       best_cost = std::numeric_limits<float>::max();
       for ( uint32_t i = iter; i < matrix.size(); ++i )
       {
-        float local_cost = 1.0f / __builtin_popcountl( matrix[i].column & ~column );
+        float local_cost = 1.0f / ( __builtin_popcountl( matrix[i].column[0] & ~column0 ) + __builtin_popcountl( matrix[i].column[1] & ~column1 ) );
         if ( local_cost < best_cost )
         {
           best = i;
@@ -1259,12 +1263,13 @@ private:
         }
       }
 
-      column |= matrix[best].column;
+      column0 |= matrix[best].column[0];
+      column1 |= matrix[best].column[1];
       std::swap( matrix[iter], matrix[best] );
       ++iter;
     }
 
-    if ( __builtin_popcountl( column ) == combinations )
+    if ( __builtin_popcountl( column0 ) + __builtin_popcountl( column1 ) == combinations )
     {
       for ( uint32_t i = 0; i < iter; ++i )
       {
@@ -1290,24 +1295,26 @@ private:
       best_cost += matrix[solution[i]].cost;
     }
 
-    uint64_t column;
+    uint64_t column0, column1;
     for ( uint32_t i = 0; i < num_elements; ++i )
     {
       /* remove element i */
       local_cost = 0;
-      column = 0;
+      column0 = 0;
+      column1 = 0;
       for ( uint32_t j = 0; j < num_elements; ++j )
       {
         if ( j == i )
           continue;
         local_cost += matrix[solution[j]].cost;
-        column |= matrix[solution[j]].column;
+        column0 |= matrix[solution[j]].column[0];
+        column1 |= matrix[solution[j]].column[1];
       }
 
       /* search for a better replecemnts */
       for ( uint32_t j = 0; j < matrix.size(); ++j )
       {
-        if ( __builtin_popcount( column | matrix[j].column ) != combinations )
+        if ( __builtin_popcount( column0 | matrix[j].column[0] ) + __builtin_popcount( column1 | matrix[j].column[1] ) != combinations )
           continue;
         if ( local_cost + matrix[j].cost < best_cost )
         {
