@@ -39,6 +39,7 @@
 #include <cstdint>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "kitty_constants.hpp"
@@ -141,11 +142,16 @@ public:
       start = std::max( start, num_vars - ps.lut_size );
     }
 
+    std::function<uint32_t( STT const& tt )> column_multiplicity_fn[3] = {
+                  [this]( STT const& tt ) { return column_multiplicity<1u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity<2u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); }
+              };
+
     for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= 3; ++i )
     {
       /* TODO: add shared set */
-      auto evaluate_fn = [&]( STT const& tt ) { return column_multiplicity( tt, i ); };
-      auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, offset, evaluate_fn );
+      auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, offset, column_multiplicity_fn[i - 1] );
 
       /* additional cost if not support reducing */
       uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
@@ -175,8 +181,7 @@ public:
       for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= 3; ++i )
       {
         /* TODO: add shared set */
-        auto evaluate_fn = [&]( STT const& tt ) { return column_multiplicity( tt, i ); };
-        auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, 0, evaluate_fn );
+        auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, 0, column_multiplicity_fn[i - 1] );
 
         /* additional cost if not support reducing */
         uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
@@ -262,59 +267,33 @@ public:
   }
 
 private:
-  uint32_t column_multiplicity( STT tt, uint32_t free_set_size )
+  template<uint32_t free_set_size>
+  uint32_t column_multiplicity( STT tt )
   {
     uint64_t multiplicity_set[4] = { 0u, 0u, 0u, 0u };
     uint32_t multiplicity = 0;
     uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+    uint64_t constexpr masks_bits[] = { 0x0, 0x3, 0xF, 0x3F };
+    uint64_t constexpr masks_idx[] = { 0x0, 0x0, 0x0, 0x3 };
 
     /* supports up to 64 values of free set (256 for |FS| == 3)*/
     assert( free_set_size <= 3 );
 
     /* extract iset functions */
-    if ( free_set_size == 1 )
+    auto it = std::begin( tt );
+    for ( auto i = 0u; i < num_blocks; ++i )
     {
-      auto it = std::begin( tt );
-      for ( auto i = 0u; i < num_blocks; ++i )
+      for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        for ( auto j = 0; j < 32; ++j )
-        {
-          multiplicity_set[0] |= UINT64_C( 1 ) << ( *it & 0x3 );
-          *it >>= 2;
-        }
-        ++it;
+        multiplicity_set[( *it >> 6 ) & masks_idx[free_set_size]] |= UINT64_C( 1 ) << ( *it & masks_bits[free_set_size] );
+        *it >>= ( 1u << free_set_size );
       }
-    }
-    else if ( free_set_size == 2 )
-    {
-      auto it = std::begin( tt );
-      for ( auto i = 0u; i < num_blocks; ++i )
-      {
-        for ( auto j = 0; j < 16; ++j )
-        {
-          multiplicity_set[0] |= UINT64_C( 1 ) << ( *it & 0xF );
-          *it >>= 4;
-        }
-        ++it;
-      }
-    }
-    else /* free set size 3 */
-    {
-      auto it = std::begin( tt );
-      for ( auto i = 0u; i < num_blocks; ++i )
-      {
-        for ( auto j = 0; j < 8; ++j )
-        {
-          multiplicity_set[( *it >> 6 ) & 0x3] |= UINT64_C( 1 ) << ( *it & 0x3F );
-          *it >>= 8;
-        }
-        ++it;
-      }
+      ++it;
     }
 
     multiplicity = __builtin_popcountl( multiplicity_set[0] );
 
-    if ( free_set_size == 3 )
+    if constexpr ( free_set_size == 3 )
     {
       multiplicity += __builtin_popcountl( multiplicity_set[1] );
       multiplicity += __builtin_popcountl( multiplicity_set[2] );
@@ -323,6 +302,70 @@ private:
 
     return multiplicity;
   }
+
+  // uint32_t column_multiplicity2( STT tt, uint32_t free_set_size )
+  // {
+  //   uint64_t multiplicity_set[4] = { 0u, 0u, 0u, 0u };
+  //   uint32_t multiplicity = 0;
+  //   uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+
+  //   /* supports up to 64 values of free set (256 for |FS| == 3)*/
+  //   assert( free_set_size <= 5 );
+
+  //   std::unordered_set<uint64_t, uint32_t> column_to_iset;
+
+  //   /* extract iset functions */
+  //   if ( free_set_size == 1 )
+  //   {
+  //     auto it = std::begin( tt );
+  //     for ( auto i = 0u; i < num_blocks; ++i )
+  //     {
+  //       for ( auto j = 0; j < 32; ++j )
+  //       {
+  //         multiplicity_set[0] |= UINT64_C( 1 ) << ( *it & 0x3 );
+  //         *it >>= 2;
+  //       }
+  //       ++it;
+  //     }
+  //   }
+  //   else if ( free_set_size == 2 )
+  //   {
+  //     auto it = std::begin( tt );
+  //     for ( auto i = 0u; i < num_blocks; ++i )
+  //     {
+  //       for ( auto j = 0; j < 16; ++j )
+  //       {
+  //         multiplicity_set[0] |= UINT64_C( 1 ) << ( *it & 0xF );
+  //         *it >>= 4;
+  //       }
+  //       ++it;
+  //     }
+  //   }
+  //   else /* free set size 3 */
+  //   {
+  //     auto it = std::begin( tt );
+  //     for ( auto i = 0u; i < num_blocks; ++i )
+  //     {
+  //       for ( auto j = 0; j < 8; ++j )
+  //       {
+  //         multiplicity_set[( *it >> 6 ) & 0x3] |= UINT64_C( 1 ) << ( *it & 0x3F );
+  //         *it >>= 8;
+  //       }
+  //       ++it;
+  //     }
+  //   }
+
+  //   multiplicity = __builtin_popcountl( multiplicity_set[0] );
+
+  //   if ( free_set_size == 3 )
+  //   {
+  //     multiplicity += __builtin_popcountl( multiplicity_set[1] );
+  //     multiplicity += __builtin_popcountl( multiplicity_set[2] );
+  //     multiplicity += __builtin_popcountl( multiplicity_set[3] );
+  //   }
+
+  //   return multiplicity;
+  // }
 
   template<typename Fn>
   std::tuple<STT, std::vector<uint32_t>, uint32_t> enumerate_iset_combinations( uint32_t free_set_size, Fn&& fn, bool verbose = false )
