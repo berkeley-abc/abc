@@ -88,7 +88,7 @@ class ac_decomposition_impl
 private:
   struct encoding_matrix
   {
-    uint64_t column{ 0 };
+    uint64_t column;
     uint32_t cost{ 0 };
     uint32_t index{ 0 };
     float sort_cost{ 0 };
@@ -142,10 +142,12 @@ public:
       start = std::max( start, num_vars - ps.lut_size );
     }
 
-    std::function<uint32_t( STT const& tt )> column_multiplicity_fn[3] = {
+    std::function<uint32_t( STT const& tt )> column_multiplicity_fn[5] = {
                   [this]( STT const& tt ) { return column_multiplicity<1u>( tt ); },
                   [this]( STT const& tt ) { return column_multiplicity<2u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); }
+                  [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity4<4u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }
               };
 
     for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= 3; ++i )
@@ -277,7 +279,7 @@ private:
     uint64_t constexpr masks_idx[] = { 0x0, 0x0, 0x0, 0x3 };
 
     /* supports up to 64 values of free set (256 for |FS| == 3)*/
-    assert( free_set_size <= 3 );
+    static_assert( free_set_size <= 3 );
 
     /* extract iset functions */
     auto it = std::begin( tt );
@@ -303,69 +305,55 @@ private:
     return multiplicity;
   }
 
-  // uint32_t column_multiplicity2( STT tt, uint32_t free_set_size )
-  // {
-  //   uint64_t multiplicity_set[4] = { 0u, 0u, 0u, 0u };
-  //   uint32_t multiplicity = 0;
-  //   uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+  template<uint32_t free_set_size>
+  uint32_t column_multiplicity4( STT tt )
+  {
+    unsigned char multiplicity_set[1 << 16] = { 0 };
+    uint32_t multiplicity = 0;
+    uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+    uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF };
 
-  //   /* supports up to 64 values of free set (256 for |FS| == 3)*/
-  //   assert( free_set_size <= 5 );
+    static_assert( free_set_size <= 4 );
 
-  //   std::unordered_set<uint64_t, uint32_t> column_to_iset;
+    /* extract iset functions */
+    auto it = std::begin( tt );
+    for ( auto i = 0u; i < num_blocks; ++i )
+    {
+      for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
+      {
+        multiplicity += multiplicity_set[*it & masks[free_set_size]]++ == 0 ? 1 : 0;
+        *it >>= ( 1u << free_set_size );
+      }
+      ++it;
+    }
 
-  //   /* extract iset functions */
-  //   if ( free_set_size == 1 )
-  //   {
-  //     auto it = std::begin( tt );
-  //     for ( auto i = 0u; i < num_blocks; ++i )
-  //     {
-  //       for ( auto j = 0; j < 32; ++j )
-  //       {
-  //         multiplicity_set[0] |= UINT64_C( 1 ) << ( *it & 0x3 );
-  //         *it >>= 2;
-  //       }
-  //       ++it;
-  //     }
-  //   }
-  //   else if ( free_set_size == 2 )
-  //   {
-  //     auto it = std::begin( tt );
-  //     for ( auto i = 0u; i < num_blocks; ++i )
-  //     {
-  //       for ( auto j = 0; j < 16; ++j )
-  //       {
-  //         multiplicity_set[0] |= UINT64_C( 1 ) << ( *it & 0xF );
-  //         *it >>= 4;
-  //       }
-  //       ++it;
-  //     }
-  //   }
-  //   else /* free set size 3 */
-  //   {
-  //     auto it = std::begin( tt );
-  //     for ( auto i = 0u; i < num_blocks; ++i )
-  //     {
-  //       for ( auto j = 0; j < 8; ++j )
-  //       {
-  //         multiplicity_set[( *it >> 6 ) & 0x3] |= UINT64_C( 1 ) << ( *it & 0x3F );
-  //         *it >>= 8;
-  //       }
-  //       ++it;
-  //     }
-  //   }
+    return multiplicity;
+  }
 
-  //   multiplicity = __builtin_popcountl( multiplicity_set[0] );
+  template<uint32_t free_set_size>
+  uint32_t column_multiplicity5( STT tt )
+  {
+    uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+    uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
 
-  //   if ( free_set_size == 3 )
-  //   {
-  //     multiplicity += __builtin_popcountl( multiplicity_set[1] );
-  //     multiplicity += __builtin_popcountl( multiplicity_set[2] );
-  //     multiplicity += __builtin_popcountl( multiplicity_set[3] );
-  //   }
+    std::unordered_set<uint32_t> multiplicity_set;
 
-  //   return multiplicity;
-  // }
+    static_assert( free_set_size <= 5 );
+
+    /* extract iset functions */
+    auto it = std::begin( tt );
+    for ( auto i = 0u; i < num_blocks; ++i )
+    {
+      for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
+      {
+        multiplicity_set.insert( *it & masks[free_set_size] );
+        *it >>= ( 1u << free_set_size );
+      }
+      ++it;
+    }
+
+    return static_cast<uint32_t>( multiplicity_set.size() );
+  }
 
   inline bool combinations_offset_next( uint32_t k, uint32_t offset, uint32_t *pComb, uint32_t *pInvPerm, STT& tt )
   {
@@ -459,84 +447,30 @@ private:
     STT tt = best_tt;
     uint32_t offset = 0;
     uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+    uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
 
-    if ( free_set_size == 1 )
+    auto it = std::begin( tt );
+    for ( auto i = 0u; i < num_blocks; ++i )
     {
-      auto it = std::begin( tt );
-      for ( auto i = 0u; i < num_blocks; ++i )
+      for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        for ( auto j = 0; j < 32; ++j )
+        uint64_t val = *it & masks[free_set_size];
+
+        if ( auto el = column_to_iset.find( val ); el != column_to_iset.end() )
         {
-          uint64_t val = *it & 0x3;
-
-          if ( auto el = column_to_iset.find( val ); el != column_to_iset.end() )
-          {
-            isets[el->second]._bits[i / 2] |= UINT64_C( 1 ) << ( j + offset );
-          }
-          else
-          {
-            isets[column_to_iset.size()]._bits[i / 2] |= UINT64_C( 1 ) << ( j + offset );
-            column_to_iset[val] = column_to_iset.size();
-          }
-
-          *it >>= 2;
+          isets[el->second]._bits[i / ( 1u << free_set_size )] |= UINT64_C( 1 ) << ( j + offset );
+        }
+        else
+        {
+          isets[column_to_iset.size()]._bits[i / ( 1u << free_set_size )] |= UINT64_C( 1 ) << ( j + offset );
+          column_to_iset[val] = column_to_iset.size();
         }
 
-        offset ^= 32;
-        ++it;
+        *it >>= ( 1u << free_set_size );
       }
-    }
-    else if ( free_set_size == 2 )
-    {
-      auto it = std::begin( tt );
-      for ( auto i = 0u; i < num_blocks; ++i )
-      {
-        for ( auto j = 0; j < 16; ++j )
-        {
-          uint64_t val = *it & 0xF;
 
-          if ( auto el = column_to_iset.find( val ); el != column_to_iset.end() )
-          {
-            isets[el->second]._bits[i / 4] |= UINT64_C( 1 ) << ( j + offset );
-          }
-          else
-          {
-            isets[column_to_iset.size()]._bits[i / 4] |= UINT64_C( 1 ) << ( j + offset );
-            column_to_iset[val] = column_to_iset.size();
-          }
-
-          *it >>= 4;
-        }
-
-        offset = ( offset + 16 ) % 64;
-        ++it;
-      }
-    }
-    else /* free set size 3 */
-    {
-      auto it = std::begin( tt );
-      for ( auto i = 0u; i < num_blocks; ++i )
-      {
-        for ( auto j = 0; j < 8; ++j )
-        {
-          uint64_t val = *it & 0xFF;
-
-          if ( auto el = column_to_iset.find( val ); el != column_to_iset.end() )
-          {
-            isets[el->second]._bits[i / 8] |= UINT64_C( 1 ) << ( j + offset );
-          }
-          else
-          {
-            isets[column_to_iset.size()]._bits[i / 8] |= UINT64_C( 1 ) << ( j + offset );
-            column_to_iset[val] = column_to_iset.size();
-          }
-
-          *it >>= 8;
-        }
-
-        offset = ( offset + 8 ) % 64;
-        ++it;
-      }
+      offset = ( offset + ( 64 >> free_set_size ) ) % 64;
+      ++it;
     }
 
     /* extend isets to cover the whole truth table */
