@@ -59,13 +59,16 @@ struct ac_decomposition_params
   uint32_t lut_size{ 6 };
 
   /*! \brief Perform decomposition if support reducing. */
-  uint32_t max_free_set_vars{ 4 };
+  uint32_t max_free_set_vars{ 5 };
 
   /*! \brief Maximum number of iterations for covering. */
   uint32_t max_iter{ 5000 };
 
   /*! \brief Perform decomposition if support reducing. */
   bool support_reducing_only{ true };
+
+  /*! \brief Commits the first feasible decomposition. */
+  bool exit_of_feasible_decomposition{ true };
 
   /*! \brief If decomposition with delay profile fails, ignore it. */
   bool try_no_late_arrival{ false };
@@ -98,7 +101,7 @@ private:
   };
 
 private:
-  static constexpr uint32_t max_num_vars = 10;
+  static constexpr uint32_t max_num_vars = 8;
   using STT = kitty::static_truth_table<max_num_vars>;
 
 public:
@@ -149,8 +152,8 @@ public:
                   [this]( STT const& tt ) { return column_multiplicity<1u>( tt ); },
                   [this]( STT const& tt ) { return column_multiplicity<2u>( tt ); },
                   [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity4<4u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }
+                  [this]( STT const& tt ) { return column_multiplicity5<4u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }  // slow, do not use
               };
 
     for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
@@ -168,6 +171,11 @@ public:
         best_multiplicity = cost;
         best_cost = cost + additional_cost;
         free_set_size = i;
+
+        if ( ps.exit_of_feasible_decomposition )
+        {
+          break;
+        }
       }
     }
 
@@ -198,6 +206,11 @@ public:
           best_multiplicity = cost;
           best_cost = cost + additional_cost;
           free_set_size = i;
+
+          if ( ps.exit_of_feasible_decomposition )
+          {
+            break;
+          }
         }
       }
     }
@@ -339,9 +352,10 @@ private:
     uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
     uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
 
-    std::unordered_set<uint32_t> multiplicity_set;
+    static_assert( free_set_size == 5 || free_set_size == 4 );
 
-    static_assert( free_set_size <= 5 );
+    uint32_t size = 0;
+    std::array<uint32_t, 64> multiplicity_set;
 
     /* extract iset functions */
     auto it = std::begin( tt );
@@ -349,13 +363,22 @@ private:
     {
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        multiplicity_set.insert( *it & masks[free_set_size] );
+        multiplicity_set[size++] = static_cast<uint32_t>( *it & masks[free_set_size] );
         *it >>= ( 1u << free_set_size );
       }
       ++it;
     }
 
-    return static_cast<uint32_t>( multiplicity_set.size() );
+    std::sort( multiplicity_set.begin(), multiplicity_set.begin() + size );
+    
+    /* count unique */
+    uint32_t multiplicity = 1;
+    for ( auto i = 1u; i < size; ++i )
+    {
+      multiplicity += multiplicity_set[i] != multiplicity_set[i - 1] ? 1 : 0;
+    }
+
+    return multiplicity;
   }
 
   inline bool combinations_offset_next( uint32_t k, uint32_t offset, uint32_t *pComb, uint32_t *pInvPerm, STT& tt )
