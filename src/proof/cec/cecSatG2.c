@@ -1882,8 +1882,46 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
             if ( pRepr == NULL )
                 continue;
         }
+        int lit_obj = Gia_ObjId( p, pObj ) << 1;
+        int lit_repr = Gia_ObjId( p, pRepr ) << 1;
+
         if ( Abc_Lit2Var(pObj->Value) == Abc_Lit2Var(pRepr->Value) )
         {
+            // printf( "*node %d (%d) merged into node %d (%d)\n", lit_obj >> 1, Vec_IntEntry( vLitBmiter, lit_obj ), lit_repr >> 1, Vec_IntEntry( vLitBmiter, lit_repr) );
+            if ( Vec_IntEntry( vLitBmiter, lit_repr ) == 3 )
+            {
+                switch ( Vec_IntEntry( vLitBmiter, lit_obj ) )
+                {
+                    case 1:
+                    case 4:
+                        Vec_IntUpdateEntry( vLitBmiter, lit_repr, 4 );
+                        break;
+                    case 2:
+                    case 5:
+                        Vec_IntUpdateEntry( vLitBmiter, lit_repr, 5 );
+                        break;
+                    default:
+                        break;
+                }
+            }
+            else 
+            {
+                if ( Vec_IntEntry(vLitBmiter, lit_obj ) == 3 ) 
+                    switch ( Vec_IntEntry( vLitBmiter, lit_repr ) )
+                    {
+                        case 1:
+                        case 4:
+                            Vec_IntUpdateEntry( vLitBmiter, lit_obj, 4 );
+                            break;
+                        case 2:
+                        case 5:
+                            Vec_IntUpdateEntry( vLitBmiter, lit_obj, 5 );
+                            break;
+                        default:
+                            break;
+
+                    }
+            }
             assert( (pObj->Value ^ pRepr->Value) == (pObj->fPhase ^ pRepr->fPhase) );
             Gia_ObjSetProved( p, i );
             if ( Gia_ObjId(p, pRepr) == 0 )
@@ -1893,17 +1931,18 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         if ( Cec4_ManSweepNode(pMan, i, Gia_ObjId(p, pRepr)) && Gia_ObjProved(p, i) )
         {
             if (pPars->fBMiterInfo){
-                if ( Vec_IntEntry( vLitBmiter, pRepr->Value ) == 3 )
+                // printf( "node %d (%d) merged into node %d (%d)\n", lit_obj, Vec_IntEntry( vLitBmiter, lit_obj ), lit_repr, Vec_IntEntry( vLitBmiter, lit_repr ) );
+                if ( Vec_IntEntry( vLitBmiter, lit_repr ) == 3 )
                 {
-                    switch ( Vec_IntEntry( vLitBmiter, pObj -> Value ) )
+                    switch ( Vec_IntEntry( vLitBmiter, lit_obj ) )
                     {
                         case 1:
                         case 4:
-                            Vec_IntUpdateEntry( vLitBmiter, pRepr->Value, 4 );
+                            Vec_IntUpdateEntry( vLitBmiter, lit_repr, 4 );
                             break;
                         case 2:
                         case 5:
-                            Vec_IntUpdateEntry( vLitBmiter, pRepr->Value, 5 );
+                            Vec_IntUpdateEntry( vLitBmiter, lit_repr, 5 );
                             break;
                         default:
                             break;
@@ -1911,16 +1950,16 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
                 }
                 else 
                 {
-                    if ( Vec_IntEntry(vLitBmiter, pObj->Value ) == 3 ) 
-                        switch ( Vec_IntEntry( vLitBmiter, pRepr -> Value ) )
+                    if ( Vec_IntEntry(vLitBmiter, lit_obj ) == 3 ) 
+                        switch ( Vec_IntEntry( vLitBmiter, lit_repr ) )
                         {
                             case 1:
                             case 4:
-                                Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 4 );
+                                Vec_IntUpdateEntry( vLitBmiter, lit_obj, 4 );
                                 break;
                             case 2:
                             case 5:
-                                Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 5 );
+                                Vec_IntUpdateEntry( vLitBmiter, lit_obj, 5 );
                                 break;
                             default:
                                 break;
@@ -1998,7 +2037,7 @@ Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
                 break;
             }
         }
-        printf("category %d %d %d %d %d\n", c1, c2, c3+c4+c5, c4, c5);
+        printf("(fraig) impl: eq_fanin: %d / eq_fanout: %d / total: %d\n", c4, c5, c3+c4+c5);
     }
     return pNew;
 }

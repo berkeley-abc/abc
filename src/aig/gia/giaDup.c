@@ -5703,8 +5703,9 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
         pObj->Value = Gia_ManCi(p2, i)->Value = Gia_ManAppendCi( pNew );
 
     // TODO: record the corresponding impl node of each lit
-    vLitBmiter = Vec_IntAlloc( Gia_ManObjNum(p2) );
-    Vec_IntFill( vLitBmiter, Gia_ManObjNum(p2) + Gia_ManObjNum(p1), 0 );
+    vLitBmiter = Vec_IntAlloc( (Gia_ManObjNum(p2) + Gia_ManObjNum(p1)) * 2 );
+    Vec_IntFill( vLitBmiter, (Gia_ManObjNum(p2) + Gia_ManObjNum(p1)) * 2, 0 );
+    printf( "allocated size: %d\n", Vec_IntSize(vLitBmiter) );
 
     Gia_ManForEachAnd( p2, pObj, i )
     {
@@ -5776,7 +5777,7 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
 
     Gia_ManStaticFanoutStop( p1 );
 
-    printf( "category %d %d %d\n", c1, c2, Gia_ManObjNum(p1) );
+    printf( "spec: fanin: %d / fanout: %d / total %d\n", c1, c2, Gia_ManObjNum(p1) );
 
 
     // TODO: record hashed equivalent nodes
@@ -5798,17 +5799,30 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
             Vec_IntPush( vLits, pObj->Value );
     }
 
-    // int e;
-    // Vec_IntForEachEntry( vLitBmiter, e, i )
-    // {
-    //     printf( "%d ", e );
-    // }
-    // printf("\n");
+
+    int e, c3=0, c4=0, c5=0;
+    c1 = 0; c2 = 0;
+
+    Vec_IntForEachEntry( vLitBmiter, e, i )
+    {
+        if ( i%2 ) continue;
+        switch (e)
+        {
+        case 1: c1++; break;
+        case 2: c2++; break;
+        case 3: c3++; break;
+        case 4: c4++; break;
+        case 5: c5++; break;
+        default:
+            break;
+        }
+    }
+    printf("(strash) impl: eq_fanin: %d / eq_fanout: %d / total: %d\n", c4, c5, c3+c4+c5);
 
     Gia_ManForEachCo( p2, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    //Gia_ManForEachCo( p1, pObj, i )
-    //    Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachCo( p1, pObj, i )
+       Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Vec_IntForEachEntry( vLits, iLit, i )
         Gia_ManAppendCo( pNew, iLit );
     Vec_IntFree( vLits );
