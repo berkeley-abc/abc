@@ -101,7 +101,7 @@ private:
   };
 
 private:
-  static constexpr uint32_t max_num_vars = 8;
+  static constexpr uint32_t max_num_vars = 10;
   using STT = kitty::static_truth_table<max_num_vars>;
 
 public:
@@ -153,7 +153,7 @@ public:
                   [this]( STT const& tt ) { return column_multiplicity<2u>( tt ); },
                   [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); },
                   [this]( STT const& tt ) { return column_multiplicity5<4u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }  // slow, do not use
+                  [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }
               };
 
     for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
@@ -290,7 +290,7 @@ private:
   {
     uint64_t multiplicity_set[4] = { 0u, 0u, 0u, 0u };
     uint32_t multiplicity = 0;
-    uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+    uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
     uint64_t constexpr masks_bits[] = { 0x0, 0x3, 0xF, 0x3F };
     uint64_t constexpr masks_idx[] = { 0x0, 0x0, 0x0, 0x3 };
 
@@ -322,39 +322,15 @@ private:
   }
 
   template<uint32_t free_set_size>
-  uint32_t column_multiplicity4( STT tt )
-  {
-    unsigned char multiplicity_set[1 << 16] = { 0 };
-    uint32_t multiplicity = 0;
-    uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
-    uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF };
-
-    static_assert( free_set_size <= 4 );
-
-    /* extract iset functions */
-    auto it = std::begin( tt );
-    for ( auto i = 0u; i < num_blocks; ++i )
-    {
-      for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
-      {
-        multiplicity += multiplicity_set[*it & masks[free_set_size]]++ == 0 ? 1 : 0;
-        *it >>= ( 1u << free_set_size );
-      }
-      ++it;
-    }
-
-    return multiplicity;
-  }
-
-  template<uint32_t free_set_size>
   uint32_t column_multiplicity5( STT tt )
   {
-    uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+    uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
     uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
 
     static_assert( free_set_size == 5 || free_set_size == 4 );
 
     uint32_t size = 0;
+    uint64_t prev = -1;
     std::array<uint32_t, 64> multiplicity_set;
 
     /* extract iset functions */
@@ -363,7 +339,12 @@ private:
     {
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        multiplicity_set[size++] = static_cast<uint32_t>( *it & masks[free_set_size] );
+        uint32_t fs_fn = static_cast<uint32_t>( *it & masks[free_set_size] );
+        if ( fs_fn != prev )
+        {
+          multiplicity_set[size++] = fs_fn;
+          prev = fs_fn;
+        }
         *it >>= ( 1u << free_set_size );
       }
       ++it;
