@@ -44,10 +44,10 @@
 
 #include "kitty_constants.hpp"
 #include "kitty_constructors.hpp"
-#include "kitty_static_tt.hpp"
 #include "kitty_dynamic_tt.hpp"
 #include "kitty_operations.hpp"
 #include "kitty_operators.hpp"
+#include "kitty_static_tt.hpp"
 
 namespace mockturtle
 {
@@ -55,19 +55,19 @@ namespace mockturtle
 /*! \brief Parameters for ac_decomposition */
 struct ac_decomposition_params
 {
-  /*! \brief LUT size for decomposition. */
+  /*! \brief LUT size for decomposition (3 < num < 7). */
   uint32_t lut_size{ 6 };
 
-  /*! \brief Perform decomposition if support reducing. */
-  uint32_t max_free_set_vars{ 5 };
+  /*! \brief Maximum size of the free set (1 < num < 6). */
+  uint32_t max_free_set_vars{ 4 };
 
-  /*! \brief Perform decomposition if support reducing. */
+  /*! \brief Perform only support reducing (2-level) decompositions. */
   bool support_reducing_only{ true };
 
-  /*! \brief Commits the first feasible decomposition. */
-  bool exit_on_feasible_decomposition{ true };
+  /*! \brief Use the first feasible decomposition found. */
+  bool use_first{ true };
 
-  /*! \brief If decomposition with delay profile fails, ignore it. */
+  /*! \brief If decomposition with delay profile fails, try without. */
   bool try_no_late_arrival{ false };
 };
 
@@ -108,7 +108,7 @@ public:
   }
 
   /*! \brief Runs ACD using late arriving variables */
-  int run( word *tt, unsigned delay_profile )
+  int run( word* ptt, unsigned delay_profile )
   {
     /* truth table is too large for the settings */
     if ( num_vars > max_num_vars )
@@ -125,7 +125,7 @@ public:
     }
 
     /* convert to static TT */
-    init_truth_table( tt );
+    init_truth_table( ptt );
 
     /* permute late arriving variables to be the least significant */
     reposition_late_arriving_variables( delay_profile, late_arriving );
@@ -142,7 +142,7 @@ public:
 
   int compute_decomposition()
   {
-     if ( best_multiplicity == UINT32_MAX )
+    if ( best_multiplicity == UINT32_MAX )
       return -1;
 
     /* compute isets */
@@ -168,7 +168,7 @@ public:
 
     if ( best_free_set > num_vars )
       return -1;
-    
+
     for ( uint32_t i = 0; i < best_free_set; ++i )
     {
       profile |= 1 << permutations[i];
@@ -177,17 +177,12 @@ public:
     return profile;
   }
 
-  std::vector<ac_decomposition_result> get_result()
-  {
-    return dec_result;
-  }
-
-  void get_decomposition( unsigned char *decompArray )
+  void get_decomposition( unsigned char* decompArray )
   {
     if ( best_free_set > num_vars )
       return;
 
-    dec_result = generate_decomposition( best_free_set );
+    generate_decomposition();
     return get_decomposition_abc( decompArray );
   }
 
@@ -208,12 +203,11 @@ private:
 
     /* array of functions to compute the column multiplicity */
     std::function<uint32_t( STT const& tt )> column_multiplicity_fn[5] = {
-                  [this]( STT const& tt ) { return column_multiplicity<1u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity<2u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity5<4u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }
-              };
+        [this]( STT const& tt ) { return column_multiplicity<1u>( tt ); },
+        [this]( STT const& tt ) { return column_multiplicity<2u>( tt ); },
+        [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); },
+        [this]( STT const& tt ) { return column_multiplicity5<4u>( tt ); },
+        [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); } };
 
     /* find a feasible AC decomposition */
     for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
@@ -232,7 +226,7 @@ private:
         best_cost = multiplicity + additional_cost;
         best_free_set = i;
 
-        if ( ps.exit_on_feasible_decomposition )
+        if ( ps.use_first )
         {
           break;
         }
@@ -267,7 +261,7 @@ private:
           best_cost = multiplicity + additional_cost;
           best_free_set = i;
 
-          if ( ps.exit_on_feasible_decomposition )
+          if ( ps.use_first )
           {
             break;
           }
@@ -279,18 +273,20 @@ private:
       return false;
 
     /* estimation on number of LUTs */
-    pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3 : best_multiplicity <= 8 ? 4 : 5;
+    pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3
+                                               : best_multiplicity <= 8 ? 4
+                                                                        : 5;
 
     return true;
   }
 
-  void init_truth_table( word *tt_start )
+  void init_truth_table( word* ptt )
   {
     uint32_t const num_blocks = ( num_vars <= 6 ) ? 1 : ( 1 << ( num_vars - 6 ) );
 
     for ( uint32_t i = 0; i < num_blocks; ++i )
     {
-      best_tt._bits[i] = tt_start[i];
+      best_tt._bits[i] = ptt[i];
     }
 
     local_extend_to( best_tt, num_vars );
@@ -362,7 +358,7 @@ private:
     }
 
     std::sort( multiplicity_set.begin(), multiplicity_set.begin() + size );
-    
+
     /* count unique */
     uint32_t multiplicity = 1;
     for ( auto i = 1u; i < size; ++i )
@@ -373,7 +369,7 @@ private:
     return multiplicity;
   }
 
-  inline bool combinations_offset_next( uint32_t k, uint32_t offset, uint32_t *pComb, uint32_t *pInvPerm, STT& tt )
+  inline bool combinations_offset_next( uint32_t k, uint32_t offset, uint32_t* pComb, uint32_t* pInvPerm, STT& tt )
   {
     uint32_t i;
 
@@ -443,7 +439,7 @@ private:
           bestPerm[i] = pComb[i];
         }
       }
-    } while( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
+    } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
     std::array<uint32_t, max_num_vars> res_perm;
     for ( uint32_t i = 0; i < num_vars; ++i )
@@ -525,10 +521,11 @@ private:
     return isets;
   }
 
-  std::vector<ac_decomposition_result> generate_decomposition( uint32_t free_set_size )
+  void generate_decomposition()
   {
-    std::vector<ac_decomposition_result> res;
+    dec_result.clear();
 
+    uint32_t num_edges = 0;
     for ( uint32_t i = 0; i < best_bound_sets.size(); ++i )
     {
       ac_decomposition_result dec;
@@ -537,7 +534,7 @@ private:
 
       /* compute and minimize support for bound set variables */
       uint32_t k = 0;
-      for ( uint32_t j = 0; j < num_vars - free_set_size; ++j )
+      for ( uint32_t j = 0; j < num_vars - best_free_set; ++j )
       {
         if ( !kitty::has_var( tt, j ) )
           continue;
@@ -554,59 +551,64 @@ private:
           kitty::swap_inplace( tt, k, j );
           kitty::swap_inplace( care, k, j );
         }
-        dec.support.push_back( permutations[free_set_size + j] );
+        dec.support.push_back( permutations[best_free_set + j] );
         ++k;
       }
 
       dec.tt = kitty::shrink_to( tt, dec.support.size() );
-      res.push_back( dec );
+      dec_result.push_back( dec );
+      num_edges += dec.support.size() > 1 ? dec.support.size() : 0;
     }
 
     /* compute the decomposition for the top-level LUT */
-    compute_top_lut_decomposition( res, free_set_size );
+    compute_top_lut_decomposition();
 
-    return res;
+    if ( pst )
+    {
+      pst->num_luts = dec_result.size();
+      pst->num_edges = num_edges + dec_result.back().support.size();
+    }
   }
 
-  void compute_top_lut_decomposition( std::vector<ac_decomposition_result>& res, uint32_t free_set_size )
+  void compute_top_lut_decomposition()
   {
-    uint32_t top_vars = best_bound_sets.size() + free_set_size;
+    uint32_t top_vars = best_bound_sets.size() + best_free_set;
     assert( top_vars <= ps.lut_size );
 
     /* extend bound set functions with free_set_size LSB vars */
     kitty::dynamic_truth_table tt( top_vars );
 
     /* compute support */
-    res.emplace_back();
-    for ( uint32_t i = 0; i < free_set_size; ++i )
+    dec_result.emplace_back();
+    for ( uint32_t i = 0; i < best_free_set; ++i )
     {
-      res.back().support.push_back( permutations[i] );
+      dec_result.back().support.push_back( permutations[i] );
     }
 
     /* create functions for bound set */
     std::vector<kitty::dynamic_truth_table> bound_set_vars;
-    auto res_it = res.begin();
+    auto res_it = dec_result.begin();
     uint32_t offset = 0;
     for ( uint32_t i = 0; i < best_bound_sets.size(); ++i )
     {
       bound_set_vars.emplace_back( top_vars );
-      kitty::create_nth_var( bound_set_vars[i], free_set_size + i );
+      kitty::create_nth_var( bound_set_vars[i], best_free_set + i );
 
-      /* add bound-set variables to the support, remove buffers */
+      /* add bound-set variables to the support, remove buffers (shared set) */
       if ( res_it->support.size() == 1 )
       {
-        res.back().support.push_back( res_it->support.front() );
+        dec_result.back().support.push_back( res_it->support.front() );
         /* it is a NOT */
         if ( ( res_it->tt._bits[0] & 1 ) == 1 )
         {
           bound_set_vars[i] = ~bound_set_vars[i];
         }
-        res.erase( res_it );
+        dec_result.erase( res_it );
         ++offset;
       }
       else
       {
-        res.back().support.push_back( num_vars + i - offset );
+        dec_result.back().support.push_back( num_vars + i - offset );
         ++res_it;
       }
     }
@@ -634,7 +636,7 @@ private:
     }
 
     /* add top-level LUT to result */
-    res.back().tt = tt;
+    dec_result.back().tt = tt;
   }
 
   inline void reposition_late_arriving_variables( unsigned delay_profile, uint32_t late_arriving )
@@ -704,14 +706,6 @@ private:
     }
 
     assert( count == num_combs );
-
-    /* print combinations */
-    // std::cout << "{ ";
-    // for ( auto const& entry : support_minimization_encodings )
-    // {
-    //   std::cout << "{ " << entry[0] << ", " << entry[1] << " }, ";
-    // }
-    // std::cout << "}\n";
   }
 
   template<bool enable_dcset>
@@ -770,7 +764,7 @@ private:
     }
 
     /* solve the covering problem */
-    std::array<uint32_t, 5> solution = covering_solve_exact( matrix );
+    std::array<uint32_t, 6> solution = covering_solve_exact( matrix );
 
     /* check for failed decomposition */
     if ( solution[0] == UINT32_MAX )
@@ -779,14 +773,14 @@ private:
     }
 
     /* compute best bound sets */
-    uint32_t num_luts = 1 + solution[4];
+    uint32_t num_luts = 1 + solution[5];
     uint32_t num_levels = 2;
-    uint32_t num_edges = best_free_set + solution[4];
+    uint32_t num_edges = best_free_set + solution[5];
     uint32_t isets_support = num_vars - best_free_set;
     best_care_sets.clear();
     best_iset_onset.clear();
     best_iset_offset.clear();
-    for ( uint32_t i = 0; i < solution[4]; ++i )
+    for ( uint32_t i = 0; i < solution[5]; ++i )
     {
       STT tt;
       STT care;
@@ -835,7 +829,7 @@ private:
     }
 
     /* solve the covering problem: heuristic pass + local search */
-    std::array<uint32_t, 5> solution = covering_solve_heuristic( matrix );
+    std::array<uint32_t, 6> solution = covering_solve_heuristic( matrix );
 
     /* check for failed decomposition */
     if ( solution[0] == UINT32_MAX )
@@ -848,14 +842,14 @@ private:
       ;
 
     /* compute best bound sets */
-    uint32_t num_luts = 1 + solution[4];
+    uint32_t num_luts = 1 + solution[5];
     uint32_t num_levels = 2;
-    uint32_t num_edges = best_free_set + solution[4];
+    uint32_t num_edges = best_free_set + solution[5];
     uint32_t isets_support = num_vars - best_free_set;
     best_care_sets.clear();
     best_iset_onset.clear();
     best_iset_offset.clear();
-    for ( uint32_t i = 0; i < solution[4]; ++i )
+    for ( uint32_t i = 0; i < solution[5]; ++i )
     {
       STT tt;
       STT care;
@@ -993,10 +987,10 @@ private:
     return true;
   }
 
-  std::array<uint32_t, 5> covering_solve_exact( std::vector<encoding_column>& matrix )
+  std::array<uint32_t, 6> covering_solve_exact( std::vector<encoding_column>& matrix )
   {
     /* last value of res contains the size of the bound set */
-    std::array<uint32_t, 5> res = { UINT32_MAX };
+    std::array<uint32_t, 6> res = { UINT32_MAX };
     uint32_t best_cost = UINT32_MAX;
     uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
 
@@ -1005,12 +999,12 @@ private:
     /* determine the number of needed loops*/
     if ( best_multiplicity <= 2 )
     {
-      res[4] = 1;
+      res[5] = 1;
       res[0] = 0;
     }
     else if ( best_multiplicity <= 4 )
     {
-      res[4] = 2;
+      res[5] = 2;
       for ( uint32_t i = 0; i < matrix.size() - 1; ++i )
       {
         for ( uint32_t j = 1; j < matrix.size(); ++j )
@@ -1033,10 +1027,10 @@ private:
     return res;
   }
 
-  std::array<uint32_t, 5> covering_solve_heuristic( std::vector<encoding_column>& matrix )
+  std::array<uint32_t, 6> covering_solve_heuristic( std::vector<encoding_column>& matrix )
   {
     /* last value of res contains the size of the bound set */
-    std::array<uint32_t, 5> res = { UINT32_MAX };
+    std::array<uint32_t, 6> res = { UINT32_MAX };
     uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
     uint64_t column0 = 0, column1 = 0;
 
@@ -1086,17 +1080,17 @@ private:
       {
         res[i] = i;
       }
-      res[4] = iter;
+      res[5] = iter;
     }
 
     return res;
   }
 
-  bool covering_improve( std::vector<encoding_column>& matrix, std::array<uint32_t, 5>& solution )
+  bool covering_improve( std::vector<encoding_column>& matrix, std::array<uint32_t, 6>& solution )
   {
     /* performs one iteration of local search */
     uint32_t best_cost = 0, local_cost = 0;
-    uint32_t num_elements = solution[4];
+    uint32_t num_elements = solution[5];
     uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
     bool improved = false;
 
@@ -1211,8 +1205,7 @@ private:
       auto it_care = std::begin( care._bits );
       while ( it_tt != std::begin( tt._bits ) + num_blocks )
       {
-        if ( ( ( ( *it_tt >> ( uint64_t( 1 ) << var_index ) ) ^ *it_tt ) & kitty::detail::projections_neg[var_index]
-            & ( *it_care >> ( uint64_t( 1 ) << var_index ) ) & *it_care ) != 0 )
+        if ( ( ( ( *it_tt >> ( uint64_t( 1 ) << var_index ) ) ^ *it_tt ) & kitty::detail::projections_neg[var_index] & ( *it_care >> ( uint64_t( 1 ) << var_index ) ) & *it_care ) != 0 )
         {
           return true;
         }
@@ -1251,28 +1244,27 @@ private:
    *     A 2-input LUT, which takes 4 bits, should be stretched to occupy 8 bits (one unsigned char)
    *     A 0- or 1-input LUT can be represented similarly but it is not expected that such LUTs will be represented
    */
-  void get_decomposition_abc( unsigned char *decompArray )
+  void get_decomposition_abc( unsigned char* decompArray )
   {
-    unsigned char *pArray = decompArray;
+    unsigned char* pArray = decompArray;
     unsigned char bytes = 2;
 
     /* write number of LUTs */
     pArray++;
-    *pArray = dec_result.size();
-    pArray++;
+    *pArray++ = dec_result.size();
 
     /* write LUTs */
     for ( ac_decomposition_result const& lut : dec_result )
     {
       /* write fanin size*/
-      *pArray = lut.support.size();
-      pArray++; ++bytes;
+      *pArray++ = lut.support.size();
+      ++bytes;
 
       /* write support */
       for ( uint32_t i : lut.support )
       {
-        *pArray = (unsigned char) i;
-        pArray++; ++bytes;
+        *pArray++ = (unsigned char)i;
+        ++bytes;
       }
 
       /* write truth table */
@@ -1282,8 +1274,8 @@ private:
       {
         for ( uint32_t j = 0; j < tt_num_bytes; ++j )
         {
-          *pArray = (unsigned char) ( ( lut.tt._bits[i] >> ( 8 * j ) ) & 0xFF );
-          pArray++; ++bytes;
+          *pArray++ = (unsigned char)( ( lut.tt._bits[i] >> ( 8 * j ) ) & 0xFF );
+          ++bytes;
         }
       }
     }
