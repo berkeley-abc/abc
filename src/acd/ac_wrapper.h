@@ -1,12 +1,9 @@
-// #pragma once
+#pragma once
 #ifndef __ACD_WRAPPER_H_
 #define __ACD_WRAPPER_H_
 
-// #include "base/main/main.h"
 #include "misc/util/abc_global.h"
 #include "map/if/if.h"
-
-// ABC_NAMESPACE_HEADER_START
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,7 +15,5 @@ int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay,
 #ifdef __cplusplus
 }
 #endif
-
-// ABC_NAMESPACE_HEADER_END
 
 #endif

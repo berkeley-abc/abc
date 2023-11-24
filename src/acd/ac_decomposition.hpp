@@ -61,14 +61,11 @@ struct ac_decomposition_params
   /*! \brief Perform decomposition if support reducing. */
   uint32_t max_free_set_vars{ 5 };
 
-  /*! \brief Maximum number of iterations for covering. */
-  uint32_t max_iter{ 5000 };
-
   /*! \brief Perform decomposition if support reducing. */
   bool support_reducing_only{ true };
 
   /*! \brief Commits the first feasible decomposition. */
-  bool exit_of_feasible_decomposition{ true };
+  bool exit_on_feasible_decomposition{ true };
 
   /*! \brief If decomposition with delay profile fails, ignore it. */
   bool try_no_late_arrival{ false };
@@ -88,16 +85,15 @@ struct ac_decomposition_result
   std::vector<uint32_t> support;
 };
 
-template<typename TT>
 class ac_decomposition_impl
 {
 private:
-  struct encoding_matrix
+  struct encoding_column
   {
     uint64_t column[2];
-    uint32_t cost{ 0 };
-    uint32_t index{ 0 };
-    float sort_cost{ 0 };
+    uint32_t cost;
+    uint32_t index;
+    float sort_cost;
   };
 
 private:
@@ -105,15 +101,14 @@ private:
   using STT = kitty::static_truth_table<max_num_vars>;
 
 public:
-  explicit ac_decomposition_impl( TT const& tt, uint32_t num_vars, ac_decomposition_params const& ps, ac_decomposition_stats* pst = nullptr )
-      : num_vars( num_vars ), ps( ps ), pst( pst ), permutations( num_vars )
+  explicit ac_decomposition_impl( uint32_t num_vars, ac_decomposition_params const& ps, ac_decomposition_stats* pst = nullptr )
+      : num_vars( num_vars ), ps( ps ), pst( pst )
   {
-    tt_start = tt;
     std::iota( permutations.begin(), permutations.end(), 0 );
   }
 
   /*! \brief Runs ACD using late arriving variables */
-  int run( unsigned delay_profile )
+  int run( word *tt, unsigned delay_profile )
   {
     /* truth table is too large for the settings */
     if ( num_vars > max_num_vars )
@@ -130,96 +125,16 @@ public:
     }
 
     /* convert to static TT */
-    best_tt = kitty::extend_to<max_num_vars>( tt_start );
-    best_multiplicity = UINT32_MAX;
-    uint32_t best_cost = UINT32_MAX;
+    init_truth_table( tt );
 
     /* permute late arriving variables to be the least significant */
     reposition_late_arriving_variables( delay_profile, late_arriving );
 
     /* run ACD trying different bound sets and free sets */
-    uint32_t free_set_size = late_arriving;
-    uint32_t offset = static_cast<uint32_t>( late_arriving );
-    uint32_t start = std::max( offset, 1u );
-
-    /* perform only support reducing decomposition */
-    if ( ps.support_reducing_only )
+    if ( !find_decomposition( delay_profile, late_arriving ) )
     {
-      start = std::max( start, num_vars - ps.lut_size );
-    }
-
-    std::function<uint32_t( STT const& tt )> column_multiplicity_fn[5] = {
-                  [this]( STT const& tt ) { return column_multiplicity<1u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity<2u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity5<4u>( tt ); },
-                  [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }
-              };
-
-    for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
-    {
-      /* TODO: add shared set */
-      auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, offset, column_multiplicity_fn[i - 1] );
-
-      /* additional cost if not support reducing */
-      uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
-      /* check for feasible solution that improves the cost */
-      if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost <= 16 )
-      {
-        best_tt = tt_p;
-        permutations = perm;
-        best_multiplicity = cost;
-        best_cost = cost + additional_cost;
-        free_set_size = i;
-
-        if ( ps.exit_of_feasible_decomposition )
-        {
-          break;
-        }
-      }
-    }
-
-    if ( best_multiplicity == UINT32_MAX && ( !ps.try_no_late_arrival || late_arriving == 0 ) )
       return -1;
-
-    /* try without the delay profile */
-    if ( best_multiplicity == UINT32_MAX && ps.try_no_late_arrival )
-    {
-      delay_profile = 0;
-      if ( ps.support_reducing_only )
-      {
-        start = std::max( 1u, num_vars - ps.lut_size );
-      }
-
-      for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
-      {
-        /* TODO: add shared set */
-        auto [tt_p, perm, cost] = enumerate_iset_combinations_offset( i, 0, column_multiplicity_fn[i - 1] );
-
-        /* additional cost if not support reducing */
-        uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
-        /* check for feasible solution that improves the cost */
-        if ( cost <= ( 1 << ( ps.lut_size - i ) ) && cost + additional_cost < best_cost && cost <= 16 )
-        {
-          best_tt = tt_p;
-          permutations = perm;
-          best_multiplicity = cost;
-          best_cost = cost + additional_cost;
-          free_set_size = i;
-
-          if ( ps.exit_of_feasible_decomposition )
-          {
-            break;
-          }
-        }
-      }
     }
-
-    if ( best_multiplicity == UINT32_MAX )
-      return -1;
-
-    pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3 : best_multiplicity <= 8 ? 4 : 5;
-    best_free_set = free_set_size;
 
     /* return number of levels */
     return delay_profile == 0 ? 2 : 1;
@@ -231,26 +146,18 @@ public:
       return -1;
 
     /* compute isets */
-    std::vector<STT> isets = compute_isets( best_free_set );
+    std::vector<STT> isets = compute_isets();
 
     generate_support_minimization_encodings();
 
-    /* always solves exactly for power of 2 */
-    if ( __builtin_popcount( best_multiplicity ) == 1 && best_multiplicity <= 8 )
-      solve_min_support_exact( isets, best_free_set );
+    /* solves exactly only for small multiplicities */
+    if ( best_multiplicity <= 4u )
+      solve_min_support_exact( isets );
     else
-      solve_min_support_heuristic( isets, best_free_set );
+      solve_min_support_heuristic( isets );
 
     /* unfeasible decomposition */
-    if ( best_bound_sets.empty() )
-    {
-      solve_min_support_exact( isets, best_free_set );
-
-      if ( best_bound_sets.empty() )
-      {
-        return -1;
-      }
-    }
+    assert( !best_bound_sets.empty() );
 
     return 0;
   }
@@ -285,6 +192,110 @@ public:
   }
 
 private:
+  bool find_decomposition( unsigned& delay_profile, uint32_t late_arriving )
+  {
+    best_multiplicity = UINT32_MAX;
+    best_free_set = UINT32_MAX;
+    uint32_t best_cost = UINT32_MAX;
+    uint32_t offset = static_cast<uint32_t>( late_arriving );
+    uint32_t start = std::max( offset, 1u );
+
+    /* perform only support reducing decomposition */
+    if ( ps.support_reducing_only )
+    {
+      start = std::max( start, num_vars - ps.lut_size );
+    }
+
+    /* array of functions to compute the column multiplicity */
+    std::function<uint32_t( STT const& tt )> column_multiplicity_fn[5] = {
+                  [this]( STT const& tt ) { return column_multiplicity<1u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity<2u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity<3u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity5<4u>( tt ); },
+                  [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); }
+              };
+
+    /* find a feasible AC decomposition */
+    for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
+    {
+      auto [tt_p, perm, multiplicity] = enumerate_iset_combinations_offset( i, offset, column_multiplicity_fn[i - 1] );
+
+      /* additional cost if not support reducing */
+      uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
+
+      /* check for feasible solution that improves the cost */
+      if ( multiplicity <= ( 1 << ( ps.lut_size - i ) ) && multiplicity + additional_cost < best_cost && multiplicity <= 16 )
+      {
+        best_tt = tt_p;
+        permutations = perm;
+        best_multiplicity = multiplicity;
+        best_cost = multiplicity + additional_cost;
+        best_free_set = i;
+
+        if ( ps.exit_on_feasible_decomposition )
+        {
+          break;
+        }
+      }
+    }
+
+    if ( best_multiplicity == UINT32_MAX && ( !ps.try_no_late_arrival || late_arriving == 0 ) )
+      return false;
+
+    /* try without the delay profile */
+    if ( best_multiplicity == UINT32_MAX && ps.try_no_late_arrival )
+    {
+      delay_profile = 0;
+      if ( ps.support_reducing_only )
+      {
+        start = std::max( 1u, num_vars - ps.lut_size );
+      }
+
+      for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
+      {
+        auto [tt_p, perm, multiplicity] = enumerate_iset_combinations_offset( i, 0, column_multiplicity_fn[i - 1] );
+
+        /* additional cost if not support reducing */
+        uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
+
+        /* check for feasible solution that improves the cost */
+        if ( multiplicity <= ( 1 << ( ps.lut_size - i ) ) && multiplicity + additional_cost < best_cost && multiplicity <= 16 )
+        {
+          best_tt = tt_p;
+          permutations = perm;
+          best_multiplicity = multiplicity;
+          best_cost = multiplicity + additional_cost;
+          best_free_set = i;
+
+          if ( ps.exit_on_feasible_decomposition )
+          {
+            break;
+          }
+        }
+      }
+    }
+
+    if ( best_multiplicity == UINT32_MAX )
+      return false;
+
+    /* estimation on number of LUTs */
+    pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3 : best_multiplicity <= 8 ? 4 : 5;
+
+    return true;
+  }
+
+  void init_truth_table( word *tt_start )
+  {
+    uint32_t const num_blocks = ( num_vars <= 6 ) ? 1 : ( 1 << ( num_vars - 6 ) );
+
+    for ( uint32_t i = 0; i < num_blocks; ++i )
+    {
+      best_tt._bits[i] = tt_start[i];
+    }
+
+    local_extend_to( best_tt, num_vars );
+  }
+
   template<uint32_t free_set_size>
   uint32_t column_multiplicity( STT tt )
   {
@@ -392,7 +403,7 @@ private:
   }
 
   template<typename Fn>
-  std::tuple<STT, std::vector<uint32_t>, uint32_t> enumerate_iset_combinations_offset( uint32_t free_set_size, uint32_t offset, Fn&& fn )
+  std::tuple<STT, std::array<uint32_t, max_num_vars>, uint32_t> enumerate_iset_combinations_offset( uint32_t free_set_size, uint32_t offset, Fn&& fn )
   {
     STT tt = best_tt;
 
@@ -434,7 +445,7 @@ private:
       }
     } while( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
-    std::vector<uint32_t> res_perm( num_vars );
+    std::array<uint32_t, max_num_vars> res_perm;
     for ( uint32_t i = 0; i < num_vars; ++i )
     {
       res_perm[i] = permutations[bestPerm[i]];
@@ -443,10 +454,10 @@ private:
     return std::make_tuple( best_tt, res_perm, best_cost );
   }
 
-  std::vector<STT> compute_isets( uint32_t free_set_size, bool verbose = false )
+  std::vector<STT> compute_isets( bool verbose = false )
   {
     /* construct isets involved in multiplicity */
-    uint32_t isets_support = num_vars - free_set_size;
+    uint32_t isets_support = num_vars - best_free_set;
     std::vector<STT> isets( best_multiplicity );
 
     /* construct isets */
@@ -459,24 +470,24 @@ private:
     auto it = std::begin( tt );
     for ( auto i = 0u; i < num_blocks; ++i )
     {
-      for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
+      for ( auto j = 0; j < ( 64 >> best_free_set ); ++j )
       {
-        uint64_t val = *it & masks[free_set_size];
+        uint64_t val = *it & masks[best_free_set];
 
         if ( auto el = column_to_iset.find( val ); el != column_to_iset.end() )
         {
-          isets[el->second]._bits[i / ( 1u << free_set_size )] |= UINT64_C( 1 ) << ( j + offset );
+          isets[el->second]._bits[i / ( 1u << best_free_set )] |= UINT64_C( 1 ) << ( j + offset );
         }
         else
         {
-          isets[column_to_iset.size()]._bits[i / ( 1u << free_set_size )] |= UINT64_C( 1 ) << ( j + offset );
+          isets[column_to_iset.size()]._bits[i / ( 1u << best_free_set )] |= UINT64_C( 1 ) << ( j + offset );
           column_to_iset[val] = column_to_iset.size();
         }
 
-        *it >>= ( 1u << free_set_size );
+        *it >>= ( 1u << best_free_set );
       }
 
-      offset = ( offset + ( 64 >> free_set_size ) ) % 64;
+      offset = ( offset + ( 64 >> best_free_set ) ) % 64;
       ++it;
     }
 
@@ -489,11 +500,10 @@ private:
     /* save free_set functions */
     std::vector<STT> free_set_tts( best_multiplicity );
 
-    /* TODO: possible conflict */
     for ( auto const& pair : column_to_iset )
     {
       free_set_tts[pair.second]._bits[0] = pair.first;
-      local_extend_to( free_set_tts[pair.second], free_set_size );
+      local_extend_to( free_set_tts[pair.second], best_free_set );
     }
 
     /* print isets  and free set*/
@@ -666,12 +676,12 @@ private:
   void generate_support_minimization_encodings()
   {
     uint32_t count = 0;
-    uint32_t num_combs_exact[4] = { 1, 3, 35, 6435 };
 
     /* enable don't cares only if not a power of 2 */
     uint32_t num_combs = 2;
     if ( __builtin_popcount( best_multiplicity ) == 1 )
     {
+      uint32_t num_combs_exact[4] = { 1, 3, 35, 6435 };
       for ( uint32_t i = 0; i < 4; ++i )
       {
         if ( ( best_multiplicity >> i ) == 2u )
@@ -684,6 +694,7 @@ private:
     }
     else
     {
+      /* combinations are 2*3^(mu - 1) */
       for ( uint32_t i = 1; i < best_multiplicity; ++i )
       {
         num_combs = ( num_combs << 1 ) + num_combs;
@@ -704,14 +715,14 @@ private:
   }
 
   template<bool enable_dcset>
-  void generate_support_minimization_encodings_rec( uint64_t onset, uint64_t offset, uint32_t var, uint32_t& count )
+  void generate_support_minimization_encodings_rec( uint32_t onset, uint32_t offset, uint32_t var, uint32_t& count )
   {
     if ( var == best_multiplicity )
     {
       if constexpr ( !enable_dcset )
       {
         /* sets must be equally populated */
-        if ( __builtin_popcountl( onset ) != __builtin_popcountl( offset ) )
+        if ( __builtin_popcount( onset ) != __builtin_popcount( offset ) )
         {
           return;
         }
@@ -723,7 +734,7 @@ private:
       return;
     }
 
-    /* move var in DCSET */
+    /* var in DCSET */
     if constexpr ( enable_dcset )
     {
       generate_support_minimization_encodings_rec<enable_dcset>( onset, offset, var + 1, count );
@@ -746,20 +757,20 @@ private:
     offset &= ~( 1 << var );
   }
 
-  void solve_min_support_exact( std::vector<STT> const& isets, uint32_t free_set_size )
+  void solve_min_support_exact( std::vector<STT> const& isets )
   {
-    std::vector<encoding_matrix> matrix;
+    std::vector<encoding_column> matrix;
     matrix.reserve( support_minimization_encodings.size() );
     best_bound_sets.clear();
 
     /* create covering matrix */
-    if ( !create_covering_matrix( isets, matrix, free_set_size, best_multiplicity > 4 ) )
+    if ( !create_covering_matrix<false>( isets, matrix, false ) )
     {
       return;
     }
 
     /* solve the covering problem */
-    std::array<uint32_t, 5> solution = covering_solve_exact<false, true>( matrix, 100, ps.max_iter );
+    std::array<uint32_t, 5> solution = covering_solve_exact( matrix );
 
     /* check for failed decomposition */
     if ( solution[0] == UINT32_MAX )
@@ -770,8 +781,8 @@ private:
     /* compute best bound sets */
     uint32_t num_luts = 1 + solution[4];
     uint32_t num_levels = 2;
-    uint32_t num_edges = free_set_size + solution[4];
-    uint32_t isets_support = num_vars - free_set_size;
+    uint32_t num_edges = best_free_set + solution[4];
+    uint32_t isets_support = num_vars - best_free_set;
     best_care_sets.clear();
     best_iset_onset.clear();
     best_iset_offset.clear();
@@ -811,14 +822,14 @@ private:
     }
   }
 
-  void solve_min_support_heuristic( std::vector<STT> const& isets, uint32_t free_set_size )
+  void solve_min_support_heuristic( std::vector<STT> const& isets )
   {
-    std::vector<encoding_matrix> matrix;
+    std::vector<encoding_column> matrix;
     matrix.reserve( support_minimization_encodings.size() );
     best_bound_sets.clear();
 
     /* create covering matrix */
-    if ( !create_covering_matrix<true>( isets, matrix, free_set_size, true ) )
+    if ( !create_covering_matrix<true>( isets, matrix, true ) )
     {
       return;
     }
@@ -839,8 +850,8 @@ private:
     /* compute best bound sets */
     uint32_t num_luts = 1 + solution[4];
     uint32_t num_levels = 2;
-    uint32_t num_edges = free_set_size + solution[4];
-    uint32_t isets_support = num_vars - free_set_size;
+    uint32_t num_edges = best_free_set + solution[4];
+    uint32_t isets_support = num_vars - best_free_set;
     best_care_sets.clear();
     best_iset_onset.clear();
     best_iset_offset.clear();
@@ -880,12 +891,12 @@ private:
     }
   }
 
-  template<bool UseHeuristic = false>
-  bool create_covering_matrix( std::vector<STT> const& isets, std::vector<encoding_matrix>& matrix, uint32_t free_set_size, bool sort )
+  template<bool UseHeuristic>
+  bool create_covering_matrix( std::vector<STT> const& isets, std::vector<encoding_column>& matrix, bool sort )
   {
     assert( best_multiplicity <= 16 );
     uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
-    uint32_t iset_support = num_vars - free_set_size;
+    uint32_t iset_support = num_vars - best_free_set;
 
     /* insert dichotomies */
     for ( uint32_t i = 0; i < support_minimization_encodings.size(); ++i )
@@ -924,7 +935,7 @@ private:
         /* compute included seed dichotomies */
         for ( uint32_t k = j + 1; k < best_multiplicity; ++k )
         {
-          /* if is are in diffent sets */
+          /* if are in diffent sets */
           if ( ( ( ( onset_shift & ( offset >> k ) ) | ( ( onset >> k ) & offset_shift ) ) & 1 ) )
           {
             column[pair_pointer >> 6u] |= UINT64_C( 1 ) << ( pair_pointer & 0x3F );
@@ -947,11 +958,6 @@ private:
       if ( cost > ps.lut_size )
         continue;
 
-      if ( cost > 1 )
-      {
-        cost |= 1 << iset_support;
-      }
-
       float sort_cost = 0;
       if constexpr ( UseHeuristic )
       {
@@ -963,7 +969,7 @@ private:
       }
 
       /* insert */
-      matrix.emplace_back( encoding_matrix{ { column[0], column[1] }, cost, i, sort_cost } );
+      matrix.emplace_back( encoding_column{ { column[0], column[1] }, cost, i, sort_cost } );
     }
 
     if ( !sort )
@@ -976,7 +982,6 @@ private:
       std::sort( matrix.begin(), matrix.end(), [&]( auto const& a, auto const& b ) {
         return a.cost < b.cost;
       } );
-      return true;
     }
     else
     {
@@ -988,16 +993,14 @@ private:
     return true;
   }
 
-  template<bool limit_iter = false, bool limit_sol = true>
-  std::array<uint32_t, 5> covering_solve_exact( std::vector<encoding_matrix>& matrix, uint32_t max_iter = 100, int32_t limit = 2000 )
+  std::array<uint32_t, 5> covering_solve_exact( std::vector<encoding_column>& matrix )
   {
     /* last value of res contains the size of the bound set */
     std::array<uint32_t, 5> res = { UINT32_MAX };
     uint32_t best_cost = UINT32_MAX;
     uint32_t combinations = ( best_multiplicity * ( best_multiplicity - 1 ) ) / 2;
-    bool looping = true;
 
-    assert( best_multiplicity <= 16 );
+    assert( best_multiplicity <= 4 );
 
     /* determine the number of needed loops*/
     if ( best_multiplicity <= 2 )
@@ -1026,207 +1029,11 @@ private:
         }
       }
     }
-    else if ( best_multiplicity <= 8 )
-    {
-      res[4] = 3;
-      for ( uint32_t i = 0; i < matrix.size() - 2 && looping; ++i )
-      {
-        /* limit */
-        if constexpr ( limit_iter )
-        {
-          if ( limit <= 0 )
-          {
-            looping = false;
-          }
-        }
-        if constexpr ( limit_sol )
-        {
-          if ( best_cost < UINT32_MAX && max_iter == 0 )
-          {
-            looping = false;
-          }
-        }
-
-        for ( uint32_t j = 1; j < matrix.size() - 1 && looping; ++j )
-        {
-          uint64_t current_columns0 = matrix[i].column[0] | matrix[j].column[0];
-          uint64_t current_columns1 = matrix[i].column[1] | matrix[j].column[1];
-          uint32_t current_cost = matrix[i].cost + matrix[j].cost;
-
-          /* limit */
-          if constexpr ( limit_iter )
-          {
-            if ( limit <= 0 )
-            {
-              looping = false;
-            }
-          }
-          if constexpr ( limit_sol )
-          {
-            if ( best_cost < UINT32_MAX && max_iter == 0 )
-            {
-              looping = false;
-            }
-          }
-
-          /* bound */
-          if ( current_cost >= best_cost )
-          {
-            continue;
-          }
-
-          for ( uint32_t k = 2; k < matrix.size() && looping; ++k )
-          {
-            /* limit */
-            if constexpr ( limit_iter )
-            {
-              if ( limit-- <= 0 )
-              {
-                looping = false;
-              }
-            }
-            if constexpr ( limit_sol )
-            {
-              if ( best_cost < UINT32_MAX && max_iter-- == 0 )
-              {
-                looping = false;
-              }
-            }
-
-            /* filter by cost */
-            if ( current_cost + matrix[k].cost >= best_cost )
-              continue;
-
-            /* check validity */
-            if ( __builtin_popcountl( current_columns0 | matrix[k].column[0] ) + __builtin_popcountl( current_columns1 | matrix[k].column[1] ) == combinations )
-            {
-              res[0] = i;
-              res[1] = j;
-              res[2] = k;
-              best_cost = current_cost + matrix[k].cost;
-            }
-          }
-        }
-      }
-    }
-    else
-    {
-      res[4] = 4;
-      for ( uint32_t i = 0; i < matrix.size() - 3 && looping; ++i )
-      {
-        /* limit */
-        if constexpr ( limit_iter )
-        {
-          if ( limit <= 0 )
-          {
-            looping = false;
-          }
-        }
-        if constexpr ( limit_sol )
-        {
-          if ( best_cost < UINT32_MAX && max_iter == 0 )
-          {
-            looping = false;
-          }
-        }
-
-        for ( uint32_t j = 1; j < matrix.size() - 2 && looping; ++j )
-        {
-          uint64_t current_columns0 = matrix[i].column[0] | matrix[j].column[0];
-          uint64_t current_columns1 = matrix[i].column[1] | matrix[j].column[1];
-          uint32_t current_cost0 = matrix[i].cost + matrix[j].cost;
-
-          /* limit */
-          if constexpr ( limit_iter )
-          {
-            if ( limit <= 0 )
-            {
-              looping = false;
-            }
-          }
-          if constexpr ( limit_sol )
-          {
-            if ( best_cost < UINT32_MAX && max_iter == 0 )
-            {
-              looping = false;
-            }
-          }
-
-          /* bound */
-          if ( current_cost0 >= best_cost )
-          {
-            continue;
-          }
-
-          for ( uint32_t k = 2; k < matrix.size() - 1 && looping; ++k )
-          {
-            uint64_t current_columns00 = current_columns0 | matrix[k].column[0];
-            uint64_t current_columns11 = current_columns1 | matrix[k].column[1];
-            uint32_t current_cost1 = current_cost0 + matrix[k].cost;
-
-            /* limit */
-            if constexpr ( limit_iter )
-            {
-              if ( limit <= 0 )
-              {
-                looping = false;
-              }
-            }
-            if constexpr ( limit_sol )
-            {
-              if ( best_cost < UINT32_MAX && max_iter == 0 )
-              {
-                looping = false;
-              }
-            }
-
-            /* bound */
-            if ( current_cost1 >= best_cost )
-            {
-              continue;
-            }
-
-            for ( uint32_t t = 3; t < matrix.size() && looping; ++t )
-            {
-              /* limit */
-              if constexpr ( limit_iter )
-              {
-                if ( limit-- <= 0 )
-                {
-                  looping = false;
-                }
-              }
-              if constexpr ( limit_sol )
-              {
-                if ( best_cost-- < UINT32_MAX && max_iter == 0 )
-                {
-                  looping = false;
-                }
-              }
-
-              /* filter by cost */
-              if ( current_cost1 + matrix[t].cost >= best_cost )
-                continue;
-
-              /* check validity */
-              if ( __builtin_popcountl( current_columns00 | matrix[t].column[0] ) + __builtin_popcountl( current_columns11 | matrix[t].column[1] ) == combinations )
-              {
-                res[0] = i;
-                res[1] = j;
-                res[2] = k;
-                res[3] = t;
-                best_cost = current_cost1 + matrix[t].cost;
-              }
-            }
-          }
-        }
-      }
-    }
 
     return res;
   }
 
-  std::array<uint32_t, 5> covering_solve_heuristic( std::vector<encoding_matrix>& matrix )
+  std::array<uint32_t, 5> covering_solve_heuristic( std::vector<encoding_column>& matrix )
   {
     /* last value of res contains the size of the bound set */
     std::array<uint32_t, 5> res = { UINT32_MAX };
@@ -1285,7 +1092,7 @@ private:
     return res;
   }
 
-  bool covering_improve( std::vector<encoding_matrix>& matrix, std::array<uint32_t, 5>& solution )
+  bool covering_improve( std::vector<encoding_column>& matrix, std::array<uint32_t, 5>& solution )
   {
     /* performs one iteration of local search */
     uint32_t best_cost = 0, local_cost = 0;
@@ -1431,6 +1238,19 @@ private:
     return false;
   }
 
+  /* Decomposition format for ABC
+   *
+   * The record is an array of unsigned chars where:
+   *   - the first unsigned char entry stores the number of unsigned chars in the record
+   *   - the second entry stores the number of LUTs
+   * After this, several sub-records follow, each representing one LUT as follows:
+   *   - an unsigned char entry listing the number of fanins
+   *   - a list of fanins, from the LSB to the MSB of the truth table. The N inputs of the original function
+   *     have indexes from 0 to N-1, followed by the internal signals in a topological order
+   *   - the LUT truth table occupying 2^(M-3) bytes, where M is the fanin count of the LUT, from the LSB to the MSB.
+   *     A 2-input LUT, which takes 4 bits, should be stretched to occupy 8 bits (one unsigned char)
+   *     A 0- or 1-input LUT can be represented similarly but it is not expected that such LUTs will be represented
+   */
   void get_decomposition_abc( unsigned char *decompArray )
   {
     unsigned char *pArray = decompArray;
@@ -1485,11 +1305,10 @@ private:
 
   std::vector<std::array<uint32_t, 2>> support_minimization_encodings;
 
-  TT tt_start;
   uint32_t num_vars;
   ac_decomposition_params const& ps;
   ac_decomposition_stats* pst;
-  std::vector<uint32_t> permutations;
+  std::array<uint32_t, max_num_vars> permutations;
 };
 
 } // namespace mockturtle
