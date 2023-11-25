@@ -148,6 +148,32 @@ int * If_CutArrTimeProfile( If_Man_t * p, If_Cut_t * pCut )
     return p->pArrTimeProfile;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the node's delay if its cut it LUT-decomposed.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CutDelayLutDec( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj )
+{
+    // get the truth table
+    // get the cut leaves' arrival times
+    // run LUT-decomposition in the evaluation mode
+    // return expected arrival time at the output
+
+    // this is a placeholder code, which is assume the cut has unit delay
+    int i, ArrTimes = 0;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+        ArrTimes = Abc_MaxInt( ArrTimes, (int)If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay );
+    return ArrTimes + 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Finds the best cut for the given node.]
@@ -166,7 +192,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_Cut_t * pCut0R, * pCut1R;
     int fFunc0R, fFunc1R;
     int i, k, v, iCutDsd, fChange;
-    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUserSesLib || 
+    int fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUserSesLib || p->pPars->fUserLutDec || 
         p->pPars->fUseDsdTune || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec || p->pPars->pLutStruct || p->pPars->pFuncCell2 || p->pPars->fUseCheck1 || p->pPars->fUseCheck2;
     int fUseAndCut = (p->pPars->nAndDelay > 0) || (p->pPars->nAndArea > 0);
     assert( !If_ObjIsAnd(pObj->pFanin0) || pObj->pFanin0->pCutSet->nCuts > 0 );
@@ -208,6 +234,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 pCut->fUseless = 1;
             }
         }
+        else if ( p->pPars->fUserLutDec )
+            pCut->Delay = If_CutDelayLutDec( p, pCut, pObj );         
         else if ( p->pPars->fDelayOptLut )
             pCut->Delay = If_CutLutBalanceEval( p, pCut );
         else if( p->pPars->nGateSize > 0 )
@@ -436,6 +464,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
                 pCut->fUseless = 1;
             }
         }
+        else if ( p->pPars->fUserLutDec )
+            pCut->Delay = If_CutDelayLutDec( p, pCut, pObj );         
         else if ( p->pPars->fDelayOptLut )
             pCut->Delay = If_CutLutBalanceEval( p, pCut );
         else if( p->pPars->nGateSize > 0 )
@@ -507,7 +537,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
     If_Set_t * pCutSet;
     If_Obj_t * pTemp;
     If_Cut_t * pCutTemp, * pCut;
-    int i, fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUserSesLib || p->pPars->fUse34Spec;
+    int i, fSave0 = p->pPars->fDelayOpt || p->pPars->fDelayOptLut || p->pPars->fDsdBalance || p->pPars->fUserRecLib || p->pPars->fUserSesLib || p->pPars->fUserLutDec || p->pPars->fUse34Spec;
     assert( pObj->pEquiv != NULL );
 
     // prepare
