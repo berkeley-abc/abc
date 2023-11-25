@@ -20,6 +20,7 @@
 
 #include <float.h>
 #include "gia.h"
+#include "map/mapper/mapper.h"
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
 #include "misc/util/utilTruth.h"
@@ -280,7 +281,36 @@ void Nf_StoCreateGateMaches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, Mio_Cell
 }
 Mio_Cell2_t * Nf_StoDeriveMatches( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, int * pnCells, int fPinFilter, int fPinPerm, int fPinQuick )
 {
-    int fVerbose = 0;
+	float Slew = 0.0;
+	float Gain = 250.0;
+	int nGatesMin = 0;
+	int fVerbose = 0;
+	
+	Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+	
+    // derive library from SCL
+    // if the library is created here, it will be deleted when pSuperLib is deleted in Map_SuperLibFree()
+    if ( Abc_FrameReadLibScl() && Abc_SclHasDelayInfo( Abc_FrameReadLibScl() ) )
+    {
+        if ( pLib && Mio_LibraryHasProfile(pLib) )
+            pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), pLib, Slew, Gain, nGatesMin, fVerbose );
+        else
+            pLib = Abc_SclDeriveGenlib( Abc_FrameReadLibScl(), NULL, Slew, Gain, nGatesMin, fVerbose );
+        if ( Abc_FrameReadLibGen() )
+        {
+            Mio_LibraryTransferDelays( (Mio_Library_t *)Abc_FrameReadLibGen(), pLib );
+            Mio_LibraryTransferProfile( pLib, (Mio_Library_t *)Abc_FrameReadLibGen() );
+        }
+        // remove supergate library
+        Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
+        Abc_FrameSetLibSuper( NULL );
+    }
+    // quit if there is no library
+    if ( pLib == NULL )
+    {
+        printf( "The current library is not available.\n" );
+        return 0;
+    }
     //abctime clk = Abc_Clock();
     Vec_Wec_t * vProfs = Vec_WecAlloc( 1000 );
     Vec_Int_t * vStore = Vec_IntAlloc( 10000 );
