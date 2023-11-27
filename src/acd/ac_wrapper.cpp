@@ -1,9 +1,27 @@
+/**C++File**************************************************************
+
+  FileName    [ac_wrapper.cpp]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Ashenhurst-Curtis decomposition.]
+
+  Synopsis    [Interface with the FPGA mapping package.]
+
+  Author      [Alessandro Tempia Calvino]
+  
+  Affiliation [EPFL]
+
+  Date        [Ver. 1.0. Started - November 20, 2023.]
+
+***********************************************************************/
+
 #include "ac_wrapper.h"
 #include "ac_decomposition.hpp"
 
 int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost, int try_no_late_arrival )
 {
-  using namespace mockturtle;
+  using namespace acd;
 
   ac_decomposition_params ps;
   ps.lut_size = lutSize;
@@ -27,7 +45,7 @@ int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, 
 
 int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned char *decomposition )
 {
-  using namespace mockturtle;
+  using namespace acd;
 
   ac_decomposition_params ps;
   ps.lut_size = lutSize;

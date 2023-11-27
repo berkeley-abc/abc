@@ -1,3 +1,21 @@
+/**C++File**************************************************************
+
+  FileName    [ac_wrapper.h]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Ashenhurst-Curtis decomposition.]
+
+  Synopsis    [Interface with the FPGA mapping package.]
+
+  Author      [Alessandro Tempia Calvino]
+  
+  Affiliation [EPFL]
+
+  Date        [Ver. 1.0. Started - November 20, 2023.]
+
+***********************************************************************/
+
 #pragma once
 #ifndef __ACD_WRAPPER_H_
 #define __ACD_WRAPPER_H_

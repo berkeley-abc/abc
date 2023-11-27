@@ -113,6 +113,7 @@ struct If_Par_t_
     int                nStructType;   // type of the structure
     int                nAndDelay;     // delay of AND-gate in LUT library units
     int                nAndArea;      // area of AND-gate in LUT library units
+    int                nLutDecSize;   // the LUT size for decomposition
     int                fPreprocess;   // preprossing
     int                fArea;         // area-oriented mapping
     int                fFancy;        // a fancy feature
@@ -146,7 +147,7 @@ struct If_Par_t_
     int                fDeriveLuts;   // enables deriving LUT structures
     int                fDoAverage;    // optimize average rather than maximum level
     int                fHashMapping;  // perform AIG hashing after mapping
-    int                fAcd;  // perform AIG hashing after mapping
+    int                fUserLutDec;  // perform AIG hashing after mapping
     int                fVerbose;      // the verbosity flag
     int                fVerboseTrace; // the verbosity flag
     char *             pLutStruct;    // LUT structure
@@ -281,7 +282,6 @@ struct If_Man_t_
     int                pDumpIns[16];
     Vec_Str_t *        vMarks;
     Vec_Int_t *        vVisited2;
-    int                useLimitAdc;
 
     // timing manager
     Tim_Man_t *        pManTim;
@@ -305,7 +305,6 @@ struct If_Cut_t_
     int                iCutFunc;      // TT ID of the cut
     int                uMaskFunc;     // polarity bitmask
     unsigned           uSign;         // cut signature
-    unsigned           acdDelay;      // Computed pin delay during ACD
     unsigned           Cost    : 12;  // the user's cost of the cut (related to IF_COST_MAX)
     unsigned           fCompl  :  1;  // the complemented attribute 
     unsigned           fUser   :  1;  // using the user's area and delay
@@ -313,6 +312,7 @@ struct If_Cut_t_
     unsigned           fAndCut :  1;  // matched with AND gate
     unsigned           nLimit  :  8;  // the maximum number of leaves
     unsigned           nLeaves :  8;  // the number of leaves
+    unsigned           decDelay: 16;  // pin-to-pin decomposition delay
     int                pLeaves[0];
 };
 
@@ -570,9 +570,9 @@ extern int             If_CutSopBalancePinDelaysInt( Vec_Int_t * vCover, int * p
 extern int             If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 extern int             If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutLutBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
-extern int             If_AcdEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay, int fFirst );
-extern int             If_AcdReEval( If_Man_t * p, If_Cut_t * pCut );
-extern float           If_AcdLeafProp( If_Man_t * p, If_Cut_t * pCut, int i, float required );
+extern int             If_LutDecEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay, int fFirst );
+extern int             If_LutDecReEval( If_Man_t * p, If_Cut_t * pCut );
+extern float           If_LutDecPinRequired( If_Man_t * p, If_Cut_t * pCut, int i, float required );
 /*=== ifDsd.c =============================================================*/
 extern If_DsdMan_t *   If_DsdManAlloc( int nVars, int nLutSize );
 extern void            If_DsdManAllocIsops( If_DsdMan_t * p, int nLutSize );

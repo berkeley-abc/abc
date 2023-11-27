@@ -211,11 +211,11 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
                 pLeaf->Required = IF_MIN( pLeaf->Required, Required - pLutDelays[0] );
         }
     }
-    else if ( p->pPars->fAcd )
+    else if ( p->pPars->fUserLutDec )
     {
         Required = ObjRequired;
         If_CutForEachLeaf( p, pCut, pLeaf, i )
-            pLeaf->Required = IF_MIN( pLeaf->Required, Required - If_AcdLeafProp( p, pCut, i, ObjRequired ) );
+            pLeaf->Required = IF_MIN( pLeaf->Required, Required - If_LutDecPinRequired( p, pCut, i, ObjRequired ) );
     }
     else
     {

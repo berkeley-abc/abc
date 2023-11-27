@@ -62,7 +62,7 @@ void If_ManSetDefaultPars( If_Par_t * pPars )
     pPars->fPower      =  0;
     pPars->fCutMin     =  0;
     pPars->fBidec      =  0;
-    pPars->fAcd        =  0;
+    pPars->fUserLutDec =  0;
     pPars->fVerbose    =  0;
 }
 
@@ -107,15 +107,9 @@ int If_ManPerformMappingComb( If_Man_t * p )
     If_Obj_t * pObj;
     abctime clkTotal = Abc_Clock();
     int i;
-    p->useLimitAdc = 1;
 
     //p->vVisited2 = Vec_IntAlloc( 100 );
     //p->vMarks = Vec_StrStart( If_ManObjNum(p) );
-
-    // if ( p->pPars->fAcd )
-    // {
-    //     p->pPars->nLutSize = 6;
-    // }
 
     // set arrival times and fanout estimates
     If_ManForEachCi( p, pObj, i )
@@ -128,11 +122,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     if ( p->pPars->fPreprocess && !p->pPars->fArea )
     {
         // map for delay
-        if ( p->pPars->fAcd )
-            p->useLimitAdc = 0;
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 1, "Delay" );
-        if ( p->pPars->fAcd )
-            p->useLimitAdc = 1;
 
         // map for delay second option
         p->pPars->fFancy = 1;
@@ -155,33 +145,17 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // area flow oriented mapping
     for ( i = 0; i < p->pPars->nFlowIters; i++ )
     {
-        // if ( p->pPars->fAcd && i == 0 )
-        // {
-        //     p->useLimitAdc = 0;
-        // }
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 0, 0, "Flow" );
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
-        // if ( p->pPars->fAcd && i == 0 )
-        // {
-        //     p->useLimitAdc = 1;
-        // }
     }
 
     // area oriented mapping
     for ( i = 0; i < p->pPars->nAreaIters; i++ )
     {
-        // if ( p->pPars->fAcd && i == 0 )
-        // {
-        //     p->useLimitAdc = 0;
-        // }
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, 0, "Area" );
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );
-        // if ( p->pPars->fAcd && i == 0 )
-        // {
-        //     p->useLimitAdc = 1;
-        // }
     }
 
     if ( p->pPars->fVerbose )

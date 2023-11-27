@@ -1,28 +1,20 @@
-/* mockturtle: C++ logic network library
- * Copyright (C) 2018-2023  EPFL
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+/**C++File**************************************************************
 
+  FileName    [ac_decomposition.hpp]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Ashenhurst-Curtis decomposition.]
+
+  Synopsis    [Interface with the FPGA mapping package.]
+
+  Author      [Alessandro Tempia Calvino]
+  
+  Affiliation [EPFL]
+
+  Date        [Ver. 1.0. Started - November 20, 2023.]
+
+***********************************************************************/
 /*!
   \file ac_decomposition.hpp
   \brief Ashenhurst-Curtis decomposition
@@ -39,7 +31,6 @@
 #include <cstdint>
 #include <type_traits>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "kitty_constants.hpp"
@@ -49,7 +40,7 @@
 #include "kitty_operators.hpp"
 #include "kitty_static_tt.hpp"
 
-namespace mockturtle
+namespace acd
 {
 
 /*! \brief Parameters for ac_decomposition */
@@ -346,10 +337,10 @@ private:
     {
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        uint32_t fs_fn = static_cast<uint32_t>( *it & masks[free_set_size] );
+        uint64_t fs_fn = *it & masks[free_set_size];
         if ( fs_fn != prev )
         {
-          multiplicity_set[size++] = fs_fn;
+          multiplicity_set[size++] = static_cast<uint32_t>( fs_fn );
           prev = fs_fn;
         }
         *it >>= ( 1u << free_set_size );
@@ -1303,6 +1294,6 @@ private:
   std::array<uint32_t, max_num_vars> permutations;
 };
 
-} // namespace mockturtle
+} // namespace acd
 
 #endif // _ACD_H_
