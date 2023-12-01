@@ -132,7 +132,11 @@ target_include_directories(
               $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-target_link_libraries(abc_interface INTERFACE ${CMAKE_DL_LIBS})
+if(MINGW)
+    target_link_libraries(abc_interface INTERFACE ${CMAKE_DL_LIBS} shlwapi)
+else()
+    target_link_libraries(abc_interface INTERFACE ${CMAKE_DL_LIBS})
+endif()
 
 if(NOT ABC_USE_NO_CUDD)
     message(STATUS "Compiling with CUDD")
