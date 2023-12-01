@@ -1,13 +1,13 @@
 abc_libabc_add_sources(
     NAME opt_cut
     SOURCES
-        cutPre22.c
-        cutCut.c
-        cutApi.c
         cutOracle.c
+        cutApi.c
         cutNode.c
+        cutSeq.c
+        cutPre22.c
         cutMerge.c
         cutTruth.c
-        cutSeq.c
+        cutCut.c
         cutMan.c
 )
