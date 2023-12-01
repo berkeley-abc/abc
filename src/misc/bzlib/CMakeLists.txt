@@ -1,11 +1,11 @@
 abc_libabc_add_sources(
     NAME misc_bzlib
     SOURCES
-        decompress.c
-        crctable.c
+        huffman.c
         randtable.c
         compress.c
+        decompress.c
         blocksort.c
         bzlib.c
-        huffman.c
+        crctable.c
 )
