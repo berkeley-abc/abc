@@ -1,36 +1,36 @@
 abc_libabc_add_sources(
     NAME sat_bmc
     SOURCES
-        bmcCexTools.c
-        bmcMaj3.c
-        bmcUnroll.c
-        bmcEco.c
-        bmcMaj.c
-        bmcInse.c
-        bmcChain.c
-        bmcClp.c
-        bmcGen.c
-        bmcCexMin2.c
-        bmcBmcG.c
-        bmcBCore.c
-        bmcCexMin1.c
-        bmcMaxi.c
-        bmcExpand.c
-        bmcBmci.c
-        bmcLoad.c
-        bmcFx.c
-        bmcCexDepth.c
-        bmcBmc.c
-        bmcMaj2.c
-        bmcFault.c
-        bmcBmc2.c
-        bmcMulti.c
-        bmcBmc3.c
-        bmcCexCare.c
-        bmcBmcAnd.c
-        bmcMesh.c
         bmcCexCut.c
+        bmcBmc2.c
+        bmcInse.c
+        bmcBmc.c
+        bmcMaxi.c
         bmcBmcS.c
+        bmcBmc3.c
+        bmcLoad.c
+        bmcBmci.c
+        bmcFx.c
         bmcMesh2.c
         bmcICheck.c
+        bmcClp.c
+        bmcBCore.c
+        bmcMaj3.c
+        bmcGen.c
+        bmcCexMin2.c
+        bmcMaj.c
+        bmcCexCare.c
+        bmcFault.c
+        bmcUnroll.c
+        bmcMaj2.c
+        bmcExpand.c
+        bmcCexMin1.c
+        bmcEco.c
+        bmcMulti.c
+        bmcMesh.c
+        bmcCexTools.c
+        bmcCexDepth.c
+        bmcChain.c
+        bmcBmcAnd.c
+        bmcBmcG.c
 )
