@@ -3,12 +3,12 @@ abc_libabc_add_sources(
     SOURCES
         pdrCnf.c
         pdrTsim.c
-        pdrTsim3.c
-        pdrSat.c
-        pdrTsim2.c
-        pdrMan.c
+        pdrIncr.c
         pdrUtil.c
+        pdrTsim2.c
         pdrInv.c
         pdrCore.c
-        pdrIncr.c
+        pdrMan.c
+        pdrSat.c
+        pdrTsim3.c
 )

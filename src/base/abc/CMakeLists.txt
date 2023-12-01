@@ -1,27 +1,27 @@
 abc_libabc_add_sources(
     NAME base_abc
     SOURCES
-        abcFanio.c
-        abcNames.c
-        abcHieGia.c
-        abcHie.c
-        abcNtk.c
-        abcMinBase.c
-        abcHieNew.c
-        abcBlifMv.c
-        abcHieCec.c
-        abcCheck.c
-        abcUtil.c
-        abcDfs.c
-        abcFunc.c
-        abcSop.c
-        abcAig.c
-        abcNetlist.c
-        abcLatch.c
-        abcBarBuf.c
-        abcRefs.c
-        abcObj.c
         abcFanOrder.c
-        abcShow.c
+        abcFanio.c
+        abcHieGia.c
+        abcFunc.c
         abcLib.c
+        abcNtk.c
+        abcDfs.c
+        abcSop.c
+        abcBlifMv.c
+        abcShow.c
+        abcCheck.c
+        abcNetlist.c
+        abcRefs.c
+        abcUtil.c
+        abcHieNew.c
+        abcLatch.c
+        abcHie.c
+        abcAig.c
+        abcHieCec.c
+        abcNames.c
+        abcBarBuf.c
+        abcMinBase.c
+        abcObj.c
 )

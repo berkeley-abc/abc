@@ -1,11 +1,11 @@
 abc_libabc_add_sources(
     NAME sat_bsat2
     SOURCES
-        MainSat.cpp
-        Options.cpp
-        AbcApi.cpp
         SimpSolver.cpp
-        Solver.cpp
-        System.cpp
+        AbcApi.cpp
+        Options.cpp
+        MainSat.cpp
         MainSimp.cpp
+        System.cpp
+        Solver.cpp
 )

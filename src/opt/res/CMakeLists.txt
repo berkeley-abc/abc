@@ -1,11 +1,11 @@
 abc_libabc_add_sources(
     NAME opt_res
     SOURCES
-        resSat.c
-        resDivs.c
-        resFilter.c
         resStrash.c
+        resSat.c
+        resFilter.c
         resWin.c
-        resSim.c
         resCore.c
+        resSim.c
+        resDivs.c
 )
