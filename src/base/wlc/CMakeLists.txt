@@ -1,23 +1,23 @@
 abc_libabc_add_sources(
     NAME base_wlc
     SOURCES
-        wlcBlast.c
-        wlcAbs.c
+        wlcNdr.c
         wlcPth.c
-        wlcGraft.c
-        wlcShow.c
-        wlcReadSmt.c
-        wlcUif.c
-        wlcStdin.c
+        wlcAbc.c
         wlcCom.c
         wlcJson.c
-        wlcNtk.c
-        wlcNdr.c
-        wlcSim.c
+        wlcStdin.c
         wlcReadVer.c
+        wlcNtk.c
+        wlcAbs.c
+        wlcBlast.c
         wlcMem.c
+        wlcReadSmt.c
+        wlcSim.c
+        wlcShow.c
         wlcAbs2.c
-        wlcAbc.c
         wlcWin.c
         wlcWriteVer.c
+        wlcGraft.c
+        wlcUif.c
 )

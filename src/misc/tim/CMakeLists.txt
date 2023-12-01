@@ -3,7 +3,7 @@ abc_libabc_add_sources(
     SOURCES
         timDump.c
         timMan.c
+        timTrav.c
         timBox.c
         timTime.c
-        timTrav.c
 )

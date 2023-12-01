@@ -1,36 +1,36 @@
 abc_libabc_add_sources(
     NAME base_io
     SOURCES
-        ioReadAiger.c
-        ioWriteGml.c
-        ioReadBlif.c
-        ioReadBlifMv.c
-        io.c
-        ioWriteBook.c
-        ioWriteBlifMv.c
-        ioReadEqn.c
-        ioReadBlifAig.c
-        ioWriteVerilog.c
-        ioReadPlaMo.c
-        ioWritePla.c
-        ioWriteEdgelist.c
-        ioWriteBaf.c
-        ioWriteBench.c
-        ioReadEdif.c
-        ioJson.c
-        ioReadPla.c
-        ioWriteList.c
-        ioWriteEqn.c
-        ioUtil.c
         ioReadBench.c
-        ioWriteCnf.c
-        ioWriteBlif.c
-        ioReadBaf.c
-        ioWriteDot.c
-        ioReadVerilog.c
+        ioReadEdif.c
+        ioWriteVerilog.c
+        ioWriteBench.c
+        ioWritePla.c
+        ioWriteGml.c
         ioReadBblif.c
-        ioWriteSmv.c
+        ioReadVerilog.c
+        ioWriteBaf.c
         ioReadDsd.c
+        ioWriteDot.c
+        io.c
+        ioWriteEdgelist.c
+        ioReadPlaMo.c
+        ioReadBaf.c
+        ioWriteList.c
+        ioJson.c
         ioWriteAiger.c
+        ioWriteBook.c
         ioWriteBblif.c
+        ioReadBlifMv.c
+        ioReadEqn.c
+        ioUtil.c
+        ioReadBlif.c
+        ioWriteEqn.c
+        ioReadPla.c
+        ioReadAiger.c
+        ioReadBlifAig.c
+        ioWriteCnf.c
+        ioWriteBlifMv.c
+        ioWriteSmv.c
+        ioWriteBlif.c
 )
