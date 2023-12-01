@@ -1,21 +1,21 @@
 abc_libabc_add_sources(
     NAME map_mapper
     SOURCES
+        mapperMatch.c
+        mapper.c
+        mapperSuper.c
+        mapperTable.c
         mapperRefs.c
         mapperTime.c
-        mapperLib.c
-        mapperTable.c
-        mapper.c
-        mapperUtils.c
-        mapperCutUtils.c
-        mapperTree.c
         mapperTruth.c
-        mapperCreate.c
-        mapperSwitch.c
         mapperCore.c
+        mapperCreate.c
+        mapperCutUtils.c
+        mapperSwitch.c
         mapperCut.c
-        mapperVec.c
-        mapperSuper.c
-        mapperMatch.c
         mapperCanon.c
+        mapperUtils.c
+        mapperTree.c
+        mapperLib.c
+        mapperVec.c
 )
