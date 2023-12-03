@@ -176,7 +176,7 @@ if(WIN32)
         add_definitions(-DWIN32 -D__MINGW32__ -DHAVE_STRUCT_TIMESPEC)
         if(DEFINED ENV{CONDA_PREFIX})
             target_include_directories(abc_interface
-                INTERFACE $ENV{CONDA_PREFIX}/include
+                INTERFACE $ENV{CONDA_PREFIX}/Library/include
             )
         endif()
     endif()

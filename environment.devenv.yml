@@ -1,7 +1,7 @@
-name: abc-test
+name: abc
 
 dependencies:
-  - python ={{ get_env("PY_VER", default="3.9") }}
+  - python ={{ get_env("PY_VER", default="3.10") }}
   - cmake>=3.18
   - ninja
   - c-compiler
@@ -10,4 +10,11 @@ dependencies:
   - readline=8.1  # [unix]
   - zlib
   - libpng
-  - dirent >=1.21,<2.0  # [win]
+  - dirent  # [win]
+
+environment:
+  CPATH:
+    - $CONDA_PREFIX/include           # [unix]
+    - $CONDA_PREFIX/Library/include   # [win]
+
+  LD_LIBRARY_PATH: $CONDA_PREFIX/lib  # [unix]

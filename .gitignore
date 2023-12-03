@@ -64,3 +64,4 @@ abc.history
 
 .tox/
 staging/
+environment.yml
