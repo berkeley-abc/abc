@@ -44,7 +44,6 @@ jobs:
         -Wdev
         -B build
         -DBUILD_SHARED_LIBS=ON
-        -DABC_USE_NAMESPACE=xxx
         -DCMAKE_BUILD_TYPE=Debug
         -DCMAKE_INSTALL_PREFIX=$PWD/_dist
 

@@ -10,4 +10,4 @@ dependencies:
   - readline=8.1  # [unix]
   - zlib
   - libpng
-  - dirent  # [win]
+  - dirent >=1.21,<2.0  # [win]
