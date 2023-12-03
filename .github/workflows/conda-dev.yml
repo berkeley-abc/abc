@@ -12,6 +12,9 @@ jobs:
   build:
     name: abc ${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
@@ -59,27 +62,28 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v2
       with:
         auto-update-conda: true
+        auto-activate-base: true
         python-version: ${{ matrix.python-version }}
         channels: conda-forge
-        channel-priority: strict
-        use-only-tar-bz2: true
+        channel-priority: flexible
 
     - name: Configure condadev environment
-      shell: bash -l {0}
       env:
         PY_VER: ${{ matrix.python-version }}
       run: |
         conda config --set always_yes yes --set changeps1 no
-        conda config --add channels conda-forge
         conda install conda-devenv=2.1.1
-        conda devenv
+        conda info
+        conda list
 
     - name: Build and test
-      shell: bash -l {0}
       env:
         PY_VER: ${{ matrix.python-version }}
       run: |
-        source activate abc-test
+        conda devenv
+        conda info --envs
+        source activate abc
+        conda list dirent
         ctest --build-generator "${{ matrix.generator }}" \
           --build-and-test . build \
           --build-options ${CMAKE_ARGS} ${{ matrix.extra_args }} \
