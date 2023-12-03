@@ -132,11 +132,7 @@ target_include_directories(
               $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-if(MINGW)
-    target_link_libraries(abc_interface INTERFACE ${CMAKE_DL_LIBS} shlwapi)
-else()
-    target_link_libraries(abc_interface INTERFACE ${CMAKE_DL_LIBS})
-endif()
+target_link_libraries(abc_interface INTERFACE ${CMAKE_DL_LIBS})
 
 if(NOT ABC_USE_NO_CUDD)
     message(STATUS "Compiling with CUDD")
@@ -178,6 +174,11 @@ endif()
 if(WIN32)
     if(MINGW OR MSYS)
         add_definitions(-DWIN32 -D__MINGW32__ -DHAVE_STRUCT_TIMESPEC)
+        if(DEFINED ENV{CONDA_PREFIX})
+            target_include_directories(abc_interface
+                INTERFACE $ENV{CONDA_PREFIX}/include
+            )
+        endif()
     endif()
     target_compile_definitions(abc_interface
         INTERFACE
@@ -186,6 +187,7 @@ if(WIN32)
             $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:WIN32_NO_DLL>
             $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:ABC_NO_DYNAMIC_LINKING>
     )
+    target_link_libraries(abc_interface INTERFACE shlwapi)
 endif()
 
 if(ABC_USE_NAMESPACE)
