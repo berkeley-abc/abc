@@ -145,6 +145,9 @@ static inline void   Cec4_ObjCleanSatId( Gia_Man_t * p, Gia_Obj_t * pObj )      
 
 
 extern Vec_Int_t* vLitBmiter;
+extern Vec_Int_t* vIdBI;
+extern Vec_Int_t* vIdBO;
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -1887,51 +1890,9 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
 
         if ( Abc_Lit2Var(pObj->Value) == Abc_Lit2Var(pRepr->Value) )
         {
-            // printf( "*node %d (%d) merged into node %d (%d)\n", lit_obj >> 1, Vec_IntEntry( vLitBmiter, lit_obj ), lit_repr >> 1, Vec_IntEntry( vLitBmiter, lit_repr) );
-            if ( Vec_IntEntry( vLitBmiter, lit_repr ) == 3 )
+            printf( "*node %d (%d) merged into node %d (%d)\n", lit_obj >> 1, Vec_IntEntry( vLitBmiter, lit_obj ), lit_repr >> 1, Vec_IntEntry( vLitBmiter, lit_repr) );
+            if ( pPars->fBMiterInfo )
             {
-                switch ( Vec_IntEntry( vLitBmiter, lit_obj ) )
-                {
-                    case 1:
-                    case 4:
-                        Vec_IntUpdateEntry( vLitBmiter, lit_repr, 4 );
-                        break;
-                    case 2:
-                    case 5:
-                        Vec_IntUpdateEntry( vLitBmiter, lit_repr, 5 );
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else 
-            {
-                if ( Vec_IntEntry(vLitBmiter, lit_obj ) == 3 ) 
-                    switch ( Vec_IntEntry( vLitBmiter, lit_repr ) )
-                    {
-                        case 1:
-                        case 4:
-                            Vec_IntUpdateEntry( vLitBmiter, lit_obj, 4 );
-                            break;
-                        case 2:
-                        case 5:
-                            Vec_IntUpdateEntry( vLitBmiter, lit_obj, 5 );
-                            break;
-                        default:
-                            break;
-
-                    }
-            }
-            assert( (pObj->Value ^ pRepr->Value) == (pObj->fPhase ^ pRepr->fPhase) );
-            Gia_ObjSetProved( p, i );
-            if ( Gia_ObjId(p, pRepr) == 0 )
-                pMan->iLastConst = i;
-            continue;
-        }
-        if ( Cec4_ManSweepNode(pMan, i, Gia_ObjId(p, pRepr)) && Gia_ObjProved(p, i) )
-        {
-            if (pPars->fBMiterInfo){
-                // printf( "node %d (%d) merged into node %d (%d)\n", lit_obj, Vec_IntEntry( vLitBmiter, lit_obj ), lit_repr, Vec_IntEntry( vLitBmiter, lit_repr ) );
                 if ( Vec_IntEntry( vLitBmiter, lit_repr ) == 3 )
                 {
                     switch ( Vec_IntEntry( vLitBmiter, lit_obj ) )
@@ -1966,10 +1927,129 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
 
                         }
                 }
+                // TODO
+                Vec_IntSetEntry( vLitBmiter, lit_obj, Vec_IntEntry( vLitBmiter, lit_repr) );
+            }
+            assert( (pObj->Value ^ pRepr->Value) == (pObj->fPhase ^ pRepr->fPhase) );
+            Gia_ObjSetProved( p, i );
+            if ( Gia_ObjId(p, pRepr) == 0 )
+                pMan->iLastConst = i;
+            continue;
+        }
+        if ( Cec4_ManSweepNode(pMan, i, Gia_ObjId(p, pRepr)) && Gia_ObjProved(p, i) )
+        {
+            if (pPars->fBMiterInfo){
+                printf( "node %d (%d) merged into node %d (%d)\n", lit_obj >> 1, Vec_IntEntry( vLitBmiter, lit_obj ), lit_repr >> 1, Vec_IntEntry( vLitBmiter, lit_repr ) );
+                if ( Vec_IntEntry( vLitBmiter, lit_repr ) == 3 )
+                {
+                    switch ( Vec_IntEntry( vLitBmiter, lit_obj ) )
+                    {
+                        case 1:
+                        case 4:
+                            Vec_IntUpdateEntry( vLitBmiter, lit_repr, 4 );
+                            break;
+                        case 2:
+                        case 5:
+                            Vec_IntUpdateEntry( vLitBmiter, lit_repr, 5 );
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                else 
+                {
+                    if ( Vec_IntEntry(vLitBmiter, lit_obj ) == 3 ) 
+                        switch ( Vec_IntEntry( vLitBmiter, lit_repr ) )
+                        {
+                            case 1:
+                            case 4:
+                                Vec_IntUpdateEntry( vLitBmiter, lit_obj, 4 );
+                                break;
+                            case 2:
+                            case 5:
+                                Vec_IntUpdateEntry( vLitBmiter, lit_obj, 5 );
+                                break;
+                            default:
+                                break;
+
+                        }
+                }
+                // TODO
+                Vec_IntSetEntry( vLitBmiter, lit_obj, Vec_IntEntry( vLitBmiter, lit_repr) );
             }
             pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
         }
     }
+
+    
+    if ( pPars->fBMiterInfo )
+    {
+
+        // check bi, bo
+        Vec_Ptr_t* vBO = Vec_PtrAlloc( 16 );
+        Vec_Ptr_t * vQ = Vec_PtrAlloc(16);
+
+        int val;
+        printf("BI:");
+        Vec_IntForEachEntry( vIdBI, val, i )
+        {
+            printf( " %d (%d)", val, Vec_IntEntry( vLitBmiter, val << 1) );
+        }
+        printf("\nBO:");
+        Vec_IntForEachEntry( vIdBO, val, i )
+        {
+            printf( " %d (%d)", val, Vec_IntEntry( vLitBmiter, val << 1) );
+            if ( Vec_IntEntry( vLitBmiter, val << 1) != 5 )
+            {
+                Vec_PtrPush(vQ, &((p->pObjs)[val]) );
+            }
+        }
+        printf("\n");
+
+        // find bound
+
+        Gia_ManStaticFanoutStart( p );
+
+        Vec_Int_t* vFlag = Vec_IntAlloc( p->nObjs );
+        Vec_IntFill( vFlag, p->nObjs, 0 );
+        Gia_Obj_t * pObj2;
+        int cnt_node = 0;
+        int cnt_newBo = 0;
+
+        while ( Vec_PtrSize(vQ) != 0 )
+        {
+            pObj2 = Vec_PtrPop(vQ);
+            if ( Vec_IntEntry( vFlag, Gia_ObjId(p, pObj2) ) != 0 ) continue;
+            cnt_node ++;
+            Vec_IntSetEntry( vFlag, Gia_ObjId(p, pObj2), 1 );
+
+            val = Vec_IntEntry(vLitBmiter, Gia_ObjId(p, pObj2) << 1);
+            if ( val == 5 || Gia_ObjIsCo( pObj2 ) ) // boundary found
+            {
+                cnt_newBo ++;
+                Vec_PtrPush( vBO, pObj2 );
+                continue;
+            }
+
+            for( int j = 0; j < Gia_ObjFanoutNum(p, pObj2); j++ )
+            {
+                Vec_PtrPush( vQ, Gia_ObjFanout(p, pObj2, j) );
+                printf( "add fanout\n");
+            }
+        }
+
+        Gia_ManStaticFanoutStop(p);
+
+
+        printf("extended BO with %d extra nodes:", cnt_node);
+        Vec_PtrForEachEntry( Gia_Obj_t*, vBO, pObj, i )
+        {
+            printf( " %d", Gia_ObjId(p, pObj) );
+        }
+        printf("\n");
+    }
+
+
     if ( p->iPatsPi > 0 )
     {
         abctime clk2 = Abc_Clock();

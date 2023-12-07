@@ -31,6 +31,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 Vec_Int_t* vLitBmiter;
+Vec_Int_t* vIdBI;
+Vec_Int_t* vIdBO;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -5728,6 +5730,11 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
     int c1 = 0;
     int c2 = 0;
     int count;
+    int val;
+
+    vIdBI = Vec_IntAlloc(16);
+    vIdBO = Vec_IntAlloc(16);
+
     Gia_ManForEachBuf( p1, pObj, i )
     {
         if ( count < n ) 
@@ -5782,6 +5789,7 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
 
     // TODO: record hashed equivalent nodes
 
+    count = 0;
     Gia_ManForEachAnd( p1, pObj, i ) {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) > 0  )
@@ -5796,7 +5804,18 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
             }
         }
         if ( Gia_ObjIsBuf(pObj) )
+        {
             Vec_IntPush( vLits, pObj->Value );
+            if ( count < n )
+            {
+                Vec_IntPush( vIdBI, (pObj->Value) >> 1 );
+            }
+            else
+            {
+                Vec_IntPush( vIdBO, (pObj->Value) >> 1 );
+            }
+            count ++; 
+        }
     }
 
 
