@@ -4,8 +4,9 @@ dependencies:
   - python ={{ get_env("PY_VER", default="3.10") }}
   - cmake>=3.18
   - ninja
-  - c-compiler
-  - cxx-compiler
+  - gxx_linux-64  # [linux]
+  - ccache   # [not win]
+  - clcache  # [win]
   - make  # [unix]
   - readline=8.1  # [unix]
   - zlib
