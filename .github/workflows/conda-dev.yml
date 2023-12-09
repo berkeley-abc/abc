@@ -12,14 +12,11 @@ jobs:
   build:
     name: abc ${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: bash -el {0}
     strategy:
       fail-fast: false
       matrix:
         os: ['ubuntu-22.04', 'ubuntu-20.04', 'macOS-11', 'windows-2019']
-        python-version: ['3.11']
+        python-version: ['3.9']
         use_namespace: [false, true]
         include:
           - os: 'ubuntu-22.04'
@@ -37,7 +34,7 @@ jobs:
             extra_args: '-DABC_USE_NO_PTHREADS=ON -DABC_USE_NO_READLINE=ON'
     env:
       OS: ${{ matrix.os }}
-      PYTHON: ${{ matrix.python-version }}
+      PY_VER: ${{ matrix.python-version }}
       PYTHONIOENCODING: utf-8
       CMAKE_ARGS: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=xxx' || '' }}
 
@@ -54,36 +51,42 @@ jobs:
       uses: actions/cache@v3
       env:
         # Increase this value to reset cache if environment.devenv.yml has not changed
-        CACHE_NUMBER: 1
+        CACHE_NUMBER: 2
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.devenv.yml') }}
 
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v3
       with:
         auto-update-conda: true
         auto-activate-base: true
-        python-version: ${{ matrix.python-version }}
+        activate-environment: ''
         channels: conda-forge
         channel-priority: flexible
 
     - name: Configure condadev environment
+      shell: bash -l {0}
       env:
         PY_VER: ${{ matrix.python-version }}
       run: |
         conda config --set always_yes yes --set changeps1 no
-        conda install conda-devenv=2.1.1
+        conda install conda-devenv=3.2.0
         conda info
         conda list
 
     - name: Build and test
+      shell: bash -l {0}
       env:
         PY_VER: ${{ matrix.python-version }}
       run: |
         conda devenv
+        conda activate abc
         conda info --envs
-        source activate abc
-        conda list dirent
+        conda list
+        echo $CONDA_PREFIX
+        find $CONDA_PREFIX -maxdepth 2 -type d -name bin
+        cat $(find $CONDA_PREFIX -maxdepth 5 -type f -name dirent.h) || true
+        echo $PATH
         ctest --build-generator "${{ matrix.generator }}" \
           --build-and-test . build \
           --build-options ${CMAKE_ARGS} ${{ matrix.extra_args }} \
