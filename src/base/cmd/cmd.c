@@ -18,7 +18,7 @@
 
 ***********************************************************************/
 
-#if (defined(WIN32) || defined(__MINGW32__)) && !defined(__cplusplus)
+#if (defined(WIN32) || defined(__MINGW32__))
 #include <process.h>
 #else
 #include <dirent.h>
@@ -26,7 +26,6 @@
 #endif
 
 #include "base/abc/abc.h"
-#include "base/io/ioInt.h"
 #include "base/main/mainInt.h"
 #include "cmdInt.h"
 #include "misc/util/utilSignal.h"
@@ -51,7 +50,7 @@ static int CmdCommandUnsetVariable ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandUndo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandRecall        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandEmpty         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-#if (defined(WIN32) || defined(__MINGW32__)) && !defined(__cplusplus)
+#if (defined(WIN32) || defined(__MINGW32__))
 static int CmdCommandScanDir       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandRenameFiles   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -104,7 +103,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "undo",          CmdCommandUndo,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "recall",        CmdCommandRecall,          0 );
     Cmd_CommandAdd( pAbc, "Basic", "empty",         CmdCommandEmpty,           0 );
-#if (defined(WIN32) || defined(__MINGW32__)) && !defined(__cplusplus)
+#if (defined(WIN32) || defined(__MINGW32__))
     Cmd_CommandAdd( pAbc, "Basic", "scandir",       CmdCommandScanDir,         0 );
     Cmd_CommandAdd( pAbc, "Basic", "renamefiles",   CmdCommandRenameFiles,     0 );
     Cmd_CommandAdd( pAbc, "Basic", "ls",            CmdCommandLs,              0 );
@@ -1149,7 +1148,7 @@ usage:
 #endif
 
 
-#if (defined(WIN32) || defined(__MINGW32__)) && !defined(__cplusplus)
+#if (defined(WIN32) || defined(__MINGW32__))
 #include <direct.h>
 #include <io.h>
 
