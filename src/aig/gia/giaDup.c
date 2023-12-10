@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-Vec_Int_t* vLitBmiter;
+Vec_Int_t* vMarkBmiter;
 Vec_Int_t* vIdBI;
 Vec_Int_t* vIdBO;
 
@@ -5701,18 +5701,24 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
     Gia_ManHashStart( pNew );
     Gia_ManConst0(p1)->Value = 0;
     Gia_ManConst0(p2)->Value = 0;
+
+    // allocate vMarkBmiter
+    vMarkBmiter = Vec_IntAlloc( (Gia_ManObjNum(p2) + Gia_ManObjNum(p1)) );
+    Vec_IntFill( vMarkBmiter, (Gia_ManObjNum(p2) + Gia_ManObjNum(p1)), 0 );
+    printf( "allocated size: %d\n", Vec_IntSize(vMarkBmiter) );
+
     Gia_ManForEachCi( p1, pObj, i )
-        pObj->Value = Gia_ManCi(p2, i)->Value = Gia_ManAppendCi( pNew );
+    {
+        int id = pObj->Value = Gia_ManCi(p2, i)->Value = Gia_ManAppendCi( pNew );
+        Vec_IntSetEntry( vMarkBmiter, id >> 1, 4 );
+    }
 
     // TODO: record the corresponding impl node of each lit
-    vLitBmiter = Vec_IntAlloc( (Gia_ManObjNum(p2) + Gia_ManObjNum(p1)) * 2 );
-    Vec_IntFill( vLitBmiter, (Gia_ManObjNum(p2) + Gia_ManObjNum(p1)) * 2, 0 );
-    printf( "allocated size: %d\n", Vec_IntSize(vLitBmiter) );
 
     Gia_ManForEachAnd( p2, pObj, i )
     {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 3 );
+        Vec_IntUpdateEntry( vMarkBmiter, pObj->Value >> 1, 3 );
     }
 
     // TODO: find nodes in spec
@@ -5726,11 +5732,11 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
 
     Gia_ManStaticFanoutStart( p1 );
     Vec_Ptr_t * vQ = Vec_PtrAlloc(16);
+    Vec_Ptr_t * vBO = Vec_PtrAlloc(16);
     Gia_Obj_t * pObj2;
     int c1 = 0;
     int c2 = 0;
-    int count;
-    int val;
+    int count = 0;
 
     vIdBI = Vec_IntAlloc(16);
     vIdBO = Vec_IntAlloc(16);
@@ -5759,6 +5765,7 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
         else
         {
             Vec_IntSetEntry( vTypeSpec, Gia_ObjId( p1, pObj ), 2 );
+            Vec_PtrPush( vBO, pObj );
             c2 ++;
 
             int j;
@@ -5782,6 +5789,37 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
         }
     }
 
+    Vec_Int_t* vFlag = Vec_IntAlloc( Gia_ManObjNum(p1) );
+    Vec_IntFill( vFlag, Gia_ManObjNum(p1), 0 );
+    int id;
+    int count_node = 0;
+
+    // count nodes
+    Vec_PtrForEachEntry( Gia_Obj_t*, vBO, pObj, i )
+    {
+        Vec_PtrPush( vQ, pObj );
+    }
+    while( Vec_PtrSize(vQ) > 0 )
+    {
+        pObj = Vec_PtrPop(vQ);
+        id = Gia_ObjId( p1, pObj );
+        if ( Vec_IntEntry( vFlag, Gia_ObjId(p1, pObj) ) != 0 ) continue;
+        Vec_IntSetEntry( vFlag, Gia_ObjId(p1, pObj), 1 );
+        count_node ++;
+
+        if ( Vec_IntEntry( vTypeSpec, id ) == 1  )
+        {
+            continue;
+        }
+        else
+        {
+            if ( Gia_ObjFaninNum(p1, pObj) > 0 ) Vec_PtrPush( vQ, Gia_ObjFanin0(pObj) );
+            if ( Gia_ObjFaninNum(p1, pObj) > 1 ) Vec_PtrPush( vQ, Gia_ObjFanin1(pObj) );
+        }
+    }
+    printf( "BI: %d, BO: %d, Box Size: %d\n",  n, Gia_ManBufNum(p1)-n, count_node );
+    
+
     Gia_ManStaticFanoutStop( p1 );
 
     printf( "spec: fanin: %d / fanout: %d / total %d\n", c1, c2, Gia_ManObjNum(p1) );
@@ -5794,13 +5832,13 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         if ( Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) > 0  )
         {
-            if ( Vec_IntGetEntry( vLitBmiter, pObj->Value ) == 3 ) // eq node in impl
+            if ( Vec_IntGetEntry( vMarkBmiter, pObj->Value >> 1 ) == 3 ) // eq node in impl
             {
-                Vec_IntUpdateEntry( vLitBmiter, pObj->Value, 3 + Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) );
+                Vec_IntUpdateEntry( vMarkBmiter, pObj->Value >> 1, 3 + Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) );
             }
             else
             {
-                Vec_IntUpdateEntry( vLitBmiter, pObj->Value, Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) );
+                Vec_IntUpdateEntry( vMarkBmiter, pObj->Value >> 1, Vec_IntEntry( vTypeSpec, Gia_ObjId( p1, pObj) ) );
             }
         }
         if ( Gia_ObjIsBuf(pObj) )
@@ -5822,9 +5860,8 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
     int e, c3=0, c4=0, c5=0;
     c1 = 0; c2 = 0;
 
-    Vec_IntForEachEntry( vLitBmiter, e, i )
+    Vec_IntForEachEntry( vMarkBmiter, e, i )
     {
-        if ( i%2 ) continue;
         switch (e)
         {
         case 1: c1++; break;
@@ -5839,7 +5876,10 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, 
     printf("(strash) impl: eq_fanin: %d / eq_fanout: %d / total: %d\n", c4, c5, c3+c4+c5);
 
     Gia_ManForEachCo( p2, pObj, i )
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    {
+        int id = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) ) << 1;
+        Vec_IntSetEntry( vMarkBmiter, id, 5 );
+    }
     Gia_ManForEachCo( p1, pObj, i )
        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Vec_IntForEachEntry( vLits, iLit, i )

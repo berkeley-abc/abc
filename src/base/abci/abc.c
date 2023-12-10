@@ -37921,7 +37921,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCbs = 1, approxLim = 600, subBatchSz = 1, adaRecycle = 500, nMaxNodes = 0;
     Cec4_ManSetParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "OJWRILDCNPMrmdckngxysopwqvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPMrmdckngxysopwqvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -37969,18 +37969,6 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nItersMax < 0 )
                 goto usage;
             break;
-        case 'O':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nPO = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nPO < 1 )
-                goto usage;
-            break;
-
         case 'L':
             if ( globalUtilOptind >= argc )
             {

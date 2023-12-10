@@ -144,7 +144,7 @@ static inline int    Cec4_ObjSetSatId( Gia_Man_t * p, Gia_Obj_t * pObj, int Num 
 static inline void   Cec4_ObjCleanSatId( Gia_Man_t * p, Gia_Obj_t * pObj )        { assert(Cec4_ObjSatId(p, pObj) != -1); Gia_ObjSetCopy2Array(p, Gia_ObjId(p, pObj), -1);               }
 
 
-extern Vec_Int_t* vLitBmiter;
+extern Vec_Int_t* vMarkBmiter;
 extern Vec_Int_t* vIdBI;
 extern Vec_Int_t* vIdBO;
 
@@ -1885,25 +1885,25 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
             if ( pRepr == NULL )
                 continue;
         }
-        int lit_obj = Gia_ObjId( p, pObj ) << 1;
-        int lit_repr = Gia_ObjId( p, pRepr ) << 1;
+        int id_obj = Gia_ObjId( p, pObj );
+        int id_repr = Gia_ObjId( p, pRepr );
 
         if ( Abc_Lit2Var(pObj->Value) == Abc_Lit2Var(pRepr->Value) )
         {
-            printf( "*node %d (%d) merged into node %d (%d)\n", lit_obj >> 1, Vec_IntEntry( vLitBmiter, lit_obj ), lit_repr >> 1, Vec_IntEntry( vLitBmiter, lit_repr) );
+            // printf( "*node %d (%d) merged into node %d (%d)\n", id_obj, Vec_IntEntry( vMarkBmiter, id_obj ), id_repr, Vec_IntEntry( vMarkBmiter, id_repr) );
             if ( pPars->fBMiterInfo )
             {
-                if ( Vec_IntEntry( vLitBmiter, lit_repr ) == 3 )
+                if ( Vec_IntEntry( vMarkBmiter, id_repr ) == 3 )
                 {
-                    switch ( Vec_IntEntry( vLitBmiter, lit_obj ) )
+                    switch ( Vec_IntEntry( vMarkBmiter, id_obj ) )
                     {
                         case 1:
                         case 4:
-                            Vec_IntUpdateEntry( vLitBmiter, lit_repr, 4 );
+                            Vec_IntUpdateEntry( vMarkBmiter, id_repr, 4 );
                             break;
                         case 2:
                         case 5:
-                            Vec_IntUpdateEntry( vLitBmiter, lit_repr, 5 );
+                            Vec_IntUpdateEntry( vMarkBmiter, id_repr, 5 );
                             break;
                         default:
                             break;
@@ -1911,16 +1911,16 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
                 }
                 else 
                 {
-                    if ( Vec_IntEntry(vLitBmiter, lit_obj ) == 3 ) 
-                        switch ( Vec_IntEntry( vLitBmiter, lit_repr ) )
+                    if ( Vec_IntEntry(vMarkBmiter, id_obj ) == 3 ) 
+                        switch ( Vec_IntEntry( vMarkBmiter, id_repr ) )
                         {
                             case 1:
                             case 4:
-                                Vec_IntUpdateEntry( vLitBmiter, lit_obj, 4 );
+                                Vec_IntUpdateEntry( vMarkBmiter, id_obj, 4 );
                                 break;
                             case 2:
                             case 5:
-                                Vec_IntUpdateEntry( vLitBmiter, lit_obj, 5 );
+                                Vec_IntUpdateEntry( vMarkBmiter, id_obj, 5 );
                                 break;
                             default:
                                 break;
@@ -1928,7 +1928,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
                         }
                 }
                 // TODO
-                Vec_IntSetEntry( vLitBmiter, lit_obj, Vec_IntEntry( vLitBmiter, lit_repr) );
+                Vec_IntSetEntry( vMarkBmiter, id_obj, Vec_IntEntry( vMarkBmiter, id_repr) );
             }
             assert( (pObj->Value ^ pRepr->Value) == (pObj->fPhase ^ pRepr->fPhase) );
             Gia_ObjSetProved( p, i );
@@ -1939,18 +1939,18 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         if ( Cec4_ManSweepNode(pMan, i, Gia_ObjId(p, pRepr)) && Gia_ObjProved(p, i) )
         {
             if (pPars->fBMiterInfo){
-                printf( "node %d (%d) merged into node %d (%d)\n", lit_obj >> 1, Vec_IntEntry( vLitBmiter, lit_obj ), lit_repr >> 1, Vec_IntEntry( vLitBmiter, lit_repr ) );
-                if ( Vec_IntEntry( vLitBmiter, lit_repr ) == 3 )
+                // printf( "node %d (%d) merged into node %d (%d)\n", id_obj, Vec_IntEntry( vMarkBmiter, id_obj ), id_repr, Vec_IntEntry( vMarkBmiter, id_repr ) );
+                if ( Vec_IntEntry( vMarkBmiter, id_repr ) == 3 )
                 {
-                    switch ( Vec_IntEntry( vLitBmiter, lit_obj ) )
+                    switch ( Vec_IntEntry( vMarkBmiter, id_obj ) )
                     {
                         case 1:
                         case 4:
-                            Vec_IntUpdateEntry( vLitBmiter, lit_repr, 4 );
+                            Vec_IntUpdateEntry( vMarkBmiter, id_repr, 4 );
                             break;
                         case 2:
                         case 5:
-                            Vec_IntUpdateEntry( vLitBmiter, lit_repr, 5 );
+                            Vec_IntUpdateEntry( vMarkBmiter, id_repr, 5 );
                             break;
                         default:
                             break;
@@ -1958,16 +1958,16 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
                 }
                 else 
                 {
-                    if ( Vec_IntEntry(vLitBmiter, lit_obj ) == 3 ) 
-                        switch ( Vec_IntEntry( vLitBmiter, lit_repr ) )
+                    if ( Vec_IntEntry(vMarkBmiter, id_obj ) == 3 ) 
+                        switch ( Vec_IntEntry( vMarkBmiter, id_repr ) )
                         {
                             case 1:
                             case 4:
-                                Vec_IntUpdateEntry( vLitBmiter, lit_obj, 4 );
+                                Vec_IntUpdateEntry( vMarkBmiter, id_obj, 4 );
                                 break;
                             case 2:
                             case 5:
-                                Vec_IntUpdateEntry( vLitBmiter, lit_obj, 5 );
+                                Vec_IntUpdateEntry( vMarkBmiter, id_obj, 5 );
                                 break;
                             default:
                                 break;
@@ -1975,7 +1975,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
                         }
                 }
                 // TODO
-                Vec_IntSetEntry( vLitBmiter, lit_obj, Vec_IntEntry( vLitBmiter, lit_repr) );
+                Vec_IntSetEntry( vMarkBmiter, id_obj, Vec_IntEntry( vMarkBmiter, id_repr) );
             }
             pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
         }
@@ -1986,67 +1986,128 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     {
 
         // check bi, bo
-        Vec_Ptr_t* vBO = Vec_PtrAlloc( 16 );
-        Vec_Ptr_t * vQ = Vec_PtrAlloc(16);
-
+        Vec_Ptr_t* vAO = Vec_PtrAlloc( 16 );    // additioal output boundary
+        Vec_Ptr_t* vAI = Vec_PtrAlloc( 16 );    // additional input boundary
+        Vec_Ptr_t* vMI = Vec_PtrAlloc(16);      // missing input boundary
+        Vec_Ptr_t* vMO = Vec_PtrAlloc(16);      // missing input boundary
+        Vec_Ptr_t* vQ = Vec_PtrAlloc(16);        // queue for fanout traversal
         int val;
+        int cnt_TO = 0;
+        int cnt_TI = 0;
+        int cnt_SIDE = 0;
+        int cnt_MI = 0;
+        int cnt_MO = 0;
+        Vec_Int_t* vFlag = Vec_IntAlloc( p->nObjs );
+        Vec_IntFill( vFlag, p->nObjs, 0 );
+
         printf("BI:");
         Vec_IntForEachEntry( vIdBI, val, i )
         {
-            printf( " %d (%d)", val, Vec_IntEntry( vLitBmiter, val << 1) );
+            printf( " %d (%d)", val, Vec_IntEntry( vMarkBmiter, val) );
+            if ( Vec_IntEntry( vMarkBmiter, val) <= 3 )
+            {
+                Vec_PtrPush(vMI, &((p->pObjs)[val]) );
+            }
+            else cnt_MI ++;
         }
         printf("\nBO:");
         Vec_IntForEachEntry( vIdBO, val, i )
         {
-            printf( " %d (%d)", val, Vec_IntEntry( vLitBmiter, val << 1) );
-            if ( Vec_IntEntry( vLitBmiter, val << 1) != 5 )
+            printf( " %d (%d)", val, Vec_IntEntry( vMarkBmiter, val) );
+            if ( Vec_IntEntry( vMarkBmiter, val) <= 3 )
             {
                 Vec_PtrPush(vQ, &((p->pObjs)[val]) );
+                Vec_PtrPush(vMO, &((p->pObjs)[val]) );
+                Vec_IntSetEntry( vFlag, val, 2 );
             }
+            else cnt_MO ++;
         }
         printf("\n");
 
-        // find bound
+        // find extended output boundary
 
         Gia_ManStaticFanoutStart( p );
 
-        Vec_Int_t* vFlag = Vec_IntAlloc( p->nObjs );
-        Vec_IntFill( vFlag, p->nObjs, 0 );
         Gia_Obj_t * pObj2;
-        int cnt_node = 0;
-        int cnt_newBo = 0;
+        cnt_TO -= Vec_PtrSize(vQ);
 
         while ( Vec_PtrSize(vQ) != 0 )
         {
             pObj2 = Vec_PtrPop(vQ);
-            if ( Vec_IntEntry( vFlag, Gia_ObjId(p, pObj2) ) != 0 ) continue;
-            cnt_node ++;
+            if ( Vec_IntEntry( vFlag, Gia_ObjId(p, pObj2) ) == 1 ) continue;
             Vec_IntSetEntry( vFlag, Gia_ObjId(p, pObj2), 1 );
+            cnt_TO ++;
 
-            val = Vec_IntEntry(vLitBmiter, Gia_ObjId(p, pObj2) << 1);
+            val = Vec_IntEntry(vMarkBmiter, Gia_ObjId(p, pObj2));
             if ( val == 5 || Gia_ObjIsCo( pObj2 ) ) // boundary found
             {
-                cnt_newBo ++;
-                Vec_PtrPush( vBO, pObj2 );
+                Vec_PtrPush( vAO, pObj2 );
                 continue;
             }
 
             for( int j = 0; j < Gia_ObjFanoutNum(p, pObj2); j++ )
             {
                 Vec_PtrPush( vQ, Gia_ObjFanout(p, pObj2, j) );
-                printf( "add fanout\n");
             }
         }
 
         Gia_ManStaticFanoutStop(p);
 
 
-        printf("extended BO with %d extra nodes:", cnt_node);
-        Vec_PtrForEachEntry( Gia_Obj_t*, vBO, pObj, i )
+        // find extneded input boundary
+
+        Vec_PtrForEachEntry( Gia_Obj_t*, vMO, pObj, i )
+        {
+            Vec_IntSetEntry( vFlag, Gia_ObjId(p, pObj), 2 );
+        }
+        
+        int id;
+        Vec_PtrForEachEntry( Gia_Obj_t*, vMI, pObj, i  ) Vec_PtrPush( vQ, pObj );
+        Vec_PtrForEachEntry( Gia_Obj_t*, vAO, pObj, i  ) Vec_PtrPush( vQ, pObj );
+        cnt_TI -= Vec_PtrSize(vQ);
+        while ( Vec_PtrSize(vQ) > 0 )
+        {
+            pObj = Vec_PtrPop(vQ);
+            id = Gia_ObjId( p, pObj );
+            if ( Vec_IntEntry( vFlag, id ) == 2 ) continue;
+            printf( "backtrace to node %d\n", id );
+            if ( Vec_IntEntry(vMarkBmiter, id ) != 2 ) cnt_TI ++;
+            Vec_IntSetEntry( vFlag, id, 2 );
+
+
+            if ( Vec_IntEntry( vMarkBmiter, id ) >= 3 || Gia_ObjIsCi( pObj ) ) // matched
+            {
+                if ( Vec_IntEntry( vMarkBmiter, id ) < 5 || Gia_ObjIsCi( pObj ) )
+                {
+                    Vec_PtrPush( vAI, pObj );
+                }
+                continue;
+            }
+            else 
+            {
+                if ( Gia_ObjFaninNum(p, pObj) > 0 ) Vec_PtrPush( vQ, Gia_ObjFanin0(pObj) );
+                if ( Gia_ObjFaninNum(p, pObj) > 1 ) Vec_PtrPush( vQ, Gia_ObjFanin1(pObj) );
+            }
+        }
+
+
+        // print result
+        printf("extended BO with %d extra nodes:", cnt_TO);
+        Vec_PtrForEachEntry( Gia_Obj_t*, vAO, pObj, i )
         {
             printf( " %d", Gia_ObjId(p, pObj) );
         }
         printf("\n");
+
+        printf("extended BI with %d extra nodes:", cnt_TI);
+        Vec_PtrForEachEntry( Gia_Obj_t*, vAI, pObj, i )
+        {
+            printf( " %d", Gia_ObjId(p, pObj) );
+        }
+        printf("\n");
+
+        printf("matched BI: %d / matched BO: %d / AI: %d / AO: %d / Extra nodes: %d\n", cnt_MI, cnt_MO, Vec_PtrSize(vAI), Vec_PtrSize(vAO), cnt_TO + cnt_TI );
+
     }
 
 
@@ -2094,7 +2155,7 @@ finalize:
     Gia_ManRemoveWrongChoices( p );
     return p->pCexSeq ? 0 : 1;
 }
-extern Vec_Int_t * vLitBmiter;
+extern Vec_Int_t * vMarkBmiter;
 Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
 {
     Gia_Man_t * pNew = NULL;
@@ -2103,9 +2164,8 @@ Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
     // TODO
     if (pPars -> fBMiterInfo){
         int e, i, c1=0, c2=0, c3=0, c4=0, c5=0;
-        Vec_IntForEachEntry( vLitBmiter, e, i )
+        Vec_IntForEachEntry( vMarkBmiter, e, i )
         {
-            if ( i%2 ) continue;
             switch (e)
             {
             case 1: c1++; break;
