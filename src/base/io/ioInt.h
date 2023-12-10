@@ -45,8 +45,6 @@ ABC_NAMESPACE_HEADER_START
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-extern char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize );
-
 
 ABC_NAMESPACE_HEADER_END
 

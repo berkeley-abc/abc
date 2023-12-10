@@ -9,7 +9,7 @@
   Synopsis    [External declarations.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -44,28 +44,28 @@ ABC_NAMESPACE_HEADER_START
 ////////////////////////////////////////////////////////////////////////
 
 // network functionality
-typedef enum { 
-    IO_FILE_NONE = 0, 
-    IO_FILE_AIGER,      
-    IO_FILE_BAF,      
-    IO_FILE_BBLIF,      
-    IO_FILE_BLIF,      
-    IO_FILE_BLIFMV,      
-    IO_FILE_BENCH,      
+typedef enum {
+    IO_FILE_NONE = 0,
+    IO_FILE_AIGER,
+    IO_FILE_BAF,
+    IO_FILE_BBLIF,
+    IO_FILE_BLIF,
+    IO_FILE_BLIFMV,
+    IO_FILE_BENCH,
     IO_FILE_BOOK,
-    IO_FILE_CNF,      
-    IO_FILE_DOT,      
-    IO_FILE_EDIF,      
-    IO_FILE_EQN,      
+    IO_FILE_CNF,
+    IO_FILE_DOT,
+    IO_FILE_EDIF,
+    IO_FILE_EQN,
     IO_FILE_GML,
-    IO_FILE_HMETIS,      
-    IO_FILE_JSON,      
-    IO_FILE_LIST,      
-    IO_FILE_PLA,      
-    IO_FILE_MOPLA,      
-    IO_FILE_SMV,      
-    IO_FILE_VERILOG,    
-    IO_FILE_UNKNOWN       
+    IO_FILE_HMETIS,
+    IO_FILE_JSON,
+    IO_FILE_LIST,
+    IO_FILE_PLA,
+    IO_FILE_MOPLA,
+    IO_FILE_SMV,
+    IO_FILE_VERILOG,
+    IO_FILE_UNKNOWN
 } Io_FileType_t;
 
 ////////////////////////////////////////////////////////////////////////
@@ -111,7 +111,7 @@ extern void               Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * pFileName,
 extern void               Io_WriteBlif( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches, int fBb2Wb, int fSeq );
 extern void               Io_WriteTimingInfo( FILE * pFile, Abc_Ntk_t * pNtk );
 extern void               Io_WriteBlifSpecial( Abc_Ntk_t * pNtk, char * FileName, char * pLutStruct, int fUseHie );
-/*=== abcWriteBlifMv.c ==========================================================*/ 
+/*=== abcWriteBlifMv.c ==========================================================*/
 extern void               Io_WriteBlifMv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteBench.c =========================================================*/
 extern int                Io_WriteBench( Abc_Ntk_t * pNtk, const char * FileName );
@@ -162,7 +162,8 @@ extern FILE *             Io_FileOpen( const char * FileName, const char * PathV
 /*=== ioJson.c ===========================================================*/
 extern void               Io_ReadJson( char * pFileName );
 extern void               Io_WriteJson( char * pFileName );
-
+/*=== ioReadBlifMv.c =====================================================*/
+extern char *             Io_MvLoadFileBz2( char * pFileName, long * pnFileSize );
 
 
 ABC_NAMESPACE_HEADER_END
@@ -174,4 +175,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
