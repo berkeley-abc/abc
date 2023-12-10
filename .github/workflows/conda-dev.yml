@@ -82,11 +82,6 @@ jobs:
         conda devenv
         conda activate abc
         conda info --envs
-        conda list
-        echo $CONDA_PREFIX
-        find $CONDA_PREFIX -maxdepth 2 -type d -name bin
-        cat $(find $CONDA_PREFIX -maxdepth 5 -type f -name dirent.h) || true
-        echo $PATH
         ctest --build-generator "${{ matrix.generator }}" \
           --build-and-test . build \
           --build-options ${CMAKE_ARGS} ${{ matrix.extra_args }} \
