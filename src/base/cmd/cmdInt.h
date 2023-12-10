@@ -9,7 +9,7 @@
   Synopsis    [Internal declarations of the command package.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -26,6 +26,7 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#include "base/io/ioAbc.h"
 #include "base/main/mainInt.h"
 #include "cmd.h"
 
@@ -42,8 +43,8 @@ ABC_NAMESPACE_HEADER_START
 
 struct MvCommand
 {
-    char *        sName;       // the command name  
-    char *        sGroup;      // the group name  
+    char *        sName;       // the command name
+    char *        sGroup;      // the group name
     Cmd_CommandFuncType        pFunc;       // the function to execute the command
     int           fChange;     // set to 1 to mark that the network is changed
 };
@@ -89,4 +90,3 @@ extern void       CmdPrintTable( st__table * tTable, int fAliases );
 ABC_NAMESPACE_HEADER_END
 
 #endif
-

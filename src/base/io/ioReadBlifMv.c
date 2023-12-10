@@ -115,7 +115,7 @@ static int               Io_MvParseLineMv( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset );
 static int               Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineShortBlif( Io_MvMod_t * p, char * pLine );
-static int                 Io_MvParseLineLtlProperty( Io_MvMod_t * p, char * pLine );
+static int               Io_MvParseLineLtlProperty( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens );
 static Io_MvVar_t *      Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar );
 
