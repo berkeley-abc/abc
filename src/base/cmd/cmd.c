@@ -37,6 +37,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 static int CmdCommandTime          ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandSleep         ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandEcho          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandQuit          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandAbcrc         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -90,6 +91,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_HistoryRead( pAbc );
 
     Cmd_CommandAdd( pAbc, "Basic", "time",          CmdCommandTime,            0 );
+    Cmd_CommandAdd( pAbc, "Basic", "sleep",         CmdCommandSleep,           0 );
     Cmd_CommandAdd( pAbc, "Basic", "echo",          CmdCommandEcho,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "quit",          CmdCommandQuit,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "abcrc",         CmdCommandAbcrc,           0 );
@@ -228,6 +230,54 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
     return 1;
 }
 
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int CmdCommandSleep( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    abctime clkStop;
+    int c, nSecs = 1;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSecs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSecs < 0 )
+                goto usage;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    clkStop = Abc_Clock() + nSecs * CLOCKS_PER_SEC;
+    while ( Abc_Clock() < clkStop );
+    return 0;
+
+  usage:
+    fprintf( pAbc->Err, "usage: sleep [-N <num>] [-h]\n" );
+    fprintf( pAbc->Err, "         puts ABC to sleep for the given time\n" );
+    fprintf( pAbc->Err, "-N num   time in seconds [default = %d]\n", nSecs );    
+    fprintf( pAbc->Err, "-h       print the command usage\n" );
+    return 1;
+}
 /**Function********************************************************************
 
   Synopsis    []
