@@ -281,26 +281,38 @@ static inline char * Scl_LibertyFindMatch( char * pPos, char * pEnd )
     assert( *pPos == '(' || *pPos == '{' );
     if ( *pPos == '(' )
     {
-        for ( ; pPos < pEnd; pPos++ )
-        {
-            if ( *pPos == '(' )
+      ++Counter;
+      ++pPos;
+      for ( ; pPos < pEnd; pPos++ )
+      {
+            // Invariant: Counter > 0.
+            if ( *pPos == '(' ) {
                 Counter++;
-            if ( *pPos == ')' )
+                continue;
+            }
+            else if ( *pPos == ')' ) {
                 Counter--;
-            if ( Counter == 0 )
-                break;
+                if ( Counter == 0 )
+                  break;
+            }
         }
     }
     else
     {
+        ++Counter;
+        ++pPos;
         for ( ; pPos < pEnd; pPos++ )
         {
-            if ( *pPos == '{' )
+            // Invariant: Counter > 0.
+            if ( *pPos == '{' ) {
                 Counter++;
-            if ( *pPos == '}' )
+                continue;
+            }
+            else if ( *pPos == '}' ) {
                 Counter--;
-            if ( Counter == 0 )
-                break;
+                if ( Counter == 0 )
+                  break;
+            }
         }
     }
     assert( *pPos == ')' || *pPos == '}' );
@@ -317,10 +329,14 @@ static inline Scl_Pair_t Scl_LibertyUpdateHead( Scl_Tree_t * p, Scl_Pair_t Head 
     char * pChar;
     for ( pChar = pBeg; pChar < pEnd; pChar++ )
     {
-        if ( *pChar == '\n' )
+        if ( *pChar == '\n' ) {
             p->nLines++;
-        if ( Scl_LibertyCharIsSpace(*pChar) )
+            // Note: Scl_LibertyCharIsSpace returns true for '\n', so we can
+            // continue here and save the call to Scl_LibertyCharIsSpace.
             continue;
+        } else if ( Scl_LibertyCharIsSpace(*pChar) ) {
+            continue;
+        }
         pLastNonSpace = pChar;
         if ( pFirstNonSpace == NULL )
             pFirstNonSpace = pChar;
