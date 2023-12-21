@@ -244,6 +244,7 @@ int CmdCommandTime( Abc_Frame_t * pAbc, int argc, char **argv )
 int CmdCommandSleep( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     abctime clkStop;
+    char * pFileName = NULL;
     int c, nSecs = 1;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
@@ -267,15 +268,25 @@ int CmdCommandSleep( Abc_Frame_t * pAbc, int argc, char **argv )
             goto usage;
         }
     }
+
+    if ( argc == globalUtilOptind + 1 ) {
+        FILE * pFile = NULL;
+        pFileName = argv[globalUtilOptind];
+        while ( (pFile = fopen(pFileName, "rb")) == NULL );
+        if ( pFile != NULL )
+            fclose( pFile );
+    }
+
     clkStop = Abc_Clock() + nSecs * CLOCKS_PER_SEC;
     while ( Abc_Clock() < clkStop );
     return 0;
 
   usage:
-    fprintf( pAbc->Err, "usage: sleep [-N <num>] [-h]\n" );
-    fprintf( pAbc->Err, "         puts ABC to sleep for the given time\n" );
-    fprintf( pAbc->Err, "-N num   time in seconds [default = %d]\n", nSecs );    
-    fprintf( pAbc->Err, "-h       print the command usage\n" );
+    fprintf( pAbc->Err, "usage: sleep [-N <num>] [-h] <file_name>\n" );
+    fprintf( pAbc->Err, "\t              puts ABC to sleep for some time\n" );
+    fprintf( pAbc->Err, "\t-N num      : time duration in seconds [default = %d]\n", nSecs );    
+    fprintf( pAbc->Err, "\t-h          : toggle printing the command usage\n" );
+    fprintf( pAbc->Err, "\t<file_name> : (optional) waiting begins after the file is created\n" );    
     return 1;
 }
 /**Function********************************************************************
