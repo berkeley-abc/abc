@@ -177,7 +177,7 @@ Vec_Wec_t * Gia_Iso4Gia( Gia_Man_t * p )
     Vec_WecForEachLevel( vLevs, vLevel, l )
     {
         Gia_Obj_t * pObj;  int i;
-        int RandC[2] = { Abc_Random(0), Abc_Random(0) };
+        unsigned int RandC[2] = { Abc_Random(0), Abc_Random(0) };
         if ( l == 0 )
         {
             Gia_ManForEachObjVec( vLevel, p, pObj, i )

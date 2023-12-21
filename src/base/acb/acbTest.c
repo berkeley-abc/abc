@@ -235,7 +235,7 @@ void Gia_ManDualMux( Gia_Man_t * p, int LitC[2], int LitT[2], int LitE[2], int L
 
     if ( fForceZero ) LitZ[0]   = Gia_ManHashAnd( p, LitZ[0], Abc_LitNot(LitZ[1]) );
 }
-int Gia_ManDualCompare( Gia_Man_t * p, int LitF[2], int LitS[2] )
+int Gia_ManDualCompare( Gia_Man_t * p, unsigned int LitF[2], unsigned int LitS[2] )
 {
     int iMiter = Gia_ManHashXor( p, LitF[0], LitS[0] );
     iMiter = Gia_ManHashOr( p, LitF[1], iMiter );
@@ -421,8 +421,8 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
     {
         for ( i = 0; i < Gia_ManCoNum(pOne); i += 2 )
         {
-            int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
-            int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
+            unsigned int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
+            unsigned int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
             Gia_ManAppendCo( pNew, pLitsF[0] );
             Gia_ManAppendCo( pNew, pLitsS[0] );
         }
@@ -431,8 +431,8 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
     {
         for ( i = 0; i < Gia_ManCoNum(pOne); i += 2 )
         {
-            int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
-            int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
+            unsigned int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
+            unsigned int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
             Gia_ManAppendCo( pNew, pLitsF[1] );
             Gia_ManAppendCo( pNew, pLitsS[1] );
         }
@@ -441,8 +441,8 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
     {
         for ( i = 0; i < Gia_ManCoNum(pOne); i += 2 )
         {
-            int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
-            int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
+            unsigned int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
+            unsigned int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
             Gia_ManAppendCo( pNew, Gia_ManDualCompare( pNew, pLitsF, pLitsS ) );
         }
     }

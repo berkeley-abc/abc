@@ -1501,7 +1501,7 @@ SeeAlso     []
 
 ***********************************************************************/
 
-// Johnson¨CTrotter algorithm
+// Johnson\A8CTrotter algorithm
 static int Abc_NextPermSwapC(char * pData, signed char * pDir, int size)
 {
     int i, j, k = -1;
