@@ -174,7 +174,7 @@ public:
       return;
 
     generate_decomposition();
-    return get_decomposition_abc( decompArray );
+    get_decomposition_abc( decompArray );
   }
 
 private:
@@ -264,9 +264,12 @@ private:
       return false;
 
     /* estimation on number of LUTs */
-    pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3
-                                               : best_multiplicity <= 8 ? 4
-                                                                        : 5;
+    if ( pst )
+    {
+      pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3
+                                                 : best_multiplicity <= 8 ? 4
+                                                                          : 5;
+    }
 
     return true;
   }
@@ -799,7 +802,7 @@ private:
       best_iset_offset.push_back( offset );
     }
 
-    if ( pst != nullptr )
+    if ( pst )
     {
       pst->num_luts = num_luts;
       pst->num_levels = num_levels;
@@ -868,7 +871,7 @@ private:
       best_iset_offset.push_back( offset );
     }
 
-    if ( pst != nullptr )
+    if ( pst )
     {
       pst->num_luts = num_luts;
       pst->num_levels = num_levels;
