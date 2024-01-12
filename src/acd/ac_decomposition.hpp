@@ -945,6 +945,10 @@ private:
       /* discard solutions with support over LUT size */
       if ( cost > ps.lut_size )
         continue;
+      
+      /* buffers have zero cost */
+      if ( cost == 1 )
+        cost = 0;
 
       float sort_cost = 0;
       if constexpr ( UseHeuristic )
