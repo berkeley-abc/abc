@@ -1798,6 +1798,101 @@ void Gia_ManDumpVerilogNoInterAssign( Gia_Man_t * p, char * pFileName, Vec_Int_t
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManPrintOneName( FILE * pFile, char * pName, int Size )
+{
+    int i;
+    for ( i = 0; i < Size; i++ )
+        fprintf( pFile, "%c", pName[i] );
+}
+int Gia_ManCountSymbs( char * pName )
+{
+    int i;
+    for ( i = 0; pName[i]; i++ )
+        if ( pName[i] == '[' )
+            break;
+    return i;
+}
+int Gia_ManReadRangeNum( char * pName, int Size )
+{
+    if ( pName[Size] == 0 )
+        return -1;
+    assert( pName[Size] == '[' );
+    return atoi(pName+Size+1);
+}
+Vec_Int_t * Gia_ManCountSymbsAll( Vec_Ptr_t * vNames )
+{
+    char * pNameLast = (char *)Vec_PtrEntry(vNames, 0), * pName;
+    int i, nSymbsLast = Gia_ManCountSymbs(pNameLast);
+    Vec_Int_t * vArray = Vec_IntAlloc( Vec_PtrSize(vNames) * 2 );
+    Vec_IntPush( vArray, 0 );
+    Vec_IntPush( vArray, nSymbsLast );
+    Vec_PtrForEachEntryStart( char *, vNames, pName, i, 1 )
+    {
+        int nSymbs = Gia_ManCountSymbs(pName);
+        if ( nSymbs == nSymbsLast && !strncmp(pName, pNameLast, nSymbsLast) )
+            continue;
+        Vec_IntPush( vArray, i );
+        Vec_IntPush( vArray, nSymbs );
+        pNameLast  = pName;
+        nSymbsLast = nSymbs;
+    }
+    return vArray;
+}
+void Gia_ManDumpIoList( Gia_Man_t * p, FILE * pFile, int fOuts )
+{
+    Vec_Ptr_t * vNames = fOuts ? p->vNamesOut : p->vNamesIn;
+    if ( vNames == NULL )
+        fprintf( pFile, "_%c_", fOuts ? 'o' : 'i' );
+    else
+    {
+        Vec_Int_t * vArray = Gia_ManCountSymbsAll( vNames );
+        int iName, Size, i;
+        Vec_IntForEachEntryDouble( vArray, iName, Size, i )
+        {
+            if ( i ) fprintf( pFile, ", " );
+            Gia_ManPrintOneName( pFile, (char *)Vec_PtrEntry(vNames, iName), Size );
+        }
+        Vec_IntFree( vArray );            
+    }
+}
+void Gia_ManDumpIoRanges( Gia_Man_t * p, FILE * pFile, int fOuts )
+{
+    Vec_Ptr_t * vNames = fOuts ? p->vNamesOut : p->vNamesIn;
+    if ( p->vNamesOut == NULL )
+        fprintf( pFile, "%s [%d:0] _%c_;\n", fOuts ? "output" : "input", fOuts ? Gia_ManPoNum(p)-1 : Gia_ManPiNum(p)-1, fOuts ? 'o' : 'i' );
+    else
+    {
+        Vec_Int_t * vArray = Gia_ManCountSymbsAll( vNames );
+        int iName, Size, i;
+        Vec_IntForEachEntryDouble( vArray, iName, Size, i )
+        {
+            int iNameNext    = Vec_IntSize(vArray) > i+2 ? Vec_IntEntry(vArray, i+2) : Vec_PtrSize(vNames);
+            char * pName     = (char *)Vec_PtrEntry(vNames, iName);
+            char * pNameLast = (char *)Vec_PtrEntry(vNames, iNameNext-1);
+            assert( !strncmp(pName, pNameLast, Size) );
+            int NumBeg = Gia_ManReadRangeNum( pName,     Size );
+            int NumEnd = Gia_ManReadRangeNum( pNameLast, Size );
+            fprintf( pFile, "  %s ", fOuts ? "output" : "input" );
+            if ( NumBeg != -1 && iName < iNameNext-1 )
+                fprintf( pFile, "[%d:%d] ", NumEnd, NumBeg );
+            Gia_ManPrintOneName( pFile, pName, Size );
+            fprintf( pFile, ";\n" );                
+        }
+        Vec_IntFree( vArray );            
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName )
 {
     Gia_Obj_t * pObj;
@@ -1820,9 +1915,14 @@ void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName )
     fprintf( pFile, "module " );
     Gia_ManDumpModuleName( pFile, p->pName );
     fprintf( pFile, "_wrapper" );
-    fprintf( pFile, " ( _i_, _o_ );\n\n" );
-    fprintf( pFile, "  input  [%d:0] _i_;\n",   Gia_ManCiNum(p)-1 );
-    fprintf( pFile, "  output [%d:0] _o_;\n\n", Gia_ManCoNum(p)-1 );
+    fprintf( pFile, " ( " );
+    Gia_ManDumpIoList( p, pFile, 0 );
+    fprintf( pFile, ", " );
+    Gia_ManDumpIoList( p, pFile, 1 );    
+    fprintf( pFile, " );\n\n" );
+    Gia_ManDumpIoRanges( p, pFile, 0 );
+    Gia_ManDumpIoRanges( p, pFile, 1 );
+    fprintf( pFile, "\n" );
 
     fprintf( pFile, "  wire " );
     Gia_ManWriteNames( pFile, 'x', Gia_ManPiNum(p), p->vNamesIn, 8, 4, NULL );
@@ -1834,9 +1934,13 @@ void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName )
 
     fprintf( pFile, "  assign { " );
     Gia_ManWriteNames( pFile, 'x', Gia_ManCiNum(p), p->vNamesIn, 8, 4, NULL );
-    fprintf( pFile, " } = _i_;\n\n" );
+    fprintf( pFile, " } = { " );
+    Gia_ManDumpIoList( p, pFile, 0 );    
+    fprintf( pFile, " };\n\n" );    
 
-    fprintf( pFile, "  assign _o_ = { " );
+    fprintf( pFile, "  assign { " );
+    Gia_ManDumpIoList( p, pFile, 1 );       
+    fprintf( pFile, " } = { " );    
     Gia_ManWriteNames( pFile, 'z', Gia_ManCoNum(p), p->vNamesOut, 9, 4, NULL );
     fprintf( pFile, " };\n\n" );
 
@@ -1922,9 +2026,14 @@ void Gia_ManDumpInterfaceAssign( Gia_Man_t * p, char * pFileName )
     fprintf( pFile, "module " );
     Gia_ManDumpModuleName( pFile, p->pName );
     fprintf( pFile, "_wrapper" );
-    fprintf( pFile, " ( _i_, _o_ );\n\n" );
-    fprintf( pFile, "  input  [%d:0] _i_;\n",   Gia_ManCiNum(p)-1 );
-    fprintf( pFile, "  output [%d:0] _o_;\n\n", Gia_ManCoNum(p)-1 );
+    fprintf( pFile, " ( " );
+    Gia_ManDumpIoList( p, pFile, 0 );
+    fprintf( pFile, ", " );
+    Gia_ManDumpIoList( p, pFile, 1 );    
+    fprintf( pFile, " );\n\n" );
+    Gia_ManDumpIoRanges( p, pFile, 0 );
+    Gia_ManDumpIoRanges( p, pFile, 1 );
+    fprintf( pFile, "\n" );
 
     fprintf( pFile, "  wire " );
     Gia_ManWriteNames( pFile, 'x', Gia_ManPiNum(p), p->vNamesIn, 8, 4, NULL );
@@ -1936,9 +2045,13 @@ void Gia_ManDumpInterfaceAssign( Gia_Man_t * p, char * pFileName )
 
     fprintf( pFile, "  assign { " );
     Gia_ManWriteNames( pFile, 'x', Gia_ManCiNum(p), p->vNamesIn, 8, 4, NULL );
-    fprintf( pFile, " } = _i_;\n\n" );
+    fprintf( pFile, " } = { " );
+    Gia_ManDumpIoList( p, pFile, 0 );    
+    fprintf( pFile, " };\n\n" );    
 
-    fprintf( pFile, "  assign _o_ = { " );
+    fprintf( pFile, "  assign { " );
+    Gia_ManDumpIoList( p, pFile, 1 );       
+    fprintf( pFile, " } = { " );    
     Gia_ManWriteNames( pFile, 'z', Gia_ManCoNum(p), p->vNamesOut, 9, 4, NULL );
     fprintf( pFile, " };\n\n" );
 
