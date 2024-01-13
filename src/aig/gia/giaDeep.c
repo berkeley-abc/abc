@@ -55,6 +55,7 @@ Gia_Man_t * Gia_ManDeepSynOne( int nNoImpr, int TimeOut, int nAnds, int Seed, in
         Abc_Random(0);
     for ( i = 0; i < IterMax; i++ )
     {
+        char * pCompress2rs = "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l";
         unsigned Rand = Abc_Random(0);
         int fDch = Rand & 1;
         //int fCom = (Rand >> 1) & 3;
@@ -62,16 +63,16 @@ Gia_Man_t * Gia_ManDeepSynOne( int nNoImpr, int TimeOut, int nAnds, int Seed, in
         int fFx  = (Rand >> 2) & 1;
         int KLut = fUseTwo ? 2 + (i % 5) : 3 + (i % 4);
         int fChange = 0;
-        char Command[1000];
-        char * pComp = NULL;
+        char Command[2000];
+        char pComp[1000];
         if ( fCom == 3 )
-            pComp = "; &put; compress2rs; compress2rs; compress2rs; &get";
+            sprintf( pComp, "; &put; %s; %s; %s; &get", pCompress2rs, pCompress2rs, pCompress2rs );
         else if ( fCom == 2 )
-            pComp = "; &put; compress2rs; compress2rs; &get";
+            sprintf( pComp, "; &put; %s; %s; &get", pCompress2rs, pCompress2rs );
         else if ( fCom == 1 )
-            pComp = "; &put; compress2rs; &get";
+            sprintf( pComp, "; &put; %s; &get", pCompress2rs );
         else if ( fCom == 0 )
-            pComp = "; &dc2";
+            sprintf( pComp, "; &dc2" );
         sprintf( Command, "&dch%s; &if -a -K %d; &mfs -e -W 20 -L 20%s%s",
             fDch ? " -f" : "", KLut, fFx ? "; &fx; &st" : "", pComp );
         if ( Abc_FrameIsBatchMode() )
