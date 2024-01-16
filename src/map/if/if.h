@@ -40,7 +40,7 @@
 #include "opt/dau/dau.h"
 #include "misc/vec/vecHash.h"
 #include "misc/vec/vecWec.h"
-#include "acd/ac_wrapper.h"
+#include "map/if/acd/ac_wrapper.h"
 
 ABC_NAMESPACE_HEADER_START
 
