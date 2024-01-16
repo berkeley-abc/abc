@@ -951,7 +951,7 @@ int Wlc_PrsReadDeclaration( Wlc_Prs_t * p, char * pStart )
     }
     return 1;
 }
-int Wlc_PrsDerive( Wlc_Prs_t * p )
+int Wlc_PrsDerive( Wlc_Prs_t * p, int fInter )
 {
     Wlc_Obj_t * pObj;
     char * pStart, * pName;
@@ -1031,6 +1031,8 @@ startword:
             while ( (pName = Wlc_PrsStrtok( NULL, "(,)" )) )
             {
                 pName = Wlc_PrsSkipSpaces( pName );
+                if ( fInter && Wlc_PrsStrCmp( pName, "wire" ) )
+                    return 0;
                 if ( Wlc_PrsStrCmp( pName, "input" ) || Wlc_PrsStrCmp( pName, "output" ) || Wlc_PrsStrCmp( pName, "wire" ) )
                 {
                     if ( !Wlc_PrsReadDeclaration( p, pName ) )
@@ -1095,12 +1097,16 @@ startword:
         // these are read as part of the interface
         else if ( Wlc_PrsStrCmp( pStart, "input" ) || Wlc_PrsStrCmp( pStart, "output" ) || Wlc_PrsStrCmp( pStart, "wire" ) || Wlc_PrsStrCmp( pStart, "reg" ) )
         {
+            if ( fInter && (Wlc_PrsStrCmp( pStart, "wire" ) || Wlc_PrsStrCmp( pStart, "reg" )) )
+                return 0;            
             if ( !Wlc_PrsReadDeclaration( p, pStart ) )
                 return 0;
         }
         else if ( Wlc_PrsStrCmp( pStart, "assign" ) )
         {
             int Type, NameId, fFound, XValue = 0;
+            if ( fInter )
+                return 0;
             pStart += strlen("assign");
             // read name
             pStart = Wlc_PrsFindName( pStart, &pName );
@@ -1159,6 +1165,8 @@ startword:
         {
             // THIS IS A HACK to detect always statement representing combinational MUX
             int NameId, NameIdOut = -1, fFound, nValues, fDefaultFound = 0;
+            if ( fInter )
+                return 0;
             // find control
             pStart = Wlc_PrsFindWord( pStart, "case", &fFound );
             if ( pStart == NULL )
@@ -1682,7 +1690,7 @@ startword:
     }
     return 1;
 }
-Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr )
+Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr, int fInter )
 {
     Wlc_Prs_t * p;
     Wlc_Ntk_t * pNtk = NULL;
@@ -1696,8 +1704,23 @@ Wlc_Ntk_t * Wlc_ReadVer( char * pFileName, char * pStr )
     if ( !Wlc_PrsPrepare( p ) )
         goto finish;
     // parse models
-    if ( !Wlc_PrsDerive( p ) )
+    if ( !Wlc_PrsDerive( p, fInter ) )
+    {
+        if ( fInter )
+        {
+            printf( "Finished deriving interface for module \"%s\".\n", p->pNtk->pName );
+            pNtk = p->pNtk;  p->pNtk = NULL;
+            pNtk->pSpec = Abc_UtilStrsav( pFileName );
+            if ( Vec_IntSize(&pNtk->vNameIds) == 0 ) 
+            {
+                Vec_Int_t * vTemp = Vec_IntStartNatural( Wlc_NtkObjNumMax(pNtk) );
+                pNtk->vNameIds = *vTemp, Vec_IntZero(vTemp);
+                Vec_IntFree( vTemp );
+            }
+            return pNtk;
+        }
         goto finish;
+    }
     // derive topological order
     if ( p->pNtk )
     {
@@ -1728,7 +1751,7 @@ finish:
 void Io_ReadWordTest( char * pFileName )
 {
     Gia_Man_t * pNew;
-    Wlc_Ntk_t * pNtk = Wlc_ReadVer( pFileName, NULL );
+    Wlc_Ntk_t * pNtk = Wlc_ReadVer( pFileName, NULL, 0 );
     if ( pNtk == NULL )
         return;
     Wlc_WriteVer( pNtk, "test.v", 0, 0 );

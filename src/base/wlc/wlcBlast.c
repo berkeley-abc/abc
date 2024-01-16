@@ -2667,6 +2667,71 @@ Vec_Int_t * Wlc_ComputePerm( Wlc_Ntk_t * pNtk, int nPis )
     return vPerm;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_TransferPioNames( Wlc_Ntk_t * p, Gia_Man_t * pNew )
+{
+    int fSkipBitRange = 0;
+    Wlc_Obj_t * pObj; int i, k;
+    Vec_PtrFreeP( &pNew->vNamesIn );
+    Vec_PtrFreeP( &pNew->vNamesOut );
+    pNew->vNamesIn = Vec_PtrAlloc( Gia_ManPiNum(pNew) );
+    pNew->vNamesOut = Vec_PtrAlloc( Gia_ManPoNum(pNew) );
+    // create input names
+    Wlc_NtkForEachCi( p, pObj, i )
+    if ( Wlc_ObjIsPi(pObj) )
+    {
+        char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+        int nRange = Wlc_ObjRange( pObj );
+        if ( fSkipBitRange && nRange == 1 )
+            Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(pName) );
+        else
+            for ( k = 0; k < nRange; k++ )
+            {
+                char Buffer[1000];
+                sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->Beg-k );
+                Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsav(Buffer) );
+                //printf( "Writing %s\n", Buffer );
+            }
+    }    
+    // add real primary outputs
+    Wlc_NtkForEachCo( p, pObj, i )
+    if ( Wlc_ObjIsPo(pObj) )
+    {
+        char * pName = Wlc_ObjName(p, Wlc_ObjId(p, pObj));
+        int nRange = Wlc_ObjRange( pObj );
+        if ( fSkipBitRange && nRange == 1 )
+            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(pName) );
+        else
+            for ( k = 0; k < nRange; k++ )
+            {
+                char Buffer[1000];
+                sprintf( Buffer, "%s[%d]", pName, pObj->Beg < pObj->End ? pObj->Beg+k : pObj->Beg-k );
+                Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsav(Buffer) );
+            }
+    }
+    if ( Vec_PtrSize(pNew->vNamesIn) != Gia_ManPiNum(pNew) ) 
+        printf( "The number of input bits (%d) does not match the number of primary inputs (%d) in the current AIG.\n", Vec_PtrSize(pNew->vNamesIn), Gia_ManPiNum(pNew) );
+    if ( Vec_PtrSize(pNew->vNamesOut) != Gia_ManPoNum(pNew) ) 
+        printf( "The number of output bits (%d) does not match the number of primary inputs (%d) in the current AIG.\n", Vec_PtrSize(pNew->vNamesOut), Gia_ManPoNum(pNew) );
+    if ( Vec_PtrSize(pNew->vNamesIn) != Gia_ManPiNum(pNew) || Vec_PtrSize(pNew->vNamesOut) != Gia_ManPoNum(pNew) ) 
+    {
+        Vec_PtrFreeP( &pNew->vNamesIn );
+        Vec_PtrFreeP( &pNew->vNamesOut );
+    }
+    else
+        printf( "Successfully transferred the primary input/output names from the word-level design to the current AIG.\n" );
+}
+    
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

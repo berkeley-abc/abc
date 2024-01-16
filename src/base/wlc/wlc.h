@@ -448,7 +448,7 @@ extern void           Wlc_NtkDeleteSim( Vec_Ptr_t * p );
 extern int            Wlc_StdinProcessSmt( Abc_Frame_t * pAbc, char * pCmd );
 /*=== wlcReadVer.c ========================================================*/
 extern char *         Wlc_PrsConvertInitValues( Wlc_Ntk_t * p );
-extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName, char * pStr );
+extern Wlc_Ntk_t *    Wlc_ReadVer( char * pFileName, char * pStr, int fInter );
 /*=== wlcUif.c ========================================================*/
 extern Vec_Int_t *    Wlc_NtkCollectAddMult( Wlc_Ntk_t * p, Wlc_BstPar_t * pPar, int * pCountA, int * CountM );
 extern int            Wlc_NtkPairIsUifable( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Wlc_Obj_t * pObj2 );
