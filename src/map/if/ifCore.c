@@ -62,6 +62,7 @@ void If_ManSetDefaultPars( If_Par_t * pPars )
     pPars->fPower      =  0;
     pPars->fCutMin     =  0;
     pPars->fBidec      =  0;
+    pPars->fUserLutDec =  0;
     pPars->fVerbose    =  0;
 }
 
@@ -106,6 +107,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     If_Obj_t * pObj;
     abctime clkTotal = Abc_Clock();
     int i;
+
     //p->vVisited2 = Vec_IntAlloc( 100 );
     //p->vMarks = Vec_StrStart( If_ManObjNum(p) );
 
@@ -121,6 +123,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     {
         // map for delay
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 1, "Delay" );
+
         // map for delay second option
         p->pPars->fFancy = 1;
         If_ManResetOriginalRefs( p );

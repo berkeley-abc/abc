@@ -604,10 +604,6 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
                 return -1;
             if ( pC0->nLeaves > pC1->nLeaves )
                 return 1;
-            if ( pC0->Delay < pC1->Delay - p->fEpsilon )
-                return -1;
-            if ( pC0->Delay > pC1->Delay + p->fEpsilon )
-                return 1;
             if ( pC0->fUseless < pC1->fUseless )
                 return -1;
             if ( pC0->fUseless > pC1->fUseless )
@@ -765,7 +761,7 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
 
     if ( !pCut->fUseless && 
          (p->pPars->fUseDsd || p->pPars->pFuncCell2 || p->pPars->fUseBat || 
-          p->pPars->pLutStruct || p->pPars->fUserRecLib || p->pPars->fUserSesLib || p->pPars->fUserLutDec || 
+          p->pPars->pLutStruct || p->pPars->fUserRecLib || p->pPars->fUserSesLib || p->pPars->fUserLutDec ||
           p->pPars->fEnableCheck07 || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec || 
           p->pPars->fUseDsdTune || p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u || p->pPars->fUseCheck1 || p->pPars->fUseCheck2) )
     {
