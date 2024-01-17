@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <vector>
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace kitty
 {
 
@@ -87,5 +89,7 @@ static constexpr int32_t hex_to_int[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
 } // namespace detail
 
 } // namespace kitty
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif //_KITTY_CONSTANTS_H_

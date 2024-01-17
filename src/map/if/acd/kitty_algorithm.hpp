@@ -9,6 +9,8 @@
 #include "kitty_dynamic_tt.hpp"
 #include "kitty_static_tt.hpp"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace kitty
 {
 
@@ -115,5 +117,7 @@ void for_each_block_reversed( const TT& tt, Fn&& op )
 }
 
 } // namespace kitty
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif // _KITTY_ALGORITHM_H_

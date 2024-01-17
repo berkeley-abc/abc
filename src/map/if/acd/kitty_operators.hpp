@@ -13,6 +13,8 @@
 #include "kitty_static_tt.hpp"
 #include "kitty_operations.hpp"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace kitty
 {
 
@@ -118,5 +120,7 @@ inline void operator|=( static_truth_table<NumVars>& first, const static_truth_t
 }
 
 } // namespace kitty
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif // _KITTY_OPERATORS_TT_H_

@@ -40,6 +40,8 @@
 #include "kitty_operators.hpp"
 #include "kitty_static_tt.hpp"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace acd
 {
 
@@ -1302,5 +1304,7 @@ private:
 };
 
 } // namespace acd
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif // _ACD_H_
