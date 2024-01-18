@@ -7,6 +7,8 @@
 
 #include "kitty_constants.hpp"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace kitty
 {
 
@@ -127,5 +129,7 @@ public: /* fields */
 };
 
 } //namespace kitty
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif // _KITTY_STATIC_TT_H_

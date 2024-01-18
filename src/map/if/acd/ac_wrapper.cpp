@@ -19,6 +19,8 @@
 #include "ac_wrapper.h"
 #include "ac_decomposition.hpp"
 
+ABC_NAMESPACE_IMPL_START
+
 int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost, int try_no_late_arrival )
 {
   using namespace acd;
@@ -66,3 +68,5 @@ int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay,
   acd.get_decomposition( decomposition );
   return 0;
 }
+
+ABC_NAMESPACE_IMPL_END

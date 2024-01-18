@@ -12,6 +12,8 @@
 #include "kitty_dynamic_tt.hpp"
 #include "kitty_static_tt.hpp"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace kitty
 {
 
@@ -88,5 +90,7 @@ void create_nth_var( TT& tt, uint8_t var_index, bool complement = false )
 }
 
 } // namespace kitty
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif // _KITTY_CONSTRUCT_TT_H_

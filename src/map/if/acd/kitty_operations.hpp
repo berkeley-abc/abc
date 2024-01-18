@@ -14,6 +14,8 @@
 #include "kitty_dynamic_tt.hpp"
 #include "kitty_static_tt.hpp"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace kitty
 {
 
@@ -329,5 +331,7 @@ void print_hex( const TT& tt, std::ostream& os = std::cout )
 }
 
 } //namespace kitty
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif // _KITTY_OPERATIONS_TT_H_
