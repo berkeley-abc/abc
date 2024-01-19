@@ -60,28 +60,35 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int TimeSecs )
+Gia_Man_t * Gia_StochProcessSingle( Gia_Man_t * p, char * pScript, int Rand, int TimeSecs )
 {
-    Gia_Man_t * pNew;
-    char FileName[100], Command[1000];
-    sprintf( FileName, "%06x.aig", Rand );
-    Gia_AigerWrite( p, FileName, 0, 0, 0 );
-    sprintf( Command, "./abc -q \"&read %s; %s; &write %s\"", FileName, pScript, FileName );
-    if ( system( (char *)Command ) )    
+    Gia_Man_t * pTemp, * pNew = Gia_ManDup( p );
+    Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), Gia_ManDup(p) );
+    if ( Abc_FrameIsBatchMode() )
     {
-        fprintf( stderr, "The following command has returned non-zero exit status:\n" );
-        fprintf( stderr, "\"%s\"\n", (char *)Command );
-        fprintf( stderr, "Sorry for the inconvenience.\n" );
-        fflush( stdout );
-        unlink( FileName );
-        return Gia_ManDup(p);
-    }    
-    pNew = Gia_AigerRead( FileName, 0, 0, 0 );
-    unlink( FileName );
-    if ( pNew && Gia_ManAndNum(pNew) < Gia_ManAndNum(p) )
-        return pNew;
-    Gia_ManStopP( &pNew );
-    return Gia_ManDup(p);
+        if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pScript) )
+        {
+            Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pScript );
+            return NULL;
+        }
+    }
+    else
+    {
+        Abc_FrameSetBatchMode( 1 );
+        if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pScript) )
+        {
+            Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pScript );
+            return NULL;
+        }
+        Abc_FrameSetBatchMode( 0 );
+    }
+    pTemp = Abc_FrameReadGia(Abc_FrameGetGlobalFrame());
+    if ( Gia_ManAndNum(pNew) > Gia_ManAndNum(pTemp) )
+    {
+        Gia_ManStop( pNew );
+        pNew = Gia_ManDup( pTemp );
+    }
+    return pNew;
 }
 void Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSecs, int fVerbose )
 {
@@ -92,7 +99,7 @@ void Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSecs, int
         Vec_IntPush( vRands, Abc_Random(0) % 0x1000000 );
     Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i ) 
     {
-        pNew = Gia_StochProcessOne( pGia, pScript, Vec_IntEntry(vRands, i), TimeSecs );
+        pNew = Gia_StochProcessSingle( pGia, pScript, Vec_IntEntry(vRands, i), TimeSecs );
         Gia_ManStop( pGia );
         Vec_PtrWriteEntry( vGias, i, pNew );
     }
@@ -130,6 +137,30 @@ typedef struct Gia_StochThData_t_
     int          nTimeOut;
     int          fWorking;
 } Gia_StochThData_t;
+
+Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int TimeSecs )
+{
+    Gia_Man_t * pNew;
+    char FileName[100], Command[1000];
+    sprintf( FileName, "%06x.aig", Rand );
+    Gia_AigerWrite( p, FileName, 0, 0, 0 );
+    sprintf( Command, "./abc -q \"&read %s; %s; &write %s\"", FileName, pScript, FileName );
+    if ( system( (char *)Command ) )    
+    {
+        fprintf( stderr, "The following command has returned non-zero exit status:\n" );
+        fprintf( stderr, "\"%s\"\n", (char *)Command );
+        fprintf( stderr, "Sorry for the inconvenience.\n" );
+        fflush( stdout );
+        unlink( FileName );
+        return Gia_ManDup(p);
+    }    
+    pNew = Gia_AigerRead( FileName, 0, 0, 0 );
+    unlink( FileName );
+    if ( pNew && Gia_ManAndNum(pNew) < Gia_ManAndNum(p) )
+        return pNew;
+    Gia_ManStopP( &pNew );
+    return Gia_ManDup(p);
+}
 
 void * Gia_StochWorkerThread( void * pArg )
 {
