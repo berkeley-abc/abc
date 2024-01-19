@@ -1408,17 +1408,17 @@ void Gia_ManWriteNames( FILE * pFile, char c, int n, Vec_Ptr_t * vNames, int Sta
         fFirst = 0;
     }
 }
-void Gia_ManDumpVerilog( Gia_Man_t * p, char * pFileName, Vec_Int_t * vObjs, int fVerBufs, int fInter, int fInterComb, int fAssign )
+void Gia_ManDumpVerilog( Gia_Man_t * p, char * pFileName, Vec_Int_t * vObjs, int fVerBufs, int fInter, int fInterComb, int fAssign, int fReverse )
 {
     if ( fInterComb ) 
     {
         if ( fAssign ) {
-            extern void Gia_ManDumpInterfaceAssign( Gia_Man_t * p, char * pFileName );
-            Gia_ManDumpInterfaceAssign( p, pFileName );
+            extern void Gia_ManDumpInterfaceAssign( Gia_Man_t * p, char * pFileName, int fReverse );
+            Gia_ManDumpInterfaceAssign( p, pFileName, fReverse );
         }
         else {
-            extern void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName );
-            Gia_ManDumpInterface( p, pFileName );
+            extern void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName, int fReverse );
+            Gia_ManDumpInterface( p, pFileName, fReverse );
         }
     }
     else
@@ -1855,7 +1855,7 @@ void Gia_ManDumpIoList( Gia_Man_t * p, FILE * pFile, int fOuts )
         Vec_IntFree( vArray );            
     }
 }
-void Gia_ManDumpIoRanges( Gia_Man_t * p, FILE * pFile, int fOuts )
+void Gia_ManDumpIoRanges( Gia_Man_t * p, FILE * pFile, int fOuts, int fReverse )
 {
     Vec_Ptr_t * vNames = fOuts ? p->vNamesOut : p->vNamesIn;
     if ( p->vNamesOut == NULL )
@@ -1874,7 +1874,7 @@ void Gia_ManDumpIoRanges( Gia_Man_t * p, FILE * pFile, int fOuts )
             int NumEnd = Gia_ManReadRangeNum( pNameLast, Size );
             fprintf( pFile, "  %s ", fOuts ? "output" : "input" );
             if ( NumBeg != -1 && iName < iNameNext-1 )
-                fprintf( pFile, "[%d:%d] ", NumEnd, NumBeg );
+                fprintf( pFile, "[%d:%d] ", fReverse ? NumBeg : NumEnd, fReverse ? NumEnd : NumBeg );
             Gia_ManPrintOneName( pFile, pName, Size );
             fprintf( pFile, ";\n" );                
         }
@@ -1893,7 +1893,7 @@ void Gia_ManDumpIoRanges( Gia_Man_t * p, FILE * pFile, int fOuts )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName )
+void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName, int fReverse )
 {
     Gia_Obj_t * pObj;
     Vec_Bit_t * vInvs, * vUsed;
@@ -1920,8 +1920,8 @@ void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName )
     fprintf( pFile, ", " );
     Gia_ManDumpIoList( p, pFile, 1 );    
     fprintf( pFile, " );\n\n" );
-    Gia_ManDumpIoRanges( p, pFile, 0 );
-    Gia_ManDumpIoRanges( p, pFile, 1 );
+    Gia_ManDumpIoRanges( p, pFile, 0, fReverse );
+    Gia_ManDumpIoRanges( p, pFile, 1, fReverse );
     fprintf( pFile, "\n" );
 
     fprintf( pFile, "  wire " );
@@ -2004,7 +2004,7 @@ void Gia_ManDumpInterface( Gia_Man_t * p, char * pFileName )
     Vec_BitFree( vInvs );
     Vec_BitFree( vUsed );
 }
-void Gia_ManDumpInterfaceAssign( Gia_Man_t * p, char * pFileName )
+void Gia_ManDumpInterfaceAssign( Gia_Man_t * p, char * pFileName, int fReverse )
 {
     Gia_Obj_t * pObj;
     Vec_Bit_t * vInvs, * vUsed;
@@ -2031,8 +2031,8 @@ void Gia_ManDumpInterfaceAssign( Gia_Man_t * p, char * pFileName )
     fprintf( pFile, ", " );
     Gia_ManDumpIoList( p, pFile, 1 );    
     fprintf( pFile, " );\n\n" );
-    Gia_ManDumpIoRanges( p, pFile, 0 );
-    Gia_ManDumpIoRanges( p, pFile, 1 );
+    Gia_ManDumpIoRanges( p, pFile, 0, fReverse );
+    Gia_ManDumpIoRanges( p, pFile, 1, fReverse );
     fprintf( pFile, "\n" );
 
     fprintf( pFile, "  wire " );
@@ -2189,7 +2189,7 @@ void Gia_GenSandwich( char ** pFNames, int nFNames, char * pFileName )
     fprintf( pFile, "endmodule\n" );
     fclose( pFile );
     for ( i = 0; i < nFNames; i++ ) {
-        Gia_ManDumpVerilog( pGias[i], Extra_FileNameGenericAppend(pGias[i]->pSpec, ".v"), NULL, 0, 0, 1, 0 );
+        Gia_ManDumpVerilog( pGias[i], Extra_FileNameGenericAppend(pGias[i]->pSpec, ".v"), NULL, 0, 0, 1, 0, 0 );
         printf( "Dumped Verilog file \"%s\"\n", Extra_FileNameGenericAppend(pGias[i]->pSpec, ".v") );        
     }
     Gia_FreeMany( pGias, nFNames );
