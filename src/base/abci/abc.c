@@ -32071,9 +32071,10 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMiniLut = 0;
     int fWriteNewLine = 0;
     int fReverse = 0;
+    int fSkipComment = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "upicabmlnrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upicabmlnrsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32107,6 +32108,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fReverse ^= 1;
             break;            
+        case 's':
+            fSkipComment ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -32142,11 +32146,11 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( fMiniLut )
         Gia_ManWriteMiniLut( pAbc->pGia, pFileName );
     else
-        Gia_AigerWrite( pAbc->pGia, pFileName, 0, 0, fWriteNewLine );
+        Gia_AigerWriteS( pAbc->pGia, pFileName, 0, 0, fWriteNewLine, fSkipComment );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-upicabmlnrvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upicabmlnrsvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
@@ -32158,6 +32162,7 @@ usage:
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
     Abc_Print( -2, "\t-n     : toggle writing \'\\n\' after \'c\' in the AIGER file [default = %s]\n", fWriteNewLine? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle reversing the order of input/output bits [default = %s]\n", fReverse? "yes": "no" );    
+    Abc_Print( -2, "\t-s     : toggle skipping the timestamp in the output file [default = %s]\n", fSkipComment? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");

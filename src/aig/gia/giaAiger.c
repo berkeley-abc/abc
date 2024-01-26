@@ -1217,7 +1217,7 @@ Vec_Str_t * Gia_AigerWriteIntoMemoryStrPart( Gia_Man_t * p, Vec_Int_t * vCis, Ve
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact, int fWriteNewLine )
+void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact, int fWriteNewLine, int fSkipComment )
 {
     int fVerbose = XAIG_VERBOSE;
     FILE * pFile;
@@ -1557,14 +1557,32 @@ void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int
     // write comments
     if ( fWriteNewLine )
         fprintf( pFile, "c\n" );
-    fprintf( pFile, "\nThis file was produced by the GIA package in ABC on %s\n", Gia_TimeStamp() );
-    fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
+    if ( !fSkipComment ) {
+        fprintf( pFile, "\nThis file was produced by the GIA package in ABC on %s\n", Gia_TimeStamp() );
+        fprintf( pFile, "For information about AIGER format, refer to %s\n", "http://fmv.jku.at/aiger" );
+    }
     fclose( pFile );
     if ( p != pInit )
     {
         Gia_ManTransferTiming( pInit, p );
         Gia_ManStop( p );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the AIG in the binary AIGER format.]
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_AigerWrite( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, int fCompact, int fWriteNewLine )
+{
+     Gia_AigerWriteS( pInit, pFileName, fWriteSymbols, fCompact, fWriteNewLine, 0 );
 }
 
 /**Function*************************************************************
