@@ -598,6 +598,7 @@ static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9RecoverBoundary    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1378,6 +1379,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&rb",           Abc_CommandAbc9RecoverBoundary,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&str_eco",      Abc_CommandAbc9StrEco,                 0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -51950,6 +51952,111 @@ usage:
     Abc_Print( -2, "\t-I num : the number of inputs in the boundary\n");
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the specification file\n");    
+    return 1;
+}
+
+int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManPatch( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, int biNum);
+    extern Gia_Man_t * Gia_ManPatchImpl( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, int biNum);
+    Gia_Man_t * pTemp, * pSecond, *pImpl, *pPatched;
+    char * FileName = NULL;
+    char * FileName2 = NULL;
+    FILE * pFile = NULL;
+    int c, fVerbose = 0;
+    int bi  = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            bi = atoi(argv[globalUtilOptind++]);
+            break;    
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 2 )
+    {
+        printf("%d\n", argc-globalUtilOptind);
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): AIG should be given on the command line.\n" );
+        return 0;
+    }
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", ".blif", ".pla", ".eqn", ".bench" )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    // get the input file name 2
+    FileName2 = argv[globalUtilOptind+1];
+    if ( (pFile = fopen( FileName2, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName2 );
+        if ( (FileName2 = Extra_FileGetSimilarName( FileName2, ".aig", ".blif", ".pla", ".eqn", ".bench" )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName2 );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+
+    // map spec to patch
+    pSecond = Gia_AigerRead( FileName, 0, 1, 0 );
+    if ( pSecond == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): Cannot read the file name on the command line.\n" );
+        return 0;
+    }    
+    pTemp = Gia_ManPatch( pAbc->pGia, pSecond, fVerbose, bi);
+    // Gia_ManStop( pSecond );
+    // Abc_FrameUpdateGia( pAbc, pTemp );
+    // return 0;
+
+    // generated patched impl
+    pImpl = Gia_AigerRead( FileName2, 0, 0, 0 );
+    if ( pImpl == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): Cannot read the file name on the command line.\n" );
+        return 0;
+    }    
+    pPatched = Gia_ManPatchImpl( pTemp, pImpl, fVerbose, bi);
+
+    Gia_ManStop( pSecond );
+    Gia_ManStop( pImpl );
+    Gia_ManStop( pTemp );
+    Abc_FrameUpdateGia( pAbc, pPatched );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &str_eco -I <biNum> [-vh] <file> <file2>\n" );
+    Abc_Print( -2, "\t         creates the boundary miter\n" );
+    Abc_Print( -2, "\t-I <biNum>:   number of boundary inputs\n" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : the implementation file\n");    
     return 1;
 }
 
