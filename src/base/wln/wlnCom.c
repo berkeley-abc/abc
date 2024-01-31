@@ -92,7 +92,7 @@ void Wln_End( Abc_Frame_t * pAbc )
 ******************************************************************************/
 int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fVerbose );
+    extern Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fLibInDir, int fVerbose );
     extern Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fCollapse, int fVerbose );
 
     FILE * pFile;
@@ -102,11 +102,12 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fBlast       =    0;
     int fInvert      =    0;
     int fTechMap     =    1;
+    int fLibInDir    =    0;
     int fSkipStrash  =    0;
     int fCollapse    =    0;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TDbismcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TDbismlcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -140,6 +141,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fTechMap ^= 1;
             break;
+        case 'l':
+            fLibInDir ^= 1;
+            break;            
         case 'c':
             fCollapse ^= 1;
             break;
@@ -174,11 +178,11 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Gia_Man_t * pNew = NULL;
         if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
-            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fVerbose );
+            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fLibInDir, fVerbose );
         else if ( !strcmp( Extra_FileNameExtension(pFileName), "sv" )  )
-            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fVerbose );
+            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fLibInDir, fVerbose );
         else if ( !strcmp( Extra_FileNameExtension(pFileName), "rtlil" )  )
-            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fVerbose );
+            pNew = Wln_BlastSystemVerilog( pFileName, pTopModule, pDefines, fSkipStrash, fInvert, fTechMap, fLibInDir, fVerbose );
         else
         {
             printf( "Abc_CommandYosys(): Unknown file extension.\n" );
@@ -204,7 +208,7 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%yosys [-T <module>] [-D <defines>] [-bismcvh] <file_name>\n" );
+    Abc_Print( -2, "usage: %%yosys [-T <module>] [-D <defines>] [-bismlcvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads Verilog or SystemVerilog using Yosys\n" );
     Abc_Print( -2, "\t-T     : specify the top module name (default uses \"-auto-top\")\n" );
     Abc_Print( -2, "\t-D     : specify defines to be used by Yosys (default \"not used\")\n" );
@@ -212,6 +216,7 @@ usage:
     Abc_Print( -2, "\t-i     : toggle inverting the outputs (useful for miters) [default = %s]\n", fInvert? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle no structural hashing during bit-blasting [default = %s]\n", fSkipStrash? "no strash": "strash" );
     Abc_Print( -2, "\t-m     : toggle using \"techmap\" to blast operators [default = %s]\n", fTechMap? "yes": "no" );
+    Abc_Print( -2, "\t-l     : toggle looking for \"techmap.v\" in the current directory [default = %s]\n", fLibInDir? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle collapsing design hierarchy using Yosys [default = %s]\n", fCollapse? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

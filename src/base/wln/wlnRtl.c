@@ -167,7 +167,7 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, char * p
     unlink( pFileTemp );
     return pNtk;
 }
-Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fVerbose )
+Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fLibInDir, int fVerbose )
 {
     Gia_Man_t * pGia = NULL;
     char Command[1000];
@@ -183,7 +183,7 @@ Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * 
         pFileName,
         pTopModule ? "-top "    : "-auto-top",
         pTopModule ? pTopModule : "", 
-        fTechMap ? "techmap; setundef -zero; " : "", pFileTemp );
+        fTechMap ? (fLibInDir ? "techmap -map techmap.v; setundef -zero; " : "techmap; setundef -zero; ") : "", pFileTemp );
     if ( fVerbose )
     printf( "%s\n", Command );
     if ( !Wln_ConvertToRtl(Command, pFileTemp) )
