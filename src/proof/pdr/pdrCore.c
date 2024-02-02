@@ -80,6 +80,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->nDropOuts      =       0;  // the number of timed out outputs
     pPars->timeLastSolved =       0;  // last one solved
     pPars->pInvFileName   =    NULL;  // invariant file name
+    pPars->pCexFilePrefix =    NULL;  // CEX output prefix
 }
 
 /**Function*************************************************************
@@ -1026,6 +1027,38 @@ int Pdr_ManBlockCube( Pdr_Man_t * p, Pdr_Set_t * pCube )
     return 1;
 }
 
+void Pdr_OutputCexToDir( Pdr_Par_t * pPars, Abc_Cex_t * pCex )
+{
+    int i, f, iBit;
+    size_t iCexPathSize;
+    char * pCexPath;
+    FILE * pCexFile;
+
+    iCexPathSize = snprintf( NULL, 0, "%s%d.aiw", pPars->pCexFilePrefix, pCex->iPo ) + 1;
+    pCexPath = malloc( iCexPathSize );
+    snprintf( pCexPath, iCexPathSize, "%s%d.aiw", pPars->pCexFilePrefix, pCex->iPo );
+    Abc_Print( 1, "Writing CEX for output %d to %s\n", pCex->iPo, pCexPath );
+    pCexFile = fopen( pCexPath, "w" );
+    free( pCexPath );
+
+    fprintf( pCexFile, "1\n");
+    fprintf( pCexFile, "b%d\n", pCex->iPo);
+
+    iBit = 0;
+    for ( i = 0; i < pCex->nRegs; i++, iBit++ )
+        putc( '0' + Abc_InfoHasBit(pCex->pData, iBit), pCexFile );
+    putc( '\n', pCexFile );
+
+    for ( f = 0; f <= pCex->iFrame; f++ )
+    {
+        for ( i = 0; i < pCex->nPis; i++, iBit++ )
+            putc( '0' + Abc_InfoHasBit(pCex->pData, iBit), pCexFile );
+        putc( '\n', pCexFile );
+    }
+    fprintf( pCexFile, ".\n");
+    fclose( pCexFile );
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -1100,7 +1133,7 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                     p->pAig->pSeqModel = pCexNew;
                     return 0; // SAT
                 }
-                pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), iFrame*Saig_ManPoNum(p->pAig)+p->iOutCur ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
+                pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex || p->pPars->pCexFilePrefix) ? Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), iFrame*Saig_ManPoNum(p->pAig)+p->iOutCur ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
                 p->pPars->nFailOuts++;
                 if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                 if ( !p->pPars->fNotVerbose )
@@ -1109,6 +1142,8 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                 if ( p->pPars->fUseBridge )
                     Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                if ( p->pPars->pCexFilePrefix )
+                    Pdr_OutputCexToDir( p->pPars, pCexNew );
                 Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                 if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                 {
@@ -1217,11 +1252,13 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
                             return 0; // SAT
                         }
                         p->pPars->nFailOuts++;
-                        pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Pdr_ManDeriveCex(p) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
+                        pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex || p->pPars->pCexFilePrefix) ? Pdr_ManDeriveCex(p) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
                         if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                         assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                         if ( p->pPars->fUseBridge )
                             Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                        if ( p->pPars->pCexFilePrefix )
+                            Pdr_OutputCexToDir( p->pPars, pCexNew );
                         Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                         if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                         {
