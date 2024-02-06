@@ -1050,7 +1050,7 @@ void Wlc_BlastReduceMatrix2( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Int_t * v
 }
 
 
-void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds )
+void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds, int fVerbose )
 {
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
     Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB );
@@ -1064,13 +1064,17 @@ void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA
         }
     if ( fSigned )
     {
-        Vec_WecPush( vProds,  nArgA, 1 );
-        Vec_WecPush( vLevels, nArgA, 0 );
+        Vec_WecPush( vProds,  nArgB-1, 1 );
+        Vec_WecPush( vLevels, nArgB-1, 0 );
+
+        Vec_WecPush( vProds,  nArgA-1, 1 );
+        Vec_WecPush( vLevels, nArgA-1, 0 );
 
         Vec_WecPush( vProds,  nArgA+nArgB-1, 1 );
         Vec_WecPush( vLevels, nArgA+nArgB-1, 0 );
     }
-
+    if ( fVerbose )
+        Vec_WecPrint( vProds, 0 );
     if ( pvProds )
         *pvProds = Vec_WecDup(vProds);
     else
@@ -1117,7 +1121,7 @@ void Wlc_BlastDecoder( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp,
         Vec_IntPush( vRes, iMint );
     }
 }
-void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds )
+void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds, int fVerbose )
 {
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB + 3 );
     Vec_Wec_t * vLevels = Vec_WecStart( nArgA + nArgB + 3 );
@@ -1194,7 +1198,10 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
         Vec_WecPush( vProds,  k, Neg );
         Vec_WecPush( vLevels, k, 0 );
     }
-    //Vec_WecPrint( vProds, 0 );
+    //Vec_WecShrink( vProds,  nArgA + nArgB );
+    //Vec_WecShrink( vLevels, nArgA + nArgB );   
+    if ( fVerbose )
+        Vec_WecPrint( vProds, 0 );
     //Wlc_BlastPrintMatrix( pNew, vProds, 1 );
     //printf( "Cutoff ID for partial products = %d.\n", Gia_ManObjNum(pNew) );
     if ( pvProds )
@@ -1832,9 +1839,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 if ( Wlc_NtkCountConstBits(pArg0, nRangeMax) < Wlc_NtkCountConstBits(pArg1, nRangeMax) )
                     ABC_SWAP( int *, pArg0, pArg1 );
                 if ( pPar->fBooth )
-                    Wlc_BlastBooth( pNew, pArg0, pArg1, nRange0, nRange1, vRes, fSigned, pPar->fCla, NULL );
+                    Wlc_BlastBooth( pNew, pArg0, pArg1, nRange0, nRange1, vRes, fSigned, pPar->fCla, NULL, pParIn->fVerbose );
                 else if ( pPar->fCla )
-                    Wlc_BlastMultiplier3( pNew, pArg0, pArg1, nRange0, nRange1, vRes, Wlc_ObjIsSignedFanin01(p, pObj), pPar->fCla, NULL );
+                    Wlc_BlastMultiplier3( pNew, pArg0, pArg1, nRange0, nRange1, vRes, Wlc_ObjIsSignedFanin01(p, pObj), pPar->fCla, NULL, pParIn->fVerbose );
                 else
                     Wlc_BlastMultiplier( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
                     //Wlc_BlastMultiplierC( pNew, pArg0, pArg1, nRangeMax, nRangeMax, vTemp2, vRes, fSigned );
