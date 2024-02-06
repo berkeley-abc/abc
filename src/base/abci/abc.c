@@ -34403,11 +34403,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fOutputs = 0, nWords = 4, fTruth = 0, fVerbose = 0;
+    int c, fOutputs = 0, nWords = 4, fTruth = 0, fReverse = 0, fVerbose = 0;
     char ** pArgvNew;
     int nArgcNew;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Wtovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Wtrovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -34425,6 +34425,9 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             fTruth ^= 1;
             break;
+        case 'r':
+            fReverse ^= 1;
+            break;            
         case 'o':
             fOutputs ^= 1;
             break;
@@ -34455,7 +34458,7 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
-        pAbc->pGia->vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(pAbc->pGia) );
+        pAbc->pGia->vSimsPi = fReverse ? Vec_WrdStartTruthTablesRev( Gia_ManCiNum(pAbc->pGia) ) : Vec_WrdStartTruthTables( Gia_ManCiNum(pAbc->pGia) );
         Vec_WrdFreeP( &pAbc->pGia->vSimsPo );
         pAbc->pGia->vSimsPo = Gia_ManSimPatSimOut( pAbc->pGia, pAbc->pGia->vSimsPi, 1 );
         return 0;
@@ -34498,10 +34501,11 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sim_read [-W num] [-tovh] <file>\n" );
+    Abc_Print( -2, "usage: &sim_read [-W num] [-trovh] <file>\n" );
     Abc_Print( -2, "\t         reads simulation patterns from file\n" );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", nWords );
     Abc_Print( -2, "\t-t     : toggle creating exhaustive simulation info [default = %s]\n", fTruth? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle reversing MSB and LSB input variables [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle reading output information [default = %s]\n", fOutputs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

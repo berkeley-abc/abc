@@ -195,6 +195,32 @@ static inline Vec_Wrd_t * Vec_WrdStartTruthTables( int nVars )
     }
     return p;
 }
+static inline Vec_Wrd_t * Vec_WrdStartTruthTablesRev( int nVars )
+{
+    Vec_Wrd_t * p;
+    unsigned Masks[5] = { 0xAAAAAAAA, 0xCCCCCCCC, 0xF0F0F0F0, 0xFF00FF00, 0xFFFF0000 };
+    int i, k, nWords;
+    nWords = nVars <= 6 ? 1 : (1 << (nVars - 6));
+    p = Vec_WrdStart( nWords * nVars );
+    for ( i = 0; i < nVars; i++ )
+    {
+        unsigned * pTruth = (unsigned *)(p->pArray + nWords * (nVars-1-i));
+        if ( i < 5 )
+        {
+            for ( k = 0; k < 2*nWords; k++ )
+                pTruth[k] = Masks[i];
+        }
+        else
+        {
+            for ( k = 0; k < 2*nWords; k++ )
+                if ( k & (1 << (i-5)) )
+                    pTruth[k] = ~(unsigned)0;
+                else
+                    pTruth[k] = 0;
+        }
+    }
+    return p;
+}
 static inline int Vec_WrdShiftOne( Vec_Wrd_t * p, int nWords )
 {
     int i, nObjs = p->nSize/nWords;
