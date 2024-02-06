@@ -677,7 +677,7 @@ Gia_Man_t * Wlc_ManGenTree( int nInputs, int Value, int nBits, int fVerbose )
 ***********************************************************************/
 Gia_Man_t * Wlc_ManGenProd( int nInputs, int fVerbose )
 {
-    extern void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds );
+    extern void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds, int fVerbose );
     extern void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds );
     Vec_Int_t * vIns = Vec_IntAlloc( 2*nInputs );
     Gia_Man_t * pTemp, * pNew; 
@@ -693,7 +693,7 @@ Gia_Man_t * Wlc_ManGenProd( int nInputs, int fVerbose )
     //    Vec_IntPush( vIns, Vec_IntEntry(vIns, i) );
 
     Gia_ManHashAlloc( pNew );
-    Wlc_BlastBooth( pNew, Vec_IntArray(vIns), Vec_IntArray(vIns)+nInputs, nInputs, nInputs, NULL, 0, 0, &vProds );
+    Wlc_BlastBooth( pNew, Vec_IntArray(vIns), Vec_IntArray(vIns)+nInputs, nInputs, nInputs, NULL, 0, 0, &vProds, 0 );
     //Wlc_BlastMultiplier3( pNew, Vec_IntArray(vIns), Vec_IntArray(vIns)+nInputs, nInputs, nInputs, NULL, 0, 0, &vProds );
     //Vec_WecPrint( vProds, 0 );
     Wlc_ManGenTreeOne( pNew, vProds, 1, fVerbose );
