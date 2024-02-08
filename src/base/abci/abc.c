@@ -19839,9 +19839,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "LUT size (%d) must be greater than the LUT decomposition size (%d).\n", pPars->nLutSize, pPars->nLutDecSize );
             return 1;
         }
-        if ( pPars->nLutSize < 4 || pPars->nLutSize > 10 )
+        if ( pPars->nLutSize < 4 || pPars->nLutSize > 11 )
         {
-            Abc_Print( -1, "This feature only works for [4;10]-LUTs.\n" );
+            Abc_Print( -1, "This feature only works for [4;11]-LUTs.\n" );
             return 1;
         }
     }

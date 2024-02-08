@@ -90,7 +90,7 @@ private:
   };
 
 private:
-  static constexpr uint32_t max_num_vars = 10;
+  static constexpr uint32_t max_num_vars = 11;
   using STT = kitty::static_truth_table<max_num_vars>;
 
 public:
@@ -287,7 +287,7 @@ private:
       best_tt._bits[i] = ptt[i];
     }
 
-    local_extend_to( best_tt, num_vars );
+    // local_extend_to( best_tt, num_vars );
   }
 
   template<uint32_t free_set_size>
@@ -382,7 +382,7 @@ private:
     uint32_t pos_new = pInvPerm[var_old + 1];
     std::swap( pInvPerm[var_old + 1], pInvPerm[var_old] );
     std::swap( pComb[i], pComb[pos_new] );
-    kitty::swap_inplace( tt, i, pos_new );
+    swap_inplace_local( tt, i, pos_new );
 
     for ( uint32_t j = i + 1; j < k; j++ )
     {
@@ -390,7 +390,7 @@ private:
       pos_new = pInvPerm[pComb[j - 1] + 1];
       std::swap( pInvPerm[pComb[j - 1] + 1], pInvPerm[var_old] );
       std::swap( pComb[j], pComb[pos_new] );
-      kitty::swap_inplace( tt, j, pos_new );
+      swap_inplace_local( tt, j, pos_new );
     }
 
     return true;
@@ -653,7 +653,7 @@ private:
       }
 
       std::swap( permutations[i], permutations[k] );
-      kitty::swap_inplace( best_tt, i, k );
+      swap_inplace_local( best_tt, i, k );
       ++k;
     }
   }
@@ -1232,6 +1232,66 @@ private:
     }
 
     return false;
+  }
+
+  void swap_inplace_local( STT& tt, uint8_t var_index1, uint8_t var_index2 )
+  {
+    if ( var_index1 == var_index2 )
+    {
+      return;
+    }
+
+    if ( var_index1 > var_index2 )
+    {
+      std::swap( var_index1, var_index2 );
+    }
+
+    assert( num_vars > 6 );
+    const uint32_t num_blocks = 1 << ( num_vars - 6 );
+
+    if ( var_index2 <= 5 )
+    {
+      const auto& pmask = kitty::detail::ppermutation_masks[var_index1][var_index2];
+      const auto shift = ( 1 << var_index2 ) - ( 1 << var_index1 );
+      std::transform( std::begin( tt._bits ), std::begin( tt._bits ) + num_blocks, std::begin( tt._bits ),
+                      [shift, &pmask]( uint64_t word ) {
+                        return ( word & pmask[0] ) | ( ( word & pmask[1] ) << shift ) | ( ( word & pmask[2] ) >> shift );
+                      } );
+    }
+    else if ( var_index1 <= 5 ) /* in this case, var_index2 > 5 */
+    {
+      const auto step = 1 << ( var_index2 - 6 );
+      const auto shift = 1 << var_index1;
+      auto it = std::begin( tt._bits );
+      while ( it != std::begin( tt._bits ) + num_blocks )
+      {
+        for ( auto i = decltype( step ){ 0 }; i < step; ++i )
+        {
+          const auto low_to_high = ( *( it + i ) & kitty::detail::projections[var_index1] ) >> shift;
+          const auto high_to_low = ( *( it + i + step ) << shift ) & kitty::detail::projections[var_index1];
+          *( it + i ) = ( *( it + i ) & ~kitty::detail::projections[var_index1] ) | high_to_low;
+          *( it + i + step ) = ( *( it + i + step ) & kitty::detail::projections[var_index1] ) | low_to_high;
+        }
+        it += 2 * step;
+      }
+    }
+    else
+    {
+      const auto step1 = 1 << ( var_index1 - 6 );
+      const auto step2 = 1 << ( var_index2 - 6 );
+      auto it = std::begin( tt._bits );
+      while ( it != std::begin( tt._bits ) + num_blocks )
+      {
+        for ( auto i = 0; i < step2; i += 2 * step1 )
+        {
+          for ( auto j = 0; j < step1; ++j )
+          {
+            std::swap( *( it + i + j + step1 ), *( it + i + j + step2 ) );
+          }
+        }
+        it += 2 * step2;
+      }
+    }
   }
 
   /* Decomposition format for ABC
