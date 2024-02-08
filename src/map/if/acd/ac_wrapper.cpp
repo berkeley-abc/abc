@@ -18,6 +18,7 @@
 
 #include "ac_wrapper.h"
 #include "ac_decomposition.hpp"
+#include "acd66.hpp"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -64,6 +65,47 @@ int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay,
   }
 
   *pdelay = acd.get_profile();
+
+  acd.get_decomposition( decomposition );
+  return 0;
+}
+
+int acd66_evaluate( word * pTruth, unsigned nVars, int verify )
+{
+  using namespace acd;
+
+  acd66_params ps;
+  ps.verify = static_cast<bool>( verify );
+  acd66_impl acd( nVars, ps );
+
+  if ( acd.run( pTruth ) == 0 )
+    return 0;
+  
+  if ( !verify )
+    return 1;
+
+  int val = acd.compute_decomposition();
+  if ( val != 0 )
+  {
+    return 0;
+  }
+
+  return 1;
+}
+
+int acd66_decompose( word * pTruth, unsigned nVars, unsigned char *decomposition )
+{
+  using namespace acd;
+
+  acd66_params ps;
+  acd66_impl acd( nVars, ps );
+  acd.run( pTruth );
+
+  int val = acd.compute_decomposition();
+  if ( val != 0 )
+  {
+    return -1;
+  }
 
   acd.get_decomposition( decomposition );
   return 0;

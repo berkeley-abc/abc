@@ -133,6 +133,24 @@ void swap_inplace( TT& tt, uint8_t var_index1, uint8_t var_index2 )
   }
 }
 
+template<uint32_t NumVars>
+inline void swap_inplace( static_truth_table<NumVars, true>& tt, uint8_t var_index1, uint8_t var_index2 )
+{
+  if ( var_index1 == var_index2 )
+  {
+    return;
+  }
+
+  if ( var_index1 > var_index2 )
+  {
+    std::swap( var_index1, var_index2 );
+  }
+
+  const auto& pmask = detail::ppermutation_masks[var_index1][var_index2];
+  const auto shift = ( 1 << var_index2 ) - ( 1 << var_index1 );
+  tt._bits = ( tt._bits & pmask[0] ) | ( ( tt._bits & pmask[1] ) << shift ) | ( ( tt._bits & pmask[2] ) >> shift );
+}
+
 /*! \brief Extends smaller truth table to larger one
 
   The most significant variables will not be in the functional support of the
