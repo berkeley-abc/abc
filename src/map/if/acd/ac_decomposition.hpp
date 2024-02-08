@@ -205,7 +205,8 @@ private:
     /* find a feasible AC decomposition */
     for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
     {
-      auto [tt_p, perm, multiplicity] = enumerate_iset_combinations_offset( i, offset, column_multiplicity_fn[i - 1] );
+      auto ret_tuple = enumerate_iset_combinations_offset( i, offset, column_multiplicity_fn[i - 1] );
+      uint32_t multiplicity = std::get<2>( ret_tuple );
 
       /* additional cost if not support reducing */
       uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
@@ -213,8 +214,8 @@ private:
       /* check for feasible solution that improves the cost */
       if ( multiplicity <= ( 1 << ( ps.lut_size - i ) ) && multiplicity + additional_cost < best_cost && multiplicity <= 16 )
       {
-        best_tt = tt_p;
-        permutations = perm;
+        best_tt = std::get<0>( ret_tuple );
+        permutations = std::get<1>( ret_tuple );
         best_multiplicity = multiplicity;
         best_cost = multiplicity + additional_cost;
         best_free_set = i;
@@ -240,7 +241,8 @@ private:
 
       for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
       {
-        auto [tt_p, perm, multiplicity] = enumerate_iset_combinations_offset( i, 0, column_multiplicity_fn[i - 1] );
+        auto ret_tuple = enumerate_iset_combinations_offset( i, 0, column_multiplicity_fn[i - 1] );
+        uint32_t multiplicity = std::get<2>( ret_tuple );
 
         /* additional cost if not support reducing */
         uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
@@ -248,8 +250,8 @@ private:
         /* check for feasible solution that improves the cost */
         if ( multiplicity <= ( 1 << ( ps.lut_size - i ) ) && multiplicity + additional_cost < best_cost && multiplicity <= 16 )
         {
-          best_tt = tt_p;
-          permutations = perm;
+          best_tt = std::get<0>( ret_tuple );
+          permutations = std::get<1>( ret_tuple );
           best_multiplicity = multiplicity;
           best_cost = multiplicity + additional_cost;
           best_free_set = i;
@@ -298,7 +300,7 @@ private:
     uint64_t constexpr masks_idx[] = { 0x0, 0x0, 0x0, 0x3 };
 
     /* supports up to 64 values of free set (256 for |FS| == 3)*/
-    static_assert( free_set_size <= 3 );
+    static_assert( free_set_size <= 3, "Wrong free set size for method used, expected le 3" );
 
     /* extract iset functions */
     auto it = std::begin( tt );
@@ -314,7 +316,7 @@ private:
 
     multiplicity = __builtin_popcountl( multiplicity_set[0] );
 
-    if constexpr ( free_set_size == 3 )
+    if ( free_set_size == 3 )
     {
       multiplicity += __builtin_popcountl( multiplicity_set[1] );
       multiplicity += __builtin_popcountl( multiplicity_set[2] );
@@ -330,7 +332,7 @@ private:
     uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
     uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
 
-    static_assert( free_set_size == 5 || free_set_size == 4 );
+    static_assert( free_set_size == 5 || free_set_size == 4, "Wrong free set size for method used, expected of 4 or 5" );
 
     uint32_t size = 0;
     uint64_t prev = -1;
@@ -466,7 +468,8 @@ private:
       {
         uint64_t val = *it & masks[best_free_set];
 
-        if ( auto el = column_to_iset.find( val ); el != column_to_iset.end() )
+        auto el = column_to_iset.find( val );
+        if ( el != column_to_iset.end() )
         {
           isets[el->second]._bits[i / ( 1u << best_free_set )] |= UINT64_C( 1 ) << ( j + offset );
         }
@@ -709,7 +712,7 @@ private:
   {
     if ( var == best_multiplicity )
     {
-      if constexpr ( !enable_dcset )
+      if ( !enable_dcset )
       {
         /* sets must be equally populated */
         if ( __builtin_popcount( onset ) != __builtin_popcount( offset ) )
@@ -725,7 +728,7 @@ private:
     }
 
     /* var in DCSET */
-    if constexpr ( enable_dcset )
+    if ( enable_dcset )
     {
       generate_support_minimization_encodings_rec<enable_dcset>( onset, offset, var + 1, count );
     }
@@ -953,7 +956,7 @@ private:
         cost = 0;
 
       float sort_cost = 0;
-      if constexpr ( UseHeuristic )
+      if ( UseHeuristic )
       {
         sort_cost = 1.0f / ( __builtin_popcountl( column[0] ) + __builtin_popcountl( column[1] ) );
       }
@@ -971,15 +974,15 @@ private:
       return true;
     }
 
-    if constexpr ( UseHeuristic )
+    if ( UseHeuristic )
     {
-      std::sort( matrix.begin(), matrix.end(), [&]( auto const& a, auto const& b ) {
+      std::sort( matrix.begin(), matrix.end(), [&]( encoding_column const& a, encoding_column const& b ) {
         return a.cost < b.cost;
       } );
     }
     else
     {
-      std::sort( matrix.begin(), matrix.end(), [&]( auto const& a, auto const& b ) {
+      std::sort( matrix.begin(), matrix.end(), [&]( encoding_column const& a, encoding_column const& b ) {
         return a.sort_cost < b.sort_cost;
       } );
     }

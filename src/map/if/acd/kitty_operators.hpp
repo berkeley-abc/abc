@@ -78,28 +78,33 @@ inline void operator|=( dynamic_truth_table& first, const dynamic_truth_table& s
 
 /*! \brief Operator for binary_or and assign */
 template<uint32_t NumVars>
-inline void operator|=( static_truth_table<NumVars>& first, const static_truth_table<NumVars>& second )
+inline void operator|=( static_truth_table<NumVars, true>& first, const static_truth_table<NumVars, true>& second )
 {
   // first = binary_or( first, second );
   /* runtime improved version */
-  if constexpr ( NumVars <= 6 )
-  {
-    first._bits |= second._bits;
-    first.mask_bits();
-  }
-  else if constexpr ( NumVars == 7 )
+  first._bits |= second._bits;
+  first.mask_bits();
+}
+
+/*! \brief Operator for binary_or and assign */
+template<uint32_t NumVars>
+inline void operator|=( static_truth_table<NumVars, false>& first, const static_truth_table<NumVars, false>& second )
+{
+  // first = binary_or( first, second );
+  /* runtime improved version */
+  if ( NumVars == 7 )
   {
     first._bits[0] |= second._bits[0];
     first._bits[1] |= second._bits[1];
   }
-  else if constexpr ( NumVars == 8 )
+  else if ( NumVars == 8 )
   {
     first._bits[0] |= second._bits[0];
     first._bits[1] |= second._bits[1];
     first._bits[2] |= second._bits[2];
     first._bits[3] |= second._bits[3];
   }
-  else if constexpr ( NumVars == 9 )
+  else if ( NumVars == 9 )
   {
     first._bits[0] |= second._bits[0];
     first._bits[1] |= second._bits[1];

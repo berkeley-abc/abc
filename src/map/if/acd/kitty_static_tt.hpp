@@ -35,55 +35,55 @@ struct static_truth_table<NumVars, true>
 
   /*! Returns number of variables.
    */
-  inline auto num_vars() const noexcept { return NumVars; }
+  inline uint32_t num_vars() const noexcept { return NumVars; }
 
   /*! Returns number of blocks.
    */
-  inline auto num_blocks() const noexcept { return 1u; }
+  inline uint32_t num_blocks() const noexcept { return 1u; }
 
   /*! Returns number of bits.
    */
-  inline auto num_bits() const noexcept { return NumBits; }
+  inline uint32_t num_bits() const noexcept { return NumBits; }
 
   /*! \brief Begin iterator to bits.
    */
-  inline auto begin() noexcept { return &_bits; }
+  inline uint64_t * begin() noexcept { return &_bits; }
 
   /*! \brief End iterator to bits.
    */
-  inline auto end() noexcept { return ( &_bits ) + 1; }
+  inline uint64_t * end() noexcept { return ( &_bits ) + 1; }
 
   /*! \brief Begin iterator to bits.
    */
-  inline auto begin() const noexcept { return &_bits; }
+  inline const uint64_t * begin() const noexcept { return &_bits; }
 
   /*! \brief End iterator to bits.
    */
-  inline auto end() const noexcept { return ( &_bits ) + 1; }
+  inline const uint64_t * end() const noexcept { return ( &_bits ) + 1; }
 
   /*! \brief Reverse begin iterator to bits.
    */
-  inline auto rbegin() noexcept { return &_bits; }
+  inline uint64_t * rbegin() noexcept { return &_bits; }
 
   /*! \brief Reverse end iterator to bits.
    */
-  inline auto rend() noexcept { return ( &_bits ) + 1; }
+  inline uint64_t * rend() noexcept { return ( &_bits ) + 1; }
 
   /*! \brief Constant begin iterator to bits.
    */
-  inline auto cbegin() const noexcept { return &_bits; }
+  inline const uint64_t * cbegin() const noexcept { return &_bits; }
 
   /*! \brief Constant end iterator to bits.
    */
-  inline auto cend() const noexcept { return ( &_bits ) + 1; }
+  inline const uint64_t * cend() const noexcept { return ( &_bits ) + 1; }
 
   /*! \brief Constant reverse begin iterator to bits.
    */
-  inline auto crbegin() const noexcept { return &_bits; }
+  inline const uint64_t * crbegin() const noexcept { return &_bits; }
 
   /*! \brief Constant everse end iterator to bits.
    */
-  inline auto crend() const noexcept { return ( &_bits ) + 1; }
+  inline const uint64_t * crend() const noexcept { return ( &_bits ) + 1; }
 
   /*! \brief Assign other truth table if number of variables match.
 
@@ -154,55 +154,55 @@ struct static_truth_table<NumVars, false>
 
   /*! Returns number of variables.
    */
-  inline auto num_vars() const noexcept { return NumVars; }
+  inline uint32_t num_vars() const noexcept { return NumVars; }
 
   /*! Returns number of blocks.
    */
-  inline auto num_blocks() const noexcept { return NumBlocks; }
+  inline uint32_t num_blocks() const noexcept { return NumBlocks; }
 
   /*! Returns number of bits.
    */
-  inline auto num_bits() const noexcept { return NumBits; }
+  inline uint32_t num_bits() const noexcept { return NumBits; }
 
   /*! \brief Begin iterator to bits.
    */
-  inline auto begin() noexcept { return _bits.begin(); }
+  inline typename std::array<uint64_t, NumBlocks>::iterator begin() noexcept { return _bits.begin(); }
 
   /*! \brief End iterator to bits.
    */
-  inline auto end() noexcept { return _bits.end(); }
+  inline typename std::array<uint64_t, NumBlocks>::iterator end() noexcept { return _bits.end(); }
 
   /*! \brief Begin iterator to bits.
    */
-  inline auto begin() const noexcept { return _bits.begin(); }
+  inline typename std::array<uint64_t, NumBlocks>::const_iterator begin() const noexcept { return _bits.begin(); }
 
   /*! \brief End iterator to bits.
    */
-  inline auto end() const noexcept { return _bits.end(); }
+  inline typename std::array<uint64_t, NumBlocks>::const_iterator end() const noexcept { return _bits.end(); }
 
   /*! \brief Reverse begin iterator to bits.
    */
-  inline auto rbegin() noexcept { return _bits.rbegin(); }
+  inline typename std::array<uint64_t, NumBlocks>::reverse_iterator rbegin() noexcept { return _bits.rbegin(); }
 
   /*! \brief Reverse end iterator to bits.
    */
-  inline auto rend() noexcept { return _bits.rend(); }
+  inline typename std::array<uint64_t, NumBlocks>::reverse_iterator rend() noexcept { return _bits.rend(); }
 
   /*! \brief Constant begin iterator to bits.
    */
-  inline auto cbegin() const noexcept { return _bits.cbegin(); }
+  inline typename std::array<uint64_t, NumBlocks>::const_iterator cbegin() const noexcept { return _bits.cbegin(); }
 
   /*! \brief Constant end iterator to bits.
    */
-  inline auto cend() const noexcept { return _bits.cend(); }
+  inline typename std::array<uint64_t, NumBlocks>::const_iterator cend() const noexcept { return _bits.cend(); }
 
   /*! \brief Constant reverse begin iterator to bits.
    */
-  inline auto crbegin() const noexcept { return _bits.crbegin(); }
+  inline typename std::array<uint64_t, NumBlocks>::const_reverse_iterator crbegin() const noexcept { return _bits.crbegin(); }
 
   /*! \brief Constant teverse end iterator to bits.
    */
-  inline auto crend() const noexcept { return _bits.crend(); }
+  inline typename std::array<uint64_t, NumBlocks>::const_reverse_iterator crend() const noexcept { return _bits.crend(); }
 
   /*! \brief Assign other truth table if number of variables match.
 

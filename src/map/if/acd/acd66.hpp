@@ -156,13 +156,14 @@ private:
     /* find AC decompositions with minimal multiplicity */
     for ( uint32_t i = num_vars - 6; i <= 5 && i <= ps.max_free_set_vars; ++i )
     {
-      auto [tt_p, perm, multiplicity] = enumerate_iset_combinations( i, column_multiplicity_fn[i - 1] );
+      auto ret_tuple = enumerate_iset_combinations( i, column_multiplicity_fn[i - 1] );
+      uint32_t multiplicity = std::get<2>( ret_tuple );
 
       /* check for feasible solution into "66" with one possible shared variable */
       if ( multiplicity <= 2 || ( multiplicity <= 4 && i < 5 ) )
       {
-        best_tt = tt_p;
-        permutations = perm;
+        best_tt = std::get<0>( ret_tuple );
+        permutations = std::get<1>( ret_tuple );
         best_multiplicity = multiplicity;
         best_free_set = i;
 
@@ -197,7 +198,7 @@ private:
     uint64_t constexpr masks_idx[] = { 0x0, 0x0, 0x0, 0x3 };
 
     /* supports up to 64 values of free set (256 for |FS| == 3)*/
-    static_assert( free_set_size <= 3 );
+    static_assert( free_set_size <= 3, "Wrong free set size for method used, expected le 3" );
 
     /* extract iset functions */
     auto it = std::begin( tt );
@@ -213,7 +214,7 @@ private:
 
     multiplicity = __builtin_popcountl( multiplicity_set[0] );
 
-    if constexpr ( free_set_size == 3 )
+    if ( free_set_size == 3 )
     {
       multiplicity += __builtin_popcountl( multiplicity_set[1] );
       multiplicity += __builtin_popcountl( multiplicity_set[2] );
@@ -229,7 +230,7 @@ private:
     uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
     uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
 
-    static_assert( free_set_size == 5 || free_set_size == 4 );
+    static_assert( free_set_size == 5 || free_set_size == 4, "Wrong free set size for method used, expected of 4 or 5" );
 
     uint32_t size = 0;
     uint64_t prev = -1;

@@ -22,9 +22,9 @@ namespace kitty
   \return new constructed truth table of same type and dimensions
  */
 template<typename TT, typename Fn>
-auto unary_operation( const TT& tt, Fn&& op )
+TT unary_operation( const TT& tt, Fn&& op )
 {
-  auto result = tt.construct();
+  TT result = tt.construct();
   std::transform( tt.cbegin(), tt.cend(), result.begin(), op );
   result.mask_bits();
   return result;
@@ -43,11 +43,11 @@ auto unary_operation( const TT& tt, Fn&& op )
   \return new constructed truth table of same type and dimensions
  */
 template<typename TT, typename Fn>
-auto binary_operation( const TT& first, const TT& second, Fn&& op )
+TT binary_operation( const TT& first, const TT& second, Fn&& op )
 {
   assert( first.num_vars() == second.num_vars() );
 
-  auto result = first.construct();
+  TT result = first.construct();
   std::transform( first.cbegin(), first.cend(), second.cbegin(), result.begin(), op );
   result.mask_bits();
   return result;
