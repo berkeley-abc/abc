@@ -70,18 +70,18 @@ int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay,
   return 0;
 }
 
-int acd66_evaluate( word * pTruth, unsigned nVars, int verify )
+int acd66_evaluate( word * pTruth, unsigned nVars, int compute_decomposition )
 {
   using namespace acd;
 
   acd66_params ps;
-  ps.verify = static_cast<bool>( verify );
+  ps.verify = false;
   acd66_impl acd( nVars, ps );
 
   if ( acd.run( pTruth ) == 0 )
     return 0;
   
-  if ( !verify )
+  if ( !compute_decomposition )
     return 1;
 
   int val = acd.compute_decomposition();

@@ -54,7 +54,7 @@ struct acd66_params
   uint32_t max_evaluations{ 3 };
 
   /*! \brief Run verification before returning. */
-  bool verify{ true };
+  bool verify{ false };
 };
 
 /*! \brief Statistics for acd66 */
