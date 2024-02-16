@@ -156,20 +156,8 @@ private:
     /* find AC decompositions with minimal multiplicity */
     for ( uint32_t i = num_vars - 6; i <= 5 && i <= ps.max_free_set_vars; ++i )
     {
-      auto ret_tuple = enumerate_iset_combinations( i, column_multiplicity_fn[i - 1] );
-      uint32_t multiplicity = std::get<2>( ret_tuple );
-
-      /* check for feasible solution into "66" with one possible shared variable */
-      if ( multiplicity <= 2 || ( multiplicity <= 4 && i < 5 ) )
-      {
-        best_tt = std::get<0>( ret_tuple );
-        permutations = std::get<1>( ret_tuple );
-        best_multiplicity = multiplicity;
-        best_free_set = i;
-
-        if ( multiplicity <= 2 || check_shared_set() )
-          return true;
-      }
+      if ( find_decomposition_bs( i, column_multiplicity_fn[i - 1] ) )
+        return true;
     }
 
     best_multiplicity = UINT32_MAX;
@@ -295,46 +283,57 @@ private:
   }
 
   template<typename Fn>
-  std::tuple<STT, std::array<uint32_t, max_num_vars>, uint32_t> enumerate_iset_combinations( uint32_t free_set_size, Fn&& fn )
+  bool find_decomposition_bs( uint32_t free_set_size, Fn&& fn )
   {
     STT tt = start_tt;
-
-    /* TT with best cost */
-    STT best_tt = tt;
-    uint32_t best_cost = UINT32_MAX;
 
     /* works up to 16 input truth tables */
     assert( num_vars <= 16 );
 
     /* init combinations */
-    uint32_t pComb[16], pInvPerm[16], bestPerm[16];
+    uint32_t pComb[16], pInvPerm[16];
     for ( uint32_t i = 0; i < num_vars; ++i )
     {
       pComb[i] = pInvPerm[i] = i;
     }
 
     /* enumerate combinations */
+    best_free_set = free_set_size;
     do
     {
       uint32_t cost = fn( tt );
-      if ( cost < best_cost )
+      if ( cost == 2 )
       {
         best_tt = tt;
-        best_cost = cost;
+        best_multiplicity = cost;
         for ( uint32_t i = 0; i < num_vars; ++i )
         {
-          bestPerm[i] = pComb[i];
+          permutations[i] = pComb[i];
+        }
+        return true;
+      }
+      else if ( cost <= 4 && free_set_size < 5 )
+      {
+        /* look for a shared variable */
+        best_multiplicity = cost;
+        int res = check_shared_set2( tt );
+
+        if ( res > 0 )
+        {
+          best_tt = tt;
+          for ( uint32_t i = 0; i < num_vars; ++i )
+          {
+            permutations[i] = pComb[i];
+          }
+          /* move shared variable as the most significative one */
+          swap_inplace_local( best_tt, res, num_vars - 1 );
+          std::swap( permutations[res], permutations[num_vars - 1] );
+          return true;
         }
       }
     } while ( combinations_next( free_set_size, pComb, pInvPerm, tt ) );
 
-    std::array<uint32_t, max_num_vars> res_perm;
-    for ( uint32_t i = 0; i < num_vars; ++i )
-    {
-      res_perm[i] = bestPerm[i];
-    }
-
-    return std::make_tuple( best_tt, res_perm, best_cost );
+    return false;
   }
 
   bool check_shared_var( STT tt, uint32_t free_set_size, uint32_t shared_var, uint32_t multiplicity_limit )
@@ -448,7 +447,7 @@ private:
     return multiplicity <= multiplicity_limit;
   }
 
-  bool check_shared_set()
+  int check_shared_set2( STT const& tt )
   {
     /* find one shared set variable */
     for ( uint32_t i = best_free_set; i < num_vars; ++i )
@@ -456,27 +455,21 @@ private:
       /* check the multiplicity of cofactors */
       if ( best_free_set < 4 )
       {
-        if ( check_shared_var( best_tt, best_free_set, i, 2 ) )
+        if ( check_shared_var( tt, best_free_set, i, 2 ) )
         {
-          /* move shared variable as the most significative one */
-          swap_inplace_local( best_tt, i, num_vars - 1 );
-          std::swap( permutations[i], permutations[num_vars - 1] );
-          return true;
+          return i;
         }
       }
       else
       {
-        if ( check_shared_var5( best_tt, best_free_set, i, 2 ) )
+        if ( check_shared_var5( tt, best_free_set, i, 2 ) )
         {
-          /* move shared variable as the most significative one */
-          swap_inplace_local( best_tt, i, num_vars - 1 );
-          std::swap( permutations[i], permutations[num_vars - 1] );
-          return true;
+          return i;
         }
       }
     }
 
-    return false;
+    return -1;
   }
 
   void compute_decomposition_impl( bool verbose = false )
