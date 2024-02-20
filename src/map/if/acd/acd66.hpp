@@ -179,10 +179,9 @@ private:
     uint32_t size = 0;
 
     /* extract iset functions */
-    auto it = std::begin( tt );
     for ( auto i = 0u; i < num_blocks; ++i )
     {
-      uint64_t sub = *it;
+      uint64_t sub = tt._bits[i];
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
         uint32_t fs_fn = static_cast<uint32_t>( sub & mask );
@@ -198,7 +197,6 @@ private:
           cofactors[size++] = fs_fn;
         sub >>= shift;
       }
-      ++it;
     }
 
     return size;
@@ -299,10 +297,9 @@ private:
 
     /* extract iset functions */
     uint32_t iteration_counter = 0;
-    auto it = std::begin( tt );
     for ( auto i = 0u; i < num_blocks; ++i )
     {
-      uint64_t sub = *it;
+      uint64_t sub = tt._bits[i];
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
         uint32_t fs_fn = static_cast<uint32_t>( sub & mask );
@@ -320,7 +317,6 @@ private:
         sub >>= shift;
         ++iteration_counter;
       }
-      ++it;
     }
 
     return true;

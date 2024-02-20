@@ -203,9 +203,10 @@ private:
         [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); } };
 
     /* find a feasible AC decomposition */
+    // for ( uint32_t i = std::min( ps.lut_size - 1, ps.max_free_set_vars); i >= start; --i )
     for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
     {
-      auto ret_tuple = enumerate_iset_combinations_offset( i, offset, column_multiplicity_fn[i - 1] );
+      auto ret_tuple = enumerate_iset_combinations( i, offset, column_multiplicity_fn[i - 1] );
       uint32_t multiplicity = std::get<2>( ret_tuple );
 
       /* additional cost if not support reducing */
@@ -231,7 +232,7 @@ private:
       return false;
 
     /* try without the delay profile */
-    if ( best_multiplicity == UINT32_MAX && ps.try_no_late_arrival )
+    if ( best_multiplicity == UINT32_MAX )
     {
       delay_profile = 0;
       if ( ps.support_reducing_only )
@@ -241,7 +242,7 @@ private:
 
       for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
       {
-        auto ret_tuple = enumerate_iset_combinations_offset( i, 0, column_multiplicity_fn[i - 1] );
+        auto ret_tuple = enumerate_iset_combinations( i, 0, column_multiplicity_fn[i - 1] );
         uint32_t multiplicity = std::get<2>( ret_tuple );
 
         /* additional cost if not support reducing */
@@ -291,7 +292,7 @@ private:
   }
 
   template<uint32_t free_set_size>
-  uint32_t column_multiplicity( STT tt )
+  uint32_t column_multiplicity( STT const& tt )
   {
     uint64_t multiplicity_set[4] = { 0u, 0u, 0u, 0u };
     uint32_t multiplicity = 0;
@@ -303,15 +304,14 @@ private:
     static_assert( free_set_size <= 3, "Wrong free set size for method used, expected le 3" );
 
     /* extract iset functions */
-    auto it = std::begin( tt );
     for ( auto i = 0u; i < num_blocks; ++i )
     {
+      uint64_t cof = tt._bits[i];
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        multiplicity_set[( *it >> 6 ) & masks_idx[free_set_size]] |= UINT64_C( 1 ) << ( *it & masks_bits[free_set_size] );
-        *it >>= ( 1u << free_set_size );
+        multiplicity_set[( cof >> 6 ) & masks_idx[free_set_size]] |= UINT64_C( 1 ) << ( cof & masks_bits[free_set_size] );
+        cof >>= ( 1u << free_set_size );
       }
-      ++it;
     }
 
     multiplicity = __builtin_popcountl( multiplicity_set[0] );
@@ -327,7 +327,7 @@ private:
   }
 
   template<uint32_t free_set_size>
-  uint32_t column_multiplicity5( STT tt )
+  uint32_t column_multiplicity5( STT const& tt )
   {
     uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
     uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
@@ -339,20 +339,19 @@ private:
     std::array<uint32_t, 64> multiplicity_set;
 
     /* extract iset functions */
-    auto it = std::begin( tt );
     for ( auto i = 0u; i < num_blocks; ++i )
     {
+      uint64_t cof = tt._bits[i];
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        uint64_t fs_fn = *it & masks[free_set_size];
+        uint64_t fs_fn = cof & masks[free_set_size];
         if ( fs_fn != prev )
         {
           multiplicity_set[size++] = static_cast<uint32_t>( fs_fn );
           prev = fs_fn;
         }
-        *it >>= ( 1u << free_set_size );
+        cof >>= ( 1u << free_set_size );
       }
-      ++it;
     }
 
     std::sort( multiplicity_set.begin(), multiplicity_set.begin() + size );
@@ -397,13 +396,13 @@ private:
   }
 
   template<typename Fn>
-  std::tuple<STT, std::array<uint32_t, max_num_vars>, uint32_t> enumerate_iset_combinations_offset( uint32_t free_set_size, uint32_t offset, Fn&& fn )
+  std::tuple<STT, std::array<uint32_t, max_num_vars>, uint32_t> enumerate_iset_combinations( uint32_t free_set_size, uint32_t offset, Fn&& fn )
   {
     STT tt = best_tt;
 
     /* TT with best cost */
     STT best_tt = tt;
-    uint32_t best_cost = UINT32_MAX;
+    uint32_t best_cost = ( 1 << ( ps.lut_size - free_set_size ) ) + 1;
 
     assert( free_set_size >= offset );
 
@@ -440,6 +439,12 @@ private:
     } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
     std::array<uint32_t, max_num_vars> res_perm;
+    
+    if ( best_cost > ( 1 << ( ps.lut_size - free_set_size ) ) )
+    {
+      return std::make_tuple( best_tt, res_perm, UINT32_MAX );
+    }
+
     for ( uint32_t i = 0; i < num_vars; ++i )
     {
       res_perm[i] = permutations[bestPerm[i]];
