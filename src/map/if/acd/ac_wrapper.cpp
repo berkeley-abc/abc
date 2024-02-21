@@ -74,9 +74,7 @@ int acd66_evaluate( word * pTruth, unsigned nVars, int compute_decomposition )
 {
   using namespace acd;
 
-  acd66_params ps;
-  ps.verify = false;
-  acd66_impl acd( nVars, ps );
+  acd66_impl acd( nVars, false );
 
   if ( acd.run( pTruth ) == 0 )
     return 0;
@@ -97,8 +95,7 @@ int acd66_decompose( word * pTruth, unsigned nVars, unsigned char *decomposition
 {
   using namespace acd;
 
-  acd66_params ps;
-  acd66_impl acd( nVars, ps );
+  acd66_impl acd( nVars, false );
   acd.run( pTruth );
 
   int val = acd.compute_decomposition();
