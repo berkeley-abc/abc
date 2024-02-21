@@ -487,7 +487,7 @@ private:
         *it >>= ( 1u << best_free_set );
       }
 
-      offset = ( offset + ( 64 >> best_free_set ) ) % 64;
+      offset = ( offset + ( 64 >> best_free_set ) ) & 0x3F;
       ++it;
     }
 

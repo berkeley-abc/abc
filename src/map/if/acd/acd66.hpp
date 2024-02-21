@@ -66,7 +66,7 @@ public:
     /* truth table is too large for the settings */
     if ( num_vars > max_num_vars || num_vars > 11 )
     {
-      return -1;
+      return false;
     }
 
     /* convert to static TT */
@@ -132,7 +132,7 @@ private:
     best_multiplicity = UINT32_MAX;
     best_free_set = UINT32_MAX;
 
-    /* find AC decompositions with minimal multiplicity */
+    /* find ACD "66" for different number of variables in the free set */
     for ( uint32_t i = num_vars - 6; i <= 5; ++i )
     {
       if ( find_decomposition_bs( i ) )
@@ -160,8 +160,8 @@ private:
     assert( free_set_size <= 5 );
 
     uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
-    uint64_t shift = UINT64_C( 1 ) << free_set_size;
-    uint64_t mask = ( UINT64_C( 1 ) << shift ) - 1;
+    uint64_t const shift = UINT64_C( 1 ) << free_set_size;
+    uint64_t const mask = ( UINT64_C( 1 ) << shift ) - 1;
     uint32_t cofactors[4];
     uint32_t size = 0;
 
@@ -276,8 +276,8 @@ private:
     assert( free_set_size <= 5 );
 
     uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
-    uint64_t shift = UINT64_C( 1 ) << free_set_size;
-    uint64_t mask = ( UINT64_C( 1 ) << shift ) - 1;
+    uint64_t const shift = UINT64_C( 1 ) << free_set_size;
+    uint64_t const mask = ( UINT64_C( 1 ) << shift ) - 1;
     uint32_t cofactors[2][4];
     uint32_t size[2] = { 0, 0 };
     uint32_t shared_var_shift = shared_var - free_set_size;
@@ -333,24 +333,23 @@ private:
     LTT isets1[2];
 
     /* construct isets */
-    STT tt = best_tt;
     uint32_t offset = 0;
     uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
-    uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
+    uint64_t const shift = UINT64_C( 1 ) << best_free_set;
+    uint64_t const mask = ( UINT64_C( 1 ) << shift ) - 1;
 
     /* limit analysis on 0 cofactor of the shared variable */
     if ( has_shared_set )
       num_blocks >>= 1;
 
-    auto it = std::begin( tt );
-    uint64_t fs_fun[4] = { *it & masks[best_free_set], 0, 0, 0 };
+    uint64_t fs_fun[4] = { best_tt._bits[0] & mask, 0, 0, 0 };
 
     for ( auto i = 0u; i < num_blocks; ++i )
     {
+      uint64_t cof = best_tt._bits[i];
       for ( auto j = 0; j < ( 64 >> best_free_set ); ++j )
       {
-        uint64_t val = *it & masks[best_free_set];
-
+        uint64_t val = cof & mask;
         if ( val == fs_fun[0] )
         {
           isets0[0]._bits |= UINT64_C( 1 ) << ( j + offset );
@@ -360,24 +359,21 @@ private:
           isets0[1]._bits |= UINT64_C( 1 ) << ( j + offset );
           fs_fun[1] = val;
         }
-
-        *it >>= ( 1u << best_free_set );
+        cof >>= shift;
       }
-
-      offset = ( offset + ( 64 >> best_free_set ) ) % 64;
-      ++it;
+      offset = ( offset + ( 64 >> best_free_set ) ) & 0x3F;
     }
 
     /* continue on the 1 cofactor if shared set */
     if ( has_shared_set )
     {
-      fs_fun[2] = *it & masks[best_free_set];
+      fs_fun[2] = best_tt._bits[num_blocks] & mask;
       for ( auto i = num_blocks; i < ( num_blocks << 1 ); ++i )
       {
+        uint64_t cof = best_tt._bits[i];
         for ( auto j = 0; j < ( 64 >> best_free_set ); ++j )
         {
-          uint64_t val = *it & masks[best_free_set];
-
+          uint64_t val = cof & mask;
           if ( val == fs_fun[2] )
           {
             isets1[0]._bits |= UINT64_C( 1 ) << ( j + offset );
@@ -387,12 +383,9 @@ private:
             isets1[1]._bits |= UINT64_C( 1 ) << ( j + offset );
             fs_fun[3] = val;
           }
-
-          *it >>= ( 1u << best_free_set );
+          cof >>= shift;
         }
-
-        offset = ( offset + ( 64 >> best_free_set ) ) % 64;
-        ++it;
+        offset = ( offset + ( 64 >> best_free_set ) ) & 0x3F;
       }
     }
 
@@ -445,7 +438,6 @@ private:
 
     /* u = 3 one set has multiplicity 1, use don't cares */
     compute_functions3( isets0, isets1, fs_fun );
-    compute_composition( fs_fun );
   }
 
   inline void compute_functions4( LTT isets0[2], LTT isets1[2], uint64_t fs_fun[4] )
@@ -488,7 +480,6 @@ private:
       {
         if ( !has_var6( f, care, i ) )
         {
-          adjust_truth_table_on_dc( f, care, i );
           continue;
         }
 
@@ -655,85 +646,6 @@ private:
     return false;
   }
 
-  bool has_var_support( const STT& tt, const STT& care, uint32_t real_num_vars, uint8_t var_index )
-  {
-    assert( var_index < real_num_vars );
-    assert( real_num_vars <= tt.num_vars() );
-    assert( tt.num_vars() == care.num_vars() );
-
-    const uint32_t num_blocks = real_num_vars <= 6 ? 1 : ( 1 << ( real_num_vars - 6 ) );
-    if ( real_num_vars <= 6 || var_index < 6 )
-    {
-      auto it_tt = std::begin( tt._bits );
-      auto it_care = std::begin( care._bits );
-      while ( it_tt != std::begin( tt._bits ) + num_blocks )
-      {
-        if ( ( ( ( *it_tt >> ( uint64_t( 1 ) << var_index ) ) ^ *it_tt ) & kitty::detail::projections_neg[var_index] & ( *it_care >> ( uint64_t( 1 ) << var_index ) ) & *it_care ) != 0 )
-        {
-          return true;
-        }
-        ++it_tt;
-        ++it_care;
-      }
-
-      return false;
-    }
-
-    const auto step = 1 << ( var_index - 6 );
-    for ( auto i = 0u; i < num_blocks; i += 2 * step )
-    {
-      for ( auto j = 0; j < step; ++j )
-      {
-        if ( ( ( tt._bits[i + j] ^ tt._bits[i + j + step] ) & care._bits[i + j] & care._bits[i + j + step] ) != 0 )
-        {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
-  template<typename TT_type>
-  bool has_var_support( const TT_type& tt, const TT_type& care, uint32_t real_num_vars, uint8_t var_index )
-  {
-    assert( var_index < real_num_vars );
-    assert( real_num_vars <= tt.num_vars() );
-    assert( tt.num_vars() == care.num_vars() );
-
-    const uint32_t num_blocks = real_num_vars <= 6 ? 1 : ( 1 << ( real_num_vars - 6 ) );
-    if ( real_num_vars <= 6 || var_index < 6 )
-    {
-      auto it_tt = std::begin( tt._bits );
-      auto it_care = std::begin( care._bits );
-      while ( it_tt != std::begin( tt._bits ) + num_blocks )
-      {
-        if ( ( ( ( *it_tt >> ( uint64_t( 1 ) << var_index ) ) ^ *it_tt ) & kitty::detail::projections_neg[var_index] & ( *it_care >> ( uint64_t( 1 ) << var_index ) ) & *it_care ) != 0 )
-        {
-          return true;
-        }
-        ++it_tt;
-        ++it_care;
-      }
-
-      return false;
-    }
-
-    const auto step = 1 << ( var_index - 6 );
-    for ( auto i = 0u; i < num_blocks; i += 2 * step )
-    {
-      for ( auto j = 0; j < step; ++j )
-      {
-        if ( ( ( tt._bits[i + j] ^ tt._bits[i + j + step] ) & care._bits[i + j] & care._bits[i + j + step] ) != 0 )
-        {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
   void adjust_truth_table_on_dc( LTT& tt, LTT& care, uint32_t var_index )
   {
     uint64_t new_bits = tt._bits & care._bits;
@@ -796,7 +708,7 @@ private:
     ++bytes;
 
     /* write support */
-    for ( uint32_t i = best_free_set; i < best_free_set; ++i )
+    for ( uint32_t i = 0; i < best_free_set; ++i )
     {
       *pArray = (unsigned char)permutations[i];
       pArray++;
