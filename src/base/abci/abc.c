@@ -19630,9 +19630,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->pLutStruct = argv[globalUtilOptind];
             pPars->fEnableStructN = 1;
             globalUtilOptind++;
-            if ( strlen(pPars->pLutStruct) != 2 )
+            if ( strlen(pPars->pLutStruct) != 2 && strlen(pPars->pLutStruct) != 3 )
             {
-                Abc_Print( -1, "Command line switch \"-J\" should be followed by a 2-char string (e.g. \"66\").\n" );
+                Abc_Print( -1, "Command line switch \"-J\" should be followed by a 2- or 3-char string (e.g. \"66\" or \"666\").\n" );
                 goto usage;
             }
             break;

@@ -276,6 +276,31 @@ int If_CluCheck66( If_Man_t * p, word * pTruth0, int nVars, int fHashing )
     return G1.nVars;
 }
 
+// returns if successful
+int If_CluCheck666( If_Man_t * p, word * pTruth0, int nVars, int fHashing )
+{
+    If_Grp_t G1 = {0};
+    unsigned * pHashed = NULL;
+
+    if ( p && fHashing )
+    {
+        pHashed = If_CluHashLookup2( p, pTruth0, 0 );
+        if ( pHashed && *pHashed != CLU_UNUSED )
+            If_CluUns2Grp2( *pHashed, &G1 );
+    }
+
+    /* new entry */
+    if ( G1.nVars == 0 )
+    {
+        G1.nVars = acd666_evaluate( pTruth0, nVars, 0 );
+    }
+
+    if ( pHashed )
+        *pHashed = If_CluGrp2Uns2( &G1 );
+
+    return G1.nVars;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Performs ACD into 66 cascade.]
@@ -302,7 +327,7 @@ int If_CutPerformCheck66( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeav
 
     // quit if parameters are wrong
     Length = strlen(pStr);
-    if ( Length != 2 )
+    if ( Length != 2 && Length != 3 )
     {
         printf( "Wrong LUT struct (%s)\n", pStr );
         return 0;
@@ -316,7 +341,7 @@ int If_CutPerformCheck66( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeav
       }
     }
 
-    if ( nLeaves > 11 )
+    if ( ( Length == 2 && nLeaves > 11 ) || ( Length == 3 && nLeaves > 16 ) )
     {
         printf( "The cut size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return 0;
@@ -327,7 +352,10 @@ int If_CutPerformCheck66( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeav
         return 1;
 
     // derive the decomposition
-    return If_CluCheck66(p, (word*)pTruth, nVars, 1);
+    if ( Length == 2 )
+        return If_CluCheck66(p, (word*)pTruth, nVars, 1);
+    else
+        return If_CluCheck666(p, (word*)pTruth, nVars, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////

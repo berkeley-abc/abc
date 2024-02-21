@@ -31,6 +31,8 @@ int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay,
 int acd66_evaluate( word * pTruth, unsigned nVars, int compute_decomposition );
 int acd66_decompose( word * pTruth, unsigned nVars, unsigned char *decomposition );
 
+int acd666_evaluate( word * pTruth, unsigned nVars, int compute_decomposition );
+
 ABC_NAMESPACE_HEADER_END
 
 #endif

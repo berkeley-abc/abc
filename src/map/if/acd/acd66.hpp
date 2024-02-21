@@ -52,7 +52,7 @@ private:
   using LTT = kitty::static_truth_table<6>;
 
 public:
-  explicit acd66_impl( uint32_t num_vars, bool verify = false )
+  explicit acd66_impl( uint32_t const num_vars, bool const verify = false )
       : num_vars( num_vars ), verify( verify )
   {
     std::iota( permutations.begin(), permutations.end(), 0 );
@@ -838,8 +838,8 @@ private:
   uint64_t dec_funcs[2];
   uint32_t bs_support[6];
 
-  uint32_t num_vars;
-  bool verify;
+  uint32_t const num_vars;
+  bool const verify;
   std::array<uint32_t, max_num_vars> permutations;
 };
 
