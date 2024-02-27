@@ -48,14 +48,15 @@ ABC_NAMESPACE_IMPL_START
 void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time )
 {
     Vec_Ptr_t * vVec;
-    int i, ThisSize, Length, LengthStart;
+    int i, ThisSize, Length, LengthStart, kLast, Value, Width;
     if ( Vec_PtrSize(p->vSolvers) < 2 )
     {
         Abc_Print(1, "Frame " );
         Abc_Print(1, "Clauses                                                     " );
         Abc_Print(1, "Max Queue " );
         Abc_Print(1, "Flops " );
-        Abc_Print(1, "Cex      " );
+        if ( p->pPars->fUseAbs )
+            Abc_Print(1, "Cex      " );
         Abc_Print(1, "Time" );
         Abc_Print(1, "\n" );
         return;
@@ -64,8 +65,12 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time )
         return;
     // count the total length of the printout
     Length = 0;
+    kLast = Vec_VecSize( p->vClauses ) - 1;
+
     Vec_VecForEachLevel( p->vClauses, vVec, i )
-        Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
+        Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1 - (i == kLast ? p->nInfClauses : 0) );
+    if ( p->vInfCubes != NULL && Vec_PtrSize(p->vInfCubes) > 0 )
+        Length += 2 + Abc_Base10Log(Vec_PtrSize(p->vInfCubes)+1);
     // determine the starting point
     LengthStart = Abc_MaxInt( 0, Length - 60 );
     Abc_Print( 1, "%3d :", Vec_PtrSize(p->vSolvers)-1 );
@@ -78,26 +83,37 @@ void Pdr_ManPrintProgress( Pdr_Man_t * p, int fClose, abctime Time )
     Length = 0;
     Vec_VecForEachLevel( p->vClauses, vVec, i )
     {
+        Value = Vec_PtrSize(vVec) - (i == kLast ? p->nInfClauses : 0);
+        Width = 1 + Abc_Base10Log(Value+1);
         if ( Length < LengthStart )
         {
-            Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
+            Length += Width;
             continue;
         }
-        Abc_Print( 1, " %d", Vec_PtrSize(vVec) );
-        Length += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
-        ThisSize += 1 + Abc_Base10Log(Vec_PtrSize(vVec)+1);
+        Abc_Print( 1, " %d", Value );
+        Length += Width;
+        ThisSize += Width;
+    }
+    if ( p->vInfCubes != NULL && Vec_PtrSize(p->vInfCubes) > 0 )
+    {
+        Abc_Print( 1, " ~%d", Vec_PtrSize(p->vInfCubes) );
+        Length += 1 + Abc_Base10Log(Vec_PtrSize(p->vInfCubes)+2);
+        ThisSize += 1 + Abc_Base10Log(Vec_PtrSize(p->vInfCubes)+2);
     }
     for ( i = ThisSize; i < 70; i++ )
         Abc_Print( 1, " " );
     Abc_Print( 1, "%5d", p->nQueMax );
     Abc_Print( 1, "%6d", p->vAbsFlops ? Vec_IntCountPositive(p->vAbsFlops) : p->nAbsFlops );
     if ( p->pPars->fUseAbs )
-    Abc_Print( 1, "%4d", p->nCexes );
+        Abc_Print( 1, "%4d", p->nCexes );
     Abc_Print( 1, "%10.2f sec", 1.0*Time/CLOCKS_PER_SEC );
     if ( p->pPars->fSolveAll )
         Abc_Print( 1, "  CEX =%4d", p->pPars->nFailOuts );
     if ( p->pPars->nTimeOutOne )
         Abc_Print( 1, "  T/O =%3d", p->pPars->nDropOuts );
+    if ( p->pPars->fAnytime )
+        Abc_Print( 1, "  PRV =%3d", p->pPars->nProveOuts );
+
     Abc_Print( 1, "%s", fClose ? "\n":"\r" );
     if ( fClose )
         p->nQueMax = 0, p->nCexes = 0;
@@ -123,7 +139,7 @@ Vec_Int_t * Pdr_ManCountFlops( Pdr_Man_t * p, Vec_Ptr_t * vCubes )
     vFlopCount = Vec_IntStart( Aig_ManRegNum(p->pAig) );
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
-        if ( pCube->nRefs == -1 )
+        if ( pCube->iBound != PDR_INF_BOUND )
             continue;
         for ( n = 0; n < pCube->nLits; n++ )
         {
@@ -376,7 +392,7 @@ void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved )
     Count = 0;
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
-        if ( pCube->nRefs == -1 )
+        if ( pCube->iBound != PDR_INF_BOUND )
             continue;
         Count++;
     }
@@ -406,7 +422,7 @@ void Pdr_ManDumpClauses( Pdr_Man_t * p, char * pFileName, int fProved )
     // output cubes
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
-        if ( pCube->nRefs == -1 )
+        if ( pCube->iBound != PDR_INF_BOUND )
             continue;
         Pdr_SetPrint( pFile, pCube, Aig_ManRegNum(p->pAig), vFlopCounts );  
         fprintf( pFile, " 1\n" ); 
@@ -452,7 +468,7 @@ Vec_Str_t * Pdr_ManDumpString( Pdr_Man_t * p )
     // output cubes
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
-        if ( pCube->nRefs == -1 )
+        if ( pCube->iBound != PDR_INF_BOUND )
             continue;
         Pdr_SetPrintStr( vStr, pCube, Aig_ManRegNum(p->pAig), vFlopCounts );  
     }
@@ -566,7 +582,7 @@ int Pdr_ManDeriveMarkNonInductive( Pdr_Man_t * p, Vec_Ptr_t * vCubes )
     // add the clauses
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
-        if ( pCube->nRefs == -1 ) // skip non-inductive
+        if ( pCube->iBound >= 0 && pCube->iBound != PDR_INF_BOUND ) // skip known non-inf
             continue;
         vLits = Pdr_ManCubeToLits( p, kThis, pCube, 1, 0 );
         RetValue = sat_solver_addclause( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits) );
@@ -576,31 +592,45 @@ int Pdr_ManDeriveMarkNonInductive( Pdr_Man_t * p, Vec_Ptr_t * vCubes )
     // check each clause
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
-        if ( pCube->nRefs == -1 ) // skip non-inductive
+        if ( pCube->iBound >= 0 ) // skip clauses with known inf-ness
             continue;
         vLits = Pdr_ManCubeToLits( p, kThis, pCube, 0, 1 );
         RetValue = sat_solver_solve( pSat, Vec_IntArray(vLits), Vec_IntArray(vLits) + Vec_IntSize(vLits), 0, 0, 0, 0 );
-        if ( RetValue != l_False ) // mark as non-inductive
+        if ( RetValue != l_False ) // mark as non-inf
         {
-            pCube->nRefs = -1;
+            pCube->iBound = ~pCube->iBound;
             fChanges = 1;
         }
         else
             Counter++;
     }
+
+
+    Vec_Ptr_t *vLevel;
+    sat_solver_delete( (sat_solver *)Vec_PtrPop( p->vSolvers ) );
+    vLevel = (Vec_Ptr_t *)Vec_PtrPop( (Vec_Ptr_t *)p->vClauses );
+    assert (Vec_PtrSize( vLevel ) == 0);
+    Vec_PtrFree( vLevel );
+    Vec_IntPop( p->vActVars );
     //Abc_Print(1, "Clauses = %d.\n", Counter );
     //sat_solver_delete( pSat );
     return fChanges;
 }
+
 Vec_Int_t * Pdr_ManDeriveInfinityClauses( Pdr_Man_t * p, int fReduce )
 {
     Vec_Int_t * vResult;
     Vec_Ptr_t * vCubes;
     Pdr_Set_t * pCube;
-    int i, v, kStart;
+    int i, v, kStart, kMax;
     // collect cubes used in the inductive invariant
+    kMax = Vec_PtrSize( p->vSolvers );
     kStart = Pdr_ManFindInvariantStart( p );
     vCubes = Pdr_ManCollectCubes( p, kStart );
+    // mark all non-inf clauses as candidates
+    Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
+        if (pCube->iBound != PDR_INF_BOUND)
+            pCube->iBound = ~pCube->iBound;
     // refine as long as there are changes
     if ( fReduce )
         while ( Pdr_ManDeriveMarkNonInductive(p, vCubes) );
@@ -609,14 +639,23 @@ Vec_Int_t * Pdr_ManDeriveInfinityClauses( Pdr_Man_t * p, int fReduce )
     Vec_IntPush( vResult, 0 );
     Vec_PtrForEachEntry( Pdr_Set_t *, vCubes, pCube, i )
     {
-        if ( pCube->nRefs == -1 ) // skip non-inductive
+        if ( pCube->iBound >= 0 && pCube->iBound != PDR_INF_BOUND ) {
+            Vec_PtrWriteEntry( vCubes, i, Vec_PtrEntryLast( vCubes ) );
+            Vec_PtrPop( vCubes );
+            i--;
             continue;
+        }
+        if (pCube->iBound != PDR_INF_BOUND)
+        {
+            p->nInfClauses++;
+            p->fNewInfClauses = 1;
+            pCube->iBound = PDR_INF_BOUND;
+        }
         Vec_IntAddToEntry( vResult, 0, 1 );
         Vec_IntPush( vResult, pCube->nLits );
         for ( v = 0; v < pCube->nLits; v++ )
             Vec_IntPush( vResult, pCube->Lits[v] );
     }
-    //Vec_PtrFree( vCubes );
     Vec_PtrFreeP( &p->vInfCubes );
     p->vInfCubes = vCubes;
     Vec_IntPush( vResult, Aig_ManRegNum(p->pAig) );

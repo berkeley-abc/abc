@@ -72,6 +72,7 @@ struct Pdr_Par_t_
     int fSilent;          // totally silent execution
     int fSolveAll;        // do not stop when found a SAT output
     int fStoreCex;        // enable storing counter-examples in MO mode
+    int fAnytime;         // enable anytime scheduling
     int fUseBridge;       // use bridge interface
     int fUsePropOut;      // use property output
     int nFailOuts;        // the number of failed outputs

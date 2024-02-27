@@ -58,6 +58,8 @@
     #define sat_solver_compress(s)             
 #endif
 
+#define PDR_INF_BOUND ((int)((~((unsigned int)0)) >> 1))
+
 ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -76,6 +78,7 @@ struct Pdr_Set_t_
 {
     word        Sign;      // signature
     int         nRefs;     // ref counter
+    int         iBound;    // known to hold up to this frame, INT_MAX = inf
     int         nTotal;    // total literals
     int         nLits;     // num flop literals
     int         Lits[0];
@@ -156,8 +159,11 @@ struct Pdr_Man_t_
     int         nQueCur;
     int         nQueMax;
     int         nQueLim;
+    int         nQueLimStep;
     int         nXsimRuns;
     int         nXsimLits;
+    int         nInfClauses;
+    int         fNewInfClauses;
     // runtime
     abctime     timeToStop;
     abctime     timeToStopOne;
@@ -172,6 +178,7 @@ struct Pdr_Man_t_
     abctime     tCnf;
     abctime     tAbs;
     abctime     tTotal;
+    abctime     tStart;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -253,6 +260,7 @@ extern void            Pdr_SetPrint( FILE * pFile, Pdr_Set_t * p, int nRegs, Vec
 extern void            ZPdr_SetPrint( Pdr_Set_t * p );
 extern void            Pdr_SetPrintStr( Vec_Str_t * vStr, Pdr_Set_t * p, int nRegs, Vec_Int_t * vFlopCounts );
 extern int             Pdr_SetCompare( Pdr_Set_t ** pp1, Pdr_Set_t ** pp2 );
+extern int             Pdr_SetBoundSizeLextCompare( Pdr_Set_t ** pp1, Pdr_Set_t ** pp2 );
 extern Pdr_Obl_t *     Pdr_OblStart( int k, int prio, Pdr_Set_t * pState, Pdr_Obl_t * pNext );
 extern Pdr_Obl_t *     Pdr_OblRef( Pdr_Obl_t * p );
 extern void            Pdr_OblDeref( Pdr_Obl_t * p );

@@ -99,7 +99,8 @@ sat_solver * Pdr_ManFetchSolver( Pdr_Man_t * p, int k )
     // add the clauses
     Vec_VecForEachLevelStart( p->vClauses, vArrayK, i, k )
         Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCube, j )
-            Pdr_ManSolverAddClause( p, k, pCube );
+            if ( pCube != NULL )
+                Pdr_ManSolverAddClause( p, k, pCube );
     return pSat;
 }
 

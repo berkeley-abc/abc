@@ -71,6 +71,7 @@ Pdr_Set_t * Pdr_SetCreate( Vec_Int_t * vLits, Vec_Int_t * vPiLits )
     p->nLits  = Vec_IntSize(vLits);
     p->nTotal = Vec_IntSize(vLits) + Vec_IntSize(vPiLits);
     p->nRefs  = 1;
+    p->iBound = 0;
     p->Sign   = 0;
     for ( i = 0; i < p->nLits; i++ )
     {
@@ -104,6 +105,7 @@ Pdr_Set_t * Pdr_SetCreateFrom( Pdr_Set_t * pSet, int iRemove )
     p->nLits  = pSet->nLits - 1;
     p->nTotal = pSet->nTotal - 1;
     p->nRefs  = 1;
+    p->iBound = 0;
     p->Sign   = 0;
     for ( i = 0; i < pSet->nTotal; i++ )
     {
@@ -138,6 +140,7 @@ Pdr_Set_t * Pdr_SetCreateSubset( Pdr_Set_t * pSet, int * pLits, int nLits )
     p->nLits  = nLits;
     p->nTotal = nLits + pSet->nTotal - pSet->nLits;
     p->nRefs  = 1;
+    p->iBound = 0;
     p->Sign   = 0;
     for ( i = 0; i < nLits; i++ )
     {
@@ -171,6 +174,7 @@ Pdr_Set_t * Pdr_SetDup( Pdr_Set_t * pSet )
     p->nLits  = pSet->nLits;
     p->nTotal = pSet->nTotal;
     p->nRefs  = 1;
+    p->iBound = 0;
     p->Sign   = pSet->Sign;
     for ( i = 0; i < pSet->nTotal; i++ )
         p->Lits[i] = pSet->Lits[i];
@@ -498,6 +502,41 @@ int Pdr_SetCompare( Pdr_Set_t ** pp1, Pdr_Set_t ** pp2 )
         return -1;
     if ( i < p1->nLits && i == p2->nLits )
         return 1;
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Pdr_SetBoundSizeLextCompare( Pdr_Set_t ** pp1, Pdr_Set_t ** pp2 )
+{
+    Pdr_Set_t * p1 = *pp1;
+    Pdr_Set_t * p2 = *pp2;
+    if (p1->iBound > p2->iBound)
+        return -1;
+    if (p1->iBound < p2->iBound)
+        return 1;
+    if (p1->nLits < p2->nLits)
+        return -1;
+    if (p1->nLits > p2->nLits)
+        return 1;
+
+    int i;
+    for ( i = 0; i < p1->nLits && i < p2->nLits; i++ )
+    {
+        if ( p1->Lits[i] > p2->Lits[i] )
+            return -1;
+        if ( p1->Lits[i] < p2->Lits[i] )
+            return 1;
+    }
     return 0;
 }
 
