@@ -366,6 +366,40 @@ private:
     return multiplicity;
   }
 
+  uint32_t column_multiplicity2( STT const& tt, uint32_t free_set_size )
+  {
+    assert( free_set_size <= 5 );
+
+    uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+    uint64_t const shift = UINT64_C( 1 ) << free_set_size;
+    uint64_t const mask = ( UINT64_C( 1 ) << shift ) - 1;
+    uint32_t cofactors[4];
+    uint32_t size = 0;
+
+    /* extract iset functions */
+    for ( auto i = 0u; i < num_blocks; ++i )
+    {
+      uint64_t sub = tt._bits[i];
+      for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
+      {
+        uint32_t fs_fn = static_cast<uint32_t>( sub & mask );
+        uint32_t k;
+        for ( k = 0; k < size; ++k )
+        {
+          if ( fs_fn == cofactors[k] )
+            break;
+        }
+        if ( k == 2 )
+          return 3;
+        if ( k == size )
+          cofactors[size++] = fs_fn;
+        sub >>= shift;
+      }
+    }
+
+    return size;
+  }
+
   inline bool combinations_offset_next( uint32_t k, uint32_t offset, uint32_t* pComb, uint32_t* pInvPerm, STT& tt )
   {
     uint32_t i;
@@ -401,7 +435,7 @@ private:
     STT tt = best_tt;
 
     /* TT with best cost */
-    STT best_tt = tt;
+    STT local_best_tt = tt;
     uint32_t best_cost = ( 1 << ( ps.lut_size - free_set_size ) ) + 1;
 
     assert( free_set_size >= offset );
@@ -416,6 +450,12 @@ private:
     /* works up to 16 input truth tables */
     assert( num_vars <= 16 );
 
+    /* Search for column multiplicity of 2 */
+    if ( free_set_size == ps.lut_size - 1 )
+    {
+      return enumerate_iset_combinations2( free_set_size, offset );
+    }
+
     /* init combinations */
     uint32_t pComb[16], pInvPerm[16], bestPerm[16];
     for ( uint32_t i = 0; i < num_vars; ++i )
@@ -429,7 +469,7 @@ private:
       uint32_t cost = fn( tt );
       if ( cost < best_cost )
       {
-        best_tt = tt;
+        local_best_tt = tt;
         best_cost = cost;
         for ( uint32_t i = 0; i < num_vars; ++i )
         {
@@ -442,7 +482,7 @@ private:
     
     if ( best_cost > ( 1 << ( ps.lut_size - free_set_size ) ) )
     {
-      return std::make_tuple( best_tt, res_perm, UINT32_MAX );
+      return std::make_tuple( local_best_tt, res_perm, UINT32_MAX );
     }
 
     for ( uint32_t i = 0; i < num_vars; ++i )
@@ -450,7 +490,45 @@ private:
       res_perm[i] = permutations[bestPerm[i]];
     }
 
-    return std::make_tuple( best_tt, res_perm, best_cost );
+    return std::make_tuple( local_best_tt, res_perm, best_cost );
+  }
+
+  inline std::tuple<STT, std::array<uint32_t, max_num_vars>, uint32_t> enumerate_iset_combinations2( uint32_t free_set_size, uint32_t offset )
+  {
+    STT tt = best_tt;
+
+    /* TT with best cost */
+    STT local_best_tt = tt;
+    uint32_t best_cost = ( 1 << ( ps.lut_size - free_set_size ) ) + 1;
+
+    assert( free_set_size >= offset );
+
+    /* init combinations */
+    uint32_t pComb[16], pInvPerm[16];
+    for ( uint32_t i = 0; i < num_vars; ++i )
+    {
+      pComb[i] = pInvPerm[i] = i;
+    }
+
+    /* enumerate combinations */
+    std::array<uint32_t, max_num_vars> res_perm;
+
+    do
+    {
+      uint32_t cost = column_multiplicity2( tt, free_set_size );
+      if ( cost <= 2 )
+      {
+        local_best_tt = tt;
+        best_cost = cost;
+        for ( uint32_t i = 0; i < num_vars; ++i )
+        {
+          res_perm[i] = permutations[pComb[i]];
+        }
+        return std::make_tuple( local_best_tt, res_perm, best_cost );
+      }
+    } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
+
+    return std::make_tuple( local_best_tt, res_perm, UINT32_MAX );
   }
 
   std::vector<STT> compute_isets( bool verbose = false )

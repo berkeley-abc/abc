@@ -162,6 +162,7 @@ private:
     uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
     uint64_t const shift = UINT64_C( 1 ) << free_set_size;
     uint64_t const mask = ( UINT64_C( 1 ) << shift ) - 1;
+    uint32_t const limit = free_set_size < 5 ? 4 : 2;
     uint32_t cofactors[4];
     uint32_t size = 0;
 
@@ -178,7 +179,7 @@ private:
           if ( fs_fn == cofactors[k] )
             break;
         }
-        if ( k == 4 )
+        if ( k == limit )
           return 5;
         if ( k == size )
           cofactors[size++] = fs_fn;

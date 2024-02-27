@@ -101,7 +101,7 @@ public:
 
     uint32_t num_edges = support_sizes[0] + support_sizes[1] + 1 + ( shared_vars[0] < UINT32_MAX ? 1 : 0 );
 
-    if ( num_luts = 2 )
+    if ( num_luts == 2 )
       return num_edges;
 
     /* real value after support minimization */
@@ -203,6 +203,7 @@ private:
     uint32_t const num_blocks = ( n > 6 ) ? ( 1u << ( n - 6 ) ) : 1;
     uint64_t const shift = UINT64_C( 1 ) << free_set_size;
     uint64_t const mask = ( UINT64_C( 1 ) << shift ) - 1;
+    uint32_t const limit = free_set_size < 5 ? 4 : 2;
     uint32_t cofactors[4];
     uint32_t size = 0;
 
@@ -219,7 +220,7 @@ private:
           if ( fs_fn == cofactors[k] )
             break;
         }
-        if ( k == 4 )
+        if ( k == limit )
           return 5;
         if ( k == size )
           cofactors[size++] = fs_fn;
