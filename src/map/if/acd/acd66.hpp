@@ -76,6 +76,34 @@ public:
     return find_decomposition() ? 1 : 0;
   }
 
+  /*! \brief Runs ACD 66 */
+  int run( word* ptt, unsigned delay_profile )
+  {
+    assert( num_vars > 6 );
+
+    /* truth table is too large for the settings */
+    if ( num_vars > max_num_vars || num_vars > 11 )
+    {
+      return false;
+    }
+
+    uint32_t late_arriving = __builtin_popcount( delay_profile );
+
+    /* too many late arriving variables */
+    if ( late_arriving > 5 )
+      return 0;
+
+    /* convert to static TT */
+    init_truth_table( ptt );
+    best_tt = start_tt;
+
+    /* permute late arriving variables to be the least significant */
+    reposition_late_arriving_variables( delay_profile, late_arriving );
+
+    /* run ACD trying different bound sets and free sets */
+    return find_decomposition_offset( late_arriving ) ? ( delay_profile == 0 ? 2 : 1 ) : 0;
+  }
+
   int compute_decomposition()
   {
     if ( best_multiplicity == UINT32_MAX )
@@ -102,17 +130,17 @@ public:
     return bs_support_size + best_free_set + 1 + ( best_multiplicity > 2 ? 1 : 0 );
   }
 
-  /* contains a 1 for BS variables */
+  /* contains a 1 for FS variables */
   unsigned get_profile()
   {
     unsigned profile = 0;
 
-    if ( bs_support_size == UINT32_MAX )
+    if ( best_multiplicity == UINT32_MAX )
       return -1;
 
-    for ( uint32_t i = 0; i < bs_support_size; ++i )
+    for ( uint32_t i = 0; i < best_free_set; ++i )
     {
-      profile |= 1 << permutations[best_free_set + bs_support[i]];
+      profile |= 1 << permutations[i];
     }
 
     return profile;
@@ -136,6 +164,22 @@ private:
     for ( uint32_t i = num_vars - 6; i <= 5; ++i )
     {
       if ( find_decomposition_bs( i ) )
+        return true;
+    }
+
+    best_multiplicity = UINT32_MAX;
+    return false;
+  }
+
+  bool find_decomposition_offset( uint32_t offset )
+  {
+    best_multiplicity = UINT32_MAX;
+    best_free_set = UINT32_MAX;
+
+    /* find ACD "66" for different number of variables in the free set */
+    for ( uint32_t i = std::max( num_vars - 6, offset ); i <= 5; ++i )
+    {
+      if ( find_decomposition_bs_offset( i, offset ) )
         return true;
     }
 
@@ -190,13 +234,13 @@ private:
     return size;
   }
 
-  inline bool combinations_next( uint32_t k, uint32_t* pComb, uint32_t* pInvPerm, STT& tt )
+  inline bool combinations_next( uint32_t k, uint32_t offset, uint32_t* pComb, uint32_t* pInvPerm, STT& tt )
   {
     uint32_t i;
 
     for ( i = k - 1; pComb[i] == num_vars - k + i; --i )
     {
-      if ( i == 0 )
+      if ( i == offset )
         return false;
     }
 
@@ -254,7 +298,7 @@ private:
         best_multiplicity = cost;
         int res = check_shared_set( tt );
 
-        if ( res > 0 )
+        if ( res >= 0 )
         {
           best_tt = tt;
           for ( uint32_t i = 0; i < num_vars; ++i )
@@ -267,7 +311,96 @@ private:
           return true;
         }
       }
-    } while ( combinations_next( free_set_size, pComb, pInvPerm, tt ) );
+    } while ( combinations_next( free_set_size, 0, pComb, pInvPerm, tt ) );
+
+    return false;
+  }
+
+  bool find_decomposition_bs_offset( uint32_t free_set_size, uint32_t offset )
+  {
+    STT tt = best_tt;
+
+    /* works up to 16 input truth tables */
+    assert( num_vars <= 16 );
+    best_free_set = free_set_size;
+
+    /* special case */
+    if ( free_set_size == offset )
+    {
+      uint32_t cost = column_multiplicity( tt, free_set_size );
+      if ( cost == 2 )
+      {
+        best_tt = tt;
+        best_multiplicity = cost;
+        return true;
+      }
+      else if ( cost <= 4 && free_set_size < 5 )
+      {
+        /* look for a shared variable */
+        best_multiplicity = cost;
+        int res = check_shared_set( tt );
+
+        if ( res >= 0 )
+        {
+          best_tt = tt;
+          /* move shared variable as the most significative one */
+          swap_inplace_local( best_tt, res, num_vars - 1 );
+          std::swap( permutations[res], permutations[num_vars - 1] );
+          return true;
+        }
+      }
+      return false;
+    }
+
+    /* init combinations */
+    uint32_t pComb[16], pInvPerm[16];
+    for ( uint32_t i = 0; i < num_vars; ++i )
+    {
+      pComb[i] = pInvPerm[i] = i;
+    }
+
+    /* enumerate combinations */
+    do
+    {
+      uint32_t cost = column_multiplicity( tt, free_set_size );
+      if ( cost == 2 )
+      {
+        best_tt = tt;
+        best_multiplicity = cost;
+        for ( uint32_t i = 0; i < num_vars; ++i )
+        {
+          pInvPerm[i] = permutations[pComb[i]];
+        }
+        for ( uint32_t i = 0; i < num_vars; ++i )
+        {
+          permutations[i] = pInvPerm[i];
+        }
+        return true;
+      }
+      else if ( cost <= 4 && free_set_size < 5 )
+      {
+        /* look for a shared variable */
+        best_multiplicity = cost;
+        int res = check_shared_set( tt );
+
+        if ( res >= 0 )
+        {
+          best_tt = tt;
+          for ( uint32_t i = 0; i < num_vars; ++i )
+          {
+            pInvPerm[i] = permutations[pComb[i]];
+          }
+          for ( uint32_t i = 0; i < num_vars; ++i )
+          {
+            permutations[i] = pInvPerm[i];
+          }
+          /* move shared variable as the most significative one */
+          swap_inplace_local( best_tt, res, num_vars - 1 );
+          std::swap( permutations[res], permutations[num_vars - 1] );
+          return true;
+        }
+      }
+    } while ( combinations_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
     return false;
   }
@@ -549,6 +682,26 @@ private:
     {
       dec_funcs[1] |= fs_fun[2] << ( ( 2 << best_free_set ) + ( 1 << best_free_set ) );
       dec_funcs[1] |= fs_fun[3] << ( 2 << best_free_set );
+    }
+  }
+
+  inline void reposition_late_arriving_variables( unsigned delay_profile, uint32_t late_arriving )
+  {
+    uint32_t k = 0;
+    for ( uint32_t i = 0; i < late_arriving; ++i )
+    {
+      while ( ( ( delay_profile >> k ) & 1 ) == 0 )
+        ++k;
+
+      if ( permutations[i] == k )
+      {
+        ++k;
+        continue;
+      }
+
+      std::swap( permutations[i], permutations[k] );
+      swap_inplace_local( best_tt, i, k );
+      ++k;
     }
   }
 
