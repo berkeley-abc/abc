@@ -46,7 +46,7 @@ int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, 
     }
 
     *pdelay = acd.get_profile();
-    *cost = 2;
+    *cost = st.num_luts;
 
     return val;
   }

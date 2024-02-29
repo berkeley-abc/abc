@@ -58,7 +58,7 @@ struct ac_decomposition_params
   bool support_reducing_only{ true };
 
   /*! \brief Use the first feasible decomposition found. */
-  bool use_first{ true };
+  bool use_first{ false };
 
   /*! \brief If decomposition with delay profile fails, try without. */
   bool try_no_late_arrival{ false };
@@ -115,6 +115,10 @@ public:
     if ( num_vars > ps.max_free_set_vars + ps.lut_size )
     {
       ps.max_free_set_vars = num_vars - ps.lut_size;
+    }
+    if ( late_arriving > ps.max_free_set_vars )
+    {
+      ps.max_free_set_vars = late_arriving;
     }
 
     /* return a high cost if too many late arriving variables */
@@ -227,11 +231,13 @@ private:
         best_cost = multiplicity + additional_cost;
         best_free_set = i;
 
-        if ( ps.use_first )
+        if ( !ps.use_first )
         {
-          break;
+          continue;
         }
       }
+
+      break;
     }
 
     if ( best_multiplicity == UINT32_MAX && ( !ps.try_no_late_arrival || late_arriving == 0 ) )
@@ -263,11 +269,13 @@ private:
           best_cost = multiplicity + additional_cost;
           best_free_set = i;
 
-          if ( ps.use_first )
+          if ( !ps.use_first )
           {
-            break;
+            continue;
           }
         }
+
+        break;
       }
     }
 
