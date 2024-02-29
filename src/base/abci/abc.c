@@ -32150,7 +32150,7 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-upicabmlnrsvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upicabmlnsvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
@@ -32161,7 +32161,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
     Abc_Print( -2, "\t-n     : toggle writing \'\\n\' after \'c\' in the AIGER file [default = %s]\n", fWriteNewLine? "yes": "no" );
-    Abc_Print( -2, "\t-r     : toggle reversing the order of input/output bits [default = %s]\n", fReverse? "yes": "no" );    
+    //Abc_Print( -2, "\t-r     : toggle reversing the order of input/output bits [default = %s]\n", fReverse? "yes": "no" );    
     Abc_Print( -2, "\t-s     : toggle skipping the timestamp in the output file [default = %s]\n", fSkipComment? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
