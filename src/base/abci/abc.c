@@ -51695,13 +51695,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9BMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, int biNum);
+    extern Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose );
     Gia_Man_t * pTemp, * pSecond;
     char * FileName = NULL;
     FILE * pFile = NULL;
     int c, fVerbose = 0;
     int bi  = 0;
     Extra_UtilGetoptReset();
+    // TODO: use a flag to block Bnd_Man
     while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
     {
         switch ( c )
@@ -51752,7 +51753,7 @@ int Abc_CommandAbc9BMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9BMiter(): Cannot read the file name on the command line.\n" );
         return 0;
     }    
-    pTemp = Gia_ManBoundaryMiter( pAbc->pGia, pSecond, fVerbose, bi);
+    pTemp = Gia_ManBoundaryMiter( pAbc->pGia, pSecond, fVerbose );
     Gia_ManStop( pSecond );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
@@ -51852,7 +51853,7 @@ int Abc_CommandAbc9RecoverBoundary( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Obj_t* pObj;
     Gia_Man_t * pSpec = NULL;
     char ** pArgvNew;
-    int i, nArgcNew, nPo;
+    int nArgcNew, nPo;
     int nBInput = -1;
     char *FileName;
     Extra_UtilGetoptReset();
@@ -51955,29 +51956,34 @@ usage:
     return 1;
 }
 
+extern Bnd_Man_t* pBnd;
 int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManPatch( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, int biNum);
-    extern Gia_Man_t * Gia_ManPatchImpl( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose, int biNum);
-    Gia_Man_t * pTemp, * pSecond, *pImpl, *pPatched;
+    extern Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
+    extern void Cec4_ManSetParams( Cec_ParFra_t * pPars );
+    extern Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose );
+    Gia_Man_t *pImpl, *pImpl_out = 0, *pSpec_out = 0, *pMiter, *pPatch, *pPatched, *pTemp, *pBmiter;;
     char * FileName = NULL;
-    char * FileName2 = NULL;
     FILE * pFile = NULL;
-    int c, fVerbose = 0;
-    int bi  = 0;
+    int c, fVerbose = 0, success = 1;
+
+    // params
+    Gps_Par_t Pars, * pPars = &Pars;
+    memset( pPars, 0, sizeof(Gps_Par_t) );
+    Cec_ParCec_t ParsCec, *pParsCec = &ParsCec;
+    Cec_ManCecSetDefaultParams( pParsCec );
+    Cec_ParFra_t ParsFra, *pParsFra = &ParsFra;
+    Cec4_ManSetParams( pParsFra );
+    pParsFra -> fBMiterInfo = 1;
+
+    // TODO: save return value and return at the end of the function
+
+    // parse options
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'I':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            bi = atoi(argv[globalUtilOptind++]);
-            break;    
         case 'v':
             fVerbose ^= 1;
             break;
@@ -51999,7 +52005,10 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    // get the input file name
+    // params
+
+
+    // read impl
     FileName = argv[globalUtilOptind];
     if ( (pFile = fopen( FileName, "r" )) == NULL )
     {
@@ -52010,44 +52019,103 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     fclose( pFile );
-
-    // get the input file name 2
-    FileName2 = argv[globalUtilOptind+1];
-    if ( (pFile = fopen( FileName2, "r" )) == NULL )
-    {
-        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName2 );
-        if ( (FileName2 = Extra_FileGetSimilarName( FileName2, ".aig", ".blif", ".pla", ".eqn", ".bench" )) )
-            Abc_Print( 1, "Did you mean \"%s\"?", FileName2 );
-        Abc_Print( 1, "\n" );
-        return 1;
-    }
-    fclose( pFile );
-
-    // map spec to patch
-    pSecond = Gia_AigerRead( FileName, 0, 1, 0 );
-    if ( pSecond == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9StrEco(): Cannot read the file name on the command line.\n" );
-        return 0;
-    }    
-    pTemp = Gia_ManPatch( pAbc->pGia, pSecond, fVerbose, bi);
-    // Gia_ManStop( pSecond );
-    // Abc_FrameUpdateGia( pAbc, pTemp );
-    // return 0;
-
-    // generated patched impl
-    pImpl = Gia_AigerRead( FileName2, 0, 0, 0 );
+    pImpl = Gia_AigerRead( FileName, 0, 0, 0 );
     if ( pImpl == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9StrEco(): Cannot read the file name on the command line.\n" );
         return 0;
     }    
-    pPatched = Gia_ManPatchImpl( pTemp, pImpl, fVerbose, bi);
 
-    Gia_ManStop( pSecond );
+    // read patch
+    FileName = argv[globalUtilOptind+1];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", ".blif", ".pla", ".eqn", ".bench" )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    pPatch = Gia_AigerRead( FileName, 0, 1, 0 );
+    if ( pPatch == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): Cannot read the file name on the command line.\n" );
+        return 0;
+    }    
+
+
+    // verify if spec eq impl
+    pMiter = Gia_ManMiter( pAbc->pGia, pImpl, 0, 1, 0, 0, 0 );
+    assert( Cec_ManVerify( pMiter, pParsCec ) );
+    Gia_ManStop(pMiter);
+
+    // start boundary manager
+    pBnd = Bnd_ManStart( pAbc->pGia, pImpl );
+
+    // check boundary
+    if ( 0 == Bnd_ManCheckBound( pAbc -> pGia ) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): The given boundary is invalid.\n" );
+        success = 0;
+    }
+
+    if ( success )
+    {
+        // create bmiter, run fraig
+        pBmiter = Gia_ManBoundaryMiter( pAbc -> pGia, pImpl, 0 );
+        pTemp = Cec4_ManSimulateTest( pBmiter, pParsFra );
+        Gia_ManStop(pBmiter);
+        Gia_ManStop(pTemp);
+
+        // find 
+        Bnd_ManFindBound( pAbc -> pGia );
+
+        // create spec_out and 
+        pSpec_out = Bnd_ManGenSpecOut( pAbc -> pGia );
+        if ( !pSpec_out ) success = 0;
+        pImpl_out = Bnd_ManGenImplOut( pImpl );
+        if ( !pImpl_out ) success = 0;
+
+        Gia_AigerWrite( pSpec_out, "spec_out.aig", 0, 0, 0 );
+        Gia_AigerWrite( pImpl_out, "impl_out.aig", 0, 0, 0 );
+        Gia_ManPrintStats( pSpec_out, pPars );
+        Gia_ManPrintStats( pImpl_out, pPars );
+
+    }
+
+    if ( success )
+    {
+
+        // check if spec_out and imnpl_out are equivalent
+        printf("Checking the equivalence of spec_out and impl_out\n");
+        pMiter = Gia_ManMiter( pSpec_out, pImpl_out, 0, 1, 0, 0, 0 );
+        Bnd_ManSetEqOut( Cec_ManVerify( pMiter, pParsCec ) );
+        Gia_ManStop( pMiter );
+
+        // generate patched
+        pPatched = Bnd_ManGenPatched( pImpl_out, pAbc->pGia, pPatch );
+
+        // check if patched is equiv to patch
+        printf("Checking the equivalence of patch and patched\n");
+        pMiter = Gia_ManMiter( pPatch, pPatched, 0, 1, 0, 0, 0 );
+        Bnd_ManSetEqRes( Cec_ManVerify( pMiter, pParsCec ) );
+        Gia_ManStop( pMiter );
+
+    }
+
+    Bnd_ManPrintStats();
+
     Gia_ManStop( pImpl );
-    Gia_ManStop( pTemp );
-    Abc_FrameUpdateGia( pAbc, pPatched );
+    Gia_ManStop( pPatch );
+    if ( pSpec_out ) Gia_ManStop( pSpec_out );
+    if ( pImpl_out ) Gia_ManStop( pImpl_out );
+    if ( success )
+    {
+        Abc_FrameUpdateGia( pAbc, pPatched );
+    }
+    Bnd_ManStop();
+
     return 0;
 
 usage:

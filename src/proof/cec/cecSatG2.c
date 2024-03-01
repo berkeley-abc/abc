@@ -143,14 +143,6 @@ static inline int    Cec4_ObjSatId( Gia_Man_t * p, Gia_Obj_t * pObj )           
 static inline int    Cec4_ObjSetSatId( Gia_Man_t * p, Gia_Obj_t * pObj, int Num ) { assert(Cec4_ObjSatId(p, pObj) == -1); Gia_ObjSetCopy2Array(p, Gia_ObjId(p, pObj), Num); Vec_IntPush(&p->vSuppVars, Gia_ObjId(p, pObj)); if ( Gia_ObjIsCi(pObj) ) Vec_IntPushTwo(&p->vCopiesTwo, Gia_ObjId(p, pObj), Num); assert(Vec_IntSize(&p->vVarMap) == Num); Vec_IntPush(&p->vVarMap, Gia_ObjId(p, pObj)); return Num;  }
 static inline void   Cec4_ObjCleanSatId( Gia_Man_t * p, Gia_Obj_t * pObj )        { assert(Cec4_ObjSatId(p, pObj) != -1); Gia_ObjSetCopy2Array(p, Gia_ObjId(p, pObj), -1);               }
 
-
-extern Vec_Int_t* vMarkBmiter;
-extern Vec_Int_t* vIdBI;
-extern Vec_Int_t* vIdBO;
-extern Vec_Ptr_t* vBmiter2Spec;
-extern Vec_Ptr_t* vBmiter2Impl;
-
-
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -1791,9 +1783,9 @@ void Gia_ManRemoveWrongChoices( Gia_Man_t * p )
     //Abc_Print( 1, "Removed %d wrong choices.\n", Counter );
 }
 
-extern Vec_Bit_t* vImpl2Spec_phase;
 int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** ppNew, int fSimOnly )
 {
+
     Cec4_Man_t * pMan = Cec4_ManCreate( p, pPars ); 
     Gia_Obj_t * pObj, * pRepr; 
     int i, fSimulate = 1;
@@ -1894,25 +1886,11 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
 
         if ( Abc_Lit2Var(pObj->Value) == Abc_Lit2Var(pRepr->Value) )
         {
-            if ( pPars->fBMiterInfo )
+            if ( pPars->fBMiterInfo ) 
             {
-                int eId, j;
-                Vec_Int_t *vIds_spec_repr, *vIds_impl_repr, *vIds_spec_obj, *vIds_impl_obj;
-                vIds_spec_repr = Vec_PtrEntry( vBmiter2Spec, id_repr );
-                vIds_impl_repr = Vec_PtrEntry( vBmiter2Impl, id_repr );
-                vIds_spec_obj = Vec_PtrEntry( vBmiter2Spec, id_obj );
-                vIds_impl_obj = Vec_PtrEntry( vBmiter2Impl, id_obj );
-                Vec_IntForEachEntry( vIds_spec_obj, eId, j)
-                {
-                    Vec_IntPush(vIds_spec_repr, eId);
-                }
-                Vec_IntForEachEntry( vIds_impl_obj, eId, j)
-                {
-                    Vec_IntPush(vIds_impl_repr, eId);
-                }
-                Vec_IntClear(vIds_spec_obj);
-                Vec_IntClear(vIds_impl_obj);
+                Bnd_ManMerge( id_repr, id_obj, pObj->fPhase ^ pRepr->fPhase );
             }
+
             assert( (pObj->Value ^ pRepr->Value) == (pObj->fPhase ^ pRepr->fPhase) );
             Gia_ObjSetProved( p, i );
             if ( Gia_ObjId(p, pRepr) == 0 )
@@ -1923,73 +1901,8 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         {
             if (pPars->fBMiterInfo){
 
-                int eId, j;
-                Vec_Int_t *vIds_spec_repr, *vIds_impl_repr, *vIds_spec_obj, *vIds_impl_obj;
-                vIds_spec_repr = Vec_PtrEntry( vBmiter2Spec, id_repr );
-                vIds_impl_repr = Vec_PtrEntry( vBmiter2Impl, id_repr );
-                vIds_spec_obj = Vec_PtrEntry( vBmiter2Spec, id_obj );
-                vIds_impl_obj = Vec_PtrEntry( vBmiter2Impl, id_obj );
-
-                Vec_IntForEachEntry( vIds_spec_obj, eId, j)
-                {
-                    Vec_IntPush(vIds_spec_repr, eId);
-                }
-                Vec_IntForEachEntry( vIds_impl_obj, eId, j)
-                {
-                    Vec_IntPush(vIds_impl_repr, eId);
-                }
-
-                // handle phase before cleaning
-                printf( "proven %d merged into %d (phase : %d)\n", Gia_ObjId(p, pObj), Gia_ObjId(p,pRepr), pObj->fPhase ^ pRepr -> fPhase );
-                if ( Vec_IntSize(vIds_spec_repr) == 0  )    // no match
-                {
-                    if ( pObj->fPhase ^ pRepr -> fPhase )
-                    {
-                        Vec_IntForEachEntry( vIds_impl_obj, eId, j )
-                        {
-                            Vec_BitSetEntry( vImpl2Spec_phase, eId, !Vec_BitEntry(vImpl2Spec_phase, eId) );
-                            printf( "impl id %d's phase set to %d\n", eId, Vec_BitEntry(vImpl2Spec_phase, eId) );
-                        }
-                    }
-                }
-                else if ( Vec_IntSize( vIds_spec_repr ) == Vec_IntSize( vIds_spec_obj) && Vec_IntSize( vIds_impl_obj ) == 0 ) // new match
-                {
-                    if ( pObj->fPhase ^ pRepr -> fPhase )
-                    {
-                        Vec_IntForEachEntry( vIds_impl_repr, eId, j )
-                        {
-                            Vec_BitSetEntry( vImpl2Spec_phase, eId, !Vec_BitEntry(vImpl2Spec_phase, eId) );
-                            printf( "impl id %d's phase set to %d\n", eId, Vec_BitEntry(vImpl2Spec_phase, eId) );
-                        }
-                        printf("new match flip\n");
-                    }
-                }
-                else if ( Vec_IntSize( vIds_spec_repr ) > 0 && Vec_IntSize( vIds_impl_obj ) > 0 ) // matched, merge impl
-                {
-                    if ( ( pObj->fPhase ^ pRepr -> fPhase) ^ ( Vec_BitEntry( vImpl2Spec_phase, Vec_IntEntry(vIds_impl_repr, 0)) ^ Vec_BitEntry( vImpl2Spec_phase, Vec_IntEntry(vIds_impl_obj, 0)) ) )
-                    {
-                        if ( Vec_IntSize( vIds_spec_repr ) == Vec_IntSize( vIds_spec_obj) ) // unmatched repr, matched obj, set repr bits
-                        {
-                            Vec_IntForEachEntry( vIds_impl_repr, eId, j )
-                            {
-                                if ( j >= Vec_IntSize( vIds_impl_repr)-Vec_IntSize(vIds_impl_obj)  ) break;
-                                Vec_BitSetEntry( vImpl2Spec_phase, eId, !Vec_BitEntry(vImpl2Spec_phase, eId) );
-                                printf( "impl id %d's phase set to %d\n", eId, Vec_BitEntry(vImpl2Spec_phase, eId) );
-                            }
-                        }
-                        else // set obj bits
-                        {
-                            Vec_IntForEachEntry( vIds_impl_obj, eId, j )
-                            {
-                                Vec_BitSetEntry( vImpl2Spec_phase, eId, !Vec_BitEntry(vImpl2Spec_phase, eId) );
-                                printf( "impl id %d's phase set to %d\n", eId, Vec_BitEntry(vImpl2Spec_phase, eId) );
-                            }
-                        }
-                    }
-                }
-
-                Vec_IntClear(vIds_spec_obj);
-                Vec_IntClear(vIds_impl_obj);
+                Bnd_ManMerge( id_repr, id_obj, pObj->fPhase ^ pRepr->fPhase );
+                // printf( "proven %d merged into %d (phase : %d)\n", Gia_ObjId(p, pObj), Gia_ObjId(p,pRepr), pObj->fPhase ^ pRepr -> fPhase );
 
             }
             pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
@@ -2001,20 +1914,8 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
     if ( pPars->fBMiterInfo )
     {
         // print
-        Vec_Int_t* vIds_spec, *vIds_impl;
-        int k, id;
-        for( int j=0; j < Vec_PtrSize(vBmiter2Spec); j++ )
-        {
-            printf("node %d: ", j);
-            vIds_spec = Vec_PtrEntry( vBmiter2Spec, j);
-            vIds_impl = Vec_PtrEntry( vBmiter2Impl, j);
-            Vec_IntForEachEntry(vIds_spec, id, k)
-                printf("%d ", id);
-            printf("| ");
-            Vec_IntForEachEntry(vIds_impl, id, k)
-                printf("%d ", id);
-            printf("\n");
-        }
+        Bnd_ManFinalizeMappings();
+        // Bnd_ManPrintMappings();
     }
 
     if ( p->iPatsPi > 0 )
@@ -2065,10 +1966,6 @@ Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
 {
     Gia_Man_t * pNew = NULL;
     Cec4_ManPerformSweeping( p, pPars, &pNew, 0 );
-
-    // TODO
-    if (pPars -> fBMiterInfo){
-    }
 
     return pNew;
 }
