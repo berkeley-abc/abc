@@ -33,7 +33,8 @@ int acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, 
   {
     ac_decomposition_params ps;
     ps.lut_size = lutSize;
-    ps.try_no_late_arrival = static_cast<bool>( try_no_late_arrival ); /* TODO: additional tests */
+    ps.use_first = false;
+    ps.try_no_late_arrival = static_cast<bool>( try_no_late_arrival );
     ac_decomposition_stats st;
 
     ac_decomposition_impl acd( nVars, ps, &st );
@@ -76,6 +77,7 @@ int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay,
   {
     ac_decomposition_params ps;
     ps.lut_size = lutSize;
+    ps.use_first = true;
     ac_decomposition_stats st;
 
     ac_decomposition_impl acd( nVars, ps, &st );
