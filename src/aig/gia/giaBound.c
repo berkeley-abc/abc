@@ -34,7 +34,9 @@ struct Bnd_Man_t_
     int combLoop_impl;
     int eq_out;
     int eq_res;
-    int nChoice;
+    int nChoice_spec;
+    int nChoice_impl;
+    int feedthrough;
 
     Vec_Ptr_t* vBmiter2Spec;
     Vec_Ptr_t* vBmiter2Impl;
@@ -51,6 +53,7 @@ struct Bnd_Man_t_
     Vec_Bit_t* vEO_phase;
 
     Vec_Int_t* vSpec2Impl_diff;
+    Vec_Int_t* vImpl2Spec_diff; // note that this include bufs, which should merge into their fanins
 
 };
 
@@ -115,10 +118,15 @@ Bnd_Man_t* Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl )
     p -> eq_out = 0;
     p -> eq_res = 0;
 
-    p -> nChoice = 0;
+    p -> nChoice_spec = 0;
+    p -> nChoice_impl = 0;
+    p -> feedthrough = 0;
 
     p -> vSpec2Impl_diff = Vec_IntAlloc( Gia_ManObjNum(pSpec) );
     Vec_IntFill( p -> vSpec2Impl_diff, Gia_ManObjNum(pSpec), 0 );
+
+    p -> vImpl2Spec_diff = Vec_IntAlloc( Gia_ManObjNum(pImpl) );
+    Vec_IntFill( p -> vImpl2Spec_diff, Gia_ManObjNum(pImpl), 0 );
 
     return p;
 }
@@ -153,6 +161,7 @@ void Bnd_ManStop()
     Vec_BitFree( pBnd->vEO_phase );
 
     Vec_IntFree( pBnd-> vSpec2Impl_diff );
+    Vec_IntFree( pBnd-> vImpl2Spec_diff );
 
     ABC_FREE( pBnd );
 }
@@ -208,56 +217,6 @@ void Bnd_ManMerge( int id_repr, int id_obj, int phaseDiff )
         }
     }
 
-    // handle impl2spec phase
-    /*
-    if ( Vec_IntSize(vIds_spec_repr) == 0  )    // no match
-    {
-        if ( pObj->fPhase ^ pRepr -> fPhase )
-        {
-            Vec_IntForEachEntry( vIds_impl_obj, eId, j )
-            {
-                Vec_BitSetEntry( vImpl2Spec_phase, eId, !Vec_BitEntry(vImpl2Spec_phase, eId) );
-                printf( "impl id %d's phase set to %d\n", eId, Vec_BitEntry(vImpl2Spec_phase, eId) );
-            }
-        }
-    }
-    else if ( Vec_IntSize( vIds_spec_repr ) == Vec_IntSize( vIds_spec_obj) && Vec_IntSize( vIds_impl_obj ) == 0 ) // new match
-    {
-        if ( pObj->fPhase ^ pRepr -> fPhase )
-        {
-            Vec_IntForEachEntry( vIds_impl_repr, eId, j )
-            {
-                Vec_BitSetEntry( vImpl2Spec_phase, eId, !Vec_BitEntry(vImpl2Spec_phase, eId) );
-                printf( "impl id %d's phase set to %d\n", eId, Vec_BitEntry(vImpl2Spec_phase, eId) );
-            }
-            printf("new match flip\n");
-        }
-    }
-    else if ( Vec_IntSize( vIds_spec_repr ) > 0 && Vec_IntSize( vIds_impl_obj ) > 0 ) // matched, merge impl
-    {
-        if ( ( pObj->fPhase ^ pRepr -> fPhase) ^ ( Vec_BitEntry( vImpl2Spec_phase, Vec_IntEntry(vIds_impl_repr, 0)) ^ Vec_BitEntry( vImpl2Spec_phase, Vec_IntEntry(vIds_impl_obj, 0)) ) )
-        {
-            if ( Vec_IntSize( vIds_spec_repr ) == Vec_IntSize( vIds_spec_obj) ) // unmatched repr, matched obj, set repr bits
-            {
-                Vec_IntForEachEntry( vIds_impl_repr, eId, j )
-                {
-                    if ( j >= Vec_IntSize( vIds_impl_repr)-Vec_IntSize(vIds_impl_obj)  ) break;
-                    Vec_BitSetEntry( vImpl2Spec_phase, eId, !Vec_BitEntry(vImpl2Spec_phase, eId) );
-                    printf( "impl id %d's phase set to %d\n", eId, Vec_BitEntry(vImpl2Spec_phase, eId) );
-                }
-            }
-            else // set obj bits
-            {
-                Vec_IntForEachEntry( vIds_impl_obj, eId, j )
-                {
-                    Vec_BitSetEntry( vImpl2Spec_phase, eId, !Vec_BitEntry(vImpl2Spec_phase, eId) );
-                    printf( "impl id %d's phase set to %d\n", eId, Vec_BitEntry(vImpl2Spec_phase, eId) );
-                }
-            }
-        }
-    }
-    */
-
     Vec_IntClear(vIds_spec_obj);
     Vec_IntClear(vIds_impl_obj);
 
@@ -292,6 +251,12 @@ void Bnd_ManFinalizeMappings()
                 Vec_IntSetEntry( pBnd->vSpec2Impl_diff, id, Vec_IntSize(vImpl)-1 );
             }
 
+            Vec_IntForEachEntry( vImpl, id, j )
+            {
+                // record the number of different choice of vEI_impl, vEO_impl
+                Vec_IntSetEntry( pBnd->vImpl2Spec_diff, id, Vec_IntSize(vSpec)-1 );
+            }
+
 
         }
 
@@ -304,10 +269,6 @@ void Bnd_ManFinalizeMappings()
         {
             pBnd->nMerged_impl += Vec_IntSize(vImpl) - 1;
         }
-
-
-
-
     }
 
 
@@ -336,15 +297,14 @@ void Bnd_ManPrintMappings()
 void Bnd_ManPrintBound()
 {
 
-    printf("%d nodes merged in spec\n", pBnd ->nMerged_spec - Vec_IntSize(pBnd->vBI) - Vec_IntSize(pBnd->vBO) );
-    printf("%d nodes merged in impl\n", pBnd ->nMerged_impl );
-
+    // printf("%d nodes merged in spec\n", pBnd ->nMerged_spec - Vec_IntSize(pBnd->vBI) - Vec_IntSize(pBnd->vBO) );
+    // printf("%d nodes merged in impl\n", pBnd ->nMerged_impl );
     printf("BI spec:"); Vec_IntPrint(pBnd -> vBI);
     printf("BO spec:"); Vec_IntPrint(pBnd -> vBO);
-    printf("\nEI spec:"); Vec_IntPrint(pBnd -> vEI_spec);
+    printf("EI spec:"); Vec_IntPrint(pBnd -> vEI_spec);
     printf("EI impl:"); Vec_IntPrint(pBnd -> vEI_impl);
     printf("EI phase:"); Vec_BitPrint(pBnd -> vEI_phase);
-    printf("\nEO spec:"); Vec_IntPrint(pBnd -> vEO_spec);
+    printf("EO spec:"); Vec_IntPrint(pBnd -> vEO_spec);
     printf("EO impl:"); Vec_IntPrint(pBnd -> vEO_impl);
     printf("EO phase:"); Vec_BitPrint(pBnd -> vEO_phase);
 }
@@ -353,30 +313,54 @@ void Bnd_ManPrintStats()
 {
     Bnd_Man_t* p = pBnd;
 
+
+    printf("\nSTATS\n");
+
+    int warning = 0;
+    if ( p->nChoice_spec > 0 )
+    {
+        warning = 1;
+        printf("WARNING: multiple equiv nodes on the boundary of spec\n");
+    }
+    if ( p->nChoice_impl > 0 )
+    {
+        warning = 1;
+        printf("WARNING: multiple equiv nodes on the boundary of impl\n");
+    }
+    if ( p->feedthrough ) 
+    {
+        warning = 1;
+        printf("WARNING: feedthrough inside patch\n");
+    }
+
+    printf("The outsides of spec and impl are %sEQ.\n", p->eq_out ? "" : "NOT " );
+    printf("The patched impl and patch are %sEQ.\n", p->eq_res ? "" : "NOT " );
+
     // #internal
     // nBI, nBO
     // nBI_miss, nBO_miss
     // nAI, nAO, nExtra
     // #spec, #impl, #patched 
-
     // combLoop_spec, combLoop_impl
-
-    // eq_out, eq_res
     // status
-
     // #different choice of impl on boundary
+    // warning (may be neq)
+    // eq_out, eq_res
 
     printf("\nRESULT\n");
-    printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+    printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
         p->nInternal,
         p->nBI, p->nBO,
         p->nBI_miss, p->nBO_miss,
         Vec_IntSize(p->vEI_spec), Vec_IntSize(p->vEO_spec), p->nExtra,
         p->nNode_spec, p->nNode_impl, p->nNode_patched,
         p->combLoop_spec, p->combLoop_impl,
-        p->eq_out, p->eq_res,
         p->status,
-        p->nChoice
+        p->nChoice_impl,
+        p->nChoice_spec,
+        p->feedthrough,
+        warning,
+        p->eq_out, p->eq_res
     );
 }
 
@@ -610,7 +594,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
             Vec_IntPush(vEO_spec, id);
         }
     }
-    printf("%d BO doesn't match\n", Vec_PtrSize(vQ) );
+    printf("%d BO doesn't match. ", Vec_PtrSize(vQ) );
     pBnd -> nBO_miss = Vec_PtrSize(vQ);
 
     int cnt_extra = - Vec_PtrSize(vQ);
@@ -682,7 +666,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
             Vec_IntPush(vEI_spec, id);
         }
     }
-    printf("%d BI doesn't match\n", Vec_PtrSize(vQ) );
+    printf("%d BI doesn't match. ", Vec_PtrSize(vQ) );
     pBnd -> nBI_miss = Vec_PtrSize(vQ);
     cnt_extra -= Vec_PtrSize(vQ);
 
@@ -742,16 +726,16 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     }
 
 
-    // count number of choice of boundary in impl
+    // count number of choice of boundary
     Vec_IntForEachEntry( vEI_spec, id, i )
-    {
-        pBnd -> nChoice += Vec_IntEntry( pBnd -> vSpec2Impl_diff, id );
-    }
+        pBnd -> nChoice_impl += Vec_IntEntry( pBnd -> vSpec2Impl_diff, id );
     Vec_IntForEachEntry( vEO_spec, id, i )
-    {
-        pBnd -> nChoice += Vec_IntEntry( pBnd -> vSpec2Impl_diff, id );
-    }
-
+        pBnd -> nChoice_impl += Vec_IntEntry( pBnd -> vSpec2Impl_diff, id );
+    Vec_IntForEachEntry( vEI_impl, id, i )
+        pBnd -> nChoice_spec += Vec_IntEntry( pBnd -> vImpl2Spec_diff, id );
+    Vec_IntForEachEntry( vEO_impl, id, i )
+        pBnd -> nChoice_spec += Vec_IntEntry( pBnd -> vImpl2Spec_diff, id );
+    pBnd -> nChoice_spec -= ( pBnd->nBI + pBnd ->nBO - pBnd->nBI_miss - pBnd->nBO_miss);
 
     // print
     pBnd -> status = 1;
@@ -790,6 +774,7 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj;
+    Vec_Int_t * vValue;
     int i, id, lit;
 
     // check if the boundary has loop (EO cannot be in the TFC of EI )
@@ -809,6 +794,9 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
     Gia_ManConst0(p) -> Value = 0;
     Gia_ManCleanValue(p);
 
+    // record the original value for eo
+    vValue = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Vec_IntFill( vValue, Gia_ManObjNum(p), -1 );
 
     // create ci for ci and eo
     Gia_ManForEachCi( p, pObj, i )
@@ -817,6 +805,10 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
     }
     Vec_IntForEachEntry( vEO, id, i )
     {
+        if( Gia_ManObj(p, id) -> Value != 0 )
+        {
+            Vec_IntSetEntry( vValue, id, Gia_ManObj(p, id) -> Value );
+        }
         Gia_ManObj( p, id ) -> Value = Gia_ManAppendCi(pNew);
         if ( vEO_phase && Vec_BitEntry( vEO_phase, i ) )
         {
@@ -824,7 +816,14 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
         }
     }
 
-    // TODO: consider where EI and EO share the same node
+
+    // record where EI and EO share the same node
+    // this may cause non-equivalent
+    Vec_IntForEachEntry( vEI, id, i )
+    {
+        if ( Gia_ManObj(p, id) -> Value != 0 )
+            pBnd -> feedthrough = 1;
+    }
 
     // add aig nodes
     Gia_ManForEachAnd(p, pObj, i)
@@ -840,13 +839,26 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
     }
     Vec_IntForEachEntry( vEI, id, i )
     {
-        lit = Gia_ManObj(p, id)->Value;
-        // lit = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        pObj = Gia_ManObj(p, id);
+        // lit = Gia_ManObj(p, id)->Value;
+        if ( Gia_ObjIsAnd(pObj) ) lit = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else 
+        {
+            assert(Gia_ObjIsCi(pObj) || Gia_ObjIsConst0(pObj));
+            if ( Vec_IntEntry(vValue, id) != -1 )
+            {
+                lit = Vec_IntEntry( vValue, id );   // EI at PI and EI merged with EO
+            }
+            else { 
+                lit = pObj -> Value;    // EI at PI
+            }
+        }
         if ( vEI_phase && Vec_BitEntry( vEI_phase, i ) ) lit ^= 1;
         Gia_ManAppendCo( pNew, lit );
     }
 
     // clean up
+    Vec_IntFree( vValue );
     Gia_ManHashStop( pNew );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
@@ -872,7 +884,12 @@ Gia_Man_t* Bnd_ManGenImplOut( Gia_Man_t* p )
 void Bnd_AddNodeRec( Gia_Man_t *p, Gia_Man_t *pNew, Gia_Obj_t *pObj )
 {
     // TODO does this mean constant zero node?
-    if ( pObj -> Value != 0 || Gia_ObjIsConst0(pObj) ) return;
+    if ( pObj -> Value != 0 ) return;
+    if ( Gia_ObjIsConst0(pObj) ) 
+    {
+        printf( "contant zero encountered\n");
+        return;
+    }
 
     for( int i = 0; i < Gia_ObjFaninNum(p, pObj); i++  )
     {
@@ -902,7 +919,6 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     int i, id, cnt;
     Vec_Int_t *vBI_patch, *vBO_patch;
 
-    printf("Generating patched implementation\n");
     pBnd -> nNode_patch = Gia_ManAndNotBufNum( pPatch );
 
     pNew = Gia_ManStart( Gia_ManObjNum(pOut) + Gia_ManObjNum( pSpec ) + Gia_ManObjNum(pPatch) );
@@ -932,7 +948,6 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     }
     assert( Vec_IntSize( vBI_patch ) == Vec_IntSize(pBnd->vBI) );
     assert( Vec_IntSize( vBO_patch ) == Vec_IntSize(pBnd->vBO) );
-    assert( Bnd_ManCheckBound(pPatch) != 0 );
 
 
     // add Impl (real) PI
@@ -943,7 +958,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     }
 
     // add Impl EI to CI
-    printf("adding EI to CI in Impl\n");
+    // printf("adding EI to CI in Impl\n");
     for ( i = 0; i < Vec_IntSize( pBnd -> vEI_spec ); i++ )
     {
         pObj = Gia_ManCo(pOut, i + Gia_ManCoNum(pSpec) );
@@ -951,12 +966,10 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
 
         // set Spec EI
         Gia_ManObj( pSpec, Vec_IntEntry(pBnd -> vEI_spec, i) ) -> Value = pObj -> Value;
-        printf("%d ", pObj->Value);
     }
-    printf("\n");
 
     // add Spec BI to EI
-    printf("adding BI to EI in Spec\n");
+    // printf("adding BI to EI in Spec\n");
     Vec_IntForEachEntry( pBnd -> vBI, id, i )
     {
         pObj = Gia_ManObj( pSpec, id );
@@ -964,23 +977,10 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
 
         // set patch bi
         Gia_ManObj( pPatch, Vec_IntEntry( vBI_patch, i) ) -> Value = pObj -> Value;
-        printf("%d ", pObj->Value);
     }
-    printf("\n");
-
-    // check
-    // cnt = 0;
-    // Gia_ManForEachBuf( pPatch, pObj, i )
-    // {
-    //     if ( cnt < pBnd -> nBI )
-    //     {
-    //         assert(pObj -> Value != 0);
-    //     }
-    //     cnt++;
-    // }
 
     // add Patch BO to BI
-    printf("adding BO to BI in Patch\n");
+    // printf("adding BO to BI in Patch\n");
     Vec_IntForEachEntry( vBO_patch, id, i )
     {
         pObj = Gia_ManObj( pPatch, id );
@@ -988,12 +988,10 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
 
         // set spec bo
         Gia_ManObj( pSpec, Vec_IntEntry( pBnd -> vBO, i) ) -> Value = pObj -> Value;
-        printf("%d ", pObj->Value);
     }
-    printf("\n");
 
     // add Spec EO to BO
-    printf("adding EO to BO in Spec\n");
+    // printf("adding EO to BO in Spec\n");
     Vec_IntForEachEntry( pBnd -> vEO_spec, id, i )
     {
         pObj = Gia_ManObj( pSpec, id );
@@ -1001,20 +999,16 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
 
         // set impl EO (PI)
         Gia_ManCi( pOut, i + Gia_ManCiNum(pSpec) ) -> Value = pObj -> Value;
-        printf("%d ", pObj->Value);
     }
-    printf("\n");
 
     // add Impl (real) PO to EO
-    printf("adding CO to EO in Impl\n");
+    // printf("adding CO to EO in Impl\n");
     for ( i = 0; i < Gia_ManCoNum(pSpec); i++ )
     {
         pObj = Gia_ManCo( pOut, i );
         Bnd_AddNodeRec( pOut, pNew, pObj );
         Gia_ManAppendCo( pNew, pObj->Value );
-        printf("%d ", pObj->Value);
     }
-    printf("\n");
 
 
     // clean up

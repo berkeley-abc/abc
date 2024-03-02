@@ -597,7 +597,6 @@ static int Abc_CommandAbc9ProdAdd            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandAbc9RecoverBoundary    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1378,7 +1377,6 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&addflop",      Abc_CommandAbc9AddFlop,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
-    Cmd_CommandAdd( pAbc, "ABC9",         "&rb",           Abc_CommandAbc9RecoverBoundary,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&str_eco",      Abc_CommandAbc9StrEco,                 0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
@@ -51839,122 +51837,6 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandAbc9RecoverBoundary( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    extern Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fVerbose );
-    extern Gia_Man_t * Gia_ManImplFromBMiter( Gia_Man_t * p, int nPo, int nBInput );
-    extern Gia_Man_t * Gia_ManMiterFromBMiter( Gia_Man_t * p, int nPo );
-    int c, nIters = 1, nNoImpr = ABC_INFINITY, TimeOut = 20, nAnds = 0, Seed = 0, fUseTwo = 0, fVerbose = 0;
-
-    int fKeepBMiter = 0;
-    Gia_Man_t * pMiter;
-    Gia_Man_t * pImpl;
-    Gia_Man_t * pDup;
-    Gia_Obj_t* pObj;
-    Gia_Man_t * pSpec = NULL;
-    char ** pArgvNew;
-    int nArgcNew, nPo;
-    int nBInput = -1;
-    char *FileName;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vkhI," ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'I':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nBInput = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nBInput < 0 )
-                goto usage;
-            break;
-        case 'k':
-            fKeepBMiter ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    pArgvNew = argv + globalUtilOptind;
-    nArgcNew = argc - globalUtilOptind;
-    if ( nArgcNew != 1 )
-    {
-        Abc_Print( -1, "There is no file name.\n" );
-        return 1;
-    }
-
-    if ( pAbc->pGia == NULL )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9RecoverBoundary(): There is no AIG.\n" );
-        return 0;
-    }
-    FileName = pArgvNew[0];
-
-
-    // printing
-
-    // Gia_ManForEachCo( pAbc->pGia, pObj, i ){
-    //     printf("Original node: %s id: %i\n", Gia_ObjCoName(pAbc->pGia, i), i);
-    // }
-
-
-    /* 
-    // perform heavy synthesis
-    pTemp = Gia_ManDeepSyn( pAbc->pGia, nIters, nNoImpr, TimeOut, nAnds, Seed, fUseTwo, fVerbose );
-    Abc_FrameUpdateGia( pAbc, pTemp );
-    // print spec/impl and boundary information
-    Gia_ManForEachCo( pAbc->pGia, pObj, i ){
-        printf("Output node: %s id: %i\n", Gia_ObjCoName(pAbc->pGia, i), i);
-    }
-    */
-
-
-
-    // check boundary recovery status
-    pSpec = Gia_AigerRead( FileName, false, true, 0 );
-    if ( !pSpec )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9RecoverBoundary(): fail to read spec.\n" );
-        return 1;
-    }
-    nPo = Gia_ManCoNum( pSpec );
-
-    // duplicate 
-    pDup = Gia_ManDup( pAbc->pGia );
-
-    // option 1: remove po and keep the buffers
-    // default nbinput: 
-    if ( nBInput ==  -1 ) nBInput = (Gia_ManCoNum(pDup)-2*nPo)/2;
-    pImpl = Gia_ManImplFromBMiter( pDup, nPo, nBInput );
-
-    // option 2: build miter (with uif?)
-    if (!fKeepBMiter )
-    {
-        pMiter = Gia_ManMiterFromBMiter( pAbc->pGia, nPo );
-        Abc_FrameUpdateGia( pAbc, pMiter );
-    }
-
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: &rb [-vkh] <file>\n" );
-    Abc_Print( -2, "\t         generate an implementation aig with specification boundary\n" );
-    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-k     : keep the bmiter and print the boundary status only.\n");
-    Abc_Print( -2, "\t-I num : the number of inputs in the boundary\n");
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : the specification file\n");    
-    return 1;
-}
 
 extern Bnd_Man_t* pBnd;
 int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
@@ -52005,9 +51887,6 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
 
-    // params
-
-
     // read impl
     FileName = argv[globalUtilOptind];
     if ( (pFile = fopen( FileName, "r" )) == NULL )
@@ -52044,20 +51923,26 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }    
 
-
-    // verify if spec eq impl
-    pMiter = Gia_ManMiter( pAbc->pGia, pImpl, 0, 1, 0, 0, 0 );
-    assert( Cec_ManVerify( pMiter, pParsCec ) );
-    Gia_ManStop(pMiter);
-
     // start boundary manager
     pBnd = Bnd_ManStart( pAbc->pGia, pImpl );
 
-    // check boundary
-    if ( 0 == Bnd_ManCheckBound( pAbc -> pGia ) )
+    // verify if spec eq impl
+    pMiter = Gia_ManMiter( pAbc->pGia, pImpl, 0, 1, 0, 0, 0 );
+    if ( !Cec_ManVerify( pMiter, pParsCec ) )
     {
-        Abc_Print( -1, "Abc_CommandAbc9StrEco(): The given boundary is invalid.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): The given impl is not equivalent to spec.\n" );
         success = 0;
+    }
+    Gia_ManStop(pMiter);
+
+    // check boundary
+    if ( success )
+    {
+        if ( 0 == Bnd_ManCheckBound( pPatch ) || 0 == Bnd_ManCheckBound( pAbc -> pGia ) )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9StrEco(): The given boundary is invalid.\n" );
+            success = 0;
+        }
     }
 
     if ( success )
@@ -52077,10 +51962,10 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         pImpl_out = Bnd_ManGenImplOut( pImpl );
         if ( !pImpl_out ) success = 0;
 
-        Gia_AigerWrite( pSpec_out, "spec_out.aig", 0, 0, 0 );
-        Gia_AigerWrite( pImpl_out, "impl_out.aig", 0, 0, 0 );
-        Gia_ManPrintStats( pSpec_out, pPars );
-        Gia_ManPrintStats( pImpl_out, pPars );
+        // Gia_AigerWrite( pSpec_out, "spec_out.aig", 0, 0, 0 );
+        // Gia_AigerWrite( pImpl_out, "impl_out.aig", 0, 0, 0 );
+        // Gia_ManPrintStats( pSpec_out, pPars );
+        // Gia_ManPrintStats( pImpl_out, pPars );
 
     }
 
@@ -52093,11 +51978,26 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         Bnd_ManSetEqOut( Cec_ManVerify( pMiter, pParsCec ) );
         Gia_ManStop( pMiter );
 
-        // generate patched
+        // generate patched impl
+        printf("Generating patched impl\n");
         pPatched = Bnd_ManGenPatched( pImpl_out, pAbc->pGia, pPatch );
 
+        // generate patched spec just for debugging
+        printf("Generating patched spec\n");
+        pTemp = Bnd_ManGenPatched( pSpec_out, pAbc->pGia, pPatch );
+        printf("Checking the equivalence of patched spec and patched impl\n");
+        pMiter = Gia_ManMiter( pTemp, pPatched, 0, 1, 0, 0, 0 );
+        Cec_ManVerify( pMiter, pParsCec );
+        Gia_ManStop( pMiter );
+        printf("Checking the equivalence of patched spec and patch\n");
+        pMiter = Gia_ManMiter( pTemp, pPatch, 0, 1, 0, 0, 0 );
+        Cec_ManVerify( pMiter, pParsCec );
+        Gia_ManStop( pMiter );
+
+        Gia_ManStop( pTemp );
+
         // check if patched is equiv to patch
-        printf("Checking the equivalence of patch and patched\n");
+        printf("Checking the equivalence of patch and patched impl\n");
         pMiter = Gia_ManMiter( pPatch, pPatched, 0, 1, 0, 0, 0 );
         Bnd_ManSetEqRes( Cec_ManVerify( pMiter, pParsCec ) );
         Gia_ManStop( pMiter );
@@ -52119,12 +52019,12 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &str_eco -I <biNum> [-vh] <file> <file2>\n" );
-    Abc_Print( -2, "\t         creates the boundary miter\n" );
-    Abc_Print( -2, "\t-I <biNum>:   number of boundary inputs\n" );
+    Abc_Print( -2, "usage: &str_eco -I <biNum> [-vh] <impl> <patch>\n" );
+    Abc_Print( -2, "\t         SAT-sweeping-based ECO\n" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : the implementation file\n");    
+    Abc_Print( -2, "\t<impl> : the implementation aig. (should be equivalent to spec)\n");    
+    Abc_Print( -2, "\t<patch> : the modified spec. (should be a hierarchical AIG)\n");    
     return 1;
 }
 
