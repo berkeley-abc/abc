@@ -51997,7 +51997,7 @@ int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManStop( pTemp );
 
         // check if patched is equiv to patch
-        printf("Checking the equivalence of patch and patched impl\n");
+        printf("Checking the equivalence of patched impl and patch\n");
         pMiter = Gia_ManMiter( pPatch, pPatched, 0, 1, 0, 0, 0 );
         Bnd_ManSetEqRes( Cec_ManVerify( pMiter, pParsCec ) );
         Gia_ManStop( pMiter );
