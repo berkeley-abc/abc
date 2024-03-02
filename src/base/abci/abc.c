@@ -599,6 +599,7 @@ static int Abc_CommandAbc9ProdAdd            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1380,6 +1381,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&addflop",      Abc_CommandAbc9AddFlop,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&str_eco",      Abc_CommandAbc9StrEco,                 0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -38065,7 +38067,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCbs = 1, approxLim = 600, subBatchSz = 1, adaRecycle = 500, nMaxNodes = 0;
     Cec4_ManSetParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPMrmdckngxysopwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPMrmdckngxysopwqvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -38218,6 +38220,9 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'w':
             pPars->fVeryVerbose ^= 1;
             break;
+        case 'q':
+            pPars->fBMiterInfo ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -38282,6 +38287,7 @@ usage:
     Abc_Print( -2, "\t-o     : toggle using the old SAT sweeper [default = %s]\n", fUseIvy? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle trying to prove when running the old SAT sweeper [default = %s]\n", fUseProve? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing even more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-q     : toggle printing additional information for boundary miters [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -51945,11 +51951,21 @@ int Abc_CommandAbc9BMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * FileName = NULL;
     FILE * pFile = NULL;
     int c, fVerbose = 0;
+    int bi  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    // TODO: use a flag to block Bnd_Man
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            bi = atoi(argv[globalUtilOptind++]);
+            break;    
         case 'v':
             fVerbose ^= 1;
             break;
@@ -51994,8 +52010,9 @@ int Abc_CommandAbc9BMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmiter [-vh] <file>\n" );
+    Abc_Print( -2, "usage: &bmiter -I <biNum> [-vh] <file>\n" );
     Abc_Print( -2, "\t         creates the boundary miter\n" );
+    Abc_Print( -2, "\t-I <biNum>:   number of boundary inputs\n" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the implementation file\n");    
@@ -52062,6 +52079,207 @@ usage:
     Abc_Print( -2, "\t            (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
     return 1;}
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+extern Bnd_Man_t* pBnd;
+int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
+    extern void Cec4_ManSetParams( Cec_ParFra_t * pPars );
+    extern Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose );
+    Gia_Man_t *pImpl, *pImpl_out = 0, *pSpec_out = 0, *pMiter, *pPatch, *pPatched, *pTemp, *pBmiter;;
+    char * FileName = NULL;
+    FILE * pFile = NULL;
+    int c, fVerbose = 0, success = 1;
+
+    // params
+    Gps_Par_t Pars, * pPars = &Pars;
+    memset( pPars, 0, sizeof(Gps_Par_t) );
+    Cec_ParCec_t ParsCec, *pParsCec = &ParsCec;
+    Cec_ManCecSetDefaultParams( pParsCec );
+    Cec_ParFra_t ParsFra, *pParsFra = &ParsFra;
+    Cec4_ManSetParams( pParsFra );
+    pParsFra -> fBMiterInfo = 1;
+
+    // TODO: save return value and return at the end of the function
+
+    // parse options
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 2 )
+    {
+        printf("%d\n", argc-globalUtilOptind);
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): AIG should be given on the command line.\n" );
+        return 0;
+    }
+
+    // read impl
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", ".blif", ".pla", ".eqn", ".bench" )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    pImpl = Gia_AigerRead( FileName, 0, 0, 0 );
+    if ( pImpl == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): Cannot read the file name on the command line.\n" );
+        return 0;
+    }    
+
+    // read patch
+    FileName = argv[globalUtilOptind+1];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", ".blif", ".pla", ".eqn", ".bench" )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    pPatch = Gia_AigerRead( FileName, 0, 1, 0 );
+    if ( pPatch == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): Cannot read the file name on the command line.\n" );
+        return 0;
+    }    
+
+    // start boundary manager
+    pBnd = Bnd_ManStart( pAbc->pGia, pImpl );
+
+    // verify if spec eq impl
+    pMiter = Gia_ManMiter( pAbc->pGia, pImpl, 0, 1, 0, 0, 0 );
+    if ( !Cec_ManVerify( pMiter, pParsCec ) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): The given impl is not equivalent to spec.\n" );
+        success = 0;
+    }
+    Gia_ManStop(pMiter);
+
+    // check boundary
+    if ( success )
+    {
+        if ( 0 == Bnd_ManCheckBound( pPatch ) || 0 == Bnd_ManCheckBound( pAbc -> pGia ) )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9StrEco(): The given boundary is invalid.\n" );
+            success = 0;
+        }
+    }
+
+    if ( success )
+    {
+        // create bmiter, run fraig
+        pBmiter = Gia_ManBoundaryMiter( pAbc -> pGia, pImpl, 0 );
+        pTemp = Cec4_ManSimulateTest( pBmiter, pParsFra );
+        Gia_ManStop(pBmiter);
+        Gia_ManStop(pTemp);
+
+        // find 
+        Bnd_ManFindBound( pAbc -> pGia );
+
+        // create spec_out and 
+        pSpec_out = Bnd_ManGenSpecOut( pAbc -> pGia );
+        if ( !pSpec_out ) success = 0;
+        pImpl_out = Bnd_ManGenImplOut( pImpl );
+        if ( !pImpl_out ) success = 0;
+
+        // Gia_AigerWrite( pSpec_out, "spec_out.aig", 0, 0, 0 );
+        // Gia_AigerWrite( pImpl_out, "impl_out.aig", 0, 0, 0 );
+        // Gia_ManPrintStats( pSpec_out, pPars );
+        // Gia_ManPrintStats( pImpl_out, pPars );
+
+    }
+
+    if ( success )
+    {
+
+        // check if spec_out and imnpl_out are equivalent
+        printf("Checking the equivalence of spec_out and impl_out\n");
+        pMiter = Gia_ManMiter( pSpec_out, pImpl_out, 0, 1, 0, 0, 0 );
+        Bnd_ManSetEqOut( Cec_ManVerify( pMiter, pParsCec ) );
+        Gia_ManStop( pMiter );
+
+        // generate patched impl
+        printf("Generating patched impl\n");
+        pPatched = Bnd_ManGenPatched( pImpl_out, pAbc->pGia, pPatch );
+
+        // generate patched spec just for debugging
+        printf("Generating patched spec\n");
+        pTemp = Bnd_ManGenPatched( pSpec_out, pAbc->pGia, pPatch );
+        printf("Checking the equivalence of patched spec and patched impl\n");
+        pMiter = Gia_ManMiter( pTemp, pPatched, 0, 1, 0, 0, 0 );
+        Cec_ManVerify( pMiter, pParsCec );
+        Gia_ManStop( pMiter );
+        printf("Checking the equivalence of patched spec and patch\n");
+        pMiter = Gia_ManMiter( pTemp, pPatch, 0, 1, 0, 0, 0 );
+        Cec_ManVerify( pMiter, pParsCec );
+        Gia_ManStop( pMiter );
+
+        Gia_ManStop( pTemp );
+
+        // check if patched is equiv to patch
+        printf("Checking the equivalence of patched impl and patch\n");
+        pMiter = Gia_ManMiter( pPatch, pPatched, 0, 1, 0, 0, 0 );
+        Bnd_ManSetEqRes( Cec_ManVerify( pMiter, pParsCec ) );
+        Gia_ManStop( pMiter );
+
+    }
+
+    Bnd_ManPrintStats();
+
+    Gia_ManStop( pImpl );
+    Gia_ManStop( pPatch );
+    if ( pSpec_out ) Gia_ManStop( pSpec_out );
+    if ( pImpl_out ) Gia_ManStop( pImpl_out );
+    if ( success )
+    {
+        Abc_FrameUpdateGia( pAbc, pPatched );
+    }
+    Bnd_ManStop();
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &str_eco -I <biNum> [-vh] <impl> <patch>\n" );
+    Abc_Print( -2, "\t         SAT-sweeping-based ECO\n" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<impl> : the implementation aig. (should be equivalent to spec)\n");    
+    Abc_Print( -2, "\t<patch> : the modified spec. (should be a hierarchical AIG)\n");    
+    return 1;
+}
 
 /**Function*************************************************************
 

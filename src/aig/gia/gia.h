@@ -1790,6 +1790,29 @@ extern void                Tas_ManSatPrintStats( Tas_Man_t * p );
 extern int                 Tas_ManSolve( Tas_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
 extern int                 Tas_ManSolveArray( Tas_Man_t * p, Vec_Ptr_t * vObjs );
 
+/*=== giaBound.c ===========================================================*/
+typedef struct Bnd_Man_t_  Bnd_Man_t;
+
+extern Bnd_Man_t*           Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl );
+extern void                 Bnd_ManStop();
+//for fraig
+extern void                 Bnd_ManMap( int iLit, int id, int spec );
+extern void                 Bnd_ManMerge( int id1, int id2, int phaseDiff );
+extern void                 Bnd_ManFinalizeMappings();
+extern void                 Bnd_ManPrintMappings();
+// for eco
+extern int                  Bnd_ManCheckBound( Gia_Man_t *p );
+extern void                 Bnd_ManFindBound( Gia_Man_t *p );
+extern Gia_Man_t*           Bnd_ManGenSpecOut( Gia_Man_t *p );
+extern Gia_Man_t*           Bnd_ManGenImplOut( Gia_Man_t *p );
+extern Gia_Man_t*           Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPatch );
+extern void                 Bnd_ManSetEqOut( int eq );
+extern void                 Bnd_ManSetEqRes( int eq );
+extern void                 Bnd_ManPrintStats();
+
+// util
+extern Gia_Man_t*           Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec_Bit_t* vEI_phase, Vec_Bit_t* vEO_phase );
+
 ABC_NAMESPACE_HEADER_END
 
 

@@ -626,6 +626,27 @@ static inline void Vec_BitReset( Vec_Bit_t * p )
         p->pArray[i] = 0;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Vec_BitPrint( Vec_Bit_t * p )
+{
+    int i, Entry;
+    printf( "Vector has %d entries: {", Vec_BitSize(p) );
+    Vec_BitForEachEntry( p, Entry, i )
+        printf( " %d", Entry );
+    printf( " }\n" );
+}
+
 ABC_NAMESPACE_HEADER_END
 
 #endif
