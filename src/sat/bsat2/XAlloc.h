@@ -24,6 +24,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <errno.h>
 #include <stdlib.h>
 
+#include <misc/util/abc_namespaces.h>
+
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace Minisat {
