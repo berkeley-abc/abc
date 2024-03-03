@@ -23,9 +23,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "sat/bsat2/Vec.h"
 
-namespace Minisat {
-
 ABC_NAMESPACE_CXX_HEADER_START
+
+namespace Minisat {
 
 //=================================================================================================
 
