@@ -25,9 +25,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <math.h>
 #include <string.h>
 
-#include "IntTypes.h"
-#include "Vec.h"
-#include "ParseUtils.h"
+#include "sat/bsat2/IntTypes.h"
+#include "sat/bsat2/Vec.h"
+#include "sat/bsat2/ParseUtils.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 

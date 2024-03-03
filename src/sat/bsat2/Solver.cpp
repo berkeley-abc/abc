@@ -20,8 +20,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <math.h>
 
-#include "Sort.h"
-#include "Solver.h"
+#include "sat/bsat2/Sort.h"
+#include "sat/bsat2/Solver.h"
 
 ABC_NAMESPACE_IMPL_START
 

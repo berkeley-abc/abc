@@ -25,7 +25,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <fpu_control.h>
 #endif
 
-#include "IntTypes.h"
+#include "sat/bsat2/IntTypes.h"
 
 //-------------------------------------------------------------------------------------------------
 

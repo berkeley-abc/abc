@@ -17,9 +17,9 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#include "Sort.h"
-#include "Options.h"
-#include "ParseUtils.h"
+#include "sat/bsat2/Sort.h"
+#include "sat/bsat2/Options.h"
+#include "sat/bsat2/ParseUtils.h"
 
 ABC_NAMESPACE_IMPL_START
 

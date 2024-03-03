@@ -20,8 +20,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Minisat_Map_h
 #define Minisat_Map_h
 
-#include "IntTypes.h"
-#include "Vec.h"
+#include "sat/bsat2/IntTypes.h"
+#include "sat/bsat2/Vec.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 

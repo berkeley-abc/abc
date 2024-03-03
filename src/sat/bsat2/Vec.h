@@ -24,8 +24,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <assert.h>
 #include <new>
 
-#include "IntTypes.h"
-#include "XAlloc.h"
+#include "sat/bsat2/IntTypes.h"
+#include "sat/bsat2/XAlloc.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 

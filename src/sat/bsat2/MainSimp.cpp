@@ -27,11 +27,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <sys/resource.h>
 #endif
 
-#include "System.h"
-#include "ParseUtils.h"
-#include "Options.h"
-#include "Dimacs.h"
-#include "SimpSolver.h"
+#include "sat/bsat2/System.h"
+#include "sat/bsat2/ParseUtils.h"
+#include "sat/bsat2/Options.h"
+#include "sat/bsat2/Dimacs.h"
+#include "sat/bsat2/SimpSolver.h"
 
 ABC_NAMESPACE_IMPL_START
 
