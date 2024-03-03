@@ -1806,6 +1806,8 @@ extern void                 Bnd_ManFindBound( Gia_Man_t *p );
 extern Gia_Man_t*           Bnd_ManGenSpecOut( Gia_Man_t *p );
 extern Gia_Man_t*           Bnd_ManGenImplOut( Gia_Man_t *p );
 extern Gia_Man_t*           Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPatch );
+extern Gia_Man_t*           Bnd_ManGenPatched1( Gia_Man_t *pOut, Gia_Man_t *pSpec );
+extern Gia_Man_t*           Bnd_ManGenPatched2( Gia_Man_t *p, Gia_Man_t *pPatch );
 extern void                 Bnd_ManSetEqOut( int eq );
 extern void                 Bnd_ManSetEqRes( int eq );
 extern void                 Bnd_ManPrintStats();

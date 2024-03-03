@@ -572,7 +572,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     {
         if ( cnt < pBnd -> nBI ) 
         {
-            Vec_IntPush( vBI, Gia_ObjId(p, pObj) );
+            Vec_IntPush( vBI, Gia_ObjId(p, Gia_ObjFanin0(pObj) ) );
         }
         else 
         {
@@ -884,27 +884,32 @@ Gia_Man_t* Bnd_ManGenImplOut( Gia_Man_t* p )
     return pNew;
 }
 
-void Bnd_AddNodeRec( Gia_Man_t *p, Gia_Man_t *pNew, Gia_Obj_t *pObj )
+void Bnd_AddNodeRec( Gia_Man_t *p, Gia_Man_t *pNew, Gia_Obj_t *pObj, int fSkipStrash )
 {
     // TODO does this mean constant zero node?
     if ( pObj -> Value != ~0 ) return;
 
     for( int i = 0; i < Gia_ObjFaninNum(p, pObj); i++  )
     {
-        Bnd_AddNodeRec( p, pNew, Gia_ObjFanin(pObj, i) );
+        Bnd_AddNodeRec( p, pNew, Gia_ObjFanin(pObj, i), fSkipStrash );
     }
 
     if ( Gia_ObjIsAnd(pObj) ) 
     {
-        pObj -> Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( fSkipStrash )
+        {
+            if ( Gia_ObjIsBuf(pObj) ) pObj -> Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+            else pObj -> Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        }
+        else 
+        {
+            pObj -> Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        }
     }
     else 
     {
-        if ( Gia_ObjIsCi(pObj) )
-        {
-            printf("Ci with value 0 encountered (id = %d)\n", Gia_ObjId(p, pObj) );
-        }
         assert( Gia_ObjIsCo(pObj) );
+        // if ( Gia_ObjIsCi(pObj) ) printf("Ci with value ~0 encountered (id = %d)\n", Gia_ObjId(p, pObj) );
         pObj -> Value = Gia_ObjFanin0Copy(pObj);
     }
 }
@@ -963,7 +968,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     for ( i = 0; i < Vec_IntSize( pBnd -> vEI_spec ); i++ )
     {
         pObj = Gia_ManCo(pOut, i + Gia_ManCoNum(pSpec) );
-        Bnd_AddNodeRec( pOut, pNew, pObj );
+        Bnd_AddNodeRec( pOut, pNew, pObj, 0 );
 
         // set Spec EI
         Gia_ManObj( pSpec, Vec_IntEntry(pBnd -> vEI_spec, i) ) -> Value = pObj -> Value;
@@ -976,7 +981,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     Vec_IntForEachEntry( pBnd -> vBI, id, i )
     {
         pObj = Gia_ManObj( pSpec, id );
-        Bnd_AddNodeRec( pSpec, pNew, pObj );
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 0 );
 
         // set patch bi
         Gia_ManObj( pPatch, Vec_IntEntry( vBI_patch, i) ) -> Value = pObj -> Value;
@@ -989,7 +994,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     Vec_IntForEachEntry( vBO_patch, id, i )
     {
         pObj = Gia_ManObj( pPatch, id );
-        Bnd_AddNodeRec( pPatch, pNew, pObj );
+        Bnd_AddNodeRec( pPatch, pNew, pObj, 0 );
 
         // set spec bo
         Gia_ManObj( pSpec, Vec_IntEntry( pBnd -> vBO, i) ) -> Value = pObj -> Value;
@@ -1002,7 +1007,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     Vec_IntForEachEntry( pBnd -> vEO_spec, id, i )
     {
         pObj = Gia_ManObj( pSpec, id );
-        Bnd_AddNodeRec( pSpec, pNew, pObj );
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 0 );
 
         // set impl EO (PI)
         Gia_ManCi( pOut, i + Gia_ManCiNum(pSpec) ) -> Value = pObj -> Value;
@@ -1015,7 +1020,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     for ( i = 0; i < Gia_ManCoNum(pSpec); i++ )
     {
         pObj = Gia_ManCo( pOut, i );
-        Bnd_AddNodeRec( pOut, pNew, pObj );
+        Bnd_AddNodeRec( pOut, pNew, pObj, 0 );
         Gia_ManAppendCo( pNew, pObj->Value );
         // printf(" %d",pObj -> Value);
     }
@@ -1036,7 +1041,87 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     return pNew;
 }
 
+Gia_Man_t* Bnd_ManGenPatched1( Gia_Man_t *pOut, Gia_Man_t *pSpec )
+{
 
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, id;
+
+    pNew = Gia_ManStart( Gia_ManObjNum(pOut) + Gia_ManObjNum( pSpec ) );
+    pNew -> pName = ABC_ALLOC( char, strlen(pOut->pName)+3);
+    sprintf( pNew -> pName, "%s_p", pOut -> pName );
+
+    Gia_ManFillValue(pOut);
+    Gia_ManFillValue(pSpec);
+    Gia_ManConst0(pOut)->Value = 0;
+    Gia_ManConst0(pSpec)->Value = 0;
+
+
+    // add Impl (real) PI
+    for ( i = 0; i < Gia_ManCiNum(pSpec); i++ )
+    {
+        pObj = Gia_ManCi(pOut, i);
+        pObj -> Value = Gia_ManAppendCi( pNew );
+    }
+
+    // add Impl EI to CI
+    printf("adding EI to CI in Impl\n");
+    for ( i = 0; i < Vec_IntSize( pBnd -> vEI_spec ); i++ )
+    {
+        pObj = Gia_ManCo(pOut, i + Gia_ManCoNum(pSpec) );
+        Bnd_AddNodeRec( pOut, pNew, pObj, 1 );
+
+        // set Spec EI
+        Gia_ManObj( pSpec, Vec_IntEntry(pBnd -> vEI_spec, i) ) -> Value = pObj -> Value;
+        printf(" %d",pObj -> Value);
+    }
+    printf("\n");
+
+    // add Spec EO to EI
+    // add BI -> BO -> EO to maintain the order of bufs
+    Vec_IntForEachEntry( pBnd -> vBI, id, i )
+    {
+        pObj = Gia_ManObj( pSpec, id );
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 1 );
+    }
+    Vec_IntForEachEntry( pBnd -> vBO, id, i )
+    {
+        pObj = Gia_ManObj( pSpec, id );
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 1 );
+    }
+    Vec_IntForEachEntry( pBnd -> vEO_spec, id, i )
+    {
+        pObj = Gia_ManObj( pSpec, id );
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 1 );
+
+        // set impl EO (PI)
+        Gia_ManCi( pOut, i + Gia_ManCiNum(pSpec) ) -> Value = pObj -> Value;
+        // printf(" %d",pObj -> Value);
+    }
+    // printf("\n");
+
+    // add Impl (real) PO to EO
+    // printf("adding CO to EO in Impl\n");
+    for ( i = 0; i < Gia_ManCoNum(pSpec); i++ )
+    {
+        pObj = Gia_ManCo( pOut, i );
+        Bnd_AddNodeRec( pOut, pNew, pObj, 1 );
+        Gia_ManAppendCo( pNew, pObj->Value );
+        // printf(" %d",pObj -> Value);
+    }
+    // printf("\n");
+
+
+    // clean up
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+
+    pBnd -> nNode_patched = Gia_ManAndNum( pNew );
+    pBnd -> status = 3;
+
+    return pNew;
+}
 
 
 
