@@ -172,13 +172,13 @@ void Bnd_ManMap( int iLit, int id, int spec )
 
     if ( spec )
     {
-        Vec_IntPush( Vec_PtrEntry( pBnd -> vBmiter2Spec, iLit >> 1), id ); 
+        Vec_IntPush( (Vec_Int_t *)Vec_PtrEntry( pBnd -> vBmiter2Spec, iLit >> 1), id ); 
         Vec_BitSetEntry( pBnd -> vSpec2Impl_phase, id, iLit & 1 );
     }
     else 
     {
         assert( (iLit & 1) == 0 );
-        Vec_IntPush( Vec_PtrEntry( pBnd -> vBmiter2Impl, iLit >> 1), id ); 
+        Vec_IntPush( (Vec_Int_t *)Vec_PtrEntry( pBnd -> vBmiter2Impl, iLit >> 1), id ); 
     }
 }
 
@@ -193,10 +193,10 @@ void Bnd_ManMerge( int id_repr, int id_obj, int phaseDiff )
 
     Vec_Int_t *vIds_spec_repr, *vIds_impl_repr, *vIds_spec_obj, *vIds_impl_obj;
 
-    vIds_spec_repr = Vec_PtrEntry( vBmiter2Spec, id_repr );
-    vIds_impl_repr = Vec_PtrEntry( vBmiter2Impl, id_repr );
-    vIds_spec_obj = Vec_PtrEntry( vBmiter2Spec, id_obj );
-    vIds_impl_obj = Vec_PtrEntry( vBmiter2Impl, id_obj );
+    vIds_spec_repr = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Spec, id_repr );
+    vIds_impl_repr = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Impl, id_repr );
+    vIds_spec_obj = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Spec, id_obj );
+    vIds_impl_obj = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Impl, id_obj );
 
     Vec_IntForEachEntry( vIds_spec_obj, id, i )
     {
@@ -237,8 +237,8 @@ void Bnd_ManFinalizeMappings()
 
     for( i = 0; i < Vec_PtrSize(vBmiter2Spec); i++ )
     {
-        vSpec = Vec_PtrEntry( vBmiter2Spec, i );
-        vImpl = Vec_PtrEntry( vBmiter2Impl, i );
+        vSpec = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Spec, i );
+        vImpl = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Impl, i );
 
         // create spec2impl
         if ( Vec_IntSize(vSpec) != 0 && Vec_IntSize(vImpl) != 0 )
@@ -282,8 +282,8 @@ void Bnd_ManPrintMappings()
     for( int j=0; j < Vec_PtrSize(vBmiter2Spec); j++ )
     {
         printf("node %d: ", j);
-        vIds_spec = Vec_PtrEntry( vBmiter2Spec, j);
-        vIds_impl = Vec_PtrEntry( vBmiter2Impl, j);
+        vIds_spec = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Spec, j);
+        vIds_impl = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Impl, j);
         Vec_IntForEachEntry(vIds_spec, id, k)
             printf("%d ", id);
         printf("| ");
@@ -599,7 +599,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     int cnt_extra = - Vec_PtrSize(vQ);
     while( Vec_PtrSize(vQ) > 0 )
     {
-        pObj = Vec_PtrPop(vQ);
+        pObj = (Gia_Obj_t *)Vec_PtrPop(vQ);
         id = Gia_ObjId( p, pObj );
 
         if ( Vec_IntEntry( vFlag, id  ) == 1 ) continue;
@@ -637,7 +637,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     }
     while( Vec_PtrSize(vQ) > 0 )
     {
-        pObj = Vec_PtrPop(vQ);
+        pObj = (Gia_Obj_t *)Vec_PtrPop(vQ);
         id = Gia_ObjId( p, pObj );
 
         if ( Vec_IntEntry( vFlag, id  ) == 1 ) continue;
@@ -684,7 +684,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     // traverse down from AI and unmatched BI
     while( Vec_PtrSize(vQ) > 0 )
     {
-        pObj = Vec_PtrPop(vQ);
+        pObj = (Gia_Obj_t *)Vec_PtrPop(vQ);
         id = Gia_ObjId( p, pObj );
 
         if ( Vec_IntEntry( vFlag, id  ) == 2 ) continue;
