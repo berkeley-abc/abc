@@ -29,6 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Vec.h"
 #include "ParseUtils.h"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace Minisat {
 
 //==================================================================================================
@@ -383,5 +385,7 @@ class BoolOption : public Option
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

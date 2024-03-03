@@ -29,6 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Dimacs.h"
 #include "Solver.h"
 
+ABC_NAMESPACE_IMPL_START
+
 using namespace Minisat;
 
 //=================================================================================================
@@ -195,3 +197,6 @@ extern "C" int MainSat(int argc, char** argv)
         exit(0);
     }
 }
+
+
+ABC_NAMESPACE_IMPL_END

@@ -21,6 +21,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Options.h"
 #include "ParseUtils.h"
 
+ABC_NAMESPACE_IMPL_START
+
 using namespace Minisat;
 
 int Minisat::parseOptions(int& argc, char** argv, bool strict)
@@ -91,3 +93,5 @@ int Minisat::printUsageAndExit (int argc, char** argv, bool verbose)
     return 0;
 }
 
+
+ABC_NAMESPACE_IMPL_END

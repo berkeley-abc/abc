@@ -29,6 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 //-------------------------------------------------------------------------------------------------
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace Minisat {
 
 static inline double cpuTime(void); // CPU-time in seconds.
@@ -56,5 +58,7 @@ static inline double Minisat::cpuTime(void) {
     return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000; }
 
 #endif
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

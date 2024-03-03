@@ -24,6 +24,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Queue.h"
 #include "Solver.h"
 
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace Minisat {
 
@@ -193,5 +194,7 @@ inline lbool SimpSolver::solveLimited (const vec<Lit>& assumps, bool do_simp, bo
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

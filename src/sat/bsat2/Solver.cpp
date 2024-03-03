@@ -23,6 +23,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Sort.h"
 #include "Solver.h"
 
+ABC_NAMESPACE_IMPL_START
+
 using namespace Minisat;
 
 //=================================================================================================
@@ -922,3 +924,5 @@ void Solver::garbageCollect()
                ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
     to.moveTo(ca);
 }
+
+ABC_NAMESPACE_IMPL_END

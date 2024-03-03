@@ -23,6 +23,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "IntTypes.h"
 #include "Vec.h"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace Minisat {
 
 //=================================================================================================
@@ -189,5 +191,7 @@ class Map {
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

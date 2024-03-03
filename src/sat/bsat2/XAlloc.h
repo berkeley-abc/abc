@@ -24,6 +24,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <errno.h>
 #include <stdlib.h>
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace Minisat {
 
 //=================================================================================================
@@ -41,5 +43,7 @@ static inline void* xrealloc(void *ptr, size_t size)
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

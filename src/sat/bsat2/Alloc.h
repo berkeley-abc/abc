@@ -24,6 +24,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "XAlloc.h"
 #include "Vec.h"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace Minisat {
 
 //=================================================================================================
@@ -127,5 +129,7 @@ RegionAllocator<T>::alloc(int size)
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

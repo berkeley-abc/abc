@@ -25,6 +25,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 namespace Minisat {
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 //=================================================================================================
 
 template<class T>
@@ -65,5 +67,7 @@ public:
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif
