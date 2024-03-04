@@ -29,6 +29,7 @@ struct Bnd_Man_t_
     int nNode_patched;
 
     int status; // 0: init 1: boundary found 2: out generated 3: patched generated
+    int fVerbose;
 
     int combLoop_spec;
     int combLoop_impl;
@@ -57,7 +58,7 @@ struct Bnd_Man_t_
 
 };
 
-Bnd_Man_t* pBnd;
+Bnd_Man_t* pBnd = 0;
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -78,7 +79,7 @@ void Bnd_ManSetEqRes( int eq ) { pBnd -> eq_res = eq;}
 
 ***********************************************************************/
 
-Bnd_Man_t* Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl )
+Bnd_Man_t* Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl, int fVerbose )
 {
     int i;
     Bnd_Man_t* p = ABC_CALLOC( Bnd_Man_t, 1 );
@@ -113,6 +114,8 @@ Bnd_Man_t* Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl )
     p -> nNode_patched = 0;
 
     p -> status = 0;
+    p -> fVerbose = fVerbose;
+
     p -> combLoop_spec = 0;
     p -> combLoop_impl = 0;
     p -> eq_out = 0;
@@ -166,6 +169,8 @@ void Bnd_ManStop()
     ABC_FREE( pBnd );
 }
 
+int Bnd_ManGetNInternal() { assert(pBnd); return pBnd -> nInternal; }
+int Bnd_ManGetNExtra() { assert(pBnd); return pBnd -> nExtra; }
 
 void Bnd_ManMap( int iLit, int id, int spec )
 {
@@ -370,23 +375,22 @@ void Bnd_ManPrintStats()
 
   Description [check if the given boundary is valid. Return 0 if
   the boundary is invalid. Return k if the boundary is valid and
-  there're k boundary inputs. ]
+  there're k boundary inputs. 
+  Can be called even if Bnd_Man_t is not created]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Bnd_ManCheckBound( Gia_Man_t * p )
+int Bnd_ManCheckBound( Gia_Man_t * p, int fVerbose )
 {
     int i;
     Gia_Obj_t *pObj;
     int valid = 1;
-    pBnd -> nBI = 0;
-    pBnd -> nBO = 0;
-    pBnd -> nInternal = 0;
+    int nBI = 0, nBO = 0, nInternal = 0;
 
-    printf( "Checking boundary... \n");
+    if ( fVerbose ) printf( "Checking boundary... \n");
 
     Vec_Int_t *vPath;
     vPath = Vec_IntAlloc( Gia_ManObjNum(p) );
@@ -417,7 +421,7 @@ int Bnd_ManCheckBound( Gia_Man_t * p )
             if ( path == 1 )  // boundary input
             {
                 // TODO: record BIs here since they may not be in the first n buffers
-                pBnd -> nBO ++;
+                nBO ++;
             }
         }
         else if ( Gia_ObjFaninNum( p, pObj ) >= 1 )
@@ -431,7 +435,7 @@ int Bnd_ManCheckBound( Gia_Man_t * p )
             if ( path == 2 )  // inside boundary
             {
                 // TODO: record BIs here since they may not be in the first n buffers
-                pBnd -> nInternal ++;
+                nInternal ++;
             }
         }
         else // PI or const, check validity
@@ -445,20 +449,33 @@ int Bnd_ManCheckBound( Gia_Man_t * p )
         }
     }
 
-    pBnd -> nBI = Gia_ManBufNum(p) - pBnd -> nBO;
+    nBI = Gia_ManBufNum(p) - nBO;
 
     if ( !valid ) 
     {
         printf("invalid boundary\n");
         return 0;
     }
+    else if ( nBI == 0 )
+    {
+        printf("no boundary\n");
+        return 0;
+    }
     else 
     {
-        printf("valid boundary (");
-        printf("#BI = %d\t#BO = %d\t", pBnd -> nBI, Gia_ManBufNum(p)- pBnd -> nBI);
-        printf("#Internal = %d)\n", pBnd -> nInternal );
-        assert( pBnd -> nBI > 0 );
-        return pBnd -> nBI;
+        if ( fVerbose )
+        {
+            printf("valid boundary (");
+            printf("#BI = %d\t#BO = %d\t", nBI, Gia_ManBufNum(p)- nBI);
+            printf("#Internal = %d)\n", nInternal );
+        }
+        if ( pBnd )
+        {
+            pBnd -> nBI = nBI;
+            pBnd -> nBO = nBO;
+            pBnd -> nInternal = nInternal;
+        }
+        return nBI;
     }
 }
 
@@ -572,7 +589,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     {
         if ( cnt < pBnd -> nBI ) 
         {
-            Vec_IntPush( vBI, Gia_ObjId(p, pObj) );
+            Vec_IntPush( vBI, Gia_ObjId(p, Gia_ObjFanin0(pObj) ) );
         }
         else 
         {
@@ -593,7 +610,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
             Vec_IntPush(vEO_spec, id);
         }
     }
-    printf("%d BO doesn't match. ", Vec_PtrSize(vQ) );
+    if ( pBnd -> fVerbose )  printf("%d BO doesn't match. ", Vec_PtrSize(vQ) );
     pBnd -> nBO_miss = Vec_PtrSize(vQ);
 
     int cnt_extra = - Vec_PtrSize(vQ);
@@ -622,7 +639,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
         }
     }
     // printf("%d AO found with %d extra nodes\n", Vec_IntSize(vAO) , cnt_extra );
-     printf("%d AO found\n", Vec_IntSize(vAO) );
+    if ( pBnd -> fVerbose ) printf("%d AO found\n", Vec_IntSize(vAO) );
 
 
     // mark TFOC of BO with flag 1 to prevent them from being selected into EI
@@ -665,7 +682,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
             Vec_IntPush(vEI_spec, id);
         }
     }
-    printf("%d BI doesn't match. ", Vec_PtrSize(vQ) );
+    if ( pBnd -> fVerbose ) printf("%d BI doesn't match. ", Vec_PtrSize(vQ) );
     pBnd -> nBI_miss = Vec_PtrSize(vQ);
     cnt_extra -= Vec_PtrSize(vQ);
 
@@ -708,7 +725,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
 
         Vec_IntSetEntry( vFlag, id, 2 );
     }
-    printf("%d AI found with %d extra nodes in total\n", Vec_IntSize(vAI) , cnt_extra );
+    if ( pBnd -> fVerbose ) printf("%d AI found with %d extra nodes in total\n", Vec_IntSize(vAI) , cnt_extra );
     pBnd -> nExtra = cnt_extra;
 
 
@@ -738,8 +755,11 @@ void Bnd_ManFindBound( Gia_Man_t * p )
 
     // print
     pBnd -> status = 1;
-    printf("#EI = %d\t#EO = %d\t#Extra Node = %d\n", Vec_IntSize(vEI_spec) , Vec_IntSize(vEO_spec), cnt_extra );
-    Bnd_ManPrintBound();
+    if ( pBnd -> fVerbose )
+    {
+        printf("#EI = %d\t#EO = %d\t#Extra Node = %d\n", Vec_IntSize(vEI_spec) , Vec_IntSize(vEO_spec), cnt_extra );
+        Bnd_ManPrintBound();
+    }
 
     // check boundary has comb loop
     if ( !Bnd_ManCheckExtBound( p, vEI_spec, vEO_spec ) )
@@ -869,42 +889,47 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
 
 }
 
-Gia_Man_t* Bnd_ManGenSpecOut( Gia_Man_t* p )
+Gia_Man_t* Bnd_ManGenSpecOut( Gia_Man_t* p  )
 {
-    printf("Generating spec_out with given boundary.\n");
+    if ( pBnd -> fVerbose ) printf("Generating spec_out with given boundary.\n");
     Gia_Man_t *pNew = Bnd_ManCutBoundary( p, pBnd->vEI_spec, pBnd->vEO_spec, 0, 0 );
     return pNew;
 }
-Gia_Man_t* Bnd_ManGenImplOut( Gia_Man_t* p )
+Gia_Man_t* Bnd_ManGenImplOut( Gia_Man_t* p)
 {
-    printf("Generating impl_out with given boundary.\n");
+    if ( pBnd -> fVerbose ) printf("Generating impl_out with given boundary.\n");
     Gia_Man_t *pNew = Bnd_ManCutBoundary( p, pBnd->vEI_impl, pBnd->vEO_impl, pBnd->vEI_phase, pBnd->vEO_phase );
     if ( pNew ) pBnd -> status = 2;
     else pBnd -> combLoop_impl = 1;
     return pNew;
 }
 
-void Bnd_AddNodeRec( Gia_Man_t *p, Gia_Man_t *pNew, Gia_Obj_t *pObj )
+void Bnd_AddNodeRec( Gia_Man_t *p, Gia_Man_t *pNew, Gia_Obj_t *pObj, int fSkipStrash )
 {
     // TODO does this mean constant zero node?
     if ( pObj -> Value != ~0 ) return;
 
     for( int i = 0; i < Gia_ObjFaninNum(p, pObj); i++  )
     {
-        Bnd_AddNodeRec( p, pNew, Gia_ObjFanin(pObj, i) );
+        Bnd_AddNodeRec( p, pNew, Gia_ObjFanin(pObj, i), fSkipStrash );
     }
 
     if ( Gia_ObjIsAnd(pObj) ) 
     {
-        pObj -> Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( fSkipStrash )
+        {
+            if ( Gia_ObjIsBuf(pObj) ) pObj -> Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+            else pObj -> Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        }
+        else 
+        {
+            pObj -> Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        }
     }
     else 
     {
-        if ( Gia_ObjIsCi(pObj) )
-        {
-            printf("Ci with value 0 encountered (id = %d)\n", Gia_ObjId(p, pObj) );
-        }
         assert( Gia_ObjIsCo(pObj) );
+        // if ( Gia_ObjIsCi(pObj) ) printf("Ci with value ~0 encountered (id = %d)\n", Gia_ObjId(p, pObj) );
         pObj -> Value = Gia_ObjFanin0Copy(pObj);
     }
 }
@@ -963,7 +988,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     for ( i = 0; i < Vec_IntSize( pBnd -> vEI_spec ); i++ )
     {
         pObj = Gia_ManCo(pOut, i + Gia_ManCoNum(pSpec) );
-        Bnd_AddNodeRec( pOut, pNew, pObj );
+        Bnd_AddNodeRec( pOut, pNew, pObj, 0 );
 
         // set Spec EI
         Gia_ManObj( pSpec, Vec_IntEntry(pBnd -> vEI_spec, i) ) -> Value = pObj -> Value;
@@ -976,7 +1001,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     Vec_IntForEachEntry( pBnd -> vBI, id, i )
     {
         pObj = Gia_ManObj( pSpec, id );
-        Bnd_AddNodeRec( pSpec, pNew, pObj );
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 0 );
 
         // set patch bi
         Gia_ManObj( pPatch, Vec_IntEntry( vBI_patch, i) ) -> Value = pObj -> Value;
@@ -989,7 +1014,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     Vec_IntForEachEntry( vBO_patch, id, i )
     {
         pObj = Gia_ManObj( pPatch, id );
-        Bnd_AddNodeRec( pPatch, pNew, pObj );
+        Bnd_AddNodeRec( pPatch, pNew, pObj, 0 );
 
         // set spec bo
         Gia_ManObj( pSpec, Vec_IntEntry( pBnd -> vBO, i) ) -> Value = pObj -> Value;
@@ -1002,7 +1027,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     Vec_IntForEachEntry( pBnd -> vEO_spec, id, i )
     {
         pObj = Gia_ManObj( pSpec, id );
-        Bnd_AddNodeRec( pSpec, pNew, pObj );
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 0 );
 
         // set impl EO (PI)
         Gia_ManCi( pOut, i + Gia_ManCiNum(pSpec) ) -> Value = pObj -> Value;
@@ -1015,7 +1040,7 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     for ( i = 0; i < Gia_ManCoNum(pSpec); i++ )
     {
         pObj = Gia_ManCo( pOut, i );
-        Bnd_AddNodeRec( pOut, pNew, pObj );
+        Bnd_AddNodeRec( pOut, pNew, pObj, 0 );
         Gia_ManAppendCo( pNew, pObj->Value );
         // printf(" %d",pObj -> Value);
     }
@@ -1036,8 +1061,186 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     return pNew;
 }
 
+Gia_Man_t* Bnd_ManGenPatched1( Gia_Man_t *pOut, Gia_Man_t *pSpec )
+{
+
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, id;
+
+    pNew = Gia_ManStart( Gia_ManObjNum(pOut) + Gia_ManObjNum( pSpec ) );
+    pNew -> pName = ABC_ALLOC( char, strlen(pOut->pName)+3);
+    sprintf( pNew -> pName, "%s_p", pOut -> pName );
+
+    Gia_ManFillValue(pOut);
+    Gia_ManFillValue(pSpec);
+    Gia_ManConst0(pOut)->Value = 0;
+    Gia_ManConst0(pSpec)->Value = 0;
 
 
+    // add Impl (real) PI
+    for ( i = 0; i < Gia_ManCiNum(pSpec); i++ )
+    {
+        pObj = Gia_ManCi(pOut, i);
+        pObj -> Value = Gia_ManAppendCi( pNew );
+    }
+
+    // add Impl EI to CI
+    // printf("adding EI to CI in Impl\n");
+    for ( i = 0; i < Vec_IntSize( pBnd -> vEI_spec ); i++ )
+    {
+        pObj = Gia_ManCo(pOut, i + Gia_ManCoNum(pSpec) );
+        Bnd_AddNodeRec( pOut, pNew, pObj, 1 );
+
+        // set Spec EI
+        Gia_ManObj( pSpec, Vec_IntEntry(pBnd -> vEI_spec, i) ) -> Value = pObj -> Value;
+        // printf(" %d",pObj -> Value);
+    }
+    // printf("\n");
+
+    // add Spec EO to EI
+    // add BI -> BO -> EO to maintain the order of bufs
+    // Vec_IntForEachEntry( pBnd -> vBI, id, i )
+    // {
+    //     pObj = Gia_ManObj( pSpec, id );
+    //     Bnd_AddNodeRec( pSpec, pNew, pObj, 1 );
+    // }
+    // Vec_IntForEachEntry( pBnd -> vBO, id, i )
+    // {
+    //     pObj = Gia_ManObj( pSpec, id );
+    //     Bnd_AddNodeRec( pSpec, pNew, pObj, 1 );
+    // }
+    Gia_ManForEachBuf( pSpec, pObj, i )
+    {
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 1 );
+    }
+    Vec_IntForEachEntry( pBnd -> vEO_spec, id, i )
+    {
+        pObj = Gia_ManObj( pSpec, id );
+        Bnd_AddNodeRec( pSpec, pNew, pObj, 1 );
+
+        // set impl EO (PI)
+        Gia_ManCi( pOut, i + Gia_ManCiNum(pSpec) ) -> Value = pObj -> Value;
+        // printf(" %d",pObj -> Value);
+    }
+    // printf("\n");
+
+    // add Impl (real) PO to EO
+    // printf("adding CO to EO in Impl\n");
+    for ( i = 0; i < Gia_ManCoNum(pSpec); i++ )
+    {
+        pObj = Gia_ManCo( pOut, i );
+        Bnd_AddNodeRec( pOut, pNew, pObj, 1 );
+        Gia_ManAppendCo( pNew, pObj->Value );
+        // printf(" %d",pObj -> Value);
+    }
+    // printf("\n");
+
+
+    // clean up
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+
+    pBnd -> nNode_patched = Gia_ManAndNum( pNew );
+    pBnd -> status = 3;
+
+    return pNew;
+}
+
+Gia_Man_t* Bnd_ManGenPatched2( Gia_Man_t *pImpl, Gia_Man_t *pPatch, int fSkipStrash, int fVerbose )
+{
+
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+    int i, nBI, nBI_patch, cnt;
+    Vec_Int_t* vLit;
+
+
+    // check boundary first
+    nBI = Bnd_ManCheckBound( pImpl, fVerbose );
+    nBI_patch = Bnd_ManCheckBound( pPatch, fVerbose );
+    if ( 0 == nBI_patch || Gia_ManBufNum(pImpl) != Gia_ManBufNum(pPatch) || nBI != nBI_patch )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): The given boundary is invalid.\n" );
+        return 0; 
+    }
+
+    // prepare new network
+    pNew = Gia_ManStart( Gia_ManObjNum(pImpl) + Gia_ManObjNum( pPatch ) );
+    pNew -> pName = ABC_ALLOC( char, strlen(pImpl->pName)+3);
+    sprintf( pNew -> pName, "%s_p", pImpl -> pName );
+    if ( !fSkipStrash )
+    {
+        Gia_ManHashAlloc( pNew );
+    }
+    Gia_ManFillValue(pImpl);
+    Gia_ManFillValue(pPatch);
+    Gia_ManConst0(pImpl)->Value = 0;
+    Gia_ManConst0(pPatch)->Value = 0;
+
+    vLit = Vec_IntAlloc( Gia_ManBufNum(pImpl) );
+
+    // add Impl (real) CI
+    Gia_ManForEachCi( pImpl, pObj, i )
+    {
+        pObj -> Value = Gia_ManAppendCi( pNew );
+    }
+
+    // add Impl BI to CI
+    cnt = 0;
+    Gia_ManForEachBuf( pImpl, pObj, i )
+    {
+        Bnd_AddNodeRec( pImpl, pNew, pObj, fSkipStrash );
+        Vec_IntPush( vLit, pObj -> Value );
+        cnt ++;
+        if ( cnt >= nBI ) break;
+    }
+    
+    // set BI in patch
+    // add patch BO to BI
+    cnt = 0;
+    Gia_ManForEachBuf( pPatch, pObj, i )
+    {
+        if ( cnt < nBI ) 
+        {
+            pObj -> Value = Vec_IntEntry( vLit, cnt );
+        }
+        else
+        {
+            Bnd_AddNodeRec( pPatch, pNew, pObj, fSkipStrash );
+            Vec_IntPush( vLit, pObj -> Value );
+        }
+        cnt ++;
+        if ( cnt == nBI ) Vec_IntClear( vLit );
+    }
+
+    // set BO in impl
+    cnt = 0;
+    Gia_ManForEachBuf( pImpl, pObj, i )
+    {
+        cnt ++;
+        if ( cnt <= nBI) continue;
+        pObj -> Value = Vec_IntEntry( vLit, cnt-nBI-1 );
+    }
+
+    // add impl CO to BO
+    Gia_ManForEachCo( pImpl, pObj, i )
+    {
+        Bnd_AddNodeRec( pImpl, pNew, pObj, fSkipStrash );
+        Gia_ManAppendCo( pNew, pObj -> Value );
+    }
+
+    // clean up
+    if ( !fSkipStrash ) 
+    {
+        Gia_ManHashStop( pNew );
+    }
+    Vec_IntFree( vLit );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+
+    return pNew;
+}
 
 
 ////////////////////////////////////////////////////////////////////////

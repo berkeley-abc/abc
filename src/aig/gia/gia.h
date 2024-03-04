@@ -1793,19 +1793,26 @@ extern int                 Tas_ManSolveArray( Tas_Man_t * p, Vec_Ptr_t * vObjs )
 /*=== giaBound.c ===========================================================*/
 typedef struct Bnd_Man_t_  Bnd_Man_t;
 
-extern Bnd_Man_t*           Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl );
+extern Bnd_Man_t*           Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl, int fVerbose );
 extern void                 Bnd_ManStop();
+
+// getter
+extern int                  Bnd_ManGetNInternal();
+extern int                  Bnd_ManGetNExtra();
+
 //for fraig
 extern void                 Bnd_ManMap( int iLit, int id, int spec );
 extern void                 Bnd_ManMerge( int id1, int id2, int phaseDiff );
 extern void                 Bnd_ManFinalizeMappings();
 extern void                 Bnd_ManPrintMappings();
 // for eco
-extern int                  Bnd_ManCheckBound( Gia_Man_t *p );
+extern int                  Bnd_ManCheckBound( Gia_Man_t *p, int fVerbose );
 extern void                 Bnd_ManFindBound( Gia_Man_t *p );
 extern Gia_Man_t*           Bnd_ManGenSpecOut( Gia_Man_t *p );
 extern Gia_Man_t*           Bnd_ManGenImplOut( Gia_Man_t *p );
 extern Gia_Man_t*           Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPatch );
+extern Gia_Man_t*           Bnd_ManGenPatched1( Gia_Man_t *pOut, Gia_Man_t *pSpec );
+extern Gia_Man_t*           Bnd_ManGenPatched2( Gia_Man_t *pImpl, Gia_Man_t *pPatch, int fSkiptStrash, int fVerbose );
 extern void                 Bnd_ManSetEqOut( int eq );
 extern void                 Bnd_ManSetEqRes( int eq );
 extern void                 Bnd_ManPrintStats();

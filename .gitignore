@@ -8,12 +8,6 @@ ReleaseExt/
 
 _/
 _TEST/
-_sandwich/
-_scripts/
-*.aig
-*.vcproj
-*.sh
-*.v
 lib/abc*
 lib/m114*
 lib/bip*

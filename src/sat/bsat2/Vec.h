@@ -93,7 +93,6 @@ public:
     void moveTo(vec<T>& dest) { dest.clear(true); dest.data = data; dest.sz = sz; dest.cap = cap; data = NULL; sz = 0; cap = 0; }
 };
 
-
 template<class T>
 void vec<T>::capacity(int min_cap) {
     if (cap >= min_cap) return;
