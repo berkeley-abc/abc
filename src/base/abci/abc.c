@@ -219,6 +219,7 @@ static int Abc_CommandInter                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBb2Wb                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOutdec                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandNodeDup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandWrap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestColor              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -998,6 +999,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "bb2wb",         Abc_CommandBb2Wb,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "outdec",        Abc_CommandOutdec,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "nodedup",       Abc_CommandNodeDup,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "wrap",          Abc_CommandWrap,             0 );
     Cmd_CommandAdd( pAbc, "Various",      "testcolor",     Abc_CommandTestColor,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
 //    Cmd_CommandAdd( pAbc, "Various",      "qbf_solve",     Abc_CommandTest,               0 );
@@ -14461,6 +14463,67 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandWrap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * pFileName = NULL, * pFileName2 = NULL;
+    FILE * pFile = NULL, * pFile2 = NULL;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 2 )
+    {
+        Abc_Print( 1,"Two file names are expected on the command line.\n" );
+        return 0;
+    }
+    pFileName  = argv[globalUtilOptind];
+    pFileName2 = argv[globalUtilOptind+1];
+    pFile  = fopen( pFileName, "rb" );
+    pFile2 = fopen( pFileName2, "wb" );
+    if ( pFile && pFile2 )
+    {
+        char Buffer[1000];
+        while ( fgets( Buffer, 1000, pFile ) != NULL )
+        {
+            if ( Buffer[strlen(Buffer)-1] == '\n' )
+                Buffer[strlen(Buffer)-1] = 0;            
+            if ( Buffer[strlen(Buffer)-1] == '\r' )
+                Buffer[strlen(Buffer)-1] = 0;
+            fprintf( pFile2, "  printf(\"%s\\n\");\n", Buffer );
+        }
+    }
+    if ( pFile  ) fclose(pFile);   
+    if ( pFile2 ) fclose(pFile2);   
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: wrap [-h] <file> <file2>\n" );
+    Abc_Print( -2, "\t           wrapping lines\n" );
+    Abc_Print( -2, "\t<file>   : input text file\n");
+    Abc_Print( -2, "\t<file2>  : output text file\n");    
+    return 1;
+
 }
 
 /**Function*************************************************************
@@ -32065,8 +32128,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     char ** pArgvNew;
     int c, nArgcNew;
-    int fUnique = 0;
+    int fUnique  = 0;
     int fVerilog = 0;
+    int fVerNand = 0;
     int fInter   = 0;
     int fInterComb = 0;
     int fAssign  = 0;
@@ -32078,7 +32142,7 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSkipComment = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "upicabmlnrsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upqicabmlnrsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32087,6 +32151,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fVerilog ^= 1;
+            break;
+        case 'q':
+            fVerNand ^= 1;
             break;
         case 'i':
             fInter ^= 1;
@@ -32143,6 +32210,8 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_AigerWriteSimple( pGia, pFileName );
         Gia_ManStop( pGia );
     }
+    else if ( fVerNand )
+        Gia_ManDumpVerilogNand( pAbc->pGia, pFileName );
     else if ( fVerilog )
         Gia_ManDumpVerilog( pAbc->pGia, pFileName, NULL, fVerBufs, fInter, fInterComb, fAssign, fReverse );
     else if ( fMiniAig )
@@ -32154,10 +32223,11 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-upicabmlnsvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upqicabmlnsvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
+    Abc_Print( -2, "\t-q     : toggle writing Verilog with NAND-gates [default = %s]\n", fVerNand? "yes" : "no" );
     Abc_Print( -2, "\t-i     : toggle writing the interface module in Verilog [default = %s]\n", fInter? "yes" : "no" );
     Abc_Print( -2, "\t-c     : toggle writing the interface module in Verilog [default = %s]\n", fInterComb? "yes" : "no" );
     Abc_Print( -2, "\t-a     : toggle writing the interface module with assign-statements [default = %s]\n", fAssign? "yes" : "no" );
