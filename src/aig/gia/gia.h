@@ -1806,9 +1806,12 @@ extern void                 Bnd_ManMap( int iLit, int id, int spec );
 extern void                 Bnd_ManMerge( int id1, int id2, int phaseDiff );
 extern void                 Bnd_ManFinalizeMappings();
 extern void                 Bnd_ManPrintMappings();
+extern Gia_Man_t*           Bnd_ManStackGias( Gia_Man_t *pSpec, Gia_Man_t *pImpl );
+extern int                  Bnd_ManCheckCoMerged( Gia_Man_t *p );
+
 // for eco
 extern int                  Bnd_ManCheckBound( Gia_Man_t *p, int fVerbose );
-extern void                 Bnd_ManFindBound( Gia_Man_t *p );
+extern void                 Bnd_ManFindBound( Gia_Man_t *p, Gia_Man_t *pImpl );
 extern Gia_Man_t*           Bnd_ManGenSpecOut( Gia_Man_t *p );
 extern Gia_Man_t*           Bnd_ManGenImplOut( Gia_Man_t *p );
 extern Gia_Man_t*           Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPatch );

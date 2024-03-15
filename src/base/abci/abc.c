@@ -52151,6 +52151,7 @@ usage:
     Abc_Print( -2, "\t            (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
     return 1;}
 
+extern Bnd_Man_t* pBnd;
 /**Function*************************************************************
 
   Synopsis    []
@@ -52162,8 +52163,6 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-
-extern Bnd_Man_t* pBnd;
 int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
@@ -52172,7 +52171,7 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t *pSpec, *pImpl_out = 0, *pSpec_out = 0, *pMiter, *pPatched = 0, *pTemp, *pBmiter;
     char * FileName = NULL;
     FILE * pFile = NULL;
-    int c, fVerbose = 0, success = 1;
+    int c, fVerbose = 0, success = 1, fEq = 1, fEqOut = 1;
 
     // params
     Gps_Par_t Pars, * pPars = &Pars;
@@ -52185,12 +52184,33 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // parse options
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vhCkeo" ) ) != EOF )
     {
         switch ( c )
         {
         case 'v':
             fVerbose ^= 1;
+            pParsFra->fVerbose ^= 1;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParsFra->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParsFra->nBTLimit < 0 )
+                goto usage;
+            break;
+        case 'k':
+            pParsFra ->fUseCones ^= 1;
+            break;
+        case 'e':
+            fEq ^= 1;
+            break;
+        case 'o':
+            fEqOut ^= 1;
             break;
         case 'h':
             goto usage;
@@ -52237,35 +52257,35 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
     // start boundary manager
     pBnd = Bnd_ManStart( pSpec, pAbc->pGia, fVerbose );
 
-    // verify if spec eq impl
-    pMiter = Gia_ManMiter( pAbc->pGia, pSpec, 0, 1, 0, 0, 0 );
-    if ( !Cec_ManVerify( pMiter, pParsCec ) )
-    {
-        Abc_Print( -1, "Abc_CommandAbc9BRecover(): The given spec is not equivalent to current impl.\n" );
-        success = 0;
-    }
-    Gia_ManStop(pMiter);
-
     // check boundary
-    if ( success )
+    if ( 0 == Bnd_ManCheckBound( pSpec, fVerbose ) )
     {
-        if ( 0 == Bnd_ManCheckBound( pSpec, fVerbose ) )
-        {
-            Abc_Print( -1, "Abc_CommandAbc9BRecover(): The given spec has invalid boundary.\n" );
-            success = 0;
-        }
+        Abc_Print( -1, "Abc_CommandAbc9BRecover(): The given spec has invalid boundary.\n" );
+        success = 0;
     }
 
     if ( success )
     {
         // create bmiter, run fraig, record mapping
-        pBmiter = Gia_ManBoundaryMiter( pSpec, pAbc->pGia, 0 );
+        pBmiter = Bnd_ManStackGias( pSpec, pAbc->pGia );
         pTemp = Cec4_ManSimulateTest( pBmiter, pParsFra );
+
+        // every output should be equivalent
+        // else, terminate the command (TODO?)
+        if ( !Bnd_ManCheckCoMerged( pTemp ) )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9BRecover(): The given spec and impl cannot be proved equivalent.\n" );
+            success = 0;
+        }
+
         Gia_ManStop(pBmiter);
         Gia_ManStop(pTemp);
+    }
 
+    if ( success )
+    {
         // find 
-        Bnd_ManFindBound( pSpec );
+        Bnd_ManFindBound( pSpec, pAbc->pGia );
 
         // create spec_out and 
         pSpec_out = Bnd_ManGenSpecOut( pSpec );
@@ -52277,22 +52297,30 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
         // Gia_AigerWrite( pImpl_out, "impl_out.aig", 0, 0, 0 );
         // Gia_ManPrintStats( pSpec_out, pPars );
         // Gia_ManPrintStats( pImpl_out, pPars );
+
+        if ( !success )
+        {
+            printf("Abc_CommandAbc9BRecover(): The generated boundary is invalid. The circuit is not changed.\n");
+        }
     }
 
-    if ( !success )
-    {
-        printf("Abc_CommandAbc9BRecover(): The generated boundary is invalid. The circuit is not changed.\n");
-    }
-    else
+    if ( success )
     {
 
         // check if spec_out and imnpl_out are equivalent
         if ( fVerbose ) 
         {
-            printf("Checking the equivalence of spec_out and impl_out\n");
-            pMiter = Gia_ManMiter( pSpec_out, pImpl_out, 0, 1, 0, 0, 0 );
-            Bnd_ManSetEqOut( Cec_ManVerify( pMiter, pParsCec ) );
-            Gia_ManStop( pMiter );
+            if ( fEqOut )
+            {
+                printf("Checking the equivalence of spec_out and impl_out\n");
+                pMiter = Gia_ManMiter( pSpec_out, pImpl_out, 0, 1, 0, 0, 0 );
+                Bnd_ManSetEqOut( Cec_ManVerify( pMiter, pParsCec ) );
+                Gia_ManStop( pMiter );
+            }
+            else
+            {
+                printf("Skip checking the equivalence of spec_out and impl_out\n");
+            }
         }
 
         // generate patched impl
@@ -52314,15 +52342,22 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
         // Gia_ManStop( pTemp );
 
         // check if patched is equiv to spec
-        if ( fVerbose ) printf("Checking the equivalence of patched impl and spec\n");
-        pMiter = Gia_ManMiter( pSpec, pPatched, 0, 1, 0, 0, 0 );
-        success = Cec_ManVerify( pMiter, pParsCec );
-        Bnd_ManSetEqRes( success );
-        if ( !success )
+        if ( fVerbose ) 
         {
-            printf("Failed. The generated AIG is not equivalent.\n");
+            if ( fEq ) printf("Checking the equivalence of patched impl and spec\n");
+            else printf("Skip checking the equivalence of patched impl and spec\n");
         }
-        Gia_ManStop( pMiter );
+        if ( fEq )
+        {
+            pMiter = Gia_ManMiter( pSpec, pPatched, 0, 1, 0, 0, 0 );
+            success = Cec_ManVerify( pMiter, pParsCec );
+            Bnd_ManSetEqRes( success );
+            if ( !success )
+            {
+                printf("Failed. The generated AIG is not equivalent.\n");
+            }
+            Gia_ManStop( pMiter );
+        }
 
     }
 
@@ -52333,7 +52368,8 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pImpl_out ) Gia_ManStop( pImpl_out );
     if ( success )
     {
-        printf("Success. The generated hierarchical impl is equivalent. (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
+        if ( fEq ) printf("Success. The generated hierarchical impl is equivalent. (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
+        else printf("Success. But the equivalence in unknown (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
     }
     if (pPatched) Abc_FrameUpdateGia( pAbc, pPatched );
     Bnd_ManStop();
@@ -52345,6 +52381,10 @@ usage:
     Abc_Print( -2, "\t         recover boundary using SAT-Sweeping\n" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-k     : toggle using logic cones in the SAT solver [default = %s]\n", pParsFra->fUseCones? "yes": "no" );
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pParsFra->nBTLimit );
+    Abc_Print( -2, "\t-e     : toggle checking the equivalence of the result [default = %s]\n", fEq? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle checking the equivalence of the outsides in verbose [default = %s]\n", fEqOut? "yes": "no" );
     Abc_Print( -2, "\t<impl> : the implementation aig. (should be equivalent to spec)\n");    
     Abc_Print( -2, "\t<patch> : the modified spec. (should be a hierarchical AIG)\n");    
     return 1;

@@ -28,7 +28,6 @@ struct Bnd_Man_t_
     int nNode_patch;
     int nNode_patched;
 
-    int status; // 0: init 1: boundary found 2: out generated 3: patched generated
     int fVerbose;
 
     int combLoop_spec;
@@ -39,10 +38,14 @@ struct Bnd_Man_t_
     int nChoice_impl;
     int feedthrough;
 
+    int maxNumClass;
+
     Vec_Ptr_t* vBmiter2Spec;
     Vec_Ptr_t* vBmiter2Impl;
-    Vec_Int_t* vSpec2Impl;
-    Vec_Bit_t* vSpec2Impl_phase;
+    Vec_Bit_t* vSpec2Impl_phase;    // TODO: record all phases
+
+    Vec_Int_t* vImpl2Bmiter;
+    Vec_Int_t* vSpec2Bmiter;
     
     Vec_Int_t* vBI;
     Vec_Int_t* vBO;
@@ -52,9 +55,6 @@ struct Bnd_Man_t_
     Vec_Int_t* vEO_impl;
     Vec_Bit_t* vEI_phase;
     Vec_Bit_t* vEO_phase;
-
-    Vec_Int_t* vSpec2Impl_diff;
-    Vec_Int_t* vImpl2Spec_diff; // note that this include bufs, which should merge into their fanins
 
 };
 
@@ -66,6 +66,12 @@ Bnd_Man_t* pBnd = 0;
 
 void Bnd_ManSetEqOut( int eq ) { pBnd -> eq_out = eq;}
 void Bnd_ManSetEqRes( int eq ) { pBnd -> eq_res = eq;}
+
+Vec_Int_t*  Bnd_ManSpec2Impl( int id ) { return (Vec_Int_t*)Vec_PtrEntry( pBnd -> vBmiter2Impl, Vec_IntEntry( pBnd->vSpec2Bmiter, id  ) ); }
+int         Bnd_ManSpec2ImplNum( int id ) { return Vec_IntSize( (Vec_Int_t*)Vec_PtrEntry( pBnd -> vBmiter2Impl, Vec_IntEntry( pBnd->vSpec2Bmiter, id ) ) ); }
+
+Vec_Int_t*  Bnd_ManImpl2Spec( int id ) { return (Vec_Int_t*)Vec_PtrEntry( pBnd -> vBmiter2Spec, Vec_IntEntry( pBnd->vImpl2Bmiter, id  ) ); }
+int         Bnd_ManImpl2SpecNum( int id ) { return Vec_IntSize( (Vec_Int_t*)Vec_PtrEntry( pBnd -> vBmiter2Spec, Vec_IntEntry( pBnd->vImpl2Bmiter, id  ) ) ); }
 
 /**Function*************************************************************
 
@@ -84,20 +90,26 @@ Bnd_Man_t* Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl, int fVerbose )
     int i;
     Bnd_Man_t* p = ABC_CALLOC( Bnd_Man_t, 1 );
 
-    p -> vBmiter2Spec = Vec_PtrAlloc( Gia_ManObjNum(pSpec) + Gia_ManObjNum(pImpl) );
-    p -> vBmiter2Impl = Vec_PtrAlloc( Gia_ManObjNum(pSpec) + Gia_ManObjNum(pImpl) );
-    Vec_PtrFill( p -> vBmiter2Spec, (Gia_ManObjNum(pSpec) + Gia_ManObjNum(pImpl)), 0 );
-    Vec_PtrFill( p -> vBmiter2Impl, (Gia_ManObjNum(pSpec) + Gia_ManObjNum(pImpl)), 0 );
+    p -> maxNumClass = Gia_ManCiNum( pSpec ) + Gia_ManAndNotBufNum(pSpec) + Gia_ManAndNum(pImpl) + 2 + Gia_ManCoNum(pSpec) * 2;
+    // one for constant node and one for dummy
+
+    p -> vBmiter2Spec = Vec_PtrAlloc( p -> maxNumClass );
+    p -> vBmiter2Impl = Vec_PtrAlloc( p -> maxNumClass );
+    Vec_PtrFill( p -> vBmiter2Spec, p -> maxNumClass, 0 );
+    Vec_PtrFill( p -> vBmiter2Impl, p -> maxNumClass, 0 );
     for( i = 0; i <  Vec_PtrSize( p -> vBmiter2Impl ); i ++ )
     {
         Vec_PtrSetEntry( p -> vBmiter2Spec, i, Vec_IntAlloc(1) );
         Vec_PtrSetEntry( p -> vBmiter2Impl, i, Vec_IntAlloc(1) );
     }
 
-    p -> vSpec2Impl = Vec_IntAlloc( Gia_ManObjNum(pSpec) );
     p -> vSpec2Impl_phase = Vec_BitAlloc( Gia_ManObjNum(pSpec) );
-    Vec_IntFill( p -> vSpec2Impl, Gia_ManObjNum(pSpec), -1 );
     Vec_BitFill( p -> vSpec2Impl_phase, Gia_ManObjNum(pSpec), 0 );
+
+    p -> vImpl2Bmiter = Vec_IntAlloc( Gia_ManObjNum(pImpl) );
+    Vec_IntFill( p -> vImpl2Bmiter, Gia_ManObjNum(pImpl), p -> maxNumClass - 1 );
+    p -> vSpec2Bmiter = Vec_IntAlloc( Gia_ManObjNum(pSpec) );
+    Vec_IntFill( p -> vSpec2Bmiter, Gia_ManObjNum(pSpec), p -> maxNumClass - 1);
     
     p -> vBI = Vec_IntAlloc(16);
     p -> vBO = Vec_IntAlloc(16);
@@ -113,7 +125,6 @@ Bnd_Man_t* Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl, int fVerbose )
     p -> nNode_patch = 0;
     p -> nNode_patched = 0;
 
-    p -> status = 0;
     p -> fVerbose = fVerbose;
 
     p -> combLoop_spec = 0;
@@ -124,12 +135,6 @@ Bnd_Man_t* Bnd_ManStart( Gia_Man_t *pSpec, Gia_Man_t *pImpl, int fVerbose )
     p -> nChoice_spec = 0;
     p -> nChoice_impl = 0;
     p -> feedthrough = 0;
-
-    p -> vSpec2Impl_diff = Vec_IntAlloc( Gia_ManObjNum(pSpec) );
-    Vec_IntFill( p -> vSpec2Impl_diff, Gia_ManObjNum(pSpec), 0 );
-
-    p -> vImpl2Spec_diff = Vec_IntAlloc( Gia_ManObjNum(pImpl) );
-    Vec_IntFill( p -> vImpl2Spec_diff, Gia_ManObjNum(pImpl), 0 );
 
     return p;
 }
@@ -151,8 +156,9 @@ void Bnd_ManStop()
 
     Vec_PtrFree( pBnd-> vBmiter2Spec );
     Vec_PtrFree( pBnd-> vBmiter2Impl );
-    Vec_IntFree( pBnd-> vSpec2Impl );
     Vec_BitFree( pBnd-> vSpec2Impl_phase );
+    Vec_IntFree( pBnd-> vImpl2Bmiter );
+    Vec_IntFree( pBnd-> vSpec2Bmiter );
 
     Vec_IntFree( pBnd->vBI );
     Vec_IntFree( pBnd->vBO );
@@ -162,9 +168,6 @@ void Bnd_ManStop()
     Vec_IntFree( pBnd->vEO_impl );
     Vec_BitFree( pBnd->vEI_phase );
     Vec_BitFree( pBnd->vEO_phase );
-
-    Vec_IntFree( pBnd-> vSpec2Impl_diff );
-    Vec_IntFree( pBnd-> vImpl2Spec_diff );
 
     ABC_FREE( pBnd );
 }
@@ -231,7 +234,6 @@ void Bnd_ManFinalizeMappings()
 
     Vec_Ptr_t* vBmiter2Spec = pBnd -> vBmiter2Spec;
     Vec_Ptr_t* vBmiter2Impl = pBnd -> vBmiter2Impl;
-    Vec_Int_t* vSpec2Impl = pBnd -> vSpec2Impl;
 
     Vec_Int_t *vSpec, *vImpl;
     int i, j, id;
@@ -245,24 +247,16 @@ void Bnd_ManFinalizeMappings()
         vSpec = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Spec, i );
         vImpl = (Vec_Int_t *)Vec_PtrEntry( vBmiter2Impl, i );
 
-        // create spec2impl
-        if ( Vec_IntSize(vSpec) != 0 && Vec_IntSize(vImpl) != 0 )
+        Vec_IntForEachEntry( vSpec, id, j )
         {
-            Vec_IntForEachEntry( vSpec, id, j )
-            {
-                Vec_IntSetEntry( vSpec2Impl, id, Vec_IntEntry(vImpl, 0) );
+            // vSpec2Bmiter
+            Vec_IntSetEntry( pBnd->vSpec2Bmiter, id, i );
+        }
 
-                // record the number of different choice of vEI_impl, vEO_impl
-                Vec_IntSetEntry( pBnd->vSpec2Impl_diff, id, Vec_IntSize(vImpl)-1 );
-            }
-
-            Vec_IntForEachEntry( vImpl, id, j )
-            {
-                // record the number of different choice of vEI_impl, vEO_impl
-                Vec_IntSetEntry( pBnd->vImpl2Spec_diff, id, Vec_IntSize(vSpec)-1 );
-            }
-
-
+        Vec_IntForEachEntry( vImpl, id, j )
+        {
+            // vImpl2Bmiter
+            Vec_IntSetEntry( pBnd->vImpl2Bmiter, id, i );
         }
 
         // count number of nodes merged into the same circuit
@@ -275,7 +269,6 @@ void Bnd_ManFinalizeMappings()
             pBnd->nMerged_impl += Vec_IntSize(vImpl) - 1;
         }
     }
-
 
 }
 void Bnd_ManPrintMappings()
@@ -332,41 +325,41 @@ void Bnd_ManPrintStats()
         warning = 1;
         printf("WARNING: multiple equiv nodes on the boundary of impl\n");
     }
-    if ( p->feedthrough ) 
-    {
-        warning = 1;
-        printf("WARNING: feedthrough inside patch\n");
-    }
 
     printf("The outsides of spec and impl are %sEQ.\n", p->eq_out ? "" : "NOT " );
-    printf("The patched impl and patch are %sEQ.\n", p->eq_res ? "" : "NOT " );
+    printf("The patched impl is %sEQ. to spec (and impl)\n", p->eq_res ? "" : "NOT " );
 
     // #internal
     // nBI, nBO
     // nBI_miss, nBO_miss
-    // nAI, nAO, nExtra
+    // nEI, nEO, nExtra
     // #spec, #impl, #patched 
     // combLoop_spec, combLoop_impl
-    // status
-    // #different choice of impl on boundary
+    // #choice_impl
+    // #choice_spec
+    // #feedthrough
     // warning (may be neq)
     // eq_out, eq_res
 
-    // printf("\nRESULT\n");
-    // printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
-    //     p->nInternal,
-    //     p->nBI, p->nBO,
-    //     p->nBI_miss, p->nBO_miss,
-    //     Vec_IntSize(p->vEI_spec), Vec_IntSize(p->vEO_spec), p->nExtra,
-    //     p->nNode_spec, p->nNode_impl, p->nNode_patched,
-    //     p->combLoop_spec, p->combLoop_impl,
-    //     p->status,
-    //     p->nChoice_impl,
-    //     p->nChoice_spec,
-    //     p->feedthrough,
-    //     warning,
-    //     p->eq_out, p->eq_res
-    // );
+    printf("\nRESULT\n");
+    printf("%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+        p->nInternal,
+        p->nBI, p->nBO,
+        p->nBI_miss, p->nBO_miss,
+        Vec_IntSize(p->vEI_spec), Vec_IntSize(p->vEO_spec), p->nExtra,
+        p->nNode_spec, p->nNode_impl, p->nNode_patched,
+        p->combLoop_spec, p->combLoop_impl,
+        p->nChoice_impl,
+        p->nChoice_spec,
+        warning,
+        p->eq_out, p->eq_res
+    );
+
+    printf("#Choice Spec\t%d\n", p->nChoice_spec);
+    printf("#Choice Impl\t%d\n", p->nChoice_impl);
+
+
+
 }
 
 /**Function*************************************************************
@@ -505,7 +498,7 @@ int Bnd_CheckFlagRec( Gia_Man_t *p, Gia_Obj_t *pObj, Vec_Int_t* vFlag )
 
   Synopsis    []
 
-  Description []
+  Description [check if combnational loop exist in the extended boundary]
 
   SideEffects []
 
@@ -541,20 +534,19 @@ int Bnd_ManCheckExtBound( Gia_Man_t * p, Vec_Int_t *vEI, Vec_Int_t *vEO )
 }
 
 
-
 /**Function*************************************************************
 
   Synopsis    []
 
-  Description []
+  Description [find the extended boundary in spec 
+  and compute the corresponding boundary in impl]
 
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-
-void Bnd_ManFindBound( Gia_Man_t * p )
+void Bnd_ManFindBound( Gia_Man_t * p, Gia_Man_t * pImpl )
 {
     Vec_Int_t  *vFlag;
     Vec_Ptr_t *vQ;
@@ -564,7 +556,6 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     Vec_Int_t *vAI = Vec_IntAlloc(16);
     Vec_Int_t *vAO = Vec_IntAlloc(16);
 
-    Vec_Int_t *vSpec2Impl = pBnd -> vSpec2Impl;
     Vec_Bit_t *vSpec2Impl_phase = pBnd -> vSpec2Impl_phase;
     Vec_Int_t *vBI = pBnd -> vBI;
     Vec_Int_t *vBO = pBnd -> vBO;
@@ -601,7 +592,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     // compute EO, travse with flag 1
     Vec_IntForEachEntry( vBO, id, i )
     {
-        if ( Vec_IntEntry( vSpec2Impl, id ) == -1 ) // BO not matched 
+        if ( Bnd_ManSpec2ImplNum(id) == 0 ) // BO not matched 
         {
             Vec_PtrPush( vQ, Gia_ManObj(p, id) );
         }
@@ -624,7 +615,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
 
         // printf("%d\n", id);
 
-        if ( Vec_IntEntry( vSpec2Impl, id ) != -1 )    // matched
+        if ( Bnd_ManSpec2ImplNum(id) != 0 )    // matched
         {
             Vec_IntPush( vEO_spec, id );
             Vec_IntPush( vAO, id );
@@ -673,7 +664,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     // add unmatched BI to queue
     Vec_IntForEachEntry( vBI, id, i )
     {
-        if ( Vec_IntEntry( vSpec2Impl, id ) == -1 ) // BO not matched 
+        if ( Bnd_ManSpec2ImplNum(id) == 0 ) // BO not matched 
         {
             Vec_PtrPush( vQ, Gia_ManObj(p, id) );
         }
@@ -709,7 +700,7 @@ void Bnd_ManFindBound( Gia_Man_t * p )
 
         // printf("%d\n", id);
 
-        if ( Vec_IntEntry(vFlag, id) != 1 && Vec_IntEntry( vSpec2Impl, id ) != -1 )    // matched
+        if ( Vec_IntEntry(vFlag, id) != 1 && Bnd_ManSpec2ImplNum(id) != 0 )    // matched
         {
             Vec_IntPush( vEI_spec, id );
             Vec_IntPush( vAI, id );
@@ -732,29 +723,27 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     // gen vEI_impl, vEO_impl, vEI_phase, vEO_phase
     Vec_IntForEachEntry( vEI_spec, id, i )
     {
-        Vec_IntPush( vEI_impl, Vec_IntEntry( vSpec2Impl, id ) );
+        Vec_IntPush( vEI_impl, Vec_IntEntry( Bnd_ManSpec2Impl(id) , 0 ) );
         Vec_BitPush( vEI_phase, Vec_BitEntry( vSpec2Impl_phase, id ) );
     }
     Vec_IntForEachEntry( vEO_spec, id, i )
     {
-        Vec_IntPush( vEO_impl, Vec_IntEntry( vSpec2Impl, id ) );
+        Vec_IntPush( vEO_impl, Vec_IntEntry( Bnd_ManSpec2Impl(id), 0 ) );
         Vec_BitPush( vEO_phase, Vec_BitEntry( vSpec2Impl_phase, id ) );
     }
 
 
     // count number of choice of boundary
-    Vec_IntForEachEntry( vEI_spec, id, i )
-        pBnd -> nChoice_impl += Vec_IntEntry( pBnd -> vSpec2Impl_diff, id );
     Vec_IntForEachEntry( vEO_spec, id, i )
-        pBnd -> nChoice_impl += Vec_IntEntry( pBnd -> vSpec2Impl_diff, id );
-    Vec_IntForEachEntry( vEI_impl, id, i )
-        pBnd -> nChoice_spec += Vec_IntEntry( pBnd -> vImpl2Spec_diff, id );
+    {
+        pBnd -> nChoice_impl += Bnd_ManSpec2ImplNum( id ) - 1;
+    }
     Vec_IntForEachEntry( vEO_impl, id, i )
-        pBnd -> nChoice_spec += Vec_IntEntry( pBnd -> vImpl2Spec_diff, id );
-    pBnd -> nChoice_spec -= ( pBnd->nBI + pBnd ->nBO - pBnd->nBI_miss - pBnd->nBO_miss);
+    {
+        pBnd -> nChoice_spec += Bnd_ManImpl2SpecNum( id ) - 1;
+    }
 
     // print
-    pBnd -> status = 1;
     if ( pBnd -> fVerbose )
     {
         printf("#EI = %d\t#EO = %d\t#Extra Node = %d\n", Vec_IntSize(vEI_spec) , Vec_IntSize(vEO_spec), cnt_extra );
@@ -764,8 +753,10 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     // check boundary has comb loop
     if ( !Bnd_ManCheckExtBound( p, vEI_spec, vEO_spec ) )
     {
+
         printf("Combinational loop exist\n");
         pBnd -> combLoop_spec = 1;
+
     }
 
 
@@ -773,8 +764,6 @@ void Bnd_ManFindBound( Gia_Man_t * p )
     Vec_IntFree(vAI);
     Vec_IntFree(vAO);
 }
-
-
 
 
 /**Function*************************************************************
@@ -788,7 +777,6 @@ void Bnd_ManFindBound( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-
 Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec_Bit_t* vEI_phase, Vec_Bit_t* vEO_phase )
 {
     Gia_Man_t * pNew, * pTemp;
@@ -802,18 +790,6 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
         printf("Combinational loop exist\n");
         pBnd -> combLoop_impl = 1;
         return 0;
-    }
-
-    // detect feedthrough
-    Gia_ManFillValue(p);
-    Vec_IntForEachEntry(vEO, id, i)
-    {
-        Gia_ManObj(p, id) -> Value = 1;
-    }
-    Vec_IntForEachEntry(vEI, id, i)
-    {
-        if ( Gia_ManObj(p, id) -> Value == 1 )
-            pBnd -> feedthrough = 1;
     }
 
     // initialize
@@ -846,7 +822,6 @@ Gia_Man_t* Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec
             Gia_ManObj( p, id ) -> Value ^= 1;
         }
     }
-
 
     // add aig nodes
     Gia_ManForEachAnd(p, pObj, i)
@@ -899,8 +874,7 @@ Gia_Man_t* Bnd_ManGenImplOut( Gia_Man_t* p)
 {
     if ( pBnd -> fVerbose ) printf("Generating impl_out with given boundary.\n");
     Gia_Man_t *pNew = Bnd_ManCutBoundary( p, pBnd->vEI_impl, pBnd->vEO_impl, pBnd->vEI_phase, pBnd->vEO_phase );
-    if ( pNew ) pBnd -> status = 2;
-    else pBnd -> combLoop_impl = 1;
+    if (!pNew) pBnd -> combLoop_impl = 1;
     return pNew;
 }
 
@@ -934,6 +908,17 @@ void Bnd_AddNodeRec( Gia_Man_t *p, Gia_Man_t *pNew, Gia_Obj_t *pObj, int fSkipSt
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description [perform ECO directly (not used)]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPatch )
 {
 
@@ -1056,11 +1041,21 @@ Gia_Man_t* Bnd_ManGenPatched( Gia_Man_t *pOut, Gia_Man_t *pSpec, Gia_Man_t *pPat
     Gia_ManStop( pTemp );
 
     pBnd -> nNode_patched = Gia_ManAndNum( pNew );
-    pBnd -> status = 3;
 
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description [recover bounadry]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t* Bnd_ManGenPatched1( Gia_Man_t *pOut, Gia_Man_t *pSpec )
 {
 
@@ -1142,11 +1137,22 @@ Gia_Man_t* Bnd_ManGenPatched1( Gia_Man_t *pOut, Gia_Man_t *pSpec )
     Gia_ManStop( pTemp );
 
     pBnd -> nNode_patched = Gia_ManAndNum( pNew );
-    pBnd -> status = 3;
 
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description [perform eco with recovered boundary.
+  bnd_man is not used]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t* Bnd_ManGenPatched2( Gia_Man_t *pImpl, Gia_Man_t *pPatch, int fSkipStrash, int fVerbose )
 {
 
@@ -1240,6 +1246,123 @@ Gia_Man_t* Bnd_ManGenPatched2( Gia_Man_t *pImpl, Gia_Man_t *pPatch, int fSkipStr
     Gia_ManStop( pTemp );
 
     return pNew;
+}
+
+
+Gia_Man_t* Bnd_ManStackGias( Gia_Man_t *pSpec, Gia_Man_t *pImpl )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Obj_t * pObj;
+
+    int i, iLit;
+    if ( Gia_ManBufNum(pSpec) == 0 ) {
+        printf( "The spec AIG should have a boundary.\n" );
+        return NULL;
+    }
+    if ( Gia_ManBufNum(pImpl) != 0 ) {
+        printf( "The impl AIG should have no boundary.\n" );
+        return NULL;
+    }
+
+    assert( Gia_ManBufNum(pSpec) > 0 );
+    assert( Gia_ManBufNum(pImpl) == 0 );
+    assert( Gia_ManRegNum(pSpec) == 0 );
+    assert( Gia_ManRegNum(pImpl) == 0 );        
+    assert( Gia_ManCiNum(pSpec) == Gia_ManCiNum(pImpl) );
+    assert( Gia_ManCoNum(pSpec) == Gia_ManCoNum(pImpl) );
+
+    pNew = Gia_ManStart( Gia_ManObjNum(pSpec) + Gia_ManObjNum(pImpl) );
+    pNew->pName = ABC_ALLOC( char, strlen(pSpec->pName) + 10 );
+    sprintf( pNew->pName, "%s_stack", pSpec->pName );
+
+    Gia_ManHashStart( pNew );
+    Gia_ManConst0(pSpec)->Value = 0;
+    Gia_ManConst0(pImpl)->Value = 0;
+
+    for( int i = 0; i < Gia_ManCiNum(pSpec); i++ )
+    {
+        int iLit = Gia_ManCi(pSpec, i)->Value = Gia_ManCi(pImpl, i) -> Value = Gia_ManAppendCi(pNew);
+
+        pObj = Gia_ManCi(pSpec, i);
+        Bnd_ManMap( iLit, Gia_ObjId( pSpec, pObj ), 1 );
+
+        pObj = Gia_ManCi(pImpl, i);
+        Bnd_ManMap( iLit, Gia_ObjId( pImpl, pObj) , 0 );
+    }
+
+    // record the corresponding impl node of each lit
+    Gia_ManForEachAnd( pImpl, pObj, i )
+    {
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( pBnd ) Bnd_ManMap( pObj -> Value, Gia_ObjId(pImpl, pObj), 0 );
+    }
+
+    Vec_Int_t* vFlag = Vec_IntAlloc( Gia_ManObjNum( pSpec ) );
+    Vec_IntFill( vFlag, Gia_ManObjNum(pSpec), 0 );
+    int count = 0;
+    Gia_ManForEachBuf( pSpec, pObj, i )
+    {
+        if ( count < pBnd -> nBI )
+        {
+            // it's BI, don't record buf
+            Vec_IntSetEntry( vFlag,  Gia_ObjId( pSpec, pObj ), 1 );
+        }
+        else
+        {
+            // it's BO, don't record buf's fanin
+            Vec_IntSetEntry( vFlag,  Gia_ObjId( pSpec, Gia_ObjFanin0( pObj ) ), 1 );
+        }
+        count++;
+    }
+
+    // record hashed equivalent nodes
+    Gia_ManForEachAnd( pSpec, pObj, i ) 
+    {
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( Vec_IntEntry( vFlag, Gia_ObjId( pSpec, pObj ) ) == 0 ) 
+        {
+            Bnd_ManMap( pObj -> Value, Gia_ObjId(pSpec, pObj), 1 );
+        }
+    }
+    Vec_IntFree( vFlag );
+
+    Gia_ManForEachCo( pImpl, pObj, i )
+    {
+        iLit = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManForEachCo( pSpec, pObj, i )
+    {
+       iLit = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+
+    // miter
+    // Gia_ManForEachCo( pImpl, pObj, i )
+    // {
+    //     iLit = Gia_ManHashXor( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin0Copy(Gia_ManCo(pSpec,i)) );
+    //     Gia_ManAppendCo( pNew, iLit );
+    // }
+
+
+    Gia_ManHashStop( pNew );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );    
+    return pNew;
+}
+
+int Bnd_ManCheckCoMerged( Gia_Man_t* p )
+{
+    int nCO = Gia_ManCoNum(p)/2;
+    
+    Gia_Obj_t* pObj1;
+    Gia_Obj_t* pObj2;
+
+    for ( int i = 0; i < nCO; i++ )
+    {
+        pObj1 = Gia_ManCo(p, i);
+        pObj2 = Gia_ManCo(p, i + nCO);
+        if ( Gia_ObjFaninLit0p(p, pObj1) != Gia_ObjFaninLit0p(p, pObj2) ) return 0;
+    }
+    return 1;
 }
 
 
