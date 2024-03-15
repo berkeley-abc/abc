@@ -52115,12 +52115,27 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // parse options
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vhCk" ) ) != EOF )
     {
         switch ( c )
         {
         case 'v':
             fVerbose ^= 1;
+            pParsFra->fVerbose ^= 1;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParsFra->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParsFra->nBTLimit < 0 )
+                goto usage;
+            break;
+        case 'k':
+            pParsFra ->fUseCones ^= 1;
             break;
         case 'h':
             goto usage;
@@ -52189,13 +52204,14 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( success )
     {
         // create bmiter, run fraig, record mapping
-        pBmiter = Gia_ManBoundaryMiter( pSpec, pAbc->pGia, 0 );
+        // pBmiter = Gia_ManBoundaryMiter( pSpec, pAbc->pGia, 0 );
+        pBmiter = Bnd_ManStackGias( pSpec, pAbc->pGia );
         pTemp = Cec4_ManSimulateTest( pBmiter, pParsFra );
         Gia_ManStop(pBmiter);
         Gia_ManStop(pTemp);
 
         // find 
-        Bnd_ManFindBound( pSpec );
+        Bnd_ManFindBound( pSpec, pAbc->pGia );
 
         // create spec_out and 
         pSpec_out = Bnd_ManGenSpecOut( pSpec );

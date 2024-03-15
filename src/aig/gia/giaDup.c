@@ -5712,10 +5712,10 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
         int iLit = Gia_ManCi(p1, i)->Value = Gia_ManCi(p2, i) -> Value = Gia_ManAppendCi(pNew);
 
         pObj = Gia_ManCi(p1, i);
-        Bnd_ManMap( iLit, Gia_ObjId( p1, pObj ), 1 );
+        if ( pBnd ) Bnd_ManMap( iLit, Gia_ObjId( p1, pObj ), 1 );
 
         pObj = Gia_ManCi(p2, i);
-        Bnd_ManMap( iLit, Gia_ObjId( p2, pObj) , 0 );
+        if ( pBnd ) Bnd_ManMap( iLit, Gia_ObjId( p2, pObj) , 0 );
 
     }
 
@@ -5723,14 +5723,14 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
     Gia_ManForEachAnd( p2, pObj, i )
     {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        Bnd_ManMap( pObj -> Value, Gia_ObjId(p2, pObj), 0 );
+        if ( pBnd ) Bnd_ManMap( pObj -> Value, Gia_ObjId(p2, pObj), 0 );
     }
 
     // record hashed equivalent nodes
     Gia_ManForEachAnd( p1, pObj, i ) 
     {
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-        Bnd_ManMap( pObj -> Value, Gia_ObjId(p1, pObj), 1 );
+        if ( pBnd ) Bnd_ManMap( pObj -> Value, Gia_ObjId(p1, pObj), 1 );
     }
 
     Gia_ManForEachCo( p2, pObj, i )
@@ -5741,6 +5741,7 @@ Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose )
     {
        iLit = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
+
     // Vec_IntForEachEntry( vLits, iLit, i )
         // Gia_ManAppendCo( pNew, iLit );
     // Vec_IntFree( vLits );
