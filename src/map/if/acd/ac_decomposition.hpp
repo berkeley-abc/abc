@@ -58,7 +58,7 @@ struct ac_decomposition_params
   bool support_reducing_only{ true };
 
   /*! \brief Use the first feasible decomposition found. */
-  bool use_first{ true };
+  bool use_first{ false };
 
   /*! \brief If decomposition with delay profile fails, try without. */
   bool try_no_late_arrival{ false };
@@ -90,7 +90,7 @@ private:
   };
 
 private:
-  static constexpr uint32_t max_num_vars = 10;
+  static constexpr uint32_t max_num_vars = 11;
   using STT = kitty::static_truth_table<max_num_vars>;
 
 public:
@@ -110,6 +110,16 @@ public:
     }
 
     uint32_t late_arriving = __builtin_popcount( delay_profile );
+
+    /* relax maximum number of free set variables if a function has more variables */
+    if ( num_vars > ps.max_free_set_vars + ps.lut_size )
+    {
+      ps.max_free_set_vars = num_vars - ps.lut_size;
+    }
+    if ( late_arriving > ps.max_free_set_vars )
+    {
+      ps.max_free_set_vars = late_arriving;
+    }
 
     /* return a high cost if too many late arriving variables */
     if ( late_arriving > ps.lut_size - 1 || late_arriving > ps.max_free_set_vars )
@@ -203,9 +213,11 @@ private:
         [this]( STT const& tt ) { return column_multiplicity5<5u>( tt ); } };
 
     /* find a feasible AC decomposition */
+    // for ( uint32_t i = std::min( ps.lut_size - 1, ps.max_free_set_vars); i >= start; --i )
     for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
     {
-      auto [tt_p, perm, multiplicity] = enumerate_iset_combinations_offset( i, offset, column_multiplicity_fn[i - 1] );
+      auto ret_tuple = enumerate_iset_combinations( i, offset, column_multiplicity_fn[i - 1] );
+      uint32_t multiplicity = std::get<2>( ret_tuple );
 
       /* additional cost if not support reducing */
       uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
@@ -213,24 +225,26 @@ private:
       /* check for feasible solution that improves the cost */
       if ( multiplicity <= ( 1 << ( ps.lut_size - i ) ) && multiplicity + additional_cost < best_cost && multiplicity <= 16 )
       {
-        best_tt = tt_p;
-        permutations = perm;
+        best_tt = std::get<0>( ret_tuple );
+        permutations = std::get<1>( ret_tuple );
         best_multiplicity = multiplicity;
         best_cost = multiplicity + additional_cost;
         best_free_set = i;
 
-        if ( ps.use_first )
+        if ( !ps.use_first )
         {
-          break;
+          continue;
         }
       }
+
+      break;
     }
 
     if ( best_multiplicity == UINT32_MAX && ( !ps.try_no_late_arrival || late_arriving == 0 ) )
       return false;
 
     /* try without the delay profile */
-    if ( best_multiplicity == UINT32_MAX && ps.try_no_late_arrival )
+    if ( best_multiplicity == UINT32_MAX )
     {
       delay_profile = 0;
       if ( ps.support_reducing_only )
@@ -240,7 +254,8 @@ private:
 
       for ( uint32_t i = start; i <= ps.lut_size - 1 && i <= ps.max_free_set_vars; ++i )
       {
-        auto [tt_p, perm, multiplicity] = enumerate_iset_combinations_offset( i, 0, column_multiplicity_fn[i - 1] );
+        auto ret_tuple = enumerate_iset_combinations( i, 0, column_multiplicity_fn[i - 1] );
+        uint32_t multiplicity = std::get<2>( ret_tuple );
 
         /* additional cost if not support reducing */
         uint32_t additional_cost = ( num_vars - i > ps.lut_size ) ? 128 : 0;
@@ -248,17 +263,19 @@ private:
         /* check for feasible solution that improves the cost */
         if ( multiplicity <= ( 1 << ( ps.lut_size - i ) ) && multiplicity + additional_cost < best_cost && multiplicity <= 16 )
         {
-          best_tt = tt_p;
-          permutations = perm;
+          best_tt = std::get<0>( ret_tuple );
+          permutations = std::get<1>( ret_tuple );
           best_multiplicity = multiplicity;
           best_cost = multiplicity + additional_cost;
           best_free_set = i;
 
-          if ( ps.use_first )
+          if ( !ps.use_first )
           {
-            break;
+            continue;
           }
         }
+
+        break;
       }
     }
 
@@ -285,11 +302,11 @@ private:
       best_tt._bits[i] = ptt[i];
     }
 
-    local_extend_to( best_tt, num_vars );
+    // local_extend_to( best_tt, num_vars );
   }
 
   template<uint32_t free_set_size>
-  uint32_t column_multiplicity( STT tt )
+  uint32_t column_multiplicity( STT const& tt )
   {
     uint64_t multiplicity_set[4] = { 0u, 0u, 0u, 0u };
     uint32_t multiplicity = 0;
@@ -298,23 +315,22 @@ private:
     uint64_t constexpr masks_idx[] = { 0x0, 0x0, 0x0, 0x3 };
 
     /* supports up to 64 values of free set (256 for |FS| == 3)*/
-    static_assert( free_set_size <= 3 );
+    static_assert( free_set_size <= 3, "Wrong free set size for method used, expected le 3" );
 
     /* extract iset functions */
-    auto it = std::begin( tt );
     for ( auto i = 0u; i < num_blocks; ++i )
     {
+      uint64_t cof = tt._bits[i];
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        multiplicity_set[( *it >> 6 ) & masks_idx[free_set_size]] |= UINT64_C( 1 ) << ( *it & masks_bits[free_set_size] );
-        *it >>= ( 1u << free_set_size );
+        multiplicity_set[( cof >> 6 ) & masks_idx[free_set_size]] |= UINT64_C( 1 ) << ( cof & masks_bits[free_set_size] );
+        cof >>= ( 1u << free_set_size );
       }
-      ++it;
     }
 
     multiplicity = __builtin_popcountl( multiplicity_set[0] );
 
-    if constexpr ( free_set_size == 3 )
+    if ( free_set_size == 3 )
     {
       multiplicity += __builtin_popcountl( multiplicity_set[1] );
       multiplicity += __builtin_popcountl( multiplicity_set[2] );
@@ -325,32 +341,31 @@ private:
   }
 
   template<uint32_t free_set_size>
-  uint32_t column_multiplicity5( STT tt )
+  uint32_t column_multiplicity5( STT const& tt )
   {
     uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
     uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF };
 
-    static_assert( free_set_size == 5 || free_set_size == 4 );
+    static_assert( free_set_size == 5 || free_set_size == 4, "Wrong free set size for method used, expected of 4 or 5" );
 
     uint32_t size = 0;
     uint64_t prev = -1;
     std::array<uint32_t, 64> multiplicity_set;
 
     /* extract iset functions */
-    auto it = std::begin( tt );
     for ( auto i = 0u; i < num_blocks; ++i )
     {
+      uint64_t cof = tt._bits[i];
       for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
       {
-        uint64_t fs_fn = *it & masks[free_set_size];
+        uint64_t fs_fn = cof & masks[free_set_size];
         if ( fs_fn != prev )
         {
           multiplicity_set[size++] = static_cast<uint32_t>( fs_fn );
           prev = fs_fn;
         }
-        *it >>= ( 1u << free_set_size );
+        cof >>= ( 1u << free_set_size );
       }
-      ++it;
     }
 
     std::sort( multiplicity_set.begin(), multiplicity_set.begin() + size );
@@ -363,6 +378,40 @@ private:
     }
 
     return multiplicity;
+  }
+
+  uint32_t column_multiplicity2( STT const& tt, uint32_t free_set_size )
+  {
+    assert( free_set_size <= 5 );
+
+    uint32_t const num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
+    uint64_t const shift = UINT64_C( 1 ) << free_set_size;
+    uint64_t const mask = ( UINT64_C( 1 ) << shift ) - 1;
+    uint32_t cofactors[4];
+    uint32_t size = 0;
+
+    /* extract iset functions */
+    for ( auto i = 0u; i < num_blocks; ++i )
+    {
+      uint64_t sub = tt._bits[i];
+      for ( auto j = 0; j < ( 64 >> free_set_size ); ++j )
+      {
+        uint32_t fs_fn = static_cast<uint32_t>( sub & mask );
+        uint32_t k;
+        for ( k = 0; k < size; ++k )
+        {
+          if ( fs_fn == cofactors[k] )
+            break;
+        }
+        if ( k == 2 )
+          return 3;
+        if ( k == size )
+          cofactors[size++] = fs_fn;
+        sub >>= shift;
+      }
+    }
+
+    return size;
   }
 
   inline bool combinations_offset_next( uint32_t k, uint32_t offset, uint32_t* pComb, uint32_t* pInvPerm, STT& tt )
@@ -380,7 +429,7 @@ private:
     uint32_t pos_new = pInvPerm[var_old + 1];
     std::swap( pInvPerm[var_old + 1], pInvPerm[var_old] );
     std::swap( pComb[i], pComb[pos_new] );
-    kitty::swap_inplace( tt, i, pos_new );
+    swap_inplace_local( tt, i, pos_new );
 
     for ( uint32_t j = i + 1; j < k; j++ )
     {
@@ -388,20 +437,20 @@ private:
       pos_new = pInvPerm[pComb[j - 1] + 1];
       std::swap( pInvPerm[pComb[j - 1] + 1], pInvPerm[var_old] );
       std::swap( pComb[j], pComb[pos_new] );
-      kitty::swap_inplace( tt, j, pos_new );
+      swap_inplace_local( tt, j, pos_new );
     }
 
     return true;
   }
 
   template<typename Fn>
-  std::tuple<STT, std::array<uint32_t, max_num_vars>, uint32_t> enumerate_iset_combinations_offset( uint32_t free_set_size, uint32_t offset, Fn&& fn )
+  std::tuple<STT, std::array<uint32_t, max_num_vars>, uint32_t> enumerate_iset_combinations( uint32_t free_set_size, uint32_t offset, Fn&& fn )
   {
     STT tt = best_tt;
 
     /* TT with best cost */
-    STT best_tt = tt;
-    uint32_t best_cost = UINT32_MAX;
+    STT local_best_tt = tt;
+    uint32_t best_cost = ( 1 << ( ps.lut_size - free_set_size ) ) + 1;
 
     assert( free_set_size >= offset );
 
@@ -414,6 +463,12 @@ private:
 
     /* works up to 16 input truth tables */
     assert( num_vars <= 16 );
+
+    /* Search for column multiplicity of 2 */
+    if ( free_set_size == ps.lut_size - 1 )
+    {
+      return enumerate_iset_combinations2( free_set_size, offset );
+    }
 
     /* init combinations */
     uint32_t pComb[16], pInvPerm[16], bestPerm[16];
@@ -428,7 +483,7 @@ private:
       uint32_t cost = fn( tt );
       if ( cost < best_cost )
       {
-        best_tt = tt;
+        local_best_tt = tt;
         best_cost = cost;
         for ( uint32_t i = 0; i < num_vars; ++i )
         {
@@ -438,12 +493,56 @@ private:
     } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
     std::array<uint32_t, max_num_vars> res_perm;
+    
+    if ( best_cost > ( 1 << ( ps.lut_size - free_set_size ) ) )
+    {
+      return std::make_tuple( local_best_tt, res_perm, UINT32_MAX );
+    }
+
     for ( uint32_t i = 0; i < num_vars; ++i )
     {
       res_perm[i] = permutations[bestPerm[i]];
     }
 
-    return std::make_tuple( best_tt, res_perm, best_cost );
+    return std::make_tuple( local_best_tt, res_perm, best_cost );
+  }
+
+  inline std::tuple<STT, std::array<uint32_t, max_num_vars>, uint32_t> enumerate_iset_combinations2( uint32_t free_set_size, uint32_t offset )
+  {
+    STT tt = best_tt;
+
+    /* TT with best cost */
+    STT local_best_tt = tt;
+    uint32_t best_cost = ( 1 << ( ps.lut_size - free_set_size ) ) + 1;
+
+    assert( free_set_size >= offset );
+
+    /* init combinations */
+    uint32_t pComb[16], pInvPerm[16];
+    for ( uint32_t i = 0; i < num_vars; ++i )
+    {
+      pComb[i] = pInvPerm[i] = i;
+    }
+
+    /* enumerate combinations */
+    std::array<uint32_t, max_num_vars> res_perm;
+
+    do
+    {
+      uint32_t cost = column_multiplicity2( tt, free_set_size );
+      if ( cost <= 2 )
+      {
+        local_best_tt = tt;
+        best_cost = cost;
+        for ( uint32_t i = 0; i < num_vars; ++i )
+        {
+          res_perm[i] = permutations[pComb[i]];
+        }
+        return std::make_tuple( local_best_tt, res_perm, best_cost );
+      }
+    } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
+
+    return std::make_tuple( local_best_tt, res_perm, UINT32_MAX );
   }
 
   std::vector<STT> compute_isets( bool verbose = false )
@@ -466,7 +565,8 @@ private:
       {
         uint64_t val = *it & masks[best_free_set];
 
-        if ( auto el = column_to_iset.find( val ); el != column_to_iset.end() )
+        auto el = column_to_iset.find( val );
+        if ( el != column_to_iset.end() )
         {
           isets[el->second]._bits[i / ( 1u << best_free_set )] |= UINT64_C( 1 ) << ( j + offset );
         }
@@ -479,7 +579,7 @@ private:
         *it >>= ( 1u << best_free_set );
       }
 
-      offset = ( offset + ( 64 >> best_free_set ) ) % 64;
+      offset = ( offset + ( 64 >> best_free_set ) ) & 0x3F;
       ++it;
     }
 
@@ -650,7 +750,7 @@ private:
       }
 
       std::swap( permutations[i], permutations[k] );
-      kitty::swap_inplace( best_tt, i, k );
+      swap_inplace_local( best_tt, i, k );
       ++k;
     }
   }
@@ -709,7 +809,7 @@ private:
   {
     if ( var == best_multiplicity )
     {
-      if constexpr ( !enable_dcset )
+      if ( !enable_dcset )
       {
         /* sets must be equally populated */
         if ( __builtin_popcount( onset ) != __builtin_popcount( offset ) )
@@ -725,7 +825,7 @@ private:
     }
 
     /* var in DCSET */
-    if constexpr ( enable_dcset )
+    if ( enable_dcset )
     {
       generate_support_minimization_encodings_rec<enable_dcset>( onset, offset, var + 1, count );
     }
@@ -953,7 +1053,7 @@ private:
         cost = 0;
 
       float sort_cost = 0;
-      if constexpr ( UseHeuristic )
+      if ( UseHeuristic )
       {
         sort_cost = 1.0f / ( __builtin_popcountl( column[0] ) + __builtin_popcountl( column[1] ) );
       }
@@ -971,15 +1071,15 @@ private:
       return true;
     }
 
-    if constexpr ( UseHeuristic )
+    if ( UseHeuristic )
     {
-      std::sort( matrix.begin(), matrix.end(), [&]( auto const& a, auto const& b ) {
+      std::sort( matrix.begin(), matrix.end(), [&]( encoding_column const& a, encoding_column const& b ) {
         return a.cost < b.cost;
       } );
     }
     else
     {
-      std::sort( matrix.begin(), matrix.end(), [&]( auto const& a, auto const& b ) {
+      std::sort( matrix.begin(), matrix.end(), [&]( encoding_column const& a, encoding_column const& b ) {
         return a.sort_cost < b.sort_cost;
       } );
     }
@@ -1231,6 +1331,66 @@ private:
     return false;
   }
 
+  void swap_inplace_local( STT& tt, uint8_t var_index1, uint8_t var_index2 )
+  {
+    if ( var_index1 == var_index2 )
+    {
+      return;
+    }
+
+    if ( var_index1 > var_index2 )
+    {
+      std::swap( var_index1, var_index2 );
+    }
+
+    assert( num_vars > 6 );
+    const uint32_t num_blocks = 1 << ( num_vars - 6 );
+
+    if ( var_index2 <= 5 )
+    {
+      const auto& pmask = kitty::detail::ppermutation_masks[var_index1][var_index2];
+      const auto shift = ( 1 << var_index2 ) - ( 1 << var_index1 );
+      std::transform( std::begin( tt._bits ), std::begin( tt._bits ) + num_blocks, std::begin( tt._bits ),
+                      [shift, &pmask]( uint64_t word ) {
+                        return ( word & pmask[0] ) | ( ( word & pmask[1] ) << shift ) | ( ( word & pmask[2] ) >> shift );
+                      } );
+    }
+    else if ( var_index1 <= 5 ) /* in this case, var_index2 > 5 */
+    {
+      const auto step = 1 << ( var_index2 - 6 );
+      const auto shift = 1 << var_index1;
+      auto it = std::begin( tt._bits );
+      while ( it != std::begin( tt._bits ) + num_blocks )
+      {
+        for ( auto i = decltype( step ){ 0 }; i < step; ++i )
+        {
+          const auto low_to_high = ( *( it + i ) & kitty::detail::projections[var_index1] ) >> shift;
+          const auto high_to_low = ( *( it + i + step ) << shift ) & kitty::detail::projections[var_index1];
+          *( it + i ) = ( *( it + i ) & ~kitty::detail::projections[var_index1] ) | high_to_low;
+          *( it + i + step ) = ( *( it + i + step ) & kitty::detail::projections[var_index1] ) | low_to_high;
+        }
+        it += 2 * step;
+      }
+    }
+    else
+    {
+      const auto step1 = 1 << ( var_index1 - 6 );
+      const auto step2 = 1 << ( var_index2 - 6 );
+      auto it = std::begin( tt._bits );
+      while ( it != std::begin( tt._bits ) + num_blocks )
+      {
+        for ( auto i = 0; i < step2; i += 2 * step1 )
+        {
+          for ( auto j = 0; j < step1; ++j )
+          {
+            std::swap( *( it + i + j + step1 ), *( it + i + j + step2 ) );
+          }
+        }
+        it += 2 * step2;
+      }
+    }
+  }
+
   /* Decomposition format for ABC
    *
    * The record is an array of unsigned chars where:
@@ -1298,7 +1458,7 @@ private:
   std::vector<std::array<uint32_t, 2>> support_minimization_encodings;
 
   uint32_t num_vars;
-  ac_decomposition_params const& ps;
+  ac_decomposition_params ps;
   ac_decomposition_stats* pst;
   std::array<uint32_t, max_num_vars> permutations;
 };
