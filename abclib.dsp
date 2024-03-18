@@ -3591,6 +3591,10 @@ SOURCE=.\src\map\if\ifTune.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\acd\ac_wrapper.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifUtil.c
 # End Source File
 # End Group
