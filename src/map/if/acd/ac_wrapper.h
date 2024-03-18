@@ -23,6 +23,7 @@
 #ifdef _MSC_VER
 #  include <intrin.h>
 #  define __builtin_popcount __popcnt
+#  define __builtin_popcountl __popcnt64
 #endif
 
 #include "misc/util/abc_global.h"
