@@ -23,11 +23,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <signal.h>
 #include "misc/zlib/zlib.h"
 
-#include "System.h"
-#include "ParseUtils.h"
-#include "Options.h"
-#include "Dimacs.h"
-#include "Solver.h"
+#include "sat/bsat2/System.h"
+#include "sat/bsat2/ParseUtils.h"
+#include "sat/bsat2/Options.h"
+#include "sat/bsat2/Dimacs.h"
+#include "sat/bsat2/Solver.h"
+
+ABC_NAMESPACE_IMPL_START
 
 using namespace Minisat;
 
@@ -195,3 +197,6 @@ extern "C" int MainSat(int argc, char** argv)
         exit(0);
     }
 }
+
+
+ABC_NAMESPACE_IMPL_END

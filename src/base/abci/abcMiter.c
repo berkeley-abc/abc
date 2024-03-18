@@ -789,6 +789,7 @@ Abc_Ntk_t * Abc_NtkFrames( Abc_Ntk_t * pNtk, int nFrames, int fInitial, int fVer
     pNtkFrames->pName = Extra_UtilStrsav(Buffer);
     // map the constant nodes
     Abc_AigConst1(pNtk)->pCopy = Abc_AigConst1(pNtkFrames);
+    
     // create new latches (or their initial values) and remember them in the new latches
     if ( !fInitial )
     {

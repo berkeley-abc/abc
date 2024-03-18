@@ -120,6 +120,8 @@ struct Cec_ParFra_t_
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
     int              iOutFail;      // the failed output
+    int              fBMiterInfo;   // printing BMiter information
+    int              nPO;           // number of po in original design given a bmiter
 };
 
 // combinational equivalence checking parameters

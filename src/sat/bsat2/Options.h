@@ -25,9 +25,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <math.h>
 #include <string.h>
 
-#include "IntTypes.h"
-#include "Vec.h"
-#include "ParseUtils.h"
+#include "sat/bsat2/IntTypes.h"
+#include "sat/bsat2/Vec.h"
+#include "sat/bsat2/ParseUtils.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace Minisat {
 
@@ -60,7 +62,7 @@ class Option
     struct OptionLt {
         bool operator()(const Option* x, const Option* y) {
             int test1 = strcmp(x->category, y->category);
-            return test1 < 0 || test1 == 0 && strcmp(x->type_name, y->type_name) < 0;
+            return test1 < 0 || ( test1 == 0 && strcmp(x->type_name, y->type_name) < 0 );
         }
     };
 
@@ -383,5 +385,7 @@ class BoolOption : public Option
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

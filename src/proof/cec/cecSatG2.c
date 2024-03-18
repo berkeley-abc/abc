@@ -219,6 +219,7 @@ void Cec4_ManSetParams( Cec_ParFra_t * pPars )
     pPars->nSatVarMax     =    1000;    // the max number of SAT variables before recycling SAT solver
     pPars->nCallsRecycle  =     500;    // calls to perform before recycling SAT solver
     pPars->nGenIters      =     100;    // pattern generation iterations
+    pPars->fBMiterInfo    =       0;    // printing BMiter information
 }
 
 /**Function*************************************************************
@@ -1781,8 +1782,10 @@ void Gia_ManRemoveWrongChoices( Gia_Man_t * p )
     }
     //Abc_Print( 1, "Removed %d wrong choices.\n", Counter );
 }
+
 int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** ppNew, int fSimOnly )
 {
+
     Cec4_Man_t * pMan = Cec4_ManCreate( p, pPars ); 
     Gia_Obj_t * pObj, * pRepr; 
     int i, fSimulate = 1;
@@ -1878,8 +1881,16 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
             if ( pRepr == NULL )
                 continue;
         }
+        int id_obj = Gia_ObjId( p, pObj );
+        int id_repr = Gia_ObjId( p, pRepr );
+
         if ( Abc_Lit2Var(pObj->Value) == Abc_Lit2Var(pRepr->Value) )
         {
+            if ( pPars->fBMiterInfo ) 
+            {
+                Bnd_ManMerge( id_repr, id_obj, pObj->fPhase ^ pRepr->fPhase );
+            }
+
             assert( (pObj->Value ^ pRepr->Value) == (pObj->fPhase ^ pRepr->fPhase) );
             Gia_ObjSetProved( p, i );
             if ( Gia_ObjId(p, pRepr) == 0 )
@@ -1887,8 +1898,26 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
             continue;
         }
         if ( Cec4_ManSweepNode(pMan, i, Gia_ObjId(p, pRepr)) && Gia_ObjProved(p, i) )
+        {
+            if (pPars->fBMiterInfo){
+
+                Bnd_ManMerge( id_repr, id_obj, pObj->fPhase ^ pRepr->fPhase );
+                // printf( "proven %d merged into %d (phase : %d)\n", Gia_ObjId(p, pObj), Gia_ObjId(p,pRepr), pObj->fPhase ^ pRepr -> fPhase );
+
+            }
             pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
+
+
+        }
     }
+    
+    if ( pPars->fBMiterInfo )
+    {
+        // print
+        Bnd_ManFinalizeMappings();
+        // Bnd_ManPrintMappings();
+    }
+
     if ( p->iPatsPi > 0 )
     {
         abctime clk2 = Abc_Clock();
@@ -1937,6 +1966,7 @@ Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
 {
     Gia_Man_t * pNew = NULL;
     Cec4_ManPerformSweeping( p, pPars, &pNew, 0 );
+
     return pNew;
 }
 void Cec4_ManSimulateTest2( Gia_Man_t * p, int nConfs, int fVerbose )

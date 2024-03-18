@@ -21,7 +21,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Minisat_Alg_h
 #define Minisat_Alg_h
 
-#include "Vec.h"
+#include "sat/bsat2/Vec.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace Minisat {
 
@@ -80,5 +82,7 @@ static inline void append(const vec<T>& from, vec<T>& to){ copy(from, to, true);
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

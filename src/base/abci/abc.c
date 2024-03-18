@@ -219,6 +219,7 @@ static int Abc_CommandInter                  ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandBb2Wb                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOutdec                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandNodeDup                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandWrap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestColor              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTest                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -599,6 +600,8 @@ static int Abc_CommandAbc9ProdAdd            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9BRecover           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -996,6 +999,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "bb2wb",         Abc_CommandBb2Wb,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "outdec",        Abc_CommandOutdec,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "nodedup",       Abc_CommandNodeDup,          1 );
+    Cmd_CommandAdd( pAbc, "Various",      "wrap",          Abc_CommandWrap,             0 );
     Cmd_CommandAdd( pAbc, "Various",      "testcolor",     Abc_CommandTestColor,        0 );
     Cmd_CommandAdd( pAbc, "Various",      "test",          Abc_CommandTest,             0 );
 //    Cmd_CommandAdd( pAbc, "Various",      "qbf_solve",     Abc_CommandTest,               0 );
@@ -1380,6 +1384,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&addflop",      Abc_CommandAbc9AddFlop,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&brecover",     Abc_CommandAbc9BRecover,               0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&str_eco",      Abc_CommandAbc9StrEco,                 0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -14457,6 +14463,67 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandWrap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    char * pFileName = NULL, * pFileName2 = NULL;
+    FILE * pFile = NULL, * pFile2 = NULL;
+    int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 2 )
+    {
+        Abc_Print( 1,"Two file names are expected on the command line.\n" );
+        return 0;
+    }
+    pFileName  = argv[globalUtilOptind];
+    pFileName2 = argv[globalUtilOptind+1];
+    pFile  = fopen( pFileName, "rb" );
+    pFile2 = fopen( pFileName2, "wb" );
+    if ( pFile && pFile2 )
+    {
+        char Buffer[1000];
+        while ( fgets( Buffer, 1000, pFile ) != NULL )
+        {
+            if ( Buffer[strlen(Buffer)-1] == '\n' )
+                Buffer[strlen(Buffer)-1] = 0;            
+            if ( Buffer[strlen(Buffer)-1] == '\r' )
+                Buffer[strlen(Buffer)-1] = 0;
+            fprintf( pFile2, "  printf(\"%s\\n\");\n", Buffer );
+        }
+    }
+    if ( pFile  ) fclose(pFile);   
+    if ( pFile2 ) fclose(pFile2);   
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: wrap [-h] <file> <file2>\n" );
+    Abc_Print( -2, "\t           wrapping lines\n" );
+    Abc_Print( -2, "\t<file>   : input text file\n");
+    Abc_Print( -2, "\t<file2>  : output text file\n");    
+    return 1;
+
 }
 
 /**Function*************************************************************
@@ -32081,8 +32148,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pFileName;
     char ** pArgvNew;
     int c, nArgcNew;
-    int fUnique = 0;
+    int fUnique  = 0;
     int fVerilog = 0;
+    int fVerNand = 0;
     int fInter   = 0;
     int fInterComb = 0;
     int fAssign  = 0;
@@ -32094,7 +32162,7 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSkipComment = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "upicabmlnrsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "upqicabmlnrsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -32103,6 +32171,9 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'p':
             fVerilog ^= 1;
+            break;
+        case 'q':
+            fVerNand ^= 1;
             break;
         case 'i':
             fInter ^= 1;
@@ -32159,6 +32230,8 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_AigerWriteSimple( pGia, pFileName );
         Gia_ManStop( pGia );
     }
+    else if ( fVerNand )
+        Gia_ManDumpVerilogNand( pAbc->pGia, pFileName );
     else if ( fVerilog )
         Gia_ManDumpVerilog( pAbc->pGia, pFileName, NULL, fVerBufs, fInter, fInterComb, fAssign, fReverse );
     else if ( fMiniAig )
@@ -32170,10 +32243,11 @@ int Abc_CommandAbc9Write( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &w [-upicabmlnrsvh] <file>\n" );
+    Abc_Print( -2, "usage: &w [-upqicabmlnsvh] <file>\n" );
     Abc_Print( -2, "\t         writes the current AIG into the AIGER file\n" );
     Abc_Print( -2, "\t-u     : toggle writing canonical AIG structure [default = %s]\n", fUnique? "yes" : "no" );
     Abc_Print( -2, "\t-p     : toggle writing Verilog with 'and' and 'not' [default = %s]\n", fVerilog? "yes" : "no" );
+    Abc_Print( -2, "\t-q     : toggle writing Verilog with NAND-gates [default = %s]\n", fVerNand? "yes" : "no" );
     Abc_Print( -2, "\t-i     : toggle writing the interface module in Verilog [default = %s]\n", fInter? "yes" : "no" );
     Abc_Print( -2, "\t-c     : toggle writing the interface module in Verilog [default = %s]\n", fInterComb? "yes" : "no" );
     Abc_Print( -2, "\t-a     : toggle writing the interface module with assign-statements [default = %s]\n", fAssign? "yes" : "no" );
@@ -32181,7 +32255,7 @@ usage:
     Abc_Print( -2, "\t-m     : toggle writing MiniAIG rather than AIGER [default = %s]\n", fMiniAig? "yes" : "no" );
     Abc_Print( -2, "\t-l     : toggle writing MiniLUT rather than AIGER [default = %s]\n", fMiniLut? "yes" : "no" );
     Abc_Print( -2, "\t-n     : toggle writing \'\\n\' after \'c\' in the AIGER file [default = %s]\n", fWriteNewLine? "yes": "no" );
-    Abc_Print( -2, "\t-r     : toggle reversing the order of input/output bits [default = %s]\n", fReverse? "yes": "no" );    
+    //Abc_Print( -2, "\t-r     : toggle reversing the order of input/output bits [default = %s]\n", fReverse? "yes": "no" );    
     Abc_Print( -2, "\t-s     : toggle skipping the timestamp in the output file [default = %s]\n", fSkipComment? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -34423,11 +34497,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, fOutputs = 0, nWords = 4, fTruth = 0, fVerbose = 0;
+    int c, fOutputs = 0, nWords = 4, fTruth = 0, fReverse = 0, fVerbose = 0;
     char ** pArgvNew;
     int nArgcNew;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Wtovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Wtrovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -34445,6 +34519,9 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 't':
             fTruth ^= 1;
             break;
+        case 'r':
+            fReverse ^= 1;
+            break;            
         case 'o':
             fOutputs ^= 1;
             break;
@@ -34475,7 +34552,7 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         Vec_WrdFreeP( &pAbc->pGia->vSimsPi );
-        pAbc->pGia->vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(pAbc->pGia) );
+        pAbc->pGia->vSimsPi = fReverse ? Vec_WrdStartTruthTablesRev( Gia_ManCiNum(pAbc->pGia) ) : Vec_WrdStartTruthTables( Gia_ManCiNum(pAbc->pGia) );
         Vec_WrdFreeP( &pAbc->pGia->vSimsPo );
         pAbc->pGia->vSimsPo = Gia_ManSimPatSimOut( pAbc->pGia, pAbc->pGia->vSimsPi, 1 );
         return 0;
@@ -34518,10 +34595,11 @@ int Abc_CommandAbc9ReadSim( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sim_read [-W num] [-tovh] <file>\n" );
+    Abc_Print( -2, "usage: &sim_read [-W num] [-trovh] <file>\n" );
     Abc_Print( -2, "\t         reads simulation patterns from file\n" );
     Abc_Print( -2, "\t-W num : the number of words to simulate [default = %d]\n", nWords );
     Abc_Print( -2, "\t-t     : toggle creating exhaustive simulation info [default = %s]\n", fTruth? "yes": "no" );
+    Abc_Print( -2, "\t-r     : toggle reversing MSB and LSB input variables [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggle reading output information [default = %s]\n", fOutputs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
@@ -38081,7 +38159,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCbs = 1, approxLim = 600, subBatchSz = 1, adaRecycle = 500, nMaxNodes = 0;
     Cec4_ManSetParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPMrmdckngxysopwvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPMrmdckngxysopwqvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -38234,6 +38312,9 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'w':
             pPars->fVeryVerbose ^= 1;
             break;
+        case 'q':
+            pPars->fBMiterInfo ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -38298,6 +38379,7 @@ usage:
     Abc_Print( -2, "\t-o     : toggle using the old SAT sweeper [default = %s]\n", fUseIvy? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle trying to prove when running the old SAT sweeper [default = %s]\n", fUseProve? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing even more verbose information [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-q     : toggle printing additional information for boundary miters [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
@@ -51961,11 +52043,21 @@ int Abc_CommandAbc9BMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * FileName = NULL;
     FILE * pFile = NULL;
     int c, fVerbose = 0;
+    int bi  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    // TODO: use a flag to block Bnd_Man
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            bi = atoi(argv[globalUtilOptind++]);
+            break;    
         case 'v':
             fVerbose ^= 1;
             break;
@@ -52010,8 +52102,9 @@ int Abc_CommandAbc9BMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &bmiter [-vh] <file>\n" );
+    Abc_Print( -2, "usage: &bmiter -I <biNum> [-vh] <file>\n" );
     Abc_Print( -2, "\t         creates the boundary miter\n" );
+    Abc_Print( -2, "\t-I <biNum>:   number of boundary inputs\n" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the implementation file\n");    
@@ -52078,6 +52171,360 @@ usage:
     Abc_Print( -2, "\t            (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
     return 1;}
 
+extern Bnd_Man_t* pBnd;
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
+    extern void Cec4_ManSetParams( Cec_ParFra_t * pPars );
+    extern Gia_Man_t * Gia_ManBoundaryMiter( Gia_Man_t * p1, Gia_Man_t * p2, int fVerbose );
+    Gia_Man_t *pSpec, *pImpl_out = 0, *pSpec_out = 0, *pMiter, *pPatched = 0, *pTemp, *pBmiter;
+    char * FileName = NULL;
+    FILE * pFile = NULL;
+    int c, fVerbose = 0, success = 1, fEq = 1, fEqOut = 1;
+
+    // params
+    Gps_Par_t Pars, * pPars = &Pars;
+    memset( pPars, 0, sizeof(Gps_Par_t) );
+    Cec_ParCec_t ParsCec, *pParsCec = &ParsCec;
+    Cec_ManCecSetDefaultParams( pParsCec );
+    Cec_ParFra_t ParsFra, *pParsFra = &ParsFra;
+    Cec4_ManSetParams( pParsFra );
+    pParsFra -> fBMiterInfo = 1;
+
+    // parse options
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vhCkeo" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            pParsFra->fVerbose ^= 1;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pParsFra->nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pParsFra->nBTLimit < 0 )
+                goto usage;
+            break;
+        case 'k':
+            pParsFra ->fUseCones ^= 1;
+            break;
+        case 'e':
+            fEq ^= 1;
+            break;
+        case 'o':
+            fEqOut ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BRecover(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        printf("%d\n", argc-globalUtilOptind);
+        Abc_Print( -1, "Abc_CommandAbc9BRecover(): AIG should be given on the command line.\n" );
+        return 0;
+    }
+
+    // read spec
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", ".blif", ".pla", ".eqn", ".bench" )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    pSpec = Gia_AigerRead( FileName, 0, 1, 0 );
+    if ( pSpec == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BRecover(): Cannot read the file name on the command line.\n" );
+        return 0;
+    }    
+    if ( Gia_ManBufNum(pSpec) == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BRecover(): The given spec should be hierarchical.\n" );
+        Gia_ManStop(pSpec);
+        return 0;
+    }    
+
+    // start boundary manager
+    pBnd = Bnd_ManStart( pSpec, pAbc->pGia, fVerbose );
+
+    // check boundary
+    if ( 0 == Bnd_ManCheckBound( pSpec, fVerbose ) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9BRecover(): The given spec has invalid boundary.\n" );
+        success = 0;
+    }
+
+    if ( success )
+    {
+        // create bmiter, run fraig, record mapping
+        pBmiter = Bnd_ManStackGias( pSpec, pAbc->pGia );
+        pTemp = Cec4_ManSimulateTest( pBmiter, pParsFra );
+
+        // every output should be equivalent
+        // else, terminate the command (TODO?)
+        if ( !Bnd_ManCheckCoMerged( pTemp ) )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9BRecover(): The given spec and impl cannot be proved equivalent.\n" );
+            success = 0;
+        }
+
+        Gia_ManStop(pBmiter);
+        Gia_ManStop(pTemp);
+    }
+
+    if ( success )
+    {
+        // find 
+        Bnd_ManFindBound( pSpec, pAbc->pGia );
+
+        // create spec_out and 
+        pSpec_out = Bnd_ManGenSpecOut( pSpec );
+        if ( !pSpec_out ) success = 0;
+        pImpl_out = Bnd_ManGenImplOut( pAbc->pGia );
+        if ( !pImpl_out ) success = 0;
+
+        // Gia_AigerWrite( pSpec_out, "spec_out.aig", 0, 0, 0 );
+        // Gia_AigerWrite( pImpl_out, "impl_out.aig", 0, 0, 0 );
+        // Gia_ManPrintStats( pSpec_out, pPars );
+        // Gia_ManPrintStats( pImpl_out, pPars );
+
+        if ( !success )
+        {
+            printf("Abc_CommandAbc9BRecover(): The generated boundary is invalid. The circuit is not changed.\n");
+        }
+    }
+
+    if ( success )
+    {
+
+        // check if spec_out and imnpl_out are equivalent
+        if ( fVerbose ) 
+        {
+            if ( fEqOut )
+            {
+                printf("Checking the equivalence of spec_out and impl_out\n");
+                pMiter = Gia_ManMiter( pSpec_out, pImpl_out, 0, 1, 0, 0, 0 );
+                Bnd_ManSetEqOut( Cec_ManVerify( pMiter, pParsCec ) );
+                Gia_ManStop( pMiter );
+            }
+            else
+            {
+                printf("Skip checking the equivalence of spec_out and impl_out\n");
+            }
+        }
+
+        // generate patched impl
+        if ( fVerbose ) printf("Generating patched impl\n");
+        pPatched = Bnd_ManGenPatched1( pImpl_out, pSpec );
+
+        // // generate patched spec just for debugging
+        // printf("Generating patched spec\n");
+        // pTemp = Bnd_ManGenPatched( pSpec_out, pAbc->pGia, pPatch );
+        // printf("Checking the equivalence of patched spec and patched impl\n");
+        // pMiter = Gia_ManMiter( pTemp, pPatched, 0, 1, 0, 0, 0 );
+        // Cec_ManVerify( pMiter, pParsCec );
+        // Gia_ManStop( pMiter );
+        // printf("Checking the equivalence of patched spec and patch\n");
+        // pMiter = Gia_ManMiter( pTemp, pPatch, 0, 1, 0, 0, 0 );
+        // Cec_ManVerify( pMiter, pParsCec );
+        // Gia_ManStop( pMiter );
+
+        // Gia_ManStop( pTemp );
+
+        // check if patched is equiv to spec
+        if ( fVerbose ) 
+        {
+            if ( fEq ) printf("Checking the equivalence of patched impl and spec\n");
+            else printf("Skip checking the equivalence of patched impl and spec\n");
+        }
+        if ( fEq )
+        {
+            pMiter = Gia_ManMiter( pSpec, pPatched, 0, 1, 0, 0, 0 );
+            success = Cec_ManVerify( pMiter, pParsCec );
+            Bnd_ManSetEqRes( success );
+            if ( !success )
+            {
+                printf("Failed. The generated AIG is not equivalent.\n");
+            }
+            Gia_ManStop( pMiter );
+        }
+
+    }
+
+    if ( fVerbose ) Bnd_ManPrintStats();
+
+    Gia_ManStop( pSpec );
+    if ( pSpec_out ) Gia_ManStop( pSpec_out );
+    if ( pImpl_out ) Gia_ManStop( pImpl_out );
+    if ( success )
+    {
+        if ( fEq ) printf("Success. The generated hierarchical impl is equivalent. (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
+        else printf("Success. But the equivalence in unknown (box size: %d -> %d)\n", Bnd_ManGetNInternal(), Bnd_ManGetNInternal() + Bnd_ManGetNExtra() );
+    }
+    if (pPatched) Abc_FrameUpdateGia( pAbc, pPatched );
+    Bnd_ManStop();
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &brecover -I <biNum> [-vh] <impl> <patch>\n" );
+    Abc_Print( -2, "\t         recover boundary using SAT-Sweeping\n" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-k     : toggle using logic cones in the SAT solver [default = %s]\n", pParsFra->fUseCones? "yes": "no" );
+    Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pParsFra->nBTLimit );
+    Abc_Print( -2, "\t-e     : toggle checking the equivalence of the result [default = %s]\n", fEq? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggle checking the equivalence of the outsides in verbose [default = %s]\n", fEqOut? "yes": "no" );
+    Abc_Print( -2, "\t<impl> : the implementation aig. (should be equivalent to spec)\n");    
+    Abc_Print( -2, "\t<patch> : the modified spec. (should be a hierarchical AIG)\n");    
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int Abc_CommandAbc9StrEco( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
+    extern void Cec4_ManSetParams( Cec_ParFra_t * pPars );
+    Gia_Man_t *pMiter, *pPatch, *pPatched;
+    char * FileName = NULL;
+    FILE * pFile = NULL;
+    int c, success = 1;
+    int fVerbose = 0, fSkipStrash = 0;
+
+    // params
+    Gps_Par_t Pars, * pPars = &Pars;
+    memset( pPars, 0, sizeof(Gps_Par_t) );
+    Cec_ParCec_t ParsCec, *pParsCec = &ParsCec;
+    Cec_ManCecSetDefaultParams( pParsCec );
+    Cec_ParFra_t ParsFra, *pParsFra = &ParsFra;
+    Cec4_ManSetParams( pParsFra );
+    pParsFra -> fBMiterInfo = 1;
+
+    // parse options
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vsh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 's':
+            fSkipStrash ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        printf("%d\n", argc-globalUtilOptind);
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): AIG should be given on the command line.\n" );
+        return 0;
+    }
+
+    // read patch
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        Abc_Print( -1, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".aig", ".blif", ".pla", ".eqn", ".bench" )) )
+            Abc_Print( 1, "Did you mean \"%s\"?", FileName );
+        Abc_Print( 1, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    pPatch = Gia_AigerRead( FileName, 0, 1, 0 );
+    if ( pPatch == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9StrEco(): Cannot read the file name on the command line.\n" );
+        return 0;
+    }    
+
+    // generate patched impl
+    if ( fVerbose ) printf("Generating patched impl\n");
+    pPatched = Bnd_ManGenPatched2( pAbc->pGia, pPatch, fSkipStrash, fVerbose );
+
+    if ( pPatched )
+    {
+        // check if patched is equiv to patch
+        if ( fVerbose ) printf("Checking the equivalence of patched impl and patch\n");
+        pMiter = Gia_ManMiter( pPatch, pPatched, 0, 1, 0, 0, 0 );
+        success = Cec_ManVerify( pMiter, pParsCec );
+        if( !success ) 
+        {
+            printf("Failed. The patched circuit is not equivalent.\n");
+        }
+        Gia_ManStop( pMiter );
+        Abc_FrameUpdateGia( pAbc, pPatched );
+    }
+
+    Gia_ManStop( pPatch );
+    if ( success )
+    {
+        printf("Success. The patched circuit is equivalent.\n");
+    }
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &str_eco -I <biNum> [-vh] <impl> <patch>\n" );
+    Abc_Print( -2, "\t         SAT-sweeping-based ECO\n" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles skipping structural hash [default = %s]\n",  fSkipStrash? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<impl> : the implementation aig. (should be equivalent to spec)\n");    
+    Abc_Print( -2, "\t<patch> : the modified spec. (should be a hierarchical AIG)\n");    
+    return 1;
+}
 
 /**Function*************************************************************
 

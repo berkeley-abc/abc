@@ -17,9 +17,11 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#include "Sort.h"
-#include "Options.h"
-#include "ParseUtils.h"
+#include "sat/bsat2/Sort.h"
+#include "sat/bsat2/Options.h"
+#include "sat/bsat2/ParseUtils.h"
+
+ABC_NAMESPACE_IMPL_START
 
 using namespace Minisat;
 
@@ -43,10 +45,12 @@ int Minisat::parseOptions(int& argc, char** argv, bool strict)
             }
 
             if (!parsed_ok)
+            {
                 if (strict && match(argv[i], "-"))
                     { fprintf(stderr, "ERROR! Unknown flag \"%s\". Use '--%shelp' for help.\n", argv[i], Option::getHelpPrefixString()); return 0; } //  exit(0);
                 else
                     argv[j++] = argv[i];
+            }
         }
     }
 
@@ -91,3 +95,5 @@ int Minisat::printUsageAndExit (int argc, char** argv, bool verbose)
     return 0;
 }
 
+
+ABC_NAMESPACE_IMPL_END

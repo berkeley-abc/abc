@@ -24,11 +24,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <assert.h>
 
-#include "IntTypes.h"
-#include "Alg.h"
-#include "Vec.h"
-#include "Map.h"
-#include "Alloc.h"
+#include "sat/bsat2/IntTypes.h"
+#include "sat/bsat2/Alg.h"
+#include "sat/bsat2/Vec.h"
+#include "sat/bsat2/Map.h"
+#include "sat/bsat2/Alloc.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace Minisat {
 
@@ -403,5 +405,7 @@ inline void Clause::strengthen(Lit p)
 
 //=================================================================================================
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

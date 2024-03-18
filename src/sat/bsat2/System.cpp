@@ -18,12 +18,14 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#include "System.h"
+#include "sat/bsat2/System.h"
 
 #if defined(__linux__)
 
 #include <stdio.h>
 #include <stdlib.h>
+
+ABC_NAMESPACE_IMPL_START
 
 using namespace Minisat;
 
@@ -72,7 +74,11 @@ double Minisat::memUsedPeak() {
     double peak = memReadPeak() / 1024;
     return peak == 0 ? memUsed() : peak; }
 
+ABC_NAMESPACE_IMPL_END
+
 #elif defined(__FreeBSD__)
+
+ABC_NAMESPACE_IMPL_START
 
 double Minisat::memUsed(void) {
     struct rusage ru;
@@ -80,16 +86,28 @@ double Minisat::memUsed(void) {
     return (double)ru.ru_maxrss / 1024; }
 double MiniSat::memUsedPeak(void) { return memUsed(); }
 
+ABC_NAMESPACE_IMPL_END
 
 #elif defined(__APPLE__)
 #include <malloc/malloc.h>
+
+ABC_NAMESPACE_IMPL_START
 
 double Minisat::memUsed(void) {
     malloc_statistics_t t;
     malloc_zone_statistics(NULL, &t);
     return (double)t.max_size_in_use / (1024*1024); }
 
+ABC_NAMESPACE_IMPL_END
+
 #else
+
+ABC_NAMESPACE_IMPL_START
+
 double Minisat::memUsed()     { return 0; }
 double Minisat::memUsedPeak() { return 0; }
+
+ABC_NAMESPACE_IMPL_END
+
 #endif
+
