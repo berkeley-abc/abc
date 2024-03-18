@@ -20,6 +20,12 @@
 #ifndef __ACD_WRAPPER_H_
 #define __ACD_WRAPPER_H_
 
+#ifdef _MSC_VER
+#  include <numeric>      // std::iota
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 #include "misc/util/abc_global.h"
 #include "map/if/if.h"
 
