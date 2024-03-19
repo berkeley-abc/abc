@@ -23,7 +23,8 @@
 #ifdef _MSC_VER
 #  include <intrin.h>
 #  define __builtin_popcount __popcnt
-#  define __builtin_popcountl __popcnt64
+//#  define __builtin_popcountl __popcnt64 // the compiler does not find __popcnt64
+#  define __builtin_popcountl __popcnt
 #endif
 
 #include "misc/util/abc_global.h"
