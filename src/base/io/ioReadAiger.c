@@ -433,14 +433,14 @@ Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
                 else 
                 {
                     assert( Init == Abc_Var2Lit(1+Abc_NtkPiNum(pNtkNew)+i, 0) ); 
-                    // unitialized value of the latch is the latch literal according to http://fmv.jku.at/hwmcc11/beyond1.pdf
+                    // uninitialized value of the latch is the latch literal according to http://fmv.jku.at/hwmcc11/beyond1.pdf
                     Abc_LatchSetInitDc( Abc_NtkBox(pNtkNew, i) );
                 }
                 while ( *pCur != ' ' && *pCur != '\n' ) pCur++;
             }
             if ( *pCur != '\n' )
             {
-                fprintf( stdout, "The initial value of latch number %d is not recongnized.\n", i );
+                fprintf( stdout, "The initial value of latch number %d is not recognized.\n", i );
                 return NULL;
             }
             pCur++;

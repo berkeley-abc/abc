@@ -680,7 +680,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
     b.f = fopen( pFileName, "wb" ); 
     if ( b.f == NULL )
     {
-        fprintf( stdout, "Ioa_WriteBlif(): Cannot open the output file \"%s\".\n", pFileName );
+        fprintf( stdout, "Io_WriteAiger(): Cannot open the output file \"%s\".\n", pFileName );
         ABC_FREE(b.buf);
         return;
     }
@@ -688,7 +688,7 @@ void Io_WriteAiger( Abc_Ntk_t * pNtk, char * pFileName, int fWriteSymbols, int f
         b.b = BZ2_bzWriteOpen( &bzError, b.f, 9, 0, 0 );
         if ( bzError != BZ_OK ) {
             BZ2_bzWriteClose( &bzError, b.b, 0, NULL, NULL );
-            fprintf( stdout, "Ioa_WriteBlif(): Cannot start compressed stream.\n" );
+            fprintf( stdout, "Io_WriteAiger(): Cannot start compressed stream.\n" );
             fclose( b.f );
             ABC_FREE(b.buf);
             return;
