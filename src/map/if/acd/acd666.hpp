@@ -646,7 +646,7 @@ private:
       {
         f._bits[i] = isets0[0]._bits[i] | isets1[1]._bits[i];
       }
-      std::swap( fs_fun[3], fs_fun[4] );
+      std::swap( fs_fun[2], fs_fun[3] );
       rm_support_size = support_vars1;
     }
 
@@ -705,7 +705,7 @@ private:
     if ( support_vars2 > support_vars1 )
     {
       f = isets0[0] | isets1[1];
-      std::swap( fs_fun[3], fs_fun[4] );
+      std::swap( fs_fun[2], fs_fun[3] );
       support_sizes[0] = support_vars1;
     }
 

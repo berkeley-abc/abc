@@ -1024,7 +1024,7 @@ private:
     if ( support_vars2 > support_vars1 )
     {
       f = isets0[0] | isets1[1];
-      std::swap( fs_fun[3], fs_fun[4] );
+      std::swap( fs_fun[2], fs_fun[3] );
       bs_support_size = support_vars1;
     }
 
