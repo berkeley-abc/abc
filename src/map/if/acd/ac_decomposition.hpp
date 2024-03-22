@@ -118,11 +118,12 @@ public:
     }
     if ( late_arriving > ps.max_free_set_vars )
     {
-      ps.max_free_set_vars = late_arriving;
+      return -1; /* on average avoiding this computation leads to better quality */
+      // ps.max_free_set_vars = late_arriving;
     }
 
     /* return a high cost if too many late arriving variables */
-    if ( late_arriving > ps.lut_size - 1 || late_arriving > ps.max_free_set_vars )
+    if ( late_arriving > ps.lut_size - 1 )
     {
       return -1;
     }
@@ -632,13 +633,10 @@ private:
       uint32_t k = 0;
       for ( uint32_t j = 0; j < num_vars - best_free_set; ++j )
       {
-        if ( !kitty::has_var( tt, j ) )
-          continue;
-
         if ( !kitty::has_var( tt, care, j ) )
         {
           /* fix truth table */
-          adjust_truth_table_on_dc( tt, care, j );
+          adjust_truth_table_on_dc( tt, care, tt.num_vars(), j );
           continue;
         }
 
@@ -788,7 +786,14 @@ private:
         }
       }
       support_minimization_encodings = std::vector<std::array<uint32_t, 2>>( num_combs );
-      generate_support_minimization_encodings_rec<false>( 0, 0, 0, count );
+      generate_support_minimization_encodings_rec<false, true>( 0, 0, 0, count );
+    }
+    else if ( best_multiplicity > 8 )
+    {
+      /* combinations are 2^(mu - 1) */
+      num_combs = 1u << ( best_multiplicity - 1 );
+      support_minimization_encodings = std::vector<std::array<uint32_t, 2>>( num_combs );
+      generate_support_minimization_encodings_rec<false, false>( 0, 0, 0, count );
     }
     else
     {
@@ -798,18 +803,18 @@ private:
         num_combs = ( num_combs << 1 ) + num_combs;
       }
       support_minimization_encodings = std::vector<std::array<uint32_t, 2>>( num_combs );
-      generate_support_minimization_encodings_rec<true>( 0, 0, 0, count );
+      generate_support_minimization_encodings_rec<true, false>( 0, 0, 0, count );
     }
 
     assert( count == num_combs );
   }
 
-  template<bool enable_dcset>
+  template<bool enable_dcset, bool equal_size_partition>
   void generate_support_minimization_encodings_rec( uint32_t onset, uint32_t offset, uint32_t var, uint32_t& count )
   {
     if ( var == best_multiplicity )
     {
-      if ( !enable_dcset )
+      if ( equal_size_partition )
       {
         /* sets must be equally populated */
         if ( __builtin_popcount( onset ) != __builtin_popcount( offset ) )
@@ -827,12 +832,12 @@ private:
     /* var in DCSET */
     if ( enable_dcset )
     {
-      generate_support_minimization_encodings_rec<enable_dcset>( onset, offset, var + 1, count );
+      generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count );
     }
 
     /* move var in ONSET */
     onset |= 1 << var;
-    generate_support_minimization_encodings_rec<enable_dcset>( onset, offset, var + 1, count );
+    generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count );
     onset &= ~( 1 << var );
 
     /* remove symmetries */
@@ -843,7 +848,7 @@ private:
 
     /* move var in OFFSET */
     offset |= 1 << var;
-    generate_support_minimization_encodings_rec<enable_dcset>( onset, offset, var + 1, count );
+    generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count );
     offset &= ~( 1 << var );
   }
 
@@ -1042,6 +1047,13 @@ private:
       for ( uint32_t j = 0; j < iset_support; ++j )
       {
         cost += has_var_support( tt, care, iset_support, j ) ? 1 : 0;
+        // if ( !has_var_support( tt, care, iset_support, j ) )
+        // {
+        //   /* adjust truth table and care set */
+        //   adjust_truth_table_on_dc( tt, care, iset_support, j );
+        //   continue;
+        // }
+        // ++cost;
       }
 
       /* discard solutions with support over LUT size */
@@ -1186,7 +1198,7 @@ private:
     return res;
   }
 
-  bool covering_improve( std::vector<encoding_column>& matrix, std::array<uint32_t, 6>& solution )
+  bool covering_improve( std::vector<encoding_column> const& matrix, std::array<uint32_t, 6>& solution )
   {
     /* performs one iteration of local search */
     uint32_t best_cost = 0, local_cost = 0;
@@ -1233,21 +1245,23 @@ private:
     return improved;
   }
 
-  void adjust_truth_table_on_dc( STT& tt, STT& care, uint32_t var_index )
+  void adjust_truth_table_on_dc( STT& tt, STT& care, uint32_t real_num_vars, uint32_t var_index )
   {
-    assert( var_index < tt.num_vars() );
+    assert( var_index < real_num_vars );
     assert( tt.num_vars() == care.num_vars() );
 
-    if ( tt.num_vars() <= 6 || var_index < 6 )
+    const uint32_t num_blocks = real_num_vars <= 6 ? 1 : ( 1 << ( real_num_vars - 6 ) );
+    if ( real_num_vars <= 6 || var_index < 6 )
     {
       auto it_tt = std::begin( tt._bits );
       auto it_care = std::begin( care._bits );
-      while ( it_tt != std::end( tt._bits ) )
+      while ( it_tt != std::begin( tt._bits ) + num_blocks )
       {
         uint64_t new_bits = *it_tt & *it_care;
         *it_tt = ( ( new_bits | ( new_bits >> ( uint64_t( 1 ) << var_index ) ) ) & kitty::detail::projections_neg[var_index] ) |
                  ( ( new_bits | ( new_bits << ( uint64_t( 1 ) << var_index ) ) ) & kitty::detail::projections[var_index] );
-        *it_care = *it_care | ( *it_care >> ( uint64_t( 1 ) << var_index ) );
+        *it_care = ( *it_care | ( *it_care >> ( uint64_t( 1 ) << var_index ) ) ) & kitty::detail::projections_neg[var_index];
+        *it_care = *it_care | ( *it_care << ( uint64_t( 1 ) << var_index ) );
 
         ++it_tt;
         ++it_care;
@@ -1256,7 +1270,7 @@ private:
     }
 
     const auto step = 1 << ( var_index - 6 );
-    for ( auto i = 0u; i < static_cast<uint32_t>( tt.num_blocks() ); i += 2 * step )
+    for ( auto i = 0u; i < static_cast<uint32_t>( num_blocks ); i += 2 * step )
     {
       for ( auto j = 0; j < step; ++j )
       {
