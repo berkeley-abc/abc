@@ -3724,10 +3724,170 @@ void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName )
     if ( pMini ) Mini_AigStop( pMini );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Exa7_AddClause( FILE * pFile, int * pLits, int nLits )
+{
+    int i, k = 0;
+    for ( i = 0; i < nLits; i++ ) {
+        if ( pLits[i] == 1 )
+            return 0;
+        else if ( pLits[i] == 0 )
+            continue;
+        else
+            pLits[k++] = pLits[i];
+    }
+    nLits = k;
+    assert( nLits > 0 );
+    if ( pFile )
+    {
+        for ( i = 0; i < nLits; i++ )
+            fprintf( pFile, "%s%d ", Abc_LitIsCompl(pLits[i]) ? "-" : "", Abc_Lit2Var(pLits[i]) );
+        fprintf( pFile, "0\n" );
+    }
+    if ( 0 )
+    {
+        for ( i = 0; i < nLits; i++ )
+            fprintf( stdout, "%s%d ", Abc_LitIsCompl(pLits[i]) ? "-" : "", Abc_Lit2Var(pLits[i])-1 );
+        fprintf( stdout, "\n" );
+    }
+    return 1;
+}
+static inline int Exa7_AddClause4( FILE * pFile, int Lit0, int Lit1, int Lit2, int Lit3 )
+{
+    int pLits[4] = { Lit0, Lit1, Lit2, Lit3 };
+    return Exa7_AddClause( pFile, pLits, 4 );
+}
+int Exa7_GetVar( int n, int i, int j, int m )
+{
+    return 1 + n*n*m + n*i + j;
+}
+int Exa7_ManGenCnf( char * pFileName, word * pTruth, int nVars, int nNodes, int GateSize )
+{
+    int m, n, v, k, nV = nVars + nNodes, nMints = 1 << nVars, nClas = 0;
+    int pVars[32] = {0}; assert( nVars + nNodes + 1 < 32 );
+    FILE * pFile = fopen( pFileName, "wb" );
+    fputs( "p cnf                \n", pFile );
+    for ( m = 0; m < nMints; m++ )
+    {
+        for ( v = 0; v < nVars; v++ )
+            nClas += Exa7_AddClause4( pFile, Abc_Var2Lit(Exa7_GetVar(nV, v, v, m), ((m >> v)&1)==0), 0, 0, 0 );
+        nClas += Exa7_AddClause4( pFile, Abc_Var2Lit(Exa7_GetVar(nV, nV-1, nV-1, m), ((pTruth[0] >> m)&1)==0), 0, 0, 0 );
+        for ( n = nVars; n < nV; n++ )
+        {
+            int iValNode = Exa7_GetVar(nV, n, n, m);
+            for ( v = 0; v < n; v++ )
+            {
+                int iParVar = Exa7_GetVar(nV, v, n, 0); // v < n
+                int iFanVar = Exa7_GetVar(nV, n, v, m);
+                int iValFan = Exa7_GetVar(nV, v, v, m);
+                // iFanVar = ~iParVar | iValFan
+                nClas += Exa7_AddClause4( pFile, Abc_Var2Lit(iFanVar, 1), Abc_Var2Lit(iParVar, 1), Abc_Var2Lit(iValFan, 0), 0 );
+                nClas += Exa7_AddClause4( pFile, Abc_Var2Lit(iFanVar, 0), Abc_Var2Lit(iParVar, 0), 0, 0 );
+                nClas += Exa7_AddClause4( pFile, Abc_Var2Lit(iFanVar, 0), Abc_Var2Lit(iValFan, 1), 0, 0 );
+                // iParVar & ~iValFan => iValNode
+                nClas += Exa7_AddClause4( pFile, Abc_Var2Lit(iParVar, 1), Abc_Var2Lit(iValFan, 0), Abc_Var2Lit(iValNode, 0), 0 );
+                pVars[v] = Abc_Var2Lit(iFanVar, 1);
+            }
+            pVars[v] = Abc_Var2Lit(iValNode, 1);
+            // (iFanVar0 & iFanVar1 & iFanVar2) => ~iValNode
+            nClas += Exa7_AddClause( pFile, pVars, n+1 );
+        }
+    }
+    for ( n = nVars; n < nV; n++ ) {
+        for ( v = 0; v < n; v++ )
+            pVars[v] = Abc_Var2Lit(Exa7_GetVar(nV, v, n, 0), 0); // v < n
+        nClas += Exa7_AddClause( pFile, pVars, n );
+        if ( GateSize ) {
+            int Total = 1 << n, Limit = GateSize + 1;
+            for ( m = 0; m < Total; m++ )
+            {
+                if ( Abc_TtCountOnes((word)m) != Limit )
+                    continue;
+                for ( k = v = 0; v < n; v++ )
+                    if ( (m >> v) & 1 )
+                        pVars[k++] = Abc_Var2Lit(Exa7_GetVar(nV, v, n, 0), 1);
+                assert( k == Limit );
+                nClas += Exa7_AddClause( pFile, pVars, Limit );
+            }
+        }
+    }
+    rewind( pFile );
+    fprintf( pFile, "p cnf %d %d", nMints * nV * nV, nClas );
+    fclose( pFile );
+    return nClas;
+}
+void Exa_ManDumpVerilog( Vec_Int_t * vValues, int nVars, int nNodes, int GateSize, word * pTruth )
+{
+    FILE * pFile;
+    char Buffer[1000];
+    char FileName[1100];
+    int v, n, k, nV = nVars+nNodes;
+    Extra_PrintHexadecimalString( Buffer, (unsigned *)pTruth, nVars );
+    sprintf( FileName, "func%s_%d_%d.v", Buffer, GateSize, nNodes );
+    pFile = fopen( FileName, "wb" );
+    fprintf( pFile, "// Realization of the %d-input function %s using %d NAND gates:\n", nVars, Buffer, nNodes );
+    fprintf( pFile, "module func%s_%d_%d ( input", Buffer, GateSize, nNodes );
+    for ( v = 0; v < nVars; v++ )
+        fprintf( pFile, " %c,", 'a'+v );
+    fprintf( pFile, " output out );\n" );
+    for ( n = nVars; n < nV; n++ ) {
+        int nFans = 0;
+        for ( v = 0; v < n; v++ )
+            nFans += Vec_IntEntry(vValues, Exa7_GetVar(nV, v, n, 0));
+        fprintf( pFile, "  wire %c = ~(", 'a'+n );
+        for ( k = v = 0; v < n; v++ )
+            if ( Vec_IntEntry(vValues, Exa7_GetVar(nV, v, n, 0)) )
+                fprintf( pFile, "%c%s", 'a'+v, ++k < nFans ? " & ":"" );
+        fprintf( pFile, ");\n" );
+    }
+    fprintf( pFile, "  assign out = %c;\n", 'a'+nV-1 );
+    fprintf( pFile, "endmodule\n\n" );
+    fclose( pFile );
+    printf( "Solution was dumped into file \"%s\".\n", FileName );
+}
+void Exa_ManExactSynthesis7( Bmc_EsPar_t * pPars, int GateSize )
+{
+    abctime clkTotal = Abc_Clock();
+    int v, n, nMints = 1 << pPars->nVars;
+    int nV = pPars->nVars + pPars->nNodes;
+    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    Vec_Int_t * vValues = NULL;
+    char * pFileNameIn  = "_temp_.cnf";
+    char * pFileNameOut = "_temp_out.cnf";
+    int nClas = Exa7_ManGenCnf( pFileNameIn, pTruth, pPars->nVars, pPars->nNodes, GateSize );
+    if ( pPars->fVerbose )
+        printf( "CNF with %d variables and %d clauses was dumped into file \"%s\".\n", nMints * nV * nV, nClas, pFileNameIn );
+    vValues = Exa4_ManSolve( pFileNameIn, pFileNameOut, pPars->RuntimeLim, pPars->fVerbose );
+    if ( pPars->fVerbose && vValues ) {
+        printf( "     " );
+        for ( n = 0; n < nV; n++ )
+        printf( "%2d ", n );
+        printf( "\n" );
+        for ( n = pPars->nVars; n < nV; n++, printf("\n") ) {
+            printf( "%2d : ", n );
+            for ( v = 0; v < n; v++ )
+                printf( " %c ", Vec_IntEntry(vValues, Exa7_GetVar(nV, v, n, 0)) ? '1':'.' ); // v < n
+        }
+    }
+    if ( vValues )
+        Exa_ManDumpVerilog( vValues, pPars->nVars, pPars->nNodes, GateSize, pTruth );
+    Vec_IntFreeP( &vValues );
+    Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
 
 ABC_NAMESPACE_IMPL_END
 

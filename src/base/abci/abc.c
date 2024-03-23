@@ -2022,14 +2022,16 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fListNodes;
     int fProfile;
+    int fOutputs;
     int fVerbose;
 
     // set defaults
     fListNodes = 0;
     fProfile   = 1;
+    fOutputs   = 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "npvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "npovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2039,6 +2041,9 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'p':
             fProfile ^= 1;
             break;
+        case 'o':
+            fOutputs ^= 1;
+            break;            
         case 'v':
             fVerbose ^= 1;
             break;
@@ -2079,14 +2084,15 @@ int Abc_CommandPrintLevel( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     // process all COs
-    Abc_NtkPrintLevel( stdout, pNtk, fProfile, fListNodes, fVerbose );
+    Abc_NtkPrintLevel( stdout, pNtk, fProfile, fListNodes, fOutputs, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_level [-npvh] <node>\n" );
+    Abc_Print( -2, "usage: print_level [-npovh] <node>\n" );
     Abc_Print( -2, "\t        prints information about node level and cone size\n" );
     Abc_Print( -2, "\t-n    : toggles printing nodes by levels [default = %s]\n", fListNodes? "yes": "no" );
     Abc_Print( -2, "\t-p    : toggles printing level profile [default = %s]\n", fProfile? "yes": "no" );
+    Abc_Print( -2, "\t-o    : toggles printing output levels [default = %s]\n", fOutputs? "yes": "no" );
     Abc_Print( -2, "\t-v    : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tnode  : (optional) one node to consider\n");
@@ -9310,11 +9316,12 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Exa_ManExactSynthesis4( Bmc_EsPar_t * pPars );
     extern void Exa_ManExactSynthesis5( Bmc_EsPar_t * pPars );
     extern void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName );
-    int c, fKissat = 0, fKissat2 = 0;
+    extern void Exa_ManExactSynthesis7( Bmc_EsPar_t * pPars, int GateSize );
+    int c, fKissat = 0, fKissat2 = 0, fUseNands = 0, GateSize = 0;
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INTadconugklvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INTGabdconugklvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9351,9 +9358,23 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->RuntimeLim < 0 )
                 goto usage;
             break;
+        case 'G':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-G\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            GateSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( GateSize < 0 )
+                goto usage;
+            break;            
         case 'a':
             pPars->fOnlyAnd ^= 1;
             break;
+        case 'b':
+            fUseNands ^= 1;
+            break;            
         case 'd':
             pPars->fDynConstr ^= 1;
             break;
@@ -9401,7 +9422,7 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
         return 1;
     }
-    if ( (1 << (pPars->nVars-2)) != (int)strlen(pPars->pTtStr) )
+    if ( pPars->nVars >= 2 && (1 << (pPars->nVars-2)) != (int)strlen(pPars->pTtStr) )
     {
         Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (pPars->nVars-2)), strlen(pPars->pTtStr) );
         return 1;
@@ -9416,7 +9437,9 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
         return 1;
     }
-    if ( fKissat )
+    if ( fUseNands )
+        Exa_ManExactSynthesis7( pPars, GateSize );
+    else if ( fKissat )
         Exa_ManExactSynthesis4( pPars );
     else if ( fKissat2 )
         Exa_ManExactSynthesis5( pPars );
@@ -9427,12 +9450,14 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: twoexact [-INT <num>] [-adconugklvh] <hex>\n" );
+    Abc_Print( -2, "usage: twoexact [-INTG <num>] [-abdconugklvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-N <num> : the number of two-input nodes [default = %d]\n", pPars->nNodes );
     Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", pPars->RuntimeLim );
+    Abc_Print( -2, "\t-G <num> : the largest allowed gate size (NANDs only) [default = %d]\n", GateSize );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates (without XOR-gates) [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
+    Abc_Print( -2, "\t-b       : toggle using only NAND-gates [default = %s]\n", fUseNands ? "yes" : "no" );
     Abc_Print( -2, "\t-d       : toggle using dynamic constraint addition [default = %s]\n", pPars->fDynConstr ? "yes" : "no" );
     Abc_Print( -2, "\t-c       : toggle dumping CNF into a file [default = %s]\n", pPars->fDumpCnf ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );
