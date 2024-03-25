@@ -806,6 +806,7 @@ Gia_Man_t * Gia_ManEquivReduce2( Gia_Man_t * p )
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Vec_IntFree( vMap );
+	Gia_ManTransferTiming( pNew, p );
     return pNew;
 }
 
