@@ -405,6 +405,7 @@ static int Abc_CommandAbc9Write              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9WriteLut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Ps                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Pms                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Status             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MuxProfile         ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1183,6 +1184,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&wlut",         Abc_CommandAbc9WriteLut,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&ps",           Abc_CommandAbc9Ps,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pfan",         Abc_CommandAbc9PFan,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&pms",          Abc_CommandAbc9Pms,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&psig",         Abc_CommandAbc9PSig,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&status",       Abc_CommandAbc9Status,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&profile",      Abc_CommandAbc9MuxProfile,   0 );
@@ -32507,6 +32509,57 @@ usage:
     Abc_Print( -2, "usage: &pfan [-N num] [-h]\n" );
     Abc_Print( -2, "\t         prints fanin/fanout statistics\n" );
     Abc_Print( -2, "\t-N num : the number of high-fanout nodes to explore [default = %d]\n", nNodes );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Pms( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Obj_t * pObj;
+    int c, nSat = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9PFan(): There is no AIG.\n" );
+        return 1;
+    }
+    printf( "Status of %d outputs of the miter: ", Gia_ManPoNum(pAbc->pGia) );
+    Gia_ManForEachPo( pAbc->pGia, pObj, c )
+    {
+        printf( "%d", c );
+        if ( pAbc->pGia->vNamesOut )
+           printf( "(%s)", (char *)Vec_PtrEntry(pAbc->pGia->vNamesOut, c) );
+        printf( "=%s ", Gia_ObjFaninLit0p(pAbc->pGia, pObj) == 0 ? "unsat":"sat" );
+        nSat += Gia_ObjFaninLit0p(pAbc->pGia, pObj) != 0;
+    }
+    printf( "\n" );
+    printf( "Total sat = %d. Total unsat = %d.\n", nSat, Gia_ManPoNum(pAbc->pGia)-nSat );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &pms [-h]\n" );
+    Abc_Print( -2, "\t         prints miter status after SAT sweeping\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
