@@ -232,7 +232,7 @@ private:
         best_cost = multiplicity + additional_cost;
         best_free_set = i;
 
-        if ( !ps.use_first )
+        if ( !ps.use_first && multiplicity > 2 )
         {
           continue;
         }
@@ -270,7 +270,7 @@ private:
           best_cost = multiplicity + additional_cost;
           best_free_set = i;
 
-          if ( !ps.use_first )
+          if ( !ps.use_first && multiplicity > 2 )
           {
             continue;
           }
@@ -478,6 +478,13 @@ private:
       pComb[i] = pInvPerm[i] = i;
     }
 
+    /* early bail-out conditions */
+    uint32_t bail_multiplicity = 2;
+    if ( best_multiplicity < UINT32_MAX )
+    {
+      bail_multiplicity = ( best_multiplicity >> 1 ) + ( best_multiplicity & 1 );
+    }
+
     /* enumerate combinations */
     do
     {
@@ -489,6 +496,11 @@ private:
         for ( uint32_t i = 0; i < num_vars; ++i )
         {
           bestPerm[i] = pComb[i];
+        }
+
+        if ( best_cost <= bail_multiplicity )
+        {
+          break;
         }
       }
     } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
