@@ -726,6 +726,30 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fS
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Obj_t * Gia_MakeRandomChoice( Gia_Man_t * p, int iRepr )
+{
+    int iTemp, Rand, Count = 0;
+    Gia_ClassForEachObj( p, iRepr, iTemp )
+        Count++;
+    Rand = rand() % Count;
+    Count = 0;
+    Gia_ClassForEachObj( p, iRepr, iTemp )
+        if ( Count++ == Rand )
+            break;
+    return Gia_ManObj(p, iTemp);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the AIG in the DFS order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManEquivReduce2_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, Vec_Int_t * vMap, int fDiveIn )
 {
     Gia_Obj_t * pRepr;
@@ -735,7 +759,7 @@ void Gia_ManEquivReduce2_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj,
     if ( fDiveIn && (pRepr = Gia_ManEquivRepr(p, pObj, 1, 0)) )
     {
         int iTemp, iRepr = Gia_ObjId(p, pRepr);
-        Gia_Obj_t * pRepr2 = Gia_ManObj( p, Vec_IntEntry(vMap, iRepr) );
+        Gia_Obj_t * pRepr2 = vMap ? Gia_ManObj( p, Vec_IntEntry(vMap, iRepr) ) : Gia_MakeRandomChoice(p, iRepr);
         Gia_ManEquivReduce2_rec( pNew, p, pRepr2, vMap, 0 );
         Gia_ClassForEachObj( p, iRepr, iTemp )
         {
@@ -751,12 +775,13 @@ void Gia_ManEquivReduce2_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj,
     Gia_ManEquivReduce2_rec( pNew, p, Gia_ObjFanin1(pObj), vMap, 1 );
     pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
 }
-Gia_Man_t * Gia_ManEquivReduce2( Gia_Man_t * p )
+Gia_Man_t * Gia_ManEquivReduce2( Gia_Man_t * p, int fRandom )
 {
     Vec_Int_t * vMap;
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
+    if ( fRandom ) srand(time(NULL));
     if ( !p->pReprs && p->pSibls )
     {
         int * pMap = ABC_FALLOC( int, Gia_ManObjNum(p) );
@@ -789,7 +814,7 @@ Gia_Man_t * Gia_ManEquivReduce2( Gia_Man_t * p )
             break;
     if ( i == Gia_ManObjNum(p) )
         return Gia_ManDup( p );
-    vMap = Gia_ManChoiceMinLevel( p );
+    vMap = fRandom ? NULL : Gia_ManChoiceMinLevel( p );
     Gia_ManSetPhase( p );
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -805,7 +830,7 @@ Gia_Man_t * Gia_ManEquivReduce2( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
-    Vec_IntFree( vMap );
+    Vec_IntFreeP( &vMap );
     return pNew;
 }
 
