@@ -1369,10 +1369,15 @@ private:
       std::swap( var_index1, var_index2 );
     }
 
-    assert( num_vars > 6 );
     const uint32_t num_blocks = 1 << ( num_vars - 6 );
 
-    if ( var_index2 <= 5 )
+    if ( num_vars <= 6 )
+    {
+      const auto& pmask = kitty::detail::ppermutation_masks[var_index1][var_index2];
+      const auto shift = ( 1 << var_index2 ) - ( 1 << var_index1 );
+      tt._bits[0] = ( tt._bits[0] & pmask[0] ) | ( ( tt._bits[0] & pmask[1] ) << shift ) | ( ( tt._bits[0] & pmask[2] ) >> shift );
+    }
+    else if ( var_index2 <= 5 )
     {
       const auto& pmask = kitty::detail::ppermutation_masks[var_index1][var_index2];
       const auto shift = ( 1 << var_index2 ) - ( 1 << var_index1 );
