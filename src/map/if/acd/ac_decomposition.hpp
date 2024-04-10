@@ -1369,7 +1369,7 @@ private:
       std::swap( var_index1, var_index2 );
     }
 
-    const uint32_t num_blocks = 1 << ( num_vars - 6 );
+    const uint32_t num_blocks = num_vars <= 6 ? 1 : 1 << ( num_vars - 6 );
 
     if ( num_vars <= 6 )
     {
