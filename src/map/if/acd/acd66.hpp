@@ -732,7 +732,7 @@ private:
         uint32_t p = 0;
         for ( uint32_t k = 0; k < num_shared_vars; ++k )
         {
-          p += ( ( iteration_counter >> shared_vars[k] ) & 1 ) << k;
+          p |= ( ( iteration_counter >> shared_vars[k] ) & 1 ) << k;
         }
 
         uint32_t k;
@@ -787,97 +787,10 @@ private:
 
   void compute_decomposition_impl( bool verbose = false )
   {
-    if ( num_shared_vars > 1 )
-      return compute_decomposition_impl_multi_ss( verbose );
-
-    bool has_shared_set = num_shared_vars > 0;
-
-    /* construct isets involved in multiplicity */
-    LTT isets0[2];
-    LTT isets1[2];
-
-    /* construct isets */
-    uint32_t offset = 0;
-    uint32_t num_blocks = ( num_vars > 6 ) ? ( 1u << ( num_vars - 6 ) ) : 1;
-    uint64_t const shift = UINT64_C( 1 ) << best_free_set;
-    uint64_t const mask = ( UINT64_C( 1 ) << shift ) - 1;
-
-    /* limit analysis on 0 cofactor of the shared variable */
-    if ( has_shared_set )
-      num_blocks >>= 1;
-
-    uint64_t fs_fun[4] = { best_tt._bits[0] & mask, 0, 0, 0 };
-
-    for ( auto i = 0u; i < num_blocks; ++i )
-    {
-      uint64_t cof = best_tt._bits[i];
-      for ( auto j = 0; j < ( 64 >> best_free_set ); ++j )
-      {
-        uint64_t val = cof & mask;
-        if ( val == fs_fun[0] )
-        {
-          isets0[0]._bits |= UINT64_C( 1 ) << ( j + offset );
-        }
-        else
-        {
-          isets0[1]._bits |= UINT64_C( 1 ) << ( j + offset );
-          fs_fun[1] = val;
-        }
-        cof >>= shift;
-      }
-      offset = ( offset + ( 64 >> best_free_set ) ) & 0x3F;
-    }
-
-    /* continue on the 1 cofactor if shared set */
-    if ( has_shared_set )
-    {
-      fs_fun[2] = best_tt._bits[num_blocks] & mask;
-      for ( auto i = num_blocks; i < ( num_blocks << 1 ); ++i )
-      {
-        uint64_t cof = best_tt._bits[i];
-        for ( auto j = 0; j < ( 64 >> best_free_set ); ++j )
-        {
-          uint64_t val = cof & mask;
-          if ( val == fs_fun[2] )
-          {
-            isets1[0]._bits |= UINT64_C( 1 ) << ( j + offset );
-          }
-          else
-          {
-            isets1[1]._bits |= UINT64_C( 1 ) << ( j + offset );
-            fs_fun[3] = val;
-          }
-          cof >>= shift;
-        }
-        offset = ( offset + ( 64 >> best_free_set ) ) & 0x3F;
-      }
-    }
-
-    /* find the support minimizing combination with shared set */
-    compute_functions( isets0, isets1, fs_fun );
-
-    /* print functions */
-    if ( verbose )
-    {
-      LTT f;
-      f._bits = dec_funcs[0];
-      std::cout << "BS function         : ";
-      kitty::print_hex( f );
-      std::cout << "\n";
-      f._bits = dec_funcs[1];
-      std::cout << "Composition function: ";
-      kitty::print_hex( f );
-      std::cout << "\n";
-    }
-  }
-
-  void compute_decomposition_impl_multi_ss( bool verbose = false )
-  {
-    /* due to the high multiplicity value this method does not perform support minimization */
-
     /* construct isets involved in multiplicity */
     LTT composition;
     LTT bs;
+    LTT bs_dc;
 
     /* construct isets */
     uint32_t offset = 0;
@@ -888,10 +801,12 @@ private:
     uint32_t const next_group = 1 << ( num_vars - best_free_set - num_shared_vars );
 
     uint64_t fs_fun[32] = { 0 };
+    uint64_t dc_mask = ( ( UINT64_C( 1 ) << next_group ) - 1 );
 
     uint32_t group_index = 0;
     uint32_t set_index = 0;
     fs_fun[0] = best_tt._bits[0] & mask;
+    bool set_dc = true;
     for ( auto i = 0u; i < num_blocks; ++i )
     {
       uint64_t cof = best_tt._bits[i];
@@ -901,20 +816,37 @@ private:
         /* move to next block */
         if ( set_index == next_group )
         {
+          if ( set_dc )
+          {
+            /* only one cofactor can be found in the group --> encoding can be 0 or 1 */
+            fs_fun[group_index + 1] = fs_fun[group_index];
+            bs_dc._bits |= dc_mask;
+          }
+          /* set don't care */
+          set_dc = true;
           group_index += 2;
           set_index = 0;
           fs_fun[group_index] = val;
+          dc_mask <<= next_group;
         }
         /* gather encoding */
         if ( val != fs_fun[group_index] )
         {
           bs._bits |= UINT64_C( 1 ) << ( j + offset );
           fs_fun[group_index + 1] = val;
+          set_dc = false; // two cofactors are present
         }
         cof >>= shift;
         ++set_index;
       }
       offset = ( offset + ( 64 >> best_free_set ) ) & 0x3F;
+    }
+
+    if ( set_dc )
+    {
+      /* only one cofactor can be found in the group --> encoding can be 0 or 1 */
+      fs_fun[group_index + 1] = fs_fun[group_index];
+      bs_dc._bits |= dc_mask;
     }
 
     /* create composition function */
@@ -927,11 +859,12 @@ private:
     LTT care;
     bs_support_size = 0;
     uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF, UINT64_MAX };
-    care._bits = masks[num_vars - best_free_set];
+    care._bits = masks[num_vars - best_free_set] & ~bs_dc._bits;
     for ( uint32_t i = 0; i < num_vars - best_free_set; ++i )
     {
       if ( !has_var6( bs, care, i ) )
       {
+        adjust_truth_table_on_dc( bs, care, i );
         continue;
       }
 
@@ -960,150 +893,6 @@ private:
       std::cout << "Composition function: ";
       kitty::print_hex( f );
       std::cout << "\n";
-    }
-  }
-
-  inline void compute_functions( LTT isets0[2], LTT isets1[2], uint64_t fs_fun[4] )
-  {
-    /* u = 2 no support minimization */
-    if ( best_multiplicity < 3 )
-    {
-      dec_funcs[0] = isets0[0]._bits;
-      bs_support_size = num_vars - best_free_set;
-      for ( uint32_t i = 0; i < num_vars - best_free_set; ++i )
-      {
-        bs_support[i] = i;
-      }
-      compute_composition( fs_fun );
-      return;
-    }
-
-    /* u = 4 two possibilities */
-    if ( best_multiplicity == 4 )
-    {
-      compute_functions4( isets0, isets1, fs_fun );
-      return;
-    }
-
-    /* u = 3 if both sets have multiplicity 2 there are no don't cares */
-    if ( best_multiplicity0 == best_multiplicity1 )
-    {
-      compute_functions4( isets0, isets1, fs_fun );
-      return;
-    }
-
-    /* u = 3 one set has multiplicity 1, use don't cares */
-    compute_functions3( isets0, isets1, fs_fun );
-  }
-
-  inline void compute_functions4( LTT isets0[2], LTT isets1[2], uint64_t fs_fun[4] )
-  {
-    uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF, UINT64_MAX };
-    LTT f = isets0[0] | isets1[1];
-    LTT care;
-    care._bits = masks[num_vars - best_free_set];
-
-    /* count the number of support variables */
-    uint32_t support_vars1 = 0;
-    for ( uint32_t i = 0; i < num_vars - best_free_set; ++i )
-    {
-      support_vars1 += has_var6( f, care, i ) ? 1 : 0;
-      bs_support[i] = i;
-    }
-
-    /* use a different set */
-    f = isets0[0] | isets1[0];
-
-    uint32_t support_vars2 = 0;
-    for ( uint32_t i = 0; i < num_vars - best_free_set; ++i )
-    {
-      support_vars2 += has_var6( f, care, i ) ? 1 : 0;
-    }
-
-    bs_support_size = support_vars2;
-    if ( support_vars2 > support_vars1 )
-    {
-      f = isets0[0] | isets1[1];
-      std::swap( fs_fun[2], fs_fun[3] );
-      bs_support_size = support_vars1;
-    }
-
-    /* move variables */
-    if ( bs_support_size < num_vars - best_free_set )
-    {
-      support_vars1 = 0;
-      for ( uint32_t i = 0; i < num_vars - best_free_set; ++i )
-      {
-        if ( !has_var6( f, care, i ) )
-        {
-          continue;
-        }
-
-        if ( support_vars1 < i )
-        {
-          kitty::swap_inplace( f, support_vars1, i );
-        }
-
-        bs_support[support_vars1] = i;
-        ++support_vars1;
-      }
-    }
-
-    dec_funcs[0] = f._bits;
-    compute_composition( fs_fun );
-  }
-
-  inline void compute_functions3( LTT isets0[2], LTT isets1[2], uint64_t fs_fun[4] )
-  {
-    uint64_t constexpr masks[] = { 0x0, 0x3, 0xF, 0xFF, 0xFFFF, 0xFFFFFFFF, UINT64_MAX };
-    LTT f = isets0[0] | isets1[0];
-    LTT care;
-
-    /* init the care set */
-    if ( best_multiplicity0 == 1 )
-    {
-      care._bits = masks[num_vars - best_free_set] & ( ~isets0[0]._bits );
-      fs_fun[1] = fs_fun[0];
-    }
-    else
-    {
-      care._bits = masks[num_vars - best_free_set] & ( ~isets1[0]._bits );
-      fs_fun[3] = fs_fun[2];
-    }
-
-    /* count the number of support variables */
-    uint32_t support_vars = 0;
-    for ( uint32_t i = 0; i < num_vars - best_free_set; ++i )
-    {
-      if ( !has_var6( f, care, i ) )
-      {
-        adjust_truth_table_on_dc( f, care, i );
-        continue;
-      }
-
-      if ( support_vars < i )
-      {
-        kitty::swap_inplace( f, support_vars, i );
-      }
-
-      bs_support[support_vars] = i;
-      ++support_vars;
-    }
-
-    bs_support_size = support_vars;
-    dec_funcs[0] = f._bits;
-    compute_composition( fs_fun );
-  }
-
-  void compute_composition( uint64_t fs_fun[4] )
-  {
-    dec_funcs[1] = fs_fun[0] << ( 1 << best_free_set );
-    dec_funcs[1] |= fs_fun[1];
-
-    if ( best_multiplicity > 2 )
-    {
-      dec_funcs[1] |= fs_fun[2] << ( ( 2 << best_free_set ) + ( 1 << best_free_set ) );
-      dec_funcs[1] |= fs_fun[3] << ( 2 << best_free_set );
     }
   }
 
@@ -1227,7 +1016,8 @@ private:
     uint64_t new_bits = tt._bits & care._bits;
     tt._bits = ( ( new_bits | ( new_bits >> ( uint64_t( 1 ) << var_index ) ) ) & kitty::detail::projections_neg[var_index] ) |
                ( ( new_bits | ( new_bits << ( uint64_t( 1 ) << var_index ) ) ) & kitty::detail::projections[var_index] );
-    care._bits = care._bits | ( care._bits >> ( uint64_t( 1 ) << var_index ) );
+    care._bits = ( care._bits | ( care._bits >> ( uint64_t( 1 ) << var_index ) ) ) & kitty::detail::projections_neg[var_index];
+    care._bits = care._bits | ( care._bits << ( uint64_t( 1 ) << var_index ) );
   }
 
   /* Decomposition format for ABC
