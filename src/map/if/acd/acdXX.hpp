@@ -571,6 +571,7 @@ private:
       }
     } while ( combinations_next( free_set_size, 0, pComb, pInvPerm, tt ) );
 
+    best_multiplicity = UINT32_MAX;
     return false;
   }
 
@@ -620,6 +621,8 @@ private:
           return true;
         }
       }
+
+      best_multiplicity = UINT32_MAX;
       return false;
     }
 
@@ -683,6 +686,7 @@ private:
       }
     } while ( combinations_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
+    best_multiplicity = UINT32_MAX;
     return false;
   }
 
