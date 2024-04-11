@@ -155,10 +155,21 @@ public:
 
     if ( best_multiplicity == UINT32_MAX )
       return -1;
-
-    for ( uint32_t i = 0; i < best_free_set; ++i )
+    
+    if ( bs_support_size == UINT32_MAX )
     {
-      profile |= 1 << permutations[i];
+      for ( uint32_t i = 0; i < best_free_set; ++i )
+      {
+        profile |= 1 << permutations[i];
+      }
+    }
+    else
+    {
+      for ( uint32_t i = 0; i < bs_support_size; ++i )
+      {
+        profile |= 1 << permutations[bs_support[i] + best_free_set];
+      }
+      profile = ~profile & ( ( 1u << num_vars ) - 1 );
     }
 
     return profile;
@@ -1101,7 +1112,7 @@ private:
     ++bytes;
 
     /* write support */
-    for ( uint32_t i = best_free_set; i < best_free_set; ++i )
+    for ( uint32_t i = 0; i < best_free_set; ++i )
     {
       *pArray = (unsigned char)permutations[i];
       pArray++;
