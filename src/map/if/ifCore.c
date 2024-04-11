@@ -63,6 +63,7 @@ void If_ManSetDefaultPars( If_Par_t * pPars )
     pPars->fCutMin     =  0;
     pPars->fBidec      =  0;
     pPars->fUserLutDec =  0;
+    pPars->fUserLut2D  =  0;
     pPars->fVerbose    =  0;
 }
 

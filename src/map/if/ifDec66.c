@@ -24,7 +24,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-#define CLU_VAR_MAX  16
+#define CLU_VAR_MAX  11
 #define CLU_MEM_MAX  1000  // 1 GB
 #define CLU_UNUSED   0xff
 
@@ -252,7 +252,7 @@ unsigned * If_CluHashLookup2( If_Man_t * p, word * pTruth, int t )
 }
 
 // returns if successful
-int If_CluCheck66( If_Man_t * p, word * pTruth0, int nVars, int fHashing )
+int If_CluCheckXX( If_Man_t * p, word * pTruth0, int lutSize, int nVars, int fHashing )
 {
     If_Grp_t G1 = {0};
     unsigned * pHashed = NULL;
@@ -267,32 +267,7 @@ int If_CluCheck66( If_Man_t * p, word * pTruth0, int nVars, int fHashing )
     /* new entry */
     if ( G1.nVars == 0 )
     {
-        G1.nVars = acd66_evaluate( pTruth0, nVars, 0 );
-    }
-
-    if ( pHashed )
-        *pHashed = If_CluGrp2Uns2( &G1 );
-
-    return G1.nVars;
-}
-
-// returns if successful
-int If_CluCheck666( If_Man_t * p, word * pTruth0, int nVars, int fHashing )
-{
-    If_Grp_t G1 = {0};
-    unsigned * pHashed = NULL;
-
-    if ( p && fHashing )
-    {
-        pHashed = If_CluHashLookup2( p, pTruth0, 0 );
-        if ( pHashed && *pHashed != CLU_UNUSED )
-            If_CluUns2Grp2( *pHashed, &G1 );
-    }
-
-    /* new entry */
-    if ( G1.nVars == 0 )
-    {
-        G1.nVars = acd666_evaluate( pTruth0, nVars, 0 );
+        G1.nVars = acdXX_decompose( pTruth0, lutSize, nVars, NULL );
     }
 
     if ( pHashed )
@@ -312,12 +287,11 @@ int If_CluCheck666( If_Man_t * p, word * pTruth0, int nVars, int fHashing )
   SeeAlso     []
 
 ***********************************************************************/
-int If_CutPerformCheck66( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeaves, char * pStr )
+int If_CutPerformCheckXX( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeaves, char * pStr )
 {
     unsigned pTruth[IF_MAX_FUNC_LUTSIZE > 5 ? 1 << (IF_MAX_FUNC_LUTSIZE - 5) : 1];
-    int i, Length;
+    int Length;
     // stretch the truth table
-    assert( nVars >= 6 );
     memcpy( pTruth, pTruth0, sizeof(word) * Abc_TtWordNum(nVars) );
     Abc_TtStretch6( (word *)pTruth, nLeaves, p->pPars->nLutSize );
 
@@ -327,35 +301,30 @@ int If_CutPerformCheck66( If_Man_t * p, unsigned * pTruth0, int nVars, int nLeav
 
     // quit if parameters are wrong
     Length = strlen(pStr);
-    if ( Length != 2 && Length != 3 )
+    if ( Length != 2 )
     {
         printf( "Wrong LUT struct (%s)\n", pStr );
         return 0;
     }
-    for ( i = 0; i < Length; i++ )
+
+    int lutSize = pStr[0] - '0';
+    if ( lutSize < 3 || lutSize > 6 )
     {
-      if ( pStr[i] != '6' )
-      {
-          printf( "The LUT size (%d) should belong to {6}.\n", pStr[i] - '0' );
-          return 0;
-      }
+        printf( "The LUT size (%d) should belong to {3,4,5,6}.\n", lutSize );
+        return 0;
     }
 
-    if ( ( Length == 2 && nLeaves > 11 ) || ( Length == 3 && nLeaves > 16 ) )
+    if ( nLeaves >= 2 * lutSize  )
     {
         printf( "The cut size (%d) is too large for the LUT structure %s.\n", nLeaves, pStr );
         return 0;
     }
 
-    // consider easy case
-    if ( nLeaves <= 6 )
+    // consider trivial case
+    if ( nLeaves <= lutSize )
         return 1;
 
-    // derive the decomposition
-    if ( Length == 2 )
-        return If_CluCheck66(p, (word*)pTruth, nVars, 1);
-    else
-        return If_CluCheck666(p, (word*)pTruth, nVars, 1);
+    return If_CluCheckXX(p, (word*)pTruth, lutSize, nVars, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////

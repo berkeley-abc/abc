@@ -505,6 +505,95 @@ int If_LutDecEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay,
     return DelayMax + val;
 }
 
+int If_Lut2DecEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay, int fFirst )
+{
+    pCut->fUser = 1;
+    pCut->Cost = pCut->nLeaves > 1 ? 1 : 0;
+    pCut->decDelay = 0;
+    if ( pCut->nLeaves == 0 ) // const
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 0 );
+        return 0;
+    }
+    if ( pCut->nLeaves == 1 ) // variable
+    {
+        assert( Abc_Lit2Var(If_CutTruthLit(pCut)) == 1 );
+        return (int)If_ObjCutBest(If_CutLeaf(p, pCut, 0))->Delay;
+    }
+
+    int LutSize = p->pPars->nLutDecSize;
+    int i, leaf_delay;
+    int DelayMax = -1, nLeafMax = 0;
+    unsigned uLeafMask = 0;
+    for ( i = 0; i < If_CutLeaveNum(pCut); i++ )
+    {
+        leaf_delay = If_ObjCutBest(If_CutLeaf(p, pCut, i))->Delay;
+
+        if ( DelayMax < leaf_delay )
+        {
+            DelayMax = leaf_delay;
+            nLeafMax = 1;
+            uLeafMask = (1 << i);
+        }
+        else if ( DelayMax == leaf_delay )
+        {
+            nLeafMax++;
+            uLeafMask |= (1 << i);
+        }
+    }
+    if ( If_CutLeaveNum(pCut) <= LutSize )
+    {
+        pCut->decDelay = ( 1 << LutSize ) - 1;
+        return DelayMax + 1;
+    }
+
+    /* compute the decomposition */
+    int use_late_arrival = 0;
+    unsigned cost = 1;
+
+    if ( !fFirst )
+    {
+        if ( optDelay )
+        {
+            /* checks based on delay: must be better than the previous best cut */
+            use_late_arrival = DelayMax + 2 >= If_ObjCutBest(pObj)->Delay;
+        }
+        else
+        {
+            /* checks based on delay: look at the required time */
+            use_late_arrival = DelayMax + 2 > pObj->Required + p->fEpsilon;
+        }
+    }
+
+    /* Too many late-arriving signals */
+    if ( nLeafMax == LutSize && use_late_arrival )
+    {
+        /* unfeasible decomposition */
+        pCut->Cost = IF_COST_MAX;
+        return ABC_INFINITY;
+    }
+
+    if ( !use_late_arrival )
+    {
+        uLeafMask = 0;
+    }
+
+    /* returns the delay of the decomposition */
+    word *pTruth = If_CutTruthW( p, pCut );
+    int val = acd2_evaluate( pTruth, pCut->nLeaves, LutSize, &uLeafMask, &cost, !use_late_arrival );
+
+    /* not feasible decomposition */
+    pCut->decDelay = uLeafMask;
+    if ( val < 0 )
+    {
+        pCut->Cost = IF_COST_MAX;
+        return ABC_INFINITY;
+    }
+
+    pCut->Cost = 2;
+    return DelayMax + val;
+}
+
 int If_LutDecReEval( If_Man_t * p, If_Cut_t * pCut )
 {
     // pCut->fUser = 1;
