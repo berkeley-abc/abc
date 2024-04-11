@@ -46,8 +46,13 @@ namespace acd
 
 struct acdXX_params
 {
+  /* Nymber of inputs of the LUT */
   uint32_t lut_size{ 6 };
+
+  /* Maximum number of variables in the shared set */
   uint32_t max_shared_vars{ 4 };
+
+  /* Run verification */
   bool verify{ false };
 };
 
@@ -228,7 +233,7 @@ private:
     local_extend_to( start_tt, num_vars );
   }
 
-  uint32_t column_multiplicity( STT const& tt, uint32_t free_set_size )
+  uint32_t column_multiplicity( STT const& tt, uint32_t const free_set_size )
   {
     assert( free_set_size <= 5 );
 
@@ -264,7 +269,7 @@ private:
     return size;
   }
 
-  uint32_t column_multiplicity2( STT const& tt, uint32_t free_set_size, uint32_t const limit )
+  uint32_t column_multiplicity2( STT const& tt, uint32_t const free_set_size, uint32_t const limit )
   {
     assert( free_set_size <= 5 );
 
@@ -412,9 +417,6 @@ private:
   bool find_decomposition_bs_offset( uint32_t free_set_size, uint32_t offset )
   {
     STT tt = best_tt;
-
-    /* works up to 11 input truth tables */
-    assert( num_vars <= 11 );
     best_free_set = free_set_size;
 
     /* special case */
@@ -503,9 +505,6 @@ private:
   bool find_decomposition_bs_multi_ss( uint32_t free_set_size )
   {
     STT tt = start_tt;
-
-    /* works up to 11 input truth tables */
-    assert( num_vars <= 11 );
 
     /* init combinations */
     uint32_t pComb[11], pInvPerm[11], shared_set[4];
@@ -1225,8 +1224,6 @@ private:
 private:
   uint32_t best_multiplicity{ UINT32_MAX };
   uint32_t best_free_set{ UINT32_MAX };
-  uint32_t best_multiplicity0{ UINT32_MAX };
-  uint32_t best_multiplicity1{ UINT32_MAX };
   uint32_t bs_support_size{ UINT32_MAX };
   uint32_t num_shared_vars{ 0 };
   STT best_tt;

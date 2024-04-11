@@ -19700,7 +19700,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( strlen(pPars->pLutStruct) != 2 && strlen(pPars->pLutStruct) != 3 )
             {
-                Abc_Print( -1, "Command line switch \"-J\" should be followed by a 2- or 3-char string (e.g. \"66\" or \"666\").\n" );
+                Abc_Print( -1, "Command line switch \"-J\" should be followed by a 2-char string (e.g. \"44\" or \"66\" \").\n" );
                 goto usage;
             }
             break;
@@ -19883,7 +19883,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         if ( pPars->fEnableStructN )
         {
-            pPars->pFuncCell = pPars->fDelayOptLut ? NULL : If_CutPerformCheck66;
+            pPars->pFuncCell = pPars->fDelayOptLut ? NULL : If_CutPerformCheckXX;
         }
         else
         {

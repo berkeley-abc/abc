@@ -215,7 +215,7 @@ private:
     local_extend_to( start_tt, num_vars );
   }
 
-  uint32_t column_multiplicity( STT const& tt, uint32_t free_set_size )
+  uint32_t column_multiplicity( STT const& tt, uint32_t const free_set_size )
   {
     assert( free_set_size <= 5 );
 
@@ -250,7 +250,7 @@ private:
     return size;
   }
 
-  uint32_t column_multiplicity2( STT const& tt, uint32_t free_set_size, uint32_t const limit )
+  uint32_t column_multiplicity2( STT const& tt, uint32_t const free_set_size, uint32_t const limit )
   {
     assert( free_set_size <= 5 );
 
@@ -1198,8 +1198,6 @@ private:
 private:
   uint32_t best_multiplicity{ UINT32_MAX };
   uint32_t best_free_set{ UINT32_MAX };
-  uint32_t best_multiplicity0{ UINT32_MAX };
-  uint32_t best_multiplicity1{ UINT32_MAX };
   uint32_t bs_support_size{ UINT32_MAX };
   uint32_t num_shared_vars{ 0 };
   STT best_tt;

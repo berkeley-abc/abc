@@ -19,7 +19,7 @@
 #include "ac_wrapper.h"
 #include "ac_decomposition.hpp"
 #include "acd66.hpp"
-#include "acd666.hpp"
+#include "acdXX.hpp"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -113,61 +113,49 @@ int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay,
   }
 }
 
-int acd66_evaluate( word * pTruth, unsigned nVars, int compute_decomposition )
+inline int acd66_decompose( word * pTruth, unsigned nVars, unsigned char *decomposition )
 {
   using namespace acd;
-
   acd66_impl acd( nVars, true, false );
 
   if ( acd.run( pTruth ) == 0 )
     return 0;
-  
-  if ( !compute_decomposition )
+  if ( decomposition == NULL )
     return 1;
-
   int val = acd.compute_decomposition();
   if ( val != 0 )
   {
     return 0;
   }
+  acd.get_decomposition( decomposition );
 
   return 1;
 }
 
-int acd66_decompose( word * pTruth, unsigned nVars, unsigned char *decomposition )
+int acdXX_decompose( word * pTruth, unsigned lutSize, unsigned nVars, unsigned char *decomposition )
 {
   using namespace acd;
 
-  acd66_impl acd( nVars, true, false );
-  acd.run( pTruth );
-
-  int val = acd.compute_decomposition();
-  if ( val != 0 )
+  if ( lutSize == 6 )
   {
-    return -1;
+    return acd66_decompose( pTruth, nVars, decomposition );
   }
-
-  acd.get_decomposition( decomposition );
-  return 0;
-}
-
-int acd666_evaluate( word * pTruth, unsigned nVars, int compute_decomposition )
-{
-  using namespace acd;
-
-  acd666_impl acd( nVars, false );
+  
+  acdXX_params ps;
+  ps.lut_size = lutSize;
+  ps.max_shared_vars = lutSize - 2;
+  acdXX_impl acd( nVars, ps );
 
   if ( acd.run( pTruth ) == 0 )
     return 0;
-  
-  if ( !compute_decomposition )
+  if ( decomposition == NULL )
     return 1;
-
   int val = acd.compute_decomposition();
   if ( val != 0 )
   {
     return 0;
   }
+  acd.get_decomposition( decomposition );
 
   return 1;
 }
