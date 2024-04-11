@@ -572,6 +572,10 @@ int Supp_FindNextDiv( Supp_Man_t * p, int Pair )
     iDiv1 = iDiv1 == -1 ? ABC_INFINITY : iDiv1;
     iDiv2 = iDiv2 == -1 ? ABC_INFINITY : iDiv2;
     iDiv = Abc_MinInt( iDiv1, iDiv2 );
+    // return -1 if the pair cannot be distinguished by any divisor
+    // in this case the original resub problem has no solution
+    if ( iDiv == ABC_INFINITY )
+        return -1;
     assert( iDiv >= 0 && iDiv < Vec_IntSize(p->vCands) );
     return iDiv;
 }
@@ -582,6 +586,8 @@ int Supp_ManRandomSolution( Supp_Man_t * p, int iSet, int fVerbose )
     {
         int Pair = Supp_ComputePair( p, iSet );
         int iDiv = Supp_FindNextDiv( p, Pair );
+        if ( iDiv == -1 )
+            return -1;
         iSet = Supp_ManSubsetAdd( p, iSet, iDiv, fVerbose );
         if ( Supp_SetFuncNum(p, iSet) > 0 )
             Vec_IntPush( p->vTempSets, iSet );
@@ -883,6 +889,10 @@ Vec_Int_t * Supp_ManCompute( Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * 
     {
         Supp_ManAddPatternsFunc( p, i );
         iSet = Supp_ManRandomSolution( p, 0, fVeryVerbose );
+        if ( iSet == -1 ) {
+            Supp_ManDelete( p );
+            return NULL;
+        }
         for ( r = 0; r < p->nRounds; r++ )
         {
             if ( fVeryVerbose )
@@ -898,6 +908,10 @@ Vec_Int_t * Supp_ManCompute( Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * 
                 iBest = iSet;
             }
             iSet = Supp_ManReconstruct( p, fVeryVerbose );
+            if ( iSet == -1 ) {
+                Supp_ManDelete( p );
+                return NULL;
+            }            
         }
         if ( fVeryVerbose )
         printf( "Matrix size %d.\n", Vec_PtrSize(p->vMatrix) );
