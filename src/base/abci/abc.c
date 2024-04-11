@@ -19514,7 +19514,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     If_ManSetDefaultPars( pPars );
     pPars->pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRNTXYZDEWSJqaflepmrsdbgxyuojiktncvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRNTXYUZDEWSJqaflepmrsdbgxyuojiktncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -19628,6 +19628,18 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nAndArea = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( pPars->nAndDelay < 0 )
+                goto usage;
+            break;
+        case 'U':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-U\" should be followed by a positive integer 3, 4, 5, or 6.\n" );
+                goto usage;
+            }
+            pPars->nLutDecSize = atoi(argv[globalUtilOptind]);
+            pPars->fUserLut2D = 1;
+            globalUtilOptind++;
+            if ( pPars->nLutDecSize < 3 || pPars->nLutDecSize > 6 )
                 goto usage;
             break;
         case 'Z':
@@ -19892,7 +19904,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->fCutMin = 1;
     }
 
-    if ( pPars->fUserLutDec )
+    if ( pPars->fUserLutDec || pPars->fUserLut2D )
     {
         if ( pPars->nLutDecSize == 0 )
         {
@@ -19927,7 +19939,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->pLutLib     =  NULL;
     }
     // modify for delay optimization
-    if ( pPars->fDelayOpt || pPars->fDsdBalance || pPars->fDelayOptLut || pPars->fUserLutDec )
+    if ( pPars->fDelayOpt || pPars->fDsdBalance || pPars->fDelayOptLut || pPars->fUserLutDec || pPars->fUserLut2D )
     {
         pPars->fTruth      =  1;
         pPars->fCutMin     =  1;
@@ -20073,7 +20085,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFAGRNTXYZ num] [-DEW float] [-S str] [-qarlepmsdbgxyuojiktncvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFAGRNTXYUZ num] [-DEW float] [-SJ str] [-qarlepmsdbgxyuojiktncvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -20085,6 +20097,7 @@ usage:
     Abc_Print( -2, "\t-T num   : the type of LUT structures [default = any]\n" );
     Abc_Print( -2, "\t-X num   : delay of AND-gate in LUT library units [default = %d]\n", pPars->nAndDelay );
     Abc_Print( -2, "\t-Y num   : area of AND-gate in LUT library units [default = %d]\n", pPars->nAndArea );
+    Abc_Print( -2, "\t-U num   : the number of LUT inputs for delay-driven LUT decomposition [default = not used]\n" );
     Abc_Print( -2, "\t-Z num   : the number of LUT inputs for delay-driven LUT decomposition [default = not used]\n" );
     Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );
