@@ -320,7 +320,7 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnuvwh] [-X cell_name] <file> <file2>\n" );
+    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnuvwmh] [-X cell_name] <file> <file2>\n" );
     fprintf( pAbc->Err, "\t           reads Liberty library from file\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
