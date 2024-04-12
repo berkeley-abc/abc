@@ -483,7 +483,7 @@ static void Abc_SclWriteSurface( Vec_Str_t * vOut, SC_Surface * p )
     for ( i = 0; i < 6; i++ ) 
         Vec_StrPutF( vOut, p->approx[2][i] );
 }
-static void Abc_SclWriteLibraryCellsOnly( Vec_Str_t * vOut, SC_Lib * p)
+static void Abc_SclWriteLibraryCellsOnly( Vec_Str_t * vOut, SC_Lib * p )
 {
     SC_Cell * pCell;
     SC_Pin * pPin;
