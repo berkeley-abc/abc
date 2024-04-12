@@ -483,7 +483,7 @@ static void Abc_SclWriteSurface( Vec_Str_t * vOut, SC_Surface * p )
     for ( i = 0; i < 6; i++ ) 
         Vec_StrPutF( vOut, p->approx[2][i] );
 }
-static void Abc_SclWriteLibraryCellsOnly( Vec_Str_t * vOut, SC_Lib * p, int fAddOn )
+static void Abc_SclWriteLibraryCellsOnly( Vec_Str_t * vOut, SC_Lib * p)
 {
     SC_Cell * pCell;
     SC_Pin * pPin;
@@ -492,12 +492,6 @@ static void Abc_SclWriteLibraryCellsOnly( Vec_Str_t * vOut, SC_Lib * p, int fAdd
     {
         if ( pCell->seq || pCell->unsupp )
             continue;
-
-        if ( fAddOn ) {
-            Vec_StrPush( vOut, 'L' );
-            Vec_StrPush( vOut, '0'+(char)fAddOn );
-            Vec_StrPush( vOut, '_' );
-        }
 
         Vec_StrPutS( vOut, pCell->pName );
         Vec_StrPutF( vOut, pCell->area );
@@ -624,7 +618,7 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p, int nExtra )
     // Write 'cells' vector:
     n_valid_cells = Abc_SclCountValidCells( p );
     Vec_StrPutI( vOut, n_valid_cells + nExtra );
-    Abc_SclWriteLibraryCellsOnly( vOut, p, (int)(nExtra > 0) );
+    Abc_SclWriteLibraryCellsOnly( vOut, p );
 }
 void Abc_SclWriteScl( char * pFileName, SC_Lib * p )
 {
@@ -871,7 +865,7 @@ SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2 )
     Vec_Str_t * vOut = Vec_StrAlloc( 10000 );
     int n_valid_cells2 = Abc_SclCountValidCells( pLib2 );
     Abc_SclWriteLibrary( vOut, pLib1, n_valid_cells2 );
-    Abc_SclWriteLibraryCellsOnly( vOut, pLib2, 2 );
+    Abc_SclWriteLibraryCellsOnly( vOut, pLib2 );
     SC_Lib * p = Abc_SclReadFromStr( vOut );
     p->pFileName = Abc_UtilStrsav( pLib1->pFileName );
     p->pName = ABC_ALLOC( char, strlen(pLib1->pName) + strlen(pLib2->pName) + 10 );
