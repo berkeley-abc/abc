@@ -748,7 +748,7 @@ extern SC_Lib *      Abc_SclReadFromStr( Vec_Str_t * vOut );
 extern SC_Lib *      Abc_SclReadFromFile( char * pFileName );
 extern void          Abc_SclWriteScl( char * pFileName, SC_Lib * p );
 extern void          Abc_SclWriteLiberty( char * pFileName, SC_Lib * p );
-extern SC_Lib *      Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2 );
+extern SC_Lib *      Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2, int fUsePrefix );
 /*=== sclLibUtil.c ===============================================================*/
 extern void          Abc_SclHashCells( SC_Lib * p );
 extern int           Abc_SclCellFind( SC_Lib * p, char * pName );

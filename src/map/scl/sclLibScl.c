@@ -866,12 +866,12 @@ void Abc_SclWriteLiberty( char * pFileName, SC_Lib * p )
   SeeAlso     []
 
 ***********************************************************************/
-SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2 )
+SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2, int fUsePrefix )
 {
     Vec_Str_t * vOut = Vec_StrAlloc( 10000 );
     int n_valid_cells2 = Abc_SclCountValidCells( pLib2 );
     Abc_SclWriteLibrary( vOut, pLib1, n_valid_cells2 );
-    Abc_SclWriteLibraryCellsOnly( vOut, pLib2, 2 );
+    Abc_SclWriteLibraryCellsOnly( vOut, pLib2, fUsePrefix ? 2 : 0 );
     SC_Lib * p = Abc_SclReadFromStr( vOut );
     p->pFileName = Abc_UtilStrsav( pLib1->pFileName );
     p->pName = ABC_ALLOC( char, strlen(pLib1->pName) + strlen(pLib2->pName) + 10 );
