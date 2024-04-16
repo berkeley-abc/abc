@@ -885,7 +885,7 @@ Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& s )
             lits->push( toLit(*pLit) ), s.addVar( *pLit >> 1 );
         s.addClause(*lits);
     }
-    Vec_Int_t * vCnfIds = Vec_IntAllocArrayCopy(pCnf->pVarNums,pCnf->nVars);
+    Vec_Int_t * vCnfIds = Vec_IntAllocArrayCopy(pCnf->pVarNums, Gia_ManObjNum(p));
     printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
     Cnf_DataFree(pCnf);
