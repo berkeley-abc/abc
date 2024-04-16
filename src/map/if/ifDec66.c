@@ -267,7 +267,7 @@ int If_CluCheckXX( If_Man_t * p, word * pTruth0, int lutSize, int nVars, int fHa
     /* new entry */
     if ( G1.nVars == 0 )
     {
-        G1.nVars = acdXX_decompose( pTruth0, lutSize, nVars, NULL );
+        G1.nVars = acdXX_evaluate( pTruth0, lutSize, nVars );
     }
 
     if ( pHashed )
