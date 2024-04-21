@@ -697,7 +697,7 @@ int Pdr_ManGeneralize( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppP
         return -1;
     if ( RetValue == 0 )
     {
-        p->tGeneral += clock() - clk;
+        p->tGeneral += Abc_Clock() - clk;
         return 0;
     }
 
