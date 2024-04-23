@@ -122,6 +122,7 @@ struct Cec_ParFra_t_
     int              iOutFail;      // the failed output
     int              fBMiterInfo;   // printing BMiter information
     int              nPO;           // number of po in original design given a bmiter
+    char *           pDumpName;     // file name to dump statistics
 };
 
 // combinational equivalence checking parameters

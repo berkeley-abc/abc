@@ -38250,7 +38250,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fCbs = 1, approxLim = 600, subBatchSz = 1, adaRecycle = 500, nMaxNodes = 0;
     Cec4_ManSetParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPMrmdckngxysopwqvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "JWRILDCNPMFrmdckngxysopwqvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -38364,6 +38364,15 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nMaxNodes < 0 )
                 goto usage;
             break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->pDumpName = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;            
         case 'r':
             pPars->fRewriting ^= 1;
             break;
@@ -38405,7 +38414,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'q':
             pPars->fBMiterInfo ^= 1;
-            break;
+            break;      
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -38445,7 +38454,7 @@ int Abc_CommandAbc9Fraig( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &fraig [-JWRILDCNPM <num>] [-rmdckngxysopwvh]\n" );
+    Abc_Print( -2, "usage: &fraig [-JWRILDCNPM <num>] [-F filename] [-rmdckngxysopwvh]\n" );
     Abc_Print( -2, "\t         performs combinational SAT sweeping\n" );
     Abc_Print( -2, "\t-J num : the solver type [default = %d]\n", pPars->jType );
     Abc_Print( -2, "\t-W num : the number of simulation words [default = %d]\n", pPars->nWords );
@@ -38457,6 +38466,7 @@ usage:
     Abc_Print( -2, "\t-N num : the min number of calls to recycle the solver [default = %d]\n", pPars->nCallsRecycle );
     Abc_Print( -2, "\t-P num : the number of pattern generation iterations [default = %d]\n", pPars->nGenIters );
     Abc_Print( -2, "\t-M num : the node count limit to call the old sweeper [default = %d]\n", nMaxNodes );
+    Abc_Print( -2, "\t-F file: the file name to dump primary output information [default = none]\n" );
     Abc_Print( -2, "\t-r     : toggle the use of AIG rewriting [default = %s]\n", pPars->fRewriting? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle miter vs. any circuit [default = %s]\n", pPars->fCheckMiter? "miter": "circuit" );
     Abc_Print( -2, "\t-d     : toggle using double output miters [default = %s]\n", pPars->fDualOut? "yes": "no" );
