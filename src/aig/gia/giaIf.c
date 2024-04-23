@@ -1308,12 +1308,25 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
         {
             if ( Length == 2 )
             {
-                if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+                if ( ((If_Man_t *)pIfMan)->pPars->fEnableStructN )
                 {
-                    Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
-                    Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
-                    printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
-                    return -1;
+                    if ( !If_CluCheckXXExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+                    {
+                        Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                        Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                        printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                        return -1;
+                    }
+                }
+                else
+                {
+                    if ( !If_CluCheckExt( NULL, pRes, nLeaves, nLutLeaf, nLutRoot, pLut0, pLut1, &Func0, &Func1 ) )
+                    {
+                        Extra_PrintHex( stdout, (unsigned *)pRes, nLeaves );  printf( "    " );
+                        Kit_DsdPrintFromTruth( (unsigned*)pRes, nLeaves );  printf( "\n" );
+                        printf( "Node %d is not decomposable. Deriving LUT structures has failed.\n", iObj );
+                        return -1;
+                    }
                 }
             }
             else
