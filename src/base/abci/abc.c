@@ -600,6 +600,7 @@ static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BRecover           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Aig2Bookshelf      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1383,6 +1384,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&brecover",     Abc_CommandAbc9BRecover,               0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&aig2book",     Abc_CommandAbc9Aig2Bookshelf,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&str_eco",      Abc_CommandAbc9StrEco,                 0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
@@ -52319,6 +52321,62 @@ usage:
     Abc_Print( -2, "\t<patch> : the modified spec. (should be a hierarchical AIG)\n");    
     return 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Aig2Bookshelf( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_GenBookshelf(Gia_Man_t* p, char * pDirName );
+    char * pDirName = (char *)"./";
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a directory name.\n" );
+                goto usage;
+            }
+            pDirName = argv[globalUtilOptind++];
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }   
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Aig2Bookshelf(): There is no AIG.\n" );
+        return 0;
+    }
+    Gia_GenBookshelf( pAbc->pGia, pDirName );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &aig2book -D <dest>\n" );
+    Abc_Print( -2, "\t            generate Bookshelf format files for VLSI placement\n" );
+    Abc_Print( -2, "\t-D <dest> : the output file directory (optional) [default = \"./\"]\n" );
+    Abc_Print( -2, "\t-v        : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h        : print the command usage\n");   
+    return 1;
+}
+
 
 /**Function*************************************************************
 
