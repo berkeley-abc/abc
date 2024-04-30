@@ -2370,6 +2370,233 @@ Gia_Man_t * Gia_GenPutOnTop( char ** pFNames, int nFNames )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Generate Bookshelf files.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_GenBookshelf(Gia_Man_t* p, char * pDirName )
+{
+    char* pPrefix = p->pName;
+    int numNodes = Gia_ManObjNum(p)-1;
+    int numNets = Gia_ManAndNum(p) + Gia_ManCiNum(p);
+
+    // .aux file
+    FILE * pFile_aux = fopen( Extra_FileNameGenericAppend(pPrefix, ".aux"), "w" );
+    if ( pFile_aux == NULL )
+    {
+        printf( "Cannot open file \"%s\".aux\n", pPrefix );        
+        return;
+    }
+    fprintf( pFile_aux, "RowBasedPlacement : " );
+    fprintf( pFile_aux, "%s.nodes ", pPrefix);
+    fprintf( pFile_aux, "%s.nets ", pPrefix);
+    fprintf( pFile_aux, "%s.wts ", pPrefix);
+    fprintf( pFile_aux, "%s.pl ", pPrefix);
+    fprintf( pFile_aux, "%s.scl ", pPrefix);
+    fclose( pFile_aux );
+
+    // scl files (row)
+    #include"math.h"
+    int rowHeight = 1;
+    int numRows = sqrt(numNodes*3.5);
+    int rowWidth = numNodes * 3.5 / numRows * 1.2;
+
+    FILE * pFile_scl = fopen( Extra_FileNameGenericAppend(pPrefix, ".scl"), "w" );
+    if ( pFile_scl == NULL )
+    {
+        printf( "Cannot open file \"%s\".scl\n", pPrefix );        
+        return;
+    }
+
+    fprintf(pFile_scl, "UCLA scl 1.0\n\nNumRows : %i\n\n", numRows);
+
+    int currentY = 0;
+    for (int i = 0; i < numRows; ++i)
+	{
+        fprintf(pFile_scl, "CoreRow Horizontal\n" );
+        fprintf(pFile_scl, " Coordinate : %i\n", currentY );
+        fprintf(pFile_scl, " Height : %i\n", rowHeight );
+        fprintf(pFile_scl, " Sitewidth : 1\n");
+        fprintf(pFile_scl, " SiteSpacing : 1\n");
+	    fprintf(pFile_scl, " SubrowOrigin : 1 NumSites : %i\n", rowWidth);
+	    fprintf(pFile_scl, "End\n");
+		currentY += rowHeight;
+	}
+    fclose( pFile_scl );
+
+    // .nodes
+    FILE * pFile_nodes = fopen( Extra_FileNameGenericAppend(pPrefix, ".nodes"), "w" );
+    if ( pFile_nodes == NULL )
+    {
+        printf( "Cannot open file \"%s\".nodes\n", pPrefix );        
+        return;
+    }
+    fprintf( pFile_nodes, "UCLA nodes 1.0\n\nNumNodes : %i\nNumTerminals : 0\n\n", numNodes);
+
+
+    // Each and-gate is seen as a cell with height 1 and 3 pins (2 input pins; 1 output pin)
+    // both input has inverter -> width 2
+    // one of the input has inverter -> width 4
+    // none of the input has inverter -> 3
+    // PI/PO -> width 5
+
+    int netCnt = 0;
+    int numPins = 0;
+    int i;
+    Vec_Int_t* pObjId2NumPins = Vec_IntAlloc( numNodes + 1 );
+    Vec_IntFill(pObjId2NumPins, numNodes + 1, 0);
+    Gia_Obj_t* pObj;
+
+    Gia_ManStaticFanoutStart(p);
+
+    Gia_ManForEachCi(p, pObj, i){
+        int nFO = Gia_ObjFanoutNum(p, pObj);
+        int nPin = nFO + 1;
+        int objId = Gia_ObjId(p, pObj);
+        assert(objId >= 0);
+
+        Vec_IntWriteEntry(pObjId2NumPins, objId, nPin);
+        fprintf(pFile_nodes, " C%i %i %i\n", objId, 5 , 1);
+
+        numPins += nPin;
+        netCnt++;
+    }
+
+    Gia_ManForEachAnd(p, pObj, i){
+        int nFO = Gia_ObjFanoutNum(p, pObj);
+        int nPin = nFO + 1; 
+        int objId = Gia_ObjId(p, pObj);
+        assert(objId >= 0);
+
+        Vec_IntWriteEntry(pObjId2NumPins, objId, nPin);
+
+        int cellWidth = 3; // none of the Fanins has inverter
+        if (Gia_ObjFaninC0(pObj) ^ Gia_ObjFaninC0(pObj))
+            cellWidth = 4;
+        else if (Gia_ObjFaninC0(pObj) && Gia_ObjFaninC0(pObj))
+            cellWidth = 2;
+
+        fprintf(pFile_nodes, " C%i %i %i\n", objId, cellWidth , 1);
+
+        numPins += nPin;
+        netCnt++;
+    }
+
+    Gia_ManForEachCo(p, pObj, i){
+        int objId = Gia_ObjId(p, pObj);
+        assert(objId >= 0);
+
+        Vec_IntWriteEntry(pObjId2NumPins, objId, 1); // the pin is the only fanin
+
+        fprintf(pFile_nodes, " C%i %i %i\n", objId, 5, 1);
+    }
+
+    assert(netCnt == numNets);
+
+
+    // .nets
+
+
+    FILE * pFile_nets = fopen( Extra_FileNameGenericAppend(pPrefix, ".nets"), "w" );
+    if ( pFile_nets == NULL )
+    {
+        printf( "Cannot open file \"%s\".nets\n", pPrefix );        
+        return;
+    }
+    fprintf( pFile_nets, "UCLA nets 1.0\n\nNumNets : %i\nNumPins : %i\n\n", numNets, numPins);
+
+
+    // TODO handle nets and pin offset
+
+    int netId = 1;
+    Gia_ManForEachCi(p, pObj, i){
+        int nFO = Gia_ObjFanoutNum(p, pObj);
+        int nPin = nFO + 1;
+        int objId = Gia_ObjId(p, pObj);
+        assert(objId >= 0);
+
+        fprintf(pFile_nets, "NetDegree : %i N%i\n", nPin, netId);
+        fprintf(pFile_nets, " C%i O : 0 0\n", objId);
+        for(int j=0; j<nFO; j++){
+            Gia_Obj_t* pFO = Gia_ObjFanout(p, pObj, j);
+            int foId = Gia_ObjId(p, pFO);
+            fprintf(pFile_nets, " C%i I : 0 0\n", foId);
+        }
+
+        netId ++;
+    }
+
+    Gia_ManForEachAnd(p, pObj, i){
+        int nFO = Gia_ObjFanoutNum(p, pObj);
+        int nPin = nFO + 1; // 2 Fanin + nFO Fanouts
+        int objId = Gia_ObjId(p, pObj);
+        assert(objId >= 0);
+
+        fprintf(pFile_nets, "NetDegree : %i N%i\n", nPin, netId);
+        fprintf(pFile_nets, " C%i O : 0 0\n", objId);
+        for(int j=0; j<nFO; j++){
+            Gia_Obj_t* pFO = Gia_ObjFanout(p, pObj, j);
+            int foId = Gia_ObjId(p, pFO);
+            fprintf(pFile_nets, " C%i I : 0 0\n", foId);
+        }
+
+        netId ++;
+    }
+
+
+
+    // .wts & .pl
+
+    FILE * pFile_wts = fopen( Extra_FileNameGenericAppend(pPrefix, ".wts"), "w" );
+    if ( pFile_wts == NULL )
+    {
+        printf( "Cannot open file \"%s\".wts\n", pPrefix );        
+        return;
+    }
+    fprintf( pFile_wts, "UCLA wts 1.0\n\n");
+
+
+    FILE * pFile_pl = fopen( Extra_FileNameGenericAppend(pPrefix, ".pl"), "w" );
+    if ( pFile_pl == NULL )
+    {
+        printf( "Cannot open file \"%s\".pl\n", pPrefix );        
+        return;
+    }
+    fprintf( pFile_pl, "UCLA pl 1.0\n\n");
+
+    // TODO traverse each node Id, generate uniformly distributed initial placement
+    int cellsPerRow = numNodes / numRows;
+    int rowCnt = 0;
+    int horCnt = 0;
+    double horDel = (double)rowWidth / (double)cellsPerRow; 
+    Gia_ManForEachObj1(p, pObj, i){
+        if (i > rowCnt * cellsPerRow){
+            rowCnt ++;
+            horCnt = 0;
+        }
+        double y = rowCnt * rowHeight;
+        double x = horCnt * horDel;
+        fprintf(pFile_pl, " C%i %.2f %.2f : N\n", Gia_ObjId(p, pObj), x, y );
+        horCnt++;
+    }
+
+
+    fclose( pFile_nodes );
+    fclose( pFile_nets );
+    fclose( pFile_wts );
+    fclose( pFile_pl );
+    Vec_IntFreeP(&pObjId2NumPins);
+    Gia_ManStaticFanoutStop(p);
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
