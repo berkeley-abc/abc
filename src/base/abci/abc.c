@@ -52538,7 +52538,7 @@ int Abc_CommandAbc9NtuPlace3( Abc_Frame_t * pAbc, int argc, char ** argv )
     }   
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Aig2Bookshelf(): There is no AIG.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9NtuPlace3(): There is no AIG.\n" );
         return 0;
     }
     Gia_GenBookshelf( pAbc->pGia, pDirName );
