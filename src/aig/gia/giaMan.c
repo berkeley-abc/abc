@@ -2383,7 +2383,8 @@ Gia_Man_t * Gia_GenPutOnTop( char ** pFNames, int nFNames )
 ***********************************************************************/
 void Gia_GenBookshelf(Gia_Man_t* p, char * pDirName )
 {
-    char* pPrefix = p->pName;
+    char* pPrefix = Extra_FileNameAppend(pDirName, p->pName);
+    // char* pPrefix = p->pName;
     int numNodes = Gia_ManObjNum(p)-1;
     int numNets = Gia_ManAndNum(p) + Gia_ManCiNum(p);
 
@@ -2394,12 +2395,13 @@ void Gia_GenBookshelf(Gia_Man_t* p, char * pDirName )
         printf( "Cannot open file \"%s\".aux\n", pPrefix );        
         return;
     }
+
     fprintf( pFile_aux, "RowBasedPlacement : " );
-    fprintf( pFile_aux, "%s.nodes ", pPrefix);
-    fprintf( pFile_aux, "%s.nets ", pPrefix);
-    fprintf( pFile_aux, "%s.wts ", pPrefix);
-    fprintf( pFile_aux, "%s.pl ", pPrefix);
-    fprintf( pFile_aux, "%s.scl ", pPrefix);
+    fprintf( pFile_aux, "%s.nodes ", p->pName);
+    fprintf( pFile_aux, "%s.nets ", p->pName);
+    fprintf( pFile_aux, "%s.wts ", p->pName);
+    fprintf( pFile_aux, "%s.pl ", p->pName);
+    fprintf( pFile_aux, "%s.scl ", p->pName);
     fclose( pFile_aux );
 
     // scl files (row)
@@ -2513,8 +2515,6 @@ void Gia_GenBookshelf(Gia_Man_t* p, char * pDirName )
     fprintf( pFile_nets, "UCLA nets 1.0\n\nNumNets : %i\nNumPins : %i\n\n", numNets, numPins);
 
 
-    // TODO handle nets and pin offset
-
     int netId = 1;
     Gia_ManForEachCi(p, pObj, i){
         int nFO = Gia_ObjFanoutNum(p, pObj);
@@ -2571,7 +2571,7 @@ void Gia_GenBookshelf(Gia_Man_t* p, char * pDirName )
     }
     fprintf( pFile_pl, "UCLA pl 1.0\n\n");
 
-    // TODO traverse each node Id, generate uniformly distributed initial placement
+
     int cellsPerRow = numNodes / numRows;
     int rowCnt = 0;
     int horCnt = 0;
@@ -2594,6 +2594,70 @@ void Gia_GenBookshelf(Gia_Man_t* p, char * pDirName )
     fclose( pFile_pl );
     Vec_IntFreeP(&pObjId2NumPins);
     Gia_ManStaticFanoutStop(p);
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Read in placement results from a given .pl file.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_PlacementFromPl(Gia_Man_t* p, char * pl_file_name )
+{
+    // char* pPrefix = p->pName;
+    // int numNodes = Gia_ManObjNum(p)-1;
+    // int numNets = Gia_ManAndNum(p) + Gia_ManCiNum(p);
+
+    // .pl file
+    FILE * pFile_pl = fopen( pl_file_name, "r" );
+    if ( pFile_pl == NULL )
+    {
+        printf( "Cannot open file \"%s\"\n", pl_file_name );        
+        return;
+    }
+
+    p->pPlacement = ABC_CALLOC( Gia_Plc_t, p->nObjs );
+
+    int cellId;
+    int x, y;
+    char name[100], tmp[100];
+    char type;
+    int result;
+    result = fscanf(pFile_pl, "%s %s %s %s", tmp, tmp, tmp, name);
+
+    while (fscanf(pFile_pl, "%d", &x) != EOF) {
+        result = fscanf(pFile_pl, "%d", &y);
+        result = fscanf(pFile_pl, "%s %s", tmp, tmp); // : N
+        cellId = atoi(name + 1);
+        type = name[0];
+
+        // set name to the next name
+        if (fscanf(pFile_pl, "%s", name) != EOF) {
+            if (strcmp(name, "/FIXED") == 0) {
+                // can break if all required blocks are listed before fixed blocks
+                result = fscanf(pFile_pl, "%s", name);
+                continue;
+            }
+        }
+
+        // record x y
+        if (type == 'C') {
+            p->pPlacement[cellId].xCoord = x;
+            p->pPlacement[cellId].yCoord = y;
+            // printf("C%i X=%i Y=%i\n", cellId, x, y);
+        } else
+            continue;
+    }
+
+    fclose(pFile_pl);
+
 }
 
 

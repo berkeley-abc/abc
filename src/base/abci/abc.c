@@ -636,6 +636,7 @@ static int Abc_CommandAbc9FunAbs             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9DsdInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FunTrace           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MulFind            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9NtuPlace3          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1456,6 +1457,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&mulfind",      Abc_CommandAbc9MulFind,                0 );    
     
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,                   0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&ntuplace3",    Abc_CommandAbc9NtuPlace3,              0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&eslim",        Abc_CommandAbc9eSLIM,                  0 );
     {
@@ -56431,6 +56433,77 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9NtuPlace3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_GenBookshelf(Gia_Man_t* p, char * pDirName );
+    extern void Gia_PlacementFromPl(Gia_Man_t* p, char * pl_file_name);
+    char * pDirName = (char *)"./";
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a directory name.\n" );
+                goto usage;
+            }
+            pDirName = argv[globalUtilOptind++];
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }   
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Aig2Bookshelf(): There is no AIG.\n" );
+        return 0;
+    }
+    Gia_GenBookshelf( pAbc->pGia, pDirName );
+    char* pGiaName = pAbc->pGia->pName;
+    char* pPrefix = Extra_FileNameAppend(pDirName, pGiaName);
+    char Command[1000];
+    char* pFile_aux = Extra_FileNameGenericAppend(pPrefix, ".aux");
+    sprintf( Command, "_TEST/ntuplace3 -aux %s -out %s", pFile_aux, pPrefix);
+    if ( system( Command ) == -1 )
+    {
+        fprintf( stdout, "Cannot execute \"%s\".\n", Command );
+        return 0;
+    }
+
+    //TODO read in placement results with cell position
+    char* pl_result = Extra_FileNameGenericAppend(pPrefix, ".ntup.pl");
+    Gia_PlacementFromPl(pAbc->pGia, pl_result);
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &ntuplace3 -D <dest>\n" );
+    Abc_Print( -2, "\t            Perform VLSI placement with NTUPlace3. The intermediate bookshelf files will be generated under <dest>.\n"); 
+    Abc_Print( -2, "\t            Assume the NTUPlace3 executable \"ntuplace3\" exist under the directory _TEST.\n"); 
+    Abc_Print( -2, "\t            Chen, Tung-Chieh and Jiang, Zhe-Wei and Hsu, Tien-Chang and Chen, Hsin-Chen and Chang, Yao-Wen (TCAD, 2008)\n" );
+    Abc_Print( -2, "\t-D <dest> : the output file directory (optional) [default = \"./\"]\n" );
+    Abc_Print( -2, "\t-v        : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h        : print the command usage\n");   
+    return 1;
+}
 
 /**Function*************************************************************
 
