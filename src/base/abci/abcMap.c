@@ -24,6 +24,7 @@
 #include "map/mapper/mapper.h"
 #include "misc/util/utilNam.h"
 #include "map/scl/sclCon.h"
+#include "map/scl/sclLib.h"
 
 ABC_NAMESPACE_IMPL_START
 
