@@ -19813,7 +19813,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->fVerbose ^= 1;
             break;
         case 'z':
-            pPars->fReturnDec ^= 1;
+            pPars->fDeriveLuts ^= 1;
             break;
         case 'h':
         default:
@@ -19936,7 +19936,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else
     {
-        pPars->fReturnDec = 0;
+        pPars->fDeriveLuts = 0;
     }
 
     if ( pPars->fUserLutDec || pPars->fUserLut2D )
@@ -20160,7 +20160,7 @@ usage:
     Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
     Abc_Print( -2, "\t-n       : toggles computing DSDs of the cut functions [default = %s]\n", pPars->fUseDsd? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggles computing truth tables in a new way [default = %s]\n", pPars->fUseTtPerm? "yes": "no" );
-    Abc_Print( -2, "\t-z       : toggles decomposing LUT structure on the final network  [default = %s]\n", pPars->fReturnDec? "yes": "no" );
+    Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
