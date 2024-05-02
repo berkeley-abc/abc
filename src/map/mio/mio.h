@@ -230,8 +230,6 @@ extern void              Mio_LibraryMatches2Fetch( Mio_Library_t * pLib, Vec_Ptr
 /*=== sclUtil.c =========================================================*/
 extern Mio_Library_t *   Abc_SclDeriveGenlibSimple( void * pScl );
 extern Mio_Library_t *   Abc_SclDeriveGenlib( void * pScl, void * pMio, float Slew, float Gain, int nGatesMin, int fVerbose );
-extern int               Abc_SclHasDelayInfo( void * pScl );
-
 
 ABC_NAMESPACE_HEADER_END
 
