@@ -459,7 +459,7 @@ private:
     if ( free_set_size == offset )
     {
       best_cost = fn( tt );
-      return { tt, permutations, best_cost };
+      return std::make_tuple( tt, permutations, best_cost );
     }
 
     /* works up to 16 input truth tables */

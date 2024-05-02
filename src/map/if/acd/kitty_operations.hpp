@@ -6,7 +6,6 @@
 #include <cassert>
 #include <functional>
 #include <iterator>
-#include <optional>
 #include <iostream>
 
 #include "kitty_algorithm.hpp"
