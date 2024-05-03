@@ -1,8 +1,12 @@
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.5.0)
 
 include(CMakeParseArguments)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
+
+# Default c++ standard used unless otherwise specified in target_compile_features.
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "the C++ standard to use for this project")
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 function(addprefix var prefix)
     foreach( s ${ARGN} )
