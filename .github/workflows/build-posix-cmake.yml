@@ -1,4 +1,8 @@
-on: [push]
+name: Build Posix CMake
+
+on:
+  push:
+  pull_request:
 
 jobs:
 
