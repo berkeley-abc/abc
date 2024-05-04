@@ -1049,7 +1049,6 @@ void Wlc_BlastReduceMatrix2( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Int_t * v
     Vec_IntFree( vTemp );
 }
 
-
 void Wlc_BlastMultiplier3( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds, int fVerbose )
 {
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB );
