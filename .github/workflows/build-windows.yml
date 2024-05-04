@@ -1,4 +1,8 @@
-on: [push]
+name: Build Windows
+
+on:
+  push:
+  pull_request:
 
 jobs:
 
