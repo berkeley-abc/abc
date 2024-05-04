@@ -2291,6 +2291,85 @@ void Gia_GenSandwich( char ** pFNames, int nFNames, char * pFileName )
     printf( "Dumped hierarchical design into file \"%s\"\n", pFileName );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Generate hierarchical design.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_GenPutOnTopOne( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vLits )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_ManConst0(p)->Value = 0;
+    assert( Vec_IntSize(vLits) == Gia_ManCiNum(p) );
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Vec_IntEntry(vLits, i);    
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Vec_IntClear( vLits );
+    Gia_ManForEachCo( p, pObj, i )
+        Vec_IntPush( vLits, Gia_ObjFanin0Copy(pObj) );          
+    assert( Vec_IntSize(vLits) == Gia_ManCoNum(p) );
+}
+Gia_Man_t * Gia_GenPutOnTop( char ** pFNames, int nFNames )
+{
+    Gia_Man_t * pNew, * pTemp;
+    Gia_Man_t * pGias[16] = {0};
+    Vec_Int_t * vLits;
+    int i, iLit, nObjs = 0;
+    assert( nFNames <= 16 );
+    for ( i = 0; i < nFNames; i++ ) 
+    {
+        FILE * pFile = fopen( pFNames[i], "rb" );
+        if ( pFile == NULL ) {
+            printf( "Cannot open input file \"%s\".\n", pFNames[i] );
+            Gia_FreeMany( pGias, nFNames );
+            return NULL;
+        }
+        fclose( pFile );
+        pGias[i] = Gia_AigerRead( pFNames[i], 0, 0, 0 );
+        if ( pGias[i] == NULL ) {
+            printf( "Failed to read an AIG from file \"%s\".\n", pFNames[i] );
+            Gia_FreeMany( pGias, nFNames );
+            return NULL;
+        }
+        nObjs  += Gia_ManObjNum(pGias[i]);
+    }
+    // start new AIG
+    pNew = Gia_ManStart( nObjs );    
+    pNew->pName = Abc_UtilStrsav( "putontop" );
+    Gia_ManHashAlloc( pNew );
+    // collect inputs
+    vLits = Vec_IntAlloc( Gia_ManCiNum(pGias[0]) );
+    for ( i = 0; i < Gia_ManCiNum(pGias[0]); i++ )
+        Vec_IntPush( vLits, Gia_ManAppendCi(pNew) );
+    // add parts
+    for ( i = 0; i < nFNames; i++ ) 
+    {
+        Gia_Man_t * p = pGias[i];
+        while ( Vec_IntSize(vLits) < Gia_ManCiNum(p) )
+            Vec_IntPush( vLits, Gia_ManAppendCi(pNew) );
+        while ( Vec_IntSize(vLits) > Gia_ManCiNum(p) )
+            Gia_ManAppendCo( pNew, Vec_IntPop(vLits) );     
+        Gia_GenPutOnTopOne( pNew, p, vLits );
+    }
+    // create outputs
+    Vec_IntForEachEntry( vLits, iLit, i )
+        Gia_ManAppendCo( pNew, iLit );
+    Vec_IntFree( vLits );
+    // cleanup
+    pNew = Gia_ManDupNormalize( pTemp = pNew, 0 );
+    Gia_ManStop( pTemp );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

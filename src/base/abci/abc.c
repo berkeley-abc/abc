@@ -601,6 +601,7 @@ static int Abc_CommandAbc9ProdAdd            ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9AddFlop            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BMiter             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenHie             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9PutOnTop           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BRecover           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1386,6 +1387,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&addflop",      Abc_CommandAbc9AddFlop,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&bmiter",       Abc_CommandAbc9BMiter,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&gen_hie",      Abc_CommandAbc9GenHie,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&putontop",     Abc_CommandAbc9PutOnTop,               0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&brecover",     Abc_CommandAbc9BRecover,               0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&str_eco",      Abc_CommandAbc9StrEco,                 0 );
 
@@ -52274,9 +52276,9 @@ usage:
     Abc_Print( -2, "\t-h        : print the command usage\n");
     Abc_Print( -2, "\t<files>   : the AIG files for the instance modules\n");    
     Abc_Print( -2, "\t            (the PO count of <file[i]> should not be less than the PI count of <file[i+1]>)\n");    
-    return 1;}
+    return 1;
+}
 
-extern Bnd_Man_t* pBnd;
 /**Function*************************************************************
 
   Synopsis    []
@@ -52288,6 +52290,67 @@ extern Bnd_Man_t* pBnd;
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9PutOnTop( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_GenPutOnTop( char ** pFNames, int nFNames );
+    Gia_Man_t * pMan = NULL;
+    int c, fVerbose = 0;
+    char ** pArgvNew;
+    int     nArgcNew;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {        
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;    
+    if ( nArgcNew < 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9PutOnTop(): At least one AIG file should be given on the command line.\n" );
+        return 0;
+    }        
+    pMan = Gia_GenPutOnTop( pArgvNew, nArgcNew );
+    if ( pMan == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9PutOnTop(): Computing the resulting AIS has failed.\n" );
+        return 0;
+    }    
+    Abc_FrameUpdateGia( pAbc, pMan );
+    return 0;
+usage:
+    Abc_Print( -2, "usage: &putontop [-vh] <file[1]> <file[2]> ...  <file[N]>\n" );
+    Abc_Print( -2, "\t            generates an AIG by stacking several AIGs on top of each other\n" );
+    Abc_Print( -2, "\t-v        : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h        : print the command usage\n");
+    Abc_Print( -2, "\t<files>   : the AIGER files containing the input AIGs\n");
+    Abc_Print( -2, "\t            the outputs of each AIG are connected to the inputs of the one on top of it\n" );
+    Abc_Print( -2, "\t            if there are more outputs than inputs, new POs will be created\n" );
+    Abc_Print( -2, "\t            if there are more inputs than outputs, new PIs are created\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+extern Bnd_Man_t* pBnd;
+
 int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars );
