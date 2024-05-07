@@ -104,6 +104,27 @@ static inline int If_CluWordNum2( int nVars )
     return nVars <= 6 ? 1 : 1 << (nVars-6);
 }
 
+static inline word If_CluAdjust2( word t, int nVars )
+{
+    assert( nVars >= 0 && nVars <= 6 );
+    if ( nVars == 6 )
+        return t;
+    t &= (((word)1) << (1 << nVars)) - 1;
+    if ( nVars == 0 )
+        t |= t << (1<<nVars++);
+    if ( nVars == 1 )
+        t |= t << (1<<nVars++);
+    if ( nVars == 2 )
+        t |= t << (1<<nVars++);
+    if ( nVars == 3 )
+        t |= t << (1<<nVars++);
+    if ( nVars == 4 )
+        t |= t << (1<<nVars++);
+    if ( nVars == 5 )
+        t |= t << (1<<nVars++);
+    return t;
+}
+
 int If_CluHashFindMedian2( If_Man_t * p, int t )
 {
     If_Hte_t * pEntry;
@@ -267,13 +288,65 @@ int If_CluCheckXX( If_Man_t * p, word * pTruth0, int lutSize, int nVars, int fHa
     /* new entry */
     if ( G1.nVars == 0 )
     {
-        G1.nVars = acdXX_decompose( pTruth0, lutSize, nVars, NULL );
+        G1.nVars = acdXX_evaluate( pTruth0, lutSize, nVars );
     }
 
     if ( pHashed )
         *pHashed = If_CluGrp2Uns2( &G1 );
 
     return G1.nVars;
+}
+
+// returns the best group found
+int If_CluCheckXXExt( void * pMan, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
+                   char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 )
+{
+    (void)pMan;
+    assert( nLutLeaf == nLutRoot );
+    unsigned char result[32];
+    int i;
+
+    if ( acdXX_decompose( pTruth, nLutRoot, nVars, result ) )
+    {
+        /* decomposition failed */
+        return 0;
+    }
+
+    /* copy LUT bound set */
+    unsigned char * pResult = result + 2;
+    int Lut1Size = (int) (*pResult++);
+    pLut1[0] = Lut1Size;
+    pLut1[1] = 0; /* not used */
+    for (i = 0; i < Lut1Size; ++i)
+    {
+        pLut1[2+i] = *pResult++;
+    }
+    int func_num_bytes = ( Lut1Size <= 3 ) ? 1 : ( 1 << ( Lut1Size - 3 ) );
+    *pFunc1 = 0;
+    for (i = 0; i < func_num_bytes; ++i)
+    {
+        *pFunc1 |= ( ( (word) *pResult++ ) & 0xFF ) << 8*i;
+    }
+
+    /* copy LUT composition */
+    int Lut0Size = (int) (*pResult++);
+    pLut0[0] = Lut0Size;
+    pLut0[1] = 0; /* not used */
+    for (i = 0; i < Lut0Size; ++i)
+    {
+        pLut0[2+i] = *pResult++;
+    }
+    func_num_bytes = ( Lut0Size <= 3 ) ? 1 : ( 1 << ( Lut0Size - 3 ) );
+    *pFunc0 = 0;
+    for (i = 0; i < func_num_bytes; ++i)
+    {
+        *pFunc0 |= ( ( (word) *pResult++ ) & 0xFF ) << 8*i;
+    }
+
+    *pFunc1 = If_CluAdjust2( *pFunc1, Lut1Size );
+    *pFunc0 = If_CluAdjust2( *pFunc0, Lut0Size );
+
+    return 1;
 }
 
 /**Function*************************************************************

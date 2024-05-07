@@ -37,6 +37,7 @@ int acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay,
 int acd2_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost, int try_no_late_arrival );
 int acd2_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned char *decomposition );
 
+int acdXX_evaluate( word * pTruth, unsigned lutSize, unsigned nVars );
 int acdXX_decompose( word * pTruth, unsigned lutSize, unsigned nVars, unsigned char *decomposition );
 
 ABC_NAMESPACE_HEADER_END

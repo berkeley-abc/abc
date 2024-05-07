@@ -465,9 +465,13 @@ void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut
     {
         val = acd_decompose( pTruth, pCutBest->nLeaves, pIfMan->pPars->nLutDecSize, &(delayProfile), decompArray );
     }
-    else
+    else if ( pIfMan->pPars->fUserLut2D )
     {
         val = acd2_decompose( pTruth, pCutBest->nLeaves, pIfMan->pPars->nLutDecSize, &(delayProfile), decompArray );
+    }
+    else
+    {
+        val = acdXX_decompose( pTruth, pIfMan->pPars->nLutDecSize, pCutBest->nLeaves, decompArray );
     }
     assert( val == 0 );
 
@@ -593,7 +597,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )
             Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
     }
-    else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D )
+    else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
     {
         If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
             Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
@@ -651,7 +655,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
             pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj ); 
         }
-        else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D )
+        else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
         {
             extern void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vMemory, Abc_Obj_t * pNodeTop );
             Abc_DecRecordToHop( pNtkNew, pIfMan, pCutBest, pIfObj, vCover, pNodeNew ); 

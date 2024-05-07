@@ -6,7 +6,6 @@
 #include <cassert>
 #include <functional>
 #include <iterator>
-#include <optional>
 
 #include "kitty_constants.hpp"
 #include "kitty_dynamic_tt.hpp"

@@ -118,32 +118,25 @@ int acd2_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay
   return 0;
 }
 
-inline int acd66_decompose( word * pTruth, unsigned nVars, unsigned char *decomposition )
+inline int acd66_evaluate( word * pTruth, unsigned nVars )
 {
   using namespace acd;
+
   acd66_impl acd( nVars, true, false );
 
   if ( acd.run( pTruth ) == 0 )
     return 0;
-  if ( decomposition == NULL )
-    return 1;
-  int val = acd.compute_decomposition();
-  if ( val != 0 )
-  {
-    return 0;
-  }
-  acd.get_decomposition( decomposition );
 
   return 1;
 }
 
-int acdXX_decompose( word * pTruth, unsigned lutSize, unsigned nVars, unsigned char *decomposition )
+int acdXX_evaluate( word * pTruth, unsigned lutSize, unsigned nVars )
 {
   using namespace acd;
 
   if ( lutSize == 6 )
   {
-    return acd66_decompose( pTruth, nVars, decomposition );
+    return acd66_evaluate( pTruth, nVars );
   }
   
   acdXX_params ps;
@@ -153,14 +146,29 @@ int acdXX_decompose( word * pTruth, unsigned lutSize, unsigned nVars, unsigned c
 
   if ( acd.run( pTruth ) == 0 )
     return 0;
-  if ( decomposition == NULL )
-    return 1;
-  int val = acd.compute_decomposition();
-  if ( val != 0 )
+
+  return 1;
+}
+
+int acdXX_decompose( word * pTruth, unsigned lutSize, unsigned nVars, unsigned char *decomposition )
+{
+  using namespace acd;
+
+  acdXX_params ps;
+  ps.lut_size = lutSize;
+
+  for ( int i = 0; i <= lutSize - 2; ++i )
   {
+    ps.max_shared_vars = i;
+    ps.min_shared_vars = i;
+    acdXX_impl acd( nVars, ps );
+
+    if ( acd.run( pTruth ) == 0 )
+      continue;
+    acd.compute_decomposition();
+    acd.get_decomposition( decomposition );
     return 0;
   }
-  acd.get_decomposition( decomposition );
 
   return 1;
 }
