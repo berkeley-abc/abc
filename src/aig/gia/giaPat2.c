@@ -184,13 +184,15 @@ static inline int Min_ManAppendCo( Min_Man_t * p, int iLit0 )
 ***********************************************************************/
 void Min_ManFromGia_rec( Min_Man_t * pNew, Gia_Man_t * p, int iObj )
 {
-    Gia_Obj_t * pObj = Gia_ManObj(p, iObj);
+    Gia_Obj_t * pObj = Gia_ManObj(p, iObj); int iLit0, iLit1;
     if ( ~pObj->Value )
         return;
     assert( Gia_ObjIsAnd(pObj) );
     Min_ManFromGia_rec( pNew, p, Gia_ObjFaninId0(pObj, iObj) );
     Min_ManFromGia_rec( pNew, p, Gia_ObjFaninId1(pObj, iObj) );
-    pObj->Value = Min_ManAppendObj( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    iLit0 = Gia_ObjFanin0Copy(pObj);
+    iLit1 = Gia_ObjFanin1Copy(pObj);
+    pObj->Value = Min_ManAppendObj( pNew, Abc_MinInt(iLit0, iLit1), Abc_MaxInt(iLit0, iLit1) );
 }
 Min_Man_t * Min_ManFromGia( Gia_Man_t * p, Vec_Int_t * vOuts )
 {
@@ -205,7 +207,7 @@ Min_Man_t * Min_ManFromGia( Gia_Man_t * p, Vec_Int_t * vOuts )
         Gia_ManForEachAnd( p, pObj, i )
             pObj->Value = Min_ManAppendObj( pNew, Gia_ObjFaninLit0(pObj, i), Gia_ObjFaninLit1(pObj, i) );
         Gia_ManForEachCo( p, pObj, i )
-            pObj->Value = Min_ManAppendCo( pNew, Gia_ObjFaninLit0p(p, pObj) );
+            pObj->Value = Min_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
     else
     {
@@ -403,8 +405,10 @@ static inline char Min_LitIsImplied2( Min_Man_t * p, int iLit )
     char Val1 = Min_LitValL(p, iLit1);
     assert( Min_LitIsNode(p, iLit) );    // internal node
     assert( Min_LitValL(p, iLit) == 2 ); // unassigned
-    if ( Val0 == 2 && Min_LitIsNode(p, iLit0) )
+    if ( Val0 == 2 && Min_LitIsNode(p, iLit0) ) {
         Val0 = Min_LitIsImplied1(p, iLit0);
+        Val1 = Min_LitValL(p, iLit1);
+    }
     if ( Val1 == 2 && Min_LitIsNode(p, iLit1) )
         Val1 = Min_LitIsImplied1(p, iLit1);
     if ( Min_LitIsXor(iLit, iLit0, iLit1) )
@@ -427,8 +431,10 @@ static inline char Min_LitIsImplied3( Min_Man_t * p, int iLit )
     char Val1 = Min_LitValL(p, iLit1);
     assert( Min_LitIsNode(p, iLit) );    // internal node
     assert( Min_LitValL(p, iLit) == 2 ); // unassigned
-    if ( Val0 == 2 && Min_LitIsNode(p, iLit0) )
+    if ( Val0 == 2 && Min_LitIsNode(p, iLit0) ) {
         Val0 = Min_LitIsImplied2(p, iLit0);
+        Val1 = Min_LitValL(p, iLit1);
+    }
     if ( Val1 == 2 && Min_LitIsNode(p, iLit1) )
         Val1 = Min_LitIsImplied2(p, iLit1);
     if ( Min_LitIsXor(iLit, iLit0, iLit1) )
@@ -451,8 +457,10 @@ static inline char Min_LitIsImplied4( Min_Man_t * p, int iLit )
     char Val1 = Min_LitValL(p, iLit1);
     assert( Min_LitIsNode(p, iLit) );    // internal node
     assert( Min_LitValL(p, iLit) == 2 ); // unassigned
-    if ( Val0 == 2 && Min_LitIsNode(p, iLit0) )
+    if ( Val0 == 2 && Min_LitIsNode(p, iLit0) ) {
         Val0 = Min_LitIsImplied3(p, iLit0);
+        Val1 = Min_LitValL(p, iLit1);
+    }
     if ( Val1 == 2 && Min_LitIsNode(p, iLit1) )
         Val1 = Min_LitIsImplied3(p, iLit1);
     if ( Min_LitIsXor(iLit, iLit0, iLit1) )
@@ -475,8 +483,10 @@ static inline char Min_LitIsImplied5( Min_Man_t * p, int iLit )
     char Val1 = Min_LitValL(p, iLit1);
     assert( Min_LitIsNode(p, iLit) );    // internal node
     assert( Min_LitValL(p, iLit) == 2 ); // unassigned
-    if ( Val0 == 2 && Min_LitIsNode(p, iLit0) )
+    if ( Val0 == 2 && Min_LitIsNode(p, iLit0) ) {
         Val0 = Min_LitIsImplied4(p, iLit0);
+        Val1 = Min_LitValL(p, iLit1);
+    }
     if ( Val1 == 2 && Min_LitIsNode(p, iLit1) )
         Val1 = Min_LitIsImplied4(p, iLit1);
     if ( Min_LitIsXor(iLit, iLit0, iLit1) )
@@ -1349,6 +1359,71 @@ void Min_ManTest2( Gia_Man_t * p )
 {
     Vec_Wrd_t * vSimsPi = Min_ManCollect( p, 100000, 100000, 10000, 20, 1, 0, 1, 1 );
     Vec_WrdFreeP( &vSimsPi );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_GenerateCexesDumpFile( char * pFileName, Gia_Man_t * p, Vec_Wec_t * vCexes, int fShort )
+{
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL ) {
+        printf( "Cannot open output file name \"%s\".\n", pFileName );
+        return;
+    }
+    Gia_Obj_t * pObj; 
+    char * pLine = ABC_CALLOC( char, Gia_ManCiNum(p)+3 );
+    int i, k, c, iLit, nOuts[2] = {0}, nCexes = Vec_WecSize(vCexes) / Gia_ManCoNum(p);
+    Gia_ManForEachCo( p, pObj, i ) {
+        if ( Gia_ObjFaninLit0p(p, Gia_ManCo(p, i)) == 0 ) {
+            fprintf( pFile, "%d :\n", i );
+            nOuts[0]++;
+        }
+        else if ( fShort ) {
+            for ( c = 0; c < nCexes; c++ ) {
+                Vec_Int_t * vPat = Vec_WecEntry( vCexes, i*nCexes+c );
+                fprintf( pFile, "%d :", i );
+                Vec_IntForEachEntry( vPat, iLit, k )
+                    fprintf( pFile, " %d", iLit );
+                fprintf( pFile, "\n" );
+            }
+            nOuts[1]++;
+        }
+        else {
+            for ( c = 0; c < nCexes; c++ ) {
+                Vec_Int_t * vPat = Vec_WecEntry( vCexes, i*nCexes+c );
+                memset(pLine, '-', Gia_ManCiNum(p) );
+                Vec_IntForEachEntry( vPat, iLit, k )
+                    pLine[Abc_Lit2Var(iLit)-1] = '1' - Abc_LitIsCompl(iLit);
+                fprintf( pFile, "%d : %s\n", i, pLine );
+            }
+            nOuts[1]++;
+        }
+    }
+    printf( "Information about %d sat, %d unsat, and %d undecided primary outputs was written into file \"%s\".\n", 
+        nOuts[1], nOuts[0], Gia_ManCoNum(p)-nOuts[1]-nOuts[0], pFileName );
+    fclose( pFile );
+    free( pLine );
+}
+void Gia_GenerateCexes( char * pFileName, Gia_Man_t * p, int nMaxTries, int nMinCexes, int fUseSim, int fUseSat, int fShort, int fVerbose, int fVeryVerbose )
+{
+    unsigned Start = Abc_Random(1);
+    Vec_Int_t * vStats[3] = {0}; int i;
+    Vec_Wec_t * vCexes  = Min_ManComputeCexes( p, NULL, nMaxTries, nMinCexes, vStats, fUseSim, fUseSat, fVerbose );    
+    assert( Vec_WecSize(vCexes) == Gia_ManCoNum(p) * nMinCexes );
+    Gia_GenerateCexesDumpFile( pFileName, p, vCexes, fShort );
+    for ( i = 0; i < 3; i++ )
+      Vec_IntFreeP( &vStats[i] );
+    Vec_WecFree( vCexes );
+    Start = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////
