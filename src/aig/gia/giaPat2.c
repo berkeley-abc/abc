@@ -1384,15 +1384,18 @@ void Gia_GenerateCexesDumpFile( char * pFileName, Gia_Man_t * p, Vec_Wec_t * vCe
     int i, k, c, iLit, nOuts[2] = {0}, nCexes = Vec_WecSize(vCexes) / Gia_ManCoNum(p);
     Gia_ManForEachCo( p, pObj, i ) {
         if ( Gia_ObjFaninLit0p(p, Gia_ManCo(p, i)) == 0 ) {
-            fprintf( pFile, "%d :\n", i );
+            fprintf( pFile, "%d : unsat\n", i );
             nOuts[0]++;
         }
         else if ( fShort ) {
             for ( c = 0; c < nCexes; c++ ) {
                 Vec_Int_t * vPat = Vec_WecEntry( vCexes, i*nCexes+c );
                 fprintf( pFile, "%d :", i );
-                Vec_IntForEachEntry( vPat, iLit, k )
-                    fprintf( pFile, " %d", iLit );
+                if ( Vec_IntSize(vPat) == 0 )
+                    fprintf( pFile, " not available" );
+                else
+                    Vec_IntForEachEntry( vPat, iLit, k )
+                        fprintf( pFile, " %d", iLit );
                 fprintf( pFile, "\n" );
             }
             nOuts[1]++;
