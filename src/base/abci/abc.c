@@ -43939,12 +43939,15 @@ usage:
 int Abc_CommandAbc9Unmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManTestStruct( Gia_Man_t * p );
-    int c, fVerbose = 0;
+    int c, fConvert = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            fConvert ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -43959,16 +43962,21 @@ int Abc_CommandAbc9Unmap( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Struct(): There is no AIG to map.\n" );
         return 1;
     }
-    Vec_IntFreeP( &pAbc->pGia->vMapping );
-    Vec_IntFreeP( &pAbc->pGia->vPacking );
-    Vec_IntFreeP( &pAbc->pGia->vCellMapping );
-    Vec_IntFreeP( &pAbc->pGia->vEdge1 );
-    Vec_IntFreeP( &pAbc->pGia->vEdge2 );
+    if ( fConvert )
+        Cmd_CommandExecute( pAbc, "&put; unmap; &get -m" );    
+    else {
+        Vec_IntFreeP( &pAbc->pGia->vMapping );
+        Vec_IntFreeP( &pAbc->pGia->vPacking );
+        Vec_IntFreeP( &pAbc->pGia->vCellMapping );
+        Vec_IntFreeP( &pAbc->pGia->vEdge1 );
+        Vec_IntFreeP( &pAbc->pGia->vEdge2 );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &unmap [-vh]\n" );
+    Abc_Print( -2, "usage: &unmap [-cvh]\n" );
     Abc_Print( -2, "\t           removes mapping from the current network\n" );
+    Abc_Print( -2, "\t-c       : toggle converting cell mapping into LUT mapping [default = %s]\n", fConvert? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
