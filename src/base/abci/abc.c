@@ -149,6 +149,7 @@ static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRestructure            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandResubstitute           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandResubCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandResubCore              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRr                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtract                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -931,6 +932,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "restructure",   Abc_CommandRestructure,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub",         Abc_CommandResubstitute,     1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub_check",   Abc_CommandResubCheck,       0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "resub_core",    Abc_CommandResubCore,        0 );
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "rr",            Abc_CommandRr,               1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cascade",       Abc_CommandCascade,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "extract",       Abc_CommandExtract,          1 );
@@ -8419,6 +8421,91 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandResubCore( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Supp_ManSolveOne( char * pFileName, int nIters, int nRounds, int fVerbose );
+    Gia_Man_t * pTemp;
+    int nIters   = 1;
+    int nRounds  = 1;
+    int fVerbose = 0, c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IRvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 )
+                goto usage;
+            break;   
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRounds < 0 )
+                goto usage;
+            break;                        
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 ) 
+    {
+        Abc_Print( -1, "Input file should be given on the command line.\n" );
+        return 1;
+    }
+    pTemp = Supp_ManSolveOne( argv[globalUtilOptind], nIters, nRounds, fVerbose );
+    if ( pTemp )
+    {
+        Aig_Man_t * pMan = Gia_ManToAig( pTemp, 0 );
+        Abc_Ntk_t * pNtk = Abc_NtkFromAigPhase( pMan );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+        Aig_ManStop( pMan );
+        Gia_ManStop( pTemp );
+        return 0;
+    }
+    Abc_Print( 0, "The networks is not generated.\n" );    
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: resub_core [-IR <num>] [-vh] <file>\n" );
+    Abc_Print( -2, "\t         solves one instance of the resub problem\n" );
+    Abc_Print( -2, "\t-I num : the number of iterations [default = %d]\n",               nIters );
+    Abc_Print( -2, "\t-R num : the number of rounds in each iteration [default = %d]\n", nRounds );
+    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n",                fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : resub problem file name\n");
+    return 1;
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandRr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -14811,6 +14898,7 @@ int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 */
     //Gia_ManTestProblem();
+    //Abc_ReadPlaTest( "resub2.pla" );
     return 0;
 usage:
     Abc_Print( -2, "usage: test [-CKDNM] [-aovwh] <file_name>\n" );

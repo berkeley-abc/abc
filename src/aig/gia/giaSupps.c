@@ -20,6 +20,7 @@
 
 #include "aig/gia/gia.h"
 #include "base/main/mainInt.h"
+#include "base/io/ioResub.h"
 #include "misc/util/utilTruth.h"
 #include "misc/extra/extra.h"
 #include "misc/vec/vecHsh.h"
@@ -185,6 +186,50 @@ Supp_Man_t * Supp_ManCreate( Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * 
     Supp_ManInit( p );
     return p;
 }
+int Supp_DeriveLines2( Supp_Man_t * p )
+{
+    assert( Vec_WrdSize(p->vSims) % p->nWords == 0 );
+    int n, nDivWords = Abc_Bit6WordNum( Vec_WrdSize(p->vSims) / p->nWords );
+    for ( n = 0; n < 2; n++ )
+    {
+        p->vDivs[n] = Vec_WrdStart( 64*p->nWords*nDivWords );
+        p->vPats[n] = Vec_WrdStart( 64*p->nWords*nDivWords );
+        Abc_TtCopy( Vec_WrdArray(p->vDivs[n]), Vec_WrdArray(p->vSims), Vec_WrdSize(p->vSims), !n );
+        Extra_BitMatrixTransposeP( p->vDivs[n], p->nWords, p->vPats[n], nDivWords );
+    }
+    return nDivWords;
+}
+Supp_Man_t * Supp_ManCreate2( Vec_Wrd_t * vIsfs, Vec_Wrd_t * vSims, Vec_Int_t * vWeights, int nWords, int nIters, int nRounds )
+{
+    Supp_Man_t * p = ABC_CALLOC( Supp_Man_t, 1 );
+    assert( Vec_WrdSize(vSims)%nWords == 0 );
+    p->nIters     = nIters;
+    p->nRounds    = nRounds;
+    p->nWords     = nWords;
+    p->vIsfs      = vIsfs;
+    p->vCands     = Vec_IntStartNatural( Vec_WrdSize(vSims)/nWords );
+    p->vWeights   = NULL;
+    p->vSims      = vSims;
+    p->vSimsC     = NULL;
+    p->pGia       = NULL;
+    // computed data
+    p->nDivWords  = Supp_DeriveLines2( p );
+    p->vMatrix    = Vec_PtrAlloc( 100 );
+    p->vMask      = Vec_WrdAlloc( 100 );
+    p->vRowTemp   = Vec_WrdStart( 64*p->nDivWords );
+    p->vCosts     = Vec_IntStart( Vec_IntSize(p->vCands) );
+    p->pHash      = Hsh_VecManStart( 1000 );
+    p->vSFuncs    = Vec_WrdAlloc( 1000 );
+    p->vSStarts   = Vec_IntAlloc( 1000 );
+    p->vSCount    = Vec_IntAlloc( 1000 );
+    p->vSPairs    = Vec_IntAlloc( 1000 );
+    p->vSolutions = Vec_WecStart( 16 );
+    p->vTemp      = Vec_IntAlloc( 10 );
+    p->vTempSets  = Vec_IntAlloc( 10 );
+    p->vTempPairs = Vec_IntAlloc( 10 );
+    Supp_ManInit( p );
+    return p;
+}
 void Supp_ManCleanMatrix( Supp_Man_t * p )
 {
     Vec_Wrd_t * vTemp; int i;
@@ -214,6 +259,8 @@ void Supp_ManDelete( Supp_Man_t * p )
     Vec_IntFreeP( &p->vTemp );
     Vec_IntFreeP( &p->vTempSets );
     Vec_IntFreeP( &p->vTempPairs );
+    if ( p->vSims == NULL )
+        Vec_IntFreeP( &p->vCands );
     ABC_FREE( p );
 }
 int Supp_ManMemory( Supp_Man_t * p )
@@ -870,7 +917,11 @@ Vec_Int_t * Supp_ManCompute( Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * 
     int i, r, iSet, iBest = -1;
     abctime clk = Abc_Clock();
     Vec_Int_t * vRes = NULL; 
-    Supp_Man_t * p = Supp_ManCreate( vIsfs, vCands, vWeights, vSims, vSimsC, nWords, pGia, nIters, nRounds );
+    Supp_Man_t * p;
+    if ( vCands )
+        p = Supp_ManCreate( vIsfs, vCands, vWeights, vSims, vSimsC, nWords, pGia, nIters, nRounds );
+    else
+        p = Supp_ManCreate2( vIsfs, vSims, NULL, nWords, nIters, nRounds );
     if ( Supp_SetFuncNum(p, 0) == 0 )
     {
         Supp_ManDelete( p );
@@ -881,7 +932,7 @@ Vec_Int_t * Supp_ManCompute( Vec_Wrd_t * vIsfs, Vec_Int_t * vCands, Vec_Int_t * 
         return vRes;
     }
     if ( fVerbose )
-    printf( "\nUsing %d divisors with %d words. Problem has %d functions and %d minterm pairs.\n", 
+    printf( "Using %d divisors with %d words. Problem has %d functions and %d minterm pairs.\n", 
         Vec_IntSize(p->vCands), p->nWords, Supp_SetFuncNum(p, 0), Supp_SetPairNum(p, 0) );
     //iBest = Supp_FindGivenOne( p );
     if ( iBest == -1 )
@@ -960,6 +1011,51 @@ void Supp_ManComputeTest( Gia_Man_t * p )
     Vec_WrdFree( vIsfs );
     Vec_IntFree( vCands );
     Vec_IntFree( vRes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Supp_GenerateGia( Vec_Int_t * vRes, Vec_Int_t * vDivs )
+{
+    int i, nAddOn = 2, nIns = Vec_IntSize(vDivs)-2;
+    int iLit0, iLit1, iTopLit = Vec_IntEntryLast(vRes);
+    assert( Vec_IntSize(vRes) > 0 );
+    assert( Vec_IntSize(vRes) % 2 == 1 );
+    Gia_Man_t * pNew = Gia_ManStart( 100 );
+    pNew->pName = Abc_UtilStrsav( "resub" );
+    for ( i = 0; i < nIns; i++ )
+        Gia_ManAppendCi(pNew);
+    Vec_IntForEachEntryDouble( vRes, iLit0, iLit1, i ) {
+        if ( iLit0 < iLit1 )
+            Gia_ManAppendAnd( pNew, iLit0-nAddOn, iLit1-nAddOn );
+        else if ( iLit0 > iLit1 )
+            Gia_ManAppendXor( pNew, iLit0-nAddOn, iLit1-nAddOn );
+        else assert( 0 );
+    }
+    Gia_ManAppendCo(pNew, iTopLit-nAddOn);
+    return pNew;
+}
+Gia_Man_t * Supp_ManSolveOne( char * pFileName, int nIters, int nRounds, int fVerbose )
+{
+    Abc_RData_t * p = Abc_ReadPla( pFileName ); assert( p->nOuts == 1 );
+    Vec_Int_t * vDivs = Vec_IntAlloc( 100 );
+    Vec_Int_t * vRes  = Supp_ManCompute( p->vSimsOut, NULL, NULL, p->vSimsIn, NULL, p->nSimWords, NULL, &vDivs, nIters, nRounds, fVerbose );
+    if ( fVerbose && vDivs ) printf( "Divisors: " ), Vec_IntPrint( vDivs );
+    if ( fVerbose && vRes )  printf( "Solution: " ), Vec_IntPrint( vRes );
+    Gia_Man_t * pNew = vRes ? Supp_GenerateGia( vRes, vDivs ) : NULL;
+    Vec_IntFreeP( &vRes );
+    Vec_IntFreeP( &vDivs );
+    Abc_RDataStop( p );
+    return pNew;
 }
 
 ////////////////////////////////////////////////////////////////////////
