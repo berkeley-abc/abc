@@ -5823,6 +5823,65 @@ Gia_Man_t * Gia_ManImplFromBMiter( Gia_Man_t * p, int nPo, int nBInput )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupOdc( Gia_Man_t * p, int iObj, int fVerbose )
+{
+    Vec_Int_t * vRoots = Vec_IntAlloc( 1 );
+    Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
+    Vec_Int_t * vSupp  = Vec_IntAlloc( 100 );
+    Gia_Obj_t * pObj; int i, iRes = 0;
+    Vec_IntPush( vRoots, iObj );
+    Gia_ManStaticFanoutStart( p );
+    Gia_ManCollectTfo( p, vRoots, vNodes );
+    Gia_ManStaticFanoutStop( p );
+    Vec_IntSort(vNodes, 0);    
+    Gia_ManForEachObjVecStart( vNodes, p, pObj, i, 1 ) {
+        if ( !Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin0(pObj)) )
+            Vec_IntPushUnique( vSupp, Gia_ObjFaninId0p(p, pObj) );
+        if ( !Gia_ObjIsTravIdCurrent(p, Gia_ObjFanin1(pObj)) )
+            Vec_IntPushUnique( vSupp, Gia_ObjFaninId1p(p, pObj) );
+    }
+    Vec_IntSort(vSupp, 0);
+    if ( fVerbose ) Vec_IntPrint( vSupp );
+    if ( fVerbose ) Vec_IntPrint( vNodes );
+    Gia_Man_t * pTemp, * pNew = Gia_ManStart( 100 );
+    pNew->pName = Abc_UtilStrsav( "care" );
+    Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObjVec( vSupp, p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManHashStart(pNew);
+    Gia_ManObj(p, iObj)->Value = 0;
+    Gia_ManForEachObjVecStart( vNodes, p, pObj, i, 1 )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+            pObj->Value = Gia_ObjFanin0Copy(pObj);
+    Gia_ManObj(p, iObj)->Value = 1;
+    Gia_ManForEachObjVecStart( vNodes, p, pObj, i, 1 )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( Gia_ObjIsTravIdCurrent(p, pObj) )
+            iRes = Gia_ManHashOr( pNew, iRes, Gia_ManHashXor(pNew, pObj->Value, Gia_ObjFanin0Copy(pObj)) );
+    Gia_ManAppendCo( pNew, iRes );
+    Vec_IntFree( vRoots );
+    Vec_IntFree( vNodes );
+    Vec_IntFree( vSupp );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );    
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
