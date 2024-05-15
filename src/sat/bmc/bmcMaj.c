@@ -23,6 +23,7 @@
 #include "misc/util/utilTruth.h"
 #include "sat/glucose/AbcGlucose.h"
 #include "aig/miniaig/miniaig.h"
+#include "base/io/ioResub.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -3714,9 +3715,35 @@ void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName )
 {
     Mini_Aig_t * pMini = NULL;
     Vec_Wrd_t * vSimsDiv = NULL, * vSimsOut = NULL;
-    int nDivs, nOuts, nVars = Exa6_ReadFile( pFileName, &vSimsDiv, &vSimsOut, &nDivs, &nOuts );
+    int i, k, nDivs, nOuts, nVars = 0;
+    if ( !strcmp(pFileName + strlen(pFileName) - 3, "rel") )
+        nVars = Exa6_ReadFile( pFileName, &vSimsDiv, &vSimsOut, &nDivs, &nOuts );
+    else if ( !strcmp(pFileName + strlen(pFileName) - 3, "pla") ) {
+        Abc_RData_t * p  = Abc_ReadPla( pFileName );
+        Abc_RData_t * p2 = p ? Abc_RData2Rel( p ) : NULL;
+        if ( !p || !p2 ) return;
+        //Abc_WritePla(p, "_/_rel/test.pla", 0);
+        //Abc_WritePla(p2, "_/_rel/test2.pla", 1);        
+        nDivs = 0;
+        nOuts = p->nOuts;
+        nVars = p->nIns;
+        vSimsDiv = Vec_WrdStart( p->nPats );
+        for ( k = 0; k < p->nIns; k++ )
+            for ( i = 0; i < p->nPats; i++ )
+                if ( Abc_RDataGetIn(p2, k, i) )
+                    Abc_InfoSetBit((unsigned *)Vec_WrdEntryP(vSimsDiv, i), 1+k);
+        vSimsOut = Vec_WrdStart( 1 << p->nOuts );
+        for ( k = 0; k < (1 << p->nOuts); k++ )
+            for ( i = 0; i < p->nPats; i++ )
+                if ( Abc_RDataGetOut(p2, k, i) )
+                    Abc_InfoSetBit((unsigned *)Vec_WrdEntryP(vSimsOut, i), k);
+    }
+    else
+        printf( "Unknown file extension in file \"%s\".\n", pFileName );        
     if ( nVars == 0 )
         return;
+    //Vec_WrdPrintBin( vSimsDiv, 1 );
+    //Vec_WrdPrintBin( vSimsOut, 1 );
     Exa6_SortSims( vSimsDiv, vSimsOut );
     pMini = Exa_ManExactSynthesis6Int( vSimsDiv, vSimsOut, nVars, nDivs, nOuts, pPars->nNodes, pPars->fOnlyAnd, pPars->fVerbose );
     Vec_WrdFreeP( &vSimsDiv );

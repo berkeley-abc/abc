@@ -1379,6 +1379,27 @@ static inline void Vec_WrdDumpBool( char * pFileName, Vec_Wrd_t * p, int nWords,
   SeeAlso     []
 
 ***********************************************************************/
+static inline void Vec_WrdPrintBin( Vec_Wrd_t * p, int nWords )
+{
+    int i, k, nNodes = Vec_WrdSize(p) / nWords;
+    assert( Vec_WrdSize(p) % nWords == 0 );
+    printf( "The array contains %d bit-strings of %d bits:\n", nNodes, 64*nWords );
+    for ( i = 0; i < nNodes; i++, printf("\n") )
+        for ( k = 0; k < 64*nWords; k++ )
+            printf( "%d", Abc_InfoHasBit((unsigned*)Vec_WrdEntryP(p, i*nWords), k) );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Vec_WrdDumpHexOne( FILE * pFile, word * pSim, int nWords )
 {
     int k, Digit, nDigits = nWords*16;
@@ -1396,6 +1417,7 @@ static inline void Vec_WrdPrintHex( Vec_Wrd_t * p, int nWords )
 {
     int i, nNodes = Vec_WrdSize(p) / nWords;
     assert( Vec_WrdSize(p) % nWords == 0 );
+    printf( "The array contains %d bit-strings of %d bits:\n", nNodes, 64*nWords );
     for ( i = 0; i < nNodes; i++ )
         Vec_WrdDumpHexOne( stdout, Vec_WrdEntryP(p, i*nWords), nWords );
 }
