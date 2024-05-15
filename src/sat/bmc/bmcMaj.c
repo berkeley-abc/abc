@@ -3722,8 +3722,6 @@ void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName )
         Abc_RData_t * p  = Abc_ReadPla( pFileName );
         Abc_RData_t * p2 = p ? Abc_RData2Rel( p ) : NULL;
         if ( !p || !p2 ) return;
-        //Abc_WritePla(p, "_/_rel/test.pla", 0);
-        //Abc_WritePla(p2, "_/_rel/test2.pla", 1);        
         nDivs = 0;
         nOuts = p->nOuts;
         nVars = p->nIns;
@@ -3737,6 +3735,8 @@ void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName )
             for ( i = 0; i < p->nPats; i++ )
                 if ( Abc_RDataGetOut(p2, k, i) )
                     Abc_InfoSetBit((unsigned *)Vec_WrdEntryP(vSimsOut, i), k);
+        Abc_RDataStop( p );
+        Abc_RDataStop( p2 );       
     }
     else
         printf( "Unknown file extension in file \"%s\".\n", pFileName );        
