@@ -52,6 +52,12 @@ struct Abc_RData_t_
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
 
+static inline int Abc_RDataGetIn ( Abc_RData_t * p, int i, int b ) { return Abc_InfoHasBit((unsigned *)Vec_WrdEntryP(p->vSimsIn,  i*p->nSimWords), b); }
+static inline int Abc_RDataGetOut( Abc_RData_t * p, int i, int b ) { return Abc_InfoHasBit((unsigned *)Vec_WrdEntryP(p->vSimsOut, i*p->nSimWords), b); }
+
+static inline void Abc_RDataSetIn ( Abc_RData_t * p, int i, int b ) { Abc_InfoSetBit((unsigned *)Vec_WrdEntryP(p->vSimsIn,  i*p->nSimWords), b); }
+static inline void Abc_RDataSetOut( Abc_RData_t * p, int i, int b ) { Abc_InfoSetBit((unsigned *)Vec_WrdEntryP(p->vSimsOut, i*p->nSimWords), b); }
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////

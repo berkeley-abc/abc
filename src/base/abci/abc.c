@@ -607,6 +607,7 @@ static int Abc_CommandAbc9BRecover           ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenCex             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Odc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GenRel             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1396,6 +1397,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&str_eco",      Abc_CommandAbc9StrEco,                 0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&gencex",       Abc_CommandAbc9GenCex,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&odc",          Abc_CommandAbc9Odc,                    0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&genrel",       Abc_CommandAbc9GenRel,                 0 );    
     
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -53026,6 +53028,89 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GenRel( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManGenRel( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pFileName, int fVerbose );
+    Vec_Int_t * vInsOuts = NULL;
+    int c, nIns = -1, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIns = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIns < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GenRel(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( nIns < 2 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GenRel(): The number of inputs should be given on the command line.\n" );
+        return 0;
+    }
+    if ( argc == globalUtilOptind )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GenRel(): Node IDs should be given on the command line.\n" );
+        return 0;
+    }
+    if ( argc-globalUtilOptind-nIns-1 < 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GenRel(): The relation should have at least one output.\n" );
+        return 0;
+    }
+    vInsOuts = Vec_IntAlloc( 100 );
+    for ( c = globalUtilOptind; c < argc-1; c++ )
+        Vec_IntPush( vInsOuts, atoi(argv[c]) );    
+    if ( fVerbose ) 
+    {
+        printf( "Deriving relation for %d inputs and %d outputs: ", nIns, Vec_IntSize(vInsOuts)-nIns );
+        Vec_IntPrint( vInsOuts );
+    }
+    Gia_ManGenRel( pAbc->pGia, vInsOuts, nIns, argv[argc-1], fVerbose );
+    Vec_IntFree( vInsOuts );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &genrel [-I num] [-vh] <node1> <node2> ... <nodeN> <filename>\n" );
+    Abc_Print( -2, "\t          generates Boolean relation for the given logic window\n" );
+    Abc_Print( -2, "\t-I num  : the number of inputs of the relation [default = undefined]\n" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %d]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<nodes> : the list of nodes for inputs and outputs\n");
+    Abc_Print( -2, "\t<file>  : the output file name (extended PLA format)\n");
+    return 1;
+}
 /**Function*************************************************************
 
   Synopsis    []
