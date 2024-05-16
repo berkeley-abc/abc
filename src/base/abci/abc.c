@@ -608,6 +608,7 @@ static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GenCex             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Odc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenRel             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Window             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1398,6 +1399,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gencex",       Abc_CommandAbc9GenCex,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&odc",          Abc_CommandAbc9Odc,                    0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&genrel",       Abc_CommandAbc9GenRel,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&window",       Abc_CommandAbc9Window,                 0 );    
     
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
     {
@@ -53111,6 +53113,71 @@ usage:
     Abc_Print( -2, "\t<file>  : the output file name (extended PLA format)\n");
     return 1;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Window( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManDupWindow( Gia_Man_t * p, Vec_Int_t * vCut );
+    Gia_Man_t * pNew = NULL;
+    Vec_Int_t * vCut = NULL;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Window(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( argc == globalUtilOptind )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Window(): Node IDs should be given on the command line.\n" );
+        return 0;
+    }
+    if ( argc-globalUtilOptind < 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Window(): The window should have at least one support variable.\n" );
+        return 0;
+    }
+    vCut = Vec_IntAlloc( 100 );
+    for ( c = globalUtilOptind; c < argc; c++ )
+        Vec_IntPush( vCut, atoi(argv[c]) );    
+    pNew = Gia_ManDupWindow( pAbc->pGia, vCut );
+    Abc_FrameUpdateGia( pAbc, pNew );
+    Vec_IntFree( vCut );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &window [-vh] <node1> <node2> ... <nodeN>\n" );
+    Abc_Print( -2, "\t          generates window supported by the given nodes\n" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %d]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<nodes> : the list of input nodes\n");
+    return 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    []
