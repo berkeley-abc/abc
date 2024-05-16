@@ -45,3 +45,27 @@ Using GIA Package in ABC
 - For each object in the design annotated with the constructed AIG node (pNode), remember its AIG node ID by calling Gia_ObjId(pMan,pNode).
 - Quit the AIG package using Gia_ManStop().
 The above process should not produce memory leaks.
+
+
+
+
+Using MiniAIG Package
+
+- Add #include "miniaig.h".
+- Start the AIG package using Mini_AigStart().
+- Assign primary inputs using Mini_AigCreatePi().
+- Assign flop outputs using Mini_AigCreatePi().
+(It is important to create all PIs first, before creating flop outputs.)
+(Flop control logic, if present, should be elaborated into AND gates.  For example, to represent a flop enable, create the driver of enable signal, which can be a PI or an internal node, and then add logic for <flop_input_new> = MUX( <enable>, <flop_input>, <flop_output> ).  The output of this logic feeds into the flop.
+- Construct AIG in a topological order using Mini_AigAnd(), Mini_AigOr(), etc.
+- If constant-0 or constant-1 functions are needed, use 0 or 1.
+- Create primary outputs using Mini_AigCreatePo().
+- Create flop inputs using Mini_AigCreatePo().
+(It is important to create all POs first, before creating register inputs.)
+- Set the number of flops by calling Mini_AigSetRegNum().
+- The AIG may contain internal nodes without fanout and/or internal nodes fed by constants.
+- Dump AIG in internal MiniAIG binary format using Mini_AigDump() and read it into ABC using "&read -m file.mini"
+- Dump AIG in standard AIGER format (https://fmv.jku.at/aiger/index.html) using Mini_AigerWrite() and read it into ABC using "&read file.aig"
+- For each object in the design represented using MiniAIG, it may be helpful to save the MiniAIG literal returned by Mini_AigAnd(), Mini_AigOr(), etc when constructing that object.
+- Quit the AIG package using Mini_AigStop().
+The above process should not produce memory leaks.
