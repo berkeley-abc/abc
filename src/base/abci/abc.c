@@ -148,8 +148,9 @@ static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRefactor               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRestructure            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandResubstitute           ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandResubCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandResubUnate             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandResubCore              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandResubCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRr                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtract                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -934,8 +935,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "refactor",      Abc_CommandRefactor,         1 );
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "restructure",   Abc_CommandRestructure,      1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub",         Abc_CommandResubstitute,     1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "resub_unate",   Abc_CommandResubUnate,       1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "resub_core",    Abc_CommandResubCore,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub_check",   Abc_CommandResubCheck,       0 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "resub_core",    Abc_CommandResubCore,        0 );
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "rr",            Abc_CommandRr,               1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cascade",       Abc_CommandCascade,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "extract",       Abc_CommandExtract,          1 );
@@ -8369,9 +8371,186 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandResubUnate( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManResubUnateOne( char * pFileName, int nLimit, int nDivMax, int fWriteSol, int fVerbose );
+    Gia_Man_t * pTemp;
+    int nLimit    = 16;
+    int nDivMax   = 50;
+    int fWriteSol =  0;
+    int fVerbose  =  0, c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LDsvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLimit < 0 )
+                goto usage;
+            break;   
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nDivMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nDivMax < 0 )
+                goto usage;
+            break;                        
+        case 's':
+            fWriteSol ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 ) 
+    {
+        Abc_Print( -1, "Input file should be given on the command line.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManResubUnateOne( argv[globalUtilOptind], nLimit, nDivMax, fWriteSol, fVerbose );
+    if ( pTemp )
+    {
+        Aig_Man_t * pMan = Gia_ManToAig( pTemp, 0 );
+        Abc_Ntk_t * pNtk = Abc_NtkFromAigPhase( pMan );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+        Aig_ManStop( pMan );
+        Gia_ManStop( pTemp );
+        return 0;
+    }
+    Abc_Print( 0, "The networks is not generated.\n" );    
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: resub_unate [-LD <num>] [-svh] <file>\n" );
+    Abc_Print( -2, "\t         solves one instance of the resub problem\n" );
+    Abc_Print( -2, "\t-L num : the limit on the number of nodes [default = %d]\n",                  nLimit );
+    Abc_Print( -2, "\t-D num : the maximum number of binate divisors to consider [default = %d]\n", nDivMax );
+    Abc_Print( -2, "\t-s     : toggle saving the result in the input file [default = %s]\n",        fWriteSol? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n",                           fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : resub problem file name\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandResubCore( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Supp_ManSolveOne( char * pFileName, int nIters, int nRounds, int fWriteSol, int fVerbose );
+    Gia_Man_t * pTemp;
+    int nIters    = 1;
+    int nRounds   = 1;
+    int fWriteSol = 0;
+    int fVerbose  = 0, c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IRsvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 )
+                goto usage;
+            break;   
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRounds = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRounds < 0 )
+                goto usage;
+            break;                        
+        case 's':
+            fWriteSol ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 ) 
+    {
+        Abc_Print( -1, "Input file should be given on the command line.\n" );
+        return 1;
+    }
+    pTemp = Supp_ManSolveOne( argv[globalUtilOptind], nIters, nRounds, fWriteSol, fVerbose );
+    if ( pTemp )
+    {
+        Aig_Man_t * pMan = Gia_ManToAig( pTemp, 0 );
+        Abc_Ntk_t * pNtk = Abc_NtkFromAigPhase( pMan );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+        Aig_ManStop( pMan );
+        Gia_ManStop( pTemp );
+        return 0;
+    }
+    Abc_Print( 0, "The networks is not generated.\n" );    
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: resub_core [-IR <num>] [-svh] <file>\n" );
+    Abc_Print( -2, "\t         solves one instance of the resub problem\n" );
+    Abc_Print( -2, "\t-I num : the number of iterations [default = %d]\n",                   nIters );
+    Abc_Print( -2, "\t-R num : the number of rounds in each iteration [default = %d]\n",     nRounds );
+    Abc_Print( -2, "\t-s     : toggle saving the result in the input file [default = %s]\n", fWriteSol? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n",                    fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<file> : resub problem file name\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandResubCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Res6_ManResubCheck( char * pFileNameRes, char * pFileNameSol, int fVerbose );
+    extern void Res6_ManResubCheckPla( char * pFileName, int fVerbose );
     char * pFileR = NULL, * pFileS = NULL;
     int fVerbose = 0, c;
     Extra_UtilGetoptReset();
@@ -8403,7 +8582,10 @@ int Abc_CommandResubCheck( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Incorrect number of command line arguments.\n" );
         return 1;
     }
-    Res6_ManResubCheck( pFileR, pFileS, fVerbose );
+    if ( !strcmp(pFileR + strlen(pFileR) - 3, "pla") )
+        Res6_ManResubCheckPla( pFileR, fVerbose );
+    else
+        Res6_ManResubCheck( pFileR, pFileS, fVerbose );
     return 0;
 
 usage:
@@ -8415,91 +8597,6 @@ usage:
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_CommandResubCore( Abc_Frame_t * pAbc, int argc, char ** argv )
-{
-    extern Gia_Man_t * Supp_ManSolveOne( char * pFileName, int nIters, int nRounds, int fVerbose );
-    Gia_Man_t * pTemp;
-    int nIters   = 1;
-    int nRounds  = 1;
-    int fVerbose = 0, c;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IRvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'I':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nIters = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nIters < 0 )
-                goto usage;
-            break;   
-        case 'R':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nRounds = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nRounds < 0 )
-                goto usage;
-            break;                        
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( argc != globalUtilOptind + 1 ) 
-    {
-        Abc_Print( -1, "Input file should be given on the command line.\n" );
-        return 1;
-    }
-    pTemp = Supp_ManSolveOne( argv[globalUtilOptind], nIters, nRounds, fVerbose );
-    if ( pTemp )
-    {
-        Aig_Man_t * pMan = Gia_ManToAig( pTemp, 0 );
-        Abc_Ntk_t * pNtk = Abc_NtkFromAigPhase( pMan );
-        Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
-        Aig_ManStop( pMan );
-        Gia_ManStop( pTemp );
-        return 0;
-    }
-    Abc_Print( 0, "The networks is not generated.\n" );    
-    return 0;
-
-usage:
-    Abc_Print( -2, "usage: resub_core [-IR <num>] [-vh] <file>\n" );
-    Abc_Print( -2, "\t         solves one instance of the resub problem\n" );
-    Abc_Print( -2, "\t-I num : the number of iterations [default = %d]\n",               nIters );
-    Abc_Print( -2, "\t-R num : the number of rounds in each iteration [default = %d]\n", nRounds );
-    Abc_Print( -2, "\t-v     : toggle verbose printout [default = %s]\n",                fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
-    Abc_Print( -2, "\t<file> : resub problem file name\n");
-    return 1;
-}
-
-
 
 /**Function*************************************************************
 
@@ -53171,10 +53268,10 @@ int Abc_CommandAbc9Window( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &window [-vh] <node1> <node2> ... <nodeN>\n" );
-    Abc_Print( -2, "\t          generates window supported by the given nodes\n" );
-    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %d]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t          generates a logic window supported by the given nodes\n" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
-    Abc_Print( -2, "\t<nodes> : the list of input nodes\n");
+    Abc_Print( -2, "\t<nodes> : the list of window inputs\n");
     return 1;
 }
 

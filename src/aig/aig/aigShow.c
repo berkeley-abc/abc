@@ -344,7 +344,7 @@ void Aig_ManShow( Aig_Man_t * pMan, int fHaig, Vec_Ptr_t * vBold )
     char FileNameDot[200];
     FILE * pFile;
     // create the file name
-    sprintf( FileNameDot, "%s", Extra_FileNameGenericAppend(pMan->pName, ".dot") );
+    sprintf( FileNameDot, "%s", Extra_FileNameGenericAppend(pMan->pName ? pMan->pName : (char *)"unknown", ".dot") );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {

@@ -46,6 +46,8 @@ struct Abc_RData_t_
     int         nSimWords;  // the number of words needed to store the patterns
     Vec_Wrd_t * vSimsIn;    // input simulation signatures
     Vec_Wrd_t * vSimsOut;   // output simulation signatures
+    Vec_Int_t * vDivs;      // divisors
+    Vec_Int_t * vSol;       // solution
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -83,11 +85,15 @@ static inline Abc_RData_t * Abc_RDataStart( int nIns, int nOuts, int nPats )
     p->nPats = nPats;
     p->nSimWords = Abc_Bit6WordNum(nPats);
     p->vSimsIn   = Vec_WrdStart( p->nIns * p->nSimWords );
-    p->vSimsOut  = Vec_WrdStart( 2*p->nOuts * p->nSimWords );    
+    p->vSimsOut  = Vec_WrdStart( 2*p->nOuts * p->nSimWords ); 
+    p->vDivs     = Vec_IntAlloc( 16 );
+    p->vSol      = Vec_IntAlloc( 16 );
     return p;
 }
 static inline void Abc_RDataStop( Abc_RData_t * p )
 {
+    Vec_IntFree( p->vSol );
+    Vec_IntFree( p->vDivs );
     Vec_WrdFree( p->vSimsIn );
     Vec_WrdFree( p->vSimsOut );
     ABC_FREE( p );
@@ -99,9 +105,10 @@ static inline int Abc_ReadPlaResubParams( char * pFileName, int * pnIns, int * p
         printf( "Cannot open file \"%s\" for reading.\n", pFileName );
         return 0;
     }
-    char pBuffer[100]; int iLine = 0;
+    int nLineSize = 1000000, iLine = 0;
+    char * pBuffer = ABC_ALLOC( char, nLineSize ); 
     *pnIns = *pnOuts = *pnPats = 0;
-    while ( fgets( pBuffer, 100, pFile ) != NULL ) {
+    while ( fgets( pBuffer, nLineSize, pFile ) != NULL ) {
         iLine += (pBuffer[0] == '0' || pBuffer[0] == '1' || pBuffer[0] == '-');
         if ( pBuffer[0] != '.' )
             continue;
@@ -119,6 +126,7 @@ static inline int Abc_ReadPlaResubParams( char * pFileName, int * pnIns, int * p
     else if ( *pnPats != iLine )
         printf( "The number of lines in the file (%d) does not match the number listed in .p (%d).\n", iLine, *pnPats );
     fclose(pFile);
+    free( pBuffer );
     return 1;
 }
 static inline int Abc_ReadPlaResubData( Abc_RData_t * p, char * pFileName )
@@ -143,15 +151,23 @@ static inline int Abc_ReadPlaResubData( Abc_RData_t * p, char * pFileName )
                         Abc_InfoSetBit( (unsigned *)Vec_WrdEntryP(p->vSimsOut, (2*(i-p->nIns)+0)*p->nSimWords), iLine );
                     else if ( *pTemp == '1' )
                         Abc_InfoSetBit( (unsigned *)Vec_WrdEntryP(p->vSimsOut, (2*(i-p->nIns)+1)*p->nSimWords), iLine );
-                    else if ( *pTemp == '-' ) {
-                        Abc_InfoSetBit( (unsigned *)Vec_WrdEntryP(p->vSimsOut, (2*(i-p->nIns)+0)*p->nSimWords), iLine );
-                        Abc_InfoSetBit( (unsigned *)Vec_WrdEntryP(p->vSimsOut, (2*(i-p->nIns)+1)*p->nSimWords), iLine );
-                    }
+                    //else if ( *pTemp == '-' ) {
+                    //    Abc_InfoSetBit( (unsigned *)Vec_WrdEntryP(p->vSimsOut, (2*(i-p->nIns)+0)*p->nSimWords), iLine );
+                    //    Abc_InfoSetBit( (unsigned *)Vec_WrdEntryP(p->vSimsOut, (2*(i-p->nIns)+1)*p->nSimWords), iLine );
+                    //}
                 }
                 i += (*pTemp == '0' || *pTemp == '1' || *pTemp == '-');
             }
             assert( i == p->nIns + p->nOuts );
             iLine++;
+        }
+        if ( pBuffer[0] == '.' && (pBuffer[1] == 's' || pBuffer[1] == 'a') ) {
+            Vec_Int_t * vArray = pBuffer[1] == 'a' ? p->vSol : p->vDivs;
+            if ( Vec_IntSize(vArray) > 0 )
+                continue;
+            char * pTemp = strtok( pBuffer+2, " \r\n\t" );
+            do Vec_IntPush( vArray, atoi(pTemp) );
+            while ( (pTemp = strtok( NULL, " \r\n\t" )) );
         }
     }
     if ( nDashes )

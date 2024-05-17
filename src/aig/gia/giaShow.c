@@ -1129,7 +1129,7 @@ void Gia_ManShow( Gia_Man_t * pMan, Vec_Int_t * vBold, int fAdders, int fFadds, 
     char FileNameDot[200];
     FILE * pFile;
     Vec_Int_t * vXors = NULL, * vAdds = fAdders ? Ree_ManComputeCuts( pMan, &vXors, 0 ) : NULL;
-    sprintf( FileNameDot, "%s", Extra_FileNameGenericAppend(pMan->pName, ".dot") );
+    sprintf( FileNameDot, "%s", Extra_FileNameGenericAppend(pMan->pName ? pMan->pName : (char *)"unknown", ".dot") );
     // check that the file can be opened
     if ( (pFile = fopen( FileNameDot, "w" )) == NULL )
     {

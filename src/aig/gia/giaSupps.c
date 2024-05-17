@@ -829,6 +829,53 @@ void Supp_DeriveDumpSol( Vec_Int_t * vSet, Vec_Int_t * vRes, int nDivs )
   SeeAlso     []
 
 ***********************************************************************/
+void Supp_DeriveDumpProb2( Vec_Wrd_t * vIsfs, Vec_Wrd_t * vDivs, int nWords, Vec_Int_t * vSupp, Vec_Int_t * vRes )
+{
+    char Buffer[100]; int i, k, Temp, nDivs = Vec_WrdSize(vDivs)/nWords;
+    int RetValue = sprintf( Buffer, "%02d.pla", s_Counter );
+    FILE * pFile = fopen( Buffer, "wb" );
+    if ( pFile == NULL )
+        printf( "Cannot open output file.\n" );
+//    fprintf( pFile, "resyn %d %d %d %d\n", 0, nDivs, 1, 64*nWords );
+    fprintf( pFile, ".i %d\n", nDivs );
+    fprintf( pFile, ".o %d\n", 1 );
+    fprintf( pFile, ".p %d\n", 64*nWords );
+    for ( i = 0; i < 64*nWords; i++ ) {
+        for ( k = 0; k < nDivs; k++ )
+            fprintf( pFile, "%d", Abc_TtGetBit(Vec_WrdEntryP(vDivs, k*nWords), i) );
+//        fprintf( pFile, " %d\n", Abc_TtGetBit(Vec_WrdEntryP(vIsfs, 1*nWords), i) );
+        if ( Abc_TtGetBit(Vec_WrdEntryP(vIsfs, 0*nWords), i) )
+            fprintf( pFile, " 0\n" );
+        else if ( Abc_TtGetBit(Vec_WrdEntryP(vIsfs, 1*nWords), i) )
+            fprintf( pFile, " 1\n" );
+        else
+            fprintf( pFile, " -\n" );
+    }
+    fprintf( pFile, ".e\n" );
+
+    fprintf( pFile, "\n.s" );
+    Vec_IntForEachEntryStart( vSupp, Temp, i, 2 )
+        fprintf( pFile, " %d", Temp );
+    fprintf( pFile, "\n.a" );
+    Vec_IntForEachEntry( vRes, Temp, i )
+        fprintf( pFile, " %d", Temp );
+    fprintf( pFile, "\n" );    
+    fclose ( pFile );
+    RetValue = 0;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Vec_Int_t * Supp_ManFindBestSolution( Supp_Man_t * p, Vec_Wec_t * vSols, int fVerbose, Vec_Int_t ** pvDivs )
 {
     Vec_Int_t * vLevel, * vRes = NULL; 
@@ -857,6 +904,7 @@ Vec_Int_t * Supp_ManFindBestSolution( Supp_Man_t * p, Vec_Wec_t * vSols, int fVe
     }
     if ( iSolBest > 0 && (CostBest >> 2) < 50 )
     {
+        Vec_Int_t * vDivs2 = Vec_IntAlloc( 100 );
         Vec_Int_t * vSet = Hsh_VecReadEntry( p->pHash, iSolBest ); int i, iObj;
         vRes = Gia_ManDeriveSolutionOne( p->pGia, p->vSims, p->vIsfs, p->vCands, vSet, p->nWords, CostBest & 3 );
         assert( !vRes || Vec_IntSize(vRes) == 2*(CostBest >> 2)+1 );
@@ -864,13 +912,18 @@ Vec_Int_t * Supp_ManFindBestSolution( Supp_Man_t * p, Vec_Wec_t * vSols, int fVe
         {
             Vec_IntClear( *pvDivs );
             Vec_IntPushTwo( *pvDivs, -1, -1 );
-            Vec_IntForEachEntry( vSet, iObj, i )
+            Vec_IntPushTwo( vDivs2, -1, -1 );
+            Vec_IntForEachEntry( vSet, iObj, i ) {
                 Vec_IntPush( *pvDivs, Vec_IntEntry(p->vCands, iObj) );
+                Vec_IntPush( vDivs2, iObj );
+            }
         }
         //Supp_DeriveDumpProbC( p->vIsfs, p->vDivsC, p->nWords );
         //Supp_DeriveDumpProb( p->vIsfs, p->vDivs[1], p->nWords );
         //Supp_DeriveDumpSol( vSet, vRes, Vec_WrdSize(p->vDivs[1])/p->nWords );
-        //s_Counter++;
+        //Supp_DeriveDumpProb2( p->vIsfs, p->vDivs[1], p->nWords, vDivs2, vRes );
+        Vec_IntFree( vDivs2 );
+        s_Counter++;
     }
     return vRes;
 }
@@ -1024,6 +1077,35 @@ void Supp_ManComputeTest( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Supp_RecordSolution( char * pFileName, Vec_Int_t * vDivs, Vec_Int_t * vRes )
+{
+    FILE * pFile = fopen( pFileName, "ab" );
+    if ( pFile == NULL ) {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    int i, Temp;
+    fprintf( pFile, "\n.s" );
+    Vec_IntForEachEntryStart( vDivs, Temp, i, 2 )
+        fprintf( pFile, " %d", Temp );
+    fprintf( pFile, "\n.a" );
+    Vec_IntForEachEntry( vRes, Temp, i )
+        fprintf( pFile, " %d", Temp-2 );
+    fprintf( pFile, "\n" );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Supp_GenerateGia( Vec_Int_t * vRes, Vec_Int_t * vDivs )
 {
     int i, nAddOn = 2, nIns = Vec_IntSize(vDivs)-2;
@@ -1044,14 +1126,17 @@ Gia_Man_t * Supp_GenerateGia( Vec_Int_t * vRes, Vec_Int_t * vDivs )
     Gia_ManAppendCo(pNew, iTopLit-nAddOn);
     return pNew;
 }
-Gia_Man_t * Supp_ManSolveOne( char * pFileName, int nIters, int nRounds, int fVerbose )
+Gia_Man_t * Supp_ManSolveOne( char * pFileName, int nIters, int nRounds, int fWriteSol, int fVerbose )
 {
+    //Abc_Random(1);
     Abc_RData_t * p = Abc_ReadPla( pFileName ); assert( p->nOuts == 1 );
     Vec_Int_t * vDivs = Vec_IntAlloc( 100 );
     Vec_Int_t * vRes  = Supp_ManCompute( p->vSimsOut, NULL, NULL, p->vSimsIn, NULL, p->nSimWords, NULL, &vDivs, nIters, nRounds, fVerbose );
     if ( fVerbose && vDivs ) printf( "Divisors: " ), Vec_IntPrint( vDivs );
     if ( fVerbose && vRes )  printf( "Solution: " ), Vec_IntPrint( vRes );
     Gia_Man_t * pNew = vRes ? Supp_GenerateGia( vRes, vDivs ) : NULL;
+    if ( fWriteSol && vDivs && vRes )
+        Supp_RecordSolution( pFileName, vDivs, vRes );
     Vec_IntFreeP( &vRes );
     Vec_IntFreeP( &vDivs );
     Abc_RDataStop( p );
