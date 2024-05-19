@@ -3625,7 +3625,7 @@ Gia_Man_t * Gia_ManChangeTest3( Gia_Man_t * p )
 {
     extern void Exa6_WriteFile2( char * pFileName, int nVars, int nDivs, int nOuts, Vec_Wrd_t * vSimsDiv, Vec_Wrd_t * vSimsOut );
     extern void Exa_ManExactPrint( Vec_Wrd_t * vSimsDiv, Vec_Wrd_t * vSimsOut, int nDivs, int nOuts );
-    extern Mini_Aig_t * Exa_ManExactSynthesis6Int( Vec_Wrd_t * vSimsDiv, Vec_Wrd_t * vSimsOut, int nVars, int nDivs, int nOuts, int nNodes, int fOnlyAnd, int fVerbose );
+    extern Mini_Aig_t * Exa_ManExactSynthesis6Int( Vec_Wrd_t * vSimsDiv, Vec_Wrd_t * vSimsOut, int nVars, int nDivs, int nOuts, int nNodes, int fOnlyAnd, int fVerbose, char * pFileName );
     extern Gia_Man_t * Gia_ManDupMini( Gia_Man_t * p, Vec_Int_t * vIns, Vec_Int_t * vDivs, Vec_Int_t * vOuts, Mini_Aig_t * pMini );
 
     Gia_Man_t *  pNew  = NULL;
@@ -3639,7 +3639,7 @@ Gia_Man_t * Gia_ManChangeTest3( Gia_Man_t * p )
     Gia_ManRelCompute( p, vIns, vDivs, vOuts, &vSimsDiv, &vSimsOut );
     Exa_ManExactPrint( vSimsDiv, vSimsOut, 1 + Vec_IntSize(vIns) + Vec_IntSize(vDivs), Vec_IntSize(vOuts) );
     //Exa6_WriteFile2( "mul44_i%d_n%d_t%d_s%d.rel", Vec_IntSize(vIns), Vec_IntSize(vDivs), Vec_IntSize(vOuts), nNodes );
-    pMini = Exa_ManExactSynthesis6Int( vSimsDiv, vSimsOut, Vec_IntSize(vIns), Vec_IntSize(vDivs), Vec_IntSize(vOuts), nNodes, 1, 1 );
+    pMini = Exa_ManExactSynthesis6Int( vSimsDiv, vSimsOut, Vec_IntSize(vIns), Vec_IntSize(vDivs), Vec_IntSize(vOuts), nNodes, 1, 1, NULL );
     if ( pMini )
     {
         pNew = Gia_ManDupMini( p, vIns, vDivs, vOuts, pMini );

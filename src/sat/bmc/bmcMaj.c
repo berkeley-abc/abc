@@ -3701,7 +3701,7 @@ Mini_Aig_t * Exa_ManExactSynthesis6Int( Vec_Wrd_t * vSimsDiv, Vec_Wrd_t * vSimsO
             pMini = Mini_AigDupCompl( pTemp = pMini, DivCompl, OutCompl );
             Mini_AigStop( pTemp );        
         }
-        Mini_AigerWrite( Extra_FileNameGenericAppend(pFileName, "_twoexact.aig"), pMini, 1 );
+        Mini_AigerWrite( pFileName ? Extra_FileNameGenericAppend(pFileName, "_twoexact.aig") : (char *)"exa6.aig", pMini, 1 );
         //if ( nVars <= 6 )
         //    Exa_ManMiniVerify( pMini, vSimsDiv, vSimsOut );
         //printf( "\n" );
