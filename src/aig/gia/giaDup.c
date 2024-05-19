@@ -5952,7 +5952,9 @@ Gia_Man_t * Gia_ManDupWindow( Gia_Man_t * p, Vec_Int_t * vCut )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachObjVec( vOuts, p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
-    printf( "Derived window with %d inputs, %d internal nodes, and %d outputs: ", Vec_IntSize(vCut), Vec_IntSize(vInner), Vec_IntSize(vOuts) );
+    printf( "Derived window with %d inputs, %d internal nodes, and %d outputs.\n", Vec_IntSize(vCut), Vec_IntSize(vInner), Vec_IntSize(vOuts) );
+    printf( "Outputs: " );
+    Vec_IntPrint( vOuts );
     Vec_IntFree( vInner );
     Vec_IntFree( vOuts );
     return pNew;

@@ -53250,7 +53250,10 @@ int Abc_CommandAbc9Window( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Window(): Node IDs should be given on the command line.\n" );
+        int nCutSize = 6, nCuts = 30;
+        extern void Gia_ManExploreCutsTest( Gia_Man_t * pGia, int nCutSize, int nCuts, int fVerbose );
+        printf( "Here are %d the most frequently appearing %d-cuts:\n", nCutSize, nCuts );
+        Gia_ManExploreCutsTest( pAbc->pGia, nCutSize, nCuts, fVerbose );
         return 0;
     }
     if ( argc-globalUtilOptind < 1 )

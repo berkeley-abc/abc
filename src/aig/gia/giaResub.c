@@ -2117,7 +2117,9 @@ void Gia_ManResubRecordSolution( char * pFileName, Vec_Int_t * vRes, int nDivs )
 Gia_Man_t * Gia_ManResubUnateOne( char * pFileName, int nLimit, int nDivMax, int fWriteSol, int fVerbose )
 {
     Gia_Man_t * pNew = NULL;
-    Abc_RData_t * p = Abc_ReadPla( pFileName ); assert( p->nOuts == 1 );
+    Abc_RData_t * p = Abc_ReadPla( pFileName ); 
+    if ( p == NULL ) return NULL;
+    assert( p->nOuts == 1 );
     Vec_Ptr_t * vDivs = Vec_PtrAlloc( 2+p->nIns );
     Vec_Int_t * vRes = Vec_IntAlloc( 100 );
     Vec_PtrPush( vDivs, Vec_WrdEntryP(p->vSimsOut, 0*p->nSimWords) );
@@ -2132,7 +2134,7 @@ Gia_Man_t * Gia_ManResubUnateOne( char * pFileName, int nLimit, int nDivMax, int
     for ( k = 0; k < ArraySize; k++ )
         Vec_IntPush( vRes, pArray[k] );
     if ( ArraySize ) {
-        //printf( "Divisors = %d. Solution: ", Vec_PtrSize(vDivs) ), Vec_IntPrint( vRes );
+        //Vec_IntPrint( vRes );
         Vec_Wec_t * vGates = Vec_WecStart(1);
         Vec_IntAppend( Vec_WecEntry(vGates, 0), vRes );
         pNew = Gia_ManConstructFromGates( vGates, Vec_PtrSize(vDivs) );

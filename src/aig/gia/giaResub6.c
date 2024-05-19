@@ -235,7 +235,7 @@ void Res6_ManWrite( char * pFileName, Res6_Man_t * p )
 void Res6_ManPrintProblem( Res6_Man_t * p, int fVerbose )
 {
     int i, nInputs = (p->nIns && p->nIns < 6) ? p->nIns : 6;
-    printf( "Problem:   In = %d  Div = %d  Out = %d   Pat = %d\n", p->nIns, p->nDivs - p->nIns - 1, p->nOuts, p->nPats );
+    printf( "Problem:   In = %d  Div = %d  Out  = %d  Pat = %d\n", p->nIns, p->nDivs - p->nIns - 1, p->nOuts, p->nPats );
     if ( !fVerbose )
         return;
     printf( "%02d : %s\n", 0, "const0" );

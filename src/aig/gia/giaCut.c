@@ -986,9 +986,15 @@ Vec_Wec_t * Gia_ManExploreCuts( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
     vCutsSel = Gia_ManFilterCuts( pGia, p->vCuts, nCutSize0, nCuts0 );
-    Gia_ManConsiderCuts( pGia, vCutsSel );
+    //Gia_ManConsiderCuts( pGia, vCutsSel );
     Gia_StoFree( p );
     return vCutsSel;
+}
+void Gia_ManExploreCutsTest( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int fVerbose0 )
+{
+    Vec_Wec_t * vCutSel = Gia_ManExploreCuts( pGia, nCutSize0, nCuts0, fVerbose0 );
+    Vec_WecPrint( vCutSel, 0 );
+    Vec_WecFree( vCutSel );
 }
 
 ////////////////////////////////////////////////////////////////////////

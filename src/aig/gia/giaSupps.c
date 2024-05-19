@@ -1129,7 +1129,9 @@ Gia_Man_t * Supp_GenerateGia( Vec_Int_t * vRes, Vec_Int_t * vDivs )
 Gia_Man_t * Supp_ManSolveOne( char * pFileName, int nIters, int nRounds, int fWriteSol, int fVerbose )
 {
     //Abc_Random(1);
-    Abc_RData_t * p = Abc_ReadPla( pFileName ); assert( p->nOuts == 1 );
+    Abc_RData_t * p = Abc_ReadPla( pFileName ); 
+    if ( p == NULL ) return NULL;
+    assert( p->nOuts == 1 );
     Vec_Int_t * vDivs = Vec_IntAlloc( 100 );
     Vec_Int_t * vRes  = Supp_ManCompute( p->vSimsOut, NULL, NULL, p->vSimsIn, NULL, p->nSimWords, NULL, &vDivs, nIters, nRounds, fVerbose );
     if ( fVerbose && vDivs ) printf( "Divisors: " ), Vec_IntPrint( vDivs );

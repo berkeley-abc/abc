@@ -1011,8 +1011,6 @@ Vec_Int_t * Gia_ManGenCombs( Gia_Man_t * p, Vec_Int_t * vInsOuts, int fVerbose )
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
     return vRes;
 }
-
-
 void Gia_ManGenRel( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pFileName, int fVerbose )
 {
     Vec_Int_t * vRes = Gia_ManGenCombs( pGia, vInsOuts, fVerbose ); int i, k, Mask;
@@ -1020,7 +1018,7 @@ void Gia_ManGenRel( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pFi
         printf( "Enumerating solutions did not succeed.\n" );
         return;
     }
-    Abc_RData_t * p = Abc_RDataStart( nIns, Vec_IntSize(vInsOuts)-nIns, Vec_IntSize(vRes) );    
+    Abc_RData_t * p2, * p = Abc_RDataStart( nIns, Vec_IntSize(vInsOuts)-nIns, Vec_IntSize(vRes) );    
     Vec_IntForEachEntry( vRes, Mask, i ) {
         for ( k = 0; k < Vec_IntSize(vInsOuts); k++ )
             if ( (Mask >> (Vec_IntSize(vInsOuts)-1-k)) & 1 ) { // the bit is 1
@@ -1035,6 +1033,9 @@ void Gia_ManGenRel( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pFi
             }
     }
     Abc_WritePla( p, pFileName, 0 );
+    p2 = Abc_RData2Rel( p );
+    Abc_WritePla( p2, Extra_FileNameGenericAppend(pFileName, "_rel.pla"), 1 );
+    Abc_RDataStop( p2 );
     Abc_RDataStop( p );
     Vec_IntFree( vRes );
 }
