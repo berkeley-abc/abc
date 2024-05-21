@@ -243,7 +243,12 @@ struct Gia_Man_t_
     Gia_Dat_t *    pUData;
     // retiming data
     Vec_Str_t *    vStopsF;
-    Vec_Str_t *    vStopsB;    
+    Vec_Str_t *    vStopsB;
+    // iteration with boxes
+    int            iFirstNonPiId;
+    int            iFirstPoId;
+    int            iFirstAndObj;
+    int            iFirstPoObj;
 };
 
 
@@ -1243,7 +1248,16 @@ static inline int         Gia_ObjCellId( Gia_Man_t * p, int iLit )          { re
     for ( i = 0; (i < Gia_ManRegNum(p)) && ((pObjRi) = Gia_ManCo(p, Gia_ManPoNum(p)+i)) && ((pObjRo) = Gia_ManCi(p, Gia_ManPiNum(p)+i)); i++ )
 #define Gia_ManForEachRoToRiVec( vRoIds, p, pObj, i )                   \
     for ( i = 0; (i < Vec_IntSize(vRoIds)) && ((pObj) = Gia_ObjRoToRi(p, Gia_ManObj(p, Vec_IntEntry(vRoIds, i)))); i++ )
- 
+
+#define Gia_ManForEachObjWithBoxes( p, pObj, i )                        \
+    for ( i = p->iFirstAndObj; (i < p->iFirstPoObj) && ((pObj) = Gia_ManObj(p, i)); i++ )
+#define Gia_ManForEachObjReverseWithBoxes( p, pObj, i )                 \
+    for ( i = p->iFirstPoObj - 1; (i >= p->iFirstAndObj) && ((pObj) = Gia_ManObj(p, i)); i-- )
+#define Gia_ManForEachCiIdWithBoxes( p, Id, i )                         \
+    for ( i = 0; (i < p->iFirstNonPiId) && ((Id) = Gia_ObjId(p, Gia_ManCi(p, i))); i++ )
+#define Gia_ManForEachCoWithBoxes( p, pObj, i )                         \
+    for ( i = p->iFirstPoId; (i < Vec_IntSize(p->vCos)) && ((pObj) = Gia_ManCo(p, i)); i++ )
+
 ////////////////////////////////////////////////////////////////////////
 ///                    FUNCTION DECLARATIONS                         ///
 ////////////////////////////////////////////////////////////////////////
