@@ -948,7 +948,7 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
 
 /**Function*************************************************************
 
-  Synopsis    [Performs QBF solving using an improved algorithm.]
+  Synopsis    [Derive the SAT solver.]
 
   Description []
                
@@ -957,22 +957,38 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_ManGenCombs( Gia_Man_t * p, Vec_Int_t * vInsOuts, int fVerbose )
+sat_solver * Gia_ManGenSolver( Gia_Man_t * p, Vec_Int_t * vInsOuts, int nIns )
+{
+    Gia_Obj_t * pObj; int i, nObjs = Gia_ManObjNum(p);
+    sat_solver * pSat = sat_solver_new();
+    sat_solver_setnvars( pSat, 2 * nObjs );
+    Gia_ManIncrementTravId(p);
+    Gia_ManForEachObjVecStart( vInsOuts, p, pObj, i, nIns )
+        Gia_ObjSetTravIdCurrent(p, pObj);
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( !Gia_ObjIsTravIdCurrent(p, pObj) )
+            sat_solver_add_and( pSat, i, Gia_ObjFaninId0(pObj, i), Gia_ObjFaninId1(pObj, i), Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
+    Gia_ManForEachAnd( p, pObj, i )
+        sat_solver_add_and( pSat, nObjs+i, nObjs+Gia_ObjFaninId0(pObj, i), nObjs+Gia_ObjFaninId1(pObj, i), Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj), 0 );
+    Gia_ManForEachCi( p, pObj, i )
+        if ( !Gia_ObjIsTravIdCurrent(p, pObj) )
+            sat_solver_add_buffer( pSat, nObjs+Gia_ObjId(p, pObj), Gia_ObjId(p, pObj), 0 );
+    Gia_ManForEachCo( p, pObj, i )
+        if ( Gia_ObjFaninId0p(p, pObj) > 0 ) {
+            sat_solver_add_buffer( pSat, Gia_ObjId(p, pObj), Gia_ObjFaninId0p(p, pObj), Gia_ObjFaninC0(pObj) );
+            sat_solver_add_buffer( pSat, nObjs+Gia_ObjId(p, pObj), nObjs+Gia_ObjFaninId0p(p, pObj), Gia_ObjFaninC0(pObj) );
+            sat_solver_add_buffer( pSat, nObjs+Gia_ObjId(p, pObj), Gia_ObjId(p, pObj), 0 );
+        }
+    return pSat;
+}
+Vec_Int_t * Gia_ManGenCombs( Gia_Man_t * p, Vec_Int_t * vInsOuts, int nIns, int fVerbose )
 {
     int nTimeOut = 600, nConfLimit = 1000000;
-    int i, iObj, iSatVar, Iter, Mask, nSolutions = 0, RetValue = 0;
+    int i, iSatVar, Iter, Mask, nSolutions = 0, RetValue = 0;
     abctime clkStart  = Abc_Clock();
-    Gia_Man_t * pCopy = Gia_ManDup(p);
-    Vec_IntForEachEntry( vInsOuts, iObj, i )
-        Gia_ManAppendCo( pCopy, Abc_Var2Lit(iObj, 0) );
-    Cnf_Dat_t * pCnf  = (Cnf_Dat_t *)Mf_ManGenerateCnf( pCopy, 8, 0, 0, 0, 0 );
-    sat_solver * pSat = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
+    sat_solver * pSat = Gia_ManGenSolver( p, vInsOuts, nIns );
     Vec_Int_t * vLits = Vec_IntAlloc( 100 );
     Vec_Int_t * vRes  = Vec_IntAlloc( 1000 );
-    //Gia_ManForEachCoId( pCopy, iObj, i )
-    //    printf( "%d=%d ", i, pCnf->pVarNums[iObj] );
-    //printf( "\n" );
-    Cnf_DataFree( pCnf );
     for ( Iter = 0; Iter < 1000000; Iter++ )
     {        
         int status = sat_solver_solve( pSat, NULL, NULL, (ABC_INT64_T)nConfLimit, 0, 0, 0 );
@@ -982,8 +998,7 @@ Vec_Int_t * Gia_ManGenCombs( Gia_Man_t * p, Vec_Int_t * vInsOuts, int fVerbose )
         // extract SAT assignment
         Mask = 0;
         Vec_IntClear( vLits );
-        for ( i = 0; i < Vec_IntSize(vInsOuts); i++ ) {
-            iSatVar = i + 1+Gia_ManCoNum(p);
+        Vec_IntForEachEntry( vInsOuts, iSatVar, i ) {
             Vec_IntPush( vLits, Abc_Var2Lit(iSatVar, sat_solver_var_value(pSat, iSatVar)) );
             if ( sat_solver_var_value(pSat, iSatVar) )
                 Mask |= 1 << (Vec_IntSize(vInsOuts)-1-i); 
@@ -992,8 +1007,10 @@ Vec_Int_t * Gia_ManGenCombs( Gia_Man_t * p, Vec_Int_t * vInsOuts, int fVerbose )
         if ( fVerbose )
         {
             printf( "%5d : ", Iter );
-            for ( i = Vec_IntSize(vInsOuts)-1; i >= 0; i-- )
-                printf( "%d", (Mask >> i) & 1 );
+            Vec_IntForEachEntry( vInsOuts, iSatVar, i ) {
+                if ( i == nIns )  printf( " " );
+                printf( "%d", (Mask >> (Vec_IntSize(vInsOuts)-1-i)) & 1 );
+            }
             printf( "\n" );
         }
         // add clause
@@ -1002,7 +1019,6 @@ Vec_Int_t * Gia_ManGenCombs( Gia_Man_t * p, Vec_Int_t * vInsOuts, int fVerbose )
         if ( nTimeOut && (Abc_Clock() - clkStart)/CLOCKS_PER_SEC >= nTimeOut ) { RetValue = 0; break; }
     }
     Vec_IntSort( vRes, 0 );
-    Gia_ManStop( pCopy );
     Vec_IntFree( vLits );
     sat_solver_delete( pSat );
     if ( RetValue == 0 )
@@ -1013,7 +1029,7 @@ Vec_Int_t * Gia_ManGenCombs( Gia_Man_t * p, Vec_Int_t * vInsOuts, int fVerbose )
 }
 void Gia_ManGenRel( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pFileName, int fVerbose )
 {
-    Vec_Int_t * vRes = Gia_ManGenCombs( pGia, vInsOuts, fVerbose ); int i, k, Mask;
+    Vec_Int_t * vRes = Gia_ManGenCombs( pGia, vInsOuts, nIns, fVerbose ); int i, k, Mask;
     if ( vRes == NULL ) {
         printf( "Enumerating solutions did not succeed.\n" );
         return;
