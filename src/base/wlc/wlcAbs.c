@@ -1886,8 +1886,8 @@ int Wlc_NtkAbsCore( Wlc_Ntk_t * p, Wlc_Par_t * pPars )
         Vec_IntFree( vRefine );
         Abc_CexFree( pCex );
     }
-    Vec_IntFree( vBlacks );
-    Vec_BitFree( vUnmark );
+    Vec_IntFreeP( &vBlacks );
+    Vec_BitFreeP( &vUnmark );
     // report the result
     if ( pPars->fVerbose )
         printf( "\n" );
