@@ -780,10 +780,34 @@ namespace NewBdd {
       for(size_t i = 0; i < vLits.size(); i++)
         IncRef(vLits[i]);
     }
+    void RemoveRefIfUnused() {
+      if(!nGbc && nReo == BvarMax())
+        vRefs.clear();
+    }
+    void TurnOnReo(int nReo_ = 0, std::vector<lit> const *vLits = NULL) {
+      if(nReo_)
+        nReo = nReo_;
+      else
+        nReo = nObjs << 1;
+      if((lit)nReo > (lit)BvarMax())
+        nReo = BvarMax();
+      if(vRefs.empty()) {
+        if(vLits)
+          SetRef(*vLits);
+        else
+          vRefs.resize(nObjsAlloc);
+      }
+    }
     void TurnOffReo() {
       nReo = BvarMax();
-      if(!nGbc)
-        vRefs.clear();
+    }
+    var GetNumVars() const {
+      return nVars;
+    }
+    void GetOrdering(std::vector<int> &Var2Level_) {
+      Var2Level_.resize(nVars);
+      for(var v = 0; v < nVars; v++)
+        Var2Level_[v] = Var2Level[v];
     }
     bvar CountNodes() {
       bvar count = 1;

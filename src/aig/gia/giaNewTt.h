@@ -48,6 +48,7 @@ namespace NewTt {
     bool fCountOnes;
     int  nGbc;
     int  nReo; // dummy
+    std::vector<int> *pVar2Level; // dummy
     Param() {
       nObjsAllocLog = 15;
       nObjsMaxLog   = 20;
@@ -261,9 +262,13 @@ namespace NewTt {
       for(size_t i = 0; i < vLits.size(); i++)
         IncRef(vLits[i]);
     }
-    void TurnOffReo() {
+    void RemoveRefIfUnused() {
       if(!nGbc)
         vRefs.clear();
+    }
+    void TurnOffReo() {}
+    int GetNumVars() const {
+      return nVars;
     }
     void PrintNode(lit x) const {
       bvar a = Lit2Bvar(x);
