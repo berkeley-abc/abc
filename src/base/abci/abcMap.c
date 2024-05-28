@@ -420,6 +420,7 @@ Abc_Obj_t * Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
     uPhaseBest = Map_CutReadPhaseBest( pCutBest, fPhase );
     nLeaves    = Map_CutReadLeavesNum( pCutBest );
     ppLeaves   = Map_CutReadLeaves( pCutBest );
+    //Vec_Ptr_t * vAnds = Map_CutInternalNodes( pNodeMap, pCutBest );
 
     // collect the PI nodes
     for ( i = 0; i < nLeaves; i++ )

@@ -167,6 +167,7 @@ extern Map_Cut_t *     Map_CutAlloc( Map_Man_t * p );
 /*=== mapperCutUtils.c =============================================================*/
 extern void            Map_CutCreateFromNode( Map_Man_t * p, Map_Super_t * pSuper, int iRoot, unsigned uPhaseRoot, 
                            int * pLeaves, int nLeaves, unsigned uPhaseLeaves );
+extern Vec_Ptr_t *     Map_CutInternalNodes( Map_Node_t * pObj, Map_Cut_t * pCut );
 /*=== mapperCore.c =============================================================*/
 extern int             Map_Mapping( Map_Man_t * p );
 /*=== mapperLib.c =============================================================*/

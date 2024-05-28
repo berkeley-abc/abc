@@ -219,6 +219,49 @@ int Map_CutListCount( Map_Cut_t * pSets )
     return i;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Map_CutInternalNodes_rec( Map_Node_t * pObj, Vec_Ptr_t * vAnds )
+{
+  if ( pObj->TravId == pObj->p->nTravIds )
+    return;
+  pObj->TravId = pObj->p->nTravIds;
+  Map_CutInternalNodes_rec( pObj->p1, vAnds );
+  Map_CutInternalNodes_rec( pObj->p2, vAnds );
+  Vec_PtrPush( vAnds, pObj );
+}
+Vec_Ptr_t * Map_CutInternalNodes( Map_Node_t * pObj, Map_Cut_t * pCut )
+{
+  Vec_Ptr_t * vAnds = Vec_PtrAlloc( 4 );
+  Map_Node_t * pTemp; int i;
+  pObj->p->nTravIds++;
+  for ( i = 0; i < pCut->nLeaves; i++ )
+    pCut->ppLeaves[i]->TravId = pObj->p->nTravIds;
+  Map_CutInternalNodes_rec( pObj, vAnds );
+  if ( 1 )
+  {
+    printf( "Leaves:\n" );
+    for ( i = 0; i < pCut->nLeaves; i++ )
+      printf( " %d", pCut->ppLeaves[i]->Num );
+    printf( "\n" );
+    printf( "Nodes:\n" );
+    Vec_PtrForEachEntry( Map_Node_t *, vAnds, pTemp, i )
+      printf( "%d=(%d,%d)\n", pTemp->Num, pTemp->p1->Num, pTemp->p2->Num );
+    printf( "\n" );
+  }
+  return vAnds;
+}
+
+
 #if 0
 
 /**function*************************************************************
