@@ -235,8 +235,8 @@ void Map_CutInternalNodes_rec( Map_Node_t * pObj, Vec_Ptr_t * vAnds )
   if ( pObj->TravId == pObj->p->nTravIds )
     return;
   pObj->TravId = pObj->p->nTravIds;
-  Map_CutInternalNodes_rec( pObj->p1, vAnds );
-  Map_CutInternalNodes_rec( pObj->p2, vAnds );
+  Map_CutInternalNodes_rec( Map_Regular(pObj->p1), vAnds );
+  Map_CutInternalNodes_rec( Map_Regular(pObj->p2), vAnds );
   Vec_PtrPush( vAnds, pObj );
 }
 Vec_Ptr_t * Map_CutInternalNodes( Map_Node_t * pObj, Map_Cut_t * pCut )
@@ -247,7 +247,7 @@ Vec_Ptr_t * Map_CutInternalNodes( Map_Node_t * pObj, Map_Cut_t * pCut )
   for ( i = 0; i < pCut->nLeaves; i++ )
     pCut->ppLeaves[i]->TravId = pObj->p->nTravIds;
   Map_CutInternalNodes_rec( pObj, vAnds );
-  if ( 1 )
+  if ( 0 )
   {
     printf( "Leaves:\n" );
     for ( i = 0; i < pCut->nLeaves; i++ )
