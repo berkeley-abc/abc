@@ -255,7 +255,9 @@ Vec_Ptr_t * Map_CutInternalNodes( Map_Node_t * pObj, Map_Cut_t * pCut )
     printf( "\n" );
     printf( "Nodes:\n" );
     Vec_PtrForEachEntry( Map_Node_t *, vAnds, pTemp, i )
-      printf( "%d=(%d,%d)\n", pTemp->Num, pTemp->p1->Num, pTemp->p2->Num );
+      printf( "%d = %s%d & %s%d\n", pTemp->Num, 
+                                    Map_IsComplement(pTemp->p1) ? "~" : " ", Map_Regular(pTemp->p1)->Num, 
+                                    Map_IsComplement(pTemp->p2) ? "~" : " ", Map_Regular(pTemp->p2)->Num );
     printf( "\n" );
   }
   return vAnds;
