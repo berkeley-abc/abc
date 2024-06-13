@@ -49,8 +49,8 @@ typedef enum {
 typedef struct Scl_Pair_t_ Scl_Pair_t;
 struct Scl_Pair_t_
 {
-    int             Beg;          // item beginning
-    int             End;          // item end
+    long            Beg;          // item beginning
+    long            End;          // item end
 };
 
 typedef struct Scl_Item_t_ Scl_Item_t;
