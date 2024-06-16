@@ -461,6 +461,15 @@ Abc_Ntk_t * Abc_NtkDup( Abc_Ntk_t * pNtk )
             if ( !Abc_ObjIsBox(pObj) && !Abc_ObjIsBo(pObj) )
                 Abc_ObjForEachFanin( pObj, pFanin, k )
                     Abc_ObjAddFanin( pObj->pCopy, pFanin->pCopy );
+        // move object IDs
+        if ( pNtk->vOrigNodeIds ) 
+        {
+            pNtkNew->vOrigNodeIds = Vec_IntStartFull( Abc_NtkObjNumMax(pNtkNew) );
+            Abc_NtkForEachObj( pNtk, pObj, i )
+                if ( pObj->pCopy && Vec_IntEntry(pNtk->vOrigNodeIds, pObj->Id) > 0 )
+                    Vec_IntWriteEntry( pNtkNew->vOrigNodeIds, pObj->pCopy->Id, Vec_IntEntry(pNtk->vOrigNodeIds, pObj->Id) );
+        }
+        
     }
     // duplicate the EXDC Ntk
     if ( pNtk->pExdc )
@@ -1483,6 +1492,7 @@ void Abc_NtkDelete( Abc_Ntk_t * pNtk )
     Vec_IntFreeP( &pNtk->vObjPerm );
     Vec_IntFreeP( &pNtk->vTopo );
     Vec_IntFreeP( &pNtk->vFins );
+    Vec_IntFreeP( &pNtk->vOrigNodeIds );
     ABC_FREE( pNtk );
 }
 

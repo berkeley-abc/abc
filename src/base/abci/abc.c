@@ -3220,7 +3220,8 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseReverse;
     int fFlopDep;
     int fKeepDot;
-    extern void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse, int fKeepDot );
+    int fAigIds;
+    extern void Abc_NtkShow( Abc_Ntk_t * pNtk, int fGateNames, int fSeq, int fUseReverse, int fKeepDot, int fAigIds );
     extern void Abc_NtkShowFlopDependency( Abc_Ntk_t * pNtk );
 
     // set defaults
@@ -3229,8 +3230,9 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
     fUseReverse = 1;
     fFlopDep    = 0;
     fKeepDot    = 0;
+    fAigIds     = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rsgfdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rsgfdih" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3249,6 +3251,9 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fKeepDot ^= 1;
             break;
+        case 'i':
+            fAigIds ^= 1;
+            break;
         default:
             goto usage;
         }
@@ -3263,11 +3268,11 @@ int Abc_CommandShow( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fFlopDep )
         Abc_NtkShowFlopDependency( pNtk );
     else
-        Abc_NtkShow( pNtk, fGateNames, fSeq, fUseReverse, fKeepDot );
+        Abc_NtkShow( pNtk, fGateNames, fSeq, fUseReverse, fKeepDot, fAigIds );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: show [-srgfdh]\n" );
+    Abc_Print( -2, "usage: show [-srgfdih]\n" );
     Abc_Print( -2, "       visualizes the network structure using DOT and GSVIEW\n" );
 #ifdef WIN32
     Abc_Print( -2, "       \"dot.exe\" and \"gsview32.exe\" should be set in the paths\n" );
@@ -3278,6 +3283,7 @@ usage:
     Abc_Print( -2, "\t-g    : toggles printing gate names for mapped network [default = %s].\n", fGateNames? "yes": "no" );
     Abc_Print( -2, "\t-f    : toggles visualizing flop dependency graph [default = %s].\n", fFlopDep? "yes": "no" );
     Abc_Print( -2, "\t-d    : toggles keeping the .dot file used to produce the .ps file [default = %s].\n", fKeepDot? "yes": "no" );
+    Abc_Print( -2, "\t-i    : toggles using original AIG object IDs as node labels [default = %s].\n", fAigIds? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
