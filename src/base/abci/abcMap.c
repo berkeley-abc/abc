@@ -484,7 +484,7 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk, int fUseBuffs )
     assert( Map_ManReadBufNum(pMan) == pNtk->nBarBufs );
     // create the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
-    pNtkNew->vOrigNodeIds = Vec_IntStartFull( Abc_NtkObjNumMax(pNtk) );
+    pNtkNew->vOrigNodeIds = Vec_IntStartFull( 2 * Abc_NtkObjNumMax(pNtk) );
     // make the mapper point to the new network
     Map_ManCleanData( pMan );
     Abc_NtkForEachCi( pNtk, pNode, i )
