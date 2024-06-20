@@ -430,10 +430,10 @@ Abc_Obj_t * Abc_NtkBddCurtis( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t 
     int b, c, u, i;
     assert( nBits + 2 <= nLutSize );
     assert( nLutSize < Abc_ObjFaninNum(pNode) );
-    // start BDDs for the decompoosed blocks
+    // start BDDs for the decomposed blocks
     for ( b = 0; b < nBits; b++ )
         bBits[b] = Cudd_ReadLogicZero(ddNew), Cudd_Ref( bBits[b] );
-    // add each bound set minterm to one of the blccks
+    // add each bound set minterm to one of the blocks
     Vec_PtrForEachEntry( DdNode *, vCofs, bCof, c )
     {
         Vec_PtrForEachEntry( DdNode *, vUniq, bUniq, u )
