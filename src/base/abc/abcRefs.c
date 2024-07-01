@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "misc/vec/vecPtr.h"
+#include "misc/vec/vecStr.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -336,6 +338,103 @@ void Abc_NodeMffcConeSuppPrint( Abc_Obj_t * pNode )
     Vec_PtrFree( vCone );
     Vec_PtrFree( vSupp );
 }
+
+
+//One function to calculate the FFLC
+//FFLC = O + 2 * G - M
+int Abc_NodeMffcFFLCCal(Vec_Ptr_t * vOuts, Vec_Ptr_t * vCone, Vec_Ptr_t * vTrees)
+{
+    Abc_Obj_t * pEntry;
+    int i;
+    int nO = 0;
+    Vec_PtrForEachEntry(Abc_Obj_t * , vOuts, pEntry, i)
+    {
+        nO += Abc_ObjFanoutNum(pEntry);
+    }
+    int nG = Vec_PtrSize(vCone);
+    int nM = Vec_PtrSize(vTrees);
+    return nO + 2 * nG - nM;
+}
+
+//Another function to verify the FFLC
+//FFLC = Sum of fanout counts of PIs and DAGs
+int Abc_NodeMffcFFLCVerify(Vec_Ptr_t * vCone, Vec_Ptr_t * vSupps, Vec_Ptr_t * vDags)
+{
+    int i;
+    int j = 0;
+    Abc_Obj_t * pObj;
+    int sum_count = 0;
+    Vec_PtrForEachEntry( Abc_Obj_t * , vSupps, pObj, i)
+    {
+        while(j < Abc_ObjFanoutNum(pObj)){
+            if( Vec_PtrFind(vCone, Abc_ObjFanout(pObj, j))!= -1 )
+            {
+                sum_count++;
+            }
+            j++;
+        }
+        j = 0;
+    }
+    Vec_PtrForEachEntry(Abc_Obj_t *, vDags, pObj, i)
+    {
+        sum_count += pObj->vFanouts.nSize;
+    }
+    return sum_count;
+}
+
+void Abc_NodeMffcConeSuppCalFFLC( Abc_Obj_t * pNode )
+{
+    Vec_Ptr_t *vOuts, * vCone, * vSupp, * vTrees, * vDags;
+    Abc_Obj_t * pObj;
+    int i;
+    int nFFLC1 = 0;
+    int nFFLC2 = 0;
+    vOuts = Vec_PtrAlloc( 100 );
+    vCone = Vec_PtrAlloc( 100 );
+    vSupp = Vec_PtrAlloc( 100 );
+    vTrees = Vec_PtrAlloc( 100 );
+    vDags = Vec_PtrAlloc( 100 );
+    Abc_NodeDeref_rec( pNode);
+    Abc_NodeMffcConeSupp( pNode, vCone, vSupp );
+    Abc_NodeRef_rec( pNode );
+
+    if ( vTrees ) Vec_PtrClear( vTrees );
+    if ( vDags ) Vec_PtrClear( vDags );
+
+    Vec_PtrForEachEntry(Abc_Obj_t *, vCone, pObj, i)
+    {
+        if(pObj->vFanouts.nSize == 1 && pObj->vFanins.nSize == 2)
+        {
+            Vec_PtrPush(vTrees, pObj);
+        }
+        else if(pObj->vFanouts.nSize > 1 && pObj->vFanins.nSize > 0)
+        {
+            Vec_PtrPush(vDags, pObj);
+        }
+    }
+    //Size of Cone should be equal to the sum of the size of Trees and Dags
+    assert(Vec_PtrSize(vCone) == (Vec_PtrSize(vTrees) + Vec_PtrSize(vDags)));
+
+    //This is a MFFC not a MFFW, so only one output is considered here, this should also applies to MFFW though.
+    Vec_PtrPush(vOuts, pNode);
+    nFFLC1 = Abc_NodeMffcFFLCCal(vOuts, vCone, vTrees);
+    //Sum of fanout counts of PIs and DAGs
+    nFFLC2 = Abc_NodeMffcFFLCVerify(vCone, vSupp, vDags);
+    //Two method should have the same result
+    assert(nFFLC1 == nFFLC2);
+
+    printf( "Node = %6s : Supp = %3d  Cone = %3d FFLC = %3d (",
+        Abc_ObjName(pNode), Vec_PtrSize(vSupp), Vec_PtrSize(vCone), nFFLC1 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vCone, pObj, i )
+        printf( " %s", Abc_ObjName(pObj) );
+    printf( " )\n" );
+    Vec_PtrFree(vOuts);
+    Vec_PtrFree( vCone );
+    Vec_PtrFree( vSupp );
+    Vec_PtrFree(vTrees);
+    Vec_PtrFree(vDags);
+}
+
 
 /**Function*************************************************************
 
