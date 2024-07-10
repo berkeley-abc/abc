@@ -846,7 +846,7 @@ Mio_Library_t * Abc_SclDeriveGenlibSimple( void * pScl )
 {
     SC_Lib * p = (SC_Lib *)pScl;
     Vec_Str_t * vStr = Abc_SclProduceGenlibStrSimple( p );
-    Mio_Library_t * pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0 );  
+    Mio_Library_t * pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0, 0 );  
     Vec_StrFree( vStr );
     if ( pLib )
         printf( "Derived GENLIB library \"%s\" with %d gates.\n", p->pName, SC_LibCellNum(p) );
@@ -1029,7 +1029,7 @@ Mio_Library_t * Abc_SclDeriveGenlib( void * pScl, void * pMio, float SlewInit, f
         vStr = Abc_SclProduceGenlibStr( p, Slew, Gain, nGatesMin, &nCellCount );
     else
         vStr = Abc_SclProduceGenlibStrProfile( p, (Mio_Library_t *)pMio, Slew, Gain, nGatesMin, &nCellCount );
-    pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0 );  
+    pLib = Mio_LibraryRead( p->pFileName, Vec_StrArray(vStr), NULL, 0, 0 );  
     Vec_StrFree( vStr );
     if ( !pLib )
         printf( "Reading library has filed.\n" );

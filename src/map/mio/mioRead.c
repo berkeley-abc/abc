@@ -31,9 +31,9 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-static Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
-       Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
-static int             Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
+static Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose );
+       Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose );
+static int             Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose );
 static Mio_Gate_t *    Mio_LibraryReadGate( char ** ppToken, int fExtendedFormat );
 static Mio_Pin_t *     Mio_LibraryReadPin( char ** ppToken, int fExtendedFormat );
 static char *          chomp( char *s );
@@ -51,7 +51,7 @@ static void            Io_ReadFileRemoveComments( char * pBuffer, int * pnDots, 
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * ExcludeFile, int fVerbose )
+Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * ExcludeFile, int nFaninLimit, int fVerbose )
 {
     Mio_Library_t * pLib;
     int num;
@@ -73,20 +73,20 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
 
     pBufferCopy = Abc_UtilStrsav(pBuffer);
     if ( pBuffer == NULL )
-        pLib = Mio_LibraryReadOne( FileName, 0, tExcludeGate, fVerbose );       // try normal format first ..
+        pLib = Mio_LibraryReadOne( FileName, 0, tExcludeGate, nFaninLimit, fVerbose );       // try normal format first ..
     else
     {
-        pLib = Mio_LibraryReadBuffer( pBuffer, 0, tExcludeGate, fVerbose );       // try normal format first ..
+        pLib = Mio_LibraryReadBuffer( pBuffer, 0, tExcludeGate, nFaninLimit, fVerbose );       // try normal format first ..
         if ( pLib )
             pLib->pName = Abc_UtilStrsav( Extra_FileNameGenericAppend(FileName, ".genlib") );
     }
     if ( pLib == NULL )
     {
         if ( pBuffer == NULL )
-            pLib = Mio_LibraryReadOne( FileName, 1, tExcludeGate, fVerbose );       // try normal format first ..
+            pLib = Mio_LibraryReadOne( FileName, 1, tExcludeGate, nFaninLimit, fVerbose );       // try normal format first ..
         else
         {
-            pLib = Mio_LibraryReadBuffer( pBufferCopy, 1, tExcludeGate, fVerbose );       // try normal format first ..
+            pLib = Mio_LibraryReadBuffer( pBufferCopy, 1, tExcludeGate, nFaninLimit, fVerbose );       // try normal format first ..
             if ( pLib )
                 pLib->pName = Abc_UtilStrsav( Extra_FileNameGenericAppend(FileName, ".genlib") );
         }
@@ -152,7 +152,7 @@ char * Mio_ReadFile( char * FileName, int fAddEnd )
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose )
+Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose )
 {
     Mio_Library_t * pLib;
 
@@ -165,7 +165,7 @@ Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__
     Io_ReadFileRemoveComments( pBuffer, NULL, NULL );
 
     // parse the contents of the file
-    if ( Mio_LibraryReadInternal( pLib, pBuffer, fExtendedFormat, tExcludeGate, fVerbose ) )
+    if ( Mio_LibraryReadInternal( pLib, pBuffer, fExtendedFormat, tExcludeGate, nFaninLimit, fVerbose ) )
     {
         Mio_LibraryDelete( pLib );
         return NULL;
@@ -196,7 +196,7 @@ Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__
   SeeAlso     []
 
 ***********************************************************************/
-Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__table * tExcludeGate, int fVerbose )
+Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose )
 {
     Mio_Library_t * pLib;
     char * pBuffer;
@@ -207,7 +207,7 @@ Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__ta
     pBuffer = Mio_ReadFile( FileName, 1 );
     if ( pBuffer == NULL )
         return NULL;
-    pLib = Mio_LibraryReadBuffer( pBuffer, fExtendedFormat, tExcludeGate, fVerbose );
+    pLib = Mio_LibraryReadBuffer( pBuffer, fExtendedFormat, tExcludeGate, nFaninLimit, fVerbose );
     ABC_FREE( pBuffer );
     if ( pLib )
         pLib->pName = Abc_UtilStrsav( FileName );
@@ -225,7 +225,7 @@ Mio_Library_t * Mio_LibraryReadOne( char * FileName, int fExtendedFormat, st__ta
   SeeAlso     []
 
 ***********************************************************************/
-int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose )
+int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose )
 {
     Mio_Gate_t * pGate, ** ppGate;
     char * pToken;
@@ -261,6 +261,19 @@ int Mio_LibraryReadInternal( Mio_Library_t * pLib, char * pBuffer, int fExtended
         pGate = Mio_LibraryReadGate( &pToken, fExtendedFormat );
         if ( pGate == NULL )
             return 1;
+
+        // consider the fanin limit
+        if ( nFaninLimit )
+        {
+            Mio_Pin_t * pPin; int nIns = 0;            
+            for ( pPin = Mio_GateReadPins(pGate); pPin; pPin = Mio_PinReadNext(pPin) )
+                nIns++;
+            if ( nIns > nFaninLimit )
+            {
+                Mio_GateDelete( pGate );
+                continue;
+            }
+        }
 
         // skip the gate if its formula has problems
         if ( !Mio_ParseCheckFormula(pGate, pGate->pForm) )
