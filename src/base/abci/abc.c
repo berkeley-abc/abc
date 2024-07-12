@@ -609,6 +609,7 @@ static int Abc_CommandAbc9StrEco             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GenCex             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Odc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenRel             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GenMux             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Window             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1401,6 +1402,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&gencex",       Abc_CommandAbc9GenCex,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&odc",          Abc_CommandAbc9Odc,                    0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&genrel",       Abc_CommandAbc9GenRel,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&genmux",       Abc_CommandAbc9GenMux,                 0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&window",       Abc_CommandAbc9Window,                 0 );    
     
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
@@ -53214,6 +53216,119 @@ usage:
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t<nodes> : the list of nodes for inputs and outputs\n");
     Abc_Print( -2, "\t<file>  : the output file name (extended PLA format)\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GenMux( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManGenMux( int nIns, char * pNums );
+    Gia_Man_t * pTemp = NULL;
+    int c, nIns = 0, fVerbose = 0;
+    char * pNums = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIns = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIns < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind && nIns > 0 ) 
+    {
+        if ( nIns == 2 )
+           pNums = "11";
+        else if ( nIns == 3 )
+           pNums = "111";
+        else if ( nIns == 4 )
+           pNums = "112";
+        else if ( nIns == 5 )
+           pNums = "113";
+        else if ( nIns == 6 )
+           pNums = "1122";
+        else if ( nIns == 7 )
+           pNums = "1123";
+        else if ( nIns == 8 )
+           pNums = "1124";
+        else if ( nIns == 9 )
+           pNums = "1134";
+        else if ( nIns == 10 )
+           pNums = "1135";
+        else if ( nIns == 11 )
+           pNums = "1145";
+        else if ( nIns == 12 )
+           pNums = "1146";
+        else if ( nIns == 13 )
+           pNums = "1147";
+        else if ( nIns == 14 )
+           pNums = "1148";
+        else if ( nIns == 15 )
+           pNums = "1158";
+        else if ( nIns == 16 )
+           pNums = "1159";
+        else
+        {
+            Abc_Print( -1, "Abc_CommandAbc9GenMux(): The number of controls should not be in the range: 2 <= n <= 16.\n" );
+            return 0;            
+        }
+    }
+    else if ( argc == globalUtilOptind+1 ) 
+    {
+        int nIns2 = 0;
+        pNums = argv[globalUtilOptind];
+        for ( c = 0; pNums[c]; c++ )
+            nIns2 += (int)(pNums[c] - '0');
+        if ( nIns > 0 && nIns2 > 0 && nIns != nIns2 ) 
+        {
+            Abc_Print( -1, "Abc_CommandAbc9GenMux(): The number of inputs does not match.\n" );
+            return 0;
+        }
+        nIns = nIns2;
+    }
+    else
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GenMux(): The number of controls or the control input groups should be given on the command line.\n" );
+        return 0;
+    }
+    pTemp = Gia_ManGenMux( nIns, pNums );
+    Abc_FrameUpdateGia( pAbc, pTemp );    
+    Abc_Print( 1, "Generated a %d:1 MUX with the following groups: %s\n", 1<<nIns, pNums );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &genmux [-K <num>] [-vh] <string>\n" );
+    Abc_Print( -2, "\t         generates the multiplexer\n" );
+    Abc_Print( -2, "\t-K num : the number of control inputs [default = undefined]\n" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\tstring : the sizes of control input groups\n");
     return 1;
 }
 
