@@ -53272,7 +53272,7 @@ int Abc_CommandAbc9GenMux( Abc_Frame_t * pAbc, int argc, char ** argv )
         else if ( nIns == 5 )
            pNums = "113";
         else if ( nIns == 6 )
-           pNums = "1122";
+           pNums = "123";
         else if ( nIns == 7 )
            pNums = "1123";
         else if ( nIns == 8 )
@@ -53282,17 +53282,17 @@ int Abc_CommandAbc9GenMux( Abc_Frame_t * pAbc, int argc, char ** argv )
         else if ( nIns == 10 )
            pNums = "1135";
         else if ( nIns == 11 )
-           pNums = "1145";
+           pNums = "1235";
         else if ( nIns == 12 )
-           pNums = "1146";
+           pNums = "1245";
         else if ( nIns == 13 )
-           pNums = "1147";
+           pNums = "1246";
         else if ( nIns == 14 )
-           pNums = "1148";
+           pNums = "1247";
         else if ( nIns == 15 )
-           pNums = "1158";
+           pNums = "1248";
         else if ( nIns == 16 )
-           pNums = "1159";
+           pNums = "1348";
         else
         {
             Abc_Print( -1, "Abc_CommandAbc9GenMux(): The number of controls should not be in the range: 2 <= n <= 16.\n" );
