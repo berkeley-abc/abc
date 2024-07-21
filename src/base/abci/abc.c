@@ -11571,6 +11571,11 @@ int Abc_CommandSop( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Converting to SOP is possible only for logic networks.\n" );
         return 1;
     }
+    if ( fCubeSort && Abc_NtkHasSop(pNtk) )
+    {
+        Abc_NtkSortSops(pNtk);
+        return 0;
+    }
     if ( !fCubeSort && Abc_NtkHasBdd(pNtk) && !Abc_NtkBddToSop(pNtk, -1, ABC_INFINITY, 0) )
     {
         Abc_Print( -1, "Converting to SOP has failed.\n" );
