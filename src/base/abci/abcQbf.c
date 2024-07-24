@@ -203,7 +203,7 @@ clkV = Abc_Clock() - clkV;
         int nZeros = Vec_IntCountZero( vPiValues );
         printf( "Parameters: " );
         Abc_NtkVectorPrintPars( vPiValues, nPars );
-        printf( "  Statistics: 0=%d 1=%d\n", nZeros, Vec_IntSize(vPiValues) - nZeros );
+        printf( "  Statistics: 0=%d 1=%d\n", nZeros, nPars - nZeros );
         printf( "Solved after %d iterations.  ", nIters );
     }
     else if ( nIters == nItersMax )

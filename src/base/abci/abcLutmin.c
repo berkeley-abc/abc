@@ -576,6 +576,43 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkBddDecExploreOne( DdManager * dd, DdNode * bFunc, int nLutSize )
+{
+    DdManager * ddNew = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    Cudd_AutodynEnable( ddNew,  CUDD_REORDER_SYMM_SIFT );
+    Vec_Int_t * vPerm = Vec_IntStartNatural( dd->size );
+    Vec_IntRandomizeOrder( vPerm );
+    DdNode * bFuncNew = Extra_TransferPermute( dd, ddNew, bFunc, Vec_IntArray(vPerm) ); Cudd_Ref(bFuncNew);
+    Cudd_ReduceHeap( ddNew, CUDD_REORDER_SYMM_SIFT, 1 );
+    Vec_Ptr_t * vCofs = Abc_NtkBddCofactors( ddNew, bFuncNew, nLutSize );
+    Vec_Ptr_t * vUniq = Vec_PtrDup( vCofs );
+    Vec_PtrUniqify( vUniq, (int (*)(const void *, const void *))Vec_PtrSortCompare );
+    printf( "%d  ", Vec_PtrSize(vUniq) );
+    Cudd_RecursiveDeref( dd, bFuncNew );
+    Cudd_Quit( ddNew );
+    Vec_IntFree( vPerm );
+    Vec_PtrFree( vCofs );
+    Vec_PtrFree( vUniq );
+}
+void Abc_NtkBddDecExplore( DdManager * dd, DdNode * bFunc, int nLutSize )
+{
+    Abc_Random(1);
+    for ( int i = 0; i < 32; i++ )
+        Abc_NtkBddDecExploreOne( dd, bFunc, nLutSize );
+    printf( "\n" );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Decompose the function once.]
 
   Description []
@@ -608,18 +645,20 @@ Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLu
         }
 
     }
+    //if ( dd->size == Abc_ObjFaninNum(pNode) )
+    //Abc_NtkBddDecExplore( dd, (DdNode *)pNode->pData, nLutSize );
     // cofactor w.r.t. the bound set variables
     vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, nLutSize );
     vUniq = Vec_PtrDup( vCofs );
     Vec_PtrUniqify( vUniq, (int (*)(const void *, const void *))Vec_PtrSortCompare );
-    // only perform decomposition with it is support reduring with two less vars
+    // only perform decomposition which it is support reducing with two less vars
     if( Vec_PtrSize(vUniq) > (1 << (nLutSize-2)) )
     {
         Vec_PtrFree( vCofs );
         vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, 2 );
         if ( fVerbose )
-        printf( "Decomposing %d-input node %d using cofactoring with %d cofactors.\n",
-            Abc_ObjFaninNum(pNode), Abc_ObjId(pNode), Vec_PtrSize(vCofs) );
+        printf( "Decomposing %d-input node %d using cofactoring with %d cofactors (myu = %d).\n",
+            Abc_ObjFaninNum(pNode), Abc_ObjId(pNode), Vec_PtrSize(vCofs), Vec_PtrSize(vUniq) );
         // implement the cofactors
         pCofs[0] = Abc_ObjFanin(pNode, 0)->pCopy;
         pCofs[1] = Abc_ObjFanin(pNode, 1)->pCopy;

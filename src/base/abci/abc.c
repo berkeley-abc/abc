@@ -10394,7 +10394,10 @@ usage:
     Abc_Print( -2, "\tfile1    : (optional) the file with the first network\n");
     Abc_Print( -2, "\tfile2    : (optional) the file with the second network\n");
     Abc_Print( -2, "\t           if no files are given, uses the current network and its spec\n");
-    Abc_Print( -2, "\t           if one file is given, uses the current network and the file\n");
+    Abc_Print( -2, "\t           if one file is given, uses the current network and the file\n\n");
+    Abc_Print( -2, "\t           Please note that, when used without \"-n\", this command tries to match\n" );
+    Abc_Print( -2, "\t           primary inputs by name and, to achieve this, it will order them alphabetically,\n" );
+    Abc_Print( -2, "\t           which results in incorrect QBF miters and confusing counter-examples.\n" );
     return 1;
 }
 
@@ -17195,6 +17198,36 @@ usage:
     Abc_Print( -2, "\t-d     : toggle dumping QDIMACS file instead of solving [default = %s]\n", fDumpCnf? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\t         Consider specification of the two-input XOR and its implementation in the form of a 4:1 MUX:\n\n" );
+    Abc_Print( -2, "\t         > # file s.blif\n" );
+    Abc_Print( -2, "\t         > .model xor2\n" );
+    Abc_Print( -2, "\t         > .inputs d0 d1 d2 d3 a b\n" );
+    Abc_Print( -2, "\t         > .outputs F\n" );
+    Abc_Print( -2, "\t         > .names a b F\n" );
+    Abc_Print( -2, "\t         > 01 1\n" );
+    Abc_Print( -2, "\t         > 10 1\n" );
+    Abc_Print( -2, "\t         > .end\n\n" );
+    Abc_Print( -2, "\t         > # file i.blif\n" );
+    Abc_Print( -2, "\t         > .model mux21\n" );
+    Abc_Print( -2, "\t         > .inputs d0 d1 d2 d3 a b\n" );
+    Abc_Print( -2, "\t         > .outputs F\n" );
+    Abc_Print( -2, "\t         > .names d0 d1 d2 d3 a b F\n" );
+    Abc_Print( -2, "\t         > 1---00 1\n" );
+    Abc_Print( -2, "\t         > -1--10 1\n" );
+    Abc_Print( -2, "\t         > --1-01 1\n" );
+    Abc_Print( -2, "\t         > ---111 1\n" );
+    Abc_Print( -2, "\t         > .end\n\n" );
+    Abc_Print( -2, "\t         The following run shows how to assign data inputs to the MUX (the first 4 inputs of the miter) to get the XOR:\n\n" );
+    Abc_Print( -2, "\t         > abc 51> miter -n i.blif s.blif; st -i; ps\n" );
+    Abc_Print( -2, "\t         > i_s_miter: i/o =    6/    1  lat =    0  and =     15  lev =  6\n\n" );
+    Abc_Print( -2, "\t         > abc 53> qbf -P 4\n" );
+    Abc_Print( -2, "\t         > Parameters: 0110  Statistics: 0=2 1=2\n" );
+    Abc_Print( -2, "\t         > Solved after 1 iterations.  Total runtime =     0.00 sec\n\n" );
+    Abc_Print( -2, "\t         > abc 53> &get; &qbf -P 4\n" );
+    Abc_Print( -2, "\t         > Parameters: 0110  Statistics: 0=2 1=2\n" );
+    Abc_Print( -2, "\t         > The problem is SAT after 2 iterations.  Time =     0.00 sec\n\n" );
+    Abc_Print( -2, "\t         What we synthesized is the truth table of the XOR gate!\n" );
     return 1;
 }
 
@@ -48261,7 +48294,38 @@ usage:
     Abc_Print( -2, "\t-e     : toggle dumping QDIMACS file instead of solving (original QBF) [default = %s]\n", fDumpCnf2? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-h     : print the command usage\n\n");
+    Abc_Print( -2, "\t         As an example of using this command, consider specification (the three-input AND-gate) and implementation\n"); 
+    Abc_Print( -2, "\t         (the circuit with function AND(XOR(x0, x1), x2)).  The problem is to check whether the output of the XOR (node n)\n"); 
+    Abc_Print( -2, "\t         can be implemented differently, so that these two circuits are equivalent.  Obviously this can be done!\n");
+    Abc_Print( -2, "\t         Simply replace XOR gate by AND gate.\n\n");
+    Abc_Print( -2, "\t         > # file s2.blif\n");
+    Abc_Print( -2, "\t         > .model and3\n");
+    Abc_Print( -2, "\t         > .inputs x0 x1 x2 n\n");
+    Abc_Print( -2, "\t         > .outputs F\n");
+    Abc_Print( -2, "\t         > .names m x2 F\n");
+    Abc_Print( -2, "\t         > 11 1\n");
+    Abc_Print( -2, "\t         > .names x0 x1 m\n");
+    Abc_Print( -2, "\t         > 11 1\n");
+    Abc_Print( -2, "\t         > .end\n\n");
+    Abc_Print( -2, "\t         > # file i2.blif\n");
+    Abc_Print( -2, "\t         > .model impl\n");
+    Abc_Print( -2, "\t         > .inputs x0 x1 x2 n\n");
+    Abc_Print( -2, "\t         > .outputs F\n");
+    Abc_Print( -2, "\t         > .names n x2 F\n");
+    Abc_Print( -2, "\t         > 11 1\n");
+    Abc_Print( -2, "\t         > #.names x0 x1 n\n");
+    Abc_Print( -2, "\t         > #01 1\n");
+    Abc_Print( -2, "\t         > #10 1\n");
+    Abc_Print( -2, "\t         > .end\n\n");
+    Abc_Print( -2, "\t         > abc 08> miter -n i2.blif s2.blif; ps\n");
+    Abc_Print( -2, "\t         > impl_and3_miter               : i/o =    4/    1  lat =    0  and =      6  lev =  4\n");
+    Abc_Print( -2, "\t         > abc 09> &get; &qbf -P 3\n");
+    Abc_Print( -2, "\t         > The problem is UNSAT after 1 iterations.  Time =     0.00 sec\n\n");
+    Abc_Print( -2, "\t         UNSAT here means that the ECO solution with the given rectification point *has* a solution.\n\n");
+    Abc_Print( -2, "\t         For more info, refer to Figure 1 in the following paper A. Q. Dao, N.-Z. Lee, L.-C. Chen, M. P.-H. Lin,\n");
+    Abc_Print( -2, "\t         J.-H. R. Jiang, A. Mishchenko, and R. Brayton, \"Efficient computation of ECO patch functions\", Proc. DAC'18.\n");
+    Abc_Print( -2, "\t         https://people.eecs.berkeley.edu/~alanmi/publications/2018/dac18_eco.pdf\n");
     return 1;
 }
 
