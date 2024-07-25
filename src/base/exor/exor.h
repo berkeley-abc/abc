@@ -54,7 +54,7 @@ ABC_NAMESPACE_HEADER_START
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
-// the number of bits per integer (can be 16, 32, 64 - tested for 32)
+// the number of bits per integer
 #define BPI                 32 
 #define BPIMASK             31 
 #define LOGBPI               5
@@ -70,17 +70,8 @@ ABC_NAMESPACE_HEADER_START
 // the following number of cube pairs are allocated:
 // nCubesAlloc/CUBE_PAIR_FACTOR
 
-#if BPI == 64
-#define DIFFERENT   0x5555555555555555
-#define BIT_COUNT(w)   (BitCount[(w)&0xffff] + BitCount[((w)>>16)&0xffff] + BitCount[((w)>>32)&0xffff] + BitCount[(w)>>48])
-#elif BPI == 32
 #define DIFFERENT   0x55555555
 #define BIT_COUNT(w)   (BitCount[(w)&0xffff] + BitCount[(w)>>16])
-#else
-#define DIFFERENT   0x5555
-#define BIT_COUNT(w)   (BitCount[(w)])
-#endif
-
 
 #define VarWord(element)  ((element)>>LOGBPI)
 #define VarBit(element)   ((element)&BPIMASK)
