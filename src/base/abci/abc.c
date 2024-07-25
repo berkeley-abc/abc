@@ -611,6 +611,7 @@ static int Abc_CommandAbc9Odc                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GenRel             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenMux             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Window             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9FunAbs             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1404,8 +1405,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&genrel",       Abc_CommandAbc9GenRel,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&genmux",       Abc_CommandAbc9GenMux,                 0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&window",       Abc_CommandAbc9Window,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&funabs",       Abc_CommandAbc9FunAbs,                 0 );    
     
-    Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,         0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,                   0 );
     {
 //        extern Mf_ManTruthCount();
 //        Mf_ManTruthCount();
@@ -53467,6 +53469,116 @@ usage:
     Abc_Print( -2, "\t<nodes> : the list of window inputs\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9FunAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManDupEncode( Gia_Man_t * p, Vec_Int_t * vVarNums, int fVerbose );
+    extern Vec_Int_t * Gia_ManCofClassPattern( Gia_Man_t * p, Vec_Int_t * vVarNums, int fVerbose );
+    extern void        Gia_ManCofClassRand( Gia_Man_t * p, int nVars, int nRands );
+    Gia_Man_t * pNew = NULL;
+    Vec_Int_t * vVars = NULL;
+    int c, nVars = 6, nRands = 0, fPrint = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KRpvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRands = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRands < 0 )
+                goto usage;
+            break;
+        case 'p':
+            fPrint ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9FunAbs(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( Gia_ManPoNum(pAbc->pGia) != 1 || Gia_ManRegNum(pAbc->pGia) != 0 ) {
+        Abc_Print( -1, "Abc_CommandAbc9FunAbs(): Works only for comb AIGs with one output.\n" );
+        return 0;
+    }
+    if ( nVars >= Gia_ManPiNum(pAbc->pGia) ) {
+        Abc_Print( -1, "Abc_CommandAbc9FunAbs(): The number of variables (%d) should be less the PI count (%d).\n", nVars, Gia_ManPiNum(pAbc->pGia) );
+        return 0;        
+    }
+    if ( nRands ) {
+        Gia_ManCofClassRand( pAbc->pGia, nVars, nRands );
+        return 0;
+    }
+    if ( argc == globalUtilOptind ) {
+        vVars = Vec_IntStartNatural( nVars );
+        printf( "Abstracting the first %d variables of the AIG.\n", nVars );
+    }
+    else {
+        vVars = Vec_IntAlloc( argc );
+        for ( c = globalUtilOptind; c < argc; c++ )
+            Vec_IntPush( vVars, atoi(argv[c]) );
+        printf( "Abstracting variables: " );
+        Vec_IntPrint( vVars );
+    }
+    if ( fPrint ) {
+        Vec_Int_t * vTemp = Gia_ManCofClassPattern( pAbc->pGia, vVars, 1 );
+        Vec_IntFree( vTemp );
+    } 
+    else {
+        pNew = Gia_ManDupEncode( pAbc->pGia, vVars, fVerbose );
+        Abc_FrameUpdateGia( pAbc, pNew );
+    }    
+    Vec_IntFree( vVars );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &funabs [-KR num] [-pvh] <node1> <node2> ... <nodeN>\n" );
+    Abc_Print( -2, "\t          generates an abstraction of the function\n" );
+    Abc_Print( -2, "\t-K num  : the number of primary inputs [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-R num  : the number of random K-set to try [default = %d]\n", nRands );
+    Abc_Print( -2, "\t-p      : toggles printing statistics only [default = %s]\n", fPrint ? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<nodes> : the index list of primary inputs to be abstrated\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 

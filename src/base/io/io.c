@@ -1060,7 +1060,15 @@ usage:
     fprintf( pAbc->Err, "\t-x     : toggle reading Exclusive SOP rather than SOP [default = %s]\n", fSkipPrepro? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n\n" );
+    fprintf( pAbc->Err, "\t         Please note that the PLA parser is somewhat slow for large SOPs.\n" );
+    fprintf( pAbc->Err, "\t         On the other hand, BLIF parser reads a 3M SOP and converts it into a 7.5K AIG in 1 sec:\n" );
+    fprintf( pAbc->Err, "\t         abc 16> read test.blif; ps; bdd -s; ps; muxes; strash; ps\n" );
+    fprintf( pAbc->Err, "\t         test                      : i/o =   25/    1  lat =    0  nd =     1  edge =     25  cube = 2910537  lev = 1\n" );
+    fprintf( pAbc->Err, "\t         test                      : i/o =   25/    1  lat =    0  nd =     1  edge =     25  bdd  =    2937  lev = 1\n" );
+    fprintf( pAbc->Err, "\t         test                      : i/o =   25/    1  lat =    0  and =     7514  lev = 48\n" );
+    fprintf( pAbc->Err, "\t         abc 19> time\n" );
+    fprintf( pAbc->Err, "\t         elapse: 1.05 seconds, total: 1.05 seconds\n" );
     return 1;
 }
 
