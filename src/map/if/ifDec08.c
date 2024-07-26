@@ -22,6 +22,11 @@
 #include "misc/extra/extra.h"
 #include "bool/kit/kit.h"
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 

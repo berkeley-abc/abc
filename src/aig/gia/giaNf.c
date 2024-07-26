@@ -32,6 +32,11 @@
 #include "map/scl/sclCon.h"
 #include "misc/tim/tim.h"
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
