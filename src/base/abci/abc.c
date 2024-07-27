@@ -612,6 +612,7 @@ static int Abc_CommandAbc9GenRel             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9GenMux             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Window             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FunAbs             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9DsdInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1406,6 +1407,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&genmux",       Abc_CommandAbc9GenMux,                 0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&window",       Abc_CommandAbc9Window,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&funabs",       Abc_CommandAbc9FunAbs,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&dsdinfo",      Abc_CommandAbc9DsdInfo,                0 );    
     
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,                   0 );
     {
@@ -33837,9 +33839,9 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Gia_Man_t * Gia_ManComputeCofs( Gia_Man_t * p, int nVars );
     Gia_Man_t * pTemp;
     int c, fVerbose = 0;
-    int iVar = 0, nLimFan = 0, nVars = 0;
+    int iVar = 0, Const = -1, nLimFan = 0, nVars = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "VLNvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "VCLNvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33852,6 +33854,17 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
             iVar = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( iVar < 0 )
+                goto usage;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Const = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Const < 0 || Const > 1 )
                 goto usage;
             break;
         case 'L':
@@ -33890,7 +33903,13 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Cof(): There is no AIG.\n" );
         return 1;
     }
-    if ( nVars )
+    if ( Const == 0 || Const == 1 )
+    {
+        Abc_Print( 0, "Computing cofactor of var %d with value %d.\n", iVar, Const );
+        pTemp = Gia_ManDupCofactorVar( pAbc->pGia, iVar, Const );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+    }
+    else if ( nVars )
     {
         Abc_Print( 0, "Cofactoring the last %d inputs.\n", nVars );
         pTemp = Gia_ManComputeCofs( pAbc->pGia, nVars );
@@ -33916,9 +33935,10 @@ int Abc_CommandAbc9Cof( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cof [-VLN num] [-vh]\n" );
+    Abc_Print( -2, "usage: &cof [-VCLN num] [-vh]\n" );
     Abc_Print( -2, "\t         performs cofactoring w.r.t. variable(s)\n" );
     Abc_Print( -2, "\t-V num : the zero-based ID of one variable to cofactor [default = %d]\n", iVar );
+    Abc_Print( -2, "\t-C num : cofactor one variable with a given constant (0 or 1) [default = unused]\n" );
     Abc_Print( -2, "\t-L num : cofactor vars with fanout count higher than this [default = %d]\n", nLimFan );
     Abc_Print( -2, "\t-N num : cofactoring the given number of last input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
@@ -53576,6 +53596,76 @@ usage:
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t<nodes> : the index list of primary inputs to be abstrated\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManPrintDsdMatrix( Gia_Man_t * p, int iIn );
+    extern void Gia_ManCheckDsd( Gia_Man_t * p, int fVerbose );
+    int c, iIn = 0, fDsd = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Vdvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iIn = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iIn < 0 )
+                goto usage;
+            break;
+        case 'd':
+            fDsd ^= 1;
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9DsdInfo(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( iIn < 0 || iIn >= Gia_ManPiNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9DsdInfo(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( fDsd )
+        Gia_ManCheckDsd( pAbc->pGia, fVerbose );
+    else
+        Gia_ManPrintDsdMatrix( pAbc->pGia, iIn );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &dsdinfo [-V num] [-dvh]\n" );
+    Abc_Print( -2, "\t          computes and displays information related to DSD\n" );
+    Abc_Print( -2, "\t-V num  : the zero-based index of the input variable [default = %d]\n", iIn );
+    Abc_Print( -2, "\t-d      : toggles showing DSD structure [default = %s]\n", fDsd ? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
 

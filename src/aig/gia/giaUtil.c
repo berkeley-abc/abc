@@ -3458,7 +3458,7 @@ Gia_Man_t * Gia_ManDupInsertWindows( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t
     Vec_IntFree( vMap );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
-    Gia_ManPrint( pNew );
+    //Gia_ManPrint( pNew );
     return pNew;
 }
 

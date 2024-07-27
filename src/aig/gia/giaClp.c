@@ -404,11 +404,52 @@ void Gia_ManCollapseTestTest( Gia_Man_t * p )
     Gia_ManStop( pNew );
 }
 
+void Gia_ManCheckDsd( Gia_Man_t * p, int fVerbose )
+{
+    DdManager * dd;
+    Dsd_Manager_t * pManDsd;
+    Vec_Ptr_t * vFuncs;
+    dd = Cudd_Init( Gia_ManCiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
+    vFuncs = Gia_ManCollapse( p, dd, 10000, 0 );
+    Cudd_AutodynDisable( dd );
+    if ( vFuncs == NULL ) 
+    {
+        Extra_StopManager( dd );
+        return;
+    }
+    pManDsd = Dsd_ManagerStart( dd, Gia_ManCiNum(p), 0 );
+    if ( pManDsd == NULL )
+    {
+        Gia_ManCollapseDeref( dd, vFuncs );
+        Cudd_Quit( dd );
+        return;
+    }
+    Dsd_Decompose( pManDsd, (DdNode **)vFuncs->pArray, Gia_ManCoNum(p) );
+    if ( fVerbose )
+    {
+        Vec_Ptr_t * vNamesCi = Gia_GetFakeNames( Gia_ManCiNum(p) );
+        Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p) );
+        char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
+        char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
+        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1 );
+        Vec_PtrFreeFree( vNamesCi );
+        Vec_PtrFreeFree( vNamesCo );
+    }
+    Dsd_ManagerStop( pManDsd );
+    Gia_ManCollapseDeref( dd, vFuncs );
+    Extra_StopManager( dd );
+}
+
 #else
 
 Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
 {
     return NULL;
+}
+
+void Gia_ManCheckDsd( Gia_Man_t * p, int fVerbose )
+{
 }
 
 #endif

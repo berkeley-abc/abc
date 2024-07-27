@@ -993,6 +993,97 @@ Gia_Man_t * Gia_ManDupCofAll( Gia_Man_t * p, int nFanLim, int fVerbose )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Print the matrix.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDsdMatrix( Gia_Man_t * p, int iIn )
+{
+    Gia_Man_t * pNew, * pTemp; Gia_Obj_t * pObj; int i, j;
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    assert( Gia_ManPoNum(p) == 1 );
+    assert( iIn >= 0 && iIn < Gia_ManPiNum(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManHashAlloc( pNew );    
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    for ( i = 0;   i < Gia_ManPiNum(p); i++ ) if ( i != iIn )
+    for ( j = i+1; j < Gia_ManPiNum(p); j++ ) if ( j != iIn )
+    {
+        int pRes[8], k, n;
+        int iLit0 = Gia_ManPi(p, iIn)->Value;
+        int iLit1 = Gia_ManPi(p, i)->Value;
+        int iLit2 = Gia_ManPi(p, j)->Value;        
+        for ( k = 0; k < 8; k++ )             
+        {
+            Gia_ManPi(p, iIn)->Value = k & 1;
+            Gia_ManPi(p, i)->Value   = (k >> 1) & 1;
+            Gia_ManPi(p, j)->Value   = (k >> 2) & 1;
+            Gia_ManForEachAnd( p, pObj, n )
+                pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+            pRes[k] = Gia_ObjFanin0Copy(Gia_ManPo(p, 0));
+        }
+        Gia_ManPi(p, iIn)->Value = iLit0;
+        Gia_ManPi(p, i)->Value = iLit1;
+        Gia_ManPi(p, j)->Value = iLit2;        
+        for ( k = 0; k < 4; k++ )
+            pRes[k] = Gia_ManHashXor( pNew, pRes[2*k], pRes[2*k+1] );
+        Vec_IntPush( vRes, Gia_ManHashXor(pNew, Gia_ManHashAnd(pNew, pRes[0], pRes[3]), Gia_ManHashAnd(pNew, pRes[1], pRes[2])) );
+    }
+    Vec_IntForEachEntry( vRes, j, i )
+        Gia_ManAppendCo( pNew, j );
+    Vec_IntFree( vRes );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );   
+    return pNew;
+}
+void Gia_ManPrintDsdMatrix( Gia_Man_t * p, int iIn )
+{
+    extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
+    Gia_Man_t * pNew = Gia_ManDsdMatrix( p, iIn ); int i, j, fFirst = 1, Count = 0;
+    Gia_Man_t * pSweep = Cec4_ManSimulateTest3( pNew, 0, 0 );  
+    Gia_ManStop( pNew );
+    printf( "%4c : ", ' ' );
+    for ( j = 0; j < Gia_ManPiNum(p); j++ )
+        printf( "%4d", j );
+    printf( "\n" );
+    for ( i = 0; i < Gia_ManPiNum(p); i++, printf("\n"), fFirst = 1 )
+    for ( j = 0; j < Gia_ManPiNum(p); j++ ) 
+    {
+        if ( fFirst )
+            printf( "%4d : ", i ), fFirst = 0;
+        if ( i == iIn )
+            continue;
+        if ( j == iIn )
+            printf( "%4c", ' ' );
+        else
+        {
+            if ( j > i ) {
+                if ( Gia_ObjFaninLit0p(pSweep, Gia_ManPo(pSweep, Count++)) == 0 )
+                    printf( "%4c", '.' );
+                else
+                    printf( "%4c", '+' );
+            }
+            else
+                printf( "%4c", ' ' );
+        }
+    }
+    assert( Count == Gia_ManPoNum(pSweep) );
+    Gia_ManStop( pSweep );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
