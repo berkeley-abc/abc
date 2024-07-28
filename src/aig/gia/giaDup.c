@@ -6071,7 +6071,7 @@ Vec_Int_t * Gia_ManCofClassPattern( Gia_Man_t * p, Vec_Int_t * vVarNums, int fVe
     if ( fVerbose )
     {
         int i, Class, nClasses = Vec_IntFindMax(vRes)+1;
-        printf( "Pattern %d -> %d: ", Vec_IntSize(vVarNums), nClasses );
+        printf( "%d -> %d: ", Vec_IntSize(vVarNums), nClasses );
         if ( nClasses <= 36 ) 
             Vec_IntForEachEntry( vRes, Class, i )
                 printf( "%c", (Class < 10 ? (int)'0' : (int)'A'-10) + Class );
@@ -6123,17 +6123,47 @@ Gia_Man_t * Gia_ManDupEncode( Gia_Man_t * p, Vec_Int_t * vVarNums, int fVerbose 
 
 ***********************************************************************/
 void Gia_ManCofClassRand( Gia_Man_t * p, int nVars, int nRands )
-{
+{    
     for ( int n = 0; n < nRands; n++ )
     {
+        Abc_Random(1);
+        for ( int i = 0; i < n; i++ )
+            Abc_Random(0);
         Vec_Int_t * vIns = Vec_IntStartNatural( Gia_ManPiNum(p) );
         Vec_IntRandomizeOrder( vIns );
         Vec_IntShrink( vIns, nVars );
-        Vec_IntPrint( vIns );
+        int k, Entry;
+        printf( "Vars: " );
+        Vec_IntForEachEntry( vIns, Entry, k )
+            printf( "%d ", Entry );
+        printf( "  " );
         Vec_Int_t * vTemp = Gia_ManCofClassPattern( p, vIns, 1 );
         Vec_IntFree( vTemp );        
         Vec_IntFree( vIns );        
     }
+}
+void Gia_ManCofClassEnum( Gia_Man_t * p, int nVars )
+{
+    Vec_Int_t * vIns = Vec_IntAlloc( nVars );
+    int m, k, Entry, Count, nMints = 1 << Gia_ManPiNum(p);
+    for ( m = 0; m < nMints; m++ ) {
+        for ( Count = k = 0; k < Gia_ManPiNum(p); k++ )
+            Count += (m >> k) & 1;
+        if ( Count != nVars )
+            continue;
+        Vec_IntClear( vIns );
+        for ( k = 0; k < Gia_ManPiNum(p); k++ )
+            if ( (m >> k) & 1 )
+                Vec_IntPush( vIns, k );
+        assert( Vec_IntSize(vIns) == Count );
+        printf( "Vars: " );
+        Vec_IntForEachEntry( vIns, Entry, k )
+            printf( "%d ", Entry );
+        printf( "  " );        
+        Vec_Int_t * vTemp = Gia_ManCofClassPattern( p, vIns, 1 );
+        Vec_IntFree( vTemp );        
+    }
+    Vec_IntFree( vIns );
 }
 
 ////////////////////////////////////////////////////////////////////////

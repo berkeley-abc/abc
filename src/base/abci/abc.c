@@ -5207,18 +5207,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandLutmin( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk, * pNtkRes;
+    extern Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtk, int nLutSize, int fReorder, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
     int c;
-    int nLutSize;
-    int fVerbose;
-    extern Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose );
-
-    pNtk = Abc_FrameReadNtk(pAbc);
-    // set defaults
-    nLutSize = 4;
-    fVerbose = 0;
+    int nLutSize = 4;
+    int fReorder = 1;
+    int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Kvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Krvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5230,6 +5226,9 @@ int Abc_CommandLutmin( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
+            break;
+        case 'r':
+            fReorder ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -5246,7 +5245,7 @@ int Abc_CommandLutmin( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     // modify the current network
-    pNtkRes = Abc_NtkLutmin( pNtk, nLutSize, fVerbose );
+    pNtkRes = Abc_NtkLutmin( pNtk, nLutSize, fReorder, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "The command has failed.\n" );
@@ -5257,11 +5256,12 @@ int Abc_CommandLutmin( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutmin [-K <num>] [-vh]\n" );
+    Abc_Print( -2, "usage: lutmin [-K <num>] [-rvh]\n" );
     Abc_Print( -2, "\t           perform FPGA mapping while minimizing the LUT count\n" );
     Abc_Print( -2, "\t           as described in the paper T. Sasao and A. Mishchenko:\n" );
     Abc_Print( -2, "\t           \"On the number of LUTs to implement logic functions\".\n" );
     Abc_Print( -2, "\t-K <num> : the LUT size to use for the mapping (2 <= num) [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-r       : toggle using BDD variable reordering [default = %s]\n", fReorder? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
@@ -53544,11 +53544,12 @@ int Abc_CommandAbc9FunAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Gia_Man_t * Gia_ManDupEncode( Gia_Man_t * p, Vec_Int_t * vVarNums, int fVerbose );
     extern Vec_Int_t * Gia_ManCofClassPattern( Gia_Man_t * p, Vec_Int_t * vVarNums, int fVerbose );
     extern void        Gia_ManCofClassRand( Gia_Man_t * p, int nVars, int nRands );
+    extern void        Gia_ManCofClassEnum( Gia_Man_t * p, int nVars );
     Gia_Man_t * pNew = NULL;
     Vec_Int_t * vVars = NULL;
-    int c, nVars = 6, nRands = 0, fPrint = 0, fVerbose = 0;
+    int c, nVars = 6, nRands = 0, fEnum = 0, fPrint = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KRpvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KRepvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -53573,6 +53574,9 @@ int Abc_CommandAbc9FunAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nRands < 0 )
                 goto usage;
+            break;
+        case 'e':
+            fEnum ^= 1;
             break;
         case 'p':
             fPrint ^= 1;
@@ -53603,6 +53607,10 @@ int Abc_CommandAbc9FunAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Gia_ManCofClassRand( pAbc->pGia, nVars, nRands );
         return 0;
     }
+    if ( fEnum ) {
+        Gia_ManCofClassEnum( pAbc->pGia, nVars );
+        return 0;
+    }
     if ( argc == globalUtilOptind ) {
         vVars = Vec_IntStartNatural( nVars );
         printf( "Abstracting the first %d variables of the AIG.\n", nVars );
@@ -53626,10 +53634,11 @@ int Abc_CommandAbc9FunAbs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &funabs [-KR num] [-pvh] <node1> <node2> ... <nodeN>\n" );
+    Abc_Print( -2, "usage: &funabs [-KR num] [-epvh] <node1> <node2> ... <nodeN>\n" );
     Abc_Print( -2, "\t          generates an abstraction of the function\n" );
     Abc_Print( -2, "\t-K num  : the number of primary inputs [default = %d]\n", nVars );
     Abc_Print( -2, "\t-R num  : the number of random K-set to try [default = %d]\n", nRands );
+    Abc_Print( -2, "\t-e      : toggles enumerating bound sets of the given size [default = %s]\n", fEnum ? "yes": "no" );
     Abc_Print( -2, "\t-p      : toggles printing statistics only [default = %s]\n", fPrint ? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
@@ -53652,7 +53661,7 @@ int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManPrintDsdMatrix( Gia_Man_t * p, int iIn );
     extern void Gia_ManCheckDsd( Gia_Man_t * p, int fVerbose );
-    int c, iIn = 0, fDsd = 0, fVerbose = 0;
+    int c, iIn = -1, fDsd = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "Vdvh" ) ) != EOF )
     {
@@ -53686,15 +53695,26 @@ int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9DsdInfo(): There is no AIG.\n" );
         return 0;
     }
-    if ( iIn < 0 || iIn >= Gia_ManPiNum(pAbc->pGia) )
+    if ( fDsd ) 
     {
-        Abc_Print( -1, "Abc_CommandAbc9DsdInfo(): There is no AIG.\n" );
+        if ( iIn == -1 ) {
+            Gia_ManCheckDsd( pAbc->pGia, 1 );
+            return 0;
+        }
+        for ( c = 0; c < 2; c++ ) {
+            Gia_Man_t * pTemp = Gia_ManDupCofactorVar( pAbc->pGia, iIn, c );
+            printf( "Var %2d  Cof %d:\n", iIn, c );
+            Gia_ManCheckDsd(  pTemp, 1 );
+            Gia_ManStop( pTemp );
+        }
         return 0;
     }
-    if ( fDsd )
-        Gia_ManCheckDsd( pAbc->pGia, fVerbose );
-    else
-        Gia_ManPrintDsdMatrix( pAbc->pGia, iIn );
+    if ( iIn < 0 || iIn >= Gia_ManPiNum(pAbc->pGia) )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9DsdInfo(): The input variable is not specified.\n" );
+        return 0;
+    }
+    Gia_ManPrintDsdMatrix( pAbc->pGia, iIn );
     return 0;
 
 usage:

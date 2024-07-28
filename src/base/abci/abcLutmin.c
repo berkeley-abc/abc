@@ -727,13 +727,13 @@ void Abc_NtkLutminConstruct( Abc_Ntk_t * pNtkClp, Abc_Ntk_t * pNtkDec, int nLutS
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLutminInt( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose )
+Abc_Ntk_t * Abc_NtkLutminInt( Abc_Ntk_t * pNtk, int nLutSize, int fReorder, int fVerbose )
 {
     extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
     Abc_Ntk_t * pNtkDec;
     // minimize BDDs
-//    Abc_NtkBddReorder( pNtk, fVerbose );
-    Abc_NtkBddReorder( pNtk, 0 );
+    if ( fReorder )
+        Abc_NtkBddReorder( pNtk, 0 );
     // decompose one output at a time
     pNtkDec = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // make sure the new manager has enough inputs
@@ -758,7 +758,7 @@ Abc_Ntk_t * Abc_NtkLutminInt( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
+Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fReorder, int fVerbose )
 {
     extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtkNew, * pTemp;
@@ -779,7 +779,7 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
     else
         pNtkNew = Abc_NtkStrash( pNtkInit, 0, 1, 0 );
     // collapse the network 
-    pNtkNew = Abc_NtkCollapse( pTemp = pNtkNew, 10000, 0, 1, 0, 0, 0 );
+    pNtkNew = Abc_NtkCollapse( pTemp = pNtkNew, 10000, 0, fReorder, 0, 0, 0 );
     Abc_NtkDelete( pTemp );
     if ( pNtkNew == NULL )
         return NULL;
@@ -794,7 +794,7 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
         if ( fVerbose )
             printf( "Decomposing network with %d nodes and %d max fanin count for K = %d.\n", 
                 Abc_NtkNodeNum(pNtkNew), Abc_NtkGetFaninMax(pNtkNew), nLutSize );
-        pNtkNew = Abc_NtkLutminInt( pTemp = pNtkNew, nLutSize, fVerbose );
+        pNtkNew = Abc_NtkLutminInt( pTemp = pNtkNew, nLutSize, fReorder, fVerbose );
         Abc_NtkDelete( pTemp );
     }
     // fix the problem with complemented and duplicated CO edges
@@ -812,7 +812,7 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
 
 #else
 
-Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose ) { return NULL; }
+Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fReorder, int fVerbose ) { return NULL; }
 
 #endif
 
