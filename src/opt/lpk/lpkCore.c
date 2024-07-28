@@ -46,12 +46,12 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 Abc_Ntk_t * Abc_NtkDecFromTruth( word * pTruth, int nVars, int nLutSize )
 {
-    extern Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtk, int nLutSize, int fReorder, int fVerbose );
     Vec_Int_t * vCover = Vec_IntAlloc( 1 << 16 );
     Abc_Ntk_t * pTemp = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
     char * pSopCover = Abc_SopCreateFromTruthIsop( (Mem_Flex_t *)pTemp->pManFunc, nVars, pTruth, vCover );
     Abc_Ntk_t * pNtk = Abc_NtkCreateWithNode( pSopCover );
-    Abc_Ntk_t * pNew = Abc_NtkLutmin( pNtk, nLutSize, 0 );
+    Abc_Ntk_t * pNew = Abc_NtkLutmin( pNtk, nLutSize, 1, 0 );
     Abc_NtkDelete( pTemp );
     Abc_NtkDelete( pNtk );
     Vec_IntFree( vCover );
