@@ -38042,11 +38042,12 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     Cec_ParCor_t Pars, * pPars = &Pars;
     Gia_Man_t * pTemp;
     int fPartition = 0;
+    int nFlopIncFreq = 0;
     int fUseOld = 0, c;
     Cec_ManCorSetDefaultParams( pPars );
     pPars->nProcs = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGXPSpkrecqowvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "FCGXPSZpkrecqowvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -38116,6 +38117,17 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nPartSize < 0 )
                 goto usage;
             break;            
+        case 'Z':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Z\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFlopIncFreq = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFlopIncFreq < 0 )
+                goto usage;
+            break;            
         case 'p':
             fPartition ^= 1;
             break;
@@ -38168,6 +38180,31 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "The network is combinational.\n" );
         return 0;
     }
+    if ( nFlopIncFreq )
+    {
+        extern Gia_Man_t * Gia_ManDupStopsAdd( Gia_Man_t * p, Vec_Int_t * vStops );
+        extern Gia_Man_t * Gia_ManDupStopsRem( Gia_Man_t * p, Vec_Int_t * vStops );
+        extern Vec_Int_t * Gia_ManFindStopFlops( Gia_Man_t * p, int nFlopIncFreq, int fVerbose );
+        Vec_Int_t * vStops = Gia_ManFindStopFlops( pAbc->pGia, nFlopIncFreq, pPars->fVerbose );
+        if ( vStops )
+        {
+            Gia_Man_t * pUsed = Gia_ManDupStopsAdd( pAbc->pGia, vStops );
+            if ( pPars->nPartSize > 0 )
+                pTemp = Gia_SignalCorrespondencePart( pUsed, pPars );
+            else if ( fUseOld )
+                pTemp = Cec_ManScorrCorrespondence( pUsed, pPars );
+            else if ( fPartition )
+                pTemp = Gia_ManScorrDivideTest( pUsed, pPars );
+            else
+                pTemp = Cec_ManLSCorrespondence( pUsed, pPars );
+            Gia_ManStop( pUsed );
+            pTemp = Gia_ManDupStopsRem( pUsed = pTemp, vStops );
+            Gia_ManStop( pUsed );
+            Abc_FrameUpdateGia( pAbc, pTemp );
+            Vec_IntFree( vStops );
+            return 0;
+        }
+    }
     if ( pPars->nPartSize > 0 )
         pTemp = Gia_SignalCorrespondencePart( pAbc->pGia, pPars );
     else if ( fUseOld )
@@ -38180,7 +38217,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &scorr [-FCGXPS num] [-pkrecqowvh]\n" );
+    Abc_Print( -2, "usage: &scorr [-FCGXPSZ num] [-pkrecqowvh]\n" );
     Abc_Print( -2, "\t         performs signal correpondence computation\n" );
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", pPars->nBTLimit );
     Abc_Print( -2, "\t-F num : the number of timeframes in inductive case [default = %d]\n", pPars->nFrames );
@@ -38188,6 +38225,7 @@ usage:
     Abc_Print( -2, "\t-X num : the number of iterations of little or no improvement [default = %d]\n", pPars->nLimitMax );
     Abc_Print( -2, "\t-P num : the number of concurrent processes [default = %d]\n", pPars->nProcs );
     Abc_Print( -2, "\t-S num : the number of flops in one partition [default = %d]\n", pPars->nPartSize );
+    Abc_Print( -2, "\t-Z num : the average flop include frequency [default = %d]\n", nFlopIncFreq );
     Abc_Print( -2, "\t-p     : toggle using partitioning for the input AIG [default = %s]\n", fPartition? "yes": "no" );
     Abc_Print( -2, "\t-k     : toggle using constant correspondence [default = %s]\n", pPars->fConstCorr? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using implication rings during refinement [default = %s]\n", pPars->fUseRings? "yes": "no" );
