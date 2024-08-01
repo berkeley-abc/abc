@@ -214,6 +214,8 @@ static int Abc_CommandCareSet                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandCut                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandEspresso               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandGen                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandGenTF                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandGenAT                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandGenFsm                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCover                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDouble                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1005,6 +1007,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "cut",           Abc_CommandCut,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "espresso",      Abc_CommandEspresso,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "gen",           Abc_CommandGen,              0 );
+    Cmd_CommandAdd( pAbc, "Various",      "gentf",         Abc_CommandGenTF,            0 );
+    Cmd_CommandAdd( pAbc, "Various",      "genat",         Abc_CommandGenAT,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "genfsm",        Abc_CommandGenFsm,           0 );
     Cmd_CommandAdd( pAbc, "Various",      "cover",         Abc_CommandCover,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "double",        Abc_CommandDouble,           1 );
@@ -14075,6 +14079,195 @@ usage:
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : output file name\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandGenTF( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_GenThresh( char * pFileName, int nBits, Vec_Int_t * vNums, int nLutSize, char * pArch );
+    int c, nBits = 0, nLutSize = -1, fVerbose = 0, nSum = 0;
+    char Command[1000], * pFileName = "out.blif", * pArch = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WKAvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBits = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBits < 0 )
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pArch = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind )
+        goto usage;
+    if ( nBits == 0 )
+    {
+        Abc_Print( -1, "Bit-width should be specified.\n" );
+        return 0;        
+    }
+    if ( nLutSize != -1 && nLutSize != 4 && nLutSize != 6 )
+    {
+        Abc_Print( -1, "LUT size %d is not supported.\n", nLutSize );
+        return 0;
+    }
+    if ( pArch )
+    {
+        int Counts[2] = {0};
+        for ( c = 0; c < strlen(pArch); c++ )
+            if ( pArch[c] == '(' )
+                Counts[0]++;
+            else if ( pArch[c] == ')' )
+                Counts[1]++;
+            else if ( pArch[c] >= '1' && pArch[c] <= '9' )
+                nSum += pArch[c] - '0';
+            else if ( pArch[c] >= 'A' && pArch[c] <= 'Z' )
+                nSum += pArch[c] - 'A' + 10;
+            else {
+                Abc_Print( -1, "Architecture description contains a wrong symbol (%c).\n", pArch[c] );
+                return 0;            
+            }
+        if ( Counts[0] != Counts[1] )
+        {
+            Abc_Print( -1, "Mismatching number of opening and closing parentheses (%d and %d).\n", Counts[0], Counts[1] );
+            return 0; 
+        }
+    }
+    Vec_Int_t * vNums = Vec_IntAlloc( argc );
+    for ( c = globalUtilOptind; c < argc; c++ )
+        Vec_IntPush( vNums, atoi(argv[c]) );
+    if ( Vec_IntSize(vNums) < 3 ) {
+        Vec_IntFree( vNums );
+        Abc_Print( -1, "Expecting that at least two weights and a threshold are specified on the command line.\n" );
+        return 0; 
+    }
+    if ( pArch && nSum != Vec_IntSize(vNums)-1 ) {
+        Vec_IntFree( vNums );
+        Abc_Print( -1, "The architecture assumes %d sum inputs while there are %d weights.\n", nSum, Vec_IntSize(vNums)-1 );
+        return 0; 
+    }
+    printf( "Generating threshold function with %d inputs and bit-width %d.\n", Vec_IntSize(vNums)-1, nBits );
+    Abc_GenThresh( pFileName, nBits, vNums, nLutSize, pArch );    
+    if ( nLutSize == 4 || nLutSize == 6 )
+        sprintf(Command, "read %s; strash; if -K %d -am; mfs2 -W 10 -L 10 -M 1000", pFileName, nLutSize );
+    else
+        sprintf(Command, "read %s", pFileName );
+    Cmd_CommandExecute( pAbc, Command );
+    Vec_IntFree( vNums );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: gentf [-WK num] [-A str] [-vh] <w1> <w2> ... <wn> <thresh>\n" );
+    Abc_Print( -2, "\t         generates threshold function\n" );
+    Abc_Print( -2, "\t-W num : the bit-width [default = none]\n" );
+    Abc_Print( -2, "\t-K num : the LUT size [default = none]\n" );
+    Abc_Print( -2, "\t-A str : the circuit architecture [default = none]\n");
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<nums> : weights and threshold\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandGenAT( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_GenAT( char * pFileName, Vec_Int_t * vNums );
+    extern void Abc_GenATDual( char * pFileName, Vec_Int_t * vNums );
+    int c, fDual = 0, fVerbose = 0;
+    char Command[1000], * pFileName = "out.blif";
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "dvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'd':
+            fDual ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind )
+        goto usage;
+    Vec_Int_t * vNums = Vec_IntAlloc( argc );
+    for ( c = globalUtilOptind; c < argc; c++ )
+        Vec_IntPush( vNums, atoi(argv[c]) );
+    if ( fDual )
+        Abc_GenATDual( pFileName, vNums );
+    else
+        Abc_GenAT( pFileName, vNums );
+    sprintf(Command, "read %s", pFileName );
+    Cmd_CommandExecute( pAbc, Command );
+    Vec_IntFree( vNums );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: genat [-dvh] <n1> <n2> ... <nn>\n" );
+    Abc_Print( -2, "\t         generates the adder tree\n" );
+    Abc_Print( -2, "\t-d     : toggle building dual tree [default = %s]\n", fDual? "yes": "no" );
+    Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t<nums> : input counts by rank\n");
     return 1;
 }
 

@@ -891,7 +891,7 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
 {
     Vec_Int_t * vLevel, * vProd;
     int i, NodeS, NodeC, LevelS, LevelC, Node1, Node2, Node3, Level1, Level2, Level3;
-    int nSize = Vec_WecSize(vProds);
+    int nSize = Vec_WecSize(vProds), nFAs = Vec_WecSize(vProds), nHAs = 0;
     assert( nSize == Vec_WecSize(vLevels) );
     for ( i = 0; i < nSize; i++ )
     {
@@ -911,6 +911,12 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
             Level2 = Vec_IntPop( vLevel );
             Level3 = Vec_IntPop( vLevel );
 
+            int nInputs = (Node1 > 1) + (Node2 > 1) + (Node3 > 1);
+            if ( nInputs == 3 )
+                nFAs++;
+            else if ( nInputs == 2 )
+                nHAs++;            
+
             Wlc_BlastFullAdder( pNew, Node1, Node2, Node3, &NodeC, &NodeS );
             LevelS = Abc_MaxInt( Abc_MaxInt(Level1, Level2), Level3 ) + 2;
             LevelC = LevelS - 1;
@@ -929,7 +935,7 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
     {
         vProd  = Vec_WecEntry( vProds, i );
         while ( Vec_IntSize(vProd) < 2 )
-            Vec_IntPush( vProd, 0 );
+            Vec_IntPush( vProd, 0 ), nFAs--, nHAs++;
         assert( Vec_IntSize(vProd) == 2 );
     }
 //    Vec_WecPrint( vProds, 0 );
@@ -950,6 +956,7 @@ void Wlc_BlastReduceMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds, Vec_Wec_t * vL
         Wlc_BlastAdderCLA( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes), fSigned, 0 );
     else
         Wlc_BlastAdder( pNew, Vec_IntArray(vRes), Vec_IntArray(vLevel), Vec_IntSize(vRes), 0 );
+    //printf( "Created %d-bit %d-input AT with %d FAs and %d HAs.\n", Vec_WecSize(vProds), Vec_WecSizeSize(vProds), nFAs, nHAs );     
 }
 
 int Wlc_BlastAddLevel( Gia_Man_t * pNew, int Start )
