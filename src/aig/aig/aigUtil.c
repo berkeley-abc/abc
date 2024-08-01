@@ -1169,8 +1169,8 @@ void Aig_ManRandomTest1()
 ***********************************************************************/
 unsigned Aig_ManRandom( int fReset )
 {
-    static unsigned int m_z = NUMBER1;
-    static unsigned int m_w = NUMBER2;
+    static __thread unsigned int m_z = NUMBER1;
+    static __thread unsigned int m_w = NUMBER2;
     if ( fReset )
     {
         m_z = NUMBER1;
