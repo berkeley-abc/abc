@@ -14231,6 +14231,7 @@ int Abc_CommandGenAT( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_GenATDual( char * pFileName, Vec_Int_t * vNums );
     int c, fDual = 0, fVerbose = 0;
     char Command[1000], * pFileName = "out.blif";
+    Vec_Int_t * vNums = NULL;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "dvh" ) ) != EOF )
     {
@@ -14250,7 +14251,7 @@ int Abc_CommandGenAT( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind )
         goto usage;
-    Vec_Int_t * vNums = Vec_IntAlloc( argc );
+    vNums = Vec_IntAlloc( argc );
     for ( c = globalUtilOptind; c < argc; c++ )
         Vec_IntPush( vNums, atoi(argv[c]) );
     if ( fDual )
