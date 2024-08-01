@@ -1182,7 +1182,7 @@ Abc_Obj_t * Abc_ConvertAigToAig( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObjOld )
 
 /**Function*************************************************************
 
-  Synopsis    [Unmaps the network.]
+  Synopsis    [Unmaps the network with user provided Mio library.]
 
   Description []
                
@@ -1191,16 +1191,15 @@ Abc_Obj_t * Abc_ConvertAigToAig( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObjOld )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
+int Abc_NtkMapToSopUsingLibrary( Abc_Ntk_t * pNtk, void* library)
 {
-    extern void * Abc_FrameReadLibGen();                    
     Abc_Obj_t * pNode;
     char * pSop;
     int i;
 
     assert( Abc_NtkHasMapping(pNtk) );
     // update the functionality manager
-    assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
+    assert( pNtk->pManFunc == (void*) library );
     pNtk->pManFunc = Mem_FlexStart();
     // update the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -1213,6 +1212,23 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
     }
     pNtk->ntkFunc  = ABC_FUNC_SOP;
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Unmaps the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
+{
+    extern void * Abc_FrameReadLibGen();                    
+    return Abc_NtkMapToSopUsingLibrary(pNtk, Abc_FrameReadLibGen());
 }
 
 /**Function*************************************************************
