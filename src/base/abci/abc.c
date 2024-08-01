@@ -14099,6 +14099,7 @@ int Abc_CommandGenTF( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_GenThresh( char * pFileName, int nBits, Vec_Int_t * vNums, int nLutSize, char * pArch );
     int c, nBits = 0, nLutSize = -1, fVerbose = 0, nSum = 0;
     char Command[1000], * pFileName = "out.blif", * pArch = NULL;
+    Vec_Int_t * vNums = NULL;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "WKAvh" ) ) != EOF )
     {
@@ -14178,17 +14179,17 @@ int Abc_CommandGenTF( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0; 
         }
     }
-    Vec_Int_t * vNums = Vec_IntAlloc( argc );
+    vNums = Vec_IntAlloc( argc );
     for ( c = globalUtilOptind; c < argc; c++ )
         Vec_IntPush( vNums, atoi(argv[c]) );
     if ( Vec_IntSize(vNums) < 3 ) {
-        Vec_IntFree( vNums );
         Abc_Print( -1, "Expecting that at least two weights and a threshold are specified on the command line.\n" );
+        Vec_IntFree( vNums );
         return 0; 
     }
     if ( pArch && nSum != Vec_IntSize(vNums)-1 ) {
-        Vec_IntFree( vNums );
         Abc_Print( -1, "The architecture assumes %d sum inputs while there are %d weights.\n", nSum, Vec_IntSize(vNums)-1 );
+        Vec_IntFree( vNums );
         return 0; 
     }
     printf( "Generating threshold function with %d inputs and bit-width %d.\n", Vec_IntSize(vNums)-1, nBits );
