@@ -48,8 +48,13 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 unsigned Gia_ManRandom( int fReset )
 {
+#ifdef _MSC_VER
+    static unsigned int m_z = NUMBER1;
+    static unsigned int m_w = NUMBER2;
+#else
     static __thread unsigned int m_z = NUMBER1;
     static __thread unsigned int m_w = NUMBER2;
+#endif    
     if ( fReset )
     {
         m_z = NUMBER1;
