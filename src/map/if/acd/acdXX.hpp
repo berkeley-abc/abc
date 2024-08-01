@@ -39,6 +39,11 @@
 #include "kitty_operators.hpp"
 #include "kitty_static_tt.hpp"
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace acd

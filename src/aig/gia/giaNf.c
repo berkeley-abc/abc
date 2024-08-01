@@ -32,6 +32,11 @@
 #include "map/scl/sclCon.h"
 #include "misc/tim/tim.h"
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -225,7 +230,7 @@ void Nf_StoCreateGateAdd( Vec_Mem_t * vTtMem, Vec_Wec_t * vTt2Match, Mio_Cell2_t
         if ( fPinQuick ) // reduce the number of matches agressively
         {
             Vec_IntForEachEntryDouble( vArray, GateId, Entry, i )
-                if ( GateId == (int)pCell->Id && Abc_TtBitCount8[Nf_Int2Cfg(Entry).Phase] == Abc_TtBitCount8[Mat.Phase] )
+                if ( GateId == (int)pCell->Id && __builtin_popcount( Nf_Int2Cfg(Entry).Phase & 0xff ) == __builtin_popcount( Mat.Phase & 0xff ) )
                     return;
         }
         else // reduce the number of matches less agressively

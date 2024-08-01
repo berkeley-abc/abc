@@ -29,17 +29,6 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-// the bit count for the first 256 integer numbers
-static int BitCount8[256] = {
-    0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    1,2,2,3,2,3,3,4,2,3,3,4,3,4,4,5,2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    2,3,3,4,3,4,4,5,3,4,4,5,4,5,5,6,3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,
-    3,4,4,5,4,5,5,6,4,5,5,6,5,6,6,7,4,5,5,6,5,6,6,7,5,6,6,7,6,7,7,8
-};
 // variable swapping code
 static word PMasks[5][3] = {
     { ABC_CONST(0x9999999999999999), ABC_CONST(0x2222222222222222), ABC_CONST(0x4444444444444444) },
@@ -208,7 +197,7 @@ static inline int If_Dec6CofCount2( word t )
     int i, Mask = 0;
     for ( i = 0; i < 16; i++ )
         Mask |= (1 << ((t >> (i<<2)) & 15));
-    return BitCount8[((unsigned char*)&Mask)[0]] + BitCount8[((unsigned char*)&Mask)[1]];
+    return __builtin_popcount( Mask & 0xffff );
 }
 // count the number of unique cofactors (up to 3)
 static inline int If_Dec7CofCount3( word t[2] )
@@ -696,7 +685,7 @@ static inline word If_Dec5CofCount2( word t, int x, int y, int * Pla2Var, word t
         for ( Mask = i = 0; i < 16; i++ )
             if ( ((i >> x) & 1) == ((m >> 0) & 1) && ((i >> y) & 1) == ((m >> 1) & 1) )
                 Mask |= (1 << ((t >> (i<<1)) & 3));
-        if ( BitCount8[Mask & 0xF] > 2 )
+        if ( __builtin_popcount( Mask & 0xF ) > 2 )
             return 0;
     }
 //    Kit_DsdPrintFromTruth( (unsigned *)&t, 5 ); printf( "\n" );
@@ -726,12 +715,12 @@ static inline word If_Dec5CofCount2( word t, int x, int y, int * Pla2Var, word t
                 if ( ((i >> x) & 1) == ((m >> 0) & 1) && ((i >> y) & 1) == ((m >> 1) & 1) )
                     Mask |= (1 << ((t >> (i<<1)) & 3));
             // find the values
-            if ( BitCount8[Mask & 0xF] == 1 )
+            if ( __builtin_popcount( Mask & 0xF ) == 1 )
             {
                 C2[m] = F[Abc_Tt6FirstBit( Mask )];
                 D2[m] = ~(word)0;
             }
-            else if ( BitCount8[Mask & 0xF] == 2 )
+            else if ( __builtin_popcount( Mask & 0xF ) == 2 )
             {
                 int Bit0 = Abc_Tt6FirstBit( Mask );
                 int Bit1 = Abc_Tt6FirstBit( Mask ^ (((word)1)<<Bit0) );
