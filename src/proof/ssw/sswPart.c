@@ -31,7 +31,13 @@
 #include <pthread.h>
 #include <unistd.h>
 #endif
+
+#ifdef __cplusplus
+#include <atomic>
+using namespace std;
+#else
 #include <stdatomic.h>
+#endif
 
 #endif
 
