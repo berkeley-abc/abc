@@ -54,38 +54,34 @@ ABC_NAMESPACE_HEADER_START
 ///                       MACRO DEFINITIONS                          ///
 ////////////////////////////////////////////////////////////////////////
 
-// the number of bits per integer (can be 16, 32, 64 - tested for 32)
-#define BPI                 32 
-#define BPIMASK             31 
-#define LOGBPI               5
+enum {
+  // the number of bits per integer
+  BPI = 32,
+  BPIMASK = 31,
+  LOGBPI = 5,
 
-// the maximum number of input variables
-#define MAXVARS           1000
+  // the maximum number of input variables
+  MAXVARS = 1000,
 
-// the number of cubes that are allocated additionally
-#define ADDITIONAL_CUBES    33
+  // the number of cubes that are allocated additionally
+  ADDITIONAL_CUBES = 33,
 
-// the factor showing how many cube pairs will be allocated
-#define CUBE_PAIR_FACTOR    20
-// the following number of cube pairs are allocated:
-// nCubesAlloc/CUBE_PAIR_FACTOR
+  // the factor showing how many cube pairs will be allocated
+  CUBE_PAIR_FACTOR = 20,
+  // the following number of cube pairs are allocated:
+  // nCubesAlloc/CUBE_PAIR_FACTOR
 
-#if BPI == 64
-#define DIFFERENT   0x5555555555555555
-#define BIT_COUNT(w)   (BitCount[(w)&0xffff] + BitCount[((w)>>16)&0xffff] + BitCount[((w)>>32)&0xffff] + BitCount[(w)>>48])
-#elif BPI == 32
-#define DIFFERENT   0x55555555
-#define BIT_COUNT(w)   (BitCount[(w)&0xffff] + BitCount[(w)>>16])
-#else
-#define DIFFERENT   0x5555
-#define BIT_COUNT(w)   (BitCount[(w)])
-#endif
+  DIFFERENT = 0x55555555,
+};
 
+extern unsigned char BitCount[];
 
-#define VarWord(element)  ((element)>>LOGBPI)
-#define VarBit(element)   ((element)&BPIMASK)
+static inline int BIT_COUNT(int w) { return BitCount[(w)&0xffff] + BitCount[(w)>>16]; }
 
-#define TICKS_TO_SECONDS(time) ((float)(time)/(float)(CLOCKS_PER_SEC))
+static inline int VarWord(int element) { return element>>LOGBPI; }
+static inline int VarBit(int element) { return element&BPIMASK; }
+
+static inline float TICKS_TO_SECONDS(abctime time) { return (float)time/(float)CLOCKS_PER_SEC; }
 
 ////////////////////////////////////////////////////////////////////////
 ///                  CUBE COVER and CUBE typedefs                    ///
