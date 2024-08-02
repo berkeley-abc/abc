@@ -638,7 +638,7 @@ void Dsd_TreeCollectNodesDfs_rec( Dsd_Node_t * pNode, Dsd_Node_t * ppNodes[], in
   SeeAlso     []
 
 ***********************************************************************/
-void Dsd_TreePrint( FILE * pFile, Dsd_Manager_t * pDsdMan, char * pInputNames[], char * pOutputNames[], int fShortNames, int Output )
+void Dsd_TreePrint( FILE * pFile, Dsd_Manager_t * pDsdMan, char * pInputNames[], char * pOutputNames[], int fShortNames, int Output, int OffSet )
 {
     Dsd_Node_t * pNode;
     int SigCounter;
@@ -650,14 +650,14 @@ void Dsd_TreePrint( FILE * pFile, Dsd_Manager_t * pDsdMan, char * pInputNames[],
         for ( i = 0; i < pDsdMan->nRoots; i++ )
         {
             pNode = Dsd_Regular( pDsdMan->pRoots[i] );
-            Dsd_TreePrint_rec( pFile, pNode, (pNode != pDsdMan->pRoots[i]), pInputNames, pOutputNames[i], 0, &SigCounter, fShortNames );
+            Dsd_TreePrint_rec( pFile, pNode, (pNode != pDsdMan->pRoots[i]), pInputNames, pOutputNames[i], OffSet, &SigCounter, fShortNames );
         }
     }
     else
     {
         assert( Output >= 0 && Output < pDsdMan->nRoots );
         pNode = Dsd_Regular( pDsdMan->pRoots[Output] );
-        Dsd_TreePrint_rec( pFile, pNode, (pNode != pDsdMan->pRoots[Output]), pInputNames, pOutputNames[Output], 0, &SigCounter, fShortNames );
+        Dsd_TreePrint_rec( pFile, pNode, (pNode != pDsdMan->pRoots[Output]), pInputNames, pOutputNames[Output], OffSet, &SigCounter, fShortNames );
     }
 }
 
@@ -686,7 +686,7 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
     if ( !fComp )
         fprintf( pFile, "%s = ", pOutputName );
     else
-        fprintf( pFile, "NOT(%s) = ", pOutputName );
+        fprintf( pFile, "~%s = ", pOutputName );
     pInputNums = ABC_ALLOC( int, pNode->nDecs );
     if ( pNode->Type == DSD_NODE_CONST1 )
     {
@@ -711,7 +711,7 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
             if ( i )
                 fprintf( pFile, "," );
             if ( fCompNew )
-                fprintf( pFile, " NOT(" );
+                fprintf( pFile, " ~" );
             else
                 fprintf( pFile, " " );
             if ( pInput->Type == DSD_NODE_BUF )
@@ -727,8 +727,8 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
                 pInputNums[i] = (*pSigCounter)++;
                 fprintf( pFile, "<%d>", pInputNums[i] );
             }
-            if ( fCompNew )
-                fprintf( pFile, ")" );
+            //if ( fCompNew )
+            //    fprintf( pFile, "" );
         }
         fprintf( pFile, " )\n" );
         // call recursively for the following blocks
@@ -751,7 +751,7 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
             if ( i )
                 fprintf( pFile, "," );
             if ( fCompNew )
-                fprintf( pFile, " NOT(" );
+                fprintf( pFile, " ~" );
             else
                 fprintf( pFile, " " );
             if ( pInput->Type == DSD_NODE_BUF )
@@ -767,8 +767,8 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
                 pInputNums[i] = (*pSigCounter)++;
                 fprintf( pFile, "<%d>", pInputNums[i] );
             }
-            if ( fCompNew )
-                fprintf( pFile, ")" );
+            //if ( fCompNew )
+            //    fprintf( pFile, "" );
         }
         fprintf( pFile, " )\n" );
         // call recursively for the following blocks
@@ -791,7 +791,7 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
             if ( i )
                 fprintf( pFile, "," );
             if ( fCompNew )
-                fprintf( pFile, " NOT(" );
+                fprintf( pFile, " ~" );
             else
                 fprintf( pFile, " " );
             if ( pInput->Type == DSD_NODE_BUF )
@@ -807,8 +807,8 @@ void Dsd_TreePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pInp
                 pInputNums[i] = (*pSigCounter)++;
                 fprintf( pFile, "<%d>", pInputNums[i] );
             }
-            if ( fCompNew )
-                fprintf( pFile, ")" );
+            //if ( fCompNew )
+            //    fprintf( pFile, "" );
         }
         fprintf( pFile, " )\n" );
         // call recursively for the following blocks
@@ -979,7 +979,7 @@ void Dsd_NodePrint_rec( FILE * pFile, Dsd_Node_t * pNode, int fComp, char * pOut
     if ( !fComp )
         fprintf( pFile, "%s = ", pOutputName );
     else
-        fprintf( pFile, "NOT(%s) = ", pOutputName );
+        fprintf( pFile, "~%s = ", pOutputName );
     pInputNums = ABC_ALLOC( int, pNode->nDecs );
     if ( pNode->Type == DSD_NODE_CONST1 )
     {

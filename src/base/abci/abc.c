@@ -3311,15 +3311,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    Abc_Obj_t * pNode;
-    int c, fCompl = 0, fGlobal = 0, fReorder = 1;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc); Abc_Obj_t * pNode;
+    int c, fCompl = 0, fGlobal = 0, fReorder = 1, fWidth = 0;
     extern void Abc_NodeShowBdd( Abc_Obj_t * pNode, int fCompl );
     extern void Abc_NtkShowBdd( Abc_Ntk_t * pNtk, int fCompl, int fReorder );
+    extern void Abc_NtkBddDecExplore( Abc_Obj_t * pNode );
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cgrh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cgrwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3332,6 +3332,9 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'r':
             fReorder ^= 1;
             break;
+        case 'w':
+            fWidth ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -3343,7 +3346,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
-    }
+    }    
 
     if ( fGlobal )
     {
@@ -3358,7 +3361,7 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Visualizing BDDs can only be done for logic BDD networks (run \"bdd\").\n" );
         return 1;
-    }
+    }    
     if ( argc > globalUtilOptind + 1 )
     {
         Abc_Print( -1, "Wrong number of auguments.\n" );
@@ -3382,11 +3385,14 @@ int Abc_CommandShowBdd( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
     }
-    Abc_NodeShowBdd( pNode, fCompl );
+    if ( fWidth )
+        Abc_NtkBddDecExplore( pNode );
+    else
+        Abc_NodeShowBdd( pNode, fCompl );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: show_bdd [-cgrh] <node>\n" );
+    Abc_Print( -2, "usage: show_bdd [-cgrwh] <node>\n" );
     Abc_Print( -2, "       uses DOT and GSVIEW to visualize the global BDDs of primary outputs\n" );
     Abc_Print( -2, "       in terms of primary inputs or the local BDD of a node in terms of its fanins\n" );
 #ifdef WIN32
@@ -3397,6 +3403,7 @@ usage:
     Abc_Print( -2, "\t-c    : toggle visualizing BDD with complemented edges [default = %s].\n", fCompl? "yes": "no" );
     Abc_Print( -2, "\t-g    : toggle visualizing the global BDDs of primary outputs [default = %s].\n", fGlobal? "yes": "no" );
     Abc_Print( -2, "\t-r    : toggles dynamic variable reordering [default = %s]\n", fReorder? "yes": "no" );
+    Abc_Print( -2, "\t-w    : toggles printing width profile of the node's BDD [default = %s]\n", fWidth? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -53855,10 +53862,10 @@ usage:
 int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManPrintDsdMatrix( Gia_Man_t * p, int iIn );
-    extern void Gia_ManCheckDsd( Gia_Man_t * p, int fVerbose );
-    int c, iIn = -1, fDsd = 0, fVerbose = 0;
+    extern void Gia_ManCheckDsd( Gia_Man_t * p, int OffSet, int fVerbose );
+    int c, iIn = -1, fDsd = 0, fAll = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Vdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Vdavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -53875,6 +53882,9 @@ int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'd':
             fDsd ^= 1;
+            break;            
+        case 'a':
+            fAll ^= 1;
             break;            
         case 'v':
             fVerbose ^= 1;
@@ -53893,13 +53903,31 @@ int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fDsd ) 
     {
         if ( iIn == -1 ) {
-            Gia_ManCheckDsd( pAbc->pGia, 1 );
+            Gia_ManCheckDsd( pAbc->pGia, 0, 1 );
+            if ( fAll ) {
+                for ( iIn = 0; iIn < Gia_ManPiNum(pAbc->pGia); iIn++ )
+                    for ( c = 0; c < 2; c++ ) {
+                        Gia_Man_t * pTemp = Gia_ManDupCofactorVar( pAbc->pGia, iIn, c );
+                        printf( "%s %2d = %d:\n", c ? "   " : "Var", iIn, c );
+                        Gia_ManCheckDsd( pTemp, 12, 1 );
+                        Gia_ManStop( pTemp );
+                    }                
+            }
             return 0;
         }
         for ( c = 0; c < 2; c++ ) {
             Gia_Man_t * pTemp = Gia_ManDupCofactorVar( pAbc->pGia, iIn, c );
             printf( "Var %2d  Cof %d:\n", iIn, c );
-            Gia_ManCheckDsd(  pTemp, 1 );
+            Gia_ManCheckDsd( pTemp, 0, 1 );
+            if ( fAll ) {
+                for ( int iIn = 0; iIn < Gia_ManPiNum(pAbc->pGia); iIn++ )
+                    for ( int c = 0; c < 2; c++ ) {
+                        Gia_Man_t * pTemp2 = Gia_ManDupCofactorVar( pTemp, iIn, c );
+                        printf( "%s %2d = %d:\n", c ? "   " : "Var", iIn, c );
+                        Gia_ManCheckDsd( pTemp2, 12, 1 );
+                        Gia_ManStop( pTemp2 );
+                    }
+            }
             Gia_ManStop( pTemp );
         }
         return 0;

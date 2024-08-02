@@ -382,7 +382,7 @@ Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
         Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p) );
         char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
         char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
-        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1 );
+        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1, 0 );
         Vec_PtrFreeFree( vNamesCi );
         Vec_PtrFreeFree( vNamesCo );
     }
@@ -404,7 +404,7 @@ void Gia_ManCollapseTestTest( Gia_Man_t * p )
     Gia_ManStop( pNew );
 }
 
-void Gia_ManCheckDsd( Gia_Man_t * p, int fVerbose )
+void Gia_ManCheckDsd( Gia_Man_t * p, int OffSet, int fVerbose )
 {
     DdManager * dd;
     Dsd_Manager_t * pManDsd;
@@ -432,7 +432,7 @@ void Gia_ManCheckDsd( Gia_Man_t * p, int fVerbose )
         Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p) );
         char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
         char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
-        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1 );
+        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1, OffSet );
         Vec_PtrFreeFree( vNamesCi );
         Vec_PtrFreeFree( vNamesCo );
     }
@@ -448,7 +448,7 @@ Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
     return NULL;
 }
 
-void Gia_ManCheckDsd( Gia_Man_t * p, int fVerbose )
+void Gia_ManCheckDsd( Gia_Man_t * p, int OffSet, int fVerbose )
 {
 }
 
