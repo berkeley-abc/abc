@@ -117,7 +117,7 @@ void * Ssw_GiaWorkerThread( void * pArg )
     Par_ScorrThData_t * pThData = (Par_ScorrThData_t *)pArg;
     while ( 1 )
     {
-        while ( !atomic_load_explicit(&pThData->fWorking, memory_order_acquire) )
+        while ( !atomic_load_explicit((volatile int *)&pThData->fWorking, memory_order_acquire) )
             nanosleep(&pause_duration, NULL);
         if ( pThData->p == NULL )
         {
