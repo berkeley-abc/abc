@@ -615,6 +615,7 @@ static int Abc_CommandAbc9GenMux             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Window             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FunAbs             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9DsdInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9FunTrace           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1412,6 +1413,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&window",       Abc_CommandAbc9Window,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&funabs",       Abc_CommandAbc9FunAbs,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdinfo",      Abc_CommandAbc9DsdInfo,                0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&funtrace",     Abc_CommandAbc9FunTrace,               0 );    
     
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,                   0 );
     {
@@ -53947,6 +53949,93 @@ usage:
     Abc_Print( -2, "\t-d      : toggles showing DSD structure [default = %s]\n", fDsd ? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Vec_Mem_t * Dau_CollectNpnFunctions( word * p, int nVars, int fVerbose );
+    extern void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose );
+    int c, nVars, nVars2, nCutNum = 8, fVerbose = 0; word * pTruth = NULL;
+    char * pStr = NULL; Vec_Mem_t * vTtMem = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutNum < 0 )
+                goto usage;
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9FunTrace(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9FunTrace(): Truth table in hex notation should be given on the command line.\n" );
+        return 0;
+    }
+    pStr = argv[globalUtilOptind];
+    if ( pStr[0] == '0' && pStr[1] == 'x' )
+        pStr += 2;
+    nVars = Abc_Base2Log(strlen(pStr)*4);
+    if ( (1 << nVars) != strlen(pStr)*4 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9FunTrace(): String \"%s\" does not look like a truth table of a %d-var function.\n", pStr, nVars );
+        return 0;
+    }
+    pTruth = ABC_CALLOC( word, Abc_Truth6WordNum(nVars+1) );
+    nVars2 = Abc_TtReadHex( pTruth, pStr );
+    if ( nVars != nVars2 )
+    {
+        ABC_FREE( pTruth );
+        Abc_Print( -1, "Abc_CommandAbc9FunTrace(): String \"%s\" does not look like a truth table of a %d-var function.\n", pStr, nVars );
+        return 0;
+    }
+    //Abc_TtPrintHexRev( stdout, pTruth, nVars ); printf( "\n" );
+    vTtMem = Dau_CollectNpnFunctions( pTruth, nVars, fVerbose );
+    Gia_ManMatchCuts( vTtMem, pAbc->pGia, nVars, nCutNum, fVerbose );
+    Vec_MemHashFree( vTtMem );
+    Vec_MemFree( vTtMem );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &funtrace [-C num] [-vh] <truth>\n" );
+    Abc_Print( -2, "\t          traces the presence of the function in the current AIG\n" );
+    Abc_Print( -2, "\t-C num  : the number of cuts to compute at each node [default = %d]\n", nCutNum );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<truth> : truth table in the hexadecimal notation\n");
     return 1;
 }
 

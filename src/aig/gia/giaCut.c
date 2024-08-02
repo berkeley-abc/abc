@@ -997,6 +997,81 @@ void Gia_ManExploreCutsTest( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int fV
     Vec_WecFree( vCutSel );
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Sto_t * Gia_ManMatchCutsInt( Gia_Man_t * pGia, int nCutSize0, int nCutNum0, int fVerbose0 )
+{
+    int nCutSize  =  nCutSize0;
+    int nCutNum   =  nCutNum0;
+    int fCutMin   =  1;
+    int fTruthMin =  1;
+    int fVerbose  =  fVerbose0;
+    Gia_Sto_t * p = Gia_StoAlloc( pGia, nCutSize, nCutNum, fCutMin, fTruthMin, fVerbose );
+    Gia_Obj_t * pObj;  int i, iObj;
+    assert( nCutSize <= GIA_MAX_CUTSIZE );
+    assert( nCutNum  <  GIA_MAX_CUTNUM  );
+    // prepare references
+    Gia_ManForEachObj( p->pGia, pObj, iObj )
+        Gia_StoRefObj( p, iObj );
+    // compute cuts
+    Gia_StoComputeCutsConst0( p, 0 );
+    Gia_ManForEachCiId( p->pGia, iObj, i )
+        Gia_StoComputeCutsCi( p, iObj );
+    Gia_ManForEachAnd( p->pGia, pObj, iObj )
+        Gia_StoComputeCutsNode( p, iObj );
+    if ( p->fVerbose )
+    {
+        printf( "Running cut computation with CutSize = %d  CutNum = %d  CutMin = %s  TruthMin = %s\n", 
+            p->nCutSize, p->nCutNum, p->fCutMin ? "yes":"no", p->fTruthMin ? "yes":"no" );
+        printf( "CutPair = %.0f  ",         p->CutCount[0] );
+        printf( "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
+        printf( "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
+        printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
+        printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
+        printf( "\n" );
+        printf( "The number of nodes with cut count over the limit (%d cuts) = %d nodes (out of %d).  ", 
+            p->nCutNum, p->nCutsOver, Gia_ManAndNum(pGia) );
+        Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
+    }
+    return p;
+}
+void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
+{
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Vec_Int_t * vLevel; int i, k, * pCut;
+    Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
+    abctime clkStart  = Abc_Clock();
+    assert( Abc_Truth6WordNum(nCutSize) == Vec_MemEntrySize(vTtMem) );
+    Vec_WecForEachLevel( p->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
+    {
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] > 1 )
+        {
+            word * pTruth = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut[pCut[0]+1]) );
+            int * pSpot = Vec_MemHashLookup( vTtMem, pTruth );
+            if ( *pSpot == -1 )
+                continue;
+            Vec_IntPush( vNodes, i );
+            break;
+        }
+    }
+    printf( "Nodes with matching cuts: " );
+    Vec_IntPrint( vNodes );
+    Vec_IntFree( vNodes );
+    Gia_StoFree( p );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Cut matching time", Abc_Clock() - clkStart );    
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

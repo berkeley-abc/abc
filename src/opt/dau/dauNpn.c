@@ -800,6 +800,65 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
     fflush(stdout);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Function enumeration.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Mem_t * Dau_CollectNpnFunctions( word * p, int nVars, int fVerbose )
+{
+    abctime clkStart = Abc_Clock();
+    Vec_Mem_t * vTtMem = Vec_MemAllocForTTSimple( nVars );
+    int nWords = Abc_Truth6WordNum(nVars);
+    word * pCopy = ABC_ALLOC( word, nWords );
+    Abc_TtCopy( pCopy, p, nWords, p[0] & 1 );
+    Vec_MemHashInsert( vTtMem, pCopy );
+    int nPerms  = Extra_Factorial( nVars );
+    int nMints  = 1 << nVars;
+    int * pPerm = Extra_PermSchedule( nVars );
+    int * pComp = Extra_GreyCodeSchedule( nVars );
+    int m, i, k, nFuncs;
+    for ( m = 0; m < nMints; m++ ) {
+        Abc_TtFlip( pCopy, nWords, pComp[m] );
+        if ( pCopy[0] & 1 ) {
+            Abc_TtNot( pCopy, nWords );
+            assert( (pCopy[0] & 1) == 0 );
+            Vec_MemHashInsert( vTtMem, pCopy );
+            Abc_TtNot( pCopy, nWords );
+        }
+        else
+            Vec_MemHashInsert( vTtMem, pCopy );
+    }
+    assert( Abc_TtEqual(pCopy, Vec_MemReadEntry(vTtMem, 0), nWords) );
+    nFuncs = Vec_MemEntryNum(vTtMem);
+    if ( fVerbose )
+        printf( "Collected %d NN functions and ", nFuncs ), fflush(stdout);
+    for ( i = 0; i < nFuncs; i++ ) {
+        Abc_TtCopy( pCopy, Vec_MemReadEntry(vTtMem, i), nWords, 0 );
+        for ( k = 0; k < nPerms; k++ ) {
+            Abc_TtSwapAdjacent( pCopy, nWords, pPerm[k] );
+            assert( (pCopy[0] & 1) == 0 );
+            Vec_MemHashInsert( vTtMem, pCopy );
+        }        
+        assert( Abc_TtEqual(pCopy, Vec_MemReadEntry(vTtMem, i), nWords) );
+    }
+    ABC_FREE( pPerm );    
+    ABC_FREE( pComp );    
+    ABC_FREE( pCopy );    
+    nFuncs = Vec_MemEntryNum(vTtMem);
+    if ( fVerbose )
+        printf( "%d NPN functions.  ", nFuncs ),
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart ), 
+        fflush(stdout);
+    return vTtMem;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
