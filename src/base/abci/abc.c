@@ -53482,23 +53482,30 @@ usage:
 int Abc_CommandAbc9GenRel( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManGenRel( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, char * pFileName, int fVerbose );
-    Vec_Int_t * vInsOuts = NULL;
+    Vec_Int_t * vInsOuts = NULL; char * pIns = NULL, * pOuts = NULL;
     int c, nIns = -1, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Ivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IOvh" ) ) != EOF )
     {
         switch ( c )
         {
         case 'I':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
                 goto usage;
             }
-            nIns = atoi(argv[globalUtilOptind]);
+            pIns = argv[globalUtilOptind];
             globalUtilOptind++;
-            if ( nIns < 0 )
+            break;
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
                 goto usage;
+            }
+            pOuts = argv[globalUtilOptind];
+            globalUtilOptind++;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -53514,41 +53521,47 @@ int Abc_CommandAbc9GenRel( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9GenRel(): There is no AIG.\n" );
         return 0;
     }
-    if ( nIns < 2 )
+    if ( argc != globalUtilOptind+1 )
     {
-        Abc_Print( -1, "Abc_CommandAbc9GenRel(): The number of inputs should be given on the command line.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9GenRel(): The output file name should be given as the last entry on the command line.\n" );
         return 0;
     }
-    if ( argc == globalUtilOptind )
+    if ( pIns == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9GenRel(): Node IDs should be given on the command line.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9GenRel(): A comma-separated list of window input node IDs should be given as \"-I list\" on the command line.\n" );
         return 0;
     }
-    if ( argc-globalUtilOptind-nIns-1 < 1 )
+    if ( pOuts == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9GenRel(): The relation should have at least one output.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9GenRel(): A comma-separated list of window output node IDs should be given as \"-O list\" on the command line.\n" );
         return 0;
     }
-    vInsOuts = Vec_IntAlloc( 100 );
-    for ( c = globalUtilOptind; c < argc-1; c++ )
-        Vec_IntPush( vInsOuts, atoi(argv[c]) );    
-    if ( fVerbose ) 
-    {
+    vInsOuts = Vec_IntAlloc( 16 );
+    Vec_IntPush( vInsOuts, atoi(pIns) );
+    for ( c = 0; pIns[c]; c++ )
+        if ( pIns[c] == ',' )
+            Vec_IntPush( vInsOuts, atoi(pIns+c+1) );
+    nIns = Vec_IntSize(vInsOuts);
+    Vec_IntPush( vInsOuts, atoi(pOuts) );
+    for ( c = 0; pOuts[c]; c++ )
+        if ( pOuts[c] == ',' )
+            Vec_IntPush( vInsOuts, atoi(pOuts+c+1) );
+    if ( fVerbose ) {
         printf( "Deriving relation for %d inputs and %d outputs: ", nIns, Vec_IntSize(vInsOuts)-nIns );
         Vec_IntPrint( vInsOuts );
     }
-    Gia_ManGenRel( pAbc->pGia, vInsOuts, nIns, argv[argc-1], fVerbose );
+    Gia_ManGenRel( pAbc->pGia, vInsOuts, nIns, argv[globalUtilOptind], fVerbose );
     Vec_IntFree( vInsOuts );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &genrel [-I num] [-vh] <node1> <node2> ... <nodeN> <filename>\n" );
+    Abc_Print( -2, "usage: &genrel [-I n1,n2,...nN] [-O m1,m2,...,mM] [-vh] <filename>\n" );
     Abc_Print( -2, "\t          generates Boolean relation for the given logic window\n" );
-    Abc_Print( -2, "\t-I num  : the number of inputs of the relation [default = undefined]\n" );
+    Abc_Print( -2, "\t-I list : comma-separated list of window inputs [default = undefined]\n" );
+    Abc_Print( -2, "\t-O list : comma-separated list of window outputs [default = undefined]\n" );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %d]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
-    Abc_Print( -2, "\t<nodes> : the list of nodes for inputs and outputs\n");
-    Abc_Print( -2, "\t<file>  : the output file name (extended PLA format)\n");
+    Abc_Print( -2, "\t<file>  : the output file name (PLA format extended to represented Boolean relations)\n");
     return 1;
 }
 
