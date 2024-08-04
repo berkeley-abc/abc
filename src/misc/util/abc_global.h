@@ -549,6 +549,9 @@ extern int *  Abc_QuickSortCost( int * pCosts, int nSize, int fDecrease );
 extern unsigned Abc_Random( int fReset );
 extern word     Abc_RandomW( int fReset );
 
+// pthreads
+extern void Util_ProcessThreads( int (*pUserFunc)(void *), void * vData, int nProcs, int TimeOut, int fVerbose );
+
 ABC_NAMESPACE_HEADER_END
 
 #endif

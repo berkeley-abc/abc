@@ -4151,6 +4151,10 @@ SOURCE=.\src\misc\util\utilNam.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilPth.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilSignal.c
 # End Source File
 # Begin Source File
