@@ -1071,6 +1071,42 @@ void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int n
     if ( fVerbose )
         Abc_PrintTime( 1, "Cut matching time", Abc_Clock() - clkStart );    
 }
+Vec_Ptr_t * Gia_ManMatchCutsArray( Vec_Ptr_t * vTtMems, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
+{
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( Vec_PtrSize(vTtMems) );
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Vec_Int_t * vLevel, * vTemp; int i, k, c, * pCut;
+    abctime clkStart  = Abc_Clock();
+    for ( i = 0; i < Vec_PtrSize(vTtMems); i++ )
+        Vec_PtrPush( vRes, Vec_WecAlloc(100) );
+    Vec_WecForEachLevel( p->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
+    {
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] > 1 )
+        {
+            Vec_Mem_t * vTtMem; int m;
+            Vec_PtrForEachEntry( Vec_Mem_t *, vTtMems, vTtMem, m )
+            {
+                word * pTruth = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut[pCut[0]+1]) );
+                int * pSpot = Vec_MemHashLookup( vTtMem, pTruth );
+                if ( *pSpot == -1 )
+                    continue;
+                vTemp = Vec_WecPushLevel( (Vec_Wec_t *)Vec_PtrEntry(vRes, m) );
+                Vec_IntPush( vTemp, i );
+                for ( c = 1; c <= pCut[0]; c++ )
+                    Vec_IntPush( vTemp, pCut[c] );
+            }
+        }
+    }
+    Gia_StoFree( p );
+    if ( fVerbose ) {
+        Vec_Wec_t * vCuts; 
+        printf( "Detected nodes by type:  " );
+        Vec_PtrForEachEntry( Vec_Wec_t *, vRes, vCuts, i )
+            printf( "Type%d = %d  ", i, Vec_WecSize(vCuts) );
+        Abc_PrintTime( 1, "Cut matching time", Abc_Clock() - clkStart );
+    }
+    return vRes;  
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
