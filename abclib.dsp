@@ -1195,6 +1195,10 @@ SOURCE=.\src\bdd\extrab\extraBdd.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bdd\extrab\extraLutCas.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bdd\extrab\extraBddAuto.c
 # End Source File
 # Begin Source File
