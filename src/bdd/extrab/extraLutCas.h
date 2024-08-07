@@ -32,7 +32,9 @@
 #include <string.h>
 #include <assert.h>
 
+#include "aig/miniaig/miniaig.h"
 #include "bdd/cudd/cuddInt.h"
+#include "bdd/dsd/dsd.h"
 
 ABC_NAMESPACE_HEADER_START
 
@@ -50,6 +52,8 @@ ABC_NAMESPACE_HEADER_START
     If the LUT cascade contains a 6-LUT followed by a 4-LUT, the record contains 1+10+8=19 words.
 */
 
+#define Mini_AigForEachNonPo( p, i )  for (i = 1; i < Mini_AigNodeNum(p); i++) if ( Mini_AigNodeIsPo(p, i) ) {} else 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -61,12 +65,128 @@ ABC_NAMESPACE_HEADER_START
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_LutCasCollapseDeref( DdManager * dd, Vec_Ptr_t * vFuncs )
+{
+    DdNode * bFunc; int i;
+    Vec_PtrForEachEntry( DdNode *, vFuncs, bFunc, i )
+        if ( bFunc )
+            Cudd_RecursiveDeref( dd, bFunc );
+    Vec_PtrFree( vFuncs );
+}
+Vec_Ptr_t * Abc_LutCasCollapse( Mini_Aig_t * p, DdManager * dd, int nBddLimit, int fVerbose )
+{
+    DdNode * bFunc0, * bFunc1, * bFunc;  int Id, nOuts = 0;
+    Vec_Ptr_t * vFuncs = Vec_PtrStart( Mini_AigNodeNum(p) );
+    Vec_PtrWriteEntry( vFuncs, 0, Cudd_ReadLogicZero(dd) ), Cudd_Ref(Cudd_ReadLogicZero(dd));
+    Mini_AigForEachPi( p, Id )
+      Vec_PtrWriteEntry( vFuncs, Id, Cudd_bddIthVar(dd,Id-1) ), Cudd_Ref(Cudd_bddIthVar(dd,Id-1));
+    Mini_AigForEachAnd( p, Id ) {
+        bFunc0 = Cudd_NotCond( (DdNode *)Vec_PtrEntry(vFuncs, Mini_AigLit2Var(Mini_AigNodeFanin0(p, Id))), Mini_AigLitIsCompl(Mini_AigNodeFanin0(p, Id)) );
+        bFunc1 = Cudd_NotCond( (DdNode *)Vec_PtrEntry(vFuncs, Mini_AigLit2Var(Mini_AigNodeFanin1(p, Id))), Mini_AigLitIsCompl(Mini_AigNodeFanin1(p, Id)) );
+        bFunc  = Cudd_bddAndLimit( dd, bFunc0, bFunc1, nBddLimit );  
+        if ( bFunc == NULL )
+        {
+            Abc_LutCasCollapseDeref( dd, vFuncs );
+            return NULL;
+        }        
+        Cudd_Ref( bFunc );
+        Vec_PtrWriteEntry( vFuncs, Id, bFunc );
+    }
+    Mini_AigForEachPo( p, Id ) {
+        bFunc0 = Cudd_NotCond( (DdNode *)Vec_PtrEntry(vFuncs, Mini_AigLit2Var(Mini_AigNodeFanin0(p, Id))), Mini_AigLitIsCompl(Mini_AigNodeFanin0(p, Id)) );
+        Vec_PtrWriteEntry( vFuncs, Id, bFunc0 ); Cudd_Ref( bFunc0 );
+    }
+    Mini_AigForEachNonPo( p, Id ) {
+      bFunc = (DdNode *)Vec_PtrEntry(vFuncs, Id);
+      Cudd_RecursiveDeref( dd, bFunc );
+      Vec_PtrWriteEntry( vFuncs, Id, NULL );
+    }
+    Mini_AigForEachPo( p, Id ) 
+        Vec_PtrWriteEntry( vFuncs, nOuts++, Vec_PtrEntry(vFuncs, Id) );
+    Vec_PtrShrink( vFuncs, nOuts );
+    return vFuncs;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_LutCasFakeNames( int nNames )
+{
+    Vec_Ptr_t * vNames;
+    char Buffer[5];
+    int i;
+
+    vNames = Vec_PtrAlloc( nNames );
+    for ( i = 0; i < nNames; i++ )
+    {
+        if ( nNames < 26 )
+        {
+            Buffer[0] = 'a' + i;
+            Buffer[1] = 0;
+        }
+        else
+        {
+            Buffer[0] = 'a' + i%26;
+            Buffer[1] = '0' + i/26;
+            Buffer[2] = 0;
+        }
+        Vec_PtrPush( vNames, Extra_UtilStrsav(Buffer) );
+    }
+    return vNames;
+}
+void Abc_LutCasPrintDsd( DdManager * dd, DdNode * bFunc, int fVerbose )
+{
+    Dsd_Manager_t * pManDsd = Dsd_ManagerStart( dd, dd->size, 0 );
+    Dsd_Decompose( pManDsd, &bFunc, 1 );
+    if ( fVerbose )
+    {
+        Vec_Ptr_t * vNamesCi = Abc_LutCasFakeNames( dd->size );
+        Vec_Ptr_t * vNamesCo = Abc_LutCasFakeNames( 1 );
+        char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
+        char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
+        Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1, 0 );
+        Vec_PtrFreeFree( vNamesCi );
+        Vec_PtrFreeFree( vNamesCo );
+    }
+    Dsd_ManagerStop( pManDsd );
+}    
+DdNode * Abc_LutCasBuildBdds( Mini_Aig_t * p, DdManager ** pdd )
+{
+    DdManager * dd = Cudd_Init( Mini_AigPiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
+    Vec_Ptr_t * vFuncs = Abc_LutCasCollapse( p, dd, 10000, 0 );
+    Cudd_AutodynDisable( dd );
+    if ( vFuncs == NULL ) {
+        Extra_StopManager( dd );
+        return NULL;
+    }
+    DdNode * bNode = (DdNode *)Vec_PtrEntry(vFuncs, 0);
+    Vec_PtrFree(vFuncs);
+    *pdd = dd;
+    return bNode;
+}
 static inline word * Abc_LutCascade( Mini_Aig_t * p, int nLutSize, int fVerbose )
 {
+    DdManager * dd = NULL;
+    DdNode * bFunc = Abc_LutCasBuildBdds( p, &dd );
+    if ( bFunc == NULL ) return NULL;
+    Abc_LutCasPrintDsd( dd, bFunc, 1 );
+    Cudd_RecursiveDeref( dd, bFunc );
+    Extra_StopManager( dd );
+
     word * pLuts = NULL;
     return pLuts;
 }
 
 ABC_NAMESPACE_HEADER_END
 
-#endif /* __EXTRA_H__ */
+#endif /* ABC__misc__extra__extra_lutcas_h */

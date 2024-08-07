@@ -441,6 +441,10 @@ void Gia_ManCheckDsd( Gia_Man_t * p, int OffSet, int fVerbose )
     Extra_StopManager( dd );
 }
 
+void Gia_ManRecurDsd( Gia_Man_t * p, int fVerbose )
+{
+}
+
 #else
 
 Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
@@ -449,6 +453,10 @@ Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
 }
 
 void Gia_ManCheckDsd( Gia_Man_t * p, int OffSet, int fVerbose )
+{
+}
+
+void Gia_ManRecurDsd( Gia_Man_t * p, int fVerbose )
 {
 }
 
