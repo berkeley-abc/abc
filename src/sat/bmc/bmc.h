@@ -227,7 +227,8 @@ extern int               Gia_ManBmcPerform( Gia_Man_t * p, Bmc_AndPar_t * pPars 
 extern Abc_Cex_t *       Bmc_CexCareExtendToObjects( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
 extern Abc_Cex_t *       Bmc_CexCareMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose );
 extern Abc_Cex_t *       Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose );
-extern void              Bmc_CexCareVerify( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, int fVerbose );
+extern int               Bmc_CexCareVerify( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, int fVerbose );
+extern int               Bmc_CexCareVerifyAnyPo( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, int fVerbose );
 extern Abc_Cex_t *       Bmc_CexCareSatBasedMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int fHighEffort, int fCheck, int fVerbose );
 extern Abc_Cex_t *       Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int fHighEffort, int fVerbose );
 /*=== bmcCexCut.c ==========================================================*/
@@ -238,6 +239,7 @@ extern Abc_Cex_t *       Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pC
 /*=== bmcCexTool.c ==========================================================*/
 extern void              Bmc_CexPrint( Abc_Cex_t * pCex, int nRealPis, int fVerbose );
 extern int               Bmc_CexVerify( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
+extern int               Bmc_CexVerifyAnyPo( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
 /*=== bmcICheck.c ==========================================================*/
 extern void              Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty, int fVerbose );
 extern Vec_Int_t *       Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fBackTopo, int fDump, int fVerbose );

@@ -376,6 +376,53 @@ int Bmc_CexVerify( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare )
 
 /**Function*************************************************************
 
+  Synopsis    [Verifies the care set of the counter-example for an arbitrary PO.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Bmc_CexVerifyAnyPo( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare )
+{
+    Gia_Obj_t * pObj;
+    int i, k;
+//    assert( pCex->nRegs > 0 );
+//    assert( pCexCare->nRegs == 0 );
+    Gia_ObjTerSimSet0( Gia_ManConst0(p) );
+    Gia_ManForEachRi( p, pObj, k )
+        Gia_ObjTerSimSet0( pObj );
+    for ( i = 0; i <= pCex->iFrame; i++ )
+    {
+        Gia_ManForEachPi( p, pObj, k )
+        {
+            if ( !Abc_InfoHasBit( pCexCare->pData, pCexCare->nRegs + i * pCexCare->nPis + k ) )
+                Gia_ObjTerSimSetX( pObj );
+            else if ( Abc_InfoHasBit( pCex->pData, pCex->nRegs + i * pCex->nPis + k ) )
+                Gia_ObjTerSimSet1( pObj );
+            else
+                Gia_ObjTerSimSet0( pObj );
+        }
+        Gia_ManForEachRo( p, pObj, k )
+            Gia_ObjTerSimRo( p, pObj );
+        Gia_ManForEachAnd( p, pObj, k )
+            Gia_ObjTerSimAnd( pObj );
+        Gia_ManForEachCo( p, pObj, k )
+            Gia_ObjTerSimCo( pObj );
+    }
+    for (i = 0; i < Gia_ManPoNum(p) - Gia_ManConstrNum(p); i++)
+    {
+        pObj = Gia_ManPo( p, i );
+        if (Gia_ObjTerSimGet1(pObj))
+            return i;
+    }
+    return -1;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Computes internal states of the CEX.]
 
   Description []
