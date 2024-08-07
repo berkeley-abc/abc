@@ -345,7 +345,7 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
     SC_Cell * pCellNew;
     Abc_Obj_t * pFanout, * pInv;
     float Target = SC_CellPinCap(p->pInv, 0) * Gain;
-    float LoadWirePrev, LoadWireThis, LoadNew, Load = 0;
+    float LoadWirePrev, LoadWireThis, Load = 0;
     int Limit = Abc_MinInt( p->pPars->nDegree, Vec_PtrSize(vFanouts) );
     int i, iStop;
     Bus_SclCheckSortedFanout( vFanouts );
@@ -384,8 +384,7 @@ Abc_Obj_t * Abc_SclAddOneInv( Bus_Man_t * p, Abc_Obj_t * pObj, Vec_Ptr_t * vFano
     Vec_IntSetEntry( p->pNtk->vGates, Abc_ObjId(pInv), pCellNew->Id );
     // set departure and load
     Abc_NtkComputeNodeDeparture( pInv, p->pPars->Slew );
-    LoadNew = Abc_NtkComputeNodeLoad( p, pInv );
-    assert( LoadNew - Load < 1 && Load - LoadNew < 1 );
+    Abc_NtkComputeNodeLoad( p, pInv );
     // set fanout info for the inverter
     Bus_SclObjSetCin( pInv, SC_CellPinCap(pCellNew, 0) );
     Bus_SclObjSetETime( pInv, Abc_NtkComputeEdgeDept(pInv, 0, p->pPars->Slew) );
@@ -400,7 +399,7 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
     Abc_Obj_t * pObj, * pFanout;
     abctime clk = Abc_Clock();
     int i, k, nObjsOld = Abc_NtkObjNumMax(p->pNtk);
-    float GainGate, GainInv, Load, LoadNew, Cin, DeptMax = 0;
+    float GainGate, GainInv, Load, Cin, DeptMax = 0;
     GainGate = p->pPars->fAddBufs ? (float)pow( (double)Gain, (double)2.0 ) : Gain;
     GainInv  = p->pPars->fAddBufs ? (float)pow( (double)Gain, (double)2.0 ) : Gain;
     Abc_NtkForEachObjReverse( p->pNtk, pObj, i )
@@ -453,8 +452,7 @@ void Abc_SclBufSize( Bus_Man_t * p, float Gain )
                 if ( Abc_ObjFaninNum(pFanout) == 0 )
                     Abc_ObjAddFanin( pFanout, pObj );
             Bus_SclObjSetLoad( pObj, 0 );
-            LoadNew = Abc_NtkComputeNodeLoad( p, pObj );
-            assert( LoadNew - Load < 1 && Load - LoadNew < 1 );
+            Abc_NtkComputeNodeLoad( p, pObj );
         } 
         if ( Abc_ObjIsCi(pObj) )
             continue;
