@@ -37,6 +37,7 @@
 using namespace std;
 #else
 #include <stdatomic.h>
+#include <stdbool.h>
 #endif
 
 #endif
