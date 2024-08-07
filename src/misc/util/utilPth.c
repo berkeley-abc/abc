@@ -103,7 +103,7 @@ void * Util_Thread( void * pArg )
             return NULL;
         }
         pThData->pUserFunc( pThData->pUserData );
-        atomic_store_explicit(&pThData->fWorking, 0, memory_order_release);
+        atomic_store_explicit(&pThData->fWorking, false, memory_order_release);
     }
     assert( 0 );
     return NULL;
@@ -133,7 +133,7 @@ void Util_ProcessThreads( int (*pUserFunc)(void *), void * vData, int nProcs, in
         ThData[i].pUserFunc = pUserFunc;
         ThData[i].iThread   = i;
         ThData[i].nTimeOut  = TimeOut;
-        atomic_store_explicit(&ThData[i].fWorking, 0, memory_order_release);
+        atomic_store_explicit(&ThData[i].fWorking, false, memory_order_release);
         status = pthread_create( WorkerThread + i, NULL, Util_Thread, (void *)(ThData + i) );  assert( status == 0 );
     }
 
@@ -150,7 +150,7 @@ void Util_ProcessThreads( int (*pUserFunc)(void *), void * vData, int nProcs, in
             if ( atomic_load_explicit(&ThData[i].fWorking, memory_order_acquire) )
                 continue;
             ThData[i].pUserData = Vec_PtrPop( vStack );
-            atomic_store_explicit(&ThData[i].fWorking, 1, memory_order_release);
+            atomic_store_explicit(&ThData[i].fWorking, true, memory_order_release);
             break;
         }
     }
@@ -168,7 +168,7 @@ void Util_ProcessThreads( int (*pUserFunc)(void *), void * vData, int nProcs, in
     for ( i = 0; i < nProcs; i++ )
     {
         ThData[i].pUserData = NULL;
-        atomic_store_explicit(&ThData[i].fWorking, 1, memory_order_release);
+        atomic_store_explicit(&ThData[i].fWorking, true, memory_order_release);
     }
 
     // Join threads
