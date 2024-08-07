@@ -114,7 +114,11 @@ Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int Ti
     sprintf( FileName, "%06x.aig", Rand );
     Gia_AigerWrite( p, FileName, 0, 0, 0 );
     sprintf( Command, "./abc -q \"&read %s; %s; &write %s\"", FileName, pScript, FileName );
+#if defined(__wasm)
+    if ( 1 )
+#else
     if ( system( (char *)Command ) )    
+#endif
     {
         fprintf( stderr, "The following command has returned non-zero exit status:\n" );
         fprintf( stderr, "\"%s\"\n", (char *)Command );

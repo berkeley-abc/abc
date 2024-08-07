@@ -82,7 +82,11 @@ Vec_Int_t *Cnf_RunSolverOnce(int Id, int Rand, int TimeOut, int fVerbose)
     FILE * pFile = fopen(FileNameIn, "rb");
     if ( pFile != NULL ) {
         fclose( pFile );
+#if defined(__wasm)
+        if ( 1 ) {
+#else
         if (system(pCommand) == -1) {
+#endif
             fprintf(stdout, "Command \"%s\" did not succeed.\n", pCommand);
             return 0;
         }
@@ -764,7 +768,11 @@ void Cnf_SplitCnfFile(char * pFileName, int nParts, int iVarBeg, int iVarEnd, in
             char Command[1000];   
             sprintf(Command, "satelite --verbosity=0 -pre temp.cnf %s", FileName);
             Cnf_DataWriteIntoFile(pCnf, "temp.cnf", 0, NULL, NULL);
+#if defined(__wasm)
+            if ( 1 ) {
+#else
             if (system(Command) == -1) {
+#endif
                 fprintf(stdout, "Command \"%s\" did not succeed. Preprocessing skipped.\n", Command);
                 Cnf_DataWriteIntoFile(pCnf, FileName, 0, NULL, NULL);
             }

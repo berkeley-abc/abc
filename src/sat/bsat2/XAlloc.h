@@ -38,7 +38,11 @@ static inline void* xrealloc(void *ptr, size_t size)
 {
     void* mem = realloc(ptr, size);
     if (mem == NULL && errno == ENOMEM){
+#ifdef __wasm
+        abort();
+#else
         throw OutOfMemoryException();
+#endif
     }else
         return mem;
 }

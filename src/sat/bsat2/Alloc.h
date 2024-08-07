@@ -99,7 +99,11 @@ void RegionAllocator<T>::capacity(uint32_t min_cap)
         cap += delta;
 
         if (cap <= prev_cap)
+#ifdef __wasm
+            abort();
+#else
             throw OutOfMemoryException();
+#endif
     }
     // printf(" .. (%p) cap = %u\n", this, cap);
 
@@ -121,7 +125,11 @@ RegionAllocator<T>::alloc(int size)
     
     // Handle overflow:
     if (sz < prev_sz)
+#ifdef __wasm
+        abort();
+#else
         throw OutOfMemoryException();
+#endif
 
     return prev_sz;
 }

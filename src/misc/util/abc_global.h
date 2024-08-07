@@ -334,7 +334,7 @@ static inline abctime Abc_Clock()
 #else
   #define APPLE_MACH 0
 #endif
-#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__)
+#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__) && !defined(__wasm)
     struct timespec ts;
     if ( clock_gettime(CLOCK_MONOTONIC, &ts) < 0 ) 
         return (abctime)-1;
@@ -353,7 +353,7 @@ static inline abctime Abc_ThreadClock()
 #else
   #define APPLE_MACH 0
 #endif
-#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__)
+#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__) && !defined(__wasm)
     struct timespec ts;
     if ( clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) < 0 ) 
         return (abctime)-1;

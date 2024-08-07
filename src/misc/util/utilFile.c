@@ -119,6 +119,17 @@ int tmpFile(const char* prefix, const char* suffix, char** out_name)
     }
     assert(0);  // -- could not open temporary file
     return 0;
+#elif defined(__wasm)
+    static int seq = 0; // no risk of collision since we're in a sandbox
+    int fd;
+    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 9);
+    sprintf(*out_name, "%s%08d%s", prefix, seq++, suffix);
+    fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
+    if (fd == -1){
+        free(*out_name);
+        *out_name = NULL;
+    }
+    return fd;
 #else
     int fd;
     *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 7);

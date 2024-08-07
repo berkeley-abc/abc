@@ -1642,7 +1642,11 @@ Vec_Int_t * Exa4_ManSolve( char * pFileNameIn, char * pFileNameOut, int TimeOut,
         sprintf( pCommand, "%s --time=%d %s %s > %s", pKissat, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
     else
         sprintf( pCommand, "%s %s %s > %s", pKissat, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+#ifdef __wasm
+    if ( 1 )
+#else
     if ( system( pCommand ) == -1 )
+#endif
     {
         fprintf( stdout, "Command \"%s\" did not succeed.\n", pCommand );
         return 0;
