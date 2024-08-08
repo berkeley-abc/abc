@@ -7297,7 +7297,11 @@ int Abc_CommandRunSat( Abc_Frame_t * pAbc, int argc, char ** argv )
             sprintf( pCommand, "kissat -q --seed=%d %s", i, pFileCnf );
         else if ( fWalk )
             sprintf( pCommand, "walk -s%d %s", i, pFileCnf );
+#if defined(__wasm)
+        if (1) {
+#else
         if (system(pCommand) == -1) {
+#endif
             fprintf(stdout, "Command \"%s\" did not succeed.\n", pCommand);
             return 0;
         }

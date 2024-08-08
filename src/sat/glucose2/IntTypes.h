@@ -28,20 +28,18 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #   include <sys/int_fmtio.h>
 #   include <sys/int_limits.h>
 
+#elif _WIN32
+
+#   include "pstdint.h"
+
 #else
 
-#define __STDC_LIMIT_MACROS
-#   include "pstdint.h"
-//#   include <inttypes.h>
+#   define __STDC_LIMIT_MACROS
+#   include <limits.h>
+#   include <inttypes.h>
 
 #endif
 
-#include <limits.h>
-
-#ifndef PRIu64
-#define PRIu64 "lu"
-#define PRIi64 "ld"
-#endif
 //=================================================================================================
 
 #include <misc/util/abc_namespaces.h>

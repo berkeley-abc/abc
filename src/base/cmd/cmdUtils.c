@@ -53,6 +53,9 @@ int cmdCheckShellEscape( Abc_Frame_t * pAbc, int argc, char ** argv)
     int RetValue;
     if (argv[0][0] == '!') 
     {
+#if defined(__wasm)
+        RetValue = -1;
+#else
         const int size = 4096;
         int i;
         char * buffer = ABC_ALLOC(char, 10000);
@@ -71,7 +74,7 @@ int cmdCheckShellEscape( Abc_Frame_t * pAbc, int argc, char ** argv)
         // the parts, we lose information. So a command like
         // `!ls "file name"` will be sent to the system as
         // `ls file name` which is a BUG
-
+#endif
         return 1;
     }
     else

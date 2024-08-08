@@ -121,6 +121,9 @@ char * Wln_GetYosysName()
 }
 int Wln_ConvertToRtl( char * pCommand, char * pFileTemp )
 {
+#if defined(__wasm)
+    return 0;
+#else
     FILE * pFile;
     if ( system( pCommand ) == -1 )
     {
@@ -134,6 +137,7 @@ int Wln_ConvertToRtl( char * pCommand, char * pFileTemp )
     }
     fclose( pFile );
     return 1;
+#endif
 }
 Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fCollapse, int fVerbose )
 {

@@ -25,6 +25,23 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+// Handle legacy macros
+#if !defined(S_IREAD)
+#if defined(S_IRUSR)
+#define S_IREAD S_IRUSR
+#else
+#error S_IREAD is undefined
+#endif
+#endif
+
+#if !defined(S_IWRITE)
+#if defined(S_IWUSR)
+#define S_IWRITE S_IWUSR
+#else
+#error S_IWRITE is undefined
+#endif
+#endif
+
 #if defined(_MSC_VER) || defined(__MINGW32__)
 #include <windows.h>
 #include <process.h>
@@ -102,6 +119,17 @@ int tmpFile(const char* prefix, const char* suffix, char** out_name)
     }
     assert(0);  // -- could not open temporary file
     return 0;
+#elif defined(__wasm)
+    static int seq = 0; // no risk of collision since we're in a sandbox
+    int fd;
+    *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 9);
+    sprintf(*out_name, "%s%08d%s", prefix, seq++, suffix);
+    fd = open(*out_name, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
+    if (fd == -1){
+        free(*out_name);
+        *out_name = NULL;
+    }
+    return fd;
 #else
     int fd;
     *out_name = (char*)malloc(strlen(prefix) + strlen(suffix) + 7);

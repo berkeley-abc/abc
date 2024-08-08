@@ -2412,7 +2412,11 @@ void Gia_ManGnuplotShow( char * pPlotFileName )
     {
         char Command[1000];
         sprintf( Command, "%s %s ", pProgNameGnuplot, pPlotFileName );
+#if defined(__wasm)
+        if ( 1 )
+#else
         if ( system( Command ) == -1 )
+#endif
         {
             fprintf( stdout, "Cannot execute \"%s\".\n", Command );
             return;

@@ -43,7 +43,11 @@ ABC_NAMESPACE_IMPL_START
 
 int Util_SignalSystem(const char* cmd)
 {
+#if defined(__wasm)
+    return -1;
+#else
     return system(cmd);
+#endif
 }
 
 int tmpFile(const char* prefix, const char* suffix, char** out_name);
