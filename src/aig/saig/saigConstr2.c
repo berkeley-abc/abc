@@ -939,7 +939,7 @@ Aig_Man_t * Saig_ManDupUnfoldConstrsFunc( Aig_Man_t * pAig, int nFrames, int nCo
   SeeAlso     []
 
 ***********************************************************************/
-Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbose )
+Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbose, int fSeqCleanup )
 {
     Aig_Man_t * pAigNew;
     Aig_Obj_t * pMiter, * pFlopOut, * pFlopIn, * pObj;
@@ -1000,7 +1000,8 @@ Aig_Man_t * Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbo
 
     // perform cleanup
     Aig_ManCleanup( pAigNew );
-    Aig_ManSeqCleanup( pAigNew );
+    if ( fSeqCleanup )
+        Aig_ManSeqCleanup( pAigNew );
     return pAigNew;
 }
 

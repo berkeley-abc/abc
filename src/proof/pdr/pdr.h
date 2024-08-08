@@ -72,6 +72,7 @@ struct Pdr_Par_t_
     int fSilent;          // totally silent execution
     int fSolveAll;        // do not stop when found a SAT output
     int fStoreCex;        // enable storing counter-examples in MO mode
+    int fAnytime;         // enable anytime scheduling
     int fUseBridge;       // use bridge interface
     int fUsePropOut;      // use property output
     int nFailOuts;        // the number of failed outputs
@@ -84,6 +85,7 @@ struct Pdr_Par_t_
     abctime timeLastSolved; // the time when the last output was solved
     Vec_Int_t * vOutMap;  // in the multi-output mode, contains status for each PO (0 = sat; 1 = unsat; negative = undecided)
     char * pInvFileName;  // invariable file name
+    char * pCexFilePrefix;  // CEX output prefix
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -95,6 +97,7 @@ struct Pdr_Par_t_
 ////////////////////////////////////////////////////////////////////////
 
 /*=== pdrCore.c ==========================================================*/
+extern void               Pdr_OutputCexToDir( Pdr_Par_t * pPars, Abc_Cex_t * pCex );
 extern void               Pdr_ManSetDefaultParams( Pdr_Par_t * pPars );
 extern int                Pdr_ManSolve( Aig_Man_t * p, Pdr_Par_t * pPars );
 

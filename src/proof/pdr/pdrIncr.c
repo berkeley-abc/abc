@@ -379,6 +379,7 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
     int iFrame, RetValue = -1;
     int nOutDigits = Abc_Base10Log( Saig_ManPoNum(p->pAig) );
     abctime clkStart = Abc_Clock(), clkOne = 0;
+    p->tStart = clkStart;
     p->timeToStop = p->pPars->nTimeOut ? p->pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0;
     // assert( Vec_PtrSize(p->vSolvers) == 0 );
     // in the multi-output mode, mark trivial POs (those fed by const0) as solved 
@@ -484,7 +485,7 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                     p->pAig->pSeqModel = pCexNew;
                     return 0; // SAT
                 }
-                pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex) ? Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), iFrame*Saig_ManPoNum(p->pAig)+p->iOutCur ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
+                pCexNew = (p->pPars->fUseBridge || p->pPars->fStoreCex || p->pPars->pCexFilePrefix) ? Abc_CexMakeTriv( Aig_ManRegNum(p->pAig), Saig_ManPiNum(p->pAig), Saig_ManPoNum(p->pAig), iFrame*Saig_ManPoNum(p->pAig)+p->iOutCur ) : (Abc_Cex_t *)(ABC_PTRINT_T)1;
                 p->pPars->nFailOuts++;
                 if ( p->pPars->vOutMap ) Vec_IntWriteEntry( p->pPars->vOutMap, p->iOutCur, 0 );
                 if ( !p->pPars->fNotVerbose )
@@ -493,6 +494,8 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
                 assert( Vec_PtrEntry(p->vCexes, p->iOutCur) == NULL );
                 if ( p->pPars->fUseBridge )
                     Gia_ManToBridgeResult( stdout, 0, pCexNew, pCexNew->iPo );
+                if ( p->pPars->pCexFilePrefix )
+                    Pdr_OutputCexToDir( p->pPars, pCexNew );
                 Vec_PtrWriteEntry( p->vCexes, p->iOutCur, pCexNew );
                 if ( p->pPars->pFuncOnFail && p->pPars->pFuncOnFail(p->iOutCur, p->pPars->fStoreCex ? (Abc_Cex_t *)Vec_PtrEntry(p->vCexes, p->iOutCur) : NULL) )
                 {
@@ -676,7 +679,8 @@ int IPdr_ManSolveInt( Pdr_Man_t * p, int fCheckClauses, int fPushClauses )
         //if ( p->pPars->fUseAbs && p->vAbsFlops )
         //    printf( "Finished frame %d with %d (%d) flops.\n", iFrame, Vec_IntCountPositive(p->vAbsFlops), Vec_IntCountPositive(p->vPrio) );
         // open a new timeframe
-        p->nQueLim = p->pPars->nRestLimit;
+        p->nQueLim = iFrame + p->pPars->nRestLimit;
+        p->nQueLimStep = 1;
         assert( pCube == NULL );
         Pdr_ManSetPropertyOutput( p, iFrame );
         Pdr_ManCreateSolver( p, ++iFrame );

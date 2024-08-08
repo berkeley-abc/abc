@@ -296,8 +296,9 @@ Pdr_Man_t * Pdr_ManStart( Aig_Man_t * pAig, Pdr_Par_t * pPars, Vec_Int_t * vPrio
             p->pTime4Outs[i] = pPars->nTimeOutOne * CLOCKS_PER_SEC / 1000 + 1;
     }
     if ( pPars->fSolveAll )
-    {
         p->vCexes = Vec_PtrStart( Saig_ManPoNum(p->pAig) );
+    if ( pPars->fSolveAll || p->pPars->fAnytime )
+    {
         p->pPars->vOutMap = Vec_IntAlloc( Saig_ManPoNum(pAig) );
         Vec_IntFill( p->pPars->vOutMap, Saig_ManPoNum(pAig), -2 );
     }

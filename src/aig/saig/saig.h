@@ -114,7 +114,7 @@ extern Aig_Man_t *       Saig_ManDupFoldConstrs( Aig_Man_t * pAig, Vec_Int_t * v
 extern int               Saig_ManDetectConstrTest( Aig_Man_t * p );
 extern void              Saig_ManDetectConstrFuncTest( Aig_Man_t * p, int nFrames, int nConfs, int nProps, int fOldAlgo, int fVerbose );
 /*=== saigConstr2.c ==========================================================*/
-extern Aig_Man_t *       Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbose );
+extern Aig_Man_t *       Saig_ManDupFoldConstrsFunc( Aig_Man_t * pAig, int fCompl, int fVerbose, int fSeqCleanup );
 extern Aig_Man_t *       Saig_ManDupUnfoldConstrsFunc( Aig_Man_t * pAig, int nFrames, int nConfs, int nProps, int fOldAlgo, int fVerbose );
 // -- jlong -- begin
 extern Aig_Man_t *       Saig_ManDupFoldConstrsFunc2( Aig_Man_t * pAig, int fCompl, int fVerbose, int typeII_cnt );

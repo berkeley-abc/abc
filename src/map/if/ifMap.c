@@ -460,7 +460,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pCut->Delay = If_CutDelay( p, pObj, pCut );
         if ( pCut->Delay == -1 )
             continue;
-        if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
+        if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon && pCutSet->nCuts > 0 )
             continue;
         // compute area of the cut (this area may depend on the application specific cost)
         pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
@@ -558,7 +558,7 @@ void If_ObjPerformMappingChoice( If_Man_t * p, If_Obj_t * pObj, int Mode, int fP
                 continue;
             // check if the cut satisfies the required times
 //            assert( pCut->Delay == If_CutDelay( p, pTemp, pCut ) );
-            if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon )
+            if ( Mode && pCut->Delay > pObj->Required + p->fEpsilon && pCutSet->nCuts > 0 )
                 continue;
             // set the phase attribute
             pCut->fCompl = pObj->fPhase ^ pTemp->fPhase;
