@@ -37,6 +37,7 @@
 using namespace std;
 #else
 #include <stdatomic.h>
+#include <stdbool.h>
 #endif
 
 #endif
@@ -126,7 +127,7 @@ void * Ssw_GiaWorkerThread( void * pArg )
             return NULL;
         }
         Cec_ManLSCorrespondenceClasses( pThData->p, &pThData->CorPars );
-        atomic_store_explicit(&pThData->fWorking, 0, memory_order_release);
+        atomic_store_explicit(&pThData->fWorking, false, memory_order_release);
     }
     assert( 0 );
     return NULL;
@@ -154,7 +155,7 @@ void Ssw_SignalCorrespondenceArray( Vec_Ptr_t * vGias, Ssw_Pars_t * pPars )
     {
         ThData[i].CorPars  = *pCorPars;
         ThData[i].iThread  = i;
-        atomic_store_explicit(&ThData[i].fWorking, 0, memory_order_release);
+        atomic_store_explicit(&ThData[i].fWorking, false, memory_order_release);
         status = pthread_create( WorkerThread + i, NULL, Ssw_GiaWorkerThread, (void *)(ThData + i) );  assert( status == 0 );
     }
 
@@ -171,7 +172,7 @@ void Ssw_SignalCorrespondenceArray( Vec_Ptr_t * vGias, Ssw_Pars_t * pPars )
             if ( atomic_load_explicit(&ThData[i].fWorking, memory_order_acquire) )
                 continue;
             ThData[i].p = (Gia_Man_t*)Vec_PtrPop( vStack );
-            atomic_store_explicit(&ThData[i].fWorking, 1, memory_order_release);
+            atomic_store_explicit(&ThData[i].fWorking, true, memory_order_release);
             break;
         }
     }
@@ -188,7 +189,7 @@ void Ssw_SignalCorrespondenceArray( Vec_Ptr_t * vGias, Ssw_Pars_t * pPars )
     for ( i = 0; i < nProcs; i++ )
     {
         ThData[i].p = NULL;
-        atomic_store_explicit(&ThData[i].fWorking, 1, memory_order_release);
+        atomic_store_explicit(&ThData[i].fWorking, true, memory_order_release);
     }
 
     // Join threads
