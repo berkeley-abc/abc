@@ -1108,6 +1108,128 @@ Vec_Ptr_t * Gia_ManMatchCutsArray( Vec_Ptr_t * vTtMems, Gia_Man_t * pGia, int nC
     return vRes;  
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Function enumeration.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Gia_ManCollectCutFuncs( Gia_Man_t * p, int nCutSize, int nCutNum, int fVerbose )
+{
+    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( p, nCutSize, nCutNum, 0 );
+    Vec_Wrd_t * vFuncs = Vec_WrdAlloc( 1000 ); Vec_Int_t * vLevel; int i, k, * pCut; 
+    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] == nCutSize ) {
+            word * pTruth = Vec_MemReadEntry( pSto->vTtMem, Abc_Lit2Var(pCut[pCut[0]+1]) );
+            Vec_WrdPush( vFuncs, pTruth[0] );
+        }
+    Gia_StoFree( pSto );
+    if ( fVerbose )
+        printf( "Collected %d cut functions using the AIG with %d nodes.\n", Vec_WrdSize(vFuncs), Gia_ManAndNum(p) );
+    return vFuncs;
+}
+Vec_Int_t * Gia_ManCountNpnClasses( Vec_Mem_t * vTtMem, Vec_Int_t * vMap, int nClasses, Vec_Wrd_t * vOrig )
+{
+    assert( Vec_MemEntryNum(vTtMem) == Vec_IntSize(vMap) );
+    Vec_Int_t * vClassCounts = Vec_IntStart( nClasses ); int i; word Func;
+    Vec_WrdForEachEntry( vOrig, Func, i ) {
+        int * pSpot = Vec_MemHashLookup( vTtMem, &Func );
+        if ( *pSpot == -1 )
+            continue;
+        int iClass = Vec_IntEntry( vMap, *pSpot );
+        if ( iClass == -1 )
+            continue;
+        assert( iClass < Vec_IntSize(vClassCounts) );
+        Vec_IntAddToEntry( vClassCounts, iClass, 1 );
+    }
+    return vClassCounts;
+}
+Vec_Wrd_t * Gia_ManMatchFilterClasses( Vec_Mem_t * vTtMem, Vec_Int_t * vMap, Vec_Int_t * vClassCounts, int nNumFuncs, int fVerbose )
+{
+    int * pPerm = Abc_MergeSortCost( Vec_IntArray(vClassCounts), Vec_IntSize(vClassCounts) );
+    Vec_Wrd_t * vBest = Vec_WrdAlloc( nNumFuncs );  int i, k, Entry;
+    Vec_Int_t * vMapNew = Vec_IntStartFull( Vec_IntSize(vMap) );  
+    for ( i = Vec_IntSize(vClassCounts)-1; i >= 0; i-- ) {
+        word Best = ~(word)0;
+        Vec_IntForEachEntry( vMap, Entry, k ) {
+            if ( Entry != pPerm[i] )
+                continue;
+            if ( Best > Vec_MemReadEntry(vTtMem, k)[0] )
+                 Best = Vec_MemReadEntry(vTtMem, k)[0];            
+            Vec_IntWriteEntry( vMapNew, k, Vec_WrdSize(vBest) );
+        }
+        Vec_WrdPush( vBest, Best );
+        assert( ~Best );
+        if ( Vec_WrdSize(vBest) == nNumFuncs )
+            break;
+    }
+    ABC_SWAP( Vec_Int_t, *vMap, *vMapNew );
+    Vec_IntFree( vMapNew );
+    ABC_FREE( pPerm );
+    if ( fVerbose )
+        printf( "Isolated %d (out of %d) most frequently occuring classes.\n", Vec_WrdSize(vBest), Vec_IntSize(vClassCounts) );
+    return vBest;
+}
+void Gia_ManMatchProfileFunctions( Vec_Wrd_t * vBestReprs, Vec_Mem_t * vTtMem, Vec_Int_t * vMap, Vec_Wrd_t * vFuncs, int nCutSize )
+{
+    int BarSize = 60;
+    extern void Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit );
+    Vec_Int_t * vCounts = Gia_ManCountNpnClasses( vTtMem, vMap, Vec_WrdSize(vBestReprs), vFuncs ); 
+    word Repr; int c, i, MaxCount = Vec_IntFindMax( vCounts );
+    Vec_WrdForEachEntry( vBestReprs, Repr, c )
+    {
+        int nSymb = BarSize*Vec_IntEntry(vCounts, c)/Abc_MaxInt(MaxCount, 1);
+        printf( "Class%4d : ", c );
+        printf( "Count =%6d   ", Vec_IntEntry(vCounts, c) );
+        for ( i = 0; i < nSymb; i++ )
+            printf( "*" );
+        for ( i = nSymb; i < BarSize+3; i++ )
+            printf( " " );        
+        Dau_DsdPrintFromTruth( &Repr, nCutSize );
+    }
+    Vec_IntFree( vCounts );
+}
+void Gia_ManMatchCones( Gia_Man_t * pBig, Gia_Man_t * pSmall, int nCutSize, int nCutNum, int nNumFuncs, int nNumCones, int fVerbose )
+{
+    abctime clkStart  = Abc_Clock();
+    extern void Dau_CanonicizeArray( Vec_Wrd_t * vFuncs, int nVars, int fVerbose );
+    extern Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int_t ** pvMap, int fVerbose );
+    Vec_Wrd_t * vFuncs = Gia_ManCollectCutFuncs( pSmall, nCutSize, nCutNum, fVerbose );
+    Vec_Wrd_t * vOrig = Vec_WrdDup( vFuncs );
+    Dau_CanonicizeArray( vFuncs, nCutSize, fVerbose );  
+    Vec_Int_t * vMap = NULL; int n;
+    Vec_Mem_t * vTtMem = Dau_CollectNpnFunctionsArray( vFuncs, nCutSize, &vMap, fVerbose );
+    Vec_WrdFree( vFuncs );
+    Vec_Int_t * vClassCounts = Gia_ManCountNpnClasses( vTtMem, vMap, Vec_IntEntryLast(vMap)+1, vOrig );
+    Vec_Wrd_t * vBestReprs = Gia_ManMatchFilterClasses( vTtMem, vMap, vClassCounts, nNumFuncs, fVerbose );
+    assert( Vec_WrdSize(vBestReprs) == nNumFuncs );
+    Vec_IntFree( vClassCounts );
+    printf( "Frequency profile for %d most popular classes in the small AIG:\n", nNumFuncs );
+    Gia_ManMatchProfileFunctions( vBestReprs, vTtMem, vMap, vOrig, nCutSize );
+    Vec_WrdFree( vOrig );
+    Abc_Random( 1 );
+    for ( n = 0; n < nNumCones; n++ ) {
+        int nRand = Abc_Random( 0 ) % Gia_ManCoNum(pBig);
+        Gia_Man_t * pCone = Gia_ManDupCones( pBig, &nRand, 1, 1 );
+        Vec_Wrd_t * vCutFuncs = Gia_ManCollectCutFuncs( pCone, nCutSize, nCutNum, 0 );
+        printf( "ITER %d: Considering output cone %d with %d and-nodes. ", n+1, nRand, Gia_ManAndNum(pCone) );
+        printf( "Profiling %d functions of %d-cuts:\n", Vec_WrdSize(vCutFuncs), nCutSize );
+        Gia_ManMatchProfileFunctions( vBestReprs, vTtMem, vMap, vCutFuncs, nCutSize );
+        Vec_WrdFree( vCutFuncs );
+        Gia_ManStop( pCone );
+    }
+    Vec_WrdFree( vBestReprs );
+    Vec_IntFree( vMap );
+    Vec_MemHashFree( vTtMem );
+    Vec_MemFree( vTtMem );
+    Abc_PrintTime( 1, "Total computation time", Abc_Clock() - clkStart );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
