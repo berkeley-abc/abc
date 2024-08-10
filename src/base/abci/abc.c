@@ -54145,13 +54145,14 @@ int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( fDsd ) 
     {
         if ( iIn == -1 ) {
-            Gia_ManCheckDsd( pAbc->pGia, 0, 1 );
+            printf( "Function = " );
+            Gia_ManCheckDsd( pAbc->pGia, 0, fVerbose );
             if ( fAll ) {
                 for ( iIn = 0; iIn < Gia_ManPiNum(pAbc->pGia); iIn++ )
                     for ( c = 0; c < 2; c++ ) {
                         Gia_Man_t * pTemp = Gia_ManDupCofactorVar( pAbc->pGia, iIn, c );
-                        printf( "%s %2d = %d:\n", c ? "   " : "Var", iIn, c );
-                        Gia_ManCheckDsd( pTemp, 12, 1 );
+                        printf( "Cof(%c=%d) = ", 'a' + iIn, c );
+                        Gia_ManCheckDsd( pTemp, 12, fVerbose );
                         Gia_ManStop( pTemp );
                     }                
             }
@@ -54159,14 +54160,14 @@ int Abc_CommandAbc9DsdInfo( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         for ( c = 0; c < 2; c++ ) {
             Gia_Man_t * pTemp = Gia_ManDupCofactorVar( pAbc->pGia, iIn, c );
-            printf( "Var %2d  Cof %d:\n", iIn, c );
-            Gia_ManCheckDsd( pTemp, 0, 1 );
+            printf( "    Cof(%c=%d) = ", 'a' + iIn, c );
+            Gia_ManCheckDsd( pTemp, 0, fVerbose );
             if ( fAll ) {
-                for ( int iIn = 0; iIn < Gia_ManPiNum(pAbc->pGia); iIn++ )
-                    for ( int c = 0; c < 2; c++ ) {
-                        Gia_Man_t * pTemp2 = Gia_ManDupCofactorVar( pTemp, iIn, c );
-                        printf( "%s %2d = %d:\n", c ? "   " : "Var", iIn, c );
-                        Gia_ManCheckDsd( pTemp2, 12, 1 );
+                for ( int iIn2 = 0; iIn2 < Gia_ManPiNum(pAbc->pGia); iIn2++ ) if ( iIn2 != iIn )
+                    for ( int c2 = 0; c2 < 2; c2++ ) {
+                        Gia_Man_t * pTemp2 = Gia_ManDupCofactorVar( pTemp, iIn2, c2 );
+                        printf( "Cof(%c=%d,%c=%d) = ", 'a' + iIn, c, 'a' + iIn2, c2 );
+                        Gia_ManCheckDsd( pTemp2, 12, fVerbose );
                         Gia_ManStop( pTemp2 );
                     }
             }
