@@ -1048,8 +1048,9 @@ Gia_Sto_t * Gia_ManMatchCutsInt( Gia_Man_t * pGia, int nCutSize0, int nCutNum0, 
 void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
 {
     Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
-    Vec_Int_t * vLevel; int i, k, * pCut;
+    Vec_Int_t * vLevel; int i, j, k, * pCut;
     Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
+    Vec_Wec_t * vCuts = Vec_WecAlloc( 100 );
     abctime clkStart  = Abc_Clock();
     assert( Abc_Truth6WordNum(nCutSize) == Vec_MemEntrySize(vTtMem) );
     Vec_WecForEachLevel( p->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
@@ -1061,11 +1062,19 @@ void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int n
             if ( *pSpot == -1 )
                 continue;
             Vec_IntPush( vNodes, i );
+            vLevel = Vec_WecPushLevel( vCuts );
+            Vec_IntPush( vLevel, i );
+            for ( j = 1; j <= pCut[0]; j++ )
+                Vec_IntPush( vLevel, pCut[j] );
             break;
         }
     }
     printf( "Nodes with matching cuts: " );
     Vec_IntPrint( vNodes );
+    if ( Vec_WecSize(vCuts) > 32 )
+        Vec_WecShrink(vCuts, 32);
+    Vec_WecPrint( vCuts, 0 );
+    Vec_WecFree( vCuts );
     Vec_IntFree( vNodes );
     Gia_StoFree( p );
     if ( fVerbose )
