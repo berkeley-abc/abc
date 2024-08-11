@@ -20,6 +20,8 @@
 
 #include "wlc.h"
 #include "misc/tim/tim.h"
+#include "base/main/main.h"
+#include "base/cmd/cmd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1162,6 +1164,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
             int Prev = i ? pArgA[i-1] : 0;
             int Part = Gia_ManHashOr( pNew, Gia_ManHashAnd(pNew, One, This), Gia_ManHashAnd(pNew, Two, Prev) );
             pp = Gia_ManHashXor( pNew, Part, Neg );
+            if ( fVerbose ) printf( "%4d = PP(%5d %5d  %5d %5d %5d)\n", pp, Prev, This, Q2jM1, Q2j, Q2jP1 );
             if ( pp == 0 || (fSigned && i == nArgA) )
                 continue;
             if ( pp )
@@ -1208,6 +1211,8 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
     //Vec_WecShrink( vLevels, nArgA + nArgB );   
     if ( fVerbose )
         Vec_WecPrint( vProds, 0 );
+    if ( fVerbose ) 
+        printf( "Total PPs = %d.\n", Vec_WecSizeSize(vProds) );
     //Wlc_BlastPrintMatrix( pNew, vProds, 1 );
     //printf( "Cutoff ID for partial products = %d.\n", Gia_ManObjNum(pNew) );
     if ( pvProds )
@@ -1842,7 +1847,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 int nRangeMax = Abc_MaxInt(nRange0, nRange1);
                 int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRangeMax, fSigned );
                 int * pArg1 = Wlc_VecLoadFanins( vTemp1, pFans1, nRange1, nRangeMax, fSigned );
-                if ( Wlc_NtkCountConstBits(pArg0, nRangeMax) < Wlc_NtkCountConstBits(pArg1, nRangeMax) )
+                if ( nRange0 == nRange1 && Wlc_NtkCountConstBits(pArg0, nRangeMax) < Wlc_NtkCountConstBits(pArg1, nRangeMax) )
                     ABC_SWAP( int *, pArg0, pArg1 );
                 if ( pPar->fBooth )
                     Wlc_BlastBooth( pNew, pArg0, pArg1, nRange0, nRange1, vRes, fSigned, pPar->fCla, NULL, pParIn->fVerbose );
@@ -2745,6 +2750,47 @@ void Wlc_TransferPioNames( Wlc_Ntk_t * p, Gia_Man_t * pNew )
         printf( "Successfully transferred the primary input/output names from the word-level design to the current AIG.\n" );
 }
     
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Wlc_MultBlastFileGen( int a, int b, int s )
+{
+    FILE * pFile = fopen( "_test13_.v", "wb" );
+    fprintf( pFile, "module test ( a, b, z );\n" );
+    fprintf( pFile, "input %s [%d:0] a;\n", s ? "signed":"", a-1 );
+    fprintf( pFile, "input %s [%d:0] b;\n", s ? "signed":"", b-1 );
+    fprintf( pFile, "output %s [%d:0] z;\n", s ? "signed":"", a+b-1 );
+    fprintf( pFile, "assign z = a * b;\n" );
+    fprintf( pFile, "endmodule\n" );    
+    fclose( pFile );
+}
+void Wlc_MultBlastTest()
+{
+    char * Command = "%read _test13_.v; %blast; &ps; &w 1.aig;  %read _test13_.v; %blast -b; &ps; &w 2.aig; cec -n 1.aig 2.aig";
+    int a, b, s, Iters = 0;
+    for ( a = 1; a < 8; a++ )
+    for ( b = 1; b < 8; b++ )
+    for ( s = 0; s < 2; s++ )
+    {
+        Wlc_MultBlastFileGen( a, b, s );
+        if ( Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
+        {
+            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+            return;
+        }
+        Iters++;
+    }
+    printf( "Finished %d iterations.\n", Iters );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
