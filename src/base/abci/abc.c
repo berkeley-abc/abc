@@ -30247,7 +30247,7 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Pdr_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSLIXalxrmuyfqipdegjonctkvwzh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MFCDQTHGSLIXaxrmuyfqipdegjonctkvwzh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -30380,9 +30380,6 @@ int Abc_CommandPdr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             pPars->fSolveAll ^= 1;
             break;
-        case 'l':
-            pPars->fAnytime ^= 1;
-            break;
         case 'x':
             pPars->fStoreCex ^= 1;
             break;
@@ -30504,7 +30501,6 @@ usage:
     Abc_Print( -2, "\t-I file: the invariant file name [default = %s]\n",                                    pPars->pInvFileName ? pPars->pInvFileName : "default name" );
     Abc_Print( -2, "\t-X pref: when solving all outputs, store CEXes immediately as <pref>*.aiw [default = %s]\n", pPars->pCexFilePrefix ? pPars->pCexFilePrefix : "disabled");
     Abc_Print( -2, "\t-a     : toggle solving all outputs even if one of them is SAT [default = %s]\n",      pPars->fSolveAll? "yes": "no" );
-    Abc_Print( -2, "\t-l     : toggle anytime schedule when solving all outputs [default = %s]\n",           pPars->fAnytime? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle storing CEXes when solving all outputs [default = %s]\n",              pPars->fStoreCex? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle using more effort in generalization [default = %s]\n",                 pPars->fTwoRounds? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle using monolythic CNF computation [default = %s]\n",                    pPars->fMonoCnf? "yes": "no" );
