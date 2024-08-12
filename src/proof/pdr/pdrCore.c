@@ -1035,7 +1035,7 @@ void Pdr_OutputCexToDir( Pdr_Par_t * pPars, Abc_Cex_t * pCex )
     FILE * pCexFile;
 
     iCexPathSize = snprintf( NULL, 0, "%s%d.aiw", pPars->pCexFilePrefix, pCex->iPo ) + 1;
-    pCexPath = (char *)malloc( iCexPathSize );
+    pCexPath = malloc( iCexPathSize );
     snprintf( pCexPath, iCexPathSize, "%s%d.aiw", pPars->pCexFilePrefix, pCex->iPo );
     Abc_Print( 1, "Writing CEX for output %d to %s\n", pCex->iPo, pCexPath );
     pCexFile = fopen( pCexPath, "w" );
