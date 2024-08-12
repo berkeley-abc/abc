@@ -944,6 +944,23 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
     // assign connectivity variables
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
+        if ( p->pPars->fLutCascade )
+        {
+            if ( i > p->nVars ) 
+            {
+                Vec_WecPush( p->vOutLits, i-1, Abc_Var2Lit(p->iVar, 0) );
+                p->VarMarks[i][0][i-1] = p->iVar++;
+            }
+            for ( k = (int)(i > p->nVars); k < p->nLutSize; k++ )
+            {
+                for ( j = 0; j < p->nVars - k + (int)(i > p->nVars); j++ )
+                {
+                    Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
+                    p->VarMarks[i][k][j] = p->iVar++;
+                }
+            }
+            continue;
+        }        
         for ( k = 0; k < p->nLutSize; k++ )
         {
             if ( p->pPars->fFewerVars && i == p->nObjs - 1 && k == 0 )

@@ -62,6 +62,7 @@ struct Bmc_EsPar_t_
     int        fFewerVars;
     int        fQuadrEnc;
     int        fUniqFans;
+    int        fLutCascade;
     int        RuntimeLim;
     int        fVerbose; 
     char *     pTtStr;
@@ -84,7 +85,8 @@ static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
     pPars->fEnumSols   = 0; 
     pPars->fFewerVars  = 0; 
     pPars->fQuadrEnc   = 0; 
-    pPars->fUniqFans   = 0; 
+    pPars->fUniqFans   = 0;
+    pPars->fLutCascade = 0;
     pPars->RuntimeLim  = 0;
     pPars->fVerbose    = 1; 
 }

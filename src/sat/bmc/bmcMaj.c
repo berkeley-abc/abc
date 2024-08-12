@@ -24,6 +24,8 @@
 #include "sat/glucose/AbcGlucose.h"
 #include "aig/miniaig/miniaig.h"
 #include "base/io/ioResub.h"
+#include "base/main/main.h"
+#include "base/cmd/cmd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1045,6 +1047,23 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
     // assign connectivity variables
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
+        if ( p->pPars->fLutCascade )
+        {
+            if ( i > p->nVars ) 
+            {
+                Vec_WecPush( p->vOutLits, i-1, Abc_Var2Lit(p->iVar, 0) );
+                p->VarMarks[i][0][i-1] = p->iVar++;
+            }
+            for ( k = (int)(i > p->nVars); k < p->nLutSize; k++ )
+            {
+                for ( j = 0; j < p->nVars - k + (int)(i > p->nVars); j++ )
+                {
+                    Vec_WecPush( p->vOutLits, j, Abc_Var2Lit(p->iVar, 0) );
+                    p->VarMarks[i][k][j] = p->iVar++;
+                }
+            }
+            continue;
+        }        
         for ( k = 0; k < p->nLutSize; k++ )
         {
             if ( p->pPars->fFewerVars && i == p->nObjs - 1 && k == 0 )
@@ -3914,6 +3933,62 @@ void Exa_ManExactSynthesis7( Bmc_EsPar_t * pPars, int GateSize )
         Exa_ManDumpVerilog( vValues, pPars->nVars, pPars->nNodes, GateSize, pTruth );
     Vec_IntFreeP( &vValues );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Exa_NpnCascadeTest()
+{
+    char Buffer[100];
+    char Command[1000]; int i;
+    FILE * pFile = fopen( "npn3.txt", "r" );
+    for ( i = 0; i < 14; i++ )
+//    FILE * pFile = fopen( "npn4.txt", "r" );
+//    for ( i = 0; i < 222; i++ )
+//    FILE * pFile = fopen( "npn5.txt", "r" );
+//    for ( i = 0; i < 616126; i++ )
+    {
+        int Value = fscanf( pFile, "%s", Buffer );
+        assert( Value == 1 );
+        if ( i == 0 ) continue;
+        if ( Buffer[strlen(Buffer)-1] == '\n' )
+            Buffer[strlen(Buffer)-1] = '\0';
+        if ( Buffer[strlen(Buffer)-1] == '\r' )
+            Buffer[strlen(Buffer)-1] = '\0';
+        sprintf( Command, "lutexact -I 3 -N 2 -K 2 -gvc %s", Buffer+2 );
+        printf( "\nNPN class %6d : Command \"%s\":\n", i, Command );
+        if ( Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
+        {
+            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+            return;
+        }
+    }
+    fclose( pFile );
+}
+void Exa_NpnCascadeTest6()
+{
+    char Command[1000]; int i;
+    Abc_Random(1);
+    for ( i = 0; i < 10000; i++ ) 
+    {
+        word Truth = Abc_RandomW(0);        
+        sprintf( Command, "lutexact -I 6 -N 2 -K 5 -gvc %016lx", Truth );
+        printf( "\nIter %4d : Command \"%s\":\n", i, Command );
+        if ( Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Command ) )
+        {
+            fprintf( stdout, "Cannot execute command \"%s\".\n", Command );
+            return;
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
