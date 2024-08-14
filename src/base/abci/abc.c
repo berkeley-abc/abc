@@ -33898,8 +33898,9 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAddMuxes  = 0;
     int fStrMuxes  = 0;
     int fRehashMap = 0;
+    int fInvert    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LMbacmrsh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LMbacmrsih" ) ) != EOF )
     {
         switch ( c )
         {
@@ -33943,6 +33944,9 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             fStrMuxes ^= 1;
             break;
+        case 'i':
+            fInvert ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -33953,6 +33957,13 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "Abc_CommandAbc9Strash(): There is no AIG.\n" );
         return 1;
+    }
+    if ( fInvert )
+    {
+        Gia_Obj_t * pObj; int i;
+        Gia_ManForEachPo( pAbc->pGia, pObj, i )
+            Gia_ObjFlipFaninC0( pObj );
+        return 0;        
     }
     if ( fAddBuffs )
     {
@@ -34035,7 +34046,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &st [-LM num] [-bacmrsh]\n" );
+    Abc_Print( -2, "usage: &st [-LM num] [-bacmrsih]\n" );
     Abc_Print( -2, "\t         performs structural hashing\n" );
     Abc_Print( -2, "\t-b     : toggle adding buffers at the inputs and outputs [default = %s]\n", fAddBuffs? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
@@ -34046,6 +34057,7 @@ usage:
     Abc_Print( -2, "\t-M num : create an AIG with additional primary inputs [default = %d]\n", Multi );
     Abc_Print( -2, "\t-r     : toggle rehashing AIG while preserving mapping [default = %s]\n", fRehashMap? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle using MUX restructuring [default = %s]\n", fStrMuxes? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggle complementing the POs of the AIG [default = %s]\n", fInvert? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
