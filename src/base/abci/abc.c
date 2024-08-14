@@ -614,6 +614,7 @@ static int Abc_CommandAbc9GenCex             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Odc                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenRel             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenMux             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GenComp            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Window             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FunAbs             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9DsdInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1415,6 +1416,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&odc",          Abc_CommandAbc9Odc,                    0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&genrel",       Abc_CommandAbc9GenRel,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&genmux",       Abc_CommandAbc9GenMux,                 0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&gencomp",      Abc_CommandAbc9GenComp,                0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&window",       Abc_CommandAbc9Window,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&funabs",       Abc_CommandAbc9FunAbs,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdinfo",      Abc_CommandAbc9DsdInfo,                0 );    
@@ -53604,10 +53606,10 @@ usage:
     Abc_Print( -2, "\t-C num  : the number of timeframes [default = %d]\n",                  nMinCexes );
     Abc_Print( -2, "\t-M num  : the max simulation runs before using SAT [default = %d]\n",  nMaxTries );
     Abc_Print( -2, "\t-F file : the output file name [default = %s]\n",                      pFileName );
-    Abc_Print( -2, "\t-s      : toggles using reverse simulation [default = %d]\n",          fUseSim  ? "yes": "no" );
-    Abc_Print( -2, "\t-t      : toggles using SAT solving [default = %d]\n",                 fUseSat  ? "yes": "no" );
-    Abc_Print( -2, "\t-c      : toggles outputing care literals only [default = %d]\n",      fShort   ? "yes": "no" );
-    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %d]\n",      fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-s      : toggles using reverse simulation [default = %s]\n",          fUseSim  ? "yes": "no" );
+    Abc_Print( -2, "\t-t      : toggles using SAT solving [default = %s]\n",                 fUseSat  ? "yes": "no" );
+    Abc_Print( -2, "\t-c      : toggles outputing care literals only [default = %s]\n",      fShort   ? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n",      fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
@@ -53886,6 +53888,70 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GenComp( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManDupGenComp( int nBits, int fInterleave );
+    Gia_Man_t * pTemp = NULL;
+    int c, nBits = 0, fInter = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kivh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBits = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBits < 0 )
+                goto usage;
+            break;
+        case 'i':
+            fInter ^= 1;
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( nBits == 0 )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9GenComp(): The number of inputs should be defined on the command line \"-K num\".\n" );
+        return 0;            
+    }    
+    pTemp = Gia_ManDupGenComp( nBits, fInter );
+    Abc_FrameUpdateGia( pAbc, pTemp );    
+    Abc_Print( 1, "Generated %d-bit comparator\n", nBits );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &gencomp [-K <num>] [-ivh]\n" );
+    Abc_Print( -2, "\t         generates the comparator\n" );
+    Abc_Print( -2, "\t-K num : the number of control inputs [default = undefined]\n" );
+    Abc_Print( -2, "\t-i     : toggles using interleaved variable ordering [default = %s]\n", fInter ? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\tstring : the sizes of control input groups\n");
+    return 1;
+}
 
 /**Function*************************************************************
 
