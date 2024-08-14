@@ -53,7 +53,7 @@ extern int Gia_ManFactorNode( Gia_Man_t * p, char * pSop, Vec_Int_t * vLeaves );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Gia_GetFakeNames( int nNames )
+Vec_Ptr_t * Gia_GetFakeNames( int nNames, int fCaps )
 {
     Vec_Ptr_t * vNames;
     char Buffer[5];
@@ -64,12 +64,12 @@ Vec_Ptr_t * Gia_GetFakeNames( int nNames )
     {
         if ( nNames < 26 )
         {
-            Buffer[0] = 'a' + i;
+            Buffer[0] = (fCaps ? 'A' : 'a') + i;
             Buffer[1] = 0;
         }
         else
         {
-            Buffer[0] = 'a' + i%26;
+            Buffer[0] = (fCaps ? 'A' : 'a') + i%26;
             Buffer[1] = '0' + i/26;
             Buffer[2] = 0;
         }
@@ -378,8 +378,8 @@ Gia_Man_t * Gia_ManCollapseTest( Gia_Man_t * p, int fVerbose )
     Dsd_Decompose( pManDsd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs) );
     if ( fVerbose )
     {
-        Vec_Ptr_t * vNamesCi = Gia_GetFakeNames( Gia_ManCiNum(p) );
-        Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p) );
+        Vec_Ptr_t * vNamesCi = Gia_GetFakeNames( Gia_ManCiNum(p), 0 );
+        Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p), 1 );
         char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
         char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
         Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1, 0 );
@@ -464,8 +464,8 @@ void Gia_ManCheckDsd( Gia_Man_t * p, int OffSet, int fVerbose )
     
     if ( fVerbose )
     {
-        Vec_Ptr_t * vNamesCi = Gia_GetFakeNames( Gia_ManCiNum(p) );
-        Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p) );
+        Vec_Ptr_t * vNamesCi = Gia_GetFakeNames( Gia_ManCiNum(p), 0 );
+        Vec_Ptr_t * vNamesCo = Gia_GetFakeNames( Gia_ManCoNum(p), 1 );
         char ** ppNamesCi = (char **)Vec_PtrArray( vNamesCi );
         char ** ppNamesCo = (char **)Vec_PtrArray( vNamesCo );
         Dsd_TreePrint( stdout, pManDsd, ppNamesCi, ppNamesCo, 0, -1, OffSet );
