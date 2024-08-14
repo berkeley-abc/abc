@@ -59,6 +59,7 @@ static int IoCommandReadStatus  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadGig     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadJson    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadSF      ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadRom     ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int IoCommandWrite       ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteHie    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -133,6 +134,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "&read_gig",     IoCommandReadGig,      0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_json",     IoCommandReadJson,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_sf",       IoCommandReadSF,       0 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_rom",      IoCommandReadRom,      1 );
 
     Cmd_CommandAdd( pAbc, "I/O", "write",         IoCommandWrite,        0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_hie",     IoCommandWriteHie,     0 );
@@ -1926,6 +1928,73 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadRom( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Io_TransformROM2PLA( char * pNameIn, char * pNameOut );
+
+    Abc_Ntk_t * pNtk;
+    FILE * pFile;
+    char * pFileName, * pFileTemp = "_temp_rom_.pla";
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
+        return 1;
+    }
+    fclose( pFile );
+    Io_TransformROM2PLA( pFileName, pFileTemp );
+    pNtk = Io_Read( pFileTemp, IO_FILE_PLA, 1, 0 );
+    //unlink( pFileTemp );
+    if ( pNtk == NULL )
+        return 1;
+    ABC_FREE( pNtk->pName );
+    pNtk->pName = Extra_FileNameGeneric( pFileName );
+    ABC_FREE( pNtk->pSpec );
+    pNtk->pSpec = Abc_UtilStrsav( pFileName );
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    Abc_FrameClearVerifStatus( pAbc );
+
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_rom [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         reads ROM file\n" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
 
 /**Function*************************************************************
 
