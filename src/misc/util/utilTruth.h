@@ -236,6 +236,33 @@ static inline void Abc_TtMask( word * pTruth, int nWords, int nBits )
   SeeAlso     []
 
 ***********************************************************************/
+static inline word Abc_TtWordReverseBits( word w )
+{
+    int Rev[16] = {0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15};
+    word r = 0; int i;
+    for ( i = 0; i < 16; i++ )
+        r |= (word)Rev[(w >> (i<<2))&15] << ((15-i)<<2);
+    return r;
+}
+static inline word Abc_TtWordReverseHexDigits( word w ) 
+{
+    word r = 0; int i;
+    for ( i = 0; i < 16; i++ )
+        r |= ((w >> (i<<2))&15) << ((15-i)<<2);
+    return r;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Abc_TtVec( word * pOut, int nWords, word Entry )
 {
     int w;
