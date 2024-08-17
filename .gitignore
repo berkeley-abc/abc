@@ -13,6 +13,7 @@ lib/m114*
 lib/bip*
 docs/
 .vscode/
+.cache/
 
 src/ext*
 src/xxx/

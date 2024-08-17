@@ -510,7 +510,7 @@ private:
       }
     } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
-    std::array<uint32_t, max_num_vars> res_perm;
+    std::array<uint32_t, max_num_vars> res_perm = {0};
     
     if ( best_cost > ( 1 << ( ps.lut_size - free_set_size ) ) )
     {
@@ -543,7 +543,7 @@ private:
     }
 
     /* enumerate combinations */
-    std::array<uint32_t, max_num_vars> res_perm;
+    std::array<uint32_t, max_num_vars> res_perm = {0};
 
     do
     {
