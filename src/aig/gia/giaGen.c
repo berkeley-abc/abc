@@ -1090,16 +1090,16 @@ Vec_Wec_t * Gia_ManGenNeuronCreateArgs( Vec_Wrd_t * vData, int nIBits, int nOBit
 }
 Vec_Wec_t * Gia_ManGenNeuronTransformArgs( Gia_Man_t * pNew, Vec_Wec_t * vArgs, int nLutSize, int nOBits )
 {
-    int i, nParts = (Vec_WecSize(vArgs) + 2) / 4;
-    while ( Vec_WecSize(vArgs) < 4*nParts+1 )
+    int i, nParts = (Vec_WecSize(vArgs) + nLutSize - 2) / nLutSize;
+    while ( Vec_WecSize(vArgs) < nLutSize*nParts+1 )
         Vec_IntFill( Vec_WecPushLevel(vArgs), nOBits, 0 );
-    assert( Vec_WecSize(vArgs) == 4*nParts+1 );
+    assert( Vec_WecSize(vArgs) == nLutSize*nParts+1 );
     Vec_Wec_t * vNew = Vec_WecAlloc( nParts );
     Vec_Int_t * vRes = Vec_WecPushLevel( vNew ), * vArg;
     Vec_IntAppend( vRes, Vec_WecEntry(vArgs, 0) );
     Vec_WecForEachLevelStart( vArgs, vArg, i, 1 ) {
         Gia_ManGenNeuronAdder( pNew, nOBits, Vec_IntArray(vArg), Vec_IntArray(vRes), 0, vRes );
-        if ( (i-1) % 4 == 3 && i < Vec_WecSize(vArgs)-1 ) {
+        if ( (i-1) % nLutSize == nLutSize-1 && i < Vec_WecSize(vArgs)-1 ) {
             vRes = Vec_WecPushLevel( vNew );
             Vec_IntFill( vRes, nOBits, 0 );
         }            
@@ -1181,6 +1181,126 @@ Gia_Man_t * Gia_ManGenNeuron( char * pFileName, int nIBits, int nLutSize, int fD
     return pNew;    
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Generates minimum-node AIG for n-bit comparator (a > b).]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupGenComp( int nBits, int fInterleave )
+{
+    Gia_Man_t * pNew, * pTemp; int i, iLit = 1;
+    Vec_Int_t * vBitsA = Vec_IntAlloc( nBits + 1 );
+    Vec_Int_t * vBitsB = Vec_IntAlloc( nBits + 1 );
+    pNew = Gia_ManStart( 6*nBits+10 );
+    pNew->pName = Abc_UtilStrsav( "comp" );
+    Gia_ManHashAlloc( pNew );
+    if ( fInterleave ) {
+        for ( i = 0; i < nBits; i++ )
+            Vec_IntPush( vBitsA, Gia_ManAppendCi(pNew) ),
+            Vec_IntPush( vBitsB, Gia_ManAppendCi(pNew) );
+    }
+    else {
+        for ( i = 0; i < nBits; i++ )
+            Vec_IntPush( vBitsA, Gia_ManAppendCi(pNew) );
+        for ( i = 0; i < nBits; i++ )
+            Vec_IntPush( vBitsB, Gia_ManAppendCi(pNew) );
+    }
+    Vec_IntPush( vBitsA, 0 );
+    Vec_IntPush( vBitsB, 0 );
+    for ( i = 0; i < nBits; i++ ) {
+        int iLitA0  = Vec_IntEntry(vBitsA, i);
+        int iLitA1  = Vec_IntEntry(vBitsA, i+1);
+        int iLitB0  = Vec_IntEntry(vBitsB, i);
+        int iLitB1  = Vec_IntEntry(vBitsB, i+1);
+        int iOrLit0;
+        if ( i == 0 )
+            iOrLit0 = Gia_ManHashOr(pNew, Abc_LitNotCond(iLitA0, !(i&1)), Abc_LitNotCond(iLitB0, i&1));
+        else
+            iOrLit0 = Gia_ManHashAnd(pNew, Abc_LitNotCond(iLitA0, !(i&1)), Abc_LitNotCond(iLitB0, i&1));
+        int iOrLit1 = Gia_ManHashAnd(pNew, Abc_LitNotCond(iLitA1, !(i&1)), Abc_LitNotCond(iLitB1, i&1));
+        int iOrLit  = Gia_ManHashOr(pNew, iOrLit0, iOrLit1 );
+        iLit = Gia_ManHashOr(pNew, Abc_LitNot(iLit), iOrLit );
+    }
+    Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, nBits&1) );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );
+    Vec_IntFree( vBitsA );
+    Vec_IntFree( vBitsB );
+    return pNew;        
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generates optimized AIG for the decoder and the multiplexer.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_GenDecoder( Gia_Man_t * p, int * pLits, int nLits )
+{
+    if ( nLits == 1 )
+    {
+        Vec_Int_t * vRes = Vec_IntAlloc( 2 );
+        Vec_IntPush( vRes, Abc_LitNot(pLits[0]) );
+        Vec_IntPush( vRes, pLits[0] );
+        return vRes;
+    }
+    assert( nLits > 1 );
+    int nPart1 = nLits / 2;
+    int nPart2 = nLits - nPart1;
+    Vec_Int_t * vRes1 = Gia_GenDecoder( p, pLits, nPart1 );
+    Vec_Int_t * vRes2 = Gia_GenDecoder( p, pLits+nPart1, nPart2 );
+    Vec_Int_t * vRes = Vec_IntAlloc( Vec_IntSize(vRes1) * Vec_IntSize(vRes2) );
+    int i, k, Lit1, Lit2;
+    Vec_IntForEachEntry( vRes2, Lit2, k )
+    Vec_IntForEachEntry( vRes1, Lit1, i )
+        Vec_IntPush( vRes, Gia_ManHashAnd(p, Lit1, Lit2) );
+    Vec_IntFree( vRes1 );
+    Vec_IntFree( vRes2 );
+    return vRes;   
+}
+Gia_Man_t * Gia_ManGenMux( int nIns, char * pNums )
+{
+    Vec_Int_t * vIns  = Vec_IntAlloc( nIns );
+    Vec_Int_t * vData = Vec_IntAlloc( 1 << nIns );    
+    Gia_Man_t * p = Gia_ManStart( 4*(1 << nIns) + nIns ), * pTemp; 
+    int i, iStart = 0, nSize = 1 << nIns;
+    p->pName = Abc_UtilStrsav( "mux" );
+    for ( i = 0; i < nIns; i++ )
+        Vec_IntPush( vIns, Gia_ManAppendCi(p) );
+    for ( i = 0; i < nSize; i++ )
+        Vec_IntPush( vData, Gia_ManAppendCi(p) );
+    Gia_ManHashAlloc( p );
+    for ( i = (int)strlen(pNums)-1; i >= 0; i-- )
+    {
+        int k, b, nBits = (int)(pNums[i] - '0');
+        Vec_Int_t * vDec = Gia_GenDecoder( p, Vec_IntEntryP(vIns, iStart), nBits );
+        for ( k = 0; k < nSize; k++ )
+            Vec_IntWriteEntry( vData, k, Gia_ManHashAnd(p, Vec_IntEntry(vData, k), Vec_IntEntry(vDec, k%Vec_IntSize(vDec))) );
+        for ( b = 0; b < nBits; b++, nSize /= 2 )
+            for ( k = 0; k < nSize/2; k++ )
+                Vec_IntWriteEntry( vData, k, Gia_ManHashOr(p, Vec_IntEntry(vData, 2*k), Vec_IntEntry(vData, 2*k+1)) );
+        Vec_IntFree( vDec );
+        iStart += nBits;
+    }
+    assert( nSize == 1 );
+    Gia_ManAppendCo( p, Vec_IntEntry(vData, 0) );
+    Vec_IntFree( vIns );
+    Vec_IntFree( vData );    
+    p = Gia_ManCleanup( pTemp = p );
+    Gia_ManStop( pTemp );
+    return p;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
