@@ -554,9 +554,11 @@ static inline int          Gia_ObjFaninIdp( Gia_Man_t * p, Gia_Obj_t * pObj, int
 static inline int          Gia_ObjFaninLit0( Gia_Obj_t * pObj, int ObjId )     { return Abc_Var2Lit( Gia_ObjFaninId0(pObj, ObjId), Gia_ObjFaninC0(pObj) ); }
 static inline int          Gia_ObjFaninLit1( Gia_Obj_t * pObj, int ObjId )     { return Abc_Var2Lit( Gia_ObjFaninId1(pObj, ObjId), Gia_ObjFaninC1(pObj) ); }
 static inline int          Gia_ObjFaninLit2( Gia_Man_t * p, int ObjId )        { return (p->pMuxes && p->pMuxes[ObjId]) ? p->pMuxes[ObjId] : -1;           }
+static inline int          Gia_ObjFaninLit( Gia_Obj_t * pObj, int ObjId, int n ){ return n ? Gia_ObjFaninLit1(pObj, ObjId) : Gia_ObjFaninLit0(pObj, ObjId);}
 static inline int          Gia_ObjFaninLit0p( Gia_Man_t * p, Gia_Obj_t * pObj) { return Abc_Var2Lit( Gia_ObjFaninId0p(p, pObj), Gia_ObjFaninC0(pObj) );    }
 static inline int          Gia_ObjFaninLit1p( Gia_Man_t * p, Gia_Obj_t * pObj) { return Abc_Var2Lit( Gia_ObjFaninId1p(p, pObj), Gia_ObjFaninC1(pObj) );    }
 static inline int          Gia_ObjFaninLit2p( Gia_Man_t * p, Gia_Obj_t * pObj) { return (p->pMuxes && p->pMuxes[Gia_ObjId(p, pObj)]) ? p->pMuxes[Gia_ObjId(p, pObj)] : -1;    }
+static inline int          Gia_ObjFaninLitp( Gia_Man_t * p, Gia_Obj_t * pObj, int n ){ return n ? Gia_ObjFaninLit1p(p, pObj) : Gia_ObjFaninLit0p(p, pObj);}
 static inline void         Gia_ObjFlipFaninC0( Gia_Obj_t * pObj )              { assert( Gia_ObjIsCo(pObj) ); pObj->fCompl0 ^= 1;          }
 static inline int          Gia_ObjFaninNum( Gia_Man_t * p, Gia_Obj_t * pObj )  { if ( Gia_ObjIsMux(p, pObj) ) return 3; if ( Gia_ObjIsAnd(pObj) ) return 2; if ( Gia_ObjIsCo(pObj) ) return 1; return 0; }
 static inline int          Gia_ObjWhatFanin( Gia_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pFanin )  { if ( Gia_ObjFanin0(pObj) == pFanin ) return 0; if ( Gia_ObjFanin1(pObj) == pFanin ) return 1; if ( Gia_ObjFanin2(p, pObj) == pFanin ) return 2; assert(0); return -1; }
@@ -1729,6 +1731,7 @@ extern word                Gia_ManRandomW( int fReset );
 extern void                Gia_ManRandomInfo( Vec_Ptr_t * vInfo, int iInputStart, int iWordStart, int iWordStop );
 extern char *              Gia_TimeStamp();
 extern char *              Gia_FileNameGenericAppend( char * pBase, char * pSuffix );
+extern Vec_Ptr_t *         Gia_GetFakeNames( int nNames, int fCaps );
 extern void                Gia_ManIncrementTravId( Gia_Man_t * p );
 extern void                Gia_ManCleanMark01( Gia_Man_t * p );
 extern void                Gia_ManSetMark0( Gia_Man_t * p );
@@ -1755,6 +1758,7 @@ extern Vec_Int_t *         Gia_ManReverseLevel( Gia_Man_t * p );
 extern Vec_Int_t *         Gia_ManRequiredLevel( Gia_Man_t * p );
 extern void                Gia_ManCreateValueRefs( Gia_Man_t * p );
 extern void                Gia_ManCreateRefs( Gia_Man_t * p );
+extern void                Gia_ManCreateLitRefs( Gia_Man_t * p );
 extern int *               Gia_ManCreateMuxRefs( Gia_Man_t * p );
 extern int                 Gia_ManCrossCut( Gia_Man_t * p, int fReverse );
 extern Vec_Int_t *         Gia_ManCollectPoIds( Gia_Man_t * p );

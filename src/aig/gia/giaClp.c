@@ -53,42 +53,6 @@ extern int Gia_ManFactorNode( Gia_Man_t * p, char * pSop, Vec_Int_t * vLeaves );
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Gia_GetFakeNames( int nNames, int fCaps )
-{
-    Vec_Ptr_t * vNames;
-    char Buffer[5];
-    int i;
-
-    vNames = Vec_PtrAlloc( nNames );
-    for ( i = 0; i < nNames; i++ )
-    {
-        if ( nNames < 26 )
-        {
-            Buffer[0] = (fCaps ? 'A' : 'a') + i;
-            Buffer[1] = 0;
-        }
-        else
-        {
-            Buffer[0] = (fCaps ? 'A' : 'a') + i%26;
-            Buffer[1] = '0' + i/26;
-            Buffer[2] = 0;
-        }
-        Vec_PtrPush( vNames, Extra_UtilStrsav(Buffer) );
-    }
-    return vNames;
-}
-
-/**Function*************************************************************
-
-  Synopsis    []
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int Gia_ManRebuildIsop( DdManager * dd, DdNode * bLocal, Gia_Man_t * pNew, Vec_Int_t * vFanins, Vec_Str_t * vSop, Vec_Str_t * vCube )
 {
     char * pSop;

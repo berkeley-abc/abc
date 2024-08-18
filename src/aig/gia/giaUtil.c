@@ -151,6 +151,42 @@ char * Gia_FileNameGenericAppend( char * pBase, char * pSuffix )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Ptr_t * Gia_GetFakeNames( int nNames, int fCaps )
+{
+    Vec_Ptr_t * vNames;
+    char Buffer[5];
+    int i;
+
+    vNames = Vec_PtrAlloc( nNames );
+    for ( i = 0; i < nNames; i++ )
+    {
+        if ( nNames < 26 )
+        {
+            Buffer[0] = (fCaps ? 'A' : 'a') + i;
+            Buffer[1] = 0;
+        }
+        else
+        {
+            Buffer[0] = (fCaps ? 'A' : 'a') + i%26;
+            Buffer[1] = '0' + i/26;
+            Buffer[2] = 0;
+        }
+        Vec_PtrPush( vNames, Extra_UtilStrsav(Buffer) );
+    }
+    return vNames;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManIncrementTravId( Gia_Man_t * p )                     
 { 
     if ( p->pTravIds == NULL )
@@ -758,6 +794,23 @@ void Gia_ManCreateRefs( Gia_Man_t * p )
         }
         else if ( Gia_ObjIsCo(pObj) )
             Gia_ObjRefFanin0Inc( p, pObj );
+    }
+}
+void Gia_ManCreateLitRefs( Gia_Man_t * p )  
+{
+    Gia_Obj_t * pObj;
+    int i;
+    assert( p->pRefs == NULL );
+    p->pRefs = ABC_CALLOC( int, 2*Gia_ManObjNum(p) );
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            p->pRefs[Gia_ObjFaninLit0(pObj, i)]++;
+            p->pRefs[Gia_ObjFaninLit1(pObj, i)]++;
+        }
+        else if ( Gia_ObjIsCo(pObj) )
+            p->pRefs[Gia_ObjFaninLit0(pObj, i)]++;
     }
 }
 
