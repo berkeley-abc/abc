@@ -6,7 +6,7 @@ on:
 
 jobs:
 
-  build-posix:
+  build-posix-cmake:
     strategy:
       matrix:
         os: [macos-11, ubuntu-latest]
