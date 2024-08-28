@@ -320,7 +320,7 @@ Vec_Str_t * Gia_AigerWriteCellMappingDoc( Gia_Man_t * p )
 
     for (int i = 0; i < nCells; i++)
     {
-        Mio_Gate_t *pGate = pCells[i].pMioGate;
+        Mio_Gate_t *pGate = (Mio_Gate_t *) pCells[i].pMioGate;
         Mio_Pin_t *pPin;
         nSize += strlen(Mio_GateReadName(pGate)) + 1;
         nSize += strlen(Mio_GateReadOutName(pGate)) + 1 + 4;
@@ -345,12 +345,12 @@ Vec_Str_t * Gia_AigerWriteCellMappingDoc( Gia_Man_t * p )
     for (int i = 0; i < nCells; i++)
     {
         int nPins = 0;
-        Mio_Gate_t *pGate = pCells[i].pMioGate;
+        Mio_Gate_t *pGate = (Mio_Gate_t *) pCells[i].pMioGate;
         Mio_Pin_t *pPin;
 
-        strcpy(pBuffer + nSize2, Mio_GateReadName(pGate));
+        strcpy((char *) pBuffer + nSize2, Mio_GateReadName(pGate));
         nSize2 += strlen(Mio_GateReadName(pGate)) + 1;
-        strcpy(pBuffer + nSize2, Mio_GateReadOutName(pGate));
+        strcpy((char *) pBuffer + nSize2, Mio_GateReadOutName(pGate));
         nSize2 += strlen(Mio_GateReadOutName(pGate)) + 1;
 
         Mio_GateForEachPin( pGate, pPin )
@@ -359,7 +359,7 @@ Vec_Str_t * Gia_AigerWriteCellMappingDoc( Gia_Man_t * p )
 
         Mio_GateForEachPin( pGate, pPin )
         {
-            strcpy(pBuffer + nSize2, Mio_PinReadName(pPin));
+            strcpy((char *) pBuffer + nSize2, Mio_PinReadName(pPin));
             nSize2 += strlen(Mio_PinReadName(pPin)) + 1;
         }
     }
