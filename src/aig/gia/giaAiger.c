@@ -1464,6 +1464,18 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
         Vec_StrFree( vStrExt );
         if ( fVerbose ) printf( "Finished writing extension \"m\".\n" );
     }
+    // write cell mapping
+    if ( Gia_ManHasCellMapping(p) )
+    {
+        extern Vec_Str_t * Gia_AigerWriteCellMappingDoc( Gia_Man_t * p );
+        fprintf( pFile, "M" );
+        vStrExt = Gia_AigerWriteCellMappingDoc( p );
+        Gia_FileWriteBufferSize( pFile, Vec_StrSize(vStrExt) );
+        fwrite( Vec_StrArray(vStrExt), 1, Vec_StrSize(vStrExt), pFile );
+        Vec_StrFree( vStrExt );
+        if ( fVerbose ) printf( "Finished writing extension \"M\".\n" );
+
+    }
     // write placement
     if ( p->pPlacement )
     {

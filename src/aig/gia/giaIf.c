@@ -2208,7 +2208,7 @@ void Gia_ManMappingVerify( Gia_Man_t * p )
             continue;
         if ( !Gia_ObjIsLut(p, Gia_ObjId(p, pFanin)) )
         {
-            Abc_Print( -1, "Gia_ManMappingVerify: CO driver %d does not have mapping.\n", Gia_ObjId(p, pFanin) );
+            Abc_Print( -1, "Gia_ManMappingVerify: Buffer driver %d does not have mapping.\n", Gia_ObjId(p, pFanin) );
             Result = 0;
             continue;
         }
