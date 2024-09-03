@@ -60,7 +60,7 @@ static void printlits(lit* begin, lit* end)
 static inline double drand(double* seed) {
     int q;
     *seed *= 1389796;
-    q = (int)(*seed / 2147483647);
+    q = (int)(*seed * 4.6566128752457969e-10); // 1.0/2147483647.0;
     *seed -= (double)q * 2147483647;
     return *seed * 4.6566128752457969e-10; // 1.0/2147483647.0
 }
