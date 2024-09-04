@@ -872,6 +872,7 @@ Vec_Mem_t * Dau_CollectNpnFunctions( word * p, int nVars, int fVerbose )
 ***********************************************************************/
 Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int_t ** pvMap, int fVerbose )
 {
+    assert( nVars <= 10 );
     abctime clkStart = Abc_Clock();
     Vec_Int_t * vMap = Vec_IntAlloc( 100 );
     Vec_Int_t * vCnts = Vec_IntAlloc( Vec_WrdSize(vFuncs) );
@@ -881,13 +882,15 @@ Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int
     int nMints  = 1 << nVars;
     int * pPerm = Extra_PermSchedule( nVars );
     int * pComp = Extra_GreyCodeSchedule( nVars );
-    int m, i, k, t, Entry; word Truth;
-    assert( nWords == 1 );
-    Vec_WrdForEachEntry( vFuncs, Truth, t ) 
+    int m, i, k, t, Entry;
+    word * pCopy = ABC_ALLOC( word, nWords );
+    int nClasses = Vec_WrdSize(vFuncs) / nWords;
+    assert( nClasses * nWords == Vec_WrdSize(vFuncs) );
+    for ( t = 0; t < nClasses; t++ )
     {
+        word * pTruth = Vec_WrdEntryP( vFuncs, nWords * t );
         int nFuncs = Vec_MemEntryNum(vTtMem);
-        Truth = (Truth & 1) ? ~Truth : Truth;
-        word pCopy[1] = {Truth};
+        Abc_TtCopy( pCopy, pTruth, nWords, pTruth[0] & 1 );
         Vec_MemHashInsert( vTtMem, pCopy );
         for ( m = 0; m < nMints; m++ ) {
             Abc_TtFlip( pCopy, nWords, pComp[m] );
@@ -900,8 +903,12 @@ Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int
             else
                 Vec_MemHashInsert( vTtMem, pCopy );
         }
-        assert( Abc_TtEqual(pCopy, &Truth, nWords) );
-        for ( i = 0; i < nFuncs; i++ ) {
+        if (  pTruth[0] & 1 )
+            assert( Abc_TtOpposite(pCopy, pTruth, nWords) );
+        else
+            assert( Abc_TtEqual(pCopy, pTruth, nWords) );
+        int nFuncs2 = Vec_MemEntryNum(vTtMem);
+        for ( i = nFuncs; i < nFuncs2; i++ ) {
             Abc_TtCopy( pCopy, Vec_MemReadEntry(vTtMem, i), nWords, 0 );
             for ( k = 0; k < nPerms; k++ ) {
                 Abc_TtSwapAdjacent( pCopy, nWords, pPerm[k] );
@@ -914,13 +921,15 @@ Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int
             Vec_IntPush( vMap, t );
         Vec_IntPush( vCnts, Vec_MemEntryNum(vTtMem) - nFuncs );
     }
+    ABC_FREE( pCopy );
     ABC_FREE( pPerm );    
     ABC_FREE( pComp );
     if ( fVerbose ) {
+        int Lim = Abc_MinInt( Vec_IntSize(vCnts), 7 );
         printf( "Collected %d", Vec_MemEntryNum(vTtMem) );
-        Vec_IntForEachEntryStop( vCnts, Entry, i, 7 )
+        Vec_IntForEachEntryStop( vCnts, Entry, i, Lim )
             printf( " %c %d", i ? '+' : '=', Entry );
-        if ( Vec_IntSize(vCnts) > 7 )
+        if ( Vec_IntSize(vCnts) > Lim )
             printf( " + ..." );
         printf( " NPN class members.  " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart ); 
