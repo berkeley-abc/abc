@@ -45,6 +45,7 @@ struct Gia_Cut_t_
     unsigned        nTreeLeaves  : 28;         // tree leaves
     unsigned        nLeaves      :  4;         // leaf count
     int             pLeaves[GIA_MAX_CUTSIZE];  // leaves
+    float           CostF;
 };
 
 typedef struct Gia_Sto_t_ Gia_Sto_t; 
@@ -281,10 +282,18 @@ static inline int Gia_CutSetLastCutIsContained( Gia_Cut_t ** pCuts, int nCuts )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Gia_CutCompare( Gia_Cut_t * pCut0, Gia_Cut_t * pCut1 )
+static inline int Gia_CutCompare2( Gia_Cut_t * pCut0, Gia_Cut_t * pCut1 )
 {
     if ( pCut0->nTreeLeaves < pCut1->nTreeLeaves )  return -1;
     if ( pCut0->nTreeLeaves > pCut1->nTreeLeaves )  return  1;
+    if ( pCut0->nLeaves     < pCut1->nLeaves )      return -1;
+    if ( pCut0->nLeaves     > pCut1->nLeaves )      return  1;
+    return 0;
+}
+static inline int Gia_CutCompare( Gia_Cut_t * pCut0, Gia_Cut_t * pCut1 )
+{
+    if ( pCut0->CostF       > pCut1->CostF )         return -1;
+    if ( pCut0->CostF       < pCut1->CostF )         return  1;
     if ( pCut0->nLeaves     < pCut1->nLeaves )      return -1;
     if ( pCut0->nLeaves     > pCut1->nLeaves )      return  1;
     return 0;
@@ -432,6 +441,13 @@ static inline int Gia_CutTreeLeaves( Gia_Sto_t * p, Gia_Cut_t * pCut )
         Cost += Vec_IntEntry( p->vRefs, pCut->pLeaves[i] ) == 1;
     return Cost;
 }
+static inline float Gia_CutGetCost( Gia_Sto_t * p, Gia_Cut_t * pCut )
+{
+    int i, Cost = 0;
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        Cost += Vec_IntEntry( p->vRefs, pCut->pLeaves[i] );
+    return (float)Cost / Abc_MaxInt(1, pCut->nLeaves);
+}
 static inline int Gia_StoPrepareSet( Gia_Sto_t * p, int iObj, int Index )
 {
     Vec_Int_t * vThis = Vec_WecEntry( p->vCuts, iObj );
@@ -445,6 +461,7 @@ static inline int Gia_StoPrepareSet( Gia_Sto_t * p, int iObj, int Index )
         pCutTemp->iFunc = pCut[pCut[0]+1];
         pCutTemp->Sign = Gia_CutGetSign( pCutTemp );
         pCutTemp->nTreeLeaves = Gia_CutTreeLeaves( p, pCutTemp );
+        pCutTemp->CostF = Gia_CutGetCost( p, pCutTemp );
     }
     return pList[0];
 }
@@ -512,6 +529,7 @@ void Gia_StoMergeCuts( Gia_Sto_t * p, int iObj )
         if ( p->fCutMin && Gia_CutComputeTruth(p, pCut0, pCut1, fComp0, fComp1, pCutsR[nCutsR], fIsXor) )
             pCutsR[nCutsR]->Sign = Gia_CutGetSign(pCutsR[nCutsR]);
         pCutsR[nCutsR]->nTreeLeaves = Gia_CutTreeLeaves( p, pCutsR[nCutsR] );
+        pCutsR[nCutsR]->CostF = Gia_CutGetCost( p, pCutsR[nCutsR] );        
         nCutsR = Gia_CutSetAddCut( pCutsR, nCutsR, nCutNum );
     }
     p->CutCount[3] += nCutsR;
