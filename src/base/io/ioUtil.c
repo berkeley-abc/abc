@@ -465,7 +465,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkHasAig(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
             Abc_NtkToAig( pNtkTemp );
-        Io_WriteVerilog( pNtkTemp, pFileName, 0 );
+        Io_WriteVerilog( pNtkTemp, pFileName, 0, 0 );
     }
     else 
         fprintf( stderr, "Unknown file format.\n" );
@@ -593,7 +593,7 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
             if ( !Abc_NtkHasAig(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
                 Abc_NtkToAig( pNtkResult );
         }
-        Io_WriteVerilog( pNtkResult, pFileName, 0 );
+        Io_WriteVerilog( pNtkResult, pFileName, 0, 0 );
     }
     else if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
     {

@@ -32738,7 +32738,7 @@ int Abc_CommandAbc9WriteVer( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     Abc_NtkInsertHierarchyGia( pNtkSpec, pAbc->pNtkCur, fVerbose );
-    Io_WriteVerilog( pNtkSpec, pFileName, 0 );
+    Io_WriteVerilog( pNtkSpec, pFileName, 0, 0 );
     Abc_NtkDelete( pNtkSpec );
     return 0;
 

@@ -3599,13 +3599,13 @@ usage:
 ***********************************************************************/
 int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    extern void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int fFixed, int fNoModules );
+    extern void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int fFixed, int fNoModules, int fNewInterface );
     char * pFileName;
-    int c, fFixed = 0, fOnlyAnds = 0, fNoModules = 0;
+    int c, fFixed = 0, fOnlyAnds = 0, fNoModules = 0, fNewInterface = 0;
     int nLutSize = -1;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Kfamh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kfamnh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3629,6 +3629,9 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'm':
                 fNoModules ^= 1;
                 break;
+            case 'n':
+                fNewInterface ^= 1;
+                break;                
             case 'h':
                 goto usage;
             default:
@@ -3647,27 +3650,26 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    if ( fOnlyAnds )
+    if ( nLutSize >= 2 && nLutSize <= 6 )
+        Io_WriteVerilogLut( pAbc->pNtkCur, pFileName, nLutSize, fFixed, fNoModules, fNewInterface );
+    else
     {
         Abc_Ntk_t * pNtkTemp = Abc_NtkToNetlist( pAbc->pNtkCur );
         if ( !Abc_NtkHasAig(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
             Abc_NtkToAig( pNtkTemp );
-        Io_WriteVerilog( pNtkTemp, pFileName, 1 );
+        Io_WriteVerilog( pNtkTemp, pFileName, fOnlyAnds, fNewInterface );
         Abc_NtkDelete( pNtkTemp );
     }
-    else if ( nLutSize >= 2 && nLutSize <= 6 )
-        Io_WriteVerilogLut( pAbc->pNtkCur, pFileName, nLutSize, fFixed, fNoModules );
-    else
-        Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_VERILOG );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_verilog [-K num] [-famh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_verilog [-K num] [-famnh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the current network in Verilog format\n" );
     fprintf( pAbc->Err, "\t-K num : write the network using instances of K-LUTs (2 <= K <= 6) [default = not used]\n" );
     fprintf( pAbc->Err, "\t-f     : toggle using fixed format [default = %s]\n", fFixed? "yes":"no" );
     fprintf( pAbc->Err, "\t-a     : toggle writing expressions with only ANDs (without XORs and MUXes) [default = %s]\n", fOnlyAnds? "yes":"no" );
     fprintf( pAbc->Err, "\t-m     : toggle writing additional modules [default = %s]\n", !fNoModules? "yes":"no" );
+    fprintf( pAbc->Err, "\t-n     : toggle writing generic PO names and assign-statements [default = %s]\n", fNewInterface? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
