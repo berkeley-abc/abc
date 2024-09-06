@@ -766,7 +766,7 @@ extern SC_WireLoad * Abc_SclFetchWireLoadModel( SC_Lib * p, char * pName );
 extern int           Abc_SclHasDelayInfo( void * pScl );
 extern float         Abc_SclComputeAverageSlew( SC_Lib * p );
 extern void          Abc_SclDumpGenlib( char * pFileName, SC_Lib * p, float Slew, float Gain, int nGatesMin );
-extern void          Abc_SclInstallGenlib( void * pScl, float Slew, float Gain, int nGatesMin );
+extern void          Abc_SclInstallGenlib( void * pScl, float Slew, float Gain, int fUseAll, int nGatesMin );
 
 
 ABC_NAMESPACE_HEADER_END
