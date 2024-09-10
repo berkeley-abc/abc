@@ -18983,6 +18983,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseBuffs;
     int fVerbose;
     int c;
+    int fDefaultSetting = 0;
     extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fUseBuffs, int fVerbose );
     extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
 
@@ -19010,10 +19011,13 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-D\" should be followed by a floating point number.\n" );
                 goto usage;
             }
+            fDefaultSetting = DelayTarget;
             DelayTarget = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( DelayTarget <= 0.0 )
+            if ( DelayTarget <= 0.0 ){
+                DelayTarget = fDefaultSetting;
                 goto usage;
+            }
             break;
         case 'A':
             if ( globalUtilOptind >= argc )
@@ -19039,10 +19043,13 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-F\" should be followed by a floating point number.\n" );
                 goto usage;
             }
+            fDefaultSetting = LogFan;
             LogFan = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( LogFan < 0.0 )
+            if ( LogFan < 0.0 ){
+                LogFan = fDefaultSetting;
                 goto usage;
+            }
             break;
         case 'S':
             if ( globalUtilOptind >= argc )
@@ -19050,10 +19057,13 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-S\" should be followed by a floating point number.\n" );
                 goto usage;
             }
+            fDefaultSetting = Slew;
             Slew = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Slew <= 0.0 )
+            if ( Slew <= 0.0 ){
+                Slew = fDefaultSetting;
                 goto usage;
+            }
             break;
         case 'G':
             if ( globalUtilOptind >= argc )
@@ -19061,10 +19071,13 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-G\" should be followed by a floating point number.\n" );
                 goto usage;
             }
+            fDefaultSetting = Gain;
             Gain = (float)atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( Gain <= 0.0 )
+            if ( Gain <= 0.0 ){
+                Gain = fDefaultSetting;
                 goto usage;
+            }
             break;
         case 'M':
             if ( globalUtilOptind >= argc )
@@ -19072,10 +19085,13 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-M\" should be followed by a positive integer.\n" );
                 goto usage;
             }
+            fDefaultSetting = nGatesMin;
             nGatesMin = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nGatesMin < 0 )
+            if ( nGatesMin < 0 ){
+                nGatesMin = fDefaultSetting;
                 goto usage;
+            }
             break;
         case 'a':
             fAreaOnly ^= 1;
