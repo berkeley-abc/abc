@@ -38616,6 +38616,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_Int_t * vStops = Gia_ManFindStopFlops( pAbc->pGia, nFlopIncFreq, pPars->fVerbose );
         if ( vStops )
         {
+            extern void Gia_ManTransferEquivs2( Gia_Man_t * p, Gia_Man_t * pNew );
             Gia_Man_t * pUsed = Gia_ManDupStopsAdd( pAbc->pGia, vStops );
             if ( pPars->nPartSize > 0 )
                 pTemp = Gia_SignalCorrespondencePart( pUsed, pPars );
@@ -38625,6 +38626,7 @@ int Abc_CommandAbc9Scorr( Abc_Frame_t * pAbc, int argc, char ** argv )
                 pTemp = Gia_ManScorrDivideTest( pUsed, pPars );
             else
                 pTemp = Cec_ManLSCorrespondence( pUsed, pPars );
+            Gia_ManTransferEquivs2( pUsed, pAbc->pGia );
             Gia_ManStop( pUsed );
             pTemp = Gia_ManDupStopsRem( pUsed = pTemp, vStops );
             Gia_ManStop( pUsed );

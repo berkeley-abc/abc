@@ -2732,6 +2732,54 @@ void Gia_ManTransferTest( Gia_Man_t * p )
     Gia_ManStop( pNew );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Transfer from new to old.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManTransferEquivs2( Gia_Man_t * p, Gia_Man_t * pOld )
+{
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vClass;
+    int i, k, iNode, iRepr;
+    assert( p->pReprs != NULL );
+    assert( p->pNexts != NULL );
+    assert( pOld->pReprs == NULL );
+    assert( pOld->pNexts == NULL );
+    // create map
+    Gia_ManFillValue( p );
+    Gia_ManForEachObj( pOld, pObj, i )
+        if ( ~pObj->Value )
+            Gia_ManObj(p, Abc_Lit2Var(pObj->Value))->Value = Abc_Var2Lit(i, 0);
+    // start representatives
+    pOld->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(pOld) );
+    for ( i = 0; i < Gia_ManObjNum(pOld); i++ )
+        Gia_ObjSetRepr( pOld, i, GIA_VOID );
+    // iterate over constant candidates
+    Gia_ManForEachConst( p, i )
+        Gia_ObjSetRepr( pOld, Abc_Lit2Var(Gia_ManObj(p, i)->Value), 0 );
+    // iterate over class candidates
+    vClass = Vec_IntAlloc( 100 );
+    Gia_ManForEachClass( p, i )
+    {
+        Vec_IntClear( vClass );
+        Gia_ClassForEachObj( p, i, k )
+            Vec_IntPushUnique( vClass, Abc_Lit2Var(Gia_ManObj(p, k)->Value) );
+        assert( Vec_IntSize( vClass ) > 1 );
+        Vec_IntSort( vClass, 0 );
+        iRepr = Vec_IntEntry( vClass, 0 );
+        Vec_IntForEachEntryStart( vClass, iNode, k, 1 )
+            Gia_ObjSetRepr( pOld, iNode, iRepr );
+    }
+    Vec_IntFree( vClass );
+    pOld->pNexts = Gia_ManDeriveNexts( pOld );
+}
 
 /**Function*************************************************************
 
