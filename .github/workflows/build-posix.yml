@@ -22,7 +22,7 @@ jobs:
     steps:
 
     - name: Git Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
       with:
         submodules: recursive
 
@@ -60,7 +60,7 @@ jobs:
        cp abc libabc.a staging/
 
     - name: Upload pacakge artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v4
       with:
-        name: package
+        name: package-posix-${{ matrix.os }}-${{ matrix.use_namespace }}
         path: staging/
