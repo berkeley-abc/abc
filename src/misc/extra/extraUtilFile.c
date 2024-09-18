@@ -18,8 +18,12 @@
 
 ***********************************************************************/
 
+#ifdef WIN32
+#include <windows.h>
+#define PATH_MAX MAX_PATH
+#else
 #include <limits.h>
-#include <stdlib.h>
+#endif
 
 #include "extra.h"
 
