@@ -1176,6 +1176,17 @@ Gia_Man_t * Gia_ManTtoptCare( Gia_Man_t * p, int nIns, int nOuts, int nRounds, c
     {
         vSupp = Gia_ManCollectSuppNew( p, g, nOuts );
         nInputs = Vec_IntSize( vSupp );
+        if ( nInputs == 0 )
+        {
+            for ( k = 0; k < nOuts; k++ )
+            {
+                pObj = Gia_ManCo( p, g+k );
+                pTruth = Gia_ObjComputeTruthTableCut( p, Gia_ObjFanin0(pObj), vSupp );
+                Gia_ManAppendCo( pNew, pTruth[0] & 1 );
+            }
+            Vec_IntFree( vSupp );
+            continue;
+        }
         Ttopt::TruthTableLevelTSM tt( nInputs, nOuts );
         for ( k = 0; k < nOuts; k++ )
         {

@@ -193,7 +193,7 @@ Gia_Man_t * Vec_WrdReadTest( char * pFileName )
 void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO, int nIns, int nOuts )
 {
     int i, nSize, iLine, nLines, nWords;
-    char pLine[1000];
+    char pLine[2000];
     Vec_Wrd_t * vSimI, * vSimO;
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
@@ -214,7 +214,7 @@ void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO
     nWords = (nLines + 63)/64;
     vSimI  = Vec_WrdStart( nIns *nWords );
     vSimO  = Vec_WrdStart( nOuts*nWords );
-    for ( iLine = 0; fgets( pLine, 1000, pFile ); iLine++ )
+    for ( iLine = 0; fgets( pLine, 2000, pFile ); iLine++ )
     {
         for ( i = 0; i < nIns; i++ )
             if ( pLine[nIns-1-i] == '1' )
@@ -233,7 +233,7 @@ void Vec_WrdReadText( char * pFileName, Vec_Wrd_t ** pvSimI, Vec_Wrd_t ** pvSimO
 int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
 {
     int i, nSize, iLine, nLines, nWords, nIns;
-    char pLine[1000];
+    char pLine[2000];
     Vec_Wrd_t * vSimI;
     FILE * pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
@@ -241,7 +241,7 @@ int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
         printf( "Cannot open file \"%s\" for reading.\n", pFileName );
         return 0;
     }
-    if ( !fgets(pLine, 1000, pFile) || (nIns = strlen(pLine)-1) < 1 )
+    if ( !fgets(pLine, 2000, pFile) || (nIns = strlen(pLine)-1) < 1 )
     {
         printf( "Cannot find the number of inputs in file \"%s\".\n", pFileName );
         fclose( pFile );
@@ -259,7 +259,7 @@ int Vec_WrdReadText2( char * pFileName, Vec_Wrd_t ** pvSimI )
     nLines = nSize / (nIns + 1);
     nWords = (nLines + 63)/64;
     vSimI  = Vec_WrdStart( nIns *nWords );
-    for ( iLine = 0; fgets( pLine, 1000, pFile ); iLine++ )
+    for ( iLine = 0; fgets( pLine, 2000, pFile ); iLine++ )
     {
         for ( i = 0; i < nIns; i++ )
             if ( pLine[nIns-1-i] == '1' )
