@@ -182,6 +182,7 @@ static int Abc_CommandSwapPos                ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRemovePo               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDropSat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAddPi                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAddFlop                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAppend                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPutOnTop               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFrames                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -981,6 +982,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "removepo",      Abc_CommandRemovePo,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "dropsat",       Abc_CommandDropSat,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "addpi",         Abc_CommandAddPi,            1 );
+    Cmd_CommandAdd( pAbc, "Various",      "addflop",       Abc_CommandAddFlop,          1 );
     Cmd_CommandAdd( pAbc, "Various",      "append",        Abc_CommandAppend,           1 );
     Cmd_CommandAdd( pAbc, "Various",      "putontop",      Abc_CommandPutOnTop,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "frames",        Abc_CommandFrames,           1 );
@@ -11176,7 +11178,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAddPi( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
 
     // set defaults
@@ -11198,19 +11200,72 @@ int Abc_CommandAddPi( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // get the new network
-    pNtkRes = Abc_NtkDup( pNtk );
-    if ( Abc_NtkPiNum(pNtkRes) == 0 )
+    if ( Abc_NtkPiNum(pNtk) == 0 )
     {
+        Abc_Ntk_t * pNtkRes = Abc_NtkDup( pNtk );
         Abc_Obj_t * pObj = Abc_NtkCreatePi( pNtkRes );
         Abc_ObjAssignName( pObj, "dummy_pi", NULL );
         Abc_NtkOrderCisCos( pNtkRes );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     }
-    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: addpi [-h]\n" );
     Abc_Print( -2, "\t         if the network has no PIs, add one dummy PI\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAddFlop( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -2, "The current network is not an AIG (run \"strash\").\n");
+        return 0;
+    }
+    // get the new network
+    if ( Abc_NtkLatchNum(pNtk) == 0 )
+    {
+        Abc_Ntk_t * pNtkRes = Abc_NtkDup( pNtk );
+        Abc_NtkAddLatch( pNtkRes, Abc_AigConst1(pNtkRes), ABC_INIT_ONE );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: addflop [-h]\n" );
+    Abc_Print( -2, "\t         if the network has no flops, add one dummy flop\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
@@ -41414,7 +41469,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-
+    
     if ( pAbc->pGia == NULL )
     {
         if ( !Abc_FrameReadFlag("silentmode") )
@@ -52958,13 +53013,16 @@ int Abc_CommandAbc9AddFlop( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9AddFlop(): There is no AIG.\n" );
         return 0;
     }
-    pTemp = Gia_ManDupAddFlop( pAbc->pGia );
-    Abc_FrameUpdateGia( pAbc, pTemp );
+    if ( Gia_ManRegNum(pAbc->pGia) == 0 ) 
+    {
+        pTemp = Gia_ManDupAddFlop( pAbc->pGia );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+    }
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &addflop [-vh]\n" );
-    Abc_Print( -2, "\t         adds one flop to the design\n" );
+    Abc_Print( -2, "\t         if the design has no flops, adds one flop to the design\n" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n",  fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
