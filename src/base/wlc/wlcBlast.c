@@ -133,6 +133,61 @@ int Wlc_NtkMuxTree2( Gia_Man_t * pNew, int * pCtrl, int nCtrl, Vec_Int_t * vData
         Vec_IntPush( vTemp, Abc_LitNot( Gia_ManHashAnd(pNew, iLit, Vec_IntEntry(vData, m)) ) );
     return Abc_LitNot( Gia_ManHashAndMulti(pNew, vTemp) );
 }
+int Wlc_NtkMuxTree3( Gia_Man_t * p, Vec_Int_t * vData, char * pNums, Vec_Int_t ** pvDecs )
+{
+    int i, iStart = 0, nSize = Vec_IntSize(vData);
+    for ( i = (int)strlen(pNums)-1; i >= 0; i-- )
+    {
+        int k, b, nBits = (int)(pNums[i] - '0');
+        Vec_Int_t * vDec = pvDecs[i];
+        for ( k = 0; k < nSize; k++ )
+            Vec_IntWriteEntry( vData, k, Gia_ManHashAnd(p, Vec_IntEntry(vData, k), Vec_IntEntry(vDec, k%Vec_IntSize(vDec))) );
+        for ( b = 0; b < nBits; b++, nSize /= 2 )
+            for ( k = 0; k < nSize/2; k++ )
+                Vec_IntWriteEntry( vData, k, Gia_ManHashOr(p, Vec_IntEntry(vData, 2*k), Vec_IntEntry(vData, 2*k+1)) );
+        iStart += nBits;
+    }
+    assert( nSize == 1 );
+    return Vec_IntEntry(vData, 0);
+}
+Vec_Int_t ** Wlc_NtkMuxTree3DecsDerive( Gia_Man_t * p, int * pIns, int nIns, char * pNums )
+{
+    extern Vec_Int_t * Wlc_BlastDecoder2_rec( Gia_Man_t * p, int * pLits, int nLits );
+    Vec_Int_t ** pvDecs = ABC_ALLOC( Vec_Int_t *, strlen(pNums) ); int i, iStart = 0;
+    for ( i = (int)strlen(pNums)-1; i >= 0; i-- ) {
+        pvDecs[i] = Wlc_BlastDecoder2_rec( p, pIns + iStart, (int)(pNums[i] - '0') );
+        iStart += (int)(pNums[i] - '0');
+    }
+    assert( iStart == nIns );
+    return pvDecs;
+}
+void Wlc_NtkMuxTree3DecsFree( Vec_Int_t ** pvDecs, char * pNums )
+{
+    int i;
+    for ( i = (int)strlen(pNums)-1; i >= 0; i-- )
+        Vec_IntFree( pvDecs[i] );
+    ABC_FREE( pvDecs );
+}
+char * Wlc_NtkMuxTreeString( int nIns )
+{
+    if ( nIns == 1 )    return (char*)"1";    
+    if ( nIns == 2 )    return (char*)"11";
+    if ( nIns == 3 )    return (char*)"111";
+    if ( nIns == 4 )    return (char*)"112";
+    if ( nIns == 5 )    return (char*)"1112";
+    if ( nIns == 6 )    return (char*)"1113";
+    if ( nIns == 7 )    return (char*)"1114";
+    if ( nIns == 8 )    return (char*)"1124";
+    if ( nIns == 9 )    return (char*)"11124";
+    if ( nIns == 10 )   return (char*)"11125";
+    if ( nIns == 11 )   return (char*)"11126";
+    if ( nIns == 12 )   return (char*)"11136";
+    if ( nIns == 13 )   return (char*)"11137";
+    if ( nIns == 14 )   return (char*)"11147";
+    if ( nIns == 15 )   return (char*)"11148";
+    if ( nIns == 16 )   return (char*)"11248";
+    return NULL;
+}
 void Wlc_NtkPrintNameArray( Vec_Ptr_t * vNames )
 {
     int i; char * pTemp;
@@ -318,6 +373,30 @@ int Wlc_BlastLessSigned( Gia_Man_t * pNew, int * pArg0, int * pArg1, int nBits )
 {
     int iDiffSign = Gia_ManHashXor( pNew, pArg0[nBits-1], pArg1[nBits-1] );
     return Gia_ManHashMux( pNew, iDiffSign, pArg0[nBits-1], Wlc_BlastLess(pNew, pArg0, pArg1, nBits-1) );
+}
+int Wlc_BlastLess3( Gia_Man_t * p, int * pArg1, int * pArg0, int nBits )
+{
+    int i, iLit = 1;
+    for ( i = 0; i < nBits; i++ ) {
+        int iLitA0  = pArg0[i];
+        int iLitA1  = i == nBits-1 ? 0 : pArg0[i+1];
+        int iLitB0  = pArg1[i];
+        int iLitB1  = i == nBits-1 ? 0 : pArg1[i+1];
+        int iOrLit0;
+        if ( i == 0 )
+            iOrLit0 = Gia_ManHashOr(p, Abc_LitNotCond(iLitA0, !(i&1)), Abc_LitNotCond(iLitB0, i&1));
+        else
+            iOrLit0 = Gia_ManHashAnd(p, Abc_LitNotCond(iLitA0, !(i&1)), Abc_LitNotCond(iLitB0, i&1));
+        int iOrLit1 = Gia_ManHashAnd(p, Abc_LitNotCond(iLitA1, !(i&1)), Abc_LitNotCond(iLitB1, i&1));
+        int iOrLit  = Gia_ManHashOr(p, iOrLit0, iOrLit1 );
+        iLit = Gia_ManHashOr(p, Abc_LitNot(iLit), iOrLit );
+    }
+    return Abc_LitNotCond(iLit, nBits&1);
+}
+int Wlc_BlastLessSigned3( Gia_Man_t * pNew, int * pArg0, int * pArg1, int nBits )
+{
+    int iDiffSign = Gia_ManHashXor( pNew, pArg0[nBits-1], pArg1[nBits-1] );
+    return Gia_ManHashMux( pNew, iDiffSign, pArg0[nBits-1], Wlc_BlastLess3(pNew, pArg0, pArg1, nBits-1) );
 }
 void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * ps )
 {
@@ -1129,6 +1208,37 @@ void Wlc_BlastDecoder( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp,
         Vec_IntPush( vRes, iMint );
     }
 }
+Vec_Int_t * Wlc_BlastDecoder2_rec( Gia_Man_t * p, int * pLits, int nLits )
+{
+    if ( nLits == 1 )
+    {
+        Vec_Int_t * vRes = Vec_IntAlloc( 2 );
+        Vec_IntPush( vRes, Abc_LitNot(pLits[0]) );
+        Vec_IntPush( vRes, pLits[0] );
+        return vRes;
+    }
+    assert( nLits > 1 );
+    int nPart1 = nLits / 2;
+    int nPart2 = nLits - nPart1;
+    Vec_Int_t * vRes1 = Wlc_BlastDecoder2_rec( p, pLits, nPart1 );
+    Vec_Int_t * vRes2 = Wlc_BlastDecoder2_rec( p, pLits+nPart1, nPart2 );
+    Vec_Int_t * vRes = Vec_IntAlloc( Vec_IntSize(vRes1) * Vec_IntSize(vRes2) );
+    int i, k, Lit1, Lit2;
+    Vec_IntForEachEntry( vRes2, Lit2, k )
+    Vec_IntForEachEntry( vRes1, Lit1, i )
+        Vec_IntPush( vRes, Gia_ManHashAnd(p, Lit1, Lit2) );
+    Vec_IntFree( vRes1 );
+    Vec_IntFree( vRes2 );
+    return vRes;   
+}
+Vec_Int_t * Wlc_BlastDecoder2( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t * vTmp, Vec_Int_t * vRes )
+{
+    Vec_Int_t * vRes2 = Wlc_BlastDecoder2_rec( pNew, pNum, nNum );
+    Vec_IntClear( vRes );
+    Vec_IntAppend( vRes, vRes2 );
+    Vec_IntFree( vRes2 );
+    return vRes;
+}
 void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds, int fVerbose )
 {
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB + 3 );
@@ -1553,34 +1663,60 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             Wlc_ObjForEachFanin( pObj, iFanin, k )
                 if ( k > 0 )
                     fSigned &= Wlc_NtkObj(p, iFanin)->Signed;
-            Vec_IntClear( vTemp1 );
-            if ( pPar->fDecMuxes )
+            if ( pParIn->fBlastNew && nRange0 <= 16 )
             {
-                for ( k = 0; k < (1 << nRange0); k++ )
+                char * pNums = Wlc_NtkMuxTreeString( nRange0 );
+                Vec_Int_t ** pvDecs = Wlc_NtkMuxTree3DecsDerive( pNew, pFans0, nRange0, pNums );
+                for ( b = 0; b < nRange; b++ )
                 {
-                    int iLitAnd = 1;
-                    for ( b = 0; b < nRange0; b++ )
-                        iLitAnd = Gia_ManHashAnd( pNew, iLitAnd, Abc_LitNotCond(pFans0[b], ((k >> b) & 1) == 0) );
-                    Vec_IntPush( vTemp1, iLitAnd );
-                }
-            }
-            for ( b = 0; b < nRange; b++ )
-            {
-                Vec_IntClear( vTemp0 );
-                Wlc_ObjForEachFanin( pObj, iFanin, k )
-                    if ( k > 0 )
-                    {
-                        nRange1 = Wlc_ObjRange( Wlc_NtkObj(p, iFanin) );
-                        pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
-                        if ( Wlc_ObjFaninNum(pObj) == 3 ) // Statement 1
-                            Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (fSigned? pFans1[nRange1-1] : 0) );
-                        else // Statement 2
-                            Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (Wlc_NtkObj(p, iFanin)->Signed? pFans1[nRange1-1] : 0) );
+                    Vec_IntClear( vTemp0 );
+                    Wlc_ObjForEachFanin( pObj, iFanin, k ) {
+                        if ( k > 0 )
+                        {
+                            nRange1 = Wlc_ObjRange( Wlc_NtkObj(p, iFanin) );
+                            pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
+                            if ( Wlc_ObjFaninNum(pObj) == 3 ) // Statement 1
+                                Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (fSigned? pFans1[nRange1-1] : 0) );
+                            else // Statement 2
+                                Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (Wlc_NtkObj(p, iFanin)->Signed? pFans1[nRange1-1] : 0) );
+                        }
                     }
+                    assert( (1 << nRange0) == Vec_IntSize(vTemp0) );
+                    Vec_IntPush( vRes, Wlc_NtkMuxTree3(pNew, vTemp0, pNums, pvDecs) );
+                }
+                Wlc_NtkMuxTree3DecsFree( pvDecs, pNums );
+            }
+            else
+            {
+                Vec_IntClear( vTemp1 );
                 if ( pPar->fDecMuxes )
-                    Vec_IntPush( vRes, Wlc_NtkMuxTree2(pNew, pFans0, nRange0, vTemp0, vTemp1, vTemp2) );
-                else
-                    Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
+                {
+                    for ( k = 0; k < (1 << nRange0); k++ )
+                    {
+                        int iLitAnd = 1;
+                        for ( b = 0; b < nRange0; b++ )
+                            iLitAnd = Gia_ManHashAnd( pNew, iLitAnd, Abc_LitNotCond(pFans0[b], ((k >> b) & 1) == 0) );
+                        Vec_IntPush( vTemp1, iLitAnd );
+                    }
+                }
+                for ( b = 0; b < nRange; b++ )
+                {
+                    Vec_IntClear( vTemp0 );
+                    Wlc_ObjForEachFanin( pObj, iFanin, k )
+                        if ( k > 0 )
+                        {
+                            nRange1 = Wlc_ObjRange( Wlc_NtkObj(p, iFanin) );
+                            pFans1  = Vec_IntEntryP( vBits, Wlc_ObjCopy(p, iFanin) );
+                            if ( Wlc_ObjFaninNum(pObj) == 3 ) // Statement 1
+                                Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (fSigned? pFans1[nRange1-1] : 0) );
+                            else // Statement 2
+                                Vec_IntPush( vTemp0, b < nRange1 ? pFans1[b] : (Wlc_NtkObj(p, iFanin)->Signed? pFans1[nRange1-1] : 0) );
+                        }
+                    if ( pPar->fDecMuxes )
+                        Vec_IntPush( vRes, Wlc_NtkMuxTree2(pNew, pFans0, nRange0, vTemp0, vTemp1, vTemp2) );
+                    else
+                        Vec_IntPush( vRes, Wlc_NtkMuxTree_rec(pNew, pFans0, nRange0, vTemp0, 0) );
+                }
             }
         }
         else if ( pObj->Type == WLC_OBJ_SEL )
@@ -1784,9 +1920,9 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             int fCompl = (pObj->Type == WLC_OBJ_COMP_MOREEQU || pObj->Type == WLC_OBJ_COMP_LESSEQU);
             if ( fSwap ) ABC_SWAP( int *, pArg0, pArg1 );
             if ( fSigned )
-                iLit = Wlc_BlastLessSigned( pNew, pArg0, pArg1, nRangeMax );
+                iLit = pParIn->fBlastNew ? Wlc_BlastLessSigned3( pNew, pArg0, pArg1, nRangeMax ) :  Wlc_BlastLessSigned( pNew, pArg0, pArg1, nRangeMax );
             else
-                iLit = Wlc_BlastLess( pNew, pArg0, pArg1, nRangeMax );
+                iLit = pParIn->fBlastNew ? Wlc_BlastLess3( pNew, pArg0, pArg1, nRangeMax ) : Wlc_BlastLess( pNew, pArg0, pArg1, nRangeMax );
             iLit = Abc_LitNotCond( iLit, fCompl );
             Vec_IntFill( vRes, 1, iLit );
             for ( k = 1; k < nRange; k++ )
@@ -1917,7 +2053,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         else if ( pObj->Type == WLC_OBJ_DEC )
         {
             int * pArg0 = Wlc_VecLoadFanins( vTemp0, pFans0, nRange0, nRange0, 0 );
-            Wlc_BlastDecoder( pNew, pArg0, nRange0, vTemp2, vRes );
+            if ( pParIn->fBlastNew )
+                Wlc_BlastDecoder2( pNew, pArg0, nRange0, vTemp2, vRes );
+            else
+                Wlc_BlastDecoder( pNew, pArg0, nRange0, vTemp2, vRes );
             if ( nRange > Vec_IntSize(vRes) )
                 Vec_IntFillExtra( vRes, nRange, 0 );
             else
