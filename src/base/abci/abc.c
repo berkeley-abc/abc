@@ -53898,36 +53898,9 @@ int Abc_CommandAbc9GenMux( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind && nIns > 0 ) 
     {
-        if ( nIns == 2 )
-           pNums = "11";
-        else if ( nIns == 3 )
-           pNums = "111";
-        else if ( nIns == 4 )
-           pNums = "112";
-        else if ( nIns == 5 )
-           pNums = "113";
-        else if ( nIns == 6 )
-           pNums = "123";
-        else if ( nIns == 7 )
-           pNums = "1123";
-        else if ( nIns == 8 )
-           pNums = "1124";
-        else if ( nIns == 9 )
-           pNums = "1134";
-        else if ( nIns == 10 )
-           pNums = "1135";
-        else if ( nIns == 11 )
-           pNums = "1235";
-        else if ( nIns == 12 )
-           pNums = "1245";
-        else if ( nIns == 13 )
-           pNums = "1246";
-        else if ( nIns == 14 )
-           pNums = "1247";
-        else if ( nIns == 15 )
-           pNums = "1248";
-        else if ( nIns == 16 )
-           pNums = "1348";
+        extern char * Wlc_NtkMuxTreeString( int nIns );
+        if ( nIns <= 16 )
+            pNums = Wlc_NtkMuxTreeString( nIns );
         else
         {
             Abc_Print( -1, "Abc_CommandAbc9GenMux(): The number of controls should not be in the range: 2 <= n <= 16.\n" );
@@ -54429,10 +54402,12 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Vec_Mem_t * Dau_CollectNpnFunctions( word * p, int nVars, int fVerbose );
     extern void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose );
+    extern Vec_Mem_t * Abc_TruthDecRead( char * pFileName, int nVarNum );
+    extern void Abc_TtStoreDump( char * pFileName, Vec_Mem_t * vTtMem, int nBytes );
     int c, nVars, nVars2, nCutNum = 8, nCutSize = 0, nNumFuncs = 5, nNumCones = 3, fOutputs = 0, fVerbose = 0; word * pTruth = NULL;
-    char * pStr = NULL; Vec_Mem_t * vTtMem = NULL; Gia_Man_t * pTemp;
+    char * pStr = NULL, * pFuncFileName = "_npn_member_funcs_.data"; Vec_Mem_t * vTtMem = NULL; Gia_Man_t * pTemp;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CKNMovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CKNMFovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -54479,6 +54454,15 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nNumCones < 0 )
                 goto usage;
+            break;
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pFuncFileName = argv[globalUtilOptind];
+            globalUtilOptind++;
             break;            
         case 'o':
             fOutputs ^= 1;
@@ -54497,10 +54481,27 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9FunTrace(): There is no AIG.\n" );
         return 0;
     }
-    if ( argc != globalUtilOptind + 1 )
+    if ( argc == globalUtilOptind )
     {
-        Abc_Print( -1, "Abc_CommandAbc9FunTrace(): Truth table in hex notation should be given on the command line.\n" );
-        return 0;
+        abctime clkStart = Abc_Clock();
+        int nFileSize = Gia_FileSize( pFuncFileName );
+        if ( nFileSize == 0 )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9FunTrace(): Truth table in hex notation (or file name with the functions) should be given on the command line.\n" );
+            return 0;
+        }
+        if ( nCutSize == 0 )
+        {
+            Abc_Print( -1, "Abc_CommandAbc9FunTrace(): The cut size needs to be specified on the command line (-K <num>) when precomputed functions are used.\n" );
+            return 0;            
+        }
+        vTtMem = Abc_TruthDecRead( pFuncFileName, nCutSize );
+        printf( "Finished reading %d %d-input function from file \"%s\".  ", nFileSize / 8 / Abc_Truth6WordNum(nCutSize), nCutSize, pFuncFileName );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+        Gia_ManMatchCuts( vTtMem, pAbc->pGia, nCutSize, nCutNum, fVerbose );
+        Vec_MemHashFree( vTtMem );
+        Vec_MemFree( vTtMem );
+        return 0;        
     }
     if ( strstr(argv[globalUtilOptind], ".aig") ) 
     { // the entry on the command line is an AIGER file
@@ -54549,17 +54550,22 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
     //Abc_TtPrintHexRev( stdout, pTruth, nVars ); printf( "\n" );
     vTtMem = Dau_CollectNpnFunctions( pTruth, nVars, fVerbose );
     Gia_ManMatchCuts( vTtMem, pAbc->pGia, nVars, nCutNum, fVerbose );
+    if ( pFuncFileName ) {
+        Abc_TtStoreDump( pFuncFileName, vTtMem, 8 * Vec_MemEntrySize(vTtMem) );
+        printf( "Dumped %d NPN class member functions into file \"%s\".\n", Vec_MemEntryNum(vTtMem), pFuncFileName );
+    }
     Vec_MemHashFree( vTtMem );
     Vec_MemFree( vTtMem );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &funtrace [-CKNM num] [-ovh] {<truth> or <file.aig>}\n" );
+    Abc_Print( -2, "usage: &funtrace [-CKNM num] [-F file] [-ovh] {<truth> or <file.aig>}\n" );
     Abc_Print( -2, "\t          traces the presence of the function in the current AIG\n" );
     Abc_Print( -2, "\t-C num  : the number of cuts to compute at each node [default = %d]\n", nCutNum );
     Abc_Print( -2, "\t-K num  : the LUT size to use when <file.aig> is given [default = %d]\n", nCutSize );
-    Abc_Print( -2, "\t-N num  : the number of functions to use when <file.aig> is given [default = %d]\n", nNumFuncs );
+    Abc_Print( -2, "\t-N num  : the number of functions to use when <file.aig> or -F <file> are used [default = %d]\n", nNumFuncs );
     Abc_Print( -2, "\t-M num  : the number of logic cones to use when <file.aig> is given [default = %d]\n", nNumCones );
+    Abc_Print( -2, "\t-F file : the file name to store the NPN member functions [default = %s]\n", pFuncFileName );
     Abc_Print( -2, "\t-o      : toggles using AIG output functions instead of frequent cut functions [default = %s]\n", fOutputs ? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
