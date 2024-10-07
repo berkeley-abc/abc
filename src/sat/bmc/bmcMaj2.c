@@ -1387,7 +1387,17 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
     int i, status, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa3_Man_t * p; int fCompl = 0;
-    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    word pTruth[16];
+    if ( pPars->pSymStr ) {
+        word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
+        pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
+        Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
+        printf( "Generated symmetric function: %s\n", pPars->pTtStr );
+        ABC_FREE( pFun );
+    }    
+    if ( pPars->pTtStr )
+        Abc_TtReadHex( pTruth, pPars->pTtStr );
+    else assert( 0 );    
     assert( pPars->nVars <= 10 );
     assert( pPars->nLutSize <= 6 );
     p = Exa3_ManAlloc( pPars, pTruth );
@@ -1422,6 +1432,8 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     if ( iMint == -1 )
         Exa3_ManDumpBlif( p, fCompl );
+    if ( pPars->pSymStr ) 
+        ABC_FREE( pPars->pTtStr );
     Exa3_ManFree( p );
 }
 

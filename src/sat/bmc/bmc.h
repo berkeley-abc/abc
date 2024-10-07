@@ -66,6 +66,7 @@ struct Bmc_EsPar_t_
     int        RuntimeLim;
     int        fVerbose; 
     char *     pTtStr;
+    char *     pSymStr;
 };
 
 static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
@@ -88,7 +89,7 @@ static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
     pPars->fUniqFans   = 0;
     pPars->fLutCascade = 0;
     pPars->RuntimeLim  = 0;
-    pPars->fVerbose    = 1; 
+    pPars->fVerbose    = 0; 
 }
 
 
