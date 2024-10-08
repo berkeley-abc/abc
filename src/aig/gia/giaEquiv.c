@@ -2770,7 +2770,10 @@ void Gia_ManTransferEquivs2( Gia_Man_t * p, Gia_Man_t * pOld )
     {
         Vec_IntClear( vClass );
         Gia_ClassForEachObj( p, i, k )
-            Vec_IntPushUnique( vClass, Abc_Lit2Var(Gia_ManObj(p, k)->Value) );
+            if ( (int)Gia_ManObj(p, k)->Value >= 0 )
+                Vec_IntPushUnique( vClass, Abc_Lit2Var(Gia_ManObj(p, k)->Value) );
+        if ( Vec_IntSize( vClass ) <= 1 )
+            continue;
         assert( Vec_IntSize( vClass ) > 1 );
         Vec_IntSort( vClass, 0 );
         iRepr = Vec_IntEntry( vClass, 0 );
