@@ -512,7 +512,7 @@ private:
     } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
     std::array<uint32_t, max_num_vars> res_perm;
-    
+
     if ( best_cost > ( 1 << ( ps.lut_size - free_set_size ) ) )
     {
       return std::make_tuple( local_best_tt, res_perm, UINT32_MAX );
