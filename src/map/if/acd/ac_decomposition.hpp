@@ -294,6 +294,7 @@ private:
       pst->num_luts = best_multiplicity <= 2 ? 2 : best_multiplicity <= 4 ? 3
                                                  : best_multiplicity <= 8 ? 4
                                                                           : 5;
+      pst->num_edges = ( pst->num_luts - 1 ) * ( num_vars - best_free_set ) + ( pst->num_luts - 1 ) + best_free_set;
     }
 
     return true;
@@ -510,8 +511,8 @@ private:
       }
     } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
-    std::array<uint32_t, max_num_vars> res_perm = {0};
-    
+    std::array<uint32_t, max_num_vars> res_perm;
+
     if ( best_cost > ( 1 << ( ps.lut_size - free_set_size ) ) )
     {
       return std::make_tuple( local_best_tt, res_perm, UINT32_MAX );
@@ -543,7 +544,7 @@ private:
     }
 
     /* enumerate combinations */
-    std::array<uint32_t, max_num_vars> res_perm = {0};
+    std::array<uint32_t, max_num_vars> res_perm;
 
     do
     {
@@ -803,31 +804,43 @@ private:
         }
       }
       support_minimization_encodings = std::vector<std::array<uint32_t, 2>>( num_combs );
-      generate_support_minimization_encodings_rec<false, true>( 0, 0, 0, count );
+      generate_support_minimization_encodings_rec<false, true>( 0, 0, 0, count, best_multiplicity >> 1, true );
+      assert( count == num_combs );
+      return;
     }
-    else if ( best_multiplicity > 8 )
+
+    /* constraint the number of offset classes for a strict encoding */
+    int32_t min_set_size = 1;
+    if ( best_multiplicity <= 4 )
+      min_set_size = 2;
+    else if ( best_multiplicity <= 8 )
+      min_set_size = 4;
+    else
+      min_set_size = 8;
+    min_set_size = best_multiplicity - min_set_size;
+
+    if ( best_multiplicity > 8 )
     {
-      /* combinations are 2^(mu - 1) */
-      num_combs = 1u << ( best_multiplicity - 1 );
+      /* distinct elements in 2 indistinct bins with at least `min_set_size` elements in the indistinct bins */
+      uint32_t class_sizes[13] = { 3, 3, 15, 25, 35, 35, 255, 501, 957, 1749, 3003, 4719, 6435 };
+      num_combs = class_sizes[best_multiplicity - 3];
       support_minimization_encodings = std::vector<std::array<uint32_t, 2>>( num_combs );
-      generate_support_minimization_encodings_rec<false, false>( 0, 0, 0, count );
+      generate_support_minimization_encodings_rec<false, false>( 0, 0, 0, count, min_set_size, true );
     }
     else
     {
-      /* combinations are 2*3^(mu - 1) */
-      for ( uint32_t i = 1; i < best_multiplicity; ++i )
-      {
-        num_combs = ( num_combs << 1 ) + num_combs;
-      }
+      /* distinct elements in 3 bins, of which 2 are indistinct, and with at least `min_set_size` elements in the indistinct bins */
+      uint32_t class_sizes[13] = { 6, 3, 90, 130, 105, 35, 9330, 23436, 48708, 78474, 91377, 70785, 32175 };
+      num_combs = class_sizes[best_multiplicity - 3];
       support_minimization_encodings = std::vector<std::array<uint32_t, 2>>( num_combs );
-      generate_support_minimization_encodings_rec<true, false>( 0, 0, 0, count );
+      generate_support_minimization_encodings_rec<true, false>( 0, 0, 0, count, min_set_size, true );
     }
 
     assert( count == num_combs );
   }
 
   template<bool enable_dcset, bool equal_size_partition>
-  void generate_support_minimization_encodings_rec( uint32_t onset, uint32_t offset, uint32_t var, uint32_t& count )
+  void generate_support_minimization_encodings_rec( uint32_t onset, uint32_t offset, uint32_t var, uint32_t& count, int32_t min_set_size, bool first )
   {
     if ( var == best_multiplicity )
     {
@@ -839,6 +852,11 @@ private:
           return;
         }
       }
+      else if ( __builtin_popcount( onset ) < min_set_size || __builtin_popcount( offset ) < min_set_size )
+      {
+        /* ON-set and OFF-set must be populated with at least min_set_size elements */
+        return;
+      }
 
       support_minimization_encodings[count][0] = onset;
       support_minimization_encodings[count][1] = offset;
@@ -849,23 +867,23 @@ private:
     /* var in DCSET */
     if ( enable_dcset )
     {
-      generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count );
+      generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count, min_set_size, first );
     }
 
     /* move var in ONSET */
     onset |= 1 << var;
-    generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count );
+    generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count, min_set_size, false );
     onset &= ~( 1 << var );
 
     /* remove symmetries */
-    if ( var == 0 )
+    if ( first )
     {
       return;
     }
 
     /* move var in OFFSET */
     offset |= 1 << var;
-    generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count );
+    generate_support_minimization_encodings_rec<enable_dcset, equal_size_partition>( onset, offset, var + 1, count, min_set_size, false );
     offset &= ~( 1 << var );
   }
 
@@ -1015,15 +1033,6 @@ private:
     {
       uint32_t const onset = support_minimization_encodings[i][0];
       uint32_t const offset = support_minimization_encodings[i][1];
-
-      uint32_t ones_onset = __builtin_popcount( onset );
-      uint32_t ones_offset = __builtin_popcount( offset );
-
-      /* filter columns that do not distinguish pairs */
-      if ( ones_onset == 0 || ones_offset == 0 || ones_onset == best_multiplicity || ones_offset == best_multiplicity )
-      {
-        continue;
-      }
 
       /* compute function and distinguishable seed dichotomies */
       uint64_t column[2] = { 0, 0 };
