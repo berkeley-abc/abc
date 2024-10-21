@@ -645,6 +645,25 @@ Gia_Man_t * Gia_ManSifPerform( Gia_Man_t * p, int nLutSize, int fEvalOnly, int f
         pNew = Gia_ManSifTransform( p, vCuts, vTimes, nLutSize, Upper, fVerbose );
     Vec_IntFree( vCuts );
     Vec_IntFree( vTimes );
+    //Gia_ManTransferTiming( pNew, p );
+    if ( p->vNamesIn ) {
+        char * pName; int i;
+        pNew->vNamesIn     = p->vNamesIn;     p->vNamesIn     = NULL;
+        Vec_PtrForEachEntryStart( char *, pNew->vNamesIn, pName, i, Gia_ManPiNum(pNew) )
+            ABC_FREE( pName );
+        Vec_PtrShrink( pNew->vNamesIn, Gia_ManPiNum(pNew) );
+        for ( i = 0; i < Gia_ManRegNum(pNew); i++ )
+            Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsavNum("_fo", i) );
+    }
+    if ( p->vNamesOut ) {
+        char * pName; int i;
+        pNew->vNamesOut    = p->vNamesOut;    p->vNamesOut    = NULL;
+        Vec_PtrForEachEntryStart( char *, pNew->vNamesOut, pName, i, Gia_ManPoNum(pNew) )
+            ABC_FREE( pName );
+        Vec_PtrShrink( pNew->vNamesOut, Gia_ManPoNum(pNew) );
+        for ( i = 0; i < Gia_ManRegNum(pNew); i++ )
+            Vec_PtrPush( pNew->vNamesOut, Abc_UtilStrsavNum("_fi", i) );
+    }
     return pNew;
 }
 
