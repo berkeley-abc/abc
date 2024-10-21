@@ -3453,6 +3453,117 @@ Gia_Man_t * Gia_ManDupInsertWindows( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Computing equivalent nodes across the two AIGs.]
+
+  Description [Assumes that both AIGs are structurally hashed without dandling nodes.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCreateDualOutputMiter( Gia_Man_t * p0, Gia_Man_t * p1 )
+{
+    Gia_Man_t * pNew; Gia_Obj_t * pObj; int i;
+    assert( Gia_ManCiNum(p0) == Gia_ManCiNum(p1) );
+    assert( Gia_ManCoNum(p0) == Gia_ManCoNum(p1) );
+    // start the manager
+    pNew = Gia_ManStart( Gia_ManObjNum(p0) + Gia_ManObjNum(p1) );
+    pNew->pName = Abc_UtilStrsav( "miter" );
+    Gia_ManFillValue( p0 );
+    Gia_ManFillValue( p1 );
+    // map combinational inputs
+    Gia_ManConst0(p0)->Value = 0;
+    Gia_ManConst0(p1)->Value = 0;
+    Gia_ManForEachCi( p0, pObj, i )
+        Gia_ManCi(p1, i)->Value = pObj->Value = Gia_ManAppendCi( pNew );
+    // map internal nodes and outputs
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachAnd( p0, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    assert( Gia_ManAndNum(pNew) == Gia_ManAndNum(p0) ); // the input AIG p0 is structurally hashed
+    Gia_ManForEachAnd( p1, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    // add the outputs
+    Gia_ManForEachCo( p0, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManForEachCo( p1, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    printf( "The two AIGs have %d structurally equivalent nodes.\n", Gia_ManAndNum(p0) + Gia_ManAndNum(p1) - Gia_ManAndNum(pNew) );
+    // there should be no dangling nodes (otherwise, the second AIG may not be structurally hashed)
+    int nDangling = Gia_ManMarkDangling(pNew);
+    assert( nDangling == 0 );
+    Gia_ManCleanMark01(pNew);
+    return pNew;
+}
+Vec_Int_t * Gia_ManFindMutualEquivs( Gia_Man_t * p0, Gia_Man_t * p1, int nConflictLimit, int fVerbose )
+{
+    Vec_Int_t * vPairs = Vec_IntAlloc( 100 );
+    // derive the miter
+    Gia_Man_t * pMiter = Gia_ManCreateDualOutputMiter( p0, p1 );
+    //Gia_ManPrintStats( pMiter, NULL );
+    //Gia_AigerWrite( pMiter, "out.aig", 0, 0, 0 );
+    // perform SAT sweeping
+    extern Gia_Man_t * Cec4_ManSimulateTest3( Gia_Man_t * p, int nBTLimit, int fVerbose );
+    Gia_Man_t * pNew = Cec4_ManSimulateTest3( pMiter, nConflictLimit, fVerbose );
+    Gia_ManStop( pNew );
+    // now, pMiter is annotated with the equiv class info
+
+    // here we collect AIG node pairs with the following properties:
+    // - the first node belongs to p0; the second node belongs to p1
+    // - both nodes are internal nodes of p0 and p1 (not primary inputs/outputs)
+    // - these nodes are combinationally equivalent (possibly up to the complement)
+    // - these nodes are "singleton" equivalences (no other nodes in p0 and p1 are equivalent to them)
+    // - these nodes are not structurally equivalent (that is, they have structurally different TFI logic cones)
+
+    // count the number of nodes in each equivalence class
+    Vec_Int_t * vCounts = Vec_IntStart( Gia_ManObjNum(pMiter) );
+    Gia_Obj_t * pObj; int i, k;
+    Gia_ManForEachClass( pMiter, i ) 
+        Gia_ClassForEachObj( pMiter, i, k )
+            Vec_IntAddToEntry( vCounts, i, 1 );
+
+    // map each miter node coming from p1 into the corresponding node in p1
+    Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManObjNum(pMiter) );
+    int iStartP1 = 1 + Gia_ManPiNum(p0) + Gia_ManAndNum(p0);
+    Gia_ManForEachAnd( p1, pObj, i )
+        if ( Abc_Lit2Var(pObj->Value) >= iStartP1 ) // node from p1 (not from p0)
+            Vec_IntWriteEntry( vMap, Abc_Lit2Var(pObj->Value), i );
+
+    // go through functionally (not structurally!) equivalent nodes in the second AIG
+    // and collect those node pairs from p0 and p1 whose equivalence class contains exactly two nodes
+    for ( i = iStartP1; i < Gia_ManObjNum(pMiter) - Gia_ManCoNum(pMiter); i++ ) {
+        assert( Gia_ObjIsAnd(Gia_ManObj(pMiter, i)) );
+        int Repr = Gia_ObjRepr(pMiter, i);
+        if ( Repr == GIA_VOID || Repr >= iStartP1 || Vec_IntEntry(vCounts, Repr) != 2 )
+            continue;
+        assert( Repr < iStartP1 );           // node in p0
+        assert( Vec_IntEntry(vMap, i) > 0 ); // node in p1
+        Vec_IntPushTwo( vPairs, Repr, Vec_IntEntry(vMap, i) );
+    }
+    // cleanup
+    Vec_IntFree( vMap );
+    Vec_IntFree( vCounts );
+    Gia_ManStop( pMiter );
+    return vPairs;
+}
+void Gia_ManFindMutualEquivsTest()
+{
+    Gia_Man_t * p0 = Gia_AigerRead( "p0.aig", 0, 0, 0 );
+    Gia_Man_t * p1 = Gia_AigerRead( "p1.aig", 0, 0, 0 );    
+    Vec_Int_t * vPairs = Gia_ManFindMutualEquivs( p0, p1, 0, 0 );
+    printf( "Pair     Aig0 node     Aig1 node\n" );
+    int i, Obj0, Obj1;
+    Vec_IntForEachEntryDouble( vPairs, Obj0, Obj1, i )
+        printf( "%3d      %6d       %6d\n", i/2, Obj0, Obj1 );
+    Gia_ManStop( p0 );
+    Gia_ManStop( p1 );
+    Vec_IntFree( vPairs );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
