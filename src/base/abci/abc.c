@@ -32313,7 +32313,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "Internal nodes names are not transferred.\n" );
 
     // decouple CI/CO with the same name
-    if ( pAbc->pGia->vNamesIn || pAbc->pGia->vNamesOut )
+    if ( !Abc_NtkIsStrash(pNtk) && (pAbc->pGia->vNamesIn || pAbc->pGia->vNamesOut) )
         Abc_NtkRedirectCiCo( pNtk );
 
     // transfer timing information
