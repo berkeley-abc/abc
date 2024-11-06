@@ -65,6 +65,7 @@ struct Bmc_EsPar_t_
     int        fLutCascade;
     int        RuntimeLim;
     int        nRandFuncs;
+    int        nMintNum;
     int        fVerbose; 
     char *     pTtStr;
     char *     pSymStr;

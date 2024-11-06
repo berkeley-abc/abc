@@ -1499,9 +1499,9 @@ void Exa3_ManPrint( Exa3_Man_t * p, int i, int iMint, abctime clk )
     printf( "Conf =%9d  ", bmcg_sat_solver_conflictnum(p->pSat) );
     Abc_PrintTime( 1, "Time", clk );
 }
-void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
+int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
 {
-    int i, status, iMint = 1;
+    int i, status, Res = 0, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa3_Man_t * p; int fCompl = 0;
     word pTruth[16]; 
@@ -1542,7 +1542,7 @@ void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->fVerbose && status != GLUCOSE_UNDEC )
         Exa3_ManPrint( p, i, iMint, Abc_Clock() - clkTotal );
     if ( iMint == -1 )
-        Exa3_ManPrintSolution( p, fCompl );
+        Exa3_ManPrintSolution( p, fCompl ), Res = 1;
     else if ( status == GLUCOSE_UNDEC )
         printf( "The problem timed out after %d sec.\n", pPars->RuntimeLim );
     else 
@@ -1554,21 +1554,35 @@ void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->pSymStr ) 
         ABC_FREE( pPars->pTtStr );
     Exa3_ManFree( p );
+    return Res;
 }
 void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars )
 {
-    int i, k, nWords = Abc_TtWordNum(pPars->nVars);
+    int i, k, nDecs = 0, nWords = Abc_TtWordNum(pPars->nVars);
     word * pFun = ABC_ALLOC( word, nWords );
-    Abc_RandomW(1);
+    Abc_Random(1);
+    printf( "\n" );
     for ( i = 0; i < pPars->nRandFuncs; i++ ) {
-        for ( k = 0; k < nWords; k++ )
-            pFun[k] = Abc_RandomW(0);
+        if ( pPars->nMintNum == 0 )
+            for ( k = 0; k < nWords; k++ )
+                pFun[k] = Abc_RandomW(0);
+        else {
+            Abc_TtClear( pFun, nWords );
+            for ( k = 0; k < pPars->nMintNum; k++ ) {
+                int iMint = 0;
+                do iMint = Abc_Random(0) % (1 << pPars->nVars);
+                while ( Abc_TtGetBit(pFun, iMint) );
+                Abc_TtSetBit( pFun, iMint );
+            }
+        }
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
         Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
         printf( "Generated random function: %s\n", pPars->pTtStr );
-        Exa3_ManExactSynthesis( pPars );
+        nDecs += Exa3_ManExactSynthesis( pPars );
         ABC_FREE( pPars->pTtStr );
+        printf( "\n" );
     }
+    printf( "Decomposable are %d (out of %d) functions (%.2f %%).\n", nDecs, pPars->nRandFuncs, 100.0*nDecs/pPars->nRandFuncs );
     ABC_FREE( pFun );
 }
 
