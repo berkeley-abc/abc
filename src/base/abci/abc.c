@@ -9805,11 +9805,12 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars );
     extern void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars );
+    extern void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars );
     int c;
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INKTSiaocgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INKTSRiaocgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9866,6 +9867,15 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->pSymStr = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->nRandFuncs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'i':
             pPars->fUseIncr ^= 1;
             break;
@@ -9892,7 +9902,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind + 1 )
         pPars->pTtStr = argv[globalUtilOptind];
-    if ( pPars->pTtStr == NULL && pPars->pSymStr == NULL )
+    if ( pPars->pTtStr == NULL && pPars->pSymStr == NULL && pPars->nRandFuncs == 0 )
     {
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
         return 1;
@@ -9922,19 +9932,24 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Node size should not be more than 6 inputs.\n" );
         return 1;
     }
-    if ( pPars->fGlucose )
+    if ( pPars->nRandFuncs ) {
+        pPars->fGlucose = 1;
+        Exa3_ManExactSynthesisRand( pPars );
+    }
+    else if ( pPars->fGlucose )
         Exa3_ManExactSynthesis( pPars );
     else
         Exa3_ManExactSynthesis2( pPars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-INKT <num>] [-S string] [-iaocgvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-INKTR <num>] [-S string] [-iaocgvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of I-input function using N K-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
     Abc_Print( -2, "\t-K <num> : the number of node fanins [default = %d]\n", pPars->nLutSize );
     Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", pPars->RuntimeLim );
+    Abc_Print( -2, "\t-R <num> : the number of random functions to try [default = unused]\n" );
     Abc_Print( -2, "\t-S <str> : charasteristic string of a symmetric function [default = %d]\n", pPars->pSymStr );
     Abc_Print( -2, "\t-i       : toggle using incremental solving [default = %s]\n", pPars->fUseIncr ? "yes" : "no" );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );

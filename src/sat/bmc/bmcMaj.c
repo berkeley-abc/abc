@@ -1555,6 +1555,23 @@ void Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
         ABC_FREE( pPars->pTtStr );
     Exa3_ManFree( p );
 }
+void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars )
+{
+    int i, k, nWords = Abc_TtWordNum(pPars->nVars);
+    word * pFun = ABC_ALLOC( word, nWords );
+    Abc_RandomW(1);
+    for ( i = 0; i < pPars->nRandFuncs; i++ ) {
+        for ( k = 0; k < nWords; k++ )
+            pFun[k] = Abc_RandomW(0);
+        pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
+        Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
+        printf( "Generated random function: %s\n", pPars->pTtStr );
+        Exa3_ManExactSynthesis( pPars );
+        ABC_FREE( pPars->pTtStr );
+    }
+    ABC_FREE( pFun );
+}
+
 
 /**Function*************************************************************
 
