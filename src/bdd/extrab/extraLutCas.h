@@ -107,6 +107,159 @@ Vec_Ptr_t * Abc_LutCasCollapse( Mini_Aig_t * p, DdManager * dd, int nBddLimit, i
     return vFuncs;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Abc_LutBddScan( DdManager * dd, DdNode * bFunc, int nVars )
+{
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( 1 << nVars );
+    Vec_Ptr_t * vRes2 = Vec_PtrAlloc( 1 << nVars );
+    Vec_PtrPush( vRes, bFunc );
+    int v, Level = Cudd_ReadPerm( dd, Cudd_NodeReadIndex(bFunc) );
+    for ( v = 0; v < dd->size; v++ )
+        printf( "%2d : perm = %d  invperm = %d\n", v, dd->perm[v], dd->invperm[v] );
+    for ( v = 0; v < nVars; v++ )
+    {
+        int i, LevelCur = Level + v;
+        Vec_PtrClear( vRes2 );
+        DdNode * bTemp;
+        Vec_PtrForEachEntry( DdNode *, vRes, bTemp, i )  {
+            int LevelTemp = Cudd_ReadPerm( dd, Cudd_NodeReadIndex(bTemp) );
+            if ( LevelTemp == LevelCur ) {
+                Vec_PtrPush( vRes2, Cudd_NotCond(Cudd_E(bTemp), Cudd_IsComplement(bTemp)) );
+                Vec_PtrPush( vRes2, Cudd_NotCond(Cudd_T(bTemp), Cudd_IsComplement(bTemp)) );
+            } 
+            else if ( LevelTemp > LevelCur ) {
+                Vec_PtrPush( vRes2, bTemp );
+                Vec_PtrPush( vRes2, bTemp );
+            }
+            else assert( 0 );
+        }
+        ABC_SWAP( Vec_Ptr_t *, vRes, vRes2 );
+        //Vec_PtrForEachEntry( DdNode *, vRes, bTemp, i )
+        //    printf( "%p ", bTemp );
+        //printf( "\n" );
+    }
+    Vec_PtrFree( vRes2 );
+    assert( Vec_PtrSize(vRes) == (1 << nVars) );
+    return vRes;
+}
+char * Abc_LutBddToTruth( Vec_Ptr_t * vFuncs )
+{
+    assert( Vec_PtrSize(vFuncs) <= 256 );
+    char * pRes = ABC_CALLOC( char, Vec_PtrSize(vFuncs)+1 );
+    void * pTemp, * pStore[256] = {Vec_PtrEntry(vFuncs, 0)}; 
+    int i, k, nStore = 1; pRes[0] = 'a';
+    Vec_PtrForEachEntryStart( void *, vFuncs, pTemp, i, 1 ) {
+        for ( k = 0; k < nStore; k++ )
+            if ( pStore[k] == pTemp )
+                break;
+        if ( k == nStore )
+            pStore[nStore++] = pTemp;
+        pRes[i] = 'a' + (char)k;
+    }
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+char * Abc_NtkPrecomputeData()
+{
+    char * pRes = ABC_CALLOC( char, 1 << 16 );
+    int i, k, b;
+    for ( i = 0; i < 256; i++ ) {
+        int nOnes = __builtin_popcount(i);
+        char * pTemp = pRes + 256*i;
+        for ( k = 0; k < 256; k++ ) {
+            int iMask = 0, Counts[2] = {nOnes, 0};
+            for ( b = 0; b < 8; Counts[(i >> b++)&1]++ )
+                if ( (k >> b) & 1 )
+                    iMask |= 1 << Counts[(i >> b)&1];
+            pTemp[iMask] = (char)k;
+            assert( Counts[1] == nOnes );
+        }
+    }
+    for ( i = 0; i < 16; i++, printf("\n") )
+    for ( printf("%x : ", i), k = 0; k < 16; k++ )
+        printf( "%x=%x ", k, (int)pRes[i*256+k] );    
+    return pRes;
+}
+
+int Abc_NtkDecPatCount( int iFirst, int nStep, int MyuMax, char * pDecPat, char * pPermInfo )
+{
+    int s, k, nPats = 1; 
+    char Pats[256] = { pDecPat[(int)pPermInfo[iFirst]] };
+    assert( MyuMax <= 256 );
+    for ( s = 1; s < nStep; s++ ) {
+        char Entry = pDecPat[(int)pPermInfo[iFirst+s]];
+        for ( k = 0; k < nPats; k++ )
+            if ( Pats[k] == Entry )
+                break;
+        if ( k < nPats )
+            continue;
+        if ( nPats == MyuMax )
+            return MyuMax + 1;
+        assert( nPats < 256 );    
+        Pats[nPats++] = Entry;
+    }
+    return nPats;
+}
+int Abc_NtkDecPatDecompose_rec( int Mask, int nMaskVars, int iStart, int nVars, int nDiffs, int nRails, char * pDecPat, char * pPermInfo )
+{
+    if ( nDiffs == 0 || iStart == nVars ) 
+        return 0;
+    int v, m, nMints = 1 << nVars;
+    for ( v = iStart; v < nVars; v++ ) {
+        int MaskThis = Mask & ~(1 << v);
+        int nStep = 1 << (nMaskVars - 1);
+        int MyuMax = 0;
+        for ( m = 0; m < nMints; m += nStep ) {
+            int MyuCur = Abc_NtkDecPatCount( m, nStep, 1 << nDiffs, pDecPat, pPermInfo+256*MaskThis );
+            MyuMax = Abc_MaxInt( MyuMax, MyuCur );
+        }
+        if ( MyuMax > (1 << nDiffs) )
+            continue;
+        if ( MyuMax <= (1 << nRails) )
+            return MaskThis;
+        MaskThis = Abc_NtkDecPatDecompose_rec( MaskThis, nMaskVars-1, v+1, nVars, nDiffs-1, nRails, pDecPat, pPermInfo );
+        if ( MaskThis )
+            return MaskThis;
+    }
+    return 0;
+}
+int Abc_NtkDecPatDecompose( int nVars, int nRails, char * pDecPat, char * pPermInfo )
+{
+    int BoundSet = ~(~0 << nVars);
+    int Myu = Abc_NtkDecPatCount( 0, 1 << nVars, 256, pDecPat, pPermInfo + 256*BoundSet );
+    int Log2 = Abc_Base2Log( Myu );
+    if ( Log2 <= nRails )
+        return BoundSet;
+    return Abc_NtkDecPatDecompose_rec( BoundSet, nVars, 0, nVars, Log2 - nRails, nRails, pDecPat, pPermInfo );
+}
+
+int Abc_NtkCascadeDecompose( int nVars, int nRails, char * pDecPat, char * pPermInfo )
+{
+    return 0;
+}
+
+
 
 /**Function*************************************************************
 
@@ -159,12 +312,12 @@ void Abc_LutCasPrintDsd( DdManager * dd, DdNode * bFunc, int fVerbose )
     }
     Dsd_ManagerStop( pManDsd );
 }    
-DdNode * Abc_LutCasBuildBdds( Mini_Aig_t * p, DdManager ** pdd )
+DdNode * Abc_LutCasBuildBdds( Mini_Aig_t * p, DdManager ** pdd, int fReorder )
 {
     DdManager * dd = Cudd_Init( Mini_AigPiNum(p), 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
-    Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
+    if ( fReorder ) Cudd_AutodynEnable( dd,  CUDD_REORDER_SYMM_SIFT );
     Vec_Ptr_t * vFuncs = Abc_LutCasCollapse( p, dd, 10000, 0 );
-    Cudd_AutodynDisable( dd );
+    if ( fReorder ) Cudd_AutodynDisable( dd );
     if ( vFuncs == NULL ) {
         Extra_StopManager( dd );
         return NULL;
@@ -174,15 +327,28 @@ DdNode * Abc_LutCasBuildBdds( Mini_Aig_t * p, DdManager ** pdd )
     *pdd = dd;
     return bNode;
 }
-static inline word * Abc_LutCascade( Mini_Aig_t * p, int nLutSize, int fVerbose )
+static inline word * Abc_LutCascade( Mini_Aig_t * p, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose )
 {
     DdManager * dd = NULL;
-    DdNode * bFunc = Abc_LutCasBuildBdds( p, &dd );
+    DdNode * bFunc = Abc_LutCasBuildBdds( p, &dd, 0 );
     if ( bFunc == NULL ) return NULL;
+    char * pPermInfo = Abc_NtkPrecomputeData();
     Abc_LutCasPrintDsd( dd, bFunc, 1 );
+
+    Vec_Ptr_t * vTemp = Abc_LutBddScan( dd, bFunc, nLutSize );
+    char * pTruth = Abc_LutBddToTruth( vTemp );
+
+    int BoundSet = Abc_NtkDecPatDecompose( nLutSize, nRails, pTruth, pPermInfo );
+    printf( "Pattern %s : Bound set = %d\n", pTruth, BoundSet );
+
+    ABC_FREE( pTruth );
+    Vec_PtrFree( vTemp );
+
     Cudd_RecursiveDeref( dd, bFunc );
     Extra_StopManager( dd );
+    ABC_FREE( pPermInfo );
 
+    printf( "\n" );
     word * pLuts = NULL;
     return pLuts;
 }

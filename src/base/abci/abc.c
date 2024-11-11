@@ -8847,11 +8847,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkLutCascade( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkLutCascade( Abc_Ntk_t * pNtk, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
-    int c, nLutSize = 6, fVerbose = 0;
+    int c, nLutSize = 6, nLuts = 8, nRails = 1, nIters = 1, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Kvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KNRIvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8864,6 +8864,39 @@ int Abc_CommandLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
             nLutSize = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nLutSize < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLuts < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nRails = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nRails < 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 )
                 goto usage;
             break;
         case 'v':
@@ -8891,7 +8924,13 @@ int Abc_CommandLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Run command \"strash\" to convert the network into an AIG.\n" );
         return 1;
     }
-    pNtkRes = Abc_NtkLutCascade( pNtk, nLutSize, fVerbose );
+    if ( Abc_NtkCiNum(pNtk) > nLutSize + (nLutSize - nRails) * (nLuts - 1) )
+    {
+        Abc_Print( -1, "Cannot decompose %d-input function into a %d-rail cascade of %d %d-LUTs (max suppose size = %d).\n", 
+            Abc_NtkCiNum(pNtk), nRails, nLuts, nLutSize, nLutSize + (nLutSize - nRails) * (nLuts - 1) );
+        return 1;
+    }
+    pNtkRes = Abc_NtkLutCascade( pNtk, nLutSize, nLuts, nRails, nIters, fVerbose );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "LUT cascade mapping failed.\n" );
@@ -8901,9 +8940,12 @@ int Abc_CommandLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutcas [-K <num>] [-vh]\n" );
+    Abc_Print( -2, "usage: lutcas [-KNRI <num>] [-vh]\n" );
     Abc_Print( -2, "\t           derives single-rail LUT cascade for the primary output function\n" );
     Abc_Print( -2, "\t-K <num> : the number of LUT inputs [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-N <num> : the number of LUTs in the cascade [default = %d]\n", nLuts );
+    Abc_Print( -2, "\t-R <num> : the number of direct connections (rails) [default = %d]\n", nRails );
+    Abc_Print( -2, "\t-I <num> : the number of iterations when looking for a solution [default = %d]\n", nIters );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
