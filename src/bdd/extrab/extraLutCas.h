@@ -27,6 +27,11 @@
 #define inline __inline // compatible with MS VS 6.0
 #endif
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
