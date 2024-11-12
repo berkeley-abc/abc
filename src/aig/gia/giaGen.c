@@ -1302,6 +1302,65 @@ Gia_Man_t * Gia_ManGenMux( int nIns, char * pNums )
     return p;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Generates N-bit sorter using pair-wise sorting algorithm.]
+
+  Description [https://en.wikipedia.org/wiki/Pairwise_sorting_network]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Gia_ManGenSorterOne( Gia_Man_t * p, int * pLits, int i, int k )
+{
+    int Lit1 = Gia_ManAppendAnd( p, pLits[i], pLits[k] );
+    int Lit2 = Gia_ManAppendOr ( p, pLits[i], pLits[k] );
+    pLits[i] = Lit1;
+    pLits[k] = Lit2;
+}
+static inline void Gia_ManGenSorterConstrMerge( Gia_Man_t * p, int * pLits, int lo, int hi, int r )
+{
+    int i, step = r * 2;
+    if ( step < hi - lo ) 
+    {
+        Gia_ManGenSorterConstrMerge( p, pLits, lo, hi-r, step );
+        Gia_ManGenSorterConstrMerge( p, pLits, lo+r, hi, step );
+        for ( i = lo+r; i < hi-r; i += step )
+            Gia_ManGenSorterOne( p, pLits, i, i+r );
+    }
+}
+static inline void Gia_ManGenSorterConstrRange( Gia_Man_t * p, int * pLits, int lo, int hi )
+{
+    if ( hi - lo >= 1 )
+    {
+        int i, mid = lo + (hi - lo) / 2;
+        for ( i = lo; i <= mid; i++ )
+            Gia_ManGenSorterOne( p, pLits, i, i + (hi - lo + 1) / 2 );
+        Gia_ManGenSorterConstrRange( p, pLits, lo, mid );
+        Gia_ManGenSorterConstrRange( p, pLits, mid+1, hi );
+        Gia_ManGenSorterConstrMerge( p, pLits, lo, hi, 1 );
+    }
+}
+Gia_Man_t * Gia_ManGenSorter( int LogN )
+{
+    int i, nVars = 1 << LogN;
+    int nVarsAlloc = nVars + 2 * (nVars * LogN * (LogN-1) / 4 + nVars - 1);
+    Vec_Int_t * vLits = Vec_IntAlloc( nVars );
+    Gia_Man_t * p = Gia_ManStart( 1 + 2*nVars + nVarsAlloc ); 
+    p->pName = Abc_UtilStrsav( "sorter" );
+    for ( i = 0; i < nVars; i++ )
+        Vec_IntPush( vLits, Gia_ManAppendCi(p) );
+    Gia_ManGenSorterConstrRange( p, Vec_IntArray(vLits), 0, nVars - 1 );
+    for ( i = 0; i < nVars; i++ )
+        Gia_ManAppendCo( p, Vec_IntEntry(vLits, i) );
+    Vec_IntFree( vLits );
+    return p;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
