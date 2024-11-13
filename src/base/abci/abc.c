@@ -9914,7 +9914,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'R':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by a file name.\n" );
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nRandFuncs = atoi(argv[globalUtilOptind]);
@@ -9923,7 +9923,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'M':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by a file name.\n" );
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nMintNum = atoi(argv[globalUtilOptind]);
