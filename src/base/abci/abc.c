@@ -23148,7 +23148,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Ssw_ManSetDefaultParams( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNXcmplkodsefqvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PQFCLSIVMNXRcmplkodsefqvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -23273,6 +23273,18 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nLimitMax < 0 )
                 goto usage;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nSkip = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nSkip < 0 )
+                goto usage;
+            break;
+
         case 'c':
             pPars->fConstrs ^= 1;
             break;
@@ -23394,7 +23406,7 @@ int Abc_CommandSeqSweep2( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: scorr [-PQFCLSIVMNX <num>] [-cmplkodsefqvwh]\n" );
+    Abc_Print( -2, "usage: scorr [-PQFCLSIVMNXR <num>] [-cmplkodsefqvwh]\n" );
     Abc_Print( -2, "\t         performs sequential sweep using K-step induction\n" );
     Abc_Print( -2, "\t-P num : max partition size (0 = no partitioning) [default = %d]\n", pPars->nPartSize );
     Abc_Print( -2, "\t-Q num : partition overlap (0 = no overlap) [default = %d]\n", pPars->nOverSize );
@@ -23408,6 +23420,7 @@ usage:
     Abc_Print( -2, "\t-M num : min call num needed to recycle the SAT solver [default = %d]\n", pPars->nRecycleCalls2 );
     Abc_Print( -2, "\t-N num : set last <num> POs to be constraints (use with -c) [default = %d]\n", nConstrs );
     Abc_Print( -2, "\t-X num : the number of iterations of little or no improvement [default = %d]\n", pPars->nLimitMax );
+    Abc_Print( -2, "\t-R num : the number used to skip some constraints [default = %d]\n", pPars->nSkip );
     Abc_Print( -2, "\t-c     : toggle using explicit constraints [default = %s]\n", pPars->fConstrs? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggle full merge if constraints are present [default = %s]\n", pPars->fMergeFull? "yes": "no" );
     Abc_Print( -2, "\t-p     : toggle aligning polarity of SAT variables [default = %s]\n", pPars->fPolarFlip? "yes": "no" );

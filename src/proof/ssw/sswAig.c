@@ -120,8 +120,10 @@ static inline void Ssw_FramesConstrainNode( Ssw_Man_t * p, Aig_Man_t * pFrames, 
     // add the constraint
     if ( fTwoPos )
     {
-        Aig_ObjCreateCo( pFrames, pObjNew2 );
-        Aig_ObjCreateCo( pFrames, pObjNew );
+        if ( p->pPars->nSkip == 0 ||rand() % p->pPars->nSkip == 0 ) {
+            Aig_ObjCreateCo( pFrames, pObjNew2 );
+            Aig_ObjCreateCo( pFrames, pObjNew );
+        }
     }
     else
     {
@@ -158,6 +160,8 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
         Ssw_ObjSetFrame( p, pObj, 0, Aig_ObjCreateCi(pFrames) );
     // add timeframes
     iLits = 0;
+    if ( p->pPars->nSkip )
+        srand(1);
     for ( f = 0; f < p->pPars->nFramesK; f++ )
     {
         // map constants and PIs
