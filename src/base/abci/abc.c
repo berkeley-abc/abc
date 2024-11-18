@@ -52221,11 +52221,21 @@ int Abc_CommandAbc9BRecover( Abc_Frame_t * pAbc, int argc, char ** argv )
         // find 
         Bnd_ManFindBound( pSpec, pAbc->pGia );
 
-        // create spec_out and 
+        // create spec_out and impl_out
+        pImpl_out = Bnd_ManGenImplOut( pAbc->pGia );
+        while ( !pImpl_out )  
+        {
+            // remove combinational loop
+            if (fVerbose)  printf("invalid boundary. try again.\n");
+            Bnd_ManRemoveLoop( pAbc->pGia );
+            Bnd_ManFindBound( pSpec, pAbc->pGia );
+            pImpl_out = Bnd_ManGenImplOut( pAbc->pGia );
+        }
+        if ( !pImpl_out ) success = 0;
+
         pSpec_out = Bnd_ManGenSpecOut( pSpec );
         if ( !pSpec_out ) success = 0;
-        pImpl_out = Bnd_ManGenImplOut( pAbc->pGia );
-        if ( !pImpl_out ) success = 0;
+
 
         // Gia_AigerWrite( pSpec_out, "spec_out.aig", 0, 0, 0 );
         // Gia_AigerWrite( pImpl_out, "impl_out.aig", 0, 0, 0 );
