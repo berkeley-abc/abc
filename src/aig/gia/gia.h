@@ -1851,6 +1851,8 @@ extern void                 Bnd_ManPrintStats();
 
 // util
 extern Gia_Man_t*           Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec_Bit_t* vEI_phase, Vec_Bit_t* vEO_phase );
+extern void                 Bnd_ManResetBound();
+extern void                 Bnd_ManRemoveLoop( Gia_Man_t * pGia );
 
 extern int                  Gia_ObjCheckMffc( Gia_Man_t * p, Gia_Obj_t * pRoot, int Limit, Vec_Int_t * vNodes, Vec_Int_t * vLeaves, Vec_Int_t * vInners );
 
