@@ -1874,9 +1874,10 @@ extern Gia_Man_t*           Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Ve
 extern void                 Bnd_ManResetBound();
 extern void                 Bnd_ManRemoveLoop( Gia_Man_t * pGia );
 
-/*=== giaFind.c ===========================================================*/
 
 extern int                  Gia_ObjCheckMffc( Gia_Man_t * p, Gia_Obj_t * pRoot, int Limit, Vec_Int_t * vNodes, Vec_Int_t * vLeaves, Vec_Int_t * vInners );
+
+/*=== giaFind.c ===========================================================*/
 
 ABC_NAMESPACE_HEADER_END
 
