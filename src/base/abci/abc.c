@@ -7441,14 +7441,58 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Acb_NtkRunGen( char * pFileNames[2], int fVerbose );
-    char * pFileNames[4] = {NULL};
-    int c, fVerbose = 0;
+    extern void Acb_NtkRunGen( int nInputs, int nMints, int nFuncs, int Seed, int fVerbose, char * pScript );
+    int c, nInputs = 10, nMints = 10, nFuncs = 10, Seed = 0, fVerbose = 0; char * pScript = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IMRSCvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nInputs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMints = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFuncs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a script.\n" );
+                goto usage;
+            }
+            pScript = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -7458,21 +7502,24 @@ int Abc_CommandRunGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    if ( argc - globalUtilOptind != 2 )
+    if ( pScript == NULL ) 
     {
-        Abc_Print( 1, "Expecting two file names on the command line.\n" );
-        goto usage;
+        Abc_Print( -1, "Command line switch \"-C\" should be specified and followed by a string.\n" );
+        goto usage;        
     }
-    for ( c = 0; c < 2; c++ )
-        pFileNames[c] = argv[globalUtilOptind+c];
-    Acb_NtkRunGen( pFileNames, fVerbose );
+    Acb_NtkRunGen( nInputs, nMints, nFuncs, Seed, fVerbose, pScript );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rungen [-vh] <file1> <file2>\n" );
-    Abc_Print( -2, "\t         experimental command\n" );
-    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "usage: rungen [-IMRS num] [-C script] [-vh]\n" );
+    Abc_Print( -2, "\t           running the script on a set of randomly generated functions\n" );
+    Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nInputs );
+    Abc_Print( -2, "\t-M <num> : the number of positive minterms in the random function [default = %d]\n", nMints );
+    Abc_Print( -2, "\t-R <num> : the number of random functions to try [default = %d]\n", nFuncs );
+    Abc_Print( -2, "\t-S <num> : the random seed [default = %d]\n", Seed );
+    Abc_Print( -2, "\t-C <num> : the script to apply [default = provided by the user]\n" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
 
@@ -9905,7 +9952,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'S':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by a file name.\n" );
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->pSymStr = argv[globalUtilOptind];
@@ -9914,7 +9961,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'R':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-R\" should be followed by a file name.\n" );
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nRandFuncs = atoi(argv[globalUtilOptind]);
@@ -9923,7 +9970,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'M':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by a file name.\n" );
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nMintNum = atoi(argv[globalUtilOptind]);
