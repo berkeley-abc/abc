@@ -60,6 +60,7 @@
 #include "opt/sbd/sbd.h"
 #include "bool/rpo/rpo.h"
 #include "map/mpm/mpm.h"
+#include "map/mio/mio.h"
 #include "opt/fret/fretime.h"
 #include "opt/nwk/nwkMerge.h"
 #include "base/acb/acbPar.h"
@@ -19168,7 +19169,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseBuffs;
     int fVerbose;
     int c;
-    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fUseBuffs, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, Mio_Library_t* userLib, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fUseBuffs, int fVerbose );
     extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
 
     pNtk = Abc_FrameReadNtk(pAbc);
@@ -19319,7 +19320,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_Print( 0, "The network was strashed and balanced before mapping.\n" );
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fUseBuffs, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, /*userLib=*/NULL, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fUseBuffs, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_NtkDelete( pNtk );
@@ -19331,7 +19332,7 @@ int Abc_CommandMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         // get the new network
-        pNtkRes = Abc_NtkMap( pNtk, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fUseBuffs, fVerbose );
+        pNtkRes = Abc_NtkMap( pNtk, /*userLib=*/NULL, DelayTarget, AreaMulti, DelayMulti, LogFan, Slew, Gain, nGatesMin, fRecovery, fSwitching, fSkipFanout, fUseProfile, fUseBuffs, fVerbose );
         if ( pNtkRes == NULL )
         {
             Abc_Print( -1, "Mapping has failed.\n" );

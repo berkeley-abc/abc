@@ -59,7 +59,7 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fUseBuffs, int fVerbose )
+Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, Mio_Library_t* userLib, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fUseBuffs, int fVerbose )
 {
     static int fUseMulti = 0;
     int fShowSwitching = 1;
@@ -88,6 +88,11 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
         Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
         Abc_FrameSetLibSuper( NULL );
     }
+
+    if ( userLib != NULL ) {
+        pLib = userLib;
+    }
+ 
     // quit if there is no library
     if ( pLib == NULL )
     {
