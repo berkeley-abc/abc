@@ -3383,26 +3383,43 @@ clk = Abc_Clock();
 Rwr_ManAddTimeUpdate( pManRwr, Abc_Clock() - clk );
             if ( fCompl ) Dec_GraphComplement( pGraph );
             ops_rwr++;
+            if(pFFormRef != NULL){
+                Dec_GraphFree( pFFormRef );
+            }
+            if(pFFormRes != NULL){
+                Dec_GraphFree( pFFormRes );
+            }
             continue;
         } 
         // if (((! (pManRes->nLastGain < 0)) && (! (pManRes->nLastGain < nGain)) && (! (nGain < pManRef->nLastGain))) || ((! (pManRes->nLastGain < 0)) && (! (pManRes->nLastGain < pManRef->nLastGain)) && (! (pManRef->nLastGain < nGain)))){
         if (((! (pManRes->nLastGain < 0)) && (! (pManRes->nLastGain < nGain)) && (! (pManRes->nLastGain < pManRef->nLastGain)))){
         // update with Resub
-            if ( pFFormRes == NULL )
+            if ( pFFormRes == NULL ) {
+                if (pFFormRef != NULL) {
+                    Dec_GraphFree(pFFormRef);
+                }
                 continue;
+            }
             pManRes->nTotalGain += pManRes->nLastGain;
 clk = Abc_Clock();
             Dec_GraphUpdateNetwork( pNode, pFFormRes, fUpdateLevel, pManRes->nLastGain );
 pManRes->timeNtk += Abc_Clock() - clk;
             Dec_GraphFree( pFFormRes );
             ops_res++;
+            if( pFFormRef != NULL ){
+                Dec_GraphFree( pFFormRef);
+            }
             continue;
         }
         // if (((! (pManRef->nLastGain < 0)) && (! (pManRef->nLastGain < nGain)) && (! (nGain < pManRes->nLastGain))) || ((! (pManRef->nLastGain < 0)) && (! (pManRef->nLastGain < pManRes->nLastGain)) && (! (pManRes->nLastGain < nGain)))){
         if (((! (pManRef->nLastGain < 0)) && (! (pManRef->nLastGain < nGain)) && (! (pManRef->nLastGain < pManRes->nLastGain)))){
         // update with Refactor
-            if ( pFFormRef == NULL )
+            if ( pFFormRef == NULL ) {
+                if( pFFormRes != NULL) {
+                    Dec_GraphFree(pFFormRes);
+                }
                 continue;
+            }
 clk = Abc_Clock();
             if ( !Dec_GraphUpdateNetwork( pNode, pFFormRef, fUpdateLevel, pManRef->nLastGain ) )
                  {
@@ -3413,9 +3430,21 @@ clk = Abc_Clock();
 pManRef->timeNtk += Abc_Clock() - clk;
             Dec_GraphFree( pFFormRef );
             ops_ref++;
+            if(pFFormRes != NULL){
+                Dec_GraphFree( pFFormRes );
+            }
             continue;
         }
-        else{ops_null++; continue;}
+        else{
+            ops_null++;
+            if( pFFormRef != NULL ){
+                Dec_GraphFree( pFFormRef);
+            }
+            if(pFFormRes != NULL){
+                Dec_GraphFree( pFFormRes );
+            }
+            continue;
+        }
     }
 
     /*
