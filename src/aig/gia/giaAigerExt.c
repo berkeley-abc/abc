@@ -314,7 +314,7 @@ int Gia_AigerWriteCellMappingInstance( Gia_Man_t * p, unsigned char * pBuffer, i
 Vec_Str_t * Gia_AigerWriteCellMappingDoc( Gia_Man_t * p )
 {
     unsigned char * pBuffer;
-    int i, iFan, nCells = 0, nInstances = 0, nSize = 8, nSize2 = 0;
+    int i, nCells = 0, nInstances = 0, nSize = 8, nSize2 = 0;
     Mio_Cell2_t * pCells = Mio_CollectRootsNewDefault2( 6, &nCells, 0 );
     assert( pCells );
 
