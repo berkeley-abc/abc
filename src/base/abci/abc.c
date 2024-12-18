@@ -477,6 +477,7 @@ static int Abc_CommandAbc9Scorr              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Choice             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Sat                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatEnum            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SimGen             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Fraig              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9CFraig             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Srm                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1278,6 +1279,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&choice",       Abc_CommandAbc9Choice,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sat",          Abc_CommandAbc9Sat,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satenum",      Abc_CommandAbc9SatEnum,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&sim_gen",      Abc_CommandAbc9SimGen,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fraig",        Abc_CommandAbc9Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cfraig",       Abc_CommandAbc9CFraig,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&srm",          Abc_CommandAbc9Srm,          0 );
@@ -39176,6 +39178,130 @@ usage:
     Abc_Print( -2, "\t-C num : the max number of conflicts at a node [default = %d]\n", nConfLimit );
     Abc_Print( -2, "\t-T num : global timeout [default = %d]\n", nTimeOut );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",   fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Abc_CommandAbc9SimGen]
+
+  Description [This function calls SimGen tool]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int Abc_CommandAbc9SimGen( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Cec_SimGenSetParDefault( Cec_ParSimGen_t * pPars );
+    extern Gia_Man_t * Cec_SimGenRun( Gia_Man_t * pAig, Cec_ParSimGen_t * pPars );
+
+    Cec_ParSimGen_t ParsFra, * pPars = &ParsFra; Gia_Man_t * pTemp;
+    int c;
+    Cec_SimGenSetParDefault( pPars );
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "OSstiwvV" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->bitwidthOutgold = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->bitwidthOutgold <= 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->bitwidthSim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->bitwidthSim <= 0 )
+                goto usage;
+            break;
+        case 's':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-s\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxStep = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxStep <= 0 )
+                goto usage;
+            break;
+        case 't':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-t\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->timeOutSim = atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxStep <= 0 )
+                goto usage;
+            break;
+        case 'i':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-i\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->nMaxIter = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->nMaxIter <= -2 )
+                goto usage;
+            break;
+        case 'w':
+            pPars->fUseWatchlist = 1;
+            break;
+        case 'v':
+            pPars->fVerbose = 1;
+            break;
+        case 'V':
+            pPars->fVeryVerbose = 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Fraig(): There is no AIG.\n" );
+        return 1;
+    }
+    
+    pTemp = Cec_SimGenRun(pAbc->pGia, pPars );
+    if ( pAbc->pGia->pCexSeq != NULL )
+    {
+        pAbc->Status  = 0;
+        pAbc->nFrames = 0;
+        Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexSeq );
+    }
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &sim_gen [-EOSsivV <num>] [-v] \n" );
+    Abc_Print( -2, "\t         performs combinational SAT sweeping applying SimGen\n" );
+    Abc_Print( -2, "\t-O num : the bitwidth of the output gold [default = %d]\n", pPars->bitwidthOutgold );
+    Abc_Print( -2, "\t-S num : the bitwidth of the simulation vectors [default = %d]\n", pPars->bitwidthSim );
+    Abc_Print( -2, "\t-s num : the maximum number of SimGen steps [default = %d]\n", pPars->nMaxStep );
+    Abc_Print( -2, "\t-t num : the timeout value after which Smart Simulation Pattern Generation terminates [default = %.0f]\n", pPars->timeOutSim);
+    Abc_Print( -2, "\t-i num : the maximum number of iterations [default = %d]\n", pPars->nMaxIter );
+    Abc_Print( -2, "\t-w     : activates the watchlist feature [default = %d]\n", pPars->fUseWatchlist);
+    Abc_Print( -2, "\t-v     : verbose [default = %d]\n", pPars->fVerbose );
+    Abc_Print( -2, "\t-V     : very verbose [default = %d]\n", pPars->fVeryVerbose );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
