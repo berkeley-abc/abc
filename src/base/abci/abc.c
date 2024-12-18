@@ -39300,6 +39300,7 @@ int Abc_CommandAbc9SimGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &sim_gen [-EOSsivV <num>] [-v] \n" );
     Abc_Print( -2, "\t         performs combinational SAT sweeping applying SimGen\n" );
+    Abc_Print( -2, "\t-E num : the experiment ID for SimGen [default = %d]\n", pPars->expId );
     Abc_Print( -2, "\t-O num : the bitwidth of the output gold [default = %d]\n", pPars->bitwidthOutgold );
     Abc_Print( -2, "\t-S num : the bitwidth of the simulation vectors [default = %d]\n", pPars->bitwidthSim );
     Abc_Print( -2, "\t-s num : the maximum number of SimGen steps [default = %d]\n", pPars->nMaxStep );
