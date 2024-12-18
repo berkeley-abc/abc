@@ -39203,10 +39203,21 @@ int Abc_CommandAbc9SimGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_SimGenSetParDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "OSstiwvV" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "EOSstiwvV" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->expId = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->expId < 0 )
+                goto usage;
+            break;
         case 'O':
             if ( globalUtilOptind >= argc )
             {

@@ -207,6 +207,7 @@ struct Cec_ParSimGen_t_
 {
     int              fVerbose;          // verbose flag
     int              fVeryVerbose;      // verbose flag
+    int              expId;             // experiment ID for SimGen
     int              bitwidthOutgold;   // bitwidth of the output gold
     int              bitwidthSim;       // bitwidth of the simulation vectors
     int              nMaxStep;          // maximum number of SimGen steps
