@@ -39198,7 +39198,7 @@ int Abc_CommandAbc9SimGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     Cec_SimGenSetParDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "EOSstiwvV" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "EOStiwvV" ) ) != EOF )
     {
         switch ( c )
         {
@@ -39235,17 +39235,6 @@ int Abc_CommandAbc9SimGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->bitwidthSim <= 0 )
                 goto usage;
             break;
-        case 's':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-s\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->nMaxStep = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( pPars->nMaxStep <= 0 )
-                goto usage;
-            break;
         case 't':
             if ( globalUtilOptind >= argc )
             {
@@ -39254,7 +39243,7 @@ int Abc_CommandAbc9SimGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pPars->timeOutSim = atof(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->nMaxStep <= 0 )
+            if ( pPars->timeOutSim <= 0 )
                 goto usage;
             break;
         case 'i':
@@ -39303,7 +39292,6 @@ usage:
     Abc_Print( -2, "\t-E num : the experiment ID for SimGen [default = %d]\n", pPars->expId );
     Abc_Print( -2, "\t-O num : the bitwidth of the output gold [default = %d]\n", pPars->bitwidthOutgold );
     Abc_Print( -2, "\t-S num : the bitwidth of the simulation vectors [default = %d]\n", pPars->bitwidthSim );
-    Abc_Print( -2, "\t-s num : the maximum number of SimGen steps [default = %d]\n", pPars->nMaxStep );
     Abc_Print( -2, "\t-t num : the timeout value after which Smart Simulation Pattern Generation terminates [default = %.0f]\n", pPars->timeOutSim);
     Abc_Print( -2, "\t-i num : the maximum number of iterations [default = %d]\n", pPars->nMaxIter );
     Abc_Print( -2, "\t-w     : activates the watchlist feature [default = %d]\n", pPars->fUseWatchlist);

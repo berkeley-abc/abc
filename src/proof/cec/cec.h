@@ -210,7 +210,6 @@ struct Cec_ParSimGen_t_
     int              expId;             // experiment ID for SimGen
     int              bitwidthOutgold;   // bitwidth of the output gold
     int              bitwidthSim;       // bitwidth of the simulation vectors
-    int              nMaxStep;          // maximum number of SimGen steps
     int              nMaxIter;          // maximum number of iterations
     char *           outGold;           // data containing outgold
     float            timeOutSim;        // timeout for simulation

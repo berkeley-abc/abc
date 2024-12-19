@@ -244,7 +244,6 @@ void Cec_SimGenSetParDefault( Cec_ParSimGen_t * pPars )
     pPars->bitwidthOutgold      = 2; // bitwidth of the output golden model
     pPars->bitwidthSim          = 31; // bitwidth of the simulation vectors
     pPars->expId                = 1; // experiment ID
-    pPars->nMaxStep             = 20; // the maximum number of steps
     pPars->nMaxIter             = -1; // the maximum number of iterations
     pPars->timeOutSim           = 1000.0; // the timeout for simulation in sec
     pPars->fUseWatchlist        = 0; // use watchlist
