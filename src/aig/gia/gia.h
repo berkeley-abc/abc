@@ -249,6 +249,11 @@ struct Gia_Man_t_
     int            iFirstPoId;
     int            iFirstAndObj;
     int            iFirstPoObj;
+    Vec_Str_t *    vTTISOPs;      // truth tables from ISOP computation
+    Vec_Int_t *    vTTLut;      // truth tables from ISOP computation
+    Vec_Int_t *    vMFFCsInfo;    // MFFC information
+    Vec_Int_t *    vMFFCsLuts;        // MFFCs for each lut
+    Vec_Ptr_t *    vLutsRankings;     // LUTs rankings of inputs
 };
 
 
@@ -1842,6 +1847,8 @@ extern void                 Bnd_ManPrintStats();
 
 // util
 extern Gia_Man_t*           Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Vec_Int_t* vEO, Vec_Bit_t* vEI_phase, Vec_Bit_t* vEO_phase );
+
+extern int                  Gia_ObjCheckMffc( Gia_Man_t * p, Gia_Obj_t * pRoot, int Limit, Vec_Int_t * vNodes, Vec_Int_t * vLeaves, Vec_Int_t * vInners );
 
 ABC_NAMESPACE_HEADER_END
 
