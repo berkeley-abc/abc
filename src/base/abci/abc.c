@@ -1277,7 +1277,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&choice",       Abc_CommandAbc9Choice,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&sat",          Abc_CommandAbc9Sat,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satenum",      Abc_CommandAbc9SatEnum,      0 );
-    Cmd_CommandAdd( pAbc, "ABC9",         "&sim_gen",      Abc_CommandAbc9SimGen,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&fraigSimGen",      Abc_CommandAbc9SimGen,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&fraig",        Abc_CommandAbc9Fraig,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&cfraig",       Abc_CommandAbc9CFraig,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&srm",          Abc_CommandAbc9Srm,          0 );
@@ -39298,7 +39298,7 @@ int Abc_CommandAbc9SimGen( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &sim_gen [-EOSsivV <num>] [-v] \n" );
+    Abc_Print( -2, "usage: &fraigSimGen [-EOSsivV <num>] [-v] \n" );
     Abc_Print( -2, "\t         performs combinational SAT sweeping applying SimGen\n" );
     Abc_Print( -2, "\t-E num : the experiment ID for SimGen [default = %d]\n", pPars->expId );
     Abc_Print( -2, "\t-O num : the bitwidth of the output gold [default = %d]\n", pPars->bitwidthOutgold );
