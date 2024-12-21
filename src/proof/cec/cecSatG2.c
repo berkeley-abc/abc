@@ -2308,6 +2308,9 @@ Vec_Str_t * encodeSOP(char * pSop, int nFanins, int nCubes){
 
 char * extractSOP( DdManager * dd, DdNode * bFunc, int nFanins, int polarity, int * _nCubes){
     
+    extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
+    extern int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
+
     Vec_Str_t * vCube = Vec_StrAlloc( 100 );
     int nCubes; char * pSop;
     DdNode * bCover, * zCover;
@@ -2363,7 +2366,6 @@ void computeISOPs( Gia_Man_t * p, Abc_Ntk_t * pNtkNew ){
     DdManager * dd = (DdManager *)pNtkNew->pManFunc;
     DdNode * bFunc;
     char * pSop;
-    DdNode * bCover;
     int nCubes, i, jjj;
     Vec_Str_t * encodedSop;
     // compute SOP sizes
@@ -2461,6 +2463,8 @@ cleanup:
 
 void Cec_DeriveSOPs( Gia_Man_t * p ){
 
+    extern Hop_Obj_t * Abc_ObjHopFromGia( Hop_Man_t * pHopMan, Gia_Man_t * p, int GiaId, Vec_Ptr_t * vCopies );
+
     // generate the structure to contain LUT ids and their corresponding TTISOPS
     int nCountLuts = Gia_ManLutNum(p);
     p->vTTISOPs = Vec_StrAlloc( nCountLuts * 10);
@@ -2472,7 +2476,7 @@ void Cec_DeriveSOPs( Gia_Man_t * p ){
     Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo, * pConst0 = NULL;
     Gia_Obj_t * pObj, * pObjLi, * pObjLo;
     Vec_Ptr_t * vReflect = Vec_PtrStart( Gia_ManObjNum(p) );
-    int i, k, jjj, iFan, nDupGates, nCountMux = 0;
+    int i, k, iFan;
     assert( Gia_ManHasMapping(p) );
     pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC,  ABC_FUNC_AIG, 1 );
     // duplicate the name and the spec
@@ -2527,6 +2531,34 @@ void Cec_DeriveSOPs( Gia_Man_t * p ){
     computeISOPs( p, pNtkNew );
 
     return;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluate MFFC depth.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int evaluate_mffc(Gia_Man_t * p, int rootId, int fanId, Vec_Int_t * vLeaves){
+
+    int quality = 0, jMFFCLeaf;
+    int nLeaves = Vec_IntSize(vLeaves);    
+    for(jMFFCLeaf = 0; jMFFCLeaf < nLeaves ; jMFFCLeaf++){
+      int idMFFCLeaf = Vec_IntEntry(vLeaves, jMFFCLeaf);
+      int level_leaf = Gia_ObjLevelId(p, idMFFCLeaf) ;
+      int level_root = Gia_ObjLevelId(p, fanId) ;
+      quality +=  level_root - level_leaf;
+    }
+    if( quality != 0 && nLeaves > 0)
+      quality /= nLeaves;
+    return quality;
 
 }
 
@@ -2601,33 +2633,7 @@ void computeMFFCs( Gia_Man_t * p ){
     Vec_IntFree( vInnersNew );
 
 }
-/**Function*************************************************************
 
-  Synopsis    [Evaluate MFFC depth.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-
-int evaluate_mffc(Gia_Man_t * p, int rootId, int fanId, Vec_Int_t * vLeaves){
-
-    int quality = 0, jMFFCLeaf;
-    int nLeaves = Vec_IntSize(vLeaves);    
-    for(jMFFCLeaf = 0; jMFFCLeaf < nLeaves ; jMFFCLeaf++){
-      int idMFFCLeaf = Vec_IntEntry(vLeaves, jMFFCLeaf);
-      int level_leaf = Gia_ObjLevelId(p, idMFFCLeaf) ;
-      int level_root = Gia_ObjLevelId(p, fanId) ;
-      quality +=  level_root - level_leaf;
-    }
-    if( quality != 0 && nLeaves > 0)
-      quality /= nLeaves;
-    return quality;
-
-}
 
 /**Function*************************************************************
 
@@ -2647,8 +2653,8 @@ int extract_quality_mffc(Gia_Man_t * p, int ObjId, char pDCs){
       return 0;
     assert( Vec_IntEntry( p->vMFFCsLuts, ObjId ) != -1);
     int * pMFFC = p->vMFFCsInfo->pArray + Vec_IntEntry( p->vMFFCsLuts, ObjId );
-    int iFan, ith_fan, qualityMFFC, quality = 0;
-    int nFanins = Gia_ObjLutSize(p, ObjId);
+    int iFan, ith_fan, quality = 0;
+    //int nFanins = Gia_ObjLutSize(p, ObjId);
     Gia_LutForEachFanin( p, ObjId, iFan, ith_fan ){
       int qualityMFFC = *pMFFC;
       if (qualityMFFC == 0 || (pDCs & (1 << ith_fan)) > 0){ // count the cones without don't cares
@@ -2717,7 +2723,8 @@ void generateLutsRankings( Gia_Man_t * p){
         getISOPObjId( p, LutId, pSop, nCubes );
         for(k = 0; k < 2; k++){
           for(iii = 0; iii < nCubes[k]; iii++){
-            char pCube =  pSop[k][iii*2]; char pDCs =  pSop[k][iii*2+1];
+            //char pCube =  pSop[k][iii*2];
+            char pDCs =  pSop[k][iii*2+1];
             for(jjj = 0; jjj < nFanins; jjj++){
               if ( (pDCs & (1 << jjj)) == 0 )
                 ranks[jjj]++;
@@ -2882,6 +2889,57 @@ void Cec_ManSimulateCisSimGen( Gia_Man_t * p, int bitwidth )
 
 /**Function*************************************************************
 
+  Synopsis    [Evaluate equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int evaluate_equiv_classes(Gia_Man_t * p, int verbose){
+
+    int i, k;
+    int quality = 0;
+    Gia_ManForEachClass0( p, i )
+    {
+        Gia_ClassForEachObj1( p, i, k ){
+          quality++;
+        }
+    }
+
+    if (verbose)
+      printf("**Quality = %d\n", quality);
+
+    return quality;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compute total number of classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int totalNumClasses(Gia_Man_t * p){
+  int iRepr;
+  int numClasses = 0;
+  Gia_ManForEachClass0( p, iRepr ){
+    numClasses++;
+  }
+  return numClasses;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Simulate the CIs with random values.]
 
   Description []
@@ -2924,34 +2982,6 @@ void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIt
   }
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Evaluate equivalence classes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-************************************************************************/
-
-int evaluate_equiv_classes(Gia_Man_t * p, int verbose){
-
-    int i, k;
-    int quality = 0;
-    Gia_ManForEachClass0( p, i )
-    {
-        Gia_ClassForEachObj1( p, i, k ){
-          quality++;
-        }
-    }
-
-    if (verbose)
-      printf("**Quality = %d\n", quality);
-
-    return quality;
-}
 
 /**Function*************************************************************
 
@@ -2969,7 +2999,7 @@ void exportEquivClasses(Gia_Man_t * p, char * filename){
 
     FILE * pFile;
     pFile = fopen( filename, "wb" );
-    Gia_Obj_t * pObj; int i, j, iii = 0;
+    int i, j, iii = 0;
     Gia_ManForEachClass0( p, i )
     {
         fprintf( pFile, "Class %d: %d ", iii , i);
@@ -2984,26 +3014,6 @@ void exportEquivClasses(Gia_Man_t * p, char * filename){
 
 }
 
-/**Function*************************************************************
-
-  Synopsis    [Compute total number of classes.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-
-int totalNumClasses(Gia_Man_t * p){
-  int iRepr;
-  int numClasses = 0;
-  Gia_ManForEachClass0( p, iRepr ){
-    numClasses++;
-  }
-  return numClasses;
-}
 
 
 /**Function*************************************************************
@@ -3022,7 +3032,6 @@ char * generateOutGoldValues(Gia_Man_t * p){
 
     char * pOutGold = (char *) malloc( sizeof(char) * Gia_ManObjNum(p) );
     int i, k;
-    Gia_Obj_t * pObj;
     int cnt = 85; // 0b01010101
     Gia_ManForEachLut( p, i ){
         pOutGold[i] = (char) 0;
@@ -3074,7 +3083,7 @@ int existsOneClass(Gia_Man_t * p){
 Vec_Int_t * extractNthClass(Gia_Man_t * p, int nth_class){
 
   Vec_Int_t * vClass = Vec_IntAlloc( Gia_ManLutNum(p) );
-  int iRepr, jLut, iii;
+  int iRepr, jLut;
   Gia_ManForEachClass0( p, iRepr ){
     if(nth_class == 0){
       Vec_IntPush(vClass, iRepr);
@@ -3106,7 +3115,6 @@ Vec_Int_t * computeLutsOrder(Gia_Man_t * p, int reorder_type){
     Vec_Int_t * luts_order = Vec_IntAlloc( Gia_ManLutNum(p) );
     int * luts_tmp = (int *) malloc( sizeof(int) * Gia_ManLutNum(p));
     int iRepr, jLut, iii, jjj, kkk;
-    Gia_Obj_t * pObj;
     Gia_ManForEachClass0( p, iRepr ){
         luts_tmp[ 0 ] = iRepr;
         iii = 1;
@@ -3180,8 +3188,7 @@ void computeFaninCones_rec(Gia_Man_t * p, int ObjId, Vec_Int_t * vLutsFaninCones
 
 Vec_Int_t * computeFaninCones( Gia_Man_t * p, Vec_Int_t * vLuts ){
 
-    int i, FaninId, jth_fanin;
-    Gia_Obj_t * pObj;
+    int i, jth_fanin;
     Vec_Int_t * vLutsFaninCones = Vec_IntStart(Gia_ManObjNum(p));
     Vec_IntForEachEntry( vLuts, i, jth_fanin ){
       computeFaninCones_rec( p, i, vLutsFaninCones );
@@ -3205,10 +3212,6 @@ Vec_Int_t * computeFaninCones( Gia_Man_t * p, Vec_Int_t * vLuts ){
 
 int checkCompatibilityCube( Gia_Man_t * pMan, char * pCube, int nFanins, char * pCubeGold ){
 
-    // double check this function!!!!
-
-
-    int i;
     char pCubeOnes = *pCube; char pDCs = *(pCube+1);
     char pCubeGoldOnes = *pCubeGold; char pCubeNotAssigned = *(pCubeGold+1);
 
@@ -3238,7 +3241,7 @@ int checkCompatibilityCube( Gia_Man_t * pMan, char * pCube, int nFanins, char * 
 int compute_quality_sop(Gia_Man_t * p , char * pSop, int ObjId ,int nFanins, int experimentID){
 
     int quality = 0;
-    char pValues = *pSop;
+    //char pValues = *pSop;
     pSop++;
     char pDCs = *(pSop);
     switch (experimentID){
@@ -3373,9 +3376,9 @@ int check_implication( Gia_Man_t * p, int ObjId , int validBit , int fanoutValue
       
 
       if(compatible == 1){
-        char selectedSop = *(pSop + lastCube * 2);
-        char selectedDCs = *(pSop + lastCube * 2 + 1);
-        assert(0); // to finish implementing
+        //char selectedSop = *(pSop + lastCube * 2);
+        //char selectedDCs = *(pSop + lastCube * 2 + 1);
+        assert(0); // TODO: implement the case in which the output is set
         return 1;
       } else if (compatible == 0){
         return -1;
