@@ -4301,7 +4301,7 @@ void printISOPLUT(Gia_Man_t * pMan, int ObjId){
 
 Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
 
-    
+    extern void Gia_ManDupMapping( Gia_Man_t * pNew, Gia_Man_t * p );
     Cec4_Man_t * pManSim;  
     int i, k, iFan;
     Gia_Man_t * pMapped;
