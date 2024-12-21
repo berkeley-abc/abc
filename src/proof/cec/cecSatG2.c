@@ -3746,7 +3746,7 @@ int computeNetworkValues(Gia_Man_t * p, Cec_ParSimGen_t * pPars, int ObjId ,  ch
         validNum++;
         char mask_fanin = 1 << jth_fanin;
 
-        pSop = Vec_PtrEntry(vSops, validNum);
+        pSop = (char *) Vec_PtrEntry(vSops, validNum);
         char pSop1s = *pSop;
         pSop++;
         char pSopDCs = *pSop;
