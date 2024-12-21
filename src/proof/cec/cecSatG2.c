@@ -21,6 +21,9 @@
 #include "aig/gia/gia.h"
 #include "misc/util/utilTruth.h"
 #include "cec.h"
+#include "bdd/extrab/extraBdd.h"
+#include "base/abc/abc.h"
+#include "map/if/if.h"
 
 #define USE_GLUCOSE2
 
@@ -220,6 +223,37 @@ void Cec4_ManSetParams( Cec_ParFra_t * pPars )
     pPars->nCallsRecycle  =     500;    // calls to perform before recycling SAT solver
     pPars->nGenIters      =     100;    // pattern generation iterations
     pPars->fBMiterInfo    =       0;    // printing BMiter information
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Default parameter settings.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cec_SimGenSetParDefault( Cec_ParSimGen_t * pPars )
+{
+    memset( pPars, 0, sizeof(Cec_ParSimGen_t) );
+    pPars->fVerbose             = 0; // verbose output
+    pPars->fVeryVerbose         = 0; // verbose output and outputs files
+    pPars->bitwidthOutgold      = 2; // bitwidth of the output golden model
+    pPars->bitwidthSim          = 31; // bitwidth of the simulation vectors
+    pPars->expId                = 1; // experiment ID
+    pPars->nMaxIter             = -1; // the maximum number of iterations
+    pPars->timeOutSim           = 1000.0; // the timeout for simulation in sec
+    pPars->fUseWatchlist        = 0; // use watchlist
+    pPars->fImplicationTime     = 0.0; // time spent in implication
+    pPars->nImplicationExecution = 0; // the number of implication executions
+    pPars->nImplicationSuccess   = 0; // the number of implication successes
+    pPars->nImplicationTotalChecks = 0; // the number of implication checks
+    pPars->nImplicationSuccessChecks = 0; // the number of implication successful checks
+    pPars->pCECPars             = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
+    Cec4_ManSetParams( pPars->pCECPars );
 }
 
 /**Function*************************************************************
@@ -2184,6 +2218,2185 @@ void Cec4_ManSimulateTest5( Gia_Man_t * p, int nConfs, int fVerbose )
     Vec_IntDumpBin( "_temp_.equiv", vRes, fVerbose );
     Vec_IntFree( vRes );
     Gia_ManStop( pAig );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Get ISOP LUT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void getISOPObjId( Gia_Man_t * pMan, int ObjId, char * pSop[2] , int nCubes[2] ){
+
+    assert( Gia_ObjIsLut(pMan, ObjId));
+    char * pSopInfo = pMan->vTTISOPs->pArray + Vec_IntEntry( pMan->vTTLut, ObjId );
+    int k;
+    // get the ISOPs positive polarity
+    for(k = 0; k < 2; k++ ){
+      nCubes[k] =  *pSopInfo;
+      pSopInfo++;
+      if(nCubes[k] == 0){
+        pSop[k] = NULL;
+        continue;
+      }
+      pSop[k] = pSopInfo;
+      pSopInfo += nCubes[k] * 2;
+    }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Encode SOPs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+Vec_Str_t * encodeSOP(char * pSop, int nFanins, int nCubes){
+
+    Vec_Str_t * vSop = Vec_StrAlloc( nCubes * 2 );
+    char pEncodeCube  = 0;
+    char pDCs = 0;
+    int fanin=0;
+    while( *pSop != '\0'){
+      if( *pSop == '\0')
+        continue;
+      if ( *pSop == '-' ){
+        //pDCs |= ( 1 << (nFanins - fanin - 1) );
+        pDCs |= ( 1 << fanin );
+      } else if ( *pSop == '1' ){
+        //pEncodeCube |= ( 1 << (nFanins - fanin - 1) );
+        pEncodeCube |= ( 1 << fanin );
+      }
+      fanin++;
+      if(fanin == nFanins){
+        Vec_StrPush( vSop, pEncodeCube );
+        Vec_StrPush( vSop, pDCs );
+        pEncodeCube =  0;
+        pDCs =  0;
+        fanin = 0;
+        pSop += 3;
+      }
+      pSop++;
+    }
+    return vSop;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Extract SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+char * extractSOP( DdManager * dd, DdNode * bFunc, int nFanins, int polarity, int * _nCubes){
+    
+    extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
+    extern int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
+
+    Vec_Str_t * vCube = Vec_StrAlloc( 100 );
+    int nCubes; char * pSop;
+    DdNode * bCover, * zCover;
+    if( polarity == 0){
+      bCover = Cudd_zddIsop( dd, Cudd_Not(bFunc), Cudd_Not(bFunc), &zCover );
+    } else {
+      bCover = Cudd_zddIsop( dd, bFunc, bFunc, &zCover );
+    }
+    Cudd_Ref( zCover );
+    Cudd_Ref( bCover );
+    Cudd_RecursiveDeref( dd, bCover );
+    nCubes = Abc_CountZddCubes( dd, zCover );
+    pSop = ABC_ALLOC( char, (nFanins + 3) * nCubes + 1 );
+    pSop[(nFanins + 3) * nCubes] = 0;
+    // create the SOP
+    Vec_StrFill( vCube, nFanins, '-' );
+    Vec_StrPush( vCube, '\0' );
+    Abc_ConvertZddToSop( dd, zCover, pSop, nFanins, vCube, polarity );
+    Cudd_RecursiveDerefZdd( dd, zCover );
+
+    if ( pSop == NULL || nFanins != Abc_SopGetVarNum( pSop )){
+        if ( pSop == NULL )
+          printf("SOP generation failed.\n");
+        else {
+          ABC_FREE( pSop );
+          printf( "Node has %d fanins but its SOP has support size %d.\n", nFanins, Abc_SopGetVarNum( pSop ));
+        }
+        fflush( stdout );
+        Vec_StrFree( vCube );
+        return NULL;
+    }
+    
+    Vec_StrFree( vCube );
+    *_nCubes = nCubes;
+    return pSop;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute ISOPs of both polarities.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void computeISOPs( Gia_Man_t * p, Abc_Ntk_t * pNtkNew ){
+
+    Abc_Obj_t * pObjNew;
+    DdManager * dd = (DdManager *)pNtkNew->pManFunc;
+    DdNode * bFunc;
+    char * pSop;
+    int nCubes, i, jjj;
+    Vec_Str_t * encodedSop;
+    // compute SOP sizes
+    Vec_Int_t * vGuide = Vec_IntAlloc( Abc_NtkObjNumMax(pNtkNew) );
+    Vec_IntFill( vGuide, Abc_NtkObjNumMax(pNtkNew), -1 );
+    // Collect BDDs in array
+    Vec_Ptr_t * vFuncs = Vec_PtrStart( Abc_NtkObjNumMax(pNtkNew) );
+    assert( !Cudd_ReorderingStatus(dd, (Cudd_ReorderingType *)&nCubes) );
+    Abc_NtkForEachNode( pNtkNew, pObjNew, i )
+        if ( !Abc_ObjIsBarBuf(pObjNew) )
+            Vec_PtrWriteEntry( vFuncs, i, pObjNew->pData );
+    // compute the number of cubes in the ISOPs and detemine polarity
+    nCubes = Extra_bddCountCubes( dd, (DdNode **)Vec_PtrArray(vFuncs), Vec_PtrSize(vFuncs), -1, ABC_INFINITY, Vec_IntArray(vGuide) );
+    Vec_PtrFree( vFuncs );
+    assert( Abc_NtkHasBdd(pNtkNew) );
+    if ( dd->size > 0 )
+    Cudd_zddVarsFromBddVars( dd, 2 );
+
+    // go through the objects
+    Abc_NtkForEachNode( pNtkNew, pObjNew, i )
+    {
+        // derive ISOPs in both polarities
+        if ( Abc_ObjIsBarBuf(pObjNew) )
+            continue;
+        assert( pObjNew->pData );
+        bFunc = (DdNode *)pObjNew->pData;
+        int nFanins = Abc_ObjFaninNum(pObjNew);
+        assert( nFanins <= 8); // we only support 8 fanins due to the data structure of vTTISOPs
+        // Check if node function is constant
+        if ( Cudd_IsConstant(bFunc) ){
+          pSop = ABC_ALLOC( char, nFanins + 4 );
+          pSop[0] = ' ';
+          pSop[1] = '0' + (int)(bFunc == Cudd_ReadOne(dd));
+          pSop[2] = '\n';
+          pSop[3] = '\0';
+          ABC_FREE( pSop );
+          // it's not a LUT, it should be skipped
+          continue;
+        }
+        // save location of the ISOP info in vTTISOPs
+        Vec_IntInsert( p->vTTLut, pObjNew->iTemp , p->vTTISOPs->nSize );
+        
+        // get the ZDD of the negative polarity
+        pSop = extractSOP( dd, bFunc, nFanins, 0 , &nCubes);
+        if ( pSop == NULL )
+            goto cleanup;
+        // encode the sop and save it in the vTTISOPs
+        encodedSop = encodeSOP( pSop, nFanins, nCubes );
+        Vec_StrPush( p->vTTISOPs, (char) nCubes );
+        if (nCubes > 0){ 
+          for (jjj = 0; jjj < nCubes; jjj++){
+            Vec_StrPush( p->vTTISOPs, encodedSop->pArray[jjj*2] ); Vec_StrPush( p->vTTISOPs, encodedSop->pArray[jjj*2+1] );
+          }
+        }
+        Vec_StrFree( encodedSop );
+        ABC_FREE( pSop );
+    
+        // get the ZDD of the positive polarity
+        pSop = extractSOP( dd, bFunc, nFanins, 1 , &nCubes);
+        if ( pSop == NULL )
+            goto cleanup;
+        // encode the sop and save it in the vTTISOPs
+        encodedSop = encodeSOP( pSop, nFanins, nCubes );
+        Vec_StrPush( p->vTTISOPs, (char) nCubes );
+        if (nCubes > 0){ 
+          for (jjj = 0; jjj < nCubes; jjj++){
+            Vec_StrPush( p->vTTISOPs, encodedSop->pArray[jjj*2] ); Vec_StrPush( p->vTTISOPs, encodedSop->pArray[jjj*2+1] );
+          }
+        }
+        Vec_StrFree( encodedSop );
+        ABC_FREE( pSop );
+    
+    }
+
+
+cleanup:
+    // free all used memory to generate SOPs
+    Vec_IntFree( vGuide );
+    Abc_NtkDelete( pNtkNew );
+    return;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Derive SOPs with positive and negative polarity.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+void Cec_DeriveSOPs( Gia_Man_t * p ){
+
+    extern Hop_Obj_t * Abc_ObjHopFromGia( Hop_Man_t * pHopMan, Gia_Man_t * p, int GiaId, Vec_Ptr_t * vCopies );
+
+    // generate the structure to contain LUT ids and their corresponding TTISOPS
+    int nCountLuts = Gia_ManLutNum(p);
+    p->vTTISOPs = Vec_StrAlloc( nCountLuts * 10);
+    p->vTTLut = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Vec_IntFill( p->vTTLut, Gia_ManObjNum(p), -1 );
+
+    // Transform the Gia into a HOP network
+    Abc_Ntk_t * pNtkNew;
+    Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo, * pConst0 = NULL;
+    Gia_Obj_t * pObj, * pObjLi, * pObjLo;
+    Vec_Ptr_t * vReflect = Vec_PtrStart( Gia_ManObjNum(p) );
+    int i, k, iFan;
+    assert( Gia_ManHasMapping(p) );
+    pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC,  ABC_FUNC_AIG, 1 );
+    // duplicate the name and the spec
+    pNtkNew->pName = Extra_UtilStrsav(p->pName);
+    pNtkNew->pSpec = Extra_UtilStrsav(p->pSpec);
+    Gia_ManFillValue( p );
+    // create constant
+    pConst0 = Abc_NtkCreateNodeConst0( pNtkNew );
+    Gia_ManConst0(p)->Value = Abc_ObjId(pConst0);
+    // create PIs
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Abc_ObjId( Abc_NtkCreatePi( pNtkNew ) );
+    // create POs
+    Gia_ManForEachPo( p, pObj, i )
+        pObj->Value = Abc_ObjId( Abc_NtkCreatePo( pNtkNew ) );
+    // create as many latches as there are registers in the manager
+    Gia_ManForEachRiRo( p, pObjLi, pObjLo, i )
+    {
+        pObjNew = Abc_NtkCreateLatch( pNtkNew );
+        pObjNewLi = Abc_NtkCreateBi( pNtkNew );
+        pObjNewLo = Abc_NtkCreateBo( pNtkNew );
+        Abc_ObjAddFanin( pObjNew, pObjNewLi );
+        Abc_ObjAddFanin( pObjNewLo, pObjNew );
+        pObjLi->Value = Abc_ObjId( pObjNewLi );
+        pObjLo->Value = Abc_ObjId( pObjNewLo );
+        Abc_LatchSetInit0( pObjNew );
+    }
+    Gia_ManForEachLut( p, i )
+    {
+        pObj = Gia_ManObj(p, i);
+        assert( pObj->Value == ~0 );
+        if ( Gia_ObjLutSize(p, i) == 0 )
+        {
+            pObj->Value = Abc_ObjId(pConst0);
+            continue;
+        }
+        pObjNew = Abc_NtkCreateNode( pNtkNew );
+        Gia_LutForEachFanin( p, i, iFan, k )
+            Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ManObj(p, iFan))) );
+        pObjNew->pData = Abc_ObjHopFromGia( (Hop_Man_t *)pNtkNew->pManFunc, p, i, vReflect );
+        pObjNew->fPersist = 0;
+        pObj->Value = Abc_ObjId( pObjNew );
+        pObjNew->iTemp = i;
+    }
+    
+    Vec_PtrFree( vReflect );
+
+    // HOP -> BDD
+    Abc_NtkAigToBdd(pNtkNew);
+
+    // Determine both polarity ISOPs
+    computeISOPs( p, pNtkNew );
+
+    return;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluate MFFC depth.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int evaluate_mffc(Gia_Man_t * p, int rootId, int fanId, Vec_Int_t * vLeaves){
+
+    int quality = 0, jMFFCLeaf;
+    int nLeaves = Vec_IntSize(vLeaves);    
+    for(jMFFCLeaf = 0; jMFFCLeaf < nLeaves ; jMFFCLeaf++){
+      int idMFFCLeaf = Vec_IntEntry(vLeaves, jMFFCLeaf);
+      int level_leaf = Gia_ObjLevelId(p, idMFFCLeaf) ;
+      int level_root = Gia_ObjLevelId(p, fanId) ;
+      quality +=  level_root - level_leaf;
+    }
+    if( quality != 0 && nLeaves > 0)
+      quality /= nLeaves;
+    return quality;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute MFFCs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void computeMFFCs( Gia_Man_t * p ){
+
+
+    int i, ith_fan, iFan;
+    Vec_Int_t * vNodes, * vLeaves, * vInners;
+    vNodes  = Vec_IntAlloc( 100 );
+    vLeaves = Vec_IntAlloc( 10 );
+    vInners = Vec_IntAlloc( 100 );
+    Vec_Int_t * vNodesNew, * vLeavesNew, * vInnersNew;
+    vNodesNew  = Vec_IntAlloc( 100 );
+    vLeavesNew = Vec_IntAlloc( 10 );
+    vInnersNew = Vec_IntAlloc( 100 );
+    p->vMFFCsLuts = Vec_IntStartFull( Gia_ManObjNum(p) );
+    //Vec_IntFill( p->vMFFCsLuts, Gia_ManObjNum(p), -1 );
+    p->vMFFCsInfo = Vec_IntAlloc( Gia_ManLutNum(p) * 5 );
+    Gia_ManCreateRefs( p );
+    Gia_ManForEachLut( p, i )
+    {
+        Gia_Obj_t * pObj = Gia_ManObj( p, i );
+
+        if ( !Gia_ObjRefNum(p, pObj) )
+            continue;
+        if ( !Gia_ObjCheckMffc(p, pObj, 10000, vNodes, vLeaves, vInners) )
+            continue;
+
+        Vec_IntInsert( p->vMFFCsLuts, i  , Vec_IntSize(p->vMFFCsInfo) );
+        Gia_LutForEachFanin( p, i, iFan, ith_fan ){
+          if (Vec_IntFind(vNodes, iFan) != -1){
+            if(Gia_ObjIsCi(Gia_ManObj(p, iFan)) == 1){
+              Vec_IntPush(p->vMFFCsInfo, Gia_ObjLevelId(p, i) ); // push the level of the CI
+              continue;
+            }
+            Gia_Obj_t * pObjFanin = Gia_ManObj( p, iFan );
+            if ( !Gia_ObjRefNum(p, pObjFanin) ){
+                Vec_IntPush(p->vMFFCsInfo, 0);
+                continue;
+            }
+            if ( !Gia_ObjCheckMffc(p, pObjFanin, 10000, vNodesNew, vLeavesNew, vInnersNew)){
+                Vec_IntPush(p->vMFFCsInfo, 0);
+                continue;
+            }
+            assert( Vec_IntSize(vLeavesNew) > 0);
+            int quality = evaluate_mffc(p, i, iFan, vLeavesNew);
+            Vec_IntPush(p->vMFFCsInfo, quality);
+
+          } else {
+            Vec_IntPush( p->vMFFCsInfo, 0 );
+          }
+
+        }
+    }
+    Vec_IntFree( vNodes );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vInners );
+    Vec_IntFree( vNodesNew );
+    Vec_IntFree( vLeavesNew );
+    Vec_IntFree( vInnersNew );
+
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluate MFFC depth.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int extract_quality_mffc(Gia_Man_t * p, int ObjId, char pDCs){
+
+    if( Vec_IntEntry( p->vMFFCsLuts, ObjId ) == -1)
+      return 0;
+    assert( Vec_IntEntry( p->vMFFCsLuts, ObjId ) != -1);
+    int * pMFFC = p->vMFFCsInfo->pArray + Vec_IntEntry( p->vMFFCsLuts, ObjId );
+    int iFan, ith_fan, quality = 0;
+    //int nFanins = Gia_ObjLutSize(p, ObjId);
+    Gia_LutForEachFanin( p, ObjId, iFan, ith_fan ){
+      int qualityMFFC = *pMFFC;
+      if (qualityMFFC == 0 || (pDCs & (1 << ith_fan)) > 0){ // count the cones without don't cares
+        pMFFC++;
+        continue;
+      }
+      quality +=  qualityMFFC;
+      pMFFC++;
+    }
+    return quality;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generate LUTs Ranking for SimGen algo.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int * sortArray( int * array, int n ){
+
+    int i, j, temp;
+    int * positions = (int *) malloc( n * sizeof(int) );
+    for(i = 0; i < n; i++)
+      positions[i] = i;
+    for(i = 0; i < n; i++){
+      for(j = i+1; j < n; j++){
+        if(array[i] < array[j]){
+          temp = array[i];
+          array[i] = array[j];
+          array[j] = temp;
+          temp = positions[i];
+          positions[i] = positions[j];
+          positions[j] = temp;
+        }
+      }
+    }
+    return positions;
+
+}
+
+void generateLutsRankings( Gia_Man_t * p){
+
+    p->vLutsRankings = Vec_PtrStart( Gia_ManObjNum(p) );
+    Vec_Int_t * vLutsRankingsTmp = Vec_IntAlloc( Gia_ManLutNum(p) * 5 ); 
+    int LutId, iii, k, jjj;
+    char * pSop[2]; int nCubes[2]; int nFanins;
+    int * ranks, * fanins;
+    Gia_ManForEachLut( p, LutId )
+    {
+        nFanins = Gia_ObjLutSize(p, LutId);
+        Vec_PtrInsert( p->vLutsRankings, LutId, vLutsRankingsTmp->pArray + Vec_IntSize(vLutsRankingsTmp) );
+        assert( nFanins > 0 );
+        ranks = (int*) malloc( nFanins * sizeof(int) );
+        fanins = (int*) malloc( nFanins * sizeof(int) );
+        Gia_LutForEachFanin( p, LutId, k, iii ){
+          fanins[iii] = k;
+          ranks[iii] = 0;
+        }
+        
+        nFanins = Gia_ObjLutSize(p, LutId);
+        getISOPObjId( p, LutId, pSop, nCubes );
+        for(k = 0; k < 2; k++){
+          for(iii = 0; iii < nCubes[k]; iii++){
+            //char pCube =  pSop[k][iii*2];
+            char pDCs =  pSop[k][iii*2+1];
+            for(jjj = 0; jjj < nFanins; jjj++){
+              if ( (pDCs & (1 << jjj)) == 0 )
+                ranks[jjj]++;
+            }
+          }
+        }
+        int * positions = sortArray( ranks, nFanins );
+        for(jjj = 0; jjj < nFanins; jjj++){
+          Vec_IntPush( vLutsRankingsTmp, fanins[positions[jjj]] );
+        }
+        free( positions );
+        free( ranks );
+        free( fanins );
+    }
+    //Vec_IntFree( vLutsRankingsTmp );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Generate Nodes Watchlist.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+Vec_Ptr_t * generateWatchList( Gia_Man_t * p ){
+
+    Vec_Ptr_t * vWatchList = Vec_PtrStart( Gia_ManObjNum(p) );
+    int LutId;
+    Gia_ManForEachLut( p, LutId )
+    {
+        int * ranking = (int *) Vec_PtrEntry( p->vLutsRankings, LutId );
+        int nodeId = ranking[0];
+        if( Vec_PtrEntry( vWatchList, nodeId ) == NULL ){
+          Vec_Int_t * vWatchListTmp = Vec_IntAlloc( 5 );
+          Vec_PtrWriteEntry( vWatchList, nodeId, vWatchListTmp );
+          Vec_IntPush( vWatchListTmp, LutId );
+          //Vec_IntFree( vWatchListTmp );
+        } else {
+          Vec_IntPush( (Vec_Int_t *) Vec_PtrEntry( vWatchList, nodeId ), LutId );
+        }
+    }
+    return vWatchList;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Fill in the fanout vectors for the LUTs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void Gia_generateFanoutMapping( Gia_Man_t * p )
+{
+    int iObj, iFanin, k;
+    assert( Gia_ManHasMapping(p) );
+    Vec_WecFreeP( &p->vFanouts2 );
+    p->vFanouts2 = Vec_WecStart( Gia_ManObjNum(p) );
+    Gia_ManForEachLut( p, iObj )
+    {
+        Gia_LutForEachFanin( p, iObj, iFanin, k )
+        {
+            Vec_WecPush( p->vFanouts2, iFanin, iObj );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Remove all non-LUT nodes from equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+void Cec_RemoveNonLutNodes( Gia_Man_t * p){
+
+    int i, iRepr, kElement, firstLutId, prevLutId;
+    Vec_Int_t * vLutIds = Vec_IntAlloc( Gia_ManObjNum(p) );
+    Gia_ManForEachClass0( p, iRepr )
+    {
+      Gia_ClassForEachObj1( p, iRepr, kElement ){
+        Vec_IntPush( vLutIds, kElement );
+      }
+
+      firstLutId = -1; prevLutId = -1;
+      if( !Gia_ObjIsLut(p, iRepr) ){
+          Gia_ObjSetRepr( p, iRepr, GIA_VOID );
+          Gia_ObjSetNext( p, iRepr, 0 );
+      } else {
+          firstLutId = iRepr;
+          prevLutId = iRepr;
+      }
+      Vec_IntForEachEntry( vLutIds, kElement, i ){
+
+        if( !Gia_ObjIsLut(p, kElement) ){
+            Gia_ObjSetRepr( p, kElement, GIA_VOID );
+            Gia_ObjSetNext( p, kElement, 0 );
+            continue;
+        }
+        if(firstLutId == -1){
+            Gia_ObjSetRepr( p, kElement, GIA_VOID );
+            firstLutId = kElement;
+            prevLutId = kElement;
+        } else {
+            Gia_ObjSetRepr( p, kElement, firstLutId );
+            Gia_ObjSetNext( p, prevLutId , kElement );
+            prevLutId = kElement;
+        }
+      }
+      Vec_IntClear( vLutIds );
+      // no lut found
+      if(firstLutId == -1){
+        continue;
+      }
+      Gia_ObjSetNext( p, prevLutId, 0 );
+
+    }
+    Vec_IntFree( vLutIds );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulate the CIs with random values with specific bitwidth.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+static inline void Cec_ObjSimCiSimGen( Gia_Man_t * p, int iObj , int bitwidth)
+{
+    int w;
+    word * pSim = Cec4_ObjSim( p, iObj );
+    word wMask = (1 << bitwidth) -1;
+    for ( w = 0; w < p->nSimWords; w++ )
+        pSim[w] = Abc_RandomW( 0 ) & wMask;
+    pSim[0] <<= 1;
+}
+
+void Cec_ManSimulateCisSimGen( Gia_Man_t * p, int bitwidth )
+{
+    int i, Id;
+    Gia_ManForEachCiId( p, Id, i )
+        Cec_ObjSimCiSimGen( p, Id , bitwidth);
+    p->iPatsPi = 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Evaluate equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int evaluate_equiv_classes(Gia_Man_t * p, int verbose){
+
+    int i, k;
+    int quality = 0;
+    Gia_ManForEachClass0( p, i )
+    {
+        Gia_ClassForEachObj1( p, i, k ){
+          quality++;
+        }
+    }
+
+    if (verbose)
+      printf("**Quality = %d\n", quality);
+
+    return quality;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compute total number of classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int totalNumClasses(Gia_Man_t * p){
+  int iRepr;
+  int numClasses = 0;
+  Gia_ManForEachClass0( p, iRepr ){
+    numClasses++;
+  }
+  return numClasses;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Simulate the CIs with random values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIter , int bitwidthSim , int verbose ){
+
+  clock_t start_time = clock();
+  int i;
+  int numClass = 100000;
+  int oldNumClass = 0, iMaxNumber = 200, iNumber = 0;
+  if(dynSim){
+    while (numClass != oldNumClass && iNumber < iMaxNumber)
+    {
+      oldNumClass = numClass;
+      Cec_ManSimulateCisSimGen( p, bitwidthSim );
+      Cec4_ManSimulate( p, pMan );
+      int quality = evaluate_equiv_classes(p, 0);
+      if (verbose)
+        printf("Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
+      numClass = totalNumClasses(p);
+      iNumber++;
+    }
+    
+
+  } else {
+    for(i = 0; i < nMaxIter; i++){
+      Cec_ManSimulateCisSimGen( p, bitwidthSim );
+      Cec4_ManSimulate( p, pMan );
+      int quality = evaluate_equiv_classes(p, 0);
+      Cec_RemoveNonLutNodes( p );
+      if (verbose)
+        printf("Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
+    }
+  }
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Export Equivalence classes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void exportEquivClasses(Gia_Man_t * p, char * filename){
+
+    FILE * pFile;
+    pFile = fopen( filename, "wb" );
+    int i, j, iii = 0;
+    Gia_ManForEachClass0( p, i )
+    {
+        fprintf( pFile, "Class %d: %d ", iii , i);
+        Gia_ClassForEachObj1( p, i, j ){
+          fprintf( pFile, " %d ", j );
+        }
+        fprintf(pFile, "\n");
+        iii++;
+    }
+    fclose( pFile );
+
+
+}
+
+
+
+/**Function*************************************************************
+
+  Synopsis    [Generate the output golden values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+char * generateOutGoldValues(Gia_Man_t * p){
+
+    char * pOutGold = (char *) malloc( sizeof(char) * Gia_ManObjNum(p) );
+    int i, k;
+    int cnt = 85; // 0b01010101
+    Gia_ManForEachLut( p, i ){
+        pOutGold[i] = (char) 0;
+    }
+    Gia_ManForEachClass0( p, i ){
+        pOutGold[i] = (char) cnt;
+        cnt ^= 1;
+        Gia_ClassForEachObj1( p, i, k ){
+          pOutGold[k] = (char) cnt;
+          cnt ^= 1;
+        }
+    }
+    return pOutGold;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check if it exists at least one class.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int existsOneClass(Gia_Man_t * p){
+  int iRepr;
+  Gia_ManForEachClass0( p, iRepr ){
+    return 1;
+  }
+  return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Extract nth equivalence class.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+Vec_Int_t * extractNthClass(Gia_Man_t * p, int nth_class){
+
+  Vec_Int_t * vClass = Vec_IntAlloc( Gia_ManLutNum(p) );
+  int iRepr, jLut;
+  Gia_ManForEachClass0( p, iRepr ){
+    if(nth_class == 0){
+      Vec_IntPush(vClass, iRepr);
+      Gia_ClassForEachObj1( p, iRepr, jLut )
+        Vec_IntPush(vClass, jLut);
+      break;
+    }
+    nth_class--;
+  }
+  assert(Vec_IntSize(vClass) > 0);
+  return vClass;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute the LUTs order.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+Vec_Int_t * computeLutsOrder(Gia_Man_t * p, int reorder_type){
+
+    Vec_Int_t * luts_order = Vec_IntAlloc( Gia_ManLutNum(p) );
+    int * luts_tmp = (int *) malloc( sizeof(int) * Gia_ManLutNum(p));
+    int iRepr, jLut, iii, jjj, kkk;
+    Gia_ManForEachClass0( p, iRepr ){
+        luts_tmp[ 0 ] = iRepr;
+        iii = 1;
+        Gia_ClassForEachObj1( p, iRepr, jLut ){
+          if(reorder_type == 0){ // decreasing level order
+            int found = 0;
+            for(jjj = 0; jjj < iii; jjj++){
+              if(Gia_ObjLevelId(p, jLut) <= Gia_ObjLevelId(p, luts_tmp[jjj])){
+                for (kkk = iii; kkk > jjj; kkk--) {
+                  luts_tmp[kkk] = luts_tmp[kkk - 1];
+                }
+                luts_tmp[jjj] = jLut;
+                found = 1;
+                break;
+              }
+            }
+            if(!found){
+              luts_tmp[iii] = jLut;
+            }
+            iii++;
+          } else if(reorder_type == 1) { // increasing level order
+            int found = 0;
+            for(jjj = 0; jjj < iii; jjj++){
+              if(Gia_ObjLevelId(p, jLut) >= Gia_ObjLevelId(p, luts_tmp[jjj])){
+                for (kkk = iii; kkk > jjj; kkk--) {
+                  luts_tmp[kkk] = luts_tmp[kkk - 1];
+                }
+                luts_tmp[jjj] = jLut;
+                found = 1;
+                break;
+              }
+            }
+            if(!found){
+              luts_tmp[iii] = jLut;
+            }
+            iii++;
+          }
+        }
+        for(kkk = 0; kkk < iii; kkk++)
+          Vec_IntPush(luts_order, luts_tmp[kkk] );
+    }
+    free(luts_tmp);
+    return luts_order;
+
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compute the fanin cones.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+void computeFaninCones_rec(Gia_Man_t * p, int ObjId, Vec_Int_t * vLutsFaninCones ){
+
+    int FaninId, jth_fanin;
+    Gia_LutForEachFanin( p, ObjId, FaninId, jth_fanin ){
+      if( Vec_IntEntry( vLutsFaninCones, FaninId ) == 0 ){
+        Vec_IntWriteEntry( vLutsFaninCones, FaninId, 1 );
+        if( Gia_ObjIsCi( Gia_ManObj(p, FaninId) ) == 0 )
+          computeFaninCones_rec( p, FaninId, vLutsFaninCones );
+      }
+    }
+}
+
+Vec_Int_t * computeFaninCones( Gia_Man_t * p, Vec_Int_t * vLuts ){
+
+    int i, jth_fanin;
+    Vec_Int_t * vLutsFaninCones = Vec_IntStart(Gia_ManObjNum(p));
+    Vec_IntForEachEntry( vLuts, i, jth_fanin ){
+      computeFaninCones_rec( p, i, vLutsFaninCones );
+    }
+    return vLutsFaninCones;
+
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Check compatibility ISOP and Vec.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int checkCompatibilityCube( Gia_Man_t * pMan, char * pCube, int nFanins, char * pCubeGold ){
+
+    char pCubeOnes = *pCube; char pDCs = *(pCube+1);
+    char pCubeGoldOnes = *pCubeGold; char pCubeNotAssigned = *(pCubeGold+1);
+
+    char pSkipBits = pDCs | pCubeNotAssigned;
+    char pConflictBits = pCubeOnes ^ pCubeGoldOnes;
+    char isConflict = ~pSkipBits & pConflictBits;
+    if ( isConflict )
+      return 0;
+
+    return 1;
+
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Compute quality of SOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int compute_quality_sop(Gia_Man_t * p , char * pSop, int ObjId ,int nFanins, int experimentID){
+
+    int quality = 0;
+    //char pValues = *pSop;
+    pSop++;
+    char pDCs = *(pSop);
+    switch (experimentID){
+    case 1: // Reverse Simulation
+    case 2: // Simple Implication
+    case 3: // Advanced Implication
+      break;
+    case 4: // Advanced Implication + Count DCs
+      while (pDCs > 0){
+        if((pDCs & 1) == 1)
+          quality += p->nLevels * 5; // the presence of DCs is more important than mffc 
+        pDCs = pDCs >> 1;
+      }      
+      break;
+    case 5: // Advanced Implication + Count DC + FFC
+      while (pDCs > 0){
+        if((pDCs & 1) == 1)
+          quality += p->nLevels * 5; // the presence of DCs is more important than mffc
+        pDCs = pDCs >> 1;
+      }   
+      pDCs = *(pSop);   
+      quality += extract_quality_mffc(p, ObjId, pDCs);
+      break;
+    default:
+      break;
+    }
+    return quality;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Execute roulette wheel.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int rouletteWheel( Vec_Int_t * vQualitySops, int numValid){
+
+    int i, max_int = 0xffffffff;
+    float totalSum;
+		totalSum = 0.0;
+		for ( i = 0; i < numValid; i++ )
+			totalSum += (float) Vec_IntEntry(vQualitySops, i);
+
+    unsigned int randValue = Gia_ManRandom(0);
+    float randValueNormalized = (float) ((float)randValue / max_int);
+		float randomNum =  randValueNormalized * totalSum;
+
+		// Select the index based on inverse proportional probability
+    float cumulativeProbability = 0.0;
+		for ( i = 0; i < numValid; i++ ) {
+      cumulativeProbability += Vec_IntEntry(vQualitySops, i);
+      if (cumulativeProbability > randomNum) {
+        return i;
+      }
+		}
+    return -1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Select SOP depending on quality value and the experimentID.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int selectSop( Vec_Int_t * vQualitySops, int ith_max_quality, int experimentID){
+
+    assert(experimentID > 0); // random simulation should not be used here
+    int numValid = Vec_IntSize(vQualitySops);
+    int idSelected = -1;
+    switch (experimentID){
+    //case 1:
+    //  idSelected = Aig_ManRandom(0) % numValid;
+    //  break;    
+    default:
+      idSelected = rouletteWheel( vQualitySops, numValid);
+      break;
+    }
+    if(idSelected == -1){
+      idSelected = ith_max_quality;
+    }
+    assert( idSelected != -1);
+    return idSelected;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check implication.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int check_implication( Gia_Man_t * p, int ObjId , int validBit , int fanoutValue, int fanoutNotSet, char * inputsFaninsValues, char * networkValues1s, char * networkValuesNotSet , int experimentID){
+
+    assert(experimentID > 1);
+    int ith_cube, jjj;
+    int nFanins = Gia_ObjLutSize(p, ObjId);
+    char * pSopBoth[2]; int nCubesBoth[2];
+    getISOPObjId( p, ObjId, pSopBoth, nCubesBoth );
+
+    if (fanoutNotSet == 0){
+      // case in which the output is set // backward implication
+      char * pSop = pSopBoth[fanoutValue];
+      int nCubes = nCubesBoth[fanoutValue];
+      int compatible = 0;
+      int lastCube = 0;
+      for(ith_cube = 0; ith_cube < nCubes; ith_cube++){
+        if(checkCompatibilityCube( p, pSop + ith_cube * 2, nFanins, inputsFaninsValues ) ){
+          compatible++;
+          lastCube = ith_cube;
+        }
+      }
+      
+
+      if(compatible == 1){
+        //char selectedSop = *(pSop + lastCube * 2);
+        //char selectedDCs = *(pSop + lastCube * 2 + 1);
+        assert(0); // TODO: implement the case in which the output is set
+        return 1;
+      } else if (compatible == 0){
+        return -1;
+      }
+
+      return 0;
+    } 
+    // forward implication
+    int compatible[2];
+    compatible[0] = 0;
+    compatible[1] = 0;
+    for(jjj = 0; jjj < 2; jjj++){
+
+      char * pSop = pSopBoth[jjj];
+      int nCubes = nCubesBoth[jjj];
+      for(ith_cube = 0; ith_cube < nCubes; ith_cube++){
+        if(checkCompatibilityCube( p, pSop + ith_cube * 2, nFanins, inputsFaninsValues ) ){
+          compatible[jjj]++;
+          if(compatible[jjj] > 1)
+            break;
+        }
+      }
+    }
+
+    if(compatible[0] > 0 && compatible[1] > 0){
+      return 0;
+    } else if (compatible[0] == 0 && compatible[1] == 0){
+      return -1;
+    }
+
+    if(experimentID == 2){
+      // simple implication
+      if(compatible[0] > 1 || compatible[1] > 1){
+        return 0;
+      }
+      char mask = 1 << validBit;
+      if(compatible[0] == 1){
+        networkValuesNotSet[ObjId] &= (~mask);
+      } else {
+        networkValues1s[ObjId] |= (1 << validBit);
+        networkValuesNotSet[ObjId] &= (~mask);
+      }     
+      return 1;
+    } else if (experimentID > 2){
+      // advanced implication
+      char mask = 1 << validBit;
+      if(compatible[0] >= 1){
+        networkValuesNotSet[ObjId] &= (~mask);
+      } else {
+        networkValues1s[ObjId] |= (1 << validBit);
+        networkValuesNotSet[ObjId] &= (~mask);
+      }
+      return 1;
+    }
+
+    assert(0);
+
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Check compatibility of cubes for implications.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int checkCompatibilityImplication( Gia_Man_t * p, Cec_ParSimGen_t * pPars, char * netValid, int objId, char * networkValues1s, char * networkValuesNotSet , Vec_Int_t * vLuts2Imply, Vec_Int_t * vLutsValidity  , int experimentID){
+
+
+    char _valid_vecs = *netValid;
+    char inputsFaninsValues[2] = {0, 0};
+    int firstElement = 0;
+    int iii = -1, FaninId, jjj;
+    pPars->nImplicationTotalChecks++;
+    while (_valid_vecs > 0){
+      iii++;
+      if( (_valid_vecs & 1) == 0){
+        _valid_vecs = _valid_vecs >> 1;
+        continue;
+      }
+      // retrieve value of the fanout
+      char mask = 1 << iii;
+      int fanoutValue = (networkValues1s[objId] & mask) >> iii;
+      int fanoutNotSet = (networkValuesNotSet[objId] & mask) >> iii;
+
+      if(fanoutNotSet == 0){
+        // disable backward implication in this function
+        _valid_vecs = _valid_vecs >> 1;
+        continue;
+      }
+      // re-arrange fanin values format
+      Gia_LutForEachFanin( p, objId, FaninId, jjj ){
+        char valueFanin = networkValues1s[FaninId];
+        char valueFaninNotSet = networkValuesNotSet[FaninId];
+        inputsFaninsValues[0] |= ( ((valueFanin & mask) >> iii) << jjj);
+        inputsFaninsValues[1] |= ( ((valueFaninNotSet & mask) >> iii) << jjj);
+      }        
+
+
+      if(fanoutNotSet == 0 && inputsFaninsValues[1] == 0){
+        _valid_vecs = _valid_vecs >> 1;
+        continue;
+      }
+
+      int status = check_implication( p, objId, iii, fanoutValue, fanoutNotSet, inputsFaninsValues, networkValues1s, networkValuesNotSet , experimentID);
+      if(status == -1){
+        *netValid = *netValid & ~(1 << iii);
+      } else if( status == 1){
+        if(firstElement == 0){
+          pPars->nImplicationSuccessChecks++;
+          Vec_IntPush( vLutsValidity, 1 << iii );
+          Vec_IntPush( vLuts2Imply, objId );
+        } else {
+          Vec_IntWriteEntry( vLutsValidity, Vec_IntSize(vLutsValidity) - 1, Vec_IntEntry(vLutsValidity, Vec_IntSize(vLutsValidity) - 1) | (1 << iii) );
+        }
+      }
+
+      _valid_vecs = _valid_vecs >> 1;
+    }
+
+    if( *netValid == 0){
+      return 0;
+    }
+
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute list of luts to imply.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+int computeLutsToImply( Gia_Man_t * p, Cec_ParSimGen_t * pPars, char * netValid, int ObjId, char * networkValues1s, char * networkValuesNotSet , Vec_Int_t * vLutsFaninCones, Vec_Int_t * vLuts2Imply, Vec_Int_t * vLutsValidity , Vec_Ptr_t * vNodesWatchlist, int experimentID){
+
+    int i, FanoutId, jth_fanout, LutId, k;
+    
+    if(vNodesWatchlist == NULL){
+      // Option 1: iterate through fanouts to check if there can be an implication and if yes, apply it
+      Gia_LutForEachFanout2( p, ObjId, FanoutId, jth_fanout ){
+        if( Vec_IntEntry(vLutsFaninCones, FanoutId) == 0){
+          // if the lut FanoutId is not in any cone, it shouldn't be considered
+          continue;
+        }
+        int status = checkCompatibilityImplication( p, pPars, netValid, FanoutId, networkValues1s, networkValuesNotSet, vLuts2Imply, vLutsValidity, experimentID);
+        if(status <= 0){
+          return status;
+        }
+      }
+    } else {
+      // Option 2: iterate through the watchlist to check if there can be an implication and if yes, apply it
+      Vec_Int_t * vWatchlist = (Vec_Int_t *) Vec_PtrEntry( vNodesWatchlist, ObjId );
+      if(vWatchlist == NULL){
+        return 1;
+      }
+      Vec_IntForEachEntry( vWatchlist, FanoutId, i ){
+        if( Vec_IntEntry(vLutsFaninCones, FanoutId) == 0){
+          // if the lut FanoutId is not in any cone, it shouldn't be considered
+          continue;
+        }
+        int status = checkCompatibilityImplication( p, pPars, netValid, FanoutId, networkValues1s, networkValuesNotSet, vLuts2Imply, vLutsValidity, experimentID);
+        if(status <= 0){
+          return status;
+        }
+      }
+      // update watchlist of LUTs
+      Vec_IntForEachEntry( vWatchlist, LutId, i ){
+        int * ranking = (int *) Vec_PtrEntry( p->vLutsRankings, LutId );
+        int FaninSize = Gia_ObjLutSize( p, LutId ), newWatchK = -1;
+        for(k = 0; k < FaninSize ; k++){
+          if(ranking[k] == ObjId){
+            newWatchK = k+1;
+            break;
+          }
+        }
+        assert(newWatchK != -1);
+        if(newWatchK >= FaninSize){ // the LUT is already fully watched
+          continue;
+        }
+        int newWatch = ranking[newWatchK];
+        Vec_Int_t * vNewWatch = (Vec_Int_t *) Vec_PtrEntry( vNodesWatchlist, newWatch );
+        if(vNewWatch == NULL){ // case in which there was no watch for a certain variable
+          vNewWatch = Vec_IntAlloc( 10 );
+          Vec_PtrWriteEntry( vNodesWatchlist, newWatch, vNewWatch );
+          Vec_IntPush( vNewWatch, LutId );
+        } else {
+          if(Vec_IntFind(vNewWatch, LutId) == -1){
+            Vec_IntPush( vNewWatch, LutId );
+          }
+        }
+      }
+
+    }
+    return 1;
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Execute implications.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int executeImplications( Gia_Man_t * p, Cec_ParSimGen_t * pPars, char * netValid, int ObjId, char * networkValues1s, char * networkValuesNotSet , Vec_Int_t * vLutsFaninCones, Vec_Ptr_t * vNodesWatchlist , int experimentID){
+
+    assert( *netValid > 0);
+    pPars->nImplicationExecution++;
+    int iii = -1, FanoutId;
+    Vec_Int_t * vLuts2Imply = Vec_IntAlloc( 10 );
+    Vec_Int_t * vLutsValidity = Vec_IntAlloc( 10 ); 
+
+    // first compute the list of luts to imply
+    int status = computeLutsToImply( p, pPars, netValid, ObjId, networkValues1s, networkValuesNotSet, vLutsFaninCones, vLuts2Imply, vLutsValidity, vNodesWatchlist , experimentID);
+    if(status <= 0){
+      Vec_IntFree( vLuts2Imply );
+      Vec_IntFree( vLutsValidity );
+      return status;
+    } 
+
+    // second recursively go through the implied luts if there is any implication that can be applied
+    Vec_IntForEachEntry( vLuts2Imply, FanoutId, iii ){
+      pPars->nImplicationSuccess++;
+      char validFanoutId = Vec_IntEntry(vLutsValidity, iii);
+      status = executeImplications( p, pPars, &validFanoutId, FanoutId, networkValues1s, networkValuesNotSet, vLutsFaninCones, vNodesWatchlist ,experimentID);
+      if (status == -1){
+        Vec_IntFree( vLuts2Imply );
+        Vec_IntFree( vLutsValidity );
+        return -1;
+      }
+    }
+
+
+    Vec_IntFree( vLuts2Imply );
+    Vec_IntFree( vLutsValidity );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute network values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int computeNetworkValues(Gia_Man_t * p, Cec_ParSimGen_t * pPars, int ObjId ,  char * netValid, char lutValues1s, char * networkValues1s, char * networkValuesNotSet , Vec_Int_t * modifiedLuts , Vec_Int_t * vLutsFaninCones , Vec_Ptr_t * vNodesWatchlist , int experimentID ){
+
+    assert(experimentID > 0);
+    assert(  *netValid > 0 );
+
+    if( Gia_ObjIsCi( Gia_ManObj(p, ObjId) ) ){
+      printf("[ERROR] It is not possible to call computeNetworkValues for PIs");
+      return -1;
+    }
+    char * pSopBoth[2]; int nCubesBoth[2];
+    char * pSop; int nCube, ith_cube, jth_fanin, FaninId;
+    getISOPObjId( p, ObjId, pSopBoth, nCubesBoth );
+    Vec_Ptr_t * vSops = Vec_PtrAlloc( 8 ); // for now consider only 8 parallalel SOPs due to char size
+    Vec_Int_t * vQualitySops = Vec_IntAlloc( 8 ); // compute qualities of SOPs
+    Vec_Int_t * vCubeId = Vec_IntAlloc( 8 ); // save ids of the selected cubes
+    char _valid_vecs = *netValid;
+    char _desired_values = lutValues1s;
+    int iii = -1, max_quality, ith_max_quality, validNum =0;
+    int nFanins = Gia_ObjLutSize(p, ObjId);
+    // first compute all SOPs that are available 
+    while (_valid_vecs > 0){
+      iii++;
+      if( (_valid_vecs & 1) == 0){
+        _valid_vecs = _valid_vecs >> 1;
+        _desired_values = _desired_values >> 1;
+        continue;
+      }
+      validNum++;
+      if( (_desired_values & 1) == 0){
+        // negative polarity
+        pSop = pSopBoth[0];
+        nCube = nCubesBoth[0];
+      } else {
+        // positive polarity
+        pSop = pSopBoth[1];
+        nCube = nCubesBoth[1];
+      }
+      Vec_IntClear(vQualitySops); // reset the quality of the SOPs
+      Vec_IntClear(vCubeId); // reset the ids of the cubes
+      char valuesFaninsMasked[2] = {0, 0}; // re-arrange all the fanin values for a specific iteration
+      Gia_LutForEachFanin( p, ObjId, FaninId, jth_fanin ){
+        char valuesFanin = networkValues1s[FaninId];
+        char valueFaninNotSet = networkValuesNotSet[FaninId];
+        char mask = 1 << iii;
+        valuesFaninsMasked[0] |= ( ((valuesFanin & mask) >> iii) << jth_fanin);
+        valuesFaninsMasked[1] |= ( ((valueFaninNotSet & mask) >> iii) << jth_fanin);
+      }
+      max_quality = 0;
+      ith_max_quality = -1;
+      for(ith_cube = 0; ith_cube < nCube; ith_cube++){
+        if(checkCompatibilityCube( p, pSop + ith_cube * 2, nFanins, valuesFaninsMasked ) ){
+          int quality = 1;
+          quality += compute_quality_sop(p, pSop + ith_cube * 2, ObjId , nFanins, experimentID);
+          if(quality > max_quality){
+            max_quality = quality;
+            ith_max_quality = ith_cube;
+          }
+          Vec_IntPush(vQualitySops, quality);
+          Vec_IntPush(vCubeId, ith_cube);
+        }
+      }
+      if(ith_max_quality == -1){ // no cube found that respects the values of the fanins
+        // the vector is not valid
+        validNum--;
+        *netValid = *netValid & ~(1 << iii);
+      } else {
+        int _idCube = selectSop(vQualitySops, ith_max_quality, experimentID);
+        int idSop = Vec_IntEntry(vCubeId, _idCube);
+        Vec_PtrPush( vSops, pSop + idSop * 2 );
+      }
+      _valid_vecs = _valid_vecs >> 1;
+      _desired_values = _desired_values >> 1;
+    }
+    Vec_IntFree( vQualitySops );
+    Vec_IntFree( vCubeId );
+    assert( validNum == Vec_PtrSize(vSops) );
+    _valid_vecs = *netValid;
+    // if not SOP available is valid return 0 ( not -1 since the valid vector might have been modified to skip DCs // there might be some valid SOPs for the next fanin)
+    if( _valid_vecs == 0){
+      //printInfoLutValues( p, ObjId, netValid, lutValues1s, networkValues1s, networkValuesNotSet);
+      //printf("[WARNING] No valid SOPs found for node %d\n", ObjId);
+      Vec_PtrFree( vSops );
+      return 0;
+    }
+    Vec_IntPush( modifiedLuts, ObjId );
+    // second traverse the graph applying the selected SOPs
+    Gia_LutForEachFanin( p, ObjId, FaninId, jth_fanin ){
+      // re-arrange SOPs as luts values across multiple iterations for each fanin
+      iii = -1;
+      validNum = -1;
+      _valid_vecs = *netValid;
+      char valuesFanin1s = 0;
+      char valuesFaninDCs = 0;
+      while (_valid_vecs > 0){
+        iii++;
+        if( (_valid_vecs & 1) == 0){
+          _valid_vecs = _valid_vecs >> 1;
+          continue;
+        }
+        validNum++;
+        char mask_fanin = 1 << jth_fanin;
+
+        pSop = (char *) Vec_PtrEntry(vSops, validNum);
+        char pSop1s = *pSop;
+        pSop++;
+        char pSopDCs = *pSop;
+        valuesFanin1s |= ( (pSop1s & mask_fanin) >> jth_fanin) << iii;
+        valuesFaninDCs |= ( (pSopDCs & mask_fanin) >> jth_fanin) << iii;
+        _valid_vecs = _valid_vecs >> 1;
+      }
+
+      // compute the values of the fanin
+      char prevNetValue = networkValues1s[FaninId];
+      char prevNetValueNotSet = networkValuesNotSet[FaninId];
+      char values2propagate = ~valuesFaninDCs & *netValid &  prevNetValueNotSet;
+      networkValues1s[FaninId] |= valuesFanin1s & values2propagate;
+      networkValuesNotSet[FaninId] &= valuesFaninDCs & *netValid;   
+
+      if(values2propagate == 0){
+        continue; // no value 2 propagate
+      }
+
+      // apply implications
+      char tmp_values2propagate = values2propagate;
+      int status;
+      char difference_valid;
+      if(experimentID > 1){
+        clock_t start_time = clock();
+        status = executeImplications(p, pPars, &values2propagate, FaninId, networkValues1s, networkValuesNotSet , vLutsFaninCones, vNodesWatchlist , experimentID);
+        pPars->fImplicationTime += (float)(clock() - start_time)/CLOCKS_PER_SEC;
+        if( status == -1){
+          networkValues1s[FaninId] = prevNetValue;
+          networkValuesNotSet[FaninId] = prevNetValueNotSet;
+          Vec_PtrFree( vSops );
+          return -1;
+        }
+        assert( tmp_values2propagate >= values2propagate );
+        // remove the values that are not valid
+        difference_valid = tmp_values2propagate ^ values2propagate;
+        if( difference_valid ){
+          // some values are not valid 
+          networkValuesNotSet[FaninId] &= ~difference_valid;
+          *netValid &= ~difference_valid;
+          // update also the validity signal and corresponding values
+          values2propagate = ~valuesFaninDCs & *netValid &  prevNetValueNotSet;
+          networkValues1s[FaninId] |= valuesFanin1s & values2propagate;
+          networkValuesNotSet[FaninId] &= valuesFaninDCs & *netValid;  
+          tmp_values2propagate = values2propagate;
+        }
+        values2propagate = tmp_values2propagate;
+        if(values2propagate == 0){
+          continue; // no value 2 propagate
+        }
+      }
+
+      if( !Gia_ObjIsCi( Gia_ManObj(p, FaninId) ) ){   
+        //printf("***********************\n");
+        //printInfoLutValues( p, ObjId, netValid, lutValues1s, networkValues1s, networkValuesNotSet);
+        status = computeNetworkValues(p, pPars, FaninId, &values2propagate, valuesFanin1s, networkValues1s, networkValuesNotSet, modifiedLuts, vLutsFaninCones, vNodesWatchlist , experimentID);
+        if(status == -1){
+          networkValues1s[FaninId] = prevNetValue;
+          networkValuesNotSet[FaninId] = prevNetValueNotSet;
+          Vec_PtrFree( vSops );
+          return -1;
+        }
+        assert( tmp_values2propagate >= values2propagate );
+        difference_valid = tmp_values2propagate ^ values2propagate;
+        if( difference_valid ){
+          // some values are not valid 
+          networkValuesNotSet[FaninId] &= ~difference_valid;
+          *netValid &= ~difference_valid;
+        }
+      }
+    }
+
+    Vec_PtrFree( vSops );
+
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Set values of primary inputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+void saveInputVectors( Gia_Man_t * p, Cec4_Man_t * pMan, char * pValues){
+
+    int i, Id, w;
+    Gia_ManForEachCiId( p, Id, i ){
+        word * pSim = Cec4_ObjSim( p, Id );
+        for ( w = 0; w < p->nSimWords; w++ )
+            pSim[w] = (word)pValues[ Id ];
+        pSim[0] <<= 1;
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Export Simulation values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void exportSimValues( Gia_Man_t * p, char * filename )
+{
+    FILE * pFile;
+    pFile = fopen( filename, "wb" );
+    Gia_Obj_t * pObj; int i, j;
+    Gia_ManForEachObj( p, pObj, i )
+    {
+        word * pSim  = Cec4_ObjSim( p, i );
+        fprintf( pFile, "Obj %d ", i );
+        for(j = 0; j < p->nSimWords; j++){
+          fprintf( pFile, "[%d]: %lu ", j, pSim[j] );
+        }
+        fprintf(pFile, "\n");
+    }
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute Input Vectors using SimGen.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPars , Vec_Int_t * vLuts , char * outGold, int outGold_bitwidth , Vec_Int_t * vLutsFaninCones , Vec_Ptr_t * vNodesWatchlist , int experimentID){
+
+    char * networkValues1s, * networkValuesNotSet; // data structure containing the values inside the network
+    char networkValid = (char) (1 << outGold_bitwidth) - 1; // keeps track which array out of the 8 is valid
+    int jLut, mainLoop_condition, iii, numLuts;
+    
+    numLuts = Vec_IntSize(vLuts);
+    assert(numLuts > 0);
+
+    networkValues1s = (char *) malloc( Gia_ManObjNum(p));
+    memset(networkValues1s, 0, sizeof(char) * Gia_ManObjNum(p));
+    networkValuesNotSet = (char *) malloc( Gia_ManObjNum(p));
+    memset(networkValuesNotSet, 0xFF, sizeof(char) * Gia_ManObjNum(p));
+    mainLoop_condition = numLuts > 0;
+    iii = 0;
+    int success = 0, lastjGold = -1;
+    while ( mainLoop_condition ){
+      jLut = Vec_IntEntry(vLuts, iii);
+      char jLutGold = outGold[jLut];
+
+      // TODO: Dynamic outgold
+
+      // check if the value of the lut has been set already or not 
+      char lutValueNotSet = networkValuesNotSet[jLut];
+      char lutValues1s = networkValues1s[jLut];
+      if( lutValueNotSet & networkValid){
+
+        char netValid = networkValid & lutValueNotSet;
+        char * networkValues1sCopy = (char *) malloc( Gia_ManObjNum(p));
+        memcpy(networkValues1sCopy, networkValues1s, sizeof(char) * Gia_ManObjNum(p));
+        char * networkValuesNotSetCopy = (char *) malloc( Gia_ManObjNum(p));
+        memcpy(networkValuesNotSetCopy, networkValuesNotSet, sizeof(char) * Gia_ManObjNum(p));
+        Vec_Int_t * modifiedLuts = Vec_IntAlloc( Gia_ManLutNum(p) );
+        // add the first lut to the modified luts
+        Vec_IntPush(modifiedLuts, jLut);
+        networkValues1sCopy[jLut] |= jLutGold & netValid;
+        networkValuesNotSetCopy[jLut] &= ~netValid;
+        // traverse the graph to retrieve values in the middle of the network
+        int status = computeNetworkValues(p, pPars, jLut , &netValid, jLutGold, networkValues1sCopy, networkValuesNotSetCopy, modifiedLuts, vLutsFaninCones, vNodesWatchlist , experimentID);
+        if( status == -1 ){
+          Vec_IntFree(modifiedLuts);
+          free(networkValues1sCopy);
+          free(networkValuesNotSetCopy);
+          goto exit_cond;
+        }
+
+        char orig_netValid = networkValid & lutValueNotSet;
+        char difference_valid = orig_netValid ^ netValid;
+        if( difference_valid == orig_netValid){
+          if(pPars->fVeryVerbose)
+            printf("FAILED 0 out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth, jLut, jLutGold, netValid);
+        } else if( difference_valid != 0){
+          int jjj = 0, iLut;
+          Vec_IntForEachEntry( modifiedLuts, iLut, jjj ){
+            networkValues1sCopy[jLut] = networkValues1s[iLut];
+            networkValuesNotSetCopy[jLut] = networkValuesNotSet[iLut];
+          }
+          memcpy(networkValues1s, networkValues1sCopy, sizeof(char) * Gia_ManObjNum(p));
+          memcpy(networkValuesNotSet, networkValuesNotSetCopy, sizeof(char) * Gia_ManObjNum(p));
+
+          int different = 0;
+          while (difference_valid != 0) {
+            if (difference_valid & 1) {
+              different++;
+            }
+            difference_valid >>= 1;
+          }
+          if( outGold_bitwidth - different >= 2){ // at least 2 bits should be respected
+            if(lastjGold != jLutGold){
+              success += 1;
+              lastjGold = jLutGold;
+            }
+          }
+          if(pPars->fVeryVerbose)
+            printf("SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth - different, outGold_bitwidth, jLut, jLutGold, netValid);
+        } else {
+          if(lastjGold != jLutGold){
+            success += 1;
+            lastjGold = jLutGold;
+          }
+          memcpy(networkValues1s, networkValues1sCopy, sizeof(char) * Gia_ManObjNum(p));
+          memcpy(networkValuesNotSet, networkValuesNotSetCopy, sizeof(char) * Gia_ManObjNum(p));
+          if(pPars->fVeryVerbose)
+            printf("SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", outGold_bitwidth, outGold_bitwidth, jLut, jLutGold, netValid);
+        }
+
+
+        free(networkValues1sCopy);
+        free(networkValuesNotSetCopy);
+        Vec_IntFree(modifiedLuts);
+        
+
+      } else { // all the different values that are still valid have been set
+        char luts_values = lutValues1s & networkValid;
+        char out_gold_values = jLutGold & networkValid;        
+        char validAssignments = ~( luts_values ^ out_gold_values ) & networkValid;
+        char numOnes = 0;
+        if (validAssignments != 0){
+          while (validAssignments != 0) {
+            if (validAssignments & 1) {
+              numOnes++;
+            }
+            validAssignments >>= 1;
+          }
+        }
+        validAssignments = ~( luts_values ^ out_gold_values ) & networkValid;
+        if(pPars->fVeryVerbose)
+          printf("(1) SUCCESSFUL %d out of %d - node %d (gold = %d valid = %d)\n", numOnes, outGold_bitwidth, jLut, jLutGold, validAssignments);
+      }
+
+      iii++;
+      mainLoop_condition = (iii < numLuts);
+    }
+
+    if(success >= 2){
+      saveInputVectors(p, pMan, networkValues1s);
+      Cec4_ManSimulate( p, pMan );
+      if( pPars->fVerbose || pPars->fVeryVerbose){
+        printf("**Exporting simulation values in file sim_values.txt\n");
+        exportSimValues( p, "sim_values.txt" );
+      }
+    }
+
+
+exit_cond:
+    free(networkValues1s);
+    free(networkValuesNotSet);
+
+    if(success < 2){
+      return -1;
+    } else {
+      return 1;
+    }
+
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Core function of SimGen.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+***********************************************************************/
+
+
+void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPars , int levelOrder, int experimentID){
+
+    char * outGold;
+    //int outGold_bitwidth = pPars->bitwidthOutgold;
+    int numClasses = totalNumClasses(p);
+    int iTrials = 0, outer_loop_condition = iTrials < (numClasses * 1.5); 
+    int nthClass = 0, status, oldNumClasses = numClasses, iter;
+    Vec_Int_t * luts_order, * vecTmp;
+    Vec_Int_t * vLutsFaninCones;
+    clock_t start_time = clock();
+    outGold = generateOutGoldValues(p); // generate the first outgold values
+    pPars->outGold = outGold;
+    Vec_Ptr_t * vNodesWatchList = NULL; 
+    if(pPars->fUseWatchlist){
+      printf("**Activating watchlist feauture\n");
+    }
+    while( existsOneClass(p) && outer_loop_condition ){
+      luts_order = extractNthClass(p, nthClass);
+      if( levelOrder != -1 ){
+        // test different luts orders on which to apply simgen
+        luts_order = computeLutsOrder(p, 1); // incresing level order // TODO: redo taking luts_order as input
+      }
+      // compute the fanin cones of the luts to apply implication only in the cone
+      vLutsFaninCones = computeFaninCones( p, luts_order );
+      if(pPars->fUseWatchlist){
+        vNodesWatchList = generateWatchList(p);
+      }
+      status = computeInputVectors(p, pMan, pPars, luts_order, outGold, pPars->bitwidthOutgold, vLutsFaninCones, vNodesWatchList, experimentID);
+      if( status == -1 ){
+        if(pPars->fVerbose || pPars->fVeryVerbose)
+          printf("FAILED - no valid input vectors found for class %d\n", nthClass);
+        nthClass++;
+      } else {
+        numClasses = totalNumClasses(p);
+        if (oldNumClasses == numClasses){
+          nthClass++;
+        }
+        oldNumClasses = numClasses;
+        free(outGold);
+        outGold = generateOutGoldValues(p); // generate a new outgold since the classes are updated
+        pPars->outGold = outGold;
+        if(pPars->fVerbose || pPars->fVeryVerbose)
+          printf("SUCCESSFUL - input vectors found for class %d\n", nthClass);
+        //nthClass = 0;
+      }
+
+      Vec_IntFree(vLutsFaninCones);
+      Vec_IntFree(luts_order);
+      if(pPars->fUseWatchlist){
+        Vec_PtrForEachEntry( Vec_Int_t *, vNodesWatchList, vecTmp, iter ){
+          if (vecTmp != NULL)
+            Vec_IntFree(vecTmp);        
+        }
+        Vec_PtrFree(vNodesWatchList);
+      }
+      if(nthClass >= numClasses){
+        nthClass = 0;
+        if (oldNumClasses == numClasses){
+          iTrials++;
+        } 
+        oldNumClasses = numClasses;
+        iTrials++;
+      }
+      outer_loop_condition = iTrials < 3; 
+      clock_t end_time = clock();
+      if ( (float)(end_time - start_time)/CLOCKS_PER_SEC > pPars->timeOutSim){ // hard limit of 1000 sec
+        printf("Timeout of %f sec reached\n", pPars->timeOutSim);
+        break;
+      }
+      if(pPars->fVerbose || pPars->fVeryVerbose){
+        int quality = evaluate_equiv_classes(p, 0);
+        printf("Time elapsed: %f (classes quality: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
+      }
+    }
+
+    //drawNetworkGia( p, "network.dot");
+    //drawConeNetworkGia( p, "cone_network.dot", 31);
+
+    free(outGold);
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Call SAT solver.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void Cec4_CallSATsolver(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParFra_t * pPars){
+
+    extern Gia_Obj_t *  Cec4_ManFindRepr( Gia_Man_t * p, Cec4_Man_t * pMan, int iObj );
+    int i;
+    Gia_Obj_t * pObj, * pRepr; 
+    p->iPatsPi = 0;
+    Vec_WrdFill( p->vSimsPi, Vec_WrdSize(p->vSimsPi), 0 );
+    pMan->nSatSat = 0;
+    pMan->pNew = Cec4_ManStartNew( p );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        Gia_Obj_t * pObjNew; 
+        pMan->nAndNodes++;
+        if ( Gia_ObjIsXor(pObj) )
+            pObj->Value = Gia_ManHashXorReal( pMan->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else
+            pObj->Value = Gia_ManHashAnd( pMan->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        if ( pPars->nLevelMax && Gia_ObjLevel(p, pObj) > pPars->nLevelMax )
+            continue;
+        pObjNew = Gia_ManObj( pMan->pNew, Abc_Lit2Var(pObj->Value) );
+        if ( Gia_ObjIsAnd(pObjNew) )
+        if ( Vec_BitEntry(pMan->vFails, Gia_ObjFaninId0(pObjNew, Abc_Lit2Var(pObj->Value))) || 
+             Vec_BitEntry(pMan->vFails, Gia_ObjFaninId1(pObjNew, Abc_Lit2Var(pObj->Value))) )
+            Vec_BitWriteEntry( pMan->vFails, Abc_Lit2Var(pObjNew->Value), 1 );
+        //if ( Gia_ObjIsAnd(pObjNew) )
+        //    Gia_ObjSetAndLevel( pMan->pNew, pObjNew );
+        // select representative based on candidate equivalence classes
+        pRepr= Gia_ObjReprObj( p, i );
+        if ( pRepr == NULL )
+            continue; 
+        if ( 1 ) // select representative based on recent counter-examples
+        {
+            pRepr = (Gia_Obj_t *) Cec4_ManFindRepr( p, pMan, i );
+            if ( pRepr == NULL )
+                continue;
+        }
+        int id_obj = Gia_ObjId( p, pObj );
+        int id_repr = Gia_ObjId( p, pRepr );
+
+        if ( Abc_Lit2Var(pObj->Value) == Abc_Lit2Var(pRepr->Value))
+        {
+            if ( pPars->fBMiterInfo ) 
+            {
+                Bnd_ManMerge( id_repr, id_obj, pObj->fPhase ^ pRepr->fPhase );
+            }
+            if((pObj->Value ^ pRepr->Value) != (pObj->fPhase ^ pRepr->fPhase)){
+              pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
+            }
+            assert( (pObj->Value ^ pRepr->Value) == (pObj->fPhase ^ pRepr->fPhase) );
+            Gia_ObjSetProved( p, i );
+            if ( Gia_ObjId(p, pRepr) == 0 )
+                pMan->iLastConst = i;
+            continue;
+        }
+        if ( Cec4_ManSweepNode(pMan, i, Gia_ObjId(p, pRepr)) && Gia_ObjProved(p, i) )
+        {
+            if (pPars->fBMiterInfo){
+
+                Bnd_ManMerge( id_repr, id_obj, pObj->fPhase ^ pRepr->fPhase );
+                // printf( "proven %d merged into %d (phase : %d)\n", Gia_ObjId(p, pObj), Gia_ObjId(p,pRepr), pObj->fPhase ^ pRepr -> fPhase );
+
+            }
+            pObj->Value = Abc_LitNotCond( pRepr->Value, pObj->fPhase ^ pRepr->fPhase );
+
+
+        }
+    }
+
+    printf( "SAT calls = %d:  P = %d (0=%d a=%.2f m=%d)  D = %d (0=%d a=%.2f m=%d)  F = %d   Sim = %d  Recyc = %d  Xor = %.2f %%\n", 
+            pMan->nSatUnsat + pMan->nSatSat + pMan->nSatUndec, 
+            pMan->nSatUnsat, pMan->nConflicts[1][0], (float)pMan->nConflicts[1][1]/Abc_MaxInt(1, pMan->nSatUnsat-pMan->nConflicts[1][0]), pMan->nConflicts[1][2],
+            pMan->nSatSat,   pMan->nConflicts[0][0], (float)pMan->nConflicts[0][1]/Abc_MaxInt(1, pMan->nSatSat  -pMan->nConflicts[0][0]), pMan->nConflicts[0][2],  
+            pMan->nSatUndec,  
+            pMan->nSimulates, pMan->nRecycles, 100.0*pMan->nGates[1]/Abc_MaxInt(1, pMan->nGates[0]+pMan->nGates[1]) );
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print encoded cube.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void printEncodedCube( char pCube, char pDCs, int nFanins ){
+
+    int i;
+    for (i = 0; i < nFanins; i++){
+      if ( pCube & (1 << i) )
+        printf("1");
+      else if ( pDCs & (1 << i) )
+        printf("-");
+      else
+        printf("0");
+    }
+    printf("\n");
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print ISOP.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void printISOP( char * pSop, int nCubes, int nFanins ){
+
+    int jth_cube = 0;
+    while (jth_cube < nCubes){
+      char pCube =  *pSop; pSop++;
+      char pDCs =  *pSop; pSop++;
+      printEncodedCube( pCube, pDCs, nFanins );
+      jth_cube++;
+    }
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print ISOP LUT.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void printISOPLUT(Gia_Man_t * pMan, int ObjId){
+
+    assert( Gia_ObjIsLut(pMan, ObjId));
+    char * pSop[2]; int nCubes[2];
+    getISOPObjId( pMan, ObjId, pSop, nCubes );
+    printf("Negative Polarity\n");
+    printISOP( pSop[0], nCubes[0], Gia_ObjLutSize(pMan, ObjId) );
+    printf("Positive Polarity\n");
+    printISOP( pSop[1], nCubes[1], Gia_ObjLutSize(pMan, ObjId) );
+
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Execute SimGen.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+***********************************************************************/
+
+Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
+
+    extern void Gia_ManDupMapping( Gia_Man_t * pNew, Gia_Man_t * p );
+    Cec4_Man_t * pManSim;  
+    int i, k, iFan;
+    Gia_Man_t * pMapped;
+
+    if (!Gia_ManHasMapping(p)){
+      // apply technology mapping if not already done
+      If_Par_t IfPars, * pIfPars = &IfPars;
+      Gia_ManSetIfParsDefault( pIfPars );
+      pIfPars->nLutSize = 6;
+      pMapped = Gia_ManPerformMapping( p, pIfPars );
+      if(pPars->fVerbose)
+        printf("Performing LUT-mapping\n");
+    } else {
+      pMapped = Gia_ManDup( p );
+      Gia_ManDupMapping( pMapped, p );
+      if(pPars->fVerbose)
+        printf("Using already mapped network\n");
+    }
+    pManSim = Cec4_ManCreate( pMapped, pPars->pCECPars );
+
+    Cec_DeriveSOPs( pMapped );
+
+    if (pPars->fVeryVerbose)
+    {    
+      printf("**Printing LUTs information**\n");
+      Gia_ManForEachLut( pMapped, i ){
+        printf("LUT %d\n", i);
+        Gia_LutForEachFanin( pMapped, i, iFan, k ){
+          printf("\tFANIN %d\n", iFan);
+        }
+        printISOPLUT( pMapped, i );
+      }
+    }
+
+    // compute MFFCs
+    Gia_ManLevelNum( pMapped); // compute levels
+    computeMFFCs( pMapped );
+    if (pPars->fUseWatchlist) {
+      generateLutsRankings( pMapped );
+    }
+    
+
+    // generate vectors of fanouts
+    Gia_generateFanoutMapping( pMapped );
+
+    // simulate n rounds of random simulation and create classes
+    Cec4_ManSimAlloc( pMapped, 1 );
+    if(pPars->nMaxIter >= 0){
+      executeRandomSim( pMapped, pManSim, 0, pPars->nMaxIter, pPars->bitwidthSim , pPars->fVeryVerbose);
+    } else if (pPars->nMaxIter == -1){
+      executeRandomSim( pMapped, pManSim, 1, pPars->nMaxIter, pPars->bitwidthSim , pPars->fVeryVerbose);
+    } else {
+      printf("Invalid number of iterations %d\n", pPars->nMaxIter);
+      return NULL;
+    }
+
+    Cec_RemoveNonLutNodes( pMapped ); // remove all the non-LUT nodes from the equivalence classes
+    
+    if(pPars->fVerbose || pPars->fVeryVerbose){
+      // IMPORTANT: the number of classes changes due to the previous operation
+      evaluate_equiv_classes(pMapped, 1);
+      printf("**Printing Class information before running the Sim algos in file pre_classes.txt**\n");
+      exportEquivClasses(pMapped, "pre_classes.txt");
+    }
+    //Cec4_ManPrintClasses2(pMapped);
+    clock_t begin = clock();      
+    assert(pPars->expId > 0);
+    executeControlledSim( pMapped, pManSim, pPars, -1 , pPars->expId );
+    
+    float implicationSuccessRate = (float)pPars->nImplicationSuccess / (float)pPars->nImplicationExecution;
+    float implicationSuccessCheckRate = (float)pPars->nImplicationSuccessChecks / (float)pPars->nImplicationTotalChecks;
+    printf("Time elapsed: %f (implication time %f - %f successful recursions - %f successful checks)\n", (double)(clock() - begin) / CLOCKS_PER_SEC, pPars->fImplicationTime, implicationSuccessRate, implicationSuccessCheckRate);
+
+    //Cec4_ManPrintClasses2(pMapped);
+    if(pPars->fVerbose || pPars->fVeryVerbose){
+      printf("**Printing Class information before running the Sim algos in file post_classes.txt**\n");
+      exportEquivClasses(pMapped, "post_classes.txt");
+      evaluate_equiv_classes(pMapped, 1);
+    }
+
+
+
+    // call SAT solver
+    Cec4_CallSATsolver(pMapped, pManSim, pPars->pCECPars);
+
+    if (pPars->fVerbose || pPars->fVeryVerbose){
+        pManSim->pPars->fVerbose = 1; // print the ending stats of sat calls
+    }
+    // free memory
+    Vec_IntFree( pMapped->vTTLut );
+    Vec_StrFree( pMapped->vTTISOPs );
+    Cec4_ManDestroy( pManSim );
+    Gia_ManStop( pMapped );
+
+    return p;
 }
 
 ////////////////////////////////////////////////////////////////////////
