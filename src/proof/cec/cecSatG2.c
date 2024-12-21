@@ -3122,7 +3122,7 @@ Vec_Int_t * computeLutsOrder(Gia_Man_t * p, int reorder_type){
           if(reorder_type == 0){ // decreasing level order
             int found = 0;
             for(jjj = 0; jjj < iii; jjj++){
-              if(Gia_ObjLevel(p, jLut) <= Gia_ObjLevel(p, luts_tmp[jjj])){
+              if(Gia_ObjLevelId(p, jLut) <= Gia_ObjLevelId(p, luts_tmp[jjj])){
                 for (kkk = iii; kkk > jjj; kkk--) {
                   luts_tmp[kkk] = luts_tmp[kkk - 1];
                 }
@@ -3138,7 +3138,7 @@ Vec_Int_t * computeLutsOrder(Gia_Man_t * p, int reorder_type){
           } else if(reorder_type == 1) { // increasing level order
             int found = 0;
             for(jjj = 0; jjj < iii; jjj++){
-              if(Gia_ObjLevel(p, jLut) >= Gia_ObjLevel(p, luts_tmp[jjj])){
+              if(Gia_ObjLevelId(p, jLut) >= Gia_ObjLevelId(p, luts_tmp[jjj])){
                 for (kkk = iii; kkk > jjj; kkk--) {
                   luts_tmp[kkk] = luts_tmp[kkk - 1];
                 }
@@ -3251,14 +3251,14 @@ int compute_quality_sop(Gia_Man_t * p , char * pSop, int ObjId ,int nFanins, int
       break;
     case 4: // Advanced Implication + Count DCs
       while (pDCs > 0){
-        if(pDCs & 1 == 1)
+        if((pDCs & 1) == 1)
           quality += p->nLevels * 5; // the presence of DCs is more important than mffc 
         pDCs = pDCs >> 1;
       }      
       break;
     case 5: // Advanced Implication + Count DC + FFC
       while (pDCs > 0){
-        if(pDCs & 1 == 1)
+        if((pDCs & 1) == 1)
           quality += p->nLevels * 5; // the presence of DCs is more important than mffc
         pDCs = pDCs >> 1;
       }   
@@ -3287,13 +3287,12 @@ int compute_quality_sop(Gia_Man_t * p , char * pSop, int ObjId ,int nFanins, int
 int rouletteWheel( Vec_Int_t * vQualitySops, int numValid){
 
     int i;
-    int candidateRows[numValid];
     float totalSum;
 		totalSum = 0.0;
 		for ( i = 0; i < numValid; i++ )
 			totalSum += (float) Vec_IntEntry(vQualitySops, i);
 
-    unsigned int randValue = Aig_ManRandom(0);
+    unsigned int randValue = Gia_ManRandom(0);
     float randValueNormalized = (float) ((float)randValue / __UINT32_MAX__);
 		float randomNum =  randValueNormalized * totalSum;
 
@@ -3324,7 +3323,7 @@ int selectSop( Vec_Int_t * vQualitySops, int ith_max_quality, int experimentID){
 
     assert(experimentID > 0); // random simulation should not be used here
     int numValid = Vec_IntSize(vQualitySops);
-    int idSelected = -1, iii, jQuality;
+    int idSelected = -1;
     switch (experimentID){
     //case 1:
     //  idSelected = Aig_ManRandom(0) % numValid;
@@ -3364,7 +3363,6 @@ int check_implication( Gia_Man_t * p, int ObjId , int validBit , int fanoutValue
       // case in which the output is set // backward implication
       char * pSop = pSopBoth[fanoutValue];
       int nCubes = nCubesBoth[fanoutValue];
-      char * pValue = pSop;
       int compatible = 0;
       int lastCube = 0;
       for(ith_cube = 0; ith_cube < nCubes; ith_cube++){
@@ -3394,7 +3392,6 @@ int check_implication( Gia_Man_t * p, int ObjId , int validBit , int fanoutValue
 
       char * pSop = pSopBoth[jjj];
       int nCubes = nCubesBoth[jjj];
-      char * pValue = pSop;
       for(ith_cube = 0; ith_cube < nCubes; ith_cube++){
         if(checkCompatibilityCube( p, pSop + ith_cube * 2, nFanins, inputsFaninsValues ) ){
           compatible[jjj]++;
@@ -3527,7 +3524,7 @@ int checkCompatibilityImplication( Gia_Man_t * p, Cec_ParSimGen_t * pPars, char 
 
 int computeLutsToImply( Gia_Man_t * p, Cec_ParSimGen_t * pPars, char * netValid, int ObjId, char * networkValues1s, char * networkValuesNotSet , Vec_Int_t * vLutsFaninCones, Vec_Int_t * vLuts2Imply, Vec_Int_t * vLutsValidity , Vec_Ptr_t * vNodesWatchlist, int experimentID){
 
-    int i, ith_fanout, FanoutId, jth_fanout, LutId, FaninId, k;
+    int i, FanoutId, jth_fanout, LutId, k;
     
     if(vNodesWatchlist == NULL){
       // Option 1: iterate through fanouts to check if there can be an implication and if yes, apply it
@@ -3605,7 +3602,7 @@ int executeImplications( Gia_Man_t * p, Cec_ParSimGen_t * pPars, char * netValid
 
     assert( *netValid > 0);
     pPars->nImplicationExecution++;
-    int iii = -1, FanoutId, jth_fanout, jjj, FaninId;
+    int iii = -1, FanoutId;
     Vec_Int_t * vLuts2Imply = Vec_IntAlloc( 10 );
     Vec_Int_t * vLutsValidity = Vec_IntAlloc( 10 ); 
 
@@ -3664,7 +3661,7 @@ int computeNetworkValues(Gia_Man_t * p, Cec_ParSimGen_t * pPars, int ObjId ,  ch
     Vec_Int_t * vCubeId = Vec_IntAlloc( 8 ); // save ids of the selected cubes
     char _valid_vecs = *netValid;
     char _desired_values = lutValues1s;
-    int iii = -1, max_quality, ith_max_quality, ithSop, validNum =0;
+    int iii = -1, max_quality, ith_max_quality, validNum =0;
     int nFanins = Gia_ObjLutSize(p, ObjId);
     // first compute all SOPs that are available 
     while (_valid_vecs > 0){
@@ -3722,7 +3719,7 @@ int computeNetworkValues(Gia_Man_t * p, Cec_ParSimGen_t * pPars, int ObjId ,  ch
     }
     Vec_IntFree( vQualitySops );
     Vec_IntFree( vCubeId );
-    assert( validNum == Vec_IntSize(vSops) );
+    assert( validNum == Vec_PtrSize(vSops) );
     _valid_vecs = *netValid;
     // if not SOP available is valid return 0 ( not -1 since the valid vector might have been modified to skip DCs // there might be some valid SOPs for the next fanin)
     if( _valid_vecs == 0){
@@ -3873,7 +3870,7 @@ void exportSimValues( Gia_Man_t * p, char * filename )
         word * pSim  = Cec4_ObjSim( p, i );
         fprintf( pFile, "Obj %d ", i );
         for(j = 0; j < p->nSimWords; j++){
-          fprintf( pFile, "[%d]: %x ", j, pSim[j] );
+          fprintf( pFile, "[%d]: %lu ", j, pSim[j] );
         }
         fprintf(pFile, "\n");
     }
@@ -3896,7 +3893,7 @@ int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPar
 
     char * networkValues1s, * networkValuesNotSet; // data structure containing the values inside the network
     char networkValid = (char) (1 << outGold_bitwidth) - 1; // keeps track which array out of the 8 is valid
-    int iRepr, jLut, mainLoop_condition, iii, numLuts, numPis = Gia_ManPiNum(p);
+    int jLut, mainLoop_condition, iii, numLuts;
     
     numLuts = Vec_IntSize(vLuts);
     assert(numLuts > 0);
@@ -4044,7 +4041,7 @@ exit_cond:
 void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPars , int levelOrder, int experimentID){
 
     char * outGold;
-    int outGold_bitwidth = pPars->bitwidthOutgold;
+    //int outGold_bitwidth = pPars->bitwidthOutgold;
     int numClasses = totalNumClasses(p);
     int iTrials = 0, outer_loop_condition = iTrials < (numClasses * 1.5); 
     int nthClass = 0, status, oldNumClasses = numClasses, iter;
@@ -4302,8 +4299,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
 
     
     Cec4_Man_t * pManSim;  
-    Gia_Obj_t * pObj, * pRepr; 
-    int i, fSimulate = 1, k, iFan;
+    int i, k, iFan;
     
 
     // apply technology mapping
