@@ -4304,13 +4304,22 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     
     Cec4_Man_t * pManSim;  
     int i, k, iFan;
-    
+    Gia_Man_t * pMapped;
 
-    // apply technology mapping
-    If_Par_t IfPars, * pIfPars = &IfPars;
-    Gia_ManSetIfParsDefault( pIfPars );
-    pIfPars->nLutSize = 6;
-    Gia_Man_t * pMapped = Gia_ManPerformMapping( p, pIfPars );
+    if (!Gia_ManHasMapping(p)){
+      // apply technology mapping if not already done
+      If_Par_t IfPars, * pIfPars = &IfPars;
+      Gia_ManSetIfParsDefault( pIfPars );
+      pIfPars->nLutSize = 6;
+      pMapped = Gia_ManPerformMapping( p, pIfPars );
+      if(pPars->fVerbose)
+        printf("Performing LUT-mapping\n");
+    } else {
+      pMapped = Gia_ManDup( p );
+      Gia_ManDupMapping( pMapped, p );
+      if(pPars->fVerbose)
+        printf("Using already mapped network\n");
+    }
     pManSim = Cec4_ManCreate( pMapped, pPars->pCECPars );
 
     Cec_DeriveSOPs( pMapped );
