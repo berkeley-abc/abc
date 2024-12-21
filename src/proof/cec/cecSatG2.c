@@ -2708,12 +2708,14 @@ void generateLutsRankings( Gia_Man_t * p){
     Vec_Int_t * vLutsRankingsTmp = Vec_IntAlloc( Gia_ManLutNum(p) * 5 ); 
     int LutId, iii, k, jjj;
     char * pSop[2]; int nCubes[2]; int nFanins;
+    int * ranks, * fanins;
     Gia_ManForEachLut( p, LutId )
     {
         nFanins = Gia_ObjLutSize(p, LutId);
         Vec_PtrInsert( p->vLutsRankings, LutId, vLutsRankingsTmp->pArray + Vec_IntSize(vLutsRankingsTmp) );
-        int ranks[nFanins];
-        int fanins[nFanins];
+        assert( nFanins > 0 );
+        ranks = (int*) malloc( nFanins * sizeof(int) );
+        fanins = (int*) malloc( nFanins * sizeof(int) );
         Gia_LutForEachFanin( p, LutId, k, iii ){
           fanins[iii] = k;
           ranks[iii] = 0;
@@ -2736,6 +2738,8 @@ void generateLutsRankings( Gia_Man_t * p){
           Vec_IntPush( vLutsRankingsTmp, fanins[positions[jjj]] );
         }
         free( positions );
+        free( ranks );
+        free( fanins );
     }
     //Vec_IntFree( vLutsRankingsTmp );
 }
@@ -3286,14 +3290,14 @@ int compute_quality_sop(Gia_Man_t * p , char * pSop, int ObjId ,int nFanins, int
 
 int rouletteWheel( Vec_Int_t * vQualitySops, int numValid){
 
-    int i;
+    int i, max_int = 0xffffffff;
     float totalSum;
 		totalSum = 0.0;
 		for ( i = 0; i < numValid; i++ )
 			totalSum += (float) Vec_IntEntry(vQualitySops, i);
 
     unsigned int randValue = Gia_ManRandom(0);
-    float randValueNormalized = (float) ((float)randValue / __UINT32_MAX__);
+    float randValueNormalized = (float) ((float)randValue / max_int);
 		float randomNum =  randValueNormalized * totalSum;
 
 		// Select the index based on inverse proportional probability
