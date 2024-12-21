@@ -201,6 +201,27 @@ struct Cec_ParSeq_t_
     int              fVerbose;      // verbose stats
 };
 
+// CEC SimGen parameters
+typedef struct Cec_ParSimGen_t_ Cec_ParSimGen_t;
+struct Cec_ParSimGen_t_
+{
+    int              fVerbose;          // verbose flag
+    int              fVeryVerbose;      // verbose flag
+    int              expId;             // experiment ID for SimGen
+    int              bitwidthOutgold;   // bitwidth of the output gold
+    int              bitwidthSim;       // bitwidth of the simulation vectors
+    int              nMaxIter;          // maximum number of iterations
+    char *           outGold;           // data containing outgold
+    float            timeOutSim;        // timeout for simulation
+    int              fUseWatchlist;     // use watchlist
+    float            fImplicationTime;  // time spent in implication
+    int              nImplicationExecution; // number of times implication was executed
+    int              nImplicationSuccess; // number of times implication was successful
+    int              nImplicationTotalChecks; // number of times implication was checked
+    int              nImplicationSuccessChecks; // number of times implication was successful
+    Cec_ParFra_t *   pCECPars;             // parameters of CEC   
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
