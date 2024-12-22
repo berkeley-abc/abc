@@ -276,7 +276,8 @@ int Mvc_CoverSetCubeSizes( Mvc_Cover_t * pCover )
     int nBytes, nOnes;
 
     // get the number of unsigned chars in the cube's bit strings
-    nBytes = pCover->nBits / (8 * sizeof(unsigned char)) + (int)(pCover->nBits % (8 * sizeof(unsigned char)) > 0);
+//    nBytes = pCover->nBits / (8 * sizeof(unsigned char)) + (int)(pCover->nBits % (8 * sizeof(unsigned char)) > 0);
+    nBytes = sizeof(Mvc_CubeWord_t) * pCover->nWords; // big-endian issue
     // iterate through the cubes
     Mvc_CoverForEachCube( pCover, pCube )
     {
@@ -298,13 +299,14 @@ int Mvc_CoverSetCubeSizes( Mvc_Cover_t * pCover )
 
   Synopsis    [Counts the cube sizes.]
 
-  Description []
+  Description [This procedure works incorrectly on big-endian machines.]
                
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
+/*
 int Mvc_CoverGetCubeSize( Mvc_Cube_t * pCube )
 {
     unsigned char * pByte, * pByteStart, * pByteStop;
@@ -322,6 +324,7 @@ int Mvc_CoverGetCubeSize( Mvc_Cube_t * pCube )
         nOnes += bit_count[*pByte];
     return nOnes;
 }
+*/
 
 /**Function*************************************************************
 
@@ -351,7 +354,8 @@ int Mvc_CoverCountCubePairDiffs( Mvc_Cover_t * pCover, unsigned char pDiffs[] )
     // allocate a temporary mask
     pMask = Mvc_CubeAlloc( pCover );
     // get the number of unsigned chars in the cube's bit strings
-    nBytes = pCover->nBits / (8 * sizeof(unsigned char)) + (int)(pCover->nBits % (8 * sizeof(unsigned char)) > 0);
+//    nBytes = pCover->nBits / (8 * sizeof(unsigned char)) + (int)(pCover->nBits % (8 * sizeof(unsigned char)) > 0);
+    nBytes = sizeof(Mvc_CubeWord_t) * pCover->nWords; // big-endian issue
     // iterate through the cubes
     nCubePairs = 0;
     Mvc_CoverForEachCube( pCover, pCube1 )
