@@ -317,7 +317,7 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
             if ( AigNodeId > 0 )
                 fprintf( pFile, "  Node%d [label = \"%s%d\\n%s\"", pNode->Id, Abc_LitIsCompl(AigNodeId) ? "-":"+", Abc_Lit2Var(AigNodeId), pSopString );
             else 
-                fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, pNode->Id, pSopString );
+                fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, pNode->Id+1, pSopString );
 //            fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, 
 //                SuppSize, 
 //                pSopString );
