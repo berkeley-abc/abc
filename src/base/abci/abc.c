@@ -154,6 +154,7 @@ static int Abc_CommandResubCore              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandResubCheck             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRr                     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandLutCasDec              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutCas                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtract                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandVarMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -957,6 +958,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "resub_check",   Abc_CommandResubCheck,       0 );
 //    Cmd_CommandAdd( pAbc, "Synthesis",    "rr",            Abc_CommandRr,               1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "cascade",       Abc_CommandCascade,          1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "lutcasdec",     Abc_CommandLutCasDec,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutcas",        Abc_CommandLutCas,           1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "extract",       Abc_CommandExtract,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "varmin",        Abc_CommandVarMin,           0 );
@@ -8891,6 +8893,7 @@ usage:
     return 1;
 }
 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -8902,7 +8905,7 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_CommandLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
+int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkLutCascade( Abc_Ntk_t * pNtk, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
@@ -9003,6 +9006,155 @@ usage:
     Abc_Print( -2, "\t-N <num> : the number of LUTs in the cascade [default = %d]\n", nLuts );
     Abc_Print( -2, "\t-R <num> : the number of direct connections (rails) [default = %d]\n", nRails );
     Abc_Print( -2, "\t-I <num> : the number of iterations when looking for a solution [default = %d]\n", nIters );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkLutCascadeMap( Abc_Ntk_t * pNtk, int nLutsMax, int nIters, int fDelayLut, int fDelayRoute, int fDelayDirect, int fVerbose );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes;
+    int c, nLutSize = 6, nLutsMax = 8, nIters = 1000, Seed = 0, fVerbose = 0;
+    int fDelayLut = 10, fDelayRoute = 30, fDelayDirect = 3;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMISLWDfvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutsMax < 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            fDelayLut = atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( fDelayLut < 0 )
+                goto usage;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            fDelayRoute = atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( fDelayRoute < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            fDelayDirect = atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( fDelayDirect < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsLogic(pNtk) )
+    {
+        Abc_Print( -1, "Run command \"if\" or any other LUT mapper to map the current network into LUTs.\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetFaninMax(pNtk) > nLutSize )
+    {
+        Abc_Print( -1, "The current network contains nodes with fanin count (%d) exceeding the LUT size (%d).\n", Abc_NtkGetFaninMax(pNtk), nLutSize );
+        return 1;            
+    }
+    srand( Seed );
+    pNtkRes = Abc_NtkLutCascadeMap( pNtk, nLutsMax, nIters, fDelayLut, fDelayRoute, fDelayDirect, fVerbose );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "LUT cascade mapping failed.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: lutcas [-KMISLWD <num>] [-vh]\n" );
+    Abc_Print( -2, "\t           decomposes the current network into LUT cascades\n" );
+    Abc_Print( -2, "\t-K <num> : the number of LUT inputs [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-M <num> : the maximum number of LUTs in the cascade [default = %d]\n", nLutsMax );
+    Abc_Print( -2, "\t-I <num> : the number of iterations when looking for a solution [default = %d]\n", nIters );
+    Abc_Print( -2, "\t-S <num> : the random seed used to randimize solutions [default = %d]\n", Seed );
+    Abc_Print( -2, "\t-L <num> : the intrinsic LUT delay [default = %f]\n", fDelayLut );
+    Abc_Print( -2, "\t-W <num> : the routable wire delay [default = %f]\n", fDelayRoute );
+    Abc_Print( -2, "\t-D <num> : the non-routable wire delay [default = %f]\n", fDelayDirect );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

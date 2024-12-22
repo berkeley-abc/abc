@@ -116,7 +116,7 @@ char * Nm_ManStoreIdName( Nm_Man_t * p, int ObjId, int Type, char * pName, char 
     // check if the object with this ID is already stored
     if ( (pEntry = Nm_ManTableLookupId(p, ObjId)) )
     {
-        printf( "Nm_ManStoreIdName(): Entry with the same ID already exists.\n" );
+        printf( "Nm_ManStoreIdName(): Entry with ID %d already exists.\n", ObjId );
         return NULL;
     }
     // create a new entry
@@ -152,7 +152,7 @@ void Nm_ManDeleteIdName( Nm_Man_t * p, int ObjId )
     pEntry = Nm_ManTableLookupId(p, ObjId);
     if ( pEntry == NULL )
     {
-        printf( "Nm_ManDeleteIdName(): This entry is not in the table.\n" );
+        printf( "Nm_ManDeleteIdName(): Entry with ID %d is not in the table.\n", ObjId );
         return;
     }
     // remove entry from the table
