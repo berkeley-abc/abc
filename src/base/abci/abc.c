@@ -9147,9 +9147,9 @@ usage:
     Abc_Print( -2, "\t-M <num> : the maximum number of LUTs in the cascade [default = %d]\n", nLutsMax );
     Abc_Print( -2, "\t-I <num> : the number of iterations when looking for a solution [default = %d]\n", nIters );
     Abc_Print( -2, "\t-S <num> : the random seed used to randimize solutions [default = %d]\n", Seed );
-    Abc_Print( -2, "\t-L <num> : the intrinsic LUT delay [default = %f]\n", fDelayLut );
-    Abc_Print( -2, "\t-W <num> : the routable wire delay [default = %f]\n", fDelayRoute );
-    Abc_Print( -2, "\t-D <num> : the non-routable wire delay [default = %f]\n", fDelayDirect );
+    Abc_Print( -2, "\t-L <num> : the intrinsic LUT delay [default = %d]\n", fDelayLut );
+    Abc_Print( -2, "\t-W <num> : the routable wire delay [default = %d]\n", fDelayRoute );
+    Abc_Print( -2, "\t-D <num> : the non-routable wire delay [default = %d]\n", fDelayDirect );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
