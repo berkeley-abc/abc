@@ -1221,6 +1221,8 @@ Abc_Ntk_t * Abc_NtkFromDarChoices( Abc_Ntk_t * pNtkOld, Aig_Man_t * pMan )
     Aig_ManForEachNode( pMan, pObj, i )
     {
         pObj->pData = Abc_AigAnd( (Abc_Aig_t *)pNtkNew->pManFunc, (Abc_Obj_t *)Aig_ObjChild0Copy(pObj), (Abc_Obj_t *)Aig_ObjChild1Copy(pObj) );
+    }
+    Aig_ManForEachNode( pMan, pObj, i ) {
         if ( (pTemp = Aig_ObjEquiv(pMan, pObj)) )
         {
             assert( pTemp->pData != NULL );
