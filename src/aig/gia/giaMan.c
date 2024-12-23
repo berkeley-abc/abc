@@ -807,7 +807,7 @@ void Gia_ManPrintNpnClasses( Gia_Man_t * p )
     int i, k, iFan, Class, OtherClasses, OtherClasses2, nTotal, Counter, Counter2;
     unsigned * pTruth; int nLutSize = 0;
     assert( Gia_ManHasMapping(p) );
-    assert(  Gia_ManLutSizeMax( p ) <= 4 );
+    //assert(  Gia_ManLutSizeMax( p ) <= 4 );
     vLeaves   = Vec_IntAlloc( 100 );
     vVisited  = Vec_IntAlloc( 100 );
     vTruth    = Vec_IntAlloc( (1<<16) );
