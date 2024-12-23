@@ -560,7 +560,7 @@ void Dau_DsdRemoveBraces( char * pDsd, int * pMatches )
     for ( q = p; *p; p++ )
         if ( *p != ' ' )
         {
-            if ( *p == '!' && *(q-1) == '!' && p != q )
+            if ( *p == '!' && p != q && *(q-1) == '!' )
             {
                 q--;
                 continue;
