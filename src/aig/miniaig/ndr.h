@@ -219,7 +219,8 @@ static inline void Ndr_DataPushString( Ndr_Data_t * p, int ObjType, int Type, ch
     {
         //word Truth = (word)pFunc;
         //Ndr_DataPushArray( p, Type, 2, (int *)&Truth );
-        Ndr_DataPushArray( p, Type, 2, (int *)&pFunc );
+        int nInts = (strlen(pFunc) + 1 + sizeof(int) - 1) / sizeof(int); 
+        Ndr_DataPushArray( p, Type, nInts, (int *)&pFunc );
     }
     else
     {
