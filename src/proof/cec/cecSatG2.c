@@ -252,8 +252,6 @@ void Cec_SimGenSetParDefault( Cec_ParSimGen_t * pPars )
     pPars->nImplicationSuccess   = 0; // the number of implication successes
     pPars->nImplicationTotalChecks = 0; // the number of implication checks
     pPars->nImplicationSuccessChecks = 0; // the number of implication successful checks
-    pPars->pCECPars             = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
-    Cec4_ManSetParams( pPars->pCECPars );
     pPars->pFileName            = NULL; // file name to dump simulation vectors
 }
 
@@ -4362,6 +4360,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     int i, k, iFan, nWordsPerCi;
     Gia_Man_t * pMapped;
     Vec_Ptr_t * vSimPisSave;
+    Cec_ParFra_t * pCECPars;
 
     if (!Gia_ManHasMapping(p)){
       // apply technology mapping if not already done
@@ -4377,7 +4376,8 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
       if(pPars->fVerbose)
         printf("Using already mapped network\n");
     }
-    pManSim = Cec4_ManCreate( pMapped, pPars->pCECPars );
+    pCECPars = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
+    pManSim = Cec4_ManCreate( pMapped, pCECPars );
 
     Cec_DeriveSOPs( pMapped );
 
