@@ -39387,9 +39387,9 @@ int Abc_CommandAbc9AdvGenSim( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
                 goto usage;
             }
-            pPars->bitwidthSim = atoi(argv[globalUtilOptind]);
+            pPars->nSimWords = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( pPars->bitwidthSim <= 0 )
+            if ( pPars->nSimWords <= 0 )
                 goto usage;
             break;
         case 't':
@@ -39457,9 +39457,9 @@ usage:
     Abc_Print( -2, "\t         generates simulation patterns for combinational SAT sweeping\n" );
     Abc_Print( -2, "\t-E num : the experiment ID for different techniques [default = %d]\n", pPars->expId );
     Abc_Print( -2, "\t-O num : the bitwidth of the output gold [default = %d]\n", pPars->bitwidthOutgold );
-    Abc_Print( -2, "\t-S num : the bitwidth of the simulation vectors for random simulation [default = %d]\n", pPars->bitwidthSim );
+    Abc_Print( -2, "\t-S num : the number of words in a round for random simulation [default = %d]\n", pPars->nSimWords );
     Abc_Print( -2, "\t-t num : the timeout value [default = %.0f]\n", pPars->timeOutSim);
-    Abc_Print( -2, "\t-i num : the maximum number of iterations [default = %d]\n", pPars->nMaxIter );
+    Abc_Print( -2, "\t-i num : the number of rounds of random simulation [default = %d]\n", pPars->nMaxIter );
     Abc_Print( -2, "\t-F file: the file name to dump the generated patterns  [default = none]\n");
     Abc_Print( -2, "\t-w     : activates the watchlist feature [default = %d]\n", pPars->fUseWatchlist);
     Abc_Print( -2, "\t-v     : verbose [default = %d]\n", pPars->fVerbose );

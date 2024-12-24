@@ -242,9 +242,9 @@ void Cec_SimGenSetParDefault( Cec_ParSimGen_t * pPars )
     pPars->fVerbose             = 0; // verbose output
     pPars->fVeryVerbose         = 0; // verbose output and outputs files
     pPars->bitwidthOutgold      = 2; // bitwidth of the output golden model
-    pPars->bitwidthSim          = 31; // bitwidth of the simulation vectors
+    pPars->nSimWords          = 4; // number of words in a round of random simulation
     pPars->expId                = 1; // experiment ID
-    pPars->nMaxIter             = -1; // the maximum number of iterations
+    pPars->nMaxIter             = -1; // the maximum number of rounds of random simulation
     pPars->timeOutSim           = 1000.0; // the timeout for simulation in sec
     pPars->fUseWatchlist        = 0; // use watchlist
     pPars->fImplicationTime     = 0.0; // time spent in implication
@@ -2862,36 +2862,6 @@ void Cec_RemoveNonLutNodes( Gia_Man_t * p){
 
 /**Function*************************************************************
 
-  Synopsis    [Simulate the CIs with random values with specific bitwidth.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-
-static inline void Cec_ObjSimCiSimGen( Gia_Man_t * p, int iObj , int bitwidth)
-{
-    int w;
-    word * pSim = Cec4_ObjSim( p, iObj );
-    word wMask = (1 << bitwidth) -1;
-    for ( w = 0; w < p->nSimWords; w++ )
-        pSim[w] = Abc_RandomW( 0 ) & wMask;
-    pSim[0] <<= 1;
-}
-
-void Cec_ManSimulateCisSimGen( Gia_Man_t * p, int bitwidth )
-{
-    int i, Id;
-    Gia_ManForEachCiId( p, Id, i )
-        Cec_ObjSimCiSimGen( p, Id , bitwidth);
-    p->iPatsPi = 0;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Evaluate equivalence classes.]
 
   Description []
@@ -2984,7 +2954,7 @@ void saveSimVectors( Gia_Man_t * p, Vec_Ptr_t * pValues, int bitLength, int jth_
 
 ************************************************************************/
 
-void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIter , int bitwidthSim , Vec_Ptr_t * vSimSave, int verbose ){
+void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIter , Vec_Ptr_t * vSimSave, int verbose ){
 
   clock_t start_time = clock();
   int i, j, k, Id;
@@ -2994,7 +2964,7 @@ void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIt
     while (numClass != oldNumClass && iNumber < iMaxNumber)
     {
       oldNumClass = numClass;
-      Cec_ManSimulateCisSimGen( p, bitwidthSim );
+      Cec4_ManSimulateCis( p );
       Cec4_ManSimulate( p, pMan );
       int quality = evaluate_equiv_classes(p, 0);
       if (verbose)
@@ -3013,7 +2983,7 @@ void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIt
 
   } else {
     for(i = 0; i < nMaxIter; i++){
-      Cec_ManSimulateCisSimGen( p, bitwidthSim );
+      Cec4_ManSimulateCis( p );
       Cec4_ManSimulate( p, pMan );
       int quality = evaluate_equiv_classes(p, 0);
       Cec_RemoveNonLutNodes( p );
@@ -4377,8 +4347,8 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
         printf("Using already mapped network\n");
     }
     pCECPars = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
-    pManSim->pPars->fVerbose = 0; // disabling verbose sat solver
     pManSim = Cec4_ManCreate( pMapped, pCECPars );
+    pManSim->pPars->fVerbose = 0; // disabling verbose sat solver
 
     Cec_DeriveSOPs( pMapped );
 
@@ -4407,8 +4377,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     // generate vectors of fanouts
     Gia_generateFanoutMapping( pMapped );
 
-    assert( pPars->bitwidthSim > 0);
-    pMapped->nSimWords = (int) pPars->bitwidthSim / 64 + ((pPars->bitwidthSim % 64) > 0);
+    pMapped->nSimWords = (int) pPars->nSimWords ;
     vSimPisSave = Vec_PtrAlloc( Gia_ManCiNum(pMapped) );
     for ( i = 0; i < Gia_ManCiNum(pMapped); i++ ){
       Vec_Wrd_t * vSim = Vec_WrdAlloc( pMapped->nSimWords );
@@ -4417,9 +4386,9 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     // simulate n rounds of random simulation and create classes      
     Cec4_ManSimAlloc( pMapped, pMapped->nSimWords );
     if(pPars->nMaxIter >= 0){
-      executeRandomSim( pMapped, pManSim, 0, pPars->nMaxIter, pPars->bitwidthSim , vSimPisSave, pPars->fVeryVerbose);
+      executeRandomSim( pMapped, pManSim, 0, pPars->nMaxIter, vSimPisSave, pPars->fVeryVerbose);
     } else if (pPars->nMaxIter == -1){
-      executeRandomSim( pMapped, pManSim, 1, pPars->nMaxIter, pPars->bitwidthSim , vSimPisSave, pPars->fVeryVerbose);
+      executeRandomSim( pMapped, pManSim, 1, pPars->nMaxIter, vSimPisSave, pPars->fVeryVerbose);
     } else {
       printf("Invalid number of iterations %d\n", pPars->nMaxIter);
       return NULL;

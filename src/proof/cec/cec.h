@@ -209,8 +209,8 @@ struct Cec_ParSimGen_t_
     int              fVeryVerbose;      // verbose flag
     int              expId;             // experiment ID for SimGen
     int              bitwidthOutgold;   // bitwidth of the output gold
-    int              bitwidthSim;       // bitwidth of the simulation vectors
-    int              nMaxIter;          // maximum number of iterations
+    int              nSimWords;       // number of words in a round of random simulation
+    int              nMaxIter;          // maximum number of rounds of random simulation
     char *           outGold;           // data containing outgold
     float            timeOutSim;        // timeout for simulation
     int              fUseWatchlist;     // use watchlist
