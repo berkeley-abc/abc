@@ -559,6 +559,11 @@ void Gia_ObjComputeTruthTableStart( Gia_Man_t * p, int nVarsMax )
     p->vTtMemory = Vec_WrdStart( p->nTtWords * 64 );
     p->vTtNums   = Vec_IntAlloc( Gia_ManObjNum(p) + 1000 );
     Vec_IntFill( p->vTtNums, Vec_IntCap(p->vTtNums), -ABC_INFINITY );
+    if ( nVarsMax >= 6 ) {
+        word * pTruth; int i;
+        Vec_PtrForEachEntry( word *, p->vTtInputs, pTruth, i )
+            Abc_TtFlipVar5( pTruth, nVarsMax );
+    }
 }
 void Gia_ObjComputeTruthTableStop( Gia_Man_t * p )
 {

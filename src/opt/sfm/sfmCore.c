@@ -169,7 +169,7 @@ p->timeSat += Abc_Clock() - clk;
         {
             printf( "%3d: %3d ", p->nCexes, iVar );
             Vec_WrdForEachEntry( p->vDivCexes, uSign, i )
-                printf( "%d", Abc_InfoHasBit((unsigned *)&uSign, p->nCexes-1) );
+                printf( "%d", Abc_TtGetBit(&uSign, p->nCexes-1) );
             printf( "\n" );
         }
         // find the next divisor to try
