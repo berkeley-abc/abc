@@ -4377,6 +4377,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
         printf("Using already mapped network\n");
     }
     pCECPars = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
+    pManSim->pPars->fVerbose = 0; // disabling verbose sat solver
     pManSim = Cec4_ManCreate( pMapped, pCECPars );
 
     Cec_DeriveSOPs( pMapped );
