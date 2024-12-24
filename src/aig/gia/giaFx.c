@@ -217,7 +217,9 @@ Vec_Wec_t * Gia_ManFxRetrieve( Gia_Man_t * p, Vec_Str_t ** pvCompl, int fReverse
         int nVars = Gia_ObjLutSize( p, i );
         int * pVars = Gia_ObjLutFanins( p, i );
         word * pTruth = Vec_WrdEntryP( vTruths, Counter++ * nWords );
+        Abc_TtFlipVar5( pTruth, nVars );
         int Status = Kit_TruthIsop( (unsigned *)pTruth, nVars, vCover, 1 );
+        Abc_TtFlipVar5( pTruth, nVars );
         if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0) )
         {
             Vec_StrWriteEntry( *pvCompl, pObj->Value, (char)(Vec_IntSize(vCover) == 0) );
