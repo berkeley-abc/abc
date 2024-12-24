@@ -242,9 +242,9 @@ void Cec_SimGenSetParDefault( Cec_ParSimGen_t * pPars )
     pPars->fVerbose             = 0; // verbose output
     pPars->fVeryVerbose         = 0; // verbose output and outputs files
     pPars->bitwidthOutgold      = 2; // bitwidth of the output golden model
-    pPars->bitwidthSim          = 31; // bitwidth of the simulation vectors
+    pPars->nSimWords          = 4; // number of words in a round of random simulation
     pPars->expId                = 1; // experiment ID
-    pPars->nMaxIter             = -1; // the maximum number of iterations
+    pPars->nMaxIter             = -1; // the maximum number of rounds of random simulation
     pPars->timeOutSim           = 1000.0; // the timeout for simulation in sec
     pPars->fUseWatchlist        = 0; // use watchlist
     pPars->fImplicationTime     = 0.0; // time spent in implication
@@ -252,8 +252,7 @@ void Cec_SimGenSetParDefault( Cec_ParSimGen_t * pPars )
     pPars->nImplicationSuccess   = 0; // the number of implication successes
     pPars->nImplicationTotalChecks = 0; // the number of implication checks
     pPars->nImplicationSuccessChecks = 0; // the number of implication successful checks
-    pPars->pCECPars             = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
-    Cec4_ManSetParams( pPars->pCECPars );
+    pPars->pFileName            = NULL; // file name to dump simulation vectors
 }
 
 /**Function*************************************************************
@@ -1864,7 +1863,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
 
     Cec4_Man_t * pMan = Cec4_ManCreate( p, pPars ); 
     Gia_Obj_t * pObj, * pRepr; 
-    int i, fSimulate = 1;
+    int i, fSimulate = 1, Id;
     if ( pPars->fVerbose )
         printf( "Solver type = %d. Simulate %d words in %d rounds. SAT with %d confs. Recycle after %d SAT calls.\n", 
             pPars->jType, pPars->nWords, pPars->nRounds, pPars->nBTLimit, pPars->nCallsRecycle );
@@ -1887,6 +1886,22 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
                 p->pCexSeq = Cec4_ManDeriveCex( p, i, -1 );
                 goto finalize;
             }
+    }
+
+    if( p->vSimsPi && p->nSimWords > 0){ // if the simulation pis are already set, do not generate new ones 
+        pPars->nWords = p->nSimWords;
+        Vec_WrdFreeP( &p->vSims );
+        p->vSims     = Vec_WrdStart( Gia_ManObjNum(p) *  pPars->nWords);
+        assert( Vec_WrdSize(p->vSimsPi) == Gia_ManCiNum(p) * p->nSimWords ); 
+        Gia_ManForEachCiId(p, Id, i){
+          memmove( Vec_WrdEntryP(p->vSims, Id*p->nSimWords), Vec_WrdEntryP(p->vSimsPi, i*p->nSimWords), sizeof(word)*p->nSimWords );
+        }
+        Cec4_ManSimulate( p, pMan );
+        if ( pPars->fCheckMiter && !Cec4_ManSimulateCos(p) ) // cex detected
+          goto finalize;
+        if ( fSimOnly )
+          goto finalize;
+        goto execute_sat;
     }
 
     // simulate one round and create classes
@@ -1923,6 +1938,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         if ( i && i % 5 == 0 && pPars->fVerbose )
             Cec4_ManPrintStats( p, pPars, pMan, 1 );
     }
+    execute_sat:
     if ( i && i % 5 && pPars->fVerbose )
         Cec4_ManPrintStats( p, pPars, pMan, 1 );
 
@@ -2863,36 +2879,6 @@ void Cec_RemoveNonLutNodes( Gia_Man_t * p){
 
 /**Function*************************************************************
 
-  Synopsis    [Simulate the CIs with random values with specific bitwidth.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-
-static inline void Cec_ObjSimCiSimGen( Gia_Man_t * p, int iObj , int bitwidth)
-{
-    int w;
-    word * pSim = Cec4_ObjSim( p, iObj );
-    word wMask = (1 << bitwidth) -1;
-    for ( w = 0; w < p->nSimWords; w++ )
-        pSim[w] = Abc_RandomW( 0 ) & wMask;
-    pSim[0] <<= 1;
-}
-
-void Cec_ManSimulateCisSimGen( Gia_Man_t * p, int bitwidth )
-{
-    int i, Id;
-    Gia_ManForEachCiId( p, Id, i )
-        Cec_ObjSimCiSimGen( p, Id , bitwidth);
-    p->iPatsPi = 0;
-}
-
-/**Function*************************************************************
-
   Synopsis    [Evaluate equivalence classes.]
 
   Description []
@@ -2944,6 +2930,37 @@ int totalNumClasses(Gia_Man_t * p){
 
 /**Function*************************************************************
 
+  Synopsis    [Save PI simulation values.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+************************************************************************/
+
+void saveSimVectors( Gia_Man_t * p, Vec_Ptr_t * pValues, int bitLength, int jth_word, int kth_bit){
+
+    int i, Id;
+    int nWords = bitLength / 64;
+    assert(nWords == 0); // Not considering case with large outgold values
+    Gia_ManForEachCiId( p, Id, i ){
+        Vec_Wrd_t * pValuesPi = (Vec_Wrd_t *) Vec_PtrEntry( pValues, i );
+        word pValuePiJWord = 0;
+        if(kth_bit == 0){
+          Vec_WrdPush( pValuesPi, 0 );
+        } else {
+          pValuePiJWord = Vec_WrdEntry( pValuesPi, jth_word );
+        }
+        word * pSim = Cec4_ObjSim( p, Id );
+        pValuePiJWord = (pSim[0] << kth_bit) ^ pValuePiJWord;
+        Vec_WrdWriteEntry( pValuesPi, jth_word, pValuePiJWord );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Simulate the CIs with random values.]
 
   Description []
@@ -2954,34 +2971,48 @@ int totalNumClasses(Gia_Man_t * p){
 
 ************************************************************************/
 
-void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIter , int bitwidthSim , int verbose ){
+void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIter , Vec_Ptr_t * vSimSave, int verbose ){
 
   clock_t start_time = clock();
-  int i;
+  int i, j, k, Id;
   int numClass = 100000;
   int oldNumClass = 0, iMaxNumber = 200, iNumber = 0;
   if(dynSim){
     while (numClass != oldNumClass && iNumber < iMaxNumber)
     {
       oldNumClass = numClass;
-      Cec_ManSimulateCisSimGen( p, bitwidthSim );
+      Cec4_ManSimulateCis( p );
       Cec4_ManSimulate( p, pMan );
       int quality = evaluate_equiv_classes(p, 0);
       if (verbose)
         printf("Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
       numClass = totalNumClasses(p);
       iNumber++;
+      Gia_ManForEachCiId( p, Id, j ){
+        Vec_Wrd_t * vSimPI = (Vec_Wrd_t *) Vec_PtrEntry( vSimSave, j );
+        word * pSim = Cec4_ObjSim( p, Id );
+        for( k = 0; k < p->nSimWords; k++ ){
+          Vec_WrdPush( vSimPI, pSim[k] );
+        }
+      }
     }
     
 
   } else {
     for(i = 0; i < nMaxIter; i++){
-      Cec_ManSimulateCisSimGen( p, bitwidthSim );
+      Cec4_ManSimulateCis( p );
       Cec4_ManSimulate( p, pMan );
       int quality = evaluate_equiv_classes(p, 0);
       Cec_RemoveNonLutNodes( p );
       if (verbose)
         printf("Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
+      Gia_ManForEachCiId( p, Id, j ){
+        Vec_Wrd_t * vSimPI = (Vec_Wrd_t *) Vec_PtrEntry( vSimSave, j );
+        word * pSim = Cec4_ObjSim( p, Id );
+        for( k = 0; k < p->nSimWords; k++ ){
+          Vec_WrdPush( vSimPI, pSim[k] );
+        }
+      }
     }
   }
 }
@@ -3893,7 +3924,7 @@ void exportSimValues( Gia_Man_t * p, char * filename )
 
 ************************************************************************/
 
-int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPars , Vec_Int_t * vLuts , char * outGold, int outGold_bitwidth , Vec_Int_t * vLutsFaninCones , Vec_Ptr_t * vNodesWatchlist , int experimentID){
+int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPars , Vec_Int_t * vLuts , char * outGold, int outGold_bitwidth , Vec_Int_t * vLutsFaninCones , Vec_Ptr_t * vNodesWatchlist , Vec_Ptr_t * vSimSave ,int experimentID){
 
     char * networkValues1s, * networkValuesNotSet; // data structure containing the values inside the network
     char networkValid = (char) (1 << outGold_bitwidth) - 1; // keeps track which array out of the 8 is valid
@@ -4010,6 +4041,16 @@ int computeInputVectors(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPar
     if(success >= 2){
       saveInputVectors(p, pMan, networkValues1s);
       Cec4_ManSimulate( p, pMan );
+      // saving the pi simulation values in a compacted format
+      int jth_word = p->iData & 0xFFFF;
+      int kth_bit = (p->iData & 0xFFFF0000) >> 16; 
+      if( kth_bit + outGold_bitwidth >= 64 ){
+        kth_bit = 0;
+        jth_word += 1;
+      }
+      saveSimVectors(p, vSimSave, outGold_bitwidth, jth_word, kth_bit);
+      kth_bit += outGold_bitwidth;
+      p->iData = (kth_bit << 16) | jth_word;
       if( pPars->fVerbose || pPars->fVeryVerbose){
         printf("**Exporting simulation values in file sim_values.txt\n");
         exportSimValues( p, "sim_values.txt" );
@@ -4042,7 +4083,7 @@ exit_cond:
 ***********************************************************************/
 
 
-void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPars , int levelOrder, int experimentID){
+void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pPars , int levelOrder, Vec_Ptr_t * vSimSave, int experimentID){
 
     char * outGold;
     //int outGold_bitwidth = pPars->bitwidthOutgold;
@@ -4069,7 +4110,7 @@ void executeControlledSim(Gia_Man_t * p, Cec4_Man_t * pMan, Cec_ParSimGen_t * pP
       if(pPars->fUseWatchlist){
         vNodesWatchList = generateWatchList(p);
       }
-      status = computeInputVectors(p, pMan, pPars, luts_order, outGold, pPars->bitwidthOutgold, vLutsFaninCones, vNodesWatchList, experimentID);
+      status = computeInputVectors(p, pMan, pPars, luts_order, outGold, pPars->bitwidthOutgold, vLutsFaninCones, vNodesWatchList, vSimSave, experimentID);
       if( status == -1 ){
         if(pPars->fVerbose || pPars->fVeryVerbose)
           printf("FAILED - no valid input vectors found for class %d\n", nthClass);
@@ -4303,8 +4344,10 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
 
     extern void Gia_ManDupMapping( Gia_Man_t * pNew, Gia_Man_t * p );
     Cec4_Man_t * pManSim;  
-    int i, k, iFan;
+    int i, k, nWordsPerCi;
     Gia_Man_t * pMapped;
+    Vec_Ptr_t * vSimPisSave;
+    Cec_ParFra_t * pCECPars;
 
     if (!Gia_ManHasMapping(p)){
       // apply technology mapping if not already done
@@ -4320,10 +4363,13 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
       if(pPars->fVerbose)
         printf("Using already mapped network\n");
     }
-    pManSim = Cec4_ManCreate( pMapped, pPars->pCECPars );
+    pCECPars = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
+    pManSim = Cec4_ManCreate( pMapped, pCECPars );
+    pManSim->pPars->fVerbose = 0; // disabling verbose sat solver
 
     Cec_DeriveSOPs( pMapped );
 
+    /*
     if (pPars->fVeryVerbose)
     {    
       printf("**Printing LUTs information**\n");
@@ -4335,6 +4381,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
         printISOPLUT( pMapped, i );
       }
     }
+    */
 
     // compute MFFCs
     Gia_ManLevelNum( pMapped); // compute levels
@@ -4347,16 +4394,27 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     // generate vectors of fanouts
     Gia_generateFanoutMapping( pMapped );
 
-    // simulate n rounds of random simulation and create classes
-    Cec4_ManSimAlloc( pMapped, 1 );
+    pMapped->nSimWords = (int) pPars->nSimWords ;
+    vSimPisSave = Vec_PtrAlloc( Gia_ManCiNum(pMapped) );
+    for ( i = 0; i < Gia_ManCiNum(pMapped); i++ ){
+      Vec_Wrd_t * vSim = Vec_WrdAlloc( pMapped->nSimWords );
+      Vec_PtrPush( vSimPisSave, vSim );
+    }
+    // simulate n rounds of random simulation and create classes      
+    Cec4_ManSimAlloc( pMapped, pMapped->nSimWords );
     if(pPars->nMaxIter >= 0){
-      executeRandomSim( pMapped, pManSim, 0, pPars->nMaxIter, pPars->bitwidthSim , pPars->fVeryVerbose);
+      executeRandomSim( pMapped, pManSim, 0, pPars->nMaxIter, vSimPisSave, pPars->fVeryVerbose);
     } else if (pPars->nMaxIter == -1){
-      executeRandomSim( pMapped, pManSim, 1, pPars->nMaxIter, pPars->bitwidthSim , pPars->fVeryVerbose);
+      executeRandomSim( pMapped, pManSim, 1, pPars->nMaxIter, vSimPisSave, pPars->fVeryVerbose);
     } else {
       printf("Invalid number of iterations %d\n", pPars->nMaxIter);
       return NULL;
     }
+
+    // extra data to compact multiple pi values in single words
+    pMapped->iData = ((Vec_Wrd_t *)Vec_PtrEntry( vSimPisSave, 0 ))->nSize; // [0:15] number of words filled
+                         // [16:31] number of bits filled in the iData word
+    assert(pMapped->iData > 0);
 
     Cec_RemoveNonLutNodes( pMapped ); // remove all the non-LUT nodes from the equivalence classes
     
@@ -4369,7 +4427,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     //Cec4_ManPrintClasses2(pMapped);
     clock_t begin = clock();      
     assert(pPars->expId > 0);
-    executeControlledSim( pMapped, pManSim, pPars, -1 , pPars->expId );
+    executeControlledSim( pMapped, pManSim, pPars, -1 , vSimPisSave, pPars->expId );
     
     float implicationSuccessRate = (float)pPars->nImplicationSuccess / (float)pPars->nImplicationExecution;
     float implicationSuccessCheckRate = (float)pPars->nImplicationSuccessChecks / (float)pPars->nImplicationTotalChecks;
@@ -4382,14 +4440,29 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
       evaluate_equiv_classes(pMapped, 1);
     }
 
+    // save random and controlled sim pis values
+    if(p->vSimsPi != NULL){
+      Vec_WrdFree( p->vSimsPi );
+    } 
+    nWordsPerCi = ((Vec_Wrd_t *)Vec_PtrEntry( vSimPisSave, 0 ))->nSize;
+    assert( nWordsPerCi > 0 );
+    p->vSimsPi = Vec_WrdStart( Gia_ManCiNum(p) * nWordsPerCi );
 
-
-    // call SAT solver
-    Cec4_CallSATsolver(pMapped, pManSim, pPars->pCECPars);
-
-    if (pPars->fVerbose || pPars->fVeryVerbose){
-        pManSim->pPars->fVerbose = 1; // print the ending stats of sat calls
+    // copy the sim pis
+    assert( Gia_ManCiNum(p) == Vec_PtrSize(vSimPisSave) );
+    for (i = 0; i < Gia_ManCiNum(p); i++){
+      Vec_Wrd_t * vSim = (Vec_Wrd_t *)Vec_PtrEntry( vSimPisSave, i );
+      assert( vSim->nSize == nWordsPerCi );
+      word * pSim = Vec_WrdEntryP( p->vSimsPi, i * nWordsPerCi );
+      for ( k = 0; k < nWordsPerCi; k++ )
+        pSim[k] = Vec_WrdEntry( vSim, k );
     }
+    p->nSimWords = nWordsPerCi;
+
+    if (pPars->pFileName != NULL){
+      Vec_WrdDumpHex( pPars->pFileName, p->vSimsPi, nWordsPerCi , 1 );
+    }
+
     // free memory
     Vec_IntFree( pMapped->vTTLut );
     Vec_StrFree( pMapped->vTTISOPs );
