@@ -3854,6 +3854,23 @@ static inline word * Abc_TtSymFunGenerate( char * pOnes, int nVars )
     return pTruth;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Fix big-endian when dealilng with 5-var truth tables.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline void Abc_TtFlipVar5( word * p, int nVars )
+{
+    int Test = 1;
+    if ( *((char *)&Test) == 0 && nVars > 5 )
+        Abc_TtFlip( p, Abc_TtWordNum(nVars), 5 );
+}
 
 ABC_NAMESPACE_HEADER_END
 

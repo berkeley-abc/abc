@@ -213,8 +213,8 @@ word Sfm_ComputeInterpolant( Sfm_Ntk_t * p )
         if ( Vec_IntEntry(p->vValues, i) ^ sat_solver_var_value(p->pSat, iVar) ) // insert 1
         {
             pSign = Vec_WrdEntryP( p->vDivCexes, i );
-            assert( !Abc_InfoHasBit( (unsigned *)pSign, p->nCexes) );
-            Abc_InfoXorBit( (unsigned *)pSign, p->nCexes );
+            assert( !Abc_TtGetBit( pSign, p->nCexes) );
+            Abc_TtXorBit( pSign, p->nCexes );
         }
     p->nCexes++;
     return SFM_SAT_SAT;
@@ -284,8 +284,8 @@ int Sfm_ComputeInterpolantInt( Sfm_Ntk_t * p, word Truth[2] )
         if ( Value ^ sat_solver_var_value(p->pSat, iVar) ) // insert 1
         {
             word * pSign = Vec_WrdEntryP( p->vDivCexes, i );
-            assert( !Abc_InfoHasBit( (unsigned *)pSign, p->nCexes) );
-            Abc_InfoXorBit( (unsigned *)pSign, p->nCexes );
+            assert( !Abc_TtGetBit( pSign, p->nCexes) );
+            Abc_TtXorBit( pSign, p->nCexes );
         }
     }
     p->nCexes++;
@@ -310,7 +310,7 @@ word Sfm_ComputeInterpolant2( Sfm_Ntk_t * p )
     ResP = Abc_Tt6Isop( Truth[1], ~Truth[0], Vec_IntSize(p->vDivIds), &nCubesP );
     ResN = Abc_Tt6Isop( Truth[0], ~Truth[1], Vec_IntSize(p->vDivIds), &nCubesN );
     Res  = nCubesP <= nCubesN ? ResP : ~ResN;
-    //Dau_DsdPrintFromTruth( &Res, Vec_IntSize(p->vDivIds) );            
+    //Dau_DsdPrintFromTruth( &Res, Vec_IntSize(p->vDivIds) );
     return Res;
 }
 

@@ -22,6 +22,7 @@
 #include "bool/kit/kit.h"
 #include "opt/sfm/sfm.h"
 #include "base/io/ioAbc.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -330,6 +331,7 @@ void Abc_NtkInsertMfs( Abc_Ntk_t * pNtk, Sfm_Ntk_t * p )
         // update fanins
         vArray = Sfm_NodeReadFanins( p, pNode->iTemp );
         pTruth = Sfm_NodeReadTruth( p, pNode->iTemp );
+        Abc_TtFlipVar5( pTruth, Vec_IntSize(vArray) );
         pNode->pData = Abc_SopCreateFromTruthIsop( (Mem_Flex_t *)pNtk->pManFunc, Vec_IntSize(vArray), pTruth, vCover );
         if ( Abc_SopGetVarNum((char *)pNode->pData) == 0 )
             continue;

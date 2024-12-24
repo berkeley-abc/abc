@@ -110,6 +110,9 @@ int Sfm_TruthToCnf( word Truth, word * pTruth, int nVars, Vec_Int_t * vCover, Ve
     {
         int i, k, c, RetValue, Literal, Cube, nCubes = 0;
         assert( nVars > 0 );
+
+        Abc_TtFlipVar5( &Truth, nVars );
+        Abc_TtFlipVar5( pTruth, nVars );
         for ( c = 0; c < 2; c ++ )
         {
             if ( nVars <= 6 )
@@ -145,6 +148,8 @@ int Sfm_TruthToCnf( word Truth, word * pTruth, int nVars, Vec_Int_t * vCover, Ve
                 Vec_StrPush( vCnf, (char)-1 );
             }
         }
+        Abc_TtFlipVar5( pTruth, nVars );
+
         return nCubes;
     }
 }
