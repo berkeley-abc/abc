@@ -254,6 +254,7 @@ void Cec_SimGenSetParDefault( Cec_ParSimGen_t * pPars )
     pPars->nImplicationSuccessChecks = 0; // the number of implication successful checks
     pPars->pCECPars             = (Cec_ParFra_t *) malloc(sizeof( Cec_ParFra_t )); // parameters of CEC
     Cec4_ManSetParams( pPars->pCECPars );
+    pPars->pFileName            = NULL; // file name to dump simulation vectors
 }
 
 /**Function*************************************************************
@@ -4380,6 +4381,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
 
     Cec_DeriveSOPs( pMapped );
 
+    /*
     if (pPars->fVeryVerbose)
     {    
       printf("**Printing LUTs information**\n");
@@ -4391,6 +4393,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
         printISOPLUT( pMapped, i );
       }
     }
+    */
 
     // compute MFFCs
     Gia_ManLevelNum( pMapped); // compute levels
@@ -4469,7 +4472,9 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
     }
     p->nSimWords = nWordsPerCi;
 
-    //Vec_WrdDumpHex( "sim_vec.out", p->vSimsPi, nWordsPerCi , 1 );
+    if (pPars->pFileName != NULL){
+      Vec_WrdDumpHex( pPars->pFileName, p->vSimsPi, nWordsPerCi , 1 );
+    }
 
     // call SAT solver
     /*
