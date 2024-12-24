@@ -2959,7 +2959,7 @@ void saveSimVectors( Gia_Man_t * p, Vec_Ptr_t * pValues, int bitLength, int jth_
     int nWords = bitLength / 64;
     assert(nWords == 0); // Not considering case with large outgold values
     Gia_ManForEachCiId( p, Id, i ){
-        Vec_Wrd_t * pValuesPi = Vec_PtrEntry( pValues, i );
+        Vec_Wrd_t * pValuesPi = (Vec_Wrd_t *) Vec_PtrEntry( pValues, i );
         word pValuePiJWord = 0;
         if(kth_bit == 0){
           Vec_WrdPush( pValuesPi, 0 );
@@ -3002,7 +3002,7 @@ void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIt
       numClass = totalNumClasses(p);
       iNumber++;
       Gia_ManForEachCiId( p, Id, j ){
-        Vec_Wrd_t * vSimPI = Vec_PtrEntry( vSimSave, j );
+        Vec_Wrd_t * vSimPI = (Vec_Wrd_t *) Vec_PtrEntry( vSimSave, j );
         word * pSim = Cec4_ObjSim( p, Id );
         for( k = 0; k < p->nSimWords; k++ ){
           Vec_WrdPush( vSimPI, pSim[k] );
@@ -3020,7 +3020,7 @@ void executeRandomSim( Gia_Man_t * p, Cec4_Man_t * pMan , int dynSim, int nMaxIt
       if (verbose)
         printf("Time elapsed: %f (classes size: %d)\n", (float)(clock() - start_time)/CLOCKS_PER_SEC, quality);
       Gia_ManForEachCiId( p, Id, j ){
-        Vec_Wrd_t * vSimPI = Vec_PtrEntry( vSimSave, j );
+        Vec_Wrd_t * vSimPI = (Vec_Wrd_t *) Vec_PtrEntry( vSimSave, j );
         word * pSim = Cec4_ObjSim( p, Id );
         for( k = 0; k < p->nSimWords; k++ ){
           Vec_WrdPush( vSimPI, pSim[k] );
@@ -4357,7 +4357,7 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
 
     extern void Gia_ManDupMapping( Gia_Man_t * pNew, Gia_Man_t * p );
     Cec4_Man_t * pManSim;  
-    int i, k, iFan, nWordsPerCi;
+    int i, k, nWordsPerCi;
     Gia_Man_t * pMapped;
     Vec_Ptr_t * vSimPisSave;
     Cec_ParFra_t * pCECPars;
