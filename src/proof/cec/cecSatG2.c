@@ -4476,14 +4476,6 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
       Vec_WrdDumpHex( pPars->pFileName, p->vSimsPi, nWordsPerCi , 1 );
     }
 
-    // call SAT solver
-    /*
-    Cec4_CallSATsolver(pMapped, pManSim, pPars->pCECPars);
-    Gia_Man_t * ppNew; Gia_Obj_t * pObj;
-    Gia_ManForEachCo( pMapped, pObj, i )
-            pObj->Value = Gia_ManAppendCo( pManSim->pNew, Gia_ObjFanin0Copy(pObj) );
-        ppNew = Gia_ManCleanup( pManSim->pNew );
-    */
     if (pPars->fVerbose || pPars->fVeryVerbose){
         pManSim->pPars->fVerbose = 1; // print the ending stats of sat calls
     }
