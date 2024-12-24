@@ -4476,9 +4476,6 @@ Gia_Man_t * Cec_SimGenRun( Gia_Man_t * p, Cec_ParSimGen_t * pPars ){
       Vec_WrdDumpHex( pPars->pFileName, p->vSimsPi, nWordsPerCi , 1 );
     }
 
-    if (pPars->fVerbose || pPars->fVeryVerbose){
-        pManSim->pPars->fVerbose = 1; // print the ending stats of sat calls
-    }
     // free memory
     Vec_IntFree( pMapped->vTTLut );
     Vec_StrFree( pMapped->vTTISOPs );
