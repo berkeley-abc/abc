@@ -220,6 +220,7 @@ struct Cec_ParSimGen_t_
     int              nImplicationTotalChecks; // number of times implication was checked
     int              nImplicationSuccessChecks; // number of times implication was successful
     Cec_ParFra_t *   pCECPars;             // parameters of CEC   
+    char *           pFileName;         // file name to dump simulation vectors
 };
 
 ////////////////////////////////////////////////////////////////////////
