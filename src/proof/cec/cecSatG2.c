@@ -1863,7 +1863,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
 
     Cec4_Man_t * pMan = Cec4_ManCreate( p, pPars ); 
     Gia_Obj_t * pObj, * pRepr; 
-    int i, fSimulate = 1;
+    int i, fSimulate = 1, Id;
     if ( pPars->fVerbose )
         printf( "Solver type = %d. Simulate %d words in %d rounds. SAT with %d confs. Recycle after %d SAT calls.\n", 
             pPars->jType, pPars->nWords, pPars->nRounds, pPars->nBTLimit, pPars->nCallsRecycle );
@@ -1886,6 +1886,22 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
                 p->pCexSeq = Cec4_ManDeriveCex( p, i, -1 );
                 goto finalize;
             }
+    }
+
+    if( p->vSimsPi && p->nSimWords > 0){ // if the simulation pis are already set, do not generate new ones 
+        pPars->nWords = p->nSimWords;
+        Vec_WrdFreeP( &p->vSims );
+        p->vSims     = Vec_WrdStart( Gia_ManObjNum(p) *  pPars->nWords);
+        assert( Vec_WrdSize(p->vSimsPi) == Gia_ManCiNum(p) * p->nSimWords ); 
+        Gia_ManForEachCiId(p, Id, i){
+          memmove( Vec_WrdEntryP(p->vSims, Id*p->nSimWords), Vec_WrdEntryP(p->vSimsPi, i*p->nSimWords), sizeof(word)*p->nSimWords );
+        }
+        Cec4_ManSimulate( p, pMan );
+        if ( pPars->fCheckMiter && !Cec4_ManSimulateCos(p) ) // cex detected
+          goto finalize;
+        if ( fSimOnly )
+          goto finalize;
+        goto execute_sat;
     }
 
     // simulate one round and create classes
@@ -1922,6 +1938,7 @@ int Cec4_ManPerformSweeping( Gia_Man_t * p, Cec_ParFra_t * pPars, Gia_Man_t ** p
         if ( i && i % 5 == 0 && pPars->fVerbose )
             Cec4_ManPrintStats( p, pPars, pMan, 1 );
     }
+    execute_sat:
     if ( i && i % 5 && pPars->fVerbose )
         Cec4_ManPrintStats( p, pPars, pMan, 1 );
 
