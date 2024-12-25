@@ -79,6 +79,7 @@ static int IoCommandWriteCex    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteDot    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteEqn    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteGml    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteHMetis ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteList   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWritePla    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -155,6 +156,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_edgelist",IoCommandWriteEdgelist,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_gml",     IoCommandWriteGml,     0 );
 //    Cmd_CommandAdd( pAbc, "I/O", "write_list",    IoCommandWriteList,    0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_hmetis",  IoCommandWriteHMetis,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_pla",     IoCommandWritePla,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_verilog", IoCommandWriteVerilog, 0 );
 //    Cmd_CommandAdd( pAbc, "I/O", "write_verlib",  IoCommandWriteVerLib,  0 );
@@ -3395,6 +3397,73 @@ usage:
     fprintf( pAbc->Err, "\t-N     : toggle keeping original naming of the netlist in edgelist (default=False)\n");  
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .el)\n" );
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteHMetis( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * pFileName;
+    int fVerbose;
+    int fSkipPo;
+    int c;
+
+    fSkipPo       = 1;
+    fVerbose      = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 's':
+                fSkipPo ^= 1;
+                break;
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    // call the corresponding file writer
+    if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
+    {
+        fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
+        return 1;
+    }
+    //Io_WriteAiger( pAbc->pNtkCur, pFileName, fWriteSymbols, fCompact, fUnique );
+    Io_WriteHMetis( pAbc->pNtkCur, pFileName, fSkipPo, fVerbose );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_hmetis <file>\n" );
+    fprintf( pAbc->Err, "\t         writes the network in the hMetis format (https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf)\n" );
+    fprintf( pAbc->Err, "\t-s     : skip PO as sink explictly [default = %s]\n", fSkipPo? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
 }
 
