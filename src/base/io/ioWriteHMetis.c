@@ -93,8 +93,9 @@ void Io_WriteHMetis( Abc_Ntk_t * pNtk, char * pFileName, int fSkipPo, int fVerbo
         }
         fprintf(pFHMetis, "\n");
     }
-    fprintf( pFHMetis, "\nThis file was written by ABC on %s\n", Extra_TimeStamp() );
-    fprintf( pFHMetis, "For information about hMetis format, refer to %s\n", "https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf" );
+    //comments should be started with "%" in hMetis format
+    fprintf( pFHMetis, "\n%%This file was written by ABC on %s\n", Extra_TimeStamp() );
+    fprintf( pFHMetis, "%%For information about hMetis format, refer to %s\n", "https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf" );
     Vec_PtrFreeFree(vHyperEdges);
 }
 
