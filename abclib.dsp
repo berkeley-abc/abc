@@ -691,6 +691,10 @@ SOURCE=.\src\base\io\ioWriteGml.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\io\ioWriteHMetis.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\io\ioWriteList.c
 # End Source File
 # Begin Source File
