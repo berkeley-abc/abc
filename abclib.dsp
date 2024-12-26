@@ -4115,6 +4115,10 @@ SOURCE=.\src\misc\util\utilBridge.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilBSet.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilCex.c
 # End Source File
 # Begin Source File
