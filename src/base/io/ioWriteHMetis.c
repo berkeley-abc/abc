@@ -19,15 +19,11 @@ Minnesota(https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf)]
   Revision    []
 
 ***********************************************************************/
-#include "base/abc/abc.h"
 #include "ioAbc.h"
-#include "misc/vec/vecInt.h"
-#include "misc/vec/vecPtr.h"
-
 
 ABC_NAMESPACE_IMPL_START
 
-void Io_WriteHMetis( Abc_Ntk_t * pNtk, char * pFileName, int fSkipPo, int fVerbose)
+void Io_WriteHMetis( Abc_Ntk_t * pNtk, char * pFileName, int fSkipPo, int fVerbose )
 {
     Abc_Obj_t * pObj;
     Abc_Obj_t * pFanout;
