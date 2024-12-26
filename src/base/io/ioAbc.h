@@ -131,7 +131,7 @@ extern void               Io_WriteEdgelist( Abc_Ntk_t * pNtk, char * pFileName, 
 /*=== abcWriteGml.c ===========================================================*/
 extern void               Io_WriteGml( Abc_Ntk_t * pNtk, char * pFileName );
 /*=== abcWriteHMetis.c ===========================================================*/
-extern void               Io_WriteHMetis( Abc_Ntk_t * pNtk, char * pFileName, int fSkipPo, int fVerbose );
+extern void               Io_WriteHMetis( Abc_Ntk_t * pNtk, char * pFileName, int fSkipPo, int fWeightEdges, int fVerbose );
 /*=== abcWriteList.c ==========================================================*/
 extern void               Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost );
 /*=== abcWritePla.c ===========================================================*/
