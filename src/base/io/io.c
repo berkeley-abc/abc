@@ -3416,17 +3416,22 @@ int IoCommandWriteHMetis( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pFileName;
     int fVerbose;
     int fSkipPo;
+    int fWeightEdges;
     int c;
 
     fSkipPo       = 1;
+    fWeightEdges  = 0;
     fVerbose      = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "svh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "swvh" ) ) != EOF )
     {
         switch ( c )
         {
             case 's':
                 fSkipPo ^= 1;
+                break;
+            case 'w':
+                fWeightEdges ^= 1;
                 break;
             case 'v':
                 fVerbose ^= 1;
@@ -3452,14 +3457,14 @@ int IoCommandWriteHMetis( Abc_Frame_t * pAbc, int argc, char **argv )
         fprintf( stdout, "Writing this format is only possible for structurally hashed AIGs.\n" );
         return 1;
     }
-    //Io_WriteAiger( pAbc->pNtkCur, pFileName, fWriteSymbols, fCompact, fUnique );
-    Io_WriteHMetis( pAbc->pNtkCur, pFileName, fSkipPo, fVerbose );
+    Io_WriteHMetis( pAbc->pNtkCur, pFileName, fSkipPo, fWeightEdges, fVerbose );
     return 0;
 
 usage:
     fprintf( pAbc->Err, "usage: write_hmetis <file>\n" );
     fprintf( pAbc->Err, "\t         writes the network in the hMetis format (https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf)\n" );
     fprintf( pAbc->Err, "\t-s     : skip PO as sink explictly [default = %s]\n", fSkipPo? "yes" : "no" );
+    fprintf( pAbc->Err, "\t-w     : simulate weight on hyperedges [default = %s]\n", fWeightEdges? "yes" : "no" );
     fprintf( pAbc->Err, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes" : "no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
