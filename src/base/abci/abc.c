@@ -156,6 +156,7 @@ static int Abc_CommandRr                     ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandCascade                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutCasDec              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLutCas                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandBsEval                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandExtract                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandVarMin                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFaultClasses           ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -960,6 +961,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "cascade",       Abc_CommandCascade,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutcasdec",     Abc_CommandLutCasDec,        1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "lutcas",        Abc_CommandLutCas,           1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "bseval",        Abc_CommandBsEval,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "extract",       Abc_CommandExtract,          1 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "varmin",        Abc_CommandVarMin,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "faultclasses",  Abc_CommandFaultClasses,     0 );
@@ -9157,6 +9159,130 @@ usage:
     Abc_Print( -2, "\t-D <num> : the non-routable wire delay [default = %d]\n", fDelayDirect );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandBsEval( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Abc_BSEvalOneTest( word * pT, int nVars, int nBVars, int fVerbose );
+    extern void Abc_BSEvalBestTest( word * pIn, int nVars, int nBVars, int fVerbose );
+    extern void Abc_BSEvalBestGen( int nVars, int nBVars, int nFuncs, int nMints, int fTryAll, int fVerbose );
+    int c, nVars = 0, nBVars = 0, nFuncs = 0, nMints = 0, fTryAll = 0, fVerbose = 0; char * pTtStr = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IBRMavh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 2 || nVars > 16 )
+                goto usage;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBVars < 1 || nBVars > 16 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFuncs = atoi(argv[globalUtilOptind]);
+            if ( nFuncs < 1 )
+                goto usage;
+            globalUtilOptind++;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMints = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'a':
+            fTryAll ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind + 1 )
+        pTtStr = argv[globalUtilOptind];
+    if ( pTtStr ) 
+    {
+        nVars = Abc_Base2Log((int)strlen(pTtStr)) + 2;
+        if ( (1 << (nVars-2)) != (int)strlen(pTtStr) )
+        {
+            Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (nVars-2)), strlen(pTtStr) );
+            return 1;
+        }
+    }
+    if ( nVars == 0 )
+    {
+        Abc_Print( -1, "The number of variables should be specified on the command line.\n" );
+        return 1;
+    }
+    if ( nBVars == 0 )
+    {
+        Abc_Print( -1, "The bound set size should be specified on the command line.\n" );
+        return 1;
+    }
+    if ( nFuncs ) 
+        Abc_BSEvalBestGen( nVars, nBVars, nFuncs, nMints, fTryAll, fVerbose );
+    else if ( pTtStr ) 
+    {
+        word pTruth[1024] = {0}; 
+        Abc_TtReadHex( pTruth, pTtStr );
+        if ( fTryAll )
+            Abc_BSEvalBestTest( pTruth, nVars, nBVars, fVerbose );
+        else
+            Abc_BSEvalOneTest( pTruth, nVars, nBVars, fVerbose );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: bseval [-IBRM <num>] [-avh] <hex>\n" );
+    Abc_Print( -2, "\t           bound set evaluation\n" );
+    Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-B <num> : the number of bound set variables [default = %d]\n", nBVars );
+    Abc_Print( -2, "\t-R <num> : the number of random functions to try [default = unused]\n" );
+    Abc_Print( -2, "\t-M <num> : the number of positive minterms in the random function [default = unused]\n" );
+    Abc_Print( -2, "\t-a       : toggle trying all bound sets of this size [default = %s]\n", fTryAll ? "yes" : "no" );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
     return 1;
 }
 
