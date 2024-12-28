@@ -9176,11 +9176,11 @@ usage:
 int Abc_CommandBsEval( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Abc_BSEvalOneTest( word * pT, int nVars, int nBVars, int fVerbose );
-    extern void Abc_BSEvalBestTest( word * pIn, int nVars, int nBVars, int fVerbose );
-    extern void Abc_BSEvalBestGen( int nVars, int nBVars, int nFuncs, int nMints, int fTryAll, int fVerbose );
-    int c, nVars = 0, nBVars = 0, nFuncs = 0, nMints = 0, fTryAll = 0, fVerbose = 0; char * pTtStr = NULL;
+    extern void Abc_BSEvalBestTest( word * pIn, int nVars, int nBVars, int fShared, int fVerbose );
+    extern void Abc_BSEvalBestGen( int nVars, int nBVars, int nFuncs, int nMints, int fTryAll, int fShared, int fVerbose );
+    int c, nVars = 0, nBVars = 0, nSVars = 0, nFuncs = 0, nMints = 0, fTryAll = 0, fVerbose = 0; char * pTtStr = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IBRMavh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IBSRMavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9204,6 +9204,17 @@ int Abc_CommandBsEval( Abc_Frame_t * pAbc, int argc, char ** argv )
             nBVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             if ( nBVars < 1 || nBVars > 16 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSVars < 0 || nSVars > 16 )
                 goto usage;
             break;
         case 'R':
@@ -9260,23 +9271,24 @@ int Abc_CommandBsEval( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( nFuncs ) 
-        Abc_BSEvalBestGen( nVars, nBVars, nFuncs, nMints, fTryAll, fVerbose );
+        Abc_BSEvalBestGen( nVars, nBVars, nFuncs, nMints, fTryAll, nSVars == 1, fVerbose );
     else if ( pTtStr ) 
     {
         word pTruth[1024] = {0}; 
         Abc_TtReadHex( pTruth, pTtStr );
         if ( fTryAll )
-            Abc_BSEvalBestTest( pTruth, nVars, nBVars, fVerbose );
+            Abc_BSEvalBestTest( pTruth, nVars, nBVars, nSVars == 1, fVerbose );
         else
             Abc_BSEvalOneTest( pTruth, nVars, nBVars, fVerbose );
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: bseval [-IBRM <num>] [-avh] <hex>\n" );
+    Abc_Print( -2, "usage: bseval [-IBSRM <num>] [-avh] <hex>\n" );
     Abc_Print( -2, "\t           bound set evaluation\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", nVars );
     Abc_Print( -2, "\t-B <num> : the number of bound set variables [default = %d]\n", nBVars );
+    Abc_Print( -2, "\t-S <num> : the number of shared variables [default = %d]\n", nSVars );
     Abc_Print( -2, "\t-R <num> : the number of random functions to try [default = unused]\n" );
     Abc_Print( -2, "\t-M <num> : the number of positive minterms in the random function [default = unused]\n" );
     Abc_Print( -2, "\t-a       : toggle trying all bound sets of this size [default = %s]\n", fTryAll ? "yes" : "no" );
