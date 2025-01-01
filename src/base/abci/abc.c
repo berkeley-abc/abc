@@ -54262,7 +54262,7 @@ int Abc_CommandAbc9GenCex( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &gencex [-CM num] [-F file] [-stcbvh]\n" );
     Abc_Print( -2, "\t          generates satisfying assignments for each output of the miter\n" );
-    Abc_Print( -2, "\t-C num  : the number of timeframes [default = %d]\n",                  nMinCexes );
+    Abc_Print( -2, "\t-C num  : the number of satisfying assignments [default = %d]\n",      nMinCexes );
     Abc_Print( -2, "\t-M num  : the max simulation runs before using SAT [default = %d]\n",  nMaxTries );
     Abc_Print( -2, "\t-F file : the output file name [default = %s]\n",                      pFileName );
     Abc_Print( -2, "\t-s      : toggles using reverse simulation [default = %s]\n",          fUseSim  ? "yes": "no" );

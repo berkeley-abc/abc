@@ -965,6 +965,12 @@ Vec_Wec_t * Min_ManComputeCexes( Gia_Man_t * p, Vec_Int_t * vOuts0, int nMaxTrie
         if ( Vec_IntEntry(vStats[2], i) >= nMinCexes || Vec_IntEntry(vStats[1], i) > 10*Vec_IntEntry(vStats[2], i) )
             continue;
         {
+            assert( Gia_ObjIsCo(pObj) );
+            if ( Gia_ObjFaninId0p(p, pObj) == 0 ) {
+                if ( fVerbose )
+                    printf( "Output %d is driven by constant %d.\n", Gia_ObjCioId(pObj), Gia_ObjFaninC0(pObj) );
+                continue;
+            }
             abctime clk = Abc_Clock();
             int iObj  = Min_ManCo(pNew, i);
             int Index = Gia_ObjCioId(pObj);
