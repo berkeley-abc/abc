@@ -557,6 +557,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     Abc_Print( 1, "  mem =%5.2f MB", Gia_ManMemory(p)/(1<<20) );
     if ( Gia_ManHasChoices(p) )
         Abc_Print( 1, "  ch =%5d", Gia_ManChoiceNum(p) );
+    if ( Gia_ManHasChoicesOri(p))
+        Abc_Print( 1, "  chOri =%5d", Gia_ManEquivCountClasses(p) );
     if ( p->pManTime )
         Abc_Print( 1, "  box = %d", Gia_ManNonRegBoxNum(p) );
     if ( p->pManTime )
