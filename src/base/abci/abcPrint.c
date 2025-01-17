@@ -1083,7 +1083,7 @@ void Abc_NtkPrintMffc( FILE * pFile, Abc_Ntk_t * pNtk )
     int i;
     extern void Abc_NodeMffcConeSuppPrint( Abc_Obj_t * pNode );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( Abc_ObjFanoutNum(pNode) > 1 )
+        if ( Abc_ObjFanoutNum(pNode) > 1 || (Abc_ObjFanoutNum(pNode) == 1 && Abc_ObjIsCo(Abc_ObjFanout0(pNode))))
             Abc_NodeMffcConeSuppPrint( pNode );
 }
 
