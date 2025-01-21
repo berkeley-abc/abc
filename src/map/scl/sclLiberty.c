@@ -26,7 +26,6 @@
 #endif
 
 #include "misc/zlib/zlib.h"
-#include "misc/bzlib/bzlib.h"
 #include "sclLib.h"
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
