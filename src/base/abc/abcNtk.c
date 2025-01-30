@@ -1344,10 +1344,11 @@ Abc_Ntk_t * Abc_NtkCreateWithNodes( Vec_Ptr_t * vSop )
     Abc_NodeFreeNames( vNames );
     // create the node, add PIs as fanins, set the function
     Vec_PtrForEachEntry( char *, vSop, pSop, i )
-    {
+    {        
         pNode = Abc_NtkCreateNode( pNtkNew );
-        Abc_NtkForEachPi( pNtkNew, pFanin, k )
-            Abc_ObjAddFanin( pNode, pFanin );
+        if ( Abc_SopGetVarNum(pSop) > 0 )
+            Abc_NtkForEachPi( pNtkNew, pFanin, k )
+                Abc_ObjAddFanin( pNode, pFanin );
         pNode->pData = Abc_SopRegister( (Mem_Flex_t *)pNtkNew->pManFunc, pSop );
         // create the only PO
         pNodePo = Abc_NtkCreatePo(pNtkNew);
