@@ -74,18 +74,6 @@ function(add_coverage TARGET)
 
         add_custom_target(coverage)
 
-        if(COVERAGE_TEXT)
-            add_custom_target(
-                coverage-text
-                COMMAND
-                    ${LLVM_COV_PATH} report `cat ${COVERAGE_TARGETS}`
-                    -instr-profile=${COVERAGE_PROFDATA}
-                    -ignore-filename-regex="${COVERAGE_EXCLUDE_REGEX}"
-                DEPENDS coverage-profdata
-            )
-            add_dependencies(coverage coverage-text)
-        endif()
-
         if(COVERAGE_HTML)
             add_custom_target(
                 coverage-html
@@ -111,6 +99,18 @@ function(add_coverage TARGET)
                 DEPENDS coverage-profdata
             )
             add_dependencies(coverage coverage-lcov)
+        endif()
+
+        if(COVERAGE_TEXT)
+            add_custom_target(
+                coverage-text
+                COMMAND
+                    ${LLVM_COV_PATH} report `cat ${COVERAGE_TARGETS}`
+                    -instr-profile=${COVERAGE_PROFDATA}
+                    -ignore-filename-regex="${COVERAGE_EXCLUDE_REGEX}"
+                DEPENDS coverage-profdata
+            )
+            add_dependencies(coverage coverage-text)
         endif()
     endif()
 
