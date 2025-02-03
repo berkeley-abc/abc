@@ -1,14 +1,14 @@
 abc_libabc_add_sources(
     NAME proof_dch
     SOURCES
+        dchSweep.c
         dchAig.c
+        dchClass.c
+        dchSat.c
         dchSimSat.c
         dchSim.c
-        dchSat.c
-        dchSweep.c
         dchCore.c
-        dchCnf.c
-        dchClass.c
-        dchChoice.c
         dchMan.c
+        dchChoice.c
+        dchCnf.c
 )

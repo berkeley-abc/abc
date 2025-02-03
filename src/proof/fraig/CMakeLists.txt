@@ -1,16 +1,16 @@
 abc_libabc_add_sources(
     NAME proof_fraig
     SOURCES
-        fraigCanon.c
-        fraigApi.c
-        fraigTable.c
-        fraigUtil.c
-        fraigFanout.c
-        fraigMem.c
         fraigPrime.c
-        fraigVec.c
+        fraigUtil.c
         fraigMan.c
         fraigFeed.c
+        fraigFanout.c
+        fraigVec.c
+        fraigTable.c
+        fraigCanon.c
+        fraigApi.c
+        fraigMem.c
         fraigNode.c
         fraigSat.c
 )

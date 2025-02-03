@@ -1,14 +1,14 @@
 abc_libabc_add_sources(
     NAME proof_pdr
     SOURCES
-        pdrCnf.c
+        pdrCore.c
         pdrTsim.c
+        pdrSat.c
+        pdrCnf.c
         pdrIncr.c
         pdrUtil.c
         pdrTsim2.c
-        pdrInv.c
-        pdrCore.c
         pdrMan.c
-        pdrSat.c
         pdrTsim3.c
+        pdrInv.c
 )

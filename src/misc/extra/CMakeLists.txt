@@ -1,24 +1,24 @@
 abc_libabc_add_sources(
     NAME misc_extra
     SOURCES
-        extraUtilCfs.c
-        extraUtilReader.c
-        extraUtilDsd.c
-        extraUtilPath.c
-        extraUtilUtil.c
-        extraUtilGen.c
         extraUtilPerm.c
-        extraUtilEnum.c
         extraUtilBitMatrix.c
-        extraUtilTruth.c
-        extraUtilMacc.c
-        extraUtilMult.c
-        extraUtilCanon.c
-        extraUtilFile.c
-        extraUtilMisc.c
-        extraUtilMaj.c
-        extraUtilProgress.c
-        extraUtilCube.c
-        extraUtilSupp.c
+        extraUtilReader.c
         extraUtilMemory.c
+        extraUtilCfs.c
+        extraUtilFile.c
+        extraUtilSupp.c
+        extraUtilMacc.c
+        extraUtilTruth.c
+        extraUtilMult.c
+        extraUtilProgress.c
+        extraUtilEnum.c
+        extraUtilCanon.c
+        extraUtilPath.c
+        extraUtilMisc.c
+        extraUtilGen.c
+        extraUtilDsd.c
+        extraUtilMaj.c
+        extraUtilCube.c
+        extraUtilUtil.c
 )

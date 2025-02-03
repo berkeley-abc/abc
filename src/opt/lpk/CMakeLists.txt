@@ -1,15 +1,15 @@
 abc_libabc_add_sources(
     NAME opt_lpk
     SOURCES
-        lpkAbcMux.c
-        lpkCore.c
+        lpkMap.c
         lpkMulti.c
-        lpkSets.c
+        lpkMux.c
+        lpkCut.c
+        lpkAbcDec.c
+        lpkMan.c
         lpkAbcDsd.c
         lpkAbcUtil.c
-        lpkAbcDec.c
-        lpkCut.c
-        lpkMap.c
-        lpkMux.c
-        lpkMan.c
+        lpkCore.c
+        lpkAbcMux.c
+        lpkSets.c
 )

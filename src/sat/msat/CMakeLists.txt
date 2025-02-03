@@ -1,17 +1,17 @@
 abc_libabc_add_sources(
     NAME sat_msat
     SOURCES
-        msatSolverApi.c
-        msatActivity.c
+        msatSort.c
         msatRead.c
+        msatClauseVec.c
         msatSolverSearch.c
-        msatSolverIo.c
         msatVec.c
+        msatSolverApi.c
         msatSolverCore.c
         msatOrderH.c
         msatMem.c
-        msatClauseVec.c
+        msatActivity.c
         msatClause.c
-        msatSort.c
         msatQueue.c
+        msatSolverIo.c
 )

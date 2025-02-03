@@ -1,19 +1,19 @@
 abc_libabc_add_sources(
     NAME misc_mvc
     SOURCES
-        mvcUtils.c
         mvcApi.c
-        mvcSort.c
         mvcDivide.c
-        mvcPrint.c
-        mvcLits.c
-        mvcOpAlg.c
-        mvcCompare.c
         mvcList.c
-        mvcContain.c
-        mvcCube.c
+        mvcCompare.c
+        mvcPrint.c
         mvcOpBool.c
+        mvcSort.c
+        mvcOpAlg.c
+        mvcCube.c
         mvcMan.c
         mvcCover.c
         mvcDivisor.c
+        mvcLits.c
+        mvcUtils.c
+        mvcContain.c
 )

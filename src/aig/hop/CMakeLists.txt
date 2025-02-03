@@ -1,14 +1,14 @@
 abc_libabc_add_sources(
     NAME aig_hop
     SOURCES
-        hopTruth.c
-        hopTable.c
-        hopMan.c
-        hopMem.c
-        hopDfs.c
         hopBalance.c
-        hopCheck.c
-        hopOper.c
-        hopObj.c
+        hopMan.c
         hopUtil.c
+        hopMem.c
+        hopOper.c
+        hopDfs.c
+        hopCheck.c
+        hopObj.c
+        hopTable.c
+        hopTruth.c
 )

@@ -1,19 +1,19 @@
 abc_libabc_add_sources(
     NAME base_bac
     SOURCES
-        bacPtr.c
-        bacCom.c
         bacReadBlif.c
-        bacReadSmt.c
-        bacPrsTrans.c
-        bacWriteBlif.c
-        bacLib.c
-        bacReadVer.c
-        bacPtrAbc.c
-        bacBlast.c
-        bacWriteSmt.c
         bacPrsBuild.c
-        bacWriteVer.c
-        bacNtk.c
+        bacWriteSmt.c
+        bacWriteBlif.c
+        bacPtr.c
         bacBac.c
+        bacPtrAbc.c
+        bacReadSmt.c
+        bacNtk.c
+        bacWriteVer.c
+        bacReadVer.c
+        bacLib.c
+        bacPrsTrans.c
+        bacBlast.c
+        bacCom.c
 )
