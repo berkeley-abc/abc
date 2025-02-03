@@ -3,6 +3,6 @@ abc_libabc_add_sources(
     SOURCES
         bbrImage.c
         bbrCex.c
-        bbrReach.c
         bbrNtbdd.c
+        bbrReach.c
 )
