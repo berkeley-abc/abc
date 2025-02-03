@@ -1,12 +1,12 @@
 abc_libabc_add_sources(
     NAME base_cba
     SOURCES
-        cbaCba.c
-        cbaCom.c
+        cbaNtk.c
         cbaReadVer.c
         cbaReadBlif.c
-        cbaWriteVer.c
-        cbaBlast.c
+        cbaCba.c
         cbaWriteBlif.c
-        cbaNtk.c
+        cbaCom.c
+        cbaBlast.c
+        cbaWriteVer.c
 )

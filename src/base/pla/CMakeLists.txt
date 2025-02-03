@@ -1,11 +1,11 @@
 abc_libabc_add_sources(
     NAME base_pla
     SOURCES
-        plaCom.c
+        plaSimple.c
+        plaRead.c
         plaMerge.c
         plaHash.c
-        plaRead.c
-        plaSimple.c
-        plaMan.c
         plaWrite.c
+        plaCom.c
+        plaMan.c
 )

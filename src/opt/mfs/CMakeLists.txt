@@ -1,12 +1,12 @@
 abc_libabc_add_sources(
     NAME opt_mfs
     SOURCES
-        mfsCore.c
-        mfsStrash.c
-        mfsResub.c
-        mfsDiv.c
+        mfsSat.c
+        mfsInter.c
         mfsWin.c
         mfsMan.c
-        mfsInter.c
-        mfsSat.c
+        mfsDiv.c
+        mfsStrash.c
+        mfsResub.c
+        mfsCore.c
 )

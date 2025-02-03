@@ -1,11 +1,11 @@
 abc_libabc_add_sources(
     NAME opt_ret
     SOURCES
-        retDelay.c
+        retFlow.c
         retCore.c
-        retInit.c
         retLvalue.c
+        retDelay.c
+        retInit.c
         retIncrem.c
         retArea.c
-        retFlow.c
 )

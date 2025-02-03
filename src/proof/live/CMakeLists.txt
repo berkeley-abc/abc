@@ -1,13 +1,13 @@
 abc_libabc_add_sources(
     NAME proof_live
     SOURCES
-        arenaViolation.c
         disjunctiveMonotone.c
-        combination.c
-        ltl_parser.c
-        kLiveConstraints.c
-        kliveness.c
         liveness_sim.c
-        liveness.c
+        arenaViolation.c
         monotone.c
+        combination.c
+        kLiveConstraints.c
+        ltl_parser.c
+        liveness.c
+        kliveness.c
 )

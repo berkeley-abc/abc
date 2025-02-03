@@ -1,7 +1,7 @@
 abc_libabc_add_sources(
     NAME opt_rwt
     SOURCES
-        rwtMan.c
         rwtUtil.c
         rwtDec.c
+        rwtMan.c
 )

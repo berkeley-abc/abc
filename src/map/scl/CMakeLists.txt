@@ -1,15 +1,15 @@
 abc_libabc_add_sources(
     NAME map_scl
     SOURCES
-        sclDnsize.c
-        sclBufSize.c
-        sclLibUtil.c
-        scl.c
-        sclSize.c
         sclBuffer.c
-        sclUpsize.c
-        sclLoad.c
+        sclDnsize.c
+        sclSize.c
+        sclLibUtil.c
         sclUtil.c
-        sclLibScl.c
+        sclLoad.c
+        sclBufSize.c
         sclLiberty.c
+        sclUpsize.c
+        sclLibScl.c
+        scl.c
 )
