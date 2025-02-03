@@ -1,11 +1,11 @@
 abc_libabc_add_sources(
     NAME opt_rwr
     SOURCES
-        rwrDec.c
-        rwrExp.c
-        rwrLib.c
-        rwrPrint.c
-        rwrEva.c
-        rwrMan.c
         rwrUtil.c
+        rwrDec.c
+        rwrEva.c
+        rwrPrint.c
+        rwrLib.c
+        rwrExp.c
+        rwrMan.c
 )
