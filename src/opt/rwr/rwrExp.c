@@ -136,11 +136,11 @@ void Rwt_Man4ExplorePrint()
         pReprs[ s_pManRwrExp4->pnCounts[i] ] = i;
     }
 
-    printf( "Occurence = %6d.  Num classes = %4d.  \n", 0, 2288-nClasses );
+    printf( "Occurrence = %6d.  Num classes = %4d.  \n", 0, 2288-nClasses );
     for ( i = 1; i <= CountMax; i++ )
         if ( pDistrib[i] )
         {
-            printf( "Occurence = %6d.  Num classes = %4d.  Repr = ", i, pDistrib[i] );
+            printf( "Occurrence = %6d.  Num classes = %4d.  Repr = ", i, pDistrib[i] );
             Extra_PrintBinary( stdout, (unsigned*)&(pReprs[i]), 16 ); 
             printf( "\n" );
         }
@@ -256,7 +256,7 @@ void Rwt_Man5ExplorePrint()
     for ( i = 1; i <= CountMax; i++ )
         if ( pDistrib[i] )
         {
-            printf( "Occurence = %6d.  Num classes = %4d.  Repr = ", i, pDistrib[i] );
+            printf( "Occurrence = %6d.  Num classes = %4d.  Repr = ", i, pDistrib[i] );
             Extra_PrintBinary( stdout, pReprs + i, 32 ); 
             printf( "\n" );
         }
