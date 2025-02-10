@@ -3468,7 +3468,9 @@ int check_implication( Gia_Man_t * p, int ObjId , int validBit , int fanoutValue
     }
 
     assert(0);
-
+    // In C++ assert(0) doesn't count as a proper exit.
+    // needs to return a value to compile.
+    return -1;
 }
 
 
