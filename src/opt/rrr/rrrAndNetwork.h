@@ -118,10 +118,10 @@ namespace rrr {
     void ForEachTfo(int id, bool fPos, std::function<void(int)> const &func);
     void ForEachTfoReverse(int id, bool fPos, std::function<void(int)> const &func);
     void ForEachTfoUpdate(int id, bool fPos, std::function<bool(int)> const &func);
-    template <template <typename> typename Container>
-    void ForEachTfos(Container<int> const &ids, bool fPos, std::function<void(int)> const &func);
-    template <template <typename> typename Container>
-    void ForEachTfosUpdate(Container<int> const &ids, bool fPos, std::function<bool(int)> const &func);
+    template <template <typename...> typename Container, typename ... Ts>
+    void ForEachTfos(Container<Ts...> const &ids, bool fPos, std::function<void(int)> const &func);
+    template <template <typename...> typename Container, typename ... Ts>
+    void ForEachTfosUpdate(Container<Ts...> const &ids, bool fPos, std::function<bool(int)> const &func);
 
     // Actions
     void RemoveFanin(int id, int idx);
@@ -685,8 +685,8 @@ namespace rrr {
     EndTraversal();
   }
 
-  template <template <typename> typename Container>
-  inline void AndNetwork::ForEachTfos(Container<int> const &ids, bool fPos, std::function<void(int)> const &func) {
+  template <template <typename...> typename Container, typename ... Ts>
+  inline void AndNetwork::ForEachTfos(Container<Ts...> const &ids, bool fPos, std::function<void(int)> const &func) {
     // this includes ids themselves
     StartTraversal();
     for(int id: ids) {
@@ -720,8 +720,8 @@ namespace rrr {
     EndTraversal();
   }
   
-  template <template <typename> typename Container>
-  inline void AndNetwork::ForEachTfosUpdate(Container<int> const &ids, bool fPos, std::function<bool(int)> const &func) {
+  template <template <typename...> typename Container, typename ... Ts>
+  inline void AndNetwork::ForEachTfosUpdate(Container<Ts...> const &ids, bool fPos, std::function<bool(int)> const &func) {
     // this includes ids themselves
     StartTraversal();
     for(int id: ids) {
