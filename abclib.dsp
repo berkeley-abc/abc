@@ -5211,6 +5211,10 @@ SOURCE=.\src\aig\gia\giaRex.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaRrr.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaSat3.c
 # End Source File
 # Begin Source File
