@@ -19,10 +19,12 @@
 ***********************************************************************/
 
 #include "giaAig.h"
+#include "aig/gia/gia.h"
 #include "proof/fra/fra.h"
 #include "proof/dch/dch.h"
 #include "opt/dar/dar.h"
 #include "opt/dau/dau.h"
+#include <assert.h>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -191,6 +193,8 @@ Gia_Man_t * Gia_ManFromAigChoices( Aig_Man_t * p )
     Gia_ManSetRegNum( pNew, Aig_ManRegNum(p) );
     //assert( Gia_ManObjNum(pNew) == Aig_ManObjNum(p) );
     //Gia_ManCheckChoices( pNew );
+    if ( pNew->pSibls )
+        Gia_ManDeriveReprsFromSibls( pNew );
     return pNew;
 }
 

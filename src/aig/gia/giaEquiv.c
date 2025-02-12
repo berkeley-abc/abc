@@ -312,6 +312,39 @@ void Gia_ManDeriveReprs( Gia_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Given pSibls, derives original representitives and nexts.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+void Gia_ManDeriveReprsFromSibls( Gia_Man_t *p )
+{
+    
+    int i, iObj;
+    assert( !p->pReprs && p->pSibls );
+    p->pReprs = ABC_CALLOC( Gia_Rpr_t, Gia_ManObjNum(p) );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+        Gia_ObjSetRepr( p, i, GIA_VOID );
+    for ( i = 0; i < Gia_ManObjNum(p); i++ )
+    {
+        if ( p->pSibls[i] == 0 )
+            continue;
+        if ( p->pReprs[i].iRepr != GIA_VOID )
+            continue;
+        for ( iObj = p->pSibls[i]; iObj; iObj = p->pSibls[iObj] )
+            p->pReprs[iObj].iRepr = i;
+    }
+    ABC_FREE( p->pNexts );
+    p->pNexts = Gia_ManDeriveNexts( p );
+}
+
+/**Function*************************************************************
+
   Synopsis    []
 
   Description []

@@ -1436,6 +1436,7 @@ extern void                Gia_ManEquivFixOutputPairs( Gia_Man_t * p );
 extern int                 Gia_ManCheckTopoOrder( Gia_Man_t * p );
 extern int *               Gia_ManDeriveNexts( Gia_Man_t * p );
 extern void                Gia_ManDeriveReprs( Gia_Man_t * p );
+extern void                Gia_ManDeriveReprsFromSibls( Gia_Man_t *p );
 extern int                 Gia_ManEquivCountLits( Gia_Man_t * p );
 extern int                 Gia_ManEquivCountLitsAll( Gia_Man_t * p );
 extern int                 Gia_ManEquivCountClasses( Gia_Man_t * p );
