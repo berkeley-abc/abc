@@ -73,8 +73,8 @@ namespace rrr {
     int  AddPi();
     int  AddPo(int id, bool c);
     int  AddAnd(int id0, int id1, bool c0, bool c1);
-    template <typename Ntk>
-    void Read(Ntk *pFrom, std::function<void(Ntk *, AndNetwork *)> const &Reader);
+    template <typename Ntk, typename Reader>
+    void Read(Ntk *pFrom, Reader &reader);
 
     // network properties
     bool UseComplementedEdges() const;
@@ -287,10 +287,10 @@ namespace rrr {
     return nNodes++;
   }
 
-  template <typename Ntk>
-  void AndNetwork::Read(Ntk *pFrom, std::function<void(Ntk *, AndNetwork *)> const &Reader) {
+  template <typename Ntk, typename Reader>
+  void AndNetwork::Read(Ntk *pFrom, Reader &reader) {
     Clear();
-    Reader(pFrom, this);
+    reader(pFrom, this);
   }
   
   /* }}} */
