@@ -255,14 +255,26 @@ Abc_Ntk_t * Abc_NtkLutCascade( Abc_Ntk_t * pNtk, int nLutSize, int nLuts, int nR
 {
     extern Gia_Man_t *  Abc_NtkStrashToGia( Abc_Ntk_t * pNtk );
     extern Mini_Aig_t * Gia_ManToMiniAig( Gia_Man_t * pGia );
-    extern word *       Abc_LutCascade( Mini_Aig_t * p, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose );
+    extern word *       Abc_LutCascade( Mini_Aig_t * p, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose );    
     Gia_Man_t * pGia  = Abc_NtkStrashToGia( pNtk );
     Mini_Aig_t * pM   = Gia_ManToMiniAig( pGia );
-    word * pLuts      = Abc_LutCascade( pM, nLutSize, nLuts, nRails, nIters, fVerbose );
-    //word * pLuts      = Abc_LutCascadeTest( pM, nLutSize, 0 );
+    //word * pLuts      = Abc_LutCascade( pM, nLutSize, nLuts, nRails, nIters, fVerbose );
+    word * pLuts      = Abc_LutCascadeTest( pM, nLutSize, 0 );
     Abc_Ntk_t * pNew  = pLuts ? Abc_NtkLutCascadeFromLuts( pLuts, pNtk, nLutSize, fVerbose ) : NULL;
     ABC_FREE( pLuts );
     Mini_AigStop( pM );
+    Gia_ManStop( pGia );
+    return pNew;
+}
+Abc_Ntk_t * Abc_NtkLutCascade2( Abc_Ntk_t * pNtk, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose )
+{
+    extern Gia_Man_t *  Abc_NtkStrashToGia( Abc_Ntk_t * pNtk );
+    extern word *       Abc_LutCascade2( word * p, int nVars, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose );    
+    Gia_Man_t * pGia  = Abc_NtkStrashToGia( pNtk );
+    word * pTruth     = Gia_ObjComputeTruthTable( pGia, Gia_ManCo(pGia, 0) );
+    word * pLuts      = Abc_LutCascade2( pTruth, Gia_ManCiNum(pGia), nLutSize, nLuts, nRails, nIters, fVerbose );
+    Abc_Ntk_t * pNew  = pLuts ? Abc_NtkLutCascadeFromLuts( pLuts, pNtk, nLutSize, fVerbose ) : NULL;
+    ABC_FREE( pLuts );
     Gia_ManStop( pGia );
     return pNew;
 }
