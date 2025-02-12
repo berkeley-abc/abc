@@ -271,7 +271,7 @@ namespace rrr {
     sInts.insert(nNodes);
     vRefs[id0]++;
     vRefs[id1]++;
-    vvFaninEdges.emplace_back((std::initializer_list<int>){Node2Edge(id0, c0), Node2Edge(id1, c1)});
+    vvFaninEdges.emplace_back(std::initializer_list<int>({Node2Edge(id0, c0), Node2Edge(id1, c1)}));
     vRefs.push_back(0);
     assert(nNodes != std::numeric_limits<int>::max());
     return nNodes++;
@@ -281,7 +281,7 @@ namespace rrr {
     assert(id < nNodes);
     vPos.push_back(nNodes);
     vRefs[id]++;
-    vvFaninEdges.emplace_back((std::initializer_list<int>){Node2Edge(id, c)});
+    vvFaninEdges.emplace_back(std::initializer_list<int>({Node2Edge(id, c)}));
     vRefs.push_back(0);
     assert(nNodes != std::numeric_limits<int>::max());
     return nNodes++;
