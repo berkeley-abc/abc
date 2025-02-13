@@ -1620,8 +1620,7 @@ int Nf_ManSetMapRefs( Nf_Man_t * p )
                 p->pPars->Area++;
                 p->nInvs++;
             }            
-            reqTime = Abc_MinInt( Nf_ObjRequired(p, i, 0), Nf_ObjRequired(p, i, 1) );
-            Tim_ManSetCiRequired( p->pManTim, Gia_ObjCioId(pObj), reqTime );            
+            Tim_ManSetCiRequired( p->pManTim, Gia_ObjCioId(pObj), Nf_ObjRequired(p, i, 0) );            
             continue;
         }
         if ( Gia_ObjIsCo(pObj) ) 
@@ -1933,7 +1932,9 @@ void Nf_ManResetMatches( Nf_Man_t * p, int Round )
     Nf_Mat_t * pDc, * pAc, * pMfan, * pM[2]; 
     int i, c, Arrival;
     // go through matches in the topo order
-    Gia_ManForEachAnd( p->pGia, pObj, i )
+    if ( p->pManTim )
+        Tim_ManIncrementTravId( p->pManTim );      
+    Gia_ManForEachObjWithBoxes( p->pGia, pObj, i )
     {
         if ( Gia_ObjIsBuf(pObj) )
         {
@@ -1948,6 +1949,18 @@ void Nf_ManResetMatches( Nf_Man_t * p, int Round )
                 assert( !pAc->fBest );
                 assert( c==0 || pDc->fCompl );
             }
+            continue;
+        }
+        if ( Gia_ObjIsCi(pObj) ) 
+        {
+            Arrival = Tim_ManGetCiArrival( p->pManTim, Gia_ObjCioId(pObj) );
+            Nf_ObjPrepareCi( p, i, Arrival );
+            continue;
+        }
+        if ( Gia_ObjIsCo(pObj) ) 
+        {
+            Arrival = Nf_ObjMatchD( p, Gia_ObjFaninId0(pObj, i), Gia_ObjFaninC0(pObj) )->D;
+            Tim_ManSetCoArrival( p->pManTim, Gia_ObjCioId(pObj), Arrival );
             continue;
         }
         // select the best match for each phase
@@ -2022,29 +2035,38 @@ void Nf_ManComputeMappingEla( Nf_Man_t * p )
     Mio_Cell2_t * pCell;
     Nf_Mat_t Mb, * pMb = &Mb, * pM;
     word AreaBef, AreaAft, Gain = 0;
-    int i, c, iVar, Id, fCompl, k, * pCut, reqTime;
-    int Required;
-    Nf_ManSetOutputRequireds( p, 1 );
+    int i, c, iVar, Id, fCompl, k, * pCut, Required;
     Nf_ManResetMatches( p, p->Iter - p->pPars->nRounds );
+    Nf_ManSetOutputRequireds( p, 1 );
     Gia_ManForEachObjReverseWithBoxes( p->pGia, pObj, i )
     {
         if ( Gia_ObjIsBuf(pObj) )
         {
             if ( Nf_ObjMapRefNum(p, i, 1) )
                 Nf_ObjUpdateRequired( p, i, 0, Nf_ObjRequired(p, i, 1) - p->InvDelayI );
-            Nf_ObjUpdateRequired( p, Gia_ObjFaninId0(pObj, i), Gia_ObjFaninC0(pObj), Nf_ObjRequired(p, i, 0) );
+            int reqTime = Nf_ObjRequired(p, i, 0);
+            int iObj    = Gia_ObjFaninId0p(p->pGia, pObj);
+            int fCompl  = Gia_ObjFaninC0(pObj);
+            Nf_ObjUpdateRequired( p, iObj, fCompl, reqTime );
+            if ( iObj > 0 && Nf_ObjMatchBest(p, iObj, fCompl)->fCompl )
+                Nf_ObjUpdateRequired( p, iObj, !fCompl, reqTime - p->InvDelayI );
             continue;
         }
         if ( Gia_ObjIsCi(pObj) ) 
         {
-            reqTime = Abc_MinInt( Nf_ObjRequired(p, i, 0), Nf_ObjRequired(p, i, 1) );
-            Tim_ManSetCiRequired( p->pManTim, Gia_ObjCioId(pObj), reqTime );            
+            if ( Nf_ObjMapRefNum(p, i, 1) )
+                Nf_ObjUpdateRequired( p, i, 0, Nf_ObjRequired(p, i, 1) - p->InvDelayI ); 
+            Tim_ManSetCiRequired( p->pManTim, Gia_ObjCioId(pObj), Nf_ObjRequired(p, i, 0) );            
             continue;
         }
         if ( Gia_ObjIsCo(pObj) ) 
         {
-            reqTime = Tim_ManGetCoRequired( p->pManTim, Gia_ObjCioId(pObj) );
-            Nf_ObjUpdateRequired( p, Gia_ObjFaninId0(pObj, i), Gia_ObjFaninC0(pObj), reqTime );        
+            int reqTime = Tim_ManGetCoRequired( p->pManTim, Gia_ObjCioId(pObj) );
+            int iObj    = Gia_ObjFaninId0p(p->pGia, pObj);
+            int fCompl  = Gia_ObjFaninC0(pObj);
+            Nf_ObjUpdateRequired( p, iObj, fCompl, reqTime );
+            if ( iObj > 0 && Nf_ObjMatchBest(p, iObj, fCompl)->fCompl )
+                Nf_ObjUpdateRequired( p, iObj, !fCompl, reqTime - p->InvDelayI );
             continue;
         }        
         for ( c = 0; c < 2; c++ )
