@@ -444,7 +444,7 @@ int Dsm_ManTruthToGia( void * p, word * pTruth, Vec_Int_t * vLeaves, Vec_Int_t *
     int fDelayBalance = 1;
     Gia_Man_t * pGia = (Gia_Man_t *)p;
     int nSizeNonDec;
-    char pDsd[1000];
+    char pDsd[DAU_MAX_STR];
     word pTruthCopy[DAU_MAX_WORD];
     Abc_TtCopy( pTruthCopy, pTruth, Abc_TtWordNum(Vec_IntSize(vLeaves)), 0 );
     m_Calls++;
