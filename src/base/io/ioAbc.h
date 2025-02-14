@@ -57,7 +57,8 @@ typedef enum {
     IO_FILE_DOT,      
     IO_FILE_EDIF,      
     IO_FILE_EQN,      
-    IO_FILE_GML,      
+    IO_FILE_GML,
+    IO_FILE_HMETIS,      
     IO_FILE_JSON,      
     IO_FILE_LIST,      
     IO_FILE_PLA,      
@@ -129,6 +130,8 @@ extern void               Io_WriteEqn( Abc_Ntk_t * pNtk, char * pFileName );
 extern void               Io_WriteEdgelist( Abc_Ntk_t * pNtk, char * pFileName, int fWriteLatches, int fBb2Wb, int fSeq , int fName);
 /*=== abcWriteGml.c ===========================================================*/
 extern void               Io_WriteGml( Abc_Ntk_t * pNtk, char * pFileName );
+/*=== abcWriteHMetis.c ===========================================================*/
+extern void               Io_WriteHMetis( Abc_Ntk_t * pNtk, char * pFileName, int fSkipPo, int fWeightEdges, int fVerbose );
 /*=== abcWriteList.c ==========================================================*/
 extern void               Io_WriteList( Abc_Ntk_t * pNtk, char * pFileName, int fUseHost );
 /*=== abcWritePla.c ===========================================================*/
