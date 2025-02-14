@@ -25,6 +25,7 @@
 #include <fnmatch.h>
 #endif
 
+#include "misc/zlib/zlib.h"
 #include "sclLib.h"
 #include "misc/st/st.h"
 #include "map/mio/mio.h"
@@ -552,14 +553,59 @@ long Scl_LibertyFileSize( char * pFileName )
     fclose( pFile );
     return nFileSize;
 }
-char * Scl_LibertyFileContents( char * pFileName, long nContents )
+
+static char * Io_LibLoadFileGz( char * pFileName, long * pnFileSize )
 {
-    FILE * pFile = fopen( pFileName, "rb" );
-    char * pContents = ABC_ALLOC( char, nContents+1 );
-    long RetValue = 0;
-    RetValue = fread( pContents, nContents, 1, pFile );
-    fclose( pFile );
-    pContents[nContents] = 0;
+    const int READ_BLOCK_SIZE = 100000;
+    gzFile pFile;
+    char * pContents;
+    long amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
+    pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
+    pContents = ABC_ALLOC( char, nFileSize );
+    readBlock = 0;
+    while ((amtRead = gzread(pFile, pContents + readBlock * READ_BLOCK_SIZE, READ_BLOCK_SIZE)) == READ_BLOCK_SIZE) {
+        //Abc_Print( 1,"%d: read %d bytes\n", readBlock, amtRead);
+        nFileSize += READ_BLOCK_SIZE;
+        pContents = ABC_REALLOC(char, pContents, nFileSize);
+        ++readBlock;
+    }
+    //Abc_Print( 1,"%d: read %d bytes\n", readBlock, amtRead);
+    assert( amtRead != -1 ); // indicates a zlib error
+    nFileSize -= (READ_BLOCK_SIZE - amtRead);
+    gzclose(pFile);
+    *pnFileSize = nFileSize;
+    return pContents;
+}
+
+char * Scl_LibertyFileContents( char * pFileName, long * nContents )
+{
+    char * pContents = NULL;
+    //if file ends in ".gz" then use gzopen
+    if ( !strncmp(pFileName+strlen(pFileName)-3,".gz", 3) )
+    {
+        FILE * pFile = fopen( pFileName, "rb" );
+        //char * pContents;
+        long RetValue = 0;
+        pContents = Io_LibLoadFileGz(  pFileName, nContents );
+        if(pContents == NULL) {
+            printf( "Scl_LibertyFileContents(): The input file is unavailable (absent or open).\n" );
+            return NULL;
+        }
+        else {
+            RetValue = 1;
+        }
+        fclose( pFile );
+    }
+    // original .lib file
+    else
+    {
+        FILE * pFile = fopen( pFileName, "rb" );
+        pContents = ABC_ALLOC( char, nContents+1 );
+        long RetValue = 0;
+        RetValue = fread( pContents, *nContents, 1, pFile );
+        fclose( pFile );
+        pContents[*nContents] = 0;
+    }
     return pContents;
 }
 void Scl_LibertyStringDump( char * pFileName, Vec_Str_t * vStr )
@@ -600,7 +646,7 @@ Scl_Tree_t * Scl_LibertyStart( char * pFileName )
     memset( p, 0, sizeof(Scl_Tree_t) );
     p->clkStart  = Abc_Clock();
     p->nContents = RetValue;
-    p->pContents = Scl_LibertyFileContents( pFileName, p->nContents );
+    p->pContents = Scl_LibertyFileContents( pFileName, &p->nContents );
     // other 
     p->pFileName = Abc_UtilStrsav( pFileName );
     p->nItermAlloc = 10 + Scl_LibertyCountItems( p->pContents, p->pContents+p->nContents );
