@@ -612,7 +612,7 @@ Vec_Int_t * Gia_ManSwiSimulate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     else if ( pPars->fProbTrans )
     {
         Gia_ManForEachObj( pAig, pObj, i )
-            pSwitching[i] = Gia_ManSwiComputeProbOne( p->pData1[i], pPars->nWords*(pPars->nIters-pPars->nPref) );
+            pSwitching[i] = Gia_ManSwiComputeSwitching( p->pData1[i], pPars->nWords*(pPars->nIters-pPars->nPref) );
     }
     else
     {
