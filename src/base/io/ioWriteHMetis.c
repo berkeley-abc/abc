@@ -7,8 +7,8 @@
   PackageName [Command processing package.]
 
   Synopsis    [Procedures to write hMetis format developed by
-  George Karypis and Vipin Kumar from the University of
-Minnesota(https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf)]
+  George Karypis and Vipin Kumar from the University of Minnesota 
+  (https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf)]
 
   Author      [Jingren Wang]
 
@@ -39,7 +39,7 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
     if ( pFHMetis == NULL )
     {
         fprintf( stdout, "Io_WriteHMetis(): Cannot open the output file \"%s\".\n", pFileName );
-        ABC_FREE( pFHMetis );
+        fclose( pFHMetis );
         return;
     }
 
@@ -106,6 +106,7 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
     fprintf( pFHMetis, "\n%%This file was written by ABC on %s\n", Extra_TimeStamp() );
     fprintf( pFHMetis, "%%For information about hMetis format, refer to %s\n", "https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf" );
     Vec_PtrFreeFree( vHyperEdges );
+    fclose( pFHMetis );
 }
 
 ABC_NAMESPACE_IMPL_END
