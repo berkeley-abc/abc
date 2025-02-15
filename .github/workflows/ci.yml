@@ -23,15 +23,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10']
+        python-version: ['3.11']
 
         name: [
           windows-2019-cl,
-          ubuntu-20.04-gcc,
-          ubuntu-20.04-clang,
-          ubuntu-22.04-clang,
-          macOS-11-gcc,
-          macOS-11-clang,
+          ubuntu-22.04-gcc-10,
+          ubuntu-24.04-gcc-13,
+          ubuntu-22.04-clang-14,
+          macOS-13-gcc,
+          macOS-14-clang,
         ]
 
         include:
@@ -39,47 +39,47 @@ jobs:
             os: windows-2019
             compiler: cl
 
-          - name: ubuntu-20.04-gcc
-            os: ubuntu-20.04
+          - name: ubuntu-22.04-gcc-10
+            os: ubuntu-22.04
             compiler: gcc
-            version: "11"
+            version: "10"
             toxcmd: soname,tests
 
-          - name: ubuntu-20.04-clang
-            os: ubuntu-20.04
-            compiler: clang
-            version: "10"
-            toxcmd: clang
+          - name: ubuntu-24.04-gcc-13
+            os: ubuntu-24.04
+            compiler: gcc
+            version: "13"
+            toxcmd: libs
 
-          - name: ubuntu-22.04-clang
+          - name: ubuntu-22.04-clang-14
             os: ubuntu-22.04
             compiler: clang
-            version: "12"
-            toxcmd: build
+            version: "14"
+            toxcmd: base
 
-          - name: macOS-11-gcc
-            os: macOS-11
+          - name: macOS-13-gcc
+            os: macOS-13
             compiler: gcc
-            version: "11"
+            version: "12"
             toxcmd: abc,tests
 
-          - name: macOS-11-clang
-            os: macOS-11
+          - name: macOS-14-clang
+            os: macOS-14
             compiler: xcode
-            version: "12.4"
+            version: "15.3"
             toxcmd: "base -- Xcode"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
     - name: Update CMake
-      uses: jwlawson/actions-setup-cmake@v1
+      uses: jwlawson/actions-setup-cmake@v2
       if: runner.os == 'Windows'
 
     - name: Install Tox
@@ -91,6 +91,9 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get -y -qq update
+        sudo apt-get install -yqq software-properties-common
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
+        sudo apt-get -qq update
         sudo apt-get install -y libreadline-dev ncurses-dev
         if [ "${{ matrix.compiler }}" = gcc ]; then
           sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
@@ -111,7 +114,7 @@ jobs:
       run: |
         tox -e ${{ matrix.toxcmd }}
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       if: matrix.name == 'ubuntu-20.04-clang'
       with:
         name: src_coverage_data
