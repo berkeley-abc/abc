@@ -1,0 +1,64 @@
+name: msystem
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  msys2-build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include: [
+          { msystem: MINGW64,  arch: x86_64 },
+          { msystem: CLANG64,  arch: clang-x86_64 },
+          { msystem: MINGW32,  arch: i686   },
+        ]
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MinGW native environment
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        update: false
+        install: >-
+          git
+          make
+          mingw-w64-${{ matrix.arch }}-toolchain
+          mingw-w64-${{ matrix.arch }}-cmake
+          mingw-w64-${{ matrix.arch }}-ninja
+          mingw-w64-${{ matrix.arch }}-pkgconf
+          mingw-w64-${{ matrix.arch }}-readline
+
+    - run: >-
+        cmake
+        -Wdev
+        -B build
+        -DBUILD_SHARED_LIBS=ON
+        -DCMAKE_BUILD_TYPE=Debug
+        -DCMAKE_INSTALL_PREFIX=$PWD/_dist
+
+    - name: CMake build
+      run: |
+        cmake --build build --parallel
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure --parallel -V
+
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: WindowsCMakeTestlog
+        path: build/Testing/Temporary/LastTest.log
+
+    - name: Install project
+      run: cmake --install build

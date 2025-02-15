@@ -9,7 +9,7 @@
   Synopsis    [External declarations of the command package.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -60,7 +60,7 @@ extern char *      Cmd_FlagReadByName( Abc_Frame_t * pAbc, char * flag );
 extern void        Cmd_FlagDeleteByName( Abc_Frame_t * pAbc, const char * key );
 extern void        Cmd_FlagUpdateValue( Abc_Frame_t * pAbc, const char * key, char * value );
 /*=== cmdHist.c ========================================================*/
-extern void          Cmd_HistoryAddCommand( Abc_Frame_t * pAbc, const char * command );
+extern void        Cmd_HistoryAddCommand( Abc_Frame_t * pAbc, const char * command );
 extern void        Cmd_HistoryRead( Abc_Frame_t * p );
 extern void        Cmd_HistoryWrite( Abc_Frame_t * p, int Limit );
 extern void        Cmd_HistoryPrint( Abc_Frame_t * p, int Limit );
@@ -78,4 +78,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

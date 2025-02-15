@@ -1,0 +1,20 @@
+name: abc
+
+dependencies:
+  - python ={{ get_env("PY_VER", default="3.10") }}
+  - cmake>=3.18
+  - ninja
+  - gxx_linux-64  # [linux]
+  - ccache   # [not win]
+  - clcache  # [win]
+  - make  # [unix]
+  - readline=8.1  # [unix]
+  - zlib
+  - libpng
+
+environment:
+  CPATH:
+    - $CONDA_PREFIX/include           # [unix]
+    - $CONDA_PREFIX/Library/include   # [win]
+
+  LD_LIBRARY_PATH: $CONDA_PREFIX/lib  # [unix]
