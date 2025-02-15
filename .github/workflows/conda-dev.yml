@@ -15,17 +15,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-22.04', 'ubuntu-20.04', 'macOS-11', 'windows-2019']
-        python-version: ['3.9']
+        os: ['ubuntu-24.04', 'ubuntu-22.04', 'macOS-14', 'windows-2019']
         use_namespace: [false, true]
+        python-version: ['3.9']
         include:
           - os: 'ubuntu-22.04'
             generator: 'Ninja'
             build_type: 'Release'
-          - os: 'ubuntu-20.04'
+          - os: 'ubuntu-24.04'
             generator: 'Ninja'
             build_type: 'RelWithDebInfo'
-          - os: 'macOS-11'
+          - os: 'macOS-14'
             generator: 'Ninja'
             build_type: 'Release'
           - os: 'windows-2019'
@@ -39,19 +39,19 @@ jobs:
       CMAKE_ARGS: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=xxx' || '' }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup base python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
+        python-version: ${{ matrix.python-version }}
 
     - name: Cache conda
       id: cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       env:
         # Increase this value to reset cache if environment.devenv.yml has not changed
-        CACHE_NUMBER: 2
+        CACHE_NUMBER: 3
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.devenv.yml') }}
@@ -61,8 +61,9 @@ jobs:
         auto-update-conda: true
         auto-activate-base: true
         activate-environment: ''
-        channels: conda-forge
+        channels: conda-forge,defaults
         channel-priority: flexible
+        conda-remove-defaults: true
 
     - name: Configure condadev environment
       shell: bash -l {0}
