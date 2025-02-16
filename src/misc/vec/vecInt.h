@@ -26,6 +26,8 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 
 ABC_NAMESPACE_HEADER_START
@@ -746,12 +748,17 @@ static inline void Vec_IntClear( Vec_Int_t * p )
 ***********************************************************************/
 static inline void Vec_IntPush( Vec_Int_t * p, int Entry )
 {
-    if ( p->nSize == p->nCap )
+    int nCap = p->nCap;
+    if ( p->nSize == nCap )
     {
+        assert( nCap < INT_MAX );
         if ( p->nCap < 16 )
             Vec_IntGrow( p, 16 );
         else
-            Vec_IntGrow( p, 2 * p->nCap );
+        {
+          nCap = 2*nCap > nCap ? 2*nCap : INT_MAX;
+          Vec_IntGrow( p, nCap );
+        }
     }
     p->pArray[p->nSize++] = Entry;
 }
