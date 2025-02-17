@@ -80,6 +80,7 @@ option(ABC_USE_SONAME "Set library soname")
 option(BUILD_TESTING "Build and run tests" ON)
 option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
 option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
+option(VENDOR_GTEST "download googletest" OFF)
 
 add_library(abc_interface INTERFACE)
 
@@ -440,23 +441,30 @@ endif()
 
 if(VENDOR_GTEST)
     include(FetchContent)
-    # current tests are broken on Gtest >= 1.15
+    option(BUILD_GMOCK OFF)
+    option(INSTALL_GTEST OFF)
     FetchContent_Declare(
         googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG v1.14.0
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+        URL "https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip"
+        #GIT_REPOSITORY https://github.com/google/googletest.git
+        #GIT_TAG v1.14.0
     )
     set(gtest_force_shared_crt
         ON
         CACHE BOOL "" FORCE
     )
-    FetchContent_MakeAvailable(googletest)
 endif()
 
 if(BUILD_TESTING)
-    find_package(PkgConfig)
-    pkg_search_module(GTEST REQUIRED gtest_main)
-    pkg_search_module(GMOCK REQUIRED gmock)
+    if(NOT VENDOR_GTEST)
+        find_package(GTest REQUIRED)
+    else()
+        FetchContent_MakeAvailable(googletest)
+    endif()
+    message(STATUS "test discovery enabled")
+    include(GoogleTest)
+    set(GTEST_LIBS gtest_main gtest "${CMAKE_THREAD_LIBS_INIT}")
 
     set(test_SRCS src/demo.c)
     if(ABC_USE_NAMESPACE)
@@ -465,7 +473,7 @@ if(BUILD_TESTING)
     add_executable(base_test ${test_SRCS})
     target_compile_options(base_test PUBLIC ${GTEST_CFLAGS})
     target_link_libraries(
-        base_test PUBLIC libabc gtest_main gtest ${CMAKE_THREAD_LIBS_INIT}
+        base_test PUBLIC libabc ${GTEST_LIBS}
     )
 
     enable_testing()
@@ -488,8 +496,6 @@ if(BUILD_TESTING)
         add_coverage(gia_test)
     endif()
 
-    message(STATUS "test discovery enabled")
-    include(GoogleTest)
     add_subdirectory(test)
 endif()
 

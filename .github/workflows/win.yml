@@ -38,12 +38,13 @@ jobs:
           mingw-w64-${{ matrix.arch }}-ninja
           mingw-w64-${{ matrix.arch }}-pkgconf
           mingw-w64-${{ matrix.arch }}-readline
+          mingw-w64-${{ matrix.arch }}-gtest
 
     - run: >-
         cmake
         -Wdev
         -B build
-        -DBUILD_SHARED_LIBS=ON
+        -DBUILD_SHARED_LIBS=OFF
         -DCMAKE_BUILD_TYPE=Debug
         -DCMAKE_INSTALL_PREFIX=$PWD/_dist
 

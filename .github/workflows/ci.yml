@@ -94,7 +94,7 @@ jobs:
         sudo apt-get install -yqq software-properties-common
         sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
         sudo apt-get -qq update
-        sudo apt-get install -y libreadline-dev ncurses-dev
+        sudo apt-get install -y libreadline-dev ncurses-dev libgtest-dev
         if [ "${{ matrix.compiler }}" = gcc ]; then
           sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
           echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
@@ -125,6 +125,7 @@ jobs:
     - name:  Install and setup MacOS packages
       if: runner.os == 'macOS'
       run: |
+        brew install googletest
         if [ "${{ matrix.compiler }}" = gcc ]; then
           brew install gcc@${{ matrix.version }}
           echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
@@ -152,6 +153,7 @@ jobs:
         -DABC_USE_NO_READLINE=ON
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${{ env.PREFIX }}
+        -DVENDOR_GTEST=ON
       env:
         CC: cl
         CXX: cl
