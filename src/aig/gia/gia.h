@@ -41,6 +41,7 @@
 
 
 ABC_NAMESPACE_HEADER_START
+#pragma GCC visibility push(default)
 
 #define GIA_NONE 0x1FFFFFFF
 #define GIA_VOID 0x0FFFFFFF
@@ -1854,6 +1855,7 @@ extern Gia_Man_t*           Bnd_ManCutBoundary( Gia_Man_t *p, Vec_Int_t* vEI, Ve
 
 extern int                  Gia_ObjCheckMffc( Gia_Man_t * p, Gia_Obj_t * pRoot, int Limit, Vec_Int_t * vNodes, Vec_Int_t * vLeaves, Vec_Int_t * vInners );
 
+#pragma GCC visibility pop
 ABC_NAMESPACE_HEADER_END
 
 
