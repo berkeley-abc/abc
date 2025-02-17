@@ -49,6 +49,7 @@ jobs:
         ${CMAKE_ARGS}
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=./staging
+        -DVENDOR_GTEST=ON
 
     - name: Build CMake
       run: |
