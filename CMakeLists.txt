@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.10.0 FATAL_ERROR)
+# pre-test discovery mode for gtest_discover_tests was added in 3.18
+cmake_minimum_required(VERSION 3.18)
 
 # Add cmake modules of this project to the module path
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -9,7 +10,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 #
 # for now, set -DSCM_VERSION_INFO in the build env to override
 if(NOT SCM_VERSION_INFO)
-    set(LIBRARY_VERSION 1.1.0)
+    set(LIBRARY_VERSION 1.2.0)
     set(SCM_VERSION_INFO ${LIBRARY_VERSION})
 endif()
 set(LIBRARY_SOVERSION 1)
@@ -158,7 +159,8 @@ endif()
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     target_compile_options(abc_interface
         INTERFACE
-            -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare -Wno-deprecated
+            -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare
+            -Wno-deprecated -Wno-unused-but-set-variable
     )
     target_link_libraries(abc_interface INTERFACE m)
     if(WIN32 OR ABC_USE_NAMESPACE)
@@ -435,13 +437,36 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     endif()
 endif()
 
+
+if(VENDOR_GTEST)
+    include(FetchContent)
+    # current tests are broken on Gtest >= 1.15
+    FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.14.0
+    )
+    set(gtest_force_shared_crt
+        ON
+        CACHE BOOL "" FORCE
+    )
+    FetchContent_MakeAvailable(googletest)
+endif()
+
 if(BUILD_TESTING)
+    find_package(PkgConfig)
+    pkg_search_module(GTEST REQUIRED gtest_main)
+    pkg_search_module(GMOCK REQUIRED gmock)
+
     set(test_SRCS src/demo.c)
     if(ABC_USE_NAMESPACE)
         set_source_files_properties(${test_SRCS} PROPERTIES LANGUAGE CXX)
     endif()
     add_executable(base_test ${test_SRCS})
-    target_link_libraries(base_test PUBLIC libabc)
+    target_compile_options(base_test PUBLIC ${GTEST_CFLAGS})
+    target_link_libraries(
+        base_test PUBLIC libabc gtest_main gtest ${CMAKE_THREAD_LIBS_INIT}
+    )
 
     enable_testing()
     add_test(NAME base_test
@@ -460,7 +485,12 @@ if(BUILD_TESTING)
         include(coverage)
         add_coverage(abc)
         add_coverage(base_test)
+        add_coverage(gia_test)
     endif()
+
+    message(STATUS "test discovery enabled")
+    include(GoogleTest)
+    add_subdirectory(test)
 endif()
 
 add_custom_target(etags
