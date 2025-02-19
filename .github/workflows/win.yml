@@ -9,7 +9,7 @@ on:
       - develop
 
 jobs:
-  msys2-build:
+  msys2_build:
     runs-on: windows-latest
     strategy:
       fail-fast: false

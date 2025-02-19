@@ -9,7 +9,7 @@ on:
       - develop
 
 jobs:
-  build:
+  conda_build:
     name: abc ${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -51,7 +51,7 @@ jobs:
       uses: actions/cache@v4
       env:
         # Increase this value to reset cache if environment.devenv.yml has not changed
-        CACHE_NUMBER: 3
+        CACHE_NUMBER: 0
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.devenv.yml') }}
@@ -71,17 +71,18 @@ jobs:
         PY_VER: ${{ matrix.python-version }}
       run: |
         conda config --set always_yes yes --set changeps1 no
-        conda install conda-devenv=3.2.0
-        conda info
-        conda list
+        conda config --add channels conda-forge
+        conda install conda-devenv
+        conda info -a
+        conda devenv
 
     - name: Build and test
       shell: bash -l {0}
       env:
+        CMAKE_PREFIX_PATH: ${{ github.workspace }}
         PY_VER: ${{ matrix.python-version }}
       run: |
-        conda devenv
-        conda activate abc
+        source activate abc-test
         conda info --envs
         ctest --build-generator "${{ matrix.generator }}" \
           --build-and-test . build \
