@@ -1,17 +1,25 @@
-name: abc
+name: abc-test
 
 dependencies:
   - python ={{ get_env("PY_VER", default="3.10") }}
   - cmake>=3.18
   - ninja
-  - gxx_linux-64  # [linux]
-  - ccache   # [not win]
-  - clcache  # [win]
   - make  # [unix]
+  - pkg-config  # [unix]
   - readline=8.1  # [unix]
   - zlib
   - libpng
   - gtest
+  - gmock
+  - libpcap
+  - boost
+  - boost-cpp
+  - lcov
+  - gcovr
+  - gcc_linux-64   # [linux]
+  - gxx_linux-64   # [linux]
+  - ccache         # [unix]
+  - clcache        # [win]
 
 environment:
   CPATH:
