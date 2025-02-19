@@ -2,6 +2,8 @@ name: Build Posix CMake
 
 on:
   push:
+    branches:
+      - master
   pull_request:
 
 jobs:

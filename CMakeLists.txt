@@ -82,6 +82,14 @@ option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
 option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
 option(VENDOR_GTEST "download googletest" OFF)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    exec_program(/usr/bin/uname ARGS -m OUTPUT_VARIABLE CMAKE_HOST_SYSTEM_PROCESSOR RETURN_VALUE val)
+    # If we aren't cross-compiling then the two are equal.
+    if(NOT CMAKE_CROSSCOMPILING)
+        set(CMAKE_SYSTEM_PROCESSOR "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+    endif()
+endif()
+
 add_library(abc_interface INTERFACE)
 
 set(ABC_HEADERS
