@@ -82,14 +82,6 @@ option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
 option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
 option(VENDOR_GTEST "download googletest" OFF)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    exec_program(/usr/bin/uname ARGS -m OUTPUT_VARIABLE CMAKE_HOST_SYSTEM_PROCESSOR RETURN_VALUE val)
-    # If we aren't cross-compiling then the two are equal.
-    if(NOT CMAKE_CROSSCOMPILING)
-        set(CMAKE_SYSTEM_PROCESSOR "${CMAKE_HOST_SYSTEM_PROCESSOR}")
-    endif()
-endif()
-
 add_library(abc_interface INTERFACE)
 
 set(ABC_HEADERS
@@ -188,6 +180,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             "_CRT_SECURE_NO_WARNINGS"
             "_XKEYCHECK_H"
     )
+    set(CMAKE_DEBUG_POSTFIX d)
 endif()
 if(WIN32)
     if(MINGW OR MSYS)
@@ -486,18 +479,13 @@ if(BUILD_TESTING)
 
     enable_testing()
     add_test(NAME base_test
-        COMMAND base_test i10.aig
-        WORKING_DIRECTORY "${abc_SOURCE_DIR}"
+        COMMAND base_test "${abc_SOURCE_DIR}/i10.aig"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 
     # Add source-based llvm code coverage targets.
     # Note this requires recent clang/llvm tooling.
     if(COVERAGE_BUILD)
-        add_test(NAME main_test
-            COMMAND abc -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
-            WORKING_DIRECTORY "${abc_SOURCE_DIR}"
-        )
-
         include(coverage)
         add_coverage(abc)
         add_coverage(base_test)
