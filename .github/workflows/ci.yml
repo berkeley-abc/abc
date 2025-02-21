@@ -31,7 +31,7 @@ jobs:
           ubuntu-24.04-gcc-13,
           ubuntu-22.04-clang-14,
           macOS-13-gcc,
-          macOS-14-clang,
+          macOS-13-clang,
         ]
 
         include:
@@ -63,11 +63,11 @@ jobs:
             version: "12"
             toxcmd: abc,tests
 
-          - name: macOS-14-clang
-            os: macOS-14
+          - name: macOS-13-clang
+            os: macOS-13
             compiler: xcode
-            version: "15.4"
-            toxcmd: "base -- Xcode"
+            version: "15.1"
+            toxcmd: "ctestwin -- Xcode"
 
     steps:
     - uses: actions/checkout@v4
@@ -125,14 +125,16 @@ jobs:
     - name:  Install and setup MacOS packages
       if: runner.os == 'macOS'
       run: |
-        brew install googletest
-        if [ "${{ matrix.compiler }}" = gcc ]; then
+        brew update
+        #brew upgrade
+        if [ "${{ matrix.compiler }}" = xcode ]; then
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.version }}.app/Contents/Developer
+          ls -ls /Applications/
+        else
           brew install gcc@${{ matrix.version }}
           echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
           echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
-        else
-          ls -ls /Applications/
-          sudo xcode-select -switch /Applications/Xcode_${{ matrix.version }}.app
+          brew install googletest
         fi
 
     - name: Build and test MacOS
