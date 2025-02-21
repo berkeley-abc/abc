@@ -27,7 +27,7 @@ jobs:
             build_type: 'RelWithDebInfo'
           - os: 'macOS-14'
             generator: 'Ninja'
-            build_type: 'Release'
+            build_type: 'Debug'
           - os: 'windows-2019'
             generator: 'Ninja'
             build_type: 'Release'
@@ -51,7 +51,7 @@ jobs:
       uses: actions/cache@v4
       env:
         # Increase this value to reset cache if environment.devenv.yml has not changed
-        CACHE_NUMBER: 0
+        CACHE_NUMBER: 1
       with:
         path: ~/conda_pkgs_dir
         key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.devenv.yml') }}
@@ -79,13 +79,15 @@ jobs:
     - name: Build and test
       shell: bash -l {0}
       env:
-        CMAKE_PREFIX_PATH: ${{ github.workspace }}
         PY_VER: ${{ matrix.python-version }}
       run: |
         source activate abc-test
         conda info --envs
-        ctest --build-generator "${{ matrix.generator }}" \
+        ctest --build-config "${{ matrix.build_type }}" \
+          --build-generator "${{ matrix.generator }}" \
           --build-and-test . build \
           --build-options ${CMAKE_ARGS} ${{ matrix.extra_args }} \
-          -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-          --test-command ctest --rerun-failed --output-on-failure -V
+          -DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
+          --test-command ctest -V \
+          --build-config "${{ matrix.build_type }}" \
+          --rerun-failed --output-on-failure
