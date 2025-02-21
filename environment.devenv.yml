@@ -11,15 +11,15 @@ dependencies:
   - libpng
   - gtest
   - gmock
-  - libpcap
-  - boost
-  - boost-cpp
+  - abseil-cpp
+  - re2
   - lcov
   - gcovr
-  - gcc_linux-64   # [linux]
-  - gxx_linux-64   # [linux]
+  - c-compiler
+  - cxx-compiler
   - ccache         # [unix]
   - clcache        # [win]
+  - six
 
 environment:
   CPATH:
