@@ -15,7 +15,7 @@ ABC_NAMESPACE_IMPL_START
 
 
 #define STMM_NUMCMP(x,y) ((x) != (y))
-#define STMM_NUMHASH(x,size) (Abc_AbsInt((long)x)%(size))
+#define STMM_NUMHASH(x,size) (Abc_AbsInt((ABC_PTRINT_T)x)%(size))
 //#define STMM_PTRHASH(x,size) ((int)((ABC_PTRUINT_T)(x)>>2)%size) //  64-bit bug fix 9/17/2007
 #define STMM_PTRHASH(x,size) ((int)(((ABC_PTRUINT_T)(x)>>2)%size))
 #define EQUAL(func, x, y) \
@@ -168,7 +168,7 @@ stmm_lookup_int (stmm_table *table, char *key, int *value)
     else {
     if (value != 0)
     {
-        *value = (long) ptr->record;
+        *value = (ABC_PTRINT_T) ptr->record;
     }
     return 1;
     }
@@ -470,7 +470,7 @@ stmm_delete_int (stmm_table *table, long *keyp, char **value)
     *last = ptr->next;
     if (value != NULL)
      *value = ptr->record;
-    *keyp = (long) ptr->key;
+    *keyp = (ABC_PTRINT_T) ptr->key;
 //      ABC_FREE( ptr );
     Extra_MmFixedEntryRecycle ((Extra_MmFixed_t *)table->pMemMan, (char *) ptr);
 
@@ -611,7 +611,7 @@ stmm_gen_int (stmm_generator *gen, char **key_p, long *value_p)
     *key_p = gen->entry->key;
     if (value_p != 0)
     {
-    *value_p = (long) gen->entry->record;
+    *value_p = (ABC_PTRINT_T) gen->entry->record;
     }
     gen->entry = gen->entry->next;
     return 1;

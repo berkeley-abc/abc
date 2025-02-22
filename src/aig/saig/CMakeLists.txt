@@ -1,0 +1,30 @@
+abc_libabc_add_sources(
+    NAME aig_saig
+    SOURCES
+        saigTempor.c
+        saigConstr.c
+        saigStrSim.c
+        saigIoa.c
+        saigIsoSlow.c
+        saigIso.c
+        saigRetMin.c
+        saigTrans.c
+        saigDual.c
+        saigMiter.c
+        saigPhase.c
+        saigRetStep.c
+        saigOutDec.c
+        saigScl.c
+        saigSwitch.c
+        saigConstr2.c
+        saigCone.c
+        saigInd.c
+        saigWnd.c
+        saigSimFast.c
+        saigSynch.c
+        saigRetFwd.c
+        saigIsoFast.c
+        saigDup.c
+        saigSimMv.c
+        saigSimSeq.c
+)

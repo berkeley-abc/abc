@@ -60,7 +60,7 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 #include "base/wlc/wlc.h"
 
 ABC_NAMESPACE_IMPL_START
-
+#pragma GCC visibility push(default)
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -85,7 +85,7 @@ unsigned enable_dbg_outs = 1;
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_RealMain( int argc, char * argv[] )
+ABC_DLL int Abc_RealMain( int argc, char * argv[] )
 {
     Abc_Frame_t * pAbc;
     Vec_Str_t* sCommandUsr = Vec_StrAlloc(1000);
@@ -423,4 +423,5 @@ static int TypeCheck( Abc_Frame_t * pAbc, const char * s )
 ////////////////////////////////////////////////////////////////////////
 
 
+#pragma GCC visibility pop
 ABC_NAMESPACE_IMPL_END

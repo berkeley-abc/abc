@@ -1,0 +1,23 @@
+abc_libabc_add_sources(
+    NAME proof_acec
+    SOURCES
+        acecMult.c
+        acecCore.c
+        acecRe.c
+        acecFadds.c
+        acecPool.c
+        acecBo.c
+        acecTree.c
+        acecUtil.c
+        acecNorm.c
+        acecPolyn.c
+        acecCover.c
+        acecPa.c
+        acecCo.c
+        acecOrder.c
+        acecXor.c
+        acecSt.c
+        acecPo.c
+        acec2Mult.c
+        acecCl.c
+)
