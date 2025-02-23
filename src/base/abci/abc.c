@@ -51917,7 +51917,7 @@ int Abc_CommandAbc9RandSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     if ( Seed == 0 ) {
-        Seed = Abc_Random(0);
+        Seed = Abc_Random(0) % 10000;
         printf( "Using random seed: %09u\n", Seed );
     }
     pTemp = Gia_ManRandSyn( pAbc->pGia, Seed );
