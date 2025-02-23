@@ -17,7 +17,7 @@ set(LIBRARY_SOVERSION 1)
 
 project(
     abc
-    LANGUAGES C CXX
+    LANGUAGES CXX C
     VERSION ${SCM_VERSION_INFO}
 )
 
@@ -439,10 +439,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     endif()
 endif()
 
-
 if(VENDOR_GTEST)
     include(FetchContent)
-    option(BUILD_GMOCK OFF)
     option(INSTALL_GTEST OFF)
     FetchContent_Declare(
         googletest
@@ -451,21 +449,22 @@ if(VENDOR_GTEST)
         #GIT_REPOSITORY https://github.com/google/googletest.git
         #GIT_TAG v1.14.0
     )
-    set(gtest_force_shared_crt
-        ON
-        CACHE BOOL "" FORCE
-    )
+    set(gtest_force_shared_crt ON CACHE BOOL "Always use msvcrt.dll" FORCE)
+    FetchContent_MakeAvailable(googletest)
+    include_directories(${gtest_SOURCE_DIR}/include)
+    set(GTEST_LINK_LIBRARIES GTest::gtest GTest::gtest_main)
 endif()
 
 if(BUILD_TESTING)
     if(NOT VENDOR_GTEST)
-        find_package(GTest REQUIRED)
-    else()
-        FetchContent_MakeAvailable(googletest)
+        find_package(GTest 1.14 REQUIRED)
+        include_directories(${GTEST_INCLUDE_DIRS})
+        set(GTEST_LINK_LIBRARIES ${GTEST_BOTH_LIBRARIES})
     endif()
+    message(STATUS "GTest libraries: ${GTEST_LINK_LIBRARIES}")
+
     message(STATUS "test discovery enabled")
     include(GoogleTest)
-    set(GTEST_LIBS gtest_main gtest "${CMAKE_THREAD_LIBS_INIT}")
 
     set(test_SRCS src/demo.c)
     if(ABC_USE_NAMESPACE)
@@ -474,7 +473,7 @@ if(BUILD_TESTING)
     add_executable(base_test ${test_SRCS})
     target_compile_options(base_test PUBLIC ${GTEST_CFLAGS})
     target_link_libraries(
-        base_test PUBLIC libabc ${GTEST_LIBS}
+        base_test PUBLIC libabc ${GTEST_LINK_LIBRARIES}
     )
 
     enable_testing()
