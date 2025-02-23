@@ -289,6 +289,7 @@ static int Abc_CommandRecMerge3              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandMap                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAmap                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPhaseMap               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandStochMap               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandUnmap                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAttach                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandSuperChoice            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1092,6 +1093,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SC mapping",   "map",           Abc_CommandMap,              1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "amap",          Abc_CommandAmap,             1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "phase_map",     Abc_CommandPhaseMap,         1 );
+    Cmd_CommandAdd( pAbc, "SC mapping",   "stochmap",      Abc_CommandStochMap,         1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "unmap",         Abc_CommandUnmap,            1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "attach",        Abc_CommandAttach,           1 );
     Cmd_CommandAdd( pAbc, "SC mapping",   "superc",        Abc_CommandSuperChoice,      1 );
@@ -19909,6 +19911,124 @@ usage:
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    extern void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs );
+    int c, nMaxSize = 10000, nIters = 1, TimeOut = 0, Seed = 0, nProcs = 1, fVerbose = 0; char * pScript;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NITSPvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nMaxSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nMaxSize < 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOut < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nProcs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nProcs < 0 )
+                goto usage;
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandStochMap(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( !Abc_NtkIsMappedLogic(pNtk) )
+    {
+        Abc_Print( -1, "Abc_CommandStochMap(): Expecting a mapped current newtork as input.\n" );
+        return 0;
+    }    
+    if ( argc != globalUtilOptind + 1 )
+    {
+        printf( "Expecting a synthesis script in quotes on the command line (for example: \"&st; &dch; &if\").\n" );
+        goto usage;
+    }
+    pScript = Abc_UtilStrsav( argv[globalUtilOptind] );
+    Abc_NtkStochMap( nMaxSize, nIters, TimeOut, Seed, fVerbose, pScript, nProcs );
+    ABC_FREE( pScript );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: stochmap [-NITSP <num>] [-tvh] <script>\n" );
+    Abc_Print( -2, "\t           performs stochastic mapping\n" );
+    Abc_Print( -2, "\t-N <num> : the max partition primary input count [default = %d]\n",      nMaxSize );
+    Abc_Print( -2, "\t-I <num> : the number of iterations [default = %d]\n",                   nIters  );
+    Abc_Print( -2, "\t-T <num> : the timeout in seconds (0 = no timeout) [default = %d]\n",    TimeOut );
+    Abc_Print( -2, "\t-S <num> : user-specified random seed (0 <= num <= 100) [default = %d]\n", Seed  );
+    Abc_Print( -2, "\t-P <num> : the number of concurrent processes (1 <= num <= 100) [default = %d]\n", nProcs );
+    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",       fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t<script> : synthesis script to use for each partition\n");
+    return 1;
+}
 
 /**Function*************************************************************
 
