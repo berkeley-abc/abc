@@ -9,8 +9,7 @@ dependencies:
   - readline=8.1  # [unix]
   - zlib
   - libpng
-  - gtest
-  - gmock
+  - gtest=1.14.0  # [not win]
   - abseil-cpp
   - re2
   - lcov
