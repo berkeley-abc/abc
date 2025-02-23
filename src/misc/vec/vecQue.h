@@ -101,6 +101,7 @@ static inline void Vec_QueGrow( Vec_Que_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
+    assert( p->nCap < INT_MAX );
     p->pHeap  = ABC_REALLOC( int, p->pHeap,  nCapMin );
     p->pOrder = ABC_REALLOC( int, p->pOrder, nCapMin ); 
     memset( p->pHeap  + p->nCap, 0xff, (size_t)(nCapMin - p->nCap) * sizeof(int) );
@@ -225,9 +226,9 @@ static inline int Vec_QueIsMember( Vec_Que_t * p, int v )
 static inline void Vec_QuePush( Vec_Que_t * p, int v )
 {
     if ( p->nSize >= p->nCap )
-        Vec_QueGrow( p, Abc_MaxInt(p->nSize+1, 2*p->nCap) );
+        Vec_QueGrow( p, Abc_MaxInt(p->nSize+1, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX) );
     if ( v >= p->nCap )
-        Vec_QueGrow( p, Abc_MaxInt(v+1, 2*p->nCap) );
+        Vec_QueGrow( p, Abc_MaxInt(v+1, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX) );
     assert( p->nSize < p->nCap );
     assert( p->pOrder[v] == -1 );
     assert( p->pHeap[p->nSize] == -1 );
