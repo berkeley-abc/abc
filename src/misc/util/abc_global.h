@@ -80,13 +80,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef WIN32
-#include <windows.h>
-#define PATH_MAX MAX_PATH
-#else
-#include <limits.h>
-#endif
-
 // catch memory leaks in Visual Studio
 #ifdef WIN32
   #ifdef _DEBUG
@@ -255,6 +248,7 @@ typedef ABC_INT64_T iword;
 ////////////////////////////////////////////////////////////////////////
 
 #define ABC_INFINITY    (1000000000)
+#define ABC_INT_MAX     (2147483647)
 
 #define ABC_SWAP(Type, a, b)  { Type t = a; a = b; b = t; }
 

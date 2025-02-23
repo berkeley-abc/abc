@@ -423,7 +423,7 @@ static inline void Vec_StrGrow( Vec_Str_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
-    assert( p->nCap < INT_MAX );
+    assert( p->nCap < ABC_INT_MAX );
     p->pArray = ABC_REALLOC( char, p->pArray, nCapMin ); 
     p->nCap   = nCapMin;
 }
@@ -467,7 +467,7 @@ static inline void Vec_StrFillExtra( Vec_Str_t * p, int nSize, char Fill )
     if ( nSize > 2 * p->nCap )
         Vec_StrGrow( p, nSize );
     else if ( nSize > p->nCap )
-        Vec_StrGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
+        Vec_StrGrow( p, p->nCap < ABC_INT_MAX/2 ? 2 * p->nCap : ABC_INT_MAX );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;
@@ -558,7 +558,7 @@ static inline void Vec_StrPush( Vec_Str_t * p, char Entry )
         if ( p->nCap < 16 )
             Vec_StrGrow( p, 16 );
         else
-            Vec_StrGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
+            Vec_StrGrow( p, p->nCap < ABC_INT_MAX/2 ? 2 * p->nCap : ABC_INT_MAX );
     }
     p->pArray[p->nSize++] = Entry;
 }

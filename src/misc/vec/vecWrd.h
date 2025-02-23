@@ -553,6 +553,7 @@ static inline void Vec_WrdGrow( Vec_Wrd_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
+    assert( p->nCap < ABC_INT_MAX );
     p->pArray = ABC_REALLOC( word, p->pArray, nCapMin ); 
     assert( p->pArray );
     p->nCap   = nCapMin;
@@ -597,7 +598,7 @@ static inline void Vec_WrdFillExtra( Vec_Wrd_t * p, int nSize, word Fill )
     if ( nSize > 2 * p->nCap )
         Vec_WrdGrow( p, nSize );
     else if ( nSize > p->nCap )
-        Vec_WrdGrow( p, 2 * p->nCap );
+        Vec_WrdGrow( p, p->nCap < ABC_INT_MAX/2 ? 2 * p->nCap : ABC_INT_MAX );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;
@@ -705,7 +706,7 @@ static inline void Vec_WrdPush( Vec_Wrd_t * p, word Entry )
         if ( p->nCap < 16 )
             Vec_WrdGrow( p, 16 );
         else
-            Vec_WrdGrow( p, 2 * p->nCap );
+            Vec_WrdGrow( p, p->nCap < ABC_INT_MAX/2 ? 2 * p->nCap : ABC_INT_MAX );
     }
     p->pArray[p->nSize++] = Entry;
 }
@@ -753,7 +754,7 @@ static inline void Vec_WrdPushFirst( Vec_Wrd_t * p, word Entry )
         if ( p->nCap < 16 )
             Vec_WrdGrow( p, 16 );
         else
-            Vec_WrdGrow( p, 2 * p->nCap );
+            Vec_WrdGrow( p, p->nCap < ABC_INT_MAX/2 ? 2 * p->nCap : ABC_INT_MAX );
     }
     p->nSize++;
     for ( i = p->nSize - 1; i >= 1; i-- )
@@ -780,7 +781,7 @@ static inline void Vec_WrdPushOrder( Vec_Wrd_t * p, word Entry )
         if ( p->nCap < 16 )
             Vec_WrdGrow( p, 16 );
         else
-            Vec_WrdGrow( p, 2 * p->nCap );
+            Vec_WrdGrow( p, p->nCap < ABC_INT_MAX/2 ? 2 * p->nCap : ABC_INT_MAX );
     }
     p->nSize++;
     for ( i = p->nSize-2; i >= 0; i-- )
