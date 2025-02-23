@@ -80,6 +80,13 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef WIN32
+#include <windows.h>
+#define PATH_MAX MAX_PATH
+#else
+#include <limits.h>
+#endif
+
 // catch memory leaks in Visual Studio
 #ifdef WIN32
   #ifdef _DEBUG

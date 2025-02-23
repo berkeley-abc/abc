@@ -454,6 +454,7 @@ static inline void Vec_FltGrow( Vec_Flt_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
+    assert( p->nCap < INT_MAX );
     p->pArray = ABC_REALLOC( float, p->pArray, nCapMin ); 
     p->nCap   = nCapMin;
 }
@@ -497,7 +498,7 @@ static inline void Vec_FltFillExtra( Vec_Flt_t * p, int nSize, float Fill )
     if ( nSize > 2 * p->nCap )
         Vec_FltGrow( p, nSize );
     else if ( nSize > p->nCap )
-        Vec_FltGrow( p, 2 * p->nCap );
+        Vec_FltGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;
@@ -554,7 +555,7 @@ static inline void Vec_FltPush( Vec_Flt_t * p, float Entry )
         if ( p->nCap < 16 )
             Vec_FltGrow( p, 16 );
         else
-            Vec_FltGrow( p, 2 * p->nCap );
+            Vec_FltGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     }
     p->pArray[p->nSize++] = Entry;
 }
@@ -578,7 +579,7 @@ static inline void Vec_FltPushOrder( Vec_Flt_t * p, float Entry )
         if ( p->nCap < 16 )
             Vec_FltGrow( p, 16 );
         else
-            Vec_FltGrow( p, 2 * p->nCap );
+            Vec_FltGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     }
     p->nSize++;
     for ( i = p->nSize-2; i >= 0; i-- )

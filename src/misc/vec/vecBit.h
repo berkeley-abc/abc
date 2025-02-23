@@ -350,6 +350,7 @@ static inline void Vec_BitGrow( Vec_Bit_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
+    assert( p->nCap < INT_MAX );
     nCapMin = (nCapMin >> 5) + ((nCapMin & 31) > 0);
     p->pArray = ABC_REALLOC( int, p->pArray, nCapMin ); 
     assert( p->pArray );
@@ -405,7 +406,7 @@ static inline void Vec_BitFillExtra( Vec_Bit_t * p, int nSize, int Fill )
     if ( nSize > 2 * p->nCap )
         Vec_BitGrow( p, nSize );
     else if ( nSize > p->nCap )
-        Vec_BitGrow( p, 2 * p->nCap );
+        Vec_BitGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
 
     assert( p->nSize < nSize );
     if ( (p->nSize >> 5) == (nSize >> 5) )
@@ -527,7 +528,7 @@ static inline void Vec_BitPush( Vec_Bit_t * p, int Entry )
         if ( p->nCap < 16 )
             Vec_BitGrow( p, 16 );
         else
-            Vec_BitGrow( p, 2 * p->nCap );
+            Vec_BitGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     }
     if ( Entry == 1 )
         p->pArray[p->nSize >> 5] |=  (1 << (p->nSize & 31));

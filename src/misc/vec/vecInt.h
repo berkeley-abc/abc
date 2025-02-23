@@ -552,6 +552,7 @@ static inline void Vec_IntGrow( Vec_Int_t * p, int nCapMin )
 {
     if ( p->nCap >= nCapMin )
         return;
+    assert( p->nCap < INT_MAX );
     p->pArray = ABC_REALLOC( int, p->pArray, nCapMin ); 
     assert( p->pArray );
     p->nCap   = nCapMin;
@@ -633,7 +634,7 @@ static inline void Vec_IntFillExtra( Vec_Int_t * p, int nSize, int Fill )
     if ( nSize > 2 * p->nCap )
         Vec_IntGrow( p, nSize );
     else if ( nSize > p->nCap )
-        Vec_IntGrow( p, 2 * p->nCap );
+        Vec_IntGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     for ( i = p->nSize; i < nSize; i++ )
         p->pArray[i] = Fill;
     p->nSize = nSize;
@@ -751,7 +752,7 @@ static inline void Vec_IntPush( Vec_Int_t * p, int Entry )
         if ( p->nCap < 16 )
             Vec_IntGrow( p, 16 );
         else
-            Vec_IntGrow( p, 2 * p->nCap );
+            Vec_IntGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     }
     p->pArray[p->nSize++] = Entry;
 }
@@ -810,7 +811,7 @@ static inline void Vec_IntPushFirst( Vec_Int_t * p, int Entry )
         if ( p->nCap < 16 )
             Vec_IntGrow( p, 16 );
         else
-            Vec_IntGrow( p, 2 * p->nCap );
+            Vec_IntGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     }
     p->nSize++;
     for ( i = p->nSize - 1; i >= 1; i-- )
@@ -837,7 +838,7 @@ static inline void Vec_IntPushOrder( Vec_Int_t * p, int Entry )
         if ( p->nCap < 16 )
             Vec_IntGrow( p, 16 );
         else
-            Vec_IntGrow( p, 2 * p->nCap );
+            Vec_IntGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     }
     p->nSize++;
     for ( i = p->nSize-2; i >= 0; i-- )
@@ -855,7 +856,7 @@ static inline void Vec_IntPushOrderCost( Vec_Int_t * p, int Entry, Vec_Int_t * v
         if ( p->nCap < 16 )
             Vec_IntGrow( p, 16 );
         else
-            Vec_IntGrow( p, 2 * p->nCap );
+            Vec_IntGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     }
     p->nSize++;
     for ( i = p->nSize-2; i >= 0; i-- )
@@ -931,7 +932,7 @@ static inline void Vec_IntPushOrderReverse( Vec_Int_t * p, int Entry )
         if ( p->nCap < 16 )
             Vec_IntGrow( p, 16 );
         else
-            Vec_IntGrow( p, 2 * p->nCap );
+            Vec_IntGrow( p, p->nCap < INT_MAX/2 ? 2 * p->nCap : INT_MAX );
     }
     p->nSize++;
     for ( i = p->nSize-2; i >= 0; i-- )
