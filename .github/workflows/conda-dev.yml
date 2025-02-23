@@ -22,16 +22,19 @@ jobs:
           - os: 'ubuntu-22.04'
             generator: 'Ninja'
             build_type: 'Release'
+            extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON'
           - os: 'ubuntu-24.04'
             generator: 'Ninja'
             build_type: 'RelWithDebInfo'
+            extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON'
           - os: 'macOS-14'
             generator: 'Ninja'
             build_type: 'Debug'
+            extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON'
           - os: 'windows-2019'
             generator: 'Ninja'
-            build_type: 'Release'
-            extra_args: '-DABC_USE_NO_PTHREADS=ON -DABC_USE_NO_READLINE=ON'
+            build_type: 'Debug'
+            extra_args: '-DBUILD_SHARED_LIBS=OFF -DABC_USE_NO_READLINE=ON'
     env:
       OS: ${{ matrix.os }}
       PY_VER: ${{ matrix.python-version }}
@@ -87,7 +90,7 @@ jobs:
           --build-generator "${{ matrix.generator }}" \
           --build-and-test . build \
           --build-options ${CMAKE_ARGS} ${{ matrix.extra_args }} \
-          -DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
+          -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
           --test-command ctest -V \
           --build-config "${{ matrix.build_type }}" \
           --rerun-failed --output-on-failure

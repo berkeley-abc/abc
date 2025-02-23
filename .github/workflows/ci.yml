@@ -55,7 +55,7 @@ jobs:
             os: ubuntu-22.04
             compiler: clang
             version: "14"
-            toxcmd: base
+            toxcmd: clang
 
           - name: macOS-13-gcc
             os: macOS-13
@@ -115,7 +115,7 @@ jobs:
         tox -e ${{ matrix.toxcmd }}
 
     - uses: actions/upload-artifact@v4
-      if: matrix.name == 'ubuntu-20.04-clang'
+      if: matrix.name == 'ubuntu-22.04-clang-14'
       with:
         name: src_coverage_data
         path: |
