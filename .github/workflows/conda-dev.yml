@@ -34,7 +34,7 @@ jobs:
           - os: 'windows-2019'
             generator: 'Ninja'
             build_type: 'Debug'
-            extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON -DABC_USE_NO_READLINE=ON -DVENDOR_GTEST=ON'
+            extra_args: '-DBUILD_SHARED_LIBS=OFF -DABC_USE_NO_READLINE=ON -DVENDOR_GTEST=ON'
     env:
       OS: ${{ matrix.os }}
       PY_VER: ${{ matrix.python-version }}
