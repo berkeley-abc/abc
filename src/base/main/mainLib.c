@@ -9,7 +9,7 @@
   Synopsis    [Here everything starts.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -27,7 +27,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
- 
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -37,23 +37,23 @@ ABC_NAMESPACE_IMPL_START
   Synopsis    [Initialization procedure for the library project.]
 
   Description [Note that when Abc_Start() is run in a static library
-  project, it does not load the resource file by default. As a result, 
-  ABC is not set up the same way, as when it is run on a command line. 
-  For example, some error messages while parsing files will not be 
-  produced, and intermediate networks will not be checked for consistancy. 
+  project, it does not load the resource file by default. As a result,
+  ABC is not set up the same way, as when it is run on a command line.
+  For example, some error messages while parsing files will not be
+  produced, and intermediate networks will not be checked for consistancy.
   One possibility is to load the resource file after Abc_Start() as follows:
   Abc_UtilsSource(  Abc_FrameGetGlobalFrame() );]
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_Start()
+ABC_DLL void Abc_Start()
 {
     Abc_Frame_t * pAbc;
     // added to detect memory leaks:
-#if defined(_DEBUG) && defined(_MSC_VER) 
+#if defined(_DEBUG) && defined(_MSC_VER)
     _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
     // start the glocal frame
@@ -67,13 +67,13 @@ void Abc_Start()
   Synopsis    [Deallocation procedure for the library project.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_Stop()
+ABC_DLL void Abc_Stop()
 {
     Abc_Frame_t * pAbc;
     pAbc = Abc_FrameGetGlobalFrame();

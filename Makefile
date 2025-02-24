@@ -34,7 +34,7 @@ $(call abc_info,$(MSG_PREFIX)Using LD=$(LD))
 PROG := abc
 OS := $(shell uname -s)
 
-VERSION ?= 1.1.0
+VERSION ?= 1.2.0
 SOVERSION ?= 1
 SONAME := lib$(PROG).so.$(SOVERSION)
 
@@ -86,12 +86,14 @@ endif
 
 # compile ABC using the C++ compiler and put everything in the namespace $(ABC_NAMESPACE)
 ifdef ABC_USE_NAMESPACE
-  CFLAGS += -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -std=c++11 -fvisibility=hidden -fpermissive
+  CFLAGS += -DABC_DLL="__attribute__((visibility(\"default\")))" -DABC_NAMESPACE=$(ABC_USE_NAMESPACE) -std=c++17 -fvisibility=hidden -fvisibility-inlines-hidden -fpermissive
+  CXXFLAGS := $(CFLAGS)
   CC := $(CXX)
   $(call abc_info,$(MSG_PREFIX)Compiling in namespace $(ABC_USE_NAMESPACE))
   DLIBS := -lstdc++
   $(info $(MSG_PREFIX)Compiling in namespace $(ABC_NAMESPACE))
 else
+  CXXFLAGS := $(CFLAGS)
   ABC_USE_LIBSTDCXX := 1
 endif
 
