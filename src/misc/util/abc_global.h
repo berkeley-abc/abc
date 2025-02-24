@@ -9,7 +9,7 @@
   Synopsis    [Global declarations.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - Jan 30, 2009.]
@@ -51,10 +51,15 @@
   #endif
 #else  /* defined(WIN32) */
 #define ABC_DLLIMPORT
+#define ABC_DLLEXPORT __attribute__((visibility("default")))
 #endif /* defined(WIN32) */
 
 #ifndef ABC_DLL
-#define ABC_DLL ABC_DLLIMPORT
+  #ifdef ABC_NAMESPACE
+    #define ABC_DLL ABC_DLLEXPORT
+  #else
+    #define ABC_DLL ABC_DLLIMPORT
+  #endif
 #endif
 
 #if !defined(___unused)
@@ -235,7 +240,7 @@ typedef unsigned __int64 ABC_UINT64_T;
 #endif /* defined(PLATFORM) */
 
 #ifdef LIN
-  #define ABC_CONST(number) number ## ULL 
+  #define ABC_CONST(number) number ## ULL
 #else // LIN64 and windows
   #define ABC_CONST(number) number
 #endif
@@ -340,7 +345,7 @@ static inline abctime Abc_Clock()
 #endif
 #if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__) && !defined(__wasm)
     struct timespec ts;
-    if ( clock_gettime(CLOCK_MONOTONIC, &ts) < 0 ) 
+    if ( clock_gettime(CLOCK_MONOTONIC, &ts) < 0 )
         return (abctime)-1;
     abctime res = ((abctime) ts.tv_sec) * CLOCKS_PER_SEC;
     res += (((abctime) ts.tv_nsec) * CLOCKS_PER_SEC) / 1000000000;
@@ -359,7 +364,7 @@ static inline abctime Abc_ThreadClock()
 #endif
 #if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__) && !defined(__wasm)
     struct timespec ts;
-    if ( clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) < 0 ) 
+    if ( clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) < 0 )
         return (abctime)-1;
     abctime res = ((abctime) ts.tv_sec) * CLOCKS_PER_SEC;
     res += (((abctime) ts.tv_nsec) * CLOCKS_PER_SEC) / 1000000000;
@@ -396,7 +401,7 @@ static inline void Abc_Print( int level, const char * format, ... )
 {
     extern ABC_DLL int Abc_FrameIsBridgeMode();
     va_list args;
-    extern unsigned enable_dbg_outs;  
+    extern unsigned enable_dbg_outs;
     if ( !enable_dbg_outs )
         return;
 
@@ -507,7 +512,7 @@ static inline int Abc_PrimeCudd( unsigned int p )
     } while (!pn);
     return (int)(p);
 
-} // end of Cudd_Prime 
+} // end of Cudd_Prime
 
 // the returned buffer has 32 unused bytes at the end, filled with zeros
 static inline void * Abc_FileReadContents( char * pFileName, int * pnFileSize )

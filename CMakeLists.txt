@@ -28,6 +28,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# MSVC has symbols hidden by default. On GCC and Clang we need to explicitly
+# set the visibility to hidden to achieve the same result and then manually
+# expose what we need. This results in smaller abc dynamic library and thus
+# a shorter loading time and higher performance.
+set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
     set(CLANG_DEFAULT_CXX_STDLIB libc++)
     set(CLANG_DEFAULT_RTLIB compiler-rt)
@@ -81,6 +88,10 @@ option(BUILD_TESTING "Build and run tests" ON)
 option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
 option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
 option(VENDOR_GTEST "download googletest" OFF)
+
+#if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    #add_definitions(-DABC_DLL=__attribute__\(\(visibility\(\"default\"\)\)\))
+#endif()
 
 add_library(abc_interface INTERFACE)
 
@@ -168,7 +179,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
         target_compile_options(abc_interface
             INTERFACE
                 $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
-                $<$<COMPILE_LANGUAGE:CXX>:-fvisibility=hidden>
         )
     endif()
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -179,6 +189,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             "_SCL_SECURE_NO_WARNINGS"
             "_CRT_SECURE_NO_WARNINGS"
             "_XKEYCHECK_H"
+            "_ALLOW_KEYWORD_MACROS=1"
     )
     set(CMAKE_DEBUG_POSTFIX d)
 endif()
