@@ -183,13 +183,16 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUnit = 0;
     int fVerbose = 1;
     int fVeryVerbose = 0;
+    int fMerge = 0;
+    int fUsePrefix = 0;
+    int fUseAll = 0;
     
     SC_DontUse dont_use = {0};
     dont_use.dont_use_list = ABC_ALLOC(char *, argc);
     dont_use.size = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMXdnuvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMXdnuvwmpah" ) ) != EOF )
     {
         switch ( c )
         {
@@ -251,6 +254,15 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'w':
             fVeryVerbose ^= 1;
             break;
+        case 'm':
+            fMerge ^= 1;
+            break;
+        case 'p':
+            fUsePrefix ^= 1;
+            break;            
+        case 'a':
+            fUseAll ^= 1;
+            break;            
         case 'h':
             goto usage;
         default:
@@ -266,12 +278,20 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
             if (pLib2) Abc_SclLibFree(pLib2);            
             return 1;
         }
-        pLib = Abc_SclMergeLibraries( pLib1, pLib2 );
+        pLib = Abc_SclMergeLibraries( pLib1, pLib2, fUsePrefix );
         Abc_SclLibFree(pLib1);
         Abc_SclLibFree(pLib2);
     }
     else if ( argc == globalUtilOptind + 1 ) { // expecting one file
-        pLib = Scl_ReadLibraryFile( pAbc, argv[globalUtilOptind], fVerbose, fVeryVerbose, dont_use );
+        SC_Lib * pLib1 = Scl_ReadLibraryFile( pAbc, argv[globalUtilOptind], fVerbose, fVeryVerbose, dont_use );
+
+        SC_Lib * pLib_ext = (SC_Lib *)pAbc->pLibScl;
+        if ( fMerge && pLib_ext != NULL && pLib1 != NULL ) {
+            pLib = Abc_SclMergeLibraries( pLib_ext, pLib1, fUsePrefix );
+            if (pLib1) Abc_SclLibFree(pLib1);
+        } else {
+            pLib = pLib1;
+        }
         ABC_FREE(dont_use.dont_use_list);        
     }
     else {
@@ -302,13 +322,13 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     // extract genlib library
     if ( pAbc->pLibScl )
     {
-        Abc_SclInstallGenlib( pAbc->pLibScl, Slew, Gain, nGatesMin );
+        Abc_SclInstallGenlib( pAbc->pLibScl, Slew, Gain, fUseAll, nGatesMin );
         Mio_LibraryTransferCellIds();
     }
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnuvwh] [-X cell_name] <file> <file2>\n" );
+    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnuvwmpah] [-X cell_name] <file> <file2>\n" );
     fprintf( pAbc->Err, "\t           reads Liberty library from file\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
@@ -319,6 +339,9 @@ usage:
     fprintf( pAbc->Err, "\t-u       : toggle setting unit area for all cells [default = %s]\n", fUnit? "yes": "no" );
     fprintf( pAbc->Err, "\t-v       : toggle writing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-w       : toggle writing information about skipped gates [default = %s]\n", fVeryVerbose? "yes": "no" );
+    fprintf( pAbc->Err, "\t-m       : toggle merging library with exisiting library [default = %s]\n", fMerge? "yes": "no" );
+    fprintf( pAbc->Err, "\t-a       : toggle using prefix for the cell names [default = %s]\n", fUseAll? "yes": "no" );
+    fprintf( pAbc->Err, "\t-p       : toggle using prefix for the cell names [default = %s]\n", fUsePrefix? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : prints the command summary\n" );
     fprintf( pAbc->Err, "\t<file>   : the name of a file to read\n" );
     fprintf( pAbc->Err, "\t<file2>  : the name of a file to read (optional)\n" );    
@@ -588,7 +611,7 @@ int Scl_CommandReadScl( Abc_Frame_t * pAbc, int argc, char ** argv )
     // extract genlib library
     if ( pAbc->pLibScl )
     {
-        Abc_SclInstallGenlib( pAbc->pLibScl, 0, 0, 0 );
+        Abc_SclInstallGenlib( pAbc->pLibScl, 0, 0, 0, 0 );
         Mio_LibraryTransferCellIds();
     }
     return 0;

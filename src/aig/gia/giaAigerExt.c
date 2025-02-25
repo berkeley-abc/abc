@@ -19,6 +19,9 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "misc/st/st.h"
+#include "map/mio/mio.h"
+#include "map/mio/mioInt.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -286,6 +289,101 @@ Vec_Str_t * Gia_AigerWriteMappingDoc( Gia_Man_t * p )
     }
     assert( nSize2 == nSize );
     return Vec_StrAllocArray( (char *)pBuffer, 4*nSize );
+}
+
+int Gia_AigerWriteCellMappingInstance( Gia_Man_t * p, unsigned char * pBuffer, int nSize2, int i )
+{
+    int k, iFan;
+    if ( !Gia_ObjIsCellInv(p, i) ) {
+        Gia_AigerWriteInt( pBuffer + nSize2, Gia_ObjCellId(p, i) ); nSize2 += 4;
+        Gia_AigerWriteInt( pBuffer + nSize2, i ); nSize2 += 4;
+        Gia_CellForEachFanin( p, i, iFan, k )
+        {
+            Gia_AigerWriteInt( pBuffer + nSize2, iFan );
+            nSize2 += 4;
+        }
+    } else {
+        Gia_AigerWriteInt( pBuffer + nSize2, 3 ); nSize2 += 4;
+        Gia_AigerWriteInt( pBuffer + nSize2, i ); nSize2 += 4;
+        Gia_AigerWriteInt( pBuffer + nSize2, Abc_LitNot(i) ); nSize2 += 4;
+    }
+
+    return nSize2;
+}
+
+Vec_Str_t * Gia_AigerWriteCellMappingDoc( Gia_Man_t * p )
+{
+    unsigned char * pBuffer;
+    int i, nCells = 0, nInstances = 0, nSize = 8, nSize2 = 0;
+    Mio_Cell2_t * pCells = Mio_CollectRootsNewDefault2( 6, &nCells, 0 );
+    assert( pCells );
+
+    for (int i = 0; i < nCells; i++)
+    {
+        Mio_Gate_t *pGate = (Mio_Gate_t *) pCells[i].pMioGate;
+        Mio_Pin_t *pPin;
+        nSize += strlen(Mio_GateReadName(pGate)) + 1;
+        nSize += strlen(Mio_GateReadOutName(pGate)) + 1 + 4;
+        Mio_GateForEachPin( pGate, pPin )
+            nSize += strlen(Mio_PinReadName(pPin)) + 1;
+    }
+
+    Gia_ManForEachCell( p, i )
+    {
+        assert ( !Gia_ObjIsCellBuf(p, i) ); // not implemented
+        nInstances++;
+        if ( Gia_ObjIsCellInv(p, i) )
+            nSize += 12;
+        else
+            nSize += Gia_ObjCellSize(p, i) * 4 + 8;
+    }
+
+    pBuffer = ABC_ALLOC( unsigned char, nSize );
+    Gia_AigerWriteInt( pBuffer + nSize2, nCells ); nSize2 += 4;
+    Gia_AigerWriteInt( pBuffer + nSize2, nInstances ); nSize2 += 4;
+
+    for (int i = 0; i < nCells; i++)
+    {
+        int nPins = 0;
+        Mio_Gate_t *pGate = (Mio_Gate_t *) pCells[i].pMioGate;
+        Mio_Pin_t *pPin;
+
+        strcpy((char *) pBuffer + nSize2, Mio_GateReadName(pGate));
+        nSize2 += strlen(Mio_GateReadName(pGate)) + 1;
+        strcpy((char *) pBuffer + nSize2, Mio_GateReadOutName(pGate));
+        nSize2 += strlen(Mio_GateReadOutName(pGate)) + 1;
+
+        Mio_GateForEachPin( pGate, pPin )
+            nPins++;
+        Gia_AigerWriteInt( pBuffer + nSize2, nPins ); nSize2 += 4;
+
+        Mio_GateForEachPin( pGate, pPin )
+        {
+            strcpy((char *) pBuffer + nSize2, Mio_PinReadName(pPin));
+            nSize2 += strlen(Mio_PinReadName(pPin)) + 1;
+        }
+    }
+
+    Gia_ManForEachCell( p, i )
+    {
+        if ( Gia_ObjIsCellBuf(p, i) )
+            continue;
+
+        if ( Gia_ObjIsCellInv(p, i) && !Abc_LitIsCompl(i) ) {
+            // swap the order so that the inverter is after the driver
+            // of the inverter's input
+            nSize2 = Gia_AigerWriteCellMappingInstance(p, pBuffer, nSize2, Abc_LitNot(i) );
+            nSize2 = Gia_AigerWriteCellMappingInstance(p, pBuffer, nSize2, i );
+            i += 1;
+            continue;
+        }
+
+        nSize2 = Gia_AigerWriteCellMappingInstance(p, pBuffer, nSize2, i );
+    }
+
+    assert( nSize2 == nSize );
+    ABC_FREE( pCells );
+    return Vec_StrAllocArray( (char *)pBuffer, nSize );
 }
 
 /**Function*************************************************************

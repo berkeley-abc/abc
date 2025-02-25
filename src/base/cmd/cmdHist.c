@@ -49,8 +49,8 @@ ABC_NAMESPACE_IMPL_START
 ***********************************************************************/
 void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 {
-    int nLastLooked =   10;  // do not add history if the same entry appears among the last entries
-    int nLastSaved  = 1000;  // when saving a file, save no more than this number of last entries
+    int nLastLooked =    10;  // do not add history if the same entry appears among the last entries
+    int nLastSaved  = 10000;  // when saving a file, save no more than this number of last entries
     char Buffer[ABC_MAX_STR];
     int Len;
     if ( p->fBatchMode )

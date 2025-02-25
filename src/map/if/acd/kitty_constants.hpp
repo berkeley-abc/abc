@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <numeric>      // std::iota
 
 ABC_NAMESPACE_CXX_HEADER_START
 

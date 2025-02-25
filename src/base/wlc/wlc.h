@@ -223,6 +223,7 @@ struct Wlc_BstPar_t_
     int                    fCreateWordMiter;
     int                    fDecMuxes;
     int                    fSaveFfNames;
+    int                    fBlastNew;
     int                    fVerbose;
     Vec_Int_t *            vBoxIds;
 };

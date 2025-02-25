@@ -214,6 +214,7 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vAttrs;        // managers of various node attributes (node functionality, global BDDs, etc)
     Vec_Int_t *       vNameIds;      // name IDs
     Vec_Int_t *       vFins;         // obj/type info
+    Vec_Int_t *       vOrigNodeIds;  // original node IDs
 };
 
 struct Abc_Des_t_ 
@@ -677,6 +678,7 @@ extern ABC_DLL void               Abc_NtkLogicMakeDirectSops( Abc_Ntk_t * pNtk )
 extern ABC_DLL int                Abc_NtkSopToAig( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkAigToBdd( Abc_Ntk_t * pNtk );
 extern ABC_DLL Gia_Man_t *        Abc_NtkAigToGia( Abc_Ntk_t * p, int fGiaSimple );
+extern ABC_DLL int                Abc_NtkMapToSopUsingLibrary( Abc_Ntk_t * pNtk, void* library );
 extern ABC_DLL int                Abc_NtkMapToSop( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkToSop( Abc_Ntk_t * pNtk, int fMode, int nCubeLimit );
 extern ABC_DLL int                Abc_NtkToBdd( Abc_Ntk_t * pNtk );
@@ -841,7 +843,7 @@ extern ABC_DLL void               Abc_NtkPrintFanioNew( FILE * pFile, Abc_Ntk_t 
 extern ABC_DLL void               Abc_NodePrintFanio( FILE * pFile, Abc_Obj_t * pNode );
 extern ABC_DLL void               Abc_NtkPrintFactor( FILE * pFile, Abc_Ntk_t * pNtk, int fUseRealNames );
 extern ABC_DLL void               Abc_NodePrintFactor( FILE * pFile, Abc_Obj_t * pNode, int fUseRealNames );
-extern ABC_DLL void               Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes, int fVerbose );
+extern ABC_DLL void               Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes, int fOutputs, int fVerbose );
 extern ABC_DLL void               Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * pNode );
 extern ABC_DLL void               Abc_NtkPrintSkews( FILE * pFile, Abc_Ntk_t * pNtk, int fPrintAll );
 extern ABC_DLL void               Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj );

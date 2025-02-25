@@ -1411,14 +1411,14 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
                 Last = k+Last+1;
                 break;
             }
-/*
+
         if ( k == nEquals )
         {
             sprintf( p->pMan->sError, "Line %d: Cannot find PI \"%s\" of the model \"%s\" as a formal input of the subcircuit.", 
                 Io_MvGetLine(p->pMan, pToken), pName, Abc_NtkName(pModel) );
             return 0;
         }
-*/
+
         if ( pName2 == NULL )
         {
             Abc_Obj_t * pNode = Abc_NtkCreateNodeConst0( p->pNtk );

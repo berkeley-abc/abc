@@ -20,6 +20,7 @@
 
 #include "ioAbc.h"
 #include "base/main/main.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -464,7 +465,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkHasAig(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
             Abc_NtkToAig( pNtkTemp );
-        Io_WriteVerilog( pNtkTemp, pFileName, 0 );
+        Io_WriteVerilog( pNtkTemp, pFileName, 0, 0 );
     }
     else 
         fprintf( stderr, "Unknown file format.\n" );
@@ -592,7 +593,7 @@ void Io_WriteHie( Abc_Ntk_t * pNtk, char * pBaseName, char * pFileName )
             if ( !Abc_NtkHasAig(pNtkResult) && !Abc_NtkHasMapping(pNtkResult) )
                 Abc_NtkToAig( pNtkResult );
         }
-        Io_WriteVerilog( pNtkResult, pFileName, 0 );
+        Io_WriteVerilog( pNtkResult, pFileName, 0, 0 );
     }
     else if ( Io_ReadFileType(pFileName) == IO_FILE_BLIFMV )
     {
@@ -890,7 +891,7 @@ void Io_TransformSF2PLA( char * pNameIn, char * pNameOut )
     if ( pFileOut == NULL )
     {
         if ( pFileIn )  fclose( pFileIn );
-        printf( "Cannot open file \"%s\" for reading.\n", pNameOut );
+        printf( "Cannot open file \"%s\" for writing.\n", pNameOut );
         return;
     }
     pBuffer = ABC_ALLOC( char, Size );
@@ -920,6 +921,58 @@ void Io_TransformSF2PLA( char * pNameIn, char * pNameOut )
     ABC_FREE( pBuffer );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Tranform SF into PLA.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_TransformROM2PLA( char * pNameIn, char * pNameOut )
+{
+    FILE * pFileOut = fopen( pNameOut, "wb" );
+    if ( pFileOut == NULL ) {
+        printf( "Cannot open file \"%s\" for writing.\n", pNameOut );
+        return;
+    }
+    int nWords = -1;
+    Vec_Wrd_t * vData = Vec_WrdReadHex( pNameIn, &nWords, 0 );
+    if ( vData == NULL ) {
+        fclose( pFileOut );
+        return;
+    }
+    //Vec_WrdDumpHex( "temp.txt", vData, 1, 1 );
+    int v, i, nLines = Vec_WrdSize(vData) / nWords;
+    int nIns = Abc_Base2Log(nLines), nOuts;
+    assert( nLines * nWords == Vec_WrdSize(vData) );
+    word * pTemp = ABC_CALLOC( word, nWords );
+    for ( i = 0; i < nLines; i++ )
+        Abc_TtOr( pTemp, pTemp, Vec_WrdEntryP(vData, nWords*i), nWords );
+    for ( nOuts = nWords*64; nOuts > 0; nOuts-- )
+        if ( Abc_TtGetBit(pTemp, nOuts-1) )
+            break;
+    ABC_FREE( pTemp );
+    assert( nOuts > 0 );
+    fprintf( pFileOut, ".i %d\n", nIns );
+    fprintf( pFileOut, ".o %d\n", nOuts );
+    fprintf( pFileOut, ".p %d\n", nLines );
+    fprintf( pFileOut, ".type fr\n" );
+    for ( i = 0; i < nLines; i++ ) {
+        word * pData = Vec_WrdEntryP(vData, nWords*i);
+        for ( v = 0; v < nIns; v++ )
+            fprintf( pFileOut, "%d", (i >> v) & 1 );
+        fprintf( pFileOut, " " );
+        for ( v = 0; v < nOuts; v++ )
+            fprintf( pFileOut, "%d", Abc_TtGetBit(pData, v) );
+        fprintf( pFileOut, "\n" );
+    }
+    fprintf( pFileOut, ".e\n\n" );
+    fclose( pFileOut );
+}
 /**Function*************************************************************
 
   Synopsis    [Reads CNF from file.]

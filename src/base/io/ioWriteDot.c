@@ -52,7 +52,7 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, char * FileName )
 {
     Vec_Ptr_t * vNodes;
     vNodes = Abc_NtkCollectObjects( pNtk );
-    Io_WriteDotNtk( pNtk, vNodes, NULL, FileName, 0, 0 );
+    Io_WriteDotNtk( pNtk, vNodes, NULL, FileName, 0, 0, 0 );
     Vec_PtrFree( vNodes );
 }
 
@@ -68,12 +68,12 @@ void Io_WriteDot( Abc_Ntk_t * pNtk, char * FileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse )
+void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse, int fAigIds )
 {
     FILE * pFile;
     Abc_Obj_t * pNode, * pFanin;
-    char * pSopString;
-    int LevelMin, LevelMax, fHasCos, Level, i, k, fHasBdds, fCompl, Prev;
+    char * pSopString, SopString[32];
+    int LevelMin, LevelMax, fHasCos, Level, i, k, fHasBdds, fCompl, Prev, AigNodeId;
     int Limit = 500;
 
     assert( Abc_NtkIsStrash(pNtk) || Abc_NtkIsLogic(pNtk) );
@@ -302,9 +302,22 @@ void Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesSho
                 pSopString = Mio_GateReadName((Mio_Gate_t *)pNode->pData);
             else if ( Abc_NtkHasMapping(pNtk) )
                 pSopString = Abc_NtkPrintSop(Mio_GateReadSop((Mio_Gate_t *)pNode->pData));
-            else
-                pSopString = Abc_NtkPrintSop((char *)pNode->pData);
-            fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, pNode->Id, pSopString );
+            else {
+                int nCubes = Abc_SopGetCubeNum((char *)pNode->pData);
+                if ( nCubes <= 16 )
+                    pSopString = Abc_NtkPrintSop((char *)pNode->pData);
+                else {
+                    sprintf( SopString, "%d cubes", nCubes );
+                    pSopString = SopString;
+                }
+            }
+            //if ( pNtk->vOrigNodeIds )
+            //    printf( "%d = %d \n", pNode->Id, Vec_IntEntry(pNtk->vOrigNodeIds, pNode->Id) )
+            AigNodeId = (fAigIds && pNtk->vOrigNodeIds) ? Vec_IntEntry(pNtk->vOrigNodeIds, pNode->Id) : -1;
+            if ( AigNodeId > 0 )
+                fprintf( pFile, "  Node%d [label = \"%s%d\\n%s\"", pNode->Id, Abc_LitIsCompl(AigNodeId) ? "-":"+", Abc_Lit2Var(AigNodeId), pSopString );
+            else 
+                fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, pNode->Id, pSopString );
 //            fprintf( pFile, "  Node%d [label = \"%d\\n%s\"", pNode->Id, 
 //                SuppSize, 
 //                pSopString );

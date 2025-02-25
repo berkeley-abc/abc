@@ -74,6 +74,8 @@ struct Ssw_Pars_t_
     int              fEquivDump;    // enables dumping equivalences
     int              fEquivDump2;   // enables dumping equivalences
     int              fStopWhenGone; // stop when PO output is not a candidate constant
+    int              nSkip;
+    int              nSkipLimit;
     // optimized latch correspondence
     int              fLatchCorrOpt; // perform register correspondence (optimized)
     int              nSatVarMax;    // max number of SAT vars before recycling SAT solver (optimized latch corr only)

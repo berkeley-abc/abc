@@ -800,6 +800,187 @@ void Dau_FunctionEnum( int nInputs, int nVars, int nNodeMax, int fUseTwo, int fR
     fflush(stdout);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Function enumeration.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Mem_t * Dau_CollectNpnFunctions( word * p, int nVars, int fVerbose )
+{
+    abctime clkStart = Abc_Clock();
+    Vec_Mem_t * vTtMem = Vec_MemAllocForTTSimple( nVars );
+    int nWords = Abc_Truth6WordNum(nVars);
+    word * pCopy = ABC_ALLOC( word, nWords );
+    Abc_TtCopy( pCopy, p, nWords, p[0] & 1 );
+    Vec_MemHashInsert( vTtMem, pCopy );
+    int nPerms  = Extra_Factorial( nVars );
+    int nMints  = 1 << nVars;
+    int * pPerm = Extra_PermSchedule( nVars );
+    int * pComp = Extra_GreyCodeSchedule( nVars );
+    int m, i, k, nFuncs;
+    for ( m = 0; m < nMints; m++ ) {
+        Abc_TtFlip( pCopy, nWords, pComp[m] );
+        if ( pCopy[0] & 1 ) {
+            Abc_TtNot( pCopy, nWords );
+            assert( (pCopy[0] & 1) == 0 );
+            Vec_MemHashInsert( vTtMem, pCopy );
+            Abc_TtNot( pCopy, nWords );
+        }
+        else
+            Vec_MemHashInsert( vTtMem, pCopy );
+    }
+    assert( Abc_TtEqual(pCopy, Vec_MemReadEntry(vTtMem, 0), nWords) );
+    nFuncs = Vec_MemEntryNum(vTtMem);
+    if ( fVerbose )
+        printf( "Collected %d NN functions and ", nFuncs ), fflush(stdout);
+    for ( i = 0; i < nFuncs; i++ ) {
+        Abc_TtCopy( pCopy, Vec_MemReadEntry(vTtMem, i), nWords, 0 );
+        for ( k = 0; k < nPerms; k++ ) {
+            Abc_TtSwapAdjacent( pCopy, nWords, pPerm[k] );
+            assert( (pCopy[0] & 1) == 0 );
+            Vec_MemHashInsert( vTtMem, pCopy );
+        }        
+        assert( Abc_TtEqual(pCopy, Vec_MemReadEntry(vTtMem, i), nWords) );
+    }
+    ABC_FREE( pPerm );    
+    ABC_FREE( pComp );    
+    ABC_FREE( pCopy );    
+    nFuncs = Vec_MemEntryNum(vTtMem);
+    if ( fVerbose )
+        printf( "%d NPN functions.  ", nFuncs ),
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart ), 
+        fflush(stdout);
+    return vTtMem;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Compute NPN class members.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int_t ** pvMap, int fVerbose )
+{
+    assert( nVars <= 10 );
+    abctime clkStart = Abc_Clock();
+    Vec_Int_t * vMap = Vec_IntAlloc( 100 );
+    Vec_Int_t * vCnts = Vec_IntAlloc( Vec_WrdSize(vFuncs) );
+    Vec_Mem_t * vTtMem = Vec_MemAllocForTTSimple( nVars );
+    int nWords  = Abc_Truth6WordNum(nVars);
+    int nPerms  = Extra_Factorial( nVars );
+    int nMints  = 1 << nVars;
+    int * pPerm = Extra_PermSchedule( nVars );
+    int * pComp = Extra_GreyCodeSchedule( nVars );
+    int m, i, k, t, Entry;
+    word * pCopy = ABC_ALLOC( word, nWords );
+    int nClasses = Vec_WrdSize(vFuncs) / nWords;
+    assert( nClasses * nWords == Vec_WrdSize(vFuncs) );
+    for ( t = 0; t < nClasses; t++ )
+    {
+        word * pTruth = Vec_WrdEntryP( vFuncs, nWords * t );
+        int nFuncs = Vec_MemEntryNum(vTtMem);
+        Abc_TtCopy( pCopy, pTruth, nWords, pTruth[0] & 1 );
+        Vec_MemHashInsert( vTtMem, pCopy );
+        for ( m = 0; m < nMints; m++ ) {
+            Abc_TtFlip( pCopy, nWords, pComp[m] );
+            if ( pCopy[0] & 1 ) {
+                Abc_TtNot( pCopy, nWords );
+                assert( (pCopy[0] & 1) == 0 );
+                Vec_MemHashInsert( vTtMem, pCopy );
+                Abc_TtNot( pCopy, nWords );
+            }
+            else
+                Vec_MemHashInsert( vTtMem, pCopy );
+        }
+        if (  pTruth[0] & 1 )
+            assert( Abc_TtOpposite(pCopy, pTruth, nWords) );
+        else
+            assert( Abc_TtEqual(pCopy, pTruth, nWords) );
+        int nFuncs2 = Vec_MemEntryNum(vTtMem);
+        for ( i = nFuncs; i < nFuncs2; i++ ) {
+            Abc_TtCopy( pCopy, Vec_MemReadEntry(vTtMem, i), nWords, 0 );
+            for ( k = 0; k < nPerms; k++ ) {
+                Abc_TtSwapAdjacent( pCopy, nWords, pPerm[k] );
+                assert( (pCopy[0] & 1) == 0 );
+                Vec_MemHashInsert( vTtMem, pCopy );
+            }        
+            assert( Abc_TtEqual(pCopy, Vec_MemReadEntry(vTtMem, i), nWords) );
+        }
+        for ( i = nFuncs; i < Vec_MemEntryNum(vTtMem); i++ )
+            Vec_IntPush( vMap, t );
+        Vec_IntPush( vCnts, Vec_MemEntryNum(vTtMem) - nFuncs );
+    }
+    ABC_FREE( pCopy );
+    ABC_FREE( pPerm );    
+    ABC_FREE( pComp );
+    if ( fVerbose ) {
+        int Lim = Abc_MinInt( Vec_IntSize(vCnts), 7 );
+        printf( "Collected %d", Vec_MemEntryNum(vTtMem) );
+        Vec_IntForEachEntryStop( vCnts, Entry, i, Lim )
+            printf( " %c %d", i ? '+' : '=', Entry );
+        if ( Vec_IntSize(vCnts) > Lim )
+            printf( " + ..." );
+        printf( " NPN class members.  " );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart ); 
+        fflush(stdout);
+    }
+    Vec_IntFree( vCnts );
+    if ( pvMap )
+        *pvMap = vMap;
+    else
+        Vec_IntFree( vMap );
+    return vTtMem;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Canonicize a set of functions.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Dau_CanonicizeArray( Vec_Wrd_t * vFuncs, int nVars, int fVerbose )
+{
+    abctime clkStart  = Abc_Clock();
+    extern unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
+    if ( fVerbose )   printf( "Functions: %d (original) ", Vec_WrdSize(vFuncs) );
+    unsigned uCanonPhase; char pCanonPerm[16]; word Func; int i;
+    Vec_WrdUniqify( vFuncs );
+
+    if ( fVerbose )   printf( "-> %d (unique) ", Vec_WrdSize(vFuncs) );
+    Vec_WrdForEachEntry( vFuncs, Func, i ) {
+        uCanonPhase = Abc_TtCanonicize( &Func, nVars, pCanonPerm );
+        Vec_WrdWriteEntry( vFuncs, i, Func );
+    }
+    Vec_WrdUniqify( vFuncs );
+    if ( fVerbose )   printf( "-> %d (approx NPN) ", Vec_WrdSize(vFuncs) );
+	Abc_TtHieMan_t * pMan = Abc_TtHieManStart(nVars, 5);
+    Vec_WrdForEachEntry( vFuncs, Func, i ) {
+        uCanonPhase = Abc_TtCanonicizeWrap(Abc_TtCanonicizeCA, pMan, &Func, nVars, pCanonPerm, 1);
+        Vec_WrdWriteEntry( vFuncs, i, Func );
+    }
+    Vec_WrdUniqify( vFuncs );
+    if ( fVerbose )   printf( "-> %d (exact NPN).  ", Vec_WrdSize(vFuncs) );
+	Abc_TtHieManStop(pMan);
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    fflush( stdout );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

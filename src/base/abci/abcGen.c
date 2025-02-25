@@ -42,6 +42,32 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_WriteHalfAdder( FILE * pFile )
+{
+    int fNaive = 0;
+    fprintf( pFile, ".model HA\n" );
+    fprintf( pFile, ".inputs a b\n" ); 
+    fprintf( pFile, ".outputs s cout\n" ); 
+    if ( fNaive )
+    {
+        fprintf( pFile, ".names a b s\n" ); 
+        fprintf( pFile, "10 1\n" ); 
+        fprintf( pFile, "01 1\n" ); 
+        fprintf( pFile, ".names a b cout\n" ); 
+        fprintf( pFile, "11 1\n" ); 
+    }
+    else
+    {
+        fprintf( pFile, ".names a b cout\n" ); 
+        fprintf( pFile, "11 1\n" ); 
+        fprintf( pFile, ".names a b and1_\n" ); 
+        fprintf( pFile, "00 1\n" ); 
+        fprintf( pFile, ".names cout and1_ s\n" ); 
+        fprintf( pFile, "00 1\n" ); 
+    }
+    fprintf( pFile, ".end\n" ); 
+    fprintf( pFile, "\n" ); 
+}
 void Abc_WriteFullAdder( FILE * pFile )
 {
     int fNaive = 0;
@@ -50,6 +76,7 @@ void Abc_WriteFullAdder( FILE * pFile )
     fprintf( pFile, ".outputs s cout\n" ); 
     if ( fNaive )
     {
+/*        
         fprintf( pFile, ".names a b k\n" ); 
         fprintf( pFile, "10 1\n" ); 
         fprintf( pFile, "01 1\n" ); 
@@ -60,6 +87,19 @@ void Abc_WriteFullAdder( FILE * pFile )
         fprintf( pFile, "11- 1\n" ); 
         fprintf( pFile, "1-1 1\n" ); 
         fprintf( pFile, "-11 1\n" ); 
+*/        
+        fprintf( pFile, ".names a b s0\n" ); 
+        fprintf( pFile, "10 1\n" ); 
+        fprintf( pFile, "01 1\n" ); 
+        fprintf( pFile, ".names a b c0\n" ); 
+        fprintf( pFile, "11 1\n" ); 
+        fprintf( pFile, ".names s0 cin s\n" ); 
+        fprintf( pFile, "10 1\n" ); 
+        fprintf( pFile, "01 1\n" ); 
+        fprintf( pFile, ".names s0 cin c1\n" ); 
+        fprintf( pFile, "11 1\n" ); 
+        fprintf( pFile, ".names c0 c1 cout\n" ); 
+        fprintf( pFile, "00 0\n" ); 
     }
     else
     {
@@ -1203,6 +1243,679 @@ void Abc_GenGraph( char * pFileName, int nPis )
     fprintf( pFile, "\n" ); 
     fclose( pFile );
     ABC_FREE( pTruth );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Threshold function generation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_GenComp63a4( FILE * pFile )
+{
+    fprintf( pFile, ".model C63a\n" );
+    fprintf( pFile, ".inputs x0 x1 x2 x3 x4 x5\n" );
+    fprintf( pFile, ".outputs z0 z1 z2\n" );
+    fprintf( pFile, ".names x1 x2 x3 x0 n10\n" );
+    fprintf( pFile, "--00 1\n" );
+    fprintf( pFile, "-0-0 1\n" );
+    fprintf( pFile, "0--0 1\n" );
+    fprintf( pFile, "000- 1\n" );
+    fprintf( pFile, ".names x4 x5 n13 n10 z0\n" );
+    fprintf( pFile, "--00 1\n" );
+    fprintf( pFile, "-1-0 1\n" );
+    fprintf( pFile, "1--0 1\n" );
+    fprintf( pFile, "111- 1\n" );
+    fprintf( pFile, ".names x1 x2 x3 x0 n13\n" );
+    fprintf( pFile, "-110 1\n" );
+    fprintf( pFile, "1-10 1\n" );
+    fprintf( pFile, "11-0 1\n" );
+    fprintf( pFile, "-001 1\n" );
+    fprintf( pFile, "0-01 1\n" );
+    fprintf( pFile, "00-1 1\n" );
+    fprintf( pFile, ".names x4 x5 n13 n16 z1\n" );
+    fprintf( pFile, "1-00 1\n" );
+    fprintf( pFile, "0-10 1\n" );
+    fprintf( pFile, "-101 1\n" );
+    fprintf( pFile, "-011 1\n" );
+    fprintf( pFile, ".names x1 x2 x3 x4 n16\n" );
+    fprintf( pFile, "1000 1\n" );
+    fprintf( pFile, "0100 1\n" );
+    fprintf( pFile, "0010 1\n" );
+    fprintf( pFile, "1110 1\n" );
+    fprintf( pFile, "0001 1\n" );
+    fprintf( pFile, "1101 1\n" );
+    fprintf( pFile, "1011 1\n" );
+    fprintf( pFile, "0111 1\n" );
+    fprintf( pFile, ".names x5 n16 z2\n" );
+    fprintf( pFile, "10 1\n" );
+    fprintf( pFile, "01 1\n" );
+    fprintf( pFile, ".end\n\n" );
+}
+void Abc_GenComp63a6( FILE * pFile )
+{
+    fprintf( pFile, ".model C63a\n" );
+    fprintf( pFile, ".inputs x0 x1 x2 x3 x4 x5\n" );
+    fprintf( pFile, ".outputs z0 z1 z2\n" );
+    fprintf( pFile, ".names x1 x2 x3 x4 x5 x0 z0\n" );
+    fprintf( pFile, "---111 1\n" );
+    fprintf( pFile, "--1-11 1\n" );
+    fprintf( pFile, "--11-1 1\n" );
+    fprintf( pFile, "-1--11 1\n" );
+    fprintf( pFile, "-1-1-1 1\n" );
+    fprintf( pFile, "-11--1 1\n" );
+    fprintf( pFile, "-1111- 1\n" );
+    fprintf( pFile, "1---11 1\n" );
+    fprintf( pFile, "1--1-1 1\n" );
+    fprintf( pFile, "1-1--1 1\n" );
+    fprintf( pFile, "1-111- 1\n" );
+    fprintf( pFile, "11---1 1\n" );
+    fprintf( pFile, "11-11- 1\n" );
+    fprintf( pFile, "111-1- 1\n" );
+    fprintf( pFile, "1111-- 1\n" );
+    fprintf( pFile, ".names x1 x2 x3 x4 x5 x0 z1\n" );
+    fprintf( pFile, "-00001 1\n" );
+    fprintf( pFile, "-00110 1\n" );
+    fprintf( pFile, "-01010 1\n" );
+    fprintf( pFile, "-01100 1\n" );
+    fprintf( pFile, "-10010 1\n" );
+    fprintf( pFile, "-10100 1\n" );
+    fprintf( pFile, "-11000 1\n" );
+    fprintf( pFile, "-11111 1\n" );
+    fprintf( pFile, "0-0001 1\n" );
+    fprintf( pFile, "0-0110 1\n" );
+    fprintf( pFile, "0-1010 1\n" );
+    fprintf( pFile, "0-1100 1\n" );
+    fprintf( pFile, "00-001 1\n" );
+    fprintf( pFile, "00-110 1\n" );
+    fprintf( pFile, "000-01 1\n" );
+    fprintf( pFile, "0000-1 1\n" );
+    fprintf( pFile, "1-0010 1\n" );
+    fprintf( pFile, "1-0100 1\n" );
+    fprintf( pFile, "1-1000 1\n" );
+    fprintf( pFile, "1-1111 1\n" );
+    fprintf( pFile, "11-000 1\n" );
+    fprintf( pFile, "11-111 1\n" );
+    fprintf( pFile, "111-11 1\n" );
+    fprintf( pFile, "1111-1 1\n" );
+    fprintf( pFile, ".names x1 x2 x3 x4 x5 z2\n" );
+    fprintf( pFile, "00001 1\n" );
+    fprintf( pFile, "00010 1\n" );
+    fprintf( pFile, "00100 1\n" );
+    fprintf( pFile, "00111 1\n" );
+    fprintf( pFile, "01000 1\n" );
+    fprintf( pFile, "01011 1\n" );
+    fprintf( pFile, "01101 1\n" );
+    fprintf( pFile, "01110 1\n" );
+    fprintf( pFile, "10000 1\n" );
+    fprintf( pFile, "10011 1\n" );
+    fprintf( pFile, "10101 1\n" );
+    fprintf( pFile, "10110 1\n" );
+    fprintf( pFile, "11001 1\n" );
+    fprintf( pFile, "11010 1\n" );
+    fprintf( pFile, "11100 1\n" );
+    fprintf( pFile, "11111 1\n" );
+    fprintf( pFile, ".end\n\n" );
+}
+void Abc_GenAdder4( FILE * pFile, int nBits, int nLutSize )
+{
+    int i, n;
+    fprintf( pFile, ".model A%02d_4x\n", nBits );
+    for ( n = 0; n < 4; n++ ) {
+        fprintf( pFile, ".inputs" );
+        for ( i = 0; i < nBits; i++ )
+            fprintf( pFile, " %c%02d", 'a'+n, i );
+        fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, ".outputs" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " s%02d", i );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".names v00\n" );
+    fprintf( pFile, ".names w00\n" );
+    for ( i = 0; i < nBits; i++ ) {
+        fprintf( pFile, ".subckt C63a" );
+        fprintf( pFile, " x0=w%02d", i );
+        fprintf( pFile, " x1=v%02d", i );
+        fprintf( pFile, " x2=a%02d", i );
+        fprintf( pFile, " x3=b%02d", i );
+        fprintf( pFile, " x4=c%02d", i );
+        fprintf( pFile, " x5=d%02d", i );
+        fprintf( pFile, " z0=w%02d", i+1 );
+        fprintf( pFile, " z1=v%02d", i+1 );
+        fprintf( pFile, " z2=s%02d", i );
+        fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, ".end\n\n" );
+    if ( nLutSize == 4 )
+        Abc_GenComp63a4( pFile );
+    else if ( nLutSize == 6 )
+        Abc_GenComp63a6( pFile );
+    else assert( 0 );
+}
+void Abc_WriteAdder2( FILE * pFile, int nVars )
+{
+    int i;
+    assert( nVars > 0 );
+    fprintf( pFile, ".model A%02d\n", nVars );
+    fprintf( pFile, ".inputs c\n" );
+    fprintf( pFile, ".inputs" );
+    for ( i = 0; i < nVars; i++ )
+        fprintf( pFile, " a%02d", i );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".inputs" );
+    for ( i = 0; i < nVars; i++ )
+        fprintf( pFile, " b%02d", i );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".outputs" );
+    for ( i = 0; i <= nVars; i++ )
+        fprintf( pFile, " s%02d", i );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".names c t00\n1 1\n" );
+    for ( i = 0; i < nVars; i++ )
+        fprintf( pFile, ".subckt FA a=a%02d b=b%02d cin=t%02d s=s%02d cout=t%02d\n", i, i, i, i, i+1 );
+    fprintf( pFile, ".names t%02d s%02d\n1 1\n", nVars, nVars );
+    fprintf( pFile, ".end\n\n" ); 
+    Abc_WriteFullAdder( pFile );
+}
+void Abc_GenAdder4test( FILE * pFile, int nBits )
+{
+    int i, n;
+    fprintf( pFile, ".model A%02d_4x\n", nBits );
+    for ( n = 0; n < 4; n++ ) {
+        fprintf( pFile, ".inputs" );
+        for ( i = 0; i < nBits; i++ )
+            fprintf( pFile, " %c%02d", 'a'+n, i );
+        fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, ".outputs" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " o%02d", i );
+    fprintf( pFile, "\n" );
+
+    fprintf( pFile, ".names zero\n" );
+    fprintf( pFile, ".subckt A%02d c=zero", nBits );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " a%0d=a%02d", i, i );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " b%0d=b%02d", i, i );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i <= nBits; i++ )
+        fprintf( pFile, " s%0d=t%02d", i, i );
+    fprintf( pFile, "\n" );
+
+    fprintf( pFile, ".subckt A%02d c=zero", nBits );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " a%0d=c%02d", i, i );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " b%0d=t%02d", i, i );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i <= nBits; i++ )
+        fprintf( pFile, " s%0d=u%02d", i, i );
+    fprintf( pFile, "\n" );
+
+    fprintf( pFile, ".subckt A%02d c=zero", nBits );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " a%0d=d%02d", i, i );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " b%0d=u%02d", i, i );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i <= nBits; i++ )
+        fprintf( pFile, " s%0d=o%02d", i, i );
+    fprintf( pFile, "\n" );
+
+    fprintf( pFile, ".end\n\n" );
+    Abc_WriteAdder( pFile, nBits );
+}
+void Abc_WriteWeight( FILE * pFile, int Num, int nBits, int Weight )
+{
+    int i;
+    fprintf( pFile, ".model W%02d\n", Num );
+    fprintf( pFile, ".inputs i\n" );
+    fprintf( pFile, ".outputs" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " o%02d", i );
+    fprintf( pFile, "\n" );
+    for ( i = 0; i < nBits; i++ )
+        if ( (Weight >> i) & 1 )
+            fprintf( pFile, ".names i o%02d\n1 1\n", i );
+        else
+            fprintf( pFile, ".names o%02d\n", i );
+    fprintf( pFile, ".end\n\n" );    
+}
+
+Vec_Int_t * Abc_GenTreeFindGroups( char * pTree, int iPos )
+{
+    Vec_Int_t * vRes = NULL;
+    int Counter = 1;
+    assert( pTree[iPos] == '(' );
+    while ( pTree[++iPos] ) {
+        if ( pTree[iPos] == '(' ) {
+            if ( Counter++ == 1 ) {
+                if ( vRes == NULL )
+                    vRes = Vec_IntAlloc( 4 );
+                Vec_IntPush( vRes, iPos );
+            }
+        }
+        if ( pTree[iPos] == ')' )
+            Counter--;
+        if ( Counter == 0 )
+            return vRes;
+    }
+    assert( 0 );
+    return NULL;
+}
+int Abc_GenTree_rec( FILE * pFile, int nBits, char * pTree, int iPos, int * pSig, int * pUsed )
+{
+    Vec_Int_t * vGroups = Abc_GenTreeFindGroups( pTree, iPos );
+    if ( vGroups == NULL )
+        return atoi(pTree+iPos+1);
+    int i, g, Group;
+    Vec_IntForEachEntry( vGroups, Group, g ) {
+        Group = Abc_GenTree_rec( pFile, nBits, pTree, Group, pSig, pUsed );
+        Vec_IntWriteEntry( vGroups, g, Group );
+    }
+    if ( Vec_IntSize(vGroups) == 3 )
+        Vec_IntPush(vGroups, 0);        
+    if ( Vec_IntSize(vGroups) == 4 )
+        fprintf( pFile, ".subckt A%02d_4x", nBits ), *pUsed = 1;
+    else if ( Vec_IntSize(vGroups) == 2 )
+        fprintf( pFile, ".subckt A%02d c=zero", nBits );
+    else assert( 0 );
+    Vec_IntForEachEntry( vGroups, Group, g ) {
+        fprintf( pFile, " \\\n" );
+        for ( i = 0; i < nBits; i++ )
+            fprintf( pFile, " %c%02d=%02d_%02d", 'a'+g, i, Group, i );
+    }
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " s%02d=%02d_%02d", i, *pSig, i );
+    fprintf( pFile, "\n\n" );
+    return (*pSig)++;
+}
+void Abc_GenThreshAdder( FILE * pFile, int nBits, int A, int B, int S, int fOne )
+{
+    if ( A > B ) ABC_SWAP( int, A, B ); int i;
+    fprintf( pFile, ".subckt A%02d c=%s", nBits, fOne ? "one" : "zero" );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " a%02d=%02d_%02d", i, A, i );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, " b%02d=%02d_%02d", i, B, i );
+    fprintf( pFile, " \\\n" );
+    for ( i = 0; i <= nBits; i++ )
+        fprintf( pFile, " s%02d=%02d_%02d", i, S, i );
+    fprintf( pFile, "\n" );
+}
+void Abc_GenThresh( char * pFileName, int nBits, Vec_Int_t * vNums, int nLutSize, char * pArch )
+{
+    FILE * pFile = fopen( pFileName, "w" );  
+    int c, i, k, Temp, iPrev = 1, nNums = 1, nSigs = 1, fUsed = 0;
+    fprintf( pFile, "# %d-bit threshold function with %d variables generated by ABC on %s\n", 
+        nBits, Vec_IntSize(vNums)-1, Extra_TimeStamp() );
+    fprintf( pFile, "# Weights:" );
+    Vec_IntForEachEntryStop( vNums, Temp, i, Vec_IntSize(vNums)-1 )
+        fprintf( pFile, " %d", Temp );
+    fprintf( pFile, "\n# Threshold: %d\n", Vec_IntEntryLast(vNums) );
+    fprintf( pFile, ".model TF%d_%d\n", Vec_IntSize(vNums)-1, nBits );
+    fprintf( pFile, ".inputs" );
+    for ( i = 0; i < Vec_IntSize(vNums)-1; i++ )
+        fprintf( pFile, " x%02d", i );
+    fprintf( pFile, "\n" );
+    fprintf( pFile, ".outputs F\n" );
+    for ( i = 0; i < nBits; i++ )
+        fprintf( pFile, ".names %02d_%02d\n", 0, i );
+    fprintf( pFile, ".names zero\n" );
+    fprintf( pFile, ".names one\n 1\n" );
+    Vec_IntForEachEntry( vNums, Temp, k ) {
+        fprintf( pFile, ".subckt W%02d", k );
+        if ( k < Vec_IntSize(vNums)-1 )
+            fprintf( pFile, " i=x%02d", k );
+        else
+            fprintf( pFile, " i=one" );
+        for ( i = 0; i < nBits; i++ )
+            fprintf( pFile, " o%02d=%02d_%02d", i, nSigs, i );
+        fprintf( pFile, "\n" );
+        nSigs++;
+    }
+    fprintf( pFile, "\n" );
+    if ( pArch == NULL )
+    {
+        Vec_IntForEachEntryStart( vNums, Temp, k, 1 ) {
+            Abc_GenThreshAdder( pFile, nBits, iPrev, k+1, nSigs, k == Vec_IntSize(vNums)-1 );
+            iPrev = nSigs++;
+        }
+        fprintf( pFile, ".names %02d_%02d F\n0 1\n", iPrev, nBits-1 );
+    }
+    else
+    {
+        Vec_Str_t * vArch = Vec_StrAlloc( 100 );
+        for ( c = 0; c < strlen(pArch); c++ ) {
+            if ( pArch[c] == '(' || pArch[c] == ')' ) {
+                Vec_StrPush( vArch, pArch[c] );
+                continue;
+            }
+            Temp = pArch[c] >= '0' && pArch[c] <= '9' ? pArch[c] - '0' : pArch[c] - 'A' + 10;
+            assert( Temp > 0 );
+            if ( Temp == 1 ) {
+                if ( nNums + Temp == Vec_IntSize(vNums) )
+                    Abc_GenThreshAdder( pFile, nBits, nNums, nNums+1, iPrev = nSigs++, 1 );
+                else
+                    iPrev = nNums++;
+            }
+            else {
+                int kLast = 0;
+                assert( nNums + Temp <= Vec_IntSize(vNums) );
+                if ( nNums + Temp == Vec_IntSize(vNums) )
+                    kLast = Temp++;
+                iPrev = nNums++;                
+                for ( k = 1; k < Temp; k++ ) {
+                    Abc_GenThreshAdder( pFile, nBits, iPrev, nNums++, nSigs, k == kLast );
+                    iPrev = nSigs++;
+                }
+                fprintf( pFile, "\n" );                
+            }
+            Vec_StrPrintF( vArch, "(%d)", iPrev );
+        }
+        Vec_StrPush( vArch, '\0' );    
+        Temp = Abc_GenTree_rec( pFile, nBits, Vec_StrArray(vArch), 0, &nSigs, &fUsed );
+        fprintf( pFile, ".names %02d_%02d F\n0 1\n", Temp, nBits-1 );
+        Vec_StrFree( vArch );
+    }
+    fprintf( pFile, ".end\n\n" ); 
+    Vec_IntForEachEntry( vNums, Temp, k )
+        Abc_WriteWeight( pFile, k, nBits, k == Vec_IntSize(vNums)-1 ? ~Temp : Temp );
+    Abc_WriteAdder2( pFile, nBits );
+    if ( fUsed )
+        Abc_GenAdder4( pFile, nBits, nLutSize == 4 ? 4 : 6 );
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adder tree generation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+// Based on the paper: E. Demenkov, A. Kojevnikov, A. Kulikov, and G. Yaroslavtsev,
+// "New upper bounds on the Boolean circuit complexity of symmetric functions".
+// Information Processing Letters, Vol 110(7), March 2010, Pages 264-267.
+// https://grigory.us/files/publications/2010_upper_bounds_symmetric_ipl.pdf
+
+void Abc_WriteMDFA( FILE * pFile )
+{
+    fprintf( pFile, ".model MDFA\n" );
+    fprintf( pFile, ".inputs z x1 y1 x2 y2\n" );
+    fprintf( pFile, ".outputs s c1 c2\n" );
+    fprintf( pFile, ".names x1 z g1\n" );
+    fprintf( pFile, "10 1\n" );
+    fprintf( pFile, "01 1\n" );
+    fprintf( pFile, ".names y1 g1 g2\n" );
+    fprintf( pFile, "00 0\n" );
+    fprintf( pFile, ".names y1 z g3\n" );
+    fprintf( pFile, "10 1\n" );
+    fprintf( pFile, "01 1\n" );
+    fprintf( pFile, ".names g2 g3 g4\n" );
+    fprintf( pFile, "10 1\n" );
+    fprintf( pFile, "01 1\n" );
+    fprintf( pFile, ".names x2 g3 g5\n" );
+    fprintf( pFile, "10 1\n" );
+    fprintf( pFile, "01 1\n" );
+    fprintf( pFile, ".names g3 y2 g6\n" );
+    fprintf( pFile, "10 1\n" );
+    fprintf( pFile, "01 1\n" );
+    fprintf( pFile, ".names g5 y2 g7\n" );
+    fprintf( pFile, "10 1\n" );
+    fprintf( pFile, ".names g2 g7 g8\n" );
+    fprintf( pFile, "10 1\n" );
+    fprintf( pFile, "01 1\n" );
+    fprintf( pFile, ".names g6 s\n" );
+    fprintf( pFile, "1 1\n" );
+    fprintf( pFile, ".names g4 c1\n" );
+    fprintf( pFile, "1 1\n" );
+    fprintf( pFile, ".names g8 c2\n" );
+    fprintf( pFile, "1 1\n" );
+    fprintf( pFile, ".end\n" );
+}
+
+void Abc_GenAT( char * pFileName, Vec_Int_t * vNums )
+{
+    word Sum = 0; int i, k, Num, nBits = 0;
+    Vec_IntForEachEntry( vNums, Num, i )
+        Sum += ((word)1 << i) * Num;
+    while ( Sum )
+        nBits++, Sum >>= 1;
+
+    Vec_Int_t * vTemp; int nFAs = 0, nHAs = 0, nItem = 0;
+    Vec_Wec_t * vItems = Vec_WecStart( nBits );
+    Vec_IntForEachEntry( vNums, Num, i )
+        for ( k = 0; k < Num; k++ )
+            Vec_WecPush( vItems, i, nItem++ );
+
+    FILE * pFile = fopen( pFileName, "w" );
+    fprintf( pFile, "# %d-bit %d-input adder tree generated by ABC on %s\n", nBits, nItem, Extra_TimeStamp() );
+    fprintf( pFile, "# Profile:" );
+    Vec_IntForEachEntry( vNums, Num, i )
+        fprintf( pFile, " %d", Num );
+    fprintf( pFile, "\n" );
+
+    fprintf( pFile, ".model AT%d_%d\n", nItem, nBits );
+    Vec_WecForEachLevel( vItems, vTemp, i ) {
+        if ( Vec_IntSize(vTemp) == 0 )
+            continue;
+        fprintf( pFile, ".inputs" );
+        Vec_IntForEachEntry( vTemp, Num, k )
+            fprintf( pFile, " %02d", Num );
+        fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, ".outputs" );
+    for ( k = 0; k < nBits; k++ )
+        fprintf( pFile, " o%02d", k );
+    fprintf( pFile, "\n\n" );
+
+    assert( nItem == Vec_IntSum(vNums) );
+    Vec_WecForEachLevel( vItems, vTemp, i ) {
+        fprintf( pFile, "# Rank %d:\n", i );
+        Vec_IntForEachEntry( vTemp, Num, k ) {
+            if ( Vec_IntSize(vTemp) < 2 )
+                continue;
+            while ( Vec_IntSize(vTemp) > 2 ) {
+                int i1 = Vec_IntPop(vTemp);
+                int i2 = Vec_IntPop(vTemp);
+                int i3 = Vec_IntPop(vTemp);
+                int i4 = nItem++;
+                int i5 = nItem++;
+                fprintf( pFile, ".subckt FA a=%02d b=%02d cin=%02d s=%02d cout=%02d\n", i3, i2, i1, i4, i5 ); nFAs++;
+                Vec_IntPush( vTemp, i4 );
+                if ( i+1 < Vec_WecSize(vItems) )
+                    Vec_WecPush( vItems, i+1, i5 );
+            }
+            if ( Vec_IntSize(vTemp) == 2 ) {
+                int i1 = Vec_IntPop(vTemp);
+                int i2 = Vec_IntPop(vTemp);    
+                int i4 = nItem++;
+                int i5 = nItem++;                
+                fprintf( pFile, ".subckt HA a=%02d b=%02d s=%02d cout=%02d\n", i2, i1, i4, i5 ); nHAs++;
+                Vec_IntPush( vTemp, i4 );
+                if ( i+1 < Vec_WecSize(vItems) )
+                    Vec_WecPush( vItems, i+1, i5 );                
+            }
+            assert( Vec_IntSize(vTemp) == 1 );
+        }
+    }
+    Vec_WecForEachLevel( vItems, vTemp, i )
+        if ( Vec_IntSize(vTemp) == 0 )
+            fprintf( pFile, ".names o%02d\n", i );
+        else if ( Vec_IntSize(vTemp) == 1 )
+            fprintf( pFile, ".names %02d o%02d\n1 1\n", Vec_IntEntry(vTemp, 0), i );
+        else assert( 0 );
+    fprintf( pFile, ".end\n\n" );
+    Abc_WriteHalfAdder( pFile );
+    Abc_WriteFullAdder( pFile );
+    printf( "Created %d-bit %d-input AT with %d FAs and %d HAs.\n", nBits, Vec_IntSum(vNums), nFAs, nHAs );
+    fclose( pFile );
+    Vec_WecFree( vItems );
+}
+void Abc_GenATDual( char * pFileName, Vec_Int_t * vNums )
+{
+    word Sum = 0; int i, k, Num, nBits = 0, Iter = 0, fUsed = 0;
+    Vec_IntForEachEntry( vNums, Num, i )
+        Sum += ((word)1 << i) * Num;
+    while ( Sum )
+        nBits++, Sum >>= 1;
+
+    Vec_Int_t * vTemp; int nFAs = 0, nHAs = 0, nXors = 0, nItem = 1;
+    Vec_Wec_t * vItems = Vec_WecStart( nBits );
+    Vec_IntForEachEntry( vNums, Num, i )
+        for ( k = 0; k < Num; k++ )
+            Vec_WecPush( vItems, i, nItem++ );
+
+    FILE * pFile = fopen( pFileName, "w" );
+    fprintf( pFile, "# %d-bit %d-input adder tree generated by ABC on %s\n", nBits, Vec_IntSum(vNums), Extra_TimeStamp() );
+    fprintf( pFile, "# Profile:" );
+    Vec_IntForEachEntry( vNums, Num, i )
+        fprintf( pFile, " %d", Num );
+    fprintf( pFile, "\n" );
+
+    fprintf( pFile, ".model AT%d_%d\n", nItem, nBits );
+    Vec_WecForEachLevel( vItems, vTemp, i ) {
+        if ( Vec_IntSize(vTemp) == 0 )
+            continue;
+        fprintf( pFile, ".inputs" );
+        Vec_IntForEachEntry( vTemp, Num, k )
+            fprintf( pFile, " %02d", Num );
+        fprintf( pFile, "\n" );
+    }
+    fprintf( pFile, ".outputs" );
+    for ( k = 0; k < nBits; k++ )
+        fprintf( pFile, " o%02d", k );
+    fprintf( pFile, "\n\n" );
+
+    fprintf( pFile, ".names %02d\n", 0 );
+    while ( Vec_WecMaxLevelSize(vItems) > 2 )
+    {
+        fprintf( pFile, "# Iter %d:\n", Iter++ );
+        Vec_Wec_t * vItems2 = Vec_WecStart( nBits );
+        Vec_WecForEachLevel( vItems, vTemp, i ) {
+            while ( Vec_IntSize(vTemp) > 3 ) {
+                int i0 = Vec_IntEntry(vTemp, 0);  Vec_IntDrop(vTemp, 0);
+                int i1 = Vec_IntEntry(vTemp, 0);  Vec_IntDrop(vTemp, 0);
+                int i2 = Vec_IntEntry(vTemp, 0);  Vec_IntDrop(vTemp, 0);
+                int i3 = Vec_IntEntry(vTemp, 0);  Vec_IntDrop(vTemp, 0);
+                int i4 = (Vec_IntSize(vTemp) > 0 && Vec_IntEntryLast(vTemp) > 0) ? Vec_IntPop(vTemp) : 0;
+                assert( (i0 < 0) == (i1 < 0) );
+                assert( (i2 < 0) == (i3 < 0) );
+                if ( i1 > 0 ) 
+                    fprintf( pFile, ".names %02d %02d %02d\n01 1\n10 1\n", i0, i1, nItem ), i1 = nItem++, nXors++;
+                else 
+                    i1 = -i1, i0 = -i0;
+                if ( i3 > 0 ) 
+                    fprintf( pFile, ".names %02d %02d %02d\n01 1\n10 1\n", i2, i3, nItem ), i3 = nItem++, nXors++;
+                else 
+                    i3 = -i3, i2 = -i2;
+                int o0 = nItem++;
+                int o1 = nItem++;
+                int o2 = nItem++;
+                fprintf( pFile, ".subckt MDFA  z=%02d  x1=%02d y1=%02d x2=%02d y2=%02d  s=%02d c1=%02d c2=%02d\n", i4, i0, i1, i2, i3,  o0, o1, o2 ); nFAs += 2, fUsed = 1;
+                Vec_WecPush( vItems2, i, o0 );
+                if ( i+1 < Vec_WecSize(vItems2) ) {
+                    Vec_WecPush( vItems2, i+1, -o1 );
+                    Vec_WecPush( vItems2, i+1, -o2 );
+                }                
+            }
+            if ( Vec_IntSize(vTemp) == 3 ) {
+                int i2 = Vec_IntPop(vTemp);
+                int i1 = Vec_IntPop(vTemp);
+                int i0 = Vec_IntPop(vTemp);
+                assert( (i0 < 0) == (i1 < 0) );
+                assert( i2 > 0 );
+                if ( i1 < 0 )
+                    fprintf( pFile, ".names %02d %02d %02d\n01 1\n10 1\n", -i0, -i1, nItem ), i0 = -i0, i1 = nItem++, nXors++;
+                int o0 = nItem++;
+                int o1 = nItem++;
+                fprintf( pFile, ".subckt FA a=%02d b=%02d cin=%02d s=%02d cout=%02d\n", i0, i1, i2, o0, o1 ); nFAs++;
+                Vec_WecPush( vItems2, i, o0 );
+                if ( i+1 < Vec_WecSize(vItems2) )
+                    Vec_WecPush( vItems2, i+1, o1 );
+            }
+            if ( Vec_IntSize(vTemp) == 2 ) {
+                int i1 = Vec_IntPop(vTemp);
+                int i0 = Vec_IntPop(vTemp);
+                assert( (i0 < 0) == (i1 < 0) );
+                if ( i1 < 0 ) {
+                    Vec_IntInsert( Vec_WecEntry(vItems2, i), 0, i1 );
+                    Vec_IntInsert( Vec_WecEntry(vItems2, i), 0, i0 );
+                }
+                else {
+                    Vec_WecPush( vItems2, i, i0 );
+                    Vec_WecPush( vItems2, i, i1 );
+                }
+            }
+            if ( Vec_IntSize(vTemp) == 1 ) {
+                int i0 = Vec_IntPop(vTemp);
+                assert( i0 > 0 );
+                Vec_WecPush( vItems2, i, i0 );
+            }
+            assert( Vec_IntSize(vTemp) == 0 );
+        }
+        Vec_WecFree( vItems );
+        vItems = vItems2;        
+    }
+    Vec_WecForEachLevel( vItems, vTemp, i ) {
+        if ( Vec_IntSize(vTemp) == 2 ) {
+            int i1 = Vec_IntPop(vTemp);
+            int i0 = Vec_IntPop(vTemp);
+            assert( (i0 < 0) == (i1 < 0) );
+            if ( i1 < 0 )
+                fprintf( pFile, ".names %02d %02d %02d\n01 1\n10 1\n", -i0, -i1, nItem ), i0 = -i0, i1 = nItem++, nXors++;
+            Vec_IntPush( vTemp, i0 );
+            Vec_IntPush( vTemp, i1 );
+        }
+        if ( Vec_IntSize(vTemp) == 1 ) {
+            int i0 = Vec_IntPop(vTemp);
+            assert( i0 > 0 );
+            Vec_IntPush( vTemp, i0 );
+            Vec_IntPush( vTemp, 0 );
+        }
+        if ( Vec_IntSize(vTemp) == 0 ) {
+            Vec_IntPush( vTemp, 0 );
+            Vec_IntPush( vTemp, 0 );
+        }
+        assert( Vec_IntSize(vTemp) == 2 );
+    }
+    int cin = 0;
+    Vec_WecForEachLevel( vItems, vTemp, i ) {
+        int i1 = Vec_IntPop(vTemp);
+        int i0 = Vec_IntPop(vTemp);
+        assert( i0 >= 0 && i1 >= 0 );
+        fprintf( pFile, ".subckt FA a=%02d b=%02d cin=%02d s=o%02d cout=%02d\n", i0, i1, cin, i, nItem ); nFAs++;
+        cin = nItem++;
+    }
+    fprintf( pFile, ".end\n\n" );
+    Abc_WriteFullAdder( pFile );
+    if ( fUsed )
+        Abc_WriteMDFA( pFile );
+    printf( "Created %d-bit %d-input AT with %d FAs, %d HAs, and %d XORs.\n", nBits, Vec_IntSum(vNums), nFAs, nHAs, nXors );
+    fclose( pFile );
+    Vec_WecFree( vItems );
 }
 
 ////////////////////////////////////////////////////////////////////////

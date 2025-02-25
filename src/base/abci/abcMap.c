@@ -24,6 +24,7 @@
 #include "map/mapper/mapper.h"
 #include "misc/util/utilNam.h"
 #include "map/scl/sclCon.h"
+#include "map/scl/sclLib.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -58,7 +59,7 @@ static Abc_Obj_t *  Abc_NodeFromMapSuperChoice_rec( Abc_Ntk_t * pNtkNew, Map_Sup
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fUseBuffs, int fVerbose )
+Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, Mio_Library_t* userLib, double DelayTarget, double AreaMulti, double DelayMulti, float LogFan, float Slew, float Gain, int nGatesMin, int fRecovery, int fSwitching, int fSkipFanout, int fUseProfile, int fUseBuffs, int fVerbose )
 {
     static int fUseMulti = 0;
     int fShowSwitching = 1;
@@ -87,6 +88,11 @@ Abc_Ntk_t * Abc_NtkMap( Abc_Ntk_t * pNtk, double DelayTarget, double AreaMulti, 
         Map_SuperLibFree( (Map_SuperLib_t *)Abc_FrameReadLibSuper() );
         Abc_FrameSetLibSuper( NULL );
     }
+
+    if ( userLib != NULL ) {
+        pLib = userLib;
+    }
+ 
     // quit if there is no library
     if ( pLib == NULL )
     {
@@ -275,6 +281,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
     Map_ManSetAreaRecovery( pMan, fRecovery );
     Map_ManSetOutputNames( pMan, Abc_NtkCollectCioNames(pNtk, 1) );
     Map_ManSetDelayTarget( pMan, (float)DelayTarget );
+    Map_ManCreateAigIds( pMan, Abc_NtkObjNumMax(pNtk) );
 
     // set arrival and requireds
     if ( Scl_ConIsRunning() && Scl_ConHasInArrs() )
@@ -297,6 +304,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
         pNode->pCopy = (Abc_Obj_t *)pNodeMap;
         if ( pSwitching )
             Map_NodeSetSwitching( pNodeMap, pSwitching[pNode->Id] );
+        Map_NodeSetAigId( pNodeMap, pNode->Id );
     }
 
     // load the AIG into the mapper
@@ -327,6 +335,7 @@ Map_Man_t * Abc_NtkToMap( Abc_Ntk_t * pNtk, double DelayTarget, int fRecovery, f
                 Map_NodeSetNextE( (Map_Node_t *)pPrev->pCopy, (Map_Node_t *)pFanin->pCopy );
                 Map_NodeSetRepr( (Map_Node_t *)pFanin->pCopy, (Map_Node_t *)pNode->pCopy );
             }
+        Map_NodeSetAigId( pNodeMap, pNode->Id );
     }
     assert( Map_ManReadBufNum(pMan) == pNtk->nBarBufs );
     Vec_PtrFree( vNodes );
@@ -419,6 +428,7 @@ Abc_Obj_t * Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
     uPhaseBest = Map_CutReadPhaseBest( pCutBest, fPhase );
     nLeaves    = Map_CutReadLeavesNum( pCutBest );
     ppLeaves   = Map_CutReadLeaves( pCutBest );
+    //Vec_Ptr_t * vAnds = Map_CutInternalNodes( pNodeMap, pCutBest );
 
     // collect the PI nodes
     for ( i = 0; i < nLeaves; i++ )
@@ -430,6 +440,7 @@ Abc_Obj_t * Abc_NodeFromMapPhase_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap
 
     // implement the supergate
     pNodeNew = Abc_NodeFromMapSuper_rec( pNtkNew, pNodeMap, pSuperBest, pNodePIs, nLeaves );
+    Vec_IntWriteEntry( pNtkNew->vOrigNodeIds, pNodeNew->Id, Abc_Var2Lit( Map_NodeReadAigId(pNodeMap), fPhase ) );
     Map_NodeSetData( pNodeMap, fPhase, (char *)pNodeNew );
     return pNodeNew;
 }
@@ -461,6 +472,7 @@ Abc_Obj_t * Abc_NodeFromMap_rec( Abc_Ntk_t * pNtkNew, Map_Node_t * pNodeMap, int
 
     // add the inverter
     pNodeInv = Abc_NtkCreateNode( pNtkNew );
+    Vec_IntWriteEntry( pNtkNew->vOrigNodeIds, pNodeInv->Id, Abc_Var2Lit( Map_NodeReadAigId(pNodeMap), fPhase ) );
     Abc_ObjAddFanin( pNodeInv, pNodeNew );
     pNodeInv->pData = Mio_LibraryReadInv((Mio_Library_t *)Abc_FrameReadLibGen());
 
@@ -477,6 +489,7 @@ Abc_Ntk_t * Abc_NtkFromMap( Map_Man_t * pMan, Abc_Ntk_t * pNtk, int fUseBuffs )
     assert( Map_ManReadBufNum(pMan) == pNtk->nBarBufs );
     // create the new network
     pNtkNew = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_MAP );
+    pNtkNew->vOrigNodeIds = Vec_IntStartFull( 2 * Abc_NtkObjNumMax(pNtk) );
     // make the mapper point to the new network
     Map_ManCleanData( pMan );
     Abc_NtkForEachCi( pNtk, pNode, i )

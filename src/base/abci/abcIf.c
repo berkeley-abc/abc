@@ -116,7 +116,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     pPars->pTimesReq = Abc_NtkGetCoRequiredFloats(pNtk);
 
     // update timing info to reflect logic level
-    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib || pPars->fUserSesLib || pPars->fUserLutDec) && pNtk->pManTime )
+    if ( (pPars->fDelayOpt || pPars->fDsdBalance || pPars->fUserRecLib || pPars->fUserSesLib || pPars->fUserLutDec || pPars->fUserLut2D ) && pNtk->pManTime )
     {
         int c;
         if ( pNtk->AndGateDelay == 0.0 )
@@ -433,8 +433,8 @@ Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pC
    SideEffects []
    SeeAlso     []
  ***********************************************************************/
- void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCutBest, If_Obj_t * pIfObj, Vec_Int_t * vCover, Abc_Obj_t * pNodeTop )
- {
+void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCutBest, If_Obj_t * pIfObj, Vec_Int_t * vCover, Abc_Obj_t * pNodeTop )
+{
     extern Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
     assert( !pIfMan->pPars->fUseTtPerm );
 
@@ -460,7 +460,19 @@ Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pC
 
     // perform LUT-decomposition and return the LUT-structure
     unsigned char decompArray[92];
-    int val = acd_decompose( pTruth, pCutBest->nLeaves, pIfMan->pPars->nLutDecSize, &(delayProfile), decompArray );
+    int val;
+    if ( pIfMan->pPars->fUserLutDec )
+    {
+        val = acd_decompose( pTruth, pCutBest->nLeaves, pIfMan->pPars->nLutDecSize, &(delayProfile), decompArray );
+    }
+    else if ( pIfMan->pPars->fUserLut2D )
+    {
+        val = acd2_decompose( pTruth, pCutBest->nLeaves, pIfMan->pPars->nLutDecSize, &(delayProfile), decompArray );
+    }
+    else
+    {
+        val = acdXX_decompose( pTruth, pIfMan->pPars->nLutDecSize, pCutBest->nLeaves, decompArray );
+    }
     assert( val == 0 );
 
     // convert the LUT-structure into a set of logic nodes in Abc_Ntk_t 
@@ -473,7 +485,7 @@ Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pC
     word *tt;
     Abc_Obj_t *pNewNodes[5];
 
-    /* create intermediate LUTs*/
+    /* create intermediate LUTs */
     assert( decompArray[1] <= 6 );
     Abc_Obj_t * pFanin;
     for ( i = 0; i < decompArray[1]; ++i )
@@ -537,7 +549,7 @@ Hop_Obj_t * Abc_NodeBuildFromMini( Hop_Man_t * pMan, If_Man_t * p, If_Cut_t * pC
 
     /* check correct read */
     assert( byte_p == decompArray[0] );
- }
+}
 
 /**Function*************************************************************
 
@@ -577,14 +589,15 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
 //    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
     if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm && 
-         !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserLutDec && !pIfMan->pPars->fUserRecLib && !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
+         !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserLutDec && !pIfMan->pPars->fUserLut2D && !pIfMan->pPars->fUserRecLib &&
+         !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
         If_CutRotatePins( pIfMan, pCutBest );
     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
     {
         If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )
             Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
     }
-    else if ( pIfMan->pPars->fUserLutDec )
+    else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
     {
         If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
             Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
@@ -642,7 +655,7 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
             extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
             pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj ); 
         }
-        else if ( pIfMan->pPars->fUserLutDec )
+        else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
         {
             extern void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vMemory, Abc_Obj_t * pNodeTop );
             Abc_DecRecordToHop( pNtkNew, pIfMan, pCutBest, pIfObj, vCover, pNodeNew ); 

@@ -6,7 +6,6 @@
 #include <cassert>
 #include <functional>
 #include <iterator>
-#include <optional>
 #include <iostream>
 
 #include "kitty_algorithm.hpp"
@@ -31,7 +30,7 @@ inline TT unary_not_if( const TT& tt, bool cond )
 #ifdef _MSC_VER
 #pragma warning( pop )
 #endif
-  return unary_operation( tt, [mask]( auto a )
+  return unary_operation( tt, [mask]( uint64_t a )
                           { return a ^ mask; } );
 }
 
@@ -39,7 +38,7 @@ inline TT unary_not_if( const TT& tt, bool cond )
 template<typename TT>
 inline TT unary_not( const TT& tt )
 {
-  return unary_operation( tt, []( auto a )
+  return unary_operation( tt, []( uint64_t a )
                           { return ~a; } );
 }
 
@@ -48,14 +47,14 @@ template<typename TT>
 
 inline TT binary_and( const TT& first, const TT& second )
 {
-  return binary_operation( first, second, std::bit_and<>() );
+  return binary_operation( first, second, std::bit_and<uint64_t>() );
 }
 
 /*! \brief Bitwise OR of two truth tables */
 template<typename TT>
 inline TT binary_or( const TT& first, const TT& second )
 {
-  return binary_operation( first, second, std::bit_or<>() );
+  return binary_operation( first, second, std::bit_or<uint64_t>() );
 }
 
 /*! \brief Swaps two variables in a truth table
@@ -131,6 +130,24 @@ void swap_inplace( TT& tt, uint8_t var_index1, uint8_t var_index2 )
       it += 2 * step2;
     }
   }
+}
+
+template<uint32_t NumVars>
+inline void swap_inplace( static_truth_table<NumVars, true>& tt, uint8_t var_index1, uint8_t var_index2 )
+{
+  if ( var_index1 == var_index2 )
+  {
+    return;
+  }
+
+  if ( var_index1 > var_index2 )
+  {
+    std::swap( var_index1, var_index2 );
+  }
+
+  const auto& pmask = detail::ppermutation_masks[var_index1][var_index2];
+  const auto shift = ( 1 << var_index2 ) - ( 1 << var_index1 );
+  tt._bits = ( tt._bits & pmask[0] ) | ( ( tt._bits & pmask[1] ) << shift ) | ( ( tt._bits & pmask[2] ) >> shift );
 }
 
 /*! \brief Extends smaller truth table to larger one
@@ -312,7 +329,7 @@ void print_hex( const TT& tt, std::ostream& os = std::cout )
   auto const chunk_size =
       std::min<uint64_t>( tt.num_vars() <= 1 ? 1 : ( tt.num_bits() >> 2 ), 16 );
 
-  for_each_block_reversed( tt, [&os, chunk_size]( auto word )
+  for_each_block_reversed( tt, [&os, chunk_size]( uint64_t word )
                            {
     std::string chunk( chunk_size, '0' );
 

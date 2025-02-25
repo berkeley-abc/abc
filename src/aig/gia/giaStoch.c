@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [giaDeep.c]
+  FileName    [giaStoch.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: giaDeep.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: giaStoch.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -22,22 +22,12 @@
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
 
-#ifdef _MSC_VER
+#ifdef WIN32
+#include <process.h> 
 #define unlink _unlink
 #else
 #include <unistd.h>
 #endif
-
-#ifdef ABC_USE_PTHREADS
-
-#ifdef _WIN32
-#include "../lib/pthread.h"
-#else
-#include <pthread.h>
-#endif
-
-#endif
-
 
 ABC_NAMESPACE_IMPL_START
 
@@ -108,7 +98,7 @@ void Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSecs, int
 
 /**Function*************************************************************
 
-  Synopsis    [Processing on a many cores.]
+  Synopsis    [Processing on many cores.]
 
   Description []
                
@@ -117,27 +107,6 @@ void Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSecs, int
   SeeAlso     []
 
 ***********************************************************************/
-#ifndef ABC_USE_PTHREADS
-
-void Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int TimeSecs, int fVerbose )
-{
-    Gia_StochProcessArray( vGias, pScript, TimeSecs, fVerbose );
-}
-
-#else // pthreads are used
-
-
-#define PAR_THR_MAX 100
-typedef struct Gia_StochThData_t_
-{
-    Vec_Ptr_t *  vGias;
-    char *       pScript;
-    int          Index;
-    int          Rand;
-    int          nTimeOut;
-    int          fWorking;
-} Gia_StochThData_t;
-
 Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int TimeSecs )
 {
     Gia_Man_t * pNew;
@@ -145,7 +114,11 @@ Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int Ti
     sprintf( FileName, "%06x.aig", Rand );
     Gia_AigerWrite( p, FileName, 0, 0, 0 );
     sprintf( Command, "./abc -q \"&read %s; %s; &write %s\"", FileName, pScript, FileName );
+#if defined(__wasm)
+    if ( 1 )
+#else
     if ( system( (char *)Command ) )    
+#endif
     {
         fprintf( stderr, "The following command has returned non-zero exit status:\n" );
         fprintf( stderr, "\"%s\"\n", (char *)Command );
@@ -162,86 +135,67 @@ Gia_Man_t * Gia_StochProcessOne( Gia_Man_t * p, char * pScript, int Rand, int Ti
     return Gia_ManDup(p);
 }
 
-void * Gia_StochWorkerThread( void * pArg )
+/**Function*************************************************************
+
+  Synopsis    [Generic concurrent processing.]
+
+  Description [User-defined problem-specific data and the way to process it.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+typedef struct StochSynData_t_
 {
-    Gia_StochThData_t * pThData = (Gia_StochThData_t *)pArg;
-    volatile int * pPlace = &pThData->fWorking;
-    Gia_Man_t * pGia, * pNew;
-    while ( 1 )
-    {
-        while ( *pPlace == 0 );
-        assert( pThData->fWorking );
-        if ( pThData->Index == -1 )
-        {
-            pthread_exit( NULL );
-            assert( 0 );
-            return NULL;
-        }
-        pGia = (Gia_Man_t *)Vec_PtrEntry( pThData->vGias, pThData->Index );
-        pNew = Gia_StochProcessOne( pGia, pThData->pScript, pThData->Rand, pThData->nTimeOut );
-        Gia_ManStop( pGia );
-        Vec_PtrWriteEntry( pThData->vGias, pThData->Index, pNew );
-        pThData->fWorking = 0;
-    }
-    assert( 0 );
-    return NULL;
+    Gia_Man_t *  pIn;
+    Gia_Man_t *  pOut;
+    char *       pScript;
+    int          Rand;
+    int          TimeOut;
+} StochSynData_t;
+
+int Gia_StochProcess1( void * p )
+{
+    StochSynData_t * pData = (StochSynData_t *)p;
+    assert( pData->pIn != NULL );
+    assert( pData->pOut == NULL );
+    pData->pOut = Gia_StochProcessOne( pData->pIn, pData->pScript, pData->Rand, pData->TimeOut );
+    return 1;
 }
 
 void Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int TimeSecs, int fVerbose )
 {
-    Gia_StochThData_t ThData[PAR_THR_MAX];
-    pthread_t WorkerThread[PAR_THR_MAX];
-    int i, k, status;
-    if ( fVerbose )
-        printf( "Running concurrent synthesis with %d processes.\n", nProcs );
-    fflush( stdout );
-    if ( nProcs < 2 )
-        return Gia_StochProcessArray( vGias, pScript, TimeSecs, fVerbose );
-    // subtract manager thread
-    nProcs--;
-    assert( nProcs >= 1 && nProcs <= PAR_THR_MAX );
-    // start threads
+    if ( nProcs <= 2 ) {
+        if ( fVerbose )
+            printf( "Running non-concurrent synthesis.\n" ), fflush(stdout);            
+        Gia_StochProcessArray( vGias, pScript, TimeSecs, fVerbose );
+        return;
+    }
+    StochSynData_t * pData = ABC_CALLOC( StochSynData_t, Vec_PtrSize(vGias) );
+    Vec_Ptr_t * vData = Vec_PtrAlloc( Vec_PtrSize(vGias) ); 
+    Gia_Man_t * pGia; int i;
     Abc_Random(1);
-    for ( i = 0; i < nProcs; i++ )
-    {
-        ThData[i].vGias    = vGias;
-        ThData[i].pScript  = pScript;
-        ThData[i].Index    = -1;
-        ThData[i].Rand     = Abc_Random(0) % 0x1000000;
-        ThData[i].nTimeOut = TimeSecs;
-        ThData[i].fWorking = 0;
-        status = pthread_create( WorkerThread + i, NULL, Gia_StochWorkerThread, (void *)(ThData + i) );  assert( status == 0 );
+    Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i ) {
+        pData[i].pIn     = pGia;
+        pData[i].pOut    = NULL;
+        pData[i].pScript = pScript;
+        pData[i].Rand    = Abc_Random(0) % 0x1000000;
+        pData[i].TimeOut = TimeSecs;
+        Vec_PtrPush( vData, pData+i );
     }
-    // look at the threads
-    for ( k = 0; k < Vec_PtrSize(vGias); k++ )
-    {
-        for ( i = 0; i < nProcs; i++ )
-        {
-            if ( ThData[i].fWorking )
-                continue;
-            ThData[i].Index = k;
-            ThData[i].fWorking = 1;   
-            break;
-        }
-        if ( i == nProcs )
-            k--;
+    if ( fVerbose )
+        printf( "Running concurrent synthesis with %d processes.\n", nProcs ), fflush(stdout);
+    Util_ProcessThreads( Gia_StochProcess1, vData, nProcs, TimeSecs, fVerbose );
+    // replace old AIGs by new AIGs
+    Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i ) {
+        Gia_ManStop( pGia );
+        Vec_PtrWriteEntry( vGias, i, pData[i].pOut );
     }
-    // wait till threads finish
-    for ( i = 0; i < nProcs; i++ )
-        if ( ThData[i].fWorking )
-            i = -1;
-    // stop threads
-    for ( i = 0; i < nProcs; i++ )
-    {
-        assert( !ThData[i].fWorking );
-        // stop
-        ThData[i].Index = -1;
-        ThData[i].fWorking = 1;
-    }
+    Vec_PtrFree( vData );
+    ABC_FREE( pData );
 }
-
-#endif // pthreads are used
-
 
 /**Function*************************************************************
 

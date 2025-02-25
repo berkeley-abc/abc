@@ -241,7 +241,7 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
     // add the root node to the cone (for visualization)
     Vec_PtrPush( vCutSmall, pNode );
     // write the DOT file
-    Io_WriteDotNtk( pNode->pNtk, vInside, vCutSmall, FileNameDot, 0, 0 );
+    Io_WriteDotNtk( pNode->pNtk, vInside, vCutSmall, FileNameDot, 0, 0, 0 );
     // stop the cut computation manager
     Abc_NtkManCutStop( p );
 
@@ -260,7 +260,7 @@ void Abc_NodeShowCut( Abc_Obj_t * pNode, int nNodeSizeMax, int nConeSizeMax )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse, int fKeepDot )
+void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse, int fKeepDot, int fAigIds )
 {
     FILE * pFile;
     Abc_Ntk_t * pNtk;
@@ -302,7 +302,7 @@ void Abc_NtkShow( Abc_Ntk_t * pNtk0, int fGateNames, int fSeq, int fUseReverse, 
     if ( fSeq )
         Io_WriteDotSeq( pNtk, vNodes, NULL, FileNameDot, fGateNames, fUseReverse );
     else
-        Io_WriteDotNtk( pNtk, vNodes, NULL, FileNameDot, fGateNames, fUseReverse );
+        Io_WriteDotNtk( pNtk, vNodes, NULL, FileNameDot, fGateNames, fUseReverse, fAigIds );
     pNtk->nBarBufs = nBarBufs;
     Vec_PtrFree( vNodes );
 
@@ -363,7 +363,11 @@ void Abc_ShowFile( char * FileNameDot, int fKeepDot )
 
     // generate the PostScript file using DOT
     sprintf( CommandDot,  "%s -Tps -o %s %s", pDotName, FileNamePs, FileNameDot ); 
+#if defined(__wasm)
+    RetValue = -1;
+#else
     RetValue = system( CommandDot );
+#endif
     if ( RetValue == -1 )
     {
         fprintf( stdout, "Command \"%s\" did not succeed.\n", CommandDot );
@@ -401,7 +405,11 @@ void Abc_ShowFile( char * FileNameDot, int fKeepDot )
         char CommandPs[1000];
         if ( !fKeepDot ) unlink( FileNameDot );
         sprintf( CommandPs,  "%s %s &", pGsNameUnix, FileNamePs ); 
+#if defined(__wasm)
+        if ( 1 )
+#else
         if ( system( CommandPs ) == -1 )
+#endif
         {
             fprintf( stdout, "Cannot execute \"%s\".\n", CommandPs );
             return;

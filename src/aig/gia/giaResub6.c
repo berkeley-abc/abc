@@ -20,6 +20,7 @@
 
 #include "gia.h"
 #include "misc/util/utilTruth.h"
+#include "base/io/ioResub.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -45,6 +46,7 @@ struct Res6_Man_t_
     Vec_Int_t       vSol;     // current solution
     Vec_Int_t       vSolBest; // best solution
     Vec_Int_t       vTempBest;// current best solution
+    Vec_Int_t       vSupp;    // support
 };
 
 extern void Dau_DsdPrintFromTruth2( word * pTruth, int nVarsInit );
@@ -95,9 +97,45 @@ static inline void Res6_ManStop( Res6_Man_t * p )
     Vec_IntErase( &p->vSol );
     Vec_IntErase( &p->vSolBest );
     Vec_IntErase( &p->vTempBest );
+    Vec_IntErase( &p->vSupp );
     ABC_FREE( p->ppLits );
     ABC_FREE( p->ppSets );
     ABC_FREE( p );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Res6_Man_t * Res6_ManReadPla( char * pFileName )
+{
+    int i, n;
+    Abc_RData_t * pData = Abc_ReadPla( pFileName ); assert( pData->nOuts == 1 );
+    Res6_Man_t * p = pData ? Res6_ManStart( 0, pData->nIns, pData->nOuts, pData->nPats ) : NULL;
+    if ( p == NULL ) return NULL;
+    assert( pData->nSimWords == p->nWords );
+    for ( i = 1; i < p->nDivs; i++ )
+        for ( n = 0; n < 2; n++ )
+            Abc_TtCopy( p->ppLits[2*i+n], Vec_WrdEntryP(pData->vSimsIn, (i-1)*pData->nSimWords), pData->nSimWords, n );
+    for ( i = 0; i < (1 << p->nOuts); i++ )
+        Abc_TtCopy( p->ppSets[i], Vec_WrdEntryP(pData->vSimsOut, i*pData->nSimWords), pData->nSimWords, 0 );
+    if ( pData->vDivs )
+        Vec_IntForEachEntry( pData->vDivs, n, i )
+            Vec_IntPush( &p->vSupp, 1+n );
+    if ( pData->vSol ) {
+        Vec_IntForEachEntry( pData->vSol, n, i )
+            Vec_IntPush( &p->vSol, n );
+        Vec_IntPush( &p->vSol, Vec_IntEntryLast(&p->vSol) );
+    }
+    Abc_RDataStop( pData );
+    return p;
 }
 
 /**Function*************************************************************
@@ -197,7 +235,7 @@ void Res6_ManWrite( char * pFileName, Res6_Man_t * p )
 void Res6_ManPrintProblem( Res6_Man_t * p, int fVerbose )
 {
     int i, nInputs = (p->nIns && p->nIns < 6) ? p->nIns : 6;
-    printf( "Problem:   In = %d  Div = %d  Out = %d  Pattern = %d\n", p->nIns, p->nDivs - p->nIns - 1, p->nOuts, p->nPats );
+    printf( "Problem:   In = %d  Div = %d  Out  = %d  Pat = %d\n", p->nIns, p->nDivs - p->nIns - 1, p->nOuts, p->nPats );
     if ( !fVerbose )
         return;
     printf( "%02d : %s\n", 0, "const0" );
@@ -426,6 +464,7 @@ void Res6_ManResubCheck( char * pFileNameRes, char * pFileNameSol, int fVerbose 
     {
         Res6_Man_t * p = Res6_ManRead( pFileNameRes );
         Vec_Int_t * vSol = Res6_ManReadSol( FileNameSol );
+        //Vec_IntPrint( vSol );        
         if ( p == NULL || vSol == NULL )
             return;
         if ( fVerbose )
@@ -440,6 +479,80 @@ void Res6_ManResubCheck( char * pFileNameRes, char * pFileNameSol, int fVerbose 
     }
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Res6_FindBestEvalPla( Res6_Man_t * p, Vec_Int_t * vSol )
+{
+    int i, n, iObj, iLit0, iLit1, iOffset = 2*(1+Vec_IntSize(&p->vSupp));
+    assert( Vec_IntSize(vSol) % 2 == 0 );
+    Vec_IntForEachEntry( &p->vSupp, iObj, i )
+        for ( n = 0; n < 2; n++ )
+            Abc_TtCopy( p->ppLits[2*(1+i)+n], p->ppLits[2*iObj+n], p->nWords, 0 );
+    Vec_IntForEachEntryDouble( vSol, iLit0, iLit1, i )
+    {
+        if ( iLit0 > iLit1 )
+        {
+            Abc_TtXor( p->ppLits[iOffset+i+0], p->ppLits[iLit0],   p->ppLits[iLit1],   p->nWords, 0 );
+            Abc_TtXor( p->ppLits[iOffset+i+1], p->ppLits[iLit0],   p->ppLits[iLit1],   p->nWords, 1 );
+        }
+        else
+        {
+            Abc_TtAnd( p->ppLits[iOffset+i+0], p->ppLits[iLit0],   p->ppLits[iLit1],   p->nWords, 0 );
+            Abc_TtOr ( p->ppLits[iOffset+i+1], p->ppLits[iLit0^1], p->ppLits[iLit1^1], p->nWords );
+        }
+    }
+    return Res6_FindGetCost( p, Vec_IntEntryLast(vSol) );
+}
+void Res6_ManResubVerifyPla( Res6_Man_t * p, Vec_Int_t * vSol )
+{
+    int Cost = Res6_FindBestEvalPla( p, vSol );
+    if ( Cost == 0 )
+        printf( "Verification successful.\n" );
+    else
+        printf( "Verification FAILED with %d errors on %d patterns.\n", Cost, p->nPats );
+}
+void Res6_PrintSolutionPla( Vec_Int_t * vSol, int nSuppSize, int nDivs )
+{
+    int iNode, nNodes = Vec_IntSize(vSol)/2-1;
+    assert( Vec_IntSize(vSol) % 2 == 0 );
+    printf( "Solution:  In = %d  Div = %d  Node = %d  Out = %d\n", nSuppSize, nDivs-1, nNodes, 1 );
+    for ( iNode = 0; iNode <= nNodes; iNode++ )
+    {
+        int * pLits = Vec_IntEntryP( vSol, 2*iNode );
+        printf( "x%-2d = ", 1+nSuppSize+iNode );
+        Res6_LitPrint( pLits[0], 1+nSuppSize );
+        if ( pLits[0] != pLits[1] )
+        {
+            printf( "  %c ", pLits[0] < pLits[1] ? '&' : '^' );
+            Res6_LitPrint( pLits[1], 1+nSuppSize );
+        }
+        printf( "\n" );
+    }
+}
+void Res6_ManResubCheckPla( char * pFileName, int fVerbose )
+{
+    Res6_Man_t * p = Res6_ManReadPla( pFileName );
+    if ( p == NULL ) return;
+    //Vec_IntPrint( &p->vSupp );
+    //Vec_IntPrint( &p->vSol );
+    if ( fVerbose )
+        Res6_ManPrintProblem( p, 0 );
+    if ( fVerbose )
+        Res6_PrintSolutionPla( &p->vSol, Vec_IntSize(&p->vSupp), p->nDivs );
+    //if ( fVerbose )
+    //    Res6_PrintSuppSims( vSol, p->ppLits, p->nWords, p->nDivs );
+    Res6_ManResubVerifyPla( p, &p->vSol );
+    Res6_ManStop( p );    
+}
 
 
 ////////////////////////////////////////////////////////////////////////

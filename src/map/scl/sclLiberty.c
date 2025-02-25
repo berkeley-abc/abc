@@ -49,20 +49,20 @@ typedef enum {
 typedef struct Scl_Pair_t_ Scl_Pair_t;
 struct Scl_Pair_t_
 {
-    int             Beg;          // item beginning
-    int             End;          // item end
+    long            Beg;          // item beginning
+    long            End;          // item end
 };
 
 typedef struct Scl_Item_t_ Scl_Item_t;
 struct Scl_Item_t_
 {
     int             Type;         // Scl_LibertyType_t
-    int             iLine;        // file line where the item's spec begins
+    long            iLine;        // file line where the item's spec begins
     Scl_Pair_t      Key;          // key part
     Scl_Pair_t      Head;         // head part 
     Scl_Pair_t      Body;         // body part
-    int             Next;         // next item in the list 
-    int             Child;        // first child item 
+    long            Next;         // next item in the list 
+    long            Child;        // first child item 
 };
 
 typedef struct Scl_Tree_t_ Scl_Tree_t;
@@ -71,9 +71,9 @@ struct Scl_Tree_t_
     char *          pFileName;    // input Liberty file name
     char *          pContents;    // file contents
     long            nContents;    // file size
-    int             nLines;       // line counter
-    int             nItems;       // number of items
-    int             nItermAlloc;  // number of items allocated
+    long            nLines;       // line counter
+    long            nItems;       // number of items
+    long            nItermAlloc;  // number of items allocated
     Scl_Item_t *    pItems;       // the items
     char *          pError;       // the error string
     abctime         clkStart;     // beginning time
@@ -89,11 +89,11 @@ static inline int          Scl_LibertyGlobMatch(const char * pattern, const char
     #endif
 }
 static inline Scl_Item_t *  Scl_LibertyRoot( Scl_Tree_t * p )                                      { return p->pItems;                                                 }
-static inline Scl_Item_t *  Scl_LibertyItem( Scl_Tree_t * p, int v )                               { assert( v < p->nItems ); return v < 0 ? NULL : p->pItems + v;     }
-static inline int           Scl_LibertyCompare( Scl_Tree_t * p, Scl_Pair_t Pair, char * pStr )     { return strncmp( p->pContents+Pair.Beg, pStr, Pair.End-Pair.Beg ) || ((int)strlen(pStr) != Pair.End-Pair.Beg); }
+static inline Scl_Item_t *  Scl_LibertyItem( Scl_Tree_t * p, long v )                               { assert( v < p->nItems ); return v < 0 ? NULL : p->pItems + v;     }
+static inline long          Scl_LibertyCompare( Scl_Tree_t * p, Scl_Pair_t Pair, char * pStr )     { return strncmp( p->pContents+Pair.Beg, pStr, Pair.End-Pair.Beg ) || ((long)strlen(pStr) != Pair.End-Pair.Beg); }
 static inline void          Scl_PrintWord( FILE * pFile, Scl_Tree_t * p, Scl_Pair_t Pair )         { char * pBeg = p->pContents+Pair.Beg, * pEnd = p->pContents+Pair.End; while ( pBeg < pEnd ) fputc( *pBeg++, pFile ); }
-static inline void          Scl_PrintSpace( FILE * pFile, int nOffset )                            { int i; for ( i = 0; i < nOffset; i++ ) fputc(' ', pFile);         }
-static inline int           Scl_LibertyItemId( Scl_Tree_t * p, Scl_Item_t * pItem )                { return pItem - p->pItems;                                         }
+static inline void          Scl_PrintSpace( FILE * pFile, long nOffset )                           { long i; for ( i = 0; i < nOffset; i++ ) fputc(' ', pFile);         }
+static inline long          Scl_LibertyItemId( Scl_Tree_t * p, Scl_Item_t * pItem )                { return pItem - p->pItems;                                         }
 
 #define Scl_ItemForEachChild( p, pItem, pChild ) \
     for ( pChild = Scl_LibertyItem(p, pItem->Child); pChild; pChild = Scl_LibertyItem(p, pChild->Next) )
@@ -181,9 +181,9 @@ int Scl_LibertyParseDump( Scl_Tree_t * p, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-int Scl_LibertyCountItems( char * pBeg, char * pEnd )
+long Scl_LibertyCountItems( char * pBeg, char * pEnd )
 {
-    int Counter = 0;
+    long Counter = 0;
     for ( ; pBeg < pEnd; pBeg++ )
         Counter += (*pBeg == '(' || *pBeg == ':');
     return Counter;
@@ -228,11 +228,11 @@ void Scl_LibertyWipeOutComments( char * pBeg, char * pEnd )
                 }
         }
 }
-static inline int Scl_LibertyCharIsSpace( char c )
+static inline long Scl_LibertyCharIsSpace( char c )
 {
     return c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\\';
 }
-static inline int Scl_LibertySkipSpaces( Scl_Tree_t * p, char ** ppPos, char * pEnd, int fStopAtNewLine )
+static inline long Scl_LibertySkipSpaces( Scl_Tree_t * p, char ** ppPos, char * pEnd, int fStopAtNewLine )
 {
     char * pPos = *ppPos;
     for ( ; pPos < pEnd; pPos++ )
@@ -250,7 +250,7 @@ static inline int Scl_LibertySkipSpaces( Scl_Tree_t * p, char ** ppPos, char * p
     return pPos == pEnd;
 }
 // skips entry delimited by " :;(){}" and returns 1 if reached the end
-static inline int Scl_LibertySkipEntry( char ** ppPos, char * pEnd )
+static inline long Scl_LibertySkipEntry( char ** ppPos, char * pEnd )
 {
     char * pPos = *ppPos;
     if ( *pPos == '\"' )
@@ -277,7 +277,7 @@ static inline int Scl_LibertySkipEntry( char ** ppPos, char * pEnd )
 // finds the matching closing symbol
 static inline char * Scl_LibertyFindMatch( char * pPos, char * pEnd )
 {
-    int Counter = 0;
+    long Counter = 0;
     assert( *pPos == '(' || *pPos == '{' );
     if ( *pPos == '(' )
     {
@@ -387,10 +387,10 @@ char * Scl_LibertyReadString( Scl_Tree_t * p, Scl_Pair_t Pair )
     Buffer[Pair.End-Pair.Beg] = 0;
     return Buffer;
 }
-int Scl_LibertyItemNum( Scl_Tree_t * p, Scl_Item_t * pRoot, char * pName )
+long Scl_LibertyItemNum( Scl_Tree_t * p, Scl_Item_t * pRoot, char * pName )
 {
     Scl_Item_t * pItem;
-    int Counter = 0;
+    long Counter = 0;
     Scl_ItemForEachChildName( p, pRoot, pItem, pName )
         Counter++;
     return Counter;
@@ -407,7 +407,7 @@ int Scl_LibertyItemNum( Scl_Tree_t * p, Scl_Item_t * pRoot, char * pName )
   SeeAlso     []
 
 ***********************************************************************/
-int Scl_LibertyBuildItem( Scl_Tree_t * p, char ** ppPos, char * pEnd )
+long Scl_LibertyBuildItem( Scl_Tree_t * p, char ** ppPos, char * pEnd )
 {
     Scl_Item_t * pItem;
     Scl_Pair_t Key, Head, Body;
@@ -513,7 +513,7 @@ exit:
     if ( p->pError == NULL )
     {
         p->pError = ABC_ALLOC( char, 1000 );
-        sprintf( p->pError, "File \"%s\". Line %6d. Failed to parse entry \"%s\".\n", 
+        sprintf( p->pError, "File \"%s\". Line %6ld. Failed to parse entry \"%s\".\n", 
             p->pFileName, p->nLines, Scl_LibertyReadString(p, Key) );
     }
     return -1;
@@ -556,7 +556,7 @@ char * Scl_LibertyFileContents( char * pFileName, long nContents )
 {
     FILE * pFile = fopen( pFileName, "rb" );
     char * pContents = ABC_ALLOC( char, nContents+1 );
-    int RetValue = 0;
+    long RetValue = 0;
     RetValue = fread( pContents, nContents, 1, pFile );
     fclose( pFile );
     pContents[nContents] = 0;
@@ -565,7 +565,7 @@ char * Scl_LibertyFileContents( char * pFileName, long nContents )
 void Scl_LibertyStringDump( char * pFileName, Vec_Str_t * vStr )
 {
     FILE * pFile = fopen( pFileName, "wb" );
-    int RetValue = 0;
+    long RetValue = 0;
     if ( pFile == NULL )
     {
         printf( "Scl_LibertyStringDump(): The output file is unavailable.\n" );
@@ -721,10 +721,10 @@ int Scl_LibertyReadCellIsThreeState( Scl_Tree_t * p, Scl_Item_t * pCell )
             return 1;
     return 0;
 }
-int Scl_LibertyReadCellOutputNum( Scl_Tree_t * p, Scl_Item_t * pCell )
+long Scl_LibertyReadCellOutputNum( Scl_Tree_t * p, Scl_Item_t * pCell )
 {
     Scl_Item_t * pPin;
-    int Counter = 0;
+    long Counter = 0;
     Scl_ItemForEachChildName( p, pCell, pPin, "pin" )
         if ( Scl_LibertyReadPinFormula(p, pPin) )
             Counter++;

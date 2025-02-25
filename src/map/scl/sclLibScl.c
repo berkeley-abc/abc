@@ -570,7 +570,7 @@ int Abc_SclCountValidCells( SC_Lib * p )
             n_valid_cells++;
     return n_valid_cells;
 }
-static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p, int nExtra )
+static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p, int nExtra, int fUsePrefix )
 {
     SC_WireLoad * pWL;
     SC_WireLoadSel * pWLS;
@@ -624,13 +624,13 @@ static void Abc_SclWriteLibrary( Vec_Str_t * vOut, SC_Lib * p, int nExtra )
     // Write 'cells' vector:
     n_valid_cells = Abc_SclCountValidCells( p );
     Vec_StrPutI( vOut, n_valid_cells + nExtra );
-    Abc_SclWriteLibraryCellsOnly( vOut, p, (int)(nExtra > 0) );
+    Abc_SclWriteLibraryCellsOnly( vOut, p, fUsePrefix ? 1 : 0 );
 }
 void Abc_SclWriteScl( char * pFileName, SC_Lib * p )
 {
     Vec_Str_t * vOut;
     vOut = Vec_StrAlloc( 10000 );
-    Abc_SclWriteLibrary( vOut, p, 0 );
+    Abc_SclWriteLibrary( vOut, p, 0, 0 );
     if ( Vec_StrSize(vOut) > 0 )
     {
         FILE * pFile = fopen( pFileName, "wb" );
@@ -866,12 +866,12 @@ void Abc_SclWriteLiberty( char * pFileName, SC_Lib * p )
   SeeAlso     []
 
 ***********************************************************************/
-SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2 )
+SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2, int fUsePrefix )
 {
     Vec_Str_t * vOut = Vec_StrAlloc( 10000 );
     int n_valid_cells2 = Abc_SclCountValidCells( pLib2 );
-    Abc_SclWriteLibrary( vOut, pLib1, n_valid_cells2 );
-    Abc_SclWriteLibraryCellsOnly( vOut, pLib2, 2 );
+    Abc_SclWriteLibrary( vOut, pLib1, n_valid_cells2, fUsePrefix );
+    Abc_SclWriteLibraryCellsOnly( vOut, pLib2, fUsePrefix ? 2 : 0 );
     SC_Lib * p = Abc_SclReadFromStr( vOut );
     p->pFileName = Abc_UtilStrsav( pLib1->pFileName );
     p->pName = ABC_ALLOC( char, strlen(pLib1->pName) + strlen(pLib2->pName) + 10 );

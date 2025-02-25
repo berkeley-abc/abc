@@ -159,7 +159,7 @@ char * pLibStr2[25] = {
 };
 void Acb_IntallLibrary( int f2Ins )
 {
-    extern Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int fVerbose );
+    extern Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose );
     Mio_Library_t * pLib;
     int i;
     // create library string
@@ -169,7 +169,7 @@ void Acb_IntallLibrary( int f2Ins )
         Vec_StrAppend( vLibStr, ppLibStr[i] );
     Vec_StrPush( vLibStr, '\0' );
     // create library
-    pLib = Mio_LibraryReadBuffer( Vec_StrArray(vLibStr), 0, NULL, 0 );
+    pLib = Mio_LibraryReadBuffer( Vec_StrArray(vLibStr), 0, NULL, 0, 0 );
     Mio_LibrarySetName( pLib, Abc_UtilStrsav("iccad17.genlib") );
     Mio_UpdateGenlib( pLib );
     Vec_StrFree( vLibStr );

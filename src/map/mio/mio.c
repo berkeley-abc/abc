@@ -152,7 +152,7 @@ int Mio_UpdateGenlib2( Vec_Str_t * vStr, Vec_Str_t * vStr2, char * pFileName, in
 {
     Mio_Library_t * pLib;
     // set the new network
-    pLib = Mio_LibraryRead( pFileName, Vec_StrArray(vStr), NULL, fVerbose );  
+    pLib = Mio_LibraryRead( pFileName, Vec_StrArray(vStr), NULL, 0, fVerbose );  
     if ( pLib == NULL )
         return 0;
 
@@ -291,12 +291,13 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pExcludeFile = NULL;
     double WireDelay = 0.0;
     int fShortNames = 0;
+    int nFaninLimit = 0;
     int c, fVerbose = 1;
 
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "WEnvh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "WEKnvh")) != EOF ) 
     {
         switch (c) 
         {
@@ -318,6 +319,15 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
                     goto usage;
                 }
                 pExcludeFile = argv[globalUtilOptind];
+                globalUtilOptind++;
+                break;
+            case 'K':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-K\" should be followed by a file name.\n" );
+                    goto usage;
+                }
+                nFaninLimit = atoi(argv[globalUtilOptind]);
                 globalUtilOptind++;
                 break;
             case 'n':
@@ -351,7 +361,7 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pLib = Mio_LibraryRead( pFileName, NULL, pExcludeFile, fVerbose );  
+    pLib = Mio_LibraryRead( pFileName, NULL, pExcludeFile, nFaninLimit, fVerbose );  
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading genlib library has failed.\n" );
@@ -382,13 +392,14 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pErr, "usage: read_genlib [-W float] [-E filename] [-nvh]\n");
+    fprintf( pErr, "usage: read_genlib [-W float] [-E filename] [-K num] [-nvh]\n");
     fprintf( pErr, "\t           read the library from a genlib file\n" );  
     fprintf( pErr, "\t           (if the library contains more than one gate\n" );  
     fprintf( pErr, "\t           with the same Boolean function, only the gate\n" );  
     fprintf( pErr, "\t           with the smallest area will be used)\n" );  
     fprintf( pErr, "\t-W float : wire delay (added to pin-to-pin gate delays) [default = %g]\n", WireDelay );  
-    fprintf( pErr, "\t-E file :  the file name with gates to be excluded [default = none]\n" );
+    fprintf( pErr, "\t-E file  : the file name with gates to be excluded [default = none]\n" );
+    fprintf( pErr, "\t-K num   : the max number of gate fanins (0 = no limit) [default = %d]\n", nFaninLimit );
     fprintf( pErr, "\t-n       : toggle replacing gate/pin names by short strings [default = %s]\n", fShortNames? "yes": "no" );
     fprintf( pErr, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pErr, "\t-h       : enable verbose output\n");

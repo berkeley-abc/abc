@@ -1228,11 +1228,19 @@ char * Abc_NodeGetPrintName( Abc_Obj_t * pObj )
     }
     return Abc_ObjName(nPos == 1 ? pFanout : pObj);
 }
-void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes, int fVerbose )
+void Abc_NtkPrintLevel( FILE * pFile, Abc_Ntk_t * pNtk, int fProfile, int fListNodes, int fOutputs, int fVerbose )
 {
     Abc_Obj_t * pNode;
     int i, k, Length;
-
+    if ( fOutputs )
+    {
+        Abc_NtkLevel(pNtk);
+        printf( "Outputs by level: " );
+        Abc_NtkForEachCo( pNtk, pNode, k )
+            printf( "%d=%d ", k, Abc_ObjFanin0(pNode)->Level );
+        printf( "\n" );
+        return;        
+    }
     if ( fListNodes )
     {
         int nLevels;

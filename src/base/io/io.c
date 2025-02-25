@@ -44,6 +44,7 @@ static int IoCommandReadBblif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBlifMv  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadBench   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadCex     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadDsd     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEdif    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadEqn     ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -58,6 +59,7 @@ static int IoCommandReadStatus  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadGig     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadJson    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadSF      ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadRom     ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int IoCommandWrite       ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteHie    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -116,6 +118,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_blif",     IoCommandReadBlif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_blif_mv",  IoCommandReadBlifMv,   1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_bench",    IoCommandReadBench,    1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_cex",      IoCommandReadCex,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_dsd",      IoCommandReadDsd,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_formula",  IoCommandReadDsd,      1 );
 //    Cmd_CommandAdd( pAbc, "I/O", "read_edif",     IoCommandReadEdif,     1 );
@@ -131,6 +134,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "&read_gig",     IoCommandReadGig,      0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_json",     IoCommandReadJson,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_sf",       IoCommandReadSF,       0 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_rom",      IoCommandReadRom,      1 );
 
     Cmd_CommandAdd( pAbc, "I/O", "write",         IoCommandWrite,        0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_hie",     IoCommandWriteHie,     0 );
@@ -697,6 +701,331 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_NtkReadCexFile( char * pFileName, Abc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, Abc_Cex_t ** ppCexCare, int * pnFrames, int * fOldFormat, int xMode )
+{
+    FILE * pFile;
+    Abc_Cex_t * pCex;
+    Abc_Cex_t * pCexCare;
+    Vec_Int_t * vNums;
+    int c, nRegs = -1, nFrames = -1;
+    pFile = fopen( pFileName, "r" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open log file for reading \"%s\".\n" , pFileName );
+        return -1;
+    }
+
+    vNums = Vec_IntAlloc( 100 );
+    int usedX = 0;
+    *fOldFormat = 0;
+    
+    int MaxLine = 1000000;
+    char *Buffer;
+    int BufferLen = 0;
+    int state = 0;
+    int iPo = 0;
+    nFrames = -1;
+    int status = 0;
+    int i;
+    int nRegsNtk = 0;
+    Abc_Obj_t * pObj;
+    Abc_NtkForEachLatch( pNtk, pObj, i ) nRegsNtk++;
+
+    Buffer = ABC_ALLOC( char, MaxLine );
+    while ( fgets( Buffer, MaxLine, pFile ) != NULL )
+    {
+        if ( Buffer[0] == '#' || Buffer[0] == 'c' || Buffer[0] == 'f' || Buffer[0] == 'u' )
+            continue;
+        BufferLen = strlen(Buffer) - 1;
+        Buffer[BufferLen] = '\0';
+        if (state==0 && BufferLen>1) {
+            // old format detected
+            *fOldFormat = 1;
+            state = 2;
+            iPo = 0;
+            status = 1;
+        }
+        if (state==1 && Buffer[0]!='b' && Buffer[0]!='j') {
+            // old format detected, first line was actually register
+            *fOldFormat = 1;
+            state = 3;
+            Vec_IntPush( vNums, status );
+            status = 1;
+        }
+        if (Buffer[0] == '.' )
+            break;
+        switch(state) {
+            case 0 :
+                {
+                    char c = Buffer[0];
+                    if ( c == '0' || c == '1' || c == '2' ) {
+                        status = c - '0' ;
+                        state = 1;
+                    } else if ( c == 'x' ) {
+                        // old format with one x state latch
+                        usedX = 1;
+                        // set to 2 so we can Abc_LatchSetInitNone
+                        // acts like 0 when setting bits
+                        Vec_IntPush( vNums, 2 );
+                        nRegs = Vec_IntSize(vNums);
+                        state = 3;
+                    } else {
+                        printf( "ERROR: Bad aiger status line.\n" );
+                        return -1;
+                    }
+                }
+                break;
+            case 1 :
+                iPo = atoi(Buffer+1);
+                state = 2;
+                break;
+            case 2 :
+                for (i=0; i<BufferLen;i++) {
+                    char c = Buffer[i];
+                    if ( c == '0' || c == '1' )
+                        Vec_IntPush( vNums, c - '0' );
+                    else if ( c == 'x') {
+                        usedX = 1;
+                        // set to 2 so we can Abc_LatchSetInitNone
+                        // acts like 0 when setting bits
+                        Vec_IntPush( vNums, 2 );
+                    }
+                }
+                nRegs = Vec_IntSize(vNums);
+                if ( nRegs < nRegsNtk )
+                {
+                    printf( "WARNING: Register number is smaller than in Ntk. Appending.\n" );
+                    for (i=0; i<nRegsNtk-nRegs;i++) {
+                        Vec_IntPush( vNums, 0 );
+                    }
+                    nRegs = Vec_IntSize(vNums);
+                }
+                else if ( nRegs > nRegsNtk )
+                {
+                    printf( "WARNING: Register number is larger than in Ntk. Truncating.\n" );
+                    Vec_IntShrink( vNums, nRegsNtk );
+                    nRegs = nRegsNtk;
+                }
+                state = 3;
+                break;
+            default:
+                for (i=0; i<BufferLen;i++) {
+                    char c = Buffer[i];
+                    if ( c == '0' || c == '1' )
+                        Vec_IntPush( vNums, c - '0' );
+                    else if ( c == 'x') {
+                        usedX = 1;
+                        Vec_IntPush( vNums, 2 );
+                    }
+                }
+                nFrames++;
+                break;
+        }
+    }
+    fclose( pFile );
+
+    if (usedX && !xMode)
+        printf( "Warning: Using 0 instead of x in latches or primary inputs\n" );
+    int iFrameCex = nFrames;
+    if ( nRegs < 0 )
+    {
+        if (status == 0 || *fOldFormat == 0)
+            printf( "Counter-example is not available.\n" );
+        else
+            printf( "ERROR: Cannot read register number.\n" );
+        Vec_IntFree( vNums );
+        return -1;
+    }
+    if ( nRegs != nRegsNtk )
+    {
+        printf( "ERROR: Register number not coresponding to Ntk.\n" );
+        Vec_IntFree( vNums );
+        return -1;
+    }
+    if ( Vec_IntSize(vNums)-nRegs == 0 )
+    {
+        printf( "ERROR: Cannot read counter example.\n" );
+        Vec_IntFree( vNums );
+        return -1;
+    }
+    if ( (Vec_IntSize(vNums)-nRegs) % (iFrameCex + 1) != 0 )
+    {
+        printf( "ERROR: Incorrect number of bits.\n" );
+        Vec_IntFree( vNums );
+        return -1;
+    }
+    int nPi = (Vec_IntSize(vNums)-nRegs)/(iFrameCex + 1);
+    if ( nPi != Abc_NtkPiNum(pNtk) )
+    {
+        printf( "ERROR: Number of primary inputs not coresponding to Ntk.\n" );
+        Vec_IntFree( vNums );
+        return -1;
+    }
+    if ( iPo >= Abc_NtkPoNum(pNtk) )
+    {
+        printf( "WARNING: PO that failed verification not coresponding to Ntk, using first PO instead.\n" );
+        iPo = 0;
+    }
+    Abc_NtkForEachLatch( pNtk, pObj, i ) {
+        if ( Vec_IntEntry(vNums, i) == 1 )
+            Abc_LatchSetInit1(pObj);
+        else if ( Vec_IntEntry(vNums, i) == 2 && xMode )
+            Abc_LatchSetInitNone(pObj);
+        else
+            Abc_LatchSetInit0(pObj);
+    }
+
+    pCex = Abc_CexAlloc( nRegs, nPi, iFrameCex + 1 );
+    pCexCare = Abc_CexAlloc( nRegs, nPi, iFrameCex + 1);
+    // the zero-based number of PO, for which verification failed
+    // fails in Bmc_CexVerify if not less than actual number of PO
+    pCex->iPo    = iPo;
+    pCexCare->iPo = iPo;
+    // the zero-based number of the time-frame, for which verificaiton failed
+    pCex->iFrame = iFrameCex;
+    pCexCare->iFrame = iFrameCex;
+    assert( Vec_IntSize(vNums) == pCex->nBits );
+    for ( c = 0; c < pCex->nBits; c++ ) {
+        if ( Vec_IntEntry(vNums, c) == 1)
+        {
+            Abc_InfoSetBit( pCex->pData, c );
+            Abc_InfoSetBit( pCexCare->pData, c );
+        }
+        else if ( Vec_IntEntry(vNums, c) == 2 && xMode )
+        {
+            // nothing to set
+        }
+        else
+            Abc_InfoSetBit( pCexCare->pData, c );
+    }
+
+    Vec_IntFree( vNums );
+    Abc_CexFreeP( ppCex );
+    if ( ppCex )
+        *ppCex = pCex;
+    else
+        Abc_CexFree( pCex );
+    Abc_CexFreeP( ppCexCare );
+    if ( ppCexCare )
+        *ppCexCare = pCexCare;
+    else
+        Abc_CexFree( pCexCare );
+
+    if ( pnFrames )
+        *pnFrames = nFrames;
+    return status;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+
+int IoCommandReadCex( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk;
+    Abc_Cex_t * pCex = NULL;
+    Abc_Cex_t * pCexCare = NULL;
+    char * pFileName;
+    FILE * pFile;
+    int fCheck = 1;
+    int fXMode = 0;
+    int c;
+    int fOldFormat = 0;
+    int verified;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cxh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'c':
+                fCheck ^= 1;
+                break;
+            case 'x':
+                fXMode ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
+        return 1;
+    }
+    fclose( pFile );
+
+    pNtk = pAbc->pNtkCur;
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+    Abc_FrameClearVerifStatus( pAbc );
+    pAbc->Status = Abc_NtkReadCexFile( pFileName, pNtk, &pCex, &pCexCare, &pAbc->nFrames, &fOldFormat, fXMode);
+    if ( fOldFormat && !fCheck )
+        printf( "WARNING: Old witness format detected and checking is disabled. Reading might have failed.\n" );
+
+    if ( fCheck && pAbc->Status==1) {
+        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
+        Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
+
+        verified = Bmc_CexCareVerify( pAig, pCex, pCexCare, false );
+        if (!verified)
+        {
+            printf( "Checking CEX for any PO.\n" );
+            int verified = Bmc_CexCareVerifyAnyPo( pAig, pCex, pCexCare, false );
+            Aig_ManStop( pAig );
+            if (verified < 0)
+            {
+                Abc_CexFreeP(&pCex);
+                Abc_CexFreeP(&pCexCare);
+                return 1;
+            }
+            pAbc->pCex->iPo = verified;
+        }
+
+        Abc_CexFreeP(&pCexCare);
+        Abc_FrameReplaceCex( pAbc, &pCex );
+    }
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_cex [-ch] <file>\n" );
+    fprintf( pAbc->Err, "\t         reads the witness cex\n" );
+    fprintf( pAbc->Err, "\t-c     : toggle check after reading [default = %s]\n", fCheck? "yes":"no" );
+    fprintf( pAbc->Err, "\t-x     : read x bits for verification [default = %s]\n", fXMode? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int IoCommandReadDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk;
@@ -1060,7 +1389,15 @@ usage:
     fprintf( pAbc->Err, "\t-x     : toggle reading Exclusive SOP rather than SOP [default = %s]\n", fSkipPrepro? "yes":"no" );
     fprintf( pAbc->Err, "\t-c     : toggle network check after reading [default = %s]\n", fCheck? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
-    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n\n" );
+    fprintf( pAbc->Err, "\t         Please note that the PLA parser is somewhat slow for large SOPs.\n" );
+    fprintf( pAbc->Err, "\t         On the other hand, BLIF parser reads a 3M SOP and converts it into a 7.5K AIG in 1 sec:\n" );
+    fprintf( pAbc->Err, "\t         abc 16> read test.blif; ps; bdd -s; ps; muxes; strash; ps\n" );
+    fprintf( pAbc->Err, "\t         test                      : i/o =   25/    1  lat =    0  nd =     1  edge =     25  cube = 2910537  lev = 1\n" );
+    fprintf( pAbc->Err, "\t         test                      : i/o =   25/    1  lat =    0  nd =     1  edge =     25  bdd  =    2937  lev = 1\n" );
+    fprintf( pAbc->Err, "\t         test                      : i/o =   25/    1  lat =    0  and =     7514  lev = 48\n" );
+    fprintf( pAbc->Err, "\t         abc 19> time\n" );
+    fprintf( pAbc->Err, "\t         elapse: 1.05 seconds, total: 1.05 seconds\n" );
     return 1;
 }
 
@@ -1591,6 +1928,73 @@ usage:
     return 1;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadRom( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Io_TransformROM2PLA( char * pNameIn, char * pNameOut );
+
+    Abc_Ntk_t * pNtk;
+    FILE * pFile;
+    char * pFileName, * pFileTemp = "_temp_rom_.pla";
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
+        return 1;
+    }
+    fclose( pFile );
+    Io_TransformROM2PLA( pFileName, pFileTemp );
+    pNtk = Io_Read( pFileTemp, IO_FILE_PLA, 1, 0 );
+    //unlink( pFileTemp );
+    if ( pNtk == NULL )
+        return 1;
+    ABC_FREE( pNtk->pName );
+    pNtk->pName = Extra_FileNameGeneric( pFileName );
+    ABC_FREE( pNtk->pSpec );
+    pNtk->pSpec = Abc_UtilStrsav( pFileName );
+    // replace the current network
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    Abc_FrameClearVerifStatus( pAbc );
+
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_rom [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         reads ROM file\n" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -2541,10 +2945,15 @@ void Abc_NtkDumpOneCexSpecial( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex 
 }
 
 
+extern Abc_Cex_t * Bmc_CexInnerStates( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t ** ppCexImpl, int fVerbose );
+extern Abc_Cex_t * Bmc_CexEssentialBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * pCexCare, int fVerbose );
+extern Abc_Cex_t * Bmc_CexCareBits( Gia_Man_t * p, Abc_Cex_t * pCexState, Abc_Cex_t * pCexImpl, Abc_Cex_t * pCexEss, int fFindAll, int fVerbose );
+
 void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex, 
-    int fPrintFull, int fNames, int fUseFfNames, int fMinimize, int fUseOldMin, 
-    int fCheckCex, int fUseSatBased, int fHighEffort, int fAiger, int fVerbose )
+    int fPrintFull, int fNames, int fUseFfNames, int fMinimize, int fUseOldMin, int fCexInfo,
+    int fCheckCex, int fUseSatBased, int fHighEffort, int fAiger, int fVerbose, int fExtended )
 {
+    Abc_Cex_t * pCare = NULL;
     Abc_Obj_t * pObj;
     int i, f;
     if ( fPrintFull )
@@ -2560,15 +2969,17 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
                 fprintf( pFile, "%s@%d=%c ", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCexFull->pData, Abc_NtkCiNum(pNtk)*f + i) );
         Abc_CexFreeP( &pCexFull );
     }
-    else if ( fNames )
+    else
     {
-        Abc_Cex_t * pCare = NULL;
+        if ( fNames )
+        {
+            fprintf( pFile, "# FALSIFYING OUTPUTS:");
+            fprintf( pFile, " %s", Abc_ObjName(Abc_NtkCo(pNtk, pCex->iPo)) );
+        }
         if ( fMinimize )
         {
             extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
             Aig_Man_t * pAig = Abc_NtkToDar( pNtk, 0, 1 );
-            fprintf( pFile, "# FALSIFYING OUTPUTS:");                                       
-            fprintf( pFile, " %s", Abc_ObjName(Abc_NtkCo(pNtk, pCex->iPo)) ); 
             if ( fUseOldMin )
             {
                 pCare = Saig_ManCbaFindCexCareBits( pAig, pCex, 0, fVerbose );
@@ -2576,21 +2987,47 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
                     Bmc_CexCareVerify( pAig, pCex, pCare, fVerbose );
             }
             else if ( fUseSatBased )
-                pCare = Bmc_CexCareSatBasedMinimize( pAig, Saig_ManPiNum(pAig), pCex, fHighEffort, fCheckCex, fVerbose );
+            {
+                if ( Abc_NtkPoNum( pNtk ) == 1 )
+                    pCare = Bmc_CexCareSatBasedMinimize( pAig, Saig_ManPiNum(pAig), pCex, fHighEffort, fCheckCex, fVerbose );
+                else
+                    printf( "SAT-based CEX minimization requires having a single PO.\n" );
+            }
+            else if ( fCexInfo )
+            {
+                Gia_Man_t * p = Gia_ManFromAigSimple( pAig );
+                Abc_Cex_t * pCexImpl   = NULL;
+                Abc_Cex_t * pCexStates = Bmc_CexInnerStates( p, pCex, &pCexImpl, fVerbose );
+                Abc_Cex_t * pCexCare   = Bmc_CexCareBits( p, pCexStates, pCexImpl, NULL, 1, fVerbose );
+                Abc_Cex_t * pCexEss;
+
+                if ( fCheckCex && !Bmc_CexVerify( p, pCex, pCexCare ) )
+                    printf( "Counter-example care-set verification has failed.\n" );
+
+                pCexEss = Bmc_CexEssentialBits( p, pCexStates, pCexCare, fVerbose );
+
+                // pCare is pCexMin from Bmc_CexTest
+                pCare = Bmc_CexCareBits( p, pCexStates, pCexImpl, pCexEss, 0, fVerbose );
+
+                if ( fCheckCex && !Bmc_CexVerify( p, pCex, pCare ) )
+                    printf( "Counter-example min-set verification has failed.\n" );
+                Abc_CexFreeP( &pCexStates );
+                Abc_CexFreeP( &pCexImpl );
+                Abc_CexFreeP( &pCexCare );
+                Abc_CexFreeP( &pCexEss );
+            }
             else
                 pCare = Bmc_CexCareMinimize( pAig, Saig_ManPiNum(pAig), pCex, 4, fCheckCex, fVerbose );
             Aig_ManStop( pAig );
-            if(pCare == NULL)                                           
+            if(pCare == NULL)
                 printf( "Counter-example minimization has failed.\n" ); 
         }
-        else
+        if (fNames)
         {
-            fprintf( pFile, "# FALSIFYING OUTPUTS:");                        
-            fprintf( pFile, " %s", Abc_ObjName(Abc_NtkCo(pNtk, pCex->iPo)) );
+                fprintf( pFile, "\n");
+                fprintf( pFile, "# COUNTEREXAMPLE LENGTH: %u\n", pCex->iFrame+1);
         }
-        fprintf( pFile, "\n");                                           
-        fprintf( pFile, "# COUNTEREXAMPLE LENGTH: %u\n", pCex->iFrame+1);
-        if ( fUseFfNames && Abc_NtkCheckSpecialPi(pNtk) )
+        if ( fNames && fUseFfNames && Abc_NtkCheckSpecialPi(pNtk) )
         {
             int * pValues;
             int nXValues = 0, iFlop = 0, iPivotPi = -1;
@@ -2630,28 +3067,35 @@ void Abc_NtkDumpOneCex( FILE * pFile, Abc_Ntk_t * pNtk, Abc_Cex_t * pCex,
         }
         else
         {
+            if (fExtended && fAiger && !fNames) {
+                fprintf( pFile, "1\n");
+                fprintf( pFile, "b%d\n", pCex->iPo);
+            }
             // output flop values (unaffected by the minimization)
             Abc_NtkForEachLatch( pNtk, pObj, i )
-                fprintf( pFile, "%s@0=%c\n", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+!Abc_LatchIsInit0(pObj) );
+                if ( fNames )
+                    fprintf( pFile, "%s@0=%c\n", Abc_ObjName(Abc_ObjFanout0(pObj)), '0'+!Abc_LatchIsInit0(pObj) );
+                else
+                    fprintf( pFile, "%c", '0'+!Abc_LatchIsInit0(pObj) );
+            if ( !fNames && fAiger)
+                fprintf( pFile, "\n");
             // output PI values (while skipping the minimized ones)
-            for ( f = 0; f <= pCex->iFrame; f++ )
+            for ( f = 0; f <= pCex->iFrame; f++ ) {
                 Abc_NtkForEachPi( pNtk, pObj, i )
                     if ( !pCare || Abc_InfoHasBit(pCare->pData, pCare->nRegs+pCare->nPis*f + i) )
-                        fprintf( pFile, "%s@%d=%c\n", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+                        if ( fNames )
+                            fprintf( pFile, "%s@%d=%c\n", Abc_ObjName(pObj), f, '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+                        else
+                            fprintf( pFile, "%c", '0'+Abc_InfoHasBit(pCex->pData, pCex->nRegs+pCex->nPis*f + i) );
+                    else if ( !fNames )
+                        fprintf( pFile, "x");
+                if ( !fNames && fAiger)
+                    fprintf( pFile, "\n");
+            }
+            if (fExtended && fAiger && !fNames)
+                fprintf( pFile, ".\n");
         }
         Abc_CexFreeP( &pCare );
-    }
-    else
-    {
-        Abc_NtkForEachLatch( pNtk, pObj, i )
-            fprintf( pFile, "%c", '0'+!Abc_LatchIsInit0(pObj) );
-
-        for ( i = pCex->nRegs; i < pCex->nBits; i++ )
-        {
-            if ( fAiger && (i-pCex->nRegs)%pCex->nPis == 0)
-                fprintf( pFile, "\n");
-            fprintf( pFile, "%c", '0'+Abc_InfoHasBit(pCex->pData, i) );
-        }
     }
 }
 
@@ -2681,9 +3125,11 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
     int fPrintFull = 0;
     int fUseFfNames = 0;
     int fVerbose   = 0;
+    int fCexInfo   = 0;
+    int fExtended  = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "snmueocafzvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "snmueocafzvhxt" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2719,6 +3165,12 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'v':
                 fVerbose ^= 1;
+                break;
+            case 'x':
+                fCexInfo ^= 1;
+                break;
+            case 't':
+                fExtended ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -2768,8 +3220,8 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
         if ( pAbc->pCex )
         {
             Abc_NtkDumpOneCex( pFile, pNtk, pCex, 
-                fPrintFull, fNames, fUseFfNames, fMinimize, fUseOldMin, 
-                fCheckCex, fUseSatBased, fHighEffort, fAiger, fVerbose );
+                fPrintFull, fNames, fUseFfNames, fMinimize, fUseOldMin, fCexInfo,
+                fCheckCex, fUseSatBased, fHighEffort, fAiger, fVerbose, fExtended );
         }
         else if ( pAbc->vCexVec )
         {
@@ -2777,10 +3229,10 @@ int IoCommandWriteCex( Abc_Frame_t * pAbc, int argc, char **argv )
             {
                 if ( pCex == NULL )
                     continue;
-                fprintf( pFile, "#\n#\n# CEX for output %d\n#\n", i ); 
+                fprintf( pFile, "#\n#\n# CEX for output %d\n#\n", i );
                 Abc_NtkDumpOneCex( pFile, pNtk, pCex, 
-                    fPrintFull, fNames, fUseFfNames, fMinimize, fUseOldMin, 
-                    fCheckCex, fUseSatBased, fHighEffort, fAiger, fVerbose );
+                    fPrintFull, fNames, fUseFfNames, fMinimize, fUseOldMin, fCexInfo,
+                    fCheckCex, fUseSatBased, fHighEffort, fAiger, fVerbose, fExtended );
             }
         }
         fprintf( pFile, "# DONE\n" ); 
@@ -2824,8 +3276,10 @@ usage:
     fprintf( pAbc->Err, "\t-u     : use fast SAT-based CEX minimization [default = %s]\n", fUseSatBased? "yes": "no" );
     fprintf( pAbc->Err, "\t-e     : use high-effort SAT-based CEX minimization [default = %s]\n", fHighEffort? "yes": "no" );
     fprintf( pAbc->Err, "\t-o     : use old CEX minimization algorithm [default = %s]\n", fUseOldMin? "yes": "no" );
+    fprintf( pAbc->Err, "\t-x     : minimize using algorithm from cexinfo command [default = %s]\n", fCexInfo? "yes": "no" );
     fprintf( pAbc->Err, "\t-c     : check generated CEX using ternary simulation [default = %s]\n", fCheckCex? "yes": "no" );
     fprintf( pAbc->Err, "\t-a     : print cex in AIGER 1.9 format [default = %s]\n", fAiger? "yes": "no" );
+    fprintf( pAbc->Err, "\t-t     : extended header info when cex in AIGER 1.9 format [default = %s]\n", fAiger? "yes": "no" );
     fprintf( pAbc->Err, "\t-f     : enable printing flop values in each timeframe [default = %s]\n", fPrintFull? "yes": "no" );  
     fprintf( pAbc->Err, "\t-z     : toggle using saved flop names [default = %s]\n", fUseFfNames? "yes": "no" );  
     fprintf( pAbc->Err, "\t-v     : enable verbose output [default = %s]\n", fVerbose? "yes": "no" );  
@@ -3145,13 +3599,13 @@ usage:
 ***********************************************************************/
 int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    extern void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int fFixed, int fNoModules );
+    extern void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int fFixed, int fNoModules, int fNewInterface );
     char * pFileName;
-    int c, fFixed = 0, fOnlyAnds = 0, fNoModules = 0;
+    int c, fFixed = 0, fOnlyAnds = 0, fNoModules = 0, fNewInterface = 0;
     int nLutSize = -1;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Kfamh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kfamnh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -3175,6 +3629,9 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'm':
                 fNoModules ^= 1;
                 break;
+            case 'n':
+                fNewInterface ^= 1;
+                break;                
             case 'h':
                 goto usage;
             default:
@@ -3193,27 +3650,26 @@ int IoCommandWriteVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
     // get the output file name
     pFileName = argv[globalUtilOptind];
     // call the corresponding file writer
-    if ( fOnlyAnds )
+    if ( nLutSize >= 2 && nLutSize <= 6 )
+        Io_WriteVerilogLut( pAbc->pNtkCur, pFileName, nLutSize, fFixed, fNoModules, fNewInterface );
+    else
     {
         Abc_Ntk_t * pNtkTemp = Abc_NtkToNetlist( pAbc->pNtkCur );
         if ( !Abc_NtkHasAig(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
             Abc_NtkToAig( pNtkTemp );
-        Io_WriteVerilog( pNtkTemp, pFileName, 1 );
+        Io_WriteVerilog( pNtkTemp, pFileName, fOnlyAnds, fNewInterface );
         Abc_NtkDelete( pNtkTemp );
     }
-    else if ( nLutSize >= 2 && nLutSize <= 6 )
-        Io_WriteVerilogLut( pAbc->pNtkCur, pFileName, nLutSize, fFixed, fNoModules );
-    else
-        Io_Write( pAbc->pNtkCur, pFileName, IO_FILE_VERILOG );
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: write_verilog [-K num] [-famh] <file>\n" );
+    fprintf( pAbc->Err, "usage: write_verilog [-K num] [-famnh] <file>\n" );
     fprintf( pAbc->Err, "\t         writes the current network in Verilog format\n" );
     fprintf( pAbc->Err, "\t-K num : write the network using instances of K-LUTs (2 <= K <= 6) [default = not used]\n" );
     fprintf( pAbc->Err, "\t-f     : toggle using fixed format [default = %s]\n", fFixed? "yes":"no" );
     fprintf( pAbc->Err, "\t-a     : toggle writing expressions with only ANDs (without XORs and MUXes) [default = %s]\n", fOnlyAnds? "yes":"no" );
     fprintf( pAbc->Err, "\t-m     : toggle writing additional modules [default = %s]\n", !fNoModules? "yes":"no" );
+    fprintf( pAbc->Err, "\t-n     : toggle writing generic PO names and assign-statements [default = %s]\n", fNewInterface? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;

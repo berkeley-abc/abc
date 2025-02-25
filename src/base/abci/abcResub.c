@@ -170,6 +170,8 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinS
     pManRes->nNodesBeg = Abc_NtkNodeNum(pNtk);
     nNodes = Abc_NtkObjNumMax(pNtk);
     pProgress = Extra_ProgressBarStart( stdout, nNodes );
+    //clear markAB at the beginning
+    Abc_NtkCleanMarkAB( pNtk );
     Abc_NtkForEachNode( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, NULL );
@@ -558,6 +560,44 @@ void Abc_ManResubPrintDivs( Abc_ManRes_t * p, Abc_Obj_t * pRoot, Vec_Ptr_t * vLe
     printf( "\n" );
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Dumps one resub instance.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ManResubDumpInstance( Vec_Ptr_t * vDivs, int nLeaves, int nDivs, int nWords )
+{
+    Abc_Obj_t * pRoot = (Abc_Obj_t *)Vec_PtrEntryLast(vDivs);
+    char pFileName[1000]; 
+    sprintf( pFileName, "%s_%05d.pla", pRoot->pNtk->pName, pRoot->Id );
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL ) {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    fprintf( pFile, "// Resub instance generated for node %d in network \"%s\" on %s\n", pRoot->Id, pRoot->pNtk->pName, Extra_TimeStamp() );
+    fprintf( pFile, ".i %d\n", nDivs );
+    fprintf( pFile, ".o %d\n", 1 );
+    fprintf( pFile, ".p %d\n", 1 << nLeaves );    
+    Abc_Obj_t * pObj; int i, n;
+    for ( n = 0; n < (1 << nLeaves); n++ ) {
+        Vec_PtrForEachEntryStop( Abc_Obj_t *, vDivs, pObj, i, nDivs ) {
+            fprintf( pFile, "%d", Abc_InfoHasBit((unsigned *)pObj->pData, n) );
+            if ( i == nLeaves-1 )
+                fprintf( pFile, " " );
+        }
+        fprintf( pFile, " %d\n", Abc_InfoHasBit((unsigned *)pRoot->pData, n) );
+    }
+    fprintf( pFile, ".e\n" );    
+    fclose( pFile );
+    printf( "Finished dumping file \"%s\" with %d divisors and %d patterns.\n", pFileName, nDivs, (1 << nLeaves) );
+}
 
 /**Function*************************************************************
 
@@ -1928,6 +1968,9 @@ p->timeRes1 += Abc_Clock() - clk;
 
     // get the one level divisors
     Abc_ManResubDivsS( p, Required );
+
+//    if ( Vec_PtrSize(vLeaves) >= 6 )
+//        Abc_ManResubDumpInstance( p->vDivs, Vec_PtrSize(vLeaves), p->nDivs, p->nWords );
 
     // consider one node
     if ( (pGraph = Abc_ManResubDivs1( p, Required )) )

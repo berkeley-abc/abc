@@ -33,7 +33,8 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_MAX_CUBES   100000
+#define ABC_MAX_CUBES   1000000
+#define ABC_MAX_CUBES2    10000
 
 static Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop );
 
@@ -42,10 +43,62 @@ static Hop_Obj_t * Abc_ConvertSopToAig( Hop_Man_t * pMan, char * pSop );
 int Abc_ConvertZddToSop( DdManager * dd, DdNode * zCover, char * pSop, int nFanins, Vec_Str_t * vCube, int fPhase );
 static DdNode * Abc_ConvertAigToBdd( DdManager * dd, Hop_Obj_t * pRoot);
 extern int Abc_CountZddCubes( DdManager * dd, DdNode * zCover );
+extern void Abc_NtkSortCubes( Abc_Ntk_t * pNtk, int fWeight );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Converts the node from SOP to BDD representation.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_ConvertSopToBdd2Count( char * pSop, int nCubes, int nStep, int iVar, int pRes[3] )
+{
+    int i;
+    for ( i = 0; i < nCubes; i++ )
+        if ( pSop[i*nStep+iVar] == '-' )
+            pRes[0]++, assert( pRes[1] == 0 && pRes[2] == 0 );
+        else if ( pSop[i*nStep+iVar] == '0' )
+            pRes[1]++,  assert( pRes[2] == 0 );
+        else if ( pSop[i*nStep+iVar] == '1' )
+            pRes[2]++;
+        else assert( 0 );
+}
+DdNode * Abc_ConvertSopToBdd2_rec( DdManager * dd, char * pSop, DdNode ** pbVars, int nCubes, int nStep, int iVar )
+{
+    DdNode * bRes[5] = {NULL};
+    int pRes[3] = {0}, i, Start = 0;
+    if ( nCubes == 0 )
+        return Cudd_ReadLogicZero(dd);
+    if ( iVar == nStep - 3 )
+        return Cudd_ReadOne(dd);
+    Abc_ConvertSopToBdd2Count( pSop, nCubes, nStep, iVar, pRes );
+    for ( i = 0; i < 3; Start += pRes[i++] )
+        bRes[i] = Abc_ConvertSopToBdd2_rec( dd, pSop + Start*nStep, pbVars, pRes[i], nStep, iVar+1 ), Cudd_Ref( bRes[i] );
+    bRes[3] = Cudd_bddIte( dd, pbVars[iVar], bRes[2], bRes[1] ); Cudd_Ref( bRes[3] );
+    Cudd_RecursiveDeref( dd, bRes[1] );
+    Cudd_RecursiveDeref( dd, bRes[2] );
+    bRes[4] = Cudd_bddOr( dd, bRes[0], bRes[3] ); Cudd_Ref( bRes[4] );
+    Cudd_RecursiveDeref( dd, bRes[3] );
+    Cudd_RecursiveDeref( dd, bRes[0] );
+    Cudd_Deref( bRes[4] );
+    return bRes[4];
+}
+DdNode * Abc_ConvertSopToBdd2( DdManager * dd, char * pSop, DdNode ** pbVars )
+{
+    int nCubes = Abc_SopGetCubeNum(pSop);
+    int nStep  = Abc_SopGetVarNum(pSop) + 3;
+    assert( pSop[nCubes*nStep] == '\0' );
+    return Abc_ConvertSopToBdd2_rec( dd, pSop, pbVars, nCubes, nStep, 0 );
+}
 
 /**Function*************************************************************
 
@@ -74,6 +127,21 @@ DdNode * Abc_ConvertSopToBdd( DdManager * dd, char * pSop, DdNode ** pbVars )
             bSum  = Cudd_bddXor( dd, bTemp = bSum, pbVars? pbVars[v] : Cudd_bddIthVar(dd, v) );   Cudd_Ref( bSum );
             Cudd_RecursiveDeref( dd, bTemp );
         }
+    }    
+    else if ( Abc_SopGetCubeNum(pSop) > ABC_MAX_CUBES2 )
+    {
+        Cudd_Deref( bSum );
+        if ( pbVars )
+            bSum = Abc_ConvertSopToBdd2( dd, pSop, pbVars );
+        else
+        {
+            DdNode ** pbVars = ABC_ALLOC( DdNode *, nVars );
+            for ( v = 0; v < nVars; v++ )
+                pbVars[v] = Cudd_bddIthVar( dd, v );
+            bSum = Abc_ConvertSopToBdd2( dd, pSop, pbVars );
+            ABC_FREE( pbVars );
+        }
+        Cudd_Ref( bSum );
     }
     else
     {
@@ -120,9 +188,15 @@ int Abc_NtkSopToBdd( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pNode;
     DdManager * dd, * ddTemp = NULL;
     Vec_Int_t * vFanins = NULL;
-    int nFaninsMax, i, k, iVar;
+    int nFaninsMax, i, k, iVar, nCubesMax = 0;
  
     assert( Abc_NtkHasSop(pNtk) ); 
+
+    // check SOP sizes
+    Abc_NtkForEachNode( pNtk, pNode, i )
+        nCubesMax = Abc_MaxInt( nCubesMax, Abc_SopGetCubeNum((char *)pNode->pData) );
+    if ( nCubesMax > ABC_MAX_CUBES2 )
+        Abc_NtkSortCubes( pNtk, 0 );
 
     // start the functionality manager
     nFaninsMax = Abc_NtkGetFaninMax( pNtk );
@@ -1108,7 +1182,7 @@ Abc_Obj_t * Abc_ConvertAigToAig( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObjOld )
 
 /**Function*************************************************************
 
-  Synopsis    [Unmaps the network.]
+  Synopsis    [Unmaps the network with user provided Mio library.]
 
   Description []
                
@@ -1117,16 +1191,15 @@ Abc_Obj_t * Abc_ConvertAigToAig( Abc_Ntk_t * pNtkAig, Abc_Obj_t * pObjOld )
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
+int Abc_NtkMapToSopUsingLibrary( Abc_Ntk_t * pNtk, void* library)
 {
-    extern void * Abc_FrameReadLibGen();                    
     Abc_Obj_t * pNode;
     char * pSop;
     int i;
 
     assert( Abc_NtkHasMapping(pNtk) );
     // update the functionality manager
-    assert( pNtk->pManFunc == Abc_FrameReadLibGen() );
+    assert( pNtk->pManFunc == (void*) library );
     pNtk->pManFunc = Mem_FlexStart();
     // update the nodes
     Abc_NtkForEachNode( pNtk, pNode, i )
@@ -1139,6 +1212,23 @@ int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
     }
     pNtk->ntkFunc  = ABC_FUNC_SOP;
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Unmaps the network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkMapToSop( Abc_Ntk_t * pNtk )
+{
+    extern void * Abc_FrameReadLibGen();                    
+    return Abc_NtkMapToSopUsingLibrary(pNtk, Abc_FrameReadLibGen());
 }
 
 /**Function*************************************************************

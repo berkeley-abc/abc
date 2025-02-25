@@ -51,7 +51,7 @@ static int CmdCommandUnsetVariable ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandUndo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandRecall        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandEmpty         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-#if defined(WIN32) && !defined(__cplusplus)
+#if defined(WIN32)
 static int CmdCommandScanDir       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandRenameFiles   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -105,7 +105,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "undo",          CmdCommandUndo,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "recall",        CmdCommandRecall,          0 );
     Cmd_CommandAdd( pAbc, "Basic", "empty",         CmdCommandEmpty,           0 );
-#if defined(WIN32) && !defined(__cplusplus)
+#if defined(WIN32)
     Cmd_CommandAdd( pAbc, "Basic", "scandir",       CmdCommandScanDir,         0 );
     Cmd_CommandAdd( pAbc, "Basic", "renamefiles",   CmdCommandRenameFiles,     0 );
     Cmd_CommandAdd( pAbc, "Basic", "ls",            CmdCommandLs,              0 );
@@ -436,7 +436,7 @@ int CmdCommandAbcrc( Abc_Frame_t * pAbc, int argc, char **argv )
 ******************************************************************************/
 int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
 {
-    char * pName;
+    char * pName, * pStr = NULL;
     int i, c;
     int nPrints = 20;
     Extra_UtilGetoptReset();
@@ -453,11 +453,19 @@ int CmdCommandHistory( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( argc > globalUtilOptind + 1 )
         goto usage;
     // get the number from the command line
-    if ( argc == globalUtilOptind + 1 )
-        nPrints = atoi(argv[globalUtilOptind]);
+    pStr = argc == globalUtilOptind+1 ? argv[globalUtilOptind] : NULL;
+    if ( pStr && pStr[0] >= '1' && pStr[0] <= '9' )
+        nPrints = atoi(pStr), pStr = NULL;
     // print the commands
-    Vec_PtrForEachEntryStart( char *, pAbc->aHistory, pName, i, Abc_MaxInt(0, Vec_PtrSize(pAbc->aHistory)-nPrints) )
-        fprintf( pAbc->Out, "%2d : %s\n", Vec_PtrSize(pAbc->aHistory)-i, pName );
+    if ( pStr == NULL ) {
+        Vec_PtrForEachEntryStart( char *, pAbc->aHistory, pName, i, Abc_MaxInt(0, Vec_PtrSize(pAbc->aHistory)-nPrints) )
+            fprintf( pAbc->Out, "%2d : %s\n", Vec_PtrSize(pAbc->aHistory)-i, pName );
+    }
+    else {
+        Vec_PtrForEachEntry( char *, pAbc->aHistory, pName, i )
+            if ( strstr(pName, pStr) )
+                fprintf( pAbc->Out, "%2d : %s\n", Vec_PtrSize(pAbc->aHistory)-i, pName );
+    }
     return 0;
 
 usage:
@@ -1209,7 +1217,7 @@ usage:
 #endif
 
 
-#if defined(WIN32) && !defined(__cplusplus)
+#if defined(WIN32)
 #include <direct.h>
 #include <io.h>
 
@@ -1395,10 +1403,10 @@ int CmfFindNumber( char * pName )
 ***********************************************************************/
 void CnfDupFileUnzip( char * pOldName )
 {
-    extern char * Io_MvLoadFileBz2( char * pFileName, int * pnFileSize );
+    extern char * Io_MvLoadFileBz2( char * pFileName, long * pnFileSize );
     char pNewName[1000];
     FILE * pFile;
-    int nFileSize;
+    long nFileSize;
     char * pBuffer = Io_MvLoadFileBz2( pOldName, &nFileSize );
     assert( strlen(pOldName) < 1000 );
     sprintf( pNewName, "%s.v", pOldName );
@@ -2404,7 +2412,11 @@ void Gia_ManGnuplotShow( char * pPlotFileName )
     {
         char Command[1000];
         sprintf( Command, "%s %s ", pProgNameGnuplot, pPlotFileName );
+#if defined(__wasm)
+        if ( 1 )
+#else
         if ( system( Command ) == -1 )
+#endif
         {
             fprintf( stdout, "Cannot execute \"%s\".\n", Command );
             return;

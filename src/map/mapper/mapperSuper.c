@@ -115,7 +115,7 @@ int Map_LibraryReadFile( Map_SuperLib_t * pLib, FILE * pFile )
     fclose( pFileGen );
 
     // read the genlib library
-    pLib->pGenlib = Mio_LibraryRead( pLibName, NULL, 0, 0 );
+    pLib->pGenlib = Mio_LibraryRead( pLibName, NULL, 0, 0, 0 );
     if ( pLib->pGenlib == NULL )
     {
         printf( "Cannot read genlib file \"%s\".\n", pLibName );

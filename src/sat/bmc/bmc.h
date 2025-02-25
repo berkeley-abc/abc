@@ -62,9 +62,13 @@ struct Bmc_EsPar_t_
     int        fFewerVars;
     int        fQuadrEnc;
     int        fUniqFans;
+    int        fLutCascade;
     int        RuntimeLim;
+    int        nRandFuncs;
+    int        nMintNum;
     int        fVerbose; 
     char *     pTtStr;
+    char *     pSymStr;
 };
 
 static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
@@ -84,9 +88,10 @@ static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
     pPars->fEnumSols   = 0; 
     pPars->fFewerVars  = 0; 
     pPars->fQuadrEnc   = 0; 
-    pPars->fUniqFans   = 0; 
+    pPars->fUniqFans   = 0;
+    pPars->fLutCascade = 0;
     pPars->RuntimeLim  = 0;
-    pPars->fVerbose    = 1; 
+    pPars->fVerbose    = 0; 
 }
 
 
@@ -227,7 +232,8 @@ extern int               Gia_ManBmcPerform( Gia_Man_t * p, Bmc_AndPar_t * pPars 
 extern Abc_Cex_t *       Bmc_CexCareExtendToObjects( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
 extern Abc_Cex_t *       Bmc_CexCareMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose );
 extern Abc_Cex_t *       Bmc_CexCareMinimizeAig( Gia_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int nTryCexes, int fCheck, int fVerbose );
-extern void              Bmc_CexCareVerify( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, int fVerbose );
+extern int               Bmc_CexCareVerify( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, int fVerbose );
+extern int               Bmc_CexCareVerifyAnyPo( Aig_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexMin, int fVerbose );
 extern Abc_Cex_t *       Bmc_CexCareSatBasedMinimize( Aig_Man_t * p, int nRealPis, Abc_Cex_t * pCex, int fHighEffort, int fCheck, int fVerbose );
 extern Abc_Cex_t *       Bmc_CexCareSatBasedMinimizeAig( Gia_Man_t * p, Abc_Cex_t * pCex, int fHighEffort, int fVerbose );
 /*=== bmcCexCut.c ==========================================================*/
@@ -238,6 +244,7 @@ extern Abc_Cex_t *       Saig_ManCexMinPerform( Aig_Man_t * pAig, Abc_Cex_t * pC
 /*=== bmcCexTool.c ==========================================================*/
 extern void              Bmc_CexPrint( Abc_Cex_t * pCex, int nRealPis, int fVerbose );
 extern int               Bmc_CexVerify( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
+extern int               Bmc_CexVerifyAnyPo( Gia_Man_t * p, Abc_Cex_t * pCex, Abc_Cex_t * pCexCare );
 /*=== bmcICheck.c ==========================================================*/
 extern void              Bmc_PerformICheck( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fEmpty, int fVerbose );
 extern Vec_Int_t *       Bmc_PerformISearch( Gia_Man_t * p, int nFramesMax, int nTimeOut, int fReverse, int fBackTopo, int fDump, int fVerbose );

@@ -75,6 +75,7 @@ void            Map_ManSetVerbose( Map_Man_t * p, int fVerbose )           { p->
 void            Map_ManSetSwitching( Map_Man_t * p, int fSwitching )       { p->fSwitching = fSwitching; }   
 void            Map_ManSetSkipFanout( Map_Man_t * p, int fSkipFanout )     { p->fSkipFanout = fSkipFanout; }   
 void            Map_ManSetUseProfile( Map_Man_t * p )                      { p->fUseProfile = 1;         }   
+void            Map_ManCreateAigIds( Map_Man_t * p, int nObjs )            { p->pAigNodeIDs = ABC_CALLOC( int, nObjs ); }   
 
 /**Function*************************************************************
 
@@ -91,6 +92,7 @@ Map_Man_t *     Map_NodeReadMan( Map_Node_t * p )                     { return p
 char *          Map_NodeReadData( Map_Node_t * p, int fPhase )        { return fPhase? p->pData1 : p->pData0;  }
 int             Map_NodeReadNum( Map_Node_t * p )                     { return p->Num;                }
 int             Map_NodeReadLevel( Map_Node_t * p )                   { return Map_Regular(p)->Level; }
+int             Map_NodeReadAigId( Map_Node_t * p )                   { return p->p->pAigNodeIDs[p->Num]; }
 Map_Cut_t *     Map_NodeReadCuts( Map_Node_t * p )                    { return p->pCuts;              }
 Map_Cut_t *     Map_NodeReadCutBest( Map_Node_t * p, int fPhase )     { return p->pCutBest[fPhase];   }
 Map_Node_t *    Map_NodeReadOne( Map_Node_t * p )                     { return p->p1;                 }
@@ -99,6 +101,10 @@ void            Map_NodeSetData( Map_Node_t * p, int fPhase, char * pData ) { if
 void            Map_NodeSetNextE( Map_Node_t * p, Map_Node_t * pNextE )     { p->pNextE = pNextE;       }
 void            Map_NodeSetRepr( Map_Node_t * p, Map_Node_t * pRepr )       { p->pRepr = pRepr;         }
 void            Map_NodeSetSwitching( Map_Node_t * p, float Switching )     { p->Switching = Switching; }
+void            Map_NodeSetAigId( Map_Node_t * p, int Id )            { p->p->pAigNodeIDs[p->Num] = Id; }
+
+;
+
 
 /**Function*************************************************************
 
@@ -261,6 +267,7 @@ void Map_ManFree( Map_Man_t * p )
     if ( p->pCounters ) ABC_FREE( p->pCounters );
     Extra_MmFixedStop( p->mmNodes );
     Extra_MmFixedStop( p->mmCuts );
+    ABC_FREE( p->pAigNodeIDs );
     ABC_FREE( p->pNodeDelays );
     ABC_FREE( p->pInputArrivals );
     ABC_FREE( p->pOutputRequireds );

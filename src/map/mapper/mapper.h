@@ -110,11 +110,13 @@ extern void            Map_ManSetVerbose( Map_Man_t * p, int fVerbose );
 extern void            Map_ManSetSwitching( Map_Man_t * p, int fSwitching );
 extern void            Map_ManSetSkipFanout( Map_Man_t * p, int fSkipFanout );
 extern void            Map_ManSetUseProfile( Map_Man_t * p );
+extern void            Map_ManCreateAigIds( Map_Man_t * p, int nObjs );   
 
 extern Map_Man_t *     Map_NodeReadMan( Map_Node_t * p );
 extern char *          Map_NodeReadData( Map_Node_t * p, int fPhase );
 extern int             Map_NodeReadNum( Map_Node_t * p );
 extern int             Map_NodeReadLevel( Map_Node_t * p );
+extern int             Map_NodeReadAigId( Map_Node_t * p );
 extern Map_Cut_t *     Map_NodeReadCuts( Map_Node_t * p );
 extern Map_Cut_t *     Map_NodeReadCutBest( Map_Node_t * p, int fPhase );
 extern Map_Node_t *    Map_NodeReadOne( Map_Node_t * p );
@@ -123,6 +125,7 @@ extern void            Map_NodeSetData( Map_Node_t * p, int fPhase, char * pData
 extern void            Map_NodeSetNextE( Map_Node_t * p, Map_Node_t * pNextE );
 extern void            Map_NodeSetRepr( Map_Node_t * p, Map_Node_t * pRepr );
 extern void            Map_NodeSetSwitching( Map_Node_t * p, float Switching );
+extern void            Map_NodeSetAigId( Map_Node_t * p, int Id );
 
 extern int             Map_NodeIsConst( Map_Node_t * p );
 extern int             Map_NodeIsVar( Map_Node_t * p );
@@ -167,6 +170,7 @@ extern Map_Cut_t *     Map_CutAlloc( Map_Man_t * p );
 /*=== mapperCutUtils.c =============================================================*/
 extern void            Map_CutCreateFromNode( Map_Man_t * p, Map_Super_t * pSuper, int iRoot, unsigned uPhaseRoot, 
                            int * pLeaves, int nLeaves, unsigned uPhaseLeaves );
+extern Vec_Ptr_t *     Map_CutInternalNodes( Map_Node_t * pObj, Map_Cut_t * pCut );
 /*=== mapperCore.c =============================================================*/
 extern int             Map_Mapping( Map_Man_t * p );
 /*=== mapperLib.c =============================================================*/

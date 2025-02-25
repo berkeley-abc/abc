@@ -1195,6 +1195,10 @@ SOURCE=.\src\bdd\extrab\extraBdd.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\bdd\extrab\extraLutCas.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\bdd\extrab\extraBddAuto.c
 # End Source File
 # Begin Source File
@@ -3527,6 +3531,10 @@ SOURCE=.\src\map\if\ifDec16.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\map\if\ifDec66.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\map\if\ifDec75.c
 # End Source File
 # Begin Source File
@@ -3588,6 +3596,10 @@ SOURCE=.\src\map\if\ifTruth.c
 # Begin Source File
 
 SOURCE=.\src\map\if\ifTune.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\map\if\acd\ac_wrapper.cpp
 # End Source File
 # Begin Source File
 
@@ -4140,6 +4152,10 @@ SOURCE=.\src\misc\util\utilNam.c
 # Begin Source File
 
 SOURCE=.\src\misc\util\utilNam.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilPth.c
 # End Source File
 # Begin Source File
 
@@ -4903,6 +4919,10 @@ SOURCE=.\src\aig\gia\giaBidec.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaBound.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaCCof.c
 # End Source File
 # Begin Source File
@@ -5108,6 +5128,10 @@ SOURCE=.\src\aig\gia\giaMinLut.c
 # Begin Source File
 
 SOURCE=.\src\aig\gia\giaMinLut2.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaMulFind.c
 # End Source File
 # Begin Source File
 
@@ -5356,14 +5380,6 @@ SOURCE=.\src\aig\miniaig\minilut.h
 # Begin Source File
 
 SOURCE=.\src\aig\miniaig\ndr.h
-# End Source File
-# End Group
-# Begin Group "uap"
-
-# PROP Default_Filter ""
-# Begin Source File
-
-SOURCE=.\src\aig\uap\uap.h
 # End Source File
 # End Group
 # End Group

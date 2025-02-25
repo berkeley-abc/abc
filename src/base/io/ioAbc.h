@@ -121,7 +121,7 @@ extern void               Io_WriteBook( Abc_Ntk_t * pNtk, char * FileName );
 extern int                Io_WriteCnf( Abc_Ntk_t * pNtk, char * FileName, int fAllPrimes );
 /*=== abcWriteDot.c ===========================================================*/
 extern void               Io_WriteDot( Abc_Ntk_t * pNtk, char * FileName );
-extern void               Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse );
+extern void               Io_WriteDotNtk( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse, int fAigIds );
 extern void               Io_WriteDotSeq( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes, Vec_Ptr_t * vNodesShow, char * pFileName, int fGateNames, int fUseReverse );
 /*=== abcWriteEqn.c ===========================================================*/
 extern void               Io_WriteEqn( Abc_Ntk_t * pNtk, char * pFileName );
@@ -137,7 +137,7 @@ extern int                Io_WriteMoPla( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteSmv.c ===========================================================*/
 extern int                Io_WriteSmv( Abc_Ntk_t * pNtk, char * FileName );
 /*=== abcWriteVerilog.c =======================================================*/
-extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName, int fOnlyAnds );
+extern void               Io_WriteVerilog( Abc_Ntk_t * pNtk, char * FileName, int fOnlyAnds, int fNewInterface );
 /*=== abcUtil.c ===============================================================*/
 extern Io_FileType_t      Io_ReadFileType( char * pFileName );
 extern Io_FileType_t      Io_ReadLibType( char * pFileName );

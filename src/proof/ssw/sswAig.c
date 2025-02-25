@@ -77,6 +77,57 @@ void Ssw_FrmStop( Ssw_Frm_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Computes the size of two-output cone.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Aig_ObjDeref_rec( Aig_Obj_t * pNode )
+{
+    int Counter = 1;
+    assert( pNode->nRefs > 0 );
+    if ( --pNode->nRefs > 0 )
+        return 0;
+    assert( pNode->nRefs == 0 );
+    if ( Aig_ObjIsCi(pNode) || Aig_ObjIsConst1(pNode) )
+        return 0;
+    Counter += Aig_ObjDeref_rec( Aig_ObjFanin0(pNode) );
+    Counter += Aig_ObjDeref_rec( Aig_ObjFanin1(pNode) );
+    return Counter;
+}
+int Aig_ObjRef_rec( Aig_Obj_t * pNode )
+{
+    int Counter = 1;
+    assert( pNode->nRefs >= 0 );
+    if ( pNode->nRefs++ > 0 )
+        return 0;
+    assert( pNode->nRefs == 1 );
+    if ( Aig_ObjIsCi(pNode) || Aig_ObjIsConst1(pNode) )
+        return 0;
+    Counter += Aig_ObjRef_rec( Aig_ObjFanin0(pNode) );
+    Counter += Aig_ObjRef_rec( Aig_ObjFanin1(pNode) );
+    return Counter;
+}
+int Aig_ManConeSize( Aig_Obj_t * pNode0, Aig_Obj_t * pNode1 )
+{
+    pNode0 = Aig_Regular(pNode0);
+    pNode1 = Aig_Regular(pNode1);
+    Aig_ObjRef( pNode0 );
+    Aig_ObjRef( pNode1 );
+    int Count0 = Aig_ObjDeref_rec(pNode0) + Aig_ObjDeref_rec(pNode1);
+    int Count1 = Aig_ObjRef_rec(pNode0)   + Aig_ObjRef_rec(pNode1);   
+    Aig_ObjDeref( pNode0 );
+    Aig_ObjDeref( pNode1 );     
+    assert( Count0 == Count1 );
+    return Count0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs speculative reduction for one node.]
 
   Description []
@@ -120,8 +171,16 @@ static inline void Ssw_FramesConstrainNode( Ssw_Man_t * p, Aig_Man_t * pFrames, 
     // add the constraint
     if ( fTwoPos )
     {
-        Aig_ObjCreateCo( pFrames, pObjNew2 );
-        Aig_ObjCreateCo( pFrames, pObjNew );
+        if ( p->pPars->nSkipLimit ) {
+            if ( Aig_ManConeSize(pObjNew, pObjNew2) < p->pPars->nSkipLimit ) {
+                Aig_ObjCreateCo( pFrames, pObjNew2 );
+                Aig_ObjCreateCo( pFrames, pObjNew );
+            }
+        }
+        else if ( p->pPars->nSkip == 0 || rand() % p->pPars->nSkip == 0 ) {
+            Aig_ObjCreateCo( pFrames, pObjNew2 );
+            Aig_ObjCreateCo( pFrames, pObjNew );
+        }
     }
     else
     {
@@ -158,6 +217,8 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
         Ssw_ObjSetFrame( p, pObj, 0, Aig_ObjCreateCi(pFrames) );
     // add timeframes
     iLits = 0;
+    if ( p->pPars->nSkip )
+        srand(1);
     for ( f = 0; f < p->pPars->nFramesK; f++ )
     {
         // map constants and PIs
@@ -189,7 +250,6 @@ Aig_Man_t * Ssw_FramesWithClasses( Ssw_Man_t * p )
     // add the POs for the latch outputs of the last frame
     Saig_ManForEachLo( p->pAig, pObj, i )
         Aig_ObjCreateCo( pFrames, Ssw_ObjFrame( p, pObj, p->pPars->nFramesK ) );
-
     // remove dangling nodes
     Aig_ManCleanup( pFrames );
     // make sure the satisfying assignment is node assigned

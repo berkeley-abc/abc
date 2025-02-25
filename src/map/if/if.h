@@ -147,10 +147,12 @@ struct If_Par_t_
     int                fDeriveLuts;   // enables deriving LUT structures
     int                fDoAverage;    // optimize average rather than maximum level
     int                fHashMapping;  // perform AIG hashing after mapping
-    int                fUserLutDec;  // perform AIG hashing after mapping
+    int                fUserLutDec;   // perform Boolean decomposition during mapping
+    int                fUserLut2D;    // perform Boolean decomposition during mapping
     int                fVerbose;      // the verbosity flag
     int                fVerboseTrace; // the verbosity flag
     char *             pLutStruct;    // LUT structure
+    int                fEnableStructN;// LUT structure using a new method
     float              WireDelay;     // wire delay
     // internal parameters
     int                fSkipCutFilter;// skip cut filter
@@ -551,6 +553,7 @@ extern int             If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, in
 extern int             If_CutPerformCheck08( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck10( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck16( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+extern int             If_CutPerformCheckXX( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck45( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck54( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck75( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
@@ -560,6 +563,8 @@ extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int n
                            char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
 extern int             If_CluCheckExt3( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutLeaf2, int nLutRoot, 
                            char * pLut0, char * pLut1, char * pLut2, word * pFunc0, word * pFunc1, word * pFunc2 );
+extern int             If_CluCheckXXExt( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
+                           char * pLut0, char * pLut1, word * pFunc0, word * pFunc1 );
 extern int             If_MatchCheck1( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_MatchCheck2( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 /*=== ifDelay.c =============================================================*/
@@ -571,6 +576,7 @@ extern int             If_CutSopBalancePinDelays( If_Man_t * p, If_Cut_t * pCut,
 extern int             If_CutLutBalanceEval( If_Man_t * p, If_Cut_t * pCut );
 extern int             If_CutLutBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 extern int             If_LutDecEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay, int fFirst );
+extern int             If_Lut2DecEval( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pObj, int optDelay, int fFirst );
 extern int             If_LutDecReEval( If_Man_t * p, If_Cut_t * pCut );
 extern float           If_LutDecPinRequired( If_Man_t * p, If_Cut_t * pCut, int i, float required );
 /*=== ifDsd.c =============================================================*/
@@ -702,6 +708,8 @@ extern void            If_ObjPrint( If_Obj_t * pObj );
 
 extern int             acd_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost, int try_no_late_arrival );
 extern int             acd_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned char *decomposition );
+extern int             acd2_evaluate( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned *cost, int try_no_late_arrival );
+extern int             acd2_decompose( word * pTruth, unsigned nVars, int lutSize, unsigned *pdelay, unsigned char *decomposition );
 
 ABC_NAMESPACE_HEADER_END
 

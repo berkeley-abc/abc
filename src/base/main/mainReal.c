@@ -49,7 +49,9 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 #include <sys/times.h>   
 #include <sys/resource.h>
 #include <unistd.h>      
+#if !defined(__wasm)
 #include <signal.h>      
+#endif
 #include <stdlib.h>
 #endif
 

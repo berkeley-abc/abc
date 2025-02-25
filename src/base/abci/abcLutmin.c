@@ -430,10 +430,10 @@ Abc_Obj_t * Abc_NtkBddCurtis( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, Vec_Ptr_t 
     int b, c, u, i;
     assert( nBits + 2 <= nLutSize );
     assert( nLutSize < Abc_ObjFaninNum(pNode) );
-    // start BDDs for the decompoosed blocks
+    // start BDDs for the decomposed blocks
     for ( b = 0; b < nBits; b++ )
         bBits[b] = Cudd_ReadLogicZero(ddNew), Cudd_Ref( bBits[b] );
-    // add each bound set minterm to one of the blccks
+    // add each bound set minterm to one of the blocks
     Vec_PtrForEachEntry( DdNode *, vCofs, bCof, c )
     {
         Vec_PtrForEachEntry( DdNode *, vUniq, bUniq, u )
@@ -576,6 +576,49 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
 
 /**Function*************************************************************
 
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkBddDecExploreOne( DdManager * dd, DdNode * bFunc, int iOrder )
+{
+    DdManager * ddNew = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+    int i, * pProfile = ABC_CALLOC( int, dd->size + 100 );
+    Cudd_AutodynEnable( ddNew,  CUDD_REORDER_SYMM_SIFT );
+    Vec_Int_t * vPerm = Vec_IntStartNatural( dd->size ); if ( iOrder ) Vec_IntRandomizeOrder( vPerm );
+    DdNode * bFuncNew = Extra_TransferPermute( dd, ddNew, bFunc, Vec_IntArray(vPerm) ); Cudd_Ref(bFuncNew);
+    if ( iOrder ) Cudd_ReduceHeap( ddNew, CUDD_REORDER_SYMM_SIFT, 1 );
+    Vec_IntFree( vPerm );
+    DdNode * aFuncNew = Cudd_BddToAdd( ddNew, bFuncNew ); Cudd_Ref( aFuncNew );
+    Extra_ProfileWidth( ddNew, aFuncNew, pProfile, -1 );
+    if ( iOrder )
+        printf( "Random order %d:\n", iOrder );
+    else
+        printf( "Natural order:\n" );
+    for ( i = 0; i <= dd->size; i++ )
+        printf( " %d=%d(%d)[%d]", i, pProfile[i], i-Abc_Base2Log(pProfile[i]), ddNew->perm[i] );
+    printf( "\n" );
+    Cudd_RecursiveDeref( ddNew, aFuncNew );
+    Cudd_RecursiveDeref( ddNew, bFuncNew );
+    Cudd_Quit( ddNew );
+}
+void Abc_NtkBddDecExplore( Abc_Obj_t * pNode )
+{
+    DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
+    DdNode * bFunc = (DdNode *)pNode->pData;
+    int i; Abc_Random(1);
+    if ( Abc_ObjIsNode(pNode) )
+        for ( i = 0; i < 16; i++ )
+            Abc_NtkBddDecExploreOne( dd, bFunc, i );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Decompose the function once.]
 
   Description []
@@ -612,14 +655,14 @@ Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLu
     vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, nLutSize );
     vUniq = Vec_PtrDup( vCofs );
     Vec_PtrUniqify( vUniq, (int (*)(const void *, const void *))Vec_PtrSortCompare );
-    // only perform decomposition with it is support reduring with two less vars
+    // only perform decomposition which it is support reducing with two less vars
     if( Vec_PtrSize(vUniq) > (1 << (nLutSize-2)) )
     {
         Vec_PtrFree( vCofs );
         vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, 2 );
         if ( fVerbose )
-        printf( "Decomposing %d-input node %d using cofactoring with %d cofactors.\n",
-            Abc_ObjFaninNum(pNode), Abc_ObjId(pNode), Vec_PtrSize(vCofs) );
+        printf( "Decomposing %d-input node %d using cofactoring with %d cofactors (myu = %d).\n",
+            Abc_ObjFaninNum(pNode), Abc_ObjId(pNode), Vec_PtrSize(vCofs), Vec_PtrSize(vUniq) );
         // implement the cofactors
         pCofs[0] = Abc_ObjFanin(pNode, 0)->pCopy;
         pCofs[1] = Abc_ObjFanin(pNode, 1)->pCopy;
@@ -688,13 +731,13 @@ void Abc_NtkLutminConstruct( Abc_Ntk_t * pNtkClp, Abc_Ntk_t * pNtkDec, int nLutS
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLutminInt( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose )
+Abc_Ntk_t * Abc_NtkLutminInt( Abc_Ntk_t * pNtk, int nLutSize, int fReorder, int fVerbose )
 {
     extern void Abc_NtkBddReorder( Abc_Ntk_t * pNtk, int fVerbose );
     Abc_Ntk_t * pNtkDec;
     // minimize BDDs
-//    Abc_NtkBddReorder( pNtk, fVerbose );
-    Abc_NtkBddReorder( pNtk, 0 );
+    if ( fReorder )
+        Abc_NtkBddReorder( pNtk, 0 );
     // decompose one output at a time
     pNtkDec = Abc_NtkStartFrom( pNtk, ABC_NTK_LOGIC, ABC_FUNC_BDD );
     // make sure the new manager has enough inputs
@@ -719,7 +762,7 @@ Abc_Ntk_t * Abc_NtkLutminInt( Abc_Ntk_t * pNtk, int nLutSize, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
-Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
+Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fReorder, int fVerbose )
 {
     extern int Abc_NtkFraigSweep( Abc_Ntk_t * pNtk, int fUseInv, int fExdc, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtkNew, * pTemp;
@@ -740,7 +783,7 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
     else
         pNtkNew = Abc_NtkStrash( pNtkInit, 0, 1, 0 );
     // collapse the network 
-    pNtkNew = Abc_NtkCollapse( pTemp = pNtkNew, 10000, 0, 1, 0, 0, 0 );
+    pNtkNew = Abc_NtkCollapse( pTemp = pNtkNew, 10000, 0, fReorder, 0, 0, 0 );
     Abc_NtkDelete( pTemp );
     if ( pNtkNew == NULL )
         return NULL;
@@ -755,7 +798,7 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
         if ( fVerbose )
             printf( "Decomposing network with %d nodes and %d max fanin count for K = %d.\n", 
                 Abc_NtkNodeNum(pNtkNew), Abc_NtkGetFaninMax(pNtkNew), nLutSize );
-        pNtkNew = Abc_NtkLutminInt( pTemp = pNtkNew, nLutSize, fVerbose );
+        pNtkNew = Abc_NtkLutminInt( pTemp = pNtkNew, nLutSize, fReorder, fVerbose );
         Abc_NtkDelete( pTemp );
     }
     // fix the problem with complemented and duplicated CO edges
@@ -773,7 +816,8 @@ Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose )
 
 #else
 
-Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fVerbose ) { return NULL; }
+Abc_Ntk_t * Abc_NtkLutmin( Abc_Ntk_t * pNtkInit, int nLutSize, int fReorder, int fVerbose ) { return NULL; }
+void Abc_NtkBddDecExplore( Abc_Obj_t * pNode ) {}
 
 #endif
 

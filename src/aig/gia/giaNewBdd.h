@@ -21,6 +21,7 @@
 #ifndef ABC__aig__gia__giaNewBdd_h
 #define ABC__aig__gia__giaNewBdd_h
 
+#include <cstdlib>
 #include <limits>
 #include <vector>
 #include <iostream>
@@ -47,6 +48,11 @@ namespace NewBdd {
   static inline uniq UniqHash(lit Arg0, lit Arg1) { return Arg0 + 4256249 * Arg1;            }
   static inline cac  CacHash(lit Arg0, lit Arg1)  { return Arg0 + 4256249 * Arg1;            }
 
+  static inline void fatal_error(const char* message) {
+    std::cerr << message << std::endl;
+    std::abort();
+  }
+
   class Cache {
   private:
     cac    nSize;
@@ -62,10 +68,10 @@ namespace NewBdd {
   public:
     Cache(int nCacheSizeLog, int nCacheMaxLog, int nVerbose): nVerbose(nVerbose) {
       if(nCacheMaxLog < nCacheSizeLog)
-        throw std::invalid_argument("nCacheMax must not be smaller than nCacheSize");
+        fatal_error("nCacheMax must not be smaller than nCacheSize");
       nMax = (cac)1 << nCacheMaxLog;
       if(!(nMax << 1))
-        throw std::length_error("Memout (nCacheMax) in init");
+        fatal_error("Memout (nCacheMax) in init");
       nSize = (cac)1 << nCacheSizeLog;
       if(nVerbose)
         std::cout << "Allocating " << nSize << " cache entries" << std::endl;
@@ -242,7 +248,7 @@ namespace NewBdd {
     inline ref  Ref(lit x)                const { return vRefs[Lit2Bvar(x)];                                }
     inline double OneCount(lit x)         const {
       if(vOneCounts.empty())
-        throw std::logic_error("fCountOnes was not set");
+        fatal_error("fCountOnes was not set");
       if(LitIsCompl(x))
         return std::pow(2.0, nVars) - vOneCounts[Lit2Bvar(x)];
       return vOneCounts[Lit2Bvar(x)];
@@ -454,7 +460,7 @@ namespace NewBdd {
           if(nGbc > 1)
             fRemoved = Gbc();
           if(!Resize() && !fRemoved && (nGbc != 1 || !Gbc()))
-            throw std::length_error("Memout (node)");
+            fatal_error("Memout (node)");
         } else
           break;
       }
@@ -659,29 +665,29 @@ namespace NewBdd {
       nVerbose = p.nVerbose;
       // parameter sanity check
       if(p.nObjsMaxLog < p.nObjsAllocLog)
-        throw std::invalid_argument("nObjsMax must not be smaller than nObjsAlloc");
+        fatal_error("nObjsMax must not be smaller than nObjsAlloc");
       if(nVars_ >= (int)VarMax())
-        throw std::length_error("Memout (nVars) in init");
+        fatal_error("Memout (nVars) in init");
       nVars = nVars_;
       lit nObjsMaxLit = (lit)1 << p.nObjsMaxLog;
       if(!nObjsMaxLit)
-        throw std::length_error("Memout (nObjsMax) in init");
+        fatal_error("Memout (nObjsMax) in init");
       if(nObjsMaxLit > (lit)BvarMax())
         nObjsMax = BvarMax();
       else
         nObjsMax = (bvar)nObjsMaxLit;
       lit nObjsAllocLit = (lit)1 << p.nObjsAllocLog;
       if(!nObjsAllocLit)
-        throw std::length_error("Memout (nObjsAlloc) in init");
+        fatal_error("Memout (nObjsAlloc) in init");
       if(nObjsAllocLit > (lit)BvarMax())
         nObjsAlloc = BvarMax();
       else
         nObjsAlloc = (bvar)nObjsAllocLit;
       if(nObjsAlloc <= (bvar)nVars)
-        throw std::invalid_argument("nObjsAlloc must be larger than nVars");
+        fatal_error("nObjsAlloc must be larger than nVars");
       uniq nUniqueSize = (uniq)1 << p.nUniqueSizeLog;
       if(!nUniqueSize)
-        throw std::length_error("Memout (nUniqueSize) in init");
+        fatal_error("Memout (nUniqueSize) in init");
       // allocation
       if(nVerbose)
         std::cout << "Allocating " << nObjsAlloc << " nodes and " << nVars << " x " << nUniqueSize << " unique table entries" << std::endl;
@@ -703,7 +709,7 @@ namespace NewBdd {
       }
       if(p.fCountOnes) {
         if(nVars > 1023)
-          throw std::length_error("nVars must be less than 1024 to count ones");
+          fatal_error("nVars must be less than 1024 to count ones");
         vOneCounts.resize(nObjsAlloc);
       }
       // set up cache
@@ -780,10 +786,34 @@ namespace NewBdd {
       for(size_t i = 0; i < vLits.size(); i++)
         IncRef(vLits[i]);
     }
+    void RemoveRefIfUnused() {
+      if(!nGbc && nReo == BvarMax())
+        vRefs.clear();
+    }
+    void TurnOnReo(int nReo_ = 0, std::vector<lit> const *vLits = NULL) {
+      if(nReo_)
+        nReo = nReo_;
+      else
+        nReo = nObjs << 1;
+      if((lit)nReo > (lit)BvarMax())
+        nReo = BvarMax();
+      if(vRefs.empty()) {
+        if(vLits)
+          SetRef(*vLits);
+        else
+          vRefs.resize(nObjsAlloc);
+      }
+    }
     void TurnOffReo() {
       nReo = BvarMax();
-      if(!nGbc)
-        vRefs.clear();
+    }
+    var GetNumVars() const {
+      return nVars;
+    }
+    void GetOrdering(std::vector<int> &Var2Level_) {
+      Var2Level_.resize(nVars);
+      for(var v = 0; v < nVars; v++)
+        Var2Level_[v] = Var2Level[v];
     }
     bvar CountNodes() {
       bvar count = 1;

@@ -460,6 +460,31 @@ void Abc_TtStoreLoadSave( char * pFileName )
 
 /**Function*************************************************************
 
+  Synopsis    [Read truth tables from input file and write them into output file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_TtStoreDump( char * pFileName, Vec_Mem_t * vTtMem, int nBytes )
+{ 
+    word * pTruth;  int i;
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    Vec_MemForEachEntry( vTtMem, pTruth, i )
+        fwrite( pTruth, nBytes, 1, pFile );  
+    fclose( pFile );  
+}
+
+/**Function*************************************************************
+
   Synopsis    [Read truth tables in binary text form and write them into file as binary data.]
 
   Description []
@@ -707,6 +732,38 @@ void Abc_TruthDecTest( char * pFileName, int DecType, int nVarNum, int fVerbose 
     // delete data-structure
     Abc_TtStoreFree( p, nVarNum );
 //    printf( "Finished decomposing truth tables from file \"%s\".\n", pFileName );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Read truth tables from file.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Mem_t * Abc_TruthDecRead( char * pFileName, int nVarNum )
+{
+    Abc_TtStore_t * p; int i;
+    if ( nVarNum < 6 )
+        nVarNum = 6;
+
+    // allocate data-structure
+    p = Abc_TtStoreLoad( pFileName, nVarNum );
+    if ( p == NULL ) return NULL;
+
+    // consider functions from the file
+    Vec_Mem_t * vTtMem = Vec_MemAllocForTTSimple( nVarNum );
+    for ( i = 0; i < p->nFuncs; i++ )
+        Vec_MemHashInsert( vTtMem, (word *)p->pFuncs[i] );
+
+    // delete data-structure
+    Abc_TtStoreFree( p, nVarNum );
+//    printf( "Finished decomposing truth tables from file \"%s\".\n", pFileName );
+    return vTtMem;
 }
 
 

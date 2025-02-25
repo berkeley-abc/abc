@@ -29,9 +29,10 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds );
+static void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds, int fNewInterface );
 static void Io_WriteVerilogPis( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
-static void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
+static void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start, int fNewInterface );
+static void Io_WriteVerilogAssigns( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_WriteVerilogWires( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
 static void Io_WriteVerilogRegs( FILE * pFile, Abc_Ntk_t * pNtk, int Start );
 static void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk );
@@ -54,11 +55,12 @@ static char * Io_WriteVerilogGetName( char * pName );
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName, int fOnlyAnds )
+void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName, int fOnlyAnds, int fNewInterface )
 {
     Abc_Ntk_t * pNetlist;
     FILE * pFile;
     int i;
+    
     // can only write nodes represented using local AIGs
     if ( !Abc_NtkIsAigNetlist(pNtk) && !Abc_NtkIsMappedNetlist(pNtk) )
     {
@@ -81,7 +83,7 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName, int fOnlyAnds )
     if ( pNtk->pDesign )
     {
         // write the network first
-        Io_WriteVerilogInt( pFile, pNtk, fOnlyAnds );
+        Io_WriteVerilogInt( pFile, pNtk, fOnlyAnds, fNewInterface );
         // write other things
         Vec_PtrForEachEntry( Abc_Ntk_t *, pNtk->pDesign->vModules, pNetlist, i )
         {
@@ -89,12 +91,12 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName, int fOnlyAnds )
             if ( pNetlist == pNtk )
                 continue;
             fprintf( pFile, "\n" );
-            Io_WriteVerilogInt( pFile, pNetlist, fOnlyAnds );
+            Io_WriteVerilogInt( pFile, pNetlist, fOnlyAnds, fNewInterface );
         }
     }
     else
     {
-        Io_WriteVerilogInt( pFile, pNtk, fOnlyAnds );
+        Io_WriteVerilogInt( pFile, pNtk, fOnlyAnds, fNewInterface );
     }
 
     fprintf( pFile, "\n" );
@@ -112,7 +114,7 @@ void Io_WriteVerilog( Abc_Ntk_t * pNtk, char * pFileName, int fOnlyAnds )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds )
+void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds, int fNewInterface )
 {
     // write inputs and outputs
 //    fprintf( pFile, "module %s ( gclk,\n   ", Abc_NtkName(pNtk) );
@@ -128,7 +130,7 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds )
         fprintf( pFile, ",\n   " );
     }
     if ( Abc_NtkPoNum(pNtk) > 0  )
-        Io_WriteVerilogPos( pFile, pNtk, 3 );
+        Io_WriteVerilogPos( pFile, pNtk, 3, fNewInterface );
     fprintf( pFile, "  );\n" );
     // add the clock signal if it does not exist
     if ( Abc_NtkLatchNum(pNtk) > 0 && Nm_ManFindIdByName(pNtk->pManName, "clock", ABC_OBJ_PI) == -1 )
@@ -144,7 +146,7 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds )
     if ( Abc_NtkPoNum(pNtk) > 0  )
     {
         fprintf( pFile, "  output" );
-        Io_WriteVerilogPos( pFile, pNtk, 5 );
+        Io_WriteVerilogPos( pFile, pNtk, 5, fNewInterface );
         fprintf( pFile, ";\n" );
     }
     // if this is not a blackbox, write internal signals
@@ -168,6 +170,8 @@ void Io_WriteVerilogInt( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds )
         if ( Abc_NtkLatchNum(pNtk) > 0 )
             Io_WriteVerilogLatches( pFile, pNtk );
     }
+    if ( fNewInterface )
+        Io_WriteVerilogAssigns( pFile, pNtk );
     // finalize the file
     fprintf( pFile, "endmodule\n\n" );
 } 
@@ -222,9 +226,10 @@ void Io_WriteVerilogPis( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
   SeeAlso     []
 
 ***********************************************************************/
-void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
+void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start, int fNewInterface )
 {
     Abc_Obj_t * pTerm, * pNet, * pSkip;
+    char Name[100], * pName = Name;
     int LineLength;
     int AddedLength;
     int NameCounter;
@@ -252,7 +257,11 @@ void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
         }
         
         // get the line length after this name is written
-        AddedLength = strlen(Io_WriteVerilogGetName(Abc_ObjName(pNet))) + 2;
+        if ( fNewInterface )
+            sprintf( Name, "po_username%d", i );
+        else
+            pName = Abc_ObjName(pNet);
+        AddedLength = strlen(Io_WriteVerilogGetName(pName)) + 2;
         if ( NameCounter && LineLength + AddedLength + 3 > IO_WRITE_LINE_LENGTH )
         { // write the line extender
             fprintf( pFile, "\n   " );
@@ -260,7 +269,7 @@ void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
             LineLength  = 3;
             NameCounter = 0;
         }
-        fprintf( pFile, " %s%s", Io_WriteVerilogGetName(Abc_ObjName(pNet)), (i==Abc_NtkPoNum(pNtk)-1)? "" : "," );
+        fprintf( pFile, " %s%s", Io_WriteVerilogGetName(pName), (i==Abc_NtkPoNum(pNtk)-1)? "" : "," );
         LineLength += AddedLength;
         NameCounter++;
     }
@@ -272,6 +281,37 @@ void Io_WriteVerilogPos( FILE * pFile, Abc_Ntk_t * pNtk, int Start )
         return;
     }
 
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Writes the primary outputs.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Io_WriteVerilogAssigns( FILE * pFile, Abc_Ntk_t * pNtk )
+{
+    Abc_Obj_t * pTerm, * pNet, * pSkip;
+    int i;
+    Abc_NtkForEachPo( pNtk, pTerm, i )
+    {
+        pNet = Abc_ObjFanin0(pTerm);
+        if ( Abc_ObjIsPi(Abc_ObjFanin0(pNet)) )
+        {
+            // Skip this output since it is a feedthrough -- the same
+            // name will appear as an input and an output which other
+            // tools reading verilog do not like.
+            
+            pSkip = pNet;   // save an example of skipped net
+            continue;
+        }
+        fprintf( pFile, "  assign po_username%d = %s;\n", i, Abc_ObjName(pNet) );
+    }
 }
 
 /**Function*************************************************************
@@ -816,7 +856,7 @@ void Io_WriteVerilogObjectsLut( FILE * pFile, Abc_Ntk_t * pNtk, int nLutSize, in
         fprintf( pFile, "}, %*s );\n", Length, Io_WriteVerilogGetName(Abc_ObjName(Abc_ObjFanout0(pObj))) );
     }
 }
-void Io_WriteVerilogLutInt( FILE * pFile, Abc_Ntk_t * pNtk, int nLutSize, int fFixed )
+void Io_WriteVerilogLutInt( FILE * pFile, Abc_Ntk_t * pNtk, int nLutSize, int fFixed, int fNewInterface )
 {
     // write inputs and outputs
 //    fprintf( pFile, "module %s ( gclk,\n   ", Abc_NtkName(pNtk) );
@@ -832,7 +872,7 @@ void Io_WriteVerilogLutInt( FILE * pFile, Abc_Ntk_t * pNtk, int nLutSize, int fF
         fprintf( pFile, ",\n   " );
     }
     if ( Abc_NtkPoNum(pNtk) > 0  )
-        Io_WriteVerilogPos( pFile, pNtk, 3 );
+        Io_WriteVerilogPos( pFile, pNtk, 3, fNewInterface );
     fprintf( pFile, "  );\n\n" );
     // add the clock signal if it does not exist
     if ( Abc_NtkLatchNum(pNtk) > 0 && Nm_ManFindIdByName(pNtk->pManName, "clock", ABC_OBJ_PI) == -1 )
@@ -848,7 +888,7 @@ void Io_WriteVerilogLutInt( FILE * pFile, Abc_Ntk_t * pNtk, int nLutSize, int fF
     if ( Abc_NtkPoNum(pNtk) > 0  )
     {
         fprintf( pFile, "  output" );
-        Io_WriteVerilogPos( pFile, pNtk, 5 );
+        Io_WriteVerilogPos( pFile, pNtk, 5, fNewInterface );
         fprintf( pFile, ";\n\n" );
     }
     // if this is not a blackbox, write internal signals
@@ -875,10 +915,12 @@ void Io_WriteVerilogLutInt( FILE * pFile, Abc_Ntk_t * pNtk, int nLutSize, int fF
             Io_WriteVerilogLatches( pFile, pNtk );
         }
     }
+    if ( fNewInterface )
+        Io_WriteVerilogAssigns( pFile, pNtk );
     // finalize the file
     fprintf( pFile, "\nendmodule\n\n" );
 } 
-void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int fFixed, int fNoModules )
+void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int fFixed, int fNoModules, int fNewInterface )
 {
     FILE * pFile;
     Abc_Ntk_t * pNtkTemp;
@@ -917,7 +959,7 @@ void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int f
     }
     pNtkTemp = Abc_NtkToNetlist( pNtk );
     Abc_NtkToSop( pNtkTemp, -1, ABC_INFINITY );
-    Io_WriteVerilogLutInt( pFile, pNtkTemp, nLutSize, fFixed );
+    Io_WriteVerilogLutInt( pFile, pNtkTemp, nLutSize, fFixed, fNewInterface );
     Abc_NtkDelete( pNtkTemp );
 
     fprintf( pFile, "\n" );

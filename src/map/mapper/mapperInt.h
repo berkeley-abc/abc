@@ -107,6 +107,7 @@ struct Map_ManStruct_t_
     char **             ppOutputNames; // the primary output names
     Map_Time_t *        pInputArrivals;// the PI arrival times
     Map_Time_t *        pOutputRequireds;// the PI arrival times
+    int *               pAigNodeIDs;   // IDs of the original AIG nodes
 
     // mapping parameters
     int                 nVarsMax;      // the max number of variables

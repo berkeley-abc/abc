@@ -23,6 +23,7 @@
 #include "misc/vec/vecQue.h"
 #include "misc/vec/vecHsh.h"
 #include "misc/util/utilTruth.h"
+#include "base/io/ioResub.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -2048,10 +2049,111 @@ Vec_Int_t * Gia_ManDeriveSubset( Gia_Man_t * p, Vec_Wrd_t * vFuncs, Vec_Int_t * 
     return vRes;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManResubFindUsed( Vec_Int_t * vRes, int nDivs, int nNodes, Vec_Int_t * vSupp )
+{
+    int i, k, iLit, Counter = 1;
+    Vec_Int_t * vUsed = Vec_IntStartFull( nDivs );
+    Vec_Int_t * vRes2 = Vec_IntDup( vRes );
+    Vec_IntWriteEntry( vUsed, 0, 0 );
+    assert( Vec_IntSize(vRes) % 2 == 1 );
+    Vec_IntSort( vRes2, 0 );
+    Vec_IntForEachEntry( vRes2, iLit, k )
+    {
+        int iVar = Abc_Lit2Var(iLit);
+        if ( iVar > 0 && iVar < nDivs && Vec_IntEntry(vUsed, iVar) == -1 ) {
+            Vec_IntWriteEntry( vUsed, iVar, Counter++ );
+            Vec_IntPush( vSupp, iVar-2 );
+        }
+    }
+    Vec_IntFree( vRes2 );
+    for ( i = nDivs; i < nDivs + nNodes; i++ )
+        Vec_IntPush( vUsed, Counter++ );
+    return vUsed;
+}
+Vec_Int_t * Gia_ManResubRemapSolution( Vec_Int_t * vRes, Vec_Int_t * vUsed )
+{
+    int i, iLit;
+    Vec_Int_t * vResNew = Vec_IntAlloc( Vec_IntSize(vRes) );
+    Vec_IntForEachEntry( vRes, iLit, i )
+        Vec_IntPush( vResNew, Abc_Lit2LitV(Vec_IntArray(vUsed), iLit) );
+    return vResNew;
+}
+void Gia_ManResubRecordSolution( char * pFileName, Vec_Int_t * vRes, int nDivs )
+{
+    FILE * pFile = fopen( pFileName, "ab" );
+    if ( pFile == NULL ) {
+        printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        return;
+    }
+    Vec_Int_t * vSupp = Vec_IntAlloc( 100 );
+    Vec_Int_t * vUsed = Gia_ManResubFindUsed( vRes, nDivs, Vec_IntSize(vRes)/2, vSupp );
+    Vec_Int_t * vResN = Gia_ManResubRemapSolution( vRes, vUsed );
+
+    int i, Temp;
+    fprintf( pFile, "\n.s" );
+    Vec_IntForEachEntry( vSupp, Temp, i )
+        fprintf( pFile, " %d", Temp );
+    fprintf( pFile, "\n.a" );
+    Vec_IntForEachEntry( vResN, Temp, i )
+        fprintf( pFile, " %d", Temp );
+    fprintf( pFile, "\n" );
+    fclose( pFile );
+
+    Vec_IntFree( vUsed );
+    Vec_IntFree( vSupp );
+    Vec_IntFree( vResN );
+}
+Gia_Man_t * Gia_ManResubUnateOne( char * pFileName, int nLimit, int nDivMax, int fWriteSol, int fVerbose )
+{
+    Gia_Man_t * pNew = NULL;
+    Abc_RData_t * p = Abc_ReadPla( pFileName ); 
+    if ( p == NULL ) return NULL;
+    assert( p->nOuts == 1 );
+    Vec_Ptr_t * vDivs = Vec_PtrAlloc( 2+p->nIns );
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    Vec_PtrPush( vDivs, Vec_WrdEntryP(p->vSimsOut, 0*p->nSimWords) );
+    Vec_PtrPush( vDivs, Vec_WrdEntryP(p->vSimsOut, 1*p->nSimWords) );
+    int i, k, ArraySize, * pArray; 
+    for ( i = 0; i < p->nIns; i++ )
+        Vec_PtrPush( vDivs, Vec_WrdEntryP(p->vSimsIn, i*p->nSimWords) );
+    Abc_ResubPrepareManager( p->nSimWords );
+    if ( fVerbose )
+        printf( "The problem has %d divisors and %d outputs.\n", p->nIns, p->nOuts );
+    ArraySize = Abc_ResubComputeFunction( (void **)Vec_PtrArray(vDivs), Vec_PtrSize(vDivs), p->nSimWords, nLimit, nDivMax, 0, 0, 1, fVerbose, &pArray );
+    for ( k = 0; k < ArraySize; k++ )
+        Vec_IntPush( vRes, pArray[k] );
+    if ( ArraySize ) {
+        //Vec_IntPrint( vRes );
+        Vec_Wec_t * vGates = Vec_WecStart(1);
+        Vec_IntAppend( Vec_WecEntry(vGates, 0), vRes );
+        pNew = Gia_ManConstructFromGates( vGates, Vec_PtrSize(vDivs) );
+        Vec_WecFree( vGates );
+        if ( fVerbose )
+            printf( "The solution has %d inputs and %d nodes.\n", Gia_ManCiNum(pNew), Gia_ManAndNum(pNew) );
+    }
+    if ( fWriteSol && ArraySize )
+        Gia_ManResubRecordSolution( pFileName, vRes, Vec_PtrSize(vDivs) );
+    Abc_ResubPrepareManager( 0 );
+    Vec_IntFree( vRes );   
+    Vec_PtrFree( vDivs );
+    Abc_RDataStop( p );  
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-
 
 ABC_NAMESPACE_IMPL_END
 

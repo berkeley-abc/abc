@@ -65,6 +65,8 @@ struct Vec_Int_t_
     for ( i = Start; (i >= 0) && (((pEntry) = Vec_IntEntry(vVec, i)), 1); i-- )
 #define Vec_IntForEachEntryTwo( vVec1, vVec2, Entry1, Entry2, i )                           \
     for ( i = 0; (i < Vec_IntSize(vVec1)) && (((Entry1) = Vec_IntEntry(vVec1, i)), 1) && (((Entry2) = Vec_IntEntry(vVec2, i)), 1); i++ )
+#define Vec_IntForEachEntryThree( vVec1, vVec2, vVec3, Entry1, Entry2, Entry3, i )          \
+    for ( i = 0; (i < Vec_IntSize(vVec1)) && (((Entry1) = Vec_IntEntry(vVec1, i)), 1) && (((Entry2) = Vec_IntEntry(vVec2, i)), 1) && (((Entry3) = Vec_IntEntry(vVec3, i)), 1); i++ )
 #define Vec_IntForEachEntryTwoStart( vVec1, vVec2, Entry1, Entry2, i, Start )               \
     for ( i = Start; (i < Vec_IntSize(vVec1)) && (((Entry1) = Vec_IntEntry(vVec1, i)), 1) && (((Entry2) = Vec_IntEntry(vVec2, i)), 1); i++ )
 #define Vec_IntForEachEntryDouble( vVec, Entry1, Entry2, i )                                \

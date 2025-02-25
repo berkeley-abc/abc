@@ -51,55 +51,55 @@ struct dynamic_truth_table
 
   /*! Returns number of variables.
    */
-  inline auto num_vars() const noexcept { return _num_vars; }
+  inline uint32_t num_vars() const noexcept { return _num_vars; }
 
   /*! Returns number of blocks.
    */
-  inline auto num_blocks() const noexcept { return _bits.size(); }
+  inline uint32_t num_blocks() const noexcept { return _bits.size(); }
 
   /*! Returns number of bits.
    */
-  inline auto num_bits() const noexcept { return uint64_t( 1 ) << _num_vars; }
+  inline uint32_t num_bits() const noexcept { return uint64_t( 1 ) << _num_vars; }
 
   /*! \brief Begin iterator to bits.
    */
-  inline auto begin() noexcept { return _bits.begin(); }
+  inline std::vector<uint64_t>::iterator begin() noexcept { return _bits.begin(); }
 
   /*! \brief End iterator to bits.
    */
-  inline auto end() noexcept { return _bits.end(); }
+  inline std::vector<uint64_t>::iterator end() noexcept { return _bits.end(); }
 
   /*! \brief Begin iterator to bits.
    */
-  inline auto begin() const noexcept { return _bits.begin(); }
+  inline std::vector<uint64_t>::const_iterator begin() const noexcept { return _bits.begin(); }
 
   /*! \brief End iterator to bits.
    */
-  inline auto end() const noexcept { return _bits.end(); }
+  inline std::vector<uint64_t>::const_iterator end() const noexcept { return _bits.end(); }
 
   /*! \brief Reverse begin iterator to bits.
    */
-  inline auto rbegin() noexcept { return _bits.rbegin(); }
+  inline std::vector<uint64_t>::reverse_iterator rbegin() noexcept { return _bits.rbegin(); }
 
   /*! \brief Reverse end iterator to bits.
    */
-  inline auto rend() noexcept { return _bits.rend(); }
+  inline std::vector<uint64_t>::reverse_iterator rend() noexcept { return _bits.rend(); }
 
   /*! \brief Constant begin iterator to bits.
    */
-  inline auto cbegin() const noexcept { return _bits.cbegin(); }
+  inline std::vector<uint64_t>::const_iterator cbegin() const noexcept { return _bits.cbegin(); }
 
   /*! \brief Constant end iterator to bits.
    */
-  inline auto cend() const noexcept { return _bits.cend(); }
+  inline std::vector<uint64_t>::const_iterator cend() const noexcept { return _bits.cend(); }
 
   /*! \brief Constant reverse begin iterator to bits.
    */
-  inline auto crbegin() const noexcept { return _bits.crbegin(); }
+  inline std::vector<uint64_t>::const_reverse_iterator crbegin() const noexcept { return _bits.crbegin(); }
 
   /*! \brief Constant teverse end iterator to bits.
    */
-  inline auto crend() const noexcept { return _bits.crend(); }
+  inline std::vector<uint64_t>::const_reverse_iterator crend() const noexcept { return _bits.crend(); }
 
   /*! \brief Assign other truth table.
 

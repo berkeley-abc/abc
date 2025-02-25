@@ -287,8 +287,11 @@ int Abc_NtkFxCheck( Abc_Ntk_t * pNtk )
 //    Abc_NtkForEachObj( pNtk, pNode, i )
 //        Abc_ObjPrint( stdout, pNode );
     Abc_NtkForEachNode( pNtk, pNode, i )
-        if ( !Vec_IntCheckUniqueSmall( &pNode->vFanins ) )
+        if ( !Vec_IntCheckUniqueSmall( &pNode->vFanins ) ) {
+            printf( "Fanins of node %d: ", i );
+            Vec_IntPrint( &pNode->vFanins );
             return 0;
+        }
     return 1;
 }
 

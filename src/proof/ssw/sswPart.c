@@ -32,6 +32,14 @@
 #include <unistd.h>
 #endif
 
+#ifdef __cplusplus
+#include <atomic>
+using namespace std;
+#else
+#include <stdatomic.h>
+#include <stdbool.h>
+#endif
+
 #endif
 
 
@@ -98,17 +106,20 @@ typedef struct Par_ScorrThData_t_
     int *        pMap;
     int          iThread;
     int          nTimeOut;
-    int          fWorking;
+    atomic_bool  fWorking;
 } Par_ScorrThData_t;
 
 void * Ssw_GiaWorkerThread( void * pArg )
 {
+    struct timespec pause_duration;
+    pause_duration.tv_sec = 0;
+    pause_duration.tv_nsec = 10000000L; // 10 milliseconds
+
     Par_ScorrThData_t * pThData = (Par_ScorrThData_t *)pArg;
-    volatile int * pPlace = &pThData->fWorking;
     while ( 1 )
     {
-        while ( *pPlace == 0 );
-        assert( pThData->fWorking );
+        while ( !atomic_load_explicit((atomic_bool *)&pThData->fWorking, memory_order_acquire) )
+            nanosleep(&pause_duration, NULL);
         if ( pThData->p == NULL )
         {
             pthread_exit( NULL );
@@ -116,7 +127,7 @@ void * Ssw_GiaWorkerThread( void * pArg )
             return NULL;
         }
         Cec_ManLSCorrespondenceClasses( pThData->p, &pThData->CorPars );
-        pThData->fWorking = 0;
+        atomic_store_explicit(&pThData->fWorking, false, memory_order_release);
     }
     assert( 0 );
     return NULL;
@@ -144,37 +155,46 @@ void Ssw_SignalCorrespondenceArray( Vec_Ptr_t * vGias, Ssw_Pars_t * pPars )
     {
         ThData[i].CorPars  = *pCorPars;
         ThData[i].iThread  = i;
-        //ThData[i].nTimeOut = pPars->nTimeOut;
-        ThData[i].fWorking = 0;
+        atomic_store_explicit(&ThData[i].fWorking, false, memory_order_release);
         status = pthread_create( WorkerThread + i, NULL, Ssw_GiaWorkerThread, (void *)(ThData + i) );  assert( status == 0 );
     }
+
+    struct timespec pause_duration;
+    pause_duration.tv_sec = 0;
+    pause_duration.tv_nsec = 10000000L; // 10 milliseconds
+
     // look at the threads
     vStack = Vec_PtrDup( vGias );
     while ( Vec_PtrSize(vStack) > 0 )
     {
         for ( i = 0; i < nProcs; i++ )
         {
-            if ( ThData[i].fWorking )
+            if ( atomic_load_explicit(&ThData[i].fWorking, memory_order_acquire) )
                 continue;
             ThData[i].p = (Gia_Man_t*)Vec_PtrPop( vStack );
-            ThData[i].fWorking = 1;   
+            atomic_store_explicit(&ThData[i].fWorking, true, memory_order_release);
             break;
         }
     }
     Vec_PtrFree( vStack );    
     // wait till threads finish
     for ( i = 0; i < nProcs; i++ )
-        if ( ThData[i].fWorking )
-            i = -1;
+    {
+        if ( atomic_load_explicit(&ThData[i].fWorking, memory_order_acquire) )
+            i = -1; // Start from the beginning again
+        nanosleep(&pause_duration, NULL);
+    }
+
     // stop threads
     for ( i = 0; i < nProcs; i++ )
     {
-        assert( !ThData[i].fWorking );
-        // stop
         ThData[i].p = NULL;
-        ThData[i].fWorking = 1;
+        atomic_store_explicit(&ThData[i].fWorking, true, memory_order_release);
     }
 
+    // Join threads
+    for ( i = 0; i < nProcs; i++ )
+        pthread_join( WorkerThread[i], NULL );
 }
 
 #endif // pthreads are used

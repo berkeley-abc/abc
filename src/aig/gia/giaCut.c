@@ -30,7 +30,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 #define GIA_MAX_CUTSIZE    8
-#define GIA_MAX_CUTNUM     65
+#define GIA_MAX_CUTNUM     257
 #define GIA_MAX_TT_WORDS   ((GIA_MAX_CUTSIZE > 6) ? 1 << (GIA_MAX_CUTSIZE-6) : 1)
 
 #define GIA_CUT_NO_LEAF   0xF
@@ -45,6 +45,7 @@ struct Gia_Cut_t_
     unsigned        nTreeLeaves  : 28;         // tree leaves
     unsigned        nLeaves      :  4;         // leaf count
     int             pLeaves[GIA_MAX_CUTSIZE];  // leaves
+    float           CostF;
 };
 
 typedef struct Gia_Sto_t_ Gia_Sto_t; 
@@ -281,10 +282,18 @@ static inline int Gia_CutSetLastCutIsContained( Gia_Cut_t ** pCuts, int nCuts )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Gia_CutCompare( Gia_Cut_t * pCut0, Gia_Cut_t * pCut1 )
+static inline int Gia_CutCompare2( Gia_Cut_t * pCut0, Gia_Cut_t * pCut1 )
 {
     if ( pCut0->nTreeLeaves < pCut1->nTreeLeaves )  return -1;
     if ( pCut0->nTreeLeaves > pCut1->nTreeLeaves )  return  1;
+    if ( pCut0->nLeaves     < pCut1->nLeaves )      return -1;
+    if ( pCut0->nLeaves     > pCut1->nLeaves )      return  1;
+    return 0;
+}
+static inline int Gia_CutCompare( Gia_Cut_t * pCut0, Gia_Cut_t * pCut1 )
+{
+    if ( pCut0->CostF       > pCut1->CostF )         return -1;
+    if ( pCut0->CostF       < pCut1->CostF )         return  1;
     if ( pCut0->nLeaves     < pCut1->nLeaves )      return -1;
     if ( pCut0->nLeaves     > pCut1->nLeaves )      return  1;
     return 0;
@@ -432,6 +441,13 @@ static inline int Gia_CutTreeLeaves( Gia_Sto_t * p, Gia_Cut_t * pCut )
         Cost += Vec_IntEntry( p->vRefs, pCut->pLeaves[i] ) == 1;
     return Cost;
 }
+static inline float Gia_CutGetCost( Gia_Sto_t * p, Gia_Cut_t * pCut )
+{
+    int i, Cost = 0;
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        Cost += Vec_IntEntry( p->vRefs, pCut->pLeaves[i] );
+    return (float)Cost / Abc_MaxInt(1, pCut->nLeaves);
+}
 static inline int Gia_StoPrepareSet( Gia_Sto_t * p, int iObj, int Index )
 {
     Vec_Int_t * vThis = Vec_WecEntry( p->vCuts, iObj );
@@ -445,6 +461,7 @@ static inline int Gia_StoPrepareSet( Gia_Sto_t * p, int iObj, int Index )
         pCutTemp->iFunc = pCut[pCut[0]+1];
         pCutTemp->Sign = Gia_CutGetSign( pCutTemp );
         pCutTemp->nTreeLeaves = Gia_CutTreeLeaves( p, pCutTemp );
+        pCutTemp->CostF = Gia_CutGetCost( p, pCutTemp );
     }
     return pList[0];
 }
@@ -512,6 +529,7 @@ void Gia_StoMergeCuts( Gia_Sto_t * p, int iObj )
         if ( p->fCutMin && Gia_CutComputeTruth(p, pCut0, pCut1, fComp0, fComp1, pCutsR[nCutsR], fIsXor) )
             pCutsR[nCutsR]->Sign = Gia_CutGetSign(pCutsR[nCutsR]);
         pCutsR[nCutsR]->nTreeLeaves = Gia_CutTreeLeaves( p, pCutsR[nCutsR] );
+        pCutsR[nCutsR]->CostF = Gia_CutGetCost( p, pCutsR[nCutsR] );        
         nCutsR = Gia_CutSetAddCut( pCutsR, nCutsR, nCutNum );
     }
     p->CutCount[3] += nCutsR;
@@ -986,9 +1004,380 @@ Vec_Wec_t * Gia_ManExploreCuts( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
     vCutsSel = Gia_ManFilterCuts( pGia, p->vCuts, nCutSize0, nCuts0 );
-    Gia_ManConsiderCuts( pGia, vCutsSel );
+    //Gia_ManConsiderCuts( pGia, vCutsSel );
     Gia_StoFree( p );
     return vCutsSel;
+}
+void Gia_ManExploreCutsTest( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int fVerbose0 )
+{
+    Vec_Wec_t * vCutSel = Gia_ManExploreCuts( pGia, nCutSize0, nCuts0, fVerbose0 );
+    Vec_WecPrint( vCutSel, 0 );
+    Vec_WecFree( vCutSel );
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Sto_t * Gia_ManMatchCutsInt( Gia_Man_t * pGia, int nCutSize0, int nCutNum0, int fVerbose0 )
+{
+    int nCutSize  =  nCutSize0;
+    int nCutNum   =  nCutNum0;
+    int fCutMin   =  1;
+    int fTruthMin =  1;
+    int fVerbose  =  fVerbose0;
+    Gia_Sto_t * p = Gia_StoAlloc( pGia, nCutSize, nCutNum, fCutMin, fTruthMin, fVerbose );
+    Gia_Obj_t * pObj;  int i, iObj;
+    assert( nCutSize <= GIA_MAX_CUTSIZE );
+    assert( nCutNum  <  GIA_MAX_CUTNUM  );
+    // prepare references
+    Gia_ManForEachObj( p->pGia, pObj, iObj )
+        Gia_StoRefObj( p, iObj );
+    // compute cuts
+    Gia_StoComputeCutsConst0( p, 0 );
+    Gia_ManForEachCiId( p->pGia, iObj, i )
+        Gia_StoComputeCutsCi( p, iObj );
+    Gia_ManForEachAnd( p->pGia, pObj, iObj )
+        Gia_StoComputeCutsNode( p, iObj );
+    if ( p->fVerbose )
+    {
+        printf( "Running cut computation with CutSize = %d  CutNum = %d  CutMin = %s  TruthMin = %s\n", 
+            p->nCutSize, p->nCutNum, p->fCutMin ? "yes":"no", p->fTruthMin ? "yes":"no" );
+        printf( "CutPair = %.0f  ",         p->CutCount[0] );
+        printf( "Merge = %.0f (%.2f %%)  ", p->CutCount[1], 100.0*p->CutCount[1]/p->CutCount[0] );
+        printf( "Eval = %.0f (%.2f %%)  ",  p->CutCount[2], 100.0*p->CutCount[2]/p->CutCount[0] );
+        printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
+        printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
+        printf( "\n" );
+        printf( "The number of nodes with cut count over the limit (%d cuts) = %d nodes (out of %d).  ", 
+            p->nCutNum, p->nCutsOver, Gia_ManAndNum(pGia) );
+        Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
+    }
+    return p;
+}
+void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
+{
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Vec_Int_t * vLevel; int i, j, k, * pCut;
+    Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
+    Vec_Wec_t * vCuts = Vec_WecAlloc( 100 );
+    abctime clkStart  = Abc_Clock();
+    assert( Abc_Truth6WordNum(nCutSize) == Vec_MemEntrySize(vTtMem) );
+    Vec_WecForEachLevel( p->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
+    {
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] > 1 )
+        {
+            word * pTruth = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut[pCut[0]+1]) );
+            int * pSpot = Vec_MemHashLookup( vTtMem, pTruth );
+            if ( *pSpot == -1 )
+                continue;
+            Vec_IntPush( vNodes, i );
+            vLevel = Vec_WecPushLevel( vCuts );
+            Vec_IntPush( vLevel, i );
+            for ( j = 1; j <= pCut[0]; j++ )
+                Vec_IntPush( vLevel, pCut[j] );
+            break;
+        }
+    }
+    printf( "Nodes with matching cuts: " );
+    Vec_IntPrint( vNodes );
+    if ( Vec_WecSize(vCuts) > 32 )
+        Vec_WecShrink(vCuts, 32);
+    Vec_WecPrint( vCuts, 0 );
+    Vec_WecFree( vCuts );
+    Vec_IntFree( vNodes );
+    Gia_StoFree( p );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Cut matching time", Abc_Clock() - clkStart );    
+}
+Vec_Ptr_t * Gia_ManMatchCutsArray( Vec_Ptr_t * vTtMems, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
+{
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( Vec_PtrSize(vTtMems) );
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Vec_Int_t * vLevel, * vTemp; int i, k, c, * pCut;
+    abctime clkStart  = Abc_Clock();
+    for ( i = 0; i < Vec_PtrSize(vTtMems); i++ )
+        Vec_PtrPush( vRes, Vec_WecAlloc(100) );
+    Vec_WecForEachLevel( p->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
+    {
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] > 1 )
+        {
+            Vec_Mem_t * vTtMem; int m;
+            Vec_PtrForEachEntry( Vec_Mem_t *, vTtMems, vTtMem, m )
+            {
+                word * pTruth = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut[pCut[0]+1]) );
+                int * pSpot = Vec_MemHashLookup( vTtMem, pTruth );
+                if ( *pSpot == -1 )
+                    continue;
+                vTemp = Vec_WecPushLevel( (Vec_Wec_t *)Vec_PtrEntry(vRes, m) );
+                Vec_IntPush( vTemp, i );
+                for ( c = 1; c <= pCut[0]; c++ )
+                    Vec_IntPush( vTemp, pCut[c] );
+            }
+        }
+    }
+    Gia_StoFree( p );
+    if ( fVerbose ) {
+        Vec_Wec_t * vCuts; 
+        printf( "Detected nodes by type:  " );
+        Vec_PtrForEachEntry( Vec_Wec_t *, vRes, vCuts, i )
+            printf( "Type%d = %d  ", i, Vec_WecSize(vCuts) );
+        Abc_PrintTime( 1, "Cut matching time", Abc_Clock() - clkStart );
+    }
+    return vRes;  
+}
+Vec_Ptr_t * Gia_ManMatchCutsMany( Vec_Mem_t * vTtMem, Vec_Int_t * vMap, int nFuncs, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
+{
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Vec_Int_t * vLevel; int i, j, k, * pCut;
+    abctime clkStart  = Abc_Clock();
+    assert( Abc_Truth6WordNum(nCutSize) == Vec_MemEntrySize(vTtMem) );
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( nFuncs );
+    for ( i = 0; i < nFuncs; i++ )
+        Vec_PtrPush( vRes, Vec_WecAlloc(10) );
+    Vec_WecForEachLevel( p->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
+    {
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] > 1 )
+        {
+            word * pTruth = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut[pCut[0]+1]) );
+            assert( (pTruth[0] & 1) == 0 );
+            int * pSpot = Vec_MemHashLookup( vTtMem, pTruth );
+            if ( *pSpot == -1 )
+                continue;
+            int iFunc = vMap ? Vec_IntEntry( vMap, *pSpot ) : 0;
+            assert( iFunc < nFuncs );
+            Vec_Wec_t * vCuts = (Vec_Wec_t *)Vec_PtrEntry( vRes, iFunc );
+            vLevel = Vec_WecPushLevel( vCuts );
+            Vec_IntPush( vLevel, i );
+            for ( j = 1; j <= pCut[0]; j++ )
+                Vec_IntPush( vLevel, pCut[j] );
+            break;
+        }
+    }
+    Gia_StoFree( p );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Cut matching time", Abc_Clock() - clkStart );
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Function enumeration.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Gia_ManCollectCutFuncs( Gia_Man_t * p, int nCutSize, int nCutNum, int fVerbose )
+{
+    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( p, nCutSize, nCutNum, 0 );
+    Vec_Wrd_t * vFuncs = Vec_WrdAlloc( 1000 ); Vec_Int_t * vLevel; int i, k, * pCut; 
+    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] == nCutSize ) {
+            word * pTruth = Vec_MemReadEntry( pSto->vTtMem, Abc_Lit2Var(pCut[pCut[0]+1]) );
+            Vec_WrdPush( vFuncs, pTruth[0] );
+        }
+    Gia_StoFree( pSto );
+    if ( fVerbose )
+        printf( "Collected %d cut functions using the AIG with %d nodes.\n", Vec_WrdSize(vFuncs), Gia_ManAndNum(p) );
+    return vFuncs;
+}
+Vec_Int_t * Gia_ManCountNpnClasses( Vec_Mem_t * vTtMem, Vec_Int_t * vMap, int nClasses, Vec_Wrd_t * vOrig )
+{
+    assert( Vec_MemEntryNum(vTtMem) == Vec_IntSize(vMap) );
+    Vec_Int_t * vClassCounts = Vec_IntStart( nClasses ); int i; word Func;
+    Vec_WrdForEachEntry( vOrig, Func, i ) {
+        int * pSpot = Vec_MemHashLookup( vTtMem, &Func );
+        if ( *pSpot == -1 )
+            continue;
+        int iClass = Vec_IntEntry( vMap, *pSpot );
+        if ( iClass == -1 )
+            continue;
+        assert( iClass < Vec_IntSize(vClassCounts) );
+        Vec_IntAddToEntry( vClassCounts, iClass, 1 );
+    }
+    return vClassCounts;
+}
+Vec_Wrd_t * Gia_ManMatchFilterClasses( Vec_Mem_t * vTtMem, Vec_Int_t * vMap, Vec_Int_t * vClassCounts, int nNumFuncs, int fVerbose )
+{
+    int * pPerm = Abc_MergeSortCost( Vec_IntArray(vClassCounts), Vec_IntSize(vClassCounts) );
+    Vec_Wrd_t * vBest = Vec_WrdAlloc( nNumFuncs );  int i, k, Entry;
+    Vec_Int_t * vMapNew = Vec_IntStartFull( Vec_IntSize(vMap) );  
+    for ( i = Vec_IntSize(vClassCounts)-1; i >= 0; i-- ) {
+        word Best = ~(word)0;
+        Vec_IntForEachEntry( vMap, Entry, k ) {
+            if ( Entry != pPerm[i] )
+                continue;
+            if ( Best > Vec_MemReadEntry(vTtMem, k)[0] )
+                 Best = Vec_MemReadEntry(vTtMem, k)[0];            
+            Vec_IntWriteEntry( vMapNew, k, Vec_WrdSize(vBest) );
+        }
+        Vec_WrdPush( vBest, Best );
+        assert( ~Best );
+        if ( Vec_WrdSize(vBest) == nNumFuncs )
+            break;
+    }
+    ABC_SWAP( Vec_Int_t, *vMap, *vMapNew );
+    Vec_IntFree( vMapNew );
+    ABC_FREE( pPerm );
+    if ( fVerbose )
+        printf( "Isolated %d (out of %d) most frequently occuring classes.\n", Vec_WrdSize(vBest), Vec_IntSize(vClassCounts) );
+    return vBest;
+}
+void Gia_ManMatchProfileFunctions( Vec_Wrd_t * vBestReprs, Vec_Mem_t * vTtMem, Vec_Int_t * vMap, Vec_Wrd_t * vFuncs, int nCutSize )
+{
+    int BarSize = 60;
+    extern void Dau_DsdPrintFromTruth( word * pTruth, int nVarsInit );
+    Vec_Int_t * vCounts = Gia_ManCountNpnClasses( vTtMem, vMap, Vec_WrdSize(vBestReprs), vFuncs ); 
+    word Repr; int c, i, MaxCount = Vec_IntFindMax( vCounts );
+    Vec_WrdForEachEntry( vBestReprs, Repr, c )
+    {
+        int nSymb = BarSize*Vec_IntEntry(vCounts, c)/Abc_MaxInt(MaxCount, 1);
+        printf( "Class%4d : ", c );
+        printf( "Count =%6d   ", Vec_IntEntry(vCounts, c) );
+        for ( i = 0; i < nSymb; i++ )
+            printf( "*" );
+        for ( i = nSymb; i < BarSize+3; i++ )
+            printf( " " );        
+        Dau_DsdPrintFromTruth( &Repr, nCutSize );
+    }
+    Vec_IntFree( vCounts );
+}
+void Gia_ManMatchCones( Gia_Man_t * pBig, Gia_Man_t * pSmall, int nCutSize, int nCutNum, int nNumFuncs, int nNumCones, int fVerbose )
+{
+    abctime clkStart  = Abc_Clock();
+    extern void Dau_CanonicizeArray( Vec_Wrd_t * vFuncs, int nVars, int fVerbose );
+    extern Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int_t ** pvMap, int fVerbose );
+    Vec_Wrd_t * vFuncs = Gia_ManCollectCutFuncs( pSmall, nCutSize, nCutNum, fVerbose );
+    Vec_Wrd_t * vOrig = Vec_WrdDup( vFuncs );
+    Dau_CanonicizeArray( vFuncs, nCutSize, fVerbose );  
+    Vec_Int_t * vMap = NULL; int n;
+    Vec_Mem_t * vTtMem = Dau_CollectNpnFunctionsArray( vFuncs, nCutSize, &vMap, fVerbose );
+    Vec_WrdFree( vFuncs );
+    Vec_Int_t * vClassCounts = Gia_ManCountNpnClasses( vTtMem, vMap, Vec_IntEntryLast(vMap)+1, vOrig );
+    Vec_Wrd_t * vBestReprs = Gia_ManMatchFilterClasses( vTtMem, vMap, vClassCounts, nNumFuncs, fVerbose );
+    assert( Vec_WrdSize(vBestReprs) == nNumFuncs );
+    Vec_IntFree( vClassCounts );
+    printf( "Frequency profile for %d most popular classes in the small AIG:\n", nNumFuncs );
+    Gia_ManMatchProfileFunctions( vBestReprs, vTtMem, vMap, vOrig, nCutSize );
+    Vec_WrdFree( vOrig );
+    Abc_Random( 1 );
+    for ( n = 0; n < nNumCones; n++ ) {
+        int nRand = Abc_Random( 0 ) % Gia_ManCoNum(pBig);
+        Gia_Man_t * pCone = Gia_ManDupCones( pBig, &nRand, 1, 1 );
+        Vec_Wrd_t * vCutFuncs = Gia_ManCollectCutFuncs( pCone, nCutSize, nCutNum, 0 );
+        printf( "ITER %d: Considering output cone %d with %d and-nodes. ", n+1, nRand, Gia_ManAndNum(pCone) );
+        printf( "Profiling %d functions of %d-cuts:\n", Vec_WrdSize(vCutFuncs), nCutSize );
+        Gia_ManMatchProfileFunctions( vBestReprs, vTtMem, vMap, vCutFuncs, nCutSize );
+        Vec_WrdFree( vCutFuncs );
+        Gia_ManStop( pCone );
+    }
+    Vec_WrdFree( vBestReprs );
+    Vec_IntFree( vMap );
+    Vec_MemHashFree( vTtMem );
+    Vec_MemFree( vTtMem );
+    Abc_PrintTime( 1, "Total computation time", Abc_Clock() - clkStart );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Function enumeration.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManMatchConesMinimizeTts( Vec_Wrd_t * vSims, int nVarsMax )
+{
+    int nVars = 0;
+    int nWordsMax = Abc_Truth6WordNum( nVarsMax ), nWords;
+    int i, k = 0, nTruths = Vec_WrdSize(vSims) / nWordsMax;
+    assert( nTruths * nWordsMax == Vec_WrdSize(vSims) );
+    // support-minimize and find the largest supp size
+    for ( i = 0; i < nTruths; i++ ) {
+        word * pTruth = Vec_WrdEntryP( vSims, i * nWordsMax );
+        int nVarsCur = Abc_TtMinBase( pTruth, NULL, nVarsMax, nVarsMax );
+        nVars = Abc_MaxInt( nVars, nVarsCur );
+    }
+    // remap truth tables
+    nWords = Abc_Truth6WordNum( nVars );
+    for ( i = 0; i < nTruths; i++ ) {
+        word * pTruth = Vec_WrdEntryP( vSims, i * nWordsMax );
+        word * pTruth2 = Vec_WrdEntryP( vSims, k * nWords );
+        if ( Abc_TtSupportSize(pTruth, nVars) < 3 )
+            continue;
+        memmove( pTruth2, pTruth, nWords * sizeof(word) );
+        k++;
+        if ( 0 ) {
+            extern void Extra_PrintHexadecimal( FILE * pFile, unsigned Sign[], int nVars );
+            printf( "Type%d : ", i );
+            Extra_PrintHexadecimal( stdout, (unsigned *)pTruth2, nVars );
+            printf( "\n" );
+        }
+    }
+    Vec_WrdShrink ( vSims, k * nWords );
+    return nVars;
+}
+void Gia_ManMatchConesOutputPrint( Vec_Ptr_t * p, int fVerbose )
+{
+    Vec_Wec_t * vCuts; int i;
+    printf( "Nodes with matching cuts:\n" );
+    Vec_PtrForEachEntry( Vec_Wec_t *, p, vCuts, i ) {
+        if ( fVerbose ) {
+            printf( "Type %d:\n", i );
+            Vec_WecPrint( vCuts, 0 );
+        }
+        else 
+            printf( "Type %d present in %d cuts\n", i, Vec_WecSize(vCuts) );
+    }
+}
+void Gia_ManMatchConesOutputFree( Vec_Ptr_t * p )
+{
+    Vec_Wec_t * vCuts; int i;
+    Vec_PtrForEachEntry( Vec_Wec_t *, p, vCuts, i )
+        Vec_WecFree( vCuts );
+    Vec_PtrFree( p );
+}
+void Gia_ManMatchConesOutput( Gia_Man_t * pBig, Gia_Man_t * pSmall, int nCutNum, int fVerbose )
+{
+    abctime clkStart  = Abc_Clock();
+    extern Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int_t ** pvMap, int fVerbose );
+    Vec_Wrd_t * vSimsPi = Vec_WrdStartTruthTables( Gia_ManCiNum(pSmall) );
+    Vec_Wrd_t * vSims   = Gia_ManSimPatSimOut( pSmall, vSimsPi, 1 );
+    int nVars = Gia_ManMatchConesMinimizeTts( vSims, Gia_ManCiNum(pSmall) );
+    Vec_WrdFree( vSimsPi );
+    if ( nVars > 10 ) {
+        printf( "Some output functions have support size more than 10.\n" );
+        Vec_WrdFree( vSims );
+        return;
+    }
+    Vec_Int_t * vMap = NULL;
+    Vec_Mem_t * vTtMem = Dau_CollectNpnFunctionsArray( vSims, nVars, &vMap, fVerbose );
+    int nFuncs = Vec_WrdSize(vSims) / Abc_Truth6WordNum(nVars);
+    assert( Vec_WrdSize(vSims) == nFuncs * Abc_Truth6WordNum(nVars) );
+    Vec_WrdFree( vSims );
+    printf( "Using %d output functions with the support size between 3 and %d.\n", nFuncs, nVars );
+    Vec_Ptr_t * vRes = Gia_ManMatchCutsMany( vTtMem, vMap, nFuncs, pBig, nVars, nCutNum, fVerbose );
+    Vec_MemHashFree( vTtMem );
+    Vec_MemFree( vTtMem );
+    Vec_IntFree( vMap );
+    Gia_ManMatchConesOutputPrint( vRes, fVerbose );
+    Gia_ManMatchConesOutputFree( vRes );
+    Abc_PrintTime( 1, "Total computation time", Abc_Clock() - clkStart );    
 }
 
 ////////////////////////////////////////////////////////////////////////

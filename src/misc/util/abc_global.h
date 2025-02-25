@@ -287,6 +287,9 @@ static inline double   Abc_Word2Dbl( word Num )               { union { word x; 
 static inline int      Abc_Base2Log( unsigned n )             { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n >>= 1, r++ ) {}; return r; }
 static inline int      Abc_Base10Log( unsigned n )            { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 10, r++ ) {}; return r; }
 static inline int      Abc_Base16Log( unsigned n )            { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 16, r++ ) {}; return r; }
+static inline int      Abc_Base2LogW( word n )                { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n >>= 1, r++ ) {}; return r; }
+static inline int      Abc_Base10LogW( word n )               { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 10, r++ ) {}; return r; }
+static inline int      Abc_Base16LogW( word n )               { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 16, r++ ) {}; return r; }
 static inline char *   Abc_UtilStrsav( char * s )             { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;  }
 static inline char *   Abc_UtilStrsavTwo( char * s, char * a ){ char * r; if (!a) return Abc_UtilStrsav(s); r = ABC_ALLOC(char, strlen(s)+strlen(a)+1); sprintf(r, "%s%s", s, a ); return r; }
 static inline char *   Abc_UtilStrsavNum( char * s, int n )   { char * r; if (!s) return NULL;              r = ABC_ALLOC(char, strlen(s)+12+1);        sprintf(r, "%s%d", s, n ); return r; }
@@ -334,7 +337,7 @@ static inline abctime Abc_Clock()
 #else
   #define APPLE_MACH 0
 #endif
-#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__)
+#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__) && !defined(__wasm)
     struct timespec ts;
     if ( clock_gettime(CLOCK_MONOTONIC, &ts) < 0 ) 
         return (abctime)-1;
@@ -353,7 +356,7 @@ static inline abctime Abc_ThreadClock()
 #else
   #define APPLE_MACH 0
 #endif
-#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__)
+#if (defined(LIN) || defined(LIN64)) && !APPLE_MACH && !defined(__MINGW32__) && !defined(__wasm)
     struct timespec ts;
     if ( clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) < 0 ) 
         return (abctime)-1;
@@ -548,6 +551,9 @@ extern int *  Abc_QuickSortCost( int * pCosts, int nSize, int fDecrease );
 
 extern unsigned Abc_Random( int fReset );
 extern word     Abc_RandomW( int fReset );
+
+// pthreads
+extern void Util_ProcessThreads( int (*pUserFunc)(void *), void * vData, int nProcs, int TimeOut, int fVerbose );
 
 ABC_NAMESPACE_HEADER_END
 
