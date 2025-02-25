@@ -134,7 +134,6 @@ jobs:
           brew install gcc@${{ matrix.version }}
           echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
           echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
-          brew install googletest
         fi
 
     - name: Build and test MacOS
