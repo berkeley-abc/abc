@@ -44,8 +44,11 @@ jobs:
         cmake
         -Wdev
         -B build
+        -DABC_USE_NAMESPACE=xxxx
         -DBUILD_SHARED_LIBS=OFF
-        -DCMAKE_BUILD_TYPE=Debug
+        -DABC_USE_NO_READLINE=ON
+        -DVENDOR_GTEST=ON
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
         -DCMAKE_INSTALL_PREFIX=$PWD/_dist
 
     - name: CMake build
