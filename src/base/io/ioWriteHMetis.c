@@ -72,7 +72,7 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
         Vec_PtrPush( vHyperEdges, vHyperEdgeEach );
     }
     
-    nHyperNodesNum = fSkipPo ? Abc_NtkObjNum( pNtk ) - Abc_NtkPoNum( pNtk ) : Abc_NtkObjNum( pNtk );
+    nHyperNodesNum = Abc_NtkObjNum( pNtk );
 
     // write the number of hyperedges and the number of vertices
     if ( fWeightEdges )
