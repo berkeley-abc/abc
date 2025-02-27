@@ -2007,6 +2007,27 @@ static inline word Abc_Tt6RemoveVar( word t, int iVar )
         t = Abc_Tt6SwapAdjacent( t, iVar++ );
     return t;
 }
+// permutes two variables while keeping track of their places
+static inline void Abc_TtPermuteTwo( word * p, int nTTVars, int * Var2Pla, int * Pla2Var, int Var0, int Var1 )
+{
+    int iPlace0 = Var2Pla[Var0];
+    int iPlace1 = Var2Pla[Var1];
+    if ( iPlace0 == iPlace1 )
+        return;
+    Abc_TtSwapVars( p, nTTVars, iPlace0, iPlace1 );
+    Var2Pla[Pla2Var[iPlace0]] = iPlace1;
+    Var2Pla[Pla2Var[iPlace1]] = iPlace0;
+    Pla2Var[iPlace0] ^= Pla2Var[iPlace1];
+    Pla2Var[iPlace1] ^= Pla2Var[iPlace0];
+    Pla2Var[iPlace0] ^= Pla2Var[iPlace1];
+}
+// restores natural variable order
+static inline void Abc_TtRestoreOrder( word * p, int nTTVars, int * Var2Pla, int * Pla2Var, int nPermVars )
+{
+    int i;
+    for ( i = 0; i < nPermVars; i++ )
+        Abc_TtPermuteTwo( p, nTTVars, Var2Pla, Pla2Var, i, Var2Pla[i] );
+}
 
 /**Function*************************************************************
 
