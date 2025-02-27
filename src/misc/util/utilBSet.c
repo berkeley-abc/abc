@@ -773,39 +773,6 @@ void Abc_BSEvalBestGen( int nVars, int nBVars, int nFuncs, int nMints, int fTryA
   SeeAlso     []
 
 ***********************************************************************/
-static inline Vec_Wrd_t * Vec_WrdStartTruthTables6( int nVars )
-{
-    Vec_Wrd_t * p;
-    word Masks[6] = {
-        ABC_CONST(0xAAAAAAAAAAAAAAAA),
-        ABC_CONST(0xCCCCCCCCCCCCCCCC),
-        ABC_CONST(0xF0F0F0F0F0F0F0F0),
-        ABC_CONST(0xFF00FF00FF00FF00),
-        ABC_CONST(0xFFFF0000FFFF0000),
-        ABC_CONST(0xFFFFFFFF00000000)
-    };
-    int i, k, nWords = nVars <= 6 ? 1 : (1 << (nVars - 6));
-    p = Vec_WrdStart( nWords * nVars );
-    for ( i = 0; i < nVars; i++ )
-    {
-        word * pTruth = p->pArray + nWords * i;
-        if ( i < 6 )
-        {
-            for ( k = 0; k < nWords; k++ )
-                pTruth[k] = Masks[i];
-        }
-        else
-        {
-            for ( k = 0; k < nWords; k++ )
-                if ( k & (1 << (i-6)) )
-                    pTruth[k] = ~(word)0;
-                else
-                    pTruth[k] = 0;
-        }
-    }
-    return p;
-}
-
 void Abc_BSEvalCreateCofs( int iSet, int nVars, Vec_Wrd_t * vCofs, Vec_Wrd_t * vElems )
 {
     int nWords = Abc_Truth6WordNum(nVars);
@@ -988,6 +955,76 @@ word * Abc_LutCascade2( word * pFunc, int nVars, int nLutSize, int nLuts, int nR
     ABC_FREE( pTruth );
     ABC_FREE( pBest );
     return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes bound set and shared set of the next stage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+word Abc_TtFindBVarsSVars( word * pTruth, int nVars, int nRVars, int nRails, int nLutSize, int fVerbose )
+{
+    Abc_BSEval_t * p = Abc_BSEvalAlloc(); 
+    int nPermVars = nVars-nRVars;
+    if ( p->nVars != nPermVars || p->nBVars != nLutSize ) {
+        if ( p->nBVars != nLutSize ) {
+            Vec_WecFreeP( &p->vSets );
+            Vec_WrdFreeP( &p->vCofs );
+            p->vCofs = Abc_BSEvalCreateCofactorSets( nLutSize, &p->vSets );
+        }        
+        Vec_IntFreeP( &p->vPairs );
+        p->vPairs = Abc_GenChasePairs( nPermVars, nLutSize );
+        p->nVars  = nPermVars;
+        p->nBVars = nLutSize;        
+    }    
+
+    int v, nWords = Abc_TtWordNum(nVars);
+    word * pCopy = ABC_ALLOC( word, nWords );
+    Abc_TtCopy( pCopy, pTruth, nWords, 0 );
+    word pPat[1024];
+
+
+    int pPermBest[32] = {0};
+    word * pBest = ABC_ALLOC( word, nWords );
+    //printf("Function before: "); Abc_TtPrintHexRev( stdout, pCopy, nVars ); printf( "\n" );
+    int MyuMin = Abc_BSEvalBest( p, pCopy, pBest, nVars, nRVars, nVars-nLutSize, 0, pPermBest, 0 );
+    //printf("Function before: "); Abc_TtPrintHexRev( stdout, pCopy, nVars ); printf( "\n" );
+
+    if ( fVerbose ) {
+        printf( "Best perm: " );
+        for ( v = 0; v < nVars; v++ )
+            printf( "%d ", pPermBest[v] );
+        printf( "  Myu = %d.  ", MyuMin );
+    }
+
+    int Shared = 0, nRailsMin = Abc_Base2Log( MyuMin );
+    if ( nRailsMin > nRails ) {
+        nRailsMin = Abc_SharedEvalBest( p, pBest, nVars, nRVars, nVars-nLutSize, MyuMin, nRails, 0, &Shared, pPat );
+        MyuMin = 1 << nRailsMin;
+    }
+
+    if ( fVerbose )
+        printf( "Myu min = %d.  Rail min = %d. Shared = %x.\n", MyuMin, nRailsMin, Shared );
+
+    word mBVars = 0;
+    for ( v = 0; v < nLutSize; v++ )
+        mBVars |= (word)1 << pPermBest[nVars-nLutSize+v];
+
+    word mSVars = 0;
+    for ( v = 0; v < nLutSize; v++ )
+        if ( (Shared >> v) & 1 )
+            mSVars |= (word)1 << (nVars-nLutSize+v);
+
+    ABC_FREE( pCopy );
+    ABC_FREE( pBest );
+    Abc_BSEvalFree(p);
+    return ((word)MyuMin << 48) | (mSVars << 24) | mBVars;
 }
 
 ////////////////////////////////////////////////////////////////////////
