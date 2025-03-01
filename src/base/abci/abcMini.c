@@ -144,6 +144,22 @@ Mini_Aig_t * Abc_NtkToMiniAig( Abc_Ntk_t * pNtk )
     Mini_AigSetRegNum( p, Abc_NtkLatchNum(pNtk) );
     return p;
 }
+Mini_Aig_t * Abc_MiniAigFromNtk ( Abc_Ntk_t *pNtk ) 
+{
+    Abc_Ntk_t *pNtkRes = NULL;
+    Mini_Aig_t *pAig;
+    if (Abc_NtkHasMapping(pNtk)) {
+        pNtk = pNtkRes = Abc_NtkStrash( pNtk, 0, 1, 0 );
+        if ( pNtkRes == NULL )
+        {
+            printf("Strashing has failed.\n" );
+            return NULL;
+        }
+    }
+    pAig = Abc_NtkToMiniAig(pNtk);
+    if (pNtkRes) Abc_NtkDelete(pNtkRes);
+    return pAig;
+}
 
 /**Function*************************************************************
 
