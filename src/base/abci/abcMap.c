@@ -886,6 +886,73 @@ Vec_Int_t * Abc_NtkWriteMiniMapping( Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Build mapped network from the mini-mapped format.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkFromMiniMapping( int *pArray )
+{
+    if ( !pArray ) {
+        printf("Mapping is not available.\n");
+        return NULL;
+    }
+    Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
+    if ( !pLib ) {
+        printf("Library is not available.\n");
+        return NULL;
+    }
+    Abc_Ntk_t *pNtkMapped = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP, 1 );
+    pNtkMapped->pName = Extra_UtilStrsav( "mapped" );
+    int nCis, nCos, nNodes, nFlops;
+    int i, k, nLeaves, Pos = 4;
+    char * pBuffer, * pName;
+    Mio_Gate_t *pGate;
+    nCis = pArray[0];
+    nCos = pArray[1];
+    nNodes = pArray[2];
+    nFlops = pArray[3];
+    // create pi
+    for ( i = 0; i < nCis; i++ )
+        Abc_NtkCreatePi( pNtkMapped );
+    // create nodes
+    for ( i = 0; i < nNodes; i++ )
+        Abc_NtkCreateNode( pNtkMapped );
+    // create po
+    for ( i = 0; i < nCos; i++ )
+        Abc_NtkCreatePo( pNtkMapped );
+    // connect nodes
+    for ( i = 0; i < nNodes; i++ )
+    {
+        nLeaves = pArray[Pos++];
+        for ( k = 0; k < nLeaves; k++ )
+            Abc_ObjAddFanin( Abc_NtkObj( pNtkMapped, nCis + i + 1 ), Abc_NtkObj( pNtkMapped, pArray[Pos++] + 1 ) );
+    }
+    for ( i = 0; i < nCos; i++ )
+        Abc_ObjAddFanin( Abc_NtkCo( pNtkMapped, i ), Abc_NtkObj( pNtkMapped, pArray[Pos++] + 1 ) );
+
+    pBuffer = (char *)(pArray + Pos);
+    for ( i = 0; i < nNodes; i++ )
+    {
+        pName = pBuffer;
+        pBuffer += strlen(pName) + 1;
+        pGate = Mio_LibraryReadGateByName( pLib, pName, NULL );
+        Abc_NtkObj( pNtkMapped, nCis + i + 1 )->pData = pGate;
+    }
+    Abc_NtkAddDummyPiNames( pNtkMapped );
+    Abc_NtkAddDummyPoNames( pNtkMapped );
+    if ( !Abc_NtkCheck( pNtkMapped ) )
+        fprintf( stdout, "Abc_NtkFromMiniMapping(): Network check has failed.\n" );
+
+    return pNtkMapped;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints mapped network represented in mini-mapped format.]
 
   Description []
@@ -923,6 +990,26 @@ void Abc_NtkPrintMiniMapping( int * pArray )
         pBuffer += strlen(pName) + 1;
         printf( "Node %d has gate \"%s\"\n", nCis + i, pName );
     }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Procedures to update internal ABC network using mini-mapped network.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkInputMiniMapping( Abc_Frame_t * pAbc, void *p )
+{
+    Abc_Ntk_t * pNtk;
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pNtk = Abc_NtkFromMiniMapping( (int *)p );
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
 }
 
 /**Function*************************************************************
