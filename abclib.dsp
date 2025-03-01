@@ -2582,6 +2582,54 @@ SOURCE=.\src\opt\fxu\fxuSingle.c
 SOURCE=.\src\opt\fxu\fxuUpdate.c
 # End Source File
 # End Group
+# Begin Group "rar"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_map.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_miaig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_rar.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_rng.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_time.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_tt.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_vec.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_map.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_miaig.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_rar.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\rar\rewire_rng.c
+# End Source File
+# End Group
 # Begin Group "rwr"
 
 # PROP Default_Filter ""
