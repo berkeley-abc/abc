@@ -72,7 +72,7 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
         Vec_PtrPush( vHyperEdges, vHyperEdgeEach );
     }
     
-    nHyperNodesNum = fSkipPo ? Abc_NtkObjNum( pNtk ) - Abc_NtkPoNum( pNtk ) : Abc_NtkObjNum( pNtk );
+    nHyperNodesNum = Abc_NtkObjNum( pNtk );
 
     // write the number of hyperedges and the number of vertices
     if ( fWeightEdges )
@@ -103,7 +103,7 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
         fprintf( pFHMetis, "\n" );
     }
     // comments should be started with "%" in hMetis format
-    fprintf( pFHMetis, "\n%%This file was written by ABC on %s\n", Extra_TimeStamp() );
+    fprintf( pFHMetis, "%%This file was written by ABC on %s\n", Extra_TimeStamp() );
     fprintf( pFHMetis, "%%For information about hMetis format, refer to %s\n", "https://karypis.github.io/glaros/files/sw/hmetis/manual.pdf" );
     Vec_PtrFreeFree( vHyperEdges );
     fclose( pFHMetis );
