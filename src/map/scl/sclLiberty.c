@@ -600,7 +600,7 @@ char * Scl_LibertyFileContents( char * pFileName, long * nContents )
     else
     {
         FILE * pFile = fopen( pFileName, "rb" );
-        pContents = ABC_ALLOC( char, nContents+1 );
+        pContents = ABC_ALLOC( char, *nContents+1 );
         long RetValue = 0;
         RetValue = fread( pContents, *nContents, 1, pFile );
         fclose( pFile );
