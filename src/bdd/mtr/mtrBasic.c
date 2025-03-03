@@ -427,9 +427,9 @@ Mtr_PrintTree(
     (void) fprintf(stdout,
 #if SIZEOF_VOID_P == 8
     "N=0x%-8lx C=0x%-8lx Y=0x%-8lx E=0x%-8lx P=0x%-8lx F=%x L=%u S=%u\n",
-    (unsigned long) node, (unsigned long) node->child,
-    (unsigned long) node->younger, (unsigned long) node->elder,
-    (unsigned long) node->parent, node->flags, node->low, node->size);
+    (ABC_PTRUINT_T) node, (ABC_PTRUINT_T) node->child,
+    (ABC_PTRUINT_T) node->younger, (ABC_PTRUINT_T) node->elder,
+    (ABC_PTRUINT_T) node->parent, node->flags, node->low, node->size);
 #else
     "N=0x%-8x C=0x%-8x Y=0x%-8x E=0x%-8x P=0x%-8x F=%x L=%hu S=%hu\n",
     (unsigned) node, (unsigned) node->child,

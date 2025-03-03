@@ -9,7 +9,7 @@
   Synopsis    [Command file.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -18,11 +18,11 @@
 
 ***********************************************************************/
 
-#ifdef WIN32
+#if (defined(WIN32) || defined(__MINGW32__))
 #include <process.h>
 #else
-#include <unistd.h>
 #include <dirent.h>
+#include <unistd.h>
 #endif
 
 #include "base/abc/abc.h"
@@ -51,7 +51,7 @@ static int CmdCommandUnsetVariable ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandUndo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandRecall        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandEmpty         ( Abc_Frame_t * pAbc, int argc, char ** argv );
-#if defined(WIN32)
+#if (defined(WIN32) || defined(__MINGW32__))
 static int CmdCommandScanDir       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandRenameFiles   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandLs            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -105,7 +105,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Basic", "undo",          CmdCommandUndo,            0 );
     Cmd_CommandAdd( pAbc, "Basic", "recall",        CmdCommandRecall,          0 );
     Cmd_CommandAdd( pAbc, "Basic", "empty",         CmdCommandEmpty,           0 );
-#if defined(WIN32)
+#if (defined(WIN32) || defined(__MINGW32__))
     Cmd_CommandAdd( pAbc, "Basic", "scandir",       CmdCommandScanDir,         0 );
     Cmd_CommandAdd( pAbc, "Basic", "renamefiles",   CmdCommandRenameFiles,     0 );
     Cmd_CommandAdd( pAbc, "Basic", "ls",            CmdCommandLs,              0 );
@@ -1217,7 +1217,7 @@ usage:
 #endif
 
 
-#if defined(WIN32)
+#if (defined(WIN32) || defined(__MINGW32__))
 #include <direct.h>
 #include <io.h>
 
@@ -1905,7 +1905,7 @@ usage:
 
 #else
 
-Vec_Ptr_t * CmdReturnFileNames( char * pDirStr ) 
+Vec_Ptr_t * CmdReturnFileNames( char * pDirStr )
 {
     Vec_Ptr_t * vRes = Vec_PtrAlloc( 100 );
     struct dirent **namelist;
@@ -1917,7 +1917,7 @@ Vec_Ptr_t * CmdReturnFileNames( char * pDirStr )
     for (int i = 0; i < num_files; i++) {
         char * pExt = strstr(namelist[i]->d_name, ".");
         if ( !pExt || !strcmp(pExt, ".") || !strcmp(pExt, "..") || !strcmp(pExt, ".s") || !strcmp(pExt, ".txt") )
-            continue;    
+            continue;
         Vec_PtrPush( vRes, Abc_UtilStrsav(namelist[i]->d_name) );
         free(namelist[i]);
     }
@@ -1933,7 +1933,7 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
     char * pDirStr = (char *)".";
     char * pComStr = (char *)"ps";
     char * pWriteStr = NULL;
-    char * pWriteExt = NULL;    
+    char * pWriteExt = NULL;
     char   Line[2000], * pName;
     int    nFileNameMax;
     int    fBatch = 0;
@@ -1988,7 +1988,7 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
             }
             pWriteExt = argv[globalUtilOptind];
             globalUtilOptind++;
-            break;            
+            break;
         case 'b':
             fBatch ^= 1;
             break;
@@ -2018,8 +2018,8 @@ int CmdCommandScrGenLinux( Abc_Frame_t * pAbc, int argc, char **argv )
         int fAndSpace = pComStr[0] == '&';
         fprintf( pFile, "# Script file produced by ABC on %s\n", Extra_TimeStamp() );
         fprintf( pFile, "# Command line was: scrgen -F %s -D %s -C \"%s\"%s%s%s%s\n",
-            pFileStr, pDirStr, pComStr, 
-            pWriteStr?" -W ":"", pWriteStr?pWriteStr:"", 
+            pFileStr, pDirStr, pComStr,
+            pWriteStr?" -W ":"", pWriteStr?pWriteStr:"",
             pWriteExt?" -E ":"", pWriteExt?pWriteExt:"" );
         Vec_PtrForEachEntry( char *, vNames, pName, k ) {
             char * pExt = strstr(pName, ".");
@@ -2057,7 +2057,7 @@ usage:
     fprintf( pAbc->Err, "\t-C str  : the sequence of commands to run [default = \"ps\"]\n" );
     fprintf( pAbc->Err, "\t-W str  : the directory to write the resulting files [default = no writing]\n" );
     fprintf( pAbc->Err, "\t-E str  : the output files extension (with \".\") [default = the same as input files]\n" );
-    fprintf( pAbc->Err, "\t-b      : toggles adding batch mode support [default = %s]\n", fBatch? "yes": "no" );    
+    fprintf( pAbc->Err, "\t-b      : toggles adding batch mode support [default = %s]\n", fBatch? "yes": "no" );
     fprintf( pAbc->Err, "\t-h      : print the command usage\n\n");
     fprintf( pAbc->Err, "\tExample : scrgen -F test1.s -R a/in -C \"ps; st; ps\" -W a/out -E .blif\n" );
     return 1;
@@ -2614,7 +2614,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2641,7 +2641,7 @@ int CmdCommandStarter( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCores = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCores < 0 ) 
+            if ( nCores < 0 )
                 goto usage;
             break;
         case 'C':
@@ -2699,7 +2699,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2727,7 +2727,7 @@ int CmdCommandAutoTuner( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nCores = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nCores < 0 ) 
+            if ( nCores < 0 )
                 goto usage;
             break;
         case 'C':
@@ -2848,7 +2848,7 @@ usage:
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2873,7 +2873,7 @@ int CmdCommandSGen( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nParts = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
-            if ( nParts < 0 ) 
+            if ( nParts < 0 )
                 goto usage;
             break;
         case 'I':
@@ -2899,7 +2899,7 @@ int CmdCommandSGen( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -2, "There is no current network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsStrash(Abc_FrameReadNtk(pAbc)) )    
+    if ( !Abc_NtkIsStrash(Abc_FrameReadNtk(pAbc)) )
     {
         Abc_Print( -2, "The current network is not an AIG.\n" );
         return 1;

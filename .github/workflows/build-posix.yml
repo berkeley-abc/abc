@@ -2,6 +2,8 @@ name: Build Posix
 
 on:
   push:
+    branches:
+      - master
   pull_request:
 
 jobs:
@@ -33,12 +35,13 @@ jobs:
 
     - name: Install APT dependencies
       run: |
-        sudo apt install -y libreadline-dev
+        sudo apt-get -y -qq update
+        sudo apt-get install -y libreadline-dev
       if: ${{ !contains(matrix.os, 'macos') }}
 
     - name: Build Executable
       run: |
-        make -j3 ${MAKE_ARGS} abc
+        make -j3 ABC_USE_PIC=1 ${MAKE_ARGS} abc
 
     - name: Test Executable
       run: |

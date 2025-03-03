@@ -17,7 +17,7 @@
   Revision    [$Id: absPth.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
- 
+
 #include "abs.h"
 #include "proof/pdr/pdr.h"
 #include "proof/ssw/ssw.h"
@@ -25,7 +25,7 @@
 
 #ifdef ABC_USE_PTHREADS
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include "../lib/pthread.h"
 #else
 #include <pthread.h>
@@ -34,7 +34,7 @@
 
 #endif
 
-ABC_NAMESPACE_IMPL_START 
+ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
