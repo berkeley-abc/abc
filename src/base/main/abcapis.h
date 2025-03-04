@@ -81,6 +81,8 @@ extern ABC_DLL void   Abc_FrameGiaInputMiniLut( Abc_Frame_t * pAbc, void * pMini
 extern ABC_DLL void   Abc_FrameGiaInputMiniLut2( Abc_Frame_t * pAbc, void * pMiniLut );
 extern ABC_DLL void * Abc_FrameGiaOutputMiniLut( Abc_Frame_t * pAbc );
 extern ABC_DLL char * Abc_FrameGiaOutputMiniLutAttr( Abc_Frame_t * pAbc, void * pMiniLut );
+extern ABC_DLL int *  Abc_FrameGiaOutputMiniLutObj( Abc_Frame_t * pAbc );
+extern ABC_DLL void   Abc_FrameSetObjDelays( Abc_Frame_t * pAbc, int * pDelays, int nDelays );
 extern ABC_DLL int *  Abc_FrameReadMiniLutSwitching( Abc_Frame_t * pAbc );
 extern ABC_DLL int *  Abc_FrameReadMiniLutSwitching2( Abc_Frame_t * pAbc, int nRandPiFactor );
 extern ABC_DLL int *  Abc_FrameReadMiniLutSwitchingPo( Abc_Frame_t * pAbc );
