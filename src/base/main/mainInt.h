@@ -158,6 +158,8 @@ struct Abc_Frame_t_
     Gia_Man_t *     pGiaMiniLut; 
     Vec_Int_t *     vCopyMiniAig;
     Vec_Int_t *     vCopyMiniLut;
+    Vec_Int_t *     vMiniLutObjs;
+    Vec_Int_t *     vObjDelays;
     int *           pArray;
     int *           pBoxes;
     void *          pNdr;

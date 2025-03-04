@@ -555,6 +555,23 @@ char * Abc_FrameGiaOutputMiniLutAttr( Abc_Frame_t * pAbc, void * pMiniLut )
         printf( "Current network in ABC framework is not defined.\n" );
     return Gia_ManToMiniLutAttr( pGia, pMiniLut );
 }
+int * Abc_FrameGiaOutputMiniLutObj( Abc_Frame_t * pAbc )
+{
+    int * pRes = NULL;
+    if ( pAbc == NULL )
+        printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    if ( pAbc->vMiniLutObjs == NULL )
+        printf( "MiniLut objects are not defined.\n" );
+    pRes = Vec_IntReleaseArray( pAbc->vMiniLutObjs );
+    Vec_IntFreeP( &pAbc->vMiniLutObjs );    
+    return pRes;
+}
+void Abc_FrameSetObjDelays( Abc_Frame_t * pAbc, int * pDelays, int nDelays )
+{
+    Vec_IntFreeP( &pAbc->vObjDelays );
+    pAbc->vObjDelays = Vec_IntAllocArrayCopy( pDelays, nDelays );
+}
+
 
 /**Function*************************************************************
 
