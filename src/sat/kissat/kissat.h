@@ -1,6 +1,9 @@
 #ifndef _kissat_h_INCLUDED
 #define _kissat_h_INCLUDED
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct kissat kissat;
 
 // Default (partial) IPASIR interface.
@@ -40,5 +43,10 @@ void kissat_set_conflict_limit (kissat *solver, unsigned);
 void kissat_set_decision_limit (kissat *solver, unsigned);
 
 void kissat_print_statistics (kissat *solver);
+
+// Extra API functions.
+int kissat_is_inconsistent(kissat *solver);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

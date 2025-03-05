@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 struct clause;
 struct kissat;
 
@@ -13,5 +16,7 @@ void kissat_on_the_fly_subsume (struct kissat *, struct clause *,
                                 struct clause *);
 
 bool issat_strengthen_clause (struct kissat *, struct clause *, unsigned);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

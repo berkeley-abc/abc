@@ -3,6 +3,8 @@
 #include "inline.h"
 #include "minimize.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static void reset_shrinkable (kissat *solver) {
 #ifdef LOGGING
   size_t reset = 0;
@@ -10,7 +12,7 @@ static void reset_shrinkable (kissat *solver) {
   while (!EMPTY_STACK (solver->shrinkable)) {
     const unsigned idx = POP_STACK (solver->shrinkable);
     assigned *a = solver->assigned + idx;
-    assert (a->shrinkable);
+    KISSAT_assert (a->shrinkable);
     a->shrinkable = false;
 #ifdef LOGGING
     reset++;
@@ -27,9 +29,9 @@ static void mark_shrinkable_as_removable (kissat *solver) {
   while (!EMPTY_STACK (solver->shrinkable)) {
     const unsigned idx = POP_STACK (solver->shrinkable);
     struct assigned *a = assigned + idx;
-    assert (a->shrinkable);
+    KISSAT_assert (a->shrinkable);
     a->shrinkable = false;
-    assert (!a->poisoned);
+    KISSAT_assert (!a->poisoned);
 #ifdef LOGGING
     reset++;
 #endif
@@ -46,12 +48,12 @@ static void mark_shrinkable_as_removable (kissat *solver) {
 
 static inline int shrink_literal (kissat *solver, assigned *assigned,
                                   unsigned level, unsigned lit) {
-  assert (solver->assigned == assigned);
-  assert (VALUE (lit) < 0);
+  KISSAT_assert (solver->assigned == assigned);
+  KISSAT_assert (VALUE (lit) < 0);
 
   const unsigned idx = IDX (lit);
   struct assigned *a = assigned + idx;
-  assert (a->level <= level);
+  KISSAT_assert (a->level <= level);
   if (!a->level) {
     LOG2 ("skipping root level assigned %s", LOGLIT (lit));
     return 0;
@@ -84,17 +86,17 @@ static inline int shrink_literal (kissat *solver, assigned *assigned,
 static inline unsigned shrunken_block (kissat *solver, unsigned level,
                                        unsigned *begin_block,
                                        unsigned *end_block, unsigned uip) {
-  assert (uip != INVALID_LIT);
+  KISSAT_assert (uip != INVALID_LIT);
   const unsigned not_uip = NOT (uip);
   LOG ("found unique implication point %s on level %u", LOGLIT (uip),
        level);
 
-  assert (begin_block < end_block);
-#if defined(LOGGING) || !defined(NDEBUG)
+  KISSAT_assert (begin_block < end_block);
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   const size_t tmp = end_block - begin_block;
   LOG ("shrinking %zu literals on level %u to single literal %s", tmp,
        level, LOGLIT (not_uip));
-  assert (tmp > 1);
+  KISSAT_assert (tmp > 1);
 #endif
 
 #ifdef LOGGING
@@ -116,7 +118,7 @@ static inline unsigned shrunken_block (kissat *solver, unsigned level,
     block_shrunken++;
   }
   *begin_block = not_uip;
-  assert (block_shrunken);
+  KISSAT_assert (block_shrunken);
   block_shrunken--;
 #ifdef LOGGING
   if (not_uip_was_in_clause)
@@ -143,17 +145,17 @@ static inline void push_literals_of_block (kissat *solver,
                                            unsigned *begin_block,
                                            unsigned *end_block,
                                            unsigned level) {
-  assert (assigned == solver->assigned);
+  KISSAT_assert (assigned == solver->assigned);
 
   for (const unsigned *p = begin_block; p != end_block; p++) {
     const unsigned lit = *p;
     if (lit == INVALID_LIT)
       continue;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     int tmp =
 #endif
         shrink_literal (solver, assigned, level, lit);
-    assert (tmp > 0);
+    KISSAT_assert (tmp > 0);
   }
 }
 
@@ -161,7 +163,7 @@ static inline unsigned shrink_along_binary (kissat *solver,
                                             assigned *assigned,
                                             unsigned level, unsigned uip,
                                             unsigned other) {
-  assert (VALUE (other) < 0);
+  KISSAT_assert (VALUE (other) < 0);
   LOGBINARY2 (uip, other, "shrinking along %s reason", LOGLIT (uip));
   int tmp = shrink_literal (solver, assigned, level, other);
 #ifndef LOGGING
@@ -181,7 +183,7 @@ shrink_along_large (kissat *solver, assigned *assigned, unsigned level,
   for (all_literals_in_clause (other, c)) {
     if (other == uip)
       continue;
-    assert (VALUE (other) < 0);
+    KISSAT_assert (VALUE (other) < 0);
     int tmp = shrink_literal (solver, assigned, level, other);
     if (tmp < 0) {
       *failed_ptr = true;
@@ -201,9 +203,9 @@ static inline unsigned shrink_along_reason (kissat *solver,
   unsigned open = 0;
   const unsigned uip_idx = IDX (uip);
   struct assigned *a = assigned + uip_idx;
-  assert (a->shrinkable);
-  assert (a->level == level);
-  assert (a->reason != DECISION_REASON);
+  KISSAT_assert (a->shrinkable);
+  KISSAT_assert (a->level == level);
+  KISSAT_assert (a->reason != DECISION_REASON);
   if (a->binary) {
     const unsigned other = a->reason;
     open = shrink_along_binary (solver, assigned, level, uip, other);
@@ -223,7 +225,7 @@ static inline unsigned shrink_along_reason (kissat *solver,
 static inline unsigned shrink_block (kissat *solver, unsigned *begin_block,
                                      unsigned *end_block, unsigned level,
                                      unsigned max_trail) {
-  assert (level < solver->level);
+  KISSAT_assert (level < solver->level);
 
   unsigned open = end_block - begin_block;
 
@@ -234,7 +236,7 @@ static inline unsigned shrink_block (kissat *solver, unsigned *begin_block,
 
   push_literals_of_block (solver, assigned, begin_block, end_block, level);
 
-  assert (SIZE_STACK (solver->shrinkable) == open);
+  KISSAT_assert (SIZE_STACK (solver->shrinkable) == open);
 
   const unsigned *const begin_trail = BEGIN_ARRAY (solver->trail);
 
@@ -247,14 +249,14 @@ static inline unsigned shrink_block (kissat *solver, unsigned *begin_block,
   while (!failed) {
     {
       do
-        assert (begin_trail <= t), uip = *t--;
+        KISSAT_assert (begin_trail <= t), uip = *t--;
       while (!assigned[IDX (uip)].shrinkable);
     }
     if (open == 1)
       break;
     open += shrink_along_reason (solver, assigned, level, uip,
                                  resolve_large_clauses, &failed);
-    assert (open > 1);
+    KISSAT_assert (open > 1);
     open--;
   }
 
@@ -280,7 +282,7 @@ static unsigned *next_block (kissat *solver, unsigned *begin_lits,
 
   while (begin_lits < begin_block) {
     const unsigned lit = begin_block[-1];
-    assert (lit != INVALID_LIT);
+    KISSAT_assert (lit != INVALID_LIT);
     const unsigned idx = IDX (lit);
     struct assigned *a = assigned + idx;
     unsigned lit_level = a->level;
@@ -288,7 +290,7 @@ static unsigned *next_block (kissat *solver, unsigned *begin_lits,
       level = lit_level;
       LOG ("starting to shrink level %u", level);
     } else {
-      assert (lit_level >= level);
+      KISSAT_assert (lit_level >= level);
       if (lit_level > level)
         break;
     }
@@ -310,7 +312,7 @@ static unsigned minimize_block (kissat *solver, unsigned *begin_block,
 
   for (unsigned *p = begin_block; p != end_block; p++) {
     const unsigned lit = *p;
-    assert (lit != INVALID_LIT);
+    KISSAT_assert (lit != INVALID_LIT);
     if (!kissat_minimize_literal (solver, lit, true))
       continue;
     LOG ("minimize-shrunken literal %s", LOGLIT (lit));
@@ -325,7 +327,7 @@ static inline unsigned *
 minimize_and_shrink_block (kissat *solver, unsigned *begin_lits,
                            unsigned *end_block, unsigned *total_shrunken,
                            unsigned *total_minimized) {
-  assert (EMPTY_STACK (solver->shrinkable));
+  KISSAT_assert (EMPTY_STACK (solver->shrinkable));
 
   unsigned level, max_trail;
 
@@ -333,7 +335,7 @@ minimize_and_shrink_block (kissat *solver, unsigned *begin_lits,
       next_block (solver, begin_lits, end_block, &level, &max_trail);
 
   unsigned open = end_block - begin_block;
-  assert (open > 0);
+  KISSAT_assert (open > 0);
 
   unsigned block_shrunken = 0;
   unsigned block_minimized = 0;
@@ -358,9 +360,9 @@ minimize_and_shrink_block (kissat *solver, unsigned *begin_lits,
 }
 
 void kissat_shrink_clause (kissat *solver) {
-  assert (GET_OPTION (minimize) > 0);
-  assert (GET_OPTION (shrink) > 0);
-  assert (!EMPTY_STACK (solver->clause));
+  KISSAT_assert (GET_OPTION (minimize) > 0);
+  KISSAT_assert (GET_OPTION (shrink) > 0);
+  KISSAT_assert (!EMPTY_STACK (solver->clause));
 
   START (shrink);
 
@@ -383,7 +385,7 @@ void kissat_shrink_clause (kissat *solver) {
   }
   LOG ("clause shrunken by %u literals (including %u minimized)",
        total_shrunken, total_minimized);
-  assert (q + total_shrunken == end_lits);
+  KISSAT_assert (q + total_shrunken == end_lits);
   SET_END_OF_STACK (solver->clause, q);
   ADD (literals_shrunken, total_shrunken);
   ADD (literals_minshrunken, total_minimized);
@@ -393,3 +395,5 @@ void kissat_shrink_clause (kissat *solver) {
 
   STOP (shrink);
 }
+
+ABC_NAMESPACE_IMPL_END

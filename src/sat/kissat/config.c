@@ -1,4 +1,6 @@
-#ifndef NOPTIONS
+#include "global.h"
+
+#ifndef KISSAT_NOPTIONS
 
 #include "config.h"
 #include "kissat.h"

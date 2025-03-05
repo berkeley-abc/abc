@@ -1,9 +1,12 @@
 #ifndef _resources_h_INCLUDED
 #define _resources_h_INCLUDED
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 double kissat_wall_clock_time (void);
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 
 #ifndef _resources_h_INLCUDED
 #define _resources_h_INLCUDED
@@ -20,4 +23,6 @@ void kissat_print_resources (struct kissat *);
 #endif
 
 #endif
+ABC_NAMESPACE_HEADER_END
+
 #endif

@@ -3,11 +3,14 @@
 #ifndef _print_h_INCLUDED
 #define _print_h_INCLUDED
 
-#ifndef QUIET
-
 #include <stdint.h>
 
 #include "attribute.h"
+
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#ifndef KISSAT_QUIET
 
 struct kissat;
 
@@ -59,6 +62,8 @@ do { \
   else \
     kissat_very_verbose (SOLVER, __VA_ARGS__); \
 } while (0)
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
 

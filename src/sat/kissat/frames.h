@@ -6,6 +6,9 @@
 
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct frame frame;
 typedef struct slice slice;
 
@@ -14,7 +17,7 @@ struct frame {
   unsigned decision;
   unsigned trail;
   unsigned used;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   unsigned saved;
 #endif
 };
@@ -28,5 +31,7 @@ typedef STACK (frame) frames;
 struct kissat;
 
 #define FRAME(LEVEL) (PEEK_STACK (solver->frames, (LEVEL)))
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

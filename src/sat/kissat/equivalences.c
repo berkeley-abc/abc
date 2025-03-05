@@ -2,6 +2,8 @@
 #include "inlinevector.h"
 #include "logging.h"
 
+ABC_NAMESPACE_IMPL_START
+
 bool kissat_find_equivalence_gate (kissat *solver, unsigned lit) {
   if (!GET_OPTION (equivalences))
     return false;
@@ -35,3 +37,5 @@ bool kissat_find_equivalence_gate (kissat *solver, unsigned lit) {
   INC (equivalences_extracted);
   return true;
 }
+
+ABC_NAMESPACE_IMPL_END

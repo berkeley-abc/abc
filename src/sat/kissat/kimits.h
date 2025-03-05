@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct bounds bounds;
 typedef struct changes changes;
 typedef struct delays delays;
@@ -114,12 +117,12 @@ double kissat_logn (uint64_t);
   do { \
     if (solver->inconsistent) \
       break; \
-    const struct statistics *statistics = &solver->statistics; \
-    assert (statistics->COUNT > 0); \
+    const struct statistics *statistics = &solver->statistics_; \
+    KISSAT_assert (statistics->COUNT > 0); \
     struct limits *limits = &solver->limits; \
     uint64_t DELTA = GET_OPTION (NAME##int); \
     const double SCALING = SCALE_COUNT_FUNCTION (statistics->COUNT); \
-    assert (SCALING >= 1); \
+    KISSAT_assert (SCALING >= 1); \
     DELTA *= SCALING; \
     const uint64_t SCALED = \
         !(SCALE_DELTA) ? DELTA \
@@ -135,8 +138,8 @@ double kissat_logn (uint64_t);
 #define SET_EFFORT_LIMIT(LIMIT, NAME, START) \
   uint64_t LIMIT; \
   do { \
-    const uint64_t OLD_LIMIT = solver->statistics.START; \
-    const uint64_t TICKS = solver->statistics.search_ticks; \
+    const uint64_t OLD_LIMIT = solver->statistics_.START; \
+    const uint64_t TICKS = solver->statistics_.search_ticks; \
     const uint64_t LAST = solver->probing ? solver->last.ticks.probe \
                                           : solver->last.ticks.eliminate; \
     uint64_t REFERENCE = TICKS - LAST; \
@@ -181,5 +184,7 @@ void kissat_reduce_delay (struct kissat *, delay *);
 
 #define REDUCE_DELAY(NAME) \
   kissat_reduce_delay (solver, &solver->delays.NAME)
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

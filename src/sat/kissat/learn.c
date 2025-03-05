@@ -5,8 +5,10 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static unsigned backjump_limit (struct kissat *solver) {
-#ifdef NOPTIONS
+#ifdef KISSAT_NOPTIONS
   (void) solver;
 #endif
   return GET_OPTION (chrono) ? (unsigned) GET_OPTION (chronolevels)
@@ -14,9 +16,9 @@ static unsigned backjump_limit (struct kissat *solver) {
 }
 
 unsigned kissat_determine_new_level (kissat *solver, unsigned jump) {
-  assert (solver->level);
+  KISSAT_assert (solver->level);
   const unsigned back = solver->level - 1;
-  assert (jump <= back);
+  KISSAT_assert (jump <= back);
 
   const unsigned delta = back - jump;
   const unsigned limit = backjump_limit (solver);
@@ -42,7 +44,7 @@ unsigned kissat_determine_new_level (kissat *solver, unsigned jump) {
 }
 
 static void learn_unit (kissat *solver, unsigned not_uip) {
-  assert (not_uip == PEEK_STACK (solver->clause, 0));
+  KISSAT_assert (not_uip == PEEK_STACK (solver->clause, 0));
   LOG ("learned unit clause %s triggers iteration", LOGLIT (not_uip));
   const unsigned new_level = kissat_determine_new_level (solver, 0);
   kissat_backtrack_after_conflict (solver, new_level);
@@ -59,11 +61,11 @@ static void learn_binary (kissat *solver, unsigned not_uip) {
   const unsigned new_level =
       kissat_determine_new_level (solver, jump_level);
   kissat_backtrack_after_conflict (solver, new_level);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   const reference ref =
 #endif
       kissat_new_redundant_clause (solver, 1);
-  assert (ref == INVALID_REF);
+  KISSAT_assert (ref == INVALID_REF);
   kissat_assign_binary (solver, not_uip, other);
 }
 
@@ -80,10 +82,10 @@ static void insert_last_learned (kissat *solver, reference ref) {
 
 static reference learn_reference (kissat *solver, unsigned not_uip,
                                   unsigned glue) {
-  assert (solver->level > 1);
-  assert (SIZE_STACK (solver->clause) > 2);
+  KISSAT_assert (solver->level > 1);
+  KISSAT_assert (SIZE_STACK (solver->clause) > 2);
   unsigned *lits = BEGIN_STACK (solver->clause);
-  assert (lits[0] == not_uip);
+  KISSAT_assert (lits[0] == not_uip);
   unsigned *q = lits + 1;
   unsigned jump_lit = *q;
   unsigned jump_level = LEVEL (jump_lit);
@@ -105,7 +107,7 @@ static reference learn_reference (kissat *solver, unsigned not_uip,
   *q = lits[1];
   lits[1] = jump_lit;
   const reference ref = kissat_new_redundant_clause (solver, glue);
-  assert (ref != INVALID_REF);
+  KISSAT_assert (ref != INVALID_REF);
   clause *c = kissat_dereference_clause (solver, ref);
   c->used = MAX_USED;
   const unsigned new_level =
@@ -116,14 +118,14 @@ static reference learn_reference (kissat *solver, unsigned not_uip,
 }
 
 void kissat_update_learned (kissat *solver, unsigned glue, unsigned size) {
-  assert (!solver->probing);
+  KISSAT_assert (!solver->probing);
   INC (clauses_learned);
   LOG ("learned[%" PRIu64 "] clause glue %u size %u", GET (clauses_learned),
        glue, size);
   if (solver->stable)
     kissat_tick_reluctant (&solver->reluctant);
   ADD (literals_learned, size);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   UPDATE_AVERAGE (size, size);
 #endif
   UPDATE_AVERAGE (fast_glue, glue);
@@ -145,7 +147,7 @@ static void flush_last_learned (kissat *solver) {
 static void eagerly_subsume_last_learned (kissat *solver) {
   value *marks = solver->marks;
   for (all_stack (unsigned, lit, solver->clause)) {
-    assert (!marks[lit]);
+    KISSAT_assert (!marks[lit]);
     marks[lit] = 1;
   }
   unsigned clause_size = SIZE_STACK (solver->clause);
@@ -191,10 +193,10 @@ void kissat_learn_clause (kissat *solver) {
   const unsigned not_uip = PEEK_STACK (solver->clause, 0);
   const unsigned size = SIZE_STACK (solver->clause);
   const size_t glue = SIZE_STACK (solver->levels);
-  assert (glue <= UINT_MAX);
+  KISSAT_assert (glue <= UINT_MAX);
   if (!solver->probing)
     kissat_update_learned (solver, glue, size);
-  assert (size > 0);
+  KISSAT_assert (size > 0);
   reference ref = INVALID_REF;
   if (size == 1)
     learn_unit (solver, not_uip);
@@ -208,3 +210,5 @@ void kissat_learn_clause (kissat *solver) {
       insert_last_learned (solver, ref);
   }
 }
+
+ABC_NAMESPACE_IMPL_END

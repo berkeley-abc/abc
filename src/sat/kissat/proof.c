@@ -1,13 +1,15 @@
-#ifndef NPROOFS
+#include "global.h"
+
+#ifndef KISSAT_NPROOFS
 
 #include "allocate.h"
 #include "error.h"
 #include "file.h"
 #include "inline.h"
 
-#undef NDEBUG
+#undef KISSAT_NDEBUG
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 #include <string.h>
 #endif
 
@@ -30,12 +32,12 @@ struct proof {
   uint64_t deleted;
   uint64_t lines;
   uint64_t literals;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   bool empty;
   char *units;
   size_t size_units;
 #endif
-#if !defined(NDEBUG) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || defined(LOGGING)
   unsigneds imported;
 #endif
 };
@@ -52,8 +54,8 @@ struct proof {
             __VA_ARGS__)
 
 void kissat_init_proof (kissat *solver, file *file, bool binary) {
-  assert (file);
-  assert (!solver->proof);
+  KISSAT_assert (file);
+  KISSAT_assert (!solver->proof);
   proof *proof = kissat_calloc (solver, 1, sizeof (struct proof));
   proof->binary = binary;
   proof->file = file;
@@ -74,22 +76,22 @@ static void flush_buffer (proof *proof) {
 
 void kissat_release_proof (kissat *solver) {
   proof *proof = solver->proof;
-  assert (proof);
+  KISSAT_assert (proof);
   LOG ("stopping to trace proof");
   flush_buffer (proof);
   kissat_flush (proof->file);
   RELEASE_STACK (proof->line);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   kissat_free (solver, proof->units, proof->size_units);
 #endif
-#if !defined(NDEBUG) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || defined(LOGGING)
   RELEASE_STACK (proof->imported);
 #endif
   kissat_free (solver, proof, sizeof (struct proof));
   solver->proof = 0;
 }
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 
 #include <inttypes.h>
 
@@ -138,27 +140,27 @@ static inline void import_internal_proof_literal (kissat *solver,
                                                   proof *proof,
                                                   unsigned ilit) {
   int elit = kissat_export_literal (solver, ilit);
-  assert (elit);
+  KISSAT_assert (elit);
   PUSH_STACK (proof->line, elit);
   proof->literals++;
-#if !defined(NDEBUG) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || defined(LOGGING)
   PUSH_STACK (proof->imported, ilit);
 #endif
 }
 
 static inline void import_external_proof_literal (kissat *solver,
                                                   proof *proof, int elit) {
-  assert (elit);
+  KISSAT_assert (elit);
   PUSH_STACK (proof->line, elit);
   proof->literals++;
-#ifndef NDEBUG
-  assert (EMPTY_STACK (proof->imported));
+#ifndef KISSAT_NDEBUG
+  KISSAT_assert (EMPTY_STACK (proof->imported));
 #endif
 }
 
 static void import_internal_proof_binary (kissat *solver, proof *proof,
                                           unsigned a, unsigned b) {
-  assert (EMPTY_STACK (proof->line));
+  KISSAT_assert (EMPTY_STACK (proof->line));
   import_internal_proof_literal (solver, proof, a);
   import_internal_proof_literal (solver, proof, b);
 }
@@ -166,16 +168,16 @@ static void import_internal_proof_binary (kissat *solver, proof *proof,
 static void import_internal_proof_literals (kissat *solver, proof *proof,
                                             size_t size,
                                             const unsigned *ilits) {
-  assert (EMPTY_STACK (proof->line));
-  assert (size <= UINT_MAX);
+  KISSAT_assert (EMPTY_STACK (proof->line));
+  KISSAT_assert (size <= UINT_MAX);
   for (size_t i = 0; i < size; i++)
     import_internal_proof_literal (solver, proof, ilits[i]);
 }
 
 static void import_external_proof_literals (kissat *solver, proof *proof,
                                             size_t size, const int *elits) {
-  assert (EMPTY_STACK (proof->line));
-  assert (size <= UINT_MAX);
+  KISSAT_assert (EMPTY_STACK (proof->line));
+  KISSAT_assert (size <= UINT_MAX);
   for (size_t i = 0; i < size; i++)
     import_external_proof_literal (solver, proof, elits[i]);
 }
@@ -186,7 +188,7 @@ static void import_proof_clause (kissat *solver, proof *proof,
 }
 
 static void print_binary_proof_line (proof *proof) {
-  assert (proof->binary);
+  KISSAT_assert (proof->binary);
   for (all_stack (int, elit, proof->line)) {
     unsigned x = 2u * ABS (elit) + (elit < 0);
     unsigned char ch;
@@ -201,15 +203,15 @@ static void print_binary_proof_line (proof *proof) {
 }
 
 static void print_non_binary_proof_line (proof *proof) {
-  assert (!proof->binary);
+  KISSAT_assert (!proof->binary);
   char buffer[16];
   char *end_of_buffer = buffer + sizeof buffer;
   *--end_of_buffer = 0;
   for (all_stack (int, elit, proof->line)) {
     char *p = end_of_buffer;
-    assert (!*p);
-    assert (elit);
-    assert (elit != INT_MIN);
+    KISSAT_assert (!*p);
+    KISSAT_assert (elit);
+    KISSAT_assert (elit != INT_MIN);
     unsigned eidx;
     if (elit < 0) {
       write_char (proof, '-');
@@ -233,10 +235,10 @@ static void print_proof_line (proof *proof) {
   else
     print_non_binary_proof_line (proof);
   CLEAR_STACK (proof->line);
-#if !defined(NDEBUG) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || defined(LOGGING)
   CLEAR_STACK (proof->imported);
 #endif
-#ifndef NOPTIONS
+#ifndef KISSAT_NOPTIONS
   kissat *solver = proof->solver;
 #endif
   if (GET_OPTION (flushproof)) {
@@ -245,11 +247,11 @@ static void print_proof_line (proof *proof) {
   }
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 static unsigned external_to_proof_literal (int elit) {
-  assert (elit);
-  assert (elit != INT_MIN);
+  KISSAT_assert (elit);
+  KISSAT_assert (elit != INT_MIN);
   return 2u * (abs (elit) - 1) + (elit < 0);
 }
 
@@ -270,12 +272,12 @@ static void resize_proof_units (proof *proof, unsigned plit) {
 static void check_repeated_proof_lines (proof *proof) {
   size_t size = SIZE_STACK (proof->line);
   if (!size) {
-    assert (!proof->empty);
+    KISSAT_assert (!proof->empty);
     proof->empty = true;
   } else if (size == 1) {
     const int eunit = PEEK_STACK (proof->line, 0);
     const unsigned punit = external_to_proof_literal (eunit);
-    assert (punit != INVALID_LIT);
+    KISSAT_assert (punit != INVALID_LIT);
     if (!proof->size_units || proof->size_units <= punit)
       resize_proof_units (proof, punit);
     proof->units[punit] = 1;
@@ -288,11 +290,11 @@ static void print_added_proof_line (proof *proof) {
   proof->added++;
 #ifdef LOGGING
   struct kissat *solver = proof->solver;
-  assert (SIZE_STACK (proof->imported) == SIZE_STACK (proof->line));
+  KISSAT_assert (SIZE_STACK (proof->imported) == SIZE_STACK (proof->line));
   LOGIMPORTED3 ("added proof line");
   LOGLINE3 ("added proof line");
 #endif
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   check_repeated_proof_lines (proof);
 #endif
   if (proof->binary)
@@ -316,37 +318,37 @@ static void print_delete_proof_line (proof *proof) {
 
 void kissat_add_binary_to_proof (kissat *solver, unsigned a, unsigned b) {
   proof *proof = solver->proof;
-  assert (proof);
+  KISSAT_assert (proof);
   import_internal_proof_binary (solver, proof, a, b);
   print_added_proof_line (proof);
 }
 
 void kissat_add_clause_to_proof (kissat *solver, const clause *c) {
   proof *proof = solver->proof;
-  assert (proof);
+  KISSAT_assert (proof);
   import_proof_clause (solver, proof, c);
   print_added_proof_line (proof);
 }
 
 void kissat_add_empty_to_proof (kissat *solver) {
   proof *proof = solver->proof;
-  assert (proof);
-  assert (EMPTY_STACK (proof->line));
+  KISSAT_assert (proof);
+  KISSAT_assert (EMPTY_STACK (proof->line));
   print_added_proof_line (proof);
 }
 
 void kissat_add_lits_to_proof (kissat *solver, size_t size,
                                const unsigned *ilits) {
   proof *proof = solver->proof;
-  assert (proof);
+  KISSAT_assert (proof);
   import_internal_proof_literals (solver, proof, size, ilits);
   print_added_proof_line (proof);
 }
 
 void kissat_add_unit_to_proof (kissat *solver, unsigned ilit) {
   proof *proof = solver->proof;
-  assert (proof);
-  assert (EMPTY_STACK (proof->line));
+  KISSAT_assert (proof);
+  KISSAT_assert (EMPTY_STACK (proof->line));
   import_internal_proof_literal (solver, proof, ilit);
   print_added_proof_line (proof);
 }
@@ -355,7 +357,7 @@ void kissat_shrink_clause_in_proof (kissat *solver, const clause *c,
                                     unsigned remove, unsigned keep) {
   proof *proof = solver->proof;
   const value *const values = solver->values;
-  assert (EMPTY_STACK (proof->line));
+  KISSAT_assert (EMPTY_STACK (proof->line));
   const unsigned *ilits = c->lits;
   const unsigned size = c->size;
   for (unsigned i = 0; i != size; i++) {
@@ -374,14 +376,14 @@ void kissat_shrink_clause_in_proof (kissat *solver, const clause *c,
 void kissat_delete_binary_from_proof (kissat *solver, unsigned a,
                                       unsigned b) {
   proof *proof = solver->proof;
-  assert (proof);
+  KISSAT_assert (proof);
   import_internal_proof_binary (solver, proof, a, b);
   print_delete_proof_line (proof);
 }
 
 void kissat_delete_clause_from_proof (kissat *solver, const clause *c) {
   proof *proof = solver->proof;
-  assert (proof);
+  KISSAT_assert (proof);
   import_proof_clause (solver, proof, c);
   print_delete_proof_line (proof);
 }
@@ -389,7 +391,7 @@ void kissat_delete_clause_from_proof (kissat *solver, const clause *c) {
 void kissat_delete_external_from_proof (kissat *solver, size_t size,
                                         const int *elits) {
   proof *proof = solver->proof;
-  assert (proof);
+  KISSAT_assert (proof);
   LOGINTS3 (size, elits, "explicitly deleted");
   import_external_proof_literals (solver, proof, size, elits);
   print_delete_proof_line (proof);
@@ -398,7 +400,7 @@ void kissat_delete_external_from_proof (kissat *solver, size_t size,
 void kissat_delete_internal_from_proof (kissat *solver, size_t size,
                                         const unsigned *ilits) {
   proof *proof = solver->proof;
-  assert (proof);
+  KISSAT_assert (proof);
   import_internal_proof_literals (solver, proof, size, ilits);
   print_delete_proof_line (proof);
 }

@@ -6,15 +6,17 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static unsigned last_enqueued_unassigned_variable (kissat *solver) {
-  assert (solver->unassigned);
+  KISSAT_assert (solver->unassigned);
   const links *const links = solver->links;
   const value *const values = solver->values;
   unsigned res = solver->queue.search.idx;
   if (values[LIT (res)]) {
     do {
       res = links[res].prev;
-      assert (!DISCONNECTED (res));
+      KISSAT_assert (!DISCONNECTED (res));
     } while (values[LIT (res)]);
     kissat_update_queue (solver, links, res);
   }
@@ -24,7 +26,7 @@ static unsigned last_enqueued_unassigned_variable (kissat *solver) {
 #endif
 #ifdef CHECK_QUEUE
   for (unsigned i = links[res].next; !DISCONNECTED (i); i = links[i].next)
-    assert (VALUE (LIT (i)));
+    KISSAT_assert (VALUE (LIT (i)));
 #endif
   return res;
 }
@@ -48,7 +50,7 @@ static unsigned largest_score_unassigned_variable (kissat *solver) {
     if (VALUE (LIT (idx)))
       continue;
     const double idx_score = kissat_get_heap_score (scores, idx);
-    assert (score >= idx_score);
+    KISSAT_assert (score >= idx_score);
   }
 #endif
   return res;
@@ -71,7 +73,7 @@ void kissat_start_random_sequence (kissat *solver) {
                          FORMAT_COUNT (CONFLICTS));
   else {
     INC (random_sequences);
-    const uint64_t count = solver->statistics.random_sequences;
+    const uint64_t count = solver->statistics_.random_sequences;
     const unsigned length = GET_OPTION (randeclength) * LOGN (count);
     kissat_very_verbose (solver,
                          "starting random decision sequence "
@@ -100,7 +102,7 @@ static unsigned next_random_decision (kissat *solver) {
     return INVALID_IDX;
 
   if (!solver->randec) {
-    assert (solver->level);
+    KISSAT_assert (solver->level);
     if (solver->level > 1)
       return INVALID_IDX;
 
@@ -176,7 +178,7 @@ int kissat_decide_phase (kissat *solver, unsigned idx) {
   value res = 0;
 
   if (!solver->stable) {
-    switch ((solver->statistics.switched >> 1) & 7) {
+    switch ((solver->statistics_.switched >> 1) & 7) {
     case 1:
       res = INITIAL_PHASE;
       break;
@@ -201,14 +203,14 @@ int kissat_decide_phase (kissat *solver, unsigned idx) {
     LOG ("%s uses initial decision phase %d", LOGVAR (idx), (int) res);
     INC (initial_decisions);
   }
-  assert (res);
+  KISSAT_assert (res);
 
   return res < 0 ? -1 : 1;
 }
 
 void kissat_decide (kissat *solver) {
   START (decide);
-  assert (solver->unassigned);
+  KISSAT_assert (solver->unassigned);
   if (solver->warming)
     INC (warming_decisions);
   else {
@@ -219,26 +221,28 @@ void kissat_decide (kissat *solver) {
       INC (focused_decisions);
   }
   solver->level++;
-  assert (solver->level != INVALID_LEVEL);
+  KISSAT_assert (solver->level != INVALID_LEVEL);
   const unsigned idx = kissat_next_decision_variable (solver);
   const value value = kissat_decide_phase (solver, idx);
   unsigned lit = LIT (idx);
   if (value < 0)
     lit = NOT (lit);
   kissat_push_frame (solver, lit);
-  assert (solver->level < SIZE_STACK (solver->frames));
+  KISSAT_assert (solver->level < SIZE_STACK (solver->frames));
   LOG ("decide literal %s", LOGLIT (lit));
   kissat_assign_decision (solver, lit);
   STOP (decide);
 }
 
 void kissat_internal_assume (kissat *solver, unsigned lit) {
-  assert (solver->unassigned);
-  assert (!VALUE (lit));
+  KISSAT_assert (solver->unassigned);
+  KISSAT_assert (!VALUE (lit));
   solver->level++;
-  assert (solver->level != INVALID_LEVEL);
+  KISSAT_assert (solver->level != INVALID_LEVEL);
   kissat_push_frame (solver, lit);
-  assert (solver->level < SIZE_STACK (solver->frames));
+  KISSAT_assert (solver->level < SIZE_STACK (solver->frames));
   LOG ("assuming literal %s", LOGLIT (lit));
   kissat_assign_decision (solver, lit);
 }
+
+ABC_NAMESPACE_IMPL_END

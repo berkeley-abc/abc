@@ -19,6 +19,8 @@
 
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 #define FACTOR 1
 #define QUOTIENT 2
 #define NOUNTED 4
@@ -73,19 +75,19 @@ static void init_factoring (kissat *solver, factoring *factoring,
     factoring->hops = GET_OPTION (factorhops);
   const unsigned hops = factoring->hops;
   if (hops) {
-    CALLOC (factoring->scores, hops);
+    CALLOC (scores, factoring->scores, hops);
     for (unsigned i = 0; i != hops; i++) {
       scores *scores = factoring->scores + i;
-      NALLOC (scores->score, VARS);
+      NALLOC (double, scores->score, VARS);
       double *score = scores->score;
       for (all_variables (idx))
         score[idx] = -1;
     }
   }
-  CALLOC (factoring->count, factoring->allocated);
-#ifndef NDEBUG
+  CALLOC (unsigned, factoring->count, factoring->allocated);
+#ifndef KISSAT_NDEBUG
   for (all_literals (lit))
-    assert (!solver->marks[lit]);
+    KISSAT_assert (!solver->marks[lit]);
 #endif
 }
 
@@ -95,7 +97,7 @@ static void release_quotients (factoring *factoring) {
   for (quotient *q = factoring->quotients.first, *next; q; q = next) {
     next = q->next;
     unsigned factor = q->factor;
-    assert (marks[factor] == FACTOR);
+    KISSAT_assert (marks[factor] == FACTOR);
     marks[factor] = 0;
     RELEASE_STACK (q->clauses);
     RELEASE_STACK (q->matches);
@@ -118,10 +120,10 @@ static void release_quotients (factoring *factoring) {
 
 static void release_factoring (factoring *factoring) {
   kissat *const solver = factoring->solver;
-  assert (EMPTY_STACK (solver->analyzed));
-  assert (EMPTY_STACK (factoring->counted));
-  assert (EMPTY_STACK (factoring->nounted));
-  assert (EMPTY_STACK (factoring->qlauses));
+  KISSAT_assert (EMPTY_STACK (solver->analyzed));
+  KISSAT_assert (EMPTY_STACK (factoring->counted));
+  KISSAT_assert (EMPTY_STACK (factoring->nounted));
+  KISSAT_assert (EMPTY_STACK (factoring->qlauses));
   DEALLOC (factoring->count, factoring->allocated);
   RELEASE_STACK (factoring->counted);
   RELEASE_STACK (factoring->nounted);
@@ -129,7 +131,7 @@ static void release_factoring (factoring *factoring) {
   RELEASE_STACK (factoring->qlauses);
   release_quotients (factoring);
   kissat_release_heap (solver, &factoring->schedule);
-  assert (!(factoring->allocated & 1));
+  KISSAT_assert (!(factoring->allocated & 1));
   const size_t allocated_score = factoring->allocated / 2;
   const unsigned hops = factoring->hops;
   if (hops) {
@@ -141,9 +143,9 @@ static void release_factoring (factoring *factoring) {
     }
     DEALLOC (factoring->scores, hops);
   }
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   for (all_literals (lit))
-    assert (!solver->marks[lit]);
+    KISSAT_assert (!solver->marks[lit]);
 #endif
 }
 
@@ -174,7 +176,7 @@ static void schedule_factorization (factoring *factoring) {
         update_candidate (factoring, not_lit);
     }
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   heap *cands = &factoring->schedule;
   size_t size_cands = kissat_size_heap (cands);
   kissat_very_verbose (
@@ -186,19 +188,19 @@ static void schedule_factorization (factoring *factoring) {
 static quotient *new_quotient (factoring *factoring, unsigned factor) {
   kissat *const solver = factoring->solver;
   mark *marks = solver->marks;
-  assert (!marks[factor]);
+  KISSAT_assert (!marks[factor]);
   marks[factor] = FACTOR;
-  quotient *res = kissat_malloc (solver, sizeof *res);
+  quotient *res = (quotient*)kissat_malloc (solver, sizeof *res);
   memset (res, 0, sizeof *res);
   res->factor = factor;
   quotient *last = factoring->quotients.last;
   if (last) {
-    assert (factoring->quotients.first);
-    assert (!last->next);
+    KISSAT_assert (factoring->quotients.first);
+    KISSAT_assert (!last->next);
     last->next = res;
     res->id = last->id + 1;
   } else {
-    assert (!factoring->quotients.first);
+    KISSAT_assert (!factoring->quotients.first);
     factoring->quotients.first = res;
   }
   factoring->quotients.last = res;
@@ -211,24 +213,24 @@ static size_t first_factor (factoring *factoring, unsigned factor) {
   kissat *const solver = factoring->solver;
   watches *all_watches = solver->watches;
   watches *factor_watches = all_watches + factor;
-  assert (!factoring->quotients.first);
+  KISSAT_assert (!factoring->quotients.first);
   quotient *quotient = new_quotient (factoring, factor);
   statches *clauses = &quotient->clauses;
   uint64_t ticks = 0;
   for (all_binary_large_watches (watch, *factor_watches)) {
     PUSH_STACK (*clauses, watch);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     if (watch.type.binary)
       continue;
     const reference ref = watch.large.ref;
     clause *const c = kissat_dereference_clause (solver, ref);
-    assert (!c->quotient);
+    KISSAT_assert (!c->quotient);
 #endif
     ticks++;
   }
   size_t res = SIZE_STACK (*clauses);
   LOG ("quotient[0] factor %s size %zu", LOGLIT (factor), res);
-  assert (res > 1);
+  KISSAT_assert (res > 1);
   ADD (factor_ticks, ticks);
   return res;
 }
@@ -236,7 +238,7 @@ static size_t first_factor (factoring *factoring, unsigned factor) {
 static void clear_nounted (kissat *solver, unsigneds *nounted) {
   mark *marks = solver->marks;
   for (all_stack (unsigned, lit, *nounted)) {
-    assert (marks[lit] & NOUNTED);
+    KISSAT_assert (marks[lit] & NOUNTED);
     marks[lit] &= ~NOUNTED;
   }
   CLEAR_STACK (*nounted);
@@ -246,7 +248,7 @@ static void clear_qlauses (kissat *solver, references *qlauses) {
   ward *const arena = BEGIN_STACK (solver->arena);
   for (all_stack (reference, ref, *qlauses)) {
     clause *const c = (clause *) (arena + ref);
-    assert (c->quotient);
+    KISSAT_assert (c->quotient);
     c->quotient = false;
   }
   CLEAR_STACK (*qlauses);
@@ -286,7 +288,7 @@ static double distinct_paths (factoring *factoring, unsigned src_lit,
     }
     ADD (factor_ticks, ticks);
   }
-  assert (res >= 0);
+  KISSAT_assert (res >= 0);
   score[src_idx] = res;
   unsigneds *scored = &scores->scored;
   PUSH_STACK (*scored, src_idx);
@@ -297,9 +299,9 @@ static double distinct_paths (factoring *factoring, unsigned src_lit,
 
 static double structural_score (factoring *factoring, unsigned lit) {
   const quotient *first_quotient = factoring->quotients.first;
-  assert (first_quotient);
+  KISSAT_assert (first_quotient);
   const unsigned first_factor = first_quotient->factor;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   kissat *const solver = factoring->solver;
 #endif
   const unsigned first_factor_idx = IDX (first_factor);
@@ -324,15 +326,15 @@ static double tied_next_factor_score (factoring *factoring, unsigned lit) {
 static unsigned next_factor (factoring *factoring,
                              unsigned *next_count_ptr) {
   quotient *last_quotient = factoring->quotients.last;
-  assert (last_quotient);
+  KISSAT_assert (last_quotient);
   statches *last_clauses = &last_quotient->clauses;
   kissat *const solver = factoring->solver;
   watches *all_watches = solver->watches;
   unsigned *count = factoring->count;
   unsigneds *counted = &factoring->counted;
   references *qlauses = &factoring->qlauses;
-  assert (EMPTY_STACK (*counted));
-  assert (EMPTY_STACK (*qlauses));
+  KISSAT_assert (EMPTY_STACK (*counted));
+  KISSAT_assert (EMPTY_STACK (*qlauses));
   ward *const arena = BEGIN_STACK (solver->arena);
   mark *marks = solver->marks;
   const unsigned initial = factoring->initial;
@@ -362,7 +364,7 @@ static unsigned next_factor (factoring *factoring,
     } else {
       const reference c_ref = quotient_watch.large.ref;
       clause *const c = (clause *) (arena + c_ref);
-      assert (!c->quotient);
+      KISSAT_assert (!c->quotient);
       unsigned min_lit = INVALID_LIT, factors = 0;
       size_t min_size = 0;
       ticks++;
@@ -371,7 +373,7 @@ static unsigned next_factor (factoring *factoring,
           if (factors++)
             break;
         } else {
-          assert (!(marks[other] & QUOTIENT));
+          KISSAT_assert (!(marks[other] & QUOTIENT));
           marks[other] |= QUOTIENT;
           watches *other_watches = all_watches + other;
           const size_t other_size = SIZE_WATCHES (*other_watches);
@@ -381,13 +383,13 @@ static unsigned next_factor (factoring *factoring,
           min_size = other_size;
         }
       }
-      assert (factors);
+      KISSAT_assert (factors);
       if (factors == 1) {
-        assert (min_lit != INVALID_LIT);
+        KISSAT_assert (min_lit != INVALID_LIT);
         watches *min_watches = all_watches + min_lit;
         unsigned c_size = c->size;
         unsigneds *nounted = &factoring->nounted;
-        assert (EMPTY_STACK (*nounted));
+        KISSAT_assert (EMPTY_STACK (*nounted));
         ticks += 1 + kissat_cache_lines (SIZE_WATCHES (*min_watches),
                                          sizeof (watch));
         for (all_binary_large_watches (min_watch, *min_watches)) {
@@ -403,25 +405,35 @@ static unsigned next_factor (factoring *factoring,
           if (d->size != c_size)
             continue;
           unsigned next = INVALID_LIT;
+          int continue_with_next_min_watch = 0;
           for (all_literals_in_clause (other, d)) {
             const mark mark = marks[other];
             if (mark & QUOTIENT)
               continue;
-            if (mark & FACTOR)
-              goto CONTINUE_WITH_NEXT_MIN_WATCH;
-            if (mark & NOUNTED)
-              goto CONTINUE_WITH_NEXT_MIN_WATCH;
-            if (next != INVALID_LIT)
-              goto CONTINUE_WITH_NEXT_MIN_WATCH;
+            if (mark & FACTOR) {
+              continue_with_next_min_watch = 1;
+              break;
+            }
+            if (mark & NOUNTED) {
+              continue_with_next_min_watch = 1;
+              break;
+            }
+            if (next != INVALID_LIT) {
+              continue_with_next_min_watch = 1;
+              break;
+            }
             next = other;
           }
-          assert (next != INVALID_LIT);
+          if(continue_with_next_min_watch) {
+            continue;
+          }
+          KISSAT_assert (next != INVALID_LIT);
           if (next > initial)
             continue;
           const unsigned next_idx = IDX (next);
           if (!ACTIVE (next_idx))
             continue;
-          assert (!(marks[next] & (FACTOR | NOUNTED)));
+          KISSAT_assert (!(marks[next] & (FACTOR | NOUNTED)));
           marks[next] |= NOUNTED;
           PUSH_STACK (*nounted, next);
           d->quotient = true;
@@ -429,7 +441,6 @@ static unsigned next_factor (factoring *factoring,
           if (!count[next])
             PUSH_STACK (*counted, next);
           count[next]++;
-        CONTINUE_WITH_NEXT_MIN_WATCH:;
         }
         clear_nounted (solver, nounted);
       }
@@ -438,22 +449,22 @@ static unsigned next_factor (factoring *factoring,
     }
     ADD (factor_ticks, ticks);
     ticks = 0;
-    if (solver->statistics.factor_ticks > factoring->limit)
+    if (solver->statistics_.factor_ticks > factoring->limit)
       break;
   }
   clear_qlauses (solver, qlauses);
   unsigned next_count = 0, next = INVALID_LIT;
-  if (solver->statistics.factor_ticks <= factoring->limit) {
+  if (solver->statistics_.factor_ticks <= factoring->limit) {
     unsigned ties = 0;
     for (all_stack (unsigned, lit, *counted)) {
       const unsigned lit_count = count[lit];
       if (lit_count < next_count)
         continue;
       if (lit_count == next_count) {
-        assert (lit_count);
+        KISSAT_assert (lit_count);
         ties++;
       } else {
-        assert (lit_count > next_count);
+        KISSAT_assert (lit_count > next_count);
         next_count = lit_count;
         next = lit;
         ties = 1;
@@ -471,7 +482,7 @@ static unsigned next_factor (factoring *factoring,
         if (lit_count != next_count)
           continue;
         double lit_score = tied_next_factor_score (factoring, lit);
-        assert (lit_score >= 0);
+        KISSAT_assert (lit_score >= 0);
         LOG ("score %g of next factor candidate %s", lit_score,
              LOGLIT (lit));
         if (lit_score <= next_score)
@@ -479,11 +490,11 @@ static unsigned next_factor (factoring *factoring,
         next_score = lit_score;
         next = lit;
       }
-      assert (next_score >= 0);
-      assert (next != INVALID_LIT);
+      KISSAT_assert (next_score >= 0);
+      KISSAT_assert (next != INVALID_LIT);
       LOG ("best score %g of next factor %s", next_score, LOGLIT (next));
     } else {
-      assert (ties == 1);
+      KISSAT_assert (ties == 1);
       LOG ("single next factor %s with count %u", LOGLIT (next),
            next_count);
     }
@@ -491,7 +502,7 @@ static unsigned next_factor (factoring *factoring,
   for (all_stack (unsigned, lit, *counted))
     count[lit] = 0;
   CLEAR_STACK (*counted);
-  assert (next == INVALID_LIT || next_count > 1);
+  KISSAT_assert (next == INVALID_LIT || next_count > 1);
   *next_count_ptr = next_count;
   return next;
 }
@@ -506,12 +517,12 @@ static void factorize_next (factoring *factoring, unsigned next,
   ward *const arena = BEGIN_STACK (solver->arena);
   mark *marks = solver->marks;
 
-  assert (last_quotient);
+  KISSAT_assert (last_quotient);
   statches *last_clauses = &last_quotient->clauses;
   statches *next_clauses = &next_quotient->clauses;
   sizes *matches = &next_quotient->matches;
   references *qlauses = &factoring->qlauses;
-  assert (EMPTY_STACK (*qlauses));
+  KISSAT_assert (EMPTY_STACK (*qlauses));
 
   uint64_t ticks =
       1 + kissat_cache_lines (SIZE_STACK (*last_clauses), sizeof (watch));
@@ -535,7 +546,7 @@ static void factorize_next (factoring *factoring, unsigned next,
     } else {
       const reference c_ref = last_watch.large.ref;
       clause *const c = (clause *) (arena + c_ref);
-      assert (!c->quotient);
+      KISSAT_assert (!c->quotient);
       unsigned min_lit = INVALID_LIT, factors = 0;
       size_t min_size = 0;
       ticks++;
@@ -544,7 +555,7 @@ static void factorize_next (factoring *factoring, unsigned next,
           if (factors++)
             break;
         } else {
-          assert (!(marks[other] & QUOTIENT));
+          KISSAT_assert (!(marks[other] & QUOTIENT));
           marks[other] |= QUOTIENT;
           watches *other_watches = all_watches + other;
           const size_t other_size = SIZE_WATCHES (*other_watches);
@@ -554,9 +565,9 @@ static void factorize_next (factoring *factoring, unsigned next,
           min_size = other_size;
         }
       }
-      assert (factors);
+      KISSAT_assert (factors);
       if (factors == 1) {
-        assert (min_lit != INVALID_LIT);
+        KISSAT_assert (min_lit != INVALID_LIT);
         watches *min_watches = all_watches + min_lit;
         unsigned c_size = c->size;
         ticks += 1 + kissat_cache_lines (SIZE_WATCHES (*min_watches),
@@ -599,7 +610,7 @@ static void factorize_next (factoring *factoring, unsigned next,
   clear_qlauses (solver, qlauses);
   ADD (factor_ticks, ticks);
 
-  assert (expected_next_count <= SIZE_STACK (*next_clauses));
+  KISSAT_assert (expected_next_count <= SIZE_STACK (*next_clauses));
   (void) expected_next_count;
 }
 
@@ -643,9 +654,9 @@ static quotient *best_quotient (factoring *factoring,
 
 static void resize_factoring (factoring *factoring, unsigned lit) {
   kissat *const solver = factoring->solver;
-  assert (lit > NOT (lit));
+  KISSAT_assert (lit > NOT (lit));
   const size_t old_size = factoring->size;
-  assert (lit > old_size);
+  KISSAT_assert (lit > old_size);
   const size_t old_allocated = factoring->allocated;
   size_t new_size = lit + 1;
   if (new_size > old_allocated) {
@@ -653,20 +664,20 @@ static void resize_factoring (factoring *factoring, unsigned lit) {
     while (new_size > new_allocated)
       new_allocated *= 2;
     unsigned *count = factoring->count;
-    count = kissat_nrealloc (solver, count, old_allocated, new_allocated,
+    count = (unsigned*)kissat_nrealloc (solver, count, old_allocated, new_allocated,
                              sizeof *count);
     const size_t delta_allocated = new_allocated - old_allocated;
     const size_t delta_bytes = delta_allocated * sizeof *count;
     memset (count + old_size, 0, delta_bytes);
     factoring->count = count;
-    assert (!(old_allocated & 1));
-    assert (!(new_allocated & 1));
+    KISSAT_assert (!(old_allocated & 1));
+    KISSAT_assert (!(new_allocated & 1));
     const size_t old_allocated_score = old_allocated / 2;
     const size_t new_allocated_score = new_allocated / 2;
     for (unsigned i = 0; i != factoring->hops; i++) {
       scores *scores = factoring->scores + i;
       double *score = scores->score;
-      score = kissat_nrealloc (solver, score, old_allocated_score,
+      score = (double*)kissat_nrealloc (solver, score, old_allocated_score,
                                new_allocated_score, sizeof *score);
       for (size_t i = old_allocated_score; i != new_allocated_score; i++)
         score[i] = -1;
@@ -682,12 +693,12 @@ static void flush_unmatched_clauses (kissat *solver, quotient *q) {
   sizes *q_matches = &q->matches, *prev_matches = &prev->matches;
   statches *q_clauses = &q->clauses, *prev_clauses = &prev->clauses;
   const size_t n = SIZE_STACK (*q_clauses);
-  assert (n == SIZE_STACK (*q_matches));
+  KISSAT_assert (n == SIZE_STACK (*q_matches));
   bool prev_is_first = !prev->id;
   size_t i = 0;
   while (i != n) {
     size_t j = PEEK_STACK (*q_matches, i);
-    assert (i <= j);
+    KISSAT_assert (i <= j);
     if (!prev_is_first) {
       size_t matches = PEEK_STACK (*prev_matches, j);
       POKE_STACK (*prev_matches, i, matches);
@@ -728,22 +739,22 @@ static void add_factored_quotient (factoring *factoring, quotient *q,
       const reference c_ref = watch.large.ref;
       clause *const c = kissat_dereference_clause (solver, c_ref);
       unsigneds *clause = &solver->clause;
-      assert (EMPTY_STACK (*clause));
+      KISSAT_assert (EMPTY_STACK (*clause));
       const unsigned factor = q->factor;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
       bool found = false;
 #endif
       PUSH_STACK (*clause, not_fresh);
       for (all_literals_in_clause (other, c)) {
         if (other == factor) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
           found = true;
 #endif
           continue;
         }
         PUSH_STACK (*clause, other);
       }
-      assert (found);
+      KISSAT_assert (found);
       ADD (literals_factored, c->size);
       kissat_new_irredundant_clause (solver);
       CLEAR_STACK (*clause);
@@ -756,10 +767,10 @@ static void eagerly_remove_watch (kissat *solver, watches *watches,
                                   watch needle) {
   watch *p = BEGIN_WATCHES (*watches);
   watch *end = END_WATCHES (*watches);
-  assert (p != end);
+  KISSAT_assert (p != end);
   watch *last = end - 1;
   while (p->raw != needle.raw)
-    p++, assert (p != end);
+    p++, KISSAT_assert (p != end);
   if (p != last)
     memmove (p, p + 1, (last - p) * sizeof *p);
   SET_END_OF_WATCHES (*watches, last);
@@ -833,7 +844,7 @@ static bool apply_factoring (factoring *factoring, quotient *q) {
     delete_unfactored (factoring, p);
   for (quotient *p = q; p; p = p->prev)
     update_factored (factoring, p);
-  assert (fresh < not_fresh);
+  KISSAT_assert (fresh < not_fresh);
   resize_factoring (factoring, not_fresh);
   return true;
 }
@@ -871,16 +882,16 @@ adjust_scores_and_phases_of_fresh_varaibles (factoring *factoring) {
       const unsigned idx = IDX (lit);
       struct links *l = links + idx;
       if (DISCONNECTED (queue->first)) {
-        assert (DISCONNECTED (queue->last));
+        KISSAT_assert (DISCONNECTED (queue->last));
         queue->last = idx;
       } else {
         struct links *first = links + queue->first;
-        assert (DISCONNECTED (first->prev));
+        KISSAT_assert (DISCONNECTED (first->prev));
         first->prev = idx;
       }
       l->next = queue->first;
       queue->first = idx;
-      assert (DISCONNECTED (l->prev));
+      KISSAT_assert (DISCONNECTED (l->prev));
       l->stamp = ++queue->stamp;
     }
     while (!DISCONNECTED (rest)) {
@@ -898,10 +909,10 @@ static bool run_factorization (kissat *solver, uint64_t limit) {
   init_factoring (solver, &factoring, limit);
   schedule_factorization (&factoring);
   bool done = false;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   unsigned factored = 0;
 #endif
-  uint64_t *ticks = &solver->statistics.factor_ticks;
+  uint64_t *ticks = &solver->statistics_.factor_ticks;
   kissat_extremely_verbose (
       solver, "factorization limit of %" PRIu64 " ticks", limit - *ticks);
   while (!done && !kissat_empty_heap (&factoring.schedule)) {
@@ -928,7 +939,7 @@ static bool run_factorization (kissat *solver, uint64_t limit) {
         const unsigned next = next_factor (&factoring, &next_count);
         if (next == INVALID_LIT)
           break;
-        assert (next_count > 1);
+        KISSAT_assert (next_count > 1);
         if (next_count < 2)
           break;
         factorize_next (&factoring, next, next_count);
@@ -937,7 +948,7 @@ static bool run_factorization (kissat *solver, uint64_t limit) {
       quotient *q = best_quotient (&factoring, &reduction);
       if (q && reduction > factoring.bound) {
         if (apply_factoring (&factoring, q)) {
-#ifndef QUIET
+#ifndef KISSAT_QUIET
           factored++;
 #endif
         } else
@@ -965,12 +976,12 @@ static void connect_clauses_to_factor (kissat *solver) {
   ward *const arena = BEGIN_STACK (solver->arena);
   watches *all_watches = solver->watches;
   unsigned *bincount, *largecount;
-  CALLOC (bincount, LITS);
+  CALLOC (unsigned, bincount, LITS);
   for (all_literals (lit)) {
     if (!ACTIVE (IDX (lit)))
       continue;
     for (all_binary_large_watches (watch, WATCHES (lit))) {
-      assert (watch.type.binary);
+      KISSAT_assert (watch.type.binary);
       const unsigned other = watch.type.lit;
       if (lit > other)
         continue;
@@ -978,7 +989,7 @@ static void connect_clauses_to_factor (kissat *solver) {
       bincount[other]++;
     }
   }
-  CALLOC (largecount, LITS);
+  CALLOC (unsigned, largecount, LITS);
   size_t initial_candidates = 0;
   for (all_clauses (c)) {
     if (c->garbage)
@@ -1001,7 +1012,7 @@ static void connect_clauses_to_factor (kissat *solver) {
   for (unsigned round = 1; round <= rounds; round++) {
     size_t new_candidates = 0;
     unsigned *newlargecount;
-    CALLOC (newlargecount, LITS);
+    CALLOC (unsigned, newlargecount, LITS);
     for (all_clauses (c)) {
       if (c->garbage)
         continue;
@@ -1035,7 +1046,7 @@ static void connect_clauses_to_factor (kissat *solver) {
         "round %u",
         candidates, kissat_percent (candidates, initial_candidates), round);
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t connected = 0;
 #endif
   for (all_clauses (c)) {
@@ -1047,15 +1058,20 @@ static void connect_clauses_to_factor (kissat *solver) {
       continue;
     if (c->size > size_limit)
       continue;
+    int continue_with_next_clause2 = 0;
     for (all_literals_in_clause (lit, c))
-      if (bincount[lit] + largecount[lit] < 2)
-        goto CONTINUE_WITH_NEXT_CLAUSE2;
+      if (bincount[lit] + largecount[lit] < 2) {
+        continue_with_next_clause2 = 1;
+        break;
+      }
+    if(continue_with_next_clause2) {
+      continue;
+    }
     const reference ref = (ward *) c - arena;
     kissat_inlined_connect_clause (solver, all_watches, c, ref);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     connected++;
 #endif
-  CONTINUE_WITH_NEXT_CLAUSE2:;
   }
   DEALLOC (largecount, LITS);
   DEALLOC (bincount, LITS);
@@ -1065,12 +1081,12 @@ static void connect_clauses_to_factor (kissat *solver) {
 }
 
 void kissat_factor (kissat *solver) {
-  assert (!solver->level);
+  KISSAT_assert (!solver->level);
   if (solver->inconsistent)
     return;
   if (!GET_OPTION (factor))
     return;
-  statistics *s = &solver->statistics;
+  statistics *s = &solver->statistics_;
   if (solver->limits.factor.marked >= s->literals_factor) {
     kissat_extremely_verbose (
         solver,
@@ -1095,7 +1111,7 @@ void kissat_factor (kissat *solver) {
     limit *= 1e6;
     limit += s->factor_ticks;
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   struct {
     int64_t variables, binary, clauses, ticks;
   } before, after, delta;
@@ -1108,7 +1124,7 @@ void kissat_factor (kissat *solver) {
   connect_clauses_to_factor (solver);
   bool completed = run_factorization (solver, limit);
   kissat_resume_sparse_mode (solver, false, 0);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   after.variables = s->variables_extension + s->variables_original;
   after.binary = BINARY_CLAUSES;
   after.clauses = IRREDUNDANT_CLAUSES;
@@ -1134,3 +1150,5 @@ void kissat_factor (kissat *solver) {
     solver->limits.factor.marked = s->literals_factor;
   STOP (factor);
 }
+
+ABC_NAMESPACE_IMPL_END

@@ -3,6 +3,9 @@
 
 #include <limits.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define LD_MAX_VAR 30u
 #define LD_MAX_LIT (1 + LD_MAX_VAR)
 
@@ -23,14 +26,16 @@
   ((LIT) && ((LIT) != INT_MIN) && ABS (LIT) <= EXTERNAL_MAX_VAR)
 
 #define IDX(LIT) \
-  (assert (VALID_INTERNAL_LITERAL (LIT)), (((unsigned) (LIT)) >> 1))
+  (KISSAT_assert (VALID_INTERNAL_LITERAL (LIT)), (((unsigned) (LIT)) >> 1))
 
-#define LIT(IDX) (assert (VALID_INTERNAL_INDEX (IDX)), ((IDX) << 1))
+#define LIT(IDX) (KISSAT_assert (VALID_INTERNAL_INDEX (IDX)), ((IDX) << 1))
 
-#define NOT(LIT) (assert (VALID_INTERNAL_LITERAL (LIT)), ((LIT) ^ 1u))
+#define NOT(LIT) (KISSAT_assert (VALID_INTERNAL_LITERAL (LIT)), ((LIT) ^ 1u))
 
-#define NEGATED(LIT) (assert (VALID_INTERNAL_LITERAL (LIT)), ((LIT) & 1u))
+#define NEGATED(LIT) (KISSAT_assert (VALID_INTERNAL_LITERAL (LIT)), ((LIT) & 1u))
 
-#define STRIP(LIT) (assert (VALID_INTERNAL_LITERAL (LIT)), ((LIT) & ~1u))
+#define STRIP(LIT) (KISSAT_assert (VALID_INTERNAL_LITERAL (LIT)), ((LIT) & ~1u))
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

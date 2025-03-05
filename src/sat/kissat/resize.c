@@ -6,11 +6,13 @@
 #include <limits.h>
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 #define NREALLOC_GENERIC(TYPE, NAME, ELEMENTS_PER_BLOCK) \
   do { \
     const size_t block_size = sizeof (TYPE); \
     solver->NAME = \
-        kissat_nrealloc (solver, solver->NAME, old_size, new_size, \
+      (TYPE*) kissat_nrealloc (solver, solver->NAME, old_size, new_size,      \
                          ELEMENTS_PER_BLOCK * block_size); \
   } while (0)
 
@@ -18,7 +20,7 @@
   do { \
     const size_t block_size = sizeof (TYPE); \
     TYPE *NAME = \
-        kissat_calloc (solver, ELEMENTS_PER_BLOCK * new_size, block_size); \
+      (TYPE*) kissat_calloc (solver, ELEMENTS_PER_BLOCK * new_size, block_size); \
     if (old_size) { \
       const size_t bytes = ELEMENTS_PER_BLOCK * old_size * block_size; \
       memcpy (NAME, solver->NAME, bytes); \
@@ -43,12 +45,12 @@
 static void reallocate_trail (kissat *solver, unsigned old_size,
                               unsigned new_size) {
   unsigned propagated = solver->propagate - BEGIN_ARRAY (solver->trail);
-  REALLOCATE_ARRAY (solver->trail, old_size, new_size);
+  REALLOCATE_ARRAY (unsigned, solver->trail, old_size, new_size);
   solver->propagate = BEGIN_ARRAY (solver->trail) + propagated;
 }
 
 void kissat_increase_size (kissat *solver, unsigned new_size) {
-  assert (solver->vars <= new_size);
+  KISSAT_assert (solver->vars <= new_size);
   const unsigned old_size = solver->size;
   if (old_size >= new_size)
     return;
@@ -57,13 +59,13 @@ void kissat_increase_size (kissat *solver, unsigned new_size) {
   LOG ("%s before increasing size from %u to %u",
        FORMAT_BYTES (kissat_allocated (solver)), old_size, new_size);
 #endif
-  CREALLOC_VARIABLE_INDEXED (assigned, assigned);
-  CREALLOC_VARIABLE_INDEXED (flags, flags);
-  NREALLOC_VARIABLE_INDEXED (links, links);
+  CREALLOC_VARIABLE_INDEXED (struct assigned, assigned);
+  CREALLOC_VARIABLE_INDEXED (struct flags, flags);
+  NREALLOC_VARIABLE_INDEXED (struct links, links);
 
   CREALLOC_LITERAL_INDEXED (mark, marks);
   CREALLOC_LITERAL_INDEXED (value, values);
-  CREALLOC_LITERAL_INDEXED (watches, watches);
+  CREALLOC_LITERAL_INDEXED (struct vector, watches);
 
   reallocate_trail (solver, old_size, new_size);
   kissat_resize_heap (solver, SCORES, new_size);
@@ -109,7 +111,7 @@ void kissat_decrease_size (kissat *solver) {
 void kissat_enlarge_variables (kissat *solver, unsigned new_vars) {
   if (solver->vars >= new_vars)
     return;
-  assert (new_vars <= INTERNAL_MAX_VAR + 1);
+  KISSAT_assert (new_vars <= INTERNAL_MAX_VAR + 1);
   LOG ("enlarging variables from %u to %u", solver->vars, new_vars);
   const size_t old_size = solver->size;
   if (old_size < new_vars) {
@@ -120,14 +122,14 @@ void kissat_enlarge_variables (kissat *solver, unsigned new_vars) {
       new_size = new_vars;
     else {
       if (kissat_is_power_of_two (old_size)) {
-        assert (old_size <= UINT_MAX / 2);
+        KISSAT_assert (old_size <= UINT_MAX / 2);
         new_size = 2 * old_size;
       } else {
-        assert (1 < old_size);
+        KISSAT_assert (1 < old_size);
         new_size = 2;
       }
       while (new_size < new_vars) {
-        assert (new_size <= UINT_MAX / 2);
+        KISSAT_assert (new_size <= UINT_MAX / 2);
         new_size *= 2;
       }
     }
@@ -135,3 +137,5 @@ void kissat_enlarge_variables (kissat *solver, unsigned new_vars) {
   }
   solver->vars = new_vars;
 }
+
+ABC_NAMESPACE_IMPL_END

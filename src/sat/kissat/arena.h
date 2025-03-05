@@ -5,7 +5,10 @@
 #include "stack.h"
 #include "utilities.h"
 
-#ifdef COMPACT
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#ifdef KISSAT_COMPACT
 typedef word ward;
 #else
 typedef w2rd ward;
@@ -29,18 +32,20 @@ struct kissat;
 reference kissat_allocate_clause (struct kissat *, size_t size);
 void kissat_shrink_arena (struct kissat *);
 
-#if !defined(NDEBUG) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || defined(LOGGING)
 
 bool kissat_clause_in_arena (const struct kissat *, const struct clause *);
 
 #endif
 
 static inline word kissat_align_ward (word w) {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   return kissat_align_word (w);
 #else
   return kissat_align_w2rd (w);
 #endif
 }
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

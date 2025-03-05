@@ -1,4 +1,6 @@
-#ifndef QUIET
+#include "global.h"
+
+#ifndef KISSAT_QUIET
 
 #include "internal.h"
 #include "resources.h"
@@ -73,7 +75,7 @@ void kissat_start (kissat *solver, profile *profile) {
 }
 
 void kissat_stop (kissat *solver, profile *profile) {
-  assert (TOP_STACK (solver->profiles.stack) == profile);
+  KISSAT_assert (TOP_STACK (solver->profiles.stack) == profile);
   (void) POP_STACK (solver->profiles.stack);
   const double now = kissat_process_time ();
   flush_profile (profile, now);
@@ -82,23 +84,23 @@ void kissat_stop (kissat *solver, profile *profile) {
 void kissat_stop_search_and_start_simplifier (kissat *solver,
                                               profile *profile) {
   struct profile *search = &PROFILE (search);
-  assert (search->level <= GET_OPTION (profile));
+  KISSAT_assert (search->level <= GET_OPTION (profile));
   const double now = kissat_process_time ();
   while (TOP_STACK (solver->profiles.stack) != search) {
     struct profile *mode = POP_STACK (solver->profiles.stack);
-    assert (search->level <= mode->level);
-#ifndef NDEBUG
+    KISSAT_assert (search->level <= mode->level);
+#ifndef KISSAT_NDEBUG
     if (solver->stable)
-      assert (mode == &PROFILE (stable));
+      KISSAT_assert (mode == &PROFILE (stable));
     else
-      assert (mode == &PROFILE (focused));
+      KISSAT_assert (mode == &PROFILE (focused));
 #endif
     flush_profile (mode, now);
   }
   (void) POP_STACK (solver->profiles.stack);
   struct profile *simplify = &PROFILE (simplify);
-  assert (search->level == simplify->level);
-  assert (simplify->level <= profile->level);
+  KISSAT_assert (search->level == simplify->level);
+  KISSAT_assert (simplify->level <= profile->level);
   flush_profile (search, now);
   push_profile (solver, simplify, now);
   if (profile->level <= GET_OPTION (profile))
@@ -111,28 +113,28 @@ void kissat_stop_simplifier_and_resume_search (kissat *solver,
   struct profile *top = POP_STACK (solver->profiles.stack);
   const double now = kissat_process_time ();
   const double delta = flush_profile (simplify, now);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   const double entered = now - delta;
-  assert (solver->mode.entered <= entered);
+  KISSAT_assert (solver->mode.entered <= entered);
 #endif
   solver->mode.entered += delta;
   if (top == profile) {
     flush_profile (profile, now);
-    assert (TOP_STACK (solver->profiles.stack) == simplify);
+    KISSAT_assert (TOP_STACK (solver->profiles.stack) == simplify);
     (void) POP_STACK (solver->profiles.stack);
   } else {
-    assert (simplify == top);
-    assert (profile->level > GET_OPTION (profile));
+    KISSAT_assert (simplify == top);
+    KISSAT_assert (profile->level > GET_OPTION (profile));
   }
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   struct profile *search = &PROFILE (search);
-  assert (search->level == simplify->level);
+  KISSAT_assert (search->level == simplify->level);
 #endif
-  assert (simplify->level <= profile->level);
+  KISSAT_assert (simplify->level <= profile->level);
   push_profile (solver, &PROFILE (search), now);
   struct profile *mode =
       solver->stable ? &PROFILE (stable) : &PROFILE (focused);
-  assert (search->level <= mode->level);
+  KISSAT_assert (search->level <= mode->level);
   if (mode->level <= GET_OPTION (profile))
     push_profile (solver, mode, now);
 }

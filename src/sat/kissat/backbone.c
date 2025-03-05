@@ -13,6 +13,8 @@
 #include "trail.h"
 #include "utilities.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static void schedule_backbone_candidates (kissat *solver,
                                           unsigneds *candidates) {
   flags *flags = solver->flags;
@@ -34,7 +36,7 @@ static void schedule_backbone_candidates (kissat *solver,
     } else
       not_rescheduled++;
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t rescheduled = SIZE_STACK (*candidates);
   const unsigned active_literals = 2u * solver->active;
   kissat_very_verbose (
@@ -58,7 +60,7 @@ static void schedule_backbone_candidates (kissat *solver,
       }
     }
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t total = SIZE_STACK (*candidates);
   kissat_very_verbose (solver,
                        "scheduled %zu backbone candidate literals %.0f%%"
@@ -83,21 +85,21 @@ static void keep_backbone_candidates (kissat *solver,
     else
       prioritized += f->backbone0;
   }
-  assert (prioritized <= remain);
+  KISSAT_assert (prioritized <= remain);
   if (!remain) {
     kissat_very_verbose (solver, "no backbone candidates remain");
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     for (all_variables (idx)) {
       const struct flags *f = flags + idx;
       if (!f->active)
         continue;
-      assert (!f->backbone0);
-      assert (!f->backbone1);
+      KISSAT_assert (!f->backbone0);
+      KISSAT_assert (!f->backbone1);
     }
 #endif
     return;
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t active_literals = 2u * solver->active;
 #endif
   if (prioritized == remain)
@@ -112,10 +114,10 @@ static void keep_backbone_candidates (kissat *solver,
       if (!f->active)
         continue;
       if (NEGATED (lit)) {
-        assert (!f->backbone1);
+        KISSAT_assert (!f->backbone1);
         f->backbone1 = true;
       } else {
-        assert (!f->backbone0);
+        KISSAT_assert (!f->backbone0);
         f->backbone0 = true;
       }
     }
@@ -137,8 +139,8 @@ static inline void backbone_assign (kissat *solver, unsigned_array *trail,
                                     value *values, assigned *assigned,
                                     unsigned lit, unsigned reason) {
   const unsigned not_lit = NOT (lit);
-  assert (!values[lit]);
-  assert (!values[not_lit]);
+  KISSAT_assert (!values[lit]);
+  KISSAT_assert (!values[not_lit]);
   values[lit] = 1;
   values[not_lit] = -1;
   PUSH_ARRAY (*trail, lit);
@@ -154,13 +156,13 @@ backbone_propagate_literal (kissat *solver, const bool stop_early,
                             unsigned_array *trail, value *values,
                             assigned *assigned, unsigned lit) {
   LOG ("backbone propagating %s", LOGLIT (lit));
-  assert (VALID_INTERNAL_LITERAL (lit));
-  assert (values[lit] > 0);
+  KISSAT_assert (VALID_INTERNAL_LITERAL (lit));
+  KISSAT_assert (values[lit] > 0);
 
   const unsigned not_lit = NOT (lit);
-  assert (values[not_lit] < 0);
+  KISSAT_assert (values[not_lit] < 0);
 
-  assert (not_lit < LITS);
+  KISSAT_assert (not_lit < LITS);
   const watches *const watches = all_watches + not_lit;
 
   const watch *const begin_watches = BEGIN_CONST_WATCHES (*watches);
@@ -171,22 +173,22 @@ backbone_propagate_literal (kissat *solver, const bool stop_early,
     const watch watch = *p++;
     if (watch.type.binary) {
       const unsigned other = watch.binary.lit;
-      assert (VALID_INTERNAL_LITERAL (other));
+      KISSAT_assert (VALID_INTERNAL_LITERAL (other));
       const value value = values[other];
       if (value > 0)
         continue;
       if (value < 0)
         return kissat_binary_conflict (solver, not_lit, other);
-      assert (!value);
+      KISSAT_assert (!value);
       backbone_assign (solver, trail, values, assigned, other, lit);
       LOG ("backbone assign %s reason binary clause %s %s", LOGLIT (other),
            LOGLIT (other), LOGLIT (not_lit));
     } else {
       if (stop_early) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
         for (const union watch *q = p + 1; q != end_watches; q++) {
           const union watch watch = *q++;
-          assert (!watch.type.binary);
+          KISSAT_assert (!watch.type.binary);
         }
 #endif
         break;
@@ -219,7 +221,7 @@ static inline clause *backbone_propagate (kissat *solver,
     conflict = backbone_propagate_literal (
         solver, stop_early, watches, trail, values, assigned, *propagate++);
 
-  assert (solver->propagate <= propagate);
+  KISSAT_assert (solver->propagate <= propagate);
   const unsigned propagated = propagate - solver->propagate;
   solver->propagate = propagate;
 
@@ -240,17 +242,17 @@ static inline void backbone_backtrack (kissat *solver,
                                        unsigned_array *trail, value *values,
                                        unsigned *saved,
                                        unsigned decision_level) {
-  assert (decision_level <= solver->level);
+  KISSAT_assert (decision_level <= solver->level);
   unsigned *end_trail = END_ARRAY (*trail);
-  assert (saved != end_trail);
+  KISSAT_assert (saved != end_trail);
   LOG ("backbone backtracking to trail level %zu and decision level %u",
        (size_t) (saved - BEGIN_ARRAY (*trail)), decision_level);
   while (saved != end_trail) {
     const unsigned lit = *--end_trail;
     const unsigned not_lit = NOT (lit);
     LOG ("backbone unassign %s", LOGLIT (lit));
-    assert (values[lit] > 0);
-    assert (values[not_lit] < 0);
+    KISSAT_assert (values[lit] > 0);
+    KISSAT_assert (values[not_lit] < 0);
     values[lit] = values[not_lit] = 0;
   }
   SET_END_OF_ARRAY (solver->trail, saved);
@@ -259,9 +261,9 @@ static inline void backbone_backtrack (kissat *solver,
 }
 
 static unsigned backbone_analyze (kissat *solver, clause *conflict) {
-  assert (conflict);
+  KISSAT_assert (conflict);
   LOGCLS (conflict, "backbone analyzing");
-  assert (conflict->size == 2);
+  KISSAT_assert (conflict->size == 2);
 
   assigned *const assigned = solver->assigned;
 
@@ -271,7 +273,7 @@ static unsigned backbone_analyze (kissat *solver, clause *conflict) {
   const unsigned *t = END_ARRAY (solver->trail);
 
   for (;;) {
-    assert (t > BEGIN_ARRAY (solver->trail));
+    KISSAT_assert (t > BEGIN_ARRAY (solver->trail));
 
     unsigned lit = *--t;
 
@@ -282,8 +284,8 @@ static unsigned backbone_analyze (kissat *solver, clause *conflict) {
 
     LOG ("backbone analyzing %s", LOGLIT (lit));
     const unsigned reason = a->reason;
-    assert (reason != UNIT_REASON);
-    assert (reason != DECISION_REASON);
+    KISSAT_assert (reason != UNIT_REASON);
+    KISSAT_assert (reason != DECISION_REASON);
     const unsigned reason_idx = IDX (reason);
     const struct assigned *b = assigned + reason_idx;
     if (!b->analyzed) {
@@ -298,7 +300,7 @@ static unsigned backbone_analyze (kissat *solver, clause *conflict) {
   }
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 static void
 check_large_clauses_watched_after_binary_clauses (kissat *solver) {
@@ -306,7 +308,7 @@ check_large_clauses_watched_after_binary_clauses (kissat *solver) {
     bool large = false;
     for (all_binary_blocking_watches (watch, WATCHES (lit)))
       if (watch.type.binary)
-        assert (!large);
+        KISSAT_assert (!large);
       else
         large = true;
   }
@@ -315,7 +317,7 @@ check_large_clauses_watched_after_binary_clauses (kissat *solver) {
 #endif
 
 static unsigned compute_backbone (kissat *solver) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   if (solver->large_clauses_watched_after_binary_clauses)
     check_large_clauses_watched_after_binary_clauses (solver);
 #endif
@@ -325,26 +327,26 @@ static unsigned compute_backbone (kissat *solver) {
   INIT_STACK (candidates);
   INIT_STACK (units);
   schedule_backbone_candidates (solver, &candidates);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t scheduled = SIZE_STACK (candidates);
 #endif
-#if defined(METRICS) && (!defined(QUIET) || !defined(NDEBUG))
-  const uint64_t implied_before = solver->statistics.backbone_implied;
+#if defined(METRICS) && (!defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG))
+  const uint64_t implied_before = solver->statistics_.backbone_implied;
 #endif
   unsigned_array *trail = &solver->trail;
   value *values = solver->values;
   flags *flags = solver->flags;
   assigned *assigned = solver->assigned;
 
-  assert (kissat_propagated (solver));
-  assert (kissat_trail_flushed (solver));
+  KISSAT_assert (kissat_propagated (solver));
+  KISSAT_assert (kissat_trail_flushed (solver));
 
   unsigned inconsistent = INVALID_LIT;
 
   SET_EFFORT_LIMIT (ticks_limit, backbone, backbone_ticks);
   size_t round_limit = GET_OPTION (backbonerounds);
-  assert (solver->statistics.backbone_computations);
-  round_limit *= solver->statistics.backbone_computations;
+  KISSAT_assert (solver->statistics_.backbone_computations);
+  round_limit *= solver->statistics_.backbone_computations;
   const size_t max_rounds = GET_OPTION (backbonemaxrounds);
   if (round_limit > max_rounds)
     round_limit = max_rounds;
@@ -356,7 +358,7 @@ static unsigned compute_backbone (kissat *solver) {
       kissat_very_verbose (solver, "backbone round limit %zu hit", round);
       break;
     }
-    const uint64_t ticks = solver->statistics.backbone_ticks;
+    const uint64_t ticks = solver->statistics_.backbone_ticks;
     if (ticks > ticks_limit) {
       kissat_very_verbose (solver,
                            "backbone ticks limit %" PRIu64 " hit "
@@ -365,17 +367,17 @@ static unsigned compute_backbone (kissat *solver) {
       break;
     }
     size_t previous = failed;
-    assert (!solver->inconsistent);
+    KISSAT_assert (!solver->inconsistent);
     if (TERMINATED (backbone_terminated_1))
       break;
     round++;
     INC (backbone_rounds);
     LOG ("starting backbone round %zu", round);
     unsigned *const begin_candidates = BEGIN_STACK (candidates);
-    assert (!solver->level);
-#if !defined(QUIET) && defined(METRICS)
+    KISSAT_assert (!solver->level);
+#if !defined(KISSAT_QUIET) && defined(METRICS)
     size_t decisions = 0;
-    uint64_t propagated = solver->statistics.backbone_propagations;
+    uint64_t propagated = solver->statistics_.backbone_propagations;
 #endif
     unsigned active_before = solver->active;
     {
@@ -383,7 +385,7 @@ static unsigned compute_backbone (kissat *solver) {
       const unsigned *p = begin_candidates;
       const unsigned *const end_candidates = END_STACK (candidates);
       while (p != end_candidates) {
-        assert (!solver->inconsistent);
+        KISSAT_assert (!solver->inconsistent);
         const unsigned probe = *q++ = *p++;
         const value value = values[probe];
         if (value > 0) {
@@ -409,14 +411,14 @@ static unsigned compute_backbone (kissat *solver) {
           }
           continue;
         }
-        if (solver->statistics.backbone_ticks > ticks_limit)
+        if (solver->statistics_.backbone_ticks > ticks_limit)
           break;
         if (TERMINATED (backbone_terminated_2))
           break;
         const unsigned level = solver->level;
         unsigned *const saved = END_ARRAY (*trail);
-        assert (level != UINT_MAX);
-#if !defined(QUIET) && defined(METRICS)
+        KISSAT_assert (level != UINT_MAX);
+#if !defined(KISSAT_QUIET) && defined(METRICS)
         decisions++;
 #endif
         solver->level = level + 1;
@@ -444,7 +446,7 @@ static unsigned compute_backbone (kissat *solver) {
         backbone_assign (solver, trail, values, assigned, not_uip,
                          UNIT_REASON);
         LOG ("backbone forced assign %s", LOGLIT (not_uip));
-        assert (failed == SIZE_STACK (units));
+        KISSAT_assert (failed == SIZE_STACK (units));
 
         conflict = backbone_propagate (solver, trail, values, assigned);
         if (conflict) {
@@ -455,7 +457,7 @@ static unsigned compute_backbone (kissat *solver) {
 
         LOG ("propagating backbone forced %s successful", LOGLIT (not_uip));
       }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
       size_t remain = end_candidates - p;
       if (remain)
         kissat_extremely_verbose (solver,
@@ -497,7 +499,7 @@ static unsigned compute_backbone (kissat *solver) {
           LOG ("keeping falsified probe %s", LOGLIT (probe));
           continue;
         }
-        assert (!value);
+        KISSAT_assert (!value);
         LOG ("keeping unassigned probe %s", LOGLIT (probe));
       }
       LOG ("flushed %zu probe candidates",
@@ -515,13 +517,13 @@ static unsigned compute_backbone (kissat *solver) {
       if (kissat_probing_propagate (solver, 0, true))
         break;
     }
-    assert (solver->active <= active_before);
+    KISSAT_assert (solver->active <= active_before);
     unsigned implied = active_before - solver->active;
-    assert (failed <= failed);
+    KISSAT_assert (failed <= failed);
     ADD (backbone_implied, implied);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 #ifdef METRICS
-    propagated = solver->statistics.backbone_propagations - propagated;
+    propagated = solver->statistics_.backbone_propagations - propagated;
     kissat_very_verbose (solver,
                          "backbone round %zu with %zu decisions "
                          "(%.2f propagations per decision)",
@@ -545,7 +547,7 @@ static unsigned compute_backbone (kissat *solver) {
     LOG ("assuming forced unit %s", LOGLIT (inconsistent));
     kissat_learned_unit (solver, inconsistent);
     (void) kissat_probing_propagate (solver, 0, true);
-    assert (solver->inconsistent);
+    KISSAT_assert (solver->inconsistent);
   }
   RELEASE_STACK (units);
   if (solver->inconsistent)
@@ -553,12 +555,12 @@ static unsigned compute_backbone (kissat *solver) {
                   "inconsistent binary clauses");
   else {
     keep_backbone_candidates (solver, &candidates);
-#if defined(METRICS) && (!defined(QUIET) || !defined(NDEBUG))
-    assert (implied_before <= solver->statistics.backbone_implied);
+#if defined(METRICS) && (!defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG))
+    KISSAT_assert (implied_before <= solver->statistics_.backbone_implied);
 #endif
-#if defined(METRICS) && !defined(QUIET)
+#if defined(METRICS) && !defined(KISSAT_QUIET)
     const uint64_t total_implied =
-        solver->statistics.backbone_implied - implied_before;
+        solver->statistics_.backbone_implied - implied_before;
     kissat_phase (solver, "backbone", GET (backbone_computations),
                   "found %zu backbone literals %" PRIu64
                   " implied in %zu rounds",
@@ -576,23 +578,25 @@ void kissat_binary_clauses_backbone (kissat *solver) {
     return;
   if (TERMINATED (backbone_terminated_3))
     return;
-  assert (solver->watching);
-  assert (solver->probing);
-  assert (!solver->level);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (solver->probing);
+  KISSAT_assert (!solver->level);
   START (backbone);
   INC (backbone_computations);
-#if !defined(NDEBUG) || defined(METRICS)
-  assert (!solver->backbone_computing);
+#if !defined(KISSAT_NDEBUG) || defined(METRICS)
+  KISSAT_assert (!solver->backbone_computing);
   solver->backbone_computing = true;
 #endif
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const unsigned failed =
 #endif
       compute_backbone (solver);
   REPORT (!failed, 'b');
-#if !defined(NDEBUG) || defined(METRICS)
-  assert (solver->backbone_computing);
+#if !defined(KISSAT_NDEBUG) || defined(METRICS)
+  KISSAT_assert (solver->backbone_computing);
   solver->backbone_computing = false;
 #endif
   STOP (backbone);
 }
+
+ABC_NAMESPACE_IMPL_END

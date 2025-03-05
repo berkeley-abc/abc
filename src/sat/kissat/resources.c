@@ -1,15 +1,17 @@
 #include "resources.h"
 
-#include <sys/time.h>
+//#include <sys/time.h>
 
-double kissat_wall_clock_time (void) {
-  struct timeval tv;
-  if (gettimeofday (&tv, 0))
-    return 0;
-  return 1e-6 * tv.tv_usec + tv.tv_sec;
-}
+ABC_NAMESPACE_IMPL_START
 
-#ifndef QUIET
+/* double kissat_wall_clock_time (void) { */
+/*   struct timeval tv; */
+/*   if (gettimeofday (&tv, 0)) */
+/*     return 0; */
+/*   return 1e-6 * tv.tv_usec + tv.tv_sec; */
+/* } */
+
+#ifndef KISSAT_QUIET
 
 #include "internal.h"
 #include "statistics.h"
@@ -102,3 +104,5 @@ void kissat_print_resources (kissat *solver) {
 }
 
 #endif
+
+ABC_NAMESPACE_IMPL_END

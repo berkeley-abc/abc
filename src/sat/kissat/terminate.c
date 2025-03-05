@@ -1,7 +1,9 @@
 #include "terminate.h"
 #include "print.h"
 
-#ifndef QUIET
+ABC_NAMESPACE_IMPL_START
+
+#ifndef KISSAT_QUIET
 
 void kissat_report_termination (kissat *solver, const char *name,
                                 const char *file, long lineno,
@@ -13,3 +15,5 @@ void kissat_report_termination (kissat *solver, const char *name,
 #else
 int kissat_terminate_dummy_to_avoid_warning;
 #endif
+
+ABC_NAMESPACE_IMPL_END

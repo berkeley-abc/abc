@@ -1,13 +1,15 @@
 #include "internal.h"
 #include "logging.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static inline value
 move_smallest_literal_to_front (kissat *solver, const value *const values,
                                 const assigned *const assigned,
                                 bool satisfied_is_enough, unsigned start,
                                 unsigned size, unsigned *lits) {
-  assert (1 < size);
-  assert (start < size);
+  KISSAT_assert (1 < size);
+  KISSAT_assert (start < size);
 
   unsigned a = lits[start];
 
@@ -21,7 +23,7 @@ move_smallest_literal_to_front (kissat *solver, const value *const values,
     const unsigned i = IDX (a);
     unsigned k = (u ? assigned[i].level : UINT_MAX);
 
-    assert (start < UINT_MAX);
+    KISSAT_assert (start < UINT_MAX);
     for (unsigned i = start + 1; i < size; i++) {
       const unsigned b = lits[i];
       const value v = values[b];
@@ -43,12 +45,12 @@ move_smallest_literal_to_front (kissat *solver, const value *const values,
       else if (u > 0 && v < 0)
         better = false;
       else if (u < 0) {
-        assert (v < 0);
+        KISSAT_assert (v < 0);
         better = (k < l);
       } else {
-        assert (u > 0);
-        assert (v > 0);
-        assert (!satisfied_is_enough);
+        KISSAT_assert (u > 0);
+        KISSAT_assert (v > 0);
+        KISSAT_assert (!satisfied_is_enough);
         better = (k > l);
       }
 
@@ -96,3 +98,5 @@ static inline
     move_smallest_literal_to_front (solver, values, assigned, (u >= 0), 1,
                                     size, lits);
 }
+
+ABC_NAMESPACE_IMPL_END

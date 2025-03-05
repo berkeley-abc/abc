@@ -2518,6 +2518,374 @@ SOURCE=.\src\sat\glucose2\Vec.h
 SOURCE=.\src\sat\glucose2\XAlloc.h
 # End Source File
 # End Group
+# Begin Group "kissat"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\allocate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\analyze.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\ands.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\arena.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\assign.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\averages.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\backbone.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\backtrack.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\build.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\bump.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\check.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\classify.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\clause.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\collect.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\colors.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\compact.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\config.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\congruence.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\decide.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\deduce.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\definition.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\dense.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\dump.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\eliminate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\equivalences.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\error.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\extend.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\factor.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\fastel.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\file.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\flags.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\format.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\forward.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\gates.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\heap.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\ifthenelse.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\import.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\internal.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\kimits.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\kissatSolver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\kissatTest.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\kitten.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\kptions.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\krite.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\kucky.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\learn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\logging.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\minimize.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\mode.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\phases.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\preprocess.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\print.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\probe.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\profile.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\promote.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\proof.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\propbeyond.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\propdense.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\propinitially.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\proprobe.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\propsearch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\queue.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\reduce.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\reluctant.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\reorder.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\rephase.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\report.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\resize.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\resolve.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\resources.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\restart.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\search.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\shrink.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\smooth.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\sort.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\stack.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\statistics.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\strengthen.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\substitute.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\sweep.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\terminate.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\tiers.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\trail.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\transitive.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\utilities.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\vector.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\vivify.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\walk.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\warmup.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\watch.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\kissat\weaken.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 

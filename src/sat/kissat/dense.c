@@ -10,9 +10,11 @@
 
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void flush_large_watches (kissat *solver, litpairs *irredundant) {
-  assert (!solver->level);
-  assert (solver->watching);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (solver->watching);
 #ifndef LOGGING
   LOG ("flushing large watches");
   if (irredundant)
@@ -22,9 +24,9 @@ static void flush_large_watches (kissat *solver, litpairs *irredundant) {
 #endif
   const value *const values = solver->values;
   mark *const marks = solver->marks;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   for (all_literals (lit))
-    assert (!marks[lit]);
+    KISSAT_assert (!marks[lit]);
 #endif
   size_t flushed = 0, collected = 0;
 #ifdef LOGGING
@@ -37,7 +39,7 @@ static void flush_large_watches (kissat *solver, litpairs *irredundant) {
     watches *watches = all_watches + lit;
     watch *begin = BEGIN_WATCHES (*watches), *q = begin;
     const watch *const end_watches = END_WATCHES (*watches), *p = q;
-    assert (EMPTY_STACK (*marked));
+    KISSAT_assert (EMPTY_STACK (*marked));
     while (p != end_watches) {
       const watch watch = *p++;
       if (watch.type.binary) {
@@ -65,7 +67,7 @@ static void flush_large_watches (kissat *solver, litpairs *irredundant) {
               *q++ = watch;
           }
         } else {
-          assert (lit_value > 0 || other_value > 0);
+          KISSAT_assert (lit_value > 0 || other_value > 0);
           if (lit < other) {
             kissat_delete_binary (solver, lit, other);
             collected++;
@@ -84,7 +86,7 @@ static void flush_large_watches (kissat *solver, litpairs *irredundant) {
       marks[other] = 0;
     CLEAR_ARRAY (*marked);
   }
-  assert (EMPTY_STACK (*marked));
+  KISSAT_assert (EMPTY_STACK (*marked));
   LOG ("flushed %zu large watches", flushed);
   LOG ("removed %zu duplicated binary clauses", deduplicated);
   LOG ("collected %zu satisfied binary clauses", collected);
@@ -97,9 +99,9 @@ static void flush_large_watches (kissat *solver, litpairs *irredundant) {
 }
 
 void kissat_enter_dense_mode (kissat *solver, litpairs *irredundant) {
-  assert (!solver->level);
-  assert (solver->watching);
-  assert (kissat_propagated (solver));
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (kissat_propagated (solver));
   LOG ("entering dense mode with full occurrence lists");
   if (irredundant)
     flush_large_watches (solver, irredundant);
@@ -111,7 +113,7 @@ void kissat_enter_dense_mode (kissat *solver, litpairs *irredundant) {
 
 static void resume_watching_irredundant_binaries (kissat *solver,
                                                   litpairs *binaries) {
-  assert (binaries);
+  KISSAT_assert (binaries);
 #ifdef LOGGING
   size_t resumed_watching = 0;
 #endif
@@ -120,8 +122,8 @@ static void resume_watching_irredundant_binaries (kissat *solver,
     const unsigned first = litpair.lits[0];
     const unsigned second = litpair.lits[1];
 
-    assert (!ELIMINATED (IDX (first)));
-    assert (!ELIMINATED (IDX (second)));
+    KISSAT_assert (!ELIMINATED (IDX (first)));
+    KISSAT_assert (!ELIMINATED (IDX (second)));
 
     watches *first_watches = all_watches + first;
     watch first_watch = kissat_binary_watch (second);
@@ -172,7 +174,7 @@ resume_watching_large_clauses_after_elimination (kissat *solver) {
       continue;
     }
 
-    assert (c->size > 2);
+    KISSAT_assert (c->size > 2);
 
     unsigned *lits = c->lits;
     kissat_sort_literals (solver, values, assigned, c->size, lits);
@@ -198,8 +200,8 @@ resume_watching_large_clauses_after_elimination (kissat *solver) {
 
 void kissat_resume_sparse_mode (kissat *solver, bool flush_eliminated,
                                 litpairs *irredundant) {
-  assert (!solver->level);
-  assert (!solver->watching);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->watching);
   if (solver->inconsistent)
     return;
   LOG ("resuming sparse mode watching clauses");
@@ -224,12 +226,14 @@ void kissat_resume_sparse_mode (kissat *solver, bool flush_eliminated,
   else
     conflict = kissat_search_propagate (solver);
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   if (conflict)
-    assert (solver->inconsistent);
+    KISSAT_assert (solver->inconsistent);
   else
-    assert (kissat_trail_flushed (solver));
+    KISSAT_assert (kissat_trail_flushed (solver));
 #else
   (void) conflict;
 #endif
 }
+
+ABC_NAMESPACE_IMPL_END

@@ -13,10 +13,12 @@
 #include <inttypes.h>
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void flush_watched_clauses_by_literal (kissat *solver, unsigned lit,
                                               bool compact,
                                               reference start) {
-  assert (start != INVALID_REF);
+  KISSAT_assert (start != INVALID_REF);
 
   const value *const values = solver->values;
   const assigned *const all_assigned = solver->assigned;
@@ -44,8 +46,8 @@ static void flush_watched_clauses_by_literal (kissat *solver, unsigned lit,
         if (lit < other)
           kissat_delete_binary (solver, lit, other);
       } else {
-        assert (!lit_fixed);
-        assert (!other_fixed);
+        KISSAT_assert (!lit_fixed);
+        KISSAT_assert (!other_fixed);
 
         {
           head.binary.lit = mother;
@@ -59,7 +61,7 @@ static void flush_watched_clauses_by_literal (kissat *solver, unsigned lit,
         }
       }
     } else {
-      assert (solver->watching);
+      KISSAT_assert (solver->watching);
       const watch tail = *p++;
       if (!lit_fixed) {
         const reference ref = tail.large.ref;
@@ -71,7 +73,7 @@ static void flush_watched_clauses_by_literal (kissat *solver, unsigned lit,
     }
   }
 
-  assert (!lit_fixed || q == begin);
+  KISSAT_assert (!lit_fixed || q == begin);
   SET_END_OF_WATCHES (*lit_watches, q);
 #ifdef LOGGING
   const size_t size_lit_watches = SIZE_WATCHES (*lit_watches);
@@ -84,25 +86,25 @@ static void flush_watched_clauses_by_literal (kissat *solver, unsigned lit,
     return;
 
   watches *mlit_watches = &WATCHES (mlit);
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   const size_t size_mlit_watches = SIZE_WATCHES (*mlit_watches);
 #endif
   if (lit_fixed)
-    assert (!size_mlit_watches);
+    KISSAT_assert (!size_mlit_watches);
   else if (mlit < lit) {
-    assert (mlit != INVALID_LIT);
-    assert (mlit < lit);
+    KISSAT_assert (mlit != INVALID_LIT);
+    KISSAT_assert (mlit < lit);
     *mlit_watches = *lit_watches;
     LOG ("copied watches[%u] = watches[%u] (size %zu)", mlit, lit,
          size_mlit_watches);
     memset (lit_watches, 0, sizeof *lit_watches);
   } else
-    assert (mlit == lit);
+    KISSAT_assert (mlit == lit);
 }
 
 static void flush_all_watched_clauses (kissat *solver, bool compact,
                                        reference start) {
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   LOG ("starting to flush watches at clause[%" REFERENCE_FORMAT "]", start);
   for (all_variables (idx)) {
     const unsigned lit = LIT (idx);
@@ -114,12 +116,12 @@ static void flush_all_watched_clauses (kissat *solver, bool compact,
 
 static void update_large_reason (kissat *solver, assigned *assigned,
                                  unsigned forced, clause *dst) {
-  assert (dst->reason);
-  assert (forced != INVALID_LIT);
+  KISSAT_assert (dst->reason);
+  KISSAT_assert (forced != INVALID_LIT);
   reference dst_ref = kissat_reference_clause (solver, dst);
   const unsigned forced_idx = IDX (forced);
   struct assigned *a = assigned + forced_idx;
-  assert (!a->binary);
+  KISSAT_assert (!a->binary);
   if (a->reason != dst_ref) {
     LOG ("reason reference %u of %s updated to %u", a->reason,
          LOGLIT (forced), dst_ref);
@@ -129,7 +131,7 @@ static void update_large_reason (kissat *solver, assigned *assigned,
 }
 
 static unsigned get_forced (const value *values, clause *dst) {
-  assert (dst->reason);
+  KISSAT_assert (dst->reason);
   unsigned forced = INVALID_LIT;
   for (all_literals_in_clause (lit, dst)) {
     const value value = values[lit];
@@ -138,7 +140,7 @@ static unsigned get_forced (const value *values, clause *dst) {
     forced = lit;
     break;
   }
-  assert (forced != INVALID_LIT);
+  KISSAT_assert (forced != INVALID_LIT);
   return forced;
 }
 
@@ -181,9 +183,9 @@ static void update_last_irredundant (kissat *solver, const clause *end,
 }
 
 void kissat_update_first_reducible (kissat *solver, clause *reducible) {
-  assert (reducible);
-  assert (!reducible->garbage);
-  assert (reducible->redundant);
+  KISSAT_assert (reducible);
+  KISSAT_assert (!reducible->garbage);
+  KISSAT_assert (reducible->redundant);
   if (solver->first_reducible != INVALID_REF) {
     reference ref = kissat_reference_clause (solver, reducible);
     if (ref >= solver->first_reducible) {
@@ -196,9 +198,9 @@ void kissat_update_first_reducible (kissat *solver, clause *reducible) {
 }
 
 void kissat_update_last_irredundant (kissat *solver, clause *irredundant) {
-  assert (irredundant);
-  assert (!irredundant->garbage);
-  assert (!irredundant->redundant);
+  KISSAT_assert (irredundant);
+  KISSAT_assert (!irredundant->garbage);
+  KISSAT_assert (!irredundant->redundant);
   if (solver->last_irredundant != INVALID_REF) {
     reference ref = kissat_reference_clause (solver, irredundant);
     if (ref <= solver->last_irredundant) {
@@ -213,10 +215,10 @@ void kissat_update_last_irredundant (kissat *solver, clause *irredundant) {
 static void move_redundant_clauses_to_the_end (kissat *solver,
                                                reference ref) {
   INC (moved);
-  assert (ref != INVALID_REF);
-#ifndef NDEBUG
+  KISSAT_assert (ref != INVALID_REF);
+#ifndef KISSAT_NDEBUG
   const size_t size = SIZE_STACK (solver->arena);
-  assert ((size_t) ref <= size);
+  KISSAT_assert ((size_t) ref <= size);
 #endif
   clause *begin = (clause *) (BEGIN_STACK (solver->arena) + ref);
   clause *end = (clause *) END_STACK (solver->arena);
@@ -234,7 +236,7 @@ static void move_redundant_clauses_to_the_end (kissat *solver,
   clause *last_irredundant = kissat_last_irredundant_clause (solver);
 
   while (p != end) {
-    assert (!p->shrunken);
+    KISSAT_assert (!p->shrunken);
     size_t bytes = kissat_bytes_of_clause (p->size);
     if (p->redundant) {
       memcpy (r, p, bytes);
@@ -258,16 +260,16 @@ static void move_redundant_clauses_to_the_end (kissat *solver,
     LOGCLS (q, "new DST");
     if (q->reason)
       get_forced_and_update_large_reason (solver, assigned, values, q);
-    assert (q->redundant);
+    KISSAT_assert (q->redundant);
     if (!first_reducible)
       first_reducible = q;
     r = (clause *) (bytes + (char *) r);
     q = (clause *) (bytes + (char *) q);
   }
-  assert ((char *) r <= (char *) redundant + bytes_redundant);
+  KISSAT_assert ((char *) r <= (char *) redundant + bytes_redundant);
   kissat_free (solver, redundant, bytes_redundant);
 
-  assert (!first_reducible || first_reducible < q);
+  KISSAT_assert (!first_reducible || first_reducible < q);
 
   update_first_reducible (solver, q, first_reducible);
   update_last_irredundant (solver, q, last_irredundant);
@@ -276,20 +278,20 @@ static void move_redundant_clauses_to_the_end (kissat *solver,
 
 static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
                                                reference start) {
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   LOG ("sparse garbage collection starting at clause[%" REFERENCE_FORMAT
        "]",
        start);
 #ifdef CHECKING_OR_PROVING
   const bool checking_or_proving = kissat_checking_or_proving (solver);
 #endif
-  assert (EMPTY_STACK (solver->added));
-  assert (EMPTY_STACK (solver->removed));
+  KISSAT_assert (EMPTY_STACK (solver->added));
+  KISSAT_assert (EMPTY_STACK (solver->removed));
 
   const value *const values = solver->values;
   assigned *assigned = solver->assigned;
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t flushed_garbage_clauses = 0;
   size_t flushed_satisfied_clauses = 0;
 #endif
@@ -319,7 +321,7 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
   for (clause *next; src != end; src = next) {
     if (src->garbage) {
       next = kissat_delete_clause (solver, src);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
       flushed_garbage_clauses++;
 #endif
       if (last_irredundant == src) {
@@ -331,13 +333,13 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
       continue;
     }
 
-    assert (src->size > 1);
+    KISSAT_assert (src->size > 1);
     LOGCLS (src, "SRC");
     next = kissat_next_clause (src);
-#if !defined(NDEBUG) || defined(CHECKING_OR_PROVING)
+#if !defined(KISSAT_NDEBUG) || defined(CHECKING_OR_PROVING)
     const unsigned old_size = src->size;
 #endif
-    assert (SIZE_OF_CLAUSE_HEADER == sizeof (unsigned));
+    KISSAT_assert (SIZE_OF_CLAUSE_HEADER == sizeof (unsigned));
     *(unsigned *) dst = *(unsigned *) src;
 
     unsigned *q = dst->lits;
@@ -365,15 +367,15 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
       if (tmp < 0 && !level)
         flushed++;
       else if (tmp > 0 && !level) {
-        assert (!satisfied);
-        assert (!dst->reason);
+        KISSAT_assert (!satisfied);
+        KISSAT_assert (!dst->reason);
         LOG ("SRC satisfied by %s", LOGLIT (lit));
         satisfied = true;
       } else {
         const unsigned mlit = kissat_map_literal (solver, lit, compact);
 
         if (tmp > 0) {
-          assert (level);
+          KISSAT_assert (level);
           forced = non_false++ ? INVALID_LIT : lit;
         } else if (tmp < 0)
           other = lit;
@@ -397,7 +399,7 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
         DEC (clauses_redundant);
       else
         DEC (clauses_irredundant);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
       flushed_satisfied_clauses++;
 #endif
 #ifdef CHECKING_OR_PROVING
@@ -418,36 +420,36 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
     }
 
     const unsigned new_size = q - dst->lits;
-    assert (new_size <= old_size);
-    assert (1 < new_size);
+    KISSAT_assert (new_size <= old_size);
+    KISSAT_assert (1 < new_size);
 
     if (new_size == 2) {
-      assert (mfirst != INVALID_LIT);
-      assert (msecond != INVALID_LIT);
+      KISSAT_assert (mfirst != INVALID_LIT);
+      KISSAT_assert (msecond != INVALID_LIT);
 
-      statistics *statistics = &solver->statistics;
-      assert (statistics->clauses_binary < UINT64_MAX);
+      statistics *statistics = &solver->statistics_;
+      KISSAT_assert (statistics->clauses_binary < UINT64_MAX);
       statistics->clauses_binary++;
       bool redundant = dst->redundant;
       if (redundant) {
-        assert (statistics->clauses_redundant > 0);
+        KISSAT_assert (statistics->clauses_redundant > 0);
         statistics->clauses_redundant--;
         redundant = false;
       } else {
-        assert (statistics->clauses_irredundant > 0);
+        KISSAT_assert (statistics->clauses_irredundant > 0);
         statistics->clauses_irredundant--;
       }
       LOGBINARY (mfirst, msecond, "DST");
       kissat_watch_binary (solver, mfirst, msecond);
 
       if (dst->reason) {
-        assert (non_false == 1);
-        assert (other != INVALID_LIT);
-        assert (forced != INVALID_LIT);
+        KISSAT_assert (non_false == 1);
+        KISSAT_assert (other != INVALID_LIT);
+        KISSAT_assert (forced != INVALID_LIT);
 
         const unsigned forced_idx = IDX (forced);
         struct assigned *a = assigned + forced_idx;
-        assert (!a->binary);
+        KISSAT_assert (!a->binary);
 
         LOGBINARY (mfirst, msecond,
                    "reason clause[%u] of %s updated to binary reason",
@@ -464,7 +466,7 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
           last_irredundant = first;
       }
     } else {
-      assert (2 < new_size);
+      KISSAT_assert (2 < new_size);
 
       dst->size = new_size;
       dst->shrunken = false;
@@ -495,8 +497,8 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
       continue;
 
     if (new_size != old_size) {
-      assert (1 < new_size);
-      assert (new_size < old_size);
+      KISSAT_assert (1 < new_size);
+      KISSAT_assert (new_size < old_size);
 
       CHECK_AND_ADD_STACK (solver->added);
       ADD_STACK_TO_PROOF (solver->added);
@@ -516,10 +518,10 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
   if (first_redundant)
     LOGCLS (first_redundant, "determined first redundant clause as");
 
-#if !defined(QUIET) || defined(METRICS)
+#if !defined(KISSAT_QUIET) || defined(METRICS)
   size_t bytes = (char *) END_STACK (solver->arena) - (char *) dst;
 #endif
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   if (flushed)
     kissat_phase (solver, "collect", GET (garbage_collections),
                   "flushed %zu falsified literals in large clauses",
@@ -556,18 +558,18 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
          kissat_percent (redundant_bytes, move_bytes),
          FORMAT_BYTES (move_bytes));
 #endif
-    assert (first_redundant < dst);
+    KISSAT_assert (first_redundant < dst);
     res = kissat_reference_clause (solver, first_redundant);
-    assert (res != INVALID_REF);
+    KISSAT_assert (res != INVALID_REF);
   }
 
   SET_END_OF_STACK (solver->arena, (ward *) dst);
   kissat_shrink_arena (solver);
 
 #ifdef METRICS
-  if (solver->statistics.arena_garbage)
+  if (solver->statistics_.arena_garbage)
     kissat_very_verbose (solver, "still %s garbage left in arena",
-                         FORMAT_BYTES (solver->statistics.arena_garbage));
+                         FORMAT_BYTES (solver->statistics_.arena_garbage));
   else
     kissat_very_verbose (solver, "all garbage clauses in arena collected");
 #endif
@@ -578,7 +580,7 @@ static reference sparse_sweep_garbage_clauses (kissat *solver, bool compact,
 static void rewatch_clauses (kissat *solver, reference start) {
   LOG ("rewatching clause[%" REFERENCE_FORMAT "] and following clauses",
        start);
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
 
   const value *const values = solver->values;
   const assigned *const assigned = solver->assigned;
@@ -587,7 +589,7 @@ static void rewatch_clauses (kissat *solver, reference start) {
 
   clause *end = (clause *) END_STACK (solver->arena);
   clause *c = (clause *) (BEGIN_STACK (solver->arena) + start);
-  assert (c <= end);
+  KISSAT_assert (c <= end);
 
   for (clause *next; c != end; c = next) {
     next = kissat_next_clause (c);
@@ -606,7 +608,7 @@ static void rewatch_clauses (kissat *solver, reference start) {
 }
 
 void kissat_sparse_collect (kissat *solver, bool compact, reference start) {
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   START (collect);
   INC (garbage_collections);
   INC (sparse_gcs);
@@ -643,11 +645,11 @@ bool kissat_compacting (kissat *solver) {
 }
 
 void kissat_initial_sparse_collect (kissat *solver) {
-  assert (!solver->level);
-  assert (!solver->inconsistent);
-  assert (solver->watching);
-  assert (kissat_trail_flushed (solver));
-  if (solver->statistics.units) {
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->inconsistent);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (kissat_trail_flushed (solver));
+  if (solver->statistics_.units) {
     bool compact = GET_OPTION (compact);
     kissat_sparse_collect (solver, compact, 0);
   }
@@ -655,12 +657,12 @@ void kissat_initial_sparse_collect (kissat *solver) {
 }
 
 static void dense_sweep_garbage_clauses (kissat *solver) {
-  assert (!solver->level);
-  assert (!solver->watching);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->watching);
 
   LOG ("dense garbage collection");
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t flushed_garbage_clauses = 0;
 #endif
   clause *first_reducible = 0;
@@ -675,15 +677,15 @@ static void dense_sweep_garbage_clauses (kissat *solver) {
   for (clause *next; src != end; src = next) {
     if (src->garbage) {
       next = kissat_delete_clause (solver, src);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
       flushed_garbage_clauses++;
 #endif
       continue;
     }
-    assert (src->size > 1);
+    KISSAT_assert (src->size > 1);
     LOGCLS (src, "SRC");
     next = kissat_next_clause (src);
-    assert (SIZE_OF_CLAUSE_HEADER == sizeof (unsigned));
+    KISSAT_assert (SIZE_OF_CLAUSE_HEADER == sizeof (unsigned));
     *(unsigned *) dst = *(unsigned *) src;
     dst->searched = src->searched;
     dst->size = src->size;
@@ -701,7 +703,7 @@ static void dense_sweep_garbage_clauses (kissat *solver) {
   update_last_irredundant (solver, dst, last_irredundant);
   kissat_reset_last_learned (solver);
 
-#if !defined(QUIET) || defined(METRICS)
+#if !defined(KISSAT_QUIET) || defined(METRICS)
   size_t bytes = (char *) END_STACK (solver->arena) - (char *) dst;
 #endif
   kissat_phase (solver, "collect", GET (garbage_collections),
@@ -717,17 +719,17 @@ static void dense_sweep_garbage_clauses (kissat *solver) {
   kissat_shrink_arena (solver);
 
 #ifdef METRICS
-  if (solver->statistics.arena_garbage)
+  if (solver->statistics_.arena_garbage)
     kissat_very_verbose (solver, "still %s garbage left in arena",
-                         FORMAT_BYTES (solver->statistics.arena_garbage));
+                         FORMAT_BYTES (solver->statistics_.arena_garbage));
   else
     kissat_very_verbose (solver, "all garbage clauses in arena collected");
 #endif
 }
 
 void kissat_dense_collect (kissat *solver) {
-  assert (!solver->watching);
-  assert (!solver->level);
+  KISSAT_assert (!solver->watching);
+  KISSAT_assert (!solver->level);
   START (collect);
   INC (garbage_collections);
   INC (dense_garbage_collections);
@@ -736,3 +738,5 @@ void kissat_dense_collect (kissat *solver) {
   REPORT (1, 'C');
   STOP (collect);
 }
+
+ABC_NAMESPACE_IMPL_END

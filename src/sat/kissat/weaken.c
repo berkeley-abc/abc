@@ -1,10 +1,12 @@
 #include "weaken.h"
 #include "inline.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static void push_witness_literal (kissat *solver, unsigned ilit) {
-  assert (!VALUE (ilit));
+  KISSAT_assert (!VALUE (ilit));
   int elit = kissat_export_literal (solver, ilit);
-  assert (elit);
+  KISSAT_assert (elit);
   LOG2 ("pushing external witness literal %d on extension stack", elit);
   const extension ext = kissat_extension (true, elit);
   PUSH_STACK (solver->extend, ext);
@@ -12,14 +14,14 @@ static void push_witness_literal (kissat *solver, unsigned ilit) {
 
 static void push_clause_literal (kissat *solver, unsigned ilit) {
   const value value = VALUE (ilit);
-  assert (value <= 0);
+  KISSAT_assert (value <= 0);
   if (value < 0)
     LOG ("not pushing internal falsified clause literal %s "
          "on extension stack",
          LOGLIT (ilit));
   else {
     int elit = kissat_export_literal (solver, ilit);
-    assert (elit);
+    KISSAT_assert (elit);
     LOG2 ("pushing external clause literal %d on extension stack", elit);
     const extension ext = kissat_extension (false, elit);
     PUSH_STACK (solver->extend, ext);
@@ -58,3 +60,5 @@ void kissat_weaken_unit (kissat *solver, unsigned lit) {
   LOGEXT (1, END_STACK (solver->extend) - 1,
           "pushed witness labelled unit clause at");
 }
+
+ABC_NAMESPACE_IMPL_END

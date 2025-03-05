@@ -1,4 +1,6 @@
-#ifndef QUIET
+#include "global.h"
+
+#ifndef KISSAT_QUIET
 
 #include "report.h"
 #include "colors.h"
@@ -58,7 +60,7 @@ void kissat_report (kissat *solver, bool verbose, char type) {
   REPORTS
 #undef REP
   // clang-format on
-  assert (p < line + sizeof line);
+  KISSAT_assert (p < line + sizeof line);
   TERMINAL (stdout, 1);
   if (!(solver->limits.reports++ % 20)) {
 #define ROWS 3
@@ -86,9 +88,9 @@ void kissat_report (kissat *solver, bool verbose, char type) {
   } while (0);
     REPORTS
 #undef REP
-    assert (i == n);
+    KISSAT_assert (i == n);
     for (unsigned j = 0; j < ROWS; j++) {
-      assert (r[j] < rows[j] + sizeof rows[j]);
+      KISSAT_assert (r[j] < rows[j] + sizeof rows[j]);
       *r[j] = 0;
     }
     if (solver->limits.reports > 1)

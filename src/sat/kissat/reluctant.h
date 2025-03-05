@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct reluctant reluctant;
 
 struct reluctant {
@@ -29,5 +32,7 @@ static inline bool kissat_reluctant_triggered (reluctant *reluctant) {
 struct kissat;
 
 void kissat_init_reluctant (struct kissat *);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

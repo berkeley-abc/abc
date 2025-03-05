@@ -4,6 +4,9 @@
 #include "stack.h"
 #include "utilities.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct extension extension;
 
 struct extension {
@@ -16,7 +19,7 @@ typedef STACK (extension) extensions;
 // clang-format on
 
 static inline extension kissat_extension (bool blocking, int lit) {
-  assert (ABS (lit) < (1 << 30));
+  KISSAT_assert (ABS (lit) < (1 << 30));
   extension res;
   res.blocking = blocking;
   res.lit = lit;
@@ -26,5 +29,7 @@ static inline extension kissat_extension (bool blocking, int lit) {
 struct kissat;
 
 void kissat_extend (struct kissat *solver);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

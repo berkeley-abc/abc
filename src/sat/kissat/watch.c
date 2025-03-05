@@ -3,13 +3,15 @@
 #include "inline.h"
 #include "sort.c"
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_remove_binary_watch (kissat *solver, watches *watches,
                                  unsigned lit) {
   watch *const begin = BEGIN_WATCHES (*watches);
   watch *const end = END_WATCHES (*watches);
   watch *q = begin;
   watch const *p = q;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   bool found = false;
 #endif
   while (p != end) {
@@ -21,34 +23,34 @@ void kissat_remove_binary_watch (kissat *solver, watches *watches,
     const unsigned other = watch.binary.lit;
     if (other != lit)
       continue;
-#ifndef NDEBUG
-    assert (!found);
+#ifndef KISSAT_NDEBUG
+    KISSAT_assert (!found);
     found = true;
 #endif
     q--;
   }
-  assert (found);
-#ifdef COMPACT
+  KISSAT_assert (found);
+#ifdef KISSAT_COMPACT
   watches->size -= 1;
 #else
-  assert (begin + 1 <= end);
+  KISSAT_assert (begin + 1 <= end);
   watches->end -= 1;
 #endif
   const watch empty = {.raw = INVALID_VECTOR_ELEMENT};
   end[-1] = empty;
-  assert (solver->vectors.usable < MAX_SECTOR - 1);
+  KISSAT_assert (solver->vectors.usable < MAX_SECTOR - 1);
   solver->vectors.usable += 1;
   kissat_check_vectors (solver);
 }
 
 void kissat_remove_blocking_watch (kissat *solver, watches *watches,
                                    reference ref) {
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   watch *const begin = BEGIN_WATCHES (*watches);
   watch *const end = END_WATCHES (*watches);
   watch *q = begin;
   watch const *p = q;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   bool found = false;
 #endif
   while (p != end) {
@@ -58,49 +60,49 @@ void kissat_remove_blocking_watch (kissat *solver, watches *watches,
     const watch tail = *q++ = *p++;
     if (tail.raw != ref)
       continue;
-#ifndef NDEBUG
-    assert (!found);
+#ifndef KISSAT_NDEBUG
+    KISSAT_assert (!found);
     found = true;
 #endif
     q -= 2;
   }
-  assert (found);
-#ifdef COMPACT
+  KISSAT_assert (found);
+#ifdef KISSAT_COMPACT
   watches->size -= 2;
 #else
-  assert (begin + 2 <= end);
+  KISSAT_assert (begin + 2 <= end);
   watches->end -= 2;
 #endif
   const watch empty = {.raw = INVALID_VECTOR_ELEMENT};
   end[-2] = end[-1] = empty;
-  assert (solver->vectors.usable < MAX_SECTOR - 2);
+  KISSAT_assert (solver->vectors.usable < MAX_SECTOR - 2);
   solver->vectors.usable += 2;
   kissat_check_vectors (solver);
 }
 
 void kissat_substitute_large_watch (kissat *solver, watches *watches,
                                     watch src, watch dst) {
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   watch *const begin = BEGIN_WATCHES (*watches);
   const watch *const end = END_WATCHES (*watches);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   bool found = false;
 #endif
   for (watch *p = begin; p != end; p++) {
     const watch head = *p;
     if (head.raw != src.raw)
       continue;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     found = true;
 #endif
     *p = dst;
     break;
   }
-  assert (found);
+  KISSAT_assert (found);
 }
 
 void kissat_flush_all_connected (kissat *solver) {
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   LOG ("flush all connected binaries and clauses");
   watches *all_watches = solver->watches;
   for (all_literals (lit))
@@ -108,7 +110,7 @@ void kissat_flush_all_connected (kissat *solver) {
 }
 
 void kissat_flush_large_watches (kissat *solver) {
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   LOG ("flush large clause watches");
   watches *all_watches = solver->watches;
   signed char *marks = solver->marks;
@@ -134,7 +136,7 @@ void kissat_flush_large_watches (kissat *solver) {
     }
     SET_END_OF_WATCHES (*lit_watches, q);
     for (p = begin; p != q; p++) {
-      assert (p->type.binary);
+      KISSAT_assert (p->type.binary);
       marks[p->binary.lit] = 0;
     }
   }
@@ -142,7 +144,7 @@ void kissat_flush_large_watches (kissat *solver) {
 
 void kissat_watch_large_clauses (kissat *solver) {
   LOG ("watching all large clauses");
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
 
   const value *const values = solver->values;
   const assigned *const assigned = solver->assigned;
@@ -167,7 +169,7 @@ void kissat_watch_large_clauses (kissat *solver) {
 }
 
 void kissat_connect_irredundant_large_clauses (kissat *solver) {
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   LOG ("connecting all large irredundant clauses");
 
   clause *last_irredundant = kissat_last_irredundant_clause (solver);
@@ -184,7 +186,7 @@ void kissat_connect_irredundant_large_clauses (kissat *solver) {
     if (c->garbage)
       continue;
     bool satisfied = false;
-    assert (!solver->level);
+    KISSAT_assert (!solver->level);
     for (all_literals_in_clause (lit, c)) {
       const value value = values[lit];
       if (value <= 0)
@@ -202,7 +204,7 @@ void kissat_connect_irredundant_large_clauses (kissat *solver) {
 }
 
 void kissat_flush_large_connected (kissat *solver) {
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   LOG ("flushing large connected clause references");
   size_t flushed = 0;
   for (all_literals (lit)) {
@@ -221,3 +223,5 @@ void kissat_flush_large_connected (kissat *solver) {
   LOG ("flushed %zu large clause references", flushed);
   (void) flushed;
 }
+
+ABC_NAMESPACE_IMPL_END

@@ -4,6 +4,8 @@
 #include "print.h"
 #include "trail.h"
 
+ABC_NAMESPACE_IMPL_START
+
 #define PROPAGATE_LITERAL initially_propagate_literal
 #define PROPAGATION_TYPE "initially"
 
@@ -12,7 +14,7 @@
 static inline void
 update_initial_propagation_statistics (kissat *solver,
                                        const unsigned *saved_propagate) {
-  assert (saved_propagate <= solver->propagate);
+  KISSAT_assert (saved_propagate <= solver->propagate);
   const unsigned propagated = solver->propagate - saved_propagate;
 
   LOG ("propagated %u literals", propagated);
@@ -32,9 +34,9 @@ static clause *initially_propagate (kissat *solver) {
 }
 
 bool kissat_initially_propagate (kissat *solver) {
-  assert (!solver->probing);
-  assert (solver->watching);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->probing);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (!solver->inconsistent);
 
   START (propagate);
 
@@ -45,8 +47,8 @@ bool kissat_initially_propagate (kissat *solver) {
   kissat_update_conflicts_and_trail (solver, conflict, true);
   if (conflict) {
     int res = kissat_analyze (solver, conflict);
-    assert (solver->inconsistent);
-    assert (res == 20);
+    KISSAT_assert (solver->inconsistent);
+    KISSAT_assert (res == 20);
     (void) res;
   }
 
@@ -54,3 +56,5 @@ bool kissat_initially_propagate (kissat *solver) {
 
   return !conflict;
 }
+
+ABC_NAMESPACE_IMPL_END

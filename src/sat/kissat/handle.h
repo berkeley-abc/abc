@@ -3,6 +3,9 @@
 
 #include <signal.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 void kissat_init_signal_handler (void (*handler) (int));
 void kissat_reset_signal_handler (void);
 
@@ -39,5 +42,7 @@ kissat_signal_name (int sig)
 }
 
 // clang-format on
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

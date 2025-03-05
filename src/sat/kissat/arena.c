@@ -3,9 +3,11 @@
 #include "logging.h"
 #include "print.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static void report_resized (kissat *solver, const char *mode,
                             arena before) {
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   ward *const old_begin = BEGIN_STACK (before);
   ward *const new_begin = BEGIN_STACK (solver->arena);
   const bool moved = (new_begin != old_begin);
@@ -23,25 +25,25 @@ static void report_resized (kissat *solver, const char *mode,
 }
 
 reference kissat_allocate_clause (kissat *solver, size_t size) {
-  assert (size <= UINT_MAX);
+  KISSAT_assert (size <= UINT_MAX);
   const size_t res = SIZE_STACK (solver->arena);
-  assert (res <= MAX_REF);
+  KISSAT_assert (res <= MAX_REF);
   const size_t bytes = kissat_bytes_of_clause (size);
-  assert (kissat_aligned_word (bytes));
+  KISSAT_assert (kissat_aligned_word (bytes));
   const size_t needed = bytes / sizeof (ward);
-  assert (needed <= UINT_MAX);
+  KISSAT_assert (needed <= UINT_MAX);
   size_t capacity = CAPACITY_STACK (solver->arena);
-  assert (kissat_is_power_of_two (MAX_ARENA));
-  assert (capacity <= MAX_ARENA);
+  KISSAT_assert (kissat_is_power_of_two (MAX_ARENA));
+  KISSAT_assert (capacity <= MAX_ARENA);
   size_t available = capacity - res;
   if (needed > available) {
     const arena before = solver->arena;
     do {
-      assert (kissat_is_zero_or_power_of_two (capacity));
+      KISSAT_assert (kissat_is_zero_or_power_of_two (capacity));
       if (capacity == MAX_ARENA)
         kissat_fatal ("maximum arena capacity "
                       "of 2^%u %zu-byte-words %s exhausted"
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
                       " (consider a configuration without '--compact')"
 #endif
                       ,
@@ -55,7 +57,7 @@ reference kissat_allocate_clause (kissat *solver, size_t size) {
     INC (arena_resized);
     INC (arena_enlarged);
     report_resized (solver, "enlarged", before);
-    assert (capacity <= MAX_ARENA);
+    KISSAT_assert (capacity <= MAX_ARENA);
   }
   solver->arena.end += needed;
   LOG ("allocated clause[%zu] of size %zu bytes %s", res, size,
@@ -67,7 +69,7 @@ void kissat_shrink_arena (kissat *solver) {
   const arena before = solver->arena;
   const size_t capacity = CAPACITY_STACK (before);
   const size_t size = SIZE_STACK (before);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t capacity_bytes = capacity * sizeof (ward);
   kissat_phase (solver, "arena", GET (arena_resized),
                 "capacity of %s %d-byte-words %s", FORMAT_COUNT (capacity),
@@ -89,7 +91,7 @@ void kissat_shrink_arena (kissat *solver) {
   report_resized (solver, "shrunken", before);
 }
 
-#if !defined(NDEBUG) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || defined(LOGGING)
 
 bool kissat_clause_in_arena (const kissat *solver, const clause *c) {
   if (!kissat_aligned_pointer (c))
@@ -106,3 +108,5 @@ bool kissat_clause_in_arena (const kissat *solver, const clause *c) {
 }
 
 #endif
+
+ABC_NAMESPACE_IMPL_END

@@ -8,6 +8,9 @@
 
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef union watch watch;
 
 typedef struct binary_tagged_literal watch_type;
@@ -77,7 +80,7 @@ static inline watch kissat_binary_watch (unsigned lit) {
   watch res;
   res.binary.lit = lit;
   res.binary.binary = true;
-  assert (res.type.binary);
+  KISSAT_assert (res.type.binary);
   return res;
 }
 
@@ -85,7 +88,7 @@ static inline watch kissat_large_watch (reference ref) {
   watch res;
   res.large.ref = ref;
   res.large.binary = false;
-  assert (!res.type.binary);
+  KISSAT_assert (!res.type.binary);
   return res;
 }
 
@@ -93,7 +96,7 @@ static inline watch kissat_blocking_watch (unsigned lit) {
   watch res;
   res.blocking.lit = lit;
   res.blocking.binary = false;
-  assert (!res.type.binary);
+  KISSAT_assert (!res.type.binary);
   return res;
 }
 
@@ -102,7 +105,7 @@ static inline watch kissat_blocking_watch (unsigned lit) {
 
 #define PUSH_WATCHES(W, E) \
   do { \
-    assert (sizeof (E) == sizeof (unsigned)); \
+    KISSAT_assert (sizeof (E) == sizeof (unsigned)); \
     kissat_push_vectors (solver, &(W), (E).raw); \
   } while (0)
 
@@ -131,13 +134,13 @@ static inline watch kissat_blocking_watch (unsigned lit) {
 #define REMOVE_WATCHES(W, E) \
   kissat_remove_from_vector (solver, &(W), (E).raw)
 
-#define WATCHES(LIT) (solver->watches[assert ((LIT) < LITS), (LIT)])
+#define WATCHES(LIT) (solver->watches[KISSAT_assert ((LIT) < LITS), (LIT)])
 
 // This iterator is currently only used in 'testreferences.c'.
 //
 #define all_binary_blocking_watch_ref(WATCH, REF, WATCHES) \
   watch WATCH, \
-      *WATCH##_PTR = (assert (solver->watching), BEGIN_WATCHES (WATCHES)), \
+      *WATCH##_PTR = (KISSAT_assert (solver->watching), BEGIN_WATCHES (WATCHES)), \
       *const WATCH##_END = END_WATCHES (WATCHES); \
   WATCH##_PTR != WATCH##_END && \
       ((WATCH = *WATCH##_PTR), \
@@ -147,7 +150,7 @@ static inline watch kissat_blocking_watch (unsigned lit) {
 
 #define all_binary_blocking_watches(WATCH, WATCHES) \
   watch WATCH, \
-      *WATCH##_PTR = (assert (solver->watching), BEGIN_WATCHES (WATCHES)), \
+      *WATCH##_PTR = (KISSAT_assert (solver->watching), BEGIN_WATCHES (WATCHES)), \
       *const WATCH##_END = END_WATCHES (WATCHES); \
   WATCH##_PTR != WATCH##_END && ((WATCH = *WATCH##_PTR), true); \
   WATCH##_PTR += 1u + !WATCH.type.binary
@@ -155,7 +158,7 @@ static inline watch kissat_blocking_watch (unsigned lit) {
 #define all_binary_large_watches(WATCH, WATCHES) \
   watch WATCH, \
       *WATCH##_PTR = \
-          (assert (!solver->watching), BEGIN_WATCHES (WATCHES)), \
+          (KISSAT_assert (!solver->watching), BEGIN_WATCHES (WATCHES)), \
       *const WATCH##_END = END_WATCHES (WATCHES); \
   WATCH##_PTR != WATCH##_END && ((WATCH = *WATCH##_PTR), true); \
   ++WATCH##_PTR
@@ -172,5 +175,7 @@ void kissat_watch_large_clauses (struct kissat *);
 void kissat_flush_large_connected (struct kissat *);
 
 void kissat_connect_irredundant_large_clauses (struct kissat *);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

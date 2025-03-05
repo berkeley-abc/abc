@@ -5,6 +5,9 @@
 
 #include <string.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define FIFO(TYPE) \
   struct { \
     TYPE *begin; \
@@ -29,7 +32,7 @@
 #define MOVABLE_FIFO(F) (BEGIN_FIFO (F) == LIMIT_FIFO (F))
 #define CAPACITY_FIFO(F) (ALLOCATED_FIFO (F) - START_FIFO (F))
 
-#define ENLARGE_FIFO(F) \
+#define ENLARGE_FIFO(T, F)                       \
   do { \
     size_t OLD_BEGIN_OFFSET = BEGIN_FIFO (F) - START_FIFO (F); \
     size_t OLD_END_OFFSET = END_FIFO (F) - START_FIFO (F); \
@@ -38,12 +41,12 @@
     size_t OLD_BYTES = OLD_CAPACITY * sizeof *BEGIN_FIFO (F); \
     size_t NEW_BYTES = NEW_CAPACITY * sizeof *BEGIN_FIFO (F); \
     START_FIFO (F) = \
-        kissat_realloc (solver, START_FIFO (F), OLD_BYTES, NEW_BYTES); \
+      (T*) kissat_realloc (solver, START_FIFO (F), OLD_BYTES, NEW_BYTES); \
     ALLOCATED_FIFO (F) = START_FIFO (F) + NEW_CAPACITY; \
     LIMIT_FIFO (F) = START_FIFO (F) + NEW_CAPACITY / 2; \
     BEGIN_FIFO (F) = START_FIFO (F) + OLD_BEGIN_OFFSET; \
     END_FIFO (F) = START_FIFO (F) + OLD_END_OFFSET; \
-    assert (BEGIN_FIFO (F) < LIMIT_FIFO (F)); \
+    KISSAT_assert (BEGIN_FIFO (F) < LIMIT_FIFO (F)); \
   } while (0)
 
 #define MOVE_FIFO(F) \
@@ -55,22 +58,22 @@
     END_FIFO (F) = BEGIN_FIFO (F) + SIZE; \
   } while (0)
 
-#define ENQUEUE_FIFO(F, E) \
+#define ENQUEUE_FIFO(T, F, E)                    \
   do { \
     if (FULL_FIFO (F)) \
-      ENLARGE_FIFO (F); \
+      ENLARGE_FIFO (T, F);  \
     *END_FIFO (F)++ = (E); \
   } while (0)
 
 #define DEQUEUE_FIFO(F, E) \
   do { \
-    assert (!EMPTY_FIFO (F)); \
+    KISSAT_assert (!EMPTY_FIFO (F)); \
     (E) = *BEGIN_FIFO (F)++; \
     if (MOVABLE_FIFO (F)) \
       MOVE_FIFO (F); \
   } while (0)
 
-#define POP_FIFO(F) (assert (!EMPTY_FIFO (F)), *--END_FIFO (F))
+#define POP_FIFO(F) (KISSAT_assert (!EMPTY_FIFO (F)), *--END_FIFO (F))
 
 #define RELEASE_FIFO(F) \
   do { \
@@ -93,5 +96,7 @@ struct unsigned_fifo {
 typedef struct unsigned_fifo unsigned_fifo;
 
 #define all_fifo all_stack
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

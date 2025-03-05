@@ -1,14 +1,17 @@
 #ifndef _logging_h_INCLUDED
 #define _logging_h_INCLUDED
 
-#if defined(LOGGING) && !defined(QUIET)
-
 #include "attribute.h"
 #include "extend.h"
 #include "reference.h"
 #include "watch.h"
 
 #include <stdarg.h>
+
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#if defined(LOGGING) && !defined(KISSAT_QUIET)
 
 // clang-format off
 
@@ -460,5 +463,7 @@ ATTRIBUTE_FORMAT (5, 6);
 #define LOGTMP(...) \
   LOGLITS (SIZE_STACK (solver->clause), BEGIN_STACK (solver->clause), \
            __VA_ARGS__)
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

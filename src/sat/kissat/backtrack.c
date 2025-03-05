@@ -8,19 +8,21 @@
 #include "propsearch.h"
 #include "trail.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static inline void unassign (kissat *solver, value *values, unsigned lit) {
   LOG ("unassign %s", LOGLIT (lit));
-  assert (values[lit] > 0);
+  KISSAT_assert (values[lit] > 0);
   const unsigned not_lit = NOT (lit);
   values[lit] = values[not_lit] = 0;
-  assert (solver->unassigned < VARS);
+  KISSAT_assert (solver->unassigned < VARS);
   solver->unassigned++;
 }
 
 static inline void add_unassigned_variable_back_to_queue (kissat *solver,
                                                           links *links,
                                                           unsigned lit) {
-  assert (!solver->stable);
+  KISSAT_assert (!solver->stable);
   const unsigned idx = IDX (lit);
   if (links[idx].stamp > solver->queue.search.stamp)
     kissat_update_queue (solver, links, idx);
@@ -29,7 +31,7 @@ static inline void add_unassigned_variable_back_to_queue (kissat *solver,
 static inline void add_unassigned_variable_back_to_heap (kissat *solver,
                                                          heap *scores,
                                                          unsigned lit) {
-  assert (solver->stable);
+  KISSAT_assert (solver->stable);
   const unsigned idx = IDX (lit);
   if (!kissat_heap_contains (scores, idx))
     kissat_push_heap (solver, scores, idx);
@@ -71,7 +73,7 @@ static void kissat_update_target_and_best_phases (kissat *solver) {
 
 void kissat_backtrack_without_updating_phases (kissat *solver,
                                                unsigned new_level) {
-  assert (solver->level >= new_level);
+  KISSAT_assert (solver->level >= new_level);
   if (solver->level == new_level)
     return;
 
@@ -94,12 +96,12 @@ void kissat_backtrack_without_updating_phases (kissat *solver,
     for (const unsigned *p = q; p != old_end; p++) {
       const unsigned lit = *p;
       const unsigned idx = IDX (lit);
-      assert (idx < VARS);
+      KISSAT_assert (idx < VARS);
       struct assigned *a = assigned + idx;
       const unsigned level = a->level;
       if (level <= new_level) {
         const unsigned new_trail = q - trail;
-        assert (new_trail <= a->trail);
+        KISSAT_assert (new_trail <= a->trail);
         a->trail = new_trail;
         *q++ = lit;
         LOG ("reassign %s", LOGLIT (lit));
@@ -115,12 +117,12 @@ void kissat_backtrack_without_updating_phases (kissat *solver,
     for (const unsigned *p = q; p != old_end; p++) {
       const unsigned lit = *p;
       const unsigned idx = IDX (lit);
-      assert (idx < VARS);
+      KISSAT_assert (idx < VARS);
       struct assigned *a = assigned + idx;
       const unsigned level = a->level;
       if (level <= new_level) {
         const unsigned new_trail = q - trail;
-        assert (new_trail <= a->trail);
+        KISSAT_assert (new_trail <= a->trail);
         a->trail = new_trail;
         *q++ = lit;
         LOG ("reassign %s", LOGLIT (lit));
@@ -139,12 +141,12 @@ void kissat_backtrack_without_updating_phases (kissat *solver,
   LOG ("reassigned %u literals", reassigned);
   (void) unassigned, (void) reassigned;
 
-  assert (new_end <= END_ARRAY (solver->trail));
+  KISSAT_assert (new_end <= END_ARRAY (solver->trail));
   LOG ("propagation will resume at trail position %zu",
        (size_t) (new_end - trail));
   solver->propagate = new_end;
 
-  assert (!solver->extended);
+  KISSAT_assert (!solver->extended);
 }
 
 void kissat_backtrack_in_consistent_state (kissat *solver,
@@ -162,16 +164,18 @@ void kissat_backtrack_after_conflict (kissat *solver, unsigned new_level) {
 
 void kissat_backtrack_propagate_and_flush_trail (kissat *solver) {
   if (solver->level) {
-    assert (solver->watching);
+    KISSAT_assert (solver->watching);
     kissat_backtrack_in_consistent_state (solver, 0);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     clause *conflict =
 #endif
         solver->probing ? kissat_probing_propagate (solver, 0, true)
                         : kissat_search_propagate (solver);
-    assert (!conflict);
+    KISSAT_assert (!conflict);
   }
 
-  assert (kissat_propagated (solver));
-  assert (kissat_trail_flushed (solver));
+  KISSAT_assert (kissat_propagated (solver));
+  KISSAT_assert (kissat_trail_flushed (solver));
 }
+
+ABC_NAMESPACE_IMPL_END

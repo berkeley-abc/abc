@@ -1,10 +1,13 @@
 #ifndef _proof_h_INCLUDED
 #define _proof_h_INCLUDED
 
-#ifndef NPROOFS
-
 #include <stdbool.h>
 #include <stdlib.h>
+
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#ifndef KISSAT_NPROOFS
 
 typedef struct proof proof;
 
@@ -14,7 +17,7 @@ struct file;
 void kissat_init_proof (struct kissat *, struct file *, bool binary);
 void kissat_release_proof (struct kissat *);
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 void kissat_print_proof_statistics (struct kissat *, bool verbose);
 #endif
 
@@ -160,5 +163,7 @@ void kissat_delete_internal_from_proof (struct kissat *, size_t,
   } while (0)
 
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

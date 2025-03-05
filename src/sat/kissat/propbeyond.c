@@ -2,6 +2,8 @@
 #include "fastassign.h"
 #include "trail.h"
 
+ABC_NAMESPACE_IMPL_START
+
 #define PROPAGATE_LITERAL propagate_literal_beyond_conflicts
 #define CONTINUE_PROPAGATING_AFTER_CONFLICT
 #define PROPAGATION_TYPE "beyond conflict"
@@ -11,7 +13,7 @@
 static inline void
 update_beyond_propagation_statistics (kissat *solver,
                                       const unsigned *saved_propagate) {
-  assert (saved_propagate <= solver->propagate);
+  KISSAT_assert (saved_propagate <= solver->propagate);
   const unsigned propagated = solver->propagate - saved_propagate;
 
   LOG ("propagated %u literals", propagated);
@@ -32,10 +34,10 @@ static void propagate_literals_beyond_conflicts (kissat *solver) {
 }
 
 void kissat_propagate_beyond_conflicts (kissat *solver) {
-  assert (!solver->probing);
-  assert (solver->watching);
-  assert (solver->warming);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->probing);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (solver->warming);
+  KISSAT_assert (!solver->inconsistent);
 
   START (propagate);
 
@@ -46,3 +48,5 @@ void kissat_propagate_beyond_conflicts (kissat *solver) {
 
   STOP (propagate);
 }
+
+ABC_NAMESPACE_IMPL_END

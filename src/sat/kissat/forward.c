@@ -10,6 +10,8 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static size_t remove_duplicated_binaries_with_literal (kissat *solver,
                                                        unsigned lit) {
   watches *watches = &WATCHES (lit);
@@ -21,7 +23,7 @@ static size_t remove_duplicated_binaries_with_literal (kissat *solver,
 
   while (p != end) {
     const watch watch = *q++ = *p++;
-    assert (watch.type.binary);
+    KISSAT_assert (watch.type.binary);
     const unsigned other = watch.binary.lit;
     struct flags *f = flags + IDX (other);
     if (!f->active)
@@ -67,10 +69,10 @@ static size_t remove_duplicated_binaries_with_literal (kissat *solver,
 
 static void remove_all_duplicated_binary_clauses (kissat *solver) {
   LOG ("removing all duplicated irredundant binary clauses");
-#if !defined(QUIET) || !defined(NDEBUG)
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG)
   size_t removed = 0;
 #endif
-  assert (EMPTY_STACK (solver->delayed));
+  KISSAT_assert (EMPTY_STACK (solver->delayed));
 
   const flags *const all_flags = solver->flags;
 
@@ -82,16 +84,16 @@ static void remove_all_duplicated_binary_clauses (kissat *solver) {
       continue;
     const unsigned int lit = LIT (idx);
     const unsigned int not_lit = NOT (lit);
-#if !defined(QUIET) || !defined(NDEBUG)
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG)
     removed +=
 #endif
         remove_duplicated_binaries_with_literal (solver, lit);
-#if !defined(QUIET) || !defined(NDEBUG)
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG)
     removed +=
 #endif
         remove_duplicated_binaries_with_literal (solver, not_lit);
   }
-  assert (!(removed & 1));
+  KISSAT_assert (!(removed & 1));
 
   size_t units = SIZE_STACK (solver->delayed);
   if (units) {
@@ -141,7 +143,7 @@ static void find_forward_subsumption_candidates (kissat *solver,
       continue;
     if (c->size > clslim)
       continue;
-    assert (c->size > 2);
+    KISSAT_assert (c->size > 2);
     unsigned subsume = 0;
     for (all_literals_in_clause (lit, c)) {
       const unsigned idx = IDX (lit);
@@ -151,7 +153,7 @@ static void find_forward_subsumption_candidates (kissat *solver,
       if (values[lit] > 0) {
         LOGCLS (c, "satisfied by %s", LOGLIT (lit));
         kissat_mark_clause_as_garbage (solver, c);
-        assert (c->garbage);
+        KISSAT_assert (c->garbage);
         break;
       }
     }
@@ -166,7 +168,7 @@ static void find_forward_subsumption_candidates (kissat *solver,
 
 static inline unsigned
 get_size_of_reference (kissat *solver, ward *const arena, reference ref) {
-  assert (ref < SIZE_STACK (solver->arena));
+  KISSAT_assert (ref < SIZE_STACK (solver->arena));
   const clause *const c = (clause *) (arena + ref);
   (void) solver;
   return c->size;
@@ -223,14 +225,14 @@ static inline bool forward_literal (kissat *solver, unsigned lit,
         const unsigned not_other = NOT (other);
         if (marks[not_other]) {
           LOGBINARY (lit, other, "forward %s strengthener", LOGLIT (other));
-          assert (!subsume);
+          KISSAT_assert (!subsume);
           *remove = not_other;
           break;
         }
       }
     } else {
       const reference ref = watch.large.ref;
-      assert (ref < SIZE_STACK (solver->arena));
+      KISSAT_assert (ref < SIZE_STACK (solver->arena));
       clause *d = (clause *) (arena + ref);
       steps++;
 
@@ -253,34 +255,34 @@ static inline bool forward_literal (kissat *solver, unsigned lit,
         if (value > 0) {
           LOGCLS (d, "satisfied by %s", LOGLIT (other));
           kissat_mark_clause_as_garbage (solver, d);
-          assert (d->garbage);
+          KISSAT_assert (d->garbage);
           candidate = INVALID_LIT;
           subsume = false;
           break;
         }
         if (!subsume) {
-          assert (candidate != INVALID_LIT);
+          KISSAT_assert (candidate != INVALID_LIT);
           candidate = INVALID_LIT;
           break;
         }
         subsume = false;
         const unsigned not_other = NOT (other);
         if (!marks[not_other]) {
-          assert (candidate == INVALID_LIT);
+          KISSAT_assert (candidate == INVALID_LIT);
           break;
         }
         candidate = not_other;
       }
 
       if (d->garbage) {
-        assert (!subsume);
+        KISSAT_assert (!subsume);
         q--;
         break;
       }
 
       if (subsume) {
         LOGCLS (d, "forward subsuming");
-        assert (subsume);
+        KISSAT_assert (subsume);
         break;
       }
 
@@ -316,7 +318,7 @@ static inline bool forward_marked_clause (kissat *solver, clause *c,
     if (!flags[idx].active)
       continue;
 
-    assert (!VALUE (lit));
+    KISSAT_assert (!VALUE (lit));
 
     if (forward_literal (solver, lit, true, remove, limit))
       return true;
@@ -330,7 +332,7 @@ static inline bool forward_marked_clause (kissat *solver, clause *c,
 static bool forward_subsumed_clause (kissat *solver, clause *c,
                                      bool *strengthened,
                                      unsigneds *new_binaries) {
-  assert (!c->garbage);
+  KISSAT_assert (!c->garbage);
   LOGCLS2 (c, "trying to forward subsume");
 
   value *marks = solver->marks;
@@ -344,7 +346,7 @@ static bool forward_subsumed_clause (kissat *solver, clause *c,
     if (value > 0) {
       LOGCLS (c, "satisfied by %s", LOGLIT (lit));
       kissat_mark_clause_as_garbage (solver, c);
-      assert (c->garbage);
+      KISSAT_assert (c->garbage);
       break;
     }
     marks[lit] = 1;
@@ -370,7 +372,7 @@ static bool forward_subsumed_clause (kissat *solver, clause *c,
   }
 
   if (non_false == 1) {
-    assert (VALID_INTERNAL_LITERAL (unit));
+    KISSAT_assert (VALID_INTERNAL_LITERAL (unit));
     LOG ("new remaining non-false literal unit clause %s", LOGLIT (unit));
     kissat_learned_unit (solver, unit);
     kissat_mark_clause_as_garbage (solver, c);
@@ -396,7 +398,7 @@ static bool forward_subsumed_clause (kissat *solver, clause *c,
     LOGCLS (c, "forward strengthening by removing %s in", LOGLIT (remove));
     if (non_false == 2) {
       unit ^= remove;
-      assert (VALID_INTERNAL_LITERAL (unit));
+      KISSAT_assert (VALID_INTERNAL_LITERAL (unit));
       LOG ("forward strengthened unit clause %s", LOGLIT (unit));
       kissat_learned_unit (solver, unit);
       kissat_mark_clause_as_garbage (solver, c);
@@ -416,12 +418,12 @@ static bool forward_subsumed_clause (kissat *solver, clause *c,
           const value value = values[lit];
           if (value < 0)
             continue;
-          assert (!value);
+          KISSAT_assert (!value);
           lits[new_size++] = lit;
           kissat_mark_added_literal (solver, lit);
         }
-        assert (new_size == non_false - 1);
-        assert (new_size > 2);
+        KISSAT_assert (new_size == non_false - 1);
+        KISSAT_assert (new_size > 2);
         if (!c->shrunken) {
           c->shrunken = true;
           lits[c->size - 1] = INVALID_LIT;
@@ -431,9 +433,9 @@ static bool forward_subsumed_clause (kissat *solver, clause *c,
         c->subsume = true;
         LOGCLS (c, "forward strengthened");
       } else {
-        assert (non_false == 3);
+        KISSAT_assert (non_false == 3);
         LOGCLS (c, "garbage");
-        assert (!c->garbage);
+        KISSAT_assert (!c->garbage);
         const size_t bytes = kissat_actual_bytes_of_clause (c);
         ADD (arena_garbage, bytes);
         c->garbage = true;
@@ -444,25 +446,25 @@ static bool forward_subsumed_clause (kissat *solver, clause *c,
           const value value = values[lit];
           if (value < 0)
             continue;
-          assert (!value);
+          KISSAT_assert (!value);
           if (first == INVALID_LIT)
             first = lit;
           else {
-            assert (second == INVALID_LIT);
+            KISSAT_assert (second == INVALID_LIT);
             second = lit;
           }
           kissat_mark_added_literal (solver, lit);
         }
-        assert (first != INVALID_LIT);
-        assert (second != INVALID_LIT);
+        KISSAT_assert (first != INVALID_LIT);
+        KISSAT_assert (second != INVALID_LIT);
         LOGBINARY (first, second, "forward strengthened");
         kissat_watch_other (solver, first, second);
         kissat_watch_other (solver, second, first);
-        assert (new_binaries);
-        assert (solver->statistics.clauses_irredundant);
-        solver->statistics.clauses_irredundant--;
-        assert (solver->statistics.clauses_binary < UINT64_MAX);
-        solver->statistics.clauses_binary++;
+        KISSAT_assert (new_binaries);
+        KISSAT_assert (solver->statistics_.clauses_irredundant);
+        solver->statistics_.clauses_irredundant--;
+        KISSAT_assert (solver->statistics_.clauses_binary < UINT64_MAX);
+        solver->statistics_.clauses_binary++;
         PUSH_STACK (*new_binaries, first);
         PUSH_STACK (*new_binaries, second);
       }
@@ -473,7 +475,7 @@ static bool forward_subsumed_clause (kissat *solver, clause *c,
 }
 
 static void connect_subsuming (kissat *solver, unsigned occlim, clause *c) {
-  assert (!c->garbage);
+  KISSAT_assert (!c->garbage);
 
   unsigned min_lit = INVALID_LIT;
   size_t min_occs = MAX_SIZE_T;
@@ -513,19 +515,19 @@ static bool forward_subsume_all_clauses (kissat *solver) {
   INIT_STACK (candidates);
 
   find_forward_subsumption_candidates (solver, &candidates);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t scheduled = SIZE_STACK (candidates);
   kissat_phase (
       solver, "forward", GET (forward_subsumptions),
       "scheduled %zu irredundant clauses %.0f%%", scheduled,
-      kissat_percent (scheduled, solver->statistics.clauses_irredundant));
+      kissat_percent (scheduled, solver->statistics_.clauses_irredundant));
 #endif
   sort_forward_subsumption_candidates (solver, &candidates);
 
   const reference *const end_of_candidates = END_STACK (candidates);
   reference *p = BEGIN_STACK (candidates);
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t subsumed = 0;
   size_t strengthened = 0;
   size_t checked = 0;
@@ -541,25 +543,25 @@ static bool forward_subsume_all_clauses (kissat *solver) {
     ward *arena = BEGIN_STACK (solver->arena);
 
     while (p != end_of_candidates) {
-      if (solver->statistics.forward_steps > steps_limit)
+      if (solver->statistics_.forward_steps > steps_limit)
         break;
       if (TERMINATED (forward_terminated_1))
         break;
       reference ref = *p++;
       clause *c = (clause *) (arena + ref);
-      assert (kissat_clause_in_arena (solver, c));
-      assert (!c->garbage);
-#ifndef QUIET
+      KISSAT_assert (kissat_clause_in_arena (solver, c));
+      KISSAT_assert (!c->garbage);
+#ifndef KISSAT_QUIET
       checked++;
 #endif
       bool not_subsumed_but_strengthened = false;
       if (forward_subsumed_clause (
               solver, c, &not_subsumed_but_strengthened, &new_binaries)) {
-#ifndef QUIET
+#ifndef KISSAT_QUIET
         subsumed++;
 #endif
       } else if (not_subsumed_but_strengthened) {
-#ifndef QUIET
+#ifndef KISSAT_QUIET
         strengthened++;
 #endif
       }
@@ -569,7 +571,7 @@ static bool forward_subsume_all_clauses (kissat *solver) {
         connect_subsuming (solver, occlim, c);
     }
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   if (subsumed)
     kissat_phase (solver, "forward", GET (forward_subsumptions),
                   "subsumed %zu clauses %.2f%% of %zu checked %.0f%%",
@@ -593,19 +595,19 @@ static bool forward_subsume_all_clauses (kissat *solver) {
 
   ward *arena = BEGIN_STACK (solver->arena);
   unsigned reactivated = 0;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t remain = 0;
 #endif
   for (reference *q = BEGIN_STACK (candidates); q != end_of_candidates;
        q++) {
     const reference ref = *q;
     clause *c = (clause *) (arena + ref);
-    assert (kissat_clause_in_arena (solver, c));
+    KISSAT_assert (kissat_clause_in_arena (solver, c));
     if (c->garbage)
       continue;
     if (q < p && !c->subsume)
       continue;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     remain++;
 #endif
     for (all_literals_in_clause (lit, c)) {
@@ -618,7 +620,7 @@ static bool forward_subsume_all_clauses (kissat *solver) {
               "in remaining or strengthened",
               LOGVAR (idx));
       f->subsume = true;
-      assert (reactivated < UINT_MAX);
+      KISSAT_assert (reactivated < UINT_MAX);
       reactivated++;
     }
   }
@@ -638,7 +640,7 @@ static bool forward_subsume_all_clauses (kissat *solver) {
                  "in strengthened binary clause",
                  LOGVAR (idx));
       f->subsume = true;
-      assert (reactivated < UINT_MAX);
+      KISSAT_assert (reactivated < UINT_MAX);
       reactivated++;
     }
   }
@@ -649,7 +651,7 @@ static bool forward_subsume_all_clauses (kissat *solver) {
                        "in next forward subsumption",
                        reactivated,
                        kissat_percent (reactivated, solver->active));
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   if (remain)
     kissat_phase (solver, "forward", GET (forward_subsumptions),
                   "%zu unchecked clauses remain %.0f%%", remain,
@@ -668,7 +670,7 @@ static bool forward_subsume_all_clauses (kissat *solver) {
     completed = false;
   else
     completed = true;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   kissat_very_verbose (solver, "forward subsumption considered %scomplete",
                        completed ? "" : "in");
 #endif
@@ -678,9 +680,9 @@ static bool forward_subsume_all_clauses (kissat *solver) {
 bool kissat_forward_subsume_during_elimination (kissat *solver) {
   START (subsume);
   START (forward);
-  assert (GET_OPTION (forward));
+  KISSAT_assert (GET_OPTION (forward));
   INC (forward_subsumptions);
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   remove_all_duplicated_binary_clauses (solver);
   bool complete = true;
   if (!solver->inconsistent)
@@ -689,3 +691,5 @@ bool kissat_forward_subsume_during_elimination (kissat *solver) {
   STOP (subsume);
   return complete;
 }
+
+ABC_NAMESPACE_IMPL_END

@@ -2,16 +2,18 @@
 #include "internal.h"
 #include "logging.h"
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_init_smooth (kissat *solver, smooth *smooth, int window,
                          const char *name) {
-  assert (window > 0);
+  KISSAT_assert (window > 0);
   const double alpha = 1.0 / window;
   LOG ("initialized %s EMA alpha %g window %d", name, alpha, window);
   smooth->value = 0;
   smooth->biased = 0;
   smooth->alpha = alpha;
   smooth->beta = 1.0 - alpha;
-  assert (smooth->beta > 0);
+  KISSAT_assert (smooth->beta > 0);
   smooth->exp = 1.0;
 #ifdef LOGGING
   smooth->name = name;
@@ -42,7 +44,7 @@ void kissat_update_smooth (kissat *solver, smooth *smooth, double y) {
   double new_exp, div, new_value;
   if (old_exp) {
     new_exp = old_exp * beta;
-    assert (new_exp < 1);
+    KISSAT_assert (new_exp < 1);
     if (new_exp == old_exp) {
       new_exp = 0;
       new_value = new_biased;
@@ -51,7 +53,7 @@ void kissat_update_smooth (kissat *solver, smooth *smooth, double y) {
 #endif
     } else {
       div = 1 - new_exp;
-      assert (div > 0);
+      KISSAT_assert (div > 0);
       new_value = new_biased / div;
     }
     smooth->exp = new_exp;
@@ -71,3 +73,5 @@ void kissat_update_smooth (kissat *solver, smooth *smooth, double y) {
   (void) solver;
 #endif
 }
+
+ABC_NAMESPACE_IMPL_END

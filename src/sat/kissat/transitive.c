@@ -14,12 +14,14 @@
 
 #include <stddef.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void transitive_assign (kissat *solver, unsigned lit) {
   LOG ("transitive assign %s", LOGLIT (lit));
   value *values = solver->values;
   const unsigned not_lit = NOT (lit);
-  assert (!values[lit]);
-  assert (!values[not_lit]);
+  KISSAT_assert (!values[lit]);
+  KISSAT_assert (!values[not_lit]);
   values[lit] = 1;
   values[not_lit] = -1;
   PUSH_ARRAY (solver->trail, lit);
@@ -29,14 +31,14 @@ static void transitive_backtrack (kissat *solver, unsigned *saved) {
   value *values = solver->values;
 
   unsigned *end_trail = END_ARRAY (solver->trail);
-  assert (saved <= end_trail);
+  KISSAT_assert (saved <= end_trail);
 
   while (end_trail != saved) {
     const unsigned lit = *--end_trail;
     LOG ("transitive unassign %s", LOGLIT (lit));
     const unsigned not_lit = NOT (lit);
-    assert (values[lit] > 0);
-    assert (values[not_lit] < 0);
+    KISSAT_assert (values[lit] > 0);
+    KISSAT_assert (values[not_lit] < 0);
     values[lit] = values[not_lit] = 0;
   }
 
@@ -46,12 +48,12 @@ static void transitive_backtrack (kissat *solver, unsigned *saved) {
 }
 
 static void prioritize_binaries (kissat *solver) {
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   statches large;
   INIT_STACK (large);
   watches *all_watches = solver->watches;
   for (all_literals (lit)) {
-    assert (EMPTY_STACK (large));
+    KISSAT_assert (EMPTY_STACK (large));
     watches *watches = all_watches + lit;
     watch *begin_watches = BEGIN_WATCHES (*watches), *q = begin_watches;
     const watch *const end_watches = END_WATCHES (*watches), *p = q;
@@ -68,7 +70,7 @@ static void prioritize_binaries (kissat *solver) {
     watch const *r = BEGIN_STACK (large);
     while (r != end_large)
       *q++ = *r++;
-    assert (q == end_watches);
+    KISSAT_assert (q == end_watches);
     CLEAR_STACK (large);
   }
   RELEASE_STACK (large);
@@ -77,7 +79,7 @@ static void prioritize_binaries (kissat *solver) {
 static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
                                uint64_t *reduced_ptr, unsigned *units) {
   bool res = false;
-  assert (!VALUE (src));
+  KISSAT_assert (!VALUE (src));
   LOG ("transitive reduce %s", LOGLIT (src));
   watches *all_watches = solver->watches;
   watches *src_watches = all_watches + src;
@@ -102,9 +104,9 @@ static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
       continue;
     if (VALUE (dst))
       continue;
-    assert (kissat_propagated (solver));
+    KISSAT_assert (kissat_propagated (solver));
     unsigned *saved = solver->propagate;
-    assert (!solver->level);
+    KISSAT_assert (!solver->level);
     solver->level = 1;
     transitive_assign (solver, not_src);
     bool transitive = false;
@@ -114,7 +116,7 @@ static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
            propagate != END_ARRAY (solver->trail)) {
       const unsigned lit = *propagate++;
       LOG ("transitive propagate %s", LOGLIT (lit));
-      assert (VALUE (lit) > 0);
+      KISSAT_assert (VALUE (lit) > 0);
       const unsigned not_lit = NOT (lit);
       watches *lit_watches = all_watches + not_lit;
       const watch *const end_lit = END_WATCHES (*lit_watches);
@@ -147,9 +149,9 @@ static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
       }
     }
 
-    assert (solver->probing);
+    KISSAT_assert (solver->probing);
 
-    assert (solver->propagate <= propagate);
+    KISSAT_assert (solver->propagate <= propagate);
     const unsigned propagated = propagate - solver->propagate;
 
     ADD (transitive_propagations, propagated);
@@ -167,7 +169,7 @@ static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
       INC (transitive_reduced);
       watches *dst_watches = all_watches + dst;
       watch dst_watch = src_watch;
-      assert (dst_watch.binary.lit == dst);
+      KISSAT_assert (dst_watch.binary.lit == dst);
       dst_watch.binary.lit = src;
       REMOVE_WATCHES (*dst_watches, dst_watch);
       kissat_delete_binary (solver, src, dst);
@@ -178,7 +180,7 @@ static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
 
     if (failed)
       break;
-    if (solver->statistics.transitive_ticks > limit)
+    if (solver->statistics_.transitive_ticks > limit)
       break;
     if (TERMINATED (transitive_terminated_1))
       break;
@@ -186,8 +188,8 @@ static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
 
   if (reduced) {
     *reduced_ptr += reduced;
-    assert (begin_src == BEGIN_WATCHES (WATCHES (src)));
-    assert (end_src == END_WATCHES (WATCHES (src)));
+    KISSAT_assert (begin_src == BEGIN_WATCHES (WATCHES (src)));
+    KISSAT_assert (end_src == END_WATCHES (WATCHES (src)));
     watch *q = begin_src;
     for (const watch *p = begin_src; p != end_src; p++) {
       const watch src_watch = *q++ = *p;
@@ -198,7 +200,7 @@ static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
       if (src_watch.binary.lit == ILLEGAL_LIT)
         q--;
     }
-    assert (end_src - q == (ptrdiff_t) reduced);
+    KISSAT_assert (end_src - q == (ptrdiff_t) reduced);
     SET_END_OF_WATCHES (*src_watches, q);
   }
 
@@ -210,7 +212,7 @@ static bool transitive_reduce (kissat *solver, unsigned src, uint64_t limit,
 
     kissat_learned_unit (solver, src);
 
-    assert (!solver->level);
+    KISSAT_assert (!solver->level);
     (void) kissat_probing_propagate (solver, 0, true);
   }
 
@@ -221,7 +223,7 @@ static inline bool less_stable_transitive (kissat *solver,
                                            const flags *const flags,
                                            const heap *scores, unsigned a,
                                            unsigned b) {
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) solver;
 #endif
   const unsigned i = IDX (a);
@@ -245,7 +247,7 @@ static inline unsigned less_focused_transitive (kissat *solver,
                                                 const flags *const flags,
                                                 const links *links,
                                                 unsigned a, unsigned b) {
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) solver;
 #endif
   const unsigned i = IDX (a);
@@ -287,7 +289,7 @@ static void sort_transitive (kissat *solver, unsigneds *probes) {
 }
 
 static void schedule_transitive (kissat *solver, unsigneds *probes) {
-  assert (EMPTY_STACK (*probes));
+  KISSAT_assert (EMPTY_STACK (*probes));
   for (all_variables (idx))
     if (ACTIVE (idx))
       PUSH_STACK (*probes, idx);
@@ -299,17 +301,17 @@ static void schedule_transitive (kissat *solver, unsigneds *probes) {
 void kissat_transitive_reduction (kissat *solver) {
   if (solver->inconsistent)
     return;
-  assert (solver->watching);
-  assert (solver->probing);
-  assert (!solver->level);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (solver->probing);
+  KISSAT_assert (!solver->level);
   if (!GET_OPTION (transitive))
     return;
   if (TERMINATED (transitive_terminated_2))
     return;
   START (transitive);
   INC (transitive_reductions);
-#if !defined(NDEBUG) || defined(METRICS)
-  assert (!solver->transitive_reducing);
+#if !defined(KISSAT_NDEBUG) || defined(METRICS)
+  KISSAT_assert (!solver->transitive_reducing);
   solver->transitive_reducing = true;
 #endif
   prioritize_binaries (solver);
@@ -319,9 +321,9 @@ void kissat_transitive_reduction (kissat *solver) {
 
   SET_EFFORT_LIMIT (limit, transitive, transitive_ticks);
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const unsigned active = solver->active;
-  const uint64_t old_ticks = solver->statistics.transitive_ticks;
+  const uint64_t old_ticks = solver->statistics_.transitive_ticks;
   kissat_extremely_verbose (
       solver, "starting with %" PRIu64 " transitive ticks", old_ticks);
   unsigned probed = 0;
@@ -339,14 +341,14 @@ void kissat_transitive_reduction (kissat *solver) {
       const unsigned lit = 2 * idx + sign;
       if (solver->values[lit])
         continue;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
       probed++;
 #endif
       if (transitive_reduce (solver, lit, limit, &reduced, &units))
         success = true;
       if (solver->inconsistent)
         terminate = true;
-      else if (solver->statistics.transitive_ticks > limit)
+      else if (solver->statistics_.transitive_ticks > limit)
         terminate = true;
       else if (TERMINATED (transitive_terminated_3))
         terminate = true;
@@ -366,8 +368,8 @@ void kissat_transitive_reduction (kissat *solver) {
     kissat_very_verbose (solver, "transitive reduction complete");
   RELEASE_STACK (probes);
 
-#ifndef QUIET
-  const uint64_t new_ticks = solver->statistics.transitive_ticks;
+#ifndef KISSAT_QUIET
+  const uint64_t new_ticks = solver->statistics_.transitive_ticks;
   const uint64_t delta_ticks = new_ticks - old_ticks;
   kissat_extremely_verbose (
       solver, "finished at %" PRIu64 " after %" PRIu64 " transitive ticks",
@@ -377,13 +379,15 @@ void kissat_transitive_reduction (kissat *solver) {
                 "probed %u (%.0f%%): reduced %" PRIu64 ", units %u", probed,
                 kissat_percent (probed, 2 * active), reduced, units);
 
-#if !defined(NDEBUG) || defined(METRICS)
-  assert (solver->transitive_reducing);
+#if !defined(KISSAT_NDEBUG) || defined(METRICS)
+  KISSAT_assert (solver->transitive_reducing);
   solver->transitive_reducing = false;
 #endif
   REPORT (!success, 't');
   STOP (transitive);
-#ifdef QUIET
+#ifdef KISSAT_QUIET
   (void) success;
 #endif
 }
+
+ABC_NAMESPACE_IMPL_END

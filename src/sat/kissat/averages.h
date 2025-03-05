@@ -5,12 +5,15 @@
 
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct averages averages;
 
 struct averages {
   bool initialized;
   smooth fast_glue, slow_glue;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   smooth level, size, trail;
 #endif
   smooth decision_rate;
@@ -29,5 +32,7 @@ void kissat_init_averages (struct kissat *, averages *);
 
 #define UPDATE_AVERAGE(NAME, VALUE) \
   kissat_update_smooth (solver, &EMA (NAME), VALUE)
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

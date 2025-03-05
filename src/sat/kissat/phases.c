@@ -4,22 +4,24 @@
 
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 #define realloc_phases(NAME) \
   do { \
     solver->phases.NAME = \
-        kissat_realloc (solver, solver->phases.NAME, old_size, new_size); \
+      (value*) kissat_realloc (solver, solver->phases.NAME, old_size, new_size); \
   } while (0)
 
 #define increase_phases(NAME) \
   do { \
-    assert (old_size < new_size); \
+    KISSAT_assert (old_size < new_size); \
     realloc_phases (NAME); \
     memset (solver->phases.NAME + old_size, 0, new_size - old_size); \
   } while (0)
 
 void kissat_increase_phases (kissat *solver, unsigned new_size) {
   const unsigned old_size = solver->size;
-  assert (old_size < new_size);
+  KISSAT_assert (old_size < new_size);
   LOG ("increasing phases from %u to %u", old_size, new_size);
   increase_phases (best);
   increase_phases (saved);
@@ -28,7 +30,7 @@ void kissat_increase_phases (kissat *solver, unsigned new_size) {
 
 void kissat_decrease_phases (kissat *solver, unsigned new_size) {
   const unsigned old_size = solver->size;
-  assert (old_size > new_size);
+  KISSAT_assert (old_size > new_size);
   LOG ("decreasing phases from %u to %u", old_size, new_size);
   realloc_phases (best);
   realloc_phases (saved);
@@ -52,17 +54,19 @@ static void save_phases (kissat *solver, value *phases) {
   for (value *p = phases, tmp; p != end; p++, v += 2)
     if ((tmp = *v))
       *p = tmp;
-  assert (v == values + LITS);
+  KISSAT_assert (v == values + LITS);
 }
 
 void kissat_save_best_phases (kissat *solver) {
-  assert (sizeof (value) == 1);
+  KISSAT_assert (sizeof (value) == 1);
   LOG ("saving %u best values", VARS);
   save_phases (solver, solver->phases.best);
 }
 
 void kissat_save_target_phases (kissat *solver) {
-  assert (sizeof (value) == 1);
+  KISSAT_assert (sizeof (value) == 1);
   LOG ("saving %u target values", VARS);
   save_phases (solver, solver->phases.target);
 }
+
+ABC_NAMESPACE_IMPL_END

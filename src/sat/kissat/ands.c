@@ -3,6 +3,8 @@
 #include "gates.h"
 #include "inline.h"
 
+ABC_NAMESPACE_IMPL_START
+
 bool kissat_find_and_gate (kissat *solver, unsigned lit,
                            unsigned negative) {
   if (!GET_OPTION (ands))
@@ -27,9 +29,9 @@ bool kissat_find_and_gate (kissat *solver, unsigned lit,
     if (watch.type.binary)
       continue;
     const reference ref = watch.large.ref;
-    assert (ref < SIZE_STACK (solver->arena));
+    KISSAT_assert (ref < SIZE_STACK (solver->arena));
     clause *c = (clause *) (arena + ref);
-    assert (!c->garbage);
+    KISSAT_assert (!c->garbage);
     base = c;
     for (all_literals_in_clause (other, c)) {
       if (other == not_lit)
@@ -63,7 +65,7 @@ bool kissat_find_and_gate (kissat *solver, unsigned lit,
     if (values[other])
       continue;
     const unsigned not_other = NOT (other);
-    assert (marks[not_other]);
+    KISSAT_assert (marks[not_other]);
     marks[not_other] = 0;
   }
   watch tmp = kissat_binary_watch (0);
@@ -72,7 +74,7 @@ bool kissat_find_and_gate (kissat *solver, unsigned lit,
     if (!watch.type.binary)
       continue;
     const unsigned other = watch.binary.lit;
-    assert (!solver->values[other]);
+    KISSAT_assert (!solver->values[other]);
     if (marks[other]) {
       marks[other] = 0;
       continue;
@@ -86,3 +88,5 @@ bool kissat_find_and_gate (kissat *solver, unsigned lit,
   INC (ands_extracted);
   return true;
 }
+
+ABC_NAMESPACE_IMPL_END

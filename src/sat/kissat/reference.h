@@ -3,6 +3,9 @@
 
 #include "stack.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef unsigned reference;
 
 #define REFERENCE_FORMAT "u"
@@ -15,5 +18,7 @@ typedef unsigned reference;
 // clang-format off
 typedef STACK (reference) references;
 // clang-format on
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

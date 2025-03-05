@@ -5,6 +5,8 @@
 
 #include <stdio.h>
 
+ABC_NAMESPACE_IMPL_START
+
 const char *kissat_signature (void) { return "kissat-" VERSION; }
 
 const char *kissat_id (void) { return ID; }
@@ -79,3 +81,5 @@ void kissat_banner (const char *prefix, const char *name) {
 
   kissat_build (prefix);
 }
+
+ABC_NAMESPACE_IMPL_END

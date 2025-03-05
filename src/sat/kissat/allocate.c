@@ -12,6 +12,8 @@
 #include <inttypes.h>
 #endif
 
+ABC_NAMESPACE_IMPL_START
+
 static void inc_bytes (kissat *solver, size_t bytes) {
 #ifdef METRICS
   if (!solver)
@@ -62,16 +64,16 @@ void kissat_free (kissat *solver, void *ptr, size_t bytes) {
     dec_bytes (solver, bytes);
     free (ptr);
   } else
-    assert (!bytes);
+    KISSAT_assert (!bytes);
 }
 
 char *kissat_strdup (kissat *solver, const char *str) {
-  char *res = kissat_malloc (solver, strlen (str) + 1);
+  char *res = (char*)kissat_malloc (solver, strlen (str) + 1);
   return strcpy (res, str);
 }
 
 void kissat_freestr (struct kissat *solver, char *str) {
-  assert (str);
+  KISSAT_assert (str);
   kissat_free (solver, str, strlen (str) + 1);
 }
 
@@ -149,8 +151,8 @@ void *kissat_realloc (kissat *solver, void *p, size_t old_bytes,
 void *kissat_nrealloc (kissat *solver, void *p, size_t o, size_t n,
                        size_t size) {
   if (!size) {
-    assert (!p);
-    assert (!o);
+    KISSAT_assert (!p);
+    KISSAT_assert (!o);
     return 0;
   }
   const size_t max = MAX_SIZE_T / size;
@@ -159,3 +161,5 @@ void *kissat_nrealloc (kissat *solver, void *p, size_t o, size_t n,
                   n, size);
   return kissat_realloc (solver, p, o * size, n * size);
 }
+
+ABC_NAMESPACE_IMPL_END

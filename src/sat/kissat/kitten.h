@@ -5,6 +5,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct kitten kitten;
 
 kitten *kitten_init (void);
@@ -50,5 +53,7 @@ void kitten_traverse_core_clauses (kitten *, void *state,
                                                      const unsigned *));
 struct kissat;
 kitten *kitten_embedded (struct kissat *);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

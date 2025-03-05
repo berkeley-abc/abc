@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define DECISION_REASON UINT_MAX
 #define UNIT_REASON (DECISION_REASON - 1)
 
@@ -26,7 +29,7 @@ struct assigned {
 };
 
 #define ASSIGNED(LIT) \
-  (assert (VALID_INTERNAL_LITERAL (LIT)), solver->assigned + IDX (LIT))
+  (KISSAT_assert (VALID_INTERNAL_LITERAL (LIT)), solver->assigned + IDX (LIT))
 
 #define LEVEL(LIT) (ASSIGNED (LIT)->level)
 #define TRAIL(LIT) (ASSIGNED (LIT)->trail)
@@ -34,7 +37,11 @@ struct assigned {
 
 #ifndef FAST_ASSIGN
 
+ABC_NAMESPACE_HEADER_END
+
 #include "reference.h"
+
+ABC_NAMESPACE_HEADER_START
 
 struct kissat;
 struct clause;
@@ -51,5 +58,7 @@ void kissat_assign_reference (struct kissat *, unsigned lit, reference,
                               struct clause *);
 
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 bool kissat_has_suffix (const char *str, const char *suffix) {
   const char *p = str;
   while (*p)
@@ -14,3 +16,5 @@ bool kissat_has_suffix (const char *str, const char *suffix) {
       return false;
   return q == suffix;
 }
+
+ABC_NAMESPACE_IMPL_END

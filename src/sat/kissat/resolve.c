@@ -7,9 +7,11 @@
 #include <inttypes.h>
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static inline unsigned occurrences_literal (kissat *solver, unsigned lit,
                                             bool *update) {
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
 
   watches *watches = &WATCHES (lit);
 #ifdef LOGGING
@@ -32,7 +34,7 @@ static inline unsigned occurrences_literal (kissat *solver, unsigned lit,
     if (head.type.binary) {
       const unsigned other = head.binary.lit;
       const value value = values[other];
-      assert (value >= 0);
+      KISSAT_assert (value >= 0);
       if (value > 0) {
         kissat_eliminate_binary (solver, lit, other);
         q--;
@@ -40,7 +42,7 @@ static inline unsigned occurrences_literal (kissat *solver, unsigned lit,
         res++;
     } else {
       const reference ref = head.large.ref;
-      assert (ref < SIZE_STACK (solver->arena));
+      KISSAT_assert (ref < SIZE_STACK (solver->arena));
       clause *const c = (struct clause *) (arena + ref);
       if (c->garbage)
         q--;
@@ -76,10 +78,10 @@ static inline clause *watch_to_clause (kissat *solver, ward *const arena,
     res = tmp;
   } else {
     const reference ref = watch.large.ref;
-    assert (ref < SIZE_STACK (solver->arena));
+    KISSAT_assert (ref < SIZE_STACK (solver->arena));
     res = (struct clause *) (arena + ref);
   }
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) solver;
 #endif
   return res;
@@ -109,7 +111,7 @@ static bool generate_resolvents (kissat *solver, unsigned lit,
     clause *const c = watch_to_clause (solver, arena, &tmp0, lit, watch0);
 
     if (c->garbage) {
-      assert (c != &tmp0);
+      KISSAT_assert (c != &tmp0);
       continue;
     }
 
@@ -135,7 +137,7 @@ static bool generate_resolvents (kissat *solver, unsigned lit,
     for (all_literals_in_clause (other, c)) {
       if (other == lit)
         continue;
-      assert (!marks[other]);
+      KISSAT_assert (!marks[other]);
       marks[other] = 1;
     }
 
@@ -144,7 +146,7 @@ static bool generate_resolvents (kissat *solver, unsigned lit,
           watch_to_clause (solver, arena, &tmp1, not_lit, watch1);
 
       if (d->garbage) {
-        assert (d != &tmp1);
+        KISSAT_assert (d != &tmp1);
         continue;
       }
 
@@ -201,7 +203,7 @@ static bool generate_resolvents (kissat *solver, unsigned lit,
         if (other == lit)
           continue;
         const value value = values[other];
-        assert (value <= 0);
+        KISSAT_assert (value <= 0);
         if (value < 0) {
           LOG2 ("dropping falsified literal %s", LOGLIT (other));
           continue;
@@ -214,7 +216,7 @@ static bool generate_resolvents (kissat *solver, unsigned lit,
                "resolvent");
 
       if (!size_resolvent) {
-        assert (!solver->inconsistent);
+        KISSAT_assert (!solver->inconsistent);
         solver->inconsistent = true;
         LOG ("resolved empty clause");
         CHECK_AND_ADD_EMPTY ();
@@ -248,7 +250,7 @@ static bool generate_resolvents (kissat *solver, unsigned lit,
     for (all_literals_in_clause (other, c)) {
       if (other == lit)
         continue;
-      assert (marks[other] == 1);
+      KISSAT_assert (marks[other] == 1);
       marks[other] = 0;
     }
 
@@ -368,3 +370,5 @@ bool kissat_generate_resolvents (kissat *solver, unsigned idx,
 
   return !failed;
 }
+
+ABC_NAMESPACE_IMPL_END

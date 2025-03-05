@@ -3,7 +3,10 @@
 
 #include "internal.h"
 
-#ifndef QUIET
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#ifndef KISSAT_QUIET
 void kissat_report_termination (kissat *, const char *name,
                                 const char *file, long lineno,
                                 const char *fun);
@@ -12,7 +15,7 @@ void kissat_report_termination (kissat *, const char *name,
 static inline bool kissat_terminated (kissat *solver, int bit,
                                       const char *name, const char *file,
                                       long lineno, const char *fun) {
-  assert (0 <= bit), assert (bit < 64);
+  KISSAT_assert (0 <= bit), KISSAT_assert (bit < 64);
 #ifdef COVERAGE
   const uint64_t mask = (uint64_t) 1 << bit;
   if (!(solver->termination.flagged & mask))
@@ -22,7 +25,7 @@ static inline bool kissat_terminated (kissat *solver, int bit,
   if (!solver->termination.flagged)
     return false;
 #endif
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   kissat_report_termination (solver, name, file, lineno, fun);
 #else
   (void) file;
@@ -30,7 +33,7 @@ static inline bool kissat_terminated (kissat *solver, int bit,
   (void) lineno;
   (void) name;
 #endif
-#if !defined(COVERAGE) && defined(NDEBUG)
+#if !defined(COVERAGE) && defined(KISSAT_NDEBUG)
   (void) bit;
 #endif
   return true;
@@ -82,5 +85,7 @@ static inline bool kissat_terminated (kissat *solver, int bit,
 #define vivify_terminated_5 41
 #define walk_terminated_1 42
 #define warmup_terminated_1 43
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

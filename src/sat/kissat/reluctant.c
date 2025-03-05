@@ -1,6 +1,8 @@
 #include "internal.h"
 #include "logging.h"
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_enable_reluctant (reluctant *reluctant, uint64_t period,
                               uint64_t limit) {
   if (limit && period > limit)
@@ -24,7 +26,7 @@ void kissat_tick_reluctant (reluctant *reluctant) {
   if (reluctant->trigger)
     return;
 
-  assert (reluctant->wait > 0);
+  KISSAT_assert (reluctant->wait > 0);
   if (--reluctant->wait)
     return;
 
@@ -35,12 +37,12 @@ void kissat_tick_reluctant (reluctant *reluctant) {
     u++;
     v = 1;
   } else {
-    assert (UINT64_MAX / 2 >= v);
+    KISSAT_assert (UINT64_MAX / 2 >= v);
     v *= 2;
   }
 
-  assert (v);
-  assert (UINT64_MAX / v >= reluctant->period);
+  KISSAT_assert (v);
+  KISSAT_assert (UINT64_MAX / v >= reluctant->period);
   uint64_t wait = v * reluctant->period;
 
   if (reluctant->limited && wait > reluctant->limit) {
@@ -65,3 +67,5 @@ void kissat_init_reluctant (kissat *solver) {
     kissat_disable_reluctant (&solver->reluctant);
   }
 }
+
+ABC_NAMESPACE_IMPL_END

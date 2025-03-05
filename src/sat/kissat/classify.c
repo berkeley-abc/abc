@@ -2,8 +2,10 @@
 #include "internal.h"
 #include "print.h"
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_classify (struct kissat *solver) {
-  statistics *s = &solver->statistics;
+  statistics *s = &solver->statistics_;
   uint64_t clauses = s->clauses_binary + s->clauses_irredundant;
   unsigned small_clauses_limit = GET_OPTION (smallclauses);
   if (clauses <= small_clauses_limit) {
@@ -26,3 +28,5 @@ void kissat_classify (struct kissat *solver) {
       solver, "formula classified to have a %s binary clauses fraction",
       solver->classification.bigbig ? "large" : "small");
 }
+
+ABC_NAMESPACE_IMPL_END

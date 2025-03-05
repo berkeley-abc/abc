@@ -3,6 +3,8 @@
 #include "print.h"
 #include "trail.h"
 
+ABC_NAMESPACE_IMPL_START
+
 #define PROPAGATE_LITERAL search_propagate_literal
 #define PROPAGATION_TYPE "search"
 
@@ -11,7 +13,7 @@
 static inline void
 update_search_propagation_statistics (kissat *solver,
                                       const unsigned *saved_propagate) {
-  assert (saved_propagate <= solver->propagate);
+  KISSAT_assert (saved_propagate <= solver->propagate);
   const unsigned propagated = solver->propagate - saved_propagate;
 
   LOG ("propagated %u literals", propagated);
@@ -42,9 +44,9 @@ static clause *search_propagate (kissat *solver) {
 }
 
 clause *kissat_search_propagate (kissat *solver) {
-  assert (!solver->probing);
-  assert (solver->watching);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->probing);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (!solver->inconsistent);
 
   START (propagate);
 
@@ -69,3 +71,5 @@ clause *kissat_search_propagate (kissat *solver) {
 
   return conflict;
 }
+
+ABC_NAMESPACE_IMPL_END

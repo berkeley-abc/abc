@@ -1,17 +1,19 @@
 #include "minimize.h"
 #include "inline.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static inline int minimized_index (kissat *solver, bool minimizing,
                                    assigned *a, unsigned lit, unsigned idx,
                                    unsigned depth) {
-#if !defined(LOGGING) && defined(NDEBUG)
+#if !defined(LOGGING) && defined(KISSAT_NDEBUG)
   (void) lit;
 #endif
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) idx;
 #endif
-  assert (IDX (lit) == idx);
-  assert (solver->assigned + idx == a);
+  KISSAT_assert (IDX (lit) == idx);
+  KISSAT_assert (solver->assigned + idx == a);
   if (!a->level) {
     LOG2 ("skipping root level literal %s", LOGLIT (lit));
     return 1;
@@ -20,7 +22,7 @@ static inline int minimized_index (kissat *solver, bool minimizing,
     LOG2 ("skipping removable literal %s", LOGLIT (lit));
     return 1;
   }
-  assert (a->reason != UNIT_REASON);
+  KISSAT_assert (a->reason != UNIT_REASON);
   if (a->reason == DECISION_REASON) {
     LOG2 ("can not remove decision literal %s", LOGLIT (lit));
     return -1;
@@ -81,7 +83,7 @@ static inline bool minimize_binary (kissat *solver, bool minimizing,
   }
   unsigned *begin = BEGIN_STACK (solver->minimize) + saved;
   const unsigned *const end = END_STACK (solver->minimize);
-  assert (begin <= end);
+  KISSAT_assert (begin <= end);
   if (res)
     for (const unsigned *p = begin; p != end; p++)
       kissat_push_removable (solver, assigned, *p);
@@ -97,9 +99,9 @@ static bool minimize_literal (kissat *solver, bool minimizing,
                               unsigned depth) {
   LOG ("trying to minimize literal %s at recursion depth %d", LOGLIT (lit),
        depth);
-  assert (VALUE (lit) < 0);
-  assert (depth || EMPTY_STACK (solver->minimize));
-  assert (GET_OPTION (minimizedepth) > 0);
+  KISSAT_assert (VALUE (lit) < 0);
+  KISSAT_assert (depth || EMPTY_STACK (solver->minimize));
+  KISSAT_assert (GET_OPTION (minimizedepth) > 0);
   if (depth >= (unsigned) GET_OPTION (minimizedepth))
     return false;
   const unsigned idx = IDX (lit);
@@ -135,7 +137,7 @@ static bool minimize_literal (kissat *solver, bool minimizing,
 
 bool kissat_minimize_literal (kissat *solver, unsigned lit,
                               bool lit_in_clause) {
-  assert (EMPTY_STACK (solver->minimize));
+  KISSAT_assert (EMPTY_STACK (solver->minimize));
   return minimize_literal (solver, false, solver->assigned, lit,
                            !lit_in_clause);
 }
@@ -144,9 +146,9 @@ void kissat_reset_poisoned (kissat *solver) {
   LOG ("reset %zu poisoned variables", SIZE_STACK (solver->poisoned));
   assigned *assigned = solver->assigned;
   for (all_stack (unsigned, idx, solver->poisoned)) {
-    assert (idx < VARS);
+    KISSAT_assert (idx < VARS);
     struct assigned *a = assigned + idx;
-    assert (a->poisoned);
+    KISSAT_assert (a->poisoned);
     a->poisoned = false;
   }
   CLEAR_STACK (solver->poisoned);
@@ -155,19 +157,19 @@ void kissat_reset_poisoned (kissat *solver) {
 void kissat_minimize_clause (kissat *solver) {
   START (minimize);
 
-  assert (EMPTY_STACK (solver->minimize));
-  assert (EMPTY_STACK (solver->removable));
-  assert (EMPTY_STACK (solver->poisoned));
-  assert (!EMPTY_STACK (solver->clause));
+  KISSAT_assert (EMPTY_STACK (solver->minimize));
+  KISSAT_assert (EMPTY_STACK (solver->removable));
+  KISSAT_assert (EMPTY_STACK (solver->poisoned));
+  KISSAT_assert (!EMPTY_STACK (solver->clause));
 
   unsigned *lits = BEGIN_STACK (solver->clause);
   unsigned *end = END_STACK (solver->clause);
 
   assigned *assigned = solver->assigned;
-#ifndef NDEBUG
-  assert (lits < end);
+#ifndef KISSAT_NDEBUG
+  KISSAT_assert (lits < end);
   const unsigned not_uip = lits[0];
-  assert (assigned[IDX (not_uip)].level == solver->level);
+  KISSAT_assert (assigned[IDX (not_uip)].level == solver->level);
 #endif
   for (const unsigned *p = lits; p != end; p++)
     kissat_push_removable (solver, assigned, IDX (*p));
@@ -181,7 +183,7 @@ void kissat_minimize_clause (kissat *solver) {
 
   for (unsigned *p = end; --p > lits;) {
     const unsigned lit = *p;
-    assert (lit != not_uip);
+    KISSAT_assert (lit != not_uip);
     if (minimize_literal (solver, true, assigned, lit, 0)) {
       LOG ("minimized literal %s", LOGLIT (lit));
       *p = INVALID_LIT;
@@ -196,11 +198,11 @@ void kissat_minimize_clause (kissat *solver) {
     if (lit != INVALID_LIT)
       *q++ = lit;
   }
-  assert (q + minimized == end);
+  KISSAT_assert (q + minimized == end);
   SET_END_OF_STACK (solver->clause, q);
   LOG ("clause minimization removed %u literals", minimized);
 
-  assert (!solver->probing);
+  KISSAT_assert (!solver->probing);
   ADD (literals_minimized, minimized);
 
   LOGTMP ("minimized learned");
@@ -209,3 +211,5 @@ void kissat_minimize_clause (kissat *solver) {
 
   STOP (minimize);
 }
+
+ABC_NAMESPACE_IMPL_END

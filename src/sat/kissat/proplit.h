@@ -1,18 +1,18 @@
 static inline void kissat_watch_large_delayed (kissat *solver,
                                                watches *all_watches,
                                                unsigneds *delayed) {
-  assert (all_watches == solver->watches);
-  assert (delayed == &solver->delayed);
+  KISSAT_assert (all_watches == solver->watches);
+  KISSAT_assert (delayed == &solver->delayed);
   const unsigned *const end_delayed = END_STACK (*delayed);
   unsigned const *d = BEGIN_STACK (*delayed);
   while (d != end_delayed) {
     const unsigned lit = *d++;
-    assert (d != end_delayed);
+    KISSAT_assert (d != end_delayed);
     const watch watch = {.raw = *d++};
-    assert (!watch.type.binary);
-    assert (lit < LITS);
+    KISSAT_assert (!watch.type.binary);
+    KISSAT_assert (lit < LITS);
     watches *const lit_watches = all_watches + lit;
-    assert (d != end_delayed);
+    KISSAT_assert (d != end_delayed);
     const reference ref = *d++;
     const unsigned blocking = watch.blocking.lit;
     LOGREF3 (ref, "watching %s blocking %s in", LOGLIT (lit),
@@ -36,10 +36,10 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
                                          const clause *const ignore,
 #endif
                                          const unsigned lit) {
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   LOG (PROPAGATION_TYPE " propagating %s", LOGLIT (lit));
-  assert (VALUE (lit) > 0);
-  assert (EMPTY_STACK (solver->delayed));
+  KISSAT_assert (VALUE (lit) > 0);
+  KISSAT_assert (EMPTY_STACK (solver->delayed));
 
   watches *const all_watches = solver->watches;
   ward *const arena = BEGIN_STACK (solver->arena);
@@ -48,7 +48,7 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
 
   const unsigned not_lit = NOT (lit);
 
-  assert (not_lit < LITS);
+  KISSAT_assert (not_lit < LITS);
   watches *watches = all_watches + not_lit;
 
   watch *const begin_watches = BEGIN_WATCHES (*watches);
@@ -58,7 +58,7 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
   const watch *p = q;
 
   unsigneds *const delayed = &solver->delayed;
-  assert (EMPTY_STACK (*delayed));
+  KISSAT_assert (EMPTY_STACK (*delayed));
 
   const size_t size_watches = SIZE_WATCHES (*watches);
   uint64_t ticks = 1 + kissat_cache_lines (size_watches, sizeof (watch));
@@ -71,7 +71,7 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
   while (p != end_watches) {
     const watch head = *q++ = *p++;
     const unsigned blocking = head.blocking.lit;
-    assert (VALID_INTERNAL_LITERAL (blocking));
+    KISSAT_assert (VALID_INTERNAL_LITERAL (blocking));
     const value blocking_value = values[blocking];
     const bool binary = head.type.binary;
     watch tail;
@@ -86,14 +86,14 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
         break;
 #endif
       } else {
-        assert (!blocking_value);
+        KISSAT_assert (!blocking_value);
         kissat_fast_binary_assign (solver, probing, level, values, assigned,
                                    blocking, not_lit);
         ticks++;
       }
     } else {
       const reference ref = tail.raw;
-      assert (ref < SIZE_STACK (solver->arena));
+      KISSAT_assert (ref < SIZE_STACK (solver->arena));
       clause *const c = (clause *) (arena + ref);
       ticks++;
       if (c->garbage) {
@@ -102,10 +102,10 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
       }
       unsigned *const lits = BEGIN_LITS (c);
       const unsigned other = lits[0] ^ lits[1] ^ not_lit;
-      assert (lits[0] != lits[1]);
-      assert (VALID_INTERNAL_LITERAL (other));
-      assert (not_lit != other);
-      assert (lit != other);
+      KISSAT_assert (lits[0] != lits[1]);
+      KISSAT_assert (VALID_INTERNAL_LITERAL (other));
+      KISSAT_assert (not_lit != other);
+      KISSAT_assert (lit != other);
       const value other_value = values[other];
       if (other_value > 0) {
         q[-2].blocking.lit = other;
@@ -113,13 +113,13 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
       }
       const unsigned *const end_lits = lits + c->size;
       unsigned *const searched = lits + c->searched;
-      assert (c->lits + 2 <= searched);
-      assert (searched < end_lits);
+      KISSAT_assert (c->lits + 2 <= searched);
+      KISSAT_assert (searched < end_lits);
       unsigned *r, replacement = INVALID_LIT;
       value replacement_value = -1;
       for (r = searched; r != end_lits; r++) {
         replacement = *r;
-        assert (VALID_INTERNAL_LITERAL (replacement));
+        KISSAT_assert (VALID_INTERNAL_LITERAL (replacement));
         replacement_value = values[replacement];
         if (replacement_value >= 0)
           break;
@@ -127,7 +127,7 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
       if (replacement_value < 0) {
         for (r = lits + 2; r != searched; r++) {
           replacement = *r;
-          assert (VALID_INTERNAL_LITERAL (replacement));
+          KISSAT_assert (VALID_INTERNAL_LITERAL (replacement));
           replacement_value = values[replacement];
           if (replacement_value >= 0)
             break;
@@ -136,20 +136,20 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
 
       if (replacement_value >= 0) {
         c->searched = r - lits;
-        assert (replacement != INVALID_LIT);
+        KISSAT_assert (replacement != INVALID_LIT);
         LOGREF3 (ref, "unwatching %s in", LOGLIT (not_lit));
         q -= 2;
         lits[0] = other;
         lits[1] = replacement;
-        assert (lits[0] != lits[1]);
+        KISSAT_assert (lits[0] != lits[1]);
         *r = not_lit;
         kissat_delay_watching_large (solver, delayed, replacement, other,
                                      ref);
         ticks++;
       } else if (other_value) {
-        assert (replacement_value < 0);
-        assert (blocking_value < 0);
-        assert (other_value < 0);
+        KISSAT_assert (replacement_value < 0);
+        KISSAT_assert (blocking_value < 0);
+        KISSAT_assert (other_value < 0);
 #if defined(PROBING_PROPAGATION)
         if (c == ignore) {
           LOGREF (ref, "conflicting but ignored");
@@ -162,7 +162,7 @@ static inline clause *PROPAGATE_LITERAL (kissat *solver,
         break;
 #endif
       } else {
-        assert (replacement_value < 0);
+        KISSAT_assert (replacement_value < 0);
 #if defined(PROBING_PROPAGATION)
         if (c == ignore) {
           LOGREF (ref, "forcing %s but ignored", LOGLIT (other));

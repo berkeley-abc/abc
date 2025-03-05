@@ -7,8 +7,10 @@
 #include <stdio.h>
 #include <string.h>
 
-char *kissat_next_format_string (format *format) {
-  assert (format->pos < NUM_FORMAT_STRINGS);
+ABC_NAMESPACE_IMPL_START
+
+char *kissat_next_format_string (kormat *format) {
+  KISSAT_assert (format->pos < NUM_FORMAT_STRINGS);
   char *res = format->str[format->pos++];
   if (format->pos == NUM_FORMAT_STRINGS)
     format->pos = 0;
@@ -19,7 +21,7 @@ static void format_count (char *res, uint64_t w) {
   if (w >= 128 && kissat_is_power_of_two (w)) {
     unsigned l;
     for (l = 0; ((uint64_t) 1 << l) != w; l++)
-      assert (l + 1 < 8 * sizeof (word));
+      KISSAT_assert (l + 1 < 8 * sizeof (word));
     sprintf (res, "2^%u", l);
   } else if (w >= 1000 && !(w % 1000)) {
     unsigned l;
@@ -30,13 +32,13 @@ static void format_count (char *res, uint64_t w) {
     sprintf (res, "%" PRIu64, w);
 }
 
-const char *kissat_format_count (format *format, uint64_t w) {
+const char *kissat_format_count (kormat *format, uint64_t w) {
   char *res = kissat_next_format_string (format);
   format_count (res, w);
   return res;
 }
 
-const char *kissat_format_value (format *format, bool boolean, int value) {
+const char *kissat_format_value (kormat *format, bool boolean, int value) {
   if (boolean && value)
     return "true";
   if (boolean && !value)
@@ -54,7 +56,7 @@ const char *kissat_format_value (format *format, bool boolean, int value) {
   return res;
 }
 
-const char *kissat_format_bytes (format *format, uint64_t bytes) {
+const char *kissat_format_bytes (kormat *format, uint64_t bytes) {
   char *res = kissat_next_format_string (format);
   if (bytes < (1u << 10))
     sprintf (res, "%" PRIu64 " bytes", bytes);
@@ -70,7 +72,7 @@ const char *kissat_format_bytes (format *format, uint64_t bytes) {
   return res;
 }
 
-const char *kissat_format_time (format *format, double seconds) {
+const char *kissat_format_time (kormat *format, double seconds) {
   if (!seconds)
     return "0s";
   char *res = kissat_next_format_string (format);
@@ -106,10 +108,10 @@ const char *kissat_format_time (format *format, double seconds) {
   return res;
 }
 
-const char *kissat_format_signs (format *format, unsigned size,
+const char *kissat_format_signs (kormat *format, unsigned size,
                                  word signs) {
   char *res = kissat_next_format_string (format);
-  assert (size + 1 < FORMAT_STRING_SIZE);
+  KISSAT_assert (size + 1 < FORMAT_STRING_SIZE);
   char *p = res;
   word bit = 1;
   for (unsigned i = 0; i < size; i++, bit <<= 1)
@@ -118,7 +120,7 @@ const char *kissat_format_signs (format *format, unsigned size,
   return res;
 }
 
-const char *kissat_format_ordinal (format *format, uint64_t ordinal) {
+const char *kissat_format_ordinal (kormat *format, uint64_t ordinal) {
   char const *suffix;
   unsigned mod100 = ordinal % 100;
   if (10 <= mod100 && mod100 <= 19)
@@ -143,3 +145,5 @@ const char *kissat_format_ordinal (format *format, uint64_t ordinal) {
   sprintf (res, "%" PRIu64 "%s", ordinal, suffix);
   return res;
 }
+
+ABC_NAMESPACE_IMPL_END

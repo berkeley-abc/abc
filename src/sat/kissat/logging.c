@@ -1,4 +1,6 @@
-#if defined(LOGGING) && !defined(QUIET)
+#include "global.h"
+
+#if defined(LOGGING) && !defined(KISSAT_QUIET)
 
 #include "colors.h"
 #include "inline.h"
@@ -9,7 +11,7 @@
 static void begin_logging (kissat *solver, const char *prefix,
                            const char *fmt, va_list *ap) {
   TERMINAL (stdout, 1);
-  assert (GET_OPTION (log));
+  KISSAT_assert (GET_OPTION (log));
   fputs (solver->prefix, stdout);
   COLOR (MAGENTA);
   printf ("%s %u ", prefix, solver->level);
@@ -52,7 +54,7 @@ static void append_sprintf (char *str, const char *fmt, ...) {
 
 const char *kissat_log_repr (kissat *solver, unsigned lit,
                              const unsigned *repr) {
-  assert (solver);
+  KISSAT_assert (solver);
   char *res = kissat_next_format_string (&solver->format);
   sprintf (res, "%u", lit);
   if (!solver->compacting && GET_OPTION (log) > 1)
@@ -74,7 +76,7 @@ const char *kissat_log_repr (kissat *solver, unsigned lit,
         append_sprintf (res, "@%u", LEVEL (lit));
     }
   }
-  assert (strlen (res) < FORMAT_STRING_SIZE);
+  KISSAT_assert (strlen (res) < FORMAT_STRING_SIZE);
   return res;
 }
 
@@ -83,11 +85,11 @@ const char *kissat_log_lit (kissat *solver, unsigned lit) {
 }
 
 const char *kissat_log_var (kissat *solver, unsigned idx) {
-  assert (solver);
+  KISSAT_assert (solver);
   char *res = kissat_next_format_string (&solver->format);
   const unsigned lit = LIT (idx);
   sprintf (res, "variable %u (literal %s)", idx, LOGLIT (lit));
-  assert (strlen (res) < FORMAT_STRING_SIZE);
+  KISSAT_assert (strlen (res) < FORMAT_STRING_SIZE);
   return res;
 }
 
@@ -301,7 +303,7 @@ void kissat_log_ite_gate (kissat *solver, const char *prefix, size_t id,
 void kissat_log_extensions (kissat *solver, const char *prefix, size_t size,
                             const extension *const exts, const char *fmt,
                             ...) {
-  assert (size > 0);
+  KISSAT_assert (size > 0);
   va_list ap;
   va_start (ap, fmt);
   begin_logging (solver, prefix, fmt, &ap);

@@ -3,8 +3,10 @@
 #include "promote.h"
 #include "strengthen.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static inline void recompute_and_promote (kissat *solver, clause *c) {
-  assert (c->redundant);
+  KISSAT_assert (c->redundant);
   const unsigned old_glue = c->glue;
   const unsigned new_glue = kissat_recompute_glue (solver, c, old_glue);
   if (new_glue < old_glue)
@@ -19,7 +21,7 @@ static inline void mark_clause_as_used (kissat *solver, clause *c) {
   LOGCLS (c, "using");
   recompute_and_promote (solver, c);
   unsigned glue = MIN (c->glue, MAX_GLUE_USED);
-  solver->statistics.used[solver->stable].glue[glue]++;
+  solver->statistics_.used[solver->stable].glue[glue]++;
   if (solver->stable)
     INC (clauses_used_stable);
   else
@@ -27,7 +29,7 @@ static inline void mark_clause_as_used (kissat *solver, clause *c) {
 }
 
 bool kissat_recompute_and_promote (kissat *solver, clause *c) {
-  assert (c->redundant);
+  KISSAT_assert (c->redundant);
   const unsigned old_glue = c->glue;
   const unsigned new_glue = kissat_recompute_glue (solver, c, old_glue);
   if (new_glue >= old_glue)
@@ -38,7 +40,7 @@ bool kissat_recompute_and_promote (kissat *solver, clause *c) {
 
 static inline bool analyze_literal (kissat *solver, assigned *all_assigned,
                                     frame *frames, unsigned lit) {
-  assert (VALUE (lit) < 0);
+  KISSAT_assert (VALUE (lit) < 0);
   const unsigned idx = IDX (lit);
   assigned *a = all_assigned + idx;
   const unsigned level = a->level;
@@ -49,14 +51,14 @@ static inline bool analyze_literal (kissat *solver, assigned *all_assigned,
     return false;
   LOG ("analyzing literal %s", LOGLIT (lit));
   kissat_push_analyzed (solver, all_assigned, idx);
-  assert (level <= solver->level);
-#if defined(LOGGING) || !defined(NDEBUG)
+  KISSAT_assert (level <= solver->level);
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   PUSH_STACK (solver->resolvent, lit);
 #endif
   solver->resolvent_size++;
   if (level == solver->level)
     return true;
-  assert (a->analyzed);
+  KISSAT_assert (a->analyzed);
   PUSH_STACK (solver->clause, lit);
   LOG ("learned literal %s", LOGLIT (lit));
   frame *f = frames + level;
@@ -69,10 +71,10 @@ static inline bool analyze_literal (kissat *solver, assigned *all_assigned,
 
 clause *kissat_deduce_first_uip_clause (kissat *solver, clause *conflict) {
   START (deduce);
-  assert (EMPTY_STACK (solver->analyzed));
-  assert (EMPTY_STACK (solver->levels));
-  assert (EMPTY_STACK (solver->clause));
-#if defined(LOGGING) || !defined(NDEBUG)
+  KISSAT_assert (EMPTY_STACK (solver->analyzed));
+  KISSAT_assert (EMPTY_STACK (solver->levels));
+  KISSAT_assert (EMPTY_STACK (solver->clause));
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   CLEAR_STACK (solver->resolvent);
 #endif
   if (conflict->size > 2)
@@ -84,16 +86,16 @@ clause *kissat_deduce_first_uip_clause (kissat *solver, clause *conflict) {
   assigned *all_assigned = solver->assigned;
   frame *frames = BEGIN_STACK (solver->frames);
   for (all_literals_in_clause (lit, conflict)) {
-    assert (VALUE (lit) < 0);
+    KISSAT_assert (VALUE (lit) < 0);
     if (LEVEL (lit))
       conflict_size++;
     if (analyze_literal (solver, all_assigned, frames, lit))
       unresolved_on_current_level++;
   }
-  assert (unresolved_on_current_level > 1);
+  KISSAT_assert (unresolved_on_current_level > 1);
   LOG ("starting with %u unresolved literals on current decision level",
        unresolved_on_current_level);
-  assert (solver->antecedent_size == solver->resolvent_size);
+  KISSAT_assert (solver->antecedent_size == solver->resolvent_size);
   LOGRES2 ("initial");
   const bool otfs = GET_OPTION (otfs);
   unsigned const *t = END_ARRAY (solver->trail);
@@ -102,14 +104,14 @@ clause *kissat_deduce_first_uip_clause (kissat *solver, clause *conflict) {
   assigned *a = 0;
   for (;;) {
     do {
-      assert (t > BEGIN_ARRAY (solver->trail));
+      KISSAT_assert (t > BEGIN_ARRAY (solver->trail));
       uip = *--t;
       a = ASSIGNED (uip);
     } while (!a->analyzed || a->level != solver->level);
     if (unresolved_on_current_level == 1)
       break;
-    assert (a->reason != DECISION_REASON);
-    assert (a->level == solver->level);
+    KISSAT_assert (a->reason != DECISION_REASON);
+    KISSAT_assert (a->level == solver->level);
     solver->antecedent_size = 1;
     resolved++;
     if (a->binary) {
@@ -127,38 +129,38 @@ clause *kissat_deduce_first_uip_clause (kissat *solver, clause *conflict) {
           unresolved_on_current_level++;
       mark_clause_as_used (solver, reason);
     }
-    assert (unresolved_on_current_level > 0);
+    KISSAT_assert (unresolved_on_current_level > 0);
     unresolved_on_current_level--;
     LOG ("after resolving %s there are %u literals left "
          "on current decision level",
          LOGLIT (uip), unresolved_on_current_level);
-    assert (solver->resolvent_size > 0);
+    KISSAT_assert (solver->resolvent_size > 0);
     solver->resolvent_size--;
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
     LOG2 ("actual antecedent size %u", solver->antecedent_size);
     REMOVE_STACK (unsigned, solver->resolvent, NOT (uip));
-    assert (SIZE_STACK (solver->resolvent) == solver->resolvent_size);
+    KISSAT_assert (SIZE_STACK (solver->resolvent) == solver->resolvent_size);
     LOGRES2 ("new");
 #endif
     if (otfs && solver->antecedent_size > 2 &&
         solver->resolvent_size < solver->antecedent_size) {
-      assert (!a->binary);
-      assert (solver->antecedent_size && solver->resolvent_size + 1);
+      KISSAT_assert (!a->binary);
+      KISSAT_assert (solver->antecedent_size && solver->resolvent_size + 1);
       clause *reason = kissat_dereference_clause (solver, a->reason);
-      assert (!reason->garbage);
+      KISSAT_assert (!reason->garbage);
       clause *res = kissat_on_the_fly_strengthen (solver, reason, uip);
       if (resolved == 1 && solver->resolvent_size < conflict_size) {
-        assert (!conflict->garbage);
-        assert (conflict_size > 2);
+        KISSAT_assert (!conflict->garbage);
+        KISSAT_assert (conflict_size > 2);
         kissat_on_the_fly_subsume (solver, res, conflict);
       }
       STOP (deduce);
       return res;
     }
   }
-  assert (uip != INVALID_LIT);
+  KISSAT_assert (uip != INVALID_LIT);
   LOG ("first unique implication point %s (1st UIP)", LOGLIT (uip));
-  assert (PEEK_STACK (solver->clause, 0) == INVALID_LIT);
+  KISSAT_assert (PEEK_STACK (solver->clause, 0) == INVALID_LIT);
   POKE_STACK (solver->clause, 0, NOT (uip));
   LOGTMP ("deduced not yet minimized 1st UIP");
   if (!solver->probing)
@@ -166,3 +168,5 @@ clause *kissat_deduce_first_uip_clause (kissat *solver, clause *conflict) {
   STOP (deduce);
   return 0;
 }
+
+ABC_NAMESPACE_IMPL_END

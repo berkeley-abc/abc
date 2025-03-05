@@ -11,6 +11,8 @@
 #include "report.h"
 #include "sort.h"
 
+ABC_NAMESPACE_IMPL_START
+
 bool kissat_reordering (kissat *solver) {
   if (!GET_OPTION (reorder))
     return false;
@@ -22,11 +24,11 @@ bool kissat_reordering (kissat *solver) {
 }
 
 static double *compute_weights (kissat *solver) {
-  double *weights = kissat_calloc (solver, LITS, sizeof *weights);
+  double *weights = (double*)kissat_calloc (solver, LITS, sizeof *weights);
   const unsigned max_size = GET_OPTION (reordermaxsize);
   LOG ("limiting weight computation to maximum clause size %u", max_size);
-  assert (2 <= max_size);
-  double *table = kissat_nalloc (solver, max_size + 1, sizeof *table);
+  KISSAT_assert (2 <= max_size);
+  double *table = (double*)kissat_nalloc (solver, max_size + 1, sizeof *table);
   {
     double weight = 1;
     for (unsigned size = 2; size <= max_size; size++) {
@@ -35,7 +37,7 @@ static double *compute_weights (kissat *solver) {
     }
   }
   {
-    assert (!solver->level);
+    KISSAT_assert (!solver->level);
     const signed char *const values = solver->values;
     const clause *last = kissat_last_irredundant_clause (solver);
     for (all_clauses (c)) {
@@ -46,20 +48,25 @@ static double *compute_weights (kissat *solver) {
       if (c->garbage)
         continue;
       unsigned size = 0;
+      int continue_with_next_clause = 0;
       for (all_literals_in_clause (lit, c)) {
         const signed char value = values[lit];
-        if (value > 0)
-          goto CONTINUE_WITH_NEXT_CLAUSE;
+        if (value > 0) {
+          continue_with_next_clause = 1;
+          break;
+        }
         if (!value && size < max_size && ++size == max_size)
           break;
+      }
+      if(continue_with_next_clause) {
+        continue;
       }
       const double weight = table[size];
       for (all_literals_in_clause (lit, c))
         weights[lit] += weight;
-    CONTINUE_WITH_NEXT_CLAUSE:;
     }
   }
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   {
     double weight = table[2];
     kissat_dealloc (solver, table, max_size + 1, sizeof *table);
@@ -161,13 +168,13 @@ static void sort_active_variables_by_weight (kissat *solver,
 
 static void reorder_focused (kissat *solver) {
   INC (reordered_focused);
-  assert (!solver->stable);
+  KISSAT_assert (!solver->stable);
   double *weights = compute_weights (solver);
   unsigneds sorted;
   sort_active_variables_by_weight (solver, &sorted, weights);
   kissat_dealloc (solver, weights, LITS, sizeof *weights);
   for (all_stack (unsigned, idx, sorted)) {
-    assert (ACTIVE (idx));
+    KISSAT_assert (ACTIVE (idx));
     kissat_move_to_front (solver, idx);
   }
   RELEASE_STACK (sorted);
@@ -175,7 +182,7 @@ static void reorder_focused (kissat *solver) {
 
 static void reorder_stable (kissat *solver) {
   INC (reordered_stable);
-  assert (solver->stable);
+  KISSAT_assert (solver->stable);
   double *weights = compute_weights (solver);
   kissat_rescale_scores (solver);
   unsigneds sorted;
@@ -183,7 +190,7 @@ static void reorder_stable (kissat *solver) {
   heap *scores = SCORES;
   while (!EMPTY_STACK (sorted)) {
     unsigned idx = POP_STACK (sorted);
-    assert (ACTIVE (idx));
+    KISSAT_assert (ACTIVE (idx));
     const double old_score = kissat_get_heap_score (scores, idx);
     const double weight = weights[idx];
     const double new_score = old_score + weight;
@@ -198,7 +205,7 @@ static void reorder_stable (kissat *solver) {
 void kissat_reorder (kissat *solver) {
   START (reorder);
   INC (reordered);
-  assert (!solver->level);
+  KISSAT_assert (!solver->level);
   kissat_phase (solver, "reorder", GET (reordered),
                 "reorder limit %" PRIu64 " hit a after %" PRIu64
                 " conflicts in %s mode ",
@@ -215,3 +222,5 @@ void kissat_reorder (kissat *solver) {
   REPORT (0, 'o');
   STOP (reorder);
 }
+
+ABC_NAMESPACE_IMPL_END

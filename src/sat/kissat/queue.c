@@ -2,12 +2,14 @@
 #include "inlinequeue.h"
 #include "print.h"
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_init_queue (kissat *solver) {
   queue *queue = &solver->queue;
   queue->first = queue->last = DISCONNECT;
-  assert (!queue->stamp);
+  KISSAT_assert (!queue->stamp);
   queue->search.idx = DISCONNECT;
-  assert (!queue->search.stamp);
+  KISSAT_assert (!queue->search.stamp);
 }
 
 void kissat_reset_search_of_queue (kissat *solver) {
@@ -15,7 +17,7 @@ void kissat_reset_search_of_queue (kissat *solver) {
   queue *queue = &solver->queue;
   links *links = solver->links;
   const unsigned last = queue->last;
-  assert (!DISCONNECTED (last));
+  KISSAT_assert (!DISCONNECTED (last));
   kissat_update_queue (solver, links, last);
 }
 
@@ -34,7 +36,7 @@ void kissat_reassign_queue_stamps (kissat *solver) {
     queue->search.stamp = links[queue->search.idx].stamp;
 }
 
-#if defined(CHECK_QUEUE) && !defined(NDEBUG)
+#if defined(CHECK_QUEUE) && !defined(KISSAT_NDEBUG)
 void kissat_check_queue (kissat *solver) {
   links *links = solver->links;
   queue *queue = &solver->queue;
@@ -43,13 +45,15 @@ void kissat_check_queue (kissat *solver) {
   for (unsigned idx = queue->first, prev = DISCONNECT; !DISCONNECTED (idx);
        idx = links[idx].next) {
     if (!DISCONNECTED (prev))
-      assert (links[prev].stamp < links[idx].stamp);
+      KISSAT_assert (links[prev].stamp < links[idx].stamp);
     if (focused && passed_search_idx)
-      assert (VALUE (LIT (idx)));
+      KISSAT_assert (VALUE (LIT (idx)));
     if (idx == queue->search.idx)
       passed_search_idx = true;
   }
   if (!DISCONNECTED (queue->search.idx))
-    assert (links[queue->search.idx].stamp == queue->search.stamp);
+    KISSAT_assert (links[queue->search.idx].stamp == queue->search.stamp);
 }
 #endif
+
+ABC_NAMESPACE_IMPL_END

@@ -67,9 +67,9 @@ static inline void *kitten_calloc (size_t n, size_t size) {
   return res;
 }
 
-#define CALLOC(P, N) \
+#define CALLOC(T, P, N)                          \
   do { \
-    (P) = kitten_calloc (N, sizeof *(P)); \
+    (P) = (T*) kitten_calloc (N, sizeof *(P));    \
   } while (0)
 #define DEALLOC(P, N) free (P)
 
@@ -77,7 +77,7 @@ static inline void *kitten_calloc (size_t n, size_t size) {
 
 #define ENLARGE_STACK(S) \
   do { \
-    assert (FULL_STACK (S)); \
+    KISSAT_assert (FULL_STACK (S)); \
     const size_t SIZE = SIZE_STACK (S); \
     const size_t OLD_CAPACITY = CAPACITY_STACK (S); \
     const size_t NEW_CAPACITY = OLD_CAPACITY ? 2 * OLD_CAPACITY : 1; \
@@ -94,14 +94,14 @@ static inline void *kitten_calloc (size_t n, size_t size) {
 #define INC(NAME) \
   do { \
     statistics *statistics = &kitten->statistics; \
-    assert (statistics->NAME < UINT64_MAX); \
+    KISSAT_assert (statistics->NAME < UINT64_MAX); \
     statistics->NAME++; \
   } while (0)
 
 #define ADD(NAME, DELTA) \
   do { \
     statistics *statistics = &kitten->statistics; \
-    assert (statistics->NAME <= UINT64_MAX - (DELTA)); \
+    KISSAT_assert (statistics->NAME <= UINT64_MAX - (DELTA)); \
     statistics->NAME += (DELTA); \
   } while (0)
 
@@ -116,11 +116,13 @@ static inline void *kitten_calloc (size_t n, size_t size) {
 #include "internal.h"  // Also use 'kissat' statistics if embedded.
 #include "terminate.h" // For macros defining termination macro.
 
-#define KITTEN_TICKS (solver->statistics.kitten_ticks)
+#define KITTEN_TICKS (solver->statistics_.kitten_ticks)
 
 /*------------------------------------------------------------------------*/
 #endif // STAND_ALONE_KITTEN
 /*------------------------------------------------------------------------*/
+
+ABC_NAMESPACE_IMPL_START
 
 #define INVALID UINT_MAX
 #define MAX_VARS ((1u << 31) - 1)
@@ -257,7 +259,7 @@ struct kitten {
   unsigneds assumptions;
   unsigneds core;
   unsigneds eclause;
-  unsigneds export;
+  unsigneds export_;
   unsigneds klause;
   unsigneds klauses;
   unsigneds resolved;
@@ -288,7 +290,7 @@ static inline void unset_core_klause (klause *c) { c->flags &= ~CORE_FLAG; }
 
 static inline klause *dereference_klause (kitten *kitten, unsigned ref) {
   unsigned *res = BEGIN_STACK (kitten->klauses) + ref;
-  assert (res < END_STACK (kitten->klauses));
+  KISSAT_assert (res < END_STACK (kitten->klauses));
   return (klause *) res;
 }
 
@@ -297,8 +299,8 @@ static inline klause *dereference_klause (kitten *kitten, unsigned ref) {
 static inline unsigned reference_klause (kitten *kitten, const klause *c) {
   const unsigned *const begin = BEGIN_STACK (kitten->klauses);
   const unsigned *p = (const unsigned *) c;
-  assert (begin <= p);
-  assert (p < END_STACK (kitten->klauses));
+  KISSAT_assert (begin <= p);
+  KISSAT_assert (p < END_STACK (kitten->klauses));
   const unsigned res = p - begin;
   return res;
 }
@@ -307,7 +309,7 @@ static inline unsigned reference_klause (kitten *kitten, const klause *c) {
 
 /*------------------------------------------------------------------------*/
 
-#define KATCHES(KIT) (kitten->watches[assert ((KIT) < kitten->lits), (KIT)])
+#define KATCHES(KIT) (kitten->watches[KISSAT_assert ((KIT) < kitten->lits), (KIT)])
 
 #define all_klauses(C) \
   klause *C = begin_klauses (kitten), *end_##C = end_klauses (kitten); \
@@ -342,7 +344,7 @@ static inline unsigned reference_klause (kitten *kitten, const klause *c) {
   ++KIT##_PTR
 
 #define all_antecedents(REF, C) \
-  unsigned REF, *REF##_PTR = antecedents (C), \
+  unsigned REF, *REF##_PTR = antecedents_func (C), \
                 *REF##_END = REF##_PTR + (C)->aux; \
   REF##_PTR != REF##_END && ((REF = *REF##_PTR), true); \
   ++REF##_PTR
@@ -359,7 +361,7 @@ static void log_basic (kitten *, const char *, ...)
     __attribute__ ((format (printf, 2, 3)));
 
 static void log_basic (kitten *kitten, const char *fmt, ...) {
-  assert (logging);
+  KISSAT_assert (logging);
   printf ("c KITTEN %u ", kitten->level);
   va_list ap;
   va_start (ap, fmt);
@@ -375,7 +377,7 @@ static void log_reference (kitten *, unsigned, const char *, ...)
 static void log_reference (kitten *kitten, unsigned ref, const char *fmt,
                            ...) {
   klause *c = dereference_klause (kitten, ref);
-  assert (logging);
+  KISSAT_assert (logging);
   printf ("c KITTEN %u ", kitten->level);
   va_list ap;
   va_start (ap, fmt);
@@ -435,26 +437,26 @@ static void check_queue (kitten *kitten) {
   for (unsigned idx = kitten->queue.first, next; idx != INVALID;
        idx = next) {
     kink *link = links + idx;
-    assert (link->prev == prev);
-    assert (!found || stamp < link->stamp);
-    assert (link->stamp < kitten->queue.stamp);
+    KISSAT_assert (link->prev == prev);
+    KISSAT_assert (!found || stamp < link->stamp);
+    KISSAT_assert (link->stamp < kitten->queue.stamp);
     stamp = link->stamp;
     next = link->next;
     prev = idx;
     found++;
   }
-  assert (found == vars);
+  KISSAT_assert (found == vars);
   unsigned next = INVALID;
   found = 0;
   for (unsigned idx = kitten->queue.last, prev; idx != INVALID;
        idx = prev) {
     kink *link = links + idx;
-    assert (link->next == next);
+    KISSAT_assert (link->next == next);
     prev = link->prev;
     next = idx;
     found++;
   }
-  assert (found == vars);
+  KISSAT_assert (found == vars);
   value *values = kitten->values;
   bool first = true;
   for (unsigned idx = kitten->queue.search, next; idx != INVALID;
@@ -462,7 +464,7 @@ static void check_queue (kitten *kitten) {
     kink *link = links + idx;
     next = link->next;
     const unsigned lit = 2 * idx;
-    assert (first || values[lit]);
+    KISSAT_assert (first || values[lit]);
     first = false;
   }
 #else
@@ -512,8 +514,8 @@ static void dequeue (kitten *kitten, unsigned idx) {
 
 static void init_queue (kitten *kitten, size_t old_vars, size_t new_vars) {
   for (size_t idx = old_vars; idx < new_vars; idx++) {
-    assert (!kitten->values[2 * idx]);
-    assert (kitten->unassigned < UINT_MAX);
+    KISSAT_assert (!kitten->values[2 * idx]);
+    KISSAT_assert (kitten->unassigned < UINT_MAX);
     kitten->unassigned++;
     enqueue (kitten, idx);
   }
@@ -541,35 +543,35 @@ static void clear_kitten (kitten *kitten) {
   initialize_kitten (kitten);
 }
 
-#define RESIZE1(P) \
+#define RESIZE1(T, P)                            \
   do { \
     void *OLD_PTR = (P); \
-    CALLOC ((P), new_size / 2); \
+    CALLOC (T, (P), new_size / 2);                \
     const size_t BYTES = old_vars * sizeof *(P); \
     if (BYTES) \
       memcpy ((P), OLD_PTR, BYTES); \
     void *NEW_PTR = (P); \
-    (P) = OLD_PTR; \
+    (P) = (T*) OLD_PTR;             \
     DEALLOC ((P), old_size / 2); \
-    (P) = NEW_PTR; \
+    (P) = (T*) NEW_PTR;           \
   } while (0)
 
-#define RESIZE2(P) \
+#define RESIZE2(T, P)                            \
   do { \
     void *OLD_PTR = (P); \
-    CALLOC ((P), new_size); \
+    CALLOC (T, (P), new_size);                    \
     const size_t BYTES = old_lits * sizeof *(P); \
     if (BYTES) \
       memcpy ((P), OLD_PTR, BYTES); \
     void *NEW_PTR = (P); \
-    (P) = OLD_PTR; \
+    (P) = (T*) OLD_PTR;         \
     DEALLOC ((P), old_size); \
-    (P) = NEW_PTR; \
+    (P) = (T*) NEW_PTR;       \
   } while (0)
 
 static void enlarge_internal (kitten *kitten, size_t new_lits) {
   const size_t old_lits = kitten->lits;
-  assert (old_lits < new_lits);
+  KISSAT_assert (old_lits < new_lits);
   const size_t old_size = kitten->size;
   const unsigned new_vars = new_lits / 2;
   const unsigned old_vars = old_lits / 2;
@@ -580,13 +582,13 @@ static void enlarge_internal (kitten *kitten, size_t new_lits) {
     LOG ("internal literals resized to %zu from %zu (requested %zu)",
          new_size, old_size, new_lits);
 
-    RESIZE1 (kitten->marks);
-    RESIZE1 (kitten->phases);
-    RESIZE2 (kitten->values);
-    RESIZE2 (kitten->failed);
-    RESIZE1 (kitten->vars);
-    RESIZE1 (kitten->links);
-    RESIZE2 (kitten->watches);
+    RESIZE1 (value, kitten->marks);
+    RESIZE1 (unsigned char, kitten->phases);
+    RESIZE2 (value, kitten->values);
+    RESIZE2 (bool, kitten->failed);
+    RESIZE1 (kar, kitten->vars);
+    RESIZE1 (kink, kitten->links);
+    RESIZE2 (katches, kitten->watches);
 
     kitten->size = new_size;
   }
@@ -605,7 +607,7 @@ static const char *status_to_string (int status) {
   case 21:
     return "formula inconsistent and core computed";
   default:
-    assert (!status);
+    KISSAT_assert (!status);
     return "formula unsolved";
   }
 }
@@ -652,7 +654,7 @@ static void invalid_api_usage (const char *fun, const char *fmt, ...) {
 
 kitten *kitten_init (void) {
   kitten *kitten;
-  CALLOC (kitten, 1);
+  CALLOC (struct kitten, kitten, 1);
   initialize_kitten (kitten);
   return kitten;
 }
@@ -667,7 +669,7 @@ kitten *kitten_embedded (struct kissat *kissat) {
   struct kitten dummy;
   dummy.kissat = kissat;
   kitten = &dummy;
-  CALLOC (kitten, 1);
+  CALLOC (struct kitten, kitten, 1);
   kitten->kissat = kissat;
   initialize_kitten (kitten);
   return kitten;
@@ -827,8 +829,8 @@ void kitten_shuffle_clauses (kitten *kitten) {
   shuffle_units (kitten);
 }
 
-static inline unsigned *antecedents (klause *c) {
-  assert (is_learned_klause (c));
+static inline unsigned *antecedents_func (klause *c) {
+  KISSAT_assert (is_learned_klause (c));
   return c->lits + c->size;
 }
 
@@ -840,11 +842,11 @@ static inline void watch_klause (kitten *kitten, unsigned lit, klause *c,
   katch.ref = ref;
 #ifdef KITTEN_BLIT
   const unsigned size = c->size;
-  assert (lit == c->lits[0] || lit == c->lits[1]);
+  KISSAT_assert (lit == c->lits[0] || lit == c->lits[1]);
   const unsigned blit = c->lits[0] ^ c->lits[1] ^ lit;
   const bool binary = size == 2;
-  assert (size > 1);
-  assert (ref < (1u << 31));
+  KISSAT_assert (size > 1);
+  KISSAT_assert (ref < (1u << 31));
   katch.blit = blit;
   katch.binary = binary;
 #else
@@ -883,7 +885,7 @@ static unsigned new_reference (kitten *kitten) {
 #endif
   }
   const unsigned res = (unsigned) ref;
-  assert (res != INVALID);
+  KISSAT_assert (res != INVALID);
   INC (kitten_ticks);
   return res;
 }
@@ -907,7 +909,7 @@ static void new_original_klause (kitten *kitten, unsigned id) {
 static void enlarge_external (kitten *kitten, size_t eidx) {
   const size_t old_size = kitten->esize;
   const unsigned old_evars = kitten->evars;
-  assert (old_evars <= eidx);
+  KISSAT_assert (old_evars <= eidx);
   const unsigned new_evars = eidx + 1;
   if (old_size <= eidx) {
     size_t new_size = old_size ? 2 * old_size : 1;
@@ -916,7 +918,7 @@ static void enlarge_external (kitten *kitten, size_t eidx) {
     LOG ("external resizing to %zu variables from %zu (requested %u)",
          new_size, old_size, new_evars);
     unsigned *old_import = kitten->import;
-    CALLOC (kitten->import, new_size);
+    CALLOC (unsigned, kitten->import, new_size);
     const size_t bytes = old_evars * sizeof *kitten->import;
     if (bytes)
       memcpy (kitten->import, old_import, bytes);
@@ -934,16 +936,16 @@ static unsigned import_literal (kitten *kitten, unsigned elit) {
 
   unsigned iidx = kitten->import[eidx];
   if (!iidx) {
-    iidx = SIZE_STACK (kitten->export);
-    PUSH_STACK (kitten->export, eidx);
+    iidx = SIZE_STACK (kitten->export_);
+    PUSH_STACK (kitten->export_, eidx);
     kitten->import[eidx] = iidx + 1;
   } else
     iidx--;
   unsigned ilit = 2 * iidx + (elit & 1);
   LOG ("imported external literal %u as internal literal %u", elit, ilit);
   const size_t new_lits = (ilit | 1) + (size_t) 1;
-  assert (ilit < new_lits);
-  assert (ilit / 2 < new_lits / 2);
+  KISSAT_assert (ilit < new_lits);
+  KISSAT_assert (ilit / 2 < new_lits / 2);
   if (new_lits > kitten->lits)
     enlarge_internal (kitten, new_lits);
   return ilit;
@@ -951,8 +953,8 @@ static unsigned import_literal (kitten *kitten, unsigned elit) {
 
 static unsigned export_literal (kitten *kitten, unsigned ilit) {
   const unsigned iidx = ilit / 2;
-  assert (iidx < SIZE_STACK (kitten->export));
-  const unsigned eidx = PEEK_STACK (kitten->export, iidx);
+  KISSAT_assert (iidx < SIZE_STACK (kitten->export_));
+  const unsigned eidx = PEEK_STACK (kitten->export_, iidx);
   const unsigned elit = 2 * eidx + (ilit & 1);
   return elit;
 }
@@ -961,10 +963,10 @@ unsigned new_learned_klause (kitten *kitten) {
   unsigned res = new_reference (kitten);
   unsigneds *klauses = &kitten->klauses;
   const size_t size = SIZE_STACK (kitten->klause);
-  assert (size <= UINT_MAX);
+  KISSAT_assert (size <= UINT_MAX);
   const size_t aux =
       kitten->antecedents ? SIZE_STACK (kitten->resolved) : 0;
-  assert (aux <= UINT_MAX);
+  KISSAT_assert (aux <= UINT_MAX);
   PUSH_STACK (*klauses, (unsigned) aux);
   PUSH_STACK (*klauses, (unsigned) size);
   PUSH_STACK (*klauses, LEARNED_FLAG);
@@ -984,10 +986,10 @@ unsigned new_learned_klause (kitten *kitten) {
 void kitten_clear (kitten *kitten) {
   LOG ("clear kitten of size %zu", kitten->size);
 
-  assert (EMPTY_STACK (kitten->analyzed));
-  assert (EMPTY_STACK (kitten->klause));
-  assert (EMPTY_STACK (kitten->eclause));
-  assert (EMPTY_STACK (kitten->resolved));
+  KISSAT_assert (EMPTY_STACK (kitten->analyzed));
+  KISSAT_assert (EMPTY_STACK (kitten->klause));
+  KISSAT_assert (EMPTY_STACK (kitten->eclause));
+  KISSAT_assert (EMPTY_STACK (kitten->resolved));
 
   CLEAR_STACK (kitten->assumptions);
   CLEAR_STACK (kitten->core);
@@ -999,15 +1001,15 @@ void kitten_clear (kitten *kitten) {
   for (all_kits (kit))
     CLEAR_STACK (KATCHES (kit));
 
-  while (!EMPTY_STACK (kitten->export))
-    kitten->import[POP_STACK (kitten->export)] = 0;
+  while (!EMPTY_STACK (kitten->export_))
+    kitten->import[POP_STACK (kitten->export_)] = 0;
 
   const size_t lits = kitten->size;
   const unsigned vars = lits / 2;
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   for (unsigned i = 0; i < vars; i++)
-    assert (!kitten->marks[i]);
+    KISSAT_assert (!kitten->marks[i]);
 #endif
 
   if (vars) {
@@ -1028,7 +1030,7 @@ void kitten_release (kitten *kitten) {
   RELEASE_STACK (kitten->assumptions);
   RELEASE_STACK (kitten->core);
   RELEASE_STACK (kitten->eclause);
-  RELEASE_STACK (kitten->export);
+  RELEASE_STACK (kitten->export_);
   RELEASE_STACK (kitten->klause);
   RELEASE_STACK (kitten->klauses);
   RELEASE_STACK (kitten->resolved);
@@ -1063,7 +1065,7 @@ static inline void move_to_front (kitten *kitten, unsigned idx) {
   LOG ("move to front variable %u", idx);
   dequeue (kitten, idx);
   enqueue (kitten, idx);
-  assert (kitten->values[2 * idx]);
+  KISSAT_assert (kitten->values[2 * idx]);
 }
 
 static inline void assign (kitten *kitten, unsigned lit, unsigned reason) {
@@ -1075,8 +1077,8 @@ static inline void assign (kitten *kitten, unsigned lit, unsigned reason) {
 #endif
   value *values = kitten->values;
   const unsigned not_lit = lit ^ 1;
-  assert (!values[lit]);
-  assert (!values[not_lit]);
+  KISSAT_assert (!values[lit]);
+  KISSAT_assert (!values[not_lit]);
   values[lit] = 1;
   values[not_lit] = -1;
   const unsigned idx = lit / 2;
@@ -1086,7 +1088,7 @@ static inline void assign (kitten *kitten, unsigned lit, unsigned reason) {
   kar *v = kitten->vars + idx;
   v->level = kitten->level;
   if (!v->level) {
-    assert (reason != INVALID);
+    KISSAT_assert (reason != INVALID);
     klause *c = dereference_klause (kitten, reason);
     if (c->size > 1) {
       if (kitten->antecedents) {
@@ -1095,7 +1097,7 @@ static inline void assign (kitten *kitten, unsigned lit, unsigned reason) {
           if (other != lit) {
             const unsigned other_idx = other / 2;
             const unsigned other_ref = kitten->vars[other_idx].reason;
-            assert (other_ref != INVALID);
+            KISSAT_assert (other_ref != INVALID);
             PUSH_STACK (kitten->resolved, other_ref);
           }
       }
@@ -1106,14 +1108,14 @@ static inline void assign (kitten *kitten, unsigned lit, unsigned reason) {
     }
   }
   v->reason = reason;
-  assert (kitten->unassigned);
+  KISSAT_assert (kitten->unassigned);
   kitten->unassigned--;
 }
 
 static inline unsigned propagate_literal (kitten *kitten, unsigned lit) {
   LOG ("propagating %u", lit);
   value *values = kitten->values;
-  assert (values[lit] > 0);
+  KISSAT_assert (values[lit] > 0);
   const unsigned not_lit = lit ^ 1;
   katches *watches = kitten->watches + not_lit;
   unsigned conflict = INVALID;
@@ -1126,7 +1128,7 @@ static inline unsigned propagate_literal (kitten *kitten, unsigned lit) {
     const unsigned ref = katch.ref;
 #ifdef KITTEN_BLIT
     const unsigned blit = katch.blit;
-    assert (blit != not_lit);
+    KISSAT_assert (blit != not_lit);
     const value blit_value = values[blit];
     if (blit_value > 0)
       continue;
@@ -1137,14 +1139,14 @@ static inline unsigned propagate_literal (kitten *kitten, unsigned lit) {
         conflict = ref;
         break;
       } else {
-        assert (!blit_value);
+        KISSAT_assert (!blit_value);
         assign (kitten, blit, ref);
         continue;
       }
     }
 #endif
     klause *c = dereference_klause (kitten, ref);
-    assert (c->size > 1);
+    KISSAT_assert (c->size > 1);
     unsigned *lits = c->lits;
     const unsigned other = lits[0] ^ lits[1] ^ not_lit;
     const value other_value = values[other];
@@ -1166,7 +1168,7 @@ static inline unsigned propagate_literal (kitten *kitten, unsigned lit) {
         break;
     }
     if (replacement_value >= 0) {
-      assert (replacement != INVALID);
+      KISSAT_assert (replacement != INVALID);
       ROG (ref, "unwatching %u in", not_lit);
       lits[0] = other;
       lits[1] = replacement;
@@ -1179,7 +1181,7 @@ static inline unsigned propagate_literal (kitten *kitten, unsigned lit) {
       conflict = ref;
       break;
     } else {
-      assert (!other_value);
+      KISSAT_assert (!other_value);
       assign (kitten, other, ref);
     }
   }
@@ -1191,7 +1193,7 @@ static inline unsigned propagate_literal (kitten *kitten, unsigned lit) {
 }
 
 static inline unsigned propagate (kitten *kitten) {
-  assert (kitten->inconsistent == INVALID);
+  KISSAT_assert (kitten->inconsistent == INVALID);
   unsigned propagated = 0;
   unsigned conflict = INVALID;
   while (conflict == INVALID &&
@@ -1216,8 +1218,8 @@ static void bump (kitten *kitten) {
 
 static inline void unassign (kitten *kitten, value *values, unsigned lit) {
   const unsigned not_lit = lit ^ 1;
-  assert (values[lit]);
-  assert (values[not_lit]);
+  KISSAT_assert (values[lit]);
+  KISSAT_assert (values[not_lit]);
   const unsigned idx = lit / 2;
 #ifdef LOGGING
   kar *var = kitten->vars + idx;
@@ -1225,7 +1227,7 @@ static inline void unassign (kitten *kitten, value *values, unsigned lit) {
   LOG ("unassign %u", lit);
 #endif
   values[lit] = values[not_lit] = 0;
-  assert (kitten->unassigned < kitten->lits / 2);
+  KISSAT_assert (kitten->unassigned < kitten->lits / 2);
   kitten->unassigned++;
   kink *links = kitten->links;
   kink *link = links + idx;
@@ -1235,7 +1237,7 @@ static inline void unassign (kitten *kitten, value *values, unsigned lit) {
 
 static void backtrack (kitten *kitten, unsigned jump) {
   check_queue (kitten);
-  assert (jump < kitten->level);
+  KISSAT_assert (jump < kitten->level);
   LOG ("back%s to level %u",
        (kitten->level == jump + 1 ? "tracking" : "jumping"), jump);
   kar *vars = kitten->vars;
@@ -1260,11 +1262,11 @@ void completely_backtrack_to_root_level (kitten *kitten) {
   LOG ("completely backtracking to level 0");
   value *values = kitten->values;
   unsigneds *trail = &kitten->trail;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   kar *vars = kitten->vars;
 #endif
   for (all_stack (unsigned, lit, *trail)) {
-    assert (vars[lit / 2].level);
+    KISSAT_assert (vars[lit / 2].level);
     unassign (kitten, values, lit);
   }
   CLEAR_STACK (*trail);
@@ -1274,11 +1276,11 @@ void completely_backtrack_to_root_level (kitten *kitten) {
 }
 
 static void analyze (kitten *kitten, unsigned conflict) {
-  assert (kitten->level);
-  assert (kitten->inconsistent == INVALID);
-  assert (EMPTY_STACK (kitten->analyzed));
-  assert (EMPTY_STACK (kitten->resolved));
-  assert (EMPTY_STACK (kitten->klause));
+  KISSAT_assert (kitten->level);
+  KISSAT_assert (kitten->inconsistent == INVALID);
+  KISSAT_assert (EMPTY_STACK (kitten->analyzed));
+  KISSAT_assert (EMPTY_STACK (kitten->resolved));
+  KISSAT_assert (EMPTY_STACK (kitten->klause));
   PUSH_STACK (kitten->klause, INVALID);
   unsigned reason = conflict;
   value *marks = kitten->marks;
@@ -1287,16 +1289,16 @@ static void analyze (kitten *kitten, unsigned conflict) {
   unsigned const *p = END_STACK (kitten->trail);
   unsigned open = 0, jump = 0, size = 1, uip;
   for (;;) {
-    assert (reason != INVALID);
+    KISSAT_assert (reason != INVALID);
     klause *c = dereference_klause (kitten, reason);
-    assert (c);
+    KISSAT_assert (c);
     ROG (reason, "analyzing");
     PUSH_STACK (kitten->resolved, reason);
     for (all_literals_in_klause (lit, c)) {
       const unsigned idx = lit / 2;
       if (marks[idx])
         continue;
-      assert (kitten->values[lit] < 0);
+      KISSAT_assert (kitten->values[lit] < 0);
       LOG ("analyzed %u", lit);
       marks[idx] = true;
       PUSH_STACK (kitten->analyzed, idx);
@@ -1318,10 +1320,10 @@ static void analyze (kitten *kitten, unsigned conflict) {
     }
     unsigned idx;
     do {
-      assert (BEGIN_STACK (kitten->trail) < p);
+      KISSAT_assert (BEGIN_STACK (kitten->trail) < p);
       uip = *--p;
     } while (!marks[idx = uip / 2]);
-    assert (open);
+    KISSAT_assert (open);
     if (!--open)
       break;
     reason = vars[idx].reason;
@@ -1339,11 +1341,11 @@ static void analyze (kitten *kitten, unsigned conflict) {
 }
 
 static void failing (kitten *kitten) {
-  assert (kitten->inconsistent == INVALID);
-  assert (!EMPTY_STACK (kitten->assumptions));
-  assert (EMPTY_STACK (kitten->analyzed));
-  assert (EMPTY_STACK (kitten->resolved));
-  assert (EMPTY_STACK (kitten->klause));
+  KISSAT_assert (kitten->inconsistent == INVALID);
+  KISSAT_assert (!EMPTY_STACK (kitten->assumptions));
+  KISSAT_assert (EMPTY_STACK (kitten->analyzed));
+  KISSAT_assert (EMPTY_STACK (kitten->resolved));
+  KISSAT_assert (EMPTY_STACK (kitten->klause));
   LOG ("analyzing failing assumptions");
   const value *const values = kitten->values;
   const kar *const vars = kitten->vars;
@@ -1371,7 +1373,7 @@ static void failing (kitten *kitten) {
     failed = failed_clashing;
   else
     failed = first_failed;
-  assert (failed != INVALID);
+  KISSAT_assert (failed != INVALID);
   const unsigned failed_idx = failed / 2;
   const kar *const failed_var = vars + failed_idx;
   const unsigned failed_reason = failed_var->reason;
@@ -1379,7 +1381,7 @@ static void failing (kitten *kitten) {
   kitten->failed[failed] = true;
 
   if (failed_unit != INVALID) {
-    assert (dereference_klause (kitten, failed_reason)->size == 1);
+    KISSAT_assert (dereference_klause (kitten, failed_reason)->size == 1);
     LOG ("root-level falsified assumption %u", failed);
     kitten->failing = failed_reason;
     ROG (kitten->failing, "failing reason");
@@ -1390,19 +1392,19 @@ static void failing (kitten *kitten) {
   if (failed_clashing != INVALID) {
     LOG ("clashing with negated assumption %u", not_failed);
     kitten->failed[not_failed] = true;
-    assert (kitten->failing == INVALID);
+    KISSAT_assert (kitten->failing == INVALID);
     return;
   }
 
   value *marks = kitten->marks;
-  assert (!marks[failed_idx]);
+  KISSAT_assert (!marks[failed_idx]);
   marks[failed_idx] = true;
   PUSH_STACK (kitten->analyzed, failed_idx);
   PUSH_STACK (kitten->klause, not_failed);
 
   for (size_t next = 0; next < SIZE_STACK (kitten->analyzed); next++) {
     const unsigned idx = PEEK_STACK (kitten->analyzed, next);
-    assert (marks[idx]);
+    KISSAT_assert (marks[idx]);
     const kar *var = vars + idx;
     const unsigned reason = var->reason;
     if (reason == INVALID) {
@@ -1410,7 +1412,7 @@ static void failing (kitten *kitten) {
       if (values[lit] < 0)
         lit ^= 1;
       LOG ("failed assumption %u", lit);
-      assert (!kitten->failed[lit]);
+      KISSAT_assert (!kitten->failed[lit]);
       kitten->failed[lit] = true;
       const unsigned not_lit = lit ^ 1;
       PUSH_STACK (kitten->klause, not_lit);
@@ -1432,11 +1434,11 @@ static void failing (kitten *kitten) {
   }
 
   for (all_stack (unsigned, idx, kitten->analyzed))
-    assert (marks[idx]), marks[idx] = 0;
+    KISSAT_assert (marks[idx]), marks[idx] = 0;
   CLEAR_STACK (kitten->analyzed);
 
   const size_t resolved = SIZE_STACK (kitten->resolved);
-  assert (resolved);
+  KISSAT_assert (resolved);
 
   if (resolved == 1) {
     kitten->failing = PEEK_STACK (kitten->resolved, 0);
@@ -1453,7 +1455,7 @@ static void failing (kitten *kitten) {
 static void flush_trail (kitten *kitten) {
   unsigneds *trail = &kitten->trail;
   LOG ("flushing %zu root-level literals from trail", SIZE_STACK (*trail));
-  assert (!kitten->level);
+  KISSAT_assert (!kitten->level);
   kitten->propagated = 0;
   CLEAR_STACK (*trail);
 }
@@ -1502,7 +1504,7 @@ static int decide (kitten *kitten) {
     unsigned idx = kitten->queue.search;
     const kink *const links = kitten->links;
     for (;;) {
-      assert (idx != INVALID);
+      KISSAT_assert (idx != INVALID);
       if (!values[2 * idx])
         break;
       idx = links[idx].prev;
@@ -1519,8 +1521,8 @@ static int decide (kitten *kitten) {
 }
 
 static void inconsistent (kitten *kitten, unsigned ref) {
-  assert (ref != INVALID);
-  assert (kitten->inconsistent == INVALID);
+  KISSAT_assert (ref != INVALID);
+  KISSAT_assert (kitten->inconsistent == INVALID);
 
   if (!kitten->antecedents) {
     kitten->inconsistent = ref;
@@ -1531,25 +1533,25 @@ static void inconsistent (kitten *kitten, unsigned ref) {
   unsigneds *analyzed = &kitten->analyzed;
   unsigneds *resolved = &kitten->resolved;
 
-  assert (EMPTY_STACK (*analyzed));
-  assert (EMPTY_STACK (*resolved));
+  KISSAT_assert (EMPTY_STACK (*analyzed));
+  KISSAT_assert (EMPTY_STACK (*resolved));
 
   value *marks = kitten->marks;
   const kar *const vars = kitten->vars;
   unsigned next = 0;
 
   for (;;) {
-    assert (ref != INVALID);
+    KISSAT_assert (ref != INVALID);
     klause *c = dereference_klause (kitten, ref);
-    assert (c);
+    KISSAT_assert (c);
     ROG (ref, "analyzing inconsistent");
     PUSH_STACK (*resolved, ref);
     for (all_literals_in_klause (lit, c)) {
       const unsigned idx = lit / 2;
-      assert (!vars[idx].level);
+      KISSAT_assert (!vars[idx].level);
       if (marks[idx])
         continue;
-      assert (kitten->values[lit] < 0);
+      KISSAT_assert (kitten->values[lit] < 0);
       LOG ("analyzed %u", lit);
       marks[idx] = true;
       PUSH_STACK (kitten->analyzed, idx);
@@ -1559,10 +1561,10 @@ static void inconsistent (kitten *kitten, unsigned ref) {
     const unsigned idx = PEEK_STACK (kitten->analyzed, next);
     next++;
     const kar *const v = vars + idx;
-    assert (!v->level);
+    KISSAT_assert (!v->level);
     ref = v->reason;
   }
-  assert (EMPTY_STACK (kitten->klause));
+  KISSAT_assert (EMPTY_STACK (kitten->klause));
   ref = new_learned_klause (kitten);
   ROG (ref, "registering final inconsistent empty");
   kitten->inconsistent = ref;
@@ -1590,9 +1592,9 @@ static int propagate_units (kitten *kitten) {
 
   for (size_t next = 0; next < SIZE_STACK (kitten->units); next++) {
     const unsigned ref = PEEK_STACK (kitten->units, next);
-    assert (ref != INVALID);
+    KISSAT_assert (ref != INVALID);
     klause *c = dereference_klause (kitten, ref);
-    assert (c->size == 1);
+    KISSAT_assert (c->size == 1);
     ROG (ref, "propagating unit");
     const unsigned unit = c->lits[0];
     const value value = values[unit];
@@ -1628,8 +1630,8 @@ static klause *end_klauses (kitten *kitten) {
 }
 
 static klause *next_klause (kitten *kitten, klause *c) {
-  assert (begin_klauses (kitten) <= c);
-  assert (c < end_klauses (kitten));
+  KISSAT_assert (begin_klauses (kitten) <= c);
+  KISSAT_assert (c < end_klauses (kitten));
   unsigned *res = c->lits + c->size;
   if (kitten->antecedents && is_learned_klause (c))
     res += c->aux;
@@ -1654,9 +1656,9 @@ static void reset_assumptions (kitten *kitten) {
     const unsigned assumption = POP_STACK (kitten->assumptions);
     kitten->failed[assumption] = false;
   }
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   for (size_t i = 0; i < kitten->size; i++)
-    assert (!kitten->failed[i]);
+    KISSAT_assert (!kitten->failed[i]);
 #endif
   CLEAR_STACK (kitten->assumptions);
   if (kitten->failing != INVALID) {
@@ -1671,7 +1673,7 @@ static void reset_incremental (kitten *kitten) {
   if (!EMPTY_STACK (kitten->assumptions))
     reset_assumptions (kitten);
   else
-    assert (kitten->failing == INVALID);
+    KISSAT_assert (kitten->failing == INVALID);
   if (kitten->status == 21)
     reset_core (kitten);
   UPDATE_STATUS (0);
@@ -1682,7 +1684,7 @@ static void reset_incremental (kitten *kitten) {
 static bool flip_literal (kitten *kitten, unsigned lit) {
   INC (kitten_flip);
   signed char *values = kitten->values;
-  assert (values[lit]);
+  KISSAT_assert (values[lit]);
   if (!kitten->vars[lit / 2].level) {
     LOG ("can not flip root-level assigned literal %u", lit);
     return false;
@@ -1690,7 +1692,7 @@ static bool flip_literal (kitten *kitten, unsigned lit) {
   if (values[lit] < 0)
     lit ^= 1;
   LOG ("trying to flip value of satisfied literal %u", lit);
-  assert (values[lit] > 0);
+  KISSAT_assert (values[lit] > 0);
   katches *watches = kitten->watches + lit;
   katch *q = BEGIN_STACK (*watches);
   const katch *const end_watches = END_STACK (*watches);
@@ -1701,7 +1703,7 @@ static bool flip_literal (kitten *kitten, unsigned lit) {
     const katch katch = *q++ = *p++;
 #ifdef KITTEN_BLIT
     const unsigned blit = katch.blit;
-    assert (blit != lit);
+    KISSAT_assert (blit != lit);
     const value blit_value = values[blit];
     if (blit_value > 0)
       continue;
@@ -1720,14 +1722,14 @@ static bool flip_literal (kitten *kitten, unsigned lit) {
     unsigned *r;
     for (r = lits + 2; r != end_lits; r++) {
       replacement = *r;
-      assert (replacement != lit);
+      KISSAT_assert (replacement != lit);
       replacement_value = values[replacement];
-      assert (replacement_value);
+      KISSAT_assert (replacement_value);
       if (replacement_value > 0)
         break;
     }
     if (replacement_value > 0) {
-      assert (replacement != INVALID);
+      KISSAT_assert (replacement != INVALID);
       ROG (ref, "unwatching %u in", lit);
       lits[0] = other;
       lits[1] = replacement;
@@ -1735,7 +1737,7 @@ static bool flip_literal (kitten *kitten, unsigned lit) {
       watch_klause (kitten, replacement, c, ref);
       q--;
     } else {
-      assert (replacement_value < 0);
+      KISSAT_assert (replacement_value < 0);
       ROG (ref, "single satisfied");
       res = false;
       break;
@@ -1774,14 +1776,14 @@ void kitten_clause_with_id_and_exception (kitten *kitten, unsigned id,
   REQUIRE_INITIALIZED ();
   if (kitten->status)
     reset_incremental (kitten);
-  assert (EMPTY_STACK (kitten->klause));
+  KISSAT_assert (EMPTY_STACK (kitten->klause));
   const unsigned *const end = elits + size;
   for (const unsigned *p = elits; p != end; p++) {
     const unsigned elit = *p;
     if (elit == except)
       continue;
     const unsigned ilit = import_literal (kitten, elit);
-    assert (ilit < kitten->lits);
+    KISSAT_assert (ilit < kitten->lits);
     const unsigned iidx = ilit / 2;
     if (kitten->marks[iidx])
       INVALID_API_USAGE ("variable '%u' of literal '%u' occurs twice",
@@ -1877,7 +1879,7 @@ unsigned kitten_compute_clausal_core (kitten *kitten,
   LOG ("computing clausal core");
 
   unsigneds *resolved = &kitten->resolved;
-  assert (EMPTY_STACK (*resolved));
+  KISSAT_assert (EMPTY_STACK (*resolved));
 
   unsigned original = 0;
   uint64_t learned = 0;
@@ -1885,17 +1887,33 @@ unsigned kitten_compute_clausal_core (kitten *kitten,
   unsigned reason_ref = kitten->inconsistent;
 
   if (reason_ref == INVALID) {
-    assert (!EMPTY_STACK (kitten->assumptions));
+    KISSAT_assert (!EMPTY_STACK (kitten->assumptions));
     reason_ref = kitten->failing;
     if (reason_ref == INVALID) {
       LOG ("assumptions mutually inconsistent");
-      goto DONE;
+
+      
+      //      goto DONE;
+  if (learned_ptr)
+    *learned_ptr = learned;
+
+  LOG ("clausal core of %u original clauses", original);
+  LOG ("clausal core of %" PRIu64 " learned clauses", learned);
+#ifdef STAND_ALONE_KITTEN
+  kitten->statistics.original = original;
+  kitten->statistics.learned = 0;
+#endif
+  UPDATE_STATUS (21);
+
+  return original;
+
+  
     }
   }
 
   PUSH_STACK (*resolved, reason_ref);
   unsigneds *core = &kitten->core;
-  assert (EMPTY_STACK (*core));
+  KISSAT_assert (EMPTY_STACK (*core));
 
   while (!EMPTY_STACK (*resolved)) {
     const unsigned c_ref = POP_STACK (*resolved);
@@ -1904,7 +1922,7 @@ unsigned kitten_compute_clausal_core (kitten *kitten,
       ROG (d_ref, "core[%zu]", SIZE_STACK (*core));
       PUSH_STACK (*core, d_ref);
       klause *d = dereference_klause (kitten, d_ref);
-      assert (!is_core_klause (d));
+      KISSAT_assert (!is_core_klause (d));
       set_core_klause (d);
       if (is_learned_klause (d))
         learned++;
@@ -1927,7 +1945,7 @@ unsigned kitten_compute_clausal_core (kitten *kitten,
     }
   }
 
-DONE:
+  //DONE:
 
   if (learned_ptr)
     *learned_ptr = learned;
@@ -1952,7 +1970,7 @@ void kitten_traverse_core_ids (kitten *kitten, void *state,
   unsigned traversed = 0;
 
   for (all_original_klauses (c)) {
-    assert (!is_learned_klause (c));
+    KISSAT_assert (!is_learned_klause (c));
     if (is_learned_klause (c))
       continue;
     if (!is_core_klause (c))
@@ -1965,7 +1983,7 @@ void kitten_traverse_core_ids (kitten *kitten, void *state,
   LOG ("traversed %u original core clauses", traversed);
   (void) traversed;
 
-  assert (kitten->status == 21);
+  KISSAT_assert (kitten->status == 21);
 }
 
 void kitten_traverse_core_clauses (kitten *kitten, void *state,
@@ -1979,10 +1997,10 @@ void kitten_traverse_core_clauses (kitten *kitten, void *state,
 
   for (all_stack (unsigned, c_ref, kitten->core)) {
     klause *c = dereference_klause (kitten, c_ref);
-    assert (is_core_klause (c));
+    KISSAT_assert (is_core_klause (c));
     const bool learned = is_learned_klause (c);
     unsigneds *eclause = &kitten->eclause;
-    assert (EMPTY_STACK (*eclause));
+    KISSAT_assert (EMPTY_STACK (*eclause));
     for (all_literals_in_klause (ilit, c)) {
       const unsigned elit = export_literal (kitten, ilit);
       PUSH_STACK (*eclause, elit);
@@ -1998,7 +2016,7 @@ void kitten_traverse_core_clauses (kitten *kitten, void *state,
   LOG ("traversed %u core clauses", traversed);
   (void) traversed;
 
-  assert (kitten->status == 21);
+  KISSAT_assert (kitten->status == 21);
 }
 
 void kitten_shrink_to_clausal_core (kitten *kitten) {
@@ -2019,7 +2037,7 @@ void kitten_shrink_to_clausal_core (kitten *kitten) {
   for (all_kits (lit))
     CLEAR_STACK (KATCHES (lit));
 
-  assert (kitten->inconsistent != INVALID);
+  KISSAT_assert (kitten->inconsistent != INVALID);
   klause *inconsistent = dereference_klause (kitten, kitten->inconsistent);
   if (is_learned_klause (inconsistent) || inconsistent->size) {
     ROG (kitten->inconsistent, "resetting inconsistent");
@@ -2036,7 +2054,7 @@ void kitten_shrink_to_clausal_core (kitten *kitten) {
 #endif
   for (klause *c = begin, *next; c != end; c = next) {
     next = next_klause (kitten, c);
-    assert (!is_learned_klause (c));
+    KISSAT_assert (!is_learned_klause (c));
     if (is_learned_klause (c))
       continue;
     if (!is_core_klause (c))
@@ -2313,7 +2331,7 @@ static kitten *parse (parser *parser, ints *originals, int *max_var) {
       } else if (offset > UINT_MAX)
         ERROR ("too many original literals");
       else {
-        assert (SIZE_STACK (clause) <= UINT_MAX);
+        KISSAT_assert (SIZE_STACK (clause) <= UINT_MAX);
         const unsigned size = SIZE_STACK (clause);
         const unsigned *const lits = BEGIN_STACK (clause);
         kitten_clause_with_id_and_exception (kitten, offset, size, lits,
@@ -2334,7 +2352,7 @@ static kitten *parse (parser *parser, ints *originals, int *max_var) {
         while (uidx >= new_size_marks)
           new_size_marks *= 2;
         signed char *new_marks;
-        CALLOC (new_marks, new_size_marks);
+        CALLOC (signed char, new_marks, new_size_marks);
         if (size_marks)
           memcpy (new_marks, marks, size_marks);
         DEALLOC (marks, size_marks);
@@ -2393,7 +2411,7 @@ static inline void print_lit (line *line, int lit) {
 }
 
 static void print_witness (kitten *kitten, int max_var) {
-  assert (max_var >= 0);
+  KISSAT_assert (max_var >= 0);
   line line = {.size = 0};
   const size_t parsed_lits = 2 * (size_t) max_var;
   for (size_t ulit = 0; ulit < parsed_lits; ulit += 2) {
@@ -2413,14 +2431,14 @@ typedef struct core_writer core_writer;
 struct core_writer {
   FILE *file;
   ints *originals;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   unsigned written;
 #endif
 };
 
 static void write_offset (void *ptr, unsigned offset) {
   core_writer *writer = ptr;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   writer->written++;
 #endif
   int const *p = &PEEK_STACK (*writer->originals, offset);
@@ -2432,19 +2450,19 @@ static void write_offset (void *ptr, unsigned offset) {
 
 static void write_core (kitten *kitten, unsigned reduced, ints *originals,
                         FILE *file) {
-  assert (originals);
+  KISSAT_assert (originals);
   fprintf (file, "p cnf %zu %u\n", kitten->evars, reduced);
   core_writer writer;
   writer.file = file;
   writer.originals = originals;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   writer.written = 0;
 #endif
   kitten_traverse_core_ids (kitten, &writer, write_offset);
-  assert (writer.written == reduced);
+  KISSAT_assert (writer.written == reduced);
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 typedef struct lemma_writer lemma_writer;
 
@@ -2460,7 +2478,7 @@ static void write_lemma (void *ptr, bool learned, size_t size,
   if (!learned)
     return;
   const unsigned *const end = lits + size;
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   FILE *file = ptr;
 #else
   lemma_writer *writer = ptr;
@@ -2471,7 +2489,7 @@ static void write_lemma (void *ptr, bool learned, size_t size,
     const unsigned ulit = *p;
     const unsigned idx = ulit / 2;
     const unsigned sign = ulit & 1;
-    assert (idx + 1 <= (unsigned) INT_MAX);
+    KISSAT_assert (idx + 1 <= (unsigned) INT_MAX);
     int ilit = idx + 1;
     if (sign)
       ilit = -ilit;
@@ -2482,7 +2500,7 @@ static void write_lemma (void *ptr, bool learned, size_t size,
 
 static void write_lemmas (kitten *kitten, uint64_t reduced, FILE *file) {
   void *state;
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   state = file;
   (void) reduced;
 #else
@@ -2492,7 +2510,7 @@ static void write_lemmas (kitten *kitten, uint64_t reduced, FILE *file) {
   state = &writer;
 #endif
   kitten_traverse_core_clauses (kitten, state, write_lemma);
-  assert (writer.written == reduced);
+  KISSAT_assert (writer.written == reduced);
 }
 
 static void print_statistics (statistics statistics) {
@@ -2562,7 +2580,7 @@ static void catch_signal (int sig) {
 }
 
 static void catch_alarm (int sig) {
-  assert (sig == SIGALRM);
+  KISSAT_assert (sig == SIGALRM);
   if (time_limit > 0)
     time_limit_hit = true;
   (void) sig;
@@ -2757,7 +2775,7 @@ int main (int argc, char **argv) {
 
         reset_alarm ();
         res = kitten_solve (kitten);
-        assert (res == 20);
+        KISSAT_assert (res == 20);
       }
       FILE *output_file = fopen (output_path, "w");
       if (!output_file)
@@ -2792,3 +2810,5 @@ int main (int argc, char **argv) {
 }
 
 #endif
+
+ABC_NAMESPACE_IMPL_END

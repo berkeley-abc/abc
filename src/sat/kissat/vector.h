@@ -6,7 +6,10 @@
 
 #include <limits.h>
 
-#ifdef COMPACT
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#ifdef KISSAT_COMPACT
 #define LD_MAX_VECTORS (sizeof (word) == 8 ? 32u : 28u)
 #else
 #define LD_MAX_VECTORS (sizeof (word) == 8 ? 48u : 28u)
@@ -27,7 +30,7 @@ struct vectors {
 };
 
 struct vector {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   unsigned offset;
   unsigned size;
 #else
@@ -51,5 +54,7 @@ void kissat_defrag_vectors (struct kissat *, size_t, vector *);
 void kissat_remove_from_vector (struct kissat *, vector *, unsigned);
 void kissat_resize_vector (struct kissat *, vector *, size_t);
 void kissat_release_vectors (struct kissat *);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

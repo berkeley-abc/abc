@@ -3,6 +3,9 @@
 
 #include "utilities.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define GREATER_SWAP(TYPE, P, Q, LESS) \
   do { \
     if (LESS (Q, P)) \
@@ -40,8 +43,8 @@
 
 #define QUICK_SORT(TYPE, N, A, LESS) \
   do { \
-    assert (N); \
-    assert (EMPTY_STACK (SORTER)); \
+    KISSAT_assert (N); \
+    KISSAT_assert (EMPTY_STACK (SORTER)); \
 \
     size_t L_QUICK_SORT = 0; \
     size_t R_QUICK_SORT = N - 1; \
@@ -61,8 +64,8 @@
       size_t I_QUICK_SORT; \
 \
       PARTITION (TYPE, L_QUICK_SORT + 1, R_QUICK_SORT - 1, A, LESS); \
-      assert (L_QUICK_SORT < I_QUICK_SORT); \
-      assert (I_QUICK_SORT <= R_QUICK_SORT); \
+      KISSAT_assert (L_QUICK_SORT < I_QUICK_SORT); \
+      KISSAT_assert (I_QUICK_SORT <= R_QUICK_SORT); \
 \
       size_t LL_QUICK_SORT; \
       size_t RR_QUICK_SORT; \
@@ -77,7 +80,7 @@
         L_QUICK_SORT = I_QUICK_SORT + 1; \
       } \
       if (R_QUICK_SORT - L_QUICK_SORT > QUICK_SORT_LIMIT) { \
-        assert (RR_QUICK_SORT - LL_QUICK_SORT > QUICK_SORT_LIMIT); \
+        KISSAT_assert (RR_QUICK_SORT - LL_QUICK_SORT > QUICK_SORT_LIMIT); \
         PUSH_STACK (SORTER, LL_QUICK_SORT); \
         PUSH_STACK (SORTER, RR_QUICK_SORT); \
       } else if (RR_QUICK_SORT - LL_QUICK_SORT > QUICK_SORT_LIMIT) { \
@@ -116,7 +119,7 @@
     } \
   } while (0)
 
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
 #define CHECK_SORTED(...) \
   do { \
   } while (0)
@@ -125,7 +128,7 @@
   do { \
     for (size_t I_CHECK_SORTED = 0; I_CHECK_SORTED < N - 1; \
          I_CHECK_SORTED++) \
-      assert (!LESS (A[I_CHECK_SORTED + 1], A[I_CHECK_SORTED])); \
+      KISSAT_assert (!LESS (A[I_CHECK_SORTED + 1], A[I_CHECK_SORTED])); \
   } while (0)
 #endif
 
@@ -150,5 +153,7 @@
     TYPE *A_SORT_STACK = BEGIN_STACK (S); \
     SORT (TYPE, N_SORT_STACK, A_SORT_STACK, LESS); \
   } while (0)
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

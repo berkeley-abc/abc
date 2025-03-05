@@ -9,7 +9,9 @@
 #include <inttypes.h>
 #include <stddef.h>
 
-#ifndef COMPACT
+ABC_NAMESPACE_IMPL_START
+
+#ifndef KISSAT_COMPACT
 
 static void fix_vector_pointers_after_moving_stack (kissat *solver,
                                                     ptrdiff_t moved) {
@@ -48,20 +50,20 @@ unsigned *kissat_enlarge_vector (kissat *solver, vector *vector) {
   LOG2 ("enlarging vector %zu[%zu] at %p", old_offset, old_vector_size,
         (void *) vector);
 #endif
-  assert (old_vector_size < MAX_VECTORS / 2);
+  KISSAT_assert (old_vector_size < MAX_VECTORS / 2);
   const size_t new_vector_size = old_vector_size ? 2 * old_vector_size : 1;
   size_t old_stack_size = SIZE_STACK (*stack);
   size_t capacity = CAPACITY_STACK (*stack);
-  assert (kissat_is_power_of_two (MAX_VECTORS));
-  assert (capacity <= MAX_VECTORS);
+  KISSAT_assert (kissat_is_power_of_two (MAX_VECTORS));
+  KISSAT_assert (capacity <= MAX_VECTORS);
   size_t available = capacity - old_stack_size;
   if (new_vector_size > available) {
-#if !defined(QUIET) || !defined(COMPACT)
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_COMPACT)
     unsigned *old_begin_stack = BEGIN_STACK (*stack);
 #endif
     unsigned enlarged = 0;
     do {
-      assert (kissat_is_zero_or_power_of_two (capacity));
+      KISSAT_assert (kissat_is_zero_or_power_of_two (capacity));
 
       if (capacity == MAX_VECTORS)
         kissat_fatal ("maximum vector stack size "
@@ -77,34 +79,34 @@ unsigned *kissat_enlarge_vector (kissat *solver, vector *vector) {
 
     if (enlarged) {
       INC (vectors_enlarged);
-#if !defined(QUIET) || !defined(COMPACT)
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_COMPACT)
       unsigned *new_begin_stack = BEGIN_STACK (*stack);
       const ptrdiff_t moved =
           (char *) new_begin_stack - (char *) old_begin_stack;
 #endif
-#ifndef QUIET
+#ifndef KISSAT_QUIET
       kissat_phase (solver, "vectors", GET (vectors_enlarged),
                     "enlarged to %s entries %s (%s)",
                     FORMAT_COUNT (capacity),
                     FORMAT_BYTES (capacity * sizeof (unsigned)),
                     (moved ? "moved" : "in place"));
 #endif
-#ifndef COMPACT
+#ifndef KISSAT_COMPACT
       if (moved)
         fix_vector_pointers_after_moving_stack (solver, moved);
 #endif
     }
-    assert (capacity <= MAX_VECTORS);
-    assert (new_vector_size <= available);
+    KISSAT_assert (capacity <= MAX_VECTORS);
+    KISSAT_assert (new_vector_size <= available);
   }
   unsigned *begin_old_vector = kissat_begin_vector (solver, vector);
   unsigned *begin_new_vector = END_STACK (*stack);
   unsigned *middle_new_vector = begin_new_vector + old_vector_size;
   unsigned *end_new_vector = begin_new_vector + new_vector_size;
-  assert (end_new_vector <= stack->allocated);
+  KISSAT_assert (end_new_vector <= stack->allocated);
   const size_t old_bytes = old_vector_size * sizeof (unsigned);
   const size_t delta_size = new_vector_size - old_vector_size;
-  assert (MAX_SIZE_T / sizeof (unsigned) >= delta_size);
+  KISSAT_assert (MAX_SIZE_T / sizeof (unsigned) >= delta_size);
   const size_t delta_bytes = delta_size * sizeof (unsigned);
   if (old_bytes) {
     memcpy (begin_new_vector, begin_old_vector, old_bytes);
@@ -114,9 +116,9 @@ unsigned *kissat_enlarge_vector (kissat *solver, vector *vector) {
   kissat_add_usable (solver, delta_size);
   if (delta_bytes)
     memset (middle_new_vector, 0xff, delta_bytes);
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   const uint64_t offset = SIZE_STACK (*stack);
-  assert (offset <= MAX_VECTORS);
+  KISSAT_assert (offset <= MAX_VECTORS);
   vector->offset = offset;
   LOG2 ("enlarged vector at %p to %u[%u]", (void *) vector, vector->offset,
         vector->size);
@@ -130,12 +132,12 @@ unsigned *kissat_enlarge_vector (kissat *solver, vector *vector) {
 #endif
 #endif
   stack->end = end_new_vector;
-  assert (begin_new_vector < end_new_vector);
-  assert (kissat_size_vector (vector) == old_vector_size);
+  KISSAT_assert (begin_new_vector < end_new_vector);
+  KISSAT_assert (kissat_size_vector (vector) == old_vector_size);
   return middle_new_vector;
 }
 
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
 
 typedef unsigned rank;
 
@@ -167,12 +169,12 @@ void kissat_defrag_vectors (kissat *solver, size_t size_unsorted,
   LOG ("defragmenting vectors size %zu capacity %zu usable %zu",
        size_vectors, CAPACITY_STACK (*stack), solver->vectors.usable);
   size_t bytes = size_unsorted * sizeof (unsigned);
-  unsigned *sorted = kissat_malloc (solver, bytes);
+  unsigned *sorted = (unsigned*)kissat_malloc (solver, bytes);
   unsigned size_sorted = 0;
   for (unsigned i = 0; i < size_unsorted; i++) {
     vector *vector = unsorted + i;
     if (kissat_empty_vector (vector))
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
       vector->offset = 0;
 #else
       vector->begin = vector->end = 0;
@@ -188,10 +190,10 @@ void kissat_defrag_vectors (kissat *solver, size_t size_unsorted,
     vector *vector = unsorted + j;
     const size_t size = kissat_size_vector (vector);
     unsigned *new_end_of_vector = p + size;
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
     const unsigned old_offset = vector->offset;
     const unsigned new_offset = p - old_begin_stack;
-    assert (new_offset <= old_offset);
+    KISSAT_assert (new_offset <= old_offset);
     vector->offset = new_offset;
     const unsigned *const q = old_begin_stack + old_offset;
 #else
@@ -203,25 +205,25 @@ void kissat_defrag_vectors (kissat *solver, size_t size_unsorted,
     vector->begin = p;
     vector->end = new_end_of_vector;
 #endif
-    assert (MAX_SIZE_T / sizeof (unsigned) >= size);
+    KISSAT_assert (MAX_SIZE_T / sizeof (unsigned) >= size);
     memmove (p, q, size * sizeof (unsigned));
     p = new_end_of_vector;
   }
   kissat_free (solver, sorted, bytes);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t freed = END_STACK (*stack) - p;
   double freed_fraction = kissat_percent (freed, size_vectors);
   kissat_phase (solver, "defrag", GET (defragmentations),
                 "freed %zu usable entries %.0f%% thus %s", freed,
                 freed_fraction, FORMAT_BYTES (freed * sizeof (unsigned)));
-  assert (freed == solver->vectors.usable);
+  KISSAT_assert (freed == solver->vectors.usable);
 #endif
   SET_END_OF_STACK (*stack, p);
-#ifndef COMPACT
-  assert (old_begin_stack == BEGIN_STACK (*stack));
+#ifndef KISSAT_COMPACT
+  KISSAT_assert (old_begin_stack == BEGIN_STACK (*stack));
 #endif
   SHRINK_STACK (*stack);
-#ifndef COMPACT
+#ifndef KISSAT_COMPACT
   unsigned *new_begin_stack = BEGIN_STACK (*stack);
   const ptrdiff_t moved =
       (char *) new_begin_stack - (char *) old_begin_stack;
@@ -237,16 +239,16 @@ void kissat_remove_from_vector (kissat *solver, vector *vector,
                                 unsigned remove) {
   unsigned *begin = kissat_begin_vector (solver, vector), *p = begin;
   const unsigned *const end = kissat_end_vector (solver, vector);
-  assert (p != end);
+  KISSAT_assert (p != end);
   while (*p != remove)
-    p++, assert (p != end);
+    p++, KISSAT_assert (p != end);
   while (++p != end)
     p[-1] = *p;
   p[-1] = INVALID_VECTOR_ELEMENT;
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   vector->size--;
 #else
-  assert (vector->begin < vector->end);
+  KISSAT_assert (vector->begin < vector->end);
   vector->end--;
 #endif
   kissat_inc_usable (solver);
@@ -259,10 +261,10 @@ void kissat_remove_from_vector (kissat *solver, vector *vector,
 void kissat_resize_vector (kissat *solver, vector *vector,
                            size_t new_size) {
   const size_t old_size = kissat_size_vector (vector);
-  assert (new_size <= old_size);
+  KISSAT_assert (new_size <= old_size);
   if (new_size == old_size)
     return;
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   vector->size = new_size;
 #else
   vector->end = vector->begin + new_size;
@@ -291,8 +293,8 @@ void kissat_check_vector (kissat *solver, vector *vector) {
   const unsigned *const end = kissat_end_vector (solver, vector);
   if (!solver->transitive_reducing)
     for (const unsigned *p = begin; p != end; p++)
-      assert (*p != INVALID_VECTOR_ELEMENT);
-#ifdef NDEBUG
+      KISSAT_assert (*p != INVALID_VECTOR_ELEMENT);
+#ifdef KISSAT_NDEBUG
   (void) solver;
 #endif
 }
@@ -314,7 +316,9 @@ void kissat_check_vectors (kissat *solver) {
   for (const unsigned *p = begin + 1; p != end; p++)
     if (*p == INVALID_VECTOR_ELEMENT)
       invalid++;
-  assert (invalid == solver->vectors.usable);
+  KISSAT_assert (invalid == solver->vectors.usable);
 }
 
 #endif
+
+ABC_NAMESPACE_IMPL_END

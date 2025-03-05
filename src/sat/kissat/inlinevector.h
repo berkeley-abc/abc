@@ -3,9 +3,12 @@
 
 #include "internal.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 static inline unsigned *kissat_begin_vector (kissat *solver,
                                              vector *vector) {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   return BEGIN_STACK (solver->vectors.stack) + vector->offset;
 #else
   (void) solver;
@@ -14,7 +17,7 @@ static inline unsigned *kissat_begin_vector (kissat *solver,
 }
 
 static inline unsigned *kissat_end_vector (kissat *solver, vector *vector) {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   return kissat_begin_vector (solver, vector) + vector->size;
 #else
   (void) solver;
@@ -24,7 +27,7 @@ static inline unsigned *kissat_end_vector (kissat *solver, vector *vector) {
 
 static inline const unsigned *
 kissat_begin_const_vector (kissat *solver, const vector *vector) {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   return BEGIN_STACK (solver->vectors.stack) + vector->offset;
 #else
   (void) solver;
@@ -34,7 +37,7 @@ kissat_begin_const_vector (kissat *solver, const vector *vector) {
 
 static inline const unsigned *
 kissat_end_const_vector (kissat *solver, const vector *vector) {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   return kissat_begin_const_vector (solver, vector) + vector->size;
 #else
   (void) solver;
@@ -45,7 +48,7 @@ kissat_end_const_vector (kissat *solver, const vector *vector) {
 #if defined(LOGGING) || defined(TEST_VECTOR)
 
 static inline size_t kissat_offset_vector (kissat *solver, vector *vector) {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   (void) solver;
   return vector->offset;
 #else
@@ -58,7 +61,7 @@ static inline size_t kissat_offset_vector (kissat *solver, vector *vector) {
 #endif
 
 static inline size_t kissat_size_vector (const vector *vector) {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   return vector->size;
 #else
   return vector->end - vector->begin;
@@ -66,7 +69,7 @@ static inline size_t kissat_size_vector (const vector *vector) {
 }
 
 static inline bool kissat_empty_vector (vector *vector) {
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
   return !vector->size;
 #else
   return vector->end == vector->begin;
@@ -74,20 +77,20 @@ static inline bool kissat_empty_vector (vector *vector) {
 }
 
 static inline void kissat_inc_usable (kissat *solver) {
-  assert (MAX_SECTOR > solver->vectors.usable);
+  KISSAT_assert (MAX_SECTOR > solver->vectors.usable);
   solver->vectors.usable++;
 }
 
 static inline void kissat_add_usable (kissat *solver, size_t inc) {
-  assert (MAX_SECTOR - inc >= solver->vectors.usable);
+  KISSAT_assert (MAX_SECTOR - inc >= solver->vectors.usable);
   solver->vectors.usable += inc;
 }
 
 static inline unsigned *kissat_last_vector_pointer (kissat *solver,
                                                     vector *vector) {
-  assert (!kissat_empty_vector (vector));
-#ifdef COMPACT
-  assert (vector->size);
+  KISSAT_assert (!kissat_empty_vector (vector));
+#ifdef KISSAT_COMPACT
+  KISSAT_assert (vector->size);
   unsigned *begin = kissat_begin_vector (solver, vector);
   return begin + vector->size - 1;
 #else
@@ -99,8 +102,8 @@ static inline unsigned *kissat_last_vector_pointer (kissat *solver,
 #ifdef TEST_VECTOR
 
 static inline void kissat_pop_vector (kissat *solver, vector *vector) {
-  assert (!kissat_empty_vector (vector));
-#ifdef COMPACT
+  KISSAT_assert (!kissat_empty_vector (vector));
+#ifdef KISSAT_COMPACT
   unsigned *p = kissat_last_vector_pointer (solver, vector);
   vector->size--;
   *p = INVALID_VECTOR_ELEMENT;
@@ -118,16 +121,16 @@ static inline void kissat_release_vector (kissat *solver, vector *vector) {
 }
 
 static inline void kissat_dec_usable (kissat *solver) {
-  assert (solver->vectors.usable > 0);
+  KISSAT_assert (solver->vectors.usable > 0);
   solver->vectors.usable--;
 }
 
 static inline void kissat_push_vectors (kissat *solver, vector *vector,
                                         unsigned e) {
   unsigneds *stack = &solver->vectors.stack;
-  assert (e != INVALID_VECTOR_ELEMENT);
+  KISSAT_assert (e != INVALID_VECTOR_ELEMENT);
   if (
-#ifdef COMPACT
+#ifdef KISSAT_COMPACT
       !vector->size && !vector->offset
 #else
       !vector->begin
@@ -137,21 +140,21 @@ static inline void kissat_push_vectors (kissat *solver, vector *vector,
       PUSH_STACK (*stack, 0);
     if (FULL_STACK (*stack)) {
       unsigned *end = kissat_enlarge_vector (solver, vector);
-      assert (*end == INVALID_VECTOR_ELEMENT);
+      KISSAT_assert (*end == INVALID_VECTOR_ELEMENT);
       *end = e;
       kissat_dec_usable (solver);
     } else {
-#ifdef COMPACT
-      assert ((uint64_t) SIZE_STACK (*stack) < MAX_VECTORS);
+#ifdef KISSAT_COMPACT
+      KISSAT_assert ((uint64_t) SIZE_STACK (*stack) < MAX_VECTORS);
       vector->offset = SIZE_STACK (*stack);
-      assert (vector->offset);
+      KISSAT_assert (vector->offset);
       *stack->end++ = e;
 #else
-      assert (stack->end < stack->allocated);
+      KISSAT_assert (stack->end < stack->allocated);
       *(vector->begin = stack->end++) = e;
 #endif
     }
-#if !defined(COMPACT)
+#if !defined(KISSAT_COMPACT)
     vector->end = vector->begin;
 #endif
   } else {
@@ -159,7 +162,7 @@ static inline void kissat_push_vectors (kissat *solver, vector *vector,
     if (end == END_STACK (*stack)) {
       if (FULL_STACK (*stack)) {
         end = kissat_enlarge_vector (solver, vector);
-        assert (*end == INVALID_VECTOR_ELEMENT);
+        KISSAT_assert (*end == INVALID_VECTOR_ELEMENT);
         *end = e;
         kissat_dec_usable (solver);
       } else
@@ -167,12 +170,12 @@ static inline void kissat_push_vectors (kissat *solver, vector *vector,
     } else {
       if (*end != INVALID_VECTOR_ELEMENT)
         end = kissat_enlarge_vector (solver, vector);
-      assert (*end == INVALID_VECTOR_ELEMENT);
+      KISSAT_assert (*end == INVALID_VECTOR_ELEMENT);
       *end = e;
       kissat_dec_usable (solver);
     }
   }
-#ifndef COMPACT
+#ifndef KISSAT_COMPACT
   vector->end++;
 #else
   vector->size++;
@@ -189,5 +192,7 @@ static inline void kissat_push_vectors (kissat *solver, vector *vector,
   E##_PTR++
 
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

@@ -12,6 +12,8 @@
 
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 typedef struct tagged tagged;
 typedef struct counter counter;
 typedef struct walker walker;
@@ -25,8 +27,8 @@ struct tagged {
 };
 
 static inline tagged make_tagged (bool binary, unsigned ref) {
-  assert (ref <= MAX_WALK_REF);
-  tagged res = {.binary = binary, .ref = ref};
+  KISSAT_assert (ref <= MAX_WALK_REF);
+  tagged res = {.ref = ref, .binary = binary};
   return res;
 }
 
@@ -71,7 +73,7 @@ struct walker {
 
   uint64_t limit;
   uint64_t flipped;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   uint64_t start;
   struct {
     uint64_t flipped;
@@ -83,7 +85,7 @@ struct walker {
 static const unsigned *dereference_literals (kissat *solver, walker *walker,
                                              unsigned counter_ref,
                                              unsigned *size_ptr) {
-  assert (counter_ref < walker->clauses);
+  KISSAT_assert (counter_ref < walker->clauses);
   tagged tagged = walker->refs[counter_ref];
   unsigned const *lits;
   if (tagged.binary) {
@@ -101,9 +103,9 @@ static const unsigned *dereference_literals (kissat *solver, walker *walker,
 
 static void push_unsat (kissat *solver, walker *walker, counter *counters,
                         unsigned counter_ref) {
-  assert (counter_ref < walker->clauses);
+  KISSAT_assert (counter_ref < walker->clauses);
   counter *counter = counters + counter_ref;
-  assert (SIZE_STACK (walker->unsat) <= UINT_MAX);
+  KISSAT_assert (SIZE_STACK (walker->unsat) <= UINT_MAX);
   counter->pos = SIZE_STACK (walker->unsat);
   PUSH_STACK (walker->unsat, counter_ref);
 #ifdef LOGGING
@@ -116,18 +118,18 @@ static void push_unsat (kissat *solver, walker *walker, counter *counters,
 
 static bool pop_unsat (kissat *solver, walker *walker, counter *counters,
                        unsigned counter_ref, unsigned pos) {
-  assert (walker->current);
-  assert (counter_ref < walker->clauses);
-  assert (counters[counter_ref].pos == pos);
-  assert (walker->current == SIZE_STACK (walker->unsat));
+  KISSAT_assert (walker->current);
+  KISSAT_assert (counter_ref < walker->clauses);
+  KISSAT_assert (counters[counter_ref].pos == pos);
+  KISSAT_assert (walker->current == SIZE_STACK (walker->unsat));
   const unsigned other_counter_ref = POP_STACK (walker->unsat);
   walker->current--;
   bool res = false;
   if (counter_ref != other_counter_ref) {
-    assert (other_counter_ref < walker->clauses);
+    KISSAT_assert (other_counter_ref < walker->clauses);
     counter *other_counter = counters + other_counter_ref;
-    assert (other_counter->pos == walker->current);
-    assert (pos < other_counter->pos);
+    KISSAT_assert (other_counter->pos == walker->current);
+    KISSAT_assert (pos < other_counter->pos);
     other_counter->pos = pos;
     POKE_STACK (walker->unsat, pos, other_counter_ref);
     res = true;
@@ -155,9 +157,9 @@ static double fit_cbval (double size) {
   const double x2 = cbvals[i + 1][0], x1 = cbvals[i][0];
   const double y2 = cbvals[i + 1][1], y1 = cbvals[i][1];
   const double dx = x2 - x1, dy = y2 - y1;
-  assert (dx);
+  KISSAT_assert (dx);
   const double res = dy * (size - x1) / dx + y1;
-  assert (res > 0);
+  KISSAT_assert (res > 0);
   return res;
 }
 
@@ -172,14 +174,14 @@ static void init_score_table (walker *walker) {
   for (next = 1; next; next *= base)
     exponents++;
 
-  walker->table = kissat_malloc (solver, exponents * sizeof (double));
+  walker->table = (double*)kissat_malloc (solver, exponents * sizeof (double));
 
   unsigned i = 0;
   double epsilon;
   for (epsilon = next = 1; next; next = epsilon * base)
     walker->table[i++] = epsilon = next;
 
-  assert (i == exponents);
+  KISSAT_assert (i == exponents);
   walker->exponents = exponents;
   walker->epsilon = epsilon;
 
@@ -198,22 +200,22 @@ static void import_decision_phases (walker *walker) {
   INC (walk_decisions);
   const flags *const flags = solver->flags;
   value *values = solver->values;
-  walker->best_values = kissat_calloc (solver, VARS, 1);
+  walker->best_values = (value*)kissat_calloc (solver, VARS, 1);
   value *best_values = walker->best_values;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   unsigned imported = 0;
 #endif
   for (all_variables (idx)) {
     if (!flags[idx].active)
       continue;
     value value = kissat_decide_phase (solver, idx);
-    assert (value);
+    KISSAT_assert (value);
     best_values[idx] = value;
     const unsigned lit = LIT (idx);
     const unsigned not_lit = NOT (lit);
     values[lit] = value;
     values[not_lit] = -value;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     imported++;
 #endif
     LOG ("copied %s decision phase %d", LOGVAR (idx), (int) value);
@@ -230,7 +232,7 @@ static unsigned connect_binary_counters (walker *walker) {
   watches *all_watches = solver->watches;
   counter *counters = walker->counters;
 
-  assert (SIZE_STACK (*walker->binaries) <= UINT_MAX);
+  KISSAT_assert (SIZE_STACK (*walker->binaries) <= UINT_MAX);
   const unsigned size = SIZE_STACK (*walker->binaries);
   litpair *binaries = BEGIN_STACK (*walker->binaries);
   unsigned unsat = 0, counter_ref = 0;
@@ -239,12 +241,12 @@ static unsigned connect_binary_counters (walker *walker) {
     const litpair *const litpair = binaries + binary_ref;
     const unsigned first = litpair->lits[0];
     const unsigned second = litpair->lits[1];
-    assert (first < LITS), assert (second < LITS);
+    KISSAT_assert (first < LITS), KISSAT_assert (second < LITS);
     const value first_value = values[first];
     const value second_value = values[second];
     if (!first_value || !second_value)
       continue;
-    assert (counter_ref < walker->clauses);
+    KISSAT_assert (counter_ref < walker->clauses);
     refs[counter_ref] = make_tagged (true, binary_ref);
     watches *first_watches = all_watches + first;
     watches *second_watches = all_watches + second;
@@ -262,7 +264,7 @@ static unsigned connect_binary_counters (walker *walker) {
   kissat_phase (solver, "walk", GET (walks),
                 "initially %u unsatisfied binary clauses %.0f%% out of %u",
                 unsat, kissat_percent (unsat, counter_ref), counter_ref);
-#ifdef QUIET
+#ifdef KISSAT_QUIET
   (void) unsat;
 #endif
   walker->size += 2.0 * counter_ref;
@@ -271,7 +273,7 @@ static unsigned connect_binary_counters (walker *walker) {
 
 static void connect_large_counters (walker *walker, unsigned counter_ref) {
   kissat *solver = walker->solver;
-  assert (!solver->level);
+  KISSAT_assert (!solver->level);
   const value *const original_values = walker->original_values;
   const value *const local_search_values = solver->values;
   ward *const arena = BEGIN_STACK (solver->arena);
@@ -297,23 +299,23 @@ static void connect_large_counters (walker *walker, unsigned counter_ref) {
         continue;
       LOGCLS (c, "%s satisfied", LOGLIT (lit));
       kissat_mark_clause_as_garbage (solver, c);
-      assert (c->garbage);
+      KISSAT_assert (c->garbage);
       continue_with_next_clause = true;
       break;
     }
     if (continue_with_next_clause)
       continue;
     large++;
-    assert (kissat_clause_in_arena (solver, c));
+    KISSAT_assert (kissat_clause_in_arena (solver, c));
     reference clause_ref = (ward *) c - arena;
-    assert (clause_ref <= MAX_WALK_REF);
-    assert (counter_ref < walker->clauses);
+    KISSAT_assert (clause_ref <= MAX_WALK_REF);
+    KISSAT_assert (counter_ref < walker->clauses);
     refs[counter_ref] = make_tagged (false, clause_ref);
     unsigned count = 0, size = 0;
     for (all_literals_in_clause (lit, c)) {
       const value value = local_search_values[lit];
       if (!value) {
-        assert (original_values[lit] < 0);
+        KISSAT_assert (original_values[lit] < 0);
         continue;
       }
       watches *watches = &WATCHES (lit);
@@ -335,13 +337,13 @@ static void connect_large_counters (walker *walker, unsigned counter_ref) {
   kissat_phase (solver, "walk", GET (walks),
                 "initially %u unsatisfied large clauses %.0f%% out of %u",
                 unsat, kissat_percent (unsat, large), large);
-#ifdef QUIET
+#ifdef KISSAT_QUIET
   (void) large;
   (void) unsat;
 #endif
 }
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 
 static void report_initial_minimum (kissat *solver, walker *walker) {
   walker->report.minimum = walker->minimum;
@@ -351,7 +353,7 @@ static void report_initial_minimum (kissat *solver, walker *walker) {
 
 static void report_minimum (const char *type, kissat *solver,
                             walker *walker) {
-  assert (walker->minimum <= walker->report.minimum);
+  KISSAT_assert (walker->minimum <= walker->report.minimum);
   kissat_very_verbose (solver,
                        "%s minimum of %u unsatisfied clauses after %" PRIu64
                        " flipped literals",
@@ -370,24 +372,24 @@ static void report_minimum (const char *type, kissat *solver,
 static void init_walker (kissat *solver, walker *walker,
                          litpairs *binaries) {
   uint64_t clauses = BINIRR_CLAUSES;
-  assert (clauses <= MAX_WALK_REF);
+  KISSAT_assert (clauses <= MAX_WALK_REF);
 
   memset (walker, 0, sizeof *walker);
 
   walker->solver = solver;
   walker->clauses = clauses;
   walker->binaries = binaries;
-  walker->random = solver->random ^ solver->statistics.walks;
+  walker->random = solver->random ^ solver->statistics_.walks;
 
   walker->original_values = solver->values;
-  solver->values = kissat_calloc (solver, LITS, 1);
+  solver->values = (value*)kissat_calloc (solver, LITS, 1);
 
   import_decision_phases (walker);
 
-  walker->counters = kissat_malloc (solver, clauses * sizeof (counter));
-  walker->refs = kissat_malloc (solver, clauses * sizeof (tagged));
+  walker->counters = (counter*)kissat_malloc (solver, clauses * sizeof (counter));
+  walker->refs = (tagged*)kissat_malloc (solver, clauses * sizeof (tagged));
 
-  assert (!walker->size);
+  KISSAT_assert (!walker->size);
   const unsigned counter_ref = connect_binary_counters (walker);
   connect_large_counters (walker, counter_ref);
 
@@ -413,8 +415,8 @@ static void init_walker_limit (kissat *solver, walker *walker) {
   SET_EFFORT_LIMIT (limit, walk, walk_steps);
   walker->limit = limit;
   walker->flipped = 0;
-#ifndef QUIET
-  walker->start = solver->statistics.walk_steps;
+#ifndef KISSAT_QUIET
+  walker->start = solver->statistics_.walk_steps;
   walker->report.minimum = UINT_MAX;
   walker->report.flipped = 0;
 #endif
@@ -438,21 +440,21 @@ static void release_walker (walker *walker) {
 
 static unsigned break_value (kissat *solver, walker *walker, value *values,
                              unsigned lit) {
-  assert (values[lit] < 0);
+  KISSAT_assert (values[lit] < 0);
   const unsigned not_lit = NOT (lit);
   watches *watches = &WATCHES (not_lit);
   unsigned steps = 1;
   unsigned res = 0;
   for (all_binary_large_watches (watch, *watches)) {
     steps++;
-    assert (!watch.type.binary);
+    KISSAT_assert (!watch.type.binary);
     reference counter_ref = watch.large.ref;
-    assert (counter_ref < walker->clauses);
+    KISSAT_assert (counter_ref < walker->clauses);
     counter *counter = walker->counters + counter_ref;
     res += (counter->count == 1);
   }
   ADD (walk_steps, steps);
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) values;
 #endif
   return res;
@@ -466,7 +468,7 @@ static double scale_score (walker *walker, unsigned breaks) {
 }
 
 static unsigned pick_literal (kissat *solver, walker *walker) {
-  assert (walker->current == SIZE_STACK (walker->unsat));
+  KISSAT_assert (walker->current == SIZE_STACK (walker->unsat));
   const unsigned pos = walker->flipped++ % walker->current;
   const unsigned counter_ref = PEEK_STACK (walker->unsat, pos);
   unsigned size;
@@ -474,7 +476,7 @@ static unsigned pick_literal (kissat *solver, walker *walker) {
       dereference_literals (solver, walker, counter_ref, &size);
 
   LOGLITS (size, lits, "picked unsatisfied[%u]", pos);
-  assert (EMPTY_STACK (walker->scores));
+  KISSAT_assert (EMPTY_STACK (walker->scores));
 
   value *values = solver->values;
 
@@ -489,21 +491,21 @@ static unsigned pick_literal (kissat *solver, walker *walker) {
     picked_lit = lit;
     const unsigned breaks = break_value (solver, walker, values, lit);
     const double score = scale_score (walker, breaks);
-    assert (score > 0);
+    KISSAT_assert (score > 0);
     LOG ("literal %s breaks %u score %g", LOGLIT (lit), breaks, score);
     PUSH_STACK (walker->scores, score);
     sum += score;
   }
-  assert (picked_lit != INVALID_LIT);
-  assert (0 < sum);
+  KISSAT_assert (picked_lit != INVALID_LIT);
+  KISSAT_assert (0 < sum);
 
   const double random = kissat_pick_double (&walker->random);
-  assert (0 <= random), assert (random < 1);
+  KISSAT_assert (0 <= random), KISSAT_assert (random < 1);
 
   const double threshold = sum * random;
   LOG ("score sum %g and random threshold %g", sum, threshold);
 
-  // assert (threshold < sum); // NOT TRUE!!!!
+  // KISSAT_assert (threshold < sum); // NOT TRUE!!!!
 
   double *scores = BEGIN_STACK (walker->scores);
 #ifdef LOGGING
@@ -526,7 +528,7 @@ static unsigned pick_literal (kissat *solver, walker *walker) {
       break;
     }
   }
-  assert (picked_lit != INVALID_LIT);
+  KISSAT_assert (picked_lit != INVALID_LIT);
   LOG ("picked literal %s with score %g", LOGLIT (picked_lit),
        picked_score);
 
@@ -541,7 +543,7 @@ static void break_clauses (kissat *solver, walker *walker,
   unsigned broken = 0;
 #endif
   const unsigned not_flipped = NOT (flipped);
-  assert (values[not_flipped] < 0);
+  KISSAT_assert (values[not_flipped] < 0);
   LOG ("breaking one-satisfied clauses containing negated flipped literal "
        "%s",
        LOGLIT (not_flipped));
@@ -550,11 +552,11 @@ static void break_clauses (kissat *solver, walker *walker,
   unsigned steps = 1;
   for (all_binary_large_watches (watch, *watches)) {
     steps++;
-    assert (!watch.type.binary);
+    KISSAT_assert (!watch.type.binary);
     const unsigned counter_ref = watch.large.ref;
-    assert (counter_ref < walker->clauses);
+    KISSAT_assert (counter_ref < walker->clauses);
     counter *counter = counters + counter_ref;
-    assert (counter->count);
+    KISSAT_assert (counter->count);
     if (--counter->count)
       continue;
     push_unsat (solver, walker, counters, counter_ref);
@@ -566,14 +568,14 @@ static void break_clauses (kissat *solver, walker *walker,
        "negated flipped literal %s",
        broken, LOGLIT (not_flipped));
   ADD (walk_steps, steps);
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) values;
 #endif
 }
 
 static void make_clauses (kissat *solver, walker *walker,
                           const value *const values, unsigned flipped) {
-  assert (values[flipped] > 0);
+  KISSAT_assert (values[flipped] > 0);
   LOG ("making unsatisfied clauses containing flipped literal %s",
        LOGLIT (flipped));
   watches *watches = &WATCHES (flipped);
@@ -584,11 +586,11 @@ static void make_clauses (kissat *solver, walker *walker,
 #endif
   for (all_binary_large_watches (watch, *watches)) {
     steps++;
-    assert (!watch.type.binary);
+    KISSAT_assert (!watch.type.binary);
     const unsigned counter_ref = watch.large.ref;
-    assert (counter_ref < walker->clauses);
+    KISSAT_assert (counter_ref < walker->clauses);
     counter *counter = counters + counter_ref;
-    assert (counter->count < UINT_MAX);
+    KISSAT_assert (counter->count < UINT_MAX);
     if (counter->count++)
       continue;
     if (pop_unsat (solver, walker, counters, counter_ref, counter->pos))
@@ -600,14 +602,14 @@ static void make_clauses (kissat *solver, walker *walker,
   LOG ("made %u unsatisfied clauses containing flipped literal %s", made,
        LOGLIT (flipped));
   ADD (walk_steps, steps);
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) values;
 #endif
 }
 
 static void save_all_values (kissat *solver, walker *walker) {
-  assert (EMPTY_STACK (walker->trail));
-  assert (walker->best_trail_pos == INVALID_BEST_TRAIL_POS);
+  KISSAT_assert (EMPTY_STACK (walker->trail));
+  KISSAT_assert (walker->best_trail_pos == INVALID_BEST_TRAIL_POS);
   LOG ("copying all values as best phases since trail is invalid");
   const value *const current_values = solver->values;
   value *best_values = walker->best_values;
@@ -622,11 +624,11 @@ static void save_all_values (kissat *solver, walker *walker) {
 }
 
 static void save_walker_trail (kissat *solver, walker *walker, bool keep) {
-#if defined(LOGGING) || !defined(NDEBUG)
-  assert (walker->best_trail_pos != INVALID_BEST_TRAIL_POS);
-  assert (SIZE_STACK (walker->trail) <= UINT_MAX);
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
+  KISSAT_assert (walker->best_trail_pos != INVALID_BEST_TRAIL_POS);
+  KISSAT_assert (SIZE_STACK (walker->trail) <= UINT_MAX);
   const unsigned size_trail = SIZE_STACK (walker->trail);
-  assert (walker->best_trail_pos <= size_trail);
+  KISSAT_assert (walker->best_trail_pos <= size_trail);
   const unsigned kept = size_trail - walker->best_trail_pos;
   LOG ("saving %u values of flipped literals on trail of size %u",
        walker->best_trail_pos, size_trail);
@@ -652,8 +654,8 @@ static void save_walker_trail (kissat *solver, walker *walker, bool keep) {
   unsigned *q = begin;
   for (const unsigned *p = best; p != end; p++)
     *q++ = *p;
-  assert ((size_t) (end - q) == walker->best_trail_pos);
-  assert ((size_t) (q - begin) == kept);
+  KISSAT_assert ((size_t) (end - q) == walker->best_trail_pos);
+  KISSAT_assert ((size_t) (q - begin) == kept);
   SET_END_OF_STACK (walker->trail, q);
   LOG ("keeping %u literals %.0f%% on trail", kept,
        kissat_percent (kept, size_trail));
@@ -666,13 +668,13 @@ static void push_flipped (kissat *solver, walker *walker,
   if (walker->best_trail_pos == INVALID_BEST_TRAIL_POS) {
     LOG ("not pushing flipped %s to already invalid trail",
          LOGLIT (flipped));
-    assert (EMPTY_STACK (walker->trail));
+    KISSAT_assert (EMPTY_STACK (walker->trail));
   } else {
-    assert (SIZE_STACK (walker->trail) <= UINT_MAX);
+    KISSAT_assert (SIZE_STACK (walker->trail) <= UINT_MAX);
     const unsigned size_trail = SIZE_STACK (walker->trail);
-    assert (walker->best_trail_pos <= size_trail);
+    KISSAT_assert (walker->best_trail_pos <= size_trail);
     const unsigned limit = VARS / 4 + 1;
-    assert (limit < INVALID_BEST_TRAIL_POS);
+    KISSAT_assert (limit < INVALID_BEST_TRAIL_POS);
     if (size_trail < limit) {
       PUSH_STACK (walker->trail, flipped);
       LOG ("pushed flipped %s to trail which now has size %u",
@@ -682,7 +684,7 @@ static void push_flipped (kissat *solver, walker *walker,
            walker->best_trail_pos);
       save_walker_trail (solver, walker, true);
       PUSH_STACK (walker->trail, flipped);
-      assert (SIZE_STACK (walker->trail) <= UINT_MAX);
+      KISSAT_assert (SIZE_STACK (walker->trail) <= UINT_MAX);
       LOG ("pushed flipped %s to trail which now has size %zu",
            LOGLIT (flipped), SIZE_STACK (walker->trail));
     } else {
@@ -699,7 +701,7 @@ static void flip_literal (kissat *solver, walker *walker, unsigned flip) {
   LOG ("flipping literal %s", LOGLIT (flip));
   value *values = solver->values;
   const value value = values[flip];
-  assert (value < 0);
+  KISSAT_assert (value < 0);
   values[flip] = -value;
   values[NOT (flip)] = value;
   make_clauses (solver, walker, values, flip);
@@ -708,9 +710,9 @@ static void flip_literal (kissat *solver, walker *walker, unsigned flip) {
 }
 
 static void update_best (kissat *solver, walker *walker) {
-  assert (walker->current < walker->minimum);
+  KISSAT_assert (walker->current < walker->minimum);
   walker->minimum = walker->current;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   int verbosity = kissat_verbosity (solver);
   bool report = (verbosity > 2);
   if (verbosity == 2) {
@@ -730,16 +732,16 @@ static void update_best (kissat *solver, walker *walker) {
   if (walker->best_trail_pos == INVALID_BEST_TRAIL_POS)
     save_all_values (solver, walker);
   else {
-    assert (SIZE_STACK (walker->trail) < INVALID_BEST_TRAIL_POS);
+    KISSAT_assert (SIZE_STACK (walker->trail) < INVALID_BEST_TRAIL_POS);
     walker->best_trail_pos = SIZE_STACK (walker->trail);
     LOG ("new best trail position %u", walker->best_trail_pos);
   }
 }
 
 static void local_search_step (kissat *solver, walker *walker) {
-  assert (walker->current);
+  KISSAT_assert (walker->current);
   INC (flipped);
-  assert (walker->flipped < UINT64_MAX);
+  KISSAT_assert (walker->flipped < UINT64_MAX);
   walker->flipped++;
   LOG ("starting local search flip %" PRIu64 " with %u unsatisfied clauses",
        GET (flipped), walker->current);
@@ -754,18 +756,18 @@ static void local_search_step (kissat *solver, walker *walker) {
 
 static void local_search_round (walker *walker) {
   kissat *solver = walker->solver;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const unsigned before = walker->minimum;
 #endif
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   while (walker->minimum && walker->limit > statistics->walk_steps) {
     if (TERMINATED (walk_terminated_1))
       break;
     local_search_step (solver, walker);
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   report_minimum ("last", solver, walker);
-  assert (statistics->walk_steps >= walker->start);
+  KISSAT_assert (statistics->walk_steps >= walker->start);
   const uint64_t steps = statistics->walk_steps - walker->start;
   // clang-format off
   kissat_very_verbose (solver,
@@ -785,15 +787,15 @@ static void export_best_values (walker *walker) {
   kissat *const solver = walker->solver;
   const value *const best = walker->best_values;
   value *const saved = solver->phases.saved;
-  assert (sizeof *saved == 1);
-  assert (sizeof *best == 1);
+  KISSAT_assert (sizeof *saved == 1);
+  KISSAT_assert (sizeof *best == 1);
   memcpy (saved, best, VARS);
 }
 
 static bool save_final_minimum (walker *walker) {
   kissat *solver = walker->solver;
 
-  assert (walker->minimum <= walker->initial);
+  KISSAT_assert (walker->minimum <= walker->initial);
   if (walker->minimum == walker->initial) {
     kissat_phase (solver, "walk", GET (walks),
                   "no improvement thus keeping saved phases");
@@ -823,14 +825,14 @@ static void check_walk (kissat *solver, unsigned expected) {
   watches *all_watches = solver->watches;
   const value *const saved = solver->phases.saved;
   for (all_literals (lit)) {
-    assert (lit < LITS);
+    KISSAT_assert (lit < LITS);
     watches *watches = all_watches + lit;
     if (kissat_empty_vector (watches))
       continue;
     value value = solver->values[lit];
     if (!value) {
       value = saved[IDX (lit)];
-      assert (value);
+      KISSAT_assert (value);
       if (NEGATED (lit))
         value = -value;
     }
@@ -844,7 +846,7 @@ static void check_walk (kissat *solver, unsigned expected) {
         value = solver->values[other];
         if (!value) {
           value = saved[IDX (other)];
-          assert (value);
+          KISSAT_assert (value);
           if (NEGATED (other))
             value = -value;
         }
@@ -864,7 +866,7 @@ static void check_walk (kissat *solver, unsigned expected) {
       value value = solver->values[lit];
       if (!value) {
         value = saved[IDX (lit)];
-        assert (value);
+        KISSAT_assert (value);
         if (NEGATED (lit))
           value = -value;
       }
@@ -878,7 +880,7 @@ static void check_walk (kissat *solver, unsigned expected) {
   }
   LOG ("expected %u unsatisfied", expected);
   LOG ("actually %u unsatisfied", unsatisfied);
-  assert (expected == unsatisfied);
+  KISSAT_assert (expected == unsatisfied);
 }
 
 #endif
@@ -934,10 +936,10 @@ bool kissat_walking (kissat *solver) {
 }
 
 void kissat_walk (kissat *solver) {
-  assert (!solver->level);
-  assert (!solver->inconsistent);
-  assert (kissat_propagated (solver));
-  assert (kissat_walking (solver));
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->inconsistent);
+  KISSAT_assert (kissat_propagated (solver));
+  KISSAT_assert (kissat_walking (solver));
 
   reference last_irredundant = solver->last_irredundant;
   if (last_irredundant == INVALID_REF)
@@ -964,3 +966,5 @@ void kissat_walk (kissat *solver) {
   walking_phase (solver);
   STOP_SIMPLIFIER_AND_RESUME_SEARCH (walking);
 }
+
+ABC_NAMESPACE_IMPL_END
