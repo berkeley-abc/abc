@@ -4,11 +4,11 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName []
+  PackageName [SAT solver Kissat by Armin Biere, University of Freiburg]
 
-  Synopsis    []
+  Synopsis    [https://github.com/arminbiere/kissat]
 
-  Author      [Alan Mishchenko]
+  Author      [Integrated into ABC by Yukio Miyasaka]
   
   Affiliation [UC Berkeley]
 
@@ -190,6 +190,53 @@ void kissat_solver_setnvars(kissat_solver* s,int n) {
 int kissat_solver_get_var_value(kissat_solver* s, int v) {
   return kissat_value((kissat*)s->p, v + 1) > 0;
 }
+
+
+/**Function*************************************************************
+
+  Synopsis    [Solves the given CNF using kissat.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * kissat_solve_cnf( Cnf_Dat_t * pCnf, char * pArgs, int nConfs, int nTimeLimit, int fSat, int fUnsat, int fPrintCex, int fVerbose )
+{
+    abctime clk = Abc_Clock();
+    Vec_Int_t * vRes = NULL;
+    int i, * pBeg, * pEnd, RetValue;    
+    if ( fVerbose )
+        printf( "CNF stats: Vars = %6d. Clauses = %7d. Literals = %8d. ", pCnf->nVars, pCnf->nClauses, pCnf->nLiterals );
+    kissat_solver *pSat = kissat_solver_new();
+    kissat_solver_setnvars(pSat, pCnf->nVars);
+    assert(kissat_solver_nvars(pSat) == pCnf->nVars);
+    Cnf_CnfForClause( pCnf, pBeg, pEnd, i ) {
+        if ( !kissat_solver_addclause(pSat, pBeg, pEnd) )
+        {
+            assert( 0 ); // if it happens, can return 1 (unsatisfiable)
+            return NULL;
+        }    
+    }
+    RetValue = kissat_solver_solve(pSat, NULL, NULL, 0, 0, 0, 0);
+    if ( RetValue == 1 )
+      printf( "Result: Satisfiable.  " );
+    else if ( RetValue == -1 )
+      printf( "Result: Unsatisfiable.  " );
+    else
+      printf( "Result: Undecided.  " );
+    if ( RetValue == 1 ) {
+        vRes = Vec_IntAlloc( pCnf->nVars );
+        for ( i = 0; i < pCnf->nVars; i++ )
+          Vec_IntPush( vRes, kissat_solver_get_var_value(pSat, 1) );
+    }
+    kissat_solver_delete(pSat);
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+    return vRes;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

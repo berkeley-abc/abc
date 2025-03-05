@@ -28148,11 +28148,11 @@ int Abc_CommandAbc9Kissat( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
     extern void Gia_ManKissatCall( Abc_Frame_t * pAbc, char * pFileName, char * pArgs, int nConfs, int nTimeLimit, int fSat, int fUnsat, int fPrintCex, int fVerbose );
-    int c, nConfs = 0, nTimeLimit = 0, fSat = 0, fUnsat = 0, fPrintCex = 0, fVerbose = 0;
+    int c, nConfs = 0, nTimeLimit = 0, fSat = 0, fUnsat = 0, fPrintCex = 0, fKissat = 1, fVerbose = 0;
     char * pArgs = NULL;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CTAsucvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CTAsuckvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -28196,6 +28196,9 @@ int Abc_CommandAbc9Kissat( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fPrintCex ^= 1;
             break;
+        case 'k':
+            fKissat ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -28216,6 +28219,18 @@ int Abc_CommandAbc9Kissat( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Satoko(): There is no AIG.\n" );
         return 1;
     }
+    else if ( fKissat )
+    {
+        extern Vec_Int_t * kissat_solve_cnf( Cnf_Dat_t * pCnf, char * pArgs, int nConfs, int nTimeLimit, int fSat, int fUnsat, int fPrintCex, int fVerbose );
+        extern void * Mf_ManGenerateCnf( Gia_Man_t * pGia, int nLutSize, int fCnfObjIds, int fAddOrCla, int fMapping, int fVerbose );
+        int nLutSize    = 8;
+        int fCnfObjIds  = 0;        
+        int fAddOrCla   = 1;
+        Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pAbc->pGia, nLutSize, fCnfObjIds, fAddOrCla, 0, fVerbose );
+        Vec_Int_t * vRes = kissat_solve_cnf( pCnf, pArgs, nConfs, nTimeLimit, fSat, fUnsat, fPrintCex, 1 );
+        Vec_IntFreeP( &vRes );
+        Cnf_DataFree(pCnf);
+    }
     else
     {
         int nLutSize    = 8;
@@ -28229,18 +28244,20 @@ int Abc_CommandAbc9Kissat( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &kissat [-CT num] [-sucvh] [-A string] <file.cnf>\n" );
-    Abc_Print( -2, "\t             run SAT solver Kissat, by Armin Biere (https://github.com/arminbiere/kissat)\n" );
+    Abc_Print( -2, "usage: &kissat [-CT num] [-suckvh] [-A string] <file.cnf>\n" );
+    Abc_Print( -2, "\t             run SAT solver Kissat 4.0.2, by Armin Biere (https://github.com/arminbiere/kissat)\n" );
     Abc_Print( -2, "\t-C num     : limit on the number of conflicts [default = %d]\n", nConfs );
     Abc_Print( -2, "\t-T num     : runtime limit in seconds [default = %d]\n", nTimeLimit );
     Abc_Print( -2, "\t-s         : expect a satisfiable problem [default = %s]\n", fSat ? "yes": "no" );
     Abc_Print( -2, "\t-u         : expect an unsatisfiable problem [default = %s]\n", fUnsat ? "yes": "no" );
     Abc_Print( -2, "\t-c         : prints satisfying assignment if satisfiable [default = %s]\n", fPrintCex ? "yes": "no" );
+    Abc_Print( -2, "\t-k         : calls Kissat through programmable APIs [default = %s]\n", fKissat ? "yes": "no" );
     Abc_Print( -2, "\t-v         : prints verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-A num     : string containing additional command-line args for the Kissat binary [default = %s]\n", pArgs ? pArgs : "unused" );
     Abc_Print( -2, "\t             (in particular, <&kissat -A \"--help\"> prints all command-line args of Kissat)\n" );
     Abc_Print( -2, "\t<file.cnf> : (optional) CNF file to solve\n");
     Abc_Print( -2, "\t-h         : print the command usage\n");
+    Abc_Print( -2, "\n\t             The solver was integrated into ABC by Yukio Miyasaka\n");
     return 1;
 }
 

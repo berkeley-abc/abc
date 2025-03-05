@@ -4,11 +4,11 @@
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
-  PackageName []
+  PackageName [SAT solver Kissat by Armin Biere, University of Freiburg]
 
-  Synopsis    []
+  Synopsis    [https://github.com/arminbiere/kissat]
 
-  Author      [Alan Mishchenko]
+  Author      [Integrated into ABC by Yukio Miyasaka]
   
   Affiliation [UC Berkeley]
 
@@ -26,6 +26,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "aig/gia/gia.h"
+#include "sat/cnf/cnf.h"
 
 ////////////////////////////////////////////////////////////////////////
 ///                         PARAMETERS                               ///
@@ -61,6 +62,7 @@ extern int             kissat_solver_nvars(kissat_solver* s);
 extern int             kissat_solver_addvar(kissat_solver* s);
 extern void            kissat_solver_setnvars(kissat_solver* s,int n);
 extern int             kissat_solver_get_var_value(kissat_solver* s, int v);
+extern Vec_Int_t *     kissat_solve_cnf( Cnf_Dat_t * pCnf, char * pArgs, int nConfs, int nTimeLimit, int fSat, int fUnsat, int fPrintCex, int fVerbose );
 
 ABC_NAMESPACE_HEADER_END
 
