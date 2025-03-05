@@ -230,7 +230,7 @@ Vec_Int_t * kissat_solve_cnf( Cnf_Dat_t * pCnf, char * pArgs, int nConfs, int nT
     if ( RetValue == 1 ) {
         vRes = Vec_IntAlloc( pCnf->nVars );
         for ( i = 0; i < pCnf->nVars; i++ )
-          Vec_IntPush( vRes, kissat_solver_get_var_value(pSat, 1) );
+          Vec_IntPush( vRes, kissat_solver_get_var_value(pSat, i) );
     }
     kissat_solver_delete(pSat);
     Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
