@@ -1,11 +1,13 @@
 #include "propdense.h"
 #include "fastassign.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static inline bool non_watching_propagate_literal (kissat *solver,
                                                    unsigned lit) {
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   LOG ("propagating %s", LOGLIT (lit));
-  assert (VALUE (lit) > 0);
+  KISSAT_assert (VALUE (lit) > 0);
   const unsigned not_lit = NOT (lit);
 
   watches *watches = &WATCHES (not_lit);
@@ -20,7 +22,7 @@ static inline bool non_watching_propagate_literal (kissat *solver,
   for (all_binary_large_watches (watch, *watches)) {
     if (watch.type.binary) {
       const unsigned other = watch.binary.lit;
-      assert (VALID_INTERNAL_LITERAL (other));
+      KISSAT_assert (VALID_INTERNAL_LITERAL (other));
       const value other_value = values[other];
       if (other_value > 0)
         continue;
@@ -31,15 +33,15 @@ static inline bool non_watching_propagate_literal (kissat *solver,
       const unsigned other_idx = IDX (other);
       if (flags[other_idx].eliminated)
         continue;
-      assert (!solver->level);
+      KISSAT_assert (!solver->level);
       kissat_fast_binary_assign (solver, solver->probing, 0, values,
                                  assigned, other, not_lit);
     } else {
       const reference ref = watch.large.ref;
-      assert (ref < SIZE_STACK (solver->arena));
+      KISSAT_assert (ref < SIZE_STACK (solver->arena));
       clause *c = (clause *) (arena + ref);
-      assert (c->size > 2);
-      assert (!c->redundant);
+      KISSAT_assert (c->size > 2);
+      KISSAT_assert (!c->redundant);
       ticks++;
       if (c->garbage)
         continue;
@@ -49,13 +51,13 @@ static inline bool non_watching_propagate_literal (kissat *solver,
       for (all_literals_in_clause (other, c)) {
         if (other == not_lit)
           continue;
-        assert (VALID_INTERNAL_LITERAL (other));
+        KISSAT_assert (VALID_INTERNAL_LITERAL (other));
         const value other_value = values[other];
         if (other_value < 0)
           continue;
         if (other_value > 0) {
           satisfied = true;
-          assert (!solver->level);
+          KISSAT_assert (!solver->level);
           LOGCLS (c, "%s satisfied", LOGLIT (other));
           kissat_mark_clause_as_garbage (solver, c);
           break;
@@ -84,9 +86,9 @@ static inline bool non_watching_propagate_literal (kissat *solver,
 }
 
 bool kissat_dense_propagate (kissat *solver) {
-  assert (!solver->level);
-  assert (!solver->watching);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->watching);
+  KISSAT_assert (!solver->inconsistent);
   START (propagate);
   unsigned *propagate = solver->propagate;
   bool res = true;
@@ -97,7 +99,7 @@ bool kissat_dense_propagate (kissat *solver) {
   ADD (dense_propagations, propagated);
   ADD (propagations, propagated);
   if (!res) {
-    assert (!solver->inconsistent);
+    KISSAT_assert (!solver->inconsistent);
     LOG ("inconsistent root propagation");
     CHECK_AND_ADD_EMPTY ();
     ADD_EMPTY_TO_PROOF ();
@@ -106,3 +108,5 @@ bool kissat_dense_propagate (kissat *solver) {
   STOP (propagate);
   return res;
 }
+
+ABC_NAMESPACE_IMPL_END

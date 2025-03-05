@@ -9,6 +9,8 @@
 #include "rank.h"
 #include "sort.h"
 
+ABC_NAMESPACE_IMPL_START
+
 #define RANK(A) ((A).rank)
 #define SMALLER(A, B) (RANK (A) < RANK (B))
 
@@ -32,7 +34,7 @@ void kissat_rescale_scores (kissat *solver) {
   kissat_phase (solver, "rescale", GET (rescaled),
                 "maximum score %g increment %g", max_score, solver->scinc);
   const double rescale = MAX (max_score, solver->scinc);
-  assert (rescale > 0);
+  KISSAT_assert (rescale > 0);
   const double factor = 1.0 / rescale;
   kissat_rescale_heap (solver, scores, factor);
   solver->scinc *= factor;
@@ -43,7 +45,7 @@ void kissat_rescale_scores (kissat *solver) {
 void kissat_bump_score_increment (kissat *solver) {
   const double old_scinc = solver->scinc;
   const double decay = GET_OPTION (decay) * 1e-3;
-  assert (0 <= decay), assert (decay <= 0.5);
+  KISSAT_assert (0 <= decay), KISSAT_assert (decay <= 0.5);
   const double factor = 1.0 / (1.0 - decay);
   const double new_scinc = old_scinc * factor;
   LOG ("new score increment %g = %g * %g", new_scinc, factor, old_scinc);
@@ -79,7 +81,7 @@ static void bump_analyzed_variable_scores (kissat *solver) {
 }
 
 static void move_analyzed_variables_to_front_of_queue (kissat *solver) {
-  assert (EMPTY_STACK (solver->ranks));
+  KISSAT_assert (EMPTY_STACK (solver->ranks));
   const links *const links = solver->links;
   for (all_stack (unsigned, idx, solver->analyzed)) {
     // clang-format off
@@ -112,9 +114,11 @@ void kissat_bump_analyzed (kissat *solver) {
 }
 
 void kissat_update_scores (kissat *solver) {
-  assert (solver->stable);
+  KISSAT_assert (solver->stable);
   heap *scores = SCORES;
   for (all_variables (idx))
     if (ACTIVE (idx) && !kissat_heap_contains (scores, idx))
       kissat_push_heap (solver, scores, idx);
 }
+
+ABC_NAMESPACE_IMPL_END

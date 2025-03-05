@@ -4,6 +4,8 @@
 
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void inc_clause (kissat *solver, bool original, bool redundant,
                         bool binary) {
   if (binary)
@@ -28,8 +30,8 @@ static void dec_clause (kissat *solver, bool redundant, bool binary) {
 
 static void init_clause (clause *res, bool redundant, unsigned glue,
                          unsigned size) {
-  assert (size <= UINT_MAX);
-  assert (redundant || !glue);
+  KISSAT_assert (size <= UINT_MAX);
+  KISSAT_assert (redundant || !glue);
 
   glue = MIN (MAX_GLUE, glue);
 
@@ -64,8 +66,8 @@ void kissat_connect_clause (kissat *solver, clause *c) {
 static reference new_binary_clause (kissat *solver, bool original,
                                     bool watch, unsigned first,
                                     unsigned second) {
-  assert (first != second);
-  assert (first != NOT (second));
+  KISSAT_assert (first != second);
+  KISSAT_assert (first != NOT (second));
   if (watch)
     kissat_watch_binary (solver, first, second);
   kissat_mark_added_literal (solver, first);
@@ -81,7 +83,7 @@ static reference new_binary_clause (kissat *solver, bool original,
 static reference new_large_clause (kissat *solver, bool original,
                                    bool redundant, unsigned glue,
                                    unsigned size, unsigned *lits) {
-  assert (size > 2);
+  KISSAT_assert (size > 2);
   reference res = kissat_allocate_clause (solver, size);
   clause *c = kissat_unchecked_dereference_clause (solver, res);
   init_clause (c, redundant, glue, size);
@@ -148,19 +150,19 @@ reference kissat_new_redundant_clause (kissat *solver, unsigned glue) {
 }
 
 static void mark_clause_as_garbage (kissat *solver, clause *c) {
-  assert (!c->garbage);
+  KISSAT_assert (!c->garbage);
   LOGCLS (c, "garbage");
   if (!c->redundant)
     kissat_mark_removed_literals (solver, c->size, c->lits);
   REMOVE_CHECKER_CLAUSE (c);
   DELETE_CLAUSE_FROM_PROOF (c);
-  assert (c->size > 2);
+  KISSAT_assert (c->size > 2);
   dec_clause (solver, c->redundant, false);
   c->garbage = true;
 }
 
 void kissat_mark_clause_as_garbage (kissat *solver, clause *c) {
-  assert (!c->garbage);
+  KISSAT_assert (!c->garbage);
   mark_clause_as_garbage (solver, c);
   size_t bytes = kissat_actual_bytes_of_clause (c);
   ADD (arena_garbage, bytes);
@@ -168,8 +170,8 @@ void kissat_mark_clause_as_garbage (kissat *solver, clause *c) {
 
 clause *kissat_delete_clause (kissat *solver, clause *c) {
   LOGCLS (c, "delete");
-  assert (c->size > 2);
-  assert (c->garbage);
+  KISSAT_assert (c->size > 2);
+  KISSAT_assert (c->garbage);
   size_t bytes = kissat_actual_bytes_of_clause (c);
   SUB (arena_garbage, bytes);
   INC (clauses_deleted);
@@ -185,3 +187,5 @@ void kissat_delete_binary (kissat *solver, unsigned a, unsigned b) {
   dec_clause (solver, false, true);
   INC (clauses_deleted);
 }
+
+ABC_NAMESPACE_IMPL_END

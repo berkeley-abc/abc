@@ -1,10 +1,13 @@
 #ifndef _check_h_INCLUDED
 #define _check_h_INCLUDED
 
-#ifndef NDEBUG
-
 #include <stdbool.h>
 #include <stdlib.h>
+
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#ifndef KISSAT_NDEBUG
 
 struct kissat;
 
@@ -17,7 +20,7 @@ struct clause;
 void kissat_init_checker (struct kissat *);
 void kissat_release_checker (struct kissat *);
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 void kissat_print_checker_statistics (struct kissat *, bool verbose);
 #endif
 
@@ -172,4 +175,7 @@ void kissat_remove_checker_internal (struct kissat *, size_t,
   } while (0)
 
 #endif
+
+ABC_NAMESPACE_HEADER_END
+
 #endif

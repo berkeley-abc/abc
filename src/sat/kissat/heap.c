@@ -5,6 +5,8 @@
 
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_release_heap (kissat *solver, heap *heap) {
   RELEASE_STACK (heap->stack);
   DEALLOC (heap->pos, heap->size);
@@ -12,7 +14,7 @@ void kissat_release_heap (kissat *solver, heap *heap) {
   memset (heap, 0, sizeof *heap);
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 void kissat_check_heap (heap *heap) {
   const unsigned *const stack = BEGIN_STACK (heap->stack);
@@ -22,18 +24,18 @@ void kissat_check_heap (heap *heap) {
   for (unsigned i = 0; i < end; i++) {
     const unsigned idx = stack[i];
     const unsigned idx_pos = pos[idx];
-    assert (idx_pos == i);
+    KISSAT_assert (idx_pos == i);
     unsigned child_pos = HEAP_CHILD (idx_pos);
     unsigned parent_pos = HEAP_PARENT (child_pos);
-    assert (parent_pos == idx_pos);
+    KISSAT_assert (parent_pos == idx_pos);
     if (child_pos < end) {
       unsigned child = stack[child_pos];
-      assert (score[idx] >= score[child]);
+      KISSAT_assert (score[idx] >= score[child]);
       if (++child_pos < end) {
         parent_pos = HEAP_PARENT (child_pos);
-        assert (parent_pos == idx_pos);
+        KISSAT_assert (parent_pos == idx_pos);
         child = stack[child_pos];
-        assert (score[idx] >= score[child]);
+        KISSAT_assert (score[idx] >= score[child]);
       }
     }
   }
@@ -48,15 +50,15 @@ void kissat_resize_heap (kissat *solver, heap *heap, unsigned new_size) {
   LOG ("resizing %s heap from %u to %u",
        (heap->tainted ? "tainted" : "untainted"), old_size, new_size);
 
-  heap->pos = kissat_nrealloc (solver, heap->pos, old_size, new_size,
+  heap->pos = (unsigned*)kissat_nrealloc (solver, heap->pos, old_size, new_size,
                                sizeof (unsigned));
   if (heap->tainted) {
-    heap->score = kissat_nrealloc (solver, heap->score, old_size, new_size,
+    heap->score = (double*)kissat_nrealloc (solver, heap->score, old_size, new_size,
                                    sizeof (double));
   } else {
     if (old_size)
       DEALLOC (heap->score, old_size);
-    heap->score = kissat_calloc (solver, new_size, sizeof (double));
+    heap->score = (double*)kissat_calloc (solver, new_size, sizeof (double));
   }
   heap->size = new_size;
 #ifdef CHECK_HEAP
@@ -69,7 +71,7 @@ void kissat_rescale_heap (kissat *solver, heap *heap, double factor) {
   double *score = heap->score;
   for (unsigned i = 0; i < heap->vars; i++)
     score[i] *= factor;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   kissat_check_heap (heap);
 #endif
 #ifndef LOGGING
@@ -79,8 +81,8 @@ void kissat_rescale_heap (kissat *solver, heap *heap, double factor) {
 
 void kissat_enlarge_heap (kissat *solver, heap *heap, unsigned new_vars) {
   const unsigned old_vars = heap->vars;
-  assert (old_vars < new_vars);
-  assert (new_vars <= heap->size);
+  KISSAT_assert (old_vars < new_vars);
+  KISSAT_assert (new_vars <= heap->size);
   const size_t delta = new_vars - heap->vars;
   memset (heap->pos + old_vars, 0xff, delta * sizeof (unsigned));
   heap->vars = new_vars;
@@ -92,7 +94,7 @@ void kissat_enlarge_heap (kissat *solver, heap *heap, unsigned new_vars) {
 #endif
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 static void dump_heap (heap *heap) {
   for (unsigned i = 0; i < SIZE_STACK (heap->stack); i++)
@@ -106,3 +108,5 @@ static void dump_heap (heap *heap) {
 void kissat_dump_heap (heap *heap) { dump_heap (heap); }
 
 #endif
+
+ABC_NAMESPACE_IMPL_END

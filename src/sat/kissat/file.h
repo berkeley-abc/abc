@@ -9,6 +9,9 @@
 #include "attribute.h"
 #include "keatures.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 bool kissat_file_exists (const char *path);
 bool kissat_file_readable (const char *path);
 bool kissat_file_writable (const char *path);
@@ -57,9 +60,9 @@ static inline void kissat_flush (file *) ATTRIBUTE_ALWAYS_INLINE;
 // clang-format on
 
 static inline size_t kissat_read (file *file, void *ptr, size_t bytes) {
-  assert (file);
-  assert (file->file);
-  assert (file->reading);
+  KISSAT_assert (file);
+  KISSAT_assert (file->file);
+  KISSAT_assert (file->reading);
 #ifdef KISSAT_HAS_UNLOCKEDIO
   size_t res = fread_unlocked (ptr, 1, bytes, file->file);
 #else
@@ -70,9 +73,9 @@ static inline size_t kissat_read (file *file, void *ptr, size_t bytes) {
 }
 
 static inline size_t kissat_write (file *file, void *ptr, size_t bytes) {
-  assert (file);
-  assert (file->file);
-  assert (!file->reading);
+  KISSAT_assert (file);
+  KISSAT_assert (file->file);
+  KISSAT_assert (!file->reading);
 #ifdef KISSAT_HAS_UNLOCKEDIO
   size_t res = fwrite_unlocked (ptr, 1, bytes, file->file);
 #else
@@ -83,9 +86,9 @@ static inline size_t kissat_write (file *file, void *ptr, size_t bytes) {
 }
 
 static inline int kissat_getc (file *file) {
-  assert (file);
-  assert (file->file);
-  assert (file->reading);
+  KISSAT_assert (file);
+  KISSAT_assert (file->file);
+  KISSAT_assert (file->reading);
 #ifdef KISSAT_HAS_UNLOCKEDIO
   int res = getc_unlocked (file->file);
 #else
@@ -97,9 +100,9 @@ static inline int kissat_getc (file *file) {
 }
 
 static inline int kissat_putc (file *file, int ch) {
-  assert (file);
-  assert (file->file);
-  assert (!file->reading);
+  KISSAT_assert (file);
+  KISSAT_assert (file->file);
+  KISSAT_assert (!file->reading);
 #ifdef KISSAT_HAS_UNLOCKEDIO
   int res = putc_unlocked (ch, file->file);
 #else
@@ -111,14 +114,16 @@ static inline int kissat_putc (file *file, int ch) {
 }
 
 static inline void kissat_flush (file *file) {
-  assert (file);
-  assert (file->file);
-  assert (!file->reading);
+  KISSAT_assert (file);
+  KISSAT_assert (file->file);
+  KISSAT_assert (!file->reading);
 #ifdef KISSAT_HAS_UNLOCKEDIO
   fflush_unlocked (file->file);
 #else
   fflush (file->file);
 #endif
 }
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

@@ -11,33 +11,35 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 bool kissat_preprocessing (struct kissat *solver) {
-  assert (!solver->level);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->inconsistent);
   if (!GET_OPTION (preprocess))
     return false;
   if (!GET_OPTION (probe))
     return false;
   if (!GET_OPTION (preprocessprobe))
     return false;
-#if defined(NDEBUG) && defined(NOPTIONS)
+#if defined(KISSAT_NDEBUG) && defined(KISSAT_NOPTIONS)
   (void) solver;
 #endif
   return true;
 }
 
 int kissat_preprocess (struct kissat *solver) {
-  assert (kissat_preprocessing (solver));
+  KISSAT_assert (kissat_preprocessing (solver));
   if (!kissat_initially_propagate (solver)) {
-    assert (solver->inconsistent);
+    KISSAT_assert (solver->inconsistent);
     return 20;
   }
   START (preprocess);
-  assert (!solver->preprocessing);
+  KISSAT_assert (!solver->preprocessing);
   solver->preprocessing = true;
   REPORT (0, '(');
   const unsigned max_rounds = GET_OPTION (preprocessrounds);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const unsigned variables_initially = solver->active;
   const uint64_t clauses_initially = BINIRR_CLAUSES;
   const unsigned variables_originally = SIZE_STACK (solver->import);
@@ -63,7 +65,7 @@ int kissat_preprocess (struct kissat *solver) {
       break;
     const unsigned variables_before = solver->active;
     const uint64_t clauses_before = BINIRR_CLAUSES;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     kissat_verbose (solver,
                     "[preprocess-%u] started preprocessing round %u", round,
                     round);
@@ -74,7 +76,7 @@ int kissat_preprocess (struct kissat *solver) {
       kissat_fast_variable_elimination (solver);
     const unsigned variables_after = solver->active;
     const uint64_t clauses_after = BINIRR_CLAUSES;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     if (variables_after < variables_before) {
       unsigned removed = variables_before - variables_after;
       kissat_verbose (
@@ -119,7 +121,7 @@ int kissat_preprocess (struct kissat *solver) {
       break;
     round++;
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const unsigned variables_finally = solver->active;
   const uint64_t clauses_finally = BINIRR_CLAUSES;
   kissat_verbose (solver, "[preprocess] finished after %u rounds", round);
@@ -171,8 +173,10 @@ int kissat_preprocess (struct kissat *solver) {
         kissat_percent (clauses_finally, clauses_originally));
 #endif
   REPORT (0, ')');
-  assert (solver->preprocessing);
+  KISSAT_assert (solver->preprocessing);
   solver->preprocessing = false;
   STOP (preprocess);
   return solver->inconsistent ? 20 : 0;
 }
+
+ABC_NAMESPACE_IMPL_END

@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct flags flags;
 
 struct flags {
@@ -18,7 +21,7 @@ struct flags {
   bool transitive : 1;
 };
 
-#define FLAGS(IDX) (assert ((IDX) < VARS), (solver->flags + (IDX)))
+#define FLAGS(IDX) (KISSAT_assert ((IDX) < VARS), (solver->flags + (IDX)))
 
 #define ACTIVE(IDX) (FLAGS (IDX)->active)
 #define ELIMINATED(IDX) (FLAGS (IDX)->eliminated)
@@ -33,5 +36,7 @@ void kissat_mark_fixed_literal (struct kissat *, unsigned lit);
 
 void kissat_mark_added_literals (struct kissat *, unsigned, unsigned *);
 void kissat_mark_removed_literals (struct kissat *, unsigned, unsigned *);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

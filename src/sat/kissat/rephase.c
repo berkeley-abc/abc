@@ -11,6 +11,8 @@
 #include <inttypes.h>
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void kissat_reset_best_assigned (kissat *solver) {
   if (!solver->best_assigned)
     return;
@@ -75,7 +77,7 @@ static char rephase_inverted (kissat *solver) {
 }
 
 static char rephase_walking (kissat *solver) {
-  assert (kissat_walking (solver));
+  KISSAT_assert (kissat_walking (solver));
   STOP (rephase);
   kissat_walk (solver);
   START (rephase);
@@ -91,7 +93,7 @@ static char (*rephase_schedule[]) (kissat *) = {
 #define size_rephase_schedule \
   (sizeof rephase_schedule / sizeof *rephase_schedule)
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 
 static const char *rephase_type_as_string (char type) {
   if (type == 'B')
@@ -100,7 +102,7 @@ static const char *rephase_type_as_string (char type) {
     return "inverted";
   if (type == 'O')
     return "original";
-  assert (type == 'W');
+  KISSAT_assert (type == 'W');
   return "walking";
 }
 
@@ -108,7 +110,7 @@ static const char *rephase_type_as_string (char type) {
 
 static char reset_phases (kissat *solver) {
   const uint64_t count = GET (rephased);
-  assert (count > 0);
+  KISSAT_assert (count > 0);
   const uint64_t select = (count - 1) % (uint64_t) size_rephase_schedule;
   const char type = rephase_schedule[select](solver);
   kissat_phase (
@@ -125,13 +127,15 @@ static char reset_phases (kissat *solver) {
 
 void kissat_rephase (kissat *solver) {
   kissat_backtrack_propagate_and_flush_trail (solver);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   START (rephase);
   INC (rephased);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const char type =
 #endif
       reset_phases (solver);
   REPORT (0, type);
   STOP (rephase);
 }
+
+ABC_NAMESPACE_IMPL_END

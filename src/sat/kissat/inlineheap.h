@@ -5,9 +5,12 @@
 #include "internal.h"
 #include "logging.h"
 
-#define HEAP_CHILD(POS) (assert ((POS) < (1u << 31)), (2 * (POS) + 1))
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
 
-#define HEAP_PARENT(POS) (assert ((POS) > 0), (((POS) - 1) / 2))
+#define HEAP_CHILD(POS) (KISSAT_assert ((POS) < (1u << 31)), (2 * (POS) + 1))
+
+#define HEAP_PARENT(POS) (KISSAT_assert ((POS) > 0), (((POS) - 1) / 2))
 
 static inline void kissat_bubble_up (kissat *solver, heap *heap,
                                      unsigned idx) {
@@ -75,7 +78,7 @@ static inline void kissat_bubble_down (kissat *solver, heap *heap,
 
 #define HEAP_IMPORT(IDX) \
   do { \
-    assert ((IDX) < UINT_MAX - 1); \
+    KISSAT_assert ((IDX) < UINT_MAX - 1); \
     if (heap->vars <= (IDX)) \
       kissat_enlarge_heap (solver, heap, (IDX) + 1); \
   } while (0)
@@ -85,7 +88,7 @@ static inline void kissat_bubble_down (kissat *solver, heap *heap,
 static inline void kissat_push_heap (kissat *solver, heap *heap,
                                      unsigned idx) {
   LOG ("push heap %u", idx);
-  assert (!kissat_heap_contains (heap, idx));
+  KISSAT_assert (!kissat_heap_contains (heap, idx));
   HEAP_IMPORT (idx);
   heap->pos[idx] = SIZE_STACK (heap->stack);
   PUSH_STACK (heap->stack, idx);
@@ -95,7 +98,7 @@ static inline void kissat_push_heap (kissat *solver, heap *heap,
 static inline void kissat_pop_heap (kissat *solver, heap *heap,
                                     unsigned idx) {
   LOG ("pop heap %u", idx);
-  assert (kissat_heap_contains (heap, idx));
+  KISSAT_assert (kissat_heap_contains (heap, idx));
   const unsigned last = POP_STACK (heap->stack);
   heap->pos[last] = DISCONTAIN;
   if (last == idx)
@@ -112,11 +115,11 @@ static inline void kissat_pop_heap (kissat *solver, heap *heap,
 }
 
 static inline unsigned kissat_pop_max_heap (kissat *solver, heap *heap) {
-  assert (!EMPTY_STACK (heap->stack));
+  KISSAT_assert (!EMPTY_STACK (heap->stack));
   unsigneds *stack = &heap->stack;
   unsigned *const begin = BEGIN_STACK (*stack);
   const unsigned idx = *begin;
-  assert (!heap->pos[idx]);
+  KISSAT_assert (!heap->pos[idx]);
   LOG ("pop max heap %u", idx);
   const unsigned last = POP_STACK (*stack);
   unsigned *const pos = heap->pos;
@@ -144,7 +147,7 @@ static inline void kissat_adjust_heap (kissat *solver, heap *heap,
     size_t new_size = old_size ? 2 * old_size : 1;
     while (idx >= new_size)
       new_size *= 2;
-    assert (new_size < DISCONTAIN);
+    KISSAT_assert (new_size < DISCONTAIN);
     kissat_resize_heap (solver, heap, new_size);
   }
   kissat_enlarge_heap (solver, heap, idx + 1);
@@ -172,5 +175,7 @@ static inline void kissat_update_heap (kissat *solver, heap *heap,
   kissat_check_heap (heap);
 #endif
 }
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

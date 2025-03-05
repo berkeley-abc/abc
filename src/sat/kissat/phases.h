@@ -3,6 +3,9 @@
 
 #include "value.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct phases phases;
 
 struct phases {
@@ -12,13 +15,13 @@ struct phases {
 };
 
 #define BEST(IDX) \
-  (solver->phases.best[assert (VALID_INTERNAL_INDEX (IDX)), (IDX)])
+  (solver->phases.best[KISSAT_assert (VALID_INTERNAL_INDEX (IDX)), (IDX)])
 
 #define SAVED(IDX) \
-  (solver->phases.saved[assert (VALID_INTERNAL_INDEX (IDX)), (IDX)])
+  (solver->phases.saved[KISSAT_assert (VALID_INTERNAL_INDEX (IDX)), (IDX)])
 
 #define TARGET(IDX) \
-  (solver->phases.target[assert (VALID_INTERNAL_INDEX (IDX)), (IDX)])
+  (solver->phases.target[KISSAT_assert (VALID_INTERNAL_INDEX (IDX)), (IDX)])
 
 struct kissat;
 
@@ -28,5 +31,7 @@ void kissat_release_phases (struct kissat *);
 
 void kissat_save_best_phases (struct kissat *);
 void kissat_save_target_phases (struct kissat *);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

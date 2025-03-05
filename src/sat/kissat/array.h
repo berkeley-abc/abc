@@ -4,6 +4,9 @@
 #include "allocate.h"
 #include "stack.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define ARRAY(TYPE) \
   struct { \
     TYPE *begin; \
@@ -25,11 +28,11 @@
     *(A).end++ = (E); \
   } while (0)
 
-#define REALLOCATE_ARRAY(A, O, N) \
+#define REALLOCATE_ARRAY(T, A, O, N)             \
   do { \
     const size_t SIZE = SIZE_ARRAY (A); \
     (A).begin = \
-        kissat_nrealloc (solver, (A).begin, (O), (N), sizeof *(A).begin); \
+      (T*) kissat_nrealloc (solver, (A).begin, (O), (N), sizeof *(A).begin); \
     (A).end = (A).begin + SIZE; \
   } while (0)
 
@@ -54,5 +57,7 @@
 typedef ARRAY (unsigned) unsigned_array;
 
 // clang-format on
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

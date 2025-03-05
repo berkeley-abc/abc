@@ -4,9 +4,12 @@
 #include "internal.h"
 #include "logging.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 static inline void kissat_update_queue (kissat *solver, const links *links,
                                         unsigned idx) {
-  assert (!DISCONNECTED (idx));
+  KISSAT_assert (!DISCONNECTED (idx));
   const unsigned stamp = links[idx].stamp;
   LOG ("queue updated to %s stamped %u", LOGVAR (idx), stamp);
   solver->queue.search.idx = idx;
@@ -16,20 +19,20 @@ static inline void kissat_update_queue (kissat *solver, const links *links,
 static inline void kissat_enqueue_links (kissat *solver, unsigned i,
                                          links *links, queue *queue) {
   struct links *p = links + i;
-  assert (DISCONNECTED (p->prev));
-  assert (DISCONNECTED (p->next));
+  KISSAT_assert (DISCONNECTED (p->prev));
+  KISSAT_assert (DISCONNECTED (p->next));
   const unsigned j = p->prev = queue->last;
   queue->last = i;
   if (DISCONNECTED (j))
     queue->first = i;
   else {
     struct links *l = links + j;
-    assert (DISCONNECTED (l->next));
+    KISSAT_assert (DISCONNECTED (l->next));
     l->next = i;
   }
   if (queue->stamp == UINT_MAX) {
     kissat_reassign_queue_stamps (solver);
-    assert (p->stamp == queue->stamp);
+    KISSAT_assert (p->stamp == queue->stamp);
   } else
     p->stamp = ++queue->stamp;
 }
@@ -40,25 +43,25 @@ static inline void kissat_dequeue_links (unsigned i, links *links,
   const unsigned j = l->prev, k = l->next;
   l->prev = l->next = DISCONNECT;
   if (DISCONNECTED (j)) {
-    assert (queue->first == i);
+    KISSAT_assert (queue->first == i);
     queue->first = k;
   } else {
     struct links *p = links + j;
-    assert (p->next == i);
+    KISSAT_assert (p->next == i);
     p->next = k;
   }
   if (DISCONNECTED (k)) {
-    assert (queue->last == i);
+    KISSAT_assert (queue->last == i);
     queue->last = j;
   } else {
     struct links *n = links + k;
-    assert (n->prev == i);
+    KISSAT_assert (n->prev == i);
     n->prev = j;
   }
 }
 
 static inline void kissat_enqueue (kissat *solver, unsigned idx) {
-  assert (idx < solver->vars);
+  KISSAT_assert (idx < solver->vars);
   links *links = solver->links, *l = links + idx;
   l->prev = l->next = DISCONNECT;
   kissat_enqueue_links (solver, idx, links, &solver->queue);
@@ -69,7 +72,7 @@ static inline void kissat_enqueue (kissat *solver, unsigned idx) {
 }
 
 static inline void kissat_dequeue (kissat *solver, unsigned idx) {
-  assert (idx < solver->vars);
+  KISSAT_assert (idx < solver->vars);
   LOG ("dequeued %s", LOGVAR (idx));
   links *links = solver->links;
   if (solver->queue.search.idx == idx) {
@@ -91,10 +94,10 @@ static inline void kissat_move_to_front (kissat *solver, unsigned idx) {
   queue *queue = &solver->queue;
   links *links = solver->links;
   if (idx == queue->last) {
-    assert (DISCONNECTED (links[idx].next));
+    KISSAT_assert (DISCONNECTED (links[idx].next));
     return;
   }
-  assert (idx < solver->vars);
+  KISSAT_assert (idx < solver->vars);
   const value tmp = VALUE (LIT (idx));
   if (tmp && queue->search.idx == idx) {
     unsigned prev = links[idx].prev;
@@ -102,7 +105,7 @@ static inline void kissat_move_to_front (kissat *solver, unsigned idx) {
       kissat_update_queue (solver, links, prev);
     else {
       unsigned next = links[idx].next;
-      assert (!DISCONNECTED (next));
+      KISSAT_assert (!DISCONNECTED (next));
       kissat_update_queue (solver, links, next);
     }
   }
@@ -113,5 +116,7 @@ static inline void kissat_move_to_front (kissat *solver, unsigned idx) {
     kissat_update_queue (solver, links, idx);
   kissat_check_queue (solver);
 }
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

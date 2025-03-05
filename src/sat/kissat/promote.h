@@ -3,15 +3,18 @@
 
 #include "internal.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 void kissat_promote_clause (struct kissat *, clause *, unsigned new_glue);
 
 static inline unsigned kissat_recompute_glue (kissat *solver, clause *c,
                                               unsigned limit) {
-  assert (limit);
-  assert (EMPTY_STACK (solver->promote));
+  KISSAT_assert (limit);
+  KISSAT_assert (EMPTY_STACK (solver->promote));
   unsigned res = 0;
   for (all_literals_in_clause (lit, c)) {
-    assert (VALUE (lit));
+    KISSAT_assert (VALUE (lit));
     const unsigned level = LEVEL (lit);
     frame *frame = &FRAME (level);
     if (frame->promote)
@@ -23,11 +26,13 @@ static inline unsigned kissat_recompute_glue (kissat *solver, clause *c,
   }
   for (all_stack (unsigned, level, solver->promote)) {
     frame *frame = &FRAME (level);
-    assert (frame->promote);
+    KISSAT_assert (frame->promote);
     frame->promote = false;
   }
   CLEAR_STACK (solver->promote);
   return res;
 }
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

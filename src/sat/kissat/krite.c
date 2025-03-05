@@ -5,12 +5,14 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_write_dimacs (kissat *solver, FILE *file) {
   size_t imported = SIZE_STACK (solver->import);
   if (imported)
     imported--;
   fprintf (file, "p cnf %zu %" PRIu64 "\n", imported, BINIRR_CLAUSES);
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   if (solver->watching) {
     for (all_literals (ilit))
       for (all_binary_blocking_watches (watch, WATCHES (ilit)))
@@ -43,3 +45,5 @@ void kissat_write_dimacs (kissat *solver, FILE *file) {
       fputs ("0\n", file);
     }
 }
+
+ABC_NAMESPACE_IMPL_END

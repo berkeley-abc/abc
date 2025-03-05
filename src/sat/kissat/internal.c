@@ -17,24 +17,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_reset_last_learned (kissat *solver) {
   for (really_all_last_learned (p))
     *p = INVALID_REF;
 }
 
 kissat *kissat_init (void) {
-  kissat *solver = kissat_calloc (0, 1, sizeof *solver);
-#ifndef NOPTIONS
+  kissat *solver = (kissat*)kissat_calloc (0, 1, sizeof *solver);
+#ifndef KISSAT_NOPTIONS
   kissat_init_options (&solver->options);
 #else
   kissat_init_options ();
 #endif
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   kissat_init_profiles (&solver->profiles);
 #endif
   START (total);
   kissat_init_queue (solver);
-  assert (INTERNAL_MAX_LIT < UINT_MAX);
+  KISSAT_assert (INTERNAL_MAX_LIT < UINT_MAX);
   kissat_push_frame (solver, UINT_MAX);
   solver->watching = true;
   solver->conflict.size = 2;
@@ -42,7 +44,7 @@ kissat *kissat_init (void) {
   solver->first_reducible = INVALID_REF;
   solver->last_irredundant = INVALID_REF;
   kissat_reset_last_learned (solver);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   kissat_init_checker (solver);
 #endif
   solver->prefix = kissat_strdup (solver, "c ");
@@ -83,7 +85,7 @@ void kissat_release (kissat *solver) {
   kissat_release_vectors (solver);
   kissat_release_phases (solver);
 
-  RELEASE_STACK (solver->export);
+  RELEASE_STACK (solver->export_);
   RELEASE_STACK (solver->import);
 
   DEALLOC_VARIABLE_INDEXED (assigned);
@@ -104,7 +106,7 @@ void kissat_release (kissat *solver) {
 
   RELEASE_STACK (solver->clause);
   RELEASE_STACK (solver->shadow);
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   RELEASE_STACK (solver->resolvent);
 #endif
 
@@ -136,26 +138,26 @@ void kissat_release (kissat *solver) {
   RELEASE_STACK (solver->gates[1]);
   RELEASE_STACK (solver->resolvents);
 
-#if !defined(NDEBUG) || !defined(NPROOFS)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS)
   RELEASE_STACK (solver->added);
   RELEASE_STACK (solver->removed);
 #endif
 
-#if !defined(NDEBUG) || !defined(NPROOFS) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS) || defined(LOGGING)
   RELEASE_STACK (solver->original);
 #endif
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   RELEASE_STACK (solver->profiles.stack);
 #endif
 
   kissat_freestr (solver, solver->prefix);
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   kissat_release_checker (solver);
 #endif
-#if !defined(NDEBUG) && defined(METRICS)
-  uint64_t leaked = solver->statistics.allocated_current;
+#if !defined(KISSAT_NDEBUG) && defined(METRICS)
+  uint64_t leaked = solver->statistics_.allocated_current;
   if (leaked)
     if (!getenv ("LEAK"))
       kissat_fatal ("internally leaking %" PRIu64 " bytes", leaked);
@@ -182,7 +184,7 @@ void kissat_reserve (kissat *solver, int max_var) {
 int kissat_get_option (kissat *solver, const char *name) {
   kissat_require_initialized (solver);
   kissat_require (name, "name zero pointer");
-#ifndef NOPTIONS
+#ifndef KISSAT_NOPTIONS
   return kissat_options_get (&solver->options, name);
 #else
   (void) solver;
@@ -191,10 +193,10 @@ int kissat_get_option (kissat *solver, const char *name) {
 }
 
 int kissat_set_option (kissat *solver, const char *name, int new_value) {
-#ifndef NOPTIONS
+#ifndef KISSAT_NOPTIONS
   kissat_require_initialized (solver);
   kissat_require (name, "name zero pointer");
-#ifndef NOPTIONS
+#ifndef KISSAT_NOPTIONS
   return kissat_options_set (&solver->options, name, new_value);
 #else
   return kissat_options_set (name, new_value);
@@ -209,9 +211,9 @@ void kissat_set_decision_limit (kissat *solver, unsigned limit) {
   kissat_require_initialized (solver);
   limits *limits = &solver->limits;
   limited *limited = &solver->limited;
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   limited->decisions = true;
-  assert (UINT64_MAX - limit >= statistics->decisions);
+  KISSAT_assert (UINT64_MAX - limit >= statistics->decisions);
   limits->decisions = statistics->decisions + limit;
   LOG ("set decision limit to %" PRIu64 " after %u decisions",
        limits->decisions, limit);
@@ -221,16 +223,16 @@ void kissat_set_conflict_limit (kissat *solver, unsigned limit) {
   kissat_require_initialized (solver);
   limits *limits = &solver->limits;
   limited *limited = &solver->limited;
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   limited->conflicts = true;
-  assert (UINT64_MAX - limit >= statistics->conflicts);
+  KISSAT_assert (UINT64_MAX - limit >= statistics->conflicts);
   limits->conflicts = statistics->conflicts + limit;
   LOG ("set conflict limit to %" PRIu64 " after %u conflicts",
        limits->conflicts, limit);
 }
 
 void kissat_print_statistics (kissat *solver) {
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   kissat_require_initialized (solver);
   const int verbosity = kissat_verbosity (solver);
   if (verbosity < 0)
@@ -243,13 +245,13 @@ void kissat_print_statistics (kissat *solver) {
   kissat_section (solver, "statistics");
   const bool verbose = (complete || verbosity > 0);
   kissat_statistics_print (solver, verbose);
-#ifndef NPROOFS
+#ifndef KISSAT_NPROOFS
   if (solver->proof) {
     kissat_section (solver, "proof");
     kissat_print_proof_statistics (solver, verbose);
   }
 #endif
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   if (GET_OPTION (check) > 1) {
     kissat_section (solver, "checker");
     kissat_print_checker_statistics (solver, verbose);
@@ -266,14 +268,14 @@ void kissat_print_statistics (kissat *solver) {
 void kissat_add (kissat *solver, int elit) {
   kissat_require_initialized (solver);
   kissat_require (!GET (searches), "incremental solving not supported");
-#if !defined(NDEBUG) || !defined(NPROOFS) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS) || defined(LOGGING)
   const int checking = kissat_checking (solver);
   const bool logging = kissat_logging (solver);
   const bool proving = kissat_proving (solver);
 #endif
   if (elit) {
     kissat_require_valid_external_internal (elit);
-#if !defined(NDEBUG) || !defined(NPROOFS) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS) || defined(LOGGING)
     if (checking || logging || proving)
       PUSH_STACK (solver->original, elit);
 #endif
@@ -297,18 +299,18 @@ void kissat_add (kissat *solver, int elit) {
       } else {
         MARK (ilit) = 1;
         MARK (NOT (ilit)) = -1;
-        assert (SIZE_STACK (solver->clause) < UINT_MAX);
+        KISSAT_assert (SIZE_STACK (solver->clause) < UINT_MAX);
         PUSH_STACK (solver->clause, ilit);
       }
     } else if (mark < 0) {
-      assert (mark < 0);
+      KISSAT_assert (mark < 0);
       if (!solver->clause_trivial) {
         LOG ("adding dual literal %u(%d) and %u(%d)", NOT (ilit), -elit,
              ilit, elit);
         solver->clause_trivial = true;
       }
     } else {
-      assert (mark > 0);
+      KISSAT_assert (mark > 0);
       LOG ("adding duplicated literal %u(%d)", ilit, elit);
       if (!solver->clause_shrink) {
         solver->clause_shrink = true;
@@ -316,16 +318,16 @@ void kissat_add (kissat *solver, int elit) {
       }
     }
   } else {
-#if !defined(NDEBUG) || !defined(NPROOFS) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS) || defined(LOGGING)
     const size_t offset = solver->offset_of_last_original_clause;
     size_t esize = SIZE_STACK (solver->original) - offset;
     int *elits = BEGIN_STACK (solver->original) + offset;
-    assert (esize <= UINT_MAX);
+    KISSAT_assert (esize <= UINT_MAX);
 #endif
     ADD_UNCHECKED_EXTERNAL (esize, elits);
     const size_t isize = SIZE_STACK (solver->clause);
     unsigned *ilits = BEGIN_STACK (solver->clause);
-    assert (isize < (unsigned) INT_MAX);
+    KISSAT_assert (isize < (unsigned) INT_MAX);
 
     if (solver->inconsistent)
       LOG ("inconsistent thus skipping original clause");
@@ -380,38 +382,38 @@ void kissat_add (kissat *solver, int elit) {
           assign = true;
         } else if (u < 0 && k == l) {
           LOG ("both watches falsified at level @%u", k);
-          assert (v < 0);
-          assert (k > 0);
+          KISSAT_assert (v < 0);
+          KISSAT_assert (k > 0);
           kissat_backtrack_without_updating_phases (solver, k - 1);
         } else if (u < 0) {
           LOG ("watches falsified at levels @%u and @%u", k, l);
-          assert (v < 0);
-          assert (k > l);
-          assert (l > 0);
+          KISSAT_assert (v < 0);
+          KISSAT_assert (k > l);
+          KISSAT_assert (l > 0);
           assign = true;
         } else if (u > 0 && v < 0) {
           LOG ("first watch satisfied at level @%u "
                "second falsified at level @%u",
                k, l);
-          assert (k <= l);
+          KISSAT_assert (k <= l);
         } else if (!u && v > 0) {
           LOG ("first watch unassigned "
                "second falsified at level @%u",
                l);
           assign = true;
         } else {
-          assert (!u);
-          assert (!v);
+          KISSAT_assert (!u);
+          KISSAT_assert (!v);
         }
 
         if (assign) {
-          assert (solver->level > 0);
+          KISSAT_assert (solver->level > 0);
 
           if (isize == 2) {
-            assert (res == INVALID_REF);
+            KISSAT_assert (res == INVALID_REF);
             kissat_assign_binary (solver, a, b);
           } else {
-            assert (res != INVALID_REF);
+            KISSAT_assert (res != INVALID_REF);
             clause *c = kissat_dereference_clause (solver, res);
             kissat_assign_reference (solver, a, res, c);
           }
@@ -419,13 +421,13 @@ void kissat_add (kissat *solver, int elit) {
       }
     }
 
-#if !defined(NDEBUG) || !defined(NPROOFS)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS)
     if (solver->clause_satisfied || solver->clause_trivial) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
       if (checking > 1)
         kissat_remove_checker_external (solver, esize, elits);
 #endif
-#ifndef NPROOFS
+#ifndef KISSAT_NPROOFS
       if (proving) {
         if (esize == 1)
           LOG ("skipping deleting unit from proof");
@@ -434,13 +436,13 @@ void kissat_add (kissat *solver, int elit) {
       }
 #endif
     } else if (!solver->inconsistent && solver->clause_shrink) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
       if (checking > 1) {
         kissat_check_and_add_internal (solver, isize, ilits);
         kissat_remove_checker_external (solver, esize, elits);
       }
 #endif
-#ifndef NPROOFS
+#ifndef KISSAT_NPROOFS
       if (proving) {
         kissat_add_lits_to_proof (solver, isize, ilits);
         kissat_delete_external_from_proof (solver, esize, elits);
@@ -449,7 +451,7 @@ void kissat_add (kissat *solver, int elit) {
     }
 #endif
 
-#if !defined(NDEBUG) || !defined(NPROOFS) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS) || defined(LOGGING)
     if (checking) {
       LOGINTS (esize, elits, "saved original");
       PUSH_STACK (solver->original, 0);
@@ -483,7 +485,7 @@ int kissat_solve (kissat *solver) {
 void kissat_terminate (kissat *solver) {
   kissat_require_initialized (solver);
   solver->termination.flagged = ~(unsigned) 0;
-  assert (solver->termination.flagged);
+  KISSAT_assert (solver->termination.flagged);
 }
 
 void kissat_set_terminate (kissat *solver, void *state,
@@ -518,3 +520,9 @@ int kissat_value (kissat *solver, int elit) {
     tmp = -tmp;
   return tmp < 0 ? -elit : elit;
 }
+
+int kissat_is_inconsistent(kissat *solver) {
+  return solver->inconsistent;
+}
+
+ABC_NAMESPACE_IMPL_END

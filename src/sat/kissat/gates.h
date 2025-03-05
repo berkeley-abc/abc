@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 struct kissat;
 struct clause;
 
@@ -18,5 +21,7 @@ void kissat_unmark_binaries (struct kissat *, unsigned lit);
 #else
 #define GATE_ELIMINATED(NAME) (&solver->statistics.NAME##_eliminated)
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

@@ -6,6 +6,8 @@
 #include "ifthenelse.h"
 #include "inline.h"
 
+ABC_NAMESPACE_IMPL_START
+
 size_t kissat_mark_binaries (kissat *solver, unsigned lit) {
   value *marks = solver->marks;
   size_t res = 0;
@@ -14,7 +16,7 @@ size_t kissat_mark_binaries (kissat *solver, unsigned lit) {
     if (!watch.type.binary)
       continue;
     const unsigned other = watch.binary.lit;
-    assert (!solver->values[other]);
+    KISSAT_assert (!solver->values[other]);
     if (marks[other])
       continue;
     marks[other] = 1;
@@ -60,14 +62,14 @@ bool kissat_find_gates (kissat *solver, unsigned lit) {
 
 static void get_antecedents (kissat *solver, unsigned lit,
                              unsigned negative) {
-  assert (!solver->watching);
-  assert (!negative || negative == 1);
+  KISSAT_assert (!solver->watching);
+  KISSAT_assert (!negative || negative == 1);
 
   statches *gates = solver->gates + negative;
   watches *watches = &WATCHES (lit);
 
   statches *antecedents = solver->antecedents + negative;
-  assert (EMPTY_STACK (*antecedents));
+  KISSAT_assert (EMPTY_STACK (*antecedents));
 
   const watch *const begin_gates = BEGIN_STACK (*gates);
   const watch *const end_gates = END_STACK (*gates);
@@ -85,7 +87,7 @@ static void get_antecedents (kissat *solver, unsigned lit,
       PUSH_STACK (*antecedents, watch);
   }
 
-  assert (g == end_gates);
+  KISSAT_assert (g == end_gates);
 #ifdef LOGGING
   size_t size_gates = SIZE_STACK (*gates);
   size_t size_antecedents = SIZE_STACK (*antecedents);
@@ -102,3 +104,5 @@ void kissat_get_antecedents (kissat *solver, unsigned lit) {
   get_antecedents (solver, lit, 0);
   get_antecedents (solver, NOT (lit), 1);
 }
+
+ABC_NAMESPACE_IMPL_END

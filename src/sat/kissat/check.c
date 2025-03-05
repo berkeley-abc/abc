@@ -1,4 +1,6 @@
-#ifndef NDEBUG
+#include "global.h"
+
+#ifndef KISSAT_NDEBUG
 
 #include "check.h"
 #include "error.h"
@@ -187,7 +189,7 @@ void kissat_release_checker (kissat *solver) {
   kissat_free (solver, checker, sizeof (struct checker));
 }
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 
 #include <inttypes.h>
 
@@ -234,18 +236,18 @@ void kissat_print_checker_statistics (kissat *solver, bool verbose) {
 static unsigned reduce_hash (unsigned hash, unsigned mod) {
   if (mod < 2)
     return 0;
-  assert (mod);
+  KISSAT_assert (mod);
   unsigned res = hash;
   for (unsigned shift = 16, mask = 0xffff; res >= mod;
        mask >>= (shift >>= 1))
     res = (res >> shift) & mask;
-  assert (res < mod);
+  KISSAT_assert (res < mod);
   return res;
 }
 
 static void resize_hash (kissat *solver, checker *checker) {
   const unsigned old_hashed = checker->hashed;
-  assert (old_hashed < MAX_SIZE);
+  KISSAT_assert (old_hashed < MAX_SIZE);
   const unsigned new_hashed = old_hashed ? 2 * old_hashed : 1;
   bucket **table = kissat_calloc (solver, new_hashed, sizeof (bucket *));
   bucket **old_table = checker->table;
@@ -264,7 +266,7 @@ static void resize_hash (kissat *solver, checker *checker) {
 
 static bucket *new_line (kissat *solver, checker *checker, unsigned size,
                          unsigned hash) {
-  bucket *res = kissat_malloc (solver, bytes_line (size));
+  bucket *res = (bucket*)kissat_malloc (solver, bytes_line (size));
   res->next = 0;
   res->size = size;
   res->hash = hash;
@@ -291,18 +293,18 @@ static void checker_assign (kissat *solver, checker *checker, unsigned lit,
 #else
   (void) bucket;
 #endif
-  assert (VALID_CHECKER_LIT (lit));
+  KISSAT_assert (VALID_CHECKER_LIT (lit));
   const unsigned not_lit = lit ^ 1;
   signed char *values = checker->values;
-  assert (!values[lit]);
-  assert (!values[not_lit]);
+  KISSAT_assert (!values[lit]);
+  KISSAT_assert (!values[not_lit]);
   values[lit] = 1;
   values[not_lit] = -1;
   PUSH_STACK (checker->trail, lit);
 }
 
 static buckets *checker_watches (checker *checker, unsigned lit) {
-  assert (VALID_CHECKER_LIT (lit));
+  KISSAT_assert (VALID_CHECKER_LIT (lit));
   return checker->watches + lit;
 }
 
@@ -325,7 +327,7 @@ static void unwatch_checker_literal (kissat *solver, checker *checker,
 
 static void unwatch_line (kissat *solver, checker *checker,
                           bucket *bucket) {
-  assert (bucket->size > 1);
+  KISSAT_assert (bucket->size > 1);
   const unsigned *const lits = bucket->lits;
   unwatch_checker_literal (solver, checker, bucket, lits[0]);
   unwatch_checker_literal (solver, checker, bucket, lits[1]);
@@ -474,7 +476,7 @@ static void use_line (kissat *solver, checker *checker) {
 static void insert_imported (kissat *solver, checker *checker,
                              unsigned hash) {
   size_t size = SIZE_STACK (checker->imported);
-  assert (size <= UINT_MAX);
+  KISSAT_assert (size <= UINT_MAX);
   if (checker->buckets == checker->hashed)
     resize_hash (solver, checker);
   bucket *bucket = new_line (solver, checker, size, hash);
@@ -485,8 +487,8 @@ static void insert_imported (kissat *solver, checker *checker,
   LOGLINE3 ("inserted checker");
   const unsigned *const lits = BEGIN_STACK (checker->imported);
   const signed char *values = checker->values;
-  assert (!values[lits[0]]);
-  assert (!values[lits[1]]);
+  KISSAT_assert (!values[lits[0]]);
+  KISSAT_assert (!values[lits[1]]);
   watch_checker_literal (solver, checker, bucket, lits[0]);
   watch_checker_literal (solver, checker, bucket, lits[1]);
   checker->buckets++;
@@ -525,11 +527,11 @@ static void resize_checker (kissat *solver, checker *checker,
   const unsigned vars = checker->vars;
   const unsigned size = checker->size;
   if (new_vars > size) {
-    assert (new_vars <= MAX_SIZE);
+    KISSAT_assert (new_vars <= MAX_SIZE);
     unsigned new_size = size ? 2 * size : 1;
     while (new_size < new_vars)
       new_size *= 2;
-    assert (new_size <= MAX_SIZE);
+    KISSAT_assert (new_size <= MAX_SIZE);
     LOG3 ("resizing checker form %u to %u", size, new_size);
     const unsigned size2 = 2 * size;
     const unsigned new_size2 = 2 * new_size;
@@ -555,7 +557,7 @@ static void resize_checker (kissat *solver, checker *checker,
   const unsigned vars2 = 2 * vars;
   const unsigned new_vars2 = 2 * new_vars;
   const unsigned delta2 = 2 * delta;
-  assert (delta2 == new_vars2 - vars2);
+  KISSAT_assert (delta2 == new_vars2 - vars2);
   memset (checker->watches + vars2, 0, delta2 * sizeof *checker->watches);
   memset (checker->marks + vars2, 0, delta2);
   memset (checker->used + vars2, 0, delta2);
@@ -566,11 +568,11 @@ static void resize_checker (kissat *solver, checker *checker,
 
 static inline unsigned
 import_external_checker (kissat *solver, checker *checker, int elit) {
-  assert (elit);
+  KISSAT_assert (elit);
   const unsigned var = ABS (elit) - 1;
   if (var >= checker->vars)
     resize_checker (solver, checker, var + 1);
-  assert (var < checker->vars);
+  KISSAT_assert (var < checker->vars);
   return 2 * var + (elit < 0);
 }
 
@@ -581,7 +583,7 @@ import_internal_checker (kissat *solver, checker *checker, unsigned ilit) {
 }
 
 static inline int export_checker (checker *checker, unsigned ilit) {
-  assert (ilit <= 2 * checker->vars);
+  KISSAT_assert (ilit <= 2 * checker->vars);
   return (1 + (ilit >> 1)) * ((ilit & 1) ? -1 : 1);
 }
 
@@ -619,7 +621,7 @@ static void remove_line (kissat *solver, checker *checker, size_t size) {
   unwatch_line (solver, checker, bucket);
   LOGLINE3 ("removed checker");
   kissat_free (solver, bucket, bytes_line (size));
-  assert (checker->buckets > 0);
+  KISSAT_assert (checker->buckets > 0);
   checker->buckets--;
   checker->removed++;
 }
@@ -639,7 +641,7 @@ static void import_external_literals (kissat *solver, checker *checker,
 
 static void import_internal_literals (kissat *solver, checker *checker,
                                       size_t size, const unsigned *ilits) {
-  assert (size <= UINT_MAX);
+  KISSAT_assert (size <= UINT_MAX);
   CLEAR_STACK (checker->imported);
   for (size_t i = 0; i < size; i++) {
     const unsigned ilit = ilits[i];
@@ -680,8 +682,8 @@ static bool checker_propagate (kissat *solver, checker *checker) {
     const unsigned lit = PEEK_STACK (checker->trail, propagated);
     const unsigned not_lit = lit ^ 1;
     LOG3 ("checker propagate %u", lit);
-    assert (values[lit] > 0);
-    assert (values[not_lit] < 0);
+    KISSAT_assert (values[lit] > 0);
+    KISSAT_assert (values[not_lit] < 0);
     propagated++;
     buckets *buckets = checker_watches (checker, not_lit);
     bucket **begin_of_lines = BEGIN_STACK (*buckets), **q = begin_of_lines;
@@ -774,10 +776,10 @@ static void checker_backtrack (checker *checker, unsigned saved) {
   signed char *values = checker->values;
   while (p != begin) {
     const unsigned lit = *--p;
-    assert (VALID_CHECKER_LIT (lit));
+    KISSAT_assert (VALID_CHECKER_LIT (lit));
     const unsigned not_lit = lit ^ 1;
-    assert (values[lit] > 0);
-    assert (values[not_lit] < 0);
+    KISSAT_assert (values[lit] > 0);
+    KISSAT_assert (values[not_lit] < 0);
     values[lit] = values[not_lit] = 0;
   }
   checker->propagated = saved;
@@ -787,7 +789,7 @@ static void checker_backtrack (checker *checker, unsigned saved) {
 static bool checker_blocked_literal (kissat *solver, checker *checker,
                                      unsigned lit) {
   signed char *values = checker->values;
-  assert (values[lit] < 0);
+  KISSAT_assert (values[lit] < 0);
   const unsigned not_lit = lit ^ 1;
   if (checker->large[not_lit])
     return false;
@@ -840,7 +842,7 @@ static void check_line (kissat *solver, checker *checker) {
   bool satisfied = false, pure = false;
   unsigned decisions = 0, prev = INVALID_LIT;
   for (all_stack (unsigned, lit, checker->imported)) {
-    assert (prev != lit);
+    KISSAT_assert (prev != lit);
     prev = lit;
     signed char lit_value = values[lit];
     if (lit_value < 0)
@@ -896,7 +898,7 @@ void kissat_add_unchecked_internal (kissat *solver, size_t size,
   LOGUNSIGNEDS3 (size, lits, "adding unchecked internal checker");
   checker *checker = solver->checker;
   checker->unchecked++;
-  assert (size <= UINT_MAX);
+  KISSAT_assert (size <= UINT_MAX);
   import_internal_literals (solver, checker, size, lits);
   insert_imported_if_not_simplified (solver, checker);
 }
@@ -904,8 +906,8 @@ void kissat_add_unchecked_internal (kissat *solver, size_t size,
 void kissat_check_and_add_binary (kissat *solver, unsigned a, unsigned b) {
   LOGBINARY3 (a, b, "checking and adding internal checker");
   checker *checker = solver->checker;
-  assert (VALID_INTERNAL_LITERAL (a));
-  assert (VALID_INTERNAL_LITERAL (b));
+  KISSAT_assert (VALID_INTERNAL_LITERAL (a));
+  KISSAT_assert (VALID_INTERNAL_LITERAL (b));
   import_binary (solver, checker, a, b);
   check_line (solver, checker);
   insert_imported_if_not_simplified (solver, checker);
@@ -939,7 +941,7 @@ void kissat_check_and_add_internal (kissat *solver, size_t size,
 void kissat_check_and_add_unit (kissat *solver, unsigned a) {
   LOG3 ("checking and adding internal checker internal unit %u", a);
   checker *checker = solver->checker;
-  assert (VALID_INTERNAL_LITERAL (a));
+  KISSAT_assert (VALID_INTERNAL_LITERAL (a));
   import_internal_unit (solver, checker, a);
   check_line (solver, checker);
   insert_imported_if_not_simplified (solver, checker);
@@ -969,8 +971,8 @@ void kissat_check_shrink_clause (kissat *solver, clause *c, unsigned remove,
 void kissat_remove_checker_binary (kissat *solver, unsigned a, unsigned b) {
   LOGBINARY3 (a, b, "removing internal checker");
   checker *checker = solver->checker;
-  assert (VALID_INTERNAL_LITERAL (a));
-  assert (VALID_INTERNAL_LITERAL (b));
+  KISSAT_assert (VALID_INTERNAL_LITERAL (a));
+  KISSAT_assert (VALID_INTERNAL_LITERAL (b));
   import_binary (solver, checker, a, b);
   remove_line_if_not_redundant (solver, checker);
 }

@@ -3,9 +3,11 @@
 #include "logging.h"
 #include "print.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static void compute_tier_limits (kissat *solver, bool stable,
                                  unsigned *tier1_ptr, unsigned *tier2_ptr) {
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   uint64_t *used_stats = statistics->used[stable].glue;
   uint64_t total_used = 0;
   for (unsigned glue = 0; glue <= MAX_GLUE_USED; glue++)
@@ -40,8 +42,8 @@ static void compute_tier_limits (kissat *solver, bool stable,
     tier2 = MAX (GET_OPTION (tier2), tier1);
   } else if (tier2 < 0)
     tier2 = tier1;
-  assert (0 <= tier1);
-  assert (0 <= tier2);
+  KISSAT_assert (0 <= tier1);
+  KISSAT_assert (0 <= tier2);
   *tier1_ptr = tier1;
   *tier2_ptr = tier2;
   LOG ("%s tier1 limit %u", stable ? "stable" : "focused", tier1);
@@ -74,16 +76,16 @@ static unsigned decimal_digits (uint64_t i) {
 void kissat_print_tier_usage_statistics (kissat *solver, bool stable) {
   unsigned tier1, tier2;
   compute_tier_limits (solver, stable, &tier1, &tier2);
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   uint64_t *used_stats = statistics->used[stable].glue;
   uint64_t total_used = 0;
   for (unsigned glue = 0; glue <= MAX_GLUE_USED; glue++)
     total_used += used_stats[glue];
   const char *mode = stable ? "stable" : "focused";
-  assert (tier1 <= tier2);
+  KISSAT_assert (tier1 <= tier2);
   unsigned span = tier2 - tier1 + 1;
   const unsigned max_printed = 5;
-  assert (max_printed & 1), assert (max_printed / 2 > 0);
+  KISSAT_assert (max_printed & 1), KISSAT_assert (max_printed / 2 > 0);
   unsigned prefix, suffix;
   if (span > max_printed) {
     prefix = tier1 + max_printed / 2 - 1;
@@ -159,3 +161,5 @@ void kissat_print_tier_usage_statistics (kissat *solver, bool stable) {
       break;
   }
 }
+
+ABC_NAMESPACE_IMPL_END

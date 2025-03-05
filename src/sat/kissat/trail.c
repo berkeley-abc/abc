@@ -3,12 +3,14 @@
 #include "inline.h"
 #include "propsearch.h"
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_flush_trail (kissat *solver) {
-  assert (!solver->level);
-  assert (solver->unflushed);
-  assert (!solver->inconsistent);
-  assert (kissat_propagated (solver));
-  assert (SIZE_ARRAY (solver->trail) == solver->unflushed);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (solver->unflushed);
+  KISSAT_assert (!solver->inconsistent);
+  KISSAT_assert (kissat_propagated (solver));
+  KISSAT_assert (SIZE_ARRAY (solver->trail) == solver->unflushed);
   LOG ("flushed %zu units from trail", SIZE_ARRAY (solver->trail));
   CLEAR_ARRAY (solver->trail);
   kissat_reset_propagate (solver);
@@ -18,24 +20,24 @@ void kissat_flush_trail (kissat *solver) {
 void kissat_mark_reason_clauses (kissat *solver, reference start) {
   LOG ("starting marking reason clauses at clause[%" REFERENCE_FORMAT "]",
        start);
-  assert (!solver->unflushed);
+  KISSAT_assert (!solver->unflushed);
 #ifdef LOGGING
   unsigned reasons = 0;
 #endif
   ward *arena = BEGIN_STACK (solver->arena);
   for (all_stack (unsigned, lit, solver->trail)) {
     assigned *a = ASSIGNED (lit);
-    assert (a->level > 0);
+    KISSAT_assert (a->level > 0);
     if (a->binary)
       continue;
     const reference ref = a->reason;
-    assert (ref != UNIT_REASON);
+    KISSAT_assert (ref != UNIT_REASON);
     if (ref == DECISION_REASON)
       continue;
     if (ref < start)
       continue;
     clause *c = (clause *) (arena + ref);
-    assert (kissat_clause_in_arena (solver, c));
+    KISSAT_assert (kissat_clause_in_arena (solver, c));
     c->reason = true;
 #ifdef LOGGING
     reasons++;
@@ -46,9 +48,9 @@ void kissat_mark_reason_clauses (kissat *solver, reference start) {
 
 bool kissat_flush_and_mark_reason_clauses (kissat *solver,
                                            reference start) {
-  assert (solver->watching);
-  assert (!solver->inconsistent);
-  assert (kissat_propagated (solver));
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (!solver->inconsistent);
+  KISSAT_assert (kissat_propagated (solver));
 
   if (solver->unflushed) {
     LOG ("need to flush %u units from trail", solver->unflushed);
@@ -64,25 +66,25 @@ bool kissat_flush_and_mark_reason_clauses (kissat *solver,
 void kissat_unmark_reason_clauses (kissat *solver, reference start) {
   LOG ("starting unmarking reason clauses at clause[%" REFERENCE_FORMAT "]",
        start);
-  assert (!solver->unflushed);
+  KISSAT_assert (!solver->unflushed);
 #ifdef LOGGING
   unsigned reasons = 0;
 #endif
   ward *arena = BEGIN_STACK (solver->arena);
   for (all_stack (unsigned, lit, solver->trail)) {
     assigned *a = ASSIGNED (lit);
-    assert (a->level > 0);
+    KISSAT_assert (a->level > 0);
     if (a->binary)
       continue;
     const reference ref = a->reason;
-    assert (ref != UNIT_REASON);
+    KISSAT_assert (ref != UNIT_REASON);
     if (ref == DECISION_REASON)
       continue;
     if (ref < start)
       continue;
     clause *c = (clause *) (arena + ref);
-    assert (kissat_clause_in_arena (solver, c));
-    assert (c->reason);
+    KISSAT_assert (kissat_clause_in_arena (solver, c));
+    KISSAT_assert (c->reason);
     c->reason = false;
 #ifdef LOGGING
     reasons++;
@@ -90,3 +92,5 @@ void kissat_unmark_reason_clauses (kissat *solver, reference start) {
   }
   LOG ("unmarked %u reason clauses", reasons);
 }
+
+ABC_NAMESPACE_IMPL_END

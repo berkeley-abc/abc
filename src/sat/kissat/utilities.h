@@ -6,7 +6,35 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-typedef uintptr_t word;
+#ifdef _MSC_VER
+#include <intrin.h>
+static inline int __builtin_clz(unsigned x) {
+  unsigned long r;
+  _BitScanReverse(&r, x);
+  return (int)(r ^ 31);
+}
+
+static inline int __builtin_clzll(unsigned long long x) {
+#if defined(_WIN64)
+    unsigned long r;
+    _BitScanReverse64(&r, x);
+    return (int)(r ^ 63);
+#else
+    int l = __builtin_clz((unsigned)x) + 32;
+    int h = __builtin_clz((unsigned)(x >> 32));
+    return !!((unsigned)(x >> 32)) ? h : l;
+#endif
+}
+
+static inline int __builtin_clzl(unsigned long x) {
+  return sizeof(x) == 8 ? __builtin_clzll(x) : __builtin_clz((unsigned)x);
+}
+#endif
+
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+//typedef uintptr_t word;
 typedef uintptr_t w2rd[2];
 
 #define WORD_ALIGNMENT_MASK (sizeof (word) - 1)
@@ -21,11 +49,11 @@ typedef uintptr_t w2rd[2];
 static inline word kissat_cache_lines (word n, size_t size) {
   if (!n)
     return 0;
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) size;
 #endif
-  assert (size == 4);
-  assert (ASSUMED_LD_CACHE_LINE_BYTES > 2);
+  KISSAT_assert (size == 4);
+  KISSAT_assert (ASSUMED_LD_CACHE_LINE_BYTES > 2);
   const unsigned shift = ASSUMED_LD_CACHE_LINE_BYTES - 2u;
   const word mask = (((word) 1) << shift) - 1;
   const word masked = n + mask;
@@ -131,6 +159,8 @@ static inline unsigned kissat_log2_ceiling_of_uint64 (uint64_t x) {
 
 #define MAX(A, B) ((A) < (B) ? (B) : (A))
 
-#define ABS(A) (assert ((int) (A) != INT_MIN), (A) < 0 ? -(A) : (A))
+#define ABS(A) (KISSAT_assert ((int) (A) != INT_MIN), (A) < 0 ? -(A) : (A))
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

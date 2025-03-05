@@ -56138,6 +56138,11 @@ int Abc_CommandAbc9Test( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    
+    extern void kissat_solver_test();
+    kissat_solver_test();
+    return 0;
+    
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Test(): There is no AIG.\n" );

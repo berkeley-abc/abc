@@ -13,10 +13,12 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 bool kissat_probing (kissat *solver) {
   if (!solver->enabled.probe)
     return false;
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   const uint64_t conflicts = statistics->conflicts;
   if (solver->last.conflicts.reduce == conflicts)
     return false;
@@ -25,7 +27,7 @@ bool kissat_probing (kissat *solver) {
 
 static void probe (kissat *solver) {
   kissat_backtrack_propagate_and_flush_trail (solver);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   STOP_SEARCH_AND_START_SIMPLIFIER (probe);
   kissat_phase (solver, "probe", GET (probings),
                 "probing limit hit after %" PRIu64 " conflicts",
@@ -43,8 +45,8 @@ static void probe (kissat *solver) {
 }
 
 static void probe_initially (kissat *solver) {
-  assert (!solver->level);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->inconsistent);
   kissat_phase (solver, "probe", GET (probings), "initial probing");
   bool substitute_at_the_end = true;
   if (GET_OPTION (preprocesscongruence)) {
@@ -68,9 +70,9 @@ static void probe_initially (kissat *solver) {
 }
 
 int kissat_probe (kissat *solver) {
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   INC (probings);
-  assert (!solver->probing);
+  KISSAT_assert (!solver->probing);
   solver->probing = true;
   const unsigned max_rounds = GET_OPTION (proberounds);
   for (unsigned round = 0; round != max_rounds; round++) {
@@ -83,22 +85,24 @@ int kissat_probe (kissat *solver) {
   }
   kissat_classify (solver);
   UPDATE_CONFLICT_LIMIT (probe, probings, NLOGN, true);
-  solver->last.ticks.probe = solver->statistics.search_ticks;
-  assert (solver->probing);
+  solver->last.ticks.probe = solver->statistics_.search_ticks;
+  KISSAT_assert (solver->probing);
   solver->probing = false;
   return solver->inconsistent ? 20 : 0;
 }
 
 int kissat_probe_initially (kissat *solver) {
-  assert (!solver->level);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->inconsistent);
   INC (probings);
   START (probe);
-  assert (!solver->probing);
+  KISSAT_assert (!solver->probing);
   solver->probing = true;
   probe_initially (solver);
-  assert (solver->probing);
+  KISSAT_assert (solver->probing);
   solver->probing = false;
   STOP (probe);
   return solver->inconsistent ? 20 : 0;
 }
+
+ABC_NAMESPACE_IMPL_END

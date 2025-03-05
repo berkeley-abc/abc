@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 struct kissat;
 
 struct classification {
@@ -13,5 +16,7 @@ struct classification {
 typedef struct classification classification;
 
 void kissat_classify (struct kissat *);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

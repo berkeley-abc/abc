@@ -10,29 +10,31 @@
 #include <inttypes.h>
 #include <math.h>
 
+ABC_NAMESPACE_IMPL_START
+
 double kissat_logn (uint64_t count) {
-  assert (count > 0);
+  KISSAT_assert (count > 0);
   const double res = log10 (count + 9);
-  assert (res >= 1);
+  KISSAT_assert (res >= 1);
   return res;
 }
 
 double kissat_sqrt (uint64_t count) {
-  assert (count > 0);
+  KISSAT_assert (count > 0);
   const double res = sqrt (count);
-  assert (res >= 1);
+  KISSAT_assert (res >= 1);
   return res;
 }
 
 double kissat_nlogpown (uint64_t count, unsigned exponent) {
-  assert (count > 0);
+  KISSAT_assert (count > 0);
   const double tmp = log10 (count + 9);
   double factor = 1;
   while (exponent--)
     factor *= tmp;
-  assert (factor >= 1);
+  KISSAT_assert (factor >= 1);
   const double res = count * factor;
-  assert (res >= 1);
+  KISSAT_assert (res >= 1);
   return res;
 }
 
@@ -41,10 +43,10 @@ uint64_t kissat_scale_delta (kissat *solver, const char *pretty,
   const uint64_t C = BINIRR_CLAUSES;
   double f = kissat_logn (C + 1) - 5;
   const double ff = f * f;
-  assert (ff >= 0);
+  KISSAT_assert (ff >= 0);
   const double fff = 4.5 * ff + 25;
   uint64_t scaled = fff * delta;
-  assert (delta <= scaled);
+  KISSAT_assert (delta <= scaled);
   // clang-format off
   kissat_very_verbose (solver,
     "scaled %s delta %" PRIu64
@@ -97,7 +99,7 @@ static void init_enabled (kissat *solver) {
   } while (0)
 
 void kissat_init_limits (kissat *solver) {
-  assert (solver->statistics.searches == 1);
+  KISSAT_assert (solver->statistics.searches == 1);
 
   init_enabled (solver);
 
@@ -131,7 +133,7 @@ void kissat_init_limits (kissat *solver) {
     INIT_CONFLICT_LIMIT (probe, true);
 }
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 
 static const char *delay_description (kissat *solver, delay *delay) {
   delays *delays = &solver->delays;
@@ -142,7 +144,7 @@ static const char *delay_description (kissat *solver, delay *delay) {
   else if (delay == &delays->sweep)
     return "sweeping";
   else {
-    assert (delay == &delays->vivifyirr);
+    KISSAT_assert (delay == &delays->vivifyirr);
     return "vivifying irredundant clauses";
   }
 }
@@ -160,7 +162,7 @@ void kissat_reduce_delay (kissat *solver, delay *delay) {
       solver, "%s delay interval decreased to %u",
       delay_description (solver, delay), delay->current);
   delay->count = delay->current;
-#ifdef QUIET
+#ifdef KISSAT_QUIET
   (void) solver;
 #endif
 }
@@ -171,7 +173,7 @@ void kissat_bump_delay (kissat *solver, delay *delay) {
       solver, "%s delay interval increased to %u",
       delay_description (solver, delay), delay->current);
   delay->count = delay->current;
-#ifdef QUIET
+#ifdef KISSAT_QUIET
   (void) solver;
 #endif
 }
@@ -188,7 +190,9 @@ bool kissat_delaying (kissat *solver, delay *delay) {
                                      delay_description (solver, delay));
     return false;
   }
-#ifdef QUIET
+#ifdef KISSAT_QUIET
   (void) solver;
 #endif
 }
+
+ABC_NAMESPACE_IMPL_END

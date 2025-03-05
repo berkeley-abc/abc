@@ -9,9 +9,11 @@
 #include "terminate.h"
 #include "weaken.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static bool fast_forward_subsumed (kissat *solver, clause *c) {
-  assert (!c->garbage);
-  assert (!c->redundant);
+  KISSAT_assert (!c->garbage);
+  KISSAT_assert (!c->redundant);
   unsigned max_occurring = INVALID_LIT;
   size_t max_occurrence = 0;
   watches *all_watches = solver->watches;
@@ -58,7 +60,7 @@ static bool fast_forward_subsumed (kissat *solver, clause *c) {
           continue;
         if (d->size > c->size)
           continue;
-        assert (!d->redundant);
+        KISSAT_assert (!d->redundant);
         subsumed = true;
         for (all_literals_in_clause (other2, d)) {
           if (values[other2] < 0)
@@ -147,8 +149,8 @@ static size_t flush_occurrences (kissat *solver, unsigned lit) {
 
 static void do_fast_resolve_binary_binary (kissat *solver, unsigned pivot,
                                            unsigned clit, unsigned dlit) {
-  assert (!FLAGS (IDX (clit))->eliminated);
-  assert (!FLAGS (IDX (dlit))->eliminated);
+  KISSAT_assert (!FLAGS (IDX (clit))->eliminated);
+  KISSAT_assert (!FLAGS (IDX (dlit))->eliminated);
   if (clit == NOT (dlit)) {
     LOG ("resolvent tautological");
     return;
@@ -165,7 +167,7 @@ static void do_fast_resolve_binary_binary (kissat *solver, unsigned pivot,
     return;
   }
   if (cval < 0 && dval < 0) {
-    assert (!solver->inconsistent);
+    KISSAT_assert (!solver->inconsistent);
     solver->inconsistent = true;
     LOG ("resolved empty clause");
     CHECK_AND_ADD_EMPTY ();
@@ -190,10 +192,10 @@ static void do_fast_resolve_binary_binary (kissat *solver, unsigned pivot,
     kissat_learned_unit (solver, clit);
     return;
   }
-  assert (!cval);
-  assert (!dval);
+  KISSAT_assert (!cval);
+  KISSAT_assert (!dval);
   unsigneds *clause = &solver->clause;
-  assert (EMPTY_STACK (*clause));
+  KISSAT_assert (EMPTY_STACK (*clause));
   PUSH_STACK (*clause, clit);
   PUSH_STACK (*clause, dlit);
   LOGTMP ("%s resolvent", LOGVAR (pivot));
@@ -206,10 +208,10 @@ static void do_fast_resolve_binary_binary (kissat *solver, unsigned pivot,
 
 static void do_fast_resolve_binary_large (kissat *solver, unsigned pivot,
                                           unsigned lit, clause *c) {
-  assert (!FLAGS (IDX (lit))->eliminated);
+  KISSAT_assert (!FLAGS (IDX (lit))->eliminated);
   if (c->garbage)
     return;
-  assert (!c->redundant);
+  KISSAT_assert (!c->redundant);
   value *values = solver->values;
   value lit_val = values[lit];
   if (lit_val > 0) {
@@ -217,7 +219,7 @@ static void do_fast_resolve_binary_large (kissat *solver, unsigned pivot,
     return;
   }
   unsigneds *clause = &solver->clause;
-  assert (EMPTY_STACK (*clause));
+  KISSAT_assert (EMPTY_STACK (*clause));
   if (!lit_val)
     PUSH_STACK (*clause, lit);
   bool satisfied = false, tautological = false;
@@ -250,7 +252,7 @@ static void do_fast_resolve_binary_large (kissat *solver, unsigned pivot,
   }
   size_t size = SIZE_STACK (*clause);
   if (!size) {
-    assert (!solver->inconsistent);
+    KISSAT_assert (!solver->inconsistent);
     solver->inconsistent = true;
     LOG ("resolved empty clause");
     CHECK_AND_ADD_EMPTY ();
@@ -276,12 +278,12 @@ static void do_fast_resolve_large_large (kissat *solver, unsigned pivot,
     return;
   if (d->garbage)
     return;
-  assert (!c->redundant);
-  assert (!d->redundant);
+  KISSAT_assert (!c->redundant);
+  KISSAT_assert (!d->redundant);
   value *values = solver->values;
   mark *marks = solver->marks;
   unsigneds *clause = &solver->clause;
-  assert (EMPTY_STACK (*clause));
+  KISSAT_assert (EMPTY_STACK (*clause));
   bool satisfied = false, tautological = false;
   for (all_literals_in_clause (other, c)) {
     const unsigned idx_other = IDX (other);
@@ -337,7 +339,7 @@ static void do_fast_resolve_large_large (kissat *solver, unsigned pivot,
   }
   size_t size = SIZE_STACK (*clause);
   if (!size) {
-    assert (!solver->inconsistent);
+    KISSAT_assert (!solver->inconsistent);
     solver->inconsistent = true;
     LOG ("resolved empty clause");
     CHECK_AND_ADD_EMPTY ();
@@ -363,7 +365,7 @@ static void do_fast_resolve_large_large (kissat *solver, unsigned pivot,
 
 static void do_fast_resolve (kissat *solver, unsigned pivot, watch cwatch,
                              watch dwatch) {
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   LOGWATCH (LIT (pivot), cwatch, "1st fast %s elimination antecedent",
             LOGVAR (pivot));
   LOGWATCH (NOT (LIT (pivot)), dwatch, "1st fast %s elimination antecedent",
@@ -383,7 +385,7 @@ static void do_fast_resolve (kissat *solver, unsigned pivot, watch cwatch,
   else if (!cbin && dbin)
     do_fast_resolve_binary_large (solver, pivot, dlit, c);
   else {
-    assert (!cbin), assert (!dbin);
+    KISSAT_assert (!cbin), KISSAT_assert (!dbin);
     do_fast_resolve_large_large (solver, pivot, c, d);
   }
 }
@@ -449,7 +451,7 @@ static void do_fast_eliminate (kissat *solver, unsigned pivot) {
       p = begin_lit_watches + i;
       q = begin_not_lit_watches + j;
     }
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   INC (eliminated);
   INC (fast_eliminated);
   kissat_mark_eliminated_variable (solver, pivot);
@@ -459,8 +461,8 @@ static void do_fast_eliminate (kissat *solver, unsigned pivot) {
 
 static bool can_fast_resolve_binary_binary (kissat *solver, unsigned clit,
                                             unsigned dlit) {
-  assert (!FLAGS (IDX (clit))->eliminated);
-  assert (!FLAGS (IDX (dlit))->eliminated);
+  KISSAT_assert (!FLAGS (IDX (clit))->eliminated);
+  KISSAT_assert (!FLAGS (IDX (dlit))->eliminated);
   if (clit == NOT (dlit))
     return false;
   value *values = solver->values;
@@ -471,7 +473,7 @@ static bool can_fast_resolve_binary_binary (kissat *solver, unsigned clit,
   if (dval > 0)
     return false;
   if (cval < 0 && dval < 0) {
-    assert (!solver->inconsistent);
+    KISSAT_assert (!solver->inconsistent);
     solver->inconsistent = true;
     LOG ("resolved empty clause");
     CHECK_AND_ADD_EMPTY ();
@@ -496,17 +498,17 @@ static bool can_fast_resolve_binary_binary (kissat *solver, unsigned clit,
     kissat_learned_unit (solver, clit);
     return false;
   }
-  assert (!cval);
-  assert (!dval);
+  KISSAT_assert (!cval);
+  KISSAT_assert (!dval);
   return true;
 }
 
 static bool can_fast_resolve_binary_large (kissat *solver, unsigned pivot,
                                            unsigned lit, clause *c) {
-  assert (!FLAGS (IDX (lit))->eliminated);
+  KISSAT_assert (!FLAGS (IDX (lit))->eliminated);
   if (c->garbage)
     return false;
-  assert (!c->redundant);
+  KISSAT_assert (!c->redundant);
   value *values = solver->values;
   value lit_val = values[lit];
   if (lit_val > 0)
@@ -527,7 +529,7 @@ static bool can_fast_resolve_binary_large (kissat *solver, unsigned pivot,
   }
   if (found_lit) {
     unsigneds *clause = &solver->clause;
-    assert (EMPTY_STACK (*clause));
+    KISSAT_assert (EMPTY_STACK (*clause));
     for (all_literals_in_clause (other, c)) {
       const unsigned idx = IDX (other);
       if (idx == pivot)
@@ -535,7 +537,7 @@ static bool can_fast_resolve_binary_large (kissat *solver, unsigned pivot,
       value value = values[other];
       if (value < 0)
         continue;
-      assert (!value);
+      KISSAT_assert (!value);
       PUSH_STACK (*clause, other);
     }
     LOGTMP ("self-subsuming resolvent");
@@ -544,7 +546,7 @@ static bool can_fast_resolve_binary_large (kissat *solver, unsigned pivot,
     const size_t size = SIZE_STACK (*clause);
     const reference ref = kissat_reference_clause (solver, c);
     if (!size) {
-      assert (!solver->inconsistent);
+      KISSAT_assert (!solver->inconsistent);
       solver->inconsistent = true;
       LOG ("resolved empty clause");
       CHECK_AND_ADD_EMPTY ();
@@ -571,13 +573,13 @@ static bool can_fast_resolve_large_large (kissat *solver, unsigned pivot,
     return false;
   if (d->garbage)
     return false;
-  assert (!c->redundant);
-  assert (!d->redundant);
+  KISSAT_assert (!c->redundant);
+  KISSAT_assert (!d->redundant);
   value *values = solver->values;
   mark *marks = solver->marks;
   bool satisfied = false;
   unsigneds *clause = &solver->clause;
-  assert (EMPTY_STACK (*clause));
+  KISSAT_assert (EMPTY_STACK (*clause));
   for (all_literals_in_clause (other, c)) {
     const unsigned idx_other = IDX (other);
     if (idx_other == pivot)
@@ -591,7 +593,7 @@ static bool can_fast_resolve_large_large (kissat *solver, unsigned pivot,
       kissat_mark_clause_as_garbage (solver, c);
       break;
     }
-    assert (!marks[other]);
+    KISSAT_assert (!marks[other]);
     marks[other] = 1;
     PUSH_STACK (*clause, other);
   }
@@ -628,7 +630,7 @@ static bool can_fast_resolve_large_large (kissat *solver, unsigned pivot,
   if (!satisfied && !tautological) {
     const size_t size = SIZE_STACK (*clause);
     if (!size) {
-      assert (!solver->inconsistent);
+      KISSAT_assert (!solver->inconsistent);
       solver->inconsistent = true;
       LOG ("resolved empty clause");
       CHECK_AND_ADD_EMPTY ();
@@ -698,7 +700,7 @@ static bool can_fast_resolve_large_large (kissat *solver, unsigned pivot,
 
 static bool can_fast_resolve (kissat *solver, unsigned pivot, watch cwatch,
                               watch dwatch) {
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   const unsigned clit = cwatch.binary.lit;
   const unsigned dlit = dwatch.binary.lit;
   const reference cref = cwatch.large.ref;
@@ -713,7 +715,7 @@ static bool can_fast_resolve (kissat *solver, unsigned pivot, watch cwatch,
     return can_fast_resolve_binary_large (solver, pivot, clit, d);
   if (!cbin && dbin)
     return can_fast_resolve_binary_large (solver, pivot, dlit, c);
-  assert (!cbin), assert (!dbin);
+  KISSAT_assert (!cbin), KISSAT_assert (!dbin);
   return can_fast_resolve_large_large (solver, pivot, c, d);
 }
 
@@ -752,7 +754,7 @@ static bool resolvents_limited (kissat *solver, unsigned pivot,
 }
 
 static bool try_to_fast_eliminate (kissat *solver, unsigned pivot) {
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   if (!ACTIVE (pivot))
     return false;
   const unsigned lit = LIT (pivot);
@@ -824,16 +826,16 @@ void kissat_fast_variable_elimination (kissat *solver) {
     return;
   if (!GET_OPTION (fastel))
     return;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const unsigned variables_before = solver->active;
 #endif
-  assert (!solver->level);
+  KISSAT_assert (!solver->level);
   START (fastel);
   kissat_enter_dense_mode (solver, 0);
   kissat_connect_irredundant_large_clauses (solver);
   const unsigned fastelrounds = GET_OPTION (fastelrounds);
   const size_t fasteloccs = GET_OPTION (fasteloccs);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   unsigned eliminated = 0;
 #endif
   unsigned round = 0;
@@ -846,7 +848,7 @@ void kissat_fast_variable_elimination (kissat *solver) {
     kissat_extremely_verbose (
         solver, "gathering candidates for fast elimination round %u",
         round);
-    assert (EMPTY_STACK (candidates));
+    KISSAT_assert (EMPTY_STACK (candidates));
     flags *all_flags = solver->flags;
     for (all_variables (pivot)) {
       flags *pivot_flags = all_flags + pivot;
@@ -868,7 +870,7 @@ void kissat_fast_variable_elimination (kissat *solver) {
       candidate candidate = {pivot, score};
       PUSH_STACK (candidates, candidate);
     }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     const size_t size_candidates = SIZE_STACK (candidates);
     const size_t active_variables = solver->active;
     kissat_extremely_verbose (
@@ -903,7 +905,7 @@ void kissat_fast_variable_elimination (kissat *solver) {
       }
     }
     CLEAR_STACK (candidates);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     eliminated += eliminated_this_round;
     kissat_very_verbose (
         solver, "fast eliminated %u of %zu candidates %.0f%% in round %u",
@@ -918,7 +920,7 @@ void kissat_fast_variable_elimination (kissat *solver) {
     FLAGS (idx)->eliminate = true;
   flush_eliminated_binary_clauses (solver);
   kissat_resume_sparse_mode (solver, true, 0);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const unsigned original_variables = solver->statistics.variables_original;
   const unsigned variables_after = solver->active;
   kissat_verbose (
@@ -932,3 +934,5 @@ void kissat_fast_variable_elimination (kissat *solver) {
   STOP (fastel);
   REPORT (!eliminated, 'e');
 }
+
+ABC_NAMESPACE_IMPL_END

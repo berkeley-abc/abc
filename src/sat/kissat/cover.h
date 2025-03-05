@@ -4,6 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define COVER(COND) \
   ((COND) ? \
 \
@@ -24,5 +27,7 @@
   do { \
   } while (0)
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

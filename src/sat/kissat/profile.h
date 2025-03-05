@@ -1,9 +1,12 @@
 #ifndef _profile_h_INCLUDED
 #define _profile_h_INCLUDED
 
-#ifndef QUIET
-
 #include "stack.h"
+
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#ifndef KISSAT_QUIET
 
 typedef struct profile profile;
 typedef struct profiles profiles;
@@ -139,5 +142,7 @@ double kissat_time (struct kissat *);
   } while (0)
 
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

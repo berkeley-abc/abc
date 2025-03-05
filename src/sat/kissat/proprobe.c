@@ -2,6 +2,8 @@
 #include "fastassign.h"
 #include "trail.h"
 
+ABC_NAMESPACE_IMPL_START
+
 #define PROPAGATE_LITERAL probing_propagate_literal
 #define PROPAGATION_TYPE "probing"
 #define PROBING_PROPAGATION
@@ -34,9 +36,9 @@ static void update_probing_propagation_statistics (kissat *solver,
 
 clause *kissat_probing_propagate (kissat *solver, clause *ignore,
                                   bool flush) {
-  assert (solver->probing);
-  assert (solver->watching);
-  assert (!solver->inconsistent);
+  KISSAT_assert (solver->probing);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (!solver->inconsistent);
 
   START (propagate);
 
@@ -57,3 +59,5 @@ clause *kissat_probing_propagate (kissat *solver, clause *ignore,
 
   return conflict;
 }
+
+ABC_NAMESPACE_IMPL_END

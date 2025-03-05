@@ -1,6 +1,9 @@
 #ifndef _queue_h_INCLUDED
 #define _queue_h_INCLUDED
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define DISCONNECT UINT_MAX
 #define DISCONNECTED(IDX) ((int) (IDX) < 0)
 
@@ -25,14 +28,16 @@ void kissat_init_queue (struct kissat *);
 void kissat_reset_search_of_queue (struct kissat *);
 void kissat_reassign_queue_stamps (struct kissat *);
 
-#define LINK(IDX) (solver->links[assert ((IDX) < VARS), (IDX)])
+#define LINK(IDX) (solver->links[KISSAT_assert ((IDX) < VARS), (IDX)])
 
-#if defined(CHECK_QUEUE) && !defined(NDEBUG)
+#if defined(CHECK_QUEUE) && !defined(KISSAT_NDEBUG)
 void kissat_check_queue (struct kissat *);
 #else
 #define kissat_check_queue(...) \
   do { \
   } while (0)
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

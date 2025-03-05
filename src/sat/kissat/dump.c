@@ -1,4 +1,6 @@
-#ifndef NDEBUG
+#include "global.h"
+
+#ifndef KISSAT_NDEBUG
 
 #include "inline.h"
 
@@ -64,14 +66,14 @@ static void dump_trail (kissat *solver) {
       const unsigned lit = PEEK_ARRAY (solver->trail, i);
       dump_literal (solver, lit);
       const unsigned lit_level = LEVEL (lit);
-      assert (lit_level <= level);
+      KISSAT_assert (lit_level <= level);
       if (lit_level < level)
         printf (" out-of-order");
       assigned *a = ASSIGNED (lit);
       if (!lit_level) {
         printf (" UNIT\n");
-        assert (!a->binary);
-        assert (a->reason == UNIT_REASON);
+        KISSAT_assert (!a->binary);
+        KISSAT_assert (a->reason == UNIT_REASON);
       } else {
         fputc (' ', stdout);
         if (a->binary) {
@@ -80,7 +82,7 @@ static void dump_trail (kissat *solver) {
         } else if (a->reason == DECISION_REASON)
           printf ("DECISION\n");
         else {
-          assert (a->reason != UNIT_REASON);
+          KISSAT_assert (a->reason != UNIT_REASON);
           const reference ref = a->reason;
           dump_ref (solver, ref);
         }
@@ -129,18 +131,18 @@ static void dump_scores (kissat *solver) {
 }
 
 static void dump_export (kissat *solver) {
-  const unsigned size = SIZE_STACK (solver->export);
+  const unsigned size = SIZE_STACK (solver->export_);
   for (unsigned idx = 0; idx < size; idx++)
     printf ("export[%u] = %u\n", LIT (idx),
-            PEEK_STACK (solver->export, idx));
+            PEEK_STACK (solver->export_, idx));
 }
 
 void dump_map (kissat *solver) {
-  const unsigned size = SIZE_STACK (solver->export);
+  const unsigned size = SIZE_STACK (solver->export_);
   unsigned first = INVALID_LIT;
   for (unsigned idx = 0; idx < size; idx++) {
     const unsigned ilit = LIT (idx);
-    const int elit = PEEK_STACK (solver->export, idx);
+    const int elit = PEEK_STACK (solver->export_, idx);
     printf ("map[%u] -> %d", ilit, elit);
     if (elit) {
       const unsigned eidx = ABS (elit);
@@ -195,7 +197,7 @@ static void dump_extend (kissat *solver) {
   const extension *const begin = BEGIN_STACK (solver->extend);
   const extension *const end = END_STACK (solver->extend);
   for (const extension *p = begin, *q; p != end; p = q) {
-    assert (p->blocking);
+    KISSAT_assert (p->blocking);
     printf ("extend[%zu] %d", (size_t) (p - begin), p->lit);
     if (!p[1].blocking)
       fputs (" :", stdout);

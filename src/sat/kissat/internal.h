@@ -33,6 +33,9 @@
 #include "vector.h"
 #include "watch.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct datarank datarank;
 
 struct datarank {
@@ -74,7 +77,7 @@ typedef STACK (watch *) patches;
 struct kitten;
 
 struct kissat {
-#if !defined(NDEBUG) || defined(METRICS)
+#if !defined(KISSAT_NDEBUG) || defined(METRICS)
   bool backbone_computing;
 #endif
 #ifdef LOGGING
@@ -85,11 +88,11 @@ struct kissat {
   bool iterating;
   bool preprocessing;
   bool probing;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   bool sectioned;
 #endif
   bool stable;
-#if !defined(NDEBUG) || defined(METRICS)
+#if !defined(KISSAT_NDEBUG) || defined(METRICS)
   bool transitive_reducing;
   bool vivifying;
 #endif
@@ -105,7 +108,7 @@ struct kissat {
   unsigned active;
   unsigned randec;
 
-  ints export;
+  ints export_;
   ints units;
   imports import;
   extensions extend;
@@ -144,7 +147,7 @@ struct kissat {
 
   unsigneds delayed;
 
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   unsigneds resolvent;
 #endif
   unsigned resolvent_size;
@@ -197,7 +200,7 @@ struct kissat {
 
   uint64_t ticks;
 
-  format format;
+  kormat format;
   char *prefix;
 
   statches antecedents[2];
@@ -215,33 +218,33 @@ struct kissat {
   bool sweep_incomplete;
   unsigneds sweep_schedule;
 
-#if !defined(NDEBUG) || !defined(NPROOFS)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS)
   unsigneds added;
   unsigneds removed;
 #endif
 
-#if !defined(NDEBUG) || !defined(NPROOFS) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS) || defined(LOGGING)
   ints original;
   size_t offset_of_last_original_clause;
 #endif
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   profiles profiles;
 #endif
 
-#ifndef NOPTIONS
+#ifndef KISSAT_NOPTIONS
   options options;
 #endif
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   checker *checker;
 #endif
 
-#ifndef NPROOFS
+#ifndef KISSAT_NPROOFS
   proof *proof;
 #endif
 
-  statistics statistics;
+  statistics statistics_;
 };
 
 #define VARS (solver->vars)
@@ -259,7 +262,7 @@ struct kissat {
 #define SCORES (&solver->scores)
 
 static inline unsigned kissat_assigned (kissat *solver) {
-  assert (VARS >= solver->unassigned);
+  KISSAT_assert (VARS >= solver->unassigned);
   return VARS - solver->unassigned;
 }
 
@@ -291,5 +294,7 @@ static inline unsigned kissat_assigned (kissat *solver) {
   REF_PTR++
 
 void kissat_reset_last_learned (kissat *solver);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

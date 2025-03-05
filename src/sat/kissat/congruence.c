@@ -19,6 +19,8 @@
 #include <stdint.h>
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 // #define INDEX_LARGE_CLAUSES
 // #define INDEX_BINARY_CLAUSES
 #define MERGE_CONDITIONAL_EQUIVALENCES
@@ -31,7 +33,7 @@
 #define MAX_ARITY ((1 << LD_MAX_ARITY) - 1)
 
 struct gate {
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   size_t id;
 #endif
   unsigned lhs;
@@ -132,10 +134,10 @@ struct closure {
 #ifdef CHECKING_OR_PROVING
   unsigneds chain;
 #endif
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   size_t gates_added;
 #endif
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   unsigneds implied;
 #endif
 };
@@ -144,8 +146,8 @@ typedef struct closure closure;
 
 static void init_closure (kissat *solver, closure *closure) {
   closure->solver = solver;
-  CALLOC (closure->scheduled, VARS);
-  CALLOC (closure->occurrences, LITS);
+  CALLOC (bool, closure->scheduled, VARS);
+  CALLOC (gates, closure->occurrences, LITS);
   INIT_STACK (closure->garbage);
   INIT_STACK (closure->lits);
   INIT_STACK (closure->rhs);
@@ -153,7 +155,7 @@ static void init_closure (kissat *solver, closure *closure) {
   INIT_STACK (closure->binaries);
   INIT_FIFO (closure->schedule);
 
-  NALLOC (closure->repr, LITS);
+  NALLOC (unsigned, closure->repr, LITS);
   for (all_literals (lit))
     closure->repr[lit] = lit;
 
@@ -167,10 +169,10 @@ static void init_closure (kissat *solver, closure *closure) {
 #ifdef CHECKING_OR_PROVING
   INIT_STACK (closure->chain);
 #endif
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   closure->gates_added = 0;
 #endif
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   INIT_STACK (closure->implied);
 #endif
 }
@@ -190,21 +192,21 @@ static unsigned actual_gate_arity (gate *g) {
 
 #define CLOGANDGATE(G, ...) \
   do { \
-    assert ((G)->tag == AND_GATE); \
+    KISSAT_assert ((G)->tag == AND_GATE); \
     LOGANDGATE ((G)->id, closure->repr, (G)->lhs, (G)->arity, (G)->rhs, \
                 __VA_ARGS__); \
   } while (0)
 
 #define CLOGXORGATE(G, ...) \
   do { \
-    assert ((G)->tag == XOR_GATE); \
+    KISSAT_assert ((G)->tag == XOR_GATE); \
     LOGXORGATE ((G)->id, closure->repr, (G)->lhs, (G)->arity, (G)->rhs, \
                 __VA_ARGS__); \
   } while (0)
 
 #define CLOGITEGATE(G, ...) \
   do { \
-    assert ((G)->tag == ITE_GATE); \
+    KISSAT_assert ((G)->tag == ITE_GATE); \
     LOGITEGATE ((G)->id, closure->repr, (G)->lhs, (G)->rhs[0], \
                 (G)->rhs[1], (G)->rhs[2], __VA_ARGS__); \
   } while (0)
@@ -218,7 +220,7 @@ static unsigned actual_gate_arity (gate *g) {
     else if ((G)->tag == XOR_GATE) \
       CLOGXORGATE (G, __VA_ARGS__); \
     else { \
-      assert ((G)->tag == ITE_GATE); \
+      KISSAT_assert ((G)->tag == ITE_GATE); \
       CLOGITEGATE (G, __VA_ARGS__); \
     } \
   } while (0)
@@ -264,7 +266,7 @@ static void reset_closure (closure *closure) {
 #ifdef CHECKING_OR_PROVING
   RELEASE_STACK (closure->chain);
 #endif
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   RELEASE_STACK (closure->implied);
 #endif
 
@@ -284,7 +286,7 @@ static unsigned reset_repr (closure *closure) {
   return res;
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 static void check_lits_sorted (size_t size, const unsigned *lits) {
   unsigned prev = INVALID_LIT;
@@ -292,38 +294,38 @@ static void check_lits_sorted (size_t size, const unsigned *lits) {
   for (const unsigned *p = lits; p != end_lits; p++) {
     const unsigned lit = *p;
     if (prev != INVALID_LIT) {
-      assert (prev != lit);
+      KISSAT_assert (prev != lit);
       const unsigned not_lit = lit ^ 1;
-      assert (prev != not_lit);
-      assert (prev < lit);
+      KISSAT_assert (prev != not_lit);
+      KISSAT_assert (prev < lit);
     }
     prev = lit;
   }
 }
 
 static void check_and_lits_normalized (size_t arity, const unsigned *lits) {
-  assert (arity > 1);
+  KISSAT_assert (arity > 1);
   check_lits_sorted (arity, lits);
 }
 
 static void check_xor_lits_normalized (const unsigned arity,
                                        const unsigned *lits) {
-  assert (arity > 1);
+  KISSAT_assert (arity > 1);
   check_lits_sorted (arity, lits);
   for (size_t i = 1; i != arity; i++)
-    assert (lits[i - 1] < lits[i]);
+    KISSAT_assert (lits[i - 1] < lits[i]);
 }
 
 static void check_ite_lits_normalized (kissat *solver,
                                        const unsigned *lits) {
-  assert (!NEGATED (lits[0]));
-  assert (!NEGATED (lits[1]));
-  assert (lits[0] != lits[1]);
-  assert (lits[0] != lits[2]);
-  assert (lits[1] != lits[2]);
-  assert (lits[0] != NOT (lits[1]));
-  assert (lits[0] != NOT (lits[2]));
-  assert (lits[1] != NOT (lits[2]));
+  KISSAT_assert (!NEGATED (lits[0]));
+  KISSAT_assert (!NEGATED (lits[1]));
+  KISSAT_assert (lits[0] != lits[1]);
+  KISSAT_assert (lits[0] != lits[2]);
+  KISSAT_assert (lits[1] != lits[2]);
+  KISSAT_assert (lits[0] != NOT (lits[1]));
+  KISSAT_assert (lits[0] != NOT (lits[2]));
+  KISSAT_assert (lits[1] != NOT (lits[2]));
 }
 
 #else
@@ -347,13 +349,13 @@ static void sort_lits (kissat *solver, size_t arity, unsigned *lits) {
 
 static unsigned hash_lits (closure *closure, unsigned tag, size_t arity,
                            const unsigned *lits) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   if (tag == AND_GATE)
     check_and_lits_normalized (arity, lits);
   else if (tag == XOR_GATE)
     check_xor_lits_normalized (arity, lits);
   else {
-    assert (tag == ITE_GATE);
+    KISSAT_assert (tag == ITE_GATE);
     check_ite_lits_normalized (closure->solver, lits);
   }
 #endif
@@ -362,7 +364,7 @@ static unsigned hash_lits (closure *closure, unsigned tag, size_t arity,
   const uint64_t *const end_nonces = nonces + SIZE_NONCES;
   const uint64_t *n = nonces + tag;
   uint64_t hash = 0;
-  assert (n < end_nonces);
+  KISSAT_assert (n < end_nonces);
   for (const unsigned *l = lits; l != end_lits; l++) {
     hash += *l;
     hash *= *n++;
@@ -374,19 +376,19 @@ static unsigned hash_lits (closure *closure, unsigned tag, size_t arity,
   return hash;
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 static bool is_power_of_two (size_t n) { return n && ~(n & (n - 1)); }
 #endif
 
 static size_t reduce_hash (unsigned hash, size_t size, size_t size2) {
-  assert (size <= size2);
-  assert (size2 <= 2 * size);
-  assert (is_power_of_two (size2));
+  KISSAT_assert (size <= size2);
+  KISSAT_assert (size2 <= 2 * size);
+  KISSAT_assert (is_power_of_two (size2));
   unsigned res = hash;
   res &= size2 - 1;
   if (res >= size)
     res -= size;
-  assert (res < size);
+  KISSAT_assert (res < size);
   return res;
 }
 
@@ -402,7 +404,7 @@ static bool closure_hash_table_is_full (closure *closure) {
 
 static bool match_lits (gate *g, unsigned tag, unsigned hash, size_t size,
                         const unsigned *lits) {
-  assert (!g->garbage);
+  KISSAT_assert (!g->garbage);
   if (g->tag != tag)
     return false;
   if (g->hash != hash)
@@ -427,7 +429,7 @@ static void resize_gate_hash_table (closure *closure) {
       "resizing gate table of size %zu filled with %zu entries %.0f%%",
       old_size, old_entries, kissat_percent (old_entries, old_size));
   gate **old_table = hash->table, **new_table;
-  CALLOC (new_table, new_size);
+  CALLOC (gate*, new_table, new_size);
   size_t flushed = 0;
   for (size_t old_pos = 0; old_pos != old_size; old_pos++) {
     gate *g = old_table[old_pos];
@@ -439,7 +441,7 @@ static void resize_gate_hash_table (closure *closure) {
     }
     size_t new_pos = reduce_hash (g->hash, new_size, new_size);
     while (new_table[new_pos]) {
-      assert (new_table[new_pos] != REMOVED);
+      KISSAT_assert (new_table[new_pos] != REMOVED);
       if (++new_pos == new_size)
         new_pos = 0;
     }
@@ -449,7 +451,7 @@ static void resize_gate_hash_table (closure *closure) {
       solver, "flushed %zu entries %.0f%% resizing table of size %zu",
       flushed, kissat_percent (flushed, old_size), old_size);
   DEALLOC (old_table, old_size);
-  assert (flushed <= old_entries);
+  KISSAT_assert (flushed <= old_entries);
   const size_t new_entries = old_entries - flushed;
   hash->table = new_table;
   hash->size = new_size;
@@ -463,7 +465,7 @@ static bool remove_gate (closure *closure, gate *g) {
   if (!g->indexed)
     return false;
   kissat *solver = closure->solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   const size_t hash_size = closure->hash.size;
   size_t pos = reduce_hash (g->hash, hash_size, hash_size);
   gate **table = closure->hash.table;
@@ -485,12 +487,12 @@ static bool remove_gate (closure *closure, gate *g) {
 
 static gate *find_gate (closure *closure, unsigned tag, unsigned hash,
                         size_t size, const unsigned *lits, gate *except) {
-  assert (!except || !except->garbage);
+  KISSAT_assert (!except || !except->garbage);
   if (!closure->hash.entries)
     return 0;
   kissat *solver = closure->solver;
-  assert (!solver->inconsistent);
-  assert (hash == hash_lits (closure, tag, size, lits));
+  KISSAT_assert (!solver->inconsistent);
+  KISSAT_assert (hash == hash_lits (closure, tag, size, lits));
   const size_t hash_size = closure->hash.size;
   size_t start_pos = reduce_hash (hash, hash_size, hash_size);
   gate **table = closure->hash.table, *g;
@@ -503,7 +505,7 @@ static gate *find_gate (closure *closure, unsigned tag, unsigned hash,
     if (g == REMOVED)
       ;
     else if (g->garbage) {
-      assert (g->indexed);
+      KISSAT_assert (g->indexed);
       g->indexed = false;
       table[pos] = REMOVED;
     } else if (g != except && match_lits (g, tag, hash, size, lits)) {
@@ -523,15 +525,15 @@ static gate *find_gate (closure *closure, unsigned tag, unsigned hash,
 }
 
 static void index_gate (closure *closure, gate *g) {
-  assert (!g->indexed);
+  KISSAT_assert (!g->indexed);
   kissat *solver = closure->solver;
-  assert (!solver->inconsistent);
-  assert (g->arity > 1);
+  KISSAT_assert (!solver->inconsistent);
+  KISSAT_assert (g->arity > 1);
   if (closure_hash_table_is_full (closure))
     resize_gate_hash_table (closure);
   LOGATE (g, "adding to hash table");
   INC (congruent_indexed);
-  assert (g->hash == hash_lits (closure, g->tag, g->arity, g->rhs));
+  KISSAT_assert (g->hash == hash_lits (closure, g->tag, g->arity, g->rhs));
   const size_t hash_size = closure->hash.size;
   size_t pos = reduce_hash (g->hash, hash_size, hash_size);
   gate **table = closure->hash.table, *h;
@@ -552,7 +554,7 @@ static unsigned parity_lits (kissat *solver, unsigneds *lits) {
   unsigned res = 0;
   for (all_stack (unsigned, lit, *lits))
     res ^= NEGATED (lit);
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) solver;
 #endif
   return res;
@@ -568,12 +570,12 @@ static void inc_lits (kissat *solver, unsigneds *lits) {
     carry = !NEGATED (not_lit);
     *p++ = not_lit;
   }
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) solver;
 #endif
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 #define LESS_LITERAL(A, B) ((A) < (B))
 
@@ -617,14 +619,14 @@ static void check_binary_implied (closure *closure, unsigned a,
                                   unsigned b) {
   kissat *const solver = closure->solver;
   unsigneds *implied = &closure->implied;
-  assert (EMPTY_STACK (*implied));
+  KISSAT_assert (EMPTY_STACK (*implied));
   PUSH_STACK (*implied, a);
   PUSH_STACK (*implied, b);
   check_implied (closure);
 }
 
 static void check_and_gate_implied (closure *closure, gate *g) {
-  assert (g->tag == AND_GATE);
+  KISSAT_assert (g->tag == AND_GATE);
   kissat *const solver = closure->solver;
   if (GET_OPTION (check) < 2)
     return;
@@ -634,7 +636,7 @@ static void check_and_gate_implied (closure *closure, gate *g) {
   for (all_rhs_literals_in_gate (other, g))
     check_binary_implied (closure, not_lhs, other);
   unsigneds *implied = &closure->implied;
-  assert (EMPTY_STACK (*implied));
+  KISSAT_assert (EMPTY_STACK (*implied));
   PUSH_STACK (*implied, lhs);
   for (all_rhs_literals_in_gate (other, g)) {
     const unsigned not_other = NOT (other);
@@ -644,7 +646,7 @@ static void check_and_gate_implied (closure *closure, gate *g) {
 }
 
 static void check_xor_gate_implied (closure *closure, gate *g) {
-  assert (g->tag == XOR_GATE);
+  KISSAT_assert (g->tag == XOR_GATE);
   kissat *const solver = closure->solver;
   if (GET_OPTION (check) < 2)
     return;
@@ -652,16 +654,16 @@ static void check_xor_gate_implied (closure *closure, gate *g) {
   const unsigned lhs = g->lhs;
   const unsigned not_lhs = NOT (lhs);
   unsigneds *clause = &solver->clause;
-  assert (EMPTY_STACK (*clause));
+  KISSAT_assert (EMPTY_STACK (*clause));
   PUSH_STACK (*clause, not_lhs);
   for (all_rhs_literals_in_gate (other, g)) {
-    assert (!NEGATED (other));
+    KISSAT_assert (!NEGATED (other));
     PUSH_STACK (*clause, other);
   }
   unsigned arity = g->arity;
   unsigned end = 1u << arity;
   unsigned parity = NEGATED (not_lhs);
-  assert (parity == parity_lits (solver, clause));
+  KISSAT_assert (parity == parity_lits (solver, clause));
   for (unsigned i = 0; i != end; i++) {
     while (i && parity_lits (solver, clause) != parity)
       inc_lits (solver, clause);
@@ -702,9 +704,9 @@ static void check_ite_implied (closure *closure, unsigned lhs,
 }
 
 static void check_ite_gate_implied (closure *closure, gate *g) {
-  assert (g->tag == ITE_GATE);
-  assert (g->arity == 3);
-#ifndef NOPTIONS
+  KISSAT_assert (g->tag == ITE_GATE);
+  KISSAT_assert (g->arity == 3);
+#ifndef KISSAT_NOPTIONS
   kissat *const solver = closure->solver;
 #endif
   if (GET_OPTION (check) < 2)
@@ -741,17 +743,17 @@ static inline unsigned find_repr (closure *closure, unsigned lit) {
 
 static clause *find_other_two (kissat *solver, watches *watches, unsigned a,
                                unsigned b, unsigned ignore) {
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   const value *const values = solver->values;
   const watch *const begin_watches = BEGIN_WATCHES (*watches);
   const watch *const end_watches = END_WATCHES (*watches);
   const watch *p = begin_watches;
   while (p != end_watches) {
     const watch watch = *p++;
-    assert (!watch.type.binary);
+    KISSAT_assert (!watch.type.binary);
     const reference ref = watch.large.ref;
     clause *c = kissat_dereference_clause (solver, ref);
-    assert (!c->garbage);
+    KISSAT_assert (!c->garbage);
     unsigned found = 0;
     for (all_literals_in_clause (lit, c)) {
       if (values[lit])
@@ -764,7 +766,7 @@ static clause *find_other_two (kissat *solver, watches *watches, unsigned a,
       }
       goto CONTINUE_WITH_NEXT_WATCH;
     }
-    assert (found <= 2);
+    KISSAT_assert (found <= 2);
     if (found == 2)
       return c;
   CONTINUE_WITH_NEXT_WATCH:;
@@ -774,7 +776,7 @@ static clause *find_other_two (kissat *solver, watches *watches, unsigned a,
 
 static clause *find_ternary_clause (kissat *solver, unsigned a, unsigned b,
                                     unsigned c) {
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   watches *const a_watches = &WATCHES (a);
   watches *const b_watches = &WATCHES (b);
   watches *const c_watches = &WATCHES (c);
@@ -785,7 +787,7 @@ static clause *find_ternary_clause (kissat *solver, unsigned a, unsigned b,
     return find_other_two (solver, a_watches, b, c, a);
   if (size_b <= size_a && size_b <= size_c)
     return find_other_two (solver, b_watches, a, c, b);
-  assert (size_c <= size_a && size_c <= size_b);
+  KISSAT_assert (size_c <= size_a && size_c <= size_b);
   return find_other_two (solver, c_watches, a, b, c);
 }
 
@@ -793,7 +795,7 @@ static clause *find_ternary_clause (kissat *solver, unsigned a, unsigned b,
 
 static bool learn_congruence_unit (closure *closure, unsigned unit) {
   kissat *const solver = closure->solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   const value value = solver->values[unit];
   if (value > 0)
     return true;
@@ -810,7 +812,7 @@ static bool learn_congruence_unit (closure *closure, unsigned unit) {
   clause *conflict = kissat_probing_propagate (solver, 0, false);
   if (!conflict)
     return true;
-  assert (solver->inconsistent);
+  KISSAT_assert (solver->inconsistent);
   LOG ("propagating congruence unit %s yields conflict", LOGLIT (unit));
   return false;
 }
@@ -838,7 +840,7 @@ static void add_binary_clause (closure *closure, unsigned a, unsigned b) {
     (void) !learn_congruence_unit (closure, unit);
     return;
   }
-  assert (!a_value), assert (!b_value);
+  KISSAT_assert (!a_value), KISSAT_assert (!b_value);
   LOGBINARY (a, b, "adding representative");
   if (solver->watching)
     kissat_new_binary_clause (solver, a, b);
@@ -856,19 +858,19 @@ static void schedule_literal (closure *closure, unsigned lit) {
   if (*scheduled)
     return;
   *scheduled = true;
-  ENQUEUE_FIFO (closure->schedule, lit);
+  ENQUEUE_FIFO (unsigned, closure->schedule, lit);
   LOG ("scheduled propagation of merged %s", CLOGREPR (lit));
 }
 
 static unsigned dequeue_next_scheduled_literal (closure *closure) {
   unsigned res;
   DEQUEUE_FIFO (closure->schedule, res);
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   kissat *const solver = closure->solver;
 #endif
   unsigned idx = IDX (res);
   bool *scheduled = closure->scheduled + idx;
-  assert (*scheduled);
+  KISSAT_assert (*scheduled);
   *scheduled = false;
   LOG ("dequeued from schedule %s", CLOGREPR (res));
   return res;
@@ -877,7 +879,7 @@ static unsigned dequeue_next_scheduled_literal (closure *closure) {
 static bool merge_literals (closure *closure, unsigned lit,
                             unsigned other) {
   kissat *const solver = closure->solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   unsigned repr_lit = find_repr (closure, lit);
   unsigned repr_other = find_repr (closure, other);
   unsigned *const repr = closure->repr;
@@ -889,8 +891,8 @@ static bool merge_literals (closure *closure, unsigned lit,
   const value *const values = solver->values;
   const value lit_value = values[lit];
   const value other_value = values[other];
-  assert (lit_value == values[repr_lit]);
-  assert (other_value == values[repr_other]);
+  KISSAT_assert (lit_value == values[repr_lit]);
+  KISSAT_assert (other_value == values[repr_other]);
   if (lit_value) {
     if (lit_value == other_value) {
       LOG ("not merging %s and %s assigned to the same value",
@@ -905,7 +907,7 @@ static bool merge_literals (closure *closure, unsigned lit,
       ADD_EMPTY_TO_PROOF ();
       return false;
     }
-    assert (!other_value);
+    KISSAT_assert (!other_value);
     LOG ("merging assigned %s and unassigned %s", LOGREPR (lit, repr),
          LOGREPR (other, repr));
     const unsigned unit = (lit_value < 0) ? NOT (other) : other;
@@ -923,8 +925,8 @@ static bool merge_literals (closure *closure, unsigned lit,
   unsigned larger = repr_other;
   if (smaller > larger)
     SWAP (unsigned, smaller, larger);
-  assert (repr[smaller] == smaller);
-  assert (repr[larger] > smaller);
+  KISSAT_assert (repr[smaller] == smaller);
+  KISSAT_assert (repr[larger] > smaller);
   if (repr_lit == NOT (repr_other)) {
     LOG ("merging clashing %s and %s", LOGREPR (lit, repr),
          LOGREPR (other, repr));
@@ -960,8 +962,8 @@ static gate *new_gate (closure *closure, unsigned tag, unsigned hash,
                        unsigned lhs, unsigned arity, const unsigned *lits) {
   kissat *const solver = closure->solver;
   const size_t bytes = bytes_gate (arity);
-  gate *g = kissat_malloc (solver, bytes);
-#if defined(LOGGING) || !defined(NDEBUG)
+  gate *g = (gate*)kissat_malloc (solver, bytes);
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   g->id = closure->gates_added++;
 #endif
   g->tag = tag;
@@ -1010,12 +1012,12 @@ static gate *new_and_gate (closure *closure, unsigned lhs) {
   for (all_stack (unsigned, lit, *all_lits))
     if (lhs != lit) {
       unsigned not_lit = NOT (lit);
-      assert (lhs != not_lit);
+      KISSAT_assert (lhs != not_lit);
       PUSH_STACK (*rhs_stack, not_lit);
     }
   const unsigned arity = SIZE_STACK (*rhs_stack);
   unsigned *rhs_lits = BEGIN_STACK (*rhs_stack);
-  assert (arity + 1 == SIZE_STACK (*all_lits));
+  KISSAT_assert (arity + 1 == SIZE_STACK (*all_lits));
   unsigned hash;
   gate *g = find_and_lits (closure, &hash, arity, rhs_lits, 0);
   if (g) {
@@ -1043,10 +1045,10 @@ static void simplify_and_add_to_proof_chain (kissat *solver, mark *marks,
                                              unsigneds *unsimplified,
                                              unsigneds *clause,
                                              unsigneds *chain) {
-  assert (EMPTY_STACK (*clause));
-#ifndef NDEBUG
+  KISSAT_assert (EMPTY_STACK (*clause));
+#ifndef KISSAT_NDEBUG
   for (all_stack (unsigned, lit, *unsimplified))
-    assert (!(marks[lit] & 4));
+    KISSAT_assert (!(marks[lit] & 4));
 #endif
   bool trivial = false;
   for (all_stack (unsigned, lit, *unsimplified)) {
@@ -1065,7 +1067,7 @@ static void simplify_and_add_to_proof_chain (kissat *solver, mark *marks,
   }
   for (all_stack (unsigned, lit, *clause)) {
     mark mark = marks[lit];
-    assert (mark & 4);
+    KISSAT_assert (mark & 4);
     mark &= ~4u;
     marks[lit] = mark;
   }
@@ -1093,9 +1095,9 @@ static void add_xor_matching_proof_chain (closure *closure, gate *g,
   unsigneds *const clause = &solver->clause;
   unsigneds *const chain = &closure->chain;
   mark *const marks = solver->marks;
-  assert (EMPTY_STACK (*unsimplified));
-  assert (EMPTY_STACK (*chain));
-  assert (g->arity > 1);
+  KISSAT_assert (EMPTY_STACK (*unsimplified));
+  KISSAT_assert (EMPTY_STACK (*chain));
+  KISSAT_assert (g->arity > 1);
   const unsigned reduced_arity = g->arity - 1;
   for (unsigned i = 0; i != reduced_arity; i++)
     PUSH_STACK (*unsimplified, g->rhs[i]);
@@ -1103,7 +1105,7 @@ static void add_xor_matching_proof_chain (closure *closure, gate *g,
   const unsigned not_lhs2 = NOT (lhs2);
   do {
     const size_t size = SIZE_STACK (*unsimplified);
-    assert (size < 32);
+    KISSAT_assert (size < 32);
     for (unsigned i = 0; i != 1u << size; i++) {
       PUSH_STACK (*unsimplified, not_lhs1);
       PUSH_STACK (*unsimplified, lhs2);
@@ -1115,7 +1117,7 @@ static void add_xor_matching_proof_chain (closure *closure, gate *g,
       unsimplified->end -= 2;
       inc_lits (solver, unsimplified);
     }
-    assert (!EMPTY_STACK (*unsimplified));
+    KISSAT_assert (!EMPTY_STACK (*unsimplified));
     unsimplified->end--;
   } while (!EMPTY_STACK (*unsimplified));
   LOG ("finished XOR matching proof chain");
@@ -1125,14 +1127,14 @@ static void delete_proof_chain (closure *closure) {
   kissat *const solver = closure->solver;
   unsigneds *chain = &closure->chain;
   if (!kissat_checking_or_proving (solver)) {
-    assert (EMPTY_STACK (*chain));
+    KISSAT_assert (EMPTY_STACK (*chain));
     return;
   }
   if (EMPTY_STACK (*chain))
     return;
   LOG ("starting deletion of proof chain");
   unsigneds *clause = &solver->clause;
-  assert (EMPTY_STACK (*clause));
+  KISSAT_assert (EMPTY_STACK (*clause));
   const unsigned *start = BEGIN_STACK (*chain);
   const unsigned *end = END_STACK (*chain);
   const unsigned *p = start;
@@ -1150,8 +1152,8 @@ static void delete_proof_chain (closure *closure) {
     }
     p++;
   }
-  assert (EMPTY_STACK (*clause));
-  assert (start == end);
+  KISSAT_assert (EMPTY_STACK (*clause));
+  KISSAT_assert (start == end);
   CLEAR_STACK (*chain);
   LOG ("finished deletion of proof chain");
 }
@@ -1196,12 +1198,12 @@ static gate *new_xor_gate (closure *closure, unsigned lhs) {
   const unsigned not_lhs = NOT (lhs);
   for (all_stack (unsigned, lit, *all_lits))
     if (lit != lhs && lit != not_lhs) {
-      assert (!NEGATED (lit));
+      KISSAT_assert (!NEGATED (lit));
       PUSH_STACK (*rhs_stack, lit);
     }
   const unsigned arity = SIZE_STACK (*rhs_stack);
   unsigned *rhs_lits = BEGIN_STACK (*rhs_stack);
-  assert (arity + 1 == SIZE_STACK (*all_lits));
+  KISSAT_assert (arity + 1 == SIZE_STACK (*all_lits));
   unsigned hash;
   gate *g = find_xor_lits (closure, &hash, arity, rhs_lits, 0);
   if (g) {
@@ -1233,8 +1235,8 @@ static void add_ite_matching_proof_chain (closure *closure, gate *g,
   unsigneds *clause = &solver->clause;
   mark *const marks = solver->marks;
   unsigneds *chain = &closure->chain;
-  assert (EMPTY_STACK (*clause));
-  assert (EMPTY_STACK (*chain));
+  KISSAT_assert (EMPTY_STACK (*clause));
+  KISSAT_assert (EMPTY_STACK (*chain));
   const unsigned *rhs = g->rhs;
   const unsigned cond = rhs[0];
   const unsigned not_cond = NOT (cond);
@@ -1274,8 +1276,8 @@ static void add_ite_turned_and_binary_clauses (closure *closure, gate *g) {
   unsigneds *clause = &solver->clause;
   unsigneds *chain = &closure->chain;
   mark *const marks = solver->marks;
-  assert (EMPTY_STACK (*unsimplified));
-  assert (EMPTY_STACK (*chain));
+  KISSAT_assert (EMPTY_STACK (*unsimplified));
+  KISSAT_assert (EMPTY_STACK (*chain));
   const unsigned not_lhs = NOT (g->lhs);
   const unsigned *rhs = g->rhs;
   PUSH_STACK (*unsimplified, not_lhs);
@@ -1298,7 +1300,7 @@ static void add_ite_turned_and_binary_clauses (closure *closure, gate *g) {
 #endif
 
 static bool normalize_ite_lits (kissat *solver, unsigned *lits) {
-#ifdef NDEBUG
+#ifdef KISSAT_NDEBUG
   (void) solver;
 #endif
   if (NEGATED (lits[0])) {
@@ -1316,7 +1318,7 @@ static gate *find_ite_lits (closure *closure, unsigned *hash_ptr,
                             bool *negate_lhs_ptr, unsigned arity,
                             unsigned *lits, gate *except) {
   kissat *const solver = closure->solver;
-  assert (arity == 3);
+  KISSAT_assert (arity == 3);
   LOGITEGATE (INVALID_GATE_ID, closure->repr, INVALID_LIT, lits[0], lits[1],
               lits[2], "finding not yet normalized");
   bool negate_lhs = normalize_ite_lits (solver, lits);
@@ -1371,7 +1373,7 @@ static gate *new_ite_gate (closure *closure, unsigned lhs, unsigned cond,
   PUSH_STACK (*rhs_stack, cond);
   PUSH_STACK (*rhs_stack, then_lit);
   PUSH_STACK (*rhs_stack, else_lit);
-  assert (SIZE_STACK (*rhs_stack) == 3);
+  KISSAT_assert (SIZE_STACK (*rhs_stack) == 3);
   const unsigned arity = 3;
   unsigned *rhs_lits = BEGIN_STACK (*rhs_stack);
   bool negate_lhs;
@@ -1397,7 +1399,7 @@ static gate *new_ite_gate (closure *closure, unsigned lhs, unsigned cond,
 
 static void mark_gate_as_garbage (closure *closure, gate *g) {
   kissat *const solver = closure->solver;
-  assert (!g->garbage);
+  KISSAT_assert (!g->garbage);
   g->garbage = true;
   LOGATE (g, "marked as garbage");
   PUSH_STACK (closure->garbage, g);
@@ -1408,13 +1410,13 @@ static void shrink_gate (closure *closure, gate *g,
   unsigned *const rhs = g->rhs;
   const unsigned old_arity = g->arity;
   unsigned *const old_end_rhs = rhs + old_arity;
-  assert (rhs <= new_end_rhs);
-  assert (new_end_rhs <= old_end_rhs);
+  KISSAT_assert (rhs <= new_end_rhs);
+  KISSAT_assert (new_end_rhs <= old_end_rhs);
   if (new_end_rhs == old_end_rhs)
     return;
   const unsigned new_arity = new_end_rhs - rhs;
   if (!g->shrunken) {
-    assert (old_end_rhs[-1] != INVALID_LIT);
+    KISSAT_assert (old_end_rhs[-1] != INVALID_LIT);
     old_end_rhs[-1] = INVALID_LIT;
     g->shrunken = true;
   }
@@ -1428,7 +1430,7 @@ static void shrink_gate (closure *closure, gate *g,
 }
 
 static bool skip_and_gate (closure *closure, gate *g) {
-  assert (g->tag == AND_GATE);
+  KISSAT_assert (g->tag == AND_GATE);
   if (g->garbage)
     return true;
   kissat *const solver = closure->solver;
@@ -1439,7 +1441,7 @@ static bool skip_and_gate (closure *closure, gate *g) {
     mark_gate_as_garbage (closure, g);
     return true;
   }
-  assert (g->arity > 1);
+  KISSAT_assert (g->arity > 1);
   return false;
 }
 
@@ -1451,7 +1453,7 @@ static bool gate_contains (gate *g, unsigned lit) {
 }
 
 static bool rewriting_lhs (closure *closure, gate *g, unsigned dst) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   kissat *const solver = closure->solver;
 #endif
   if (dst != g->lhs && dst != NOT (g->lhs))
@@ -1463,16 +1465,16 @@ static bool rewriting_lhs (closure *closure, gate *g, unsigned dst) {
 static void shrink_and_gate (closure *closure, gate *g,
                              unsigned *new_end_rhs, unsigned falsifies,
                              unsigned clashing) {
-  assert (g->tag == AND_GATE);
-#ifndef NDEBUG
+  KISSAT_assert (g->tag == AND_GATE);
+#ifndef KISSAT_NDEBUG
   kissat *const solver = closure->solver;
 #endif
   if (falsifies != INVALID_LIT) {
-    assert (g->arity);
+    KISSAT_assert (g->arity);
     g->rhs[0] = falsifies;
     new_end_rhs = g->rhs + 1;
   } else if (clashing != INVALID_LIT) {
-    assert (1 < g->arity);
+    KISSAT_assert (1 < g->arity);
     g->rhs[0] = clashing;
     g->rhs[1] = NOT (clashing);
     new_end_rhs = g->rhs + 2;
@@ -1482,7 +1484,7 @@ static void shrink_and_gate (closure *closure, gate *g,
 
 static void update_and_gate (closure *closure, gate *g, unsigned falsifies,
                              unsigned clashing) {
-  assert (g->tag == AND_GATE);
+  KISSAT_assert (g->tag == AND_GATE);
   bool garbage = true;
   kissat *const solver = closure->solver;
   if (falsifies != INVALID_LIT || clashing != INVALID_LIT)
@@ -1501,7 +1503,7 @@ static void update_and_gate (closure *closure, gate *g, unsigned falsifies,
     unsigned hash;
     gate *h = find_and_gate (closure, &hash, g);
     if (h) {
-      assert (garbage);
+      KISSAT_assert (garbage);
       if (merge_literals (closure, g->lhs, h->lhs))
         INC (congruent_ands);
     } else {
@@ -1553,11 +1555,11 @@ static void rewrite_and_gate (closure *closure, gate *g, unsigned dst,
     return;
   if (!gate_contains (g, src))
     return;
-  assert (src != INVALID_LIT);
-  assert (dst != INVALID_LIT);
+  KISSAT_assert (src != INVALID_LIT);
+  KISSAT_assert (dst != INVALID_LIT);
   kissat *const solver = closure->solver;
   const value *const values = solver->values;
-  assert (values[src] == values[dst]);
+  KISSAT_assert (values[src] == values[dst]);
   CLOGANDGATE (g, "rewriting %s by %s in", CLOGREPR (src), CLOGREPR (dst));
   const unsigned old_arity = g->arity;
   const unsigned not_lhs = NOT (g->lhs);
@@ -1597,18 +1599,18 @@ static void rewrite_and_gate (closure *closure, gate *g, unsigned dst,
     }
     if (lit == not_dst) {
       if (dst_count) {
-        assert (!not_dst_count);
+        KISSAT_assert (!not_dst_count);
         LOG ("clashing literals %s and %s", LOGLIT (dst), LOGLIT (not_dst));
         clashing = dst;
         break;
       }
-      assert (!not_dst_count);
+      KISSAT_assert (!not_dst_count);
       not_dst_count++;
     }
     *q++ = lit;
   }
-  assert (dst_count <= 2);
-  assert (not_dst_count <= 1);
+  KISSAT_assert (dst_count <= 2);
+  KISSAT_assert (not_dst_count <= 1);
   shrink_and_gate (closure, g, q, falsifies, clashing);
   CLOGANDGATE (g, "rewritten");
   check_and_gate_implied (closure, g);
@@ -1618,10 +1620,10 @@ static void rewrite_and_gate (closure *closure, gate *g, unsigned dst,
 }
 
 static bool skip_xor_gate (gate *g) {
-  assert (g->tag == XOR_GATE);
+  KISSAT_assert (g->tag == XOR_GATE);
   if (g->garbage)
     return true;
-  assert (g->arity > 1);
+  KISSAT_assert (g->arity > 1);
   return false;
 }
 
@@ -1634,7 +1636,7 @@ static void add_xor_shrinking_proof_chain (closure *closure, gate *g,
     return;
   LOG ("starting XOR shrinking proof chain");
   unsigneds *clause = &solver->clause;
-  assert (EMPTY_STACK (*clause));
+  KISSAT_assert (EMPTY_STACK (*clause));
   for (unsigned i = 0; i != g->arity; i++) {
     unsigned lit = g->rhs[i];
     PUSH_STACK (*clause, lit);
@@ -1643,10 +1645,10 @@ static void add_xor_shrinking_proof_chain (closure *closure, gate *g,
   const unsigned not_lhs = NOT (lhs);
   PUSH_STACK (*clause, not_lhs);
   const unsigned parity = NEGATED (not_lhs);
-  assert (parity == parity_lits (solver, clause));
+  KISSAT_assert (parity == parity_lits (solver, clause));
   const unsigned not_pivot = NOT (pivot);
   const size_t size = SIZE_STACK (*clause);
-  assert (size < 32);
+  KISSAT_assert (size < 32);
   const unsigned end = 1u << size;
   for (unsigned i = 0; i != end; i++) {
     while (i && parity != parity_lits (solver, clause))
@@ -1684,12 +1686,12 @@ static void add_xor_shrinking_proof_chain (closure *closure, gate *g,
 
 static void shrink_xor_gate (closure *closure, gate *g,
                              unsigned *new_end_rhs) {
-  assert (g->tag == XOR_GATE);
+  KISSAT_assert (g->tag == XOR_GATE);
   shrink_gate (closure, g, new_end_rhs);
 }
 
 static void update_xor_gate (closure *closure, gate *g) {
-  assert (g->tag == XOR_GATE);
+  KISSAT_assert (g->tag == XOR_GATE);
   kissat *const solver = closure->solver;
   bool garbage = true;
   if (g->arity == 0)
@@ -1705,11 +1707,11 @@ static void update_xor_gate (closure *closure, gate *g) {
       INC (congruent_unary);
     }
   } else {
-    assert (g->arity > 1);
+    KISSAT_assert (g->arity > 1);
     unsigned hash;
     gate *h = find_xor_gate (closure, &hash, g);
     if (h) {
-      assert (garbage);
+      KISSAT_assert (garbage);
       add_xor_matching_proof_chain (closure, g, g->lhs, h->lhs);
       if (merge_literals (closure, g->lhs, h->lhs))
         INC (congruent_xors);
@@ -1736,7 +1738,7 @@ static void simplify_xor_gate (closure *closure, gate *g) {
   unsigned negate = 0;
   for (const unsigned *p = q; p != end_of_rhs; p++) {
     const unsigned lit = *p;
-    assert (!NEGATED (lit));
+    KISSAT_assert (!NEGATED (lit));
     const value value = values[lit];
     if (value > 0)
       negate ^= 1;
@@ -1773,7 +1775,7 @@ static void rewrite_xor_gate (closure *closure, gate *g, unsigned dst,
   dst = STRIP (dst);
   for (const unsigned *p = q; p != end_of_rhs; p++) {
     unsigned lit = *p;
-    assert (!NEGATED (lit));
+    KISSAT_assert (!NEGATED (lit));
     if (lit == src)
       lit = dst;
     const value value = values[lit];
@@ -1789,7 +1791,7 @@ static void rewrite_xor_gate (closure *closure, gate *g, unsigned dst,
     LOG ("flipping LHS literal %s", LOGLIT (g->lhs));
     g->lhs = NOT (g->lhs);
   }
-  assert (dst_count <= 2);
+  KISSAT_assert (dst_count <= 2);
   if (dst_count == 2) {
     CLOGXORGATE (g, "literals %s and %s were both in", LOGLIT (src),
                  LOGLIT (dst));
@@ -1800,7 +1802,7 @@ static void rewrite_xor_gate (closure *closure, gate *g, unsigned dst,
       if (lit != dst)
         *q++ = lit;
     }
-    assert (q + 2 == end_of_rhs);
+    KISSAT_assert (q + 2 == end_of_rhs);
   }
   shrink_xor_gate (closure, g, q);
   CLOGXORGATE (g, "rewritten");
@@ -1809,7 +1811,7 @@ static void rewrite_xor_gate (closure *closure, gate *g, unsigned dst,
   update_xor_gate (closure, g);
   if (!g->garbage && !solver->inconsistent && original_dst_negated &&
       dst_count == 1) {
-    assert (!NEGATED (dst));
+    KISSAT_assert (!NEGATED (dst));
     connect_occurrence (closure, dst, g);
   }
   check_xor_gate_implied (closure, g);
@@ -1818,7 +1820,7 @@ static void rewrite_xor_gate (closure *closure, gate *g, unsigned dst,
 }
 
 static bool skip_ite_gate (gate *g) {
-  assert (g->tag == ITE_GATE);
+  KISSAT_assert (g->tag == ITE_GATE);
   if (g->garbage)
     return true;
   return false;
@@ -1830,7 +1832,7 @@ static void simplify_ite_gate (closure *closure, gate *g) {
   kissat *const solver = closure->solver;
   const value *const values = solver->values;
   CLOGITEGATE (g, "simplifying");
-  assert (g->arity == 3);
+  KISSAT_assert (g->arity == 3);
   bool garbage = true;
   const unsigned lhs = g->lhs;
   unsigned *const rhs = g->rhs;
@@ -1852,7 +1854,7 @@ static void simplify_ite_gate (closure *closure, gate *g) {
     const value then_value = values[then_lit];
     const value else_value = values[else_lit];
     const unsigned not_lhs = NOT (lhs);
-    assert (then_value || else_value);
+    KISSAT_assert (then_value || else_value);
     if (then_value > 0 && else_value > 0)
       learn_congruence_unit (closure, lhs);
     else if (then_value < 0 && else_value < 0)
@@ -1869,42 +1871,42 @@ static void simplify_ite_gate (closure *closure, gate *g) {
         INC (congruent_unary);
       }
     } else {
-      assert (!!else_value + !!then_value == 1);
+      KISSAT_assert (!!else_value + !!then_value == 1);
       if (then_value > 0) {
-        assert (!else_value);
+        KISSAT_assert (!else_value);
         g->lhs = not_lhs;
         rhs[0] = NOT (cond);
         rhs[1] = NOT (else_lit);
       } else if (then_value < 0) {
-        assert (!else_value);
+        KISSAT_assert (!else_value);
         rhs[0] = NOT (cond);
         rhs[1] = else_lit;
       } else if (else_value > 0) {
-        assert (!then_value);
+        KISSAT_assert (!then_value);
         g->lhs = not_lhs;
         rhs[0] = NOT (then_lit);
         rhs[1] = cond;
       } else {
-        assert (else_value < 0);
-        assert (!then_value);
+        KISSAT_assert (else_value < 0);
+        KISSAT_assert (!then_value);
         rhs[0] = cond;
         rhs[1] = then_lit;
       }
       if (rhs[0] > rhs[1])
         SWAP (unsigned, rhs[0], rhs[1]);
-      assert (!g->shrunken);
+      KISSAT_assert (!g->shrunken);
       g->shrunken = true;
       rhs[2] = INVALID_LIT;
       g->arity = 2;
       g->tag = AND_GATE;
-      assert (rhs[0] < rhs[1]);
-      assert (rhs[0] != NOT (rhs[1]));
+      KISSAT_assert (rhs[0] < rhs[1]);
+      KISSAT_assert (rhs[0] != NOT (rhs[1]));
       CLOGANDGATE (g, "simplified");
       check_and_gate_implied (closure, g);
       unsigned hash;
       gate *h = find_and_gate (closure, &hash, g);
       if (h) {
-        assert (garbage);
+        KISSAT_assert (garbage);
         if (merge_literals (closure, g->lhs, h->lhs))
           INC (congruent_ands);
       } else {
@@ -1933,7 +1935,7 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
   kissat *const solver = closure->solver;
   CLOGITEGATE (g, "rewriting %s by %s in", CLOGREPR (src), CLOGREPR (dst));
   unsigned *const rhs = g->rhs;
-  assert (g->arity == 3);
+  KISSAT_assert (g->arity == 3);
   const unsigned lhs = g->lhs;
   const unsigned cond = rhs[0];
   const unsigned then_lit = rhs[1];
@@ -1961,13 +1963,13 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
       // !then_lit & then_lit | then_lit & else_lit
       // then_lit & else_lit
       rhs[0] = else_lit;
-      assert (rhs[1] == then_lit);
+      KISSAT_assert (rhs[1] == then_lit);
     } else if (dst == else_lit) {
       // else_list ? then_lit : else_lit
       // else_list & then_lit | !else_list & else_lit
       // else_list & then_lit
       rhs[0] = else_lit;
-      assert (rhs[1] == then_lit);
+      KISSAT_assert (rhs[1] == then_lit);
     } else if (not_dst == else_lit) {
       // !else_list ? then_lit : else_lit
       // !else_list & then_lit | else_lit & else_lit
@@ -2010,20 +2012,20 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
       // cond & !else_lit | !cond & else_lit
       // cond ^ else_lit
       new_tag = XOR_GATE;
-      assert (rhs[0] == cond);
+      KISSAT_assert (rhs[0] == cond);
       rhs[1] = else_lit;
     } else {
       shrink = false;
       rhs[1] = dst;
     }
   } else {
-    assert (src == else_lit);
+    KISSAT_assert (src == else_lit);
     if (dst == cond) {
       // cond ? then_lit : cond
       // cond & then_lit | !cond & cond
       // cond & then_lit
-      assert (rhs[0] == cond);
-      assert (rhs[1] == then_lit);
+      KISSAT_assert (rhs[0] == cond);
+      KISSAT_assert (rhs[1] == then_lit);
     } else if (not_dst == cond) {
       // cond ? then_lit : !cond
       // cond & then_lit | !cond & !cond
@@ -2031,7 +2033,7 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
       // then_lit | !cond
       // !(!then_lit & cond)
       g->lhs = not_lhs;
-      assert (rhs[0] == cond);
+      KISSAT_assert (rhs[0] == cond);
       rhs[1] = not_then_lit;
     } else if (dst == then_lit) {
       // cond ? then_lit : then_lit
@@ -2047,8 +2049,8 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
       // !(cond ^ then_lit)
       new_tag = XOR_GATE;
       g->lhs = not_lhs;
-      assert (rhs[0] == cond);
-      assert (rhs[1] == then_lit);
+      KISSAT_assert (rhs[0] == cond);
+      KISSAT_assert (rhs[1] == then_lit);
     } else {
       shrink = false;
       rhs[2] = dst;
@@ -2071,13 +2073,13 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
         if (negate_lhs)
           g->lhs = NOT (g->lhs);
       }
-      assert (!g->shrunken);
+      KISSAT_assert (!g->shrunken);
       g->shrunken = true;
       rhs[2] = INVALID_LIT;
       g->arity = 2;
       g->tag = new_tag;
-      assert (rhs[0] < rhs[1]);
-      assert (rhs[0] != NOT (rhs[1]));
+      KISSAT_assert (rhs[0] < rhs[1]);
+      KISSAT_assert (rhs[0] != NOT (rhs[1]));
       LOGATE (g, "rewritten");
       gate *h;
       unsigned hash;
@@ -2085,7 +2087,7 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
         check_and_gate_implied (closure, g);
         h = find_and_gate (closure, &hash, g);
       } else {
-        assert (new_tag == XOR_GATE);
+        KISSAT_assert (new_tag == XOR_GATE);
         check_xor_gate_implied (closure, g);
         h = find_xor_gate (closure, &hash, g);
       }
@@ -2104,7 +2106,7 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
         remove_gate (closure, g);
         g->hash = hash;
         index_gate (closure, g);
-        assert (g->arity == 2);
+        KISSAT_assert (g->arity == 2);
         for (all_rhs_literals_in_gate (lit, g))
           if (lit != dst)
             if (lit != cond && lit != then_lit && lit != else_lit)
@@ -2115,18 +2117,18 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
       }
     } else {
       CLOGITEGATE (g, "rewritten");
-      assert (rhs[0] != rhs[1]);
-      assert (rhs[0] != rhs[2]);
-      assert (rhs[1] != rhs[2]);
-      assert (rhs[0] != NOT (rhs[1]));
-      assert (rhs[0] != NOT (rhs[2]));
-      assert (rhs[1] != NOT (rhs[2]));
+      KISSAT_assert (rhs[0] != rhs[1]);
+      KISSAT_assert (rhs[0] != rhs[2]);
+      KISSAT_assert (rhs[1] != rhs[2]);
+      KISSAT_assert (rhs[0] != NOT (rhs[1]));
+      KISSAT_assert (rhs[0] != NOT (rhs[2]));
+      KISSAT_assert (rhs[1] != NOT (rhs[2]));
       check_ite_gate_implied (closure, g);
       unsigned hash;
       bool negate_lhs;
       gate *h = find_ite_gate (closure, &hash, &negate_lhs, g);
-      assert (lhs == g->lhs);
-      assert (not_lhs == NOT (g->lhs));
+      KISSAT_assert (lhs == g->lhs);
+      KISSAT_assert (not_lhs == NOT (g->lhs));
       if (h) {
         garbage = true;
         unsigned normalized_lhs = negate_lhs ? not_lhs : lhs;
@@ -2143,7 +2145,7 @@ static void rewrite_ite_gate (closure *closure, gate *g, unsigned dst,
         CLOGITEGATE (g, "normalized");
         g->hash = hash;
         index_gate (closure, g);
-        assert (g->arity == 3);
+        KISSAT_assert (g->arity == 3);
         for (all_rhs_literals_in_gate (lit, g))
           if (lit != dst)
             if (lit != cond && lit != then_lit && lit != else_lit)
@@ -2190,7 +2192,7 @@ typedef struct offsetsize offsetsize;
 static bool find_binary (kissat *solver, litpair *binaries,
                          offsetsize *offsetsize, unsigned lit,
                          unsigned other) {
-  assert (lit != other);
+  KISSAT_assert (lit != other);
   if (lit > other)
     SWAP (unsigned, lit, other);
   size_t l = offsetsize[lit].offset;
@@ -2203,8 +2205,8 @@ static bool find_binary (kissat *solver, litpair *binaries,
     else if (tmp > other)
       r = m;
     else {
-      assert (binaries[m].lits[0] == lit);
-      assert (binaries[m].lits[1] == other);
+      KISSAT_assert (binaries[m].lits[0] == lit);
+      KISSAT_assert (binaries[m].lits[1] == other);
 #ifdef LOGGING
       LOGBINARY (lit, other, "found");
 #else
@@ -2230,7 +2232,7 @@ static void extract_binaries (closure *closure) {
   START (extractbinaries);
   litpair *binaries = BEGIN_STACK (closure->binaries);
   offsetsize *offsetsize;
-  CALLOC (offsetsize, LITS);
+  CALLOC (struct offsetsize, offsetsize, LITS);
   {
     litpair *end = END_STACK (closure->binaries);
     litpair *p = binaries;
@@ -2240,7 +2242,7 @@ static void extract_binaries (closure *closure) {
       while (q != end && q->lits[0] == lit)
         q++;
       const size_t size = q - p;
-      assert (size), assert (size <= UINT_MAX);
+      KISSAT_assert (size), KISSAT_assert (size <= UINT_MAX);
       const size_t offset = p - binaries;
       if (size < 32)
         SORT (litpair, size, p, LESS_OTHER);
@@ -2301,9 +2303,9 @@ static void extract_binaries (closure *closure) {
   {
     litpair *end = END_STACK (closure->binaries);
     litpair *added = binaries + before;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     const size_t after = end - binaries;
-    assert (after - before == extracted);
+    KISSAT_assert (after - before == extracted);
 #endif
     RADIX_SORT (litpair, uint64_t, extracted, added, rank_litpair);
     litpair *q = added;
@@ -2338,7 +2340,7 @@ static void extract_binaries (closure *closure) {
 static gate *find_first_and_gate (closure *closure, unsigned lhs,
                                   unsigneds *lits) {
   kissat *const solver = closure->solver;
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   mark *const marks = solver->marks;
 
   const unsigned not_lhs = NOT (lhs);
@@ -2347,11 +2349,11 @@ static gate *find_first_and_gate (closure *closure, unsigned lhs,
        closure->negbincount[lhs]);
 
   unsigneds *const marked = &solver->analyzed;
-  assert (EMPTY_STACK (*marked));
+  KISSAT_assert (EMPTY_STACK (*marked));
 
   const unsigned arity = SIZE_STACK (*lits) - 1;
   unsigned matched = 0;
-  assert (1 < arity);
+  KISSAT_assert (1 < arity);
 
   watches *watches = &WATCHES (not_lhs);
   const watch *const end = END_WATCHES (*watches);
@@ -2359,12 +2361,12 @@ static gate *find_first_and_gate (closure *closure, unsigned lhs,
 
   while (p != end) {
     const watch watch = *p++;
-    assert (watch.type.binary);
+    KISSAT_assert (watch.type.binary);
     const unsigned other = watch.binary.lit;
     const mark tmp = marks[other];
     if (tmp) {
       matched++;
-      assert (~(tmp & 2));
+      KISSAT_assert (~(tmp & 2));
       marks[other] |= 2;
       PUSH_STACK (*marked, other);
     }
@@ -2380,13 +2382,13 @@ static gate *find_first_and_gate (closure *closure, unsigned lhs,
 static gate *find_remaining_and_gate (closure *closure, unsigned lhs,
                                       unsigneds *lits) {
   kissat *const solver = closure->solver;
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   mark *const marks = solver->marks;
   const unsigned not_lhs = NOT (lhs);
 
   if (marks[not_lhs] < 2) {
     LOG ("skipping no-candidate LHS %s", LOGLIT (lhs));
-    return false;
+    return NULL;
   }
 
   LOG ("trying to find AND gate with remaining LHS %s", LOGLIT (lhs));
@@ -2395,7 +2397,7 @@ static gate *find_remaining_and_gate (closure *closure, unsigned lhs,
 
   const unsigned arity = SIZE_STACK (*lits) - 1;
   unsigned matched = 0;
-  assert (1 < arity);
+  KISSAT_assert (1 < arity);
 
   {
     watches *watches = &WATCHES (not_lhs);
@@ -2403,7 +2405,7 @@ static gate *find_remaining_and_gate (closure *closure, unsigned lhs,
     const watch *p = BEGIN_WATCHES (*watches);
     while (p != end_watches) {
       const watch watch = *p++;
-      assert (watch.type.binary);
+      KISSAT_assert (watch.type.binary);
       const unsigned other = watch.binary.lit;
       mark mark = marks[other];
       if (!mark)
@@ -2411,19 +2413,19 @@ static gate *find_remaining_and_gate (closure *closure, unsigned lhs,
       matched++;
       if (!(mark & 2))
         continue;
-      assert (!(mark & 4));
+      KISSAT_assert (!(mark & 4));
       marks[other] = mark | 4;
     }
   }
 
   {
     unsigneds *const marked = &solver->analyzed;
-    assert (!EMPTY_STACK (*marked));
+    KISSAT_assert (!EMPTY_STACK (*marked));
     unsigned *const begin_marked = BEGIN_STACK (*marked);
     const unsigned *const end_marked = END_STACK (*marked);
     unsigned *q = begin_marked;
     const unsigned *p = q;
-    assert (marks[not_lhs] == 3);
+    KISSAT_assert (marks[not_lhs] == 3);
     while (p != end_marked) {
       const unsigned lit = *p++;
       if (lit == not_lhs) {
@@ -2431,7 +2433,7 @@ static gate *find_remaining_and_gate (closure *closure, unsigned lhs,
         continue;
       }
       mark mark = marks[lit];
-      assert ((mark & 3) == 3);
+      KISSAT_assert ((mark & 3) == 3);
       if (mark & 4) {
         mark = 3;
         *q++ = lit;
@@ -2442,8 +2444,8 @@ static gate *find_remaining_and_gate (closure *closure, unsigned lhs,
       }
       marks[lit] = mark;
     }
-    assert (q != end_marked);
-    assert (marks[not_lhs] == 1);
+    KISSAT_assert (q != end_marked);
+    KISSAT_assert (marks[not_lhs] == 1);
     SET_END_OF_STACK (*marked, q);
     LOG ("after filtering %zu LHS candidates remain", SIZE_STACK (*marked));
   }
@@ -2485,7 +2487,7 @@ static unsigned hash_binary (closure *closure, binary_clause *binary) {
 
 static bool indexed_binary (closure *closure, unsigned lit,
                             unsigned other) {
-  assert (lit != other);
+  KISSAT_assert (lit != other);
 #ifdef LOGGING
   kissat *const solver = closure->solver;
 #endif
@@ -2494,7 +2496,7 @@ static bool indexed_binary (closure *closure, unsigned lit,
     LOG ("did not find binary %s %s", LOGLIT (lit), LOGLIT (other));
     return false;
   }
-  assert (bintab->size);
+  KISSAT_assert (bintab->size);
   SWAP (unsigned, lit, other);
   if (lit > other)
     SWAP (unsigned, lit, other);
@@ -2508,7 +2510,7 @@ static bool indexed_binary (closure *closure, unsigned lit,
   while ((lit1 = table[pos].lits[1])) {
     if (lit1 == other) {
       lit0 = table[pos].lits[0];
-      assert (lit0 < other);
+      KISSAT_assert (lit0 < other);
       if (lit0 == lit) {
         LOG ("found binary %s %s", LOGLIT (lit), LOGLIT (other));
         return true;
@@ -2525,9 +2527,9 @@ static bool indexed_binary (closure *closure, unsigned lit,
 
 static void extract_and_gates_with_base_clause (closure *closure,
                                                 clause *c) {
-  assert (!c->garbage);
+  KISSAT_assert (!c->garbage);
   kissat *const solver = closure->solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   value *values = solver->values;
   unsigned arity_limit = MIN (GET_OPTION (congruenceandarity), MAX_ARITY);
   const unsigned size_limit = arity_limit + 1;
@@ -2540,7 +2542,7 @@ static void extract_and_gates_with_base_clause (closure *closure,
     if (value < 0)
       continue;
     if (value > 0) {
-      assert (!solver->level);
+      KISSAT_assert (!solver->level);
       LOGCLS (c, "found satisfied %s in", LOGLIT (lit));
       kissat_mark_clause_as_garbage (solver, c);
       return;
@@ -2580,7 +2582,7 @@ static void extract_and_gates_with_base_clause (closure *closure,
 #ifndef INDEX_BINARY_CLAUSES
   mark *const marks = solver->marks;
   unsigneds *marked = &solver->analyzed;
-  assert (EMPTY_STACK (*marked));
+  KISSAT_assert (EMPTY_STACK (*marked));
 #endif
   for (unsigned *p = begin_lits; p != end_lits; p++) {
     const unsigned lit = *p, count = negbincount[lit];
@@ -2595,9 +2597,9 @@ static void extract_and_gates_with_base_clause (closure *closure,
         reduced_lits++;
     }
   }
-  assert (reduced_lits < end_lits);
+  KISSAT_assert (reduced_lits < end_lits);
   const size_t reduced_size = end_lits - reduced_lits;
-  assert (reduced_size);
+  KISSAT_assert (reduced_size);
   LOGCLS (c, "trying as base arity %u AND gate", arity);
   sort_lits_by_negbincount (closure, reduced_size, reduced_lits);
 #ifdef LOGGING
@@ -2624,7 +2626,7 @@ static void extract_and_gates_with_base_clause (closure *closure,
     const unsigned lhs = *p;
     LOG ("trying LHS candidate literal %s with %u negated occurrences",
          LOGLIT (lhs), negbincount[lhs]);
-    assert (arity <= negbincount[lhs]);
+    KISSAT_assert (arity <= negbincount[lhs]);
 #ifdef INDEX_BINARY_CLAUSES
     const unsigned not_lhs = NOT (lhs);
     for (const unsigned *q = begin_lits; q != end_lits; q++)
@@ -2641,7 +2643,7 @@ static void extract_and_gates_with_base_clause (closure *closure,
 #else
     if (first) {
       first = false;
-      assert (EMPTY_STACK (*marked));
+      KISSAT_assert (EMPTY_STACK (*marked));
       if (find_first_and_gate (closure, lhs, lits)) {
 #ifdef LOGGING
         extracted++;
@@ -2680,7 +2682,7 @@ static clause *find_indexed_large_clause (closure *closure,
                                           unsigneds *lits) {
   kissat *const solver = closure->solver;
   size_t size_lits = SIZE_STACK (*lits);
-  assert (size_lits > 2);
+  KISSAT_assert (size_lits > 2);
 #ifdef LOGGING
   {
     unsigned *begin = BEGIN_STACK (*lits);
@@ -2695,13 +2697,13 @@ static clause *find_indexed_large_clause (closure *closure,
   const value *const values = solver->values;
   mark *const marks = solver->marks;
   unsigneds *sorted = &solver->clause;
-  assert (EMPTY_STACK (*sorted));
+  KISSAT_assert (EMPTY_STACK (*sorted));
   for (all_stack (unsigned, lit, *lits)) {
-    assert (!values[lit]);
+    KISSAT_assert (!values[lit]);
     PUSH_STACK (*sorted, lit);
     marks[lit] = 1;
   }
-  assert (size_lits == SIZE_STACK (*sorted));
+  KISSAT_assert (size_lits == SIZE_STACK (*sorted));
   unsigned *begin_sorted = BEGIN_STACK (*sorted);
   sort_lits (solver, size_lits, begin_sorted);
   const unsigned hash = hash_lits (closure, 0, size_lits, begin_sorted);
@@ -2714,7 +2716,7 @@ static clause *find_indexed_large_clause (closure *closure,
     if (hash_ref->hash == hash) {
       reference ref = hash_ref->ref;
       if (ref == INVALID_REF) {
-        assert (!hash);
+        KISSAT_assert (!hash);
         ref = 0;
       }
       clause *c = kissat_dereference_clause (solver, ref);
@@ -2744,33 +2746,33 @@ static clause *find_indexed_large_clause (closure *closure,
 static clause *find_large_xor_side_clause (closure *closure,
                                            unsigneds *lits) {
   kissat *const solver = closure->solver;
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   const unsigned *const largecount = closure->largecount;
   unsigned least_occurring_literal = INVALID_LIT;
   unsigned count_least_occurring = UINT_MAX;
   mark *marks = solver->marks;
   const size_t size_lits = SIZE_STACK (*lits);
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   const unsigned arity = size_lits - 1;
 #endif
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   const unsigned count_limit = 1u << (arity - 1);
 #endif
   const value *const values = solver->values;
   LOGCOUNTEDLITS (size_lits, BEGIN_STACK (*lits), largecount,
                   "trying to find arity %u XOR side clause", arity);
   for (all_stack (unsigned, lit, *lits)) {
-    assert (!values[lit]);
+    KISSAT_assert (!values[lit]);
     marks[lit] = 1;
     unsigned count = largecount[lit];
-    assert (count_limit <= count);
+    KISSAT_assert (count_limit <= count);
     if (count >= count_least_occurring)
       continue;
     count_least_occurring = count;
     least_occurring_literal = lit;
   }
   clause *res = 0;
-  assert (least_occurring_literal != INVALID_LIT);
+  KISSAT_assert (least_occurring_literal != INVALID_LIT);
   LOG ("searching XOR side clause watched by %s#%u",
        LOGLIT (least_occurring_literal), count_least_occurring);
   watches *const watches = &WATCHES (least_occurring_literal);
@@ -2794,7 +2796,7 @@ static clause *find_large_xor_side_clause (closure *closure,
       if (value > 0) {
         LOGCLS (c, "found satisfied %s in", LOGLIT (other));
         kissat_mark_clause_as_garbage (solver, c);
-        assert (c->garbage);
+        KISSAT_assert (c->garbage);
         break;
       }
       if (marks[other])
@@ -2822,9 +2824,9 @@ static clause *find_large_xor_side_clause (closure *closure,
 
 static void extract_xor_gates_with_base_clause (closure *closure,
                                                 clause *c) {
-  assert (!c->garbage);
+  KISSAT_assert (!c->garbage);
   kissat *const solver = closure->solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   const value *const values = solver->values;
   unsigned smallest = INVALID_LIT, largest = INVALID_LIT;
   const unsigned arity_limit =
@@ -2852,8 +2854,8 @@ static void extract_xor_gates_with_base_clause (closure *closure,
       largest = smallest = lit;
       first = false;
     } else {
-      assert (smallest != INVALID_LIT);
-      assert (largest != INVALID_LIT);
+      KISSAT_assert (smallest != INVALID_LIT);
+      KISSAT_assert (largest != INVALID_LIT);
       if (lit < smallest)
         smallest = lit;
       if (lit > largest) {
@@ -2877,7 +2879,7 @@ static void extract_xor_gates_with_base_clause (closure *closure,
     PUSH_STACK (*lits, lit);
     size++;
   }
-  assert (size == SIZE_STACK (*lits));
+  KISSAT_assert (size == SIZE_STACK (*lits));
   if (size < 3) {
     LOGCLS (c, "short XOR base clause");
     return;
@@ -2897,11 +2899,11 @@ static void extract_xor_gates_with_base_clause (closure *closure,
       return;
     }
   LOGCLS (c, "trying arity %u XOR base", arity);
-  assert (smallest != INVALID_LIT);
-  assert (largest != INVALID_LIT);
+  KISSAT_assert (smallest != INVALID_LIT);
+  KISSAT_assert (largest != INVALID_LIT);
   const unsigned end = 1u << arity;
-  assert (negated == parity_lits (solver, lits));
-#if !defined(NDEBUG) || defined(LOGGING)
+  KISSAT_assert (negated == parity_lits (solver, lits));
+#if !defined(KISSAT_NDEBUG) || defined(LOGGING)
   unsigned found = 0;
 #endif
   for (unsigned i = 0; i != end; i++) {
@@ -2915,11 +2917,11 @@ static void extract_xor_gates_with_base_clause (closure *closure,
 #endif
       if (!d)
         return;
-      assert (!d->redundant);
+      KISSAT_assert (!d->redundant);
     } else
-      assert (!c->redundant);
+      KISSAT_assert (!c->redundant);
     inc_lits (solver, lits);
-#if !defined(NDEBUG) || defined(LOGGING)
+#if !defined(KISSAT_NDEBUG) || defined(LOGGING)
     found++;
 #endif
   }
@@ -2927,7 +2929,7 @@ static void extract_xor_gates_with_base_clause (closure *closure,
     inc_lits (solver, lits);
   LOGUNSIGNEDS2 (size, BEGIN_STACK (*lits), "back to original");
   LOG ("found all needed %u matching clauses:", found);
-  assert (found == 1u << arity);
+  KISSAT_assert (found == 1u << arity);
   if (negated) {
     unsigned *p = BEGIN_STACK (*lits), lit;
     while (!NEGATED (lit = *p))
@@ -2958,9 +2960,9 @@ static void init_bintab (closure *closure) {
   size_t size2 = 1;
   while (size > size2)
     size2 *= 2;
-  assert (!limit || size2 <= 2 * size);
+  KISSAT_assert (!limit || size2 <= 2 * size);
   binary_hash_table *bintab = &closure->bintab;
-  CALLOC (bintab->table, size);
+  CALLOC (binary_hash_table, bintab->table, size);
   bintab->count = 0;
   bintab->size = size;
   bintab->size2 = size2;
@@ -2968,7 +2970,7 @@ static void init_bintab (closure *closure) {
       solver, "allocated binary clause hash table of size %zu", size);
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 static bool binaries_hash_table_is_full (binary_hash_table *bintab) {
   if (bintab->size == MAX_HASH_TABLE_SIZE)
@@ -2981,9 +2983,9 @@ static bool binaries_hash_table_is_full (binary_hash_table *bintab) {
 #endif
 
 static void index_binary (closure *closure, unsigned lit, unsigned other) {
-  assert (lit < other);
+  KISSAT_assert (lit < other);
   binary_hash_table *bintab = &closure->bintab;
-  assert (!binaries_hash_table_is_full (bintab));
+  KISSAT_assert (!binaries_hash_table_is_full (bintab));
   binary_clause binary = {.lits = {lit, other}};
   const unsigned hash = hash_binary (closure, &binary);
   const size_t size = bintab->size;
@@ -3011,9 +3013,9 @@ static void reset_bintab (closure *closure) {
 
 static void init_and_gate_extraction (closure *closure) {
   kissat *const solver = closure->solver;
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   unsigned *negbincount;
-  CALLOC (negbincount, LITS);
+  CALLOC (unsigned, negbincount, LITS);
   litpairs *binaries = &closure->binaries;
 #ifdef INDEX_BINARY_CLAUSES
   init_bintab (closure);
@@ -3027,7 +3029,7 @@ static void init_and_gate_extraction (closure *closure) {
     index_binary (closure, lit, other);
 #endif
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t connected = SIZE_STACK (*binaries);
   kissat_very_verbose (solver, "connected %zu binary clauses", connected);
 #endif
@@ -3051,9 +3053,9 @@ static void init_large_clauses (closure *closure, size_t expected) {
   size_t size2 = 1;
   while (size > size2)
     size2 *= 2;
-  assert (!expected || size2 <= 2 * size);
+  KISSAT_assert (!expected || size2 <= 2 * size);
   large_clause_hash_table *clauses = &closure->clauses;
-  CALLOC (clauses->table, size);
+  CALLOC (large_clause_hash_table, clauses->table, size);
   clauses->count = 0;
   clauses->size = size;
   clauses->size2 = size2;
@@ -3061,7 +3063,7 @@ static void init_large_clauses (closure *closure, size_t expected) {
       solver, "allocated large clause hash table of size %zu", size);
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 static bool large_clause_hash_table_is_full (closure *closure) {
   if (closure->clauses.size == MAX_HASH_TABLE_SIZE)
@@ -3074,7 +3076,7 @@ static bool large_clause_hash_table_is_full (closure *closure) {
 #endif
 
 static void index_large_clause (closure *closure, reference ref) {
-  assert (!large_clause_hash_table_is_full (closure));
+  KISSAT_assert (!large_clause_hash_table_is_full (closure));
   kissat *const solver = closure->solver;
   clause *c = kissat_dereference_clause (solver, ref);
   const value *const values = solver->values;
@@ -3085,13 +3087,13 @@ static void index_large_clause (closure *closure, reference ref) {
       PUSH_STACK (*lits, lit);
   const size_t size_lits = SIZE_STACK (*lits);
   unsigned *begin_lits = BEGIN_STACK (*lits);
-  assert (3 <= size_lits);
+  KISSAT_assert (3 <= size_lits);
   sort_lits (solver, size_lits, begin_lits);
   const unsigned hash = hash_lits (closure, 0, size_lits, begin_lits);
   large_clause_hash_table *clauses = &closure->clauses;
   if (!hash && !ref) {
     ref = INVALID_REF;
-    assert (ref);
+    KISSAT_assert (ref);
   }
   const size_t hash_size = clauses->size;
   const size_t hash_size2 = clauses->size2;
@@ -3102,7 +3104,7 @@ static void index_large_clause (closure *closure, reference ref) {
       pos = 0;
   clause->hash = hash;
   clause->ref = ref;
-  assert (valid_large_clause (clause));
+  KISSAT_assert (valid_large_clause (clause));
   clauses->count++;
   LOGCLS (c, "indexed");
 }
@@ -3117,15 +3119,15 @@ static void reset_large_clauses (closure *closure) {
 
 static void init_xor_gate_extraction (closure *closure,
                                       references *candidates) {
-  assert (EMPTY_STACK (*candidates));
+  KISSAT_assert (EMPTY_STACK (*candidates));
   kissat *const solver = closure->solver;
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   const unsigned arity_limit = GET_OPTION (congruencexorarity);
   const unsigned size_limit = arity_limit + 1;
   clause *last_irredundant = kissat_last_irredundant_clause (solver);
   const value *const values = solver->values;
   unsigned *largecount;
-  CALLOC (largecount, LITS);
+  CALLOC (unsigned, largecount, LITS);
   for (all_clauses (c)) {
     if (c->garbage)
       continue;
@@ -3134,6 +3136,7 @@ static void init_xor_gate_extraction (closure *closure,
     if (c->redundant)
       continue;
     unsigned size = 0;
+    int continue_counting_next_clause = 0;
     for (all_literals_in_clause (lit, c)) {
       const value value = values[lit];
       if (value < 0)
@@ -3141,11 +3144,17 @@ static void init_xor_gate_extraction (closure *closure,
       if (value > 0) {
         LOGCLS (c, "satisfied %s in", LOGLIT (lit));
         kissat_mark_clause_as_garbage (solver, c);
-        goto CONTINUE_COUNTING_NEXT_CLAUSE;
+        continue_counting_next_clause = 1;
+        break;
       }
-      if (size == size_limit)
-        goto CONTINUE_COUNTING_NEXT_CLAUSE;
+      if (size == size_limit) {
+        continue_counting_next_clause = 1;
+        break;
+      }
       size++;
+    }
+    if(continue_counting_next_clause) {
+      continue;
     }
     if (size < 3)
       continue;
@@ -3154,9 +3163,8 @@ static void init_xor_gate_extraction (closure *closure,
         largecount[lit]++;
     reference ref = kissat_reference_clause (solver, c);
     PUSH_STACK (*candidates, ref);
-  CONTINUE_COUNTING_NEXT_CLAUSE:;
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t considered_clauses = IRREDUNDANT_CLAUSES;
   size_t original_candidates = SIZE_STACK (*candidates);
   kissat_very_verbose (
@@ -3171,7 +3179,7 @@ static void init_xor_gate_extraction (closure *closure,
   for (unsigned round = 1; round <= counting_rounds; round++) {
     size_t removed = 0;
     unsigned *new_largecount;
-    CALLOC (new_largecount, LITS);
+    CALLOC (unsigned, new_largecount, LITS);
     const reference *const end_candidates = END_STACK (*candidates);
     reference *q = BEGIN_STACK (*candidates), *p = q;
     while (p != end_candidates) {
@@ -3181,8 +3189,8 @@ static void init_xor_gate_extraction (closure *closure,
       for (all_literals_in_clause (lit, c))
         if (!values[lit])
           size++;
-      assert (3 <= size);
-      assert (size <= size_limit);
+      KISSAT_assert (3 <= size);
+      KISSAT_assert (size <= size_limit);
       const unsigned arity = size - 1;
       const unsigned needed_clauses = 1u << (arity - 1);
       for (all_literals_in_clause (lit, c))
@@ -3201,7 +3209,7 @@ static void init_xor_gate_extraction (closure *closure,
     SET_END_OF_STACK (*candidates, q);
     if (!removed)
       break;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     size_t remaining_candidates = SIZE_STACK (*candidates);
     const char *how_often;
     char buffer[64];
@@ -3233,7 +3241,7 @@ static void init_xor_gate_extraction (closure *closure,
     index_large_clause (closure, ref);
 #endif
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t connected = SIZE_STACK (*candidates);
   kissat_very_verbose (solver, "connected %zu large clauses %.0f%%",
                        connected,
@@ -3252,12 +3260,12 @@ static void reset_xor_gate_extraction (closure *closure) {
 
 static void init_ite_gate_extraction (closure *closure,
                                       references *candidates) {
-  assert (EMPTY_STACK (*candidates));
+  KISSAT_assert (EMPTY_STACK (*candidates));
   kissat *const solver = closure->solver;
   clause *last_irredundant = kissat_last_irredundant_clause (solver);
   const value *const values = solver->values;
   unsigned *largecount;
-  CALLOC (largecount, LITS);
+  CALLOC (unsigned, largecount, LITS);
   references ternary;
   INIT_STACK (ternary);
   for (all_clauses (c)) {
@@ -3268,6 +3276,7 @@ static void init_ite_gate_extraction (closure *closure,
     if (c->redundant)
       continue;
     unsigned size = 0;
+    int continue_counting_next_clause = 0;
     for (all_literals_in_clause (lit, c)) {
       const value value = values[lit];
       if (value < 0)
@@ -3275,24 +3284,29 @@ static void init_ite_gate_extraction (closure *closure,
       if (value > 0) {
         LOGCLS (c, "satisfied %s in", LOGLIT (lit));
         kissat_mark_clause_as_garbage (solver, c);
-        goto CONTINUE_COUNTING_NEXT_CLAUSE;
+        continue_counting_next_clause = 1;
+        break;
       }
-      if (size == 3)
-        goto CONTINUE_COUNTING_NEXT_CLAUSE;
+      if (size == 3) {
+        continue_counting_next_clause = 1;
+        break;
+      }
       size++;
+    }
+    if(continue_counting_next_clause) {
+      continue;
     }
     if (size < 3)
       continue;
-    assert (size == 3);
+    KISSAT_assert (size == 3);
     const reference ref = kissat_reference_clause (solver, c);
     PUSH_STACK (ternary, ref);
     LOGCLS (c, "counting original ITE gate base");
     for (all_literals_in_clause (lit, c))
       if (!values[lit])
         largecount[lit]++;
-  CONTINUE_COUNTING_NEXT_CLAUSE:;
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t counted = SIZE_STACK (ternary);
   kissat_very_verbose (solver,
                        "counted %zu ternary ITE clauses "
@@ -3304,7 +3318,7 @@ static void init_ite_gate_extraction (closure *closure,
 #endif
   for (all_stack (reference, ref, ternary)) {
     clause *c = kissat_dereference_clause (solver, ref);
-    assert (!c->garbage);
+    KISSAT_assert (!c->garbage);
     unsigned positive = 0, negative = 0, twice = 0;
     for (all_literals_in_clause (lit, c)) {
       if (values[lit])
@@ -3314,7 +3328,7 @@ static void init_ite_gate_extraction (closure *closure,
       if (!count_not_lit)
         goto CONTINUE_WITH_NEXT_TERNARY_CLAUSE;
       const unsigned count_lit = largecount[lit];
-      assert (count_lit);
+      KISSAT_assert (count_lit);
       if (count_lit > 1 && count_not_lit > 1)
         twice++;
       if (NEGATED (lit))
@@ -3324,7 +3338,7 @@ static void init_ite_gate_extraction (closure *closure,
     }
     if (twice < 2)
       goto CONTINUE_WITH_NEXT_TERNARY_CLAUSE;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     connected++;
 #endif
     kissat_connect_clause (solver, c);
@@ -3333,7 +3347,7 @@ static void init_ite_gate_extraction (closure *closure,
   CONTINUE_WITH_NEXT_TERNARY_CLAUSE:;
   }
   RELEASE_STACK (ternary);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   kissat_very_verbose (solver,
                        "connected %zu ITE clauses "
                        "(%.0f%% of %" PRIu64 " counted clauses)",
@@ -3375,7 +3389,7 @@ static void unmark_all (unsigneds *marked, signed char *marks) {
 static void copy_conditional_equivalences (kissat *solver, unsigned lit,
                                            watches *watches,
                                            litpairs *condbin) {
-  assert (EMPTY_STACK (*condbin));
+  KISSAT_assert (EMPTY_STACK (*condbin));
   const value *const values = solver->values;
   const watch *const begin_watches = BEGIN_WATCHES (*watches);
   const watch *const end_watches = END_WATCHES (*watches);
@@ -3394,17 +3408,17 @@ static void copy_conditional_equivalences (kissat *solver, unsigned lit,
       if (first == INVALID_LIT)
         first = other;
       else {
-        assert (second == INVALID_LIT);
+        KISSAT_assert (second == INVALID_LIT);
         second = other;
       }
     }
-    assert (first != INVALID_LIT);
-    assert (second != INVALID_LIT);
+    KISSAT_assert (first != INVALID_LIT);
+    KISSAT_assert (second != INVALID_LIT);
     litpair pair;
     if (first < second)
       pair = (litpair){.lits = {first, second}};
     else {
-      assert (second < first);
+      KISSAT_assert (second < first);
       pair = (litpair){.lits = {second, first}};
     }
     LOG ("literal %s conditional binary clause %s %s", LOGLIT (lit),
@@ -3439,7 +3453,7 @@ static bool find_litpair_second_literal (unsigned lit, const litpair *begin,
   const litpair *l = begin, *r = end;
   while (l != r) {
     const litpair *m = l + (r - l) / 2;
-    assert (begin <= m), assert (m < end);
+    KISSAT_assert (begin <= m), KISSAT_assert (m < end);
     unsigned other = m->lits[1];
     if (other < lit)
       l = m + 1;
@@ -3456,12 +3470,12 @@ static void search_condeq (closure *closure, unsigned lit, unsigned pos_lit,
                            unsigned neg_lit, const litpair *neg_begin,
                            const litpair *neg_end, litpairs *condeq) {
   kissat *const solver = closure->solver;
-  assert (neg_lit == NOT (pos_lit));
-  assert (pos_begin < pos_end);
-  assert (neg_begin < neg_end);
-  assert (pos_begin->lits[0] == pos_lit);
-  assert (neg_begin->lits[0] == neg_lit);
-  assert (pos_end <= neg_begin || neg_end <= pos_begin);
+  KISSAT_assert (neg_lit == NOT (pos_lit));
+  KISSAT_assert (pos_begin < pos_end);
+  KISSAT_assert (neg_begin < neg_end);
+  KISSAT_assert (pos_begin->lits[0] == pos_lit);
+  KISSAT_assert (neg_begin->lits[0] == neg_lit);
+  KISSAT_assert (pos_end <= neg_begin || neg_end <= pos_begin);
   for (const litpair *p = pos_begin; p != pos_end; p++) {
     const unsigned other = p->lits[1];
     const unsigned not_other = NOT (other);
@@ -3473,8 +3487,8 @@ static void search_condeq (closure *closure, unsigned lit, unsigned pos_lit,
         first = pos_lit, second = not_other;
       LOG ("found conditional %s equivalence %s = %s", LOGLIT (lit),
            LOGLIT (first), LOGLIT (second));
-      assert (!NEGATED (first));
-      assert (first < second);
+      KISSAT_assert (!NEGATED (first));
+      KISSAT_assert (first < second);
       check_ternary (closure, lit, first, NOT (second));
       check_ternary (closure, lit, NOT (first), second);
       litpair equivalence = {.lits = {first, second}};
@@ -3495,7 +3509,7 @@ static void search_condeq (closure *closure, unsigned lit, unsigned pos_lit,
 
 static void extract_condeq_pairs (closure *closure, unsigned lit,
                                   litpairs *condbin, litpairs *condeq) {
-#if defined(LOGGING) || !defined(NDEBUG)
+#if defined(LOGGING) || !defined(KISSAT_NDEBUG)
   kissat *const solver = closure->solver;
 #endif
   const litpair *const begin = BEGIN_STACK (*condbin);
@@ -3511,9 +3525,9 @@ static void extract_condeq_pairs (closure *closure, unsigned lit,
     pos_begin++;
   }
   for (;;) {
-    assert (pos_begin != end);
-    assert (next_lit == pos_begin->lits[0]);
-    assert (!NEGATED (next_lit));
+    KISSAT_assert (pos_begin != end);
+    KISSAT_assert (next_lit == pos_begin->lits[0]);
+    KISSAT_assert (!NEGATED (next_lit));
     const unsigned pos_lit = next_lit;
     const litpair *pos_end = pos_begin + 1;
     for (;;) {
@@ -3524,8 +3538,8 @@ static void extract_condeq_pairs (closure *closure, unsigned lit,
         break;
       pos_end++;
     }
-    assert (pos_end != end);
-    assert (next_lit == pos_end->lits[0]);
+    KISSAT_assert (pos_end != end);
+    KISSAT_assert (next_lit == pos_end->lits[0]);
     const unsigned neg_lit = NOT (pos_lit);
     if (next_lit != neg_lit) {
       if (NEGATED (next_lit)) {
@@ -3579,7 +3593,7 @@ static void extract_condeq_pairs (closure *closure, unsigned lit,
     }
     if (neg_end == end)
       return;
-    assert (next_lit == neg_end->lits[0]);
+    KISSAT_assert (next_lit == neg_end->lits[0]);
     if (NEGATED (next_lit)) {
       pos_begin = neg_end + 1;
       for (;;) {
@@ -3599,9 +3613,9 @@ static void find_conditional_equivalences (closure *closure, unsigned lit,
                                            watches *watches,
                                            litpairs *condbin,
                                            litpairs *condeq) {
-  assert (EMPTY_STACK (*condbin));
-  assert (EMPTY_STACK (*condeq));
-  assert (SIZE_WATCHES (*watches) > 1);
+  KISSAT_assert (EMPTY_STACK (*condbin));
+  KISSAT_assert (EMPTY_STACK (*condeq));
+  KISSAT_assert (SIZE_WATCHES (*watches) > 1);
   kissat *const solver = closure->solver;
   copy_conditional_equivalences (solver, lit, watches, condbin);
   sort_pairs (solver, condbin);
@@ -3630,7 +3644,7 @@ static void find_conditional_equivalences (closure *closure, unsigned lit,
 static void merge_condeq (closure *closure, unsigned cond, litpairs *condeq,
                           litpairs *not_condeq) {
   kissat *solver = closure->solver;
-  assert (!NEGATED (cond));
+  KISSAT_assert (!NEGATED (cond));
   const litpair *const begin_condeq = BEGIN_STACK (*condeq);
   const litpair *const end_condeq = END_STACK (*condeq);
   const litpair *const begin_not_condeq = BEGIN_STACK (*not_condeq);
@@ -3641,7 +3655,7 @@ static void merge_condeq (closure *closure, unsigned cond, litpairs *condeq,
     litpair cond_pair = *p++;
     const unsigned lhs = cond_pair.lits[0];
     const unsigned then_lit = cond_pair.lits[1];
-    assert (!NEGATED (lhs));
+    KISSAT_assert (!NEGATED (lhs));
     while (q != end_not_condeq && q->lits[0] < lhs)
       q++;
     while (q != end_not_condeq && q->lits[0] == lhs) {
@@ -3658,7 +3672,7 @@ static void extract_ite_gates_of_literal (closure *closure, unsigned lit,
                                           unsigned not_lit,
                                           watches *lit_watches,
                                           watches *not_lit_watches) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   kissat *solver = closure->solver;
 #endif
   litpairs *condbin = closure->condbin;
@@ -3706,8 +3720,8 @@ static void extract_ite_gates_of_variable (closure *closure, unsigned idx) {
 static void mark_third_literal_in_ternary_clauses (
     kissat *solver, const value *const values, unsigneds *marked,
     mark *marks, unsigned a, unsigned b) {
-  assert (!solver->watching);
-  assert (EMPTY_STACK (*marked));
+  KISSAT_assert (!solver->watching);
+  KISSAT_assert (EMPTY_STACK (*marked));
   watches *a_watches = &WATCHES (a);
   watches *b_watches = &WATCHES (b);
   const size_t size_a = SIZE_WATCHES (*a_watches);
@@ -3717,10 +3731,10 @@ static void mark_third_literal_in_ternary_clauses (
   const watch *const end = END_WATCHES (*watches);
   for (const watch *p = begin; p != end; p++) {
     const watch watch = *p;
-    assert (!watch.type.binary);
+    KISSAT_assert (!watch.type.binary);
     const reference ref = watch.large.ref;
     clause *c = kissat_dereference_clause (solver, ref);
-    assert (!c->garbage);
+    KISSAT_assert (!c->garbage);
     unsigned third = INVALID_LIT, found = 0;
     for (all_literals_in_clause (lit, c)) {
       if (values[lit])
@@ -3733,10 +3747,10 @@ static void mark_third_literal_in_ternary_clauses (
         goto NEXT_WATCH;
       third = lit;
     }
-    assert (found <= 2);
+    KISSAT_assert (found <= 2);
     if (found < 2)
       goto NEXT_WATCH;
-    assert (third != INVALID_LIT);
+    KISSAT_assert (third != INVALID_LIT);
     if (third == INVALID_LIT)
       goto NEXT_WATCH;
     if (marks[third])
@@ -3752,7 +3766,7 @@ static void extract_ite_gate (closure *closure, const value *const values,
                               mark *const marks, unsigned lhs,
                               unsigned cond, unsigned then_lit) {
   kissat *const solver = closure->solver;
-  assert (!solver->watching);
+  KISSAT_assert (!solver->watching);
   unsigned a = NOT (lhs), b = cond;
   watches *a_watches = &WATCHES (a);
   watches *b_watches = &WATCHES (b);
@@ -3763,10 +3777,10 @@ static void extract_ite_gate (closure *closure, const value *const values,
   const watch *const end = END_WATCHES (*watches);
   for (const watch *p = begin; p != end; p++) {
     const watch watch = *p;
-    assert (!watch.type.binary);
+    KISSAT_assert (!watch.type.binary);
     const reference ref = watch.large.ref;
     clause *c = kissat_dereference_clause (solver, ref);
-    assert (!c->garbage);
+    KISSAT_assert (!c->garbage);
     unsigned else_lit = INVALID_LIT, found = 0;
     for (all_literals_in_clause (lit, c)) {
       if (values[lit])
@@ -3779,10 +3793,10 @@ static void extract_ite_gate (closure *closure, const value *const values,
         goto NEXT_WATCH;
       else_lit = lit;
     }
-    assert (found <= 2);
+    KISSAT_assert (found <= 2);
     if (found < 2)
       goto NEXT_WATCH;
-    assert (else_lit != INVALID_LIT);
+    KISSAT_assert (else_lit != INVALID_LIT);
     unsigned not_else_lit = NOT (else_lit);
     if (!marks[not_else_lit])
       goto NEXT_WATCH;
@@ -3797,9 +3811,9 @@ static void extract_ite_gate (closure *closure, const value *const values,
 
 static void extract_ite_gates_with_base_clause (closure *closure,
                                                 clause *c) {
-  assert (!c->garbage);
+  KISSAT_assert (!c->garbage);
   kissat *const solver = closure->solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   const value *const values = solver->values;
   const unsigned *const largecount = closure->largecount;
   unsigneds *lits = &closure->lits;
@@ -3818,7 +3832,7 @@ static void extract_ite_gates_with_base_clause (closure *closure,
     sum ^= lit;
   }
   const size_t size = SIZE_STACK (*lits);
-  assert (size <= 3);
+  KISSAT_assert (size <= 3);
   if (size < 3)
     return;
   mark *const marks = solver->marks;
@@ -3866,8 +3880,8 @@ static void extract_and_gates (closure *closure) {
   if (!GET_OPTION (congruenceands))
     return;
   START (extractands);
-#ifndef QUIET
-  const statistics *s = &solver->statistics;
+#ifndef KISSAT_QUIET
+  const statistics *s = &solver->statistics_;
   const uint64_t matched_before = s->congruent_matched_ands;
   const uint64_t gates_before = s->congruent_gates_ands;
 #endif
@@ -3887,7 +3901,7 @@ static void extract_and_gates (closure *closure) {
     extract_and_gates_with_base_clause (closure, c);
   }
   reset_and_gate_extraction (closure);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const uint64_t matched = s->congruent_matched_ands - matched_before;
   const uint64_t extracted = s->congruent_gates_ands - gates_before;
   const uint64_t found = matched + extracted;
@@ -3909,8 +3923,8 @@ static void extract_xor_gates (closure *closure) {
   INIT_STACK (candidates);
   init_xor_gate_extraction (closure, &candidates);
   SHRINK_STACK (candidates);
-#ifndef QUIET
-  const statistics *s = &solver->statistics;
+#ifndef KISSAT_QUIET
+  const statistics *s = &solver->statistics_;
   const uint64_t matched_before = s->congruent_matched_xors;
   const uint64_t gates_before = s->congruent_gates_xors;
 #endif
@@ -3926,7 +3940,7 @@ static void extract_xor_gates (closure *closure) {
   }
   reset_xor_gate_extraction (closure);
   RELEASE_STACK (candidates);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const uint64_t matched = s->congruent_matched_xors - matched_before;
   const uint64_t extracted = s->congruent_gates_xors - gates_before;
   const uint64_t found = matched + extracted;
@@ -3947,8 +3961,8 @@ static void extract_ite_gates (closure *closure) {
   references candidates;
   INIT_STACK (candidates);
   init_ite_gate_extraction (closure, &candidates);
-#ifndef QUIET
-  const statistics *s = &solver->statistics;
+#ifndef KISSAT_QUIET
+  const statistics *s = &solver->statistics_;
   const uint64_t matched_before = s->congruent_matched_ites;
   const uint64_t gates_before = s->congruent_gates_ites;
 #endif
@@ -3973,7 +3987,7 @@ static void extract_ite_gates (closure *closure) {
 #endif
   reset_ite_gate_extraction (closure);
   RELEASE_STACK (candidates);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const uint64_t matched = s->congruent_matched_ites - matched_before;
   const uint64_t extracted = s->congruent_gates_ites - gates_before;
   const uint64_t found = matched + extracted;
@@ -4000,14 +4014,14 @@ static void reset_extraction (closure *closure) {
 static void extract_gates (closure *closure) {
   kissat *const solver = closure->solver;
   START (extract);
-  assert (!solver->level);
-#ifndef QUIET
-  const statistics *s = &solver->statistics;
+  KISSAT_assert (!solver->level);
+#ifndef KISSAT_QUIET
+  const statistics *s = &solver->statistics_;
   const uint64_t before = s->congruent_gates + s->congruent_matched;
 #endif
   init_extraction (closure);
   extract_binaries (closure);
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   extract_and_gates (closure);
   if (!solver->inconsistent && !TERMINATED (congruence_terminated_4)) {
     extract_xor_gates (closure);
@@ -4015,7 +4029,7 @@ static void extract_gates (closure *closure) {
       extract_ite_gates (closure);
   }
   reset_extraction (closure);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const uint64_t after = s->congruent_gates + s->congruent_matched;
   const uint64_t found = after - before;
   kissat_phase (solver, "congruence", GET (closures),
@@ -4027,9 +4041,9 @@ static void extract_gates (closure *closure) {
 
 static void find_units (closure *closure) {
   kissat *const solver = closure->solver;
-  assert (solver->watching);
-  assert (!solver->inconsistent);
-  assert (kissat_propagated (solver));
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (!solver->inconsistent);
+  KISSAT_assert (kissat_propagated (solver));
   closure->units = solver->propagate;
   unsigneds *marked = &solver->analyzed;
   mark *const marks = solver->marks;
@@ -4043,7 +4057,7 @@ static void find_units (closure *closure) {
       watches *const watches = &WATCHES (lit);
       const watch *p = BEGIN_WATCHES (*watches);
       const watch *const end = END_WATCHES (*watches);
-      assert (EMPTY_STACK (*marked));
+      KISSAT_assert (EMPTY_STACK (*marked));
       while (p != end) {
         const watch watch = *p++;
         if (!watch.type.binary)
@@ -4070,8 +4084,8 @@ static void find_units (closure *closure) {
       unmark_all (marked, marks);
     }
   }
-  assert (EMPTY_STACK (*marked));
-#ifndef QUIET
+  KISSAT_assert (EMPTY_STACK (*marked));
+#ifndef KISSAT_QUIET
   kissat_very_verbose (solver, "found %zu units", units);
 #else
   (void) units;
@@ -4080,11 +4094,11 @@ static void find_units (closure *closure) {
 
 static void find_equivalences (closure *closure) {
   kissat *const solver = closure->solver;
-  assert (solver->watching);
-  assert (!solver->inconsistent);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (!solver->inconsistent);
   unsigneds *const marked = &solver->analyzed;
   mark *const marks = solver->marks;
-  assert (EMPTY_STACK (*marked));
+  KISSAT_assert (EMPTY_STACK (*marked));
   for (all_variables (idx)) {
   RESTART:
     if (!ACTIVE (idx))
@@ -4093,7 +4107,7 @@ static void find_equivalences (closure *closure) {
     watches *lit_watches = &WATCHES (lit);
     const watch *p = BEGIN_WATCHES (*lit_watches);
     const watch *const end_lit_watches = END_WATCHES (*lit_watches);
-    assert (EMPTY_STACK (*marked));
+    KISSAT_assert (EMPTY_STACK (*marked));
     while (p != end_lit_watches) {
       const watch watch = *p++;
       if (!watch.type.binary)
@@ -4138,8 +4152,8 @@ static void find_equivalences (closure *closure) {
     }
     unmark_all (marked, marks);
   }
-  assert (EMPTY_STACK (*marked));
-#ifndef QUIET
+  KISSAT_assert (EMPTY_STACK (*marked));
+#ifndef KISSAT_QUIET
   size_t found = SIZE_FIFO (closure->schedule);
   kissat_very_verbose (solver, "found %zu equivalences", found);
 #endif
@@ -4148,7 +4162,7 @@ static void find_equivalences (closure *closure) {
 static bool simplify_gates (closure *closure, unsigned lit) {
   kissat *const solver = closure->solver;
   LOG ("simplifying gates with RHS literal %s", LOGLIT (lit));
-  assert (solver->values[lit]);
+  KISSAT_assert (solver->values[lit]);
   gates *lit_occurrences = closure->occurrences + lit;
   for (all_pointers (gate, g, *lit_occurrences))
     if (!simplify_gate (closure, g))
@@ -4176,7 +4190,7 @@ static bool propagate_unit (closure *closure, unsigned lit) {
   kissat *const solver = closure->solver;
   LOG ("propagation of congruence unit %s", LOGLIT (lit));
   (void) solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   const unsigned not_lit = NOT (lit);
   return simplify_gates (closure, lit) && simplify_gates (closure, not_lit);
 }
@@ -4184,7 +4198,7 @@ static bool propagate_unit (closure *closure, unsigned lit) {
 static bool propagate_equivalence (closure *closure, unsigned lit) {
   kissat *const solver = closure->solver;
   LOG ("propagation of congruence equivalence %s", CLOGREPR (lit));
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   if (VALUE (lit))
     return true;
   const unsigned lit_repr = find_repr (closure, lit);
@@ -4198,7 +4212,7 @@ static bool propagate_equivalence (closure *closure, unsigned lit) {
 
 static bool propagate_units (closure *closure) {
   kissat *const solver = closure->solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   const unsigned_array *const trail = &solver->trail;
   while (closure->units != trail->end)
     if (!propagate_unit (closure, *closure->units++))
@@ -4208,7 +4222,7 @@ static bool propagate_units (closure *closure) {
 
 static size_t propagate_units_and_equivalences (closure *closure) {
   kissat *const solver = closure->solver;
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   START (merge);
   unsigned_fifo *schedule = &closure->schedule;
   size_t propagated = 0;
@@ -4219,7 +4233,7 @@ static size_t propagate_units_and_equivalences (closure *closure) {
     if (!propagate_equivalence (closure, lit))
       break;
   }
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t units = closure->units - solver->trail.begin;
   kissat_very_verbose (solver, "propagated %zu congruence units", units);
   kissat_very_verbose (solver, "propagated %zu congruence equivalences",
@@ -4229,7 +4243,7 @@ static size_t propagate_units_and_equivalences (closure *closure) {
   return propagated;
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 static void dump_closure_literal (closure *closure, unsigned ilit) {
   kissat *const solver = closure->solver;
@@ -4241,7 +4255,7 @@ static void dump_closure_literal (closure *closure, unsigned ilit) {
     printf ("[%u(%d)]", repr_ilit, repr_elit);
   }
   const int value = VALUE (ilit);
-  assert (!solver->level);
+  KISSAT_assert (!solver->level);
   if (value)
     printf ("@0=%d", value);
 }
@@ -4344,7 +4358,7 @@ void kissat_dump_closure (closure *closure) {
 #endif
 
 static bool find_subsuming_clause (closure *closure, clause *c) {
-  assert (!c->garbage);
+  KISSAT_assert (!c->garbage);
   kissat *const solver = closure->solver;
   const reference c_ref = kissat_reference_clause (solver, c);
   const value *const values = solver->values;
@@ -4353,15 +4367,15 @@ static bool find_subsuming_clause (closure *closure, clause *c) {
     const unsigned *const end_lits = c->lits + c->size;
     for (const unsigned *p = c->lits; p != end_lits; p++) {
       const unsigned lit = *p;
-      assert (values[lit] <= 0);
+      KISSAT_assert (values[lit] <= 0);
       const unsigned repr_lit = find_repr (closure, lit);
       const value value_repr_lit = values[repr_lit];
-      assert (value_repr_lit <= 0);
+      KISSAT_assert (value_repr_lit <= 0);
       if (value_repr_lit < 0)
         continue;
       if (marks[repr_lit])
         continue;
-      assert (!marks[NOT (repr_lit)]);
+      KISSAT_assert (!marks[NOT (repr_lit)]);
       marks[repr_lit] = 1;
     }
   }
@@ -4375,25 +4389,25 @@ static bool find_subsuming_clause (closure *closure, clause *c) {
     const watch *p = BEGIN_WATCHES (*watches);
     const watch *const end = END_WATCHES (*watches);
     const size_t count = end - p;
-    assert (count <= UINT_MAX);
+    KISSAT_assert (count <= UINT_MAX);
     if (count < count_least_occurring) {
       count_least_occurring = count;
       least_occurring_literal = repr_lit;
     }
     while (p != end) {
       const watch watch = *p++;
-      assert (!watch.type.binary);
+      KISSAT_assert (!watch.type.binary);
       const reference d_ref = watch.large.ref;
       clause *const d = kissat_dereference_clause (solver, d_ref);
-      assert (c != d);
-      assert (!d->garbage);
+      KISSAT_assert (c != d);
+      KISSAT_assert (!d->garbage);
       if (!c->redundant && d->redundant)
         continue;
       for (all_literals_in_clause (other, d)) {
         const value value = values[other];
         if (value < 0)
           continue;
-        assert (!value);
+        KISSAT_assert (!value);
         const unsigned repr_other = find_repr (closure, other);
         if (!marks[repr_other])
           goto CONTINUE_WITH_NEXT_CLAUSE;
@@ -4417,8 +4431,8 @@ FOUND_SUBSUMING:
     INC (congruent_subsumed);
     return true;
   } else {
-    assert (least_occurring_literal != INVALID_LIT);
-    assert (count_least_occurring < UINT_MAX);
+    KISSAT_assert (least_occurring_literal != INVALID_LIT);
+    KISSAT_assert (count_least_occurring < UINT_MAX);
     LOGCLS (c, "forward subsumption failed of");
     LOG ("connecting %u occurring %s", count_least_occurring,
          LOGLIT (least_occurring_literal));
@@ -4450,10 +4464,10 @@ static void forward_subsume_matching_clauses (closure *closure) {
   INIT_STACK (binaries);
   kissat_enter_dense_mode (solver, &binaries);
   bool *matchable;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   unsigned count_matchable = 0;
 #endif
-  CALLOC (matchable, VARS);
+  CALLOC (bool, matchable, VARS);
   for (all_variables (idx))
     if (ACTIVE (idx)) {
       const unsigned lit = LIT (idx);
@@ -4464,14 +4478,14 @@ static void forward_subsume_matching_clauses (closure *closure) {
       if (!matchable[idx]) {
         LOG ("matchable %s", LOGVAR (idx));
         matchable[idx] = true;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
         count_matchable++;
 #endif
       }
       if (!matchable[repr_idx]) {
         LOG ("matchable %s", LOGVAR (repr_idx));
         matchable[repr_idx] = true;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
         count_matchable++;
 #endif
       }
@@ -4493,7 +4507,7 @@ static void forward_subsume_matching_clauses (closure *closure) {
       break;
     potential++;
     bool contains_matchable = false;
-    assert (EMPTY_STACK (*marked));
+    KISSAT_assert (EMPTY_STACK (*marked));
     LOGREPRCLS (c, closure->repr, "considering");
     for (all_literals_in_clause (lit, c)) {
       const value value = values[lit];
@@ -4510,7 +4524,7 @@ static void forward_subsume_matching_clauses (closure *closure) {
           contains_matchable = true;
       }
       const unsigned repr = find_repr (closure, lit);
-      assert (!values[repr]);
+      KISSAT_assert (!values[repr]);
       if (marks[repr])
         continue;
       const unsigned not_repr = NOT (repr);
@@ -4534,12 +4548,12 @@ static void forward_subsume_matching_clauses (closure *closure) {
       continue;
     }
     const reference ref = kissat_reference_clause (solver, c);
-    assert (size <= UINT_MAX);
-    refsize refsize = {.ref = ref, .size = size};
+    KISSAT_assert (size <= UINT_MAX);
+    refsize refsize = {.ref = ref, .size = (unsigned)size};
     PUSH_STACK (candidates, refsize);
   }
   DEALLOC (matchable, VARS);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t size_candidates = SIZE_STACK (candidates);
   kissat_very_verbose (
       solver, "considering %zu matchable subsumption candidates %.0f%%",
@@ -4548,19 +4562,19 @@ static void forward_subsume_matching_clauses (closure *closure) {
   (void) potential;
 #endif
   sort_references_by_clause_size (solver, &candidates);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   size_t tried = 0, subsumed = 0;
 #endif
   for (all_stack (refsize, refsize, candidates)) {
     if (TERMINATED (congruence_terminated_7))
       break;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     tried++;
 #endif
     const unsigned ref = refsize.ref;
     clause *c = kissat_dereference_clause (solver, ref);
     if (find_subsuming_clause (closure, c)) {
-#ifndef QUIET
+#ifndef KISSAT_QUIET
       subsumed++;
 #endif
     }
@@ -4578,15 +4592,15 @@ bool kissat_congruence (kissat *solver) {
   if (solver->inconsistent)
     return false;
   kissat_check_statistics (solver);
-  assert (!solver->level);
-  assert (solver->probing);
-  assert (solver->watching);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (solver->probing);
+  KISSAT_assert (solver->watching);
   if (!GET_OPTION (congruence))
     return false;
   if (!GET_OPTION (congruenceands) && !GET_OPTION (congruenceites) &&
       !GET_OPTION (congruencexors))
     return false;
-  if (GET_OPTION (congruenceonce) && solver->statistics.closures)
+  if (GET_OPTION (congruenceonce) && solver->statistics_.closures)
     return false;
   if (TERMINATED (congruence_terminated_8))
     return false;
@@ -4618,8 +4632,8 @@ bool kissat_congruence (kissat *solver) {
   kissat_phase (solver, "congruence", GET (closures),
                 "merged %u equivalent variables %.2f%%", equivalent,
                 kissat_percent (equivalent, solver->active));
-  assert (solver->active >= equivalent);
-#ifndef QUIET
+  KISSAT_assert (solver->active >= equivalent);
+#ifndef KISSAT_QUIET
   solver->active -= equivalent;
   REPORT (!equivalent, 'c');
   if (!solver->inconsistent)
@@ -4633,3 +4647,5 @@ bool kissat_congruence (kissat *solver) {
   kissat_check_statistics (solver);
   return equivalent;
 }
+
+ABC_NAMESPACE_IMPL_END

@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 // clang-format off
 
 #define METRICS_COUNTERS_AND_STATISTICS \
@@ -329,12 +332,12 @@ struct statistics
 /*------------------------------------------------------------------------*/
 
 #define CLAUSES (IRREDUNDANT_CLAUSES + BINARY_CLAUSES + REDUNDANT_CLAUSES)
-#define CONFLICTS (solver->statistics.conflicts)
-#define DECISIONS (solver->statistics.decisions)
-#define IRREDUNDANT_CLAUSES (solver->statistics.clauses_irredundant)
-#define LEARNED_CLAUSES (solver->statistics.learned)
-#define REDUNDANT_CLAUSES (solver->statistics.clauses_redundant)
-#define BINARY_CLAUSES (solver->statistics.clauses_binary)
+#define CONFLICTS (solver->statistics_.conflicts)
+#define DECISIONS (solver->statistics_.decisions)
+#define IRREDUNDANT_CLAUSES (solver->statistics_.clauses_irredundant)
+#define LEARNED_CLAUSES (solver->statistics_.learned)
+#define REDUNDANT_CLAUSES (solver->statistics_.clauses_redundant)
+#define BINARY_CLAUSES (solver->statistics_.clauses_binary)
 #define BINIRR_CLAUSES (BINARY_CLAUSES + IRREDUNDANT_CLAUSES)
 
 /*------------------------------------------------------------------------*/
@@ -342,24 +345,24 @@ struct statistics
 #define COUNTER(NAME, VERBOSE, OTHER, UNITS, TYPE) \
 \
   static inline void kissat_inc_##NAME (statistics *statistics) { \
-    assert (statistics->NAME < UINT64_MAX); \
+    KISSAT_assert (statistics->NAME < UINT64_MAX); \
     statistics->NAME++; \
   } \
 \
   static inline void kissat_dec_##NAME (statistics *statistics) { \
-    assert (statistics->NAME); \
+    KISSAT_assert (statistics->NAME); \
     statistics->NAME--; \
   } \
 \
   static inline void kissat_add_##NAME (statistics *statistics, \
                                         uint64_t n) { \
-    assert (UINT64_MAX - n >= statistics->NAME); \
+    KISSAT_assert (UINT64_MAX - n >= statistics->NAME); \
     statistics->NAME += n; \
   } \
 \
   static inline void kissat_sub_##NAME (statistics *statistics, \
                                         uint64_t n) { \
-    assert (n <= statistics->NAME); \
+    KISSAT_assert (n <= statistics->NAME); \
     statistics->NAME -= n; \
   } \
 \
@@ -406,14 +409,14 @@ METRICS_COUNTERS_AND_STATISTICS
 // clang-format on
 /*------------------------------------------------------------------------*/
 
-#define INC(NAME) kissat_inc_##NAME (&solver->statistics)
-#define DEC(NAME) kissat_dec_##NAME (&solver->statistics)
-#define ADD(NAME, N) kissat_add_##NAME (&solver->statistics, (N))
-#define SUB(NAME, N) kissat_sub_##NAME (&solver->statistics, (N))
-#define GET(NAME) kissat_get_##NAME (&solver->statistics)
+#define INC(NAME) kissat_inc_##NAME (&solver->statistics_)
+#define DEC(NAME) kissat_dec_##NAME (&solver->statistics_)
+#define ADD(NAME, N) kissat_add_##NAME (&solver->statistics_, (N))
+#define SUB(NAME, N) kissat_sub_##NAME (&solver->statistics_, (N))
+#define GET(NAME) kissat_get_##NAME (&solver->statistics_)
 
 /*------------------------------------------------------------------------*/
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 
 struct kissat;
 
@@ -451,7 +454,7 @@ void kissat_print_glue_usage (struct kissat *);
 
 #endif
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 struct kissat;
 void kissat_check_statistics (struct kissat *);
@@ -463,5 +466,7 @@ void kissat_check_statistics (struct kissat *);
   } while (0)
 
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

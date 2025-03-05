@@ -5,6 +5,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void (*kissat_abort_function) (void);
 
 void kissat_call_function_instead_of_abort (void (*f) (void)) {
@@ -60,3 +62,5 @@ void kissat_fatal (const char *fmt, ...) {
   va_end (ap);
   kissat_abort ();
 }
+
+ABC_NAMESPACE_IMPL_END

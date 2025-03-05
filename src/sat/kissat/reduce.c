@@ -11,10 +11,12 @@
 #include <inttypes.h>
 #include <math.h>
 
+ABC_NAMESPACE_IMPL_START
+
 bool kissat_reducing (kissat *solver) {
   if (!GET_OPTION (reduce))
     return false;
-  if (!solver->statistics.clauses_redundant)
+  if (!solver->statistics_.clauses_redundant)
     return false;
   if (CONFLICTS < solver->limits.reduce.conflicts)
     return false;
@@ -36,12 +38,12 @@ typedef STACK (reducible) reducibles;
 
 static bool collect_reducibles (kissat *solver, reducibles *reds,
                                 reference start_ref) {
-  assert (start_ref != INVALID_REF);
-  assert (start_ref <= SIZE_STACK (solver->arena));
+  KISSAT_assert (start_ref != INVALID_REF);
+  KISSAT_assert (start_ref <= SIZE_STACK (solver->arena));
   ward *const arena = BEGIN_STACK (solver->arena);
   clause *start = (clause *) (arena + start_ref);
   const clause *const end = (clause *) END_STACK (solver->arena);
-  assert (start < end);
+  KISSAT_assert (start < end);
   while (start != end && !start->redundant)
     start = kissat_next_clause (start);
   if (start == end) {
@@ -61,7 +63,7 @@ static bool collect_reducibles (kissat *solver, reducibles *reds,
   solver->first_reducible = redundant;
   const unsigned tier1 = TIER1;
   const unsigned tier2 = MAX (tier1, TIER2);
-  assert (tier1 <= tier2);
+  KISSAT_assert (tier1 <= tier2);
   for (clause *c = start; c != end; c = kissat_next_clause (c)) {
     if (!c->redundant)
       continue;
@@ -77,7 +79,7 @@ static bool collect_reducibles (kissat *solver, reducibles *reds,
       continue;
     if (glue <= tier2 && used >= MAX_USED - 1)
       continue;
-    assert (kissat_clause_in_arena (solver, c));
+    KISSAT_assert (kissat_clause_in_arena (solver, c));
     reducible red;
     const uint64_t negative_size = ~c->size;
     const uint64_t negative_glue = ~c->glue;
@@ -101,7 +103,7 @@ static void sort_reducibles (kissat *solver, reducibles *reds) {
 
 static void mark_less_useful_clauses_as_garbage (kissat *solver,
                                                  reducibles *reds) {
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   const double high = GET_OPTION (reducehigh) * 0.1;
   const double low = GET_OPTION (reducelow) * 0.1;
   double percent;
@@ -113,7 +115,7 @@ static void mark_less_useful_clauses_as_garbage (kissat *solver,
   const double fraction = percent / 100.0;
   const size_t size = SIZE_STACK (*reds);
   size_t target = size * fraction;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const size_t clauses =
       statistics->clauses_irredundant + statistics->clauses_redundant;
   kissat_phase (solver, "reduce", GET (reductions),
@@ -130,10 +132,10 @@ static void mark_less_useful_clauses_as_garbage (kissat *solver,
   const unsigned tier2 = TIER2;
   for (const reducible *p = begin; p != end && target--; p++) {
     clause *c = (clause *) (arena + p->ref);
-    assert (kissat_clause_in_arena (solver, c));
-    assert (!c->garbage);
-    assert (!c->reason);
-    assert (c->redundant);
+    KISSAT_assert (kissat_clause_in_arena (solver, c));
+    KISSAT_assert (!c->garbage);
+    KISSAT_assert (!c->reason);
+    KISSAT_assert (c->redundant);
     LOGCLS (c, "reducing");
     kissat_mark_clause_as_garbage (solver, c);
     reduced++;
@@ -160,7 +162,7 @@ int kissat_reduce (kissat *solver) {
   bool compact = kissat_compacting (solver);
   reference start = compact ? 0 : solver->first_reducible;
   if (start != INVALID_REF) {
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     size_t arena_size = SIZE_STACK (solver->arena);
     size_t words_to_sweep = arena_size - start;
     size_t bytes_to_sweep = sizeof (word) * words_to_sweep;
@@ -186,7 +188,7 @@ int kissat_reduce (kissat *solver) {
       else
         kissat_unmark_reason_clauses (solver, start);
     } else
-      assert (solver->inconsistent);
+      KISSAT_assert (solver->inconsistent);
   } else
     kissat_phase (solver, "reduce", GET (reductions), "nothing to reduce");
   kissat_classify (solver);
@@ -196,3 +198,5 @@ int kissat_reduce (kissat *solver) {
   STOP (reduce);
   return solver->inconsistent ? 20 : 0;
 }
+
+ABC_NAMESPACE_IMPL_END

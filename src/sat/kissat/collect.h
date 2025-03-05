@@ -3,6 +3,9 @@
 
 #include "internal.h"
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 bool kissat_compacting (kissat *);
 void kissat_dense_collect (kissat *);
 void kissat_sparse_collect (kissat *, bool compact, reference start);
@@ -29,5 +32,7 @@ static inline void kissat_defrag_watches_if_needed (kissat *solver) {
 
 void kissat_update_last_irredundant (kissat *, clause *last_irredundant);
 void kissat_update_first_reducible (kissat *, clause *first_reducible);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

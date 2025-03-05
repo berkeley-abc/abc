@@ -11,8 +11,10 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 bool kissat_restarting (kissat *solver) {
-  assert (solver->unassigned);
+  KISSAT_assert (solver->unassigned);
   if (!GET_OPTION (restart))
     return false;
   if (!solver->level)
@@ -37,9 +39,9 @@ bool kissat_restarting (kissat *solver) {
 }
 
 void kissat_update_focused_restart_limit (kissat *solver) {
-  assert (!solver->stable);
+  KISSAT_assert (!solver->stable);
   limits *limits = &solver->limits;
-  uint64_t restarts = solver->statistics.restarts;
+  uint64_t restarts = solver->statistics_.restarts;
   uint64_t delta = GET_OPTION (restartint);
   if (restarts)
     delta += kissat_logn (restarts) - 1;
@@ -84,8 +86,8 @@ static unsigned reuse_focused_trail (kissat *solver) {
 }
 
 static unsigned reuse_trail (kissat *solver) {
-  assert (solver->level);
-  assert (!EMPTY_STACK (solver->trail));
+  KISSAT_assert (solver->level);
+  KISSAT_assert (!EMPTY_STACK (solver->trail));
 
   if (!GET_OPTION (restartreusetrail))
     return 0;
@@ -129,3 +131,5 @@ void kissat_restart (kissat *solver) {
   REPORT (1, 'R');
   STOP (restart);
 }
+
+ABC_NAMESPACE_IMPL_END

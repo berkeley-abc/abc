@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct smooth smooth;
 
 struct smooth {
@@ -18,5 +21,7 @@ struct kissat;
 void kissat_init_smooth (struct kissat *, smooth *, int window,
                          const char *);
 void kissat_update_smooth (struct kissat *, smooth *, double);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

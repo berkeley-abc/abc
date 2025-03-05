@@ -1,6 +1,8 @@
 #include "colors.h"
 #include "inline.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static void undo_eliminated_assignment (kissat *solver) {
   size_t size_etrail = SIZE_STACK (solver->etrail);
 #ifdef LOGGING
@@ -18,32 +20,32 @@ static void undo_eliminated_assignment (kissat *solver) {
 
   while (!EMPTY_STACK (solver->etrail)) {
     const unsigned pos = POP_STACK (solver->etrail);
-    assert (pos < SIZE_STACK (solver->eliminated));
-    assert (values[pos]);
+    KISSAT_assert (pos < SIZE_STACK (solver->eliminated));
+    KISSAT_assert (values[pos]);
     LOG2 ("unassigned eliminated[%u] external variable", pos);
     values[pos] = 0;
   }
 }
 
 static void extend_assign (kissat *solver, value *values, int lit) {
-  assert (lit);
-  assert (lit != INT_MIN);
+  KISSAT_assert (lit);
+  KISSAT_assert (lit != INT_MIN);
   const unsigned idx = ABS (lit);
   import *import = &PEEK_STACK (solver->import, idx);
-  assert (import->eliminated);
-  assert (import->imported);
+  KISSAT_assert (import->eliminated);
+  KISSAT_assert (import->imported);
   const unsigned pos = import->lit;
-  assert (pos < SIZE_STACK (solver->eliminated));
+  KISSAT_assert (pos < SIZE_STACK (solver->eliminated));
   const value value = lit < 0 ? -1 : 1;
   values[pos] = value;
-  assert (kissat_value (solver, lit) == lit);
+  KISSAT_assert (kissat_value (solver, lit) == lit);
   LOG ("assigned eliminated[%u] external literal %d", pos, value * idx);
   PUSH_STACK (solver->etrail, pos);
 }
 
 void kissat_extend (kissat *solver) {
-  assert (!EMPTY_STACK (solver->extend));
-  assert (!solver->extended);
+  KISSAT_assert (!EMPTY_STACK (solver->extend));
+  KISSAT_assert (!solver->extended);
 
   START (extend);
   solver->extended = true;
@@ -79,7 +81,7 @@ void kissat_extend (kissat *solver) {
 #endif
     do {
       size++;
-      assert (begin < p);
+      KISSAT_assert (begin < p);
       const extension ext = *--p;
       const int elit = ext.lit;
       if (ext.blocking)
@@ -88,15 +90,15 @@ void kissat_extend (kissat *solver) {
       if (satisfied)
         continue;
 
-      assert (elit != INT_MIN);
+      KISSAT_assert (elit != INT_MIN);
       const unsigned eidx = ABS (elit);
-      assert (eidx < SIZE_STACK (solver->import));
+      KISSAT_assert (eidx < SIZE_STACK (solver->import));
       const import *const import = imports + eidx;
-      assert (import->imported);
+      KISSAT_assert (import->imported);
 
       if (import->eliminated) {
         const unsigned tmp = import->lit;
-        assert (tmp < SIZE_STACK (solver->eliminated));
+        KISSAT_assert (tmp < SIZE_STACK (solver->eliminated));
         value value = evalues[tmp];
 
         if (elit < 0)
@@ -120,7 +122,7 @@ void kissat_extend (kissat *solver) {
       } else {
         const unsigned ilit = import->lit;
         value value = ivalues[ilit];
-        assert (value);
+        KISSAT_assert (value);
 
         if (elit < 0)
           value = -value;
@@ -151,10 +153,10 @@ void kissat_extend (kissat *solver) {
 
 #ifdef LOGGING
     const unsigned blocking_idx = ABS (blocking);
-    assert (blocking_idx < SIZE_STACK (solver->import));
-    assert (imports[blocking_idx].eliminated);
+    KISSAT_assert (blocking_idx < SIZE_STACK (solver->import));
+    KISSAT_assert (imports[blocking_idx].eliminated);
     const unsigned blocking_pos = imports[blocking_idx].lit;
-    assert (blocking_pos < SIZE_STACK (solver->eliminated));
+    KISSAT_assert (blocking_pos < SIZE_STACK (solver->eliminated));
     const value blocking_value = evalues[blocking_pos];
     LOGEXT2 (size, p,
              "%s blocking external literal %d "
@@ -179,3 +181,5 @@ void kissat_extend (kissat *solver) {
 
   STOP (extend);
 }
+
+ABC_NAMESPACE_IMPL_END

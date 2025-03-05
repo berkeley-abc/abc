@@ -1,8 +1,10 @@
-#if !defined(QUIET) || !defined(NDEBUG)
+#include "global.h"
+
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG)
 #include "internal.h"
 #endif
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 
 #include "resources.h"
 #include "tiers.h"
@@ -344,13 +346,13 @@ kissat_statistics_print (kissat * solver, bool verbose)
 
 // clang-format on
 
-#elif defined(NDEBUG)
+#elif defined(KISSAT_NDEBUG)
 int kissat_statistics_dummy_to_avoid_warning;
 #endif
 
 /*------------------------------------------------------------------------*/
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 
 #include "inlinevector.h"
 
@@ -397,15 +399,15 @@ void kissat_check_statistics (kissat *solver) {
     }
   }
 
-  assert (!(binary & 1));
+  KISSAT_assert (!(binary & 1));
   binary /= 2;
 
   statistics *statistics = &solver->statistics;
-  assert (statistics->clauses_binary == binary);
-  assert (statistics->clauses_redundant == redundant);
-  assert (statistics->clauses_irredundant == irredundant);
+  KISSAT_assert (statistics->clauses_binary == binary);
+  KISSAT_assert (statistics->clauses_redundant == redundant);
+  KISSAT_assert (statistics->clauses_irredundant == irredundant);
 #ifdef METRICS
-  assert (statistics->arena_garbage == arena_garbage);
+  KISSAT_assert (statistics->arena_garbage == arena_garbage);
 #else
   (void) arena_garbage;
 #endif

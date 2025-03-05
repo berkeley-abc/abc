@@ -8,6 +8,9 @@
 
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 typedef struct clause clause;
 
 #define LD_MAX_GLUE 19
@@ -86,5 +89,7 @@ clause *kissat_delete_clause (struct kissat *, clause *);
 void kissat_delete_binary (struct kissat *, unsigned, unsigned);
 
 void kissat_mark_clause_as_garbage (struct kissat *, clause *);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

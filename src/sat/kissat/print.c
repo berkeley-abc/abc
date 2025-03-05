@@ -1,4 +1,6 @@
-#ifndef QUIET
+#include "global.h"
+
+#ifndef KISSAT_QUIET
 
 #include "print.h"
 #include "colors.h"
@@ -16,7 +18,7 @@ static inline int verbosity (kissat *solver) {
   if (GET_OPTION (log))
     return 3;
 #endif
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   if (GET_OPTION (quiet))
     return -1;
   return GET_OPTION (verbose);
@@ -39,7 +41,7 @@ void kissat_warning (kissat *solver, const char *fmt, ...) {
   vprintf (fmt, ap);
   va_end (ap);
   fputc ('\n', stdout);
-#ifdef NOPTIONS
+#ifdef KISSAT_NOPTIONS
   (void) solver;
 #endif
 }

@@ -7,7 +7,17 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#ifdef WIN32
+#define unlink _unlink
+#define access _access
+#define R_OK 4
+#define W_OK 2
+#else
 #include <unistd.h>
+#endif
+
+ABC_NAMESPACE_IMPL_START
 
 bool kissat_file_exists (const char *path) {
   if (!path)
@@ -57,7 +67,7 @@ bool kissat_file_writable (const char *path) {
         res = 5;
       else {
         const size_t len = p - path;
-        char *dirname = malloc (len + 1);
+        char *dirname = (char*)malloc (len + 1);
         if (dirname) {
           strncpy (dirname, path, len);
           dirname[len] = 0;
@@ -98,7 +108,7 @@ bool kissat_find_executable (const char *name) {
   if (!environment)
     return false;
   const size_t dirs_len = strlen (environment);
-  char *dirs = malloc (dirs_len + 1);
+  char *dirs = (char*)malloc (dirs_len + 1);
   if (!dirs)
     return false;
   strcpy (dirs, environment);
@@ -106,16 +116,16 @@ bool kissat_find_executable (const char *name) {
   const char *end = dirs + dirs_len + 1;
   for (char *dir = dirs, *q; !res && dir != end; dir = q) {
     for (q = dir; *q && *q != ':'; q++)
-      assert (q + 1 < end);
+      KISSAT_assert (q + 1 < end);
     *q++ = 0;
     const size_t path_len = (q - dir) + name_len;
-    char *path = malloc (path_len + 1);
+    char *path = (char*)malloc (path_len + 1);
     if (!path) {
       free (dirs);
       return false;
     }
     sprintf (path, "%s/%s", dir, name);
-    assert (strlen (path) == path_len);
+    KISSAT_assert (strlen (path) == path_len);
     res = kissat_file_readable (path);
     free (path);
   }
@@ -131,7 +141,7 @@ static int xzsig[] = {0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00, 0x00, EOF};
 static int Zsig[] = {0x1F, 0x9D, 0x90, EOF};
 
 static bool match_signature (const char *path, const int *sig) {
-  assert (path);
+  KISSAT_assert (path);
   FILE *tmp = fopen (path, "r");
   if (!tmp)
     return false;
@@ -149,7 +159,7 @@ static FILE *open_pipe (const char *fmt, const char *path,
   size_t name_len = 0;
   while (fmt[name_len] && fmt[name_len] != ' ')
     name_len++;
-  char *name = malloc (name_len + 1);
+  char *name = (char*)malloc (name_len + 1);
   if (!name)
     return 0;
   strncpy (name, fmt, name_len);
@@ -158,7 +168,7 @@ static FILE *open_pipe (const char *fmt, const char *path,
   free (name);
   if (!found)
     return 0;
-  char *cmd = malloc (strlen (fmt) + strlen (path));
+  char *cmd = (char*)malloc (strlen (fmt) + strlen (path));
   if (!cmd)
     return 0;
   sprintf (cmd, fmt, path);
@@ -296,15 +306,17 @@ bool kissat_open_to_write_file (file *file, const char *path) {
 }
 
 void kissat_close_file (file *file) {
-  assert (file);
-  assert (file->file);
+  KISSAT_assert (file);
+  KISSAT_assert (file->file);
 #ifdef KISSAT_HAS_COMPRESSION
   if (file->close && file->compressed)
     pclose (file->file);
 #else
-  assert (!file->compressed);
+  KISSAT_assert (!file->compressed);
 #endif
   if (file->close && !file->compressed)
     fclose (file->file);
   file->file = 0;
 }
+
+ABC_NAMESPACE_IMPL_END

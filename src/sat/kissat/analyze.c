@@ -13,10 +13,12 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static bool one_literal_on_conflict_level (kissat *solver, clause *conflict,
                                            unsigned *conflict_level_ptr) {
-  assert (conflict);
-  assert (conflict->size > 1);
+  KISSAT_assert (conflict);
+  KISSAT_assert (conflict->size > 1);
 
   unsigned jump_level = INVALID_LEVEL;
   unsigned conflict_level = INVALID_LEVEL;
@@ -31,7 +33,7 @@ static bool one_literal_on_conflict_level (kissat *solver, clause *conflict,
 
   for (const unsigned *p = lits; p != end_of_lits; p++) {
     const unsigned lit = *p;
-    assert (VALUE (lit) < 0);
+    KISSAT_assert (VALUE (lit) < 0);
     const unsigned idx = IDX (lit);
     const unsigned lit_level = all_assigned[idx].level;
     if (conflict_level == INVALID_LEVEL || conflict_level < lit_level) {
@@ -48,8 +50,8 @@ static bool one_literal_on_conflict_level (kissat *solver, clause *conflict,
     if (literals_on_conflict_level > 1 && conflict_level == solver->level)
       break;
   }
-  assert (conflict_level != INVALID_LEVEL);
-  assert (literals_on_conflict_level);
+  KISSAT_assert (conflict_level != INVALID_LEVEL);
+  KISSAT_assert (literals_on_conflict_level);
 
   LOG ("found %u literals on conflict level %u", literals_on_conflict_level,
        conflict_level);
@@ -105,10 +107,10 @@ static bool one_literal_on_conflict_level (kissat *solver, clause *conflict,
   if (literals_on_conflict_level > 1)
     return false;
 
-  assert (literals_on_conflict_level == 1);
-  assert (forced_lit != INVALID_LIT);
-  assert (jump_level != INVALID_LEVEL);
-  assert (jump_level < conflict_level);
+  KISSAT_assert (literals_on_conflict_level == 1);
+  KISSAT_assert (forced_lit != INVALID_LIT);
+  KISSAT_assert (jump_level != INVALID_LEVEL);
+  KISSAT_assert (jump_level < conflict_level);
 
   LOG ("reusing conflict as driving clause of %s", LOGLIT (forced_lit));
 
@@ -116,7 +118,7 @@ static bool one_literal_on_conflict_level (kissat *solver, clause *conflict,
   kissat_backtrack_after_conflict (solver, new_level);
 
   if (conflict_size == 2) {
-    assert (conflict == &solver->conflict);
+    KISSAT_assert (conflict == &solver->conflict);
     const unsigned other = lits[0] ^ lits[1] ^ forced_lit;
     kissat_assign_binary (solver, forced_lit, other);
   } else {
@@ -142,9 +144,9 @@ static inline void analyze_reason_side_literal (kissat *solver,
                                                 unsigned lit) {
   const unsigned idx = IDX (lit);
   const assigned *a = all_assigned + idx;
-  assert (a->level);
-  assert (a->analyzed);
-  assert (a->reason != UNIT_REASON);
+  KISSAT_assert (a->level);
+  KISSAT_assert (a->analyzed);
+  KISSAT_assert (a->reason != UNIT_REASON);
   if (a->reason == DECISION_REASON)
     return;
   if (a->binary) {
@@ -152,13 +154,13 @@ static inline void analyze_reason_side_literal (kissat *solver,
     mark_reason_side_literal (solver, all_assigned, other);
   } else {
     const reference ref = a->reason;
-    assert (ref < SIZE_STACK (solver->arena));
+    KISSAT_assert (ref < SIZE_STACK (solver->arena));
     clause *c = (clause *) (arena + ref);
     const unsigned not_lit = NOT (lit);
     INC (search_ticks);
     for (all_literals_in_clause (other, c))
       if (other != not_lit) {
-        assert (other != lit);
+        KISSAT_assert (other != lit);
         mark_reason_side_literal (solver, all_assigned, other);
         if (SIZE_STACK (solver->analyzed) > limit)
           break;
@@ -183,9 +185,9 @@ static void analyze_reason_side_literals (kissat *solver) {
     return;
   }
   assigned *all_assigned = solver->assigned;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   for (all_stack (unsigned, lit, solver->clause))
-    assert (all_assigned[IDX (lit)].analyzed);
+    KISSAT_assert (all_assigned[IDX (lit)].analyzed);
 #endif
   LOG ("trying to bump reason side literals too");
   const size_t saved = SIZE_STACK (solver->analyzed);
@@ -203,7 +205,7 @@ static void analyze_reason_side_literals (kissat *solver) {
       const unsigned idx = POP_STACK (solver->analyzed);
       struct assigned *a = all_assigned + idx;
       LOG ("marking %s as not analyzed", LOGVAR (idx));
-      assert (a->analyzed);
+      KISSAT_assert (a->analyzed);
       a->analyzed = false;
     }
     BUMP_DELAY (bumpreasons);
@@ -228,7 +230,7 @@ static void sort_levels (kissat *solver) {
 
 static void sort_deduced_clause (kissat *solver) {
   sort_levels (solver);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   const size_t size_frames = SIZE_STACK (solver->frames);
 #endif
   frame *frames = BEGIN_STACK (solver->frames);
@@ -238,25 +240,25 @@ static void sort_deduced_clause (kissat *solver) {
   unsigned const *p = end_levels;
   while (p != begin_levels) {
     const unsigned level = *--p;
-    assert (level < size_frames);
+    KISSAT_assert (level < size_frames);
     frame *f = frames + level;
     const unsigned used = f->used;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     f->saved = used;
 #endif
-    assert (used > 0);
-    assert (UINT_MAX - used >= pos);
+    KISSAT_assert (used > 0);
+    KISSAT_assert (UINT_MAX - used >= pos);
     f->used = pos;
     pos += used;
   }
   unsigneds *clause = &solver->clause;
   const size_t size_clause = SIZE_STACK (*clause);
-#ifndef NDEBUG
-  assert (pos == size_clause);
+#ifndef KISSAT_NDEBUG
+  KISSAT_assert (pos == size_clause);
 #endif
   unsigned const *begin_clause = BEGIN_STACK (*clause);
   const unsigned *const end_clause = END_STACK (*clause);
-  assert (begin_clause < end_clause);
+  KISSAT_assert (begin_clause < end_clause);
 
   unsigneds *shadow = &solver->shadow;
   while (SIZE_STACK (*shadow) < size_clause)
@@ -272,37 +274,37 @@ static void sort_deduced_clause (kissat *solver) {
     const unsigned idx = IDX (lit);
     const struct assigned *a = assigned + idx;
     const unsigned level = a->level;
-    assert (level < size_frames);
+    KISSAT_assert (level < size_frames);
     frame *f = frames + level;
     const unsigned pos = f->used++;
     POKE_STACK (*shadow, pos, lit);
   }
 
-  assert (size_clause == SIZE_STACK (*shadow));
+  KISSAT_assert (size_clause == SIZE_STACK (*shadow));
   SWAP (unsigneds, *clause, *shadow);
 
   pos = 1;
   p = end_levels;
   while (p != begin_levels) {
     const unsigned level = *--p;
-    assert (level < size_frames);
+    KISSAT_assert (level < size_frames);
     frame *f = frames + level;
     const unsigned end = f->used;
-    assert (pos < end);
+    KISSAT_assert (pos < end);
     f->used = end - pos;
-    assert (f->used == f->saved);
+    KISSAT_assert (f->used == f->saved);
     pos = end;
   }
 
   CLEAR_STACK (*shadow);
   LOGTMP ("level sorted deduced");
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   unsigned prev_level = solver->level;
   for (all_stack (unsigned, lit, solver->clause)) {
     const unsigned idx = IDX (lit);
     const unsigned lit_level = assigned[idx].level;
-    assert (prev_level >= lit_level);
+    KISSAT_assert (prev_level >= lit_level);
     prev_level = lit_level;
   }
 #endif
@@ -311,13 +313,13 @@ static void sort_deduced_clause (kissat *solver) {
 static void reset_levels (kissat *solver) {
   LOG ("reset %zu marked levels", SIZE_STACK (solver->levels));
   frame *frames = BEGIN_STACK (solver->frames);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   const size_t size_frames = SIZE_STACK (solver->frames);
 #endif
   for (all_stack (unsigned, level, solver->levels)) {
-    assert (level < size_frames);
+    KISSAT_assert (level < size_frames);
     frame *f = frames + level;
-    assert (f->used > 0);
+    KISSAT_assert (f->used > 0);
     f->used = 0;
   }
   CLEAR_STACK (solver->levels);
@@ -327,11 +329,11 @@ void kissat_reset_only_analyzed_literals (kissat *solver) {
   LOG ("reset %zu analyzed variables", SIZE_STACK (solver->analyzed));
   assigned *assigned = solver->assigned;
   for (all_stack (unsigned, idx, solver->analyzed)) {
-    assert (idx < VARS);
+    KISSAT_assert (idx < VARS);
     struct assigned *a = assigned + idx;
-    assert (!a->poisoned);
-    assert (!a->removable);
-    assert (!a->shrinkable);
+    KISSAT_assert (!a->poisoned);
+    KISSAT_assert (!a->removable);
+    KISSAT_assert (!a->shrinkable);
     a->analyzed = false;
   }
   CLEAR_STACK (solver->analyzed);
@@ -340,13 +342,13 @@ void kissat_reset_only_analyzed_literals (kissat *solver) {
 static void reset_removable (kissat *solver) {
   LOG ("reset %zu removable variables", SIZE_STACK (solver->removable));
   assigned *assigned = solver->assigned;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   unsigned not_removable = 0;
 #endif
   for (all_stack (unsigned, idx, solver->removable)) {
-    assert (idx < VARS);
+    KISSAT_assert (idx < VARS);
     struct assigned *a = assigned + idx;
-    assert (a->removable || !not_removable++);
+    KISSAT_assert (a->removable || !not_removable++);
     a->removable = false;
   }
   CLEAR_STACK (solver->removable);
@@ -360,8 +362,8 @@ static void reset_analysis_but_not_analyzed_literals (kissat *solver) {
 }
 
 static void update_trail_average (kissat *solver) {
-  assert (!solver->probing);
-#if defined(LOGGING) || !defined(QUIET)
+  KISSAT_assert (!solver->probing);
+#if defined(LOGGING) || !defined(KISSAT_QUIET)
   const unsigned size = SIZE_ARRAY (solver->trail);
   const unsigned assigned = size - solver->unflushed;
   const unsigned active = solver->active;
@@ -371,36 +373,36 @@ static void update_trail_average (kissat *solver) {
 #endif
   LOG ("trail filled %.0f%% (size %u, unflushed %u, active %u)", filled,
        size, solver->unflushed, active);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   UPDATE_AVERAGE (trail, filled);
 #endif
 }
 
 static void update_decision_rate_average (kissat *solver) {
-  assert (!solver->probing);
+  KISSAT_assert (!solver->probing);
   const uint64_t current = DECISIONS;
   const uint64_t previous =
       solver->averages[solver->stable].saved_decisions;
-  assert (previous <= current);
+  KISSAT_assert (previous <= current);
   const uint64_t decisions = current - previous;
   solver->averages[solver->stable].saved_decisions = current;
   UPDATE_AVERAGE (decision_rate, decisions);
 }
 
 static void analyze_failed_literal (kissat *solver, clause *conflict) {
-  assert (solver->level == 1);
+  KISSAT_assert (solver->level == 1);
   const unsigned failed = FRAME (1).decision;
 
   LOGCLS (conflict, "analyzing failed literal %s conflict",
           LOGLIT (failed));
 
   unsigneds *units = &solver->clause;
-  assert (EMPTY_STACK (*units));
-  assert (EMPTY_STACK (solver->analyzed));
+  KISSAT_assert (EMPTY_STACK (*units));
+  KISSAT_assert (EMPTY_STACK (solver->analyzed));
 
   const unsigned not_failed = NOT (failed);
   assigned *all_assigned = solver->assigned;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   const value *const values = solver->values;
 #endif
   unsigned const *t = END_ARRAY (solver->trail);
@@ -408,18 +410,18 @@ static void analyze_failed_literal (kissat *solver, clause *conflict) {
   unsigned unit = INVALID_LIT;
 
   for (all_literals_in_clause (lit, conflict)) {
-    assert (lit != failed);
+    KISSAT_assert (lit != failed);
     if (lit == not_failed) {
       LOG ("negation %s of failed literal %s occurs in conflict",
            LOGLIT (not_failed), LOGLIT (failed));
       goto DONE;
     }
-    assert (values[lit] < 0);
+    KISSAT_assert (values[lit] < 0);
     const unsigned idx = IDX (lit);
     assigned *a = all_assigned + idx;
     if (!a->level)
       continue;
-    assert (a->level == 1);
+    KISSAT_assert (a->level == 1);
     LOG ("analyzing conflict literal %s", LOGLIT (lit));
     kissat_push_analyzed (solver, all_assigned, idx);
     unresolved++;
@@ -429,9 +431,9 @@ static void analyze_failed_literal (kissat *solver, clause *conflict) {
     unsigned lit;
     assigned *a;
     do {
-      assert (t > BEGIN_ARRAY (solver->trail));
+      KISSAT_assert (t > BEGIN_ARRAY (solver->trail));
       lit = *--t;
-      assert (values[lit] > 0);
+      KISSAT_assert (values[lit] > 0);
       const unsigned idx = IDX (lit);
       a = all_assigned + idx;
     } while (!a->analyzed);
@@ -443,9 +445,9 @@ static void analyze_failed_literal (kissat *solver, clause *conflict) {
     if (a->binary) {
       const unsigned other = a->reason;
       LOGBINARY (lit, other, "resolving %s reason", LOGLIT (lit));
-      assert (other != failed);
-      assert (other != unit);
-      assert (values[other] < 0);
+      KISSAT_assert (other != failed);
+      KISSAT_assert (other != unit);
+      KISSAT_assert (values[other] < 0);
       if (other == not_failed) {
         LOG ("negation %s of failed literal %s in reason",
              LOGLIT (not_failed), LOGLIT (failed));
@@ -453,21 +455,21 @@ static void analyze_failed_literal (kissat *solver, clause *conflict) {
       }
       const unsigned idx = IDX (other);
       assigned *b = all_assigned + idx;
-      assert (b->level == 1);
+      KISSAT_assert (b->level == 1);
       if (!b->analyzed) {
         LOG ("analyzing reason literal %s", LOGLIT (other));
         kissat_push_analyzed (solver, all_assigned, idx);
         unresolved++;
       }
     } else {
-      assert (a->reason != UNIT_REASON);
-      assert (a->reason != DECISION_REASON);
+      KISSAT_assert (a->reason != UNIT_REASON);
+      KISSAT_assert (a->reason != DECISION_REASON);
       const reference ref = a->reason;
       LOGREF (ref, "resolving %s reason", LOGLIT (lit));
       clause *reason = kissat_dereference_clause (solver, ref);
       for (all_literals_in_clause (other, reason)) {
-        assert (other != NOT (lit));
-        assert (other != failed);
+        KISSAT_assert (other != NOT (lit));
+        KISSAT_assert (other != failed);
         if (other == lit)
           continue;
         if (other == unit)
@@ -477,12 +479,12 @@ static void analyze_failed_literal (kissat *solver, clause *conflict) {
                LOGLIT (not_failed), LOGLIT (failed));
           goto DONE;
         }
-        assert (values[other] < 0);
+        KISSAT_assert (values[other] < 0);
         const unsigned idx = IDX (other);
         assigned *b = all_assigned + idx;
         if (!b->level)
           continue;
-        assert (b->level == 1);
+        KISSAT_assert (b->level == 1);
         if (b->analyzed)
           continue;
         LOG ("analyzing reason literal %s", LOGLIT (other));
@@ -490,7 +492,7 @@ static void analyze_failed_literal (kissat *solver, clause *conflict) {
         unresolved++;
       }
     }
-    assert (unresolved > 0);
+    KISSAT_assert (unresolved > 0);
     unresolved--;
     LOG ("after resolving %s there are %u unresolved literals",
          LOGLIT (lit), unresolved);
@@ -526,7 +528,7 @@ static void update_tier_limits (kissat *solver) {
 
 int kissat_analyze (kissat *solver, clause *conflict) {
   if (solver->inconsistent) {
-    assert (!solver->level);
+    KISSAT_assert (!solver->level);
     return 20;
   }
 
@@ -534,7 +536,7 @@ int kissat_analyze (kissat *solver, clause *conflict) {
   if (!solver->probing) {
     update_trail_average (solver);
     update_decision_rate_average (solver);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     UPDATE_AVERAGE (level, solver->level);
 #endif
   }
@@ -577,3 +579,5 @@ int kissat_analyze (kissat *solver, clause *conflict) {
   STOP (analyze);
   return res > 0 ? 0 : 20;
 }
+
+ABC_NAMESPACE_IMPL_END

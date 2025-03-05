@@ -24,10 +24,12 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void init_tiers (kissat *solver) {
   for (unsigned stable = 0; stable != 2; stable++) {
     if (!solver->tier1[stable]) {
-      assert (!solver->tier2[stable]);
+      KISSAT_assert (!solver->tier2[stable]);
       solver->tier1[stable] = GET_OPTION (tier1);
       solver->tier2[stable] = GET_OPTION (tier2);
       if (solver->tier2[stable] <= solver->tier1[stable])
@@ -70,7 +72,7 @@ static void start_search (kissat *solver) {
   solver->random = seed;
   LOG ("initialized random number generator with seed %u", seed);
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   limits *limits = &solver->limits;
   limited *limited = &solver->limited;
   if (!limited->conflicts && !limited->decisions)
@@ -127,7 +129,7 @@ static void stop_search (kissat *solver) {
 }
 
 static void report_search_result (kissat *solver, int res) {
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   LOG ("search result %d", res);
   char type = (res == 10 ? '1' : res == 20 ? '0' : '?');
   REPORT (0, type);
@@ -137,7 +139,7 @@ static void report_search_result (kissat *solver, int res) {
 }
 
 static void iterate (kissat *solver) {
-  assert (solver->iterating);
+  KISSAT_assert (solver->iterating);
   solver->iterating = false;
   REPORT (0, 'i');
 }
@@ -145,22 +147,22 @@ static void iterate (kissat *solver) {
 static bool conflict_limit_hit (kissat *solver) {
   if (!solver->limited.conflicts)
     return false;
-  if (solver->limits.conflicts > solver->statistics.conflicts)
+  if (solver->limits.conflicts > solver->statistics_.conflicts)
     return false;
   kissat_very_verbose (
       solver, "conflict limit %" PRIu64 " hit after %" PRIu64 " conflicts",
-      solver->limits.conflicts, solver->statistics.conflicts);
+      solver->limits.conflicts, solver->statistics_.conflicts);
   return true;
 }
 
 static bool decision_limit_hit (kissat *solver) {
   if (!solver->limited.decisions)
     return false;
-  if (solver->limits.decisions > solver->statistics.decisions)
+  if (solver->limits.decisions > solver->statistics_.decisions)
     return false;
   kissat_very_verbose (
       solver, "decision limit %" PRIu64 " hit after %" PRIu64 " decisions",
-      solver->limits.decisions, solver->statistics.decisions);
+      solver->limits.decisions, solver->statistics_.decisions);
   return true;
 }
 
@@ -227,3 +229,5 @@ int kissat_search (kissat *solver) {
   report_search_result (solver, res);
   return res;
 }
+
+ABC_NAMESPACE_IMPL_END

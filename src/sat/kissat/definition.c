@@ -5,6 +5,8 @@
 #include "kitten.h"
 #include "print.h"
 
+ABC_NAMESPACE_IMPL_START
+
 typedef struct definition_extractor definition_extractor;
 
 struct definition_extractor {
@@ -14,13 +16,13 @@ struct definition_extractor {
 };
 
 static void traverse_definition_core (void *state, unsigned id) {
-  definition_extractor *extractor = state;
+  definition_extractor *extractor = (definition_extractor*)state;
   kissat *solver = extractor->solver;
   watch watch;
   watches *watches0 = extractor->watches[0];
   watches *watches1 = extractor->watches[1];
   const size_t size_watches0 = SIZE_WATCHES (*watches0);
-  assert (size_watches0 <= UINT_MAX);
+  KISSAT_assert (size_watches0 <= UINT_MAX);
   unsigned sign;
   if (id < size_watches0) {
     watch = BEGIN_WATCHES (*watches0)[id];
@@ -28,10 +30,10 @@ static void traverse_definition_core (void *state, unsigned id) {
     sign = 0;
   } else {
     unsigned tmp = id - size_watches0;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     const size_t size_watches1 = SIZE_WATCHES (*watches1);
-    assert (size_watches1 <= UINT_MAX);
-    assert (tmp < size_watches1);
+    KISSAT_assert (size_watches1 <= UINT_MAX);
+    KISSAT_assert (tmp < size_watches1);
 #endif
     watch = BEGIN_WATCHES (*watches1)[tmp];
     LOGWATCH (NOT (extractor->lit), watch, "gate[1]");
@@ -40,7 +42,7 @@ static void traverse_definition_core (void *state, unsigned id) {
   PUSH_STACK (solver->gates[sign], watch);
 }
 
-#if !defined(NDEBUG) || !defined(NPROOFS)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS)
 
 typedef struct lemma_extractor lemma_extractor;
 
@@ -59,7 +61,7 @@ static void traverse_one_sided_core_lemma (void *state, bool learned,
   kissat *solver = extractor->solver;
   const unsigned unit = extractor->unit;
   unsigneds *added = &solver->added;
-  assert (extractor->lemmas || EMPTY_STACK (*added));
+  KISSAT_assert (extractor->lemmas || EMPTY_STACK (*added));
   if (size) {
     PUSH_STACK (*added, size + 1);
     const size_t offset = SIZE_STACK (*added);
@@ -68,7 +70,7 @@ static void traverse_one_sided_core_lemma (void *state, bool learned,
     for (const unsigned *p = lits; p != end; p++)
       PUSH_STACK (*added, *p);
     unsigned *extended = &PEEK_STACK (*added, offset);
-    assert (offset + size + 1 == SIZE_STACK (*added));
+    KISSAT_assert (offset + size + 1 == SIZE_STACK (*added));
     CHECK_AND_ADD_LITS (size + 1, extended);
     ADD_LITS_TO_PROOF (size + 1, extended);
   } else {
@@ -77,7 +79,7 @@ static void traverse_one_sided_core_lemma (void *state, bool learned,
     unsigned *begin = BEGIN_STACK (*added);
     for (unsigned *p = begin, size; p != end; p += size) {
       size = *p++;
-      assert (p + size <= end);
+      KISSAT_assert (p + size <= end);
       REMOVE_CHECKER_LITS (size, p);
       DELETE_LITS_FROM_PROOF (size, p);
     }
@@ -93,7 +95,7 @@ bool kissat_find_definition (kissat *solver, unsigned lit) {
     return false;
   START (definition);
   struct kitten *kitten = solver->kitten;
-  assert (kitten);
+  KISSAT_assert (kitten);
   kitten_clear (kitten);
   const unsigned not_lit = NOT (lit);
   definition_extractor extractor;
@@ -103,7 +105,7 @@ bool kissat_find_definition (kissat *solver, unsigned lit) {
   extractor.watches[1] = &WATCHES (not_lit);
   kitten_track_antecedents (kitten);
   unsigned exported = 0;
-#if !defined(QUIET) || !defined(NDEBUG)
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG)
   size_t occs[2] = {0, 0};
 #endif
   for (unsigned sign = 0; sign < 2; sign++) {
@@ -119,7 +121,7 @@ bool kissat_find_definition (kissat *solver, unsigned lit) {
         kitten_clause_with_id_and_exception (kitten, exported, c->size,
                                              c->lits, except);
       }
-#if !defined(QUIET) || !defined(NDEBUG)
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG)
       occs[sign]++;
 #endif
       exported++;
@@ -143,19 +145,19 @@ bool kissat_find_definition (kissat *solver, unsigned lit) {
       kitten_shuffle_clauses (kitten);
       kitten_set_ticks_limit (kitten, 10 * limit);
       int tmp = kitten_solve (kitten);
-      assert (!tmp || tmp == 20);
+      KISSAT_assert (!tmp || tmp == 20);
       if (!tmp) {
         LOG ("aborting core extraction");
         goto ABORT;
       }
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
       unsigned previous = reduced;
 #endif
       reduced = kitten_compute_clausal_core (kitten, &learned);
       LOG ("%s sub-solver core of size %u original clauses out of %u",
            FORMAT_ORDINAL (i), reduced, exported);
-      assert (reduced <= previous);
-#if defined(QUIET) && defined(NDEBUG)
+      KISSAT_assert (reduced <= previous);
+#if defined(KISSAT_QUIET) && defined(KISSAT_NDEBUG)
       (void) reduced;
 #endif
     }
@@ -164,8 +166,8 @@ bool kissat_find_definition (kissat *solver, unsigned lit) {
     size_t size[2];
     size[0] = SIZE_STACK (solver->gates[0]);
     size[1] = SIZE_STACK (solver->gates[1]);
-#if !defined(QUIET) || !defined(NDEBUG)
-    assert (reduced == size[0] + size[1]);
+#if !defined(KISSAT_QUIET) || !defined(KISSAT_NDEBUG)
+    KISSAT_assert (reduced == size[0] + size[1]);
 #ifdef METRICS
     kissat_extremely_verbose (
         solver,
@@ -188,7 +190,7 @@ bool kissat_find_definition (kissat *solver, unsigned lit) {
     unsigned unit = INVALID_LIT;
     if (!size[0]) {
       unit = not_lit;
-      assert (size[1]);
+      KISSAT_assert (size[1]);
     } else if (!size[1])
       unit = lit;
 
@@ -198,12 +200,12 @@ bool kissat_find_definition (kissat *solver, unsigned lit) {
       kissat_extremely_verbose (solver, "one sided core "
                                         "definition extraction yields "
                                         "failed literal");
-#if !defined(NDEBUG) || !defined(NPROOFS)
+#if !defined(KISSAT_NDEBUG) || !defined(KISSAT_NPROOFS)
       if (false
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
           || GET_OPTION (check) > 1
 #endif
-#ifndef NPROOFS
+#ifndef KISSAT_NPROOFS
           || solver->proof
 #endif
       ) {
@@ -228,3 +230,5 @@ bool kissat_find_definition (kissat *solver, unsigned lit) {
   STOP (definition);
   return res;
 }
+
+ABC_NAMESPACE_IMPL_END

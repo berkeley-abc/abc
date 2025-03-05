@@ -3,22 +3,24 @@
 #include "inline.h"
 #include "promote.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static clause *large_on_the_fly_strengthen (kissat *solver, clause *c,
                                             unsigned lit) {
-  assert (solver->antecedent_size > 3);
+  KISSAT_assert (solver->antecedent_size > 3);
   LOGCLS (c,
           "large on-the-fly strengthening "
           "by removing %s from",
           LOGLIT (lit));
   unsigned *lits = c->lits;
-  assert (lits[0] == lit || lits[1] == lit);
+  KISSAT_assert (lits[0] == lit || lits[1] == lit);
   INC (on_the_fly_strengthened);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   clause *old_next = kissat_next_clause (c);
 #endif
   if (lits[0] == lit)
     SWAP (unsigned, lits[0], lits[1]);
-  assert (lits[1] == lit);
+  KISSAT_assert (lits[1] == lit);
   const reference ref = kissat_reference_clause (solver, c);
   kissat_unwatch_blocking (solver, lit, ref);
   SHRINK_CLAUSE_IN_PROOF (c, lit, lits[0]);
@@ -29,14 +31,14 @@ static clause *large_on_the_fly_strengthen (kissat *solver, clause *c,
     const bool irredundant = !c->redundant;
     for (unsigned i = 2; i < old_size; i++) {
       const unsigned other = lits[i];
-      assert (VALUE (other) < 0);
+      KISSAT_assert (VALUE (other) < 0);
       if (!LEVEL (other))
         continue;
       lits[new_size++] = other;
       if (irredundant)
         kissat_mark_added_literal (solver, other);
     }
-    assert (new_size > 2);
+    KISSAT_assert (new_size > 2);
     c->size = new_size;
     c->searched = 2;
     if (c->redundant && c->glue >= new_size)
@@ -48,13 +50,13 @@ static clause *large_on_the_fly_strengthen (kissat *solver, clause *c,
   }
   LOGCLS (c, "unsorted on-the-fly strengthened");
   {
-    assert (VALUE (lits[1]) < 0);
+    KISSAT_assert (VALUE (lits[1]) < 0);
     unsigned highest_pos = 1;
     unsigned highest_level = LEVEL (lits[1]);
     const unsigned size = c->size;
     for (unsigned i = 2; i < size; i++) {
       const unsigned other = lits[i];
-      assert (VALUE (other) < 0);
+      KISSAT_assert (VALUE (other) < 0);
       const unsigned level = LEVEL (other);
       if (level <= highest_level)
         continue;
@@ -68,17 +70,17 @@ static clause *large_on_the_fly_strengthen (kissat *solver, clause *c,
   }
   {
     watches *watches = &WATCHES (lits[0]);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
     const watch *const end_of_watches = END_WATCHES (*watches);
 #endif
     watch *p = BEGIN_WATCHES (*watches);
-    assert (solver->watching);
+    KISSAT_assert (solver->watching);
     for (;;) {
-      assert (p != end_of_watches);
+      KISSAT_assert (p != end_of_watches);
       const watch head = *p++;
       if (head.type.binary)
         continue;
-      assert (p != end_of_watches);
+      KISSAT_assert (p != end_of_watches);
       const watch tail = *p++;
       if (tail.large.ref == ref)
         break;
@@ -87,9 +89,9 @@ static clause *large_on_the_fly_strengthen (kissat *solver, clause *c,
     LOGREF (ref, "updating watching %s now blocking %s in",
             LOGLIT (lits[0]), LOGLIT (lits[1]));
   }
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   clause *new_next = kissat_next_clause (c);
-  assert (old_next == new_next);
+  KISSAT_assert (old_next == new_next);
 #endif
   LOGCLS (c, "conflicting");
   return c;
@@ -97,38 +99,38 @@ static clause *large_on_the_fly_strengthen (kissat *solver, clause *c,
 
 static clause *binary_on_the_fly_strengthen (kissat *solver, clause *c,
                                              unsigned lit) {
-  assert (solver->antecedent_size == 3);
+  KISSAT_assert (solver->antecedent_size == 3);
   LOGCLS (c,
           "binary on-the-fly strengthening "
           "by removing %s from",
           LOGLIT (lit));
   unsigned first = INVALID_LIT, second = INVALID_LIT;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   bool found = false;
 #endif
   for (all_literals_in_clause (other, c)) {
     if (other == lit) {
-#ifndef NDEBUG
-      assert (!found);
+#ifndef KISSAT_NDEBUG
+      KISSAT_assert (!found);
       found = true;
 #endif
       continue;
     }
-    assert (VALUE (other) < 0);
+    KISSAT_assert (VALUE (other) < 0);
     if (!LEVEL (other))
       continue;
     if (first == INVALID_LIT)
       first = other;
     else {
-      assert (second == INVALID_LIT);
+      KISSAT_assert (second == INVALID_LIT);
       second = other;
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
       break;
 #endif
     }
   }
-  assert (found);
-  assert (second != INVALID_LIT);
+  KISSAT_assert (found);
+  KISSAT_assert (second != INVALID_LIT);
   LOGBINARY (first, second, "on-the-fly strengthened");
   kissat_new_binary_clause (solver, first, second);
   const reference ref = kissat_reference_clause (solver, c);
@@ -141,8 +143,8 @@ static clause *binary_on_the_fly_strengthen (kissat *solver, clause *c,
 
 clause *kissat_on_the_fly_strengthen (kissat *solver, clause *c,
                                       unsigned lit) {
-  assert (!c->garbage);
-  assert (solver->antecedent_size > 2);
+  KISSAT_assert (!c->garbage);
+  KISSAT_assert (solver->antecedent_size > 2);
   if (!c->redundant)
     kissat_mark_removed_literal (solver, lit);
   clause *res;
@@ -156,10 +158,10 @@ clause *kissat_on_the_fly_strengthen (kissat *solver, clause *c,
 void kissat_on_the_fly_subsume (kissat *solver, clause *c, clause *d) {
   LOGCLS (c, "on-the-fly subsuming");
   LOGCLS (d, "on-the-fly subsumed");
-  assert (c != d);
-  assert (!d->garbage);
-  assert (c->size > 1);
-  assert (c->size <= d->size);
+  KISSAT_assert (c != d);
+  KISSAT_assert (!d->garbage);
+  KISSAT_assert (c->size > 1);
+  KISSAT_assert (c->size <= d->size);
   kissat_mark_clause_as_garbage (solver, d);
   INC (on_the_fly_subsumed);
   if (d->redundant) {
@@ -174,14 +176,16 @@ void kissat_on_the_fly_subsume (kissat *solver, clause *c, clause *d) {
     LOGCLS (c, "turned");
     kissat_update_last_irredundant (solver, c);
   }
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   if (c->size > 2) {
-    assert (statistics->clauses_irredundant < UINT64_MAX);
+    KISSAT_assert (statistics->clauses_irredundant < UINT64_MAX);
     statistics->clauses_irredundant++;
   } else {
-    assert (statistics->clauses_binary < UINT64_MAX);
+    KISSAT_assert (statistics->clauses_binary < UINT64_MAX);
     statistics->clauses_binary++;
   }
-  assert (statistics->clauses_redundant > 0);
+  KISSAT_assert (statistics->clauses_redundant > 0);
   statistics->clauses_redundant--;
 }
+
+ABC_NAMESPACE_IMPL_END

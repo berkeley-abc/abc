@@ -3,6 +3,9 @@
 
 #include <stdlib.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define STACK(TYPE) \
   struct { \
     TYPE *begin; \
@@ -20,21 +23,21 @@
     (S).begin = (S).end = (S).allocated = 0; \
   } while (0)
 
-#define TOP_STACK(S) (END_STACK (S)[assert (!EMPTY_STACK (S)), -1])
+#define TOP_STACK(S) (END_STACK (S)[KISSAT_assert (!EMPTY_STACK (S)), -1])
 
 #define PEEK_STACK(S, N) \
-  (BEGIN_STACK (S)[assert ((N) < SIZE_STACK (S)), (N)])
+  (BEGIN_STACK (S)[KISSAT_assert ((N) < SIZE_STACK (S)), (N)])
 
 #define POKE_STACK(S, N, E) \
   do { \
     PEEK_STACK (S, N) = (E); \
   } while (0)
 
-#define POP_STACK(S) (assert (!EMPTY_STACK (S)), *--(S).end)
+#define POP_STACK(S) (KISSAT_assert (!EMPTY_STACK (S)), *--(S).end)
 
 #define ENLARGE_STACK(S) \
   do { \
-    assert (FULL_STACK (S)); \
+    KISSAT_assert (FULL_STACK (S)); \
     kissat_stack_enlarge (solver, (chars *) &(S), sizeof *(S).begin); \
   } while (0)
 
@@ -63,14 +66,14 @@
 #define RESIZE_STACK(S, NEW_SIZE) \
   do { \
     const size_t TMP_NEW_SIZE = (NEW_SIZE); \
-    assert (TMP_NEW_SIZE <= SIZE_STACK (S)); \
+    KISSAT_assert (TMP_NEW_SIZE <= SIZE_STACK (S)); \
     (S).end = (S).begin + TMP_NEW_SIZE; \
   } while (0)
 
 #define SET_END_OF_STACK(S, P) \
   do { \
-    assert (BEGIN_STACK (S) <= (P)); \
-    assert ((P) <= END_STACK (S)); \
+    KISSAT_assert (BEGIN_STACK (S) <= (P)); \
+    KISSAT_assert ((P) <= END_STACK (S)); \
     if ((P) == END_STACK (S)) \
       break; \
     (S).end = (P); \
@@ -84,12 +87,12 @@
 
 #define REMOVE_STACK(T, S, E) \
   do { \
-    assert (!EMPTY_STACK (S)); \
+    KISSAT_assert (!EMPTY_STACK (S)); \
     T *END_REMOVE_STACK = END_STACK (S); \
     T *P_REMOVE_STACK = BEGIN_STACK (S); \
     while (*P_REMOVE_STACK != (E)) { \
       P_REMOVE_STACK++; \
-      assert (P_REMOVE_STACK != END_REMOVE_STACK); \
+      KISSAT_assert (P_REMOVE_STACK != END_REMOVE_STACK); \
     } \
     P_REMOVE_STACK++; \
     while (P_REMOVE_STACK != END_REMOVE_STACK) { \
@@ -136,5 +139,7 @@ struct kissat;
 void kissat_stack_enlarge (struct kissat *, chars *,
                            size_t size_of_element);
 void kissat_shrink_stack (struct kissat *, chars *, size_t size_of_element);
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

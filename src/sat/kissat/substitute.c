@@ -11,6 +11,8 @@
 
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void assign_and_propagate_units (kissat *solver, unsigneds *units) {
   if (EMPTY_STACK (*units))
     return;
@@ -29,7 +31,7 @@ static void assign_and_propagate_units (kissat *solver, unsigneds *units) {
     } else {
       kissat_learned_unit (solver, unit);
       INC (substitute_units);
-      assert (!solver->level);
+      KISSAT_assert (!solver->level);
       (void) kissat_probing_propagate (solver, 0, false);
     }
   }
@@ -37,8 +39,8 @@ static void assign_and_propagate_units (kissat *solver, unsigneds *units) {
 
 static void determine_representatives (kissat *solver, unsigned *repr) {
   size_t bytes = LITS * sizeof (unsigned);
-  unsigned *mark = kissat_calloc (solver, LITS, sizeof *mark);
-  unsigned *reach = kissat_malloc (solver, LITS * sizeof *reach);
+  unsigned *mark = (unsigned*)kissat_calloc (solver, LITS, sizeof *mark);
+  unsigned *reach = (unsigned*)kissat_malloc (solver, LITS * sizeof *reach);
   watches *all_watches = solver->watches;
   const flags *const flags = solver->flags;
   unsigned reached = 0;
@@ -61,8 +63,8 @@ static void determine_representatives (kissat *solver, unsigned *repr) {
       continue;
     if (!ACTIVE (IDX (root)))
       continue;
-    assert (EMPTY_STACK (scc));
-    assert (EMPTY_STACK (work));
+    KISSAT_assert (EMPTY_STACK (scc));
+    KISSAT_assert (EMPTY_STACK (work));
     LOG ("substitute root %s", LOGLIT (root));
     PUSH_STACK (work, root);
     bool failed = false;
@@ -75,8 +77,8 @@ static void determine_representatives (kissat *solver, unsigned *repr) {
         const unsigned not_lit = NOT (lit);
         unsigned reach_lit = reach[lit];
         unsigned mark_lit = mark[lit];
-        assert (reach_lit == mark_lit);
-        assert (repr[lit] == INVALID_LIT);
+        KISSAT_assert (reach_lit == mark_lit);
+        KISSAT_assert (repr[lit] == INVALID_LIT);
         watches *watches = all_watches + not_lit;
         const size_t size_watches = SIZE_WATCHES (*watches);
         ticks += 1 + kissat_cache_lines (size_watches, sizeof (watch));
@@ -87,7 +89,7 @@ static void determine_representatives (kissat *solver, unsigned *repr) {
           const unsigned idx_other = IDX (other);
           if (!flags[idx_other].active)
             continue;
-          assert (mark[other]);
+          KISSAT_assert (mark[other]);
           unsigned reach_other = reach[other];
           if (reach_other < reach_lit)
             reach_lit = reach_other;
@@ -100,7 +102,7 @@ static void determine_representatives (kissat *solver, unsigned *repr) {
         unsigned *end_scc = END_STACK (scc);
         unsigned *begin_scc = end_scc;
         do
-          assert (begin_scc != BEGIN_STACK (scc));
+          KISSAT_assert (begin_scc != BEGIN_STACK (scc));
         while (*--begin_scc != lit);
         SET_END_OF_STACK (scc, begin_scc);
         const size_t size_scc = end_scc - begin_scc;
@@ -121,7 +123,7 @@ static void determine_representatives (kissat *solver, unsigned *repr) {
           trivial_sccs++;
 #endif
           LOG ("trivial size one SCC with %s", LOGLIT (lit));
-          assert (min_lit == lit);
+          KISSAT_assert (min_lit == lit);
         }
         for (const unsigned *p = begin_scc; p != end_scc; p++) {
           const unsigned other = *p;
@@ -141,12 +143,12 @@ static void determine_representatives (kissat *solver, unsigned *repr) {
             inconsistent = true;
             break;
           }
-          assert (NOT (min_lit) == repr_not_other);
+          KISSAT_assert (NOT (min_lit) == repr_not_other);
           if (failed)
             continue;
           const unsigned mark_not_other = mark[not_other];
-          assert (mark_not_other != INVALID_LIT);
-          assert (mark[root] == mark_root);
+          KISSAT_assert (mark_not_other != INVALID_LIT);
+          KISSAT_assert (mark[root] == mark_root);
           if (mark_root > mark_not_other)
             continue;
           LOG ("root %s implies both %s and %s", LOGLIT (root),
@@ -193,7 +195,7 @@ static void determine_representatives (kissat *solver, unsigned *repr) {
   LOG ("found %u trivial SCCs", trivial_sccs);
   LOG ("found %zu units", SIZE_STACK (units));
   assign_and_propagate_units (solver, &units);
-  assert (!inconsistent || solver->inconsistent);
+  KISSAT_assert (!inconsistent || solver->inconsistent);
   RELEASE_STACK (units);
   kissat_free (solver, reach, bytes);
   kissat_free (solver, mark, bytes);
@@ -206,7 +208,7 @@ static bool *add_representative_equivalences (kissat *solver,
                                               unsigned *repr) {
   if (solver->inconsistent)
     return 0;
-  bool *eliminate = kissat_calloc (solver, VARS, sizeof *eliminate);
+  bool *eliminate = (bool*)kissat_calloc (solver, VARS, sizeof *eliminate);
   for (all_variables (idx)) {
     if (!ACTIVE (idx))
       continue;
@@ -214,7 +216,7 @@ static bool *add_representative_equivalences (kissat *solver,
     const unsigned other = repr[lit];
     if (lit == other)
       continue;
-    assert (other < lit);
+    KISSAT_assert (other < lit);
 #ifdef CHECKING_OR_PROVING
     const unsigned not_lit = NOT (lit);
     const unsigned not_other = NOT (other);
@@ -240,14 +242,14 @@ static void remove_representative_equivalences (kissat *solver,
       if (!eliminate[idx])
         continue;
 
-      assert (ACTIVE (idx));
+      KISSAT_assert (ACTIVE (idx));
 
       const unsigned lit = LIT (idx);
       const unsigned other = repr[lit];
       const unsigned not_lit = NOT (lit);
       const unsigned not_other = NOT (other);
-      assert (other < lit);
-      assert (not_other < not_lit);
+      KISSAT_assert (other < lit);
+      KISSAT_assert (not_other < not_lit);
 
       REMOVE_CHECKER_BINARY (not_lit, other);
       DELETE_BINARY_FROM_PROOF (not_lit, other);
@@ -276,7 +278,7 @@ static void remove_representative_equivalences (kissat *solver,
 static void substitute_binaries (kissat *solver, unsigned *repr) {
   if (solver->inconsistent)
     return;
-  assert (sizeof (watch) == sizeof (unsigned));
+  KISSAT_assert (sizeof (watch) == sizeof (unsigned));
   statches *delayed_watched = (statches *) &solver->delayed;
   watches *all_watches = solver->watches;
 #ifdef LOGGING
@@ -294,7 +296,7 @@ static void substitute_binaries (kissat *solver, unsigned *repr) {
   for (all_literals (lit)) {
     const unsigned repr_lit = repr[lit];
     const unsigned not_repr_lit = NOT (repr_lit);
-    assert (EMPTY_STACK (*delayed_watched));
+    KISSAT_assert (EMPTY_STACK (*delayed_watched));
     watches *watches = all_watches + lit;
     watch *begin = BEGIN_WATCHES (*watches), *q = begin;
     const watch *const end = END_WATCHES (*watches), *p = q;
@@ -366,7 +368,7 @@ static void substitute_binaries (kissat *solver, unsigned *repr) {
   for (all_stack (litwatch, litwatch, delayed_deleted)) {
     const unsigned lit = litwatch.lit;
     const watch watch = litwatch.watch;
-    assert (watch.type.binary);
+    KISSAT_assert (watch.type.binary);
     const unsigned other = watch.binary.lit;
     kissat_delete_binary (solver, lit, other);
   }
@@ -401,7 +403,7 @@ static void substitute_clauses (kissat *solver, unsigned *repr) {
     if (c->garbage)
       continue;
     LOGCLS (c, "substituting");
-    assert (EMPTY_STACK (solver->clause));
+    KISSAT_assert (EMPTY_STACK (solver->clause));
     bool shrink = false;
     bool satisfied = false;
     bool substitute = false;
@@ -433,7 +435,7 @@ static void substitute_clauses (kissat *solver, unsigned *repr) {
         break;
       }
       if (lit != repr_lit) {
-        assert (!values[repr_lit]);
+        KISSAT_assert (!values[repr_lit]);
         LOG ("substituted literal %s (was %s)", LOGLIT (repr_lit),
              LOGLIT (lit));
         substitute = true;
@@ -471,7 +473,7 @@ static void substitute_clauses (kissat *solver, unsigned *repr) {
         solver->inconsistent = true;
         break;
       } else if (size == 1) {
-        assert (shrink);
+        KISSAT_assert (shrink);
 #ifdef LOGGING
         removed++;
 #endif
@@ -481,7 +483,7 @@ static void substitute_clauses (kissat *solver, unsigned *repr) {
         const reference ref = kissat_reference_clause (solver, c);
         PUSH_STACK (delayed_garbage, ref);
       } else if (size == 2) {
-        assert (shrink);
+        KISSAT_assert (shrink);
 #ifdef LOGGING
         substituted++;
 #endif
@@ -509,16 +511,16 @@ static void substitute_clauses (kissat *solver, unsigned *repr) {
         const unsigned old_size = c->size;
         unsigned *old_lits = c->lits;
 
-        assert (new_size <= old_size);
+        KISSAT_assert (new_size <= old_size);
         memcpy (old_lits, new_lits, new_size * sizeof *old_lits);
 
-        assert (shrink == (new_size < old_size));
+        KISSAT_assert (shrink == (new_size < old_size));
         if (new_size < old_size) {
           c->size = new_size;
           c->searched = 2;
           if (!c->shrunken) {
             c->shrunken = true;
-            assert (c->lits == old_lits);
+            KISSAT_assert (c->lits == old_lits);
             old_lits[old_size - 1] = INVALID_LIT;
           }
         }
@@ -542,10 +544,10 @@ static void substitute_clauses (kissat *solver, unsigned *repr) {
 }
 
 static bool substitute_round (kissat *solver, unsigned round) {
-  assert (!solver->inconsistent);
+  KISSAT_assert (!solver->inconsistent);
   const unsigned active = solver->active;
   size_t bytes = LITS * sizeof (unsigned);
-  unsigned *repr = kissat_malloc (solver, bytes);
+  unsigned *repr = (unsigned*)kissat_malloc (solver, bytes);
   memset (repr, 0xff, bytes);
   determine_representatives (solver, repr);
   bool *eliminate = add_representative_equivalences (solver, repr);
@@ -559,7 +561,7 @@ static bool substitute_round (kissat *solver, unsigned round) {
                 kissat_percent (removed, active));
   kissat_check_statistics (solver);
   REPORT (!removed, 'd');
-#ifdef QUIET
+#ifdef KISSAT_QUIET
   (void) round;
 #endif
   return !solver->inconsistent && removed;
@@ -570,14 +572,14 @@ static void substitute_rounds (kissat *solver, bool complete) {
   INC (substitutions);
   const unsigned maxrounds = GET_OPTION (substituterounds);
   for (unsigned round = 1; round <= maxrounds; round++) {
-    const uint64_t before = solver->statistics.substitute_ticks;
+    const uint64_t before = solver->statistics_.substitute_ticks;
     if (!substitute_round (solver, round))
       break;
-    const uint64_t after = solver->statistics.substitute_ticks;
+    const uint64_t after = solver->statistics_.substitute_ticks;
     const uint64_t ticks = after - before;
     if (!complete) {
       const uint64_t reference =
-          solver->statistics.search_ticks - solver->last.ticks.probe;
+          solver->statistics_.search_ticks - solver->last.ticks.probe;
       const double fraction = GET_OPTION (substituteeffort) * 1e-3;
       const uint64_t limit = fraction * reference;
       if (ticks > limit) {
@@ -595,7 +597,7 @@ static void substitute_rounds (kissat *solver, bool complete) {
     LOG ("now all large clauses are watched after binary clauses");
     solver->large_clauses_watched_after_binary_clauses = true;
     kissat_reset_propagate (solver);
-    assert (!solver->level);
+    KISSAT_assert (!solver->level);
     (void) kissat_probing_propagate (solver, 0, true);
   }
   STOP (substitute);
@@ -604,9 +606,9 @@ static void substitute_rounds (kissat *solver, bool complete) {
 void kissat_substitute (kissat *solver, bool complete) {
   if (solver->inconsistent)
     return;
-  assert (solver->probing);
-  assert (solver->watching);
-  assert (!solver->level);
+  KISSAT_assert (solver->probing);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (!solver->level);
   LOG ("assuming not all large clauses watched after binary clauses");
   solver->large_clauses_watched_after_binary_clauses = false;
   if (!GET_OPTION (substitute))
@@ -615,3 +617,5 @@ void kissat_substitute (kissat *solver, bool complete) {
     return;
   substitute_rounds (solver, complete);
 }
+
+ABC_NAMESPACE_IMPL_END

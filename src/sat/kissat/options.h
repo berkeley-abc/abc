@@ -4,6 +4,9 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 // clang-format off
 
 #define OPTIONS \
@@ -191,19 +194,19 @@
 #define STABLE_DEFAULT STABLE_UNSAT
 #endif
 
-#if defined(LOGGING) && !defined(QUIET)
+#if defined(LOGGING) && !defined(KISSAT_QUIET)
 #define LOGOPT OPTION
 #else
 #define LOGOPT(...) /**/
 #endif
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
 #define NQTOPT OPTION
 #else
 #define NQTOPT(...) /**/
 #endif
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 #define DBGOPT OPTION
 #else
 #define DBGOPT(...) /**/
@@ -224,7 +227,7 @@ typedef struct opt opt;
 
 struct opt {
   const char *name;
-#ifndef NOPTIONS
+#ifndef KISSAT_NOPTIONS
   int value;
   const int low;
   const int high;
@@ -245,7 +248,7 @@ extern const opt *kissat_options_end;
 const char *kissat_parse_option_name (const char *arg, const char *name);
 bool kissat_parse_option_value (const char *val_str, int *res_ptr);
 
-#ifndef NOPTIONS
+#ifndef KISSAT_NOPTIONS
 
 void kissat_options_usage (void);
 
@@ -277,8 +280,8 @@ static inline int *kissat_options_ref (const options *options,
                                        const opt *o) {
   if (!o)
     return 0;
-  assert (kissat_options_begin <= o);
-  assert (o < kissat_options_end);
+  KISSAT_assert (kissat_options_begin <= o);
+  KISSAT_assert (o < kissat_options_end);
   return (int *) options + (o - kissat_options_begin);
 }
 
@@ -296,4 +299,6 @@ OPTIONS
 #undef OPTION
 #endif
 #define GET1K_OPTION(NAME) (((int64_t) 1000) * GET_OPTION (NAME))
+ABC_NAMESPACE_HEADER_END
+
 #endif

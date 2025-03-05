@@ -8,7 +8,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef NOPTIONS
+ABC_NAMESPACE_IMPL_START
+
+#ifdef KISSAT_NOPTIONS
 
 static const opt table[] = {
 #define OPTION(N, V, L, H, D) {#N, (int) (V), D},
@@ -32,7 +34,7 @@ const opt *kissat_options_begin = table;
 const opt *kissat_options_end = table + size_table;
 
 static void check_table_sorted (void) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
   opt const *p = 0;
   for (all_options (o))
     if (p && strcmp (p->name, o->name) >= 0)
@@ -46,7 +48,7 @@ const opt *kissat_options_has (const char *name) {
   size_t l = 0, m, r = size_table;
   int tmp;
   opt const *o;
-  assert (l < r);
+  KISSAT_assert (l < r);
   while (l + 1 < r) {
     m = l + (r - l) / 2;
     tmp = strcmp (name, (o = table + m)->name);
@@ -148,7 +150,7 @@ bool kissat_parse_option_value (const char *val_str, int *res_ptr) {
       return false; // '0^0' invalid
   } else if (ch)
     return false;
-  assert (res <= max);
+  KISSAT_assert (res <= max);
   if (sign > 0 && res == max)
     return false;
   res *= sign;
@@ -171,7 +173,7 @@ const char *kissat_parse_option_name (const char *arg, const char *name) {
   return p + 1;
 }
 
-#ifdef NOPTIONS
+#ifdef KISSAT_NOPTIONS
 
 void kissat_init_options (void) { check_table_sorted (); }
 
@@ -182,11 +184,15 @@ int kissat_options_get (const char *name) {
 
 #else
 
+ABC_NAMESPACE_IMPL_END
+
 #include "format.h"
 
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+
+ABC_NAMESPACE_IMPL_START
 
 static void kissat_printf_usage (const char *option, const char *fmt, ...) {
   va_list ap;
@@ -217,7 +223,7 @@ static void check_ranges (void) {
 }
 
 static void check_name_length (void) {
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 #define OPTION(N, V, L, H, D) \
   if (strlen (#N) + 1 > kissat_options_max_name_buffer_size) \
     kissat_fatal ("option '%s' name length %zu " \
@@ -235,8 +241,8 @@ int kissat_options_get (const options *options, const char *name) {
 }
 
 int kissat_options_set_opt (options *options, const opt *o, int value) {
-  assert (kissat_options_begin <= o);
-  assert (o < kissat_options_end);
+  KISSAT_assert (kissat_options_begin <= o);
+  KISSAT_assert (o < kissat_options_end);
   int *p = (int *) options + (o - table);
   int res = *p;
   if (value == res)
@@ -261,8 +267,8 @@ void kissat_init_options (options *options) {
   check_name_length ();
   check_table_sorted ();
 #define OPTION(N, V, L, H, D) \
-  assert ((L) <= (V)); \
-  assert ((V) <= (H)); \
+  KISSAT_assert ((L) <= (V)); \
+  KISSAT_assert ((V) <= (H)); \
   options->N = (V);
   OPTIONS
 #undef OPTION
@@ -306,7 +312,7 @@ bool kissat_options_parse_arg (const char *arg, char *buffer,
   while ((ch = *p) && ch != '=')
     p++;
   if (ch) {
-    assert (ch == '=');
+    KISSAT_assert (ch == '=');
     const size_t len = p - name;
     if (len >= kissat_options_max_name_buffer_size)
       return false;
@@ -333,7 +339,7 @@ bool kissat_options_parse_arg (const char *arg, char *buffer,
       if (!o || o->high < (value = 1))
         return false;
     }
-    assert (strlen (name) < kissat_options_max_name_buffer_size);
+    KISSAT_assert (strlen (name) < kissat_options_max_name_buffer_size);
     strcpy (buffer, name);
     *val_ptr = value;
   }
@@ -345,7 +351,7 @@ static bool ignore_embedded_option_for_fuzzing (const char *name) {
   if (!strcmp (name, "embedded"))
     return true;
 #endif
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   if (!strcmp (name, "quiet"))
     return true;
 #endif
@@ -370,7 +376,7 @@ static bool ignore_range_option_for_fuzzing (const char *name) {
   if (!strcmp (name, "embedded"))
     return true;
 #endif
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   if (!strcmp (name, "quiet"))
     return true;
 #endif
@@ -394,3 +400,5 @@ void kissat_print_option_range_list (void) {
 }
 
 #endif
+
+ABC_NAMESPACE_IMPL_END

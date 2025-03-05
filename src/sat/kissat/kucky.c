@@ -8,6 +8,8 @@
 #include "proprobe.h"
 #include "report.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static bool no_all_negative_clauses (struct kissat *solver) {
   clause *last_irredundant = kissat_last_irredundant_clause (solver);
   for (all_clauses (c)) {
@@ -24,7 +26,7 @@ static bool no_all_negative_clauses (struct kissat *solver) {
     return false;
   CONTINUE_WITH_NEXT_CLAUSE:;
   }
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   for (all_variables (idx)) {
     if (!ACTIVE (idx))
       continue;
@@ -60,7 +62,7 @@ static bool no_all_positive_clauses (struct kissat *solver) {
     return false;
   CONTINUE_WITH_NEXT_CLAUSE:;
   }
-  assert (solver->watching);
+  KISSAT_assert (solver->watching);
   for (all_variables (idx)) {
     if (!ACTIVE (idx))
       continue;
@@ -80,8 +82,8 @@ static bool no_all_positive_clauses (struct kissat *solver) {
 }
 
 static int forward_false_satisfiable (struct kissat *solver) {
-  assert (!solver->level);
-#ifndef QUIET
+  KISSAT_assert (!solver->level);
+#ifndef KISSAT_QUIET
   unsigned conflicts = 0;
 #endif
   for (all_stack (import, import, solver->import)) {
@@ -100,7 +102,7 @@ static int forward_false_satisfiable (struct kissat *solver) {
     clause *c = kissat_probing_propagate (solver, 0, true);
     if (!c)
       continue;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     conflicts++;
 #endif
     if (solver->level > 1) {
@@ -118,11 +120,11 @@ static int forward_false_satisfiable (struct kissat *solver) {
     } else {
       LOG ("failed literal %s", LOGLIT (not_lit));
       kissat_analyze (solver, c);
-      assert (!solver->level);
+      KISSAT_assert (!solver->level);
       clause *d = kissat_probing_propagate (solver, 0, true);
       if (d) {
         kissat_analyze (solver, d);
-        assert (solver->inconsistent);
+        KISSAT_assert (solver->inconsistent);
         kissat_verbose (solver,
                         "lucky inconsistency forward assigning to false");
         return 20;
@@ -135,8 +137,8 @@ static int forward_false_satisfiable (struct kissat *solver) {
 }
 
 static int forward_true_satisfiable (struct kissat *solver) {
-  assert (!solver->level);
-#ifndef QUIET
+  KISSAT_assert (!solver->level);
+#ifndef KISSAT_QUIET
   unsigned conflicts = 0;
 #endif
   for (all_stack (import, import, solver->import)) {
@@ -154,7 +156,7 @@ static int forward_true_satisfiable (struct kissat *solver) {
     clause *c = kissat_probing_propagate (solver, 0, true);
     if (!c)
       continue;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     conflicts++;
 #endif
     if (solver->level > 1) {
@@ -173,11 +175,11 @@ static int forward_true_satisfiable (struct kissat *solver) {
     } else {
       LOG ("failed literal %s", LOGLIT (lit));
       kissat_analyze (solver, c);
-      assert (!solver->level);
+      KISSAT_assert (!solver->level);
       clause *d = kissat_probing_propagate (solver, 0, true);
       if (d) {
         kissat_analyze (solver, d);
-        assert (solver->inconsistent);
+        KISSAT_assert (solver->inconsistent);
         kissat_verbose (solver,
                         "lucky inconsistency forward assigning to true");
         return 20;
@@ -189,8 +191,8 @@ static int forward_true_satisfiable (struct kissat *solver) {
 }
 
 static int backward_false_satisfiable (struct kissat *solver) {
-  assert (!solver->level);
-#ifndef QUIET
+  KISSAT_assert (!solver->level);
+#ifndef KISSAT_QUIET
   unsigned conflicts = 0;
 #endif
   import *begin = BEGIN_STACK (solver->import);
@@ -213,7 +215,7 @@ static int backward_false_satisfiable (struct kissat *solver) {
     clause *c = kissat_probing_propagate (solver, 0, true);
     if (!c)
       continue;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     conflicts++;
 #endif
     if (solver->level > 1) {
@@ -231,11 +233,11 @@ static int backward_false_satisfiable (struct kissat *solver) {
     } else {
       LOG ("failed literal %s", LOGLIT (not_lit));
       kissat_analyze (solver, c);
-      assert (!solver->level);
+      KISSAT_assert (!solver->level);
       clause *d = kissat_probing_propagate (solver, 0, true);
       if (d) {
         kissat_analyze (solver, d);
-        assert (solver->inconsistent);
+        KISSAT_assert (solver->inconsistent);
         kissat_verbose (solver,
                         "lucky inconsistency backward assigning to false");
         return 20;
@@ -247,8 +249,8 @@ static int backward_false_satisfiable (struct kissat *solver) {
 }
 
 static int backward_true_satisfiable (struct kissat *solver) {
-  assert (!solver->level);
-#ifndef QUIET
+  KISSAT_assert (!solver->level);
+#ifndef KISSAT_QUIET
   unsigned conflicts = 0;
 #endif
   import *begin = BEGIN_STACK (solver->import);
@@ -270,7 +272,7 @@ static int backward_true_satisfiable (struct kissat *solver) {
     clause *c = kissat_probing_propagate (solver, 0, true);
     if (!c)
       continue;
-#ifndef QUIET
+#ifndef KISSAT_QUIET
     conflicts++;
 #endif
     if (solver->level > 1) {
@@ -289,11 +291,11 @@ static int backward_true_satisfiable (struct kissat *solver) {
     } else {
       LOG ("failed literal %s", LOGLIT (lit));
       kissat_analyze (solver, c);
-      assert (!solver->level);
+      KISSAT_assert (!solver->level);
       clause *d = kissat_probing_propagate (solver, 0, true);
       if (d) {
         kissat_analyze (solver, d);
-        assert (solver->inconsistent);
+        KISSAT_assert (solver->inconsistent);
         kissat_verbose (solver,
                         "lucky inconsistency backward assigning to true");
         return 20;
@@ -313,10 +315,10 @@ int kissat_lucky (struct kissat *solver) {
     return 0;
 
   START (lucky);
-  assert (!solver->level);
-  assert (!solver->probing);
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (!solver->probing);
   solver->probing = true;
-  assert (kissat_propagated (solver));
+  KISSAT_assert (kissat_propagated (solver));
 
   int res = 0;
 
@@ -328,15 +330,15 @@ int kissat_lucky (struct kissat *solver) {
       if (VALUE (lit))
         continue;
       kissat_internal_assume (solver, lit);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
       clause *c =
 #endif
           kissat_probing_propagate (solver, 0, true);
-      assert (!c);
+      KISSAT_assert (!c);
     }
     kissat_verbose (solver, "set all variables to true");
-    assert (kissat_propagated (solver));
-    assert (!solver->unassigned);
+    KISSAT_assert (kissat_propagated (solver));
+    KISSAT_assert (!solver->unassigned);
     res = 10;
   }
 
@@ -349,15 +351,15 @@ int kissat_lucky (struct kissat *solver) {
         continue;
       const unsigned not_lit = NOT (lit);
       kissat_internal_assume (solver, not_lit);
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
       clause *c =
 #endif
           kissat_probing_propagate (solver, 0, true);
-      assert (!c);
+      KISSAT_assert (!c);
     }
     kissat_verbose (solver, "set all variables to false");
-    assert (kissat_propagated (solver));
-    assert (!solver->unassigned);
+    KISSAT_assert (kissat_propagated (solver));
+    KISSAT_assert (!solver->unassigned);
     res = 10;
   }
 
@@ -381,13 +383,15 @@ int kissat_lucky (struct kissat *solver) {
   if (!res && units)
     kissat_message (solver, "lucky %u units", units);
 
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   bool success = res || units;
 #endif
-  assert (solver->probing);
+  KISSAT_assert (solver->probing);
   solver->probing = false;
   REPORT (!success, 'l');
   STOP (lucky);
 
   return res;
 }
+
+ABC_NAMESPACE_IMPL_END

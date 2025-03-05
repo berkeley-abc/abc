@@ -8,6 +8,9 @@
 #include <limits.h>
 #include <stdbool.h>
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define DISCONTAIN UINT_MAX
 #define DISCONTAINED(IDX) ((int) (IDX) < 0)
 
@@ -50,7 +53,7 @@ static inline size_t kissat_size_heap (heap *heap) {
 }
 
 static inline unsigned kissat_max_heap (heap *heap) {
-  assert (!kissat_empty_heap (heap));
+  KISSAT_assert (!kissat_empty_heap (heap));
   return PEEK_STACK (heap->stack, 0);
 }
 
@@ -61,7 +64,7 @@ void kissat_enlarge_heap (struct kissat *, heap *, unsigned new_vars);
 static inline double kissat_max_score_on_heap (heap *heap) {
   if (!heap->tainted)
     return 0;
-  assert (heap->vars);
+  KISSAT_assert (heap->vars);
   const double *const score = heap->score;
   const double *const end = score + heap->vars;
   double res = score[0];
@@ -70,16 +73,18 @@ static inline double kissat_max_score_on_heap (heap *heap) {
   return res;
 }
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 void kissat_dump_heap (heap *);
 #endif
 
-#ifndef NDEBUG
+#ifndef KISSAT_NDEBUG
 void kissat_check_heap (heap *);
 #else
 #define kissat_check_heap(...) \
   do { \
   } while (0)
 #endif
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

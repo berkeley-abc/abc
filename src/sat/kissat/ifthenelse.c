@@ -3,6 +3,8 @@
 #include "gates.h"
 #include "inline.h"
 
+ABC_NAMESPACE_IMPL_START
+
 static bool get_ternary_clause (kissat *solver, reference ref, unsigned *p,
                                 unsigned *q, unsigned *r) {
   clause *clause = kissat_dereference_clause (solver, ref);
@@ -30,9 +32,9 @@ static bool get_ternary_clause (kissat *solver, reference ref, unsigned *p,
   }
   if (found != 3)
     return false;
-  assert (a != INVALID_LIT);
-  assert (b != INVALID_LIT);
-  assert (c != INVALID_LIT);
+  KISSAT_assert (a != INVALID_LIT);
+  KISSAT_assert (b != INVALID_LIT);
+  KISSAT_assert (c != INVALID_LIT);
   *p = a;
   *q = b;
   *r = c;
@@ -121,7 +123,7 @@ bool kissat_find_if_then_else_gate (kissat *solver, unsigned lit,
       SWAP (unsigned, a1, b1);
     if (c1 == lit)
       SWAP (unsigned, a1, c1);
-    assert (a1 == lit);
+    KISSAT_assert (a1 == lit);
     for (const watch *p2 = p1 + 1; steps < limit && p2 != end; p2++) {
       watch w2 = *p2;
       if (w2.type.binary)
@@ -133,7 +135,7 @@ bool kissat_find_if_then_else_gate (kissat *solver, unsigned lit,
         SWAP (unsigned, a2, b2);
       if (c2 == lit)
         SWAP (unsigned, a2, c2);
-      assert (a2 == lit);
+      KISSAT_assert (a2 == lit);
       if (STRIP (b1) == STRIP (c2))
         SWAP (unsigned, b2, c2);
       if (STRIP (c1) == STRIP (c2))
@@ -172,3 +174,5 @@ bool kissat_find_if_then_else_gate (kissat *solver, unsigned lit,
   }
   return false;
 }
+
+ABC_NAMESPACE_IMPL_END

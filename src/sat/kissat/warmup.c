@@ -6,16 +6,18 @@
 #include "propbeyond.h"
 #include "terminate.h"
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_warmup (kissat *solver) {
-  assert (!solver->level);
-  assert (solver->watching);
-  assert (!solver->inconsistent);
-  assert (GET_OPTION (warmup));
+  KISSAT_assert (!solver->level);
+  KISSAT_assert (solver->watching);
+  KISSAT_assert (!solver->inconsistent);
+  KISSAT_assert (GET_OPTION (warmup));
   START (warmup);
-  assert (!solver->warming);
+  KISSAT_assert (!solver->warming);
   solver->warming = true;
   INC (warmups);
-#ifndef QUIET
+#ifndef KISSAT_QUIET
   const statistics *stats = &solver->statistics;
   uint64_t propagations = stats->warming_propagations;
   uint64_t decisions = stats->warming_decisions;
@@ -26,8 +28,8 @@ void kissat_warmup (kissat *solver) {
     kissat_decide (solver);
     kissat_propagate_beyond_conflicts (solver);
   }
-  assert (!solver->inconsistent);
-#ifndef QUIET
+  KISSAT_assert (!solver->inconsistent);
+#ifndef KISSAT_QUIET
   decisions = stats->warming_decisions - decisions;
   propagations = stats->warming_propagations - propagations;
 
@@ -48,7 +50,9 @@ void kissat_warmup (kissat *solver) {
                     solver->level);
 #endif
   kissat_backtrack_without_updating_phases (solver, 0);
-  assert (solver->warming);
+  KISSAT_assert (solver->warming);
   solver->warming = false;
   STOP (warmup);
 }
+
+ABC_NAMESPACE_IMPL_END

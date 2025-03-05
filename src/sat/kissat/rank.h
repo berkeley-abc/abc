@@ -5,17 +5,20 @@
 
 #include <string.h>
 
-#ifdef NDEBUG
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
+#ifdef KISSAT_NDEBUG
 #define CHECK_RANKED(...) \
   do { \
   } while (0)
 #else
 #define CHECK_RANKED(N, A, RANK) \
   do { \
-    assert (0 < (N)); \
+    KISSAT_assert (0 < (N)); \
     for (size_t I_CHECK_RANKED = 0; I_CHECK_RANKED < N - 1; \
          I_CHECK_RANKED++) \
-      assert (RANK (A[I_CHECK_RANKED]) <= RANK (A[I_CHECK_RANKED + 1])); \
+      KISSAT_assert (RANK (A[I_CHECK_RANKED]) <= RANK (A[I_CHECK_RANKED + 1])); \
   } while (0)
 #endif
 
@@ -33,7 +36,7 @@
     const size_t WIDTH_RADIX = (1 << LENGTH_RADIX); \
     const RTYPE MASK_RADIX = WIDTH_RADIX - 1; \
 \
-    size_t COUNT_RADIX[WIDTH_RADIX]; \
+    size_t COUNT_RADIX[256]; \
 \
     VTYPE *TMP_RADIX = 0; \
     const size_t BYTES_TMP_RADIX = N_RADIX * sizeof (VTYPE); \
@@ -100,12 +103,12 @@
       } \
 \
       if (!TMP_RADIX) { \
-        assert (C_RADIX == A_RADIX); \
-        TMP_RADIX = kissat_malloc (solver, BYTES_TMP_RADIX); \
+        KISSAT_assert (C_RADIX == A_RADIX); \
+        TMP_RADIX = (VTYPE*)kissat_malloc (solver, BYTES_TMP_RADIX);     \
         B_RADIX = TMP_RADIX; \
       } \
 \
-      assert (B_RADIX == TMP_RADIX); \
+      KISSAT_assert (B_RADIX == TMP_RADIX); \
 \
       VTYPE *D_RADIX = (C_RADIX == A_RADIX) ? B_RADIX : A_RADIX; \
 \
@@ -136,5 +139,7 @@
     VTYPE *A_RADIX_STACK = BEGIN_STACK (S); \
     RADIX_SORT (VTYPE, RTYPE, N_RADIX_STACK, A_RADIX_STACK, RANK); \
   } while (0)
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

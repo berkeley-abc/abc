@@ -1,6 +1,9 @@
 #ifndef _require_h_INCLUDED
 #define _require_h_INCLUDED
 
+#include "global.h"
+ABC_NAMESPACE_HEADER_START
+
 #define kissat_require(COND, ...) \
   do { \
     if ((COND)) \
@@ -24,7 +27,9 @@
     kissat_require (TMP_IDX <= EXTERNAL_MAX_VAR, \
                     "invalid literal '%d' (variable larger than %d)", \
                     (LIT), EXTERNAL_MAX_VAR); \
-    assert (VALID_EXTERNAL_LITERAL (LIT)); \
+    KISSAT_assert (VALID_EXTERNAL_LITERAL (LIT)); \
   } while (0)
+
+ABC_NAMESPACE_HEADER_END
 
 #endif
