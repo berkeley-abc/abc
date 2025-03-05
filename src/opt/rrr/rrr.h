@@ -1,15 +1,11 @@
 #pragma once
 
-#include <cassert>
-
-#include "rrrParameter.h"
-#include "rrrTypes.h"
 #include "rrrAndNetwork.h"
 #include "rrrScheduler.h"
 #include "rrrOptimizer.h"
-#include "rrrAnalyzer.h"
 #include "rrrBddAnalyzer.h"
 #include "rrrBddMspfAnalyzer.h"
+#include "rrrAnalyzer.h"
 #include "rrrSatSolver.h"
 #include "rrrSimulator.h"
 

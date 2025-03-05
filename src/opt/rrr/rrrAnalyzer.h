@@ -1,8 +1,7 @@
 #pragma once
 
-#include <iostream>
-
 #include "rrrParameter.h"
+#include "rrrUtils.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 
@@ -23,7 +22,7 @@ namespace rrr {
 
   public:
     // constructors
-    Analyzer(Ntk *pNtk, Parameter const *pPar);
+    Analyzer(Parameter const *pPar);
     void UpdateNetwork(Ntk *pNtk_, bool fSame);
 
     // checks
@@ -34,11 +33,11 @@ namespace rrr {
   /* {{{ Constructors */
   
   template <typename Ntk, typename Sim, typename Sol>
-  Analyzer<Ntk, Sim, Sol>::Analyzer(Ntk *pNtk, Parameter const *pPar) :
-    pNtk(pNtk),
+  Analyzer<Ntk, Sim, Sol>::Analyzer(Parameter const *pPar) :
+    pNtk(NULL),
     nVerbose(pPar->nAnalyzerVerbose),
-    sim(pNtk, pPar),
-    sol(pNtk, pPar) {
+    sim(pPar),
+    sol(pPar) {
   }
   
   template <typename Ntk, typename Sim, typename Sol>

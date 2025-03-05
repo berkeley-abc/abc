@@ -1,13 +1,9 @@
 #pragma once
 
-#include <iostream>
-#include <iomanip>
-#include <vector>
-
 #include <sat/bsat/satSolver.h>
 
 #include "rrrParameter.h"
-#include "rrrTypes.h"
+#include "rrrUtils.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 
@@ -47,7 +43,7 @@ namespace rrr {
     
   public:
     // constructors
-    SatSolver(Ntk *pNtk, Parameter const *pPar);
+    SatSolver(Parameter const *pPar);
     ~SatSolver();
     void UpdateNetwork(Ntk *pNtk_, bool fSame);
     
@@ -190,7 +186,7 @@ namespace rrr {
     }
     // store po vars (NOTE: it's not a lit)
     vLits.clear();
-    pNtk->ForEachPoDriver([&](int fi, bool c) {
+    pNtk->ForEachPoDriver([&](int fi) {
       vLits.push_back(v[fi]);
     });
     // encode an inverted copy
@@ -207,7 +203,7 @@ namespace rrr {
     }
     int idx = 0;
     int n = 0;
-    pNtk->ForEachPoDriver([&](int fi, bool c) {
+    pNtk->ForEachPoDriver([&](int fi) {
       assert(fi != id);
       if(v[fi] != vLits[idx]) {
         int x = sat_solver_addvar(p);
@@ -256,8 +252,8 @@ namespace rrr {
   /* {{{ Constructors */
 
   template <typename Ntk>
-  SatSolver<Ntk>::SatSolver(Ntk *pNtk, Parameter const *pPar) :
-    pNtk(pNtk),
+  SatSolver<Ntk>::SatSolver(Parameter const *pPar) :
+    pNtk(NULL),
     nVerbose(pPar->nSatSolverVerbose),
     nConflictLimit(pPar->nConflictLimit),
     pSat(sat_solver_new()),
@@ -267,7 +263,6 @@ namespace rrr {
     nCalls(0),
     nSats(0),
     nUnsats(0) {
-    pNtk->AddCallback(std::bind(&SatSolver<Ntk>::ActionCallback, this, std::placeholders::_1));
   }
 
   template <typename Ntk>
@@ -278,6 +273,7 @@ namespace rrr {
 
   template <typename Ntk>
   void SatSolver<Ntk>::UpdateNetwork(Ntk *pNtk_, bool fSame) {
+    (void)fSame;
     pNtk = pNtk_;
     status = false;
     target = -1;
