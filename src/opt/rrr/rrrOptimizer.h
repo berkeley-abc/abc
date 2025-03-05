@@ -1,14 +1,12 @@
 #pragma once
 
-#include <vector>
 #include <map>
 #include <iterator>
 #include <random>
 #include <numeric>
-#include <limits>
 
 #include "rrrParameter.h"
-#include "rrrTypes.h"
+#include "rrrUtils.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 
@@ -31,10 +29,12 @@ namespace rrr {
     std::function<double(Ntk *)> CostFunction;
     int nSortType;
     int nFlow;
+    int nDistance;
+    bool fCompatible;
     seconds nTimeout; // assigned upon Run
 
     // data
-    Ana *pAna;
+    Ana ana;
     std::mt19937 rng;
     std::vector<int> vTmp;
     std::map<int, std::set<int>> mapNewFanins;
@@ -46,7 +46,7 @@ namespace rrr {
 
     // marks
     int target;
-    std::vector<bool> vMarks;
+    std::vector<bool> vTfoMarks;
     
     // callback
     void ActionCallback(Action const &action);
@@ -61,13 +61,14 @@ namespace rrr {
     void SetRandPiOrder();
     void SetRandCosts();
     void SortFanins(int id);
+    void SortFanins();
 
-    // reduce fanin
-    bool ReduceFanin(int id, bool fRemoveUnused = false);
-    bool ReduceFaninOneRandom(int id, bool fRemoveUnused = false);
+    // reduce fanins
+    bool ReduceFanins(int id, bool fRemoveUnused = false);
+    bool ReduceFaninsOneRandom(int id, bool fRemoveUnused = false);
 
     // reduce
-    void Reduce();
+    bool Reduce();
     void ReduceRandom();
 
     // remove redundancy
@@ -88,13 +89,13 @@ namespace rrr {
     
   public:
     // constructors
-    Optimizer(Ntk *pNtk, Parameter const *pPar, std::function<double(Ntk *)> CostFunction);
-    ~Optimizer();
-    void UpdateNetwork(Ntk *pNtk_, bool fSame);
+    Optimizer(Parameter const *pPar, std::function<double(Ntk *)> CostFunction);
+    void UpdateNetwork(Ntk *pNtk_, bool fSame = false);
 
     // run
     void Run(seconds nTimeout_ = 0);
-    void Randomize();
+    void ResetSeed(int iSeed);
+    void Randomize(int iSeed);
     
   };
 
@@ -154,11 +155,11 @@ namespace rrr {
       return;
     }
     target = id;
-    vMarks.clear();
-    vMarks.resize(pNtk->GetNumNodes());
-    vMarks[id] = true;
+    vTfoMarks.clear();
+    vTfoMarks.resize(pNtk->GetNumNodes());
+    vTfoMarks[id] = true;
     pNtk->ForEachTfo(id, false, [&](int fo) {
-      vMarks[fo] = true;
+      vTfoMarks[fo] = true;
     });
   }
 
@@ -183,8 +184,7 @@ namespace rrr {
 
   template <typename Ntk, typename Ana>
   inline void Optimizer<Ntk, Ana>::SetRandPiOrder() {
-    assert(vRandPiOrder.size() <= (std::vector<int>::size_type)std::numeric_limits<int>::max());
-    if((int)vRandPiOrder.size() != pNtk->GetNumPis()) {
+    if(int_size(vRandPiOrder) != pNtk->GetNumPis()) {
       vRandPiOrder.clear();
       vRandPiOrder.resize(pNtk->GetNumPis());
       std::iota(vRandPiOrder.begin(), vRandPiOrder.end(), 0);
@@ -195,8 +195,7 @@ namespace rrr {
   template <typename Ntk, typename Ana>
   inline void Optimizer<Ntk, Ana>::SetRandCosts() {
     std::uniform_real_distribution<> dis(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
-    assert(vRandCosts.size() <= (std::vector<int>::size_type)std::numeric_limits<int>::max());
-    while((int)vRandCosts.size() < pNtk->GetNumNodes()) {
+    while(int_size(vRandCosts) < pNtk->GetNumNodes()) {
       vRandCosts.push_back(dis(rng));
     }
   }
@@ -207,12 +206,12 @@ namespace rrr {
     case 0: // no sorting
       break;
     case 1: // prioritize internals
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         return !pNtk->IsPi(i) && pNtk->IsPi(j);
       });
       break;
     case 2: // prioritize internals with (reversely) sorted PIs
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return pNtk->GetPiIndex(i) > pNtk->GetPiIndex(j);
         }
@@ -221,7 +220,7 @@ namespace rrr {
       break;
     case 3: // prioritize internals with random PI order
       SetRandPiOrder();
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return vRandPiOrder[pNtk->GetPiIndex(i)] > vRandPiOrder[pNtk->GetPiIndex(j)];
         }
@@ -229,12 +228,12 @@ namespace rrr {
       });
       break;
     case 4: // smaller fanout takes larger cost
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         return pNtk->GetNumFanouts(i) < pNtk->GetNumFanouts(j);
       });
       break;
     case 5: // fanout + PI
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && !pNtk->IsPi(j)) {
           return false;
         }
@@ -245,7 +244,7 @@ namespace rrr {
       });
       break;
     case 6: // fanout + sorted PI
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return pNtk->GetPiIndex(i) > pNtk->GetPiIndex(j);
         }
@@ -260,7 +259,7 @@ namespace rrr {
       break;
     case 7: // fanout + random PI
       SetRandPiOrder();
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return vRandPiOrder[pNtk->GetPiIndex(i)] > vRandPiOrder[pNtk->GetPiIndex(j)];
         }
@@ -274,7 +273,7 @@ namespace rrr {
       });
       break;
     case 8: // reverse topological order + PI
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return false;
         }
@@ -288,7 +287,7 @@ namespace rrr {
       });
       break;
     case 9: // reverse topological order + sorted PI
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return pNtk->GetPiIndex(i) > pNtk->GetPiIndex(j);
         }
@@ -303,7 +302,7 @@ namespace rrr {
       break;
     case 10: // reverse topological order + random PI
       SetRandPiOrder();
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return vRandPiOrder[pNtk->GetPiIndex(i)] > vRandPiOrder[pNtk->GetPiIndex(j)];
         }
@@ -317,7 +316,7 @@ namespace rrr {
       });
       break;
     case 11: // topo + fanout + PI
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && !pNtk->IsPi(j)) {
           return false;
         }
@@ -337,7 +336,7 @@ namespace rrr {
       });
       break;
     case 12: // topo + fanout + sorted PI
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return pNtk->GetPiIndex(i) > pNtk->GetPiIndex(j);
         }
@@ -358,7 +357,7 @@ namespace rrr {
       break;
     case 13: // topo + fanout + random PI
       SetRandPiOrder();
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && pNtk->IsPi(j)) {
           return vRandPiOrder[pNtk->GetPiIndex(i)] > vRandPiOrder[pNtk->GetPiIndex(j)];
         }
@@ -379,13 +378,13 @@ namespace rrr {
       break;
     case 14: // random order
       SetRandCosts();
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         return vRandCosts[i] > vRandCosts[j];
       });
       break;
     case 15: // random + PI
       SetRandCosts();
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && !pNtk->IsPi(j)) {
           return false;
         }
@@ -397,7 +396,7 @@ namespace rrr {
       break;
     case 16: // random + fanout
       SetRandCosts();
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->GetNumFanouts(i) > pNtk->GetNumFanouts(j)) {
           return false;
         }
@@ -409,7 +408,7 @@ namespace rrr {
       break;
     case 17: // random + fanout + PI
       SetRandCosts();
-      pNtk->SortFanins(id, [&](int i, bool ci, int j, bool cj) {
+      pNtk->SortFanins(id, [&](int i, int j) {
         if(pNtk->IsPi(i) && !pNtk->IsPi(j)) {
           return false;
         }
@@ -430,14 +429,20 @@ namespace rrr {
     }
   }
   
+  template <typename Ntk, typename Ana>
+  inline void Optimizer<Ntk, Ana>::SortFanins() {
+    pNtk->ForEachInt([&](int id) {
+      SortFanins(id);
+    });
+  }
+  
   /* }}} */
   
-  /* {{{ Reduce fanin */
+  /* {{{ Reduce fanins */
   
   template <typename Ntk, typename Ana>
-  inline bool Optimizer<Ntk, Ana>::ReduceFanin(int id, bool fRemoveUnused) {
+  inline bool Optimizer<Ntk, Ana>::ReduceFanins(int id, bool fRemoveUnused) {
     assert(pNtk->GetNumFanouts(id) > 0);
-    SortFanins(id);
     bool fRemoved = false;
     for(int idx = 0; idx < pNtk->GetNumFanins(id); idx++) {
       // skip fanins that were just added
@@ -448,7 +453,7 @@ namespace rrr {
         }
       }
       // reduce
-      if(pAna->CheckRedundancy(id, idx)) {
+      if(ana.CheckRedundancy(id, idx)) {
         int fi = pNtk->GetFanin(id, idx);
         pNtk->RemoveFanin(id, idx);
         fRemoved = true;
@@ -461,8 +466,9 @@ namespace rrr {
     return fRemoved;
   }
 
+  /*
   template <typename Ntk, typename Ana>
-  inline bool Optimizer<Ntk, Ana>::ReduceFaninOneRandom(int id, bool fRemoveUnused) {
+  inline bool Optimizer<Ntk, Ana>::ReduceFaninsOneRandom(int id, bool fRemoveUnused) {
     assert(pNtk->GetNumFanouts(id) > 0);
     // generate random order
     vTmp.resize(pNtk->GetNumFanins(id));
@@ -477,7 +483,7 @@ namespace rrr {
         }
       }
       // reduce
-      if(pAna->CheckRedundancy(id, idx)) {
+      if(ana.CheckRedundancy(id, idx)) {
         int fi = pNtk->GetFanin(id, idx);
         pNtk->RemoveFanin(id, idx);
         if(fRemoveUnused && pNtk->GetNumFanouts(fi) == 0) {
@@ -488,6 +494,7 @@ namespace rrr {
     }
     return false;
   }
+  */
   
   // TODO: add a method to minimize the size of fanins (check singles, pairs, trios, and so on)?
   
@@ -496,7 +503,8 @@ namespace rrr {
   /* {{{ Reduce */
 
   template <typename Ntk, typename Ana>
-  void Optimizer<Ntk, Ana>::Reduce() {
+  bool Optimizer<Ntk, Ana>::Reduce() {
+    bool fReduced = false;
     std::vector<int> vInts = pNtk->GetInts();
     for(critr it = vInts.rbegin(); it != vInts.rend(); it++) {
       if(!pNtk->IsInt(*it)) {
@@ -506,21 +514,15 @@ namespace rrr {
         pNtk->RemoveUnused(*it);
         continue;
       }
-      ReduceFanin(*it);
+      fReduced |= ReduceFanins(*it);
       if(pNtk->GetNumFanins(*it) <= 1) {
         pNtk->Propagate(*it);
       }
-      /*
-      if(pNtk->GetNumFanins(*it) == 1) {
-        pNtk->RemoveBuffer(*it);
-      }
-      if(pNtk->GetNumFanins(*it) == 0) {
-        pNtk->RemoveConst(*it);
-      }
-      */
     }
+    return fReduced;
   }
 
+  /*
   template <typename Ntk, typename Ana>
   void Optimizer<Ntk, Ana>::ReduceRandom() {
     pNtk->Sweep(false);
@@ -534,12 +536,13 @@ namespace rrr {
         pNtk->RemoveUnused(*it);
         continue;
       }
-      ReduceFanin(*it, true);
+      ReduceFanins(*it, true);
       if(pNtk->GetNumFanins(*it) <= 1) {
         pNtk->Propagate(*it);
       }
     }
   }
+  */
 
   /* }}} */
 
@@ -547,6 +550,12 @@ namespace rrr {
   
   template <typename Ntk, typename Ana>
   void Optimizer<Ntk, Ana>::RemoveRedundancy() {
+    if(fCompatible) {
+      while(Reduce()) {
+        SortFanins();
+      }
+      return;
+    }
     std::vector<int> vInts = pNtk->GetInts();
     for(critr it = vInts.rbegin(); it != vInts.rend();) {
       if(!pNtk->IsInt(*it)) {
@@ -558,7 +567,8 @@ namespace rrr {
         it++;
         continue;
       }
-      bool fReduced = ReduceFanin(*it);
+      SortFanins(*it);
+      bool fReduced = ReduceFanins(*it);
       if(pNtk->GetNumFanins(*it) <= 1) {
         pNtk->Propagate(*it);
       }
@@ -570,6 +580,7 @@ namespace rrr {
     }
   }
 
+  /*
   template <typename Ntk, typename Ana>
   void Optimizer<Ntk, Ana>::RemoveRedundancyRandom() {
     pNtk->Sweep(false);
@@ -585,7 +596,7 @@ namespace rrr {
         it++;
         continue;
       }
-      bool fReduced = ReduceFaninOneRandom(*it, true);
+      bool fReduced = ReduceFaninsOneRandom(*it, true);
       if(pNtk->GetNumFanins(*it) <= 1) {
         pNtk->Propagate(*it);
       }
@@ -597,6 +608,7 @@ namespace rrr {
       }
     }
   }
+  */
 
   /* }}} */
 
@@ -606,20 +618,20 @@ namespace rrr {
   template <typename T>
   T Optimizer<Ntk, Ana>::SingleAdd(int id, T begin, T end) {
     MarkTfo(id);
-    pNtk->ForEachFanin(id, [&](int fi, bool c) {
-      vMarks[fi] = true;
+    pNtk->ForEachFanin(id, [&](int fi) {
+      vTfoMarks[fi] = true;
     });
     T it = begin;
     for(; it != end; it++) {
       if(!pNtk->IsInt(*it) && !pNtk->IsPi(*it)) {
         continue;
       }
-      if(vMarks[*it]) {
+      if(vTfoMarks[*it]) {
         continue;
       }
-      if(pAna->CheckFeasibility(id, *it, false)) {
+      if(ana.CheckFeasibility(id, *it, false)) {
         pNtk->AddFanin(id, *it, false);
-      } else if(pNtk->UseComplementedEdges() && pAna->CheckFeasibility(id, *it, true)) {
+      } else if(pNtk->UseComplementedEdges() && ana.CheckFeasibility(id, *it, true)) {
         pNtk->AddFanin(id, *it, true);
       } else {
         continue;
@@ -627,8 +639,8 @@ namespace rrr {
       mapNewFanins[id].insert(*it);
       break;
     }
-    pNtk->ForEachFanin(id, [&](int fi, bool c) {
-      vMarks[fi] = false;
+    pNtk->ForEachFanin(id, [&](int fi) {
+      vTfoMarks[fi] = false;
     });
     return it;
   }
@@ -636,20 +648,20 @@ namespace rrr {
   template <typename Ntk, typename Ana>
   int Optimizer<Ntk, Ana>::MultiAdd(int id, std::vector<int> const &vCands, int nMax) {
     MarkTfo(id);
-    pNtk->ForEachFanin(id, [&](int fi, bool c) {
-      vMarks[fi] = true;
+    pNtk->ForEachFanin(id, [&](int fi) {
+      vTfoMarks[fi] = true;
     });
     int nAdded = 0;
     for(int cand: vCands) {
       if(!pNtk->IsInt(cand) && !pNtk->IsPi(cand)) {
         continue;
       }
-      if(vMarks[cand]) {
+      if(vTfoMarks[cand]) {
         continue;
       }
-      if(pAna->CheckFeasibility(id, cand, false)) {
+      if(ana.CheckFeasibility(id, cand, false)) {
         pNtk->AddFanin(id, cand, false);
-      } else if(pNtk->UseComplementedEdges() && pAna->CheckFeasibility(id, cand, true)) {
+      } else if(pNtk->UseComplementedEdges() && ana.CheckFeasibility(id, cand, true)) {
         pNtk->AddFanin(id, cand, true);
       } else {
         continue;
@@ -660,8 +672,8 @@ namespace rrr {
         break;
       }
     }
-    pNtk->ForEachFanin(id, [&](int fi, bool c) {
-      vMarks[fi] = false;
+    pNtk->ForEachFanin(id, [&](int fi) {
+      vTfoMarks[fi] = false;
     });
     return nAdded;
   }
@@ -715,6 +727,10 @@ namespace rrr {
     }
     if(pNtk->IsInt(id)) {
       pNtk->TrivialDecompose(id);
+      SortFanins();
+      if(fCompatible) {
+        RemoveRedundancy();
+      }
     }
     if(fGreedy) {
       pNtk->PopBack();
@@ -781,21 +797,16 @@ namespace rrr {
   /* {{{ Constructors */
   
   template <typename Ntk, typename Ana>
-  Optimizer<Ntk, Ana>::Optimizer(Ntk *pNtk, Parameter const *pPar, std::function<double(Ntk *)> CostFunction) :
-    pNtk(pNtk),
+  Optimizer<Ntk, Ana>::Optimizer(Parameter const *pPar, std::function<double(Ntk *)> CostFunction) :
+    pNtk(NULL),
     nVerbose(pPar->nOptimizerVerbose),
     CostFunction(CostFunction),
     nSortType(pPar->nSortType),
     nFlow(pPar->nOptimizerFlow),
+    nDistance(pPar->nDistance),
+    fCompatible(pPar->fUseBddCspf),
+    ana(pPar),
     target(-1) {
-    pNtk->AddCallback(std::bind(&Optimizer<Ntk, Ana>::ActionCallback, this, std::placeholders::_1));
-    pAna = new Ana(pNtk, pPar);
-    rng.seed(pPar->iSeed);
-  }
-  
-  template <typename Ntk, typename Ana>
-  Optimizer<Ntk, Ana>::~Optimizer() {
-    delete pAna;
   }
   
   template <typename Ntk, typename Ana>
@@ -803,7 +814,7 @@ namespace rrr {
     pNtk = pNtk_;
     target = -1;
     pNtk->AddCallback(std::bind(&Optimizer<Ntk, Ana>::ActionCallback, this, std::placeholders::_1));
-    pAna->UpdateNetwork(pNtk, fSame);
+    ana.UpdateNetwork(pNtk, fSame);
   }
   
   /* }}} */
@@ -818,14 +829,24 @@ namespace rrr {
     case 0:
       RemoveRedundancy();
       ApplyReverseTopologically([&](int id) {
-        std::vector<int> vCands = pNtk->GetPisInts();
+        std::vector<int> vCands;
+        if(nDistance) {
+          vCands = pNtk->GetNeighbors(id, true, nDistance);
+        } else {
+          vCands = pNtk->GetPisInts();
+        }
         SingleResub(id, vCands);
       });
       break;
     case 1:
       RemoveRedundancy();
       ApplyReverseTopologically([&](int id) {
-        std::vector<int> vCands = pNtk->GetInts();
+        std::vector<int> vCands;
+        if(nDistance) {
+          vCands = pNtk->GetNeighbors(id, true, nDistance);
+        } else {
+          vCands = pNtk->GetPisInts();
+        }
         MultiResub(id, vCands);
       });
       break;
@@ -834,11 +855,22 @@ namespace rrr {
       double dCost = CostFunction(pNtk);
       while(true) {
         ApplyReverseTopologically([&](int id) {
-          std::vector<int> vCands = pNtk->GetPisInts();
+          std::vector<int> vCands;
+          if(nDistance) {
+            vCands = pNtk->GetNeighbors(id, true, nDistance);
+          } else {
+            vCands = pNtk->GetPisInts();
+          }
           SingleResub(id, vCands);
         });
         ApplyReverseTopologically([&](int id) {
-          std::vector<int> vCands = pNtk->GetInts();
+          std::vector<int> vCands;
+          if(nDistance) {
+            vCands = pNtk->GetNeighbors(id, true, nDistance);
+          } else {
+            vCands = pNtk->GetPisInts();
+            // vCands = pNtk->GetInts();
+          }
           MultiResub(id, vCands);
         });
         double dNewCost = CostFunction(pNtk);
@@ -856,10 +888,16 @@ namespace rrr {
   }
 
   template <typename Ntk, typename Ana>
-  void Optimizer<Ntk, Ana>::Randomize() {
-    nSortType = rng() % 18;
+  void Optimizer<Ntk, Ana>::ResetSeed(int iSeed) {
+    rng.seed(iSeed);
     vRandPiOrder.clear();
     vRandCosts.clear();
+  }
+  
+  template <typename Ntk, typename Ana>
+  void Optimizer<Ntk, Ana>::Randomize(int iSeed) {
+    ResetSeed(iSeed);
+    nSortType = rng() % 18;
   }
   
   /* }}} */

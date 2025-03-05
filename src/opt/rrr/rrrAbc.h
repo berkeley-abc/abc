@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
-
 #include "aig/gia/gia.h"
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
+
+#include "rrrUtils.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 

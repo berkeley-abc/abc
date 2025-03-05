@@ -45457,9 +45457,9 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t *pNew;
     int c;
-    int iSeed = 0, nWords = 10, nTimeout = 0, nSchedulerVerbose = 1, nOptimizerVerbose = 0, nAnalyzerVerbose = 0, nSimulatorVerbose = 0, nSatSolverVerbose = 0, fUseBddCspf = 0, fUseBddMspf = 0, nConflictLimit = 0, nSortType = 12, nOptimizerFlow = 0, nSchedulerFlow = 0;
+    int iSeed = 0, nWords = 10, nTimeout = 0, nSchedulerVerbose = 1, nPartitionerVerbose = 0, nOptimizerVerbose = 0, nAnalyzerVerbose = 0, nSimulatorVerbose = 0, nSatSolverVerbose = 0, fUseBddCspf = 0, fUseBddMspf = 0, nConflictLimit = 0, nSortType = 12, nOptimizerFlow = 0, nSchedulerFlow = 0, nDistance = 0, nRestarts = 0, nThreads = 1, nWindowSize = 0, fDeterministic = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "XYRWTCGSOAPQabh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "XYNJKDRWTCGVPOAQSabdh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -45469,6 +45469,22 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'Y':
             nSchedulerFlow = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'N':
+            nRestarts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'J':
+            nThreads = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'K':
+            nWindowSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'D':
+            nDistance = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
         case 'R':
@@ -45491,8 +45507,12 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
             nSortType = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
-        case 'S':
+        case 'V':
             nSchedulerVerbose = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'P':
+            nPartitionerVerbose = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
         case 'O':
@@ -45503,11 +45523,11 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
             nAnalyzerVerbose = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
-        case 'P':
+        case 'Q':
             nSimulatorVerbose = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
-        case 'Q':
+        case 'S':
             nSatSolverVerbose = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
@@ -45516,6 +45536,9 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             fUseBddMspf ^= 1;
+            break;
+        case 'd':
+            fDeterministic ^= 1;
             break;
         case 'h':
             goto usage;
@@ -45535,14 +45558,14 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     
-    pNew = Gia_ManRrr( pAbc->pGia, iSeed, nWords, nTimeout, nSchedulerVerbose, nOptimizerVerbose, nAnalyzerVerbose, nSimulatorVerbose, nSatSolverVerbose, fUseBddCspf, fUseBddMspf, nConflictLimit, nSortType, nOptimizerFlow, nSchedulerFlow );
+    pNew = Gia_ManRrr( pAbc->pGia, iSeed, nWords, nTimeout, nSchedulerVerbose, nPartitionerVerbose, nOptimizerVerbose, nAnalyzerVerbose, nSimulatorVerbose, nSatSolverVerbose, fUseBddCspf, fUseBddMspf, nConflictLimit, nSortType, nOptimizerFlow, nSchedulerFlow, nDistance, nRestarts, nThreads, nWindowSize, fDeterministic );
 
     Abc_FrameUpdateGia( pAbc, pNew );
     
     return 0;
 
 usage:
-      Abc_Print( -2, "usage: rrr [-XYRWTCGSOAPQ num] [-abh]\n" );
+      Abc_Print( -2, "usage: rrr [-XYNJKDRWTCGVPOAQS num] [-abdh]\n" );
       Abc_Print( -2, "\t        perform optimization\n" );
       Abc_Print( -2, "\t-X num : method [default = %d]\n", nOptimizerFlow );
       Abc_Print( -2, "\t                0: single-add resub\n" );
@@ -45552,18 +45575,24 @@ usage:
       Abc_Print( -2, "\t                0: apply method once\n" );
       Abc_Print( -2, "\t                1: iterate like transtoch\n" );
       Abc_Print( -2, "\t                2: iterate like deepsyn\n" );
+      Abc_Print( -2, "\t-N num : number of restarts or windows [default = %d]\n", nRestarts );
+      Abc_Print( -2, "\t-J num : number of threads [default = %d]\n", nThreads );
+      Abc_Print( -2, "\t-K num : window size (0 = no partitioning) [default = %d]\n", nWindowSize );
+      Abc_Print( -2, "\t-D num : distance between nodes (0 = no limit) [default = %d]\n", nDistance );
       Abc_Print( -2, "\t-R num : random number generator seed [default = %d]\n", iSeed );
       Abc_Print( -2, "\t-W num : number of simulation words [default = %d]\n", nWords );
       Abc_Print( -2, "\t-T num : timeout in seconds (0 = no timeout) [default = %d]\n", nTimeout );
-      Abc_Print( -2, "\t-C num : conflict limit [default = %d]\n", nConflictLimit );
+      Abc_Print( -2, "\t-C num : conflict limit (0 = no limit) [default = %d]\n", nConflictLimit );
       Abc_Print( -2, "\t-G num : fanin cost function [default = %d]\n", nSortType );
-      Abc_Print( -2, "\t-S num : scheduler verbosity level [default = %d]\n", nSchedulerVerbose );
+      Abc_Print( -2, "\t-V num : scheduler verbosity level [default = %d]\n", nSchedulerVerbose );
+      Abc_Print( -2, "\t-P num : partitioner verbosity level [default = %d]\n", nPartitionerVerbose );
       Abc_Print( -2, "\t-O num : optimizer verbosity level [default = %d]\n", nOptimizerVerbose );
       Abc_Print( -2, "\t-A num : analyzer verbosity level [default = %d]\n", nAnalyzerVerbose );
-      Abc_Print( -2, "\t-P num : simulator verbosity level [default = %d]\n", nSimulatorVerbose );
-      Abc_Print( -2, "\t-Q num : SAT solver verbosity level [default = %d]\n", nSatSolverVerbose );
+      Abc_Print( -2, "\t-Q num : simulator verbosity level [default = %d]\n", nSimulatorVerbose );
+      Abc_Print( -2, "\t-S num : SAT solver verbosity level [default = %d]\n", nSatSolverVerbose );
       Abc_Print( -2, "\t-a     : use BDD-based analyzer (CSPF) [default = %s]\n", fUseBddCspf? "yes": "no" );
       Abc_Print( -2, "\t-b     : use BDD-based analyzer (MSPF) [default = %s]\n", fUseBddMspf? "yes": "no" );
+      Abc_Print( -2, "\t-d     : ensure deterministic execution [default = %s]\n", fDeterministic? "yes": "no" );
       Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
