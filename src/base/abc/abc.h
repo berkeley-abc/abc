@@ -640,6 +640,7 @@ extern ABC_DLL Vec_Ptr_t *        Abc_AigDfsMap( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Vec_t *        Abc_DfsLevelized( Abc_Obj_t * pNode, int  fTfi );
 extern ABC_DLL Vec_Vec_t *        Abc_NtkLevelize( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkLevel( Abc_Ntk_t * pNtk );
+extern ABC_DLL int                Abc_NtkLevelR( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkLevelReverse( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkIsAcyclic( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkIsAcyclicWithBoxes( Abc_Ntk_t * pNtk );
