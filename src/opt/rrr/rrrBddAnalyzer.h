@@ -1,12 +1,8 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
-
-#include <aig/gia/giaNewBdd.h>
-
 #include "rrrParameter.h"
-#include "rrrTypes.h"
+#include "rrrUtils.h"
+#include "rrrBddManager.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 
@@ -73,7 +69,7 @@ namespace rrr {
   public:
     // constructors
     BddAnalyzer();
-    BddAnalyzer(Ntk *pNtk, Parameter const *pPar);
+    BddAnalyzer(Parameter const *pPar);
     ~BddAnalyzer();
     void UpdateNetwork(Ntk *pNtk_, bool fSame);
 
@@ -320,7 +316,7 @@ namespace rrr {
         SimulateNode(id, vFs);
         DecRef(x);
         if(!pBdd->LitIsEq(x, vFs[id])) {
-          pNtk->ForEachFanout(id, false, [&](int fo, bool c) {
+          pNtk->ForEachFanout(id, false, [&](int fo) {
             vUpdates[fo] = true;
             vCUpdates[fo] = true;
           });
@@ -345,7 +341,7 @@ namespace rrr {
     }
     lit x = pBdd->Const1();
     IncRef(x);
-    pNtk->ForEachFanoutRidx(id, true, [&](int fo, bool c, int idx) {
+    pNtk->ForEachFanoutRidx(id, true, [&](int fo, int idx) {
       Assign(x, pBdd->And(x, vvCs[fo][idx]));
     });
     if(pBdd->LitIsEq(vGs[id], x)) {
@@ -374,7 +370,7 @@ namespace rrr {
     for(int idx = 0; idx < nFanins; idx++) {
       lit x = pBdd->Const1();
       IncRef(x);
-      for(unsigned idx2 = idx + 1; idx2 < nFanins; idx2++) {
+      for(int idx2 = idx + 1; idx2 < nFanins; idx2++) {
         int fi = pNtk->GetFanin(id, idx2);
         bool c = pNtk->GetCompl(id, idx2);
         Assign(x, pBdd->And(x, pBdd->LitNotCond(vFs[fi], c)));
@@ -439,7 +435,7 @@ namespace rrr {
 
   template <typename Ntk>
   void BddAnalyzer<Ntk>::Save(int slot) {
-    if(slot >= vBackups.size()) {
+    if(slot >= int_size(vBackups)) {
       vBackups.resize(slot + 1);
     }
     vBackups[slot].target = target;
@@ -453,7 +449,7 @@ namespace rrr {
 
   template <typename Ntk>
   void BddAnalyzer<Ntk>::Load(int slot) {
-    assert(slot < vBackups.size());
+    assert(slot < int_size(vBackups));
     target = vBackups[slot].target;
     CopyVec(vFs, vBackups[slot].vFs);
     CopyVec(vGs, vBackups[slot].vGs);
@@ -486,41 +482,12 @@ namespace rrr {
   }
   
   template <typename Ntk>
-  BddAnalyzer<Ntk>::BddAnalyzer(Ntk *pNtk, Parameter const *pPar) :
-    pNtk(pNtk),
+  BddAnalyzer<Ntk>::BddAnalyzer(Parameter const *pPar) :
+    pNtk(NULL),
     nVerbose(pPar->nAnalyzerVerbose),
+    pBdd(NULL),
     target(-1),
     fResim(false) {
-    NewBdd::Param Par;
-    Par.nObjsMaxLog = 25;
-    Par.nCacheMaxLog = 20;
-    Par.fCountOnes = true;
-    Par.nGbc = 1;
-    Par.nReo = 4000;
-    pBdd = new NewBdd::Man(pNtk->GetNumPis(), Par);
-    Allocate();
-    Assign(vFs[0], pBdd->Const0());
-    int idx = 0;
-    pNtk->ForEachPi([&](int id) {
-      Assign(vFs[id], pBdd->IthVar(idx));
-      idx++;
-    });
-    pNtk->ForEachInt([&](int id) {
-      vUpdates[id] = true;
-    });
-    Simulate();
-    pBdd->Reorder();
-    pBdd->TurnOffReo();
-    pNtk->ForEachInt([&](int id) {
-      vvCs[id].resize(pNtk->GetNumFanins(id), LitMax);
-    });
-    pNtk->ForEachPo([&](int id) {
-      vvCs[id].resize(1, LitMax);
-      Assign(vvCs[id][0], pBdd->Const0());
-      int fi = pNtk->GetFanin(id, 0);
-      vGUpdates[fi]  = true;
-    });
-    pNtk->AddCallback(std::bind(&BddAnalyzer<Ntk>::ActionCallback, this, std::placeholders::_1));
   }
 
   template <typename Ntk>
@@ -540,7 +507,7 @@ namespace rrr {
     vCUpdates.clear();
     // alloc
     bool fUseReo = false;
-    if(pBdd->GetNumVars() != pNtk->GetNumPis()) {
+    if(!pBdd || pBdd->GetNumVars() != pNtk->GetNumPis()) {
       // need to reset manager
       delete pBdd;
       NewBdd::Param Par;

@@ -1808,7 +1808,7 @@ extern Gia_Man_t *         Gia_ManTransductionBdd( Gia_Man_t * pGia, int nType, 
 extern Gia_Man_t *         Gia_ManTransductionTt( Gia_Man_t * pGia, int nType, int fMspf, int nRandom, int nSortType, int nPiShuffle, int nParameter, int fLevel, Gia_Man_t * pExdc, int fNewLine, int nVerbose );
 
 /*=== giaRrr.cpp ===========================================================*/
-extern Gia_Man_t *         Gia_ManRrr( Gia_Man_t *pGia, int iSeed, int nWords, int nTimeout, int nSchedulerVerbose, int nOptimizerVerbose, int nAnalyzerVerbose, int nSimulatorVerbose, int nSatSolverVerbose, int fUseBddCspf, int fUseBddMspf, int nConflictLimit, int nSortType, int nOptimizerFlow, int nSchedulerFlow );
+extern Gia_Man_t *         Gia_ManRrr( Gia_Man_t *pGia, int iSeed, int nWords, int nTimeout, int nSchedulerVerbose, int nPartitionerVerbose, int nOptimizerVerbose, int nAnalyzerVerbose, int nSimulatorVerbose, int nSatSolverVerbose, int fUseBddCspf, int fUseBddMspf, int nConflictLimit, int nSortType, int nOptimizerFlow, int nSchedulerFlow, int nDistance, int nRestarts, int nThreads, int nWindowSize, int fDeterministic );
 
 /*=== giaCTas.c ===========================================================*/
 typedef struct Tas_Man_t_  Tas_Man_t;
