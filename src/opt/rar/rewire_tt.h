@@ -1,3 +1,23 @@
+/**CFile****************************************************************
+
+  FileName    [rewire_tt.h]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Re-wiring.]
+
+  Synopsis    []
+
+  Author      [Jiun-Hao Chen]
+  
+  Affiliation [National Taiwan University]
+
+  Date        [Ver. 1.0. Started - June 20, 2005.]
+
+  Revision    [$Id: rewire_tt.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+
 #ifndef RAR_TT_H
 #define RAR_TT_H
 

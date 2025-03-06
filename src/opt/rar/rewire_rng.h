@@ -1,3 +1,23 @@
+/**CFile****************************************************************
+
+  FileName    [rewire_rng.h]
+
+  SystemName  [ABC: Logic synthesis and verification system.]
+
+  PackageName [Re-wiring.]
+
+  Synopsis    []
+
+  Author      [Jiun-Hao Chen]
+  
+  Affiliation [National Taiwan University]
+
+  Date        [Ver. 1.0. Started - June 20, 2005.]
+
+  Revision    [$Id: rewire_rng.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+
+***********************************************************************/
+
 #ifndef RAR_RNG_H
 #define RAR_RNG_H
 
