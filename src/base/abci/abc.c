@@ -19964,7 +19964,7 @@ int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     extern void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs );
-    int c, nMaxSize = 10000, nIters = 1, TimeOut = 0, Seed = 0, nProcs = 1, fVerbose = 0; char * pScript;
+    int c, nMaxSize = 14, nIters = 1, TimeOut = 0, Seed = 0, nProcs = 1, fVerbose = 0; char * pScript;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "NITSPvh" ) ) != EOF )
     {
@@ -20057,8 +20057,8 @@ int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: stochmap [-NITSP <num>] [-tvh] <script>\n" );
     Abc_Print( -2, "\t           performs stochastic mapping\n" );
-    Abc_Print( -2, "\t-N <num> : the max partition primary input count [default = %d]\n",      nMaxSize );
-    Abc_Print( -2, "\t-I <num> : the number of iterations [default = %d]\n",                   nIters  );
+    Abc_Print( -2, "\t-N <num> : the max support size of a partition [default = %d]\n",        nMaxSize );
+    Abc_Print( -2, "\t-I <num> : the number of optimization iterations [default = %d]\n",      nIters  );
     Abc_Print( -2, "\t-T <num> : the timeout in seconds (0 = no timeout) [default = %d]\n",    TimeOut );
     Abc_Print( -2, "\t-S <num> : user-specified random seed (0 <= num <= 100) [default = %d]\n", Seed  );
     Abc_Print( -2, "\t-P <num> : the number of concurrent processes (1 <= num <= 100) [default = %d]\n", nProcs );
@@ -20550,7 +20550,7 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: rewrire [-IEGDFSTV <num>]\n" );
+    Abc_Print( -2, "usage: rewire [-IEGDFSTV <num>]\n" );
     Abc_Print( -2, "\t             performs AIG re-wiring\n" );
     Abc_Print( -2, "\t-I <num>  :  the number of iterations [default = %d]\n",                 nIters );
     Abc_Print( -2, "\t-E <num>  :  the number of fanins to add to all nodes [default = %d]\n", nExpands );
@@ -20563,7 +20563,7 @@ usage:
     Abc_Print( -2, "\t-T <num>  :  the timeout in seconds [default = unused]\n" );
     Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                      nVerbose );
     Abc_Print( -2, "\t-h        :  prints the command usage\n" );
-    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\n\tThis command was contributed by Jiun-Hao Chen from National Taiwan University.\n" );
     return 1;
 }
 
@@ -45709,7 +45709,7 @@ int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &rewrire [-IEGDFSTV <num>]\n" );
+    Abc_Print( -2, "usage: &rewire [-IEGDFSTV <num>]\n" );
     Abc_Print( -2, "\t             performs AIG re-wiring\n" );
     Abc_Print( -2, "\t-I <num>  :  the number of iterations [default = %d]\n",                 nIters );
     Abc_Print( -2, "\t-E <num>  :  the number of fanins to add to all nodes [default = %d]\n", nExpands );
@@ -45722,7 +45722,7 @@ usage:
     Abc_Print( -2, "\t-T <num>  :  the timeout in seconds [default = unused]\n" );
     Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                      nVerbose );
     Abc_Print( -2, "\t-h        :  prints the command usage\n" );
-    Abc_Print( -2, "\t\n" );
+    Abc_Print( -2, "\n\tThis command was contributed by Jiun-Hao Chen from National Taiwan University.\n" );
     return 1;
 }
 

@@ -1514,6 +1514,14 @@ int Abc_NtkLevelReverse( Abc_Ntk_t * pNtk )
     }
     return LevelsMax;
 }
+int Abc_NtkLevelR( Abc_Ntk_t * pNtk )
+{
+    int i, LevelMax = Abc_NtkLevelReverse( pNtk );
+    Abc_Obj_t * pNode;
+    Abc_NtkForEachObj( pNtk, pNode, i )
+        pNode->Level = (int)(LevelMax - pNode->Level + 1);
+    return LevelMax;
+}
 
  
 /**Function*************************************************************
