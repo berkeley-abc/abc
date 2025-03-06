@@ -99,7 +99,7 @@ static void init_enabled (kissat *solver) {
   } while (0)
 
 void kissat_init_limits (kissat *solver) {
-  KISSAT_assert (solver->statistics.searches == 1);
+  KISSAT_assert (solver->statistics_.searches == 1);
 
   init_enabled (solver);
 
