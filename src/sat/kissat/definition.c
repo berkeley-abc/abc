@@ -57,7 +57,7 @@ static void traverse_one_sided_core_lemma (void *state, bool learned,
                                            const unsigned *lits) {
   if (!learned)
     return;
-  lemma_extractor *extractor = state;
+  lemma_extractor *extractor = (lemma_extractor*)state;
   kissat *solver = extractor->solver;
   const unsigned unit = extractor->unit;
   unsigneds *added = &solver->added;

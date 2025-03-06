@@ -15,6 +15,8 @@
 #include <stdio.h>
 #include <string.h>
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_print_glue_usage (kissat *solver) {
   const int64_t stable = solver->statistics.clauses_used_stable;
   const int64_t focused = solver->statistics.clauses_used_focused;
@@ -346,8 +348,16 @@ kissat_statistics_print (kissat * solver, bool verbose)
 
 // clang-format on
 
+ABC_NAMESPACE_IMPL_END
+
 #elif defined(KISSAT_NDEBUG)
+
+ABC_NAMESPACE_IMPL_START
+
 int kissat_statistics_dummy_to_avoid_warning;
+
+ABC_NAMESPACE_IMPL_END
+
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -355,6 +365,8 @@ int kissat_statistics_dummy_to_avoid_warning;
 #ifndef KISSAT_NDEBUG
 
 #include "inlinevector.h"
+
+ABC_NAMESPACE_IMPL_START
 
 void kissat_check_statistics (kissat *solver) {
   if (solver->inconsistent)
@@ -402,7 +414,7 @@ void kissat_check_statistics (kissat *solver) {
   KISSAT_assert (!(binary & 1));
   binary /= 2;
 
-  statistics *statistics = &solver->statistics;
+  statistics *statistics = &solver->statistics_;
   KISSAT_assert (statistics->clauses_binary == binary);
   KISSAT_assert (statistics->clauses_redundant == redundant);
   KISSAT_assert (statistics->clauses_irredundant == irredundant);
@@ -412,5 +424,7 @@ void kissat_check_statistics (kissat *solver) {
   (void) arena_garbage;
 #endif
 }
+
+ABC_NAMESPACE_IMPL_END
 
 #endif

@@ -6,6 +6,8 @@
 
 #include <inttypes.h>
 
+ABC_NAMESPACE_IMPL_START
+
 static void dump_literal (kissat *solver, unsigned ilit) {
   const int elit = kissat_export_literal (solver, ilit);
   printf ("%u(%d)", ilit, elit);
@@ -279,17 +281,21 @@ int kissat_dump (kissat *solver) {
   else
     dump_queue (solver);
   dump_values (solver);
-  printf ("binary = %" PRIu64 "\n", solver->statistics.clauses_binary);
+  printf ("binary = %" PRIu64 "\n", solver->statistics_.clauses_binary);
   printf ("irredundant = %" PRIu64 "\n",
-          solver->statistics.clauses_irredundant);
+          solver->statistics_.clauses_irredundant);
   printf ("redundant = %" PRIu64 "\n",
-          solver->statistics.clauses_redundant);
+          solver->statistics_.clauses_redundant);
   dump_binaries (solver);
   dump_clauses (solver);
   dump_extend (solver);
   return 0;
 }
 
+ABC_NAMESPACE_IMPL_END
+
 #else
+ABC_NAMESPACE_IMPL_START
 int kissat_dump_dummy_to_avoid_warning;
+ABC_NAMESPACE_IMPL_END
 #endif
