@@ -1,10 +1,14 @@
 #ifndef _clause_hpp_INCLUDED
 #define _clause_hpp_INCLUDED
 
+#include "global.h"
+
 #include "util.hpp"
 #include <climits>
 #include <cstdint>
 #include <cstdlib>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -138,7 +142,7 @@ struct Clause {
     // of a clause is 8 bytes anyhow, we just allocate 8 byte aligned memory
     // all the time (even if allocated outside of the arena).
     //
-    assert (size > 1);
+    CADICAL_assert (size > 1);
     const size_t header_bytes = sizeof (Clause);
     const size_t actual_literal_bytes = size * sizeof (int);
     size_t combined_bytes = header_bytes + actual_literal_bytes;
@@ -184,5 +188,7 @@ struct clause_lit_less_than {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

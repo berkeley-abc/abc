@@ -1,8 +1,12 @@
 #ifndef _lratchecker_hpp_INCLUDED
 #define _lratchecker_hpp_INCLUDED
 
+#include "global.h"
+
 /*------------------------------------------------------------------------*/
 #include <unordered_map>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -160,5 +164,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

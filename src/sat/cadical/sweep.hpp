@@ -1,6 +1,10 @@
 #ifndef _sweep_hpp_INCLUDED
 #define _sweep_hpp_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace CaDiCaL {
 
 struct Internal;
@@ -8,7 +12,7 @@ struct Internal;
 struct sweep_proof_clause {
   unsigned sweep_id; // index for sweeper.clauses
   int64_t cad_id;    // cadical id
-  unsigned kit_id;   // kitten id
+  unsigned kit_id;   // cadical_kitten id
   bool learned;
   vector<int> literals;
   vector<unsigned> chain; // lrat
@@ -57,5 +61,7 @@ struct Sweeper {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

@@ -1,10 +1,10 @@
 #ifndef _ccadical_h_INCLUDED
 #define _ccadical_h_INCLUDED
 
+#include "global.h"
+
 /*------------------------------------------------------------------------*/
-#ifdef __cplusplus
-extern "C" {
-#endif
+ABC_NAMESPACE_HEADER_START
 /*------------------------------------------------------------------------*/
 
 #include <stdint.h>
@@ -54,6 +54,11 @@ int ccadical_simplify (CCaDiCaL *);
 int ccadical_vars (CCaDiCaL *);
 int ccadical_reserve_difference (CCaDiCaL *, int number_of_vars);
 
+// Extra
+
+void ccadical_reserve(CCaDiCaL *, int min_max_var);
+int ccadical_is_inconsistent(CCaDiCaL *);
+
 /*------------------------------------------------------------------------*/
 
 // Support legacy names used before moving to more IPASIR conforming names.
@@ -63,9 +68,7 @@ int ccadical_reserve_difference (CCaDiCaL *, int number_of_vars);
 #define ccadical_deref ccadical_val
 
 /*------------------------------------------------------------------------*/
-#ifdef __cplusplus
-}
-#endif
+ABC_NAMESPACE_HEADER_END
 /*------------------------------------------------------------------------*/
 
 #endif

@@ -1,9 +1,13 @@
 #ifndef _heap_hpp_INCLUDED
 #define _heap_hpp_INCLUDED
 
+#include "global.h"
+
 #include "util.hpp" // Alphabetically after 'heap.hpp'.
 
 #include <cassert>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -33,7 +37,7 @@ template <class C> class heap {
     if (e >= pos.size ())
       pos.resize (1 + (size_t) e, invalid_heap_position);
     unsigned &res = pos[e];
-    assert (res == invalid_heap_position || (size_t) res < array.size ());
+    CADICAL_assert (res == invalid_heap_position || (size_t) res < array.size ());
     return res;
   }
 
@@ -46,17 +50,17 @@ template <class C> class heap {
   }
 
   unsigned parent (unsigned e) {
-    assert (has_parent (e));
+    CADICAL_assert (has_parent (e));
     return array[(index (e) - 1) / 2];
   }
 
   unsigned left (unsigned e) {
-    assert (has_left (e));
+    CADICAL_assert (has_left (e));
     return array[2 * index (e) + 1];
   }
 
   unsigned right (unsigned e) {
-    assert (has_right (e));
+    CADICAL_assert (has_right (e));
     return array[2 * index (e) + 2];
   }
 
@@ -100,21 +104,21 @@ template <class C> class heap {
   void check () {
 #if 0 // EXPENSIVE HEAP CHECKING IF ENABLED
 #warning "expensive checking in heap enabled"
-    assert (array.size () <= invalid_heap_position);
+    CADICAL_assert (array.size () <= invalid_heap_position);
     for (size_t i = 0; i < array.size (); i++) {
       size_t l = 2*i + 1, r = 2*i + 2;
-      if (l < array.size ()) assert (!less (array[i], array[l]));
-      if (r < array.size ()) assert (!less (array[i], array[r]));
-      assert (array[i] >= 0);
+      if (l < array.size ()) CADICAL_assert (!less (array[i], array[l]));
+      if (r < array.size ()) CADICAL_assert (!less (array[i], array[r]));
+      CADICAL_assert (array[i] >= 0);
       {
-        assert ((size_t) array[i] < pos.size ());
-        assert (i == (size_t) pos[array[i]]);
+        CADICAL_assert ((size_t) array[i] < pos.size ());
+        CADICAL_assert (i == (size_t) pos[array[i]]);
       }
     }
     for (size_t i = 0; i < pos.size (); i++) {
       if (pos[i] == invalid_heap_position) continue;
-      assert (pos[i] < array.size ());
-      assert (array[pos[i]] == (unsigned) i);
+      CADICAL_assert (pos[i] < array.size ());
+      CADICAL_assert (array[pos[i]] == (unsigned) i);
     }
 #endif
   }
@@ -141,9 +145,9 @@ public:
   // Add a new (not contained) element 'e' to the heap.
   //
   void push_back (unsigned e) {
-    assert (!contains (e));
+    CADICAL_assert (!contains (e));
     size_t i = array.size ();
-    assert (i < (size_t) invalid_heap_position);
+    CADICAL_assert (i < (size_t) invalid_heap_position);
     array.push_back (e);
     index (e) = (unsigned) i;
     up (e);
@@ -154,14 +158,14 @@ public:
   // Returns the maximum element in the heap.
   //
   unsigned front () const {
-    assert (!empty ());
+    CADICAL_assert (!empty ());
     return array[0];
   }
 
   // Removes the maximum element in the heap.
   //
   unsigned pop_front () {
-    assert (!empty ());
+    CADICAL_assert (!empty ());
     unsigned res = array[0], last = array.back ();
     if (size () > 1)
       exchange (res, last);
@@ -176,7 +180,7 @@ public:
   // Notify the heap, that evaluation of 'less' has changed for 'e'.
   //
   void update (unsigned e) {
-    assert (contains (e));
+    CADICAL_assert (contains (e));
     up (e);
     down (e);
     check ();
@@ -208,5 +212,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

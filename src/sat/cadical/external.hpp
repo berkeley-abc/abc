@@ -1,6 +1,8 @@
 #ifndef _external_hpp_INCLUDED
 #define _external_hpp_INCLUDED
 
+#include "global.h"
+
 /*------------------------------------------------------------------------*/
 
 #include "range.hpp"
@@ -8,6 +10,8 @@
 #include <vector>
 
 /*------------------------------------------------------------------------*/
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -146,26 +150,26 @@ struct External {
 
   /*==== end of state ====================================================*/
 
-  // These two just factor out common sanity (assertion) checking code.
+  // These two just factor out common sanity (CADICAL_assertion) checking code.
 
   inline int vidx (int elit) const {
-    assert (elit);
-    assert (elit != INT_MIN);
+    CADICAL_assert (elit);
+    CADICAL_assert (elit != INT_MIN);
     int res = abs (elit);
-    assert (res <= max_var);
+    CADICAL_assert (res <= max_var);
     return res;
   }
 
   inline int vlit (int elit) const {
-    assert (elit);
-    assert (elit != INT_MIN);
-    assert (abs (elit) <= max_var);
+    CADICAL_assert (elit);
+    CADICAL_assert (elit != INT_MIN);
+    CADICAL_assert (abs (elit) <= max_var);
     return elit;
   }
 
   inline bool is_valid_input (int elit) {
-    assert (elit);
-    assert (elit != INT_MIN);
+    CADICAL_assert (elit);
+    CADICAL_assert (elit != INT_MIN);
     int eidx = abs (elit);
     return eidx > max_var || !ervars[eidx];
   }
@@ -202,10 +206,10 @@ struct External {
   // Marking external literals.
 
   unsigned elit2ulit (int elit) const {
-    assert (elit);
-    assert (elit != INT_MIN);
+    CADICAL_assert (elit);
+    CADICAL_assert (elit != INT_MIN);
     const int idx = abs (elit) - 1;
-    assert (idx <= max_var);
+    CADICAL_assert (idx <= max_var);
     return 2u * idx + (elit < 0);
   }
 
@@ -251,8 +255,8 @@ struct External {
   void melt (int elit);
 
   bool frozen (int elit) {
-    assert (elit);
-    assert (elit != INT_MIN);
+    CADICAL_assert (elit);
+    CADICAL_assert (elit != INT_MIN);
     int eidx = abs (elit);
     if (eidx > max_var)
       return false;
@@ -319,7 +323,7 @@ struct External {
   // a negative value into a positive one (happened in 'extend').
   //
   inline int ival (int elit) const {
-    assert (elit != INT_MIN);
+    CADICAL_assert (elit != INT_MIN);
     int eidx = abs (elit);
     bool val = false;
     if (eidx <= max_var && (size_t) eidx < vals.size ())
@@ -440,8 +444,8 @@ struct External {
   // already).
   //
   inline int sol (int elit) const {
-    assert (solution);
-    assert (elit != INT_MIN);
+    CADICAL_assert (solution);
+    CADICAL_assert (elit != INT_MIN);
     int eidx = abs (elit);
     if (eidx > max_var)
       return 0;
@@ -457,5 +461,7 @@ struct External {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

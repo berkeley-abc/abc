@@ -1,11 +1,15 @@
 #ifndef _vivify_hpp_INCLUDED
 #define _vivify_hpp_INCLUDED
 
+#include "global.h"
+
 #include "util.hpp"
 
 #include <array>
 #include <cstdint>
 #include <vector>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -58,5 +62,7 @@ struct Vivifier {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

@@ -1,6 +1,10 @@
 #ifndef _lrattracer_h_INCLUDED
 #define _lrattracer_h_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace CaDiCaL {
 
 class LratTracer : public FileTracer {
@@ -9,7 +13,7 @@ class LratTracer : public FileTracer {
   File *file;
   bool binary;
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   int64_t added, deleted;
 #endif
   int64_t latest_id;
@@ -44,7 +48,7 @@ public:
 
   void report_status (int, int64_t) override {} // skip
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   void print_statistics ();
 #endif
   bool closed () override;
@@ -53,5 +57,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

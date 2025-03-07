@@ -1,6 +1,10 @@
 #ifndef _flags_hpp_INCLUDED
 #define _flags_hpp_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace CaDiCaL {
 
 struct Flags { // Variable flags.
@@ -81,5 +85,7 @@ struct Flags { // Variable flags.
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

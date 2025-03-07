@@ -1,7 +1,11 @@
 #ifndef _occs_h_INCLUDED
 #define _occs_h_INCLUDED
 
+#include "global.h"
+
 #include <vector>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -24,7 +28,7 @@ inline void remove_occs (Occs &os, Clause *c) {
     if (c == d)
       i--;
   }
-  assert (i + 1 == end);
+  CADICAL_assert (i + 1 == end);
   os.resize (i - os.begin ());
 }
 
@@ -32,5 +36,7 @@ typedef Occs::iterator occs_iterator;
 typedef Occs::const_iterator const_occs_iterator;
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

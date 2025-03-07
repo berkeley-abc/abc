@@ -1,8 +1,12 @@
 #ifndef _watch_hpp_INCLUDED
 #define _watch_hpp_INCLUDED
 
+#include "global.h"
+
 #include <cassert>
 #include <vector>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -51,7 +55,7 @@ inline void remove_watch (Watches &ws, Clause *clause) {
     if (w.clause == clause)
       i--;
   }
-  assert (i + 1 == end);
+  CADICAL_assert (i + 1 == end);
   ws.resize (i - ws.begin ());
 }
 
@@ -62,11 +66,13 @@ inline void update_watch_size (Watches &ws, int blit, Clause *conflict) {
   for (Watch &w : ws) {
     if (w.clause == conflict)
       w.size = size, w.blit = blit, found = true;
-    assert (w.clause->garbage || w.size == 2 || w.clause->size != 2);
+    CADICAL_assert (w.clause->garbage || w.size == 2 || w.clause->size != 2);
   }
-  assert (found), (void) found;
+  CADICAL_assert (found), (void) found;
 }
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

@@ -1,6 +1,10 @@
 #ifndef _terminal_hpp_INCLUDED
 #define _terminal_hpp_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace CaDiCaL {
 
 class Terminal {
@@ -11,14 +15,14 @@ class Terminal {
   bool reset_on_exit; // Reset on exit.
 
   void escape () {
-    assert (connected);
+    CADICAL_assert (connected);
     fputs ("\033[", file);
   }
 
   void color (int color, bool bright) {
     if (!use_colors)
       return;
-    assert (connected);
+    CADICAL_assert (connected);
     escape ();
     fputc (bright ? '1' : '0', file);
     fprintf (file, ";%dm", color);
@@ -94,5 +98,7 @@ extern Terminal tout; // Terminal of 'stdout' (file descriptor '1')
 extern Terminal terr; // Terminal of 'stderr' (file descriptor '2')
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

@@ -1,6 +1,8 @@
 #ifndef _congruenc_hpp_INCLUDED
 #define _congruenc_hpp_INCLUDED
 
+#include "global.h"
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -16,6 +18,8 @@
 #include "inttypes.hpp"
 #include "util.hpp"
 #include "watch.hpp"
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -91,15 +95,15 @@ struct lit_equivalence {
   Clause *first_clause;
   Clause *second_clause;
   void check_invariant () {
-    assert (second_clause);
-    assert (first_clause);
-    assert (std::find (begin (*first_clause), end (*first_clause), first) !=
+    CADICAL_assert (second_clause);
+    CADICAL_assert (first_clause);
+    CADICAL_assert (std::find (begin (*first_clause), end (*first_clause), first) !=
             end (*first_clause));
-    assert (std::find (begin (*second_clause), end (*second_clause),
+    CADICAL_assert (std::find (begin (*second_clause), end (*second_clause),
                        second) != end (*second_clause));
-    assert (std::find (begin (*first_clause), end (*first_clause),
+    CADICAL_assert (std::find (begin (*first_clause), end (*first_clause),
                        -second) != end (*first_clause));
-    assert (std::find (begin (*second_clause), end (*second_clause),
+    CADICAL_assert (std::find (begin (*second_clause), end (*second_clause),
                        -first) != end (*second_clause));
   }
   lit_equivalence (int f, Clause *f_id, int s, Clause *s_id)
@@ -710,5 +714,7 @@ struct Closure {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

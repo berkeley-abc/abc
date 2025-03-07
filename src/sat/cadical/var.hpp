@@ -1,6 +1,10 @@
 #ifndef _var_hpp_INCLUDED
 #define _var_hpp_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace CaDiCaL {
 
 struct Clause;
@@ -18,5 +22,7 @@ struct Var {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

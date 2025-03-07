@@ -1,8 +1,12 @@
 #ifndef _format_hpp_INCLUDED
 #define _format_hpp_INCLUDED
 
+#include "global.h"
+
 #include <cstdarg>
 #include <cstdint>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -32,5 +36,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

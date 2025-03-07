@@ -1,6 +1,8 @@
 #ifndef _internal_hpp_INCLUDED
 #define _internal_hpp_INCLUDED
 
+#include "global.h"
+
 /*------------------------------------------------------------------------*/
 
 // Wrapped build specific headers which should go first.
@@ -22,9 +24,11 @@
 
 // Less common 'C' header.
 
+#ifndef WIN32
 extern "C" {
 #include <unistd.h>
 }
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -104,10 +108,12 @@ extern "C" {
 #include "watch.hpp"
 
 // c headers
-extern "C" {
+//extern "C" {
 #include "kitten.h"
-}
+//}
 /*------------------------------------------------------------------------*/
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -157,14 +163,14 @@ struct Internal {
 
   bool in_mode (Mode m) const { return (mode & m) != 0; }
   void set_mode (Mode m) {
-    assert (!(mode & m));
+    CADICAL_assert (!(mode & m));
     mode |= m;
   }
   void reset_mode (Mode m) {
-    assert (mode & m);
+    CADICAL_assert (mode & m);
     mode &= ~m;
   }
-  void require_mode (Mode m) const { assert (mode & m), (void) m; }
+  void require_mode (Mode m) const { CADICAL_assert (mode & m), (void) m; }
 
   /*----------------------------------------------------------------------*/
 
@@ -268,7 +274,7 @@ struct Internal {
   vector<int> sweep_schedule; // remember sweep varibles to reschedule
   bool sweep_incomplete;      // sweep
 
-  kitten *citten;
+  cadical_kitten *citten;
 
   size_t num_assigned; // check for satisfied
 
@@ -294,7 +300,7 @@ struct Internal {
 
   Options opts; // run-time options
   Stats stats;  // statistics
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   Profiles profiles;         // time profiles for various functions
   bool force_phase_messages; // force 'phase (...)' messages
 #endif
@@ -355,15 +361,15 @@ struct Internal {
 
   int active () const {
     int res = stats.active;
-#ifndef NDEBUG
+#ifndef CADICAL_NDEBUG
     int tmp = max_var;
     tmp -= stats.unused;
     tmp -= stats.now.fixed;
     tmp -= stats.now.eliminated;
     tmp -= stats.now.substituted;
     tmp -= stats.now.pure;
-    assert (tmp >= 0);
-    assert (tmp == res);
+    CADICAL_assert (tmp >= 0);
+    CADICAL_assert (tmp == res);
 #endif
     return res;
   }
@@ -388,10 +394,10 @@ struct Internal {
   //
   int vidx (int lit) const {
     int idx;
-    assert (lit);
-    assert (lit != INT_MIN);
+    CADICAL_assert (lit);
+    CADICAL_assert (lit != INT_MIN);
     idx = abs (lit);
-    assert (idx <= max_var);
+    CADICAL_assert (idx <= max_var);
     return idx;
   }
 
@@ -404,9 +410,9 @@ struct Internal {
   }
 
   int u2i (unsigned u) {
-    assert (u > 1);
+    CADICAL_assert (u > 1);
     int res = u / 2;
-    assert (res <= max_var);
+    CADICAL_assert (res <= max_var);
     if (u & 1)
       res = -res;
     return res;
@@ -414,7 +420,7 @@ struct Internal {
 
   int citten2lit (unsigned ulit) {
     int res = (ulit / 2) + 1;
-    assert (res <= max_var);
+    CADICAL_assert (res <= max_var);
     if (ulit & 1)
       res = -res;
     return res;
@@ -426,18 +432,18 @@ struct Internal {
   }
 
   int64_t unit_id (int lit) const {
-    assert (lrat || frat);
-    assert (val (lit) > 0);
+    CADICAL_assert (lrat || frat);
+    CADICAL_assert (val (lit) > 0);
     const unsigned uidx = vlit (lit);
     int64_t id = unit_clauses_idx[uidx];
-    assert (id);
+    CADICAL_assert (id);
     return id;
   }
 
   inline int64_t &unit_clauses (int uidx) {
-    assert (lrat || frat);
-    assert (uidx > 0);
-    assert ((size_t) uidx < unit_clauses_idx.size ());
+    CADICAL_assert (lrat || frat);
+    CADICAL_assert (uidx > 0);
+    CADICAL_assert ((size_t) uidx < unit_clauses_idx.size ());
     return unit_clauses_idx[uidx];
   }
 
@@ -476,14 +482,14 @@ struct Internal {
     return res;
   }
   void mark (int lit) {
-    assert (!marked (lit));
+    CADICAL_assert (!marked (lit));
     marks[vidx (lit)] = sign (lit);
-    assert (marked (lit) > 0);
-    assert (marked (-lit) < 0);
+    CADICAL_assert (marked (lit) > 0);
+    CADICAL_assert (marked (-lit) < 0);
   }
   void unmark (int lit) {
     marks[vidx (lit)] = 0;
-    assert (!marked (lit));
+    CADICAL_assert (!marked (lit));
   }
 
   // Use only bits 6 and 7 to store the sign or zero.  The remaining
@@ -498,24 +504,24 @@ struct Internal {
   void mark67 (int lit) {
     signed char &m = marks[vidx (lit)];
     const signed char mask = 0x3f;
-#ifndef NDEBUG
+#ifndef CADICAL_NDEBUG
     const signed char bits = m & mask;
 #endif
     m = (m & mask) | (sign (lit) << 6);
-    assert (marked (lit) > 0);
-    assert (marked (-lit) < 0);
-    assert ((m & mask) == bits);
-    assert (marked67 (lit) > 0);
-    assert (marked67 (-lit) < 0);
+    CADICAL_assert (marked (lit) > 0);
+    CADICAL_assert (marked (-lit) < 0);
+    CADICAL_assert ((m & mask) == bits);
+    CADICAL_assert (marked67 (lit) > 0);
+    CADICAL_assert (marked67 (-lit) < 0);
   }
   void unmark67 (int lit) {
     signed char &m = marks[vidx (lit)];
     const signed char mask = 0x3f;
-#ifndef NDEBUG
+#ifndef CADICAL_NDEBUG
     const signed bits = m & mask;
 #endif
     m &= mask;
-    assert ((m & mask) == bits);
+    CADICAL_assert ((m & mask) == bits);
   }
 
   void unmark (vector<int> &lits) {
@@ -528,53 +534,53 @@ struct Internal {
   // bit in 'condition' to mark variables in the conditional part.
   //
   bool getbit (int lit, int bit) const {
-    assert (0 <= bit), assert (bit < 6);
+    CADICAL_assert (0 <= bit), CADICAL_assert (bit < 6);
     return marks[vidx (lit)] & (1 << bit);
   }
   void setbit (int lit, int bit) {
-    assert (0 <= bit), assert (bit < 6);
-    assert (!getbit (lit, bit));
+    CADICAL_assert (0 <= bit), CADICAL_assert (bit < 6);
+    CADICAL_assert (!getbit (lit, bit));
     marks[vidx (lit)] |= (1 << bit);
-    assert (getbit (lit, bit));
+    CADICAL_assert (getbit (lit, bit));
   }
   void unsetbit (int lit, int bit) {
-    assert (0 <= bit), assert (bit < 6);
-    assert (getbit (lit, bit));
+    CADICAL_assert (0 <= bit), CADICAL_assert (bit < 6);
+    CADICAL_assert (getbit (lit, bit));
     marks[vidx (lit)] &= ~(1 << bit);
-    assert (!getbit (lit, bit));
+    CADICAL_assert (!getbit (lit, bit));
   }
 
   // Marking individual literals.
   //
   bool marked2 (int lit) const {
     unsigned res = marks[vidx (lit)];
-    assert (res <= 3);
+    CADICAL_assert (res <= 3);
     unsigned bit = bign (lit);
     return (res & bit) != 0;
   }
   void mark2 (int lit) {
     marks[vidx (lit)] |= bign (lit);
-    assert (marked2 (lit));
+    CADICAL_assert (marked2 (lit));
   }
 
   // marks bits 1,2,3 and 4,5,6 depending on fact and sign of lit
   //
   bool getfact (int lit, int fact) const {
-    assert (fact == 1 || fact == 2 || fact == 4);
+    CADICAL_assert (fact == 1 || fact == 2 || fact == 4);
     int res = marks[vidx (lit)];
     if (lit < 0) {
       res >>= 3;
     } else {
       res &= 7;
     }
-    // assert (!res || res == 1 || res == 2 || res == 4);
+    // CADICAL_assert (!res || res == 1 || res == 2 || res == 4);
     return res & fact;
   }
 
   void markfact (int lit, int fact) {
-    assert (fact == 1 || fact == 2 || fact == 4);
-    assert (!getfact (lit, fact));
-#ifndef NDEBUG
+    CADICAL_assert (fact == 1 || fact == 2 || fact == 4);
+    CADICAL_assert (!getfact (lit, fact));
+#ifndef CADICAL_NDEBUG
     int before = getfact (-lit, fact);
 #endif
     int res = marks[vidx (lit)];
@@ -584,15 +590,15 @@ struct Internal {
       res |= fact;
     }
     marks[vidx (lit)] = res;
-    assert (getfact (lit, fact));
-#ifndef NDEBUG
-    assert (getfact (-lit, fact) == before);
+    CADICAL_assert (getfact (lit, fact));
+#ifndef CADICAL_NDEBUG
+    CADICAL_assert (getfact (-lit, fact) == before);
 #endif
   }
 
   void unmarkfact (int lit, int fact) {
-    assert (fact == 1 || fact == 2 || fact == 4);
-    assert (getfact (lit, fact));
+    CADICAL_assert (fact == 1 || fact == 2 || fact == 4);
+    CADICAL_assert (getfact (lit, fact));
     int res = marks[vidx (lit)];
     if (lit < 0) {
       res &= ~(fact << 3);
@@ -600,7 +606,7 @@ struct Internal {
       res &= ~fact;
     }
     marks[vidx (lit)] = res;
-    assert (!getfact (lit, fact));
+    CADICAL_assert (!getfact (lit, fact));
   }
 
   // Marking and unmarking of all literals in a clause.
@@ -615,7 +621,7 @@ struct Internal {
   // Inlined here, since it occurs in the tight inner loop of 'propagate'.
   //
   inline void watch_literal (int lit, int blit, Clause *c) {
-    assert (lit != blit);
+    CADICAL_assert (lit != blit);
     Watches &ws = watches (lit);
     ws.push_back (Watch (blit, c));
     LOG (c, "watch %d blit %d in", lit, blit);
@@ -644,8 +650,8 @@ struct Internal {
   // inlined here since it occurs in several inner loops.
   //
   inline void update_queue_unassigned (int idx) {
-    assert (0 < idx);
-    assert (idx <= max_var);
+    CADICAL_assert (0 < idx);
+    CADICAL_assert (idx <= max_var);
     queue.unassigned = idx;
     queue.bumped = btab[idx];
     LOG ("queue unassigned now %d bumped %" PRId64 "", idx, btab[idx]);
@@ -815,7 +821,7 @@ struct Internal {
   void connect_propagator ();
   void mark_garbage_external_forgettable (int64_t id);
   bool is_external_forgettable (int64_t id);
-#ifndef NDEBUG
+#ifndef CADICAL_NDEBUG
   bool get_merged_literals (std::vector<int> &);
   void get_all_fixed_literals (std::vector<int> &);
 #endif
@@ -1113,7 +1119,7 @@ struct Internal {
   void mark_decomposed (int lit) {
     Flags &f = flags (lit);
     const unsigned bit = bign (lit);
-    assert ((f.marked_signed & bit) == 0);
+    CADICAL_assert ((f.marked_signed & bit) == 0);
     sign_marked.push_back (lit);
     f.marked_signed |= bit;
   }
@@ -1166,7 +1172,7 @@ struct Internal {
   void find_gate_clauses (Eliminator &, int pivot);
   void unmark_gate_clauses (Eliminator &);
 
-  // mine definitions for kitten in 'definition.cpp'
+  // mine definitions for cadical_kitten in 'definition.cpp'
   //
   void find_definition (Eliminator &, int);
   void init_citten ();
@@ -1204,8 +1210,8 @@ struct Internal {
 
   // sweeping in 'sweep.cpp'
   int sweep_solve ();
-  void sweep_set_kitten_ticks_limit (Sweeper &sweeper);
-  bool kitten_ticks_limit_hit (Sweeper &sweeper, const char *when);
+  void sweep_set_cadical_kitten_ticks_limit (Sweeper &sweeper);
+  bool cadical_kitten_ticks_limit_hit (Sweeper &sweeper, const char *when);
   void init_sweeper (Sweeper &sweeper);
   void release_sweeper (Sweeper &sweeper);
   void clear_sweeper (Sweeper &sweeper);
@@ -1493,7 +1499,7 @@ struct Internal {
 
   bool terminating_asked ();
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   // Built in profiling in 'profile.cpp' (see also 'profile.hpp').
   //
   void start_profiling (Profile &p, double);
@@ -1510,9 +1516,9 @@ struct Internal {
   // negative.  We also avoid taking the absolute value.
   //
   signed char val (int lit) const {
-    assert (-max_var <= lit);
-    assert (lit);
-    assert (lit <= max_var);
+    CADICAL_assert (-max_var <= lit);
+    CADICAL_assert (lit);
+    CADICAL_assert (lit <= max_var);
     return vals[lit];
   }
 
@@ -1520,11 +1526,11 @@ struct Internal {
   // setter function for setting and resetting the value of a literal.
   //
   void set_val (int lit, signed char val) {
-    assert (-1 <= val);
-    assert (val <= 1);
-    assert (-max_var <= lit);
-    assert (lit);
-    assert (lit <= max_var);
+    CADICAL_assert (-1 <= val);
+    CADICAL_assert (val <= 1);
+    CADICAL_assert (-max_var <= lit);
+    CADICAL_assert (lit);
+    CADICAL_assert (lit <= max_var);
     vals[lit] = val;
     vals[-lit] = -val;
   }
@@ -1534,9 +1540,9 @@ struct Internal {
   // of the variable anyhow.
   //
   int fixed (int lit) {
-    assert (-max_var <= lit);
-    assert (lit);
-    assert (lit <= max_var);
+    CADICAL_assert (-max_var <= lit);
+    CADICAL_assert (lit);
+    CADICAL_assert (lit <= max_var);
     const int idx = vidx (lit);
     int res = vals[idx];
     if (res && vtab[idx].level)
@@ -1549,10 +1555,10 @@ struct Internal {
   // Map back an internal literal to an external.
   //
   int externalize (int lit) {
-    assert (lit != INT_MIN);
+    CADICAL_assert (lit != INT_MIN);
     const int idx = abs (lit);
-    assert (idx);
-    assert (idx <= max_var);
+    CADICAL_assert (idx);
+    CADICAL_assert (idx <= max_var);
     int res = i2e[idx];
     if (lit < 0)
       res = -res;
@@ -1663,12 +1669,12 @@ struct Internal {
 
   /*----------------------------------------------------------------------*/
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
 
   void print_prefix ();
 
   // Non-verbose messages and warnings, i.e., always printed unless 'quiet'
-  // is set, which disables messages at run-time, or even 'QUIET' is defined
+  // is set, which disables messages at run-time, or even 'CADICAL_QUIET' is defined
   // through the configuration option './configure --quiet', which disables
   // such messages completely at compile-time.
   //
@@ -1740,10 +1746,10 @@ inline bool score_smaller::operator() (unsigned a, unsigned b) {
 
   // Avoid computing twice 'abs' in 'score ()'.
   //
-  assert (1 <= a);
-  assert (a <= (unsigned) internal->max_var);
-  assert (1 <= b);
-  assert (b <= (unsigned) internal->max_var);
+  CADICAL_assert (1 <= a);
+  CADICAL_assert (a <= (unsigned) internal->max_var);
+  CADICAL_assert (1 <= b);
+  CADICAL_assert (b <= (unsigned) internal->max_var);
   double s = internal->stab[a];
   double t = internal->stab[b];
 
@@ -1760,8 +1766,8 @@ inline bool score_smaller::operator() (unsigned a, unsigned b) {
 // Implemented here for keeping it all inline (requires Internal::fixed).
 
 inline int External::fixed (int elit) const {
-  assert (elit);
-  assert (elit != INT_MIN);
+  CADICAL_assert (elit);
+  CADICAL_assert (elit != INT_MIN);
   int eidx = abs (elit);
   if (eidx > max_var)
     return 0;
@@ -1798,7 +1804,7 @@ inline bool Internal::terminated_asynchronously (int factor) {
   // to this function do not check this again.
   //
   if (lim.terminate.forced) {
-    assert (lim.terminate.forced > 0);
+    CADICAL_assert (lim.terminate.forced > 0);
     if (lim.terminate.forced-- == 1) {
       LOG ("internally forcing termination");
       termination_forced = true;
@@ -1819,8 +1825,8 @@ inline bool Internal::terminated_asynchronously (int factor) {
   // flag leads to the first test above to succeed in subsequent calls.
   //
   if (external->terminator && !lim.terminate.check--) {
-    assert (factor > 0);
-    assert (INT_MAX / factor > opts.terminateint);
+    CADICAL_assert (factor > 0);
+    CADICAL_assert (INT_MAX / factor > opts.terminateint);
     lim.terminate.check = factor * opts.terminateint;
     if (external->terminator->terminate ()) {
       termination_forced = true; // Cache it.
@@ -1835,8 +1841,8 @@ inline bool Internal::terminated_asynchronously (int factor) {
 /*------------------------------------------------------------------------*/
 
 inline bool Internal::search_limits_hit () {
-  assert (!preprocessing);
-  assert (!localsearching);
+  CADICAL_assert (!preprocessing);
+  CADICAL_assert (!localsearching);
 
   if (lim.conflicts >= 0 && stats.conflicts >= lim.conflicts) {
     LOG ("conflict limit %" PRId64 " reached", lim.conflicts);
@@ -1854,5 +1860,7 @@ inline bool Internal::search_limits_hit () {
 /*------------------------------------------------------------------------*/
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

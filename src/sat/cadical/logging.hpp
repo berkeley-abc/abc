@@ -1,12 +1,16 @@
 #ifndef _logging_hpp_INCLUDED
 #define _logging_hpp_INCLUDED
 
+#include "global.h"
+
 /*------------------------------------------------------------------------*/
 #ifdef LOGGING
 /*------------------------------------------------------------------------*/
 
 #include <cstdint>
 #include <vector>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -81,6 +85,8 @@ struct Logger {
   } while (0)
 
 #define LOGLIT(lit) Logger::loglit (internal, lit).c_str ()
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 /*------------------------------------------------------------------------*/
 #else // end of 'then' part of 'ifdef LOGGING'

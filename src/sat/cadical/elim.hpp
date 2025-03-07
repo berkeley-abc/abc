@@ -1,7 +1,11 @@
 #ifndef _elim_hpp_INCLUDED
 #define _elim_hpp_INCLUDED
 
+#include "global.h"
+
 #include "heap.hpp" // Alphabetically after 'elim.hpp'.
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -19,7 +23,7 @@ struct proof_clause {
   int64_t id;
   vector<int> literals;
   // for lrat
-  unsigned cid; // kitten id
+  unsigned cid; // cadical_kitten id
   bool learned;
   vector<int64_t> chain;
 };
@@ -49,5 +53,7 @@ struct Eliminator {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif
