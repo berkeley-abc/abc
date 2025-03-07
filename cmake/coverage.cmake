@@ -1,9 +1,10 @@
-option(COVERAGE_TEXT "Show text summary of the coverage" OFF)
+option(COVERAGE_TEXT "Show text summary of the coverage" ON)
 option(COVERAGE_LCOV "Export coverage data in lcov trace file" ON)
-option(COVERAGE_HTML "Detailed html report of the coverage" ON)
+option(COVERAGE_HTML "Detailed html report of the coverage" OFF)
 
-set(COVERAGE_EXCLUDE_REGEX "(lib/)")
+set(COVERAGE_EXCLUDE_REGEX "(test/|lib/)")
 set(COVERAGE_PATH ${PROJECT_BINARY_DIR}/coverage)
+set(LLVM_DIRECTORY "$ENV{LLVM_VER_DIR}")
 
 if(COVERAGE_BUILD)
     message(
@@ -11,20 +12,22 @@ if(COVERAGE_BUILD)
             "Source coverage is enabled. TEXT=${COVERAGE_TEXT}, LCOV=${COVERAGE_LCOV}, HTML=${COVERAGE_HTML}"
     )
 
-    find_package(LLVM REQUIRED CONFIG)
-    get_filename_component(LLVM_PREFIX "${LLVM_DIR}" DIRECTORY)
-    message(STATUS "Found llvm directory: ${LLVM_PREFIX}")
+    find_package(
+        LLVM REQUIRED CONFIG
+        HINTS ${LLVM_DIRECTORY}
+    )
+    message(STATUS "Using llvm directory: ${LLVM_DIRECTORY}")
 
     find_program(
         LLVM_COV_PATH
         NAMES llvm-cov
-        HINTS ${LLVM_PREFIX}
+        HINTS ${LLVM_DIRECTORY}
         PATH_SUFFIXES bin
     )
     find_program(
         LLVM_PROFDATA_PATH
         NAMES llvm-profdata
-        HINTS ${LLVM_PREFIX}
+        HINTS ${LLVM_DIRECTORY}
         PATH_SUFFIXES bin
     )
 
@@ -74,6 +77,18 @@ function(add_coverage TARGET)
 
         add_custom_target(coverage)
 
+        if(COVERAGE_TEXT)
+            add_custom_target(
+                coverage-text
+                COMMAND
+                    ${LLVM_COV_PATH} report `cat ${COVERAGE_TARGETS}`
+                    -instr-profile=${COVERAGE_PROFDATA}
+                    -ignore-filename-regex="${COVERAGE_EXCLUDE_REGEX}"
+                DEPENDS coverage-profdata
+            )
+            add_dependencies(coverage coverage-text)
+        endif()
+
         if(COVERAGE_HTML)
             add_custom_target(
                 coverage-html
@@ -99,18 +114,6 @@ function(add_coverage TARGET)
                 DEPENDS coverage-profdata
             )
             add_dependencies(coverage coverage-lcov)
-        endif()
-
-        if(COVERAGE_TEXT)
-            add_custom_target(
-                coverage-text
-                COMMAND
-                    ${LLVM_COV_PATH} report `cat ${COVERAGE_TARGETS}`
-                    -instr-profile=${COVERAGE_PROFDATA}
-                    -ignore-filename-regex="${COVERAGE_EXCLUDE_REGEX}"
-                DEPENDS coverage-profdata
-            )
-            add_dependencies(coverage coverage-text)
         endif()
     endif()
 
