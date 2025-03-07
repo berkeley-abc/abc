@@ -1,10 +1,10 @@
 #ifndef _ipasir_h_INCLUDED
 #define _ipasir_h_INCLUDED
 
+#include "global.h"
+
 /*------------------------------------------------------------------------*/
-#ifdef __cplusplus
-extern "C" {
-#endif
+ABC_NAMESPACE_HEADER_START
 /*------------------------------------------------------------------------*/
 
 // Here are the declarations for the actual IPASIR functions, which is the
@@ -29,9 +29,7 @@ void ipasir_set_learn (void *solver, void *state, int max_length,
                        void (*learn) (void *state, int *clause));
 
 /*------------------------------------------------------------------------*/
-#ifdef __cplusplus
-}
-#endif
+ABC_NAMESPACE_HEADER_END
 /*------------------------------------------------------------------------*/
 
 #endif

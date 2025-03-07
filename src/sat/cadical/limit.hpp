@@ -1,8 +1,12 @@
 #ifndef _limit_hpp_INCLUDED
 #define _limit_hpp_INCLUDED
 
+#include "global.h"
+
 #include <cstdint>
 #include <limits>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -152,5 +156,7 @@ struct Inc {
   } while (0)
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

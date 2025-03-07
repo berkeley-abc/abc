@@ -1,9 +1,13 @@
 #ifndef _cadical_hpp_INCLUDED
 #define _cadical_hpp_INCLUDED
 
+#include "global.h"
+
 #include <cstdint>
 #include <cstdio>
 #include <vector>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -49,13 +53,13 @@ enum Status {
 //   solver->add (-TIE), solver->add (-SHIRT), solver->add (0);
 //
 //   int res = solver->solve ();    // Solve instance.
-//   assert (res == 10);            // Check it is 'SATISFIABLE'.
+//   CADICAL_assert (res == 10);            // Check it is 'SATISFIABLE'.
 //
 //   res = solver->val (TIE);       // Obtain assignment of 'TIE'.
-//   assert (res < 0);              // Check 'TIE' assigned to 'false'.
+//   CADICAL_assert (res < 0);              // Check 'TIE' assigned to 'false'.
 //
 //   res = solver->val (SHIRT);     // Obtain assignment of 'SHIRT'.
-//   assert (res > 0);              // Check 'SHIRT' assigned to 'true'.
+//   CADICAL_assert (res > 0);              // Check 'SHIRT' assigned to 'true'.
 //
 //   // ------------------------------------------------------------------
 //   // Incrementally solve again under one assumption.
@@ -63,13 +67,13 @@ enum Status {
 //   solver->assume (TIE);          // Now force 'TIE' to true.
 //
 //   res = solver->solve ();        // Solve again incrementally.
-//   assert (res == 20);            // Check it is 'UNSATISFIABLE'.
+//   CADICAL_assert (res == 20);            // Check it is 'UNSATISFIABLE'.
 //
 //   res = solver->failed (TIE);    // Check 'TIE' responsible.
-//   assert (res);                  // Yes, 'TIE' in core.
+//   CADICAL_assert (res);                  // Yes, 'TIE' in core.
 //
 //   res = solver->failed (SHIRT);  // Check 'SHIRT' responsible.
-//   assert (!res);                 // No, 'SHIRT' not in core.
+//   CADICAL_assert (!res);                 // No, 'SHIRT' not in core.
 //
 //   // ------------------------------------------------------------------
 //   // Incrementally solve once more under another assumption.
@@ -77,13 +81,13 @@ enum Status {
 //   solver->assume (-SHIRT);       // Now force 'SHIRT' to false.
 //
 //   res = solver->solve ();        // Solve again incrementally.
-//   assert (res == 20);            // Check it is 'UNSATISFIABLE'.
+//   CADICAL_assert (res == 20);            // Check it is 'UNSATISFIABLE'.
 //
 //   res = solver->failed (TIE);    // Check 'TIE' responsible.
-//   assert (!res);                 // No, 'TIE' not in core.
+//   CADICAL_assert (!res);                 // No, 'TIE' not in core.
 //
 //   res = solver->failed (-SHIRT); // Check '!SHIRT' responsible.
-//   assert (res);                  // Yes, '!SHIRT' in core.
+//   CADICAL_assert (res);                  // Yes, '!SHIRT' in core.
 //
 //   // ------------------------------------------------------------------
 //
@@ -595,7 +599,7 @@ public:
   //
   int reserve_difference (int number_of_vars);
 
-#ifndef NTRACING
+#ifndef CADICAL_NTRACING
   //------------------------------------------------------------------------
   // This function can be used to write API calls to a file.  The same
   // format is used which 'mobical' can read, execute and also shrink
@@ -1029,7 +1033,7 @@ private:
 
   friend class Testing; // Access to 'internal' for testing only!
 
-#ifndef NTRACING
+#ifndef CADICAL_NTRACING
   // The API calls to the solver can be traced by setting the environment
   // variable 'CADICAL_API_TRACE' to point to the path of a file to which
   // API calls are written. The same format is used which 'mobical' can
@@ -1092,10 +1096,13 @@ private:
   //
   // TODO: support for other compilers (beside 'gcc' and 'clang').
 
+  /*
 #define CADICAL_ATTRIBUTE_FORMAT(FORMAT_POSITION, \
                                  VARIADIC_ARGUMENT_POSITION) \
   __attribute__ ((format (PRINTF_FORMAT, FORMAT_POSITION, \
                           VARIADIC_ARGUMENT_POSITION)))
+  */
+#define CADICAL_ATTRIBUTE_FORMAT(FORMAT_POSITION, VARIADIC_ARGUMENT_POSITION)
 
   // Messages in a common style.
   //
@@ -1338,5 +1345,7 @@ public:
 /*------------------------------------------------------------------------*/
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

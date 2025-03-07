@@ -1,8 +1,12 @@
 #ifndef _reluctant_hpp_INCLUDED
 #define _reluctant_hpp_INCLUDED
 
+#include "global.h"
+
 #include <cassert>
 #include <cstdint>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -31,7 +35,7 @@ public:
   Reluctant () : period (0), trigger (false) {}
 
   void enable (int p, int64_t l) {
-    assert (p > 0);
+    CADICAL_assert (p > 0);
     u = v = 1;
     period = countdown = p;
     trigger = false;
@@ -78,5 +82,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

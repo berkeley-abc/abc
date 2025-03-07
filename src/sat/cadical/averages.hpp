@@ -1,7 +1,11 @@
 #ifndef _averages_hpp_INCLUDED
 #define _averages_hpp_INCLUDED
 
+#include "global.h"
+
 #include "ema.hpp" // alphabetically after 'averages.hpp'
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -33,5 +37,7 @@ struct Averages {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

@@ -1,6 +1,10 @@
 #ifndef _score_hpp_INCLUDED
 #define _score_hpp_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace CaDiCaL {
 
 struct score_smaller {
@@ -12,5 +16,7 @@ struct score_smaller {
 typedef heap<score_smaller> ScoreSchedule;
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

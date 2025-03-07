@@ -1,9 +1,13 @@
 #ifndef _random_h_INCLUDED
 #define _random_h_INCLUDED
 
+#include "global.h"
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stdint.h>
+
+ABC_NAMESPACE_HEADER_START
 
 typedef uint64_t generator;
 
@@ -19,17 +23,17 @@ static inline unsigned kissat_next_random32 (generator *rng) {
 
 static inline unsigned kissat_pick_random (generator *rng, unsigned l,
                                            unsigned r) {
-  assert (l <= r);
+  CADICAL_assert (l <= r);
   if (l == r)
     return l;
   const unsigned delta = r - l;
   const unsigned tmp = kissat_next_random32 (rng);
   const double fraction = tmp / 4294967296.0;
-  assert (0 <= fraction), assert (fraction < 1);
+  CADICAL_assert (0 <= fraction), CADICAL_assert (fraction < 1);
   const unsigned scaled = delta * fraction;
-  assert (scaled < delta);
+  CADICAL_assert (scaled < delta);
   const unsigned res = l + scaled;
-  assert (l <= res), assert (res < r);
+  CADICAL_assert (l <= res), CADICAL_assert (res < r);
   return res;
 }
 
@@ -40,5 +44,7 @@ static inline bool kissat_pick_bool (generator *rng) {
 static inline double kissat_pick_double (generator *rng) {
   return kissat_next_random32 (rng) / 4294967296.0;
 }
+
+ABC_NAMESPACE_HEADER_END
 
 #endif

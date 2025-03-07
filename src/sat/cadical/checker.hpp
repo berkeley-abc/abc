@@ -1,9 +1,13 @@
 #ifndef _checker_hpp_INCLUDED
 #define _checker_hpp_INCLUDED
 
+#include "global.h"
+
 #include "tracer.hpp" // Alphabetically after 'checker'.
 
 #include <cstdint>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -168,5 +172,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

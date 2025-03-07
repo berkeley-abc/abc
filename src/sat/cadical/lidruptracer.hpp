@@ -1,6 +1,10 @@
 #ifndef _lidruptracer_h_INCLUDED
 #define _lidruptracer_h_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 class FileTracer;
 
 namespace CaDiCaL {
@@ -50,7 +54,7 @@ class LidrupTracer : public FileTracer {
   bool
   find_and_delete (const int64_t); // find clause position in hash table
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   int64_t added, deleted, weakened, restore, original, solved, batched;
 #endif
 
@@ -104,7 +108,7 @@ public:
   // logging and file io
   void connect_internal (Internal *i) override;
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   void print_statistics ();
 #endif
   bool closed () override;
@@ -113,5 +117,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

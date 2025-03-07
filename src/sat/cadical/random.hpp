@@ -1,7 +1,11 @@
 #ifndef _random_hpp_INCLUDED
 #define _random_hpp_INCLUDED
 
+#include "global.h"
+
 #include <cstdint>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 // Random number generator.
 
@@ -32,7 +36,7 @@ public:
   uint64_t next () {
     state *= 6364136223846793005ul;
     state += 1442695040888963407ul;
-    assert (state);
+    CADICAL_assert (state);
     return state;
   }
 
@@ -50,7 +54,7 @@ public:
   // Generate 'int' value in the range '[l,r]'.
   //
   int pick_int (int l, int r) {
-    assert (l <= r);
+    CADICAL_assert (l <= r);
     const unsigned delta = 1 + r - (unsigned) l;
     unsigned tmp = generate (), scaled;
     if (delta) {
@@ -59,13 +63,13 @@ public:
     } else
       scaled = tmp;
     const int res = scaled + l;
-    assert (l <= res);
-    assert (res <= r);
+    CADICAL_assert (l <= res);
+    CADICAL_assert (res <= r);
     return res;
   }
 
   int pick_log (int l, int r) {
-    assert (l <= r);
+    CADICAL_assert (l <= r);
     const unsigned delta = 1 + r - (unsigned) l;
     int log_delta = delta ? 0 : 32;
     while (log_delta < 32 && (1u << log_delta) < delta)
@@ -77,22 +81,24 @@ public:
     if (delta)
       tmp %= delta;
     const int res = l + tmp;
-    assert (l <= res), assert (res <= r);
+    CADICAL_assert (l <= res), CADICAL_assert (res <= r);
     return res;
   }
 
   // Generate 'double' value in the range '[l,r]'.
   //
   double pick_double (double l, double r) {
-    assert (l <= r);
+    CADICAL_assert (l <= r);
     double res = (r - l) * generate_double ();
     res += l;
-    assert (l <= res);
-    assert (res <= r);
+    CADICAL_assert (l <= res);
+    CADICAL_assert (res <= r);
     return res;
   }
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

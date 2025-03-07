@@ -1,7 +1,11 @@
 #ifndef _drattracer_h_INCLUDED
 #define _drattracer_h_INCLUDED
 
+#include "global.h"
+
 #include "tracer.hpp"
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -10,7 +14,7 @@ class DratTracer : public FileTracer {
   Internal *internal;
   File *file;
   bool binary;
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   int64_t added, deleted;
 #endif
   void put_binary_zero ();
@@ -40,7 +44,7 @@ public:
 
   void report_status (int, int64_t) override {} // skip
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   void print_statistics ();
 #endif
   bool closed () override;
@@ -49,5 +53,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

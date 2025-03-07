@@ -1,6 +1,10 @@
 #ifndef _veripbtracer_h_INCLUDED
 #define _veripbtracer_h_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 class FileTracer;
 
 namespace CaDiCaL {
@@ -15,7 +19,7 @@ class VeripbTracer : public FileTracer {
 
   Internal *internal;
   File *file;
-#ifndef NDEBUG
+#ifndef CADICAL_NDEBUG
   bool binary;
 #endif
   bool with_antecedents;
@@ -47,7 +51,7 @@ class VeripbTracer : public FileTracer {
   bool
   find_and_delete (const int64_t); // find clause position in hash table
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   int64_t added, deleted;
 #endif
   vector<int64_t> delete_ids;
@@ -89,7 +93,7 @@ public:
   void weaken_minus (int64_t, const vector<int> &) override;
   void strengthen (int64_t) override;
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
   void print_statistics ();
 #endif
   bool closed () override;
@@ -98,5 +102,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

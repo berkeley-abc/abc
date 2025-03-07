@@ -1,8 +1,12 @@
 #ifndef _parse_hpp_INCLUDED
 #define _parse_hpp_INCLUDED
 
+#include "global.h"
+
 #include <cassert>
 #include <vector>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -68,5 +72,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

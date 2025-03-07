@@ -1,97 +1,95 @@
-#ifndef _kitten_h_INCLUDED
-#define _kitten_h_INCLUDED
+#ifndef _cadical_kitten_h_INCLUDED
+#define _cadical_kitten_h_INCLUDED
+
+#include "global.h"
 
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+ABC_NAMESPACE_HEADER_START
 
-typedef struct kitten kitten;
+typedef struct cadical_kitten cadical_kitten;
 
-kitten *kitten_init (void);
-void kitten_clear (kitten *);
-void kitten_release (kitten *);
+cadical_kitten *cadical_kitten_init (void);
+void cadical_kitten_clear (cadical_kitten *);
+void cadical_kitten_release (cadical_kitten *);
 
 #ifdef LOGGING
-void kitten_set_logging (kitten *kitten);
+void cadical_kitten_set_logging (cadical_kitten *cadical_kitten);
 #endif
 
-void kitten_track_antecedents (kitten *);
+void cadical_kitten_track_antecedents (cadical_kitten *);
 
-void kitten_shuffle_clauses (kitten *);
-void kitten_flip_phases (kitten *);
-void kitten_randomize_phases (kitten *);
+void cadical_kitten_shuffle_clauses (cadical_kitten *);
+void cadical_kitten_flip_phases (cadical_kitten *);
+void cadical_kitten_randomize_phases (cadical_kitten *);
 
-void kitten_assume (kitten *, unsigned lit);
-void kitten_assume_signed (kitten *, int lit);
+void cadical_kitten_assume (cadical_kitten *, unsigned lit);
+void cadical_kitten_assume_signed (cadical_kitten *, int lit);
 
-void kitten_clause (kitten *, size_t size, unsigned *);
-void citten_clause_with_id (kitten *, unsigned id, size_t size, int *);
-void kitten_unit (kitten *, unsigned);
-void kitten_binary (kitten *, unsigned, unsigned);
+void cadical_kitten_clause (cadical_kitten *, size_t size, unsigned *);
+void citten_clause_with_id (cadical_kitten *, unsigned id, size_t size, int *);
+void cadical_kitten_unit (cadical_kitten *, unsigned);
+void cadical_kitten_binary (cadical_kitten *, unsigned, unsigned);
 
-void kitten_clause_with_id_and_exception (kitten *, unsigned id,
+void cadical_kitten_clause_with_id_and_exception (cadical_kitten *, unsigned id,
                                           size_t size, const unsigned *,
                                           unsigned except);
 
-void citten_clause_with_id_and_exception (kitten *, unsigned id,
+void citten_clause_with_id_and_exception (cadical_kitten *, unsigned id,
                                           size_t size, const int *,
                                           unsigned except);
-void citten_clause_with_id_and_equivalence (kitten *, unsigned id,
+void citten_clause_with_id_and_equivalence (cadical_kitten *, unsigned id,
                                             size_t size, const int *,
                                             unsigned, unsigned);
-void kitten_no_ticks_limit (kitten *);
-void kitten_set_ticks_limit (kitten *, uint64_t);
-uint64_t kitten_current_ticks (kitten *);
+void cadical_kitten_no_ticks_limit (cadical_kitten *);
+void cadical_kitten_set_ticks_limit (cadical_kitten *, uint64_t);
+uint64_t cadical_kitten_current_ticks (cadical_kitten *);
 
-void kitten_no_terminator (kitten *);
-void kitten_set_terminator (kitten *, void *, int (*) (void *));
+void cadical_kitten_no_terminator (cadical_kitten *);
+void cadical_kitten_set_terminator (cadical_kitten *, void *, int (*) (void *));
 
-int kitten_solve (kitten *);
-int kitten_status (kitten *);
+int cadical_kitten_solve (cadical_kitten *);
+int cadical_kitten_status (cadical_kitten *);
 
-signed char kitten_value (kitten *, unsigned);
-signed char kitten_signed_value (kitten *, int); // converts second argument
-signed char kitten_fixed (kitten *, unsigned);
-signed char kitten_fixed_signed (kitten *, int); // converts
-bool kitten_failed (kitten *, unsigned);
-bool kitten_flip_literal (kitten *, unsigned);
-bool kitten_flip_signed_literal (kitten *, int);
+signed char cadical_kitten_value (cadical_kitten *, unsigned);
+signed char cadical_kitten_signed_value (cadical_kitten *, int); // converts second argument
+signed char cadical_kitten_fixed (cadical_kitten *, unsigned);
+signed char cadical_kitten_fixed_signed (cadical_kitten *, int); // converts
+bool cadical_kitten_failed (cadical_kitten *, unsigned);
+bool cadical_kitten_flip_literal (cadical_kitten *, unsigned);
+bool cadical_kitten_flip_signed_literal (cadical_kitten *, int);
 
-unsigned kitten_compute_clausal_core (kitten *, uint64_t *learned);
-void kitten_shrink_to_clausal_core (kitten *);
+unsigned cadical_kitten_compute_clausal_core (cadical_kitten *, uint64_t *learned);
+void cadical_kitten_shrink_to_clausal_core (cadical_kitten *);
 
-void kitten_traverse_core_ids (kitten *, void *state,
+void cadical_kitten_traverse_core_ids (cadical_kitten *, void *state,
                                void (*traverse) (void *state, unsigned id));
 
-void kitten_traverse_core_clauses (kitten *, void *state,
+void cadical_kitten_traverse_core_clauses (cadical_kitten *, void *state,
                                    void (*traverse) (void *state,
                                                      bool learned, size_t,
                                                      const unsigned *));
-void kitten_traverse_core_clauses_with_id (
-    kitten *, void *state,
+void cadical_kitten_traverse_core_clauses_with_id (
+    cadical_kitten *, void *state,
     void (*traverse) (void *state, unsigned, bool learned, size_t,
                       const unsigned *));
-void kitten_trace_core (kitten *, void *state,
+void cadical_kitten_trace_core (cadical_kitten *, void *state,
                         void (*trace) (void *, unsigned, unsigned, bool,
                                        size_t, const unsigned *, size_t,
                                        const unsigned *));
 
-int kitten_compute_prime_implicant (kitten *kitten, void *state,
+int cadical_kitten_compute_prime_implicant (cadical_kitten *cadical_kitten, void *state,
                                     bool (*ignore) (void *, unsigned));
 
-void kitten_add_prime_implicant (kitten *kitten, void *state, int side,
+void cadical_kitten_add_prime_implicant (cadical_kitten *cadical_kitten, void *state, int side,
                                  void (*add_implicant) (void *, int, size_t,
                                                         const unsigned *));
 
-int kitten_flip_and_implicant_for_signed_literal (kitten *kitten, int elit);
+int cadical_kitten_flip_and_implicant_for_signed_literal (cadical_kitten *cadical_kitten, int elit);
 
-#ifdef __cplusplus
-}
-#endif
+ABC_NAMESPACE_HEADER_END
 
 #endif

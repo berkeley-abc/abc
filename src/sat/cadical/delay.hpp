@@ -1,8 +1,12 @@
 #ifndef _delay_hpp_INCLUDED
 #define _delay_hpp_INCLUDED
 
+#include "global.h"
+
 #include <cstdint>
 #include <limits>
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 struct Delay {
@@ -34,5 +38,7 @@ struct Delay {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

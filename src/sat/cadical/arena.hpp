@@ -1,6 +1,10 @@
 #ifndef _arena_hpp_INCLUDED
 #define _arena_hpp_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace CaDiCaL {
 
 // This memory allocation arena provides fixed size pre-allocated memory for
@@ -36,7 +40,7 @@ namespace CaDiCaL {
 //   q1 = arena.copy (p1, bytes1);
 //   ...
 //   qn = arena.copy (pn, bytesn);
-//   assert (bytes1 + ... + bytesn <= bytes);
+//   CADICAL_assert (bytes1 + ... + bytesn <= bytes);
 //   arena.swap ();
 //   ...
 //   if (!arena.contains (q)) delete q;
@@ -45,7 +49,7 @@ namespace CaDiCaL {
 //   q1 = arena.copy (p1, bytes1);
 //   ...
 //   qn = arena.copy (pn, bytesn);
-//   assert (bytes1 + ... + bytesn <= bytes);
+//   CADICAL_assert (bytes1 + ... + bytesn <= bytes);
 //   arena.swap ();
 //   ...
 //
@@ -88,7 +92,7 @@ public:
   char *copy (const char *p, size_t bytes) {
     char *res = to.top;
     to.top += bytes;
-    assert (to.top <= to.end);
+    CADICAL_assert (to.top <= to.end);
     memcpy (res, p, bytes);
     return res;
   }
@@ -101,5 +105,7 @@ public:
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

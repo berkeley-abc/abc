@@ -1,11 +1,15 @@
 #ifndef _message_h_INCLUDED
 #define _message_h_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 /*------------------------------------------------------------------------*/
 
 // Macros for compact message code.
 
-#ifndef QUIET
+#ifndef CADICAL_QUIET
 
 #define LINE() \
   do { \
@@ -61,5 +65,7 @@
 #define WARNING(...) internal->warning (__VA_ARGS__)
 
 /*------------------------------------------------------------------------*/
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif // ifndef _message_h_INCLUDED

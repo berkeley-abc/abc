@@ -1,6 +1,8 @@
 #ifndef _inttypes_h_INCLUDED
 #define _inttypes_h_INCLUDED
 
+#include "global.h"
+
 // This is an essence a wrapper around '<cinttypes>' respectively
 // 'inttypes.h' in order to please the 'MinGW' cross-compiler (we are using
 // 'i686-w64-mingw32-gcc') to produce correct 'printf' style formatting for

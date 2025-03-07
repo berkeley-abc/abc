@@ -1,6 +1,10 @@
 #ifndef _phases_hpp_INCLUDED
 #define _phases_hpp_INCLUDED
 
+#include "global.h"
+
+ABC_NAMESPACE_CXX_HEADER_START
+
 namespace CaDiCaL {
 
 struct Phases {
@@ -14,5 +18,7 @@ struct Phases {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif

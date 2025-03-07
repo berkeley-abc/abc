@@ -1,8 +1,12 @@
 #ifndef _factor_hpp_INCLUDED
 #define _factor_hpp_INCLUDED
 
+#include "global.h"
+
 #include "clause.hpp"
 #include "heap.hpp"
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
 
@@ -50,5 +54,7 @@ struct Factoring {
 };
 
 } // namespace CaDiCaL
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif
