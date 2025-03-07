@@ -16,6 +16,8 @@
 #undef LOGPREFIX
 #define LOGPREFIX "CHECK"
 
+ABC_NAMESPACE_IMPL_START
+
 void kissat_check_satisfying_assignment (kissat *solver) {
   LOG ("checking satisfying assignment");
   const int *const begin = BEGIN_STACK (solver->original);
@@ -51,16 +53,20 @@ void kissat_check_satisfying_assignment (kissat *solver) {
   LOG ("assignment satisfies all %zu original clauses", count);
 }
 
+ABC_NAMESPACE_IMPL_END
+
 #include "allocate.h"
 #include "inline.h"
 #include "sort.h"
+
+ABC_NAMESPACE_IMPL_START
 
 typedef struct hash hash;
 typedef struct bucket bucket;
 
 // clang-format off
 
-typedef STACK (bucket*) buckets;
+typedef STACK (bucket*) buckets_;
 
 // clang-format on
 
@@ -82,7 +88,7 @@ struct checker {
 
   bucket **table;
 
-  buckets *watches;
+  buckets_ *watches;
   bool *marks;
   bool *large;
   bool *used;
@@ -151,7 +157,7 @@ static void init_nonces (kissat *solver, checker *checker) {
 
 void kissat_init_checker (kissat *solver) {
   LOG ("initializing internal proof checker");
-  checker *checker = kissat_calloc (solver, 1, sizeof (struct checker));
+  checker *checker = (struct checker*)kissat_calloc (solver, 1, sizeof (struct checker));
   solver->checker = checker;
   init_nonces (solver, checker);
 }
@@ -172,7 +178,7 @@ static void release_watches (kissat *solver, checker *checker) {
   for (unsigned i = 0; i < lits; i++)
     RELEASE_STACK (checker->watches[i]);
   kissat_dealloc (solver, checker->watches, 2 * checker->size,
-                  sizeof (buckets));
+                  sizeof (buckets_));
 }
 
 void kissat_release_checker (kissat *solver) {
@@ -191,7 +197,11 @@ void kissat_release_checker (kissat *solver) {
 
 #ifndef KISSAT_QUIET
 
+ABC_NAMESPACE_IMPL_END
+
 #include <inttypes.h>
+
+ABC_NAMESPACE_IMPL_START
 
 #define PERCENT_ADDED(NAME) kissat_percent (checker->NAME, checker->added)
 #define PERCENT_CHECKED(NAME) \
@@ -249,7 +259,7 @@ static void resize_hash (kissat *solver, checker *checker) {
   const unsigned old_hashed = checker->hashed;
   KISSAT_assert (old_hashed < MAX_SIZE);
   const unsigned new_hashed = old_hashed ? 2 * old_hashed : 1;
-  bucket **table = kissat_calloc (solver, new_hashed, sizeof (bucket *));
+  bucket **table = (bucket**) kissat_calloc (solver, new_hashed, sizeof (bucket *));
   bucket **old_table = checker->table;
   for (unsigned i = 0; i < old_hashed; i++) {
     for (bucket *bucket = old_table[i], *next; bucket; bucket = next) {
@@ -303,7 +313,7 @@ static void checker_assign (kissat *solver, checker *checker, unsigned lit,
   PUSH_STACK (checker->trail, lit);
 }
 
-static buckets *checker_watches (checker *checker, unsigned lit) {
+static buckets_ *checker_watches (checker *checker, unsigned lit) {
   KISSAT_assert (VALID_CHECKER_LIT (lit));
   return checker->watches + lit;
 }
@@ -311,14 +321,14 @@ static buckets *checker_watches (checker *checker, unsigned lit) {
 static void watch_checker_literal (kissat *solver, checker *checker,
                                    bucket *bucket, unsigned lit) {
   LOGLINE3 ("checker watches %u in", lit);
-  buckets *buckets = checker_watches (checker, lit);
+  buckets_ *buckets = checker_watches (checker, lit);
   PUSH_STACK (*buckets, bucket);
 }
 
 static void unwatch_checker_literal (kissat *solver, checker *checker,
                                      bucket *bucket, unsigned lit) {
   LOGLINE3 ("checker unwatches %u in", lit);
-  buckets *buckets = checker_watches (checker, lit);
+  buckets_ *buckets = checker_watches (checker, lit);
   REMOVE_STACK (struct bucket *, *buckets, bucket);
 #ifndef LOGGING
   (void) solver;
@@ -535,15 +545,15 @@ static void resize_checker (kissat *solver, checker *checker,
     LOG3 ("resizing checker form %u to %u", size, new_size);
     const unsigned size2 = 2 * size;
     const unsigned new_size2 = 2 * new_size;
-    checker->marks = kissat_realloc (solver, checker->marks, size2,
+    checker->marks = (bool*)kissat_realloc (solver, checker->marks, size2,
                                      new_size2 * sizeof (bool));
-    checker->used = kissat_realloc (solver, checker->used, size2,
+    checker->used = (bool*)kissat_realloc (solver, checker->used, size2,
                                     new_size2 * sizeof (bool));
-    checker->large = kissat_realloc (solver, checker->large, size2,
+    checker->large = (bool*)kissat_realloc (solver, checker->large, size2,
                                      new_size2 * sizeof (bool));
     checker->values =
-        kissat_realloc (solver, checker->values, size2, new_size2);
-    checker->watches = kissat_realloc (
+      (signed char *)kissat_realloc (solver, checker->values, size2, new_size2);
+    checker->watches = (buckets_*)kissat_realloc (
         solver, checker->watches, size2 * sizeof *checker->watches,
         new_size2 * sizeof *checker->watches);
     checker->size = new_size;
@@ -685,7 +695,7 @@ static bool checker_propagate (kissat *solver, checker *checker) {
     KISSAT_assert (values[lit] > 0);
     KISSAT_assert (values[not_lit] < 0);
     propagated++;
-    buckets *buckets = checker_watches (checker, not_lit);
+    buckets_ *buckets = checker_watches (checker, not_lit);
     bucket **begin_of_lines = BEGIN_STACK (*buckets), **q = begin_of_lines;
     bucket *const *end_of_lines = END_STACK (*buckets), *const *p = q;
     while (p != end_of_lines) {
@@ -793,7 +803,7 @@ static bool checker_blocked_literal (kissat *solver, checker *checker,
   const unsigned not_lit = lit ^ 1;
   if (checker->large[not_lit])
     return false;
-  buckets *buckets = checker_watches (checker, not_lit);
+  buckets_ *buckets = checker_watches (checker, not_lit);
   bucket *const *const begin_of_lines = BEGIN_STACK (*buckets);
   bucket *const *const end_of_lines = END_STACK (*buckets);
   bucket *const *p = begin_of_lines;
@@ -1030,6 +1040,11 @@ void dump_checker (kissat *solver) {
       dump_line (bucket);
 }
 
+ABC_NAMESPACE_IMPL_END
+
 #else
+ABC_NAMESPACE_IMPL_START
 int kissat_check_dummy_to_avoid_warning;
+ABC_NAMESPACE_IMPL_END
 #endif
+
