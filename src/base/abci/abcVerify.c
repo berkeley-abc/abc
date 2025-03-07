@@ -324,6 +324,12 @@ void Abc_NtkCecFraigPart( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, in
         }
         else if ( RetValue == 0 )
         {
+            if(!pMiterPart)
+            {
+                printf("ERROR: Failed to create cone for output %d.\n", i);
+                Status = -1; 
+                break; 
+            }
             int * pSimInfo = Abc_NtkVerifySimulatePattern( pMiterPart, pMiterPart->pModel );
             if ( pSimInfo[0] != 1 )
                 printf( "ERROR in Abc_NtkMiterProve(): Generated counter-example is invalid.\n" );
