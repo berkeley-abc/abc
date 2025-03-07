@@ -29,7 +29,7 @@ jobs:
           windows-2019-cl,
           ubuntu-22.04-gcc-10,
           ubuntu-24.04-gcc-13,
-          ubuntu-22.04-clang-14,
+          ubuntu-22.04-clang-15,
           macOS-13-gcc,
           macOS-13-clang,
         ]
@@ -51,10 +51,10 @@ jobs:
             version: "13"
             toxcmd: libs
 
-          - name: ubuntu-22.04-clang-14
+          - name: ubuntu-22.04-clang-15
             os: ubuntu-22.04
             compiler: clang
-            version: "14"
+            version: "15"
             toxcmd: clang
 
           - name: macOS-13-gcc
@@ -100,9 +100,10 @@ jobs:
           echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
           echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
         else
-          sudo apt-get install -y clang-${{ matrix.version }} llvm-${{ matrix.version }} lld-${{ matrix.version }} g++-multilib
+          sudo apt-get install -y clang-${{ matrix.version }} clang++-${{ matrix.version }} llvm-${{ matrix.version }}-tools lld-${{ matrix.version }}
           echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
           echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "LLVM_VER_DIR=/usr/lib/llvm-${{ matrix.version }}" >> $GITHUB_ENV
         fi
 
     - name: Build and test Linux
@@ -110,12 +111,13 @@ jobs:
       env:
         CC: ${{ env.CC }}
         CXX: ${{ env.CXX }}
+        LLVM_VER_DIR: ${{ env.LLVM_VER_DIR }}
         PREFIX: ../staging
       run: |
         tox -e ${{ matrix.toxcmd }}
 
     - uses: actions/upload-artifact@v4
-      if: matrix.name == 'ubuntu-22.04-clang-14'
+      if: matrix.name == 'ubuntu-22.04-clang-15'
       with:
         name: src_coverage_data
         path: |
