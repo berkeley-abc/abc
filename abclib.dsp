@@ -2886,6 +2886,374 @@ SOURCE=.\src\sat\kissat\watch.c
 SOURCE=.\src\sat\kissat\weaken.c
 # End Source File
 # End Group
+# Begin Group "cadical"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_kitten.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_analyze.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_arena.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_assume.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_averages.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_backtrack.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_backward.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_bins.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_block.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_ccadical.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_checker.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_clause.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_collect.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_compact.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_condition.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_config.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_congruence.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_constrain.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_contract.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_cover.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_decide.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_decompose.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_deduplicate.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_definition.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_drattracer.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_elim.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_elimfast.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_ema.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_extend.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_external.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_external_propagate.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_factor.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_file.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_flags.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_flip.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_format.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_frattracer.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_gates.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_idruptracer.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_instantiate.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_internal.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_ipasir.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_lidruptracer.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_limit.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_logging.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_lookahead.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_lratchecker.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_lrattracer.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_lucky.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_message.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_minimize.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_occs.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_options.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_parse.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_phases.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_probe.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_profile.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_proof.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_propagate.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_queue.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_random.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_reap.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_reduce.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_rephase.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_report.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_resources.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_restart.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_restore.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_score.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_shrink.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_signal.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_solution.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_solver.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_stable.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_stats.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_subsume.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_sweep.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_terminal.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_ternary.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_tier.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_transred.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_unstable.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_util.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_var.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_veripbtracer.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_version.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_vivify.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_walk.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_watch.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadicalSolver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadicalTest.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "opt"
 
