@@ -1892,7 +1892,7 @@ unsigned kitten_compute_clausal_core (kitten *kitten,
     if (reason_ref == INVALID) {
       LOG ("assumptions mutually inconsistent");
 
-      
+
       //      goto DONE;
   if (learned_ptr)
     *learned_ptr = learned;
@@ -1907,7 +1907,7 @@ unsigned kitten_compute_clausal_core (kitten *kitten,
 
   return original;
 
-  
+
     }
   }
 
@@ -2412,7 +2412,7 @@ static inline void print_lit (line *line, int lit) {
 
 static void print_witness (kitten *kitten, int max_var) {
   KISSAT_assert (max_var >= 0);
-  line line = {.size = 0};
+  line line = {/*.size = */0};  // c++20 only
   const size_t parsed_lits = 2 * (size_t) max_var;
   for (size_t ulit = 0; ulit < parsed_lits; ulit += 2) {
     const value sign = kitten_value (kitten, ulit);

@@ -9,7 +9,7 @@
   Synopsis    [New hierarchy manager.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -34,8 +34,8 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 #define AU_MAX_FANINS 0x1FFFFFFF
- 
-typedef enum { 
+
+typedef enum {
     AU_OBJ_NONE,           // 0: non-existent object
     AU_OBJ_CONST0,         // 1: constant node
     AU_OBJ_PI,             // 2: primary input
@@ -61,7 +61,7 @@ struct Au_Obj_t_ // 16 bytes
     int                    Fanins[2];          // fanin literals
 };
 
-struct Au_Ntk_t_ 
+struct Au_Ntk_t_
 {
     char *                 pName;              // model name
     Au_Man_t *             pMan;               // model manager
@@ -95,7 +95,7 @@ struct Au_Ntk_t_
     double                 nNodeMuxs;
 };
 
-struct Au_Man_t_ 
+struct Au_Man_t_
 {
     char *                 pName;              // the name of the library
     Vec_Ptr_t              vNtks;              // the array of modules
@@ -120,7 +120,7 @@ static inline Au_Obj_t *   Au_Regular( Au_Obj_t * p )                    { retur
 static inline Au_Obj_t *   Au_Not( Au_Obj_t * p )                        { return (Au_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);   }
 static inline Au_Obj_t *   Au_NotCond( Au_Obj_t * p, int c )             { return (Au_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c));   }
 static inline int          Au_IsComplement( Au_Obj_t * p )               { return (int)((ABC_PTRUINT_T)(p) & 01);           }
- 
+
 static inline char *       Au_UtilStrsav( char * s )                     { return s ? strcpy(ABC_ALLOC(char, strlen(s)+1), s) : NULL;             }
 
 static inline char *       Au_ManName( Au_Man_t * p )                    { return p->pName;                                                       }
@@ -130,32 +130,32 @@ static inline Au_Ntk_t *   Au_ManNtkRoot( Au_Man_t * p )                 { retur
 
 static inline char *       Au_NtkName( Au_Ntk_t * p )                    { return p->pName;                                                       }
 static inline Au_Man_t *   Au_NtkMan( Au_Ntk_t * p )                     { return p->pMan;                                                        }
-static inline int          Au_NtkPiNum( Au_Ntk_t * p )                   { return p->nObjs[AU_OBJ_PI];                                            } 
-static inline int          Au_NtkPoNum( Au_Ntk_t * p )                   { return p->nObjs[AU_OBJ_PO];                                            } 
-static inline int          Au_NtkFanNum( Au_Ntk_t * p )                  { return p->nObjs[AU_OBJ_FAN];                                           } 
-static inline int          Au_NtkFlopNum( Au_Ntk_t * p )                 { return p->nObjs[AU_OBJ_FLOP];                                          } 
-static inline int          Au_NtkBoxNum( Au_Ntk_t * p )                  { return p->nObjs[AU_OBJ_BOX];                                           } 
-static inline int          Au_NtkNodeNum( Au_Ntk_t * p )                 { return p->nObjs[AU_OBJ_NODE];                                          } 
-static inline int          Au_NtkObjNumMax( Au_Ntk_t * p )               { return (Vec_PtrSize(&p->vPages) - 1) * (1 << 12) + p->iHandle;         } 
-static inline int          Au_NtkObjNum( Au_Ntk_t * p )                  { return Vec_IntSize(&p->vObjs);                                         } 
+static inline int          Au_NtkPiNum( Au_Ntk_t * p )                   { return p->nObjs[AU_OBJ_PI];                                            }
+static inline int          Au_NtkPoNum( Au_Ntk_t * p )                   { return p->nObjs[AU_OBJ_PO];                                            }
+static inline int          Au_NtkFanNum( Au_Ntk_t * p )                  { return p->nObjs[AU_OBJ_FAN];                                           }
+static inline int          Au_NtkFlopNum( Au_Ntk_t * p )                 { return p->nObjs[AU_OBJ_FLOP];                                          }
+static inline int          Au_NtkBoxNum( Au_Ntk_t * p )                  { return p->nObjs[AU_OBJ_BOX];                                           }
+static inline int          Au_NtkNodeNum( Au_Ntk_t * p )                 { return p->nObjs[AU_OBJ_NODE];                                          }
+static inline int          Au_NtkObjNumMax( Au_Ntk_t * p )               { return (Vec_PtrSize(&p->vPages) - 1) * (1 << 12) + p->iHandle;         }
+static inline int          Au_NtkObjNum( Au_Ntk_t * p )                  { return Vec_IntSize(&p->vObjs);                                         }
 static inline Au_Obj_t *   Au_NtkObj( Au_Ntk_t * p, int h )              { return (Au_Obj_t *)p->vPages.pArray[h >> 12] + (h & 0xFFF);            }
 
 static inline Au_Obj_t *   Au_NtkPi( Au_Ntk_t * p, int i )               { return Au_NtkObj(p, Vec_IntEntry(&p->vPis, i));                        }
 static inline Au_Obj_t *   Au_NtkPo( Au_Ntk_t * p, int i )               { return Au_NtkObj(p, Vec_IntEntry(&p->vPos, i));                        }
 static inline Au_Obj_t *   Au_NtkObjI( Au_Ntk_t * p, int i )             { return Au_NtkObj(p, Vec_IntEntry(&p->vObjs, i));                       }
 
-static inline int          Au_ObjIsNone( Au_Obj_t * p )                  { return p->Type == AU_OBJ_NONE;                                         } 
-static inline int          Au_ObjIsConst0( Au_Obj_t * p )                { return p->Type == AU_OBJ_CONST0;                                       } 
-static inline int          Au_ObjIsPi( Au_Obj_t * p )                    { return p->Type == AU_OBJ_PI;                                           } 
-static inline int          Au_ObjIsPo( Au_Obj_t * p )                    { return p->Type == AU_OBJ_PO;                                           } 
-static inline int          Au_ObjIsFan( Au_Obj_t * p )                   { return p->Type == AU_OBJ_FAN;                                          } 
-static inline int          Au_ObjIsFlop( Au_Obj_t * p )                  { return p->Type == AU_OBJ_FLOP;                                         } 
-static inline int          Au_ObjIsBox( Au_Obj_t * p )                   { return p->Type == AU_OBJ_BOX;                                          } 
+static inline int          Au_ObjIsNone( Au_Obj_t * p )                  { return p->Type == AU_OBJ_NONE;                                         }
+static inline int          Au_ObjIsConst0( Au_Obj_t * p )                { return p->Type == AU_OBJ_CONST0;                                       }
+static inline int          Au_ObjIsPi( Au_Obj_t * p )                    { return p->Type == AU_OBJ_PI;                                           }
+static inline int          Au_ObjIsPo( Au_Obj_t * p )                    { return p->Type == AU_OBJ_PO;                                           }
+static inline int          Au_ObjIsFan( Au_Obj_t * p )                   { return p->Type == AU_OBJ_FAN;                                          }
+static inline int          Au_ObjIsFlop( Au_Obj_t * p )                  { return p->Type == AU_OBJ_FLOP;                                         }
+static inline int          Au_ObjIsBox( Au_Obj_t * p )                   { return p->Type == AU_OBJ_BOX;                                          }
 static inline int          Au_ObjIsNode( Au_Obj_t * p )                  { return p->Type == AU_OBJ_NODE;                                         }
-static inline int          Au_ObjIsTerm( Au_Obj_t * p )                  { return p->Type >= AU_OBJ_PI && p->Type <= AU_OBJ_FLOP;                 } 
+static inline int          Au_ObjIsTerm( Au_Obj_t * p )                  { return p->Type >= AU_OBJ_PI && p->Type <= AU_OBJ_FLOP;                 }
 
-static inline char *       Au_ObjBase( Au_Obj_t * p )                    { return (char *)p - ((ABC_PTRINT_T)p & 0x3FF);                          } 
-static inline Au_Ntk_t *   Au_ObjNtk( Au_Obj_t * p )                     { return ((Au_Ntk_t **)Au_ObjBase(p))[0];                                } 
+static inline char *       Au_ObjBase( Au_Obj_t * p )                    { return (char *)p - ((ABC_PTRINT_T)p & 0x3FF);                          }
+static inline Au_Ntk_t *   Au_ObjNtk( Au_Obj_t * p )                     { return ((Au_Ntk_t **)Au_ObjBase(p))[0];                                }
 static inline int          Au_ObjId( Au_Obj_t * p )                      { return ((int *)Au_ObjBase(p))[2] | (((ABC_PTRINT_T)p & 0x3FF) >> 4);   }
 static inline int          Au_ObjPioNum( Au_Obj_t * p )                  { assert(Au_ObjIsTerm(p)); return p->Fanins[p->nFanins];                 }
 static inline int          Au_ObjFunc( Au_Obj_t * p )                    { return p->Func;                                                        }
@@ -197,17 +197,17 @@ static inline void         Au_ObjSetTravIdCurrentId( Au_Ntk_t * p, int Id ) { Ve
 static inline int          Au_ObjIsTravIdCurrentId( Au_Ntk_t * p, int Id )  { return (Vec_IntGetEntry(&p->vTravIds, Id) == p->nTravIds);                                             }
 
 #define Au_ManForEachNtk( p, pNtk, i )           \
-    for ( i = 1; (i < Vec_PtrSize(&p->vNtks))   && (((pNtk) = Au_ManNtk(p, i)), 1); i++ ) 
+    for ( i = 1; (i < Vec_PtrSize(&p->vNtks))   && (((pNtk) = Au_ManNtk(p, i)), 1); i++ )
 #define Au_ManForEachNtkReverse( p, pNtk, i )    \
-    for ( i = Vec_PtrSize(&p->vNtks) - 1;(i>=1) && (((pNtk) = Au_ManNtk(p, i)), 1); i-- ) 
+    for ( i = Vec_PtrSize(&p->vNtks) - 1;(i>=1) && (((pNtk) = Au_ManNtk(p, i)), 1); i-- )
 
 #define Au_ObjForEachFaninId( pObj, hFanin, i )  \
-    for ( i = 0; (i < Au_ObjFaninNum(pObj))     && (((hFanin) = Au_ObjFaninId(pObj, i)), 1); i++ )  
+    for ( i = 0; (i < Au_ObjFaninNum(pObj))     && (((hFanin) = Au_ObjFaninId(pObj, i)), 1); i++ )
 #define Au_BoxForEachFanoutId( pObj, hFanout, i) \
     for ( i = 0; (i < Au_BoxFanoutNum(pObj))    && (((hFanout) = Au_BoxFanoutId(pObj, i)), 1); i++ )
 
 #define Au_ObjForEachFanin( pObj, pFanin, i )    \
-    for ( i = 0; (i < Au_ObjFaninNum(pObj))     && (((pFanin) = Au_ObjFanin(pObj, i)), 1); i++ )  
+    for ( i = 0; (i < Au_ObjFaninNum(pObj))     && (((pFanin) = Au_ObjFanin(pObj, i)), 1); i++ )
 #define Au_BoxForEachFanout( pObj, pFanout, i)   \
     for ( i = 0; (i < Au_BoxFanoutNum(pObj))    && (((pFanout) = Au_BoxFanout(pObj, i)), 1); i++ )
 
@@ -236,7 +236,7 @@ extern void Au_ManFree( Au_Man_t * p );
   Synopsis    [Working with models.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -318,7 +318,7 @@ int Au_NtkNodeNumFunc( Au_Ntk_t * p, int Func )
   Synopsis    [Working with manager.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -351,7 +351,7 @@ void Au_ManDelete( Au_Man_t * p )
     Au_ManForEachNtk( p, pNtk, i )
         Au_NtkFree( pNtk );
 }
-int Au_ManFindNtk( Au_Man_t * p, char * pName )
+int Au_ManFindNtk( Au_Man_t * p, const char * pName )
 {
     Au_Ntk_t * pNtk;
     int i;
@@ -360,7 +360,7 @@ int Au_ManFindNtk( Au_Man_t * p, char * pName )
             return i;
     return -1;
 }
-Au_Ntk_t * Au_ManFindNtkP( Au_Man_t * p, char * pName )
+Au_Ntk_t * Au_ManFindNtkP( Au_Man_t * p, const char * pName )
 {
     int iNtk = Au_ManFindNtk( p, pName );
     if ( iNtk == -1 )
@@ -447,7 +447,7 @@ void Au_ManReorderModels( Au_Man_t * p, Au_Ntk_t * pRoot )
     // reverse order
     vOrder->nSize--;
     vOrder->pArray++;
-    Vec_IntReverseOrder( vOrder ); 
+    Vec_IntReverseOrder( vOrder );
     vOrder->pArray--;
     vOrder->nSize++;
     // compute new order
@@ -524,11 +524,11 @@ void Au_ManCountThings( Au_Man_t * p )
 //        printf( "total %.0f nodes in model %s\n", pNtk->nNodes, Au_NtkName(pNtk) );
     }
     pNtk = Au_ManNtkRoot(p);
-    printf( "Total nodes = %15.0f. Total instances = %15.0f. Total ports = %15.0f.\n", 
-//    printf( "Total nodes = %.2e. Total instances = %.2e. Total ports = %.2e.\n", 
+    printf( "Total nodes = %15.0f. Total instances = %15.0f. Total ports = %15.0f.\n",
+//    printf( "Total nodes = %.2e. Total instances = %.2e. Total ports = %.2e.\n",
         pNtk->nNodes, pNtk->nBoxes, pNtk->nPorts );
-//    printf( "Total ANDs  = %15.0f. Total XORs      = %15.0f. Total MUXes = %15.0f.\n", 
-//    printf( "Total ANDs  = %.2e. Total XORs      = %.2e. Total MUXes = %.2e.  ", 
+//    printf( "Total ANDs  = %15.0f. Total XORs      = %15.0f. Total MUXes = %15.0f.\n",
+//    printf( "Total ANDs  = %.2e. Total XORs      = %.2e. Total MUXes = %.2e.  ",
 //        pNtk->nNodeAnds, pNtk->nNodeXors, pNtk->nNodeMuxs );
     printf( "Total ANDs  = %15.0f.\n", pNtk->nNodeAnds );
     printf( "Total XORs  = %15.0f.\n", pNtk->nNodeXors );
@@ -744,7 +744,7 @@ int Au_NtkSuppSizeTest( Au_Ntk_t * p )
   Synopsis    [Returns memory for the next object.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -779,7 +779,7 @@ int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
         if ( p->iHandle )
         {
             pMem += 64 - (p->iHandle & 63);
-            p->iHandle = 0; 
+            p->iHandle = 0;
         }
         Vec_PtrPush( &p->vPages, pMem );
         Au_NtkInsertHeader( p );
@@ -790,7 +790,7 @@ int Au_NtkAllocObj( Au_Ntk_t * p, int nFanins, int Type )
         if ( (p->iHandle & 63) == 0 || nObjInt > (64 - (p->iHandle & 63)) )
         {
             if ( p->iHandle & 63 )
-                p->iHandle += 64 - (p->iHandle & 63); 
+                p->iHandle += 64 - (p->iHandle & 63);
             Au_NtkInsertHeader( p );
         }
         if ( p->iHandle + nObjInt > (1 << 12) )
@@ -899,7 +899,7 @@ Here is a small example:
   Synopsis    [Reads one entry.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -914,7 +914,7 @@ static inline int Au_NtkRemapNum( Vec_Int_t * vNum2Obj, int Num )
   Synopsis    [Reads one entry.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -950,7 +950,7 @@ static inline void Au_NtkParseCBlifNum( Vec_Int_t * vFanins, char * pToken, Vec_
   Synopsis    [Parses CBLIF file.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1077,7 +1077,7 @@ Au_Ntk_t * Au_NtkParseCBlif( char * pFileName )
             {
                 pCur = strtok( NULL, " \t\r" );
                 if ( pCur == NULL || *pCur == '#' )
-                    break; 
+                    break;
                 Au_NtkParseCBlifNum( vFanins, pCur, vNum2Obj );
             }
             assert( Vec_IntSize(vFanins) == nOutputs );
@@ -1122,14 +1122,14 @@ extern int Abc_NtkCheckRecursive( Abc_Ntk_t * pNtk );
   Synopsis    [Flattens the logic hierarchy of the netlist.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
-{ 
+{
     Au_Obj_t * pObj, * pTerm;
     int i, k, Lit = 0;
     Au_NtkForEachPi( p, pTerm, i )
@@ -1173,8 +1173,8 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
                     Lit2 = Abc_LitNotCond( Au_ObjCopy(Au_ObjFanin2(pObj)), Au_ObjFaninC2(pObj) );
                     Lit = Gia_ManHashMux( pGia, Lit0, Lit1, Lit2 );
                 }
-                else assert( 0 ); 
-            } 
+                else assert( 0 );
+            }
             assert( Lit >= 0 );
             Au_ObjSetCopy( pObj, Lit );
         }
@@ -1196,7 +1196,7 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
         }
         else if ( Au_ObjIsConst0(pObj) )
             Au_ObjSetCopy( pObj, 0 );
-            
+
     }
     Au_NtkForEachPo( p, pTerm, i )
     {
@@ -1213,7 +1213,7 @@ void Au_NtkDeriveFlatGia_rec( Gia_Man_t * pGia, Au_Ntk_t * p )
   Synopsis    [Flattens the logic hierarchy of the netlist.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1257,17 +1257,17 @@ Gia_Man_t * Au_NtkDeriveFlatGia( Au_Ntk_t * p )
 
 static inline void Au_ObjSetXsim( Au_Obj_t * pObj, int Value )  { pObj->Value = Value;  }
 static inline int  Au_ObjGetXsim( Au_Obj_t * pObj )             { return pObj->Value;   }
-static inline int  Au_XsimInv( int Value )   
-{ 
+static inline int  Au_XsimInv( int Value )
+{
     if ( Value == AU_VAL0 )
         return AU_VAL1;
     if ( Value == AU_VAL1 )
         return AU_VAL0;
-    assert( Value == AU_VALX );       
+    assert( Value == AU_VALX );
     return AU_VALX;
 }
-static inline int  Au_XsimAnd( int Value0, int Value1 )   
-{ 
+static inline int  Au_XsimAnd( int Value0, int Value1 )
+{
     if ( Value0 == AU_VAL0 || Value1 == AU_VAL0 )
         return AU_VAL0;
     if ( Value0 == AU_VALX || Value1 == AU_VALX )
@@ -1275,16 +1275,16 @@ static inline int  Au_XsimAnd( int Value0, int Value1 )
     assert( Value0 == AU_VAL1 && Value1 == AU_VAL1 );
     return AU_VAL1;
 }
-static inline int  Au_XsimXor( int Value0, int Value1 )   
-{ 
+static inline int  Au_XsimXor( int Value0, int Value1 )
+{
     if ( Value0 == AU_VALX || Value1 == AU_VALX )
         return AU_VALX;
     if ( (Value0 == AU_VAL0) == (Value1 == AU_VAL0) )
         return AU_VAL0;
     return AU_VAL1;
 }
-static inline int  Au_XsimMux( int ValueC, int Value1, int Value0 )   
-{ 
+static inline int  Au_XsimMux( int ValueC, int Value1, int Value0 )
+{
     if ( ValueC == AU_VAL0 )
         return Value0;
     if ( ValueC == AU_VAL1 )
@@ -1295,18 +1295,18 @@ static inline int  Au_XsimMux( int ValueC, int Value1, int Value0 )
         return AU_VAL1;
     return AU_VALX;
 }
-static inline int  Au_ObjGetXsimFan0( Au_Obj_t * pObj )       
-{ 
+static inline int  Au_ObjGetXsimFan0( Au_Obj_t * pObj )
+{
     int Value = Au_ObjGetXsim( Au_ObjFanin0(pObj) );
     return Au_ObjFaninC0(pObj) ? Au_XsimInv(Value) : Value;
 }
-static inline int  Au_ObjGetXsimFan1( Au_Obj_t * pObj )       
-{ 
+static inline int  Au_ObjGetXsimFan1( Au_Obj_t * pObj )
+{
     int Value = Au_ObjGetXsim( Au_ObjFanin1(pObj) );
     return Au_ObjFaninC1(pObj) ? Au_XsimInv(Value) : Value;
 }
-static inline int  Au_ObjGetXsimFan2( Au_Obj_t * pObj )       
-{ 
+static inline int  Au_ObjGetXsimFan2( Au_Obj_t * pObj )
+{
     int Value = Au_ObjGetXsim( Au_ObjFanin2(pObj) );
     return Au_ObjFaninC2(pObj) ? Au_XsimInv(Value) : Value;
 }
@@ -1316,14 +1316,14 @@ static inline int  Au_ObjGetXsimFan2( Au_Obj_t * pObj )
   Synopsis    [Flattens the logic hierarchy of the netlist.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 void Au_NtkTerSimulate_rec( Au_Ntk_t * p )
-{ 
+{
     Au_Obj_t * pObj = NULL, * pTerm;
     int i, k;
     Au_NtkForEachPi( p, pTerm, i )
@@ -1372,7 +1372,7 @@ void Au_NtkTerSimulate_rec( Au_Ntk_t * p )
         }
         else if ( Au_ObjIsConst0(pObj) )
             Au_ObjSetXsim( pObj, AU_VAL0 );
-            
+
     }
     Au_NtkForEachPo( p, pTerm, i )
         Au_ObjSetXsim( pTerm, Au_ObjGetXsimFan0(pObj) );
@@ -1393,7 +1393,7 @@ void Au_NtkTerSimulate_rec( Au_Ntk_t * p )
   Synopsis    [Flattens the logic hierarchy of the netlist.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1420,9 +1420,9 @@ void Au_NtkTerSimulate( Au_Ntk_t * p )
         else if ( Au_ObjGetXsim(pTerm) == AU_VAL1 )
             Counter[1]++;
     // print results
-    printf( "Const0 outputs =%15d. Const1 outputs =%15d.  Total outputs =%15d.\n", 
+    printf( "Const0 outputs =%15d. Const1 outputs =%15d.  Total outputs =%15d.\n",
         Counter[0], Counter[1], Au_NtkPoNum(p) );
-    printf( "Const0 ports =  %.0f. Const1  ports =  %.0f. Non-const ports=  %.0f.  Total ports =  %.0f.\n", 
+    printf( "Const0 ports =  %.0f. Const1  ports =  %.0f. Non-const ports=  %.0f.  Total ports =  %.0f.\n",
         p->pMan->nPortsC0, p->pMan->nPortsC1, p->pMan->nPortsNC, p->pMan->nPortsC0 + p->pMan->nPortsC1 + p->pMan->nPortsNC );
 }
 
@@ -1432,7 +1432,7 @@ void Au_NtkTerSimulate( Au_Ntk_t * p )
   Synopsis    [Duplicates ABC network.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1488,7 +1488,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     extern Vec_Ptr_t * Abc_NtkCollectHie( Abc_Ntk_t * pNtk );
 
 //    char * pModelName = NULL;
-    char * pModelName = "path_0_r_x_lhs";
+    const char * pModelName = "path_0_r_x_lhs";
     Gia_Man_t * pGia = NULL;
     Vec_Ptr_t * vOrder, * vModels;
     Abc_Ntk_t * pMod;
@@ -1533,7 +1533,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     if ( pNtk == NULL )
         pNtk = (Au_Ntk_t *)pRoot->pData;
 
-  
+
 //    if ( !Abc_NtkCheckRecursive(pRoot) )
     {
         clk1 = Abc_Clock();
@@ -1549,7 +1549,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
     clk1 = Abc_Clock();
     Au_ManDelete( pMan );
     clk2 += Abc_Clock() - clk1;
-    
+
     Abc_PrintTime( 1, "Time all ", Abc_Clock() - clk );
     Abc_PrintTime( 1, "Time new ", clk2 );
     Abc_PrintTime( 1, "Time GIA ", clk3 );
@@ -1562,7 +1562,7 @@ Gia_Man_t * Au_ManDeriveTest( Abc_Ntk_t * pRoot )
   Synopsis    [Performs hierarchical equivalence checking.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []

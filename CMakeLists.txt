@@ -28,6 +28,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+set(CMAKE_C_STANDARD 99)
+
 # MSVC has symbols hidden by default. On GCC and Clang we need to explicitly
 # set the visibility to hidden to achieve the same result and then manually
 # expose what we need. This results in smaller abc dynamic library and thus
@@ -167,6 +169,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT (CMAKE_CXX_COMPILER_VERSION VERS
     target_compile_options(abc_interface
         INTERFACE -fno-aggressive-loop-optimizations -Wno-unused-but-set-variable
     )
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    target_compile_options(abc_interface
+        INTERFACE -Werror=c99-designator
+    )
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
@@ -189,6 +195,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             "_MBCS"
             "_SCL_SECURE_NO_WARNINGS"
             "_CRT_SECURE_NO_WARNINGS"
+            "_CRT_INTERNAL_NONSTDC_NAMES"
             "_XKEYCHECK_H"
             "_ALLOW_KEYWORD_MACROS=1"
     )
