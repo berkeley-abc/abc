@@ -71,6 +71,7 @@ ifdef ABC_USE_NAMESPACE
   DLIBS := -lstdc++
   $(info $(MSG_PREFIX)Compiling in namespace $(ABC_NAMESPACE))
 else
+  CFLAGS += -std=gnu99
   CXXFLAGS := $(CFLAGS)
   ABC_USE_LIBSTDCXX := 1
 endif
