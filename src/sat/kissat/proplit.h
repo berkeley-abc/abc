@@ -8,7 +8,7 @@ static inline void kissat_watch_large_delayed (kissat *solver,
   while (d != end_delayed) {
     const unsigned lit = *d++;
     KISSAT_assert (d != end_delayed);
-    const watch watch = {.raw = *d++};
+    const watch watch = {/*.raw =*/ *d++};  // c++20 only
     KISSAT_assert (!watch.type.binary);
     KISSAT_assert (lit < LITS);
     watches *const lit_watches = all_watches + lit;

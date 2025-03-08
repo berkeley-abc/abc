@@ -877,8 +877,8 @@ static void substitute_connected_clauses (sweeper *sweeper, unsigned lit,
         REMOVE_CHECKER_BINARY (lit, other);
         DELETE_BINARY_FROM_PROOF (lit, other);
         PUSH_STACK (*delayed, head.raw);
-        watch src = {.raw = head.raw};
-        watch dst = {.raw = head.raw};
+        watch src = {/*.raw = */head.raw};  // c++20 only
+        watch dst = {/*.raw = */head.raw};  // c++20 only
         src.binary.lit = lit;
         dst.binary.lit = repr;
         watches *other_watches = &WATCHES (other);
@@ -970,7 +970,7 @@ static void substitute_connected_clauses (sweeper *sweeper, unsigned lit,
                   LOGLIT (second));
           KISSAT_assert (first == repr || second == repr);
           const unsigned other = first ^ second ^ repr;
-          const watch src = {.raw = head.raw};
+          const watch src = {/*.raw = */head.raw};  // c++20 only
           watch dst = kissat_binary_watch (repr);
           watches *other_watches = &WATCHES (other);
           kissat_substitute_large_watch (solver, other_watches, src, dst);
@@ -1029,7 +1029,7 @@ static void substitute_connected_clauses (sweeper *sweeper, unsigned lit,
     const unsigned *const begin_delayed = BEGIN_STACK (*delayed);
     const unsigned *const end_delayed = END_STACK (*delayed);
     for (const unsigned *p = begin_delayed; p != end_delayed; p++) {
-      const watch head = {.raw = *p};
+      const watch head = {/*.raw = */*p};  // c++20 only
       watches *repr_watches = &WATCHES (repr);
       PUSH_WATCHES (*repr_watches, head);
     }

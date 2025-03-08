@@ -60,7 +60,7 @@ static void flush_large_watches (kissat *solver, litpairs *irredundant) {
             if (irredundant) {
               const unsigned other = watch.binary.lit;
               if (lit < other) {
-                const litpair litpair = {.lits = {lit, other}};
+                const litpair litpair = {/*.lits = */{lit, other}};  // c++20 only
                 PUSH_STACK (*irredundant, litpair);
               }
             } else
