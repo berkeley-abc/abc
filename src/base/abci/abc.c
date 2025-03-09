@@ -512,6 +512,7 @@ static int Abc_CommandAbc9Lf                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Mf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Nf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Of                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Simap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Pack               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Edge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1319,6 +1320,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&mf",           Abc_CommandAbc9Mf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf",           Abc_CommandAbc9Nf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&of",           Abc_CommandAbc9Of,           0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&simap",        Abc_CommandAbc9Simap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pack",         Abc_CommandAbc9Pack,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&edge",         Abc_CommandAbc9Edge,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satlut",       Abc_CommandAbc9SatLut,       0 );
@@ -44363,6 +44365,83 @@ usage:
     Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggles very verbose output [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Mio_IntallSimpleLibrary();
+    extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBTLimit, int nBound, int fVerbose );
+    int c, nBTLimit = 0, nBound = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CBvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimit < 0 )
+            {
+                Abc_Print( -1, "Conflict limit should be a positive integer.\n" );
+                goto usage;
+            }
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nBound = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBound < 0 )
+            {
+                Abc_Print( -1, "Bound on a solution should be a positive integer.\n" );
+                goto usage;
+            }
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Empty GIA network.\n" );
+        return 1;
+    }
+    Mio_IntallSimpleLibrary();
+    if ( !Gia_ManSimpleMapping( pAbc->pGia, nBTLimit, nBound, fVerbose ) )
+        printf( "Simple mapping has failed.\n" );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &simap [-CB num] [-vh]\n" );
+    Abc_Print( -2, "\t           performs simple mapping of the AIG\n" );
+    Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
 }

@@ -25,6 +25,12 @@
 #include "map/scl/sclCon.h"
 #include "misc/vec/vecHsh.h"
 
+#ifdef _MSC_VER
+#define unlink _unlink
+#else
+#include <unistd.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -1214,6 +1220,331 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int LutSize, int nNumber, int nImproves, i
     Sbl_ManPrintRuntime( p );
     Sbl_ManStop( p );
     Vec_IntFreeP( &pGia->vPacking );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int TimeOut, int fVerbose )
+{
+    extern Vec_Int_t * Exa4_ManParse( char *pFileName );
+    int fVerboseSolver = 0;
+    abctime clkTotal = Abc_Clock();
+    Vec_Int_t * vRes = NULL;
+#ifdef _WIN32
+    char * pKadical = "kadical.exe";
+#else
+    char * pKadical = "kadical";
+#endif
+    char Command[1000], * pCommand = (char *)&Command;
+    if ( TimeOut )
+        sprintf( pCommand, "%s -t %d %s %s > %s", pKadical, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+    else
+        sprintf( pCommand, "%s %s %s > %s", pKadical, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+#ifdef __wasm
+    if ( 1 )
+#else
+    if ( system( pCommand ) == -1 )
+#endif
+    {
+        fprintf( stdout, "Command \"%s\" did not succeed.\n", pCommand );
+        return 0;
+    }
+    vRes = Exa4_ManParse( pFileNameOut );
+    if ( fVerbose )
+    {
+        if ( vRes )
+            printf( "The problem has a solution. " );
+        else if ( vRes == NULL && TimeOut == 0 )
+            printf( "The problem has no solution. " );
+        else if ( vRes == NULL )
+            printf( "The problem has no solution or timed out after %d sec. ", TimeOut );
+        Abc_PrintTime( 1, "SAT solver time", Abc_Clock() - clkTotal );
+    }
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_SatVarReqPos( int i ) { return i*7+0; } // p
+int Gia_SatVarReqNeg( int i ) { return i*7+1; } // n
+int Gia_SatVarAckPos( int i ) { return i*7+2; } // P
+int Gia_SatVarAckNeg( int i ) { return i*7+3; } // N
+int Gia_SatVarInv   ( int i ) { return i*7+4; } // i
+int Gia_SatVarFan0  ( int i ) { return i*7+5; } // 0
+int Gia_SatVarFan1  ( int i ) { return i*7+6; } // 1
+
+int Gia_SatValReqPos( Vec_Int_t * p, int i ) { return Vec_IntEntry(p, i*7+0); } // p
+int Gia_SatValReqNeg( Vec_Int_t * p, int i ) { return Vec_IntEntry(p, i*7+1); } // n
+int Gia_SatValAckPos( Vec_Int_t * p, int i ) { return Vec_IntEntry(p, i*7+2); } // P
+int Gia_SatValAckNeg( Vec_Int_t * p, int i ) { return Vec_IntEntry(p, i*7+3); } // N
+int Gia_SatValInv   ( Vec_Int_t * p, int i ) { return Vec_IntEntry(p, i*7+4); } // i
+int Gia_SatValFan0  ( Vec_Int_t * p, int i ) { return Vec_IntEntry(p, i*7+5); } // 0
+int Gia_SatValFan1  ( Vec_Int_t * p, int i ) { return Vec_IntEntry(p, i*7+6); } // 1
+
+void Gia_SatDumpClause( Vec_Str_t * vStr, int * pLits, int nLits )
+{
+    for ( int i = 0; i < nLits; i++ )
+        Vec_StrPrintF( vStr, "%d ", Abc_LitIsCompl(pLits[i]) ? -Abc_Lit2Var(pLits[i])-1 : Abc_Lit2Var(pLits[i])+1 );
+    Vec_StrPrintF( vStr, "0\n" );        
+}
+void Gia_SatDumpLiteral( Vec_Str_t * vStr, int Lit )
+{
+    Gia_SatDumpClause( vStr, &Lit, 1 );
+}
+void Gia_SatDumpKlause( Vec_Str_t * vStr, int nIns, int nAnds, int nBound )
+{
+    int i, nVars = nIns + 7*nAnds;
+    Vec_StrPrintF( vStr, "k %d ", nVars - nBound );
+    // counting primary inputs: n
+    for ( i = 0; i < nIns; i++ )
+        Vec_StrPrintF( vStr, "-%d ", Gia_SatVarReqNeg(1+i)+1 );
+    // counting internal nodes: p, n, P, N, i, 0, 1
+    for ( i = 0; i < 7*nAnds; i++ )
+        Vec_StrPrintF( vStr, "-%d ", (1+nIns)*7+i+1 );
+    Vec_StrPrintF( vStr, "0\n" );
+}
+
+Vec_Str_t * Gia_ManSimpleCnf( Gia_Man_t * p, int nBound )
+{
+    Vec_Str_t * vStr = Vec_StrAlloc( 10000 );    
+    Gia_SatDumpKlause( vStr, Gia_ManCiNum(p), Gia_ManAndNum(p), nBound );    
+    int i, n, m, Id, pLits[4]; Gia_Obj_t * pObj;
+    for ( n = 0; n < 7; n++ )
+        Gia_SatDumpLiteral( vStr, Abc_Var2Lit(n, 1) );    
+    // acknowledge positive PI literals
+    Gia_ManForEachCiId( p, Id, i )
+        for ( n = 0; n < 7; n++ )  if ( n != 1 )
+            Gia_SatDumpLiteral( vStr, Abc_Var2Lit(Gia_SatVarReqPos(Id)+n, n>0) );
+    // require driving PO literals
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_SatDumpLiteral( vStr, Abc_Var2Lit( Gia_SatVarReqPos(Gia_ObjFaninId0p(p, pObj)) + Gia_ObjFaninC0(pObj), 0 ) );
+    // internal nodes
+    Gia_ManForEachAnd( p, pObj, i ) {
+        int fCompl[2] = { Gia_ObjFaninC0(pObj), Gia_ObjFaninC1(pObj) };
+        int iFans[2]  = { Gia_ObjFaninId0(pObj, i), Gia_ObjFaninId1(pObj, i) };
+        Gia_Obj_t * pFans[2] = { Gia_ObjFanin0(pObj), Gia_ObjFanin1(pObj) };
+        // require inverter: p & !n & N -> i, n & !p & P -> i
+        for ( n = 0; n < 2; n++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_SatVarReqPos(i)+n, 1 );
+            pLits[1] = Abc_Var2Lit( Gia_SatVarReqNeg(i)-n, 0 );
+            pLits[2] = Abc_Var2Lit( Gia_SatVarAckNeg(i)-n, 1 );
+            pLits[3] = Abc_Var2Lit( Gia_SatVarInv   (i), 0 );
+            Gia_SatDumpClause( vStr, pLits, 4 );
+        }
+        // exclusive acknowledge: !P + !N
+        pLits[0] = Abc_Var2Lit( Gia_SatVarAckPos(i), 1 );
+        pLits[1] = Abc_Var2Lit( Gia_SatVarAckNeg(i), 1 );
+        Gia_SatDumpClause( vStr, pLits, 2 );
+        // required acknowledge: p -> P + N, n -> P + N
+        pLits[1] = Abc_Var2Lit( Gia_SatVarAckPos(i), 0 );
+        pLits[2] = Abc_Var2Lit( Gia_SatVarAckNeg(i), 0 );
+        pLits[0] = Abc_Var2Lit( Gia_SatVarReqPos(i), 1 );
+        Gia_SatDumpClause( vStr, pLits, 3 );
+        pLits[0] = Abc_Var2Lit( Gia_SatVarReqNeg(i), 1 );
+        Gia_SatDumpClause( vStr, pLits, 3 );
+        // forbid acknowledge: !p & !n -> !P, !p & !n -> !N
+        pLits[0] = Abc_Var2Lit( Gia_SatVarReqPos(i), 0 );
+        pLits[1] = Abc_Var2Lit( Gia_SatVarReqNeg(i), 0 );
+        pLits[2] = Abc_Var2Lit( Gia_SatVarAckPos(i), 1 );
+        Gia_SatDumpClause( vStr, pLits, 3 );
+        pLits[2] = Abc_Var2Lit( Gia_SatVarAckNeg(i), 1 );
+        Gia_SatDumpClause( vStr, pLits, 3 );
+        // when fanins can be used: !N & !P -> !0, !N & !P -> !1
+        pLits[0] = Abc_Var2Lit( Gia_SatVarAckPos(i), 0 );
+        pLits[1] = Abc_Var2Lit( Gia_SatVarAckNeg(i), 0 );
+        pLits[2] = Abc_Var2Lit( Gia_SatVarFan0(i), 1 );
+        Gia_SatDumpClause( vStr, pLits, 3 );
+        pLits[2] = Abc_Var2Lit( Gia_SatVarFan1(i), 1 );
+        Gia_SatDumpClause( vStr, pLits, 3 );
+        // when fanins are not used: 0 -> !N, 0 -> !P, 1 -> !N, 1 -> !P
+        for ( m = 0; m < 2; m++ )
+        for ( n = 0; n < 2; n++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_SatVarFan0(i)+n, 1 );
+            pLits[1] = Abc_Var2Lit( Gia_SatVarReqPos(iFans[n])+m, 1 );
+            Gia_SatDumpClause( vStr, pLits, 2 );
+        }
+        // can only extend both when both complemented: !(C0 & C1) -> !0 + !1 
+        pLits[0] = Abc_Var2Lit( Gia_SatVarFan0(i), 1 );
+        pLits[1] = Abc_Var2Lit( Gia_SatVarFan1(i), 1 );
+        if ( !fCompl[0] || !fCompl[1] )
+            Gia_SatDumpClause( vStr, pLits, 2 );
+        // if fanin is a primary input, cannot extend it (pi -> !0 or pi -> !1)
+        for ( n = 0; n < 2; n++ )
+            if ( Gia_ObjIsCi(pFans[n]) )
+                Gia_SatDumpLiteral( vStr, Abc_Var2Lit( Gia_SatVarFan0(i)+n, 1 ) );
+        // propagating assignments when fanin is not used
+        // P & !0 -> C0 ? P0 : N0
+        // N & !0 -> C0 ? N0 : P0
+        // P & !1 -> C1 ? P1 : N1
+        // N & !1 -> C1 ? N1 : P1
+        for ( m = 0; m < 2; m++ )
+        for ( n = 0; n < 2; n++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_SatVarAckPos(i)+m, 1 );
+            pLits[1] = Abc_Var2Lit( Gia_SatVarFan0(i)+n, 0 );
+            pLits[2] = Abc_Var2Lit( Gia_SatVarReqPos(iFans[n]) + !(m ^ fCompl[n]), 0 );
+            Gia_SatDumpClause( vStr, pLits, 3 );
+        }
+        // propagating assignments when fanins are used
+        // P & 0 -> (C0 ^ C00) ? P00 : N00
+        // P & 0 -> (C0 ^ C01) ? P01 : N01
+        // N & 0 -> (C0 ^ C00) ? N00 : P00
+        // N & 0 -> (C0 ^ C01) ? N01 : P01
+        // P & 1 -> (C1 ^ C10) ? P10 : N10
+        // P & 1 -> (C1 ^ C11) ? P11 : N11
+        // N & 1 -> (C1 ^ C10) ? N10 : P10
+        // N & 1 -> (C1 ^ C11) ? N11 : P11
+        for ( m = 0; m < 2; m++ ) 
+        for ( n = 0; n < 2; n++ )
+        if ( Gia_ObjIsAnd(pFans[n]) ) {
+            pLits[0] = Abc_Var2Lit( Gia_SatVarAckPos(i)+m, 1 );
+            pLits[1] = Abc_Var2Lit( Gia_SatVarFan0(i)+n, 1 );
+            pLits[2] = Abc_Var2Lit( Gia_SatVarReqPos(Gia_ObjFaninId0p(p, pFans[n])) + !(m ^ fCompl[n] ^ Gia_ObjFaninC0(pFans[n])), 0 );
+            Gia_SatDumpClause( vStr, pLits, 3 );
+            pLits[2] = Abc_Var2Lit( Gia_SatVarReqPos(Gia_ObjFaninId1p(p, pFans[n])) + !(m ^ fCompl[n] ^ Gia_ObjFaninC1(pFans[n])), 0 );
+            Gia_SatDumpClause( vStr, pLits, 3 );
+        }
+    }
+    Vec_StrPush( vStr, '\0' );
+    return vStr;
+}
+
+typedef enum { 
+    GIA_GATE_ZERO,     // 0: 
+    GIA_GATE_ONE,      // 1: 
+    GIA_GATE_BUF,      // 2: 
+    GIA_GATE_INV,      // 3: 
+    GIA_GATE_NAN2,     // 4: 
+    GIA_GATE_NOR2,     // 5: 
+    GIA_GATE_AOI21,    // 6: 
+    GIA_GATE_NAN3,     // 7: 
+    GIA_GATE_NOR3,     // 8: 
+    GIA_GATE_OAI21,    // 9: 
+    GIA_GATE_AOI22,    // 10: 
+    GIA_GATE_OAI22,    // 11: 
+    RTM_VAL_VOID       // 12: unused value
+} Gia_ManGate_t;
+
+Vec_Int_t * Gia_ManDeriveSimpleMapping( Gia_Man_t * p, Vec_Int_t * vRes )
+{
+    Vec_Int_t * vMapping = Vec_IntStart( 2*Gia_ManObjNum(p) );
+    int i, Id; Gia_Obj_t * pObj;
+    Gia_ManForEachCiId( p, Id, i )
+        if ( Gia_SatValReqNeg(vRes, Id) )
+            Vec_IntWriteEntry( vMapping, Abc_Var2Lit(Id, 1), -1 );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Gia_SatValAckPos(vRes, i) + Gia_SatValAckNeg(vRes, i) == 0 )
+            continue;
+        assert( Gia_SatValAckPos(vRes, i) != Gia_SatValAckNeg(vRes, i) );
+        if ( (Gia_SatValReqPos(vRes, i) && Gia_SatValReqNeg(vRes, i)) || Gia_SatValInv(vRes, i) )
+            Vec_IntWriteEntry( vMapping, Abc_Var2Lit(i, Gia_SatValAckPos(vRes, i)), -1 );
+        int fComp = Gia_SatValAckNeg(vRes, i);
+        int fFan0 = Gia_SatValFan0(vRes, i);
+        int fFan1 = Gia_SatValFan1(vRes, i);
+        Gia_Obj_t * pFans[2] = { Gia_ObjFanin0(pObj), Gia_ObjFanin1(pObj) };
+        Vec_IntWriteEntry( vMapping, Abc_Var2Lit(i, fComp), Vec_IntSize(vMapping) );
+        if ( fFan0 && fFan1 ) {
+            assert( Gia_ObjFaninC0(pObj) && Gia_ObjFaninC1(pObj) );
+            Vec_IntPush( vMapping, 4 );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId0p(p, pFans[0]), !(fComp ^ Gia_ObjFaninC0(pObj) ^ Gia_ObjFaninC0(pFans[0]))) );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId1p(p, pFans[0]), !(fComp ^ Gia_ObjFaninC0(pObj) ^ Gia_ObjFaninC1(pFans[0]))) );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId0p(p, pFans[1]), !(fComp ^ Gia_ObjFaninC1(pObj) ^ Gia_ObjFaninC0(pFans[1]))) );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId1p(p, pFans[1]), !(fComp ^ Gia_ObjFaninC1(pObj) ^ Gia_ObjFaninC1(pFans[1]))) );
+            Vec_IntPush( vMapping, fComp ? GIA_GATE_OAI22 : GIA_GATE_AOI22 );
+        } else if ( fFan0 ) {
+            Vec_IntPush( vMapping, 3 );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId0p(p, pFans[0]), !(fComp ^ Gia_ObjFaninC0(pObj) ^ Gia_ObjFaninC0(pFans[0]))) );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId1p(p, pFans[0]), !(fComp ^ Gia_ObjFaninC0(pObj) ^ Gia_ObjFaninC1(pFans[0]))) );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId1p(p, pObj),     !(fComp ^ Gia_ObjFaninC1(pObj))) );
+            if ( Gia_ObjFaninC0(pObj) )
+                Vec_IntPush( vMapping, fComp ? GIA_GATE_OAI21 : GIA_GATE_AOI21 );
+            else
+                Vec_IntPush( vMapping, fComp ? GIA_GATE_NAN3 : GIA_GATE_NOR3 );
+        } else if ( fFan1 ) {
+            Vec_IntPush( vMapping, 3 );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId0p(p, pFans[1]), !(fComp ^ Gia_ObjFaninC1(pObj) ^ Gia_ObjFaninC0(pFans[1]))) );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId1p(p, pFans[1]), !(fComp ^ Gia_ObjFaninC1(pObj) ^ Gia_ObjFaninC1(pFans[1]))) );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId0p(p, pObj),     !(fComp ^ Gia_ObjFaninC0(pObj))) );
+            if ( Gia_ObjFaninC1(pObj) )
+                Vec_IntPush( vMapping, fComp ? GIA_GATE_OAI21 : GIA_GATE_AOI21 );
+            else
+                Vec_IntPush( vMapping, fComp ? GIA_GATE_NAN3 : GIA_GATE_NOR3 );
+        } else {
+            Vec_IntPush( vMapping, 2 );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId0p(p, pObj),     !(fComp ^ Gia_ObjFaninC0(pObj))) );
+            Vec_IntPush( vMapping, Abc_Var2Lit(Gia_ObjFaninId1p(p, pObj),     !(fComp ^ Gia_ObjFaninC1(pObj))) );
+            Vec_IntPush( vMapping, fComp ? GIA_GATE_NAN2 : GIA_GATE_NOR2 );
+        }
+    }
+    return vMapping;
+}
+void Gia_ManSimplePrintMapping( Vec_Int_t * vRes, int nIns )
+{    
+    int i, k, nObjs = Vec_IntSize(vRes)/7, nSteps = Abc_Base10Log(nObjs);
+    int nCard = Vec_IntSum(vRes) - nIns; char NumStr[10];
+    printf( "Solution with cardinality %d:\n", nCard );
+    for ( k = 0; k < nSteps; k++ ) {        
+        printf( "  " );
+        for ( i = 0; i < nObjs; i++ ) {            
+            sprintf( NumStr, "%02d", i );
+            printf( "%c", NumStr[k] );
+        }
+        printf( "\n" );
+    }
+    for ( k = 0; k < 7; k++ ) {
+        printf( "%c ", "pnPNi01"[k] );
+        for ( i = 0; i < nObjs; i++ )
+            if ( Vec_IntEntry( vRes, i*7+k ) == 0 )
+                printf( " " );
+            else
+                printf( "1" );
+        printf( "\n" );
+    }
+}
+int Gia_ManSimpleMapping( Gia_Man_t * p, int nBTLimit, int nBound, int fVerbose )
+{
+    char * pFileNameI = (char *)"__temp__.cnf"; 
+    char * pFileNameO = (char *)"__temp__.out";
+    FILE * pFile = fopen( pFileNameI, "wb" );
+    if ( pFile == NULL ) { printf( "Cannot open input file \"%s\".\n", pFileNameI ); return 0; }
+    if ( nBound == 0 ) 
+        nBound = 2 * (Gia_ManCiNum(p) + 3 * Gia_ManAndNum(p));
+    Vec_Str_t * vStr = Gia_ManSimpleCnf( p, nBound/2 );
+    if ( fVerbose )
+        printf( "SAT variables = %d. SAT clauses = %d. Candinality bound = %d.\n", 7*(Gia_ManObjNum(p)-Gia_ManCoNum(p)), Vec_StrCountEntry(vStr, '\n'), nBound );
+    fprintf( pFile, "p knf %d %d\n%s\n", 7*(Gia_ManObjNum(p)-Gia_ManCoNum(p)), Vec_StrCountEntry(vStr, '\n'), Vec_StrArray(vStr) );
+    Vec_StrFree( vStr );
+    fclose( pFile );
+    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, 0, 1 );
+    unlink( pFileNameI );
+    //unlink( pFileNameO );
+    if ( vRes == NULL )
+        return 0;
+    Vec_IntFreeP( &p->vCellMapping );
+    assert( p->vCellMapping == NULL );
+    Vec_IntDrop( vRes, 0 );
+    if ( fVerbose ) Gia_ManSimplePrintMapping( vRes, Gia_ManCiNum(p) );
+    p->vCellMapping = Gia_ManDeriveSimpleMapping( p, vRes );
+    Vec_IntFree( vRes );
+    return 1;
 }
 
 ////////////////////////////////////////////////////////////////////////
