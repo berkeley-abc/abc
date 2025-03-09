@@ -610,11 +610,11 @@ Cudd_zddDumpDot(
     */
 
     /* Find the bits that are different. */
-    refAddr = (long) f[0];
+    refAddr = (ABC_PTRINT_T) f[0];
     diff = 0;
     gen = st__init_gen(visited);
     while ( st__gen(gen, (const char **)&scan, NULL)) {
-        diff |= refAddr ^ (long) scan;
+        diff |= refAddr ^ (ABC_PTRINT_T) scan;
     }
     st__free_gen(gen);
 
