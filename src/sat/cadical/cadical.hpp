@@ -486,8 +486,8 @@ public:
 
   // Returns
   //
-  //    0 = UNKNOWN      (unit propagation did not lead to a conflict nor to a 
-  //                      complete assignment, or limit reached or interrupted 
+  //    0 = UNKNOWN      (unit propagation did not lead to a conflict nor to a
+  //                      complete assignment, or limit reached or interrupted
   //                      through 'terminate')
   //   10 = SATISFIABLE
   //   20 = UNSATISFIABLE
@@ -1083,6 +1083,7 @@ private:
 
 #ifndef PRINTF_FORMAT
 #ifdef __MINGW32__
+#undef __USE_MINGW_ANSI_STDIO
 #define __USE_MINGW_ANSI_STDIO 1
 #define PRINTF_FORMAT __MINGW_PRINTF_FORMAT
 #else
