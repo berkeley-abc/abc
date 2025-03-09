@@ -712,8 +712,8 @@ bool Internal::decompose_round () {
       mark_substituted (idx);
   }
 
-  reprs_delete.free ();
-  dfs_delete.free ();
+  reprs_delete._free ();
+  dfs_delete._free ();
   erase_vector (dfs_chains);
 
   if (substituted)

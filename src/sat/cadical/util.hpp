@@ -127,7 +127,7 @@ template <typename T> struct DeferDeleteArray {
   DeferDeleteArray (T *t) : data (t) {}
   ~DeferDeleteArray () { delete[] data; }
   void release () { data = nullptr; }
-  void free () {
+  void _free () {
     delete[] data;
     data = nullptr;
   }
@@ -138,7 +138,7 @@ template <typename T> struct DeferDeletePtr {
   DeferDeletePtr (T *t) : data (t) {}
   ~DeferDeletePtr () { delete data; }
   void release () { data = nullptr; }
-  void free () {
+  void _free () {
     delete data;
     data = nullptr;
   }
