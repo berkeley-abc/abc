@@ -21,6 +21,7 @@
 #include "base/abc/abc.h"
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
+#include "map/mio/mio.h"
 
 #ifdef WIN32
 #include <process.h> 
@@ -1284,26 +1285,18 @@ typedef struct StochSynData_t_
     int          TimeOut;
 } StochSynData_t;
 
-Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript, int Rand, int TimeSecs )
+Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript0, int Rand, int TimeSecs )
 {
+    extern int Abc_NtkWriteToFile( char * pFileName, Abc_Ntk_t * pNtk );
+    extern Abc_Ntk_t * Abc_NtkReadFromFile( char * pFileName );
     Abc_Ntk_t * pNew, * pTemp;
-    char * pSpot, FileName[100], Command[1000];
-    sprintf( FileName, "%06x.blif", Rand );
-    Abc_Ntk_t * pNetlist = Abc_NtkToNetlist(p);
-    if ( pNetlist == NULL ) {
-        printf( "Cannot produce an intermediate network.\n" );
-        return NULL;
-    }
-    Io_WriteBlif( pNetlist, FileName, 1, 0, 0 );
-    Abc_NtkDelete( pNetlist );
-    if ( (pSpot = strstr(pScript, ".genlib")) ) {
-        char Spot = pSpot[strlen(".genlib")]; 
-        pSpot[strlen(".genlib")] = 0;
-        sprintf( Command, "./abc -q \"%s; read %s%c%s; write %s\"", pScript, FileName, Spot, pSpot+strlen(".genlib")+1, FileName );
-        pSpot[strlen(".genlib")] = Spot;
-    }
-    else 
-        sprintf( Command, "./abc -q \"read %s; %s; write %s\"", FileName, pScript, FileName );
+    char FileName[100], Command[1000], PreCommand[500] = {0};
+    char * pLibFileName = Abc_NtkIsMappedLogic(p) ? Mio_LibraryReadFileName((Mio_Library_t *)p->pManFunc) : NULL;
+    if ( pLibFileName ) sprintf( PreCommand, "read_genlib %s; ", pLibFileName );
+    sprintf( FileName, "%06x.mm", Rand );
+    Abc_NtkWriteToFile( FileName, p );    
+    char * pScript = Abc_UtilStrsav( pScript0 );
+    sprintf( Command, "./abc -q \"%sread_mm %s; %s; write_mm %s\"", PreCommand[0] ? PreCommand : "", FileName, pScript, FileName );    
 #if defined(__wasm)
     if ( 1 )
 #else
@@ -1315,9 +1308,11 @@ Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript, int Rand, int
         fprintf( stderr, "Sorry for the inconvenience.\n" );
         fflush( stdout );
         unlink( FileName );
+        ABC_FREE( pScript );
         return Abc_NtkDupDfs(p);
-    }    
-    pNew = Io_ReadBlif( FileName, 0 );
+    }
+    ABC_FREE( pScript );
+    pNew = Abc_NtkReadFromFile( FileName );
     unlink( FileName );
     if ( pNew && Abc_NtkGetMappedArea(pNew) < Abc_NtkGetMappedArea(p) ) {
         pNew = Abc_NtkDupDfs( pTemp = pNew );
