@@ -1816,7 +1816,7 @@ Vec_Ptr_t * Abc_NtkExtractPartitions( Abc_Ntk_t * pNtk, int Iter, int nSuppMax, 
         *pvIns = *pvOuts = *pvNodes = NULL;
         return vWins;
     }
-    int iUseRevL = Abc_Random(0) & 1;
+    int iUseRevL = Iter % 3 == 0 ? 0 : Abc_Random(0) & 1;
     int LevelMax = iUseRevL ? Abc_NtkLevelR(pNtk) : Abc_NtkLevel(pNtk);
     int LevelCut = Iter % 3 == 0 ? 0 : LevelMax > 8 ? 2 + (Abc_Random(0) % (LevelMax - 4)) : 0;
     //printf( "Using %s cut level %d (out of %d)\n", iUseRevL ? "reverse": "direct", LevelCut, LevelMax );
