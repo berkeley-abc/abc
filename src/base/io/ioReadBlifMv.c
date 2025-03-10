@@ -9,7 +9,7 @@
   Synopsis    [Procedures to read BLIF-MV file.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - January 8, 2007.]
@@ -41,7 +41,7 @@ Vec_Ptr_t *vGlobalLtlArray;
 
 struct Io_MvVar_t_
 {
-    int                  nValues;      // the number of values 
+    int                  nValues;      // the number of values
     char **              pNames;       // the value names
 };
 
@@ -63,10 +63,10 @@ struct Io_MvMod_t_
     Vec_Ptr_t *             vLtlProperties;
     int                  fBlackBox;    // indicates blackbox model
     // the resulting network
-    Abc_Ntk_t *          pNtk;   
-    Abc_Obj_t *          pResetLatch; 
+    Abc_Ntk_t *          pNtk;
+    Abc_Obj_t *          pResetLatch;
     // the parent manager
-    Io_MvMan_t *         pMan;         
+    Io_MvMan_t *         pMan;
 };
 
 struct Io_MvMan_t_
@@ -89,7 +89,7 @@ struct Io_MvMan_t_
     Vec_Str_t *          vFunc;        // the local function
     // error reporting
     char                 sError[512];  // the error string generated during parsing
-    // statistics 
+    // statistics
     int                  nTablesRead;  // the number of processed tables
     int                  nTablesLeft;  // the number of dangling tables
 };
@@ -115,7 +115,7 @@ static int               Io_MvParseLineMv( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset );
 static int               Io_MvParseLineNamesBlif( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineShortBlif( Io_MvMod_t * p, char * pLine );
-static int                 Io_MvParseLineLtlProperty( Io_MvMod_t * p, char * pLine );
+static int               Io_MvParseLineLtlProperty( Io_MvMod_t * p, char * pLine );
 static int               Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens );
 static Io_MvVar_t *      Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar );
 
@@ -133,7 +133,7 @@ extern void              Abc_NtkStartMvVars( Abc_Ntk_t * pNtk );
   Synopsis    [Reads the network from the BLIF or BLIF-MV file.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -144,7 +144,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
     FILE * pFile;
     Io_MvMan_t * p;
     Abc_Ntk_t * pNtk, * pExdc;
-    Abc_Des_t * pDesign = NULL; 
+    Abc_Des_t * pDesign = NULL;
     char * pDesignName;
     int RetValue, i;
     char * pLtlProp;
@@ -260,7 +260,7 @@ Abc_Ntk_t * Io_ReadBlifMv( char * pFileName, int fBlifMv, int fCheck )
   Synopsis    [Allocates the BLIF parsing structure.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -284,7 +284,7 @@ static Io_MvMan_t * Io_MvAlloc()
   Synopsis    [Frees the BLIF parsing structure.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -296,7 +296,7 @@ static void Io_MvFree( Io_MvMan_t * p )
     int i;
     if ( p->pDesign )
         Abc_DesFree( p->pDesign, NULL );
-    if ( p->pBuffer )  
+    if ( p->pBuffer )
         ABC_FREE( p->pBuffer );
     if ( p->vLines )
         Vec_PtrFree( p->vLines  );
@@ -317,7 +317,7 @@ static void Io_MvFree( Io_MvMan_t * p )
   Synopsis    [Allocates the BLIF parsing structure for one model.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -348,7 +348,7 @@ static Io_MvMod_t * Io_MvModAlloc()
   Synopsis    [Allocates the BLIF parsing structure for one model.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -380,7 +380,7 @@ static void Io_MvModFree( Io_MvMod_t * p )
   Synopsis    [Counts the number of given chars.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -401,7 +401,7 @@ static int Io_MvCountChars( char * pLine, char Char )
   Synopsis    [Returns the place where the arrow is hiding.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -425,7 +425,7 @@ static char * Io_MvFindArrow( char * pLine )
   Synopsis    [Collects the already split tokens.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -449,7 +449,7 @@ static void Io_MvCollectTokens( Vec_Ptr_t * vTokens, char * pInput, char * pOutp
   Synopsis    [Splits the line into tokens.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -471,7 +471,7 @@ static void Io_MvSplitIntoTokens( Vec_Ptr_t * vTokens, char * pLine, char Stop )
   Synopsis    [Splits the line into tokens when .default may be present.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -493,7 +493,7 @@ static void Io_MvSplitIntoTokensMv( Vec_Ptr_t * vTokens, char * pLine )
   Synopsis    [Splits the line into tokens.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -515,7 +515,7 @@ static void Io_MvSplitIntoTokensAndClear( Vec_Ptr_t * vTokens, char * pLine, cha
   Synopsis    [Returns the 1-based number of the line in which the token occurs.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -536,7 +536,7 @@ static int Io_MvGetLine( Io_MvMan_t * p, char * pToken )
   Synopsis    [Reads the file into a character buffer.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -604,7 +604,7 @@ char * Io_MvLoadFileBz2( char * pFileName, long * pnFileSize )
         pContents = ABC_ALLOC( char, nFileSize + 10 );
         rewind( pFile );
         RetValue = fread( pContents, nFileSize, 1, pFile );
-    } else { 
+    } else {
         // Some other error.
         Abc_Print( -1, "Io_MvLoadFileBz2(): Unable to read the compressed BLIF.\n" );
         return NULL;
@@ -622,7 +622,7 @@ char * Io_MvLoadFileBz2( char * pFileName, long * pnFileSize )
   Synopsis    [Reads the file into a character buffer.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -635,7 +635,7 @@ static char * Io_MvLoadFileGz( char * pFileName, long * pnFileSize )
     char * pContents;
     long amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
     pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
-    pContents = ABC_ALLOC( char, nFileSize );        
+    pContents = ABC_ALLOC( char, nFileSize );
     readBlock = 0;
     while ((amtRead = gzread(pFile, pContents + readBlock * READ_BLOCK_SIZE, READ_BLOCK_SIZE)) == READ_BLOCK_SIZE) {
         //Abc_Print( 1,"%d: read %d bytes\n", readBlock, amtRead);
@@ -656,7 +656,7 @@ static char * Io_MvLoadFileGz( char * pFileName, long * pnFileSize )
   Synopsis    [Reads the file into a character buffer.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -678,8 +678,8 @@ static char * Io_MvLoadFile( char * pFileName )
         printf( "Io_MvLoadFile(): The file is unavailable (absent or open).\n" );
         return NULL;
     }
-    fseek( pFile, 0, SEEK_END );  
-    nFileSize = ftell( pFile ); 
+    fseek( pFile, 0, SEEK_END );
+    nFileSize = ftell( pFile );
     if ( nFileSize == 0 )
     {
         fclose( pFile );
@@ -707,7 +707,7 @@ static char * Io_MvLoadFile( char * pFileName )
   - Estimates the number of objects.
   - Allocates room for the objects.
   - Allocates room for the hash table.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -786,7 +786,7 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
             Vec_PtrPush( p->pLatest->vConstrs, pCur );
         else if ( !strncmp(pCur, "blackbox", 8) )
             p->pLatest->fBlackBox = 1;
-        else if ( !strncmp(pCur, "model", 5) ) 
+        else if ( !strncmp(pCur, "model", 5) )
         {
             p->pLatest = Io_MvModAlloc();
             p->pLatest->pName = pCur;
@@ -837,7 +837,7 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
   Synopsis    [Parses interfaces of the models.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -880,7 +880,7 @@ static int Io_MvReadInterfaces( Io_MvMan_t * p )
         // report the results
 #ifdef IO_VERBOSE_OUTPUT
         if ( Vec_PtrSize(p->vModels) > 1 )
-            printf( "Parsed %-32s: PI =%6d  PO =%6d  ND =%8d  FF =%6d  B =%6d\n", 
+            printf( "Parsed %-32s: PI =%6d  PO =%6d  ND =%8d  FF =%6d  B =%6d\n",
                 pMod->pNtk->pName, Abc_NtkPiNum(pMod->pNtk), Abc_NtkPoNum(pMod->pNtk),
                 Vec_PtrSize(pMod->vNames), Vec_PtrSize(pMod->vLatches), Vec_PtrSize(pMod->vSubckts) );
 #endif
@@ -894,7 +894,7 @@ static int Io_MvReadInterfaces( Io_MvMan_t * p )
   Synopsis    []
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -908,7 +908,7 @@ static Abc_Des_t * Io_MvParse( Io_MvMan_t * p )
     int i, k;
     // iterate through the models
     Vec_PtrForEachEntry( Io_MvMod_t *, p->vModels, pMod, i )
-    { 
+    {
 #ifdef IO_VERBOSE_OUTPUT
         if ( Vec_PtrSize(p->vModels) > 1 )
             printf( "Parsing model %s...\n", pMod->pNtk->pName );
@@ -926,12 +926,12 @@ static Abc_Des_t * Io_MvParse( Io_MvMan_t * p )
         {
             if ( Vec_PtrSize(pMod->vLatches) != Vec_PtrSize(pMod->vResets) )
             {
-                sprintf( p->sError, "Line %d: Model %s has different number of latches (%d) and reset nodes (%d).", 
+                sprintf( p->sError, "Line %d: Model %s has different number of latches (%d) and reset nodes (%d).",
                     Io_MvGetLine(p, pMod->pName), Abc_NtkName(pMod->pNtk), Vec_PtrSize(pMod->vLatches), Vec_PtrSize(pMod->vResets) );
                 return NULL;
             }
             // create binary latch with 1-data and 0-init
-            if ( p->fUseReset ) 
+            if ( p->fUseReset )
                 pMod->pResetLatch = Io_ReadCreateResetLatch( pMod->pNtk, p->fBlifMv );
         }
         // parse the flops
@@ -984,7 +984,7 @@ static Abc_Des_t * Io_MvParse( Io_MvMan_t * p )
         // read the one-hotness lines
         if ( Vec_PtrSize(pMod->vOnehots) > 0 )
         {
-            Vec_Int_t * vLine; 
+            Vec_Int_t * vLine;
             Abc_Obj_t * pObj;
             // set register numbers
             Abc_NtkForEachLatch( pMod->pNtk, pObj, k )
@@ -1007,8 +1007,8 @@ static Abc_Des_t * Io_MvParse( Io_MvMan_t * p )
             Vec_PtrForEachEntry( Vec_Int_t *, pMod->pNtk->vOnehots, vLine, k )
                 printf( "%d ", Vec_IntSize(vLine) );
             printf( "}\n" );
-            printf( "The total number of 1-hot registers = %d. (%.2f %%)\n", 
-                Vec_VecSizeSize( (Vec_Vec_t *)pMod->pNtk->vOnehots ), 
+            printf( "The total number of 1-hot registers = %d. (%.2f %%)\n",
+                Vec_VecSizeSize( (Vec_Vec_t *)pMod->pNtk->vOnehots ),
                 100.0 * Vec_VecSizeSize( (Vec_Vec_t *)pMod->pNtk->vOnehots ) / Abc_NtkLatchNum(pMod->pNtk) );
             {
                 extern void Abc_GenOneHotIntervals( char * pFileName, int nPis, int nRegs, Vec_Ptr_t * vOnehots );
@@ -1038,7 +1038,7 @@ static Abc_Des_t * Io_MvParse( Io_MvMan_t * p )
   Synopsis    [Parses the model line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1066,7 +1066,7 @@ static int Io_MvParseLineModel( Io_MvMod_t * p, char * pLine )
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_BLACKBOX, 1 );
     else if ( p->pMan->fBlifMv )
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_BLIFMV, 1 );
-    else 
+    else
         p->pNtk = Abc_NtkAlloc( ABC_NTK_NETLIST, ABC_FUNC_SOP, 1 );
 //    for ( pPivot = pToken = Vec_PtrEntry(vTokens, 1); *pToken; pToken++ )
 //        if ( *pToken == '/' || *pToken == '\\' )
@@ -1081,7 +1081,7 @@ static int Io_MvParseLineModel( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the inputs line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1105,7 +1105,7 @@ static int Io_MvParseLineInputs( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the outputs line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1129,7 +1129,7 @@ static int Io_MvParseLineOutputs( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the outputs line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1153,7 +1153,7 @@ static int Io_MvParseLineConstrs( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the LTL property line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1196,7 +1196,7 @@ static int Io_MvParseLineLtlProperty( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the latches line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1226,8 +1226,8 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
         else
         {
             if ( Vec_PtrSize(vTokens) > 6 )
-                printf( "Warning: Line %d has .latch directive with unrecognized entries (the total of %d entries).\n", 
-                    Io_MvGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) ); 
+                printf( "Warning: Line %d has .latch directive with unrecognized entries (the total of %d entries).\n",
+                    Io_MvGetLine(p->pMan, pToken), Vec_PtrSize(vTokens) );
             if ( Vec_PtrSize(vTokens) > 3 )
                 Init = atoi( (char *)Vec_PtrEntryLast(vTokens) );
             else
@@ -1264,7 +1264,7 @@ static int Io_MvParseLineLatch( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the latches line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1339,7 +1339,7 @@ static int Io_MvParseLineFlop( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the subckt line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1381,7 +1381,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
     // check if the number of tokens is correct
     if ( nEquals != Abc_NtkPiNum(pModel) + Abc_NtkPoNum(pModel) )
     {
-        sprintf( p->pMan->sError, "Line %d: The number of ports (%d) in .subckt differs from the sum of PIs and POs of the model (%d).", 
+        sprintf( p->pMan->sError, "Line %d: The number of ports (%d) in .subckt differs from the sum of PIs and POs of the model (%d).",
             Io_MvGetLine(p->pMan, pToken), nEquals, Abc_NtkPiNum(pModel) + Abc_NtkPoNum(pModel) );
         return 0;
     }
@@ -1400,7 +1400,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
     // go through formal inputs
     Last = 0;
     Abc_NtkForEachPi( pModel, pTerm, i )
-    { 
+    {
         // find this terminal among the actual inputs of the subcircuit
         pName2 = NULL;
         pName = Abc_ObjName(Abc_ObjFanout0(pTerm));
@@ -1414,7 +1414,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
 
         if ( k == nEquals )
         {
-            sprintf( p->pMan->sError, "Line %d: Cannot find PI \"%s\" of the model \"%s\" as a formal input of the subcircuit.", 
+            sprintf( p->pMan->sError, "Line %d: Cannot find PI \"%s\" of the model \"%s\" as a formal input of the subcircuit.",
                 Io_MvGetLine(p->pMan, pToken), pName, Abc_NtkName(pModel) );
             return 0;
         }
@@ -1431,7 +1431,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
             continue;
         }
         assert( pName2 != NULL );
-  
+
         // create the BI with the actual name
         pNet = Abc_NtkFindOrCreateNet( p->pNtk, pName2 );
         pTerm = Abc_NtkCreateBi( p->pNtk );
@@ -1455,7 +1455,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
 /*
         if ( k == nEquals )
         {
-            sprintf( p->pMan->sError, "Line %d: Cannot find PO \"%s\" of the modell \"%s\" as a formal output of the subcircuit.", 
+            sprintf( p->pMan->sError, "Line %d: Cannot find PO \"%s\" of the modell \"%s\" as a formal output of the subcircuit.",
                 Io_MvGetLine(p->pMan, pToken), pName, Abc_NtkName(pModel) );
             return 0;
         }
@@ -1475,7 +1475,7 @@ static int Io_MvParseLineSubckt( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the subckt line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1505,7 +1505,7 @@ static Vec_Int_t * Io_MvParseLineOnehot( Io_MvMod_t * p, char * pLine )
         pNet = Abc_NtkFindNet( p->pNtk, pToken );
         if ( pNet == NULL )
         {
-            sprintf( p->pMan->sError, "Line %d: Signal with name \"%s\" does not exist in the model \"%s\".", 
+            sprintf( p->pMan->sError, "Line %d: Signal with name \"%s\" does not exist in the model \"%s\".",
                 Io_MvGetLine(p->pMan, pToken), pToken, Abc_NtkName(p->pNtk) );
             return NULL;
         }
@@ -1513,7 +1513,7 @@ static Vec_Int_t * Io_MvParseLineOnehot( Io_MvMod_t * p, char * pLine )
         pTerm = Abc_ObjFanin0( pNet );
         if ( pTerm == NULL || Abc_ObjFanin0(pTerm) == NULL || !Abc_ObjIsLatch(Abc_ObjFanin0(pTerm)) )
         {
-            sprintf( p->pMan->sError, "Line %d: Signal with name \"%s\" is not a register in the model \"%s\".", 
+            sprintf( p->pMan->sError, "Line %d: Signal with name \"%s\" is not a register in the model \"%s\".",
                 Io_MvGetLine(p->pMan, pToken), pToken, Abc_NtkName(p->pNtk) );
             return NULL;
         }
@@ -1533,7 +1533,7 @@ static Vec_Int_t * Io_MvParseLineOnehot( Io_MvMod_t * p, char * pLine )
   Synopsis    [Parses the mv line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1561,7 +1561,7 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
     nValues = atoi( (char *)Vec_PtrEntry(vTokens,nCommas+2) );
     if ( nValues < 2 || nValues > IO_BLIFMV_MAXVALUES )
     {
-        sprintf( p->pMan->sError, "Line %d: The number of values (%d) is incorrect (should be >= 2 and <= %d).", 
+        sprintf( p->pMan->sError, "Line %d: The number of values (%d) is incorrect (should be >= 2 and <= %d).",
             Io_MvGetLine(p->pMan, pName), nValues, IO_BLIFMV_MAXVALUES );
         return 0;
     }
@@ -1570,7 +1570,7 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
         return 1;
     if ( Vec_PtrSize(vTokens) > nCommas + 3 && Vec_PtrSize(vTokens) - (nCommas + 3) != nValues )
     {
-        sprintf( p->pMan->sError, "Line %d: Wrong number (%d) of symbolic value names (should be %d).", 
+        sprintf( p->pMan->sError, "Line %d: Wrong number (%d) of symbolic value names (should be %d).",
             Io_MvGetLine(p->pMan, pName), Vec_PtrSize(vTokens) - (nCommas + 3), nValues );
         return 0;
     }
@@ -1606,7 +1606,7 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
             if ( !strcmp(pVar->pNames[i], pVar->pNames[k]) )
             {
                 pName = (char *)Vec_PtrEntry(vTokens,0);
-                sprintf( p->pMan->sError, "Line %d: Symbolic value name \"%s\" is repeated in .mv line.", 
+                sprintf( p->pMan->sError, "Line %d: Symbolic value name \"%s\" is repeated in .mv line.",
                     Io_MvGetLine(p->pMan, pName), pVar->pNames[i] );
                 return 0;
             }
@@ -1619,7 +1619,7 @@ static int Io_MvParseLineMv( Io_MvMod_t * p, char * pLine )
   Synopsis    [Writes the values into the BLIF-MV representation for the node.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1649,7 +1649,7 @@ static int Io_MvWriteValues( Abc_Obj_t * pNode, Vec_Str_t * vFunc )
   Synopsis    [Translated one literal.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1671,7 +1671,7 @@ static int Io_MvParseLiteralMv( Io_MvMod_t * p, Abc_Obj_t * pNode, char * pToken
                 break;
         if ( i == Abc_ObjFaninNum(pNode) )
         {
-            sprintf( p->pMan->sError, "Line %d: Node name in the table \"%s\" cannot be found on .names line.", 
+            sprintf( p->pMan->sError, "Line %d: Node name in the table \"%s\" cannot be found on .names line.",
                 Io_MvGetLine(p->pMan, pToken), pToken + 1 );
             return 0;
         }
@@ -1711,7 +1711,7 @@ static int Io_MvParseLiteralMv( Io_MvMod_t * p, Abc_Obj_t * pNode, char * pToken
         if ( i == pVar->nValues )
         {
             *pNext = 0;
-            sprintf( p->pMan->sError, "Line %d: Cannot find value name \"%s\" among the value names of variable \"%s\".", 
+            sprintf( p->pMan->sError, "Line %d: Cannot find value name \"%s\" among the value names of variable \"%s\".",
                 Io_MvGetLine(p->pMan, pToken), pCur, Abc_ObjName(pNet) );
             return 0;
         }
@@ -1730,7 +1730,7 @@ static int Io_MvParseLiteralMv( Io_MvMod_t * p, Abc_Obj_t * pNode, char * pToken
   Synopsis    [Constructs the MV-SOP cover from the file parsing info.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1774,7 +1774,7 @@ static char * Io_MvParseTableMv( Io_MvMod_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * 
             return NULL;
         // update the counter
         iStart += nInputs + nOutputs;
-    }       
+    }
     Vec_StrPush( vFunc, '\0' );
     return Vec_StrArray( vFunc );
 }
@@ -1784,7 +1784,7 @@ static char * Io_MvParseTableMv( Io_MvMod_t * p, Abc_Obj_t * pNode, Vec_Ptr_t * 
   Synopsis    [Adds reset circuitry corresponding to latch with pName.]
 
   Description [Returns the reset node's net.]
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1838,7 +1838,7 @@ static Abc_Obj_t * Io_MvParseAddResetCircuit( Io_MvMod_t * p, char * pName )
   Synopsis    [Parses the nodes line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1896,7 +1896,7 @@ static int Io_MvParseLineNamesMvOne( Io_MvMod_t * p, Vec_Ptr_t * vTokens, Vec_Pt
   Synopsis    [Parses the nodes line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -1912,7 +1912,7 @@ static int Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset )
     assert( p->pMan->fBlifMv );
     // get the arrow if it is present
     pArrow = Io_MvFindArrow( pLine );
-    if ( !p->pMan->fBlifMv && pArrow ) 
+    if ( !p->pMan->fBlifMv && pArrow )
     {
         sprintf( p->pMan->sError, "Line %d: Multi-output node symbol (->) in binary BLIF file.", Io_MvGetLine(p->pMan, pLine) );
         return 0;
@@ -1991,7 +1991,7 @@ static int Io_MvParseLineNamesMv( Io_MvMod_t * p, char * pLine, int fReset )
   Synopsis    [Constructs the SOP cover from the file parsing info.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -2050,7 +2050,7 @@ static char * Io_MvParseTableBlif( Io_MvMod_t * p, char * pTable, int nFanins )
             sprintf( p->pMan->sError, "Line %d: Output value \"%s\" differs from the value in the first line of the table (%d).", Io_MvGetLine(p->pMan, pProduct), pOutput, Polarity );
             return NULL;
         }
-        // parse one product 
+        // parse one product
         Vec_StrPrintStr( vFunc, pProduct );
         Vec_StrPush( vFunc, ' ' );
         Vec_StrPush( vFunc, pOutput[0] );
@@ -2065,7 +2065,7 @@ static char * Io_MvParseTableBlif( Io_MvMod_t * p, char * pTable, int nFanins )
   Synopsis    [Parses the nodes line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -2113,7 +2113,7 @@ ABC_NAMESPACE_IMPL_START
   Synopsis    [Parses the nodes line.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -2145,7 +2145,7 @@ static int Io_MvParseLineShortBlif( Io_MvMod_t * p, char * pLine )
     // parse the table of this node
     if ( p->pNtk->ntkFunc == ABC_FUNC_MAP )
     {
-        Mio_Library_t * pGenlib; 
+        Mio_Library_t * pGenlib;
         Mio_Gate_t * pGate;
         // check that the library is available
         pGenlib = (Mio_Library_t *)Abc_FrameReadLibGen();
@@ -2173,7 +2173,7 @@ static int Io_MvParseLineShortBlif( Io_MvMod_t * p, char * pLine )
   Synopsis    [Duplicate the MV variable.]
 
   Description []
-  
+
   SideEffects []
 
   SeeAlso     []
@@ -2207,7 +2207,7 @@ Io_MvVar_t * Abc_NtkMvVarDup( Abc_Ntk_t * pNtk, Io_MvVar_t * pVar )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2228,7 +2228,7 @@ static char * Io_ReadBlifCleanName( char * pName )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2237,7 +2237,7 @@ static char * Io_ReadBlifCleanName( char * pName )
 static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
 {
     extern int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_Gate_t * pTwin );
-    Mio_Library_t * pGenlib; 
+    Mio_Library_t * pGenlib;
     Mio_Gate_t * pGate;
     Abc_Obj_t * pNode;
     char ** ppNames, * pName;
@@ -2343,7 +2343,7 @@ static int Io_MvParseLineGateBlif( Io_MvMod_t * p, Vec_Ptr_t * vTokens )
   Synopsis    [Box mapping procedures.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -2374,4 +2374,3 @@ static inline int Abc_MapBox2Prev( Vec_Ptr_t * vDrivers, Vec_Int_t * vMapIn, Vec
 
 
 ABC_NAMESPACE_IMPL_END
-

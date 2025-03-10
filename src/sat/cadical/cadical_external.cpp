@@ -858,7 +858,7 @@ void External::check_failing () {
   int res = checker->solve ();
   if (res != 20)
     FATAL ("failed assumptions do not form a core");
-  delete_checker.free ();
+  delete_checker._free ();
   VERBOSE (1, "checked that %zd failing assumptions form a core",
            assumptions.size ());
 }

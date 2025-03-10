@@ -1,0 +1,173 @@
+name: ci
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+    paths-ignore:
+      - '**.md'
+      - '**.rst'
+      - '**.sh'
+
+jobs:
+  ci_build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11']
+
+        name: [
+          windows-2019-cl,
+          ubuntu-22.04-gcc-10,
+          ubuntu-24.04-gcc-13,
+          ubuntu-22.04-clang-15,
+          macOS-13-gcc,
+          macOS-13-clang,
+        ]
+
+        include:
+          - name: windows-2019-cl
+            os: windows-2019
+            compiler: cl
+
+          - name: ubuntu-22.04-gcc-10
+            os: ubuntu-22.04
+            compiler: gcc
+            version: "10"
+            toxcmd: soname,tests
+
+          - name: ubuntu-24.04-gcc-13
+            os: ubuntu-24.04
+            compiler: gcc
+            version: "13"
+            toxcmd: libs
+
+          - name: ubuntu-22.04-clang-15
+            os: ubuntu-22.04
+            compiler: clang
+            version: "15"
+            toxcmd: clang
+
+          - name: macOS-13-gcc
+            os: macOS-13
+            compiler: gcc
+            version: "12"
+            toxcmd: abc,tests
+
+          - name: macOS-13-clang
+            os: macOS-13
+            compiler: xcode
+            version: "15.1"
+            toxcmd: "ctestwin -- Xcode"
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Update CMake
+      uses: jwlawson/actions-setup-cmake@v2
+      if: runner.os == 'Windows'
+
+    - name: Install Tox
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox
+
+    - name:  Install and setup Linux packages
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get -y -qq update
+        sudo apt-get install -yqq software-properties-common
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
+        sudo apt-get -qq update
+        sudo apt-get install -y libreadline-dev ncurses-dev libgtest-dev
+        if [ "${{ matrix.compiler }}" = gcc ]; then
+          sudo apt-get install -y g++-${{ matrix.version }} g++-${{ matrix.version }}-multilib
+          echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+        else
+          sudo apt-get install -y clang-${{ matrix.version }} clang++-${{ matrix.version }} llvm-${{ matrix.version }}-tools lld-${{ matrix.version }}
+          echo "CC=clang-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=clang++-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "LLVM_VER_DIR=/usr/lib/llvm-${{ matrix.version }}" >> $GITHUB_ENV
+        fi
+
+    - name: Build and test Linux
+      if: runner.os == 'Linux'
+      env:
+        CC: ${{ env.CC }}
+        CXX: ${{ env.CXX }}
+        LLVM_VER_DIR: ${{ env.LLVM_VER_DIR }}
+        PREFIX: ../staging
+      run: |
+        tox -e ${{ matrix.toxcmd }}
+
+    - uses: actions/upload-artifact@v4
+      if: matrix.name == 'ubuntu-22.04-clang-15'
+      with:
+        name: src_coverage_data
+        path: |
+          build/coverage/html
+          build/coverage/lcov.info
+
+    - name:  Install and setup MacOS packages
+      if: runner.os == 'macOS'
+      run: |
+        brew update
+        #brew upgrade
+        if [ "${{ matrix.compiler }}" = xcode ]; then
+          sudo xcode-select -s /Applications/Xcode_${{ matrix.version }}.app/Contents/Developer
+          ls -ls /Applications/
+        else
+          brew install gcc@${{ matrix.version }}
+          echo "CC=gcc-${{ matrix.version }}" >> $GITHUB_ENV
+          echo "CXX=g++-${{ matrix.version }}" >> $GITHUB_ENV
+        fi
+
+    - name: Build and test MacOS
+      if: runner.os == 'macOS'
+      run: |
+        if [ "${{ matrix.compiler }}" = gcc ]; then
+          CC=${{ env.CC }} CXX=${{ env.CXX }} tox -e ${{ matrix.toxcmd }}
+        else
+          tox -e ${{ matrix.toxcmd }}
+        fi
+
+    - name: Configure Windows
+      if: runner.os == 'Windows'
+      run: >
+        cmake -S . -B build
+        -DBUILD_SHARED_LIBS=OFF
+        -DABC_USE_NO_PTHREADS=ON
+        -DABC_USE_NO_READLINE=ON
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_INSTALL_PREFIX=${{ env.PREFIX }}
+        -DVENDOR_GTEST=ON
+      env:
+        CC: cl
+        CXX: cl
+        PREFIX: staging
+
+    - name: Build Windows
+      if: runner.os == 'Windows'
+      run: cmake --build build --config Release -j 2 --target install
+
+    - name: Test Windows
+      if: runner.os == 'Windows'
+      run: |
+        ctest -V -C Release --test-dir build/
+        ls -lh staging/ || true

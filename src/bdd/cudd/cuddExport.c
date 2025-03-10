@@ -403,12 +403,12 @@ Cudd_DumpDot(
     */
 
     /* Find the bits that are different. */
-    refAddr = (long) Cudd_Regular(f[0]);
+    refAddr = (ABC_PTRINT_T) Cudd_Regular(f[0]);
     diff = 0;
     gen = st__init_gen(visited);
     if (gen == NULL) goto failure;
     while ( st__gen(gen, (const char **)&scan, NULL)) {
-        diff |= refAddr ^ (long) scan;
+        diff |= refAddr ^ (ABC_PTRINT_T) scan;
     }
     st__free_gen(gen); gen = NULL;
 
