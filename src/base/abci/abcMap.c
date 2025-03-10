@@ -908,6 +908,7 @@ Abc_Ntk_t * Abc_NtkFromMiniMapping( int *pArray )
     }
     Abc_Ntk_t *pNtkMapped = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_MAP, 1 );
     pNtkMapped->pName = Extra_UtilStrsav( "mapped" );
+    pNtkMapped->pManFunc = pLib;
     int nCis, nCos, nNodes, nFlops;
     int i, k, nLeaves, Pos = 4;
     char * pBuffer, * pName;
@@ -945,11 +946,67 @@ Abc_Ntk_t * Abc_NtkFromMiniMapping( int *pArray )
     }
     Abc_NtkAddDummyPiNames( pNtkMapped );
     Abc_NtkAddDummyPoNames( pNtkMapped );
-    if ( !Abc_NtkCheck( pNtkMapped ) )
+
+    // decouple the PO driver nodes to reduce the number of levels
+    int fFixDrivers = 1, fUseBuffs = 1, fVerbose = 1;
+    if ( fFixDrivers )
+    {
+        int nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkMapped, !fUseBuffs );
+        if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
+        {
+            if ( fUseBuffs )
+                printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
+            else
+                printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
+        }
+    }
+
+    if ( !Abc_NtkCheck( pNtkMapped ) ) {
+        //extern void Abc_NtkPrintMiniMapping( int * pArray );
+        //Abc_NtkPrintMiniMapping( pArray );
         fprintf( stdout, "Abc_NtkFromMiniMapping(): Network check has failed.\n" );
+    }
 
     return pNtkMapped;
 }
+
+/**Function*************************************************************
+
+  Synopsis    [File IO.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkReadFromFile( char * pFileName )
+{
+    int nSize = Extra_FileSize( pFileName );
+    if ( nSize == 0 )
+        return NULL;
+    FILE * pFile = fopen( pFileName, "rb" );
+    int * pArray = ABC_ALLOC( int, nSize );
+    int nSize2 = fread( pArray, sizeof(char), nSize, pFile );
+    assert( nSize2 == nSize );
+    fclose( pFile );
+    Abc_Ntk_t * pNtk = Abc_NtkFromMiniMapping( pArray );
+    ABC_FREE( pArray );
+    return pNtk;
+}
+int Abc_NtkWriteToFile( char * pFileName, Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vRes = Abc_NtkWriteMiniMapping( pNtk );
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL ) { printf( "Cannot open input file \"%s\" for writing.\n", pFileName ); return 0; }
+    int nSize = fwrite( Vec_IntArray(vRes), sizeof(int), Vec_IntSize(vRes), pFile );
+    assert( nSize == Vec_IntSize(vRes) );
+    Vec_IntFree( vRes );
+    fclose( pFile );
+    return 1;
+}
+
 
 /**Function*************************************************************
 
