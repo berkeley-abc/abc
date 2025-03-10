@@ -97,6 +97,7 @@ Mio_Library_t * Mio_LibraryRead( char * FileName, char * pBuffer, char * Exclude
     if ( tExcludeGate )
         st__free_table( tExcludeGate );
 
+    pLib->pFileName = Abc_UtilStrsav( FileName );
     return pLib;
 }
 

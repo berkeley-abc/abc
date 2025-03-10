@@ -41,6 +41,7 @@ ABC_NAMESPACE_IMPL_START
 
 ***********************************************************************/
 char *            Mio_LibraryReadName          ( Mio_Library_t * pLib )  { return pLib->pName;      }
+char *            Mio_LibraryReadFileName      ( Mio_Library_t * pLib )  { return pLib->pFileName;  }
 int               Mio_LibraryReadGateNum       ( Mio_Library_t * pLib )  { return pLib->nGates;     }
 Mio_Gate_t *      Mio_LibraryReadGates         ( Mio_Library_t * pLib )  { return pLib->pGates;     }
 Mio_Gate_t **     Mio_LibraryReadGateArray     ( Mio_Library_t * pLib )  { return pLib->ppGatesName;}

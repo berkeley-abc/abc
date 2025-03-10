@@ -69,6 +69,7 @@ void Mio_LibraryDelete( Mio_Library_t * pLib )
 //        Cudd_Quit( pLib->dd );
     ABC_FREE( pLib->ppGates0 );
     ABC_FREE( pLib->ppGatesName );
+    ABC_FREE( pLib->pFileName );
     ABC_FREE( pLib );
 }
 
