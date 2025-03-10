@@ -1519,20 +1519,31 @@ void Gia_ManSimplePrintMapping( Vec_Int_t * vRes, int nIns )
         printf( "\n" );
     }
 }
+int Gia_ManDumpCnf( char * pFileName, Vec_Str_t * vStr, int nVars )
+{
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL ) { printf( "Cannot open input file \"%s\".\n", pFileName ); return 0; }
+    fprintf( pFile, "p knf %d %d\n%s\n", nVars, Vec_StrCountEntry(vStr, '\n'), Vec_StrArray(vStr) );
+    fclose( pFile );
+    return 1;
+}
 int Gia_ManSimpleMapping( Gia_Man_t * p, int nBTLimit, int nBound, int fVerbose )
 {
     char * pFileNameI = (char *)"__temp__.cnf"; 
     char * pFileNameO = (char *)"__temp__.out";
-    FILE * pFile = fopen( pFileNameI, "wb" );
-    if ( pFile == NULL ) { printf( "Cannot open input file \"%s\".\n", pFileNameI ); return 0; }
     if ( nBound == 0 ) 
-        nBound = 2 * (Gia_ManCiNum(p) + 3 * Gia_ManAndNum(p));
+        nBound = 5 * Gia_ManAndNum(p);
     Vec_Str_t * vStr = Gia_ManSimpleCnf( p, nBound/2 );
+    int nVars = 7*(Gia_ManObjNum(p)-Gia_ManCoNum(p));
+    if ( !Gia_ManDumpCnf(pFileNameI, vStr, nVars) ) {
+        Vec_StrFree( vStr );
+        return 0;
+    }
     if ( fVerbose )
-        printf( "SAT variables = %d. SAT clauses = %d. Candinality bound = %d.\n", 7*(Gia_ManObjNum(p)-Gia_ManCoNum(p)), Vec_StrCountEntry(vStr, '\n'), nBound );
-    fprintf( pFile, "p knf %d %d\n%s\n", 7*(Gia_ManObjNum(p)-Gia_ManCoNum(p)), Vec_StrCountEntry(vStr, '\n'), Vec_StrArray(vStr) );
+        printf( "SAT variables = %d. SAT clauses = %d. Cardinality bound = %d.\n", nVars, Vec_StrCountEntry(vStr, '\n'), nBound );
+    //char pFileName[100]; sprintf( pFileName, "temp%02d.cnf", nBound/2 );
+    //Gia_ManDumpCnf( pFileName, vStr, nVars );
     Vec_StrFree( vStr );
-    fclose( pFile );
     Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, 0, 1 );
     unlink( pFileNameI );
     //unlink( pFileNameO );
