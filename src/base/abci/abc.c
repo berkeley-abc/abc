@@ -20554,17 +20554,16 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: rewire [-IEGDFSTV <num>]\n" );
-    Abc_Print( -2, "\t             performs AIG re-wiring\n" );
-    Abc_Print( -2, "\t-I <num>  :  the number of iterations [default = %d]\n",                 nIters );
-    Abc_Print( -2, "\t-E <num>  :  the number of fanins to add to all nodes [default = %d]\n", nExpands );
-    Abc_Print( -2, "\t-G <num>  :  the number of fanins to add to one node [default = %d]\n",  nGrowth );
-    Abc_Print( -2, "\t-D <num>  :  the number of shared divisors to extract [default = %d]\n", nDivs );
-    Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",   nFaninMax);
-    Abc_Print( -2, "\t-L <num>  :  localization distances [default = %d]\n",                   nDist);
-    Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                      nMode ? "transistor" : "node" );
-    Abc_Print( -2, "\t-S <num>  :  the random seed [default = %d]\n",                          nSeed );
-    Abc_Print( -2, "\t-T <num>  :  the timeout in seconds [default = unused]\n" );
-    Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                      nVerbose );
+    Abc_Print( -2, "\t-I <num>  :  the number of iterations [default = %d]\n",                                  nIters );
+    Abc_Print( -2, "\t-E <num>  :  the number of fanins to add to all nodes [default = %d]\n",                  nExpands );
+    Abc_Print( -2, "\t-G <num>  :  the number of fanins to add to one node [default = %d]\n",                   nGrowth );
+    Abc_Print( -2, "\t-D <num>  :  the number of shared divisors to extract (-1 = unlimited) [default = %d]\n", nDivs );
+    Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",                    nFaninMax);
+    Abc_Print( -2, "\t-L <num>  :  localization distances (0 = unlimited) [default = %d]\n",                    nDist);
+    Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                                       nMode ? "transistor" : "node" );
+    Abc_Print( -2, "\t-S <num>  :  the random seed [default = %d]\n",                                           nSeed );
+    Abc_Print( -2, "\t-T <num>  :  the timeout in seconds (0 = unlimited) [default = %d]\n",                    nTimeOut );
+    Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                                       nVerbose );
     Abc_Print( -2, "\t-h        :  prints the command usage\n" );
     Abc_Print( -2, "\n\tThis command was contributed by Jiun-Hao Chen from National Taiwan University.\n" );
     return 1;
@@ -45968,16 +45967,16 @@ int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &rewire [-IEGDFSTV <num>]\n" );
     Abc_Print( -2, "\t             performs AIG re-wiring\n" );
-    Abc_Print( -2, "\t-I <num>  :  the number of iterations [default = %d]\n",                 nIters );
-    Abc_Print( -2, "\t-E <num>  :  the number of fanins to add to all nodes [default = %d]\n", nExpands );
-    Abc_Print( -2, "\t-G <num>  :  the number of fanins to add to one node [default = %d]\n",  nGrowth );
-    Abc_Print( -2, "\t-D <num>  :  the number of shared divisors to extract [default = %d]\n", nDivs );
-    Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",   nFaninMax);
-    Abc_Print( -2, "\t-L <num>  :  localization distances [default = %d]\n",                   nDist);
-    Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                      nMode ? "transistor" : "node" );
-    Abc_Print( -2, "\t-S <num>  :  the random seed [default = %d]\n",                          nSeed );
-    Abc_Print( -2, "\t-T <num>  :  the timeout in seconds [default = unused]\n" );
-    Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                      nVerbose );
+    Abc_Print( -2, "\t-I <num>  :  the number of iterations [default = %d]\n",                                  nIters );
+    Abc_Print( -2, "\t-E <num>  :  the number of fanins to add to all nodes [default = %d]\n",                  nExpands );
+    Abc_Print( -2, "\t-G <num>  :  the number of fanins to add to one node [default = %d]\n",                   nGrowth );
+    Abc_Print( -2, "\t-D <num>  :  the number of shared divisors to extract (-1 = unlimited) [default = %d]\n", nDivs );
+    Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",                    nFaninMax);
+    Abc_Print( -2, "\t-L <num>  :  localization distances (0 = unlimited) [default = %d]\n",                    nDist);
+    Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                                       nMode ? "transistor" : "node" );
+    Abc_Print( -2, "\t-S <num>  :  the random seed [default = %d]\n",                                           nSeed );
+    Abc_Print( -2, "\t-T <num>  :  the timeout in seconds (0 = unlimited) [default = %d]\n",                    nTimeOut );
+    Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                                       nVerbose );
     Abc_Print( -2, "\t-h        :  prints the command usage\n" );
     Abc_Print( -2, "\n\tThis command was contributed by Jiun-Hao Chen from National Taiwan University.\n" );
     return 1;
