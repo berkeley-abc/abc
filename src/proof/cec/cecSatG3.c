@@ -2120,7 +2120,7 @@ finalize:
         CbsP_ManStop(pCbs);
     //Gia_ManStaticFanoutStop( p );
     //Gia_ManEquivPrintClasses( p, 1, 0 );
-    Gia_ManRemoveWrongChoices( p );
+    if ( p->pNexts ) Gia_ManRemoveWrongChoices( p );
     return p->pCexSeq ? 0 : 1;
 }
 Gia_Man_t * Cec5_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars, int fCbs, int approxLim, int subBatchSz, int adaRecycle )
