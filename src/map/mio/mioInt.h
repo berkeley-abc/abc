@@ -61,6 +61,7 @@ ABC_NAMESPACE_HEADER_START
 struct  Mio_LibraryStruct_t_
 {
     char *             pName;       // the name of the library
+    char *             pFileName;   // the original file name
     int                nGates;      // the number of the gates
     Mio_Gate_t **      ppGates0;    // the array of gates in the original order
     Mio_Gate_t **      ppGatesName; // the array of gates sorted by name
