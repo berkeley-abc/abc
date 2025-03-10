@@ -336,7 +336,7 @@ int Mio_CommandReadGenlib( Abc_Frame_t * pAbc, int argc, char **argv )
     double WireDelay = 0.0;
     int fShortNames = 0;
     int nFaninLimit = 0;
-    int c, fVerbose = 1;
+    int c, fVerbose = 0;
 
     pOut = Abc_FrameReadOut(pAbc);
     pErr = Abc_FrameReadErr(pAbc);
