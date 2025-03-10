@@ -2053,7 +2053,7 @@ finalize:
     //Gia_ManEquivPrintClasses( p, 1, 0 );
     if ( ppNew && *ppNew == NULL )
         *ppNew = Gia_ManDup(p);
-    Gia_ManRemoveWrongChoices( p );
+    if ( p->pNexts ) Gia_ManRemoveWrongChoices( p );
     return p->pCexSeq ? 0 : 1;
 }
 Gia_Man_t * Cec4_ManSimulateTest( Gia_Man_t * p, Cec_ParFra_t * pPars )
