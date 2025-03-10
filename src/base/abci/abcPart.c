@@ -1613,18 +1613,18 @@ Vec_Ptr_t * Abc_NtkDeriveWinOutsAll( Abc_Ntk_t * pNtk, Vec_Ptr_t * vvNodes )
         Vec_PtrPush( vvOuts, Abc_NtkDeriveWinOuts(pNtk, vNodes) );
     return vvOuts;
 }
-void Abc_NtkPermuteLevel( Abc_Ntk_t * pNtk )
+void Abc_NtkPermuteLevel( Abc_Ntk_t * pNtk, int Level )
 {
-    Abc_Obj_t * pObj, * pFanin; int i, k;
-    Abc_NtkLevelReverse( pNtk );
-    Abc_NtkForEachNode( pNtk, pObj, i )
-    {
-        int LevelMin = 0, LevelMax = Abc_ObjLevel(pObj);
-        Abc_ObjForEachFanin( pObj, pFanin, k )
-            LevelMin = Abc_MaxInt( LevelMin, Abc_ObjLevel(pFanin) );
+    Abc_Obj_t * pObj, * pNext; int i, k;
+    Abc_NtkForEachNode( pNtk, pObj, i ) {
+        int LevelMin = Abc_ObjLevel(pObj), LevelMax = Level + 1;
+        Abc_ObjForEachFanout( pObj, pNext, k )
+            if ( Abc_ObjIsNode(pNext) )
+                LevelMax = Abc_MinInt( LevelMax, Abc_ObjLevel(pNext) );
         assert( LevelMin < LevelMax );
-        // randomly set level between LevelMin + 1 and LevelMax
-        pObj->Level = LevelMin + 1 + (Abc_Random(0) % (LevelMax - LevelMin));
+        // randomly set level between LevelMin and LevelMax-1
+        pObj->Level = LevelMin + (Abc_Random(0) % (LevelMax - LevelMin));
+        assert( pObj->Level < LevelMax );
     }
 }
 Vec_Int_t * Abc_NtkCollectObjectsPointedTo( Abc_Ntk_t * pNtk, int Level )
@@ -1820,7 +1820,7 @@ Vec_Ptr_t * Abc_NtkExtractPartitions( Abc_Ntk_t * pNtk, int Iter, int nSuppMax, 
     int LevelMax = iUseRevL ? Abc_NtkLevelR(pNtk) : Abc_NtkLevel(pNtk);
     int LevelCut = Iter % 3 == 0 ? 0 : LevelMax > 8 ? 2 + (Abc_Random(0) % (LevelMax - 4)) : 0;
     //printf( "Using %s cut level %d (out of %d)\n", iUseRevL ? "reverse": "direct", LevelCut, LevelMax );
-    //Abc_NtkPermuteLevel( pNtk );
+    Abc_NtkPermuteLevel( pNtk, LevelMax );
     Vec_Wec_t * vStore = Vec_WecStart( LevelMax+1 );
     Vec_Wec_t * vSupps = Abc_NtkCollectObjectsWithSuppLimit( pNtk, LevelCut, nSuppMax );
     Vec_Ptr_t * vIns   = Abc_NtkDeriveWinInsAll( vSupps, nSuppMax, pNtk );
