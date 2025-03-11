@@ -1,0 +1,24 @@
+abc_libabc_add_sources(
+    NAME proof_ssw
+    SOURCES
+        sswSemi.c
+        sswClass.c
+        sswCore.c
+        sswSim.c
+        sswSimSat.c
+        sswSweep.c
+        sswDyn.c
+        sswCnf.c
+        sswMan.c
+        sswConstr.c
+        sswPart.c
+        sswFilter.c
+        sswUnique.c
+        sswSat.c
+        sswIslands.c
+        sswAig.c
+        sswLcorr.c
+        sswPairs.c
+        sswBmc.c
+        sswRarity.c
+)

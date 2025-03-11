@@ -1,0 +1,31 @@
+abc_libabc_add_sources(
+    NAME map_if
+    SOURCES
+        ifSat.c
+        ifDelay.c
+        ifReduce.c
+        ifCom.c
+        ifLibLut.c
+        ifDec07.c
+        ifCut.c
+        ifMatch2.c
+        ifTest.c
+        ifDec16.c
+        ifDec66.c
+        ifMan.c
+        ifLibBox.c
+        ifDsd.c
+        ifDec10.c
+        ifTruth.c
+        ifData2.c
+        ifCache.c
+        ifSeq.c
+        ifDec08.c
+        ifSelect.c
+        ifTime.c
+        ifMap.c
+        ifCore.c
+        ifDec75.c
+        ifTune.c
+        ifUtil.c
+)
