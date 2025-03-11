@@ -1335,8 +1335,6 @@ int Abc_NtkStochProcess1( void * p )
 Vec_Ptr_t * Abc_NtkStochProcess( Vec_Ptr_t * vWins, char * pScript, int nProcs, int TimeSecs, int fVerbose )
 {
     if ( nProcs <= 2 ) {
-        if ( fVerbose )
-            printf( "Running non-concurrent synthesis.\n" ), fflush(stdout);            
         Abc_NtkStochSynthesis( vWins, pScript );
         return NULL;
     }
@@ -1352,8 +1350,6 @@ Vec_Ptr_t * Abc_NtkStochProcess( Vec_Ptr_t * vWins, char * pScript, int nProcs, 
         pData[i].TimeOut = TimeSecs;
         Vec_PtrPush( vData, pData+i );
     }
-    if ( fVerbose )
-        printf( "Running concurrent synthesis with %d processes.\n", nProcs ), fflush(stdout);
     Util_ProcessThreads( Abc_NtkStochProcess1, vData, nProcs, TimeSecs, fVerbose );
     // replace old AIGs by new AIGs
     Vec_PtrForEachEntry( Abc_Ntk_t *, vWins, pNtk, i ) {
@@ -1850,8 +1846,14 @@ void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fVerb
     Abc_Random(1);
     for ( i = 0; i < 10+Seed; i++ )
         Abc_Random(0);
-    if ( fVerbose )
-    printf( "Running %d iterations of script \"%s\".\n", nIters, pScript );
+    if ( fVerbose ) {
+        printf( "Running %d iterations of the script \"%s\"", nIters, pScript );
+        if ( nProcs > 2 )
+            printf( " using %d concurrent threads.\n", nProcs-1 );
+        else
+            printf( " without concurrency.\n" );
+        fflush(stdout);
+    }
     Vec_Ptr_t * vIns = NULL, * vOuts = NULL, * vNodes = NULL;
     for ( i = 0; i < nIters; i++ )
     {
