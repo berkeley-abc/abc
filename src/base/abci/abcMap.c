@@ -852,7 +852,7 @@ Vec_Int_t * Abc_NtkWriteMiniMapping( Abc_Ntk_t * pNtk )
     // write the numbers of CI/CO/Node/FF
     Vec_IntPush( vMapping, Abc_NtkCiNum(pNtk) );
     Vec_IntPush( vMapping, Abc_NtkCoNum(pNtk) );
-    Vec_IntPush( vMapping, Abc_NtkNodeNum(pNtk) );
+    Vec_IntPush( vMapping, Vec_PtrSize(vNodes) );
     Vec_IntPush( vMapping, Abc_NtkLatchNum(pNtk) );
     // write the nodes
     vGates = Vec_StrAlloc( 10000 );
@@ -868,6 +868,15 @@ Vec_Int_t * Abc_NtkWriteMiniMapping( Abc_Ntk_t * pNtk )
     // write the COs literals
     Abc_NtkForEachCo( pNtk, pObj, i )
         Vec_IntPush( vMapping, Abc_ObjFanin0(pObj)->iTemp );
+    // write signal names
+    Abc_NtkForEachCi( pNtk, pObj, i ) {
+        Vec_StrPrintStr( vGates, Abc_ObjName(pObj) );        
+        Vec_StrPush( vGates, '\0' );
+    }
+    Abc_NtkForEachCo( pNtk, pObj, i ) {
+        Vec_StrPrintStr( vGates, Abc_ObjName(pObj) );
+        Vec_StrPush( vGates, '\0' );
+    }
     // finish off the array
     nExtra = 4 - Vec_StrSize(vGates) % 4;
     for ( i = 0; i < nExtra; i++ )
@@ -913,19 +922,23 @@ Abc_Ntk_t * Abc_NtkFromMiniMapping( int *pArray )
     int i, k, nLeaves, Pos = 4;
     char * pBuffer, * pName;
     Mio_Gate_t *pGate;
+    Abc_Obj_t * pObj;
     nCis = pArray[0];
     nCos = pArray[1];
     nNodes = pArray[2];
     nFlops = pArray[3];
-    // create pi
-    for ( i = 0; i < nCis; i++ )
+    // create pis
+    for ( i = 0; i < nCis-nFlops; i++ )
         Abc_NtkCreatePi( pNtkMapped );
+    // create pos
+    for ( i = 0; i < nCos-nFlops; i++ )
+        Abc_NtkCreatePo( pNtkMapped );
+    // create flops
+    for ( i = 0; i < nFlops; i++ )
+        Abc_NtkAddLatch( pNtkMapped, NULL, ABC_INIT_ZERO );
     // create nodes
     for ( i = 0; i < nNodes; i++ )
         Abc_NtkCreateNode( pNtkMapped );
-    // create po
-    for ( i = 0; i < nCos; i++ )
-        Abc_NtkCreatePo( pNtkMapped );
     // connect nodes
     for ( i = 0; i < nNodes; i++ )
     {
@@ -944,26 +957,21 @@ Abc_Ntk_t * Abc_NtkFromMiniMapping( int *pArray )
         pGate = Mio_LibraryReadGateByName( pLib, pName, NULL );
         Abc_NtkObj( pNtkMapped, nCis + i + 1 )->pData = pGate;
     }
-    Abc_NtkAddDummyPiNames( pNtkMapped );
-    Abc_NtkAddDummyPoNames( pNtkMapped );
 
-    // decouple the PO driver nodes to reduce the number of levels
-    int fFixDrivers = 1, fUseBuffs = 1, fVerbose = 1;
-    if ( fFixDrivers )
-    {
-        int nDupGates = Abc_NtkLogicMakeSimpleCos( pNtkMapped, !fUseBuffs );
-        if ( fVerbose && nDupGates && !Abc_FrameReadFlag("silentmode") )
-        {
-            if ( fUseBuffs )
-                printf( "Added %d buffers/inverters to decouple the CO drivers.\n", nDupGates );
-            else
-                printf( "Duplicated %d gates to decouple the CO drivers.\n", nDupGates );
-        }
+    assert( Abc_NtkCiNum(pNtkMapped) == nCis );
+    Abc_NtkForEachCi( pNtkMapped, pObj, i ) {
+        pName = pBuffer;
+        pBuffer += strlen(pName) + 1;
+        Abc_ObjAssignName( pObj, pName, NULL );
+    }
+    assert( Abc_NtkCoNum(pNtkMapped) == nCos );
+    Abc_NtkForEachCo( pNtkMapped, pObj, i ) {
+        pName = pBuffer;
+        pBuffer += strlen(pName) + 1;
+        Abc_ObjAssignName( pObj, pName, NULL );
     }
 
     if ( !Abc_NtkCheck( pNtkMapped ) ) {
-        //extern void Abc_NtkPrintMiniMapping( int * pArray );
-        //Abc_NtkPrintMiniMapping( pArray );
         fprintf( stdout, "Abc_NtkFromMiniMapping(): Network check has failed.\n" );
     }
 
@@ -987,11 +995,11 @@ Abc_Ntk_t * Abc_NtkReadFromFile( char * pFileName )
     if ( nSize == 0 )
         return NULL;
     FILE * pFile = fopen( pFileName, "rb" );
-    int * pArray = ABC_ALLOC( int, nSize );
+    char * pArray = ABC_ALLOC( char, nSize );
     int nSize2 = fread( pArray, sizeof(char), nSize, pFile );
     assert( nSize2 == nSize );
     fclose( pFile );
-    Abc_Ntk_t * pNtk = Abc_NtkFromMiniMapping( pArray );
+    Abc_Ntk_t * pNtk = Abc_NtkFromMiniMapping( (int*)pArray );
     ABC_FREE( pArray );
     return pNtk;
 }
@@ -1032,8 +1040,8 @@ void Abc_NtkPrintMiniMapping( int * pArray )
     printf( "The first %d object IDs (from 0 to %d) are reserved for the CIs.\n", nCis, nCis - 1 );
     for ( i = 0; i < nNodes; i++ )
     {
-        printf( "Node %d has fanins {", nCis + i );
         nLeaves = pArray[Pos++];
+        printf( "Node %d has %d fanins {", nCis + i, nLeaves );
         for ( k = 0; k < nLeaves; k++ )
             printf( " %d", pArray[Pos++] );
         printf( " }\n" );
@@ -1046,6 +1054,18 @@ void Abc_NtkPrintMiniMapping( int * pArray )
         pName = pBuffer;
         pBuffer += strlen(pName) + 1;
         printf( "Node %d has gate \"%s\"\n", nCis + i, pName );
+    }
+    for ( i = 0; i < nCis; i++ )
+    {
+        pName = pBuffer;
+        pBuffer += strlen(pName) + 1;
+        printf( "CI %d has name \"%s\"\n", i, pName );
+    }
+    for ( i = 0; i < nCos; i++ )
+    {
+        pName = pBuffer;
+        pBuffer += strlen(pName) + 1;
+        printf( "CO %d has name \"%s\"\n", i, pName );
     }
 }
 
