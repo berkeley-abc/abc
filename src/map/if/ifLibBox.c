@@ -345,7 +345,7 @@ void If_LibBoxPrint( FILE * pFile, If_LibBox_t * p )
     If_LibBoxForEachBox( p, pBox, i )
     {
         fprintf( pFile, "%s %d %d %d %d\n", pBox->pName, pBox->Id, !pBox->fBlack, pBox->nPis, pBox->nPos );
-        for ( j = 0; j < pBox->nPos; j++, printf("\n") )
+        for ( j = 0; j < pBox->nPos; j++, fprintf(pFile, "\n") )
             for ( k = 0; k < pBox->nPis; k++ )
                 if ( pBox->pDelays[j * pBox->nPis + k] == -ABC_INFINITY )
                     fprintf( pFile, "    - " );
@@ -364,6 +364,7 @@ void If_LibBoxWrite( char * pFileName, If_LibBox_t * p )
     }
     If_LibBoxPrint( pFile, p );
     fclose( pFile );
+    printf( "Finished writing box library into file \"%s\".\n", pFileName );
 }
 
 /**Function*************************************************************

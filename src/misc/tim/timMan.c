@@ -564,10 +564,10 @@ void Tim_ManPrint( Tim_Man_t * p )
     if ( Tim_ManBoxNum(p) > 0 )
     Tim_ManForEachBox( p, pBox, i )
     {
-        printf( "*** Box %5d :  I =%4d. O =%4d. I1 =%6d. O1 =%6d. Table =%4d\n", 
+        printf( "*** Box %5d :  I =%4d. O =%4d. I1 =%6d. O1 =%6d. Table =%4d. Copy = %d.\n", 
             i, pBox->nInputs, pBox->nOutputs, 
             Tim_ManBoxInputFirst(p, i), Tim_ManBoxOutputFirst(p, i), 
-            pBox->iDelayTable );
+            pBox->iDelayTable, pBox->iCopy );
 
         // print box inputs
         pPrev = Tim_ManBoxInput( p, pBox, 0 );
@@ -591,7 +591,7 @@ void Tim_ManPrint( Tim_Man_t * p )
             Tim_ManBoxForEachOutput( p, pBox, pObj, k )
                 printf( "box-out%3d :  arrival = %5.3f  required = %5.3f\n", k, pObj->timeArr, pObj->timeReq );
 
-        if ( i > 2 )
+        if ( i == 7 )
             break;
     }
 
@@ -611,6 +611,8 @@ void Tim_ManPrint( Tim_Man_t * p )
                     printf( "%5s", "-" );
                 else
                     printf( "%5.0f", pTable[3+j*TableX+k] );
+        if ( i == 7 )
+            break;
     }
     printf( "\n" );
 }

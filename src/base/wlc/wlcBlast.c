@@ -1513,9 +1513,12 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
                 nRange2 = 0;
 
             // create new box
-            if ( vTables == NULL )
+            if ( vTables == NULL ) {
                 Tim_ManSetDelayTables( pManTime, (vTables = Vec_PtrAlloc(100)) );
+                Vec_PtrPush( vTables, NULL );
+            }
             Tim_ManCreateBox( pManTime, curPo, nRange0 + nRange1 + nRange2, curPi, nRange, Vec_PtrSize(vTables), 0 );
+            Tim_ManBoxSetCopy( pManTime, Tim_ManBoxNum(pManTime)-1, Tim_ManBoxNum(pManTime)-1 );
             curPi += nRange;
             curPo += nRange0 + nRange1 + nRange2;
 
@@ -2105,8 +2108,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         assert( pObj->Type == WLC_OBJ_FF );
 
         // create new box
-        if ( vTables == NULL )
+        if ( vTables == NULL ) {
             Tim_ManSetDelayTables( pManTime, (vTables = Vec_PtrAlloc(100)) );
+            Vec_PtrPush( vTables, NULL );
+        }
         Tim_ManCreateBox( pManTime, curPo, nRangeIn, curPi, nRange, Vec_PtrSize(vTables), 0 );
         curPi += nRange;
         curPo += nRangeIn;

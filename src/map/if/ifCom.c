@@ -32,6 +32,8 @@ static int If_CommandReadLut ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int If_CommandPrintLut( Abc_Frame_t * pAbc, int argc, char **argv );
 static int If_CommandReadBox ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int If_CommandPrintBox( Abc_Frame_t * pAbc, int argc, char **argv );
+static int If_CommandWriteBox( Abc_Frame_t * pAbc, int argc, char **argv );
+static int If_CommandPrintTim( Abc_Frame_t * pAbc, int argc, char **argv );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -59,6 +61,8 @@ void If_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "read_box",   If_CommandReadBox,   0 ); 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "print_box",  If_CommandPrintBox,  0 ); 
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "write_box",  If_CommandWriteBox,  0 ); 
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "print_tim",  If_CommandPrintTim,  0 ); 
 }
 
 /**Function*************************************************************
@@ -362,6 +366,113 @@ usage:
     return 1;       /* error exit */
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CommandWriteBox( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNet;
+    int fVerbose;
+    int c;
+
+    pNet = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( argc != globalUtilOptind+1 )
+        goto usage;
+
+    If_LibBoxWrite( argv[globalUtilOptind], (If_LibBox_t *)Abc_FrameReadLibBox() );
+    return 0;
+
+usage:
+    fprintf( pErr, "\nusage: write_box [-vh] <file>\n");
+    fprintf( pErr, "\t          write the current box library into a file\n" );  
+    fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
+    fprintf( pErr, "\t-h      : print the command usage\n");
+    fprintf( pErr, "\t<file>  : the output file name\n");
+    return 1;       /* error exit */
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CommandPrintTim( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    Gia_Man_t * pGia = Abc_FrameReadGia(pAbc);
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+    if ( pGia == NULL )
+    {
+        Abc_Print( -1, "There is no AIG in the &-space.\n" );
+        return 1;
+    }
+    if ( pGia->pManTime == NULL )
+    {
+        Abc_Print( -1, "The current AIG does not have a timing manager.\n" );
+        return 1;
+    }
+    Tim_ManPrint( (Tim_Man_t *)pGia->pManTime );
+    if ( fVerbose ) 
+        Tim_ManPrintBoxCopy( (Tim_Man_t *)pGia->pManTime );
+    return 0;
+
+usage:
+    Abc_Print( -2, "\nusage: print_tim [-vh]\n");
+    Abc_Print( -2, "\t          print the timing manager\n" );  
+    Abc_Print( -2, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;       /* error exit */
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
