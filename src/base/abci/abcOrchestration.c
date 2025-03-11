@@ -4444,6 +4444,8 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
         // skip persistant nodes
         if ( Abc_NodeIsPersistant(pNode) )
         {
+            if (!(pGain_res && pGain_ref && pGain_rwr))
+                return 0;
             fprintf(fpt, "%d, %s, %d\n", pNode->Id, "None" , -99);
             Vec_IntPush((*pGain_res), -99);
             Vec_IntPush((*pGain_ref), -99);
@@ -4453,6 +4455,8 @@ Rwr_ManAddTimeCuts( pManRwr, Abc_Clock() - clk );
         // skip the nodes with many fanouts
         if ( Abc_ObjFanoutNum(pNode) > 1000 )
         {
+            if (!(pGain_res && pGain_ref && pGain_rwr))
+                return 0;
             fprintf(fpt, "%d, %s, %d\n", pNode->Id,"None", -99);
             Vec_IntPush((*pGain_res), -99);
             Vec_IntPush((*pGain_ref), -99);
