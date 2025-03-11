@@ -140,6 +140,7 @@ extern float *         Tim_ManGetReqTimes( Tim_Man_t * p );
 extern void            Tim_ManStop( Tim_Man_t * p );
 extern void            Tim_ManStopP( Tim_Man_t ** p );
 extern void            Tim_ManPrint( Tim_Man_t * p );
+extern void            Tim_ManPrintBoxCopy( Tim_Man_t * p );
 extern void            Tim_ManPrintStats( Tim_Man_t * p, int nAnd2Delay );
 extern int             Tim_ManCiNum( Tim_Man_t * p );
 extern int             Tim_ManCoNum( Tim_Man_t * p );
