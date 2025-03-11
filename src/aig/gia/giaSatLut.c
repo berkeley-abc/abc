@@ -1233,7 +1233,7 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int LutSize, int nNumber, int nImproves, i
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int TimeOut, int fVerbose )
+Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int nBTLimit, int TimeOut, int fVerbose )
 {
     extern Vec_Int_t * Exa4_ManParse( char *pFileName );
     int fVerboseSolver = 0;
@@ -1245,10 +1245,18 @@ Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int TimeOut
     char * pKadical = "kadical";
 #endif
     char Command[1000], * pCommand = (char *)&Command;
-    if ( TimeOut )
-        sprintf( pCommand, "%s -t %d %s %s > %s", pKadical, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
-    else
-        sprintf( pCommand, "%s %s %s > %s", pKadical, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+    if ( nBTLimit ) {
+        if ( TimeOut )
+            sprintf( pCommand, "%s -c %d -t %d %s %s > %s", pKadical, nBTLimit, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+        else
+            sprintf( pCommand, "%s -c %d  %s %s > %s", pKadical, nBTLimit, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+    }
+    else {
+        if ( TimeOut )
+            sprintf( pCommand, "%s -t %d %s %s > %s", pKadical, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+        else
+            sprintf( pCommand, "%s %s %s > %s", pKadical, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+    }
 #ifdef __wasm
     if ( 1 )
 #else
@@ -1266,7 +1274,7 @@ Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int TimeOut
         else if ( vRes == NULL && TimeOut == 0 )
             printf( "The problem has no solution. " );
         else if ( vRes == NULL )
-            printf( "The problem has no solution or timed out after %d sec. ", TimeOut );
+            printf( "The problem has no solution or reached a resource limit after %d sec. ", TimeOut );
         Abc_PrintTime( 1, "SAT solver time", Abc_Clock() - clkTotal );
     }
     return vRes;
@@ -1527,7 +1535,7 @@ int Gia_ManDumpCnf( char * pFileName, Vec_Str_t * vStr, int nVars )
     fclose( pFile );
     return 1;
 }
-int Gia_ManSimpleMapping( Gia_Man_t * p, int nBTLimit, int nBound, int fVerbose )
+int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout, int fVerbose )
 {
     char * pFileNameI = (char *)"__temp__.cnf"; 
     char * pFileNameO = (char *)"__temp__.out";
@@ -1540,11 +1548,12 @@ int Gia_ManSimpleMapping( Gia_Man_t * p, int nBTLimit, int nBound, int fVerbose 
         return 0;
     }
     if ( fVerbose )
-        printf( "SAT variables = %d. SAT clauses = %d. Cardinality bound = %d.\n", nVars, Vec_StrCountEntry(vStr, '\n'), nBound );
+        printf( "SAT variables = %d. SAT clauses = %d. Cardinality bound = %d. Conflict limit = %d. Timeout = %d.\n", 
+            nVars, Vec_StrCountEntry(vStr, '\n'), nBound, nBTLimit, nTimeout );
     //char pFileName[100]; sprintf( pFileName, "temp%02d.cnf", nBound/2 );
     //Gia_ManDumpCnf( pFileName, vStr, nVars );
     Vec_StrFree( vStr );
-    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, 0, 1 );
+    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, nBTLimit, nTimeout, 1 );
     unlink( pFileNameI );
     //unlink( pFileNameO );
     if ( vRes == NULL )

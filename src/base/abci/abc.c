@@ -44388,27 +44388,13 @@ usage:
 int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Mio_IntallSimpleLibrary();
-    extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBTLimit, int nBound, int fVerbose );
-    int c, nBTLimit = 0, nBound = 0, fVerbose = 0;
+    extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout, int fVerbose );
+    int c, nBTLimit = 0, nBound = 0, nTimeout = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CBvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BCTvh" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'C':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
-                goto usage;
-            }
-            nBTLimit = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nBTLimit < 0 )
-            {
-                Abc_Print( -1, "Conflict limit should be a positive integer.\n" );
-                goto usage;
-            }
-            break;
         case 'B':
             if ( globalUtilOptind >= argc )
             {
@@ -44423,6 +44409,29 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimit < 0 )
+            {
+                Abc_Print( -1, "Conflict limit should be a positive integer.\n" );
+                goto usage;
+            }
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nTimeout = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;            
         case 'v':
             fVerbose ^= 1;
             break;
@@ -44437,15 +44446,16 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     Mio_IntallSimpleLibrary();
-    if ( !Gia_ManSimpleMapping( pAbc->pGia, nBTLimit, nBound, fVerbose ) )
+    if ( !Gia_ManSimpleMapping( pAbc->pGia, nBound, nBTLimit, nTimeout, fVerbose ) )
         printf( "Simple mapping has failed.\n" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &simap [-CB num] [-vh]\n" );
+    Abc_Print( -2, "usage: &simap [-BCT num] [-vh]\n" );
     Abc_Print( -2, "\t           performs simple mapping of the AIG\n" );
-    Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
+    Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-T num   : runtime limit in seconds [default = %d]\n", nTimeout );    
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
