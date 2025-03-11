@@ -20432,15 +20432,16 @@ usage:
 ***********************************************************************/
 int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t *Abc_ManRewire(Abc_Ntk_t *pNtk, int nIters, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nSeed, int fVerbose);
+    extern Abc_Ntk_t *Abc_ManRewire(Abc_Ntk_t *pNtk, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nSeed, int fVerbose);
     Abc_Ntk_t *pNtk, *pTemp;
     int c, nIters = 100000, nExpands = 128, nGrowth = 4, nDivs = -1, nFaninMax = 8, nSeed = 1, nTimeOut = 0, nVerbose = 1, nMode = 0, nDist = 0;
+    float nLevelGrowRatio = 0;
     Extra_UtilGetoptReset();
     // Cmd_CommandExecute
 
     pNtk = Abc_FrameReadNtk(pAbc);
 
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IEGDFSTMLVh" ) ) != EOF ) {
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IEGDFSTMLRVh" ) ) != EOF ) {
         switch ( c ) {
         case 'I':
             if ( globalUtilOptind >= argc )
@@ -20523,6 +20524,15 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
             nDist = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a positive number.\n" );
+                goto usage;
+            }
+            nLevelGrowRatio = atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'V':
             if ( globalUtilOptind >= argc )
             {
@@ -20553,7 +20563,7 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pTemp = Abc_ManRewire( pNtk, nIters, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nDist, nSeed, nVerbose );
+    pTemp = Abc_ManRewire( pNtk, nIters, nLevelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nDist, nSeed, nVerbose );
     Abc_FrameReplaceCurrentNetwork( pAbc, pTemp );
     return 0;
 
@@ -20565,6 +20575,7 @@ usage:
     Abc_Print( -2, "\t-D <num>  :  the number of shared divisors to extract (-1 = unlimited) [default = %d]\n", nDivs );
     Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",                    nFaninMax);
     Abc_Print( -2, "\t-L <num>  :  localization distances (0 = unlimited) [default = %d]\n",                    nDist);
+    Abc_Print( -2, "\t-R <num>  :  level constraint (0 = unlimited, 1 = preserve level) [default = %g]\n",      nLevelGrowRatio);
     Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                                       nMode ? "transistor" : "node" );
     Abc_Print( -2, "\t-S <num>  :  the random seed [default = %d]\n",                                           nSeed );
     Abc_Print( -2, "\t-T <num>  :  the timeout in seconds (0 = unlimited) [default = %d]\n",                    nTimeOut );
@@ -45845,12 +45856,13 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t *Gia_ManRewire(Gia_Man_t *pGia, int nIters, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nSeed, int fVerbose);
+    extern Gia_Man_t *Gia_ManRewire(Gia_Man_t *pGia, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nSeed, int fVerbose);
     Gia_Man_t *pTemp;
     int c, nIters = 100000, nExpands = 128, nGrowth = 4, nDivs = -1, nFaninMax = 8, nSeed = 1, nTimeOut = 0, nVerbose = 1, nMode = 0, nDist = 0;
+    float nLevelGrowRatio = 0;
     Extra_UtilGetoptReset();
     // Cmd_CommandExecute
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IEGDFSTMLVh" ) ) != EOF ) {
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IEGDFSTMLRVh" ) ) != EOF ) {
         switch ( c ) {
         case 'I':
             if ( globalUtilOptind >= argc )
@@ -45933,6 +45945,15 @@ int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
             nDist = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by a positive number.\n" );
+                goto usage;
+            }
+            nLevelGrowRatio = atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'V':
             if ( globalUtilOptind >= argc )
             {
@@ -45963,7 +45984,7 @@ int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    pTemp = Gia_ManRewire( pAbc->pGia, nIters, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nDist, nSeed, nVerbose );
+    pTemp = Gia_ManRewire( pAbc->pGia, nIters, nLevelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nDist, nSeed, nVerbose );
     if ( pTemp->pName == NULL )
         pTemp->pName = Abc_UtilStrsav(Extra_FileNameWithoutPath(pAbc->pGia->pName));
     Abc_FrameUpdateGia( pAbc, pTemp );
@@ -45978,6 +45999,7 @@ usage:
     Abc_Print( -2, "\t-D <num>  :  the number of shared divisors to extract (-1 = unlimited) [default = %d]\n", nDivs );
     Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",                    nFaninMax);
     Abc_Print( -2, "\t-L <num>  :  localization distances (0 = unlimited) [default = %d]\n",                    nDist);
+    Abc_Print( -2, "\t-R <num>  :  level constraint (0 = unlimited, 1 = preserve level) [default = %g]\n",      nLevelGrowRatio);
     Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                                       nMode ? "transistor" : "node" );
     Abc_Print( -2, "\t-S <num>  :  the random seed [default = %d]\n",                                           nSeed );
     Abc_Print( -2, "\t-T <num>  :  the timeout in seconds (0 = unlimited) [default = %d]\n",                    nTimeOut );

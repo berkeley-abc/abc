@@ -271,21 +271,21 @@ private:
     int buildNodeCascade(Miaig &pNew, vi *vFanins, int fCprop, int fStrash);
 
 private:
-    int expandOne(int iObj, int nAddedMax, int nDist, int fVerbose);
+    int expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, int fVerbose);
     int reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, int fVerbose);
-    int expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int fVerbose);
+    int expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int nExpandableLevel, int fVerbose);
 
 public:
     Miaig dup(int fRemDangle, int fMapped = 0);
     Miaig dupDfs(void);
     Miaig dupStrash(int fCprop, int fStrash, int fCascade);
     Miaig dupMulti(int nFaninMax_, int nGrowth);
-    Miaig expand(int nFaninAddLimitAll, int nDist, int nVerbose);
+    Miaig expand(int nFaninAddLimitAll, int nDist, int nExpandableLevel, int nVerbose);
     Miaig share(int nNewNodesMax);
     Miaig reduce(int fVerbose);
-    Miaig expandThenReduce(int nFaninAddLimit, int nDist, int fVerbose);
-    Miaig expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nVerbose);
-    Miaig rewire(int nIters, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nVerbose);
+    Miaig expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLevel, int fVerbose);
+    Miaig expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nExpandableLevel, int nVerbose);
+    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nVerbose);
     #ifdef RW_ABC
     Gia_Man_t *toGia(void);
     Abc_Ntk_t *toNtk(int fMapped = 0);
