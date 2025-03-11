@@ -1313,6 +1313,7 @@ Abc_Ntk_t * Abc_NtkStochProcessOne( Abc_Ntk_t * p, char * pScript0, int Rand, in
     }
     ABC_FREE( pScript );
     pNew = Abc_NtkReadFromFile( FileName );
+    
     unlink( FileName );
     if ( pNew && Abc_NtkGetMappedArea(pNew) < Abc_NtkGetMappedArea(p) ) {
         pNew = Abc_NtkDupDfs( pTemp = pNew );
