@@ -513,6 +513,7 @@ static int Abc_CommandAbc9Mf                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Nf                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Of                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Simap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Exmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Pack               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Edge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1321,6 +1322,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&nf",           Abc_CommandAbc9Nf,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&of",           Abc_CommandAbc9Of,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&simap",        Abc_CommandAbc9Simap,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&exmap",        Abc_CommandAbc9Exmap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pack",         Abc_CommandAbc9Pack,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&edge",         Abc_CommandAbc9Edge,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satlut",       Abc_CommandAbc9SatLut,       0 );
@@ -44393,7 +44395,7 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'B':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a positive integer.\n" );
                 goto usage;
             }
             nBound = atoi(argv[globalUtilOptind]);
@@ -44448,6 +44450,126 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
 usage:
     Abc_Print( -2, "usage: &simap [-BCT num] [-vh]\n" );
     Abc_Print( -2, "\t           performs simple mapping of the AIG\n" );
+    Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
+    Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
+    Abc_Print( -2, "\t-T num   : runtime limit in seconds [default = %d]\n", nTimeout );    
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int nBTLimit, int nTimeout, int fVerbose );
+    int c, nVars = 0, nNodes = 0, nBTLimit = 0, nBound = 0, nTimeout = 0, fVerbose = 0; Gia_Man_t * pTemp = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NBCTvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nNodes = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nNodes < 0 )
+            {
+                Abc_Print( -1, "Bound on a solution should be a positive integer.\n" );
+                goto usage;
+            }
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nBound = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBound < 0 )
+            {
+                Abc_Print( -1, "Bound on a solution should be a positive integer.\n" );
+                goto usage;
+            }
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nBTLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBTLimit < 0 )
+            {
+                Abc_Print( -1, "Conflict limit should be a positive integer.\n" );
+                goto usage;
+            }
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by a positive integer.\n" );
+                goto usage;
+            }
+            nTimeout = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Truth table should be given on the command line.\n" );
+        return 1;
+    }
+    char * pTruth = argv[globalUtilOptind];
+    nVars = Abc_Base2Log(4*strlen(pTruth));
+    if ( (1 << nVars) != 4*strlen(pTruth) ) 
+    {
+        Abc_Print( -1, "The string (%s) does not look like a hex truth table.\n", pTruth );
+        return 1;
+    }
+    if ( nVars > 6 ) 
+    {
+        Abc_Print( -1, "Currently only works for functions of 6 of fewer inputs.\n" );
+        return 1;
+    }
+    if ( nNodes == 0 )
+    {
+        Abc_Print( -1, "The number of nodes should be given on the command line (-N <num>).\n" );
+        return 1;
+    }
+    word Truth = 0;
+    int nVars2 = Abc_TtReadHex( &Truth, pTruth );
+    assert( nVars2 == nVars );
+    pTemp = Gia_ManKSatMapping( Truth, nVars, nNodes, nBound, nBTLimit, nTimeout, fVerbose );
+    if ( pTemp ) Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &exmap [-NBCT num] [-vh] <truth>\n" );
+    Abc_Print( -2, "\t           performs simple mapping of the truth table\n" );
+    Abc_Print( -2, "\t-N num   : the number of nodes [default = %d]\n", nNodes );
     Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
     Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-T num   : runtime limit in seconds [default = %d]\n", nTimeout );    
@@ -45818,6 +45940,8 @@ int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     pTemp = Gia_ManRewire( pAbc->pGia, nIters, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nDist, nSeed, nVerbose );
+    if ( pTemp->pName == NULL )
+        pTemp->pName = Abc_UtilStrsav(Extra_FileNameWithoutPath(pAbc->pGia->pName));
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
