@@ -1567,6 +1567,256 @@ int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout,
     return 1;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+#define KSAT_OBJS  24
+#define KSAT_MINTS 64
+#define KSAT_SPACE (4+3*KSAT_OBJS+KSAT_MINTS)
+
+int Gia_KSatVarInv( int * pMap, int i )               { return pMap[i*KSAT_SPACE+0]; }
+int Gia_KSatVarAnd( int * pMap, int i )               { return pMap[i*KSAT_SPACE+1]; }
+int Gia_KSatVarEqu( int * pMap, int i )               { return pMap[i*KSAT_SPACE+2]; }
+int Gia_KSatVarRef( int * pMap, int i )               { return pMap[i*KSAT_SPACE+3]; }
+int Gia_KSatVarFan( int * pMap, int i, int f, int k ) { return pMap[i*KSAT_SPACE+4+f*KSAT_OBJS+k]; } 
+int Gia_KSatVarMin( int * pMap, int i, int m )        { return pMap[i*KSAT_SPACE+4+3*KSAT_OBJS+m]; } 
+
+void Gia_KSatSetInv( int * pMap, int i, int iVar )               { assert( -1 == pMap[i*KSAT_SPACE+0] ); pMap[i*KSAT_SPACE+0] = iVar; }
+void Gia_KSatSetAnd( int * pMap, int i, int iVar )               { assert( -1 == pMap[i*KSAT_SPACE+1] ); pMap[i*KSAT_SPACE+1] = iVar; }
+void Gia_KSatSetEqu( int * pMap, int i, int iVar )               { assert( -1 == pMap[i*KSAT_SPACE+2] ); pMap[i*KSAT_SPACE+2] = iVar; }
+void Gia_KSatSetRef( int * pMap, int i, int iVar )               { assert( -1 == pMap[i*KSAT_SPACE+3] ); pMap[i*KSAT_SPACE+3] = iVar; }
+void Gia_KSatSetFan( int * pMap, int i, int f, int k, int iVar ) { assert( -1 == pMap[i*KSAT_SPACE+4+f*KSAT_OBJS+k] ); pMap[i*KSAT_SPACE+4+f*KSAT_OBJS+k] = iVar; }  
+void Gia_KSatSetMin( int * pMap, int i, int m, int iVar )        { assert( -1 == pMap[i*KSAT_SPACE+4+3*KSAT_OBJS+m] ); pMap[i*KSAT_SPACE+4+3*KSAT_OBJS+m] = iVar; } 
+
+int Gia_KSatValInv( int * pMap, int i, Vec_Int_t * vRes )               { assert( -1 != pMap[i*KSAT_SPACE+0] ); return Vec_IntEntry( vRes, pMap[i*KSAT_SPACE+0] ); }
+int Gia_KSatValAnd( int * pMap, int i, Vec_Int_t * vRes )               { assert( -1 != pMap[i*KSAT_SPACE+1] ); return Vec_IntEntry( vRes, pMap[i*KSAT_SPACE+1] ); }
+int Gia_KSatValEqu( int * pMap, int i, Vec_Int_t * vRes )               { assert( -1 != pMap[i*KSAT_SPACE+2] ); return Vec_IntEntry( vRes, pMap[i*KSAT_SPACE+2] ); }
+int Gia_KSatValRef( int * pMap, int i, Vec_Int_t * vRes )               { assert( -1 != pMap[i*KSAT_SPACE+3] ); return Vec_IntEntry( vRes, pMap[i*KSAT_SPACE+3] ); }
+int Gia_KSatValFan( int * pMap, int i, int f, int k, Vec_Int_t * vRes ) { assert( -1 != pMap[i*KSAT_SPACE+4+f*KSAT_OBJS+k] ); return Vec_IntEntry( vRes, pMap[i*KSAT_SPACE+4+f*KSAT_OBJS+k] ); } 
+int Gia_KSatValMin( int * pMap, int i, int m, Vec_Int_t * vRes )        { assert( -1 != pMap[i*KSAT_SPACE+4+3*KSAT_OBJS+m] ); return Vec_IntEntry( vRes, pMap[i*KSAT_SPACE+4+3*KSAT_OBJS+m] ); }
+
+int * Gia_KSatMapInit( int nIns, int nNodes, word Truth, int * pnVars )
+{
+    assert( nIns + nNodes <= KSAT_OBJS );
+    assert( (1 << nIns) <= KSAT_MINTS );
+    int n, m, f, k, nVars = 2, * pMap = ABC_FALLOC( int, KSAT_OBJS*KSAT_SPACE );
+    for ( n = nIns; n < nIns+nNodes; n++ ) {
+        Gia_KSatSetInv(pMap, n, nVars++);
+        Gia_KSatSetAnd(pMap, n, nVars++);
+        Gia_KSatSetEqu(pMap, n, nVars++);
+        Gia_KSatSetRef(pMap, n, nVars++);
+    }
+    for ( n = nIns; n < nIns+nNodes; n++ ) {
+        for ( f = 0; f < 2; f++ )
+        for ( k = 0; k < n; k++ )
+            Gia_KSatSetFan(pMap, n, f, k, nVars++);
+        for ( k = n+1; k < nIns+nNodes; k++ )
+            Gia_KSatSetFan(pMap, n, 2, k, nVars++);
+    }
+    for ( m = 0; m < (1<<nIns); m++ ) {
+        for ( n = 0; n < nIns; n++ )
+            Gia_KSatSetMin(pMap, n, m, (m >> n) & 1 );
+        Gia_KSatSetMin(pMap, nIns+nNodes-1, m, (Truth >> m) & 1 );
+        for ( n = nIns; n < nIns+nNodes-1; n++ )
+            Gia_KSatSetMin(pMap, n, m, nVars++);
+    }
+    if ( pnVars ) *pnVars = nVars;
+    return pMap;
+}
+
+int Gia_KSatFindFan( int * pMap, int i, int f, Vec_Int_t * vRes ) 
+{ 
+    assert( f < 2 );
+    for ( int k = 0; k < i; k++ )
+        if ( Gia_KSatValFan( pMap, i, f, k, vRes ) )
+            return k;
+    assert( 0 );
+    return -1;
+}
+
+Gia_Man_t * Gia_ManDeriveKSatMapping( Vec_Int_t * vRes, int * pMap, int nIns, int nNodes, int fVerbose )
+{
+    Gia_Man_t * pNew = Gia_ManStart( nIns + nNodes + 2 );
+    pNew->pName = Abc_UtilStrsav( "test" );
+    int i, pCopy[256] = {0};
+    for ( i = 1; i <= nIns; i++ )
+        pCopy[i] = Gia_ManAppendCi( pNew );
+    for ( i = nIns; i < nIns+nNodes; i++ ) {
+        int iFan0 = Gia_KSatFindFan( pMap, i, 0, vRes );
+        int iFan1 = Gia_KSatFindFan( pMap, i, 1, vRes );
+        if ( iFan0 == iFan1 )
+            pCopy[i+1] = pCopy[iFan0+1];
+        else if ( Gia_KSatValAnd(pMap, i, vRes) )
+            pCopy[i+1] = Gia_ManAppendAnd( pNew, pCopy[iFan0+1], pCopy[iFan1+1] );
+        else
+            pCopy[i+1] = Gia_ManAppendOr( pNew, pCopy[iFan0+1], pCopy[iFan1+1] );
+        pCopy[i+1] = Abc_LitNotCond( pCopy[i+1], Gia_KSatValInv(pMap, i, vRes) );
+        if ( fVerbose ) {
+            printf( "%d = ", i );
+            if ( iFan0 == iFan1 )
+                printf( "INV( %d )\n", iFan0 );
+            else if ( Gia_KSatValAnd(pMap, i, vRes) ) 
+                printf( "%sAND( %d, %d )\n", Gia_KSatValInv(pMap, i, vRes) ? "N":"", iFan0, iFan1 );
+            else 
+                printf( "%sOR( %d, %d )\n", Gia_KSatValInv(pMap, i, vRes) ? "N":"", iFan0, iFan1 );
+            if ( i == nIns+nNodes-1 )
+                printf( "CO = %d\n", nIns+nNodes-1 );
+        }
+    }
+    Gia_ManAppendCo( pNew, pCopy[nIns+nNodes] );
+    return pNew;
+}
+
+Vec_Str_t * Gia_ManKSatCnf( int * pMap, int nIns, int nNodes, int nBound )
+{
+    Vec_Str_t * vStr = Vec_StrAlloc( 10000 );
+    int i, j, m, n, f, c, a, nLits = 0, pLits[256] = {0};
+    Gia_SatDumpLiteral( vStr, 1 );
+    Gia_SatDumpLiteral( vStr, 2 );   
+    // fanins are connected once
+    for ( n = nIns; n < nIns+nNodes; n++ )
+    for ( f = 0; f < 2; f++ ) {
+        nLits = 0;
+        for ( i = 0; i < n; i++ )
+            pLits[nLits++] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, f, i), 0 );
+        Gia_SatDumpClause( vStr, pLits, nLits );
+        for ( i = 0; i < n; i++ )
+        for ( j = 0; j < i; j++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, f, i), 1 );
+            pLits[1] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, f, j), 1 );
+            Gia_SatDumpClause(  vStr, pLits, 2 );
+        }
+    }
+    for ( n = nIns; n < nIns+nNodes; n++ ) {
+        // fanins are equal
+        for ( i = 0; i < n; i++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 0, i), 1 );
+            pLits[1] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 1, i), 1 );
+            pLits[2] = Abc_Var2Lit( Gia_KSatVarEqu(pMap, n), 0 );
+            Gia_SatDumpClause( vStr, pLits, 3 );
+        }
+        // if fanins are equal, inv is used
+        pLits[0] = Abc_Var2Lit( Gia_KSatVarEqu(pMap, n), 1 );
+        pLits[1] = Abc_Var2Lit( Gia_KSatVarInv(pMap, n), 0 );
+        Gia_SatDumpClause( vStr, pLits, 2 );
+        // fanin ordering 
+        for ( i = 0; i < n; i++ )
+        for ( j = 0; j < i; j++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 0, i), 1 );
+            pLits[1] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 1, j), 1 );
+            Gia_SatDumpClause( vStr, pLits, 2 );
+        }
+    }    
+    for ( n = nIns; n < nIns+nNodes-1; n++ ) {
+        // there is a fanout to the node above
+        for ( i = n+1; i < nIns+nNodes; i++ ) 
+        for ( f = 0; f < 2; f++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_KSatVarFan(pMap, i, f, n), 1 );
+            pLits[1] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 2, i), 0 );
+            Gia_SatDumpClause( vStr, pLits, 2 );            
+        }
+        // there is at least one fanout, except the last one
+        nLits = 0;
+        for ( i = n+1; i < nIns+nNodes; i++ )
+            pLits[nLits++] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 2, i), 0 );
+        assert( nLits > 0 );
+        Gia_SatDumpClause( vStr, pLits, nLits );
+    }
+    // there is more than one fanout, except the last one
+    for ( n = nIns; n < nIns+nNodes-1; n++ ) {
+        for ( i = n+1; i < nIns+nNodes; i++ )
+        for ( j = i+1; j < nIns+nNodes; j++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 2, i), 1 );
+            pLits[1] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 2, j), 1 );
+            pLits[2] = Abc_Var2Lit( Gia_KSatVarRef(pMap, n), 0 );
+            Gia_SatDumpClause( vStr, pLits, 3 );               
+        }
+        // if more than one fanout, inv is used
+        pLits[0] = Abc_Var2Lit( Gia_KSatVarRef(pMap, n), 1 );
+        pLits[1] = Abc_Var2Lit( Gia_KSatVarInv(pMap, n), 0 );
+        Gia_SatDumpClause( vStr, pLits, 2 );
+        // if inv is not used, its fanins' invs are used
+        pLits[0] = Abc_Var2Lit( Gia_KSatVarInv(pMap, n), 0 );
+        for ( i = nIns; i < n; i++ ) 
+        for ( f = 0; f < 2; f++ ) {
+            pLits[1] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, f, i), 1 );
+            pLits[2] = Abc_Var2Lit( Gia_KSatVarInv(pMap, i), 0 );
+            Gia_SatDumpClause( vStr, pLits, 3 );
+        }
+    }
+    // the last one always uses inverter
+    Gia_SatDumpLiteral( vStr, Abc_Var2Lit( Gia_KSatVarInv(pMap, nIns+nNodes-1), 0 ) );  
+    // for each minterm, for each pair of possible fanins, the node's output is determined using and/or and inv (4*N*N*M)
+    for ( m = 0; m < (1 << nIns); m++ )
+    for ( n = nIns; n < nIns+nNodes; n++ ) 
+    for ( c = 0; c < 2; c++ )
+    for ( a = 0; a < 2; a++ ) {        
+        // implications: Fan(f) & Mint(m) & !And & !Inv -> Val1
+        for ( f = 0; f < 2; f++ ) 
+        for ( i = 0; i < n; i++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, f, i), 1 );
+            pLits[1] = Abc_Var2Lit( Gia_KSatVarMin(pMap, i, m), !a );
+            pLits[2] = Abc_Var2Lit( Gia_KSatVarAnd(pMap, n), a );
+            pLits[3] = Abc_Var2Lit( Gia_KSatVarInv(pMap, n), c );
+            pLits[4] = Abc_Var2Lit( Gia_KSatVarMin(pMap, n, m), a^c );
+            Gia_SatDumpClause( vStr, pLits, 5 );
+        }
+        // large clauses: Fan(0) & Fan(1) & !Mint(m) & !Mint(m) & !And & !Inv -> Val0
+        for ( i = 0; i < n; i++ ) 
+        for ( j = i; j < n; j++ ) {
+            pLits[0] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 0, i), 1 );
+            pLits[1] = Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 1, j), 1 );
+            pLits[2] = Abc_Var2Lit( Gia_KSatVarMin(pMap, i, m), a );
+            pLits[3] = Abc_Var2Lit( Gia_KSatVarMin(pMap, j, m), a );
+            pLits[4] = Abc_Var2Lit( Gia_KSatVarAnd(pMap, n), a );
+            pLits[5] = Abc_Var2Lit( Gia_KSatVarInv(pMap, n), c );
+            pLits[6] = Abc_Var2Lit( Gia_KSatVarMin(pMap, n, m), a==c );
+            Gia_SatDumpClause( vStr, pLits, 7 );
+        }
+    }
+    // the number of nodes with duplicated fanins and without inv is maximized
+    Vec_StrPush( vStr, '\0' );
+    return vStr;    
+}
+
+Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int nBTLimit, int nTimeout, int fVerbose )
+{
+    Gia_Man_t * pNew = NULL;
+    char * pFileNameI = (char *)"__temp__.cnf"; 
+    char * pFileNameO = (char *)"__temp__.out";
+    int nVars = 0, * pMap = Gia_KSatMapInit( nIns, nNodes, Truth, &nVars );
+    Vec_Str_t * vStr = Gia_ManKSatCnf( pMap, nIns, nNodes, nBound );
+    if ( !Gia_ManDumpCnf(pFileNameI, vStr, nVars) ) {
+        Vec_StrFree( vStr );
+        return NULL;
+    }
+    if ( fVerbose )
+        printf( "Vars = %d. Nodes = %d. Cardinality bound = %d.  SAT vars = %d. SAT clauses = %d. Conflict limit = %d. Timeout = %d.\n", 
+            nIns, nNodes, nBound,  nVars, Vec_StrCountEntry(vStr, '\n'), nBTLimit, nTimeout );
+    //char pFileName[100]; sprintf( pFileName, "temp%02d.cnf", nBound/2 );
+    //Gia_ManDumpCnf( pFileName, vStr, nVars );
+    Vec_StrFree( vStr );
+    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, nBTLimit, nTimeout, 1 );
+    unlink( pFileNameI );
+    //unlink( pFileNameO );
+    if ( vRes == NULL )
+        return 0;
+    Vec_IntDrop( vRes, 0 );
+    pNew = Gia_ManDeriveKSatMapping( vRes, pMap, nIns, nNodes, fVerbose );
+    Vec_IntFree( vRes );
+    ABC_FREE( pMap );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
