@@ -406,24 +406,24 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 if ( *pType == 'i' )
                 {
                     if ( vNamesIn == NULL )
-                        vNamesIn = Vec_PtrAlloc( nInputs + nLatches );
-                    if ( Vec_PtrSize(vNamesIn) != iTerm )
+                        vNamesIn = Vec_PtrStart( nInputs );
+                    if ( Vec_PtrSize(vNamesIn) <= iTerm )
                     {
                         fError = 1;
                         break;
                     }
-                    Vec_PtrPush( vNamesIn, Abc_UtilStrsav(pName) );
+                    Vec_PtrWriteEntry( vNamesIn, iTerm, Abc_UtilStrsav(pName) );
                 }
                 else if ( *pType == 'o' )
                 {
                     if ( vNamesOut == NULL )
-                        vNamesOut = Vec_PtrAlloc( nOutputs + nLatches );
-                    if ( Vec_PtrSize(vNamesOut) != iTerm )
+                        vNamesOut = Vec_PtrStart( nOutputs );
+                    if ( Vec_PtrSize(vNamesOut) <= iTerm )
                     {
                         fError = 1;
                         break;
                     }
-                    Vec_PtrPush( vNamesOut, Abc_UtilStrsav(pName) );
+                    Vec_PtrWriteEntry( vNamesOut, iTerm,  Abc_UtilStrsav(pName) );
                 }
                 else if ( *pType == 'l' )
                 {
@@ -431,16 +431,16 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                     assert( strlen(pName) < 995 );
                     sprintf( Buffer, "%s_in", pName );
                     if ( vNamesRegIn == NULL )
-                        vNamesRegIn = Vec_PtrAlloc( nLatches );
+                        vNamesRegIn = Vec_PtrStart( nLatches );
                     if ( vNamesRegOut == NULL )
-                        vNamesRegOut = Vec_PtrAlloc( nLatches );
-                    if ( Vec_PtrSize(vNamesRegIn) != iTerm )
+                        vNamesRegOut = Vec_PtrStart( nLatches );
+                    if ( Vec_PtrSize(vNamesRegIn) <= iTerm )
                     {
                         fError = 1;
                         break;
                     }
-                    Vec_PtrPush( vNamesRegIn,  Abc_UtilStrsav(Buffer) );
-                    Vec_PtrPush( vNamesRegOut, Abc_UtilStrsav(pName) );
+                    Vec_PtrWriteEntry( vNamesRegIn,  iTerm, Abc_UtilStrsav(Buffer) );
+                    Vec_PtrWriteEntry( vNamesRegOut, iTerm, Abc_UtilStrsav(pName) );
                 }
                 else if ( *pType == 'n' )
                 {
