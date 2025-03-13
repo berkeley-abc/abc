@@ -317,9 +317,9 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
     {
         printf( "Problem \"%s\" is ", p->pSpec );
         if ( RetValue == 0 )
-            printf( "SAT (solved by %d).", RetEngine );
+            printf( "SATISFIABLE (solved by %d).", RetEngine );
         else if ( RetValue == 1 )
-            printf( "UNSAT (solved by %d).", RetEngine );
+            printf( "UNSATISFIABLE (solved by %d).", RetEngine );
         else if ( RetValue == -1 )
             printf( "UNDECIDED." );
         else assert( 0 );
