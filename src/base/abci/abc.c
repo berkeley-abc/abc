@@ -44472,7 +44472,8 @@ usage:
 int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int nBTLimit, int nTimeout, int fVerbose );
-    int c, nVars = 0, nNodes = 0, nBTLimit = 0, nBound = 0, nTimeout = 0, fVerbose = 0; Gia_Man_t * pTemp = NULL;
+    Gia_Man_t * pTemp = NULL; char * pTruth = NULL; word Truth = 0;
+    int c, nVars = 0, nNodes = 0, nVars2, nBTLimit = 0, nBound = 0, nTimeout = 0, fVerbose = 0; 
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "NBCTvh" ) ) != EOF )
     {
@@ -44542,7 +44543,7 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
         return 1;
     }
-    char * pTruth = argv[globalUtilOptind];
+    pTruth = argv[globalUtilOptind];
     nVars = Abc_Base2Log(4*strlen(pTruth));
     if ( (1 << nVars) != 4*strlen(pTruth) ) 
     {
@@ -44558,9 +44559,8 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "The number of nodes should be given on the command line (-N <num>).\n" );
         return 1;
-    }
-    word Truth = 0;
-    int nVars2 = Abc_TtReadHex( &Truth, pTruth );
+    }    
+    nVars2 = Abc_TtReadHex( &Truth, pTruth );
     assert( nVars2 == nVars );
     pTemp = Gia_ManKSatMapping( Truth, nVars, nNodes, nBound, nBTLimit, nTimeout, fVerbose );
     if ( pTemp ) Abc_FrameUpdateGia( pAbc, pTemp );
