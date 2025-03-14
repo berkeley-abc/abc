@@ -44390,10 +44390,10 @@ usage:
 int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Mio_IntallSimpleLibrary();
-    extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout, int fVerbose );
-    int c, nBTLimit = 0, nBound = 0, nTimeout = 0, fVerbose = 0;
+    extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
+    int c, nBTLimit = 0, nBound = 0, nTimeout = 0, fKeepFile = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "BCTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BCTfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -44434,6 +44434,9 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
             nTimeout = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;            
+        case 'f':
+            fKeepFile ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -44448,16 +44451,17 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     Mio_IntallSimpleLibrary();
-    if ( !Gia_ManSimpleMapping( pAbc->pGia, nBound, nBTLimit, nTimeout, fVerbose ) )
+    if ( !Gia_ManSimpleMapping( pAbc->pGia, nBound, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv ) )
         printf( "Simple mapping has failed.\n" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &simap [-BCT num] [-vh]\n" );
+    Abc_Print( -2, "usage: &simap [-BCT num] [-fvh]\n" );
     Abc_Print( -2, "\t           performs simple mapping of the AIG\n" );
     Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
     Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-T num   : runtime limit in seconds [default = %d]\n", nTimeout );    
+    Abc_Print( -2, "\t-f       : toggles keeping the intermediate CNF file [default = %s]\n", fKeepFile? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;
@@ -44476,11 +44480,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int nBTLimit, int nTimeout, int fVerbose );
+    extern void Mio_IntallSimpleLibrary2();
+    extern Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
     Gia_Man_t * pTemp = NULL; char * pTruth = NULL; word Truth = 0;
-    int c, nVars = 0, nNodes = 0, nVars2, nBTLimit = 0, nBound = 0, nTimeout = 0, fVerbose = 0; 
+    int c, nVars = 0, nNodes = 0, nVars2, nBTLimit = 0, nBound = 0, fMultiLevel = 0, nTimeout = 0, fKeepFile = 0, fVerbose = 0; 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NBCTvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NBCTmfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -44535,6 +44540,12 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             nTimeout = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;            
+        case 'm':
+            fMultiLevel ^= 1;
+            break;
+        case 'f':
+            fKeepFile ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -44564,20 +44575,25 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Abc_Print( -1, "The number of nodes should be given on the command line (-N <num>).\n" );
         return 1;
-    }    
+    }
     nVars2 = Abc_TtReadHex( &Truth, pTruth );
     assert( nVars2 == nVars );
-    pTemp = Gia_ManKSatMapping( Truth, nVars, nNodes, nBound, nBTLimit, nTimeout, fVerbose );
-    if ( pTemp ) Abc_FrameUpdateGia( pAbc, pTemp );
+    pTemp = Gia_ManKSatMapping( Truth, nVars, nNodes, nBound, fMultiLevel, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv );
+    if ( pTemp )  {
+        //Mio_IntallSimpleLibrary2();
+        Abc_FrameUpdateGia( pAbc, pTemp );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &exmap [-NBCT num] [-vh] <truth>\n" );
+    Abc_Print( -2, "usage: &exmap [-NBCT num] [-mfvh] <truth>\n" );
     Abc_Print( -2, "\t           performs simple mapping of the truth table\n" );
     Abc_Print( -2, "\t-N num   : the number of nodes [default = %d]\n", nNodes );
     Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
     Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-T num   : runtime limit in seconds [default = %d]\n", nTimeout );    
+    Abc_Print( -2, "\t-m       : toggles using multi-level primitives [default = %s]\n", fMultiLevel? "yes": "no" );
+    Abc_Print( -2, "\t-f       : toggles keeping the intermediate CNF file [default = %s]\n", fKeepFile? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     return 1;

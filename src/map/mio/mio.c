@@ -90,6 +90,27 @@ static char * pSimpleGenlib[] = {
     NULL
 };
 
+// internal version of genlib library
+static char * pSimpleGenlib2[] = {
+    "GATE zero    0   O=CONST0;\n",
+    "GATE one     0   O=CONST1;\n",
+    "GATE buf     4   O=a;              PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE inv     2   O=!a;             PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nand2   4   O=!(a*b);         PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nand3   6   O=!(a*b*c);       PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nand4   8   O=!(a*b*c*d);     PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nor2    4   O=!(a+b);         PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nor3    6   O=!(a+b+c);       PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nor4    6   O=!(a+b+c+d);     PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE aoi21   6   O=!(a*b+c);       PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE oai21   6   O=!((a+b)*c);     PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE aoi22   8   O=!(a*b+c*d);     PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE oai22   8   O=!((a+b)*(c+d)); PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE aoi211  8   O=!(a*b+c+d);     PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE oai211  8   O=!((a+b)*c*d);   PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    NULL
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -115,6 +136,19 @@ void Mio_IntallSimpleLibrary()
     Vec_StrPush( vLibStr, '\0' );
     pLib = Mio_LibraryReadBuffer( Vec_StrArray(vLibStr), 0, NULL, 0, 0 );
     Mio_LibrarySetName( pLib, Abc_UtilStrsav("simple.genlib") );
+    Mio_UpdateGenlib( pLib );
+    Vec_StrFree( vLibStr );
+}
+void Mio_IntallSimpleLibrary2()
+{
+    extern Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose );
+    Mio_Library_t * pLib;  int i;
+    Vec_Str_t * vLibStr = Vec_StrAlloc( 1000 );
+    for ( i = 0; pSimpleGenlib2[i]; i++ )
+        Vec_StrAppend( vLibStr, pSimpleGenlib2[i] );
+    Vec_StrPush( vLibStr, '\0' );
+    pLib = Mio_LibraryReadBuffer( Vec_StrArray(vLibStr), 0, NULL, 0, 0 );
+    Mio_LibrarySetName( pLib, Abc_UtilStrsav("simple2.genlib") );
     Mio_UpdateGenlib( pLib );
     Vec_StrFree( vLibStr );
 }
