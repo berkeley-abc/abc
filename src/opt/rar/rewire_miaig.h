@@ -141,6 +141,7 @@ static inline int Rw_Lit2LitL(int *pMapV2L, int Lit) {
 }
 
 struct Miaig_Data {
+    char *pName;           // network name
     int refcount;          // Reference counter
     int nIns;              // primary inputs
     int nOuts;             // primary outputs
@@ -217,6 +218,7 @@ public:
     void refObj(int iObj);
     void derefObj(int iObj);
     void derefObj_rec(int iObj, int iLitSkip);
+    void setName(char *pName);
 
 private:
     int initializeLevels_rec(int iObj);
@@ -355,6 +357,7 @@ inline void Miaig::addref(void) {
 inline void Miaig::release(void) {
     if (_refcount && RW_XADD(_refcount, -1) == 1) {
         if (_data) {
+            if (_data->pName) free(_data->pName);
             for (int i = 0; i < _data->nObjsAlloc; ++i)
                 if (_data->pvFans[i].ptr)
                     free(_data->pvFans[i].ptr);

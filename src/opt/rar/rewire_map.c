@@ -33,6 +33,7 @@ extern Mini_Aig_t * Abc_MiniAigFromNtk ( Abc_Ntk_t *pNtk );
 Abc_Ntk_t *Gia_ManRewirePut(Gia_Man_t *pGia) {
     Aig_Man_t *pMan = Gia_ManToAig(pGia, 0);
     Abc_Ntk_t *pNtk = Abc_NtkFromAigPhase(pMan);
+    Abc_NtkSetName(pNtk, Abc_UtilStrsav(Gia_ManName(pGia)));
     Aig_ManStop(pMan);
     return pNtk;
 }
