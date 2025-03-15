@@ -55359,7 +55359,7 @@ usage:
     Abc_Print( -2, "\t          generates Boolean relation for the given logic window\n" );
     Abc_Print( -2, "\t-I list : comma-separated list of window inputs [default = undefined]\n" );
     Abc_Print( -2, "\t-O list : comma-separated list of window outputs [default = undefined]\n" );
-    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %d]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t<file>  : the output file name (PLA format extended to represented Boolean relations)\n");
     return 1;
