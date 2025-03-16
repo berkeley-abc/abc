@@ -57,6 +57,7 @@ struct Bmc_EsPar_t_
     int        fDynConstr;
     int        fDumpCnf;
     int        fGlucose;
+    int        fCard;
     int        fOrderNodes;
     int        fEnumSols;
     int        fFewerVars;

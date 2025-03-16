@@ -1941,7 +1941,7 @@ static inline int Exa4_ManAddClause4( Exa4_Man_t * p, int Lit0, int Lit1, int Li
     int pLits[4] = { Lit0, Lit1, Lit2, Lit3 };
     return Exa4_ManAddClause( p, pLits, 4 );
 }
-int Exa4_ManGenStart( Exa4_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans )
+int Exa4_ManGenStart( Exa4_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fCard )
 {
     int pLits[2*MAJ_NOBJS], i, j, k, n, m, nLits;
     for ( i = p->nDivs; i < p->nDivs + p->nNodes; i++ )
@@ -1955,9 +1955,17 @@ int Exa4_ManGenStart( Exa4_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes,
                     pLits[nLits++] = Abc_Var2Lit( p->VarMarks[i][k][j], 0 );
             assert( nLits > 0 );
             Exa4_ManAddClause( p, pLits, nLits );
-            for ( n = 0;   n < nLits; n++ )
-            for ( m = n+1; m < nLits; m++ )
-                Exa4_ManAddClause4( p, Abc_LitNot(pLits[n]), Abc_LitNot(pLits[m]), 0, 0 );
+            if ( !fCard ) {
+                for ( n = 0;   n < nLits; n++ )
+                for ( m = n+1; m < nLits; m++ )
+                    Exa4_ManAddClause4( p, Abc_LitNot(pLits[n]), Abc_LitNot(pLits[m]), 0, 0 );
+            }
+            else {
+                fprintf( p->pFile, "k %d ", nLits-1 );
+                for ( n = 0; n < nLits; n++ )
+                    pLits[n] = Abc_LitNot(pLits[n]);
+                Exa4_ManAddClause( p, pLits, nLits );
+            }
             if ( k == 1 )
                 break;
             for ( j = 0; j < p->nObjs; j++ ) if ( p->VarMarks[i][0][j] )
@@ -2096,17 +2104,17 @@ void Exa4_ManGenMint( Exa4_Man_t * p, int iMint, int fOnlyAnd, int fFancy )
             Exa4_ManAddClause4( p, Abc_Var2Lit(p->VarMarks[i][0][j], 1), Abc_LitNotCond(VarVals[j], n), Abc_LitNotCond(VarVals[i], !n), 0);
     }
 }
-void Exa4_ManGenCnf( Exa4_Man_t * p, char * pFileName, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans )
+void Exa4_ManGenCnf( Exa4_Man_t * p, char * pFileName, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fCard )
 {
     int m;
     assert( p->pFile == NULL );
     p->pFile = fopen( pFileName, "wb" );
     fputs( "p cnf                \n", p->pFile );
-    Exa4_ManGenStart( p, fOnlyAnd, fFancy, fOrderNodes, fUniqFans );
+    Exa4_ManGenStart( p, fOnlyAnd, fFancy, fOrderNodes, fUniqFans, fCard );
     for ( m = 1; m < Vec_WrdSize(p->vSimsIn); m++ )
         Exa4_ManGenMint( p, m, fOnlyAnd, fFancy );
     rewind( p->pFile );
-    fprintf( p->pFile, "p cnf %d %d", p->nCnfVars, p->nCnfClauses );
+    fprintf( p->pFile, "p %cnf %d %d", fCard ? 'k' : 'c', p->nCnfVars, p->nCnfClauses );
     fclose( p->pFile );
 }
 
@@ -2130,6 +2138,8 @@ static inline int Exa4_ManFindFanin( Exa4_Man_t * p, Vec_Int_t * vValues, int i,
             iVar = j;
             Count++;
         }
+    if ( Count != 1 )
+        printf( "Fanin count is %d instead of %d.\n", Count, 1 );
     assert( Count == 1 );
     return iVar;
 }
@@ -2268,21 +2278,27 @@ Mini_Aig_t * Exa4_ManMiniAig( Exa4_Man_t * p, Vec_Int_t * vValues, int fFancy )
   SeeAlso     []
 
 ***********************************************************************/
-Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fVerbose )
+Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fVerbose, int fCard )
 {
+    extern Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int nBTLimit, int TimeOut, int fVerbose, int * pStatus );
     Mini_Aig_t * pMini = NULL;
     abctime clkTotal = Abc_Clock();
     Vec_Int_t * vValues = NULL;
-    char * pFileNameIn  = "_temp_.cnf";
-    char * pFileNameOut = "_temp_out.cnf";
+    srand(time(NULL));
+    int Status = 0, Rand = ((((unsigned)rand()) << 12) ^ ((unsigned)rand())) & 0xFFFFF;
+    char pFileNameIn[32];  sprintf( pFileNameIn,  "_%05x_.cnf", Rand ); 
+    char pFileNameOut[32]; sprintf( pFileNameOut, "_%05x_.out", Rand ); 
     Exa4_Man_t * p = Exa4_ManAlloc( vSimsIn, vSimsOut, nIns, nDivs, nOuts, nNodes, fVerbose );
     Exa_ManIsNormalized( vSimsIn, vSimsOut );
-    Exa4_ManGenCnf( p, pFileNameIn, fOnlyAnd, fFancy, fOrderNodes, fUniqFans );
+    Exa4_ManGenCnf( p, pFileNameIn, fOnlyAnd, fFancy, fOrderNodes, fUniqFans, fCard );
     if ( fVerbose )
         printf( "Timeout = %d. OnlyAnd = %d. Fancy = %d. OrderNodes = %d. UniqueFans = %d. Verbose = %d.\n", TimeOut, fOnlyAnd, fFancy, fOrderNodes, fUniqFans, fVerbose );
     if ( fVerbose )
         printf( "CNF with %d variables and %d clauses was dumped into file \"%s\".\n", p->nCnfVars, p->nCnfClauses, pFileNameIn );
-    vValues = Exa4_ManSolve( pFileNameIn, pFileNameOut, TimeOut, fVerbose );
+    if ( fCard )
+        vValues = Gia_RunKadical( pFileNameIn, pFileNameOut, 0, TimeOut, fVerbose, &Status );
+    else
+        vValues = Exa4_ManSolve( pFileNameIn, pFileNameOut, TimeOut, fVerbose );
     if ( vValues ) pMini = Exa4_ManMiniAig( p, vValues, fFancy );
     //if ( vValues ) Exa4_ManPrintSolution( p, vValues, fFancy );
     if ( vValues ) Exa_ManMiniPrint( pMini, p->nIns );
@@ -2310,7 +2326,7 @@ void Exa_ManExactSynthesis4_( Bmc_EsPar_t * pPars )
             if ( (m >> i) & 1 )
                 Abc_TtSetBit( Vec_WrdEntryP(vSimsIn, m), 1+i );
     }
-    pMini = Exa4_ManGenTest( vSimsIn, vSimsOut, 3, 4, 2, pPars->nNodes, pPars->RuntimeLim, pPars->fOnlyAnd, pPars->fFewerVars, pPars->fOrderNodes, pPars->fUniqFans, pPars->fVerbose );
+    pMini = Exa4_ManGenTest( vSimsIn, vSimsOut, 3, 4, 2, pPars->nNodes, pPars->RuntimeLim, pPars->fOnlyAnd, pPars->fFewerVars, pPars->fOrderNodes, pPars->fUniqFans, pPars->fVerbose, 0 );
     if ( pMini ) Mini_AigStop( pMini );
     Vec_WrdFree( vSimsIn );
     Vec_WrdFree( vSimsOut );
@@ -2332,7 +2348,7 @@ void Exa_ManExactSynthesis4( Bmc_EsPar_t * pPars )
                 Abc_TtSetBit( Vec_WrdEntryP(vSimsIn, m), 1+i );
     }
     assert( Vec_WrdSize(vSimsIn) == (1 << pPars->nVars) );
-    pMini = Exa4_ManGenTest( vSimsIn, vSimsOut, pPars->nVars, 1+pPars->nVars, 1, pPars->nNodes, pPars->RuntimeLim, pPars->fOnlyAnd, pPars->fFewerVars, pPars->fOrderNodes, pPars->fUniqFans, pPars->fVerbose );
+    pMini = Exa4_ManGenTest( vSimsIn, vSimsOut, pPars->nVars, 1+pPars->nVars, 1, pPars->nNodes, pPars->RuntimeLim, pPars->fOnlyAnd, pPars->fFewerVars, pPars->fOrderNodes, pPars->fUniqFans, pPars->fVerbose, pPars->fCard );
     if ( pMini ) Mini_AigStop( pMini );
     if ( fCompl ) printf( "The resulting circuit, if computed, will be complemented.\n" );
     Vec_WrdFree( vSimsIn );
@@ -2797,8 +2813,10 @@ Mini_Aig_t * Exa5_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIn
     abctime clkTotal = Abc_Clock();
     Mini_Aig_t * pMini  = NULL;
     Vec_Int_t * vValues = NULL;
-    char * pFileNameIn  = "_temp_.cnf";
-    char * pFileNameOut = "_temp_out.cnf";
+    srand(time(NULL));
+    int Rand = ((((unsigned)rand()) << 12) ^ ((unsigned)rand())) & 0xFFFFF;
+    char pFileNameIn[32];  sprintf( pFileNameIn,  "_%05x_.cnf", Rand ); 
+    char pFileNameOut[32]; sprintf( pFileNameOut, "_%05x_.out", Rand );
     Exa5_Man_t * p = Exa5_ManAlloc( vSimsIn, vSimsOut, nIns, nDivs, nOuts, nNodes, fVerbose );
     Exa_ManIsNormalized( vSimsIn, vSimsOut );
     Exa5_ManGenCnf( p, pFileNameIn, fOnlyAnd, fFancy, fOrderNodes, fUniqFans );
@@ -3717,8 +3735,9 @@ Mini_Aig_t * Exa6_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIn
     Mini_Aig_t * pMini = NULL;
     abctime clkTotal = Abc_Clock();
     Vec_Int_t * vValues = NULL;
-    char * pFileNameIn  = "_temp_.cnf";
-    char * pFileNameOut = "_temp_out.cnf";
+    int Rand = ((((unsigned)rand()) << 12) ^ ((unsigned)rand())) & 0xFFFFF;
+    char pFileNameIn[32];  sprintf( pFileNameIn,  "_%05x_.cnf", Rand ); 
+    char pFileNameOut[32]; sprintf( pFileNameOut, "_%05x_.out", Rand );
     Exa6_Man_t * p = Exa6_ManAlloc( vSimsIn, vSimsOut, nIns, 1+nIns+nDivs, nOuts, nNodes, fVerbose );
     Exa_ManIsNormalized( vSimsIn, vSimsOut );
     Exa6_ManGenCnf( p, pFileNameIn, fOnlyAnd, fFancy, fOrderNodes, fUniqFans );
@@ -4016,8 +4035,9 @@ void Exa_ManExactSynthesis7( Bmc_EsPar_t * pPars, int GateSize )
     int nV = pPars->nVars + pPars->nNodes;
     word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
     Vec_Int_t * vValues = NULL;
-    char * pFileNameIn  = "_temp_.cnf";
-    char * pFileNameOut = "_temp_out.cnf";
+    int Rand = ((((unsigned)rand()) << 12) ^ ((unsigned)rand())) & 0xFFFFF;
+    char pFileNameIn[32];  sprintf( pFileNameIn,  "_%05x_.cnf", Rand ); 
+    char pFileNameOut[32]; sprintf( pFileNameOut, "_%05x_.out", Rand );
     int nClas = Exa7_ManGenCnf( pFileNameIn, pTruth, pPars->nVars, pPars->nNodes, GateSize );
     if ( pPars->fVerbose )
         printf( "CNF with %d variables and %d clauses was dumped into file \"%s\".\n", nMints * nV * nV, nClas, pFileNameIn );
