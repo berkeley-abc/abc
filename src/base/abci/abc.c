@@ -13080,6 +13080,16 @@ usage:
     return 1;
 }
 
+Vec_Int_t * Vec_IntReadList( char * pStr, char Separ )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 10 );
+    Vec_IntPush( vRes, atoi(pStr) );
+    for ( int c = 0; c < strlen(pStr); c++ )
+        if ( pStr[c] == Separ )
+            Vec_IntPush( vRes, atoi(pStr+c+1) );
+    return vRes;
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -13095,24 +13105,23 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk, * pNtkRes;
     Abc_Obj_t * pNode, * pNodeCo;
+    Vec_Int_t * vPoIds = NULL;
     int c;
     int fUseAllCis;
     int fUseMffc;
-    int fSeq;
     int Output;
     int nRange;
 
-    extern Abc_Ntk_t * Abc_NtkMakeOnePo( Abc_Ntk_t * pNtk, int Output, int nRange );
+    extern Abc_Ntk_t * Abc_NtkSelectPos( Abc_Ntk_t * pNtkInit, Vec_Int_t * vPoIds );
 
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     fUseAllCis = 0;
     fUseMffc = 0;
-    fSeq = 0;
     Output = -1;
     nRange = -1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORmash" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORNmah" ) ) != EOF )
     {
         switch ( c )
         {
@@ -13138,14 +13147,22 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nRange < 0 )
                 goto usage;
             break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            vPoIds = Vec_IntReadList( argv[globalUtilOptind], ',' );
+            globalUtilOptind++;
+            if ( vPoIds == NULL )
+                goto usage;
+            break;
         case 'm':
             fUseMffc ^= 1;
             break;
         case 'a':
             fUseAllCis ^= 1;
-            break;
-        case 's':
-            fSeq ^= 1;
             break;
         case 'h':
             goto usage;
@@ -13186,27 +13203,60 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
         else
             pNtkRes = Abc_NtkCreateCone( pNtk, pNode, argv[globalUtilOptind], fUseAllCis );
     }
+    else if ( vPoIds )
+    {
+        pNtkRes = Abc_NtkSelectPos( pNtk, vPoIds );
+        Vec_IntFree( vPoIds );
+    }
+    else if ( nRange > 0 )
+    {
+        if ( Output == -1 )
+        {
+            Abc_Print( -1, "The starting PO ID is not specified.\n" );
+            return 1;
+        }        
+        if ( Output >= Abc_NtkPoNum(pNtk) )
+        {
+            Abc_Print( -1, "The 0-based output number (%d) is larger than the number of primary outputs (%d).\n", Output, Abc_NtkPoNum(pNtk) );
+            return 1;
+        }        assert( vPoIds == NULL );
+        vPoIds = Vec_IntAlloc( nRange );
+        for ( c = Output; c < Output + nRange; c++ )
+            Vec_IntPush( vPoIds, c );
+        pNtkRes = Abc_NtkSelectPos( pNtk, vPoIds );
+        Vec_IntFree( vPoIds );
+    }
+    else if ( Output >= 0 )
+    {
+        if ( Output >= Abc_NtkPoNum(pNtk) )
+        {
+            Abc_Print( -1, "The 0-based output number (%d) is larger than the number of primary outputs (%d).\n", Output, Abc_NtkPoNum(pNtk) );
+            return 1;
+        }        assert( vPoIds == NULL );
+        vPoIds = Vec_IntAlloc( 1 );
+        Vec_IntPush( vPoIds, Output );
+        pNtkRes = Abc_NtkSelectPos( pNtk, vPoIds );
+        Vec_IntFree( vPoIds );
+    }
     else
     {
         if ( Output == -1 )
         {
-            Abc_Print( -1, "The node is not specified.\n" );
+            Abc_Print( -1, "The starting PO ID is not specified.\n" );
             return 1;
         }
         if ( Output >= Abc_NtkCoNum(pNtk) )
         {
-            Abc_Print( -1, "The 0-based output number (%d) is larger than the number of outputs (%d).\n", Output, Abc_NtkCoNum(pNtk) );
+            Abc_Print( -1, "The 0-based output number (%d) is larger than the number of combinational outputs (%d).\n", Output, Abc_NtkCoNum(pNtk) );
             return 1;
         }
         pNodeCo = Abc_NtkCo( pNtk, Output );
-        if ( fSeq )
-            pNtkRes = Abc_NtkMakeOnePo( pNtk, Output, nRange );
-        else if ( fUseMffc )
+        if ( fUseMffc )
             pNtkRes = Abc_NtkCreateMffc( pNtk, Abc_ObjFanin0(pNodeCo), Abc_ObjName(pNodeCo) );
         else
             pNtkRes = Abc_NtkCreateCone( pNtk, Abc_ObjFanin0(pNodeCo), Abc_ObjName(pNodeCo), fUseAllCis );
     }
-    if ( pNodeCo && Abc_ObjFaninC0(pNodeCo) && !fSeq )
+    if ( pNodeCo && Abc_ObjFaninC0(pNodeCo) )
     {
         Abc_NtkPo(pNtkRes, 0)->fCompl0  ^= 1;
 //        Abc_Print( -1, "The extracted cone represents the complement function of the CO.\n" );
@@ -13221,14 +13271,14 @@ int Abc_CommandCone( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: cone [-OR num] [-amsh] <name>\n" );
-    Abc_Print( -2, "\t         replaces the current network by one logic cone\n" );
+    Abc_Print( -2, "usage: cone [-ORN num] [-amh] <name>\n" );
+    Abc_Print( -2, "\t         replaces the current network by one or more logic cones\n" );
     Abc_Print( -2, "\t-a     : toggle keeping all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
     Abc_Print( -2, "\t-m     : toggle keeping only MFFC or complete TFI cone [default = %s]\n", fUseMffc? "MFFC": "TFI cone" );
-    Abc_Print( -2, "\t-s     : toggle comb or sequential cone (works with \"-O num\") [default = %s]\n", fSeq? "seq": "comb" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t-O num : (optional) the 0-based number of the CO to extract\n");
     Abc_Print( -2, "\t-R num : (optional) the number of outputs to extract\n");
+    Abc_Print( -2, "\t-N <list> : (optional) a comma-separated list of zero-based primary output indexes\n");
     Abc_Print( -2, "\tname   : (optional) the name of the node to extract\n");
     return 1;
 }

@@ -1729,6 +1729,58 @@ void Abc_NtkMakeSeq( Abc_Ntk_t * pNtk, int nLatchesToAdd )
 
 /**Function*************************************************************
 
+  Synopsis    [Keeps POs in the array.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Abc_Ntk_t * Abc_NtkSelectPos( Abc_Ntk_t * pNtkInit, Vec_Int_t * vPoIds )
+{
+    Abc_Ntk_t * pNtk;
+    Vec_Ptr_t * vPosLeft;
+    Vec_Ptr_t * vCosLeft;
+    Abc_Obj_t * pNodePo;
+    int i, Index;
+    assert( !Abc_NtkIsNetlist(pNtkInit) );
+    assert( Abc_NtkHasOnlyLatchBoxes(pNtkInit) );
+    pNtk = Abc_NtkDup( pNtkInit );
+    if ( Abc_NtkPoNum(pNtk) == 1 )
+        return pNtk;
+    vPosLeft = Vec_PtrAlloc( Vec_IntSize(vPoIds) );
+    Vec_IntForEachEntry( vPoIds, Index, i ) {
+        Vec_PtrPush( vPosLeft, Abc_NtkPo(pNtk, Index) );
+        Vec_PtrWriteEntry( pNtk->vPos, Index, NULL );
+    }
+    // filter COs
+    vCosLeft = Vec_PtrDup( vPosLeft );
+    for ( i = Abc_NtkPoNum(pNtk); i < Abc_NtkCoNum(pNtk); i++ )
+        Vec_PtrPush( vCosLeft, Abc_NtkCo(pNtk, i) );
+    // remove remaiing POs
+    Abc_NtkForEachPo( pNtk, pNodePo, i )
+        if ( pNodePo )
+            Abc_NtkDeleteObjPo( pNodePo );
+    // update arrays
+    Vec_PtrFree( pNtk->vPos );  pNtk->vPos = vPosLeft;
+    Vec_PtrFree( pNtk->vCos );  pNtk->vCos = vCosLeft;
+    // clean the network
+    if ( Abc_NtkIsStrash(pNtk) ) {
+        Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
+        if ( Abc_NtkLatchNum(pNtk) ) printf( "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
+    }
+    else {
+        if ( Abc_NtkLatchNum(pNtk) ) printf( "Run sequential cleanup (\"st; scl\") to get rid of dangling logic.\n" );
+    }
+    if ( !Abc_NtkCheck( pNtk ) )
+        fprintf( stdout, "Abc_NtkMakeComb(): Network check has failed.\n" );
+    return pNtk;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Removes all POs, except one.]
 
   Description []
@@ -1779,11 +1831,11 @@ Abc_Ntk_t * Abc_NtkMakeOnePo( Abc_Ntk_t * pNtkInit, int Output, int nRange )
     if ( Abc_NtkIsStrash(pNtk) )
     {
         Abc_AigCleanup( (Abc_Aig_t *)pNtk->pManFunc );
-        printf( "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
+        if ( Abc_NtkLatchNum(pNtk) ) printf( "Run sequential cleanup (\"scl\") to get rid of dangling logic.\n" );
     }
     else
     {
-        printf( "Run sequential cleanup (\"st; scl\") to get rid of dangling logic.\n" );
+        if ( Abc_NtkLatchNum(pNtk) ) printf( "Run sequential cleanup (\"st; scl\") to get rid of dangling logic.\n" );
     }
 
     if ( !Abc_NtkCheck( pNtk ) )
