@@ -257,8 +257,9 @@ private:
     int *hashLookup(int *pTable, int l0, int l1, int TableSize);
 
 public:
-    float countAnd2(int reset = 0);
-    float countTransistors(int reset = 0);
+    float countAnd2(int reset = 0, int fDummy = 0);
+    // 0: amap 1: &nf 2: &simap
+    float countTransistors(int reset = 0, int nMode = 0);
     int countLevel(void);
 
 private:
@@ -285,7 +286,7 @@ public:
     Miaig reduce(int fVerbose);
     Miaig expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLevel, int fVerbose);
     Miaig expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nExpandableLevel, int nVerbose);
-    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nVerbose);
+    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nVerbose);
     #ifdef RW_ABC
     Gia_Man_t *toGia(void);
     Abc_Ntk_t *toNtk(int fMapped = 0);
@@ -462,7 +463,7 @@ inline int Miaig::nWords(void) {
     return _data->nWords;
 }
 
-inline float Miaig::countAnd2(int reset) {
+inline float Miaig::countAnd2(int reset, int fDummy) {
     int i, Counter = 0;
     Miaig_ForEachNode(i) {
         Counter += objFaninNum(i) - 1;

@@ -1243,7 +1243,7 @@ Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int nBTLimi
 #ifdef _WIN32
     char * pKadical = "kadical.exe";
 #else
-    char * pKadical = "kadical";
+    char * pKadical = "./kadical";
 #endif
     char Command[1000], * pCommand = (char *)&Command;
     if ( nBTLimit ) {
@@ -1582,7 +1582,7 @@ int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout,
     if ( fVerbose )
         printf( "SAT variables = %d. SAT clauses = %d. Cardinality bound = %d. Conflict limit = %d. Timeout = %d.\n", 
             nVars, Vec_StrCountEntry(vStr, '\n'), nBound, nBTLimit, nTimeout );
-    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, nBTLimit, nTimeout, 1, &Status );
+    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, nBTLimit, nTimeout, fVerbose, &Status );
     unlink( pFileNameI );
     //unlink( pFileNameO );
     if ( fKeepFile ) Gia_ManDumpCnf2( vStr, nVars, argc, argv, Abc_Clock() - clkStart, Status );
@@ -1595,7 +1595,7 @@ int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout,
     if ( fVerbose ) Gia_ManSimplePrintMapping( vRes, Gia_ManCiNum(p) );
     p->vCellMapping = Gia_ManDeriveSimpleMapping( p, vRes );
     Vec_IntFree( vRes );
-    Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
+    if ( fVerbose ) Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
     return 1;
 }
 
