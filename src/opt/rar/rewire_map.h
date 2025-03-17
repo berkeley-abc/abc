@@ -30,7 +30,9 @@
 ABC_NAMESPACE_HEADER_START
 
 Abc_Ntk_t *Gia_ManRewirePut(Gia_Man_t *pGia);
-Abc_Ntk_t *Abc_ManRewireMap(Abc_Ntk_t *pNtk);
+Abc_Ntk_t *Abc_ManRewireMapAmap(Abc_Ntk_t *pNtk);
+Abc_Ntk_t *Gia_ManRewireMapNf(Gia_Man_t *pGia);
+Abc_Ntk_t *Gia_ManRewireMapSimap(Gia_Man_t *pGia, int nBound, int nBTLimit, int nTimeout);
 Vec_Int_t *Abc_ManRewireNtkWriteMiniMapping(Abc_Ntk_t *pNtk);
 Abc_Ntk_t *Abc_ManRewireNtkFromMiniMapping(int *vMapping);
 Mini_Aig_t *Abc_ManRewireMiniAigFromNtk(Abc_Ntk_t *pNtk);
