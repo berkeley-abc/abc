@@ -1612,6 +1612,7 @@ void Abc_NtkPermuteLevel( Abc_Ntk_t * pNtk, int Level )
         Abc_ObjForEachFanout( pObj, pNext, k )
             if ( Abc_ObjIsNode(pNext) )
                 LevelMax = Abc_MinInt( LevelMax, Abc_ObjLevel(pNext) );
+        if ( LevelMin == LevelMax ) continue;
         assert( LevelMin < LevelMax );
         // randomly set level between LevelMin and LevelMax-1
         pObj->Level = LevelMin + (Abc_Random(0) % (LevelMax - LevelMin));
@@ -1801,17 +1802,19 @@ Vec_Ptr_t * Abc_NtkDupWindows( Abc_Ntk_t * pNtk, Vec_Ptr_t * vvIns, Vec_Ptr_t * 
 }
 Vec_Ptr_t * Abc_NtkExtractPartitions( Abc_Ntk_t * pNtk, int Iter, int nSuppMax, Vec_Ptr_t ** pvIns, Vec_Ptr_t ** pvOuts, Vec_Ptr_t ** pvNodes )
 {
-    if ( Abc_NtkCiNum(pNtk) <= nSuppMax ) {
-        Vec_Ptr_t * vWins = Vec_PtrAlloc( 1 );
-        Vec_PtrPush( vWins, Abc_NtkDupDfs(pNtk) );
-        *pvIns = *pvOuts = *pvNodes = NULL;
-        return vWins;
-    }
-    int iUseRevL = Iter % 3 == 0 ? 0 : Abc_Random(0) & 1;
+    // if ( Abc_NtkCiNum(pNtk) <= nSuppMax ) {
+    //     Vec_Ptr_t * vWins = Vec_PtrAlloc( 1 );
+    //     Vec_PtrPush( vWins, Abc_NtkDupDfs(pNtk) );
+    //     *pvIns = *pvOuts = *pvNodes = NULL;
+    //     return vWins;
+    // }
+    // int iUseRevL = Iter % 3 == 0 ? 0 : Abc_Random(0) & 1;
+    int iUseRevL = Abc_Random(0) & 1;
     int LevelMax = iUseRevL ? Abc_NtkLevelR(pNtk) : Abc_NtkLevel(pNtk);
-    int LevelCut = Iter % 3 == 0 ? 0 : LevelMax > 8 ? 2 + (Abc_Random(0) % (LevelMax - 4)) : 0;
-    //printf( "Using %s cut level %d (out of %d)\n", iUseRevL ? "reverse": "direct", LevelCut, LevelMax );
-    Abc_NtkPermuteLevel( pNtk, LevelMax );
+    // int LevelCut = Iter % 3 == 0 ? 0 : LevelMax > 8 ? 2 + (Abc_Random(0) % (LevelMax - 4)) : 0;
+    int LevelCut = LevelMax > 8 ? (Abc_Random(0) % (LevelMax - 4)) : 0;
+    // printf( "Using %s cut level %d (out of %d)\n", iUseRevL ? "reverse": "direct", LevelCut, LevelMax );
+    // Abc_NtkPermuteLevel( pNtk, LevelMax );
     Vec_Wec_t * vStore = Vec_WecStart( LevelMax+1 );
     Vec_Wec_t * vSupps = Abc_NtkCollectObjectsWithSuppLimit( pNtk, LevelCut, nSuppMax );
     Vec_Ptr_t * vIns   = Abc_NtkDeriveWinInsAll( vSupps, nSuppMax, pNtk );

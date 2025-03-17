@@ -26,29 +26,35 @@ ABC_NAMESPACE_IMPL_START
 #endif // RW_ABC
 
 #ifdef RW_ABC
-Gia_Man_t *Gia_ManRewireInt(Gia_Man_t *pGia, int nIters, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nSeed, int fVerbose) {
-    Random_Num(nSeed);
+Gia_Man_t *Gia_ManRewireInt(Gia_Man_t *pGia, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nSeed, int fVerbose) {
+    Random_Num(nSeed == 0 ? Abc_Random(0) % 10 : nSeed);
 
     Rewire::Miaig pNtkMiaig(pGia);
-    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nDist, fVerbose);
+    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fVerbose);
+    pNew.setName(Gia_ManName(pGia));
 
     return pNew.toGia();
 }
 
-Abc_Ntk_t *Abc_ManRewireInt(Abc_Ntk_t *pNtk, int nIters, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nSeed, int fVerbose) {
-    Random_Num(nSeed);
+Abc_Ntk_t *Abc_ManRewireInt(Abc_Ntk_t *pNtk, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nSeed, int fVerbose) {
+    Random_Num(nSeed == 0 ? Abc_Random(0) % 10 : nSeed);
 
+    int fMapped = nMode == 1;
     Rewire::Miaig pNtkMiaig(pNtk);
-    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nDist, fVerbose);
+    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, fMapped, nMappedMode, nDist, fVerbose);
+    pNew.setName(Abc_NtkName(pNtk));
+    if (nMode == 2) {
+        pNew.countTransistors(1, nMappedMode);
+    }
 
-    return pNew.toNtk(nMode);
+    return pNew.toNtk(nMode >= 1);
 }
 
-Mini_Aig_t *MiniAig_ManRewireInt(Mini_Aig_t *pAig, int nIters, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nSeed, int fVerbose) {
-    Random_Num(nSeed);
+Mini_Aig_t *MiniAig_ManRewireInt(Mini_Aig_t *pAig, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nSeed, int fVerbose) {
+    Random_Num(nSeed == 0 ? Abc_Random(0) % 10 : nSeed);
 
     Rewire::Miaig pNtkMiaig(pAig);
-    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nDist, fVerbose);
+    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fVerbose);
 
     return pNew.toMiniAig();
 }
@@ -81,6 +87,15 @@ void Miaig::create(int nIns, int nOuts, int nObjsAlloc) {
         _data->pTable = nullptr;
         _data->refcount = 1;
         _refcount = &_data->refcount;
+    }
+}
+
+void Miaig::setName(char *pName) {
+    if (_data) {
+        if (_data->pName) {
+            free(_data->pName);
+        }
+        _data->pName = strdup(pName);
     }
 }
 
@@ -149,6 +164,7 @@ int Miaig::fromMiniAig(Mini_Aig_t *pMiniAig) {
 Gia_Man_t *Miaig::toGia(void) {
     int i, k, iLit, And2 = countAnd2();
     Gia_Man_t *pGia = Gia_ManStart(1 + nIns() + And2 + nOuts()), *pTemp;
+    pGia->pName = Abc_UtilStrsav( _data->pName );
     Gia_ManHashAlloc(pGia);
     memset(_data->pCopy, 0, sizeof(int) * nObjs());
     Miaig_ForEachInput(i)
@@ -197,34 +213,63 @@ Mini_Aig_t *Miaig::toMiniAig(void) {
 }
 
 Abc_Ntk_t *Miaig::toNtk(int fMapped) {
+    Abc_Ntk_t *pNtk;
     if (_data->pNtkMapped && fMapped) {
-        return Abc_ManRewireNtkFromMiniMapping(Vi_Array(_data->pNtkMapped));
+        pNtk = Abc_ManRewireNtkFromMiniMapping(Vi_Array(_data->pNtkMapped));
+        ABC_FREE(pNtk->pName);
+        Abc_NtkSetName(pNtk, Abc_UtilStrsav(_data->pName));
+        return pNtk; 
     }
     Gia_Man_t *pGia = toGia();
-    Abc_Ntk_t *pNtk = Gia_ManRewirePut(pGia);
+    pNtk = Gia_ManRewirePut(pGia);
     Gia_ManStop(pGia);
     return pNtk;
+}
+
+vi *moveVecToVi(Vec_Int_t *v) {
+    vi *p = (vi *)malloc(sizeof(vi));
+    p->size = Vec_IntSize(v);
+    p->cap = Vec_IntCap(v);
+    p->ptr = Vec_IntArray(v);
+    free(v);
+    return p;
 }
 #endif // RW_ABC
 
 // technology mapping
-float Miaig::countTransistors(int reset) {
+float Miaig::countTransistors(int reset, int nMappedMode) {
     if (!reset && _data->nTransistor) return _data->nTransistor;
 #ifdef RW_ABC
-    Abc_Ntk_t *pNtk = toNtk();
-    Abc_Ntk_t *pNtkMapped = Abc_ManRewireMap(pNtk);
-
-    float area = Abc_NtkGetMappedArea(pNtkMapped);
-    Vec_Int_t *vMapping = Abc_ManRewireNtkWriteMiniMapping(pNtkMapped);
-    _data->pNtkMapped = (vi *)malloc(sizeof(vi));
-    _data->pNtkMapped->size = Vec_IntSize(vMapping);
-    _data->pNtkMapped->cap = Vec_IntCap(vMapping);
-    _data->pNtkMapped->ptr = Vec_IntArray(vMapping);
-    free(vMapping);
-    Abc_NtkDelete(pNtk);
-    Abc_NtkDelete(pNtkMapped);
-#else
     float area = 0;
+    Abc_Ntk_t *pNtkMapped = NULL, *pNtkMappedTemp = NULL;
+    if (nMappedMode == 0) {        // amap
+        Abc_Ntk_t *pNtk = toNtk();
+        pNtkMapped = Abc_ManRewireMapAmap(pNtk);
+        Abc_NtkDelete(pNtk);
+    } else if (nMappedMode == 1) { // &nf
+        Gia_Man_t *pGia = toGia();
+        pNtkMapped = Gia_ManRewireMapNf(pGia);
+        Gia_ManStop(pGia);
+    } else if (nMappedMode == 2) { // &simap
+        Abc_Ntk_t *pNtk = toNtk();
+        pNtkMapped = Abc_ManRewireMapAmap(pNtk);
+        area = Abc_NtkGetMappedArea(pNtkMapped);
+        Gia_Man_t *pGia = toGia();
+        while ((pNtkMappedTemp = Gia_ManRewireMapSimap(pGia, area - 2, 0, 40))) {
+            area -= 2;
+            Abc_NtkDelete(pNtkMapped);
+            pNtkMapped = pNtkMappedTemp;
+        }
+        Gia_ManStop(pGia);
+    }
+    if (pNtkMapped) {
+        area = Abc_NtkGetMappedArea(pNtkMapped);
+        Vec_Int_t *vMapping = Abc_ManRewireNtkWriteMiniMapping(pNtkMapped);
+        _data->pNtkMapped = moveVecToVi(vMapping);
+        Abc_NtkDelete(pNtkMapped);
+    }
+#else
+    float area = countAnd2(reset, 0);
 #endif // RW_ABC
 
     return _data->nTransistor = area;
@@ -892,7 +937,7 @@ int Miaig::checkConst(int iObj, word *pCare, int fVerbose) {
     return 0;
 }
 
-int Miaig::expandOne(int iObj, int nAddedMax, int nDist, int fVerbose) {
+int Miaig::expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, int fVerbose) {
     int i, k, n, iLit, nAdded = 0;
     word *pCare = computeCareSet(iObj);
     assert(nAddedMax > 0);
@@ -908,6 +953,7 @@ int Miaig::expandOne(int iObj, int nAddedMax, int nDist, int fVerbose) {
     if (nDist) markDistanceN(iObj, nDist);
     Miaig_ForEachInputNode(i) {
         if (nDist && objDist(i) < 0 && !objIsPi(i)) continue;
+        // if (nExpandableLevel && objLevel(i) - objLevel(iObj) > nExpandableLevel) continue;
         if (objTravId(i) != nTravIds() && (objIsPi(i) || (objFaninNum(i) > 1 && objRef(i) > 0))) // this node is NOT in the TFO
             Vi_Push(_data->vOrderF, i);
     }
@@ -1010,8 +1056,8 @@ int Miaig::reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, 
     return 0;
 }
 
-int Miaig::expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int fVerbose) {
-    expandOne(iNode, Abc_MinInt(Vi_Space(_data->pvFans + iNode), nFaninAddLimit), nDist, fVerbose);
+int Miaig::expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int nExpandableLevel, int fVerbose) {
+    expandOne(iNode, Abc_MinInt(Vi_Space(_data->pvFans + iNode), nFaninAddLimit), nDist, nExpandableLevel, fVerbose);
     reduceOne(iNode, 0, 0, 0, fVerbose);
     return 0;
 }
@@ -1025,7 +1071,7 @@ vi *Miaig::createRandomOrder(void) {
     return _data->vOrder;
 }
 
-Miaig Miaig::expand(int nFaninAddLimitAll, int nDist, int fVerbose) {
+Miaig Miaig::expand(int nFaninAddLimitAll, int nDist, int nExpandableLevel, int fVerbose) {
     int i, iNode, nAdded = 0;
     assert(nFaninAddLimitAll > 0);
     vi *vOrder = createRandomOrder();
@@ -1035,7 +1081,7 @@ Miaig Miaig::expand(int nFaninAddLimitAll, int nDist, int fVerbose) {
     initializeLevels();
     if (nDist) initializeDists();
     Vi_ForEachEntry(vOrder, iNode, i) {
-        nAdded += expandOne(iNode, Abc_MinInt(Vi_Space(_data->pvFans + iNode), nFaninAddLimitAll - nAdded), nDist, fVerbose);
+        nAdded += expandOne(iNode, Abc_MinInt(Vi_Space(_data->pvFans + iNode), nFaninAddLimitAll - nAdded), nDist, nExpandableLevel, fVerbose);
         if (nAdded >= nFaninAddLimitAll)
             break;
     }
@@ -1071,7 +1117,7 @@ Miaig Miaig::reduce(int fVerbose) {
     return dupStrash(1, 1, 1);
 }
 
-Miaig Miaig::expandThenReduce(int nFaninAddLimit, int nDist, int fVerbose) {
+Miaig Miaig::expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLevel, int fVerbose) {
     Miaig pTemp;
     int i, iNode;
     vi *vOrder = topoCollect();
@@ -1081,15 +1127,15 @@ Miaig Miaig::expandThenReduce(int nFaninAddLimit, int nDist, int fVerbose) {
     initializeLevels();
     if (nDist) initializeDists();
     Vi_ForEachEntry(vOrder, iNode, i) {
-        expandThenReduceOne(iNode, nFaninAddLimit, nDist, fVerbose);
+        expandThenReduceOne(iNode, nFaninAddLimit, nDist, nExpandableLevel, fVerbose);
     }
     verifyRefs();
     return dupDfs().dupStrash(1, 1, 1);
 }
 
-Miaig Miaig::expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nVerbose) {
+Miaig Miaig::expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nExpandableLevel, int nVerbose) {
     // expand
-    Miaig pNew = expand(nFaninAddLimitAll, nDist, nVerbose);
+    Miaig pNew = expand(nFaninAddLimitAll, nDist, nExpandableLevel, nVerbose);
     // share
     pNew = pNew.share(nDivs == -1 ? pNew.nObjs() : nDivs);
     // reduce
@@ -1110,7 +1156,7 @@ Miaig randomRead(std::vector<Miaig> &pBests) {
     return pBests[Random_Num(0) % pBests.size()];
 }
 
-Miaig Miaig::rewire(int nIters, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nDist, int nVerbose) {
+Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nVerbose) {
     const int nRootSave = 8;
     const int nBestSave = 4;
     int nRestart = 5000;
@@ -1120,26 +1166,30 @@ Miaig Miaig::rewire(int nIters, int nExpands, int nGrowth, int nDivs, int nFanin
     Miaig pNew;
     Miaig pRoot = pRoots[0];
     Miaig pBest = this->dup(0);
-    float (Miaig::*Miaig_ObjectiveFunction)(int) = (nMode == 0) ? &Miaig::countAnd2 : &Miaig::countTransistors;
+    float (Miaig::*Miaig_ObjectiveFunction)(int, int) = (nMode == 0) ? &Miaig::countAnd2 : &Miaig::countTransistors;
+    int maxLevel = levelGrowRatio != 0 ? this->countLevel() * levelGrowRatio : 0;
+    int nExpandableLevel = maxLevel ? maxLevel - this->countLevel() : 0;
 
-    float PrevBest = ((&pBest)->*Miaig_ObjectiveFunction)(1);
+    float PrevBest = ((&pBest)->*Miaig_ObjectiveFunction)(1, nMappedMode);
     int iterNotImproveAfterRestart = 0;
+    if (nVerbose && maxLevel) printf("Max level         : %5d\n", maxLevel);
     if (nVerbose) printf("Initial target    : %5g (AND2 = %5g Level = %3d)\n", PrevBest, this->countAnd2(1), this->countLevel());
-    for (int i = 0; i < nIters; i++) {
-        if (nVerbose) printf("\rIteration %7d : %5g -> ", i + 1, ((&pRoot)->*Miaig_ObjectiveFunction)(0));
+    for (int i = 0; nIters ? i < nIters : 1; i++) {
+        if (nVerbose) printf("\rIteration %7d : %5g -> ", i + 1, ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode));
         if (nTimeOut && nTimeOut < 1.0 * (Time_Clock() - clkStart) / CLOCKS_PER_SEC) break;
         pNew = pRoot.dupMulti(nFaninMax, nGrowth);
 
         if (i % 2 == 0) {
-            pNew = pNew.expandThenReduce(nGrowth, nDist, nVerbose > 1);
+            pNew = pNew.expandThenReduce(nGrowth, nDist, nExpandableLevel, nVerbose > 1);
         }
-        pNew = pNew.expandShareReduce(nExpands, nDivs, nDist, nVerbose > 1);
+        pNew = pNew.expandShareReduce(nExpands, nDivs, nDist, nExpandableLevel, nVerbose > 1);
 
         ++iterNotImproveAfterRestart;
         // report
-        float rootTarget = ((&pRoot)->*Miaig_ObjectiveFunction)(0);
-        float newTarget = ((&pNew)->*Miaig_ObjectiveFunction)(1);
-        if (PrevBest > newTarget) {
+        float rootTarget = ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode);
+        float newTarget = ((&pNew)->*Miaig_ObjectiveFunction)(1, nMappedMode);
+        if (maxLevel ? pNew.countLevel() > maxLevel : 0) {
+        } else if (PrevBest > newTarget) {
             if (nVerbose) printf("%5g (AND2 = %5g Level = %3d) ", newTarget, pNew.countAnd2(), pNew.countLevel());
             if (nVerbose) Time_PrintEndl("Elapsed time", Time_Clock() - clkStart);
             PrevBest = newTarget;
@@ -1150,10 +1200,11 @@ Miaig Miaig::rewire(int nIters, int nExpands, int nGrowth, int nDivs, int nFanin
             randomAddBest(pBests, pNew.dup(0), nBestSave);
         }
         // compare
-        if (rootTarget < newTarget) {
+        if (maxLevel ? pNew.countLevel() > maxLevel : 0) {
+        } else if (rootTarget < newTarget) {
             if (iterNotImproveAfterRestart > nRestart) {
                 pNew = randomRead(pBests).dupMulti(nFaninMax, nGrowth);
-                pNew = pNew.expand(nExpands, nDist, nVerbose > 1);
+                pNew = pNew.expand(nExpands, nDist, nExpandableLevel, nVerbose > 1);
                 pNew = pNew.share(nDivs == -1 ? pNew.nObjs() : nDivs);
                 pNew = pNew.dupStrash(1, 1, 0);
                 pRoots = {pNew};

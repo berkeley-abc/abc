@@ -930,15 +930,15 @@ Abc_Ntk_t * Abc_NtkFromMiniMapping( int *pArray )
     // create pis
     for ( i = 0; i < nCis-nFlops; i++ )
         Abc_NtkCreatePi( pNtkMapped );
+    // create nodes
+    for ( i = 0; i < nNodes; i++ )
+        Abc_NtkCreateNode( pNtkMapped );
     // create pos
     for ( i = 0; i < nCos-nFlops; i++ )
         Abc_NtkCreatePo( pNtkMapped );
     // create flops
     for ( i = 0; i < nFlops; i++ )
         Abc_NtkAddLatch( pNtkMapped, NULL, ABC_INIT_ZERO );
-    // create nodes
-    for ( i = 0; i < nNodes; i++ )
-        Abc_NtkCreateNode( pNtkMapped );
     // connect nodes
     for ( i = 0; i < nNodes; i++ )
     {
