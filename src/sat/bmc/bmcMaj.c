@@ -2305,6 +2305,7 @@ Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIn
     if ( vValues ) Exa_ManMiniVerify( pMini, vSimsIn, vSimsOut );
     Vec_IntFreeP( &vValues );
     Exa4_ManFree( p );
+    unlink( pFileNameIn );    
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     return pMini;
 }
@@ -2831,6 +2832,7 @@ Mini_Aig_t * Exa5_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIn
     if ( vValues ) Exa_ManMiniVerify( pMini, vSimsIn, vSimsOut );
     Vec_IntFreeP( &vValues );
     Exa5_ManFree( p );
+    unlink( pFileNameIn );    
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     return pMini;
 }
@@ -3752,6 +3754,7 @@ Mini_Aig_t * Exa6_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIn
     if ( vValues && nIns <= 6 ) Exa_ManMiniVerify( pMini, vSimsIn, vSimsOut );
     Vec_IntFreeP( &vValues );
     Exa6_ManFree( p );
+    unlink( pFileNameIn );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     return pMini;
 }
@@ -4056,6 +4059,7 @@ void Exa_ManExactSynthesis7( Bmc_EsPar_t * pPars, int GateSize )
     if ( vValues )
         Exa_ManDumpVerilog( vValues, pPars->nVars, pPars->nNodes, GateSize, pTruth );
     Vec_IntFreeP( &vValues );
+    unlink( pFileNameIn );    
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
 }
 
