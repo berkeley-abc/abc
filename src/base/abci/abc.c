@@ -44463,10 +44463,10 @@ usage:
 int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Mio_IntallSimpleLibrary();
-    extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
-    int c, nBTLimit = 0, nBound = 0, nTimeout = 0, fKeepFile = 0, fVerbose = 0;
+    extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int Seed, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
+    int c, Seed = 0, nBTLimit = 0, nBound = 0, nTimeout = 0, fKeepFile = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "BCTfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "BRCTfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -44483,6 +44483,15 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Bound on a solution should be a positive integer.\n" );
                 goto usage;
             }
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'C':
             if ( globalUtilOptind >= argc )
@@ -44524,14 +44533,15 @@ int Abc_CommandAbc9Simap( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     Mio_IntallSimpleLibrary();
-    if ( !Gia_ManSimpleMapping( pAbc->pGia, nBound, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv ) )
+    if ( !Gia_ManSimpleMapping( pAbc->pGia, nBound, Seed, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv ) )
         printf( "Simple mapping has failed.\n" );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &simap [-BCT num] [-fvh]\n" );
+    Abc_Print( -2, "usage: &simap [-BRCT num] [-fvh]\n" );
     Abc_Print( -2, "\t           performs simple mapping of the AIG\n" );
     Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
+    Abc_Print( -2, "\t-R num   : random number generator seed [default = %d]\n", Seed );
     Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-T num   : runtime limit in seconds [default = %d]\n", nTimeout );    
     Abc_Print( -2, "\t-f       : toggles keeping the intermediate CNF file [default = %s]\n", fKeepFile? "yes": "no" );
@@ -44554,11 +44564,11 @@ usage:
 int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Mio_IntallSimpleLibrary2();
-    extern Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
+    extern Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int Seed, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
     Gia_Man_t * pTemp = NULL; char * pTruth = NULL; word Truth = 0;
-    int c, nVars = 0, nNodes = 0, nVars2, nBTLimit = 0, nBound = 0, fMultiLevel = 0, nTimeout = 0, fKeepFile = 0, fVerbose = 0; 
+    int c, nVars = 0, nNodes = 0, nVars2, Seed = 0, nBTLimit = 0, nBound = 0, fMultiLevel = 0, nTimeout = 0, fKeepFile = 0, fVerbose = 0; 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NBCTmfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NBRCTmfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -44589,6 +44599,15 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Bound on a solution should be a positive integer.\n" );
                 goto usage;
             }
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'C':
             if ( globalUtilOptind >= argc )
@@ -44651,7 +44670,7 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     nVars2 = Abc_TtReadHex( &Truth, pTruth );
     assert( nVars2 == nVars );
-    pTemp = Gia_ManKSatMapping( Truth, nVars, nNodes, nBound, fMultiLevel, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv );
+    pTemp = Gia_ManKSatMapping( Truth, nVars, nNodes, nBound, Seed, fMultiLevel, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv );
     if ( pTemp )  {
         //Mio_IntallSimpleLibrary2();
         Abc_FrameUpdateGia( pAbc, pTemp );
@@ -44659,10 +44678,11 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &exmap [-NBCT num] [-mfvh] <truth>\n" );
+    Abc_Print( -2, "usage: &exmap [-NBRCT num] [-mfvh] <truth>\n" );
     Abc_Print( -2, "\t           performs simple mapping of the truth table\n" );
     Abc_Print( -2, "\t-N num   : the number of nodes [default = %d]\n", nNodes );
     Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
+    Abc_Print( -2, "\t-R num   : random number generator seed [default = %d]\n", Seed );
     Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-T num   : runtime limit in seconds [default = %d]\n", nTimeout );    
     Abc_Print( -2, "\t-m       : toggles using multi-level primitives [default = %s]\n", fMultiLevel? "yes": "no" );

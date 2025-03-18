@@ -33,7 +33,7 @@ extern void Nf_ManSetDefaultPars( Jf_Par_t * pPars );
 extern Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * pGia, Jf_Par_t * pPars );
 extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
 extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p, int fUseBuffs );
-extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
+extern int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int Seed, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
 
 Abc_Ntk_t *Gia_ManRewirePut(Gia_Man_t *pGia) {
     Aig_Man_t *pMan = Gia_ManToAig(pGia, 0);
@@ -67,7 +67,7 @@ Abc_Ntk_t *Gia_ManRewireMapNf(Gia_Man_t *pGia) {
 }
 
 Abc_Ntk_t *Gia_ManRewireMapSimap(Gia_Man_t *pGia, int nBound, int nBTLimit, int nTimeout) {
-    if (!Gia_ManSimpleMapping(pGia, nBound, nBTLimit, nTimeout, 0, 0, 0, NULL)) {
+    if (!Gia_ManSimpleMapping(pGia, nBound, 0, nBTLimit, nTimeout, 0, 0, 0, NULL)) {
         // Abc_Print(-1, "Mapping has failed.\n");
         return NULL;
     }

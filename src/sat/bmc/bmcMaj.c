@@ -2280,7 +2280,7 @@ Mini_Aig_t * Exa4_ManMiniAig( Exa4_Man_t * p, Vec_Int_t * vValues, int fFancy )
 ***********************************************************************/
 Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fVerbose, int fCard )
 {
-    extern Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int nBTLimit, int TimeOut, int fVerbose, int * pStatus );
+    extern Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int Seed, int nBTLimit, int TimeOut, int fVerbose, int * pStatus );
     Mini_Aig_t * pMini = NULL;
     abctime clkTotal = Abc_Clock();
     Vec_Int_t * vValues = NULL;
@@ -2296,7 +2296,7 @@ Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIn
     if ( fVerbose )
         printf( "CNF with %d variables and %d clauses was dumped into file \"%s\".\n", p->nCnfVars, p->nCnfClauses, pFileNameIn );
     if ( fCard )
-        vValues = Gia_RunKadical( pFileNameIn, pFileNameOut, 0, TimeOut, fVerbose, &Status );
+        vValues = Gia_RunKadical( pFileNameIn, pFileNameOut, 0, 0, TimeOut, fVerbose, &Status );
     else
         vValues = Exa4_ManSolve( pFileNameIn, pFileNameOut, TimeOut, fVerbose );
     if ( vValues ) pMini = Exa4_ManMiniAig( p, vValues, fFancy );
