@@ -1234,7 +1234,7 @@ void Gia_ManLutSat( Gia_Man_t * pGia, int LutSize, int nNumber, int nImproves, i
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int nBTLimit, int TimeOut, int fVerbose, int * pStatus )
+Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int Seed, int nBTLimit, int TimeOut, int fVerbose, int * pStatus )
 {
     extern Vec_Int_t * Exa4_ManParse( char *pFileName );
     int fVerboseSolver = 0;
@@ -1244,19 +1244,24 @@ Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int nBTLimi
     char * pKadical = "kadical.exe";
 #else
     char * pKadical = "./kadical";
+    FILE * pFile = fopen( pKadical, "rb" );
+    if ( pFile == NULL )
+        pKadical += 2;
+    else
+        fclose( pFile );
 #endif
     char Command[1000], * pCommand = (char *)&Command;
     if ( nBTLimit ) {
         if ( TimeOut )
-            sprintf( pCommand, "%s -c %d -t %d %s %s > %s", pKadical, nBTLimit, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+            sprintf( pCommand, "%s --seed=%d -c %d -t %d %s %s > %s", pKadical, Seed, nBTLimit, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
         else
-            sprintf( pCommand, "%s -c %d  %s %s > %s", pKadical, nBTLimit, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+            sprintf( pCommand, "%s --seed=%d -c %d  %s %s > %s", pKadical, Seed, nBTLimit, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
     }
     else {
         if ( TimeOut )
-            sprintf( pCommand, "%s -t %d %s %s > %s", pKadical, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+            sprintf( pCommand, "%s --seed=%d -t %d %s %s > %s", pKadical, Seed, TimeOut, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
         else
-            sprintf( pCommand, "%s %s %s > %s", pKadical, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
+            sprintf( pCommand, "%s --seed=%d %s %s > %s", pKadical, Seed, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
     }
 #ifdef __wasm
     if ( 1 )
@@ -1564,7 +1569,7 @@ int Gia_ManDumpCnf2( Vec_Str_t * vStr, int nVars, int argc, char ** argv, abctim
     fclose( pFile );
     return 1;
 }
-int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv )
+int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int Seed, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv )
 {
     abctime clkStart = Abc_Clock();
     srand(time(NULL));
@@ -1582,7 +1587,7 @@ int Gia_ManSimpleMapping( Gia_Man_t * p, int nBound, int nBTLimit, int nTimeout,
     if ( fVerbose )
         printf( "SAT variables = %d. SAT clauses = %d. Cardinality bound = %d. Conflict limit = %d. Timeout = %d.\n", 
             nVars, Vec_StrCountEntry(vStr, '\n'), nBound, nBTLimit, nTimeout );
-    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, nBTLimit, nTimeout, fVerbose, &Status );
+    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, Seed, nBTLimit, nTimeout, fVerbose, &Status );
     unlink( pFileNameI );
     //unlink( pFileNameO );
     if ( fKeepFile ) Gia_ManDumpCnf2( vStr, nVars, argc, argv, Abc_Clock() - clkStart, Status );
@@ -2000,7 +2005,7 @@ word Gia_ManGetTruth( Gia_Man_t * p )
     return Const[Gia_ObjFaninC0(pObj)] ^ pFuncs[Gia_ObjFaninId0p(p, pObj)];
 }
 
-Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv )
+Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int Seed, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv )
 {
     abctime clkStart = Abc_Clock();
     Gia_Man_t * pNew = NULL;
@@ -2017,7 +2022,7 @@ Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, in
     if ( fVerbose )
         printf( "Vars = %d. Nodes = %d. Cardinality bound = %d.  SAT vars = %d. SAT clauses = %d. Conflict limit = %d. Timeout = %d.\n", 
             nIns, nNodes, nBound,  nVars, Vec_StrCountEntry(vStr, '\n'), nBTLimit, nTimeout );
-    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, nBTLimit, nTimeout, 1, &Status );
+    Vec_Int_t * vRes = Gia_RunKadical( pFileNameI, pFileNameO, Seed, nBTLimit, nTimeout, 1, &Status );
     unlink( pFileNameI );
     //unlink( pFileNameO );
     if ( fKeepFile ) Gia_ManDumpCnf2( vStr, nVars, argc, argv, Abc_Clock() - clkStart, Status );
