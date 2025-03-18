@@ -2674,6 +2674,9 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
         pNew = Nf_ManPerformMappingInt( p, pPars );
         Gia_ManTransferTiming( pNew, p );
         //Gia_ManCellMappingVerify( pNew );
+        // remove choices after mapping
+        ABC_FREE( pNew->pReprs );
+        ABC_FREE( pNew->pNexts );        
     }
     //pNew->MappedDelay = (int)((If_Par_t *)pp)->FinalDelay;
     //pNew->MappedArea  = (int)((If_Par_t *)pp)->FinalArea;
