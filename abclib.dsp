@@ -4114,6 +4114,46 @@ SOURCE=.\src\opt\sbd\sbdSat.c
 SOURCE=.\src\opt\sbd\sbdWin.c
 # End Source File
 # End Group
+# Begin Group "eslim"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\eSLIM.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\eSLIM.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\eSLIMMan.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\relationGeneration.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\relationGeneration.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\satInterfaces.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\selectionStrategy.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\utils.hpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\eslim\synthesisEngine.hpp
+# End Source File
+# End Group
 # End Group
 # Begin Group "map"
 
