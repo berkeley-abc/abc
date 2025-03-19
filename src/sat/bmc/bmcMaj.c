@@ -763,7 +763,28 @@ int Exa_ManSolverSolve( Exa_Man_t * p )
 }
 int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
 {
-    int pLits[MAJ_NOBJS], pLits2[3], i, j, k, n, m;
+    extern Vec_Int_t * Gia_ManKSatGenLevels( char * pGuide, int nIns, int nNodes );
+    Vec_Int_t * vRes = p->pPars->pGuide ? Gia_ManKSatGenLevels( p->pPars->pGuide, p->nVars, p->nNodes ) : NULL;
+    int pLits[MAJ_NOBJS], pLits2[3], i, j, k, n, m, Start, Stop;
+    if ( vRes ) {
+        n = p->nVars;
+        Vec_IntForEachEntryDoubleStart( vRes, Start, Stop, i, 2*p->nVars ) {
+            for ( j = 0; j < Start; j++ )
+                if ( p->VarMarks[n][0][j] ) {
+                    pLits[0] = Abc_Var2Lit( p->VarMarks[n][0][j], 1 );
+                    Exa_ManAddClause( p, pLits, 1 );
+                }
+            for ( k = 0; k < 2; k++ )
+            for ( j = Stop; j < n; j++ )
+                if ( p->VarMarks[n][k][j] ) {
+                    pLits[0] = Abc_Var2Lit( p->VarMarks[n][k][j], 1 );
+                    Exa_ManAddClause( p, pLits, 1 );
+                }
+            n++;
+        }
+        assert( n == p->nVars + p->nNodes );
+        Vec_IntFreeP( &vRes );
+    }
     // input constraints
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
@@ -1959,6 +1980,7 @@ int Exa4_ManGenStart( Exa4_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes,
             n++;
         }
         assert( n == p->nDivs + p->nNodes );
+        Vec_IntFreeP( &vRes );
     }
     for ( i = p->nDivs; i < p->nDivs + p->nNodes; i++ )
     {
@@ -2039,7 +2061,6 @@ int Exa4_ManGenStart( Exa4_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes,
         for ( m = n+1; m < nLits; m++ )
             Exa4_ManAddClause4( p, Abc_LitNot(pLits[n]), Abc_LitNot(pLits[m]), 0, 0 );
     }
-    Vec_IntFreeP( &vRes );
     return 1;
 }
 void Exa4_ManGenMint( Exa4_Man_t * p, int iMint, int fOnlyAnd, int fFancy )
