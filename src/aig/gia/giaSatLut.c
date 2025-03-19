@@ -1683,12 +1683,54 @@ int Gia_KSatFindFan( int * pMap, int i, int f, Vec_Int_t * vRes )
     return -1;
 }
 
-Vec_Str_t * Gia_ManKSatCnf( int * pMap, int nIns, int nNodes, int nBound, int fMultiLevel )
+Vec_Int_t * Gia_ManKSatGenLevels( char * pGuide, int nIns, int nNodes )
+{
+    Vec_Int_t * vRes;
+    int i, k, Count = 0;
+    for ( i = 0; pGuide[i]; i++ )
+        Count += pGuide[i] - '0';
+    if ( Count != nNodes ) {
+        printf( "Guidance %s has %d nodes while the problem has %d nodes.\n", pGuide, Count, nNodes );
+        return NULL;
+    }
+    int FirstPrev = 0;
+    int FirstThis = nIns;
+    int FirstNext = FirstThis;
+    vRes = Vec_IntStartFull( 2*nIns );
+    for ( i = 0; pGuide[i]; i++ ) {
+        FirstNext += pGuide[i] - '0';
+        for ( k = FirstThis; k < FirstNext; k++ )
+            Vec_IntPushTwo( vRes, FirstPrev, FirstThis );
+        FirstPrev = FirstThis;
+        FirstThis = FirstNext;
+    }
+    assert( Vec_IntSize(vRes) == 2*(nIns + nNodes) );
+    Count = 0;
+    //int Start, Stop;
+    //Vec_IntForEachEntryDouble(vRes, Start, Stop, i)
+    //    printf( "%2d : Start %2d  Stop %2d\n", Count++, Start, Stop );
+    return vRes;
+}
+
+Vec_Str_t * Gia_ManKSatCnf( int * pMap, int nIns, int nNodes, int nBound, int fMultiLevel, char * pGuide )
 {
     Vec_Str_t * vStr = Vec_StrAlloc( 10000 );
-    int i, j, m, n, f, c, a, nLits = 0, pLits[256] = {0};
+    Vec_Int_t * vRes = pGuide ? Gia_ManKSatGenLevels( pGuide, nIns, nNodes ) : NULL;
+    int i, j, m, n, f, c, a, Start, Stop, nLits = 0, pLits[256] = {0};
     Gia_SatDumpLiteral( vStr, 1 );
-    Gia_SatDumpLiteral( vStr, 2 );   
+    Gia_SatDumpLiteral( vStr, 2 );    
+    if ( vRes ) {
+        n = nIns;
+        Vec_IntForEachEntryDoubleStart( vRes, Start, Stop, i, 2*nIns ) {
+            for ( j = 0; j < Start; j++ )
+                Gia_SatDumpLiteral( vStr, Abc_Var2Lit( Gia_KSatVarFan(pMap, n, 1, j), 1 ) ); 
+            for ( f = 0; f < 2; f++ )
+            for ( j = Stop; j < n; j++ )
+                Gia_SatDumpLiteral( vStr, Abc_Var2Lit( Gia_KSatVarFan(pMap, n, f, j), 1 ) );
+            n++;
+        }
+        assert( n == nIns + nNodes );
+    }
     // fanins are connected once
     for ( n = nIns; n < nIns+nNodes; n++ )
     for ( f = 0; f < 2; f++ ) {
@@ -1854,6 +1896,7 @@ Vec_Str_t * Gia_ManKSatCnf( int * pMap, int nIns, int nNodes, int nBound, int fM
         Gia_SatDumpClause( vStr, pLits, nLits );
     }
     Vec_StrPush( vStr, '\0' );
+    Vec_IntFreeP( &vRes );
     return vStr;    
 }
 
@@ -2005,7 +2048,7 @@ word Gia_ManGetTruth( Gia_Man_t * p )
     return Const[Gia_ObjFaninC0(pObj)] ^ pFuncs[Gia_ObjFaninId0p(p, pObj)];
 }
 
-Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int Seed, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv )
+Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int Seed, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv, char * pGuide )
 {
     abctime clkStart = Abc_Clock();
     Gia_Man_t * pNew = NULL;
@@ -2014,7 +2057,7 @@ Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, in
     char pFileNameI[32]; sprintf( pFileNameI, "_%06x_.cnf", Rand ); 
     char pFileNameO[32]; sprintf( pFileNameO, "_%06x_.out", Rand ); 
     int nVars = 0, * pMap = Gia_KSatMapInit( nIns, nNodes, Truth, &nVars );
-    Vec_Str_t * vStr = Gia_ManKSatCnf( pMap, nIns, nNodes, nBound/2, fMultiLevel );
+    Vec_Str_t * vStr = Gia_ManKSatCnf( pMap, nIns, nNodes, nBound/2, fMultiLevel, pGuide );
     if ( !Gia_ManDumpCnf(pFileNameI, vStr, nVars) ) {
         Vec_StrFree( vStr );
         return NULL;

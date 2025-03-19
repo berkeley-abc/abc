@@ -1941,9 +1941,25 @@ static inline int Exa4_ManAddClause4( Exa4_Man_t * p, int Lit0, int Lit1, int Li
     int pLits[4] = { Lit0, Lit1, Lit2, Lit3 };
     return Exa4_ManAddClause( p, pLits, 4 );
 }
-int Exa4_ManGenStart( Exa4_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fCard )
+int Exa4_ManGenStart( Exa4_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fCard, char * pGuide )
 {
-    int pLits[2*MAJ_NOBJS], i, j, k, n, m, nLits;
+    extern Vec_Int_t * Gia_ManKSatGenLevels( char * pGuide, int nIns, int nNodes );
+    Vec_Int_t * vRes = pGuide ? Gia_ManKSatGenLevels( pGuide, p->nDivs, p->nNodes ) : NULL;
+    int pLits[2*MAJ_NOBJS], i, j, k, n, m, nLits, Start, Stop;
+    if ( vRes ) {
+        n = p->nDivs;
+        Vec_IntForEachEntryDoubleStart( vRes, Start, Stop, i, 2*p->nDivs ) {
+            for ( j = 0; j < Start; j++ )
+                if ( p->VarMarks[n][0][j] )
+                    Exa4_ManAddClause4( p, Abc_Var2Lit( p->VarMarks[n][0][j], 1 ), 0, 0, 0 );
+            for ( k = 0; k < 2; k++ )
+            for ( j = Stop; j < n; j++ )
+                if ( p->VarMarks[n][k][j] )
+                    Exa4_ManAddClause4( p, Abc_Var2Lit( p->VarMarks[n][k][j], 1 ), 0, 0, 0 );
+            n++;
+        }
+        assert( n == p->nDivs + p->nNodes );
+    }
     for ( i = p->nDivs; i < p->nDivs + p->nNodes; i++ )
     {
         int iVarStart = 1 + 5*(i - p->nDivs);//
@@ -2023,6 +2039,7 @@ int Exa4_ManGenStart( Exa4_Man_t * p, int fOnlyAnd, int fFancy, int fOrderNodes,
         for ( m = n+1; m < nLits; m++ )
             Exa4_ManAddClause4( p, Abc_LitNot(pLits[n]), Abc_LitNot(pLits[m]), 0, 0 );
     }
+    Vec_IntFreeP( &vRes );
     return 1;
 }
 void Exa4_ManGenMint( Exa4_Man_t * p, int iMint, int fOnlyAnd, int fFancy )
@@ -2104,13 +2121,13 @@ void Exa4_ManGenMint( Exa4_Man_t * p, int iMint, int fOnlyAnd, int fFancy )
             Exa4_ManAddClause4( p, Abc_Var2Lit(p->VarMarks[i][0][j], 1), Abc_LitNotCond(VarVals[j], n), Abc_LitNotCond(VarVals[i], !n), 0);
     }
 }
-void Exa4_ManGenCnf( Exa4_Man_t * p, char * pFileName, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fCard )
+void Exa4_ManGenCnf( Exa4_Man_t * p, char * pFileName, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fCard, char * pGuide )
 {
     int m;
     assert( p->pFile == NULL );
     p->pFile = fopen( pFileName, "wb" );
     fputs( "p cnf                \n", p->pFile );
-    Exa4_ManGenStart( p, fOnlyAnd, fFancy, fOrderNodes, fUniqFans, fCard );
+    Exa4_ManGenStart( p, fOnlyAnd, fFancy, fOrderNodes, fUniqFans, fCard, pGuide );
     for ( m = 1; m < Vec_WrdSize(p->vSimsIn); m++ )
         Exa4_ManGenMint( p, m, fOnlyAnd, fFancy );
     rewind( p->pFile );
@@ -2278,7 +2295,7 @@ Mini_Aig_t * Exa4_ManMiniAig( Exa4_Man_t * p, Vec_Int_t * vValues, int fFancy )
   SeeAlso     []
 
 ***********************************************************************/
-Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fVerbose, int fCard )
+Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIns, int nDivs, int nOuts, int nNodes, int TimeOut, int fOnlyAnd, int fFancy, int fOrderNodes, int fUniqFans, int fVerbose, int fCard, char * pGuide )
 {
     extern Vec_Int_t * Gia_RunKadical( char * pFileNameIn, char * pFileNameOut, int Seed, int nBTLimit, int TimeOut, int fVerbose, int * pStatus );
     Mini_Aig_t * pMini = NULL;
@@ -2290,7 +2307,7 @@ Mini_Aig_t * Exa4_ManGenTest( Vec_Wrd_t * vSimsIn, Vec_Wrd_t * vSimsOut, int nIn
     char pFileNameOut[32]; sprintf( pFileNameOut, "_%05x_.out", Rand ); 
     Exa4_Man_t * p = Exa4_ManAlloc( vSimsIn, vSimsOut, nIns, nDivs, nOuts, nNodes, fVerbose );
     Exa_ManIsNormalized( vSimsIn, vSimsOut );
-    Exa4_ManGenCnf( p, pFileNameIn, fOnlyAnd, fFancy, fOrderNodes, fUniqFans, fCard );
+    Exa4_ManGenCnf( p, pFileNameIn, fOnlyAnd, fFancy, fOrderNodes, fUniqFans, fCard, pGuide );
     if ( fVerbose )
         printf( "Timeout = %d. OnlyAnd = %d. Fancy = %d. OrderNodes = %d. UniqueFans = %d. Verbose = %d.\n", TimeOut, fOnlyAnd, fFancy, fOrderNodes, fUniqFans, fVerbose );
     if ( fVerbose )
@@ -2327,7 +2344,7 @@ void Exa_ManExactSynthesis4_( Bmc_EsPar_t * pPars )
             if ( (m >> i) & 1 )
                 Abc_TtSetBit( Vec_WrdEntryP(vSimsIn, m), 1+i );
     }
-    pMini = Exa4_ManGenTest( vSimsIn, vSimsOut, 3, 4, 2, pPars->nNodes, pPars->RuntimeLim, pPars->fOnlyAnd, pPars->fFewerVars, pPars->fOrderNodes, pPars->fUniqFans, pPars->fVerbose, 0 );
+    pMini = Exa4_ManGenTest( vSimsIn, vSimsOut, 3, 4, 2, pPars->nNodes, pPars->RuntimeLim, pPars->fOnlyAnd, pPars->fFewerVars, pPars->fOrderNodes, pPars->fUniqFans, pPars->fVerbose, 0, pPars->pGuide );
     if ( pMini ) Mini_AigStop( pMini );
     Vec_WrdFree( vSimsIn );
     Vec_WrdFree( vSimsOut );
@@ -2349,7 +2366,7 @@ void Exa_ManExactSynthesis4( Bmc_EsPar_t * pPars )
                 Abc_TtSetBit( Vec_WrdEntryP(vSimsIn, m), 1+i );
     }
     assert( Vec_WrdSize(vSimsIn) == (1 << pPars->nVars) );
-    pMini = Exa4_ManGenTest( vSimsIn, vSimsOut, pPars->nVars, 1+pPars->nVars, 1, pPars->nNodes, pPars->RuntimeLim, pPars->fOnlyAnd, pPars->fFewerVars, pPars->fOrderNodes, pPars->fUniqFans, pPars->fVerbose, pPars->fCard );
+    pMini = Exa4_ManGenTest( vSimsIn, vSimsOut, pPars->nVars, 1+pPars->nVars, 1, pPars->nNodes, pPars->RuntimeLim, pPars->fOnlyAnd, pPars->fFewerVars, pPars->fOrderNodes, pPars->fUniqFans, pPars->fVerbose, pPars->fCard, pPars->pGuide );
     if ( pMini ) Mini_AigStop( pMini );
     if ( fCompl ) printf( "The resulting circuit, if computed, will be complemented.\n" );
     Vec_WrdFree( vSimsIn );
