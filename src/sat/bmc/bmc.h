@@ -70,6 +70,7 @@ struct Bmc_EsPar_t_
     int        fVerbose; 
     char *     pTtStr;
     char *     pSymStr;
+    char *     pGuide;
 };
 
 static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )

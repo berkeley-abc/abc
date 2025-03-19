@@ -10066,7 +10066,7 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INTGabdconugklmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INTGSabdconugklmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10114,6 +10114,15 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( GateSize < 0 )
                 goto usage;
             break;            
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pPars->pGuide = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'a':
             pPars->fOnlyAnd ^= 1;
             break;
@@ -10198,12 +10207,13 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: twoexact [-INTG <num>] [-abdconugklmvh] <hex>\n" );
+    Abc_Print( -2, "usage: twoexact [-INTG <num>] [-S str] [-abdconugklmvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-N <num> : the number of two-input nodes [default = %d]\n", pPars->nNodes );
     Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", pPars->RuntimeLim );
     Abc_Print( -2, "\t-G <num> : the largest allowed gate size (NANDs only) [default = %d]\n", GateSize );
+    Abc_Print( -2, "\t-S <str> : structural guidance from the user [default = %s]\n", pPars->pGuide ? pPars->pGuide : "unknown" );    
     Abc_Print( -2, "\t-a       : toggle using only AND-gates (without XOR-gates) [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-b       : toggle using only NAND-gates [default = %s]\n", fUseNands ? "yes" : "no" );
     Abc_Print( -2, "\t-d       : toggle using dynamic constraint addition [default = %s]\n", pPars->fDynConstr ? "yes" : "no" );
@@ -44564,11 +44574,11 @@ usage:
 int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Mio_IntallSimpleLibrary2();
-    extern Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int Seed, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv );
-    Gia_Man_t * pTemp = NULL; char * pTruth = NULL; word Truth = 0;
+    extern Gia_Man_t * Gia_ManKSatMapping( word Truth, int nIns, int nNodes, int nBound, int Seed, int fMultiLevel, int nBTLimit, int nTimeout, int fVerbose, int fKeepFile, int argc, char ** argv, char * pGuide );
+    Gia_Man_t * pTemp = NULL; char * pTruth = NULL, * pGuide = NULL; word Truth = 0;
     int c, nVars = 0, nNodes = 0, nVars2, Seed = 0, nBTLimit = 0, nBound = 0, fMultiLevel = 0, nTimeout = 0, fKeepFile = 0, fVerbose = 0; 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NBRCTmfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NBRCTSmfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -44632,6 +44642,15 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
             nTimeout = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;            
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pGuide = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'm':
             fMultiLevel ^= 1;
             break;
@@ -44670,7 +44689,7 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     nVars2 = Abc_TtReadHex( &Truth, pTruth );
     assert( nVars2 == nVars );
-    pTemp = Gia_ManKSatMapping( Truth, nVars, nNodes, nBound, Seed, fMultiLevel, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv );
+    pTemp = Gia_ManKSatMapping( Truth, nVars, nNodes, nBound, Seed, fMultiLevel, nBTLimit, nTimeout, fVerbose, fKeepFile, argc, argv, pGuide );
     if ( pTemp )  {
         //Mio_IntallSimpleLibrary2();
         Abc_FrameUpdateGia( pAbc, pTemp );
@@ -44678,13 +44697,14 @@ int Abc_CommandAbc9Exmap( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &exmap [-NBRCT num] [-mfvh] <truth>\n" );
+    Abc_Print( -2, "usage: &exmap [-NBRCT num] [-S str] [-mfvh] <truth>\n" );
     Abc_Print( -2, "\t           performs simple mapping of the truth table\n" );
     Abc_Print( -2, "\t-N num   : the number of nodes [default = %d]\n", nNodes );
     Abc_Print( -2, "\t-B num   : the bound on the solution size [default = %d]\n", nBound );
     Abc_Print( -2, "\t-R num   : random number generator seed [default = %d]\n", Seed );
     Abc_Print( -2, "\t-C num   : the conflict limit [default = %d]\n", nBTLimit );
     Abc_Print( -2, "\t-T num   : runtime limit in seconds [default = %d]\n", nTimeout );    
+    Abc_Print( -2, "\t-S str   : structural guidance from the user [default = %s]\n", pGuide ? pGuide : "unknown" );  
     Abc_Print( -2, "\t-m       : toggles using multi-level primitives [default = %s]\n", fMultiLevel? "yes": "no" );
     Abc_Print( -2, "\t-f       : toggles keeping the intermediate CNF file [default = %s]\n", fKeepFile? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
