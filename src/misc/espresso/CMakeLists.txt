@@ -1,0 +1,43 @@
+abc_libabc_add_sources(
+    NAME misc_espresso
+    SOURCES
+        hack.c
+        cvrout.c
+        cvrin.c
+        setc.c
+        primes.c
+        set.c
+        irred.c
+        sminterf.c
+        contain.c
+        globals.c
+        cvrmisc.c
+        mincov.c
+        sparse.c
+        espresso.c
+        cubehack.c
+        gasp.c
+        matrix.c
+        solution.c
+        cubestr.c
+        cvrm.c
+        essen.c
+        part.c
+        verify.c
+        pair.c
+        reduce.c
+        unate.c
+        compl.c
+        sharp.c
+        cofactor.c
+        cols.c
+        expand.c
+        indep.c
+        rows.c
+        gimpel.c
+        equiv.c
+        dominate.c
+        exact.c
+        map.c
+        opo.c
+)
