@@ -167,10 +167,10 @@ void Cmd_HistoryPrint( Abc_Frame_t * p, int Limit )
     char * pStr; 
     int i;
     Limit = Abc_MaxInt( 0, Vec_PtrSize(p->aHistory)-Limit );
-    printf( "================== Command history ==================\n" );
-    Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Limit )
-        printf( "%s\n", pStr );
-    printf( "=====================================================\n" );
+    // printf( "================== Command history ==================\n" );
+    // Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Limit )
+    //     printf( "%s\n", pStr );
+    // printf( "=====================================================\n" );
 #endif
 }
 
