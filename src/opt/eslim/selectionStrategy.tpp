@@ -45,9 +45,11 @@ namespace eSLIM {
 
   template<typename T>
   bool SelectionStrategy<T>::filterSubcircuit(const Subcircuit& subcir) {
-    if (subcir.nof_inputs > 8) {
+    // if (subcir.nof_inputs > 8) {
+    if (subcir.nof_inputs > 10) {
       return false;
     }
+    // ABC internally requires that the subcircuit has not more than 6 outputs (e.g. generateMinterm)
     if (Vec_IntSize(subcir.io)-subcir.nof_inputs > 6) {
       return false;
     }

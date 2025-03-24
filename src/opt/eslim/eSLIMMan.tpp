@@ -198,7 +198,7 @@ namespace eSLIM {
     if ( nVars == 0 ) {
       return nullptr;
     }
-    assert (nVars <= 8); //Assertion from original ABC code
+    // assert (nVars <= 8);
     Vec_Wrd_t* vSimsDiv = getSimsIn(relation);
     Vec_Wrd_t* vSimsOut = getSimsOut(relation);
 

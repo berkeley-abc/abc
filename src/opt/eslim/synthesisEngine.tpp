@@ -19,6 +19,12 @@
 ***********************************************************************/
 
 #include <numeric>
+#ifdef WIN32
+  #include <process.h> 
+  #define unlink _unlink
+#else
+  #include <unistd.h>
+#endif
 
 #include "misc/util/utilTruth.h"
 
@@ -613,6 +619,7 @@ namespace eSLIM {
       return nullptr;
     }
     Vec_Int_t * vRes = Exa4_ManParse( pFileNameOut );
+    unlink( pFileNameIn );
     return vRes;
   }
 

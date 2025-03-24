@@ -30,17 +30,21 @@ ABC_NAMESPACE_HEADER_START
   struct eSLIM_ParamStruct_ {
     int forbidden_pairs;                                // Allow forbidden pairs in the selected subcircuits
     int extended_normality_processing;                  // Additional checks for non normal subcircuits
-    double expansion_probability;                       // the probability that a node is added to the subcircuit
     int fill_subcircuits;                               // If a subcircuit has fewer than subcircuit_size_bound gates, try to fill it with rejected gates.
     int apply_strash;                                   
     int fix_seed;                                       
     int trial_limit_active;
+    int apply_inprocessing;
     
     unsigned int timeout;                               // available time in seconds (soft limit)
+    unsigned int timeout_inprocessing;
     unsigned int iterations;                            // maximal number of iterations. No limit if 0
     unsigned int subcircuit_size_bound;                 // upper bound for the subcircuit sizes
     unsigned int strash_intervall;    
     unsigned int nselection_trials;
+    unsigned int nruns;
+
+    double expansion_probability;                       // the probability that a node is added to the subcircuit
 
     int mode;                                           // 0: Cadical Incremental, 1: Kissat Oneshot                                       
     int seed;
