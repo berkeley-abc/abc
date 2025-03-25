@@ -56457,6 +56457,7 @@ int Abc_CommandAbc9MulFind( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManMulFind( Gia_Man_t * p, int nCutNum, int fVerbose );
     extern void Gia_ManMulFind2( Gia_Man_t * p, int nCutNum, int fVerbose );
+    extern void Gia_ManMulFind3( Gia_Man_t * p, int nCutNum, int fVerbose );
     extern Vec_Wec_t* Gia_MulFindNonBooth( Gia_Man_t * p );
     int c, nCutNum = 8, fVerbose = 0, fTest = 0;
     Extra_UtilGetoptReset();
@@ -56492,9 +56493,13 @@ int Abc_CommandAbc9MulFind( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9MulFind(): There is no AIG.\n" );
         return 0;
     }
+
     if ( fTest )
     {
         Gia_ManMulFind2( pAbc->pGia, nCutNum, fVerbose );
+        // Vec_Wec_t * vRes = Gia_MulFindNonBooth( pAbc->pGia );
+        // Vec_WecPrint(vRes, 0);
+        // Vec_WecFree(vRes);
     }
     else 
     {
