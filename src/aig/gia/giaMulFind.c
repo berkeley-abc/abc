@@ -18,7 +18,10 @@
 
 ***********************************************************************/
 
+#include "base/abc/abc.h"
 #include "gia.h"
+#include "misc/util/utilTruth.h"
+#include "misc/vec/vecWrd.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -176,7 +179,12 @@ int Gia_ManMulFindOne( Gia_Man_t * p, Vec_Wec_t * vXors, Vec_Int_t * vSet, Vec_I
     Vec_IntPush( vA, Vec_IntPop(vObjs) );
     Vec_IntPush( vB, Vec_IntPop(vObjs) );
     while ( Vec_IntSize(vObjs) > 0 ) {
+    // if ( Vec_IntSize(vObjs) > 0 ) {
         int k = 0;
+        printf("vA vB, %d\n", Vec_IntSize(vObjs));
+        Vec_IntPrint(vA);
+        Vec_IntPrint(vB);
+        Vec_IntPrint(vObjs);
         Vec_IntForEachEntryDouble( vObjs, Obj1, Obj2, j ) {
             if ( Vec_IntFind(vA, Obj1) >= 0 )
                 Vec_IntPushUnique(vB, Obj2);
@@ -191,6 +199,7 @@ int Gia_ManMulFindOne( Gia_Man_t * p, Vec_Wec_t * vXors, Vec_Int_t * vSet, Vec_I
                 Vec_IntWriteEntry(vObjs, k++, Obj2);
             }
         }
+        if ( k == Vec_IntSize(vObjs) ) break;
         Vec_IntShrink( vObjs, k );
     }
     Vec_IntSort( vA, 0 );
@@ -716,7 +725,7 @@ void Gia_ManMulFindSetArg( Vec_Wrd_t * vSim, int i, int iNum )
 }
 Vec_Wrd_t * Gia_ManMulFindSim( Vec_Wrd_t * vSim0, Vec_Wrd_t * vSim1, int fSigned )
 {
-    assert( Vec_WrdSize(vSim0) + Vec_WrdSize(vSim1) <= 30 );
+    // assert( Vec_WrdSize(vSim0) + Vec_WrdSize(vSim1) <= 30 );
     Vec_Wrd_t * vRes = Vec_WrdStart( Vec_WrdSize(vSim0) + Vec_WrdSize(vSim1) );
     for ( int i = 0; i < 64; i++ )
     {

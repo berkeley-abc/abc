@@ -21,6 +21,7 @@
 #include "gia.h"
 #include "misc/util/utilTruth.h"
 #include "misc/vec/vecHsh.h"
+#include "misc/vec/vecInt.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1378,6 +1379,44 @@ void Gia_ManMatchConesOutput( Gia_Man_t * pBig, Gia_Man_t * pSmall, int nCutNum,
     Gia_ManMatchConesOutputPrint( vRes, fVerbose );
     Gia_ManMatchConesOutputFree( vRes );
     Abc_PrintTime( 1, "Total computation time", Abc_Clock() - clkStart );    
+}
+
+Vec_Wec_t * Gia_ManMatchCutsRet( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int nCutNum, Vec_Int_t * vSpot, int fVerbose )
+{
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Vec_Int_t * vLevel; int i, j, k, * pCut;
+    Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
+    Vec_Wec_t * vCuts = Vec_WecAlloc( 100 );
+    abctime clkStart  = Abc_Clock();
+    assert( Abc_Truth6WordNum(nCutSize) == Vec_MemEntrySize(vTtMem) );
+    Vec_WecForEachLevel( p->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
+    {
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] > 1 )
+        {
+            word * pTruth = Vec_MemReadEntry( p->vTtMem, Abc_Lit2Var(pCut[pCut[0]+1]) );
+            int * pSpot = Vec_MemHashLookup( vTtMem, pTruth );
+            if ( *pSpot == -1 )
+                continue;
+            Vec_IntPush(vSpot, *pSpot);
+            Vec_IntPush( vNodes, i );
+            vLevel = Vec_WecPushLevel( vCuts );
+            Vec_IntPush( vLevel, i );
+            for ( j = 1; j <= pCut[0]; j++ )
+                Vec_IntPush( vLevel, pCut[j] );
+            break;
+        }
+    }
+    if ( fVerbose )
+    {
+        printf( "Nodes with matching cuts: " );
+        Vec_IntPrint( vNodes );
+        Vec_WecPrint( vCuts, 0 );
+    }
+    Vec_IntFree( vNodes );
+    Gia_StoFree( p );
+    if ( fVerbose )
+        Abc_PrintTime( 1, "Cut matching time", Abc_Clock() - clkStart );    
+    return vCuts;
 }
 
 ////////////////////////////////////////////////////////////////////////

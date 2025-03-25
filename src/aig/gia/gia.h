@@ -32,6 +32,7 @@
 #include <assert.h>
 
 #include "misc/vec/vec.h"
+#include "misc/vec/vecVec.h"
 #include "misc/vec/vecWec.h"
 #include "misc/util/utilCex.h"
 
@@ -387,6 +388,25 @@ struct Jf_Par_t_
     float          Epsilon;
     float *        pTimesArr;
     float *        pTimesReq;
+};
+
+typedef struct Gia_Far_t_ Gia_Far_t;
+struct Gia_Far_t_
+{
+    Gia_Man_t *     pGia;
+    Vec_Wec_t *     vCuts;
+    Vec_Wec_t *     vNeighbor;  // lit
+
+    Vec_Int_t *     vCoupling;
+
+    Vec_Int_t *     vInA;
+    Vec_Int_t *     vInB;
+
+    Vec_Int_t *     vFlag;
+    int             gFlag;
+    int             mFlag;
+
+    int             fVerbose;
 };
 
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                                 }
@@ -1855,6 +1875,8 @@ extern void                 Bnd_ManResetBound();
 extern void                 Bnd_ManRemoveLoop( Gia_Man_t * pGia );
 
 extern int                  Gia_ObjCheckMffc( Gia_Man_t * p, Gia_Obj_t * pRoot, int Limit, Vec_Int_t * vNodes, Vec_Int_t * vLeaves, Vec_Int_t * vInners );
+
+/*=== giaFind.c ===========================================================*/
 
 ABC_NAMESPACE_HEADER_END
 
