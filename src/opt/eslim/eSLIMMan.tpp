@@ -9,7 +9,7 @@
   Synopsis    [eSLIM manager.]
 
   Author      [Franz-Xaver Reichl]
-  
+
   Affiliation [University of Freiburg]
 
   Date        [Ver. 1.0. Started - March 2025.]
@@ -52,8 +52,8 @@ namespace eSLIM {
 
 
   template <typename Y, typename R, typename S>
-  eSLIM_Man<Y, R, S>::eSLIM_Man(Gia_Man_t * pGia, const eSLIMConfig& cfg, eSLIMLog& log) 
-            : gia_man(pGia), cfg(cfg), log(log), 
+  eSLIM_Man<Y, R, S>::eSLIM_Man(Gia_Man_t * pGia, const eSLIMConfig& cfg, eSLIMLog& log)
+            : gia_man(pGia), cfg(cfg), log(log),
               subcircuit_selection(gia_man, cfg, log) {
     if (cfg.fix_seed) {
       subcircuit_selection.setSeed(cfg.seed);
@@ -61,7 +61,7 @@ namespace eSLIM {
     relation_generation_time = log.relation_generation_time;
     synthesis_time = log.synthesis_time;
   }
-  
+
   template <typename Y, typename R, typename S>
   void eSLIM_Man<Y, R, S>::minimize() {
     abctime clkStart    = Abc_Clock();
@@ -117,7 +117,7 @@ namespace eSLIM {
     }
     return vSimsDiv;
   }
-  
+
   template <typename Y, typename R, typename S>
   Vec_Wrd_t* eSLIM_Man<Y, R, S>::getSimsOut(Abc_RData_t* relation) {
     Vec_Wrd_t* vSimsOut = Vec_WrdStart(relation->nPats);
@@ -145,7 +145,7 @@ namespace eSLIM {
       insertReplacement(replacement, subcir);
       Mini_AigStop(replacement);
     }
-    subcir.free();
+    subcir._free();
   }
 
   // Based on Exa_ManExactSynthesis6Int and Exa_ManExactSynthesis6
@@ -191,11 +191,11 @@ namespace eSLIM {
       log.nof_reduced_circuits_per_size.resize(original_size + 1, 0);
     }
     log.nof_analyzed_circuits_per_size[original_size]++;
-    
+
     abctime synthesis_start = Abc_Clock();
     std::tie(size, pMini) = reduce(vSimsDiv2, vSimsOut2, subcir.forbidden_pairs, nVars, nDivs, nOuts, size);
     log.synthesis_time += (double)1.0*(Abc_Clock() - synthesis_start)/CLOCKS_PER_SEC;
-    
+
     if (size > original_size) {
       // Could not find a replacement. This can be caused by a timeout.
       Abc_RDataStop(relation);
@@ -232,7 +232,7 @@ namespace eSLIM {
     if (pMini != nullptr) {
       Mini_Aig_t* pTemp = pMini;
       pMini = Mini_AigDupCompl(pTemp, DivCompl, OutCompl);
-      Mini_AigStop(pTemp);    
+      Mini_AigStop(pTemp);
 
       log.nof_replaced_circuits_per_size[original_size]++;
       if (size < original_size) {
@@ -272,7 +272,7 @@ namespace eSLIM {
     } else {
       valuefanin0 = false;
     }
-    valuefanin0 = valuefanin0 != pObj->fCompl0; 
+    valuefanin0 = valuefanin0 != pObj->fCompl0;
     if (Gia_ObjIsTravIdCurrent(gia_man, Gia_ObjFanin1(pObj))) {
       valuefanin1 = getAllFalseBehaviourRec(Gia_ObjFanin1(pObj));
     } else {
@@ -288,7 +288,7 @@ namespace eSLIM {
     bool fanin_negated = Abc_LitIsCompl(fanin_lit);
     int fanin_value;
     if (fanin_idx == 0) { // constant fanin
-      fanin_value = 0; 
+      fanin_value = 0;
     } else if (fanin_idx <= subcir.nof_inputs) {
       Gia_Obj_t* pObj = Gia_ManObj(gia_man, Vec_IntEntry(subcir.io, fanin_idx - 1));
       if (Gia_ObjIsTravIdCurrent(gia_man, pObj)) { //the node has already been added
@@ -432,7 +432,7 @@ namespace eSLIM {
       }
       po_idx++;
     }
-    
+
     Gia_ManForEachPo( gia_man, pObj, i ) {
       assert(Gia_ObjIsTravIdCurrent(gia_man, Gia_ObjFanin0(pObj)));
       bool fanin_negated = Gia_ObjFaninC0(pObj) ^ Gia_ObjFanin0(pObj)->fMark0;
@@ -444,7 +444,7 @@ namespace eSLIM {
   }
 
   template <typename Y, typename R, typename S>
-  std::pair<int, Mini_Aig_t*> eSLIM_Man<Y, R, S>::reduce(Vec_Wrd_t* vSimsDiv, Vec_Wrd_t* vSimsOut, const std::unordered_map<int, std::unordered_set<int>>& forbidden_pairs, 
+  std::pair<int, Mini_Aig_t*> eSLIM_Man<Y, R, S>::reduce(Vec_Wrd_t* vSimsDiv, Vec_Wrd_t* vSimsOut, const std::unordered_map<int, std::unordered_set<int>>& forbidden_pairs,
                                                         int nVars, int nDivs, int nOuts, int size) {
     Y synth_man(vSimsDiv,vSimsOut,nVars,1+nVars+nDivs,nOuts,size, forbidden_pairs, log, cfg);
     Mini_Aig_t* result = nullptr;
