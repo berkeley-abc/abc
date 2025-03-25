@@ -1,15 +1,15 @@
 abc_libabc_add_sources(
     NAME map_mpm
     SOURCES
-        mpmPre.c
-        mpmMap.c
-        mpmGates.c
-        mpmTruth.c
-        mpmMig.c
+        mpmLib.c
         mpmAbc.c
-        mpmDsd.c
-        mpmMan.c
+        mpmMig.c
         mpmUtil.c
         mpmCore.c
-        mpmLib.c
+        mpmDsd.c
+        mpmTruth.c
+        mpmMap.c
+        mpmPre.c
+        mpmGates.c
+        mpmMan.c
 )

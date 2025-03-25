@@ -1,16 +1,16 @@
 abc_libabc_add_sources(
     NAME opt_fxu
     SOURCES
+        fxu.c
         fxuMatrix.c
-        fxuHeapD.c
-        fxuHeapS.c
-        fxuPair.c
+        fxuCreate.c
+        fxuPrint.c
+        fxuSingle.c
         fxuSelect.c
         fxuUpdate.c
-        fxu.c
-        fxuCreate.c
         fxuList.c
-        fxuSingle.c
-        fxuPrint.c
+        fxuPair.c
+        fxuHeapS.c
         fxuReduce.c
+        fxuHeapD.c
 )

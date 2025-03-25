@@ -3,9 +3,9 @@ abc_libabc_add_sources(
     SOURCES
         mioApi.c
         mioParse.c
-        mioRead.c
+        mio.c
+        mioFunc.c
         mioSop.c
         mioUtils.c
-        mioFunc.c
-        mio.c
+        mioRead.c
 )
