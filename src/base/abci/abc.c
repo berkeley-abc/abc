@@ -56404,7 +56404,7 @@ int Abc_CommandAbc9MulFind( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Vec_Wec_t* Gia_MulFindNonBooth( Gia_Man_t * p );
     int c, nCutNum = 8, fVerbose = 0, fTest = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cvxh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -56419,6 +56419,9 @@ int Abc_CommandAbc9MulFind( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nCutNum < 0 )
                 goto usage;
             break;            
+        case 'x':
+            fTest ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
