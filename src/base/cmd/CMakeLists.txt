@@ -1,14 +1,14 @@
 abc_libabc_add_sources(
     NAME base_cmd
     SOURCES
-        cmd.c
         cmdHist.c
+        cmdAuto.c
+        cmdAlias.c
+        cmdStarter.c
+        cmdFlag.c
+        cmd.c
         cmdLoad.c
         cmdUtils.c
-        cmdStarter.c
-        cmdAuto.c
         cmdPlugin.c
-        cmdAlias.c
-        cmdFlag.c
         cmdApi.c
 )

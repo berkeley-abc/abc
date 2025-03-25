@@ -3,11 +3,11 @@ abc_libabc_add_sources(
     SOURCES
         disjunctiveMonotone.c
         liveness_sim.c
-        arenaViolation.c
-        monotone.c
-        combination.c
-        kLiveConstraints.c
-        ltl_parser.c
-        liveness.c
         kliveness.c
+        kLiveConstraints.c
+        liveness.c
+        monotone.c
+        arenaViolation.c
+        combination.c
+        ltl_parser.c
 )

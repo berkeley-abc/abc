@@ -1,18 +1,18 @@
 abc_libabc_add_sources(
     NAME sat_bsat
     SOURCES
-        satProof.c
-        satInterP.c
-        satSolver2i.c
         satInterB.c
-        satMem.c
-        satInterA.c
-        satSolver2.c
-        satStore.c
-        satTrace.c
-        satSolver3.c
         satTruth.c
-        satUtil.c
-        satSolver.c
         satInter.c
+        satSolver3.c
+        satStore.c
+        satProof.c
+        satSolver2i.c
+        satTrace.c
+        satSolver.c
+        satMem.c
+        satInterP.c
+        satSolver2.c
+        satInterA.c
+        satUtil.c
 )

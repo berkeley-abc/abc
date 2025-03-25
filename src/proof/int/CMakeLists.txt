@@ -1,14 +1,14 @@
 abc_libabc_add_sources(
     NAME proof_int
     SOURCES
-        intDup.c
-        intCheck.c
-        intUtil.c
+        intCtrex.c
         intInter.c
-        intFrames.c
-        intMan.c
         intM114.c
         intCore.c
+        intDup.c
+        intFrames.c
         intContain.c
-        intCtrex.c
+        intCheck.c
+        intUtil.c
+        intMan.c
 )
