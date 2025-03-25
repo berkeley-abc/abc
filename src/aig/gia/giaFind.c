@@ -54,7 +54,6 @@ void Gia_FarResetFlag( Gia_Far_t * p );
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-// === mulfind2.c START
 
 /**Function*************************************************************
 
@@ -798,8 +797,6 @@ void Gia_MulFindGetBipartiteSupps( Gia_Man_t * p, Vec_Int_t * vCoupled, Vec_Wec_
   SeeAlso     []
 
 ***********************************************************************/
-
-// === mulfind2.c END
 
 
 Vec_Wec_t * Gia_ManFunTraceTruth( Gia_Man_t * p, word* pTruth, int nVars, int nCutNum, int fVerbose );
