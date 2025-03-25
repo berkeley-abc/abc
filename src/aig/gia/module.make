@@ -57,6 +57,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaMinLut.c \
     src/aig/gia/giaMinLut2.c \
     src/aig/gia/giaMulFind.c \
+    src/aig/gia/giaMulFind2.c \
     src/aig/gia/giaMuxes.c \
     src/aig/gia/giaNf.c \
     src/aig/gia/giaOf.c \
@@ -111,4 +112,5 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaTtopt.cpp \
     src/aig/gia/giaUnate.c \
     src/aig/gia/giaUtil.c \
-    src/aig/gia/giaBound.c
+    src/aig/gia/giaBound.c \
+    src/aig/gia/giaFind.c
