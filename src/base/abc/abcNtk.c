@@ -2059,7 +2059,7 @@ void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput, int fRemoveConst0 )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_NtkReadSignalPerm( char * pFileName, int nSignals )
+Vec_Int_t * Abc_NtkReadSignalPerm2( char * pFileName, int nSignals )
 {
     char Buffer[1000];
     FILE * pFile;
@@ -2079,7 +2079,7 @@ Vec_Int_t * Abc_NtkReadSignalPerm( char * pFileName, int nSignals )
         iFlop = atoi( Buffer );
         if ( iFlop < 0 || iFlop >= nSignals )
         {
-            printf( "Signal ID (%d) is out of range.\n", iFlop );
+            printf( "The zero-based signal ID (%d) is out of range.\n", iFlop );
             fclose( pFile );
             Vec_IntFree( vSignals );
             return NULL;
@@ -2089,12 +2089,45 @@ Vec_Int_t * Abc_NtkReadSignalPerm( char * pFileName, int nSignals )
     fclose( pFile );
     if ( Vec_IntSize(vSignals) != nSignals )
     {
-        printf( "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", iFlop, nSignals );
+        printf( "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", Vec_IntSize(vSignals), nSignals );
         Vec_IntFree( vSignals );
         return NULL;
     }
     return vSignals;    
 }
+
+Vec_Int_t * Abc_NtkReadSignalPerm( char * pFileName, int nSignals )
+{
+    int Num = -1;
+    Vec_Int_t * vSignals;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open input file \"%s\".\n", pFileName );
+        return NULL;
+    }
+    vSignals = Vec_IntAlloc( nSignals );
+    while ( fscanf( pFile, "%d", &Num ) == 1 )
+    {
+        if ( Num <= 0 || Num > nSignals )
+        {
+            printf( "The one-based signal ID (%d) is out of range (%d).\n", Num, nSignals );
+            fclose( pFile );
+            Vec_IntFree( vSignals );
+            return NULL;
+        }
+        Vec_IntPush( vSignals, Num-1 );
+    }
+    fclose( pFile );
+    if ( Vec_IntSize(vSignals) != nSignals )
+    {
+        printf( "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", Vec_IntSize(vSignals), nSignals );
+        Vec_IntFree( vSignals );
+        return NULL;
+    }
+    return vSignals;    
+}
+
 /**Function*************************************************************
 
   Synopsis    []
