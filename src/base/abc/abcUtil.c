@@ -3378,6 +3378,8 @@ int Abc_NtkMatchGpcPattern( Vec_Int_t * vRanks, int i, char * pGPC )
 {
     int k, Cur, Min = ABC_INFINITY;
     for ( k = 0; pGPC[k] != ':' && i+k < Vec_IntSize(vRanks); k++ ) {
+        if ( Abc_TtReadHexDigit(pGPC[k]) == 0 ) 
+            continue;
         Cur = Vec_IntEntry(vRanks, i+k) / Abc_TtReadHexDigit(pGPC[k]);
         if ( Min > Cur )
             Min = Cur;
