@@ -25966,9 +25966,9 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Ntk_SymFunGenerate( int nVars, int fVerbose );
     word * pFun = NULL;
     char * pStr,  * pTruth, * pCommand;
-    int c, k, nVars = -1, fVerbose = 0;
+    int c, k, nVars = -1, fCounter = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Ncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -25981,6 +25981,9 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
             nVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'c':
+            fCounter ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -25990,6 +25993,21 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -2, "Unknown switch.\n");
             goto usage;
         }
+    }
+    if ( fCounter )
+    {
+        if ( nVars == -1 )
+        {
+            printf( "The number of variables should be specified on the command line using \"-N <num>\".\n" );
+            return 1;
+        }
+        extern Vec_Ptr_t * Abc_SopGenerateCounters( int nVars );
+        Vec_Ptr_t * vSops = Abc_SopGenerateCounters( nVars );
+        Abc_Ntk_t * pNtk = Abc_NtkCreateWithNodes( vSops );
+        Vec_PtrFreeFree( vSops );
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+        Abc_FrameClearVerifStatus( pAbc );
+        return 0;
     }
     if ( nVars != -1 )
     {
@@ -26040,9 +26058,10 @@ int Abc_CommandSymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: symfun [-N num] [-vh] <ones>\n" );
+    Abc_Print( -2, "usage: symfun [-N num] [-cvh] <ones>\n" );
     Abc_Print( -2, "\t           generated a single-output symmetric function\n" );
     Abc_Print( -2, "\t-N <num> : prints truth tables of all N-var symmetric functions [default = not used]\n" );
+    Abc_Print( -2, "\t-c       : toggle generating a counter [default = %s]\n", fCounter? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\t<ones>   : the string of N+1 zeros and ones, where N is the number of variables\n" );
