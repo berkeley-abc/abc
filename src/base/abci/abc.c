@@ -26067,7 +26067,7 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk );
     extern void Abc_NtkPermutePiUsingFanout( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
-    char * pFlopPermFile = NULL;
+    char * pFlopPermFile = NULL, * pInPermFile = NULL, * pOutPermFile = NULL;
     int fInputs = 1;
     int fOutputs = 1;
     int fFlops = 1;
@@ -26076,7 +26076,7 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int Seed = -1;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SFiofnxh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SIOFiofnxh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26090,6 +26090,24 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( Seed < 0 )
                 goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pInPermFile = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'O':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-O\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pOutPermFile = argv[globalUtilOptind];
+            globalUtilOptind++;
             break;
         case 'F':
             if ( globalUtilOptind >= argc )
@@ -26153,12 +26171,12 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Command \"permute\" has failed.\n" );
         return 1;
     }
-    Abc_NtkPermute( pNtkRes, fInputs, fOutputs, fFlops, pFlopPermFile );
+    Abc_NtkPermute( pNtkRes, fInputs, fOutputs, fFlops, pInPermFile, pOutPermFile, pFlopPermFile );
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: permute [-S num] [-iofnxh] [-F filename]\n" );
+    Abc_Print( -2, "usage: permute [-S num] [-iofnxh] [-I filename] [-O filename] [-F filename]\n" );
     Abc_Print( -2, "\t                performs random permutation of inputs/outputs/flops\n" );
     Abc_Print( -2, "\t-S num        : the random seed to generate permutations (0 <= num < INT_MAX) [default = %d]\n", Seed );
     Abc_Print( -2, "\t-i            : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
@@ -26167,6 +26185,8 @@ usage:
     Abc_Print( -2, "\t-n            : toggle deriving new topological ordering of nodes [default = %s]\n", fNodes? "yes": "no" );
     Abc_Print( -2, "\t-x            : toggle permuting inputs based on their fanout count [default = %s]\n", fFanout? "yes": "no" );
     Abc_Print( -2, "\t-h            : print the command usage\n");
+    Abc_Print( -2, "\t-I <filename> : (optional) file with the input permutation\n" );
+    Abc_Print( -2, "\t-O <filename> : (optional) file with the output permutation\n" );
     Abc_Print( -2, "\t-F <filename> : (optional) file with the flop permutation\n" );
     return 1;
 }
@@ -30881,7 +30901,7 @@ int Abc_CommandBm2( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    Abc_NtkPermute(pNtk2, 1, 1, 0, NULL );
+    Abc_NtkPermute(pNtk2, 1, 1, 0, NULL, NULL, NULL );
     Abc_NtkShortNames(pNtk2);
 
     Abc_NtkForEachCi( pNtk1, pObj, i ) {
