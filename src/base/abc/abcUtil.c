@@ -24,6 +24,7 @@
 #include "bool/dec/dec.h"
 #include "opt/fxu/fxu.h"
 #include "aig/miniaig/ndr.h"
+#include "misc/util/utilTruth.h"
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -3350,6 +3351,165 @@ Abc_Ntk_t * Abc_NtkFromArray()
     if ( !Abc_NtkCheck( pNtkNew ) )
         Abc_Print( 1, "Abc_NtkFromArray(): Network check has failed.\n" );
     return pNtkNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_PrintAT( Vec_Int_t * vRanks )
+{
+    int i, Entry;
+    Vec_IntForEachEntryReverse( vRanks, Entry, i )
+        if ( Entry == 0 )
+            printf( "    " );
+        else
+            printf( "%4d", Entry );
+    //printf( "\n" );
+}
+int Abc_NtkMatchGpcPattern( Vec_Int_t * vRanks, int i, char * pGPC )
+{
+    int k, Cur, Min = ABC_INFINITY;
+    for ( k = 0; pGPC[k] != ':' && i+k < Vec_IntSize(vRanks); k++ ) {
+        Cur = Vec_IntEntry(vRanks, i+k) / Abc_TtReadHexDigit(pGPC[k]);
+        if ( Min > Cur )
+            Min = Cur;
+    }
+    return Min;
+}
+void Abc_NtkUpdateGpcPattern( Vec_Int_t * vRank, int i, char * pGPC, int nGpcs, Vec_Int_t * vRank2, Vec_Int_t * vLevel )
+{
+    int k; char * pOut = strstr(pGPC, ":");
+    assert( pOut && pOut[0] == ':' );
+    pOut++;
+    Vec_IntAddToEntry( vLevel, i,  nGpcs );
+    for ( k = 0; pGPC[k] != ':'; k++ )
+        Vec_IntAddToEntry( vRank,  i+k, -nGpcs * Abc_TtReadHexDigit(pGPC[k]) );
+    for ( k = 0; pOut[k] != ':'; k++ )
+        Vec_IntAddToEntry( vRank2, i+k,  nGpcs * Abc_TtReadHexDigit(pOut[k]) );
+}
+int Abc_NtkGetGpcLutCount( char * pGPC )
+{
+    char * pOut = strstr(pGPC, ":");
+    char * pLut = strstr(pOut+1, ":");
+    return atoi(pLut+1);
+}
+static inline int Vec_WecSum( Vec_Wec_t * p )
+{
+    Vec_Int_t * vVec;
+    int i, Counter = 0;
+    Vec_WecForEachLevel( p, vVec, i )
+        Counter += Vec_IntSum(vVec);
+    return Counter;
+}
+char ** Abc_NtkTransformGPCs( char ** pGPCs, int nGPCs )
+{
+    char * pOut, * pLut, ** pRes = ABC_ALLOC( char *, nGPCs );
+    int i, k, nLength;
+    for ( i = 0; i < nGPCs; i++ ) {
+        pRes[i] = Abc_UtilStrsav(pGPCs[i]);
+        pOut = strstr(pRes[i], ":");
+        nLength = (int)(pOut-pRes[i]);
+        for ( k = 0; k < nLength/2; k++ )
+            ABC_SWAP( char, pRes[i][k], pRes[i][nLength-1-k] )
+        pLut = strstr(pOut+1, ":");
+        nLength = (int)(pLut-pOut-1);
+        for ( k = 0; k < nLength/2; k++ )
+            ABC_SWAP( char, pOut[1+k], pOut[1+nLength-1-k] )
+    }    
+    return pRes;
+}
+void Abc_NtkATMap( int nXVars, int nYVars, char ** pGPCs0, int nGPCs, int fVerbose )
+{
+    abctime clkStart = Abc_Clock();   
+    char ** pGPCs = Abc_NtkTransformGPCs(pGPCs0, nGPCs);
+    int i, nGPCluts[100] = {0};
+    for ( i = 0; i < nGPCs; i++ )
+        nGPCluts[i] = Abc_NtkGetGpcLutCount(pGPCs[i]);
+    int x, n, Entry, iLevel = 0, Sum = 0, nGpcs = 0, nBits, fFinished, nLuts = 0;
+    for ( x = 0; x < nXVars; x++ )
+        Sum += (1 << x) * nYVars;
+    nBits = Abc_Base2Log( Sum );
+    printf( "Rectangular adder tree (X=%d Y=%d Sum=%d Out=%d) mapped with", nXVars, nYVars, Sum, nBits );
+    for ( i = 0; i < nGPCs; i++ )
+        printf( " GPC%d=%s", i, pGPCs0[i] );
+    printf( "\n" );
+    Vec_Int_t * vLevel;
+    Vec_Int_t * vRank[2] = { Vec_IntAlloc(100), Vec_IntAlloc(100) };
+    Vec_Wec_t ** vGPCs = ABC_ALLOC( Vec_Wec_t *, nGPCs );
+    for ( i = 0; i < nGPCs; i++ )
+        vGPCs[i] = Vec_WecAlloc(100);
+    Vec_IntFill( vRank[0], nBits, 0 );
+    for ( x = 0; x < nXVars; x++ )
+        Vec_IntAddToEntry( vRank[0], x, nYVars );
+    printf( "Ranks: " );
+    for ( i = nBits-1; i >= 0; i-- )
+        printf( "%4d", i );
+    printf( "       : " );
+    for ( i = nBits-1; i >= 0; i-- )
+        printf( "%4d", i );
+    printf( "  LUT6\n" );
+    for ( n = 0; n < nGPCs; n++ ) 
+    for ( i = 0, fFinished = 0; !fFinished; i++ ) 
+    {
+        printf( "Lev%02d: ", iLevel++ );
+        Abc_PrintAT( vRank[0] ); 
+        vLevel = Vec_WecPushLevel( vGPCs[n] );
+        Vec_IntFill( vLevel, nBits, 0 );
+        Vec_IntFill( vRank[1], nBits, 0 );
+        fFinished = 1;     
+        for ( x = 0; x < nBits; x++ )
+            if ( (nGpcs = Abc_NtkMatchGpcPattern(vRank[0], x, pGPCs[n])) )
+                Abc_NtkUpdateGpcPattern(vRank[0], x, pGPCs[n], nGpcs, vRank[1], vLevel), fFinished = 0;
+        printf( "   GPC%d: ", n );
+        Abc_PrintAT( vLevel ); 
+        printf( "  %4d", Vec_IntSum(vLevel) * nGPCluts[n] );
+        printf( "\n" );
+        nLuts += Vec_IntSum(vLevel) * nGPCluts[n];
+        Vec_IntForEachEntry( vRank[1], Entry, x )
+            Vec_IntAddToEntry( vRank[0], x, Entry );
+    }
+    for ( x = 0; x < nBits; x++ )
+        if ( Vec_IntEntry(vRank[0], x) > 2 )
+            break;
+    if ( x < nBits )
+        printf( "Synthesis of the adder tree is incomplete. Try using the full adder \"3:11:1\" as the last GPC.\n" );
+    else {
+        printf( "Lev%02d: ", iLevel++ );
+        for ( i = nBits-1; i >= 0; i-- )
+            printf( "%4d", 1 );
+        printf( "   RCA : " );
+        for ( x = 0; x < nBits; x++ )
+            if ( Vec_IntEntry(vRank[0], x) > 1 )
+                break;
+        for ( i = nBits-1; i >= x; i-- )
+            printf( "%4d", 1 );
+        for ( ; i >= 0; i-- )
+            printf( "    " );
+        printf( "  %4d", nBits-x );
+        printf( "\n" );
+    }
+    printf( "Statistics: " ); 
+    for ( n = 0; n < nGPCs; n++ )
+        printf( "GPC%d = %d.  ", n, Vec_WecSum(vGPCs[n]) );
+    printf( "RCA = %d.  ", nBits-x );    
+    printf( "Total LUT count = %d.  ", nLuts+nBits-x );
+    Vec_IntFree( vRank[0] );
+    Vec_IntFree( vRank[1] );
+    for ( i = 0; i < nGPCs; i++ )
+        Vec_WecFree( vGPCs[i] );
+    ABC_FREE( vGPCs );
+    for ( i = 0; i < nGPCs; i++ )
+        ABC_FREE( pGPCs[i] );
+    ABC_FREE( pGPCs );
+    Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );    
 }
 
 ////////////////////////////////////////////////////////////////////////
