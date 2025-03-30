@@ -26085,12 +26085,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandATMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Abc_NtkATMap( int nXVars, int nYVars, char ** pGPC, int nGPCs, int fVerbose );
-    int c, nXVars = -1, nYVars = -1, fVerbose = 0;
+    extern void Abc_NtkATMap( int nXVars, int nYVars, char ** pGPC, int nGPCs, int fReturn, int fVerbose );
+    int c, nXVars = -1, nYVars = -1, fReturn = 0, fVerbose = 1;
     char * pGPCs0[1] = { (char*)"3:11:1" };
     char ** pGPCs = NULL; int nGPCs = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "XYvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "XYrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26112,13 +26112,16 @@ int Abc_CommandATMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             nYVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'r':
+            fReturn ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
         default:
-            Abc_Print( -2, "Unknown switch.\n");
+            //Abc_Print( -2, "Unknown switch.\n");
             goto usage;
         }
     }
@@ -26130,14 +26133,15 @@ int Abc_CommandATMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         pGPCs = pGPCs0;
         nGPCs = 1;
     }
-    Abc_NtkATMap( nXVars, nYVars, pGPCs, nGPCs, fVerbose );
+    Abc_NtkATMap( nXVars, nYVars, pGPCs, nGPCs, fReturn, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: atmap [-XY num] [-G str] [-v] <GPC(0)> <GPC(1)> ... <GPC(N-1)>\n" );
+    Abc_Print( -2, "usage: atmap [-XY num] [-G str] [-rv] <GPC(0)> <GPC(1)> ... <GPC(N-1)>\n" );
     Abc_Print( -2, "\t           maps rectangular adder tree using GPCs\n" );
     Abc_Print( -2, "\t-X <num> : the number of different ranks [default = %d]\n", nXVars );
     Abc_Print( -2, "\t-Y <num> : the number of bits of each rank [default = %d]\n", nYVars );
+    Abc_Print( -2, "\t-r       : return to the first GPC after each step [default = %s]\n", fReturn? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n\n");
     Abc_Print( -2, "\t           For example, to map an adder tree with dimensions 4 x 648 using GPC(6,6,6,6:1,2,2,2,2,1)\n" );

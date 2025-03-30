@@ -3428,81 +3428,120 @@ char ** Abc_NtkTransformGPCs( char ** pGPCs, int nGPCs )
     }    
     return pRes;
 }
-void Abc_NtkATMap( int nXVars, int nYVars, char ** pGPCs0, int nGPCs, int fVerbose )
+int Abc_NtkCheckGpc( char * pGPC, char * pGPC0 )
+{
+    int RetValue = 0, k, Sum[2] = {0}; 
+    char * pOut = strstr(pGPC, ":");
+    for ( k = 0; pGPC[k] != ':'; k++ )
+        Sum[0] += (1 << k) * Abc_TtReadHexDigit(pGPC[k]);
+    for ( k = 0; pOut[1+k] != ':'; k++ )
+        Sum[1] += (1 << k) * Abc_TtReadHexDigit(pOut[1+k]);
+    //printf( "GPC %s has input sum %d and output sum %d\n", pGPC0, Sum[0], Sum[1] );
+    if ( Sum[0]+1 > (1 << Abc_Base2Log(Sum[1]+1)) )
+        printf( "The largest value of GPC inputs (%d) exceeds the capacity of outputs (%d) for GPC %s.\n", Sum[0], Sum[1], pGPC0 );
+    else if ( Sum[1]+1 > (1 << Abc_Base2Log(Sum[0]+1)) )
+        printf( "The largest value of GPC outputs (%d) exceeds the capacity of inputs (%d) for GPC %s.\n", Sum[1], Sum[0], pGPC0 );
+    else 
+        RetValue = 1;
+    return RetValue;
+}
+void Abc_NtkATMap( int nXVars, int nYVars, char ** pGPCs0, int nGPCs, int fReturn, int fVerbose )
 {
     abctime clkStart = Abc_Clock();   
     char ** pGPCs = Abc_NtkTransformGPCs(pGPCs0, nGPCs);
     int i, nGPCluts[100] = {0};
     for ( i = 0; i < nGPCs; i++ )
+        if ( !Abc_NtkCheckGpc(pGPCs[i], pGPCs0[i]) )
+            return;
+    for ( i = 0; i < nGPCs; i++ )
         nGPCluts[i] = Abc_NtkGetGpcLutCount(pGPCs[i]);
-    int x, n, Entry, iLevel = 0, Sum = 0, nGpcs = 0, nBits, fFinished, nLuts = 0;
+    int x, n, Entry, iLevel = 0, Sum = 0, nGpcs = 0, nBits, fFinished, nRcaLuts = 0, nLuts = 0;
     for ( x = 0; x < nXVars; x++ )
         Sum += (1 << x) * nYVars;
-    nBits = Abc_Base2Log( Sum );
+    nBits = Abc_Base2Log( Sum+1 );
     printf( "Rectangular adder tree (X=%d Y=%d Sum=%d Out=%d) mapped with", nXVars, nYVars, Sum, nBits );
     for ( i = 0; i < nGPCs; i++ )
         printf( " GPC%d=%s", i, pGPCs0[i] );
     printf( "\n" );
     Vec_Int_t * vLevel;
-    Vec_Int_t * vRank[2] = { Vec_IntAlloc(100), Vec_IntAlloc(100) };
+    Vec_Int_t * vRank[3] = { Vec_IntAlloc(100), Vec_IntAlloc(100), Vec_IntAlloc(100) };
     Vec_Wec_t ** vGPCs = ABC_ALLOC( Vec_Wec_t *, nGPCs );
     for ( i = 0; i < nGPCs; i++ )
         vGPCs[i] = Vec_WecAlloc(100);
     Vec_IntFill( vRank[0], nBits, 0 );
     for ( x = 0; x < nXVars; x++ )
         Vec_IntAddToEntry( vRank[0], x, nYVars );
-    printf( "Ranks: " );
-    for ( i = nBits-1; i >= 0; i-- )
-        printf( "%4d", i );
-    printf( "       : " );
-    for ( i = nBits-1; i >= 0; i-- )
-        printf( "%4d", i );
-    printf( "  LUT6\n" );
+    if ( fVerbose ) {
+        printf( "Ranks: " );
+        for ( i = nBits-1; i >= 0; i-- )
+            printf( "%4d", i );
+        printf( "       : " );
+        for ( i = nBits-1; i >= 0; i-- )
+            printf( "%4d", i );
+        printf( "  LUT6\n" );
+    }
     for ( n = 0; n < nGPCs; n++ ) 
     for ( i = 0, fFinished = 0; !fFinished; i++ ) 
     {
-        printf( "Lev%02d: ", iLevel++ );
-        Abc_PrintAT( vRank[0] ); 
+        int fAdded = 0;
         vLevel = Vec_WecPushLevel( vGPCs[n] );
         Vec_IntFill( vLevel, nBits, 0 );
         Vec_IntFill( vRank[1], nBits, 0 );
-        fFinished = 1;     
+        Vec_IntClear( vRank[2] );
+        Vec_IntAppend( vRank[2], vRank[0] );
+        fFinished = 1; 
         for ( x = 0; x < nBits; x++ )
             if ( (nGpcs = Abc_NtkMatchGpcPattern(vRank[0], x, pGPCs[n])) )
-                Abc_NtkUpdateGpcPattern(vRank[0], x, pGPCs[n], nGpcs, vRank[1], vLevel), fFinished = 0;
-        printf( "   GPC%d: ", n );
-        Abc_PrintAT( vLevel ); 
-        printf( "  %4d", Vec_IntSum(vLevel) * nGPCluts[n] );
-        printf( "\n" );
+                Abc_NtkUpdateGpcPattern(vRank[0], x, pGPCs[n], nGpcs, vRank[1], vLevel), fFinished = 0, fAdded = 1;
         nLuts += Vec_IntSum(vLevel) * nGPCluts[n];
         Vec_IntForEachEntry( vRank[1], Entry, x )
             Vec_IntAddToEntry( vRank[0], x, Entry );
+        if ( fVerbose && (fAdded || Vec_IntFindMax(vRank[2]) <= 2 ) ) {
+            printf( "Lev%02d: ", iLevel++ );
+            Abc_PrintAT( vRank[2] ); 
+            if ( fAdded ) {
+                printf( "   GPC%d: ", n );
+                Abc_PrintAT( vLevel ); 
+                printf( "  %4d", Vec_IntSum(vLevel) * nGPCluts[n] );
+            }
+            else if ( Vec_IntFindMax(vRank[2]) == 2 ) {
+                printf( "   RCA : " );
+                x = Vec_IntArgMax(vRank[2]);
+                assert( Vec_IntEntry(vRank[2], x) == 2 );
+                for ( i = nBits-1; i >= x; i-- )
+                    printf( "%4d", 1 );
+                for ( ; i >= 0; i-- )
+                    printf( "    " );
+                printf( "  %4d", (nBits-x+1)/2 );    
+            }
+            printf( "\n" );
+        }
+        if ( fAdded ) {
+            if ( fReturn ) {
+                fFinished = 1; 
+                n = -1;
+            }
+        }
+        else if ( Vec_IntFindMax(vRank[2]) <= 2 ) {
+            fFinished = 1; 
+            n = nGPCs;
+        }
     }
-    for ( x = 0; x < nBits; x++ )
-        if ( Vec_IntEntry(vRank[0], x) > 2 )
-            break;
-    if ( x < nBits )
+    if ( Vec_IntFindMax(vRank[0]) > 2 )
         printf( "Synthesis of the adder tree is incomplete. Try using the full adder \"3:11:1\" as the last GPC.\n" );
-    else {
+    else if ( fVerbose && Vec_IntFindMax(vRank[0]) == 2 ) {
         printf( "Lev%02d: ", iLevel++ );
         for ( i = nBits-1; i >= 0; i-- )
             printf( "%4d", 1 );
-        printf( "   RCA : " );
-        for ( x = 0; x < nBits; x++ )
-            if ( Vec_IntEntry(vRank[0], x) > 1 )
-                break;
-        for ( i = nBits-1; i >= x; i-- )
-            printf( "%4d", 1 );
-        for ( ; i >= 0; i-- )
-            printf( "    " );
-        printf( "  %4d", nBits-x );
         printf( "\n" );
     }
-    printf( "Statistics: " ); 
+    printf( "Statistics:  " ); 
     for ( n = 0; n < nGPCs; n++ )
         printf( "GPC%d = %d.  ", n, Vec_WecSum(vGPCs[n]) );
-    printf( "RCA = %d.  ", nBits-x );    
-    printf( "Total LUT count = %d.  ", nLuts+nBits-x );
+    x = Vec_IntArgMax(vRank[0]);
+    nRcaLuts = Vec_IntFindMax(vRank[0]) == 2 ? (nBits-x+1)/2 : 0;
+    printf( "RCA = %d.  ", nRcaLuts );    
+    printf( "Total LUT count = %d.  ", nLuts+nRcaLuts );
     Vec_IntFree( vRank[0] );
     Vec_IntFree( vRank[1] );
     for ( i = 0; i < nGPCs; i++ )
