@@ -26089,12 +26089,12 @@ usage:
 ***********************************************************************/
 int Abc_CommandATMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Abc_NtkATMap( int nXVars, int nYVars, char ** pGPC, int nGPCs, int fReturn, int fVerbose );
-    int c, nXVars = -1, nYVars = -1, fReturn = 0, fVerbose = 1;
+    extern void Abc_NtkATMap( int nXVars, int nYVars, int nAdder, char ** pGPC, int nGPCs, int fReturn, int fVerbose );
+    int c, nXVars = -1, nYVars = -1, nAdder = 2, fReturn = 0, fVerbose = 1;
     char * pGPCs0[1] = { (char*)"3:11:1" };
     char ** pGPCs = NULL; int nGPCs = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "XYrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "XYArvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26116,6 +26116,15 @@ int Abc_CommandATMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             nYVars = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            nAdder = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'r':
             fReturn ^= 1;
             break;
@@ -26125,9 +26134,13 @@ int Abc_CommandATMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'h':
             goto usage;
         default:
-            //Abc_Print( -2, "Unknown switch.\n");
             goto usage;
         }
+    }
+    if ( nAdder < 2 || nAdder > 4 )
+    {
+        printf( "The terminal adder should have 2, 3, or 4 bits.\n" );
+        return 0;
     }
     pGPCs = argv + globalUtilOptind;
     nGPCs = argc - globalUtilOptind;
@@ -26137,14 +26150,15 @@ int Abc_CommandATMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         pGPCs = pGPCs0;
         nGPCs = 1;
     }
-    Abc_NtkATMap( nXVars, nYVars, pGPCs, nGPCs, fReturn, fVerbose );
+    Abc_NtkATMap( nXVars, nYVars, nAdder, pGPCs, nGPCs, fReturn, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: atmap [-XY num] [-G str] [-rv] <GPC(0)> <GPC(1)> ... <GPC(N-1)>\n" );
+    Abc_Print( -2, "usage: atmap [-XYA num] [-G str] [-rv] <GPC(0)> <GPC(1)> ... <GPC(N-1)>\n" );
     Abc_Print( -2, "\t           maps rectangular adder tree using GPCs\n" );
     Abc_Print( -2, "\t-X <num> : the number of different ranks [default = %d]\n", nXVars );
     Abc_Print( -2, "\t-Y <num> : the number of bits of each rank [default = %d]\n", nYVars );
+    Abc_Print( -2, "\t-A <num> : the number of arguments in the terminal adder [default = %d]\n", nAdder );
     Abc_Print( -2, "\t-r       : return to the first GPC after each step [default = %s]\n", fReturn? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n\n");
