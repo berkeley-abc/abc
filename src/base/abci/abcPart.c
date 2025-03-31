@@ -1341,7 +1341,7 @@ Vec_Ptr_t * Abc_NtkStochProcess( Vec_Ptr_t * vWins, char * pScript, int nProcs, 
     StochSynData_t * pData = ABC_CALLOC( StochSynData_t, Vec_PtrSize(vWins) );
     Vec_Ptr_t * vData = Vec_PtrAlloc( Vec_PtrSize(vWins) ); 
     Abc_Ntk_t * pNtk; int i;
-    Abc_Random(1);
+    //Abc_Random(1);
     Vec_PtrForEachEntry( Abc_Ntk_t *, vWins, pNtk, i ) {
         pData[i].pIn     = pNtk;
         pData[i].pOut    = NULL;
