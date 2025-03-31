@@ -552,6 +552,7 @@ static int Abc_CommandAbc9Mesh               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Iso                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9IsoNpn             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9IsoSt              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Store              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Compare            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9RevEng             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Uif                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1364,6 +1365,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&iso",          Abc_CommandAbc9Iso,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&isonpn",       Abc_CommandAbc9IsoNpn,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&isost",        Abc_CommandAbc9IsoSt,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&store",        Abc_CommandAbc9Store,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&compare",      Abc_CommandAbc9Compare,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&reveng",       Abc_CommandAbc9RevEng,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&uif",          Abc_CommandAbc9Uif,          0 );
@@ -48186,6 +48188,63 @@ usage:
     Abc_Print( -2, "usage: &isost [-vh]\n" );
     Abc_Print( -2, "\t         removes POs with functionally isomorphic combinational COI\n" );
     Abc_Print( -2, "\t         (this command relies exclusively on structural hashing)\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Store( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, fClean = 0, fPrint = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cpvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fClean ^= 1;
+            break;
+        case 'p':
+            fPrint ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Store(): There is no AIG.\n" );
+        return 1;
+    }
+    if ( fClean )
+        Abc_FrameStoreStop( pAbc );
+    else if ( fPrint )
+        Abc_FrameStorePrint( pAbc );
+    else
+        Abc_FrameStoreAdd( pAbc, pAbc->pGia );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &store [-cpvh]\n" );
+    Abc_Print( -2, "\t         maintains the store of unique AIG structures\n" );
+    Abc_Print( -2, "\t-c     : toggle cleaning the store [default = %s]\n", fClean? "yes": "no" );
+    Abc_Print( -2, "\t-p     : toggle printing the store statistics [default = %s]\n", fPrint? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

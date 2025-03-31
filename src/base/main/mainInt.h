@@ -33,6 +33,7 @@
 #include "aig/gia/gia.h"
 #include "proof/ssw/ssw.h"
 #include "proof/fra/fra.h"
+#include "misc/vec/vecHsh.h"
 
 #ifdef ABC_USE_CUDD
 #include "bdd/extrab/extraBdd.h"
@@ -151,6 +152,7 @@ struct Abc_Frame_t_
     void *          pAbcPla;
     Abc_Nam_t *     pJsonStrs;
     Vec_Wec_t *     vJsonObjs;
+    Hsh_VecMan_t *  pHash;
 #ifdef ABC_USE_CUDD
     DdManager *     dd;            // temporary BDD package
 #endif
@@ -210,7 +212,10 @@ extern ABC_DLL char *          Abc_UtilsGetUsersInput( Abc_Frame_t * pAbc );
 extern ABC_DLL void            Abc_UtilsPrintHello( Abc_Frame_t * pAbc );
 extern ABC_DLL void            Abc_UtilsPrintUsage( Abc_Frame_t * pAbc, char * ProgName );
 extern ABC_DLL void            Abc_UtilsSource( Abc_Frame_t * pAbc );
-
+extern ABC_DLL void            Abc_FrameStoreStart( Abc_Frame_t * pAbc );
+extern ABC_DLL void            Abc_FrameStoreStop( Abc_Frame_t * pAbc );
+extern ABC_DLL void            Abc_FrameStoreAdd( Abc_Frame_t * pAbc, Gia_Man_t * p );
+extern ABC_DLL void            Abc_FrameStorePrint( Abc_Frame_t * pAbc );
 
 
 ABC_NAMESPACE_HEADER_END

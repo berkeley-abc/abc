@@ -248,6 +248,7 @@ void Abc_FrameDeallocate( Abc_Frame_t * p )
     Vec_WecFreeP( &s_GlobalFrame->vJsonObjs );  
     Ndr_Delete( s_GlobalFrame->pNdr );
     ABC_FREE( s_GlobalFrame->pNdrArray );
+    Abc_FrameStoreStop( s_GlobalFrame );
 
     Gia_ManStopP( &p->pGiaMiniAig );
     Gia_ManStopP( &p->pGiaMiniLut );
