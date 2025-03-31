@@ -8927,11 +8927,11 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkLutCascadeGen( int nLutSize, int nStages, int nRails, int nShared, int fVerbose );
     extern Abc_Ntk_t * Abc_NtkLutCascade2( Abc_Ntk_t * pNtk, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose, char * pGuide );
-    extern void        Abc_NtkLutCascadeFile( char * pFileName, int nVarNum, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose );
+    extern void        Abc_NtkLutCascadeFile( char * pFileName, int nVarNum, int nLutSize, int nLuts, int nRails, int nIters, int fVerbose, int fVeryVerbose );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes; char * pGuide = NULL, * pFileName = NULL;
-    int c, nVarNum = -1, nLutSize = 6, nStages = 8, nRails = 1, nShared = 2, nIters = 1, fGen = 0, fVerbose = 0;
+    int c, nVarNum = -1, nLutSize = 6, nStages = 8, nRails = 1, nShared = 2, nIters = 1, fGen = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KMRSINFgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMRSINFgvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9016,6 +9016,9 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             fVerbose ^= 1;
             break;
+        case 'w':
+            fVeryVerbose ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -9029,7 +9032,7 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "The number of variables should be given on the command line using switch \"-N <num>\".\n" );
             return 1;
         }
-        Abc_NtkLutCascadeFile( pFileName, nVarNum, nLutSize, nStages, nRails, nIters, fVerbose );
+        Abc_NtkLutCascadeFile( pFileName, nVarNum, nLutSize, nStages, nRails, nIters, fVerbose, fVeryVerbose );
         return 1;
     }
     if ( fGen )
@@ -9076,7 +9079,7 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutcasdec [-KMRSIN <num>] [-F <file>] [-vh]\n" );
+    Abc_Print( -2, "usage: lutcasdec [-KMRSIN <num>] [-F <file>] [-vwh]\n" );
     Abc_Print( -2, "\t           decomposes the primary output functions into LUT cascades\n" );
     Abc_Print( -2, "\t-K <num> : the number of LUT inputs [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-M <num> : the maximum delay (the number of stages) [default = %d]\n", nStages );
@@ -9087,6 +9090,7 @@ usage:
     Abc_Print( -2, "\t-F <file>: a text file with truth tables in hexadecimal listed one per line\n");    
     Abc_Print( -2, "\t-g       : toggle generating random cascade with these parameters [default = %s]\n", fGen? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle additional verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
