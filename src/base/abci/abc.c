@@ -56681,17 +56681,13 @@ usage:
 int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
   extern void seteSLIMParams(eSLIM_ParamStruct* params);
   extern Gia_Man_t* applyeSLIM(Gia_Man_t * pGia, const eSLIM_ParamStruct* params);
-  extern Gia_Man_t* applyeSLIMIncremental(Gia_Man_t * pGia, const eSLIM_ParamStruct* params, unsigned int restarts, unsigned int deepsynTimeout);
-
-  int nruns = 0;
-  int deepsynTimeout = 180;
-  int runOneShotMode = 0;
+  
   eSLIM_ParamStruct params;
   int c;
   Gia_Man_t * pTemp;
   seteSLIMParams(&params);
   Extra_UtilGetoptReset();
-  while ( ( c = Extra_UtilGetopt( argc, argv, "DIPRSTVZfhnos" ) ) != EOF ) {
+  while ( ( c = Extra_UtilGetopt( argc, argv, "DIMPRSTVZdfhns" ) ) != EOF ) {
       switch ( c ) {
         case 'D':
           if ( globalUtilOptind >= argc )
@@ -56699,9 +56695,9 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
               Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
               goto usage;
           }
-          deepsynTimeout = atoi(argv[globalUtilOptind]);
+          params.timeout_inprocessing = atoi(argv[globalUtilOptind]);
           globalUtilOptind++;
-          if ( deepsynTimeout < 1 )
+          if ( params.timeout_inprocessing < 1 )
               goto usage;
           break;
         case 'I':
@@ -56715,6 +56711,17 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
           if ( params.iterations < 0 )
               goto usage;
           break;
+        case 'M':
+          if ( globalUtilOptind >= argc )
+          {
+              Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+              goto usage;
+          }
+          params.mode = atoi(argv[globalUtilOptind]);
+          globalUtilOptind++;
+          if ( params.mode < 0 || params.mode > 2)
+              goto usage;
+          break;
         case 'P':
           if ( globalUtilOptind >= argc )
           {
@@ -56723,7 +56730,7 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
           }
           params.expansion_probability = atof(argv[globalUtilOptind]);
           globalUtilOptind++;
-          if ( params.expansion_probability < 0 )
+          if ( params.expansion_probability <= 0 || params.expansion_probability > 1)
               goto usage;
           break;
         case 'R':
@@ -56732,9 +56739,9 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
               Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
               goto usage;
           }
-          nruns = atoi(argv[globalUtilOptind]);
+          params.nruns = atoi(argv[globalUtilOptind]);
           globalUtilOptind++;
-          if ( nruns < 0 )
+          if ( params.nruns < 1 )
               goto usage;
           break;
         case 'S':
@@ -56765,9 +56772,9 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
               Abc_Print( -1, "Command line switch \"-V\" should be followed by an integer.\n" );
               goto usage;
           }
-          params.verbose = atoi(argv[globalUtilOptind]);
+          params.verbosity_level = atoi(argv[globalUtilOptind]);
           globalUtilOptind++;
-          if ( params.verbose < 0 || params.verbose > 2 )
+          if ( params.verbosity_level < 0 || params.verbosity_level > 3 )
               goto usage;
           break;
         case 'Z':
@@ -56780,6 +56787,9 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
           params.seed = atoi(argv[globalUtilOptind]);
           globalUtilOptind++;
           break;
+        case 'd' :
+          params.apply_inprocessing ^= 1;
+          break;
         case 'f' :
           params.forbidden_pairs ^= 1;
           break;
@@ -56787,9 +56797,6 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
           goto usage;
         case 'n' :
           params.extended_normality_processing ^= 1;
-          break;
-        case 'o' :
-          runOneShotMode ^= 1;
           break;
         case 's' :
           params.fill_subcircuits ^= 1;
@@ -56803,31 +56810,28 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
         return 1;
   }
 
-  if (runOneShotMode) {
-    pTemp = applyeSLIM(pAbc->pGia, &params);
-  } else {
-    pTemp = applyeSLIMIncremental(pAbc->pGia, &params, nruns, deepsynTimeout);     
-  }
-  
+  pTemp = applyeSLIM(pAbc->pGia, &params);
+    
   Abc_FrameUpdateGia( pAbc, pTemp );
   return 0;
 
   usage:
-    Abc_Print( -2, "usage: &eslim [-RTIDSPAV <num>] [-ch]\n" );
+    Abc_Print( -2, "usage: &eslim [-DIMPRSTVZ <num>] [-dfhns]\n" );
     Abc_Print( -2, "\t           circuit minimization using exact synthesis and the SAT-based local improvement method (SLIM)\n" );
-    Abc_Print( -2, "\t-D <num> : the timeout in seconds for the individual deepsyn runs [default = %d]\n",    deepsynTimeout );
+    Abc_Print( -2, "\t-D <num> : the timeout in seconds for the individual deepsyn runs [default = %d]\n",    params.timeout_inprocessing );
     Abc_Print( -2, "\t-I <num> : the maximal number of iterations (0 = no limit) for the individual eSLIM runs [default = %d]\n",  params.iterations  );
+    Abc_Print( -2, "\t-M <num> : the synthesis mode to use [default = %d]\n",  params.mode  );
     Abc_Print( -2, "\t-P <num> : the probability of expanding a node [default = %.2f]\n",    params.expansion_probability );
-    Abc_Print( -2, "\t-R <num> : the number of runs of eSLIM + Inprocessing [default = %d]\n",    nruns );
+    Abc_Print( -2, "\t-R <num> : the number of runs of eSLIM + Inprocessing [default = %d]\n",    params.nruns );
     Abc_Print( -2, "\t-S <num> : the maximal size of considered subcircuits [default = %d]\n",    params.subcircuit_size_bound );
     Abc_Print( -2, "\t-T <num> : the timeout in seconds for the individual eSLIM runs [default = %d]\n",    params.timeout );
-    Abc_Print( -2, "\t-V <num> : the verbosity level [default = %d]\n",       params.verbose);
+    Abc_Print( -2, "\t-V <num> : the verbosity level [default = %d]\n",       params.verbosity_level);
     Abc_Print( -2, "\t-Z <num> : use a fixed seed\n",       params.seed);
+    Abc_Print( -2, "\t-d       : toggle inprocessing with deepsyn\n");
     Abc_Print( -2, "\t-f       : toggle using subcircuits with forbidden pairs\n");
     Abc_Print( -2, "\t-h       : print the command usage\n");
-    Abc_Print( -2, "\t-n       : extended normality processing\n");
-    Abc_Print( -2, "\t-o       : single run of eSLIM without inprocessing\n");
-    Abc_Print( -2, "\t-s       : fill subcircuits\n");
+    Abc_Print( -2, "\t-n       : toggle extended normality processing\n");
+    Abc_Print( -2, "\t-s       : toggle fill subcircuits\n");
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Franz-Xaver Reichl from University of Freiburg.\n" );
     return 1;

@@ -32,7 +32,6 @@
 
 
 ABC_NAMESPACE_HEADER_START
-  Vec_Int_t* Gia_ManGenIoCombs( Gia_Man_t * pGia, Vec_Int_t * vInsOuts, int nIns, int fVerbose );
   Mini_Aig_t * Mini_AigDupCompl( Mini_Aig_t * p, int ComplIns, int ComplOuts );
   int Exa6_ManFindPolar( word First, int nOuts );
   Vec_Wrd_t * Exa6_ManTransformInputs( Vec_Wrd_t * vIns );
@@ -47,12 +46,10 @@ namespace eSLIM {
   Gia_Man_t* eSLIM_Man<Y, R, S>::applyeSLIM(Gia_Man_t * p, const eSLIMConfig& cfg, eSLIMLog& log) {
     eSLIM_Man<Y, R, S> eslim(p, cfg, log);
     eslim.minimize();
-    if (cfg.verbose > 0) {
-      std::cout << "Relation generation time: " << log.relation_generation_time - eslim.relation_generation_time << "\n";
-      std::cout << "Synthesis time: " << log.synthesis_time - eslim.synthesis_time << "\n";
-    }
     return eslim.getCircuit();
   }
+
+
 
   template <typename Y, typename R, typename S>
   eSLIM_Man<Y, R, S>::eSLIM_Man(Gia_Man_t * pGia, const eSLIMConfig& cfg, eSLIMLog& log) 
@@ -71,6 +68,7 @@ namespace eSLIM {
     abctime nTimeToStop = clkStart + cfg.timeout * CLOCKS_PER_SEC;
     unsigned int iteration = 0;
     unsigned int iterMax = cfg.iterations ? cfg.iterations - 1 : UINT_MAX;
+    int current_size = Gia_ManAndNum(gia_man);
     while (Abc_Clock() <= nTimeToStop && iteration <= iterMax && !stopeSLIM) {
       iteration++;
       findReplacement();
@@ -84,59 +82,26 @@ namespace eSLIM {
         gia_man = Gia_ManRehash( pTemp, 0 );
         Gia_ManStop( pTemp );
       }
-    }
-    log.iteration_count += iteration;
-
-    if (cfg.verbose) {
-      printf( "Time %8.2f sec\n", (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
-      std::cout << "#Iterations: " << iteration << "\n";
-    }
-  }
-
-  template <typename Y, typename R, typename S>
-  Abc_RData_t* eSLIM_Man<Y, R, S>::generateRelation(const Subcircuit& subcir) {
-    int nof_outputs = Vec_IntSize(subcir.io) - subcir.nof_inputs;
-    assert(Vec_IntSize(subcir.io) <= 32); 
-    abctime relation_generation_start = Abc_Clock();
-    Vec_Int_t* relation_patterns_masks = generateRelationPatterns(subcir);
-    log.relation_generation_time += (double)1.0*(Abc_Clock() - relation_generation_start)/CLOCKS_PER_SEC;
-    Abc_RData_t* relation = constructABCRelationRepresentation(subcir.nof_inputs, nof_outputs, relation_patterns_masks);
-    Vec_IntFree(relation_patterns_masks);
-    return relation;
-  }
-
-  template <typename Y, typename R, typename S>
-  Vec_Int_t* eSLIM_Man<Y, R, S>::generateRelationPatterns(const Subcircuit& subcir) {
-    Vec_Int_t * vRes = RelationGenerator<R>::computeRelation(gia_man, subcir);
-    if ( vRes == NULL ) {
-      return nullptr;
-    }
-    return vRes;
-  }
-
-  template <typename Y, typename R, typename S>
-  Abc_RData_t* eSLIM_Man<Y, R, S>::constructABCRelationRepresentation(int nof_inputs, int nof_outputs, Vec_Int_t * patterns) {
-    int i, mask;
-    int nof_vars = nof_inputs + nof_outputs;
-    Abc_RData_t* p = Abc_RDataStart( nof_inputs, nof_outputs, Vec_IntSize(patterns) );
-    Vec_IntForEachEntry( patterns, mask, i ) {
-      for ( int k = 0; k < nof_vars; k++ ) {
-        if ( (mask >> (nof_vars-1-k)) & 1 ) { 
-          if ( k < nof_inputs ) {
-            Abc_RDataSetIn( p, k, i );
-          } else {
-            Abc_RDataSetOut( p, 2*(k-nof_inputs)+1, i );
-          }      
-        } else { 
-          if ( k >= nof_inputs ) {
-            Abc_RDataSetOut( p, 2*(k-nof_inputs), i );
-          }
+      if (cfg.verbosity_level > 0) {
+        int sz = Gia_ManAndNum(gia_man);
+        if (sz < current_size) {
+          current_size = sz;
+          printf("\rIteration %8d : #and = %7d elapsed time = %7.2f sec\n", iteration, sz, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC);
+        } else {
+          printf("\rIteration %8d", iteration);
+          fflush(stdout);
         }
       }
     }
-    Abc_RData_t* p2 = Abc_RData2Rel(p);
-    Abc_RDataStop(p);
-    return p2;
+    log.iteration_count += iteration;
+    if (cfg.verbosity_level > 0) {
+      int sz = Gia_ManAndNum(gia_man);
+      printf("\r#Iterations %8d #and = %7d elapsed time = %7.2f sec\n", iteration, sz, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC);
+      if (cfg.verbosity_level > 1) {
+        printf("Relation generation time: %.2f sec\n", log.relation_generation_time - relation_generation_time);
+        printf("Synthesis time: %.2f sec\n", log.synthesis_time - synthesis_time);
+      } 
+    }
   }
 
   template <typename Y, typename R, typename S>
@@ -190,15 +155,18 @@ namespace eSLIM {
     if (subcir.forbidden_pairs.size() > 0) {
       log.subcircuits_with_forbidden_pairs++;
     }
+    
+    abctime relation_generation_start = Abc_Clock();
+    Abc_RData_t* relation = RelationGenerator<R>::computeRelation(gia_man, subcir);
+    log.relation_generation_time += (double)1.0*(Abc_Clock() - relation_generation_start)/CLOCKS_PER_SEC;
 
-    Abc_RData_t* relation = generateRelation(subcir);
     int nDivs = 0;
     int nOuts = relation->nOuts;
     int nVars = relation->nIns;
     if ( nVars == 0 ) {
       return nullptr;
     }
-    assert (nVars <= 8); //Assertion from original ABC code
+    // assert (nVars <= 8);
     Vec_Wrd_t* vSimsDiv = getSimsIn(relation);
     Vec_Wrd_t* vSimsOut = getSimsOut(relation);
 
