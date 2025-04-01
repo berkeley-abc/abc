@@ -55,7 +55,7 @@ namespace eSLIM {
     int minimum_dynamic_timeout_sample_size = 50;
     double dynamic_timeout_buffer_factor = 1.4;
 
-    int verbose = 0;
+    int verbosity_level = 0;
   };
 
   struct eSLIMLog {
