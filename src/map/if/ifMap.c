@@ -614,11 +614,11 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
     p->nBestCutSmall[0] = p->nBestCutSmall[1] = 0;
     // set the sorting function
     if ( Mode || p->pPars->fArea ) // area
-        p->SortMode = 1;
+        p->SortMode = 1; // 3. Area-Edge
     else if ( p->pPars->fFancy )
-        p->SortMode = 2;
+        p->SortMode = 2; // 2. Delay-Area-Edge
     else
-        p->SortMode = 0;
+        p->SortMode = 0; // 1. Delay-Size-Area
     // set the cut number
     p->nCutsUsed   = nCutsUsed;
     p->nCutsMerged = 0;
