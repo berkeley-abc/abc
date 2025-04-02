@@ -18,6 +18,7 @@
 
 #ifndef PRINTF_FORMAT
 #ifdef __MINGW32__
+#undef __USE_MINGW_ANSI_STDIO
 #define __USE_MINGW_ANSI_STDIO 1
 #define PRINTF_FORMAT __MINGW_PRINTF_FORMAT
 #else
