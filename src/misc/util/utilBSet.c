@@ -877,7 +877,7 @@ int Abc_SharedEvalBest( Abc_BSEval_t * p, word * pTruth, int nVars, int nCVars, 
     int MyuCur, Myu = Abc_TtGetCMInt( pTruth, nVars, nFVars, p->vCounts, p->vTable, p->vStore, p->vUsed, pPat );
     int nRailsCur = Abc_Base2Log( Myu ); Vec_Int_t * vLevel; 
     assert( Myu == MyuMin && nRailsCur > nRails );
-    int i, k, iSet, iStart, nSharedMax = nVars - nCVars - nFVars - 1, nRailsMin = 100; 
+    int i, k, iSet, iStart, nSharedMax = nVars - nFVars - nRails, nRailsMin = 100; 
     Vec_WecForEachLevelStartStop( p->vSets, vLevel, i, 1, nSharedMax ) {
         Vec_IntForEachEntryDouble( vLevel, iSet, iStart, k ) {
             if ( iSet & CVarMask )
