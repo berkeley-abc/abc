@@ -26186,7 +26186,7 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkRestrashRandom( Abc_Ntk_t * pNtk );
     extern void Abc_NtkPermutePiUsingFanout( Abc_Ntk_t * pNtk );
     Abc_Ntk_t * pNtk = pAbc->pNtkCur, * pNtkRes = NULL;
-    char * pFlopPermFile = NULL, * pInPermFile = NULL, * pOutPermFile = NULL;
+    char * pFlopPermFile = NULL, * pInPermFile = NULL, * pOutPermFile = NULL, * pMapPermFile = NULL;
     int fInputs = 1;
     int fOutputs = 1;
     int fFlops = 1;
@@ -26195,7 +26195,7 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int Seed = -1;
     int c;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SIOFiofnxh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SIOFMiofnxh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -26235,6 +26235,15 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             pFlopPermFile = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pMapPermFile = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
         case 'i':
@@ -26281,8 +26290,40 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "To permute nodes, the network should be structurally hashed.\n" );
         return 1;
     }
-    if ( fNodes )
+    if ( fNodes ) {
         pNtkRes = Abc_NtkRestrashRandom( pNtk );
+        if ( pMapPermFile ) {
+            if ( Abc_NtkObjNumMax(pNtkRes) != Abc_NtkObjNumMax(pNtk) ) {
+                printf( "Cannot output 1-to-1 node mapping because the networks have different node counts.\n" );
+                return 1;
+            }
+            FILE * pFile = fopen( pMapPermFile, "wb" );
+            if ( pFile == NULL ) {
+                printf( "Cannot open output file \"%s\" to dump the permutation of internal nodes.\n", pMapPermFile );
+                return 1;
+            }
+            Abc_Obj_t * pObj; int i, iNode, Counter = 0;
+            int StartOld = Abc_NtkObjNumMax(pNtk)    - Abc_NtkNodeNum(pNtk);
+            int StartNew = Abc_NtkObjNumMax(pNtkRes) - Abc_NtkNodeNum(pNtkRes);
+            Abc_NtkForEachNode( pNtk, pObj, i ) {
+                if ( Counter++ != i - StartOld ) {
+                    printf( "Cannot output 1-to-1 node mapping because node order is non-standard.\n" );
+                    fclose( pFile );
+                    return 1;
+                }
+                iNode = pObj->pCopy->Id - StartNew;
+                if ( iNode < 0 || iNode >= Abc_NtkNodeNum(pNtkRes) ) {
+                    printf( "Cannot output 1-to-1 node mapping because node IDs are out of order.\n" );
+                    fclose( pFile );
+                    return 1;
+                }
+                fprintf( pFile, "%d ", iNode+1 );
+            }
+            fprintf( pFile, "\n" );
+            fclose( pFile );
+            printf( "Finished dumping the permutation of internal nodes into file \"%s\".\n", pMapPermFile );
+        }
+    }
     else
         pNtkRes = Abc_NtkDup( pNtk );
     if ( pNtkRes == NULL )
@@ -26295,7 +26336,7 @@ int Abc_CommandPermute( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: permute [-S num] [-iofnxh] [-I filename] [-O filename] [-F filename]\n" );
+    Abc_Print( -2, "usage: permute [-S num] [-iofnxh] [-I filename] [-O filename] [-F filename] [-M filename]\n" );
     Abc_Print( -2, "\t                performs random permutation of inputs/outputs/flops\n" );
     Abc_Print( -2, "\t-S num        : the random seed to generate permutations (0 <= num < INT_MAX) [default = %d]\n", Seed );
     Abc_Print( -2, "\t-i            : toggle permuting primary inputs [default = %s]\n", fInputs? "yes": "no" );
@@ -26307,6 +26348,7 @@ usage:
     Abc_Print( -2, "\t-I <filename> : (optional) file with the input permutation\n" );
     Abc_Print( -2, "\t-O <filename> : (optional) file with the output permutation\n" );
     Abc_Print( -2, "\t-F <filename> : (optional) file with the flop permutation\n" );
+    Abc_Print( -2, "\t-M <filename> : (optional) file with the resulting permutation of internal nodes\n" );
     return 1;
 }
 
