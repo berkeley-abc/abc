@@ -108,7 +108,7 @@ namespace rrr {
   void SatSolver<Ntk>::EncodeNode(sat_solver *p, std::vector<int> const &v, int id, int to_negate) const {
     int RetValue;
     int x = -1, y = -1;
-    bool cx, cy;
+    bool cx = false, cy = false;
     assert(pNtk->GetNodeType(id) == AND);
     std::string delim;
     if(nVerbose) {

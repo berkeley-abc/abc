@@ -8,6 +8,8 @@
 #include "rrrAnalyzer.h"
 #include "rrrSatSolver.h"
 #include "rrrSimulator.h"
+#include "rrrPartitioner.h"
+#include "rrrLevelBasePartitioner.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 
@@ -16,15 +18,33 @@ namespace rrr {
   template <typename Ntk>
   void Perform(Ntk *pNtk, Parameter const *pPar) {
     assert(!pPar->fUseBddCspf || !pPar->fUseBddMspf);
-    if(pPar->fUseBddCspf) {
-      Scheduler<Ntk, rrr::Optimizer<Ntk, rrr::BddAnalyzer<Ntk>>> sch(pNtk, pPar);
-      sch.Run();
-    } else if(pPar->fUseBddMspf) {
-      Scheduler<Ntk, rrr::Optimizer<Ntk, rrr::BddMspfAnalyzer<Ntk>>> sch(pNtk, pPar);
-      sch.Run();
-    } else {
-      Scheduler<Ntk, rrr::Optimizer<Ntk, rrr::Analyzer<Ntk, rrr::Simulator<Ntk>, rrr::SatSolver<Ntk>>>> sch(pNtk, pPar);
-      sch.Run();
+    switch(pPar->nPartitionType) {
+    case 0:
+      if(pPar->fUseBddCspf) {
+        Scheduler<Ntk, Optimizer<Ntk, BddAnalyzer<Ntk>>, Partitioner<Ntk>> sch(pNtk, pPar);
+        sch.Run();
+      } else if(pPar->fUseBddMspf) {
+        Scheduler<Ntk, Optimizer<Ntk, BddMspfAnalyzer<Ntk>>, Partitioner<Ntk>> sch(pNtk, pPar);
+        sch.Run();
+      } else {
+        Scheduler<Ntk, Optimizer<Ntk, Analyzer<Ntk, Simulator<Ntk>, SatSolver<Ntk>>>, Partitioner<Ntk>> sch(pNtk, pPar);
+        sch.Run();
+      }
+      break;
+    case 1:
+      if(pPar->fUseBddCspf) {
+        Scheduler<Ntk, Optimizer<Ntk, BddAnalyzer<Ntk>>, LevelBasePartitioner<Ntk>> sch(pNtk, pPar);
+        sch.Run();
+      } else if(pPar->fUseBddMspf) {
+        Scheduler<Ntk, Optimizer<Ntk, BddMspfAnalyzer<Ntk>>, LevelBasePartitioner<Ntk>> sch(pNtk, pPar);
+        sch.Run();
+      } else {
+        Scheduler<Ntk, Optimizer<Ntk, Analyzer<Ntk, Simulator<Ntk>, SatSolver<Ntk>>>, LevelBasePartitioner<Ntk>> sch(pNtk, pPar);
+        sch.Run();
+      }
+      break;
+    default:
+      assert(0);
     }
   }
   

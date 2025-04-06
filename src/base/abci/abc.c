@@ -45457,9 +45457,9 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t *pNew;
     int c;
-    int iSeed = 0, nWords = 10, nTimeout = 0, nSchedulerVerbose = 1, nPartitionerVerbose = 0, nOptimizerVerbose = 0, nAnalyzerVerbose = 0, nSimulatorVerbose = 0, nSatSolverVerbose = 0, fUseBddCspf = 0, fUseBddMspf = 0, nConflictLimit = 0, nSortType = 12, nOptimizerFlow = 0, nSchedulerFlow = 0, nDistance = 0, nRestarts = 0, nThreads = 1, nWindowSize = 0, fDeterministic = 1;
+    int iSeed = 0, nWords = 10, nTimeout = 0, nSchedulerVerbose = 1, nPartitionerVerbose = 0, nOptimizerVerbose = 0, nAnalyzerVerbose = 0, nSimulatorVerbose = 0, nSatSolverVerbose = 0, fUseBddCspf = 0, fUseBddMspf = 0, nConflictLimit = 0, nSortType = -1, nOptimizerFlow = 0, nSchedulerFlow = 0, nPartitionType = 0, nDistance = 0, nJobs = 1, nThreads = 1, nPartitionSize = 0, nPartitionSizeMin = 0, fDeterministic = 1, nParallelPartitions = 1, fOptOnInsert = 0, fGreedy = 1;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "XYNJKDRWTCGVPOAQSabdh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "XYZNJKLBDRWTCGVPOAQSabdegh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -45471,8 +45471,12 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
             nSchedulerFlow = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
+        case 'Z':
+            nPartitionType = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
         case 'N':
-            nRestarts = atoi(argv[globalUtilOptind]);
+            nJobs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
         case 'J':
@@ -45480,7 +45484,15 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             break;
         case 'K':
-            nWindowSize = atoi(argv[globalUtilOptind]);
+            nPartitionSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'L':
+            nPartitionSizeMin = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'B':
+            nParallelPartitions = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
         case 'D':
@@ -45540,6 +45552,12 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'd':
             fDeterministic ^= 1;
             break;
+        case 'e':
+            fOptOnInsert ^= 1;
+            break;
+        case 'g':
+            fGreedy ^= 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -45558,32 +45576,38 @@ int Abc_CommandAbc9Rrr( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     
-    pNew = Gia_ManRrr( pAbc->pGia, iSeed, nWords, nTimeout, nSchedulerVerbose, nPartitionerVerbose, nOptimizerVerbose, nAnalyzerVerbose, nSimulatorVerbose, nSatSolverVerbose, fUseBddCspf, fUseBddMspf, nConflictLimit, nSortType, nOptimizerFlow, nSchedulerFlow, nDistance, nRestarts, nThreads, nWindowSize, fDeterministic );
+    pNew = Gia_ManRrr( pAbc->pGia, iSeed, nWords, nTimeout, nSchedulerVerbose, nPartitionerVerbose, nOptimizerVerbose, nAnalyzerVerbose, nSimulatorVerbose, nSatSolverVerbose, fUseBddCspf, fUseBddMspf, nConflictLimit, nSortType, nOptimizerFlow, nSchedulerFlow, nPartitionType, nDistance, nJobs, nThreads, nPartitionSize, nPartitionSizeMin, fDeterministic, nParallelPartitions, fOptOnInsert, fGreedy );
 
     Abc_FrameUpdateGia( pAbc, pNew );
     
     return 0;
 
 usage:
-      Abc_Print( -2, "usage: rrr [-XYNJKDRWTCGVPOAQS num] [-abdh]\n" );
+      Abc_Print( -2, "usage: rrr [-XYZNJKLBDRWTCGVPOAQS num] [-abdegh]\n" );
       Abc_Print( -2, "\t        perform optimization\n" );
       Abc_Print( -2, "\t-X num : method [default = %d]\n", nOptimizerFlow );
       Abc_Print( -2, "\t                0: single-add resub\n" );
       Abc_Print( -2, "\t                1: multi-add resub\n" );
       Abc_Print( -2, "\t                2: repeat 0 and 1\n" );
+      Abc_Print( -2, "\t                3: random one meaningful resub\n" );
       Abc_Print( -2, "\t-Y num : flow [default = %d]\n", nSchedulerFlow );
       Abc_Print( -2, "\t                0: apply method once\n" );
       Abc_Print( -2, "\t                1: iterate like transtoch\n" );
       Abc_Print( -2, "\t                2: iterate like deepsyn\n" );
-      Abc_Print( -2, "\t-N num : number of restarts or windows [default = %d]\n", nRestarts );
+      Abc_Print( -2, "\t-Z num : partition [default = %d]\n", nPartitionType );
+      Abc_Print( -2, "\t                0: distance base\n" );
+      Abc_Print( -2, "\t                1: level base\n" );
+      Abc_Print( -2, "\t-N num : number of jobs to create by restarting or partitioning [default = %d]\n", nJobs );
       Abc_Print( -2, "\t-J num : number of threads [default = %d]\n", nThreads );
-      Abc_Print( -2, "\t-K num : window size (0 = no partitioning) [default = %d]\n", nWindowSize );
+      Abc_Print( -2, "\t-K num : partition size (0 = no partitioning) [default = %d]\n", nPartitionSize );
+      Abc_Print( -2, "\t-K num : minimum partition size [default = %d]\n", nPartitionSizeMin );
+      Abc_Print( -2, "\t-B num : max number of partitions in parallel [default = %d]\n", nParallelPartitions );
       Abc_Print( -2, "\t-D num : distance between nodes (0 = no limit) [default = %d]\n", nDistance );
       Abc_Print( -2, "\t-R num : random number generator seed [default = %d]\n", iSeed );
       Abc_Print( -2, "\t-W num : number of simulation words [default = %d]\n", nWords );
       Abc_Print( -2, "\t-T num : timeout in seconds (0 = no timeout) [default = %d]\n", nTimeout );
       Abc_Print( -2, "\t-C num : conflict limit (0 = no limit) [default = %d]\n", nConflictLimit );
-      Abc_Print( -2, "\t-G num : fanin cost function [default = %d]\n", nSortType );
+      Abc_Print( -2, "\t-G num : fanin cost function (-1 = random) [default = %d]\n", nSortType );
       Abc_Print( -2, "\t-V num : scheduler verbosity level [default = %d]\n", nSchedulerVerbose );
       Abc_Print( -2, "\t-P num : partitioner verbosity level [default = %d]\n", nPartitionerVerbose );
       Abc_Print( -2, "\t-O num : optimizer verbosity level [default = %d]\n", nOptimizerVerbose );
@@ -45593,6 +45617,8 @@ usage:
       Abc_Print( -2, "\t-a     : use BDD-based analyzer (CSPF) [default = %s]\n", fUseBddCspf? "yes": "no" );
       Abc_Print( -2, "\t-b     : use BDD-based analyzer (MSPF) [default = %s]\n", fUseBddMspf? "yes": "no" );
       Abc_Print( -2, "\t-d     : ensure deterministic execution [default = %s]\n", fDeterministic? "yes": "no" );
+      Abc_Print( -2, "\t-e     : apply c2rs; dc2 after importing changes of partitions [default = %s]\n", fOptOnInsert? "yes": "no" );
+      Abc_Print( -2, "\t-g     : discard changes that increased the cost [default = %s]\n", fGreedy? "yes": "no" );
       Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }

@@ -609,7 +609,7 @@ namespace rrr {
       NewBdd::Param Par;
       Par.nObjsMaxLog = 25;
       Par.nCacheMaxLog = 20;
-      Par.fCountOnes = true;
+      Par.fCountOnes = false;
       Par.nGbc = 1;
       Par.nReo = 4000;
       pBdd = new NewBdd::Man(pNtk->GetNumPis(), Par);

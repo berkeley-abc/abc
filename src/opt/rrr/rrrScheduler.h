@@ -11,16 +11,18 @@
 
 #include "rrrParameter.h"
 #include "rrrUtils.h"
-#include "rrrPartitioner.h"
 #include "rrrAbc.h"
 
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace rrr {
 
-  template <typename Ntk, typename Opt>
+  template <typename Ntk, typename Opt, typename Par>
   class Scheduler {
   private:
+    // aliases
+    static constexpr char *pCompress2rs = "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l";
+    
     // job
     struct Job;
     struct CompareJobPointers;
@@ -32,18 +34,20 @@ namespace rrr {
     int nVerbose;
     int iSeed;
     int nFlow;
-    int nRestarts;
+    int nJobs;
     bool fMultiThreading;
     bool fPartitioning;
     bool fDeterministic;
+    int nParallelPartitions;
+    bool fOptOnInsert;
     seconds nTimeout;
     std::function<double(Ntk *)> CostFunction;
     
     // data
-    int nJobs;
+    int nCreatedJobs;
     int nFinishedJobs;
     time_point start;
-    Partitioner<Ntk> par;
+    Par par;
     std::queue<Job *> qPendingJobs;
     Opt *pOpt; // used only in case of single thread execution
 #ifdef ABC_USE_PTHREADS
@@ -86,8 +90,8 @@ namespace rrr {
 
   /* {{{ Job */
   
-  template <typename Ntk, typename Opt>
-  struct Scheduler<Ntk, Opt>::Job {
+  template <typename Ntk, typename Opt, typename Par>
+  struct Scheduler<Ntk, Opt, Par>::Job {
     // data
     int id;
     Ntk *pNtk;
@@ -101,8 +105,8 @@ namespace rrr {
     }
   };
 
-  template <typename Ntk, typename Opt>
-  struct Scheduler<Ntk, Opt>::CompareJobPointers {
+  template <typename Ntk, typename Opt, typename Par>
+  struct Scheduler<Ntk, Opt, Par>::CompareJobPointers {
     // smaller id comes first in priority_queue
     bool operator()(Job const *lhs, Job const *rhs) const {
       return lhs->id > rhs->id;
@@ -113,8 +117,8 @@ namespace rrr {
 
   /* {{{ Time */
 
-  template <typename Ntk, typename Opt>
-  seconds Scheduler<Ntk, Opt>::GetRemainingTime() const {
+  template <typename Ntk, typename Opt, typename Par>
+  seconds Scheduler<Ntk, Opt, Par>::GetRemainingTime() const {
     if(nTimeout == 0) {
       return 0;
     }
@@ -130,8 +134,8 @@ namespace rrr {
 
   /* {{{ Abc */
 
-  template <typename Ntk, typename Opt>
-  inline void Scheduler<Ntk, Opt>::CallAbc(Ntk *pNtk_, std::string Command) {
+  template <typename Ntk, typename Opt, typename Par>
+  inline void Scheduler<Ntk, Opt, Par>::CallAbc(Ntk *pNtk_, std::string Command) {
 #ifdef ABC_USE_PTHREADS
     if(fMultiThreading) {
       {
@@ -148,14 +152,13 @@ namespace rrr {
   
   /* {{{ Run jobs */
 
-  template <typename Ntk, typename Opt>
-  void Scheduler<Ntk, Opt>::RunJob(Opt &opt, Job const *pJob) {
+  template <typename Ntk, typename Opt, typename Par>
+  void Scheduler<Ntk, Opt, Par>::RunJob(Opt &opt, Job const *pJob) {
     opt.UpdateNetwork(pJob->pNtk);
     // start flow
     switch(nFlow) {
     case 0:
-      opt.ResetSeed(pJob->iSeed);
-      opt.Run(GetRemainingTime());
+      opt.Run(pJob->iSeed, GetRemainingTime());
       break;
     case 1: { // transtoch
       std::mt19937 rng(pJob->iSeed);
@@ -181,8 +184,7 @@ namespace rrr {
           if(GetRemainingTime() < 0) {
             break;
           }
-          opt.Randomize(rng());
-          opt.Run(GetRemainingTime());
+          opt.Run(rng(), GetRemainingTime());
           CallAbc(pJob->pNtk, "&dc2");
           double dNewCost = CostFunction(pJob->pNtk);
           if(nVerbose) {
@@ -221,7 +223,6 @@ namespace rrr {
         }
         // deepsyn
         int fUseTwo = 0;
-        std::string pCompress2rs = "balance -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; balance -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; balance -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; balance -l";
         unsigned Rand = rng();
         int fDch = Rand & 1;
         //int fCom = (Rand >> 1) & 3;
@@ -230,11 +231,11 @@ namespace rrr {
         int KLut = fUseTwo ? 2 + (i % 5) : 3 + (i % 4);
         std::string pComp;
         if ( fCom == 3 )
-          pComp = "; &put; " + pCompress2rs + "; " + pCompress2rs + "; " + pCompress2rs + "; &get";
+          pComp = std::string("; &put; ") + pCompress2rs + "; " + pCompress2rs + "; " + pCompress2rs + "; &get";
         else if ( fCom == 2 )
-          pComp = "; &put; " + pCompress2rs + "; " + pCompress2rs + "; &get";
+          pComp = std::string("; &put; ") + pCompress2rs + "; " + pCompress2rs + "; &get";
         else if ( fCom == 1 )
-          pComp = "; &put; " + pCompress2rs + "; &get";
+          pComp = std::string("; &put; ") + pCompress2rs + "; &get";
         else if ( fCom == 0 )
           pComp = "; &dc2";
         std::string Command = "&dch";
@@ -254,12 +255,11 @@ namespace rrr {
             break;
           }
           opt.UpdateNetwork(pJob->pNtk, true);
-          opt.Randomize(rng());
-          opt.Run(GetRemainingTime());
+          opt.Run(rng(), GetRemainingTime());
           if(rng() & 1) {
             CallAbc(pJob->pNtk, "&dc2");
           } else {
-            CallAbc(pJob->pNtk, "&put; " + pCompress2rs + "; &get");
+            CallAbc(pJob->pNtk, std::string("&put; ") + pCompress2rs + "; &get");
           }
           if(nVerbose) {
             std::cout << "\trrr " << std::setw(6) << j << ": cost = " << CostFunction(pJob->pNtk) << std::endl;
@@ -280,6 +280,10 @@ namespace rrr {
       }
       break;
     }
+    case 3:
+      opt.Run(pJob->iSeed, GetRemainingTime());
+      CallAbc(pJob->pNtk, std::string("&put; ") + pCompress2rs + "; dc2; &get");
+      break;
     default:
       assert(0);
     }
@@ -289,9 +293,9 @@ namespace rrr {
 
   /* {{{ Manage jobs */
 
-  template <typename Ntk, typename Opt>
-  void Scheduler<Ntk, Opt>::CreateJob(Ntk *pNtk_, int iSeed_) {
-    Job *pJob = new Job(nJobs++, pNtk_, iSeed_);
+  template <typename Ntk, typename Opt, typename Par>
+  void Scheduler<Ntk, Opt, Par>::CreateJob(Ntk *pNtk_, int iSeed_) {
+    Job *pJob = new Job(nCreatedJobs++, pNtk_, iSeed_);
 #ifdef ABC_USE_PTHREADS
     if(fMultiThreading) {
       {
@@ -305,8 +309,8 @@ namespace rrr {
     qPendingJobs.push(pJob);
   }
   
-  template <typename Ntk, typename Opt>
-  void Scheduler<Ntk, Opt>::OnJobEnd(std::function<void(Job *pJob)> const &func) {
+  template <typename Ntk, typename Opt, typename Par>
+  void Scheduler<Ntk, Opt, Par>::OnJobEnd(std::function<void(Job *pJob)> const &func) {
 #ifdef ABC_USE_PTHREADS
     if(fMultiThreading) {
       Job *pJob = NULL;
@@ -340,8 +344,8 @@ namespace rrr {
   /* {{{ Thread */
 
 #ifdef ABC_USE_PTHREADS
-  template <typename Ntk, typename Opt>
-  void Scheduler<Ntk, Opt>::Thread(Parameter const *pPar) {
+  template <typename Ntk, typename Opt, typename Par>
+  void Scheduler<Ntk, Opt, Par>::Thread(Parameter const *pPar) {
     Opt opt(pPar, CostFunction);
     while(true) {
       Job *pJob = NULL;
@@ -371,19 +375,21 @@ namespace rrr {
   /* }}} */
   
   /* {{{ Constructors */
-  
-  template <typename Ntk, typename Opt>
-  Scheduler<Ntk, Opt>::Scheduler(Ntk *pNtk, Parameter const *pPar) :
+
+  template <typename Ntk, typename Opt, typename Par>
+  Scheduler<Ntk, Opt, Par>::Scheduler(Ntk *pNtk, Parameter const *pPar) :
     pNtk(pNtk),
     nVerbose(pPar->nSchedulerVerbose),
     iSeed(pPar->iSeed),
     nFlow(pPar->nSchedulerFlow),
-    nRestarts(pPar->nRestarts),
+    nJobs(pPar->nJobs),
     fMultiThreading(pPar->nThreads > 1),
-    fPartitioning(pPar->nWindowSize > 0),
+    fPartitioning(pPar->nPartitionSize > 0),
     fDeterministic(pPar->fDeterministic),
+    nParallelPartitions(pPar->nParallelPartitions),
+    fOptOnInsert(pPar->fOptOnInsert),
     nTimeout(pPar->nTimeout),
-    nJobs(0),
+    nCreatedJobs(0),
     nFinishedJobs(0),
     par(pPar),
     pOpt(NULL) {
@@ -409,8 +415,8 @@ namespace rrr {
     pOpt = new Opt(pPar, CostFunction);
   }
 
-  template <typename Ntk, typename Opt>
-  Scheduler<Ntk, Opt>::~Scheduler() {
+  template <typename Ntk, typename Opt, typename Par>
+  Scheduler<Ntk, Opt, Par>::~Scheduler() {
 #ifdef ABC_USE_PTHREADS
     if(fMultiThreading) {
       {
@@ -430,45 +436,56 @@ namespace rrr {
   /* }}} */
 
   /* {{{ Run */
-  
-  template <typename Ntk, typename Opt>
-  void Scheduler<Ntk, Opt>::Run() {
+
+  template <typename Ntk, typename Opt, typename Par>
+  void Scheduler<Ntk, Opt, Par>::Run() {
     start = GetCurrentTime();
     if(fPartitioning) {
+      fDeterministic = false; // it is deterministic anyways as we wait until all jobs finish each round
       pNtk->Sweep();
       par.UpdateNetwork(pNtk);
-      while(nJobs < nRestarts) {
-        Ntk *pSubNtk = par.Extract(iSeed + nJobs);
-        if(pSubNtk == NULL) {
-          if(nJobs == nFinishedJobs) {
-            std::cout << "failed to extract a window" << std::endl;
-            break;
+      while(nCreatedJobs < nJobs) {
+        assert(nParallelPartitions > 0);
+        if(nCreatedJobs < nFinishedJobs + nParallelPartitions) {
+          Ntk *pSubNtk = par.Extract(iSeed + nCreatedJobs);
+          if(pSubNtk) {
+            CreateJob(pSubNtk, iSeed + nCreatedJobs);
+            std::cout << "job " << nCreatedJobs - 1 << " created (size = " << pSubNtk->GetNumInts() << ")" << std::endl;
+            continue;
           }
-          while(nFinishedJobs < nJobs) {
-            OnJobEnd([&](Job *pJob) {
-              std::cout << "job " << pJob->id << " finished (size = " << pJob->pNtk->GetNumInts() << ")" << std::endl;
-              par.Insert(pJob->pNtk);
-            });
-          }
-        } else {
-          CreateJob(pSubNtk, iSeed + nJobs);
-          std::cout << "job " << nJobs - 1 << " created (size = " << pSubNtk->GetNumInts() << ")" << std::endl;
+        }
+        if(nCreatedJobs == nFinishedJobs) {
+          std::cout << "failed to partition" << std::endl;
+          break;
+        }
+        while(nFinishedJobs < nCreatedJobs) {
+          OnJobEnd([&](Job *pJob) {
+            std::cout << "job " << pJob->id << " finished (size = " << pJob->pNtk->GetNumInts() << ")" << std::endl;
+            par.Insert(pJob->pNtk);
+          });
+        }
+        if(fOptOnInsert) {
+          CallAbc(pNtk, std::string("&put; ") + pCompress2rs + "; dc2; &get");
+          par.UpdateNetwork(pNtk);
         }
       }
-      while(nFinishedJobs < nJobs) {
+      while(nFinishedJobs < nCreatedJobs) {
         OnJobEnd([&](Job *pJob) {
           std::cout << "job " << pJob->id << " finished (size = " << pJob->pNtk->GetNumInts() << ")" << std::endl;
           par.Insert(pJob->pNtk);
         });
       }
-    } else if(nRestarts > 0) {
-      fDeterministic = false; // it is deterministic anyways
+      if(fOptOnInsert) {
+        CallAbc(pNtk, std::string("&put; ") + pCompress2rs + "; dc2; &get");
+        par.UpdateNetwork(pNtk);
+      }
+    } else if(nJobs > 1) {
       double dCost = CostFunction(pNtk);
-      for(int i = 0; i < 1 + nRestarts; i++) {
+      for(int i = 0; i < nJobs; i++) {
         Ntk *pCopy = new Ntk(*pNtk);
         CreateJob(pCopy, iSeed + i);
       }
-      for(int i = 0; i < 1 + nRestarts; i++) {
+      for(int i = 0; i < nJobs; i++) {
         OnJobEnd([&](Job *pJob) {
           double dNewCost = CostFunction(pJob->pNtk);
           if(nVerbose) {

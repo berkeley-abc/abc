@@ -54,7 +54,7 @@ namespace rrr {
     void SortInts(itr it);
     unsigned StartTraversal(int n = 1);
     void EndTraversal();
-    void ForEachTfiRec(int id, std::function<void(int)> const &f);
+    void ForEachTfiRec(int id, std::function<void(int)> const &func);
     void TakenAction(Action const &action) const;
 
   public:
@@ -102,13 +102,15 @@ namespace rrr {
     int  FindFanin(int id, int fi) const;
     bool IsReconvergent(int id);
     std::vector<int> GetNeighbors(int id, bool fPis, int nHops);
-    template <template <typename...> typename Container, typename ... Ts, template <typename...> typename Container2, typename ... Ts2>
+    template <template <typename...> typename Container, typename... Ts, template <typename...> typename Container2, typename... Ts2>
     bool IsReachable(Container<Ts...> const &srcs, Container2<Ts2...> const &dsts);
-    template <template <typename...> typename Container, typename ... Ts, template <typename...> typename Container2, typename ... Ts2>
+    template <template <typename...> typename Container, typename... Ts, template <typename...> typename Container2, typename... Ts2>
     std::vector<int> GetInners(Container<Ts...> const &srcs, Container2<Ts2...> const &dsts);
+    std::set<int> GetExtendedFanins(int id);
 
     // network traversal
     void ForEachPi(std::function<void(int)> const &func) const;
+    void ForEachPiIdx(std::function<void(int, int)> const &func) const; // func(index, id)
     void ForEachInt(std::function<void(int)> const &func) const;
     void ForEachIntReverse(std::function<void(int)> const &func) const;
     void ForEachPiInt(std::function<void(int)> const &func) const;
@@ -124,18 +126,21 @@ namespace rrr {
     template <typename Func>
     void ForEachFanoutRidx(int id, bool fPos, Func const &func) const; // func(fo[, c], index of id in fanin list of fo)
     void ForEachTfi(int id, bool fPis, std::function<void(int)> const &func);
-    template <template <typename...> typename Container, typename ... Ts>
+    template <template <typename...> typename Container, typename... Ts>
     void ForEachTfiEnd(int id, Container<Ts...> const &ends, std::function<void(int)> const &func);
+    void ForEachTfiUpdate(int id, bool fPis, std::function<bool(int)> const &func);
+    template <template <typename...> typename Container, typename... Ts>
+    void ForEachTfisUpdate(Container<Ts...> const &ids, bool fPis, std::function<bool(int)> const &func);
     void ForEachTfo(int id, bool fPos, std::function<void(int)> const &func);
     void ForEachTfoReverse(int id, bool fPos, std::function<void(int)> const &func);
     void ForEachTfoUpdate(int id, bool fPos, std::function<bool(int)> const &func);
-    template <template <typename...> typename Container, typename ... Ts>
+    template <template <typename...> typename Container, typename... Ts>
     void ForEachTfos(Container<Ts...> const &ids, bool fPos, std::function<void(int)> const &func);
-    template <template <typename...> typename Container, typename ... Ts>
+    template <template <typename...> typename Container, typename... Ts>
     void ForEachTfosUpdate(Container<Ts...> const &ids, bool fPos, std::function<bool(int)> const &func);
 
     // extraction
-    template <template <typename...> typename Container, typename ... Ts>
+    template <template <typename...> typename Container, typename... Ts>
     AndNetwork *Extract(Container<Ts...> const &ids, std::vector<int> const &vInputs, std::vector<int> const &vOutputs);
 
     // actions
@@ -217,7 +222,7 @@ namespace rrr {
       ForEachTfiRec(fi, func);
     }
   }
-  
+
   inline void AndNetwork::TakenAction(Action const &action) const {
     for(Callback const &callback: vCallbacks) {
       callback(action);
@@ -552,7 +557,7 @@ namespace rrr {
     return v;
   }
 
-  template <template <typename...> typename Container, typename ... Ts, template <typename...> typename Container2, typename ... Ts2>
+  template <template <typename...> typename Container, typename... Ts, template <typename...> typename Container2, typename... Ts2>
   inline bool AndNetwork::IsReachable(Container<Ts...> const &srcs, Container2<Ts2...> const &dsts) {
     if(srcs.empty() || dsts.empty()) {
       return false;
@@ -607,7 +612,7 @@ namespace rrr {
     return false;
   }
 
-  template <template <typename...> typename Container, typename ... Ts, template <typename...> typename Container2, typename ... Ts2>
+  template <template <typename...> typename Container, typename... Ts, template <typename...> typename Container2, typename... Ts2>
   inline std::vector<int> AndNetwork::GetInners(Container<Ts...> const &srcs, Container2<Ts2...> const &dsts) {
     // this includes sources and destinations that are connected
     if(srcs.empty() || dsts.empty()) {
@@ -665,6 +670,43 @@ namespace rrr {
     return vInners;
   }
 
+  inline std::set<int> AndNetwork::GetExtendedFanins(int id) {
+    // go to the root of trivially collapsable nodes
+    while(GetNumFanouts(id) == 1) {
+      int id_new = -1;
+      ForEachFanout(id, false, [&](int fo, bool c) {
+        if(!c) {
+          id_new = fo;
+        }
+      });
+      if(id_new != -1) {
+        id = id_new;
+      } else {
+        break;
+      }
+    }
+    // emulate trivial collapse
+    std::vector<int> vFaninEdges = vvFaninEdges[id];
+    for(int idx = 0; idx < int_size(vFaninEdges);) {
+      int fi_edge = vFaninEdges[idx];
+      int fi = Edge2Node(fi_edge);
+      bool c = EdgeIsCompl(fi_edge);
+      if(!IsPi(fi) && !c && vRefs[fi] == 1) {
+        std::vector<int>::iterator it = vFaninEdges.begin() + idx;
+        it = vFaninEdges.erase(it);
+        vFaninEdges.insert(it, vvFaninEdges[fi].begin(), vvFaninEdges[fi].end());
+      } else {
+        idx++;
+      }
+    }
+    // create set
+    std::set<int> sFanins;
+    for(int fi_edge: vFaninEdges) {
+      sFanins.insert(Edge2Node(fi_edge));
+    }
+    return sFanins;
+  }
+
   /* }}} */
 
   /* {{{ Network traversal */
@@ -674,7 +716,13 @@ namespace rrr {
       func(pi);
     }
   }
-  
+
+  inline void AndNetwork::ForEachPiIdx(std::function<void(int, int)> const &func) const {
+    for(int idx = 0; idx < GetNumPis(); idx++) {
+      func(idx, GetPi(idx));
+    }
+  }
+
   inline void AndNetwork::ForEachInt(std::function<void(int)> const &func) const {
     for(int id: lInts) {
       func(id);
@@ -834,7 +882,7 @@ namespace rrr {
     EndTraversal();
   }
 
-  template <template <typename...> typename Container, typename ... Ts>
+  template <template <typename...> typename Container, typename... Ts>
   inline void AndNetwork::ForEachTfiEnd(int id, Container<Ts...> const &ends, std::function<void(int)> const &func) {
     // this does not include id itself
     StartTraversal();
@@ -842,6 +890,66 @@ namespace rrr {
       vTrav[end] = iTrav;
     }
     ForEachTfiRec(id, func);
+    EndTraversal();
+  }
+
+  inline void AndNetwork::ForEachTfiUpdate(int id, bool fPis, std::function<bool(int)> const &func) {
+    if(GetNumFanins(id) == 0) {
+      return;
+    }
+    StartTraversal();
+    for(int fi_edge: vvFaninEdges[id]) {
+      vTrav[Edge2Node(fi_edge)] = iTrav;
+    }
+    critr it = std::find(lInts.rbegin(), lInts.rend(), id);
+    assert(it != lInts.rend());
+    it++;
+    for(; it != lInts.rend(); it++) {
+      if(vTrav[*it] == iTrav) {
+        if(func(*it)) {
+          for(int fi_edge: vvFaninEdges[*it]) {
+            vTrav[Edge2Node(fi_edge)] = iTrav;
+          }
+        }
+      }
+    }
+    if(fPis) {
+      for(int pi: vPis) {
+        if(vTrav[pi] == iTrav) {
+          func(pi);
+        }
+      }
+    }
+    EndTraversal();
+  }
+
+  template <template <typename...> typename Container, typename... Ts>
+  inline void AndNetwork::ForEachTfisUpdate(Container<Ts...> const &ids, bool fPis, std::function<bool(int)> const &func) {
+    // this includes ids themselves
+    StartTraversal();
+    for(int id: ids) {
+      vTrav[id] = iTrav;
+    }
+    critr it = lInts.rbegin();
+    while(vTrav[*it] != iTrav && it != lInts.rend()) {
+      it++;
+    }
+    for(; it != lInts.rend(); it++) {
+      if(vTrav[*it] == iTrav) {
+        if(func(*it)) {
+          for(int fi_edge: vvFaninEdges[*it]) {
+            vTrav[Edge2Node(fi_edge)] = iTrav;
+          }
+        }
+      }
+    }
+    if(fPis) {
+      for(int pi: vPis) {
+        if(vTrav[pi] == iTrav) {
+          func(pi);
+        }
+      }
+    }
     EndTraversal();
   }
 
@@ -951,7 +1059,7 @@ namespace rrr {
     EndTraversal();
   }
 
-  template <template <typename...> typename Container, typename ... Ts>
+  template <template <typename...> typename Container, typename... Ts>
   inline void AndNetwork::ForEachTfos(Container<Ts...> const &ids, bool fPos, std::function<void(int)> const &func) {
     // this includes ids themselves
     StartTraversal();
@@ -986,7 +1094,7 @@ namespace rrr {
     EndTraversal();
   }
   
-  template <template <typename...> typename Container, typename ... Ts>
+  template <template <typename...> typename Container, typename... Ts>
   inline void AndNetwork::ForEachTfosUpdate(Container<Ts...> const &ids, bool fPos, std::function<bool(int)> const &func) {
     // this includes ids themselves
     StartTraversal();
@@ -1033,7 +1141,7 @@ namespace rrr {
 
   /* {{{ Extraction */
 
-  template <template <typename...> typename Container, typename ... Ts>
+  template <template <typename...> typename Container, typename... Ts>
   AndNetwork *AndNetwork::Extract(Container<Ts...> const &ids, std::vector<int> const &vInputs, std::vector<int> const &vOutputs) {
     AndNetwork *pNtk = new AndNetwork;
     pNtk->Reserve(int_size(vInputs) + int_size(ids) + int_size(vOutputs));
