@@ -1231,6 +1231,132 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Vec_WrdWriteTruthHex( char * pFileName, Vec_Wrd_t * vTruths, int nVars )
+{
+    FILE * pFile = fopen( pFileName, "wb" );
+    if ( pFile == NULL ) { printf("Cannot open file \"%s\" for reading.\n", pFileName); return; }
+    int i, nWords = Abc_TtWordNum(nVars), nFuncs = Vec_WrdSize(vTruths)/nWords;
+    assert( nFuncs * nWords == Vec_WrdSize(vTruths) );
+    for ( i = 0; i < nFuncs; i++ )
+        Abc_TtPrintHexRev( pFile, Vec_WrdEntryP(vTruths, i*nWords), nVars ), fprintf( pFile, "\n" );
+    fclose( pFile );
+}
+void Abc_NtkSuppMinFile( char * pFileName )
+{
+    int fError = 0, nFileSize = Gia_FileSize( pFileName );
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL ) { printf("Cannot open file \"%s\" for reading.\n", pFileName); return; }
+    Vec_Wrd_t ** pvTruths = ABC_CALLOC( Vec_Wrd_t *, 32 );
+    char * pToken, * pLine = ABC_ALLOC( char, nFileSize );
+    word * pTruth = ABC_ALLOC( word, nFileSize/16 );
+    int Len, nVars = -1, nWords = -1, nFuncs = 0, nSuppSums[2] = {0};
+    for ( int i = 0; fgets(pLine, nFileSize, pFile); i++ ) {
+         pToken = strtok(pLine, " ,\n\r\r");
+        if ( pToken == NULL )
+            continue;
+        if ( pToken[0] == '0' && pToken[1] == 'x' )
+            pToken += 2;
+        Len = strlen(pToken);
+        nVars = Abc_Base2Log(Len);
+        if ( Len != (1 << nVars) ) {
+            printf( "The number of hex characters (%d) in the truth table listed in line %d is not a degree of 2.\n", Len, i );
+            fError = 1;
+            break;
+        }
+        nVars += 2;
+        if ( !Abc_TtReadHex( pTruth, pToken ) ) {
+            printf( "Line %d has truth table that cannot be read correctly (%s).\n", i, pToken );
+            fError = 1;
+            break;
+        }
+        nSuppSums[0] += nVars;
+        Abc_TtMinimumBase( pTruth, NULL, nVars, &nVars );
+        nSuppSums[1] += nVars;
+        if ( pvTruths[nVars] == NULL )
+            pvTruths[nVars] = Vec_WrdAlloc( 10000 );
+        nWords = Abc_TtWordNum(nVars);
+        for ( int w = 0; w < nWords; w++ )
+            Vec_WrdPush( pvTruths[nVars], pTruth[w] );
+        nFuncs++;
+    }
+    ABC_FREE( pTruth );
+    ABC_FREE( pLine );
+    fclose( pFile );
+    if ( fError ) {
+        for ( nVars = 0; nVars < 32; nVars++ )
+            if ( pvTruths[nVars] )
+                Vec_WrdFreeP( &pvTruths[nVars] );
+        ABC_FREE( pvTruths );
+        return;
+    }
+    // dump the resulting truth tables
+    printf( "Read and support-minimized %d functions. Total support reduction %d -> %d (%.2f %%).\n", 
+        nFuncs, nSuppSums[0], nSuppSums[1], 100.0*(nSuppSums[0]-nSuppSums[1])/Abc_MaxInt(nSuppSums[0], 1) );
+    printf( "The resulting function statistics:\n" );
+    for ( nVars = 0; nVars < 32; nVars++ ) {
+        if ( pvTruths[nVars] == NULL )
+            continue;
+        char pFileName2[1000];
+        sprintf( pFileName2, "%s_%02d.txt", Extra_FileNameGeneric(pFileName), nVars );
+        Vec_WrdWriteTruthHex( pFileName2, pvTruths[nVars], nVars );
+        printf( "Support size %2d : Dumped %6d truth tables into file \"%s\".\n", 
+            nVars, Vec_WrdSize(pvTruths[nVars])/Abc_TtWordNum(nVars), pFileName2 );
+        Vec_WrdFreeP( &pvTruths[nVars] );
+    }
+    ABC_FREE( pvTruths );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkRandFile( char * pFileName, int nVars, int nFuncs, int nMints )
+{
+    int i, k, nWords = Abc_TtWordNum(nVars);
+    Vec_Wrd_t * vTruths = Vec_WrdStart( nWords * nFuncs );
+    Abc_Random(1);
+    for ( i = 0; i < nFuncs; i++ ) {
+        word * pTruth = Vec_WrdEntryP(vTruths, i*nWords);
+        if ( nMints == 0 )
+            for ( k = 0; k < nWords; k++ )
+                pTruth[k] = Abc_RandomW(0);
+        else {
+            for ( k = 0; k < nMints; k++ ) {
+                int iMint = 0;
+                do iMint = Abc_Random(0) % (1 << nVars);
+                while ( Abc_TtGetBit(pTruth, iMint) );
+                Abc_TtSetBit( pTruth, iMint );
+            }
+        }
+    }
+    Vec_WrdWriteTruthHex( pFileName, vTruths, nVars );
+    if ( nMints )
+        printf( "Generated %d random %d-variable functions with %d positive minterms and dumped them into file \"%s\".\n", 
+            nFuncs, nVars, nMints, pFileName );
+    else
+        printf( "Generated %d random %d-variable functions and dumped them into file \"%s\".\n", 
+            nFuncs, nVars, pFileName );    
+    Vec_WrdFree( vTruths );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
