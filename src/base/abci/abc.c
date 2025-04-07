@@ -20199,10 +20199,10 @@ usage:
 int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    extern void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs );
-    int c, nMaxSize = 14, nIters = 1, TimeOut = 0, Seed = 0, nProcs = 1, fVerbose = 0; char * pScript;
+    extern void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fOverlap, int fVerbose, char * pScript, int nProcs );
+    int c, nMaxSize = 14, nIters = 1, TimeOut = 0, Seed = 0, nProcs = 1, fOverlap = 0, fVerbose = 0; char * pScript;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NITSPvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NITSPovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -20261,6 +20261,9 @@ int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nProcs < 0 )
                 goto usage;
             break;            
+        case 'o':
+            fOverlap ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -20286,18 +20289,19 @@ int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         goto usage;
     }
     pScript = Abc_UtilStrsav( argv[globalUtilOptind] );
-    Abc_NtkStochMap( nMaxSize, nIters, TimeOut, Seed, fVerbose, pScript, nProcs );
+    Abc_NtkStochMap( nMaxSize, nIters, TimeOut, Seed, fOverlap, fVerbose, pScript, nProcs );
     ABC_FREE( pScript );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: stochmap [-NITSP <num>] [-tvh] <script>\n" );
+    Abc_Print( -2, "usage: stochmap [-NITSP <num>] [-ovh] <script>\n" );
     Abc_Print( -2, "\t           performs stochastic mapping\n" );
     Abc_Print( -2, "\t-N <num> : the max support size of a partition [default = %d]\n",        nMaxSize );
     Abc_Print( -2, "\t-I <num> : the number of optimization iterations [default = %d]\n",      nIters  );
     Abc_Print( -2, "\t-T <num> : the timeout in seconds (0 = no timeout) [default = %d]\n",    TimeOut );
     Abc_Print( -2, "\t-S <num> : user-specified random seed (0 <= num <= 100) [default = %d]\n", Seed  );
     Abc_Print( -2, "\t-P <num> : the number of concurrent processes (1 <= num <= 100) [default = %d]\n", nProcs );
+    Abc_Print( -2, "\t-o       : toggle using overlapping partitions [default = %s]\n",        fOverlap? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",       fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     Abc_Print( -2, "\t<script> : synthesis script to use for each partition\n");
