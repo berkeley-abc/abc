@@ -17,14 +17,19 @@ namespace rrr {
     bool fUseBddCspf = false;
     bool fUseBddMspf = false;
     int nConflictLimit = 0;
-    int nSortType = 12;
+    int nSortType = -1;
     int nOptimizerFlow = 0;
     int nSchedulerFlow = 0;
+    int nPartitionType = 0;
     int nDistance = 0;
-    int nRestarts = 0;
+    int nJobs = 1;
     int nThreads = 1;
-    int nWindowSize = 0;
+    int nPartitionSize = 0;
+    int nPartitionSizeMin = 0;
     bool fDeterministic = true;
+    int nParallelPartitions = 1;
+    bool fOptOnInsert = false;
+    bool fGreedy = true;
   };
   
 }
