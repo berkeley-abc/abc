@@ -146,6 +146,7 @@ static int Abc_CommandTestRand               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandRunSat                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunEco                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRunScript              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunTest                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandRewrite                ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -962,6 +963,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "runsat",        Abc_CommandRunSat,           0 );    
     Cmd_CommandAdd( pAbc, "Synthesis",    "runeco",        Abc_CommandRunEco,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "rungen",        Abc_CommandRunGen,           0 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "runscript",     Abc_CommandRunScript,        0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "xec",           Abc_CommandRunTest,          0 );
 
     Cmd_CommandAdd( pAbc, "Synthesis",    "rewrite",       Abc_CommandRewrite,          1 );
@@ -7676,6 +7678,113 @@ usage:
     Abc_Print( -2, "\t-R <num> : the number of random functions to try [default = %d]\n", nFuncs );
     Abc_Print( -2, "\t-S <num> : the random seed [default = %d]\n", Seed );
     Abc_Print( -2, "\t-C <num> : the script to apply [default = provided by the user]\n" );
+    Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    int c, nIters = 10, nBeg = 0, nAdd = 1, fVerbose = 0; char * pScript = NULL, * pSpot = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IBASvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBeg = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'A':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-A\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nAdd = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by a script.\n" );
+                goto usage;
+            }
+            pScript = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pScript == NULL ) 
+    {
+        Abc_Print( -1, "Command line switch \"-S\" should be specified and followed by a string.\n" );
+        goto usage;        
+    }
+    pSpot = strstr( pScript, "*" );
+    if ( pSpot == NULL ) 
+    {
+        Abc_Print( -1, "Script should contain symbol \'*\'.\n" );
+        goto usage;        
+    }
+    assert( *pSpot == '*' );
+    for ( c = 0; c < nIters; c++ )
+    {
+        char pCommLine[1000] = {0};
+        char pNumber[10] = {0};
+        sprintf( pNumber, "%d", nBeg + c*nAdd );
+        strcpy( pCommLine, pScript );
+        pCommLine[(int)(pSpot - pScript)] = 0;
+        strcat( pCommLine, pNumber );
+        strcat( pCommLine, pSpot+1 );
+        if ( fVerbose )
+            printf( "Iteration %3d : %s\n", c, pCommLine );
+        if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pCommLine) ) {
+            Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pCommLine );
+            goto usage;
+        }        
+    }
+    printf( "Finished iterating script %d times.\n", nIters );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: runscript [-IBA num] [-S str] [-vh]\n" );
+    Abc_Print( -2, "\t           running the script with different values\n" );
+    Abc_Print( -2, "\t-I <num> : the number of iterations [default = %d]\n", nIters );
+    Abc_Print( -2, "\t-B <num> : the starting number [default = %d]\n", nBeg );
+    Abc_Print( -2, "\t-A <num> : the increment added in each iteration [default = %d]\n", nAdd );
+    Abc_Print( -2, "\t-S <str> : the script to iterate [default = none]\n" );
     Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

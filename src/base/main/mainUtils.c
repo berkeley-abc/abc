@@ -337,15 +337,15 @@ void Abc_FrameStorePrint( Abc_Frame_t * pAbc )
 {
     if ( pAbc->pHash == NULL )
         Abc_FrameStoreStart( pAbc );
-    int i, Entry, Max = Vec_IntFindMax( pAbc->pHash->vValue );
+    int i, Entry, nAll = 0, Max = Vec_IntFindMax( pAbc->pHash->vValue );
     Vec_Int_t * vCounts = Vec_IntStart( Max+1 );
     Vec_IntForEachEntry( pAbc->pHash->vValue, Entry, i )
         Vec_IntAddToEntry( vCounts, Entry, 1 );
     printf( "Distribution of %d stored items by reference count (<ref_count>=<num_items>): ", Hsh_VecSize(pAbc->pHash) );
     Vec_IntForEachEntry( vCounts, Entry, i )
         if ( Entry )
-            printf( "%d=%d ", i, Entry );
-    printf( "\n" );
+            printf( "%d=%d ", i, Entry ), nAll += i * Entry;
+    printf( "ALL=%d\n", nAll );
     Vec_IntFree( vCounts );
 }
 
