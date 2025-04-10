@@ -7696,7 +7696,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, nIters = 10, nBeg = 0, nAdd = 1, fVerbose = 0; char * pScript = NULL, * pSpot = NULL;
+    int c, nIters = 10, nBeg = 1, nAdd = 1, fVerbose = 0; char * pScript = NULL, * pSpot = NULL;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "IBASvh" ) ) != EOF )
     {
