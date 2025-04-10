@@ -247,15 +247,18 @@ vi *moveVecToVi(Vec_Int_t *v) {
 void Miaig::setExc(Gia_Man_t *pExc) {
     int i;
     assert(Gia_ManCiNum(pExc) == nIns());
-    assert(Gia_ManCoNum(pExc) == nOuts());
+    assert(Gia_ManCoNum(pExc) == nOuts() || Gia_ManCoNum(pExc) == 1);
+    if (Gia_ManCoNum(pExc) != nOuts() && Gia_ManCoNum(pExc) == 1) {
+        printf("[Warning] The external careset has only a single output that will be applied to all other outputs.\n");
+    }
     if (!_data->pExc) {
         _data->pExc = (word *)malloc(sizeof(word) * nWords() * nOuts());
     }
     Miaig Exc(pExc);
     Exc.initializeTruth();
     for (i = 0; i < nOuts(); ++i) {
-        word *pExc = Exc.objTruth(Exc.nObjs() - Exc.nOuts() + i, 0);
-        Tt_Dup(_data->pExc + nWords() * i, pExc, nWords());
+        word *tExc = Exc.objTruth(Exc.nObjs() - Exc.nOuts() + std::min(i, Gia_ManCoNum(pExc)-1), 0);
+        Tt_Dup(_data->pExc + nWords() * i, tExc, nWords());
     }
 }
 #endif // RW_ABC
@@ -1219,6 +1222,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
     for (int i = 0; nIters ? i < nIters : 1; i++) {
         if (nVerbose) printf("\rIteration %7d : %5g -> ", i + 1, ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode));
         if (nTimeOut && nTimeOut < 1.0 * (Time_Clock() - clkStart) / CLOCKS_PER_SEC) break;
+        if (PrevBest == 0) break;
         pNew = pRoot.dupMulti(nFaninMax, nGrowth);
 
         if (i % 2 == 0) {

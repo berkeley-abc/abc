@@ -20888,14 +20888,14 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
             pFile = fopen( argv[globalUtilOptind], "rb" );
             if ( pFile == NULL )
             {
-                Abc_Print( -1, "Cannot open input file \"%s\". ", argv[globalUtilOptind] );
+                Abc_Print( -1, "Cannot open input file \"%s\".\n", argv[globalUtilOptind] );
                 return 1;
             }
             fclose( pFile );
             pExc = Gia_AigerRead( argv[globalUtilOptind], 0, 0, 0 );
             if ( pExc == NULL )
             {
-                Abc_Print( -1, "Reading Exc AIGER has failed.\n" );
+                Abc_Print( -1, "Reading AIGER has failed.\n" );
                 return 1;
             }
             globalUtilOptind++;
@@ -20925,6 +20925,11 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pNtk == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pNtk) )
+    {
+        Abc_Print( -1, "Rewiring works only for the AIG representation (run \"strash\").\n" );
         return 1;
     }
     if ( nMode >= 1 && Abc_FrameReadLibGen2() == NULL )
@@ -46572,14 +46577,14 @@ int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
             pFile = fopen( argv[globalUtilOptind], "rb" );
             if ( pFile == NULL )
             {
-                Abc_Print( -1, "Cannot open input file \"%s\". ", argv[globalUtilOptind] );
+                Abc_Print( -1, "Cannot open input file \"%s\".\n", argv[globalUtilOptind] );
                 return 1;
             }
             fclose( pFile );
             pExc = Gia_AigerRead( argv[globalUtilOptind], 0, 0, 0 );
             if ( pExc == NULL )
             {
-                Abc_Print( -1, "Reading Exc AIGER has failed.\n" );
+                Abc_Print( -1, "Reading AIGER has failed.\n" );
                 return 1;
             }
             globalUtilOptind++;
