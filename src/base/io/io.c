@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include <unistd.h>
 #include "ioAbc.h"
 #include "base/main/mainInt.h"
 #include "aig/saig/saig.h"
