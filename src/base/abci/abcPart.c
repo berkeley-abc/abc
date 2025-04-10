@@ -1467,7 +1467,7 @@ void Abc_NtkInsertPartitions_rec( Abc_Ntk_t * pNew, Abc_Obj_t * pObj, Vec_Int_t 
         pNode->pCopy = Abc_ObjFanin0(Abc_NtkPo(pWin, i))->pCopy;
     assert( pObj->pCopy );
 }
-Abc_Ntk_t * Abc_NtkInsertPartitions( Abc_Ntk_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvOuts, Vec_Ptr_t * vWins, int fOverlap, Vec_Int_t * vGains )
+Abc_Ntk_t * Abc_NtkInsertPartitions( Abc_Ntk_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNodes, Vec_Ptr_t * vvOuts, Vec_Ptr_t * vWins, int fOverlap, Vec_Int_t * vGains )
 {
     if ( vvIns == NULL ) {
         assert( vvOuts == NULL );
@@ -1493,16 +1493,12 @@ Abc_Ntk_t * Abc_NtkInsertPartitions( Abc_Ntk_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t
             Vec_IntForEachEntry( vGains, Gain, i ) {
                 if ( Gain <= 0 )
                     continue;
-                Vec_Int_t * vIns  = (Vec_Int_t *)Vec_PtrEntry(vvIns,  i);
-                Vec_Int_t * vOuts = (Vec_Int_t *)Vec_PtrEntry(vvOuts, i);
-                Abc_Obj_t * pNode; int j, k;
-                Abc_NtkForEachObjVec( vIns, p, pNode, j )
+                Vec_Int_t * vNodes  = (Vec_Int_t *)Vec_PtrEntry(vvNodes, i);
+                Abc_Obj_t * pNode; int j;
+                Abc_NtkForEachObjVec( vNodes, p, pNode, j )
                     if ( Abc_NodeIsTravIdCurrent(pNode) )
                         break;
-                Abc_NtkForEachObjVec( vOuts, p, pNode, k )
-                    if ( Abc_NodeIsTravIdCurrent(pNode) )
-                        break;
-                if ( j < Vec_IntSize(vIns) || k < Vec_IntSize(vOuts) )
+                if ( j < Vec_IntSize(vNodes) )
                     Vec_IntWriteEntry( vGains, i, -1 );
             }         
         }
@@ -1764,8 +1760,8 @@ void Abc_NtKMarkTfiTfo( Vec_Int_t * vOne, Abc_Ntk_t * pNtk )
 {
     int i; Abc_Obj_t * pObj;
     Abc_NtkForEachObjVec( vOne, pNtk, pObj, i ) {
-        Abc_NodeSetTravIdPrevious(pObj);
-        Abc_ObjDfsMark_rec( pObj );
+        //Abc_NodeSetTravIdPrevious(pObj);
+        //Abc_ObjDfsMark_rec( pObj );
         Abc_NodeSetTravIdPrevious(pObj);
         Abc_ObjDfsMark2_rec( pObj );
     }
@@ -1939,7 +1935,7 @@ void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fOver
         Abc_Ntk_t * pNtk   = Abc_NtkDupDfs(Abc_FrameReadNtk(Abc_FrameGetGlobalFrame()));
         Vec_Ptr_t * vWins  = Abc_NtkExtractPartitions( pNtk, i, nSuppMax, &vIns, &vOuts, &vNodes, fOverlap );
         Vec_Int_t * vGains = Abc_NtkStochProcess( vWins, pScript, nProcs, 0, 0 ); int nPartsInit = Vec_PtrSize(vWins);
-        Abc_Ntk_t * pNew   = Abc_NtkInsertPartitions( pNtk, vIns, vOuts, vWins, fOverlap, vGains );
+        Abc_Ntk_t * pNew   = Abc_NtkInsertPartitions( pNtk, vIns, vNodes, vOuts, vWins, fOverlap, vGains );
         Abc_FrameReplaceCurrentNetwork( Abc_FrameGetGlobalFrame(), pNew );
         if ( fVerbose )
         printf( "Iteration %3d : Using %3d -> %3d partitions. Reducing area from %.2f to %.2f.  ", 
