@@ -20927,7 +20927,7 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( !Abc_NtkIsStrash(pNtk) )
+    if ( nMode == 0 && !Abc_NtkIsStrash(pNtk) )
     {
         Abc_Print( -1, "Rewiring works only for the AIG representation (run \"strash\").\n" );
         return 1;
