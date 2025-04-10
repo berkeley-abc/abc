@@ -1238,7 +1238,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     printf( "Statistics for %d-rail LUT cascade:\n", nRails );
     for ( i = 0; i < 100; i++ )
         if ( LutStats[i] )
-            printf( "    %d LUT6 : Function count = %8d (%6.2f %%)\n", i, LutStats[i], 100.0*LutStats[i]/nFuncs );
+            printf( "   %2d LUT%d : Function count = %8d (%6.2f %%)\n", i, nLutSize, LutStats[i], 100.0*LutStats[i]/nFuncs );
     printf( "Non-decomp : Function count = %8d (%6.2f %%)\n", nFuncs-Sum, 100.0*(nFuncs-Sum)/Abc_MaxInt(1, nFuncs) );
     printf( "Finished %d functions (%.2f LUTs / function; %.2f functions / sec).  ", 
         nFuncs, 1.0*nTotalLuts/Sum, 1.0*nFuncs/(((double)(Abc_Clock() - clkStart))/((double)CLOCKS_PER_SEC)) );
