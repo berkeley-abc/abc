@@ -54,10 +54,6 @@ namespace eSLIM {
       void findReplacement();
       Mini_Aig_t* findMinimumAig(const Subcircuit& subcir);
 
-      Abc_RData_t* generateRelation(const Subcircuit& subcir);
-      Vec_Int_t* generateRelationPatterns(const Subcircuit& subcir);
-      Abc_RData_t* constructABCRelationRepresentation(int nof_inputs, int nof_outputs, Vec_Int_t * patterns);
-
       Vec_Wrd_t* getSimsIn(Abc_RData_t* relation);
       Vec_Wrd_t* getSimsOut(Abc_RData_t* relation);
       word getAllFalseBehaviour(const Subcircuit& subcir);

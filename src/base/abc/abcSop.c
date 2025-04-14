@@ -21,6 +21,11 @@
 #include "abc.h"
 #include "bool/kit/kit.h"
 
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcount __popcnt
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -1132,6 +1137,31 @@ Vec_Ptr_t * Abc_SopFromTruthsHex( char * pTruth )
         pToken = strtok( NULL, " \r\n\t|" );
     }
     ABC_FREE( pCopy );
+    return vRes;
+}
+
+Vec_Ptr_t * Abc_SopGenerateCounters( int nVars )
+{
+    int m, i, o, nOuts = Abc_Base2Log( nVars + 1 );
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( nOuts );
+    for ( o = 0; o < nOuts; o++ ) 
+    {
+        Vec_Str_t * vStr = Vec_StrAlloc( 1000 );
+        for ( m = 0; m < (1 << nVars); m++ ) {
+            int nOnes = __builtin_popcount(m);
+            if ( !((nOnes >> o) & 1) )
+                continue;
+            for ( i = 0; i < nVars; i++ )
+                Vec_StrPush( vStr, ((m >> i) & 1) ? '1' : '0' );
+            Vec_StrPush( vStr, ' ' );
+            Vec_StrPush( vStr, '1' );
+            Vec_StrPush( vStr, '\n' );
+        }
+        Vec_StrPush( vStr, '\0' );
+        //printf( "%s\n", Vec_StrArray(vStr) );
+        Vec_PtrPush( vRes, Vec_StrReleaseArray(vStr) );
+        Vec_StrFree( vStr );
+    }
     return vRes;
 }
 

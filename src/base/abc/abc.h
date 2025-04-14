@@ -792,7 +792,7 @@ extern ABC_DLL Abc_Ntk_t *        Abc_NtkCreateWithNodes( Vec_Ptr_t * vSops );
 extern ABC_DLL void               Abc_NtkDelete( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkMakeComb( Abc_Ntk_t * pNtk, int fRemoveLatches );
-extern ABC_DLL void               Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops, char * pFlopPermFile );
+extern ABC_DLL void               Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops, char * pInPermFile, char * pOutPermFile, char * pFlopPermFile );
 extern ABC_DLL void               Abc_NtkUnpermute( Abc_Ntk_t * pNtk );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkCreateFromSops( char * pName, Vec_Ptr_t * vSops );
 extern ABC_DLL Abc_Ntk_t *        Abc_NtkCreateFromGias( char * pName, Vec_Ptr_t * vGias, Gia_Man_t * pMulti );

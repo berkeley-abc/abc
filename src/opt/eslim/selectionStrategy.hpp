@@ -104,7 +104,7 @@ namespace eSLIM {
 
   template<typename T>
   SelectionStrategy<T>::SelectionStrategy(Gia_Man_t*& gia_man, const eSLIMConfig& cfg, eSLIMLog& log)
-                      : gia_man(gia_man), cfg(cfg), log(log), rng(std::random_device()()) {
+                      : gia_man(gia_man), cfg(cfg), log(log), rng(std::random_device()()), bdist(cfg.expansion_probability) {
   }
 
   template<typename T>

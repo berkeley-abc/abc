@@ -87,7 +87,9 @@ struct Hsh_VecMan_t_
 {
     Vec_Int_t *  vTable;      // hash table
     Vec_Int_t *  vData;       // data storage
-    Vec_Int_t *  vMap;        // mapping entries into data;
+    Vec_Int_t *  vMap;        // mapping entries into data
+    Vec_Int_t *  vValue;      // mapping entries into values
+    Vec_Int_t *  vEntry;      // temporary entry
     Vec_Int_t    vTemp;       // temporary array
     Vec_Int_t    vTemp1;      // temporary array
     Vec_Int_t    vTemp2;      // temporary array
@@ -461,6 +463,8 @@ static inline void Hsh_VecManStop( Hsh_VecMan_t * p )
     Vec_IntFree( p->vTable );
     Vec_IntFree( p->vData );
     Vec_IntFree( p->vMap );
+    Vec_IntFreeP( &p->vValue );
+    Vec_IntFreeP( &p->vEntry );
     ABC_FREE( p );
 }
 static inline int * Hsh_VecReadArray( Hsh_VecMan_t * p, int i )

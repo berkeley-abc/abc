@@ -282,8 +282,8 @@ static inline Abc_RData_t * Abc_RData2Rel( Abc_RData_t * p )
     Vec_WrdShrink( vTransOut, p->nPats );
     Vec_Wrd_t * vTransInCopy = Vec_WrdDup(vTransIn); 
     Vec_WrdUniqify( vTransInCopy );
-    if ( Vec_WrdSize(vTransInCopy) == p->nPats )
-        printf( "This resub problem is not a relation.\n" );
+//    if ( Vec_WrdSize(vTransInCopy) == p->nPats )
+//        printf( "This resub problem is not a relation.\n" );
     // create the relation
     Abc_RData_t * pNew = Abc_RDataStart( p->nIns, 1 << (p->nOuts-1), Vec_WrdSize(vTransInCopy) );
     pNew->nOuts = p->nOuts;

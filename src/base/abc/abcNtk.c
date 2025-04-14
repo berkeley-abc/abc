@@ -2059,11 +2059,11 @@ void Abc_NtkRemovePo( Abc_Ntk_t * pNtk, int iOutput, int fRemoveConst0 )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Abc_NtkReadFlopPerm( char * pFileName, int nFlops )
+Vec_Int_t * Abc_NtkReadSignalPerm2( char * pFileName, int nSignals )
 {
     char Buffer[1000];
     FILE * pFile;
-    Vec_Int_t * vFlops;
+    Vec_Int_t * vSignals;
     int iFlop = -1;
     pFile = fopen( pFileName, "rb" );
     if ( pFile == NULL )
@@ -2071,30 +2071,63 @@ Vec_Int_t * Abc_NtkReadFlopPerm( char * pFileName, int nFlops )
         printf( "Cannot open input file \"%s\".\n", pFileName );
         return NULL;
     }
-    vFlops = Vec_IntAlloc( nFlops );
+    vSignals = Vec_IntAlloc( nSignals );
     while ( fgets( Buffer, 1000, pFile ) != NULL )
     {
         if ( Buffer[0] == ' ' || Buffer[0] == '\r' || Buffer[0] == '\n' )
             continue;
         iFlop = atoi( Buffer );
-        if ( iFlop < 0 || iFlop >= nFlops )
+        if ( iFlop < 0 || iFlop >= nSignals )
         {
-            printf( "Flop ID (%d) is out of range.\n", iFlop );
+            printf( "The zero-based signal ID (%d) is out of range.\n", iFlop );
             fclose( pFile );
-            Vec_IntFree( vFlops );
+            Vec_IntFree( vSignals );
             return NULL;
         }
-        Vec_IntPush( vFlops, iFlop );
+        Vec_IntPush( vSignals, iFlop );
     }
     fclose( pFile );
-    if ( Vec_IntSize(vFlops) != nFlops )
+    if ( Vec_IntSize(vSignals) != nSignals )
     {
-        printf( "The number of flops read in from file (%d) is different from the number of flops in the circuit (%d).\n", iFlop, nFlops );
-        Vec_IntFree( vFlops );
+        printf( "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", Vec_IntSize(vSignals), nSignals );
+        Vec_IntFree( vSignals );
         return NULL;
     }
-    return vFlops;    
+    return vSignals;    
 }
+
+Vec_Int_t * Abc_NtkReadSignalPerm( char * pFileName, int nSignals )
+{
+    int Num = -1;
+    Vec_Int_t * vSignals;
+    FILE * pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open input file \"%s\".\n", pFileName );
+        return NULL;
+    }
+    vSignals = Vec_IntAlloc( nSignals );
+    while ( fscanf( pFile, "%d", &Num ) == 1 )
+    {
+        if ( Num <= 0 || Num > nSignals )
+        {
+            printf( "The one-based signal ID (%d) is out of range (%d).\n", Num, nSignals );
+            fclose( pFile );
+            Vec_IntFree( vSignals );
+            return NULL;
+        }
+        Vec_IntPush( vSignals, Num-1 );
+    }
+    fclose( pFile );
+    if ( Vec_IntSize(vSignals) != nSignals )
+    {
+        printf( "The number of indexes read in from file (%d) is different from the number of signals in the circuit (%d).\n", Vec_IntSize(vSignals), nSignals );
+        Vec_IntFree( vSignals );
+        return NULL;
+    }
+    return vSignals;    
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -2106,61 +2139,98 @@ Vec_Int_t * Abc_NtkReadFlopPerm( char * pFileName, int nFlops )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops, char * pFlopPermFile )
+void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops, char * pInPermFile, char * pOutPermFile, char * pFlopPermFile )
 {
     Abc_Obj_t * pTemp;
     Vec_Int_t * vInputs, * vOutputs, * vFlops, * vTemp;
     int i, k, Entry;
     // start permutation arrays
+    if ( pInPermFile )
+    {
+        vInputs = Abc_NtkReadSignalPerm( pInPermFile, Abc_NtkPiNum(pNtk) );
+        if ( vInputs == NULL )
+            return;
+        fInputs = 1;
+    }
+    else
+        vInputs  = Vec_IntStartNatural( Abc_NtkPiNum(pNtk) );
+    if ( pOutPermFile )
+    {
+        vOutputs = Abc_NtkReadSignalPerm( pOutPermFile, Abc_NtkPoNum(pNtk) );
+        if ( vOutputs == NULL )
+            return;
+        fOutputs = 1;
+    }
+    else
+        vOutputs = Vec_IntStartNatural( Abc_NtkPoNum(pNtk) );
     if ( pFlopPermFile )
     {
-        vFlops = Abc_NtkReadFlopPerm( pFlopPermFile, Abc_NtkLatchNum(pNtk) );
+        vFlops = Abc_NtkReadSignalPerm( pFlopPermFile, Abc_NtkLatchNum(pNtk) );
         if ( vFlops == NULL )
             return;
-        fInputs  = 0;
-        fOutputs = 0;
-        fFlops   = 0;
+        fFlops   = 1;
     }
     else
         vFlops   = Vec_IntStartNatural( Abc_NtkLatchNum(pNtk) );
-    vInputs  = Vec_IntStartNatural( Abc_NtkPiNum(pNtk) );
-    vOutputs = Vec_IntStartNatural( Abc_NtkPoNum(pNtk) );
     // permute inputs
+    Vec_Ptr_t * vCis = Vec_PtrDup(pNtk->vCis);
+    Vec_Ptr_t * vCos = Vec_PtrDup(pNtk->vCos);
+    Vec_Ptr_t * vFfs = Vec_PtrDup(pNtk->vBoxes);
     if ( fInputs )
     for ( i = 0; i < Abc_NtkPiNum(pNtk); i++ )
     {
-        k = rand() % Abc_NtkPiNum(pNtk);
-        // swap indexes
-        Entry = Vec_IntEntry( vInputs, i );
-        Vec_IntWriteEntry( vInputs, i, Vec_IntEntry(vInputs, k) );
-        Vec_IntWriteEntry( vInputs, k, Entry );
-        // swap PIs
-        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vPis, i );
-        Vec_PtrWriteEntry( pNtk->vPis, i, Vec_PtrEntry(pNtk->vPis, k) );
-        Vec_PtrWriteEntry( pNtk->vPis, k, pTemp );
-        // swap CIs
-        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCis, i );
-        Vec_PtrWriteEntry( pNtk->vCis, i, Vec_PtrEntry(pNtk->vCis, k) );
-        Vec_PtrWriteEntry( pNtk->vCis, k, pTemp );
+        if ( pInPermFile ) 
+        {
+            k = Vec_IntEntry( vInputs, i );
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( vCis, k );
+            Vec_PtrWriteEntry( pNtk->vPis, i, pTemp );
+            Vec_PtrWriteEntry( pNtk->vCis, i, pTemp );   
+        }
+        else 
+        {
+            k = rand() % Abc_NtkPiNum(pNtk);
+            // swap indexes
+            Entry = Vec_IntEntry( vInputs, i );
+            Vec_IntWriteEntry( vInputs, i, Vec_IntEntry(vInputs, k) );
+            Vec_IntWriteEntry( vInputs, k, Entry );
+            // swap PIs
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vPis, i );
+            Vec_PtrWriteEntry( pNtk->vPis, i, Vec_PtrEntry(pNtk->vPis, k) );
+            Vec_PtrWriteEntry( pNtk->vPis, k, pTemp );
+            // swap CIs
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCis, i );
+            Vec_PtrWriteEntry( pNtk->vCis, i, Vec_PtrEntry(pNtk->vCis, k) );
+            Vec_PtrWriteEntry( pNtk->vCis, k, pTemp );
+        }
 //printf( "Swapping PIs %d and %d.\n", i, k );
     }
     // permute outputs
     if ( fOutputs )
     for ( i = 0; i < Abc_NtkPoNum(pNtk); i++ )
     {
-        k = rand() % Abc_NtkPoNum(pNtk);
-        // swap indexes
-        Entry = Vec_IntEntry( vOutputs, i );
-        Vec_IntWriteEntry( vOutputs, i, Vec_IntEntry(vOutputs, k) );
-        Vec_IntWriteEntry( vOutputs, k, Entry );
-        // swap POs
-        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vPos, i );
-        Vec_PtrWriteEntry( pNtk->vPos, i, Vec_PtrEntry(pNtk->vPos, k) );
-        Vec_PtrWriteEntry( pNtk->vPos, k, pTemp );
-        // swap COs
-        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, i );
-        Vec_PtrWriteEntry( pNtk->vCos, i, Vec_PtrEntry(pNtk->vCos, k) );
-        Vec_PtrWriteEntry( pNtk->vCos, k, pTemp );
+        if ( pOutPermFile ) 
+        {
+            k = Vec_IntEntry( vOutputs, i );
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( vCos, k );
+            Vec_PtrWriteEntry( pNtk->vPos, i, pTemp );
+            Vec_PtrWriteEntry( pNtk->vCos, i, pTemp );       
+        }
+        else 
+        {
+            k = rand() % Abc_NtkPoNum(pNtk);
+            // swap indexes
+            Entry = Vec_IntEntry( vOutputs, i );
+            Vec_IntWriteEntry( vOutputs, i, Vec_IntEntry(vOutputs, k) );
+            Vec_IntWriteEntry( vOutputs, k, Entry );
+            // swap POs
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vPos, i );
+            Vec_PtrWriteEntry( pNtk->vPos, i, Vec_PtrEntry(pNtk->vPos, k) );
+            Vec_PtrWriteEntry( pNtk->vPos, k, pTemp );
+            // swap COs
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, i );
+            Vec_PtrWriteEntry( pNtk->vCos, i, Vec_PtrEntry(pNtk->vCos, k) );
+            Vec_PtrWriteEntry( pNtk->vCos, k, pTemp );
+        }
 //printf( "Swapping POs %d and %d.\n", i, k );
     }
     // permute flops
@@ -2168,26 +2238,42 @@ void Abc_NtkPermute( Abc_Ntk_t * pNtk, int fInputs, int fOutputs, int fFlops, ch
     if ( fFlops )
     for ( i = 0; i < Abc_NtkLatchNum(pNtk); i++ )
     {
-        k = rand() % Abc_NtkLatchNum(pNtk);
-        // swap indexes
-        Entry = Vec_IntEntry( vFlops, i );
-        Vec_IntWriteEntry( vFlops, i, Vec_IntEntry(vFlops, k) );
-        Vec_IntWriteEntry( vFlops, k, Entry );
-        // swap flops
-        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vBoxes, i );
-        Vec_PtrWriteEntry( pNtk->vBoxes, i, Vec_PtrEntry(pNtk->vBoxes, k) );
-        Vec_PtrWriteEntry( pNtk->vBoxes, k, pTemp );
-        // swap CIs
-        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+i );
-        Vec_PtrWriteEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+i, Vec_PtrEntry(pNtk->vCis, Abc_NtkPiNum(pNtk)+k) );
-        Vec_PtrWriteEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+k, pTemp );
-        // swap COs
-        pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+i );
-        Vec_PtrWriteEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+i, Vec_PtrEntry(pNtk->vCos, Abc_NtkPoNum(pNtk)+k) );
-        Vec_PtrWriteEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+k, pTemp );
+        if ( pFlopPermFile ) 
+        {
+            k = Vec_IntEntry( vFlops, i );
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( vFfs, k );
+            Vec_PtrWriteEntry( pNtk->vBoxes, i, pTemp );  
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( vCis, Abc_NtkPiNum(pNtk)+k );
+            Vec_PtrWriteEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+i, pTemp );
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( vCos, Abc_NtkPoNum(pNtk)+k );
+            Vec_PtrWriteEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+i, pTemp );
+        }
+        else 
+        {
+            k = rand() % Abc_NtkLatchNum(pNtk);
+            // swap indexes
+            Entry = Vec_IntEntry( vFlops, i );
+            Vec_IntWriteEntry( vFlops, i, Vec_IntEntry(vFlops, k) );
+            Vec_IntWriteEntry( vFlops, k, Entry );
+            // swap flops
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vBoxes, i );
+            Vec_PtrWriteEntry( pNtk->vBoxes, i, Vec_PtrEntry(pNtk->vBoxes, k) );
+            Vec_PtrWriteEntry( pNtk->vBoxes, k, pTemp );
+            // swap CIs
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+i );
+            Vec_PtrWriteEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+i, Vec_PtrEntry(pNtk->vCis, Abc_NtkPiNum(pNtk)+k) );
+            Vec_PtrWriteEntry( pNtk->vCis, Abc_NtkPiNum(pNtk)+k, pTemp );
+            // swap COs
+            pTemp = (Abc_Obj_t *)Vec_PtrEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+i );
+            Vec_PtrWriteEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+i, Vec_PtrEntry(pNtk->vCos, Abc_NtkPoNum(pNtk)+k) );
+            Vec_PtrWriteEntry( pNtk->vCos, Abc_NtkPoNum(pNtk)+k, pTemp );
+        }
 
 //printf( "Swapping flops %d and %d.\n", i, k );
     }
+    Vec_PtrFree(vCis);
+    Vec_PtrFree(vCos);
+    Vec_PtrFree(vFfs);
     // invert arrays
     vInputs = Vec_IntInvert( vTemp = vInputs, -1 );
     Vec_IntFree( vTemp );

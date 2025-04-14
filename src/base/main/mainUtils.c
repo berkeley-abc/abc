@@ -291,7 +291,63 @@ char * DateReadFromDateString( char * datestr )
   }
 }
 
+/**Function********************************************************************
 
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+******************************************************************************/
+void Abc_FrameStoreStop( Abc_Frame_t * pAbc )
+{
+    if ( pAbc->pHash ) 
+        Hsh_VecManStop( pAbc->pHash );
+    pAbc->pHash = NULL;
+}
+void Abc_FrameStoreStart( Abc_Frame_t * pAbc )
+{
+    Abc_FrameStoreStop( pAbc );
+    pAbc->pHash = Hsh_VecManStart( 1000 );
+    pAbc->pHash->vEntry = Vec_IntAlloc( 1000 );
+    pAbc->pHash->vValue = Vec_IntAlloc( 1000 );    
+}
+void Abc_FrameStoreAdd( Abc_Frame_t * pAbc, Gia_Man_t * pGia )
+{
+    if ( pAbc->pHash == NULL )
+        Abc_FrameStoreStart( pAbc );
+    Gia_Man_t * p = Gia_ManIsoCanonicize( pGia, 0 );
+    Vec_IntClear( pAbc->pHash->vEntry );
+    Vec_IntPush( pAbc->pHash->vEntry, 0 );
+    Vec_IntPush( pAbc->pHash->vEntry, Gia_ManPiNum(p) );
+    Vec_IntPush( pAbc->pHash->vEntry, Gia_ManPoNum(p) );
+    Vec_IntPush( pAbc->pHash->vEntry, Gia_ManRegNum(p) );
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachAnd( p, pObj, i )
+        Vec_IntPushTwo( pAbc->pHash->vEntry, Gia_ObjFaninLit0(pObj, i), Gia_ObjFaninLit1(pObj, i) );
+    int iEntry = Hsh_VecManAdd( pAbc->pHash, pAbc->pHash->vEntry );
+    if ( Vec_IntSize(pAbc->pHash->vValue) == iEntry )
+        Vec_IntPush( pAbc->pHash->vValue, 0 );
+    Vec_IntAddToEntry( pAbc->pHash->vValue, iEntry, 1 );
+    assert( Vec_IntSize(pAbc->pHash->vValue) == Hsh_VecSize(pAbc->pHash) );
+    Gia_ManStop( p );
+}
+void Abc_FrameStorePrint( Abc_Frame_t * pAbc )
+{
+    if ( pAbc->pHash == NULL )
+        Abc_FrameStoreStart( pAbc );
+    int i, Entry, nAll = 0, Max = Vec_IntFindMax( pAbc->pHash->vValue );
+    Vec_Int_t * vCounts = Vec_IntStart( Max+1 );
+    Vec_IntForEachEntry( pAbc->pHash->vValue, Entry, i )
+        Vec_IntAddToEntry( vCounts, Entry, 1 );
+    printf( "Distribution of %d stored items by reference count (<ref_count>=<num_items>): ", Hsh_VecSize(pAbc->pHash) );
+    Vec_IntForEachEntry( vCounts, Entry, i )
+        if ( Entry )
+            printf( "%d=%d ", i, Entry ), nAll += i * Entry;
+    printf( "ALL=%d\n", nAll );
+    Vec_IntFree( vCounts );
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

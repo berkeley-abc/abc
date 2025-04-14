@@ -157,6 +157,7 @@ struct Miaig_Data {
     word *pTruths[3];      // truth tables
     word *pCare;           // careset
     word *pProd;           // product
+    word *pExc;           // Exc 
     vi *vOrder;            // node order
     vi *vOrderF;           // fanin order
     vi *vOrderF2;          // fanin order
@@ -182,6 +183,11 @@ public:
 #endif // RW_ABC
 
 public:
+#ifdef RW_ABC
+    void setExc(Gia_Man_t *pExc);
+#endif // RW_ABC
+
+public:
     void addref(void);
     void release(void);
 
@@ -200,6 +206,8 @@ public:
     int objIsPi(int i);
     int objIsPo(int i);
     int objIsNode(int i);
+    int objPiIdx(int i); // No check isPi
+    int objPoIdx(int i); // No check isPo
     void print(void);
     int appendObj(void);
     void appendFanin(int i, int iLit);
@@ -238,14 +246,14 @@ private:
     void reduceFanins(vi *v);
     int *createStops(void);
     void collectSuper_rec(int iLit, int *pStop, vi *vSuper);
-    int checkConst(int iObj, word *pCare, int fVerbose);
+    int checkConst(int iObj, word *pCare, word *pExc, int fCheck, int fVerbose);
     void truthSimNode(int i);
     word *truthSimNodeSubset(int i, int m);
     word *truthSimNodeSubset2(int i, vi *vFanins, int nFanins);
-    void truthUpdate(vi *vTfo);
+    void truthUpdate(vi *vTfo, word *pExc = NULL, int fCheck = 0);
     int computeTfo_rec(int iObj);
     vi *computeTfo(int iObj);
-    word *computeCareSet(int iObj);
+    word *computeCareSet(int iObj, word *pExc = NULL);
     vi *createRandomOrder(void);
     void addPair(vi *vPair, int iFan1, int iFan2);
     int findPair(vi *vPair);
@@ -272,22 +280,22 @@ private:
     int buildNodeCascade(Miaig &pNew, vi *vFanins, int fCprop, int fStrash);
 
 private:
-    int expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, int fVerbose);
-    int reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, int fVerbose);
-    int expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int nExpandableLevel, int fVerbose);
+    int expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, word *pExc, int fCheck, int fVerbose);
+    int reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, word *pExc, int fCheck, int fVerbose);
+    int expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int nExpandableLevel, word *pExc, int fCheck, int fVerbose);
 
 public:
     Miaig dup(int fRemDangle, int fMapped = 0);
     Miaig dupDfs(void);
     Miaig dupStrash(int fCprop, int fStrash, int fCascade);
     Miaig dupMulti(int nFaninMax_, int nGrowth);
-    Miaig expand(int nFaninAddLimitAll, int nDist, int nExpandableLevel, int nVerbose);
+    Miaig expand(int nFaninAddLimitAll, int nDist, int nExpandableLevel, word *pExc, int fCheck, int nVerbose);
     Miaig share(int nNewNodesMax);
-    Miaig reduce(int fVerbose);
-    Miaig expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLevel, int fVerbose);
-    Miaig expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nExpandableLevel, int nVerbose);
-    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nVerbose);
-    #ifdef RW_ABC
+    Miaig reduce(word *pExc, int fCheck, int fVerbose);
+    Miaig expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLevel, word *pExc, int fCheck, int fVerbose);
+    Miaig expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nExpandableLevel, word *pExc, int fCheck, int nVerbose);
+    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fCheck, int nVerbose);
+#ifdef RW_ABC
     Gia_Man_t *toGia(void);
     Abc_Ntk_t *toNtk(int fMapped = 0);
     Mini_Aig_t *toMiniAig(void);
@@ -373,6 +381,7 @@ inline void Miaig::release(void) {
             free(_data->pTruths[0]);
             if (_data->pCare) free(_data->pCare);
             if (_data->pProd) free(_data->pProd);
+            if (_data->pExc) free(_data->pExc);
             if (_data->pLevel) free(_data->pLevel);
             if (_data->pDist) free(_data->pDist);
             if (_data->pTable) free(_data->pTable);
@@ -411,6 +420,16 @@ inline int Miaig::objIsPo(int i) {
 
 inline int Miaig::objIsNode(int i) {
     return i > _data->nIns && i < _data->nObjs - _data->nOuts;
+}
+
+inline int Miaig::objPiIdx(int i) {
+    // assert(objIsPi(i));
+    return i - 1;
+}
+
+inline int Miaig::objPoIdx(int i) {
+    // assert(objIsPo(i));
+    return i - (_data->nObjs - _data->nOuts);
 }
 
 inline int Miaig::appendObj(void) {

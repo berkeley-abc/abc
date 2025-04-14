@@ -152,6 +152,12 @@ static inline void Tt_OrXor(word *pOut, word *pIn1, word *pIn2, int nWords) {
         pOut[w] |= pIn1[w] ^ pIn2[w];
 }
 
+static inline void Tt_OrXorAnd(word *pOut, word *pIn1, word *pIn2, word *pIn3, int nWords) {
+    int w;
+    for (w = 0; w < nWords; w++)
+        pOut[w] |= (pIn1[w] ^ pIn2[w]) & pIn3[w];
+}
+
 static inline int Tt_WordNum(int n) {
     return n > 6 ? (1 << (n - 6)) : 1;
 }

@@ -5,6 +5,8 @@ option(FoxSYN "Enable FoxSYN" ON)
 include(CMakeParseArguments)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
+# Generate compilation database compile_commands.json
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Default c++ standard used unless otherwise specified in target_compile_features.
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "the C++ standard to use for this project")
