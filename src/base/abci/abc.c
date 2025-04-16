@@ -640,6 +640,7 @@ static int Abc_CommandAbc9FunAbs             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9DsdInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FunTrace           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MulFind            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9AndCare            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1462,6 +1463,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdinfo",      Abc_CommandAbc9DsdInfo,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&funtrace",     Abc_CommandAbc9FunTrace,               0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&mulfind",      Abc_CommandAbc9MulFind,                0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&andcare",      Abc_CommandAbc9AndCare,                0 );    
     
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,                   0 );
 
@@ -56927,6 +56929,66 @@ usage:
     Abc_Print( -2, "\t-C num  : the number of cuts to compute at each node [default = %d]\n", nCutNum );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9AndCare( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManDupAndCare( Gia_Man_t * p, Gia_Man_t * pCare );
+    Gia_Man_t * pTemp = NULL, * pCare = NULL; int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9AndCare(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( 1,"Abc_CommandAbc9AndCare(): There is no careset AIG.\n" );
+        return 0;
+    }
+    pCare = Gia_AigerRead( argv[globalUtilOptind], 0, 0, 0 );
+    if ( pCare == NULL )
+        Abc_Print( -1, "Abc_CommandAbc9AndCare(): Reading careset from file has failed.\n" );
+    else if ( Gia_ManPiNum(pAbc->pGia) != Gia_ManPiNum(pCare) )
+        Abc_Print( -1, "Abc_CommandAbc9AndCare(): Careset should have the same number of primary inputs.\n" );
+    else {
+        pTemp = Gia_ManDupAndCare( pAbc->pGia, pCare );
+        Abc_FrameUpdateGia( pAbc, pTemp );
+    }
+    Gia_ManStop( pCare );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &andcare [-vh] <file>\n" );
+    Abc_Print( -2, "\t          computes the conjunction of each primary output with the careset\n" );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    Abc_Print( -2, "\t<file>  : input AIG file with the careset\n");
     return 1;
 }
 
