@@ -21278,7 +21278,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     If_ManSetDefaultPars( pPars );
     pPars->pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRNTXYUZDEWSJqaflepmrsdbgxyzuojiktncvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRNTXYUZDEWSJMqaflepmrsdbgxyzuojiktncvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -21551,6 +21551,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'z':
             pPars->fDeriveLuts ^= 1;
+            break;
+        case 'M':
+            pPars->fRoutability ^= 1;
             break;
         case 'h':
         default:
@@ -21876,6 +21879,7 @@ usage:
     Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );
     Abc_Print( -2, "\t-S str   : string representing the LUT structure [default = %s]\n", pPars->pLutStruct ? pPars->pLutStruct : "not used" );
     Abc_Print( -2, "\t-J str   : string representing the LUT structure (new method) [default = %s]\n", pPars->pLutStruct ? pPars->pLutStruct : "not used" );
+    Abc_Print( -2, "\t-T       : toggles routability-driven technology mapping\n");
     Abc_Print( -2, "\t-q       : toggles preprocessing using several starting points [default = %s]\n", pPars->fPreprocess? "yes": "no" );
     Abc_Print( -2, "\t-a       : toggles area-oriented mapping [default = %s]\n", pPars->fArea? "yes": "no" );
     Abc_Print( -2, "\t-r       : enables expansion/reduction of the best cuts [default = %s]\n", pPars->fExpRed? "yes": "no" );

@@ -181,6 +181,7 @@ struct If_Par_t_
     int (* pFuncCell2) (If_Man_t *, word *, int, Vec_Str_t *, char **); //  procedure called for cut functions
     int (* pFuncWrite) (If_Man_t *);                                    //  procedure called for cut functions
     void *             pReoMan;       // reordering manager
+    int                fRoutability;   // routability-driven mapping
 };
 
 // the LUT library
