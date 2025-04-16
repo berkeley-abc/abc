@@ -85,7 +85,7 @@ static void move_analyzed_variables_to_front_of_queue (kissat *solver) {
   const links *const links = solver->links;
   for (all_stack (unsigned, idx, solver->analyzed)) {
     // clang-format off
-    const datarank rank = { .data = idx, .rank = links[idx].stamp };
+    const datarank rank = { /*.data = */idx, /*.rank = */links[idx].stamp };  // c++20 only
     // clang-format on
     PUSH_STACK (solver->ranks, rank);
   }

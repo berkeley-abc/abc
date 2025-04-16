@@ -35,7 +35,7 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
   Synopsis    [Here everything starts.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -45,12 +45,12 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 ***********************************************************************/
 
 #ifndef WIN32
-#include <sys/time.h>    
-#include <sys/times.h>   
+#include <sys/time.h>
+#include <sys/times.h>
 #include <sys/resource.h>
-#include <unistd.h>      
+#include <unistd.h>
 #if !defined(__wasm)
-#include <signal.h>      
+#include <signal.h>
 #endif
 #include <stdlib.h>
 #endif
@@ -61,31 +61,31 @@ SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 
 ABC_NAMESPACE_IMPL_START
 
-
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
 static int TypeCheck( Abc_Frame_t * pAbc, const char * s);
+ABC_DLL extern int Abc_RealMain(int argc, char *argv[]);
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-unsigned enable_dbg_outs = 1;  
+unsigned enable_dbg_outs = 1;
 
 /**Function*************************************************************
 
   Synopsis    [The main() procedure.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_RealMain( int argc, char * argv[] )
+extern int Abc_RealMain( int argc, char * argv[] )
 {
     Abc_Frame_t * pAbc;
     Vec_Str_t* sCommandUsr = Vec_StrAlloc(1000);
@@ -129,34 +129,34 @@ int Abc_RealMain( int argc, char * argv[] )
     while ((c = Extra_UtilGetopt(argc, argv, "dm:l:c:q:C:Q:S:hf:F:o:st:T:xb")) != EOF) {
         switch(c) {
 
-            case 'd':                                          
-                enable_dbg_outs ^= 1;                            
-                break;                                          
+            case 'd':
+                enable_dbg_outs ^= 1;
+                break;
 
             case 'm': {
 #if !defined(WIN32) && !defined(ABC_NO_RLIMIT)
-                int maxMb = atoi(globalUtilOptarg);             
+                int maxMb = atoi(globalUtilOptarg);
                 printf("Limiting memory use to %d MB\n", maxMb);
-                struct rlimit limit = {                         
-                    maxMb * (1llu << 20), /* soft limit */      
-                    maxMb * (1llu << 20)  /* hard limit */      
-                };                                              
-                setrlimit(RLIMIT_AS, &limit);                   
+                struct rlimit limit = {
+                    maxMb * (1llu << 20), /* soft limit */
+                    maxMb * (1llu << 20)  /* hard limit */
+                };
+                setrlimit(RLIMIT_AS, &limit);
 #endif
-                break; 
-            }                                         
+                break;
+            }
             case 'l': {
 #if !defined(WIN32) && !defined(ABC_NO_RLIMIT)
-                rlim_t maxTime = atoi(globalUtilOptarg);           
+                rlim_t maxTime = atoi(globalUtilOptarg);
                 printf("Limiting time to %d seconds\n", (int)maxTime);
-                struct rlimit limit = {                         
-                    maxTime,             /* soft limit */       
-                    maxTime              /* hard limit */       
-                };                                              
-                setrlimit(RLIMIT_CPU, &limit);                  
+                struct rlimit limit = {
+                    maxTime,             /* soft limit */
+                    maxTime              /* hard limit */
+                };
+                setrlimit(RLIMIT_CPU, &limit);
 #endif
-                break; 
-            }                                         
+                break;
+            }
             case 'c':
                 if( Vec_StrSize(sCommandUsr) > 0 )
                 {
@@ -377,7 +377,7 @@ int Abc_RealMain( int argc, char * argv[] )
     }
 
     // if the memory should be freed, quit packages
-//    if ( fStatus < 0 ) 
+//    if ( fStatus < 0 )
     {
         Abc_Stop();
     }
@@ -393,7 +393,7 @@ usage:
 
   Synopsis    [Returns 1 if s is a file type recognized, else returns 0.]
 
-  Description [Returns 1 if s is a file type recognized by ABC, else returns 0. 
+  Description [Returns 1 if s is a file type recognized by ABC, else returns 0.
   Recognized types are "blif", "bench", "pla", and "none".]
 
   SideEffects []

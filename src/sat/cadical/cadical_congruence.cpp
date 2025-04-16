@@ -1215,7 +1215,7 @@ void Closure::learn_congruence_unit_falsifies_lrat_chain (
                 LOG (proof_chain, "produced lrat chain so far");
               }
             }
-	    CADICAL_assert (!proof_chain.empty ());
+      CADICAL_assert (!proof_chain.empty ());
           } else {
             LOG ("degenerated AND gate with conflict without LHS");
             for (const auto &litId : g->pos_lhs_ids) {
@@ -1735,9 +1735,9 @@ bool Closure::merge_literals_lrat (
       internal->lrat_chain.push_back (
           internal->unit_id (val_smaller < 0 ? -smaller : smaller));
       internal->lrat_chain.push_back (
-				      internal->unit_id (val_larger < 0 ? -larger : larger));
+              internal->unit_id (val_larger < 0 ? -larger : larger));
       for (auto id : (val_smaller < 0 ? *smaller_chain : *larger_chain)) {
-	internal->lrat_chain.push_back(id);
+  internal->lrat_chain.push_back(id);
       }
     }
     internal->learn_empty_clause ();
@@ -2443,7 +2443,7 @@ void Closure::update_and_gate_build_lrat_chain (
     for (auto &litId : h->pos_lhs_ids) {
       if (litId.current_lit == g->lhs) {
         CADICAL_assert (extra_reasons_ulit.empty ());
-	CADICAL_assert (litId.clause);
+  CADICAL_assert (litId.clause);
         LOG (litId.clause, "binary clause to push into the reason");
         litId.clause = produce_rewritten_clause_lrat (litId.clause, h->lhs,
                                                       remove_units);
@@ -2473,7 +2473,7 @@ void Closure::update_and_gate_build_lrat_chain (
     // one direction: the binary clause already exists
     for (auto &litId : other->pos_lhs_ids) {
       if (litId.current_lit == tauto->lhs) {
-	CADICAL_assert (litId.clause);
+  CADICAL_assert (litId.clause);
         CADICAL_assert (extra_reasons_tauto.empty ());
         LOG (litId.clause, "binary clause to push into the reason");
         litId.clause = produce_rewritten_clause_lrat (
@@ -2493,12 +2493,12 @@ void Closure::update_and_gate_build_lrat_chain (
            litId.current_lit, tauto->lhs);
       if (litId.current_lit != tauto->lhs) {
         LOG (litId.clause, "binary clause to push into the reason");
-	CADICAL_assert (litId.clause);
+  CADICAL_assert (litId.clause);
         litId.clause = produce_rewritten_clause_lrat (
             litId.clause, tauto->lhs, remove_units);
         if (!litId.clause) // degenerated but does not know yet
-	  continue;
-	CADICAL_assert (litId.clause);
+    continue;
+  CADICAL_assert (litId.clause);
         extra_reasons_other.push_back (litId.clause->id);
       }
       tauto->pos_lhs_ids.erase (std::remove_if (begin (tauto->pos_lhs_ids),
@@ -4880,10 +4880,10 @@ void Closure::reset_extraction () {
       const size_t size = watchers.size ();
       size_t j = 0;
       for (size_t i = 0; i != size; ++i) {
-	const auto w = watchers[i];
-	watchers[j] = watchers[i];
-	if (!w.clause->garbage)
-	  ++j;
+  const auto w = watchers[i];
+  watchers[j] = watchers[i];
+  if (!w.clause->garbage)
+    ++j;
       }
       watchers.resize(j);
     }
@@ -5730,7 +5730,7 @@ void Closure::rewrite_ite_gate (Gate *g, int dst, int src) {
           lrat_chain = reasons_unit;
         learn_congruence_unit (cond, true);
         if (then_lit != lhs) {
-	  LOG ("special case, learning %d",cond == -lhs ? -then_lit : then_lit);
+    LOG ("special case, learning %d",cond == -lhs ? -then_lit : then_lit);
           if (internal->lrat)
             lrat_chain = reasons_implication;
           learn_congruence_unit (cond == -lhs ? -then_lit : then_lit, false, true);
@@ -5981,7 +5981,7 @@ void Closure::rewrite_ite_gate (Gate *g, int dst, int src) {
 #endif
           } else {
             CADICAL_assert (false);
-#ifdef WIN32
+#if defined(WIN32) && !defined(__MINGW32__)
             __assume(false);
 #else
             __builtin_unreachable ();
@@ -6036,7 +6036,7 @@ void Closure::rewrite_ite_gate (Gate *g, int dst, int src) {
     } else {
       LOG (g, "rewritten");
       if (internal->lrat)
-	update_ite_flags (g), check_correct_ite_flags(g);
+  update_ite_flags (g), check_correct_ite_flags(g);
       CADICAL_assert (rhs[0] != rhs[1]);
       CADICAL_assert (rhs[0] != rhs[2]);
       CADICAL_assert (rhs[1] != rhs[2]);
@@ -6053,7 +6053,7 @@ void Closure::rewrite_ite_gate (Gate *g, int dst, int src) {
         g->lhs = -lhs;
       check_ite_lrat_reasons (g);
       if (internal->lrat)
-	check_correct_ite_flags (g);
+  check_correct_ite_flags (g);
       if (h) {
         garbage = true;
         check_ite_gate_implied (g);
@@ -6695,7 +6695,7 @@ void Closure::add_ite_matching_proof_chain (
     unsimplified.clear ();
     return;
   }
-  
+
   LOG ("normal path");
   CADICAL_assert (!internal->lrat || degenerated_g_then ||
           (g_then_id && g_neg_then_id));
