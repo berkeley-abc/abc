@@ -1200,19 +1200,25 @@ Miaig randomRead(std::vector<Miaig> &pBests) {
     return pBests[Random_Num(0) % pBests.size()];
 }
 
+Miaig randomReadExcept(std::vector<Miaig> &pBests, Miaig &pExcept) {
+    int iNum = Random_Num(0) % pBests.size();
+    return (pBests[iNum] == pExcept) ? pBests[(iNum + 1) % pBests.size()] : pBests[iNum];
+}
+
 Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fCheck, int nVerbose) {
     const int nRootSave = 8;
     const int nBestSave = 4;
     int nRestart = 5000;
     std::vector<Miaig> pRoots = {this->dup(0)};
-    std::vector<Miaig> pBests = {this->dup(0)};
+    std::vector<Miaig> pBests = {this->dup(0)}; Miaig pInit = pBests[0];
     iword clkStart = Time_Clock();
     Miaig pNew;
     Miaig pRoot = pRoots[0];
-    Miaig pBest = this->dup(0);
+    Miaig pBest = this->dup(0); int improved = 0;
     float (Miaig::*Miaig_ObjectiveFunction)(int, int) = (nMode == 0) ? &Miaig::countAnd2 : &Miaig::countTransistors;
     int maxLevel = levelGrowRatio != 0 ? this->countLevel() * levelGrowRatio : 0;
     int nExpandableLevel = maxLevel ? maxLevel - this->countLevel() : 0;
+    int fMapped = nMode > 0;
     word *pExc = _data->pExc;
 
     float PrevBest = ((&pBest)->*Miaig_ObjectiveFunction)(1, nMappedMode);
@@ -1220,7 +1226,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
     if (nVerbose && maxLevel) printf("Max level         : %5d\n", maxLevel);
     if (nVerbose) printf("Initial target    : %5g (AND2 = %5g Level = %3d)\n", PrevBest, this->countAnd2(1), this->countLevel());
     for (int i = 0; nIters ? i < nIters : 1; i++) {
-        if (nVerbose) printf("\rIteration %7d : %5g -> ", i + 1, ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode));
+        if (nVerbose) printf("\rIteration %7d(%zu) : %5g -> ", i + 1, pBests.size(), ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode));
         if (nTimeOut && nTimeOut < 1.0 * (Time_Clock() - clkStart) / CLOCKS_PER_SEC) break;
         if (PrevBest == 0) break;
         pNew = pRoot.dupMulti(nFaninMax, nGrowth);
@@ -1239,11 +1245,11 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
             if (nVerbose) printf("%5g (AND2 = %5g Level = %3d) ", newTarget, pNew.countAnd2(), pNew.countLevel());
             if (nVerbose) Time_PrintEndl("Elapsed time", Time_Clock() - clkStart);
             PrevBest = newTarget;
-            pBests = {pNew.dup(0), pNew.dup(0)};
-            pBest = pNew.dup(0, 1);
+            pBests = {pNew.dup(0, fMapped), pNew.dup(0, fMapped)};
+            pBest = pNew.dup(0, fMapped), improved = 1;
             iterNotImproveAfterRestart = 0;
         } else if (PrevBest == newTarget) {
-            randomAddBest(pBests, pNew.dup(0), nBestSave);
+            randomAddBest(pBests, pNew.dup(0, fMapped), nBestSave);
         }
         // compare
         if (maxLevel ? pNew.countLevel() > maxLevel : 0) {
@@ -1266,7 +1272,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
         pRoot = randomRead(pRoots);
     }
     if (nVerbose) Time_PrintEndl("Total solving time", Time_Clock() - clkStart);
-    return pBest;
+    return improved ? pBest : randomReadExcept(pBests, pInit);
 }
 
 } // namespace Rewire

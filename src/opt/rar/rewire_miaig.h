@@ -190,6 +190,7 @@ public:
 public:
     void addref(void);
     void release(void);
+    bool operator==(const Miaig &m) const;
 
 private:
     void create(int nIns, int nOuts, int nObjsAlloc);
@@ -392,6 +393,10 @@ inline void Miaig::release(void) {
 
     _data = nullptr;
     _refcount = nullptr;
+}
+
+inline bool Miaig::operator==(const Miaig &m) const {
+    return (_data == m._data);
 }
 
 inline int &Miaig::nIns(void) {
