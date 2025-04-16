@@ -20309,7 +20309,8 @@ usage:
 ***********************************************************************/
 int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Abc_Ntk_t * pNtkRes = NULL, * pNtk = Abc_FrameReadNtk(pAbc);
+    extern void Mio_IntallAndLibrary();    
     extern void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fOverlap, int fVerbose, char * pScript, int nProcs );
     int c, nMaxSize = 14, nIters = 1, TimeOut = 0, Seed = 0, nProcs = 1, fOverlap = 0, fVerbose = 0; char * pScript;
     Extra_UtilGetoptReset();
@@ -20389,6 +20390,21 @@ int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandStochMap(): There is no AIG.\n" );
         return 0;
     }
+    if ( Abc_NtkIsStrash(pNtk) ) 
+    {
+        extern Abc_Ntk_t * Abc_NtkDarAmap( Abc_Ntk_t * pNtk, Amap_Par_t * pPars );
+        Amap_Par_t Pars, * pPars = &Pars;
+        Amap_ManSetDefaultParams( pPars );
+        Mio_IntallAndLibrary();
+        pNtkRes = Abc_NtkDarAmap( pNtk, pPars );
+        if ( pNtkRes == NULL )
+        {
+            Abc_Print( -1, "Mapping has failed.\n" );
+            return 1;
+        }
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+        pNtk = Abc_FrameReadNtk(pAbc);
+    }
     if ( !Abc_NtkIsMappedLogic(pNtk) )
     {
         Abc_Print( -1, "Abc_CommandStochMap(): Expecting a mapped current newtork as input.\n" );
@@ -20402,6 +20418,17 @@ int Abc_CommandStochMap( Abc_Frame_t * pAbc, int argc, char ** argv )
     pScript = Abc_UtilStrsav( argv[globalUtilOptind] );
     Abc_NtkStochMap( nMaxSize, nIters, TimeOut, Seed, fOverlap, fVerbose, pScript, nProcs );
     ABC_FREE( pScript );
+    if ( pNtkRes )
+    {
+        pNtk = Abc_FrameReadNtk(pAbc);
+        pNtkRes = Abc_NtkStrash( pNtk, 1, 1, 0 );
+        if ( pNtkRes == NULL )
+        {
+            Abc_Print( -1, "Strashing has failed.\n" );
+            return 1;
+        }
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    }
     return 0;
 
 usage:

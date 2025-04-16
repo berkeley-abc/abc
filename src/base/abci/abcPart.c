@@ -1481,7 +1481,7 @@ Abc_Ntk_t * Abc_NtkInsertPartitions( Abc_Ntk_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t
         Abc_NtkIncrementTravId( p );
         while ( 1 ) {
             int i, Gain, iEntry = Vec_IntArgMax(vGains);
-            if ( Vec_IntEntry(vGains, iEntry) <= 0 )
+            if ( iEntry == -1 || Vec_IntEntry(vGains, iEntry) <= 0 )
                 break;
             //printf( "Selecting partition %d with gain %d.\n", iEntry, Vec_IntEntry(vGains, iEntry) );
             Vec_IntWriteEntry( vGains, iEntry, -1 );

@@ -74,6 +74,23 @@ static char * pMcncGenlib[] = {
 */
 
 // internal version of genlib library
+static char * pAndGenlib[] = {
+    "GATE zero    0   O=CONST0;\n",
+    "GATE one     0   O=CONST1;\n",
+    "GATE buf     1   O=a;              PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE inv     1   O=!a;             PIN * INV     1 999 1.0 0.0 1.0 0.0\n",
+    "GATE and00   1   O=a*b;            PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE and01   1   O=a*!b;           PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE and10   1   O=!a*b;           PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE and11   1   O=!a*!b;          PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nand00  1   O=!(a*b);         PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nand01  1   O=!(a*!b);        PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nand10  1   O=!(!a*b);        PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    "GATE nand11  1   O=!(!a*!b);       PIN * NONINV  1 999 1.0 0.0 1.0 0.0\n",
+    NULL
+};
+
+// internal version of genlib library
 static char * pSimpleGenlib[] = {
     "GATE zero    0   O=CONST0;\n",
     "GATE one     0   O=CONST1;\n",
@@ -126,6 +143,20 @@ static char * pSimpleGenlib2[] = {
   SeeAlso     []
 
 ***********************************************************************/
+void Mio_IntallAndLibrary()
+{
+    extern Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose );
+    Vec_Str_t * vLibStr = Vec_StrAlloc( 1000 );
+    for ( int i = 0; pAndGenlib[i]; i++ )
+        Vec_StrAppend( vLibStr, pAndGenlib[i] );
+    Vec_Str_t * vLibStr2 = Vec_StrDup( vLibStr );
+    Vec_StrAppend( vLibStr2, ".end\n" );
+    Vec_StrPush( vLibStr2, '\0' );
+    Vec_StrPush( vLibStr, '\0' );
+    Mio_UpdateGenlib2( vLibStr, vLibStr2, "and.genlib", 0 );
+    Vec_StrFree( vLibStr );    
+    Vec_StrFree( vLibStr2 );
+}
 void Mio_IntallSimpleLibrary()
 {
     extern Mio_Library_t * Mio_LibraryReadBuffer( char * pBuffer, int fExtendedFormat, st__table * tExcludeGate, int nFaninLimit, int fVerbose );
