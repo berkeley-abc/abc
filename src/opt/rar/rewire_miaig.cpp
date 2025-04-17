@@ -49,7 +49,7 @@ Abc_Ntk_t *Abc_ManRewireInt(Abc_Ntk_t *pNtk, Gia_Man_t *pExc, int nIters, float 
         pNtkMiaig.setExc(pExc);
     Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, fMapped, nMappedMode, nDist, fCheck, fVerbose);
     pNew.setName(Abc_NtkName(pNtk));
-    if (nMode == 2) {
+    if (nMode > 0) {
         pNew.countTransistors(1, nMappedMode);
     }
 
