@@ -29,9 +29,11 @@ namespace rrr {
   }
 
   template <typename Ntk>
-  Gia_Man_t *CreateGia(Ntk *pNtk) {
+  Gia_Man_t *CreateGia(Ntk *pNtk, bool fHash = true) {
     Gia_Man_t *pGia = Gia_ManStart(pNtk->GetNumNodes());
-    Gia_ManHashStart(pGia);
+    if(fHash) {
+      Gia_ManHashStart(pGia);
+    }
     std::vector<int> v(pNtk->GetNumNodes());
     v[0] = Gia_ManConst0Lit();
     pNtk->ForEachPi([&](int id) {
@@ -43,8 +45,10 @@ namespace rrr {
       pNtk->ForEachFanin(id, [&](int fi, bool c) {
         if(x == -1) {
           x = Abc_LitNotCond(v[fi], c);
-        } else {
+        } else if(fHash) {
           x = Gia_ManHashAnd(pGia, x, Abc_LitNotCond(v[fi], c));
+        } else {
+          x = Gia_ManAppendAnd(pGia, x, Abc_LitNotCond(v[fi], c));
         }
       });
       if(x == -1) {
@@ -55,7 +59,9 @@ namespace rrr {
     pNtk->ForEachPoDriver([&](int fi, bool c) {
       Gia_ManAppendCo(pGia, Abc_LitNotCond(v[fi], c));
     });
-    Gia_ManHashStop(pGia);
+    if(fHash) {
+      Gia_ManHashStop(pGia);
+    }
     return pGia;  
   }
 
@@ -72,7 +78,7 @@ namespace rrr {
       assert(r == 0);
       Abc_FrameSetBatchMode(0);
     }
-    pNtk->Read(Abc_FrameReadGia(pAbc), GiaReader<Ntk>);
+    pNtk->Read(Abc_FrameReadGia(pAbc), GiaReader<Ntk>, false);
   }
 
 }

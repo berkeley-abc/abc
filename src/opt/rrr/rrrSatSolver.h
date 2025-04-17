@@ -28,10 +28,12 @@ namespace rrr {
     std::vector<VarValue> vValues; // values in satisfied problem
     bool fUpdate;
 
-    // statistics
+    // stats
     int nCalls;
     int nSats;
     int nUnsats;
+    double durationRedundancy;
+    double durationFeasibility;
 
     // callback
     void ActionCallback(Action const &action);
@@ -45,7 +47,7 @@ namespace rrr {
     // constructors
     SatSolver(Parameter const *pPar);
     ~SatSolver();
-    void UpdateNetwork(Ntk *pNtk_, bool fSame);
+    void AssignNetwork(Ntk *pNtk_, bool fReuse);
     
     // checks
     SatResult CheckRedundancy(int id, int idx);
@@ -53,6 +55,11 @@ namespace rrr {
 
     // cex
     std::vector<VarValue> GetCex();
+
+    // stats
+    void ResetSummary();
+    summary<int> GetStatsSummary() const;
+    summary<double> GetTimesSummary() const;
   };
 
   /* {{{ Callback */
@@ -87,6 +94,11 @@ namespace rrr {
       fUpdate = true;
       break;
     case SORT_FANINS:
+      break;
+    case READ:
+      status = false;
+      target = -1;
+      fUpdate = false;
       break;
     case SAVE:
       break;
@@ -259,25 +271,23 @@ namespace rrr {
     pSat(sat_solver_new()),
     status(false),
     target(-1),
-    fUpdate(false),
-    nCalls(0),
-    nSats(0),
-    nUnsats(0) {
+    fUpdate(false) {
+    ResetSummary();
   }
 
   template <typename Ntk>
   SatSolver<Ntk>::~SatSolver() {
     sat_solver_delete(pSat);
-    std::cout << "SAT solver stats: calls = " << nCalls << " (SAT = " << nSats << ", UNSAT = " << nUnsats << ", UNDET = " << nCalls - nSats - nUnsats << ")" << std::endl;
+    //std::cout << "SAT solver stats: calls = " << nCalls << " (SAT = " << nSats << ", UNSAT = " << nUnsats << ", UNDET = " << nCalls - nSats - nUnsats << ")" << std::endl;
   }
 
   template <typename Ntk>
-  void SatSolver<Ntk>::UpdateNetwork(Ntk *pNtk_, bool fSame) {
-    (void)fSame;
-    pNtk = pNtk_;
+  void SatSolver<Ntk>::AssignNetwork(Ntk *pNtk_, bool fReuse) {
+    (void)fReuse;
     status = false;
     target = -1;
     fUpdate = false;
+    pNtk = pNtk_;
     pNtk->AddCallback(std::bind(&SatSolver<Ntk>::ActionCallback, this, std::placeholders::_1));
   }
 
@@ -287,11 +297,13 @@ namespace rrr {
   
   template <typename Ntk>
   SatResult SatSolver<Ntk>::CheckRedundancy(int id, int idx) {
+    time_point timeStart = GetCurrentTime();
     SetTarget(id);
     if(!status) {
       if(nVerbose) {
         std::cout << "trivially UNSATISFIABLE" << std::endl;
       }
+      durationRedundancy += Duration(timeStart, GetCurrentTime());
       return UNSAT;
     }
     vLits.clear();
@@ -319,12 +331,14 @@ namespace rrr {
         std::cout << "UNSATISFIABLE" << std::endl;
       }
       nUnsats++;
+      durationRedundancy += Duration(timeStart, GetCurrentTime());
       return UNSAT;
     }
     if(res == l_Undef) {
       if(nVerbose) {
         std::cout << "UNDETERMINED" << std::endl;
       }
+      durationRedundancy += Duration(timeStart, GetCurrentTime());
       return UNDET;
     }
     assert(res == l_True);
@@ -353,16 +367,19 @@ namespace rrr {
       assert((vValues[fi] == TEMP_TRUE) ^ (idx == idx2) ^ c);
       vValues[fi] = DecideVarValue(vValues[fi]);
     });
+    durationRedundancy += Duration(timeStart, GetCurrentTime());
     return SAT;
   }
 
   template <typename Ntk>
   SatResult SatSolver<Ntk>::CheckFeasibility(int id, int fi, bool c) {
+    time_point timeStart = GetCurrentTime();
     SetTarget(id);
     if(!status) {
       if(nVerbose) {
         std::cout << "trivially UNSATISFIABLE" << std::endl;
       }
+      durationFeasibility += Duration(timeStart, GetCurrentTime());
       return UNSAT;
     }
     vLits.clear();
@@ -385,12 +402,14 @@ namespace rrr {
         std::cout << "UNSATISFIABLE" << std::endl;
       }
       nUnsats++;
+      durationFeasibility += Duration(timeStart, GetCurrentTime());
       return UNSAT;
     }
     if(res == l_Undef) {
       if(nVerbose) {
         std::cout << "UNDETERMINED" << std::endl;
       }
+      durationFeasibility += Duration(timeStart, GetCurrentTime());
       return UNDET;
     }
     assert(res == l_True);
@@ -419,6 +438,7 @@ namespace rrr {
     vValues[id] = DecideVarValue(vValues[id]);
     assert((vValues[fi] == TEMP_TRUE) ^ !c);
     vValues[fi] = DecideVarValue(vValues[fi]);
+    durationFeasibility += Duration(timeStart, GetCurrentTime());
     return SAT;
   }
   
@@ -537,6 +557,36 @@ namespace rrr {
 
   /* }}} */
 
+  /* {{{ Stats */
+
+  template <typename Ntk>
+  void SatSolver<Ntk>::ResetSummary() {
+    nCalls = 0;
+    nSats = 0;
+    nUnsats = 0;
+    durationRedundancy = 0;
+    durationFeasibility = 0;
+  }
+
+  template <typename Ntk>
+  summary<int> SatSolver<Ntk>::GetStatsSummary() const {
+    summary<int> v;
+    v.emplace_back("sat call", nCalls);
+    v.emplace_back("sat satisfiable", nSats);
+    v.emplace_back("sat unsatisfiable", nUnsats);
+    return v;
+  }
+
+  template <typename Ntk>
+  summary<double> SatSolver<Ntk>::GetTimesSummary() const {
+    summary<double> v;
+    v.emplace_back("sat redundancy", durationRedundancy);
+    v.emplace_back("sat feasibility", durationFeasibility);
+    return v;
+  }
+
+  /* }}} */
+  
 }
 
 ABC_NAMESPACE_CXX_HEADER_END
