@@ -49,7 +49,7 @@ Abc_Ntk_t *Abc_ManRewireInt(Abc_Ntk_t *pNtk, Gia_Man_t *pExc, int nIters, float 
         pNtkMiaig.setExc(pExc);
     Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, fMapped, nMappedMode, nDist, fCheck, fVerbose);
     pNew.setName(Abc_NtkName(pNtk));
-    if (nMode == 2) {
+    if (nMode > 0) {
         pNew.countTransistors(1, nMappedMode);
     }
 
@@ -1245,11 +1245,11 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
             if (nVerbose) printf("%5g (AND2 = %5g Level = %3d) ", newTarget, pNew.countAnd2(), pNew.countLevel());
             if (nVerbose) Time_PrintEndl("Elapsed time", Time_Clock() - clkStart);
             PrevBest = newTarget;
-            pBests = {pNew.dup(0, fMapped), pNew.dup(0, fMapped)};
+            pBests = {pNew.dup(0), pNew.dup(0)};
             pBest = pNew.dup(0, fMapped), improved = 1;
             iterNotImproveAfterRestart = 0;
         } else if (PrevBest == newTarget) {
-            randomAddBest(pBests, pNew.dup(0, fMapped), nBestSave);
+            randomAddBest(pBests, pNew.dup(0), nBestSave);
         }
         // compare
         if (maxLevel ? pNew.countLevel() > maxLevel : 0) {
