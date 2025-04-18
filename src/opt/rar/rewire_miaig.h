@@ -27,6 +27,15 @@
 #include "base/abc/abc.h"
 #include "aig/miniaig/miniaig.h"
 #include "rewire_map.h"
+#define RW_INT_MAX ABC_INT_MAX
+#define Rw_MaxInt Abc_MaxInt
+#define Rw_MinInt Abc_MinInt
+#define Rw_Var2Lit Abc_Var2Lit
+#define Rw_Lit2Var Abc_Lit2Var
+#define Rw_LitIsCompl Abc_LitIsCompl
+#define Rw_LitNot Abc_LitNot
+#define Rw_LitNotCond Abc_LitNotCond
+#define Rw_LitRegular Abc_LitRegular
 #else
 #ifdef _WIN32
 typedef unsigned __int64 word;   // 32-bit windows
@@ -38,6 +47,15 @@ typedef __int64 iword;   // 32-bit windows
 #else
 typedef long long iword; // other platforms
 #endif
+#define RW_INT_MAX (2147483647)
+static inline int Rw_MaxInt( int a, int b )       { return a > b ?  a : b; }
+static inline int Rw_MinInt( int a, int b )       { return a < b ?  a : b; }
+static inline int Rw_Var2Lit( int Var, int c )    { assert(Var >= 0 && !(c >> 1)); return Var + Var + c;        }
+static inline int Rw_Lit2Var( int Lit )           { assert(Lit >= 0); return Lit >> 1;                          }
+static inline int Rw_LitIsCompl( int Lit )        { assert(Lit >= 0); return Lit & 1;                           }
+static inline int Rw_LitNot( int Lit )            { assert(Lit >= 0); return Lit ^ 1;                           }
+static inline int Rw_LitNotCond( int Lit, int c ) { assert(Lit >= 0); return Lit ^ (int)(c > 0);                }
+static inline int Rw_LitRegular( int Lit )        { assert(Lit >= 0); return Lit & ~01;                         }
 #endif // RW_ABC
 #include "rewire_vec.h"
 #include "rewire_tt.h"
@@ -129,15 +147,16 @@ static inline int RW_XADD(int *addr, int delta) {
 #define Miaig_ForEachNodeOutputStart(i, s) for (i = s; i < _data->nObjs; i++)
 #define Miaig_ForEachObj(i)                for (i = 0; i < _data->nObjs; i++)
 #define Miaig_ForEachObjFanin(i, iLit, k)  Vi_ForEachEntry(&_data->pvFans[i], iLit, k)
+#define Miaig_ForEachObjFaninStart(i, iLit, k, s)  Vi_ForEachEntryStart(&_data->pvFans[i], iLit, k, s)
 
 static inline int Rw_Lit2LitV(int *pMapV2V, int Lit) {
     assert(Lit >= 0);
-    return Abc_Var2Lit(pMapV2V[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit));
+    return Rw_Var2Lit(pMapV2V[Rw_Lit2Var(Lit)], Rw_LitIsCompl(Lit));
 }
 
 static inline int Rw_Lit2LitL(int *pMapV2L, int Lit) {
     assert(Lit >= 0);
-    return Abc_LitNotCond(pMapV2L[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit));
+    return Rw_LitNotCond(pMapV2L[Rw_Lit2Var(Lit)], Rw_LitIsCompl(Lit));
 }
 
 struct Miaig_Data {
@@ -222,6 +241,7 @@ public:
     int &objDist(int i);
     int &nTravIds(void);
     word *objTruth(int i, int n);
+    vi *objFanins(int i);
     int objType(int i);
     int nWords(void);
     void refObj(int iObj);
@@ -242,6 +262,8 @@ private:
     int markDfs(void);
     void markDistanceN_rec(int iObj, int n, int limit);
     void markDistanceN(int Obj, int n);
+    void markCritical(void);
+    void markCritical_rec(int iObj);
     void topoCollect_rec(int iObj);
     vi *topoCollect(void);
     void reduceFanins(vi *v);
@@ -269,7 +291,7 @@ public:
     float countAnd2(int reset = 0, int fDummy = 0);
     // 0: amap 1: &nf 2: &simap
     float countTransistors(int reset = 0, int nMode = 0);
-    int countLevel(void);
+    int countLevel(int min = 0);
 
 private:
     void dupDfs_rec(Miaig &pNew, int iObj);
@@ -416,15 +438,15 @@ inline int &Miaig::nObjsAlloc(void) {
 }
 
 inline int Miaig::objIsPi(int i) {
-    return i > 0 && i <= _data->nIns;
+    return i > 0 && i <= nIns();
 }
 
 inline int Miaig::objIsPo(int i) {
-    return i >= _data->nObjs - _data->nOuts;
+    return i >= nObjs() - nOuts();
 }
 
 inline int Miaig::objIsNode(int i) {
-    return i > _data->nIns && i < _data->nObjs - _data->nOuts;
+    return i > nIns() && i < nObjs() - nOuts();
 }
 
 inline int Miaig::objPiIdx(int i) {
@@ -434,29 +456,29 @@ inline int Miaig::objPiIdx(int i) {
 
 inline int Miaig::objPoIdx(int i) {
     // assert(objIsPo(i));
-    return i - (_data->nObjs - _data->nOuts);
+    return i - (nObjs() - nOuts());
 }
 
 inline int Miaig::appendObj(void) {
-    assert(_data->nObjs < _data->nObjsAlloc);
-    return _data->nObjs++;
+    assert(nObjs() < nObjsAlloc());
+    return nObjs()++;
 }
 
 inline void Miaig::appendFanin(int i, int iLit) {
-    Vi_PushOrder(_data->pvFans + i, iLit);
+    Vi_PushOrder(objFanins(i), iLit);
 }
 
 inline int Miaig::objFaninNum(int i) {
-    return Vi_Size(_data->pvFans + i);
+    return Vi_Size(objFanins(i));
 }
 
 inline int Miaig::objFanin0(int i) {
-    return Vi_Read(_data->pvFans + i, 0);
+    return Vi_Read(objFanins(i), 0);
 }
 
 inline int Miaig::objFanin1(int i) {
     assert(objFaninNum(i) == 2);
-    return Vi_Read(_data->pvFans + i, 1);
+    return Vi_Read(objFanins(i), 1);
 }
 
 inline int &Miaig::objLevel(int i) {
@@ -495,17 +517,22 @@ inline float Miaig::countAnd2(int reset, int fDummy) {
     return Counter;
 }
 
-inline int Miaig::countLevel(void) {
+inline int Miaig::countLevel(int min) {
     initializeLevels();
-    int i, Level = -1;
+    int i, Level = (min) ? RW_INT_MAX : -1;
+    int (*compareFunc)(int, int) = (min) ? Rw_MinInt : Rw_MaxInt;
     Miaig_ForEachOutput(i) {
-        Level = Abc_MaxInt(Level, objLevel(i));
+        Level = compareFunc(Level, objLevel(i));
     }
     return Level;
 }
 
 inline word *Miaig::objTruth(int i, int n) {
     return _data->pTruths[n] + nWords() * i;
+}
+
+inline vi *Miaig::objFanins(int i) {
+    return _data->pvFans + i;
 }
 
 inline int Miaig::objType(int i) {
