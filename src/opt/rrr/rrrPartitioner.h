@@ -42,7 +42,7 @@ namespace rrr {
   public:
     // constructors
     Partitioner(Parameter const *pPar);
-    void UpdateNetwork(Ntk *pNtk);
+    void AssignNetwork(Ntk *pNtk);
 
     // APIs
     Ntk *Extract(int iSeed);
@@ -270,7 +270,7 @@ namespace rrr {
   }
 
   template <typename Ntk>
-  void Partitioner<Ntk>::UpdateNetwork(Ntk *pNtk_) {
+  void Partitioner<Ntk>::AssignNetwork(Ntk *pNtk_) {
     pNtk = pNtk_;
     assert(mSubNtk2Io.empty());
     assert(sBlocked.empty());

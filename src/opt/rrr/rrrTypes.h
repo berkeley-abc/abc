@@ -39,6 +39,7 @@ namespace rrr {
     TRIVIAL_COLLAPSE,
     TRIVIAL_DECOMPOSE,
     SORT_FANINS,
+    READ,
     SAVE,
     LOAD,
     POP_BACK,
@@ -51,6 +52,7 @@ namespace rrr {
     int idx = -1;
     int fi = -1;
     bool c = false;
+    bool fNew = false;
     std::vector<int> vFanins;
     std::vector<int> vIndices;
     std::vector<int> vFanouts;
@@ -59,6 +61,9 @@ namespace rrr {
   using seconds = int64_t;
   using clock_type = std::chrono::steady_clock;
   using time_point = std::chrono::time_point<clock_type>;
+
+  template <typename T>
+  using summary = std::vector<std::pair<std::string, T>>;
 
 }
 

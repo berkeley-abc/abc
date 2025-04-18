@@ -43,7 +43,7 @@ namespace rrr {
   public:
     // constructors
     LevelBasePartitioner(Parameter const *pPar);
-    void UpdateNetwork(Ntk *pNtk);
+    void AssignNetwork(Ntk *pNtk);
 
     // APIs
     Ntk *Extract(int iSeed);
@@ -214,7 +214,7 @@ namespace rrr {
   }
 
   template <typename Ntk>
-  void LevelBasePartitioner<Ntk>::UpdateNetwork(Ntk *pNtk_) {
+  void LevelBasePartitioner<Ntk>::AssignNetwork(Ntk *pNtk_) {
     pNtk = pNtk_;
     assert(mSubNtk2Io.empty());
     assert(sBlocked.empty());

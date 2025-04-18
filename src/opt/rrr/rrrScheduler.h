@@ -46,10 +46,14 @@ namespace rrr {
     // data
     int nCreatedJobs;
     int nFinishedJobs;
-    time_point start;
+    time_point timeStart;
     Par par;
     std::queue<Job *> qPendingJobs;
     Opt *pOpt; // used only in case of single thread execution
+    std::vector<std::string> vStatsSummaryKeys;
+    std::map<std::string, int> mStatsSummary;
+    std::vector<std::string> vTimesSummaryKeys;
+    std::map<std::string, double> mTimesSummary;
 #ifdef ABC_USE_PTHREADS
     bool fTerminate;
     std::vector<std::thread> vThreads;
@@ -57,21 +61,27 @@ namespace rrr {
     std::mutex mutexAbc;
     std::mutex mutexPendingJobs;
     std::mutex mutexFinishedJobs;
+    std::mutex mutexPrint;
     std::condition_variable condPendingJobs;
     std::condition_variable condFinishedJobs;
 #endif
 
+    // print
+    template <typename... Args>
+    void Print(int nVerboseLevel, std::string prefix, Args... args);
+    
     // time
     seconds GetRemainingTime() const;
+    double GetElapsedTime() const;
 
     // abc
     void CallAbc(Ntk *pNtk_, std::string Command);
 
     // run jobs
-    void RunJob(Opt &opt, Job const *pJob);
+    void RunJob(Opt &opt, Job *pJob);
 
     // manage jobs
-    void CreateJob(Ntk *pNtk_, int iSeed_);
+    Job *CreateJob(Ntk *pNtk_, int iSeed_, double cost);
     void OnJobEnd(std::function<void(Job *pJob)> const &func);
 
     // thread
@@ -79,6 +89,10 @@ namespace rrr {
     void Thread(Parameter const *pPar);
 #endif
     
+    // summary
+    template <typename T>
+    void AddToSummary(std::vector<std::string> &keys, std::map<std::string, T> &m, summary<T> const &result) const;
+
   public:
     // constructors
     Scheduler(Ntk *pNtk, Parameter const *pPar);
@@ -96,12 +110,21 @@ namespace rrr {
     int id;
     Ntk *pNtk;
     int iSeed;
+    double costInitial;
+    std::string prefix;
+    double duration;
+    summary<int> stats;
+    summary<double> times;
     
     // constructor
-    Job(int id, Ntk *pNtk, int iSeed) :
+    Job(int id, Ntk *pNtk, int iSeed, double cost) :
       id(id),
       pNtk(pNtk),
-      iSeed(iSeed) {
+      iSeed(iSeed),
+      costInitial(cost) {
+      std::stringstream ss;
+      PrintNext(ss, "job", id, ":");
+      prefix = ss.str() + " ";
     }
   };
 
@@ -115,19 +138,51 @@ namespace rrr {
   
   /* }}} */
 
+  /* {{{ Print */
+  
+  template <typename Ntk, typename Opt, typename Par>
+  template<typename... Args>
+  inline void Scheduler<Ntk, Opt, Par>::Print(int nVerboseLevel, std::string prefix, Args... args) {
+    if(nVerbose <= nVerboseLevel) {
+      return;
+    }
+#ifdef ABC_USE_PTHREADS
+    if(fMultiThreading) {
+      {
+        std::unique_lock<std::mutex> l(mutexPrint);
+        std::cout << prefix;
+        PrintNext(std::cout, args...);
+        std::cout << std::endl;
+      }
+      return;
+    }
+#endif
+    std::cout << prefix;
+    PrintNext(std::cout, args...);
+    std::cout << std::endl;
+  }
+
+  /* }}} */
+  
   /* {{{ Time */
 
   template <typename Ntk, typename Opt, typename Par>
-  seconds Scheduler<Ntk, Opt, Par>::GetRemainingTime() const {
+  inline seconds Scheduler<Ntk, Opt, Par>::GetRemainingTime() const {
     if(nTimeout == 0) {
       return 0;
     }
-    time_point current = GetCurrentTime();
-    seconds nRemainingTime = nTimeout - DurationInSeconds(start, current);
+    time_point timeCurrent = GetCurrentTime();
+    seconds nRemainingTime = nTimeout - DurationInSeconds(timeStart, timeCurrent);
     if(nRemainingTime == 0) { // avoid glitch
       return -1;
     }
     return nRemainingTime;
+  }
+
+  template <typename Ntk, typename Opt, typename Par>
+  inline double Scheduler<Ntk, Opt, Par>::GetElapsedTime() const {
+    time_point timeCurrent = GetCurrentTime();
+    return Duration(timeStart, timeCurrent);
   }
 
   /* }}} */
@@ -153,8 +208,12 @@ namespace rrr {
   /* {{{ Run jobs */
 
   template <typename Ntk, typename Opt, typename Par>
-  void Scheduler<Ntk, Opt, Par>::RunJob(Opt &opt, Job const *pJob) {
-    opt.UpdateNetwork(pJob->pNtk);
+  void Scheduler<Ntk, Opt, Par>::RunJob(Opt &opt, Job *pJob) {
+    time_point timeStartLocal = GetCurrentTime();
+    opt.AssignNetwork(pJob->pNtk, !fPartitioning); // reuse backend if restarting
+    opt.SetPrintLine([&](std::string str) {
+      Print(-1, pJob->prefix, str);
+    });
     // start flow
     switch(nFlow) {
     case 0:
@@ -162,23 +221,17 @@ namespace rrr {
       break;
     case 1: { // transtoch
       std::mt19937 rng(pJob->iSeed);
-      double dCost = CostFunction(pJob->pNtk);
-      double dBestCost = dCost;
+      double cost = pJob->costInitial;
+      double costBest = cost;
       Ntk best(*(pJob->pNtk));
-      if(nVerbose) {
-        std::cout << "start: cost = " << dCost << std::endl;
-      }
       for(int i = 0; i < 10; i++) {
         if(GetRemainingTime() < 0) {
           break;
         }
         if(i != 0) {
           CallAbc(pJob->pNtk, "&if -K 6; &mfs; &st");
-          dCost = CostFunction(pJob->pNtk);
-          opt.UpdateNetwork(pJob->pNtk, true);
-          if(nVerbose) {
-            std::cout << "hop " << std::setw(3) << i << ": cost = " << dCost << std::endl;
-          }
+          cost = CostFunction(pJob->pNtk);
+          Print(1, pJob->prefix, "hop", i, ":", "cost", "=", cost);
         }
         for(int j = 0; true; j++) {
           if(GetRemainingTime() < 0) {
@@ -186,37 +239,28 @@ namespace rrr {
           }
           opt.Run(rng(), GetRemainingTime());
           CallAbc(pJob->pNtk, "&dc2");
-          double dNewCost = CostFunction(pJob->pNtk);
-          if(nVerbose) {
-            std::cout << "\tite " << std::setw(3) << j << ": cost = " << dNewCost << std::endl;
-          }
-          if(dNewCost < dCost) {
-            dCost = dNewCost;
-            opt.UpdateNetwork(pJob->pNtk, true);
+          double costNew = CostFunction(pJob->pNtk);
+          Print(1, pJob->prefix, "ite", j, ":", "cost", "=", costNew);
+          if(costNew < cost) {
+            cost = costNew;
           } else {
             break;
           }
         }
-        if(dCost < dBestCost) {
-          dBestCost = dCost;
+        if(cost < costBest) {
+          costBest = cost;
           best = *(pJob->pNtk);
           i = 0;
         }
       }
       *(pJob->pNtk) = best;
-      if(nVerbose) {
-        std::cout << "end: cost = " << dBestCost << std::endl;
-      }
       break;
     }
     case 2: { // deep
       std::mt19937 rng(pJob->iSeed);
       int n = 0;
-      double dCost = CostFunction(pJob->pNtk);
+      double cost = pJob->costInitial;
       Ntk best(*(pJob->pNtk));
-      if(nVerbose) {
-        std::cout << "start: cost = " << dCost << std::endl;
-      }
       for(int i = 0; i < 1000000; i++) {
         if(GetRemainingTime() < 0) {
           break;
@@ -246,38 +290,30 @@ namespace rrr {
           Command += "; &fx; &st";
         Command += pComp;
         CallAbc(pJob->pNtk, Command);
-        if(nVerbose) {
-          std::cout << "ite " << std::setw(6) << i << ": cost = " << CostFunction(pJob->pNtk) << std::endl;
-        }
+        Print(1, pJob->prefix, "ite", i, ":", "cost", "=", CostFunction(pJob->pNtk));
         // rrr
         for(int j = 0; j < n; j++) {
           if(GetRemainingTime() < 0) {
             break;
           }
-          opt.UpdateNetwork(pJob->pNtk, true);
           opt.Run(rng(), GetRemainingTime());
           if(rng() & 1) {
             CallAbc(pJob->pNtk, "&dc2");
           } else {
             CallAbc(pJob->pNtk, std::string("&put; ") + pCompress2rs + "; &get");
           }
-          if(nVerbose) {
-            std::cout << "\trrr " << std::setw(6) << j << ": cost = " << CostFunction(pJob->pNtk) << std::endl;
-          }
+          Print(1, pJob->prefix, "rrr", j, ":", "cost", "=", CostFunction(pJob->pNtk));
         }
         // eval
-        double dNewCost = CostFunction(pJob->pNtk);
-        if(dNewCost < dCost) {
-          dCost = dNewCost;
+        double costNew = CostFunction(pJob->pNtk);
+        if(costNew < cost) {
+          cost = costNew;
           best = *(pJob->pNtk);
         } else {
           n++;
         }
       }
       *(pJob->pNtk) = best;
-      if(nVerbose) {
-        std::cout << "end: cost = " << dCost << std::endl;
-      }
       break;
     }
     case 3:
@@ -287,6 +323,11 @@ namespace rrr {
     default:
       assert(0);
     }
+    time_point timeEndLocal = GetCurrentTime();
+    pJob->duration = Duration(timeStartLocal, timeEndLocal);
+    pJob->stats = opt.GetStatsSummary();
+    pJob->times = opt.GetTimesSummary();
+    opt.ResetSummary();
   }
 
   /* }}} */
@@ -294,8 +335,8 @@ namespace rrr {
   /* {{{ Manage jobs */
 
   template <typename Ntk, typename Opt, typename Par>
-  void Scheduler<Ntk, Opt, Par>::CreateJob(Ntk *pNtk_, int iSeed_) {
-    Job *pJob = new Job(nCreatedJobs++, pNtk_, iSeed_);
+  typename Scheduler<Ntk, Opt, Par>::Job *Scheduler<Ntk, Opt, Par>::CreateJob(Ntk *pNtk_, int iSeed_, double cost) {
+    Job *pJob = new Job(nCreatedJobs++, pNtk_, iSeed_, cost);
 #ifdef ABC_USE_PTHREADS
     if(fMultiThreading) {
       {
@@ -303,10 +344,11 @@ namespace rrr {
         qPendingJobs.push(pJob);
         condPendingJobs.notify_one();
       }
-      return;
+      return pJob;
     }
 #endif
     qPendingJobs.push(pJob);
+    return pJob;
   }
   
   template <typename Ntk, typename Opt, typename Par>
@@ -324,6 +366,8 @@ namespace rrr {
       }
       assert(pJob != NULL);
       func(pJob);
+      AddToSummary(vStatsSummaryKeys, mStatsSummary, pJob->stats);
+      AddToSummary(vTimesSummaryKeys, mTimesSummary, pJob->times);
       delete pJob;
       nFinishedJobs++;
       return;
@@ -335,6 +379,8 @@ namespace rrr {
     qPendingJobs.pop();
     RunJob(*pOpt, pJob);
     func(pJob);
+    AddToSummary(vStatsSummaryKeys, mStatsSummary, pJob->stats);
+    AddToSummary(vTimesSummaryKeys, mTimesSummary, pJob->times);
     delete pJob;
     nFinishedJobs++;
   }
@@ -374,6 +420,28 @@ namespace rrr {
 
   /* }}} */
   
+  /* {{{ Summary */
+
+  template <typename Ntk, typename Opt, typename Par>
+  template <typename T>
+  void Scheduler<Ntk, Opt, Par>::AddToSummary(std::vector<std::string> &keys, std::map<std::string, T> &m, summary<T> const &result) const {
+    std::vector<std::string>::iterator it = keys.begin();
+    for(auto const &entry: result) {
+      if(m.count(entry.first)) {
+        m[entry.first] += entry.second;
+        it = std::find(it, keys.end(), entry.first);
+        assert(it != keys.end());
+        it++;
+      } else {
+        m[entry.first] = entry.second;
+        it = keys.insert(it, entry.first);
+        it++;          
+      }
+    }
+  }
+  
+  /* }}} */
+
   /* {{{ Constructors */
 
   template <typename Ntk, typename Opt, typename Par>
@@ -439,74 +507,90 @@ namespace rrr {
 
   template <typename Ntk, typename Opt, typename Par>
   void Scheduler<Ntk, Opt, Par>::Run() {
-    start = GetCurrentTime();
+    timeStart = GetCurrentTime();
+    double costStart = CostFunction(pNtk);
     if(fPartitioning) {
       fDeterministic = false; // it is deterministic anyways as we wait until all jobs finish each round
       pNtk->Sweep();
-      par.UpdateNetwork(pNtk);
+      par.AssignNetwork(pNtk);
       while(nCreatedJobs < nJobs) {
         assert(nParallelPartitions > 0);
         if(nCreatedJobs < nFinishedJobs + nParallelPartitions) {
           Ntk *pSubNtk = par.Extract(iSeed + nCreatedJobs);
           if(pSubNtk) {
-            CreateJob(pSubNtk, iSeed + nCreatedJobs);
-            std::cout << "job " << nCreatedJobs - 1 << " created (size = " << pSubNtk->GetNumInts() << ")" << std::endl;
+            Job *pJob = CreateJob(pSubNtk, iSeed + nCreatedJobs, CostFunction(pSubNtk));
+            Print(1, pJob->prefix, "created ", ":", "i/o", "=", pJob->pNtk->GetNumPis(), "/", pJob->pNtk->GetNumPos(), ",", "node", "=", pJob->pNtk->GetNumInts(), ",", "level", "=", pJob->pNtk->GetNumLevels(), ",", "cost", "=", pJob->costInitial);
             continue;
           }
         }
         if(nCreatedJobs == nFinishedJobs) {
-          std::cout << "failed to partition" << std::endl;
+          PrintWarning("failed to partition");
           break;
         }
         while(nFinishedJobs < nCreatedJobs) {
           OnJobEnd([&](Job *pJob) {
-            std::cout << "job " << pJob->id << " finished (size = " << pJob->pNtk->GetNumInts() << ")" << std::endl;
+            double cost = CostFunction(pJob->pNtk);
+            Print(1, pJob->prefix, "finished", ":", "i/o", "=", pJob->pNtk->GetNumPis(), "/", pJob->pNtk->GetNumPos(), ",", "node", "=", pJob->pNtk->GetNumInts(), ",", "level", "=", pJob->pNtk->GetNumLevels(), ",", "cost", "=", cost);
+            Print(0, "", "job", pJob->id, "(", nFinishedJobs + 1, "/", nJobs, ")", ":", "i/o", "=", pJob->pNtk->GetNumPis(), "/", pJob->pNtk->GetNumPos(), ",", "node", "=", pJob->pNtk->GetNumInts(), ",", "level", "=", pJob->pNtk->GetNumLevels(), ",", "cost", "=", cost, "(", 100 * (cost - pJob->costInitial) / pJob->costInitial, "%", ")", ",", "duration", "=", pJob->duration, "s", ",", "elapsed", "=", GetElapsedTime(), "s");
             par.Insert(pJob->pNtk);
           });
         }
         if(fOptOnInsert) {
+          time_point timeStartLocal = GetCurrentTime();
           CallAbc(pNtk, std::string("&put; ") + pCompress2rs + "; dc2; &get");
-          par.UpdateNetwork(pNtk);
+          time_point timeEndLocal = GetCurrentTime();
+          par.AssignNetwork(pNtk);
+          double cost = CostFunction(pNtk);
+          Print(0, "", "c2rs; dc2", ":", std::string(34, ' '), "node", "=", pNtk->GetNumInts(), ",", "level", "=", pNtk->GetNumLevels(), ",", "cost", "=", cost, "(", 100 * (cost - costStart) / costStart, "%", ")", ",", "duration", "=", Duration(timeStartLocal, timeEndLocal), "s", ",", "elapsed", "=", GetElapsedTime(), "s");
         }
       }
       while(nFinishedJobs < nCreatedJobs) {
         OnJobEnd([&](Job *pJob) {
-          std::cout << "job " << pJob->id << " finished (size = " << pJob->pNtk->GetNumInts() << ")" << std::endl;
+          double cost = CostFunction(pJob->pNtk);
+          Print(1, pJob->prefix, "finished", ":", "i/o", "=", pJob->pNtk->GetNumPis(), "/", pJob->pNtk->GetNumPos(), ",", "node", "=", pJob->pNtk->GetNumInts(), ",", "level", "=", pJob->pNtk->GetNumLevels(), ",", "cost", "=", CostFunction(pJob->pNtk));
+          Print(0, "", "job", pJob->id, "(", nFinishedJobs + 1, "/", nJobs, ")", ":", "i/o", "=", pJob->pNtk->GetNumPis(), "/", pJob->pNtk->GetNumPos(), ",", "node", "=", pJob->pNtk->GetNumInts(), ",", "level", "=", pJob->pNtk->GetNumLevels(), ",", "cost", "=", cost, "(", 100 * (cost - pJob->costInitial) / pJob->costInitial, "%", ")", ",", "duration", "=", pJob->duration, "s", ",", "elapsed", "=", GetElapsedTime(), "s");
           par.Insert(pJob->pNtk);
         });
       }
       if(fOptOnInsert) {
         CallAbc(pNtk, std::string("&put; ") + pCompress2rs + "; dc2; &get");
-        par.UpdateNetwork(pNtk);
+        par.AssignNetwork(pNtk);
       }
     } else if(nJobs > 1) {
-      double dCost = CostFunction(pNtk);
+      double costBest = costStart;
       for(int i = 0; i < nJobs; i++) {
         Ntk *pCopy = new Ntk(*pNtk);
-        CreateJob(pCopy, iSeed + i);
+        CreateJob(pCopy, iSeed + i, costBest);
       }
       for(int i = 0; i < nJobs; i++) {
         OnJobEnd([&](Job *pJob) {
-          double dNewCost = CostFunction(pJob->pNtk);
-          if(nVerbose) {
-            std::cout << "run " << pJob->id << ": cost = " << dNewCost << std::endl;
-          }
-          if(dNewCost < dCost) {
-            dCost = dNewCost;
+          double cost = CostFunction(pJob->pNtk);
+          Print(0, "", "job", pJob->id, "(", nFinishedJobs + 1, "/", nJobs, ")", ":", "node", "=", pJob->pNtk->GetNumInts(), ",", "level", "=", pJob->pNtk->GetNumLevels(), ",", "cost", "=", cost, "(", 100 * (cost - pJob->costInitial) / pJob->costInitial, "%", ")", ",", "duration", "=", pJob->duration, "s", ",", "elapsed", "=", GetElapsedTime(), "s");
+          if(cost < costBest) {
+            costBest = cost;
             *pNtk = *(pJob->pNtk);
           }
           delete pJob->pNtk;
         });
       }
     } else {
-      CreateJob(pNtk, iSeed);
-      OnJobEnd([&](Job *pJob) { (void)pJob; });
+      CreateJob(pNtk, iSeed, costStart);
+      OnJobEnd([&](Job *pJob) {
+        double cost = CostFunction(pJob->pNtk);
+        Print(0, "", "job", pJob->id, "(", nFinishedJobs + 1, "/", nJobs, ")", ":", "node", "=", pJob->pNtk->GetNumInts(), ",", "level", "=", pJob->pNtk->GetNumLevels(), ",", "cost", "=", cost, "(", 100 * (cost - pJob->costInitial) / pJob->costInitial, "%", ")", ",", "duration", "=", pJob->duration, "s", ",", "elapsed", "=", GetElapsedTime(), "s");
+      });
     }
-    time_point end = GetCurrentTime();
-    double elapsed_seconds = Duration(start, end);
-    if(nVerbose) {
-      std::cout << "elapsed: " << std::fixed << std::setprecision(3) << elapsed_seconds << "s" << std::endl;
+    double cost = CostFunction(pNtk);
+    double duration = GetElapsedTime();
+    Print(0, "\n", "stats summary", ":");
+    for(std::string key: vStatsSummaryKeys) {
+      Print(0, "\t", SW{30, true}, key, ":", SW{10}, mStatsSummary[key]);
     }
+    Print(0, "", "runtime summary", ":");
+    for(std::string key: vTimesSummaryKeys) {
+      Print(0, "\t", SW{30, true}, key, ":", mTimesSummary[key], "s", "(", 100 * mTimesSummary[key] / duration, "%", ")");
+    }
+    Print(0, "", "end", ":", "cost", "=", cost, "(", 100 * (cost - costStart) / costStart, "%", ")", ",", "time", "=", duration, "s");
   }
 
   /* }}} */

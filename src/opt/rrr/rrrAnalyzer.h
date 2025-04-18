@@ -23,11 +23,16 @@ namespace rrr {
   public:
     // constructors
     Analyzer(Parameter const *pPar);
-    void UpdateNetwork(Ntk *pNtk_, bool fSame);
+    void AssignNetwork(Ntk *pNtk_, bool fReuse);
 
     // checks
     bool CheckRedundancy(int id, int idx);
     bool CheckFeasibility(int id, int fi, bool c);
+
+    // summary
+    void ResetSummary();
+    summary<int> GetStatsSummary() const;
+    summary<double> GetTimesSummary() const;
   };
 
   /* {{{ Constructors */
@@ -39,12 +44,12 @@ namespace rrr {
     sim(pPar),
     sol(pPar) {
   }
-  
+
   template <typename Ntk, typename Sim, typename Sol>
-  void Analyzer<Ntk, Sim, Sol>::UpdateNetwork(Ntk *pNtk_, bool fSame) {
+  void Analyzer<Ntk, Sim, Sol>::AssignNetwork(Ntk *pNtk_, bool fReuse) {
     pNtk = pNtk_;
-    sim.UpdateNetwork(pNtk, fSame);
-    sol.UpdateNetwork(pNtk, fSame);
+    sim.AssignNetwork(pNtk, fReuse);
+    sol.AssignNetwork(pNtk, fReuse);
   }
 
   /* }}} */
@@ -70,6 +75,10 @@ namespace rrr {
         }
         sim.AddCex(sol.GetCex());
       }
+    } else {
+      // if(nVerbose) {
+      //   std::cout << "node " << id << " fanin " << (pNtk->GetCompl(id, idx)? "!": "") << pNtk->GetFanin(id, idx) << " index " << idx << " is not redundant" << std::endl;
+      // }
     }
     return false;
   }
@@ -93,8 +102,38 @@ namespace rrr {
         }
         sim.AddCex(sol.GetCex());
       }
+    } else {
+      // if(nVerbose) {
+      //   std::cout << "node " << id << " fanin " << (c? "!": "") << fi << " is not feasible" << std::endl;
+      // }
     }
     return false;
+  }
+
+  /* }}} */
+
+  /* {{{ Summary */
+  
+  template <typename Ntk, typename Sim, typename Sol>
+  void Analyzer<Ntk, Sim, Sol>::ResetSummary() {
+    sim.ResetSummary();
+    sol.ResetSummary();
+  }
+  
+  template <typename Ntk, typename Sim, typename Sol>
+  summary<int> Analyzer<Ntk, Sim, Sol>::GetStatsSummary() const {
+    summary<int> v = sim.GetStatsSummary();
+    summary<int> v2 = sol.GetStatsSummary();
+    v.insert(v.end(), v2.begin(), v2.end());
+    return v;
+  }
+
+  template <typename Ntk, typename Sim, typename Sol>
+  summary<double> Analyzer<Ntk, Sim, Sol>::GetTimesSummary() const {
+    summary<double> v = sim.GetTimesSummary();
+    summary<double> v2 = sol.GetTimesSummary();
+    v.insert(v.end(), v2.begin(), v2.end());
+    return v;
   }
 
   /* }}} */

@@ -35,7 +35,7 @@ Gia_Man_t *Gia_ManRrr(Gia_Man_t *pGia, int iSeed, int nWords, int nTimeout, int 
   Par.fOptOnInsert = fOptOnInsert;
   Par.fGreedy = fGreedy;
   rrr::Perform(&ntk, &Par);
-  Gia_Man_t *pNew = rrr::CreateGia(&ntk);
+  Gia_Man_t *pNew = rrr::CreateGia(&ntk, false);
   return pNew;
 }
 

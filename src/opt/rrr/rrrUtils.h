@@ -97,7 +97,8 @@ namespace rrr {
   /* {{{ Print next */
 
   struct SW {
-    int width;
+    int width = 0;
+    bool left = false;
   };
 
   struct NS {}; // no space
@@ -107,6 +108,16 @@ namespace rrr {
   template <typename T, typename... Args>
   void PrintNext(std::ostream &os, T t, Args... args);
   
+  static inline void PrintNext(std::ostream &os, int t) {
+    os << std::setw(4) << t;
+  }
+
+  template <typename... Args>
+  static inline void PrintNext(std::ostream &os, int t, Args... args) {
+    os << std::setw(4) << t << " ";
+    PrintNext(os, args...);
+  }
+
   static inline void PrintNext(std::ostream &os, bool arg) {
     os << arg;
   }
@@ -121,16 +132,6 @@ namespace rrr {
     PrintNext(os, args...);
   }
   
-  static inline void PrintNext(std::ostream &os, int t) {
-    os << std::setw(4) << t;
-  }
-
-  template <typename... Args>
-  static inline void PrintNext(std::ostream &os, int t, Args... args) {
-    os << std::setw(4) << t << " ";
-    PrintNext(os, args...);
-  }
-
   static inline void PrintNext(std::ostream &os, double t) {
     os << std::fixed << std::setprecision(2) << std::setw(8) << t;
   }
@@ -143,12 +144,24 @@ namespace rrr {
 
   template <typename T>
   static inline void PrintNext(std::ostream &os, SW sw, T arg) {
+    if(sw.left) {
+      os << std::left;
+    }
     os << std::setw(sw.width) << arg;
+    if(sw.left) {
+      os << std::right;
+    }
   }
 
   template <typename T, typename... Args>
   static inline void PrintNext(std::ostream &os, SW sw, T arg, Args... args) {
+    if(sw.left) {
+      os << std::left;
+    }
     os << std::setw(sw.width) << arg << " ";
+    if(sw.left) {
+      os << std::right;
+    }
     PrintNext(os, args...);
   }
 
@@ -161,24 +174,20 @@ namespace rrr {
   
   template <typename T>
   static inline void PrintNext(std::ostream& os, std::vector<T> const &arg) {
-    std::string delim;
-    os << "[";
+    os << "[ ";
     for(T const &e: arg) {
-      os << delim;
       PrintNext(os, e);
-      delim = ", ";
+      os << " ";
     }
     os << "]";
   }
 
   template <typename T, typename... Args>
   static inline void PrintNext(std::ostream& os, std::vector<T> const &arg, Args... args) {
-    std::string delim;
-    os << "[";
+    os << "[ ";
     for(T const &e: arg) {
-      os << delim;
       PrintNext(os, e);
-      delim = ", ";
+      os << " ";
     }
     os << "] ";
     PrintNext(os, args...);
@@ -186,24 +195,20 @@ namespace rrr {
 
   template <typename T>
   static inline void PrintNext(std::ostream& os, std::set<T> const &arg) {
-    std::string delim;
-    os << "{";
+    os << "{ ";
     for(T const &e: arg) {
-      os << delim;
       PrintNext(os, e);
-      delim = ", ";
+      os << " ";
     }
     os << "}";
   }
 
   template <typename T, typename... Args>
   static inline void PrintNext(std::ostream& os, std::set<T> const &arg, Args... args) {
-    std::string delim;
-    os << "{";
+    os << "{ ";
     for(T const &e: arg) {
-      os << delim;
       PrintNext(os, e);
-      delim = ", ";
+      os << " ";
     }
     os << "} ";
     PrintNext(os, args...);
@@ -222,6 +227,14 @@ namespace rrr {
   
   /* }}} */
 
+  /* {{{ Print others */
+
+  static inline void PrintWarning(std::string message) {
+    std::cerr << "[w] " << message << std::endl;
+  }
+
+  /* }}} */
+  
   /* {{{ Combination */
 
   bool ForEachCombinationStopRec(std::vector<int> &v, int n, int k, std::function<bool(std::vector<int> const &)> const &func) {
@@ -306,6 +319,8 @@ namespace rrr {
       return "trivial decompose";
     case SORT_FANINS:
       return "sort fanins";
+    case READ:
+      return "read";
     case SAVE:
       return "save";
     case LOAD:
@@ -323,32 +338,35 @@ namespace rrr {
   static inline std::stringstream GetActionDescription(Action const &action) {
     std::stringstream ss;
     ss << GetActionTypeCstr(action);
-    std::string delim = ": ";
+    std::string delim = " : ";
     if(action.id != -1) {
       ss << delim;
       PrintNext(ss, "node", action.id);
-      delim = ", ";
+      delim = " , ";
     }
     if(action.fi != -1) {
       ss << delim;
       PrintNext(ss, "fanin", (bool)action.c, action.fi);
-      delim = ", ";
+      delim = " , ";
     }
     if(action.idx != -1) {
       ss << delim;
       PrintNext(ss, "index", action.idx);
     }
+    if(action.fNew) {
+      ss << " new";
+    }
     ss << std::endl;
     if(!action.vFanins.empty()) {
-      ss << "fanins: ";
+      ss << "fanins : ";
       PrintNext(ss, action.vFanins);
     }
     if(!action.vIndices.empty()) {
-      ss << "indices: ";
+      ss << "indices : ";
       PrintNext(ss, action.vIndices);
     }
     if(!action.vFanouts.empty()) {
-      ss << "fanouts: ";
+      ss << "fanouts : ";
       PrintNext(ss, action.vFanouts);
     }
     return ss;

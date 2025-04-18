@@ -64,13 +64,13 @@ namespace rrr {
     AndNetwork &operator=(AndNetwork const &x);
 
     // initialization APIs (should not be called after optimization has started)
-    void Clear();
+    void Clear(bool fClearCallbacks = true);
     void Reserve(int nReserve);
     int  AddPi();
     int  AddAnd(int id0, int id1, bool c0, bool c1);
     int  AddPo(int id, bool c);
     template <typename Ntk, typename Reader>
-    void Read(Ntk *pFrom, Reader &reader);
+    void Read(Ntk *pFrom, Reader &reader, bool fNew = true);
 
     // network properties
     bool UseComplementedEdges() const;
@@ -78,6 +78,7 @@ namespace rrr {
     int  GetNumPis() const;
     int  GetNumInts() const;
     int  GetNumPos() const;
+    int  GetNumLevels() const;
     int  GetConst0() const;
     int  GetPi(int idx) const;
     int  GetPo(int idx) const;
@@ -272,7 +273,7 @@ namespace rrr {
 
   /* {{{ Initialization APIs */
 
-  void AndNetwork::Clear() {
+  void AndNetwork::Clear(bool fClearCallbacks) {
     nNodes = 0;
     vPis.clear();
     lInts.clear();
@@ -284,7 +285,9 @@ namespace rrr {
     iTrav = 0;
     vTrav.clear();
     fPropagating = false;
-    vCallbacks.clear();
+    if(fClearCallbacks) {
+      vCallbacks.clear();
+    }
     vBackups.clear();
     // add constant node
     vvFaninEdges.emplace_back();
@@ -330,9 +333,13 @@ namespace rrr {
   }
 
   template <typename Ntk, typename Reader>
-  void AndNetwork::Read(Ntk *pFrom, Reader &reader) {
-    Clear();
+  void AndNetwork::Read(Ntk *pFrom, Reader &reader, bool fNew) {
+    Clear(false);
     reader(pFrom, this);
+    Action action;
+    action.type = READ;
+    action.fNew = fNew;
+    TakenAction(action);
   }
   
   /* }}} */
@@ -357,6 +364,23 @@ namespace rrr {
   
   inline int AndNetwork::GetNumPos() const {
     return int_size(vPos);
+  }
+
+  int AndNetwork::GetNumLevels() const {
+    int nMaxLevel = 0;
+    std::vector<int> vLevels(nNodes);
+    ForEachInt([&](int id) {
+      ForEachFanin(id, [&](int fi) {
+        if(vLevels[id] < vLevels[fi]) {
+          vLevels[id] = vLevels[fi];
+        }
+      });
+      vLevels[id] += 1;
+      if(nMaxLevel < vLevels[id]) {
+        nMaxLevel = vLevels[id];
+      }
+    });
+    return nMaxLevel;
   }
 
   inline int AndNetwork::GetConst0() const {
