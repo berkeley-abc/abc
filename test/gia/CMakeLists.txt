@@ -1,7 +1,6 @@
 add_executable(gia_test gia_test.cc)
 
 target_link_libraries(gia_test
-    gtest
     gtest_main
     libabc
 )
