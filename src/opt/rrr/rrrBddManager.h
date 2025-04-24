@@ -181,6 +181,7 @@ namespace NewBdd {
     bvar   nObjs;
     bvar   nObjsAlloc;
     bvar   nObjsMax;
+    unsigned long long nCreatedTotal;
     bvar   RemovedHead;
     int    nGbc;
     bvar   nReo;
@@ -396,6 +397,7 @@ namespace NewBdd {
       for(; *q; q = vNexts.begin() + *q)
         if(VarOfBvar(*q) == v && ThenOfBvar(*q) == x1 && ElseOfBvar(*q) == x0)
           return Bvar2Lit(*q);
+      nCreatedTotal++;
       bvar next = *p;
       if(nObjs < nObjsAlloc)
         *p = nObjs++;
@@ -642,6 +644,7 @@ namespace NewBdd {
 
   public:
     Man(int nVars_, Param p) {
+      nCreatedTotal = 0;
       nVerbose = p.nVerbose;
       // parameter sanity check
       if(p.nObjsMaxLog < p.nObjsAllocLog)
@@ -839,6 +842,9 @@ namespace NewBdd {
                 << "dead: " << std::setw(10) << nRemoved << ", "
                 << "alloc: " << std::setw(10) << nObjsAlloc
                 << std::endl;
+    }
+    unsigned long long GetNumTotalCreatedNodes() {
+      return nCreatedTotal;
     }
   };
 

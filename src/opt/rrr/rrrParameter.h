@@ -8,7 +8,7 @@ namespace rrr {
     int iSeed = 0;
     int nWords = 10;
     int nTimeout = 0;
-    int nSchedulerVerbose = 1;
+    int nSchedulerVerbose = 0;
     int nPartitionerVerbose = 0;
     int nOptimizerVerbose = 0;
     int nAnalyzerVerbose = 0;
