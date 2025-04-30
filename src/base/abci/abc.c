@@ -10548,7 +10548,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INKTSFMiaocgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INKTFMSYiaocgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10596,15 +10596,6 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->RuntimeLim < 0 )
                 goto usage;
             break;
-        case 'S':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            pPars->pSymStr = argv[globalUtilOptind];
-            globalUtilOptind++;
-            break;
         case 'F':
             if ( globalUtilOptind >= argc )
             {
@@ -10621,6 +10612,26 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }
             pPars->nMintNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pPars->Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( pPars->Seed < 0 )
+                goto usage;
+            break;
+        case 'Y':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-Y\" should be followed by a string.\n" );
+                goto usage;
+            }
+            pPars->pSymStr = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
         case 'i':
@@ -10690,7 +10701,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-INKTFM <num>] [-S string] [-iaocgvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-INKTFMS <num>] [-Y string] [-iaocgvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of I-input function using N K-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
@@ -10698,7 +10709,8 @@ usage:
     Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", pPars->RuntimeLim );
     Abc_Print( -2, "\t-F <num> : the number of random functions to try [default = unused]\n" );
     Abc_Print( -2, "\t-M <num> : the number of positive minterms in the random function [default = unused]\n" );
-    Abc_Print( -2, "\t-S <str> : charasteristic string of a symmetric function [default = %d]\n", pPars->pSymStr );
+    Abc_Print( -2, "\t-S <num> : the random seed for random function generation with -F <num> [default = %d]\n", pPars->Seed );
+    Abc_Print( -2, "\t-Y <str> : charasteristic string of a symmetric function [default = %d]\n", pPars->pSymStr );
     Abc_Print( -2, "\t-i       : toggle using incremental solving [default = %s]\n", pPars->fUseIncr ? "yes" : "no" );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );

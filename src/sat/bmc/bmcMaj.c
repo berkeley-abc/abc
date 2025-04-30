@@ -1580,18 +1580,19 @@ int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
 void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars )
 {
     int i, k, nDecs = 0, nWords = Abc_TtWordNum(pPars->nVars);
-    word * pFun = ABC_ALLOC( word, nWords );
-    Abc_Random(1);
-    printf( "\n" );
+    word * pFun = ABC_ALLOC( word, nWords ); 
+    unsigned Rand0 = Abc_Random(1);
+    for ( i = 0; i < pPars->Seed; i++ )
+        Rand0 = Abc_Random(0);    
     for ( i = 0; i < pPars->nRandFuncs; i++ ) {
         if ( pPars->nMintNum == 0 )
             for ( k = 0; k < nWords; k++ )
-                pFun[k] = Abc_RandomW(0);
+                pFun[k] = Rand0 ^ Abc_RandomW(0);
         else {
             Abc_TtClear( pFun, nWords );
             for ( k = 0; k < pPars->nMintNum; k++ ) {
                 int iMint = 0;
-                do iMint = Abc_Random(0) % (1 << pPars->nVars);
+                do iMint = (Rand0 ^ Abc_Random(0)) % (1 << pPars->nVars);
                 while ( Abc_TtGetBit(pFun, iMint) );
                 Abc_TtSetBit( pFun, iMint );
             }
@@ -1607,7 +1608,7 @@ void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars )
         nDecs += Exa3_ManExactSynthesis( pPars );
         ABC_FREE( pPars->pTtStr );
     }
-    printf( "Decomposable are %d (out of %d) functions (%.2f %%).\n", nDecs, pPars->nRandFuncs, 100.0*nDecs/pPars->nRandFuncs );
+    printf( "\nDecomposable are %d (out of %d) functions (%.2f %%).\n", nDecs, pPars->nRandFuncs, 100.0*nDecs/pPars->nRandFuncs );
     ABC_FREE( pFun );
 }
 
