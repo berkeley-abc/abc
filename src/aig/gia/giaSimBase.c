@@ -288,6 +288,21 @@ void Gia_ManSimPatWrite( char * pFileName, Vec_Wrd_t * vSimsIn, int nWords )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Wrd_t * Gia_ManDeriveNodeFuncs( Gia_Man_t * p )
+{
+    int nWords = Abc_Truth6WordNum( Gia_ManCiNum(p) );
+    Vec_Wrd_t * vSims = Vec_WrdStart( nWords * Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachCi( p, pObj, i )
+        assert( Gia_ObjId(p, pObj) == i+1 );
+    Vec_Ptr_t * vTruths = Vec_PtrAllocTruthTables( Gia_ManCiNum(p) );
+    Gia_ManForEachCi( p, pObj, i )
+        Abc_TtCopy( Vec_WrdEntryP(vSims, nWords*(i+1)), (word *)Vec_PtrEntry(vTruths, i), nWords, 0 );
+    Vec_PtrFree( vTruths );
+    Gia_ManForEachAnd( p, pObj, i )
+        Gia_ManSimPatSimAnd( p, i, pObj, nWords, vSims );
+    return vSims;
+}
 word * Gia_ManDeriveFuncs( Gia_Man_t * p )
 {
     int nVars2 = (Gia_ManCiNum(p) + 6)/2;

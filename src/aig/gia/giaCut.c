@@ -1179,6 +1179,46 @@ Vec_Ptr_t * Gia_ManMatchCutsMany( Vec_Mem_t * vTtMem, Vec_Int_t * vMap, int nFun
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManDumpCuts( Gia_Man_t * p, int nCutSize, int nCutNum, int fVerbose )
+{
+    FILE * pFile = fopen( "input.txt", "wb" ); if ( !pFile ) return;
+    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( p, nCutSize, nCutNum, 0 );
+    Vec_Int_t * vLevel; int i, k, c, * pCut, nCuts = 0, nNodes = 0;
+    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
+        if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) )
+            continue;
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) {
+            if ( pCut[0] == 1 )
+                continue;
+            fprintf( pFile, "%d ", i );
+            for ( c = 1; c <= pCut[0]; c++ )
+                fprintf( pFile, "%d ", pCut[c] );
+            fprintf( pFile, "1\n" );
+            nCuts += pCut[0];
+            nNodes++;
+        }
+    }
+    Gia_Obj_t * pObj;
+    Gia_ManForEachCo( p, pObj, i ) {
+        fprintf( pFile, "%d %d 0\n", Gia_ObjId(p, pObj), Gia_ObjFaninId0p(p, pObj) );
+    }
+    fclose( pFile );
+    Gia_StoFree( pSto );
+    if ( fVerbose )
+        printf( "Dumped %d cuts for %d nodes into file \"input.txt\".\n", nCuts, nNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Function enumeration.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Vec_Wrd_t * Gia_ManCollectCutFuncs( Gia_Man_t * p, int nCutSize, int nCutNum, int fVerbose )
 {
     Gia_Sto_t * pSto = Gia_ManMatchCutsInt( p, nCutSize, nCutNum, 0 );

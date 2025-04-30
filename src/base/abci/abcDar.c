@@ -18,6 +18,9 @@
 
 ***********************************************************************/
 
+//#include <dirent.h>
+//#include <sys/stat.h>
+
 #include "base/abc/abc.h"
 #include "base/main/main.h"
 #include "aig/gia/giaAig.h"
@@ -36,6 +39,7 @@
 #include "proof/pdr/pdr.h"
 #include "sat/bmc/bmc.h"
 #include "map/mio/mio.h"
+#include "misc/vec/vecMem.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -4901,6 +4905,275 @@ Abc_Ntk_t * Abc_NtkDarTestNtk( Abc_Ntk_t * pNtk )
     return pNtkAig;
 
 }
+
+#if 0
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Data_ListDirsFilesCompareNames( char ** pp1, char ** pp2 )
+{
+    return strcmp( *pp1, *pp2 );
+}
+char ** Data_ListDirsFiles(const char *path, const char *ext) 
+{
+    int iItems = 0, nItems = 1000;
+    char ** pRes = (char **)calloc( sizeof(char*), nItems );    
+    DIR *dir;
+    struct dirent *entry;
+    struct stat statbuf;
+
+    // Open the directory
+    if ((dir = opendir(path)) == NULL) {
+        perror("opendir");
+        return NULL;
+    }
+
+    // Read each entry in the directory
+    while ((entry = readdir(dir)) != NULL) {
+        char full_path[1024];
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+        // Get the status of the entry
+        if (stat(full_path, &statbuf) == -1) {
+            perror("stat");
+            continue;
+        }
+
+        if (ext == NULL) {
+            // If no file extension is provided, list subdirectories
+            if (S_ISDIR(statbuf.st_mode)) {
+                // Skip "." and ".." directories
+                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+                    continue;
+                }
+
+                // Print the directory name
+                //printf("%s\n", entry->d_name);
+                assert( iItems < nItems );
+                pRes[iItems] = (char *)calloc( sizeof(char), strlen(entry->d_name)+1 ); 
+                memcpy( pRes[iItems++], entry->d_name, strlen(entry->d_name) );
+            }
+        } else {
+            // If file extension is provided, list files with that extension
+            if (S_ISREG(statbuf.st_mode)) { // Check if it's a regular file
+                const char *dot = strrchr(entry->d_name, '.');
+                if (dot && strcmp(dot + 1, ext) == 0) {
+                    // Print the file name
+                    //printf("%s\n", entry->d_name);
+                    assert( iItems <= nItems );
+                    if ( iItems == nItems ) {
+                        pRes = ABC_REALLOC( char *, pRes, nItems *= 2 );
+                        memset( pRes + nItems/2, 0, sizeof(char *) * nItems/2 );
+                    }
+                    pRes[iItems] = (char *)calloc( sizeof(char), strlen(entry->d_name)+1 ); 
+                    memcpy( pRes[iItems++], entry->d_name, strlen(entry->d_name) );
+                }
+            }
+        }
+    }
+
+    qsort( (void *)pRes, (size_t)iItems, sizeof(char *), (int (*)(const void *, const void *)) Data_ListDirsFilesCompareNames );
+
+    // Close the directory
+    closedir(dir);
+    if ( iItems == 0 )
+        ABC_FREE( pRes );
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManDeriveNodeClasses( Gia_Man_t * p, Vec_Wrd_t * vSims )
+{
+    abctime clkStart = Abc_Clock();
+    int nVars  = Gia_ManCiNum(p);
+    int nWords = Abc_Truth6WordNum( nVars );
+    Vec_Mem_t * vTtMem = Vec_MemAllocForTTSimple( nVars );   
+    Vec_Int_t * vRes = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Gia_Obj_t * pObj; int i;
+    for ( i = 0; i <= nVars; i++ ) {
+        int iFunc = Vec_MemHashInsert( vTtMem, Vec_WrdEntryP(vSims, i*nWords) );
+        assert( iFunc == i );
+        Vec_IntWriteEntry( vRes, i, i );
+    }
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        word * pTruth = Vec_WrdEntryP( vSims, i*nWords );
+        if ( pTruth[0] & 1 ) 
+            for ( int k = 0; k < nWords; k++ )
+                pTruth[k] = ~pTruth[k];
+        int iFunc = Vec_MemHashInsert(vTtMem, pTruth);
+        //assert( iFunc > nVars );
+        Vec_IntWriteEntry( vRes, i, iFunc );
+    }
+    printf( "Detected %d unique functions among %d nodes. ", Vec_MemEntryNum(vTtMem) - nVars - 1, Gia_ManAndNum(p) );
+    Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    Vec_MemFree( vTtMem );
+    return vRes;
+}
+int Gia_ManExploreNode_rec( Gia_Man_t * p, int Obj, int Repr, Vec_Int_t * vFuncs )
+{
+    if ( Obj == Repr || Vec_IntEntry(vFuncs, Obj) == -1 )
+        return 0;
+    if ( Obj < Repr )
+        return 1;
+    if ( Gia_ObjIsTravIdCurrentId(p, Obj) )
+        return 1;
+    Gia_ObjSetTravIdCurrentId(p, Obj);
+    Gia_Obj_t * pObj = Gia_ManObj(p, Obj);
+    if ( !Gia_ManExploreNode_rec( p, Gia_ObjFaninId0(pObj, Obj), Repr, vFuncs ) )
+        return 0;
+    if ( !Gia_ManExploreNode_rec( p, Gia_ObjFaninId1(pObj, Obj), Repr, vFuncs ) )
+        return 0;
+    if ( Vec_IntEntry(vFuncs, Obj) != Obj ) {
+        if ( !Gia_ManExploreNode_rec( p, Vec_IntEntry(vFuncs, Obj), Repr, vFuncs ) )
+            return 0;
+    }
+    return 1;
+}
+int Gia_ManChoiceCheck( Gia_Man_t * p, Gia_Obj_t * pObj, int i, Vec_Int_t * vFuncs )
+{
+    if ( Vec_IntEntry(vFuncs, Gia_ObjFaninId0p(p, pObj)) == -1 || Vec_IntEntry(vFuncs, Gia_ObjFaninId1p(p, pObj)) == -1 )
+        return 0;
+    if ( i == Vec_IntEntry(vFuncs, i) )
+        return 1;
+    assert( i > Vec_IntEntry(vFuncs, i) );
+    Gia_ManIncrementTravId( p );    
+    if ( !Gia_ManExploreNode_rec(p, i, Vec_IntEntry(vFuncs, i), vFuncs) )
+        return 0;
+    return 1;    
+}
+void Gia_ManChoicesClean( Gia_Man_t * p, Vec_Int_t * vFuncs )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Vec_IntEntry(vFuncs, i) <= Gia_ManCiNum(p) || !Gia_ManChoiceCheck(p, pObj, i, vFuncs) )
+            Vec_IntWriteEntry( vFuncs, i, -1 );
+}
+Gia_Man_t * Gia_ManTransformToChoices( Gia_Man_t * p )
+{
+    Vec_Wrd_t * Gia_ManDeriveNodeFuncs( Gia_Man_t * p );
+    Vec_Wrd_t * vSims  = Gia_ManDeriveNodeFuncs( p );
+    Vec_Int_t * vFuncs = Gia_ManDeriveNodeClasses( p, vSims );
+    Gia_ManChoicesClean( p, vFuncs );
+    Vec_WrdFree( vSims );
+
+    Gia_Man_t * pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_ManHashAlloc( pNew );
+    Gia_Obj_t * pObj; int i;
+    Gia_ManSetPhase(p);
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i ) {
+        if ( Vec_IntEntry(vFuncs, i) == -1 )
+            continue;
+        else if ( Vec_IntEntry(vFuncs, i) == i )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else {
+            int iFunc = Vec_IntEntry(vFuncs, i);
+            pNew->pSibls[i] = pNew->pSibls[iFunc];
+            pNew->pSibls[iFunc] = i;
+            pObj->Value = Abc_Var2Lit( iFunc, pObj->fPhase ^ Gia_ManObj(p, iFunc)->fPhase );
+            //printf( "Adding choice %d -> %d\n", iFunc, i );
+        }
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Vec_IntFree( vFuncs );
+    return pNew;
+}
+void Gia_ManTestAppend( Gia_Man_t * pNew, Gia_Man_t * pTwo )
+{
+    Gia_Obj_t * pObj; int i;
+    assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(pTwo) );
+    Gia_ManConst0(pTwo)->Value = 0;
+    Gia_ManForEachCand( pTwo, pObj, i )
+    {
+        if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        else if ( Gia_ObjIsCi(pObj) )
+            pObj->Value = Gia_Obj2Lit( pNew, Gia_ManCi( pNew, Gia_ObjCioId(pObj) ) );
+    }
+}
+Gia_Man_t * Abc_NtkDarTestFiles()
+{
+    char full_path[1024];
+    const char *directory_path = "temp";
+    const char *ext = "aig";
+    char ** pItems = Data_ListDirsFiles(directory_path, ext);
+    if ( pItems == NULL ) {
+        printf( "There are no files in directory \"%s\".\n", directory_path );
+        return NULL;
+    }
+
+    //for ( i = 0; pItems[i]; i++ )
+    //    printf( "%d : %s\n", i, pItems[i] );
+
+    Gia_Obj_t * pObj; int i;
+    Gia_Man_t * pNew = NULL;
+    Gia_Man_t * pTemp = NULL;
+    for ( i = 0; pItems[i]; i++ )
+    {
+        snprintf(full_path, sizeof(full_path), "%s/%s", directory_path, pItems[i]);
+        Gia_Man_t * pTwo = Gia_AigerRead( full_path, 0, 0, 0 );
+        if ( i == 0 ) {
+            pNew = Gia_ManStart( 10000 );
+            pNew->pName = Abc_UtilStrsav( pTwo->pName );
+            pNew->pSpec = Abc_UtilStrsav( pTwo->pSpec );
+            for ( int k = 0; k < Gia_ManCiNum(pTwo); k++ )
+                Gia_ManAppendCi( pNew );
+        }
+        Gia_ManTestAppend( pNew, pTwo );
+        if ( i == 0 )
+            pTemp = pTwo;
+        else 
+            Gia_ManStop( pTwo );
+        if ( i < 4 )
+            printf( "%d : %s\n", i, pItems[i] );
+    }
+    printf( "Finished reading %d files.\n", i );
+    Gia_ManForEachCo( pTemp, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManStop( pTemp );
+    
+    Gia_ManPrintStats( pNew, NULL );
+
+    pNew = Gia_ManTransformToChoices( pTemp = pNew );
+    Gia_ManStop( pTemp );
+
+    Gia_ManPrintStats( pNew, NULL );
+
+    for ( i = 0; pItems[i]; i++ )
+        free( pItems[i] );
+    free( pItems );
+
+    //Gia_AigerWrite( pNew, "all.aig", 0, 0, 0 );
+    //Gia_ManStop( pNew );
+    return pNew;
+}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
