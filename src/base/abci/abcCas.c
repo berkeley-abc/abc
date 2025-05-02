@@ -656,12 +656,12 @@ void Abc_LutCascadeDerive( word * p, int nVars, int nBVars, int Myu, word * pRem
 }
 
 // performs decomposition of one stage
-static inline int Abc_LutCascadeDecStage( char * pGuide, int Iter, Vec_Wrd_t * vFuncs[3], Vec_Int_t * vVarIDs, int nRVars, int nRails, int nLutSize, int fVerbose, Vec_Wrd_t * vCas )
+static inline int Abc_LutCascadeDecStage( char * pGuide, int Iter, Vec_Wrd_t * vFuncs[3], Vec_Int_t * vVarIDs, int nRVars, int nRails, int nLutSize, int fVerbose, Vec_Wrd_t * vCas, int * pMyu )
 {
-    extern word Abc_TtFindBVarsSVars( word * p, int nVars, int nRVars, int nRails, int nLutSize, int fVerbose );
+    extern word Abc_TtFindBVarsSVars( word * p, int nVars, int nRVars, int nRails, int nLutSize, int fVerbose, int * pMyu );
     assert( Vec_IntSize(vVarIDs) > nLutSize );
     assert( Vec_IntSize(vVarIDs) <= 24 );
-    word Guide = pGuide ? 0 : Abc_TtFindBVarsSVars( Vec_WrdArray(vFuncs[0]), Vec_IntSize(vVarIDs), nRVars, nRails, nLutSize, fVerbose );
+    word Guide = pGuide ? 0 : Abc_TtFindBVarsSVars( Vec_WrdArray(vFuncs[0]), Vec_IntSize(vVarIDs), nRVars, nRails, nLutSize, fVerbose, pMyu );
     if ( !pGuide && !Guide ) {
         if ( fVerbose )
             printf( "The function is not decomposable with %d rails.\n", nRails );
@@ -716,7 +716,7 @@ static inline int Abc_LutCascadeDecStage( char * pGuide, int Iter, Vec_Wrd_t * v
     Vec_IntShrink( vVarIDs, nFVars+nSVars+nEVars );
     return nEVars;
 }
-word * Abc_LutCascadeDec( char * pGuide, word * pTruth, int nVarsOrig, Vec_Int_t * vVarIDs, int nRails, int nLutSize, int nStages, int fVerbose, int * pnStages )
+word * Abc_LutCascadeDec( char * pGuide, word * pTruth, int nVarsOrig, Vec_Int_t * vVarIDs, int nRails, int nLutSize, int nStages, int fVerbose, int * pnStages, int * pMyu )
 {
     word * pRes = NULL; int i, nRVars = 0, nVars = Vec_IntSize(vVarIDs);
     Vec_Wrd_t * vFuncs[3] = { Vec_WrdStart(Abc_TtWordNum(nVars)), Vec_WrdAlloc(0), Vec_WrdAlloc(0) };
@@ -724,7 +724,7 @@ word * Abc_LutCascadeDec( char * pGuide, word * pTruth, int nVarsOrig, Vec_Int_t
     Vec_Wrd_t * vCas = Vec_WrdAlloc( 100 ); Vec_WrdPush( vCas, nVarsOrig );
     if ( pnStages ) *pnStages = 0;
     for ( i = 0; Vec_IntSize(vVarIDs) > nLutSize; i++ ) {
-        nRVars = Abc_LutCascadeDecStage( pGuide, i, vFuncs, vVarIDs, nRVars, nRails, nLutSize, fVerbose, vCas );
+        nRVars = Abc_LutCascadeDecStage( pGuide, i, vFuncs, vVarIDs, nRVars, nRails, nLutSize, fVerbose, vCas, pMyu );
         if ( i+2 > nStages ) {
             printf( "The length of the cascade (%d) exceeds the max allowed number of stages (%d).\n", i+2, nStages );
             nRVars = -1;
@@ -863,7 +863,7 @@ Abc_Ntk_t * Abc_NtkLutCascade2( Abc_Ntk_t * pNtk, int nLutSize, int nStages, int
             printf( ".\n" );
         }
 
-        word * pLuts = Abc_LutCascadeDec( pGuide, pTruth1, Abc_NtkCiNum(pNtk), vVarIDs, nRails, nLutSize, nStages, fVerbose, NULL );
+        word * pLuts = Abc_LutCascadeDec( pGuide, pTruth1, Abc_NtkCiNum(pNtk), vVarIDs, nRails, nLutSize, nStages, fVerbose, NULL, NULL );
         pNew = pLuts ? Abc_NtkLutCascadeFromLuts( pLuts, Abc_NtkCiNum(pNtk), pNtk, nLutSize, fVerbose ) : NULL;
         Vec_IntFree( vVarIDs );
         
@@ -1379,7 +1379,7 @@ Vec_Wrd_t * Abc_NtkLutCasReadTruths( char * pFileName, int nVarsOrig )
 void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int nStages, int nRails, int nIters, int Seed, int fVerbose, int fVeryVerbose )
 {
     abctime clkStart = Abc_Clock();   
-    int i, Sum = 0, nStageCount, nTotalLuts = 0, nWords = Abc_TtWordNum(nVarsOrig);
+    int i, Sum = 0, nStageCount = 0, MyuMin = 0, nTotalLuts = 0, nWords = Abc_TtWordNum(nVarsOrig);
     Vec_Wrd_t * vTruths = NULL;
     if ( strstr(pFileName, ".txt") )
         vTruths = Abc_NtkLutCasReadTruths( pFileName, nVarsOrig );
@@ -1397,7 +1397,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
 
     printf( "Considering %d functions having %d variables from file \"%s\".\n", nFuncs, nVarsOrig, pFileName );
     word * pCopy = ABC_ALLOC( word, nWords );
-    int Iter = 0, LutStats[100] = {0}, StageStats[100] = {0};
+    int Iter = 0, LutStats[50] = {0}, StageStats[50] = {0}, MyuStats[50] = {0};
     Abc_Random(1);
     for ( i = 0; i < Seed; i++ )
         Abc_Random(0);
@@ -1409,7 +1409,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         if ( fVeryVerbose )
             printf( "\n" );
         if ( fVerbose || fVeryVerbose )
-            printf( "Function %3d : ", i );
+            printf( "Function %4d : ", i );
         if ( fVeryVerbose )
             Abc_TtPrintHexRev( stdout, pTruth, nVarsOrig ), printf( "\n" );
         //continue;
@@ -1424,7 +1424,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
             printf( "Decomposing %d-var function into %d-rail cascade of %d-LUTs.\n", nVars, nRails, nLutSize );
         }
         
-        word * pLuts = Abc_LutCascadeDec( NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, fVeryVerbose, &nStageCount );
+        word * pLuts = Abc_LutCascadeDec( NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, fVeryVerbose, &nStageCount, &MyuMin );
         Vec_IntFree( vVarIDs );
         if ( pLuts == NULL ) {
             if ( ++Iter < nIters ) {
@@ -1439,8 +1439,10 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         Iter = 0;
         Sum++;
         nTotalLuts += Abc_LutCascadeCount(pLuts);
-        LutStats[Abc_LutCascadeCount(pLuts)]++;
-        StageStats[nStageCount]++;
+        if ( Abc_LutCascadeCount(pLuts) < 50 )
+            LutStats[Abc_LutCascadeCount(pLuts)]++;
+        if ( nStageCount < 50) StageStats[nStageCount]++;
+        if ( MyuMin < 50 )     MyuStats[MyuMin]++;
         word * pTruth2 = Abc_LutCascadeTruth( pLuts, nVarsOrig );
         if ( fVeryVerbose )
             Abc_LutCascadePrint( pLuts );
@@ -1458,12 +1460,16 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     }
     ABC_FREE( pCopy );
     Vec_WrdFree( vTruths );
+    printf( "Column multiplicity statistics for %d-rail LUT cascade:\n", nRails );
+    for ( i = 0; i < 50; i++ )
+        if ( MyuStats[i] )
+            printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/nFuncs );
     printf( "Level count statistics for %d-rail LUT cascade:\n", nRails );
-    for ( i = 0; i < 100; i++ )
+    for ( i = 0; i < 50; i++ )
         if ( StageStats[i] )
             printf( "   %2d level : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/nFuncs );
     printf( "LUT count statistics for %d-rail LUT cascade:\n", nRails );
-    for ( i = 0; i < 100; i++ )
+    for ( i = 0; i < 50; i++ )
         if ( LutStats[i] )
             printf( "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, LutStats[i], 100.0*LutStats[i]/nFuncs );
     printf( "Non-decomp : Function count = %8d (%6.2f %%)\n", nFuncs-Sum, 100.0*(nFuncs-Sum)/Abc_MaxInt(1, nFuncs) );

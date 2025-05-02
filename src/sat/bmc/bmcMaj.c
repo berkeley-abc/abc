@@ -1674,7 +1674,7 @@ void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars )
         }
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
         Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
-        printf( "\nIteration %d : ", i );
+        printf( "\nFunction %4d : ", i );
         if ( pPars->nMintNum )
             printf( "Random function has %d positive minterms.", pPars->nMintNum );
         printf( "\n" );
@@ -1683,7 +1683,7 @@ void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars )
         nDecs += Exa3_ManExactSynthesis( pPars );
         ABC_FREE( pPars->pTtStr );
     }
-    printf( "\nDecomposable are %d (out of %d) functions (%.2f %%).\n", nDecs, pPars->nRandFuncs, 100.0*nDecs/pPars->nRandFuncs );
+    printf( "\nDecomposable are %d (out of %d) functions (%.2f %%).\n\n", nDecs, pPars->nRandFuncs, 100.0*nDecs/pPars->nRandFuncs );
     ABC_FREE( pFun );
 }
 

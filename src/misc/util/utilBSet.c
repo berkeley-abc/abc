@@ -996,7 +996,7 @@ word * Abc_LutCascade2( word * pFunc, int nVars, int nLutSize, int nLuts, int nR
   SeeAlso     []
 
 ***********************************************************************/
-word Abc_TtFindBVarsSVars( word * pTruth, int nVars, int nRVars, int nRails, int nLutSize, int fVerbose )
+word Abc_TtFindBVarsSVars( word * pTruth, int nVars, int nRVars, int nRails, int nLutSize, int fVerbose, int * pMyu )
 {
     Abc_BSEval_t * p = Abc_BSEvalAlloc(); 
     int nPermVars = nVars-nRVars;
@@ -1026,6 +1026,7 @@ word Abc_TtFindBVarsSVars( word * pTruth, int nVars, int nRVars, int nRails, int
     //printf("Function before: "); Abc_TtPrintHexRev( stdout, pCopy, nVars ); printf( "\n" );
     int MyuMin = Abc_BSEvalBest( p, pCopy, pBest, nVars, nRVars, nVars-nLutSize, 0, pPermBest, 0 );
     //printf("Function before: "); Abc_TtPrintHexRev( stdout, pCopy, nVars ); printf( "\n" );
+    if ( pMyu ) *pMyu = MyuMin;
 
     if ( fVerbose ) {
         printf( "Best perm: " );

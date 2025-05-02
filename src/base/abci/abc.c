@@ -7771,7 +7771,7 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
         strcat( pCommLine, pNumber );
         strcat( pCommLine, pSpot+1 );
         if ( fVerbose )
-            printf( "Iteration %3d : %s\n", c, pCommLine );
+            printf( "ITERATION %3d : %s\n", c, pCommLine );
         if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pCommLine) ) {
             Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pCommLine );
             goto usage;
