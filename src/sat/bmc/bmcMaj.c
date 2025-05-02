@@ -1009,6 +1009,7 @@ struct Exa3_Man_t_
     int               VarMarks[MAJ_NOBJS][6][MAJ_NOBJS]; // variable marks
     int               VarVals[MAJ_NOBJS]; // values of the first nVars variables
     Vec_Wec_t *       vOutLits;  // output vars
+    Vec_Wec_t *       vInVars;   // input vars
     bmcg_sat_solver * pSat;      // SAT solver
     int               nUsed[2];
 };
@@ -1039,6 +1040,54 @@ static inline int     Exa3_ManIsUsed3( Exa3_Man_t * p, int m, int n, int i, int 
     return 0;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Exa3_ChooseInputVars_int( int nVars, int nLuts, int nLutSize )
+{
+    Vec_Wec_t * p = Vec_WecStart( nLuts ); 
+    Vec_Int_t * vLevel; int i;
+    Vec_WecForEachLevel( p, vLevel, i ) {
+        do { 
+            int iVar = (Abc_Random(0) ^ Abc_Random(0) ^ Abc_Random(0)) % nVars;
+            Vec_IntPushUniqueOrder( vLevel, iVar );
+        }
+        while ( Vec_IntSize(vLevel) < nLutSize-(int)(i>0) );
+    }
+    return p;
+}
+Vec_Int_t * Exa3_CountInputVars( int nVars, Vec_Wec_t * p )
+{
+    Vec_Int_t * vLevel; int i, k, Obj;
+    Vec_Int_t * vCounts = Vec_IntStart( nVars );
+    Vec_WecForEachLevel( p, vLevel, i )
+        Vec_IntForEachEntry( vLevel, Obj, k )
+            Vec_IntAddToEntry( vCounts, Obj, 1 );
+    return vCounts;
+}
+Vec_Wec_t * Exa3_ChooseInputVars( int nVars, int nLuts, int nLutSize )
+{
+    for ( int i = 0; i < 1000; i++ ) {
+        Vec_Wec_t * p = Exa3_ChooseInputVars_int( nVars, nLuts, nLutSize );
+        Vec_Int_t * q = Exa3_CountInputVars( nVars, p );
+        int RetValue  = Vec_IntFind( q, 0 );
+        Vec_IntFree( q );
+        if ( RetValue == -1 )
+            return p;
+        Vec_WecFree( p );
+    }
+    assert( 0 );
+    return NULL;
+}
 
 /**Function*************************************************************
 
@@ -1102,6 +1151,19 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
         }
     }
     printf( "The number of parameter variables = %d.\n", p->iVar );
+    if ( p->pPars->fLutCascade && p->pPars->fLutInFixed ) {
+        p->vInVars = Exa3_ChooseInputVars( p->nVars, p->nNodes, p->nLutSize );
+        if ( 1 ) {
+            Vec_Int_t * vLevel; int i, Var;
+            printf( "Using fixed input assignment:\n" );
+            Vec_WecForEachLevelReverse( p->vInVars, vLevel, i ) {
+                printf( "%02d : ", p->nVars+i );
+                Vec_IntForEachEntry( vLevel, Var, k )
+                    printf( "%c ", 'a'+Var );
+                printf( "\n" );
+            }
+        }
+    }
     return p->iVar;
     // printout
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
@@ -1148,6 +1210,7 @@ static void Exa3_ManFree( Exa3_Man_t * p )
     Vec_BitFreeP( &p->vUsed2 );
     Vec_BitFreeP( &p->vUsed3 );
     Vec_WecFree( p->vOutLits );
+    Vec_WecFreeP( &p->vInVars );
     ABC_FREE( p );
 }
 
@@ -1395,6 +1458,18 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
         assert( Vec_IntSize(vArray) > 0 );
         if ( !bmcg_sat_solver_addclause( p->pSat, Vec_IntArray(vArray), Vec_IntSize(vArray) ) )
             return 0;
+    }
+    if ( p->vInVars ) {
+        Vec_Int_t * vLevel; int Var;
+        Vec_WecForEachLevel( p->vInVars, vLevel, i )
+        {
+            assert( Vec_IntSize(vLevel) > 0 );
+            Vec_IntForEachEntry( vLevel, Var, k ) {
+                pLits[0] = Abc_Var2Lit( p->VarMarks[p->nVars+i][p->nLutSize-1-k][Var], 0 ); assert(pLits[0]);
+                if ( !bmcg_sat_solver_addclause( p->pSat, pLits, 1 ) )
+                    return 0;
+            }
+        }
     }
     return 1;
 }
