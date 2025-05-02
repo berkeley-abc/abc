@@ -1463,7 +1463,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     printf( "Column multiplicity statistics for %d-rail LUT cascade:\n", nRails );
     for ( i = 0; i < 50; i++ )
         if ( MyuStats[i] )
-            printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/nFuncs );
+            printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, MyuStats[i], 100.0*MyuStats[i]/nFuncs );
     printf( "Level count statistics for %d-rail LUT cascade:\n", nRails );
     for ( i = 0; i < 50; i++ )
         if ( StageStats[i] )
@@ -1472,7 +1472,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     for ( i = 0; i < 50; i++ )
         if ( LutStats[i] )
             printf( "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, LutStats[i], 100.0*LutStats[i]/nFuncs );
-    printf( "Non-decomp : Function count = %8d (%6.2f %%)\n", nFuncs-Sum, 100.0*(nFuncs-Sum)/Abc_MaxInt(1, nFuncs) );
+    printf( "Non-decomp  : Function count = %8d (%6.2f %%)\n", nFuncs-Sum, 100.0*(nFuncs-Sum)/Abc_MaxInt(1, nFuncs) );
     printf( "Finished %d functions (%.2f LUTs / function; %.2f functions / sec).  ", 
         nFuncs, 1.0*nTotalLuts/Sum, 1.0*nFuncs/(((double)(Abc_Clock() - clkStart))/((double)CLOCKS_PER_SEC)) );
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
