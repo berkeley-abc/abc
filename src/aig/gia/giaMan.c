@@ -474,6 +474,7 @@ void Gia_ManLogAigStats( Gia_Man_t * p, char * pDumpFile )
     fprintf( pTable, "    \"name\" : \"%s\",\n", p->pName );
     fprintf( pTable, "    \"input\" : %d,\n",    Gia_ManCiNum(p) );
     fprintf( pTable, "    \"output\" : %d,\n",   Gia_ManCoNum(p) );
+    fprintf( pTable, "    \"flop\" : %d,\n",     Gia_ManRegNum(p) );
     fprintf( pTable, "    \"and\" : %d,\n",      Gia_ManAndNum(p) );
     fprintf( pTable, "    \"level\" : %d\n",     Gia_ManLevelNum(p) );
     fprintf( pTable, "}\n" );
