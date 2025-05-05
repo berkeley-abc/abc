@@ -724,7 +724,7 @@ word * Abc_LutCascadeDec( char * pGuide, word * pTruth, int nVarsOrig, Vec_Int_t
     Vec_Wrd_t * vCas = Vec_WrdAlloc( 100 ); Vec_WrdPush( vCas, nVarsOrig );
     if ( pnStages ) *pnStages = 0;
     for ( i = 0; Vec_IntSize(vVarIDs) > nLutSize; i++ ) {
-        nRVars = Abc_LutCascadeDecStage( pGuide, i, vFuncs, vVarIDs, nRVars, nRails, nLutSize, fVerbose, vCas, pMyu );
+        nRVars = Abc_LutCascadeDecStage( pGuide, i, vFuncs, vVarIDs, nRVars, nRails, nLutSize, fVerbose, vCas, i ? NULL : pMyu );
         if ( i+2 > nStages ) {
             printf( "The length of the cascade (%d) exceeds the max allowed number of stages (%d).\n", i+2, nStages );
             nRVars = -1;
@@ -1426,6 +1426,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         
         word * pLuts = Abc_LutCascadeDec( NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, fVeryVerbose, &nStageCount, &MyuMin );
         Vec_IntFree( vVarIDs );
+        if ( MyuMin < 50 )     MyuStats[MyuMin]++;
         if ( pLuts == NULL ) {
             if ( ++Iter < nIters ) {
                 i--;
@@ -1442,7 +1443,6 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         if ( Abc_LutCascadeCount(pLuts) < 50 )
             LutStats[Abc_LutCascadeCount(pLuts)]++;
         if ( nStageCount < 50) StageStats[nStageCount]++;
-        if ( MyuMin < 50 )     MyuStats[MyuMin]++;
         word * pTruth2 = Abc_LutCascadeTruth( pLuts, nVarsOrig );
         if ( fVeryVerbose )
             Abc_LutCascadePrint( pLuts );
@@ -1463,7 +1463,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     printf( "Column multiplicity statistics for %d-rail LUT cascade:\n", nRails );
     for ( i = 0; i < 50; i++ )
         if ( MyuStats[i] )
-            printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, MyuStats[i], 100.0*MyuStats[i]/nFuncs );
+            printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, MyuStats[i], 100.0*MyuStats[i]/nFuncs/nIters );
     printf( "Level count statistics for %d-rail LUT cascade:\n", nRails );
     for ( i = 0; i < 50; i++ )
         if ( StageStats[i] )
