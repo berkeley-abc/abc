@@ -1,0 +1,28 @@
+name: abc-test
+
+dependencies:
+  - python ={{ get_env("PY_VER", default="3.10") }}
+  - cmake>=3.18
+  - ninja
+  - make  # [unix]
+  - pkg-config  # [unix]
+  - readline=8.1  # [unix]
+  - zlib
+  - libpng
+  - gtest=1.14.0  # [not win]
+  - abseil-cpp
+  - re2
+  - lcov
+  - gcovr
+  - c-compiler
+  - cxx-compiler
+  - ccache         # [unix]
+  - clcache        # [win]
+  - six
+
+environment:
+  CPATH:
+    - $CONDA_PREFIX/include           # [unix]
+    - $CONDA_PREFIX/Library/include   # [win]
+
+  LD_LIBRARY_PATH: $CONDA_PREFIX/lib  # [unix]

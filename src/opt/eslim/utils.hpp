@@ -9,7 +9,7 @@
   Synopsis    [Utilities for the eSLIM package.]
 
   Author      [Franz-Xaver Reichl]
-  
+
   Affiliation [University of Freiburg]
 
   Date        [Ver. 1.0. Started - March 2025.]
@@ -33,21 +33,21 @@ ABC_NAMESPACE_CXX_HEADER_START
 
 namespace eSLIM {
 
-  struct eSLIMConfig {                           
-    bool extended_normality_processing = false;                   
-    bool apply_strash = true;                                   
-    bool fix_seed = false;    
-    bool fill_subcircuits = false;                              
+  struct eSLIMConfig {
+    bool extended_normality_processing = false;
+    bool apply_strash = true;
+    bool fix_seed = false;
+    bool fill_subcircuits = false;
     bool trial_limit_active = true;
-    bool allow_xors = false;               
+    bool allow_xors = false;
 
-    unsigned int timeout = 3600;                    
-    unsigned int iterations = 0;                          
-    unsigned int subcircuit_size_bound = 6;            
-    unsigned int strash_intervall = 100;    
+    unsigned int timeout = 3600;
+    unsigned int iterations = 0;
+    unsigned int subcircuit_size_bound = 6;
+    unsigned int strash_intervall = 100;
     int seed = 0;
     unsigned int nselection_trials = 100;
-    double expansion_probability = 0.6;  
+    double expansion_probability = 0.6;
 
     // times given in sec
     int minimum_sat_timeout = 1;
@@ -81,18 +81,18 @@ namespace eSLIM {
     Vec_Int_t* io;
     unsigned int nof_inputs;
     std::unordered_map<int, std::unordered_set<int>> forbidden_pairs;
-    void free();
+    void _free();
   };
 
-  inline void Subcircuit::free() {
+  inline void Subcircuit::_free() {
     Vec_IntFree(nodes);
     Vec_IntFree(io);
   }
 
-  inline eSLIMLog::eSLIMLog(int size) 
+  inline eSLIMLog::eSLIMLog(int size)
           : nof_analyzed_circuits_per_size(size + 1, 0), nof_replaced_circuits_per_size(size + 1, 0),
             nof_reduced_circuits_per_size(size + 1, 0), cummulative_sat_runtimes_per_size(size + 1, 0),
-            nof_sat_calls_per_size(size + 1, 0), cummulative_unsat_runtimes_per_size(size + 1, 0), 
+            nof_sat_calls_per_size(size + 1, 0), cummulative_unsat_runtimes_per_size(size + 1, 0),
             nof_unsat_calls_per_size(size + 1, 0) {
   }
 
