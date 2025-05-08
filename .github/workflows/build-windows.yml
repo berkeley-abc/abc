@@ -28,12 +28,12 @@ jobs:
     - name: Prepare MSVC
       uses: bus1/cabuild/action/msdevshell@v1
       with:
-        architecture: x86
+        architecture: x64
 
     - name: Upgrade project files to latest Visual Studio, ignoring upgrade errors, and build
       run: |
         devenv abcspace.dsw /upgrade  ; if (-not $? ) { cat UpgradeLog.htm }
-        msbuild abcspace.sln /m /nologo /p:Configuration=Release /p:PlatformTarget=x86
+        msbuild abcspace.sln /m /nologo /p:Configuration=Release /p:PlatformTarget=x64
 
     - name: Test Executable
       run: |
