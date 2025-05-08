@@ -191,7 +191,7 @@ Gia_Man_t * Gia_ManAigSyn3( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     Gia_ManStop( pTemp );
     return pNew;
 }
-Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
+Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fCover, int fVerbose, int fVeryVerbose )
 {
     Gia_Man_t * pNew, * pTemp;
     Jf_Par_t Pars, * pPars = &Pars;
@@ -209,13 +209,14 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fVerbose, int fVeryVerbose )
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    // perform mapping
-    pPars->nLutSize = 7;
+    // perform mapping, use fCover, instead of default 7, can reduce memory/runtime
+    pPars->nLutSize = fCover; // 7;
     pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
 //    Gia_ManStop( pTemp );
-    // perform extraction
-    pNew = Gia_ManPerformFx( pTemp = pNew, ABC_INFINITY, 0, 0, fVeryVerbose, 0 );
+    // perform extraction, use a smaller divider than default for smaller memory footprint
+    int ndivider = 50000; // ABC_INFINITY
+    pNew = Gia_ManPerformFx( pTemp = pNew, ndivider, 0, 0, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
     Gia_ManStop( pTemp );
     // perform balancing

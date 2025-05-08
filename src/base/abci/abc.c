@@ -39263,8 +39263,9 @@ int Abc_CommandAbc9Syn4( Abc_Frame_t * pAbc, int argc, char ** argv )
     Gia_Man_t * pTemp;
     int c, fVerbose = 0;
     int fVeryVerbose = 0;
+    int fCover = 7;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vwfh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -39273,6 +39274,15 @@ int Abc_CommandAbc9Syn4( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'w':
             fVeryVerbose ^= 1;
+            break;
+        case 'f': // a hidden switch
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-f\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            fCover = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
             break;
         case 'h':
             goto usage;
