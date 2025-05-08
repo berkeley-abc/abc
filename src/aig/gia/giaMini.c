@@ -758,7 +758,7 @@ int * Abc_FrameReadMiniLutSwitching2( Abc_Frame_t * pAbc, int fRandPiFactor )
     Vec_IntFree( vSwitching );
     return pRes;
 }
-int * Abc_FrameReadMiniLutSwitchingPo( Abc_Frame_t * pAbc )
+int * Abc_FrameReadMiniLutSwitchingPo( Abc_Frame_t * pAbc, int nFrames )
 {
     Vec_Int_t * vSwitching;
     int i, iObj, * pRes = NULL;
@@ -767,7 +767,7 @@ int * Abc_FrameReadMiniLutSwitchingPo( Abc_Frame_t * pAbc )
         printf( "GIA derived from MiniAIG is not available.\n" );
         return NULL;
     }
-    vSwitching = Gia_ManComputeSwitchProbs( pAbc->pGiaMiniAig, 48, 16, 0 );
+    vSwitching = Gia_ManComputeSwitchProbs( pAbc->pGiaMiniAig, nFrames, 16, 0 );
     pRes = ABC_CALLOC( int, Gia_ManCoNum(pAbc->pGiaMiniAig) );
     Gia_ManForEachCoDriverId( pAbc->pGiaMiniAig, iObj, i )
          pRes[i] = (int)(10000*Vec_FltEntry( (Vec_Flt_t *)vSwitching, iObj ));
@@ -844,7 +844,7 @@ int * Abc_FrameReadMiniAigEquivClasses( Abc_Frame_t * pAbc )
         printf( "Internal GIA with equivalence classes is not available.\n" );
     if ( pAbc->pGia2->pReprs == NULL )
     {
-        printf( "Equivalence classes of internal GIA are not available.\n" );
+        //printf( "Equivalence classes of internal GIA are not available.\n" );
         return NULL;
     }
     else if ( 0 )
@@ -1145,13 +1145,18 @@ Gia_Man_t * Gia_MiniAigSuperDeriveGia( Vec_Wec_t * p, int nPis, int Multi )
     Vec_IntFree( vDrivers );
     return pNew;
 }
-Gia_Man_t * Gia_MiniAigSuperDerive( char * pFileName, int fVerbose )
+Gia_Man_t * Gia_MiniAigSuperDeriveT( Mini_Aig_t* p, int fVerbose )
 {
-    Mini_Aig_t * p     = Mini_AigLoad( pFileName );
     Vec_Wec_t * vSuper = Gia_MiniAigSuperGates( p );
     int Multi          = Gia_MiniAigSuperPreprocess( p, vSuper, Mini_AigPiNum(p), fVerbose );
     Gia_Man_t * pNew   = Gia_MiniAigSuperDeriveGia( vSuper, Mini_AigPiNum(p), Multi );
     Vec_WecFree( vSuper );
+    return pNew;
+}
+Gia_Man_t * Gia_MiniAigSuperDerive( char * pFileName, int fVerbose )
+{
+    Mini_Aig_t * p     = Mini_AigLoad( pFileName );
+    Gia_Man_t * pNew   = Gia_MiniAigSuperDeriveT( p, fVerbose );
     Mini_AigStop( p );
     return pNew;
 }

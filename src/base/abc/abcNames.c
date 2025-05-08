@@ -650,8 +650,8 @@ void Abc_NtkRedirectCiCo( Abc_Ntk_t * pNtk )
             Abc_NtkDeleteObj( pFanin );
         Count++;
     }
-    if ( Count )
-        printf( "Redirected %d POs from buffers to PIs with the same name.\n", Count );
+    //if ( Count )
+    //    printf( "Redirected %d POs from buffers to PIs with the same name.\n", Count );
 }
 void Abc_NtkMoveNames( Abc_Ntk_t * pNtk, Abc_Ntk_t * pOld )
 {

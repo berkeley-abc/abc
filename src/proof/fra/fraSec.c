@@ -289,8 +289,8 @@ ABC_PRT( "Time", Abc_Clock() - clk );
     if ( pParSec->fFraiging )
     {
 clk = Abc_Clock();
-    pNew = Fra_FraigEquivence( pTemp = pNew, 100, 0 );
-    //pNew = Fra_FraigEquivence2( pTemp = pNew, 100, 0 );
+    //pNew = Fra_FraigEquivence( pTemp = pNew, 100, 0 );
+    pNew = Fra_FraigEquivence2( pTemp = pNew, 100, 0 );
     Aig_ManStop( pTemp );
     if ( pParSec->fVerbose )
     {

@@ -159,10 +159,12 @@ int Wln_NtkIsAcyclic_rec( Wln_Ntk_t * p, int iObj )
     // check if the node is part of the combinational loop
     if ( Wln_ObjIsTravIdCurrent(p, iObj) )
     {
+		/*
         fprintf( stdout, "Network contains combinational loop!\n" );
         fprintf( stdout, "Node %16s is encountered twice on the following path:\n", Wln_ObjName(p, iObj) );
         fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d) ->\n", 
             Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
+		*/
         return 0;
     }
     // mark this node as a node on the current path
@@ -180,8 +182,10 @@ int Wln_NtkIsAcyclic_rec( Wln_Ntk_t * p, int iObj )
         if ( !Wln_NtkIsAcyclic_rec(p, iFanin) )
         {
             // return as soon as the loop is detected
+			/*
             fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d) ->\n", 
                 Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
+			*/
             return 0;
         }
     }
@@ -206,7 +210,7 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
         if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, "Primary output %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
+        //fprintf( stdout, "Primary output %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
         goto finish;
     }
     Wln_NtkForEachFf( p, iObj, i )
@@ -215,26 +219,26 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
         if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
             continue;
         // stop as soon as the first loop is detected
-        fprintf( stdout, "Flip-flop %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
+        //fprintf( stdout, "Flip-flop %16s (ID %6d)\n", Wln_ObjName(p, iObj), iObj );
         goto finish;
     }
     Wln_NtkForEachObj( p, iObj )
-        nUnvisited += !Wln_ObjIsTravIdPrevious(p, iObj) && !Wln_ObjIsCi(p, iObj);
+        nUnvisited += !Wln_ObjIsTravIdPrevious(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj);
     if ( nUnvisited )
     {
         int nSinks = 0;
         Wln_NtkCreateRefs(p);
-        printf( "The network has %d objects and %d (%6.2f %%) of them are not connected to the outputs.\n", 
-            Wln_NtkObjNum(p), nUnvisited, 100.0*nUnvisited/Wln_NtkObjNum(p) );
+        //printf( "The network has %d objects and %d (%6.2f %%) of them are not connected to the outputs.\n", 
+        //    Wln_NtkObjNum(p), nUnvisited, 100.0*nUnvisited/Wln_NtkObjNum(p) );
         Wln_NtkForEachObj( p, iObj )
-            if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj) && !Wln_ObjIsFf(p, iObj) )
+            if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj) && !Wln_ObjIsFf(p, iObj) && !Wln_ObjIsConst(p, iObj) )
                 nSinks++;
         if ( nSinks )
         {
             int nPrinted = 0;
             printf( "These unconnected objects feed into %d sink objects without fanout:\n", nSinks );
             Wln_NtkForEachObj( p, iObj )
-                if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj) && !Wln_ObjIsFf(p, iObj) )
+                if ( !Wln_ObjRefs(p, iObj) && !Wln_ObjIsCi(p, iObj) && !Wln_ObjIsCo(p, iObj) && !Wln_ObjIsFf(p, iObj) && !Wln_ObjIsConst(p, iObj) )
                 {
                     fprintf( stdout, "Node %16s (ID %6d) of type %5s (type ID %2d)\n", 
                         Wln_ObjName(p, iObj), iObj, Abc_OperName(Wln_ObjType(p, iObj)), Wln_ObjType(p, iObj) );
@@ -251,8 +255,11 @@ int Wln_NtkIsAcyclic( Wln_Ntk_t * p )
                 if ( (fAcyclic = Wln_NtkIsAcyclic_rec(p, iObj)) )
                     continue;
                 // stop as soon as the first loop is detected
-                fprintf( stdout, "Unconnected object %s\n", Wln_ObjName(p, iObj) );
+                // fprintf( stdout, "Unconnected object %s\n", Wln_ObjName(p, iObj) );
+                // fprintf( stdout, "Unconnected object %s (ID %6d) of type %2d\n", Wln_ObjName(p, iObj), iObj, Wln_ObjType(p, iObj) );
+                // This means design has loop, the above message is too cryptic for end-user
                 goto finish;
+
             }
     }
 finish:

@@ -215,7 +215,7 @@ finish:
     if ( fSkipUpdate )
         return 0;
     // update the network
-    Sfm_NtkUpdate( p, iNode, f, (iVar == -1 ? iVar : Vec_IntEntry(p->vDivs, iVar)), uTruth, p->pTruth );
+    Sfm_NtkUpdate( p, iNode, Sfm_ObjFanin( p, iNode, f ), (iVar == -1 ? iVar : Vec_IntEntry(p->vDivs, iVar)), uTruth, p->pTruth );
     // the number of fanins cannot increase
     assert( nFanins >= Sfm_ObjFaninNum(p, iNode) );
     //printf( "Modifying node %d with %d fanins (resulting in %d fanins).  ", iNode, nFanins, Sfm_ObjFaninNum(p, iNode) );
@@ -377,7 +377,7 @@ int Sfm_NtkPerform( Sfm_Ntk_t * p, Sfm_Par_t * pPars )
             p->nPis, p->nPos, p->nNodes, p->nNodes-nFixed, nFixed, nEmpty );
     }
     p->pPars = pPars;
-    Sfm_NtkPrepare( p );
+    Sfm_NtkPrepare( p, pPars );
 //    Sfm_ComputeInterpolantCheck( p );
 //    return 0;
     p->nTotalNodesBeg = Vec_WecSizeUsedLimits( &p->vFanins, Sfm_NtkPiNum(p), Vec_WecSize(&p->vFanins) - Sfm_NtkPoNum(p) );

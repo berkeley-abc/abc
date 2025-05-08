@@ -29,6 +29,9 @@
 #include "aig/aig/aig.h"
 #include "gia.h"
 
+#include "misc/extra/extra.h"
+#include "aig/miniaig/miniaig.h"
+
 ABC_NAMESPACE_HEADER_START
 
 
@@ -66,6 +69,9 @@ extern Gia_Man_t *         Gia_ManPerformDch( Gia_Man_t * p, void * pPars );
 extern Gia_Man_t *         Gia_ManAbstraction( Gia_Man_t * p, Vec_Int_t * vFlops );
 extern void                Gia_ManSeqCleanupClasses( Gia_Man_t * p, int fConst, int fEquiv, int fVerbose );
 extern int                 Gia_ManSolveSat( Gia_Man_t * p );
+
+extern Gia_Man_t *         Gia_MiniAigSuperDeriveT( Mini_Aig_t* p, int fVerbose );
+extern Mini_Aig_t *        Gia_ManToMiniAig( Gia_Man_t * pGia );
 
 
 ABC_NAMESPACE_HEADER_END

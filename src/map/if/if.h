@@ -612,7 +612,7 @@ extern int             If_CutDsdBalanceEval( If_Man_t * p, If_Cut_t * pCut, Vec_
 extern int             If_CutDsdBalancePinDelays( If_Man_t * p, If_Cut_t * pCut, char * pPerm );
 extern void            Id_DsdManTuneThresh( If_DsdMan_t * p, int fUnate, int fThresh, int fThreshHeuristic, int fVerbose );
 /*=== ifLib.c =============================================================*/
-extern If_LibLut_t *   If_LibLutRead( char * FileName );
+extern If_LibLut_t *   If_LibLutRead( char * FileName, int maxk );
 extern If_LibLut_t *   If_LibLutDup( If_LibLut_t * p );
 extern void            If_LibLutFree( If_LibLut_t * pLutLib );
 extern void            If_LibLutPrint( If_LibLut_t * pLutLib );

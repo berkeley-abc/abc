@@ -102,8 +102,10 @@ Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck
     Abc_Ntk_t * pNtk;
     if ( FileType == IO_FILE_NONE || FileType == IO_FILE_UNKNOWN )
     {
-        fprintf( stdout, "Generic file reader requires a known file extension to open \"%s\".\n", pFileName );
-        return NULL;
+        //fprintf( stdout, "Generic file reader requires a known file extension to open \"%s\".\n", pFileName );
+        //return NULL;
+        // make default read type aig
+        FileType = IO_FILE_AIGER;
     }
     // check if the file exists
     pFile = fopen( pFileName, "r" );

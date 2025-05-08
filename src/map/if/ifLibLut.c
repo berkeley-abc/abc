@@ -199,7 +199,7 @@ int Abc_FrameSetLutLibraryTest( Abc_Frame_t * pAbc )
   SeeAlso     []
 
 ***********************************************************************/
-If_LibLut_t * If_LibLutRead( char * FileName )
+If_LibLut_t * If_LibLutRead( char * FileName, int maxk )
 {
     char pBuffer[1000], * pToken;
     If_LibLut_t * p;
@@ -232,6 +232,10 @@ If_LibLut_t * If_LibLutRead( char * FileName )
             ABC_FREE( p );
             fclose( pFile );
             return NULL;
+        }
+        if ( maxk > 0 &&  i > maxk) {
+            Abc_Print( 1, "Skipping LUT library file entry > %d-LUT.\n", maxk );
+            continue;
         }
 
         // read area

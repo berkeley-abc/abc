@@ -20,6 +20,7 @@
 
 #include "abc.h"
 #include "base/main/main.h"
+#include "base/main/mainInt.h"
 #include "map/mio/mio.h"
 #include "bool/dec/dec.h"
 #include "opt/fxu/fxu.h"
@@ -1519,8 +1520,8 @@ Abc_Obj_t * Abc_NodeRecognizeMux( Abc_Obj_t * pNode, Abc_Obj_t ** ppNodeT, Abc_O
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc, 
-    Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2, int fCheck )
+int Abc_NtkPrepareTwoNtksFull( FILE * pErr, Abc_Frame_t *pAbc, Abc_Ntk_t * pNtk, char ** argv, int argc, 
+    Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2, int fCheck, int fDestructive )
 {
     FILE * pFile;
     Abc_Ntk_t * pNtk1, * pNtk2, * pNtkTemp;
@@ -1548,8 +1549,18 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
         }
         else
             fclose( pFile );
-        pNtk1 = Abc_NtkDup(pNtk);
-        pNtk2 = Io_Read( pNtk->pSpec, Io_ReadFileType(pNtk->pSpec), fCheck, 0 );
+        if ( pAbc && fDestructive )
+        {
+            pNtk1 = pNtk;
+            pNtk = NULL;
+            pAbc->pNtkCur = NULL;
+        }
+        else
+        {
+            pNtk1 = Abc_NtkDup(pNtk);
+        }
+
+        pNtk2 = Io_Read( pNtk1->pSpec, Io_ReadFileType(pNtk1->pSpec), fCheck, 0 );
         if ( pNtk2 == NULL )
             return 0;
         *pfDelete1 = 1;
@@ -1562,7 +1573,17 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
             fprintf( pErr, "Empty current network.\n" );
             return 0;
         }
-        pNtk1 = Abc_NtkDup(pNtk);
+        if ( pAbc && fDestructive )
+        {
+            pNtk1 = pNtk;
+            pNtk = NULL;
+            pAbc->pNtkCur = NULL;
+        }
+        else
+        {
+            pNtk1 = Abc_NtkDup(pNtk);
+        }
+
         pNtk2 = Io_Read( argv[util_optind], Io_ReadFileType(argv[util_optind]), fCheck, 0 );
         if ( pNtk2 == NULL )
             return 0;
@@ -1612,6 +1633,11 @@ int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc
     return 1;
 }
 
+int Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc,
+    Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2, int fCheck )
+{
+    return Abc_NtkPrepareTwoNtksFull(pErr, NULL, pNtk, argv, argc, ppNtk1, ppNtk2, pfDelete1, pfDelete2, fCheck, 0);
+}
 
 /**Function*************************************************************
 
@@ -3287,53 +3313,68 @@ static int s_ArrayData[290] = {
     10, 6,  14, 12,  10, 2,  22, 20,  2, 24,  16, 4,  28, 18,  16, 10,  8, 4,  34, 32,  30, 36,  38, 26,  16, 6,  36, 20,  44, 42,  46, 40,  42, 44,  14, 6,  52, 34,  32, 54,  56, 50,  58, 48,  32, 24,  20, 2,  12, 6,  66, 34,  68, 64,  62, 70,  28, 68,  74, 72,  76, 58,  70, 62,  80, 78,  68, 28,  84, 74,  4, 2,  88, 20,  64, 90,  92, 86,  66, 32,  18, 96,  98, 56,  100, 94,  52, 36,  104, 38,  90, 42,  36, 2,  108, 110,  112, 106,  114, 100,  102, 116,  118, 82,  116, 60,  120, 122,  124, 60,  118, 60,  102, 82,  128, 130,  132, 82,  134, 126,  82, 116,  122, 138,  122, 118,  142, 140,  60, 102,  130, 146,  130, 118,  150, 148,  152, 144,  154, 136,  18, 156,  144, 126,  68, 160,  32, 136,  164, 162,  166, 158,  28, 160,  70, 126,  90, 144,  174, 172,  176, 170,  152, 134,  36, 180,  2, 134,  184, 182,  186, 178,  188, 168,  64, 144,  164, 158,  194, 192,  96, 156,  44, 154,  200, 170,  202, 198,  204, 176,  206, 196,  204, 168,  62, 126,  212, 186,  24, 134,  108, 152,  218, 192,  220, 216,  222, 214,  224, 210,  220, 194,  110, 152,  30, 180,  232, 230,  184, 172,  236, 234,  238, 228,  234, 182,  242, 220,  244, 168,  42, 154,  248, 202,  54, 136,  252, 164,  254, 214,  256, 250,  218, 194,  252, 198,  262, 242,  264, 260,  232, 220,  268, 262,  270, 168,
     191, 191,  209, 209,  226, 226,  240, 240,  246, 246,  259, 259,  267, 267,  272, 272,
 };
-int Abc_NtkHasConstNode()
+
+static int is_ArraySize = 144;
+static int is_ArrayData[288] = {
+    0, 0,
+    0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,  0, 0,
+    4, 2,  16, 14,  20, 18,  8, 2,  14, 4,  26, 24,  14, 10,  30, 18,  32, 12,  29, 34,  10, 8,  38, 18,  12, 8,  42, 26,  40, 45,  46, 36,  24, 20,  21, 50,  6, 4,  54, 38,  56, 50,  38, 59,  60, 52,  62, 48,  38, 12,  66, 64,  12, 6,  70, 16,  33, 73,  70, 30,  23, 76,  78, 74,  80, 24,  82, 62,  44, 40,  86, 46,  38, 2,  31, 91,  92, 88,  16, 10,  96, 14,  98, 8,  57, 101,  102, 60,  104, 94,  54, 50,  108, 78,  96, 99,  112, 110,  114, 104,  107, 117,  118, 84,  106, 68,  121, 122,  124, 68,  85, 107,  122, 128,  122, 118,  132, 130,  134, 126,  23, 137,  116, 84,  69, 117,  140, 142,  140, 118,  146, 144,  148, 134,  21, 150,  152, 138,  33, 127,  118, 68,  140, 159,  160, 84,  162, 126,  38, 164,  166, 156,  168, 154,  162, 148,  45, 173,  164, 150,  101, 176,  178, 174,  59, 164,  182, 166,  40, 173,  31, 148,  188, 186,  190, 184,  91, 148,  57, 176,  196, 194,  198, 192,  200, 180,  50, 150,  204, 178,  99, 134,  208, 194,  210, 206,  76, 137,  34, 163,  216, 214,  218, 192,  220, 212,  73, 127,  96, 134,  226, 224,  228, 156,  218, 152,  232, 230,  234, 200,  224, 214,  206, 192,  240, 238,  206, 186,  210, 184,  29, 163,  248, 174,  250, 230,  252, 246,  254, 244,  246, 154,  204, 188,  250, 228,  262, 260,  264, 258,  216, 174,  268, 240,
+    170, 170,  202, 202,  222, 222,  236, 236,  242, 242,  256, 256,  266, 266,  270, 270,
+};
+
+int Abc_NtkHasConstNode(int mode)
 {
+    int ArraySize = (mode == 1 ? is_ArraySize : s_ArraySize);
+    int* ArrayData = (mode == 1 ? is_ArrayData : s_ArrayData);
+
     int i;
-    for ( i = 1; i < s_ArraySize; i++ )
-        if ( s_ArrayData[2*i] || s_ArrayData[2*i+1] )
+    for ( i = 1; i < ArraySize; i++ )
+        if ( ArrayData[2*i] || ArrayData[2*i+1] )
             break;
-    for ( ; i < s_ArraySize; i++ )
-        if ( s_ArrayData[2*i] < 2 && s_ArrayData[2*i+1] < 2 )
+    for ( ; i < ArraySize; i++ )
+        if ( ArrayData[2*i] < 2 && ArrayData[2*i+1] < 2 )
             return 1;
     return 0;
 }
-Abc_Ntk_t * Abc_NtkFromArray()
+Abc_Ntk_t * Abc_NtkFromArray(int mode)
 {
-    Vec_Ptr_t * vNodes  = Vec_PtrAlloc( s_ArraySize ); int i, nPos = 0; 
+    int ArraySize = (mode == 1 ? is_ArraySize : s_ArraySize);
+    int* ArrayData = (mode == 1 ? is_ArrayData : s_ArrayData);
+
+    Vec_Ptr_t * vNodes  = Vec_PtrAlloc( ArraySize ); int i, nPos = 0; 
     Abc_Ntk_t * pNtkNew = Abc_NtkAlloc( ABC_NTK_LOGIC, ABC_FUNC_SOP, 1 );
-    Abc_Obj_t * pObjNew = Abc_NtkHasConstNode() ? Abc_NtkCreateNode(pNtkNew) : NULL; 
+    Abc_Obj_t * pObjNew = Abc_NtkHasConstNode(mode) ? Abc_NtkCreateNode(pNtkNew) : NULL; 
     if ( pObjNew ) pObjNew->pData = Abc_SopCreateConst0((Mem_Flex_t *)pNtkNew->pManFunc);
     Vec_PtrPush( vNodes, pObjNew );
-    for ( i = 1; i < s_ArraySize; i++ )
-        if ( !s_ArrayData[2*i] && !s_ArrayData[2*i+1] )
+    for ( i = 1; i < ArraySize; i++ )
+        if ( !ArrayData[2*i] && !ArrayData[2*i+1] )
             Vec_PtrPush( vNodes, Abc_NtkCreatePi(pNtkNew) );
         else
             break;
-    for ( ; i < s_ArraySize; i++ )
+    for ( ; i < ArraySize; i++ )
     {
         char * pSop = NULL;
-        if ( s_ArrayData[2*i] > s_ArrayData[2*i+1] )
+        if ( ArrayData[2*i] > ArrayData[2*i+1] )
             pSop = Abc_SopCreateXor( (Mem_Flex_t *)pNtkNew->pManFunc, 2 );
-        else if ( s_ArrayData[2*i] < s_ArrayData[2*i+1] )
+        else if ( ArrayData[2*i] < ArrayData[2*i+1] )
             pSop = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, 2, NULL );
         else
             break;
         pObjNew = Abc_NtkCreateNode( pNtkNew );
-        Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Vec_PtrEntry(vNodes, Abc_Lit2Var(s_ArrayData[2*i]))   );
-        Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Vec_PtrEntry(vNodes, Abc_Lit2Var(s_ArrayData[2*i+1])) );
-        if ( Abc_LitIsCompl(s_ArrayData[2*i])   )  Abc_SopComplementVar( pSop, 0 );
-        if ( Abc_LitIsCompl(s_ArrayData[2*i+1]) )  Abc_SopComplementVar( pSop, 1 );
+        Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Vec_PtrEntry(vNodes, Abc_Lit2Var(ArrayData[2*i]))   );
+        Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Vec_PtrEntry(vNodes, Abc_Lit2Var(ArrayData[2*i+1])) );
+        if ( Abc_LitIsCompl(ArrayData[2*i])   )  Abc_SopComplementVar( pSop, 0 );
+        if ( Abc_LitIsCompl(ArrayData[2*i+1]) )  Abc_SopComplementVar( pSop, 1 );
         pObjNew->pData = pSop;
         Vec_PtrPush( vNodes, pObjNew );
     }
-    for ( ; i < s_ArraySize; i++ )
+    for ( ; i < ArraySize; i++ )
     {
         char * pSop = NULL;
-        assert( s_ArrayData[2*i] == s_ArrayData[2*i+1] );
+        assert( ArrayData[2*i] == ArrayData[2*i+1] );
         pObjNew = Abc_NtkCreateNode( pNtkNew );
-        Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Vec_PtrEntry(vNodes, Abc_Lit2Var(s_ArrayData[2*i]))   );
-        if ( Abc_LitIsCompl(s_ArrayData[2*i]) )
+        Abc_ObjAddFanin( pObjNew, (Abc_Obj_t *)Vec_PtrEntry(vNodes, Abc_Lit2Var(ArrayData[2*i]))   );
+        if ( Abc_LitIsCompl(ArrayData[2*i]) )
             pSop = Abc_SopCreateInv( (Mem_Flex_t *)pNtkNew->pManFunc );
         else
             pSop = Abc_SopCreateBuf( (Mem_Flex_t *)pNtkNew->pManFunc );
@@ -3342,7 +3383,7 @@ Abc_Ntk_t * Abc_NtkFromArray()
         nPos++;
     }
     for ( i = 0; i < nPos; i++ )
-        Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), (Abc_Obj_t *)Vec_PtrEntry(vNodes, s_ArraySize-nPos+i) );
+        Abc_ObjAddFanin( Abc_NtkCreatePo(pNtkNew), (Abc_Obj_t *)Vec_PtrEntry(vNodes, ArraySize-nPos+i) );
     Vec_PtrFree( vNodes );
     pNtkNew->pName = Extra_UtilStrsav("test");
     Abc_NtkAddDummyPiNames( pNtkNew );

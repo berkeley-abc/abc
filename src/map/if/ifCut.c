@@ -604,6 +604,15 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
                 return -1;
             if ( pC0->nLeaves > pC1->nLeaves )
                 return 1;
+
+            // removed by ABC commit, but has adverse effect in benchmark oc_aquarius 
+            // add back begin
+            if ( pC0->Delay < pC1->Delay - p->fEpsilon )
+               return -1;
+            if ( pC0->Delay > pC1->Delay + p->fEpsilon )
+               return 1; 
+            // end
+
             if ( pC0->fUseless < pC1->fUseless )
                 return -1;
             if ( pC0->fUseless > pC1->fUseless )

@@ -53,7 +53,7 @@ void Dar_ManDefaultRwrParams( Dar_RwrPar_t * pPars )
     memset( pPars, 0, sizeof(Dar_RwrPar_t) );
     pPars->nCutsMax     =  8; // 8
     pPars->nSubgMax     =  5; // 5 is a "magic number"
-    pPars->nMinSaved    =  1;
+    pPars->nMinSaved    =  0;
     pPars->fFanout      =  1;
     pPars->fUpdateLevel =  0;
     pPars->fUseZeros    =  0;

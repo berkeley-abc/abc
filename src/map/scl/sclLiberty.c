@@ -84,7 +84,7 @@ struct Scl_Tree_t_
 
 static inline int          Scl_LibertyGlobMatch(const char * pattern, const char * string) {
     #ifdef _WIN32
-    return PathMatchSpec(string, pattern); // if the compiler complains, add "-lshlwapi"
+    return 0; // bypass this, as it requires -lshlwapi to link, PathMatchSpec(string, pattern);
     #else
     return fnmatch(pattern, string, 0) == 0;
     #endif

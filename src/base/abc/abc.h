@@ -34,6 +34,7 @@
 #include "misc/vec/vec.h"
 #include "aig/hop/hop.h"
 #include "aig/gia/gia.h"
+#include "base/main/abcapis.h"
 #include "misc/st/st.h"
 #include "misc/st/stmm.h"
 #include "misc/nm/nm.h"
@@ -1035,6 +1036,7 @@ extern ABC_DLL int                Abc_NodeIsExorType( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeIsMuxType( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NodeIsMuxControlType( Abc_Obj_t * pNode );
 extern ABC_DLL Abc_Obj_t *        Abc_NodeRecognizeMux( Abc_Obj_t * pNode, Abc_Obj_t ** ppNodeT, Abc_Obj_t ** ppNodeE );
+extern ABC_DLL int                Abc_NtkPrepareTwoNtksFull( FILE * pErr, Abc_Frame_t *pAbc, Abc_Ntk_t * pNtk, char ** argv, int argc, Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2, int fCheck, int fDestructive );
 extern ABC_DLL int                Abc_NtkPrepareTwoNtks( FILE * pErr, Abc_Ntk_t * pNtk, char ** argv, int argc, Abc_Ntk_t ** ppNtk1, Abc_Ntk_t ** ppNtk2, int * pfDelete1, int * pfDelete2, int fCheck );
 extern ABC_DLL void               Abc_NodeCollectFanins( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
 extern ABC_DLL void               Abc_NodeCollectFanouts( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes );
@@ -1062,6 +1064,8 @@ extern ABC_DLL int *              Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk
 extern ABC_DLL int                Abc_NtkIsTrueCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex );
 extern ABC_DLL int                Abc_NtkIsValidCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex );
 
+
+extern ABC_DLL Abc_Ntk_t *        Abc_NtkFromArray(int mode);
 
 
 ABC_NAMESPACE_HEADER_END

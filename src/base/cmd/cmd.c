@@ -17,6 +17,8 @@
   Revision    [$Id: cmd.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
+#undef _POSIX_SOURCE
+#undef _POSIX_C_SOURCE
 
 #ifdef WIN32
 #include <process.h>

@@ -1390,12 +1390,12 @@ int Abc_CommandRetime( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         Vec_Int_t * vMoves;
         Wln_Ntk_t * pNtk = Wln_NtkFromNdr( pAbc->pNdr, fDump );
-        Wln_NtkRetimeCreateDelayInfo( pNtk );
         if ( pNtk == NULL )
         {
-            printf( "Transforming NDR into internal represnetation has failed.\n" );
+            //printf( "Transforming NDR into internal represnetation has failed.\n" );
             return 0;
         }
+        Wln_NtkRetimeCreateDelayInfo( pNtk );
         vMoves = Wln_NtkRetime( pNtk, fIgnoreIO, fSkipSimple, fVerbose );
         Wln_NtkFree( pNtk );
         ABC_FREE( pAbc->pNdrArray );

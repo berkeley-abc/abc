@@ -219,7 +219,7 @@ static inline void Ndr_DataPushString( Ndr_Data_t * p, int ObjType, int Type, ch
     {
         //word Truth = (word)pFunc;
         //Ndr_DataPushArray( p, Type, 2, (int *)&Truth );
-        int nInts = (strlen(pFunc) + 1 + sizeof(int) - 1) / sizeof(int); 
+        int nInts = 2; // (strlen(pFunc) + 1 + sizeof(int) - 1) / sizeof(int); 
         Ndr_DataPushArray( p, Type, nInts, (int *)&pFunc );
     }
     else
@@ -479,7 +479,14 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
             {
                 for ( i = 0; i < nArray; i++ )
                     fprintf( pFile, ", %s", pNames[pArray[i]] );
-                fprintf( pFile, " );\n" );
+                fprintf( pFile, " );" );
+                if (Ndr_ObjReadBody(p, Obj, NDR_OPERTYPE) == ABC_OPER_SLICE)
+                {
+                    fprintf( pFile, " /* ");
+                    Ndr_ObjWriteRange( p, Obj, pFile, 0 );
+                    fprintf( pFile, " */ ");
+                }
+                fprintf( pFile, "\n" );
             }
             continue;
         }
@@ -516,7 +523,7 @@ static inline void Ndr_WriteVerilogModule( FILE * pFile, void * pDesign, int Mod
 }
 
 // to write signal names, this procedure takes a mapping of name IDs into actual char-strings (pNames)
-static inline void Ndr_WriteVerilog( char * pFileName, void * pDesign, char ** pNames, int fSimple )
+static inline void Ndr_WriteVerilog( const char * pFileName, void * pDesign, char ** pNames, int fSimple )
 {
     Ndr_Data_t * p = (Ndr_Data_t *)pDesign; int Mod;
 
@@ -633,13 +640,13 @@ static inline void * Ndr_Read( char * pFileName )
     //printf( "Read the design from file \"%s\".\n", pFileName );
     return p;
 }
-static inline void Ndr_Write( char * pFileName, void * pDesign )
+static inline void Ndr_Write( const char * pFileName, void * pDesign )
 {
-    Ndr_Data_t * p = (Ndr_Data_t *)pDesign; int RetValue;
+    Ndr_Data_t * p = (Ndr_Data_t *)pDesign;
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL ) { printf( "Cannot open file \"%s\" for writing.\n", pFileName ? pFileName : "stdout" ); return; }
-    RetValue = (int)fwrite( p->pBody, 4, p->pBody[0], pFile );
-    RetValue = (int)fwrite( p->pHead, 1, p->pBody[0], pFile );
+    fwrite( p->pBody, 4, p->pBody[0], pFile );
+    fwrite( p->pHead, 1, p->pBody[0], pFile );
     fclose( pFile );
     //printf( "Dumped the design into file \"%s\".\n", pFileName );
 }

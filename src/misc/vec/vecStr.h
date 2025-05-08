@@ -695,7 +695,7 @@ static inline void Vec_StrPrintStr( Vec_Str_t * p, const char * pStr )
 
 ***********************************************************************/
 #ifdef WIN32
-#define vsnprintf _vsnprintf
+//#define vsnprintf _vsnprintf
 #endif
 
 static inline char * Vec_StrPrintF( Vec_Str_t * p, const char * format, ... )

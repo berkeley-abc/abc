@@ -175,7 +175,8 @@ void Wln_NtkCheckIntegrity( void * pData )
         int i, * pArray, nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         for ( i = 0; i < nArray; i++ )
             if ( Vec_IntGetEntry(vMap, pArray[i]) == 0 && !(Type == ABC_OPER_DFFRSE && (i >= 5 && i <= 7)) )
-                printf( "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
+				printf( "Input name %d appearing as fanin %d of obj %d (type: %d) is not used as output name in any object.\n", pArray[i], i, Obj, Type );
+                //printf( "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
     }
     Vec_IntFree( vMap );
 }
@@ -268,8 +269,11 @@ Wln_Ntk_t * Wln_NtkFromNdr( void * pData, int fDump )
     assert( i == Vec_PtrSize(vConstStrings) );
     Vec_PtrFree( vConstStrings );
     //Ndr_NtkPrintObjects( pNtk );
-    Wln_WriteVer( pNtk, "temp_ndr.v" );
-    printf( "Dumped design \"%s\" into file \"temp_ndr.v\".\n", pNtk->pName );
+	if (fDump) 
+	{
+		Wln_WriteVer( pNtk, "temp_ndr.v" );
+		printf( "Dumped design \"%s\" into file \"temp_ndr.v\".\n", pNtk->pName );
+	}
     if ( !Wln_NtkIsAcyclic(pNtk) )
     {
         Wln_NtkFree(pNtk);

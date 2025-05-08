@@ -284,6 +284,7 @@ static int Mini_LutCheck( Mini_Lut_t * p )
 {
     int status = 1;
     int i, k, iFaninVar;
+    k=0;
     Mini_LutForEachNode( p, i )
     {
         for ( k = 0; k < p->LutSize; k++ )

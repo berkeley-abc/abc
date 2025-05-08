@@ -62,16 +62,37 @@ int Cmd_CommandIsDefined( Abc_Frame_t * pAbc, const char * sName )
 ***********************************************************************/
 void Cmd_CommandAdd( Abc_Frame_t * pAbc, const char * sGroup, const char * sName, Cmd_CommandFuncType pFunc, int fChanges )
 {
+    Cmd_CommandAddEx( pAbc, sGroup, sName, pFunc, fChanges, 0 );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cmd_CommandAddEx( Abc_Frame_t * pAbc, const char * sGroup, const char * sName, Cmd_CommandFuncType pFunc, int fChanges, int quiet )
+{
     const char * key;
     char * value;
     Abc_Command * pCommand;
     int fStatus;
+    int replaced = 0;
 
     key = sName;
     if ( st__delete( pAbc->tCommands, &key, &value ) ) 
     {
+        replaced = 1;
         // delete existing definition for this command 
-        fprintf( pAbc->Err, "Cmd warning: redefining '%s'\n", sName );
+        if ( !quiet )
+        {
+            fprintf( pAbc->Err, "Cmd warning: redefining '%s'\n", sName );
+        }
         CmdCommandFree( (Abc_Command *)value );
     }
 
@@ -83,6 +104,8 @@ void Cmd_CommandAdd( Abc_Frame_t * pAbc, const char * sGroup, const char * sName
     pCommand->fChange = fChanges;
     fStatus = st__insert( pAbc->tCommands, pCommand->sName, (char *)pCommand );
     assert( !fStatus );  // the command should not be in the table
+
+    return replaced;
 }
 
 /**Function*************************************************************

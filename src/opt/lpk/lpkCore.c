@@ -546,7 +546,8 @@ p->timeEval += Abc_Clock() - clk;
         if ( pObjNew )
         {
             int nGain = (int)pCut->nNodes - (int)pCut->nNodesDup - (nNodesAft - nNodesBef);
-            //assert( nGain >= 1 - p->pPars->fZeroCost );
+			// ignore gain abort (should not affect correctness of result) 
+            // assert( nGain >= 1 - p->pPars->fZeroCost );
             assert( Abc_ObjLevel(pObjNew) <= Required );
 /*
             if ( nGain <= 0 )

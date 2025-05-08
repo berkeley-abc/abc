@@ -1508,7 +1508,7 @@ extern int                 Gia_ManHashAndMulti( Gia_Man_t * p, Vec_Int_t * vLits
 extern int                 Gia_ManHashAndMulti2( Gia_Man_t * p, Vec_Int_t * vLits );
 extern int                 Gia_ManHashDualMiter( Gia_Man_t * p, Vec_Int_t * vOuts );
 /*=== giaIf.c ===========================================================*/
-extern void                Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile );
+extern void                Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile, unsigned fNoColor );
 extern void                Gia_ManPrintPackingStats( Gia_Man_t * p );
 extern void                Gia_ManPrintLutStats( Gia_Man_t * p );
 extern int                 Gia_ManLutFaninCount( Gia_Man_t * p );

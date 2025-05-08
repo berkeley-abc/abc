@@ -91,7 +91,7 @@ Gia_Man_t * Gia_ManAigSyn2( Gia_Man_t * pInit, int fOldAlgo, int fCoarsen, int f
     {
         pNew = Gia_ManDup(p);
         Gia_ManTransferTiming( pNew, p );
-        Gia_ManStop( p );
+        Gia_ManStop(p);
         return pNew;
     }
     // delay optimization
@@ -209,14 +209,16 @@ Gia_Man_t * Gia_ManAigSyn4( Gia_Man_t * p, int fCover, int fVerbose, int fVeryVe
     // perform balancing
     pNew = Gia_ManAreaBalance( p, 0, ABC_INFINITY, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
-    // perform mapping, use fCover, instead of default 7, can reduce memory/runtime
-    pPars->nLutSize = fCover; // 7;
+    // perform mapping
+    pPars->nLutSize = fCover; // used to be fixed at 7
     pNew = Jf_ManPerformMapping( pTemp = pNew, pPars );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
 //    Gia_ManStop( pTemp );
-    // perform extraction, use a smaller divider than default for smaller memory footprint
-    int ndivider = 50000; // ABC_INFINITY
-    pNew = Gia_ManPerformFx( pTemp = pNew, ndivider, 0, 0, fVeryVerbose, 0 );
+    // perform extraction
+    // pNew = Gia_ManPerformFx( pTemp = pNew, ABC_INFINITY, 0, 0, fVeryVerbose, 0 );
+    // reduce the # of divider to extract (half of default value 100k) for lower memory footprint in outlier design
+    // the design is 'oc_des_des3perf_20_6' in our benchmark
+    pNew = Gia_ManPerformFx( pTemp = pNew, 50000, 0, 0, fVeryVerbose, 0 );
     if ( fVerbose )     Gia_ManPrintStats( pNew, NULL );
     Gia_ManStop( pTemp );
     // perform balancing
@@ -623,43 +625,86 @@ void Gia_ManPerformFlow( int fIsMapped, int nAnds, int nLevels, int nLutSize, in
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fBalance, int fMinAve, int fUseMfs, int fVerbose )
+void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, int nCutNum, int fBalance, int fMinAve, int fUseMfs, int nEfxOpt, int fPower, int fArea, int fUseSave, int fVerbose )
 {
     char Comm1[1000], Comm2[1000], Comm3[1000], Comm4[1000];
-    if ( nLutSize == 0 ) 
+    const char* pow = fPower ? "-p" : "";
+    const char* myps = fPower ? "&ps -xp" : "&ps -x";
+    const char* area = fArea==9 ? "-a 9" : (fArea==8  ? "-a 8" : (fArea > 0 ? "-a" : ""));
+    const char* save = fUseSave ? "&save2" : "&save";
+
+    if ( nEfxOpt != 0 ) 
     {
-        sprintf( Comm1, "&synch2 -K 6 -C 500;  &if -m%s       -C %d; %s &save", fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-        sprintf( Comm2, "&dch -C 500;          &if -m%s       -C %d; %s &save", fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-        sprintf( Comm3, "&synch2 -K 6 -C 500;  &lf -m%s  -E 5 -C %d; %s &save", fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-        sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -C %d; %s &save", fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+		if (nEfxOpt == 1) {
+        sprintf( Comm1, "&synch2 -K 7 -C 500;  &if %s -m%s       -K 7 -S 44 -z -C %d; %s &save %s", pow, fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", area );
+        sprintf( Comm2, "&dch -C 500;          &if %s -m%s       -K 7 -S 44 -z -C %d; %s &save %s", pow, fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", area );
+        sprintf( Comm3, "&synch2 -K 4 -C 500;  &lf %s -m%s  -E 5 -K 4 -C %d; %s &save %s", pow, fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", area );
+        //sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -K 4 -C %d; %s &save %s", fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", area );
+		}
+		else if (nEfxOpt == 2) {
+        sprintf( Comm1, "&synch2 -K 7 -C 500;  &if %s -R 5 -m%s  -K 7 -S 44 -z -C %d; %s &save -a 2",pow,  fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm2, "&dch -C 500;          &if %s -m%s       -K 7 -S 44 -z -C %d; %s &save -a 2",pow,  fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm3, "&synch2 -K 4 -C 500;  &lf %s -R 5 -m%s  -E 5 -K 4 -C %d; %s &save -a 2",pow,  fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        //sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -K 4 -C %d; %s &save", fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+		}
+		else if (nEfxOpt == 3) {
+        sprintf( Comm1, "&synch2 -K 7 -C 500;  &if %s -R 5 -m%s  -a -K 7 -S 44 -z -C %d; %s &save -a 3", pow, fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm2, "&dch -C 500;          &if %s -m%s       -a -K 7 -S 44 -z -C %d; %s &save -a 3",pow,  fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm3, "&synch2 -K 4 -C 500;  &lf %s -R 5 -m%s  -E 5 -K 4 -C %d; %s &save -a 3", pow, fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        //sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -K 4 -C %d; %s &save", fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+		}
+        else if (nEfxOpt == 12) {
+        sprintf( Comm1, "&synch2 -K %d -C 500; &if %s -m%s       -K %d -C %d; %s &save -a 2", nLutSize, pow, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm2, "&dch -C 500;          &if %s -m%s       -K %d -C %d; %s &save -a 2",           pow, fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm3, "&synch2 -K %d -C 500; &lf %s -m%s  -E 5 -K %d -C %d; %s &save -a 2", nLutSize, pow, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+		}
+		else if (nEfxOpt == 13) {
+        sprintf( Comm1, "&synch2 -K %d -C 500; &if %s -m%s       -K %d -C %d; %s &save -a 3", nLutSize, pow, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm2, "&dch -C 500;          &if %s -m%s       -K %d -C %d; %s &save -a 3",           pow, fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm3, "&synch2 -K %d -C 500; &lf %s -m%s  -E 5 -K %d -C %d; %s &save -a 3", nLutSize, pow, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+ 		} 
+    }
+	else if ( nLutSize == 0 ) 
+    {
+        sprintf( Comm1, "&synch2 -K 6 -C 500;  &if %s -m%s       -C %d; %s %s %s", pow, fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", save, area );
+        sprintf( Comm2, "&dch -C 500;          &if %s -m%s       -C %d; %s %s %s", pow, fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", save, area );
+        sprintf( Comm3, "&synch2 -K 6 -C 500;  &lf %s -m%s  -E 5 -C %d; %s %s %s", pow, fMinAve?"t":"", nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", save, area );
+        //sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -C %d; %s &save %s", fMinAve?"t":"", nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", area );
     }
     else
     {
-        sprintf( Comm1, "&synch2 -K %d -C 500; &if -m%s       -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-        sprintf( Comm2, "&dch -C 500;          &if -m%s       -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-        sprintf( Comm3, "&synch2 -K %d -C 500; &lf -m%s  -E 5 -K %d -C %d; %s &save", nLutSize, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
-        sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -K %d -C %d; %s &save",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"" );
+        sprintf( Comm1, "&synch2 -K %d -C 500; &if %s -m%s       -K %d -C %d; %s %s %s", nLutSize, pow, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", save, area );
+        sprintf( Comm2, "&dch -C 500;          &if %s -m%s       -K %d -C %d; %s %s %s",           pow, fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", save, area );
+        sprintf( Comm3, "&synch2 -K %d -C 500; &lf %s -m%s  -E 5 -K %d -C %d; %s %s %s", nLutSize, pow, fMinAve?"t":"", nLutSize, nCutNum,   fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", save, area );
+        //sprintf( Comm4, "&dch -C 500;          &lf -m%sk -E 5 -K %d -C %d; %s &save %s",           fMinAve?"t":"", nLutSize, nCutNum+4, fUseMfs ? "&put; mfs2 -W 4 -M 500 -C 7000; &get -m;":"", area );
     }
 
     // perform synthesis
-    if ( fVerbose )
+    if ( fVerbose ) {
         printf( "Trying synthesis...\n" );
+        printf( "comm1: %s\n", Comm1);
+        printf( "comm2: %s\n", Comm2);
+        printf( "comm3: %s\n", Comm3);
+        printf( "useSave: %d, area: %d\n", fUseSave, fArea);
+    }
+
     if ( fIsMapped )
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
+
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
     // return the result
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), (fUseSave ? "&load2" : "&load") );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
 
     // perform balancing
@@ -674,18 +719,18 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
     // return the result
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), (fUseSave ? "&load2" : "&load") );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
     if ( nAnds > 100000 )
         return;
 
@@ -702,18 +747,18 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
     // return the result
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), (fUseSave ? "&load2" : "&load") );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
     if ( nAnds > 50000 )
         return;
 
@@ -730,18 +775,18 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
     // perform synthesis
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&st" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 
     // return the result
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&load" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), (fUseSave ? "&load2" : "&load") );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), myps );
 }
 
 
@@ -756,33 +801,67 @@ void Gia_ManPerformFlow2( int fIsMapped, int nAnds, int nLevels, int nLutSize, i
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManPerformFlow3( int nLutSize, int nCutNum, int fBalance, int fMinAve, int fUseMfs, int fUseLutLib, int fVerbose )
+void Gia_ManPerformFlow3( int nLutSize, int nCutNum, int fBalance, int fMinAve, int fUseMfs, int fUseLutLib, int nEfxOpt, int fPower, int fArea, int fUseSave, int fVerbose )
 {
     char Comm1[200], Comm2[200], Comm3[200];
-    if ( fUseLutLib )
-        sprintf( Comm1, "&st; &if -C %d;       &save; &st; &syn2; &if -C %d;       &save; &load", nCutNum, nCutNum );
-    else
-        sprintf( Comm1, "&st; &if -C %d -K %d; &save; &st; &syn2; &if -C %d -K %d; &save; &load", nCutNum, nLutSize, nCutNum, nLutSize );
-    if ( fUseLutLib )
-        sprintf( Comm2, "&st; &if -%s -K 6; &dch -f; &if -C %d;       %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum,           fUseMfs ? "&mfs; ":"" );
-    else
-        sprintf( Comm2, "&st; &if -%s -K 6; &dch -f; &if -C %d -K %d; %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
-    if ( fUseLutLib )
-        sprintf( Comm3, "&st; &if -%s -K 6; &synch2; &if -C %d;       %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum,           fUseMfs ? "&mfs; ":"" );
-    else
-        sprintf( Comm3, "&st; &if -%s -K 6; &synch2; &if -C %d -K %d; %s&save; &load", Abc_NtkRecIsRunning3() ? "y" : "g", nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
+    const char* pow = fPower ? "-p":"";
+    const char* area = fArea==9 ? "-a 9" : (fArea==8  ? "-a 8" : (fArea > 0 ? "-a" : ""));
+    const char* save = fUseSave ? "&save2" : "&save";
+    const char* load = fUseSave ? "&load2" : "&load";
+
+	if (nEfxOpt != 0) {
+		if (nEfxOpt == 1) {
+		// -S 44 does not work with -g
+		// area oriented
+        sprintf( Comm1, "&st; &if %s -az -C %d -K 7 -S 44; &save -a; &st; &syn2; &if %s -az -C %d -K 7 -S 44; &save -a; &load", pow, nCutNum, pow, nCutNum);
+        sprintf( Comm2, "&st; &if %s -az -K 7 -S 44; &dch -f; &if %s -az -C %d -K 7 -S 44; %s&save -a; &load", pow, pow, nCutNum, fUseMfs ? "&mfs; ":"" );
+        sprintf( Comm3, "&st; &if %s -az -K 7 -S 44; &synch2; &if %s -az -C %d -K 7 -S 44; %s&save -a; &load", pow, pow, nCutNum, fUseMfs ? "&mfs; ":"" );
+		}
+		else if (nEfxOpt == 3) {
+		// area relaxation 
+        sprintf( Comm1, "&st; &if %s -a -z -R 5 -C %d -K 7 -S 44; &save -a 3; &st; &syn2; &if %s -a -z -R 5 -C %d -K 7 -S 44; &save -a 3; &load", pow, nCutNum,pow,  nCutNum);
+        sprintf( Comm2, "&st; &if %s -a -z -R 5 -K 7 -S 44; &dch -f; &if %s -a -z -R 5 -C %d -K 7 -S 44; %s&save -a 3; &load", pow, pow, nCutNum, fUseMfs ? "&mfs; ":"" );
+        sprintf( Comm3, "&st; &if %s -a -z -R 5 -K 7 -S 44; &synch2; &if %s -a -z -R 5 -C %d -K 7 -S 44; %s&save -a 3; &load", pow, pow, nCutNum, fUseMfs ? "&mfs; ":"" );
+		}
+		else if (nEfxOpt == 2) {
+		// no area relaxation 
+        sprintf( Comm1, "&st; &if %s -z  -R 0 -C %d -K 7 -S 44; &save -a 2; &st; &syn2; &if %s -z -R 0 -C %d -K 7 -S 44; &save -a 2; &load", pow, nCutNum, pow, nCutNum);
+        sprintf( Comm2, "&st; &if %s -z -R 0 -K 7 -S 44; &dch -f; &if %s -z -R 0 -C %d -K 7 -S 44; %s&save -a 2; &load", pow, pow, nCutNum, fUseMfs ? "&mfs; ":"" );
+        sprintf( Comm3, "&st; &if %s -z -R 0 -K 7 -S 44; &synch2; &if %s -z -R 0 -C %d -K 7 -S 44; %s&save -a 2; &load", pow, pow, nCutNum, fUseMfs ? "&mfs; ":"" );
+		}
+        else if (nEfxOpt == 12) {
+        sprintf( Comm1, "&st; &if %s -C %d -K %d; &save -a 2; &st; &syn2; &if %s -C %d -K %d; &save -a 2; &load", pow, nCutNum, nLutSize, pow, nCutNum, nLutSize );
+        sprintf( Comm2, "&st; &if %s -%s -K 6; &dch -f; &if %s -C %d -K %d; %s&save -a 2; &load", pow, Abc_NtkRecIsRunning3() ? "y" : "g", pow, nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
+        sprintf( Comm3, "&st; &if %s -%s -K 6; &synch2; &if %s -C %d -K %d; %s&save -a 2; &load", pow, Abc_NtkRecIsRunning3() ? "y" : "g", pow, nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
+	    }
+	    else if (nEfxOpt == 13) {
+        sprintf( Comm1, "&st; &if %s -C %d -K %d; &save -a 3; &st; &syn2; &if %s -C %d -K %d; &save -a 3; &load", pow, nCutNum, nLutSize, pow, nCutNum, nLutSize );
+        sprintf( Comm2, "&st; &if %s -%s -K 6; &dch -f; &if %s -C %d -K %d; %s&save -a 3; &load", pow, Abc_NtkRecIsRunning3() ? "y" : "g", pow, nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
+        sprintf( Comm3, "&st; &if %s -%s -K 6; &synch2; &if %s -C %d -K %d; %s&save -a 3; &load", pow, Abc_NtkRecIsRunning3() ? "y" : "g", pow, nCutNum, nLutSize, fUseMfs ? "&mfs; ":"" );
+	    }
+	}
+	else if ( fUseLutLib ) {
+        sprintf( Comm1, "&st; &if %s -C %d;       &save; &st; &syn2; &if %s -C %d;       %s %s; %s", pow, nCutNum, pow, nCutNum, save, area, load );
+        sprintf( Comm2, "&st; &if %s -%s -K 6; &dch -f; &if %s -C %d;       %s %s %s; %s", pow, Abc_NtkRecIsRunning3() ? "y" : "g", pow, nCutNum, fUseMfs ? "&mfs; ":"", save, area, load );
+        sprintf( Comm3, "&st; &if %s -%s -K 6; &synch2; &if %s -C %d;       %s %s %s; %s", pow, Abc_NtkRecIsRunning3() ? "y" : "g", pow, nCutNum, fUseMfs ? "&mfs; ":"", save, area, load );
+	}
+    else {
+        sprintf( Comm1, "&st; &if %s -C %d -K %d; &save; &st; &syn2; &if %s -C %d -K %d; %s %s; %s", pow, nCutNum, nLutSize, pow, nCutNum, nLutSize, save, area, load );
+        sprintf( Comm2, "&st; &if %s -%s -K 6; &dch -f; &if %s -C %d -K %d; %s %s %s; %s", pow, Abc_NtkRecIsRunning3() ? "y" : "g", pow, nCutNum, nLutSize, fUseMfs ? "&mfs; ":"", save, area, load );
+        sprintf( Comm3, "&st; &if %s -%s -K 6; &synch2; &if %s -C %d -K %d; %s %s %s; %s", pow, Abc_NtkRecIsRunning3() ? "y" : "g", pow, nCutNum, nLutSize, fUseMfs ? "&mfs; ":"", save, area, load );
+	}
 
     if ( fVerbose ) printf( "Trying simple synthesis with %s...\n", Abc_NtkRecIsRunning3() ? "LMS" : "SOP balancing" );
     Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm1 );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps -x" );
 
     if ( Gia_ManAndNum( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) ) < 200000 )
     {
         if ( fVerbose ) printf( "Trying medium synthesis...\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm2 );
         if ( fVerbose )
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps -x" );
     }
 
     if ( Gia_ManAndNum( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) ) < 10000 )
@@ -790,12 +869,12 @@ void Gia_ManPerformFlow3( int nLutSize, int nCutNum, int fBalance, int fMinAve, 
         if ( fVerbose ) printf( "Trying harder synthesis...\n" );
         Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), Comm3 );
         if ( fVerbose )
-        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+        Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps -x" );
     }
 
     if ( fVerbose ) printf( "Final result...\n" );
     if ( fVerbose )
-    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps" );
+    Cmd_CommandExecute( Abc_FrameGetGlobalFrame(), "&ps -x" );
 }
 
 

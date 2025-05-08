@@ -831,7 +831,7 @@ void Glucose_SolveCnf( char * pFileName, Glucose_Pars * pPars, int fDumpCnf )
 //    gzclose(in);
     Glucose_ReadDimacs( pFileName, S );
 
-    if ( pPars->verb )
+    if ( pPars->verb > 0 )
     {
         printf("c ============================[ Problem Statistics ]=============================\n");
         printf("c |                                                                             |\n");
@@ -842,15 +842,17 @@ void Glucose_SolveCnf( char * pFileName, Glucose_Pars * pPars, int fDumpCnf )
     if ( pPars->pre ) 
     {
         S.eliminate(true);
+        if (pPars->verb >= 0) {
         printf( "c Simplification removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
 
         if ( fDumpCnf )
         {
             char * pFileCnf = Extra_FileNameGenericAppend( pFileName, "_out.cnf" );
             S.toDimacs(pFileCnf);
-            printf( "Finished dumping CNF after preprocessing into file \"%s\".\n", pFileCnf );
-            printf( "SAT solving is not performed.\n" );
+            // printf( "Finished dumping CNF after preprocessing into file \"%s\".\n", pFileCnf );
+            // printf( "SAT solving is not performed.\n" );
             return;
         }
     }
@@ -1489,7 +1491,7 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
     abctime clk = Abc_Clock();
 
     SimpSolver S;
-    S.verbosity = pPars->verb;
+    S.verbosity = pPars->verb > 0 ? pPars->verb : 0;
     S.verbEveryConflicts = 50000;
     S.showModel = false;
     //S.verbosity = 2;
@@ -1499,7 +1501,7 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
     Vec_Int_t * vCnfIds = Glucose_SolverFromAig(p,S);
     S.parsing = 0;
 
-    if (pPars->verb)
+    if (pPars->verb > 0)
     {
         printf("c ============================[ Problem Statistics ]=============================\n");
         printf("c |                                                                             |\n");
@@ -1510,16 +1512,20 @@ int Glucose_SolveAig(Gia_Man_t * p, Glucose_Pars * pPars)
     if (pPars->pre) 
     {
         S.eliminate(true);
+        if (pPars->verb >= 0) {
         printf( "c Simplification removed %d variables and %d clauses.  ", S.eliminated_vars, S.eliminated_clauses );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
     }
     
     vec<Lit> dummy;
     lbool ret = S.solveLimited(dummy, 0);
 
-    if ( pPars->verb ) glucose_print_stats(S, Abc_Clock() - clk);
+    if ( pPars->verb > 0 ) glucose_print_stats(S, Abc_Clock() - clk);
+    if ( pPars->verb >= 0 ) {
     printf(ret == l_True ? "SATISFIABLE" : ret == l_False ? "UNSATISFIABLE" : "INDETERMINATE");
     Abc_PrintTime( 1, "      Time", Abc_Clock() - clk );
+    }
 
     // port counterexample
     if (ret == l_True)

@@ -359,7 +359,7 @@ void Wlc_NtkCheckIntegrity( void * pData )
         int i, * pArray, nArray  = Ndr_ObjReadArray( p, Obj, NDR_INPUT, &pArray );
         for ( i = 0; i < nArray; i++ )
             if ( Vec_IntGetEntry(vMap, pArray[i]) == 0 && !(Type == ABC_OPER_DFFRSE && (i >= 5 && i <= 7)) )
-                printf( "Input name %d appearing as fanin %d of obj %d is not used as output name in any object.\n", pArray[i], i, Obj );
+                printf( "Input name %d appearing as fanin %d of obj %d (type %d) is not used as output name in any object.\n", pArray[i], i, Obj, Type );
     }
     Vec_IntFree( vMap );
 }
@@ -429,8 +429,8 @@ Wlc_Ntk_t * Wlc_NtkFromNdr( void * pData )
             Vec_IntPushTwo( vFanins, End, Beg );
         else if ( Type == ABC_OPER_CONST )
             Ndr_ObjReadConstant( vFanins, (char *)Ndr_ObjReadBodyP(p, Obj, NDR_FUNCTION) );
-        else if ( Type == ABC_OPER_BIT_MUX && Vec_IntSize(vFanins) == 3 )
-            ABC_SWAP( int, Vec_IntEntryP(vFanins, 1)[0], Vec_IntEntryP(vFanins, 2)[0] );
+        //else if ( Type == ABC_OPER_BIT_MUX && Vec_IntSize(vFanins) == 3 )
+        //    ABC_SWAP( int, Vec_IntEntryP(vFanins, 1)[0], Vec_IntEntryP(vFanins, 2)[0] );
         Wlc_ObjAddFanins( pNtk, Wlc_NtkObj(pNtk, iObj), vFanins );
         Wlc_ObjSetNameId( pNtk, iObj, NameId );
         if ( Type == ABC_OPER_ARI_SMUL )

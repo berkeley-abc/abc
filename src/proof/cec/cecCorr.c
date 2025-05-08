@@ -1048,8 +1048,9 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         }
         if ( pPars->nLimitMax )
         {
+            int iterLimit = 2000;
             int nCur = Cec_ManCountLits(pAig);
-            if ( r > 4 && nPrev[0] - nCur <= 4*pPars->nLimitMax )
+            if ( r > iterLimit && nPrev[0] - nCur <= 4*pPars->nLimitMax )
             {
                 printf( "Iterative refinement is stopped after iteration %d\n", r );
                 printf( "because refinement does not proceed quickly.\n" );

@@ -80,12 +80,13 @@ int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c       = 0;
     int pre     = 1;
     int verb    = 0;
+    int quiet   = 0;
     int nConfls = 0;
     int fDumpCnf = 0;
 
     Glucose_Pars pPars;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Cpdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Cpqdvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -109,6 +110,9 @@ int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv )
             case 'v':
                 verb ^= 1;
                 break;
+            case 'q':
+                quiet ^= 1;
+                break;
             case 'h':
                 goto usage;
             default:
@@ -129,7 +133,8 @@ int Abc_CommandGlucose( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandGlucose(): There is no AIG.\n" );
         return 1;
     }
-    
+
+    if (quiet) pPars.verb = -1;
     if ( Glucose_SolveAig( pAbc->pGia, &pPars ) == 10 )
         Abc_FrameReplaceCex( pAbc, &pAbc->pGia->pCexComb );
 
@@ -142,6 +147,7 @@ usage:
     Abc_Print( -2, "\t-p         : enable preprocessing [default = %d]\n",pre);
     Abc_Print( -2, "\t-d         : enable dumping CNF after proprocessing [default = %d]\n",fDumpCnf);
     Abc_Print( -2, "\t-v         : verbosity [default = %d]\n",verb);
+    Abc_Print( -2, "\t-q         : quiet [default = %d]\n",quiet);
     Abc_Print( -2, "\t-h         : print the command usage\n");
     Abc_Print( -2, "\t<file.cnf> : (optional) CNF file to solve\n");
     return 1;

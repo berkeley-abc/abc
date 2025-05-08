@@ -102,6 +102,7 @@ int If_CommandReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
     char * FileName;
     int fVerbose;
     int c;
+	int k = 0;
 
     pNet = Abc_FrameReadNtk(pAbc);
     pOut = Abc_FrameReadOut(pAbc);
@@ -110,7 +111,7 @@ int If_CommandReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
     // set the defaults
     fVerbose = 1;
     Extra_UtilGetoptReset();
-    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh4567")) != EOF ) 
     {
         switch (c) 
         {
@@ -120,10 +121,51 @@ int If_CommandReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
             case 'h':
                 goto usage;
                 break;
+			case '4':
+				 k = 4; 
+				 break;
+			case '5':
+				 k = 5; 
+				 break;
+			case '6':
+				 k = 6; 
+				 break;
+			case '7':
+				 k = 7; 
+				 break;
             default:
                 goto usage;
         }
     }
+
+    if (argc != globalUtilOptind+1) {
+	 if (k == 4) {
+    	If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLut() );
+    	If_LibLut_t s_LutLib = { "lutlib", 4, 0, {0,1,1,1,1}, {{0},{1},{1},{1},{1}} };
+    	Abc_FrameSetLibLut( If_LibLutDup(&s_LutLib) );
+		return 0;
+	 }
+	 if (k == 5) {
+    	If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLut() );
+    	If_LibLut_t s_LutLib = { "lutlib", 5, 0, {0,1,1,1,1,2}, {{0},{1},{1},{1},{1},{1.2}} };
+    	Abc_FrameSetLibLut( If_LibLutDup(&s_LutLib) );
+		return 0;
+	 }
+     if (k == 6) {
+    	If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLut() );
+    	If_LibLut_t s_LutLib = { "lutlib", 6, 0, {0,1,1,1,1,2,2}, {{0},{1},{1},{1},{1},{1.2},{1.2}} };
+    	Abc_FrameSetLibLut( If_LibLutDup(&s_LutLib) );
+		return 0;
+	 }
+	 if (k == 7) {
+    	If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLut() );
+    	If_LibLut_t s_LutLib = { "lutlib", 7, 0, {0,1,1,1,1,2,2,2}, {{0},{1},{1},{1},{1},{1.2},{1.2},{1.2}} };
+    	Abc_FrameSetLibLut( If_LibLutDup(&s_LutLib) );
+		return 0;
+	 }
+     goto usage;
+    }
+
 
     if ( argc != globalUtilOptind + 1 )
         goto usage;
@@ -141,7 +183,7 @@ int If_CommandReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
     fclose( pFile );
 
     // set the new network
-    pLib = If_LibLutRead( FileName );
+    pLib = If_LibLutRead( FileName, k );
     if ( pLib == NULL )
     {
         fprintf( pErr, "Reading LUT library has failed.\n" );

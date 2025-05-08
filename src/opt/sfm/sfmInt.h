@@ -221,8 +221,10 @@ extern int          Sfm_LibImplementGatesArea( Sfm_Lib_t * p, int * pFanins, int
 extern int          Sfm_LibImplementGatesDelay( Sfm_Lib_t * p, int * pFanins, Mio_Gate_t * pGateB, Mio_Gate_t * pGateT, char * pFansB, char * pFansT, Vec_Int_t * vGates, Vec_Wec_t * vFanins );
 /*=== sfmNtk.c ==========================================================*/
 extern Sfm_Ntk_t *  Sfm_ConstructNetwork( Vec_Wec_t * vFanins, int nPis, int nPos );
-extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p );
-extern void         Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int f, int iFaninNew, word uTruth, word * pTruth );
+extern void         Sfm_NtkPrepare( Sfm_Ntk_t * p, const Sfm_Par_t * pPars );
+extern void         Sfm_NtkUpdate( Sfm_Ntk_t * p, int iNode, int iFanin, int iFaninNew, word uTruth, word * pTruth );
+extern void         Sfm_NtkUpdateLevel_rec( Sfm_Ntk_t * p, int iNode );
+extern void         Sfm_NtkUpdateLevelR_rec( Sfm_Ntk_t * p, int iNode );
 /*=== sfmSat.c ==========================================================*/
 extern int          Sfm_NtkWindowToSolver( Sfm_Ntk_t * p );
 extern word         Sfm_ComputeInterpolant( Sfm_Ntk_t * p );
@@ -254,6 +256,8 @@ extern int          Sfm_MitEvalRemapping( Sfm_Mit_t * p, Vec_Int_t * vMffc, Abc_
 /*=== sfmWin.c ==========================================================*/
 extern int          Sfm_ObjMffcSize( Sfm_Ntk_t * p, int iObj );
 extern int          Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose );
+extern int          Sfm_ObjIsUseful( Sfm_Ntk_t * p, int iNode );
+extern int          Sfm_NtkCheckRoot( Sfm_Ntk_t * p, const Sfm_Par_t * pPars, int iNode, int nLevelMax );
 
 ABC_NAMESPACE_HEADER_END
 

@@ -837,6 +837,76 @@ pPars->timeSynth = Abc_Clock() - clk;
 
 /**Function*************************************************************
 
+  Synopsis    [Records the In/Out obj indices]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Aig_ManRecordOrder( Aig_Man_t * pOrder )
+{
+    Aig_ManSetCioIds( pOrder );
+    Vec_Int_t * result = Vec_IntStartFull(Aig_ManObjNumMax(pOrder));
+
+    Aig_Obj_t * pObj = NULL;
+    int i = 0;
+    Aig_ManForEachObj( pOrder, pObj, i )
+    {
+        if ( Aig_ObjIsCi(pObj) )
+        {
+            Vec_IntWriteEntry(result, i, (Aig_ObjCioId(pObj) << 1) | 1);
+        }
+        else if ( Aig_ObjIsCo(pObj) )
+        {
+            Vec_IntWriteEntry(result, i, (Aig_ObjCioId(pObj) << 1) | 0);
+        }
+    }
+
+    Aig_ManCleanCioIds( pOrder );
+    return result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Records the In/Out obj indices]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Aig_ManOrderPiosFromRecord( Aig_Man_t * p, Vec_Int_t * record )
+{
+    Vec_Ptr_t * vPios = Vec_PtrAlloc( Aig_ManCiNum(p) + Aig_ManCoNum(p) );
+
+    int entry = 0;
+    int i = 0;
+    Vec_IntForEachEntry(record, entry, i)
+    {
+        if (entry != -1)
+        {
+            int is_ci = entry & 0b1;
+            int ord = entry >> 1;
+            if (is_ci)
+            {
+                Vec_PtrPush( vPios, Aig_ManCi(p, ord) );
+            }
+            else {
+                Vec_PtrPush( vPios, Aig_ManCo(p, ord) );
+            }
+        }
+    }
+
+    return vPios;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Reproduces script "compress2".]
 
   Description [Consumes the input AIG to reduce memory usage.]
@@ -871,6 +941,10 @@ clk = Abc_Clock();
     pGia = Dar_NewChoiceSynthesis( Aig_ManDupDfs(pAig), 1, 1, pPars->fPower, pPars->fLightSynth, pPars->fVerbose );
 pPars->timeSynth = Abc_Clock() - clk;
 
+    // record guidance
+    Vec_Int_t * order = Aig_ManRecordOrder( pAig );
+    Aig_ManStop( pAig );
+
     // perform choice computation
     if ( pPars->fUseNew )
         pMan = Cec_ComputeChoicesNew( pGia, pPars->nBTLimit, pPars->fVerbose );
@@ -887,8 +961,8 @@ pPars->timeSynth = Abc_Clock() - clk;
     Gia_ManStop( pGia );
 
     // create guidence
-    vPios = Aig_ManOrderPios( pMan, pAig ); 
-    Aig_ManStop( pAig );
+    vPios = Aig_ManOrderPiosFromRecord( pMan, order );
+    Vec_IntFree( order );
 
     // reconstruct the network
     pMan = Aig_ManDupDfsGuided( pTemp = pMan, vPios );

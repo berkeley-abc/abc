@@ -254,6 +254,20 @@ static inline const char * Abc_OperNameSimple( int Type )
     if ( Type == ABC_OPER_BIT_NAND     )   return "nand";     
     if ( Type == ABC_OPER_BIT_NOR      )   return "nor";     
     if ( Type == ABC_OPER_BIT_NXOR     )   return "xnor";     
+    if ( Type == ABC_OPER_BIT_MUX      )   return "mux";
+    if ( Type == ABC_OPER_SLICE        )   return "slice";
+    if ( Type == ABC_OPER_CONCAT       )   return "concat";
+    if ( Type == ABC_OPER_ARI_MUL      )   return "mult";
+    if ( Type == ABC_OPER_ARI_SMUL     )   return "s_mult";
+    if ( Type == ABC_OPER_ARI_ADD      )   return "add";
+    if ( Type == ABC_OPER_ARI_SUB      )   return "sub";
+    if ( Type == ABC_OPER_SEL_NMUX     )   return "nmux";
+    if ( Type == ABC_OPER_SEL_SEL      )   return "select";
+    if ( Type == ABC_OPER_CONST        )   return "const";
+    if ( Type == ABC_OPER_COMP_EQU     )   return "equal";
+    if ( Type == ABC_OPER_RED_NOR      )   return "nor";
+
+    return "unknown";
     assert( 0 );
     return NULL;
 }

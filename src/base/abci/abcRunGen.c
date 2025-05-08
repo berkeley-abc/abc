@@ -110,7 +110,7 @@ void Acb_NtkRunGen( int nInputs, int nMints, int nFuncs, int Seed, int fVerbose,
         Vec_IntAddToEntry( vNodes, nNodes, 1 );
 
         if ( fVerbose ) {
-          printf( "Iteration %3d : ", i );
+          printf( "Function %4d : ", i );
           printf( "Random function has %d positive minterms ", nMints );
           printf( "and maps into %d nodes.\n", nNodes );
           if ( fVerbose )

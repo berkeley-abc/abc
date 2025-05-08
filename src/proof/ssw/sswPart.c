@@ -25,7 +25,7 @@
 
 #ifdef ABC_USE_PTHREADS
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include "../lib/pthread.h"
 #else
 #include <pthread.h>
@@ -73,7 +73,7 @@ void Ssw_SignalCorrespondenceArray1( Vec_Ptr_t * vGias, Ssw_Pars_t * pPars )
     pCorPars->fVerbose  = pPars->fVerbose;
     pCorPars->fUseCSat  = 1; 
     Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i )
-        if ( Gia_ManPiNum(pGia) > 0 )
+        // if ( Gia_ManPiNum(pGia) > 0 )  /* fix potential uninitialized memory */
             Cec_ManLSCorrespondenceClasses( pGia, pCorPars );
 }
 
@@ -149,6 +149,8 @@ void Ssw_SignalCorrespondenceArray( Vec_Ptr_t * vGias, Ssw_Pars_t * pPars )
         return Ssw_SignalCorrespondenceArray1( vGias, pPars );
     // subtract manager thread
     nProcs--;
+    if (nProcs > PAR_THR_MAX) nProcs = PAR_THR_MAX;
+
     assert( nProcs >= 1 && nProcs <= PAR_THR_MAX );
     // start threads
     for ( i = 0; i < nProcs; i++ )
@@ -354,7 +356,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart2( Aig_Man_t * pAig, Ssw_Pars_t * pPars 
     vAigs = Vec_PtrAlloc( 100 );
     vGias = Vec_PtrAlloc( 100 );
     vMaps = Vec_PtrAlloc( 100 );
-    if ( fPrintParts )
+    if ( fVerbose && fPrintParts )
         Abc_Print( 1, "Simple partitioning. %d partitions are saved:\n", Vec_PtrSize(vResult) );
     Vec_PtrForEachEntry( Vec_Int_t *, vResult, vPart, i )
     {
@@ -365,7 +367,7 @@ Aig_Man_t * Ssw_SignalCorrespondencePart2( Aig_Man_t * pAig, Ssw_Pars_t * pPars 
         Vec_PtrPush( vMaps, pMapBack );
         //sprintf( Buffer, "part%03d.aig", i );
         //Ioa_WriteAiger( pTemp, Buffer, 0, 0 );
-        if ( fPrintParts )
+        if ( fVerbose && fPrintParts )
             Abc_Print( 1, "part%03d.aig : Reg = %4d. PI = %4d. (True = %4d. Regs = %4d.) And = %5d.\n",
                 i, Vec_IntSize(vPart), Aig_ManCiNum(pTemp)-Vec_IntSize(vPart), nCountPis, nCountRegs, Aig_ManNodeNum(pTemp) );
     }

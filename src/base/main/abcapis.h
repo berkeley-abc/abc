@@ -85,7 +85,7 @@ extern ABC_DLL int *  Abc_FrameGiaOutputMiniLutObj( Abc_Frame_t * pAbc );
 extern ABC_DLL void   Abc_FrameSetObjDelays( Abc_Frame_t * pAbc, int * pDelays, int nDelays );
 extern ABC_DLL int *  Abc_FrameReadMiniLutSwitching( Abc_Frame_t * pAbc );
 extern ABC_DLL int *  Abc_FrameReadMiniLutSwitching2( Abc_Frame_t * pAbc, int nRandPiFactor );
-extern ABC_DLL int *  Abc_FrameReadMiniLutSwitchingPo( Abc_Frame_t * pAbc );
+extern ABC_DLL int *  Abc_FrameReadMiniLutSwitchingPo( Abc_Frame_t * pAbc, int nFrames );
 
 // procedures to input/output NDR data-structure
 extern ABC_DLL void   Abc_FrameInputNdr( Abc_Frame_t * pAbc, void * pData );

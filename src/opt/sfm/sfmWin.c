@@ -223,12 +223,12 @@ int Sfm_NtkCheckOverlap( Sfm_Ntk_t * p, int iFan, int iNode )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Sfm_NtkCheckRoot( Sfm_Ntk_t * p, int iNode, int nLevelMax )
+int Sfm_NtkCheckRoot( Sfm_Ntk_t * p, const Sfm_Par_t * pPars, int iNode, int nLevelMax )
 {
     int i, iFanout;
     // the node is the root if one of the following is true:
     // (1) the node has more than fanouts than the limit or has no fanouts (should not happen in general)
-    if ( Sfm_ObjFanoutNum(p, iNode) == 0 || Sfm_ObjFanoutNum(p, iNode) > p->pPars->nFanoutMax )
+    if ( Sfm_ObjFanoutNum(p, iNode) == 0 || Sfm_ObjFanoutNum(p, iNode) > pPars->nFanoutMax )
         return 1;
     // (2) the node has CO fanouts
     // (3) the node has fanouts above the cutoff level
@@ -247,7 +247,7 @@ void Sfm_NtkComputeRoots_rec( Sfm_Ntk_t * p, int iNode, int nLevelMax, Vec_Int_t
     if ( iNode != p->iPivotNode )
         Vec_IntPush( vTfo, iNode );
     // check if the node should be the root
-    if ( Sfm_NtkCheckRoot( p, iNode, nLevelMax ) )
+    if ( Sfm_NtkCheckRoot( p, p->pPars, iNode, nLevelMax ) )
         Vec_IntPush( vRoots, iNode );
     else // if not, explore its fanouts
         Sfm_ObjForEachFanout( p, iNode, iFanout, i )
@@ -303,7 +303,7 @@ void Sfm_NtkAddDivisors( Sfm_Ntk_t * p, int iNode, int nLevelMax )
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Sfm_ObjIsUseful( Sfm_Ntk_t * p, int iNode )
+int Sfm_ObjIsUseful( Sfm_Ntk_t * p, int iNode )
 {
     int i, iFanout;
     if ( !Sfm_ObjIsFixed(p, iNode) )
@@ -403,7 +403,7 @@ int Sfm_NtkCreateWindow( Sfm_Ntk_t * p, int iNode, int fVerbose )
     p->nTotalDivs += Vec_IntSize(p->vDivs);
  
     // collect TFO and window roots
-    if ( p->pPars->nTfoLevMax > 0 && !Sfm_NtkCheckRoot(p, iNode, Sfm_ObjLevel(p, iNode) + p->pPars->nTfoLevMax) )
+    if ( p->pPars->nTfoLevMax > 0 && !Sfm_NtkCheckRoot(p, p->pPars, iNode, Sfm_ObjLevel(p, iNode) + p->pPars->nTfoLevMax) )
     {
         // explore transitive fanout
         Sfm_NtkIncrementTravId( p );

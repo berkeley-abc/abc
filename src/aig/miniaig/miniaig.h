@@ -247,7 +247,7 @@ static void Mini_AigPrintStats( Mini_Aig_t * p )
 }
 
 // serialization
-static void Mini_AigDump( Mini_Aig_t * p, char * pFileName )
+static void Mini_AigDump( Mini_Aig_t * p, const char * pFileName )
 {
     FILE * pFile;
     int RetValue;
@@ -753,7 +753,7 @@ static Mini_Aig_t * Mini_AigerRead( char * pFileName, int fVerbose )
     return p;
 }
 
-static void Mini_AigerWriteInt( char * pFileName, int * pObjs, int nObjs, int nIns, int nLatches, int nOuts, int nAnds )
+static void Mini_AigerWriteInt( const char * pFileName, int * pObjs, int nObjs, int nIns, int nLatches, int nOuts, int nAnds )
 {
     FILE * pFile = fopen( pFileName, "wb" ); int i;
     if ( pFile == NULL )
@@ -777,7 +777,7 @@ static void Mini_AigerWriteInt( char * pFileName, int * pObjs, int nObjs, int nI
     fprintf( pFile, "c\n" );
     fclose( pFile );
 }
-static void Mini_AigerWrite( char * pFileName, Mini_Aig_t * p, int fVerbose )
+static void Mini_AigerWrite( const char * pFileName, Mini_Aig_t * p, int fVerbose )
 {
     int i, nIns = 0, nOuts = 0, nAnds = 0;
     assert( Mini_AigIsNormalized(p) );

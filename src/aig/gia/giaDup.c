@@ -6210,6 +6210,65 @@ void Gia_ManCofClassEnum( Gia_Man_t * p, int nVars )
     Vec_IntFree( vIns );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ObjWhichFanout( Gia_Man_t * p, int iFanin, int iFanout )
+{
+    int i, FanId;
+    Gia_ObjForEachFanoutStaticId( p, iFanin, FanId, i ) 
+        if ( FanId == iFanout )
+            return i;
+    assert( 0 );
+    return -1;
+}
+Gia_Man_t * Gia_ManDupFanouts( Gia_Man_t * p )
+{
+    assert( Gia_ManRegNum(p) == 0 );
+    Gia_Man_t * pNew; Gia_Obj_t * pObj; int i, f, iLit[2];
+    pNew = Gia_ManStart( Gia_ManObjNum(p)+100 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManStaticFanoutStart( p );
+    pNew->vNamesIn = Vec_PtrAlloc( 100 );
+    pNew->vNamesOut = Vec_PtrAlloc( 100 );
+    Gia_ManForEachPi( p, pObj, i ) {
+        pObj->Value = Gia_ManAppendCi(pNew);
+        Vec_PtrPush( pNew->vNamesIn, Gia_ObjCiName(p, i) );
+        for ( f = 1; f < Gia_ObjFanoutNum(p, pObj); f++ ) {
+            Gia_ManAppendCi(pNew);
+            Vec_PtrPush( pNew->vNamesIn, Abc_UtilStrsavNum(Gia_ObjCiName(p, i), f) );
+        }
+    }
+    Gia_ManForEachAnd( p, pObj, i ) {
+        iLit[0] = Gia_ObjFanin0Copy(pObj);
+        if ( Gia_ObjIsPi(p, Gia_ObjFanin0(pObj)) )
+            iLit[0] += 2 * Gia_ObjWhichFanout(p, Gia_ObjFaninId0(pObj, i), i);
+        iLit[1] = Gia_ObjFanin1Copy(pObj);
+        if ( Gia_ObjIsPi(p, Gia_ObjFanin1(pObj)) )
+            iLit[1] += 2 * Gia_ObjWhichFanout(p, Gia_ObjFaninId1(pObj, i), i);
+        pObj->Value = Gia_ManAppendAnd( pNew, iLit[0], iLit[1] );
+    }
+    Gia_ManForEachPo( p, pObj, i ) {
+        iLit[0] = Gia_ObjFanin0Copy(pObj);
+        if ( Gia_ObjIsPi(p, Gia_ObjFanin0(pObj)) )
+            iLit[0] += 2 * Gia_ObjWhichFanout(p, Gia_ObjFaninId0p(p, pObj), Gia_ObjId(p, pObj));
+        Gia_ManAppendCo( pNew, iLit[0] );
+        Vec_PtrPush( pNew->vNamesOut, Gia_ObjCoName(p, i) );
+    }
+    Gia_ManStaticFanoutStop( p );
+    return pNew;    
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
