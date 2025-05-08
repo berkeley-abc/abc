@@ -1957,7 +1957,7 @@ void Abc_NtkStochMap( int nSuppMax, int nIters, int TimeOut, int Seed, int fOver
     }
     aEnd = Abc_NtkGetMappedArea(Abc_FrameReadNtk(Abc_FrameGetGlobalFrame()));
     if ( fVerbose )
-    printf( "Cumulatively reduced area by %.2f %% after %d iterations.  ", 100.0*(aBeg - aEnd)/aBeg, nIters );
+    printf( "Cumulatively reduced area by %.2f %% after %d iterations.  ", 100.0*(aBeg - aEnd)/Abc_MaxFloat(aBeg, (float)1.0), nIters );
     if ( fVerbose )
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
 }
