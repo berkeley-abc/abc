@@ -586,7 +586,7 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     if ( p->pReprs && p->pNexts )
         Gia_ManEquivPrintClasses( p, 0, 0.0 );
     if ( Gia_ManHasMapping(p) && (pPars == NULL || !pPars->fSkipMap) )
-        Gia_ManPrintMappingStats( p, pPars ? pPars->pDumpFile : NULL );
+        Gia_ManPrintMappingStats( p, pPars ? pPars->pDumpFile : NULL, pPars?pPars->fNoColor : 0 );
     else if ( pPars && pPars->pDumpFile )
         Gia_ManLogAigStats( p, pPars->pDumpFile );
     if ( pPars && pPars->fNpn && Gia_ManHasMapping(p) )

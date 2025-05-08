@@ -4,6 +4,8 @@ CXX  := g++
 AR   := ar
 LD   := $(CXX)
 
+ABC_USE_NO_READLINE = 1
+
 MSG_PREFIX ?=
 ABCSRC ?= .
 VPATH = $(ABCSRC)

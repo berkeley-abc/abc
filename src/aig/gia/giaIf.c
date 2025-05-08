@@ -470,7 +470,7 @@ int Gia_ManCountDupLut( Gia_Man_t * p )
     return nCountDup + nCountPis;
 }
 
-void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
+void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile, unsigned fNoColor )
 {
     int fDisable2Lut = 1;
     Gia_Obj_t * pObj;
@@ -536,13 +536,13 @@ void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
     }
 #else
     Abc_Print( 1, "Mapping (K=%d)  :  ", nLutSize );
-    Abc_Print( 1, "%slut =%7d%s  ",  "\033[1;33m", nLuts,    "\033[0m" );  // yellow
-    Abc_Print( 1, "%sedge =%8d%s  ", "\033[1;32m", nFanins,  "\033[0m" );  // green
-    Abc_Print( 1, "%slev =%5d%s ",   "\033[1;31m", LevelMax, "\033[0m" );  // red
-    Abc_Print( 1, "%s(%.2f)%s  ",    "\033[1;31m", (float)Ave / Gia_ManCoNum(p), "\033[0m" );
+    Abc_Print( 1, "%slut =%7d%s  ",  fNoColor ? "" : "\033[1;33m", nLuts,    fNoColor ? "" : "\033[0m" );  // yellow
+    Abc_Print( 1, "%sedge =%8d%s  ", fNoColor ? "" : "\033[1;32m", nFanins,  fNoColor ? "" : "\033[0m" );  // green
+    Abc_Print( 1, "%slev =%5d%s ",   fNoColor ? "" : "\033[1;31m", LevelMax, fNoColor ? "" : "\033[0m" );  // red
+    Abc_Print( 1, "%s(%.2f)%s  ",    fNoColor ? "" : "\033[1;31m", (float)Ave / Gia_ManCoNum(p), fNoColor ? "" : "\033[0m" );
 //    Abc_Print( 1, "over =%5.1f %%  ", 100.0 * Gia_ManComputeOverlap(p) / Gia_ManAndNum(p) );
     if ( p->pManTime && Tim_ManBoxNum((Tim_Man_t *)p->pManTime) )
-        Abc_Print( 1, "%slevB =%5d%s  ", "\033[1;31m", Gia_ManLutLevelWithBoxes(p), "\033[0m" );
+        Abc_Print( 1, "%slevB =%5d%s  ", fNoColor ? "" : "\033[1;31m", Gia_ManLutLevelWithBoxes(p), fNoColor ? "" : "\033[0m" );
     Abc_Print( 1, "mem =%5.2f MB", 4.0*(Gia_ManObjNum(p) + 2*nLuts + nFanins)/(1<<20) );
     Abc_Print( 1, "\n" );
 #endif
