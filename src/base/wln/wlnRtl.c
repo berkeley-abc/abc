@@ -217,7 +217,7 @@ Abc_Ntk_t * Wln_ReadMappedSystemVerilog( char * pFileName, char * pTopModule, ch
     char Command[1000];
     char * pFileTemp = "_temp_.blif";
     int fSVlog = strstr(pFileName, ".sv")  != NULL;
-    sprintf( Command, "%s -qp \"read_liberty -lib %s; read %s %s%s %s; hierarchy %s%s; write_blif %s%s -impltf -gates %s\"",
+    sprintf( Command, "%s -qp \"read_liberty -lib %s; read %s %s%s %s; hierarchy %s%s; flatten; proc; write_blif %s%s -impltf -gates %s\"",
         Wln_GetYosysName(),
         pLibrary,
         fSVlog    ? "-sv "      : "-vlog95",
