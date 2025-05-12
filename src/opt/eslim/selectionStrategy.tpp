@@ -9,7 +9,7 @@
   Synopsis    [Procedures for selecting subcircuits.]
 
   Author      [Franz-Xaver Reichl]
-  
+
   Affiliation [University of Freiburg]
 
   Date        [Ver. 1.0. Started - March 2025.]
@@ -35,7 +35,7 @@ namespace eSLIM {
       if (filterSubcircuit(subcir)) {
         return subcir;
       } else {
-        subcir.free();
+        subcir._free();
       }
     }
     status = false;
@@ -76,12 +76,12 @@ namespace eSLIM {
       if (!Gia_ObjIsTravIdPrevious(gia_man, Gia_ObjFanin0(pObj)) && !Gia_ObjIsTravIdCurrent(gia_man, Gia_ObjFanin0(pObj))) {
         Gia_ObjSetTravIdCurrent(gia_man, Gia_ObjFanin0(pObj));
         Vec_IntPush(io, Gia_ObjId(gia_man, Gia_ObjFanin0(pObj)));
-      } 
+      }
       // fanin1 is not in the subcircuit and was not considered yet
       if (!Gia_ObjIsTravIdPrevious(gia_man, Gia_ObjFanin1(pObj)) && !Gia_ObjIsTravIdCurrent(gia_man, Gia_ObjFanin1(pObj))) {
         Gia_ObjSetTravIdCurrent(gia_man, Gia_ObjFanin1(pObj));
         Vec_IntPush(io, Gia_ObjId(gia_man, Gia_ObjFanin1(pObj)));
-      } 
+      }
     }
     int nof_inputs = Vec_IntSize(io);
 
@@ -90,11 +90,11 @@ namespace eSLIM {
       // If there is an object that is not contained in the subcircuit that has a fanin in the subcircuit then this fanin is an output
       if (!Gia_ObjIsTravIdPrevious(gia_man, pObj)) {
         if (Gia_ObjIsTravIdPrevious(gia_man, Gia_ObjFanin0(pObj))) {
-          Gia_ObjSetTravIdCurrent(gia_man, Gia_ObjFanin0(pObj)); 
+          Gia_ObjSetTravIdCurrent(gia_man, Gia_ObjFanin0(pObj));
           Vec_IntPush(io, Gia_ObjId(gia_man, Gia_ObjFanin0(pObj)));
         }
         if (Gia_ObjIsTravIdPrevious(gia_man, Gia_ObjFanin1(pObj))) {
-          Gia_ObjSetTravIdCurrent(gia_man, Gia_ObjFanin1(pObj)); 
+          Gia_ObjSetTravIdCurrent(gia_man, Gia_ObjFanin1(pObj));
           Vec_IntPush(io, Gia_ObjId(gia_man, Gia_ObjFanin1(pObj)));
         }
       }
@@ -102,7 +102,7 @@ namespace eSLIM {
 
     Gia_ManForEachPo( gia_man, pObj, i ) {
       if (Gia_ObjIsTravIdPrevious(gia_man, Gia_ObjFanin0(pObj))) {
-        Gia_ObjSetTravIdCurrent(gia_man, Gia_ObjFanin0(pObj)); 
+        Gia_ObjSetTravIdCurrent(gia_man, Gia_ObjFanin0(pObj));
         Vec_IntPush(io, Gia_ObjId(gia_man, Gia_ObjFanin0(pObj)));
       }
     }
@@ -131,7 +131,7 @@ namespace eSLIM {
 
   template <typename T>
   void SelectionStrategy<T>::forbiddenPairsRec(Gia_Obj_t * pObj, int input, int min_level, std::unordered_map<int, std::unordered_set<int>>& pairs, const std::unordered_map<int,int>& out_id) {
-    if (Gia_ObjIsTravIdCurrent(gia_man, pObj)) { 
+    if (Gia_ObjIsTravIdCurrent(gia_man, pObj)) {
       auto id = Gia_ObjId(gia_man, pObj);
       pairs[out_id.at(id)].insert(input);
       return;

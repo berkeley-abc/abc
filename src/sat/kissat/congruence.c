@@ -846,7 +846,7 @@ static void add_binary_clause (closure *closure, unsigned a, unsigned b) {
     kissat_new_binary_clause (solver, a, b);
   else {
     kissat_new_unwatched_binary_clause (solver, a, b);
-    litpair litpair = {.lits = {a < b ? a : b, a < b ? b : a}};
+    litpair litpair = {/*.lits = */{a < b ? a : b, a < b ? b : a}};  // c++20 only
     PUSH_STACK (closure->binaries, litpair);
   }
 }
@@ -2500,7 +2500,7 @@ static bool indexed_binary (closure *closure, unsigned lit,
   SWAP (unsigned, lit, other);
   if (lit > other)
     SWAP (unsigned, lit, other);
-  binary_clause binary = {.lits = {lit, other}};
+  binary_clause binary = {/*.lits = */{lit, other}};  // c++20 only
   const unsigned hash = hash_binary (closure, &binary);
   const size_t size = bintab->size;
   const size_t size2 = bintab->size2;
@@ -2986,7 +2986,7 @@ static void index_binary (closure *closure, unsigned lit, unsigned other) {
   KISSAT_assert (lit < other);
   binary_hash_table *bintab = &closure->bintab;
   KISSAT_assert (!binaries_hash_table_is_full (bintab));
-  binary_clause binary = {.lits = {lit, other}};
+  binary_clause binary = {/*.lits = */{lit, other}};  // c++20 only
   const unsigned hash = hash_binary (closure, &binary);
   const size_t size = bintab->size;
   const size_t size2 = bintab->size2;
@@ -3416,10 +3416,10 @@ static void copy_conditional_equivalences (kissat *solver, unsigned lit,
     KISSAT_assert (second != INVALID_LIT);
     litpair pair;
     if (first < second)
-      pair = (litpair){.lits = {first, second}};
+      pair.lits[0] = first, pair.lits[1] = second;
     else {
       KISSAT_assert (second < first);
-      pair = (litpair){.lits = {second, first}};
+      pair.lits[0] = second, pair.lits[1] = first;
     }
     LOG ("literal %s conditional binary clause %s %s", LOGLIT (lit),
          LOGLIT (first), LOGLIT (second));
@@ -3491,13 +3491,13 @@ static void search_condeq (closure *closure, unsigned lit, unsigned pos_lit,
       KISSAT_assert (first < second);
       check_ternary (closure, lit, first, NOT (second));
       check_ternary (closure, lit, NOT (first), second);
-      litpair equivalence = {.lits = {first, second}};
+      litpair equivalence = {/*.lits = */{first, second}};  // c++20 only
       PUSH_STACK (*condeq, equivalence);
       if (NEGATED (second)) {
-        litpair inverse_equivalence = {.lits = {NOT (second), NOT (first)}};
+        litpair inverse_equivalence = {/*.lits = */{NOT (second), NOT (first)}};  // c++20 only
         PUSH_STACK (*condeq, inverse_equivalence);
       } else {
-        litpair inverse_equivalence = {.lits = {second, first}};
+        litpair inverse_equivalence = {/*.lits = */{second, first}};  // c++20 only
         PUSH_STACK (*condeq, inverse_equivalence);
       }
     }
@@ -4549,7 +4549,7 @@ static void forward_subsume_matching_clauses (closure *closure) {
     }
     const reference ref = kissat_reference_clause (solver, c);
     KISSAT_assert (size <= UINT_MAX);
-    refsize refsize = {.ref = ref, .size = (unsigned)size};
+    refsize refsize = {/*.ref = */ref, /*.size = */(unsigned)size};  // c++20 only
     PUSH_STACK (candidates, refsize);
   }
   DEALLOC (matchable, VARS);
