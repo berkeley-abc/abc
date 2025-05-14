@@ -148,7 +148,7 @@ Mini_Aig_t * Abc_MiniAigFromNtk ( Abc_Ntk_t *pNtk )
 {
     Abc_Ntk_t *pNtkRes = NULL;
     Mini_Aig_t *pAig;
-    if (Abc_NtkHasMapping(pNtk)) {
+    if (!Abc_NtkIsStrash(pNtk)) {
         pNtk = pNtkRes = Abc_NtkStrash( pNtk, 0, 1, 0 );
         if ( pNtkRes == NULL )
         {

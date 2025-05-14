@@ -898,6 +898,21 @@ Vec_Str_t * Abc_SclProduceGenlibStr( SC_Lib * p, float Slew, float Gain, int nGa
                 continue;
             SC_CellForEachPinOut( pRepr, pPinOut, j )
             {
+                SC_CellForEachPinIn( pRepr, pPin, k )
+                {
+                    float Delay = Abc_SclComputeDelayClassPin( p, pRepr, k, Slew, Gain );
+                    if ( Delay <= 0 ) {
+                        printf( "Cell %s cannot be used because delay of a pin is <= 0.\n", pRepr->pName );
+                        break;
+                    }
+                }
+                if ( k < pRepr->n_inputs )
+                    break;
+            }
+            if ( j < pRepr->n_outputs )
+                continue;
+            SC_CellForEachPinOut( pRepr, pPinOut, j )
+            {
                 assert( strlen(pRepr->pName) < 200 );
                 Vec_StrPrintStr( vStr, "GATE " );
                 sprintf( Buffer, "%-16s", pRepr->pName );

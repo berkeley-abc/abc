@@ -80,8 +80,9 @@ Gia_Man_t * Gia_StochProcessSingle( Gia_Man_t * p, char * pScript, int Rand, int
     }
     return pNew;
 }
-void Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSecs, int fVerbose )
+Vec_Int_t * Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSecs, int fVerbose )
 {
+    Vec_Int_t * vGains = Vec_IntStartFull( Vec_PtrSize(vGias) );
     Gia_Man_t * pGia, * pNew; int i;
     Vec_Int_t * vRands = Vec_IntAlloc( Vec_PtrSize(vGias) ); 
     Abc_Random(1);
@@ -90,10 +91,12 @@ void Gia_StochProcessArray( Vec_Ptr_t * vGias, char * pScript, int TimeSecs, int
     Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i ) 
     {
         pNew = Gia_StochProcessSingle( pGia, pScript, Vec_IntEntry(vRands, i), TimeSecs );
+        Vec_IntWriteEntry( vGains, i, Gia_ManAndNum(pGia) - Gia_ManAndNum(pNew) );
         Gia_ManStop( pGia );
         Vec_PtrWriteEntry( vGias, i, pNew );
     }
     Vec_IntFree( vRands );
+    return vGains;
 }
 
 /**Function*************************************************************
@@ -165,14 +168,14 @@ int Gia_StochProcess1( void * p )
     return 1;
 }
 
-void Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int TimeSecs, int fVerbose )
+Vec_Int_t * Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int TimeSecs, int fVerbose )
 {
     if ( nProcs <= 2 ) {
         if ( fVerbose )
             printf( "Running non-concurrent synthesis.\n" ), fflush(stdout);            
-        Gia_StochProcessArray( vGias, pScript, TimeSecs, fVerbose );
-        return;
+        return Gia_StochProcessArray( vGias, pScript, TimeSecs, fVerbose );
     }
+    Vec_Int_t * vGains = Vec_IntStartFull( Vec_PtrSize(vGias) );
     StochSynData_t * pData = ABC_CALLOC( StochSynData_t, Vec_PtrSize(vGias) );
     Vec_Ptr_t * vData = Vec_PtrAlloc( Vec_PtrSize(vGias) ); 
     Gia_Man_t * pGia; int i;
@@ -190,11 +193,13 @@ void Gia_StochProcess( Vec_Ptr_t * vGias, char * pScript, int nProcs, int TimeSe
     Util_ProcessThreads( Gia_StochProcess1, vData, nProcs, TimeSecs, fVerbose );
     // replace old AIGs by new AIGs
     Vec_PtrForEachEntry( Gia_Man_t *, vGias, pGia, i ) {
+        Vec_IntWriteEntry( vGains, i, Gia_ManAndNum(pGia) - Gia_ManAndNum(pData[i].pOut) );
         Gia_ManStop( pGia );
         Vec_PtrWriteEntry( vGias, i, pData[i].pOut );
     }
     Vec_PtrFree( vData );
     ABC_FREE( pData );
+    return vGains;
 }
 
 /**Function*************************************************************
@@ -279,6 +284,428 @@ void Gia_ManStochSynthesis( Vec_Ptr_t * vAigs, char * pScript )
     }
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFilterPartitions( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNodes, Vec_Ptr_t * vvOuts, Vec_Ptr_t * vWins, Vec_Int_t * vGains )
+{
+    int RetValue = Vec_PtrSize(vvIns);
+    Vec_Ptr_t * vvInsNew  = Vec_PtrAlloc( 10 );
+    Vec_Ptr_t * vvOutsNew = Vec_PtrAlloc( 10 );
+    Vec_Ptr_t * vvWinsNew = Vec_PtrAlloc( 10 );
+    Gia_ManIncrementTravId( p );
+    while ( 1 ) {
+        int i, Gain, iEntry = Vec_IntArgMax(vGains);
+        if ( iEntry == -1 || Vec_IntEntry(vGains, iEntry) < 0 )
+            break;
+        //printf( "Selecting partition %d with gain %d.\n", iEntry, Vec_IntEntry(vGains, iEntry) );
+        Vec_IntWriteEntry( vGains, iEntry, -1 );
+        Vec_PtrPush( vvInsNew,  Vec_IntDup((Vec_Int_t *)Vec_PtrEntry(vvIns,  iEntry)) );
+        Vec_PtrPush( vvOutsNew, Vec_IntDup((Vec_Int_t *)Vec_PtrEntry(vvOuts, iEntry)) );
+        Vec_PtrPush( vvWinsNew, Gia_ManDupDfs((Gia_Man_t *)Vec_PtrEntry(vWins, iEntry)) );
+        extern void Gia_ManMarkTfiTfo( Vec_Int_t * vOne, Gia_Man_t * pMan );
+        Gia_ManMarkTfiTfo( (Vec_Int_t *)Vec_PtrEntryLast(vvInsNew), p );
+        Vec_IntForEachEntry( vGains, Gain, i ) {
+            if ( Gain < 0 )
+                continue;
+            Vec_Int_t * vNodes  = (Vec_Int_t *)Vec_PtrEntry(vvNodes, i);
+            Gia_Obj_t * pNode; int j;
+            Gia_ManForEachObjVec( vNodes, p, pNode, j )
+                if ( Gia_ObjIsTravIdCurrent(p, pNode) )
+                    break;
+            if ( j < Vec_IntSize(vNodes) )
+                Vec_IntWriteEntry( vGains, i, -1 );
+        }         
+    }
+    ABC_SWAP( Vec_Ptr_t, *vvInsNew,  *vvIns  );
+    ABC_SWAP( Vec_Ptr_t, *vvOutsNew, *vvOuts );
+    ABC_SWAP( Vec_Ptr_t, *vvWinsNew, *vWins  );
+    Vec_PtrFreeFunc( vvInsNew,   (void (*)(void *)) Vec_IntFree );
+    Vec_PtrFreeFunc( vvOutsNew,  (void (*)(void *)) Vec_IntFree );           
+    Vec_PtrFreeFunc( vvWinsNew,  (void (*)(void *)) Gia_ManStop );
+    return RetValue;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Partitioning.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ObjDfsMark_rec( Gia_Man_t * pGia, Gia_Obj_t * pObj )
+{
+    assert( !pObj->fMark0 );
+    if ( Gia_ObjIsTravIdCurrent( pGia, pObj ) )
+        return;
+    Gia_ObjSetTravIdCurrent( pGia, pObj );
+    if ( Gia_ObjIsCi(pObj) )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ObjDfsMark_rec( pGia, Gia_ObjFanin0(pObj) );
+    Gia_ObjDfsMark_rec( pGia, Gia_ObjFanin1(pObj) );
+}
+void Gia_ObjDfsMark2_rec( Gia_Man_t * pGia, Gia_Obj_t * pObj )
+{
+    Gia_Obj_t * pFanout; int i;
+    assert( !pObj->fMark0 );
+    if ( Gia_ObjIsTravIdCurrent( pGia, pObj ) )
+        return;
+    Gia_ObjSetTravIdCurrent( pGia, pObj );    
+    Gia_ObjForEachFanoutStatic( pGia, pObj, pFanout, i )
+        Gia_ObjDfsMark2_rec( pGia, pFanout );
+}
+Vec_Int_t * Gia_ManDeriveWinNodes( Gia_Man_t * pMan, Vec_Int_t * vIns, Vec_Wec_t * vStore )
+{
+    Vec_Int_t * vLevel, * vNodes = Vec_IntAlloc( 100 );
+    Gia_Obj_t * pObj, * pNext; int i, k, iLevel;
+    Vec_WecForEachLevel( vStore, vLevel, i )
+        Vec_IntClear( vLevel );
+    // mark the TFI cones of the inputs
+    Gia_ManIncrementTravId( pMan );
+    Gia_ManForEachObjVec( vIns, pMan, pObj, i )
+        Gia_ObjDfsMark_rec( pMan, pObj );
+    // add unrelated fanouts of the inputs to storage
+    Gia_ManForEachObjVec( vIns, pMan, pObj, i )
+        Gia_ObjForEachFanoutStatic( pMan, pObj, pNext, k )
+            if ( Gia_ObjIsAnd(pNext) && !Gia_ObjIsTravIdCurrent(pMan, pNext) && !pNext->fMark0 ) {
+                pNext->fMark0 = 1;
+                Vec_WecPush( vStore, Gia_ObjLevel(pMan, pNext), Gia_ObjId(pMan, pNext) );
+            }
+    // mark the inputs
+    Gia_ManIncrementTravId( pMan );
+    Gia_ManForEachObjVec( vIns, pMan, pObj, i )
+        Gia_ObjSetTravIdCurrent(pMan, pObj);
+    // collect those fanouts that are completely supported by the inputs
+    Vec_WecForEachLevel( vStore, vLevel, iLevel )
+        Gia_ManForEachObjVec( vLevel, pMan, pObj, i ) {
+            assert( !Gia_ObjIsTravIdCurrent(pMan, pObj) );
+            assert( pObj->fMark0 );
+            pObj->fMark0 = 0;
+            if ( !Gia_ObjIsTravIdCurrent(pMan, Gia_ObjFanin0(pObj)) || 
+                 !Gia_ObjIsTravIdCurrent(pMan, Gia_ObjFanin1(pObj)) )
+                continue;
+            Gia_ObjSetTravIdCurrent(pMan, pObj);
+            Vec_IntPush( vNodes, Gia_ObjId(pMan, pObj) );
+            assert( Gia_ObjIsAnd(pObj) );
+            // add fanouts of this node to storage
+            Gia_ObjForEachFanoutStatic( pMan, pObj, pNext, k ) 
+                if ( Gia_ObjIsAnd(pNext) && !Gia_ObjIsTravIdCurrent(pMan, pNext) && !pNext->fMark0 ) {
+                    pNext->fMark0 = 1;
+                    assert( Gia_ObjLevel(pMan, pNext) > iLevel );
+                    Vec_WecPush( vStore, Gia_ObjLevel(pMan, pNext), Gia_ObjId(pMan, pNext) );
+                }
+        }
+    Vec_IntSort( vNodes, 0 );
+    return vNodes;
+}
+Vec_Ptr_t * Gia_ManDeriveWinNodesAll( Gia_Man_t * pMan, Vec_Ptr_t * vvIns, Vec_Wec_t * vStore )
+{
+    Vec_Int_t * vIns; int i;
+    Vec_Ptr_t * vvNodes = Vec_PtrAlloc( Vec_PtrSize(vvIns) );
+    Vec_PtrForEachEntry( Vec_Int_t *, vvIns, vIns, i ) 
+        Vec_PtrPush( vvNodes, Gia_ManDeriveWinNodes(pMan, vIns, vStore) );
+    return vvNodes;
+}
+Vec_Int_t * Gia_ManDeriveWinOuts( Gia_Man_t * pMan, Vec_Int_t * vNodes )
+{
+    Vec_Int_t * vOuts = Vec_IntAlloc( 100 );
+    Gia_Obj_t * pObj, * pNext; int i, k;
+    // mark the nodes in the window
+    Gia_ManIncrementTravId( pMan );
+    Gia_ManForEachObjVec( vNodes, pMan, pObj, i )
+        Gia_ObjSetTravIdCurrent(pMan, pObj);
+    // collect nodes that have unmarked fanouts
+    Gia_ManForEachObjVec( vNodes, pMan, pObj, i ) {
+        Gia_ObjForEachFanoutStatic( pMan, pObj, pNext, k )
+            if ( !Gia_ObjIsTravIdCurrent(pMan, pNext) )
+                break;
+        if ( k < Gia_ObjFanoutNum(pMan, pObj) )
+            Vec_IntPush( vOuts, Gia_ObjId(pMan, pObj) );
+    }
+    if ( Vec_IntSize(vOuts) == 0 )
+        printf( "Window with %d internal nodes has no outputs (are these dangling nodes?).\n", Vec_IntSize(vNodes) );
+    return vOuts;
+}
+Vec_Ptr_t * Gia_ManDeriveWinOutsAll( Gia_Man_t * pMan, Vec_Ptr_t * vvNodes )
+{
+    Vec_Int_t * vNodes; int i;
+    Vec_Ptr_t * vvOuts = Vec_PtrAlloc( Vec_PtrSize(vvNodes) );
+    Vec_PtrForEachEntry( Vec_Int_t *, vvNodes, vNodes, i ) 
+        Vec_PtrPush( vvOuts, Gia_ManDeriveWinOuts(pMan, vNodes) );
+    return vvOuts;
+}
+void Gia_ManPermuteLevel( Gia_Man_t * pMan, int Level )
+{
+    Gia_Obj_t * pObj, * pNext; int i, k;
+    Gia_ManForEachAnd( pMan, pObj, i ) {
+        int LevelMin = Gia_ObjLevel(pMan, pObj), LevelMax = Level + 1;
+        Gia_ObjForEachFanoutStatic( pMan, pObj, pNext, k )
+            if ( Gia_ObjIsAnd(pNext) )
+                LevelMax = Abc_MinInt( LevelMax, Gia_ObjLevel(pMan, pNext) );
+        if ( LevelMin == LevelMax ) continue;
+        assert( LevelMin < LevelMax );
+        // randomly set level between LevelMin and LevelMax-1
+        Gia_ObjSetLevel( pMan, pObj, LevelMin + (Abc_Random(0) % (LevelMax - LevelMin)) );
+        assert( Gia_ObjLevel(pMan, pObj) < LevelMax );
+    }
+}
+Vec_Int_t * Gia_ManCollectObjectsPointedTo( Gia_Man_t * pMan, int Level )
+{
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 ); 
+    Gia_Obj_t * pObj, * pFanin; int i, n;
+    Gia_ManIncrementTravId( pMan );
+    Gia_ManForEachAnd( pMan, pObj, i ) {
+        if ( Gia_ObjLevel(pMan, pObj) <= Level )
+            continue;
+        for ( n = 0; n < 2; n++ ) {
+            Gia_Obj_t * pFanin = n ? Gia_ObjFanin1(pObj) : Gia_ObjFanin0(pObj);
+            if ( Gia_ObjLevel(pMan, pFanin) <= Level && !Gia_ObjIsTravIdCurrent(pMan, pFanin) ) {
+                Gia_ObjSetTravIdCurrent(pMan, pFanin);
+                Vec_IntPush( vRes, Gia_ObjId(pMan, pFanin) );
+            }
+        }
+    }
+    Gia_ManForEachCo( pMan, pObj, i ) {
+        pFanin = Gia_ObjFanin0(pObj);
+        if ( Gia_ObjLevel(pMan, pFanin) <= Level && !Gia_ObjIsTravIdCurrent(pMan, pFanin) && Gia_ObjIsAnd(pFanin) ) {
+            Gia_ObjSetTravIdCurrent(pMan, pFanin);
+            Vec_IntPush( vRes, Gia_ObjId(pMan, pFanin) );
+        }
+    }
+    Vec_IntSort( vRes, 0 );
+    return vRes;
+}
+Vec_Wec_t * Gia_ManCollectObjectsWithSuppLimit( Gia_Man_t * pMan, int Level, int nSuppMax )
+{
+    Vec_Wec_t * vResSupps = NULL;
+    Vec_Int_t * vBelow   = Gia_ManCollectObjectsPointedTo( pMan, Level );
+    Vec_Wec_t * vSupps   = Vec_WecStart( Vec_IntSize(vBelow) );
+    Vec_Int_t * vSuppIds = Vec_IntStartFull( Gia_ManObjNum(pMan) );
+    Vec_Int_t * vTemp    = Vec_IntAlloc(100);
+    Gia_Obj_t * pObj; int i, Count = 0;
+    Gia_ManForEachObjVec( vBelow, pMan, pObj, i ) {
+        Vec_IntWriteEntry( vSuppIds, Gia_ObjId(pMan, pObj), i );
+        Vec_IntPush( Vec_WecEntry(vSupps, i), Gia_ObjId(pMan, pObj) );
+    }
+    Gia_ManForEachAnd( pMan, pObj, i ) {
+        if ( Gia_ObjLevel(pMan, pObj) <= Level )
+            continue;
+        int iSuppId0 = Vec_IntEntry( vSuppIds, Gia_ObjFaninId0(pObj, i) );
+        int iSuppId1 = Vec_IntEntry( vSuppIds, Gia_ObjFaninId1(pObj, i) );
+        if ( iSuppId0 == -1 || iSuppId1 == -1 ) {
+            Count++;
+            continue;
+        }
+        Vec_IntClear( vTemp );
+        Vec_IntTwoMerge2( Vec_WecEntry(vSupps, iSuppId0), Vec_WecEntry(vSupps, iSuppId1), vTemp );
+        if ( Vec_IntSize(vTemp) > nSuppMax ) {
+            Count++;
+            continue;
+        }
+        Vec_IntWriteEntry( vSuppIds, i, Vec_WecSize(vSupps) );
+        Vec_IntAppend( Vec_WecPushLevel(vSupps), vTemp );
+    }
+    // remove those supported nodes that are in the TFI cones of others
+    Gia_ManIncrementTravId( pMan );
+    Gia_ManForEachAnd( pMan, pObj, i )
+        if ( Gia_ObjLevel(pMan, pObj) > Level && Vec_IntEntry(vSuppIds, i) >= 0 && !Gia_ObjIsTravIdCurrent(pMan, pObj) ) {
+            Gia_ObjDfsMark_rec(pMan, pObj);
+            Gia_ObjSetTravIdPrevious(pMan, pObj);
+        }
+    // create the result
+    vResSupps = Vec_WecAlloc( 100 );
+    Gia_ManForEachAnd( pMan, pObj, i )
+        if ( Gia_ObjLevel(pMan, pObj) > Level && Vec_IntEntry(vSuppIds, i) >= 0 && !Gia_ObjIsTravIdCurrent(pMan, pObj) ) {
+            Vec_Int_t * vSupp = Vec_WecEntry( vSupps, Vec_IntEntry(vSuppIds, i) );
+            if ( Vec_IntSize(vSupp) < 4 )
+                continue;
+            Vec_Int_t * vThis = Vec_WecPushLevel( vResSupps );
+            Vec_IntGrow( vThis, Vec_IntSize(vSupp) + 1 );
+            Vec_IntAppend( vThis, vSupp );
+            //Vec_IntPush( vThis, Gia_ObjId(pObj) );
+        }
+    //printf( "Inputs = %d. Nodes with %d-support = %d. Nodes with larger support = %d. Selected outputs = %d.\n", 
+    //    Vec_IntSize(vBelow), nSuppMax, Vec_WecSize(vSupps), Count, Vec_WecSize(vResSupps) );
+    Vec_WecFree( vSupps );
+    Vec_IntFree( vSuppIds );
+    Vec_IntFree( vBelow );
+    Vec_IntFree( vTemp );
+    return vResSupps;
+}
+// removes all supports that overlap with this one
+void Gia_ManSelectRemove( Vec_Wec_t * vSupps, Vec_Int_t * vOne )
+{
+    Vec_Int_t * vLevel; int i;
+    Vec_WecForEachLevel( vSupps, vLevel, i ) 
+        if ( Vec_IntTwoCountCommon(vLevel, vOne) > 0 )
+            Vec_IntClear( vLevel );
+    Vec_WecRemoveEmpty( vSupps );
+}
+// marks TFI/TFO of this one
+void Gia_ManMarkTfiTfo( Vec_Int_t * vOne, Gia_Man_t * pMan )
+{
+    int i; Gia_Obj_t * pObj;
+    Gia_ManForEachObjVec( vOne, pMan, pObj, i ) {
+        //Gia_ObjSetTravIdPrevious(pMan, pObj);
+        //Gia_ObjDfsMark_rec( pMan, pObj );
+        Gia_ObjSetTravIdPrevious(pMan, pObj);
+        Gia_ObjDfsMark2_rec( pMan, pObj );
+    }
+}
+// removes all supports that overlap with the TFI/TFO cones of this one
+void Gia_ManSelectRemove2( Vec_Wec_t * vSupps, Vec_Int_t * vOne, Gia_Man_t * pMan )
+{
+    Vec_Int_t * vLevel; int i, k; Gia_Obj_t * pObj;
+    Gia_ManForEachObjVec( vOne, pMan, pObj, i ) {
+        Gia_ObjSetTravIdPrevious(pMan, pObj);
+        Gia_ObjDfsMark_rec( pMan, pObj );
+        Gia_ObjSetTravIdPrevious(pMan, pObj);
+        Gia_ObjDfsMark2_rec( pMan, pObj );
+    }
+    Vec_WecForEachLevel( vSupps, vLevel, i ) {
+        Gia_ManForEachObjVec( vLevel, pMan, pObj, k ) 
+            if ( Gia_ObjIsTravIdCurrent(pMan, pObj) )
+                break;
+        if ( k < Vec_IntSize(vLevel) )
+            Vec_IntClear( vLevel );
+    }
+    Vec_WecRemoveEmpty( vSupps );
+}
+// removes all supports that are contained in this one
+void Gia_ManSelectRemove3( Vec_Wec_t * vSupps, Vec_Int_t * vOne )
+{
+    Vec_Int_t * vLevel; int i;
+    Vec_WecForEachLevel( vSupps, vLevel, i )
+        if ( Vec_IntTwoCountCommon(vLevel, vOne) == Vec_IntSize(vLevel) )
+            Vec_IntClear( vLevel );
+    Vec_WecRemoveEmpty( vSupps );
+}
+Vec_Ptr_t * Gia_ManDeriveWinInsAll( Vec_Wec_t * vSupps, int nSuppMax, Gia_Man_t * pMan, int fOverlap )
+{
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( 100 );
+    Gia_ManIncrementTravId( pMan );
+    while ( Vec_WecSize(vSupps) > 0 ) {
+        int i, Item, iRand = Abc_Random(0) % Vec_WecSize(vSupps);
+        Vec_Int_t * vLevel, * vLevel2 = Vec_WecEntry( vSupps, iRand );
+        Vec_Int_t * vCopy = Vec_IntDup( vLevel2 );
+        if ( Vec_IntSize(vLevel2) == nSuppMax ) {
+            Vec_PtrPush( vRes, vCopy );
+            if ( fOverlap )
+                Gia_ManSelectRemove3( vSupps, vCopy );
+            else
+                Gia_ManSelectRemove2( vSupps, vCopy, pMan );
+            continue;
+        }
+        // find another support, which maximizes the union but does not exceed nSuppMax
+        int iBest = iRand, nUnion = Vec_IntSize(vCopy);
+        Vec_WecForEachLevel( vSupps, vLevel, i ) {
+            if ( i == iRand ) continue;
+            int nCommon = Vec_IntTwoCountCommon(vLevel, vCopy);
+            int nUnionCur = Vec_IntSize(vLevel) + Vec_IntSize(vCopy) - nCommon;
+            if ( nUnionCur <= nSuppMax && nUnion < nUnionCur ) {
+                nUnion = nUnionCur;
+                iBest = i;
+            }
+        }
+        vLevel = Vec_WecEntry( vSupps, iBest );
+        Vec_IntForEachEntry( vLevel, Item, i )
+            Vec_IntPushUniqueOrder( vCopy, Item );
+        Vec_PtrPush( vRes, vCopy );
+        if ( fOverlap )
+            Gia_ManSelectRemove3( vSupps, vCopy );
+        else
+            Gia_ManSelectRemove2( vSupps, vCopy, pMan );
+    }
+    return vRes;
+}
+Gia_Man_t * Gia_ManDupFromArrays( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    pNew = Gia_ManStart( 5000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachObjVec( vCis, p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachObjVec( vAnds, p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachObjVec( vCos, p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
+    return pNew;
+}
+Vec_Ptr_t * Gia_ManDupWindows( Gia_Man_t * pMan, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNodes, Vec_Ptr_t * vvOuts )
+{
+    Vec_Int_t * vNodes; int i;
+    Vec_Ptr_t * vWins = Vec_PtrAlloc( Vec_PtrSize(vvIns) );
+    assert( Vec_PtrSize(vvIns)  == Vec_PtrSize(vvNodes) );
+    assert( Vec_PtrSize(vvOuts) == Vec_PtrSize(vvNodes) );
+    Gia_ManFillValue( pMan );
+    Gia_ManCleanMark01( pMan );
+    Vec_PtrForEachEntry( Vec_Int_t *, vvNodes, vNodes, i ) {
+        Vec_Int_t * vIns  = (Vec_Int_t *)Vec_PtrEntry(vvIns, i);
+        Vec_Int_t * vOuts = (Vec_Int_t *)Vec_PtrEntry(vvOuts, i);
+        Gia_Man_t * pNew  = Gia_ManDupFromArrays( pMan, vIns, vNodes, vOuts );
+        Vec_PtrPush( vWins, pNew );
+    }
+    return vWins;
+}
+int Gia_ManLevelR( Gia_Man_t * pMan )
+{
+    int i, LevelMax = Gia_ManLevelRNum( pMan );
+    Gia_Obj_t * pNode;
+    Gia_ManForEachObj( pMan, pNode, i )
+        Gia_ObjSetLevel( pMan, pNode, (int)(LevelMax - Gia_ObjLevel(pMan, pNode) + 1) );
+    Gia_ManForEachCi( pMan, pNode, i )
+        Gia_ObjSetLevel( pMan, pNode, 0 );
+    return LevelMax;
+}
+Vec_Ptr_t * Gia_ManExtractPartitions( Gia_Man_t * pMan, int Iter, int nSuppMax, Vec_Ptr_t ** pvIns, Vec_Ptr_t ** pvOuts, Vec_Ptr_t ** pvNodes, int fOverlap )
+{
+    // if ( Gia_ManCiNum(pMan) <= nSuppMax ) {
+    //     Vec_Ptr_t * vWins = Vec_PtrAlloc( 1 );
+    //     Vec_PtrPush( vWins, Gia_ManDupDfs(pMan) );
+    //     *pvIns = *pvOuts = *pvNodes = NULL;
+    //     return vWins;
+    // }
+    // int iUseRevL = Iter % 3 == 0 ? 0 : Abc_Random(0) & 1;
+    int iUseRevL = Abc_Random(0) & 1;
+    int LevelMax = iUseRevL ? Gia_ManLevelR(pMan) : Gia_ManLevelNum(pMan);
+    // int LevelCut = Iter % 3 == 0 ? 0 : LevelMax > 8 ? 2 + (Abc_Random(0) % (LevelMax - 4)) : 0;
+    int LevelCut = LevelMax > 8 ? (Abc_Random(0) % (LevelMax - 4)) : 0;
+    //printf( "Using %s cut level %d (out of %d)\n", iUseRevL ? "reverse": "direct", LevelCut, LevelMax );
+    // Gia_ManPermuteLevel( pMan, LevelMax );
+    Vec_Wec_t * vStore = Vec_WecStart( LevelMax+1 );
+    Vec_Wec_t * vSupps = Gia_ManCollectObjectsWithSuppLimit( pMan, LevelCut, nSuppMax );
+    Vec_Ptr_t * vIns   = Gia_ManDeriveWinInsAll( vSupps, nSuppMax, pMan, fOverlap );
+    Vec_Ptr_t * vNodes = Gia_ManDeriveWinNodesAll( pMan, vIns, vStore );
+    Vec_Ptr_t * vOuts  = Gia_ManDeriveWinOutsAll( pMan, vNodes );
+    Vec_Ptr_t * vWins  = Gia_ManDupWindows( pMan, vIns, vNodes, vOuts );
+    Vec_WecFree( vSupps );
+    Vec_WecFree( vStore );
+    *pvIns = vIns;
+    *pvOuts = vOuts;
+    *pvNodes = vNodes;
+    return vWins;
+}
+
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -358,7 +785,8 @@ Vec_Ptr_t * Gia_ManDupDivide( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds
         Vec_PtrPush( vAigs, Gia_ManDupDivideOne(p, Vec_WecEntry(vCis, i), Vec_WecEntry(vAnds, i), Vec_WecEntry(vCos, i)) );
     }
     //Gia_ManStochSynthesis( vAigs, pScript );
-    Gia_StochProcess( vAigs, pScript, nProcs, TimeOut, 0 );
+    Vec_Int_t * vGains = Gia_StochProcess( vAigs, pScript, nProcs, TimeOut, 0 );
+    Vec_IntFree( vGains );
     return vAigs;
 }
 Gia_Man_t * Gia_ManDupStitch( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, Vec_Ptr_t * vAigs, int fHash )
@@ -554,7 +982,7 @@ Vec_Wec_t * Gia_ManStochOutputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs )
+void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs )
 {
     abctime nTimeToStop  = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
     abctime clkStart     = Abc_Clock();
@@ -564,43 +992,83 @@ void Gia_ManStochSyn( int nMaxSize, int nIters, int TimeOut, int Seed, int fVerb
     Abc_Random(1);
     for ( i = 0; i < 10+Seed; i++ )
         Abc_Random(0);
-    if ( fVerbose )
-    printf( "Running %d iterations of script \"%s\".\n", nIters, pScript );
-    for ( i = 0; i < nIters; i++ )
-    {
-        abctime clk = Abc_Clock();
-        Gia_Man_t * pGia  = Gia_ManDupWithMapping( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) );
-        Vec_Wec_t * vAnds = Gia_ManStochNodes( pGia, nMaxSize, Abc_Random(0) & 0x7FFFFFFF );
-        Vec_Wec_t * vIns  = Gia_ManStochInputs( pGia, vAnds );
-        Vec_Wec_t * vOuts = Gia_ManStochOutputs( pGia, vAnds );
-        Vec_Ptr_t * vAigs = Gia_ManDupDivide( pGia, vIns, vAnds, vOuts, pScript, nProcs, TimeOut );
-        Gia_Man_t * pNew  = Gia_ManDupStitchMap( pGia, vIns, vAnds, vOuts, vAigs );
-        int fMapped = Gia_ManHasMapping(pGia) && Gia_ManHasMapping(pNew);
-        Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
-        if ( fVerbose )
-        printf( "Iteration %3d : Using %3d partitions. Reducing %6d to %6d %s.  ", 
-            i, Vec_PtrSize(vAigs), fMapped ? Gia_ManLutNum(pGia) : Gia_ManAndNum(pGia), 
-                                   fMapped ? Gia_ManLutNum(pNew) : Gia_ManAndNum(pNew),
-                                   fMapped ? "LUTs" : "ANDs" ); 
-        if ( fVerbose )
-        Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
-        Gia_ManStop( pGia );
-        Vec_PtrFreeFunc( vAigs, (void (*)(void *)) Gia_ManStop );
-        Vec_WecFree( vAnds );
-        Vec_WecFree( vIns );
-        Vec_WecFree( vOuts );
-        if ( nTimeToStop && Abc_Clock() > nTimeToStop )
+    if ( fVerbose ) {
+        printf( "Running %d iterations of the script \"%s\"", nIters, pScript );
+        if ( nProcs > 2 )
+            printf( " using %d concurrent threads.\n", nProcs-1 );
+        else
+            printf( " without concurrency.\n" );
+        fflush(stdout);
+    }
+    if ( !nSuppMax ) {
+        for ( i = 0; i < nIters; i++ )
         {
-            printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
-            break;
+            abctime clk = Abc_Clock();
+            Gia_Man_t * pGia  = Gia_ManDupWithMapping( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) );
+            Vec_Wec_t * vAnds = Gia_ManStochNodes( pGia, nMaxSize, Abc_Random(0) & 0x7FFFFFFF );
+            Vec_Wec_t * vIns  = Gia_ManStochInputs( pGia, vAnds );
+            Vec_Wec_t * vOuts = Gia_ManStochOutputs( pGia, vAnds );
+            Vec_Ptr_t * vAigs = Gia_ManDupDivide( pGia, vIns, vAnds, vOuts, pScript, nProcs, TimeOut );
+            Gia_Man_t * pNew  = Gia_ManDupStitchMap( pGia, vIns, vAnds, vOuts, vAigs );
+            int fMapped = Gia_ManHasMapping(pGia) && Gia_ManHasMapping(pNew);
+            Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
+            if ( fVerbose )
+            printf( "Iteration %3d : Using %3d partitions. Reducing %6d to %6d %s.  ", 
+                i, Vec_PtrSize(vAigs), fMapped ? Gia_ManLutNum(pGia) : Gia_ManAndNum(pGia), 
+                                    fMapped ? Gia_ManLutNum(pNew) : Gia_ManAndNum(pNew),
+                                    fMapped ? "LUTs" : "ANDs" ); 
+            if ( fVerbose )
+            Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
+            Gia_ManStop( pGia );
+            Vec_PtrFreeFunc( vAigs, (void (*)(void *)) Gia_ManStop );
+            Vec_WecFree( vAnds );
+            Vec_WecFree( vIns );
+            Vec_WecFree( vOuts );
+            if ( nTimeToStop && Abc_Clock() > nTimeToStop )
+            {
+                printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
+                break;
+            }
+        }
+    }
+    else {
+        int fOverlap = 1;
+        Vec_Ptr_t * vIns = NULL, * vOuts = NULL, * vNodes = NULL;
+        for ( i = 0; i < nIters; i++ )
+        {
+            extern Gia_Man_t * Gia_ManDupInsertWindows( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvOuts, Vec_Ptr_t * vAigs );
+            abctime clk        = Abc_Clock();
+            Gia_Man_t * pGia   = Gia_ManDup( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) ); Gia_ManStaticFanoutStart(pGia);
+            Vec_Ptr_t * vAigs  = Gia_ManExtractPartitions( pGia, i, nSuppMax, &vIns, &vOuts, &vNodes, fOverlap );
+            Vec_Int_t * vGains = Gia_StochProcess( vAigs, pScript, nProcs, TimeOut, 0 );
+            int nPartsInit     = fOverlap ? Gia_ManFilterPartitions( pGia, vIns, vNodes, vOuts, vAigs, vGains ) : Vec_PtrSize(vIns);
+            Gia_Man_t * pNew   = Gia_ManDupInsertWindows( pGia, vIns, vOuts, vAigs );       Gia_ManStaticFanoutStop(pGia);
+            Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
+            if ( fVerbose )
+            printf( "Iteration %3d : Using %3d -> %3d partitions. Reducing node count from %6d to %6d.  ", 
+                i, nPartsInit, Vec_PtrSize(vAigs), Gia_ManAndNum(pGia), Gia_ManAndNum(pNew) ); 
+            if ( fVerbose )
+            Abc_PrintTime( 0, "Time", Abc_Clock() - clk );
+            // cleanup
+            Gia_ManStop( pGia );
+            Vec_PtrFreeFunc( vAigs,  (void (*)(void *)) Gia_ManStop );
+            Vec_IntFreeP( &vGains );
+            if ( vIns )   Vec_PtrFreeFunc( vIns,   (void (*)(void *)) Vec_IntFree );
+            if ( vOuts )  Vec_PtrFreeFunc( vOuts,  (void (*)(void *)) Vec_IntFree );                
+            if ( vNodes ) Vec_PtrFreeFunc( vNodes, (void (*)(void *)) Vec_IntFree );                
+            if ( nTimeToStop && Abc_Clock() > nTimeToStop )
+            {
+                printf( "Runtime limit (%d sec) is reached after %d iterations.\n", TimeOut, i );
+                break;
+            }
         }
     }
     fMapped &= Gia_ManHasMapping(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
     nLutEnd  = fMapped ? Gia_ManLutNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame())) : 0;
     nEnd     = Gia_ManAndNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
     if ( fVerbose )
-    printf( "Cumulatively reduced %d %s after %d iterations.  ", 
-        fMapped ? nLutBeg - nLutEnd : nBeg - nEnd, fMapped ? "LUTs" : "ANDs", nIters );
+    printf( "Cumulatively reduced %d %s (%.2f %%) after %d iterations.  ", 
+        fMapped ? nLutBeg - nLutEnd : nBeg - nEnd, fMapped ? "LUTs" : "nodes", 100.0*(nBeg - nEnd)/Abc_MaxInt(nBeg, 1), nIters );
     if ( fVerbose )
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
 }

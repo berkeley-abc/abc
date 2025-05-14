@@ -340,7 +340,7 @@ usage:
     fprintf( pAbc->Err, "\t-v       : toggle writing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-w       : toggle writing information about skipped gates [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-m       : toggle merging library with exisiting library [default = %s]\n", fMerge? "yes": "no" );
-    fprintf( pAbc->Err, "\t-a       : toggle using prefix for the cell names [default = %s]\n", fUseAll? "yes": "no" );
+    fprintf( pAbc->Err, "\t-a       : toggle reading all cells when using gain-based modeling [default = %s]\n", fUseAll? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle using prefix for the cell names [default = %s]\n", fUsePrefix? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : prints the command summary\n" );
     fprintf( pAbc->Err, "\t<file>   : the name of a file to read\n" );

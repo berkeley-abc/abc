@@ -2163,6 +2163,90 @@ void Nf_ManFixPoDrivers( Nf_Man_t * p )
 
 /**Function*************************************************************
 
+  Synopsis    [Dump matches.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Nf_ManDumpMatches( Nf_Man_t * p )
+{
+    FILE * pFile = fopen( p->pPars->ZFile, "wb" );
+    Gia_Obj_t * pObj; int n, iObj;
+    // output matches
+    Gia_ManForEachCi( p->pGia, pObj, n )
+        fprintf( pFile, "%d input %.2f\n", Abc_Var2Lit(Gia_ObjId(p->pGia, pObj), 0), 0.0 );
+    Gia_ManForEachAnd( p->pGia, pObj, iObj ) {
+        assert( !Gia_ObjIsBuf(pObj) );
+        for ( n = 0; n < 2; n++ ) {
+            int c, * pCut, * pCutSet = Nf_ObjCutSet( p, iObj );
+            Nf_SetForEachCut( pCutSet, pCut, c ) {
+                if ( Abc_Lit2Var(Nf_CutFunc(pCut)) >= Vec_WecSize(p->vTt2Match) )
+                    continue;
+                assert( !Nf_CutIsTriv(pCut, iObj) );
+                assert( Nf_CutSize(pCut) <= p->pPars->nLutSize );
+                assert( Abc_Lit2Var(Nf_CutFunc(pCut)) < Vec_WecSize(p->vTt2Match) );
+                int iFuncLit  = Nf_CutFunc(pCut);
+                int fComplExt = Abc_LitIsCompl(iFuncLit);
+                Vec_Int_t * v = Vec_WecEntry( p->vTt2Match, Abc_Lit2Var(iFuncLit) );
+                int j, k, Info, Offset, iFanin, fComplF;
+                Vec_IntForEachEntryDouble( v, Info, Offset, j ) {
+                    Nf_Cfg_t Cfg = Nf_Int2Cfg(Offset);
+                    int fCompl   = Cfg.fCompl ^ fComplExt;
+                    if ( fCompl != n )
+                        continue;
+                    Mio_Cell2_t*pC = Nf_ManCell( p, Info );
+                    assert( Nf_CutSize(pCut) == (int)pC->nFanins );
+                    fprintf( pFile, "%d ", Abc_Var2Lit(iObj, n) );
+                    fprintf( pFile, "%s ", pC->pName );
+                    fprintf( pFile, "%.2f", pC->AreaF );
+                    Nf_CutForEachVarCompl( pCut, Cfg, iFanin, fComplF, k )
+                        fprintf( pFile, " %d", Abc_Var2Lit(iFanin, fComplF) );
+                    fprintf( pFile, "\n" );
+                }
+            }
+        }
+    }
+    Gia_ManForEachCo( p->pGia, pObj, n )
+        fprintf( pFile, "%d output %.2f %d\n", Abc_Var2Lit(Gia_ObjId(p->pGia, pObj), 0), 0.0, Gia_ObjFaninLit0p(p->pGia, pObj) );
+    // output levels
+    extern int Gia_ManChoiceLevel( Gia_Man_t * p );
+    int LevelMax = Gia_ManChoiceLevel( p->pGia );
+    Gia_ManForEachCiId( p->pGia, iObj, n )
+        fprintf( pFile, "L%d %d\n", Abc_Var2Lit(iObj, 0), 0 );
+    Gia_ManForEachAnd( p->pGia, pObj, iObj )
+        fprintf( pFile, "L%d %d\n", Abc_Var2Lit(iObj, 0), Gia_ObjLevelId(p->pGia, iObj) );
+    Gia_ManForEachCoId( p->pGia, iObj, n )
+        fprintf( pFile, "L%d %d\n", Abc_Var2Lit(iObj, 0), LevelMax+1 );
+    // output mapping
+    Gia_ManForEachCiId( p->pGia, iObj, n )
+        if ( Nf_ObjMapRefNum(p, iObj, 1) )
+            fprintf( pFile, "M%d %s %.2f %d\n", Abc_Var2Lit(iObj, 1), p->pCells[3].pName, p->pCells[3].AreaF, Abc_Var2Lit(iObj, 0) );
+    Gia_ManForEachAnd( p->pGia, pObj, iObj )
+        for ( n = 0; n < 2; n++ )
+            if ( Nf_ObjMapRefNum(p, iObj, n) ) {
+                Nf_Mat_t * pM = Nf_ObjMatchBest(p, iObj, n);
+                if ( pM->fCompl ) {
+                    fprintf( pFile, "M%d %s %.2f %d\n", Abc_Var2Lit(iObj, n), p->pCells[3].pName, p->pCells[3].AreaF, Abc_Var2Lit(iObj, !n) );
+                    continue;
+                }
+                int k, iVar, fCompl, * pCut = Nf_CutFromHandle( Nf_ObjCutSet(p, iObj), pM->CutH );
+                Mio_Cell2_t*pC = Nf_ManCell( p, pM->Gate );
+                fprintf( pFile, "M%d ", Abc_Var2Lit(iObj, n) );
+                fprintf( pFile, "%s ", pC->pName );
+                fprintf( pFile, "%.2f", pC->AreaF );
+                Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
+                    fprintf( pFile, " %d", Abc_Var2Lit(iVar, fCompl) );
+                fprintf( pFile, "\n" );
+            }
+    fclose( pFile );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Deriving mapping.]
 
   Description []
@@ -2216,6 +2300,8 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
     }
 //    assert( Vec_IntCap(vMapping) == 16 || Vec_IntSize(vMapping) == Vec_IntCap(vMapping) );
     p->pGia->vCellMapping = vMapping;
+    if ( p->pPars->ZFile )
+        Nf_ManDumpMatches( p );
     return p->pGia;
 }
 void Nf_ManUpdateStats( Nf_Man_t * p )

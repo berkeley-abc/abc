@@ -49,7 +49,7 @@ Abc_Ntk_t *Abc_ManRewireInt(Abc_Ntk_t *pNtk, Gia_Man_t *pExc, int nIters, float 
         pNtkMiaig.setExc(pExc);
     Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, fMapped, nMappedMode, nDist, fCheck, fVerbose);
     pNew.setName(Abc_NtkName(pNtk));
-    if (nMode == 2) {
+    if (nMode > 0) {
         pNew.countTransistors(1, nMappedMode);
     }
 
@@ -173,7 +173,7 @@ int Miaig::fromMiniAig(Mini_Aig_t *pMiniAig) {
 Gia_Man_t *Miaig::toGia(void) {
     int i, k, iLit, And2 = countAnd2();
     Gia_Man_t *pGia = Gia_ManStart(1 + nIns() + And2 + nOuts()), *pTemp;
-    pGia->pName = Abc_UtilStrsav( _data->pName );
+    pGia->pName = Abc_UtilStrsav(_data->pName);
     Gia_ManHashAlloc(pGia);
     memset(_data->pCopy, 0, sizeof(int) * nObjs());
     Miaig_ForEachInput(i)
@@ -310,7 +310,7 @@ void Miaig::topoCollect_rec(int iObj) {
     objTravId(iObj) = nTravIds();
     Vi_PushOrder(_data->vOrder, iObj);
     Miaig_ForEachObjFanin(iObj, iLit, i)
-        topoCollect_rec(Abc_Lit2Var(iLit));
+        topoCollect_rec(Rw_Lit2Var(iLit));
 }
 
 vi *Miaig::topoCollect(void) {
@@ -320,7 +320,7 @@ vi *Miaig::topoCollect(void) {
     Miaig_ForEachConstInput(i)
         objTravId(i) = nTravIds();
     Miaig_ForEachOutput(i)
-        topoCollect_rec(Abc_Lit2Var(objFanin0(i)));
+        topoCollect_rec(Rw_Lit2Var(objFanin0(i)));
     return _data->vOrder;
 }
 
@@ -331,7 +331,7 @@ int Miaig::initializeLevels_rec(int iObj) {
         return objLevel(iObj);
     int level = -1;
     Miaig_ForEachObjFanin(iObj, iLit, i) {
-        level = Abc_MaxInt(initializeLevels_rec(Abc_Lit2Var(iLit)), level);
+        level = Abc_MaxInt(initializeLevels_rec(Rw_Lit2Var(iLit)), level);
     }
     return objLevel(iObj) = level + 1;
 }
@@ -348,7 +348,7 @@ void Miaig::initializeLevels(void) {
         objLevel(i) = 0;
     }
     Miaig_ForEachOutput(i) {
-        objLevel(i) = initializeLevels_rec(Abc_Lit2Var(objFanin0(i)));
+        objLevel(i) = initializeLevels_rec(Rw_Lit2Var(objFanin0(i)));
     }
 }
 
@@ -366,7 +366,7 @@ void Miaig::markDistanceN_rec(int iObj, int n, int limit) {
     if (n == limit)
         return;
     Miaig_ForEachObjFanin(iObj, iLit, i)
-        markDistanceN_rec(Abc_Lit2Var(iLit), n + 1, limit);
+        markDistanceN_rec(Rw_Lit2Var(iLit), n + 1, limit);
 }
 
 void Miaig::markDistanceN(int iObj, int n) {
@@ -378,8 +378,8 @@ void Miaig::markDistanceN(int iObj, int n) {
             if (objDist(j) >= 0) continue;
             int minDist = nObjs();
             Miaig_ForEachObjFanin(j, iLit, k) {
-                if (objDist(Abc_Lit2Var(iLit)) == -1) continue;
-                minDist = Abc_MinInt(minDist, objDist(Abc_Lit2Var(iLit)));
+                if (objDist(Rw_Lit2Var(iLit)) == -1) continue;
+                minDist = Rw_MinInt(minDist, objDist(Rw_Lit2Var(iLit)));
             }
             if (minDist != nObjs()) {
                 markDistanceN_rec(j, minDist + 1, n);
@@ -388,26 +388,50 @@ void Miaig::markDistanceN(int iObj, int n) {
     }
 }
 
+void Miaig::markCritical(void) {
+    int iObj;
+    int maxRequire = countLevel(0);
+    nTravIds()++;
+    Miaig_ForEachOutput(iObj) {
+        if (objLevel(iObj) != maxRequire) continue;
+        markCritical_rec(iObj);
+    }
+}
+
+void Miaig::markCritical_rec(int iObj) {
+    objTravId(iObj) = nTravIds();
+    if (objIsPi(iObj)) return;
+    int iLit, k;
+    int maxFaninLevel = objLevel(Rw_Lit2Var(objFanin0(iObj)));
+    Miaig_ForEachObjFaninStart(iObj, iLit, k, 1) {
+        maxFaninLevel = Rw_MaxInt(maxFaninLevel, objLevel(Rw_Lit2Var(iLit)));
+    }
+    Miaig_ForEachObjFanin(iObj, iLit, k) {
+        if (objLevel(Rw_Lit2Var(iLit)) != maxFaninLevel) continue;
+        markCritical_rec(Rw_Lit2Var(iLit));
+    }
+}
+
 // reference counting
 void Miaig::refObj(int iObj) {
     int k, iLit;
     Miaig_ForEachObjFanin(iObj, iLit, k)
-        objRef(Abc_Lit2Var(iLit))++;
+        objRef(Rw_Lit2Var(iLit))++;
 }
 
 void Miaig::derefObj(int iObj) {
     int k, iLit;
     Miaig_ForEachObjFanin(iObj, iLit, k)
-        objRef(Abc_Lit2Var(iLit))--;
+        objRef(Rw_Lit2Var(iLit))--;
 }
 
 void Miaig::derefObj_rec(int iObj, int iLitSkip) {
     int k, iLit;
     Miaig_ForEachObjFanin(iObj, iLit, k) { 
-        if (iLit != iLitSkip && --objRef(Abc_Lit2Var(iLit)) == 0 && objIsNode(Abc_Lit2Var(iLit))) {
-            derefObj_rec(Abc_Lit2Var(iLit), -1);
-            Vi_Fill(_data->pvFans + Abc_Lit2Var(iLit), 1, 0);
-            refObj(Abc_Lit2Var(iLit));
+        if (iLit != iLitSkip && --objRef(Rw_Lit2Var(iLit)) == 0 && objIsNode(Rw_Lit2Var(iLit))) {
+            derefObj_rec(Rw_Lit2Var(iLit), -1);
+            Vi_Fill(objFanins(Rw_Lit2Var(iLit)), 1, 0);
+            refObj(Rw_Lit2Var(iLit));
         }
     }
 }
@@ -423,7 +447,7 @@ void Miaig::verifyRefs(void) {
     int i;
     Miaig_ForEachNodeOutput(i)
         derefObj(i);
-    for (i = 0; i < _data->nObjs; i++)
+    for (i = 0; i < nObjs(); i++)
         if (objRef(i))
             printf("Ref count of node %d is incorrect (%d).\n", i, objRef(i));
     initializeRefs();
@@ -436,7 +460,7 @@ void Miaig::markDfs_rec(int iObj) {
         return;
     objTravId(iObj) = nTravIds();
     Miaig_ForEachObjFanin(iObj, iLit, i)
-        markDfs_rec(Abc_Lit2Var(iLit));
+        markDfs_rec(Rw_Lit2Var(iLit));
 }
 
 int Miaig::markDfs(void) {
@@ -445,7 +469,7 @@ int Miaig::markDfs(void) {
     Miaig_ForEachConstInput(i)
         objTravId(i) = nTravIds();
     Miaig_ForEachOutput(i)
-        markDfs_rec(Abc_Lit2Var(objFanin0(i)));
+        markDfs_rec(Rw_Lit2Var(objFanin0(i)));
     Miaig_ForEachOutput(i)
         objTravId(i) = nTravIds();
     Miaig_ForEachNode(i)
@@ -485,7 +509,7 @@ void Miaig::dupDfs_rec(Miaig &pNew, int iObj) {
         return;
     // 2. create fanins for a given node
     Miaig_ForEachObjFanin(iObj, iLit, i)
-        dupDfs_rec(pNew, Abc_Lit2Var(iLit));
+        dupDfs_rec(pNew, Rw_Lit2Var(iLit));
     assert(objCopy(iObj) < 0); // combinational loop catching
     assert(objFaninNum(iObj) > 0);
     // 3. create current node
@@ -505,7 +529,7 @@ Miaig Miaig::dupDfs(void) {
         objCopy(i) = i;
     // 2. for each primary output we call recursive function for it's fanin
     Miaig_ForEachOutput(i)
-        dupDfs_rec(pNew, Abc_Lit2Var(objFanin0(i)));
+        dupDfs_rec(pNew, Rw_Lit2Var(objFanin0(i)));
     // 3. for each primary output append it's fanin
     Miaig_ForEachOutput(i)
         pNew.appendFanin(pNew.appendObj(), Rw_Lit2LitV(_data->pCopy, objFanin0(i)));
@@ -544,10 +568,10 @@ void Miaig::reduceFanins(vi *v) {
 
 int Miaig::hashTwo(int l0, int l1, int TableSize) {
     unsigned Key = 0;
-    Key += Abc_Lit2Var(l0) * 7937;
-    Key += Abc_Lit2Var(l1) * 2971;
-    Key += Abc_LitIsCompl(l0) * 911;
-    Key += Abc_LitIsCompl(l1) * 353;
+    Key += Rw_Lit2Var(l0) * 7937;
+    Key += Rw_Lit2Var(l1) * 2971;
+    Key += Rw_LitIsCompl(l0) * 911;
+    Key += Rw_LitIsCompl(l1) * 353;
     return Key % TableSize;
 }
 
@@ -573,14 +597,14 @@ int Miaig::buildNode(int l0, int l1, int fCprop, int fStrash) {
     }
     int *pPlace = NULL;
     if (fStrash) {
-        pPlace = hashLookup(_data->pTable, Abc_MinInt(l0, l1), Abc_MaxInt(l0, l1), _data->TableSize);
+        pPlace = hashLookup(_data->pTable, Rw_MinInt(l0, l1), Rw_MaxInt(l0, l1), _data->TableSize);
         if (*pPlace)
             return *pPlace;
     }
     int iObj = appendObj();
-    appendFanin(iObj, Abc_MinInt(l0, l1));
-    appendFanin(iObj, Abc_MaxInt(l0, l1));
-    return pPlace ? (*pPlace = Abc_Var2Lit(iObj, 0)) : Abc_Var2Lit(iObj, 0);
+    appendFanin(iObj, Rw_MinInt(l0, l1));
+    appendFanin(iObj, Rw_MaxInt(l0, l1));
+    return pPlace ? (*pPlace = Rw_Var2Lit(iObj, 0)) : Rw_Var2Lit(iObj, 0);
 }
 
 int Miaig::buildNodeBalance_rec(Miaig &pNew, vi *vFanins, int begin, int end, int fCprop, int fStrash) {
@@ -621,13 +645,13 @@ Miaig Miaig::dupStrash(int fCprop, int fStrash, int fCascade) {
         pNew._data->pTable = (int *)calloc(sizeof(int), 3 * pNew._data->TableSize);
     }
     Miaig_ForEachInput(i)
-        objCopy(i) = Abc_Var2Lit(i, 0);
+        objCopy(i) = Rw_Var2Lit(i, 0);
     Miaig_ForEachNode(i) {
         assert(objFaninNum(i) > 0);
         if (fCascade)
-            objCopy(i) = buildNodeCascade(pNew, _data->pvFans + i, fCprop, fStrash);
+            objCopy(i) = buildNodeCascade(pNew, objFanins(i), fCprop, fStrash);
         else
-            objCopy(i) = buildNodeBalance(pNew, _data->pvFans + i, fCprop, fStrash);
+            objCopy(i) = buildNodeBalance(pNew, objFanins(i), fCprop, fStrash);
     }
     Miaig_ForEachOutput(i)
         pNew.appendFanin(pNew.appendObj(), Rw_Lit2LitL(_data->pCopy, objFanin0(i)));
@@ -643,21 +667,21 @@ int *Miaig::createStops(void) {
         assert(objFaninNum(i) == 2);
         int iLit0 = objFanin0(i);
         int iLit1 = objFanin1(i);
-        pStop[Abc_Lit2Var(iLit0)] += 1 + Abc_LitIsCompl(iLit0);
-        pStop[Abc_Lit2Var(iLit1)] += 1 + Abc_LitIsCompl(iLit1);
+        pStop[Rw_Lit2Var(iLit0)] += 1 + Rw_LitIsCompl(iLit0);
+        pStop[Rw_Lit2Var(iLit1)] += 1 + Rw_LitIsCompl(iLit1);
     }
     Miaig_ForEachOutput(i)
-        pStop[Abc_Lit2Var(objFanin0(i))] += 2;
+        pStop[Rw_Lit2Var(objFanin0(i))] += 2;
     return pStop;
 }
 
 void Miaig::collectSuper_rec(int iLit, int *pStop, vi *vSuper) {
-    if (pStop[Abc_Lit2Var(iLit)] > 1)
+    if (pStop[Rw_Lit2Var(iLit)] > 1)
         Vi_Push(vSuper, Rw_Lit2LitL(_data->pCopy, iLit));
     else {
-        assert(Abc_LitIsCompl(iLit) == 0);
-        collectSuper_rec(objFanin0(Abc_Lit2Var(iLit)), pStop, vSuper);
-        collectSuper_rec(objFanin1(Abc_Lit2Var(iLit)), pStop, vSuper);
+        assert(Rw_LitIsCompl(iLit) == 0);
+        collectSuper_rec(objFanin0(Rw_Lit2Var(iLit)), pStop, vSuper);
+        collectSuper_rec(objFanin1(Rw_Lit2Var(iLit)), pStop, vSuper);
     }
 }
 
@@ -669,7 +693,7 @@ Miaig Miaig::dupMulti(int nFaninMax_, int nGrowth) {
     assert(nFaninMax_ >= 2 && nGrowth >= 1);
     memset(_data->pCopy, 0, sizeof(int) * nObjs()); // obj2lit
     Miaig_ForEachConstInput(i)
-        objCopy(i) = Abc_Var2Lit(i, 0);
+        objCopy(i) = Rw_Var2Lit(i, 0);
     Miaig_ForEachNode(i) {
         if (pStop[i] == 1)
             continue;
@@ -693,7 +717,7 @@ Miaig Miaig::dupMulti(int nFaninMax_, int nGrowth) {
             // create a cascade of nodes
             while (Vi_Size(vArray) > nFaninMaxLocal) {
                 int iObj = pNew.appendObj();
-                vi *vFanins = pNew._data->pvFans + iObj;
+                vi *vFanins = pNew.objFanins(iObj);
                 assert(vFanins->ptr == NULL);
                 vFanins->cap = nFaninMaxLocal + nGrowthLocal;
                 vFanins->ptr = (int *)malloc(sizeof(int) * vFanins->cap);
@@ -702,18 +726,18 @@ Miaig Miaig::dupMulti(int nFaninMax_, int nGrowth) {
                 assert(Vi_Space(vFanins) == nGrowthLocal);
                 for (k = 0; k < nFaninMaxLocal; k++)
                     Vi_Drop(vArray, 0);
-                Vi_Push(vArray, Abc_Var2Lit(iObj, 0));
+                Vi_Push(vArray, Rw_Var2Lit(iObj, 0));
             }
             // create the last node
             int iObj = pNew.appendObj();
-            vi *vFanins = pNew._data->pvFans + iObj;
+            vi *vFanins = pNew.objFanins(iObj);
             assert(vFanins->ptr == NULL);
             vFanins->cap = Vi_Size(vArray) + nGrowthLocal;
             vFanins->ptr = (int *)malloc(sizeof(int) * vFanins->cap);
             Vi_ForEachEntry(vArray, iLit, k)
                 pNew.appendFanin(iObj, iLit);
             assert(Vi_Space(vFanins) == nGrowthLocal);
-            objCopy(i) = Abc_Var2Lit(iObj, 0);
+            objCopy(i) = Rw_Var2Lit(iObj, 0);
         }
     }
     Miaig_ForEachOutput(i)
@@ -727,8 +751,8 @@ Miaig Miaig::dupMulti(int nFaninMax_, int nGrowth) {
 void Miaig::truthSimNode(int i) {
     int k, iLit;
     Miaig_ForEachObjFanin(i, iLit, k) { 
-        if (k == 0) Tt_DupC(objTruth(i, objType(i)), objTruth(Abc_Lit2Var(iLit), objType(Abc_Lit2Var(iLit))), Abc_LitIsCompl(iLit), nWords());
-        else Tt_Sharp(objTruth(i, objType(i)), objTruth(Abc_Lit2Var(iLit), objType(Abc_Lit2Var(iLit))), Abc_LitIsCompl(iLit), nWords());
+        if (k == 0) Tt_DupC(objTruth(i, objType(i)), objTruth(Rw_Lit2Var(iLit), objType(Rw_Lit2Var(iLit))), Rw_LitIsCompl(iLit), nWords());
+        else Tt_Sharp(objTruth(i, objType(i)), objTruth(Rw_Lit2Var(iLit), objType(Rw_Lit2Var(iLit))), Rw_LitIsCompl(iLit), nWords());
     }
 }
 
@@ -739,9 +763,9 @@ word *Miaig::truthSimNodeSubset(int i, int m) {
     Miaig_ForEachObjFanin(i, iLit, k) {
         if ((m >> k) & 1) { // fanin is included in the subset
             if (Counter++ == 0)
-                Tt_DupC(_data->pProd, objTruth(Abc_Lit2Var(iLit), 0), Abc_LitIsCompl(iLit), nWords());
+                Tt_DupC(_data->pProd, objTruth(Rw_Lit2Var(iLit), 0), Rw_LitIsCompl(iLit), nWords());
             else
-                Tt_Sharp(_data->pProd, objTruth(Abc_Lit2Var(iLit), 0), Abc_LitIsCompl(iLit), nWords());
+                Tt_Sharp(_data->pProd, objTruth(Rw_Lit2Var(iLit), 0), Rw_LitIsCompl(iLit), nWords());
         }
     }
     assert(Counter == Tt_BitCount16(m));
@@ -751,8 +775,8 @@ word *Miaig::truthSimNodeSubset(int i, int m) {
 word *Miaig::truthSimNodeSubset2(int i, vi *vFanins, int nFanins) {
     int k, iLit;
     Vi_ForEachEntryStop(vFanins, iLit, k, nFanins) {
-        if (k == 0) Tt_DupC(_data->pProd, objTruth(Abc_Lit2Var(iLit), 0), Abc_LitIsCompl(iLit), nWords());
-        else Tt_Sharp(_data->pProd, objTruth(Abc_Lit2Var(iLit), 0), Abc_LitIsCompl(iLit), nWords());
+        if (k == 0) Tt_DupC(_data->pProd, objTruth(Rw_Lit2Var(iLit), 0), Rw_LitIsCompl(iLit), nWords());
+        else Tt_Sharp(_data->pProd, objTruth(Rw_Lit2Var(iLit), 0), Rw_LitIsCompl(iLit), nWords());
     }
     return _data->pProd;
 }
@@ -808,7 +832,7 @@ int Miaig::computeTfo_rec(int iObj) {
     if (objTravId(iObj) == nTravIds() - 1)
         return 0;
     Miaig_ForEachObjFanin(iObj, iLit, k) {
-        Value |= computeTfo_rec(Abc_Lit2Var(iLit));
+        Value |= computeTfo_rec(Rw_Lit2Var(iLit));
     }
     objTravId(iObj) = nTravIds() - 1 + Value;
     if (Value) Vi_Push(_data->vTfo, iObj);
@@ -867,7 +891,6 @@ void Miaig::addPair(vi *vPair, int iFan1, int iFan2) {
         pArray = Vi_Array(vPair);
     }
     pArray[i + 2]++;
-    //printf( "Adding pair (%d, %d)\n", iFan1, iFan2 );
 }
 
 // find fanin pair that appears most often
@@ -905,11 +928,11 @@ void Miaig::extractBest(vi *vPairs) {
     int iBest = findPair(vPairs);
     assert(iBest >= 0);
     //printf( "Creating node %d with fanins (%d, %d).\n", iObj, pArray[iBest], pArray[iBest+1] );
-    assert(Vi_Size(_data->pvFans + iObj) == 0);
+    assert(Vi_Size(objFanins(iObj)) == 0);
     appendFanin(iObj, pArray[iBest]);
     appendFanin(iObj, pArray[iBest + 1]);
     Miaig_ForEachNode(i)
-        Counter += updateFanins(_data->pvFans + i, pArray[iBest], pArray[iBest + 1], Abc_Var2Lit(iObj, 0));
+        Counter += updateFanins(objFanins(i), pArray[iBest], pArray[iBest + 1], Rw_Var2Lit(iObj, 0));
     assert(Counter == pArray[iBest + 2]);
 }
 
@@ -918,7 +941,7 @@ vi *Miaig::findPairs(word *pSto, int nWords) {
     vi *vPairs = Vi_Alloc(30);
     int i, f1, f2, iFan1, iFan2;
     Miaig_ForEachNode(i) {
-        vi *vFans = _data->pvFans + i;
+        vi *vFans = objFanins(i);
         Vi_ForEachEntry(vFans, iFan1, f1) {
             word *pRowFan1 = pSto + iFan1 * nWords;
             Vi_ForEachEntryStart(vFans, iFan2, f2, f1 + 1) {
@@ -964,7 +987,7 @@ int Miaig::checkConst(int iObj, word *pCare, word *pExc, int fCheck, int fVerbos
     word *pFunc = objTruth(iObj, 0);
     if (!Tt_IntersectC(pCare, pFunc, 0, nWords())) {
         derefObj_rec(iObj, -1);
-        Vi_Fill(_data->pvFans + iObj, 1, 0); // const0
+        Vi_Fill(objFanins(iObj), 1, 0); // const0
         refObj(iObj);
         truthUpdate(_data->vTfo, pExc, fCheck);
         if (fVerbose) printf("Detected Const0 at node %d.\n", iObj);
@@ -972,7 +995,7 @@ int Miaig::checkConst(int iObj, word *pCare, word *pExc, int fCheck, int fVerbos
     }
     if (!Tt_IntersectC(pCare, pFunc, 1, nWords())) {
         derefObj_rec(iObj, -1);
-        Vi_Fill(_data->pvFans + iObj, 1, 1); // const1
+        Vi_Fill(objFanins(iObj), 1, 1); // const1
         refObj(iObj);
         truthUpdate(_data->vTfo, pExc, fCheck);
         if (fVerbose) printf("Detected Const1 at node %d.\n", iObj);
@@ -985,10 +1008,10 @@ int Miaig::expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, w
     int i, k, n, iLit, nAdded = 0;
     word *pCare = computeCareSet(iObj, pExc);
     assert(nAddedMax > 0);
-    assert(nAddedMax <= Vi_Space(_data->pvFans + iObj));
+    assert(nAddedMax <= Vi_Space(objFanins(iObj)));
     // mark node's fanins
     Miaig_ForEachObjFanin(iObj, iLit, k)
-        objTravId(Abc_Lit2Var(iLit)) = nTravIds();
+        objTravId(Rw_Lit2Var(iLit)) = nTravIds();
     // compute the onset
     word *pOnset = objTruth(iObj, 0);
     Tt_Sharp(pOnset, pCare, 0, nWords());
@@ -1005,13 +1028,13 @@ int Miaig::expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, w
 
     int *pOrderF = Vi_Array(_data->vOrderF);
     std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
-        return objLevel(Abc_Lit2Var(a)) > objLevel(Abc_Lit2Var(b));
+        return objLevel(Rw_Lit2Var(a)) > objLevel(Rw_Lit2Var(b));
     });
     std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
-        if (objLevel(Abc_Lit2Var(a)) == 0 || objLevel(Abc_Lit2Var(b)) == 0) {
+        if (objLevel(Rw_Lit2Var(a)) == 0 || objLevel(Rw_Lit2Var(b)) == 0) {
             return false;
         }
-        return objRef(Abc_Lit2Var(a)) < objRef(Abc_Lit2Var(b));
+        return objRef(Rw_Lit2Var(a)) < objRef(Rw_Lit2Var(b));
     });
 
     // iterate through candidate fanins (nodes that are not in the TFO of iObj)
@@ -1020,8 +1043,8 @@ int Miaig::expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, w
         // new fanin can be added if its offset does not intersect with the node's onset
         for (n = 0; n < 2; n++)
             if (!Tt_IntersectC(pOnset, objTruth(i, 0), !n, nWords())) {
-                if (fVerbose) printf("Adding node %d fanin %d\n", iObj, Abc_Var2Lit(i, n));
-                appendFanin(iObj, Abc_Var2Lit(i, n));
+                if (fVerbose) printf("Adding node %d fanin %d\n", iObj, Rw_Var2Lit(i, n));
+                appendFanin(iObj, Rw_Var2Lit(i, n));
                 objRef(i)++;
                 nAdded++;
                 break;
@@ -1047,10 +1070,10 @@ int Miaig::reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, 
     // if one fanin can be used, take it
     word *pFunc = objTruth(iObj, 0);
     Miaig_ForEachObjFanin(iObj, iLit, k) {
-        Tt_DupC(_data->pProd, objTruth(Abc_Lit2Var(iLit), 0), Abc_LitIsCompl(iLit), nWords());
+        Tt_DupC(_data->pProd, objTruth(Rw_Lit2Var(iLit), 0), Rw_LitIsCompl(iLit), nWords());
         if (Tt_EqualOnCare(pCare, pFunc, _data->pProd, nWords())) {
             derefObj(iObj);
-            Vi_Fill(_data->pvFans + iObj, 1, iLit);
+            Vi_Fill(objFanins(iObj), 1, iLit);
             refObj(iObj);
             truthUpdate(_data->vTfo, pExc, fCheck);
             if (fVerbose) printf("Reducing node %d fanin count from %d to %d.\n", iObj, nFans, objFaninNum(iObj));
@@ -1067,13 +1090,13 @@ int Miaig::reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, 
     if (fHeuristic) {
         int *pOrderF = Vi_Array(_data->vOrderF);
         std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
-            return objLevel(Abc_Lit2Var(a)) < objLevel(Abc_Lit2Var(b));
+            return objLevel(Rw_Lit2Var(a)) < objLevel(Rw_Lit2Var(b));
         });
         std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
-            if (objLevel(Abc_Lit2Var(a)) == 0 || objLevel(Abc_Lit2Var(b)) == 0) {
+            if (objLevel(Rw_Lit2Var(a)) == 0 || objLevel(Rw_Lit2Var(b)) == 0) {
                 return false;
             }
-            return objRef(Abc_Lit2Var(a)) > objRef(Abc_Lit2Var(b));
+            return objRef(Rw_Lit2Var(a)) > objRef(Rw_Lit2Var(b));
         });
     }
 
@@ -1089,9 +1112,9 @@ int Miaig::reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, 
     // update the node if it is reduced
     if (Vi_Size(_data->vOrderF) < nFans) {
         derefObj(iObj);
-        Vi_Shrink(_data->pvFans + iObj, 0);
+        Vi_Shrink(objFanins(iObj), 0);
         Vi_ForEachEntry(_data->vOrderF, iLit, k)
-            Vi_PushOrder(_data->pvFans + iObj, iLit);
+            Vi_PushOrder(objFanins(iObj), iLit);
         refObj(iObj);
         truthUpdate(_data->vTfo, pExc, fCheck);
         if (fVerbose) printf("Reducing node %d fanin count from %d to %d.\n", iObj, nFans, objFaninNum(iObj));
@@ -1101,7 +1124,7 @@ int Miaig::reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, 
 }
 
 int Miaig::expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int nExpandableLevel, word *pExc, int fCheck, int fVerbose) {
-    expandOne(iNode, Abc_MinInt(Vi_Space(_data->pvFans + iNode), nFaninAddLimit), nDist, nExpandableLevel, pExc, fCheck, fVerbose);
+    expandOne(iNode, std::min(Vi_Space(objFanins(iNode)), nFaninAddLimit), nDist, nExpandableLevel, pExc, fCheck, fVerbose);
     reduceOne(iNode, 0, 0, 0, pExc, fCheck, fVerbose);
     return 0;
 }
@@ -1125,12 +1148,12 @@ Miaig Miaig::expand(int nFaninAddLimitAll, int nDist, int nExpandableLevel, word
     initializeLevels();
     if (nDist) initializeDists();
     Vi_ForEachEntry(vOrder, iNode, i) {
-        nAdded += expandOne(iNode, Abc_MinInt(Vi_Space(_data->pvFans + iNode), nFaninAddLimitAll - nAdded), nDist, nExpandableLevel, pExc, fCheck, fVerbose);
+        nAdded += expandOne(iNode, std::min(Vi_Space(objFanins(iNode)), nFaninAddLimitAll - nAdded), nDist, nExpandableLevel, pExc, fCheck, fVerbose);
         if (nAdded >= nFaninAddLimitAll)
             break;
     }
     assert(nAdded <= nFaninAddLimitAll);
-    verifyRefs();
+    if (fCheck) verifyRefs();
     return dupDfs();
 }
 
@@ -1157,7 +1180,7 @@ Miaig Miaig::reduce(word *pExc, int fCheck, int fVerbose) {
     // works best for final
     Vi_ForEachEntry(vOrder, iNode, i)
         reduceOne(iNode, 0, 0, 1, pExc, fCheck, fVerbose);
-    verifyRefs();
+    if (fCheck) verifyRefs();
     return dupStrash(1, 1, 1);
 }
 
@@ -1173,7 +1196,7 @@ Miaig Miaig::expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLeve
     Vi_ForEachEntry(vOrder, iNode, i) {
         expandThenReduceOne(iNode, nFaninAddLimit, nDist, nExpandableLevel, pExc, fCheck, fVerbose);
     }
-    verifyRefs();
+    if (fCheck) verifyRefs();
     return dupDfs().dupStrash(1, 1, 1);
 }
 
@@ -1200,19 +1223,25 @@ Miaig randomRead(std::vector<Miaig> &pBests) {
     return pBests[Random_Num(0) % pBests.size()];
 }
 
+Miaig randomReadExcept(std::vector<Miaig> &pBests, Miaig &pExcept) {
+    int iNum = Random_Num(0) % pBests.size();
+    return (pBests[iNum] == pExcept) ? pBests[(iNum + 1) % pBests.size()] : pBests[iNum];
+}
+
 Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fCheck, int nVerbose) {
     const int nRootSave = 8;
     const int nBestSave = 4;
     int nRestart = 5000;
     std::vector<Miaig> pRoots = {this->dup(0)};
-    std::vector<Miaig> pBests = {this->dup(0)};
+    std::vector<Miaig> pBests = {this->dup(0)}; Miaig pInit = pBests[0];
     iword clkStart = Time_Clock();
     Miaig pNew;
     Miaig pRoot = pRoots[0];
-    Miaig pBest = this->dup(0);
+    Miaig pBest = this->dup(0); int improved = 0;
     float (Miaig::*Miaig_ObjectiveFunction)(int, int) = (nMode == 0) ? &Miaig::countAnd2 : &Miaig::countTransistors;
     int maxLevel = levelGrowRatio != 0 ? this->countLevel() * levelGrowRatio : 0;
     int nExpandableLevel = maxLevel ? maxLevel - this->countLevel() : 0;
+    int fMapped = nMode > 0;
     word *pExc = _data->pExc;
 
     float PrevBest = ((&pBest)->*Miaig_ObjectiveFunction)(1, nMappedMode);
@@ -1220,7 +1249,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
     if (nVerbose && maxLevel) printf("Max level         : %5d\n", maxLevel);
     if (nVerbose) printf("Initial target    : %5g (AND2 = %5g Level = %3d)\n", PrevBest, this->countAnd2(1), this->countLevel());
     for (int i = 0; nIters ? i < nIters : 1; i++) {
-        if (nVerbose) printf("\rIteration %7d : %5g -> ", i + 1, ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode));
+        if (nVerbose) printf("\rIteration %7d(%zu) : %5g -> ", i + 1, pBests.size(), ((&pRoot)->*Miaig_ObjectiveFunction)(0, nMappedMode));
         if (nTimeOut && nTimeOut < 1.0 * (Time_Clock() - clkStart) / CLOCKS_PER_SEC) break;
         if (PrevBest == 0) break;
         pNew = pRoot.dupMulti(nFaninMax, nGrowth);
@@ -1240,7 +1269,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
             if (nVerbose) Time_PrintEndl("Elapsed time", Time_Clock() - clkStart);
             PrevBest = newTarget;
             pBests = {pNew.dup(0), pNew.dup(0)};
-            pBest = pNew.dup(0, 1);
+            pBest = pNew.dup(0, fMapped), improved = 1;
             iterNotImproveAfterRestart = 0;
         } else if (PrevBest == newTarget) {
             randomAddBest(pBests, pNew.dup(0), nBestSave);
@@ -1266,7 +1295,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
         pRoot = randomRead(pRoots);
     }
     if (nVerbose) Time_PrintEndl("Total solving time", Time_Clock() - clkStart);
-    return pBest;
+    return improved ? pBest : randomReadExcept(pBests, pInit);
 }
 
 } // namespace Rewire

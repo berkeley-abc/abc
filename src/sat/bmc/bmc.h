@@ -64,9 +64,11 @@ struct Bmc_EsPar_t_
     int        fQuadrEnc;
     int        fUniqFans;
     int        fLutCascade;
+    int        fLutInFixed;
     int        RuntimeLim;
     int        nRandFuncs;
     int        nMintNum;
+    int        Seed;
     int        fVerbose; 
     char *     pTtStr;
     char *     pSymStr;

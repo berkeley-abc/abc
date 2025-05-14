@@ -211,6 +211,48 @@ Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * 
     }
     return pGia;
 }
+Abc_Ntk_t * Wln_ReadMappedSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, char * pLibrary, int fVerbose )
+{
+    Abc_Ntk_t * pNtk = NULL;
+    char Command[1000];
+    char * pFileTemp = "_temp_.blif";
+    int fSVlog = strstr(pFileName, ".sv")  != NULL;
+    sprintf( Command, "%s -qp \"read_liberty -lib %s; read %s %s%s %s; hierarchy %s%s; flatten; proc; write_blif %s%s -impltf -gates %s\"",
+        Wln_GetYosysName(),
+        pLibrary,
+        fSVlog    ? "-sv "      : "-vlog95",
+        pDefines  ? "-D"        : "",
+        pDefines  ? pDefines    : "",
+        pFileName,
+        pTopModule ? "-top "    : "-auto-top",
+        pTopModule ? pTopModule : "",
+        pTopModule ? "-top "    : "",
+        pTopModule ? pTopModule : "",
+        pFileTemp );
+    if ( fVerbose )
+    printf( "%s\n", Command );
+    if ( !Wln_ConvertToRtl(Command, pFileTemp) )
+        return NULL;
+    sprintf( Command, "read_lib %s", pLibrary );
+    if ( Cmd_CommandExecute( Abc_FrameReadGlobalFrame(), Command ) )
+    {
+        fprintf( stdout, "Cannot execute ABC command \"%s\".\n", Command );
+        unlink( pFileTemp );
+        return NULL;
+    }
+    pNtk = Io_Read( pFileTemp, IO_FILE_BLIF, 1, 0 );
+    if ( pNtk == NULL )
+    {
+        printf( "Reading mapped BLIF from file \"%s\" has failed.\n", pFileTemp );
+        return NULL;
+    }
+    if ( pTopModule ) {
+        ABC_FREE( pNtk->pName );
+        pNtk->pName = Abc_UtilStrsav(pTopModule);
+    }
+    unlink( pFileTemp );
+    return pNtk;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
