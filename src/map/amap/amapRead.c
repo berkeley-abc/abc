@@ -377,7 +377,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
             if ( strcmp( pToken, AMAP_STRING_PIN ) )
             {
                 Amap_LibFree( p );
-                printf( "Cannot parse gate %s.\n", pGate->pName );
+                printf( "Cannot parse cell %s.\n", pGate->pName );
                 return NULL;
             }
             // read pin
@@ -393,7 +393,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
             else 
             {
                 Amap_LibFree( p );
-                printf( "Cannot read phase of pin %s of gate %s\n", pPin->pName, pGate->pName );
+                printf( "Cannot read phase of pin %s of cell %s\n", pPin->pName, pGate->pName );
                 return NULL;
             }
             pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
@@ -421,7 +421,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
             Vec_PtrPush( p->vGates, pGate );
         }
         pToken = (char *)Vec_PtrEntry(vTokens, iPos++);
-//printf( "Finished reading gate %s (%s)\n", pGate->pName, pGate->pOutName );
+//printf( "Finished reading cell %s (%s)\n", pGate->pName, pGate->pOutName );
     }
     while ( strcmp( pToken, ".end" ) );
 
@@ -432,7 +432,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
         if ( pPrev && !strcmp(pPrev->pName, pGate->pName) )
         {
             pPrev->pTwin = pGate, pGate->pTwin = pPrev;
-//            printf( "Warning: Detected multi-output gate \"%s\".\n", pGate->pName );
+//            printf( "Warning: Detected multi-output cell \"%s\".\n", pGate->pName );
             if ( pMoGate == NULL )
                 pMoGate = pGate->pName;
             Count++;
@@ -440,7 +440,7 @@ Amap_Lib_t * Amap_ParseTokens( Vec_Ptr_t * vTokens, int fVerbose )
         pPrev = pGate;
     }
     if ( Count )
-        printf( "Warning: Detected %d multi-output gates (for example, \"%s\").\n", Count, pMoGate );
+        printf( "Warning: Detected %d multi-output cells (for example, \"%s\").\n", Count, pMoGate );
     return p;
 }
 

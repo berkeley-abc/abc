@@ -1509,7 +1509,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     Vec_Wrd_t * vTruth;
     char * pFormula, * pName;
     int i, k, Counter, nOutputs, nCells;
-    int nSkipped[4] = {0};
+    int nSkipped[5] = {0};
 
     // read delay-table templates
     vTemples = Scl_LibertyReadTemplates( p );
@@ -1561,6 +1561,12 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             nSkipped[2]++;
             continue;
         }
+        if ( Counter > 2 )
+        {
+            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" with more than two outputs.\n", Scl_LibertyReadString(p, pCell->Head) );
+            nSkipped[4]++;
+            continue;
+        }
         nCells++;
     }
     // read cells
@@ -1576,6 +1582,8 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
         if ( Scl_LibertyReadCellIsThreeState(p, pCell) )
             continue;
         if ( (Counter = Scl_LibertyReadCellOutputNum(p, pCell)) == 0 )
+            continue;
+        if ( Counter > 2 )
             continue;
         // top level information
         Vec_StrPutS_( vOut, Scl_LibertyReadString(p, pCell->Head) );
@@ -1742,8 +1750,8 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     {
         printf( "Library \"%s\" from \"%s\" has %d cells ", 
             Scl_LibertyReadString(p, Scl_LibertyRoot(p)->Head), p->pFileName, nCells );
-        printf( "(%d skipped: %d seq; %d tri-state; %d no func; %d dont_use).  ", 
-            nSkipped[0]+nSkipped[1]+nSkipped[2], nSkipped[0], nSkipped[1], nSkipped[2], nSkipped[3] );
+        printf( "(%d skipped: %d seq; %d tri-state; %d no func; %d dont_use; %d with 3+ outputs).  ", 
+            nSkipped[0]+nSkipped[1]+nSkipped[2]+nSkipped[3]+nSkipped[4], nSkipped[0], nSkipped[1], nSkipped[2], nSkipped[3], nSkipped[4] );
         Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     }
     return vOut;
