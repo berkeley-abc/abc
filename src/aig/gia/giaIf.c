@@ -470,6 +470,65 @@ int Gia_ManCountDupLut( Gia_Man_t * p )
     return nCountDup + nCountPis;
 }
 
+void Gia_ManCollectLuts_rec( Gia_Man_t * p, int iObj, Vec_Int_t * vLuts )
+{
+    if ( Gia_ObjIsTravIdCurrentId( p, iObj ) || !Gia_ObjIsAnd(Gia_ManObj(p, iObj)) )
+        return;
+    Gia_ObjSetTravIdCurrentId( p, iObj );
+    int k, iFan;
+    Gia_LutForEachFanin( p, iObj, iFan, k )
+        Gia_ManCollectLuts_rec( p, iFan, vLuts );
+    Vec_IntPush( vLuts, iObj );
+}
+int Gia_ManCountLutLevels( Gia_Man_t * p, Vec_Int_t * vLuts, Vec_Int_t * vLevel )
+{
+    int i, iObj, k, iFan, LevelMax = 0;
+    Vec_IntForEachEntry( vLuts, iObj, i ) {
+        int Level = 0;
+        Gia_LutForEachFanin( p, iObj, iFan, k )
+            Level = Abc_MaxInt( Level, Vec_IntEntry(vLevel, iFan) );
+        Vec_IntWriteEntry( vLevel, iObj, Level+1 );
+        LevelMax = Abc_MaxInt( LevelMax, Level+1 );
+    }
+    Vec_IntForEachEntry( vLuts, iObj, i )
+        Vec_IntWriteEntry( vLevel, iObj, 0 );
+    return LevelMax;
+}
+void Gia_ManPrintOutputLutStats( Gia_Man_t * p )
+{
+    int Limit = 100000;
+    int nLutSize = Gia_ManLutSizeMax(p);
+    Vec_Int_t * vLuts = Vec_IntAlloc( 1000 );
+    Vec_Int_t * vNodes = Vec_IntStart( Limit );
+    Vec_Int_t * vLevels = Vec_IntStart( Limit );
+    Vec_Int_t * vLevel = Vec_IntStart( Gia_ManObjNum(p) );
+    int i, DriverId, Value, nTotalLuts = 0;
+    Gia_ManForEachCoDriverId( p, DriverId, i ) {
+        Vec_IntClear( vLuts );
+        Gia_ManIncrementTravId(p);
+        Gia_ManCollectLuts_rec( p, DriverId, vLuts );
+        if ( Vec_IntSize(vLuts) < Limit )
+            Vec_IntAddToEntry( vNodes, Vec_IntSize(vLuts), 1 );
+        int Level = Gia_ManCountLutLevels( p, vLuts, vLevel );
+        if ( Level < Limit )
+            Vec_IntAddToEntry( vLevels, Level, 1 );
+        nTotalLuts += Vec_IntSize(vLuts);
+    }
+    printf( "Level count statistics for %d AIG outputs:\n", Gia_ManCoNum(p) );
+    Vec_IntForEachEntry( vLevels, Value, i )
+        if ( Value )
+            printf( "   %2d level : Function count = %8d (%6.2f %%)\n", i, Value, 100.0*Value/Gia_ManCoNum(p) );
+    printf( "LUT count statistics for %d AIG outputs:\n", Gia_ManCoNum(p) );
+    Vec_IntForEachEntry( vNodes, Value, i )
+        if ( Value )
+            printf( "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, Value, 100.0*Value/Gia_ManCoNum(p) );
+    printf( "Sum total of LUT counts for all outputs = %d. Shared LUT count = %d.\n", nTotalLuts, Gia_ManLutNum(p) );
+    Vec_IntFree( vLuts );
+    Vec_IntFree( vNodes );
+    Vec_IntFree( vLevels );
+    Vec_IntFree( vLevel );
+}
+
 void Gia_ManPrintMappingStats( Gia_Man_t * p, char * pDumpFile )
 {
     int fDisable2Lut = 1;

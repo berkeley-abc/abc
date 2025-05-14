@@ -34444,7 +34444,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c, fBest = 0;
     memset( pPars, 0, sizeof(Gps_Par_t) );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmaszxbh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Dtpcnlmasozxbh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -34471,6 +34471,9 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 's':
             pPars->fSlacks ^= 1;
+            break;
+        case 'o':
+            pPars->fMapOutStats ^= 1;
             break;
         case 'z':
             pPars->fSkipMap ^= 1;
@@ -34517,7 +34520,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &ps [-tpcnlmaszxbh] [-D file]\n" );
+    Abc_Print( -2, "usage: &ps [-tpcnlmasozxbh] [-D file]\n" );
     Abc_Print( -2, "\t          prints stats of the current AIG\n" );
     Abc_Print( -2, "\t-t      : toggle printing BMC tents [default = %s]\n",                pPars->fTents? "yes": "no" );
     Abc_Print( -2, "\t-p      : toggle printing switching activity [default = %s]\n",       pPars->fSwitch? "yes": "no" );
@@ -34527,6 +34530,7 @@ usage:
     Abc_Print( -2, "\t-m      : toggle printing MUX/XOR statistics [default = %s]\n",       pPars->fMuxXor? "yes": "no" );
     Abc_Print( -2, "\t-a      : toggle printing miter statistics [default = %s]\n",         pPars->fMiter? "yes": "no" );
     Abc_Print( -2, "\t-s      : toggle printing slack distribution [default = %s]\n",       pPars->fSlacks? "yes": "no" );
+    Abc_Print( -2, "\t-o      : toggle printing mapping output stats [default = %s]\n",     pPars->fMapOutStats? "yes": "no" );
     Abc_Print( -2, "\t-z      : skip mapping statistics even if mapped [default = %s]\n",   pPars->fSkipMap? "yes": "no" );
     Abc_Print( -2, "\t-x      : toggle using no color in the printout [default = %s]\n",    pPars->fNoColor? "yes": "no" );
     Abc_Print( -2, "\t-b      : toggle printing saved AIG statistics [default = %s]\n",     fBest? "yes": "no" );

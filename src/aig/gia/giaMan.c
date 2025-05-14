@@ -640,6 +640,8 @@ void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars )
     }
     if ( pPars && pPars->fSlacks )
         Gia_ManDfsSlacksPrint( p );
+    if ( Gia_ManHasMapping(p) && pPars->fMapOutStats )
+        Gia_ManPrintOutputLutStats( p );
 }
 
 /**Function*************************************************************
