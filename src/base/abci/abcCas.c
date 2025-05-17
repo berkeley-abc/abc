@@ -726,7 +726,8 @@ word * Abc_LutCascadeDec( char * pGuide, word * pTruth, int nVarsOrig, Vec_Int_t
     for ( i = 0; Vec_IntSize(vVarIDs) > nLutSize; i++ ) {
         nRVars = Abc_LutCascadeDecStage( pGuide, i, vFuncs, vVarIDs, nRVars, nRails, nLutSize, nJRatio, fVerbose, vCas, i ? NULL : pMyu );
         if ( i+2 > nStages ) {
-            printf( "The length of the cascade (%d) exceeds the max allowed number of stages (%d).\n", i+2, nStages );
+            if ( fVerbose )
+                printf( "The length of the cascade (%d) exceeds the max allowed number of stages (%d).\n", i+2, nStages );
             nRVars = -1;
         }
         if ( nRVars == -1 )
@@ -1466,10 +1467,12 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
             if ( MyuStats[i] )
                 printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, MyuStats[i], 100.0*MyuStats[i]/nFuncs/IterReal );
     }
-    printf( "Level count statistics for %d-rail LUT cascade:\n", nRails );
-    for ( i = 0; i < 50; i++ )
-        if ( StageStats[i] )
-            printf( "   %2d level : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/nFuncs );
+    if ( nRails > 1 ) {
+        printf( "Level count statistics for %d-rail LUT cascade:\n", nRails );
+        for ( i = 0; i < 50; i++ )
+            if ( StageStats[i] )
+                printf( "   %2d level : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/nFuncs );
+    }
     printf( "LUT count statistics for %d-rail LUT cascade:\n", nRails );
     for ( i = 0; i < 50; i++ )
         if ( LutStats[i] )

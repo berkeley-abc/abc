@@ -9299,7 +9299,7 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 1;
         }
         Abc_NtkLutCascadeFile( pFileName, nVarNum, nLutSize, nStages, nRails, nIters, nJRatio, Seed, fVerbose, fVeryVerbose, fPrintMyu );
-        return 1;
+        return 0;
     }
     if ( fGen )
     {
