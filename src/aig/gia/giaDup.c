@@ -22,6 +22,7 @@
 #include "misc/tim/tim.h"
 #include "misc/vec/vecWec.h"
 #include "proof/cec/cec.h"
+#include "misc/util/utilTruth.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -6267,6 +6268,214 @@ Gia_Man_t * Gia_ManDupFanouts( Gia_Man_t * p )
     }
     Gia_ManStaticFanoutStop( p );
     return pNew;    
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reorders choice nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManPrintChoices( Gia_Man_t * p )
+{
+    Gia_Obj_t * pObj; int i;
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( p->pSibls[i] )
+            printf( "%d -> %d\n", i, p->pSibls[i] );
+}
+void Gia_ManReorderChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_Obj_t * pSibl = Gia_ObjSiblObj(p, Gia_ObjId(p, pObj));
+    Gia_ManReorderChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManReorderChoices_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    if ( pSibl ) Gia_ManReorderChoices_rec( pNew, p, pSibl );
+    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    if ( pSibl ) {
+        int iObjNew  = Abc_Lit2Var(pObj->Value);
+        int iNextNew = Abc_Lit2Var(pSibl->Value);
+        assert( iObjNew > iNextNew );
+        assert( Gia_ObjIsAnd(Gia_ManObj(pNew, iNextNew)) );
+        pNew->pSibls[iObjNew] = iNextNew;        
+    }
+}
+Gia_Man_t * Gia_ManReorderChoices( Gia_Man_t * p )
+{
+    assert( p->pSibls );
+    Gia_Obj_t * pObj; int i;
+    Gia_Man_t * pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_ManFillValue(p);
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManReorderChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );        
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    extern int Gia_ManTestChoices( Gia_Man_t * p );
+    Gia_ManTestChoices( pNew );
+    //Gia_ManPrintChoices( pNew );
+    return pNew;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates AIGs while creating choices.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+struct Gia_ChMan_t_ 
+{
+    Gia_Man_t * pNew;
+    Vec_Mem_t * vTtMem;
+    Vec_Int_t * vSibls;
+    Vec_Int_t * vObj2Tt;
+    Vec_Int_t * vTt2Obj;
+    Vec_Int_t * vCoLits;
+    word *      pTruth;
+    int         nWords;
+};
+
+int Gia_ManDupChoicesMark_rec( Gia_Man_t * pGia, int iObj, Vec_Int_t * vObj2Tt, int iFunc )
+{
+    if ( Abc_Lit2Var(Vec_IntEntry(vObj2Tt, iObj)) == iFunc )
+        return 1;
+    if ( Gia_ObjIsTravIdCurrentId(pGia, iObj) )
+        return 0;
+    Gia_ObjSetTravIdCurrentId(pGia, iObj);
+    Gia_Obj_t * pObj = Gia_ManObj(pGia, iObj);
+    if ( !Gia_ObjIsAnd(pObj) )
+        return 0;
+    if ( Gia_ManDupChoicesMark_rec( pGia, Gia_ObjFaninId0(pObj, iObj), vObj2Tt, iFunc ) )
+        return 1;
+    if ( Gia_ManDupChoicesMark_rec( pGia, Gia_ObjFaninId1(pObj, iObj), vObj2Tt, iFunc ) )
+        return 1;
+    return 0;
+}
+int Gia_ManDupChoicesMark( Gia_Man_t * pGia, int iLit0, int iLit1, Vec_Int_t * vObj2Tt, int iFunc )
+{
+    Gia_ManIncrementTravId( pGia );
+    if ( Gia_ManDupChoicesMark_rec( pGia, Abc_Lit2Var(iLit0), vObj2Tt, iFunc ) )
+        return 1;
+    if ( Gia_ManDupChoicesMark_rec( pGia, Abc_Lit2Var(iLit1), vObj2Tt, iFunc ) )
+        return 1;
+    return 0;
+}
+void Gia_ManDupChoicesNode( Gia_ChMan_t * p, Gia_Man_t * pGia, int iObj )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( pGia, iObj );
+    assert( ~Gia_ObjFanin0(pObj)->Value && ~Gia_ObjFanin1(pObj)->Value );
+    int obLits[2] = { Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) };
+    int ttLits[2] = { Vec_IntEntry(p->vObj2Tt, Abc_Lit2Var(obLits[0])), Vec_IntEntry(p->vObj2Tt, Abc_Lit2Var(obLits[1])) };
+    int fCompl[2] = { Abc_LitIsCompl(ttLits[0]) ^ Abc_LitIsCompl(obLits[0]), Abc_LitIsCompl(ttLits[1]) ^ Abc_LitIsCompl(obLits[1]) };
+    word * pTruth[2] = { Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(ttLits[0])), Vec_MemReadEntry(p->vTtMem, Abc_Lit2Var(ttLits[1])) };
+    Abc_TtAndCompl( p->pTruth, pTruth[0], fCompl[0], pTruth[1], fCompl[1], p->nWords );
+    int fComp  = (int)p->pTruth[0] & 1;  if ( fComp ) Abc_TtNot( p->pTruth, p->nWords );
+    int nFuncs = Vec_MemEntryNum( p->vTtMem );
+    int iFunc  = Vec_MemHashInsert( p->vTtMem, p->pTruth );
+    assert( iFunc <= nFuncs );
+    if ( iFunc == nFuncs ) { // new function
+        pObj->Value = Gia_ManHashAnd( p->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        Vec_IntPush( p->vObj2Tt, Abc_Var2Lit(iFunc, fComp ^ Abc_LitIsCompl(pObj->Value)) );
+        Vec_IntPush( p->vTt2Obj, Abc_Lit2Var(pObj->Value) );
+        return;        
+    }
+    int iRepr = Vec_IntEntry( p->vTt2Obj, iFunc );
+    pObj->Value = Abc_Var2Lit( iRepr, fComp ^ Abc_LitIsCompl(Vec_IntEntry(p->vObj2Tt, iRepr)) );
+    if ( iRepr <= Gia_ManCiNum(pGia) || Gia_ManDupChoicesMark(p->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj), p->vObj2Tt, iFunc) ) 
+        return;
+    int nObjNew = Gia_ManObjNum(p->pNew);
+    int iLitNew = Gia_ManHashAnd( p->pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    if (  Abc_Lit2Var(iLitNew) == nObjNew )
+        Vec_IntPush( p->vObj2Tt, Abc_Var2Lit(iFunc, fComp ^ Abc_LitIsCompl(iLitNew)) );
+}
+void Gia_ManDupChoicesAdd( Gia_ChMan_t * p, Gia_Man_t * pGia )
+{
+    Gia_Obj_t * pObj; int i;
+    assert( Gia_ManCiNum(p->pNew)   == Gia_ManCiNum(pGia) );
+    assert( !p->vCoLits || Vec_IntSize(p->vCoLits) == Gia_ManCoNum(pGia) );
+    assert( Gia_ManRegNum(p->pNew)  == Gia_ManRegNum(pGia) );    
+    Gia_ManFillValue( pGia );
+    Gia_ManForEachCi( pGia, pObj, i )
+        pObj->Value = Gia_ManCiLit( p->pNew, i );
+    Gia_ManForEachAnd( pGia, pObj, i )
+        Gia_ManDupChoicesNode( p, pGia, i );
+    assert( Vec_IntSize(p->vObj2Tt) == Gia_ManObjNum(p->pNew) );
+    assert( Vec_IntSize(p->vTt2Obj) == Vec_MemEntryNum(p->vTtMem) );   
+}
+Gia_ChMan_t * Gia_ManDupChoicesStart( Gia_Man_t * pGia )
+{
+    Gia_ChMan_t * p = ABC_CALLOC( Gia_ChMan_t, 1 );
+    p->pNew = Gia_ManStart( 10*Gia_ManObjNum(pGia) );
+    p->pNew->pName = Abc_UtilStrsav( pGia->pName );
+    p->pNew->pSpec = Abc_UtilStrsav( pGia->pSpec );
+    p->vTtMem = Vec_MemAllocWithTTs( Gia_ManCiNum(pGia) );
+    p->vTt2Obj = Vec_IntStartNatural( 1 + Gia_ManCiNum(pGia) );
+    p->vObj2Tt = Vec_IntAlloc( 10*Gia_ManObjNum(pGia) );
+    p->nWords = Abc_TtWordNum( Gia_ManCiNum(pGia) );
+    p->pTruth = ABC_CALLOC( word, p->nWords );
+    Gia_Obj_t * pObj; int i;
+    for ( i = 0; i <= Gia_ManCiNum(pGia); i++ )
+        Vec_IntPush( p->vObj2Tt, Abc_Var2Lit(i, 0) );
+    Gia_ManForEachCi( pGia, pObj, i )
+        Gia_ManAppendCi(p->pNew);
+    Gia_ManSetRegNum( p->pNew, Gia_ManRegNum(pGia) );
+    Gia_ManHashStart( p->pNew );
+    Gia_ManDupChoicesAdd( p, pGia );
+    p->vCoLits = Vec_IntAlloc( Gia_ManCoNum(pGia) );
+    Gia_ManForEachCo( pGia, pObj, i )
+        Vec_IntPush( p->vCoLits, Gia_ObjFanin0Copy(pObj) );
+    return p;    
+}
+Vec_Int_t * Gia_ManDupChoicesCreateSibls( Gia_ChMan_t * p )
+{
+    int iObj, ttLit;
+    Vec_Int_t * vSibls = Vec_IntStart( Gia_ManObjNum(p->pNew) );
+    assert( Vec_IntSize(p->vTt2Obj) == Vec_MemEntryNum(p->vTtMem) );   
+    Vec_IntForEachEntry( p->vObj2Tt, ttLit, iObj ) {
+        int iPrev = Vec_IntEntry(p->vTt2Obj, Abc_Lit2Var(ttLit));
+        assert( iPrev <= iObj );
+        if ( iPrev == iObj )
+            continue;
+        Vec_IntWriteEntry( vSibls, iPrev, iObj );
+        Vec_IntWriteEntry( p->vTt2Obj, Abc_Lit2Var(ttLit), iObj );
+    }
+    return vSibls;
+}
+Gia_Man_t * Gia_ManDupChoicesFinish( Gia_ChMan_t * p )
+{
+    Gia_Man_t * pTemp, * pNew = p->pNew; int i, iLit;
+    p->vSibls = Gia_ManDupChoicesCreateSibls( p );
+    p->pNew->pSibls = Vec_IntReleaseArray( p->vSibls );
+    Vec_IntForEachEntry( p->vCoLits, iLit, i )
+        Gia_ManAppendCo( p->pNew, iLit );
+    Vec_MemFree( p->vTtMem );
+    Vec_IntFree( p->vSibls );
+    Vec_IntFree( p->vTt2Obj );
+    Vec_IntFree( p->vObj2Tt );
+    Vec_IntFree( p->vCoLits );
+    ABC_FREE( p->pTruth );
+    ABC_FREE( p );
+    pTemp = Gia_ManReorderChoices( pNew );
+    Gia_ManStop( pNew );
+    return pTemp;
 }
 
 ////////////////////////////////////////////////////////////////////////

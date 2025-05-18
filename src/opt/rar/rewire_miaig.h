@@ -317,7 +317,7 @@ public:
     Miaig reduce(word *pExc, int fCheck, int fVerbose);
     Miaig expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLevel, word *pExc, int fCheck, int fVerbose);
     Miaig expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nExpandableLevel, word *pExc, int fCheck, int nVerbose);
-    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fCheck, int nVerbose);
+    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fCheck, Gia_ChMan_t *pChMan, int nVerbose);
 #ifdef RW_ABC
     Gia_Man_t *toGia(void);
     Abc_Ntk_t *toNtk(int fMapped = 0);

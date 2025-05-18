@@ -26,17 +26,18 @@ ABC_NAMESPACE_IMPL_START
 #endif // RW_ABC
 
 #ifdef RW_ABC
-Gia_Man_t *Gia_ManRewireInt(Gia_Man_t *pGia, Gia_Man_t *pExc, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nSeed, int fCheck, int fVerbose) {
+Gia_Man_t *Gia_ManRewireInt(Gia_Man_t *pGia, Gia_Man_t *pExc, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nSeed, int fCheck, int fChoices, int fVerbose) {
     Random_Num(nSeed == 0 ? Abc_Random(0) % 10 : nSeed);
+    Gia_ChMan_t *pChMan = fChoices ? Gia_ManDupChoicesStart(pGia) : NULL;
 
     assert(Gia_ManCiNum(pGia) <= 58);
     Rewire::Miaig pNtkMiaig(pGia);
     if (pExc)
         pNtkMiaig.setExc(pExc);
-    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fCheck, fVerbose);
+    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fCheck, pChMan, fVerbose);
     pNew.setName(Gia_ManName(pGia));
 
-    return pNew.toGia();
+    return pChMan ? Gia_ManDupChoicesFinish(pChMan) : pNew.toGia();
 }
 
 Abc_Ntk_t *Abc_ManRewireInt(Abc_Ntk_t *pNtk, Gia_Man_t *pExc, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nSeed, int fCheck, int fVerbose) {
@@ -47,7 +48,7 @@ Abc_Ntk_t *Abc_ManRewireInt(Abc_Ntk_t *pNtk, Gia_Man_t *pExc, int nIters, float 
     Rewire::Miaig pNtkMiaig(pNtk);
     if (pExc)
         pNtkMiaig.setExc(pExc);
-    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, fMapped, nMappedMode, nDist, fCheck, fVerbose);
+    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, fMapped, nMappedMode, nDist, fCheck, NULL, fVerbose);
     pNew.setName(Abc_NtkName(pNtk));
     if (nMode > 0) {
         pNew.countTransistors(1, nMappedMode);
@@ -63,7 +64,7 @@ Mini_Aig_t *MiniAig_ManRewireInt(Mini_Aig_t *pAig, Gia_Man_t *pExc, int nIters, 
     Rewire::Miaig pNtkMiaig(pAig);
     if (pExc)
         pNtkMiaig.setExc(pExc);
-    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fCheck, fVerbose);
+    Rewire::Miaig pNew = pNtkMiaig.rewire(nIters, levelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fCheck, NULL, fVerbose);
 
     return pNew.toMiniAig();
 }
@@ -1210,7 +1211,12 @@ Miaig Miaig::expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int 
     return pNew;
 }
 
-void randomAddBest(std::vector<Miaig> &pBests, Miaig pNew, int nBestSave) {
+void randomAddBest(std::vector<Miaig> &pBests, Miaig pNew, int nBestSave, Gia_ChMan_t *pChMan) {
+    if ( pChMan ) {
+        Gia_Man_t * pGia = pNew.toGia();
+        Gia_ManDupChoicesAdd(pChMan, pGia);
+        Gia_ManStop( pGia );
+    }
     if (pBests.size() < nBestSave) {
         pBests.push_back(pNew);
     } else {
@@ -1228,7 +1234,7 @@ Miaig randomReadExcept(std::vector<Miaig> &pBests, Miaig &pExcept) {
     return (pBests[iNum] == pExcept) ? pBests[(iNum + 1) % pBests.size()] : pBests[iNum];
 }
 
-Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fCheck, int nVerbose) {
+Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fCheck, Gia_ChMan_t *pChMan, int nVerbose) {
     const int nRootSave = 8;
     const int nBestSave = 4;
     int nRestart = 5000;
@@ -1272,7 +1278,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
             pBest = pNew.dup(0, fMapped), improved = 1;
             iterNotImproveAfterRestart = 0;
         } else if (PrevBest == newTarget) {
-            randomAddBest(pBests, pNew.dup(0), nBestSave);
+            randomAddBest(pBests, pNew.dup(0), nBestSave, pChMan);
         }
         // compare
         if (maxLevel ? pNew.countLevel() > maxLevel : 0) {
@@ -1288,7 +1294,7 @@ Miaig Miaig::rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth,
                 pRoots = {pNew};
             }
         } else if (rootTarget == newTarget) {
-            randomAddBest(pRoots, pNew, nRootSave);
+            randomAddBest(pRoots, pNew, nRootSave, pChMan);
         } else {
             pRoots = {pNew};
         }

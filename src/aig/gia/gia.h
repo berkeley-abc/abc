@@ -1413,6 +1413,10 @@ extern Gia_Man_t *         Gia_ManDemiterToDual( Gia_Man_t * p );
 extern int                 Gia_ManDemiterDual( Gia_Man_t * p, Gia_Man_t ** pp0, Gia_Man_t ** pp1 );
 extern int                 Gia_ManDemiterTwoWords( Gia_Man_t * p, Gia_Man_t ** pp0, Gia_Man_t ** pp1 );
 extern void                Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla );
+typedef struct Gia_ChMan_t_ Gia_ChMan_t;
+extern Gia_ChMan_t *       Gia_ManDupChoicesStart( Gia_Man_t * pGia );
+extern void                Gia_ManDupChoicesAdd( Gia_ChMan_t * pMan, Gia_Man_t * pGia );
+extern Gia_Man_t *         Gia_ManDupChoicesFinish( Gia_ChMan_t * pMan );
 /*=== giaEdge.c ==========================================================*/
 extern void                Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray );
 extern Vec_Int_t *         Gia_ManEdgeToArray( Gia_Man_t * p );
