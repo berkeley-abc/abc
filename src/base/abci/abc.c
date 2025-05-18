@@ -7698,9 +7698,9 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    int c, nIters = 10, nBeg = 1, nAdd = 1, fVerbose = 0; char * pScript = NULL, * pSpot = NULL;
+    int c, nIters = 10, nBeg = 1, nAdd = 1, fReverse = 0, fVerbose = 0; char * pScript = NULL, * pSpot = NULL;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IBASvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IBASrvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -7740,6 +7740,9 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
             pScript = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'r':
+            fReverse ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -7765,7 +7768,7 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         char pCommLine[1000] = {0};
         char pNumber[10] = {0};
-        sprintf( pNumber, "%d", nBeg + c*nAdd );
+        sprintf( pNumber, "%d", fReverse ? nBeg - c*nAdd : nBeg + c*nAdd );
         strcpy( pCommLine, pScript );
         pCommLine[(int)(pSpot - pScript)] = 0;
         strcat( pCommLine, pNumber );
@@ -7781,12 +7784,13 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: runscript [-IBA num] [-S str] [-vh]\n" );
+    Abc_Print( -2, "usage: runscript [-IBA num] [-S str] [-rvh]\n" );
     Abc_Print( -2, "\t           running the script with different values\n" );
     Abc_Print( -2, "\t-I <num> : the number of iterations [default = %d]\n", nIters );
     Abc_Print( -2, "\t-B <num> : the starting number [default = %d]\n", nBeg );
     Abc_Print( -2, "\t-A <num> : the increment added in each iteration [default = %d]\n", nAdd );
     Abc_Print( -2, "\t-S <str> : the script to iterate [default = none]\n" );
+    Abc_Print( -2, "\t-r       : toggle reversing the order of counting [default = %s]\n", fReverse? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
