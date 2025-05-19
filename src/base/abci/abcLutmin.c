@@ -585,35 +585,42 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_NtkBddTestProfile( DdManager * dd, DdNode * aFunc )
+{
+}
 void Abc_NtkBddDecExploreOne( DdManager * dd, DdNode * bFunc, int iOrder )
 {
     DdManager * ddNew = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     int i, * pProfile = ABC_CALLOC( int, dd->size + 100 );
     Cudd_AutodynEnable( ddNew,  CUDD_REORDER_SYMM_SIFT );
     Vec_Int_t * vPerm = Vec_IntStartNatural( dd->size ); if ( iOrder ) Vec_IntRandomizeOrder( vPerm );
+    Vec_Int_t * vPermInv = Vec_IntInvert( vPerm, -1 );
     DdNode * bFuncNew = Extra_TransferPermute( dd, ddNew, bFunc, Vec_IntArray(vPerm) ); Cudd_Ref(bFuncNew);
     if ( iOrder ) Cudd_ReduceHeap( ddNew, CUDD_REORDER_SYMM_SIFT, 1 );
     Vec_IntFree( vPerm );
     DdNode * aFuncNew = Cudd_BddToAdd( ddNew, bFuncNew ); Cudd_Ref( aFuncNew );
-    Extra_ProfileWidth( ddNew, aFuncNew, pProfile, -1 );
+    //Extra_ProfileWidth( ddNew, aFuncNew, pProfile, -1 );
     if ( iOrder )
-        printf( "Random order %d:\n", iOrder );
+        printf( "Random order %2d: ", iOrder );
     else
-        printf( "Natural order:\n" );
-    for ( i = 0; i <= dd->size; i++ )
-        printf( " %d=%d(%d)[%d]", i, pProfile[i], i-Abc_Base2Log(pProfile[i]), ddNew->perm[i] );
+        printf( "Natural order:   " );
+    printf( "BDD size = %3d  ", Cudd_DagSize(aFuncNew) );
+    for ( i = 0; i < dd->size; i++ )
+        printf( " %c", 'a' + Vec_IntEntry(vPermInv, ddNew->invperm[i]) );
     printf( "\n" );
     Cudd_RecursiveDeref( ddNew, aFuncNew );
     Cudd_RecursiveDeref( ddNew, bFuncNew );
     Cudd_Quit( ddNew );
+    ABC_FREE( pProfile );
 }
 void Abc_NtkBddDecExplore( Abc_Obj_t * pNode )
 {
     DdManager * dd = (DdManager *)pNode->pNtk->pManFunc;
     DdNode * bFunc = (DdNode *)pNode->pData;
+    printf( "DD size = %d\n", dd->size );
     int i; Abc_Random(1);
     if ( Abc_ObjIsNode(pNode) )
-        for ( i = 0; i < 16; i++ )
+        for ( i = 0; i < 32; i++ )
             Abc_NtkBddDecExploreOne( dd, bFunc, i );
 }
 
