@@ -84,6 +84,7 @@ struct Pdr_Par_t_
     abctime timeLastSolved; // the time when the last output was solved
     Vec_Int_t * vOutMap;  // in the multi-output mode, contains status for each PO (0 = sat; 1 = unsat; negative = undecided)
     char * pInvFileName;  // invariable file name
+    int fBlocking;        // clause pushing with blocking
 };
 
 ////////////////////////////////////////////////////////////////////////
