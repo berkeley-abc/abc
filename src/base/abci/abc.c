@@ -9171,12 +9171,12 @@ usage:
 int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Abc_Ntk_t * Abc_NtkLutCascadeGen( int nLutSize, int nStages, int nRails, int nShared, int fVerbose );
-    extern Abc_Ntk_t * Abc_NtkLutCascade2( Abc_Ntk_t * pNtk, int nLutSize, int nLuts, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, char * pGuide );
-    extern void        Abc_NtkLutCascadeFile( char * pFileName, int nVarNum, int nLutSize, int nLuts, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, int fPrintMyu );
+    extern Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nLuts, int nRails, int nIters, int nJRatio, int nZParam, int fXRail, int Seed, int fVerbose, int fVeryVerbose, char * pGuide );
+    extern void        Abc_NtkLutCascadeFile( char * pFileName, int nVarNum, int nLutSize, int nLuts, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, int fPrintMyu, int fPrintLev, int fXRail );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes; char * pGuide = NULL, * pFileName = NULL;
-    int c, nVarNum = -1, nLutSize = 6, nStages = 8, nRails = 1, nShared = 2, Seed = 0, nIters = 1, nJRatio = 0, nZParam = 0, fGen = 0, fPrintMyu = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, nVarNum = -1, nLutSize = 6, nStages = 8, nRails = 1, nShared = 2, Seed = 0, nIters = 1, nJRatio = 0, nZParam = 0, fGen = 0, fPrintMyu = 0, fPrintLev = 0, fXRail = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KMRSCIJZNFgmvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMRSCIJZNFgmlxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9292,6 +9292,12 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fPrintMyu ^= 1;
             break;
+        case 'l':
+            fPrintLev ^= 1;
+            break;
+        case 'x':
+            fXRail ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -9311,7 +9317,7 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "The number of variables should be given on the command line using switch \"-N <num>\".\n" );
             return 1;
         }
-        Abc_NtkLutCascadeFile( pFileName, nVarNum, nLutSize, nStages, nRails, nIters, nJRatio, nZParam, Seed, fVerbose, fVeryVerbose, fPrintMyu );
+        Abc_NtkLutCascadeFile( pFileName, nVarNum, nLutSize, nStages, nRails, nIters, nJRatio, nZParam, Seed, fVerbose, fVeryVerbose, fPrintMyu, fPrintLev, fXRail );
         return 0;
     }
     if ( fGen )
@@ -9348,7 +9354,7 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind + 1 )
         pGuide = argv[globalUtilOptind];
-    pNtkRes = Abc_NtkLutCascade2( pNtk, nLutSize, nStages, nRails, nIters, nJRatio, nZParam, Seed, fVerbose, fVeryVerbose, pGuide );
+    pNtkRes = Abc_NtkLutCascadeOne( pNtk, nLutSize, nStages, nRails, nIters, nJRatio, nZParam, fXRail, Seed, fVerbose, fVeryVerbose, pGuide );
     if ( pNtkRes == NULL )
     {
         Abc_Print( -1, "LUT cascade mapping failed.\n" );
@@ -9358,7 +9364,7 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutcasdec [-KMRCSIJZN <num>] [-F <file>] [-gmvwh]\n" );
+    Abc_Print( -2, "usage: lutcasdec [-KMRCSIJZN <num>] [-F <file>] [-gmlxvwh]\n" );
     Abc_Print( -2, "\t           decomposes the primary output functions into LUT cascades\n" );
     Abc_Print( -2, "\t-K <num> : the number of LUT inputs [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-M <num> : the maximum delay (the number of stages) [default = %d]\n", nStages );
@@ -9372,6 +9378,8 @@ usage:
     Abc_Print( -2, "\t-F <file>: a text file with truth tables in hexadecimal listed one per line\n");    
     Abc_Print( -2, "\t-g       : toggle generating random cascade with these parameters [default = %s]\n", fGen? "yes": "no" );
     Abc_Print( -2, "\t-m       : toggle printing column multiplicity statistics [default = %s]\n", fPrintMyu? "yes": "no" );
+    Abc_Print( -2, "\t-l       : toggle printing level counting statistics [default = %s]\n", fPrintLev? "yes": "no" );
+    Abc_Print( -2, "\t-x       : toggle using extended cascade decomposition [default = %s]\n", fXRail? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle additional verbose printout [default = %s]\n", fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

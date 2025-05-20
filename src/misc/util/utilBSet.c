@@ -897,7 +897,7 @@ int Abc_SharedEvalBest( Abc_BSEval_t * p, word * pTruth, int nVars, int nCVars, 
     int nBSWords = Abc_Truth6WordNum( nVars - nFVars ), CVarMask = nCVars ? Abc_InfoMask(nCVars) << (nVars - nCVars - nFVars) : 0;
     int MyuCur, Myu = Abc_TtGetCMInt( pTruth, nVars, nFVars, p->vCounts, p->vTable, p->vStore, p->vUsed, pPat );
     int nRailsCur = Abc_Base2Log( Myu ); Vec_Int_t * vLevel; 
-    assert( Myu == MyuMin && nRailsCur > nRails );
+    assert( Myu == MyuMin && nRailsCur >= nRails );
     int i, k, iSet, iStart, nSharedMax = nVars - nFVars - nRails, nRailsMin = 100; 
     Vec_WecForEachLevelStartStop( p->vSets, vLevel, i, 1, nSharedMax ) {
         Vec_IntForEachEntryDouble( vLevel, iSet, iStart, k ) {
@@ -1018,7 +1018,7 @@ word Abc_BSEvalEncode( int * pPermBest, int nVars, int nLutSize, int Shared, int
             mSVars |= (word)1 << (nVars-nLutSize+v);
     return ((word)MyuMin << 48) | (mSVars << 24) | mBVars;
 }
-word Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRails, int nLutSize, int fVerbose, int * pMyu, int nMyuIncrease )
+Vec_Wrd_t * Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRails, int nLutSize, int fVerbose, int * pMyu, int nMyuIncrease )
 {
     Abc_BSEval_t * p = Abc_BSEvalAlloc(); 
     int nFVars = nVars-nLutSize;
@@ -1043,7 +1043,7 @@ word Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRails, in
     word * pCopy = ABC_ALLOC( word, nWords );
     Abc_TtCopy( pCopy, pTruth, nWords, 0 );
 
-    word Result = 0;
+    Vec_Wrd_t * vRes = Vec_WrdAlloc( 10 );
     int i, k, Var0, Var1, Pla2Var[32], Var2Pla[32];
     for ( i = 0; i < nVars; i++ )
         Pla2Var[i] = Var2Pla[i] = i;
@@ -1071,20 +1071,29 @@ word Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRails, in
             int Shared = 0, nSetSize = 0;
             if ( MyuThis > 2 ) {
                 int SharedThis = 0, nSetSizeThis = 0;
-                int nRailsMin = Abc_SharedEvalBest( p, pCopy, nVars, nCVars, nFVars, MyuThis, nRails, 0, &SharedThis, &nSetSizeThis, p->pPat );
+                int nRailsMin = 100;
+                for ( int r = 1; r <= nRails && nRailsMin > r; r++ ) {
+                    int nRailsMinNew = Abc_SharedEvalBest( p, pCopy, nVars, nCVars, nFVars, MyuThis, r, 0, &SharedThis, &nSetSizeThis, p->pPat );
+                    if ( nRailsMinNew < 100 )
+                        nRailsMin = nRailsMinNew;
+                }
                 if ( fVerbose )
                     printf( "  RailsMyu = %3d. RailsMin = %3d. Shared = %2d. SetSize = %d.", Abc_Base2Log(MyuThis), nRailsMin, SharedThis, nSetSizeThis );
                 if ( nRailsMin <= nRails ) {
-                    assert( Abc_Base2Log(MyuThis) >= nRailsMin );
                     MyuThis  = 1 << nRailsMin;
                     Shared   = SharedThis;
                     nSetSize = nSetSizeThis;
                 }
             }
-            if ( MyuBest > MyuThis || (MyuBest == MyuThis && nSetSizeBest > nSetSize) ) {                
+            if ( MyuBest > MyuThis || (MyuBest == MyuThis && nSetSizeBest >= nSetSize) ) {
+                int fSave = MyuBest == MyuThis && nSetSizeBest == nSetSize;
                 MyuBest = MyuThis;
                 nSetSizeBest = nSetSize;
-                Result = Abc_BSEvalEncode( Pla2Var, nVars, p->nBVars, Shared, MyuBest, nSetSize );
+                word Result = Abc_BSEvalEncode( Pla2Var, nVars, p->nBVars, Shared, MyuBest, nSetSize );
+                if ( fSave ) 
+                    Vec_WrdPush( vRes, Result );
+                else
+                    Vec_WrdFill( vRes, 1, Result );
                 if ( fVerbose )
                     printf( " <== best" );
             }
@@ -1117,11 +1126,14 @@ word Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRails, in
     }
     if ( !Abc_TtEqual(pCopy, pTruth, nWords) )
         printf( "Internal truth table check failed.\n" ); 
+    //printf( "%d ", Count );
 
     Abc_BSEvalFree(p);
-    if ( MyuBest > (1 << nRails) )
-        return 0;        
-    return Result;
+    if ( MyuBest > (1 << nRails) ) {
+        Vec_WrdFree(vRes);
+        return NULL;
+    }
+    return vRes;
 }
 
 ////////////////////////////////////////////////////////////////////////
