@@ -9174,9 +9174,9 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nLuts, int nRails, int nIters, int nJRatio, int nZParam, int fXRail, int Seed, int fVerbose, int fVeryVerbose, char * pGuide );
     extern void        Abc_NtkLutCascadeFile( char * pFileName, int nVarNum, int nLutSize, int nLuts, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, int fPrintMyu, int fPrintLev, int fXRail );
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc), * pNtkRes; char * pGuide = NULL, * pFileName = NULL;
-    int c, nVarNum = -1, nLutSize = 6, nStages = 8, nRails = 1, nShared = 2, Seed = 0, nIters = 1, nJRatio = 0, nZParam = 0, fGen = 0, fPrintMyu = 0, fPrintLev = 0, fXRail = 0, fVerbose = 0, fVeryVerbose = 0;
+    int c, nVarNum = -1, nLutSize = 6, nStages = 8, nRails = 1, nShared = 2, Seed = 0, nIters = 10, nJRatio = -1, nZParam = 5, fGen = 0, fPrintMyu = 0, fPrintLev = 0, fXRail = 0, fVerbose = 0, fVeryVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KMRSCIJZNFgmlxvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KMRSCIZNFgmlxvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -9364,7 +9364,7 @@ int Abc_CommandLutCasDec( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutcasdec [-KMRCSIJZN <num>] [-F <file>] [-gmlxvwh]\n" );
+    Abc_Print( -2, "usage: lutcasdec [-KMRCSIZN <num>] [-F <file>] [-gmlxvwh]\n" );
     Abc_Print( -2, "\t           decomposes the primary output functions into LUT cascades\n" );
     Abc_Print( -2, "\t-K <num> : the number of LUT inputs [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-M <num> : the maximum delay (the number of stages) [default = %d]\n", nStages );
@@ -9372,7 +9372,7 @@ usage:
     Abc_Print( -2, "\t-C <num> : the number of shared variables in each stage [default = %d]\n", nShared );
     Abc_Print( -2, "\t-S <num> : the random seed for randomized bound-set selection [default = %d]\n", Seed );
     Abc_Print( -2, "\t-I <num> : the number of iterations when looking for a solution [default = %d]\n", nIters );
-    Abc_Print( -2, "\t-J <num> : toggle using random bound-set every this many iterations [default = %d]\n", nJRatio );
+    //Abc_Print( -2, "\t-J <num> : toggle using random bound-set every this many iterations [default = %d]\n", nJRatio );
     Abc_Print( -2, "\t-Z <num> : the number determining how many decompositions are tried  [default = %d]\n", nZParam );
     Abc_Print( -2, "\t-N <num> : the number of support variables (for truth table files only) [default = unused]\n" );
     Abc_Print( -2, "\t-F <file>: a text file with truth tables in hexadecimal listed one per line\n");    
