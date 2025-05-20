@@ -444,6 +444,16 @@ static inline Vec_Wec_t * Vec_WecDup( Vec_Wec_t * p )
             Vec_WecPush( vNew, i, Entry );
     return vNew;
 }
+static inline Vec_Wec_t * Vec_WecDupSize( Vec_Wec_t * p )
+{
+    Vec_Wec_t * vNew;
+    Vec_Int_t * vVec;
+    int i;
+    vNew = Vec_WecStart( Vec_WecSize(p) );
+    Vec_WecForEachLevel( p, vVec, i )
+        Vec_IntFill( Vec_WecEntry(vNew, i), Vec_IntSize(vVec), 0 );
+    return vNew;
+}
 
 /**Function*************************************************************
 
@@ -681,6 +691,13 @@ static inline int Vec_WecMaxLevelSize( Vec_Wec_t * p )
     Vec_Int_t * vTemp; int i, Res = 0;
     Vec_WecForEachLevel( p, vTemp, i )
         Res = Abc_MaxInt( Res, Vec_IntSize(vTemp) );
+    return Res;
+}
+static inline int Vec_WecMaxEntry( Vec_Wec_t * p )
+{
+    Vec_Int_t * vTemp; int i, Res = 0;
+    Vec_WecForEachLevel( p, vTemp, i )
+        Res = Abc_MaxInt( Res, Vec_IntFindMax(vTemp) );
     return Res;
 }
 
