@@ -1047,12 +1047,14 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRa
     int i, k, Var0, Var1, Pla2Var[32], Var2Pla[32];
     for ( i = 0; i < nVars; i++ )
         Pla2Var[i] = Var2Pla[i] = i;
-    int MyuBest = 1 << nVars;
+    int MyuOrigBest  = 1 << nVars;
+    int MyuBest      = 1 << nVars;
     int nSetSizeBest = nVars;
 
     if ( pMyu ) *pMyu = 1 << nVars;
     Vec_IntForEachEntryDouble( p->vPairs, Var0, Var1, i ) {
         int  MyuThis = Abc_TtGetCM( pCopy, nVars, nFVars, p->vCounts, p->vTable, p->vStore, p->vUsed, 0 );
+        MyuOrigBest = Abc_MinInt( MyuOrigBest, MyuThis );
         if ( pMyu ) *pMyu = Abc_MinInt( *pMyu, MyuThis );
         if ( fVerbose )
         {
@@ -1067,7 +1069,7 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRa
                 printf( " %d", Pla2Var[k] );
             printf( "  : Myu = %3d", MyuThis );
         }
-        if ( MyuThis <= MyuBest + nMyuIncrease ) {
+        if ( MyuThis <= MyuOrigBest + nMyuIncrease ) {
             int Shared = 0, nSetSize = 0;
             if ( MyuThis > 2 ) {
                 int SharedThis = 0, nSetSizeThis = 0;
@@ -1086,7 +1088,7 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRa
                 }
             }
             if ( MyuBest > MyuThis || (MyuBest == MyuThis && nSetSizeBest >= nSetSize) ) {
-                int fSave = MyuBest == MyuThis && nSetSizeBest == nSetSize;
+                int fSave = (MyuBest == MyuThis && nSetSizeBest == nSetSize);
                 MyuBest = MyuThis;
                 nSetSizeBest = nSetSize;
                 word Result = Abc_BSEvalEncode( Pla2Var, nVars, p->nBVars, Shared, MyuBest, nSetSize );
@@ -1097,7 +1099,7 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRa
                 if ( fVerbose )
                     printf( " <== best" );
             }
-        }
+        }        
         if ( fVerbose )
             printf( "\n" );
         int iPlace0 = Var2Pla[Var0];
@@ -1126,13 +1128,14 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( word * pTruth, int nVars, int nCVars, int nRa
     }
     if ( !Abc_TtEqual(pCopy, pTruth, nWords) )
         printf( "Internal truth table check failed.\n" ); 
-    //printf( "%d ", Count );
-
+        
     Abc_BSEvalFree(p);
     if ( MyuBest > (1 << nRails) ) {
         Vec_WrdFree(vRes);
         return NULL;
     }
+    if ( fVerbose )
+        printf( "COllected %d solutions with MyuMin = %d and SharedSize = %d.\n", Vec_WrdSize(vRes), MyuBest, nSetSizeBest );
     return vRes;
 }
 
