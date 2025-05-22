@@ -61,6 +61,7 @@ static int IoCommandReadJson    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadSF      ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadRom     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadMM      ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadMMGia   ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 static int IoCommandWrite       ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteHie    ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -92,6 +93,7 @@ static int IoCommandWriteSmv    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteJson   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteResub  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteMM     ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteMMGia  ( Abc_Frame_t * pAbc, int argc, char **argv );
 
 extern void Abc_FrameCopyLTLDataBase( Abc_Frame_t *pAbc, Abc_Ntk_t * pNtk );
 
@@ -139,6 +141,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_sf",       IoCommandReadSF,       0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_rom",      IoCommandReadRom,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_mm",       IoCommandReadMM,       1 );
+    Cmd_CommandAdd( pAbc, "I/O", "&read_mm",      IoCommandReadMMGia,    1 );
 
     Cmd_CommandAdd( pAbc, "I/O", "write",         IoCommandWrite,        0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_hie",     IoCommandWriteHie,     0 );
@@ -172,6 +175,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_json",    IoCommandWriteJson,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "&write_resub",  IoCommandWriteResub,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_mm",      IoCommandWriteMM,      0 );
+    Cmd_CommandAdd( pAbc, "I/O", "&write_mm",     IoCommandWriteMMGia,   0 );
 }
 
 /**Function*************************************************************
@@ -2042,6 +2046,54 @@ int IoCommandReadMM( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pAbc->Err, "usage: read_mm [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         reads mapped network from file\n" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadMMGia( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkReadFromFile( char * pFileName );
+    Abc_Ntk_t * pNtk; char * pFileName; int c;
+    Gia_Man_t * pGia = NULL;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    pFileName = argv[globalUtilOptind];
+    pNtk = Abc_NtkReadFromFile( pFileName );
+    if ( pNtk == NULL )
+        return 0;
+    Abc_NtkToAig( pNtk );
+    pGia = Abc_NtkAigToGia( pNtk, 0 );
+    Abc_NtkDelete( pNtk );
+    Abc_FrameUpdateGia( pAbc, pGia );
+    Abc_FrameClearVerifStatus( pAbc );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: &read_mm [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         reads mapped network from file\n" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
@@ -4312,6 +4364,60 @@ int IoCommandWriteMM( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pAbc->Err, "usage: write_mm [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         write mapped network into a file\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help message\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteMMGia( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p, int fUseBuffs );
+    extern int Abc_NtkWriteToFile( char * pFileName, Abc_Ntk_t * pNtk );
+    Abc_Ntk_t * pNtk = NULL;
+    char * pFileName = NULL; int c;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    pFileName = argv[globalUtilOptind];
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "IoCommandWriteMMGia(): There is no current AIG.\n" );
+        return 1;
+    }
+    if ( !Gia_ManHasCellMapping(pAbc->pGia) )
+    {
+        Abc_Print( -1, "IoCommandWriteMMGia(): Current AIG is not mapped.\n" );
+        return 1;
+    }
+    pNtk = Abc_NtkFromCellMappedGia( pAbc->pGia, 0 );
+    Abc_NtkWriteToFile( pFileName, pNtk );
+    Abc_NtkDelete( pNtk );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: &write_mm [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         write cell mapped current AIG into a file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help message\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
