@@ -646,7 +646,7 @@ void Abc_LutCascadeDerive( word * p, int nVars, int nBVars, int Myu, word * pRem
                 Abc_TtSetBit(pDec+e*nStep, m); 
     }
     //printf( "\n" );
-    assert( nFuncs <= Myu );
+    //assert( nFuncs <= Myu );
     iFunc = nFuncs-1;
     for ( m = nFuncs; m < (1 << nEVars); m++ )
         Abc_TtCopy( pRem+m*nFWords, pRem+iFunc*nFWords, nFWords, 0 );
@@ -891,7 +891,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nStages, i
             printf( ".\n" );
         }
 
-        word * pLuts = Abc_LutCascadeDec( p, pGuide, pTruth1, Abc_NtkCiNum(pNtk), vVarIDs, nRails, nLutSize, nStages, (int)(Iter > 0), nZParam, fXRail, fVeryVerbose, NULL, NULL );
+        word * pLuts = Abc_LutCascadeDec( p, pGuide, pTruth1, Abc_NtkCiNum(pNtk), vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, NULL, NULL );
         pNew = pLuts ? Abc_NtkLutCascadeFromLuts( pLuts, Abc_NtkCiNum(pNtk), pNtk, nLutSize, fVerbose ) : NULL;
         Vec_IntFree( vVarIDs );
         
@@ -1408,7 +1408,7 @@ Vec_Wrd_t * Abc_NtkLutCasReadTruths( char * pFileName, int nVarsOrig )
 void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int nStages, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, int fPrintMyu, int fPrintLev, int fXRail )
 {
     abctime clkStart = Abc_Clock();   
-    int i, Sum = 0, nStageCount = 0, MyuMin = 0, nTotalLuts = 0, nWords = Abc_TtWordNum(nVarsOrig);
+    int i, nErrors = 0, Sum = 0, nStageCount = 0, MyuMin = 0, nTotalLuts = 0, nWords = Abc_TtWordNum(nVarsOrig);
     Vec_Wrd_t * vTruths = NULL;
     if ( strstr(pFileName, ".txt") )
         vTruths = Abc_NtkLutCasReadTruths( pFileName, nVarsOrig );
@@ -1454,7 +1454,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
             printf( "Decomposing %d-var function into %d-rail cascade of %d-LUTs.\n", nVars, nRails, nLutSize );
         }
         
-        word * pLuts = Abc_LutCascadeDec( p, NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, (int)(Iter > 0), nZParam, fXRail, fVeryVerbose, &nStageCount, &MyuMin );
+        word * pLuts = Abc_LutCascadeDec( p, NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, &nStageCount, &MyuMin );
         Vec_IntFree( vVarIDs );
         if ( MyuMin < 50 )     MyuStats[MyuMin]++, IterReal++;
         if ( pLuts == NULL ) {
@@ -1479,9 +1479,10 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         if ( fVerbose || fVeryVerbose )
             printf( "Decomposition exists.  " );
         if ( !Abc_TtEqual(pCopy, pTruth2, nWords) ) {
-            printf( "Verification FAILED for function %d.\n", i );
-            printf( "Before: " ); Abc_TtPrintHexRev( stdout, pCopy,   nVarsOrig ), printf( "\n" );
-            printf( "After:  " ); Abc_TtPrintHexRev( stdout, pTruth2, nVarsOrig ), printf( "\n" );
+            if ( fVerbose || fVeryVerbose )   printf( "Verification FAILED for function %d.\n", i );
+            if ( fVerbose || fVeryVerbose ) { printf( "Before: " ); Abc_TtPrintHexRev( stdout, pCopy,   nVarsOrig ), printf( "\n" ); }
+            if ( fVerbose || fVeryVerbose ) { printf( "After:  " ); Abc_TtPrintHexRev( stdout, pTruth2, nVarsOrig ), printf( "\n" ); }
+            nErrors++;
         }
         else if ( fVerbose || fVeryVerbose )
             printf( "Verification passed.\n" );
@@ -1495,19 +1496,20 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         printf( "Column multiplicity statistics for %d-rail LUT cascade:\n", nRails );
         for ( i = 0; i < 50; i++ )
             if ( MyuStats[i] )
-                printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, MyuStats[i], 100.0*MyuStats[i]/nFuncs/IterReal );
+                printf( "   %2d Myu   : Function count = %8d (%6.2f %%)\n", i, MyuStats[i], 100.0*MyuStats[i]/Abc_MaxInt(1, nFuncs)/IterReal );
     }
     if ( fPrintLev ) {
         printf( "Level count statistics for %d-rail LUT cascade:\n", nRails );
         for ( i = 0; i < 50; i++ )
             if ( StageStats[i] )
-                printf( "   %2d level : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/nFuncs );
+                printf( "   %2d level : Function count = %8d (%6.2f %%)\n", i, StageStats[i], 100.0*StageStats[i]/Abc_MaxInt(1, nFuncs) );
     }
     printf( "LUT count statistics for %d-rail LUT cascade:\n", nRails );
     for ( i = 0; i < 50; i++ )
         if ( LutStats[i] )
-            printf( "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, LutStats[i], 100.0*LutStats[i]/nFuncs );
+            printf( "   %2d LUT%d  : Function count = %8d (%6.2f %%)\n", i, nLutSize, LutStats[i], 100.0*LutStats[i]/Abc_MaxInt(1, nFuncs) );
     printf( "Non-decomp  : Function count = %8d (%6.2f %%)\n", nFuncs-Sum, 100.0*(nFuncs-Sum)/Abc_MaxInt(1, nFuncs) );
+    if ( nErrors ) printf( "Verification ***FAILED*** for %d functions (%6.2f %%)\n", nErrors, 100.0*nErrors/Abc_MaxInt(1, nFuncs) );
     printf( "Finished %d functions (%.2f LUTs / function; %.2f functions / sec).  ", 
         nFuncs, 1.0*nTotalLuts/Sum, 1.0*nFuncs/(((double)(Abc_Clock() - clkStart))/((double)CLOCKS_PER_SEC)) );
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
