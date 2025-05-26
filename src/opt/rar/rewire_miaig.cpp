@@ -105,7 +105,11 @@ void Miaig::setName(char *pName) {
         if (_data->pName) {
             free(_data->pName);
         }
-        _data->pName = strdup(pName);
+        if (pName == NULL || pName[0] == '\0') {
+            _data->pName = strdup("rewire_miaig");
+        } else {
+            _data->pName = strdup(pName);
+        }
     }
 }
 
