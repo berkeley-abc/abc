@@ -1564,6 +1564,24 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
         return;
 
     // special case
+    pNet = Abc_NtkFindNet( pNtk, "$false" );
+    if ( pNet != NULL )
+    {
+        pNode = Abc_NtkCreateNodeConst0( pNtk );
+        Abc_ObjAddFanin( pNet, pNode );
+    }
+    pNet = Abc_NtkFindNet( pNtk, "$undef" );
+    if ( pNet != NULL )
+    {
+        pNode = Abc_NtkCreateNodeConst0( pNtk );
+        Abc_ObjAddFanin( pNet, pNode );
+    }
+    pNet = Abc_NtkFindNet( pNtk, "$true" );
+    if ( pNet != NULL )
+    {
+        pNode = Abc_NtkCreateNodeConst1( pNtk );
+        Abc_ObjAddFanin( pNet, pNode );
+    }
     pNet = Abc_NtkFindNet( pNtk, "[_c1_]" );
     if ( pNet != NULL )
     {
