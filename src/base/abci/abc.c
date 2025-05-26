@@ -83,6 +83,7 @@ ABC_NAMESPACE_IMPL_START
 static int Abc_CommandPrintStats             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintExdc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintIo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintFaults            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintLatch             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintFanio             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintMffc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -176,6 +177,9 @@ static int Abc_CommandTestExact              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandMajGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrchestrate            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAIGAugmentation       ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+// fault commands
+static int Abc_CommandFaultGen               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -894,6 +898,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_exdc",    Abc_CommandPrintExdc,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_faults",   Abc_CommandPrintFaults,      0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_latch",   Abc_CommandPrintLatch,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "pfan",          Abc_CommandPrintFanio,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_fanio",   Abc_CommandPrintFanio,       0 );
@@ -995,6 +1000,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "allexact",   Abc_CommandAllExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "testexact",  Abc_CommandTestExact,        0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "majgen",     Abc_CommandMajGen,           0 );
+
+    Cmd_CommandAdd( pAbc, "Fault",        "fault_gen",          Abc_CommandFaultGen,         0 );
 
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
@@ -1810,6 +1817,62 @@ usage:
     Abc_Print( -2, "\t-f    : toggles printing flops [default = %s]\n", fPrintFlops? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tnode  : the node to print fanins/fanouts\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintFaults( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fStats = 0;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 's':
+            fStats ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    // Print fault list and statistics
+    if ( fStats )
+    {
+        Abc_NtkPrintFaultStats( pNtk );
+        printf( "Fault coverage: %.2f%%\n", 100.0 * Abc_NtkGetFaultCoverage(pNtk) );
+    }
+    else
+        Abc_NtkPrintFaultList( pNtk );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: print_faults [-sh]\n" );
+    Abc_Print( -2, "\t         prints the list of faults in the current network\n" );
+    Abc_Print( -2, "\t-s     : print fault statistics [default = %s]\n", fStats? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
@@ -11111,6 +11174,41 @@ usage:
     Abc_Print( -2, "usage: logic [-h]\n" );
     Abc_Print( -2, "\t        transforms an AIG into a logic network with SOPs\n" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
+    return 1;
+}
+
+int Abc_CommandFaultGen( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    // Print fault list and statistics
+    Abc_NtkGenerateFaultList( pNtk );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: fault_gen [-h]\n" );
+    Abc_Print( -2, "\t         Generate stuck-at faults for the current network\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
