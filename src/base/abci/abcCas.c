@@ -383,25 +383,33 @@ word * Abc_LutCascadeGenTest()
     pLuts[11+7] = ABC_CONST(0xFFFEFFFEFFFEFFFE);
     return pLuts;
 }
-void Abc_LutCascadePrintLut( word * pLuts, int n, int i )
+char Abc_LutCascadeChar( int iVar, int nVars )
+{
+    if ( iVar < nVars )
+        return 'a'+iVar;
+    return 'A'+(iVar-nVars);
+}
+void Abc_LutCascadePrintLut( word * pLuts, int n, int i, int nLutSize, int nVars )
 {
     word nIns   = pLuts[i+1];
     word * pIns = pLuts+i+2;
-    word * pT   = pLuts+i+2+nIns+1;
+    word * pT   = pLuts+i+2+nIns+1; int k;
     printf( "LUT%d : ", n );
-    printf( "%c = F( ", 'a'+(int)pIns[nIns] );
-    for ( int k = 0; k < nIns; k++ )
-        printf( "%c ", 'a'+(int)pIns[k] );
-    printf( ")  " );
+    printf( "%c = { ", Abc_LutCascadeChar((int)pIns[nIns], nVars) );
+    for ( k = nLutSize-1; k >= nIns; k-- )
+        printf( "  " );
+    for ( k = nIns-1; k >= 0; k-- )
+        printf( "%c ", Abc_LutCascadeChar((int)pIns[k], nVars) );
+    printf( "}  " );
     Abc_TtPrintHexRev( stdout, pT, nIns );
     printf( "\n" );
 }
-void Abc_LutCascadePrint( word * pLuts )
+void Abc_LutCascadePrint( word * pLuts, int nLutSize )
 {
-    int n, i;
+    int n, i, nVars = pLuts[3+pLuts[2]];
     printf( "The LUT cascade contains %d LUTs:\n", (int)pLuts[0] );
     for ( n = 0, i = 1; n < pLuts[0]; n++, i += pLuts[i] )
-        Abc_LutCascadePrintLut( pLuts, n, i );
+        Abc_LutCascadePrintLut( pLuts, n, i, nLutSize, nVars );
 }
 void Abc_LutCascadeGenOne( Vec_Wrd_t * vRes, int nIns, int * pIns, int Out, word * p )
 {
@@ -502,7 +510,7 @@ word * Abc_LutCascadeTruth( word * pLuts, int nVars )
         word   nIns = pLuts[i+1];
         word * pIns = pLuts+i+2;
         word * pT   = pLuts+i+2+nIns+1;
-        assert( pLuts[i] == 3+nIns+Abc_TtWordNum(nIns) );
+        //assert( pLuts[i] == 3+nIns+Abc_TtWordNum(nIns) );
         assert( pIns[nIns] < nVars+pLuts[0] );
         word * pIn[30], * pOut = Vec_WrdEntryP( vFuncs, nWords*pIns[nIns] );
         for ( v = 0; v < nIns; v++ )
@@ -522,6 +530,26 @@ word * Abc_LutCascadeTruth( word * pLuts, int nVars )
     Vec_WrdFree( vFuncs );
     return pRes; 
 }
+void Abc_LutCascadeMinBase( word * pLuts, int nVars )
+{
+    int i, n, v, pFans[32];
+    for ( n = 0, i = 1; n < pLuts[0]; n++, i += pLuts[i] ) 
+    {
+        word   nIns = pLuts[i+1];
+        word * pIns = pLuts+i+2;
+        word * pT   = pLuts+i+2+nIns+1;
+        assert( pLuts[i] == 3+nIns+Abc_TtWordNum(nIns) );
+        assert( pIns[nIns] < nVars+pLuts[0] );
+        for ( v = 0; v < nIns; v++ )
+            pFans[v] = (int)pIns[v];
+        int nFans = Abc_TtMinBase( pT, pFans, (int)nIns, (int)nIns );
+        pLuts[i+1] = (word)nFans;
+        for ( v = 0; v < nFans; v++ )
+            pIns[v] = (word)pFans[v];
+        pIns[nFans] = pIns[nIns];
+        memcpy( pLuts+i+2+nFans+1, pT, sizeof(word)*Abc_TtWordNum(nFans) );
+    }      
+}
 int Abc_LutCascadeCount( word * pLuts )
 {
     return (int)pLuts[0];
@@ -529,7 +557,7 @@ int Abc_LutCascadeCount( word * pLuts )
 word * Abc_LutCascadeTest( Mini_Aig_t * p, int nLutSize, int fVerbose )
 {
     word * pLuts = Abc_LutCascadeGenTest();
-    Abc_LutCascadePrint( pLuts );
+    Abc_LutCascadePrint( pLuts, nLutSize );
     return pLuts;
 }
 
@@ -896,8 +924,9 @@ Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nStages, i
         Vec_IntFree( vVarIDs );
         
         if ( pLuts ) {
+            Abc_LutCascadeMinBase( pLuts, Abc_NtkCiNum(pNtk) );
             if ( fVerbose )
-                Abc_LutCascadePrint( pLuts );
+                Abc_LutCascadePrint( pLuts, nLutSize );
             word * pTruth2 = Abc_LutCascadeTruth( pLuts, Abc_NtkCiNum(pNtk) );
             if ( !Abc_TtEqual(pCopy, pTruth2, nWords) ) {
                 printf( "Verification FAILED.\n" );
@@ -922,8 +951,8 @@ Abc_Ntk_t * Abc_NtkLutCascadeGen( int nLutSize, int nStages, int nRails, int nSh
     int nVars = nStages * nLutSize - (nStages-1) * (nRails + nShared);
     word * pLuts = Abc_LutCascadeGen( nVars, nLutSize, nRails, nShared );
     Abc_Ntk_t * pNew = Abc_NtkLutCascadeFromLuts( pLuts, nVars, NULL, nLutSize, fVerbose );
-    Abc_LutCascadePrint( pLuts );
-    if ( fVerbose ) {
+    Abc_LutCascadePrint( pLuts, nLutSize );
+    if ( fVerbose ) {        
         word * pTruth = Abc_LutCascadeTruth( pLuts, nVars );
         if ( nVars <= 10 ) {
             printf( "Function: "); Abc_TtPrintHexRev( stdout, pTruth, nVars ); printf( "\n" );
@@ -1473,9 +1502,10 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         if ( Abc_LutCascadeCount(pLuts) < 50 )
             LutStats[Abc_LutCascadeCount(pLuts)]++;
         if ( nStageCount < 50) StageStats[nStageCount]++;
+        Abc_LutCascadeMinBase( pLuts, nVarsOrig );
         word * pTruth2 = Abc_LutCascadeTruth( pLuts, nVarsOrig );
         if ( fVeryVerbose )
-            Abc_LutCascadePrint( pLuts );
+            Abc_LutCascadePrint( pLuts, nLutSize );
         if ( fVerbose || fVeryVerbose )
             printf( "Decomposition exists.  " );
         if ( !Abc_TtEqual(pCopy, pTruth2, nWords) ) {
