@@ -2105,6 +2105,76 @@ void Abc_NtkShow6VarFunc( char * pF0, char * pF1 )
 }
 
 
+
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the fault list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintFaultList( Abc_Ntk_t * pNtk )
+{
+    Abc_Fault_t * pFault;
+    printf( "Fault list for network %s:\n", pNtk->pName );
+    for ( pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext )
+    {
+        printf( "Node %d: %s fault\n", 
+            Abc_ObjId(pFault->pNode),
+            pFault->Type == ABC_FAULT_SA0 ? "SA0" : "SA1" );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints fault statistics.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintFaultStats( Abc_Ntk_t * pNtk )
+{
+    printf( "Fault statistics for network %s:\n", pNtk->pName );
+    printf( "Total faults: %d\n", pNtk->nFaults );
+    printf( "Detected faults: %d\n", pNtk->nDetectedFaults );
+    printf( "Undetectable faults: %d\n", pNtk->nUndetectableFaults );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes fault coverage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NtkGetFaultCoverage( Abc_Ntk_t * pNtk )
+{
+    if ( pNtk->nFaults == 0 )
+        return 0.0;
+    return (float)pNtk->nDetectedFaults / (float)pNtk->nFaults;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
