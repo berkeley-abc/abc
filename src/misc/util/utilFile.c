@@ -202,7 +202,7 @@ char* vnsprintf(const char* format, va_list args)
     static FILE* dummy_file = NULL;
     if (!dummy_file)
     {
-#if !defined(_MSC_VER) && !defined(__MINGW32)
+#if !defined(_MSC_VER) && !defined(__MINGW32__)
         dummy_file = fopen("/dev/null", "wb");
 #else
         dummy_file = fopen("NUL", "wb");

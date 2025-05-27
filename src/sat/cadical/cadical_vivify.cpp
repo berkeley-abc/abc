@@ -1501,7 +1501,7 @@ inline std::vector<vivify_ref> &current_refs_schedule (Vivifier &vivifier) {
     return vivifier.refs_schedule_irred;
     break;
   }
-#ifdef WIN32
+#if defined(WIN32) && !defined(__MINGW32__)
   __assume(false);
 #else
   __builtin_unreachable ();
@@ -1523,7 +1523,7 @@ inline std::vector<Clause *> &current_schedule (Vivifier &vivifier) {
     return vivifier.schedule_irred;
     break;
   }
-#ifdef WIN32
+#if defined(WIN32) && !defined(__MINGW32__)
   __assume(false);
 #else
   __builtin_unreachable ();

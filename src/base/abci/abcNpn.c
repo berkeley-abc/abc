@@ -340,7 +340,7 @@ void Abc_TruthNpnPerform( Abc_TtStore_t * p, int NpnType, int fVerbose )
 //        typedef unsigned(*TtCanonicizeFunc)(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
         unsigned Abc_TtCanonicizeWrap(TtCanonicizeFunc func, Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int flag);
         unsigned Abc_TtCanonicizeAda(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
-        unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
+        extern unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
 		
 		Abc_TtHieMan_t * pMan = Abc_TtHieManStart(p->nVars, 5);
 		for ( i = 0; i < p->nFuncs; i++ )

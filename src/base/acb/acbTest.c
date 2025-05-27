@@ -9,7 +9,7 @@
   Synopsis    []
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - July 21, 2015.]
@@ -42,7 +42,7 @@ static int fForceZero = 0;
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -74,11 +74,11 @@ void Gia_ManSimTry( Gia_Man_t * pF, Gia_Man_t * pG )
         int nBitsFx = Abc_TtCountOnesVec(pSimFx, nWords);
         int nBitsF1 = Abc_TtCountOnesVecMask(pSimFx, pSimFb, nWords, 1);
         int nBitsF0 = nWords*64 - nBitsFx - nBitsF1;
-        
+
         int nBitsGx = Abc_TtCountOnesVec(pSimGx, nWords);
         int nBitsG1 = Abc_TtCountOnesVecMask(pSimGx, pSimGb, nWords, 1);
         int nBitsG0 = nWords*64 - nBitsGx - nBitsG1;
-        
+
         printf( "Output %4d : ", i );
 
         printf( "    RF :  " );
@@ -135,7 +135,7 @@ void Gia_ManSimTry( Gia_Man_t * pF, Gia_Man_t * pG )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -145,7 +145,7 @@ void Gia_ManDualNot( Gia_Man_t * p, int LitA[2], int LitZ[2] )
 {
     LitZ[0]   = Abc_LitNot(LitA[0]);
     LitZ[1]   = LitA[1];
-    
+
     if ( fForceZero ) LitZ[0]   = Gia_ManHashAnd( p, LitZ[0], Abc_LitNot(LitZ[1]) );
 }
 // computes Z = XOR(A, B) where A, B, Z belong to {0,1,x} encoded as 0=00, 1=01, x=1-
@@ -153,7 +153,7 @@ void Gia_ManDualXor2( Gia_Man_t * p, int LitA[2], int LitB[2], int LitZ[2] )
 {
     LitZ[0]   = Gia_ManHashXor( p, LitA[0], LitB[0] );
     LitZ[1]   = Gia_ManHashOr( p, LitA[1], LitB[1] );
-    
+
     if ( fForceZero ) LitZ[0]   = Gia_ManHashAnd( p, LitZ[0], Abc_LitNot(LitZ[1]) );
 }
 void Gia_ManDualXorN( Gia_Man_t * p, int * pLits, int n, int LitZ[2] )
@@ -192,7 +192,7 @@ void Gia_ManDualAndN( Gia_Man_t * p, int * pLits, int n, int LitZ[2] )
         LitZ[0] = Gia_ManHashAnd( p, LitZ[0], pLits[2*i] );
     }
     LitZ[1] = Gia_ManHashAnd( p, LitOne, Abc_LitNot(LitZero) );
-    
+
     if ( fForceZero ) LitZ[0]   = Gia_ManHashAnd( p, LitZ[0], Abc_LitNot(LitZ[1]) );
 }
 /*
@@ -207,7 +207,7 @@ void Gia_ManDualDc( Gia_Man_t * p, int LitC[2], int LitD[2], int LitZ[2] )
     LitZ[0]   = LitC[0];
 //    LitZ[0]   = Gia_ManHashMux( p, LitD[0], 0, LitC[0] );
     LitZ[1]   = Gia_ManHashOr(p, Gia_ManHashOr(p,LitD[0],LitD[1]), LitC[1] );
-    
+
     if ( fForceZero ) LitZ[0]   = Gia_ManHashAnd( p, LitZ[0], Abc_LitNot(LitZ[1]) );
 }
 void Gia_ManDualMux( Gia_Man_t * p, int LitC[2], int LitT[2], int LitE[2], int LitZ[2] )
@@ -235,7 +235,7 @@ void Gia_ManDualMux( Gia_Man_t * p, int LitC[2], int LitT[2], int LitE[2], int L
 
     if ( fForceZero ) LitZ[0]   = Gia_ManHashAnd( p, LitZ[0], Abc_LitNot(LitZ[1]) );
 }
-int Gia_ManDualCompare( Gia_Man_t * p, int LitF[2], int LitS[2] )
+int Gia_ManDualCompare( Gia_Man_t * p, unsigned int LitF[2], unsigned int LitS[2] )
 {
     int iMiter = Gia_ManHashXor( p, LitF[0], LitS[0] );
     iMiter = Gia_ManHashOr( p, LitF[1], iMiter );
@@ -248,7 +248,7 @@ int Gia_ManDualCompare( Gia_Man_t * p, int LitF[2], int LitS[2] )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -267,36 +267,36 @@ void Acb_ObjToGiaDual( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vT
         Vec_IntPushTwo( vTemp, pLits[0], pLits[1] );
     }
     Type = Acb_ObjType( p, iObj );
-    if ( Type == ABC_OPER_CONST_F ) 
+    if ( Type == ABC_OPER_CONST_F )
     {
         pRes[0] = 0;
         pRes[1] = 0;
         return;
     }
-    if ( Type == ABC_OPER_CONST_T ) 
+    if ( Type == ABC_OPER_CONST_T )
     {
         pRes[0] = 1;
         pRes[1] = 0;
         return;
     }
-    if ( Type == ABC_OPER_CONST_X ) 
+    if ( Type == ABC_OPER_CONST_X )
     {
         pRes[0] = 0;
         pRes[1] = 1;
         return;
     }
-    if ( Type == ABC_OPER_BIT_BUF ) 
+    if ( Type == ABC_OPER_BIT_BUF )
     {
         pRes[0] = Vec_IntEntry(vTemp, 0);
         pRes[1] = Vec_IntEntry(vTemp, 1);
         return;
     }
-    if ( Type == ABC_OPER_BIT_INV ) 
+    if ( Type == ABC_OPER_BIT_INV )
     {
         Gia_ManDualNot( pNew, Vec_IntArray(vTemp), pRes );
         return;
     }
-    if ( Type == ABC_OPER_TRI ) 
+    if ( Type == ABC_OPER_TRI )
     {
         // in the file inputs are ordered as follows:  _DC \n6_5[9] ( .O(\108 ), .C(\96 ), .D(\107 ));
         // in this code, we expect them as follows: void Gia_ManDualDc( Gia_Man_t * p, int LitC[2], int LitD[2], int LitZ[2] )
@@ -304,7 +304,7 @@ void Acb_ObjToGiaDual( Gia_Man_t * pNew, Acb_Ntk_t * p, int iObj, Vec_Int_t * vT
         Gia_ManDualDc( pNew, Vec_IntArray(vTemp), Vec_IntArray(vTemp) + 2, pRes );
         return;
     }
-    if ( Type == ABC_OPER_BIT_MUX ) 
+    if ( Type == ABC_OPER_BIT_MUX )
     {
         // in the file inputs are ordered as follows:  _HMUX \U$1 ( .O(\282 ), .I0(1'b1), .I1(\277 ), .S(\281 ));
         // in this code, we expect them as follows: void Gia_ManDualMux( Gia_Man_t * p, int LitC[2], int LitT[2], int LitE[2], int LitZ[2] )
@@ -386,7 +386,7 @@ Gia_Man_t * Acb_NtkGiaDeriveDual( Acb_Ntk_t * p )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -421,8 +421,8 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
     {
         for ( i = 0; i < Gia_ManCoNum(pOne); i += 2 )
         {
-            unsigned pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
-            unsigned pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
+            unsigned int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
+            unsigned int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
             Gia_ManAppendCo( pNew, pLitsF[0] );
             Gia_ManAppendCo( pNew, pLitsS[0] );
         }
@@ -431,8 +431,8 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
     {
         for ( i = 0; i < Gia_ManCoNum(pOne); i += 2 )
         {
-            unsigned pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
-            unsigned pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
+            unsigned int pLitsF[2] = { Gia_ManCo(pOne, i)->Value, Gia_ManCo(pOne, i+1)->Value };
+            unsigned int pLitsS[2] = { Gia_ManCo(pTwo, i)->Value, Gia_ManCo(pTwo, i+1)->Value };
             Gia_ManAppendCo( pNew, pLitsF[1] );
             Gia_ManAppendCo( pNew, pLitsS[1] );
         }
@@ -443,7 +443,7 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
         {
             int pLitsF[2] = { (int)Gia_ManCo(pOne, i)->Value, (int)Gia_ManCo(pOne, i+1)->Value };
             int pLitsS[2] = { (int)Gia_ManCo(pTwo, i)->Value, (int)Gia_ManCo(pTwo, i+1)->Value };
-            Gia_ManAppendCo( pNew, Gia_ManDualCompare( pNew, pLitsF, pLitsS ) );
+            Gia_ManAppendCo( pNew, Gia_ManDualCompare( pNew, (unsigned int *)pLitsF, (unsigned int *)pLitsS ) );
         }
     }
     Gia_ManHashStop( pNew );
@@ -458,7 +458,7 @@ Gia_Man_t * Acb_NtkGiaDeriveMiter( Gia_Man_t * pOne, Gia_Man_t * pTwo, int Type 
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -475,7 +475,7 @@ void Acb_OutputFile( char * pFileName, Acb_Ntk_t * pNtkF, int * pModel )
     }
     if ( pModel == NULL )
         fprintf( pFile, "EQ\n" );
-    else 
+    else
     {
         /*
         NEQ
@@ -521,7 +521,7 @@ int * Acb_NtkSolve( Gia_Man_t * p )
   Synopsis    [Various statistics.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -549,7 +549,7 @@ void Acb_NtkPrintCecStats( Acb_Ntk_t * pNtk )
   Synopsis    [Changing the PI order.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -601,7 +601,7 @@ int Acb_NtkCheckPiOrder( Acb_Ntk_t * pNtkF, Acb_Ntk_t * pNtkG )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -621,7 +621,7 @@ void Acb_NtkRunTest( char * pFileNames[4], int fFancy, int fVerbose )
     Acb_Ntk_t * pNtkG = Acb_VerilogSimpleRead( pFileNames[1], NULL );
     if ( !pNtkF || !pNtkG )
         return;
-        
+
     assert( Acb_NtkCiNum(pNtkF) == Acb_NtkCiNum(pNtkG) );
     assert( Acb_NtkCoNum(pNtkF) == Acb_NtkCoNum(pNtkG) );
 

@@ -325,17 +325,17 @@ unsigned Kit_GraphToTruth( Kit_Graph_t * pGraph )
 
     // assign the elementary variables
     Kit_GraphForEachLeaf( pGraph, pNode, i )
-        pNode->pFunc = (void *)(long)uTruths[i];
+        pNode->pFunc = (void *)(ABC_PTRUINT_T)uTruths[i];
 
     // compute the function for each internal node
     Kit_GraphForEachNode( pGraph, pNode, i )
     {
-        uTruth0 = (unsigned)(long)Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc;
-        uTruth1 = (unsigned)(long)Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc;
+        uTruth0 = (unsigned)(ABC_PTRUINT_T)Kit_GraphNode(pGraph, pNode->eEdge0.Node)->pFunc;
+        uTruth1 = (unsigned)(ABC_PTRUINT_T)Kit_GraphNode(pGraph, pNode->eEdge1.Node)->pFunc;
         uTruth0 = pNode->eEdge0.fCompl? ~uTruth0 : uTruth0;
         uTruth1 = pNode->eEdge1.fCompl? ~uTruth1 : uTruth1;
         uTruth = uTruth0 & uTruth1;
-        pNode->pFunc = (void *)(long)uTruth;
+        pNode->pFunc = (void *)(ABC_PTRUINT_T)uTruth;
     }
 
     // complement the result if necessary

@@ -548,7 +548,7 @@ static inline char * Smt_GetHexFromDecimalString(char * pStr)
     for (k=0;k<nBits/4;k++)
     {   
         int number = Vec_IntEntry(rev,k*4) + 2*Vec_IntEntry(rev,k*4+1) + 4*Vec_IntEntry(rev,k*4+2) + 8*Vec_IntEntry(rev,k*4+3);
-        char letter;
+        char letter = '\0';
 
         switch(number) {
             case 0: letter = '0'; break;

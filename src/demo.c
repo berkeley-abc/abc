@@ -9,7 +9,7 @@
   Synopsis    [A demo program illustrating the use of ABC as a static library.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
@@ -59,12 +59,12 @@ using namespace ABC_NAMESPACE;
 
   Synopsis    [The main() procedure.]
 
-  Description [This procedure compiles into a stand-alone program for 
+  Description [This procedure compiles into a stand-alone program for
   DAG-aware rewriting of the AIGs. A BLIF or PLA file to be considered
-  for rewriting should be given as a command-line argument. Implementation 
-  of the rewriting is inspired by the paper: Per Bjesse, Arne Boralv, 
+  for rewriting should be given as a command-line argument. Implementation
+  of the rewriting is inspired by the paper: Per Bjesse, Arne Boralv,
   "DAG-aware circuit compression for formal verification", Proc. ICCAD 2004.]
-               
+
   SideEffects []
 
   SeeAlso     []

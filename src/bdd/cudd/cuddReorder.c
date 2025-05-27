@@ -457,7 +457,7 @@ cuddDynamicAllocNode(
             ** as well. */
 //            offset = (unsigned long) mem & (sizeof(DdNode) - 1);
 //            mem += (sizeof(DdNode) - offset) / sizeof(DdNodePtr);
-            offset = (unsigned long) mem & (32 - 1);
+            offset = (ABC_PTRUINT_T) mem & (32 - 1);
             mem += (32 - offset) / sizeof(DdNodePtr);
 #ifdef DD_DEBUG
 //            assert(((unsigned long) mem & (sizeof(DdNode) - 1)) == 0);

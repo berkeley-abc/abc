@@ -1,6 +1,7 @@
 #include "colors.h"
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(__MINGW32__)
+#include <io.h>
 #define isatty _isatty
 #else
 #include <unistd.h>

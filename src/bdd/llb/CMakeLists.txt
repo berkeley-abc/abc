@@ -1,0 +1,26 @@
+abc_libabc_add_sources(
+    NAME bdd_llb
+    SOURCES
+        llb1Reach.c
+        llb2Dump.c
+        llb3Image.c
+        llb2Driver.c
+        llb4Cex.c
+        llb1Cluster.c
+        llb1Group.c
+        llb2Core.c
+        llb4Sweep.c
+        llb3Nonlin.c
+        llb2Image.c
+        llb4Nonlin.c
+        llb1Man.c
+        llb1Core.c
+        llb1Pivot.c
+        llb2Flow.c
+        llb1Sched.c
+        llb4Image.c
+        llb1Matrix.c
+        llb1Hint.c
+        llb2Bad.c
+        llb1Constr.c
+)

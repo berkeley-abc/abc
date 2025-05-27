@@ -1,0 +1,123 @@
+name: CondaDev
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  conda_build:
+    name: abc ${{ matrix.python-version }} ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-24.04', 'ubuntu-22.04', 'macOS-14', 'windows-2019']
+        use_namespace: [false, true]
+        python-version: ['3.9']
+        include:
+          - os: 'ubuntu-22.04'
+            generator: 'Ninja'
+            build_type: 'Release'
+            extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON'
+          - os: 'ubuntu-24.04'
+            generator: 'Ninja'
+            build_type: 'RelWithDebInfo'
+            extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON'
+          - os: 'macOS-14'
+            generator: 'Ninja'
+            build_type: 'Debug'
+            extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON'
+          - os: 'windows-2019'
+            generator: 'Ninja'
+            build_type: 'Debug'
+            extra_args: '-DBUILD_SHARED_LIBS=OFF -DABC_USE_NO_PTHREADS=ON -DABC_USE_NO_READLINE=ON -DVENDOR_GTEST=ON'
+    env:
+      OS: ${{ matrix.os }}
+      PY_VER: ${{ matrix.python-version }}
+      PYTHONIOENCODING: utf-8
+      CMAKE_ARGS: ${{ matrix.use_namespace && '-DABC_USE_NAMESPACE=xxx' || '' }}
+
+    steps:
+    #- if: matrix.os == 'windows-2019'
+      #name: Install newer windows compiler
+      #id: install_cc
+      #uses: rlalik/setup-cpp-compiler@master
+      #with:
+        #compiler: g++-11.2.0
+
+    #- if: matrix.os == 'windows-2019'
+      #name: Use compiler
+      #shell: bash -l {0}
+      #env:
+          #CC: ${{ steps.install_cc.outputs.cc }}
+          #CXX: ${{ steps.install_cc.outputs.cxx }}
+      #run: |
+
+    - uses: actions/checkout@v4
+
+    - name: Setup base python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Prepare build environment for windows
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Env (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        echo "CXX=cl.exe" >> $GITHUB_ENV
+        echo "CC=cl.exe" >> $GITHUB_ENV
+
+    - name: Cache conda
+      id: cache
+      uses: actions/cache@v4
+      env:
+        # Increase this value to reset cache if environment.devenv.yml has not changed
+        CACHE_NUMBER: 2
+      with:
+        path: ~/conda_pkgs_dir
+        key: ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ hashFiles('environment.devenv.yml') }}
+
+    - uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        auto-activate-base: true
+        activate-environment: ''
+        channels: conda-forge,defaults
+        channel-priority: flexible
+        conda-remove-defaults: true
+
+    - name: Configure condadev environment
+      shell: bash -l {0}
+      env:
+        PY_VER: ${{ matrix.python-version }}
+      run: |
+        conda config --set always_yes yes --set changeps1 no
+        conda config --add channels conda-forge
+        conda install conda-devenv
+        conda info -a
+        conda devenv
+
+    - name: Build and test
+      shell: bash -l {0}
+      env:
+        PY_VER: ${{ matrix.python-version }}
+      run: |
+        source activate abc-test
+        conda info --envs
+        ctest --build-config "${{ matrix.build_type }}" \
+          --build-generator "${{ matrix.generator }}" \
+          --build-and-test . build \
+          --build-options ${CMAKE_ARGS} ${{ matrix.extra_args }} \
+          -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
+          --test-command ctest -V \
+          --build-config "${{ matrix.build_type }}" \
+          --rerun-failed --output-on-failure

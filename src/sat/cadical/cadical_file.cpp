@@ -27,8 +27,8 @@ extern "C" {
 #define R_OK 4
 #define W_OK 2
 #define S_IFIFO _S_IFIFO
-#define	S_ISFIFO(mode) (((mode) & S_IFMT) == S_IFIFO)
-#define	S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
+#define S_ISFIFO(mode) (((mode) & S_IFMT) == S_IFIFO)
+#define S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
 
 #else
 
