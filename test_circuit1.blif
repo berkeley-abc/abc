@@ -1,0 +1,16 @@
+# F1 = A (buffer), F2 = 1 (constant), F3 = A*B + C*D
+
+.model test_circuit1
+.inputs A B C D
+.outputs Z
+
+.names A B and1
+11 1
+
+.names C D and2
+11 1
+
+.names and1 and2 Z
+11 1
+
+.end 

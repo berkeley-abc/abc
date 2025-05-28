@@ -1,0 +1,32 @@
+# More complex circuit to test fault collapsing
+# Circuit with constant nodes, buffers, and fanout-free regions
+# F1 = A (buffer), F2 = 1 (constant), F3 = A*B + C*D
+
+.model test_circuit2
+.inputs A B C D
+.outputs F1 F2 F3
+
+# Buffer: F1 = A
+.names A F1
+1 1
+
+# Constant 1: F2 = 1
+.names F2
+1
+
+# AND-OR structure with some fanout-free regions
+.names A B and1
+11 1
+
+.names C D and2
+11 1
+
+# Buffer in the middle (fanout-free)
+.names and1 buf1
+1 1
+
+.names buf1 and2 F3
+1- 1
+-1 1
+
+.end 
