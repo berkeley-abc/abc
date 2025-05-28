@@ -180,7 +180,7 @@ static int Abc_CommandAIGAugmentation       ( Abc_Frame_t * pAbc, int argc, char
 
 // fault commands
 static int Abc_CommandFaultGen               ( Abc_Frame_t * pAbc, int argc, char ** argv );
-
+static int Abc_CommandFaultSim               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMiter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1002,7 +1002,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "majgen",     Abc_CommandMajGen,           0 );
 
     Cmd_CommandAdd( pAbc, "Fault",        "fault_gen",          Abc_CommandFaultGen,         0 );
-
+    Cmd_CommandAdd( pAbc, "Fault",        "fault_sim",          Abc_CommandFaultSim,         1 );
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
@@ -11234,6 +11234,55 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandFaultSim( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+
+    // Print fault list and statistics
+    Abc_NtkInsertFaultSimGates( pNtk );
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: fault_sim [-h]\n" );
+    Abc_Print( -2, "\t         Generate stuck-at faults for the current network\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
