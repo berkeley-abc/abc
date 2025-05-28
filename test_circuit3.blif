@@ -1,0 +1,20 @@
+# Circuit with real fanout branches to test Checkpoint Theorem
+# A has fanout = 2 (goes to two AND gates)
+# Should create checkpoint at A
+
+.model test_circuit3
+.inputs A B C
+.outputs Z
+
+# A fans out to two places (fanout branch = checkpoint)
+.names A B and1
+11 1
+
+.names A C and2  
+11 1
+
+.names and1 and2 Z
+1- 1
+-1 1
+
+.end 

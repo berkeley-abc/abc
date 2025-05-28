@@ -2128,13 +2128,32 @@ void Abc_NtkShow6VarFunc( char * pF0, char * pF1 )
 void Abc_NtkPrintFaultList( Abc_Ntk_t * pNtk )
 {
     Abc_Fault_t * pFault;
-    printf( "Fault list for network %s:\n", pNtk->pName );
+    int faultCount = 0;
+    
+    if ( pNtk->nFaults == 0 )
+    {
+        printf( "No faults in network %s.\n", pNtk->pName ? pNtk->pName : "unknown" );
+        return;
+    }
+    
+    printf( "Fault list for network %s:\n", pNtk->pName ? pNtk->pName : "unknown" );
+    printf( "FaultID | Node | Type | I/O | Index | Status\n" );
+    printf( "--------|------|------|-----|-------|--------\n" );
+    
     for ( pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext )
     {
-        printf( "Node %d: %s fault\n", 
+        faultCount++;
+        printf( "%6d  | %4d | %s | %s  | %4d  | %s%s%s\n", 
+            pFault->FaultId,
             Abc_ObjId(pFault->pNode),
-            pFault->Type == ABC_FAULT_SA0 ? "SA0" : "SA1" );
+            pFault->Type == ABC_FAULT_SA0 ? "SA0" : "SA1",
+            pFault->Io == ABC_FAULT_GO ? "GO" : "GI",
+            pFault->Index,
+            pFault->fDetected ? "D" : "-",
+            pFault->fActivated ? "A" : "-", 
+            pFault->fTestTried ? "T" : "-" );
     }
+    printf( "Total: %d faults listed\n", faultCount );
 }
 
 /**Function*************************************************************
@@ -2150,10 +2169,12 @@ void Abc_NtkPrintFaultList( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkPrintFaultStats( Abc_Ntk_t * pNtk )
 {
-    printf( "Fault statistics for network %s:\n", pNtk->pName );
+    printf( "Fault statistics for network %s:\n", pNtk->pName ? pNtk->pName : "unknown" );
     printf( "Total faults: %d\n", pNtk->nFaults );
     printf( "Detected faults: %d\n", pNtk->nDetectedFaults );
     printf( "Undetectable faults: %d\n", pNtk->nUndetectableFaults );
+    printf( "Activated faults: %d\n", pNtk->nActivatedFaults );
+    printf( "Test-tried faults: %d\n", pNtk->nTestTriedFaults );
 }
 
 /**Function*************************************************************
