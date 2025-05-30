@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "misc/util/abc_global.h"
 
+
+
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -11,7 +13,6 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
-
 /**Function*************************************************************
 
   Synopsis    [Allocates a new fault.]
@@ -160,24 +161,65 @@ void Abc_NtkClearFaults( Abc_Ntk_t * pNtk )
 ***********************************************************************/
 void Abc_NtkGenerateFaultList( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pObj;
+    Abc_Obj_t * pObj, * pFanin;
     int i, k;
-    // Clear existing faults
+
     Abc_NtkClearFaults( pNtk );
-    // Add SA0 and SA1 faults for each node
-    Abc_NtkForEachNode( pNtk, pObj, i )
+
+    /*--------------------------------------------------------------
+     *  Step 1.  Add SA0 / SA1 on the *source* side of every wire.
+     *           – Primary‑inputs (PIs) drive nets.
+     *           – Internal logic nodes drive nets.
+     *--------------------------------------------------------------*/
+    /* Primary inputs */
+    Abc_NtkForEachPi( pNtk, pObj, i )
     {
-        // Add gate output faults
         Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GO, 0 ) );
         Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GO, 0 ) );
-        // Add gate input faults
-        for ( k = 0; k < Abc_ObjFaninNum(pObj); k++ )
+    }
+
+    /* Internal nodes */
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GO, 0 ) );
+        Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GO, 0 ) );
+    }
+
+    /*--------------------------------------------------------------
+     *  Step 2.  Add SA0 / SA1 on *fan‑out branches* (GI faults)
+     *           – Only for nets whose driver has multiple fan‑outs.
+     *           – This guarantees each physical wire is represented
+     *             by exactly one (SA0, SA1) pair.
+     *--------------------------------------------------------------*/
+    /* Fan‑outs of internal nodes */
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        Abc_ObjForEachFanin( pObj, pFanin, k )
         {
-            Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GI, k ) );
-            Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GI, k ) );
+            if ( Abc_ObjFanoutNum( pFanin ) > 1 )
+            {
+                Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GI, k ) );
+                Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GI, k ) );
+            }
         }
     }
+
+    /* Fan‑outs that feed combinational outputs (COs) directly */
+    Abc_NtkForEachCo( pNtk, pObj, i )
+    {
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+        {
+            if ( Abc_ObjFanoutNum( pFanin ) > 1 )
+            {
+                Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GI, k ) );
+                Abc_NtkAddFault( pNtk, Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GI, k ) );
+            }
+        }
+    }
+
+
 }
+
 
 /**Function*************************************************************
 
@@ -253,6 +295,8 @@ void Abc_NtkGenerateCheckpointFaultList( Abc_Ntk_t * pNtk )
         }
     }
     
+
+    
     // Clean up
     Vec_PtrFree( vCheckpoints );
 }
@@ -272,399 +316,412 @@ void Abc_NtkGenerateCheckpointFaultList( Abc_Ntk_t * pNtk )
 
 ***********************************************************************/
 
-// Helper structure for fault analysis
-typedef struct FaultInfo_t_ {
-    Abc_Fault_t * pFault;
-    int           nGroupId;      // equivalence group ID
-    int           fDominated;    // is this fault dominated?
-    int           fRepresentative; // is this the representative of its group?
-    Vec_Ptr_t *   vDominates;    // faults that this fault dominates
-} FaultInfo_t;
 
-// Check if two faults are equivalent
-static int Abc_FaultsAreEquivalent( Abc_Obj_t * pNode, Abc_Fault_t * pFault1, Abc_Fault_t * pFault2 )
+void Abc_NtkGenerateCollapsedCheckpointFaultList( Abc_Ntk_t * pNtk )
 {
-    char * pSop;
-    int nVars;
-    
-    // Must be on same node
-    if ( pFault1->pNode != pFault2->pNode )
-        return 0;
-        
-    // For single-input gates (buffer/inverter)
-    if ( Abc_ObjFaninNum(pNode) == 1 && Abc_ObjIsNode(pNode) )
-    {
-        if ( (pFault1->Io == ABC_FAULT_GI && pFault1->Index == 0 && pFault2->Io == ABC_FAULT_GO) ||
-             (pFault1->Io == ABC_FAULT_GO && pFault2->Io == ABC_FAULT_GI && pFault2->Index == 0) )
-        {
-            pSop = (char *)pNode->pData;
-            if ( !pSop )
-                return 0;
-                
-            nVars = Abc_SopGetVarNum(pSop);
-            if ( nVars != 1 )
-                return 0;
-                
-            // Check if it's a buffer (F = A) or inverter (F = A')
-            if ( pSop[0] == '1' )  // Buffer: positive literal
-            {
-                return pFault1->Type == pFault2->Type;
-            }
-            else if ( pSop[0] == '0' )  // Inverter: negative literal
-            {
-                return pFault1->Type != pFault2->Type;
-            }
-        }
-    }
-    
-    // For fanout-free gates (single fanout), certain input combinations may be equivalent
-    // This requires more complex analysis based on gate function
-    // For now, we handle only the simple buffer/inverter case
-    
-    return 0;
+    Abc_NtkGenerateCheckpointFaultList( pNtk );
+
 }
 
-// Check if fault1 dominates fault2
-static int Abc_FaultDominates( Abc_Obj_t * pNode, Abc_Fault_t * pFault1, Abc_Fault_t * pFault2 )
+
+/**Function*************************************************************
+
+  Synopsis    [Helper function to determine gate type from SOP.]
+
+  Description [Returns gate type based on SOP analysis]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Abc_SopGetGateType( char * pSop )
 {
-    char * pSop;
-    int nCubes, nVars;
-    int isComplement;
+    int nCubes, nLits, nVars;
     
-    // Can't dominate if they're on different nodes
-    if ( pFault1->pNode != pFault2->pNode )
-        return 0;
-    
-    // Same fault can't dominate itself
-    if ( pFault1->Type == pFault2->Type && pFault1->Io == pFault2->Io && pFault1->Index == pFault2->Index )
-        return 0;
-    
-    // Get gate type
-    if ( !Abc_ObjIsNode(pNode) )
-        return 0;
-        
-    pSop = (char *)pNode->pData;
     if ( !pSop )
-        return 0;
+        return -1;
         
-    nCubes = Abc_SopGetCubeNum(pSop);
-    nVars = Abc_SopGetVarNum(pSop);
-    isComplement = Abc_SopIsComplement(pSop);
+    nVars = Abc_SopGetVarNum( pSop );
+    nCubes = Abc_SopGetCubeNum( pSop );
+    nLits = Abc_SopGetLitNum( pSop );
     
-    // Single variable gates (buffer/inverter)
-    if ( nVars == 1 )
-    {
-        // These are handled by equivalence, not dominance
-        return 0;
-    }
-    
-    // Two-input gates
-    if ( nVars == 2 )
-    {
-        // AND gate: F = AB (nCubes = 1, all literals positive)
-        if ( nCubes == 1 && !isComplement )
-        {
-            // For AND: output SA0 dominates all input SA0
-            if ( pFault1->Io == ABC_FAULT_GO && pFault1->Type == ABC_FAULT_SA0 &&
-                 pFault2->Io == ABC_FAULT_GI && pFault2->Type == ABC_FAULT_SA0 )
-                return 1;
-                
-            // For AND: any input SA1 dominates output SA1
-            if ( pFault1->Io == ABC_FAULT_GI && pFault1->Type == ABC_FAULT_SA1 &&
-                 pFault2->Io == ABC_FAULT_GO && pFault2->Type == ABC_FAULT_SA1 )
-                return 1;
-        }
-        // NAND gate: F = (AB)' (nCubes = 1, complement)
-        else if ( nCubes == 1 && isComplement )
-        {
-            // For NAND: output SA1 dominates all input SA0
-            if ( pFault1->Io == ABC_FAULT_GO && pFault1->Type == ABC_FAULT_SA1 &&
-                 pFault2->Io == ABC_FAULT_GI && pFault2->Type == ABC_FAULT_SA0 )
-                return 1;
-                
-            // For NAND: any input SA1 dominates output SA0
-            if ( pFault1->Io == ABC_FAULT_GI && pFault1->Type == ABC_FAULT_SA1 &&
-                 pFault2->Io == ABC_FAULT_GO && pFault2->Type == ABC_FAULT_SA0 )
-                return 1;
-        }
-        // OR gate: F = A + B (nCubes = 2, each with one literal)
-        else if ( nCubes == 2 && !isComplement )
-        {
-            // For OR: output SA1 dominates all input SA1
-            if ( pFault1->Io == ABC_FAULT_GO && pFault1->Type == ABC_FAULT_SA1 &&
-                 pFault2->Io == ABC_FAULT_GI && pFault2->Type == ABC_FAULT_SA1 )
-                return 1;
-                
-            // For OR: any input SA0 dominates output SA0
-            if ( pFault1->Io == ABC_FAULT_GI && pFault1->Type == ABC_FAULT_SA0 &&
-                 pFault2->Io == ABC_FAULT_GO && pFault2->Type == ABC_FAULT_SA0 )
-                return 1;
-        }
-        // NOR gate: F = (A + B)' (nCubes = 2, complement)
-        else if ( nCubes == 2 && isComplement )
-        {
-            // For NOR: output SA0 dominates all input SA1
-            if ( pFault1->Io == ABC_FAULT_GO && pFault1->Type == ABC_FAULT_SA0 &&
-                 pFault2->Io == ABC_FAULT_GI && pFault2->Type == ABC_FAULT_SA1 )
-                return 1;
-                
-            // For NOR: any input SA0 dominates output SA1
-            if ( pFault1->Io == ABC_FAULT_GI && pFault1->Type == ABC_FAULT_SA0 &&
-                 pFault2->Io == ABC_FAULT_GO && pFault2->Type == ABC_FAULT_SA1 )
-                return 1;
-        }
-    }
-    
-    // Multi-input AND/NAND gates
-    if ( nCubes == 1 )
-    {
-        if ( !isComplement )  // AND gate
-        {
-            // Output SA0 dominates all input SA0
-            if ( pFault1->Io == ABC_FAULT_GO && pFault1->Type == ABC_FAULT_SA0 &&
-                 pFault2->Io == ABC_FAULT_GI && pFault2->Type == ABC_FAULT_SA0 )
-                return 1;
-            // Any input SA1 dominates output SA1
-            if ( pFault1->Io == ABC_FAULT_GI && pFault1->Type == ABC_FAULT_SA1 &&
-                 pFault2->Io == ABC_FAULT_GO && pFault2->Type == ABC_FAULT_SA1 )
-                return 1;
-        }
-        else  // NAND gate
-        {
-            // Output SA1 dominates all input SA0
-            if ( pFault1->Io == ABC_FAULT_GO && pFault1->Type == ABC_FAULT_SA1 &&
-                 pFault2->Io == ABC_FAULT_GI && pFault2->Type == ABC_FAULT_SA0 )
-                return 1;
-            // Any input SA1 dominates output SA0
-            if ( pFault1->Io == ABC_FAULT_GI && pFault1->Type == ABC_FAULT_SA1 &&
-                 pFault2->Io == ABC_FAULT_GO && pFault2->Type == ABC_FAULT_SA0 )
-                return 1;
-        }
-    }
-    
-    // Multi-input OR/NOR gates (each variable appears in separate cube)
-    if ( nCubes == nVars )
-    {
-        // Check if this is really an OR/NOR structure
-        int isOr = 1;
-        for ( int i = 0; i < nCubes && isOr; i++ )
-        {
-            char * pCube = pSop + i * (nVars + 3);
-            int litCount = 0;
-            for ( int j = 0; j < nVars; j++ )
-            {
-                if ( pCube[j] != '-' )
-                    litCount++;
-            }
-            if ( litCount != 1 )
-                isOr = 0;
-        }
+    // Check for constant functions
+    if ( Abc_SopIsConst0(pSop) )
+        return -1;
+    if ( Abc_SopIsConst1(pSop) )
+        return -1;
         
-        if ( isOr )
+    // Check for buffer/inverter
+    if ( nVars == 1 && nCubes == 1 )
+    {
+        if ( pSop[0] == '1' && pSop[2] == '1' )
+            return 1; // BUF
+        if ( pSop[0] == '1' && pSop[2] == '0' )
+            return 2; // NOT
+        if ( pSop[0] == '0' && pSop[2] == '1' )
+            return 2; // NOT
+        if ( pSop[0] == '0' && pSop[2] == '0' )
+            return 1; // BUF
+    }
+    
+    // Check for AND gate (all variables must be 1 in single cube)
+    if ( nCubes == 1 && nLits == nVars )
+    {
+        if ( pSop[nVars+1] == '1' )
+            return 3; // AND
+        else
+            return 4; // NAND
+    }
+    
+    // Check for OR gate (each cube has exactly one literal)
+    if ( nCubes == nVars && nLits == nVars )
+    {
+        if ( pSop[nVars+1] == '1' )
+            return 5; // OR
+        else
+            return 6; // NOR
+    }
+    
+    // Check for XOR/XNOR (2 variables, 2 cubes)
+    if ( nVars == 2 && nCubes == 2 )
+    {
+        // XOR has pattern: 01 1\n10 1\n or 10 1\n01 1\n
+        // XNOR has pattern: 00 1\n11 1\n or 11 1\n00 1\n
+        if ( (pSop[0] == '0' && pSop[1] == '1' && pSop[nVars+3] == '1' && pSop[nVars+4] == '0') ||
+             (pSop[0] == '1' && pSop[1] == '0' && pSop[nVars+3] == '0' && pSop[nVars+4] == '1') )
         {
-            if ( !isComplement )  // OR gate
-            {
-                // Output SA1 dominates all input SA1
-                if ( pFault1->Io == ABC_FAULT_GO && pFault1->Type == ABC_FAULT_SA1 &&
-                     pFault2->Io == ABC_FAULT_GI && pFault2->Type == ABC_FAULT_SA1 )
-                    return 1;
-                // Any input SA0 dominates output SA0
-                if ( pFault1->Io == ABC_FAULT_GI && pFault1->Type == ABC_FAULT_SA0 &&
-                     pFault2->Io == ABC_FAULT_GO && pFault2->Type == ABC_FAULT_SA0 )
-                    return 1;
-            }
-            else  // NOR gate
-            {
-                // Output SA0 dominates all input SA1
-                if ( pFault1->Io == ABC_FAULT_GO && pFault1->Type == ABC_FAULT_SA0 &&
-                     pFault2->Io == ABC_FAULT_GI && pFault2->Type == ABC_FAULT_SA1 )
-                    return 1;
-                // Any input SA0 dominates output SA1
-                if ( pFault1->Io == ABC_FAULT_GI && pFault1->Type == ABC_FAULT_SA0 &&
-                     pFault2->Io == ABC_FAULT_GO && pFault2->Type == ABC_FAULT_SA1 )
-                    return 1;
-            }
+            if ( pSop[nVars+1] == '1' )
+                return 7; // XOR
+            else
+                return 8; // XNOR
+        }
+        if ( (pSop[0] == '0' && pSop[1] == '0' && pSop[nVars+3] == '1' && pSop[nVars+4] == '1') ||
+             (pSop[0] == '1' && pSop[1] == '1' && pSop[nVars+3] == '0' && pSop[nVars+4] == '0') )
+        {
+            if ( pSop[nVars+1] == '1' )
+                return 8; // XNOR (EQV)
+            else
+                return 7; // XOR
         }
     }
     
-    return 0;
+    // For complex functions, check if it's XOR/XNOR type
+    if ( Abc_SopIsExorType(pSop) )
+        return 7; // XOR
+    
+    return -1; // Unknown type
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Generates collapsed fault list using equivalence and dominance analysis.]
+
+  Description [Implements fault collapsing by replicating the logic from generate_fault_list]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_NtkGenerateCollapsingFaultList( Abc_Ntk_t * pNtk )
 {
-    Abc_Obj_t * pObj;
-    Abc_Fault_t * pFault, * pFault2;
-    FaultInfo_t * pInfo, * pInfo2;
-    Vec_Ptr_t * vAllFaults;
-    Vec_Ptr_t * vFaultInfos;
-    int i, j, k, nGroups;
+    Abc_Obj_t * pObj, * pFanin, * pFanout;
+    Abc_Fault_t * pFault, * pFaultCur, * pFaultPrev;
+    Vec_Int_t * vNumEqvSa0, * vNumEqvSa1;
+    char * pSop;
+    int i, j, k, nFaults = 0;
+    int gateType;
+    int nTotalGateFaults = 0;
     
     // Clear existing faults
     Abc_NtkClearFaults( pNtk );
     
-    // Step 1: Generate all possible faults and create fault info structures
-    vAllFaults = Vec_PtrAlloc( 1000 );
-    vFaultInfos = Vec_PtrAlloc( 1000 );
+    // Create vectors to track equivalent fault counts for each object
+    vNumEqvSa0 = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
+    vNumEqvSa1 = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
     
-    // Generate all faults
-    Abc_NtkForEachNode( pNtk, pObj, i )
+    // Process all nodes and PIs (but NOT POs - they don't generate GO faults)
+    // This mimics the original C++ sort_wlist traversal over wires
+    Abc_NtkForEachObj( pNtk, pObj, i )
     {
-        // Add gate output faults
-        pFault = Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GO, 0 );
-        Vec_PtrPush( vAllFaults, pFault );
-        pInfo = ABC_ALLOC( FaultInfo_t, 1 );
-        pInfo->pFault = pFault;
-        pInfo->nGroupId = Vec_PtrSize(vFaultInfos);  // Initially each fault is its own group
-        pInfo->fDominated = 0;
-        pInfo->fRepresentative = 1;
-        pInfo->vDominates = Vec_PtrAlloc( 4 );
-        Vec_PtrPush( vFaultInfos, pInfo );
-        
-        pFault = Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GO, 0 );
-        Vec_PtrPush( vAllFaults, pFault );
-        pInfo = ABC_ALLOC( FaultInfo_t, 1 );
-        pInfo->pFault = pFault;
-        pInfo->nGroupId = Vec_PtrSize(vFaultInfos);
-        pInfo->fDominated = 0;
-        pInfo->fRepresentative = 1;
-        pInfo->vDominates = Vec_PtrAlloc( 4 );
-        Vec_PtrPush( vFaultInfos, pInfo );
-        
-        // Add gate input faults
-        for ( k = 0; k < Abc_ObjFaninNum(pObj); k++ )
-        {
-            pFault = Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GI, k );
-            Vec_PtrPush( vAllFaults, pFault );
-            pInfo = ABC_ALLOC( FaultInfo_t, 1 );
-            pInfo->pFault = pFault;
-            pInfo->nGroupId = Vec_PtrSize(vFaultInfos);
-            pInfo->fDominated = 0;
-            pInfo->fRepresentative = 1;
-            pInfo->vDominates = Vec_PtrAlloc( 4 );
-            Vec_PtrPush( vFaultInfos, pInfo );
+        // Skip objects that don't generate GO faults
+        if ( !Abc_ObjIsNode(pObj) && !Abc_ObjIsPi(pObj) )
+            continue;
             
-            pFault = Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GI, k );
-            Vec_PtrPush( vAllFaults, pFault );
-            pInfo = ABC_ALLOC( FaultInfo_t, 1 );
-            pInfo->pFault = pFault;
-            pInfo->nGroupId = Vec_PtrSize(vFaultInfos);
-            pInfo->fDominated = 0;
-            pInfo->fRepresentative = 1;
-            pInfo->vDominates = Vec_PtrAlloc( 4 );
-            Vec_PtrPush( vFaultInfos, pInfo );
+        // Get gate type
+        gateType = -1;
+        if ( Abc_ObjIsPi(pObj) )
+        {
+            gateType = 0; // INPUT
         }
-    }
-    
-    // Add PI faults
-    Abc_NtkForEachPi( pNtk, pObj, i )
-    {
-        pFault = Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GO, 0 );
-        Vec_PtrPush( vAllFaults, pFault );
-        pInfo = ABC_ALLOC( FaultInfo_t, 1 );
-        pInfo->pFault = pFault;
-        pInfo->nGroupId = Vec_PtrSize(vFaultInfos);
-        pInfo->fDominated = 0;
-        pInfo->fRepresentative = 1;
-        pInfo->vDominates = Vec_PtrAlloc( 4 );
-        Vec_PtrPush( vFaultInfos, pInfo );
-        
-        pFault = Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GO, 0 );
-        Vec_PtrPush( vAllFaults, pFault );
-        pInfo = ABC_ALLOC( FaultInfo_t, 1 );
-        pInfo->pFault = pFault;
-        pInfo->nGroupId = Vec_PtrSize(vFaultInfos);
-        pInfo->fDominated = 0;
-        pInfo->fRepresentative = 1;
-        pInfo->vDominates = Vec_PtrAlloc( 4 );
-        Vec_PtrPush( vFaultInfos, pInfo );
-    }
-    
-    // Step 2: Find equivalence groups
-    nGroups = Vec_PtrSize(vFaultInfos);
-    for ( i = 0; i < Vec_PtrSize(vFaultInfos); i++ )
-    {
-        pInfo = (FaultInfo_t *)Vec_PtrEntry(vFaultInfos, i);
-        pFault = pInfo->pFault;
-        
-        // Check equivalence with remaining faults
-        for ( j = i + 1; j < Vec_PtrSize(vFaultInfos); j++ )
+        else if ( Abc_ObjIsNode(pObj) )
         {
-            pInfo2 = (FaultInfo_t *)Vec_PtrEntry(vFaultInfos, j);
-            pFault2 = pInfo2->pFault;
-            
-            // Check if faults are on the same node
-            if ( pFault->pNode == pFault2->pNode )
-            {
-                if ( Abc_FaultsAreEquivalent(pFault->pNode, pFault, pFault2) )
+            pSop = (char *)pObj->pData;
+            if ( pSop )
+                gateType = Abc_SopGetGateType( pSop );
+        }
+        
+        // Create GO SA0 fault
+        pFault = Abc_FaultAlloc( pObj, ABC_FAULT_SA0, ABC_FAULT_GO, 0 );
+        pFault->nEqvFaults = 1; // The fault itself
+        
+        // Add equivalent faults based on gate type
+        switch ( gateType )
+        {
+            case 3: // AND
+            case 1: // BUF
+                // For AND/BUF: GO SA0 is equivalent to any GI SA0
+                Abc_ObjForEachFanin( pObj, pFanin, k )
                 {
-                    // Merge groups - use the smaller group ID
-                    int minGroupId = Abc_MinInt(pInfo->nGroupId, pInfo2->nGroupId);
-                    pInfo->nGroupId = minGroupId;
-                    pInfo2->nGroupId = minGroupId;
-                    // The one with smaller index becomes representative
-                    if ( j < i )
+                    pFault->nEqvFaults += Vec_IntEntry( vNumEqvSa0, Abc_ObjId(pFanin) );
+                }
+                break;
+                
+            case 6: // NOR
+            case 2: // NOT
+                // For NOR/NOT: GO SA0 is equivalent to any GI SA1
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                {
+                    pFault->nEqvFaults += Vec_IntEntry( vNumEqvSa1, Abc_ObjId(pFanin) );
+                }
+                break;
+                
+            case 0: // INPUT
+            case 5: // OR
+            case 4: // NAND
+            case 7: // XOR
+            case 8: // EQV (XNOR)
+            default:
+                // No equivalence for these types
+                break;
+        }
+        
+        // Check if this fault should be added (representative fault conditions)
+        int shouldAdd = 0;
+        
+        if ( Abc_ObjFanoutNum(pObj) > 1 )
+        {
+            // Fanout stem - always add
+            shouldAdd = 1;
+        }
+        else if ( Abc_ObjFanoutNum(pObj) == 1 )
+        {
+            pFanout = Abc_ObjFanout0(pObj);
+            if ( Abc_ObjIsPo(pFanout) )
+            {
+                // Wire feeds OUTPUT (dummy PO gate) - always add
+                shouldAdd = 1;
+            }
+            else if ( Abc_ObjIsNode(pFanout) )
+            {
+                pSop = (char *)pFanout->pData;
+                if ( pSop )
+                {
+                    int fanoutType = Abc_SopGetGateType( pSop );
+                    // Check original conditions: EQV, OR, NOR, XOR, OUTPUT
+                    if ( fanoutType == 5 || fanoutType == 6 || fanoutType == 7 || fanoutType == 8 )
+                        shouldAdd = 1;
+                }
+            }
+        }
+        
+        if ( shouldAdd )
+        {
+            nTotalGateFaults += pFault->nEqvFaults;
+            Abc_NtkAddFault( pNtk, pFault );
+        }
+        else
+        {
+            // Store equivalent fault count for later use
+            Vec_IntWriteEntry( vNumEqvSa0, Abc_ObjId(pObj), pFault->nEqvFaults );
+            Abc_FaultFree( pFault );
+        }
+        
+        // Create GO SA1 fault
+        pFault = Abc_FaultAlloc( pObj, ABC_FAULT_SA1, ABC_FAULT_GO, 0 );
+        pFault->nEqvFaults = 1;
+        
+        // Add equivalent faults based on gate type
+        switch ( gateType )
+        {
+            case 5: // OR
+            case 1: // BUF
+                // For OR/BUF: GO SA1 is equivalent to any GI SA1
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                {
+                    pFault->nEqvFaults += Vec_IntEntry( vNumEqvSa1, Abc_ObjId(pFanin) );
+                }
+                break;
+                
+            case 4: // NAND
+            case 2: // NOT
+                // For NAND/NOT: GO SA1 is equivalent to any GI SA0
+                Abc_ObjForEachFanin( pObj, pFanin, k )
+                {
+                    pFault->nEqvFaults += Vec_IntEntry( vNumEqvSa0, Abc_ObjId(pFanin) );
+                }
+                break;
+                
+            case 0: // INPUT
+            case 3: // AND
+            case 6: // NOR
+            case 7: // XOR
+            case 8: // EQV (XNOR)
+            default:
+                // No equivalence for these types
+                break;
+        }
+        
+        // Check if this fault should be added
+        shouldAdd = 0;
+        
+        if ( Abc_ObjFanoutNum(pObj) > 1 )
+        {
+            shouldAdd = 1;
+        }
+        else if ( Abc_ObjFanoutNum(pObj) == 1 )
+        {
+            pFanout = Abc_ObjFanout0(pObj);
+            if ( Abc_ObjIsPo(pFanout) )
+            {
+                // Wire feeds OUTPUT - always add
+                shouldAdd = 1;
+            }
+            else if ( Abc_ObjIsNode(pFanout) )
+            {
+                pSop = (char *)pFanout->pData;
+                if ( pSop )
+                {
+                    int fanoutType = Abc_SopGetGateType( pSop );
+                    // Check original conditions: EQV, AND, NAND, XOR, OUTPUT
+                    if ( fanoutType == 3 || fanoutType == 4 || fanoutType == 7 || fanoutType == 8 )
+                        shouldAdd = 1;
+                }
+            }
+        }
+        
+        if ( shouldAdd )
+        {
+            nTotalGateFaults += pFault->nEqvFaults;
+            Abc_NtkAddFault( pNtk, pFault );
+        }
+        else
+        {
+            // Store equivalent fault count for later use
+            Vec_IntWriteEntry( vNumEqvSa1, Abc_ObjId(pObj), pFault->nEqvFaults );
+            Abc_FaultFree( pFault );
+        }
+        
+        // Handle fanout branches - create GI faults
+        if ( Abc_ObjFanoutNum(pObj) > 1 )
+        {
+            // Set the stem equivalent count to 1 for future use
+            Vec_IntWriteEntry( vNumEqvSa0, Abc_ObjId(pObj), 1 );
+            Vec_IntWriteEntry( vNumEqvSa1, Abc_ObjId(pObj), 1 );
+            
+            // Create GI faults for each fanout
+            Abc_ObjForEachFanout( pObj, pFanout, j )
+            {
+                if ( !Abc_ObjIsNode(pFanout) && !Abc_ObjIsPo(pFanout) )
+                    continue;
+                    
+                // Find the input index
+                int inputIndex = -1;
+                Abc_ObjForEachFanin( pFanout, pFanin, k )
+                {
+                    if ( pFanin == pObj )
                     {
-                        pInfo->fRepresentative = 0;
-                        pInfo2->fRepresentative = 1;
+                        inputIndex = k;
+                        break;
                     }
-                    else
+                }
+                
+                if ( inputIndex == -1 )
+                    continue;
+                
+                // Determine which faults to create based on fanout gate type
+                int createSa0 = 0, createSa1 = 0;
+                
+                if ( Abc_ObjIsPo(pFanout) )
+                {
+                    // OUTPUT gate - create both SA0 and SA1
+                    createSa0 = createSa1 = 1;
+                }
+                else if ( Abc_ObjIsNode(pFanout) )
+                {
+                    pSop = (char *)pFanout->pData;
+                    if ( pSop )
                     {
-                        pInfo2->fRepresentative = 0;
+                        int fanoutType = Abc_SopGetGateType( pSop );
+                        switch ( fanoutType )
+                        {
+                            case 5: // OR
+                            case 6: // NOR
+                            case 7: // XOR
+                            case 8: // XNOR (EQV)
+                                createSa0 = 1;
+                                break;
+                        }
+                        switch ( fanoutType )
+                        {
+                            case 3: // AND
+                            case 4: // NAND
+                            case 7: // XOR
+                            case 8: // XNOR (EQV)
+                                createSa1 = 1;
+                                break;
+                        }
                     }
+                }
+                
+                // Create SA0 fault if needed
+                if ( createSa0 )
+                {
+                    pFault = Abc_FaultAlloc( pFanout, ABC_FAULT_SA0, ABC_FAULT_GI, inputIndex );
+                    pFault->nEqvFaults = 1;
+                    nTotalGateFaults++;
+                    Abc_NtkAddFault( pNtk, pFault );
+                }
+                
+                // Create SA1 fault if needed
+                if ( createSa1 )
+                {
+                    pFault = Abc_FaultAlloc( pFanout, ABC_FAULT_SA1, ABC_FAULT_GI, inputIndex );
+                    pFault->nEqvFaults = 1;
+                    nTotalGateFaults++;
+                    Abc_NtkAddFault( pNtk, pFault );
                 }
             }
         }
     }
     
-    // Step 3: Build dominance relationships
-    for ( i = 0; i < Vec_PtrSize(vFaultInfos); i++ )
+    // Reverse the fault list (matching original implementation)
+    // Since we're using a linked list, we need to reverse it manually
+    pFaultPrev = NULL;
+    pFaultCur = pNtk->pFaultList;
+    while ( pFaultCur )
     {
-        pInfo = (FaultInfo_t *)Vec_PtrEntry(vFaultInfos, i);
-        pFault = pInfo->pFault;
-        
-        for ( j = 0; j < Vec_PtrSize(vFaultInfos); j++ )
-        {
-            if ( i == j )
-                continue;
-                
-            pInfo2 = (FaultInfo_t *)Vec_PtrEntry(vFaultInfos, j);
-            pFault2 = pInfo2->pFault;
-            
-            // Check if fault i dominates fault j
-            if ( Abc_FaultDominates(pFault->pNode, pFault, pFault2) )
-            {
-                Vec_PtrPush( pInfo->vDominates, pInfo2 );
-                pInfo2->fDominated = 1;
-            }
-        }
+        Abc_Fault_t * pNext = pFaultCur->pNext;
+        pFaultCur->pNext = pFaultPrev;
+        pFaultPrev = pFaultCur;
+        pFaultCur = pNext;
     }
+    pNtk->pFaultList = pFaultPrev;
     
-    // Step 4: Select faults for the collapsed list
-    for ( i = 0; i < Vec_PtrSize(vFaultInfos); i++ )
+    // Assign fault IDs after reversal
+    nFaults = 0;
+    for ( pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext )
     {
-        pInfo = (FaultInfo_t *)Vec_PtrEntry(vFaultInfos, i);
-        
-        // Add fault if it's:
-        // 1. Representative of its equivalence group, AND
-        // 2. Not dominated by any other fault
-        if ( pInfo->fRepresentative && !pInfo->fDominated )
-        {
-            Abc_NtkAddFault( pNtk, pInfo->pFault );
-        }
-        else
-        {
-            // Free the fault if not added
-            Abc_FaultFree( pInfo->pFault );
-        }
-        
-        // Clean up
-        Vec_PtrFree( pInfo->vDominates );
-        ABC_FREE( pInfo );
+        pFault->FaultId = nFaults++;
     }
     
     // Clean up
-    Vec_PtrFree( vAllFaults );
-    Vec_PtrFree( vFaultInfos );
+    Vec_IntFree( vNumEqvSa0 );
+    Vec_IntFree( vNumEqvSa1 );
+    
+    // Print statistics
+    fprintf( stdout, "#number of equivalent faults = %d\n", nFaults );
 }
 
 /**Function*************************************************************
@@ -682,53 +739,74 @@ void Abc_NtkGenerateCollapsingFaultList( Abc_Ntk_t * pNtk )
 void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
 {
     Abc_Fault_t * pFault;
-    int faultId = 0;
-    Vec_Ptr_t * vHandled = Vec_PtrAlloc(100); // Track handled output nodes
+    Vec_Ptr_t * vHandledsa0 = Vec_PtrAlloc(100); // Track handled output nodes
+    Vec_Ptr_t * vHandledsa1 = Vec_PtrAlloc(100); // Track handled output nodes
     // Iterate over the fault list
-    for (pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext, ++faultId)
+    for (pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext)
     {
         char xName[32], yName[32];
-        Abc_Obj_t * pX, * pY, * pNotX, * pC, * pAnd, * pOut;
+        Abc_Obj_t * pX, * pY, * pNotX, * pC, * pAnd, * pOr;
 
         pC = pFault->pNode; // Output of the gate
-        // Check if we've already handled this node
-        if (Vec_PtrFind(vHandled, pC) != -1)
-            continue; // Already handled
-        Vec_PtrPush(vHandled, pC);
-        
-        pOut = Abc_NtkCreateNode(pNtk);
-        // Rewire the network so that pOut replaces pC as the output signal
-        // Transfer all fanouts of pC to pOut
-        Abc_ObjTransferFanout(pC, pOut);
 
-        // Generate unique names for x and y
-        sprintf(xName, "x_%d", faultId);
-        sprintf(yName, "y_%d", faultId);
-        // Add new PIs
-        pX = Abc_NtkCreatePi(pNtk);
-        Abc_ObjAssignName(pX, xName, NULL);
-        pY = Abc_NtkCreatePi(pNtk);
-        Abc_ObjAssignName(pY, yName, NULL);
-        
-        // Create NOT gate for ~x
-        pNotX = Abc_NtkCreateNode(pNtk);
-        Abc_ObjAddFanin(pNotX, pX);
-        pNotX->pData = Abc_SopCreateInv((Mem_Flex_t*)pNtk->pManFunc);
-        
-        // Create AND gate for (c AND ~x)
-        pAnd = Abc_NtkCreateNode(pNtk);
-        Abc_ObjAddFanin(pAnd, pC);
-        Abc_ObjAddFanin(pAnd, pNotX);
-        pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
-        
-        // Create OR gate for ((c AND ~x) OR y)
-        Abc_ObjAddFanin(pOut, pAnd);
-        Abc_ObjAddFanin(pOut, pY);
-        pOut->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
-        
-        printf("[FaultSim] Inserted fault sim gates for node %s \n", Abc_ObjName(pC));
+        if(pFault->Type == ABC_FAULT_SA0)
+        {
+            if(Vec_PtrFind(vHandledsa0, pC) != -1)
+                continue;
+            Vec_PtrPush(vHandledsa0, pC);
+
+            pAnd = Abc_NtkCreateNode(pNtk);
+            // Rewire the network so that pAnd replaces pC as the output signal
+            // Transfer all fanouts of pC to pAnd
+            Abc_ObjTransferFanout(pC, pAnd);
+
+            // Generate unique names for x and y
+            sprintf(xName, "x_%s", Abc_ObjName(pC));
+            // Add new PIs
+            pX = Abc_NtkCreatePi(pNtk);
+            Abc_ObjAssignName(pX, xName, NULL);
+            
+            // Create NOT gate for ~x
+            pNotX = Abc_NtkCreateNode(pNtk);
+            Abc_ObjAddFanin(pNotX, pX);
+            pNotX->pData = Abc_SopCreateInv((Mem_Flex_t*)pNtk->pManFunc);
+            
+            // Create AND gate for (c AND ~x)
+            Abc_ObjAddFanin(pAnd, pC);
+            Abc_ObjAddFanin(pAnd, pNotX);
+            pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
+            
+            printf("[FaultSim] Inserted SA0 sim gates for node %s \n", Abc_ObjName(pC));
+
+        }
+        else if(pFault->Type == ABC_FAULT_SA1)
+        {
+            if(Vec_PtrFind(vHandledsa1, pC) != -1)
+                continue;
+            Vec_PtrPush(vHandledsa1, pC);
+
+            pOr = Abc_NtkCreateNode(pNtk);
+            // Rewire the network so that pOr replaces pC as the output signal
+            // Transfer all fanouts of pC to pOr
+            Abc_ObjTransferFanout(pC, pOr);
+
+            // Generate unique names for x and y
+            sprintf(yName, "y_%s", Abc_ObjName(pC));
+            // Add new PIs
+            pY = Abc_NtkCreatePi(pNtk);
+            Abc_ObjAssignName(pY, yName, NULL);
+            
+            
+            // Create OR gate for ((c AND ~x) OR y)
+            Abc_ObjAddFanin(pOr, pC);
+            Abc_ObjAddFanin(pOr, pY);
+            pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
+            
+            printf("[FaultSim] Inserted SA1 sim gates for node %s \n", Abc_ObjName(pC));
+        }
     }
-    Vec_PtrFree(vHandled);
+    Vec_PtrFree(vHandledsa0);
+    Vec_PtrFree(vHandledsa1);
     printf("[FaultSim] Completed fault simulation gate insertion\n");
 }
 
