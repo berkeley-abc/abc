@@ -1,4 +1,4 @@
-# F1 = A (buffer), F2 = 1 (constant), F3 = A*B + C*D
+# Z = (A*B) * (C*D)
 
 .model test_circuit1
 .inputs A B C D

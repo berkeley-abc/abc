@@ -11211,8 +11211,7 @@ int Abc_CommandFaultGen( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 
     if(fCheckpoint&&fCollapsing){
-        Abc_Print( -1, "Cannot use both checkpoint and collapsing fault generation methods.\n" );
-        return 1;
+        Abc_NtkGenerateCollapsedCheckpointFaultList( pNtk );
     }
     // Print fault list and statistics
     if(fCheckpoint){

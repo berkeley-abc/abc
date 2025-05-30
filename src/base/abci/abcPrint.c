@@ -2143,7 +2143,7 @@ void Abc_NtkPrintFaultList( Abc_Ntk_t * pNtk )
     for ( pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext )
     {
         faultCount++;
-        printf( "%6d  | %4d | %s | %s  | %4d  | %s%s%s\n", 
+        printf( "%6d  | %4d | %s  | %s  | %4d  | %s%s%s\n", 
             pFault->FaultId,
             Abc_ObjId(pFault->pNode),
             pFault->Type == ABC_FAULT_SA0 ? "SA0" : "SA1",

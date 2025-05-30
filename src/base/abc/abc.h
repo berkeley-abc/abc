@@ -1113,7 +1113,8 @@ extern ABC_DLL void               Abc_NtkClearFaults( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkGenerateFaultList( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkGenerateCheckpointFaultList( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkGenerateCollapsingFaultList( Abc_Ntk_t * pNtk );
-extern ABC_DLL void               Abc_NtkGenerateTDFaultList( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkGenerateCollapsedCheckpointFaultList( Abc_Ntk_t * pNtk );
+
 
 
 
