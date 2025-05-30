@@ -1,0 +1,3 @@
+[submodule "pbcomp24-cg"]
+	path = pbcomp24-cg
+	url = https://bitbucket.org/coreo-group/pbcomp24-cg.git
