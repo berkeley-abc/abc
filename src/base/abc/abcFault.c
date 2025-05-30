@@ -739,53 +739,74 @@ void Abc_NtkGenerateCollapsingFaultList( Abc_Ntk_t * pNtk )
 void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
 {
     Abc_Fault_t * pFault;
-    int faultId = 0;
-    Vec_Ptr_t * vHandled = Vec_PtrAlloc(100); // Track handled output nodes
+    Vec_Ptr_t * vHandledsa0 = Vec_PtrAlloc(100); // Track handled output nodes
+    Vec_Ptr_t * vHandledsa1 = Vec_PtrAlloc(100); // Track handled output nodes
     // Iterate over the fault list
-    for (pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext, ++faultId)
+    for (pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext)
     {
         char xName[32], yName[32];
-        Abc_Obj_t * pX, * pY, * pNotX, * pC, * pAnd, * pOut;
+        Abc_Obj_t * pX, * pY, * pNotX, * pC, * pAnd, * pOr;
 
         pC = pFault->pNode; // Output of the gate
-        // Check if we've already handled this node
-        if (Vec_PtrFind(vHandled, pC) != -1)
-            continue; // Already handled
-        Vec_PtrPush(vHandled, pC);
-        
-        pOut = Abc_NtkCreateNode(pNtk);
-        // Rewire the network so that pOut replaces pC as the output signal
-        // Transfer all fanouts of pC to pOut
-        Abc_ObjTransferFanout(pC, pOut);
 
-        // Generate unique names for x and y
-        sprintf(xName, "x_%d", faultId);
-        sprintf(yName, "y_%d", faultId);
-        // Add new PIs
-        pX = Abc_NtkCreatePi(pNtk);
-        Abc_ObjAssignName(pX, xName, NULL);
-        pY = Abc_NtkCreatePi(pNtk);
-        Abc_ObjAssignName(pY, yName, NULL);
-        
-        // Create NOT gate for ~x
-        pNotX = Abc_NtkCreateNode(pNtk);
-        Abc_ObjAddFanin(pNotX, pX);
-        pNotX->pData = Abc_SopCreateInv((Mem_Flex_t*)pNtk->pManFunc);
-        
-        // Create AND gate for (c AND ~x)
-        pAnd = Abc_NtkCreateNode(pNtk);
-        Abc_ObjAddFanin(pAnd, pC);
-        Abc_ObjAddFanin(pAnd, pNotX);
-        pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
-        
-        // Create OR gate for ((c AND ~x) OR y)
-        Abc_ObjAddFanin(pOut, pAnd);
-        Abc_ObjAddFanin(pOut, pY);
-        pOut->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
-        
-        printf("[FaultSim] Inserted fault sim gates for node %s \n", Abc_ObjName(pC));
+        if(pFault->Type == ABC_FAULT_SA0)
+        {
+            if(Vec_PtrFind(vHandledsa0, pC) != -1)
+                continue;
+            Vec_PtrPush(vHandledsa0, pC);
+
+            pAnd = Abc_NtkCreateNode(pNtk);
+            // Rewire the network so that pAnd replaces pC as the output signal
+            // Transfer all fanouts of pC to pAnd
+            Abc_ObjTransferFanout(pC, pAnd);
+
+            // Generate unique names for x and y
+            sprintf(xName, "x_%s", Abc_ObjName(pC));
+            // Add new PIs
+            pX = Abc_NtkCreatePi(pNtk);
+            Abc_ObjAssignName(pX, xName, NULL);
+            
+            // Create NOT gate for ~x
+            pNotX = Abc_NtkCreateNode(pNtk);
+            Abc_ObjAddFanin(pNotX, pX);
+            pNotX->pData = Abc_SopCreateInv((Mem_Flex_t*)pNtk->pManFunc);
+            
+            // Create AND gate for (c AND ~x)
+            Abc_ObjAddFanin(pAnd, pC);
+            Abc_ObjAddFanin(pAnd, pNotX);
+            pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
+            
+            printf("[FaultSim] Inserted SA0 sim gates for node %s \n", Abc_ObjName(pC));
+
+        }
+        else if(pFault->Type == ABC_FAULT_SA1)
+        {
+            if(Vec_PtrFind(vHandledsa1, pC) != -1)
+                continue;
+            Vec_PtrPush(vHandledsa1, pC);
+
+            pOr = Abc_NtkCreateNode(pNtk);
+            // Rewire the network so that pOr replaces pC as the output signal
+            // Transfer all fanouts of pC to pOr
+            Abc_ObjTransferFanout(pC, pOr);
+
+            // Generate unique names for x and y
+            sprintf(yName, "y_%s", Abc_ObjName(pC));
+            // Add new PIs
+            pY = Abc_NtkCreatePi(pNtk);
+            Abc_ObjAssignName(pY, yName, NULL);
+            
+            
+            // Create OR gate for ((c AND ~x) OR y)
+            Abc_ObjAddFanin(pOr, pC);
+            Abc_ObjAddFanin(pOr, pY);
+            pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
+            
+            printf("[FaultSim] Inserted SA1 sim gates for node %s \n", Abc_ObjName(pC));
+        }
     }
-    Vec_PtrFree(vHandled);
+    Vec_PtrFree(vHandledsa0);
+    Vec_PtrFree(vHandledsa1);
     printf("[FaultSim] Completed fault simulation gate insertion\n");
 }
 
