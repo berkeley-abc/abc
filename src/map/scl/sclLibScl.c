@@ -875,7 +875,7 @@ SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2, int fUsePrefix )
     SC_Lib * p = Abc_SclReadFromStr( vOut );
     p->pFileName = Abc_UtilStrsav( pLib1->pFileName );
     p->pName = ABC_ALLOC( char, strlen(pLib1->pName) + strlen(pLib2->pName) + 10 );
-    sprintf( p->pName, "%s__and__%s", pLib1->pName, pLib2->pName );
+    sprintf( p->pName, "merged_lib_size_%d", p->vCells.nSize );
     Vec_StrFree( vOut );
     printf( "Updated library \"%s\" with additional %d cells from library \"%s\".\n", pLib1->pName, n_valid_cells2, pLib2->pName );
     return p;
