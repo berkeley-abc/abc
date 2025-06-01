@@ -747,7 +747,7 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
     {
         char xName[32], yName[32];
         char f0_Name[32], f1_Name[32];
-        char po_f0_Name[32], po_f1_Name[32];
+        char PO_f0_Name[32], PO_f1_Name[32];
         Abc_Obj_t * pX, * pY, * pNotX, * pC, * pAnd, * pOr;
 
         pC = pFault->pNode; // Output of the gate
@@ -797,10 +797,10 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
             pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
 
             // wire the constant 1 PO to the OR gate
-            Abc_Obj_t * pConst1Po = Abc_NtkCreatePo(pNtk);
-            sprintf(po_f0_Name, "const1_po_pbo_%s", Abc_ObjName(pC));
-            Abc_ObjAssignName(pConst1Po, po_f0_Name, NULL);
-            Abc_ObjAddFanin(pConst1Po, pOR_pbo);
+            Abc_Obj_t * pPo = Abc_NtkCreatePo(pNtk);
+            sprintf(PO_f0_Name, "PO_pbo_%s", Abc_ObjName(pC));
+            Abc_ObjAssignName(pPo, PO_f0_Name, NULL);
+            Abc_ObjAddFanin(pPo, pOR_pbo);
             
             printf("[FaultSim] Inserted SA0 sim gates for node %s \n", Abc_ObjName(pC));
 
@@ -811,7 +811,7 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
                 continue;
             Vec_PtrPush(vHandledsa1, pC);
 
-            Abc_Obj_t * pAND_pbo, * pf1_pbo;
+            Abc_Obj_t * pAND_pbo, * pf1_pbo, * pNot_pbo;
 
             pOr = Abc_NtkCreateNode(pNtk);
             pAND_pbo = Abc_NtkCreateNode(pNtk);
@@ -839,10 +839,16 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
             pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
 
             // wire the constant 0 PO to the AND gate
-            Abc_Obj_t * pConst0Po = Abc_NtkCreatePo(pNtk);
-            sprintf(po_f1_Name, "const0_po_pbo_%s", Abc_ObjName(pC));
-            Abc_ObjAssignName(pConst0Po, po_f1_Name, NULL);
-            Abc_ObjAddFanin(pConst0Po, pAND_pbo);
+            // Create NOT gate for ~ (pC & pf1_pbo)
+            pNot_pbo = Abc_NtkCreateNode(pNtk);
+            Abc_ObjAddFanin(pNot_pbo, pAND_pbo);
+            pNot_pbo->pData = Abc_SopCreateInv((Mem_Flex_t*)pNtk->pManFunc);
+
+            // wire the constant 1 PO to the NOT gate
+            Abc_Obj_t * pPo = Abc_NtkCreatePo(pNtk);
+            sprintf(PO_f1_Name, "PO_pbo_%s", Abc_ObjName(pC));
+            Abc_ObjAssignName(pPo, PO_f1_Name, NULL);
+            Abc_ObjAddFanin(pPo, pNot_pbo);
             
             printf("[FaultSim] Inserted SA1 sim gates for node %s \n", Abc_ObjName(pC));
         }
