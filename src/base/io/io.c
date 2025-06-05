@@ -94,6 +94,7 @@ static int IoCommandWriteJson   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteResub  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteMM     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteMMGia  ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteConstraintVerilog( Abc_Frame_t * pAbc, int argc, char **argv );
 
 extern void Abc_FrameCopyLTLDataBase( Abc_Frame_t *pAbc, Abc_Ntk_t * pNtk );
 
@@ -176,6 +177,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "&write_resub",  IoCommandWriteResub,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_mm",      IoCommandWriteMM,      0 );
     Cmd_CommandAdd( pAbc, "I/O", "&write_mm",     IoCommandWriteMMGia,   0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_constraint_verilog", IoCommandWriteConstraintVerilog, 0 );
 }
 
 /**Function*************************************************************
@@ -4419,6 +4421,95 @@ usage:
     fprintf( pAbc->Err, "usage: &write_mm [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         write cell mapped current AIG into a file\n" );
     fprintf( pAbc->Err, "\t-h     : print the help message\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteConstraintVerilog( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    extern void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int fFixed, int fNoModules, int fNewInterface );
+    char * pFileName;
+    int c, fFixed = 0, fOnlyAnds = 0, fNoModules = 0, fNewInterface = 0;
+    int nLutSize = -1;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kfamnh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'K':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                    goto usage;
+                }
+                nLutSize = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nLutSize < 2 || nLutSize > 6 )
+                    goto usage;
+                break;
+            case 'f':
+                fFixed ^= 1;
+                break;
+            case 'a':
+                fOnlyAnds ^= 1;
+                break;
+            case 'm':
+                fNoModules ^= 1;
+                break;
+            case 'n':
+                fNewInterface ^= 1;
+                break;                
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pNtkCur->pFaultConstraintNtk == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    if ( fFixed )
+        nLutSize = 6;
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    // call the corresponding file writer
+    if ( nLutSize >= 2 && nLutSize <= 6 )
+        Io_WriteVerilogLut( pAbc->pNtkCur->pFaultConstraintNtk, pFileName, nLutSize, fFixed, fNoModules, fNewInterface );
+    else
+    {
+        Abc_Ntk_t * pNtkTemp = Abc_NtkToNetlist( pAbc->pNtkCur->pFaultConstraintNtk );
+        if ( !Abc_NtkHasAig(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
+            Abc_NtkToAig( pNtkTemp );
+        Io_WriteVerilog( pNtkTemp, pFileName, fOnlyAnds, fNewInterface );
+        Abc_NtkDelete( pNtkTemp );
+    }
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_verilog [-K num] [-famnh] <file>\n" );
+    fprintf( pAbc->Err, "\t         writes the current network in Verilog format\n" );
+    fprintf( pAbc->Err, "\t-K num : write the network using instances of K-LUTs (2 <= K <= 6) [default = not used]\n" );
+    fprintf( pAbc->Err, "\t-f     : toggle using fixed format [default = %s]\n", fFixed? "yes":"no" );
+    fprintf( pAbc->Err, "\t-a     : toggle writing expressions with only ANDs (without XORs and MUXes) [default = %s]\n", fOnlyAnds? "yes":"no" );
+    fprintf( pAbc->Err, "\t-m     : toggle writing additional modules [default = %s]\n", !fNoModules? "yes":"no" );
+    fprintf( pAbc->Err, "\t-n     : toggle writing generic PO names and assign-statements [default = %s]\n", fNewInterface? "yes":"no" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
 }
