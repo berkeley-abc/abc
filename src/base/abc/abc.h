@@ -236,6 +236,7 @@ struct Abc_Ntk_t_
     Vec_Int_t *       vNameIds;      // name IDs
     Vec_Int_t *       vFins;         // obj/type info
     Vec_Int_t *       vOrigNodeIds;  // original node IDs
+    Abc_Ntk_t *       pFaultConstraintNtk;  // the fault constraint network
 };
 
 struct Abc_Des_t_ 
@@ -1116,6 +1117,7 @@ extern ABC_DLL void               Abc_NtkGenerateCollapsingFaultList( Abc_Ntk_t 
 extern ABC_DLL void               Abc_NtkGenerateTDFaultList( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk);
 extern ABC_DLL void               Abc_NtkGenerateCollapsedCheckpointFaultList( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk);
 
 
 

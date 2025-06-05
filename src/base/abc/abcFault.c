@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include "misc/util/abc_global.h"
 
-
-
 ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -739,21 +737,31 @@ void Abc_NtkGenerateCollapsingFaultList( Abc_Ntk_t * pNtk )
 void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
 {
     Abc_Fault_t * pFault;
-    Vec_Ptr_t * vHandledsa0 = Vec_PtrAlloc(100); // Track handled output nodes
-    Vec_Ptr_t * vHandledsa1 = Vec_PtrAlloc(100); // Track handled output nodes
+    char * key = NULL;
+    char keyBuf[100];  // Buffer for creating key strings
+    int i;
+    Vec_Ptr_t * vGOHandledsa0 = Vec_PtrAlloc(100); // Track handled output nodes
+    Vec_Ptr_t * vGOHandledsa1 = Vec_PtrAlloc(100); // Track handled output nodes
+    Vec_Ptr_t * vGIHandledsa0 = Vec_PtrAlloc(100); // Track handled input nodes
+    Vec_Ptr_t * vGIHandledsa1 = Vec_PtrAlloc(100); // Track handled input nodes
+    
     // Iterate over the fault list
     for (pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext)
     {
         char xName[32], yName[32];
         Abc_Obj_t * pX, * pY, * pNotX, * pC, * pAnd, * pOr;
+        Abc_Obj_t * pNode = pFault->pNode;
 
-        pC = pFault->pNode; // Output of the gate
+        // Handle gate output (GO) faults
+        if (pFault->Io == ABC_FAULT_GO)
+        {
+            pC = pNode; // Output of the gate
 
         if(pFault->Type == ABC_FAULT_SA0)
         {
-            if(Vec_PtrFind(vHandledsa0, pC) != -1)
+                if(Vec_PtrFind(vGOHandledsa0, pC) != -1)
                 continue;
-            Vec_PtrPush(vHandledsa0, pC);
+                Vec_PtrPush(vGOHandledsa0, pC);
 
             pAnd = Abc_NtkCreateNode(pNtk);
             // Rewire the network so that pAnd replaces pC as the output signal
@@ -776,14 +784,13 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
             Abc_ObjAddFanin(pAnd, pNotX);
             pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
             
-            printf("[FaultSim] Inserted SA0 sim gates for node %s \n", Abc_ObjName(pC));
-
+                printf("[FaultSim] Inserted SA0 GO sim gates for node %s\n", Abc_ObjName(pC));
         }
         else if(pFault->Type == ABC_FAULT_SA1)
         {
-            if(Vec_PtrFind(vHandledsa1, pC) != -1)
+                if(Vec_PtrFind(vGOHandledsa1, pC) != -1)
                 continue;
-            Vec_PtrPush(vHandledsa1, pC);
+                Vec_PtrPush(vGOHandledsa1, pC);
 
             pOr = Abc_NtkCreateNode(pNtk);
             // Rewire the network so that pOr replaces pC as the output signal
@@ -796,18 +803,311 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
             pY = Abc_NtkCreatePi(pNtk);
             Abc_ObjAssignName(pY, yName, NULL);
             
-            
             // Create OR gate for ((c AND ~x) OR y)
             Abc_ObjAddFanin(pOr, pC);
             Abc_ObjAddFanin(pOr, pY);
             pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
             
-            printf("[FaultSim] Inserted SA1 sim gates for node %s \n", Abc_ObjName(pC));
+                printf("[FaultSim] Inserted SA1 GO sim gates for node %s\n", Abc_ObjName(pC));
+            }
+        }
+        // Handle gate input (GI) faults
+        else if (pFault->Io == ABC_FAULT_GI)
+        {
+            int fanin_index = pFault->Index;
+            Abc_Obj_t * pFanin = Abc_ObjFanin(pNode, fanin_index);
+            if (!pFanin) {
+                printf("[FaultSim] Error: Invalid fanin index %d for node %s\n", fanin_index, Abc_ObjName(pNode));
+                continue;
+            }
+
+            // Create a unique key for this node-input combination
+            sprintf(keyBuf, "%s_in%d", Abc_ObjName(pNode), fanin_index);
+
+            // Create an intermediate node to insert between fanin and node
+            if (pFault->Type == ABC_FAULT_SA0)
+            {
+                // Skip if already handled this node-input combination
+                if (Vec_PtrFind(vGIHandledsa0, keyBuf) != -1)
+                    continue;
+                // Allocate memory for the key and copy the string
+                key = ABC_ALLOC(char, strlen(keyBuf) + 1);
+                strcpy(key, keyBuf);
+                Vec_PtrPush(vGIHandledsa0, key);
+
+                // Create AND gate for (fanin AND ~x)
+                pAnd = Abc_NtkCreateNode(pNtk);
+                
+                // Generate unique name for x
+                sprintf(xName, "x_%s_in%d", Abc_ObjName(pNode), fanin_index);
+                pX = Abc_NtkCreatePi(pNtk);
+                Abc_ObjAssignName(pX, xName, NULL);
+                
+                // Create NOT gate for ~x
+                pNotX = Abc_NtkCreateNode(pNtk);
+                Abc_ObjAddFanin(pNotX, pX);
+                pNotX->pData = Abc_SopCreateInv((Mem_Flex_t*)pNtk->pManFunc);
+                
+                // Insert AND gate between fanin and node
+                Abc_ObjPatchFanin(pNode, pFanin, pAnd);
+                Abc_ObjAddFanin(pAnd, pFanin);
+                Abc_ObjAddFanin(pAnd, pNotX);
+                pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
+                
+                printf("[FaultSim] Inserted SA0 GI sim gates for node %s input %d\n", Abc_ObjName(pNode), fanin_index);
+            }
+            else if (pFault->Type == ABC_FAULT_SA1)
+            {
+                // Skip if already handled this node-input combination
+                if (Vec_PtrFind(vGIHandledsa1, keyBuf) != -1)
+                    continue;
+                // Allocate memory for the key and copy the string
+                key = ABC_ALLOC(char, strlen(keyBuf) + 1);
+                strcpy(key, keyBuf);
+                Vec_PtrPush(vGIHandledsa1, key);
+
+                // Create OR gate for (fanin OR y)
+                pOr = Abc_NtkCreateNode(pNtk);
+                
+                // Generate unique name for y
+                sprintf(yName, "y_%s_in%d", Abc_ObjName(pNode), fanin_index);
+                pY = Abc_NtkCreatePi(pNtk);
+                Abc_ObjAssignName(pY, yName, NULL);
+                
+                // Insert OR gate between fanin and node
+                Abc_ObjPatchFanin(pNode, pFanin, pOr);
+                Abc_ObjAddFanin(pOr, pFanin);
+                Abc_ObjAddFanin(pOr, pY);
+                pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t*)pNtk->pManFunc, 2, NULL);
+                
+                printf("[FaultSim] Inserted SA1 GI sim gates for node %s input %d\n", Abc_ObjName(pNode), fanin_index);
+            }
         }
     }
-    Vec_PtrFree(vHandledsa0);
-    Vec_PtrFree(vHandledsa1);
+
+    // Free the tracking vectors and their contents
+    Vec_PtrForEachEntry(char *, vGIHandledsa0, key, i)
+        ABC_FREE(key);
+    Vec_PtrForEachEntry(char *, vGIHandledsa1, key, i)
+        ABC_FREE(key);
+    Vec_PtrFree(vGOHandledsa0);
+    Vec_PtrFree(vGOHandledsa1);
+    Vec_PtrFree(vGIHandledsa0);
+    Vec_PtrFree(vGIHandledsa1);
     printf("[FaultSim] Completed fault simulation gate insertion\n");
 }
 
-ABC_NAMESPACE_IMPL_END 
+void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
+{
+    Abc_Ntk_t * pGoodNtk, * pFaultNtk, * pCombinedNtk;
+    Abc_Obj_t * pObj, * pFanin, * pXor;
+    Abc_Fault_t * pFault;
+    int i;
+
+    printf("[FaultConstraint] Starting fault constraint network creation\n");
+
+    // Create copies of good and faulty circuits
+    pGoodNtk = Abc_NtkDup(pNtk);
+    pFaultNtk = Abc_NtkDup(pNtk);
+    printf("[FaultConstraint] Created circuit copies\n");
+    
+    // Copy fault list to faulty network
+    pFaultNtk->pFaultList = pNtk->pFaultList;
+    pFaultNtk->nFaults = pNtk->nFaults;
+    pFaultNtk->nDetectedFaults = pNtk->nDetectedFaults;
+    pFaultNtk->nUndetectableFaults = pNtk->nUndetectableFaults;
+    pFaultNtk->nActivatedFaults = pNtk->nActivatedFaults;
+    pFaultNtk->nTestTriedFaults = pNtk->nTestTriedFaults;
+    printf("[FaultConstraint] Copied fault list to faulty network\n");
+
+    // Update fault node pointers to point to nodes in the faulty network
+    for (pFault = pFaultNtk->pFaultList; pFault; pFault = pFault->pNext)
+    {
+        pFault->pNode = pFault->pNode->pCopy;
+    }
+    printf("[FaultConstraint] Updated fault node pointers in faulty network\n");
+    
+    // Insert fault simulation gates into the faulty circuit
+    Abc_NtkInsertFaultSimGates(pFaultNtk);
+    printf("[FaultConstraint] Completed fault simulation gate insertion\n");
+
+    // Create the combined network
+    pCombinedNtk = Abc_NtkAlloc(ABC_NTK_LOGIC, ABC_FUNC_SOP, 1);
+    pCombinedNtk->pName = Abc_UtilStrsav("fault_constraint");
+    printf("[FaultConstraint] Created combined network\n");
+
+    // Copy PIs from good circuit
+    Abc_NtkForEachPi(pGoodNtk, pObj, i) {
+        Abc_Obj_t * pPi = Abc_NtkCreatePi(pCombinedNtk);
+        Abc_ObjAssignName(pPi, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
+        pObj->pCopy = pPi;
+    }
+    printf("[FaultConstraint] Copied PIs from good circuit\n");
+
+    // Copy additional PIs from faulty circuit with unique names
+    Abc_NtkForEachPi(pFaultNtk, pObj, i) {
+        printf("[FaultConstraint] Processing PI %s\n", Abc_ObjName(pObj));
+        if (pObj->pCopy == NULL) {  // Only copy if not already copied
+            Abc_Obj_t * pPi = Abc_NtkCreatePi(pCombinedNtk);
+            // Create unique name by appending "_f" for faulty circuit PIs
+            char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
+            char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
+            sprintf(pNewName, "%s_f", pName);
+            printf("[FaultConstraint] Creating unique name for PI %s: %s\n", Abc_ObjName(pObj), pNewName);
+            Abc_ObjAssignName(pPi, pNewName, NULL);
+            free(pName);  // Free the original name
+            pObj->pCopy = pPi;
+        }
+    }
+    printf("[FaultConstraint] Copied additional PIs from faulty circuit\n");
+
+    // Copy nodes from good circuit
+    Abc_NtkForEachNode(pGoodNtk, pObj, i) {
+        Abc_Obj_t * pNode = Abc_NtkCreateNode(pCombinedNtk);
+        pNode->pData = Abc_SopRegister((Mem_Flex_t*)pCombinedNtk->pManFunc, (char*)pObj->pData);
+        Abc_ObjAssignName(pNode, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
+        pObj->pCopy = pNode;
+    }
+    printf("[FaultConstraint] Copied nodes from good circuit\n");
+
+    // Connect nodes in good circuit
+    Abc_NtkForEachNode(pGoodNtk, pObj, i) {
+        Abc_Obj_t * pNode = pObj->pCopy;
+        Abc_Obj_t * pFanin;
+        int j;
+        Abc_ObjForEachFanin(pObj, pFanin, j) {
+            if (pFanin->pCopy == NULL) {
+                printf("Error: Fanin %s of node %s not copied\n", Abc_ObjName(pFanin), Abc_ObjName(pObj));
+            continue;
+        }
+            Abc_ObjAddFanin(pNode, pFanin->pCopy);
+        }
+    }
+    printf("[FaultConstraint] Connected nodes in good circuit\n");
+
+    // Copy nodes from faulty circuit with unique names
+    Abc_NtkForEachNode(pFaultNtk, pObj, i) {
+        Abc_Obj_t * pNode = Abc_NtkCreateNode(pCombinedNtk);
+        pNode->pData = Abc_SopRegister((Mem_Flex_t*)pCombinedNtk->pManFunc, (char*)pObj->pData);
+        // Create unique name by appending "_f" for faulty circuit nodes
+        char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
+        char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
+        sprintf(pNewName, "%s_f", pName);
+        Abc_ObjAssignName(pNode, pNewName, NULL);
+        free(pName);  // Free the original name
+        pObj->pCopy = pNode;
+    }
+    printf("[FaultConstraint] Copied nodes from faulty circuit\n");
+
+    // Connect nodes in faulty circuit
+    Abc_NtkForEachNode(pFaultNtk, pObj, i) {
+        Abc_Obj_t * pNode = pObj->pCopy;
+        Abc_Obj_t * pFanin;
+        int j;
+        Abc_ObjForEachFanin(pObj, pFanin, j) {
+            if (pFanin->pCopy == NULL) {
+                printf("Error: Fanin %s of node %s not copied\n", Abc_ObjName(pFanin), Abc_ObjName(pObj));
+            continue;
+        }
+            Abc_ObjAddFanin(pNode, pFanin->pCopy);
+        }
+    }
+    printf("[FaultConstraint] Connected nodes in faulty circuit\n");
+
+    // Connect corresponding good and faulty input PIs
+    int totalPIs = Abc_NtkPiNum(pGoodNtk);
+    int processedPIs = 0;
+    printf("[FaultConstraint] Total PIs to process: %d\n", totalPIs);
+    printf("[FaultConstraint] Combined network has %d PIs\n", Abc_NtkPiNum(pCombinedNtk));
+
+    Abc_NtkForEachPi(pGoodNtk, pObj, i) {
+        char * pGoodName = Abc_ObjName(pObj);
+        char * pFaultName = (char *)malloc(strlen(pGoodName) + 3);  // +3 for "_f" and null terminator
+        sprintf(pFaultName, "%s_f", pGoodName);
+        
+        // Find the corresponding fault PI by name
+        Abc_Obj_t * pCombinedFaultPi = NULL;
+        Abc_Obj_t * pPi;
+        int j;
+        Abc_NtkForEachPi(pCombinedNtk, pPi, j) {
+            if (strcmp(Abc_ObjName(pPi), pFaultName) == 0) {
+                pCombinedFaultPi = pPi;
+                break;
+            }
+        }
+        free(pFaultName);
+
+        if (!pCombinedFaultPi) {
+            printf("[FaultConstraint] Error: Could not find fault PI %s_f\n", pGoodName);
+                continue;
+            }
+
+        printf("[FaultConstraint] Processing PI pair %d: Good PI %s, Fault PI %s\n", 
+               i, pGoodName, Abc_ObjName(pCombinedFaultPi));
+
+        // Connect the good circuit PI to the faulty circuit PI's fanouts
+        Abc_Obj_t * pFanout;
+        int k;
+        int fanoutCount = 0;
+        Abc_ObjForEachFanout(pCombinedFaultPi, pFanout, k) {
+            // Remove the connection to the faulty PI
+            Abc_ObjDeleteFanin(pFanout, pCombinedFaultPi);
+            // Add connection to the good circuit PI
+            Abc_ObjAddFanin(pFanout, pObj->pCopy);
+            fanoutCount++;
+    }
+        printf("[FaultConstraint] Transferred %d fanouts for PI %s\n", fanoutCount, Abc_ObjName(pCombinedFaultPi));
+
+        // Remove the redundant PI from the combined network
+        Abc_NtkDeleteObj(pCombinedFaultPi);
+        processedPIs++;
+    }
+
+    printf("[FaultConstraint] Processed %d out of %d PIs\n", processedPIs, totalPIs);
+    printf("[FaultConstraint] Connected input PIs and removed redundant PIs\n");
+
+    // Create XOR gates to compare outputs
+    Abc_NtkForEachPo(pGoodNtk, pObj, i) {
+        // Get the fanin (output of the good circuit)
+        pFanin = Abc_ObjFanin0(pObj);
+        if (!pFanin || !pFanin->pCopy) {
+            printf("[FaultConstraint] Error: PO %s has invalid fanin\n", Abc_ObjName(pObj));
+            continue;
+        }
+        
+        // Create XOR gate
+        pXor = Abc_NtkCreateNode(pCombinedNtk);
+        Abc_ObjAssignName(pXor, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
+        
+        // Connect the good circuit output to first input of XOR
+        Abc_ObjAddFanin(pXor, pFanin->pCopy);
+        
+        // Connect the faulty circuit output to second input of XOR
+        Abc_Obj_t * pFaultFanin = Abc_ObjFanin0(pFaultNtk->vPos->pArray[i]);
+        if (!pFaultFanin || !pFaultFanin->pCopy) {
+            printf("[FaultConstraint] Error: Fault PO %s has invalid fanin\n", Abc_ObjName(pObj));
+            continue;
+        }
+        Abc_ObjAddFanin(pXor, pFaultFanin->pCopy);
+        
+        // Set XOR functionality
+        pXor->pData = Abc_SopCreateXor((Mem_Flex_t*)pCombinedNtk->pManFunc, 2);
+        
+        // Create PO for the XOR output
+        Abc_Obj_t * pPo = Abc_NtkCreatePo(pCombinedNtk);
+        Abc_ObjAddFanin(pPo, pXor);
+        Abc_ObjAssignName(pPo, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
+    }
+    printf("[FaultConstraint] Created XOR gates and POs\n");
+
+    // Store the combined network
+    pNtk->pFaultConstraintNtk = pCombinedNtk;
+    printf("[FaultConstraint] Stored combined network\n");
+
+    // Clean up
+    Abc_NtkDelete(pGoodNtk);
+    Abc_NtkDelete(pFaultNtk);
+    printf("[FaultConstraint] Completed fault constraint network creation\n");
+}
+
+ABC_NAMESPACE_IMPL_END
