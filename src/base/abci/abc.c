@@ -182,6 +182,10 @@ static int Abc_CommandAIGAugmentation       ( Abc_Frame_t * pAbc, int argc, char
 static int Abc_CommandFaultGen               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFaultSim               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFaultConstraint        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
+// PBO commands
+static int Abc_CommandRunPBO                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMiter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1005,6 +1009,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Fault",        "fault_gen",          Abc_CommandFaultGen,         0 );
     Cmd_CommandAdd( pAbc, "Fault",        "fault_sim",          Abc_CommandFaultSim,         1 );
     Cmd_CommandAdd( pAbc, "Fault",        "fault_constraint",   Abc_CommandFaultConstraint,  1 );
+
+    Cmd_CommandAdd( pAbc, "Fault",        "pbo",                Abc_CommandRunPBO,           0 );
+    
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
@@ -11284,6 +11291,7 @@ usage:
     return 1;
 }
 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -11331,6 +11339,64 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    FILE * pFile;
+    char * pFileName;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    pFileName = "atpg.cnf";
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return 0;
+    }
+    fclose( pFile );
+    
+    Abc_ExecPBO();
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: pbo [-h]\n" );
+    Abc_Print( -2, "\t         Create child process to run PBO on generated cnf file\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
 
 /**Function*************************************************************
 
