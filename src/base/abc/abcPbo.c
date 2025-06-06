@@ -11,7 +11,15 @@ void Abc_ExecPBO()
 
     if (pid == 0) {
         // Child process: executing pbo solver
-        char *argv[] = {"./solver", arg_str, NULL};
+        char arg_str[100] = {0};
+        for (int i = 2; i < 10; ++i) {
+            char temp[16];
+            sprintf(temp, "%d", i);
+            strcat(arg_str, temp);
+            if (i < 10 - 1) strcat(arg_str, " ");
+        }
+        
+        char *argv[] = {"./solver", "atpg.cnf", "output.opb", arg_str, NULL};
         execv("./solver", argv);
         _exit(1); // exec failed
     } else {
