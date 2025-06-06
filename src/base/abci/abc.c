@@ -182,10 +182,9 @@ static int Abc_CommandAIGAugmentation       ( Abc_Frame_t * pAbc, int argc, char
 static int Abc_CommandFaultGen               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFaultSim               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFaultConstraint        ( Abc_Frame_t * pAbc, int argc, char ** argv );
-
-// PBO commands
+static int Abc_CommandAddTp                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInsertTp               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandRunPBO                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
-
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMiter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1009,9 +1008,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Fault",        "fault_gen",          Abc_CommandFaultGen,         0 );
     Cmd_CommandAdd( pAbc, "Fault",        "fault_sim",          Abc_CommandFaultSim,         1 );
     Cmd_CommandAdd( pAbc, "Fault",        "fault_constraint",   Abc_CommandFaultConstraint,  1 );
-
-    Cmd_CommandAdd( pAbc, "Fault",        "pbo",                Abc_CommandRunPBO,           0 );
-    
+    Cmd_CommandAdd( pAbc, "Fault",        "add_tp",        Abc_CommandAddTp,            1 );
+    Cmd_CommandAdd( pAbc, "Fault",        "insert_tp",     Abc_CommandInsertTp,         1 );
+    Cmd_CommandAdd( pAbc, "Fault",        "pbo",           Abc_CommandRunPBO,           0 );
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
@@ -11338,6 +11337,146 @@ usage:
     Abc_Print( -2, "\t         Generate stuck-at faults for the current network\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAddTp( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Vec_Int_t * vPattern;
+    char * pPattern;
+    int c, i;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Please provide a test pattern.\n" );
+        goto usage;
+    }
+
+    // Get the pattern string
+    pPattern = argv[globalUtilOptind];
+    
+    // Create vector to store the pattern
+    vPattern = Vec_IntAlloc(strlen(pPattern));
+
+    // Convert string to vector of integers
+    for (i = 0; i < strlen(pPattern); i++)
+    {
+        if (pPattern[i] == '0')
+            Vec_IntPush(vPattern, 0);
+        else if (pPattern[i] == '1')
+            Vec_IntPush(vPattern, 1);
+        else
+        {
+            Vec_IntFree(vPattern);
+            Abc_Print( -1, "Invalid test pattern. Use only 0s and 1s.\n" );
+            return 1;
+        }
+    }
+
+    // Add the pattern to the network
+    Abc_NtkAddTestPattern(pNtk, vPattern);
+    
+    // Free the temporary vector
+    Vec_IntFree(vPattern);
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: add_tp <pattern> [-h]\n" );
+    Abc_Print( -2, "\t         Add a test pattern to the network\n" );
+    Abc_Print( -2, "\t<pattern>: Binary string of 0s and 1s\n" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandInsertTp( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( !pNtk->pFaultConstraintNtk )
+    {
+        Abc_Print( -1, "Fault constraint network not created. Use fault_constraint first.\n" );
+        return 1;
+    }
+
+    if ( !pNtk->vTestPatterns || Abc_NtkTestPatternNum(pNtk) == 0 )
+    {
+        Abc_Print( -1, "No test patterns available. Add test patterns first using add_tp.\n" );
+        return 1;
+    }
+
+    // Assign the latest test pattern to the constraint network
+    Abc_NtkAssignLatestPatternToConstraintNetwork(pNtk);
+    
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: insert_tp [-h]\n" );
+    Abc_Print( -2, "\t         Insert the latest test pattern into the fault constraint network\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+} 
 }
 
 /**Function*************************************************************
