@@ -1110,4 +1110,105 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
     printf("[FaultConstraint] Completed fault constraint network creation\n");
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Initializes the test pattern list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkInitTestPatterns( Abc_Ntk_t * pNtk )
+{
+    if ( pNtk->vTestPatterns )
+        Abc_NtkFreeTestPatterns( pNtk );
+    pNtk->vTestPatterns = Vec_PtrAlloc( 100 ); // Initial capacity of 100 patterns
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Adds a test pattern to the network.]
+
+  Description [The pattern should be a Vec_Int_t* containing 0s and 1s
+               with size equal to the number of primary inputs.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkAddTestPattern( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern )
+{
+    Vec_Int_t * vPatternCopy;
+    // Check if test pattern list is initialized
+    if ( !pNtk->vTestPatterns )
+        Abc_NtkInitTestPatterns( pNtk );
+    // Create a copy of the pattern
+    vPatternCopy = Vec_IntDup( vPattern );
+    // Add the pattern to the list
+    Vec_PtrPush( pNtk->vTestPatterns, vPatternCopy );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the test pattern list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkFreeTestPatterns( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vPattern;
+    int i;
+    if ( !pNtk->vTestPatterns )
+        return;
+    // Free each pattern
+    Vec_PtrForEachEntry( Vec_Int_t *, pNtk->vTestPatterns, vPattern, i )
+        Vec_IntFree( vPattern );
+    // Free the list itself
+    Vec_PtrFree( pNtk->vTestPatterns );
+    pNtk->vTestPatterns = NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Returns the number of test patterns.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_NtkTestPatternNum( Abc_Ntk_t * pNtk )
+{
+    return pNtk->vTestPatterns ? Vec_PtrSize(pNtk->vTestPatterns) : 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Gets a specific test pattern by index.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkGetTestPattern( Abc_Ntk_t * pNtk, int i )
+{
+    assert( pNtk->vTestPatterns );
+    assert( i >= 0 && i < Vec_PtrSize(pNtk->vTestPatterns) );
+    return (Vec_Int_t *)Vec_PtrEntry( pNtk->vTestPatterns, i );
+}
+
 ABC_NAMESPACE_IMPL_END

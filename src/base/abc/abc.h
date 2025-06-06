@@ -181,6 +181,8 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vPios;         // the array of PIOs
     Vec_Ptr_t *       vBoxes;        // the array of boxes
     Vec_Ptr_t *       vLtlProperties;
+    // test pattern list information
+    Vec_Ptr_t *       vTestPatterns; // the array of test patterns (each pattern is Vec_Int_t*)
     // fault list information
     Abc_Fault_t *     pFaultList;    // the list of faults
     int               nFaults;       // total number of faults
@@ -1119,8 +1121,12 @@ extern ABC_DLL void               Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk);
 extern ABC_DLL void               Abc_NtkGenerateCollapsedCheckpointFaultList( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk);
 
-
-
+// Test pattern management functions
+extern ABC_DLL void               Abc_NtkInitTestPatterns( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkAddTestPattern( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern );
+extern ABC_DLL void               Abc_NtkFreeTestPatterns( Abc_Ntk_t * pNtk );
+extern ABC_DLL int                Abc_NtkTestPatternNum( Abc_Ntk_t * pNtk );
+extern ABC_DLL Vec_Int_t *        Abc_NtkGetTestPattern( Abc_Ntk_t * pNtk, int i );
 
 ABC_NAMESPACE_HEADER_END
 
