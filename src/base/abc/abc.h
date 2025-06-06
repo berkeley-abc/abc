@@ -1121,18 +1121,15 @@ extern ABC_DLL void               Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk);
 extern ABC_DLL void               Abc_NtkGenerateCollapsedCheckpointFaultList( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk);
 
-<<<<<<< HEAD
 // Test pattern management functions
 extern ABC_DLL void               Abc_NtkInitTestPatterns( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkAddTestPattern( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern );
 extern ABC_DLL void               Abc_NtkFreeTestPatterns( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkTestPatternNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Int_t *        Abc_NtkGetTestPattern( Abc_Ntk_t * pNtk, int i );
-=======
 
 // Pseudo Boolean Optimization Related
 extern ABC_DLL void               Abc_ExecPBO();
->>>>>>> ee86311e1 (add runpbo command in abc)
 
 ABC_NAMESPACE_HEADER_END
 
