@@ -10,8 +10,9 @@ void Abc_ExecPBO()
     pid_t pid = fork();
 
     if (pid == 0) {
-        // Child process: replace image with "ls -l"
-        execl("/bin/ls", "ls", "-l", (char *)NULL);
+        // Child process: executing pbo solver
+        char *argv[] = {"./solver", arg_str, NULL};
+        execv("./solver", argv);
         _exit(1); // exec failed
     } else {
         // Parent process: wait for child to finish
