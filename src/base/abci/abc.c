@@ -11386,7 +11386,7 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
     
-    Abc_ExecPBO();
+    Abc_ExecPBO( pNtk );
 
     return 0;
 

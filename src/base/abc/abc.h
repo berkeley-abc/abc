@@ -1129,7 +1129,7 @@ extern ABC_DLL int                Abc_NtkTestPatternNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Int_t *        Abc_NtkGetTestPattern( Abc_Ntk_t * pNtk, int i );
 
 // Pseudo Boolean Optimization Related
-extern ABC_DLL void               Abc_ExecPBO();
+extern ABC_DLL void               Abc_ExecPBO( Abc_Ntk_t * pNtk );
 
 ABC_NAMESPACE_HEADER_END
 

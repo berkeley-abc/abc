@@ -5,12 +5,16 @@
 
 ABC_NAMESPACE_IMPL_START
 
-void Abc_ExecPBO()
+void Abc_ExecPBO( Abc_Ntk_t * pNtk )
 {
     pid_t pid = fork();
 
     if (pid == 0) {
         // Child process: executing pbo solver
+        int pi_num =  Abc_NtkPiNum(pNtk);
+        // int good_pi_num = Abc_NtkPiNum(pNtk);
+        int good_pi_num = 5;
+
         char arg_str[100] = {0};
         for (int i = 2; i < 10; ++i) {
             char temp[16];
