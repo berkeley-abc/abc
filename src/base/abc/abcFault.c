@@ -765,51 +765,48 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
                 if (Vec_PtrFind(vGOHandledsa0, pC) != -1)
                     continue;
                 Vec_PtrPush(vGOHandledsa0, pC);
-
+            
+                // ================ Insert SA0 GO ACTIVATION PBO ================
                 Abc_Obj_t *pOR_pbo, *pf0_pbo, *pNotf0_pbo;
-
-                pAnd = Abc_NtkCreateNode(pNtk);
                 pOR_pbo = Abc_NtkCreateNode(pNtk); // pbo for OR gate
-
-                // Rewire the network so that pAnd replaces pC as the output signal
-                // Transfer all fanouts of pC to pAnd
-                Abc_ObjTransferFanout(pC, pAnd);
-
                 // Generate unique names for f0
-                // Generate unique names for x and y
                 sprintf(f0_Name, "f0_%s", Abc_ObjName(pC)); // Name for the fault signal
-                sprintf(xName, "x_%s", Abc_ObjName(pC));
-                // Add new PIs
                 pf0_pbo = Abc_NtkCreatePi(pNtk);
-                pX = Abc_NtkCreatePi(pNtk);
                 Abc_ObjAssignName(pf0_pbo, f0_Name, NULL);
-                Abc_ObjAssignName(pX, xName, NULL);
-
                 // create NOT gate for a_f0
-                // Create NOT gate for ~x
                 pNotf0_pbo = Abc_NtkCreateNode(pNtk);
                 Abc_ObjAddFanin(pNotf0_pbo, pf0_pbo);
                 pNotf0_pbo->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
-
-                pNotX = Abc_NtkCreateNode(pNtk);
-                Abc_ObjAddFanin(pNotX, pX);
-                pNotX->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
-
                 // create OR gate for (c OR ~a_f0)
                 Abc_ObjAddFanin(pOR_pbo, pC);
                 Abc_ObjAddFanin(pOR_pbo, pNotf0_pbo);
                 pOR_pbo->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
-
-                // create AND gate for (c AND ~x)
-                Abc_ObjAddFanin(pAnd, pC);
-                Abc_ObjAddFanin(pAnd, pNotX);
-                pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
-
                 // wire the constant 1 PO to the OR gate
                 Abc_Obj_t *pPo = Abc_NtkCreatePo(pNtk);
                 sprintf(PO_f0_Name, "PO_pbo_%s", Abc_ObjName(pC));
                 Abc_ObjAssignName(pPo, PO_f0_Name, NULL);
                 Abc_ObjAddFanin(pPo, pOR_pbo);
+                // ================ End of SA0 GO ACTIVATION PBO ================
+                
+                // ================ Insert FAULT GATE =======================
+                pAnd = Abc_NtkCreateNode(pNtk);
+                // Rewire the network so that pAnd replaces pC as the output signal
+                // Transfer all fanouts of pC to pAnd
+                Abc_ObjTransferFanout(pC, pAnd);
+                // Generate unique names for x and y
+                sprintf(xName, "x_%s", Abc_ObjName(pC));
+                // Add new PIs
+                pX = Abc_NtkCreatePi(pNtk);
+                Abc_ObjAssignName(pX, xName, NULL);
+                // Create NOT gate for ~x
+                pNotX = Abc_NtkCreateNode(pNtk);
+                Abc_ObjAddFanin(pNotX, pX);
+                pNotX->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
+                // create AND gate for (c AND ~x)
+                Abc_ObjAddFanin(pAnd, pC);
+                Abc_ObjAddFanin(pAnd, pNotX);
+                pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
+                // ================== End of FAULT GATE =======================
 
                 printf("[FaultSim] Inserted SA0 GO sim gates for node %s\n", Abc_ObjName(pC));
             }
@@ -819,44 +816,44 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
                     continue;
                 Vec_PtrPush(vGOHandledsa1, pC);
 
+
+                // ================ Insert SA1 GO ACTIVATION PBO ================
                 Abc_Obj_t *pAND_pbo, *pf1_pbo, *pNot_pbo;
-
-                pOr = Abc_NtkCreateNode(pNtk);
                 pAND_pbo = Abc_NtkCreateNode(pNtk);
-                // Rewire the network so that pOr replaces pC as the output signal
-                // Transfer all fanouts of pC to pOr
-                Abc_ObjTransferFanout(pC, pOr);
-
-                // Generate unique names for y
                 sprintf(f1_Name, "f1_%s", Abc_ObjName(pC));
-                sprintf(yName, "y_%s", Abc_ObjName(pC));
-                // Add new PIs
                 pf1_pbo = Abc_NtkCreatePi(pNtk);
-                pY = Abc_NtkCreatePi(pNtk);
                 Abc_ObjAssignName(pf1_pbo, f1_Name, NULL);
-                Abc_ObjAssignName(pY, yName, NULL);
-
-                // create OR gate for (c AND a_f1)
-                // Create OR gate for ((c AND ~x) OR y)
+                // create AND gate for (c AND a_f1)
                 Abc_ObjAddFanin(pAND_pbo, pC);
                 Abc_ObjAddFanin(pAND_pbo, pf1_pbo);
                 pAND_pbo->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
-
-                Abc_ObjAddFanin(pOr, pC);
-                Abc_ObjAddFanin(pOr, pY);
-                pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
-
                 // wire the constant 0 PO to the AND gate
                 // Create NOT gate for ~ (pC & pf1_pbo)
                 pNot_pbo = Abc_NtkCreateNode(pNtk);
                 Abc_ObjAddFanin(pNot_pbo, pAND_pbo);
                 pNot_pbo->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
-
                 // wire the constant 1 PO to the NOT gate
                 Abc_Obj_t *pPo = Abc_NtkCreatePo(pNtk);
                 sprintf(PO_f1_Name, "PO_pbo_%s", Abc_ObjName(pC));
                 Abc_ObjAssignName(pPo, PO_f1_Name, NULL);
                 Abc_ObjAddFanin(pPo, pNot_pbo);
+                // ================ End of SA1 GO ACTIVATION PBO ================
+
+                // ================ Insert FAULT GATE =======================
+                pOr = Abc_NtkCreateNode(pNtk);
+                // Rewire the network so that pOr replaces pC as the output signal
+                // Transfer all fanouts of pC to pOr
+                Abc_ObjTransferFanout(pC, pOr);
+                // Generate unique names for y
+                sprintf(yName, "y_%s", Abc_ObjName(pC));
+                // Add new PIs
+                pY = Abc_NtkCreatePi(pNtk);
+                Abc_ObjAssignName(pY, yName, NULL);
+                // Create OR gate for ((c AND ~x) OR y)
+                Abc_ObjAddFanin(pOr, pC);
+                Abc_ObjAddFanin(pOr, pY);
+                pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
+                // ================= End of FAULT GATE =======================
 
                 printf("[FaultSim] Inserted SA1 GO sim gates for node %s\n", Abc_ObjName(pC));
             }
@@ -887,51 +884,49 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
                 strcpy(key, keyBuf);
                 Vec_PtrPush(vGIHandledsa0, key);
 
+
+                // ================ Insert SA0 GI ACTIVATION PBO ================
                 Abc_Obj_t *pOR_pbo, *pf0_pbo, *pNotf0_pbo;
-
-                // Create AND gate for (fanin AND ~x)
-                pAnd = Abc_NtkCreateNode(pNtk);
+                // Create OR gate for (fanin OR ~a_f0)
                 pOR_pbo = Abc_NtkCreateNode(pNtk);
-
                 // Generate unique names for f0
-                // Generate unique name for x
                 sprintf(f0_Name, "f0_%s_in%d", Abc_ObjName(pNode), fanin_index);
-                sprintf(xName, "x_%s_in%d", Abc_ObjName(pNode), fanin_index);
-
-                // Add new PIs
                 pf0_pbo = Abc_NtkCreatePi(pNtk);
-                pX = Abc_NtkCreatePi(pNtk);
                 Abc_ObjAssignName(pf0_pbo, f0_Name, NULL);
-                Abc_ObjAssignName(pX, xName, NULL);
-                
                 // create NOT gate for a_f0
                 pNotf0_pbo = Abc_NtkCreateNode(pNtk);
                 Abc_ObjAddFanin(pNotf0_pbo, pf0_pbo);
                 pNotf0_pbo->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
-
-                // Create NOT gate for ~x
-                pNotX = Abc_NtkCreateNode(pNtk);
-                Abc_ObjAddFanin(pNotX, pX);
-                pNotX->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
-
                 // create OR gate for (fanin OR ~a_f0)
                 Abc_ObjPatchFanin(pNode, pFanin, pOR_pbo);
                 Abc_ObjAddFanin(pOR_pbo, pFanin);
                 Abc_ObjAddFanin(pOR_pbo, pNotf0_pbo);
                 pOR_pbo->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
-
-
-                // Insert AND gate between fanin and node
-                Abc_ObjPatchFanin(pNode, pFanin, pAnd);
-                Abc_ObjAddFanin(pAnd, pFanin);
-                Abc_ObjAddFanin(pAnd, pNotX);
-                pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
-
                 // wire the constant 1 PO to the OR gate
                 Abc_Obj_t *pPo = Abc_NtkCreatePo(pNtk);
                 sprintf(PO_f0_Name, "PO_pbo_%s_in%d", Abc_ObjName(pNode),fanin_index);
                 Abc_ObjAssignName(pPo, PO_f0_Name, NULL);
                 Abc_ObjAddFanin(pPo, pOR_pbo);
+                // ================ End of SA0 GI ACTIVATION PBO ================
+
+                // ================ Insert FAULT GATE =======================
+                // Create AND gate for (fanin AND ~x)
+                pAnd = Abc_NtkCreateNode(pNtk);
+                // Generate unique name for x
+                sprintf(xName, "x_%s_in%d", Abc_ObjName(pNode), fanin_index);
+                // Add new PIs
+                pX = Abc_NtkCreatePi(pNtk);
+                Abc_ObjAssignName(pX, xName, NULL);
+                // Create NOT gate for ~x
+                pNotX = Abc_NtkCreateNode(pNtk);
+                Abc_ObjAddFanin(pNotX, pX);
+                pNotX->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
+                // Insert AND gate between fanin and node
+                Abc_ObjPatchFanin(pNode, pFanin, pAnd);
+                Abc_ObjAddFanin(pAnd, pFanin);
+                Abc_ObjAddFanin(pAnd, pNotX);
+                pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
+                // ================ End of FAULT GATE =======================
 
                 printf("[FaultSim] Inserted SA0 GI sim gates for node %s input %d\n", Abc_ObjName(pNode), fanin_index);
             }
@@ -945,46 +940,45 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
                 strcpy(key, keyBuf);
                 Vec_PtrPush(vGIHandledsa1, key);
 
-                Abc_Obj_t *pAND_pbo, *pf1_pbo, *pNot_pbo;
 
-                // Create OR gate for (fanin OR y)
-                pOr = Abc_NtkCreateNode(pNtk);
+                // ================ Insert SA1 GI ACTIVATION PBO ================
+                Abc_Obj_t *pAND_pbo, *pf1_pbo, *pNot_pbo;
                 // Create AND gate for (fanin AND f1)
                 pAND_pbo = Abc_NtkCreateNode(pNtk);
-
-                // Generate unique name for y
-                sprintf(yName, "y_%s_in%d", Abc_ObjName(pNode), fanin_index);
-                pY = Abc_NtkCreatePi(pNtk);
-                Abc_ObjAssignName(pY, yName, NULL);
                 // Generate unique name for f1
                 sprintf(f1_Name, "f1_%s_in%d", Abc_ObjName(pNode), fanin_index);
                 pf1_pbo = Abc_NtkCreatePi(pNtk);
                 Abc_ObjAssignName(pf1_pbo, f1_Name, NULL);
-
-
-                // Insert OR gate between fanin and node
-                Abc_ObjPatchFanin(pNode, pFanin, pOr);
-                Abc_ObjAddFanin(pOr, pFanin);
-                Abc_ObjAddFanin(pOr, pY);
-                pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
-
                 // Insert AND gate between fanin and node
                 Abc_ObjPatchFanin(pNode, pFanin, pAND_pbo);
                 Abc_ObjAddFanin(pAND_pbo, pFanin);
                 Abc_ObjAddFanin(pAND_pbo, pf1_pbo);
                 pAND_pbo->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
-
-                // wire the constant 0 PO to the AND gate
                 // Create NOT gate for ~ (pC & pf1_pbo)
                 pNot_pbo = Abc_NtkCreateNode(pNtk);
                 Abc_ObjAddFanin(pNot_pbo, pAND_pbo);
                 pNot_pbo->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
-
                 // wire the constant 1 PO to the NOT gate
                 Abc_Obj_t *pPo = Abc_NtkCreatePo(pNtk);
                 sprintf(PO_f1_Name, "PO_pbo_%s_in%d", Abc_ObjName(pNode), fanin_index);
                 Abc_ObjAssignName(pPo, PO_f1_Name, NULL);
                 Abc_ObjAddFanin(pPo, pNot_pbo);
+                // ================ End of SA1 GI ACTIVATION PBO ================
+
+
+                // ================ Insert FAULT GATE =======================
+                // Create OR gate for (fanin OR y)
+                pOr = Abc_NtkCreateNode(pNtk);
+                // Generate unique name for y
+                sprintf(yName, "y_%s_in%d", Abc_ObjName(pNode), fanin_index);
+                pY = Abc_NtkCreatePi(pNtk);
+                Abc_ObjAssignName(pY, yName, NULL);
+                // Insert OR gate between fanin and node
+                Abc_ObjPatchFanin(pNode, pFanin, pOr);
+                Abc_ObjAddFanin(pOr, pFanin);
+                Abc_ObjAddFanin(pOr, pY);
+                pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
+                // ================ End of FAULT GATE =======================
 
                 printf("[FaultSim] Inserted SA1 GI sim gates for node %s input %d\n", Abc_ObjName(pNode), fanin_index);
             }
