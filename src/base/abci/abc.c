@@ -3911,17 +3911,24 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fRecord;
     int fCleanup;
     int fComplOuts;
+    int fFaultConstraint;
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     fAllNodes = 0;
     fCleanup  = 1;
     fRecord   = 0;
     fComplOuts= 0;
+    fFaultConstraint = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "acrih" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "facrih" ) ) != EOF )
     {
         switch ( c )
         {
+        case'f':
+            fFaultConstraint ^= 1;
+            pNtk = pNtk->pFaultConstraintNtk;
+            printf("Fault constraint network: %s\n", pNtk->pName);
+            break;
         case 'a':
             fAllNodes ^= 1;
             break;
@@ -3968,6 +3975,7 @@ usage:
     Abc_Print( -2, "\t-c    : toggles cleanup to remove the dangling AIG nodes [default = %s]\n", fCleanup? "all": "DFS" );
     Abc_Print( -2, "\t-r    : toggles using the record of AIG subgraphs [default = %s]\n", fRecord? "yes": "no" );
     Abc_Print( -2, "\t-i    : toggles complementing the POs of the AIG [default = %s]\n", fComplOuts? "yes": "no" );
+    Abc_Print( -2, "\t-f    : strash the fault constraint network [default = %s]\n", fFaultConstraint? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
