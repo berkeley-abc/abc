@@ -915,8 +915,38 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
     Vec_Ptr_t *vGOHandledsa1 = Vec_PtrAlloc(100); // Track handled output nodes
     Vec_Ptr_t *vGIHandledsa0 = Vec_PtrAlloc(100); // Track handled input nodes
     Vec_Ptr_t *vGIHandledsa1 = Vec_PtrAlloc(100); // Track handled input nodes
+    
+    // Record original network nodes and PIs to distinguish from PBO nodes
+    Vec_Ptr_t *vOriginalNodes = Vec_PtrAlloc(1000);
+    Vec_Ptr_t *vOriginalPIs = Vec_PtrAlloc(100);
+    Abc_Obj_t *pObj;
+    Abc_NtkForEachNode(pNtk, pObj, i) {
+        Vec_PtrPush(vOriginalNodes, pObj);
+    }
+    Abc_NtkForEachPi(pNtk, pObj, i) {
+        Vec_PtrPush(vOriginalPIs, pObj);
+    }
+    printf("[PBO] Original nodes:\n");
+    for (i = 0; i < Vec_PtrSize(vOriginalNodes); i++) {
+        Abc_Obj_t *pNode = (Abc_Obj_t *)Vec_PtrEntry(vOriginalNodes, i);
+        printf("  Node %d: %s\n", i, Abc_ObjName(pNode));
+    }
+    printf("[PBO] Original PIs:\n");
+    for (i = 0; i < Vec_PtrSize(vOriginalPIs); i++) {
+        Abc_Obj_t *pPi = (Abc_Obj_t *)Vec_PtrEntry(vOriginalPIs, i);
+        printf("  PI %d: %s\n", i, Abc_ObjName(pPi));
+    }
+    
+    // Macro to check if a node is original (not a PBO node)
+    #define IS_ORIGINAL_NODE(pNode) (Vec_PtrFind(vOriginalNodes, pNode) != -1)
+    #define IS_ORIGINAL_PI(pNode) (Vec_PtrFind(vOriginalPIs, pNode) != -1)
+    #define IS_ORIGINAL_CIRCUIT_NODE(pNode) (IS_ORIGINAL_NODE(pNode) || IS_ORIGINAL_PI(pNode))
 
-    // Iterate over the fault list
+    // Iterate over the fault list (modified to only process first 2 faults for testing)
+    // Original for loop: 
+    // for (pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext)
+    //int faultCount = 0;
+    //for (pFault = pNtk->pFaultList; pFault && faultCount < 2; pFault = pFault->pNext, faultCount++)
     for (pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext)
     {
         char f0_Name[32], f1_Name[32];
@@ -928,6 +958,15 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
         if (pFault->Io == ABC_FAULT_GO)
         {
             pC = pNode; // Output of the gate
+
+            int originalFanoutCount = 0;
+            Abc_Obj_t *pFanout;
+            int fanoutIdx;
+            Abc_ObjForEachFanout(pFault->pNode, pFanout, fanoutIdx)
+            {
+                if (IS_ORIGINAL_CIRCUIT_NODE(pFanout))
+                    originalFanoutCount++;
+            }
 
             if (pFault->Type == ABC_FAULT_SA0)
             {
@@ -960,17 +999,21 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                 // ================ End of SA0 GO ACTIVATION PBO ================
 
                 // RULE 2
-                if (Abc_ObjFanoutNum(pFault->pNode) > 1){
+                // Count fanouts that connect to original circuit nodes only
+                
+                printf("[PBO] Node %s has %d original fanout branches\n", Abc_ObjName(pFault->pNode), originalFanoutCount);
+                
+                if (originalFanoutCount > 1){
                     // pFault->pNode has fanout branches    
-                    printf("Node %s has multiple fanout branches (#fanout = %d)\n", Abc_ObjName(pFault->pNode), Abc_ObjFanoutNum(pFault->pNode));
+                    printf("[PBO] Node %s has multiple fanout branches (#original fanout = %d)\n", Abc_ObjName(pFault->pNode), originalFanoutCount);
                 }
-                else if (Abc_ObjFanoutNum(pFault->pNode) == 1)
+                else if (originalFanoutCount == 1)
                 {
                     // get the next node
                     Abc_Obj_t *pNextNode = NULL;
                     int inputIndex = -1; // Initialize input index
                     pNextNode = Abc_ObjFanout0(pFault->pNode);
-                    printf("Next node of %s is %s\n", Abc_ObjName(pFault->pNode), Abc_ObjName(pNextNode));
+                    printf("[PBO] Next node of %s is %s\n", Abc_ObjName(pFault->pNode), Abc_ObjName(pNextNode));
                     char *pSop = (char *)pNextNode->pData;
                     int gateType = Abc_SopGetGateType(pSop);
 
@@ -995,12 +1038,14 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                         pAND_gate = Abc_NtkCreateNode(pNtk);
                         Abc_Obj_t *pSidein;
                         int sideInputCount = 0;
-                        // connect all the fanins to the AND gate
+                        // connect all the fanins to the AND gate (only original nodes)
                         Abc_ObjForEachFanin(pNextNode, pSidein, k)
                         {
                             if (k == inputIndex)
                                 continue; // Skip the current fanin being processed
-                            //
+                            // Only include original circuit nodes (nodes + PIs), not PBO nodes
+                            if (!IS_ORIGINAL_CIRCUIT_NODE(pSidein))
+                                continue;
                             Abc_ObjAddFanin(pAND_gate, pSidein);
                             sideInputCount++;
                         }
@@ -1014,7 +1059,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         // create a new PO for the OR gate
                         Abc_Obj_t *pPo_gate = Abc_NtkCreatePo(pNtk);
-                        sprintf(PO_f0_Name, "PO_pbo_GO_f0_GATE_%s_in%d", Abc_ObjName(pNextNode), inputIndex);
+                        sprintf(PO_f0_Name, "PO_pbo_GO_f0_GATE_%s", Abc_ObjName(pNextNode));
                         Abc_ObjAssignName(pPo_gate, PO_f0_Name, NULL);
                         Abc_ObjAddFanin(pPo_gate, pOR_gate);
                     }
@@ -1026,12 +1071,14 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         Abc_Obj_t *pSidein;
                         int sideInputCount = 0;
-                        // connect all the fanins to the OR gate
+                        // connect all the fanins to the OR gate (only original nodes)
                         Abc_ObjForEachFanin(pNextNode, pSidein, k)
                         {
                             if (k == inputIndex)
                                 continue; // Skip the current fanin being processed
-                            //
+                            // Only include original circuit nodes (nodes + PIs), not PBO nodes
+                            if (!IS_ORIGINAL_CIRCUIT_NODE(pSidein))
+                                continue;
                             Abc_ObjAddFanin(pOR_gate, pSidein);
                             sideInputCount++;
                         }
@@ -1049,16 +1096,16 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         // create a new PO for the NAND gate
                         Abc_Obj_t *pPo_gate = Abc_NtkCreatePo(pNtk);
-                        sprintf(PO_f0_Name, "PO_pbo_GO_f0_GATE_%s_in%d", Abc_ObjName(pNextNode), inputIndex);
+                        sprintf(PO_f0_Name, "PO_pbo_GO_f0_GATE_%s", Abc_ObjName(pNextNode));
                         Abc_ObjAssignName(pPo_gate, PO_f0_Name, NULL);
                         Abc_ObjAddFanin(pPo_gate, pNOT_gate);
                     }
                 }
                 else if (Abc_ObjFanoutNum(pFault->pNode) < 1){
                     // pFault->pNode has no fanout branches
-                    printf("Node %s has no fanout branches (#fanout = %d)\n", Abc_ObjName(pFault->pNode), Abc_ObjFanoutNum(pFault->pNode));
+                    printf("[PBO] Node %s has no fanout branches (#fanout = %d)\n", Abc_ObjName(pFault->pNode), Abc_ObjFanoutNum(pFault->pNode));
                 }
-                printf("[FaultSim] Inserted SA0 GO sim gates for node %s\n", Abc_ObjName(pC));
+                printf("[PBO] Inserted SA0 GO PBO GATE for node %s\n", Abc_ObjName(pC));
             }
             else if (pFault->Type == ABC_FAULT_SA1)
             {
@@ -1089,16 +1136,16 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                 // ================ End of SA1 GO ACTIVATION PBO ================
 
                 // RULE 2
-                if (Abc_ObjFanoutNum(pFault->pNode) > 1){
+                if (originalFanoutCount > 1){
                     // pFault->pNode has fanout branches    
-                    printf("Node %s has multiple fanout branches (#fanout = %d)\n", Abc_ObjName(pFault->pNode), Abc_ObjFanoutNum(pFault->pNode));
+                    printf("[PBO] Node %s has multiple fanout branches (#original fanout = %d)\n", Abc_ObjName(pFault->pNode), originalFanoutCount);
                 }
-                else if (Abc_ObjFanoutNum(pFault->pNode)== 1){
+                else if (originalFanoutCount== 1){
                     // get the next node
                     Abc_Obj_t *pNextNode = NULL;
                     int inputIndex = -1;
                     pNextNode = Abc_ObjFanout0(pFault->pNode);
-                    printf("Next node of %s is %s\n", Abc_ObjName(pFault->pNode), Abc_ObjName(pNextNode));
+                    printf("[PBO] Next node of %s is %s\n", Abc_ObjName(pFault->pNode), Abc_ObjName(pNextNode));
                     char *pSop = (char *)pNextNode->pData;
                     int gateType = Abc_SopGetGateType(pSop);
 
@@ -1123,12 +1170,14 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         Abc_Obj_t *pSidein;
                         int sideInputCount = 0;
-                        // connect all the fanins to the AND gate
+                        // connect all the fanins to the AND gate (only original nodes)
                         Abc_ObjForEachFanin(pNextNode, pSidein, k)
                         {
                             if (k == inputIndex)
                                 continue; // Skip the current fanin being processed
-                            //
+                            // Only include original circuit nodes (nodes + PIs), not PBO nodes
+                            if (!IS_ORIGINAL_CIRCUIT_NODE(pSidein))
+                                continue;
                             Abc_ObjAddFanin(pAND_gate, pSidein);
                             sideInputCount++;
                         }
@@ -1147,7 +1196,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         // create a new PO for the OR gate
                         Abc_Obj_t *pPo_gate = Abc_NtkCreatePo(pNtk);
-                        sprintf(PO_f1_Name, "PO_pbo_GO_f1_GATE_%s_in%d", Abc_ObjName(pNode), inputIndex);
+                        sprintf(PO_f1_Name, "PO_pbo_GO_f1_GATE_%s", Abc_ObjName(pNode));
                         Abc_ObjAssignName(pPo_gate, PO_f1_Name, NULL);
                         Abc_ObjAddFanin(pPo_gate, pOR_gate);
                     }
@@ -1158,16 +1207,19 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                         pOR_gate = Abc_NtkCreateNode(pNtk);
 
                         Abc_Obj_t *pSidein;
-                        int l = 0;
-                        // connect all the fanins to the OR gate
-                        Abc_ObjForEachFanin(pNextNode, pSidein, l)
+                        int sideInputCount = 0;
+                        // connect all the fanins to the OR gate (only original nodes)
+                        Abc_ObjForEachFanin(pNextNode, pSidein, k)
                         {
-                            if (l == inputIndex)
+                            if (k == inputIndex)
                                 continue; // Skip the current fanin being processed
-                            //
-                            Abc_ObjAddFanin(pOR_gate, pFanin);
+                            // Only include original circuit nodes (nodes + PIs), not PBO nodes
+                            if (!IS_ORIGINAL_CIRCUIT_NODE(pSidein))
+                                continue;
+                            Abc_ObjAddFanin(pOR_gate, pSidein);
+                            sideInputCount++;
                         }
-                        pOR_gate->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNextNode), NULL);
+                        pOR_gate->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, sideInputCount, NULL);
 
                         // OR_all_fanin ANF a_f0
                         pAND_gate = Abc_NtkCreateNode(pNtk);
@@ -1181,17 +1233,17 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         // create a new PO for the NAND gate
                         Abc_Obj_t *pPo_gate = Abc_NtkCreatePo(pNtk);
-                        sprintf(PO_f1_Name, "PO_pbo_GO_f1_GATE_%s_in%d", Abc_ObjName(pNode), inputIndex);
+                        sprintf(PO_f1_Name, "PO_pbo_GO_f1_GATE_%s", Abc_ObjName(pNode));
                         Abc_ObjAssignName(pPo_gate, PO_f1_Name, NULL);
                         Abc_ObjAddFanin(pPo_gate, pNOT_gate);
                     }
                 }
-                else if (Abc_ObjFanoutNum(pFault->pNode) < 1){
+                else if (originalFanoutCount < 1){
                     // pFault->pNode has no fanout branches
-                    printf("Node %s has no fanout branches (#fanout = %d)\n", Abc_ObjName(pFault->pNode), Abc_ObjFanoutNum(pFault->pNode));
+                    printf("[PBO] Node %s has no fanout branches (#fanout = %d)\n", Abc_ObjName(pFault->pNode), Abc_ObjFanoutNum(pFault->pNode));
                 }
 
-                printf("[FaultSim] Inserted SA1 GO sim gates for node %s\n", Abc_ObjName(pC));
+                printf("[PBO] Inserted SA1 GO PBO GATE for node %s\n", Abc_ObjName(pC));
             }
         }
         // Handle gate input (GI) faults
@@ -1201,7 +1253,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
             Abc_Obj_t *pFanin = Abc_ObjFanin(pNode, fanin_index);
             if (!pFanin)
             {
-                printf("[FaultSim] Error: Invalid fanin index %d for node %s\n", fanin_index, Abc_ObjName(pNode));
+                printf("[PBO] Error: Invalid fanin index %d for node %s\n", fanin_index, Abc_ObjName(pNode));
                 continue;
             }
 
@@ -1209,7 +1261,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
             char *pSop = (char *)pNode->pData;
             int gateType = Abc_SopGetGateType(pSop);
 
-            printf("[FaultSim] GI fault at node %s (input %d), gate type = %d\n", Abc_ObjName(pNode), fanin_index, gateType);
+            printf("[PBO] GI fault at node %s (input %d), gate type = %d\n", Abc_ObjName(pNode), fanin_index, gateType);
 
             // Create a unique key for this node-input combination
             sprintf(keyBuf, "%s_in%d", Abc_ObjName(pNode), fanin_index);
@@ -1260,16 +1312,21 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                     pAND_gate = Abc_NtkCreateNode(pNtk);
                     Abc_Obj_t *pSidein;
-                    int l=0;
-                    // connect all the fanins to the AND gate
+                    int sideInputCount = 0;
+                    int l = 0;
+                    // connect all the fanins to the AND gate (only original nodes)
                     Abc_ObjForEachFanin(pNode, pSidein, l)
                     {
                         if (l == fanin_index)
                             continue; // Skip the current fanin being processed
-                        //
+                        // Only include original circuit nodes (nodes + PIs), not PBO nodes
+                        if (!IS_ORIGINAL_CIRCUIT_NODE(pSidein))
+                            continue;
                         Abc_ObjAddFanin(pAND_gate, pSidein);
+                        sideInputCount++;
                     }
-                    pAND_gate->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNode), NULL);
+                    printf("[PBO] Node %s has %d original side-inputs\n", Abc_ObjName(pNode), sideInputCount);
+                    pAND_gate->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, sideInputCount, NULL);
 
                     // AND_all_fanin OR ~a_f0
                     pOR_gate = Abc_NtkCreateNode(pNtk);
@@ -1290,16 +1347,21 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     pOR_gate = Abc_NtkCreateNode(pNtk);
 
                     Abc_Obj_t *pSidein;
-                    int l=0;
-                    // connect all the fanins to the OR gate
+                    int sideInputCount = 0;
+                    int l = 0;
+                    // connect all the fanins to the OR gate (only original nodes)
                     Abc_ObjForEachFanin(pNode, pSidein, l)
                     {
                         if (l == fanin_index)
                             continue; // Skip the current fanin being processed
-                        //
+                        // Only include original circuit nodes (nodes + PIs), not PBO nodes
+                        if (!IS_ORIGINAL_CIRCUIT_NODE(pSidein))
+                            continue;
                         Abc_ObjAddFanin(pOR_gate, pSidein);
+                        sideInputCount++;
                     }
-                    pOR_gate->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNode), NULL);
+                    pOR_gate->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, sideInputCount, NULL);
+                    printf("[PBO] Node %s has %d original side-inputs\n", Abc_ObjName(pNode), sideInputCount);
 
                     // OR_all_fanin ANF a_f0
                     pAND_gate = Abc_NtkCreateNode(pNtk);
@@ -1317,6 +1379,8 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     Abc_ObjAssignName(pPo_gate, PO_f0_Name, NULL);
                     Abc_ObjAddFanin(pPo_gate, pNOT_gate);
                 }
+
+                printf("[PBO] Inserted SA0 GI PBO GATE for node %s input %d\n", Abc_ObjName(pNode), fanin_index);
             }
             else if (pFault->Type == ABC_FAULT_SA1)
             {
@@ -1362,16 +1426,21 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     pAND_gate = Abc_NtkCreateNode(pNtk);
 
                     Abc_Obj_t *pSidein;
-                    int l=0;
-                    // connect all the fanins to the AND gate
+                    int sideInputCount = 0;
+                    int l = 0;
+                    // connect all the fanins to the AND gate (only original nodes)
                     Abc_ObjForEachFanin(pNode, pSidein, l)
                     {
                         if (l == fanin_index)
                             continue; // Skip the current fanin being processed
-                        //
+                        // Only include original circuit nodes (nodes + PIs), not PBO nodes
+                        if (!IS_ORIGINAL_CIRCUIT_NODE(pSidein))
+                            continue;
                         Abc_ObjAddFanin(pAND_gate, pSidein);
+                        sideInputCount++;
                     }
-                    pAND_gate->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNode), NULL);
+                    pAND_gate->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, sideInputCount, NULL);
+                    printf("[PBO] Node %s has %d original side-inputs\n", Abc_ObjName(pNode), sideInputCount);
 
                     // create NOT gate for ~a_f1
                     pNOTf1_gate = Abc_NtkCreateNode(pNtk);
@@ -1397,16 +1466,21 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     pOR_gate = Abc_NtkCreateNode(pNtk);
 
                     Abc_Obj_t *pSidein;
-                    int l=0;
-                    // connect all the fanins to the OR gate
+                    int sideInputCount = 0;
+                    int l = 0;
+                    // connect all the fanins to the OR gate (only original nodes)
                     Abc_ObjForEachFanin(pNode, pSidein, l)
                     {
                         if (l == fanin_index)
                             continue; // Skip the current fanin being processed
-                        //
-                        Abc_ObjAddFanin(pOR_gate, pFanin);
+                        // Only include original circuit nodes (nodes + PIs), not PBO nodes
+                        if (!IS_ORIGINAL_CIRCUIT_NODE(pSidein))
+                            continue;
+                        Abc_ObjAddFanin(pOR_gate, pSidein);
+                        sideInputCount++;
                     }
-                    pOR_gate->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNode), NULL);
+                    pOR_gate->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, sideInputCount, NULL);
+                    printf("[PBO] Node %s has %d original side-inputs\n", Abc_ObjName(pNode), sideInputCount);
 
                     // OR_all_fanin ANF a_f0
                     pAND_gate = Abc_NtkCreateNode(pNtk);
@@ -1424,13 +1498,16 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     Abc_ObjAssignName(pPo_gate, PO_f1_Name, NULL);
                     Abc_ObjAddFanin(pPo_gate, pNOT_gate);
                 }
+                
 
-                    printf("[FaultSim] Inserted SA1 GI sim gates for node %s input %d\n", Abc_ObjName(pNode), fanin_index);
+                    printf("[PBO] Inserted SA1 GI GATE for node %s\n", Abc_ObjName(pNode));
             }
         }
     }
     
-        // Free the tracking vectors and their contents
+    // Free the tracking vectors and their contents
+    // Note: vGOHandled vectors store Abc_Obj_t* pointers, not allocated strings
+    // Only vGIHandled vectors store allocated strings that need to be freed
     Vec_PtrForEachEntry(char *, vGIHandledsa0, key, i)
         ABC_FREE(key);
     Vec_PtrForEachEntry(char *, vGIHandledsa1, key, i)
@@ -1439,8 +1516,18 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
     Vec_PtrFree(vGOHandledsa1);
     Vec_PtrFree(vGIHandledsa0);
     Vec_PtrFree(vGIHandledsa1);
-    printf("[FaultSim] Completed fault simulation gate insertion\n");
+    Vec_PtrFree(vOriginalNodes);
+    Vec_PtrFree(vOriginalPIs);
+    
+    // Undefine the macros
+    #undef IS_ORIGINAL_NODE
+    #undef IS_ORIGINAL_PI
+    #undef IS_ORIGINAL_CIRCUIT_NODE
+    
+    printf("[PBO] Completed PBO gate insertion\n");
 }
+
+
 void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
 {
     Abc_Ntk_t * pGoodNtk, * pFaultNtk, * pCombinedNtk;
