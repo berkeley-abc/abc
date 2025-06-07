@@ -744,6 +744,17 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
     Vec_Ptr_t * vGOHandledsa1 = Vec_PtrAlloc(100); // Track handled output nodes
     Vec_Ptr_t * vGIHandledsa0 = Vec_PtrAlloc(100); // Track handled input nodes
     Vec_Ptr_t * vGIHandledsa1 = Vec_PtrAlloc(100); // Track handled input nodes
+
+    // Store the good network and its PIs
+    pNtk->pGoodNtk = Abc_NtkDup(pNtk);
+    pNtk->vGoodPis = Vec_PtrAlloc(Abc_NtkPiNum(pNtk));
+    
+    // Copy all PIs to vGoodPis
+    Abc_Obj_t * pPi;
+    Abc_NtkForEachPi(pNtk, pPi, i) {
+        Vec_PtrPush(pNtk->vGoodPis, pPi);
+    }
+    printf("[FaultSim] Stored good network and its PIs\n");
     
     // Iterate over the fault list
     for (pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext)
@@ -906,8 +917,14 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
 
     printf("[FaultConstraint] Starting fault constraint network creation\n");
 
-    // Create copies of good and faulty circuits
-    pGoodNtk = Abc_NtkDup(pNtk);
+    // Use the already stored good network instead of creating a new copy
+    pGoodNtk = pNtk->pGoodNtk;
+    if (!pGoodNtk) {
+        printf("[FaultConstraint] Error: Good network not found. Call Abc_NtkInsertFaultSimGates first.\n");
+        return;
+    }
+
+    // Create copy of current network (with fault simulation gates) for faulty circuit
     pFaultNtk = Abc_NtkDup(pNtk);
     printf("[FaultConstraint] Created circuit copies\n");
     
@@ -926,10 +943,6 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
         pFault->pNode = pFault->pNode->pCopy;
     }
     printf("[FaultConstraint] Updated fault node pointers in faulty network\n");
-    
-    // Insert fault simulation gates into the faulty circuit
-    Abc_NtkInsertFaultSimGates(pFaultNtk);
-    printf("[FaultConstraint] Completed fault simulation gate insertion\n");
 
     // Create the combined network
     pCombinedNtk = Abc_NtkAlloc(ABC_NTK_LOGIC, ABC_FUNC_SOP, 1);
@@ -977,8 +990,8 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
         Abc_ObjForEachFanin(pObj, pFanin, j) {
             if (pFanin->pCopy == NULL) {
                 printf("Error: Fanin %s of node %s not copied\n", Abc_ObjName(pFanin), Abc_ObjName(pObj));
-            continue;
-        }
+                continue;
+            }
             Abc_ObjAddFanin(pNode, pFanin->pCopy);
         }
     }
@@ -1006,8 +1019,8 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
         Abc_ObjForEachFanin(pObj, pFanin, j) {
             if (pFanin->pCopy == NULL) {
                 printf("Error: Fanin %s of node %s not copied\n", Abc_ObjName(pFanin), Abc_ObjName(pObj));
-            continue;
-        }
+                continue;
+            }
             Abc_ObjAddFanin(pNode, pFanin->pCopy);
         }
     }
@@ -1038,8 +1051,8 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
 
         if (!pCombinedFaultPi) {
             printf("[FaultConstraint] Error: Could not find fault PI %s_f\n", pGoodName);
-                continue;
-            }
+            continue;
+        }
 
         printf("[FaultConstraint] Processing PI pair %d: Good PI %s, Fault PI %s\n", 
                i, pGoodName, Abc_ObjName(pCombinedFaultPi));
@@ -1065,7 +1078,8 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
     printf("[FaultConstraint] Processed %d out of %d PIs\n", processedPIs, totalPIs);
     printf("[FaultConstraint] Connected input PIs and removed redundant PIs\n");
 
-    // Create XOR gates to compare outputs
+    // Create XOR gates to compare outputs and collect them
+    Vec_Ptr_t * vXorOutputs = Vec_PtrAlloc(Abc_NtkPoNum(pGoodNtk));
     Abc_NtkForEachPo(pGoodNtk, pObj, i) {
         // Get the fanin (output of the good circuit)
         pFanin = Abc_ObjFanin0(pObj);
@@ -1092,19 +1106,40 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
         // Set XOR functionality
         pXor->pData = Abc_SopCreateXor((Mem_Flex_t*)pCombinedNtk->pManFunc, 2);
         
-        // Create PO for the XOR output
-        Abc_Obj_t * pPo = Abc_NtkCreatePo(pCombinedNtk);
-        Abc_ObjAddFanin(pPo, pXor);
-        Abc_ObjAssignName(pPo, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
+        // Add XOR output to vector
+        Vec_PtrPush(vXorOutputs, pXor);
     }
-    printf("[FaultConstraint] Created XOR gates and POs\n");
+    printf("[FaultConstraint] Created XOR gates for output comparison\n");
+
+    // Create NOR gate to combine all XOR outputs
+    Abc_Obj_t * pNor = Abc_NtkCreateNode(pCombinedNtk);
+    Abc_ObjAssignName(pNor, "fault_detected", NULL);
+    
+    // Connect all XOR outputs to NOR gate
+    Abc_Obj_t * pXorOutput;
+    int j;
+    Vec_PtrForEachEntry(Abc_Obj_t *, vXorOutputs, pXorOutput, j) {
+        Abc_ObjAddFanin(pNor, pXorOutput);
+    }
+    
+    // Set NOR functionality
+    pNor->pData = Abc_SopCreateNor((Mem_Flex_t*)pCombinedNtk->pManFunc, Vec_PtrSize(vXorOutputs));
+    
+    // Create single PO for the NOR output
+    Abc_Obj_t * pPo = Abc_NtkCreatePo(pCombinedNtk);
+    Abc_ObjAddFanin(pPo, pNor);
+    Abc_ObjAssignName(pPo, "fault_detected", NULL);
+    
+    // Free the XOR outputs vector
+    Vec_PtrFree(vXorOutputs);
+    
+    printf("[FaultConstraint] Created NOR gate and single PO to combine all XOR outputs\n");
 
     // Store the combined network
     pNtk->pFaultConstraintNtk = pCombinedNtk;
     printf("[FaultConstraint] Stored combined network\n");
 
     // Clean up
-    Abc_NtkDelete(pGoodNtk);
     Abc_NtkDelete(pFaultNtk);
     printf("[FaultConstraint] Completed fault constraint network creation\n");
 }
@@ -1285,6 +1320,262 @@ void Abc_NtkAssignLatestPatternToConstraintNetwork( Abc_Ntk_t * pNtk )
     }
 
     printf("[AssignTestPattern] Assigned latest test pattern to constraint network PIs as constants\n");
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Combines the stored good network into the current ABC network.]
+
+  Description [Takes the stored good network (pGoodNtk) and combines it with
+               the current ABC network (faulty network), connecting corresponding
+               PIs and combining all XOR outputs into a single PO using a NOR gate.
+               The result is stored in the current ABC network.]
+               
+  SideEffects [Modifies the current ABC network]
+
+  SeeAlso     [Abc_NtkCreateFaultConstraintNetwork]
+
+***********************************************************************/
+void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
+{
+    if (pNtk->pGoodNtk == NULL)
+    {
+        printf("[FaultConstraint] Error: Good network not found. Call Abc_NtkInsertFaultSimGates first.\n");
+        return;
+    }
+    Abc_Ntk_t * pGoodNtk = pNtk->pGoodNtk;  // Get the good network
+    Abc_Obj_t * pObj, * pFanin, * pXor;
+    int i;
+
+    printf("[FaultConstraint] Starting network combination\n");
+
+    // Save the current faulty circuit state
+    Abc_Ntk_t * pFaultNtk = Abc_NtkDup(pNtk);
+    printf("[FaultConstraint] Saved faulty circuit state\n");
+
+    // Save important attributes from the original network
+    Abc_Fault_t * pFaultList = pNtk->pFaultList;
+    int nFaults = pNtk->nFaults;
+    int nDetectedFaults = pNtk->nDetectedFaults;
+    int nUndetectableFaults = pNtk->nUndetectableFaults;
+    int nActivatedFaults = pNtk->nActivatedFaults;
+    int nTestTriedFaults = pNtk->nTestTriedFaults;
+    Abc_Ntk_t * pFaultConstraintNtk = pNtk->pFaultConstraintNtk;
+    Abc_Ntk_t * oldGoodNtk = pNtk->pGoodNtk;  // the good network
+    Vec_Ptr_t * vGoodPis = pNtk->vGoodPis;  // the good network PIs
+
+    // Clear the current network but keep its name and type
+    char * pName = Abc_UtilStrsav(pNtk->pName);
+    int ntkType = pNtk->ntkType;
+    int ntkFunc = pNtk->ntkFunc;
+    Abc_NtkDelete(pNtk);
+    pNtk = Abc_NtkAlloc(ntkType, ntkFunc, 1);
+    pNtk->pName = pName;
+
+    // Restore important attributes
+    pNtk->pFaultList = pFaultList;
+    pNtk->nFaults = nFaults;
+    pNtk->nDetectedFaults = nDetectedFaults;
+    pNtk->nUndetectableFaults = nUndetectableFaults;
+    pNtk->nActivatedFaults = nActivatedFaults;
+    pNtk->nTestTriedFaults = nTestTriedFaults;
+    pNtk->pFaultConstraintNtk = pFaultConstraintNtk;
+    pNtk->vGoodPis = vGoodPis;
+    pNtk->pGoodNtk = oldGoodNtk;
+    printf("[FaultConstraint] Cleared and reinitialized network with preserved attributes\n");
+
+    // Copy PIs from good circuit
+    Abc_NtkForEachPi(pGoodNtk, pObj, i) {
+        Abc_Obj_t * pPi = Abc_NtkCreatePi(pNtk);
+        Abc_ObjAssignName(pPi, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
+        pObj->pCopy = pPi;
+    }
+    printf("[FaultConstraint] Copied PIs from good circuit\n");
+
+    // Copy additional PIs from faulty circuit with unique names
+    Abc_NtkForEachPi(pFaultNtk, pObj, i) {
+        if (pObj->pCopy == NULL) {  // Only copy if not already copied
+            Abc_Obj_t * pPi = Abc_NtkCreatePi(pNtk);
+            // Create unique name by appending "_f" for faulty circuit PIs
+            char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
+            char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
+            sprintf(pNewName, "%s_f", pName);
+            printf("[FaultConstraint] Creating unique name for PI %s: %s\n", Abc_ObjName(pObj), pNewName);
+            Abc_ObjAssignName(pPi, pNewName, NULL);
+            free(pName);  // Free the original name
+            pObj->pCopy = pPi;
+        }
+    }
+    printf("[FaultConstraint] Copied additional PIs from faulty circuit\n");
+
+    // Copy nodes from good circuit
+    Abc_NtkForEachNode(pGoodNtk, pObj, i) {
+        Abc_Obj_t * pNode = Abc_NtkCreateNode(pNtk);
+        pNode->pData = Abc_SopRegister((Mem_Flex_t*)pNtk->pManFunc, (char*)pObj->pData);
+        Abc_ObjAssignName(pNode, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
+        pObj->pCopy = pNode;
+    }
+    printf("[FaultConstraint] Copied nodes from good circuit\n");
+
+    // Connect nodes in good circuit
+    Abc_NtkForEachNode(pGoodNtk, pObj, i) {
+        Abc_Obj_t * pNode = pObj->pCopy;
+        Abc_Obj_t * pFanin;
+        int j;
+        Abc_ObjForEachFanin(pObj, pFanin, j) {
+            if (pFanin->pCopy == NULL) {
+                printf("Error: Fanin %s of node %s not copied\n", Abc_ObjName(pFanin), Abc_ObjName(pObj));
+                continue;
+            }
+            Abc_ObjAddFanin(pNode, pFanin->pCopy);
+        }
+    }
+    printf("[FaultConstraint] Connected nodes in good circuit\n");
+
+    // Copy nodes from faulty circuit with unique names
+    Abc_NtkForEachNode(pFaultNtk, pObj, i) {
+        Abc_Obj_t * pNode = Abc_NtkCreateNode(pNtk);
+        pNode->pData = Abc_SopRegister((Mem_Flex_t*)pNtk->pManFunc, (char*)pObj->pData);
+        // Create unique name by appending "_f" for faulty circuit nodes
+        char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
+        char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
+        sprintf(pNewName, "%s_f", pName);
+        Abc_ObjAssignName(pNode, pNewName, NULL);
+        free(pName);  // Free the original name
+        pObj->pCopy = pNode;
+    }
+    printf("[FaultConstraint] Copied nodes from faulty circuit\n");
+
+    // Connect nodes in faulty circuit
+    Abc_NtkForEachNode(pFaultNtk, pObj, i) {
+        Abc_Obj_t * pNode = pObj->pCopy;
+        Abc_Obj_t * pFanin;
+        int j;
+        Abc_ObjForEachFanin(pObj, pFanin, j) {
+            if (pFanin->pCopy == NULL) {
+                printf("Error: Fanin %s of node %s not copied\n", Abc_ObjName(pFanin), Abc_ObjName(pObj));
+                continue;
+            }
+            Abc_ObjAddFanin(pNode, pFanin->pCopy);
+        }
+    }
+    printf("[FaultConstraint] Connected nodes in faulty circuit\n");
+
+    // Connect corresponding good and faulty input PIs
+    int totalPIs = Abc_NtkPiNum(pGoodNtk);
+    int processedPIs = 0;
+    printf("[FaultConstraint] Total PIs to process: %d\n", totalPIs);
+    printf("[FaultConstraint] Combined network has %d PIs\n", Abc_NtkPiNum(pNtk));
+
+    Abc_NtkForEachPi(pGoodNtk, pObj, i) {
+        char * pGoodName = Abc_ObjName(pObj);
+        char * pFaultName = (char *)malloc(strlen(pGoodName) + 3);  // +3 for "_f" and null terminator
+        sprintf(pFaultName, "%s_f", pGoodName);
+        
+        // Find the corresponding fault PI by name
+        Abc_Obj_t * pCombinedFaultPi = NULL;
+        Abc_Obj_t * pPi;
+        int j;
+        Abc_NtkForEachPi(pNtk, pPi, j) {
+            if (strcmp(Abc_ObjName(pPi), pFaultName) == 0) {
+                pCombinedFaultPi = pPi;
+                break;
+            }
+        }
+        free(pFaultName);
+
+        if (!pCombinedFaultPi) {
+            printf("[FaultConstraint] Error: Could not find fault PI %s_f\n", pGoodName);
+            continue;
+        }
+
+        printf("[FaultConstraint] Processing PI pair %d: Good PI %s, Fault PI %s\n", 
+               i, pGoodName, Abc_ObjName(pCombinedFaultPi));
+
+        // Connect the good circuit PI to the faulty circuit PI's fanouts
+        Abc_Obj_t * pFanout;
+        int k;
+        int fanoutCount = 0;
+        Abc_ObjForEachFanout(pCombinedFaultPi, pFanout, k) {
+            // Remove the connection to the faulty PI
+            Abc_ObjDeleteFanin(pFanout, pCombinedFaultPi);
+            // Add connection to the good circuit PI
+            Abc_ObjAddFanin(pFanout, pObj->pCopy);
+            fanoutCount++;
+        }
+        printf("[FaultConstraint] Transferred %d fanouts for PI %s\n", fanoutCount, Abc_ObjName(pCombinedFaultPi));
+
+        // Remove the redundant PI from the combined network
+        Abc_NtkDeleteObj(pCombinedFaultPi);
+        processedPIs++;
+    }
+
+    printf("[FaultConstraint] Processed %d out of %d PIs\n", processedPIs, totalPIs);
+    printf("[FaultConstraint] Connected input PIs and removed redundant PIs\n");
+
+    // Create XOR gates to compare outputs and collect them
+    Vec_Ptr_t * vXorOutputs = Vec_PtrAlloc(Abc_NtkPoNum(pGoodNtk));
+    Abc_NtkForEachPo(pGoodNtk, pObj, i) {
+        // Get the fanin (output of the good circuit)
+        pFanin = Abc_ObjFanin0(pObj);
+        if (!pFanin || !pFanin->pCopy) {
+            printf("[FaultConstraint] Error: PO %s has invalid fanin\n", Abc_ObjName(pObj));
+            continue;
+        }
+        
+        // Create XOR gate
+        pXor = Abc_NtkCreateNode(pNtk);
+        Abc_ObjAssignName(pXor, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
+        
+        // Connect the good circuit output to first input of XOR
+        Abc_ObjAddFanin(pXor, pFanin->pCopy);
+        
+        // Connect the faulty circuit output to second input of XOR
+        Abc_Obj_t * pFaultFanin = Abc_ObjFanin0(pFaultNtk->vPos->pArray[i]);
+        if (!pFaultFanin || !pFaultFanin->pCopy) {
+            printf("[FaultConstraint] Error: Fault PO %s has invalid fanin\n", Abc_ObjName(pObj));
+            continue;
+        }
+        Abc_ObjAddFanin(pXor, pFaultFanin->pCopy);
+        
+        // Set XOR functionality
+        pXor->pData = Abc_SopCreateXor((Mem_Flex_t*)pNtk->pManFunc, 2);
+        
+        // Add XOR output to vector
+        Vec_PtrPush(vXorOutputs, pXor);
+    }
+    printf("[FaultConstraint] Created XOR gates for output comparison\n");
+
+    // Create OR gate to combine all XOR outputs
+    Abc_Obj_t * pOr = Abc_NtkCreateNode(pNtk);
+    Abc_ObjAssignName(pOr, "fault_detected", NULL);
+    
+    // Connect all XOR outputs to OR gate
+    Abc_Obj_t * pXorOutput;
+    int j;
+    Vec_PtrForEachEntry(Abc_Obj_t *, vXorOutputs, pXorOutput, j) {
+        Abc_ObjAddFanin(pOr, pXorOutput);
+    }
+    
+    // Set OR functionality
+    pOr->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t*)pNtk->pManFunc, Vec_PtrSize(vXorOutputs), NULL);
+    
+    // Create single PO for the OR output
+    Abc_Obj_t * pPo = Abc_NtkCreatePo(pNtk);
+    Abc_ObjAddFanin(pPo, pOr);
+    Abc_ObjAssignName(pPo, "fault_detected", NULL);
+    
+    // Free the XOR outputs vector
+    Vec_PtrFree(vXorOutputs);
+    
+    printf("[FaultConstraint] Created OR gate and single PO to combine all XOR outputs\n");
+
+    // Clean up
+    Abc_NtkDelete(pFaultNtk);
+    printf("[FaultConstraint] Completed network combination\n");
+
+    // print the number of goodPIs 
+    printf("[FaultConstraint] Number of good PIs: %d\n", Vec_PtrSize(vGoodPis));
 }
 
 ABC_NAMESPACE_IMPL_END
