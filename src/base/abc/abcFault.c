@@ -1054,8 +1054,8 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
             continue;
         }
 
-        printf("[FaultConstraint] Processing PI pair %d: Good PI %s, Fault PI %s\n", 
-               i, pGoodName, Abc_ObjName(pCombinedFaultPi));
+        // printf("[FaultConstraint] Processing PI pair %d: Good PI %s, Fault PI %s\n", 
+        //        i, pGoodName, Abc_ObjName(pCombinedFaultPi));
 
         // Connect the good circuit PI to the faulty circuit PI's fanouts
         Abc_Obj_t * pFanout;
@@ -1068,7 +1068,7 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
             Abc_ObjAddFanin(pFanout, pObj->pCopy);
             fanoutCount++;
         }
-        printf("[FaultConstraint] Transferred %d fanouts for PI %s\n", fanoutCount, Abc_ObjName(pCombinedFaultPi));
+        // printf("[FaultConstraint] Transferred %d fanouts for PI %s\n", fanoutCount, Abc_ObjName(pCombinedFaultPi));
 
         // Remove the redundant PI from the combined network
         Abc_NtkDeleteObj(pCombinedFaultPi);
@@ -1284,6 +1284,7 @@ void Abc_NtkAssignLatestPatternToConstraintNetwork( Abc_Ntk_t * pNtk )
 
     // number of PIs in the test pattern
     nPis = Vec_IntSize(vLatestPattern);
+    printf("[AssignTestPattern] Number of PIs in the test pattern: %d\n", nPis);
 
     // Create constant nodes if they don't exist
     pConst0 = Abc_NtkCreateNodeConst0(pFaultNtk);
@@ -1340,18 +1341,18 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
 {
     if (pNtk->pGoodNtk == NULL)
     {
-        printf("[FaultConstraint] Error: Good network not found. Call Abc_NtkInsertFaultSimGates first.\n");
+        printf("[CombineNetwork] Error: Good network not found. Call Abc_NtkInsertFaultSimGates first.\n");
         return;
     }
     Abc_Ntk_t * pGoodNtk = pNtk->pGoodNtk;  // Get the good network
     Abc_Obj_t * pObj, * pFanin, * pXor;
     int i;
 
-    printf("[FaultConstraint] Starting network combination\n");
+    printf("[CombineNetwork] Starting network combination\n");
 
     // Save the current faulty circuit state
     Abc_Ntk_t * pFaultNtk = Abc_NtkDup(pNtk);
-    printf("[FaultConstraint] Saved faulty circuit state\n");
+    printf("[CombineNetwork] Saved faulty circuit state\n");
 
     // Save important attributes from the original network
     Abc_Fault_t * pFaultList = pNtk->pFaultList;
@@ -1382,7 +1383,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
     pNtk->pFaultConstraintNtk = pFaultConstraintNtk;
     pNtk->vGoodPis = vGoodPis;
     pNtk->pGoodNtk = oldGoodNtk;
-    printf("[FaultConstraint] Cleared and reinitialized network with preserved attributes\n");
+    printf("[CombineNetwork] Cleared and reinitialized network with preserved attributes\n");
 
     // Copy PIs from good circuit
     Abc_NtkForEachPi(pGoodNtk, pObj, i) {
@@ -1390,7 +1391,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         Abc_ObjAssignName(pPi, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
         pObj->pCopy = pPi;
     }
-    printf("[FaultConstraint] Copied PIs from good circuit\n");
+    printf("[CombineNetwork] Copied PIs from good circuit\n");
 
     // Copy additional PIs from faulty circuit with unique names
     Abc_NtkForEachPi(pFaultNtk, pObj, i) {
@@ -1400,13 +1401,13 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
             char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
             char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
             sprintf(pNewName, "%s_f", pName);
-            printf("[FaultConstraint] Creating unique name for PI %s: %s\n", Abc_ObjName(pObj), pNewName);
+            printf("[CombineNetwork] Creating unique name for PI %s: %s\n", Abc_ObjName(pObj), pNewName);
             Abc_ObjAssignName(pPi, pNewName, NULL);
             free(pName);  // Free the original name
             pObj->pCopy = pPi;
         }
     }
-    printf("[FaultConstraint] Copied additional PIs from faulty circuit\n");
+    printf("[CombineNetwork] Copied additional PIs from faulty circuit\n");
 
     // Copy nodes from good circuit
     Abc_NtkForEachNode(pGoodNtk, pObj, i) {
@@ -1415,7 +1416,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         Abc_ObjAssignName(pNode, Abc_UtilStrsav(Abc_ObjName(pObj)), NULL);
         pObj->pCopy = pNode;
     }
-    printf("[FaultConstraint] Copied nodes from good circuit\n");
+    printf("[CombineNetwork] Copied nodes from good circuit\n");
 
     // Connect nodes in good circuit
     Abc_NtkForEachNode(pGoodNtk, pObj, i) {
@@ -1430,7 +1431,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
             Abc_ObjAddFanin(pNode, pFanin->pCopy);
         }
     }
-    printf("[FaultConstraint] Connected nodes in good circuit\n");
+    printf("[CombineNetwork] Connected nodes in good circuit\n");
 
     // Copy nodes from faulty circuit with unique names
     Abc_NtkForEachNode(pFaultNtk, pObj, i) {
@@ -1444,7 +1445,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         free(pName);  // Free the original name
         pObj->pCopy = pNode;
     }
-    printf("[FaultConstraint] Copied nodes from faulty circuit\n");
+    printf("[CombineNetwork] Copied nodes from faulty circuit\n");
 
     // Connect nodes in faulty circuit
     Abc_NtkForEachNode(pFaultNtk, pObj, i) {
@@ -1459,13 +1460,13 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
             Abc_ObjAddFanin(pNode, pFanin->pCopy);
         }
     }
-    printf("[FaultConstraint] Connected nodes in faulty circuit\n");
+    printf("[CombineNetwork] Connected nodes in faulty circuit\n");
 
     // Connect corresponding good and faulty input PIs
     int totalPIs = Abc_NtkPiNum(pGoodNtk);
     int processedPIs = 0;
-    printf("[FaultConstraint] Total PIs to process: %d\n", totalPIs);
-    printf("[FaultConstraint] Combined network has %d PIs\n", Abc_NtkPiNum(pNtk));
+    printf("[CombineNetwork] Total PIs to process: %d\n", totalPIs);
+    printf("[CombineNetwork] Combined network has %d PIs\n", Abc_NtkPiNum(pNtk));
 
     Abc_NtkForEachPi(pGoodNtk, pObj, i) {
         char * pGoodName = Abc_ObjName(pObj);
@@ -1485,12 +1486,12 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         free(pFaultName);
 
         if (!pCombinedFaultPi) {
-            printf("[FaultConstraint] Error: Could not find fault PI %s_f\n", pGoodName);
+            printf("[CombineNetwork] Error: Could not find fault PI %s_f\n", pGoodName);
             continue;
         }
 
-        printf("[FaultConstraint] Processing PI pair %d: Good PI %s, Fault PI %s\n", 
-               i, pGoodName, Abc_ObjName(pCombinedFaultPi));
+        // printf("[CombineNetwork] Processing PI pair %d: Good PI %s, Fault PI %s\n", 
+        //        i, pGoodName, Abc_ObjName(pCombinedFaultPi));
 
         // Connect the good circuit PI to the faulty circuit PI's fanouts
         Abc_Obj_t * pFanout;
@@ -1503,15 +1504,15 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
             Abc_ObjAddFanin(pFanout, pObj->pCopy);
             fanoutCount++;
         }
-        printf("[FaultConstraint] Transferred %d fanouts for PI %s\n", fanoutCount, Abc_ObjName(pCombinedFaultPi));
+        // printf("[CombineNetwork] Transferred %d fanouts for PI %s\n", fanoutCount, Abc_ObjName(pCombinedFaultPi));
 
         // Remove the redundant PI from the combined network
         Abc_NtkDeleteObj(pCombinedFaultPi);
         processedPIs++;
     }
 
-    printf("[FaultConstraint] Processed %d out of %d PIs\n", processedPIs, totalPIs);
-    printf("[FaultConstraint] Connected input PIs and removed redundant PIs\n");
+    printf("[CombineNetwork] Processed %d out of %d PIs\n", processedPIs, totalPIs);
+    printf("[CombineNetwork] Connected input PIs and removed redundant PIs\n");
 
     // Create XOR gates to compare outputs and collect them
     Vec_Ptr_t * vXorOutputs = Vec_PtrAlloc(Abc_NtkPoNum(pGoodNtk));
@@ -1519,7 +1520,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         // Get the fanin (output of the good circuit)
         pFanin = Abc_ObjFanin0(pObj);
         if (!pFanin || !pFanin->pCopy) {
-            printf("[FaultConstraint] Error: PO %s has invalid fanin\n", Abc_ObjName(pObj));
+            printf("[CombineNetwork] Error: PO %s has invalid fanin\n", Abc_ObjName(pObj));
             continue;
         }
         
@@ -1533,7 +1534,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         // Connect the faulty circuit output to second input of XOR
         Abc_Obj_t * pFaultFanin = Abc_ObjFanin0(pFaultNtk->vPos->pArray[i]);
         if (!pFaultFanin || !pFaultFanin->pCopy) {
-            printf("[FaultConstraint] Error: Fault PO %s has invalid fanin\n", Abc_ObjName(pObj));
+            printf("[CombineNetwork] Error: Fault PO %s has invalid fanin\n", Abc_ObjName(pObj));
             continue;
         }
         Abc_ObjAddFanin(pXor, pFaultFanin->pCopy);
@@ -1544,7 +1545,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         // Add XOR output to vector
         Vec_PtrPush(vXorOutputs, pXor);
     }
-    printf("[FaultConstraint] Created XOR gates for output comparison\n");
+    printf("[CombineNetwork] Created XOR gates for output comparison\n");
 
     // Create OR gate to combine all XOR outputs
     Abc_Obj_t * pOr = Abc_NtkCreateNode(pNtk);
@@ -1568,14 +1569,14 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
     // Free the XOR outputs vector
     Vec_PtrFree(vXorOutputs);
     
-    printf("[FaultConstraint] Created OR gate and single PO to combine all XOR outputs\n");
+    printf("[CombineNetwork] Created OR gate and single PO to combine all XOR outputs\n");
 
     // Clean up
     Abc_NtkDelete(pFaultNtk);
-    printf("[FaultConstraint] Completed network combination\n");
+    printf("[CombineNetwork] Completed network combination\n");
 
     // print the number of goodPIs 
-    printf("[FaultConstraint] Number of good PIs: %d\n", Vec_PtrSize(vGoodPis));
+    printf("[CombineNetwork] Number of good PIs: %d\n", Vec_PtrSize(vGoodPis));
 }
 
 ABC_NAMESPACE_IMPL_END
