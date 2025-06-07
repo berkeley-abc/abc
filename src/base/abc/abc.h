@@ -190,6 +190,8 @@ struct Abc_Ntk_t_
     int               nUndetectableFaults; // number of undetectable faults
     int               nActivatedFaults;   // number of activated faults
     int               nTestTriedFaults;   // number of faults that have been tried
+    Abc_Ntk_t *       pGoodNtk;  // the good network
+    Vec_Ptr_t *       vGoodPis;  // the good network PIs
     // the number of living objects
     int nObjCounts[ABC_OBJ_NUMBER];  // the number of objects by type
     int               nObjs;         // the number of live objs
@@ -1120,6 +1122,7 @@ extern ABC_DLL void               Abc_NtkGenerateTDFaultList( Abc_Ntk_t * pNtk )
 extern ABC_DLL void               Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk);
 extern ABC_DLL void               Abc_NtkGenerateCollapsedCheckpointFaultList( Abc_Ntk_t * pNtk );
 extern ABC_DLL void               Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk);
+extern ABC_DLL void               Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk);
 
 // Test pattern management functions
 extern ABC_DLL void               Abc_NtkInitTestPatterns( Abc_Ntk_t * pNtk );
