@@ -11274,6 +11274,7 @@ int Abc_CommandFaultSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // Print fault list and statistics
     Abc_NtkInsertFaultSimGates( pNtk );
+    Abc_NtkInsertPBOGates( pNtk );
 
 
     return 0;

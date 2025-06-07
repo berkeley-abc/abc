@@ -994,6 +994,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         pAND_gate = Abc_NtkCreateNode(pNtk);
                         Abc_Obj_t *pSidein;
+                        int sideInputCount = 0;
                         // connect all the fanins to the AND gate
                         Abc_ObjForEachFanin(pNextNode, pSidein, k)
                         {
@@ -1001,8 +1002,9 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                                 continue; // Skip the current fanin being processed
                             //
                             Abc_ObjAddFanin(pAND_gate, pSidein);
+                            sideInputCount++;
                         }
-                        pAND_gate->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNextNode), NULL);
+                        pAND_gate->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, sideInputCount, NULL);
 
                         // AND_all_fanin OR ~a_f0
                         pOR_gate = Abc_NtkCreateNode(pNtk);
@@ -1023,15 +1025,17 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                         pOR_gate = Abc_NtkCreateNode(pNtk);
 
                         Abc_Obj_t *pSidein;
+                        int sideInputCount = 0;
                         // connect all the fanins to the OR gate
-                        Abc_ObjForEachFanin(pNextNode, pSidein, i)
+                        Abc_ObjForEachFanin(pNextNode, pSidein, k)
                         {
                             if (k == inputIndex)
                                 continue; // Skip the current fanin being processed
                             //
                             Abc_ObjAddFanin(pOR_gate, pSidein);
+                            sideInputCount++;
                         }
-                        pOR_gate->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNextNode), NULL);
+                        pOR_gate->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, sideInputCount, NULL);
 
                         // OR_all_fanin ANF a_f0
                         pAND_gate = Abc_NtkCreateNode(pNtk);
@@ -1118,16 +1122,17 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                         pAND_gate = Abc_NtkCreateNode(pNtk);
 
                         Abc_Obj_t *pSidein;
-                        int l = 0;
+                        int sideInputCount = 0;
                         // connect all the fanins to the AND gate
-                        Abc_ObjForEachFanin(pNextNode, pSidein, l)
+                        Abc_ObjForEachFanin(pNextNode, pSidein, k)
                         {
-                            if (i == inputIndex)
+                            if (k == inputIndex)
                                 continue; // Skip the current fanin being processed
                             //
                             Abc_ObjAddFanin(pAND_gate, pSidein);
+                            sideInputCount++;
                         }
-                        pAND_gate->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNextNode), NULL);
+                        pAND_gate->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, sideInputCount, NULL);
 
                         // create NOT gate for ~a_f1
                         pNOTf1_gate = Abc_NtkCreateNode(pNtk);
@@ -1157,7 +1162,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                         // connect all the fanins to the OR gate
                         Abc_ObjForEachFanin(pNextNode, pSidein, l)
                         {
-                            if (i == inputIndex)
+                            if (l == inputIndex)
                                 continue; // Skip the current fanin being processed
                             //
                             Abc_ObjAddFanin(pOR_gate, pFanin);
@@ -1259,7 +1264,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     // connect all the fanins to the AND gate
                     Abc_ObjForEachFanin(pNode, pSidein, l)
                     {
-                        if (i == fanin_index)
+                        if (l == fanin_index)
                             continue; // Skip the current fanin being processed
                         //
                         Abc_ObjAddFanin(pAND_gate, pSidein);
@@ -1289,7 +1294,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     // connect all the fanins to the OR gate
                     Abc_ObjForEachFanin(pNode, pSidein, l)
                     {
-                        if (i == fanin_index)
+                        if (l == fanin_index)
                             continue; // Skip the current fanin being processed
                         //
                         Abc_ObjAddFanin(pOR_gate, pSidein);
@@ -1361,7 +1366,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     // connect all the fanins to the AND gate
                     Abc_ObjForEachFanin(pNode, pSidein, l)
                     {
-                        if (i == fanin_index)
+                        if (l == fanin_index)
                             continue; // Skip the current fanin being processed
                         //
                         Abc_ObjAddFanin(pAND_gate, pSidein);
@@ -1396,7 +1401,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                     // connect all the fanins to the OR gate
                     Abc_ObjForEachFanin(pNode, pSidein, l)
                     {
-                        if (i == fanin_index)
+                        if (l == fanin_index)
                             continue; // Skip the current fanin being processed
                         //
                         Abc_ObjAddFanin(pOR_gate, pFanin);
