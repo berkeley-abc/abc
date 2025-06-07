@@ -3927,7 +3927,7 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
         case'f':
             fFaultConstraint ^= 1;
             pNtk = pNtk->pFaultConstraintNtk;
-            printf("Fault constraint network: %s\n", pNtk->pName);
+            printf("Strash Fault constraint network\n");
             break;
         case 'a':
             fAllNodes ^= 1;
@@ -3962,10 +3962,12 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fComplOuts )
-    Abc_NtkForEachPo( pNtkRes, pObj, c )
-        Abc_ObjXorFaninC( pObj, 0 );
+        Abc_NtkForEachPo( pNtkRes, pObj, c )
+            Abc_ObjXorFaninC( pObj, 0 );
     // replace the current network
+    if(fFaultConstraint) pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    
     return 0;
 
 usage:
@@ -11299,6 +11301,7 @@ usage:
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
+
 
 /**Function*************************************************************
 
@@ -19196,6 +19199,12 @@ int Abc_CommandBackup( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pNtkBackup )
         Abc_NtkDelete( pAbc->pNtkBackup );
     pAbc->pNtkBackup = Abc_NtkDup( pNtk );
+    if(pNtk -> pFaultList != NULL) pAbc->pNtkBackup -> pFaultList = pNtk -> pFaultList;
+    if(pNtk -> nFaults != 0) pAbc->pNtkBackup -> nFaults = pNtk -> nFaults;
+    if(pNtk -> pGoodNtk != NULL) pAbc->pNtkBackup -> pGoodNtk = pNtk -> pGoodNtk;
+    if(pNtk -> vGoodPis != NULL) pAbc->pNtkBackup -> vGoodPis = pNtk -> vGoodPis;
+    if(pNtk -> pFaultConstraintNtk != NULL) pAbc->pNtkBackup -> pFaultConstraintNtk = pNtk -> pFaultConstraintNtk;
+
     return 0;
 
 usage:
@@ -19207,6 +19216,7 @@ usage:
 int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
+    Abc_Ntk_t * dupNtk;
     // set defaults
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
@@ -19225,7 +19235,13 @@ int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "There is no backup network.\n" );
         return 1;
     }
-    Abc_FrameReplaceCurrentNetwork( pAbc, Abc_NtkDup(pAbc->pNtkBackup) );
+    dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
+    if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
+    if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
+    if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
+    if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
+    if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+    Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
     pAbc->nFrames = -1;
     pAbc->Status = -1;
     return 0;
