@@ -5,7 +5,7 @@
 
 ABC_NAMESPACE_IMPL_START
 
-void Abc_ExecPBO( Abc_Ntk_t * pNtk )
+Vec_Int_t * Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run )
 {
     // extern void Abc_NtkAddTestPattern( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern );
 
@@ -14,16 +14,24 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
     const int good_pi_num = pNtk->vGoodPis ? Vec_PtrSize(pNtk->vGoodPis) : -1;
     if (good_pi_num < 0) {
         Abc_Print(ABC_ERROR, "No good PIs found in the network.\n");
-        return;
+        return NULL;
     }
     char pi_num_str[16], good_pi_str[16];
-    sprintf(pi_num_str, "%d", pi_num);
-    sprintf(good_pi_str, "%d", good_pi_num);
+    
+    if(first_run){
+        sprintf(pi_num_str, "%d", pi_num);
+        sprintf(good_pi_str, "%d", good_pi_num);
+    } else {
+        // for next runPBO call
+        // XY variable nums, and -1 specified incremental PBO
+        sprintf(pi_num_str, "%d", (pi_num - good_pi_num)/2);
+        sprintf(good_pi_str, "%d", -1);
+    }
 
     int pipefd[2];
     if (pipe(pipefd) == -1) {
         perror("pipe");
-        return;
+        return NULL;
     }
 
     pid_t pid = fork();
@@ -59,7 +67,7 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
                 free(output);
                 close(pipefd[0]);
                 waitpid(pid, NULL, 0);
-                return;
+                return NULL;
             }
 
             output = new_output;
@@ -71,18 +79,17 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
         close(pipefd[0]); // Close read end
         waitpid(pid, NULL, 0);
 
+        if ( strncmp(output, "unsat", 5) == 0 ) {
+            Abc_Print(ABC_STANDARD, "PBO solver returned unsat.\n");
+            free(output);
+            return NULL;
+        }
+
         int* pattern = (int*)malloc(sizeof(int) * good_pi_num);
         if (!pattern) {
             Abc_Print(ABC_ERROR, "Memory allocation failed for pattern.\n");
             free(output);
-            return;
-        }
-
-        if ( strncmp(output, "unsat", 5) == 0 ) {
-            Abc_Print(ABC_WARNING, "PBO solver returned unsat.\n");
-            free(output);
-            free(pattern);
-            return;
+            return NULL;
         }
 
         for (int i = 0; i < good_pi_num; ++i) {
@@ -90,9 +97,10 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
         }
         Vec_Int_t * vPattern = Vec_IntAllocArray(pattern, good_pi_num);
 
-        Abc_NtkAddTestPattern(pNtk, vPattern);
         free(output);
-        return;
+
+        return vPattern;
+
     }
 }
 

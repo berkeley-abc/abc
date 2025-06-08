@@ -11556,10 +11556,21 @@ usage:
 ***********************************************************************/
 int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk );
+    extern void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
+
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
     FILE * pFile;
     char * pFileName;
+
+    Abc_Ntk_t * pNtkRes;
+    Abc_Ntk_t * dupNtk;
+    Abc_Ntk_t * pStrash;
+    Aig_Man_t * pAig;
+    Gia_Man_t * pGia, * pTemp;
+
+    Vec_Int_t * vPattern;
 
     // set defaults
     Extra_UtilGetoptReset();
@@ -11588,8 +11599,50 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 0;
     }
     fclose( pFile );
+
+    int first_time = 1;
     
-    Abc_ExecPBO( pNtk );
+    while(1){
+        vPattern = Abc_ExecPBO( pNtk, first_time );
+        if ( vPattern == NULL ) return 0; // pbo unsat, done.
+        
+        if (first_time) first_time = 0;
+
+        // restore
+        dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
+        if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
+        if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
+        if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
+        if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
+        if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+        Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
+        pAbc->nFrames = -1;
+        pAbc->Status = -1;
+
+        // add test pattern
+        Abc_NtkAddTestPattern(pNtk, vPattern);
+        
+        
+        Abc_NtkAssignLatestPatternToConstraintNetwork(pNtk);
+        
+        // strash
+        pNtkRes = Abc_NtkStrash( pNtk->pFaultConstraintNtk, 0, 1, 0 );
+
+        // &get
+        // if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
+        //     pAig = Abc_NtkToDarChoices( pAbc->pNtkCur );
+        // else
+        //     pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
+        if ( Abc_NtkGetChoiceNum(pNtkRes) )
+            pAig = Abc_NtkToDarChoices( pNtkRes );
+        else
+            pAig = Abc_NtkToDar( pNtkRes, 0, 1 );
+        pGia = Gia_ManFromAig( pAig );
+        Aig_ManStop( pAig );
+
+        // &write_cnf
+        Mf_ManDumpCnf( pAbc->pGia, pFileName, 8, 0, 1, 0 );
+    }
 
     return 0;
 
