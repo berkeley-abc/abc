@@ -33,8 +33,11 @@ CNF* parse_cnf(const char* filename) {
             sscanf(line, "p cnf %d %d", &cnf->num_vars, &cnf->num_clauses);
             cnf->clauses = malloc(cnf->num_clauses * sizeof(int*));
             cnf->clause_sizes = malloc(cnf->num_clauses * sizeof(int));
+            // fprintf(stderr, "Number of variables: %d\n", cnf->num_vars);
+            // fprintf(stderr, "Number of clauses: %d\n", cnf->num_clauses);
             continue;
         }
+        // printf("num of clauses: %d\n", clause_index);
 
         // Parse clause
         int lit;
@@ -50,6 +53,9 @@ CNF* parse_cnf(const char* filename) {
         // printf("num of clauses: %d\n", clause_index);
         cnf->clauses[clause_index++] = clause;
         cnf->clause_sizes[clause_index - 1] = size;
+        if (clause_index >= cnf->num_clauses) {
+            break;
+        }
     }
 
     fclose(file);
@@ -104,7 +110,7 @@ int main(int argc, char* argv[]) {
     // const char* opb_filename = "output.opb";
     const char* input_filename = argv[1];
     const char* opb_filename = argv[2];
-
+    
     int* obj_variables = malloc((argc - 3) * sizeof(int));
     for (int i = 3; i < argc; ++i) {
         int num = atoi(argv[i]);
@@ -121,7 +127,7 @@ int main(int argc, char* argv[]) {
 
     CNF* cnf = parse_cnf(input_filename);
     if (!cnf) return 1;
-
+    fprintf(stderr, "CNF parsed successfully\n");
     write_opb(opb_filename, cnf, obj_variables, obj_size);
 
     // Free allocated memory
@@ -131,13 +137,28 @@ int main(int argc, char* argv[]) {
     free(cnf->clauses);
     free(cnf->clause_sizes);
     free(cnf);
+    fprintf(stderr, "OPB file written successfully\n");
 
     char command[1024];
     snprintf(command, sizeof(command), "./pbcomp24-cg/build/mixed-bag %s", opb_filename);  // output_filename is like "myfile.opb"
-    int result = system(command);
-    if (result == -1) {
-        perror("system");
+    FILE *fp = popen(command, "r");  // "r" to read command output
+    if (fp == NULL) {
+        perror("popen");
+        return 1;
     }
+
+    char buffer[256];
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        if (buffer[0] != 'v') continue;  // Skip empty lines
+        printf("Output: %s", buffer);  // Print the output line by line
+    }
+
+    int status = pclose(fp);  // Close and get return status
+    if (status == -1) {
+        perror("pclose");
+    }
+
+    
 
     return 0;
 }
