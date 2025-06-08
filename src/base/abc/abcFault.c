@@ -236,7 +236,18 @@ void Abc_NtkGenerateCheckpointFaultList( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj, *pFanin;
     Vec_Ptr_t * vCheckpoints;
     int i, k;
+
+    // Store the good network and its PIs
+    pNtk->pGoodNtk = Abc_NtkDup(pNtk);
+    pNtk->vGoodPis = Vec_PtrAlloc(Abc_NtkPiNum(pNtk));
     
+    // Copy all PIs to vGoodPis
+    Abc_Obj_t * pPi;
+    Abc_NtkForEachPi(pNtk, pPi, i) {
+        Vec_PtrPush(pNtk->vGoodPis, pPi);
+    }
+    printf("[FaultSim] Stored good network and its PIs\n");
+
     // Clear existing faults
     Abc_NtkClearFaults( pNtk );
     
@@ -431,6 +442,17 @@ void Abc_NtkGenerateCollapsingFaultList( Abc_Ntk_t * pNtk )
     int i, j, k, nFaults = 0;
     int gateType;
     int nTotalGateFaults = 0;
+
+    // Store the good network and its PIs
+    pNtk->pGoodNtk = Abc_NtkDup(pNtk);
+    pNtk->vGoodPis = Vec_PtrAlloc(Abc_NtkPiNum(pNtk));
+    
+    // Copy all PIs to vGoodPis
+    Abc_Obj_t * pPi;
+    Abc_NtkForEachPi(pNtk, pPi, i) {
+        Vec_PtrPush(pNtk->vGoodPis, pPi);
+    }
+    printf("[FaultSim] Stored good network and its PIs\n");
     
     // Clear existing faults
     Abc_NtkClearFaults( pNtk );
@@ -1798,7 +1820,6 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
             char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
             char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
             sprintf(pNewName, "%s_f", pName);
-            printf("[FaultConstraint] Creating unique name for PI %s: %s\n", Abc_ObjName(pObj), pNewName);
             Abc_ObjAssignName(pPi, pNewName, NULL);
             free(pName);  // Free the original name
             pObj->pCopy = pPi;
@@ -2234,13 +2255,13 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
             char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
             char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
             sprintf(pNewName, "%s_f", pName);
-            printf("[CombineNetwork] Creating unique name for PI %s: %s\n", Abc_ObjName(pObj), pNewName);
             Abc_ObjAssignName(pPi, pNewName, NULL);
             free(pName);  // Free the original name
             pObj->pCopy = pPi;
         }
     }
     printf("[CombineNetwork] Copied additional PIs from faulty circuit\n");
+    
 
     // Copy nodes from good circuit
     Abc_NtkForEachNode(pGoodNtk, pObj, i) {
@@ -2350,6 +2371,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
     // Create XOR gates to compare outputs and collect them
     Vec_Ptr_t * vXorOutputs = Vec_PtrAlloc(Abc_NtkPoNum(pGoodNtk));
     Abc_NtkForEachPo(pGoodNtk, pObj, i) {
+        printf("[CombineNetwork] Processing PO %s\n", Abc_ObjName(pObj));
         // Get the fanin (output of the good circuit)
         pFanin = Abc_ObjFanin0(pObj);
         if (!pFanin || !pFanin->pCopy) {
@@ -2379,6 +2401,31 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         Vec_PtrPush(vXorOutputs, pXor);
     }
     printf("[CombineNetwork] Created XOR gates for output comparison\n");
+
+    // Preserve additional POs from faulty circuit that don't have corresponding good POs
+    Abc_NtkForEachPo(pFaultNtk, pObj, i) {
+        // Skip if this PO was already processed in the good circuit
+        if (i < Abc_NtkPoNum(pGoodNtk)) {
+            continue;
+        }
+        
+        Abc_Obj_t * pFaultFanin = Abc_ObjFanin0(pFaultNtk->vPos->pArray[i]);
+        if (!pFaultFanin || !pFaultFanin->pCopy) {
+            printf("[CombineNetwork] Error: Additional fault PO %s has invalid fanin\n", Abc_ObjName(pObj));
+            continue;
+        }
+        
+        // Create new PO in combined network
+        Abc_Obj_t * pPo = Abc_NtkCreatePo(pNtk);
+        Abc_ObjAddFanin(pPo, pFaultFanin->pCopy);
+        // Create unique name by appending "_f" for faulty circuit POs
+        char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
+        // char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
+        // sprintf(pNewName, "%s_f", pName);
+        Abc_ObjAssignName(pPo, pName, NULL);
+        free(pName);  // Free the original name
+    }
+    printf("[CombineNetwork] Preserved additional fault POs\n");
 
     // Create OR gate to combine all XOR outputs
     Abc_Obj_t * pOr = Abc_NtkCreateNode(pNtk);
