@@ -2112,6 +2112,13 @@ void Abc_NtkAssignLatestPatternToConstraintNetwork( Abc_Ntk_t * pNtk )
     // Check if network and constraint network exist
     if ( !pNtk || !pNtk->pFaultConstraintNtk || !pNtk->vTestPatterns )
     {
+        printf("pNtk: %d\n", !pNtk);
+        printf("pNtk->pFaultConstraintNtk: %d\n", !pNtk->pFaultConstraintNtk);
+        printf("[FaultConstraint] Error: size:%d\n", pNtk->vTestPatterns->nSize);
+        Vec_Int_t* vpattern = Abc_NtkGetTestPattern(pNtk, 0);
+        for(int j = 0; j < Vec_IntSize(vpattern); j++)
+            printf("%d ", Vec_IntEntry(vpattern, j));
+        printf("\n");
         printf("[FaultConstraint] Error: Network or constraint network not found\n");
         return;
     }

@@ -3966,6 +3966,7 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_ObjXorFaninC( pObj, 0 );
     // replace the current network
     if(fFaultConstraint) pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
+    pNtkRes->vGoodPis = pNtk->vGoodPis;
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     
     return 0;
@@ -11603,23 +11604,27 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
     int first_time = 1;
     
     while(1){
+        pNtk = Abc_FrameReadNtk(pAbc);
         vPattern = Abc_ExecPBO( pNtk, first_time );
         if ( vPattern == NULL ) return 0; // pbo unsat, done.
         
         if (first_time) first_time = 0;
 
         // restore
+        printf("backup%d\n", pAbc->pNtkBackup==NULL);
         dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
         if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
         if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
         if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
         if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
         if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+        printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
         Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
         pAbc->nFrames = -1;
         pAbc->Status = -1;
 
         // add test pattern
+        pNtk = Abc_FrameReadNtk(pAbc);
         Abc_NtkAddTestPattern(pNtk, vPattern);
         
         
@@ -11627,6 +11632,9 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         
         // strash
         pNtkRes = Abc_NtkStrash( pNtk->pFaultConstraintNtk, 0, 1, 0 );
+        pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
+        pNtkRes->vGoodPis = pNtk->vGoodPis;
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 
         // &get
         // if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
@@ -11639,9 +11647,11 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
             pAig = Abc_NtkToDar( pNtkRes, 0, 1 );
         pGia = Gia_ManFromAig( pAig );
         Aig_ManStop( pAig );
+        Abc_FrameUpdateGia( pAbc, pGia );
 
         // &write_cnf
         Mf_ManDumpCnf( pAbc->pGia, pFileName, 8, 0, 1, 0 );
+        // break;
     }
 
     return 0;
