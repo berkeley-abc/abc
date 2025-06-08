@@ -11,7 +11,14 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
 
     const int pi_num =  Abc_NtkPiNum(pNtk);
     // int good_pi_num = Abc_NtkPiNum(pNtk);
-    const int good_pi_num = 5;
+    const int good_pi_num = pNtk->vGoodPis ? Vec_PtrSize(pNtk->vGoodPis) : -1;
+    if (good_pi_num < 0) {
+        Abc_Print(ABC_ERROR, "No good PIs found in the network.\n");
+        return;
+    }
+    char pi_num_str[16], good_pi_str[16];
+    sprintf(pi_num_str, "%d", pi_num);
+    sprintf(good_pi_str, "%d", good_pi_num);
 
     int pipefd[2];
     if (pipe(pipefd) == -1) {
@@ -28,7 +35,7 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
         dup2(pipefd[1], STDOUT_FILENO); // Redirect stdout to pipe
         
         // need to compile runPBO.cpp first
-        char *argv[] = {"./runpbo", "atpg.cnf", "output.opb", pi_num, good_pi_num, NULL};
+        char *argv[] = {"./runpbo", "atpg.cnf", "output.opb", pi_num_str, good_pi_str, NULL};
         execv("./runpbo", argv);
 
         // If execv returns, an error occurred
