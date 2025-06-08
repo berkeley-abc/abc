@@ -53,11 +53,11 @@ CNF* parse_cnf(const std::string& filename) {
     return cnf;
 }
 
-void write_opb(const std::string& filename, CNF* cnf, const std::vector<int>& obj, const int pi_num, const int originPI_num) {
+int write_opb(const std::string& filename, CNF* cnf, const std::vector<int>& obj, const int pi_num, const int originPI_num) {
     std::ofstream file(filename);
     if (!file.is_open()) {
         perror("Error opening OPB file");
-        return;
+        exit(-1);
     }
 
     int pi_start = cnf->num_vars - pi_num + 1; // [pi_start, pi_end] are the PI variables
@@ -104,13 +104,14 @@ void write_opb(const std::string& filename, CNF* cnf, const std::vector<int>& ob
     file << "= 1;\n";
 
     file.close();
+    return pi_start;
 }
 
-void add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int originPI_num) {
+int add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int& originPI_num) {
     std::ifstream infile(filename);
     if (!infile.is_open()) {
         perror("Error opening OPB file for reading");
-        return;
+        exit(-1);
     }
 
     std::stringstream buffer;
@@ -148,7 +149,7 @@ void add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int o
                           << ", constraint = " << current_constraints << "\n";
             } else {
                 std::cerr << "Malformed header (line 1)\n";
-                return;
+                exit(-1);
             }
         } 
         else if (!second_header_found && line.rfind("* #XY_", 0) == 0) {
@@ -165,7 +166,7 @@ void add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int o
                 buffer << line << "\n";  // keep the original line
             } else {
                 std::cerr << "Malformed PI line (line 2)\n";
-                return;
+                exit(-1);
             }
         } 
         else if (!third_header_found && line.rfind("* #PI_", 0) == 0) {
@@ -182,7 +183,7 @@ void add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int o
                 buffer << line << "\n";  // keep the original line
             } else {
                 std::cerr << "Malformed PI line (line 2)\n";
-                return;
+                exit(-1);
             }
         } 
         else {
@@ -203,7 +204,7 @@ void add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int o
                     lit = (lit - current_vars) + parsed_xy_start -1; 
                     if (lit < parsed_xy_start || lit > parsed_xy_end) {
                         std::cerr << "Error: Literal " << -lit << " out of range for XY variables.\n";
-                        return;
+                        exit(-1);
                     }
                 }
                 buffer << "1 ~x" << lit << " ";
@@ -214,7 +215,7 @@ void add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int o
                     lit = (lit - current_vars) + parsed_xy_start -1; // adjust to fit origin XY variables
                     if (lit < parsed_xy_start || lit > parsed_xy_end) {
                         std::cerr << "Error: Literal " << lit << " out of range for XY variables.\n";
-                        return;
+                        exit(-1);
                     }
                 }
                 buffer << "1 x" << lit << " ";
@@ -227,13 +228,16 @@ void add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int o
     std::ofstream outfile(filename);
     if (!outfile.is_open()) {
         perror("Error opening OPB file for writing");
-        return;
+        exit(-1);
     }
     outfile << buffer.str();
     outfile.close();
 
     // Optional: print parsed PI info
     std::cerr << "Parsed XY info: #XY_start= " << parsed_xy_start << ", #XY_end= " << parsed_xy_end << std::endl;
+    
+    originPI_num = parsed_pi_num; // Update originPI_num to the parsed value
+    return parsed_pi_start;
 }
 
 // Function to perform the full task
@@ -313,6 +317,7 @@ void modify_opb_by_lits(const std::vector<std::string>& lits, const std::string&
 
     if (target_var.empty()) {
         std::cerr << "No positive literal found in lits.\n";
+        std::cerr << "Available literals: " << lits.size() << "\n";
         return;
     }
 
@@ -355,7 +360,7 @@ void modify_opb_by_lits(const std::vector<std::string>& lits, const std::string&
     outfile.close();
 }
 
-void execute_solver(const std::string& opb_filename, const int pi_num, const int originPI_num) {
+void execute_solver(const std::string& opb_filename, const int pi_start, const int originPI_num) {
     std::string command = "./pbcomp24-cg/build/mixed-bag " + opb_filename;
     FILE* fp = popen(command.c_str(), "r");
     if (!fp) {
@@ -363,13 +368,18 @@ void execute_solver(const std::string& opb_filename, const int pi_num, const int
         exit(1);
     }
 
-    char buffer[4096]; // TODO : Adjust buffer size as needed
-    bool sat = false;
-    while (fgets(buffer, sizeof(buffer), fp)) {
-        std::cerr << buffer; // Print solver output to stderr
-        if (buffer[0] != 'v') continue;
+    // char buffer[4096]; // TODO : Adjust buffer size as needed
+    std::string line;
+    char* c_line = nullptr;
+    size_t len = 0;
 
-        std::istringstream iss(buffer);
+    bool sat = false;
+    while (getline(&c_line, &len, fp) != -1) {
+        line = c_line;
+        std::cerr << line; // Print solver output to stderr
+        if (line.empty() || line[0] != 'v') continue;
+
+        std::istringstream iss(line);
         std::string token;
         std::vector<std::string> literals;
 
@@ -379,12 +389,12 @@ void execute_solver(const std::string& opb_filename, const int pi_num, const int
         }
 
         int total = literals.size() -1; // Exclude the first 'v' token
-        int start = std::max(0, total - pi_num);
-        int end = std::max(0, start + originPI_num);
-        // std::cerr << "start: " << start << ", end: " << end << "\n";
+        int start = pi_start;
+        int end = pi_start + originPI_num ;
+        std::cerr << "pi: [start: " << start << ", end: " << end << ")\n";
 
         std::string bitstring;
-        for (int i = start; i < end; ++i) {
+        for (int i = start; i < end && i < literals.size(); ++i) {
             const std::string& lit = literals[i];
             bitstring += (lit[0] != '-') ? '1' : '0';
         }
@@ -394,6 +404,7 @@ void execute_solver(const std::string& opb_filename, const int pi_num, const int
         std::cout << bitstring << "\n";
 
     }
+    free(c_line);
 
     if (!sat) {
         std::cout << "unsat\n";
@@ -417,9 +428,10 @@ int main(int argc, char* argv[]) {
     std::string input_filename = argv[1];
     std::string opb_filename = argv[2];
     const int pi_num = (argc > 3) ? std::atoi(argv[3]) : 0;
-    const int originPI_num = (argc > 4) ? std::atoi(argv[4]) : 0;
+    int originPI_num = (argc > 4) ? std::atoi(argv[4]) : 0;
     assert(originPI_num <= pi_num); // let originPI_num = -1 be the signal of appending constraints
     std::vector<int> obj_variables;
+    int pi_start = 0;
 
     CNF* cnf = parse_cnf(input_filename);
     if (!cnf) return 1;
@@ -434,15 +446,15 @@ int main(int argc, char* argv[]) {
             obj_variables.push_back(i);
         }
 
-        write_opb(opb_filename, cnf, obj_variables, pi_num, originPI_num);
+        pi_start = write_opb(opb_filename, cnf, obj_variables, pi_num, originPI_num);
         std::cerr << "OPB file written successfully\n";
     }
     else if (originPI_num == -1){
-        add_pbo_constraint(opb_filename, cnf, pi_num, originPI_num);
+        pi_start = add_pbo_constraint(opb_filename, cnf, pi_num, originPI_num);
         std::cerr << "OPB file updated with new constraints successfully\n";
     }
     
-    execute_solver(opb_filename, pi_num, originPI_num);
+    execute_solver(opb_filename, pi_start, originPI_num);
 
     delete cnf;
 
