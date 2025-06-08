@@ -11272,10 +11272,13 @@ int Abc_CommandFaultSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'c':
+            Abc_NtkInsertPBOGates( pNtk );
+            break;
         case 'h':
             goto usage;
         default:
@@ -11291,7 +11294,7 @@ int Abc_CommandFaultSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 
     // Print fault list and statistics
-    Abc_NtkInsertPBOGates( pNtk );
+    
     Abc_NtkInsertFaultSimGates( pNtk );
 
 
