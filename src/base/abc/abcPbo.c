@@ -24,7 +24,8 @@ Vec_Int_t * Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run )
     } else {
         // for next runPBO call
         // XY variable nums, and -1 specified incremental PBO
-        sprintf(pi_num_str, "%d", (pi_num - good_pi_num)/2);
+        sprintf(pi_num_str, "%d", pi_num);
+        // sprintf(pi_num_str, "%d", (pi_num - good_pi_num)/2);
         sprintf(good_pi_str, "%d", -1);
     }
 

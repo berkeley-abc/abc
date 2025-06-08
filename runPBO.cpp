@@ -402,6 +402,7 @@ void execute_solver(const std::string& opb_filename, const int pi_start, const i
         sat = true;
         modify_opb_by_lits(literals, opb_filename); // Modify the OPB's objective function with the literals
         std::cout << bitstring << "\n";
+        std::cerr << bitstring << "\n";
 
     }
     free(c_line);
