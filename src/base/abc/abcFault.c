@@ -1071,7 +1071,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         // create a new PO for the OR gate
                         Abc_Obj_t *pPo_gate = Abc_NtkCreatePo(pNtk);
-                        sprintf(PO_f0_Name, "PO_pbo_GO_f0_GATE_%s", Abc_ObjName(pNextNode));
+                        sprintf(PO_f0_Name, "PO_pbo_GO_f0_GATE_%s", Abc_ObjName(pNode));
                         Abc_ObjAssignName(pPo_gate, PO_f0_Name, NULL);
                         Abc_ObjAddFanin(pPo_gate, pOR_gate);
                     }
@@ -1108,7 +1108,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         // create a new PO for the NAND gate
                         Abc_Obj_t *pPo_gate = Abc_NtkCreatePo(pNtk);
-                        sprintf(PO_f0_Name, "PO_pbo_GO_f0_GATE_%s", Abc_ObjName(pNextNode));
+                        sprintf(PO_f0_Name, "PO_pbo_GO_f0_GATE_%s", Abc_ObjName(pNode));
                         Abc_ObjAssignName(pPo_gate, PO_f0_Name, NULL);
                         Abc_ObjAddFanin(pPo_gate, pNOT_gate);
                     }
@@ -1245,7 +1245,7 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
 
                         // create a new PO for the NAND gate
                         Abc_Obj_t *pPo_gate = Abc_NtkCreatePo(pNtk);
-                        sprintf(PO_f1_Name, "PO_pbo_GO_f1_GATE_%s", Abc_ObjName(pNode));
+                        sprintf(PO_f1_Name, "PO_pbo_GO_f1_GATE_OR_%s", Abc_ObjName(pNode));
                         Abc_ObjAssignName(pPo_gate, PO_f1_Name, NULL);
                         Abc_ObjAddFanin(pPo_gate, pNOT_gate);
                     }
