@@ -26,17 +26,10 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
         close(pipefd[0]); // Close unused read end
 
         dup2(pipefd[1], STDOUT_FILENO); // Redirect stdout to pipe
-
-        char arg_str[100] = {0};
-        for (int i = 2; i < 10; ++i) {
-            char temp[16];
-            sprintf(temp, "%d", i);
-            strcat(arg_str, temp);
-            if (i < 10 - 1) strcat(arg_str, " ");
-        }
         
-        char *argv[] = {"./solver", "atpg.cnf", "output.opb", pi_num, good_pi_num, arg_str, NULL};
-        execv("./solver", argv);
+        // need to compile runPBO.cpp first
+        char *argv[] = {"./runpbo", "atpg.cnf", "output.opb", pi_num, good_pi_num, NULL};
+        execv("./runpbo", argv);
 
         // If execv returns, an error occurred
         perror("execv");
@@ -77,6 +70,14 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
             free(output);
             return;
         }
+
+        if ( strncmp(output, "unsat", 5) == 0 ) {
+            Abc_Print(ABC_WARNING, "PBO solver returned unsat.\n");
+            free(output);
+            free(pattern);
+            return;
+        }
+
         for (int i = 0; i < good_pi_num; ++i) {
             pattern[i] = output[i] == '1' ? 1 : 0 ; // Convert char to int
         }
@@ -84,7 +85,7 @@ void Abc_ExecPBO( Abc_Ntk_t * pNtk )
 
         Abc_NtkAddTestPattern(pNtk, vPattern);
         free(output);
-        
+        return;
     }
 }
 
