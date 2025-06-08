@@ -768,17 +768,6 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
     Vec_Ptr_t * vGIHandledsa0 = Vec_PtrAlloc(100); // Track handled input nodes
     Vec_Ptr_t * vGIHandledsa1 = Vec_PtrAlloc(100); // Track handled input nodes
 
-    // Store the good network and its PIs
-    pNtk->pGoodNtk = Abc_NtkDup(pNtk);
-    pNtk->vGoodPis = Vec_PtrAlloc(Abc_NtkPiNum(pNtk));
-    
-    // Copy all PIs to vGoodPis
-    Abc_Obj_t * pPi;
-    Abc_NtkForEachPi(pNtk, pPi, i) {
-        Vec_PtrPush(pNtk->vGoodPis, pPi);
-    }
-    printf("[FaultSim] Stored good network and its PIs\n");
-
     // Record original network nodes and PIs (excluding any existing fault sim or PBO nodes)
     Vec_Ptr_t *vOriginalNodes = Vec_PtrAlloc(1000);
     Vec_Ptr_t *vOriginalPIs = Vec_PtrAlloc(100);
