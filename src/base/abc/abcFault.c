@@ -2054,6 +2054,52 @@ void Abc_NtkInitTestPatterns( Abc_Ntk_t * pNtk )
     pNtk->vTestPatterns = Vec_PtrAlloc( 100 ); // Initial capacity of 100 patterns
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    [Writes test patterns to a file.]
+
+  Description [Writes each test pattern as a line of 0s and 1s to the specified file,
+               starting from the newest pattern to the oldest.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkWriteTestPatterns( Abc_Ntk_t * pNtk, const char * pFileName )
+{
+    FILE * pFile;
+    Vec_Int_t * vPattern;
+    int i, j, Value;
+
+    if ( !pNtk->vTestPatterns )
+    {
+        printf("No test patterns to write.\n");
+        return;
+    }
+
+    pFile = fopen(pFileName, "w");
+    if ( pFile == NULL )
+    {
+        printf("Cannot open file \"%s\" for writing.\n", pFileName);
+        return;
+    }
+
+    // Write patterns in reverse order (newest to oldest)
+    for ( i = Vec_PtrSize(pNtk->vTestPatterns) - 1; i >= 0; i-- )
+    {
+        vPattern = (Vec_Int_t *)Vec_PtrEntry(pNtk->vTestPatterns, i);
+        fprintf(pFile, "T'");
+        Vec_IntForEachEntry( vPattern, Value, j )
+            fprintf(pFile, "%d", Value);
+        fprintf(pFile, "'\n");
+    }
+
+    fclose(pFile);
+    printf("Wrote %d test patterns to file \"%s\".\n", Vec_PtrSize(pNtk->vTestPatterns), pFileName);
+}
+
 /**Function*************************************************************
 
   Synopsis    [Adds a test pattern to the network.]
@@ -2550,5 +2596,6 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
     // Free the vector
     Vec_PtrFree(vAllOutputs);
 }
+
 
 ABC_NAMESPACE_IMPL_END

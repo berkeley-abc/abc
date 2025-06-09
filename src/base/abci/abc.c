@@ -11618,6 +11618,7 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
         if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
         if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+        if(pNtk -> vTestPatterns != NULL) dupNtk -> vTestPatterns = pNtk -> vTestPatterns;    
         printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
         Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
         pAbc->nFrames = -1;
@@ -19298,13 +19299,10 @@ int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    while ( ( c = Extra_UtilGetopt( argc, argv, "hf" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
         {
-        case 'f':
-            if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) pNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
-            break;
         case 'h':
             goto usage;
         default:
@@ -19319,6 +19317,7 @@ int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
     if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
     if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
     if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+    if(pNtk -> vTestPatterns != NULL) dupNtk -> vTestPatterns = pNtk -> vTestPatterns;
     Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
     pAbc->nFrames = -1;
     pAbc->Status = -1;
