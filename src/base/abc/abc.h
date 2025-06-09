@@ -187,11 +187,13 @@ struct Abc_Ntk_t_
     Abc_Fault_t *     pFaultList;    // the list of faults
     int               nFaults;       // total number of faults
     int               nDetectedFaults; // number of detected faults
-    int               nUndetectableFaults; // number of undetectable faults
+    int               nUndetectedFaults; // number of undetected faults
     int               nActivatedFaults;   // number of activated faults
     int               nTestTriedFaults;   // number of faults that have been tried
     Abc_Ntk_t *       pGoodNtk;  // the good network
     Vec_Ptr_t *       vGoodPis;  // the good network PIs
+    int *             fUndetected; // the number of undetected faults
+    int *             fDetected; // the number of detected faults
     // the number of living objects
     int nObjCounts[ABC_OBJ_NUMBER];  // the number of objects by type
     int               nObjs;         // the number of live objs

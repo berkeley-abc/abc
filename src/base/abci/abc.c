@@ -11602,7 +11602,13 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     int first_time = 1;
     Vec_Ptr_t* vPatterns = Vec_PtrAlloc(1000);
-    
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pNtk->fUndetected = (int*)malloc(pNtk->nFaults * sizeof(int));
+    // initialize to 1
+    for(int i = 0; i < pNtk->nFaults; i++)
+        pNtk->fUndetected[i] = 1;
+    pNtk->fDetected = (int*)malloc(pNtk->nFaults * sizeof(int));
+
     while(1){
         pNtk = Abc_FrameReadNtk(pAbc);
         vPattern = Abc_ExecPBO( pNtk, first_time );
@@ -11614,6 +11620,24 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         
         if (first_time) first_time = 0;
 
+        // clear and rewrite atpg.ptn 
+        int undetected_count = 0;
+        pFile = fopen( "atpg.ptn", "w" );
+        for(int i = 0; i < pNtk->nFaults; i++){
+            if(pNtk->fUndetected[i] == 1){
+                undetected_count++;
+                // write vPattern + fundetetedsize vector of 0 with only i = 1
+                for(int j = 0; j < Vec_IntSize(vPattern); j++)
+                    fprintf(pFile, "%d", Vec_IntEntry(vPattern, j));
+                for(int j = 0; j < pNtk->nFaults; j++)
+                    fprintf(pFile, "%d", j == i ? 1 : 0);
+                fprintf(pFile, "\n");
+            }
+        }
+        pNtk->nUndetectedFaults = undetected_count;
+        printf("[ATPG] undetected_count: %d\n", undetected_count);
+
+        fclose( pFile );
         // restore
         printf("backup%d\n", pAbc->pNtkBackup==NULL);
         dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
@@ -11623,6 +11647,71 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
         if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
         if(pNtk -> vTestPatterns != NULL) dupNtk -> vTestPatterns = pNtk -> vTestPatterns;    
+        if(pNtk -> fUndetected != NULL) dupNtk -> fUndetected = pNtk -> fUndetected;
+        if(pNtk -> fDetected != NULL) dupNtk -> fDetected = pNtk -> fDetected;
+        dupNtk -> nUndetectedFaults = pNtk -> nUndetectedFaults;
+        printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
+        Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
+        pAbc->nFrames = -1;
+        pAbc->Status = -1;
+
+        // strash
+        pNtk = Abc_FrameReadNtk(pAbc);
+        pNtkRes = Abc_NtkStrash( pNtk->pFaultConstraintNtk, 0, 1, 0 );
+        pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
+        pNtkRes->vGoodPis = pNtk->vGoodPis;
+        pNtkRes->fUndetected = pNtk->fUndetected;
+        pNtkRes->fDetected = pNtk->fDetected;
+        pNtkRes->nFaults = pNtk->nFaults;
+        pNtkRes->nUndetectedFaults = pNtk->nUndetectedFaults;
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+
+        // fault simulation
+        pNtk = Abc_FrameReadNtk(pAbc);
+        extern Vec_Int_t * Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
+        ABC_FREE( pNtk->pSeqModel );
+        Vec_Int_t * pValues = Abc_NtkDarSeqSim( pNtk, 1, 8, 30, 0, 1, 0, "atpg.ptn" );
+        int * fUndetected = pNtk->fUndetected;
+        int * fDetected = (int*)malloc(pNtk->nFaults * sizeof(int));
+        for (int i = 0; i < pNtk->nFaults; i++) {
+            fDetected[i] = 0;
+        }
+        int counter = 0;
+        for (int i = 0; i < pNtk->nFaults; i++) {
+            if ( fUndetected[i] == 0 ) {
+                continue;
+            }
+            else if (Vec_IntEntry(pValues, counter) == 0 ) {
+                fDetected[i] = 1;
+            }
+            counter++;
+        }
+        printf("[ATPG] update fUndetected\n");
+        // update fUndetected
+        for (int i = 0; i < pNtk->nFaults; i++) {
+            if(fUndetected[i] > 0) fUndetected[i] -= fDetected[i];
+        }
+        pNtk->fUndetected = fUndetected;
+        pNtk->fDetected = fDetected;
+        printf("[ATPG] update fUndetected\n");
+        int detected = 0;
+        for(int i = 0; i < pNtk->nFaults; i++)
+            detected += pNtk->fDetected[i];
+        printf("[ATPG] The Pattern Detected: %d\n", detected);
+
+
+        // restore
+        printf("backup%d\n", pAbc->pNtkBackup==NULL);
+        dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
+        if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
+        if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
+        if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
+        if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
+        if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+        if(pNtk -> vTestPatterns != NULL) dupNtk -> vTestPatterns = pNtk -> vTestPatterns;    
+        if(pNtk -> fUndetected != NULL) dupNtk -> fUndetected = pNtk -> fUndetected;
+        if(pNtk -> fDetected != NULL) dupNtk -> fDetected = pNtk -> fDetected;
+        dupNtk -> nUndetectedFaults = pNtk -> nUndetectedFaults;
         printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
         Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
         pAbc->nFrames = -1;
@@ -11639,6 +11728,10 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtkRes = Abc_NtkStrash( pNtk->pFaultConstraintNtk, 0, 1, 0 );
         pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
         pNtkRes->vGoodPis = pNtk->vGoodPis;
+        pNtkRes->fUndetected = pNtk->fUndetected;
+        pNtkRes->fDetected = pNtk->fDetected;
+        pNtkRes->nFaults = pNtk->nFaults;
+        pNtkRes->nUndetectedFaults = pNtk->nUndetectedFaults;
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
 
         // &get
@@ -25911,135 +26004,249 @@ usage:
 ***********************************************************************/
 int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    int fNew;
-    int fComb;
-    int nFrames;
-    int nWords;
-    int TimeOut;
-    int fMiter;
-    int fVerbose;
-    char * pFileSim;
-    char * pLogFileName = NULL;
-    extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
-    // set defaults
-    fNew       =  0;
-    fComb      =  0;
-    nFrames    = 32;
-    nWords     =  8;
-    TimeOut    = 30;
-    fMiter     =  1;
-    fVerbose   =  0;
-    pFileSim   = NULL;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWTALnmvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nFrames = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nFrames < 0 )
-                goto usage;
-            break;
-        case 'W':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nWords = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nWords < 0 )
-                goto usage;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            TimeOut = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( TimeOut < 0 )
-                goto usage;
-            break;
-        case 'A':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
-                goto usage;
-            }
-            pFileSim = argv[globalUtilOptind];
-            globalUtilOptind++;
-            break;
-        case 'L':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
-                goto usage;
-            }
-            pLogFileName = argv[globalUtilOptind];
-            globalUtilOptind++;
-            break;
-        case 'n':
-            fNew ^= 1;
-            break;
-        case 'm':
-            fMiter ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pNtk == NULL )
-    {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        Abc_Print( -1, "Only works for strashed networks.\n" );
-        return 1;
-    }
-    if ( pFileSim != NULL && Abc_NtkLatchNum(pNtk) )
-    {
-        Abc_Print( -1, "Currently simulation with user-specified patterns works only for comb miters.\n" );
-        return 1;
-    }
-    ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fMiter, fVerbose, pFileSim );
-    Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
-    if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "sim" );
-    return 0;
+//     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//     int c;
+//     int fNew;
+//     int fComb;
+//     int nFrames;
+//     int nWords;
+//     int TimeOut;
+//     int fMiter;
+//     int fVerbose;
+//     char * pFileSim;
+//     char * pLogFileName = NULL;
+//     extern Vec Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
+//     // set defaults
+//     fNew       =  0;
+//     fComb      =  0;
+//     nFrames    = 32;
+//     nWords     =  8;
+//     TimeOut    = 30;
+//     fMiter     =  1;
+//     fVerbose   =  0;
+//     pFileSim   = NULL;
+//     Extra_UtilGetoptReset();
+//     while ( ( c = Extra_UtilGetopt( argc, argv, "FWTALnmvh" ) ) != EOF )
+//     {
+//         switch ( c )
+//         {
+//         case 'F':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+//                 goto usage;
+//             }
+//             nFrames = atoi(argv[globalUtilOptind]);
+//             globalUtilOptind++;
+//             if ( nFrames < 0 )
+//                 goto usage;
+//             break;
+//         case 'W':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+//                 goto usage;
+//             }
+//             nWords = atoi(argv[globalUtilOptind]);
+//             globalUtilOptind++;
+//             if ( nWords < 0 )
+//                 goto usage;
+//             break;
+//         case 'T':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+//                 goto usage;
+//             }
+//             TimeOut = atoi(argv[globalUtilOptind]);
+//             globalUtilOptind++;
+//             if ( TimeOut < 0 )
+//                 goto usage;
+//             break;
+//         case 'A':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+//                 goto usage;
+//             }
+//             pFileSim = argv[globalUtilOptind];
+//             globalUtilOptind++;
+//             break;
+//         case 'L':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+//                 goto usage;
+//             }
+//             pLogFileName = argv[globalUtilOptind];
+//             globalUtilOptind++;
+//             break;
+//         case 'n':
+//             fNew ^= 1;
+//             break;
+//         case 'm':
+//             fMiter ^= 1;
+//             break;
+//         case 'v':
+//             fVerbose ^= 1;
+//             break;
+//         case 'h':
+//             goto usage;
+//         default:
+//             goto usage;
+//         }
+//     }
+//     if ( pNtk == NULL )
+//     {
+//         Abc_Print( -1, "Empty network.\n" );
+//         return 1;
+//     }
+//     if ( !Abc_NtkIsStrash(pNtk) )
+//     {
+//         Abc_Print( -1, "Only works for strashed networks.\n" );
+//         return 1;
+//     }
+//     if ( pFileSim != NULL && Abc_NtkLatchNum(pNtk) )
+//     {
+//         Abc_Print( -1, "Currently simulation with user-specified patterns works only for comb miters.\n" );
+//         return 1;
+//     }
+//     ABC_FREE( pNtk->pSeqModel );
+//     pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fMiter, fVerbose, pFileSim );
+//     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+//     if ( pLogFileName )
+//         Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "sim" );
+//     return 0;
 
-usage:
-    Abc_Print( -2, "usage: sim [-FWT num] [-AL file] [-nmvh]\n" );
-    Abc_Print( -2, "\t          performs random simulation of the sequential miter\n" );
-    Abc_Print( -2, "\t-F num  : the number of frames to simulate [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-W num  : the number of words to simulate [default = %d]\n", nWords );
-    Abc_Print( -2, "\t-T num  : approximate runtime limit in seconds [default = %d]\n", TimeOut );
-    Abc_Print( -2, "\t-A file : text file name with user's patterns [default = random simulation]\n" );
-    Abc_Print( -2, "\t          (patterns are listed, one per line, as sequences of 0s and 1s)\n" );
-    Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-n      : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
-    Abc_Print( -2, "\t-m      : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
-    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h      : print the command usage\n");
+// usage:
+//     Abc_Print( -2, "usage: sim [-FWT num] [-AL file] [-nmvh]\n" );
+//     Abc_Print( -2, "\t          performs random simulation of the sequential miter\n" );
+//     Abc_Print( -2, "\t-F num  : the number of frames to simulate [default = %d]\n", nFrames );
+//     Abc_Print( -2, "\t-W num  : the number of words to simulate [default = %d]\n", nWords );
+//     Abc_Print( -2, "\t-T num  : approximate runtime limit in seconds [default = %d]\n", TimeOut );
+//     Abc_Print( -2, "\t-A file : text file name with user's patterns [default = random simulation]\n" );
+//     Abc_Print( -2, "\t          (patterns are listed, one per line, as sequences of 0s and 1s)\n" );
+//     Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
+//     Abc_Print( -2, "\t-n      : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
+//     Abc_Print( -2, "\t-m      : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
+//     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+//     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// int Abc_CommandFSim( Abc_Frame_t * pAbc, int argc, char ** argv )
+// {
+//     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//     int c;
+//     int fNew;
+//     int fComb;
+//     int nFrames;
+//     int nWords;
+//     int TimeOut;
+//     int fMiter;
+//     int fVerbose;
+//     char * pFileSim;
+//     char * pLogFileName = NULL;
+//     extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
+//     // set defaults
+//     fNew       =  0;
+//     fComb      =  0;
+//     nFrames    = 1;
+//     nWords     =  8;
+//     TimeOut    = 30;
+//     fMiter     =  1;
+//     fVerbose   =  1;
+//     pFileSim   = "atpg.ptn";
+//     Extra_UtilGetoptReset();
+//     while ( ( c = Extra_UtilGetopt( argc, argv, "FWTALnmvh" ) ) != EOF )
+//     {
+//         switch ( c )
+//         {
+//         case 'A':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+//                 goto usage;
+//             }
+//             pFileSim = argv[globalUtilOptind];
+//             globalUtilOptind++;
+//             break;
+//         case 'v':
+//             fVerbose ^= 1;
+//             break;
+//         case 'h':
+//             goto usage;
+//         default:
+//             goto usage;
+//         }
+//     }
+//     if ( pNtk == NULL )
+//     {
+//         Abc_Print( -1, "Empty network.\n" );
+//         return 1;
+//     }
+//     if ( !Abc_NtkIsStrash(pNtk) )
+//     {
+//         Abc_Print( -1, "Only works for strashed networks.\n" );
+//         return 1;
+//     }
+//     if ( pFileSim != NULL && Abc_NtkLatchNum(pNtk) )
+//     {
+//         Abc_Print( -1, "Currently simulation with user-specified patterns works only for comb miters.\n" );
+//         return 1;
+//     }
+//     extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
+//     ABC_FREE( pNtk->pSeqModel );
+//     Vec_Int_t * pValues = Abc_NtkDarSeqSim( pNtk, 1, 8, 30, 0, 1, 1, "atpg.ptn" );
+//     Vec_Int_t * fUndetected = pNtk->fUndetected;
+//     Vec_Int_t * fDetected = Vec_IntAlloc( Vec_IntSize(fUndetected) );
+//     for (int i = 0; i < Vec_IntSize(fUndetected); i++) {
+//         Vec_IntEntry(fDetected, i) = 0;
+//     }
+//     int counter = 0;
+//     for (int i = 0; i < Vec_IntSize(fUndetected); i++) {
+//         if ( Vec_IntEntry(fUndetected, i) == 0 ) {
+//             continue;
+//         }
+//         else if ( Vec_IntEntry(pValues, i) == 1 ) {
+//             fDetected[i] = 1;
+//         }
+//         counter++;
+//     }
+//     // update fUndetected
+//     for (int i = 0; i < Vec_IntSize(fUndetected); i++) {
+//         Vec_IntEntry(fUndetected, i) -= Vec_IntEntry(fDetected, i);
+//     }
+//     pNtk->fUndetected = fUndetected;
+//     pNtk->fDetected = fDetected;
+//     return 0;
+
+// usage:
+//     Abc_Print( -2, "usage: sim [-FWT num] [-AL file] [-nmvh]\n" );
+//     Abc_Print( -2, "\t          performs random simulation of the sequential miter\n" );
+//     Abc_Print( -2, "\t-F num  : the number of frames to simulate [default = %d]\n", nFrames );
+//     Abc_Print( -2, "\t-W num  : the number of words to simulate [default = %d]\n", nWords );
+//     Abc_Print( -2, "\t-T num  : approximate runtime limit in seconds [default = %d]\n", TimeOut );
+//     Abc_Print( -2, "\t-A file : text file name with user's patterns [default = random simulation]\n" );
+//     Abc_Print( -2, "\t          (patterns are listed, one per line, as sequences of 0s and 1s)\n" );
+//     Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
+//     Abc_Print( -2, "\t-n      : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
+//     Abc_Print( -2, "\t-m      : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
+//     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+//     Abc_Print( -2, "\t-h      : print the command usage\n");
+//     return 1;
+// }
 
 
 /**Function*************************************************************

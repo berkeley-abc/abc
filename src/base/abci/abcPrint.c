@@ -2172,7 +2172,7 @@ void Abc_NtkPrintFaultStats( Abc_Ntk_t * pNtk )
     printf( "Fault statistics for network %s:\n", pNtk->pName ? pNtk->pName : "unknown" );
     printf( "Total faults: %d\n", pNtk->nFaults );
     printf( "Detected faults: %d\n", pNtk->nDetectedFaults );
-    printf( "Undetectable faults: %d\n", pNtk->nUndetectableFaults );
+    printf( "Undetected faults: %d\n", pNtk->nUndetectedFaults );
     printf( "Activated faults: %d\n", pNtk->nActivatedFaults );
     printf( "Test-tried faults: %d\n", pNtk->nTestTriedFaults );
 }

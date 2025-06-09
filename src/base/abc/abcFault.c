@@ -141,7 +141,7 @@ void Abc_NtkClearFaults( Abc_Ntk_t * pNtk )
     pNtk->pFaultList = NULL;
     pNtk->nFaults = 0;
     pNtk->nDetectedFaults = 0;
-    pNtk->nUndetectableFaults = 0;
+    pNtk->nUndetectedFaults = 0;
     pNtk->nActivatedFaults = 0;
     pNtk->nTestTriedFaults = 0;
 }
@@ -1812,7 +1812,7 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
     pFaultNtk->nFaults = pNtk->nFaults;
 
     pFaultNtk->nDetectedFaults = pNtk->nDetectedFaults;
-    pFaultNtk->nUndetectableFaults = pNtk->nUndetectableFaults;
+    pFaultNtk->nUndetectedFaults = pNtk->nUndetectedFaults;
     pFaultNtk->nActivatedFaults = pNtk->nActivatedFaults;
     pFaultNtk->nTestTriedFaults = pNtk->nTestTriedFaults;
     printf("[FaultConstraint] Copied fault list to faulty network\n");
@@ -2303,7 +2303,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
     Abc_Fault_t * pFaultList = pNtk->pFaultList;
     int nFaults = pNtk->nFaults;
     int nDetectedFaults = pNtk->nDetectedFaults;
-    int nUndetectableFaults = pNtk->nUndetectableFaults;
+    int nUndetectedFaults = pNtk->nUndetectedFaults;
     int nActivatedFaults = pNtk->nActivatedFaults;
     int nTestTriedFaults = pNtk->nTestTriedFaults;
     Abc_Ntk_t * pFaultConstraintNtk = pNtk->pFaultConstraintNtk;
@@ -2322,7 +2322,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
     pNtk->pFaultList = pFaultList;
     pNtk->nFaults = nFaults;
     pNtk->nDetectedFaults = nDetectedFaults;
-    pNtk->nUndetectableFaults = nUndetectableFaults;
+    pNtk->nUndetectedFaults = nUndetectedFaults;
     pNtk->nActivatedFaults = nActivatedFaults;
     pNtk->nTestTriedFaults = nTestTriedFaults;
     pNtk->pFaultConstraintNtk = pFaultConstraintNtk;
