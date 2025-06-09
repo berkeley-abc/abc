@@ -2466,14 +2466,6 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         if (i < Abc_NtkPoNum(pGoodNtk)) {
             continue;
         }
-        // Abc_Obj_t * pFaultFanin = Abc_ObjFanin0(pFaultNtk->vPos->pArray[i]);
-        // for (int j = 0; j < Abc_ObjFanoutNum(pFaultFanin); j++){
-        //     printf("[CombineNetwork] Fanout %d: %s\n", j, Abc_ObjName(Abc_ObjFanout(pFaultFanin, j)));
-        // }
-        // if (!pFaultFanin || !pFaultFanin->pCopy) {
-        //     printf("[CombineNetwork] Error: Additional fault PO %s has invalid fanin\n", Abc_ObjName(pObj));
-        //     continue;
-        // }
         
         // Create new PO in combined network
         Abc_Obj_t * pPo = Abc_NtkCreatePo(pNtk);
@@ -2521,6 +2513,42 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
 
     // print the number of goodPIs 
     printf("[CombineNetwork] Number of good PIs: %d\n", Vec_PtrSize(vGoodPis));
+
+    // First collect all POs
+    Vec_Ptr_t * vAllOutputs = Vec_PtrAlloc(Abc_NtkPoNum(pNtk));
+    Abc_NtkForEachPo(pNtk, pPo, i) {
+        Vec_PtrPush(vAllOutputs, pPo);
+    }
+
+    // Create a single OR gate to combine all outputs
+    Abc_Obj_t * pAnd = Abc_NtkCreateNode(pNtk);
+    Abc_ObjAssignName(pAnd, "combined_output", NULL);
+
+    // Connect all outputs to the OR gate
+    Abc_Obj_t * pOutput;
+    Vec_PtrForEachEntry(Abc_Obj_t *, vAllOutputs, pOutput, j) {
+        // Get the fanin of each PO
+        Abc_Obj_t * pFanin = Abc_ObjFanin0(pOutput);
+        if (pFanin) {
+            Abc_ObjAddFanin(pAnd, pFanin);
+        }
+    }
+
+    // Set AND functionality
+    pAnd->pData = Abc_SopCreateAnd((Mem_Flex_t*)pNtk->pManFunc, Vec_PtrSize(vAllOutputs), NULL);
+
+    // Create single PO
+    Abc_Obj_t * pFinalPo = Abc_NtkCreatePo(pNtk);
+    Abc_ObjAddFanin(pFinalPo, pAnd);
+    Abc_ObjAssignName(pFinalPo, "combined_output", NULL);
+
+    // Remove all other POs
+    Vec_PtrForEachEntry(Abc_Obj_t *, vAllOutputs, pOutput, j) {
+        Abc_NtkDeleteObj(pOutput);
+    }
+
+    // Free the vector
+    Vec_PtrFree(vAllOutputs);
 }
 
 ABC_NAMESPACE_IMPL_END
