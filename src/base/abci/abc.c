@@ -19248,10 +19248,13 @@ int Abc_CommandBackup( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'f':
+            if(pNtk -> pFaultConstraintNtk != NULL) pAbc->pNtkBackup -> pFaultConstraintNtk = pNtk -> pFaultConstraintNtk;
+            break;
         case 'h':
             goto usage;
         default:
@@ -19285,12 +19288,23 @@ int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
     Abc_Ntk_t * dupNtk;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+
+    if ( pAbc->pNtkBackup == NULL )
+    {
+        Abc_Print( -1, "There is no backup network.\n" );
+        return 1;
+    }
+
+    while ( ( c = Extra_UtilGetopt( argc, argv, "hf" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'f':
+            if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) pNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+            break;
         case 'h':
             goto usage;
         default:
@@ -19298,11 +19312,7 @@ int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( pAbc->pNtkBackup == NULL )
-    {
-        Abc_Print( -1, "There is no backup network.\n" );
-        return 1;
-    }
+
     dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
     if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
     if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
