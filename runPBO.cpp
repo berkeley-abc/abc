@@ -195,6 +195,7 @@ int add_pbo_constraint(const std::string& filename, CNF* cnf, int pi_num, int& o
     // Step 2: Append the new constraint
     buffer << "* added constraint with provided cnf\n";
 
+    std::cerr << "Origin_var="<< origin_vars <<", Current_var="<< current_vars <<"\n";
     for (const auto& clause : cnf->clauses) {
         for (int lit : clause) {
             if (lit < 0){
@@ -431,6 +432,7 @@ int main(int argc, char* argv[]) {
     const int pi_num = (argc > 3) ? std::atoi(argv[3]) : 0;
     int originPI_num = (argc > 4) ? std::atoi(argv[4]) : 0;
     assert(originPI_num <= pi_num); // let originPI_num = -1 be the signal of appending constraints
+    std::cerr << "Pi_num: " << pi_num << ", OriginPI_num: " << originPI_num << "\n";
     std::vector<int> obj_variables;
     int pi_start = 0;
 
@@ -440,7 +442,7 @@ int main(int argc, char* argv[]) {
 
     if (originPI_num > 0){
         int start = cnf->num_vars - pi_num + originPI_num +1;
-        int end = (start + cnf->num_vars)/2;
+        int end = (start-1 + cnf->num_vars)/2;
         std::cerr << "start: " << start << ", end: " << end << "\n";
         assert(end - start +1 == cnf->num_vars -end);
         for (int i = start; i <= end; ++i) {

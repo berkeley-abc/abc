@@ -9,7 +9,7 @@ Vec_Int_t * Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run )
 {
     // extern void Abc_NtkAddTestPattern( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern );
 
-    const int pi_num =  Abc_NtkPiNum(pNtk);
+    int pi_num =  Abc_NtkPiNum(pNtk);
     // int good_pi_num = Abc_NtkPiNum(pNtk);
     const int good_pi_num = pNtk->vGoodPis ? Vec_PtrSize(pNtk->vGoodPis) : -1;
     if (good_pi_num < 0) {
@@ -19,6 +19,7 @@ Vec_Int_t * Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run )
     char pi_num_str[16], good_pi_str[16];
     
     if(first_run){
+        pi_num = pi_num*2 - good_pi_num;
         sprintf(pi_num_str, "%d", pi_num);
         sprintf(good_pi_str, "%d", good_pi_num);
     } else {
