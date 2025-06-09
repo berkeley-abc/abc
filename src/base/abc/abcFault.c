@@ -2067,13 +2067,13 @@ void Abc_NtkInitTestPatterns( Abc_Ntk_t * pNtk )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkWriteTestPatterns( Abc_Ntk_t * pNtk, const char * pFileName )
+void Abc_NtkWriteTestPatterns( Vec_Ptr_t * vPatterns, const char * pFileName )
 {
     FILE * pFile;
     Vec_Int_t * vPattern;
     int i, j, Value;
 
-    if ( !pNtk->vTestPatterns )
+    if ( !vPatterns )
     {
         printf("No test patterns to write.\n");
         return;
@@ -2087,9 +2087,9 @@ void Abc_NtkWriteTestPatterns( Abc_Ntk_t * pNtk, const char * pFileName )
     }
 
     // Write patterns in reverse order (newest to oldest)
-    for ( i = Vec_PtrSize(pNtk->vTestPatterns) - 1; i >= 0; i-- )
+    for ( i = Vec_PtrSize(vPatterns) - 1; i >= 0; i-- )
     {
-        vPattern = (Vec_Int_t *)Vec_PtrEntry(pNtk->vTestPatterns, i);
+        vPattern = (Vec_Int_t *)Vec_PtrEntry(vPatterns, i);
         fprintf(pFile, "T'");
         Vec_IntForEachEntry( vPattern, Value, j )
             fprintf(pFile, "%d", Value);
@@ -2097,7 +2097,7 @@ void Abc_NtkWriteTestPatterns( Abc_Ntk_t * pNtk, const char * pFileName )
     }
 
     fclose(pFile);
-    printf("Wrote %d test patterns to file \"%s\".\n", Vec_PtrSize(pNtk->vTestPatterns), pFileName);
+    printf("Wrote %d test patterns to file \"%s\".\n", Vec_PtrSize(vPatterns), pFileName);
 }
 
 /**Function*************************************************************

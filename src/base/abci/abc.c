@@ -11567,9 +11567,8 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     Abc_Ntk_t * pNtkRes;
     Abc_Ntk_t * dupNtk;
-    Abc_Ntk_t * pStrash;
     Aig_Man_t * pAig;
-    Gia_Man_t * pGia, * pTemp;
+    Gia_Man_t * pGia;
 
     Vec_Int_t * vPattern;
 
@@ -11602,11 +11601,16 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
     fclose( pFile );
 
     int first_time = 1;
+    Vec_Ptr_t* vPatterns = Vec_PtrAlloc(1000);
     
     while(1){
         pNtk = Abc_FrameReadNtk(pAbc);
         vPattern = Abc_ExecPBO( pNtk, first_time );
-        if ( vPattern == NULL ) return 0; // pbo unsat, done.
+        if ( vPattern == NULL ){
+            Abc_NtkWriteTestPatterns(vPatterns, "atpg.txt");
+            return 0; // pbo unsat, done.
+        } 
+        Vec_PtrPush( vPatterns, vPattern );
         
         if (first_time) first_time = 0;
 

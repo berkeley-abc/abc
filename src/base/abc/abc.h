@@ -1132,7 +1132,7 @@ extern ABC_DLL void               Abc_NtkFreeTestPatterns( Abc_Ntk_t * pNtk );
 extern ABC_DLL int                Abc_NtkTestPatternNum( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Int_t *        Abc_NtkGetTestPattern( Abc_Ntk_t * pNtk, int i );
 extern ABC_DLL void               Abc_NtkAssignLatestPatternToConstraintNetwork( Abc_Ntk_t * pNtk );
-extern ABC_DLL void               Abc_NtkWriteTestPatterns( Abc_Ntk_t * pNtk, const char * pFileName );
+extern ABC_DLL void               Abc_NtkWriteTestPatterns( Vec_Ptr_t * vPatterns, const char * pFileName );
 
 // Pseudo Boolean Optimization Related
 extern ABC_DLL Vec_Int_t *        Abc_ExecPBO( Abc_Ntk_t * pNtk, int );
