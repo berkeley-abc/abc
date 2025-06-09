@@ -791,8 +791,7 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
     }
     
     
-    printf("[FaultSim] Processing %d original nodes and %d original PIs\n", 
-           Vec_PtrSize(vOriginalNodes), Vec_PtrSize(vOriginalPIs));
+    
     
     // Macro to check if a node is original (not created by fault sim or PBO)
     #define IS_ORIGINAL_NODE(pNode) (Vec_PtrFind(vOriginalNodes, pNode) != -1)
@@ -820,8 +819,16 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
 
                 pAnd = Abc_NtkCreateNode(pNtk);
                 // Rewire the network so that pAnd replaces pC as the output signal
-                // Transfer all fanouts of pC to pAnd
-                Abc_ObjTransferFanout(pC, pAnd);
+                // Transfer fanouts of pC to pAnd, excluding those starting with "pbo"
+                Vec_Ptr_t * vFanouts = Vec_PtrAlloc(Abc_ObjFanoutNum(pC));
+                Abc_NodeCollectFanouts(pC, vFanouts);
+                for (int i = 0; i < vFanouts->nSize; i++) {
+                    Abc_Obj_t * pFanout = (Abc_Obj_t *)vFanouts->pArray[i];
+                    if (strncmp(Abc_ObjName(pFanout), "pbo", 3) != 0) {
+                        Abc_ObjPatchFanin(pFanout, pC, pAnd);
+                    }
+                }
+                Vec_PtrFree(vFanouts);
 
                 // Generate unique names for x and y
                 sprintf(xName, "x_%s", Abc_ObjName(pC));
@@ -849,8 +856,16 @@ void Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk)
 
                 pOr = Abc_NtkCreateNode(pNtk);
                 // Rewire the network so that pOr replaces pC as the output signal
-                // Transfer all fanouts of pC to pOr
-                Abc_ObjTransferFanout(pC, pOr);
+                // Transfer fanouts of pC to pOr, excluding those starting with "pbo"
+                Vec_Ptr_t * vFanouts = Vec_PtrAlloc(Abc_ObjFanoutNum(pC));
+                Abc_NodeCollectFanouts(pC, vFanouts);
+                for (int i = 0; i < vFanouts->nSize; i++) {
+                    Abc_Obj_t * pFanout = (Abc_Obj_t *)vFanouts->pArray[i];
+                    if (strncmp(Abc_ObjName(pFanout), "pbo", 3) != 0) {
+                        Abc_ObjPatchFanin(pFanout, pC, pOr);
+                    }
+                }
+                Vec_PtrFree(vFanouts);
 
                 // Generate unique names for x and y
                 sprintf(yName, "y_%s", Abc_ObjName(pC));
@@ -1002,8 +1017,6 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
         }
     }
     
-    printf("[PBO] Processing %d original nodes and %d original PIs\n", 
-           Vec_PtrSize(vOriginalNodes), Vec_PtrSize(vOriginalPIs));
     
     // Macro to check if a node is original (not created by fault sim or PBO)
     #define IS_ORIGINAL_NODE(pNode) (Vec_PtrFind(vOriginalNodes, pNode) != -1)
@@ -1067,7 +1080,17 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                 Abc_ObjAddFanin(pNotf0_pbo, pf0_pbo);
                 pNotf0_pbo->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
                 // create OR gate for (c OR ~a_f0)
-                Abc_ObjAddFanin(pOR_pbo, pC);
+                if(Abc_ObjIsPi(pC)) {
+                    Abc_Obj_t * pBuf = Abc_NtkCreateNode(pNtk);
+                    char bufName[64];
+                    sprintf(bufName, "pbo_buf_%s", Abc_ObjName(pC));
+                    Abc_ObjAssignName(pBuf, bufName, NULL);
+                    Abc_ObjAddFanin(pBuf, pC);
+                    pBuf->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, 1, NULL);
+                    Abc_ObjAddFanin(pOR_pbo, pBuf);
+                }
+                else
+                    Abc_ObjAddFanin(pOR_pbo, pC);
                 Abc_ObjAddFanin(pOR_pbo, pNotf0_pbo);
                 pOR_pbo->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
                 // wire the constant 1 PO to the OR gate
@@ -1449,8 +1472,20 @@ void Abc_NtkInsertPBOGates(Abc_Ntk_t *pNtk)
                 Abc_ObjAssignName(pNotf0_pbo, notGIGateName, NULL);
                 Abc_ObjAddFanin(pNotf0_pbo, pf0_pbo);
                 pNotf0_pbo->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
-                // create OR gate for (fanin OR ~a_f0)
-                Abc_ObjAddFanin(pOR_pbo, pFanin);
+                // // create OR gate for (fanin OR ~a_f0)
+                if(Abc_ObjIsPi(pFanin)) {
+                    printf("[PBO] PI %s is a fanin of node %s\n", Abc_ObjName(pFanin), Abc_ObjName(pNode));
+                    Abc_Obj_t * pBufGI = Abc_NtkCreateNode(pNtk);
+                    char bufName[64];
+                    sprintf(bufName, "pbo_GI_buf_%s_in%d_%d", Abc_ObjName(pFanin), fanin_index,counter);
+                    Abc_ObjAssignName(pBufGI, bufName, NULL);
+                    Abc_ObjAddFanin(pBufGI, pFanin);
+                    pBufGI->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, 1, NULL);
+                    Abc_ObjAddFanin(pOR_pbo, pBufGI);
+                }
+                else
+                    Abc_ObjAddFanin(pOR_pbo, pFanin);
+
                 Abc_ObjAddFanin(pOR_pbo, pNotf0_pbo);
                 pOR_pbo->pData = Abc_SopCreateOrMultiCube((Mem_Flex_t *)pNtk->pManFunc, 2, NULL);
                 // wire the constant 1 PO to the OR gate
@@ -1865,10 +1900,12 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
                 printf("Error: Fanin %s of node %s not copied\n", Abc_ObjName(pFanin), Abc_ObjName(pObj));
                 continue;
             }
+            
             Abc_ObjAddFanin(pNode, pFanin->pCopy);
+            
         }
     }
-    printf("[FaultConstraint] Connected nodes in faulty circuit\n");
+    printf("[CombineNetwork] Connected nodes in faulty circuit\n");
 
     // Connect corresponding good and faulty input PIs
     int totalPIs = Abc_NtkPiNum(pGoodNtk);
@@ -1905,14 +1942,25 @@ void Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk)
         Abc_Obj_t * pFanout;
         int k;
         int fanoutCount = 0;
+
+        // First collect all fanouts
+        Vec_Ptr_t * vFanouts = Vec_PtrAlloc(Abc_ObjFanoutNum(pCombinedFaultPi));
         Abc_ObjForEachFanout(pCombinedFaultPi, pFanout, k) {
+            Vec_PtrPush(vFanouts, pFanout);
+        }
+
+        // Then process them
+        for (k = 0; k < Vec_PtrSize(vFanouts); k++) {
+            pFanout = (Abc_Obj_t *)Vec_PtrEntry(vFanouts, k);
             // Remove the connection to the faulty PI
             Abc_ObjDeleteFanin(pFanout, pCombinedFaultPi);
             // Add connection to the good circuit PI
             Abc_ObjAddFanin(pFanout, pObj->pCopy);
             fanoutCount++;
         }
-        // printf("[FaultConstraint] Transferred %d fanouts for PI %s\n", fanoutCount, Abc_ObjName(pCombinedFaultPi));
+
+        // Free the vector
+        Vec_PtrFree(vFanouts);
 
         // Remove the redundant PI from the combined network
         Abc_NtkDeleteObj(pCombinedFaultPi);
@@ -2255,6 +2303,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
             Abc_ObjAssignName(pPi, pNewName, NULL);
             free(pName);  // Free the original name
             pObj->pCopy = pPi;
+
         }
     }
     printf("[CombineNetwork] Copied additional PIs from faulty circuit\n");
@@ -2308,7 +2357,9 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
                 printf("Error: Fanin %s of node %s not copied\n", Abc_ObjName(pFanin), Abc_ObjName(pObj));
                 continue;
             }
+            
             Abc_ObjAddFanin(pNode, pFanin->pCopy);
+            
         }
     }
     printf("[CombineNetwork] Connected nodes in faulty circuit\n");
@@ -2335,7 +2386,7 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
             }
         }
         free(pFaultName);
-
+        
         if (!pCombinedFaultPi) {
             printf("[CombineNetwork] Error: Could not find fault PI %s_f\n", pGoodName);
             continue;
@@ -2348,14 +2399,25 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         Abc_Obj_t * pFanout;
         int k;
         int fanoutCount = 0;
+
+        // First collect all fanouts
+        Vec_Ptr_t * vFanouts = Vec_PtrAlloc(Abc_ObjFanoutNum(pCombinedFaultPi));
         Abc_ObjForEachFanout(pCombinedFaultPi, pFanout, k) {
+            Vec_PtrPush(vFanouts, pFanout);
+        }
+
+        // Then process them
+        for (k = 0; k < Vec_PtrSize(vFanouts); k++) {
+            pFanout = (Abc_Obj_t *)Vec_PtrEntry(vFanouts, k);
             // Remove the connection to the faulty PI
             Abc_ObjDeleteFanin(pFanout, pCombinedFaultPi);
             // Add connection to the good circuit PI
             Abc_ObjAddFanin(pFanout, pObj->pCopy);
             fanoutCount++;
         }
-        // printf("[CombineNetwork] Transferred %d fanouts for PI %s\n", fanoutCount, Abc_ObjName(pCombinedFaultPi));
+
+        // Free the vector
+        Vec_PtrFree(vFanouts);
 
         // Remove the redundant PI from the combined network
         Abc_NtkDeleteObj(pCombinedFaultPi);
@@ -2368,7 +2430,6 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
     // Create XOR gates to compare outputs and collect them
     Vec_Ptr_t * vXorOutputs = Vec_PtrAlloc(Abc_NtkPoNum(pGoodNtk));
     Abc_NtkForEachPo(pGoodNtk, pObj, i) {
-        printf("[CombineNetwork] Processing PO %s\n", Abc_ObjName(pObj));
         // Get the fanin (output of the good circuit)
         pFanin = Abc_ObjFanin0(pObj);
         if (!pFanin || !pFanin->pCopy) {
@@ -2405,16 +2466,22 @@ void Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk)
         if (i < Abc_NtkPoNum(pGoodNtk)) {
             continue;
         }
-        
-        Abc_Obj_t * pFaultFanin = Abc_ObjFanin0(pFaultNtk->vPos->pArray[i]);
-        if (!pFaultFanin || !pFaultFanin->pCopy) {
-            printf("[CombineNetwork] Error: Additional fault PO %s has invalid fanin\n", Abc_ObjName(pObj));
-            continue;
-        }
+        // Abc_Obj_t * pFaultFanin = Abc_ObjFanin0(pFaultNtk->vPos->pArray[i]);
+        // for (int j = 0; j < Abc_ObjFanoutNum(pFaultFanin); j++){
+        //     printf("[CombineNetwork] Fanout %d: %s\n", j, Abc_ObjName(Abc_ObjFanout(pFaultFanin, j)));
+        // }
+        // if (!pFaultFanin || !pFaultFanin->pCopy) {
+        //     printf("[CombineNetwork] Error: Additional fault PO %s has invalid fanin\n", Abc_ObjName(pObj));
+        //     continue;
+        // }
         
         // Create new PO in combined network
         Abc_Obj_t * pPo = Abc_NtkCreatePo(pNtk);
-        Abc_ObjAddFanin(pPo, pFaultFanin->pCopy);
+        Abc_Obj_t * pFanin;
+        int j;
+        Abc_ObjForEachFanin(pObj, pFanin, j) {
+            Abc_ObjAddFanin(pPo, pFanin->pCopy);
+        }
         // Create unique name by appending "_f" for faulty circuit POs
         char * pName = Abc_UtilStrsav(Abc_ObjName(pObj));
         // char * pNewName = (char *)malloc(strlen(pName) + 3);  // +3 for "_f" and null terminator
