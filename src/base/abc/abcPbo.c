@@ -2,13 +2,14 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <string.h>
 
 ABC_NAMESPACE_IMPL_START
 
-Vec_Int_t * Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run )
+Vec_Int_t * Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run, char* undetected )
 {
     // extern void Abc_NtkAddTestPattern( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern );
-
+    assert( undetected != NULL );
     int pi_num =  Abc_NtkPiNum(pNtk);
     // int good_pi_num = Abc_NtkPiNum(pNtk);
     const int good_pi_num = pNtk->vGoodPis ? Vec_PtrSize(pNtk->vGoodPis) : -1;
@@ -45,7 +46,7 @@ Vec_Int_t * Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run )
         dup2(pipefd[1], STDOUT_FILENO); // Redirect stdout to pipe
         
         // need to compile runPBO.cpp first
-        char *argv[] = {"./runpbo", "atpg.cnf", "output.opb", pi_num_str, good_pi_str, NULL};
+        char *argv[] = {"./runpbo", "atpg.cnf", "output.opb", pi_num_str, good_pi_str, undetected, NULL};
         execv("./runpbo", argv);
 
         // If execv returns, an error occurred

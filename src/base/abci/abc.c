@@ -11570,6 +11570,20 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_Man_t * pAig;
     Gia_Man_t * pGia;
 
+    Fraig_Params_t Params, * pParams = &Params;
+    memset( pParams, 0, sizeof(Fraig_Params_t) );
+    pParams->nPatsRand  = 2048; // the number of words of random simulation info
+    pParams->nPatsDyna  = 2048; // the number of words of dynamic simulation info
+    pParams->nBTLimit   =  100; // the max number of backtracks to perform
+    pParams->fFuncRed   =    1; // performs only one level hashing
+    pParams->fFeedBack  =    1; // enables solver feedback
+    pParams->fDist1Pats =    1; // enables distance-1 patterns
+    pParams->fDoSparse  =    1; // performs equiv tests for sparse functions
+    pParams->fChoicing  =    0; // enables recording structural choices
+    pParams->fTryProve  =    0; // tries to solve the final miter
+    pParams->fVerbose   =    0; // the verbosiness flag
+    pParams->fVerboseP  =    0; // the verbosiness flag
+
     Vec_Int_t * vPattern;
 
     // set defaults
@@ -11602,16 +11616,24 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     int first_time = 1;
     Vec_Ptr_t* vPatterns = Vec_PtrAlloc(1000);
+    char* undetected_str = (char*)malloc((pNtk->nFaults+1) * sizeof(char));
+    assert(undetected_str != NULL);
+    int undetected_size = pNtk->nFaults;
+    undetected_str[undetected_size] = '\0'; // null-terminate the string
+
     pNtk = Abc_FrameReadNtk(pAbc);
     pNtk->fUndetected = (int*)malloc(pNtk->nFaults * sizeof(int));
     // initialize to 1
-    for(int i = 0; i < pNtk->nFaults; i++)
+    for(int i = 0; i < pNtk->nFaults; i++){
         pNtk->fUndetected[i] = 1;
+        undetected_str[i] = '1';
+    }
     pNtk->fDetected = (int*)malloc(pNtk->nFaults * sizeof(int));
 
     while(1){
         pNtk = Abc_FrameReadNtk(pAbc);
-        vPattern = Abc_ExecPBO( pNtk, first_time );
+        printf("undetected: %s\n", undetected_str);
+        vPattern = Abc_ExecPBO( pNtk, first_time, undetected_str );
         if ( vPattern == NULL ){
             Abc_NtkWriteTestPatterns(vPatterns, "atpg.txt");
             return 0; // pbo unsat, done.
@@ -11694,6 +11716,13 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         pNtk->fUndetected = fUndetected;
         pNtk->fDetected = fDetected;
         printf("[ATPG] update fUndetected\n");
+        for(int i=0;i<undetected_size;i++){
+            if(fUndetected[i] == 1)
+                undetected_str[i] = '1';
+            else
+                undetected_str[i] = '0';
+        }
+
         int detected = 0;
         for(int i = 0; i < pNtk->nFaults; i++)
             detected += pNtk->fDetected[i];
@@ -11724,8 +11753,25 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         
         Abc_NtkAssignLatestPatternToConstraintNetwork(pNtk);
         
-        // strash
+        // strash & fraig
         pNtkRes = Abc_NtkStrash( pNtk->pFaultConstraintNtk, 0, 1, 0 );
+        pNtkRes = Abc_NtkFraig( pNtkRes, &Params, 0, 0 );
+        // resyn
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 1 );
+        int RetValue = Abc_NtkRewrite( pNtkRes, 1, 0, 0, 0, 0 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 1, 1, 0, 0, 0 );
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 1 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 1, 1, 0, 0, 0 );
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 1 );
+        // compress
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 0 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 0, 0, 0, 0, 0 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 0, 1, 0, 0, 0 );
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 0 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 0, 1, 0, 0, 0 );
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 0 );
+
+        pNtkRes = Abc_NtkStrash( pNtkRes, 0, 1, 0 );
         pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
         pNtkRes->vGoodPis = pNtk->vGoodPis;
         pNtkRes->fUndetected = pNtk->fUndetected;

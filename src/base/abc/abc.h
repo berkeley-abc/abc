@@ -1137,7 +1137,7 @@ extern ABC_DLL void               Abc_NtkAssignLatestPatternToConstraintNetwork(
 extern ABC_DLL void               Abc_NtkWriteTestPatterns( Vec_Ptr_t * vPatterns, const char * pFileName );
 
 // Pseudo Boolean Optimization Related
-extern ABC_DLL Vec_Int_t *        Abc_ExecPBO( Abc_Ntk_t * pNtk, int );
+extern ABC_DLL Vec_Int_t *        Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run, char* undetected );
 
 ABC_NAMESPACE_HEADER_END
 
