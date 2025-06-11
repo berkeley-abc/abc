@@ -390,7 +390,7 @@ void execute_solver(const std::string& opb_filename, const int pi_start, const i
     bool sat = false;
     while (getline(&c_line, &len, fp) != -1) {
         line = c_line;
-        std::cerr << line; // Print solver output to stderr
+        // std::cerr << line; // Print solver output to stderr
         if (line.empty() || line[0] != 'v') continue;
 
         std::istringstream iss(line);

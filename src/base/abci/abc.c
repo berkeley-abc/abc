@@ -11660,6 +11660,18 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         printf("[ATPG] undetected_count: %d\n", undetected_count);
 
         fclose( pFile );
+
+        // write all the pattern so that it can end earlier
+        pFile = fopen( "atpg_tmp.ptn", "w" );
+        for (int i = 0; i < Vec_PtrSize(vPatterns); i++) {
+            Vec_Int_t * pPattern = (Vec_Int_t *)Vec_PtrEntry(vPatterns, i);
+            for (int j = 0; j < Vec_IntSize(pPattern); j++) {
+                fprintf(pFile, "%d", Vec_IntEntry(pPattern, j));
+            }
+            fprintf(pFile, "\n");
+        }
+        fclose( pFile );
+        
         // restore
         printf("backup%d\n", pAbc->pNtkBackup==NULL);
         dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
