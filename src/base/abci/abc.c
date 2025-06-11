@@ -11673,7 +11673,7 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         fclose( pFile );
         
         // restore
-        printf("backup%d\n", pAbc->pNtkBackup==NULL);
+        // printf("backup%d\n", pAbc->pNtkBackup==NULL);
         dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
         if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
         if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
@@ -11684,7 +11684,7 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         if(pNtk -> fUndetected != NULL) dupNtk -> fUndetected = pNtk -> fUndetected;
         if(pNtk -> fDetected != NULL) dupNtk -> fDetected = pNtk -> fDetected;
         dupNtk -> nUndetectedFaults = pNtk -> nUndetectedFaults;
-        printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
+        // printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
         Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
         pAbc->nFrames = -1;
         pAbc->Status = -1;
@@ -11742,7 +11742,7 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 
         // restore
-        printf("backup%d\n", pAbc->pNtkBackup==NULL);
+        // printf("backup%d\n", pAbc->pNtkBackup==NULL);
         dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
         if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
         if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
@@ -11753,7 +11753,7 @@ int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
         if(pNtk -> fUndetected != NULL) dupNtk -> fUndetected = pNtk -> fUndetected;
         if(pNtk -> fDetected != NULL) dupNtk -> fDetected = pNtk -> fDetected;
         dupNtk -> nUndetectedFaults = pNtk -> nUndetectedFaults;
-        printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
+        // printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
         Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
         pAbc->nFrames = -1;
         pAbc->Status = -1;

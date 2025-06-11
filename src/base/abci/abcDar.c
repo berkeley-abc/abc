@@ -3617,16 +3617,16 @@ Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int 
             for(k = 0; k < pNtk->nUndetectedFaults; k++){
                 Aig_ManForEachCo( pSml->pAig, pObj, i )
                 {
-                    printf("[ATPG] For each co\n");
+                    // printf("[ATPG] For each co\n");
                     pSims = Fra_ObjSim( pSml, pObj->Id );
                     Vec_IntPush( pValues, Abc_InfoHasBit( pSims, k ) );
                     // printf( "%d", Abc_InfoHasBit( pSims, 0 ) );
                 }
             }
-            printf("[ATPG] pValues: ");
-            for(int i = 0; i < Vec_IntSize(pValues); i++)
-                printf("%d ", Vec_IntEntry(pValues, i));
-            printf("\n");
+            // printf("[ATPG] pValues: ");
+            // for(int i = 0; i < Vec_IntSize(pValues); i++)
+            //     printf("%d ", Vec_IntEntry(pValues, i));
+            // printf("\n");
             return pValues;
         }
         else if ( Abc_NtkLatchNum(pNtk) == 0 )
