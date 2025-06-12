@@ -1,0 +1,630 @@
+name C499.iscas
+i ID0(0)
+i ID1(1)
+i ID2(2)
+i ID3(3)
+i ID4(4)
+i ID5(5)
+i ID6(6)
+i ID7(7)
+i ID8(8)
+i ID9(9)
+i ID10(10)
+i ID11(11)
+i ID12(12)
+i ID13(13)
+i ID14(14)
+i ID15(15)
+i ID16(16)
+i ID17(17)
+i ID18(18)
+i ID19(19)
+i ID20(20)
+i ID21(21)
+i ID22(22)
+i ID23(23)
+i ID24(24)
+i ID25(25)
+i ID26(26)
+i ID27(27)
+i ID28(28)
+i ID29(29)
+i ID30(30)
+i ID31(31)
+i IC0(32)
+i IC1(33)
+i IC2(34)
+i IC3(35)
+i IC4(36)
+i IC5(37)
+i IC6(38)
+i IC7(39)
+i R(40)
+
+o OD0(242)
+o OD1(241)
+o OD2(240)
+o OD3(239)
+o OD4(238)
+o OD5(237)
+o OD6(236)
+o OD7(235)
+o OD8(234)
+o OD9(233)
+o OD10(232)
+o OD11(231)
+o OD12(230)
+o OD13(229)
+o OD14(228)
+o OD15(227)
+o OD16(226)
+o OD17(225)
+o OD18(224)
+o OD19(223)
+o OD20(222)
+o OD21(221)
+o OD22(220)
+o OD23(219)
+o OD24(218)
+o OD25(217)
+o OD26(216)
+o OD27(215)
+o OD28(214)
+o OD29(213)
+o OD30(212)
+o OD31(211)
+
+g1 and R(40) IC7(39) ; H7(41)
+g2 and R(40) IC6(38) ; H6(42)
+g3 and R(40) IC5(37) ; H5(43)
+g4 and R(40) IC4(36) ; H4(44)
+g5 and R(40) IC3(35) ; H3(45)
+g6 and R(40) IC2(34) ; H2(46)
+g7 and R(40) IC1(33) ; H1(47)
+g8 and R(40) IC0(32) ; H0(48)
+g9 or internal__11 internal__10 ; XA15(49)
+g10 and ID31(31) ID30(30)* ; internal__10
+g11 and ID31(31)* ID30(30) ; internal__11
+g12 or internal__14 internal__13 ; XA14(50)
+g13 and ID29(29) ID28(28)* ; internal__13
+g14 and ID29(29)* ID28(28) ; internal__14
+g15 or internal__17 internal__16 ; XC7(51)
+g16 and ID31(31) ID27(27)* ; internal__16
+g17 and ID31(31)* ID27(27) ; internal__17
+g18 or internal__20 internal__19 ; XC6(52)
+g19 and ID30(30) ID26(26)* ; internal__19
+g20 and ID30(30)* ID26(26) ; internal__20
+g21 or internal__23 internal__22 ; XA13(53)
+g22 and ID27(27) ID26(26)* ; internal__22
+g23 and ID27(27)* ID26(26) ; internal__23
+g24 or internal__26 internal__25 ; XC5(54)
+g25 and ID29(29) ID25(25)* ; internal__25
+g26 and ID29(29)* ID25(25) ; internal__26
+g27 or internal__29 internal__28 ; XC4(55)
+g28 and ID28(28) ID24(24)* ; internal__28
+g29 and ID28(28)* ID24(24) ; internal__29
+g30 or internal__32 internal__31 ; XA12(56)
+g31 and ID25(25) ID24(24)* ; internal__31
+g32 and ID25(25)* ID24(24) ; internal__32
+g33 or internal__35 internal__34 ; XA11(57)
+g34 and ID23(23) ID22(22)* ; internal__34
+g35 and ID23(23)* ID22(22) ; internal__35
+g36 or internal__38 internal__37 ; XA10(58)
+g37 and ID21(21) ID20(20)* ; internal__37
+g38 and ID21(21)* ID20(20) ; internal__38
+g39 or internal__41 internal__40 ; XB7(59)
+g40 and ID23(23) ID19(19)* ; internal__40
+g41 and ID23(23)* ID19(19) ; internal__41
+g42 or internal__44 internal__43 ; XB6(60)
+g43 and ID22(22) ID18(18)* ; internal__43
+g44 and ID22(22)* ID18(18) ; internal__44
+g45 or internal__47 internal__46 ; XA9(61)
+g46 and ID19(19) ID18(18)* ; internal__46
+g47 and ID19(19)* ID18(18) ; internal__47
+g48 or internal__50 internal__49 ; XB5(62)
+g49 and ID21(21) ID17(17)* ; internal__49
+g50 and ID21(21)* ID17(17) ; internal__50
+g51 or internal__53 internal__52 ; XB4(63)
+g52 and ID20(20) ID16(16)* ; internal__52
+g53 and ID20(20)* ID16(16) ; internal__53
+g54 or internal__56 internal__55 ; XA8(64)
+g55 and ID17(17) ID16(16)* ; internal__55
+g56 and ID17(17)* ID16(16) ; internal__56
+g57 or internal__59 internal__58 ; XA7(65)
+g58 and ID15(15) ID14(14)* ; internal__58
+g59 and ID15(15)* ID14(14) ; internal__59
+g60 or internal__62 internal__61 ; XA6(66)
+g61 and ID13(13) ID12(12)* ; internal__61
+g62 and ID13(13)* ID12(12) ; internal__62
+g63 or internal__65 internal__64 ; XC3(67)
+g64 and ID15(15) ID11(11)* ; internal__64
+g65 and ID15(15)* ID11(11) ; internal__65
+g66 or internal__68 internal__67 ; XC2(68)
+g67 and ID14(14) ID10(10)* ; internal__67
+g68 and ID14(14)* ID10(10) ; internal__68
+g69 or internal__71 internal__70 ; XA5(69)
+g70 and ID11(11) ID10(10)* ; internal__70
+g71 and ID11(11)* ID10(10) ; internal__71
+g72 or internal__74 internal__73 ; XC1(70)
+g73 and ID13(13) ID9(9)* ; internal__73
+g74 and ID13(13)* ID9(9) ; internal__74
+g75 or internal__77 internal__76 ; XC0(71)
+g76 and ID12(12) ID8(8)* ; internal__76
+g77 and ID12(12)* ID8(8) ; internal__77
+g78 or internal__80 internal__79 ; XA4(72)
+g79 and ID9(9) ID8(8)* ; internal__79
+g80 and ID9(9)* ID8(8) ; internal__80
+g81 or internal__83 internal__82 ; XA3(73)
+g82 and ID7(7) ID6(6)* ; internal__82
+g83 and ID7(7)* ID6(6) ; internal__83
+g84 or internal__86 internal__85 ; XA2(74)
+g85 and ID5(5) ID4(4)* ; internal__85
+g86 and ID5(5)* ID4(4) ; internal__86
+g87 or internal__89 internal__88 ; XB3(75)
+g88 and ID7(7) ID3(3)* ; internal__88
+g89 and ID7(7)* ID3(3) ; internal__89
+g90 or internal__92 internal__91 ; XB2(76)
+g91 and ID6(6) ID2(2)* ; internal__91
+g92 and ID6(6)* ID2(2) ; internal__92
+g93 or internal__95 internal__94 ; XA1(77)
+g94 and ID3(3) ID2(2)* ; internal__94
+g95 and ID3(3)* ID2(2) ; internal__95
+g96 or internal__98 internal__97 ; XB1(78)
+g97 and ID5(5) ID1(1)* ; internal__97
+g98 and ID5(5)* ID1(1) ; internal__98
+g99 or internal__101 internal__100 ; XB0(79)
+g100 and ID4(4) ID0(0)* ; internal__100
+g101 and ID4(4)* ID0(0) ; internal__101
+g102 or internal__104 internal__103 ; XA0(80)
+g103 and ID1(1) ID0(0)* ; internal__103
+g104 and ID1(1)* ID0(0) ; internal__104
+g105 or internal__107 internal__106 ; F7(81)
+g106 and XA15(49) XA14(50)* ; internal__106
+g107 and XA15(49)* XA14(50) ; internal__107
+g108 or internal__110 internal__109 ; XE7(82)
+g109 and XC7(51) XB7(59)* ; internal__109
+g110 and XC7(51)* XB7(59) ; internal__110
+g111 or internal__113 internal__112 ; XE6(83)
+g112 and XC6(52) XB6(60)* ; internal__112
+g113 and XC6(52)* XB6(60) ; internal__113
+g114 or internal__116 internal__115 ; F6(84)
+g115 and XA13(53) XA12(56)* ; internal__115
+g116 and XA13(53)* XA12(56) ; internal__116
+g117 or internal__119 internal__118 ; XE5(85)
+g118 and XC5(54) XB5(62)* ; internal__118
+g119 and XC5(54)* XB5(62) ; internal__119
+g120 or internal__122 internal__121 ; XE4(86)
+g121 and XC4(55) XB4(63)* ; internal__121
+g122 and XC4(55)* XB4(63) ; internal__122
+g123 or internal__125 internal__124 ; F5(87)
+g124 and XA11(57) XA10(58)* ; internal__124
+g125 and XA11(57)* XA10(58) ; internal__125
+g126 or internal__128 internal__127 ; F4(88)
+g127 and XA9(61) XA8(64)* ; internal__127
+g128 and XA9(61)* XA8(64) ; internal__128
+g129 or internal__131 internal__130 ; F3(89)
+g130 and XA7(65) XA6(66)* ; internal__130
+g131 and XA7(65)* XA6(66) ; internal__131
+g132 or internal__134 internal__133 ; XE3(90)
+g133 and XC3(67) XB3(75)* ; internal__133
+g134 and XC3(67)* XB3(75) ; internal__134
+g135 or internal__137 internal__136 ; XE2(91)
+g136 and XC2(68) XB2(76)* ; internal__136
+g137 and XC2(68)* XB2(76) ; internal__137
+g138 or internal__140 internal__139 ; F2(92)
+g139 and XA5(69) XA4(72)* ; internal__139
+g140 and XA5(69)* XA4(72) ; internal__140
+g141 or internal__143 internal__142 ; XE1(93)
+g142 and XC1(70) XB1(78)* ; internal__142
+g143 and XC1(70)* XB1(78) ; internal__143
+g144 or internal__146 internal__145 ; XE0(94)
+g145 and XC0(71) XB0(79)* ; internal__145
+g146 and XC0(71)* XB0(79) ; internal__146
+g147 or internal__149 internal__148 ; F1(95)
+g148 and XA3(73) XA2(74)* ; internal__148
+g149 and XA3(73)* XA2(74) ; internal__149
+g150 or internal__152 internal__151 ; F0(96)
+g151 and XA1(77) XA0(80)* ; internal__151
+g152 and XA1(77)* XA0(80) ; internal__152
+g153 or internal__155 internal__154 ; G5(97)
+g154 and F7(81) F6(84)* ; internal__154
+g155 and F7(81)* F6(84) ; internal__155
+g156 or internal__158 internal__157 ; G7(98)
+g157 and F7(81) F5(87)* ; internal__157
+g158 and F7(81)* F5(87) ; internal__158
+g159 or internal__161 internal__160 ; G6(99)
+g160 and F6(84) F4(88)* ; internal__160
+g161 and F6(84)* F4(88) ; internal__161
+g162 or internal__164 internal__163 ; G4(100)
+g163 and F5(87) F4(88)* ; internal__163
+g164 and F5(87)* F4(88) ; internal__164
+g165 or internal__167 internal__166 ; G1(101)
+g166 and F3(89) F2(92)* ; internal__166
+g167 and F3(89)* F2(92) ; internal__167
+g168 or internal__170 internal__169 ; G3(102)
+g169 and F3(89) F1(95)* ; internal__169
+g170 and F3(89)* F1(95) ; internal__170
+g171 or internal__173 internal__172 ; G2(103)
+g172 and F2(92) F0(96)* ; internal__172
+g173 and F2(92)* F0(96) ; internal__173
+g174 or internal__176 internal__175 ; G0(104)
+g175 and F1(95) F0(96)* ; internal__175
+g176 and F1(95)* F0(96) ; internal__176
+g177 or internal__179 internal__178 ; XD7(105)
+g178 and G3(102) H7(41)* ; internal__178
+g179 and G3(102)* H7(41) ; internal__179
+g180 or internal__182 internal__181 ; XD6(106)
+g181 and G2(103) H6(42)* ; internal__181
+g182 and G2(103)* H6(42) ; internal__182
+g183 or internal__185 internal__184 ; XD5(107)
+g184 and G1(101) H5(43)* ; internal__184
+g185 and G1(101)* H5(43) ; internal__185
+g186 or internal__188 internal__187 ; XD4(108)
+g187 and G0(104) H4(44)* ; internal__187
+g188 and G0(104)* H4(44) ; internal__188
+g189 or internal__191 internal__190 ; XD3(109)
+g190 and G7(98) H3(45)* ; internal__190
+g191 and G7(98)* H3(45) ; internal__191
+g192 or internal__194 internal__193 ; XD2(110)
+g193 and G6(99) H2(46)* ; internal__193
+g194 and G6(99)* H2(46) ; internal__194
+g195 or internal__197 internal__196 ; XD1(111)
+g196 and G5(97) H1(47)* ; internal__196
+g197 and G5(97)* H1(47) ; internal__197
+g198 or internal__200 internal__199 ; XD0(112)
+g199 and G4(100) H0(48)* ; internal__199
+g200 and G4(100)* H0(48) ; internal__200
+g201 or internal__203 internal__202 ; S7(113)
+g202 and XD7(105) XE7(82)* ; internal__202
+g203 and XD7(105)* XE7(82) ; internal__203
+g204 or internal__206 internal__205 ; S6(114)
+g205 and XD6(106) XE6(83)* ; internal__205
+g206 and XD6(106)* XE6(83) ; internal__206
+g207 or internal__209 internal__208 ; S5(115)
+g208 and XD5(107) XE5(85)* ; internal__208
+g209 and XD5(107)* XE5(85) ; internal__209
+g210 or internal__212 internal__211 ; S4(116)
+g211 and XD4(108) XE4(86)* ; internal__211
+g212 and XD4(108)* XE4(86) ; internal__212
+g213 or internal__215 internal__214 ; S3(117)
+g214 and XD3(109) XE3(90)* ; internal__214
+g215 and XD3(109)* XE3(90) ; internal__215
+g216 or internal__218 internal__217 ; S2(118)
+g217 and XD2(110) XE2(91)* ; internal__217
+g218 and XD2(110)* XE2(91) ; internal__218
+g219 or internal__221 internal__220 ; S1(119)
+g220 and XD1(111) XE1(93)* ; internal__220
+g221 and XD1(111)* XE1(93) ; internal__221
+g222 or internal__224 internal__223 ; S0(120)
+g223 and XD0(112) XE0(94)* ; internal__223
+g224 and XD0(112)* XE0(94) ; internal__224
+g225 and S7(113) ; Y7B(121)
+g226 and S7(113) ; Y7C(122)
+g227 and S7(113) ; Y7D(123)
+g228 and S7(113) ; Y7I(124)
+g229 and S7(113) ; Y7K(125)
+g230 and S6(114) ; Y6A(126)
+g231 and S6(114) ; Y6C(127)
+g232 and S6(114) ; Y6D(128)
+g233 and S6(114) ; Y6J(129)
+g234 and S6(114) ; Y6L(130)
+g235 and S5(115) ; Y5A(131)
+g236 and S5(115) ; Y5B(132)
+g237 and S5(115) ; Y5D(133)
+g238 and S5(115) ; Y5I(134)
+g239 and S5(115) ; Y5J(135)
+g240 and S4(116) ; Y4A(136)
+g241 and S4(116) ; Y4B(137)
+g242 and S4(116) ; Y4C(138)
+g243 and S4(116) ; Y4K(139)
+g244 and S4(116) ; Y4L(140)
+g245 and S3(117) ; Y3B(141)
+g246 and S3(117) ; Y3C(142)
+g247 and S3(117) ; Y3D(143)
+g248 and S3(117) ; Y3I(144)
+g249 and S3(117) ; Y3K(145)
+g250 and S2(118) ; Y2A(146)
+g251 and S2(118) ; Y2C(147)
+g252 and S2(118) ; Y2D(148)
+g253 and S2(118) ; Y2J(149)
+g254 and S2(118) ; Y2L(150)
+g255 and S1(119) ; Y1A(151)
+g256 and S1(119) ; Y1B(152)
+g257 and S1(119) ; Y1D(153)
+g258 and S1(119) ; Y1I(154)
+g259 and S1(119) ; Y1J(155)
+g260 and S0(120) ; Y0A(156)
+g261 and S0(120) ; Y0B(157)
+g262 and S0(120) ; Y0C(158)
+g263 and S0(120) ; Y0K(159)
+g264 and S0(120) ; Y0L(160)
+g265 and S7(113) Y6A(126) Y5A(131) Y4A(136) ; T4(161)
+g266 and Y7B(121) S6(114) Y5B(132) Y4B(137) ; T5(162)
+g267 and Y7C(122) Y6C(127) S5(115) Y4C(138) ; T6(163)
+g268 and Y7D(123) Y6D(128) Y5D(133) S4(116) ; T7(164)
+g269 and S3(117) Y2A(146) Y1A(151) Y0A(156) ; T0(165)
+g270 and Y3B(141) S2(118) Y1B(152) Y0B(157) ; T1(166)
+g271 and Y3C(142) Y2C(147) S1(119) Y0C(158) ; T2(167)
+g272 and Y3D(143) Y2D(148) Y1D(153) S0(120) ; T3(168)
+g273 and T7(164)* T6(163)* T5(162)* T4(161)* ; U1(169)
+g274 and T3(168)* T2(167)* T1(166)* T0(165)* ; U0(170)
+g275 and U0(170) S7(113) Y6J(129) Y5J(135) S4(116) ; WB(171)
+g276 and U0(170) S7(113) Y6L(130) S5(115) Y4L(140) ; WD(172)
+g277 and U0(170) Y7I(124) S6(114) Y5I(134) S4(116) ; WA(173)
+g278 and U0(170) Y7K(125) S6(114) S5(115) Y4K(139) ; WC(174)
+g279 and U1(169) S3(117) Y2J(149) Y1J(155) S0(120) ; WF(175)
+g280 and U1(169) S3(117) Y2L(150) S1(119) Y0L(160) ; WH(176)
+g281 and U1(169) Y3I(144) S2(118) Y1I(154) S0(120) ; WE(177)
+g282 and U1(169) Y3K(145) S2(118) S1(119) Y0K(159) ; WG(178)
+g283 and WE(177) S7(113) ; E19(179)
+g284 and WF(175) S7(113) ; E23(180)
+g285 and WG(178) S7(113) ; E27(181)
+g286 and WH(176) S7(113) ; E31(182)
+g287 and WE(177) S6(114) ; E18(183)
+g288 and WF(175) S6(114) ; E22(184)
+g289 and WG(178) S6(114) ; E26(185)
+g290 and WH(176) S6(114) ; E30(186)
+g291 and WE(177) S5(115) ; E17(187)
+g292 and WF(175) S5(115) ; E21(188)
+g293 and WG(178) S5(115) ; E25(189)
+g294 and WH(176) S5(115) ; E29(190)
+g295 and WE(177) S4(116) ; E16(191)
+g296 and WF(175) S4(116) ; E20(192)
+g297 and WG(178) S4(116) ; E24(193)
+g298 and WH(176) S4(116) ; E28(194)
+g299 and WA(173) S3(117) ; E3(195)
+g300 and WB(171) S3(117) ; E7(196)
+g301 and WC(174) S3(117) ; E11(197)
+g302 and WD(172) S3(117) ; E15(198)
+g303 and WA(173) S2(118) ; E2(199)
+g304 and WB(171) S2(118) ; E6(200)
+g305 and WC(174) S2(118) ; E10(201)
+g306 and WD(172) S2(118) ; E14(202)
+g307 and WA(173) S1(119) ; E1(203)
+g308 and WB(171) S1(119) ; E5(204)
+g309 and WC(174) S1(119) ; E9(205)
+g310 and WD(172) S1(119) ; E13(206)
+g311 and WA(173) S0(120) ; E0(207)
+g312 and WB(171) S0(120) ; E4(208)
+g313 and WC(174) S0(120) ; E8(209)
+g314 and WD(172) S0(120) ; E12(210)
+g315 or internal__317 internal__316 ; OD31(211)
+g316 and E31(182) ID31(31)* ; internal__316
+g317 and E31(182)* ID31(31) ; internal__317
+g318 or internal__320 internal__319 ; OD30(212)
+g319 and E30(186) ID30(30)* ; internal__319
+g320 and E30(186)* ID30(30) ; internal__320
+g321 or internal__323 internal__322 ; OD29(213)
+g322 and E29(190) ID29(29)* ; internal__322
+g323 and E29(190)* ID29(29) ; internal__323
+g324 or internal__326 internal__325 ; OD28(214)
+g325 and E28(194) ID28(28)* ; internal__325
+g326 and E28(194)* ID28(28) ; internal__326
+g327 or internal__329 internal__328 ; OD27(215)
+g328 and E27(181) ID27(27)* ; internal__328
+g329 and E27(181)* ID27(27) ; internal__329
+g330 or internal__332 internal__331 ; OD26(216)
+g331 and E26(185) ID26(26)* ; internal__331
+g332 and E26(185)* ID26(26) ; internal__332
+g333 or internal__335 internal__334 ; OD25(217)
+g334 and E25(189) ID25(25)* ; internal__334
+g335 and E25(189)* ID25(25) ; internal__335
+g336 or internal__338 internal__337 ; OD24(218)
+g337 and E24(193) ID24(24)* ; internal__337
+g338 and E24(193)* ID24(24) ; internal__338
+g339 or internal__341 internal__340 ; OD23(219)
+g340 and E23(180) ID23(23)* ; internal__340
+g341 and E23(180)* ID23(23) ; internal__341
+g342 or internal__344 internal__343 ; OD22(220)
+g343 and E22(184) ID22(22)* ; internal__343
+g344 and E22(184)* ID22(22) ; internal__344
+g345 or internal__347 internal__346 ; OD21(221)
+g346 and E21(188) ID21(21)* ; internal__346
+g347 and E21(188)* ID21(21) ; internal__347
+g348 or internal__350 internal__349 ; OD20(222)
+g349 and E20(192) ID20(20)* ; internal__349
+g350 and E20(192)* ID20(20) ; internal__350
+g351 or internal__353 internal__352 ; OD19(223)
+g352 and E19(179) ID19(19)* ; internal__352
+g353 and E19(179)* ID19(19) ; internal__353
+g354 or internal__356 internal__355 ; OD18(224)
+g355 and E18(183) ID18(18)* ; internal__355
+g356 and E18(183)* ID18(18) ; internal__356
+g357 or internal__359 internal__358 ; OD17(225)
+g358 and E17(187) ID17(17)* ; internal__358
+g359 and E17(187)* ID17(17) ; internal__359
+g360 or internal__362 internal__361 ; OD16(226)
+g361 and E16(191) ID16(16)* ; internal__361
+g362 and E16(191)* ID16(16) ; internal__362
+g363 or internal__365 internal__364 ; OD15(227)
+g364 and E15(198) ID15(15)* ; internal__364
+g365 and E15(198)* ID15(15) ; internal__365
+g366 or internal__368 internal__367 ; OD14(228)
+g367 and E14(202) ID14(14)* ; internal__367
+g368 and E14(202)* ID14(14) ; internal__368
+g369 or internal__371 internal__370 ; OD13(229)
+g370 and E13(206) ID13(13)* ; internal__370
+g371 and E13(206)* ID13(13) ; internal__371
+g372 or internal__374 internal__373 ; OD12(230)
+g373 and E12(210) ID12(12)* ; internal__373
+g374 and E12(210)* ID12(12) ; internal__374
+g375 or internal__377 internal__376 ; OD11(231)
+g376 and E11(197) ID11(11)* ; internal__376
+g377 and E11(197)* ID11(11) ; internal__377
+g378 or internal__380 internal__379 ; OD10(232)
+g379 and E10(201) ID10(10)* ; internal__379
+g380 and E10(201)* ID10(10) ; internal__380
+g381 or internal__383 internal__382 ; OD9(233)
+g382 and E9(205) ID9(9)* ; internal__382
+g383 and E9(205)* ID9(9) ; internal__383
+g384 or internal__386 internal__385 ; OD8(234)
+g385 and E8(209) ID8(8)* ; internal__385
+g386 and E8(209)* ID8(8) ; internal__386
+g387 or internal__389 internal__388 ; OD7(235)
+g388 and E7(196) ID7(7)* ; internal__388
+g389 and E7(196)* ID7(7) ; internal__389
+g390 or internal__392 internal__391 ; OD6(236)
+g391 and E6(200) ID6(6)* ; internal__391
+g392 and E6(200)* ID6(6) ; internal__392
+g393 or internal__395 internal__394 ; OD5(237)
+g394 and E5(204) ID5(5)* ; internal__394
+g395 and E5(204)* ID5(5) ; internal__395
+g396 or internal__398 internal__397 ; OD4(238)
+g397 and E4(208) ID4(4)* ; internal__397
+g398 and E4(208)* ID4(4) ; internal__398
+g399 or internal__401 internal__400 ; OD3(239)
+g400 and E3(195) ID3(3)* ; internal__400
+g401 and E3(195)* ID3(3) ; internal__401
+g402 or internal__404 internal__403 ; OD2(240)
+g403 and E2(199) ID2(2)* ; internal__403
+g404 and E2(199)* ID2(2) ; internal__404
+g405 or internal__407 internal__406 ; OD1(241)
+g406 and E1(203) ID1(1)* ; internal__406
+g407 and E1(203)* ID1(1) ; internal__407
+g408 or internal__410 internal__409 ; OD0(242)
+g409 and E0(207) ID0(0)* ; internal__409
+g410 and E0(207)* ID0(0) ; internal__410
+g411 not ID30(30) ; ID30(30)*
+g412 not ID31(31) ; ID31(31)*
+g413 not ID28(28) ; ID28(28)*
+g414 not ID29(29) ; ID29(29)*
+g415 not ID27(27) ; ID27(27)*
+g416 not ID26(26) ; ID26(26)*
+g417 not ID25(25) ; ID25(25)*
+g418 not ID24(24) ; ID24(24)*
+g419 not ID22(22) ; ID22(22)*
+g420 not ID23(23) ; ID23(23)*
+g421 not ID20(20) ; ID20(20)*
+g422 not ID21(21) ; ID21(21)*
+g423 not ID19(19) ; ID19(19)*
+g424 not ID18(18) ; ID18(18)*
+g425 not ID17(17) ; ID17(17)*
+g426 not ID16(16) ; ID16(16)*
+g427 not ID14(14) ; ID14(14)*
+g428 not ID15(15) ; ID15(15)*
+g429 not ID12(12) ; ID12(12)*
+g430 not ID13(13) ; ID13(13)*
+g431 not ID11(11) ; ID11(11)*
+g432 not ID10(10) ; ID10(10)*
+g433 not ID9(9) ; ID9(9)*
+g434 not ID8(8) ; ID8(8)*
+g435 not ID6(6) ; ID6(6)*
+g436 not ID7(7) ; ID7(7)*
+g437 not ID4(4) ; ID4(4)*
+g438 not ID5(5) ; ID5(5)*
+g439 not ID3(3) ; ID3(3)*
+g440 not ID2(2) ; ID2(2)*
+g441 not ID1(1) ; ID1(1)*
+g442 not ID0(0) ; ID0(0)*
+g443 not XA14(50) ; XA14(50)*
+g444 not XA15(49) ; XA15(49)*
+g445 not XB7(59) ; XB7(59)*
+g446 not XC7(51) ; XC7(51)*
+g447 not XB6(60) ; XB6(60)*
+g448 not XC6(52) ; XC6(52)*
+g449 not XA12(56) ; XA12(56)*
+g450 not XA13(53) ; XA13(53)*
+g451 not XB5(62) ; XB5(62)*
+g452 not XC5(54) ; XC5(54)*
+g453 not XB4(63) ; XB4(63)*
+g454 not XC4(55) ; XC4(55)*
+g455 not XA10(58) ; XA10(58)*
+g456 not XA11(57) ; XA11(57)*
+g457 not XA8(64) ; XA8(64)*
+g458 not XA9(61) ; XA9(61)*
+g459 not XA6(66) ; XA6(66)*
+g460 not XA7(65) ; XA7(65)*
+g461 not XB3(75) ; XB3(75)*
+g462 not XC3(67) ; XC3(67)*
+g463 not XB2(76) ; XB2(76)*
+g464 not XC2(68) ; XC2(68)*
+g465 not XA4(72) ; XA4(72)*
+g466 not XA5(69) ; XA5(69)*
+g467 not XB1(78) ; XB1(78)*
+g468 not XC1(70) ; XC1(70)*
+g469 not XB0(79) ; XB0(79)*
+g470 not XC0(71) ; XC0(71)*
+g471 not XA2(74) ; XA2(74)*
+g472 not XA3(73) ; XA3(73)*
+g473 not XA0(80) ; XA0(80)*
+g474 not XA1(77) ; XA1(77)*
+g475 not F6(84) ; F6(84)*
+g476 not F7(81) ; F7(81)*
+g477 not F5(87) ; F5(87)*
+g478 not F4(88) ; F4(88)*
+g479 not F2(92) ; F2(92)*
+g480 not F3(89) ; F3(89)*
+g481 not F1(95) ; F1(95)*
+g482 not F0(96) ; F0(96)*
+g483 not H7(41) ; H7(41)*
+g484 not G3(102) ; G3(102)*
+g485 not H6(42) ; H6(42)*
+g486 not G2(103) ; G2(103)*
+g487 not H5(43) ; H5(43)*
+g488 not G1(101) ; G1(101)*
+g489 not H4(44) ; H4(44)*
+g490 not G0(104) ; G0(104)*
+g491 not H3(45) ; H3(45)*
+g492 not G7(98) ; G7(98)*
+g493 not H2(46) ; H2(46)*
+g494 not G6(99) ; G6(99)*
+g495 not H1(47) ; H1(47)*
+g496 not G5(97) ; G5(97)*
+g497 not H0(48) ; H0(48)*
+g498 not G4(100) ; G4(100)*
+g499 not XE7(82) ; XE7(82)*
+g500 not XD7(105) ; XD7(105)*
+g501 not XE6(83) ; XE6(83)*
+g502 not XD6(106) ; XD6(106)*
+g503 not XE5(85) ; XE5(85)*
+g504 not XD5(107) ; XD5(107)*
+g505 not XE4(86) ; XE4(86)*
+g506 not XD4(108) ; XD4(108)*
+g507 not XE3(90) ; XE3(90)*
+g508 not XD3(109) ; XD3(109)*
+g509 not XE2(91) ; XE2(91)*
+g510 not XD2(110) ; XD2(110)*
+g511 not XE1(93) ; XE1(93)*
+g512 not XD1(111) ; XD1(111)*
+g513 not XE0(94) ; XE0(94)*
+g514 not XD0(112) ; XD0(112)*
+g515 not T4(161) ; T4(161)*
+g516 not T5(162) ; T5(162)*
+g517 not T6(163) ; T6(163)*
+g518 not T7(164) ; T7(164)*
+g519 not T0(165) ; T0(165)*
+g520 not T1(166) ; T1(166)*
+g521 not T2(167) ; T2(167)*
+g522 not T3(168) ; T3(168)*
+g523 not E31(182) ; E31(182)*
+g524 not E30(186) ; E30(186)*
+g525 not E29(190) ; E29(190)*
+g526 not E28(194) ; E28(194)*
+g527 not E27(181) ; E27(181)*
+g528 not E26(185) ; E26(185)*
+g529 not E25(189) ; E25(189)*
+g530 not E24(193) ; E24(193)*
+g531 not E23(180) ; E23(180)*
+g532 not E22(184) ; E22(184)*
+g533 not E21(188) ; E21(188)*
+g534 not E20(192) ; E20(192)*
+g535 not E19(179) ; E19(179)*
+g536 not E18(183) ; E18(183)*
+g537 not E17(187) ; E17(187)*
+g538 not E16(191) ; E16(191)*
+g539 not E15(198) ; E15(198)*
+g540 not E14(202) ; E14(202)*
+g541 not E13(206) ; E13(206)*
+g542 not E12(210) ; E12(210)*
+g543 not E11(197) ; E11(197)*
+g544 not E10(201) ; E10(201)*
+g545 not E9(205) ; E9(205)*
+g546 not E8(209) ; E8(209)*
+g547 not E7(196) ; E7(196)*
+g548 not E6(200) ; E6(200)*
+g549 not E5(204) ; E5(204)*
+g550 not E4(208) ; E4(208)*
+g551 not E3(195) ; E3(195)*
+g552 not E2(199) ; E2(199)*
+g553 not E1(203) ; E1(203)*
+g554 not E0(207) ; E0(207)*
