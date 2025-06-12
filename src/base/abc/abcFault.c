@@ -2262,6 +2262,73 @@ void Abc_NtkAssignLatestPatternToCurrentNetwork( Abc_Ntk_t * pNtk )
     printf("[AssignTestPattern] Assigned latest test pattern to current network PIs as constants\n");
 }
 
+
+void Abc_NtkAssignPOPatternToCurrentNetwork( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern )
+{
+    Abc_Obj_t * pPo, * pObj, * pConst0, * pConst1;
+    int i, nPos;
+
+    // Check if network and pattern exist
+    if ( !pNtk || !vPattern )
+    {
+        printf("pNtk: %d\n", !pNtk);
+        printf("[AddPOPattern] Error: Network or pattern not found\n");
+        return;
+    }
+
+    // number of PIs in the test pattern
+    nPos = Vec_IntSize(vPattern);
+    printf("[AddPOPattern] Number of POs in the test pattern: %d\n", nPos);
+
+    // Create constant nodes if they don't exist
+    pConst0 = Abc_NtkCreateNodeConst0(pNtk);
+    pConst1 = Abc_NtkCreateNodeConst1(pNtk);
+
+    int test_pattern_index = 0;
+    
+    Abc_Obj_t * pNewPo = Abc_NtkCreatePo(pNtk);
+    Abc_Obj_t * pNewAnd = Abc_NtkCreateNode(pNtk);
+    Abc_ObjAddFanin(pNewPo, pNewAnd);
+
+    Abc_NtkForEachPo(pNtk, pPo, i)
+    {
+        if (test_pattern_index >= nPos)
+            break;
+
+
+        // Get the value from the test pattern
+        int value = Vec_IntEntry(vPattern, test_pattern_index);
+        
+        // Replace PO's fanout connections with constant node
+        if (value == 0){
+            Abc_Obj_t * pNewNot;
+            pNewNot = Abc_NtkCreateNode(pNtk);
+            Abc_ObjAddFanin(pNewNot, Abc_ObjFanin0(pPo));
+            pNewNot->pData = Abc_SopCreateInv((Mem_Flex_t *)pNtk->pManFunc);
+
+            Abc_ObjAddFanin(pNewAnd, pNewNot);
+        }
+        else{
+            Abc_ObjAddFanin(pNewAnd, Abc_ObjFanin0(pPo));
+        }
+
+        test_pattern_index++;
+    }
+    pNewAnd->pData = Abc_SopCreateAnd((Mem_Flex_t *)pNtk->pManFunc, Abc_ObjFaninNum(pNewAnd), NULL);
+
+    for (int j = 0; j < test_pattern_index; j++)
+    {
+        // Always get the first PI (index 0) since after each deletion, PIs shift down
+        pObj = Abc_NtkPo(pNtk, 0);
+        if (!pObj) break; // Safety check
+        Abc_NtkDeleteObj(pObj);
+    }
+
+    printf("faninNum=%d, po_num=%d\n", Abc_ObjFaninNum(pNewAnd), Abc_NtkPoNum(pNtk));
+    printf("[AddPOPattern] Assigned latest PO pattern to current network POs as constants\n");
+}
+
+
 /**Function*************************************************************
 
   Synopsis    [Assigns the latest test pattern to the fault constraint network.]
