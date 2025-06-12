@@ -11499,15 +11499,19 @@ int Abc_CommandInsertTp( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int c;
+    int is_constraint = 0;
 
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "hf" ) ) != EOF )
     {
         switch ( c )
         {
         case 'h':
             goto usage;
+        case 'f':
+            is_constraint = 1;
+            break;
         default:
             goto usage;
         }
@@ -11519,7 +11523,7 @@ int Abc_CommandInsertTp( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
 
-    if ( !pNtk->pFaultConstraintNtk )
+    if ( is_constraint && !pNtk->pFaultConstraintNtk )
     {
         Abc_Print( -1, "Fault constraint network not created. Use fault_constraint first.\n" );
         return 1;
@@ -11532,14 +11536,18 @@ int Abc_CommandInsertTp( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // Assign the latest test pattern to the constraint network
-    Abc_NtkAssignLatestPatternToConstraintNetwork(pNtk);
+    if ( is_constraint )
+        Abc_NtkAssignLatestPatternToConstraintNetwork(pNtk);
+    else
+        Abc_NtkAssignLatestPatternToCurrentNetwork(pNtk);
     
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: insert_tp [-h]\n" );
+    Abc_Print( -2, "usage: insert_tp [-h] [-f]\n" );
     Abc_Print( -2, "\t         Insert the latest test pattern into the fault constraint network\n" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-f     : insert the latest test pattern into the fault constraint network\n");
     return 1;
 } 
 
