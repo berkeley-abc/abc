@@ -2196,6 +2196,85 @@ Vec_Int_t * Abc_NtkGetTestPattern( Abc_Ntk_t * pNtk, int i )
   SeeAlso     []
 
 ***********************************************************************/
+void Abc_NtkAssignLatestPatternToCurrentNetwork( Abc_Ntk_t * pNtk )
+{
+    Vec_Int_t * vLatestPattern;
+    Abc_Obj_t * pPi, * pObj, * pConst0, * pConst1;
+    int i, nPis;
+
+    // Check if network and constraint network exist
+    if ( !pNtk || !pNtk->vTestPatterns )
+    {
+        printf("pNtk: %d\n", !pNtk);
+        Vec_Int_t* vpattern = Abc_NtkGetTestPattern(pNtk, 0);
+        for(int j = 0; j < Vec_IntSize(vpattern); j++)
+            printf("%d ", Vec_IntEntry(vpattern, j));
+        printf("\n");
+        printf("[FaultConstraint] Error: Network or constraint network not found\n");
+        return;
+    }
+    // Get the latest test pattern
+    vLatestPattern = Abc_NtkGetTestPattern(pNtk, Abc_NtkTestPatternNum(pNtk) - 1);
+    if (!vLatestPattern)
+    {
+        printf("[FaultConstraint] Error: Latest test pattern not found\n");
+        return;
+    }
+
+    // number of PIs in the test pattern
+    nPis = Vec_IntSize(vLatestPattern);
+    printf("[AssignTestPattern] Number of PIs in the test pattern: %d\n", nPis);
+
+    // Create constant nodes if they don't exist
+    pConst0 = Abc_NtkCreateNodeConst0(pNtk);
+    pConst1 = Abc_NtkCreateNodeConst1(pNtk);
+
+    int test_pattern_index = 0;
+    // We only want to assign the first nPis (good circuit inputs)
+    Abc_NtkForEachPi(pNtk, pPi, i)
+    {
+        if (test_pattern_index >= nPis)
+            break;
+
+
+        // Get the value from the test pattern
+        int value = Vec_IntEntry(vLatestPattern, test_pattern_index);
+        
+        // Replace PI's fanout connections with constant node
+        if (value == 0)
+            Abc_ObjTransferFanout(pPi, pConst0);
+        else
+            Abc_ObjTransferFanout(pPi, pConst1);
+
+        test_pattern_index++;
+    }
+
+
+    // Delete the first test_pattern_index PIs from the current network
+    for (int j = 0; j < test_pattern_index; j++)
+    {
+        // Always get the first PI (index 0) since after each deletion, PIs shift down
+        pObj = Abc_NtkPi(pNtk, 0);
+        if (!pObj) break; // Safety check
+        Abc_NtkDeleteObj(pObj);
+    }
+
+    printf("[AssignTestPattern] Assigned latest test pattern to current network PIs as constants\n");
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Assigns the latest test pattern to the fault constraint network.]
+
+  Description [Takes the latest test pattern from vTestPatterns and assigns
+               it to the first set of PIs in the fault constraint network,
+               preserving the faulty PI assignments.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Abc_NtkAssignLatestPatternToConstraintNetwork( Abc_Ntk_t * pNtk )
 {
     Abc_Ntk_t * pFaultNtk;
