@@ -664,6 +664,13 @@ static inline void Vec_PtrPrintNames( Vec_Ptr_t * p )
         printf( "%s ", pName );
     printf( " }\n" );
 }
+static inline void Vec_PtrPrintPointers( Vec_Ptr_t * p )
+{
+    void * pTemp; int i;
+    printf( "Vector has %d pointer entries:\n", Vec_PtrSize(p) );
+    Vec_PtrForEachEntry( void *, p, pTemp, i )
+        printf( "%2d = %p\n", i, pTemp );
+}
 
 /**Function*************************************************************
 

@@ -1360,6 +1360,130 @@ Gia_Man_t * Gia_ManGenSorter( int LogN )
     return p;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Generates brand-name adders.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManGenPrep( int nVars, int ** p )
+{
+    int i, k;
+    for ( i = 0; i < nVars; i++ )
+    for ( k = 0; k < nVars; k++ )
+        p[i][k] = -1;
+}
+void Gia_ManGenSK( int nVars, int ** p )
+{
+    int i, k, nBits = Abc_Base2Log(nVars);
+    for ( i = 0; i < nBits; i++ )
+        for ( k = 0; k < nVars; k++ )
+            if ( (k >> i) & 1 )
+                p[i+1][k] = ((1 << i) - 1) | ((k >> (i+1)) << (i+1));
+}
+void Gia_ManGenBK( int nVars, int ** p )
+{
+    int i, k, nBits = Abc_Base2Log(nVars);
+    nVars = 1 << nBits;
+    for ( i = 1; i < nBits; i++ )
+        for ( k = (1 << i) - 1; k < nVars; k += (1 << i) )
+            p[i][k] = k - (1 << (i-1));
+    p[nBits][nVars-1] = (1<<(nBits-1))-1;
+    for ( i = 1; i < nBits; i++ )
+        for ( k = (1 << i) - 1; k < nVars-(1 << i); k += (1 << i) )
+            p[2*nBits-1-i][nVars-1-k+((1<<(i-1))-1)] = nVars-1-k+((1<<(i-1))-1) - (1 << (i-1));
+}
+void Gia_ManGenHC( int nVars, int ** p )
+{
+    int i, k, nBits = Abc_Base2Log(nVars);
+    nVars = 1 << nBits;
+    for ( k = 1; k < nVars; k += 2 )
+        p[1][k] = k - 1;      
+    for ( i = 2; i <= nBits; i++ )
+        for ( k = 1 + (1 << (i-1)); k < nVars; k += 2 )
+            p[i][k] = k - (1 << (i-1));
+    for ( k = 2; k < nVars; k += 2 )
+        p[nBits+1][k] = k - 1;      
+}
+void Gia_ManGenRca( int nVars, int ** p )
+{
+    int i;
+    for ( i = 1; i < nVars; i++ )
+        p[i][i] = i-1;
+}
+void Gia_ManGenPrint( int nVars, int ** p )
+{
+  int i, k;
+  for ( i = nVars-1; i >= 0; i-- )
+    printf( "%2d ", i );
+  printf( "\n" );
+  for ( i = 0; i < nVars; i++ ) {
+    for ( k = nVars-1; k >= 0; k-- )
+        if ( p[i][k] >= 0 )
+            break;
+    for ( k = nVars-1; k >= 0; k-- )
+      if ( p[i][k] == -1 )
+        printf( " - " );
+      else
+        printf( "%2d ", p[i][k] );
+    printf("\n");
+  }
+}
+void Gia_ManGenPrefix( Gia_Man_t * pNew, int * p, int * g, int p2, int g2 )
+{
+    *g = Gia_ManHashOr(pNew, *g, Gia_ManHashAnd(pNew, *p, g2));
+    *p = Gia_ManHashAnd(pNew, *p, p2);
+}
+Gia_Man_t * Gia_ManGenAdder( int nVars, int fSK, int fBK, int fHC, int fCarries, int fVerbose )
+{
+    extern void Wlc_BlastFullAdder( Gia_Man_t * pNew, int a, int b, int c, int * pc, int * ps );
+    int i, k, nBits = Abc_Base2Log(nVars), nVarsAlloc = (1 << nBits) + 2;
+    int ** pStore = (int **)Extra_ArrayAlloc( nVarsAlloc, nVarsAlloc, 4 );
+    printf( "Generating %d-bit ", nVars );
+    Gia_ManGenPrep( nVars+2, pStore );
+    if ( fSK )
+        Gia_ManGenSK( nVars, pStore ), printf("Sklansky ");
+    else if ( fBK )
+        Gia_ManGenBK( nVars, pStore ), printf("Brent-Kung ");
+    else if ( fHC )
+        Gia_ManGenHC( nVars, pStore ), printf("Huan-Carlsson ");
+    else
+        Gia_ManGenRca( nVars, pStore ), printf("ripple-carry ");
+    printf( "adder with%s carry-in and carry-out\n", fCarries ? "":"out" );
+    if ( fVerbose ) Gia_ManGenPrint( nVars, pStore );
+    Gia_Man_t * p = Gia_ManStart( 1000 ), * pTemp;
+    p->pName = Abc_UtilStrsav( "adder" );    
+    int * pLitsI = ABC_CALLOC( int, 2*nVars+10 );
+    for ( k = 0; k < nVars; k++ )
+        pLitsI[2*k] = Gia_ManAppendCi(p);
+    for ( k = 0; k < nVars; k++ )
+        pLitsI[2*k+1] = Gia_ManAppendCi(p);
+    int Carry = fCarries ? Gia_ManAppendCi(p) : 0;
+    Gia_ManHashStart( p );
+    for ( k = 0; k < nVars; k++ )
+        Wlc_BlastFullAdder( p, pLitsI[2*k], pLitsI[2*k+1], k ? 0 : Carry, &pLitsI[2*k+1], &pLitsI[2*k] );
+    int * pLits = ABC_CALLOC( int, 2*nVars+10 );
+    memcpy( pLits, pLitsI, sizeof(int)*2*nVars );
+    for ( i = 1; i < nVars; i++ )
+    for ( k = 1; k < nVars; k++ )
+        if ( pStore[i][k] >= 0 )
+            Gia_ManGenPrefix( p, &pLits[2*k], &pLits[2*k+1], pLits[2*pStore[i][k]], pLits[2*pStore[i][k]+1] );
+    for ( k = 0; k < nVars; k++ ) 
+        Gia_ManAppendCo( p, k ? Gia_ManHashXor(p, pLitsI[2*k], pLits[2*(k-1)+1]) : pLitsI[2*k] );
+    if ( fCarries )
+        Gia_ManAppendCo( p, pLits[2*(k-1)+1] );
+    ABC_FREE( pStore );
+    ABC_FREE( pLitsI );
+    ABC_FREE( pLits );    
+    p = Gia_ManCleanup( pTemp = p );
+    Gia_ManStop( pTemp );
+    return p;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///

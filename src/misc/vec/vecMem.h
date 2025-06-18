@@ -420,6 +420,32 @@ static inline Vec_Mem_t * Vec_MemAllocForTT( int nVars, int fCompl )
     ABC_FREE( uTruth );
     return vTtMem;
 }
+static inline Vec_Mem_t * Vec_MemAllocWithTTs( int nVars )
+{
+    static word sTruths6[6] = {
+        ABC_CONST(0xAAAAAAAAAAAAAAAA),
+        ABC_CONST(0xCCCCCCCCCCCCCCCC),
+        ABC_CONST(0xF0F0F0F0F0F0F0F0),
+        ABC_CONST(0xFF00FF00FF00FF00),
+        ABC_CONST(0xFFFF0000FFFF0000),
+        ABC_CONST(0xFFFFFFFF00000000)
+    };
+    Vec_Mem_t * vTtMem = Vec_MemAllocForTTSimple( nVars );
+    int i, k, nWords = nVars <= 6 ? 1 : (1 << (nVars - 6));
+    word * pTruth = ABC_CALLOC( word, nWords );
+    int Value = Vec_MemHashInsert( vTtMem, pTruth ); assert( Value == 0 );
+    for ( i = 0; i < nVars; i++ ) {
+        if ( i < 6 )
+            for ( k = 0; k < nWords; k++ )
+                pTruth[k] = sTruths6[i];
+        else
+            for ( k = 0; k < nWords; k++ )
+                pTruth[k] = (k & (1 << (i-6))) ? ~(word)0 : 0;
+        Value = Vec_MemHashInsert( vTtMem, pTruth ); assert( Value == 1+i );
+    }
+    ABC_FREE( pTruth );
+    return vTtMem;
+}
 static inline void Vec_MemAddMuxTT( Vec_Mem_t * p, int nVars )
 {
     int Value, nWords = (nVars <= 6 ? 1 : (1 << (nVars - 6)));

@@ -433,7 +433,8 @@ void * Abc_NtkBuildGlobalBdds( Abc_Ntk_t * pNtk, int nBddSizeMax, int fDropInter
 //        Cudd_ReduceHeap( dd, CUDD_REORDER_SYMM_SIFT, 1 );
         Cudd_AutodynDisable( dd );
     }
-//    Cudd_PrintInfo( dd, stdout );
+    if ( fVerbose )
+        Cudd_PrintInfo( dd, stdout );
     return dd;
 }
 

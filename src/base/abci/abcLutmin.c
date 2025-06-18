@@ -574,6 +574,7 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
     return pNodeTop;
 }
 
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -585,27 +586,456 @@ Abc_Obj_t * Abc_NtkBddFindCofactor( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int 
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_NtkBddNodeCompareByLevel( DdNode ** pp1, DdNode ** pp2 )
+{
+    return (*pp1)->Id - (*pp2)->Id;
+}
+Vec_Ptr_t * Abc_NtkBddCollectByLevel( DdManager * dd, DdNode * aFunc )
+{
+    DdGen *gen; DdNode *node; int i;
+    Vec_Ptr_t * vNodes = Vec_PtrAlloc( 100 );
+    Cudd_ForeachNode( dd, aFunc, gen, node ) 
+        Vec_PtrPush( vNodes, node ), node->Id = Cudd_ReadPerm( dd, (int)node->index );
+    Vec_PtrSort( vNodes, (int (*)(const void *, const void *))Abc_NtkBddNodeCompareByLevel );
+    Vec_PtrForEachEntry( DdNode *, vNodes, node, i )
+        node->Id = i;
+    return vNodes;
+}
+void Abc_NtkBddCollectPrint3( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Ptr_t * vNodes = Abc_NtkBddCollectByLevel( dd, aFunc );
+    Vec_PtrPrintPointers( vNodes );
+    Vec_PtrFree( vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+Vec_Ptr_t * Abc_NtkBddFetchNodes( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Ptr_t * vNodes = Vec_PtrAlloc( 100 );
+    DdGen *gen; DdNode *node;
+    Cudd_ForeachNode( dd, aFunc, gen, node) 
+        Vec_PtrPush(vNodes, node), node->Id = 0;
+    return vNodes;
+}
+void Abc_NtkBddCleanNodes( DdManager * dd, DdNode * aFunc )
+{
+    DdGen *gen; DdNode *node;
+    Cudd_ForeachNode( dd, aFunc, gen, node) 
+        node->Id = 0;
+}
+void Abc_NtkBddCollectPtr_rec( DdManager * dd, DdNode * aFunc, Vec_Ptr_t * vNodes )
+{
+    if ( aFunc->Id )
+        return;
+    if ( !cuddIsConstant(aFunc) ) {
+        Abc_NtkBddCollectPtr_rec( dd, cuddE(aFunc), vNodes );
+        Abc_NtkBddCollectPtr_rec( dd, cuddT(aFunc), vNodes );
+    }
+    aFunc->Id = Vec_PtrSize(vNodes) + 1;
+    Vec_PtrPush(vNodes, aFunc);
+}
+Vec_Ptr_t * Abc_NtkBddCollectPtr( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Ptr_t * vNodes = Vec_PtrAlloc( 100 );
+    Abc_NtkBddCleanNodes( dd, aFunc );
+    Abc_NtkBddCollectPtr_rec( dd, aFunc, vNodes );
+    return vNodes;
+}
+void Abc_NtkBddCollectPrint2( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Ptr_t * vNodes = Abc_NtkBddCollectPtr( dd, aFunc );
+    Vec_PtrPrintPointers( vNodes );
+    Vec_PtrFree( vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+static inline word     Abc_Bdd2Word( DdNode * f )              { union { DdNode * f; word w; } v; v.f = f; return v.w;     }
+static inline DdNode * Abc_Word2Bdd( word w )                  { union { DdNode * f; word w; } v; v.w = w; return v.f;     }
+
+static inline int      Abc_Bdd2Int( DdNode * F, DdNode * f )   { return (int)(Abc_Bdd2Word(F) ^ Abc_Bdd2Word(f)) >> 3;     }
+static inline DdNode * Abc_Int2Bdd( DdNode * F, int diff )     { return Abc_Word2Bdd(Abc_Bdd2Word(F) ^ (word)(diff << 3)); }
+
+static inline int  Abc_BddIndex( DdManager * dd, DdNode * f )  { return cuddIsConstant(f) ? dd->size : (int)f->index;      }
+static inline int  Abc_BddLevel( DdManager * dd, DdNode * f )  { return cuddIsConstant(f) ? dd->size : Cudd_ReadPerm(dd, (int)f->index);  }
+
+void Abc_NtkBddCollectInt_rec( DdManager * dd, DdNode * aRef, DdNode * aFunc, Vec_Wec_t * vNodes )
+{
+    if ( Cudd_IsComplement(aFunc->next) )
+        return;
+    aFunc->next = Cudd_Not(aFunc->next);
+    if ( !cuddIsConstant(aFunc) ) {
+        Abc_NtkBddCollectInt_rec( dd, aRef, cuddE(aFunc), vNodes );
+        Abc_NtkBddCollectInt_rec( dd, aRef, cuddT(aFunc), vNodes );
+    }
+    //assert( Abc_Bdd2Int(aRef, aFunc) % 8 == 0 );
+    Vec_WecPush( vNodes, Abc_BddLevel(dd, aFunc), Abc_Bdd2Int(aRef, aFunc) );        
+}
+Vec_Wec_t * Abc_NtkBddCollectInt( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Wec_t * vNodes = Vec_WecStart( dd->size+1 );
+    Abc_NtkBddCollectInt_rec( dd, aFunc, aFunc, vNodes );
+    extern void ddClearFlag2( DdNode * f );
+    ddClearFlag2( aFunc );
+    return vNodes;
+}
+void Abc_NtkBddCollectPrint( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Wec_t * vNodes = Abc_NtkBddCollectInt( dd, aFunc );
+    Vec_WecPrint( vNodes, 0 );
+    Vec_WecFree( vNodes );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Abc_NtkBddCollectHighest( DdManager * dd, DdNode * aFunc, Vec_Wec_t * vNodes )
+{
+    Vec_Int_t * vRes = Vec_IntStartFull( Vec_WecMaxEntry(vNodes)+1 );
+    Vec_Int_t * vLevel; int i, k, Obj, * pEntry;
+    Vec_WecForEachLevelStop( vNodes, vLevel, i, dd->size )
+        Vec_IntForEachEntry( vLevel, Obj, k ) {
+            DdNode * aNode = Abc_Int2Bdd(aFunc, Obj);            
+            pEntry = Vec_IntEntryP( vRes, Abc_Bdd2Int(aFunc, cuddE(aNode)) );
+            if ( *pEntry == -1 ) *pEntry = i;
+            pEntry = Vec_IntEntryP( vRes, Abc_Bdd2Int(aFunc, cuddT(aNode)) );
+            if ( *pEntry == -1 ) *pEntry = i;
+        }
+    return vRes;
+}
+void Abc_NtkBddCollectProfile( DdManager * dd, DdNode * aFunc, Vec_Wec_t * vNodes, int * pProf )
+{
+    memset( pProf, 0, sizeof(int)*(dd->size+1) );
+    Vec_Int_t * vHighest = Abc_NtkBddCollectHighest( dd, aFunc, vNodes );
+    Vec_Int_t * vLevel; int i, k, Obj;
+    pProf[0] = 1;
+    Vec_WecForEachLevelStart( vNodes, vLevel, i, 1 )
+        Vec_IntForEachEntry( vLevel, Obj, k ) {
+            int lev, Start = Vec_IntEntry( vHighest, Obj );
+            for ( lev = Start+1; lev <= i; lev++ )
+                pProf[lev]++;
+        }
+    printf( "  Size = %5d  ", Vec_IntSize(vHighest) );
+    Vec_IntFree( vHighest );
+}
+void Abc_NtkBddTestProfile( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Wec_t * vNodes = Abc_NtkBddCollectInt( dd, aFunc );
+    int i, Total = 0, Profile[100]; assert( dd->size < 100 );
+    Abc_NtkBddCollectProfile( dd, aFunc, vNodes, Profile );
+    printf( "   " );
+    for ( i = 0; i <= dd->size; i++ )
+        printf( "%3d", Profile[i] ), Total += Profile[i];
+    printf( "  Total = %d\n", Total );
+    Vec_WecFree( vNodes );
+}
+Vec_Wec_t * Abc_NtkBddCollectCofs( DdManager * dd, DdNode * aFunc, Vec_Wec_t * vNodes )
+{
+    Vec_Wec_t * vCofs = Vec_WecStart( dd->size+1 );
+    Vec_Int_t * vHighest = Abc_NtkBddCollectHighest( dd, aFunc, vNodes );
+    Vec_Int_t * vLevel; int i, k, Obj;
+    Vec_WecPush( vCofs, 0, 0 );
+    Vec_WecForEachLevelStart( vNodes, vLevel, i, 1 )
+        Vec_IntForEachEntry( vLevel, Obj, k ) {
+            int lev, Start = Vec_IntEntry( vHighest, Obj );
+            for ( lev = Start+1; lev <= i; lev++ )
+                Vec_WecPush( vCofs, lev, Obj );
+        }
+    Vec_IntFree( vHighest );
+    return vCofs;
+}
+Vec_Wec_t * Abc_NtkBddCollecInfo1( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Wec_t * vInfo  = Vec_WecStart( dd->size );
+    Vec_Wec_t * vNodes = Abc_NtkBddCollectInt( dd, aFunc );
+    Vec_Wec_t * vCofs  = Abc_NtkBddCollectCofs( dd, aFunc, vNodes );
+    Vec_Int_t * vLevel; int i, k, Obj;
+    for ( int a = 0; a < dd->size; a++ ) {
+        word Sign = (word)1 << a;
+        for ( int n = 0; n < 2; n++ ) {
+            word Value = (word)n << a;
+            Vec_WecForEachLevel( vNodes, vLevel, i )
+                Vec_IntForEachEntry( vLevel, Obj, k )
+                    Abc_Int2Bdd(aFunc, Obj)->Id = 0;
+            aFunc->Id = 1;
+            //printf( " %c %d : ", 'a'+a, n );
+            //printf( " %2d", 1 );
+            if ( n == 0 )
+                Vec_IntPush( Vec_WecEntry(vInfo, a), 1 );
+            Vec_WecForEachLevelStop( vNodes, vLevel, i, dd->size ) {
+                Vec_IntForEachEntry( vLevel, Obj, k ) {  
+                    DdNode * aNode = Abc_Int2Bdd(aFunc, Obj);
+                    if ( aNode->Id == 0 )
+                        continue;
+                    if ( !((Sign >> i) & 1) || ((Value >> i) & 1) == 0 )
+                        cuddE(aNode)->Id |= 1;
+                    if ( !((Sign >> i) & 1) || ((Value >> i) & 1) == 1 )
+                        cuddT(aNode)->Id |= 1;
+                }
+                Vec_Int_t * vCof = Vec_WecEntry(vCofs, i+1);
+                int Counter = 0;
+                Vec_IntForEachEntry( vCof, Obj, k )
+                    Counter += (int)Abc_Int2Bdd(aFunc, Obj)->Id;                
+                if ( n == 0 )
+                    Vec_IntPush( Vec_WecEntry(vInfo, a), Counter );
+                else {
+                    int * pEntry = Vec_IntEntryP( Vec_WecEntry(vInfo, a), i+1 );
+                    *pEntry = Abc_MaxInt( *pEntry, Counter );
+                }
+                //printf( " %2d", Counter );
+            }
+            //printf( "\n" );
+        }        
+    }
+    Vec_WecFree( vCofs );
+    Vec_WecFree( vNodes );
+    return vInfo;
+}
+Vec_Wec_t * Abc_NtkBddCollecInfo2( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Wec_t * vInfo  = Vec_WecStart( dd->size*(dd->size-1)/2 );
+    Vec_Wec_t * vNodes = Abc_NtkBddCollectInt( dd, aFunc );
+    Vec_Wec_t * vCofs  = Abc_NtkBddCollectCofs( dd, aFunc, vNodes );
+    Vec_Int_t * vLevel; int i, k, Obj, c = 0;
+    for ( int a = 0;   a < dd->size; a++ ) 
+    for ( int b = a+1; b < dd->size; b++ ) {
+        Vec_Int_t * vInfo1 = Vec_WecEntry(vInfo, c++);
+        word Sign = ((word)1 << a) | ((word)1 << b);
+        for ( int n = 0; n < 4; n++ ) {
+            word Value = ((word)(n & 1) << a) | ((word)((n >> 1) & 1) << b);
+            Vec_WecForEachLevel( vNodes, vLevel, i )
+                Vec_IntForEachEntry( vLevel, Obj, k )
+                    Abc_Int2Bdd(aFunc, Obj)->Id = 0;
+            aFunc->Id = 1;
+            if ( n == 0 )
+                Vec_IntPush( vInfo1, 1 );
+            Vec_WecForEachLevelStop( vNodes, vLevel, i, dd->size ) {
+                Vec_IntForEachEntry( vLevel, Obj, k ) {  
+                    DdNode * aNode = Abc_Int2Bdd(aFunc, Obj);
+                    if ( aNode->Id == 0 )
+                        continue;
+                    if ( !((Sign >> i) & 1) || ((Value >> i) & 1) == 0 )
+                        cuddE(aNode)->Id |= 1;
+                    if ( !((Sign >> i) & 1) || ((Value >> i) & 1) == 1 )
+                        cuddT(aNode)->Id |= 1;
+                }
+                Vec_Int_t * vCof = Vec_WecEntry(vCofs, i+1);
+                int Counter = 0;
+                Vec_IntForEachEntry( vCof, Obj, k )
+                    Counter += (int)Abc_Int2Bdd(aFunc, Obj)->Id;                
+                if ( n == 0 )
+                    Vec_IntPush( vInfo1, Counter );
+                else {
+                    int * pEntry = Vec_IntEntryP( vInfo1, i+1 );
+                    *pEntry = Abc_MaxInt( *pEntry, Counter );
+                }
+            }
+        }        
+    }
+    assert( c == Vec_WecSize(vInfo) );
+    Vec_WecFree( vCofs );
+    Vec_WecFree( vNodes );
+    return vInfo;
+}
+Vec_Wec_t * Abc_NtkBddCollecInfo3( DdManager * dd, DdNode * aFunc )
+{
+    Vec_Wec_t * vInfo  = Vec_WecStart( dd->size*(dd->size-1)*(dd->size-2)/6 );
+    Vec_Wec_t * vNodes = Abc_NtkBddCollectInt( dd, aFunc );
+    Vec_Wec_t * vCofs  = Abc_NtkBddCollectCofs( dd, aFunc, vNodes );
+    Vec_Int_t * vLevel; int i, k, Obj, d = 0;
+    for ( int a = 0;   a < dd->size; a++ ) 
+    for ( int b = a+1; b < dd->size; b++ ) 
+    for ( int c = b+1; c < dd->size; c++ ) {
+        Vec_Int_t * vInfo1 = Vec_WecEntry(vInfo, d++);
+        word Sign = ((word)1 << a) | ((word)1 << b) | ((word)1 << c);
+        for ( int n = 0; n < 8; n++ ) {
+            word Value = ((word)(n & 1) << a) | ((word)((n >> 1) & 1) << b) | ((word)((n >> 2) & 1) << c);
+            Vec_WecForEachLevel( vNodes, vLevel, i )
+                Vec_IntForEachEntry( vLevel, Obj, k )
+                    Abc_Int2Bdd(aFunc, Obj)->Id = 0;
+            aFunc->Id = 1;
+            if ( n == 0 )
+                Vec_IntPush( vInfo1, 1 );
+            Vec_WecForEachLevelStop( vNodes, vLevel, i, dd->size ) {
+                Vec_IntForEachEntry( vLevel, Obj, k ) {  
+                    DdNode * aNode = Abc_Int2Bdd(aFunc, Obj);
+                    if ( aNode->Id == 0 )
+                        continue;
+                    if ( !((Sign >> i) & 1) || ((Value >> i) & 1) == 0 )
+                        cuddE(aNode)->Id |= 1;
+                    if ( !((Sign >> i) & 1) || ((Value >> i) & 1) == 1 )
+                        cuddT(aNode)->Id |= 1;
+                }
+                Vec_Int_t * vCof = Vec_WecEntry(vCofs, i+1);
+                int Counter = 0;
+                Vec_IntForEachEntry( vCof, Obj, k )
+                    Counter += (int)Abc_Int2Bdd(aFunc, Obj)->Id;                
+                if ( n == 0 )
+                    Vec_IntPush( vInfo1, Counter );
+                else {
+                    int * pEntry = Vec_IntEntryP( vInfo1, i+1 );
+                    *pEntry = Abc_MaxInt( *pEntry, Counter );
+                }
+            }
+        }        
+    }
+    assert( d == Vec_WecSize(vInfo) );
+    Vec_WecFree( vCofs );
+    Vec_WecFree( vNodes );
+    return vInfo;
+}
+void Abc_NtkBddPrintInfo1( Vec_Wec_t * vInfo, Vec_Wec_t * vCofs )
+{
+    Vec_Int_t * vLevel; int i, k, Obj;
+    printf( "Cofactor counts:\n" );
+    printf( "     : " );
+    Vec_WecForEachLevel( vCofs, vLevel, i )
+        printf( " %2d", i );
+    printf( "\n" );
+    printf( "     : " );
+    Vec_WecForEachLevel( vCofs, vLevel, i )
+        printf( " %2d", Vec_IntSize(vLevel) );
+    printf( "\n" );
+    Vec_WecForEachLevel( vInfo, vLevel, i ) {
+        printf( "%2d %c : ", i, 'a'+i );
+        Vec_IntForEachEntry( vLevel, Obj, k )
+            if ( k <= i )
+                printf( "  -" );
+            else
+                printf( " %2d", Obj );
+        printf( "\n" );
+    }
+}
+void Abc_NtkBddPrintInfo2( Vec_Wec_t * vInfo, Vec_Wec_t * vCofs )
+{
+    Vec_Int_t * vLevel; int i, k, Obj;
+    printf( "Cofactor counts:\n" );
+    printf( "     : " );
+    Vec_WecForEachLevel( vCofs, vLevel, i )
+        printf( " %2d", i );
+    printf( "\n" );    
+    printf( "     : " );
+    Vec_WecForEachLevel( vCofs, vLevel, i )
+        printf( " %2d", Vec_IntSize(vLevel) );
+    printf( "\n" );
+    int c = 0, Limit = Vec_IntSize(Vec_WecEntry(vInfo, 0))-1;
+    for ( int a = 0;   a < Limit; a++ ) 
+    for ( int b = a+1; b < Limit; b++ ) {
+        Vec_Int_t * vLevel = Vec_WecEntry(vInfo, c++);
+        printf( "  %c%c : ", 'a'+a, 'a'+b );
+        int Limit = Abc_MaxInt(a,b);
+        Vec_IntForEachEntry( vLevel, Obj, k )
+            if ( k <= Limit )
+                printf( "  -" );
+            else
+                printf( " %2d", Obj );
+        printf( "\n" );
+    }
+    assert( c == Vec_WecSize(vInfo) );
+}
+void Abc_NtkBddPrintInfo3( Vec_Wec_t * vInfo, Vec_Wec_t * vCofs )
+{
+    Vec_Int_t * vLevel; int i, k, Obj;
+    printf( "Cofactor counts:\n" );
+    printf( "     : " );
+    Vec_WecForEachLevel( vCofs, vLevel, i )
+        printf( " %2d", i );
+    printf( "\n" );    
+    printf( "     : " );
+    Vec_WecForEachLevel( vCofs, vLevel, i )
+        printf( " %2d", Vec_IntSize(vLevel) );
+    printf( "\n" );
+    int d = 0, Limit = Vec_IntSize(Vec_WecEntry(vInfo, 0))-1;
+    for ( int a = 0;   a < Limit; a++ ) 
+    for ( int b = a+1; b < Limit; b++ ) 
+    for ( int c = b+1; c < Limit; c++ ) {
+        Vec_Int_t * vLevel = Vec_WecEntry(vInfo, d++);
+        printf( " %c%c%c : ", 'a'+a, 'a'+b, 'a'+c );
+        int Limit = Abc_MaxInt(a,Abc_MaxInt(b,c));
+        Vec_IntForEachEntry( vLevel, Obj, k )
+            if ( k <= Limit )
+                printf( "  -" );
+            else
+                printf( " %2d", Obj );
+        printf( "\n" );
+    }
+    assert( d == Vec_WecSize(vInfo) );
+}
+
 void Abc_NtkBddDecExploreOne( DdManager * dd, DdNode * bFunc, int iOrder )
 {
     DdManager * ddNew = Cudd_Init( dd->size, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
     int i, * pProfile = ABC_CALLOC( int, dd->size + 100 );
     Cudd_AutodynEnable( ddNew,  CUDD_REORDER_SYMM_SIFT );
     Vec_Int_t * vPerm = Vec_IntStartNatural( dd->size ); if ( iOrder ) Vec_IntRandomizeOrder( vPerm );
+    Vec_Int_t * vPermInv = Vec_IntInvert( vPerm, -1 );
     DdNode * bFuncNew = Extra_TransferPermute( dd, ddNew, bFunc, Vec_IntArray(vPerm) ); Cudd_Ref(bFuncNew);
     if ( iOrder ) Cudd_ReduceHeap( ddNew, CUDD_REORDER_SYMM_SIFT, 1 );
     Vec_IntFree( vPerm );
     DdNode * aFuncNew = Cudd_BddToAdd( ddNew, bFuncNew ); Cudd_Ref( aFuncNew );
-    Extra_ProfileWidth( ddNew, aFuncNew, pProfile, -1 );
+    //Extra_ProfileWidth( ddNew, aFuncNew, pProfile, -1 );
     if ( iOrder )
-        printf( "Random order %d:\n", iOrder );
+        printf( "Random order %2d: ", iOrder );
     else
-        printf( "Natural order:\n" );
-    for ( i = 0; i <= dd->size; i++ )
-        printf( " %d=%d(%d)[%d]", i, pProfile[i], i-Abc_Base2Log(pProfile[i]), ddNew->perm[i] );
+        printf( "Natural order:   " );
+    printf( "BDD size = %3d  ", Cudd_DagSize(aFuncNew) );
+    for ( i = 0; i < dd->size; i++ )
+        printf( " %c", 'a' + Vec_IntEntry(vPermInv, ddNew->invperm[i]) );
     printf( "\n" );
+    //Abc_NtkBddTestProfile( ddNew, aFuncNew );
+
+    Vec_Wec_t * vNodes = Abc_NtkBddCollectInt( ddNew, aFuncNew );
+    printf( "Nodes by level:\n" );
+    Vec_WecPrint( vNodes, 0 );
+    Vec_Wec_t * vCofs = Abc_NtkBddCollectCofs( ddNew, aFuncNew, vNodes );
+    printf( "Cofactors by level:\n" );
+    Vec_WecPrint( vCofs, 0 );
+    Vec_Wec_t * vInfo1 = Abc_NtkBddCollecInfo1( ddNew, aFuncNew );
+    Abc_NtkBddPrintInfo1( vInfo1, vCofs );
+    Vec_Wec_t * vInfo2 = Abc_NtkBddCollecInfo2( ddNew, aFuncNew );
+    Abc_NtkBddPrintInfo2( vInfo2, vCofs );
+    Vec_Wec_t * vInfo3 = Abc_NtkBddCollecInfo3( ddNew, aFuncNew );
+    Abc_NtkBddPrintInfo3( vInfo3, vCofs );
+    printf( "\n" );
+    Vec_WecFree( vNodes );
+    Vec_WecFree( vCofs );
+    Vec_WecFree( vInfo1 );
+    Vec_WecFree( vInfo2 );
+    Vec_WecFree( vInfo3 );
+
     Cudd_RecursiveDeref( ddNew, aFuncNew );
     Cudd_RecursiveDeref( ddNew, bFuncNew );
     Cudd_Quit( ddNew );
+    ABC_FREE( pProfile );
 }
 void Abc_NtkBddDecExplore( Abc_Obj_t * pNode )
 {
@@ -613,7 +1043,7 @@ void Abc_NtkBddDecExplore( Abc_Obj_t * pNode )
     DdNode * bFunc = (DdNode *)pNode->pData;
     int i; Abc_Random(1);
     if ( Abc_ObjIsNode(pNode) )
-        for ( i = 0; i < 16; i++ )
+        for ( i = 0; i < 4; i++ )
             Abc_NtkBddDecExploreOne( dd, bFunc, i );
 }
 

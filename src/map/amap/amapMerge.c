@@ -137,7 +137,8 @@ Amap_Cut_t * Amap_ManCutCreate( Amap_Man_t * p,
 
 ***********************************************************************/
 Amap_Cut_t * Amap_ManCutCreate3( Amap_Man_t * p, 
-    Amap_Cut_t * pCut0, Amap_Cut_t * pCut1, Amap_Cut_t * pCut2, int iMat )
+    Amap_Cut_t * pCut0, Amap_Cut_t * pCut1, Amap_Cut_t * pCut2, int iMat,
+    int c0, int c1, int c2 )
 {
     Amap_Cut_t * pCut;
     int i, nSize  = pCut0->nFans + pCut1->nFans + pCut2->nFans;
@@ -146,12 +147,24 @@ Amap_Cut_t * Amap_ManCutCreate3( Amap_Man_t * p,
     pCut->iMat  = iMat;
     pCut->fInv  = 0;
     pCut->nFans = nSize;
+    if ( c0 )
+        pCut0->Fans[0] = Abc_LitNot(pCut0->Fans[0]);
     for ( i = 0; i < (int)pCut0->nFans; i++ )
         pCut->Fans[i] = pCut0->Fans[i];
+    if ( c0 )
+        pCut0->Fans[0] = Abc_LitNot(pCut0->Fans[0]);
+    if ( c1 )
+        pCut1->Fans[0] = Abc_LitNot(pCut1->Fans[0]);
     for ( i = 0; i < (int)pCut1->nFans; i++ )
         pCut->Fans[pCut0->nFans+i] = pCut1->Fans[i];
+    if ( c1 )
+        pCut1->Fans[0] = Abc_LitNot(pCut1->Fans[0]);
+    if ( c2 )
+        pCut2->Fans[0] = Abc_LitNot(pCut2->Fans[0]);
     for ( i = 0; i < (int)pCut2->nFans; i++ )
         pCut->Fans[pCut0->nFans+pCut1->nFans+i] = pCut2->Fans[i];
+    if ( c2 )
+        pCut2->Fans[0] = Abc_LitNot(pCut2->Fans[0]);
     // add it to storage
     if ( p->ppCutsTemp[ pCut->iMat ] == NULL )
         Vec_IntPushOrder( p->vTemp, pCut->iMat );
@@ -405,21 +418,7 @@ void Amap_ManMergeNodeCutsMux( Amap_Man_t * p, Amap_Obj_t * pNode )
             if ( pNod->pSets == NULL )
                 continue;
             // complement literals
-            if ( pCut0->nFans == 1 && (pCut0->fInv ^ fComplFanin0) )
-                pCut0->Fans[0] = Abc_LitNot(pCut0->Fans[0]);
-            if ( pCut1->nFans == 1 && (pCut1->fInv ^ fComplFanin1) )
-                pCut1->Fans[0] = Abc_LitNot(pCut1->Fans[0]);
-            if ( pCut2->nFans == 1 && (pCut2->fInv ^ fComplFanin2) )
-                pCut2->Fans[0] = Abc_LitNot(pCut2->Fans[0]);
-            // create new cut
-            Amap_ManCutCreate3( p, pCut0, pCut1, pCut2, Vec_IntEntry(vRules, x+3) );
-            // uncomplement literals
-            if ( pCut0->nFans == 1 && (pCut0->fInv ^ fComplFanin0) )
-                pCut0->Fans[0] = Abc_LitNot(pCut0->Fans[0]);
-            if ( pCut1->nFans == 1 && (pCut1->fInv ^ fComplFanin1) )
-                pCut1->Fans[0] = Abc_LitNot(pCut1->Fans[0]);
-            if ( pCut2->nFans == 1 && (pCut2->fInv ^ fComplFanin2) )
-                pCut2->Fans[0] = Abc_LitNot(pCut2->Fans[0]);
+            Amap_ManCutCreate3( p, pCut0, pCut1, pCut2, Vec_IntEntry(vRules, x+3), pCut0->nFans == 1 && (pCut0->fInv ^ fComplFanin0), pCut1->nFans == 1 && (pCut1->fInv ^ fComplFanin1), pCut2->nFans == 1 && (pCut2->fInv ^ fComplFanin2) );
         }
     }
     Amap_ManCutSaveStored( p, pNode );

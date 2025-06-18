@@ -329,7 +329,7 @@ cuddAllocNode(
     unique->allocated++;
     node = unique->nextFree;
     unique->nextFree = node->next;
-    node->Id = (unique->allocated<<4);
+    node->Id = (++unique->allocated2<<4);
     return(node);
 
 } /* end of cuddAllocNode */
@@ -398,6 +398,7 @@ cuddInitTable(
     unique->looseUpTo = looseUpTo;
     unique->gcEnabled = 1;
     unique->allocated = 0;
+    unique->allocated2 = 0;
     unique->reclaimed = 0;
     unique->subtables = ABC_ALLOC(DdSubtable,unique->maxSize);
     if (unique->subtables == NULL) {

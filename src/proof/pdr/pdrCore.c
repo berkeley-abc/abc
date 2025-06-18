@@ -80,6 +80,7 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->nDropOuts      =       0;  // the number of timed out outputs
     pPars->timeLastSolved =       0;  // last one solved
     pPars->pInvFileName   =    NULL;  // invariant file name
+    pPars->fBlocking      =       0;  // clause pushing with blocking
 }
 
 /**Function*************************************************************
@@ -210,6 +211,140 @@ int Pdr_ManPushClauses( Pdr_Man_t * p )
             Vec_PtrPop(vArrayK);
             j--;
         }
+        if ( Vec_PtrSize(vArrayK) == 0 )
+            RetValue = 1;
+    }
+
+    // clean up the last one
+    vArrayK = Vec_VecEntry( p->vClauses, kMax );
+    Vec_PtrSort( vArrayK, (int (*)(const void *, const void *))Pdr_SetCompare );
+    Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
+    {
+        // remove cubes in the same frame that are contained by pCubeK
+        Vec_PtrForEachEntryStart( Pdr_Set_t *, vArrayK, pTemp, m, j+1 )
+        {
+            if ( !Pdr_SetContains( pTemp, pCubeK ) ) // pCubeK contains pTemp
+                continue;
+/*
+            Abc_Print( 1, "===\n" );
+            Pdr_SetPrint( stdout, pCubeK, Aig_ManRegNum(p->pAig), NULL );
+            Abc_Print( 1, "\n" );
+            Pdr_SetPrint( stdout, pTemp, Aig_ManRegNum(p->pAig), NULL );
+            Abc_Print( 1, "\n" );
+*/
+            Pdr_SetDeref( pTemp );
+            Vec_PtrWriteEntry( vArrayK, m, Vec_PtrEntryLast(vArrayK) );
+            Vec_PtrPop(vArrayK);
+            m--;
+        }
+    }
+    p->tPush += Abc_Clock() - clk;
+    return RetValue;
+}
+
+int ZPdr_ManDown_Exhaustive( Pdr_Man_t *, int, Pdr_Set_t **, Pdr_Set_t *, Hash_Int_t *, Pdr_Set_t *, int * );
+int Pdr_ManPushAndBlockClauses( Pdr_Man_t * p )
+{
+    Pdr_Set_t * pTemp, * pCubeK, * pCubeK1;
+    Vec_Ptr_t * vArrayK, * vArrayK1;
+    int i, j, k, m, RetValue = 0, RetValue2, kMax = Vec_PtrSize(p->vSolvers)-1;
+    int iStartFrame = p->pPars->fShiftStart ? p->iUseFrame : 1;
+    int Counter = 0;
+    
+    int blockCount;
+    int blockAttemp;
+    int added;
+    int l;
+    int RetValue3;
+    Pdr_Set_t *pPred = NULL;
+    Pdr_Set_t *pCubeCpy = NULL;
+
+    abctime clk = Abc_Clock();
+    assert( p->iUseFrame > 0 );
+    Vec_VecForEachLevelStartStop( p->vClauses, vArrayK, k, iStartFrame, kMax )
+    {
+        Vec_PtrSort( vArrayK, (int (*)(const void *, const void *))Pdr_SetCompare );
+        vArrayK1 = Vec_VecEntry( p->vClauses, k+1 );
+        blockCount = 0;
+        blockAttemp = 0;
+        Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK, pCubeK, j )
+        {
+            Counter++;
+
+            // remove cubes in the same frame that are contained by pCubeK
+            Vec_PtrForEachEntryStart( Pdr_Set_t *, vArrayK, pTemp, m, j+1 )
+            {
+                if ( !Pdr_SetContains( pTemp, pCubeK ) ) // pCubeK contains pTemp
+                    continue;
+                Pdr_SetDeref( pTemp );
+                Vec_PtrWriteEntry( vArrayK, m, Vec_PtrEntryLast(vArrayK) );
+                Vec_PtrPop(vArrayK);
+                m--;
+            }
+
+            // check if the clause can be moved to the next frame
+            added = 1;
+            RetValue2 = Pdr_ManCheckCube( p, k, pCubeK, &pPred, 0, 0, 1 ); // ************************
+            if ( RetValue2 == -1 )
+                return -1;
+            if ( !RetValue2 ) // try to block before pushing
+            {   
+                if ( blockCount < blockAttemp )
+                    continue;
+                else
+                {
+                    blockAttemp++;
+                    pCubeCpy = Pdr_SetDup(pCubeK);
+                    RetValue3 = ZPdr_ManDown_Exhaustive( p, k, &pCubeCpy, pPred, Hash_IntAlloc( 1 ), NULL, &added );
+                    if ( RetValue3 == -1 )
+                    {
+                        Pdr_SetDeref( pCubeCpy );
+                        return -1;
+                    }
+                    if ( RetValue3 == 0 )
+                    {
+                        Pdr_SetDeref( pCubeCpy );
+                        continue;
+                    }
+                    Pdr_SetDeref( pCubeK );
+                    pCubeK = pCubeCpy;
+
+                    for ( l = 1; l <= k; l++ )
+                        Pdr_ManSolverAddClause( p, l, pCubeK );
+                    blockCount++;
+                }
+            }
+            else // directly push
+            {
+                Pdr_Set_t * pCubeMin;
+                pCubeMin = Pdr_ManReduceClause( p, k, pCubeK );
+                if ( pCubeMin != NULL )
+                {
+//                Abc_Print( 1, "%d ", pCubeK->nLits - pCubeMin->nLits );
+                    Pdr_SetDeref( pCubeK );
+                    pCubeK = pCubeMin;
+                }
+            }
+
+            // if it can be moved, add it to the next frame
+            Pdr_ManSolverAddClause( p, k+1, pCubeK );
+            // check if the clause subsumes others
+            Vec_PtrForEachEntry( Pdr_Set_t *, vArrayK1, pCubeK1, i )
+            {
+                if ( !Pdr_SetContains( pCubeK1, pCubeK ) ) // pCubeK contains pCubeK1
+                    continue;
+                Pdr_SetDeref( pCubeK1 );
+                Vec_PtrWriteEntry( vArrayK1, i, Vec_PtrEntryLast(vArrayK1) );
+                Vec_PtrPop(vArrayK1);
+                i--;
+            }
+            // add the last clause
+            Vec_PtrPush( vArrayK1, pCubeK );
+            Vec_PtrWriteEntry( vArrayK, j, Vec_PtrEntryLast(vArrayK) );
+            Vec_PtrPop(vArrayK);
+            j--;
+        }
+        // printf("%d, %d\n", blockCount, blockAtemp);
         if ( Vec_PtrSize(vArrayK) == 0 )
             RetValue = 1;
     }
@@ -483,6 +618,225 @@ int ZPdr_ManDown( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, 
             // solver
             return 0;
         }
+    }
+    return 1;
+}
+
+int ZPdr_ManDown_Exhaustive( Pdr_Man_t * p, int k, Pdr_Set_t ** ppCube, Pdr_Set_t * pPred, Hash_Int_t * keep, Pdr_Set_t * pIndCube, int * added )
+{
+    int RetValue = 0, CtgRetValue, i, ctgAttempts, l, micResult;
+    int j;
+    int kMax = Vec_PtrSize(p->vSolvers)-1;
+    int kTmp = k;
+    Pdr_Set_t * pCubeTmp, * pCubeMin, * pCtg;
+    Pdr_Set_t * pPredTmp = pPred, * pCubePre = *ppCube;
+    Pdr_Set_t * pCubeMinCopy;
+    while ( RetValue == 0 )
+    {
+        ctgAttempts = 0;
+        while ( RetValue == 0 && kTmp > 1 && ctgAttempts < 3 )
+        {   
+            pCtg = Pdr_SetDup( pPredTmp );
+            //Check CTG for inductiveness
+            if ( Pdr_SetIsInit( pCtg, -1 ) )
+            {
+                Pdr_SetDeref( pCtg );
+                break;
+            }
+            if (*added == 0)
+            {
+                for ( i = 1; i <= k; i++ )
+                    Pdr_ManSolverAddClause( p, i, pIndCube);
+                *added = 1;
+            }
+            if ( pPredTmp != pPred )
+                Pdr_SetDeref( pPredTmp );
+            CtgRetValue = Pdr_ManCheckCube( p, kTmp-1, pCtg, &pPredTmp, p->pPars->nConfLimit, 0, 1 );
+            if ( CtgRetValue == -1 )
+            {
+                Pdr_SetDeref( pCtg );
+                Pdr_SetDeref( pPred );
+                if ( pCubePre != *ppCube )
+                    Pdr_SetDeref( pCubePre );
+                return -1;
+            }
+            if ( CtgRetValue == 0 )
+            {
+                if (pCubePre != *ppCube)
+                    Pdr_SetDeref( pCubePre );
+                if (kTmp == 1)
+                {   
+                    Pdr_SetDeref( pCtg );
+                    ctgAttempts++;
+                    kTmp = k;
+                    pPredTmp = pPred;
+                    pCubePre = *ppCube;
+                }
+                else
+                {
+                    pCubePre = pCtg;
+                    kTmp = kTmp - 1;
+                }
+                continue;
+            }
+
+
+            pCubeMin = Pdr_ManReduceClause( p, kTmp-1, pCtg );
+            if ( pCubeMin == NULL )
+                pCubeMin = Pdr_SetDup( pCtg );
+
+            pCubeMinCopy = Pdr_SetDup( pCubeMin );
+            // generalize before pushing
+            micResult = ZPdr_ManSimpleMic( p, kTmp-1, &pCubeMin );
+            if ( micResult == -1 )
+            {
+                Pdr_SetDeref( pCtg );
+                Pdr_SetDeref( pCubeMin );
+                Pdr_SetDeref( pCubeMinCopy );
+                Pdr_SetDeref( pPred );
+                if ( pCubePre != *ppCube )
+                    Pdr_SetDeref( pCubePre );
+                return -1;
+            }
+            for ( l = kTmp; l < kMax; l++ )
+                if ( Pdr_ManCheckCube( p, l, pCubeMin, NULL, p->pPars->nConfLimit, 0, 1 ) != 1 )
+                    break;
+            // add clause
+            for ( i = 1; i <= l; i++ )
+                Pdr_ManSolverAddClause( p, i, pCubeMin ); 
+            Vec_VecPush( p->vClauses, l, pCubeMin );   // consume ref
+            p->nCubes++;
+
+            // try to push the original cube farther
+            for ( j = l; j < kMax; j++ )
+                if ( Pdr_ManCheckCube( p, j, pCubeMinCopy, NULL, p->pPars->nConfLimit, 0, 1 ) != 1 )
+                    break;
+            if ( j > l )
+            {
+                micResult = ZPdr_ManSimpleMic( p, j-1, &pCubeMinCopy );
+                if ( micResult == -1 )
+                {
+                    Pdr_SetDeref( pCtg );
+                    Pdr_SetDeref( pCubeMinCopy );
+                    Pdr_SetDeref( pPred );
+                    if ( pCubePre != *ppCube )
+                        Pdr_SetDeref( pCubePre );
+                    return -1;
+                }
+                // add clause
+                for ( i = 1; i <= j; i++ )
+                    Pdr_ManSolverAddClause( p, i, pCubeMinCopy ); 
+                Vec_VecPush( p->vClauses, j, pCubeMinCopy ); 
+                p->nCubes++;
+            }
+
+            // add new clause
+            if ( p->pPars->fVeryVerbose )
+            {
+                Abc_Print( 1, "Adding cube " );
+                Pdr_SetPrint( stdout, pCubeMin, Aig_ManRegNum(p->pAig), NULL );
+                Abc_Print( 1, " to frame %d.\n", l );
+            }
+            // set priority flops for both cubes
+            for ( i = 0; i < pCubeMin->nLits; i++ )
+            {
+                assert( pCubeMin->Lits[i] >= 0 );
+                assert( (pCubeMin->Lits[i] / 2) < Aig_ManRegNum(p->pAig) );
+                if ( (Vec_IntEntry(p->vPrio, pCubeMin->Lits[i] / 2) >> p->nPrioShift) == 0 )
+                    p->nAbsFlops++;
+                Vec_IntAddToEntry( p->vPrio, pCubeMin->Lits[i] / 2, 1 << p->nPrioShift );
+            }
+            for ( i = 0; i < pCubeMinCopy->nLits; i++ )
+            {
+                assert( pCubeMinCopy->Lits[i] >= 0 );
+                assert( (pCubeMinCopy->Lits[i] / 2) < Aig_ManRegNum(p->pAig) );
+                if ( (Vec_IntEntry(p->vPrio, pCubeMinCopy->Lits[i] / 2) >> p->nPrioShift) == 0 )
+                    p->nAbsFlops++;
+                Vec_IntAddToEntry( p->vPrio, pCubeMinCopy->Lits[i] / 2, 1 << p->nPrioShift );
+            }
+
+            Pdr_SetDeref( pPred );
+            RetValue = Pdr_ManCheckCube( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
+            if ( RetValue == -1 )
+            {
+                if ( pCubePre != *ppCube )
+                    Pdr_SetDeref( pCubePre );
+                Pdr_SetDeref( pCtg );
+                return -1;
+            }
+            Pdr_SetDeref( pCtg );
+            if ( RetValue == 1 )
+            {
+                //printf ("IT'S A ONE\n");
+                if ( pCubePre != *ppCube )
+                    Pdr_SetDeref( pCubePre );
+                return 1;
+            }
+            RetValue = Pdr_ManCheckCube( p, kTmp, pCubePre, &pPredTmp, p->pPars->nConfLimit, 0, 1 );
+            if ( RetValue == -1 )
+            {
+                if ( pCubePre != *ppCube )
+                    Pdr_SetDeref( pCubePre );
+                Pdr_SetDeref( pPred );
+                return -1;
+            }
+            if (RetValue == 1)
+            {   
+                ctgAttempts++;
+                if ( pCubePre != *ppCube )
+                    Pdr_SetDeref( pCubePre );
+                kTmp = k;
+                pPredTmp = pPred;
+                pCubePre = *ppCube;
+            }    
+        }
+
+        if (pCubePre != *ppCube)
+            Pdr_SetDeref( pCubePre );
+        if ( pPredTmp != pPred )
+            Pdr_SetDeref( pPredTmp );
+        //join
+        if ( p->pPars->fVeryVerbose )
+        {
+            printf("Cube:\n");
+            ZPdr_SetPrint( *ppCube );
+            printf("\nPred:\n");
+            ZPdr_SetPrint( pPred );
+        }
+        *ppCube = ZPdr_SetIntersection( pCubeTmp = *ppCube, pPred, keep );
+        Pdr_SetDeref( pCubeTmp );
+        Pdr_SetDeref( pPred );
+        if ( *ppCube == NULL )
+            return 0;
+        if ( p->pPars->fVeryVerbose )
+        {
+            printf("Intersection:\n");
+            ZPdr_SetPrint( *ppCube );
+        }
+        if ( Pdr_SetIsInit( *ppCube, -1 ) )
+        {
+            if ( p->pPars->fVeryVerbose )
+                printf ("Failed initiation\n");
+            return 0;
+        }
+        RetValue = Pdr_ManCheckCube( p, k, *ppCube, &pPred, p->pPars->nConfLimit, 0, 1 );
+        if ( RetValue == -1 )
+            return -1;
+        if ( RetValue == 1 )
+        {
+            //printf ("*********IT'S A ONE\n");
+            break;
+        }
+        if ( RetValue == 0 && (*ppCube)->nLits == 1)
+        {
+            Pdr_SetDeref( pPred ); // fixed memory leak
+            // A workaround for the incomplete assignment returned by the SAT
+            // solver
+            return 0;
+        }
+        kTmp = k;
+        pPredTmp = pPred;
+        pCubePre = *ppCube;
     }
     return 1;
 }
@@ -1287,6 +1641,24 @@ int Pdr_ManSolveInt( Pdr_Man_t * p )
             Pdr_ManPrintClauses( p, 0 );
         }
         // push clauses into this timeframe
+        if (p->pPars->fBlocking) // clause pushing with blocking
+        {
+            RetValue = Pdr_ManPushAndBlockClauses( p );
+            if ( RetValue == -1 )
+            {
+                if ( p->pPars->fVerbose )
+                    Pdr_ManPrintProgress( p, 1, Abc_Clock() - clkStart );
+                if ( !p->pPars->fSilent )
+                {
+                    if ( p->timeToStop && Abc_Clock() > p->timeToStop )
+                        Abc_Print( 1, "Reached timeout (%d seconds) in frame %d.\n",  p->pPars->nTimeOut, iFrame );
+                    else
+                        Abc_Print( 1, "Reached conflict limit (%d) in frame %d.\n",  p->pPars->nConfLimit, iFrame );
+                }
+                p->pPars->iFrame = iFrame;
+                return -1;
+            }
+        }
         RetValue = Pdr_ManPushClauses( p );
         if ( RetValue == -1 )
         {

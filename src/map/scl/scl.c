@@ -141,7 +141,7 @@ void Scl_End( Abc_Frame_t * pAbc )
   SeeAlso     []
 
 ***********************************************************************/
-SC_Lib * Scl_ReadLibraryFile( Abc_Frame_t * pAbc, char * pFileName, int fVerbose, int fVeryVerbose, SC_DontUse dont_use )
+SC_Lib * Scl_ReadLibraryFile( Abc_Frame_t * pAbc, char * pFileName, int fVerbose, int fVeryVerbose, SC_DontUse dont_use, int fSkipMultiOuts )
 {
     SC_Lib * pLib;
     FILE * pFile;
@@ -152,7 +152,7 @@ SC_Lib * Scl_ReadLibraryFile( Abc_Frame_t * pAbc, char * pFileName, int fVerbose
     }
     fclose( pFile );
     // read new library
-    pLib = Abc_SclReadLiberty( pFileName, fVerbose, fVeryVerbose, dont_use);
+    pLib = Abc_SclReadLiberty( pFileName, fVerbose, fVeryVerbose, dont_use, fSkipMultiOuts);
     if ( pLib == NULL )
     {
         fprintf( pAbc->Err, "Reading SCL library from file \"%s\" has failed. \n", pFileName );
@@ -186,13 +186,14 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fMerge = 0;
     int fUsePrefix = 0;
     int fUseAll = 0;
+    int fSkipMultiOuts = 0;
     
     SC_DontUse dont_use = {0};
     dont_use.dont_use_list = ABC_ALLOC(char *, argc);
     dont_use.size = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMXdnuvwmpah" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "SGMXdnuvwmpash" ) ) != EOF )
     {
         switch ( c )
         {
@@ -263,6 +264,9 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'a':
             fUseAll ^= 1;
             break;            
+        case 's':
+            fSkipMultiOuts ^= 1;
+            break;            
         case 'h':
             goto usage;
         default:
@@ -270,8 +274,8 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
     if ( argc == globalUtilOptind + 2 ) { // expecting two files
-        SC_Lib * pLib1 = Scl_ReadLibraryFile( pAbc, argv[globalUtilOptind],   fVerbose, fVeryVerbose, dont_use );
-        SC_Lib * pLib2 = Scl_ReadLibraryFile( pAbc, argv[globalUtilOptind+1], fVerbose, fVeryVerbose, dont_use );        
+        SC_Lib * pLib1 = Scl_ReadLibraryFile( pAbc, argv[globalUtilOptind],   fVerbose, fVeryVerbose, dont_use, fSkipMultiOuts );
+        SC_Lib * pLib2 = Scl_ReadLibraryFile( pAbc, argv[globalUtilOptind+1], fVerbose, fVeryVerbose, dont_use, fSkipMultiOuts );        
         ABC_FREE(dont_use.dont_use_list);
         if ( pLib1 == NULL || pLib2 == NULL ) {
             if (pLib1) Abc_SclLibFree(pLib1);
@@ -283,7 +287,7 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_SclLibFree(pLib2);
     }
     else if ( argc == globalUtilOptind + 1 ) { // expecting one file
-        SC_Lib * pLib1 = Scl_ReadLibraryFile( pAbc, argv[globalUtilOptind], fVerbose, fVeryVerbose, dont_use );
+        SC_Lib * pLib1 = Scl_ReadLibraryFile( pAbc, argv[globalUtilOptind], fVerbose, fVeryVerbose, dont_use, fSkipMultiOuts );
 
         SC_Lib * pLib_ext = (SC_Lib *)pAbc->pLibScl;
         if ( fMerge && pLib_ext != NULL && pLib1 != NULL ) {
@@ -328,7 +332,7 @@ int Scl_CommandReadLib( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnuvwmpah] [-X cell_name] <file> <file2>\n" );
+    fprintf( pAbc->Err, "usage: read_lib [-SG float] [-M num] [-dnuvwmpash] [-X cell_name] <file> <file2>\n" );
     fprintf( pAbc->Err, "\t           reads Liberty library from file\n" );
     fprintf( pAbc->Err, "\t-S float : the slew parameter used to generate the library [default = %.2f]\n", Slew );
     fprintf( pAbc->Err, "\t-G float : the gain parameter used to generate the library [default = %.2f]\n", Gain );
@@ -340,8 +344,9 @@ usage:
     fprintf( pAbc->Err, "\t-v       : toggle writing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-w       : toggle writing information about skipped gates [default = %s]\n", fVeryVerbose? "yes": "no" );
     fprintf( pAbc->Err, "\t-m       : toggle merging library with exisiting library [default = %s]\n", fMerge? "yes": "no" );
-    fprintf( pAbc->Err, "\t-a       : toggle reading all cells when using gain-based modeling [default = %s]\n", fUseAll? "yes": "no" );
     fprintf( pAbc->Err, "\t-p       : toggle using prefix for the cell names [default = %s]\n", fUsePrefix? "yes": "no" );
+    fprintf( pAbc->Err, "\t-a       : toggle reading all cells when using gain-based modeling [default = %s]\n", fUseAll? "yes": "no" );
+    fprintf( pAbc->Err, "\t-s       : toggle skipping cells with two outputs [default = %s]\n", fSkipMultiOuts? "yes": "no" );
     fprintf( pAbc->Err, "\t-h       : prints the command summary\n" );
     fprintf( pAbc->Err, "\t<file>   : the name of a file to read\n" );
     fprintf( pAbc->Err, "\t<file2>  : the name of a file to read (optional)\n" );    

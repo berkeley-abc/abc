@@ -1131,6 +1131,8 @@ Vec_Ptr_t * Abc_SopFromTruthsHex( char * pTruth )
     char * pToken = strtok( pCopy, " \r\n\t|" );
     while ( pToken )
     {
+        if ( pToken[0] == '0' && pToken[1] == 'x' )
+            pToken += 2;
         if ( !Abc_SopCheckReadTruth( vRes, pToken, 1 ) )
             break;
         Vec_PtrPush( vRes, Abc_SopFromTruthHex(pToken) );

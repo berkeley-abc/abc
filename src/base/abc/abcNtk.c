@@ -96,6 +96,52 @@ Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan
     pNtk->AndGateDelay = 0.0;
     return pNtk;
 }
+Abc_Ntk_t * Abc_NtkAllocBdd( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan, int nVars )
+{
+    Abc_Ntk_t * pNtk;
+    pNtk = ABC_ALLOC( Abc_Ntk_t, 1 );
+    memset( pNtk, 0, sizeof(Abc_Ntk_t) );
+    pNtk->ntkType     = Type;
+    pNtk->ntkFunc     = Func;
+    // start the object storage
+    pNtk->vObjs       = Vec_PtrAlloc( 100 );
+    pNtk->vPios       = Vec_PtrAlloc( 100 );
+    pNtk->vPis        = Vec_PtrAlloc( 100 );
+    pNtk->vPos        = Vec_PtrAlloc( 100 );
+    pNtk->vCis        = Vec_PtrAlloc( 100 );
+    pNtk->vCos        = Vec_PtrAlloc( 100 );
+    pNtk->vBoxes      = Vec_PtrAlloc( 100 );
+    pNtk->vLtlProperties = Vec_PtrAlloc( 100 );
+    // start the memory managers
+    pNtk->pMmObj      = fUseMemMan? Mem_FixedStart( sizeof(Abc_Obj_t) ) : NULL;
+    pNtk->pMmStep     = fUseMemMan? Mem_StepStart( ABC_NUM_STEPS ) : NULL;
+    // get ready to assign the first Obj ID
+    pNtk->nTravIds    = 1;
+    // start the functionality manager
+    if ( !Abc_NtkIsStrash(pNtk) )
+        Vec_PtrPush( pNtk->vObjs, NULL );
+    if ( Abc_NtkIsStrash(pNtk) )
+        pNtk->pManFunc = Abc_AigAlloc( pNtk );
+    else if ( Abc_NtkHasSop(pNtk) || Abc_NtkHasBlifMv(pNtk) )
+        pNtk->pManFunc = Mem_FlexStart();
+#ifdef ABC_USE_CUDD
+    else if ( Abc_NtkHasBdd(pNtk) )
+        pNtk->pManFunc = Cudd_Init( nVars, 0, CUDD_UNIQUE_SLOTS, CUDD_CACHE_SLOTS, 0 );
+#endif
+    else if ( Abc_NtkHasAig(pNtk) )
+        pNtk->pManFunc = Hop_ManStart();
+    else if ( Abc_NtkHasMapping(pNtk) )
+        pNtk->pManFunc = Abc_FrameReadLibGen();
+    else if ( !Abc_NtkHasBlackbox(pNtk) )
+        assert( 0 );
+    // name manager
+    pNtk->pManName = Nm_ManCreate( 200 );
+    // attribute manager
+    pNtk->vAttrs = Vec_PtrStart( VEC_ATTR_TOTAL_NUM );
+    // estimated AndGateDelay
+    pNtk->AndGateDelay = 0.0;
+    return pNtk;
+}
 
 /**Function*************************************************************
 
@@ -118,7 +164,7 @@ Abc_Ntk_t * Abc_NtkStartFrom( Abc_Ntk_t * pNtk, Abc_NtkType_t Type, Abc_NtkFunc_
     // decide whether to copy the names
     fCopyNames = ( Type != ABC_NTK_NETLIST );
     // start the network
-    pNtkNew = Abc_NtkAlloc( Type, Func, 1 );
+    pNtkNew = Func == ABC_FUNC_BDD ? Abc_NtkAllocBdd( Type, Func, 1, Abc_NtkCiNum(pNtk) ) : Abc_NtkAlloc( Type, Func, 1 );
     pNtkNew->nConstrs   = pNtk->nConstrs;
     pNtkNew->nBarBufs   = pNtk->nBarBufs;
     // duplicate the name and the spec
@@ -1518,6 +1564,24 @@ void Abc_NtkFixNonDrivenNets( Abc_Ntk_t * pNtk )
         return;
 
     // special case
+    pNet = Abc_NtkFindNet( pNtk, "$false" );
+    if ( pNet != NULL && !Abc_ObjFaninNum(pNet) )
+    {
+        pNode = Abc_NtkCreateNodeConst0( pNtk );
+        Abc_ObjAddFanin( pNet, pNode );
+    }
+    pNet = Abc_NtkFindNet( pNtk, "$undef" );
+    if ( pNet != NULL && !Abc_ObjFaninNum(pNet) )
+    {
+        pNode = Abc_NtkCreateNodeConst0( pNtk );
+        Abc_ObjAddFanin( pNet, pNode );
+    }
+    pNet = Abc_NtkFindNet( pNtk, "$true" );
+    if ( pNet != NULL && !Abc_ObjFaninNum(pNet) )
+    {
+        pNode = Abc_NtkCreateNodeConst1( pNtk );
+        Abc_ObjAddFanin( pNet, pNode );
+    }
     pNet = Abc_NtkFindNet( pNtk, "[_c1_]" );
     if ( pNet != NULL )
     {

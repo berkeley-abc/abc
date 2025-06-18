@@ -1500,7 +1500,7 @@ Vec_Ptr_t * Scl_LibertyReadTemplates( Scl_Tree_t * p )
 //    Scl_LibertyPrintTemplates( vRes );
     return vRes;
 }
-Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbose, SC_DontUse dont_use )
+Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbose, SC_DontUse dont_use, int fSkipMultiOuts )
 {
     int fUseFirstTable = 0;
     Vec_Str_t * vOut;
@@ -1509,7 +1509,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     Vec_Wrd_t * vTruth;
     char * pFormula, * pName;
     int i, k, Counter, nOutputs, nCells;
-    int nSkipped[4] = {0};
+    int nSkipped[6] = {0};
 
     // read delay-table templates
     vTemples = Scl_LibertyReadTemplates( p );
@@ -1561,6 +1561,18 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
             nSkipped[2]++;
             continue;
         }
+        if ( Counter > 2 )
+        {
+            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" with more than two outputs.\n", Scl_LibertyReadString(p, pCell->Head) );
+            nSkipped[4]++;
+            continue;
+        }
+        if ( fSkipMultiOuts && Counter > 1 )
+        {
+            if ( fVeryVerbose )  printf( "Scl_LibertyReadGenlib() skipped cell \"%s\" with two outputs.\n", Scl_LibertyReadString(p, pCell->Head) );
+            nSkipped[5]++;
+            continue;
+        }
         nCells++;
     }
     // read cells
@@ -1576,6 +1588,10 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
         if ( Scl_LibertyReadCellIsThreeState(p, pCell) )
             continue;
         if ( (Counter = Scl_LibertyReadCellOutputNum(p, pCell)) == 0 )
+            continue;
+        if ( Counter > 2 )
+            continue;
+        if ( fSkipMultiOuts && Counter > 1 )
             continue;
         // top level information
         Vec_StrPutS_( vOut, Scl_LibertyReadString(p, pCell->Head) );
@@ -1742,13 +1758,14 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     {
         printf( "Library \"%s\" from \"%s\" has %d cells ", 
             Scl_LibertyReadString(p, Scl_LibertyRoot(p)->Head), p->pFileName, nCells );
-        printf( "(%d skipped: %d seq; %d tri-state; %d no func; %d dont_use).  ", 
-            nSkipped[0]+nSkipped[1]+nSkipped[2], nSkipped[0], nSkipped[1], nSkipped[2], nSkipped[3] );
+        printf( "(%d skipped: %d seq; %d tri-state; %d no func; %d dont_use; %d with 2 outputs; %d with 3+ outputs).  ", 
+            nSkipped[0]+nSkipped[1]+nSkipped[2]+nSkipped[3]+nSkipped[4]+nSkipped[5], 
+            nSkipped[0],nSkipped[1],nSkipped[2],nSkipped[3],nSkipped[5],nSkipped[4] );
         Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     }
     return vOut;
 }
-SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose, SC_DontUse dont_use )
+SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose, SC_DontUse dont_use, int fSkipMultiOuts )
 {
     SC_Lib * pLib;
     Scl_Tree_t * p;
@@ -1758,7 +1775,7 @@ SC_Lib * Abc_SclReadLiberty( char * pFileName, int fVerbose, int fVeryVerbose, S
         return NULL;
 //    Scl_LibertyParseDump( p, "temp_.lib" );
     // collect relevant data
-    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose, dont_use );
+    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose, dont_use, fSkipMultiOuts );
     Scl_LibertyStop( p, fVeryVerbose );
     if ( vStr == NULL )
         return NULL;
@@ -1797,7 +1814,7 @@ void Scl_LibertyTest()
         return;
 //    Scl_LibertyParseDump( p, "temp_.lib" );
     SC_DontUse dont_use = {0};
-    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose, dont_use);
+    vStr = Scl_LibertyReadSclStr( p, fVerbose, fVeryVerbose, dont_use, 0);
     Scl_LibertyStringDump( "test_scl.lib", vStr );
     Vec_StrFree( vStr );
     Scl_LibertyStop( p, fVerbose );
