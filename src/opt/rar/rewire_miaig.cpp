@@ -21,6 +21,8 @@
 #include "rewire_rar.h"
 #include "rewire_miaig.h"
 
+#define USE_OLD_LEVEL_SORTING 0
+
 #ifdef RW_ABC
 ABC_NAMESPACE_IMPL_START
 #endif // RW_ABC
@@ -1035,12 +1037,35 @@ int Miaig::expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, w
     std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
         return objLevel(Rw_Lit2Var(a)) > objLevel(Rw_Lit2Var(b));
     });
+#if USE_OLD_LEVEL_SORTING
     std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
         if (objLevel(Rw_Lit2Var(a)) == 0 || objLevel(Rw_Lit2Var(b)) == 0) {
             return false;
         }
         return objRef(Rw_Lit2Var(a)) < objRef(Rw_Lit2Var(b));
     });
+#else
+   // Sort all literals by objRef except in the case where they refer to a variable on level zero.
+   // Level zero literals are always sorted before non-level zero literals. Two level zero literals are ordered by their
+   // objRef to maintain strict weak ordering.
+    std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
+     bool a_is_level_0 = (objLevel(Rw_Lit2Var(a)) == 0);
+     bool b_is_level_0 = (objLevel(Rw_Lit2Var(b)) == 0);
+
+     // Always sort level 0 literals before the rest.
+     if (a_is_level_0 && !b_is_level_0) {
+         return true; // a (level 0) comes before b (non-level 0)
+     }
+     if (!a_is_level_0 && b_is_level_0) {
+         return false; // b (level 0) comes before a (non-level 0)
+     }        
+
+     // If both are level 0 or none are level 0, then sort by objRef. 
+     // If both are level 0 the relative ordering (probably?) doesn't matter, 
+     // so we can just order them anyway by objRef such that we maintain the strict weak ordering.
+     return objRef(Rw_Lit2Var(a)) < objRef(Rw_Lit2Var(b));
+    });
+#endif
 
     // iterate through candidate fanins (nodes that are not in the TFO of iObj)
     Vi_ForEachEntry(_data->vOrderF, i, k) {
@@ -1097,12 +1122,36 @@ int Miaig::reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, 
         std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
             return objLevel(Rw_Lit2Var(a)) < objLevel(Rw_Lit2Var(b));
         });
+#if USE_OLD_LEVEL_SORTING
         std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
             if (objLevel(Rw_Lit2Var(a)) == 0 || objLevel(Rw_Lit2Var(b)) == 0) {
                 return false;
             }
             return objRef(Rw_Lit2Var(a)) > objRef(Rw_Lit2Var(b));
         });
+#else
+   // Sort all literals by objRef except in the case where they refer to a variable on level zero.
+   // Level zero literals are always sorted before non-level zero literals. Two level zero literals are ordered by their
+   // objRef to maintain strict weak ordering.
+    std::stable_sort(pOrderF, pOrderF + Vi_Size(_data->vOrderF), [&](int a, int b) {
+     bool a_is_level_0 = (objLevel(Rw_Lit2Var(a)) == 0);
+     bool b_is_level_0 = (objLevel(Rw_Lit2Var(b)) == 0);
+
+     // Always sort level 0 literals before the rest.
+     if (a_is_level_0 && !b_is_level_0) {
+         return true; // a (level 0) comes before b (non-level 0)
+     }
+     if (!a_is_level_0 && b_is_level_0) {
+         return false; // b (level 0) comes before a (non-level 0)
+     }        
+
+     // If both are level 0 or none are level 0, then sort by objRef. 
+     // If both are level 0 the relative ordering (probably?) doesn't matter, 
+     // so we can just order them anyway by objRef such that we maintain the strict weak ordering.
+     return objRef(Rw_Lit2Var(a)) < objRef(Rw_Lit2Var(b));
+    });
+#endif
+
     }
 
     assert(Vi_Size(_data->vOrderF) == nFans);
