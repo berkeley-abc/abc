@@ -1,0 +1,40 @@
+
+#Circuit Summary:
+#---------------
+#number of inputs = 5
+#number of outputs = 2
+#number of gates = 6
+#number of wires = 11
+#atpg: cputime for reading in circuit ../sample_circuits/c17.ckt: 0.0s 0.0s
+#atpg: cputime for levelling circuit ../sample_circuits/c17.ckt: 0.0s 0.0s
+#atpg: cputime for rearranging gate inputs ../sample_circuits/c17.ckt: 0.0s 0.0s
+#atpg: cputime for creating dummy nodes ../sample_circuits/c17.ckt: 0.0s 0.0s
+#number of equivalent faults = 22
+#atpg: cputime for generating fault list ../sample_circuits/c17.ckt: 0.0s 0.0s
+T'00110'
+T'10111'
+T'10001'
+T'01000'
+T'11011'
+T'01100'
+T'10000'
+T'01111'
+
+#number of aborted faults = 0
+
+#number of redundant faults = 0
+
+#number of calling podem1 = 8
+
+#total number of backtracks = 0
+
+#FAULT COVERAGE RESULTS :
+#number of test vectors = 8
+#total number of gate faults = 34
+#total number of detected faults = 34
+#total gate fault coverage = 100.00%
+#number of equivalent gate faults = 22
+#number of equivalent detected faults = 22
+#equivalent gate fault coverage = 100.00%
+
+#atpg: cputime for test pattern generation ../sample_circuits/c17.ckt: 0.0s 0.0s
