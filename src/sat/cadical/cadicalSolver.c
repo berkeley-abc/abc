@@ -201,6 +201,9 @@ int cadical_solver_final(cadical_solver* s, int** ppArray) {
 
 ***********************************************************************/
 int cadical_solver_nvars(cadical_solver* s) {
+  if(s->nVars < ccadical_vars((CCaDiCaL*)s->p)) {
+    s->nVars = ccadical_vars((CCaDiCaL*)s->p);
+  }
   return s->nVars;
 }
 
@@ -216,6 +219,9 @@ int cadical_solver_nvars(cadical_solver* s) {
 
 ***********************************************************************/
 int cadical_solver_addvar(cadical_solver* s) {
+  if(s->nVars < ccadical_vars((CCaDiCaL*)s->p)) {
+    s->nVars = ccadical_vars((CCaDiCaL*)s->p);
+  }
   return s->nVars++;
 }
 
