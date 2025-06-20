@@ -103,7 +103,7 @@ int cadical_solver_addclause(cadical_solver* s, int* begin, int* end) {
 
   Synopsis    [solve with resource limits]
 
-  Description [assumptions and inspection limits are not supported.]
+  Description [inspection limits are not supported.]
                
   SideEffects []
 
@@ -193,7 +193,7 @@ int cadical_solver_final(cadical_solver* s, int** ppArray) {
 
   Synopsis    [get number of variables]
 
-  Description [emulated using "nVars".]
+  Description [also update "nVars" if added by BVA.]
                
   SideEffects []
 
@@ -211,7 +211,7 @@ int cadical_solver_nvars(cadical_solver* s) {
 
   Synopsis    [add new variable]
 
-  Description [emulated using "nVars".]
+  Description [also update "nVars" if added by BVA.]
                
   SideEffects []
 
@@ -229,7 +229,7 @@ int cadical_solver_addvar(cadical_solver* s) {
 
   Synopsis    [set number of variables]
 
-  Description [not only emulate with "nVars" but also reserve memory.]
+  Description [set "nVars" and reserve as many variables.]
                
   SideEffects []
 
