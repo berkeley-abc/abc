@@ -103,7 +103,7 @@ int cadical_solver_addclause(cadical_solver* s, int* begin, int* end) {
 
   Synopsis    [solve with resource limits]
 
-  Description [assumptions and inspection limits are not supported.]
+  Description [inspection limits are not supported.]
                
   SideEffects []
 
@@ -193,7 +193,7 @@ int cadical_solver_final(cadical_solver* s, int** ppArray) {
 
   Synopsis    [get number of variables]
 
-  Description [emulated using "nVars".]
+  Description [also update "nVars" if added by BVA.]
                
   SideEffects []
 
@@ -201,6 +201,9 @@ int cadical_solver_final(cadical_solver* s, int** ppArray) {
 
 ***********************************************************************/
 int cadical_solver_nvars(cadical_solver* s) {
+  if(s->nVars < ccadical_vars((CCaDiCaL*)s->p)) {
+    s->nVars = ccadical_vars((CCaDiCaL*)s->p);
+  }
   return s->nVars;
 }
 
@@ -208,7 +211,7 @@ int cadical_solver_nvars(cadical_solver* s) {
 
   Synopsis    [add new variable]
 
-  Description [emulated using "nVars".]
+  Description [also update "nVars" if added by BVA.]
                
   SideEffects []
 
@@ -216,6 +219,9 @@ int cadical_solver_nvars(cadical_solver* s) {
 
 ***********************************************************************/
 int cadical_solver_addvar(cadical_solver* s) {
+  if(s->nVars < ccadical_vars((CCaDiCaL*)s->p)) {
+    s->nVars = ccadical_vars((CCaDiCaL*)s->p);
+  }
   return s->nVars++;
 }
 
@@ -223,7 +229,9 @@ int cadical_solver_addvar(cadical_solver* s) {
 
   Synopsis    [set number of variables]
 
-  Description [not only emulate with "nVars" but also reserve memory.]
+  Description [emulate with "nVars". also reserve as many variables only
+               when no variables have been added yet, as it destroys a
+               satisfying assignment in incremental solving.]
                
   SideEffects []
 
@@ -232,7 +240,9 @@ int cadical_solver_addvar(cadical_solver* s) {
 ***********************************************************************/
 void cadical_solver_setnvars(cadical_solver* s,int n) {
   s->nVars = n;
-  ccadical_reserve((CCaDiCaL*)s->p, n);
+  if(ccadical_vars((CCaDiCaL*)s->p) == 0) {
+    ccadical_reserve((CCaDiCaL*)s->p, n);
+  }
 }
 
 /**Function*************************************************************
