@@ -261,6 +261,36 @@ int cadical_solver_get_var_value(cadical_solver* s, int v) {
   return ccadical_val((CCaDiCaL*)s->p, v + 1) > 0;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [get number of clauses]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int cadical_solver_nclauses(cadical_solver* s) {
+  return ccadical_clauses((CCaDiCaL*)s->p);
+}
+
+/**Function*************************************************************
+
+  Synopsis    [get number of conflicts]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int cadical_solver_nconflicts(cadical_solver* s) {
+  return ccadical_conflicts((CCaDiCaL*)s->p);
+}
+
 
 /**Function*************************************************************
 

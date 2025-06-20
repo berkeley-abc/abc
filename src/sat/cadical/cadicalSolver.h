@@ -65,6 +65,8 @@ extern int              cadical_solver_nvars(cadical_solver* s);
 extern int              cadical_solver_addvar(cadical_solver* s);
 extern void             cadical_solver_setnvars(cadical_solver* s,int n);
 extern int              cadical_solver_get_var_value(cadical_solver* s, int v);
+extern int              cadical_solver_nclauses(cadical_solver* s);
+extern int              cadical_solver_nconflicts(cadical_solver* s);
 extern Vec_Int_t *      cadical_solve_cnf( Cnf_Dat_t * pCnf, char * pArgs, int nConfs, int nTimeLimit, int fSat, int fUnsat, int fPrintCex, int fVerbose );
 
 ABC_NAMESPACE_HEADER_END
