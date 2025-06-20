@@ -229,7 +229,9 @@ int cadical_solver_addvar(cadical_solver* s) {
 
   Synopsis    [set number of variables]
 
-  Description [set "nVars" and reserve as many variables.]
+  Description [emulate with "nVars". also reserve as many variables only
+               when no variables have been added yet, as it destroys a
+               satisfying assignment in incremental solving.]
                
   SideEffects []
 
@@ -238,7 +240,9 @@ int cadical_solver_addvar(cadical_solver* s) {
 ***********************************************************************/
 void cadical_solver_setnvars(cadical_solver* s,int n) {
   s->nVars = n;
-  ccadical_reserve((CCaDiCaL*)s->p, n);
+  if(ccadical_vars((CCaDiCaL*)s->p) == 0) {
+    ccadical_reserve((CCaDiCaL*)s->p, n);
+  }
 }
 
 /**Function*************************************************************
