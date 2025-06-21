@@ -23,6 +23,7 @@
 #include "sat/bsat/satStore.h"
 #include "misc/extra/extra.h"
 #include "sat/glucose/AbcGlucose.h"
+#include "sat/cadical/cadicalSolver.h"
 #include "misc/util/utilTruth.h"
 #include "base/io/ioResub.h"
 
@@ -45,6 +46,7 @@ struct Qbf_Man_t_
     sat_solver *    pSatVer;        // verification instance
     sat_solver *    pSatSyn;        // synthesis instance
     bmcg_sat_solver*pSatSynG;       // synthesis instance
+    cadical_solver* pSatSynC;       // synthesis instance
     Vec_Int_t *     vValues;        // variable values
     Vec_Int_t *     vParMap;        // parameter mapping
     Vec_Int_t *     vLits;          // literals for the SAT solver
@@ -534,7 +536,7 @@ void Gia_QbfDumpFileInv( Gia_Man_t * pGia, int nPars )
   SeeAlso     []
 
 ***********************************************************************/
-Qbf_Man_t * Gia_QbfAlloc( Gia_Man_t * pGia, int nPars, int fGlucose, int fVerbose )
+Qbf_Man_t * Gia_QbfAlloc( Gia_Man_t * pGia, int nPars, int fGlucose, int fCadical, int fVerbose )
 {
     Qbf_Man_t * p;
     Cnf_Dat_t * pCnf;
@@ -551,11 +553,13 @@ Qbf_Man_t * Gia_QbfAlloc( Gia_Man_t * pGia, int nPars, int fGlucose, int fVerbos
     p->pSatVer    = (sat_solver *)Cnf_DataWriteIntoSolver( pCnf, 1, 0 );
     p->pSatSyn    = sat_solver_new();
     p->pSatSynG   = fGlucose ? bmcg_sat_solver_start() : NULL; 
+    p->pSatSynC   = fCadical ? cadical_solver_new() : NULL; 
     p->vValues    = Vec_IntAlloc( Gia_ManPiNum(pGia) );
     p->vParMap    = Vec_IntStartFull( nPars );
     p->vLits      = Vec_IntAlloc( nPars );
     sat_solver_setnvars( p->pSatSyn, nPars );
     if ( p->pSatSynG ) bmcg_sat_solver_set_nvars( p->pSatSynG, nPars );
+    if ( p->pSatSynC ) cadical_solver_setnvars( p->pSatSynC, nPars );
     Cnf_DataFree( pCnf );
     return p;
 }
@@ -564,6 +568,7 @@ void Gia_QbfFree( Qbf_Man_t * p )
     sat_solver_delete( p->pSatVer );
     sat_solver_delete( p->pSatSyn );
     if ( p->pSatSynG ) bmcg_sat_solver_stop( p->pSatSynG );
+    if ( p->pSatSynC ) cadical_solver_delete( p->pSatSynC );
     Vec_IntFree( p->vLits );
     Vec_IntFree( p->vValues );
     Vec_IntFree( p->vParMap );
@@ -749,6 +754,21 @@ int Gia_QbfAddCofactorG( Qbf_Man_t * p, Gia_Man_t * pCof )
     Cnf_DataFree( pCnf );
     return 1;
 }
+int Gia_QbfAddCofactorC( Qbf_Man_t * p, Gia_Man_t * pCof )
+{
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pCof, 8, 0, 1, 0, 0 );
+    int i, iFirstVar = pCnf->nVars - Gia_ManPiNum(pCof); //-1   
+    pCnf->pMan = NULL;
+    Cnf_SpecialDataLift( pCnf, cadical_solver_nvars(p->pSatSynC), iFirstVar, iFirstVar + Gia_ManPiNum(p->pGia) );
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !cadical_solver_addclause( p->pSatSynC, pCnf->pClauses[i], pCnf->pClauses[i+1] ) )
+        {
+            Cnf_DataFree( pCnf );
+            return 0;
+        }
+    Cnf_DataFree( pCnf );
+    return 1;
+}
 
 /**Function*************************************************************
 
@@ -766,16 +786,20 @@ void Gia_QbfOnePattern( Qbf_Man_t * p, Vec_Int_t * vValues )
     int i;
     Vec_IntClear( vValues );
     for ( i = 0; i < p->nPars; i++ )
-        Vec_IntPush( vValues, p->pSatSynG ? bmcg_sat_solver_read_cex_varvalue(p->pSatSynG, i) : sat_solver_var_value(p->pSatSyn, i) );
+        Vec_IntPush( vValues, p->pSatSynC ? cadical_solver_get_var_value(p->pSatSynC, i) :
+                              p->pSatSynG ? bmcg_sat_solver_read_cex_varvalue(p->pSatSynG, i) : sat_solver_var_value(p->pSatSyn, i) );
 }
 void Gia_QbfPrint( Qbf_Man_t * p, Vec_Int_t * vValues, int Iter )
 {
     printf( "%5d : ", Iter );
     assert( Vec_IntSize(vValues) == p->nVars );
     Vec_IntPrintBinary( vValues ); printf( "  " );
-    printf( "Var =%7d  ",  p->pSatSynG ? bmcg_sat_solver_varnum(p->pSatSynG)      : sat_solver_nvars(p->pSatSyn)      );
-    printf( "Cla =%7d  ",  p->pSatSynG ? bmcg_sat_solver_clausenum(p->pSatSynG)   : sat_solver_nclauses(p->pSatSyn)   );
-    printf( "Conf =%9d  ", p->pSatSynG ? bmcg_sat_solver_conflictnum(p->pSatSynG) : sat_solver_nconflicts(p->pSatSyn) );
+    printf( "Var =%7d  ",  p->pSatSynC ? cadical_solver_nvars(p->pSatSynC)        :
+                           p->pSatSynG ? bmcg_sat_solver_varnum(p->pSatSynG)      : sat_solver_nvars(p->pSatSyn)      );
+    printf( "Cla =%7d  ",  p->pSatSynC ? cadical_solver_nclauses(p->pSatSynC)     :
+                           p->pSatSynG ? bmcg_sat_solver_clausenum(p->pSatSynG)   : sat_solver_nclauses(p->pSatSyn)   );
+    printf( "Conf =%9d  ", p->pSatSynC ? cadical_solver_nconflicts(p->pSatSynC)   :
+                           p->pSatSynG ? bmcg_sat_solver_conflictnum(p->pSatSynG) : sat_solver_nconflicts(p->pSatSyn) );
     Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
 }
 
@@ -869,9 +893,9 @@ void Gia_QbfLearnConstraint( Qbf_Man_t * p, Vec_Int_t * vValues )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int nEncVars, int fGlucose, int fVerbose )
+int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int nEncVars, int fGlucose, int fCadical, int fVerbose )
 {
-    Qbf_Man_t * p = Gia_QbfAlloc( pGia, nPars, fGlucose, fVerbose );
+    Qbf_Man_t * p = Gia_QbfAlloc( pGia, nPars, fGlucose, fCadical, fVerbose );
     Gia_Man_t * pCof;
     int i, status, RetValue = 0;
     abctime clk;
@@ -886,12 +910,15 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         // generate next constraint
         assert( Vec_IntSize(p->vValues) == p->nVars );
         pCof = Gia_QbfCofactor( pGia, nPars, p->vValues, p->vParMap );
-        status = p->pSatSynG ? Gia_QbfAddCofactorG( p, pCof ) : Gia_QbfAddCofactor( p, pCof );
+        status = p->pSatSynC ? Gia_QbfAddCofactorC( p, pCof ) :
+                 p->pSatSynG ? Gia_QbfAddCofactorG( p, pCof ) : Gia_QbfAddCofactor( p, pCof );
         Gia_ManStop( pCof );
         if ( status == 0 )       { RetValue =  1; break; }
         // synthesize next assignment
         clk = Abc_Clock();
-        if ( p->pSatSynG )
+        if ( p->pSatSynC )
+            status = cadical_solver_solve( p->pSatSynC, NULL, NULL, 0, 0, 0, 0 );
+        else if ( p->pSatSynG )
             status = bmcg_sat_solver_solve( p->pSatSynG, NULL, 0 );
         else
             status = sat_solver_solve( p->pSatSyn, NULL, NULL, (ABC_INT64_T)nConfLimit, 0, 0, 0 );
