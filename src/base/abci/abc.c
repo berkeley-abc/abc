@@ -7762,8 +7762,17 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
     pSpot = strstr( pScript, "*" );
     if ( pSpot == NULL ) 
     {
-        Abc_Print( -1, "Script should contain symbol \'*\'.\n" );
-        goto usage;        
+        for ( c = 0; c < nIters; c++ )
+        {
+            if ( fVerbose )
+                printf( "ITERATION %3d : %s\n", c, pScript );
+            if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pScript) ) {
+                Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pScript );
+                goto usage;
+            }        
+        }
+        printf( "Finished iterating script %d times.\n", nIters );
+        return 0;    
     }
     assert( *pSpot == '*' );
     for ( c = 0; c < nIters; c++ )
