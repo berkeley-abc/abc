@@ -1067,6 +1067,27 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
     return Status;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Gia_ManDeriveBoxMapping( Gia_Man_t * pGia )
+{
+    Tim_Man_t * pTim = (Tim_Man_t *)pGia->pManTime;
+    Vec_Int_t * vRes = Vec_IntAlloc( 100 );
+    int i, nBoxes = Tim_ManBoxNum( pTim );
+    for ( i = 0; i < nBoxes; i++ )
+        Vec_IntPush( vRes, Tim_ManBoxCopy(pTim, i) );
+    return vRes;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

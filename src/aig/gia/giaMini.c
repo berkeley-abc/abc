@@ -560,6 +560,7 @@ int * Abc_FrameGiaOutputMiniLutObj( Abc_Frame_t * pAbc )
     int * pRes = NULL;
     if ( pAbc == NULL )
         printf( "ABC framework is not initialized by calling Abc_Start()\n" );
+    pAbc->vMiniLutObjs = Gia_ManDeriveBoxMapping( Abc_FrameReadGia( pAbc ) );
     if ( pAbc->vMiniLutObjs == NULL )
         printf( "MiniLut objects are not defined.\n" );
     pRes = Vec_IntReleaseArray( pAbc->vMiniLutObjs );
