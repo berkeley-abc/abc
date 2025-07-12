@@ -25,6 +25,7 @@
 ///                          INCLUDES                                ///
 ////////////////////////////////////////////////////////////////////////
 
+#include "map/if/if.h"
 ABC_NAMESPACE_HEADER_START
 
 ////////////////////////////////////////////////////////////////////////
@@ -214,7 +215,10 @@ static inline int If_LogCounterPinDelays( int * pTimes, int * pnTimes, word * pP
                 ABC_SWAP( word, pPinDels[k], pPinDels[k-1] ); 
                 continue; 
             }
-            pTimes[k-1] += 1 + fXor;
+            if(pTimes[k-1] != -IF_INFINITY)
+            {
+                pTimes[k-1] += 1 + fXor;
+            }
             pPinDels[k-1] = If_CutPinDelayMax( pPinDels[k], pPinDels[k-1], nSuppAll, 1 + fXor );
             for ( nTimes--, i = k; i < nTimes; i++ )
             {
