@@ -226,7 +226,7 @@ cuddBddAndAbstractRecur(
     }
     /* At this point f, g, and cube are not constant. */
 
-    if (f > g) { /* Try to increase cache efficiency. */
+    if (cuddF2L(f) > cuddF2L(g)) { /* Try to increase cache efficiency. */
         DdNode *tmp = f;
         f = g;
         g = tmp;

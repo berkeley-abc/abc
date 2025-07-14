@@ -583,7 +583,7 @@ addTriangleRecur(
         res = cuddUniqueConst(dd, value);
         return(res);
     }
-    if (f < g) {
+    if (cuddF2L(f) < cuddF2L(g)) {
         DdNode *tmp = f;
         f = g;
         g = tmp;

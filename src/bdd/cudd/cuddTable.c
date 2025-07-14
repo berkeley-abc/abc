@@ -1162,14 +1162,14 @@ cuddUniqueInter(
     previousP = &(nodelist[pos]);
     looking = *previousP;
 
-    while (T < cuddT(looking)) {
+    while (cuddF2L(T) < cuddF2L(cuddT(looking))) {
         previousP = &(looking->next);
         looking = *previousP;
 #ifdef DD_UNIQUE_PROFILE
         unique->uniqueLinks++;
 #endif
     }
-    while (T == cuddT(looking) && E < cuddE(looking)) {
+    while (T == cuddT(looking) && cuddF2L(E) < cuddF2L(cuddE(looking))) {
         previousP = &(looking->next);
         looking = *previousP;
 #ifdef DD_UNIQUE_PROFILE
@@ -1220,14 +1220,14 @@ cuddUniqueInter(
         previousP = &(nodelist[pos]);
         looking = *previousP;
 
-        while (T < cuddT(looking)) {
+        while (cuddF2L(T) < cuddF2L(cuddT(looking))) {
             previousP = &(looking->next);
             looking = *previousP;
 #ifdef DD_UNIQUE_PROFILE
             unique->uniqueLinks++;
 #endif
         }
-        while (T == cuddT(looking) && E < cuddE(looking)) {
+        while (T == cuddT(looking) && cuddF2L(E) < cuddF2L(cuddE(looking))) {
             previousP = &(looking->next);
             looking = *previousP;
 #ifdef DD_UNIQUE_PROFILE
@@ -1251,14 +1251,14 @@ cuddUniqueInter(
         previousP = &(nodelist[pos]);
         looking2 = *previousP;
 
-        while (T < cuddT(looking2)) {
+        while (cuddF2L(T) < cuddF2L(cuddT(looking2))) {
             previousP = &(looking2->next);
             looking2 = *previousP;
 #ifdef DD_UNIQUE_PROFILE
             unique->uniqueLinks++;
 #endif
         }
-        while (T == cuddT(looking2) && E < cuddE(looking2)) {
+        while (T == cuddT(looking2) && cuddF2L(E) < cuddF2L(cuddE(looking2))) {
             previousP = &(looking2->next);
             looking2 = *previousP;
 #ifdef DD_UNIQUE_PROFILE
@@ -1664,7 +1664,7 @@ cuddRehash(
             while (node != NULL) {
                 next = node->next;
                 split.value = cuddV(node);
-                pos = ddHash(split.bits[0], split.bits[1], shift);
+                pos = ddHash(cuddF2L(split.bits[0]), cuddF2L(split.bits[1]), shift);
                 node->next = nodelist[pos];
                 nodelist[pos] = node;
                 node = next;
@@ -1748,14 +1748,14 @@ cuddShrinkSubtable(
             looking = *previousP;
             T = cuddT(node);
             E = cuddE(node);
-            while (T < cuddT(looking)) {
+            while (cuddF2L(T) < cuddF2L(cuddT(looking))) {
                 previousP = &(looking->next);
                 looking = *previousP;
 #ifdef DD_UNIQUE_PROFILE
                 unique->uniqueLinks++;
 #endif
             }
-            while (T == cuddT(looking) && E < cuddE(looking)) {
+            while (T == cuddT(looking) && cuddF2L(E) < cuddF2L(cuddE(looking))) {
                 previousP = &(looking->next);
                 looking = *previousP;
 #ifdef DD_UNIQUE_PROFILE
@@ -2771,10 +2771,10 @@ cuddFindParent(
 
         for (j = 0; j < slots; j++) {
             f = nodelist[j];
-            while (cuddT(f) > node) {
+            while (cuddF2L(cuddT(f)) > cuddF2L(node)) {
                 f = f->next;
             }
-            while (cuddT(f) == node && Cudd_Regular(cuddE(f)) > node) {
+            while (cuddT(f) == node && cuddF2L(Cudd_Regular(cuddE(f))) > cuddF2L(node)) {
                 f = f->next;
             }
             if (cuddT(f) == node && Cudd_Regular(cuddE(f)) == node) {
@@ -3126,8 +3126,8 @@ cuddCheckCollisionOrdering(
     if (node == sentinel) return(1);
     next = node->next;
     while (next != sentinel) {
-        if (cuddT(node) < cuddT(next) ||
-            (cuddT(node) == cuddT(next) && cuddE(node) < cuddE(next))) {
+        if (cuddF2L(cuddT(node)) < cuddF2L(cuddT(next)) ||
+            (cuddT(node) == cuddT(next) && cuddF2L(cuddE(node)) < cuddF2L(cuddE(next)))) {
             (void) fprintf(unique->err,
                            "Unordered list: index %u, position %d\n", i, j);
             return(0);

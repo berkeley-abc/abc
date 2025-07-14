@@ -716,7 +716,7 @@ typedef struct DdLevelQueue {
   SeeAlso     []
 
 ******************************************************************************/
-#define cuddF2L(f) ((Cudd_Regular(f)->Id << 1) | Cudd_IsComplement(f))
+#define cuddF2L(f) ((Cudd_Regular(f)) ? ((Cudd_Regular(f)->Id << 1) | Cudd_IsComplement(f)) : 0)
 
 
 /**Macro***********************************************************************

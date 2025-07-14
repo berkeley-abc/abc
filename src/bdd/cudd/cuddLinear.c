@@ -500,11 +500,11 @@ cuddLinearInPlace(
                 /* For each element newf1 in collision list ylist[posn]. */
                 previousP = &(ylist[posn]);
                 newf1 = *previousP;
-                while (f11 < cuddT(newf1)) {
+                while (cuddF2L(f11) < cuddF2L(cuddT(newf1))) {
                     previousP = &(newf1->next);
                     newf1 = *previousP;
                 }
-                while (f11 == cuddT(newf1) && f00 < cuddE(newf1)) {
+                while (f11 == cuddT(newf1) && cuddF2L(f00) < cuddF2L(cuddE(newf1))) {
                     previousP = &(newf1->next);
                     newf1 = *previousP;
                 }
@@ -554,11 +554,11 @@ cuddLinearInPlace(
                 /* For each element newf0 in collision list ylist[posn]. */
                 previousP = &(ylist[posn]);
                 newf0 = *previousP;
-                while (f01 < cuddT(newf0)) {
+                while (cuddF2L(f01) < cuddF2L(cuddT(newf0))) {
                     previousP = &(newf0->next);
                     newf0 = *previousP;
                 }
-                while (f01 == cuddT(newf0) && f10 < cuddE(newf0)) {
+                while (f01 == cuddT(newf0) && cuddF2L(f10) < cuddF2L(cuddE(newf0))) {
                     previousP = &(newf0->next);
                     newf0 = *previousP;
                 }
@@ -595,11 +595,11 @@ cuddLinearInPlace(
             newxkeys++;
             previousP = &(xlist[posn]);
             tmp = *previousP;
-            while (newf1 < cuddT(tmp)) {
+            while (cuddF2L(newf1) < cuddF2L(cuddT(tmp))) {
                 previousP = &(tmp->next);
                 tmp = *previousP;
             }
-            while (newf1 == cuddT(tmp) && newf0 < cuddE(tmp)) {
+            while (newf1 == cuddT(tmp) && cuddF2L(newf0) < cuddF2L(cuddE(tmp))) {
                 previousP = &(tmp->next);
                 tmp = *previousP;
             }

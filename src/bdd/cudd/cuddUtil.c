@@ -3357,10 +3357,10 @@ cuddUniqueLookup(
     nodelist = subtable->nodelist;
     looking = nodelist[posn];
 
-    while (T < cuddT(looking)) {
+    while (cuddF2L(T) < cuddF2L(cuddT(looking))) {
         looking = Cudd_Regular(looking->next);
     }
-    while (T == cuddT(looking) && E < cuddE(looking)) {
+    while (T == cuddT(looking) && cuddF2L(E) < cuddF2L(cuddE(looking))) {
         looking = Cudd_Regular(looking->next);
     }
     if (cuddT(looking) == T && cuddE(looking) == E) {

@@ -331,7 +331,7 @@ cuddBddClippingAndRecur(
 
     /* Check cache. Try to increase cache efficiency by sorting the
     ** pointers. */
-    if (f > g) {
+    if (cuddF2L(f) > cuddF2L(g)) {
         DdNode *tmp = f;
         f = g; g = tmp;
     }
@@ -469,7 +469,7 @@ cuddBddClipAndAbsRecur(
     distance--;
 
     /* Check cache. */
-    if (f > g) { /* Try to increase cache efficiency. */
+    if (cuddF2L(f) > cuddF2L(g)) { /* Try to increase cache efficiency. */
         DdNode *tmp = f;
         f = g; g = tmp;
     }

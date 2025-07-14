@@ -182,7 +182,7 @@ Cudd_addPlus(
         res = cuddUniqueConst(dd,value);
         return(res);
     }
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
@@ -223,7 +223,7 @@ Cudd_addTimes(
         res = cuddUniqueConst(dd,value);
         return(res);
     }
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
@@ -405,7 +405,7 @@ Cudd_addMinimum(
             return(G);
         }
     }
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
@@ -450,7 +450,7 @@ Cudd_addMaximum(
             return(G);
         }
     }
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
@@ -590,7 +590,7 @@ Cudd_addOr(
     if (cuddIsConstant(F)) return(G);
     if (cuddIsConstant(G)) return(F);
     if (F == G) return(F);
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
@@ -622,7 +622,7 @@ Cudd_addNand(
     F = *f; G = *g;
     if (F == DD_ZERO(dd) || G == DD_ZERO(dd)) return(DD_ONE(dd));
     if (cuddIsConstant(F) && cuddIsConstant(G)) return(DD_ZERO(dd));
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
@@ -654,7 +654,7 @@ Cudd_addNor(
     F = *f; G = *g;
     if (F == DD_ONE(dd) || G == DD_ONE(dd)) return(DD_ZERO(dd));
     if (cuddIsConstant(F) && cuddIsConstant(G)) return(DD_ONE(dd));
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
@@ -688,7 +688,7 @@ Cudd_addXor(
     if (F == DD_ONE(dd) && G == DD_ZERO(dd)) return(DD_ONE(dd));
     if (G == DD_ONE(dd) && F == DD_ZERO(dd)) return(DD_ONE(dd));
     if (cuddIsConstant(F) && cuddIsConstant(G)) return(DD_ZERO(dd));
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
@@ -722,7 +722,7 @@ Cudd_addXnor(
     if (F == DD_ONE(dd) && G == DD_ONE(dd)) return(DD_ONE(dd));
     if (G == DD_ZERO(dd) && F == DD_ZERO(dd)) return(DD_ONE(dd));
     if (cuddIsConstant(F) && cuddIsConstant(G)) return(DD_ZERO(dd));
-    if (F > G) { /* swap f and g */
+    if (cuddF2L(F) > cuddF2L(G)) { /* swap f and g */
         *f = G;
         *g = F;
     }
