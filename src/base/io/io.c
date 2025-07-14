@@ -58,6 +58,7 @@ static int IoCommandReadVerilog ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadStatus  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadGig     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadJson    ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandReadJsonc   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadSF      ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadRom     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandReadMM      ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -138,6 +139,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_status",   IoCommandReadStatus,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "&read_gig",     IoCommandReadGig,      0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_json",     IoCommandReadJson,     0 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_jsonc",    IoCommandReadJsonc,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_sf",       IoCommandReadSF,       0 );
     Cmd_CommandAdd( pAbc, "I/O", "read_rom",      IoCommandReadRom,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_mm",       IoCommandReadMM,       1 );
@@ -1866,6 +1868,60 @@ int IoCommandReadJson( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     fprintf( pAbc->Err, "usage: read_json [-h] <file>\n" );
+    fprintf( pAbc->Err, "\t         reads file in JSON format\n" );
+    fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandReadJsonc( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Jsonc_ReadTest( char * pFileName );
+    char * pFileName;
+    FILE * pFile;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( argc != globalUtilOptind + 1 )
+    {
+        goto usage;
+    }
+
+    // get the input file name
+    pFileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( pFileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Cannot open input file \"%s\". \n", pFileName );
+        return 1;
+    }
+    fclose( pFile );
+
+    Jsonc_ReadTest( pFileName );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: read_jsonc [-h] <file>\n" );
     fprintf( pAbc->Err, "\t         reads file in JSON format\n" );
     fprintf( pAbc->Err, "\t-h     : prints the command summary\n" );
     fprintf( pAbc->Err, "\tfile   : the name of a file to read\n" );
