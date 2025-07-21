@@ -1987,6 +1987,20 @@ static inline void Abc_TtSwapVars( word * pTruth, int nVars, int iVar, int jVar 
         return;
     }    
 }
+// exchanges places of v1 and v2
+static inline void Abc_TtExchangeVars( word * pF, int nVars, int * V2P, int * P2V, int v1, int v2 )
+{
+    int iPlace0 = V2P[v1];
+    int iPlace1 = V2P[v2];
+    if ( iPlace0 == iPlace1 )
+        return;
+    Abc_TtSwapVars( pF, nVars, iPlace0, iPlace1 );
+    V2P[P2V[iPlace0]] = iPlace1;
+    V2P[P2V[iPlace1]] = iPlace0;
+    P2V[iPlace0] ^= P2V[iPlace1];
+    P2V[iPlace1] ^= P2V[iPlace0];
+    P2V[iPlace0] ^= P2V[iPlace1];
+}
 // moves one var (v) to the given position (p)
 static inline void Abc_TtMoveVar( word * pF, int nVars, int * V2P, int * P2V, int v, int p )
 {

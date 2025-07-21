@@ -1006,11 +1006,125 @@ word Abc_BSEvalEncode( int * pPermBest, int nVars, int nLutSize, int Shared, int
             mSVars |= (word)1 << (nVars-nLutSize+v);
     return ((word)MyuMin << 48) | (mSVars << 24) | mBVars;
 }
-Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, int nCVars, int nRails, int nLutSize, int fVerbose, int * pMyu, int nMyuIncrease )
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wec_t * Abc_BSFind( Vec_Int_t * vVars, int nLutSize, int nSubsets )
+{
+    assert( Vec_IntSize(vVars) > nLutSize );
+    Vec_Wec_t * vRes = Vec_WecAlloc( nSubsets ); int i;
+    for ( i = 0; i < nSubsets; i++ ) {
+        Vec_Int_t * vNew = Vec_WecPushLevel( vRes );
+        while ( Vec_IntSize(vNew) < nLutSize )
+            Vec_IntPushUniqueOrder( vNew, Vec_IntEntry(vVars, Abc_Random(0)%Vec_IntSize(vVars)) );
+    }
+    return vRes;
+}
+Vec_Int_t * Abc_BSFindNextVars( Vec_Wec_t * vPrev, int nLutSize, int nSubsets, int nBest )
+{
+    assert( Vec_WecSize(vPrev) == nSubsets );
+    assert( Vec_IntSize(Vec_WecEntry(vPrev,0)) == nLutSize + 1 );
+    Vec_Int_t * vVars = Vec_IntAlloc( 100 );
+    Vec_Int_t * vLevel; int i, k, Var;
+    Vec_WecForEachLevelStop( vPrev, vLevel, i, nBest )
+        Vec_IntForEachEntry( vLevel, Var, k )
+            if ( k < nLutSize )
+                Vec_IntPush( vVars, Var );
+    Vec_IntUniqify( vVars );
+    return vVars;
+}
+// this procedure considers boundsets in vSets and adds CM as the last entry in each one
+void Abc_BSEvalSet( Abc_BSEval_t * p, Vec_Wec_t * vSets, word * pTruth, int nVars, int nCVars, int nLutSize )
+{
+    int nWords = Abc_TtWordNum(nVars);
+    word * pCopy = ABC_ALLOC( word, nWords );
+    Abc_TtCopy( pCopy, pTruth, nWords, 0 );
+
+    int i, k, Var, Pla2Var[32], Var2Pla[32];
+    for ( i = 0; i < nVars; i++ )
+        Pla2Var[i] = Var2Pla[i] = i;
+
+    Vec_Int_t * vLevel;
+    Vec_WecForEachLevel( vSets, vLevel, i ) {
+        assert( Vec_IntSize(vLevel) == nLutSize-nCVars );
+        Vec_IntForEachEntry( vLevel, Var, k )
+            Abc_TtMoveVar( pCopy, nVars, Var2Pla, Pla2Var, Var, nVars - nLutSize + k );
+        int MyuThis = Abc_TtGetCM( pCopy, nVars, nVars-nLutSize, p->vCounts, p->vTable, p->vStore, p->vUsed, 0 );
+        Vec_IntPush( vLevel, MyuThis ); 
+    }
+
+    for ( i = 0; i < nVars; i++ )
+        Abc_TtMoveVar( pCopy, nVars, Var2Pla, Pla2Var, i, i );
+    if ( !Abc_TtEqual(pCopy, pTruth, nWords) )
+        printf( "Internal truth table check failed.\n" ); 
+}
+void Vec_WecAppend( Vec_Wec_t * vBase, Vec_Wec_t * vNew )
+{
+    Vec_Int_t * vLevel; int i;
+    Vec_WecForEachLevel( vNew, vLevel, i )
+        Vec_IntAppend( Vec_WecPushLevel(vBase), vLevel );
+}
+Vec_Wec_t * Abc_TtFindBVars3( Abc_BSEval_t * p, word * pTruth, int nVars, int nCVars, int nRails, int nLutSize, int fVerbose, int * pMyu, int nMyuIncrease, int nSubsets, int nBest )
+{
+    Vec_Wec_t * vAllSets = Vec_WecAlloc( 1000 );
+    Vec_Wec_t * vSets = NULL; 
+    for ( int Iter = 0; Iter < 3; Iter++ ) {
+        Vec_Int_t * vVars = NULL;      
+        if ( Iter == 0  )
+            vVars = Vec_IntStartNatural( nVars-nCVars );
+        else 
+            vVars = Abc_BSFindNextVars( vSets, nLutSize-nCVars, nSubsets, nBest );
+        if ( Vec_IntSize(vVars) <= nLutSize-nCVars )
+            break;
+        Vec_WecFreeP( &vSets );
+        vSets = Abc_BSFind( vVars, nLutSize-nCVars, nSubsets );
+        Abc_BSEvalSet( p, vSets, pTruth, nVars, nCVars, nLutSize );
+        Vec_WecSortByLastInt( vSets, 0 );
+        Vec_WecAppend( vAllSets, vSets );
+        if ( 0 ) 
+        {
+            printf( "Iteration %d :\n", Iter );
+            Vec_WecPrint( vSets, 0 );
+            printf( "Variables: " );
+            Vec_IntPrint( vVars );
+            printf( "\n" );
+        }
+        Vec_IntFree( vVars );
+    }
+    Vec_WecFreeP( &vSets );
+    //Vec_WecPrint( vAllSets, 0 );
+    //Vec_WecFreeP( &vAllSets );
+    return vAllSets;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, int nCVars, int nRails, int nLutSize, int fVerbose, int * pMyu, int nMyuIncrease, int nSubsets, int nBest )
 {
 //    Abc_BSEval_t * p = Abc_BSEvalAlloc(); 
     int nFVars = nVars-nLutSize;
     int nPermVars = nVars-nCVars;
+    int nBSets = 0;
 
     if ( p->nVars != nPermVars ) {
         p->nVars = nPermVars;
@@ -1041,80 +1155,130 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
     int nSetSizeBest = nVars;
 
     if ( pMyu ) *pMyu = 1 << nVars;
-    Vec_IntForEachEntryDouble( p->vPairs[p->nVars][p->nLVars], Var0, Var1, i ) {
-        int  MyuThis = Abc_TtGetCM( pCopy, nVars, nFVars, p->vCounts, p->vTable, p->vStore, p->vUsed, 0 );
-        MyuOrigBest = Abc_MinInt( MyuOrigBest, MyuThis );
-        if ( pMyu ) *pMyu = Abc_MinInt( *pMyu, MyuThis );
-        if ( fVerbose )
+    if ( nSubsets && nBest && nVars > nLutSize+1 ) {
+        Vec_Wec_t * vAllSets = Abc_TtFindBVars3( p, pTruth, nVars, nCVars, nRails, nLutSize, fVerbose, pMyu, nMyuIncrease, nSubsets, nBest );
+        Vec_WecSortByLastInt( vAllSets, 0 );
+//        Vec_IntForEachEntryDouble( p->vPairs[p->nVars][p->nLVars], Var0, Var1, i ) {
+//            int  MyuThis = Abc_TtGetCM( pCopy, nVars, nFVars, p->vCounts, p->vTable, p->vStore, p->vUsed, 0 );
+        Vec_Int_t * vLevel; int Var;
+        Vec_WecForEachLevelStop( vAllSets, vLevel, i, nBest )
         {
-            printf( "%3d : ", i/2 );
-            for ( k = nCVars-1; k >= 0; k-- )
-                printf( " %d", nVars-nCVars+k );
-            printf( " " );
-            for ( k = nPermVars-1; k >= nFVars; k-- )
-                printf( " %d", Pla2Var[k] );
-            printf( " " );
-            for ( k = nFVars-1; k >= 0; k-- )
-                printf( " %d", Pla2Var[k] );
-            printf( "  : Myu = %3d", MyuThis );
+            int MyuThis = Vec_IntPop( vLevel );
+            MyuOrigBest = Abc_MinInt( MyuOrigBest, MyuThis );
+            if ( pMyu ) *pMyu = Abc_MinInt( *pMyu, MyuThis );
+
+            Vec_IntForEachEntry( vLevel, Var, k )
+                Abc_TtMoveVar( pCopy, nVars, Var2Pla, Pla2Var, Var, nVars - nLutSize + k );
+            //int  MyuThis1 = Abc_TtGetCM( pCopy, nVars, nFVars, p->vCounts, p->vTable, p->vStore, p->vUsed, 0 );
+            //assert( MyuThis1 == MyuThis );
+
+            if ( fVerbose )
+            {
+                printf( "%3d : ", i/2 );
+                for ( k = nCVars-1; k >= 0; k-- )
+                    printf( " %d", nVars-nCVars+k );
+                printf( " " );
+                for ( k = nPermVars-1; k >= nFVars; k-- )
+                    printf( " %d", Pla2Var[k] );
+                printf( " " );
+                for ( k = nFVars-1; k >= 0; k-- )
+                    printf( " %d", Pla2Var[k] );
+                printf( "  : Myu = %3d", MyuThis );
+            }
+            if ( MyuThis <= MyuOrigBest + nMyuIncrease ) {
+                int Shared = 0, nSetSize = 0;
+                if ( MyuThis > 2 ) {
+                    int SharedThis = 0, nSetSizeThis = 0;
+                    int nRailsMin = 100;
+                    for ( int r = 1; r <= nRails && nRailsMin > r; r++ ) {
+                        int nRailsMinNew = Abc_SharedEvalBest( p, pCopy, nVars, nCVars, nFVars, MyuThis, r, 0, &SharedThis, &nSetSizeThis, p->pPat );
+                        if ( nRailsMinNew < 100 )
+                            nRailsMin = nRailsMinNew;
+                    }
+                    if ( fVerbose )
+                        printf( "  RailsMyu = %3d. RailsMin = %3d. Shared = %2d. SetSize = %d.", Abc_Base2Log(MyuThis), nRailsMin, SharedThis, nSetSizeThis );
+                    if ( nRailsMin <= nRails ) {
+                        MyuThis  = 1 << nRailsMin;
+                        Shared   = SharedThis;
+                        nSetSize = nSetSizeThis;
+                    }
+                }
+                if ( MyuBest > MyuThis || (MyuBest == MyuThis && nSetSizeBest >= nSetSize) ) {
+                    int fSave = (MyuBest == MyuThis && nSetSizeBest == nSetSize);
+                    MyuBest = MyuThis;
+                    nSetSizeBest = nSetSize;
+                    word Result = Abc_BSEvalEncode( Pla2Var, nVars, nLutSize, Shared, MyuBest, nSetSize );
+                    if ( fSave ) 
+                        Vec_WrdPush( vRes, Result );
+                    else
+                        Vec_WrdFill( vRes, 1, Result );
+                    if ( fVerbose )
+                        printf( " <== best" );
+                }
+                nBSets++;
+            }        
+            if ( fVerbose )
+                printf( "\n" );
         }
-        if ( MyuThis <= MyuOrigBest + nMyuIncrease ) {
-            int Shared = 0, nSetSize = 0;
-            if ( MyuThis > 2 ) {
-                int SharedThis = 0, nSetSizeThis = 0;
-                int nRailsMin = 100;
-                for ( int r = 1; r <= nRails && nRailsMin > r; r++ ) {
-                    int nRailsMinNew = Abc_SharedEvalBest( p, pCopy, nVars, nCVars, nFVars, MyuThis, r, 0, &SharedThis, &nSetSizeThis, p->pPat );
-                    if ( nRailsMinNew < 100 )
-                        nRailsMin = nRailsMinNew;
-                }
-                if ( fVerbose )
-                    printf( "  RailsMyu = %3d. RailsMin = %3d. Shared = %2d. SetSize = %d.", Abc_Base2Log(MyuThis), nRailsMin, SharedThis, nSetSizeThis );
-                if ( nRailsMin <= nRails ) {
-                    MyuThis  = 1 << nRailsMin;
-                    Shared   = SharedThis;
-                    nSetSize = nSetSizeThis;
-                }
+        Vec_WecFree( vAllSets );
+    }
+    else {
+        Vec_IntForEachEntryDouble( p->vPairs[p->nVars][p->nLVars], Var0, Var1, i ) {
+            int  MyuThis = Abc_TtGetCM( pCopy, nVars, nFVars, p->vCounts, p->vTable, p->vStore, p->vUsed, 0 );
+            MyuOrigBest = Abc_MinInt( MyuOrigBest, MyuThis );
+            if ( pMyu ) *pMyu = Abc_MinInt( *pMyu, MyuThis );
+            if ( fVerbose )
+            {
+                printf( "%3d : ", i/2 );
+                for ( k = nCVars-1; k >= 0; k-- )
+                    printf( " %d", nVars-nCVars+k );
+                printf( " " );
+                for ( k = nPermVars-1; k >= nFVars; k-- )
+                    printf( " %d", Pla2Var[k] );
+                printf( " " );
+                for ( k = nFVars-1; k >= 0; k-- )
+                    printf( " %d", Pla2Var[k] );
+                printf( "  : Myu = %3d", MyuThis );
             }
-            if ( MyuBest > MyuThis || (MyuBest == MyuThis && nSetSizeBest >= nSetSize) ) {
-                int fSave = (MyuBest == MyuThis && nSetSizeBest == nSetSize);
-                MyuBest = MyuThis;
-                nSetSizeBest = nSetSize;
-                word Result = Abc_BSEvalEncode( Pla2Var, nVars, nLutSize, Shared, MyuBest, nSetSize );
-                if ( fSave ) 
-                    Vec_WrdPush( vRes, Result );
-                else
-                    Vec_WrdFill( vRes, 1, Result );
-                if ( fVerbose )
-                    printf( " <== best" );
-            }
-        }        
-        if ( fVerbose )
-            printf( "\n" );
-        int iPlace0 = Var2Pla[Var0];
-        int iPlace1 = Var2Pla[Var1];
-        if ( iPlace0 == iPlace1 )
-            continue;
-        Abc_TtSwapVars( pCopy, nVars, iPlace0, iPlace1 );
-        Var2Pla[Pla2Var[iPlace0]] = iPlace1;
-        Var2Pla[Pla2Var[iPlace1]] = iPlace0;
-        Pla2Var[iPlace0] ^= Pla2Var[iPlace1];
-        Pla2Var[iPlace1] ^= Pla2Var[iPlace0];
-        Pla2Var[iPlace0] ^= Pla2Var[iPlace1];
+            if ( MyuThis <= MyuOrigBest + nMyuIncrease ) {
+                int Shared = 0, nSetSize = 0;
+                if ( MyuThis > 2 ) {
+                    int SharedThis = 0, nSetSizeThis = 0;
+                    int nRailsMin = 100;
+                    for ( int r = 1; r <= nRails && nRailsMin > r; r++ ) {
+                        int nRailsMinNew = Abc_SharedEvalBest( p, pCopy, nVars, nCVars, nFVars, MyuThis, r, 0, &SharedThis, &nSetSizeThis, p->pPat );
+                        if ( nRailsMinNew < 100 )
+                            nRailsMin = nRailsMinNew;
+                    }
+                    if ( fVerbose )
+                        printf( "  RailsMyu = %3d. RailsMin = %3d. Shared = %2d. SetSize = %d.", Abc_Base2Log(MyuThis), nRailsMin, SharedThis, nSetSizeThis );
+                    if ( nRailsMin <= nRails ) {
+                        MyuThis  = 1 << nRailsMin;
+                        Shared   = SharedThis;
+                        nSetSize = nSetSizeThis;
+                    }
+                }
+                if ( MyuBest > MyuThis || (MyuBest == MyuThis && nSetSizeBest >= nSetSize) ) {
+                    int fSave = (MyuBest == MyuThis && nSetSizeBest == nSetSize);
+                    MyuBest = MyuThis;
+                    nSetSizeBest = nSetSize;
+                    word Result = Abc_BSEvalEncode( Pla2Var, nVars, nLutSize, Shared, MyuBest, nSetSize );
+                    if ( fSave ) 
+                        Vec_WrdPush( vRes, Result );
+                    else
+                        Vec_WrdFill( vRes, 1, Result );
+                    if ( fVerbose )
+                        printf( " <== best" );
+                }
+                nBSets++;
+            }        
+            if ( fVerbose )
+                printf( "\n" );
+            Abc_TtExchangeVars( pCopy, nVars, Var2Pla, Pla2Var, Var0, Var1 );
+        }
     }
     for ( i = 0; i < nPermVars; i++ )
-    {
-        int iPlace0 = i;
-        int iPlace1 = Var2Pla[i];
-        if ( iPlace0 == iPlace1 )
-            continue;
-        Abc_TtSwapVars( pCopy, nVars, iPlace0, iPlace1 );
-        Var2Pla[Pla2Var[iPlace0]] = iPlace1;
-        Var2Pla[Pla2Var[iPlace1]] = iPlace0;
-        Pla2Var[iPlace0] ^= Pla2Var[iPlace1];
-        Pla2Var[iPlace1] ^= Pla2Var[iPlace0];
-        Pla2Var[iPlace0] ^= Pla2Var[iPlace1];
-    }
+        Abc_TtMoveVar( pCopy, nVars, Var2Pla, Pla2Var, i, i );
     if ( !Abc_TtEqual(pCopy, pTruth, nWords) )
         printf( "Internal truth table check failed.\n" ); 
 
@@ -1124,7 +1288,7 @@ Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, i
         return NULL;
     }
     if ( fVerbose )
-        printf( "COllected %d solutions with MyuMin = %d and SharedSize = %d.\n", Vec_WrdSize(vRes), MyuBest, nSetSizeBest );
+        printf( "Tried %d bound-sets and collected %d solutions with MyuMin = %d and SharedSize = %d.\n", nBSets, Vec_WrdSize(vRes), MyuBest, nSetSizeBest );    
     return vRes;
 }
 

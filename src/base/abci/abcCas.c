@@ -742,9 +742,9 @@ typedef struct Abc_BSEval_t_  Abc_BSEval_t;
 extern Abc_BSEval_t * Abc_BSEvalAlloc();
 extern void Abc_BSEvalFree( Abc_BSEval_t * p );
 
-word * Abc_LutCascadeDec( Abc_BSEval_t * p, char * pGuide, word * pTruth, int nVarsOrig, Vec_Int_t * vVarIDs, int nRails, int nLutSize, int nStages, int fUseRand, int nZParam, int fXRail, int fVerbose, int * pnStages, int * pMyu )
+word * Abc_LutCascadeDec( Abc_BSEval_t * p, char * pGuide, word * pTruth, int nVarsOrig, Vec_Int_t * vVarIDs, int nRails, int nLutSize, int nStages, int fUseRand, int nZParam, int fXRail, int fVerbose, int * pnStages, int * pMyu, int nSubsets, int nBest )
 {
-    extern Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, int nCVars, int nRails, int nLutSize, int fVerbose, int * pMyu, int nMyuIncrease );
+    extern Vec_Wrd_t * Abc_TtFindBVarsSVars2( Abc_BSEval_t * p, word * pTruth, int nVars, int nCVars, int nRails, int nLutSize, int fVerbose, int * pMyu, int nMyuIncrease, int nSubsets, int nBest );
     word * pRes = NULL; int i, nRVars = 0, nVars = Vec_IntSize(vVarIDs);
     Vec_Wrd_t * vFuncs[3] = { Vec_WrdStart(Abc_TtWordNum(nVars)), Vec_WrdAlloc(0), Vec_WrdAlloc(0) };
     Abc_TtCopy( Vec_WrdArray(vFuncs[0]), pTruth, Abc_TtWordNum(nVars), 0 );
@@ -752,7 +752,7 @@ word * Abc_LutCascadeDec( Abc_BSEval_t * p, char * pGuide, word * pTruth, int nV
     if ( pnStages ) *pnStages = 0;
     for ( i = 0; Vec_IntSize(vVarIDs) > nLutSize; i++ ) {
         int nRVarsOld = nRVars;
-        Vec_Wrd_t * vGuides = Abc_TtFindBVarsSVars2( p, Vec_WrdArray(vFuncs[0]), Vec_IntSize(vVarIDs), nRVars, nRails, nLutSize, fVerbose, pMyu, nZParam );
+        Vec_Wrd_t * vGuides = Abc_TtFindBVarsSVars2( p, Vec_WrdArray(vFuncs[0]), Vec_IntSize(vVarIDs), nRVars, nRails, nLutSize, fVerbose, pMyu, nZParam, nSubsets, nBest );
         if ( vGuides ) {
             int iEntry = fUseRand ? Abc_Random(0) % Vec_WrdSize(vGuides) : 0;
             nRVars = Abc_LutCascadeDecStage( Vec_WrdEntry(vGuides, iEntry), pGuide, i, vFuncs, vVarIDs, nRVarsOld, nRails, nLutSize, nZParam, fVerbose, vCas, i ? NULL : pMyu );
@@ -766,7 +766,7 @@ word * Abc_LutCascadeDec( Abc_BSEval_t * p, char * pGuide, word * pTruth, int nV
             nRVars = -1;
         }
         if ( fXRail && nRVars == -1 && Vec_IntSize(vVarIDs) > nLutSize-1 ) {
-            Vec_Wrd_t * vGuides = Abc_TtFindBVarsSVars2( p, Vec_WrdArray(vFuncs[0]), Vec_IntSize(vVarIDs), nRVarsOld, nRails+1, nLutSize-1, fVerbose, pMyu, nZParam );
+            Vec_Wrd_t * vGuides = Abc_TtFindBVarsSVars2( p, Vec_WrdArray(vFuncs[0]), Vec_IntSize(vVarIDs), nRVarsOld, nRails+1, nLutSize-1, fVerbose, pMyu, nZParam, nSubsets, nBest );
             if ( vGuides ) {
                 int iEntry = fUseRand ? Abc_Random(0) % Vec_WrdSize(vGuides) : 0;
                 nRVars = Abc_LutCascadeDecStage( Vec_WrdEntry(vGuides, iEntry), pGuide, i, vFuncs, vVarIDs, nRVarsOld, nRails+1, nLutSize-1, nZParam, fVerbose, vCas, NULL );
@@ -890,7 +890,7 @@ Abc_Ntk_t * Abc_NtkLutCascade( Abc_Ntk_t * pNtk, int nLutSize, int nStages, int 
     Gia_ManStop( pGia );
     return pNew;
 }
-Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nStages, int nRails, int nIters, int nJRatio, int nZParam, int fXRail, int Seed, int fVerbose, int fVeryVerbose, char * pGuide )
+Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nStages, int nRails, int nIters, int nJRatio, int nZParam, int fXRail, int Seed, int fVerbose, int fVeryVerbose, char * pGuide, int nSubsets, int nBest )
 {
     extern Gia_Man_t *  Abc_NtkStrashToGia( Abc_Ntk_t * pNtk );
     int i, nWords     = Abc_TtWordNum(Abc_NtkCiNum(pNtk));
@@ -919,7 +919,7 @@ Abc_Ntk_t * Abc_NtkLutCascadeOne( Abc_Ntk_t * pNtk, int nLutSize, int nStages, i
             printf( ".\n" );
         }
 
-        word * pLuts = Abc_LutCascadeDec( p, pGuide, pTruth1, Abc_NtkCiNum(pNtk), vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, NULL, NULL );
+        word * pLuts = Abc_LutCascadeDec( p, pGuide, pTruth1, Abc_NtkCiNum(pNtk), vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, NULL, NULL, nSubsets, nBest );
         pNew = pLuts ? Abc_NtkLutCascadeFromLuts( pLuts, Abc_NtkCiNum(pNtk), pNtk, nLutSize, fVerbose ) : NULL;
         Vec_IntFree( vVarIDs );
         
@@ -1434,7 +1434,7 @@ Vec_Wrd_t * Abc_NtkLutCasReadTruths( char * pFileName, int nVarsOrig )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int nStages, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, int fPrintMyu, int fPrintLev, int fXRail )
+void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int nStages, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, int fPrintMyu, int fPrintLev, int fXRail, int nSubsets, int nBest )
 {
     abctime clkStart = Abc_Clock();   
     int i, nErrors = 0, Sum = 0, nStageCount = 0, MyuMin = 0, nTotalLuts = 0, nWords = Abc_TtWordNum(nVarsOrig);
@@ -1483,7 +1483,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
             printf( "Decomposing %d-var function into %d-rail cascade of %d-LUTs.\n", nVars, nRails, nLutSize );
         }
         
-        word * pLuts = Abc_LutCascadeDec( p, NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, &nStageCount, &MyuMin );
+        word * pLuts = Abc_LutCascadeDec( p, NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, &nStageCount, &MyuMin, nSubsets, nBest );
         Vec_IntFree( vVarIDs );
         if ( MyuMin < 50 )     MyuStats[MyuMin]++, IterReal++;
         if ( pLuts == NULL ) {
