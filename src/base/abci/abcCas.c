@@ -962,7 +962,23 @@ Abc_Ntk_t * Abc_NtkLutCascadeGen( int nLutSize, int nStages, int nRails, int nSh
     ABC_FREE( pLuts );
     return pNew;
 }
-
+char * Abc_NtkReadTruth( Abc_Ntk_t * pNtk )
+{
+    if ( Abc_NtkCiNum(pNtk) > 30 )
+        return NULL;
+    extern Gia_Man_t *  Abc_NtkStrashToGia( Abc_Ntk_t * pNtk );
+    Gia_Man_t * pGia  = Abc_NtkStrashToGia( pNtk );
+    word * pTruth1    = Gia_ObjComputeTruthTable( pGia, Gia_ManCo(pGia, 0) );
+    int nWords        = Abc_TtWordNum(Abc_NtkCiNum(pNtk));
+    word * pCopy      = ABC_ALLOC( word, nWords );
+    Abc_TtCopy( pCopy, pTruth1, nWords, 0 );
+    Gia_ManStop( pGia );
+    int nVars = Abc_NtkCiNum(pNtk);
+    char * pTtStr = ABC_CALLOC( char, nVars > 2 ? (1 << (nVars-2)) + 1 : 2 );
+    Extra_PrintHexadecimalString( pTtStr, (unsigned *)pCopy, nVars );
+    ABC_FREE( pCopy );
+    return pTtStr;
+}
 
 /**Function*************************************************************
 

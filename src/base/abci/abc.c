@@ -10617,11 +10617,12 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern int  Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars );
     extern void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars );
     extern void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars );
+    extern char * Abc_NtkReadTruth( Abc_Ntk_t * pNtk );
     int c;
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INKTFMSYiaocfgvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INKTFUSYiaorfgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10678,10 +10679,10 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->nRandFuncs = atoi(argv[globalUtilOptind]);
             globalUtilOptind++;
             break;
-        case 'M':
+        case 'U':
             if ( globalUtilOptind >= argc )
             {
-                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                Abc_Print( -1, "Command line switch \"-U\" should be followed by an integer.\n" );
                 goto usage;
             }
             pPars->nMintNum = atoi(argv[globalUtilOptind]);
@@ -10716,7 +10717,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'o':
             pPars->fFewerVars ^= 1;
             break;
-        case 'c':
+        case 'r':
             pPars->fLutCascade ^= 1;
             break;
         case 'f':
@@ -10736,6 +10737,12 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind + 1 )
         pPars->pTtStr = argv[globalUtilOptind];
+    else if ( argc == globalUtilOptind && Abc_FrameReadNtk(pAbc) ) 
+    {
+        pPars->pTtStr = Abc_NtkReadTruth( Abc_FrameReadNtk(pAbc) );
+        if ( pPars->pTtStr )  
+            pPars->nVars = Abc_NtkCiNum(Abc_FrameReadNtk(pAbc));
+    }
     if ( pPars->pTtStr == NULL && pPars->pSymStr == NULL && pPars->nRandFuncs == 0 )
     {
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
@@ -10774,23 +10781,25 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Exa3_ManExactSynthesis( pPars );
     else
         Exa3_ManExactSynthesis2( pPars );
+    if ( argc == globalUtilOptind && Abc_FrameReadNtk(pAbc) )
+        ABC_FREE( pPars->pTtStr );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-INKTFMS <num>] [-Y string] [-iaocfgvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-INKTFUS <num>] [-Y string] [-iaorfgvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of I-input function using N K-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-N <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
     Abc_Print( -2, "\t-K <num> : the number of node fanins [default = %d]\n", pPars->nLutSize );
     Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", pPars->RuntimeLim );
     Abc_Print( -2, "\t-F <num> : the number of random functions to try [default = unused]\n" );
-    Abc_Print( -2, "\t-M <num> : the number of positive minterms in the random function [default = unused]\n" );
+    Abc_Print( -2, "\t-U <num> : the number of positive minterms in the random function [default = unused]\n" );
     Abc_Print( -2, "\t-S <num> : the random seed for random function generation with -F <num> [default = %d]\n", pPars->Seed );
     Abc_Print( -2, "\t-Y <str> : charasteristic string of a symmetric function [default = %d]\n", pPars->pSymStr );
     Abc_Print( -2, "\t-i       : toggle using incremental solving [default = %s]\n", pPars->fUseIncr ? "yes" : "no" );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );
-    Abc_Print( -2, "\t-c       : toggle synthesizing a single-rail cascade [default = %s]\n", pPars->fLutCascade ? "yes" : "no" );
+    Abc_Print( -2, "\t-r       : toggle synthesizing a single-rail cascade [default = %s]\n", pPars->fLutCascade ? "yes" : "no" );
     Abc_Print( -2, "\t-f       : toggle fixing LUT inputs in cascade mapping [default = %s]\n", pPars->fLutInFixed ? "yes" : "no" );
     Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fGlucose ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
