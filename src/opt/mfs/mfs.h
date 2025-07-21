@@ -60,6 +60,7 @@ struct Mfs_Par_t_
     int           fGiaSat;       // use new SAT solver
     int           fVerbose;      // enable basic stats
     int           fVeryVerbose;  // enable detailed stats
+    int           fPrintCares;   // prints careset at each node
 };
 
 ////////////////////////////////////////////////////////////////////////

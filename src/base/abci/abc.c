@@ -2660,14 +2660,17 @@ int Abc_CommandPrintGates( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fUseLibrary;
     int fUpdateProfile;
+    int fVerbose;
 
     extern void Abc_NtkPrintGates( Abc_Ntk_t * pNtk, int fUseLibrary, int fUpdateProfile );
+    extern void Abc_NtkPrintGates2( Abc_Ntk_t * pNtk );
 
     // set defaults
     fUseLibrary = 1;
     fUpdateProfile = 0;
+    fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "luh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "luvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -2676,6 +2679,9 @@ int Abc_CommandPrintGates( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'u':
             fUpdateProfile ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
             break;
         case 'h':
             goto usage;
@@ -2694,15 +2700,18 @@ int Abc_CommandPrintGates( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Printing gates does not work for AIGs and sequential AIGs.\n" );
         return 1;
     }
-
-    Abc_NtkPrintGates( pNtk, fUseLibrary, fUpdateProfile );
+    if ( fVerbose )
+        Abc_NtkPrintGates2( pNtk );
+    else
+        Abc_NtkPrintGates( pNtk, fUseLibrary, fUpdateProfile );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: print_gates [-luh]\n" );
+    Abc_Print( -2, "usage: print_gates [-luvh]\n" );
     Abc_Print( -2, "\t        prints statistics about gates used in the network\n" );
     Abc_Print( -2, "\t-l    : used library gate names (if mapped) [default = %s]\n", fUseLibrary? "yes": "no" );
     Abc_Print( -2, "\t-u    : update profile before printing it[default = %s]\n", fUpdateProfile? "yes": "no" );
+    Abc_Print( -2, "\t-v    : enable verbose output [default = %s].\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -5481,7 +5490,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     // set defaults
     Abc_NtkMfsParsDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCdraestpgvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WFDMLCdraestpgcvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -5575,6 +5584,9 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'g':
             pPars->fGiaSat ^= 1;
             break;
+        case 'c':
+            pPars->fPrintCares ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -5608,7 +5620,7 @@ int Abc_CommandMfs( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: mfs [-WFDMLC <num>] [-draestpgvh]\n" );
+    Abc_Print( -2, "usage: mfs [-WFDMLC <num>] [-draestpgcvh]\n" );
     Abc_Print( -2, "\t           performs don't-care-based optimization of logic networks\n" );
     Abc_Print( -2, "\t-W <num> : the number of levels in the TFO cone (0 <= num) [default = %d]\n", pPars->nWinTfoLevs );
     Abc_Print( -2, "\t-F <num> : the max number of fanouts to skip (1 <= num) [default = %d]\n", pPars->nFanoutsMax );
@@ -5624,6 +5636,7 @@ usage:
     Abc_Print( -2, "\t-t       : toggle using artificial one-hotness conditions [default = %s]\n", pPars->fOneHotness? "yes": "no" );
     Abc_Print( -2, "\t-p       : toggle power-aware optimization [default = %s]\n", pPars->fPower? "yes": "no" );
     Abc_Print( -2, "\t-g       : toggle using new SAT solver [default = %s]\n", pPars->fGiaSat? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle printing careset at each node [default = %s]\n", pPars->fPrintCares? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", pPars->fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle printing detailed stats for each node [default = %s]\n", pPars->fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");

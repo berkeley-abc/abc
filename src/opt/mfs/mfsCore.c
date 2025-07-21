@@ -348,6 +348,17 @@ p->timeSat += Abc_Clock() - clk;
         p->nTimeOuts++;
         return 0;
     }
+    if ( p->pPars->fPrintCares ) {
+        int nFaninMax = Abc_NtkGetFaninMax(pNode->pNtk);
+        printf( "Node %d : ", Abc_ObjId(pNode) );
+        printf( "Fanins %d : ", Abc_ObjFaninNum(pNode) );
+        printf( "Care " );
+        for ( int i = 0; i < (1 << nFaninMax)-(1 << Abc_ObjFaninNum(pNode)); i++ )
+            printf( " " );
+        Extra_PrintBinary( stdout, p->uCare, 1 << Abc_ObjFaninNum(pNode) );
+        printf( "\n" );
+    }
+
     // minimize the local function of the node using bi-decomposition
     assert( p->nFanins == Abc_ObjFaninNum(pNode) );
     dProb = p->pPars->fPower? ((float *)p->vProbs->pArray)[pNode->Id] : -1.0;
