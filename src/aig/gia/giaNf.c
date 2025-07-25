@@ -2161,45 +2161,6 @@ void Nf_ManFixPoDrivers( Nf_Man_t * p )
     //printf( "Fixed %d PO drivers.\n", Count );
 }
 
-
-
-static int IsLeafInCut(int iNode, int *pLeaves, int nLeaves)
-{
-    int i;
-    for (i = 0; i < nLeaves; i++)
-        if (pLeaves[i] == iNode)
-            return 1;
-    return 0;
-}
-void Gia_MarkCutNodes_rec(Gia_Man_t *pGia, int iNode, int *pLeaves, int nLeaves)
-{
-    Gia_Obj_t *pObj = Gia_ManObj(pGia, iNode);
-    if (pObj->fMark0)
-        return; 
-    pObj->fMark0 = 1;
-
-    if (IsLeafInCut(iNode, pLeaves, nLeaves))
-        return;
-    if (Gia_ObjIsAnd(pObj)) {
-        Gia_MarkCutNodes_rec(pGia, Gia_ObjFaninId0(pObj, iNode), pLeaves, nLeaves);
-        Gia_MarkCutNodes_rec(pGia, Gia_ObjFaninId1(pObj, iNode), pLeaves, nLeaves);
-    }
-}
-
-void Gia_ClearAllMark0(Gia_Man_t *pGia)
-{
-    int i;
-    Gia_Obj_t *pObj;
-    Gia_ManForEachObj(pGia, pObj, i)
-        pObj->fMark0 = 0;
-}
-void Gia_ClearAllMark1(Gia_Man_t *pGia)
-{
-    int i;
-    Gia_Obj_t *pObj;
-    Gia_ManForEachObj(pGia, pObj, i)
-        pObj->fMark1 = 0;
-}
 /**Function*************************************************************
 
   Synopsis    [Dump matches.]
@@ -2283,23 +2244,46 @@ void Nf_ManDumpMatches( Nf_Man_t * p )
             }
     fclose( pFile );
 }
-void DumpVMappingToFile(Vec_Int_t *vMapping, const char *filename) {
-    FILE *file = fopen(filename, "w");
-    if (!file) {
-        printf("Error: Unable to open file %s for writing.\n", filename);
+
+
+
+static int IsLeafInCut(int iNode, int *pLeaves, int nLeaves)
+{
+    int i;
+    for (i = 0; i < nLeaves; i++)
+        if (pLeaves[i] == iNode)
+            return 1;
+    return 0;
+}
+void Gia_MarkCutNodes_rec(Gia_Man_t *pGia, int iNode, int *pLeaves, int nLeaves)
+{
+    Gia_Obj_t *pObj = Gia_ManObj(pGia, iNode);
+    if (pObj->fMark0)
+        return; 
+    pObj->fMark0 = 1;
+
+    if (IsLeafInCut(iNode, pLeaves, nLeaves))
         return;
+    if (Gia_ObjIsAnd(pObj)) {
+        Gia_MarkCutNodes_rec(pGia, Gia_ObjFaninId0(pObj, iNode), pLeaves, nLeaves);
+        Gia_MarkCutNodes_rec(pGia, Gia_ObjFaninId1(pObj, iNode), pLeaves, nLeaves);
     }
-
-    fprintf(file, "vMapping contents:\n");
-    for (int i = 0; i < Vec_IntSize(vMapping); i++) {
-        fprintf(file, "Index %d: %d\n", i, Vec_IntEntry(vMapping, i));
-    }
-
-    fclose(file);
-    printf("vMapping has been dumped to %s\n", filename);
 }
 
-
+void Gia_ClearAllMark0(Gia_Man_t *pGia)
+{
+    int i;
+    Gia_Obj_t *pObj;
+    Gia_ManForEachObj(pGia, pObj, i)
+        pObj->fMark0 = 0;
+}
+void Gia_ClearAllMark1(Gia_Man_t *pGia)
+{
+    int i;
+    Gia_Obj_t *pObj;
+    Gia_ManForEachObj(pGia, pObj, i)
+        pObj->fMark1 = 0;
+}
 void Gia_ConeMark0_rec(Gia_Man_t *pGia, int iObj)
 {
     Gia_Obj_t *pObj = Gia_ManObj(pGia, iObj);
@@ -2397,8 +2381,6 @@ void Nf_PrintChoiceSelection(Nf_Man_t *p)
         if (pObj->fMark1 && !pObj->fMark0) 
             mark1Count++;
     }
-
-    // assert(mark1Count + mark0Count == Gia_ManCiNum(p->pGia)+Gia_ManAndNum(p->pGia));
     int reprInMap = 0,choiceInMap = 0;
     int mark0InMapped = 0, mark1InMapped = 0;
     Gia_ManForEachObj(p->pGia, pObj, i) {
@@ -2439,10 +2421,6 @@ void Nf_PrintChoiceSelection(Nf_Man_t *p)
   SeeAlso     []
 
 ***********************************************************************/
-
-
-
-
 Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
 {
     Vec_Int_t * vMapping;
@@ -2451,7 +2429,6 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
     assert( p->pGia->vCellMapping == NULL );
     vMapping = Vec_IntAlloc( 2*Gia_ManObjNum(p->pGia) + (int)p->pPars->Edge + (int)p->pPars->Area * 2 );
     Vec_IntFill( vMapping, 2*Gia_ManObjNum(p->pGia), 0 );
-   // Gia_ClearAllMark0( p->pGia );
     // create CI inverters
     Gia_ManForEachCiId( p->pGia, Id, i )
     if ( Nf_ObjMapRefNum(p, Id, 1) )
@@ -2488,22 +2465,13 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
     }
 //    assert( Vec_IntCap(vMapping) == 16 || Vec_IntSize(vMapping) == Vec_IntCap(vMapping) );
     p->pGia->vCellMapping = vMapping;
-    // DumpVMappingToFile(vMapping, "vMapping_dump.txt");
+
     if(p->pPars->fVerbose)
-       Nf_PrintChoiceSelection(p);
-
-    //vmapping_dump
-
+        Nf_PrintChoiceSelection(p);
     if ( p->pPars->ZFile )
         Nf_ManDumpMatches( p );
     return p->pGia;
 }
-
-
-
-
-
-
 void Nf_ManUpdateStats( Nf_Man_t * p )
 {
     Nf_Mat_t * pM;
