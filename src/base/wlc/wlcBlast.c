@@ -21,6 +21,7 @@
 #include "wlc.h"
 #include "misc/tim/tim.h"
 #include "base/main/main.h"
+#include "base/main/mainInt.h"
 #include "base/cmd/cmd.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -2690,6 +2691,11 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         Vec_PtrFreeFree( pNew->vNamesOut );  pNew->vNamesOut = NULL;
     }
     pNew->vRegClasses = vRegClasses;
+    // save initial box info
+    if ( pNew->pManTime ) {
+        Abc_Frame_t * pAbc = Abc_FrameGetGlobalFrame();
+        pAbc->vMiniLutObjs = Gia_ManDeriveBoxMapping( pNew );        
+    }
     return pNew;
 }
 
