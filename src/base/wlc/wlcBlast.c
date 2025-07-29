@@ -2692,10 +2692,10 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     }
     pNew->vRegClasses = vRegClasses;
     // save initial box info
-    if ( pNew->pManTime ) {
-        Abc_Frame_t * pAbc = Abc_FrameGetGlobalFrame();
-        pAbc->vMiniLutObjs = Gia_ManDeriveBoxMapping( pNew );        
-    }
+//    if ( pNew->pManTime ) {
+//        Abc_Frame_t * pAbc = Abc_FrameGetGlobalFrame();
+//        pAbc->vMiniLutObjs = Gia_ManDeriveBoxMapping( pNew );        
+//    }
     return pNew;
 }
 
