@@ -1358,7 +1358,7 @@ extern Gia_Man_t *         Gia_ManDupZero( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupPerm( Gia_Man_t * p, Vec_Int_t * vPiPerm );
 extern Gia_Man_t *         Gia_ManDupPermFlop( Gia_Man_t * p, Vec_Int_t * vFfPerm );
 extern Gia_Man_t *         Gia_ManDupPermFlopGap( Gia_Man_t * p, Vec_Int_t * vFfPerm );
-extern void                Gia_ManDupAppend( Gia_Man_t * p, Gia_Man_t * pTwo );
+extern void                Gia_ManDupAppend( Gia_Man_t * p, Gia_Man_t * pTwo, int fShareCis );
 extern void                Gia_ManDupAppendShare( Gia_Man_t * p, Gia_Man_t * pTwo );
 extern Gia_Man_t *         Gia_ManDupAppendNew( Gia_Man_t * pOne, Gia_Man_t * pTwo );
 extern Gia_Man_t *         Gia_ManDupAppendCones( Gia_Man_t * p, Gia_Man_t ** ppCones, int nCones, int fOnlyRegs );

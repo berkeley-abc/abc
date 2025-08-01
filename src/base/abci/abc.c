@@ -39767,13 +39767,16 @@ int Abc_CommandAbc9Append( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * FileName, * pTemp;
     char ** pArgvNew;
     int nArgcNew;
-    int c;
+    int c, fShareCis = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ivh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'i':
+            fShareCis ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -39813,14 +39816,20 @@ int Abc_CommandAbc9Append( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Reading AIGER has failed.\n" );
         return 0;
     }
+    if ( fShareCis && Gia_ManCiNum(pAbc->pGia) != Gia_ManCiNum(pSecond) )
+    {
+        Abc_Print( -1, "The AIGs have different number of combinational inputs.\n" );
+        return 0;
+    }
     // compute the miter
-    Gia_ManDupAppend( pAbc->pGia, pSecond );
+    Gia_ManDupAppend( pAbc->pGia, pSecond, fShareCis );
     Gia_ManStop( pSecond );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &append [-vh] <file>\n" );
+    Abc_Print( -2, "usage: &append [-ivh] <file>\n" );
     Abc_Print( -2, "\t         appends <file> to the current AIG using new PIs and POs\n" );
+    Abc_Print( -2, "\t-i     : toggle sharing combinational inputs [default = %s]\n", fShareCis? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : AIGER file with the design to miter\n");
