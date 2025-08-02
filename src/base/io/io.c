@@ -3593,30 +3593,33 @@ int IoCommandWriteNtk( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
-    Abc_Obj_t * pObj, * pFanin; int i, k, nIds = 1;
-    int * pId = ABC_CALLOC( int, Abc_NtkObjNumMax(pAbc->pNtkCur) );
-    Abc_NtkForEachCi( pAbc->pNtkCur, pObj, i )
-        pId[pObj->Id] = nIds++;
-    Abc_NtkForEachNode( pAbc->pNtkCur, pObj, i )
-        pId[pObj->Id] = nIds++;
-    Abc_NtkForEachCo( pAbc->pNtkCur, pObj, i )
-        pId[pObj->Id] = nIds++;
-    // get the output file name
-    pFileName = argv[globalUtilOptind];
-    FILE * pFile = fopen( pFileName, "wb" );
-    fprintf( pFile, "%d\n", 0 );
-    Abc_NtkForEachCi( pAbc->pNtkCur, pObj, i )
-        fprintf( pFile, "%d\n", pId[pObj->Id] );
-    Abc_NtkForEachNode( pAbc->pNtkCur, pObj, i ) {
-        fprintf( pFile, "%d", pId[pObj->Id] );
-        Abc_ObjForEachFanin( pObj, pFanin, k )
-            fprintf( pFile, " %d", pId[pFanin->Id] );
-        fprintf( pFile, "\n" );
+    else 
+    {
+        Abc_Obj_t * pObj, * pFanin; int i, k, nIds = 1;
+        int * pId = ABC_CALLOC( int, Abc_NtkObjNumMax(pAbc->pNtkCur) );
+        Abc_NtkForEachCi( pAbc->pNtkCur, pObj, i )
+            pId[pObj->Id] = nIds++;
+        Abc_NtkForEachNode( pAbc->pNtkCur, pObj, i )
+            pId[pObj->Id] = nIds++;
+        Abc_NtkForEachCo( pAbc->pNtkCur, pObj, i )
+            pId[pObj->Id] = nIds++;
+        // get the output file name
+        pFileName = argv[globalUtilOptind];
+        FILE * pFile = fopen( pFileName, "wb" );
+        fprintf( pFile, "%d\n", 0 );
+        Abc_NtkForEachCi( pAbc->pNtkCur, pObj, i )
+            fprintf( pFile, "%d\n", pId[pObj->Id] );
+        Abc_NtkForEachNode( pAbc->pNtkCur, pObj, i ) {
+            fprintf( pFile, "%d", pId[pObj->Id] );
+            Abc_ObjForEachFanin( pObj, pFanin, k )
+                fprintf( pFile, " %d", pId[pFanin->Id] );
+            fprintf( pFile, "\n" );
+        }
+        Abc_NtkForEachCo( pAbc->pNtkCur, pObj, i )
+            fprintf( pFile, "%d %d\n", pId[pObj->Id], pId[Abc_ObjFanin0(pObj)->Id] );
+        fclose( pFile );
+        ABC_FREE( pId );
     }
-    Abc_NtkForEachCo( pAbc->pNtkCur, pObj, i )
-        fprintf( pFile, "%d %d\n", pId[pObj->Id], pId[Abc_ObjFanin0(pObj)->Id] );
-    fclose( pFile );
-    ABC_FREE( pId );
     return 0;
 
 usage:
