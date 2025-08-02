@@ -72,6 +72,7 @@ static int IoCommandWriteBaf    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBblif  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlif   ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteEdgelist( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteNtk    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBlifMv ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBench  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteBook   ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -162,6 +163,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_dot",     IoCommandWriteDot,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_eqn",     IoCommandWriteEqn,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_edgelist",IoCommandWriteEdgelist,    0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_ntk",     IoCommandWriteNtk,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_gml",     IoCommandWriteGml,     0 );
 //    Cmd_CommandAdd( pAbc, "I/O", "write_list",    IoCommandWriteList,    0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_hmetis",  IoCommandWriteHMetis,     0 );
@@ -3554,6 +3556,74 @@ usage:
     fprintf( pAbc->Err, "\t-N     : toggle keeping original naming of the netlist in edgelist (default=False)\n");  
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .el)\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteNtk( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    char * pFileName;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        fprintf( pAbc->Out, "Empty network.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    Abc_Obj_t * pObj, * pFanin; int i, k, nIds = 1;
+    int * pId = ABC_CALLOC( int, Abc_NtkObjNumMax(pAbc->pNtkCur) );
+    Abc_NtkForEachCi( pAbc->pNtkCur, pObj, i )
+        pId[pObj->Id] = nIds++;
+    Abc_NtkForEachNode( pAbc->pNtkCur, pObj, i )
+        pId[pObj->Id] = nIds++;
+    Abc_NtkForEachCo( pAbc->pNtkCur, pObj, i )
+        pId[pObj->Id] = nIds++;
+    // get the output file name
+    pFileName = argv[globalUtilOptind];
+    FILE * pFile = fopen( pFileName, "wb" );
+    fprintf( pFile, "%d\n", 0 );
+    Abc_NtkForEachCi( pAbc->pNtkCur, pObj, i )
+        fprintf( pFile, "%d\n", pId[pObj->Id] );
+    Abc_NtkForEachNode( pAbc->pNtkCur, pObj, i ) {
+        fprintf( pFile, "%d", pId[pObj->Id] );
+        Abc_ObjForEachFanin( pObj, pFanin, k )
+            fprintf( pFile, " %d", pId[pFanin->Id] );
+        fprintf( pFile, "\n" );
+    }
+    Abc_NtkForEachCo( pAbc->pNtkCur, pObj, i )
+        fprintf( pFile, "%d %d\n", pId[pObj->Id], pId[Abc_ObjFanin0(pObj)->Id] );
+    fclose( pFile );
+    ABC_FREE( pId );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_ntk <file>\n" );
+    fprintf( pAbc->Err, "\t         writes the network into a text file\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
 }
 
