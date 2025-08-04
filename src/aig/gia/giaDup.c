@@ -6041,7 +6041,7 @@ Vec_Wec_t * Gia_ManCollectIntTfos( Gia_Man_t * p, Vec_Int_t * vVarNums )
 Gia_Man_t * Gia_ManDupCofs( Gia_Man_t * p, Vec_Int_t * vVarNums )
 {
     int i, iLit, nMints = 1 << Vec_IntSize(vVarNums);
-    Vec_Int_t * vOutLits = Vec_IntAlloc( nMints * Gia_ManCoNum(p) );    
+    Vec_Int_t * vOutLits = Vec_IntStartFull( nMints * Gia_ManCoNum(p) );    
     Vec_Wec_t * vTfos = Gia_ManCollectIntTfos( p, vVarNums );
     Gia_Man_t * pNew, * pTemp; Gia_Obj_t * pObj; 
     assert( Gia_ManRegNum(p) == 0 );
@@ -6057,7 +6057,7 @@ Gia_Man_t * Gia_ManDupCofs( Gia_Man_t * p, Vec_Int_t * vVarNums )
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachCo( p, pObj, i )
-        Vec_IntPush( vOutLits, Gia_ObjFanin0Copy(pObj) );
+        Vec_IntWriteEntry( vOutLits, i, Gia_ObjFanin0Copy(pObj) );
     int m, g, x, b = 0;
     for ( m = 1; m < nMints; m++ )
     {
@@ -6067,7 +6067,7 @@ Gia_Man_t * Gia_ManDupCofs( Gia_Man_t * p, Vec_Int_t * vVarNums )
         Gia_ManForEachObjVec( vNode, p, pObj, i )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
         Gia_ManForEachCo( p, pObj, i )
-            Vec_IntPush( vOutLits, Gia_ObjFanin0Copy(pObj) );
+            Vec_IntWriteEntry( vOutLits, g * Gia_ManCoNum(p) + i, Gia_ObjFanin0Copy(pObj) );
     }
     assert( Vec_IntFindMin(vOutLits) >= 0 );
     Vec_IntForEachEntry( vOutLits, iLit, i )

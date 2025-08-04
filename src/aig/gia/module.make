@@ -6,6 +6,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaBalLut.c \
     src/aig/gia/giaBalMap.c \
     src/aig/gia/giaBidec.c \
+    src/aig/gia/giaBsFind.c \
     src/aig/gia/giaCCof.c \
     src/aig/gia/giaCex.c \
     src/aig/gia/giaClp.c \

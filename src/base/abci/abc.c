@@ -641,6 +641,7 @@ static int Abc_CommandAbc9FunAbs             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9DsdInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FunTrace           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MulFind            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9BsFind             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9AndCare            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1465,7 +1466,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdinfo",      Abc_CommandAbc9DsdInfo,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&funtrace",     Abc_CommandAbc9FunTrace,               0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&mulfind",      Abc_CommandAbc9MulFind,                0 );    
-    Cmd_CommandAdd( pAbc, "ABC9",         "&andcare",      Abc_CommandAbc9AndCare,                0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&bsfind",       Abc_CommandAbc9BsFind,                 0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&andcare",      Abc_CommandAbc9AndCare,                0 );   
     
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,                   0 );
 
@@ -57243,6 +57245,99 @@ usage:
     Abc_Print( -2, "usage: &mulfind [-C num] [-vh]\n" );
     Abc_Print( -2, "\t          detects multipliers in the given AIG\n" );
     Abc_Print( -2, "\t-C num  : the number of cuts to compute at each node [default = %d]\n", nCutNum );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9BsFind( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Gia_ManBsFindBest( Gia_Man_t * pGia, int nWords, int nLutSize, int nBest, int nIterMax, int fVerbose );
+    int c, nWords = 256, nLutSize = 6, nBest = 20, nIterMax = 10, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "WKBIvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nWords = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nWords < 0 )
+                goto usage;
+            break;            
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;            
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBest = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nBest < 0 )
+                goto usage;
+            break;            
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIterMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIterMax < 0 )
+                goto usage;
+            break;            
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9MulFind(): There is no AIG.\n" );
+        return 0;
+    }
+    Gia_ManBsFindBest( pAbc->pGia, nWords, nLutSize, nBest, nIterMax, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &bsfind [-WKBI num] [-vh]\n" );
+    Abc_Print( -2, "\t         found a good boundset for the multi-output function\n" );
+    Abc_Print( -2, "\t-W num  : the number of simulation words to use [default = %d]\n", nWords );
+    Abc_Print( -2, "\t-K num  : the number of bound-set variables (LUT size) [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-B num  : the number of best bound-sets to consider [default = %d]\n", nBest );
+    Abc_Print( -2, "\t-I num  : the number of refinement iterations to perform [default = %d]\n", nIterMax );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;

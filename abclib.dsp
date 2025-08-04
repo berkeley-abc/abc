@@ -5755,6 +5755,10 @@ SOURCE=.\src\aig\gia\giaBound.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\aig\gia\giaBsFind.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\aig\gia\giaCCof.c
 # End Source File
 # Begin Source File
