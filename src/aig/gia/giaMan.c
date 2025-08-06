@@ -2373,6 +2373,38 @@ Gia_Man_t * Gia_GenPutOnTop( char ** pFNames, int nFNames )
     return pNew;
 }
 
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupFromArray( int * pObjs, int nObjs, int nIns, int nLatches, int nOuts, int nAnds )
+{
+    Gia_Man_t * pNew = Gia_ManStart( nObjs ); int i;
+    for ( i = 0; i < nIns + nLatches; i++ )
+        Gia_ManAppendCi(pNew);
+    for ( i = 0; i < nAnds; i++ )
+    {
+        int uLit  = 2*(1+nIns+nLatches+i);
+        int uLit0 = pObjs[uLit+0];
+        int uLit1 = pObjs[uLit+1];
+        int uLit2 = Gia_ManAppendAnd( pNew, uLit0, uLit1 );
+        assert( uLit2 == uLit );
+    }
+    for ( i = 0; i < nOuts + nLatches; i++ )
+        Gia_ManAppendCo( pNew, pObjs[2*(nObjs-nOuts-nLatches+i)+0] );
+    Gia_ManSetRegNum(pNew, nLatches);
+    return pNew;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

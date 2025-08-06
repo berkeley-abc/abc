@@ -4991,6 +4991,10 @@ SOURCE=.\src\misc\util\utilPth.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\misc\util\utilPrefix.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\misc\util\utilSignal.c
 # End Source File
 # Begin Source File
