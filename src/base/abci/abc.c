@@ -56710,6 +56710,16 @@ usage:
     return 1;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 /**Function*************************************************************
 
@@ -56724,7 +56734,6 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose);
     extern Gia_Man_t * Gia_ManDupFromArray( int * pObjs, int nObjs, int nIns, int nLatches, int nOuts, int nAnds );
     int c, nBits = 8, nFans = 4, fDumpVer = 0, fDumpMiter = 0, fVerbose = 0;
     Extra_UtilGetoptReset();

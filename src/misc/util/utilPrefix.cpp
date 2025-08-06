@@ -777,6 +777,8 @@ extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, 
 	// generate prefix adder with miter
 	if ( fDumpVer )
 		generate_prefix_adder_verilog(graph, width, mfo, fDumpMiter);
+	if ( fVerbose )
+		graph.print();
 	
 	// Count components
 	int num_inputs = 2 * width;     // a[0..width-1], b[0..width-1]
