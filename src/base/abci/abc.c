@@ -56714,7 +56714,7 @@ usage:
 extern "C" {
 #endif
 
-int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose);
+int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose, int use_or);
 
 #ifdef __cplusplus
 }
@@ -56735,9 +56735,9 @@ int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatc
 int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManDupFromArray( int * pObjs, int nObjs, int nIns, int nLatches, int nOuts, int nAnds );
-    int c, nBits = 8, nFans = 4, fDumpVer = 0, fDumpMiter = 0, fVerbose = 0;
+    int c, nBits = 8, nFans = 4, fDumpVer = 0, fDumpMiter = 0, fVerbose = 0, use_or = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NFdmv" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NFdmov" ) ) != EOF )
     {
         switch ( c )
         {
@@ -56769,6 +56769,9 @@ int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             fDumpMiter ^= 1;
             break;
+        case 'o':
+            use_or ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -56784,7 +56787,7 @@ int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
          int nObjs = 0, nIns = 0, nLatches = 0, nOuts = 0, nAnds = 0;
-         int * pObjs = adder_return_array( nBits, nFans, &nObjs, &nIns, &nLatches, &nOuts, &nAnds, fDumpVer, fDumpMiter, fVerbose );
+         int * pObjs = adder_return_array( nBits, nFans, &nObjs, &nIns, &nLatches, &nOuts, &nAnds, fDumpVer, fDumpMiter, fVerbose, use_or );
          Gia_Man_t * pTemp = Gia_ManDupFromArray( pObjs, nObjs, nIns, nLatches, nOuts, nAnds );
          Abc_FrameUpdateGia( pAbc, pTemp );
          ABC_FREE( pObjs );
@@ -56792,12 +56795,13 @@ int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &genprefix [-NF <num>] [-dcv]\n" );
+    Abc_Print( -2, "usage: &genprefix [-NF <num>] [-dmov]\n" );
     Abc_Print( -2, "\t         generates a prefix adder with minimum depth\n" );
     Abc_Print( -2, "\t-N num : the bit-width of the adder [default = %d]\n", nBits );
     Abc_Print( -2, "\t-F num : the limit on the fanout count [default = %d]\n", nFans );
     Abc_Print( -2, "\t-d     : toggles dumping the adder in Verilog [default = %s]\n", fDumpVer ? "yes": "no" );
-    Abc_Print( -2, "\t-c     : toggles dumping the miter in Verilog [default = %s]\n", fDumpMiter ? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggles dumping the miter in Verilog [default = %s]\n", fDumpMiter ? "yes": "no" );
+    Abc_Print( -2, "\t-o     : toggles using additional optimization [default = %s]\n", use_or ? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t         The code of this command is contributed by Martin Povišer <povik@cutebit.org>\n\n" );
     Abc_Print( -2, "\t         The implementation is inspired by S. Roy, M. Choudhury, R. Puri, D. Pan,\n" );

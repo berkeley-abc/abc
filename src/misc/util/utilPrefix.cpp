@@ -26,7 +26,6 @@
 	https://www.cerc.utexas.edu/utda/publications/C166.pdf
 */
 
-
 #include <algorithm>
 #include <list>
 #include <iostream>
@@ -35,7 +34,6 @@
 #include <limits>
 #include <vector>
 #include <map>
-#include <cstdio>
 
 
 class Graph;
@@ -601,23 +599,173 @@ void ripple(Graph &graph)
 	}
 }
 
-// Generate complete prefix adder Verilog
-void generate_prefix_adder_verilog(Graph& graph, int width, int mfo, int print_miter = 0) 
+
+int* prefix_return_array_int(Graph& graph) {
+	int N = graph.bitwidth();  // Number of inputs
+	int P = 0;  // Number of internal prefix nodes
+	
+	// Count internal prefix nodes and assign IDs
+	std::map<Node*, int> node_to_id;
+	std::vector<Node*> internal_nodes;
+	
+	// Assign IDs to input nodes (0 to N-1)
+	for (int i = 0; i < N; i++) {
+		node_to_id[&graph[i].nodes.front()] = i;
+	}
+	
+	// Collect and count internal nodes in topological order
+	std::vector<std::pair<int, Node*>> level_nodes;
+	for (int i = 0; i < N; i++) {
+		for (auto &node : graph[i].nodes) {
+			if (!node.pi) {
+				level_nodes.push_back({node.level, &node});
+				P++;
+			}
+		}
+	}
+	
+	// Sort by level for topological order
+	std::sort(level_nodes.begin(), level_nodes.end());
+	
+	// Assign IDs to internal nodes (N to N+P-1)
+	int id = N;
+	for (auto &pair : level_nodes) {
+		node_to_id[pair.second] = id++;
+		internal_nodes.push_back(pair.second);
+	}
+	
+	// Calculate max level
+	int L = 0;
+	if (!level_nodes.empty()) {
+		L = level_nodes.back().first;
+	}
+	
+	// Allocate array: 5 + 2*N + 3*P
+	int array_size = 5 + 2*N + 3*P;
+	int* array = (int*)calloc(array_size, sizeof(int));
+	int idx = 0;
+	
+	// (1) Total size
+	array[idx++] = array_size;
+	
+	// (2) Number of inputs
+	array[idx++] = N;
+	
+	// (3) Number of prefix nodes
+	array[idx++] = P;
+	
+	// (4) Number of levels
+	array[idx++] = L;
+	
+	// (5) Input delays (all 0 for now)
+	for (int i = 0; i < N; i++) {
+		array[idx++] = 0;
+	}
+	
+	// (6) Prefix nodes (LSB_ID, MSB_ID, current_ID)
+	for (Node* node : internal_nodes) {
+		int lsb_id = node_to_id[node->fanin2];  // fanin2 is the LSB node
+		int msb_id = node_to_id[node->fanin1];  // fanin1 is the MSB node
+		int cur_id = node_to_id[node];
+		array[idx++] = lsb_id;
+		array[idx++] = msb_id;
+		array[idx++] = cur_id;
+	}
+	
+	// (7) Output nodes
+	for (int i = 0; i < N; i++) {
+		// Find the node that computes [i:0]
+		Node* output_node = nullptr;
+		for (auto &node : graph[i].nodes) {
+			if (node.lsb == 0) {
+				output_node = &node;
+				break;
+			}
+		}
+		if (output_node) {
+			array[idx++] = node_to_id[output_node];
+		} else {
+			// If no node computes [i:0], use input node i
+			array[idx++] = i;
+		}
+	}
+	
+	// Last output is the carry-out (propagate of the last node)
+	Node* carry_node = nullptr;
+	for (auto &node : graph[N-1].nodes) {
+		if (node.lsb == 0) {
+			carry_node = &node;
+			break;
+		}
+	}
+	if (carry_node) {
+		array[idx++] = node_to_id[carry_node];
+	} else {
+		array[idx++] = N-1;
+	}
+	
+	assert(idx == array_size);
+	return array;
+}
+
+// Create compact integer array representation of prefix tree structure in this format:
+// (1) [1 integer]: Total number of integers in the array, including this entry
+// (2) [1 integer]: N = number of inputs to prefix tree (one input = one PG-pair)
+// (3) [1 integer]: P = number of prefix nodes
+// (4) [1 integer]: L = number of levels of prefix nodes
+// (5) [N integers]: Delays of each input prefix node (default 0)
+// (6) [3*P integers]: Each prefix node as (LSB_ID, MSB_ID, current_ID)
+//     - Input nodes have IDs 0 to N-1
+//     - Internal nodes have IDs N to N+P-1 (in topological order)
+// (7) [N+1 integers]: Output prefix nodes; last one produces carry-out
+// Total array size: 5 + 2*N + 3*P integers
+extern "C" int* prefix_return_array(int width, int mfo, int fVerbose) {
+	// Build the prefix adder graph
+	Graph graph;
+	graph.initialize(width);
+	graph.set_max_depth(ceil_log2(width));
+	graph.set_max_fanout(mfo / 2);
+	
+	// Build the prefix tree using the same algorithm sequence
+	seed(graph);
+	greedy(graph);
+	greedy(graph);
+	graph.set_max_fanout(mfo);
+	algo3(graph);
+	algo4(graph);
+	greedy(graph);
+	greedy(graph);
+	if ( fVerbose )
+		graph.print();
+	// Get the prefix array representation
+	int* prefix_array = prefix_return_array_int(graph);
+	return prefix_array;
+}
+
+void generate_prefix_adder_verilog(int* array, int width, int mfo, int print_miter = 0, int use_or = 0) 
 {
+	// Parse array header
+	int idx = 0;
+	int array_size = array[idx++]; 
+	int N = array[idx++];
+	int P = array[idx++];
+	int L = array[idx++];
+	
+	// Verify width matches
+	if (N != width) {
+		std::cerr << "Error: Array N=" << N << " doesn't match width=" << width << std::endl;
+		return;
+	}
+	
 	char filename[100];
-	sprintf(filename, "prefix_adder_%d_%d.v", width, mfo);
+	sprintf(filename, "prefix_adder_%d_%d%s.v", width, mfo, print_miter ? "_miter":"" );
 	FILE *fp = fopen(filename, "w");
 	if (!fp) {
 		std::cerr << "Error: Cannot create " << filename << std::endl;
 		return;
 	}
 	
-	int actual_mfo = graph.max_fanout();
-	int size = graph.size();
-	// bool valid = graph.validate();  // unused
-	
-	fprintf(fp, "// Complete Prefix Adder: width=%d, mfo=%d, tree_size=%d\n", width, actual_mfo, size);
-	fprintf(fp, "// Generated by C++ version\n");
+	fprintf(fp, "// Prefix adder: width=%d, internal_nodes=%d, levels=%d\n", N, P, L);
 	fprintf(fp, "module prefix_adder_%d (\n", width);
 	fprintf(fp, "  input [%d:0] a,\n", width-1);
 	fprintf(fp, "  input [%d:0] b,\n", width-1);
@@ -625,92 +773,94 @@ void generate_prefix_adder_verilog(Graph& graph, int width, int mfo, int print_m
 	fprintf(fp, ");\n\n");
 	
 	// Generate propagate and generate signals
-	fprintf(fp, "  // Generate propagate (p) and generate (g) signals\n");
-	for (int i = 0; i < width; i++) {
-		fprintf(fp, "  wire p%d = a[%d] ^ b[%d];\n", i, i, i);
-		fprintf(fp, "  wire g%d = a[%d] & b[%d];\n", i, i, i);
+	if (use_or) {
+		fprintf(fp, "  // Generate propagate (p) and generate (g) signals\n");
+		for (int i = 0; i < width; i++) {
+			fprintf(fp, "  wire p%d = a[%d] | b[%d];  // OR gate\n", i, i, i);
+			fprintf(fp, "  wire g%d = a[%d] & b[%d];\n", i, i, i);
+		}
+	} else {
+		fprintf(fp, "  // Generate propagate (p) and generate (g) signals\n");
+		for (int i = 0; i < width; i++) {
+			fprintf(fp, "  wire p%d = a[%d] ^ b[%d];\n", i, i, i);
+			fprintf(fp, "  wire g%d = a[%d] & b[%d];\n", i, i, i);
+		}
 	}
 	fprintf(fp, "\n");
 	
-	// Assign unique wire names to all nodes
-	// int wire_id = 0;  // unused
-	std::map<Node*, std::string> node_to_p_wire;
-	std::map<Node*, std::string> node_to_g_wire;
+	// Skip input delays (idx already points to start of prefix nodes)
+	idx += N;
 	
-	// Assign wire names to input nodes
-	for (int i = 0; i < graph.bitwidth(); i++) {
-		Node* node = &graph[i].nodes.front();
-		char p_name[20], g_name[20];
-		sprintf(p_name, "p%d", i);
-		sprintf(g_name, "g%d", i);
-		node_to_p_wire[node] = p_name;
-		node_to_g_wire[node] = g_name;
-	}
-	
-	// Assign wire names to internal nodes
-	for (int i = 0; i < graph.bitwidth(); i++) {
-		for (auto &node : graph[i].nodes) {
-			if (!node.pi) {
-				char p_name[20], g_name[20];
-				sprintf(p_name, "p_%d_%d", node.msb, node.lsb);
-				sprintf(g_name, "g_%d_%d", node.msb, node.lsb);
-				node_to_p_wire[&node] = p_name;
-				node_to_g_wire[&node] = g_name;
-			}
-		}
-	}
-	
-	// Generate prefix tree internal nodes using compact prefix cells
+	// Generate internal prefix nodes
 	fprintf(fp, "  // Prefix tree computation using traditional prefix cells\n");
 	fprintf(fp, "  // Each prefix cell computes:\n");
 	fprintf(fp, "  //   p_out = p_in1 & p_in2\n");
 	fprintf(fp, "  //   g_out = g_in1 | (p_in1 & g_in2)\n");
 	fprintf(fp, "\n");
 	
-	for (int i = 0; i < graph.bitwidth(); i++) {
-		for (auto &node : graph[i].nodes) {
-			if (!node.pi) {
-				// Generate the propagate output
-				fprintf(fp, "  wire %s = %s & %s;\n",
-					node_to_p_wire[&node].c_str(),
-					node_to_p_wire[node.fanin1].c_str(),
-					node_to_p_wire[node.fanin2].c_str());
-				
-				// Generate the generate output
-				fprintf(fp, "  wire %s = %s | (%s & %s); // [%d:%d] = [%d:%d] o [%d:%d]\n",
-					node_to_g_wire[&node].c_str(),
-					node_to_g_wire[node.fanin1].c_str(),
-					node_to_p_wire[node.fanin1].c_str(),
-					node_to_g_wire[node.fanin2].c_str(),
-					node.msb, node.lsb,
-					node.fanin1->msb, node.fanin1->lsb,
-					node.fanin2->msb, node.fanin2->lsb);
-			}
-		}
+	// Process prefix nodes
+	for (int i = 0; i < P; i++) {
+		int lsb_id = array[idx++];
+		int msb_id = array[idx++];
+		int cur_id = array[idx++];
+		
+		// Determine wire names based on node IDs
+		std::string p_lsb = (lsb_id < N) ? "p" + std::to_string(lsb_id) : "p_" + std::to_string(lsb_id);
+		std::string g_lsb = (lsb_id < N) ? "g" + std::to_string(lsb_id) : "g_" + std::to_string(lsb_id);
+		std::string p_msb = (msb_id < N) ? "p" + std::to_string(msb_id) : "p_" + std::to_string(msb_id);
+		std::string g_msb = (msb_id < N) ? "g" + std::to_string(msb_id) : "g_" + std::to_string(msb_id);
+		std::string p_out = "p_" + std::to_string(cur_id);
+		std::string g_out = "g_" + std::to_string(cur_id);
+		
+		// Generate propagate output
+		fprintf(fp, "  wire %s = %s & %s;\n", p_out.c_str(), p_msb.c_str(), p_lsb.c_str());
+		
+		// Generate generate output
+		fprintf(fp, "  wire %s = %s | (%s & %s);\n", 
+			g_out.c_str(), g_msb.c_str(), p_msb.c_str(), g_lsb.c_str());
 	}
 	fprintf(fp, "\n");
 	
-	// Extract carry signals from prefix tree
+	// Extract carry signals from output nodes
 	fprintf(fp, "  // Extract carry signals from prefix tree\n");
 	fprintf(fp, "  wire cin = 1'b0; // No carry input\n");
-	for (int i = 0; i < graph.bitwidth(); i++) {
-		if (graph[i].nodes.back().lsb == 0) {
-			fprintf(fp, "  wire c%d = %s; // Carry out of bit %d\n", 
-				graph[i].nodes.back().msb, 
-				node_to_g_wire[&graph[i].nodes.back()].c_str(), 
-				graph[i].nodes.back().msb);
+	
+	// Process output nodes to get carry signals
+	std::vector<int> output_nodes;
+	for (int i = 0; i < N+1; i++) {
+		output_nodes.push_back(array[idx++]);
+	}
+	assert(idx == array_size);
+	
+	// Generate carry signals c0 through c[N-1]
+	for (int i = 0; i < N; i++) {
+		int node_id = output_nodes[i];
+		if (node_id < N) {
+			// This is an input node, so carry is just g[i]
+			fprintf(fp, "  wire c%d = g%d; // Carry out of bit %d\n", i, node_id, i);
+		} else {
+			// This is an internal node
+			fprintf(fp, "  wire c%d = g_%d; // Carry out of bit %d\n", i, node_id, i);
 		}
 	}
 	fprintf(fp, "\n");
 	
-	// Generate final sum
-	fprintf(fp, "  // Compute final sum\n");
-	fprintf(fp, "  assign sum[0] = p0 ^ cin;\n");
-	for (int i = 1; i < width; i++) {
-		fprintf(fp, "  assign sum[%d] = p%d ^ c%d;\n", i, i, i-1);
+	// Generate sum outputs
+	fprintf(fp, "  // Generate sum outputs\n");
+	if (use_or) {
+		fprintf(fp, "  assign sum[0] = p0 & ~g0; // No carry-in\n");
+		for (int i = 1; i < width; i++) {
+			fprintf(fp, "  assign sum[%d] = (p%d & ~g%d) ^ c%d;\n", i, i, i, i-1);
+		}
+	} else {
+		fprintf(fp, "  assign sum[0] = p0 ^ cin; // cin = 0\n");
+		for (int i = 1; i < width; i++) {
+			fprintf(fp, "  assign sum[%d] = p%d ^ c%d;\n", i, i, i-1);
+		}
 	}
-	fprintf(fp, "  assign sum[%d] = c%d; // Final carry out\n", width, width-1);
 	
+	// Carry out
+	fprintf(fp, "  assign sum[%d] = c%d; // Carry out\n", width, width-1);
 	fprintf(fp, "\nendmodule\n");
 	
 	// Generate miter module if requested
@@ -740,31 +890,18 @@ void generate_prefix_adder_verilog(Graph& graph, int width, int mfo, int print_m
 	}
 	
 	fclose(fp);
-	std::cerr << "Generated complete prefix adder: " << filename << std::endl;
+	std::cerr << "Generated complete prefix adder from array: " << filename << std::endl;
 }
 
-// Write variable-length encoded unsigned integer for binary AIGER
-void write_aiger_encoded(FILE* fp, unsigned x) {
-	unsigned char ch;
-	while (x & ~0x7f) {
-		ch = (x & 0x7f) | 0x80;
-		fputc(ch, fp);
-		x >>= 7;
-	}
-	ch = x;
-	fputc(ch, fp);
-}
-
-// Create integer array representation of prefix adder AIG
-// Returns array in same format as Mini_AigerReadInt, compatible with generate_prefix_adder_aiger_int
-extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose) {
+// Create AIG array from the prefix array
+extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose, int use_or) {
 	// Build the prefix adder graph
 	Graph graph;
 	graph.initialize(width);
 	graph.set_max_depth(ceil_log2(width));
 	graph.set_max_fanout(mfo / 2);
 	
-	// Build the prefix tree using the same algorithm sequence as main
+	// Build the prefix tree using the same algorithm sequence
 	seed(graph);
 	greedy(graph);
 	greedy(graph);
@@ -773,19 +910,63 @@ extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, 
 	algo4(graph);
 	greedy(graph);
 	greedy(graph);
-
-	// generate prefix adder with miter
-	if ( fDumpVer )
-		generate_prefix_adder_verilog(graph, width, mfo, fDumpMiter);
 	if ( fVerbose )
 		graph.print();
 	
-	// Count components
+	// Get the prefix array representation
+	int* prefix_array = prefix_return_array_int(graph);
+	if ( fDumpVer )
+		generate_prefix_adder_verilog(prefix_array, width, mfo, fDumpMiter);
+	
+	// Parse prefix array
+	int idx = 0;
+	int array_size = prefix_array[idx++];
+	int N = prefix_array[idx++];  // Number of inputs
+	int P = prefix_array[idx++];  // Number of prefix nodes
+	int L = prefix_array[idx++];  // Number of levels
+	assert( L > 0 );
+	
+	// Verify width matches
+	if (N != width) {
+		free(prefix_array);
+		return NULL;
+	}
+	
+	// Skip input delays (N integers)
+	idx += N;
+	
+	// Create mapping for prefix node IDs to their computation
+	struct PrefixNode {
+		int lsb_id;
+		int msb_id;
+		int id;
+	};
+	std::vector<PrefixNode> prefix_nodes;
+	
+	// Read prefix nodes (P nodes, each with 3 integers: lsb_id, msb_id, current_id)
+	for (int i = 0; i < P; i++) {
+		PrefixNode node;
+		node.lsb_id = prefix_array[idx++];
+		node.msb_id = prefix_array[idx++];
+		node.id = prefix_array[idx++];
+		prefix_nodes.push_back(node);
+	}
+	
+	// Read output node IDs (N+1 integers)
+	std::vector<int> output_ids;
+	for (int i = 0; i <= N; i++) {
+		output_ids.push_back(prefix_array[idx++]);
+	}
+	assert(idx == array_size);
+
+	// Free prefix array - we've extracted all information
+	free(prefix_array);
+	
+	// Now build AIG using the prefix tree structure
 	int num_inputs = 2 * width;     // a[0..width-1], b[0..width-1]
 	int num_outputs = width + 1;    // sum[0..width]
 	int num_latches = 0;            // combinational circuit
 	
-	// We'll count AND gates as we generate them
 	std::vector<std::pair<int, std::pair<int, int>>> and_gates;
 	
 	// Variable allocation
@@ -802,105 +983,146 @@ extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, 
 		next_var += 2;
 	}
 	
-	// Generate propagate and generate signals (same as in AIGER generation)
+	// Generate propagate and generate signals
 	for (int i = 0; i < width; i++) {
-		// pi = ai XOR bi = (ai | bi) & !(ai & bi)
-		// First create ai & bi
 		int ai = signal_map[std::string("a") + std::to_string(i)];
 		int bi = signal_map[std::string("b") + std::to_string(i)];
 		
+		// gi = ai & bi
 		signal_map[std::string("g") + std::to_string(i)] = next_var;
 		and_gates.push_back({next_var, {ai, bi}});
 		next_var += 2;
 		
-		// Create ai | bi = !(!ai & !bi)
-		int not_ai_and_not_bi = next_var;
-		and_gates.push_back({not_ai_and_not_bi, {ai ^ 1, bi ^ 1}});
-		next_var += 2;
-		
-		// pi = (ai | bi) & !(ai & bi)
-		signal_map[std::string("p") + std::to_string(i)] = next_var;
-		and_gates.push_back({next_var, {not_ai_and_not_bi ^ 1, signal_map[std::string("g") + std::to_string(i)] ^ 1}});
-		next_var += 2;
+		if (use_or) {
+			// pi = ai | bi = !(!ai & !bi)
+			int not_ai_and_not_bi = next_var;
+			and_gates.push_back({not_ai_and_not_bi, {ai ^ 1, bi ^ 1}});
+			next_var += 2;
+			
+			signal_map[std::string("p") + std::to_string(i)] = not_ai_and_not_bi ^ 1;
+		} else {
+			// pi = ai XOR bi = (ai | bi) & !(ai & bi)
+			// Create ai | bi = !(!ai & !bi)
+			int not_ai_and_not_bi = next_var;
+			and_gates.push_back({not_ai_and_not_bi, {ai ^ 1, bi ^ 1}});
+			next_var += 2;
+			
+			// pi = (ai | bi) & !(ai & bi)
+			signal_map[std::string("p") + std::to_string(i)] = next_var;
+			and_gates.push_back({next_var, {not_ai_and_not_bi ^ 1, signal_map[std::string("g") + std::to_string(i)] ^ 1}});
+			next_var += 2;
+		}
 	}
 	
-	// Generate prefix tree
-	std::map<std::pair<int, int>, std::pair<int, int>> computed_nodes;
+	// Map from prefix node ID to (p, g) signals
+	std::map<int, std::pair<int, int>> node_signals;
 	
-	for (int i = 0; i < width; i++) {
-		computed_nodes[{i, i}] = {
+	// Initialize input nodes (ID 0 to N-1)
+	for (int i = 0; i < N; i++) {
+		node_signals[i] = {
 			signal_map[std::string("p") + std::to_string(i)],
 			signal_map[std::string("g") + std::to_string(i)]
 		};
 	}
 	
-	// Process each node in the graph
-	for (int i = 0; i < graph.bitwidth(); i++) {
-		for (auto &node : graph[i].nodes) {
-			if (node.pi)
-				continue;
-			
-			int msb1 = node.fanin1->msb;
-			int lsb1 = node.fanin1->lsb;
-			int msb2 = node.fanin2->msb;
-			int lsb2 = node.fanin2->lsb;
-			
-			int p1 = computed_nodes[{msb1, lsb1}].first;
-			int g1 = computed_nodes[{msb1, lsb1}].second;
-			int p2 = computed_nodes[{msb2, lsb2}].first;
-			int g2 = computed_nodes[{msb2, lsb2}].second;
-			
-			// p_out = p1 & p2
-			int p_out = next_var;
-			and_gates.push_back({p_out, {p1, p2}});
-			next_var += 2;
-			
-			// g_out = g1 | (p1 & g2)
-			int p1_and_g2 = next_var;
-			and_gates.push_back({p1_and_g2, {p1, g2}});
-			next_var += 2;
-			
-			// g1 | (p1 & g2) = !(!g1 & !(p1 & g2))
-			int g_out = next_var;
-			and_gates.push_back({g_out, {g1 ^ 1, p1_and_g2 ^ 1}});
-			next_var += 2;
-			g_out = g_out ^ 1;
-			
-			int msb = node.msb;
-			int lsb = node.lsb;
-			computed_nodes[{msb, lsb}] = {p_out, g_out};
-		}
+	// Process prefix nodes in order (they're already topologically sorted)
+	for (const PrefixNode& pnode : prefix_nodes) {
+		// Get signals from fanins
+		int p1 = node_signals[pnode.msb_id].first;
+		int g1 = node_signals[pnode.msb_id].second;
+		int p2 = node_signals[pnode.lsb_id].first;
+		int g2 = node_signals[pnode.lsb_id].second;
+		
+		// p_out = p1 & p2
+		int p_out = next_var;
+		and_gates.push_back({p_out, {p1, p2}});
+		next_var += 2;
+		
+		// g_out = g1 | (p1 & g2)
+		int p1_and_g2 = next_var;
+		and_gates.push_back({p1_and_g2, {p1, g2}});
+		next_var += 2;
+		
+		// g1 | (p1 & g2) = !(!g1 & !(p1 & g2))
+		int g_out = next_var;
+		and_gates.push_back({g_out, {g1 ^ 1, p1_and_g2 ^ 1}});
+		next_var += 2;
+		g_out = g_out ^ 1;
+		
+		node_signals[pnode.id] = {p_out, g_out};
 	}
 	
 	// Generate sum outputs
 	std::vector<int> output_signals;
 	
-	// sum[0] = p0 ^ cin, where cin = 0
-	output_signals.push_back(signal_map[std::string("p0")]);
-	
-	// sum[i] = pi ^ c[i-1] for i = 1 to width-1
-	for (int i = 1; i < width; i++) {
-		int pi = signal_map[std::string("p") + std::to_string(i)];
-		int gi_minus_1 = computed_nodes[{i-1, 0}].second;
+	if (use_or) {
+		// sum[i] = (pi & ~gi) ^ c[i-1]
+		// For i=0, cin=0, so sum[0] = p0 & ~g0
+		int p0 = signal_map[std::string("p0")];
+		int g0 = signal_map[std::string("g0")];
 		
-		// pi XOR gi_minus_1 = (pi | gi_minus_1) & !(pi & gi_minus_1)
-		int pi_and_gi = next_var;
-		and_gates.push_back({pi_and_gi, {pi, gi_minus_1}});
+		// p0 & ~g0
+		int sum_0 = next_var;
+		and_gates.push_back({sum_0, {p0, g0 ^ 1}});
 		next_var += 2;
+		output_signals.push_back(sum_0);
 		
-		int not_pi_and_not_gi = next_var;
-		and_gates.push_back({not_pi_and_not_gi, {pi ^ 1, gi_minus_1 ^ 1}});
-		next_var += 2;
+		// For i = 1 to width-1
+		for (int i = 1; i < width; i++) {
+			int pi = signal_map[std::string("p") + std::to_string(i)];
+			int gi = signal_map[std::string("g") + std::to_string(i)];
+			// Get carry from output_ids[i-1] which gives us node ID for [i-1:0]
+			int ci_minus_1 = node_signals[output_ids[i-1]].second;
+			
+			// pi & ~gi
+			int pi_and_not_gi = next_var;
+			and_gates.push_back({pi_and_not_gi, {pi, gi ^ 1}});
+			next_var += 2;
+			
+			// (pi & ~gi) XOR ci_minus_1
+			int pi_and_not_gi_and_ci = next_var;
+			and_gates.push_back({pi_and_not_gi_and_ci, {pi_and_not_gi, ci_minus_1}});
+			next_var += 2;
+			
+			int not_pi_and_not_gi_and_not_ci = next_var;
+			and_gates.push_back({not_pi_and_not_gi_and_not_ci, {pi_and_not_gi ^ 1, ci_minus_1 ^ 1}});
+			next_var += 2;
+			
+			int sum_i = next_var;
+			and_gates.push_back({sum_i, {not_pi_and_not_gi_and_not_ci ^ 1, pi_and_not_gi_and_ci ^ 1}});
+			next_var += 2;
+			
+			output_signals.push_back(sum_i);
+		}
+	} else {
+		// Regular: sum[0] = p0 ^ cin, where cin = 0
+		output_signals.push_back(signal_map[std::string("p0")]);
 		
-		int sum_i = next_var;
-		and_gates.push_back({sum_i, {not_pi_and_not_gi ^ 1, pi_and_gi ^ 1}});
-		next_var += 2;
-		
-		output_signals.push_back(sum_i);
+		// sum[i] = pi ^ c[i-1] for i = 1 to width-1
+		for (int i = 1; i < width; i++) {
+			int pi = signal_map[std::string("p") + std::to_string(i)];
+			// Get carry from output_ids[i-1] which gives us node ID for [i-1:0]
+			int gi_minus_1 = node_signals[output_ids[i-1]].second;
+			
+			// pi XOR gi_minus_1 = (pi | gi_minus_1) & !(pi & gi_minus_1)
+			int pi_and_gi = next_var;
+			and_gates.push_back({pi_and_gi, {pi, gi_minus_1}});
+			next_var += 2;
+			
+			int not_pi_and_not_gi = next_var;
+			and_gates.push_back({not_pi_and_not_gi, {pi ^ 1, gi_minus_1 ^ 1}});
+			next_var += 2;
+			
+			int sum_i = next_var;
+			and_gates.push_back({sum_i, {not_pi_and_not_gi ^ 1, pi_and_gi ^ 1}});
+			next_var += 2;
+			
+			output_signals.push_back(sum_i);
+		}
 	}
 	
-	// sum[width] = c[width-1] = g[width-1:0]
-	output_signals.push_back(computed_nodes[{width-1, 0}].second);
+	// sum[width] = c[width-1] = g[width-1:0] from the last output node
+	output_signals.push_back(node_signals[output_ids[N]].second);
 	
 	// Now create the integer array in miniaig format
 	int nObjs = 1 + num_inputs + 2*num_latches + num_outputs + and_gates.size();
@@ -911,7 +1133,6 @@ extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, 
 		pObjs[i] = 0;  // MINI_AIG_NULL is typically 0
 	}
 	
-	// Primary inputs don't need initialization beyond NULL
 	// Primary outputs
 	for (int i = 0; i < num_outputs; i++) {
 		pObjs[2*(nObjs-num_outputs-num_latches+i)+0] = output_signals[i];
@@ -946,6 +1167,18 @@ extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, 
 	return pObjs;
 }
 
+// Write variable-length encoded unsigned integer for binary AIGER
+void write_aiger_encoded(FILE* fp, unsigned x) {
+	unsigned char ch;
+	while (x & ~0x7f) {
+		ch = (x & 0x7f) | 0x80;
+		fputc(ch, fp);
+		x >>= 7;
+	}
+	ch = x;
+	fputc(ch, fp);
+}
+
 void generate_prefix_adder_aiger_int( char * pFileName, int * pObjs, int nObjs, int nIns, int nLatches, int nOuts, int nAnds )
 {
     FILE * pFile = fopen( pFileName, "wb" ); int i;
@@ -975,7 +1208,7 @@ void generate_prefix_adder_aiger( int width, int mfo )
 	char pFileName[100];
 	sprintf( pFileName, "prefix_adder_%d_%d.aig", width, mfo );
 	int nObjs = 0, nIns = 0, nLatches = 0, nOuts = 0, nAnds = 0;
-	int * pObjs = adder_return_array( width, mfo, &nObjs, &nIns, &nLatches, &nOuts, &nAnds, 0, 0, 0 );
+	int * pObjs = adder_return_array( width, mfo, &nObjs, &nIns, &nLatches, &nOuts, &nAnds, 0, 0, 0, 0 );
     generate_prefix_adder_aiger_int( pFileName, pObjs, nObjs, nIns, nLatches, nOuts, nAnds );
 	printf( "Written prefix adder into AIGER file \"%s\".\n", pFileName );
 	free(pObjs);
