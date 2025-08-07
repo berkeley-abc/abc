@@ -69,6 +69,7 @@ struct Bmc_EsPar_t_
     int        nRandFuncs;
     int        nMintNum;
     int        Seed;
+    int        fDumpBlif;
     int        fVerbose; 
     char *     pTtStr;
     char *     pSymStr;

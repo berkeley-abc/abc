@@ -1642,21 +1642,40 @@ int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     else if ( status == GLUCOSE_UNDEC )
         printf( "The solver timed out after %d sec.\n", pPars->RuntimeLim );
     else 
-        printf( "The problem has no solution.\n" );
+        printf( "The problem has no solution.\n" ), Res = 2;
     printf( "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
     Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
-    if ( iMint == -1 )
+    if ( iMint == -1 && pPars->fDumpBlif )
         Exa3_ManDumpBlif( p, fCompl );
     if ( pPars->pSymStr ) 
         ABC_FREE( pPars->pTtStr );
     Exa3_ManFree( p );
     return Res;
 }
+
+char * Exa_TimeStamp()
+{
+    static char Buffer[100];
+    time_t ltime;
+    struct tm *tm_info;
+
+    // Get the current time
+    time(&ltime);
+    tm_info = localtime(&ltime);
+
+    // Format the time as YYYY_MM_DD__HH_MM_SS
+    strftime(Buffer, sizeof(Buffer), "%Y_%m_%d__%H_%M_%S", tm_info);
+    
+    return Buffer;
+}
+
 void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars )
 {
-    int i, k, nDecs = 0, nWords = Abc_TtWordNum(pPars->nVars);
+    abctime clk = Abc_Clock();
+    int i, k, Status, nDecs[3] = {0}, nWords = Abc_TtWordNum(pPars->nVars);
     word * pFun = ABC_ALLOC( word, nWords ); 
     unsigned Rand0 = Abc_Random(1);
+    Vec_Str_t * vUndec = Vec_StrAlloc( 100 );
     for ( i = 0; i < pPars->Seed; i++ )
         Rand0 = Abc_Random(0);    
     for ( i = 0; i < pPars->nRandFuncs; i++ ) {
@@ -1680,11 +1699,31 @@ void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars )
         printf( "\n" );
         if ( pPars->fVerbose )
             printf( "Truth table : %s\n", pPars->pTtStr );
-        nDecs += Exa3_ManExactSynthesis( pPars );
+        Status = Exa3_ManExactSynthesis( pPars );
+        nDecs[Status]++;
+        if ( Status == 0 ) // undecided
+            Vec_StrPrintF( vUndec, "%s\n", pPars->pTtStr );
         ABC_FREE( pPars->pTtStr );
     }
-    printf( "\nDecomposable are %d (out of %d) functions (%.2f %%).\n\n", nDecs, pPars->nRandFuncs, 100.0*nDecs/pPars->nRandFuncs );
+    printf( "\n" );
+    printf( "Decomposable     are %6d (out of %6d) functions (%6.2f %%).\n", nDecs[1], pPars->nRandFuncs, 100.0*nDecs[1]/pPars->nRandFuncs );
+    printf( "Non-decomposable are %6d (out of %6d) functions (%6.2f %%).\n", nDecs[2], pPars->nRandFuncs, 100.0*nDecs[2]/pPars->nRandFuncs );
+    printf( "Undecided        are %6d (out of %6d) functions (%6.2f %%).\n", nDecs[0], pPars->nRandFuncs, 100.0*nDecs[0]/pPars->nRandFuncs );
     ABC_FREE( pFun );
+    if ( nDecs[0] > 0 ) {
+        char filename[1000];
+        sprintf( filename, "undecided_%d_out_of_F%d_with_N%d_M%d_K%d_U%d_S%d_T%d%s__%s.txt", 
+                nDecs[0], pPars->nRandFuncs, pPars->nVars, pPars->nNodes, pPars->nLutSize, 
+                pPars->nMintNum, pPars->Seed, pPars->RuntimeLim, pPars->fLutCascade ? "_r" : "", Exa_TimeStamp() );
+        FILE * pFile = fopen( filename, "wb" );
+        if ( pFile ) {
+            fwrite( Vec_StrArray(vUndec), 1, Vec_StrSize(vUndec), pFile );
+            fclose( pFile );
+            printf( "The resulting undecided functions were written into file \"%s\".\n", filename );
+        }
+    }
+    Abc_PrintTime( 1, "Total time", Abc_Clock() - clk );    
+    Vec_StrFree( vUndec );
 }
 
 
