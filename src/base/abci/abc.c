@@ -56446,11 +56446,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9GenComp( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManDupGenComp( int nBits, int fInterleave );
+    extern Gia_Man_t * Gia_ManDupGenComp( int nBits, int fInterleave, int fSigned );
     Gia_Man_t * pTemp = NULL;
-    int c, nBits = 0, fInter = 0, fVerbose = 0;
+    int c, nBits = 4, fInter = 0, fSigned = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Kivh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Kisvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -56468,6 +56468,9 @@ int Abc_CommandAbc9GenComp( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'i':
             fInter ^= 1;
             break;            
+        case 's':
+            fSigned ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -56482,17 +56485,18 @@ int Abc_CommandAbc9GenComp( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9GenComp(): The number of inputs should be defined on the command line \"-K num\".\n" );
         return 0;            
     }    
-    pTemp = Gia_ManDupGenComp( nBits, fInter );
+    pTemp = Gia_ManDupGenComp( nBits, fInter, fSigned );
     Abc_FrameUpdateGia( pAbc, pTemp );
     if ( fVerbose )
         Abc_Print( 1, "Generated %d-bit comparator.\n", nBits );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &gencomp [-K <num>] [-ivh]\n" );
-    Abc_Print( -2, "\t         generates the comparator\n" );
-    Abc_Print( -2, "\t-K num : the number of control inputs [default = undefined]\n" );
+    Abc_Print( -2, "usage: &gencomp [-K <num>] [-isvh]\n" );
+    Abc_Print( -2, "\t         generates the comparator (a > b)\n" );
+    Abc_Print( -2, "\t-K num : the bitwidth of the inputs [default = %d]\n", nBits );
     Abc_Print( -2, "\t-i     : toggles using interleaved variable ordering [default = %s]\n", fInter ? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles generating signed comparator [default = %s]\n", fSigned ? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

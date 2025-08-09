@@ -1192,9 +1192,9 @@ Gia_Man_t * Gia_ManGenNeuron( char * pFileName, int nIBits, int nLutSize, int fD
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDupGenComp( int nBits, int fInterleave )
+Gia_Man_t * Gia_ManDupGenComp( int nBits, int fInterleave, int fSigned )
 {
-    Gia_Man_t * pNew, * pTemp; int i, iLit = 1;
+    Gia_Man_t * pNew, * pTemp; int i, iLit = 1, iLitXor = 0, iLitB = 0;
     Vec_Int_t * vBitsA = Vec_IntAlloc( nBits + 1 );
     Vec_Int_t * vBitsB = Vec_IntAlloc( nBits + 1 );
     pNew = Gia_ManStart( 6*nBits+10 );
@@ -1210,6 +1210,10 @@ Gia_Man_t * Gia_ManDupGenComp( int nBits, int fInterleave )
             Vec_IntPush( vBitsA, Gia_ManAppendCi(pNew) );
         for ( i = 0; i < nBits; i++ )
             Vec_IntPush( vBitsB, Gia_ManAppendCi(pNew) );
+    }
+    if ( fSigned ) {
+        iLitXor = Gia_ManHashXor( pNew, Vec_IntPop(vBitsA), (iLitB = Vec_IntPop(vBitsB)) );
+        nBits--;
     }
     Vec_IntPush( vBitsA, 0 );
     Vec_IntPush( vBitsB, 0 );
@@ -1227,7 +1231,10 @@ Gia_Man_t * Gia_ManDupGenComp( int nBits, int fInterleave )
         int iOrLit  = Gia_ManHashOr(pNew, iOrLit0, iOrLit1 );
         iLit = Gia_ManHashOr(pNew, Abc_LitNot(iLit), iOrLit );
     }
-    Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, nBits&1) );
+    iLit = Abc_LitNotCond(iLit, nBits&1);
+    if ( fSigned ) 
+        iLit = Gia_ManHashMux(pNew, iLitXor, iLitB, iLit );
+    Gia_ManAppendCo( pNew, iLit );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     Vec_IntFree( vBitsA );
