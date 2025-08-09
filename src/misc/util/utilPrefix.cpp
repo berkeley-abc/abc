@@ -34,6 +34,12 @@
 #include <limits>
 #include <vector>
 #include <map>
+#include <random>
+#include <climits>
+#include <iomanip>
+//#include <cstdlib>
+//#include <cstring>
+//#include <cstdio>
 
 
 class Graph;
@@ -272,7 +278,7 @@ struct Graph {
 		int min_level1 = min_level();
 		int max_level1 = max_level();
 
-		std::cout << "\n" << "size=" << size() \
+		std::cout << "Parameters: size=" << size() \
 			<< " max_fanout=" << max_fanout() << " depth=" << max_level1 - min_level1 \
 			<< " " << (validate() ? "(validates)" : "") << "\n";
 
@@ -326,7 +332,8 @@ int ceil_log2(int x)
 }
 
 void search(Node &node, Graph &graph, std::vector<Node *> &candidate,
-			std::vector<Node *> &best, int level_cap, int lsb, int ttl, bool first=false)
+			std::vector<Node *> &best, int level_cap, int lsb, int ttl, 
+			std::mt19937* rng = nullptr, bool first=false)
 {
 	if (node.lsb == lsb) {
 		/*
@@ -336,8 +343,14 @@ void search(Node &node, Graph &graph, std::vector<Node *> &candidate,
 			}
 		printf("\n");
 		*/
-		if (best.empty() || (candidate.size() <= best.size())) {
+		if (best.empty() || (candidate.size() < best.size())) {
 			best = candidate;
+		} else if (candidate.size() == best.size() && rng != nullptr) {
+			// Randomize tie-breaking when sizes are equal
+			std::uniform_int_distribution<int> dist(0, 1);
+			if (dist(*rng)) {
+				best = candidate;
+			}
 		}
 	} else if ((best.empty() || candidate.size() <= best.size() - 1) && ttl >= 1) {
 		auto &nodes = graph.columns[node.lsb - 1]->nodes;
@@ -347,14 +360,14 @@ void search(Node &node, Graph &graph, std::vector<Node *> &candidate,
 					&& next_node.nfanouts() < graph.fanout_constraint && next_node.lsb >= lsb) {
 				candidate.push_back(&next_node);
 				search(next_node, graph, candidate, best, level_cap, lsb,
-						std::min(ttl, level_cap - next_node.level - 1));
+						std::min(ttl, level_cap - next_node.level - 1), rng);
 				candidate.pop_back();
 			}
 		}
 	}
 }
 
-void greedy(Graph &graph, bool algo2=false, bool print=false)
+void greedy(Graph &graph, bool algo2=false, bool print=false, std::mt19937* rng = nullptr)
 {
 	for (int i = graph.bitwidth() - 1; i >= 0; i--)
 		graph[i].nodes.back().update_cap(graph);
@@ -381,7 +394,7 @@ void greedy(Graph &graph, bool algo2=false, bool print=false)
 					it->deref_fanins();
 
 				search(*next_head, graph, candidate, best, head->level_cap,
-					   head->lsb, std::numeric_limits<int>::max(), true);
+					   head->lsb, std::numeric_limits<int>::max(), rng, true);
 
 				for (auto it = base; it != std::next(head); it++)
 					it->ref_fanins();
@@ -467,7 +480,8 @@ void seed(Graph &graph)
 
 // `search2` saves the first candidate of minimal size (compared to `search` which saves the last)
 void search2(Node &node, Graph &graph, std::vector<Node *> &candidate,
-			std::vector<Node *> &best, int level_cap, int lsb, int ttl, bool first=false)
+			std::vector<Node *> &best, int level_cap, int lsb, int ttl, 
+			std::mt19937* rng = nullptr, bool first=false)
 {
 	if (node.lsb == lsb) {
 		/*
@@ -479,6 +493,12 @@ void search2(Node &node, Graph &graph, std::vector<Node *> &candidate,
 		*/
 		if (best.empty() || (candidate.size() < best.size())) {
 			best = candidate;
+		} else if (candidate.size() == best.size() && rng != nullptr) {
+			// Randomize tie-breaking when sizes are equal
+			std::uniform_int_distribution<int> dist(0, 1);
+			if (dist(*rng)) {
+				best = candidate;
+			}
 		}
 	} else if ((best.empty() || candidate.size() < best.size() - 1) && ttl >= 1) {
 		auto &nodes = graph.columns[node.lsb - 1]->nodes;
@@ -488,21 +508,23 @@ void search2(Node &node, Graph &graph, std::vector<Node *> &candidate,
 					&& next_node.nfanouts() < graph.fanout_constraint && next_node.lsb >= lsb) {
 				candidate.push_back(&next_node);
 				search2(next_node, graph, candidate, best, level_cap, lsb,
-						std::min(ttl, level_cap - next_node.level - 1));
+						std::min(ttl, level_cap - next_node.level - 1), rng);
 				candidate.pop_back();
 			}
 		}
 	}
 }
 
-void algo3(Graph &graph)
+int algo3(Graph &graph, std::mt19937* rng = nullptr)
 {
 	for (int i = ((graph.bitwidth() - 1) / 2) * 2; i >= 2; i -= 2) {
 		Column &column = graph[i];
 		std::vector<Node *> candidate, best;
 		search2(column.nodes.back(), graph, candidate, best, column.level_target,
-				0, std::numeric_limits<int>::max(), true);
+				0, std::numeric_limits<int>::max(), rng, true);
 		// if you hit the assert perhaps the fanout constraint was too low
+		if ( best.empty() )
+			return 0;
 		assert(!best.empty());
 		for (auto fanin2 : best) {	
 			column.nodes.push_back(Node(&column.nodes.back(), fanin2));
@@ -513,6 +535,7 @@ void algo3(Graph &graph)
 	for (int i = 0; i < graph.bitwidth(); i++)
 		for (auto &node : graph[i].nodes)
 			node.update_cap(graph);
+	return 1;
 }
 
 void algo4(Graph &graph)
@@ -708,6 +731,26 @@ int* prefix_return_array_int(Graph& graph) {
 	return array;
 }
 
+
+// Function to build prefix tree with optional random seed and delay relaxation
+int build_prefix_tree(Graph& graph, int width, int mfo, std::mt19937* rng = nullptr, int delay_relaxation = 0) {
+	graph.initialize(width);
+	// Allow relaxed delay constraint: ceil_log2(width) + delay_relaxation
+	int target_depth = ceil_log2(width) + delay_relaxation;
+	graph.set_max_depth(target_depth);
+	graph.set_max_fanout(mfo / 2);
+	seed(graph);
+	greedy(graph, false, false, rng);
+	greedy(graph, false, false, rng);
+	graph.set_max_fanout(mfo);
+	if ( !algo3(graph, rng) )
+		return 0;
+	algo4(graph);
+	greedy(graph, false, false, rng);
+	greedy(graph, false, false, rng);
+	return 1;
+}
+
 // Create compact integer array representation of prefix tree structure in this format:
 // (1) [1 integer]: Total number of integers in the array, including this entry
 // (2) [1 integer]: N = number of inputs to prefix tree (one input = one PG-pair)
@@ -719,22 +762,11 @@ int* prefix_return_array_int(Graph& graph) {
 //     - Internal nodes have IDs N to N+P-1 (in topological order)
 // (7) [N+1 integers]: Output prefix nodes; last one produces carry-out
 // Total array size: 5 + 2*N + 3*P integers
-extern "C" int* prefix_return_array(int width, int mfo, int fVerbose) {
+extern "C" int* prefix_return_array(int width, int mfo, int fVerbose, int delay_relaxation = 0) {
 	// Build the prefix adder graph
 	Graph graph;
-	graph.initialize(width);
-	graph.set_max_depth(ceil_log2(width));
-	graph.set_max_fanout(mfo / 2);
-	
-	// Build the prefix tree using the same algorithm sequence
-	seed(graph);
-	greedy(graph);
-	greedy(graph);
-	graph.set_max_fanout(mfo);
-	algo3(graph);
-	algo4(graph);
-	greedy(graph);
-	greedy(graph);
+	if ( !build_prefix_tree( graph, width, mfo, nullptr, delay_relaxation ) )
+		return NULL;
 	if ( fVerbose )
 		graph.print();
 	// Get the prefix array representation
@@ -890,33 +922,11 @@ void generate_prefix_adder_verilog(int* array, int width, int mfo, int print_mit
 	}
 	
 	fclose(fp);
-	std::cerr << "Generated complete prefix adder from array: " << filename << std::endl;
+	//std::cerr << "Generated complete prefix adder from array: " << filename << std::endl;
 }
 
 // Create AIG array from the prefix array
-extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose, int use_or) {
-	// Build the prefix adder graph
-	Graph graph;
-	graph.initialize(width);
-	graph.set_max_depth(ceil_log2(width));
-	graph.set_max_fanout(mfo / 2);
-	
-	// Build the prefix tree using the same algorithm sequence
-	seed(graph);
-	greedy(graph);
-	greedy(graph);
-	graph.set_max_fanout(mfo);
-	algo3(graph);
-	algo4(graph);
-	greedy(graph);
-	greedy(graph);
-	if ( fVerbose )
-		graph.print();
-	
-	// Get the prefix array representation
-	int* prefix_array = prefix_return_array_int(graph);
-	if ( fDumpVer )
-		generate_prefix_adder_verilog(prefix_array, width, mfo, fDumpMiter);
+int* adder_return_array_int(int* prefix_array, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose, int use_or) {
 	
 	// Parse prefix array
 	int idx = 0;
@@ -925,12 +935,7 @@ extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, 
 	int P = prefix_array[idx++];  // Number of prefix nodes
 	int L = prefix_array[idx++];  // Number of levels
 	assert( L > 0 );
-	
-	// Verify width matches
-	if (N != width) {
-		free(prefix_array);
-		return NULL;
-	}
+	int width = N;
 	
 	// Skip input delays (N integers)
 	idx += N;
@@ -959,9 +964,6 @@ extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, 
 	}
 	assert(idx == array_size);
 
-	// Free prefix array - we've extracted all information
-	free(prefix_array);
-	
 	// Now build AIG using the prefix tree structure
 	int num_inputs = 2 * width;     // a[0..width-1], b[0..width-1]
 	int num_outputs = width + 1;    // sum[0..width]
@@ -1167,6 +1169,136 @@ extern "C" int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, 
 	return pObjs;
 }
 
+// Function to explore randomized prefix tree generation with optional delay relaxation
+// Returns the prefix array of the best solution found
+int* prefix_tree_explore(int width, int mfo, int seed, int num_rounds, int verbose, int delay_relaxation = 0, int verify = 0) {
+	// Print configuration in one line
+	if ( verbose )
+	std::cout << "Exploring: width=" << width << ", mfo=" << mfo 
+	          << ", delay=" << ceil_log2(width) + delay_relaxation 
+	          << ", seed=" << seed << ", rounds=" << num_rounds << std::endl;
+	
+	// Statistics tracking
+	int min_size = INT_MAX, max_size = 0;
+	int total_size = 0;
+	int passed_count = 0;
+	
+	// Track best solution
+	int* best_array = nullptr;
+	int best_size = INT_MAX;
+	int best_depth = INT_MAX;
+	int best_fanout = INT_MAX;
+	int best_round = -1;
+	
+	for (int round = 0; round < num_rounds; round++) {
+		// Derive seed for this round deterministically from base seed
+		int round_seed = seed + round * 1000;  // Simple deterministic derivation
+		
+		// Create random generator with specific seed
+		std::mt19937 rng(round_seed);
+		
+		// Build prefix tree with randomization and delay relaxation
+		Graph graph;
+		if ( !build_prefix_tree(graph, width, mfo, &rng, delay_relaxation) )
+			continue;
+		
+		// Validate and get metrics
+		bool valid = graph.validate();
+		int actual_mfo = graph.max_fanout();
+		int size = graph.size();
+		int depth = graph.max_level() - graph.min_level();
+		
+		// Print one line per adder
+		if ( verbose )
+		std::cout << "  Round " << round << ": size=" << size 
+		          << ", fanout=" << actual_mfo 
+		          << ", depth=" << depth 
+		          << ", valid=" << (valid ? "Y" : "N") << std::endl;
+		
+		// Check if this is the best solution so far
+		// Tie-breaking: size, then depth, then fanout
+		bool is_better = false;
+		if (size < best_size) {
+			is_better = true;
+		} else if (size == best_size) {
+			if (depth < best_depth) {
+				is_better = true;
+			} else if (depth == best_depth) {
+				if (actual_mfo < best_fanout) {
+					is_better = true;
+				}
+			}
+		}
+		
+		if (is_better) {
+			// Free previous best array if exists
+			if (best_array) {
+				free(best_array);
+			}
+			// Store new best array
+			best_array = prefix_return_array_int(graph);
+			best_size = size;
+			best_depth = depth;
+			best_fanout = actual_mfo;
+			best_round = round;
+		}
+		
+		// Track statistics
+		total_size += size;
+		min_size = std::min(min_size, size);
+		max_size = std::max(max_size, size);
+
+		/*
+		// Optionally verify
+		if (verify) {
+			extern bool verify_prefix_adder(const char* miter_filename, bool verbose = true);
+			char miter_filename[256];
+			sprintf(miter_filename, "prefix_adder_%d_%d_seed%d_miter.v", width, mfo, round_seed);
+			int* array = prefix_return_array_int(graph);
+			generate_prefix_adder_verilog(array, width, mfo, 1, 0);
+			free(array);
+			char rename_cmd[512];
+			sprintf(rename_cmd, "mv prefix_adder_%d_%d_miter.v %s 2>/dev/null", width, mfo, miter_filename);
+			int status = system(rename_cmd);
+			bool passed = verify_prefix_adder(miter_filename, false);
+			if (passed) passed_count++;
+			remove(miter_filename);
+		}
+		*/
+	}
+	
+	// Print summary
+	if ( verbose )
+	std::cout << "Summary: best=" << best_size << " (round " << best_round 
+	          << "), range=[" << min_size << "," << max_size 
+	          << "], avg=" << std::fixed << std::setprecision(1) 
+	          << (double)total_size / num_rounds;
+	if (verbose && verify) {
+		std::cout << ", verified=" << passed_count << "/" << num_rounds;
+	}
+	std::cout << std::endl;
+	
+	// Return the prefix array of the best solution
+	return best_array;
+}
+
+// Create AIG array from the prefix array
+extern "C" int* adder_return_array(int width, int mfo, int use_or, int seed, int num_rounds, int delay_relaxation, int fVerbose, int fDumpVer, int fDumpMiter,  int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds) {	
+	int* prefix_array = NULL;
+	if ( num_rounds == 1 )
+		prefix_array = prefix_return_array(width, mfo, fVerbose, delay_relaxation); 
+	else
+		prefix_array = prefix_tree_explore(width, mfo, seed, num_rounds, fVerbose, delay_relaxation);
+	if ( prefix_array == NULL )
+		return NULL;
+	if ( fDumpVer )
+		generate_prefix_adder_verilog(prefix_array, width, mfo, fDumpMiter);
+	int* result = adder_return_array_int(prefix_array, pnObjs, pnIns, pnLatches, pnOuts, pnAnds, fDumpVer, fDumpMiter, fVerbose, use_or);
+	free( prefix_array);
+	return result;
+}
+
+
 // Write variable-length encoded unsigned integer for binary AIGER
 void write_aiger_encoded(FILE* fp, unsigned x) {
 	unsigned char ch;
@@ -1203,12 +1335,15 @@ void generate_prefix_adder_aiger_int( char * pFileName, int * pObjs, int nObjs, 
     fprintf( pFile, "c\n" );
     fclose( pFile );
 }
+
 void generate_prefix_adder_aiger( int width, int mfo )
 {
 	char pFileName[100];
 	sprintf( pFileName, "prefix_adder_%d_%d.aig", width, mfo );
 	int nObjs = 0, nIns = 0, nLatches = 0, nOuts = 0, nAnds = 0;
-	int * pObjs = adder_return_array( width, mfo, &nObjs, &nIns, &nLatches, &nOuts, &nAnds, 0, 0, 0, 0 );
+	int * pObjs = adder_return_array( width, mfo, 0, 0, 1, 0, 0, 0, 0,  &nObjs, &nIns, &nLatches, &nOuts, &nAnds ); 
+	if ( pObjs == NULL )
+		return;
     generate_prefix_adder_aiger_int( pFileName, pObjs, nObjs, nIns, nLatches, nOuts, nAnds );
 	printf( "Written prefix adder into AIGER file \"%s\".\n", pFileName );
 	free(pObjs);

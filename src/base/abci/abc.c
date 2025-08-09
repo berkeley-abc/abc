@@ -56722,7 +56722,7 @@ usage:
 extern "C" {
 #endif
 
-int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds, int fDumpVer, int fDumpMiter, int fVerbose, int use_or);
+int* adder_return_array(int width, int mfo, int use_or, int seed, int num_rounds, int delay_relaxation, int fVerbose, int fDumpVer, int fDumpMiter,  int* pnObjs, int* pnIns, int* pnLatches, int* pnOuts, int* pnAnds);
 
 #ifdef __cplusplus
 }
@@ -56743,9 +56743,9 @@ int* adder_return_array(int width, int mfo, int* pnObjs, int* pnIns, int* pnLatc
 int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManDupFromArray( int * pObjs, int nObjs, int nIns, int nLatches, int nOuts, int nAnds );
-    int c, nBits = 8, nFans = 4, fDumpVer = 0, fDumpMiter = 0, fVerbose = 0, use_or = 0;
+    int c, nBits = 8, nFans = 4, Seed = 0, nIters = 1, DelayRelax = 0, fDumpVer = 0, fDumpMiter = 0, fVerbose = 0, use_or = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NFdmov" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NFSIRdmov" ) ) != EOF )
     {
         switch ( c )
         {
@@ -56771,6 +56771,41 @@ int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nFans < 0 )
                 goto usage;
             break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nIters = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nIters < 0 )
+                goto usage;
+            break;
+        case 'R':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-R\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            DelayRelax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( DelayRelax < 0 )
+                goto usage;
+            break;
+
+
         case 'd':
             fDumpVer ^= 1;
             break;
@@ -56795,18 +56830,25 @@ int Abc_CommandAbc9GenPrefix( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
          int nObjs = 0, nIns = 0, nLatches = 0, nOuts = 0, nAnds = 0;
-         int * pObjs = adder_return_array( nBits, nFans, &nObjs, &nIns, &nLatches, &nOuts, &nAnds, fDumpVer, fDumpMiter, fVerbose, use_or );
-         Gia_Man_t * pTemp = Gia_ManDupFromArray( pObjs, nObjs, nIns, nLatches, nOuts, nAnds );
-         Abc_FrameUpdateGia( pAbc, pTemp );
-         ABC_FREE( pObjs );
+         int * pObjs = adder_return_array( nBits, nFans, use_or, Seed, nIters, DelayRelax, fVerbose, fDumpVer, fDumpMiter,   &nObjs, &nIns, &nLatches, &nOuts, &nAnds );
+         if ( pObjs == NULL ) {
+            printf( "Prefix tree with %d inputs and %d maximum fanout does not exist.\n", nBits, nFans );
+         } else {
+            Gia_Man_t * pTemp = Gia_ManDupFromArray( pObjs, nObjs, nIns, nLatches, nOuts, nAnds );
+            Abc_FrameUpdateGia( pAbc, pTemp );
+            ABC_FREE( pObjs );
+         }
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &genprefix [-NF <num>] [-dmov]\n" );
+    Abc_Print( -2, "usage: &genprefix [-NFSIR <num>] [-dmov]\n" );
     Abc_Print( -2, "\t         generates a prefix adder with minimum depth\n" );
     Abc_Print( -2, "\t-N num : the bit-width of the adder [default = %d]\n", nBits );
     Abc_Print( -2, "\t-F num : the limit on the fanout count [default = %d]\n", nFans );
+    Abc_Print( -2, "\t-S num : the user's seed used to randomize search [default = %d]\n", Seed );
+    Abc_Print( -2, "\t-I num : the number of iterations to find the smallest prefix [default = %d]\n", nIters );
+    Abc_Print( -2, "\t-R num : the delay relaxation (the allowed level increase over log2(N)) [default = %d]\n", DelayRelax );
     Abc_Print( -2, "\t-d     : toggles dumping the adder in Verilog [default = %s]\n", fDumpVer ? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles dumping the miter in Verilog [default = %s]\n", fDumpMiter ? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggles using additional optimization [default = %s]\n", use_or ? "yes": "no" );
