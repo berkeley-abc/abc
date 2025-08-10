@@ -296,7 +296,7 @@ void Gia_ManStochSynthesis( Vec_Ptr_t * vAigs, char * pScript )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManFilterPartitions( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNodes, Vec_Ptr_t * vvOuts, Vec_Ptr_t * vWins, Vec_Int_t * vGains )
+int Gia_ManFilterPartitions( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNodes, Vec_Ptr_t * vvOuts, Vec_Ptr_t * vWins, Vec_Int_t * vGains, int fDelayOpt )
 {
     int RetValue = Vec_PtrSize(vvIns);
     Vec_Ptr_t * vvInsNew  = Vec_PtrAlloc( 10 );
@@ -312,8 +312,8 @@ int Gia_ManFilterPartitions( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNod
         Vec_PtrPush( vvInsNew,  Vec_IntDup((Vec_Int_t *)Vec_PtrEntry(vvIns,  iEntry)) );
         Vec_PtrPush( vvOutsNew, Vec_IntDup((Vec_Int_t *)Vec_PtrEntry(vvOuts, iEntry)) );
         Vec_PtrPush( vvWinsNew, Gia_ManDupDfs((Gia_Man_t *)Vec_PtrEntry(vWins, iEntry)) );
-        extern void Gia_ManMarkTfiTfo( Vec_Int_t * vOne, Gia_Man_t * pMan );
-        Gia_ManMarkTfiTfo( (Vec_Int_t *)Vec_PtrEntryLast(vvInsNew), p );
+        extern void Gia_ManMarkTfiTfo( Vec_Int_t * vOne, Gia_Man_t * pMan, int fDelayOpt );
+        Gia_ManMarkTfiTfo( (Vec_Int_t *)Vec_PtrEntryLast(vvInsNew), p, fDelayOpt );
         Vec_IntForEachEntry( vGains, Gain, i ) {
             if ( Gain < 0 )
                 continue;
@@ -556,12 +556,14 @@ void Gia_ManSelectRemove( Vec_Wec_t * vSupps, Vec_Int_t * vOne )
     Vec_WecRemoveEmpty( vSupps );
 }
 // marks TFI/TFO of this one
-void Gia_ManMarkTfiTfo( Vec_Int_t * vOne, Gia_Man_t * pMan )
+void Gia_ManMarkTfiTfo( Vec_Int_t * vOne, Gia_Man_t * pMan, int fDelayOpt )
 {
     int i; Gia_Obj_t * pObj;
     Gia_ManForEachObjVec( vOne, pMan, pObj, i ) {
-        //Gia_ObjSetTravIdPrevious(pMan, pObj);
-        //Gia_ObjDfsMark_rec( pMan, pObj );
+        if ( fDelayOpt ) {
+            Gia_ObjSetTravIdPrevious(pMan, pObj);
+            Gia_ObjDfsMark_rec( pMan, pObj );
+        }
         Gia_ObjSetTravIdPrevious(pMan, pObj);
         Gia_ObjDfsMark2_rec( pMan, pObj );
     }
@@ -632,7 +634,7 @@ Vec_Ptr_t * Gia_ManDeriveWinInsAll( Vec_Wec_t * vSupps, int nSuppMax, Gia_Man_t 
     }
     return vRes;
 }
-Gia_Man_t * Gia_ManDupFromArrays( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos )
+Gia_Man_t * Gia_ManDupFromArrays( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, Vec_Int_t * vLevels[2], int nLevels )
 {
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
@@ -647,10 +649,28 @@ Gia_Man_t * Gia_ManDupFromArrays( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * v
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachObjVec( vCos, p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
+    if ( vLevels[0] ) {
+        pNew->vCiArrs = Vec_IntAlloc( Gia_ManCiNum(pNew) );
+        Gia_ManForEachObjVec( vCis, p, pObj, i )
+            Vec_IntPush( pNew->vCiArrs, Gia_ObjLevel(p, pObj) );
+        pNew->vCoReqs = Vec_IntAlloc( Gia_ManCoNum(pNew) );
+        Gia_ManForEachObjVec( vCos, p, pObj, i )
+            Vec_IntPush( pNew->vCoReqs, nLevels - Gia_ObjLevel(p, pObj) );
+    }
     return pNew;
 }
-Vec_Ptr_t * Gia_ManDupWindows( Gia_Man_t * pMan, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNodes, Vec_Ptr_t * vvOuts )
+Vec_Ptr_t * Gia_ManDupWindows( Gia_Man_t * pMan, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNodes, Vec_Ptr_t * vvOuts, int fDelayOpt )
 {
+    // compute direct and reverse level
+    Vec_Int_t * vLevels[2] = {NULL}; 
+    if ( fDelayOpt ) {
+        int Levels[2];
+        Levels[0] = Gia_ManLevelNum( pMan );
+        ABC_SWAP( Vec_Int_t *, vLevels[0], pMan->vLevels );
+        Levels[1] = Gia_ManLevelRNum( pMan );
+        ABC_SWAP( Vec_Int_t *, vLevels[1], pMan->vLevels );
+        assert( Levels[0] == Levels[1] );
+    }    
     Vec_Int_t * vNodes; int i;
     Vec_Ptr_t * vWins = Vec_PtrAlloc( Vec_PtrSize(vvIns) );
     assert( Vec_PtrSize(vvIns)  == Vec_PtrSize(vvNodes) );
@@ -660,9 +680,11 @@ Vec_Ptr_t * Gia_ManDupWindows( Gia_Man_t * pMan, Vec_Ptr_t * vvIns, Vec_Ptr_t * 
     Vec_PtrForEachEntry( Vec_Int_t *, vvNodes, vNodes, i ) {
         Vec_Int_t * vIns  = (Vec_Int_t *)Vec_PtrEntry(vvIns, i);
         Vec_Int_t * vOuts = (Vec_Int_t *)Vec_PtrEntry(vvOuts, i);
-        Gia_Man_t * pNew  = Gia_ManDupFromArrays( pMan, vIns, vNodes, vOuts );
+        Gia_Man_t * pNew  = Gia_ManDupFromArrays( pMan, vIns, vNodes, vOuts, vLevels, pMan->nLevels );
         Vec_PtrPush( vWins, pNew );
     }
+    Vec_IntFreeP( &vLevels[0] );
+    Vec_IntFreeP( &vLevels[1] );    
     return vWins;
 }
 int Gia_ManLevelR( Gia_Man_t * pMan )
@@ -675,7 +697,7 @@ int Gia_ManLevelR( Gia_Man_t * pMan )
         Gia_ObjSetLevel( pMan, pNode, 0 );
     return LevelMax;
 }
-Vec_Ptr_t * Gia_ManExtractPartitions( Gia_Man_t * pMan, int Iter, int nSuppMax, Vec_Ptr_t ** pvIns, Vec_Ptr_t ** pvOuts, Vec_Ptr_t ** pvNodes, int fOverlap )
+Vec_Ptr_t * Gia_ManExtractPartitions( Gia_Man_t * pMan, int Iter, int nSuppMax, Vec_Ptr_t ** pvIns, Vec_Ptr_t ** pvOuts, Vec_Ptr_t ** pvNodes, int fOverlap, int fDelayOpt )
 {
     // if ( Gia_ManCiNum(pMan) <= nSuppMax ) {
     //     Vec_Ptr_t * vWins = Vec_PtrAlloc( 1 );
@@ -695,7 +717,7 @@ Vec_Ptr_t * Gia_ManExtractPartitions( Gia_Man_t * pMan, int Iter, int nSuppMax, 
     Vec_Ptr_t * vIns   = Gia_ManDeriveWinInsAll( vSupps, nSuppMax, pMan, fOverlap );
     Vec_Ptr_t * vNodes = Gia_ManDeriveWinNodesAll( pMan, vIns, vStore );
     Vec_Ptr_t * vOuts  = Gia_ManDeriveWinOutsAll( pMan, vNodes );
-    Vec_Ptr_t * vWins  = Gia_ManDupWindows( pMan, vIns, vNodes, vOuts );
+    Vec_Ptr_t * vWins  = Gia_ManDupWindows( pMan, vIns, vNodes, vOuts, fDelayOpt );
     Vec_WecFree( vSupps );
     Vec_WecFree( vStore );
     *pvIns = vIns;
@@ -742,7 +764,7 @@ void Gia_ManCollectNodes( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Ve
     Vec_IntForEachEntry( vCos, iObj, i )
         Gia_ManCollectNodes_rec( p, iObj, vAnds );
 }
-Gia_Man_t * Gia_ManDupDivideOne( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos )
+Gia_Man_t * Gia_ManDupDivideOne( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, Vec_Int_t * vLevels[2], int nLevels )
 {
     Vec_Int_t * vMapping; int i;
     Gia_Man_t * pNew; Gia_Obj_t * pObj; 
@@ -757,8 +779,16 @@ Gia_Man_t * Gia_ManDupDivideOne( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vA
     Gia_ManForEachObjVec( vCos, p, pObj, i )
         Gia_ManAppendCo( pNew, pObj->Value );
     assert( Gia_ManCiNum(pNew) > 0 && Gia_ManCoNum(pNew) > 0 );
-    if ( !Gia_ManHasMapping(p) )
+    if ( !Gia_ManHasMapping(p) ) {
+        if ( vLevels[0] == NULL ) return pNew;
+        pNew->vCiArrs = Vec_IntAlloc( Gia_ManCiNum(pNew) );
+        Gia_ManForEachObjVec( vCis, p, pObj, i )
+            Vec_IntPush( pNew->vCiArrs, Gia_ObjLevel(p, pObj) );
+        pNew->vCoReqs = Vec_IntAlloc( Gia_ManCoNum(pNew) );
+        Gia_ManForEachObjVec( vCos, p, pObj, i )
+            Vec_IntPush( pNew->vCoReqs, nLevels - Gia_ObjLevel(p, pObj) );            
         return pNew;
+    }
     vMapping = Vec_IntAlloc( 4*Gia_ManObjNum(pNew) );
     Vec_IntFill( vMapping, Gia_ManObjNum(pNew), 0 );
     Gia_ManForEachObjVec( vAnds, p, pObj, i )
@@ -776,17 +806,29 @@ Gia_Man_t * Gia_ManDupDivideOne( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vA
     pNew->vMapping = vMapping;
     return pNew;
 }
-Vec_Ptr_t * Gia_ManDupDivide( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, char * pScript, int nProcs, int TimeOut )
+Vec_Ptr_t * Gia_ManDupDivide( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, char * pScript, int nProcs, int TimeOut, int fDelayOpt )
 {
+    // compute direct and reverse level
+    Vec_Int_t * vLevels[2] = {NULL}; 
+    if ( fDelayOpt ) {
+        int Levels[2];
+        Levels[0] = Gia_ManLevelNum( p );
+        ABC_SWAP( Vec_Int_t *, vLevels[0], p->vLevels );
+        Levels[1] = Gia_ManLevelRNum( p );
+        ABC_SWAP( Vec_Int_t *, vLevels[1], p->vLevels );
+        assert( Levels[0] == Levels[1] );
+    }
     Vec_Ptr_t * vAigs = Vec_PtrAlloc( Vec_WecSize(vCis) );  int i;
     for ( i = 0; i < Vec_WecSize(vCis); i++ )
     {
         Gia_ManCollectNodes( p, Vec_WecEntry(vCis, i), Vec_WecEntry(vAnds, i), Vec_WecEntry(vCos, i) );
-        Vec_PtrPush( vAigs, Gia_ManDupDivideOne(p, Vec_WecEntry(vCis, i), Vec_WecEntry(vAnds, i), Vec_WecEntry(vCos, i)) );
+        Vec_PtrPush( vAigs, Gia_ManDupDivideOne(p, Vec_WecEntry(vCis, i), Vec_WecEntry(vAnds, i), Vec_WecEntry(vCos, i), vLevels, p->nLevels) );
     }
     //Gia_ManStochSynthesis( vAigs, pScript );
     Vec_Int_t * vGains = Gia_StochProcess( vAigs, pScript, nProcs, TimeOut, 0 );
     Vec_IntFree( vGains );
+    Vec_IntFreeP( &vLevels[0] );
+    Vec_IntFreeP( &vLevels[1] );
     return vAigs;
 }
 Gia_Man_t * Gia_ManDupStitch( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds, Vec_Wec_t * vCos, Vec_Ptr_t * vAigs, int fHash )
@@ -982,7 +1024,7 @@ Vec_Wec_t * Gia_ManStochOutputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs )
+void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs, int fDelayOpt )
 {
     abctime nTimeToStop  = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
     abctime clkStart     = Abc_Clock();
@@ -1008,7 +1050,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
             Vec_Wec_t * vAnds = Gia_ManStochNodes( pGia, nMaxSize, Abc_Random(0) & 0x7FFFFFFF );
             Vec_Wec_t * vIns  = Gia_ManStochInputs( pGia, vAnds );
             Vec_Wec_t * vOuts = Gia_ManStochOutputs( pGia, vAnds );
-            Vec_Ptr_t * vAigs = Gia_ManDupDivide( pGia, vIns, vAnds, vOuts, pScript, nProcs, TimeOut );
+            Vec_Ptr_t * vAigs = Gia_ManDupDivide( pGia, vIns, vAnds, vOuts, pScript, nProcs, TimeOut, fDelayOpt );
             Gia_Man_t * pNew  = Gia_ManDupStitchMap( pGia, vIns, vAnds, vOuts, vAigs );
             int fMapped = Gia_ManHasMapping(pGia) && Gia_ManHasMapping(pNew);
             Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
@@ -1039,9 +1081,9 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
             extern Gia_Man_t * Gia_ManDupInsertWindows( Gia_Man_t * p, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvOuts, Vec_Ptr_t * vAigs );
             abctime clk        = Abc_Clock();
             Gia_Man_t * pGia   = Gia_ManDup( Abc_FrameReadGia(Abc_FrameGetGlobalFrame()) ); Gia_ManStaticFanoutStart(pGia);
-            Vec_Ptr_t * vAigs  = Gia_ManExtractPartitions( pGia, i, nSuppMax, &vIns, &vOuts, &vNodes, fOverlap );
+            Vec_Ptr_t * vAigs  = Gia_ManExtractPartitions( pGia, i, nSuppMax, &vIns, &vOuts, &vNodes, fOverlap, fDelayOpt );
             Vec_Int_t * vGains = Gia_StochProcess( vAigs, pScript, nProcs, TimeOut, 0 );
-            int nPartsInit     = fOverlap ? Gia_ManFilterPartitions( pGia, vIns, vNodes, vOuts, vAigs, vGains ) : Vec_PtrSize(vIns);
+            int nPartsInit     = fOverlap ? Gia_ManFilterPartitions( pGia, vIns, vNodes, vOuts, vAigs, vGains, fDelayOpt ) : Vec_PtrSize(vIns);
             Gia_Man_t * pNew   = Gia_ManDupInsertWindows( pGia, vIns, vOuts, vAigs );       Gia_ManStaticFanoutStop(pGia);
             Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
             if ( fVerbose )
