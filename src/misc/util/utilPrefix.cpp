@@ -21,7 +21,7 @@
 /*
 	The implementation is inspired by S. Roy, M. Choudhury, R. Puri, D. Pan,
 	"Polynomial time algorithm for area and power efficient adder synthesis 
-	in high-performance designs", Proc. ASP-DAC 2025.
+	in high-performance designs", Proc. ASP-DAC 2015.
 
 	https://www.cerc.utexas.edu/utda/publications/C166.pdf
 */

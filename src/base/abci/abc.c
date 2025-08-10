@@ -56846,9 +56846,9 @@ usage:
     Abc_Print( -2, "\t         generates a prefix adder with minimum depth\n" );
     Abc_Print( -2, "\t-N num : the bit-width of the adder [default = %d]\n", nBits );
     Abc_Print( -2, "\t-F num : the limit on the fanout count [default = %d]\n", nFans );
-    Abc_Print( -2, "\t-S num : the user's seed used to randomize search [default = %d]\n", Seed );
-    Abc_Print( -2, "\t-I num : the number of iterations to find the smallest prefix [default = %d]\n", nIters );
-    Abc_Print( -2, "\t-R num : the delay relaxation (the allowed level increase over log2(N)) [default = %d]\n", DelayRelax );
+    Abc_Print( -2, "\t-S num : the random seed used to randomize search [default = %d]\n", Seed );
+    Abc_Print( -2, "\t-I num : the number of iterations to find the smallest prefix tree [default = %d]\n", nIters );
+    Abc_Print( -2, "\t-R num : the delay relaxation (the max allowed level increase over log2(N)) [default = %d]\n", DelayRelax );
     Abc_Print( -2, "\t-d     : toggles dumping the adder in Verilog [default = %s]\n", fDumpVer ? "yes": "no" );
     Abc_Print( -2, "\t-m     : toggles dumping the miter in Verilog [default = %s]\n", fDumpMiter ? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggles using additional optimization [default = %s]\n", use_or ? "yes": "no" );
@@ -56856,7 +56856,7 @@ usage:
     Abc_Print( -2, "\t         The code of this command is contributed by Martin Povišer <povik@cutebit.org>\n\n" );
     Abc_Print( -2, "\t         The implementation is inspired by S. Roy, M. Choudhury, R. Puri, D. Pan,\n" );
     Abc_Print( -2, "\t         \"Polynomial time algorithm for area and power efficient adder synthesis\n" );
-    Abc_Print( -2, "\t         in high-performance designs\", Proc. ASP-DAC 2025.\n" );
+    Abc_Print( -2, "\t         in high-performance designs\", Proc. ASP-DAC 2015.\n" );
     Abc_Print( -2, "\t         https://www.cerc.utexas.edu/utda/publications/C166.pdf\n" );
     return 1;
 }
