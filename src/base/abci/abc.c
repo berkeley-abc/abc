@@ -47482,8 +47482,8 @@ usage:
     Abc_Print( -2, "\t-f     : toggle using lighter logic synthesis [default = %s]\n", pPars->fLightSynth? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggle skipping choices with redundant support [default = %s]\n", pPars->fSkipRedSupp? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle computing and merging equivalences [default = %s]\n", fEquiv? "yes": "no" );
-    Abc_Print( -2, "\t-m     : toggle minimizing logic level after merging equivalences [default = %s]\n", fRandom? "yes": "no" );
-    Abc_Print( -2, "\t-n     : toggle selecting random choices while merging equivalences [default = %s]\n", fMinLevel? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggle minimizing logic level after merging equivalences [default = %s]\n", fMinLevel? "yes": "no" );
+    Abc_Print( -2, "\t-n     : toggle selecting random choices while merging equivalences [default = %s]\n", fRandom? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle using GIA to prove equivalences [default = %s]\n", pPars->fUseGia? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using circuit-based SAT vs. MiniSat [default = %s]\n", pPars->fUseCSat? "yes": "no" );
     Abc_Print( -2, "\t-x     : toggle using new choice computation [default = %s]\n", pPars->fUseNew? "yes": "no" );
