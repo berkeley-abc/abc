@@ -20,6 +20,7 @@
 
 #include "base/abc/abc.h"
 #include "bool/dec/dec.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -165,7 +166,9 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinS
         pManRes->Log2Probs = Log2Probs;
         pManRes->Log2Divs = Log2Divs;
         pManRes->nProbs = 0;
-        char pFileName[100]; sprintf( pFileName, "p%02dd%02dv%02d.bin", Log2Probs, nCutMax, Log2Divs );
+        char * pName = Extra_FileNameGeneric(Extra_FileNameWithoutPath(pNtk->pName));
+        char pFileName[100]; sprintf( pFileName, "p%02dd%02dv%02d_%s.bin", Log2Probs, nCutMax, Log2Divs, pName );
+        ABC_FREE( pName );
         pManRes->pFile = fopen( pFileName, "wb" );
         if ( pManRes->pFile == NULL ) {
             printf( "Cannot open output file \"%s\".\n", pFileName );

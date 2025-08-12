@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -211,6 +212,44 @@ void If_ManRestart( If_Man_t * p )
 ***********************************************************************/
 void If_ManStop( If_Man_t * p )
 {
+    if ( p->pPars->fDumpFile && p->pPars->fTruth ) 
+    {
+        char pFileName[1000] = {0}, pBuffer[100];
+        int nUnique = 0, nChunks = 0, nChunkSize = 1 << 10, nBytes = 0;
+        for ( int i = 7; i <= p->pPars->nLutSize; i++ ) {
+            nUnique = Vec_MemEntryNum(p->vTtMem[i]);
+            nChunks = (nUnique + nChunkSize - 1) / nChunkSize;
+            printf( "LutSize = %2d  Unique = %7d  Chunks = %7d\n", i, nUnique, nChunks );            
+            sprintf( pBuffer, "%s%02d_%02d", i == 7 ? "":"__", i, nChunks );
+            strcat( pFileName, pBuffer );
+        }
+        char * pName = Extra_FileNameGeneric(Extra_FileNameWithoutPath(p->pName));
+        sprintf( pBuffer, "__%s.bin", pName );
+        ABC_FREE( pName );        
+        strcat( pFileName, pBuffer );
+        FILE * pFile = fopen( pFileName, "wb" );
+        if ( pFile == NULL )
+            printf( "Cannot open file \"%s\" for writing.\n", pFileName );
+        else {
+            for ( int i = 7; i <= p->pPars->nLutSize; i++ ) {
+                nUnique = Vec_MemEntryNum(p->vTtMem[i]);
+                nChunks = (nUnique + nChunkSize - 1) / nChunkSize;
+                word * pEntry; int k, Count = 0;
+                int nEntrySize = Vec_MemEntrySize(p->vTtMem[i]);
+                Vec_MemForEachEntry( p->vTtMem[i], pEntry, k )
+                    Count += fwrite( (unsigned *)pEntry, 1, sizeof(word) * nEntrySize, pFile );
+                word * pZeros = ABC_CALLOC( word, nEntrySize );
+                for ( ; k < nChunks * nChunkSize; k++ )
+                    Count += fwrite( (unsigned *)pZeros, 1, sizeof(word) * nEntrySize, pFile );
+                ABC_FREE( pZeros );
+                assert( Count == nChunks * nChunkSize * nEntrySize * sizeof(word) );
+                nBytes += nChunks * nChunkSize * nEntrySize * sizeof(word);                
+            }
+            fclose( pFile );
+            printf( "Finished writing truth tables into file \"%s\" (%.3f MB).\n", pFileName, 1.0 * nBytes / (1<<20) );
+        }
+    }
+
     extern void If_ManCacheAnalize( If_Man_t * p );
     int i;
     if ( p->pPars->fVerbose && p->vCutData )
