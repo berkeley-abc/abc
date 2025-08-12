@@ -8619,7 +8619,9 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fUseZeros;
     int fVerbose;
     int fVeryVerbose;
-    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutsMax, int nNodesMax, int nMinSaved, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose );
+    int Log2Probs;
+    int Log2Divs;
+    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutsMax, int nNodesMax, int nMinSaved, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int Log2Probs, int Log2Divs );
 
     // set defaults
     nCutsMax     =  8;
@@ -8630,8 +8632,10 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     fUseZeros    =  0;
     fVerbose     =  0;
     fVeryVerbose =  0;
+    Log2Probs    =  0;
+    Log2Divs     =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KNMFlzvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KNMFlzvwhPDV" ) ) != EOF )
     {
         switch ( c )
         {
@@ -8679,6 +8683,41 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nLevelsOdc < 0 )
                 goto usage;
             break;
+
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Log2Probs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Log2Probs < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Log2Divs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Log2Divs < 0 )
+                goto usage;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCutsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCutsMax < 0 )
+                goto usage;
+            break;
+            
         case 'l':
             fUpdateLevel ^= 1;
             break;
@@ -8729,7 +8768,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
 
     // modify the current network
-    if ( !Abc_NtkResubstitute( pNtk, nCutsMax, nNodesMax, nMinSaved, nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose ) )
+    if ( !Abc_NtkResubstitute( pNtk, nCutsMax, nNodesMax, nMinSaved, nLevelsOdc, fUpdateLevel, fVerbose, fVeryVerbose, Log2Probs, Log2Divs ) )
     {
         Abc_Print( -1, "Refactoring has failed.\n" );
         return 1;
@@ -8737,7 +8776,7 @@ int Abc_CommandResubstitute( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: resub [-KNMF <num>] [-lzvwh]\n" );
+    Abc_Print( -2, "usage: resub [-KNMF <num>] [-lzvwh] [-PDV <num>]\n" );
     Abc_Print( -2, "\t           performs technology-independent restructuring of the AIG\n" );
     Abc_Print( -2, "\t-K <num> : the max cut size (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );
     Abc_Print( -2, "\t-N <num> : the max number of nodes to add (0 <= num <= 3) [default = %d]\n", nNodesMax );
@@ -8747,7 +8786,16 @@ usage:
     Abc_Print( -2, "\t-z       : toggle using zero-cost replacements [default = %s]\n", fUseZeros? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w       : toggle verbose printout of ODC computation [default = %s]\n", fVeryVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t-h       : print the command usage\n\n");
+    Abc_Print( -2, "\t           When command line options '-P num', '-D num', and '-V num' are used,\n");
+    Abc_Print( -2, "\t           this command does not perform resubstitution; instead, it dumps a binary file\n");
+    Abc_Print( -2, "\t           containing 2^P resub problems, each containing 2^D-2 divs with support size V,\n");
+    Abc_Print( -2, "\t           while the last two divisors are the offset and the onset of the function\n");
+    Abc_Print( -2, "\t           (by default, the functions are completely specified; to get functions with don't-cares,\n");
+    Abc_Print( -2, "\t           the user has to use command-line option '-F num' to enable the limited ODC computation)\n");
+    Abc_Print( -2, "\t-P <num> : the log2 of the number of problems to be dumped [default = %d]\n", Log2Probs );
+    Abc_Print( -2, "\t-D <num> : the log2 of the number of divisors to be collected (4 <= num <= 7) [default = %d]\n", Log2Divs );
+    Abc_Print( -2, "\t-V <num> : the support size of the function (%d <= num <= %d) [default = %d]\n", RS_CUT_MIN, RS_CUT_MAX, nCutsMax );
     return 1;
 }
 

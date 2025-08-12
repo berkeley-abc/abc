@@ -37,6 +37,11 @@ struct Abc_ManRes_t_
     // paramers
     int                nLeavesMax; // the max number of leaves in the cone
     int                nDivsMax;   // the max number of divisors in the cone
+    // resub problem dumping
+    int                Log2Probs;
+    int                Log2Divs;
+    int                nProbs;
+    FILE *             pFile;
     // representation of the cone
     Abc_Obj_t *        pRoot;      // the root of the cone
     int                nLeaves;    // the number of leaves
@@ -51,6 +56,7 @@ struct Abc_ManRes_t_
     unsigned         * pInfo;      // pointer to simulation info
     // observability don't-cares
     unsigned *         pCareSet;
+    unsigned *         pTempSim;
     // internal divisor storage
     Vec_Ptr_t        * vDivs1UP;   // the single-node unate divisors
     Vec_Ptr_t        * vDivs1UN;   // the single-node unate divisors
@@ -134,7 +140,7 @@ static int           Abc_CutVolumeCheck( Abc_Obj_t * pNode, Vec_Ptr_t * vLeaves 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinSaved, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose )
+int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinSaved, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose,  int Log2Probs, int Log2Divs )
 {
     extern int           Dec_GraphUpdateNetwork( Abc_Obj_t * pRoot, Dec_Graph_t * pGraph, int fUpdateLevel, int nGain );
     ProgressBar * pProgress;
@@ -154,6 +160,19 @@ int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinS
     // start the managers
     pManCut = Abc_NtkManCutStart( nCutMax, 100000, 100000, 100000 );
     pManRes = Abc_ManResubStart( nCutMax, ABC_RS_DIV1_MAX );
+    if ( Log2Probs && Log2Divs )
+    {
+        pManRes->Log2Probs = Log2Probs;
+        pManRes->Log2Divs = Log2Divs;
+        pManRes->nProbs = 0;
+        char pFileName[100]; sprintf( pFileName, "p%02dd%02dv%02d.bin", Log2Probs, nCutMax, Log2Divs );
+        pManRes->pFile = fopen( pFileName, "wb" );
+        if ( pManRes->pFile == NULL ) {
+            printf( "Cannot open output file \"%s\".\n", pFileName );
+            return 1;
+        }
+        printf( "Collecting resub problems into binary file \"%s\" expected to take %.3f MB...\n", pFileName, 1.0*(1 << Log2Probs)*(1 << Log2Divs)*(1 << (nCutMax-3)) / (1 << 20) );
+    }
     if ( nLevelsOdc > 0 )
     pManOdc = Abc_NtkDontCareAlloc( nCutMax, nLevelsOdc, fVerbose, fVeryVerbose );
 
@@ -245,6 +264,16 @@ pManRes->timeTotal = Abc_Clock() - clkStart;
     if ( fVerbose )
     Abc_ManResubPrint( pManRes );
 
+    if ( Log2Probs && Log2Divs )
+    {
+        fclose( pManRes->pFile );
+        pManRes->pFile = NULL;
+        char pFileName[100]; sprintf( pFileName, "p%02dd%02dv%02d.bin", Log2Probs, nCutMax, Log2Divs );
+        printf( "Finished writing file \"%s\" containing %d (out of requested %d) resub problems,\n", pFileName, pManRes->nProbs, 1<<Log2Probs );
+        printf( "each having %d divisors with support size %d (including the on-set and the off-set).  ", 1<<Log2Divs, nCutMax );
+        Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
+    }
+
     // delete the managers
     Abc_ManResubStop( pManRes );
     Abc_NtkManCutStop( pManCut );
@@ -321,6 +350,7 @@ Abc_ManRes_t * Abc_ManResubStart( int nLeavesMax, int nDivsMax )
             if ( i & (1 << k) )
                 pData[i>>5] |= (1 << (i&31));
     }
+    p->pTempSim   = ABC_CALLOC( unsigned, p->nWords );
     // create the remaining divisors
     p->vDivs1UP  = Vec_PtrAlloc( p->nDivsMax );
     p->vDivs1UN  = Vec_PtrAlloc( p->nDivsMax );
@@ -356,6 +386,7 @@ void Abc_ManResubStop( Abc_ManRes_t * p )
     Vec_PtrFree( p->vDivs2UN0 );
     Vec_PtrFree( p->vDivs2UN1 );
     Vec_PtrFree( p->vTemp );
+    ABC_FREE( p->pTempSim );
     ABC_FREE( p->pInfo );
     ABC_FREE( p );
 }
@@ -1942,6 +1973,32 @@ clk = Abc_Clock();
 clk = Abc_Clock();
     Abc_ManResubSimulate( p->vDivs, p->nLeaves, p->vSims, p->nLeavesMax, p->nWords );
 p->timeSim += Abc_Clock() - clk;
+
+    if ( p->pFile && Vec_PtrSize(vLeaves) != p->nLeavesMax && p->nProbs < (1 << p->Log2Probs) ) 
+    {
+        Abc_Obj_t * pObj; int i, w, Count = 0;
+        unsigned * pFunc = (unsigned *)pRoot->pData;
+        int Limit = Abc_MinInt( Vec_PtrSize(p->vDivs), (1 << p->Log2Divs) - 2 );
+        Vec_PtrForEachEntryStop( Abc_Obj_t *, p->vDivs, pObj, i, Limit )
+            Count += fwrite( (unsigned *)pObj->pData, 1, sizeof(unsigned) * p->nWords, p->pFile );
+        // write constant zeros
+        memset( p->pTempSim, 0, sizeof(unsigned) * p->nWords );
+        for ( ; i < (1 << p->Log2Divs) - 2; i++ ) 
+            Count += fwrite( p->pTempSim, 1, sizeof(unsigned) * p->nWords, p->pFile );
+        // write offset
+        for ( w = 0; w < p->nWords; w++ )
+            p->pTempSim[w] = p->pCareSet[w] & ~pFunc[w];
+        Count += fwrite( p->pTempSim, 1, sizeof(unsigned) * p->nWords, p->pFile );
+        // write onset
+        for ( w = 0; w < p->nWords; w++ )
+            p->pTempSim[w] = p->pCareSet[w] & pFunc[w];
+        Count += fwrite( p->pTempSim, 1, sizeof(unsigned) * p->nWords, p->pFile );
+        assert( Count == (1 << p->Log2Divs) * (1 << (p->nLeavesMax-3)) );
+        p->nProbs++;
+        //printf( "Finished dumping node %d.  Written %d bytes of data (expected %d bytes).\n", pRoot->Id, Count, (1 << p->Log2Divs) * (1 << (p->nLeavesMax-3)) );
+        //printf( "%d ", Vec_PtrSize(p->vDivs) );
+        return NULL;
+    }
 
 clk = Abc_Clock();
     // consider constants
