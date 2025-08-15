@@ -47162,11 +47162,15 @@ int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     int fUseLutLib;
     int fVerbose;
+    int fVerbosePath;
+    float WireDelay;
     // set defaults
     fUseLutLib = 0;
     fVerbose   = 0;
+    fVerbosePath = 0;
+    WireDelay  = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "lvhwW" ) ) != EOF )
     {
         switch ( c )
         {
@@ -47176,6 +47180,20 @@ int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'v':
             fVerbose ^= 1;
             break;
+        case 'w':
+            fVerbosePath ^= 1;
+            break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by a floating point number.\n" );
+                goto usage;
+            }
+            WireDelay = (float)atof(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( WireDelay < 0.0 )
+                goto usage;
+            break;
         case 'h':
             goto usage;
         default:
@@ -47184,23 +47202,42 @@ int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Speedup(): There is no AIG to map.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Trace(): There is no AIG to map.\n" );
         return 1;
     }
     if ( !Gia_ManHasMapping(pAbc->pGia) )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Speedup(): Mapping of the AIG is not defined.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Trace(): Mapping of the AIG is not defined.\n" );
         return 1;
     }
     pAbc->pGia->pLutLib = fUseLutLib ? pAbc->pLibLut : NULL;
-    Gia_ManDelayTraceLutPrint( pAbc->pGia, fVerbose );
+    If_LibLut_t * pLutLib = pAbc->pGia->pLutLib;
+    // add wire delay to LUT library delays
+    if ( pLutLib && WireDelay > 0 )
+    {
+        int i, k;
+        for ( i = 0; i <= pLutLib->LutMax; i++ )
+            for ( k = 0; k <= i; k++ )
+                pLutLib->pLutDelays[i][k] += WireDelay;
+    }
+    Gia_ManDelayTraceLutPrint( pAbc->pGia, fVerbose, fVerbosePath );
+    // subtract wire delay from LUT library delays
+    if ( pLutLib && WireDelay > 0 )
+    {
+        int i, k;
+        for ( i = 0; i <= pLutLib->LutMax; i++ )
+            for ( k = 0; k <= i; k++ )
+                pLutLib->pLutDelays[i][k] -= WireDelay;
+    }
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &trace [-lvh]\n" );
     Abc_Print( -2, "\t           performs delay trace of LUT-mapped network\n" );
+    Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", WireDelay );
     Abc_Print( -2, "\t-l       : toggle using unit- or LUT-library-delay model [default = %s]\n", fUseLutLib? "lib": "unit" );
-    Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-v       : toggle printing slack summary [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-w       : toggle printing critical path [default = %s]\n", fVerbosePath? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
 }
