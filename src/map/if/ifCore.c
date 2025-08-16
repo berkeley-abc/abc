@@ -154,6 +154,10 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // area oriented mapping
     for ( i = 0; i < p->pPars->nAreaIters; i++ )
     {
+        if ( p->pPars->fDumpFile && p->pPars->nLutSize <= 6 && i == p->pPars->nAreaIters-1 ) {
+            p->vCuts = Vec_IntAlloc( 1 << 20 );
+            p->vCutCosts = Vec_IntAlloc( 1 << 16 );
+        }
         If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, 0, "Area" );
         if ( p->pPars->fExpRed )
             If_ManImproveMapping( p );

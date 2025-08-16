@@ -503,6 +503,10 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     if ( p->pPars->pFuncUser )
         If_ObjForEachCut( pObj, pCut, i )
             p->pPars->pFuncUser( p, pObj, pCut );
+    if ( p->vCuts ) {
+        extern void If_ManDumpCutsAndCost( If_Man_t * p, If_Obj_t * pObj, Vec_Int_t * vCuts, Vec_Int_t * vCutCosts );
+        If_ManDumpCutsAndCost( p, pObj, p->vCuts, p->vCutCosts );
+    }
     // free the cuts
     If_ManDerefNodeCutSet( p, pObj );
 }
