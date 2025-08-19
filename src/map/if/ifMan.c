@@ -332,7 +332,7 @@ void If_ManStop( If_Man_t * p )
         char pFileName[1000] = {0};
         // "I15_O20_L32_N256_C16_K6__name.bin"
         char * pName = Extra_FileNameGeneric(Extra_FileNameWithoutPath(p->pName));
-        sprintf( pFileName, "I%d_O%d_L%d_N%d_C%d_K%d__%s.bin", If_ManCiNum(p), If_ManCoNum(p), p->nLevelMax, If_ManAndNum(p), p->pPars->nCutsMax, p->pPars->nLutSize, pName );
+        sprintf( pFileName, "%s__I%d_O%d_L%d_N%d_C%d_K%d.bin", pName, If_ManCiNum(p), If_ManCoNum(p), p->nLevelMax, If_ManAndNum(p), p->pPars->nCutsMax, p->pPars->nLutSize );
         ABC_FREE( pName );
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
@@ -350,6 +350,9 @@ void If_ManStop( If_Man_t * p )
     {
         char pFileName[1000] = {0}, pBuffer[100];
         int nUnique = 0, nChunks = 0, nChunkSize = 1 << 10, nBytes = 0;
+        char * pName = Extra_FileNameGeneric(Extra_FileNameWithoutPath(p->pName));
+        sprintf( pFileName, "%s__", pName );
+        ABC_FREE( pName );        
         for ( int i = 7; i <= p->pPars->nLutSize; i++ ) {
             nUnique = Vec_MemEntryNum(p->vTtMem[i]);
             nChunks = (nUnique + nChunkSize - 1) / nChunkSize;
@@ -357,10 +360,7 @@ void If_ManStop( If_Man_t * p )
             sprintf( pBuffer, "%s%02d_%02d", i == 7 ? "":"__", i, nChunks );
             strcat( pFileName, pBuffer );
         }
-        char * pName = Extra_FileNameGeneric(Extra_FileNameWithoutPath(p->pName));
-        sprintf( pBuffer, "__%s.bin", pName );
-        ABC_FREE( pName );        
-        strcat( pFileName, pBuffer );
+        strcat( pFileName, ".bin" );
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
             printf( "Cannot open file \"%s\" for writing.\n", pFileName );
