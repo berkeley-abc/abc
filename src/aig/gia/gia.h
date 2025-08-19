@@ -1653,7 +1653,7 @@ extern Vec_Ptr_t *         Gia_ManPtrWrdReadBin( char * pFileName, int fVerbose 
 extern Vec_Str_t *         Gia_ManComputeRange( Gia_Man_t * p );
 /*=== giaSpeedup.c ============================================================*/
 extern float               Gia_ManDelayTraceLut( Gia_Man_t * p );
-extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose );
+extern float               Gia_ManDelayTraceLutPrint( Gia_Man_t * p, int fVerbose, int fVerbosePath );
 extern Gia_Man_t *         Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerbose, int fVeryVerbose );
 /*=== giaSplit.c ============================================================*/
 extern void                Gia_ManComputeOneWinStart( Gia_Man_t * p, int nAnds, int fReverse );
