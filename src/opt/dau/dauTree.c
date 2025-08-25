@@ -138,11 +138,7 @@ static inline Dss_Obj_t *  Dss_ObjChild( Vec_Ptr_t * p, Dss_Obj_t * pObj, int i 
 
 static inline int Dss_WordCountOnes( unsigned uWord )
 {
-    uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
-    uWord = (uWord & 0x33333333) + ((uWord>>2) & 0x33333333);
-    uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
-    uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
-    return  (uWord & 0x0000FFFF) + (uWord>>16);
+    return Abc_WordCountOnes( uWord );
 }
 
 static inline int Dss_Lit2Lit( int * pMapLit, int Lit )   { return Abc_Var2Lit( Abc_Lit2Var(pMapLit[Abc_Lit2Var(Lit)]), Abc_LitIsCompl(Lit) ^ Abc_LitIsCompl(pMapLit[Abc_Lit2Var(Lit)]) );   }
