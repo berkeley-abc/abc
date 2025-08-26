@@ -941,11 +941,16 @@ void Scl_LibertyReadLoadUnit( Scl_Tree_t * p, Vec_Str_t * vOut )
         char * pHead   = Scl_LibertyReadString(p, pItem->Head);
         float First    = atof(strtok(pHead, " \t\n\r\\\","));
         char * pSecond = strtok(NULL, " \t\n\r\\\",");
-        Vec_StrPutF_( vOut, First );
-        if ( pSecond && !strcmp(pSecond, "pf") )
+        if ( pSecond && (!strcmp(pSecond, "pf") || !strcmp(pSecond, "pF")) )
+        {
+            Vec_StrPutF_( vOut, First );
             Vec_StrPutI_( vOut, 12 );
-        else if ( pSecond && !strcmp(pSecond, "ff") )
+        }
+        else if ( pSecond && (!strcmp(pSecond, "ff") || !strcmp(pSecond, "fF")) )
+        {
+            Vec_StrPutF_( vOut, First );
             Vec_StrPutI_( vOut, 15 );
+        }
         else break;
         return;
     }
