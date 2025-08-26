@@ -649,15 +649,30 @@ Gia_Man_t * Gia_ManDupFromArrays( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * v
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachObjVec( vCos, p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
-    if ( vLevels[0] ) {
+    if ( vLevels[0] && vLevels[1] ) {
         pNew->vCiArrs = Vec_IntAlloc( Gia_ManCiNum(pNew) );
-        Gia_ManForEachObjVec( vCis, p, pObj, i )
-            Vec_IntPush( pNew->vCiArrs, Gia_ObjLevel(p, pObj) );
+        Gia_ManForEachObjVec( vCis, p, pObj, i ) {
+            // Vec_IntPush( pNew->vCiArrs, Gia_ObjLevel(p, pObj) );
+            Vec_IntPush( pNew->vCiArrs, Vec_IntEntry(vLevels[0], Gia_ObjId(p, pObj)) );
+        }
         pNew->vCoReqs = Vec_IntAlloc( Gia_ManCoNum(pNew) );
-        Gia_ManForEachObjVec( vCos, p, pObj, i )
-            Vec_IntPush( pNew->vCoReqs, nLevels - Gia_ObjLevel(p, pObj) );
+        Gia_ManForEachObjVec( vCos, p, pObj, i ) {
+            // Vec_IntPush( pNew->vCoReqs, nLevels - Gia_ObjLevel(p, pObj) );
+            Vec_IntPush( pNew->vCoReqs, nLevels + 1 - Vec_IntEntry(vLevels[1], Gia_ObjId(p, pObj)) );
+            assert( Gia_ObjIsAnd(pObj) );
+        }
     }
     return pNew;
+}
+int Gia_ManLevelR( Gia_Man_t * pMan )
+{
+    int i, LevelMax = Gia_ManLevelRNum( pMan );
+    Gia_Obj_t * pNode;
+    Gia_ManForEachObj( pMan, pNode, i )
+        Gia_ObjSetLevel( pMan, pNode, (int)(LevelMax - Gia_ObjLevel(pMan, pNode) + 1) );
+    Gia_ManForEachCi( pMan, pNode, i )
+        Gia_ObjSetLevel( pMan, pNode, 0 );
+    return LevelMax;
 }
 Vec_Ptr_t * Gia_ManDupWindows( Gia_Man_t * pMan, Vec_Ptr_t * vvIns, Vec_Ptr_t * vvNodes, Vec_Ptr_t * vvOuts, int fDelayOpt )
 {
@@ -669,7 +684,7 @@ Vec_Ptr_t * Gia_ManDupWindows( Gia_Man_t * pMan, Vec_Ptr_t * vvIns, Vec_Ptr_t * 
         ABC_SWAP( Vec_Int_t *, vLevels[0], pMan->vLevels );
         Levels[1] = Gia_ManLevelRNum( pMan );
         ABC_SWAP( Vec_Int_t *, vLevels[1], pMan->vLevels );
-        assert( Levels[0] == Levels[1] );
+        assert( (Levels[0] + 1) == Levels[1] ); 
     }    
     Vec_Int_t * vNodes; int i;
     Vec_Ptr_t * vWins = Vec_PtrAlloc( Vec_PtrSize(vvIns) );
@@ -686,16 +701,6 @@ Vec_Ptr_t * Gia_ManDupWindows( Gia_Man_t * pMan, Vec_Ptr_t * vvIns, Vec_Ptr_t * 
     Vec_IntFreeP( &vLevels[0] );
     Vec_IntFreeP( &vLevels[1] );    
     return vWins;
-}
-int Gia_ManLevelR( Gia_Man_t * pMan )
-{
-    int i, LevelMax = Gia_ManLevelRNum( pMan );
-    Gia_Obj_t * pNode;
-    Gia_ManForEachObj( pMan, pNode, i )
-        Gia_ObjSetLevel( pMan, pNode, (int)(LevelMax - Gia_ObjLevel(pMan, pNode) + 1) );
-    Gia_ManForEachCi( pMan, pNode, i )
-        Gia_ObjSetLevel( pMan, pNode, 0 );
-    return LevelMax;
 }
 Vec_Ptr_t * Gia_ManExtractPartitions( Gia_Man_t * pMan, int Iter, int nSuppMax, Vec_Ptr_t ** pvIns, Vec_Ptr_t ** pvOuts, Vec_Ptr_t ** pvNodes, int fOverlap, int fDelayOpt )
 {
@@ -816,7 +821,7 @@ Vec_Ptr_t * Gia_ManDupDivide( Gia_Man_t * p, Vec_Wec_t * vCis, Vec_Wec_t * vAnds
         ABC_SWAP( Vec_Int_t *, vLevels[0], p->vLevels );
         Levels[1] = Gia_ManLevelRNum( p );
         ABC_SWAP( Vec_Int_t *, vLevels[1], p->vLevels );
-        assert( Levels[0] == Levels[1] );
+        // assert( Levels[0] == Levels[1] );
     }
     Vec_Ptr_t * vAigs = Vec_PtrAlloc( Vec_WecSize(vCis) );  int i;
     for ( i = 0; i < Vec_WecSize(vCis); i++ )

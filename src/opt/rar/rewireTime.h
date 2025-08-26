@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [rewire_time.h]
+  FileName    [rewireTime.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: rewire_time.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: rewireTime.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 

@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [rewire_map.h]
+  FileName    [rewireMap.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: rewire_map.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: rewireMap.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -24,12 +24,15 @@
 #include "base/abc/abc.h"
 #include "aig/gia/giaAig.h"
 #include "map/amap/amap.h"
+#include "proof/dch/dch.h"
 #include "map/mio/mio.h"
 #include "aig/miniaig/miniaig.h"
 
 ABC_NAMESPACE_HEADER_START
 
 Abc_Ntk_t *Gia_ManRewirePut(Gia_Man_t *pGia);
+Abc_Ntk_t *Abc_ManRewireDch(Abc_Ntk_t *pNtk);
+Gia_Man_t *Gia_ManRewireDch(Gia_Man_t *pGia);
 Abc_Ntk_t *Abc_ManRewireMapAmap(Abc_Ntk_t *pNtk);
 Abc_Ntk_t *Gia_ManRewireMapNf(Gia_Man_t *pGia);
 Abc_Ntk_t *Gia_ManRewireMapSimap(Gia_Man_t *pGia, int nBound, int nBTLimit, int nTimeout);

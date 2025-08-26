@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [rewire_rng.h]
+  FileName    [rewireRng.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: rewire_rng.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: rewireRng.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
