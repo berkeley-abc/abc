@@ -20987,17 +20987,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t *Abc_ManRewire(Abc_Ntk_t *pNtk, Gia_Man_t *pExc, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nSeed, int fCheck, int fVerbose);
+    extern Abc_Ntk_t *Abc_ManRewire(Abc_Ntk_t *pNtk, Gia_Man_t *pExc, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fDch, int fTiming, int nSeed, int fCheck, int fVerbose);
     Abc_Ntk_t *pNtk, *pTemp;
     Gia_Man_t *pExc = NULL;
     FILE *pFile = NULL;
-    int c, nIters = 100000, nExpands = 128, nGrowth = 4, nDivs = -1, nFaninMax = 8, nSeed = 1, nTimeOut = 0, nVerbose = 1, nMode = 0, nMappedMode = 0, nDist = 0, fCheck = 0;
+    int c, nIters = 100000, nExpands = 128, nGrowth = 4, nDivs = -1, nFaninMax = 8, nSeed = 1, nTimeOut = 0, nVerbose = 1, nMode = 0, nMappedMode = 0, nDist = 0, fCheck = 0, fDch = 1, fTiming = 0;
     float nLevelGrowRatio = 0;
     Extra_UtilGetoptReset();
 
     pNtk = Abc_FrameReadNtk(pAbc);
 
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IEGDFSTMALRCVch" ) ) != EOF ) {
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IEGDFSTMALRCVdtch" ) ) != EOF ) {
         switch ( c ) {
         case 'I':
             if ( globalUtilOptind >= argc )
@@ -21126,6 +21126,12 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fCheck ^= 1;
             break;
+        case 'd':
+            fDch ^= 1;
+            break;
+        case 't':
+            fTiming ^= 1;
+            break;
         case 'h':
         default:
             goto usage;
@@ -21143,16 +21149,16 @@ int Abc_CommandRewire( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( nMode == 0 && !Abc_NtkIsStrash(pNtk) )
     {
-        Abc_Print( -1, "Rewiring works only for the AIG representation (run \"strash\").\n" );
+        Abc_Print( -1, "Rewiring operates only on specific network representations. Use \"strash\" to apply it to an AIG, or add the \"-M 1\" flag to enable it for a mapped network.\n" );
         return 1;
     }
-    if ( nMode >= 1 && Abc_FrameReadLibGen2() == NULL )
+    if ( nMode == 1 && Abc_FrameReadLibGen2() == NULL )
     {
         Abc_Print( -1, "Library is not available.\n" );
         return 1;
     }
 
-    pTemp = Abc_ManRewire( pNtk, pExc, nIters, nLevelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, nSeed, fCheck, nVerbose );
+    pTemp = Abc_ManRewire( pNtk, pExc, nIters, nLevelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fDch, fTiming, nSeed, fCheck, nVerbose );
     if ( pExc )
         Gia_ManStop( pExc );
     Abc_FrameReplaceCurrentNetwork( pAbc, pTemp );
@@ -21167,13 +21173,15 @@ usage:
     Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",                    nFaninMax);
     Abc_Print( -2, "\t-L <num>  :  localization distances (0: unlimited) [default = %d]\n",                     nDist);
     Abc_Print( -2, "\t-R <num>  :  level constraint (0: unlimited, 1: preserve level) [default = %g]\n",        nLevelGrowRatio);
-    Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                                       nMode ? "area" : "AIG node" );
+    Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                                       nMode ? "mapped" : "AIG" );
     Abc_Print( -2, "\t-A <num>  :  mapper (0: amap, 1: &nf, 2: &simap) (experimental) [default = %d]\n",        nMappedMode );
     Abc_Print( -2, "\t-C <file> :  AIGER specifying external cares\n");
     Abc_Print( -2, "\t-S <num>  :  the random seed (0: random, >= 1: user defined) [default = %d]\n",           nSeed );
     Abc_Print( -2, "\t-T <num>  :  the timeout in seconds (0: unlimited) [default = %d]\n",                     nTimeOut );
     Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                                       nVerbose );
-    Abc_Print( -2, "\t-c        :  check the equivalence [default = %s]\n", fCheck ? "yes" : "no" );
+    Abc_Print( -2, "\t-c        :  check the equivalence [default = %s]\n",                                     fCheck ? "yes" : "no" );
+    Abc_Print( -2, "\t-d        :  toggle perform \"dch\" before mapping [default = %s]\n",                     fDch ? "yes" : "no" );
+    Abc_Print( -2, "\t-t        :  toggle timing-driven rewiring [default = %s]\n",                             fTiming ? "yes" : "no" );
     Abc_Print( -2, "\t-h        :  prints the command usage\n" );
     Abc_Print( -2, "\n\tThis command was contributed by Jiun-Hao Chen from National Taiwan University.\n" );
     return 1;
@@ -46755,14 +46763,14 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t *Gia_ManRewire(Gia_Man_t *pGia, Gia_Man_t *pExc, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int nSeed, int fCheck, int fChoices, int fVerbose);
+    extern Gia_Man_t *Gia_ManRewire(Gia_Man_t *pGia, Gia_Man_t *pExc, int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fDch, int fTiming, int nSeed, int fCheck, int fChoices, int fVerbose);
     FILE *pFile = NULL;
     Gia_Man_t *pTemp, *pExc = NULL;
-    int c, nIters = 100000, nExpands = 128, nGrowth = 4, nDivs = -1, nFaninMax = 8, nSeed = 1, nTimeOut = 0, nVerbose = 1, nMode = 0, nMappedMode = 0, nDist = 0, fCheck = 0, fChoices = 0;
+    int c, nIters = 100000, nExpands = 128, nGrowth = 4, nDivs = -1, nFaninMax = 8, nSeed = 1, nTimeOut = 0, nVerbose = 1, nMode = 0, nMappedMode = 0, nDist = 0, fCheck = 0, fChoices = 0, fDch = 1, fTiming = 0;
     float nLevelGrowRatio = 0;
     Extra_UtilGetoptReset();
 
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IEGDFSTMALRCVcsh" ) ) != EOF ) {
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IEGDFSTMALRCVcsdth" ) ) != EOF ) {
         switch ( c ) {
         case 'I':
             if ( globalUtilOptind >= argc )
@@ -46894,6 +46902,12 @@ int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             fChoices ^= 1;
             break;
+        case 'd':
+            fDch ^= 1;
+            break;
+        case 't':
+            fTiming ^= 1;
+            break;
         case 'h':
         default:
             goto usage;
@@ -46909,13 +46923,13 @@ int Abc_CommandAbc9Rewire( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Empty GIA network.\n" );
         return 1;
     }
-    if ( nMode >= 1 && Abc_FrameReadLibGen2() == NULL )
+    if ( nMode == 1 && Abc_FrameReadLibGen2() == NULL )
     {
         Abc_Print( -1, "Library is not available.\n" );
         return 1;
     }
 
-    pTemp = Gia_ManRewire( pAbc->pGia, pExc, nIters, nLevelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, nSeed, fCheck, fChoices, nVerbose );
+    pTemp = Gia_ManRewire( pAbc->pGia, pExc, nIters, nLevelGrowRatio, nExpands, nGrowth, nDivs, nFaninMax, nTimeOut, nMode, nMappedMode, nDist, fDch, fTiming, nSeed, fCheck, fChoices, nVerbose );
     if ( pExc )
         Gia_ManStop( pExc );
     Abc_FrameUpdateGia( pAbc, pTemp );
@@ -46931,14 +46945,16 @@ usage:
     Abc_Print( -2, "\t-F <num>  :  the limit on the fanin count at a node [default = %d]\n",                    nFaninMax);
     Abc_Print( -2, "\t-L <num>  :  localization distances (0: unlimited) [default = %d]\n",                     nDist);
     Abc_Print( -2, "\t-R <num>  :  level constraint (0: unlimited, 1: preserve level) [default = %g]\n",        nLevelGrowRatio);
-    Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                                       nMode ? "area" : "AIG node" );
+    Abc_Print( -2, "\t-M <num>  :  optimization target [default = %s]\n",                                       nMode ? "mapped" : "aig" );
     Abc_Print( -2, "\t-A <num>  :  mapper (0: amap, 1: &nf, 2: &simap) (experimental) [default = %d]\n",        nMappedMode );
     Abc_Print( -2, "\t-C <file> :  AIGER specifying external cares\n");
     Abc_Print( -2, "\t-S <num>  :  the random seed (0: random, >= 1: user defined) [default = %d]\n",           nSeed );
     Abc_Print( -2, "\t-T <num>  :  the timeout in seconds (0: unlimited) [default = %d]\n",                     nTimeOut );
     Abc_Print( -2, "\t-V <num>  :  the verbosity level [default = %d]\n",                                       nVerbose );
-    Abc_Print( -2, "\t-c        :  check the equivalence [default = %s]\n", fCheck ? "yes" : "no" );
-    Abc_Print( -2, "\t-s        :  toggle accumulating structural choices [default = %s]\n", fChoices ? "yes" : "no" );
+    Abc_Print( -2, "\t-c        :  check the equivalence [default = %s]\n",                                     fCheck ? "yes" : "no" );
+    Abc_Print( -2, "\t-s        :  toggle accumulating structural choices [default = %s]\n",                    fChoices ? "yes" : "no" );
+    Abc_Print( -2, "\t-d        :  toggle using \"dch\" before mapping [default = %s]\n",                       fDch ? "yes" : "no" );
+    Abc_Print( -2, "\t-t        :  toggle timing-driven re-wiring [default = %s]\n",                            fTiming ? "yes" : "no" );
     Abc_Print( -2, "\t-h        :  prints the command usage\n" );
     Abc_Print( -2, "\n\tThis command was contributed by Jiun-Hao Chen from National Taiwan University.\n" );
     return 1;

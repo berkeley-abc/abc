@@ -1,4 +1,4 @@
-SRC += src/opt/rar/rewire_rng.c \
-       src/opt/rar/rewire_map.c \
-       src/opt/rar/rewire_rar.c \
-       src/opt/rar/rewire_miaig.cpp
+SRC += src/opt/rar/rewireRng.c \
+       src/opt/rar/rewireMap.c \
+       src/opt/rar/rewireRar.c \
+       src/opt/rar/rewireMiaig.cpp

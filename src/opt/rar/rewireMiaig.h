@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [rewire_miaig.h]
+  FileName    [rewireMiaig.h]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,7 +14,7 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: rewire_miaig.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: rewireMiaig.h,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
@@ -26,7 +26,7 @@
 #ifdef RW_ABC
 #include "base/abc/abc.h"
 #include "aig/miniaig/miniaig.h"
-#include "rewire_map.h"
+#include "rewireMap.h"
 #define RW_INT_MAX ABC_INT_MAX
 #define Rw_MaxInt Abc_MaxInt
 #define Rw_MinInt Abc_MinInt
@@ -57,9 +57,9 @@ static inline int Rw_LitNot( int Lit )            { assert(Lit >= 0); return Lit
 static inline int Rw_LitNotCond( int Lit, int c ) { assert(Lit >= 0); return Lit ^ (int)(c > 0);                }
 static inline int Rw_LitRegular( int Lit )        { assert(Lit >= 0); return Lit & ~01;                         }
 #endif // RW_ABC
-#include "rewire_vec.h"
-#include "rewire_tt.h"
-#include "rewire_time.h"
+#include "rewireVec.h"
+#include "rewireTt.h"
+#include "rewireTime.h"
 
 
 #include <vector>
@@ -134,7 +134,7 @@ static inline int RW_XADD(int *addr, int delta) {
 #define Miaig_CustomForEachNodeOutput(p, i)         for (i = 1 + p->nIns; i < p->nObjs; i++)
 #define Miaig_CustomForEachNodeOutputStart(p, i, s) for (i = s; i < p->nObjs; i++)
 #define Miaig_CustomForEachObj(p, i)                for (i = 0; i < p->nObjs; i++)
-#define Miaig_CustomForEachObjFanin(p, i, iLit, k)  Vi_ForEachEntry(&p->pvFans[i], iLit, k)
+#define Miaig_CustomForEachObjFanin(p, i, iLit, k)  Vi_ForEachEntry(&p->pvFanins[i], iLit, k)
 
 #define Miaig_ForEachConstInput(i)         for (i = 0; i <= _data->nIns; i++)
 #define Miaig_ForEachInput(i)              for (i = 1; i <= _data->nIns; i++)
@@ -146,8 +146,9 @@ static inline int RW_XADD(int *addr, int delta) {
 #define Miaig_ForEachNodeOutput(i)         for (i = 1 + _data->nIns; i < _data->nObjs; i++)
 #define Miaig_ForEachNodeOutputStart(i, s) for (i = s; i < _data->nObjs; i++)
 #define Miaig_ForEachObj(i)                for (i = 0; i < _data->nObjs; i++)
-#define Miaig_ForEachObjFanin(i, iLit, k)  Vi_ForEachEntry(&_data->pvFans[i], iLit, k)
-#define Miaig_ForEachObjFaninStart(i, iLit, k, s)  Vi_ForEachEntryStart(&_data->pvFans[i], iLit, k, s)
+#define Miaig_ForEachObjFanin(i, iLit, k)  Vi_ForEachEntry(&_data->pvFanins[i], iLit, k)
+#define Miaig_ForEachObjFanout(i, iVar, k)  Vi_ForEachEntry(&_data->pvFanouts[i], iVar, k)
+#define Miaig_ForEachObjFaninStart(i, iLit, k, s)  Vi_ForEachEntryStart(&_data->pvFanins[i], iLit, k, s)
 
 static inline int Rw_Lit2LitV(int *pMapV2V, int Lit) {
     assert(Lit >= 0);
@@ -171,20 +172,26 @@ struct Miaig_Data {
     int *pTravIds;         // traversal IDs
     int *pCopy;            // temp copy
     int *pRefs;            // reference counters
+    int minLevel;          // minimum level
     int *pLevel;           // levels
     int *pDist;            // distances
+    int *pRequire;         // required times
     word *pTruths[3];      // truth tables
     word *pCare;           // careset
     word *pProd;           // product
-    word *pExc;           // Exc 
+    word *pExc;            // Exc 
     vi *vOrder;            // node order
     vi *vOrderF;           // fanin order
     vi *vOrderF2;          // fanin order
     vi *vTfo;              // transitive fanout cone
-    vi *pvFans;            // the array of objects' fanins
+    vi *pvFanins;          // the array of objects' fanins (literal)
+    vi *pvFanouts;         // the array of objects' fanouts (variable)
+    vi *vCiArrs;           // the arrival times of CIs (if provided) not owned
+    vi *vCoReqs;           // the required times of COs (if provided) not owned
+    vi *vTfoArrs;          // the TFO of each
     int *pTable;           // structural hashing table
     int TableSize;         // the size of the hash table
-    float nTransistor;     // objective value
+    float objectiveValue;  // objective value
     vi *pNtkMapped;        // mapped network
 };
 
@@ -229,7 +236,9 @@ public:
     int objPiIdx(int i); // No check isPi
     int objPoIdx(int i); // No check isPo
     void print(void);
+    void printNode(int i);
     int appendObj(void);
+    void setFanin(int i, int iLit);
     void appendFanin(int i, int iLit);
     int objFaninNum(int i);
     int objFanin0(int i);
@@ -239,31 +248,39 @@ public:
     int &objTravId(int i);
     int &objCopy(int i);
     int &objDist(int i);
+    int &objRequire(int i);
     int &nTravIds(void);
     word *objTruth(int i, int n);
     vi *objFanins(int i);
+    vi *objFanouts(int i);
     int objType(int i);
     int nWords(void);
     void refObj(int iObj);
     void derefObj(int iObj);
     void derefObj_rec(int iObj, int iLitSkip);
     void setName(char *pName);
+    void setMapped(Vec_Int_t *vMapping, float objectiveValue = 0.0f);
+    void attachTiming(vi *vCiArrs, vi *vCoReqs);
+    void checkTiming(vi *vCiArrs, vi *vCoReqs);
 
 private:
     int initializeLevels_rec(int iObj);
+    void updateLevels_rec(int iObj);
     void initializeLevels(void);
     void initializeRefs(void);
     void verifyRefs(void);
     void initializeTruth(void);
     void initializeDists(void);
+    void initializeFanouts(void);
+    void initializeRequire_rec(int iObj);
+    void updateRequire_rec(int iObj);
+    void initializeRequire(void);
 
 private:
     void markDfs_rec(int iObj);
     int markDfs(void);
     void markDistanceN_rec(int iObj, int n, int limit);
     void markDistanceN(int Obj, int n);
-    void markCritical(void);
-    void markCritical_rec(int iObj);
     void topoCollect_rec(int iObj);
     vi *topoCollect(void);
     void reduceFanins(vi *v);
@@ -288,10 +305,11 @@ private:
     int *hashLookup(int *pTable, int l0, int l1, int TableSize);
 
 public:
-    float countAnd2(int reset = 0, int fDummy = 0);
+    float countAnd2(int reset = 0, int fDummy1 = 0, int fDummy2 = 0);
+    float countLevel(int reset = 0, int fDummy1 = 0, int fDummy2 = 0);
     // 0: amap 1: &nf 2: &simap
-    float countTransistors(int reset = 0, int nMode = 0);
-    int countLevel(int min = 0);
+    float countMappedArea(int reset = 0, int nMode = 0, int fDch = 1);
+    float countMappedDelay(int reset = 0, int nMode = 0, int fDch = 1);
 
 private:
     void dupDfs_rec(Miaig &pNew, int iObj);
@@ -303,21 +321,24 @@ private:
     int buildNodeCascade(Miaig &pNew, vi *vFanins, int fCprop, int fStrash);
 
 private:
-    int expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, word *pExc, int fCheck, int fVerbose);
-    int reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, word *pExc, int fCheck, int fVerbose);
-    int expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int nExpandableLevel, word *pExc, int fCheck, int fVerbose);
+    void expandOneHeuristicSort(int *pOrderF, int fTiming);
+    void reduceOneHeuristicSort(int *pOrderF, int fTiming);
+    int expandOne(int iObj, int nAddedMax, int nDist, int nExpandableLevel, word *pExc, int fTiming, int fCheck, int fVerbose);
+    int reduceOne(int iObj, int fOnlyConst, int fOnlyBuffer, int fHeuristic, word *pExc, int fTiming, int fCheck, int fVerbose);
+    int expandThenReduceOne(int iNode, int nFaninAddLimit, int nDist, int nExpandableLevel, word *pExc, int fTiming, int fCheck, int fVerbose);
 
 public:
-    Miaig dup(int fRemDangle, int fMapped = 0);
+    Miaig dup(int fRemDangle, int fFanout, int fMapped = 0);
     Miaig dupDfs(void);
-    Miaig dupStrash(int fCprop, int fStrash, int fCascade);
-    Miaig dupMulti(int nFaninMax_, int nGrowth);
-    Miaig expand(int nFaninAddLimitAll, int nDist, int nExpandableLevel, word *pExc, int fCheck, int nVerbose);
+    Miaig dupStrash(int fCprop, int fStrash, int fCascade, int fFanout = 0);
+    Miaig dupMulti(int nFaninMax, int nGrowth);
+    Miaig dupExtend(int nFaninMax, int nGrowth);
+    Miaig expand(int nFaninAddLimitAll, int nDist, int nExpandableLevel, word *pExc, int fTiming, int fCheck, int nVerbose);
     Miaig share(int nNewNodesMax);
-    Miaig reduce(word *pExc, int fCheck, int fVerbose);
-    Miaig expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLevel, word *pExc, int fCheck, int fVerbose);
-    Miaig expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nExpandableLevel, word *pExc, int fCheck, int nVerbose);
-    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fCheck, Gia_ChMan_t *pChMan, int nVerbose);
+    Miaig reduce(word *pExc, int fTiming, int fCheck, int fVerbose);
+    Miaig expandThenReduce(int nFaninAddLimit, int nDist, int nExpandableLevel, word *pExc, int fTiming, int fCheck, int fVerbose);
+    Miaig expandShareReduce(int nFaninAddLimitAll, int nDivs, int nDist, int nExpandableLevel, word *pExc, int fTiming, int fCheck, int nVerbose);
+    Miaig rewire(int nIters, float levelGrowRatio, int nExpands, int nGrowth, int nDivs, int nFaninMax, int nTimeOut, int nMode, int nMappedMode, int nDist, int fDch, int fTiming, int fCheck, Gia_ChMan_t *pChMan, int nVerbose);
 #ifdef RW_ABC
     Gia_Man_t *toGia(void);
     Abc_Ntk_t *toNtk(int fMapped = 0);
@@ -390,10 +411,20 @@ inline void Miaig::release(void) {
     if (_refcount && RW_XADD(_refcount, -1) == 1) {
         if (_data) {
             if (_data->pName) free(_data->pName);
-            for (int i = 0; i < _data->nObjsAlloc; ++i)
-                if (_data->pvFans[i].ptr)
-                    free(_data->pvFans[i].ptr);
-            free(_data->pvFans);
+            for (int i = 0; i < _data->nObjsAlloc; ++i) {
+                if (_data->pvFanins[i].ptr) {
+                    free(_data->pvFanins[i].ptr);
+                }
+            }
+            free(_data->pvFanins);
+            if (_data->pvFanouts) {
+                for (int i = 0; i < _data->nObjsAlloc; ++i) {
+                    if (_data->pvFanouts[i].ptr) {
+                        free(_data->pvFanouts[i].ptr);
+                    }
+                }
+                free(_data->pvFanouts);
+            }
             Vi_Free(_data->vOrder);
             Vi_Free(_data->vOrderF);
             Vi_Free(_data->vOrderF2);
@@ -407,6 +438,7 @@ inline void Miaig::release(void) {
             if (_data->pExc) free(_data->pExc);
             if (_data->pLevel) free(_data->pLevel);
             if (_data->pDist) free(_data->pDist);
+            if (_data->pRequire) free(_data->pRequire);
             if (_data->pTable) free(_data->pTable);
             if (_data->pNtkMapped) Vi_Free(_data->pNtkMapped);
             delete _data;
@@ -466,6 +498,22 @@ inline int Miaig::appendObj(void) {
 
 inline void Miaig::appendFanin(int i, int iLit) {
     Vi_PushOrder(objFanins(i), iLit);
+    if (_data->pvFanouts) {
+        Vi_PushOrder(objFanouts(Rw_Lit2Var(iLit)), i);
+    }
+}
+
+inline void Miaig::setFanin(int iObj, int iLit1) {
+    derefObj(iObj);
+    if (_data->pvFanouts) {
+        int iLit2, i;
+        Miaig_ForEachObjFanin(iObj, iLit2, i) {
+            if (Rw_Lit2Var(iLit1) == Rw_Lit2Var(iLit2)) continue;
+            Vi_Remove(objFanouts(Rw_Lit2Var(iLit2)), iObj);
+        }
+    }
+    Vi_Fill(objFanins(iObj), 1, iLit1);
+    refObj(iObj);
 }
 
 inline int Miaig::objFaninNum(int i) {
@@ -501,6 +549,10 @@ inline int &Miaig::objDist(int i) {
     return _data->pDist[i];
 }
 
+inline int &Miaig::objRequire(int i) {
+    return _data->pRequire[i];
+}
+
 inline int &Miaig::nTravIds(void) {
     return _data->nTravIds;
 }
@@ -509,7 +561,9 @@ inline int Miaig::nWords(void) {
     return _data->nWords;
 }
 
-inline float Miaig::countAnd2(int reset, int fDummy) {
+inline float Miaig::countAnd2(int reset, int fDummy1, int fDummy2) {
+    (void)fDummy1;
+    (void)fDummy2;
     int i, Counter = 0;
     Miaig_ForEachNode(i) {
         Counter += objFaninNum(i) - 1;
@@ -517,12 +571,13 @@ inline float Miaig::countAnd2(int reset, int fDummy) {
     return Counter;
 }
 
-inline int Miaig::countLevel(int min) {
+inline float Miaig::countLevel(int reset, int fDummy1, int fDummy2) {
+    (void)fDummy1;
+    (void)fDummy2;
     initializeLevels();
-    int i, Level = (min) ? RW_INT_MAX : -1;
-    int (*compareFunc)(int, int) = (min) ? Rw_MinInt : Rw_MaxInt;
+    int i, Level = -1;
     Miaig_ForEachOutput(i) {
-        Level = compareFunc(Level, objLevel(i));
+        Level = Rw_MaxInt(Level, objLevel(i));
     }
     return Level;
 }
@@ -532,11 +587,23 @@ inline word *Miaig::objTruth(int i, int n) {
 }
 
 inline vi *Miaig::objFanins(int i) {
-    return _data->pvFans + i;
+    return _data->pvFanins + i;
+}
+
+inline vi *Miaig::objFanouts(int i) {
+    assert(_data->pvFanouts);
+    return _data->pvFanouts + i;
 }
 
 inline int Miaig::objType(int i) {
     return objTravId(i) == nTravIds();
+}
+
+inline void Miaig::attachTiming(vi *vCiArrs, vi *vCoReqs) {
+    _data->vCiArrs = vCiArrs;
+    _data->vCoReqs = vCoReqs;
+    if (vCiArrs) assert(Vi_Size(vCiArrs) == nIns());
+    if (vCoReqs) assert(Vi_Size(vCoReqs) == nOuts());
 }
 
 } // namespace Rewire

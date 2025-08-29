@@ -1,6 +1,6 @@
 /**CFile****************************************************************
 
-  FileName    [rewire_rng.c]
+  FileName    [rewireRng.c]
 
   SystemName  [ABC: Logic synthesis and verification system.]
 
@@ -14,11 +14,11 @@
 
   Date        [Ver. 1.0. Started - June 20, 2005.]
 
-  Revision    [$Id: rewire_rng.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
+  Revision    [$Id: rewireRng.c,v 1.00 2005/06/20 00:00:00 alanmi Exp $]
 
 ***********************************************************************/
 
-#include "rewire_rng.h"
+#include "rewireRng.h"
 
 ABC_NAMESPACE_IMPL_START
 
