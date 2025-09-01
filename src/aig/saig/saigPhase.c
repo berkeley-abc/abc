@@ -756,8 +756,8 @@ Aig_Man_t * Saig_ManPerformAbstraction( Saig_Tsim_t * pTsi, int nFrames, int fVe
     assert( Vec_IntSize(pTsi->vNonXRegs) > 0 );
 
     // create mapping for the frames nodes
-    pObjMap = ABC_ALLOC( Aig_Obj_t *, nFrames * Aig_ManObjNumMax(pAig) );
-    memset( pObjMap, 0, sizeof(Aig_Obj_t *) * nFrames * Aig_ManObjNumMax(pAig) );
+    pObjMap = ABC_ALLOC( Aig_Obj_t *, (size_t)nFrames * (size_t)Aig_ManObjNumMax(pAig) );
+    memset( pObjMap, 0, sizeof(Aig_Obj_t *) * (size_t)nFrames * (size_t)Aig_ManObjNumMax(pAig) );
 
     // start the fraig package
     pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * nFrames );

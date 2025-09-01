@@ -89,8 +89,8 @@ Extra_BitMat_t * Extra_BitMatrixStart( int nSize )
     p->uMask     = (sizeof(unsigned) == 4) ? 31: 63;
     p->nWords    = nSize / (8 * sizeof(unsigned)) + ((nSize % (8 * sizeof(unsigned))) > 0);
     p->ppData    = ABC_ALLOC( unsigned *, nSize );
-    p->ppData[0] = ABC_ALLOC( unsigned, nSize * p->nWords );
-    memset( p->ppData[0], 0, sizeof(unsigned) * nSize * p->nWords );
+    p->ppData[0] = ABC_ALLOC( unsigned, (size_t)(nSize) * p->nWords );
+    memset( p->ppData[0], 0, sizeof(unsigned) * (size_t)(nSize) * p->nWords );
     for ( i = 1; i < nSize; i++ )
         p->ppData[i] = p->ppData[i-1] + p->nWords;
     return p;

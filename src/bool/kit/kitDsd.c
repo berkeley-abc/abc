@@ -146,7 +146,7 @@ Kit_DsdNtk_t * Kit_DsdNtkAlloc( int nVars )
     pNtk->pNodes = ABC_ALLOC( Kit_DsdObj_t *, nVars+1 );
     pNtk->nVars = nVars;
     pNtk->nNodesAlloc = nVars+1;
-    pNtk->pMem = ABC_ALLOC( unsigned, 6 * Kit_TruthWordNum(nVars) );
+    pNtk->pMem = ABC_ALLOC( unsigned, 6 * (size_t)Kit_TruthWordNum(nVars) );
     return pNtk;
 }
 
@@ -2695,7 +2695,7 @@ int Kit_DsdCofactoring( unsigned * pTruth, int nVars, int * pCofVars, int nLimit
 
     // allocate storage for cofactors
     nMemSize = Kit_TruthWordNum(nVars);
-    ppCofs[0][0] = ABC_ALLOC( unsigned, 80 * nMemSize );
+    ppCofs[0][0] = ABC_ALLOC( unsigned, 80 * (size_t)nMemSize );
     nSize = 0;
     for ( i = 0; i <  5; i++ )
     for ( k = 0; k < 16; k++ )
@@ -2820,7 +2820,7 @@ void Kit_DsdPrintCofactors( unsigned * pTruth, int nVars, int nCofLevel, int fVe
 
     // allocate storage for cofactors
     nMemSize = Kit_TruthWordNum(nVars);
-    ppCofs[0][0] = ABC_ALLOC( unsigned, 80 * nMemSize );
+    ppCofs[0][0] = ABC_ALLOC( unsigned, 80 *(size_t) nMemSize );
     nSize = 0;
     for ( i = 0; i <  5; i++ )
     for ( k = 0; k < 16; k++ )

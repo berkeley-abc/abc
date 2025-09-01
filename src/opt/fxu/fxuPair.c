@@ -456,8 +456,8 @@ void Fxu_PairAllocStorage( Fxu_Var * pVar, int nCubes )
     pVar->nCubes  = nCubes;
     // allocate memory for all the pairs
     pVar->ppPairs    = ABC_ALLOC( Fxu_Pair **, nCubes );
-    pVar->ppPairs[0] = ABC_ALLOC( Fxu_Pair *,  nCubes * nCubes );
-    memset( pVar->ppPairs[0], 0, sizeof(Fxu_Pair *) * nCubes * nCubes );
+    pVar->ppPairs[0] = ABC_ALLOC( Fxu_Pair *,  (size_t)(nCubes) * (size_t)(nCubes) );
+    memset( pVar->ppPairs[0], 0, sizeof(Fxu_Pair *) * (size_t)(nCubes) * (size_t)(nCubes) );
     for ( k = 1; k < nCubes; k++ )
         pVar->ppPairs[k] = pVar->ppPairs[k-1] + nCubes;
 }

@@ -458,7 +458,7 @@ getMatrix(
     if (cols*rows == 0) return(NULL);
     matrix = ABC_ALLOC(DdHalfWord *, rows);
     if (matrix == NULL) return(NULL);
-    matrix[0] = ABC_ALLOC(DdHalfWord, cols*rows);
+    matrix[0] = ABC_ALLOC(DdHalfWord, (size_t)cols*(size_t)rows);
     if (matrix[0] == NULL) {
         ABC_FREE(matrix);
         return(NULL);

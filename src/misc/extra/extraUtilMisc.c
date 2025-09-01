@@ -884,7 +884,7 @@ void ** Extra_ArrayAlloc( int nCols, int nRows, int Size )
     char * pBuffer;
     int i;
     assert( nCols > 0 && nRows > 0 && Size > 0 );
-    pBuffer = ABC_ALLOC( char, nCols * (sizeof(void *) + nRows * Size) );
+    pBuffer = ABC_ALLOC( char, nCols * (sizeof(void *) + (size_t)(nRows) * Size) );
     pRes = (void **)pBuffer;
     pRes[0] = pBuffer + nCols * sizeof(void *);
     for ( i = 1; i < nCols; i++ )

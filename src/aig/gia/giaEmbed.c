@@ -1170,7 +1170,7 @@ void Emb_ManComputeDimensions( Emb_Man_t * p, int nDims )
 float ** Emb_ManMatrAlloc( int nDims )
 {
     int i;
-    float ** pMatr = (float **)ABC_ALLOC( char, sizeof(float *) * nDims + sizeof(float) * nDims * nDims );
+    float ** pMatr = (float **)ABC_ALLOC( char, sizeof(float *) * (size_t)nDims + sizeof(float) * (size_t)nDims * (size_t)nDims );
     pMatr[0] = (float *)(pMatr + nDims);
     for ( i = 1; i < nDims; i++ )
         pMatr[i] = pMatr[i-1] + nDims;
@@ -1464,7 +1464,7 @@ void Emb_ManDerivePlacement( Emb_Man_t * p, int nSols )
     pPerm1 = Gia_SortFloats( pY1, NULL, p->nObjs );
 
     // average solutions and project them into square [0;GIA_PLACE_SIZE] x [0;GIA_PLACE_SIZE]
-    p->pPlacement = ABC_ALLOC( unsigned short, 2 * p->nObjs );
+    p->pPlacement = ABC_ALLOC( unsigned short, 2 * (size_t)p->nObjs );
     for ( k = 0; k < p->nObjs; k++ )
     {
         p->pPlacement[2*pPerm0[k]+0] = (unsigned short)(int)(1.0 * k * GIA_PLACE_SIZE / p->nObjs);

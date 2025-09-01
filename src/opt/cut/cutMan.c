@@ -85,7 +85,7 @@ Cut_Man_t * Cut_ManStart( Cut_Params_t * pParams )
             p->nTruthWords = Cut_TruthWords( pParams->nVarsMax );
             p->EntrySize += p->nTruthWords * sizeof(unsigned);
         }
-        p->puTemp[0] = ABC_ALLOC( unsigned, 4 * p->nTruthWords );
+        p->puTemp[0] = ABC_ALLOC( unsigned, 4 * (size_t)(p->nTruthWords) );
         p->puTemp[1] = p->puTemp[0] + p->nTruthWords;
         p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
         p->puTemp[3] = p->puTemp[2] + p->nTruthWords;

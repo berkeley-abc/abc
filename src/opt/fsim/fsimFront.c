@@ -270,7 +270,7 @@ void Fsim_ManFront( Fsim_Man_t * p, int fCompressAig )
     }
     else
     {
-        p->pDataAig2 = ABC_ALLOC( int, 3 * p->nObjs );
+        p->pDataAig2 = ABC_ALLOC( int, 3 * size_t(p->nObjs) );
         p->pDataCur2 = p->pDataAig2 + 6;
     }
     // iterate through the objects

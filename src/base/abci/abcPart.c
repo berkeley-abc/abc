@@ -1124,9 +1124,10 @@ Abc_Ntk_t * Abc_NtkFraigPartitioned( Vec_Ptr_t * vStore, void * pParams )
             Abc_NtkConvertCos( pNtk2, vOne, vOnePtr );
             Abc_NtkAppendToCone( pNtkAig, pNtk2, vOnePtr );
         }
-        printf( "Fraiging part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r", 
-            i+1, Vec_PtrSize(vParts), Abc_NtkPiNum(pNtkAig), Abc_NtkPoNum(pNtkAig), 
-            Abc_NtkNodeNum(pNtkAig), Abc_AigLevel(pNtkAig) );
+        if (!Abc_FrameIsBatchMode())
+          printf( "Fraiging part %4d  (out of %4d)  PI = %5d. PO = %5d. And = %6d. Lev = %4d.\r",
+                  i+1, Vec_PtrSize(vParts), Abc_NtkPiNum(pNtkAig), Abc_NtkPoNum(pNtkAig),
+                  Abc_NtkNodeNum(pNtkAig), Abc_AigLevel(pNtkAig) );
         // fraig the partition
         pNtkFraig = Abc_NtkFraig( pNtkAig, pParams, 1, 0 );
         Vec_PtrPush( vFraigs, pNtkFraig );

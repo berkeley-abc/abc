@@ -84,9 +84,9 @@ Gia_ManTer_t * Gia_ManTerCreate( Gia_Man_t * pAig )
     p = ABC_CALLOC( Gia_ManTer_t, 1 );
     p->pAig   = Gia_ManFront( pAig );
     p->nIters = 300;
-    p->pDataSim    = ABC_ALLOC( unsigned, Abc_BitWordNum(2*p->pAig->nFront) );
-    p->pDataSimCis = ABC_ALLOC( unsigned, Abc_BitWordNum(2*Gia_ManCiNum(p->pAig)) );
-    p->pDataSimCos = ABC_ALLOC( unsigned, Abc_BitWordNum(2*Gia_ManCoNum(p->pAig)) );
+    p->pDataSim    = ABC_ALLOC( unsigned, Abc_BitWordNum(2*(size_t)p->pAig->nFront) );
+    p->pDataSimCis = ABC_ALLOC( unsigned, Abc_BitWordNum(2*(size_t)Gia_ManCiNum(p->pAig)) );
+    p->pDataSimCos = ABC_ALLOC( unsigned, Abc_BitWordNum(2*(size_t)Gia_ManCoNum(p->pAig)) );
     // allocate storage for terminary states
     p->nStateWords = Abc_BitWordNum( 2*Gia_ManRegNum(pAig) );
     p->vStates  = Vec_PtrAlloc( 1000 );

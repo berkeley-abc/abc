@@ -221,9 +221,9 @@ Gia_ManSim_t * Gia_ManSimCreate( Gia_Man_t * pAig, Gia_ParSim_t * pPars )
     p->pAig   = Gia_ManFront( pAig );
     p->pPars  = pPars;
     p->nWords = pPars->nWords;
-    p->pDataSim = ABC_ALLOC( unsigned, p->nWords * p->pAig->nFront );
-    p->pDataSimCis = ABC_ALLOC( unsigned, p->nWords * Gia_ManCiNum(p->pAig) );
-    p->pDataSimCos = ABC_ALLOC( unsigned, p->nWords * Gia_ManCoNum(p->pAig) );
+    p->pDataSim = ABC_ALLOC( unsigned, (size_t)p->nWords * (size_t)p->pAig->nFront );
+    p->pDataSimCis = ABC_ALLOC( unsigned, (size_t)p->nWords * (size_t)Gia_ManCiNum(p->pAig) );
+    p->pDataSimCos = ABC_ALLOC( unsigned, (size_t)p->nWords * (size_t)Gia_ManCoNum(p->pAig) );
     if ( !p->pDataSim || !p->pDataSimCis || !p->pDataSimCos )
     { 
         Abc_Print( 1, "Simulator could not allocate %.2f GB for simulation info.\n", 

@@ -514,9 +514,9 @@ int Fsim_ManSimulate( Aig_Man_t * pAig, Fsim_ParSim_t * pPars )
     // perform simulation
     Aig_ManRandom( 1 );
     assert( p->pDataSim == NULL );
-    p->pDataSim = ABC_ALLOC( unsigned, p->nWords * p->nFront );
-    p->pDataSimCis = ABC_ALLOC( unsigned, p->nWords * p->nCis );
-    p->pDataSimCos = ABC_ALLOC( unsigned, p->nWords * p->nCos );
+    p->pDataSim = ABC_ALLOC( unsigned, size_t(p->nWords) * p->nFront );
+    p->pDataSimCis = ABC_ALLOC( unsigned, size_t(p->nWords) * p->nCis );
+    p->pDataSimCos = ABC_ALLOC( unsigned, size_t(p->nWords) * p->nCos );
     Fsim_ManSimInfoInit( p );
     for ( i = 0; i < pPars->nIters; i++ )
     { 

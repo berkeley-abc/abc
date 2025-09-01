@@ -303,8 +303,8 @@ Abc_ManRes_t * Abc_ManResubStart( int nLeavesMax, int nDivsMax )
     // allocate simulation info
     p->nBits      = (1 << p->nLeavesMax);
     p->nWords     = (p->nBits <= 32)? 1 : (p->nBits / 32);
-    p->pInfo      = ABC_ALLOC( unsigned, p->nWords * (p->nDivsMax + 1) );
-    memset( p->pInfo, 0, sizeof(unsigned) * p->nWords * p->nLeavesMax );
+    p->pInfo      = ABC_ALLOC( unsigned, (size_t)p->nWords * ((size_t)p->nDivsMax + 1) );
+    memset( p->pInfo, 0, sizeof(unsigned) * (size_t)p->nWords * p->nLeavesMax );
     p->vSims      = Vec_PtrAlloc( p->nDivsMax );
     for ( i = 0; i < p->nDivsMax; i++ )
         Vec_PtrPush( p->vSims, p->pInfo + i * p->nWords );

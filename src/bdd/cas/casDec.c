@@ -196,9 +196,9 @@ int CreateDecomposedNetwork( DdManager * dd, DdNode * aFunc, char ** pNames, int
 
 
         // there should be as many columns, codes, and nodes, as there are columns on this level
-        p->pbCols  = (DdNode **) ABC_ALLOC( char, p->nCols * sizeof(DdNode *) );
-        p->pbCodes = (DdNode **) ABC_ALLOC( char, p->nCols * sizeof(DdNode *) );
-        p->paNodes = (DdNode **) ABC_ALLOC( char, p->nCols * sizeof(DdNode *) );
+        p->pbCols  = (DdNode **) ABC_ALLOC( char, (size_t)p->nCols * sizeof(DdNode *) );
+        p->pbCodes = (DdNode **) ABC_ALLOC( char, (size_t)p->nCols * sizeof(DdNode *) );
+        p->paNodes = (DdNode **) ABC_ALLOC( char, (size_t)p->nCols * sizeof(DdNode *) );
 
         pLuts[nLuts] = p;
         nLuts++;
@@ -318,7 +318,7 @@ printf( "Stage %3d: In = %3d  InP = %3d  Cols = %5d  Multi = %2d  Simple = %2d  
             DdNode ** pbTemp;
             int k, v;
 
-            pbTemp = (DdNode **) ABC_ALLOC( char, p->nCols * sizeof(DdNode *) );
+            pbTemp = (DdNode **) ABC_ALLOC( char, (size_t)p->nCols * sizeof(DdNode *) );
 
             // create the identical permutation
             for ( v = 0; v < dd->size; v++ )

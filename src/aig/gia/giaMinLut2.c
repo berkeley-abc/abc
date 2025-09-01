@@ -257,7 +257,7 @@ void Gia_ManPermStats( int nIns, int * pIPerm, int * pTried )
 int Gia_ManPermuteTreeOne( word * pTruths, int nIns, int nOuts, int nWords, int fRandom, int * pIPermOut, int fVeryVerbose, int fVerbose )
 {
     extern void Gia_ManDumpMuxes( Tree_Sto_t * p, char * pFileName, int * pIPerm );
-    word * pStore = ABC_ALLOC( word, nIns*nOuts*nWords );
+    word * pStore = ABC_ALLOC( word, (size_t)nIns*(size_t)nOuts*(size_t)nWords );
     int pTried[TREE_MAX_VARS] = {0};
     int pIPerm[TREE_MAX_VARS] = {0};
     int v, r, Pos, nNodesPrev = -1, nNodesMin = 0, nNoChange = 0;
@@ -475,7 +475,7 @@ word * Abc_TtMin( word * pF, word * pR, int nVars, Vec_Wrd_t * vMemory, Vec_Wrd_
 word * Abc_TtMinArray( word * p, int nOuts, int nVars, int * pnNodes, int fVerbose )
 {
     int o, i, nWords = Abc_TtWordNum(nVars);
-    word * pRes, * pResult = ABC_ALLOC( word, nOuts*nWords/2 );
+    word * pRes, * pResult = ABC_ALLOC( word, (size_t)nOuts*(size_t)nWords/2 );
     Vec_Wrd_t * vMemory = Vec_WrdAlloc( 100 );
     Vec_Wrd_t * vNodes  = Vec_WrdAlloc( 100 );
     Vec_Wec_t * vNodes2 = Vec_WecStart( nVars+1 );
@@ -900,7 +900,7 @@ Gia_Man_t * Abc_TtGiaMinArray( word * p, int nVars, int nOuts, int * pnNodes, in
 {
     Gia_Man_t * pNew, * pTemp;
     int o, i, iLit, nWords = Abc_TtWordNum(nVars);
-    word * pRes, * pResult = ABC_ALLOC( word, nOuts*nWords/2 );
+    word * pRes, * pResult = ABC_ALLOC( word, (size_t)nOuts*(size_t)nWords/2 );
     Vec_Wrd_t * vMemory = Vec_WrdAlloc( 100 );
     Vec_Wrd_t * vNodes  = Vec_WrdAlloc( 100 );
     Vec_Wec_t * vNodes2 = Vec_WecStart( nVars+1 );
@@ -1145,7 +1145,7 @@ Gia_Man_t * Gia_TryPermOpt2( word * pTruths, int nIns, int nOuts, int nWords, in
     abctime clk = Abc_Clock();
     Gia_Man_t * pNew;
     word * pRes, * pTruthDup = Abc_TtDup( pTruths, nOuts*nWords, 0 );
-    word * pTruthBest = ABC_ALLOC( word, nOuts*nWords/2 );
+    word * pTruthBest = ABC_ALLOC( word, (size_t)nOuts*(size_t)nWords/2 );
     int pIPermBest[TREE_MAX_VARS] = {0};
     int pIPerm[TREE_MAX_VARS] = {0};
     int r, rBest = -1, nNodes = -1, nNodesBest = ABC_INFINITY;
@@ -1301,7 +1301,7 @@ void Abc_Tt6MinTest2( Gia_Man_t * p )
 {
     int fVerbose = 0;
     int i, nWords = Abc_TtWordNum(Gia_ManCiNum(p));
-    word * pTruth = ABC_ALLOC( word, 3*nWords );
+    word * pTruth = ABC_ALLOC( word, 3*(size_t)nWords );
     word * pRes = NULL, * pTruths[3] = { pTruth, pTruth+nWords, pTruth+2*nWords };
 
     Vec_Int_t * vSupp   = Vec_IntAlloc( 100 );

@@ -187,7 +187,7 @@ Odc_Man_t * Abc_NtkDontCareAlloc( int nVarsMax, int nLevels, int fVerbose, int f
     // internal AIG package
     // allocate room for objects
     p->nObjsAlloc = ABC_DC_MAX_NODES; 
-    p->pObjs = ABC_ALLOC( Odc_Obj_t, p->nObjsAlloc * sizeof(Odc_Obj_t) );
+    p->pObjs = ABC_ALLOC( Odc_Obj_t, (size_t)p->nObjsAlloc * sizeof(Odc_Obj_t) );
     p->nPis  = nVarsMax + 32;
     p->nObjs = 1 + p->nPis;
     memset( p->pObjs, 0, p->nObjs * sizeof(Odc_Obj_t) );
@@ -196,8 +196,8 @@ Odc_Man_t * Abc_NtkDontCareAlloc( int nVarsMax, int nLevels, int fVerbose, int f
         p->pObjs[1 + p->nVarsMax + i].uMask = (1 << i);
     // allocate hash table
     p->nTableSize = p->nObjsAlloc/3 + 1;
-    p->pTable = ABC_ALLOC( Odc_Lit_t, p->nTableSize * sizeof(Odc_Lit_t) );
-    memset( p->pTable, 0, p->nTableSize * sizeof(Odc_Lit_t) );
+    p->pTable = ABC_ALLOC( Odc_Lit_t, (size_t)p->nTableSize * sizeof(Odc_Lit_t) );
+    memset( p->pTable, 0, (size_t)p->nTableSize * sizeof(Odc_Lit_t) );
     p->vUsedSpots = Vec_IntAlloc( 1000 );
 
     // truth tables

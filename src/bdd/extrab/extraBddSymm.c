@@ -215,8 +215,8 @@ Extra_SymmInfo_t * Extra_SymmPairsAllocate( int nVars )
     p->nVars     = nVars;
     p->pVars     = ABC_ALLOC( int, nVars );  
     p->pSymms    = ABC_ALLOC( char *, nVars );  
-    p->pSymms[0] = ABC_ALLOC( char  , nVars * nVars );
-    memset( p->pSymms[0], 0, nVars * nVars * sizeof(char) );
+    p->pSymms[0] = ABC_ALLOC( char  , (size_t)nVars * (size_t)nVars );
+    memset( p->pSymms[0], 0, (size_t)nVars * (size_t)nVars * sizeof(char) );
 
     for ( i = 1; i < nVars; i++ )
         p->pSymms[i] = p->pSymms[i-1] + nVars;

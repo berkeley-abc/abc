@@ -571,7 +571,7 @@ Ivy_FraigMan_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParam
     p->nSimWords    = pParams->nSimWords;
 //    p->pSimWords    = ABC_ALLOC( unsigned, Ivy_ManObjNum(pManAig) * p->nSimWords ); 
     EntrySize    = sizeof(Ivy_FraigSim_t) + sizeof(unsigned) * p->nSimWords;
-    p->pSimWords = (char *)ABC_ALLOC( char, Ivy_ManObjNum(pManAig) * EntrySize ); 
+    p->pSimWords = (char *)ABC_ALLOC( char, (size_t)Ivy_ManObjNum(pManAig) * (size_t)EntrySize );
     memset( p->pSimWords, 0, (size_t)EntrySize );
     k = 0;
     Ivy_ManForEachObj( pManAig, pObj, i )
@@ -600,7 +600,7 @@ Ivy_FraigMan_t * Ivy_FraigStart( Ivy_Man_t * pManAig, Ivy_FraigParams_t * pParam
     // allocate storage for sim pattern
     p->nPatWords  = Ivy_BitWordNum( Ivy_ManPiNum(pManAig) );
     p->pPatWords  = ABC_ALLOC( unsigned, p->nPatWords ); 
-    p->pPatScores = ABC_ALLOC( int, 32 * p->nSimWords ); 
+    p->pPatScores = ABC_ALLOC( int, 32 * (size_t)p->nSimWords );
     p->vPiVars    = Vec_PtrAlloc( 100 );
     // set random number generator
     srand( 0xABCABC );

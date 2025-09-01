@@ -294,7 +294,7 @@ word * Gia_ManDeriveFuncs( Gia_Man_t * p )
     int nVars3 = Gia_ManCiNum(p) - nVars2;
     int nWords = Abc_Truth6WordNum( Gia_ManCiNum(p) );
     int nWords2 = Abc_Truth6WordNum( nVars2 );
-    word * pRes = ABC_ALLOC( word, Gia_ManCoNum(p) * nWords );
+    word * pRes = ABC_ALLOC( word, (size_t)Gia_ManCoNum(p) * (size_t)nWords );
     Vec_Wrd_t * vSims = Vec_WrdStart( nWords2 * Gia_ManObjNum(p) );
     Vec_Ptr_t * vTruths = Vec_PtrAllocTruthTables( nVars2 );
     Gia_Obj_t * pObj; int i, v, m;

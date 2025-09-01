@@ -72,8 +72,8 @@ void Gia_ManFanoutStart( Gia_Man_t * p )
     p->nFansAlloc = 2 * Gia_ManObjNum(p);
     if ( p->nFansAlloc < (1<<12) )
         p->nFansAlloc = (1<<12);
-    p->pFanData = ABC_ALLOC( int, 5 * p->nFansAlloc );
-    memset( p->pFanData, 0, sizeof(int) * 5 * p->nFansAlloc );
+    p->pFanData = ABC_ALLOC( int, 5 * (size_t)p->nFansAlloc );
+    memset( p->pFanData, 0, sizeof(int) * 5 * (size_t)p->nFansAlloc );
     // add fanouts for all objects
     Gia_ManForEachObj( p, pObj, i )
     {

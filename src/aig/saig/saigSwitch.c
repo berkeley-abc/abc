@@ -361,7 +361,7 @@ struct Aig_CMan_t_
 Aig_CMan_t * Aig_CManStart( int nIns, int nNodes, int nOuts )
 {
     Aig_CMan_t * p;
-    p = (Aig_CMan_t *)ABC_ALLOC( char, sizeof(Aig_CMan_t) + 2*(2*nNodes + nOuts) );
+    p = (Aig_CMan_t *)ABC_ALLOC( char, sizeof(Aig_CMan_t) + 2*(2*(size_t)nNodes + (size_t)nOuts) );
     memset( p, 0, sizeof(Aig_CMan_t) );
     // set parameters
     p->nIns = nIns;

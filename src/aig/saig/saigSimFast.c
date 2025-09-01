@@ -113,7 +113,7 @@ Faig_Man_t * Faig_ManAlloc( Aig_Man_t * pAig )
     int nWords;
 //    assert( Faig_ManIsCorrect(pAig) );
     nWords = 2 * Aig_ManNodeNum(pAig) + Aig_ManCoNum(pAig);
-    p = (Faig_Man_t *)ABC_ALLOC( char, sizeof(Faig_Man_t) + sizeof(int) * nWords );
+    p = (Faig_Man_t *)ABC_ALLOC( char, sizeof(Faig_Man_t) + sizeof(int) * (size_t)nWords );
 //printf( "Allocating %7.2f MB.\n", 1.0 * (sizeof(Faig_Man_t) + sizeof(int) * nWords)/(1<<20) );
     memset( p, 0, sizeof(Faig_Man_t) );
     p->nPis   = Aig_ManCiNum(pAig) - Aig_ManRegNum(pAig);

@@ -476,8 +476,8 @@ int Abc_ResubComputeWindow( int * pObjs, int nObjs, int nDivsMax, int nLevelIncr
 }
 int Abc_ResubComputeWindow2( int * pObjs, int nObjs, int nDivsMax, int nLevelIncrease, int fUseXor, int fUseZeroCost, int fDebug, int fVerbose, int ** ppArray, int * pnResubs )
 {
-    *ppArray = ABC_ALLOC( int, 2*nObjs );
-    memmove( *ppArray, pObjs, 2*nObjs * sizeof(int) );
+    *ppArray = ABC_ALLOC( int, 2*(size_t)nObjs );
+    memmove( *ppArray, pObjs, 2*(size_t)nObjs * sizeof(int) );
     if ( pnResubs )
         *pnResubs = 0;
     return nObjs;

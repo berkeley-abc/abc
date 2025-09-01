@@ -982,7 +982,7 @@ computeClauses(
     /* Merge inherited and non-inherited clauses.  Now that we know the
     ** total number, we allocate the arrays, and we fill them bottom-up
     ** to restore the proper ordering. */
-    Vcv = ABC_ALLOC(DdHalfWord, 2*(cv+1));
+    Vcv = ABC_ALLOC(DdHalfWord, 2*(size_t)(cv+1));
     if (Vcv == NULL) goto cleanup;
     if (cv > 0) {
         Vcp = bitVectorAlloc(2*cv);

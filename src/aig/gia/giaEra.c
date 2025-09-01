@@ -86,7 +86,7 @@ Gia_ManEra_t * Gia_ManEraCreate( Gia_Man_t * pAig )
     p->pAig      = pAig;
     p->nWordsSim = Abc_TruthWordNum( Gia_ManPiNum(pAig) );
     p->nWordsDat = Abc_BitWordNum( Gia_ManRegNum(pAig) );
-    p->pDataSim  = ABC_ALLOC( unsigned, p->nWordsSim*Gia_ManObjNum(pAig) );
+    p->pDataSim  = ABC_ALLOC( unsigned, (size_t)p->nWordsSim*(size_t)Gia_ManObjNum(pAig) );
     p->pMemory   = Mem_FixedStart( sizeof(Gia_ObjEra_t) + sizeof(unsigned) * p->nWordsDat );
     p->vStates   = Vec_PtrAlloc( 100000 );
     p->nBins     = Abc_PrimeCudd( 100000 );

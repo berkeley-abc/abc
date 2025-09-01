@@ -209,7 +209,7 @@ cuddGa(
     if (popsize < 4) popsize = 4;       /* enforce minimum population size */
 
     /* Allocate population table. */
-    storedd = ABC_ALLOC(int,(popsize+2)*(numvars+1));
+    storedd = ABC_ALLOC(int,(size_t)(popsize+2)*(size_t)(numvars+1));
     if (storedd == NULL) {
         table->errorCode = CUDD_MEMORY_OUT;
         return(0);

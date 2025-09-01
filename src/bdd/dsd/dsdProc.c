@@ -134,7 +134,7 @@ s_Loops2Useless = 0;
         if ( pDsdMan->nRootsAlloc > 0 )
             ABC_FREE( pDsdMan->pRoots );
         pDsdMan->nRootsAlloc = nFuncs;
-        pDsdMan->pRoots = (Dsd_Node_t **) ABC_ALLOC( char, pDsdMan->nRootsAlloc * sizeof(Dsd_Node_t *) );
+        pDsdMan->pRoots = (Dsd_Node_t **) ABC_ALLOC( char, (size_t)pDsdMan->nRootsAlloc * sizeof(Dsd_Node_t *) );
     }
 
     if ( pDsdMan->fVerbose )

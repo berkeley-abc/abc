@@ -84,7 +84,7 @@ int Abc_NtkAttach( Abc_Ntk_t * pNtk )
 
     // derive the gate truth tables
     puTruthGates    = ABC_ALLOC( unsigned *, nGates );
-    puTruthGates[0] = ABC_ALLOC( unsigned, 2 * nGates );
+    puTruthGates[0] = ABC_ALLOC( unsigned, 2 * (size_t)nGates );
     for ( i = 1; i < nGates; i++ )
         puTruthGates[i] = puTruthGates[i-1] + 2;
     for ( i = 0; i < nGates; i++ )

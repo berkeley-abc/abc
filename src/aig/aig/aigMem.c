@@ -31,20 +31,20 @@ struct Aig_MmFixed_t_
 {
     // information about individual entries
     int           nEntrySize;    // the size of one entry
-    int           nEntriesAlloc; // the total number of entries allocated
-    int           nEntriesUsed;  // the number of entries in use
+    size_t        nEntriesAlloc; // the total number of entries allocated
+    size_t        nEntriesUsed;  // the number of entries in use
     int           nEntriesMax;   // the max number of entries in use
     char *        pEntriesFree;  // the linked list of free entries
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
-    int           nChunksAlloc;  // the maximum number of memory chunks 
-    int           nChunks;       // the current number of memory chunks 
+    size_t        nChunksAlloc;  // the maximum number of memory chunks
+    size_t        nChunks;       // the current number of memory chunks
     char **       pChunks;       // the allocated memory
 
     // statistics
-    int           nMemoryUsed;   // memory used in the allocated entries
-    int           nMemoryAlloc;  // memory allocated
+    size_t           nMemoryUsed;   // memory used in the allocated entries
+    size_t        nMemoryAlloc;  // memory allocated
 };
 
 struct Aig_MmFlex_t_
@@ -56,24 +56,24 @@ struct Aig_MmFlex_t_
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
-    int           nChunksAlloc;  // the maximum number of memory chunks 
-    int           nChunks;       // the current number of memory chunks 
+    size_t        nChunksAlloc;  // the maximum number of memory chunks
+    size_t        nChunks;       // the current number of memory chunks
     char **       pChunks;       // the allocated memory
 
     // statistics
-    int           nMemoryUsed;   // memory used in the allocated entries
-    int           nMemoryAlloc;  // memory allocated
+    size_t        nMemoryUsed;   // memory used in the allocated entries
+    size_t        nMemoryAlloc;  // memory allocated
 };
 
 struct Aig_MmStep_t_
 {
     int               nMems;    // the number of fixed memory managers employed
     Aig_MmFixed_t **  pMems;    // memory managers: 2^1 words, 2^2 words, etc
-    int               nMapSize; // the size of the memory array
+    size_t            nMapSize; // the size of the memory array
     Aig_MmFixed_t **  pMap;     // maps the number of bytes into its memory manager
     // additional memory chunks
-    int           nChunksAlloc;  // the maximum number of memory chunks 
-    int           nChunks;       // the current number of memory chunks 
+    size_t        nChunksAlloc;  // the maximum number of memory chunks
+    size_t        nChunks;       // the current number of memory chunks
     char **       pChunks;       // the allocated memory
 };
 
@@ -172,7 +172,7 @@ char * Aig_MmFixedEntryFetch( Aig_MmFixed_t * p )
             p->nChunksAlloc *= 2;
             p->pChunks = ABC_REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
         }
-        p->pEntriesFree = ABC_ALLOC( char, p->nEntrySize * p->nChunkSize );
+        p->pEntriesFree = ABC_ALLOC( char, (size_t)(p->nEntrySize) * (size_t)(p->nChunkSize));
         p->nMemoryAlloc += p->nEntrySize * p->nChunkSize;
         // transform these entries into a linked list
         pTemp = p->pEntriesFree;

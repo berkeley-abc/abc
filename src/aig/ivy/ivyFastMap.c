@@ -114,8 +114,8 @@ void Ivy_FastMapPerform( Ivy_Man_t * pAig, int nLimit, int fRecovery, int fVerbo
     pMan->nLimit = nLimit;
     pMan->nObjs  = Ivy_ManObjIdMax(pAig) + 1;
     pMan->nSize  = sizeof(Ivy_Supp_t) + nLimit * sizeof(int);
-    pMan->pMem   = (char *)ABC_ALLOC( char, pMan->nObjs * pMan->nSize );
-    memset( pMan->pMem, 0, pMan->nObjs * pMan->nSize );
+    pMan->pMem   = (char *)ABC_ALLOC( char, (size_t)pMan->nObjs * (size_t)pMan->nSize );
+    memset( pMan->pMem, 0, (size_t)pMan->nObjs * (size_t)pMan->nSize );
     pMan->vLuts  = Vec_VecAlloc( 100 );
     pAig->pData  = pMan;
 clk = Abc_Clock();

@@ -87,7 +87,7 @@ Bdc_Man_t * Bdc_ManAlloc( Bdc_Par_t * pPars )
     p->vSpots = Vec_IntAlloc( 256 );
     // truth tables
     p->vTruths = Vec_PtrAllocTruthTables( p->pPars->nVarsMax );
-    p->puTemp1 = ABC_ALLOC( unsigned, 4 * p->nWords );
+    p->puTemp1 = ABC_ALLOC( unsigned, 4 * (size_t)p->nWords );
     p->puTemp2 = p->puTemp1 + p->nWords;
     p->puTemp3 = p->puTemp2 + p->nWords;
     p->puTemp4 = p->puTemp3 + p->nWords;

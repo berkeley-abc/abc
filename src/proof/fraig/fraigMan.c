@@ -393,10 +393,10 @@ Fraig_NodeVec_t * Fraig_UtilInfoAlloc( int nSize, int nWords, int fClean )
     int i;
     assert( nSize > 0 && nWords > 0 );
     vInfo = Fraig_NodeVecAlloc( nSize );
-    pUnsigned = ABC_ALLOC( unsigned, nSize * nWords );
+    pUnsigned = ABC_ALLOC( unsigned, (size_t)(nSize) * (size_t)(nWords) );
     vInfo->pArray[0] = (Fraig_Node_t *)pUnsigned;
     if ( fClean )
-        memset( pUnsigned, 0, sizeof(unsigned) * nSize * nWords );
+        memset( pUnsigned, 0, sizeof(unsigned) * (size_t)(nSize) * (size_t)(nWords) );
     for ( i = 1; i < nSize; i++ )
         vInfo->pArray[i] = (Fraig_Node_t *)(((unsigned *)vInfo->pArray[i-1]) + nWords);
     vInfo->nSize = nSize;

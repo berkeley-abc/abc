@@ -2036,7 +2036,7 @@ void Kit_TruthPrintProfile_int( unsigned * pTruth, int nVars )
     int Unique2[20][20];
     int Common2[20][20];
     int nWords = Kit_TruthWordNum( nVars );
-    int * pBytes    = ABC_ALLOC( int, nWords * 4 );
+    int * pBytes    = ABC_ALLOC( int, (size_t)nWords * 4 );
     unsigned * pIn  = ABC_ALLOC( unsigned, nWords );
     unsigned * pOut = ABC_ALLOC( unsigned, nWords );
     unsigned * pCof00 = ABC_ALLOC( unsigned, nWords );

@@ -770,7 +770,7 @@ Aig_Man_t * Rtm_ManToAig( Rtm_Man_t * pRtm )
     Rtm_Edg_t * pEdge;
     int i, k, m, Val, nLatches, * pLatches;
     // count latches and mark the first latch on each edge
-    pLatches = ABC_ALLOC( int, 2 * Vec_PtrSize(pRtm->vObjs) );
+    pLatches = ABC_ALLOC( int, 2 * (size_t)(Vec_PtrSize(pRtm->vObjs)) );
     nLatches = 0;
     Rtm_ManForEachObj( pRtm, pObjRtm, i )
     Rtm_ObjForEachFaninEdge( pObjRtm, pEdge, k )

@@ -229,7 +229,7 @@ Extra_bddEncodingNonStrict(
 //  s_EncSearchTime += Abc_Clock() - clk;
 
     // allocate the temporary storage for the columns
-    s_pbTemp = (DdNode **)ABC_ALLOC( char, nColumns * sizeof(DdNode *) );
+    s_pbTemp = (DdNode **)ABC_ALLOC( char, (size_t)nColumns * sizeof(DdNode *) );
 
 //  clk = Abc_Clock();
     bResult = CreateTheCodes_rec( dd, bEncoded, 0, pCVars );   Cudd_Ref( bResult );

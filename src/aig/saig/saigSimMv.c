@@ -223,7 +223,7 @@ Saig_MvMan_t * Saig_MvManStart( Aig_Man_t * pAig, int nFramesSatur )
     Vec_PtrPush( p->vStates, NULL );
     p->pRegsUndef   = ABC_CALLOC( int, p->nFlops );
     p->pRegsValues  = ABC_ALLOC( int *, p->nFlops );
-    p->pRegsValues[0] = ABC_ALLOC( int, p->nValuesMax * p->nFlops );
+    p->pRegsValues[0] = ABC_ALLOC( int, (size_t)p->nValuesMax * (size_t)p->nFlops );
     for ( i = 1; i < p->nFlops; i++ )
         p->pRegsValues[i] = p->pRegsValues[i-1] + p->nValuesMax;
     p->nRegsValues  = ABC_CALLOC( int, p->nFlops );

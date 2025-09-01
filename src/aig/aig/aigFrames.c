@@ -56,11 +56,12 @@ Aig_Man_t * Aig_ManFrames( Aig_Man_t * pAig, int nFs, int fInit, int fOuts, int 
     int i, f;
 
     // create mapping for the frames nodes
-    pObjMap  = ABC_ALLOC( Aig_Obj_t *, nFs * Aig_ManObjNumMax(pAig) );
-    memset( pObjMap, 0, sizeof(Aig_Obj_t *) * nFs * Aig_ManObjNumMax(pAig) );
+    size_t s = (size_t)(nFs) * (size_t)(Aig_ManObjNumMax(pAig));
+    pObjMap  = ABC_ALLOC( Aig_Obj_t *, s );
+    memset( pObjMap, 0, sizeof(Aig_Obj_t *) * s );
 
     // start the fraig package
-    pFrames = Aig_ManStart( Aig_ManObjNumMax(pAig) * nFs );
+    pFrames = Aig_ManStart( s );
     pFrames->pName = Abc_UtilStrsav( pAig->pName );
     pFrames->pSpec = Abc_UtilStrsav( pAig->pSpec );
     // map constant nodes

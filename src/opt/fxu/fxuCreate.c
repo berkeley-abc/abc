@@ -100,8 +100,8 @@ Fxu_Matrix * Fxu_CreateMatrix( Fxu_Data_t * pData )
     // start the matrix
     p = Fxu_MatrixAllocate();
     // create the column labels 
-    p->ppVars = ABC_ALLOC( Fxu_Var *, 2 * (pData->nNodesOld + pData->nNodesExt) );
-    for ( i = 0; i < 2 * pData->nNodesOld; i++ )
+    p->ppVars = ABC_ALLOC( Fxu_Var *, 2 * (size_t)(pData->nNodesOld + pData->nNodesExt) );
+    for ( i = 0; i < 2 * (size_t)(pData->nNodesOld); i++ )
         p->ppVars[i] = Fxu_MatrixAddVar( p );
 
     // allocate storage for all cube pairs at once

@@ -78,7 +78,7 @@ Cec_ManS_t * Cec_ManSStart( Gia_Man_t * pAig, int nWords )
     p->vInputs   = Vec_IntAlloc( 100 );
     p->vLevels   = Vec_WecStart( Gia_ManLevelNum(pAig) + 1 );
     p->vSims     = Vec_WrdStart( Gia_ManObjNum(pAig) * nWords * 2 );
-    p->pTemp[0]  = ABC_ALLOC( word, 4*nWords );
+    p->pTemp[0]  = ABC_ALLOC( word, 4*(size_t)(nWords) );
     for ( i = 1; i < 4; i++ )
         p->pTemp[i] = p->pTemp[i-1] + nWords;
     for ( i = 0; i < SIM_RANDS; i++ )

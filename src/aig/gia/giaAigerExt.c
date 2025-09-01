@@ -87,7 +87,7 @@ unsigned char * Gia_WriteEquivClassesInt( Gia_Man_t * p, int * pEquivSize )
         Gia_ClassForEachObj( p, iRepr, iNode )
             nItems++;
     }
-    pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (nItems + 10) );
+    pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (size_t)(nItems + 10) );
     // write constant class
     iPos = Gia_AigerWriteUnsignedBuffer( pBuffer, 4, Abc_Var2Lit(0, 1) );
     iPrevNode = 0;
@@ -176,7 +176,7 @@ unsigned char * Gia_AigerWriteMappingInt( Gia_Man_t * p, int * pMapSize )
     nItems = 0;
     Gia_ManForEachLut( p, i )
         nItems += 2 + Gia_ObjLutSize( p, i );
-    pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (nItems + 1) );
+    pBuffer = ABC_ALLOC( unsigned char, sizeof(int) * (size_t)(nItems + 1) );
     // write non-constant classes
     iPrev = 0;
     Gia_ManForEachLut( p, i )
@@ -225,7 +225,7 @@ int * Gia_AigerReadMappingSimple( unsigned char ** ppPos, int nSize )
 }
 Vec_Str_t * Gia_AigerWriteMappingSimple( Gia_Man_t * p )
 {
-    unsigned char * pBuffer = ABC_ALLOC( unsigned char, 4*Vec_IntSize(p->vMapping) );
+    unsigned char * pBuffer = ABC_ALLOC( unsigned char, 4*(size_t)Vec_IntSize(p->vMapping) );
     memcpy( pBuffer, Vec_IntArray(p->vMapping), (size_t)4*Vec_IntSize(p->vMapping) );
     assert( Vec_IntSize(p->vMapping) >= Gia_ManObjNum(p) );
     return Vec_StrAllocArray( (char *)pBuffer, 4*Vec_IntSize(p->vMapping) );
@@ -274,7 +274,7 @@ Vec_Str_t * Gia_AigerWriteMappingDoc( Gia_Man_t * p )
         nSize += Gia_ObjLutSize(p, i) + 2;
         LutSize = Abc_MaxInt( LutSize, Gia_ObjLutSize(p, i) );
     }
-    pBuffer = ABC_ALLOC( unsigned char, 4 * nSize );
+    pBuffer = ABC_ALLOC( unsigned char, 4 * (size_t)nSize );
     Gia_AigerWriteInt( pBuffer + 4 * nSize2++, nLuts );  
     Gia_AigerWriteInt( pBuffer + 4 * nSize2++, LutSize );
     Gia_ManForEachLut( p, i )
@@ -310,7 +310,7 @@ Vec_Int_t * Gia_AigerReadPacking( unsigned char ** ppPos, int nSize )
 }
 Vec_Str_t * Gia_WritePacking( Vec_Int_t * vPacking )
 {
-    unsigned char * pBuffer = ABC_ALLOC( unsigned char, 4*Vec_IntSize(vPacking) );
+    unsigned char * pBuffer = ABC_ALLOC( unsigned char, 4*(size_t)Vec_IntSize(vPacking) );
     int i, Entry, nSize = 0;
     Vec_IntForEachEntry( vPacking, Entry, i )
         Gia_AigerWriteInt( pBuffer + 4 * nSize++, Entry );

@@ -52,8 +52,8 @@ void Aig_ManOrderStart( Aig_Man_t * p )
     p->nOrderAlloc = 2 * Aig_ManObjNumMax(p);
     if ( p->nOrderAlloc < (1<<12) )
         p->nOrderAlloc = (1<<12);
-    p->pOrderData = ABC_ALLOC( unsigned, 2 * p->nOrderAlloc );
-    memset( p->pOrderData, 0xFF, sizeof(unsigned) * 2 * p->nOrderAlloc );
+    p->pOrderData = ABC_ALLOC( unsigned, 2 * (size_t)(p->nOrderAlloc ));
+    memset( p->pOrderData, 0xFF, sizeof(unsigned) * 2 * (size_t)(p->nOrderAlloc ));
     // add the constant node
     p->pOrderData[0] = p->pOrderData[1] = 0;
     p->iPrev = p->iNext = 0;

@@ -172,7 +172,7 @@ char * Gia_MmFixedEntryFetch( Gia_MmFixed_t * p )
             p->nChunksAlloc *= 2;
             p->pChunks = ABC_REALLOC( char *, p->pChunks, p->nChunksAlloc ); 
         }
-        p->pEntriesFree = ABC_ALLOC( char, p->nEntrySize * p->nChunkSize );
+        p->pEntriesFree = ABC_ALLOC( char, (size_t)p->nEntrySize * (size_t)p->nChunkSize );
         p->nMemoryAlloc += p->nEntrySize * p->nChunkSize;
         // transform these entries into a linked list
         pTemp = p->pEntriesFree;

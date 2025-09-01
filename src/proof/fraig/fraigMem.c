@@ -29,20 +29,20 @@ struct Fraig_MemFixed_t_
 {
     // information about individual entries
     int           nEntrySize;    // the size of one entry
-    int           nEntriesAlloc; // the total number of entries allocated
-    int           nEntriesUsed;  // the number of entries in use
-    int           nEntriesMax;   // the max number of entries in use
+    size_t        nEntriesAlloc; // the total number of entries allocated
+    size_t        nEntriesUsed;  // the number of entries in use
+    size_t        nEntriesMax;   // the max number of entries in use
     char *        pEntriesFree;  // the linked list of free entries
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
-    int           nChunksAlloc;  // the maximum number of memory chunks 
-    int           nChunks;       // the current number of memory chunks 
+    size_t        nChunksAlloc;  // the maximum number of memory chunks
+    size_t        nChunks;       // the current number of memory chunks
     char **       pChunks;       // the allocated memory
 
     // statistics
-    int           nMemoryUsed;   // memory used in the allocated entries
-    int           nMemoryAlloc;  // memory allocated
+    size_t        nMemoryUsed;   // memory used in the allocated entries
+    size_t        nMemoryAlloc;  // memory allocated
 };
 
 ////////////////////////////////////////////////////////////////////////

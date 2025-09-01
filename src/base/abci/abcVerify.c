@@ -671,8 +671,8 @@ int Abc_NtkSecFraig( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int nSeconds, int nFr
 ***********************************************************************/
 int * Abc_NtkVerifyGetCleanModel( Abc_Ntk_t * pNtk, int nFrames )
 {
-    int * pModel = ABC_ALLOC( int, Abc_NtkCiNum(pNtk) * nFrames );
-    memset( pModel, 0, sizeof(int) * Abc_NtkCiNum(pNtk) * nFrames );
+    int * pModel = ABC_ALLOC( int, (size_t)Abc_NtkCiNum(pNtk) * nFrames );
+    memset( pModel, 0, sizeof(int) * (size_t)Abc_NtkCiNum(pNtk) * nFrames );
     return pModel;
 }
 

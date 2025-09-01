@@ -288,7 +288,7 @@ void dsc_xor_group(Dsc_node_t * pOut, Dsc_node_t * ni, Dsc_node_t * nj, int nVar
  * the boolean difference for each input variable
  */
 extern word * Dsc_alloc_pool(int nVars) {
-    return ABC_ALLOC(word, 3 * Abc_TtWordNum(nVars) * nVars);
+    return ABC_ALLOC(word, 3 * (size_t)(Abc_TtWordNum(nVars)) * (size_t)(nVars));
 }
 
 /**
@@ -325,7 +325,7 @@ extern int Dsc_Decompose(word * pTruth, const int nVarsInit, char * const pRes, 
     pRes[1] = '\0';
 
     if (NEED_POOL_ALLOC)
-        pool = ABC_ALLOC(word, 3 * TRUTH_WORDS * nVarsInit);
+        pool = ABC_ALLOC(word, 3 * (size_t)(TRUTH_WORDS) * (size_t)(nVarsInit));
 
     // block for the node data allocation
     {

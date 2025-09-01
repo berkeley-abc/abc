@@ -203,7 +203,7 @@ cuddLocalCacheInit(
     logSize = cuddComputeFloorLog2(ddMax(cacheSize,manager->slots/2));
     cacheSize = 1 << logSize;
     cache->item = (DdLocalCacheItem *)
-        ABC_ALLOC(char, cacheSize * cache->itemsize);
+        ABC_ALLOC(char, (size_t)cacheSize * cache->itemsize);
     if (cache->item == NULL) {
         manager->errorCode = CUDD_MEMORY_OUT;
         ABC_FREE(cache);
@@ -1123,7 +1123,7 @@ cuddLocalCacheResize(
     saveHandler = MMoutOfMemory;
     MMoutOfMemory = Cudd_OutOfMem;
     cache->item = item =
-        (DdLocalCacheItem *) ABC_ALLOC(char, slots * cache->itemsize);
+        (DdLocalCacheItem *) ABC_ALLOC(char, (size_t)slots * cache->itemsize);
     MMoutOfMemory = saveHandler;
     /* If we fail to allocate the new table we just give up. */
     if (item == NULL) {
@@ -1406,7 +1406,7 @@ cuddHashTableAlloc(
     if (hash->nextFree == NULL) {
         saveHandler = MMoutOfMemory;
         MMoutOfMemory = Cudd_OutOfMem;
-        mem = (DdHashItem **) ABC_ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
+        mem = (DdHashItem **) ABC_ALLOC(char,(size_t)(DD_MEM_CHUNK+1) * itemsize);
         MMoutOfMemory = saveHandler;
 #ifdef __osf__
 #pragma pointer_size restore
@@ -1428,7 +1428,7 @@ cuddHashTableAlloc(
 #pragma pointer_size save
 #pragma pointer_size short
 #endif
-                mem = (DdHashItem **) ABC_ALLOC(char,(DD_MEM_CHUNK+1) * itemsize);
+                mem = (DdHashItem **) ABC_ALLOC(char,(size_t)(DD_MEM_CHUNK+1) * itemsize);
 #ifdef __osf__
 #pragma pointer_size restore
 #endif

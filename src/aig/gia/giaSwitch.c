@@ -105,9 +105,9 @@ Gia_ManSwi_t * Gia_ManSwiCreate( Gia_Man_t * pAig, Gia_ParSwi_t * pPars )
     p->pAig   = Gia_ManFront( pAig );
     p->pPars  = pPars;
     p->nWords = pPars->nWords;
-    p->pDataSim = ABC_ALLOC( unsigned, p->nWords * p->pAig->nFront );
-    p->pDataSimCis = ABC_ALLOC( unsigned, p->nWords * Gia_ManCiNum(p->pAig) );
-    p->pDataSimCos = ABC_ALLOC( unsigned, p->nWords * Gia_ManCoNum(p->pAig) );
+    p->pDataSim = ABC_ALLOC( unsigned, (size_t)p->nWords * (size_t)p->pAig->nFront );
+    p->pDataSimCis = ABC_ALLOC( unsigned, (size_t)p->nWords * (size_t)Gia_ManCiNum(p->pAig) );
+    p->pDataSimCos = ABC_ALLOC( unsigned, (size_t)p->nWords * (size_t)Gia_ManCoNum(p->pAig) );
     p->pData1 = ABC_CALLOC( int, Gia_ManObjNum(pAig) );
     return p;
 }

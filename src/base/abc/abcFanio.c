@@ -54,7 +54,7 @@ static inline void Vec_IntPushMem( Mem_Step_t * pMemMan, Vec_Int_t * p, int Entr
         if ( pMemMan )
             pArray = (int *)Mem_StepEntryFetch( pMemMan, p->nCap * 8 );
         else
-            pArray = ABC_ALLOC( int, p->nCap * 2 );
+            pArray = ABC_ALLOC( int, (size_t)p->nCap * 2 );
         if ( p->pArray )
         {
             for ( i = 0; i < p->nSize; i++ )

@@ -47,7 +47,7 @@ Amap_Cut_t * Amap_ManSetupPis( Amap_Man_t * p )
     Amap_Obj_t * pObj;
     Amap_Cut_t * pCut;
     int i, nBytes = sizeof(Amap_Cut_t) + sizeof(int);
-    char * pBuffer = ABC_ALLOC( char, Amap_ManPiNum(p) * nBytes );
+    char * pBuffer = ABC_ALLOC( char, (size_t)(Amap_ManPiNum(p)) * nBytes );
     Amap_ManForEachPi( p, pObj, i )
     {
         pCut = (Amap_Cut_t *)( pBuffer + i*nBytes );

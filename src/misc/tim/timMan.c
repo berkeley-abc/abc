@@ -123,7 +123,7 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
             assert( i == (int)pDelayTable[0] );
             nInputs   = (int)pDelayTable[1];
             nOutputs  = (int)pDelayTable[2];
-            pDelayTableNew = ABC_ALLOC( float, 3 + nInputs * nOutputs );
+            pDelayTableNew = ABC_ALLOC( float, 3 + (size_t)(nInputs) * (size_t)(nOutputs) );
             pDelayTableNew[0] = (int)pDelayTable[0];
             pDelayTableNew[1] = (int)pDelayTable[1];
             pDelayTableNew[2] = (int)pDelayTable[2];
@@ -208,7 +208,7 @@ Tim_Man_t * Tim_ManTrim( Tim_Man_t * p, Vec_Int_t * vBoxPres )
             assert( i == (int)pDelayTable[0] );
             nInputs   = (int)pDelayTable[1];
             nOutputs  = (int)pDelayTable[2];
-            pDelayTableNew = ABC_ALLOC( float, 3 + nInputs * nOutputs );
+            pDelayTableNew = ABC_ALLOC( float, 3 + (size_t)(nInputs) * (size_t)(nOutputs) );
             pDelayTableNew[0] = (int)pDelayTable[0];
             pDelayTableNew[1] = (int)pDelayTable[1];
             pDelayTableNew[2] = (int)pDelayTable[2];
@@ -301,7 +301,7 @@ Tim_Man_t * Tim_ManReduce( Tim_Man_t * p, Vec_Int_t * vBoxesLeft, int nTermsDiff
             //assert( i == (int)pDelayTable[0] );
             nInputs   = (int)pDelayTable[1];
             nOutputs  = (int)pDelayTable[2];
-            pDelayTableNew = ABC_ALLOC( float, 3 + nInputs * nOutputs );
+            pDelayTableNew = ABC_ALLOC( float, 3 + (size_t)(nInputs) * (size_t)(nOutputs) );
             pDelayTableNew[0] = i;//(int)pDelayTable[0];
             pDelayTableNew[1] = (int)pDelayTable[1];
             pDelayTableNew[2] = (int)pDelayTable[2];
@@ -419,7 +419,7 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
         if ( pBox->iDelayTable == -1 || pLibBox == NULL )
         {
             // create table with constants
-            pTable = ABC_ALLOC( float, 3 + pBox->nInputs * pBox->nOutputs );
+            pTable = ABC_ALLOC( float, 3 + (size_t)(pBox->nInputs) * (size_t)(pBox->nOutputs) );
             pTable[0] = pBox->iDelayTable;
             pTable[1] = pBox->nInputs;
             pTable[2] = pBox->nOutputs;
@@ -439,7 +439,7 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
         if ( Vec_PtrEntry( p->vDelayTables, pBox->iDelayTable ) != NULL )
             continue;
         // create table of boxes
-        pTable = ABC_ALLOC( float, 3 + pBox->nInputs * pBox->nOutputs );
+        pTable = ABC_ALLOC( float, 3 + (size_t)(pBox->nInputs) * (size_t)(pBox->nOutputs) );
         pTable[0] = pBox->iDelayTable;
         pTable[1] = pBox->nInputs;
         pTable[2] = pBox->nOutputs;

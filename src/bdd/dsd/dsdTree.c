@@ -67,7 +67,7 @@ Dsd_Node_t * Dsd_TreeNodeCreate( int Type, int nDecs, int BlockNum )
     p->nDecs      = nDecs;                  // the number of decompositions
     if ( p->nDecs )
     {
-        p->pDecs      = (Dsd_Node_t **) ABC_ALLOC( char, p->nDecs * sizeof(Dsd_Node_t *) );
+        p->pDecs      = (Dsd_Node_t **) ABC_ALLOC( char, (size_t)p->nDecs * sizeof(Dsd_Node_t *) );
         p->pDecs[0]   = NULL;
     }
     return p;

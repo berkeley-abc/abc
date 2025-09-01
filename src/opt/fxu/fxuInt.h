@@ -423,7 +423,7 @@ extern void Fxu_MatrixRingVarsUnmark( Fxu_Matrix * p );
 // MEM_ALLOC: allocate the given number (Size) of items of type (Type)
 // MEM_FREE:  deallocate the pointer (Pointer) to the given number (Size) of items of type (Type)
 #ifdef USE_SYSTEM_MEMORY_MANAGEMENT
-#define MEM_ALLOC_FXU( Manager, Type, Size )          ((Type *)ABC_ALLOC( char, (Size) * sizeof(Type) ))
+#define MEM_ALLOC_FXU( Manager, Type, Size )          ((Type *)ABC_ALLOC( char, size_t(Size) * sizeof(Type) ))
 #define MEM_FREE_FXU( Manager, Type, Size, Pointer )  if ( Pointer ) { ABC_FREE(Pointer); Pointer = NULL; }
 #else
 #define MEM_ALLOC_FXU( Manager, Type, Size )\

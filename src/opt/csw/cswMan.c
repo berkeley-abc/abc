@@ -78,7 +78,7 @@ Csw_Man_t * Csw_ManStart( Aig_Man_t * pMan, int nCutsMax, int nLeafMax, int fVer
     Aig_ManForEachCi( p->pManAig, pObj, i )
         Csw_ObjSetEquiv( p, pObj, Aig_ManCi(p->pManRes, i) );
     // room for temporary truth tables
-    p->puTemp[0] = ABC_ALLOC( unsigned, 4 * p->nTruthWords );
+    p->puTemp[0] = ABC_ALLOC( unsigned, 4 * (size_t)(p->nTruthWords) );
     p->puTemp[1] = p->puTemp[0] + p->nTruthWords;
     p->puTemp[2] = p->puTemp[1] + p->nTruthWords;
     p->puTemp[3] = p->puTemp[2] + p->nTruthWords;

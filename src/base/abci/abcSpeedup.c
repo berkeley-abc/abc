@@ -120,7 +120,7 @@ float Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fUseLutLib )
 
     // initialize the arrival times
     ABC_FREE( pNtk->pLutTimes );
-    pNtk->pLutTimes = ABC_ALLOC( float, 3 * Abc_NtkObjNumMax(pNtk) );
+    pNtk->pLutTimes = ABC_ALLOC( float, 3 * (size_t)Abc_NtkObjNumMax(pNtk) );
     for ( i = 0; i < Abc_NtkObjNumMax(pNtk); i++ )
     {
         pNtk->pLutTimes[3*i+0] = pNtk->pLutTimes[3*i+2] = 0;

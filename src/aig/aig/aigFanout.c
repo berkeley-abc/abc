@@ -63,8 +63,8 @@ void Aig_ManFanoutStart( Aig_Man_t * p )
     p->nFansAlloc = 2 * Aig_ManObjNumMax(p);
     if ( p->nFansAlloc < (1<<12) )
         p->nFansAlloc = (1<<12);
-    p->pFanData = ABC_ALLOC( int, 5 * p->nFansAlloc );
-    memset( p->pFanData, 0, sizeof(int) * 5 * p->nFansAlloc );
+    p->pFanData = ABC_ALLOC( int, 5 * (size_t)(p->nFansAlloc ));
+    memset( p->pFanData, 0, sizeof(int) * 5 * (size_t)(p->nFansAlloc ));
     // add fanouts for all objects
     Aig_ManForEachObj( p, pObj, i )
     {

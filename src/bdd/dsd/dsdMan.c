@@ -59,8 +59,8 @@ Dsd_Manager_t * Dsd_ManagerStart( DdManager * dd, int nSuppMax, int fVerbose )
     dMan->fVerbose    = fVerbose;
     dMan->nRoots      = 0;
     dMan->nRootsAlloc = 50;
-    dMan->pRoots      = (Dsd_Node_t **) ABC_ALLOC( char, dMan->nRootsAlloc * sizeof(Dsd_Node_t *) );
-    dMan->pInputs     = (Dsd_Node_t **) ABC_ALLOC( char, dMan->nInputs     * sizeof(Dsd_Node_t *) );
+    dMan->pRoots      = (Dsd_Node_t **) ABC_ALLOC( char, (size_t)dMan->nRootsAlloc * sizeof(Dsd_Node_t *) );
+    dMan->pInputs     = (Dsd_Node_t **) ABC_ALLOC( char, (size_t)dMan->nInputs     * sizeof(Dsd_Node_t *) );
 
     // create the primary inputs and insert them into the table
     dMan->Table       = st__init_table( st__ptrcmp, st__ptrhash);

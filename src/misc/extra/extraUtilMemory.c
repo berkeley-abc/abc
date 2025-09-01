@@ -35,49 +35,49 @@ struct Extra_MmFixed_t_
 {
     // information about individual entries
     int           nEntrySize;    // the size of one entry
-    int           nEntriesAlloc; // the total number of entries allocated
-    int           nEntriesUsed;  // the number of entries in use
-    int           nEntriesMax;   // the max number of entries in use
+    size_t        nEntriesAlloc; // the total number of entries allocated
+    size_t        nEntriesUsed;  // the number of entries in use
+    size_t        nEntriesMax;   // the max number of entries in use
     char *        pEntriesFree;  // the linked list of free entries
 
     // this is where the memory is stored
-    int           nChunkSize;    // the size of one chunk
-    int           nChunksAlloc;  // the maximum number of memory chunks 
-    int           nChunks;       // the current number of memory chunks 
+    size_t        nChunkSize;    // the size of one chunk
+    size_t        nChunksAlloc;  // the maximum number of memory chunks
+    size_t        nChunks;       // the current number of memory chunks
     char **       pChunks;       // the allocated memory
 
     // statistics
-    int           nMemoryUsed;   // memory used in the allocated entries
-    int           nMemoryAlloc;  // memory allocated
+    size_t        nMemoryUsed;   // memory used in the allocated entries
+    size_t        nMemoryAlloc;  // memory allocated
 };
 
 struct Extra_MmFlex_t_
 {
     // information about individual entries
-    int           nEntriesUsed;  // the number of entries allocated
+    size_t        nEntriesUsed;  // the number of entries allocated
     char *        pCurrent;      // the current pointer to free memory
     char *        pEnd;          // the first entry outside the free memory
 
     // this is where the memory is stored
     int           nChunkSize;    // the size of one chunk
-    int           nChunksAlloc;  // the maximum number of memory chunks 
-    int           nChunks;       // the current number of memory chunks 
+    size_t        nChunksAlloc;  // the maximum number of memory chunks
+    size_t        nChunks;       // the current number of memory chunks
     char **       pChunks;       // the allocated memory
 
     // statistics
-    int           nMemoryUsed;   // memory used in the allocated entries
-    int           nMemoryAlloc;  // memory allocated
+    size_t        nMemoryUsed;   // memory used in the allocated entries
+    size_t        nMemoryAlloc;  // memory allocated
 };
 
 
 struct Extra_MmStep_t_
 {
-    int                nMems;    // the number of fixed memory managers employed
+    size_t             nMems;    // the number of fixed memory managers employed
     Extra_MmFixed_t ** pMems;    // memory managers: 2^1 words, 2^2 words, etc
-    int                nMapSize; // the size of the memory array
+    size_t             nMapSize; // the size of the memory array
     Extra_MmFixed_t ** pMap;     // maps the number of bytes into its memory manager
-    int                nLargeChunksAlloc;  // the maximum number of large memory chunks 
-    int                nLargeChunks;       // the current number of large memory chunks 
+    size_t             nLargeChunksAlloc;  // the maximum number of large memory chunks
+    size_t             nLargeChunks;       // the current number of large memory chunks
     void **            pLargeChunks;       // the allocated large memory chunks
 };
 
