@@ -1450,11 +1450,13 @@ Vec_Wrd_t * Abc_NtkLutCasReadTruths( char * pFileName, int nVarsOrig )
   SeeAlso     []
 
 ***********************************************************************/
-void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int nStages, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, int fPrintMyu, int fPrintLev, int fXRail, int nSubsets, int nBest )
+void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int nStages, int nRails, int nIters, int nJRatio, int nZParam, int Seed, int fVerbose, int fVeryVerbose, int fPrintMyu, int fPrintLev, int fXRail, int nSubsets, int nBest, int fDump )
 {
     abctime clkStart = Abc_Clock();   
     int i, nErrors = 0, Sum = 0, nStageCount = 0, MyuMin = 0, nTotalLuts = 0, nWords = Abc_TtWordNum(nVarsOrig);
     Vec_Wrd_t * vTruths = NULL;
+    char pFileNameOut[1000] = {0};
+    FILE * pFile = NULL;
     if ( strstr(pFileName, ".txt") )
         vTruths = Abc_NtkLutCasReadTruths( pFileName, nVarsOrig );
     else
@@ -1501,7 +1503,7 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
         
         word * pLuts = Abc_LutCascadeDec( p, NULL, pTruth, nVarsOrig, vVarIDs, nRails, nLutSize, nStages, (int)(Iter >= 0), nZParam, fXRail, fVeryVerbose, &nStageCount, &MyuMin, nSubsets, nBest );
         Vec_IntFree( vVarIDs );
-        if ( MyuMin < 50 )     MyuStats[MyuMin]++, IterReal++;
+        if ( MyuMin < 50 && Iter == 0 )     MyuStats[MyuMin]++, IterReal++;
         if ( pLuts == NULL ) {
             if ( ++Iter < nIters ) {
                 i--;
@@ -1510,6 +1512,16 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
             Iter = 0;
             if ( fVerbose || fVeryVerbose )
                 printf( "Not decomposable.\n" );
+            if ( fDump ) {
+                if ( pFile == NULL ) {
+                    sprintf( pFileNameOut, "%s_nd", pFileName );
+                    pFile = fopen( pFileNameOut, "wb" );
+                }
+                char * pTtStr = ABC_CALLOC( char, (1 << (nVarsOrig-2)) + 1 );
+                Extra_PrintHexadecimalString( pTtStr, (unsigned *)pTruth, nVarsOrig );
+                fprintf( pFile, "%s\n", pTtStr );
+                ABC_FREE( pTtStr );
+            }
             continue;
         }
         Iter = 0;
@@ -1559,6 +1571,10 @@ void Abc_NtkLutCascadeFile( char * pFileName, int nVarsOrig, int nLutSize, int n
     printf( "Finished %d functions (%.2f LUTs / function; %.2f functions / sec).  ", 
         nFuncs, 1.0*nTotalLuts/Sum, 1.0*nFuncs/(((double)(Abc_Clock() - clkStart))/((double)CLOCKS_PER_SEC)) );
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
+    if ( pFile ) {
+        printf( "Finished dumping %d non-decomposable functions into file \"%s\".\n", nFuncs-Sum, pFileNameOut );
+        fclose( pFile );
+    }
 }
 
 /**Function*************************************************************
