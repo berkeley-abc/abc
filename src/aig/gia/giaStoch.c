@@ -1144,7 +1144,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
         Aig_ManStop( pAux );
         // reconstruct the network
         extern Vec_Ptr_t * Gia_ManOrderPios( Aig_Man_t * p, Gia_Man_t * pOrder );
-        Vec_Ptr_t * vPios = Gia_ManOrderPios( pMan, Vec_PtrEntry(vGias,0) ); 
+        Vec_Ptr_t * vPios = Gia_ManOrderPios( pMan, (Gia_Man_t *)Vec_PtrEntry(vGias,0) ); 
         pMan = Aig_ManDupDfsGuided( pAux = pMan, vPios );
         Aig_ManStop( pAux );
         Vec_PtrFree( vPios );
