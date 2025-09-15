@@ -4173,6 +4173,80 @@ Gia_Man_t * Gia_ManDupLevelized( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManDupChoicesTest( Gia_Man_t * p, Gia_Man_t * pNew )
+{
+    Gia_ManCreateRefs( p );
+    Gia_ManMarkFanoutDrivers( p );
+    Gia_Obj_t * pObj; int i;
+    int ChoiceCounts[2][1000] = {{0}};
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( Gia_ObjSibl(p, i) && pObj->fMark0 )
+        {
+            Gia_Obj_t * pSibl, * pPrev; int Size = 1;
+            for ( pPrev = pObj, pSibl = Gia_ObjSiblObj(p, i); pSibl; pPrev = pSibl, pSibl = Gia_ObjSiblObj(p, Gia_ObjId(p, pSibl)) )
+                Size++;
+            assert( Size < 1000 );
+            ChoiceCounts[0][Size]++;
+        }
+    Gia_ManCleanMark0( p );
+    int nSize = 1;
+    Gia_ManForEachAnd( pNew, pObj, i )
+        if ( Gia_ObjRefNumId(p, i) == 0 ) 
+            nSize++;
+        else if ( nSize > 1 ) {
+            assert( nSize < 1000 );
+            ChoiceCounts[1][nSize]++;
+            nSize = 1;
+        }
+    printf( "Choice counting statistics:\n" );
+    for ( i = 0; i < 1000; i++ )
+        if ( ChoiceCounts[0][i] || ChoiceCounts[1][i] )
+            printf( "%3d : %6d %6d\n", i, ChoiceCounts[0][i], ChoiceCounts[1][i] );
+}
+void Gia_ManDupChoices_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
+{
+    if ( ~pObj->Value )
+        return;
+    assert( Gia_ObjIsAnd(pObj) );
+    Gia_ManDupChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );
+    Gia_ManDupChoices_rec( pNew, p, Gia_ObjFanin1(pObj) );
+    Gia_Obj_t * pSibl = Gia_ObjSiblObj(p, Gia_ObjId(p, pObj));
+    if ( pSibl ) Gia_ManDupChoices_rec( pNew, p, pSibl );
+    pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    if ( pSibl ) pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(pObj->Value)-1;
+}
+Gia_Man_t * Gia_ManDupChoices( Gia_Man_t * p )
+{
+    //Gia_ManPrintChoices( p );
+    assert( p->pSibls );
+    Gia_Obj_t * pObj; int i;
+    Gia_Man_t * pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
+    Gia_ManFillValue(p);
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi(pNew);
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManDupChoices_rec( pNew, p, Gia_ObjFanin0(pObj) );        
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    //Gia_ManDupChoicesTest( p, pNew );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 Gia_Man_t * Gia_ManDupFromVecs( Gia_Man_t * p, Vec_Int_t * vCis, Vec_Int_t * vAnds, Vec_Int_t * vCos, int nRegs )
 {
     Gia_Man_t * pNew;
