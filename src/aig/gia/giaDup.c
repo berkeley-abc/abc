@@ -4225,6 +4225,7 @@ Gia_Man_t * Gia_ManDupChoices( Gia_Man_t * p )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->pSibls = ABC_CALLOC( int, Gia_ManObjNum(p) );
     Gia_ManFillValue(p);
+    Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi(pNew);
     Gia_ManForEachCo( p, pObj, i )

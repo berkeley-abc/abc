@@ -19,6 +19,8 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "aig/gia/giaAig.h"
+#include "proof/dch/dch.h"
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
 
@@ -1029,13 +1031,14 @@ Vec_Wec_t * Gia_ManStochOutputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs, int fDelayOpt )
+void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs, int fDelayOpt, int fChoices )
 {
     abctime nTimeToStop  = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
     abctime clkStart     = Abc_Clock();
     int fMapped          = Gia_ManHasMapping(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
     int nLutEnd, nLutBeg = fMapped ? Gia_ManLutNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame())) : 0;
     int i, nEnd, nBeg    = Gia_ManAndNum(Abc_FrameReadGia(Abc_FrameGetGlobalFrame()));
+    Vec_Ptr_t * vGias    = fChoices ? Vec_PtrAlloc( nIters ) : NULL;
     Abc_Random(1);
     for ( i = 0; i < 10+Seed; i++ )
         Abc_Random(0);
@@ -1058,6 +1061,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
             Vec_Ptr_t * vAigs = Gia_ManDupDivide( pGia, vIns, vAnds, vOuts, pScript, nProcs, TimeOut, fDelayOpt );
             Gia_Man_t * pNew  = Gia_ManDupStitchMap( pGia, vIns, vAnds, vOuts, vAigs );
             int fMapped = Gia_ManHasMapping(pGia) && Gia_ManHasMapping(pNew);
+            if ( vGias ) Vec_PtrPush( vGias, Gia_ManDup(pNew) );
             Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
             if ( fVerbose )
             printf( "Iteration %3d : Using %3d partitions. Reducing %6d to %6d %s.  ", 
@@ -1090,6 +1094,7 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
             Vec_Int_t * vGains = Gia_StochProcess( vAigs, pScript, nProcs, TimeOut, 0 );
             int nPartsInit     = fOverlap ? Gia_ManFilterPartitions( pGia, vIns, vNodes, vOuts, vAigs, vGains, fDelayOpt ) : Vec_PtrSize(vIns);
             Gia_Man_t * pNew   = Gia_ManDupInsertWindows( pGia, vIns, vOuts, vAigs );       Gia_ManStaticFanoutStop(pGia);
+            if ( vGias ) Vec_PtrPush( vGias, Gia_ManDup(pNew) );
             Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pNew );
             if ( fVerbose )
             printf( "Iteration %3d : Using %3d -> %3d partitions. Reducing node count from %6d to %6d.  ", 
@@ -1118,6 +1123,41 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
         fMapped ? nLutBeg - nLutEnd : nBeg - nEnd, fMapped ? "LUTs" : "nodes", 100.0*(nBeg - nEnd)/Abc_MaxInt(nBeg, 1), nIters );
     if ( fVerbose )
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
+    if ( vGias ) {
+        abctime clkStart = Abc_Clock();
+        // swap around the first and the last
+        Gia_Man_t * pTemp = (Gia_Man_t *)Vec_PtrPop( vGias );
+        Vec_PtrPush( vGias, Vec_PtrEntry(vGias,0) );
+        Vec_PtrWriteEntry( vGias, 0, pTemp );
+        if ( fVerbose ) {
+            printf( "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(vGias) );
+            Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
+                Gia_ManPrintStats( pTemp, NULL );
+        }
+        Dch_Pars_t Pars, * pPars = &Pars;
+        Dch_ManSetDefaultParams( pPars );    
+        // derive the miter
+        Gia_Man_t * pMiter = Gia_ManChoiceMiter( vGias );
+        Aig_Man_t * pAux, * pMan = Gia_ManToAigSkip( pMiter, Vec_PtrSize(vGias) );
+        Gia_ManStop( pMiter );
+        pMan = Dch_ComputeChoices( pAux = pMan, pPars );
+        Aig_ManStop( pAux );
+        // reconstruct the network
+        extern Vec_Ptr_t * Gia_ManOrderPios( Aig_Man_t * p, Gia_Man_t * pOrder );
+        Vec_Ptr_t * vPios = Gia_ManOrderPios( pMan, Vec_PtrEntry(vGias,0) ); 
+        pMan = Aig_ManDupDfsGuided( pAux = pMan, vPios );
+        Aig_ManStop( pAux );
+        Vec_PtrFree( vPios );
+        // convert to GIA
+        Gia_Man_t * pChoices = Gia_ManFromAigChoices( pMan );
+        Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pChoices );
+        // cleanup
+        Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
+            Gia_ManStop( pTemp );
+        Vec_PtrFree( vGias );        
+        if ( fVerbose )
+            Abc_PrintTime( 0, "Choice computation time", Abc_Clock() - clkStart );
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////
