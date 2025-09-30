@@ -43,7 +43,7 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManDeepSynOne( int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fVerbose )
+Gia_Man_t * Gia_ManDeepSynOne( int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fVerbose, Vec_Ptr_t * vGias )
 {
     abctime nTimeToStop = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
     abctime clkStart    = Abc_Clock();
@@ -100,6 +100,8 @@ Gia_Man_t * Gia_ManDeepSynOne( int nNoImpr, int TimeOut, int nAnds, int Seed, in
             pNew = Gia_ManDup( pTemp );
             fChange = 1;
             iIterLast = i;
+            if ( vGias ) 
+                Vec_PtrPush( vGias, Gia_ManDup(pTemp) );
         }
         else if ( Gia_ManAndNum(pNew) + Gia_ManAndNum(pNew)/10 < Gia_ManAndNum(pTemp) ) 
         {
@@ -139,16 +141,19 @@ Gia_Man_t * Gia_ManDeepSynOne( int nNoImpr, int TimeOut, int nAnds, int Seed, in
             nAndsMin, nAnds, i, (float)1.0*(Abc_Clock() - clkStart)/CLOCKS_PER_SEC );
     return pNew;
 }
-Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fVerbose )
+Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fChoices, int fVerbose )
 {
+    Vec_Ptr_t * vGias = fChoices ? Vec_PtrAlloc(100) : NULL;
     Gia_Man_t * pInit = Gia_ManDup(pGia);
     Gia_Man_t * pBest = Gia_ManDup(pGia);
     Gia_Man_t * pThis;
     int i;
+    if ( vGias ) 
+        Vec_PtrPush( vGias, Gia_ManDup(pGia) );    
     for ( i = 0; i < nIters; i++ )
     {
         Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), Gia_ManDup(pInit) );
-        pThis = Gia_ManDeepSynOne( nNoImpr, TimeOut, nAnds, Seed+i, fUseTwo, fVerbose );
+        pThis = Gia_ManDeepSynOne( nNoImpr, TimeOut, nAnds, Seed+i, fUseTwo, fVerbose, vGias );
         if ( Gia_ManAndNum(pBest) > Gia_ManAndNum(pThis) ) 
         {
             Gia_ManStop( pBest );
@@ -159,6 +164,16 @@ Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeO
         
     }
     Gia_ManStop( pInit );
+    if ( vGias ) {
+        extern Gia_Man_t * Gia_ManCreateChoicesArray( Vec_Ptr_t * vGias, int fVerbose );
+        Gia_ManStopP( &pBest );
+        pBest = Gia_ManCreateChoicesArray( vGias, fVerbose );
+        // cleanup
+        Gia_Man_t * pTemp;
+        Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
+            Gia_ManStop( pTemp );
+        Vec_PtrFree( vGias ); 
+    }
     return pBest;
 }
 

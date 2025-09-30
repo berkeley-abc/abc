@@ -28,7 +28,7 @@
 #include "eSLIM.h"
 
 ABC_NAMESPACE_HEADER_START
-  Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fVerbose );
+  Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fChoices, int fVerbose );
 ABC_NAMESPACE_HEADER_END
 
 ABC_NAMESPACE_IMPL_START
@@ -100,7 +100,7 @@ Gia_Man_t* selectApproach(Gia_Man_t* pGia, eSLIM::eSLIMConfig params, eSLIM::eSL
 }
 
 Gia_Man_t* runInprocessing(Gia_Man_t * pGia, const eSLIM_ParamStruct* params, unsigned int it) {
-  Gia_Man_t * tmp = Gia_ManDeepSyn( pGia, 1, ABC_INFINITY, params->timeout_inprocessing, 0, params->seed + it, 0, 0);
+  Gia_Man_t * tmp = Gia_ManDeepSyn( pGia, 1, ABC_INFINITY, params->timeout_inprocessing, 0, params->seed + it, 0, 0, 0);
   if ( Gia_ManAndNum(pGia) > Gia_ManAndNum(tmp) ) {
     Gia_ManStop( pGia );
     pGia = tmp;

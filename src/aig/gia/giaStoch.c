@@ -1031,6 +1031,50 @@ Vec_Wec_t * Gia_ManStochOutputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
   SeeAlso     []
 
 ***********************************************************************/
+Gia_Man_t * Gia_ManCreateChoicesArray( Vec_Ptr_t * vGias, int fVerbose )
+{
+    abctime clkStart = Abc_Clock(); int i;
+    // swap around the first and the last
+    Gia_Man_t * pTemp = (Gia_Man_t *)Vec_PtrPop( vGias );
+    Vec_PtrPush( vGias, Vec_PtrEntry(vGias,0) );
+    Vec_PtrWriteEntry( vGias, 0, pTemp );
+    if ( fVerbose ) {
+        printf( "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(vGias) );
+        Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
+            Gia_ManPrintStats( pTemp, NULL );
+    }
+    Dch_Pars_t Pars, * pPars = &Pars;
+    Dch_ManSetDefaultParams( pPars );    
+    // derive the miter
+    Gia_Man_t * pMiter = Gia_ManChoiceMiter( vGias );
+    Aig_Man_t * pAux, * pMan = Gia_ManToAigSkip( pMiter, Vec_PtrSize(vGias) );
+    Gia_ManStop( pMiter );
+    pMan = Dch_ComputeChoices( pAux = pMan, pPars );
+    Aig_ManStop( pAux );
+    // reconstruct the network
+    extern Vec_Ptr_t * Gia_ManOrderPios( Aig_Man_t * p, Gia_Man_t * pOrder );
+    Vec_Ptr_t * vPios = Gia_ManOrderPios( pMan, (Gia_Man_t *)Vec_PtrEntry(vGias,0) ); 
+    pMan = Aig_ManDupDfsGuided( pAux = pMan, vPios );
+    Aig_ManStop( pAux );
+    Vec_PtrFree( vPios );
+    // convert to GIA
+    Gia_Man_t * pChoices = Gia_ManFromAigChoices( pMan );
+    if ( fVerbose )
+        Abc_PrintTime( 0, "Choice computation time", Abc_Clock() - clkStart );
+    return pChoices;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int Seed, int fVerbose, char * pScript, int nProcs, int fDelayOpt, int fChoices )
 {
     abctime nTimeToStop  = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
@@ -1124,39 +1168,14 @@ void Gia_ManStochSyn( int nSuppMax, int nMaxSize, int nIters, int TimeOut, int S
     if ( fVerbose )
     Abc_PrintTime( 0, "Total time", Abc_Clock() - clkStart );
     if ( vGias ) {
-        abctime clkStart = Abc_Clock();
-        // swap around the first and the last
-        Gia_Man_t * pTemp = (Gia_Man_t *)Vec_PtrPop( vGias );
-        Vec_PtrPush( vGias, Vec_PtrEntry(vGias,0) );
-        Vec_PtrWriteEntry( vGias, 0, pTemp );
-        if ( fVerbose ) {
-            printf( "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(vGias) );
-            Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
-                Gia_ManPrintStats( pTemp, NULL );
-        }
-        Dch_Pars_t Pars, * pPars = &Pars;
-        Dch_ManSetDefaultParams( pPars );    
-        // derive the miter
-        Gia_Man_t * pMiter = Gia_ManChoiceMiter( vGias );
-        Aig_Man_t * pAux, * pMan = Gia_ManToAigSkip( pMiter, Vec_PtrSize(vGias) );
-        Gia_ManStop( pMiter );
-        pMan = Dch_ComputeChoices( pAux = pMan, pPars );
-        Aig_ManStop( pAux );
-        // reconstruct the network
-        extern Vec_Ptr_t * Gia_ManOrderPios( Aig_Man_t * p, Gia_Man_t * pOrder );
-        Vec_Ptr_t * vPios = Gia_ManOrderPios( pMan, (Gia_Man_t *)Vec_PtrEntry(vGias,0) ); 
-        pMan = Aig_ManDupDfsGuided( pAux = pMan, vPios );
-        Aig_ManStop( pAux );
-        Vec_PtrFree( vPios );
-        // convert to GIA
-        Gia_Man_t * pChoices = Gia_ManFromAigChoices( pMan );
+        
+        Gia_Man_t * pChoices = Gia_ManCreateChoicesArray( vGias, fVerbose );
         Abc_FrameUpdateGia( Abc_FrameGetGlobalFrame(), pChoices );
         // cleanup
+        Gia_Man_t * pTemp;
         Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
             Gia_ManStop( pTemp );
-        Vec_PtrFree( vGias );        
-        if ( fVerbose )
-            Abc_PrintTime( 0, "Choice computation time", Abc_Clock() - clkStart );
+        Vec_PtrFree( vGias );
     }
 }
 
