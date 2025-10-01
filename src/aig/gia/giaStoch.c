@@ -1033,13 +1033,14 @@ Vec_Wec_t * Gia_ManStochOutputs( Gia_Man_t * p, Vec_Wec_t * vAnds )
 ***********************************************************************/
 Gia_Man_t * Gia_ManCreateChoicesArray( Vec_Ptr_t * vGias, int fVerbose )
 {
-    abctime clkStart = Abc_Clock(); int i;
+    abctime clkStart = Abc_Clock(); 
     // swap around the first and the last
-    Gia_Man_t * pTemp = (Gia_Man_t *)Vec_PtrPop( vGias );
-    Vec_PtrPush( vGias, Vec_PtrEntry(vGias,0) );
-    Vec_PtrWriteEntry( vGias, 0, pTemp );
+    //Gia_Man_t * pTemp = (Gia_Man_t *)Vec_PtrPop( vGias );
+    //Vec_PtrPush( vGias, Vec_PtrEntry(vGias,0) );
+    //Vec_PtrWriteEntry( vGias, 0, pTemp );
     if ( fVerbose ) {
         printf( "Choicing will be performed with %d AIGs:\n", Vec_PtrSize(vGias) );
+        Gia_Man_t * pTemp; int i;
         Vec_PtrForEachEntry( Gia_Man_t *, vGias, pTemp, i )
             Gia_ManPrintStats( pTemp, NULL );
     }
