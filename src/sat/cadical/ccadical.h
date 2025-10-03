@@ -58,6 +58,8 @@ int ccadical_reserve_difference (CCaDiCaL *, int number_of_vars);
 
 void ccadical_reserve(CCaDiCaL *, int min_max_var);
 int ccadical_is_inconsistent(CCaDiCaL *);
+int ccadical_clauses(CCaDiCaL *);
+int ccadical_conflicts(CCaDiCaL *);
 
 /*------------------------------------------------------------------------*/
 

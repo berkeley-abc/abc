@@ -982,6 +982,10 @@ public:
   //
   static void build (FILE *file, const char *prefix = "c ");
 
+  // Extra APIs
+  int clauses ();
+  int conflicts ();
+
 private:
   //==== start of state ====================================================
 

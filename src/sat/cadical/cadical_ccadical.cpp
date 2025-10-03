@@ -208,4 +208,12 @@ int ccadical_is_inconsistent(CCaDiCaL *ptr) {
   return ((Wrapper *) ptr)->solver->inconsistent ();
 }
 
+int ccadical_clauses(CCaDiCaL *ptr) {
+  return ((Wrapper *) ptr)->solver->clauses ();
+}
+
+int ccadical_conflicts(CCaDiCaL *ptr) {
+  return ((Wrapper *) ptr)->solver->conflicts ();
+}
+
 ABC_NAMESPACE_IMPL_END
