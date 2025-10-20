@@ -7,11 +7,13 @@
 /*------------------------------------------------------------------------*/
 
 #include <cassert>
+#if !defined(__wasm)
 #include <csignal>
+#endif
 
 /*------------------------------------------------------------------------*/
 
-#ifndef WIN32
+#if !defined(_WIN32) && !defined(__wasm)
 extern "C" {
 #include <unistd.h>
 }
@@ -28,7 +30,7 @@ namespace CaDiCaL {
 static volatile bool caught_signal = false;
 static Handler *signal_handler;
 
-#ifndef WIN32
+#if !defined(_WIN32) && !defined(__wasm)
 
 static volatile bool caught_alarm = false;
 static volatile bool alarm_set = false;
@@ -38,6 +40,7 @@ void Handler::catch_alarm () { catch_signal (SIGALRM); }
 
 #endif
 
+#if !defined(__wasm)
 #define SIGNALS \
   SIGNAL (SIGABRT) \
   SIGNAL (SIGINT) \
@@ -47,8 +50,9 @@ void Handler::catch_alarm () { catch_signal (SIGALRM); }
 #define SIGNAL(SIG) static void (*SIG##_handler) (int);
 SIGNALS
 #undef SIGNAL
+#endif
 
-#ifndef WIN32
+#if !defined(_WIN32) && !defined(__wasm)
 
 static void (*SIGALRM_handler) (int);
 
@@ -66,6 +70,7 @@ void Signal::reset_alarm () {
 
 void Signal::reset () {
   signal_handler = 0;
+#if !defined(__wasm)
 #define SIGNAL(SIG) \
   (void) signal (SIG, SIG##_handler); \
   SIG##_handler = 0;
@@ -74,10 +79,12 @@ void Signal::reset () {
 #ifndef WIN32
   reset_alarm ();
 #endif
+#endif
   caught_signal = false;
 }
 
 const char *Signal::name (int sig) {
+#if !defined(__wasm)
 #define SIGNAL(SIG) \
   if (sig == SIG) \
     return #SIG;
@@ -86,6 +93,7 @@ const char *Signal::name (int sig) {
 #ifndef WIN32
   if (sig == SIGALRM)
     return "SIGALRM";
+#endif
 #endif
   return "UNKNOWN";
 }
@@ -97,6 +105,7 @@ const char *Signal::name (int sig) {
 // exclusive access to.  All these solutions are painful and not elegant.
 
 static void catch_signal (int sig) {
+#if !defined(__wasm)
 #ifndef WIN32
   if (sig == SIGALRM && absolute_real_time () >= alarm_time) {
     if (!caught_alarm) {
@@ -116,16 +125,19 @@ static void catch_signal (int sig) {
     Signal::reset ();
     ::raise (sig);
   }
+#endif
 }
 
 void Signal::set (Handler *h) {
+#if !defined(__wasm)
   signal_handler = h;
 #define SIGNAL(SIG) SIG##_handler = signal (SIG, catch_signal);
   SIGNALS
 #undef SIGNAL
+#endif
 }
 
-#ifndef WIN32
+#if !defined(_WIN32) && !defined(__wasm)
 
 void Signal::alarm (int seconds) {
   CADICAL_assert (seconds >= 0);

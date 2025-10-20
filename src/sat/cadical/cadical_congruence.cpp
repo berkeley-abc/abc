@@ -5981,7 +5981,7 @@ void Closure::rewrite_ite_gate (Gate *g, int dst, int src) {
 #endif
           } else {
             CADICAL_assert (false);
-#ifdef WIN32
+#if defined(WIN32) && !defined(__MINGW32__)
             __assume(false);
 #else
             __builtin_unreachable ();

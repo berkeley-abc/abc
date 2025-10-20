@@ -614,7 +614,11 @@ namespace eSLIM {
     //     sprintf( pCommand, "%s -q %s > %s", pKissat, pFileNameIn, pFileNameOut );
 
     sprintf( pCommand, "%s -q %s > %s", pKissat, pFileNameIn, pFileNameOut );
+#ifdef __wasm
+    if ( 1 ) {
+#else
     if ( system( pCommand ) == -1 ) {
+#endif  
       std::cerr << "Command " << pCommand << " failed\n";
       return nullptr;
     }
