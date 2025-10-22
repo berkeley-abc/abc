@@ -41,6 +41,7 @@
 
 #include "gia.h"
 #include "misc/vec/vecHash.h"
+#include "misc/extra/extra.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -2178,10 +2179,6 @@ Gia_Man_t* Gia_ManDecGraph(Gia_Man_t* p) {
     Gia_ManHashStop(pNew);
     Gia_ManSetRegNum(pNew, Gia_ManRegNum(p));
     return pNew;
-}
-
-extern "C" {
-extern char * Extra_FileReadContents( char * pFileName );
 }
 
 Gia_Man_t* Gia_ManDecGraphFromFile(char* pFileName) {
