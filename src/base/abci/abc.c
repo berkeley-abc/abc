@@ -21845,7 +21845,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "This feature only works for {6,7}-LUTs.\n" );
             return 1;
         }
-        pPars->pFuncCell = If_CutPerformCheck07;
+        pPars->pFuncCell = If_CutPerformCheckJ;
         pPars->fCutMin = 1;
     }
     if ( pPars->fUseCofVars )
@@ -43180,12 +43180,12 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             //pPars->fUseCofVars ^= 1;
             pPars->fUseCheck2 ^= 1;
             break;
-//        case 'j':
-//            pPars->fEnableCheck07 ^= 1;
-//            break;
         case 'j':
-            pPars->fUseAndVars ^= 1;
+            pPars->fEnableCheck07 ^= 1;
             break;
+        //case 'j':
+        //    pPars->fUseAndVars ^= 1;
+        //    break;
         case 'k':
             pPars->fUseDsdTune ^= 1;
             break;
@@ -43288,7 +43288,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             Abc_Print( -1, "This feature only works for {6,7}-LUTs.\n" );
             return 1;
         }
-        pPars->pFuncCell = If_CutPerformCheck07;
+        pPars->pFuncCell = If_CutPerformCheckJ;
         pPars->fCutMin = 1;
     }
     if ( pPars->fUseCheck1 || pPars->fUseCheck2 )
@@ -43569,7 +43569,7 @@ usage:
     Abc_Print( -2, "\t-f       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck75u? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles using cofactoring variables [default = %s]\n", pPars->fUseCofVars? "yes": "no" );
-//    Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
+    Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
     Abc_Print( -2, "\t-j       : toggles using AND bi-decomposition [default = %s]\n", pPars->fUseAndVars? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles matching based on precomputed DSD manager [default = %s]\n", pPars->fUseDsdTune? "yes": "no" );
     Abc_Print( -2, "\t-z       : toggles deriving LUTs when mapping into LUT structures [default = %s]\n", pPars->fDeriveLuts? "yes": "no" );

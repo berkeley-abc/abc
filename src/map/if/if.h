@@ -560,6 +560,7 @@ extern int             If_CutPerformCheckXX( If_Man_t * p, unsigned * pTruth, in
 extern int             If_CutPerformCheck45( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck54( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck75( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
+extern int             If_CutPerformCheckJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern float           If_CutDelayLutStruct( If_Man_t * p, If_Cut_t * pCut, char * pStr, float WireDelay );
 // extern int             If_CutPerformAcd( If_Man_t * p, unsigned nVars, int lutSize, unsigned * pdelay, int use_late_arrival, unsigned * cost );
 extern int             If_CluCheckExt( void * p, word * pTruth, int nVars, int nLutLeaf, int nLutRoot, 
