@@ -30,25 +30,16 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
-/**Function*************************************************************
-
-  Synopsis    [Performs additional check.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 int If_CutPerformCheckJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
-    int v;
-    // skip non-support minimal
-    for ( v = 0; v < nLeaves; v++ )
-        if ( !Abc_TtHasVar( (word *)pTruth, nVars, v ) )
-            return 0;
     return 1;
+}
+word If_CutPerformDeriveJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr, int fDerive )
+{
+    return 0;
+}
+void If_PermUnpack( unsigned Value, int Pla2Var[9] )
+{
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -1177,6 +1177,111 @@ int Gia_ManFromIfLogicCreateLutSpecial( Gia_Man_t * pNew, word * pRes, Vec_Int_t
 
 /**Function*************************************************************
 
+  Synopsis    [Write mapping for LUT with given fanins.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFromIfLogicCreateLutSpecialJ( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
+{
+    word z = If_CutPerformDeriveJ( NULL, (unsigned *)pRes, Vec_IntSize(vLeaves), Vec_IntSize(vLeaves), NULL, 1 );
+    word Truth;
+    int i, iObjLit1, iObjLit2, iObjLit3;
+
+    if ( ((z >> 63) & 1) == 0 ) // S44 decomposition
+    {   
+        // create first LUT
+        Vec_IntClear( vLeavesTemp );
+        for ( i = 0; i < 4; i++ )
+        {
+            int v = (int)((z >> (16+(i<<2))) & 7);
+            if ( v == 6 && Vec_IntSize(vLeaves) == 5 )
+                continue;
+            Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, v) );
+        }
+        Truth = (z & 0xffff);
+        Truth |= (Truth << 16);
+        Truth |= (Truth << 32);
+        iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, &Truth, vLeavesTemp, vCover, vMapping, vMapping2 );
+        // create second LUT
+        Vec_IntClear( vLeavesTemp );
+        for ( i = 0; i < 4; i++ )
+        {
+            int v =  (int)((z >> (48+(i<<2))) & 7);
+            if ( v == 6 && Vec_IntSize(vLeaves) == 5 )
+                continue;
+            if ( v == 7 )
+                Vec_IntPush( vLeavesTemp, iObjLit1 );
+            else
+                Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, v) );
+        }
+        Truth = ((z >> 32) & 0xffff);
+        Truth |= (Truth << 16);
+        Truth |= (Truth << 32);
+        iObjLit2 = Gia_ManFromIfLogicCreateLut( pNew, &Truth, vLeavesTemp, vCover, vMapping, vMapping2 );
+        // write packing
+        Vec_IntPush( vPacking, 2 );
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit2) );
+        Vec_IntAddToEntry( vPacking, 0, 1 );
+        return iObjLit2;
+    }
+    else
+    {
+        int Pla2Var[9];
+        extern void If_PermUnpack( unsigned Value, int Pla2Var[9] );
+        If_PermUnpack( (unsigned)(z >> 32), Pla2Var );
+
+        // create first data LUT
+        Vec_IntClear( vLeavesTemp );
+        for ( i = 0; i < 4; i++ )
+        {
+            if ( Pla2Var[i] != 9 )
+                Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, Pla2Var[i]) );
+        }
+        Truth = (z & 0xffff);
+        Truth |= (Truth << 16);
+        Truth |= (Truth << 32);
+        iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, &Truth, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+        // create second data LUT
+        Vec_IntClear( vLeavesTemp );
+        for ( i = 4; i < 8; i++ )
+        {
+            if ( Pla2Var[i] != 9 )
+                Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, Pla2Var[i]) );
+        }
+        Truth = ((z >> 16) & 0xffff);
+        Truth |= (Truth << 16);
+        Truth |= (Truth << 32);
+        iObjLit2 = Gia_ManFromIfLogicCreateLut( pNew, &Truth, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+        // create MUX LUT (2-input MUX: select ? iObjLit2 : iObjLit1)
+        Vec_IntClear( vLeavesTemp );
+        Vec_IntPush( vLeavesTemp, iObjLit1 );  // data 0
+        Vec_IntPush( vLeavesTemp, iObjLit2 );  // data 1
+        if ( Pla2Var[8] != 9 )
+            Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, Pla2Var[8]) );  // select
+        // MUX truth table: f = s ? d1 : d0 = ~s&d0 | s&d1 = 0xCACACACA for (d0,d1,s)
+        Truth = ABC_CONST(0xCACACACACACACACA);
+        iObjLit3 = Gia_ManFromIfLogicCreateLut( pNew, &Truth, vLeavesTemp, vCover, vMapping, vMapping2 );
+
+        // write packing - 3 LUTs packed together
+        Vec_IntPush( vPacking, 3 );
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit2) );
+        Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit3) );
+        Vec_IntAddToEntry( vPacking, 0, 1 );
+        return iObjLit3;
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Write the node into a file.]
 
   Description []
@@ -1197,7 +1302,7 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
     // perform special case matching for 44
     if ( fCheck44e )
     {
-        if ( Vec_IntSize(vLeaves) <= 4 )
+        if ( Vec_IntSize(vLeaves) <= 5 )
         {
             // create mapping
             iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
@@ -1210,7 +1315,7 @@ int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t
             }
             return iObjLit1;
         }
-        return Gia_ManFromIfLogicCreateLutSpecial( pNew, pRes, vLeaves, vLeavesTemp, vCover, vMapping, vMapping2, vPacking );
+        return Gia_ManFromIfLogicCreateLutSpecialJ( pNew, pRes, vLeaves, vLeavesTemp, vCover, vMapping, vMapping2, vPacking );
     }
     if ( ((If_Man_t *)pIfMan)->pPars->fLut6Filter && Vec_IntSize(vLeaves) == 6 )
     {
