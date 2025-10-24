@@ -512,15 +512,14 @@ private:
     } while ( combinations_offset_next( free_set_size, offset, pComb, pInvPerm, tt ) );
 
     std::array<uint32_t, max_num_vars> res_perm;
+    for ( uint32_t i = 0; i < num_vars; ++i )
+    {
+      res_perm[i] = permutations[bestPerm[i]];
+    }
 
     if ( best_cost > ( 1 << ( ps.lut_size - free_set_size ) ) )
     {
       return std::make_tuple( local_best_tt, res_perm, UINT32_MAX );
-    }
-
-    for ( uint32_t i = 0; i < num_vars; ++i )
-    {
-      res_perm[i] = permutations[bestPerm[i]];
     }
 
     return std::make_tuple( local_best_tt, res_perm, best_cost );
@@ -544,7 +543,11 @@ private:
     }
 
     /* enumerate combinations */
-    std::array<uint32_t, max_num_vars> res_perm;
+    std::array<uint32_t, max_num_vars> res_perm;    
+    for ( uint32_t i = 0; i < num_vars; ++i )
+    {
+      res_perm[i] = permutations[pComb[i]];
+    }
 
     do
     {
