@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "mpmInt.h"
+#include "base/main/main.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -55,8 +56,8 @@ Mpm_Man_t * Mpm_ManStart( Mig_Man_t * pMig, Mpm_Par_t * pPars )
     p = ABC_CALLOC( Mpm_Man_t, 1 );
     p->pMig      = pMig;
     p->pPars     = pPars;
-    p->pLibLut   = pPars->pLib;
-    p->nLutSize  = pPars->pLib->LutMax;
+    p->pLibLut   = (Mpm_LibLut_t *)Abc_FrameReadLibLut();
+    p->nLutSize  = p->pLibLut->LutMax;
     p->nTruWords = pPars->fUseTruth ? Abc_Truth6WordNum(p->nLutSize) : 0;
     p->nNumCuts  = pPars->nNumCuts;
     // cuts

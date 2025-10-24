@@ -42941,12 +42941,12 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     // set defaults
     Gia_ManSetIfParsDefault( pPars );
-    if ( pAbc->pLibLut == NULL )
+    if ( Abc_FrameReadLibLut() == NULL )
     {
         Abc_Print( -1, "LUT library is not given. Using default LUT library.\n" );
-        pAbc->pLibLut = If_LibLutSetSimple( 6 );
+        Abc_FrameSetLibLut( If_LibLutSetSimple( 6 ) );
     }
-    pPars->pLutLib = (If_LibLut_t *)pAbc->pLibLut;
+    pPars->pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSJTXYZqalepmrsdbgxyofuijkztncvwh" ) ) != EOF )
     {
@@ -43621,12 +43621,12 @@ int Abc_CommandAbc9Iff( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Iff(): Mapping of the AIG is not defined.\n" );
         return 1;
     }
-    if ( pAbc->pLibLut == NULL )
+    if ( Abc_FrameReadLibLut() == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Iff(): LUT library is not defined.\n" );
         return 1;
     }
-    Gia_ManIffTest( pAbc->pGia, (If_LibLut_t *)pAbc->pLibLut, fVerbose );
+    Gia_ManIffTest( pAbc->pGia, (If_LibLut_t *)Abc_FrameReadLibLut(), fVerbose );
     return 0;
 
 usage:
@@ -47296,7 +47296,7 @@ int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9Speedup(): Mapping of the AIG is not defined.\n" );
         return 1;
     }
-    pAbc->pGia->pLutLib = fUseLutLib ? pAbc->pLibLut : NULL;
+    pAbc->pGia->pLutLib = fUseLutLib ? Abc_FrameReadLibLut() : NULL;
     Gia_ManDelayTraceLutPrint( pAbc->pGia, fVerbose );
     return 0;
 

@@ -78,7 +78,10 @@ void If_Init( Abc_Frame_t * pAbc )
 ***********************************************************************/
 void If_End( Abc_Frame_t * pAbc )
 {
-    If_LibLutFree( (If_LibLut_t *)   Abc_FrameReadLibLut() );
+    int i;
+    for ( i = 0; i < ABC_LUT_LIBS; i++ )
+        if ( Abc_FrameReadLibLutI(i) )
+            If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLutI(i) );
     If_LibBoxFree( (If_LibBox_t *)Abc_FrameReadLibBox() );
 }
 
@@ -125,36 +128,51 @@ int If_CommandReadLut( Abc_Frame_t * pAbc, int argc, char **argv )
         }
     }
 
-    if ( argc != globalUtilOptind + 1 )
-        goto usage;
-
-    // get the input file name
-    FileName = argv[globalUtilOptind];
-    if ( (pFile = fopen( FileName, "r" )) == NULL )
-    {
-        fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
-        if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
-            fprintf( pErr, "Did you mean \"%s\"?", FileName );
-        fprintf( pErr, "\n" );
-        return 1;
-    }
-    fclose( pFile );
-
-    // set the new network
-    pLib = If_LibLutRead( FileName );
-    if ( pLib == NULL )
-    {
-        fprintf( pErr, "Reading LUT library has failed.\n" );
+    if ( argc == globalUtilOptind ) {
+        fprintf( pErr, "The library file should be specified in the command line.\n" );
         goto usage;
     }
-    // replace the current library
-    If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLut() );
-    Abc_FrameSetLibLut( pLib );
+    if ( argc > globalUtilOptind + ABC_LUT_LIBS ) {
+        fprintf( pErr, "Can read at most %d libraries. Quitting...\n", ABC_LUT_LIBS );
+        goto usage;
+    }
+
+    // remove current libraries
+    int i;
+    for ( i = 0; i < ABC_LUT_LIBS; i++ )
+        if ( Abc_FrameReadLibLutI(i) ) {
+            If_LibLutFree( (If_LibLut_t *)Abc_FrameReadLibLutI(i) );
+            Abc_FrameSetLibLutI( NULL, i );
+        }
+
+    // input new libraries
+    for ( i = globalUtilOptind; i < argc; i++ ) {
+        // get the input file name
+        FileName = argv[i];
+        if ( (pFile = fopen( FileName, "r" )) == NULL )
+        {
+            fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
+            if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+                fprintf( pErr, "Did you mean \"%s\"?", FileName );
+            fprintf( pErr, "\n" );
+            return 1;
+        }
+        fclose( pFile );
+        // set the new network
+        pLib = If_LibLutRead( FileName );
+        if ( pLib == NULL )
+        {
+            fprintf( pErr, "Reading LUT library has failed.\n" );
+            goto usage;
+        }
+        // replace the current library
+        Abc_FrameSetLibLutI( pLib, i-globalUtilOptind );
+    }
     return 0;
 
 usage:
-    fprintf( pErr, "\nusage: read_lut [-vh]\n");
-    fprintf( pErr, "\t          read the LUT library from the file\n" );  
+    fprintf( pErr, "\nusage: read_lut [-vh] <file1> <file2> ... <fileN>\n");
+    fprintf( pErr, "\t          read the LUT library from the file(s)\n" );  
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
     fprintf( pErr, "\t-h      : print the command usage\n");
     fprintf( pErr, "\t                                        \n");
@@ -216,7 +234,10 @@ int If_CommandPrintLut( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
 
     // set the new network
-    If_LibLutPrint( (If_LibLut_t *)Abc_FrameReadLibLut() );
+    int i;
+    for ( i = 0; i < ABC_LUT_LIBS; i++ )
+        if ( Abc_FrameReadLibLutI(i) )
+            If_LibLutPrint( (If_LibLut_t *)Abc_FrameReadLibLutI(i) );
     return 0;
 
 usage:
