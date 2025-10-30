@@ -605,19 +605,23 @@ static inline int Exa_ManEval( Exa_Man_t * p )
 ***********************************************************************/
 void Exa_ManDumpBlif( Exa_Man_t * p, int fCompl )
 {
-    char Buffer[1000];
+    char * pStr = ABC_ALLOC( char, (1 << (p->nVars-2)) + 10 );
     char FileName[1100];
     FILE * pFile;
     int i, k, iVar;
     if ( fCompl )
         Abc_TtNot( p->pTruth, p->nWords );
-    Extra_PrintHexadecimalString( Buffer, (unsigned *)p->pTruth, p->nVars );
+    Extra_PrintHexadecimalString( pStr, (unsigned *)p->pTruth, p->nVars );    
+    if ( strlen(pStr) > 16 ) {
+        pStr[16] = '_';
+        pStr[17] = '\0';
+    }    
     if ( fCompl )
         Abc_TtNot( p->pTruth, p->nWords );
-    sprintf( FileName, "%s_%d_%d.blif", Buffer, 2, p->nNodes );
+    sprintf( FileName, "%s_%d_%d.blif", pStr, 2, p->nNodes );
     pFile = fopen( FileName, "wb" );
-    fprintf( pFile, "# Realization of the %d-input function %s using %d two-input gates:\n", p->nVars, Buffer, p->nNodes );
-    fprintf( pFile, ".model %s_%d_%d\n", Buffer, 2, p->nNodes );
+    fprintf( pFile, "# Realization of the %d-input function %s using %d two-input gates:\n", p->nVars, pStr, p->nNodes );
+    fprintf( pFile, ".model %s_%d_%d\n", pStr, 2, p->nNodes );
     fprintf( pFile, ".inputs" );
     for ( i = 0; i < p->nVars; i++ )
         fprintf( pFile, " %c", 'a'+i );
@@ -655,6 +659,7 @@ void Exa_ManDumpBlif( Exa_Man_t * p, int fCompl )
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
     printf( "Solution was dumped into file \"%s\".\n", FileName );
+    ABC_FREE( pStr );
 }
 void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
 {
@@ -942,8 +947,8 @@ void Exa_ManExactSynthesis( Bmc_EsPar_t * pPars )
     int i, status, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa_Man_t * p; int fCompl = 0;
-    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
-    assert( pPars->nVars <= 10 );
+    word pTruth[64]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    assert( pPars->nVars <= 12 );
     p = Exa_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
     status = Exa_ManAddCnfStart( p, pPars->fOnlyAnd );
@@ -1327,11 +1332,16 @@ static void Exa3_ManDumpBlif( Exa3_Man_t * p, int fCompl )
 {
     int i, k, b, iVar;
     char pFileName[1000];
-    sprintf( pFileName, "%s.blif", p->pPars->pTtStr );
+    char * pStr = Abc_UtilStrsav(p->pPars->pTtStr);
+    if ( strlen(pStr) > 16 ) {
+        pStr[16] = '_';
+        pStr[17] = '\0';
+    }    
+    sprintf( pFileName, "%s.blif", pStr );
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL ) return;
     fprintf( pFile, "# Realization of given %d-input function using %d %d-input LUTs synthesized by ABC on %s\n", p->nVars, p->nNodes, p->nLutSize, Extra_TimeStamp() );
-    fprintf( pFile, ".model %s\n", p->pPars->pTtStr );
+    fprintf( pFile, ".model %s\n", pStr );
     fprintf( pFile, ".inputs" );
     for ( k = 0; k < p->nVars; k++ )
         fprintf( pFile, " %c", 'a'+k );
@@ -1365,6 +1375,7 @@ static void Exa3_ManDumpBlif( Exa3_Man_t * p, int fCompl )
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
     printf( "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
+    ABC_FREE( pStr );
 }
 
 
@@ -1600,7 +1611,7 @@ int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     int i, status, Res = 0, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa3_Man_t * p; int fCompl = 0;
-    word pTruth[16]; 
+    word pTruth[64]; 
     if ( pPars->pSymStr ) {
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
@@ -1611,7 +1622,7 @@ int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->pTtStr )
         Abc_TtReadHex( pTruth, pPars->pTtStr );
     else assert( 0 );
-    assert( pPars->nVars <= 10 );
+    assert( pPars->nVars <= 12 );
     assert( pPars->nLutSize <= 6 );
     p = Exa3_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
@@ -2491,9 +2502,9 @@ void Exa_ManExactSynthesis4( Bmc_EsPar_t * pPars )
     int i, m, nMints = 1 << pPars->nVars, fCompl = 0;
     Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nMints );
     Vec_Wrd_t * vSimsOut = Vec_WrdStart( nMints );
-    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    word pTruth[64]; Abc_TtReadHex( pTruth, pPars->pTtStr );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, Abc_TtWordNum(pPars->nVars) ); }
-    assert( pPars->nVars <= 10 );
+    assert( pPars->nVars <= 12 );
     for ( m = 0; m < nMints; m++ )
     {
         Abc_TtSetBit( Vec_WrdEntryP(vSimsOut, m), Abc_TtGetBit(pTruth, m) );
@@ -2995,9 +3006,9 @@ void Exa_ManExactSynthesis5( Bmc_EsPar_t * pPars )
     int i, m, nMints = 1 << pPars->nVars, fCompl = 0;
     Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nMints );
     Vec_Wrd_t * vSimsOut = Vec_WrdStart( nMints );
-    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    word pTruth[64]; Abc_TtReadHex( pTruth, pPars->pTtStr );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, Abc_TtWordNum(pPars->nVars) ); }
-    assert( pPars->nVars <= 10 );
+    assert( pPars->nVars <= 12 );
     for ( m = 0; m < nMints; m++ )
     {
         Abc_TtSetBit( Vec_WrdEntryP(vSimsOut, m), Abc_TtGetBit(pTruth, m) );
@@ -3102,7 +3113,7 @@ word Exa_ManExactSynthesis4VarsOne( int Index, int Truth, int nNodes )
     int i, m, nMints = 16, fCompl = 0;
     Vec_Wrd_t * vSimsIn  = Vec_WrdStart( nMints );
     Vec_Wrd_t * vSimsOut = Vec_WrdStart( nMints );
-    word pTruth[16] = { Abc_Tt6Stretch((word)Truth, 4) };
+    word pTruth[64] = { Abc_Tt6Stretch((word)Truth, 4) };
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, 1 ); }
     for ( m = 0; m < nMints; m++ )
     {
@@ -4189,7 +4200,7 @@ void Exa_ManExactSynthesis7( Bmc_EsPar_t * pPars, int GateSize )
     abctime clkTotal = Abc_Clock();
     int v, n, nMints = 1 << pPars->nVars;
     int nV = pPars->nVars + pPars->nNodes;
-    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    word pTruth[64]; Abc_TtReadHex( pTruth, pPars->pTtStr );
     Vec_Int_t * vValues = NULL;
     int Rand = ((((unsigned)rand()) << 12) ^ ((unsigned)rand())) & 0xFFFFF;
     char pFileNameIn[32];  sprintf( pFileNameIn,  "_%05x_.cnf", Rand ); 

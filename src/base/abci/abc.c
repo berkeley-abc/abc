@@ -10837,7 +10837,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Function with %d variales cannot be implemented with %d %d-input LUTs.\n", pPars->nVars, pPars->nNodes, pPars->nLutSize );
         return 1;
     }
-    if ( pPars->nVars > 10 )
+    if ( pPars->nVars > 12 )
     {
         Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
         return 1;

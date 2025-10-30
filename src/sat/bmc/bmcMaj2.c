@@ -854,8 +854,8 @@ void Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars )
     int i, status, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa_Man_t * p; int fCompl = 0;
-    word pTruth[16]; Abc_TtReadHex( pTruth, pPars->pTtStr );
-    assert( pPars->nVars <= 10 );
+    word pTruth[64]; Abc_TtReadHex( pTruth, pPars->pTtStr );
+    assert( pPars->nVars <= 12 );
     p = Exa_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
     status = Exa_ManAddCnfStart( p, pPars->fOnlyAnd );
@@ -1191,11 +1191,16 @@ static void Exa3_ManDumpBlif( Exa3_Man_t * p, int fCompl )
 {
     int i, k, b, iVar;
     char pFileName[1000];
-    sprintf( pFileName, "%s.blif", p->pPars->pTtStr );
+    char * pStr = Abc_UtilStrsav(p->pPars->pTtStr);
+    if ( strlen(pStr) > 16 ) {
+        pStr[16] = '_';
+        pStr[17] = '\0';
+    }
+    sprintf( pFileName, "%s.blif", pStr );
     FILE * pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL ) return;
     fprintf( pFile, "# Realization of given %d-input function using %d %d-input LUTs synthesized by ABC on %s\n", p->nVars, p->nNodes, p->nLutSize, Extra_TimeStamp() );
-    fprintf( pFile, ".model %s\n", p->pPars->pTtStr );
+    fprintf( pFile, ".model %s\n", pStr );
     fprintf( pFile, ".inputs" );
     for ( k = 0; k < p->nVars; k++ )
         fprintf( pFile, " %c", 'a'+k );
@@ -1229,6 +1234,7 @@ static void Exa3_ManDumpBlif( Exa3_Man_t * p, int fCompl )
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
     printf( "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
+    ABC_FREE( pStr );
 }
 
 
@@ -1387,7 +1393,7 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
     int i, status, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa3_Man_t * p; int fCompl = 0;
-    word pTruth[16];
+    word pTruth[64];
     if ( pPars->pSymStr ) {
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
@@ -1398,7 +1404,7 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
     if ( pPars->pTtStr )
         Abc_TtReadHex( pTruth, pPars->pTtStr );
     else assert( 0 );    
-    assert( pPars->nVars <= 10 );
+    assert( pPars->nVars <= 12 );
     assert( pPars->nLutSize <= 6 );
     p = Exa3_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }

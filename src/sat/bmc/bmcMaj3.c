@@ -1263,13 +1263,13 @@ void Zyx_ManExactSynthesis( Bmc_EsPar_t * pPars )
 {
     int status, Iter, iMint = 0, fCompl = 0, nLazyAll = 0, nSols = 0;
     abctime clkTotal = Abc_Clock(), clk = Abc_Clock();  Zyx_Man_t * p; 
-    word pTruth[16]; 
+    word pTruth[64]; 
     if ( !pPars->fMajority )
     {
         Abc_TtReadHex( pTruth, pPars->pTtStr );
         if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, Abc_TtWordNum(pPars->nVars) ); }
     }
-    assert( pPars->nVars <= 10 );
+    assert( pPars->nVars <= 12 );
     assert( pPars->nLutSize <= 6 );
     p = Zyx_ManAlloc( pPars, pPars->fMajority ? NULL : pTruth );
     printf( "Running exact synthesis for %d-input function with %d %d-input %s...\n", 
