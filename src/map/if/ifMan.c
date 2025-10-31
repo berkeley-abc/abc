@@ -229,19 +229,24 @@ void If_ManDumpCut( If_Cut_t * pCut, int nLutSize, Vec_Int_t * vCuts )
     for ( i = 0; i < pCut->nLeaves; i++ )
         Vec_IntPush( vCuts, pCut->pLeaves[i] );
     for ( ; i < nLutSize; i++ )
-        Vec_IntPush( vCuts, 0 );
+        Vec_IntPush( vCuts, -1 );
 }
 void If_ManDumpCutsAndCost( If_Man_t * p, If_Obj_t * pObj, Vec_Int_t * vCuts, Vec_Int_t * vCutCosts )
 {
     If_Cut_t * pCut; int k, nCuts = 0;
-    while ( nCuts < p->pPars->nCutsMax ) {       
-        If_ObjForEachCut( pObj, pCut, k ) {
-            If_ManDumpCut( pCut, p->pPars->nLutSize, vCuts );
-            Vec_IntPush( vCutCosts, (int)pCut->Area );
-            if ( ++nCuts == p->pPars->nCutsMax )
-                break;
-        }
+    If_ObjForEachCut( pObj, pCut, k ) {
+        If_ManDumpCut( pCut, p->pPars->nLutSize, vCuts );
+        Vec_IntPush( vCutCosts, 1 );
+        if ( ++nCuts == p->pPars->nCutsMax )
+            break;
     }
+    while ( nCuts < p->pPars->nCutsMax ) {
+        for ( k = 0; k < p->pPars->nLutSize; k++ )
+            Vec_IntPush( vCuts, -1 );
+        Vec_IntPush( vCutCosts, 1 );
+        nCuts++;
+    }
+    assert( nCuts == p->pPars->nCutsMax );
 }
 void If_ManDumpCutsAndCostAdd( int Obj, int nCutsMax, int nLutSize, Vec_Int_t * vCopy, Vec_Int_t * vCuts, Vec_Int_t * vCutCosts, Vec_Int_t * vCutsOut, Vec_Int_t * vCutCostsOut )
 {
@@ -255,7 +260,7 @@ void If_ManDumpCutsAndCostAdd( int Obj, int nCutsMax, int nLutSize, Vec_Int_t * 
     for ( i = 0; i < nCutsMax; i++ )
         Vec_IntPush( vCutCostsOut, Vec_IntEntry( vCutCosts, Obj * nCutsMax + i ) );
 }
-int If_ManDumpData( If_Man_t * p, FILE * pFile )
+int If_ManDumpData2( If_Man_t * p, FILE * pFile )
 {
     Vec_Int_t * vCopy = Vec_IntStartFull( If_ManObjNum(p) );
     Vec_Int_t * vCopy2 = Vec_IntAlloc( If_ManObjNum(p) );
@@ -313,6 +318,22 @@ int If_ManDumpData( If_Man_t * p, FILE * pFile )
     Vec_IntFree( vCutCosts );    
     return nBytes;
 }
+int If_ManDumpData( If_Man_t * p, FILE * pFile )
+{
+    int nSpace = p->pPars->nCutsMax * p->pPars->nLutSize;
+    If_Obj_t * pObj; int i, nBytes;
+    Vec_Int_t * vCuts = Vec_IntAlloc( 1 << 20 );
+    Vec_IntFill( vCuts, (1 + If_ManCiNum(p))*nSpace, -1 );
+    Vec_IntAppend( vCuts, p->vCuts );
+    If_ManForEachCo( p, pObj, i )  {
+        Vec_IntPush( vCuts, If_ObjFanin0(pObj)->Id );
+        Vec_IntFillExtra( vCuts, Vec_IntSize(vCuts)+nSpace-1, -1 ); 
+    }
+    nBytes = fwrite( Vec_IntArray(vCuts), 1, sizeof(int)*Vec_IntSize(vCuts), pFile );
+    assert( nBytes == If_ManObjNum(p)*nSpace*sizeof(int) );
+    Vec_IntFree( vCuts );
+    return nBytes;
+}
 
 /**Function*************************************************************
 
@@ -332,16 +353,16 @@ void If_ManStop( If_Man_t * p )
         char pFileName[1000] = {0};
         // "I15_O20_L32_N256_C16_K6__name.bin"
         char * pName = Extra_FileNameGeneric(Extra_FileNameWithoutPath(p->pName));
-        sprintf( pFileName, "%s__I%d_O%d_L%d_N%d_C%d_K%d.bin", pName, If_ManCiNum(p), If_ManCoNum(p), p->nLevelMax, If_ManAndNum(p), p->pPars->nCutsMax, p->pPars->nLutSize );
+        sprintf( pFileName, "%s__n%d_c%d_k%d.bin", pName, If_ManObjNum(p), p->pPars->nCutsMax, p->pPars->nLutSize );
         ABC_FREE( pName );
         FILE * pFile = fopen( pFileName, "wb" );
         if ( pFile == NULL )
             printf( "Cannot open file \"%s\" for writing.\n", pFileName );
         else {
             int nBytes = If_ManDumpData( p, pFile );
-            int nBytes2 = sizeof(int) * (If_ManAndNum(p) * p->pPars->nCutsMax * p->pPars->nLutSize + If_ManCoNum(p) + p->nLevelMax + 1);
-            nBytes2 += sizeof(int) * (If_ManAndNum(p) * p->pPars->nCutsMax);
-            assert( nBytes == nBytes2 );
+            //int nBytes2 = sizeof(int) * (If_ManAndNum(p) * p->pPars->nCutsMax * p->pPars->nLutSize + If_ManCoNum(p) + p->nLevelMax + 1);
+            //nBytes2 += sizeof(int) * (If_ManAndNum(p) * p->pPars->nCutsMax);
+            //assert( nBytes == nBytes2 );
             fclose( pFile );
             printf( "Finished writing cut information into file \"%s\" (%.3f MB).\n", pFileName, 1.0 * nBytes / (1<<20) );
         }
