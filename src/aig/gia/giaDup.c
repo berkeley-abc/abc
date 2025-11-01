@@ -790,6 +790,8 @@ Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
         pNew->vRegInits = Vec_IntDup( p->vRegInits );
     if ( p->vConfigs )
         pNew->vConfigs = Vec_IntDup( p->vConfigs );
+    if ( p->vConfigs2 )
+        pNew->vConfigs2 = Vec_StrDup( p->vConfigs2 );
     if ( p->pCellStr )
         pNew->pCellStr = Abc_UtilStrsav( p->pCellStr );
     // copy names if present

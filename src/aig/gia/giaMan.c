@@ -142,6 +142,7 @@ void Gia_ManStop( Gia_Man_t * p )
     Vec_IntFreeP( &p->vCellMapping );
     Vec_IntFreeP( &p->vPacking );
     Vec_IntFreeP( &p->vConfigs );
+    Vec_StrFreeP( &p->vConfigs2 );
     ABC_FREE( p->pCellStr );
     Vec_FltFreeP( &p->vInArrs );
     Vec_FltFreeP( &p->vOutReqs );

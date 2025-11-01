@@ -22,6 +22,7 @@
 #include "gia.h"
 #include "misc/tim/tim.h"
 #include "base/main/main.h"
+#include "map/if/if.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -800,6 +801,36 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 assert( pCur == pCurTemp );
                 if ( fVerbose ) printf( "Finished reading extension \"b\".\n" );
             }
+            // read configuration data for extension "j"
+            else if ( *pCur == 'j' )
+            {
+                int nSize, Reserved, NumCellTypes, CellId, BytesPerInstance, TotalInstances;
+                pCur++;
+                nSize = Gia_AigerReadInt(pCur);
+                pCurTemp = pCur + nSize + 4;                            pCur += 4;
+                // Read reserved value (should be 0)
+                Reserved = Gia_AigerReadInt(pCur);                      pCur += 4;
+                assert( Reserved == 0 );
+                // Read number of cell types
+                NumCellTypes = Gia_AigerReadInt(pCur);                  pCur += 4;
+                // Skip cell type definitions (we know them already)
+                for ( i = 0; i < NumCellTypes; i++ )
+                {
+                    CellId = Gia_AigerReadInt(pCur);                    pCur += 4;
+                    // Skip function description string (null-terminated)
+                    while ( *pCur++ != '\0' );
+                    BytesPerInstance = Gia_AigerReadInt(pCur);          pCur += 4;
+                }
+                // Read total number of instances
+                TotalInstances = Gia_AigerReadInt(pCur);                pCur += 4;
+                // Create byte vector for instance data
+                pNew->vConfigs2 = Vec_StrAlloc( (int)(pCurTemp - pCur) );
+                // Read instance data as bytes
+                while ( pCur < pCurTemp )
+                    Vec_StrPush( pNew->vConfigs2, *pCur++ );
+                assert( pCur == pCurTemp );
+                if ( fVerbose ) printf( "Finished reading extension \"j\".\n" );
+            }
             // read choices
             else if ( *pCur == 'q' )
             {
@@ -1513,6 +1544,88 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
 //        fwrite( Vec_IntArray(p->vConfigs), 1, 4*Vec_IntSize(p->vConfigs), pFile );
         for ( i = 0; i < Vec_IntSize(p->vConfigs); i++ )
             Gia_FileWriteBufferSize( pFile, Vec_IntEntry(p->vConfigs, i) );
+    }
+    // write configuration data for extension "j"
+    if ( p->vConfigs2 )
+    {
+        int nTotalSize, nInstances = 0;
+        If_LibCell_t * pLibCell = NULL; // (If_LibCell_t *)Abc_FrameReadLibCell();
+        char *pCell0, *pCell1, *pCell2;
+
+        // Get formulas from cell library or use defaults
+        if ( pLibCell && pLibCell->nCellNum == 3 &&
+             pLibCell->pCellNames[0] && pLibCell->pCellNames[1] && pLibCell->pCellNames[2] )
+        {
+            pCell0 = pLibCell->pCellNames[0];
+            pCell1 = pLibCell->pCellNames[1];
+            pCell2 = pLibCell->pCellNames[2];
+        }
+        else
+        {
+            if ( !pLibCell )
+                Abc_Print( 0, "Warning: Cell library is not loaded. Using generic formulas.\n" );
+            else if ( pLibCell->nCellNum != 3 )
+                Abc_Print( 0, "Warning: Cell library has %d cells (expected exactly 3). Using generic formulas.\n", pLibCell->nCellNum );
+            else
+                Abc_Print( 0, "Warning: Cell library does not contain all required cells. Using generic formulas.\n" );
+            pCell0 = "Formula1";
+            pCell1 = "Formula2";
+            pCell2 = "Formula3";
+        }
+        // Count instances by scanning the byte data
+        for ( i = 0; i < Vec_StrSize(p->vConfigs2); )
+        {
+            unsigned char CellId = (unsigned char)Vec_StrEntry(p->vConfigs2, i);
+            if ( CellId == 0 )    
+                i += 4;  // 1 byte CellId + 2 bytes truth table + 1 padding
+            else if ( CellId == 1 )
+                i += 12; // 1 byte CellId + 4 bytes mapping + 4 bytes truth tables + 3 padding
+            else if ( CellId == 2 )
+                i += 12; // 1 byte CellId + 5 bytes mapping + 4 bytes truth tables + 2 padding
+            else
+                assert( 0 ); // Unknown cell type
+            nInstances++;
+        }
+        fprintf( pFile, "j" );
+        // Calculate total size
+        nTotalSize = 4;  // Reserved value
+        nTotalSize += 4; // Number of cell types
+        // Cell type 0
+        nTotalSize += 4; // CellId
+        nTotalSize += strlen(pCell0) + 1; // Function description
+        nTotalSize += 4; // Bytes per instance
+        // Cell type 1
+        nTotalSize += 4; // CellId
+        nTotalSize += strlen(pCell1) + 1; // Function description
+        nTotalSize += 4; // Bytes per instance
+        // Cell type 2
+        nTotalSize += 4; // CellId
+        nTotalSize += strlen(pCell2) + 1; // Function description
+        nTotalSize += 4; // Bytes per instance
+        // Instance data
+        nTotalSize += 4; // Total instances count
+        nTotalSize += Vec_StrSize(p->vConfigs2); // Actual instance data
+        Gia_FileWriteBufferSize( pFile, nTotalSize );
+        // Write reserved value
+        Gia_FileWriteBufferSize( pFile, 0 );
+        // Write number of cell types
+        Gia_FileWriteBufferSize( pFile, 3 );
+        // Write cell type 0 (LUT4)
+        Gia_FileWriteBufferSize( pFile, 0 ); // CellId
+        fwrite( pCell0, 1, strlen(pCell0) + 1, pFile );
+        Gia_FileWriteBufferSize( pFile, 4 ); // 1 byte CellId + 2 bytes truth table, rounded to 4
+        // Write cell type 1 (S44)
+        Gia_FileWriteBufferSize( pFile, 1 ); // CellId
+        fwrite( pCell1, 1, strlen(pCell1) + 1, pFile );
+        Gia_FileWriteBufferSize( pFile, 12 ); // 1 byte CellId + 4 bytes mapping + 4 bytes truth tables, rounded to 12
+        // Write cell type 2 (9-input)
+        Gia_FileWriteBufferSize( pFile, 2 ); // CellId
+        fwrite( pCell2, 1, strlen(pCell2) + 1, pFile );
+        Gia_FileWriteBufferSize( pFile, 12 ); // 1 byte CellId + 5 bytes mapping + 4 bytes truth tables (LUT4s only), rounded to 12
+        // Write total instances
+        Gia_FileWriteBufferSize( pFile, nInstances );
+        // Write instance data as raw bytes
+        fwrite( Vec_StrArray(p->vConfigs2), 1, Vec_StrSize(p->vConfigs2), pFile );
     }
     // write choices
     if ( Gia_ManHasChoices(p) )

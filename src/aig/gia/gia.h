@@ -140,6 +140,7 @@ struct Gia_Man_t_
     void *         pSatlutWinman; // windowing for SAT-based mapping
     Vec_Int_t *    vPacking;      // packing information
     Vec_Int_t *    vConfigs;      // cell configurations
+    Vec_Str_t *    vConfigs2;     // cell configurations
     char *         pCellStr;      // cell description
     Vec_Int_t *    vLutConfigs;   // LUT configurations
     Vec_Int_t *    vEdgeDelay;    // special edge information
