@@ -1549,7 +1549,7 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
     if ( p->vConfigs2 )
     {
         int nTotalSize, nInstances = 0;
-        If_LibCell_t * pLibCell = NULL; // (If_LibCell_t *)Abc_FrameReadLibCell();
+        If_LibCell_t * pLibCell = (If_LibCell_t *)Abc_FrameReadLibCell();
         char *pCell0, *pCell1, *pCell2;
 
         // Get formulas from cell library or use defaults

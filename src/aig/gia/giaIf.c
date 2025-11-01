@@ -1188,8 +1188,6 @@ int Gia_ManFromIfLogicCreateLutSpecial( Gia_Man_t * pNew, word * pRes, Vec_Int_t
 ***********************************************************************/
 int Gia_ManFromIfLogicCreateLutSpecialJ( Gia_Man_t * pNew, word * pRes, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking )
 {
-    return Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
-
     word Truth;
     int i, iObjLit1, iObjLit2, iObjLit3;
     word z = If_CutPerformDeriveJ( NULL, (unsigned *)pRes, Vec_IntSize(vLeaves), Vec_IntSize(vLeaves), NULL, 1 );
@@ -1294,31 +1292,13 @@ int Gia_ManFromIfLogicCreateLutSpecialJ( Gia_Man_t * pNew, word * pRes, Vec_Int_
 
 ***********************************************************************/
 int Gia_ManFromIfLogicNode( void * pIfMan, Gia_Man_t * pNew, int iObj, Vec_Int_t * vLeaves, Vec_Int_t * vLeavesTemp, 
-    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking, int fCheck75, int fEnableCheck07 )
+    word * pRes, char * pStr, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vPacking, int fCheck75 )
 {
     int nLeaves = Vec_IntSize(vLeaves);
     int i, Length, nLutLeaf, nLutLeaf2, nLutRoot, iObjLit1, iObjLit2, iObjLit3;
     // workaround for the special case
     if ( fCheck75 )
         pStr = "54";
-    // perform special case matching for 44
-    if ( fEnableCheck07 )
-    {      
-        if ( 0 && Vec_IntSize(vLeaves) <= 4 )
-        {
-            // create mapping
-            iObjLit1 = Gia_ManFromIfLogicCreateLut( pNew, pRes, vLeaves, vCover, vMapping, vMapping2 );
-            // write packing
-            if ( !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(iObjLit1))) && iObjLit1 > 1 )
-            {
-                Vec_IntPush( vPacking, 1 );
-                Vec_IntPush( vPacking, Abc_Lit2Var(iObjLit1) );
-                Vec_IntAddToEntry( vPacking, 0, 1 );
-            }
-            return iObjLit1;
-        }        
-        return Gia_ManFromIfLogicCreateLutSpecialJ( pNew, pRes, vLeaves, vLeavesTemp, vCover, vMapping, vMapping2, vPacking );
-    }
     if ( ((If_Man_t *)pIfMan)->pPars->fLut6Filter && Vec_IntSize(vLeaves) == 6 )
     {
         extern word If_Dec6Perform( word t, int fDerive );
@@ -2034,13 +2014,13 @@ void Gia_ManConfigPrint( word Truth4, word z, int nLeaves )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, If_Cut_t * pCutBest )
+void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, word * pTruth, int nLeaves )
 {
     int i, CellId, nBytes;
     int startPos = Vec_StrSize(vConfigs2);
 
     // Determine cell type based on the number of leaves and configuration
-    if ( pCutBest->nLeaves <= 4 )
+    if ( nLeaves <= 4 )
     {
         // Cell type 0: Simple LUT4
         CellId = 0;
@@ -2048,7 +2028,7 @@ void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, If_Cut_t
         // Write CellId
         Vec_StrPush( vConfigs2, (char)CellId );
         // Write truth table (16 bits for LUT4)
-        word Truth = *If_CutTruthW(pIfMan, pCutBest);
+        word Truth = pTruth[0];
         Vec_StrPush( vConfigs2, (char)(Truth & 0xFF) );
         Vec_StrPush( vConfigs2, (char)((Truth >> 8) & 0xFF) );
         // Pad to 4-byte boundary
@@ -2058,7 +2038,7 @@ void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, If_Cut_t
     }
     else
     {
-        word z = If_CutPerformDeriveJ( pIfMan, (unsigned *)If_CutTruthW(pIfMan, pCutBest), pCutBest->nLeaves, pCutBest->nLeaves, NULL, 1 );
+        word z = If_CutPerformDeriveJ( pIfMan, (unsigned *)pTruth, nLeaves, nLeaves, NULL, 1 );
         //Gia_ManConfigPrint( 0, z, pCutBest->nLeaves );
         if ( ((z >> 63) & 1) == 0 )
         {
@@ -2070,7 +2050,7 @@ void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, If_Cut_t
             for ( i = 0; i < 4; i++ )
             {
                 int v = (int)((z >> (16 + (i << 2))) & 7);
-                if ( v == 6 && pCutBest->nLeaves == 5 )
+                if ( v == 6 && nLeaves == 5 )
                     mappingBytes[i / 2] |= (0 << ((i % 2) * 4)); // constant 0
                 else
                     mappingBytes[i / 2] |= ((v+2) << ((i % 2) * 4)); // leaf v (direct mapping)
@@ -2082,7 +2062,7 @@ void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, If_Cut_t
             for ( i = 0; i < 4; i++ )
             {
                 int v = (int)((z >> (48 + (i << 2))) & 7);
-                if ( v == 6 && pCutBest->nLeaves == 5 )
+                if ( v == 6 && nLeaves == 5 )
                     mappingBytes[i / 2] |= (0 << ((i % 2) * 4)); // constant 0
                 else if ( v == 7 )
                     mappingBytes[i / 2] |= ((7+2) << ((i % 2) * 4)); // output of first LUT at index N+2 where N=7
@@ -2351,7 +2331,7 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
     // start mapping and packing
     vMapping  = Vec_IntStart( If_ManObjNum(pIfMan) );
     vMapping2 = Vec_IntStart( 1 );
-    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u || pIfMan->pPars->fEnableCheck07) )
+    if ( pIfMan->pPars->fDeriveLuts && (pIfMan->pPars->pLutStruct || pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u) )
     {
         vPacking = Vec_IntAlloc( 1000 );
         Vec_IntPush( vPacking, 0 );
@@ -2452,15 +2432,20 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                         if ( If_CutLeafBit(pCutBest, k) )
                             Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLeaves), k );
                 // perform decomposition of the cut
-                pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruth, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u), pIfMan->pPars->fEnableCheck07 );
+                if ( pIfMan->pPars->fEnableCheck07 )
+                    pIfObj->iCopy = Gia_ManFromIfLogicCreateLut( pNew, pTruth, vLeaves, vCover, vMapping, vMapping2 );
+                else
+                    pIfObj->iCopy = Gia_ManFromIfLogicNode( pIfMan, pNew, i, vLeaves, vLeaves2, pTruth, pIfMan->pPars->pLutStruct, vCover, vMapping, vMapping2, vPacking, (pIfMan->pPars->fEnableCheck75 || pIfMan->pPars->fEnableCheck75u) );
                 pIfObj->iCopy = Abc_LitNotCond( pIfObj->iCopy, pCutBest->fCompl );
                 if ( vConfigs && Vec_IntSize(vLeaves) > 1 && !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(pIfObj->iCopy))) && pIfObj->iCopy > 1 )
                     Gia_ManFromIfGetConfig( vConfigs, pIfMan, pCutBest, pIfObj->iCopy, vConfigsStr );
                 else if ( vConfigs2 && Vec_IntSize(vLeaves) > 1 && !Gia_ObjIsCi(Gia_ManObj(pNew, Abc_Lit2Var(pIfObj->iCopy))) && pIfObj->iCopy > 1 ) {
-                    assert( pCutBest->fCompl == 0 );
-                    //pCutBest->iCutFunc = Abc_LitNotCond( pCutBest->iCutFunc, Abc_LitIsCompl(pIfObj->iCopy) );
-                    Gia_ManFromIfGetConfig2( vConfigs2, pIfMan, pCutBest );
-                    //pCutBest->iCutFunc = Abc_LitNotCond( pCutBest->iCutFunc, Abc_LitIsCompl(pIfObj->iCopy) );
+                    If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
+                        if ( Abc_LitIsCompl(pIfLeaf->iCopy) )
+                            Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLeaves), k );
+                    if ( Abc_LitIsCompl(pIfObj->iCopy) ^ pCutBest->fCompl )
+                        Abc_TtNot( pTruth, Abc_TtWordNum(pCutBest->nLeaves) );
+                    Gia_ManFromIfGetConfig2( vConfigs2, pIfMan, pTruth, pCutBest->nLeaves );
                 }
             }
             else
@@ -2474,8 +2459,6 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                 Vec_IntForEachEntry( vLeaves, Entry, k )
                     Vec_IntPush( vMapping2, Abc_Lit2Var(Entry)  );
                 Vec_IntPush( vMapping2, Abc_Lit2Var(pIfObj->iCopy) );
-                //if ( pIfMan->pPars->fEnableCheck07 && vConfigs2 && Vec_IntSize(vLeaves) > 1 )
-                //    Gia_ManFromIfGetConfig2( vConfigs2, pIfMan, pCutBest );
             }
         }
         else if ( If_ObjIsCi(pIfObj) )
