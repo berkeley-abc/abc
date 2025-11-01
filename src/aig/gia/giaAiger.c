@@ -652,6 +652,9 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pNew->vInArrs  = Vec_FltStart( nInputs );
                 memcpy( Vec_FltArray(pNew->vInArrs),  pCur, (size_t)4*nInputs );   pCur += 4*nInputs;
                 if ( fVerbose ) printf( "Finished reading extension \"i\".\n" );
+                if ( Vec_FltSize(pNew->vInArrs) == Gia_ManPiNum(pNew) )
+                    Vec_FltFillExtra(pNew->vInArrs, Gia_ManCiNum(pNew), 0);
+                assert( Vec_FltSize(pNew->vInArrs) == Gia_ManCiNum(pNew) );
             }
             else if ( *pCur == 'o' )
             {
@@ -660,6 +663,9 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 pNew->vOutReqs  = Vec_FltStart( nOutputs );
                 memcpy( Vec_FltArray(pNew->vOutReqs),  pCur, (size_t)4*nOutputs ); pCur += 4*nOutputs;
                 if ( fVerbose ) printf( "Finished reading extension \"o\".\n" );
+                if ( Vec_FltSize(pNew->vOutReqs) == Gia_ManPoNum(pNew) )
+                    Vec_FltFillExtra(pNew->vOutReqs, Gia_ManCoNum(pNew), 0);
+                assert( Vec_FltSize(pNew->vOutReqs) == Gia_ManCoNum(pNew) );
             }
             // read equivalence classes
             else if ( *pCur == 'e' )
