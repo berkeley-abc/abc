@@ -371,6 +371,240 @@ void If_LibLutPrint( If_LibLut_t * pLutLib )
 
 /**Function*************************************************************
 
+  Synopsis    [Allocates the cell library structure.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_LibCell_t * If_LibCellAlloc( void )
+{
+    If_LibCell_t * p;
+    p = ABC_ALLOC( If_LibCell_t, 1 );
+    memset( p, 0, sizeof(If_LibCell_t) );
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reads the description of cells from the cell library file.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_LibCell_t * If_LibCellRead( char * FileName )
+{
+    char pBuffer[1000], * pToken;
+    If_LibCell_t * p;
+    FILE * pFile;
+    int i, k;
+    int CellId;
+    char * FuncDesc;
+
+    pFile = fopen( FileName, "r" );
+    if ( pFile == NULL )
+    {
+        Abc_Print( -1, "Cannot open cell library file \"%s\".\n", FileName );
+        return NULL;
+    }
+
+    p = If_LibCellAlloc();
+    p->pName = Abc_UtilStrsav( FileName );
+    p->nCellNum = 0;
+
+    // Read each line of the file
+    while ( fgets( pBuffer, 1000, pFile ) != NULL )
+    {
+        pToken = strtok( pBuffer, " \t\n" );
+        if ( pToken == NULL )
+            continue;
+        if ( pToken[0] == '#' )
+            continue;
+
+        // Read CellId
+        CellId = atoi(pToken);
+        if ( CellId < 0 || CellId >= IF_MAX_LUTSIZE )
+        {
+            Abc_Print( -1, "Cell ID %d is out of bounds (0-%d).\n", CellId, IF_MAX_LUTSIZE-1 );
+            If_LibCellFree( p );
+            fclose( pFile );
+            return NULL;
+        }
+
+        // Read FuncDesc
+        pToken = strtok( NULL, " \t\n" );
+        if ( pToken == NULL )
+        {
+            Abc_Print( -1, "Missing function description for cell %d.\n", CellId );
+            If_LibCellFree( p );
+            fclose( pFile );
+            return NULL;
+        }
+        FuncDesc = Abc_UtilStrsav( pToken );
+        p->pCellNames[CellId] = FuncDesc;
+
+        // Determine number of inputs from function description
+        int nInputs = 0;
+        if ( FuncDesc[0] >= 'a' && FuncDesc[0] <= 'z' )
+        {
+            // If it begins with a letter, that letter indicates the output
+            // and the number of inputs is that letter - 'a'
+            nInputs = FuncDesc[0] - 'a';
+        }
+        else
+        {
+            // Otherwise, find the largest letter in the formula
+            char maxChar = 'a' - 1;
+            for ( i = 0; FuncDesc[i]; i++ )
+            {
+                if ( FuncDesc[i] >= 'a' && FuncDesc[i] <= 'z' && FuncDesc[i] > maxChar )
+                    maxChar = FuncDesc[i];
+            }
+            if ( maxChar >= 'a' )
+                nInputs = maxChar - 'a' + 1;
+        }
+        p->nCellInputs[CellId] = nInputs;
+
+        // Read Area
+        pToken = strtok( NULL, " \t\n" );
+        if ( pToken == NULL )
+        {
+            Abc_Print( -1, "Missing area for cell %d.\n", CellId );
+            If_LibCellFree( p );
+            fclose( pFile );
+            return NULL;
+        }
+        p->pCellAreas[CellId] = (float)atof(pToken);
+
+        // Read all available delays
+        k = 0;
+        while ( (pToken = strtok( NULL, " \t\n" )) != NULL && k < IF_MAX_LUTSIZE )
+        {
+            p->pCellPinDelays[CellId][k] = atoi(pToken);
+            k++;
+        }
+
+        // Check if number of delays matches number of inputs
+        if ( k != nInputs )
+        {
+            Abc_Print( 0, "Warning: Cell %d has %d inputs but %d delays specified.\n", CellId, nInputs, k );
+        }
+
+        p->nCellNum++;
+    }
+
+    fclose( pFile );
+
+    // Validate the library
+    for ( i = 0; i < IF_MAX_LUTSIZE; i++ )
+    {
+        if ( p->pCellNames[i] == NULL )
+            continue;
+        for ( k = 0; k < IF_MAX_LUTSIZE && p->pCellPinDelays[i][k] > 0; k++ )
+        {
+            if ( p->pCellPinDelays[i][k] < 0 )
+            {
+                Abc_Print( 0, "Pin %d of cell %d has delay %d. Pin delays should be non-negative. Technology mapping may not work correctly.\n",
+                    k, i, p->pCellPinDelays[i][k] );
+            }
+        }
+    }
+
+    return p;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates the cell library.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+If_LibCell_t * If_LibCellDup( If_LibCell_t * p )
+{
+    If_LibCell_t * pNew;
+    int i;
+    pNew = ABC_ALLOC( If_LibCell_t, 1 );
+    *pNew = *p;
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    for ( i = 0; i < IF_MAX_LUTSIZE; i++ )
+        if ( p->pCellNames[i] )
+            pNew->pCellNames[i] = Abc_UtilStrsav( p->pCellNames[i] );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees the cell library.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_LibCellFree( If_LibCell_t * pCellLib )
+{
+    int i;
+    if ( pCellLib == NULL )
+        return;
+    ABC_FREE( pCellLib->pName );
+    for ( i = 0; i < IF_MAX_LUTSIZE; i++ )
+        ABC_FREE( pCellLib->pCellNames[i] );
+    ABC_FREE( pCellLib );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the cell library.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void If_LibCellPrint( If_LibCell_t * pCellLib )
+{
+    int i, k;
+    if ( pCellLib == NULL )
+    {
+        Abc_Print( 1, "Cell library is not available.\n" );
+        return;
+    }
+    Abc_Print( 1, "# Cell library: %s\n", pCellLib->pName ? pCellLib->pName : "Unknown" );
+    Abc_Print( 1, "# Number of cells: %d\n", pCellLib->nCellNum );
+    Abc_Print( 1, "# CellId  Inputs  Cell Description                     Area     Delays\n" );
+
+    for ( i = 0; i < IF_MAX_LUTSIZE; i++ )
+    {
+        if ( pCellLib->pCellNames[i] == NULL )
+            continue;
+
+        Abc_Print( 1, "%3d  %6d       %-32s   %6.2f  ", i, pCellLib->nCellInputs[i], pCellLib->pCellNames[i], pCellLib->pCellAreas[i] );
+
+        // Print all non-zero delays
+        for ( k = 0; k < IF_MAX_LUTSIZE && pCellLib->pCellPinDelays[i][k] > 0; k++ )
+            Abc_Print( 1, " %4d", pCellLib->pCellPinDelays[i][k] );
+        Abc_Print( 1, "\n" );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Returns 1 if the delays are discrete.]
 
   Description []

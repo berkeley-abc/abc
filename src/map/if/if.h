@@ -80,6 +80,7 @@ typedef struct If_Obj_t_     If_Obj_t;
 typedef struct If_Cut_t_     If_Cut_t;
 typedef struct If_Set_t_     If_Set_t;
 typedef struct If_LibLut_t_  If_LibLut_t;
+typedef struct If_LibCell_t_ If_LibCell_t;
 typedef struct If_LibBox_t_  If_LibBox_t;
 typedef struct If_DsdMan_t_  If_DsdMan_t;
 typedef struct Ifn_Ntk_t_    Ifn_Ntk_t;
@@ -192,6 +193,17 @@ struct If_LibLut_t_
     int                fVarPinDelays; // set to 1 if variable pin delays are specified
     float              pLutAreas[IF_MAX_LUTSIZE+1]; // the areas of LUTs
     float              pLutDelays[IF_MAX_LUTSIZE+1][IF_MAX_LUTSIZE+1];// the delays of LUTs
+};
+
+// the cell library
+struct If_LibCell_t_
+{
+    char *             pName;         // the name of the LUT library
+    int                nCellNum;      // the number of cells in the library
+    int                nCellInputs[IF_MAX_LUTSIZE];
+    char *             pCellNames[IF_MAX_LUTSIZE];
+    float              pCellAreas[IF_MAX_LUTSIZE];
+    int                pCellPinDelays[IF_MAX_LUTSIZE][IF_MAX_LUTSIZE];
 };
 
 // manager
@@ -626,6 +638,10 @@ extern int             If_LibLutDelaysAreDifferent( If_LibLut_t * pLutLib );
 extern If_LibLut_t *   If_LibLutSetSimple( int nLutSize );
 extern float           If_LibLutFastestPinDelay( If_LibLut_t * p );
 extern float           If_LibLutSlowestPinDelay( If_LibLut_t * p );
+extern If_LibCell_t *  If_LibCellRead( char * FileName );
+extern If_LibCell_t *  If_LibCellDup( If_LibCell_t * p );
+extern void            If_LibCellFree( If_LibCell_t * pCellLib );
+extern void            If_LibCellPrint( If_LibCell_t * pCellLib );
 /*=== ifLibBox.c =============================================================*/
 extern If_LibBox_t *   If_LibBoxStart();
 extern void            If_LibBoxFree( If_LibBox_t * p );
@@ -692,6 +708,7 @@ extern void *          If_ManSatBuildFromCell( char * pStr, Vec_Int_t ** pvPiVar
 extern int             If_ManSatFindCofigBits( void * pSat, Vec_Int_t * vPiVars, Vec_Int_t * vPoVars, word * pTruth, int nVars, word Perm, int nInps, Vec_Int_t * vValues );
 extern int             If_ManSatDeriveGiaFromBits( void * pNew, Ifn_Ntk_t * p, word * pTtData, Vec_Int_t * vLeaves, Vec_Int_t * vValues );
 extern void *          If_ManDeriveGiaFromCells( void * p );
+extern void *          If_ManDeriveGiaFromCells2( void * p );
 /*=== ifUtil.c ============================================================*/
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );

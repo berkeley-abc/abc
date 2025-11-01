@@ -30,6 +30,8 @@ ABC_NAMESPACE_IMPL_START
 
 static int If_CommandReadLut ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int If_CommandPrintLut( Abc_Frame_t * pAbc, int argc, char **argv );
+static int If_CommandReadCell( Abc_Frame_t * pAbc, int argc, char **argv );
+static int If_CommandPrintCell( Abc_Frame_t * pAbc, int argc, char **argv );
 static int If_CommandReadBox ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int If_CommandPrintBox( Abc_Frame_t * pAbc, int argc, char **argv );
 static int If_CommandWriteBox( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -58,6 +60,9 @@ void If_Init( Abc_Frame_t * pAbc )
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "read_lut",   If_CommandReadLut,   0 ); 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "print_lut",  If_CommandPrintLut,  0 ); 
+
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "read_cell",  If_CommandReadCell,  0 ); 
+    Cmd_CommandAdd( pAbc, "FPGA mapping", "print_cell", If_CommandPrintCell, 0 ); 
 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "read_box",   If_CommandReadBox,   0 ); 
     Cmd_CommandAdd( pAbc, "FPGA mapping", "print_box",  If_CommandPrintBox,  0 ); 
@@ -243,6 +248,143 @@ int If_CommandPrintLut( Abc_Frame_t * pAbc, int argc, char **argv )
 usage:
     fprintf( pErr, "\nusage: print_lut [-vh]\n");
     fprintf( pErr, "\t          print the current LUT library\n" );  
+    fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
+    fprintf( pErr, "\t-h      : print the command usage\n");
+    return 1;       /* error exit */
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read LUT libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CommandReadCell( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pFile;
+    FILE * pOut, * pErr;
+    If_LibCell_t * pLib;
+    Abc_Ntk_t * pNet;
+    char * FileName;
+    int fVerbose;
+    int c;
+
+    pNet = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set the defaults
+    fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( argc == globalUtilOptind ) {
+        fprintf( pErr, "The library file should be specified in the command line.\n" );
+        goto usage;
+    }
+
+    // remove current libraries
+    If_LibCellFree( (If_LibCell_t *)Abc_FrameReadLibCell() );
+    Abc_FrameSetLibCell( NULL );
+
+    // get the input file name
+    FileName = argv[globalUtilOptind];
+    if ( (pFile = fopen( FileName, "r" )) == NULL )
+    {
+        fprintf( pErr, "Cannot open input file \"%s\". ", FileName );
+        if ( (FileName = Extra_FileGetSimilarName( FileName, ".genlib", ".lib", ".gen", ".g", NULL )) )
+            fprintf( pErr, "Did you mean \"%s\"?", FileName );
+        fprintf( pErr, "\n" );
+        return 1;
+    }
+    fclose( pFile );
+    // set the new network
+    pLib = If_LibCellRead( FileName );
+    if ( pLib == NULL )
+    {
+        fprintf( pErr, "Reading LUT library has failed.\n" );
+        goto usage;
+    }
+    // replace the current library
+    Abc_FrameSetLibCell( pLib );
+    return 0;
+
+usage:
+    fprintf( pErr, "\nusage: read_cell [-vh] <file>\n");
+    fprintf( pErr, "\t          read the cell library from the file\n" );  
+    fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
+    fprintf( pErr, "\t-h      : print the command usage\n");
+    return 1;       /* error exit */
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Command procedure to read cell libraries.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_CommandPrintCell( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pOut, * pErr;
+    Abc_Ntk_t * pNet;
+    int fVerbose;
+    int c;
+
+    pNet = Abc_FrameReadNtk(pAbc);
+    pOut = Abc_FrameReadOut(pAbc);
+    pErr = Abc_FrameReadErr(pAbc);
+
+    // set the defaults
+    fVerbose = 1;
+    Extra_UtilGetoptReset();
+    while ( (c = Extra_UtilGetopt(argc, argv, "vh")) != EOF ) 
+    {
+        switch (c) 
+        {
+            case 'v':
+                fVerbose ^= 1;
+                break;
+            case 'h':
+                goto usage;
+                break;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( argc != globalUtilOptind )
+        goto usage;
+
+    // set the new network
+    If_LibCellPrint( (If_LibCell_t *)Abc_FrameReadLibCell() );
+    return 0;
+
+usage:
+    fprintf( pErr, "\nusage: print_cell [-vh]\n");
+    fprintf( pErr, "\t          print the current cell library\n" );  
     fprintf( pErr, "\t-v      : toggles enabling of verbose output [default = %s]\n", (fVerbose? "yes" : "no") );
     fprintf( pErr, "\t-h      : print the command usage\n");
     return 1;       /* error exit */

@@ -56,6 +56,7 @@ Vec_Ptr_t * Abc_FrameReadStore()                             { return s_GlobalFr
 int         Abc_FrameReadStoreSize()                         { return Vec_PtrSize(s_GlobalFrame->vStore); }
 void *      Abc_FrameReadLibLut()                            { return s_GlobalFrame->pLibLut[0];   } 
 void *      Abc_FrameReadLibLutI( int i )                    { return s_GlobalFrame->pLibLut[i];   } 
+void *      Abc_FrameReadLibCell()                           { return s_GlobalFrame->pLibCell;   } 
 void *      Abc_FrameReadLibBox()                            { return s_GlobalFrame->pLibBox;      } 
 void *      Abc_FrameReadLibGen()                            { return s_GlobalFrame->pLibGen;      } 
 void *      Abc_FrameReadLibGen2()                           { return s_GlobalFrame->pLibGen2;     } 
@@ -93,6 +94,7 @@ int *       Abc_FrameOutputNdrArray( Abc_Frame_t * pAbc )    { int * pArray = s_
 
 void        Abc_FrameSetLibLut( void * pLib )                { s_GlobalFrame->pLibLut[0]= pLib;    } 
 void        Abc_FrameSetLibLutI( void * pLib, int i )        { s_GlobalFrame->pLibLut[i]= pLib;    } 
+void        Abc_FrameSetLibCell( void * pLib )               { s_GlobalFrame->pLibCell  = pLib;    } 
 void        Abc_FrameSetLibBox( void * pLib )                { s_GlobalFrame->pLibBox   = pLib;    } 
 void        Abc_FrameSetLibGen( void * pLib )                { s_GlobalFrame->pLibGen   = pLib;    } 
 void        Abc_FrameSetLibGen2( void * pLib )               { s_GlobalFrame->pLibGen2  = pLib;    } 

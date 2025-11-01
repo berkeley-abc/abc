@@ -99,6 +99,7 @@ struct Abc_Frame_t_
     void *          pManDsd2;      // decomposition manager
     // libraries for mapping
     void *          pLibLut[ABC_LUT_LIBS]; // the current LUT library
+    void *          pLibCell;      // the current cell library
     void *          pLibBox;       // the current box library
     void *          pLibGen;       // the current genlib
     void *          pLibGen2;      // the current genlib
