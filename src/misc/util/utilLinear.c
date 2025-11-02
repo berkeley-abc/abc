@@ -47,7 +47,7 @@ ABC_NAMESPACE_IMPL_START
 static char *read_line(FILE *fp) {
     size_t capacity = 128;
     size_t length = 0;
-    char *buffer = malloc(capacity);
+    char *buffer = (char *)malloc(capacity);
     if (!buffer) {
         errno = ENOMEM;
         return NULL;
@@ -63,7 +63,7 @@ static char *read_line(FILE *fp) {
         }
         if (length + 1 >= capacity) {
             size_t new_capacity = capacity * 2;
-            char *tmp = realloc(buffer, new_capacity);
+            char *tmp = (char *)realloc(buffer, new_capacity);
             if (!tmp) {
                 free(buffer);
                 errno = ENOMEM;
@@ -125,7 +125,7 @@ static int load_augmented_matrix(const char *path, double **outMatrix, int *outE
 
             if (count == capacity) {
                 size_t new_capacity = capacity == 0 ? 64 : capacity * 2;
-                double *tmp = realloc(data, new_capacity * sizeof(double));
+                double *tmp = (double *)realloc(data, new_capacity * sizeof(double));
                 if (!tmp) {
                     fprintf(stderr, "Out of memory while loading matrix.\n");
                     free(data);
@@ -473,7 +473,7 @@ static int try_integer_solution(
     int exploration_limit = 200000;
     int explored = 0;
 
-    double *free_values = malloc((size_t)free_count * sizeof(double));
+    double *free_values = (double *)malloc((size_t)free_count * sizeof(double));
     if (!free_values) {
         return 0;
     }
@@ -545,15 +545,22 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
     int *pivot_cols = NULL;
     int *pivot_column_used = NULL;
     int *free_cols = NULL;
+    int free_count = 0;
+    int homogeneous_rhs = 0;
+    int require_nonzero_integer = 0;
+    int require_distinct_first_two = 0;
+    int pivot_row_index = 0;
+    int rank = 0;
+    double max_residual = 0.0;
 
-    matrix_copy = malloc(matrix_bytes);
+    matrix_copy = (double *)malloc(matrix_bytes);
     if (!matrix_copy) {
         fprintf(stderr, "Unable to allocate memory for solver workspace.\n");
         goto cleanup;
     }
     memcpy(matrix_copy, pMatrix, matrix_bytes);
 
-    pivot_cols = malloc((size_t)nEqus * sizeof(int));
+    pivot_cols = (int *)malloc((size_t)nEqus * sizeof(int));
     if (!pivot_cols) {
         fprintf(stderr, "Unable to allocate memory for pivot tracking.\n");
         goto cleanup;
@@ -562,7 +569,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
         pivot_cols[i] = -1;
     }
 
-    int pivot_row_index = 0;
+    pivot_row_index = 0;
     for (int col = 0; col < nVars && pivot_row_index < nEqus; ++col) {
         int best_row = pivot_row_index;
         double max_value = fabs(matrix_copy[best_row * row_len + col]);
@@ -606,7 +613,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
         ++pivot_row_index;
     }
 
-    int rank = pivot_row_index;
+    rank = pivot_row_index;
     //printf("Rank: %d\n", rank);
 
     for (int r = 0; r < nEqus; ++r) {
@@ -623,7 +630,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
         }
     }
 
-    pivot_column_used = calloc((size_t)nVars, sizeof(int));
+    pivot_column_used = (int *)calloc((size_t)nVars, sizeof(int));
     if (!pivot_column_used) {
         fprintf(stderr, "Unable to allocate memory for pivot metadata.\n");
         goto cleanup;
@@ -635,7 +642,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
         }
     }
 
-    int free_count = 0;
+    free_count = 0;
     for (int c = 0; c < nVars; ++c) {
         if (!pivot_column_used[c]) {
             ++free_count;
@@ -643,7 +650,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
     }
 
     if (free_count > 0) {
-        free_cols = malloc((size_t)free_count * sizeof(int));
+        free_cols = (int *)malloc((size_t)free_count * sizeof(int));
         if (!free_cols) {
             fprintf(stderr, "Unable to allocate memory for free column list.\n");
             goto cleanup;
@@ -656,7 +663,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
         }
     }
 
-    int homogeneous_rhs = 1;
+    homogeneous_rhs = 1;
     for (int r = 0; r < nEqus; ++r) {
         if (fabs(pMatrix[r * row_len + nVars]) > EPSILON) {
             homogeneous_rhs = 0;
@@ -664,13 +671,13 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
         }
     }
     // Only demand integer solutions when the system is homogeneous with free variables.
-    int require_nonzero_integer = homogeneous_rhs && free_count > 0;
+    require_nonzero_integer = homogeneous_rhs && free_count > 0;
     // Enforce distinct first two variables whenever multiple variables remain free.
-    int require_distinct_first_two = (free_count > 0 && nVars >= 2);
+    require_distinct_first_two = (free_count > 0 && nVars >= 2);
 
-    solution = malloc((size_t)nVars * sizeof(double));
-    workspace = malloc((size_t)nVars * sizeof(double));
-    rounded = malloc((size_t)nVars * sizeof(double));
+    solution = (double *)malloc((size_t)nVars * sizeof(double));
+    workspace = (double *)malloc((size_t)nVars * sizeof(double));
+    rounded = (double *)malloc((size_t)nVars * sizeof(double));
     if (!solution || !workspace || !rounded) {
         fprintf(stderr, "Unable to allocate solver buffers.\n");
         goto cleanup;
@@ -729,7 +736,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
         }
     }
 
-    double max_residual = 0.0;
+    max_residual = 0.0;
     if (!verify_solution(pMatrix, nEqus, nVars, solution, VERIFY_TOLERANCE, &max_residual)) {
         printf("Verification: failure (max residual = %.6f)\n", max_residual);
         goto cleanup;
