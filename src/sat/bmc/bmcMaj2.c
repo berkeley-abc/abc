@@ -1411,6 +1411,8 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
     status = Exa3_ManAddCnfStart( p, pPars->fOnlyAnd );
     assert( status );
     printf( "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
+    abctime nTimeToStop = pPars->RuntimeLim ? pPars->RuntimeLim * CLOCKS_PER_SEC + Abc_Clock(): 0;
+    sat_solver_set_runtime_limit( p->pSat, nTimeToStop );
     for ( i = 0; iMint != -1; i++ )
     {
         abctime clk = Abc_Clock();
@@ -1425,6 +1427,12 @@ void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars )
             printf( "Cla =%6d  ", sat_solver_nclauses(p->pSat) );
             printf( "Conf =%9d  ", sat_solver_nconflicts(p->pSat) );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+        }
+        if ( nTimeToStop && Abc_Clock() > nTimeToStop ) 
+        {
+            printf( "Runtime limit (%d sec) is reached.  ", pPars->RuntimeLim );
+            status = l_Undef;
+            break;
         }
         if ( status == l_False )
         {
