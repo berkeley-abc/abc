@@ -33,7 +33,9 @@ extern "C" {
 #else
 
 extern "C" {
+#if !defined(__wasm)
 #include <sys/wait.h>
+#endif
 #include <unistd.h>
 }
 
@@ -245,6 +247,7 @@ void File::delete_str_vector (std::vector<char *> &argv) {
 
 FILE *File::open_pipe (Internal *internal, const char *fmt,
                        const char *path, const char *mode) {
+#if !defined(__wasm)
 #ifdef CADICAL_QUIET
   (void) internal;
 #endif
@@ -269,6 +272,9 @@ FILE *File::open_pipe (Internal *internal, const char *fmt,
   FILE *res = popen (cmd, mode);
   delete[] cmd;
   return res;
+#else
+  return 0;
+#endif
 }
 
 FILE *File::read_pipe (Internal *internal, const char *fmt, const int *sig,
@@ -285,7 +291,7 @@ FILE *File::read_pipe (Internal *internal, const char *fmt, const int *sig,
   return open_pipe (internal, fmt, path, "r");
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasm)
 
 #if defined(__APPLE__) || defined(__MACH__)
 static std::mutex compressed_file_writing_mutex;
@@ -420,7 +426,7 @@ File *File::read (Internal *internal, const char *path) {
 File *File::write (Internal *internal, const char *path) {
   FILE *file;
   int close_output = 3, child_pid = 0;
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__wasm)
   if (has_suffix (path, ".xz"))
     file = write_pipe (internal, "xz -c", path, child_pid);
   else if (has_suffix (path, ".bz2"))
@@ -456,12 +462,14 @@ void File::close (bool print) {
       MSG ("closing file '%s'", name ());
     fclose (file);
   }
+#if !defined(__wasm)
   if (close_file == 2) {
     if (print)
       MSG ("closing input pipe to read '%s'", name ());
     pclose (file);
   }
-#ifndef _WIN32
+#endif
+#if !defined(_WIN32) && !defined(__wasm)
   if (close_file == 3) {
     if (print)
       MSG ("closing output pipe to write '%s'", name ());
