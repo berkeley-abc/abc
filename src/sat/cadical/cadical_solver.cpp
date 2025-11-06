@@ -1759,6 +1759,16 @@ void Solver::error (const char *fmt, ...) {
   va_end (ap);
 }
 
+/*------------------------------------------------------------------------*/
+
+int Solver::clauses () {
+  return internal->stats.added.total;
+}
+
+int Solver::conflicts () {
+    return internal->stats.conflicts;
+}
+
 } // namespace CaDiCaL
 
 ABC_NAMESPACE_IMPL_END
