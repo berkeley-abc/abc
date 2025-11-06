@@ -58,6 +58,7 @@ SRC +=    src/aig/gia/giaAig.c \
     src/aig/gia/giaMinLut.c \
     src/aig/gia/giaMinLut2.c \
     src/aig/gia/giaMulFind.c \
+    src/aig/gia/giaMulFind3.c \
     src/aig/gia/giaMuxes.c \
     src/aig/gia/giaNf.c \
     src/aig/gia/giaOf.c \

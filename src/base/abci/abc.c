@@ -643,6 +643,7 @@ static int Abc_CommandAbc9FunAbs             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9DsdInfo            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9FunTrace           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9MulFind            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9MulFind3           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9BsFind             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9AndCare            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -1469,7 +1470,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&funabs",       Abc_CommandAbc9FunAbs,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsdinfo",      Abc_CommandAbc9DsdInfo,                0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&funtrace",     Abc_CommandAbc9FunTrace,               0 );    
-    Cmd_CommandAdd( pAbc, "ABC9",         "&mulfind",      Abc_CommandAbc9MulFind,                0 );    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&mulfind",      Abc_CommandAbc9MulFind,                0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&mulfind3",     Abc_CommandAbc9MulFind3,               0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&bsfind",       Abc_CommandAbc9BsFind,                 0 );    
     Cmd_CommandAdd( pAbc, "ABC9",         "&andcare",      Abc_CommandAbc9AndCare,                0 );   
     
@@ -57574,6 +57576,79 @@ usage:
     Abc_Print( -2, "usage: &mulfind [-C num] [-vh]\n" );
     Abc_Print( -2, "\t          detects multipliers in the given AIG\n" );
     Abc_Print( -2, "\t-C num  : the number of cuts to compute at each node [default = %d]\n", nCutNum );
+    Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9MulFind3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern void Gia_ManMulFindNew( Gia_Man_t * p, int nABits, int nFanLim, int fLits, int fVerbose );
+    int c, nABits = 0, nFanLim = 4, fLits = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IFlvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'I':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-I\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nABits = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nABits < 0 )
+                goto usage;
+            break;            
+        case 'F':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nFanLim = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nFanLim < 0 )
+                goto usage;
+            break;            
+        case 'l':
+            fLits ^= 1;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9MulFind(): There is no AIG.\n" );
+        return 0;
+    }
+    Gia_ManMulFindNew( pAbc->pGia, nABits, nFanLim, fLits, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &mulfind3 [-IF num] [-lvh]\n" );
+    Abc_Print( -2, "\t          detects multipliers in the given AIG\n" );
+    Abc_Print( -2, "\t-I num  : the bit-width of the first input if known [default = %d]\n", nABits );
+    Abc_Print( -2, "\t-F num  : the fanout limit [default = %d]\n", nFanLim );
+    Abc_Print( -2, "\t-l      : toggles using literals instead of nodes [default = %s]\n", fLits ? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;

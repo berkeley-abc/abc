@@ -1,4 +1,5 @@
 SRC +=  src/misc/util/utilBridge.c \
+    src/misc/util/utilBipart.c \
     src/misc/util/utilBSet.c \
     src/misc/util/utilCex.c \
     src/misc/util/utilColor.c \
