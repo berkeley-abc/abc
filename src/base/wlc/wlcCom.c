@@ -370,11 +370,11 @@ int Abc_CommandGenWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
                 }
             }
             else {
+                if ( fVerbose ) 
+                    printf( "Reading generated Verilog using using command %%read...\n" );
                 Wlc_Ntk_t * pNtk = Wlc_ReadVer( NULL, pOutStr, 0 );
-                if ( pNtk ) {
+                if ( pNtk )
                     Wlc_AbcUpdateNtk( pAbc, pNtk );
-                    //printf( "Read current design using %%read <file.v>\n" );
-                }
                 else {
                     printf( "The following design in Verilog, which was generated from string \"%s\",\n", pStr );
                     printf( "cannot be read into ABC due to the known limitations of command \"%%read\".\n" );
@@ -390,13 +390,14 @@ usage:
     Abc_Print( -2, "\nusage: %%gen [-F file] [-vh] \"<mini_verilog_string>\"\n" );
     Abc_Print( -2, "\t          generates the design from a mini-Verilog string\n" );
     Abc_Print( -2, "\t-F file : optional file name to save the design in standard Verilog [default = unused]\n" );
+    Abc_Print( -2, "\t-v        (if a file name is provided, Verilog is dumped into a file and not read into ABC)\n" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\n" );
-    Abc_Print( -2, "A mini-Verilog design is a single string. Any spaces/tabs/newlines are ignored.\n" );
-    Abc_Print( -2, "The string is split into clauses by semicolons ';'.\n" );
+    Abc_Print( -2, "A mini-Verilog design is a single string. Any spaces/tabs/newlines are ignored\n" );
+    Abc_Print( -2, "(handled internally). The string is split into clauses by semicolons ';'.\n" );
     Abc_Print( -2, "\n" );
-    Abc_Print( -2, "Clause kinds (first character):\n" );
+    Abc_Print( -2, "Clause types (first character):\n" );
     Abc_Print( -2, "  - 'm<name>'                         : module name (appear once)\n" );
     Abc_Print( -2, "  - '{i|o|w}[s]<number><id_list>'     : input/output/wire declarations\n" );
     Abc_Print( -2, "     where optional 's' = signed, <number> = bit-width (>0), <id_list> = id[,id]*\n" );
@@ -411,12 +412,21 @@ usage:
     Abc_Print( -2, "  - Outputs: if an 'o...' assignment omits a name (e.g., 'o8=<expr>'), the output name defaults to 'o'.\n" );
     Abc_Print( -2, "  - Inputs: if an 'i...' clause omits names (e.g., 'i4'), a single input is declared with an\n" );
     Abc_Print( -2, "    auto-generated unsigned name 'a', then 'b', then 'c', ... in the order of appearance (skipping\n" );
-    Abc_Print( -2, "    names already used). This allows for specifying a 4-bit multiplier 'mul' as: 'mmul;i4;i4;o8=a*b'.\n" );
+    Abc_Print( -2, "    names already used). This allows for specifying a 4-bit multiplier 'mul' as: \"mmul;i4;i4;o8=a*b\".\n" );
     Abc_Print( -2, "\n" );
     Abc_Print( -2, "Notes:\n" );
     Abc_Print( -2, "  * Only a single, non-hierarchical, combinational module is supported.\n" );
-    Abc_Print( -2, "  * Whitespace anywhere is ignored before parsing (handled internally).\n" );
-    Abc_Print( -2, "  * RHS expressions are passed through verbatim (must be in valid Verilog).\n" );
+    Abc_Print( -2, "  * RHS expressions are passed through verbatim or with added spaces (must be in valid Verilog).\n" );
+    Abc_Print( -2, "  * For the design to be readable into ABC, make sure each RHS has only one operator,\n" );
+    Abc_Print( -2, "    with constant definition, bit-slicing, and concatenation being considered operators.\n" );
+    Abc_Print( -2, "  * Alternatively, use any RHS style, which make have several operator per line,\n" );
+    Abc_Print( -2, "    write the design by specifying the file name \"-F file\", and read it back using Yosys.\n" );
+    Abc_Print( -2, "    Example: \"mtest;i4a,b,c;o4z=a*b+c\" is not readable into ABC directly but readable via Yosys:\n\n" );
+    Abc_Print( -2, "    abc 01> %%gen \"mtest;i4a,b,c;o4z=a*b+c\"\n" );
+    Abc_Print( -2, "    Warning: Trailing symbols \"+ c \" in line 6.\n\n" );
+    Abc_Print( -2, "    abc 01> %%gen -F test.v \"mtest;i4a,b,c;o4z=a*b+c\"; %yosys -b test.v; &ps\n" );
+    Abc_Print( -2, "    Dumped the design generated from mini-Verilog string \"mtest;i4a,b,c;o4z=a*b+c\" into file \"test.v\".\n" );
+    Abc_Print( -2, "    test     : i/o =     12/      4  and =      61  lev =   15 (9.00)  mem = 0.00 MB\n" );
     return 1;
 }
 

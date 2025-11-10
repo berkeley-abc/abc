@@ -18575,7 +18575,7 @@ usage:
     Abc_Print( -2, "\t         > 10 1\n" );
     Abc_Print( -2, "\t         > .end\n\n" );
     Abc_Print( -2, "\t         > # file i.blif\n" );
-    Abc_Print( -2, "\t         > .model mux21\n" );
+    Abc_Print( -2, "\t         > .model mux41\n" );
     Abc_Print( -2, "\t         > .inputs d0 d1 d2 d3 a b\n" );
     Abc_Print( -2, "\t         > .outputs F\n" );
     Abc_Print( -2, "\t         > .names d0 d1 d2 d3 a b F\n" );
