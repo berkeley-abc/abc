@@ -580,6 +580,7 @@ static int Abc_CommandAbc9FFTest             ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Qbf                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9QVar               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9GenQbf             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9GenLutCas          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9HomoQbf            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatFx              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatClp             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1402,6 +1403,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&qbf",          Abc_CommandAbc9Qbf,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&qvar",         Abc_CommandAbc9QVar,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&genqbf",       Abc_CommandAbc9GenQbf,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&genlutcas",    Abc_CommandAbc9GenLutCas,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&homoqbf",      Abc_CommandAbc9HomoQbf,      0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satfx",        Abc_CommandAbc9SatFx,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satclp",       Abc_CommandAbc9SatClp,       0 );
@@ -51654,6 +51656,126 @@ usage:
     Abc_Print( -2, "\t-K num : the LUT size [default = %d]\n", nLutSize );
     Abc_Print( -2, "\t-N num : the number of LUTs [default = %d]\n", nLutNum );
     Abc_Print( -2, "\t-o     : toggle using the last output [default = %s]\n", fUseOut? "yes": "no" );
+    Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9GenLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManLutCasGen( int nVars, int nLuts, int LutSize, int Seed, int fVerbose );
+    int nVars    =  8;
+    int nLuts    =  2;
+    int LutSize  =  6;
+    int Seed     =  0;
+    int fVerbose =  0;
+    int c;
+    Gia_Man_t * pTemp;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMKSvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLuts = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLuts < 0 )
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            LutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( LutSize < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( nVars <= LutSize )
+    {
+        Abc_Print( -1, "The number of inputs (%d) should be more than LUT size (%d).\n", nVars, LutSize );
+        return 1;
+    }
+    if ( nVars > 100 )
+    {
+        Abc_Print( -1, "The number of inputs (%d) should be less than 100.\n", nVars );
+        return 1;
+    }
+    if ( nLuts < 2 || nLuts > 100  )
+    {
+        Abc_Print( -1, "The LUT count (%d) should be morein the range [2;100].\n", nLuts );
+        return 1;
+    }
+    if ( LutSize < 2 || LutSize > 12 )
+    {
+        Abc_Print( -1, "The LUT size (%d) should be in the range [2;12].\n", LutSize );
+        return 1;
+    }
+    if ( nVars > (nLuts-1)*(LutSize-1) + LutSize )
+    {
+        Abc_Print( -1, "Function with %d variables is too large for a cascade composed of %d connected %d-LUTs.\n", nVars, nLuts, LutSize );
+        return 1;
+    }
+    pTemp = Gia_ManLutCasGen( nVars, nLuts, LutSize, Seed, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &genlutcas[-NMKS num] [-vh]\n" );
+    Abc_Print( -2, "\t         generates single-rail LUT cascade\n" );
+    Abc_Print( -2, "\t-N num : the number of primary inputs [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-M num : the number of LUTs [default = %d]\n", nLuts );
+    Abc_Print( -2, "\t-K num : the LUT size [default = %d]\n", LutSize );
+    Abc_Print( -2, "\t-S num : the random seed [default = %d]\n", Seed );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
