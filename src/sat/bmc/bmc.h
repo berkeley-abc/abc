@@ -57,6 +57,7 @@ struct Bmc_EsPar_t_
     int        fDynConstr;
     int        fDumpCnf;
     int        fGlucose;
+    int        fCadical;
     int        fCard;
     int        fOrderNodes;
     int        fEnumSols;
@@ -71,8 +72,10 @@ struct Bmc_EsPar_t_
     int        Seed;
     int        fDumpBlif;
     int        fVerbose; 
+    int        fSilent; 
     char *     pTtStr;
     char *     pSymStr;
+    char *     pPermStr;
     char *     pGuide;
 };
 

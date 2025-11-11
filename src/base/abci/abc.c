@@ -7785,6 +7785,7 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
     pSpot = strstr( pScript, "*" );
     if ( pSpot == NULL ) 
     {
+        abctime clkTotal = Abc_Clock();
         for ( c = 0; c < nIters; c++ )
         {
             if ( fVerbose )
@@ -7794,27 +7795,33 @@ int Abc_CommandRunScript( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             }        
         }
-        printf( "Finished iterating script %d times.\n", nIters );
+        printf( "Finished iterating script %d times.  ", nIters );
+        Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
         return 0;    
     }
-    assert( *pSpot == '*' );
-    for ( c = 0; c < nIters; c++ )
+    else
     {
-        char pCommLine[1000] = {0};
-        char pNumber[10] = {0};
-        sprintf( pNumber, "%d", fReverse ? nBeg - c*nAdd : nBeg + c*nAdd );
-        strcpy( pCommLine, pScript );
-        pCommLine[(int)(pSpot - pScript)] = 0;
-        strcat( pCommLine, pNumber );
-        strcat( pCommLine, pSpot+1 );
-        if ( fVerbose )
-            printf( "ITERATION %3d : %s\n", c, pCommLine );
-        if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pCommLine) ) {
-            Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pCommLine );
-            goto usage;
-        }        
+        abctime clkTotal = Abc_Clock();
+        assert( *pSpot == '*' );
+        for ( c = 0; c < nIters; c++ )
+        {
+            char pCommLine[1000] = {0};
+            char pNumber[10] = {0};
+            sprintf( pNumber, "%d", fReverse ? nBeg - c*nAdd : nBeg + c*nAdd );
+            strcpy( pCommLine, pScript );
+            pCommLine[(int)(pSpot - pScript)] = 0;
+            strcat( pCommLine, pNumber );
+            strcat( pCommLine, pSpot+1 );
+            if ( fVerbose )
+                printf( "ITERATION %3d : %s\n", c, pCommLine );
+            if ( Cmd_CommandExecute(Abc_FrameGetGlobalFrame(), pCommLine) ) {
+                Abc_Print( 1, "Something did not work out with the command \"%s\".\n", pCommLine );
+                goto usage;
+            }        
+        }
+        printf( "Finished iterating script %d times.  ", nIters );
+        Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     }
-    printf( "Finished iterating script %d times.\n", nIters );
     return 0;
 
 usage:
@@ -10689,6 +10696,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern int  Exa7_ManExactSynthesis( Bmc_EsPar_t * pPars );
     extern int  Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars );
     extern void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars );
     extern void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars );
@@ -10697,7 +10705,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMKTFUSYiaorfgdvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMKTFUSYPiaorfgcdsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10783,6 +10791,15 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->pSymStr = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by a string.\n" );
+                goto usage;
+            }
+            pPars->pPermStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'i':
             pPars->fUseIncr ^= 1;
             break;
@@ -10801,8 +10818,14 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'g':
             pPars->fGlucose ^= 1;
             break;
+        case 'c':
+            pPars->fCadical ^= 1;
+            break;
         case 'd':
             pPars->fDumpBlif ^= 1;
+            break;
+        case 's':
+            pPars->fSilent ^= 1;
             break;
         case 'v':
             pPars->fVerbose ^= 1;
@@ -10813,6 +10836,14 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( pPars->pPermStr && (pPars->nLutSize * pPars->nNodes != (int)strlen(pPars->pPermStr)) )
+    {
+        Abc_Print( -1, "Permutation \"%s\" has %d symbols instead of expected %d = %d * %d symbols (LutSize * nLuts).\n", 
+            pPars->pPermStr, (int)strlen(pPars->pPermStr), pPars->nLutSize * pPars->nNodes, pPars->nLutSize, pPars->nNodes );
+        return 1;
+    }
+    if ( pPars->pPermStr && !pPars->fLutCascade )
+        Abc_Print( 0, "If LUT mapping is not enabled (switch \"-r\"), permutation has not effect.\n" );
     if ( argc == globalUtilOptind + 1 )
         pPars->pTtStr = argv[globalUtilOptind];
     else if ( argc == globalUtilOptind && Abc_FrameReadNtk(pAbc) ) 
@@ -10861,6 +10892,8 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     else if ( pPars->fGlucose )
         Exa3_ManExactSynthesis( pPars );
+    else if ( pPars->fCadical )
+        Exa7_ManExactSynthesis( pPars );
     else
         Exa3_ManExactSynthesis2( pPars );
     if ( argc == globalUtilOptind && Abc_FrameReadNtk(pAbc) )
@@ -10868,7 +10901,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-NMKTFUS <num>] [-Y string] [-iaorfgdvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-NMKTFUS <num>] [-Y string] [-P string] [-iaorfgcdsvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of I-input function using N K-input gates\n" );
     Abc_Print( -2, "\t-N <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-M <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
@@ -10877,14 +10910,17 @@ usage:
     Abc_Print( -2, "\t-F <num> : the number of random functions to try [default = unused]\n" );
     Abc_Print( -2, "\t-U <num> : the number of positive minterms in the random function [default = unused]\n" );
     Abc_Print( -2, "\t-S <num> : the random seed for random function generation with -F <num> [default = %d]\n", pPars->Seed );
-    Abc_Print( -2, "\t-Y <str> : charasteristic string of a symmetric function [default = %d]\n", pPars->pSymStr );
+    Abc_Print( -2, "\t-Y <str> : charasteristic string of a symmetric function [default = %s]\n", pPars->pSymStr ? pPars->pSymStr : "unused" );
+    Abc_Print( -2, "\t-P <str> : variable permutation (for example, \"abcd_aef\" for S44) [default = %s]\n", pPars->pPermStr ? pPars->pPermStr : "unused" );
     Abc_Print( -2, "\t-i       : toggle using incremental solving [default = %s]\n", pPars->fUseIncr ? "yes" : "no" );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates when K = 2 [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-o       : toggle using additional optimizations [default = %s]\n", pPars->fFewerVars ? "yes" : "no" );
     Abc_Print( -2, "\t-r       : toggle synthesizing a single-rail cascade [default = %s]\n", pPars->fLutCascade ? "yes" : "no" );
     Abc_Print( -2, "\t-f       : toggle fixing LUT inputs in cascade mapping [default = %s]\n", pPars->fLutInFixed ? "yes" : "no" );
     Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fGlucose ? "yes" : "no" );
+    Abc_Print( -2, "\t-c       : toggle using CaDiCal 2.2.0-rc1 by Armin Biere [default = %s]\n", pPars->fCadical ? "yes" : "no" );
     Abc_Print( -2, "\t-d       : toggle dumping decomposed networks into BLIF files [default = %s]\n", pPars->fDumpBlif ? "yes" : "no" );
+    Abc_Print( -2, "\t-s       : toggle silent computation (no messages, except when a solution is found) [default = %s]\n", pPars->fSilent ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );

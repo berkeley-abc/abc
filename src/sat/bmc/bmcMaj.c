@@ -1093,6 +1093,18 @@ Vec_Wec_t * Exa3_ChooseInputVars( int nVars, int nLuts, int nLutSize )
     assert( 0 );
     return NULL;
 }
+Vec_Wec_t * Exa3_ChooseInputVars2( int nVars, int nLuts, int nLutSize, char * pPermStr )
+{
+    Vec_Wec_t * p = Vec_WecStart( nLuts );
+    Vec_Int_t * vLevel; int i, Pos = 0;
+    assert( nLuts * nLutSize == (int)strlen(pPermStr) );
+    Vec_WecForEachLevel( p, vLevel, i ) {
+        for ( int k = 0; k < nLutSize; k++, Pos++ )
+            if ( pPermStr[Pos] != '_' )
+                Vec_IntPush( vLevel, pPermStr[Pos] == '*' ? -1 : (int)(pPermStr[Pos]-'a') );
+    }
+    return p;
+}
 
 /**Function*************************************************************
 
@@ -1155,16 +1167,20 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
             }
         }
     }
-    printf( "The number of parameter variables = %d.\n", p->iVar );
-    if ( p->pPars->fLutCascade && p->pPars->fLutInFixed ) {
-        p->vInVars = Exa3_ChooseInputVars( p->nVars, p->nNodes, p->nLutSize );
-        if ( 1 ) {
+    if ( !p->pPars->fSilent ) printf( "The number of parameter variables = %d.\n", p->iVar );
+    if ( p->pPars->fLutCascade && (p->pPars->fLutInFixed || p->pPars->pPermStr) ) {
+        if ( p->pPars->pPermStr )
+            p->vInVars = Exa3_ChooseInputVars2( p->nVars, p->nNodes, p->nLutSize, p->pPars->pPermStr );
+        else
+            p->vInVars = Exa3_ChooseInputVars( p->nVars, p->nNodes, p->nLutSize );
+        if ( !p->pPars->fSilent ) {
             Vec_Int_t * vLevel; int i, Var;
-            printf( "Using fixed input assignment:\n" );
+            printf( "Using fixed input assignment %s%s:\n", 
+                p->pPars->pPermStr ? "provided by the user " : "generated randomly", p->pPars->pPermStr ? p->pPars->pPermStr : "" );
             Vec_WecForEachLevelReverse( p->vInVars, vLevel, i ) {
-                printf( "%02d : ", p->nVars+i );
+                printf( "%c : ", 'A'+p->nVars+i-p->nVars );
                 Vec_IntForEachEntry( vLevel, Var, k )
-                    printf( "%c ", 'a'+Var );
+                    printf( "%c ", Var < 0 ? '*' : 'a'+Var );
                 printf( "\n" );
             }
         }
@@ -1374,7 +1390,7 @@ static void Exa3_ManDumpBlif( Exa3_Man_t * p, int fCompl )
     }
     fprintf( pFile, ".end\n\n" );
     fclose( pFile );
-    printf( "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
+    if ( !p->pPars->fSilent ) printf( "Finished dumping the resulting LUT network into file \"%s\".\n", pFileName );
     ABC_FREE( pStr );
 }
 
@@ -1472,10 +1488,16 @@ static int Exa3_ManAddCnfStart( Exa3_Man_t * p, int fOnlyAnd )
     }
     if ( p->vInVars ) {
         Vec_Int_t * vLevel; int Var;
+        //Vec_WecPrint( p->vInVars, 0 );
         Vec_WecForEachLevel( p->vInVars, vLevel, i )
         {
             assert( Vec_IntSize(vLevel) > 0 );
             Vec_IntForEachEntry( vLevel, Var, k ) {
+                if ( Var < 0 ) continue;
+                if ( p->VarMarks[p->nVars+i][p->nLutSize-1-k][Var] == 0 ) {
+                    printf( "Skipping variable %d in place %d because it cannot be constrained.\n", Var, k );
+                    continue;
+                }
                 pLits[0] = Abc_Var2Lit( p->VarMarks[p->nVars+i][p->nLutSize-1-k][Var], 0 ); assert(pLits[0]);
                 if ( !bmcg_sat_solver_addclause( p->pSat, pLits, 1 ) )
                     return 0;
@@ -1616,7 +1638,7 @@ int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
         Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
-        printf( "Generated symmetric function: %s\n", pPars->pTtStr );
+        if ( !pPars->fSilent ) printf( "Generated symmetric function: %s\n", pPars->pTtStr );
         ABC_FREE( pFun );
     }
     if ( pPars->pTtStr )
@@ -1628,7 +1650,7 @@ int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
     status = Exa3_ManAddCnfStart( p, pPars->fOnlyAnd );
     assert( status );
-    printf( "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
+    if ( !pPars->fSilent ) printf( "Running exact synthesis for %d-input function with %d %d-input LUTs...\n", p->nVars, p->nNodes, p->nLutSize );
     if ( pPars->fUseIncr ) 
     {
         bmcg_sat_solver_set_nvars( p->pSat, p->iVar + p->nNodes*(1 << p->nVars) );
@@ -1652,10 +1674,10 @@ int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
         Exa3_ManPrintSolution( p, fCompl ), Res = 1;
     else if ( status == GLUCOSE_UNDEC )
         printf( "The solver timed out after %d sec.\n", pPars->RuntimeLim );
-    else 
+    else if ( !p->pPars->fSilent ) 
         printf( "The problem has no solution.\n" ), Res = 2;
-    printf( "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
-    Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+    if ( !pPars->fSilent && (p->nUsed[0] || p->nUsed[1]) ) printf( "Added = %d.  Tried = %d.  ", p->nUsed[1], p->nUsed[0] );
+    if ( !pPars->fSilent ) Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
     if ( iMint == -1 && pPars->fDumpBlif )
         Exa3_ManDumpBlif( p, fCompl );
     if ( pPars->pSymStr ) 

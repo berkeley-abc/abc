@@ -239,10 +239,15 @@ int cadical_solver_addvar(cadical_solver* s) {
 
 ***********************************************************************/
 void cadical_solver_setnvars(cadical_solver* s,int n) {
-  s->nVars = n;
-  if(ccadical_vars((CCaDiCaL*)s->p) == 0) {
+  if ( n <= s->nVars )
+    return;
+  if ( s->nVars == 0 )
     ccadical_reserve((CCaDiCaL*)s->p, n);
+  else {
+    assert( 0 );
+    ccadical_reserve_difference((CCaDiCaL*)s->p, n - s->nVars);
   }
+  s->nVars = n;
 }
 
 /**Function*************************************************************
