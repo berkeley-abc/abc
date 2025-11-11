@@ -276,7 +276,7 @@ static int verify_solution(
 }
 
 // Checks whether a particular free-variable assignment yields an integer solution.
-// Optionally enforces that the first two variables differ once rounded to integers.
+// Optionally enforces that the first four variables differ once rounded to integers.
 static int assign_and_check_integer(
     const double *rref,
     int nVars,
@@ -292,7 +292,7 @@ static int assign_and_check_integer(
     double *rounded,
     double *out_solution,
     int require_nonzero,
-    int require_distinct_first_two) {
+    int require_distinct_first_four) {
     compute_solution_from_free(
         rref,
         nVars,
@@ -334,9 +334,13 @@ static int assign_and_check_integer(
         }
     }
 
-    if (require_distinct_first_two && nVars >= 2) {
-        if (fabs(rounded[0] - rounded[1]) < INTEGER_TOLERANCE) {
-            return 0;
+    if (require_distinct_first_four && nVars >= 4) {
+        for (int i = 0; i < 4; ++i) {
+            for (int j = i + 1; j < 4; ++j) {
+                if (fabs(rounded[i] - rounded[j]) < INTEGER_TOLERANCE) {
+                    return 0;
+                }
+            }
         }
     }
 
@@ -367,7 +371,7 @@ static int search_integer_solutions(
     double *rounded,
     double *out_solution,
     int require_nonzero,
-    int require_distinct_first_two,
+    int require_distinct_first_four,
     int *explored,
     int exploration_limit) {
     if (*explored >= exploration_limit) {
@@ -391,7 +395,7 @@ static int search_integer_solutions(
             rounded,
             out_solution,
             require_nonzero,
-            require_distinct_first_two);
+            require_distinct_first_four);
     }
 
     for (int i = 0; i < candidate_count; ++i) {
@@ -414,7 +418,7 @@ static int search_integer_solutions(
                 rounded,
                 out_solution,
                 require_nonzero,
-                require_distinct_first_two,
+                require_distinct_first_four,
                 explored,
                 exploration_limit)) {
             return 1;
@@ -440,7 +444,7 @@ static int try_integer_solution(
     double *rounded,
     double *out_solution,
     int require_nonzero,
-    int require_distinct_first_two) {
+    int require_distinct_first_four) {
     if (free_count == 0) {
         return 0;
     }
@@ -496,7 +500,7 @@ static int try_integer_solution(
             rounded,
             out_solution,
             require_nonzero,
-            require_distinct_first_two)) {
+            require_distinct_first_four)) {
         free(free_values);
         return 1;
     }
@@ -519,7 +523,7 @@ static int try_integer_solution(
         rounded,
         out_solution,
         require_nonzero,
-        require_distinct_first_two,
+        require_distinct_first_four,
         &explored,
         exploration_limit);
 
@@ -548,7 +552,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
     int free_count = 0;
     int homogeneous_rhs = 0;
     int require_nonzero_integer = 0;
-    int require_distinct_first_two = 0;
+    int require_distinct_first_four = 0;
     int pivot_row_index = 0;
     int rank = 0;
     double max_residual = 0.0;
@@ -673,7 +677,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
     // Only demand integer solutions when the system is homogeneous with free variables.
     require_nonzero_integer = homogeneous_rhs && free_count > 0;
     // Enforce distinct first two variables whenever multiple variables remain free.
-    require_distinct_first_two = (free_count > 0 && nVars >= 2);
+    require_distinct_first_four = (free_count > 0 && nVars >= 4);
 
     solution = (double *)malloc((size_t)nVars * sizeof(double));
     workspace = (double *)malloc((size_t)nVars * sizeof(double));
@@ -711,7 +715,7 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
                 rounded,
                 solution,
                 require_nonzero_integer,
-                require_distinct_first_two)) {
+                require_distinct_first_four)) {
             for (int i = 0; i < free_count; ++i) {
                 workspace[i] = 0.0;
             }
@@ -724,12 +728,12 @@ double *linear_equation_solver(double *pMatrix, int nEqus, int nVars) {
                 free_count,
                 workspace,
                 solution);
-            if (require_nonzero_integer && require_distinct_first_two) {
-                printf("Note: integer solution meeting non-negative and distinct-first-two constraints not found; returning floating-point solution.\n");
+            if (require_nonzero_integer && require_distinct_first_four) {
+                printf("Note: integer solution meeting non-negative and distinct-first-four constraints not found; returning floating-point solution.\n");
             } else if (require_nonzero_integer) {
                 printf("Note: non-negative integer solution with mixed zero/positive entries not found; returning floating-point solution.\n");
-            } else if (require_distinct_first_two) {
-                printf("Note: integer solution with distinct first two variables not found; returning floating-point solution.\n");
+            } else if (require_distinct_first_four) {
+                printf("Note: integer solution with distinct first four variables not found; returning floating-point solution.\n");
             } else {
                 printf("Note: integer solution not found; returning floating-point solution.\n");
             }
