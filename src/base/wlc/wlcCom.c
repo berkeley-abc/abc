@@ -321,11 +321,12 @@ usage:
 ******************************************************************************/
 int Abc_CommandGenWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int miniver_translate(const char *input, char *out, size_t cap);
+    extern int miniver_translate(const char *input, char *out, size_t cap, int fShort);
     char * pFileName = NULL;
+    int fShort       =    1;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Fvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Fsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -337,6 +338,9 @@ int Abc_CommandGenWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pFileName = argv[globalUtilOptind];
             globalUtilOptind++;
+            break;
+        case 's':
+            fShort ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -355,7 +359,7 @@ int Abc_CommandGenWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
         int Size = 10000;
         char * pStr = argv[globalUtilOptind];
         char * pOutStr = ABC_CALLOC( char, Size+1 );
-        int RetValue = miniver_translate( pStr, pOutStr, Size );
+        int RetValue = miniver_translate( pStr, pOutStr, Size, fShort );
         if ( !RetValue ) {
             if ( fVerbose ) 
                 printf( "Entered Verilog design:\n%s", pOutStr );
@@ -387,10 +391,11 @@ int Abc_CommandGenWlc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }    
     return 0;
 usage:
-    Abc_Print( -2, "\nusage: %%gen [-F file] [-vh] \"<mini_verilog_string>\"\n" );
+    Abc_Print( -2, "\nusage: %%gen [-F file] [-svh] \"<mini_verilog_string>\"\n" );
     Abc_Print( -2, "\t          generates the design from a mini-Verilog string\n" );
     Abc_Print( -2, "\t-F file : optional file name to save the design in standard Verilog [default = unused]\n" );
-    Abc_Print( -2, "\t-v        (if a file name is provided, Verilog is dumped into a file and not read into ABC)\n" );
+    Abc_Print( -2, "\t         (if a file name is provided, Verilog is dumped into a file and not read into ABC)\n" );
+    Abc_Print( -2, "\t-s      : prints Verilog using a shorter format [default = %s]\n", fShort ? "yes": "no" );
     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\n" );
@@ -2129,4 +2134,3 @@ usage:
 
 
 ABC_NAMESPACE_IMPL_END
-

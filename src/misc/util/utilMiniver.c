@@ -179,6 +179,67 @@ static int print_decl_to_buf(char **p, size_t *left, const char *kw, decl_t *arr
     return 0;
 }
 
+static int print_decl_single(char **p, size_t *left, const char *kw, const decl_t *decl) {
+    if (out_cat(p, left, "  %s ", kw)) return 1;
+    if (decl->is_signed) {
+        if (out_cat(p, left, "signed ")) return 1;
+    }
+    if (decl->width > 1) {
+        if (out_cat(p, left, "[%d:0] ", decl->width - 1)) return 1;
+    }
+    if (out_cat(p, left, "%s;\n", decl->name)) return 1;
+    return 0;
+}
+
+static int print_decl_with_assign(char **p, size_t *left, const char *kw, const decl_t *decl, const char *rhs) {
+    if (out_cat(p, left, "  %s ", kw)) return 1;
+    if (decl->is_signed) {
+        if (out_cat(p, left, "signed ")) return 1;
+    }
+    if (decl->width > 1) {
+        if (out_cat(p, left, "[%d:0] ", decl->width - 1)) return 1;
+    }
+    if (out_cat(p, left, "%s = %s;\n", decl->name, rhs)) return 1;
+    return 0;
+}
+
+static int print_inputs_short(char **p, size_t *left, decl_t *arr, int n) {
+    for (int i = 0; i < n; ) {
+        int w  = arr[i].width;
+        int sg = arr[i].is_signed;
+        if (out_cat(p, left, "  input ")) return 1;
+        if (sg) {
+            if (out_cat(p, left, "signed ")) return 1;
+        }
+        if (w > 1) {
+            if (out_cat(p, left, "[%d:0] ", w - 1)) return 1;
+        }
+        int j = i;
+        while (j < n && arr[j].width == w && arr[j].is_signed == sg) {
+            if (out_cat(p, left, "%s%s", j == i ? "" : ", ", arr[j].name)) return 1;
+            ++j;
+        }
+        if (out_cat(p, left, ";\n")) return 1;
+        i = j;
+    }
+    return 0;
+}
+
+static decl_t *find_decl_by_name(decl_t *arr, int n, const char *name) {
+    for (int i = 0; i < n; ++i) {
+        if (!strcmp(arr[i].name, name))
+            return &arr[i];
+    }
+    return NULL;
+}
+
+static int has_assignment(const mv_ctx *ctx, const char *name) {
+    for (int i = 0; i < ctx->na; ++i)
+        if (!strcmp(ctx->assigns[i].lhs, name))
+            return 1;
+    return 0;
+}
+
 // Add spaces around every alphanumeric/underscore sequence for readability.
 // Example: "a*b+16'b0" -> " a * b + 16 ' b0 "
 static void format_rhs_readable(const char *in, char *out, size_t cap) {
@@ -204,6 +265,20 @@ static void format_rhs_readable(const char *in, char *out, size_t cap) {
         }
     }
     if (o < cap) out[o] = 0; else if (cap) out[cap-1] = 0;
+}
+
+static void trim_spaces(char *s) {
+    if (!s) return;
+    char *start = s;
+    while (*start && isspace((unsigned char)*start))
+        ++start;
+    char *end = start + strlen(start);
+    while (end > start && isspace((unsigned char)*(end - 1)))
+        --end;
+    size_t len = (size_t)(end - start);
+    if (start != s)
+        memmove(s, start, len);
+    s[len] = 0;
 }
 
 // -----------------------------------------------------------------------------
@@ -380,7 +455,7 @@ lhs_done:;
 // Translate a raw mini-Verilog string 'input' into standard Verilog.
 // The function strips whitespace internally, parses, and writes into 'out' (cap bytes).
 // Returns 0 on success, 1 on error. Errors are printed (no exit()).
-int miniver_translate(const char *input, char *out, size_t cap) {
+int miniver_translate(const char *input, char *out, size_t cap, int fShort) {
     if (!input || !out || cap == 0) {
         printf("Invalid arguments.\n");
         return 1;
@@ -458,15 +533,47 @@ int miniver_translate(const char *input, char *out, size_t cap) {
         free(ctx); return 1;
     }
 
-    if (print_decl_to_buf(&p, &left, "input",  ctx->inputs,  ctx->ni)) { free(ctx); return 1; }
-    if (print_decl_to_buf(&p, &left, "output", ctx->outputs, ctx->no))  { free(ctx); return 1; }
-    if (print_decl_to_buf(&p, &left, "wire",   ctx->wires,   ctx->nw))  { free(ctx); return 1; }
+    if (!fShort) {
+        if (print_decl_to_buf(&p, &left, "input",  ctx->inputs,  ctx->ni)) { free(ctx); return 1; }
+        if (print_decl_to_buf(&p, &left, "output", ctx->outputs, ctx->no))  { free(ctx); return 1; }
+        if (print_decl_to_buf(&p, &left, "wire",   ctx->wires,   ctx->nw))  { free(ctx); return 1; }
 
         for (int i = 0; i < ctx->na; ++i) {
-        char rhs_sp[8192];
-        format_rhs_readable(ctx->assigns[i].rhs, rhs_sp, sizeof(rhs_sp));
-        if (out_cat(&p, &left, "  assign %s = %s;\n", ctx->assigns[i].lhs, rhs_sp)) {
-            free(ctx); return 1;
+            char rhs_sp[8192];
+            format_rhs_readable(ctx->assigns[i].rhs, rhs_sp, sizeof(rhs_sp));
+            if (out_cat(&p, &left, "  assign %s = %s;\n", ctx->assigns[i].lhs, rhs_sp)) {
+                free(ctx); return 1;
+            }
+        }
+    } else {
+        if (print_inputs_short(&p, &left, ctx->inputs, ctx->ni)) { free(ctx); return 1; }
+        for (int i = 0; i < ctx->nw; ++i) {
+            if (has_assignment(ctx, ctx->wires[i].name))
+                continue;
+            if (print_decl_single(&p, &left, "wire", &ctx->wires[i])) {
+                free(ctx); return 1;
+            }
+        }
+        for (int i = 0; i < ctx->na; ++i) {
+            char rhs_sp[8192];
+            format_rhs_readable(ctx->assigns[i].rhs, rhs_sp, sizeof(rhs_sp));
+            trim_spaces(rhs_sp);
+            const char *kw = "wire";
+            decl_t *decl = find_decl_by_name(ctx->outputs, ctx->no, ctx->assigns[i].lhs);
+            if (decl) {
+                kw = "output";
+            } else {
+                decl = find_decl_by_name(ctx->wires, ctx->nw, ctx->assigns[i].lhs);
+            }
+            if (decl) {
+                if (print_decl_with_assign(&p, &left, kw, decl, rhs_sp)) {
+                    free(ctx); return 1;
+                }
+            } else {
+                if (out_cat(&p, &left, "  assign %s = %s;\n", ctx->assigns[i].lhs, rhs_sp)) {
+                    free(ctx); return 1;
+                }
+            }
         }
     }
     if (out_cat(&p, &left, "endmodule\n")) {
@@ -506,7 +613,7 @@ int main(int argc, char **argv) {
     }
 
     char out[10240];
-    int rc = miniver_translate(in, out, sizeof(out));
+    int rc = miniver_translate(in, out, sizeof(out), 0);
     if (!rc) {
         printf("%s", out);
     }
@@ -520,4 +627,3 @@ int main(int argc, char **argv) {
 
 
 ABC_NAMESPACE_IMPL_END
-
