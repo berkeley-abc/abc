@@ -10826,11 +10826,15 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Truth table should be given on the command line.\n" );
         return 1;
     }
+    if ( pPars->nVars == 0 && pPars->pTtStr )
+        pPars->nVars = 2 + Abc_Base2Log((int)strlen(pPars->pTtStr));
     if ( pPars->pTtStr && (1 << (pPars->nVars-2)) != (int)strlen(pPars->pTtStr) )
     {
         Abc_Print( -1, "Truth table is expected to have %d hex digits (instead of %d).\n", (1 << (pPars->nVars-2)), strlen(pPars->pTtStr) );
         return 1;
     }
+    if ( pPars->nVars == 0 && pPars->pSymStr )
+        pPars->nVars = (int)strlen(pPars->pSymStr) - 1;
     if ( pPars->pSymStr && pPars->nVars+1 != strlen(pPars->pSymStr) )
     {
         Abc_Print( -1, "The char string of the %d-variable symmetric function should have %d zeros and ones (instead of %d).\n", pPars->nVars, pPars->nVars+1, strlen(pPars->pSymStr) );
@@ -10843,7 +10847,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->nVars > 12 )
     {
-        Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
+        Abc_Print( -1, "Function should not have more than 12 inputs.\n" );
         return 1;
     }
     if ( pPars->nLutSize > 6 )

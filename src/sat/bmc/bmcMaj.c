@@ -1291,7 +1291,7 @@ static void Exa3_ManPrintSolution( Exa3_Man_t * p, int fCompl )
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
     {
         int Val, iVarStart = 1 + p->LutMask*(i - p->nVars);
-        printf( "%02d = %d\'b", i, 1 << p->nLutSize );
+        printf( "%c = %d\'b", 'A'+i-p->nVars, 1 << p->nLutSize );
         for ( k = p->LutMask - 1; k >= 0; k-- )
         {
             Val = bmcg_sat_solver_read_cex_varvalue(p->pSat, iVarStart+k); 
@@ -1311,7 +1311,7 @@ static void Exa3_ManPrintSolution( Exa3_Man_t * p, int fCompl )
             if ( iVar >= 0 && iVar < p->nVars )
                 printf( " %c", 'a'+iVar );
             else
-                printf( " %02d", iVar );
+                printf( " %c", 'A'+iVar-p->nVars );
         }
         printf( " )\n" );
     }
@@ -1332,7 +1332,7 @@ static void Exa3_ManDumpBlif( Exa3_Man_t * p, int fCompl )
 {
     int i, k, b, iVar;
     char pFileName[1000];
-    char * pStr = Abc_UtilStrsav(p->pPars->pTtStr);
+    char * pStr = Abc_UtilStrsav(p->pPars->pSymStr ? p->pPars->pSymStr : p->pPars->pTtStr);
     if ( strlen(pStr) > 16 ) {
         pStr[16] = '_';
         pStr[17] = '\0';
