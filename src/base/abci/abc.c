@@ -45535,9 +45535,9 @@ int Abc_CommandAbc9SymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Gia_Man_t * Gia_ManGenSymFun( Vec_Wrd_t * vFuns, int nChars, int fVerbose );
     Gia_Man_t * pNew = NULL;
     Vec_Wrd_t * vFuns = NULL;
-    int c, nChars = 0, nMaj = 0, nHot = 0, nXor = 0, fVerbose = 0;
+    int c, nChars = 0, nMaj = 0, nHot = 0, nXor = 0, nWgt = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "MHXvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MHXWvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -45565,6 +45565,14 @@ int Abc_CommandAbc9SymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             nXor = atoi(argv[globalUtilOptind++]);
             break;
+        case 'W':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-W\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            nWgt = atoi(argv[globalUtilOptind++]);
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -45586,7 +45594,14 @@ int Abc_CommandAbc9SymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( nXor ) {
         nChars = nXor+1;
         vFuns = Vec_WrdAlloc(1);
-        Vec_WrdPush( vFuns, ABC_CONST(0xAAAAAAAAAAAAAAAA) & Abc_Tt6Mask(nXor+1) );        
+        Vec_WrdPush( vFuns, s_Truths6[0] & Abc_Tt6Mask(nChars) );        
+    }
+    else if ( nWgt ) {
+        int nOuts = Abc_Base2Log(nWgt+1);
+        nChars = nWgt+1;
+        vFuns = Vec_WrdAlloc(nOuts);
+        for ( int i = 0; i < nOuts; i++ )
+            Vec_WrdPush( vFuns, s_Truths6[i] & Abc_Tt6Mask(nChars) );        
     }
     else {
         if ( argc == globalUtilOptind ) {
@@ -45613,11 +45628,12 @@ int Abc_CommandAbc9SymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &symfun [-MHX num] [-vh] <str0> <str1> ... <str(N-1)>\n" );
+    Abc_Print( -2, "usage: &symfun [-MHXW num] [-vh] <str0> <str1> ... <str(N-1)>\n" );
     Abc_Print( -2, "\t           derives AIG of a multi-output symmetric function\n" );
     Abc_Print( -2, "\t-M <num> : generate the majority gate with the given input count [default = unused]\n" );
     Abc_Print( -2, "\t-H <num> : generate the 1-hot condition with the given input count [default = unused]\n" );
     Abc_Print( -2, "\t-X <num> : generate the xor-gate with the given input count [default = unused]\n" );
+    Abc_Print( -2, "\t-W <num> : generate the weight(W) function with the given input count [default = unused]\n" );
     Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : prints the command usage\n");
     Abc_Print( -2, "\t<str0> <str1> ... <str(N-1)> : char strings in binary notation LSB first\n");
