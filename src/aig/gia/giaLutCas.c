@@ -45,6 +45,65 @@ ABC_NAMESPACE_IMPL_START
   SeeAlso     []
 
 ***********************************************************************/
+int Gia_ManGenSymFun_rec( Gia_Man_t * p, word Str, int nChars, Vec_Ptr_t * vStrs,  Vec_Wec_t * vLits,  Vec_Int_t * vIns )
+{
+    if ( Str == 0 ) return 0;
+    if ( Str == Abc_Tt6Mask(nChars) ) return 1;
+    assert( nChars > 1 );
+    Vec_Wrd_t * vStore = (Vec_Wrd_t *)Vec_PtrEntry(vStrs, nChars-1);
+    Vec_Int_t * vValue = Vec_WecEntry(vLits, nChars-1);
+    int Index;
+    if ( (Index = Vec_WrdFind(vStore, Str)) >= 0 )
+        return Vec_IntEntry(vValue, Index);
+    word Str0 = Str & ~Abc_Tt6MaskI(nChars-1);
+    word Str1 = Str >> 1;
+    int Lit0 = Gia_ManGenSymFun_rec( p, Str0, nChars-1, vStrs, vLits, vIns );
+    int Lit1 = Gia_ManGenSymFun_rec( p, Str1, nChars-1, vStrs, vLits, vIns );
+    int Lit  = Gia_ManAppendMux2( p, Vec_IntEntry(vIns, nChars-2), Lit1, Lit0 );
+    Vec_WrdPush( vStore, Str );
+    Vec_WrdPush( vStore, ~Str & Abc_Tt6Mask(nChars) );
+    Vec_IntPush( vValue, Lit );
+    Vec_IntPush( vValue, Abc_LitNot(Lit) );
+    return Lit;
+}
+Gia_Man_t * Gia_ManGenSymFun( Vec_Wrd_t * vFuns, int nChars, int fVerbose )
+{
+    assert( nChars <= 64 );
+    word Str; int i;
+    Vec_Ptr_t * vStrs = Vec_PtrAlloc(nChars);
+    for ( i = 0; i < nChars; i++ )
+        Vec_PtrPush( vStrs, Vec_WrdAlloc(0) );    
+    Vec_Wec_t * vLits = Vec_WecStart(nChars);
+    Vec_Int_t * vOuts = Vec_IntAlloc(Vec_WrdSize(vFuns));
+    Gia_Man_t * pNew  = Gia_ManStart( 10000 );
+    pNew->pName = Abc_UtilStrsav( "sym" );
+    Vec_Int_t * vIns  = Vec_IntAlloc(nChars-1);
+    for ( i = 0; i < nChars-1; i++ )
+        Vec_IntPush(vIns, Gia_ManAppendCi(pNew));
+    Vec_WrdForEachEntry( vFuns, Str, i )
+        Vec_IntPush( vOuts, Gia_ManGenSymFun_rec(pNew, Str, nChars, vStrs, vLits, vIns ) );
+    Vec_WrdForEachEntry( vFuns, Str, i )
+        Gia_ManAppendCo(pNew, Vec_IntEntry(vOuts,i) );
+    for ( i = 0; i < nChars; i++ )
+        Vec_WrdFree( (Vec_Wrd_t *)Vec_PtrEntry(vStrs, i) );
+    Vec_PtrFree(vStrs);
+    Vec_WecFree(vLits);
+    Vec_IntFree(vOuts);    
+    Vec_IntFree(vIns);
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 static inline void Gia_LutCasSort( char * pStr, int iStart, int nChars )
 {
     int i, j;
@@ -101,15 +160,15 @@ char * Gia_LutCasPerm( int nVars, int nLuts, int LutSize )
         Gia_LutCasSort( pRes + i * LutSize, 1, LutSize-1 );
     return pRes;
 }
-int Gia_ManLutCasGen_rec( Gia_Man_t * pNew, Vec_Int_t * vCtrls, int iCtrl, Vec_Int_t * vDatas, int Shift )
+int Gia_ManGenLutCas_rec( Gia_Man_t * pNew, Vec_Int_t * vCtrls, int iCtrl, Vec_Int_t * vDatas, int Shift )
 {
     if ( iCtrl-- == 0 )
         return Vec_IntEntry( vDatas, Shift );
-    int iLit0 = Gia_ManLutCasGen_rec( pNew, vCtrls, iCtrl, vDatas, Shift );
-    int iLit1 = Gia_ManLutCasGen_rec( pNew, vCtrls, iCtrl, vDatas, Shift + (1<<iCtrl));
+    int iLit0 = Gia_ManGenLutCas_rec( pNew, vCtrls, iCtrl, vDatas, Shift );
+    int iLit1 = Gia_ManGenLutCas_rec( pNew, vCtrls, iCtrl, vDatas, Shift + (1<<iCtrl));
     return Gia_ManAppendMux( pNew, Vec_IntEntry(vCtrls, iCtrl), iLit1, iLit0 );
 }
-Gia_Man_t * Gia_ManLutCasGen( Gia_Man_t * p, char * pPermStr, int nVars, int nLuts, int LutSize, int Seed, int fVerbose )
+Gia_Man_t * Gia_ManGenLutCas( Gia_Man_t * p, char * pPermStr, int nVars, int nLuts, int LutSize, int Seed, int fVerbose )
 {
     if ( Seed ) 
         srand(Seed); 
@@ -139,7 +198,7 @@ Gia_Man_t * Gia_ManLutCasGen( Gia_Man_t * p, char * pPermStr, int nVars, int nLu
         pCur++;
         for ( int k = 1; k < LutSize; k++ )
             Vec_IntWriteEntry( vLits, k, Vec_IntEntry(vCtrls, (int)(*pCur++ - 'a')) );
-        Vec_IntWriteEntry( vLits, 0, Gia_ManLutCasGen_rec(pNew, vLits, LutSize, vDatas, i * (1 << LutSize)) );        
+        Vec_IntWriteEntry( vLits, 0, Gia_ManGenLutCas_rec(pNew, vLits, LutSize, vDatas, i * (1 << LutSize)) );        
     }
     // if the AIG is given, create a miter
     int iLit = Vec_IntEntry(vLits, 0);
@@ -166,7 +225,7 @@ Gia_Man_t * Gia_ManLutCasGen( Gia_Man_t * p, char * pPermStr, int nVars, int nLu
 }
 
 /*
-int Gia_ManLutCasGenSolve( int nVars, int nLuts, int LutSize, char * pTtStr, int fVerbose )
+int Gia_ManGenLutCasSolve( int nVars, int nLuts, int LutSize, char * pTtStr, int fVerbose )
 {
     extern Gia_Man_t * Gia_QbfQuantifyAll( Gia_Man_t * p, int nPars, int fAndAll, int fOrAll );
     assert( strlen(pTtStr) <= 1024 );
@@ -174,7 +233,7 @@ int Gia_ManLutCasGenSolve( int nVars, int nLuts, int LutSize, char * pTtStr, int
     int i, Id, nVars = Abc_TtReadHex( pTruth, pTtStr );
     assert( nVars <= 12 );
     int nParams = nLuts * (1 << LutSize);
-    Gia_Man_t * pCas = Gia_ManLutCasGen( NULL, NULL, nVars, nLuts, LutSize, 0, fVerbose );
+    Gia_Man_t * pCas = Gia_ManGenLutCas( NULL, NULL, nVars, nLuts, LutSize, 0, fVerbose );
     Gia_Man_t * pCofs = Gia_QbfQuantifyAll( pCas, nParams, 0, 0 );
     Gia_ManFree( pCas );
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pCofs, 8, 0, 0, 0, 0 );

@@ -519,6 +519,7 @@ static int Abc_CommandAbc9Nf                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Of                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Simap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Exmap              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9SymFun             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Pack               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Edge               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9SatLut             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1342,6 +1343,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&of",           Abc_CommandAbc9Of,           0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&simap",        Abc_CommandAbc9Simap,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&exmap",        Abc_CommandAbc9Exmap,        0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&symfun",       Abc_CommandAbc9SymFun,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pack",         Abc_CommandAbc9Pack,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&edge",         Abc_CommandAbc9Edge,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&satlut",       Abc_CommandAbc9SatLut,       0 );
@@ -45528,6 +45530,111 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+int Abc_CommandAbc9SymFun( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManGenSymFun( Vec_Wrd_t * vFuns, int nChars, int fVerbose );
+    Gia_Man_t * pNew = NULL;
+    Vec_Wrd_t * vFuns = NULL;
+    int c, nChars = 0, nMaj = 0, nHot = 0, nXor = 0, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "MHXvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            nMaj = atoi(argv[globalUtilOptind++]);
+            break;
+        case 'H':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-H\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            nHot = atoi(argv[globalUtilOptind++]);
+            break;
+        case 'X':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-X\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            nXor = atoi(argv[globalUtilOptind++]);
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+        default:
+            goto usage;
+        }
+    }
+    if ( nMaj ) {
+        nChars = nMaj+1;
+        vFuns = Vec_WrdAlloc(1);
+        Vec_WrdPush( vFuns, Abc_Tt6Mask(nMaj/2+1) << (nMaj/2+1) );        
+    }
+    else if ( nHot ) {
+        nChars = nHot+1;
+        vFuns = Vec_WrdAlloc(1);
+        Vec_WrdPush( vFuns, 2 );        
+    }
+    else if ( nXor ) {
+        nChars = nXor+1;
+        vFuns = Vec_WrdAlloc(1);
+        Vec_WrdPush( vFuns, ABC_CONST(0xAAAAAAAAAAAAAAAA) & Abc_Tt6Mask(nXor+1) );        
+    }
+    else {
+        if ( argc == globalUtilOptind ) {
+            printf( "One or more characteristic strings should be given on the command line.\n" );
+            return 0;
+        }
+        nChars = (int)strlen(argv[globalUtilOptind]);
+        for ( c = globalUtilOptind+1; c < argc; c++ )
+            if ( nChars != (int)strlen(argv[c]) ) {
+                printf( "Char strings have different lengths. Quitting.\n" );
+                return 0;            
+            }
+        vFuns = Vec_WrdAlloc( argc );
+        for ( c = globalUtilOptind; c < argc; c++ )
+            Vec_WrdPush( vFuns, Abc_TtReadBin64(argv[c]) );
+    }
+    if ( nChars > 64 ) {
+        printf( "Currently can handle functions up to 63 inputs. Quitting.\n" );
+        return 0;
+    }
+    pNew = Gia_ManGenSymFun( vFuns, nChars, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pNew );
+    Vec_WrdFree( vFuns );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &symfun [-MHX num] [-vh] <str0> <str1> ... <str(N-1)>\n" );
+    Abc_Print( -2, "\t           derives AIG of a multi-output symmetric function\n" );
+    Abc_Print( -2, "\t-M <num> : generate the majority gate with the given input count [default = unused]\n" );
+    Abc_Print( -2, "\t-H <num> : generate the 1-hot condition with the given input count [default = unused]\n" );
+    Abc_Print( -2, "\t-X <num> : generate the xor-gate with the given input count [default = unused]\n" );
+    Abc_Print( -2, "\t-v       : toggles verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : prints the command usage\n");
+    Abc_Print( -2, "\t<str0> <str1> ... <str(N-1)> : char strings in binary notation LSB first\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_CommandAbc9Pack( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_ManLutPacking( Gia_Man_t * p, int nBlock, int DelayRoute, int DelayDir, int fVerbose );
@@ -51726,7 +51833,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9GenLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManLutCasGen( Gia_Man_t * p, char * pPermStr, int nVars, int nLuts, int LutSize, int Seed, int fVerbose );
+    extern Gia_Man_t * Gia_ManGenLutCas( Gia_Man_t * p, char * pPermStr, int nVars, int nLuts, int LutSize, int Seed, int fVerbose );
     int nVars    =  0;
     int nLuts    =  2;
     int LutSize  =  6;
@@ -51840,7 +51947,7 @@ int Abc_CommandAbc9GenLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Function with %d variables is too large for a cascade composed of %d connected %d-LUTs.\n", nVars, nLuts, LutSize );
         return 1;
     }
-    pTemp = Gia_ManLutCasGen( pAbc->pGia, pPermStr, nVars, nLuts, LutSize, Seed, fVerbose );
+    pTemp = Gia_ManGenLutCas( pAbc->pGia, pPermStr, nVars, nLuts, LutSize, Seed, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
