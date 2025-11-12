@@ -1063,7 +1063,7 @@ Vec_Wec_t * Exa3_ChooseInputVars_int( int nVars, int nLuts, int nLutSize )
     Vec_Int_t * vLevel; int i;
     Vec_WecForEachLevel( p, vLevel, i ) {
         do { 
-            int iVar = (Abc_Random(0) ^ Abc_Random(0) ^ Abc_Random(0)) % nVars;
+            int iVar = rand() % nVars;
             Vec_IntPushUniqueOrder( vLevel, iVar );
         }
         while ( Vec_IntSize(vLevel) < nLutSize-(int)(i>0) );
@@ -1079,8 +1079,16 @@ Vec_Int_t * Exa3_CountInputVars( int nVars, Vec_Wec_t * p )
             Vec_IntAddToEntry( vCounts, Obj, 1 );
     return vCounts;
 }
-Vec_Wec_t * Exa3_ChooseInputVars( int nVars, int nLuts, int nLutSize )
+Vec_Wec_t * Exa3_ChooseInputVars( int nVars, int nLuts, int nLutSize, int Seed )
 {
+    if ( Seed ) 
+        srand(Seed); 
+    else {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        unsigned int seed = (unsigned int)(ts.tv_sec ^ ts.tv_nsec);
+        srand(seed);
+    }
     for ( int i = 0; i < 1000; i++ ) {
         Vec_Wec_t * p = Exa3_ChooseInputVars_int( nVars, nLuts, nLutSize );
         Vec_Int_t * q = Exa3_CountInputVars( nVars, p );
@@ -1172,7 +1180,7 @@ static int Exa3_ManMarkup( Exa3_Man_t * p )
         if ( p->pPars->pPermStr )
             p->vInVars = Exa3_ChooseInputVars2( p->nVars, p->nNodes, p->nLutSize, p->pPars->pPermStr );
         else
-            p->vInVars = Exa3_ChooseInputVars( p->nVars, p->nNodes, p->nLutSize );
+            p->vInVars = Exa3_ChooseInputVars( p->nVars, p->nNodes, p->nLutSize, p->pPars->Seed );
         if ( !p->pPars->fSilent ) {
             Vec_Int_t * vLevel; int i, Var;
             printf( "Using fixed input assignment %s%s:\n", 
