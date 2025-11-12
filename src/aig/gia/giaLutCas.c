@@ -109,12 +109,21 @@ int Gia_ManLutCasGen_rec( Gia_Man_t * pNew, Vec_Int_t * vCtrls, int iCtrl, Vec_I
     int iLit1 = Gia_ManLutCasGen_rec( pNew, vCtrls, iCtrl, vDatas, Shift + (1<<iCtrl));
     return Gia_ManAppendMux( pNew, Vec_IntEntry(vCtrls, iCtrl), iLit1, iLit0 );
 }
-Gia_Man_t * Gia_ManLutCasGen( int nVars, int nLuts, int LutSize, int Seed, int fVerbose )
+Gia_Man_t * Gia_ManLutCasGen( Gia_Man_t * p, char * pPermStr, int nVars, int nLuts, int LutSize, int Seed, int fVerbose )
 {
-    srand(Seed);
-    char * pPerm = Gia_LutCasPerm( nVars, nLuts, LutSize );
+    if ( Seed ) 
+        srand(Seed); 
+    else {
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        unsigned int seed = (unsigned int)(ts.tv_sec ^ ts.tv_nsec);
+        srand(seed);
+    }
+    int fOwnPerm = (pPermStr == NULL);
+    char * pPerm = fOwnPerm ? Gia_LutCasPerm( nVars, nLuts, LutSize ) : pPermStr;
     int nParams = nLuts * (1 << LutSize);
-    printf( "Generating AIG with %d parameters and %d inputs using fanin assignment %s.\n", nParams, nVars, pPerm );
+    if ( fVerbose ) 
+        printf( "Generating AIG with %d parameters and %d inputs using fanin assignment %s.\n", nParams, nVars, pPerm );
     Gia_Man_t * pNew = Gia_ManStart( nParams + nVars );
     pNew->pName = Abc_UtilStrsav( pPerm );
     Vec_Int_t * vDatas = Vec_IntAlloc( nParams );
@@ -132,13 +141,68 @@ Gia_Man_t * Gia_ManLutCasGen( int nVars, int nLuts, int LutSize, int Seed, int f
             Vec_IntWriteEntry( vLits, k, Vec_IntEntry(vCtrls, (int)(*pCur++ - 'a')) );
         Vec_IntWriteEntry( vLits, 0, Gia_ManLutCasGen_rec(pNew, vLits, LutSize, vDatas, i * (1 << LutSize)) );        
     }
-    Gia_ManAppendCo( pNew, Vec_IntEntry(vLits, 0) );
+    // if the AIG is given, create a miter
+    int iLit = Vec_IntEntry(vLits, 0);
+    if ( p ) {
+        assert( Gia_ManCiNum(p) == nVars );
+        assert( Gia_ManCoNum(p) == 1 );
+        Gia_ManFillValue( p );
+        Gia_ManConst0(p)->Value = 0;
+        Gia_Obj_t * pObj; int i;
+        Gia_ManForEachCi( p, pObj, i )
+            pObj->Value = Vec_IntEntry(vCtrls, i);
+        Gia_ManForEachAnd( p, pObj, i )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        iLit = Gia_ManAppendXor( pNew, iLit, Gia_ObjFanin0Copy(Gia_ManCo(p, 0)) );
+        iLit = Abc_LitNot(iLit);
+    }
+    Gia_ManAppendCo( pNew, iLit );
     Vec_IntFree( vDatas );
     Vec_IntFree( vCtrls );
     Vec_IntFree( vLits );
-    ABC_FREE( pPerm );
+    if ( fOwnPerm )
+        ABC_FREE( pPerm );
     return pNew;
 }
+
+/*
+int Gia_ManLutCasGenSolve( int nVars, int nLuts, int LutSize, char * pTtStr, int fVerbose )
+{
+    extern Gia_Man_t * Gia_QbfQuantifyAll( Gia_Man_t * p, int nPars, int fAndAll, int fOrAll );
+    assert( strlen(pTtStr) <= 1024 );
+    word pTruth[64] = {0};
+    int i, Id, nVars = Abc_TtReadHex( pTruth, pTtStr );
+    assert( nVars <= 12 );
+    int nParams = nLuts * (1 << LutSize);
+    Gia_Man_t * pCas = Gia_ManLutCasGen( NULL, NULL, nVars, nLuts, LutSize, 0, fVerbose );
+    Gia_Man_t * pCofs = Gia_QbfQuantifyAll( pCas, nParams, 0, 0 );
+    Gia_ManFree( pCas );
+    Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( pCofs, 8, 0, 0, 0, 0 );
+    cadical_solver*  pSat = cadical_solver_new(void);
+    cadical_solver_setnvars( pSat, pCnf->nVars );
+    // add output literals
+    assert( Gia_ManCoNum(pCofs) == (1 << nVars) );
+    Gia_ManForEachCoId( pCofs, Id, i ) {
+        int Lit = Abc_Var2Lit(pCnf->pVarNums[Id], Abc_TtGetBit(pTruth, i));
+        int status = cadical_solver_addclause( pSat, &Lit, &Lit+1 ); 
+    }
+    for ( i = 0; i < pCnf->nClauses; i++ )
+        if ( !cadical_solver_addclause( pSat, pCnf->pClauses[i], pCnf->pClauses[i+1] ) ) {
+            Cnf_DataFree( pCnf );
+            return 0;
+        }
+    Cnf_DataFree( pCnf );
+    Gia_ManFree( pCofs );
+    int status = cadical_solver_solve( pSat, NULL, NULL, 0, 0, 0, 0 );
+    for ( i = 0; i < nLuts; i++, printf(" ") )
+        for ( k = 0; k < (1 << LutSize); k++ ) {
+            int Value = cadical_solver_get_var_value(pSat, i*(1 << LutSize) + k);
+            printf( "%d", Value );
+        }
+    cadical_solver_delete( pSat );
+    return 1;
+}
+*/
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
@@ -146,4 +210,3 @@ Gia_Man_t * Gia_ManLutCasGen( int nVars, int nLuts, int LutSize, int Seed, int f
 
 
 ABC_NAMESPACE_IMPL_END
-

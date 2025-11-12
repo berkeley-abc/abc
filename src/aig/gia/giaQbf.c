@@ -893,7 +893,7 @@ void Gia_QbfLearnConstraint( Qbf_Man_t * p, Vec_Int_t * vValues )
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int nEncVars, int fGlucose, int fCadical, int fVerbose )
+int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int nEncVars, int fGlucose, int fCadical, int fSilent, int fVerbose )
 {
     Qbf_Man_t * p = Gia_QbfAlloc( pGia, nPars, fGlucose, fCadical, fVerbose );
     Gia_Man_t * pCof;
@@ -939,9 +939,18 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
     if ( RetValue == 0 )
     {
         int nZeros = Vec_IntCountZero( p->vValues );
-        printf( "Parameters: " );
+        printf( "Parameters (%d): 0x", nPars );
         assert( Vec_IntSize(p->vValues) == nPars );
-        Vec_IntPrintBinary( p->vValues );
+        //Vec_IntPrintBinary( p->vValues );
+        while ( Vec_IntSize(p->vValues) % 4 )
+            Vec_IntPush(p->vValues, 0);
+        for ( int i = Vec_IntSize(p->vValues)/4 - 1; i >= 0; i-- ) {
+            int Digit = Vec_IntEntry(p->vValues, 4*i+0);
+            Digit |= Vec_IntEntry(p->vValues, 4*i+1) << 1;
+            Digit |= Vec_IntEntry(p->vValues, 4*i+2) << 2;
+            Digit |= Vec_IntEntry(p->vValues, 4*i+3) << 3;
+            printf( "%x", Digit );
+        }
         printf( "  Statistics: 0=%d 1=%d\n", nZeros, Vec_IntSize(p->vValues) - nZeros );
         if ( nEncVars )
         {
@@ -956,9 +965,9 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         printf( "The problem aborted after %d conflicts.  ", nConfLimit );
     else if ( RetValue == -1 && nIterLimit )
         printf( "The problem aborted after %d iterations.  ", nIterLimit );
-    else if ( RetValue == 1 )
+    else if ( RetValue == 1 && !fSilent )
         printf( "The problem is UNSAT after %d iterations.  ", i );
-    else 
+    else if ( !fSilent )
         printf( "The problem is SAT after %d iterations.  ", i );
     if ( fVerbose )
     {
@@ -967,7 +976,7 @@ int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, i
         Abc_PrintTime( 1, "Other", Abc_Clock() - p->clkStart - p->clkSat );
         Abc_PrintTime( 1, "TOTAL", Abc_Clock() - p->clkStart );
     }
-    else
+    else if ( !fSilent )
         Abc_PrintTime( 1, "Time", Abc_Clock() - p->clkStart );
     Gia_QbfFree( p );
     return RetValue;

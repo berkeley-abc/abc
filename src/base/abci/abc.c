@@ -10924,7 +10924,7 @@ usage:
     Abc_Print( -2, "\t-r       : toggle synthesizing a single-rail cascade [default = %s]\n", pPars->fLutCascade ? "yes" : "no" );
     Abc_Print( -2, "\t-f       : toggle fixing LUT inputs in cascade mapping [default = %s]\n", pPars->fLutInFixed ? "yes" : "no" );
     Abc_Print( -2, "\t-g       : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", pPars->fGlucose ? "yes" : "no" );
-    Abc_Print( -2, "\t-c       : toggle using CaDiCal 2.2.0-rc1 by Armin Biere [default = %s]\n", pPars->fCadical ? "yes" : "no" );
+    Abc_Print( -2, "\t-c       : toggle using CaDiCal 2.2.0-rc1 by Armin Biere et al [default = %s]\n", pPars->fCadical ? "yes" : "no" );
     Abc_Print( -2, "\t-k       : toggle using Kissat 4.0.2 by Armin Biere [default = %s]\n", pPars->fKissat ? "yes" : "no" );
     Abc_Print( -2, "\t-d       : toggle dumping decomposed networks into BLIF files [default = %s]\n", pPars->fDumpBlif ? "yes" : "no" );
     Abc_Print( -2, "\t-s       : toggle silent computation (no messages, except when a solution is found) [default = %s]\n", pPars->fSilent ? "yes" : "no" );
@@ -51340,7 +51340,7 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern void Gia_QbfDumpFile( Gia_Man_t * pGia, int nPars );
     extern void Gia_QbfDumpFileInv( Gia_Man_t * pGia, int nPars );
-    extern int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int nEncVars, int fGlucose, int fCadical, int fVerbose );
+    extern int Gia_QbfSolve( Gia_Man_t * pGia, int nPars, int nIterLimit, int nConfLimit, int nTimeOut, int nEncVars, int fGlucose, int fCadical, int fSilent, int fVerbose );
     int c, nPars   = -1;
     int nIterLimit =  0;
     int nConfLimit =  0;
@@ -51350,9 +51350,10 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fDumpCnf2  =  0;
     int fGlucose   =  0;
     int fCadical   =  0;
+    int fSilent    =  0;
     int fVerbose   =  0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "PICTKdegcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "PICTKdegcsvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -51423,6 +51424,9 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fCadical ^= 1;
             break;
+        case 's':
+            fSilent ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -51457,11 +51461,11 @@ int Abc_CommandAbc9Qbf( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( fDumpCnf2 )
         Gia_QbfDumpFileInv( pAbc->pGia, nPars );
     else
-        Gia_QbfSolve( pAbc->pGia, nPars, nIterLimit, nConfLimit, nTimeOut, nEncVars, fGlucose, fCadical, fVerbose );
+        Gia_QbfSolve( pAbc->pGia, nPars, nIterLimit, nConfLimit, nTimeOut, nEncVars, fGlucose, fCadical, fSilent, fVerbose );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &qbf [-PICTK num] [-degcvh]\n" );
+    Abc_Print( -2, "usage: &qbf [-PICTK num] [-degcsvh]\n" );
     Abc_Print( -2, "\t         solves QBF problem EpVxM(p,x)\n" );
     Abc_Print( -2, "\t-P num : number of parameters p (should be the first PIs) [default = %d]\n", nPars );
     Abc_Print( -2, "\t-I num : quit after the given iteration even if unsolved [default = %d]\n", nIterLimit );
@@ -51472,6 +51476,7 @@ usage:
     Abc_Print( -2, "\t-e     : toggle dumping QDIMACS file instead of solving (original QBF) [default = %s]\n", fDumpCnf2? "yes": "no" );
     Abc_Print( -2, "\t-g     : toggle using Glucose 3.0 by Gilles Audemard and Laurent Simon [default = %s]\n", fGlucose? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle using CaDiCaL by Armin Biere [default = %s]\n", fCadical? "yes": "no" );
+    Abc_Print( -2, "\t-s     : no printout except when a solution is found [default = %s]\n", fSilent? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n\n");
     Abc_Print( -2, "\t         As an example of using this command, consider specification (the three-input AND-gate) and implementation\n"); 
@@ -51721,16 +51726,17 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9GenLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManLutCasGen( int nVars, int nLuts, int LutSize, int Seed, int fVerbose );
-    int nVars    =  8;
+    extern Gia_Man_t * Gia_ManLutCasGen( Gia_Man_t * p, char * pPermStr, int nVars, int nLuts, int LutSize, int Seed, int fVerbose );
+    int nVars    =  0;
     int nLuts    =  2;
     int LutSize  =  6;
     int Seed     =  0;
     int fVerbose =  0;
     int c;
+    char * pPermStr = NULL;
     Gia_Man_t * pTemp;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMKSvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMKSPvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -51778,6 +51784,15 @@ int Abc_CommandAbc9GenLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( Seed < 0 )
                 goto usage;
             break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by a string.\n" );
+                goto usage;
+            }
+            pPermStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -51786,6 +51801,19 @@ int Abc_CommandAbc9GenLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
         default:
             goto usage;
         }
+    }
+    if ( pAbc->pGia == NULL && nVars == 0 ) 
+    {
+        Abc_Print( -1, "The number of inputs (%d) should be specified on the command line.\n", nVars );
+        return 1;        
+    }
+    if ( pAbc->pGia )
+        nVars = Gia_ManCiNum(pAbc->pGia);
+    if ( pPermStr && (nLuts * LutSize != (int)strlen(pPermStr)) )
+    {
+        Abc_Print( -1, "Permutation \"%s\" has %d symbols instead of expected %d = %d * %d symbols (LutSize * nLuts).\n", 
+            pPermStr, (int)strlen(pPermStr), LutSize * nLuts, LutSize, nLuts );
+        return 1;
     }
     if ( nVars <= LutSize )
     {
@@ -51812,17 +51840,18 @@ int Abc_CommandAbc9GenLutCas( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Function with %d variables is too large for a cascade composed of %d connected %d-LUTs.\n", nVars, nLuts, LutSize );
         return 1;
     }
-    pTemp = Gia_ManLutCasGen( nVars, nLuts, LutSize, Seed, fVerbose );
+    pTemp = Gia_ManLutCasGen( pAbc->pGia, pPermStr, nVars, nLuts, LutSize, Seed, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &genlutcas[-NMKS num] [-vh]\n" );
-    Abc_Print( -2, "\t         generates single-rail LUT cascade\n" );
+    Abc_Print( -2, "usage: &genlutcas[-NMKS num] [-P str] [-vh]\n" );
+    Abc_Print( -2, "\t         generates a miter for synthesizing the LUT cascade\n" );
     Abc_Print( -2, "\t-N num : the number of primary inputs [default = %d]\n", nVars );
     Abc_Print( -2, "\t-M num : the number of LUTs [default = %d]\n", nLuts );
     Abc_Print( -2, "\t-K num : the LUT size [default = %d]\n", LutSize );
     Abc_Print( -2, "\t-S num : the random seed [default = %d]\n", Seed );
+    Abc_Print( -2, "\t-P str : variable permutation (for example, \"abcd_aef\" for S44) [default = %s]\n", pPermStr ? pPermStr : "unused" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
