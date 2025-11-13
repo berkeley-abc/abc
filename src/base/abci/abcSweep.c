@@ -885,10 +885,9 @@ int Abc_NtkReplaceAutonomousLogic( Abc_Ntk_t * pNtk )
                 continue;
             }
             assert( !Abc_ObjIsLatch(pFanin) );
-            Vec_PtrPush( vNodes, pFanin );
+            Vec_PtrPushUnique( vNodes, pFanin );
         }
     }
-    Vec_PtrUniqify( vNodes, (int (*)(const void *, const void *))Abc_ObjPointerCompare );
     // replace these nodes by the PIs
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pNode, i )
     {
@@ -1027,4 +1026,3 @@ int Abc_NtkSweepBufsInvs( Abc_Ntk_t * pNtk, int fVerbose )
 
 
 ABC_NAMESPACE_IMPL_END
-

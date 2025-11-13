@@ -1925,25 +1925,16 @@ void Abc_NtkDetectMatching( Abc_Ntk_t * pNtk )
 }
 
 
-/**Function*************************************************************
-
-  Synopsis    [Compares the pointers.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
-int Abc_ObjPointerCompare( void ** pp1, void ** pp2 )
-{
-    if ( *pp1 < *pp2 )
-        return -1;
-    if ( *pp1 > *pp2 ) 
-        return 1;
-    return 0; 
-}
+/// The legacy `Abc_ObjPointerCompare()` comparator is unused; keep the code here
+/// commented to document its previous behavior without exposing a prototype.
+// int Abc_ObjPointerCompare( void ** pp1, void ** pp2 )
+// {
+//     if ( *pp1 < *pp2 )
+//         return -1;
+//     if ( *pp1 > *pp2 ) 
+//         return 1;
+//     return 0; 
+// }
 
 /**Function*************************************************************
 
@@ -3564,4 +3555,3 @@ void Abc_NtkATMap( int nXVars, int nYVars, int nAdder, char ** pGPCs0, int nGPCs
 
 
 ABC_NAMESPACE_IMPL_END
-
