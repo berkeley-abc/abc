@@ -1083,8 +1083,10 @@ Abc_Obj_t * Abc_NtkBddDecompose( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pNode, int nLu
     }
     // cofactor w.r.t. the bound set variables
     vCofs = Abc_NtkBddCofactors( dd, (DdNode *)pNode->pData, nLutSize );
-    vUniq = Vec_PtrDup( vCofs );
-    Vec_PtrUniqify( vUniq, (int (*)(const void *, const void *))Vec_PtrSortCompare );
+    // collect unique cofactors in the order they appear
+    vUniq = Vec_PtrAlloc( Vec_PtrSize(vCofs) );
+    Vec_PtrForEachEntry( DdNode *, vCofs, bCof, i )
+        Vec_PtrPushUnique( vUniq, bCof );
     // only perform decomposition which it is support reducing with two less vars
     if( Vec_PtrSize(vUniq) > (1 << (nLutSize-2)) )
     {
@@ -1257,4 +1259,3 @@ void Abc_NtkBddDecExplore( Abc_Obj_t * pNode ) {}
 
 
 ABC_NAMESPACE_IMPL_END
-
