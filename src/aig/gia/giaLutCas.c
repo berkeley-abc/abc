@@ -160,13 +160,23 @@ char * Gia_LutCasPerm( int nVars, int nLuts, int LutSize )
         Gia_LutCasSort( pRes + i * LutSize, 1, LutSize-1 );
     return pRes;
 }
-int Gia_ManGenLutCas_rec( Gia_Man_t * pNew, Vec_Int_t * vCtrls, int iCtrl, Vec_Int_t * vDatas, int Shift )
+int Gia_ManGenLutCas_rec( Gia_Man_t * pNew, Vec_Int_t * vCtrls, int iCtrl, Vec_Int_t * vDatas, int Shift, int Offset )
 {
     if ( iCtrl-- == 0 )
         return Vec_IntEntry( vDatas, Shift );
-    int iLit0 = Gia_ManGenLutCas_rec( pNew, vCtrls, iCtrl, vDatas, Shift );
-    int iLit1 = Gia_ManGenLutCas_rec( pNew, vCtrls, iCtrl, vDatas, Shift + (1<<iCtrl));
-    return Gia_ManAppendMux( pNew, Vec_IntEntry(vCtrls, iCtrl), iLit1, iLit0 );
+    int iLit0 = Gia_ManGenLutCas_rec( pNew, vCtrls, iCtrl, vDatas, Shift, Offset );
+    int iLit1 = Gia_ManGenLutCas_rec( pNew, vCtrls, iCtrl, vDatas, Shift + (1<<iCtrl), Offset );
+    return Gia_ManAppendMux( pNew, Vec_IntEntry(vCtrls, iCtrl+Offset), iLit1, iLit0 );
+}
+int Gia_ManGenWire( Gia_Man_t * pNew, Vec_Int_t * vCtrls, Vec_Int_t * vParams2, int iParam2 )
+{
+    int nVars = Vec_IntSize(vCtrls);
+    int nBits = Abc_Base2Log(nVars);
+    while ( Vec_IntSize(vCtrls) < (1 << nBits) )
+        Vec_IntPush( vCtrls, 0 );
+    int iRes = Gia_ManGenLutCas_rec( pNew, vParams2, nBits, vCtrls, 0, iParam2 );
+    Vec_IntShrink( vCtrls, nVars );
+    return iRes;
 }
 Gia_Man_t * Gia_ManGenLutCas( Gia_Man_t * p, char * pPermStr, int nVars, int nLuts, int LutSize, int Seed, int fVerbose )
 {
@@ -181,25 +191,39 @@ Gia_Man_t * Gia_ManGenLutCas( Gia_Man_t * p, char * pPermStr, int nVars, int nLu
     int fOwnPerm = (pPermStr == NULL);
     char * pPerm = fOwnPerm ? Gia_LutCasPerm( nVars, nLuts, LutSize ) : pPermStr;
     int nParams = nLuts * (1 << LutSize);
+    // count how many variables are unassigned in the permutation
+    int nParams2 = 0;
+    for ( int v = 0; v < strlen(pPerm); v++ )
+        if ( pPerm[v] == '*' )
+            nParams2 += Abc_Base2Log(nVars);
     if ( fVerbose ) 
-        printf( "Generating AIG with %d parameters and %d inputs using fanin assignment %s.\n", nParams, nVars, pPerm );
+        printf( "Generating AIG with %d parameters (%d functional + %d structural) and %d inputs using fanin assignment \"%s\".\n", 
+            nParams+nParams2, nParams, nParams2, nVars, pPerm );
     Gia_Man_t * pNew = Gia_ManStart( nParams + nVars );
     pNew->pName = Abc_UtilStrsav( pPerm );
     Vec_Int_t * vDatas = Vec_IntAlloc( nParams );
+    Vec_Int_t * vWires = Vec_IntAlloc( nParams2 );
     Vec_Int_t * vCtrls = Vec_IntAlloc( nVars );
     for ( int i = 0; i < nParams; i++ )
         Vec_IntPush( vDatas, Gia_ManAppendCi(pNew) );
+    for ( int i = 0; i < nParams2; i++ )
+        Vec_IntPush( vWires, Gia_ManAppendCi(pNew) );
     for ( int i = 0; i < nVars; i++ )
         Vec_IntPush( vCtrls, Gia_ManAppendCi(pNew) );
     Vec_Int_t * vLits = Vec_IntStart( LutSize );
-    Vec_IntWriteEntry( vLits, 0, Vec_IntEntry(vCtrls, (int)(pPerm[0]-'a')) );
+    Vec_IntWriteEntry( vLits, 0, pPerm[0] == '*' ? Gia_ManGenWire(pNew, vCtrls, vWires, 0) : Vec_IntEntry(vCtrls, (int)(pPerm[0]-'a')) );
+    int iWireVars = pPerm[0] == '*' ? Abc_Base2Log(nVars) : 0;
     char * pCur = pPerm;
     for ( int i = 0; i < nLuts; i++ ) {
+        assert( i == 0 || *pCur == '_' );
         pCur++;
-        for ( int k = 1; k < LutSize; k++ )
-            Vec_IntWriteEntry( vLits, k, Vec_IntEntry(vCtrls, (int)(*pCur++ - 'a')) );
-        Vec_IntWriteEntry( vLits, 0, Gia_ManGenLutCas_rec(pNew, vLits, LutSize, vDatas, i * (1 << LutSize)) );        
+        for ( int k = 1; k < LutSize; k++ ) {
+            Vec_IntWriteEntry( vLits, k, *pCur == '*' ? Gia_ManGenWire(pNew, vCtrls, vWires, iWireVars) : Vec_IntEntry(vCtrls, (int)(*pCur - 'a')) );
+            iWireVars += *pCur++ == '*' ? Abc_Base2Log(nVars) : 0;
+        }
+        Vec_IntWriteEntry( vLits, 0, Gia_ManGenLutCas_rec(pNew, vLits, LutSize, vDatas, i * (1 << LutSize), 0) );        
     }
+    assert( iWireVars == nParams2 );
     // if the AIG is given, create a miter
     int iLit = Vec_IntEntry(vLits, 0);
     if ( p ) {
@@ -218,6 +242,7 @@ Gia_Man_t * Gia_ManGenLutCas( Gia_Man_t * p, char * pPermStr, int nVars, int nLu
     Gia_ManAppendCo( pNew, iLit );
     Vec_IntFree( vDatas );
     Vec_IntFree( vCtrls );
+    Vec_IntFree( vWires );
     Vec_IntFree( vLits );
     if ( fOwnPerm )
         ABC_FREE( pPerm );
