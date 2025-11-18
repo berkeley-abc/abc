@@ -1,6 +1,6 @@
 #include "colors.h"
 
-#ifdef WIN32
+#ifdef _MSC_VER
 #define isatty _isatty
 #else
 #include <unistd.h>

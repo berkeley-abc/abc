@@ -23,7 +23,11 @@ $(call abc_info,$(MSG_PREFIX)Using AR=$(AR))
 $(call abc_info,$(MSG_PREFIX)Using LD=$(LD))
 
 PROG := abc
+
 OS := $(shell uname -s)
+ifneq ($(filter MINGW%,$(OS)),)
+OS := MINGW
+endif
 
 MODULES := \
 	$(wildcard src/ext*) \
@@ -144,8 +148,13 @@ ifneq ($(OS), $(filter $(OS), FreeBSD OpenBSD NetBSD))
   LIBS += -ldl
 endif
 
-ifneq ($(OS), $(filter $(OS), FreeBSD OpenBSD NetBSD Darwin))
+ifneq ($(OS), $(filter $(OS), FreeBSD OpenBSD NetBSD Darwin MINGW))
    LIBS += -lrt
+endif
+
+# For PathMatchSpecA.
+ifeq ($(OS), MINGW)
+   LIBS = -lshlwapi
 endif
 
 ifdef ABC_USE_LIBSTDCXX
@@ -157,7 +166,7 @@ $(call abc_info,$(MSG_PREFIX)Using CFLAGS=$(CFLAGS))
 CXXFLAGS += $(CFLAGS) -std=c++17 -fno-exceptions
 
 SRC  :=
-GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags
+GARBAGE := core core.* *.stackdump ./tags $(PROG) arch_flags $(PROG).in
 
 .PHONY: all default tags clean docs cmake_info
 
@@ -223,9 +232,17 @@ clean:
 tags:
 	etags `find . -type f -regex '.*\.\(c\|h\)'`
 
+ifeq ($(OS), MINGW)
+$(PROG): $(OBJ)
+	@echo "$(MSG_PREFIX)\`\` Constructing Response File:" $(notdir @$@.in)
+	$(file >$@.in,$^ $(LDFLAGS) $(LIBS))
+	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
+	$(VERBOSE)$(LD) -o $@ @$@.in
+else
 $(PROG): $(OBJ)
 	@echo "$(MSG_PREFIX)\`\` Building binary:" $(notdir $@)
 	$(VERBOSE)$(LD) -o $@ $^ $(LDFLAGS) $(LIBS)
+endif
 
 lib$(PROG).a: $(LIBOBJ)
 	@echo "$(MSG_PREFIX)\`\` Linking:" $(notdir $@)
