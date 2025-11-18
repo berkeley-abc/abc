@@ -609,11 +609,11 @@ ddSymmUniqueCompare(
   int * ptrX,
   int * ptrY)
 {
-#if 0
+//#if 0
     if (entry[*ptrY] == entry[*ptrX]) {
         return((*ptrX) - (*ptrY));
     }
-#endif
+//#endif
     return(entry[*ptrY] - entry[*ptrX]);
 
 } /* end of ddSymmUniqueCompare */
@@ -1703,4 +1703,3 @@ ddSymmSummary(
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -1325,11 +1325,11 @@ ddUniqueCompare(
   int * ptrX,
   int * ptrY)
 {
-#if 0
+//#if 0
     if (entry[*ptrY] == entry[*ptrX]) {
         return((*ptrX) - (*ptrY));
     }
-#endif
+//#endif
     return(entry[*ptrY] - entry[*ptrX]);
 
 } /* end of ddUniqueCompare */
@@ -2140,4 +2140,3 @@ ddCheckPermuation(
 
 
 ABC_NAMESPACE_IMPL_END
-
