@@ -1583,11 +1583,11 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
         {
             unsigned char CellId = (unsigned char)Vec_StrEntry(p->vConfigs2, i);
             if ( CellId == 0 )    
-                i += 4;  // 1 byte CellId + 2 bytes truth table + 1 padding
+                i += 7;  // 1 byte CellId + 4 bytes mapping + 2 bytes truth table
             else if ( CellId == 1 )
-                i += 12; // 1 byte CellId + 4 bytes mapping + 4 bytes truth tables + 3 padding
+                i += 12; // 1 byte CellId + 7 bytes mapping + 4 bytes truth tables
             else if ( CellId == 2 )
-                i += 12; // 1 byte CellId + 5 bytes mapping + 4 bytes truth tables + 2 padding
+                i += 14; // 1 byte CellId + 9 bytes mapping + 4 bytes truth tables
             else
                 assert( 0 ); // Unknown cell type
             nInstances++;
@@ -1619,15 +1619,15 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
         // Write cell type 0 (LUT4)
         Gia_FileWriteBufferSize( pFile, 0 ); // CellId
         fwrite( pCell0, 1, strlen(pCell0) + 1, pFile );
-        Gia_FileWriteBufferSize( pFile, 4 ); // 1 byte CellId + 2 bytes truth table, rounded to 4
+        Gia_FileWriteBufferSize( pFile, 7 ); // 1 byte CellId + 4 bytes mapping + 2 bytes truth table
         // Write cell type 1 (S44)
         Gia_FileWriteBufferSize( pFile, 1 ); // CellId
         fwrite( pCell1, 1, strlen(pCell1) + 1, pFile );
-        Gia_FileWriteBufferSize( pFile, 12 ); // 1 byte CellId + 4 bytes mapping + 4 bytes truth tables, rounded to 12
+        Gia_FileWriteBufferSize( pFile, 12 ); // 1 byte CellId + 7 bytes mapping + 4 bytes truth tables
         // Write cell type 2 (9-input)
         Gia_FileWriteBufferSize( pFile, 2 ); // CellId
         fwrite( pCell2, 1, strlen(pCell2) + 1, pFile );
-        Gia_FileWriteBufferSize( pFile, 12 ); // 1 byte CellId + 5 bytes mapping + 4 bytes truth tables (LUT4s only), rounded to 12
+        Gia_FileWriteBufferSize( pFile, 14 ); // 1 byte CellId + 9 bytes mapping + 4 bytes truth tables
         // Write total instances
         Gia_FileWriteBufferSize( pFile, nInstances );
         // Write instance data as raw bytes

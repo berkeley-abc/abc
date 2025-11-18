@@ -911,12 +911,15 @@ void If_ManConfigPrint( unsigned char * pConfigData, int nLeaves )
     printf( "[%4d] ", Count++ );  // Print instance number
     if ( CellId == 0 )
     {
+        assert( nLeaves <= 4 );
         // Extract 16-bit truth table
-        word Truth = ((word)pConfigData[2] << 8) | pConfigData[1];
+        word Truth = ((word)pConfigData[5] << 8) | pConfigData[6];
         printf( "%04lX{", (unsigned long)Truth );
         // Print as simple {abcd} since it's just a direct LUT4
-        for ( i = 0; i < nLeaves && i < 4; i++ )
+        for ( i = 0; i < nLeaves; i++ )
             printf( "%c", 'a' + i );
+        for ( ; i < 4; i++ )
+            printf( "%c", '0' );
         printf( "}" );
         // Pad with spaces if less than 4 inputs
         for ( i = nLeaves; i < 4; i++ )
@@ -926,11 +929,11 @@ void If_ManConfigPrint( unsigned char * pConfigData, int nLeaves )
     else if ( CellId == 1 )
     {
         // First LUT4
-        word Truth1 = ((word)pConfigData[6] << 8) | pConfigData[5];
+        word Truth1 = ((word)pConfigData[8] << 8) | pConfigData[9];
         printf( "h=%04lX{", (unsigned long)Truth1 );
         for ( i = 0; i < 4; i++ )
         {
-            int v = (pConfigData[1 + i/2] >> ((i%2) * 4)) & 0xF;
+            int v = pConfigData[1+i];
             if ( v == 0 )
                 printf( "0");
             else if ( v == 1 )
@@ -942,11 +945,11 @@ void If_ManConfigPrint( unsigned char * pConfigData, int nLeaves )
         }
         printf( "} ");
         // Second LUT4
-        word Truth2 = ((word)pConfigData[8] << 8) | pConfigData[7];
+        word Truth2 = ((word)pConfigData[10] << 8) | pConfigData[11];
         printf( "i=%04lX{", (unsigned long)Truth2 );
-        for ( i = 0; i < 4; i++ )
+        for ( i = 4; i < 7; i++ )
         {
-            int v = (pConfigData[3 + i/2] >> ((i%2) * 4)) & 0xF;
+            int v = pConfigData[1+i];
             if ( v == 0 )
                 printf( "0");
             else if ( v == 1 )
@@ -958,32 +961,16 @@ void If_ManConfigPrint( unsigned char * pConfigData, int nLeaves )
             else
                 printf( "?");
         }
-        printf( "} [Cell %d, %d leaves]\n", CellId, nLeaves );
+        printf( "h} [Cell %d, %d leaves]\n", CellId, nLeaves );
     }
     else if ( CellId == 2 )
     {
-        // Extract 9 input mappings
-        int inputs[9];
-        int bitPos = 0;
-        for ( i = 0; i < 9; i++ )
-        {
-            if ( bitPos == 0 )
-            {
-                inputs[i] = pConfigData[1 + i/2] & 0xF;
-                bitPos = 4;
-            }
-            else
-            {
-                inputs[i] = (pConfigData[1 + i/2] >> 4) & 0xF;
-                bitPos = 0;
-            }
-        }
         // First LUT4
-        word Truth1 = ((word)pConfigData[7] << 8) | pConfigData[6];
+        word Truth1 = ((word)pConfigData[10] << 8) | pConfigData[11];
         printf( "j=%04lX{", (unsigned long)Truth1 );
         for ( i = 0; i < 4; i++ )
         {
-            int v = inputs[i];
+            int v = pConfigData[1+i];
             if ( v == 0 )
                 printf( "0");
             else if ( v == 1 )
@@ -995,11 +982,11 @@ void If_ManConfigPrint( unsigned char * pConfigData, int nLeaves )
         }
         printf( "} ");
         // Second LUT4
-        word Truth2 = ((word)pConfigData[9] << 8) | pConfigData[8];
+        word Truth2 = ((word)pConfigData[12] << 8) | pConfigData[13];
         printf( "k=%04lX{", (unsigned long)Truth2 );
         for ( i = 4; i < 8; i++ )
         {
-            int v = inputs[i];
+            int v = pConfigData[1+i];
             if ( v == 0 )
                 printf( "0");
             else if ( v == 1 )
@@ -1012,7 +999,7 @@ void If_ManConfigPrint( unsigned char * pConfigData, int nLeaves )
         printf( "} ");
         // final node
         printf( "l=<");
-        int v = inputs[8];
+        int v = pConfigData[1+8];
         if ( v == 0 )
             printf( "0");
         else if ( v == 1 )
@@ -1087,11 +1074,11 @@ void * If_ManDeriveGiaFromCells2( void * pGia )
         if ( CellId == 0 )
         {
             // Extract 16-bit truth table
-            word Truth = ((word)pConfigData[2] << 8) | pConfigData[1];
+            word Truth = ((word)pConfigData[5] << 8) | pConfigData[6];
             Truth = Abc_Tt6Stretch( Truth, 4 );
             extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
             Gia_ManObj(p, iLut)->Value = Kit_TruthToGia( pNew, (unsigned *)&Truth, Vec_IntSize(vLeaves), vCover, vLeaves, 1 );
-            bytePos += 4; // 1 byte CellId + 2 bytes truth table + 1 padding
+            bytePos += 7; // 1 byte CellId + 4 bytes mapping + 2 bytes truth table
         }
         else if ( CellId == 1 )
         {
@@ -1101,7 +1088,7 @@ void * If_ManDeriveGiaFromCells2( void * pGia )
             Vec_IntClear( vLeavesTemp );
             for ( i = 0; i < 4; i++ )
             {
-                int v = (pConfigData[1 + i/2] >> ((i%2) * 4)) & 0xF;
+                int v = pConfigData[1+i];
                 if ( v == 0 )
                     Vec_IntPush( vLeavesTemp, 0 );  // constant 0
                 else if ( v == 1 )
@@ -1111,58 +1098,41 @@ void * If_ManDeriveGiaFromCells2( void * pGia )
                 else
                     assert( 0 );  // Invalid value
             }
-            word Truth1 = ((word)pConfigData[6] << 8) | pConfigData[5];
+            word Truth1 = ((word)pConfigData[8] << 8) | pConfigData[9];
             Truth1 = Abc_Tt6Stretch( Truth1, 4 );
             extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
             iObjLit1 = Kit_TruthToGia( pNew, (unsigned *)&Truth1, Vec_IntSize(vLeavesTemp), vCover, vLeavesTemp, 1 );
             // Second LUT4 - extract inputs and truth table
             Vec_IntClear( vLeavesTemp );
-            for ( i = 0; i < 4; i++ )
+            for ( i = 4; i < 7; i++ )
             {
-                int v = (pConfigData[3 + i/2] >> ((i%2) * 4)) & 0xF;
+                int v = pConfigData[1+i];
                 if ( v == 0 )
                     Vec_IntPush( vLeavesTemp, 0 );  // constant 0
                 else if ( v == 1 )
                     Vec_IntPush( vLeavesTemp, 1 );  // constant 1
                 else if ( v >= 2 && v < 2 + Vec_IntSize(vLeaves) )
                     Vec_IntPush( vLeavesTemp, Vec_IntEntry(vLeaves, v - 2) );  // leaf (v-2)
-                else if ( v == 9 )  // N+2 where N=7 (number of S44 inputs)
-                    Vec_IntPush( vLeavesTemp, iObjLit1 );  // output of first LUT (internal connection)
                 else
                     assert( 0 );  // Invalid value
             }
-            word Truth2 = ((word)pConfigData[8] << 8) | pConfigData[7];
+            Vec_IntPush( vLeavesTemp, iObjLit1 );  // output of first LUT (internal connection)
+            word Truth2 = ((word)pConfigData[10] << 8) | pConfigData[11];
             Truth2 = Abc_Tt6Stretch( Truth2, 4 );
             iObjLit2 = Kit_TruthToGia( pNew, (unsigned *)&Truth2, Vec_IntSize(vLeavesTemp), vCover, vLeavesTemp, 1 );
             Gia_ManObj(p, iLut)->Value = iObjLit2;
             Vec_IntFree( vLeavesTemp );
-            bytePos += 12; // 1 byte CellId + 4 bytes mapping + 4 bytes truth tables + 3 padding
+            bytePos += 12; // 1 byte CellId + 7 bytes mapping + 4 bytes truth tables
         }
         else if ( CellId == 2 )
         {
             Vec_Int_t * vLeavesTemp = Vec_IntAlloc( 4 );
             int iObjLit1, iObjLit2, iObjLit3;
-            // Extract 9 input mappings (4 bits each, packed)
-            int inputs[9];
-            int bitPos = 0;
-            for ( i = 0; i < 9; i++ )
-            {
-                if ( bitPos == 0 )
-                {
-                    inputs[i] = pConfigData[1 + i/2] & 0xF;
-                    bitPos = 4;
-                }
-                else
-                {
-                    inputs[i] = (pConfigData[1 + i/2] >> 4) & 0xF;
-                    bitPos = 0;
-                }
-            }
             // First LUT4 (inputs 0-3)
             Vec_IntClear( vLeavesTemp );
             for ( i = 0; i < 4; i++ )
             {
-                int v = inputs[i];
+                int v = pConfigData[1+i];
                 if ( v == 0 )
                     Vec_IntPush( vLeavesTemp, 0 );  // constant 0
                 else if ( v == 1 )
@@ -1172,7 +1142,7 @@ void * If_ManDeriveGiaFromCells2( void * pGia )
                 else
                     assert( 0 );  // Invalid value
             }
-            word Truth1 = ((word)pConfigData[7] << 8) | pConfigData[6];
+            word Truth1 = ((word)pConfigData[10] << 8) | pConfigData[11];
             Truth1 = Abc_Tt6Stretch( Truth1, 4 );
             extern int Kit_TruthToGia( Gia_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory, Vec_Int_t * vLeaves, int fHash );
             iObjLit1 = Kit_TruthToGia( pNew, (unsigned *)&Truth1, Vec_IntSize(vLeavesTemp), vCover, vLeavesTemp, 1 );
@@ -1180,7 +1150,7 @@ void * If_ManDeriveGiaFromCells2( void * pGia )
             Vec_IntClear( vLeavesTemp );
             for ( i = 4; i < 8; i++ )
             {
-                int v = inputs[i];
+                int v = pConfigData[1+i];
                 if ( v == 0 )
                     Vec_IntPush( vLeavesTemp, 0 );  // constant 0
                 else if ( v == 1 )
@@ -1190,12 +1160,12 @@ void * If_ManDeriveGiaFromCells2( void * pGia )
                 else
                     assert( 0 );  // Invalid value
             }
-            word Truth2 = ((word)pConfigData[9] << 8) | pConfigData[8];
+            word Truth2 = ((word)pConfigData[12] << 8) | pConfigData[13];
             Truth2 = Abc_Tt6Stretch( Truth2, 4 );
             iObjLit2 = Kit_TruthToGia( pNew, (unsigned *)&Truth2, Vec_IntSize(vLeavesTemp), vCover, vLeavesTemp, 1 );
             // MUX (select is input 8) - structural implementation
             int iSelectLit;
-            int v = inputs[8];
+            int v = pConfigData[1+8];
             if ( v == 0 )
                 iSelectLit = 0;  // constant 0 select
             else if ( v == 1 )
@@ -1207,7 +1177,7 @@ void * If_ManDeriveGiaFromCells2( void * pGia )
             iObjLit3 = Gia_ManHashMux( pNew, iSelectLit, iObjLit2, iObjLit1 );
             Gia_ManObj(p, iLut)->Value = iObjLit3;
             Vec_IntFree( vLeavesTemp );
-            bytePos += 12; // 1 byte CellId + 5 bytes mapping + 4 bytes truth tables + 2 padding
+            bytePos += 14; // 1 byte CellId + 9 bytes mapping + 4 bytes truth tables
         }
         else
         {
