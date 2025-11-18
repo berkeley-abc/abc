@@ -126,8 +126,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "read_blif_mv",  IoCommandReadBlifMv,   1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_bench",    IoCommandReadBench,    1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_cex",      IoCommandReadCex,      1 );
-    Cmd_CommandAdd( pAbc, "I/O", "read_dsd",      IoCommandReadDsd,      1 );
-    Cmd_CommandAdd( pAbc, "I/O", "read_formula",  IoCommandReadDsd,      1 );
+    Cmd_CommandAdd( pAbc, "I/O", "read_function", IoCommandReadDsd,      1 );
 //    Cmd_CommandAdd( pAbc, "I/O", "read_edif",     IoCommandReadEdif,     1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_eqn",      IoCommandReadEqn,      1 );
     Cmd_CommandAdd( pAbc, "I/O", "read_fins",     IoCommandReadFins,     0 );
@@ -1078,10 +1077,10 @@ int IoCommandReadDsd( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: read_dsd [-h] <formula>\n" );
-    fprintf( pAbc->Err, "\t          parses a formula representing DSD of a function\n" );
+    fprintf( pAbc->Err, "usage: read_function [-h] <formula>\n" );
+    fprintf( pAbc->Err, "\t          reads a Boolean function represented by a formula\n" );
     fprintf( pAbc->Err, "\t-h      : prints the command summary\n" );
-    fprintf( pAbc->Err, "\tformula : the formula representing disjoint-support decomposition (DSD)\n" );
+    fprintf( pAbc->Err, "\tformula : the formula representing the function\n" );
     fprintf( pAbc->Err, "\t          Example of a formula: !(a*(b+CA(!d,e*f,c))*79B3(g,h,i,k))\n" );
     fprintf( pAbc->Err, "\t          where \'!\' is an INV, \'*\' is an AND, \'+\' is an XOR, \n" );
     fprintf( pAbc->Err, "\t          CA and 79B3 are hexadecimal representations of truth tables\n" );
