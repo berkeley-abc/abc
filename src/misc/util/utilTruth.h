@@ -1640,7 +1640,7 @@ static inline void Abc_TtPrintBits2( word * pTruth, int nBits )
     int k;
     for ( k = nBits-1; k >= 0; k-- )
         printf( "%d", Abc_InfoHasBit( (unsigned *)pTruth, k ) );
-    printf( "\n" );
+    //printf( "\n" );
 }
 static inline void Abc_TtPrintBinary( word * pTruth, int nVars )
 {
