@@ -419,6 +419,21 @@ static void Exa8_ManPrintSolution( Exa8_Man_t * p, int fCompl )
         printf( " )\n" );
     }
 }
+static void Exa8_ManPrintPerm( Exa8_Man_t * p )
+{
+    int i, k, iVar;
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+        if ( i > p->nVars )
+            printf( "_" );
+        for ( k = p->nLutSize - 1; k >= 0; k-- )
+        {
+            iVar = Exa8_ManFindFanin( p, i, k );
+            if ( iVar >= 0 && iVar < p->nVars )
+                printf( "%c", 'a'+iVar );
+        }
+    }
+}
 
 /**Function*************************************************************
 
@@ -714,6 +729,9 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
         if ( DiffMint != -1 )
             printf( "Warning: Verification detected a mismatch at minterm %d.\n", DiffMint );
         Exa8_ManPrintSolution( p, fCompl );
+        printf( "The variable permutation is \"" );
+        Exa8_ManPrintPerm(p);
+        printf( "\".\n" );
         if ( pPars->fDumpBlif )
             Exa8_ManDumpBlif( p, fCompl );
         Res = 1;

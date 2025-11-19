@@ -1340,7 +1340,21 @@ static void Exa3_ManPrintSolution( Exa3_Man_t * p, int fCompl )
         printf( " )\n" );
     }
 }
-
+static void Exa3_ManPrintPerm( Exa3_Man_t * p )
+{
+    int i, k, iVar;
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+        if ( i > p->nVars )
+            printf( "_" );
+        for ( k = p->nLutSize - 1; k >= 0; k-- )
+        {
+            iVar = Exa3_ManFindFanin( p, i, k );
+            if ( iVar >= 0 && iVar < p->nVars )
+                printf( "%c", 'a'+iVar );
+        }
+    }
+}
 /**Function*************************************************************
 
   Synopsis    []
@@ -1678,8 +1692,12 @@ int Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars )
     }
     if ( pPars->fVerbose && status != GLUCOSE_UNDEC )
         Exa3_ManPrint( p, i, iMint, Abc_Clock() - clkTotal );
-    if ( iMint == -1 )
+    if ( iMint == -1 ) {
         Exa3_ManPrintSolution( p, fCompl ), Res = 1;
+        printf( "The variable permutation is \"" );
+        Exa3_ManPrintPerm(p);
+        printf( "\".\n" );
+    }
     else if ( status == GLUCOSE_UNDEC )
         printf( "The solver timed out after %d sec.\n", pPars->RuntimeLim );
     else if ( !p->pPars->fSilent ) 
