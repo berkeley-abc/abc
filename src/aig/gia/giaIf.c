@@ -2005,6 +2005,127 @@ void Gia_ManConfigPrint( word Truth4, word z, int nLeaves )
 
 /**Function*************************************************************
 
+  Synopsis    [Print cell configuration data.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManConfigPrint2( unsigned char * pConfigData, int nLeaves )
+{
+    unsigned char CellId = pConfigData[0];
+    int i;
+    static int Count = 0;
+    printf( "%6d : ", Count++ );  // Print instance number
+    printf( "[Cell %d with %d leaves]  ", CellId, nLeaves );
+    if ( CellId == 0 )
+    {
+        assert( nLeaves <= 4 );
+        // Extract 16-bit truth table
+        word Truth = ((word)pConfigData[5] << 8) | pConfigData[6];
+        printf( "e=%04lX{", (unsigned long)Truth );
+        // Print as simple {abcd} since it's just a direct LUT4
+        for ( i = 0; i < nLeaves; i++ )
+            printf( "%c", 'a' + i );
+        for ( ; i < 4; i++ )
+            printf( "%c", '0' );
+        printf( "}\n" );
+    }
+    else if ( CellId == 1 )
+    {
+        // First LUT4
+        word Truth1 = ((word)pConfigData[8] << 8) | pConfigData[9];
+        printf( "h=%04lX{", (unsigned long)Truth1 );
+        for ( i = 0; i < 4; i++ )
+        {
+            int v = pConfigData[1+i];
+            if ( v == 0 )
+                printf( "0");
+            else if ( v == 1 )
+                printf( "1");
+            else if ( v >= 2 && v < 2 + nLeaves )
+                printf( "%c", 'a' + (v-2));
+            else
+                printf( "?");
+        }
+        printf( "};");
+        // Second LUT4
+        word Truth2 = ((word)pConfigData[10] << 8) | pConfigData[11];
+        printf( "i=%04lX{", (unsigned long)Truth2 );
+        for ( i = 4; i < 7; i++ )
+        {
+            int v = pConfigData[1+i];
+            if ( v == 0 )
+                printf( "0");
+            else if ( v == 1 )
+                printf( "1");
+            else if ( v >= 2 && v < 2 + nLeaves )
+                printf( "%c", 'a' + (v-2));
+            else if ( v == 9 )
+                printf( "h");  // Output of first LUT
+            else
+                printf( "?");
+        }
+        printf( "h}\n" );
+    }
+    else if ( CellId == 2 )
+    {
+        // First LUT4
+        word Truth1 = ((word)pConfigData[10] << 8) | pConfigData[11];
+        printf( "j=%04lX{", (unsigned long)Truth1 );
+        for ( i = 0; i < 4; i++ )
+        {
+            int v = pConfigData[1+i];
+            if ( v == 0 )
+                printf( "0");
+            else if ( v == 1 )
+                printf( "1");
+            else if ( v >= 2 && v < 2 + nLeaves )
+                printf( "%c", 'a' + (v-2));
+            else
+                printf( "?");
+        }
+        printf( "};");
+        // Second LUT4
+        word Truth2 = ((word)pConfigData[12] << 8) | pConfigData[13];
+        printf( "k=%04lX{", (unsigned long)Truth2 );
+        for ( i = 4; i < 8; i++ )
+        {
+            int v = pConfigData[1+i];
+            if ( v == 0 )
+                printf( "0");
+            else if ( v == 1 )
+                printf( "1");
+            else if ( v >= 2 && v < 2 + nLeaves )
+                printf( "%c", 'a' + (v-2));
+            else
+                printf( "?");
+        }
+        printf( "};");
+        // final node
+        printf( "l=<");
+        int v = pConfigData[1+8];
+        if ( v == 0 )
+            printf( "0");
+        else if ( v == 1 )
+            printf( "1");
+        else if ( v >= 2 && v < 2 + nLeaves )
+            printf( "%c", 'a' + (v-2));
+        else
+            printf( "?");
+        printf( "jk>\n" );
+    }
+    else
+    {
+        printf( "Unknown cell type %d!\n", CellId );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Derive configurations.]
 
   Description []
@@ -2108,6 +2229,8 @@ void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, word * p
             assert( startPos + 14 == Vec_StrSize(vConfigs2) );
         }
     }
+    if ( pIfMan->pPars->fVerboseTrace ) 
+        Gia_ManConfigPrint2( (unsigned char*)Vec_StrEntryP(vConfigs2, startPos), nLeaves );
 }
 int Gia_ManFromIfLogicFindCell( If_Man_t * pIfMan, Gia_Man_t * pNew, Gia_Man_t * pTemp, If_Cut_t * pCutBest, Ifn_Ntk_t * pNtkCell, int nLutMax, Vec_Int_t * vLeaves, Vec_Int_t * vLits, Vec_Int_t * vCover, Vec_Int_t * vMapping, Vec_Int_t * vMapping2, Vec_Int_t * vConfigs )
 {
@@ -2907,7 +3030,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // print delay trace
-    if ( pPars->fVerboseTrace )
+    if ( pPars->fVerboseTrace && !pPars->fEnableCheck07 )
     {
         pNew->pLutLib = pPars->pLutLib;
         Gia_ManDelayTraceLutPrint( pNew, 1 );
