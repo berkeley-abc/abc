@@ -67,6 +67,7 @@ struct Bmc_EsPar_t_
     int        fUniqFans;
     int        fLutCascade;
     int        fLutInFixed;
+    int        fMinNodes;
     int        RuntimeLim;
     int        nRandFuncs;
     int        nMintNum;

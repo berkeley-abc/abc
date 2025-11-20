@@ -10757,6 +10757,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern int  Exa7_ManExactSynthesis( Bmc_EsPar_t * pPars );
     extern int  Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars );
+    extern int  Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars );
     extern int  Exa3_ManExactSynthesis( Bmc_EsPar_t * pPars );
     extern void Exa3_ManExactSynthesis2( Bmc_EsPar_t * pPars );
     extern void Exa3_ManExactSynthesisRand( Bmc_EsPar_t * pPars );
@@ -10765,7 +10766,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "NMKTFUSYPiaorfgckdsvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NMKTFUSYPiaorfgckdsmvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10890,6 +10891,9 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 's':
             pPars->fSilent ^= 1;
             break;
+        case 'm':
+            pPars->fMinNodes ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -10966,7 +10970,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: lutexact [-NMKTFUS <num>] [-Y string] [-P string] [-iaorfgckdsvh] <hex>\n" );
+    Abc_Print( -2, "usage: lutexact [-NMKTFUS <num>] [-Y string] [-P string] [-iaorfgckdsmvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of I-input function using N K-input gates\n" );
     Abc_Print( -2, "\t-N <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-M <num> : the number of K-input nodes [default = %d]\n", pPars->nNodes );
@@ -10987,6 +10991,7 @@ usage:
     Abc_Print( -2, "\t-k       : toggle using Kissat 4.0.2 by Armin Biere [default = %s]\n", pPars->fKissat ? "yes" : "no" );
     Abc_Print( -2, "\t-d       : toggle dumping decomposed networks into BLIF files [default = %s]\n", pPars->fDumpBlif ? "yes" : "no" );
     Abc_Print( -2, "\t-s       : toggle silent computation (no messages, except when a solution is found) [default = %s]\n", pPars->fSilent ? "yes" : "no" );
+    Abc_Print( -2, "\t-m       : toggle minimum-node solution possibly smaller than \"-M <num>\" [default = %s]\n", pPars->fMinNodes ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
