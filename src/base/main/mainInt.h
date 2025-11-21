@@ -67,6 +67,7 @@ struct Abc_Frame_t_
     st__table *      tAliases;      // the alias table
     st__table *      tFlags;        // the flag table
     Vec_Ptr_t *     aHistory;      // the command history
+    int             iStartHistory; // beginning of the new history file
     // the functionality
     Abc_Ntk_t *     pNtkCur;       // the current network
     Abc_Ntk_t *     pNtkBestDelay; // the current network
