@@ -1240,6 +1240,17 @@ Vec_Int_t * Wlc_BlastDecoder2( Gia_Man_t * pNew, int * pNum, int nNum, Vec_Int_t
     Vec_IntFree( vRes2 );
     return vRes;
 }
+void Wlc_DumpMatrix( Gia_Man_t * pNew, Vec_Wec_t * vProds )
+{
+    char * pFileName = "booth_pps.aig";
+    Vec_Int_t * vLevel; int i, k, Entry;
+    Vec_WecForEachLevel( vProds, vLevel, i )
+        Vec_IntForEachEntry( vLevel, Entry, k )
+            Gia_ManAppendCo(pNew, Entry);
+    Gia_AigerWrite( pNew, pFileName, 0, 0, 0 );
+    printf( "Finished dumping Booth PPs into \"%s\".\n", pFileName );
+    exit(1);
+}
 void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int nArgB, Vec_Int_t * vRes, int fSigned, int fCla, Vec_Wec_t ** pvProds, int fVerbose )
 {
     Vec_Wec_t * vProds  = Vec_WecStart( nArgA + nArgB + 3 );
@@ -1324,6 +1335,7 @@ void Wlc_BlastBooth( Gia_Man_t * pNew, int * pArgA, int * pArgB, int nArgA, int 
         Vec_WecPrint( vProds, 0 );
     if ( fVerbose ) 
         printf( "Total PPs = %d.\n", Vec_WecSizeSize(vProds) );
+    //Wlc_DumpMatrix( pNew, vProds );
     //Wlc_BlastPrintMatrix( pNew, vProds, 1 );
     //printf( "Cutoff ID for partial products = %d.\n", Gia_ManObjNum(pNew) );
     if ( pvProds )
