@@ -16,6 +16,21 @@ static inline bool kissat_terminated (kissat *solver, int bit,
                                       const char *name, const char *file,
                                       long lineno, const char *fun) {
   KISSAT_assert (0 <= bit), KISSAT_assert (bit < 64);
+#if defined(COVERAGE)
+  if (!solver->termination.flagged) {
+    int (*terminate) (void *) = solver->termination.terminate;
+    void *state = (void *) solver->termination.state;
+    if (terminate && terminate (state))
+      solver->termination.flagged = ~(uint64_t) 0;
+  }
+#else
+  if (!solver->termination.flagged) {
+    int (*terminate) (void *) = solver->termination.terminate;
+    void *state = (void *) solver->termination.state;
+    if (terminate && terminate (state))
+      solver->termination.flagged = true;
+  }
+#endif
 #ifdef COVERAGE
   const uint64_t mask = (uint64_t) 1 << bit;
   if (!(solver->termination.flagged & mask))
