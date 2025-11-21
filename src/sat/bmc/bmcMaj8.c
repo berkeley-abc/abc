@@ -791,7 +791,8 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
             Vec_StrFree( vStr );
         }
         Result = Exa8_ManExactSynthesis(pPars);
-        if ( Result != 2 )
+        fflush( stdout );
+        if ( Result == 1 )
             break;
     }
     return Result;
