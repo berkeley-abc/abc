@@ -751,7 +751,7 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     if ( pNew == NULL )
         return NULL;
     Gia_ManTransferTiming( pNew, p );
-    nFlops = Vec_IntCountEntry(pNew->vRegClasses, 1);
+    nFlops = pNew->vRegClasses ? Vec_IntCountEntry(pNew->vRegClasses, 1) : 0;
     // find global equivalences
     pClp = Gia_ManDupCollapse( pNew, pNew->pAigExtra, NULL, pParsC ? 0 : 1 );
     //Gia_DumpAiger( pClp, p->pSpec, 1, 1 );
@@ -775,7 +775,7 @@ Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, 
     pNew = Gia_ManDupWithBoxes( pTemp = pNew, pParsC ? 0 : 1 );
     Gia_ManStop( pTemp );
     // report
-    nFlopsNew = Vec_IntCountEntry(pNew->vRegClasses, 1);
+    nFlopsNew = pNew->vRegClasses ? Vec_IntCountEntry(pNew->vRegClasses, 1) : 0;
     pFlopTypes[2] = nFlops - nFlopsNew - (pFlopTypes[0] + pFlopTypes[1]);
     if ( fVerbEquivs )
     {
