@@ -160,9 +160,15 @@ void Cmd_HistoryWrite( Abc_Frame_t * p, int Limit )
             return;
         }
         Limit = Abc_MaxInt( 0, Vec_PtrSize(p->aHistory)-Limit );
-        Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Limit )
+        Vec_Ptr_t * aHistory= Vec_PtrAlloc(Vec_PtrSize(p->aHistory));
+        Vec_PtrForEachEntryStart( char *, p->aHistory, pStr, i, Limit ) {
             fprintf( pFile, "%s\n", pStr );
+            Vec_PtrPush( aHistory, Abc_UtilStrsav(pStr) );
+        }
         fclose( pFile );
+        Vec_PtrFreeFree( p->aHistory );
+        p->aHistory = aHistory;
+        p->iStartHistory = Vec_PtrSize(p->aHistory);
     }
 #endif
 }

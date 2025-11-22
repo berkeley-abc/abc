@@ -327,7 +327,10 @@ void Ntk_SymFunGenerate( int nVars, int fVerbose )
         if ( fVerbose )
             Extra_PrintHex( stdout, (unsigned *)pFun, nVars );
         Ntk_SymFunDeriveNpn( pFun, nVars, pComp );
+        //int nClasses = Vec_MemEntryNum( vTtMem );
         Class = Vec_MemHashInsert( vTtMem, pFun );
+        //if ( Class == nClasses )
+        //printf( "Class %3d : %s\n", nClasses, Ones );
         if ( fVerbose )
         {
             printf( " : NPN " );
