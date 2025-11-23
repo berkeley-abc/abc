@@ -29,9 +29,9 @@ ABC_NAMESPACE_IMPL_START
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define GIA_MAX_CUTSIZE    8
-#define GIA_MAX_CUTNUM     257
-#define GIA_MAX_TT_WORDS   ((GIA_MAX_CUTSIZE > 6) ? 1 << (GIA_MAX_CUTSIZE-6) : 1)
+#define GIA_MAX_CUTSIZE    14
+#define GIA_MAX_CUTNUM    257
+#define GIA_MAX_TT_WORDS  ((GIA_MAX_CUTSIZE > 6) ? 1 << (GIA_MAX_CUTSIZE-6) : 1)
 
 #define GIA_CUT_NO_LEAF   0xF
 
@@ -649,7 +649,7 @@ void Gia_StoComputeCuts( Gia_Man_t * pGia )
         printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
         printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
         printf( "\n" );
-        printf( "The number of nodes with cut count over the limit (%d cuts) = %d nodes (out of %d).  ", 
+        printf( "The number of nodes with maximum cut count (%d cuts) = %d nodes (out of %d).  ", 
             p->nCutNum, p->nCutsOver, Gia_ManAndNum(pGia) );
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
@@ -724,7 +724,7 @@ Vec_Wec_t * Gia_ManExtractCuts( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int
         printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
         printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
         printf( "\n" );
-        printf( "The number of nodes with cut count over the limit (%d cuts) = %d nodes (out of %d).  ", 
+        printf( "The number of nodes with maximum cut count (%d cuts) = %d nodes (out of %d).  ", 
             p->nCutNum, p->nCutsOver, Gia_ManAndNum(pGia) );
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
@@ -999,7 +999,7 @@ Vec_Wec_t * Gia_ManExploreCuts( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int
         printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
         printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
         printf( "\n" );
-        printf( "The number of nodes with cut count over the limit (%d cuts) = %d nodes (out of %d).  ", 
+        printf( "The number of nodes with maximum cut count (%d cuts) = %d nodes (out of %d).  ", 
             p->nCutNum, p->nCutsOver, Gia_ManAndNum(pGia) );
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
@@ -1027,12 +1027,12 @@ void Gia_ManExploreCutsTest( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int fV
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Sto_t * Gia_ManMatchCutsInt( Gia_Man_t * pGia, int nCutSize0, int nCutNum0, int fVerbose0 )
+Gia_Sto_t * Gia_ManMatchCutsInt( Gia_Man_t * pGia, int nCutSize0, int nCutNum0, int fTruth0, int fVerbose0 )
 {
     int nCutSize  =  nCutSize0;
     int nCutNum   =  nCutNum0;
-    int fCutMin   =  1;
-    int fTruthMin =  1;
+    int fCutMin   =  fTruth0;
+    int fTruthMin =  fTruth0;
     int fVerbose  =  fVerbose0;
     Gia_Sto_t * p = Gia_StoAlloc( pGia, nCutSize, nCutNum, fCutMin, fTruthMin, fVerbose );
     Gia_Obj_t * pObj;  int i, iObj;
@@ -1057,15 +1057,90 @@ Gia_Sto_t * Gia_ManMatchCutsInt( Gia_Man_t * pGia, int nCutSize0, int nCutNum0, 
         printf( "Cut = %.0f (%.2f %%)  ",   p->CutCount[3], 100.0*p->CutCount[3]/p->CutCount[0] );
         printf( "Cut/Node = %.2f  ",        p->CutCount[3] / Gia_ManAndNum(p->pGia) );
         printf( "\n" );
-        printf( "The number of nodes with cut count over the limit (%d cuts) = %d nodes (out of %d).  ", 
+        printf( "The number of nodes with maximum cut count (%d cuts) = %d nodes (out of %d).  ", 
             p->nCutNum, p->nCutsOver, Gia_ManAndNum(pGia) );
         Abc_PrintTime( 0, "Time", Abc_Clock() - p->clkStart );
     }
     return p;
 }
+int Gia_ManCountSelfCuts( Gia_Man_t * p, Gia_Sto_t * pSto )
+{
+    Vec_Int_t * vLevel; int i, k, * pCut, nNodes = 0;
+    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
+        Gia_Obj_t * pObj = Gia_ManObj(p, i);
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k )
+            nNodes += pCut[0] == 2 && pCut[1] == Gia_ObjFaninId0p(p, pObj) && pCut[2] == Gia_ObjFaninId1p(p, pObj);
+    }
+    return nNodes;
+}
+
+void Gia_ManDumpCuts( Gia_Man_t * p, Gia_Sto_t * pSto, FILE * pFile, int fVerbose, char * pFileName )
+{
+    Vec_Int_t * vLevel; int i, k, c, * pCut, nCuts = 0, nNodes = 0;
+    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
+        if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) )
+            continue;
+        int nNodeCuts = 0;
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) {
+            if ( pCut[0] == 1 )
+                continue;
+            fprintf( pFile, "%d ", i );
+            for ( c = 1; c <= pCut[0]; c++ )
+                fprintf( pFile, "%d ", pCut[c] );
+            fprintf( pFile, "1\n" );
+            nNodeCuts++;
+            nNodes++;
+        }
+        nCuts += nNodeCuts;
+    }
+    Gia_Obj_t * pObj;
+    Gia_ManForEachCo( p, pObj, i )
+        fprintf( pFile, "%d %d 0\n", Gia_ObjId(p, pObj), Gia_ObjFaninId0p(p, pObj) );
+    if ( fVerbose )
+        printf( "Dumped %d cuts for %d nodes into file \"%s\".\n", nCuts, nNodes, pFileName ? pFileName : "stdout" );
+}
+void Gia_ManComputeCutsCore( Gia_Man_t * pGia, int nCutSize, int nCutNum, int fTruth, int fVerbose, int fDumpText, int fDumpBin, char * pFileName )
+{
+    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fTruth, fVerbose );
+    if ( fDumpText ) {
+        FILE * pFile = pFileName ? fopen(pFileName, "wb") : stdout; 
+        if ( !pFile ) return;
+        Gia_ManDumpCuts( pGia, pSto, pFile, fVerbose, pFileName );
+    }
+    else if ( fDumpBin ) {
+        FILE * pFile = pFileName ? fopen(pFileName, "wb") : NULL; 
+        if ( !pFile ) return;
+        Gia_ManDumpCuts( pGia, pSto, pFile, fVerbose, pFileName );
+    }
+    //printf( "The number of nodes with self-cuts = %d (out of %d).\n", Gia_ManCountSelfCuts(pGia, pSto), Gia_ManAndNum(pGia) );
+    Gia_StoFree( pSto );
+}
+
+Vec_Wec_t * Gia_ManCompute54Cuts( Gia_Man_t * pGia, int fVerbose )
+{
+    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( pGia, 5, 16, 0, fVerbose );
+    Vec_Wec_t * vRes = Vec_WecAlloc( 1000 );
+    Vec_Int_t * vLevel; int i, k, c, * pCut;
+    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
+        if ( !Gia_ObjIsAnd(Gia_ManObj(pGia, i)) )
+            continue;
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) {
+            if ( pCut[0] != 4 && pCut[0] != 5 )
+                continue;
+            Vec_Int_t * vCut = Vec_WecPushLevel( vRes );
+            for ( c = 1; c <= pCut[0]; c++ )
+                Vec_IntPush( vCut, pCut[c] );
+            Vec_IntPush( vCut, i );
+        }
+    }
+    Gia_StoFree( pSto );
+    return vRes;
+}
 void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
 {
-    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, 1, fVerbose );
     Vec_Int_t * vLevel; int i, j, k, * pCut;
     Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
     Vec_Wec_t * vCuts = Vec_WecAlloc( 100 );
@@ -1101,7 +1176,7 @@ void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int n
 Vec_Ptr_t * Gia_ManMatchCutsArray( Vec_Ptr_t * vTtMems, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
 {
     Vec_Ptr_t * vRes = Vec_PtrAlloc( Vec_PtrSize(vTtMems) );
-    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, 1, fVerbose );
     Vec_Int_t * vLevel, * vTemp; int i, k, c, * pCut;
     abctime clkStart  = Abc_Clock();
     for ( i = 0; i < Vec_PtrSize(vTtMems); i++ )
@@ -1136,7 +1211,7 @@ Vec_Ptr_t * Gia_ManMatchCutsArray( Vec_Ptr_t * vTtMems, Gia_Man_t * pGia, int nC
 }
 Vec_Ptr_t * Gia_ManMatchCutsMany( Vec_Mem_t * vTtMem, Vec_Int_t * vMap, int nFuncs, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose )
 {
-    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, fVerbose );
+    Gia_Sto_t * p = Gia_ManMatchCutsInt( pGia, nCutSize, nCutNum, 1, fVerbose );
     Vec_Int_t * vLevel; int i, j, k, * pCut;
     abctime clkStart  = Abc_Clock();
     assert( Abc_Truth6WordNum(nCutSize) == Vec_MemEntrySize(vTtMem) );
@@ -1179,49 +1254,9 @@ Vec_Ptr_t * Gia_ManMatchCutsMany( Vec_Mem_t * vTtMem, Vec_Int_t * vMap, int nFun
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManDumpCuts( Gia_Man_t * p, int nCutSize, int nCutNum, int fVerbose )
-{
-    FILE * pFile = fopen( "input.txt", "wb" ); if ( !pFile ) return;
-    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( p, nCutSize, nCutNum, 0 );
-    Vec_Int_t * vLevel; int i, k, c, * pCut, nCuts = 0, nNodes = 0;
-    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
-        if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) )
-            continue;
-        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) {
-            if ( pCut[0] == 1 )
-                continue;
-            fprintf( pFile, "%d ", i );
-            for ( c = 1; c <= pCut[0]; c++ )
-                fprintf( pFile, "%d ", pCut[c] );
-            fprintf( pFile, "1\n" );
-            nCuts += pCut[0];
-            nNodes++;
-        }
-    }
-    Gia_Obj_t * pObj;
-    Gia_ManForEachCo( p, pObj, i ) {
-        fprintf( pFile, "%d %d 0\n", Gia_ObjId(p, pObj), Gia_ObjFaninId0p(p, pObj) );
-    }
-    fclose( pFile );
-    Gia_StoFree( pSto );
-    if ( fVerbose )
-        printf( "Dumped %d cuts for %d nodes into file \"input.txt\".\n", nCuts, nNodes );
-}
-
-/**Function*************************************************************
-
-  Synopsis    [Function enumeration.]
-
-  Description []
-               
-  SideEffects []
-
-  SeeAlso     []
-
-***********************************************************************/
 Vec_Wrd_t * Gia_ManCollectCutFuncs( Gia_Man_t * p, int nCutSize, int nCutNum, int fVerbose )
 {
-    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( p, nCutSize, nCutNum, 0 );
+    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( p, nCutSize, nCutNum, 1, 0 );
     Vec_Wrd_t * vFuncs = Vec_WrdAlloc( 1000 ); Vec_Int_t * vLevel; int i, k, * pCut; 
     Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) )
         Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) if ( pCut[0] == nCutSize ) {
