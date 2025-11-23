@@ -374,6 +374,7 @@ struct Jf_Par_t_
     int            nCutNumMax;
     int            nProcNumMax;
     int            nLutSizeMux;
+    int            nMaxMatches;
     word           Delay;
     word           Area;
     word           Edge;

@@ -2241,8 +2241,158 @@ void Nf_ManDumpMatches( Nf_Man_t * p )
                 Nf_CutForEachVarCompl( pCut, pM->Cfg, iVar, fCompl, k )
                     fprintf( pFile, " %d", Abc_Var2Lit(iVar, fCompl) );
                 fprintf( pFile, "\n" );
-            }
+    }
     fclose( pFile );
+}
+void Nf_ManDumpMatchesPrint( Gia_Man_t * pGia, Vec_Int_t * vStore, int nCutSize, int nMaxMatches )
+{
+    int iObj, n, f, m;
+    int nObjs = Gia_ManObjNum( pGia );
+    int * pData;
+    if ( vStore == NULL || nCutSize == 0 || nMaxMatches == 0 )
+        return;
+    pData = Vec_IntArray( vStore );
+    for ( iObj = 0; iObj < nObjs; iObj++ )
+    {
+        Gia_Obj_t * pObj = Gia_ManObj( pGia, iObj );
+        int fPrint = 0;
+        if ( Gia_ObjIsAnd(pObj) && !Gia_ObjIsBuf(pObj) )
+            fPrint = 1;
+        else if ( Gia_ObjIsCo(pObj) )
+            fPrint = 1;
+        if ( !fPrint )
+            continue;
+        for ( n = 0; n < 2; n++ )
+        {
+            int * pNodeStore = pData + (2 * iObj + n) * nCutSize * nMaxMatches;
+            printf( "Node %d (%s) polarity %d has %d matches:\n", iObj, Gia_ObjIsCo(pObj) ? "CO" : "AND", n, nMaxMatches );
+            for ( f = 0; f < nCutSize; f++ )
+            {
+                printf( "  Input %d:", f );
+                for ( m = 0; m < nMaxMatches; m++ )
+                    printf( " %4d", pNodeStore[f * nMaxMatches + m] );
+                printf( "\n" );
+            }
+        }
+    }
+}
+void Nf_ManDumpMatchesBin( Nf_Man_t * p, int nMaxMatches )
+{
+    const char * pNameNA = "n/a";
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vStore;
+    int * pData;
+    int iObj, n, nMatches = 0;
+    int nCutSize = p->pPars->nLutSize;
+    int nObjs = Gia_ManObjNum(p->pGia);
+    char * pFileNameBin = NULL, * pFileNameGates = NULL;
+    FILE * pFileBin = NULL, * pFileGates = NULL;
+    if ( nMaxMatches <= 0 )
+        return;
+    if ( p->pPars->ZFile == NULL )
+        return;
+    assert( nCutSize > 0 && nCutSize <= NF_LEAF_MAX );
+    vStore = Vec_IntStart( 2 * nObjs * nCutSize * nMaxMatches );
+    pData = Vec_IntArray( vStore );
+    pFileNameBin   = Abc_UtilStrsav( Extra_FileNameGenericAppend( p->pPars->ZFile, ".bin" ) );
+    pFileNameGates = Abc_UtilStrsav( Extra_FileNameGenericAppend( p->pPars->ZFile, ".gates" ) );
+    pFileBin   = fopen( pFileNameBin,   "wb" );
+    pFileGates = fopen( pFileNameGates, "wb" );
+    if ( pFileBin == NULL || pFileGates == NULL ) {
+        printf( "Cannot open match dump files \"%s\" and \"%s\".\n", pFileNameBin, pFileNameGates );
+        if ( pFileBin ) fclose( pFileBin );
+        if ( pFileGates ) fclose( pFileGates );
+        ABC_FREE( pFileNameBin );
+        ABC_FREE( pFileNameGates );
+        Vec_IntFree( vStore );
+        return;
+    }
+    for ( iObj = 0; iObj < nObjs; iObj++ ) {
+        pObj = Gia_ManObj( p->pGia, iObj );
+        assert( !Gia_ObjIsBuf(pObj) );
+        for ( n = 0; n < 2; n++ ) {
+            int Slot = 0;
+            int k;
+            int LitBuffer[NF_LEAF_MAX];
+            int * pNodeStore = pData + (2 * iObj + n) * nCutSize * nMaxMatches;
+            memset( pNodeStore, 0, sizeof(int) * nCutSize * nMaxMatches );
+            if ( Gia_ObjIsCo(pObj) && n == 0 && Slot < nMaxMatches ) {
+                pNodeStore[Slot] = Gia_ObjFaninLit0p( p->pGia, pObj );
+                fprintf( pFileGates, "%s %.2f\n", pNameNA, 0.0 );
+                Slot++;
+                nMatches++;
+            }
+            if ( Gia_ObjIsAnd(pObj) ) {
+                int c, * pCut, * pCutSet = Nf_ObjCutSet( p, iObj );
+                Nf_SetForEachCut( pCutSet, pCut, c )
+                {
+                    int iFuncLit, fComplExt;
+                    Vec_Int_t * vVec;
+                    int j, Info, Offset;
+                    if ( Slot == nMaxMatches )
+                        break;
+                    if ( Abc_Lit2Var(Nf_CutFunc(pCut)) >= Vec_WecSize(p->vTt2Match) )
+                        continue;
+                    if ( Nf_CutIsTriv(pCut, iObj) )
+                        continue;
+                    assert( Nf_CutSize(pCut) <= nCutSize );
+                    iFuncLit = Nf_CutFunc(pCut);
+                    fComplExt = Abc_LitIsCompl(iFuncLit);
+                    vVec = Vec_WecEntry( p->vTt2Match, Abc_Lit2Var(iFuncLit) );
+                    Vec_IntForEachEntryDouble( vVec, Info, Offset, j )
+                    {
+                        Nf_Cfg_t Cfg = Nf_Int2Cfg( Offset );
+                        int fCompl = Cfg.fCompl ^ fComplExt;
+                        Mio_Cell2_t * pCell = NULL;
+                        const char * pGateName;
+                        float Area = 0.0;
+                        int iFanin, fComplF, nLitCount = 0;
+                        if ( fCompl != n )
+                            continue;
+                        if ( Slot == nMaxMatches )
+                            break;
+                        if ( Info >= 0 )
+                            pCell = Nf_ManCell( p, Info );
+                        pGateName = (pCell && pCell->pName) ? pCell->pName : pNameNA;
+                        Area      = pCell ? pCell->AreaF : 0.0f;
+                        Nf_CutForEachVarCompl( pCut, Cfg, iFanin, fComplF, k )
+                            LitBuffer[nLitCount++] = Abc_Var2Lit( iFanin, fComplF );
+                        for ( k = 0; k < nCutSize; k++ )
+                            pNodeStore[k * nMaxMatches + Slot] = 0;
+                        for ( k = 0; k < nLitCount; k++ )
+                            pNodeStore[k * nMaxMatches + Slot] = LitBuffer[k];
+                        fprintf( pFileGates, "%s %.2f\n", pGateName, Area );
+                        Slot++;
+                        nMatches++;
+                    }
+                }
+            }
+            while ( Slot < nMaxMatches ) {
+                fprintf( pFileGates, "%s %.2f\n", pNameNA, 0.0 );
+                Slot++;
+            }
+        }
+    }
+    {
+        int Num = 3;
+        fwrite( &Num, 4, 1, pFileBin );
+        Num = 2 * nObjs;
+        fwrite( &Num, 4, 1, pFileBin );
+        Num = nCutSize;
+        fwrite( &Num, 4, 1, pFileBin );
+        Num = nMaxMatches;
+        fwrite( &Num, 4, 1, pFileBin );
+    }
+    fwrite( pData, 4, Vec_IntSize(vStore), pFileBin );
+    if ( p->pPars->fVerbose )
+        printf( "Dumped %d matches (limit %d) into binary file \"%s\" (%.2f MB).\n", 
+            nMatches, nMaxMatches, pFileNameBin, Vec_IntMemory(vStore)/(1<<20) );
+    fclose( pFileBin );
+    fclose( pFileGates );
+    //Nf_ManDumpMatchesPrint( p->pGia, vStore, nCutSize, nMaxMatches );
+    Vec_IntFree( vStore );
+    ABC_FREE( pFileNameBin );
+    ABC_FREE( pFileNameGates );
 }
 
 /**Function*************************************************************
@@ -2300,8 +2450,12 @@ Gia_Man_t * Nf_ManDeriveMapping( Nf_Man_t * p )
     }
 //    assert( Vec_IntCap(vMapping) == 16 || Vec_IntSize(vMapping) == Vec_IntCap(vMapping) );
     p->pGia->vCellMapping = vMapping;
-    if ( p->pPars->ZFile )
-        Nf_ManDumpMatches( p );
+    if ( p->pPars->ZFile ) {
+        if ( p->pPars->nMaxMatches )
+            Nf_ManDumpMatchesBin( p, p->pPars->nMaxMatches );
+        else 
+            Nf_ManDumpMatches( p );
+    }
     return p->pGia;
 }
 void Nf_ManUpdateStats( Nf_Man_t * p )
@@ -2775,4 +2929,3 @@ Gia_Man_t * Nf_ManPerformMapping( Gia_Man_t * p, Jf_Par_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-
