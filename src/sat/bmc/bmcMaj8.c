@@ -790,6 +790,48 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
             pPars->pPermStr = Vec_StrReleaseArray(vStr);
             Vec_StrFree( vStr );
         }
+        if ( 0 && fGenPerm ) {
+            Vec_Str_t * vStr = Vec_StrAlloc( 100 );
+            for ( int v = 0; v < pPars->nLutSize; v++ )
+                Vec_StrPush( vStr, 'a'+v );
+            for ( int m = 1; m < pPars->nNodes; m++ ) {
+                Vec_StrPush( vStr, '_' );
+                if ( m & 1 ) 
+                    for ( int v = 0; v < pPars->nLutSize-1; v++ )
+                        Vec_StrPush( vStr, 'a'+(pPars->nVars-(pPars->nLutSize-1-v)) );
+                else
+                    for ( int v = 0; v < pPars->nLutSize-1; v++ )
+                        Vec_StrPush( vStr, 'a'+v );
+            }
+            Vec_StrPush( vStr, '\0' );
+            ABC_FREE( pPars->pPermStr );
+            pPars->pPermStr = Vec_StrReleaseArray(vStr);
+            Vec_StrFree( vStr );
+        }
+        if ( 0 && fGenPerm ) {
+            Vec_Str_t * vStr = Vec_StrAlloc( 100 );
+            for ( int v = 0; v < pPars->nLutSize; v++ )
+                Vec_StrPush( vStr, 'a'+v );
+            for ( int m = 1; m < pPars->nNodes; m++ ) {
+                Vec_StrPush( vStr, '_' );
+                if ( m & 1 ) {
+                    Vec_StrPush( vStr, '*' );
+                    Vec_StrPush( vStr, '*' );
+                    for ( int v = 2; v < pPars->nLutSize-1; v++ )
+                        Vec_StrPush( vStr, 'a'+(pPars->nVars-(pPars->nLutSize-1-v)) );
+                }
+                else {
+                    for ( int v = 0; v < pPars->nLutSize-3; v++ )
+                        Vec_StrPush( vStr, 'a'+v );
+                    Vec_StrPush( vStr, '*' );
+                    Vec_StrPush( vStr, '*' );
+                }
+            }
+            Vec_StrPush( vStr, '\0' );
+            ABC_FREE( pPars->pPermStr );
+            pPars->pPermStr = Vec_StrReleaseArray(vStr);
+            Vec_StrFree( vStr );
+        }
         Result = Exa8_ManExactSynthesis(pPars);
         fflush( stdout );
         if ( Result == 1 )
