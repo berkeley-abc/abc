@@ -1075,14 +1075,33 @@ int Gia_ManCountSelfCuts( Gia_Man_t * p, Gia_Sto_t * pSto )
     }
     return nNodes;
 }
-
-void Gia_ManDumpCuts( Gia_Man_t * p, Gia_Sto_t * pSto, FILE * pFile, int fVerbose, char * pFileName )
+void Gia_ManEvalCutHashing( Gia_Man_t * p, Gia_Sto_t * pSto )
+{
+    Hsh_VecMan_t * pHash = Hsh_VecManStart( 100000 );
+    Vec_Int_t vTemp = {0};
+    Vec_Int_t * vLevel; int i, k, * pCut, nBytes = 0, nCuts = 0;
+    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
+        Gia_Obj_t * pObj = Gia_ManObj(p, i);
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) {
+            vTemp.nSize = vTemp.nCap = pCut[0];
+            vTemp.pArray = pCut+1;
+            Hsh_VecManAdd( pHash, &vTemp );
+            nBytes += 4*(pCut[0]+1);
+            nCuts++;
+        }
+    }
+    printf( "Total cuts = %d.  Unique = %d.  Memory = %.2f MB.  With hashing = %.2f MB.\n", 
+        nCuts, Hsh_VecSize(pHash), 1.0*nBytes/(1<<20), Hsh_VecManMemory(pHash)/(1<<20) );
+    Hsh_VecManStop( pHash );
+}
+void Gia_ManDumpCutsText( Gia_Man_t * p, Gia_Sto_t * pSto, FILE * pFile, int fVerbose, char * pFileName )
 {
     Vec_Int_t * vLevel; int i, k, c, * pCut, nCuts = 0, nNodes = 0;
     Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
         if ( !Gia_ObjIsAnd(Gia_ManObj(p, i)) )
             continue;
-        int nNodeCuts = 0;
         Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) {
             if ( pCut[0] == 1 )
                 continue;
@@ -1090,16 +1109,104 @@ void Gia_ManDumpCuts( Gia_Man_t * p, Gia_Sto_t * pSto, FILE * pFile, int fVerbos
             for ( c = 1; c <= pCut[0]; c++ )
                 fprintf( pFile, "%d ", pCut[c] );
             fprintf( pFile, "1\n" );
-            nNodeCuts++;
-            nNodes++;
+            nCuts++;
         }
-        nCuts += nNodeCuts;
+        nNodes++;
     }
     Gia_Obj_t * pObj;
     Gia_ManForEachCo( p, pObj, i )
         fprintf( pFile, "%d %d 0\n", Gia_ObjId(p, pObj), Gia_ObjFaninId0p(p, pObj) );
     if ( fVerbose )
-        printf( "Dumped %d cuts for %d nodes into file \"%s\".\n", nCuts, nNodes, pFileName ? pFileName : "stdout" );
+        printf( "Dumped %d cuts for %d nodes into text file \"%s\".\n", nCuts, nNodes, pFileName ? pFileName : "stdout" );
+}
+void Gia_ManDumpCutsPrint( Gia_Man_t * p, Vec_Int_t * vStore, int nCutSize, int nCutNum )
+{
+    int o, f, c;
+    int nObjs = Gia_ManObjNum( p );
+    int * pStore = Vec_IntArray( vStore );
+    if ( nCutSize == 0 || nCutNum == 0 )
+        return;
+    for ( o = 0; o < nObjs; o++ ) {
+        Gia_Obj_t * pObj = Gia_ManObj( p, o );
+        int * pNodeStore;
+        if ( !Gia_ObjIsAnd(pObj) && !Gia_ObjIsCo(pObj) )
+            continue;
+        pNodeStore = pStore + o * nCutSize * nCutNum;
+        printf( "Node %d has %d cuts:\n", o, nCutNum );
+        for ( f = 0; f < nCutSize; f++ ) {
+            printf( "Fanin %d:", f );
+            for ( c = 0; c < nCutNum; c++ )
+                printf( " %4d", pNodeStore[f * nCutNum + c] );
+            printf( "\n" );
+        }
+    }
+}
+void Gia_ManDumpCutsBin( Gia_Man_t * p, Gia_Sto_t * pSto, FILE * pFile, int nCutSize, int nCutNum, int fVerbose, char * pFileName )
+{
+    Vec_Int_t * vLevel; int i, k, c, * pCut, Num, RetValue, nCuts = 0, nNodes = 0;
+    Vec_Int_t * vStore = Vec_IntStart( Gia_ManObjNum(p) * nCutSize * nCutNum );
+    int * pStore = Vec_IntArray( vStore );
+    Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
+        Gia_Obj_t * pObj = Gia_ManObj(p, i);
+        int CutIndex = 0;
+        int * pNodeStore;
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        pNodeStore = pStore + i * nCutSize * nCutNum;
+        // flatten cuts as [object][leaf][cut], so each leaf spans nCutNum consecutive entries
+        // add the mandatory two-leaf cut composed of the current node's fanins
+        if ( nCutNum > 0 ) {
+            pNodeStore[CutIndex] = Gia_ObjFaninId0p( p, pObj );
+            pNodeStore[nCutNum + CutIndex] = Gia_ObjFaninId1p( p, pObj );
+            CutIndex++;
+            nCuts++;
+        }
+        Sdb_ForEachCut( Vec_IntArray(vLevel), pCut, k ) {
+            if ( pCut[0] == 1 )
+                continue;
+            if ( CutIndex >= nCutNum )
+                break;
+            assert( pCut[0] <= nCutSize );
+            for ( c = 0; c < pCut[0]; c++ )
+                pNodeStore[c * nCutNum + CutIndex] = pCut[c+1];
+            CutIndex++;
+            nCuts++;
+        }            
+        nNodes++;
+    }
+    // add unit cuts for primary outputs driven by arbitrary objects (const, PI, or internal node)
+    if ( nCutSize > 0 && nCutNum > 0 ) {
+        Gia_Obj_t * pObj;
+        Gia_ManForEachCo( p, pObj, i ) {
+            int ObjId = Gia_ObjId( p, pObj );
+            int * pNodeStore = pStore + ObjId * nCutSize * nCutNum;
+            pNodeStore[0] = Gia_ObjFaninId0p( p, pObj );
+            nCuts++;
+        }
+    }
+    // the number of dimension
+    Num = 3;
+    RetValue = fwrite( &Num, 4, 1, pFile );
+    assert( RetValue == 1 );
+    // the number of objects
+    Num = Gia_ManObjNum(p);
+    RetValue = fwrite( &Num, 4, 1, pFile );
+    assert( RetValue == 1 );
+    // the cut size
+    Num = nCutSize;
+    RetValue = fwrite( &Num, 4, 1, pFile );
+    assert( RetValue == 1 );
+    // the cut count 
+    Num = nCutNum;
+    RetValue = fwrite( &Num, 4, 1, pFile );
+    assert( RetValue == 1 );
+    // the cuts themselves
+    RetValue = fwrite( Vec_IntArray(vStore), 4, Vec_IntSize(vStore), pFile );
+    assert( RetValue == Vec_IntSize(vStore) );
+    if ( fVerbose )
+        printf( "Dumped %d cuts for %d nodes into binary file \"%s\" (%.2f MB).\n", nCuts, nNodes, pFileName, Vec_IntMemory(vStore)/(1<<20) );
+    //Gia_ManDumpCutsPrint( p, vStore, nCutSize, nCutNum );
+    Vec_IntFree( vStore );
 }
 void Gia_ManComputeCutsCore( Gia_Man_t * pGia, int nCutSize, int nCutNum, int fTruth, int fVerbose, int fDumpText, int fDumpBin, char * pFileName )
 {
@@ -1107,14 +1214,17 @@ void Gia_ManComputeCutsCore( Gia_Man_t * pGia, int nCutSize, int nCutNum, int fT
     if ( fDumpText ) {
         FILE * pFile = pFileName ? fopen(pFileName, "wb") : stdout; 
         if ( !pFile ) return;
-        Gia_ManDumpCuts( pGia, pSto, pFile, fVerbose, pFileName );
+        Gia_ManDumpCutsText( pGia, pSto, pFile, fVerbose, pFileName );
+        fclose( pFile );
     }
     else if ( fDumpBin ) {
         FILE * pFile = pFileName ? fopen(pFileName, "wb") : NULL; 
         if ( !pFile ) return;
-        Gia_ManDumpCuts( pGia, pSto, pFile, fVerbose, pFileName );
+        Gia_ManDumpCutsBin( pGia, pSto, pFile, nCutSize, nCutNum, fVerbose, pFileName );
+        fclose( pFile );
     }
     //printf( "The number of nodes with self-cuts = %d (out of %d).\n", Gia_ManCountSelfCuts(pGia, pSto), Gia_ManAndNum(pGia) );
+    //Gia_ManEvalCutHashing( pGia, pSto );
     Gia_StoFree( pSto );
 }
 
@@ -1461,4 +1571,3 @@ void Gia_ManMatchConesOutput( Gia_Man_t * pBig, Gia_Man_t * pSmall, int nCutNum,
 
 
 ABC_NAMESPACE_IMPL_END
-
