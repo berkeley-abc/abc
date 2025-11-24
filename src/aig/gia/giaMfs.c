@@ -290,15 +290,16 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     int nBoxes   = Gia_ManBoxNum(p);
     int nRealPis = nBoxes ? Tim_ManPiNum(pManTime) : Gia_ManPiNum(p);
     int nRealPos = nBoxes ? Tim_ManPoNum(pManTime) : Gia_ManPoNum(p);
-    int i, k, Id, curCi, curCo, nBoxIns, nBoxOuts, iLitNew, iMfsId, iGroup, Fanin;
+    int i, k, curCi, curCo, nBoxIns, nBoxOuts, iLitNew, iMfsId, iGroup, Fanin, iBox;
     int nMfsNodes;
     word * pTruth, uTruthVar = ABC_CONST(0xAAAAAAAAAAAAAAAA);
     Vec_Wec_t * vGroups = Vec_WecStart( nBoxes );
     Vec_Int_t * vMfs2Gia, * vMfs2Old;
     Vec_Int_t * vGroupMap;
-    Vec_Int_t * vMfsTopo, * vCover, * vBoxesLeft;
+    Vec_Int_t * vMfsTopo, * vCover, * vBoxesLeft, * vBoxKeep;
     Vec_Int_t * vArray, * vLeaves;
     Vec_Int_t * vMapping, * vMapping2;
+    Vec_Int_t * vCoDrivers;
     int nBbIns = 0, nBbOuts = 0;
     if ( pManTime ) Tim_ManBlackBoxIoNum( pManTime, &nBbIns, &nBbOuts );
     nMfsNodes = 1 + Gia_ManCiNum(p) + Gia_ManLutNum(p) + Gia_ManCoNum(p) + nBbIns + nBbOuts;
@@ -342,6 +343,10 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     // collect nodes in the given order
     vBoxesLeft = Vec_IntAlloc( nBoxes );
     vMfsTopo = Sfm_NtkDfs( pNtk, vGroups, vGroupMap, vBoxesLeft, fAllBoxes );
+    Vec_IntUniqify( vBoxesLeft ); // reduce to sorted unique indices expected by the timing manager
+    vBoxKeep = Vec_IntStart( nBoxes );
+    Vec_IntForEachEntry( vBoxesLeft, iBox, i )
+        Vec_IntWriteEntry( vBoxKeep, iBox, 1 );
     assert( Vec_IntSize(vBoxesLeft) <= nBoxes );
     assert( Vec_IntSize(vMfsTopo) > 0 );
 
@@ -360,13 +365,22 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
 
     // map constant
     Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, 0), 0 );
-    // map primary inputs
-    Gia_ManForEachCiId( p, Id, i )
-        if ( i < nRealPis )
-            Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, Id), Gia_ManAppendCi(pNew) );
+    // map primary inputs (real ones and preserved box outputs)
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        int iCiId = Gia_ObjId( p, pObj );
+        int iBox = pManTime ? Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) ) : -1;
+        if ( iBox >= 0 && !Vec_IntEntry(vBoxKeep, iBox) )
+        {
+            Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, iCiId), -1 );
+            continue;
+        }
+        Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, iCiId), Gia_ManAppendCi(pNew) );
+    }
     // map internal nodes
     vLeaves = Vec_IntAlloc( 6 );
     vCover = Vec_IntAlloc( 1 << 16 );
+    vCoDrivers = Vec_IntStartFull( Gia_ManCoNum(p) );
     Vec_IntForEachEntry( vMfsTopo, iMfsId, i )
     {
         pTruth = Sfm_NodeReadTruth( pNtk, iMfsId );
@@ -374,10 +388,13 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
         vArray = Sfm_NodeReadFanins( pNtk, iMfsId ); // belongs to pNtk
         if ( Vec_IntSize(vArray) == 1 && Vec_IntEntry(vArray,0) < nBbOuts ) // skip unreal inputs
         {
-            // create CI for the output of black box
             assert( Abc_LitIsCompl(iGroup) );
-            iLitNew = Gia_ManAppendCi( pNew );
-            Vec_IntWriteEntry( vMfs2Gia, iMfsId, iLitNew );
+            iLitNew = Vec_IntEntry( vMfs2Gia, iMfsId );
+            if ( iLitNew == -1 )
+            {
+                iLitNew = Gia_ManAppendCi( pNew );
+                Vec_IntWriteEntry( vMfs2Gia, iMfsId, iLitNew );
+            }
             continue;
         }
         Vec_IntClear( vLeaves );
@@ -411,36 +428,36 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
                 Abc_TtFlipVar5( pTruth, Vec_IntSize(vLeaves) );
             }
         }
-        else if ( Abc_LitIsCompl(iGroup) ) // internal CI
+        else if ( Abc_LitIsCompl(iGroup) ) // internal CI (box output)
         {
-            //Dau_DsdPrintFromTruth( pTruth, Vec_IntSize(vLeaves) );
-            iLitNew = Gia_ManAppendCi( pNew );
+            iLitNew = Vec_IntEntry( vMfs2Gia, iMfsId );
+            if ( iLitNew < 0 )
+                continue;
         }
         else // internal CO
         {
+            int iObjOld = Vec_IntEntry( vMfs2Old, iMfsId );
+            int iCoIdx;
+            assert( iObjOld >= 0 );
             assert( pTruth[0] == uTruthVar || pTruth[0] == ~uTruthVar );
-            iLitNew = Gia_ManAppendCo( pNew, Abc_LitNotCond(Vec_IntEntry(vLeaves, 0), pTruth[0] == ~uTruthVar) );
-            //printf("Group = %d. po = %d\n", iGroup>>1, iMfsId );
+            iLitNew = Abc_LitNotCond( Vec_IntEntry(vLeaves, 0), pTruth[0] == ~uTruthVar );
+            iCoIdx = Gia_ObjCioId( Gia_ManObj(p, iObjOld) );
+            Vec_IntWriteEntry( vCoDrivers, iCoIdx, iLitNew );
         }
         Vec_IntWriteEntry( vMfs2Gia, iMfsId, iLitNew );
     }
     Vec_IntFree( vCover );
     Vec_IntFree( vLeaves );
 
-    // map primary outputs
+    // map primary outputs (internal box inputs followed by real POs)
     Gia_ManForEachCo( p, pObj, i )
     {
-        if ( i < Gia_ManCoNum(p) - nRealPos ) // internal COs
+        if ( i < Gia_ManCoNum(p) - nRealPos )
         {
-            iMfsId = Gia_ObjCopyArray( p, Gia_ObjId(p, pObj) );
-            iGroup = Vec_IntEntry( vGroupMap, iMfsId );
-            if ( Vec_IntFind(vMfsTopo, iGroup) >= 0 )
-            {
-                iLitNew = Vec_IntEntry( vMfs2Gia, iMfsId );
-                if ( iLitNew < 0 )
-                    continue;
-                assert( iLitNew >= 0 );
-            }
+            iLitNew = Vec_IntEntry( vCoDrivers, i );
+            if ( iLitNew == -1 )
+                continue;
+            Gia_ManAppendCo( pNew, iLitNew );
             continue;
         }
         iLitNew = Vec_IntEntry( vMfs2Gia, Gia_ObjCopyArray(p, Gia_ObjFaninId0p(p, pObj)) );
@@ -483,6 +500,8 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     Vec_IntFree( vMfs2Gia );
     Vec_IntFree( vMfs2Old );
     Vec_IntFree( vBoxesLeft );
+    Vec_IntFree( vBoxKeep );
+    Vec_IntFree( vCoDrivers );
     return pNew;
 }
 
@@ -550,4 +569,3 @@ Gia_Man_t * Gia_ManPerformMfs( Gia_Man_t * p, Sfm_Par_t * pPars )
 ////////////////////////////////////////////////////////////////////////
 
 ABC_NAMESPACE_IMPL_END
-
