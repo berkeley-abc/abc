@@ -839,15 +839,15 @@ void Gia_ManMulFindPrintSet( Vec_Int_t * vSet, int fLit, int fSkipLast )
     }
     printf( "}" );
 }
-void Gia_ManMulFindPrintOne( Vec_Wec_t * vTerms, int m, int fBooth )
+void Gia_ManMulFindPrintOne( Vec_Wec_t * vTerms, int m, int fBooth, int fInputLits )
 {
     Vec_Int_t * vIn0 = Vec_WecEntry(vTerms, 3*m+0);
     Vec_Int_t * vIn1 = Vec_WecEntry(vTerms, 3*m+1);
     Vec_Int_t * vOut = Vec_WecEntry(vTerms, 3*m+2);
     printf( "%sooth %ssigned %d x %d: ", fBooth ? "B" : "Non-b", Vec_IntEntryLast(vOut) ? "" : "un", Vec_IntSize(vIn0), Vec_IntSize(vIn1) );
-    Gia_ManMulFindPrintSet( vIn0, 0, 0 );
+    Gia_ManMulFindPrintSet( vIn0, fInputLits, 0 );
     printf( " * " );
-    Gia_ManMulFindPrintSet( vIn1, 0, 0 );
+    Gia_ManMulFindPrintSet( vIn1, fInputLits, 0 );
     printf( " = " );
     Gia_ManMulFindPrintSet( vOut, 1, 1 );
     printf( "\n" );
@@ -862,9 +862,9 @@ void Gia_ManMulFind( Gia_Man_t * p, int nCutNum, int fVerbose )
     Vec_Wec_t * vTermsA = Gia_ManMulFindA( p, vCuts3, fVerbose ); 
     printf( "Detected %d booth and %d non-booth multipliers.\n", Vec_WecSize(vTermsB)/3, Vec_WecSize(vTermsA)/3 );
     for ( m = 0; m < Vec_WecSize(vTermsA)/3; m++ )
-        Gia_ManMulFindPrintOne( vTermsA, m, 0 );
+        Gia_ManMulFindPrintOne( vTermsA, m, 0, 0 );
     for ( m = 0; m < Vec_WecSize(vTermsB)/3; m++ )
-        Gia_ManMulFindPrintOne( vTermsB, m, 1 );
+        Gia_ManMulFindPrintOne( vTermsB, m, 1, 0 );
     Vec_WecFree( vTermsB );
     Vec_WecFree( vTermsA );
     Vec_WecFree( vCuts3 );
