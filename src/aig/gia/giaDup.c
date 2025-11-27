@@ -1103,23 +1103,31 @@ Vec_Int_t * Gia_ManCreatePerm( int n )
     }
     return vPerm;
 }
-Gia_Man_t * Gia_ManDupRandPerm( Gia_Man_t * p )
+Gia_Man_t * Gia_ManDupRandPerm( Gia_Man_t * p, int fVerbose )
 {
     Vec_Int_t * vPiPerm = Gia_ManCreatePerm( Gia_ManCiNum(p) );
     Vec_Int_t * vPoPerm = Gia_ManCreatePerm( Gia_ManCoNum(p) );
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
-    int i;
+    int i, fCompl = 0;
     pNew = Gia_ManStart( Gia_ManObjNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
     pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     Gia_ManConst0(p)->Value = 0;
-    Gia_ManForEachPi( p, pObj, i )
-        Gia_ManPi(p, Vec_IntEntry(vPiPerm,i))->Value = Gia_ManAppendCi(pNew) ^ (Abc_Random(0) & 1);
+    if ( fVerbose ) printf( "Input NP transform: " );
+    Gia_ManForEachPi( p, pObj, i ) {
+        Gia_ManPi(p, Vec_IntEntry(vPiPerm,i))->Value = Gia_ManAppendCi(pNew) ^ (fCompl = (Abc_Random(0) & 1));
+        if ( fVerbose ) printf( "%s%d ", fCompl ? "~":"", Vec_IntEntry(vPiPerm,i) );
+    }
+    if ( fVerbose ) printf( "\n" );
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
-    Gia_ManForEachPo( p, pObj, i )
-        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, Vec_IntEntry(vPoPerm,i))) ^ (Abc_Random(0) & 1) );
+    if ( fVerbose ) printf( "Output NP transform: " );
+    Gia_ManForEachPo( p, pObj, i ) {
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, Vec_IntEntry(vPoPerm,i))) ^ (fCompl = (Abc_Random(0) & 1)) );
+        if ( fVerbose ) printf( "%s%d ", fCompl ? "~":"", Vec_IntEntry(vPoPerm,i) );
+    }
+    if ( fVerbose ) printf( "\n" );
     Vec_IntFree( vPiPerm );
     Vec_IntFree( vPoPerm );
     return pNew;
