@@ -133,37 +133,52 @@ static inline int   Sfm_ObjIsTravIdCurrent2( Sfm_Ntk_t * p, int Id )   { return 
   SeeAlso     []
 
 ***********************************************************************/
-void Sfm_NtkDfs_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft )
+static void Sfm_NtkDfs_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft, Vec_Int_t * vPiBoxes );
+static void Sfm_NtkDfsVisitGroup( Sfm_Ntk_t * p, int iGroup, Vec_Int_t * vNodes, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft, Vec_Int_t * vPiBoxes )
 {
-    int i, iFanin;
-    if ( Sfm_ObjIsPi(p, iNode) )
-        return;
+    int i, iFanin, k, Obj;
+    Vec_Int_t * vGroup = Vec_WecEntry( vGroups, iGroup );
+    Vec_IntForEachEntry( vGroup, Obj, i )
+        assert( Sfm_ObjIsNode(p, Obj) );
+    Vec_IntForEachEntry( vGroup, Obj, i )
+        Sfm_ObjSetTravIdCurrent( p, Obj );
+    Vec_IntForEachEntry( vGroup, Obj, i )
+        Sfm_ObjForEachFanin( p, Obj, iFanin, k )
+            Sfm_NtkDfs_rec( p, iFanin, vNodes, vGroups, vGroupMap, vBoxesLeft, vPiBoxes );
+    Vec_IntForEachEntry( vGroup, Obj, i )
+        Vec_IntPush( vNodes, Obj );
+    Vec_IntPush( vBoxesLeft, iGroup );
+}
+static void Sfm_NtkDfs_rec( Sfm_Ntk_t * p, int iNode, Vec_Int_t * vNodes, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft, Vec_Int_t * vPiBoxes )
+{
+    int i, iFanin, iGroup;
     if ( Sfm_ObjIsTravIdCurrent(p, iNode) )
         return;
-    if ( Vec_IntEntry(vGroupMap, iNode) >= 0 )
+    iGroup = Vec_IntEntry(vGroupMap, iNode);
+    if ( iGroup >= 0 )
     {
-        int k, iGroup = Abc_Lit2Var( Vec_IntEntry(vGroupMap, iNode) );
-        Vec_Int_t * vGroup = Vec_WecEntry( vGroups, iGroup );
-        Vec_IntForEachEntry( vGroup, iNode, i )
-            assert( Sfm_ObjIsNode(p, iNode) );
-        Vec_IntForEachEntry( vGroup, iNode, i )
-            Sfm_ObjSetTravIdCurrent( p, iNode );
-        Vec_IntForEachEntry( vGroup, iNode, i )
-            Sfm_ObjForEachFanin( p, iNode, iFanin, k )
-                Sfm_NtkDfs_rec( p, iFanin, vNodes, vGroups, vGroupMap, vBoxesLeft );
-        Vec_IntForEachEntry( vGroup, iNode, i )
-            Vec_IntPush( vNodes, iNode );
-        Vec_IntPush( vBoxesLeft, iGroup );
+        Sfm_NtkDfsVisitGroup( p, Abc_Lit2Var(iGroup), vNodes, vGroups, vGroupMap, vBoxesLeft, vPiBoxes );
+        return;
     }
-    else
+    if ( Sfm_ObjIsPi(p, iNode) )
     {
-        Sfm_ObjSetTravIdCurrent(p, iNode);
-        Sfm_ObjForEachFanin( p, iNode, iFanin, i )
-            Sfm_NtkDfs_rec( p, iFanin, vNodes, vGroups, vGroupMap, vBoxesLeft );
-        Vec_IntPush( vNodes, iNode );
+        if ( vPiBoxes && iNode < Vec_IntSize(vPiBoxes) )
+        {
+            int iBox = Vec_IntEntry( vPiBoxes, iNode );
+            if ( iBox >= 0 )
+            {
+                Sfm_ObjSetTravIdCurrent( p, iNode );
+                Sfm_NtkDfsVisitGroup( p, iBox, vNodes, vGroups, vGroupMap, vBoxesLeft, vPiBoxes );
+            }
+        }
+        return;
     }
+    Sfm_ObjSetTravIdCurrent(p, iNode);
+    Sfm_ObjForEachFanin( p, iNode, iFanin, i )
+        Sfm_NtkDfs_rec( p, iFanin, vNodes, vGroups, vGroupMap, vBoxesLeft, vPiBoxes );
+    Vec_IntPush( vNodes, iNode );
 }
-Vec_Int_t * Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft, int fAllBoxes )
+Vec_Int_t * Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMap, Vec_Int_t * vBoxesLeft, int fAllBoxes, Vec_Int_t * vPiBoxes )
 {
     Vec_Int_t * vNodes;
     int i;
@@ -174,10 +189,10 @@ Vec_Int_t * Sfm_NtkDfs( Sfm_Ntk_t * p, Vec_Wec_t * vGroups, Vec_Int_t * vGroupMa
     {
         Vec_Int_t * vGroup;
         Vec_WecForEachLevel( vGroups, vGroup, i )
-            Sfm_NtkDfs_rec( p, Vec_IntEntry(vGroup, 0), vNodes, vGroups, vGroupMap, vBoxesLeft );
+            Sfm_NtkDfs_rec( p, Vec_IntEntry(vGroup, 0), vNodes, vGroups, vGroupMap, vBoxesLeft, vPiBoxes );
     }
     Sfm_NtkForEachPo( p, i )
-        Sfm_NtkDfs_rec( p, Sfm_ObjFanin(p, i, 0), vNodes, vGroups, vGroupMap, vBoxesLeft );
+        Sfm_NtkDfs_rec( p, Sfm_ObjFanin(p, i, 0), vNodes, vGroups, vGroupMap, vBoxesLeft, vPiBoxes );
     return vNodes;
 }
 
@@ -478,4 +493,3 @@ void Sfm_NtkWindowTest( Sfm_Ntk_t * p, int iNode )
 
 
 ABC_NAMESPACE_IMPL_END
-

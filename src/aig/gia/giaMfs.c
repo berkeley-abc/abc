@@ -300,6 +300,9 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     Vec_Int_t * vArray, * vLeaves;
     Vec_Int_t * vMapping, * vMapping2;
     Vec_Int_t * vCoDrivers;
+    Vec_Int_t * vPiBoxes = NULL;
+    Vec_Int_t * vBbCiMap = NULL;
+    Vec_Int_t * vBbOutLit = NULL;
     int nBbIns = 0, nBbOuts = 0;
     if ( pManTime ) Tim_ManBlackBoxIoNum( pManTime, &nBbIns, &nBbOuts );
     nMfsNodes = 1 + Gia_ManCiNum(p) + Gia_ManLutNum(p) + Gia_ManCoNum(p) + nBbIns + nBbOuts;
@@ -341,8 +344,36 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     assert( curCo == Gia_ManCoNum(p) );
 
     // collect nodes in the given order
+    if ( nBbOuts > 0 )
+    {
+        int iBbOut = 0;
+        vPiBoxes = Vec_IntStartFull( nBbOuts + nRealPis );
+        vBbCiMap = Vec_IntStartFull( Gia_ManCiNum(p) );
+        vBbOutLit = Vec_IntStartFull( nBbOuts );
+        curCi = nRealPis;
+        curCo = 0;
+        for ( i = 0; i < nBoxes; i++ )
+        {
+            nBoxIns = Tim_ManBoxInputNum( pManTime, i );
+            nBoxOuts = Tim_ManBoxOutputNum( pManTime, i );
+            if ( Tim_ManBoxIsBlack(pManTime, i) )
+                for ( k = 0; k < nBoxOuts; k++ )
+                {
+                    assert( iBbOut < nBbOuts );
+                    Vec_IntWriteEntry( vPiBoxes, iBbOut, i );
+                    Vec_IntWriteEntry( vBbCiMap, curCi + k, iBbOut );
+                    iBbOut++;
+                }
+            curCo += nBoxIns;
+            curCi += nBoxOuts;
+        }
+        curCo += nRealPos;
+        assert( curCi == Gia_ManCiNum(p) );
+        assert( curCo == Gia_ManCoNum(p) );
+        assert( iBbOut == nBbOuts );
+    }
     vBoxesLeft = Vec_IntAlloc( nBoxes );
-    vMfsTopo = Sfm_NtkDfs( pNtk, vGroups, vGroupMap, vBoxesLeft, fAllBoxes );
+    vMfsTopo = Sfm_NtkDfs( pNtk, vGroups, vGroupMap, vBoxesLeft, fAllBoxes, vPiBoxes );
     Vec_IntUniqify( vBoxesLeft ); // reduce to sorted unique indices expected by the timing manager
     vBoxKeep = Vec_IntStart( nBoxes );
     Vec_IntForEachEntry( vBoxesLeft, iBox, i )
@@ -370,12 +401,18 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     {
         int iCiId = Gia_ObjId( p, pObj );
         int iBox = pManTime ? Tim_ManBoxForCi( pManTime, Gia_ObjCioId(pObj) ) : -1;
+        int iBbOut = vBbCiMap ? Vec_IntEntry(vBbCiMap, i) : -1;
         if ( iBox >= 0 && !Vec_IntEntry(vBoxKeep, iBox) )
         {
             Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, iCiId), -1 );
+            if ( iBbOut >= 0 && vBbOutLit )
+                Vec_IntWriteEntry( vBbOutLit, iBbOut, -1 );
             continue;
         }
-        Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, iCiId), Gia_ManAppendCi(pNew) );
+        iLitNew = Gia_ManAppendCi(pNew);
+        Vec_IntWriteEntry( vMfs2Gia, Gia_ObjCopyArray(p, iCiId), iLitNew );
+        if ( iBbOut >= 0 && vBbOutLit )
+            Vec_IntWriteEntry( vBbOutLit, iBbOut, iLitNew );
     }
     // map internal nodes
     vLeaves = Vec_IntAlloc( 6 );
@@ -389,18 +426,20 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
         if ( Vec_IntSize(vArray) == 1 && Vec_IntEntry(vArray,0) < nBbOuts ) // skip unreal inputs
         {
             assert( Abc_LitIsCompl(iGroup) );
-            iLitNew = Vec_IntEntry( vMfs2Gia, iMfsId );
-            if ( iLitNew == -1 )
-            {
-                iLitNew = Gia_ManAppendCi( pNew );
-                Vec_IntWriteEntry( vMfs2Gia, iMfsId, iLitNew );
-            }
+            assert( vBbOutLit != NULL );
+            iLitNew = Vec_IntEntry( vBbOutLit, Vec_IntEntry(vArray,0) );
+            assert( iLitNew >= 0 );
+            Vec_IntWriteEntry( vMfs2Gia, iMfsId, iLitNew );
             continue;
         }
         Vec_IntClear( vLeaves );
         Vec_IntForEachEntry( vArray, Fanin, k )
         {
-            iLitNew = Vec_IntEntry( vMfs2Gia, Fanin );  assert( iLitNew >= 0 );
+            if ( Fanin < nBbOuts )
+                iLitNew = Vec_IntEntry( vBbOutLit, Fanin );
+            else
+                iLitNew = Vec_IntEntry( vMfs2Gia, Fanin );
+            assert( iLitNew >= 0 );
             Vec_IntPush( vLeaves, iLitNew );            
         }
         if ( iGroup == -1 ) // internal node
@@ -502,6 +541,9 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     Vec_IntFree( vBoxesLeft );
     Vec_IntFree( vBoxKeep );
     Vec_IntFree( vCoDrivers );
+    Vec_IntFreeP( &vPiBoxes );
+    Vec_IntFreeP( &vBbCiMap );
+    Vec_IntFreeP( &vBbOutLit );
     return pNew;
 }
 
