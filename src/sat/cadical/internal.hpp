@@ -17,7 +17,9 @@
 #include <cctype>
 #include <climits>
 #include <cmath>
+#if !defined(__wasm)
 #include <csignal>
+#endif
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
