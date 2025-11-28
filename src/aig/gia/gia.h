@@ -1419,6 +1419,8 @@ typedef struct Gia_ChMan_t_ Gia_ChMan_t;
 extern Gia_ChMan_t *       Gia_ManDupChoicesStart( Gia_Man_t * pGia );
 extern void                Gia_ManDupChoicesAdd( Gia_ChMan_t * pMan, Gia_Man_t * pGia );
 extern Gia_Man_t *         Gia_ManDupChoicesFinish( Gia_ChMan_t * pMan );
+extern Vec_Int_t *         Gia_ManComputeMffc( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vOuts );
+extern Gia_Man_t *         Gia_ManDupExtractMffc( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vAnds, Vec_Int_t * vCos );
 /*=== giaEdge.c ==========================================================*/
 extern void                Gia_ManEdgeFromArray( Gia_Man_t * p, Vec_Int_t * vArray );
 extern Vec_Int_t *         Gia_ManEdgeToArray( Gia_Man_t * p );

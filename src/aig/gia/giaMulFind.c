@@ -726,8 +726,16 @@ Vec_Wrd_t * Gia_ManMulFindSim( Vec_Wrd_t * vSim0, Vec_Wrd_t * vSim1, int fSigned
     }
     return vRes;
 }
-void Gia_ManMulFindOutputs( Gia_Man_t * p, Vec_Wec_t * vTerms, int fLits, int fVerbose )
+Vec_Wrd_t * Gia_ManMulFindSim2( Vec_Wrd_t * vSim0, Vec_Wrd_t * vSim1, int fSigned )
 {
+    extern word * product_many(word *pInfo1, int nBits1, word *pInfo2, int nBits2, int fSigned );
+    word * pRes = product_many( Vec_WrdArray(vSim0), Vec_WrdSize(vSim0), Vec_WrdArray(vSim1), Vec_WrdSize(vSim1), fSigned );
+    return Vec_WrdAllocArray( pRes, Vec_WrdSize(vSim0) + Vec_WrdSize(vSim1) );
+}
+int Gia_ManMulFindOutputs( Gia_Man_t * p, Vec_Wec_t * vTerms, int fLits, int fVerbose )
+{
+    //abctime clkTotal = Abc_Clock();
+    int nDetected = 0;
     Abc_Random(1);
     for ( int m = 0; m < Vec_WecSize(vTerms)/3; m++ ) {
         Vec_Int_t * vIn0 = Vec_WecEntry(vTerms, 3*m+0);
@@ -735,8 +743,8 @@ void Gia_ManMulFindOutputs( Gia_Man_t * p, Vec_Wec_t * vTerms, int fLits, int fV
         Vec_Int_t * vOut = Vec_WecEntry(vTerms, 3*m+2);
         Vec_Wrd_t * vSim0 = Vec_WrdStartRandom( Vec_IntSize(vIn0) );
         Vec_Wrd_t * vSim1 = Vec_WrdStartRandom( Vec_IntSize(vIn1) );
-        Vec_Wrd_t * vSimU = Gia_ManMulFindSim( vSim0, vSim1, 0 );
-        Vec_Wrd_t * vSimS = Gia_ManMulFindSim( vSim0, vSim1, 1 );
+        Vec_Wrd_t * vSimU = Gia_ManMulFindSim2( vSim0, vSim1, 0 );
+        Vec_Wrd_t * vSimS = Gia_ManMulFindSim2( vSim0, vSim1, 1 );
         Vec_Int_t * vTfo  = Gia_ManMulFindTfo( p, vIn0, vIn1, fLits );
         Vec_Wrd_t * vSims = Gia_ManMulFindSimCone( p, vIn0, vIn1, vSim0, vSim1, vTfo, fLits );
         Vec_Int_t * vOutU = Vec_IntAlloc( 100 );
@@ -762,10 +770,14 @@ void Gia_ManMulFindOutputs( Gia_Man_t * p, Vec_Wec_t * vTerms, int fLits, int fV
         if ( Vec_IntCountEntry(vOutU, -1) < Vec_IntSize(vOutU) ||
              Vec_IntCountEntry(vOutS, -1) < Vec_IntSize(vOutS) )
         {
-            if ( Vec_IntCountEntry(vOutU, -1) < Vec_IntCountEntry(vOutS, -1) )
+            if ( Vec_IntCountEntry(vOutU, -1) < Vec_IntCountEntry(vOutS, -1) ) {
                 Vec_IntAppend( vOut, vOutU ), Vec_IntPush(vOut, 0);
-            else
+                nDetected = Vec_IntSize(vOutU) - Vec_IntCountEntry(vOutU, -1);
+            }
+            else {
                 Vec_IntAppend( vOut, vOutS ), Vec_IntPush(vOut, 1);
+                nDetected = Vec_IntSize(vOutS) - Vec_IntCountEntry(vOutS, -1);
+            }
         }
         else
         {
@@ -782,6 +794,8 @@ void Gia_ManMulFindOutputs( Gia_Man_t * p, Vec_Wec_t * vTerms, int fLits, int fV
         Vec_IntFree( vOutS );
     }
     Vec_WecRemoveEmpty( vTerms );
+    //Abc_PrintTime( 1, "Output detection time", Abc_Clock() - clkTotal );
+    return nDetected;
 }
 
 /**Function*************************************************************
@@ -831,11 +845,28 @@ void Gia_ManMulFindPrintSet( Vec_Int_t * vSet, int fLit, int fSkipLast )
 {
     int i, Temp, Limit = Vec_IntSize(vSet) - fSkipLast;
     printf( "{" );
-    Vec_IntForEachEntryStop( vSet, Temp, i, Limit ) {
-        if ( Temp == -1 )
-            printf( "n/a%s", i < Limit-1 ? " ":"" );
-        else
-            printf( "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
+    if ( Vec_IntSize(vSet) > 16 ) {
+        Vec_IntForEachEntryStop( vSet, Temp, i, 4 ) {
+            if ( Temp == -1 )
+                printf( "n/a%s", i < Limit-1 ? " ":"" );
+            else
+                printf( "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
+        }
+        printf( "... " );
+        Vec_IntForEachEntryStartStop( vSet, Temp, i, Limit-4, Limit ) {
+            if ( Temp == -1 )
+                printf( "n/a%s", i < Limit-1 ? " ":"" );
+            else
+                printf( "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
+        }
+    }
+    else {
+        Vec_IntForEachEntryStop( vSet, Temp, i, Limit ) {
+            if ( Temp == -1 )
+                printf( "n/a%s", i < Limit-1 ? " ":"" );
+            else
+                printf( "%s%d%s", (fLit & Abc_LitIsCompl(Temp)) ? "~":"", fLit ? Abc_Lit2Var(Temp) : Temp, i < Limit-1 ? " ":"" );
+        }
     }
     printf( "}" );
 }

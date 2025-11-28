@@ -6609,6 +6609,64 @@ Gia_Man_t * Gia_ManDupChoicesFinish( Gia_ChMan_t * p )
     return pTemp;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Extracting MFFC of the nodes supported by a set of literals.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+// collecting internal nodes and outputs in the MFF of a given set of literals
+Vec_Int_t * Gia_ManComputeMffc( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vOuts )
+{
+    Vec_Int_t * vTfo = Vec_IntAlloc( 100 );
+    Gia_Obj_t * pObj; int i, Lit;
+    Vec_IntClear( vOuts );
+    Gia_ManIncrementTravId( p );
+    Vec_IntForEachEntry( vLits, Lit, i )
+        Gia_ObjSetTravIdCurrentId( p, Abc_Lit2Var(Lit) );
+    Gia_ManForEachAnd( p, pObj, i ) {
+        if ( Gia_ObjIsTravIdCurrentId(p, i) )
+            continue;
+        if ( Gia_ObjIsTravIdCurrentId(p, Gia_ObjFaninId0(pObj, i)) && Gia_ObjIsTravIdCurrentId(p, Gia_ObjFaninId1(pObj, i)) )
+            Gia_ObjSetTravIdCurrentId( p, i ), Vec_IntPush( vTfo, i );        
+        else if ( Gia_ObjIsTravIdCurrentId(p, Gia_ObjFaninId0(pObj, i)) )
+            Vec_IntPushUniqueOrder( vOuts, Gia_ObjFaninId0(pObj, i) );
+        else if ( Gia_ObjIsTravIdCurrentId(p, Gia_ObjFaninId1(pObj, i)) )
+            Vec_IntPushUniqueOrder( vOuts, Gia_ObjFaninId1(pObj, i) );
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        if ( Gia_ObjIsTravIdCurrentId(p, Gia_ObjFaninId0p(p, pObj)) )
+            Vec_IntPushUniqueOrder( vOuts, Gia_ObjFaninId0p(p, pObj) );
+    Vec_IntTwoFilter( vOuts, vTfo );
+    return vTfo;
+}
+
+// extracting the AIG of the MFFC defined by a given set of literals
+Gia_Man_t * Gia_ManDupExtractMffc( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t * vAnds, Vec_Int_t * vCos )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i, Lit;
+    pNew = Gia_ManStart( 5000 );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->fGiaSimple = 1;
+    Gia_ManConst0(p)->Value = 0;
+    Vec_IntForEachEntry( vLits, Lit, i )
+        Gia_ManObj(p, Abc_Lit2Var(Lit))->Value = Abc_LitNotCond( Gia_ManAppendCi(pNew), Abc_LitIsCompl(Lit) );
+    Gia_ManForEachObjVec( vAnds, p, pObj, i )
+        pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    Gia_ManForEachObjVec( vCos, p, pObj, i )
+        pObj->Value = Gia_ManAppendCo( pNew, pObj->Value );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

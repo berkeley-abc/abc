@@ -292,8 +292,8 @@ static inline int Gia_CutCompare2( Gia_Cut_t * pCut0, Gia_Cut_t * pCut1 )
 }
 static inline int Gia_CutCompare( Gia_Cut_t * pCut0, Gia_Cut_t * pCut1 )
 {
-    if ( pCut0->CostF       > pCut1->CostF )         return -1;
-    if ( pCut0->CostF       < pCut1->CostF )         return  1;
+    if ( pCut0->CostF       > pCut1->CostF )        return -1;
+    if ( pCut0->CostF       < pCut1->CostF )        return  1;
     if ( pCut0->nLeaves     < pCut1->nLeaves )      return -1;
     if ( pCut0->nLeaves     > pCut1->nLeaves )      return  1;
     return 0;
@@ -1230,7 +1230,7 @@ void Gia_ManComputeCutsCore( Gia_Man_t * pGia, int nCutSize, int nCutNum, int fT
 
 Vec_Wec_t * Gia_ManCompute54Cuts( Gia_Man_t * pGia, int fVerbose )
 {
-    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( pGia, 5, 16, 0, fVerbose );
+    Gia_Sto_t * pSto = Gia_ManMatchCutsInt( pGia, 5, 8, 0, fVerbose );
     Vec_Wec_t * vRes = Vec_WecAlloc( 1000 );
     Vec_Int_t * vLevel; int i, k, c, * pCut;
     Vec_WecForEachLevel( pSto->vCuts, vLevel, i ) if ( Vec_IntSize(vLevel) ) {
