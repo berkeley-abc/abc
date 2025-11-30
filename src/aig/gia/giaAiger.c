@@ -907,6 +907,25 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                     printf( "Cannot read extension \"w\" because AIG is rehashed. Use \"&r -s <file.aig>\".\n" );
                 Vec_IntFree( vPairs );
             }
+            // read object ID mapping
+            else if ( *pCur == 'y' )
+            {
+                pCur++;
+                int nInts = Gia_AigerReadInt(pCur)/4; pCur += 4;
+                if ( fSkipStrash ) {
+                    pNew->vEquLitIds = Vec_IntStart( nInts );
+                    memcpy( Vec_IntArray(pNew->vEquLitIds), pCur, (size_t)4*nInts );
+                    if ( Vec_IntSize(pNew->vEquLitIds) != Gia_ManObjNum(pNew) ) {
+                        printf( "Cannot read extension \"y\" because object count changed. Use \"&r -s <file.aig>\".\n" );
+                        Vec_IntFreeP( &pNew->vEquLitIds );
+                    }
+                    else if ( fVerbose ) printf( "Finished reading extension \"y\".\n" );
+                }
+                else {
+                    if ( fVerbose ) printf( "Cannot read extension \"y\" because AIG is rehashed. Use \"&r -s <file.aig>\".\n" );
+                }
+                pCur += 4*nInts;
+            }
             else break;
         }
     }
@@ -1529,6 +1548,7 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
         Gia_FileWriteBufferSize( pFile, Vec_IntSize(p->vRegClasses) );
         for ( i = 0; i < Vec_IntSize(p->vRegClasses); i++ )
             Gia_FileWriteBufferSize( pFile, Vec_IntEntry(p->vRegClasses, i) );
+        if ( fVerbose ) printf( "Finished writing extension \"r\".\n" );
     }
     // write register inits
     if ( p->vRegInits )
@@ -1676,6 +1696,15 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
         Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
         assert( Vec_IntSize(p->vObjClasses) == Gia_ManObjNum(p) );
         fwrite( Vec_IntArray(p->vObjClasses), 1, 4*Gia_ManObjNum(p), pFile );
+    }
+    // write object classes
+    if ( p->vEquLitIds )
+    {
+        fprintf( pFile, "y" );
+        Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
+        assert( Vec_IntSize(p->vEquLitIds) == Gia_ManObjNum(p) );
+        fwrite( Vec_IntArray(p->vEquLitIds), 1, 4*Gia_ManObjNum(p), pFile );
+        if ( fVerbose ) printf( "Finished writing extension \"y\".\n" );
     }
     // write name
     if ( p->pName )
@@ -1916,4 +1945,3 @@ int main( int argc, char ** argv )
 
 
 ABC_NAMESPACE_IMPL_END
-

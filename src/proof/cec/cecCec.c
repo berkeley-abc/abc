@@ -359,11 +359,13 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     pParsFra->nItersMax    = 1000;
     pParsFra->nBTLimit     = pPars->nBTLimit;
     pParsFra->TimeLimit    = pPars->TimeLimit;
+    pParsFra->fUseOrigIds  = pPars->fUseOrigIds;
     pParsFra->fVerbose     = pPars->fVerbose;
     pParsFra->fVeryVerbose = pPars->fVeryVerbose;
     pParsFra->fCheckMiter  = 1;
     pParsFra->fDualOut     = 1;
     pNew = Cec_ManSatSweeping( p, pParsFra, pPars->fSilent );
+    ABC_SWAP( Vec_Int_t *, pInit->vIdsEquiv, p->vIdsEquiv );
     pPars->iOutFail = pParsFra->iOutFail;
     // update
     pInit->pCexComb = p->pCexComb; p->pCexComb = NULL;
@@ -383,6 +385,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
             }
             return 0;
         }
+        Vec_IntFreeP( &pInit->vIdsEquiv );
         p = Gia_ManDup( pInit );
         Gia_ManEquivFixOutputPairs( p );
         p = Gia_ManCleanup( pNew = p );

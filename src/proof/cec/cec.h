@@ -135,6 +135,7 @@ struct Cec_ParCec_t_
     int              fUseSmartCnf;  // use smart CNF computation
     int              fRewriting;    // enables AIG rewriting
     int              fNaive;        // performs naive SAT-based checking
+    int              fUseOrigIds;   // enable recording of original IDs 
     int              fSilent;       // print no messages
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats

@@ -189,6 +189,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vCoNumsOrig;   // original CO names
     Vec_Int_t *    vIdsOrig;      // original object IDs
     Vec_Int_t *    vIdsEquiv;     // original object IDs proved equivalent
+    Vec_Int_t *    vEquLitIds;    // original object IDs proved equivalent
     Vec_Int_t *    vCofVars;      // cofactoring variables
     Vec_Vec_t *    vClockDoms;    // clock domains
     Vec_Flt_t *    vTiming;       // arrival/required/slack
@@ -1729,7 +1730,7 @@ extern void *              Gia_ManUpdateTimMan2( Gia_Man_t * p, Vec_Int_t * vBox
 extern Gia_Man_t *         Gia_ManUpdateExtraAig( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxPres );
 extern Gia_Man_t *         Gia_ManUpdateExtraAig2( void * pTime, Gia_Man_t * pAig, Vec_Int_t * vBoxesLeft );
 extern Gia_Man_t *         Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * vBoxPres, int fSeq );
-extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fDumpFiles, int fVerbose, char * pFileSpec );
+extern int                 Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fNameMap, int fDumpFiles, int fVerbose, char * pFileSpec );
 extern Vec_Int_t *         Gia_ManDeriveBoxMapping( Gia_Man_t * pGia );
 /*=== giaTruth.c ===========================================================*/
 extern word                Gia_LutComputeTruth6( Gia_Man_t * p, int iObj, Vec_Wrd_t * vTruths );

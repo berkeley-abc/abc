@@ -952,7 +952,114 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
   SeeAlso     []
 
 ***********************************************************************/
-int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fDumpFiles, int fVerbose, char * pFileSpec )
+
+/*
+› Please have a look at how name mapping is done in procedure Abc_FrameReadMiniLutNameMapping() in file "src/aig/gia/
+  giaMini.c". The main idea is to map the object IDs in the design after synthesis (pAbc->pGiaMiniLut) into the object IDs in
+  the design before synthesis (pAbc->pGiaMiniAig).  The computation is divided into three steps: (1) computing object
+  equivalences using Gia_ManComputeGiaEquivs(), which annotates the input AIG (pGia) containing both designs before and after
+  synthesis with equivalence class information; this information contains equivalence classes of objects from both designs; (2)
+  creating a map (pRes) of the resulting object IDs (in pAbc->pGiaMiniLut) into the original object IDs (in pAbc->pGiaMiniAig)
+  using procedure Gia_ManMapMiniLut2MiniAig(); this map is enabled by having two arrays (one of them is pAbc->vCopyMiniAig
+  mapping objects of pAbc->pGiaMiniAig in the original object IDs; the other one is pAbc->vCopyMiniLut mapping objects of
+  pAbc->pGiaMiniLut into the IDs of pAbc->pGiaMiniLut); (3) verification procedure (commented out by default)
+  Gia_ManNameMapVerify() which checks that the resulting mapping computed by Gia_ManMapMiniLut2MiniAig() is correct.  Please
+  let me know if this computation is clear.
+*/
+
+Vec_Int_t * Gia_ManVerifyFindNameMapping( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * p2, Vec_Int_t * vMap1, Vec_Int_t * vMap2 )
+{
+    Vec_Int_t * vRes = Vec_IntStartFull(Vec_IntSize(vMap2));
+    Vec_Int_t * vMap = Vec_IntStartFull( Gia_ManObjNum(p) );
+    int i, Entry, iRepr, fCompl, iLit;
+    Gia_Obj_t * pObj;
+    Gia_ManSetPhase( p1 );
+    Gia_ManSetPhase( p2 );
+    Vec_IntForEachEntry( vMap1, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        pObj = Gia_ManObj( p1, Abc_Lit2Var(Entry) );
+        if ( ~pObj->Value == 0 )
+            continue;
+        fCompl = Abc_LitIsCompl(Entry) ^ pObj->fPhase;
+        iRepr = Gia_ObjReprSelf( p, Abc_Lit2Var(pObj->Value) );
+        Vec_IntWriteEntry( vMap, iRepr, Abc_Var2Lit( i, fCompl ) );
+    }
+    Vec_IntForEachEntry( vMap2, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        pObj = Gia_ManObj( p2, Abc_Lit2Var(Entry) );
+        if ( ~pObj->Value == 0 )
+            continue;
+        fCompl = Abc_LitIsCompl(Entry) ^ pObj->fPhase;
+        iRepr = Gia_ObjReprSelf( p, Abc_Lit2Var(pObj->Value) );
+        if ( (iLit = Vec_IntEntry(vMap, iRepr)) == -1 )
+            continue;
+        Vec_IntWriteEntry( vRes, i, Abc_LitNotCond( iLit, fCompl ) );
+    }
+    Vec_IntFill( vMap, Gia_ManCoNum(p1), -1 );
+    Vec_IntForEachEntry( vMap1, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        pObj = Gia_ManObj( p1, Abc_Lit2Var(Entry) );
+        if ( !Gia_ObjIsCo(pObj) )
+            continue;
+        Vec_IntWriteEntry( vMap, Gia_ObjCioId(pObj), i );
+    }
+    Vec_IntForEachEntry( vMap2, Entry, i )
+    {
+        if ( Entry == -1 )
+            continue;
+        pObj = Gia_ManObj( p2, Abc_Lit2Var(Entry) );
+        if ( !Gia_ObjIsCo(pObj) )
+            continue;
+        
+        assert( Vec_IntEntry(vRes, i) == -1 );
+        Vec_IntWriteEntry( vRes, i, Abc_Var2Lit( Vec_IntEntry(vMap, Gia_ObjCioId(pObj)), 0 ) );
+        assert( Vec_IntEntry(vRes, i) != -1 );
+    }
+    Vec_IntFree( vMap );
+    return vRes;    
+}
+
+void Gia_ManVerifyVerifyNameMapping( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * p2, Vec_Int_t * vMap1, Vec_Int_t * vMap2, Vec_Int_t * vMapRes )
+{
+    int iImpl, iReprSpec, iReprImpl, nSize = Vec_IntSize(vMap2);
+    Gia_Obj_t * pObjSpec, * pObjImpl;
+    if ( vMapRes == NULL || p == NULL || p->pReprs == NULL )
+        return;
+    assert( Vec_IntSize(vMapRes) == nSize );
+    Gia_ManSetPhase( p1 );
+    Gia_ManSetPhase( p2 );
+    for ( iImpl = 0; iImpl < nSize; iImpl++ )
+        if ( Vec_IntEntry(vMapRes, iImpl) >= 0 )
+        {
+            int Entry   = Vec_IntEntry( vMapRes, iImpl );
+            int iSpec   = Abc_Lit2Var( Entry );
+            int fCompl  = Abc_LitIsCompl( Entry );
+            int iLitSpec = Vec_IntEntry( vMap1, iSpec );
+            int iLitImpl = Vec_IntEntry( vMap2, iImpl );
+            pObjSpec = Gia_ManObj( p1, Abc_Lit2Var(iLitSpec) );
+            if ( Gia_ObjIsCo(pObjSpec) )
+                continue;
+            if ( ~pObjSpec->Value == 0 )
+                continue;
+            pObjImpl = Gia_ManObj( p2, Abc_Lit2Var(iLitImpl) );
+            if ( ~pObjImpl->Value == 0 )
+                continue;
+            iReprSpec = Gia_ObjReprSelf( p, Abc_Lit2Var(pObjSpec->Value) );
+            iReprImpl = Gia_ObjReprSelf( p, Abc_Lit2Var(pObjImpl->Value) );
+            if ( iReprSpec != iReprImpl )
+                printf( "Found functional mismatch for ImplId %d and SpecId %d.\n", iImpl, iSpec );
+            if ( (pObjImpl->fPhase ^ Abc_LitIsCompl(iLitImpl)) != (pObjSpec->fPhase ^ Abc_LitIsCompl(iLitSpec) ^ fCompl) )
+                printf( "Found phase mismatch for ImplId %d and SpecId %d.\n", iImpl, iSpec );
+        }
+}
+
+int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fSeq, int fObjIdMap, int fDumpFiles, int fVerbose, char * pFileSpec )
 {
     int Status   = -1;
     Gia_Man_t * pSpec, * pGia0, * pGia1, * pMiter;
@@ -1052,12 +1159,30 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
         {
             Cec_ParCec_t ParsCec, * pPars = &ParsCec;
             Cec_ManCecSetDefaultParams( pPars );
-            pPars->nBTLimit  = nBTLimit;
-            pPars->TimeLimit = nTimeLim;
-            pPars->fVerbose  = fVerbose;
+            pPars->nBTLimit    = nBTLimit;
+            pPars->TimeLimit   = nTimeLim;
+            pPars->fUseOrigIds = fObjIdMap;
+            pPars->fVerbose    = fVerbose;
             Status = Cec_ManVerify( pMiter, pPars );
             if ( pPars->iOutFail >= 0 )
                 Abc_Print( 1, "Verification failed for at least one output (%d).\n", pPars->iOutFail );
+            if ( fObjIdMap ) {
+                Gia_Man_t * pReduced = Gia_ManOrigIdsReduce( pMiter, pMiter->vIdsEquiv );
+                Gia_ManStop( pReduced );
+                Gia_Obj_t * pObj; int i;           
+                Vec_Int_t * vCopy0 = Vec_IntAlloc(Gia_ManObjNum(pSpec));     
+                Gia_ManForEachObj( pSpec, pObj, i )
+                    Vec_IntPush( vCopy0, pObj->Value );
+                Vec_Int_t * vCopy1 = Vec_IntAlloc(Gia_ManObjNum(pGia));     
+                Gia_ManForEachObj( pGia, pObj, i )
+                    Vec_IntPush( vCopy1, pObj->Value );
+                Vec_IntFreeP( &pGia->vEquLitIds );
+                pGia->vEquLitIds = Gia_ManVerifyFindNameMapping( pMiter, pGia0, pGia1, vCopy0, vCopy1 );
+                assert( Vec_IntSize(pGia->vEquLitIds) == Gia_ManObjNum(pGia) );
+                Gia_ManVerifyVerifyNameMapping( pMiter, pGia0, pGia1, vCopy0, vCopy1, pGia->vEquLitIds );
+                Vec_IntFree( vCopy0 );
+                Vec_IntFree( vCopy1 );
+            }
             Gia_ManStop( pMiter );
         }
     }
@@ -1094,4 +1219,3 @@ Vec_Int_t * Gia_ManDeriveBoxMapping( Gia_Man_t * pGia )
 
 
 ABC_NAMESPACE_IMPL_END
-
