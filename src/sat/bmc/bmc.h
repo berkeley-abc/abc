@@ -68,6 +68,7 @@ struct Bmc_EsPar_t_
     int        fLutCascade;
     int        fLutInFixed;
     int        fMinNodes;
+    int        fUsePerm;
     int        RuntimeLim;
     int        nRandFuncs;
     int        nMintNum;

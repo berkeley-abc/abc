@@ -47,6 +47,7 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 
 #define MAJ_NOBJS  64 // Const0 + Const1 + nVars + nNodes
+#define MAJ_MAX_LUT 8
 
 typedef struct Exa8_Man_t_ Exa8_Man_t;
 struct Exa8_Man_t_ 
@@ -63,7 +64,7 @@ struct Exa8_Man_t_
     Vec_Wrd_t *       vInfo;     // nVars + nNodes + 1
     Vec_Bit_t *       vUsed2;    // bit masks
     Vec_Bit_t *       vUsed3;    // bit masks
-    int               VarMarks[MAJ_NOBJS][6][MAJ_NOBJS]; // variable marks
+    int               VarMarks[MAJ_NOBJS][MAJ_MAX_LUT][MAJ_NOBJS]; // variable marks
     int               VarVals[MAJ_NOBJS]; // values of the first nVars variables
     Vec_Wec_t *       vOutLits;  // output vars
     Vec_Wec_t *       vInVars;   // input vars
@@ -214,6 +215,7 @@ static int Exa8_ManMarkup( Exa8_Man_t * p )
 {
     int i, k, j;
     assert( p->nObjs <= MAJ_NOBJS );
+    assert( p->nLutSize <= MAJ_MAX_LUT );
     // assign functionality variables
     p->iVar = 1 + p->LutMask * p->nNodes;
     // assign connectivity variables
@@ -347,7 +349,7 @@ static inline int Exa8_ManFindFanin( Exa8_Man_t * p, int i, int k )
 static inline int Exa8_ManEval( Exa8_Man_t * p )
 {
     static int Flag = 0;
-    int i, k, j, iMint; word * pFanins[6];
+    int i, k, j, iMint; word * pFanins[MAJ_MAX_LUT];
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
         int iVarStart = 1 + p->LutMask*(i - p->nVars);
@@ -678,7 +680,11 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
     abctime clkTotal = Abc_Clock();
     Exa8_Man_t * p; 
     int fCompl = 0;
-    word pTruth[64]; 
+    assert( pPars->nVars <= 14 );
+    assert( pPars->nLutSize <= 8 );
+    int nTruthWords = Abc_TtWordNum( pPars->nVars );
+    word * pTruth = ABC_CALLOC( word, nTruthWords );
+    assert( pTruth );
     if ( pPars->pSymStr ) {
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
@@ -689,8 +695,6 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->pTtStr )
         Abc_TtReadHex( pTruth, pPars->pTtStr );
     else assert( 0 );
-    assert( pPars->nVars <= 12 );
-    assert( pPars->nLutSize <= 6 );
     if ( pPars->fUseIncr && !pPars->fSilent )
         printf( "Warning: Ignoring incremental option when using Kissat.\n" );
     pPars->fUseIncr = 0;
@@ -758,6 +762,7 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->pSymStr ) 
         ABC_FREE( pPars->pTtStr );
     Exa8_ManFree( p );
+    ABC_FREE( pTruth );
     return Res;
 }
 
@@ -770,7 +775,7 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
     for ( int n = nNodeMin; n <= nNodeMax; n++ ) {
         printf( "\nTrying M = %d:\n", n );
         pPars->nNodes = n;
-        if ( fGenPerm ) {
+        if ( !pPars->fUsePerm && fGenPerm ) {
             Vec_Str_t * vStr = Vec_StrAlloc( 100 );
             for ( int v = 0; v < pPars->nLutSize; v++ )
                 Vec_StrPush( vStr, 'a'+v );
@@ -790,7 +795,7 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
             pPars->pPermStr = Vec_StrReleaseArray(vStr);
             Vec_StrFree( vStr );
         }
-        if ( 0 && fGenPerm ) {
+        else if ( pPars->fUsePerm && fGenPerm ) {
             Vec_Str_t * vStr = Vec_StrAlloc( 100 );
             for ( int v = 0; v < pPars->nLutSize; v++ )
                 Vec_StrPush( vStr, 'a'+v );
