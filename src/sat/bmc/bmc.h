@@ -73,6 +73,7 @@ struct Bmc_EsPar_t_
     int        nRandFuncs;
     int        nMintNum;
     int        Seed;
+    int        n1HotAlgo;
     int        fDumpBlif;
     int        fVerbose; 
     int        fSilent; 
@@ -102,6 +103,7 @@ static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )
     pPars->fUniqFans   = 0;
     pPars->fLutCascade = 0;
     pPars->RuntimeLim  = 0;
+    pPars->n1HotAlgo   = 1;
     pPars->fVerbose    = 0; 
 }
 
@@ -274,4 +276,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

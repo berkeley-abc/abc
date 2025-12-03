@@ -953,20 +953,6 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
 
 ***********************************************************************/
 
-/*
-› Please have a look at how name mapping is done in procedure Abc_FrameReadMiniLutNameMapping() in file "src/aig/gia/
-  giaMini.c". The main idea is to map the object IDs in the design after synthesis (pAbc->pGiaMiniLut) into the object IDs in
-  the design before synthesis (pAbc->pGiaMiniAig).  The computation is divided into three steps: (1) computing object
-  equivalences using Gia_ManComputeGiaEquivs(), which annotates the input AIG (pGia) containing both designs before and after
-  synthesis with equivalence class information; this information contains equivalence classes of objects from both designs; (2)
-  creating a map (pRes) of the resulting object IDs (in pAbc->pGiaMiniLut) into the original object IDs (in pAbc->pGiaMiniAig)
-  using procedure Gia_ManMapMiniLut2MiniAig(); this map is enabled by having two arrays (one of them is pAbc->vCopyMiniAig
-  mapping objects of pAbc->pGiaMiniAig in the original object IDs; the other one is pAbc->vCopyMiniLut mapping objects of
-  pAbc->pGiaMiniLut into the IDs of pAbc->pGiaMiniLut); (3) verification procedure (commented out by default)
-  Gia_ManNameMapVerify() which checks that the resulting mapping computed by Gia_ManMapMiniLut2MiniAig() is correct.  Please
-  let me know if this computation is clear.
-*/
-
 Vec_Int_t * Gia_ManVerifyFindNameMapping( Gia_Man_t * p, Gia_Man_t * p1, Gia_Man_t * p2, Vec_Int_t * vMap1, Vec_Int_t * vMap2 )
 {
     Vec_Int_t * vRes = Vec_IntStartFull(Vec_IntSize(vMap2));
