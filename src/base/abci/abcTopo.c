@@ -26,11 +26,7 @@
 #define KISSAT_SAT   10
 #define KISSAT_UNDEC  0
 
-static int AbcTopo_KissatTerminate( void * pData )
-{
-    abctime * pTimeStop = (abctime *)pData;
-    return pTimeStop && *pTimeStop && Abc_Clock() > *pTimeStop;
-}
+ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -39,6 +35,12 @@ static int AbcTopo_KissatTerminate( void * pData )
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+static int AbcTopo_KissatTerminate( void * pData )
+{
+    abctime * pTimeStop = (abctime *)pData;
+    return pTimeStop && *pTimeStop && Abc_Clock() > *pTimeStop;
+}
 
 /**Function*************************************************************
 
