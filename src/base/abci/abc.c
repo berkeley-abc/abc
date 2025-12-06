@@ -174,6 +174,7 @@ static int Abc_CommandTwoExact               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandLutExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAndExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAllExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTopoExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestExact              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMajGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrchestrate            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -994,8 +995,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Synthesis",    "varmin",        Abc_CommandVarMin,           0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "faultclasses",  Abc_CommandFaultClasses,     0 );
     Cmd_CommandAdd( pAbc, "Synthesis",    "exact",         Abc_CommandExact,            1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "orchestrate",  Abc_CommandOrchestrate,     1 );
-    Cmd_CommandAdd( pAbc, "Synthesis",    "aigaug",       Abc_CommandAIGAugmentation,     1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "orchestrate",  Abc_CommandOrchestrate,       1 );
+    Cmd_CommandAdd( pAbc, "Synthesis",    "aigaug",       Abc_CommandAIGAugmentation,   1 );
 
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_start",  Abc_CommandBmsStart,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "bms_stop",   Abc_CommandBmsStop,          0 );
@@ -1005,6 +1006,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "lutexact",   Abc_CommandLutExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "andexact",   Abc_CommandAndExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "allexact",   Abc_CommandAllExact,         0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "topoexact",  Abc_CommandTopoExact,        0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "testexact",  Abc_CommandTestExact,        0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "majgen",     Abc_CommandMajGen,           0 );
 
@@ -11384,6 +11386,126 @@ usage:
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandTopoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut, int nSeed, int fVerbose );
+    Abc_Ntk_t * pNtkRes = NULL;
+    Abc_Ntk_t * pTopo = NULL;
+    int nTimeOut = 0;    
+    int nSeed = 0;
+    char * pFileName = NULL;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TSvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nTimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nTimeOut < 0 )
+                goto usage;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSeed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSeed < 0 )
+                goto usage;
+            break;
+       case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pNtkCur == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkIsStrash(pAbc->pNtkCur) )
+    {
+        Abc_Print( -1, "This command expect an AIG as the current network and BLIF file on the command line.\n" );
+        return 1;
+    }
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
+    if ( pFileName == NULL )
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 1;
+    }
+    pTopo = Io_Read( pFileName, Io_ReadFileType(pFileName), 1, 0 );
+    if ( pTopo == NULL ) 
+    {
+        Abc_Print( -1, "The topology file is not specified on the command line.\n" );
+        return 1;
+    }
+    if ( Abc_NtkGetFaninMax(pTopo) > 6 )
+    {
+        Abc_NtkDelete( pTopo );
+        Abc_Print( -1, "The topology network has nodes with more than 6 inputs.\n" );
+        return 1;
+    }
+    if ( Abc_NtkCiNum(pAbc->pNtkCur) != Abc_NtkCiNum(pTopo) )
+    {
+        Abc_NtkDelete( pTopo );
+        Abc_Print( -1, "The number of combinational inputs of the networks does not match.\n" );
+        return 1;
+    }
+    if ( Abc_NtkCoNum(pAbc->pNtkCur) != Abc_NtkCoNum(pTopo) )
+    {
+        Abc_NtkDelete( pTopo );
+        Abc_Print( -1, "The number of combinational outputs of the networks does not match.\n" );
+        return 1;
+    }
+    pTopo = Abc_NtkDupDfs( pNtkRes = pTopo );
+    Abc_NtkDelete( pNtkRes );
+    pNtkRes = Abc_NtkTopoExact( pAbc->pNtkCur, pTopo, nTimeOut, nSeed, fVerbose );
+    Abc_NtkDelete( pTopo );
+    if ( pNtkRes == NULL )
+    {
+        Abc_Print( -1, "Command has failed.\n" );
+        return 0;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );    
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: topoexact [-TS num] <file>\n" );
+    Abc_Print( -2, "\t           exact synthesis solution for the fixed topology\n" );
+    Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", nTimeOut );
+    Abc_Print( -2, "\t-S <num> : the random seed to randomize the SAT solver [default = %d]\n", nSeed );
+    Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n" );
+    Abc_Print( -2, "\t<file>   : BLIF file name with the topology\n" );
     return 1;
 }
 
@@ -49804,9 +49926,9 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pTemp;
     Vec_Int_t * vPos;
-    int c, nRegs = 0, iOutNum = -1, nOutRange = 1, iPartNum = -1, nLevelMax = 0, nTimeWindow = 0, fUseAllCis = 0, fExtractAll = 0, fComb = 0, fVerbose = 0;
+    int c, nRegs = 0, iOutNum = -1, nOutRange = 1, iPartNum = -1, iConeNum = -1, nLevelMax = 0, nTimeWindow = 0, fUseAllCis = 0, fExtractAll = 0, fComb = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "ORPLWaecvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ORPLWCaecvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -49865,6 +49987,17 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nTimeWindow < 0 )
                 goto usage;
             break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            iConeNum = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( iConeNum < 1 )
+                goto usage;
+            break;
         case 'a':
             fUseAllCis ^= 1;
             break;
@@ -49917,6 +50050,17 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
     }
+    if ( iConeNum > 0 )
+    {
+        if ( iConeNum >= Gia_ManObjNum(pAbc->pGia) || !Gia_ObjIsAnd(Gia_ManObj(pAbc->pGia, iConeNum)) ) 
+        {
+            Abc_Print( -1, "Abc_CommandAbc9Cone(): Object with Id %d is not a node.\n", iConeNum );
+            return 1;
+        }
+        pTemp = Gia_ManDupDfsNode( pAbc->pGia, Gia_ManObj(pAbc->pGia, iConeNum) );
+        Abc_FrameUpdateGia( pAbc, pTemp );    
+        return 0;    
+    }
     if ( iPartNum >= 0 )
     {
         Vec_Int_t * vClass;
@@ -49957,13 +50101,14 @@ int Abc_CommandAbc9Cone( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cone [-ORPLW num] [-aecvh]\n" );
+    Abc_Print( -2, "usage: &cone [-ORPLWC num] [-aecvh]\n" );
     Abc_Print( -2, "\t         extracting multi-output sequential logic cones\n" );
     Abc_Print( -2, "\t-O num : the index of first PO to extract [default = %d]\n", iOutNum );
     Abc_Print( -2, "\t-R num : (optional) the number of outputs to extract [default = %d]\n", nOutRange );
     Abc_Print( -2, "\t-P num : (optional) the partition number to extract [default = %d]\n", iPartNum );
     Abc_Print( -2, "\t-L num : (optional) extract cones with higher level [default = %d]\n", nLevelMax );
     Abc_Print( -2, "\t-W num : (optional) extract cones falling into this window [default = %d]\n", nTimeWindow );
+    Abc_Print( -2, "\t-C num : (optional) extract cone of one node with ID equal to <num> [default = unused]\n" );
     Abc_Print( -2, "\t-a     : toggle keeping all CIs or structral support only [default = %s]\n", fUseAllCis? "all": "structural" );
     Abc_Print( -2, "\t-e     : toggle writing all outputs into individual files [default = %s]\n", fExtractAll? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggle performing cone extraction combinationally [default = %s]\n", fComb? "yes": "no" );

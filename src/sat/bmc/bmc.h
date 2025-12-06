@@ -75,12 +75,14 @@ struct Bmc_EsPar_t_
     int        Seed;
     int        n1HotAlgo;
     int        fDumpBlif;
+    int        fGenTruths;
     int        fVerbose; 
     int        fSilent; 
     char *     pTtStr;
     char *     pSymStr;
     char *     pPermStr;
     char *     pGuide;
+    Vec_Wrd_t* vTruths;
 };
 
 static inline void Bmc_EsParSetDefault( Bmc_EsPar_t * pPars )

@@ -389,6 +389,50 @@ static inline int Exa8_ManEval( Exa8_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
+static Vec_Wrd_t * Exa8_ManSaveTruthTables( Exa8_Man_t * p, int fCompl )
+{
+    int i, k, nWordsNode, nMintsNode;
+    assert( p->nLutSize <= 8 );
+    nMintsNode = 1 << p->nLutSize;
+    nWordsNode = (p->nLutSize <= 6) ? 1 : (p->nLutSize == 7 ? 2 : 4);
+    Vec_Wrd_t * vTruths = Vec_WrdStart( p->nObjs * nWordsNode );
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+        word Truth[4] = {0, 0, 0, 0};
+        int iVarStart = 1 + p->LutMask*(i - p->nVars);
+        for ( k = 0; k < p->LutMask; k++ )
+        {
+            if ( Exa8_KissatVarValue( p, iVarStart + k ) )
+            {
+                int bit = k + 1; // minterm index (minterm 0 is fixed to 0)
+                int w = bit >> 6;
+                int b = bit & 63;
+                Truth[w] |= ((word)1 << b);
+            }
+        }
+        // complement the output fully if needed (including minterm 0)
+        if ( i == p->nObjs - 1 && fCompl )
+        {
+            for ( int w = 0; w < nWordsNode; w++ )
+            {
+                word Mask;
+                int rem = nMintsNode - w * 64;
+                if ( rem <= 0 )
+                    Mask = 0;
+                else if ( rem >= 64 )
+                    Mask = ~(word)0;
+                else
+                    Mask = (((word)1) << rem) - 1;
+                Truth[w] = (~Truth[w]) & Mask;
+            }
+        }
+        if ( p->nLutSize < 6 )
+            Truth[0] = Abc_Tt6Stretch( Truth[0], p->nLutSize );
+        for ( int w = 0; w < nWordsNode; w++ )
+            Vec_WrdWriteEntry( vTruths, i * nWordsNode + w, Truth[w] );
+    }
+    return vTruths;
+}
 static void Exa8_ManPrintSolution( Exa8_Man_t * p, int fCompl )
 {
     int i, k, iVar;
@@ -692,7 +736,7 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
         if ( !pPars->fSilent ) printf( "Generated symmetric function: %s\n", pPars->pTtStr );
         ABC_FREE( pFun );
     }
-    if ( pPars->pTtStr )
+    if ( pPars->pTtStr && pPars->nVars <= 7 )
         Abc_TtReadHex( pTruth, pPars->pTtStr );
     else assert( 0 );
     if ( pPars->fUseIncr && !pPars->fSilent )
@@ -741,6 +785,11 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
         printf( "\".\n" );
         if ( pPars->fDumpBlif )
             Exa8_ManDumpBlif( p, fCompl );
+        if ( p->pPars->fGenTruths ) {
+            if ( p->pPars->vTruths )
+                Vec_WrdFreeP( &p->pPars->vTruths );
+            p->pPars->vTruths = Exa8_ManSaveTruthTables( p, fCompl );
+        }
         Res = 1;
     }
     else if ( status == KISSAT_UNSAT )
@@ -843,6 +892,46 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
             break;
     }
     return Result;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Ptr_t * Exa8_ManExactSynthesisPopcount( int nVars )
+{
+    Bmc_EsPar_t Pars, * pPars = &Pars;
+    Bmc_EsParSetDefault( pPars );
+    pPars->fKissat     = 1;
+    pPars->fLutCascade = 1;
+    pPars->fMinNodes   = 1;
+    pPars->fUsePerm    = 1;
+    pPars->fGenTruths  = 1;
+    pPars->nLutSize    = 6;
+    int v, o, nOuts = Abc_Base2Log(nVars+1);
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( nOuts );
+    for ( o = 0; o < nOuts; o++ ) {
+        char pBuffer[100];
+        for ( v = 0; v <= nVars; v++ )
+            pBuffer[v] = '0' + ((v >> o) & 1);
+        pBuffer[nVars+1] = '\0';
+        pPars->pSymStr = pBuffer;
+        int status = Exa8_ManExactSynthesis( pPars );
+        if ( status != 1 ) {
+            printf( "Synthesis failed for output %d.\n", o );
+            break;
+        }
+        Vec_PtrPush( vRes, pPars->vTruths );
+        pPars->vTruths = NULL;
+    }
+    return vRes;
 }
 
 ////////////////////////////////////////////////////////////////////////
