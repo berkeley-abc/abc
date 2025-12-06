@@ -733,10 +733,10 @@ int Exa8_ManExactSynthesis( Bmc_EsPar_t * pPars )
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
         Extra_PrintHexadecimalString( pPars->pTtStr, (unsigned *)pFun, pPars->nVars );
-        if ( !pPars->fSilent ) printf( "Generated symmetric function: %s\n", pPars->pTtStr );
+        if ( !pPars->fSilent && pPars->nVars <= 7 ) printf( "Generated symmetric function: %s\n", pPars->pTtStr );
         ABC_FREE( pFun );
     }
-    if ( pPars->pTtStr && pPars->nVars <= 7 )
+    if ( pPars->pTtStr )
         Abc_TtReadHex( pTruth, pPars->pTtStr );
     else assert( 0 );
     if ( pPars->fUseIncr && !pPars->fSilent )
@@ -822,7 +822,7 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
     int nNodeMax = pPars->nNodes, Result = 0;
     int fGenPerm = pPars->pPermStr == NULL;
     for ( int n = nNodeMin; n <= nNodeMax; n++ ) {
-        printf( "\nTrying M = %d:\n", n );
+        if ( !pPars->fSilent ) printf( "\nTrying M = %d:\n", n );
         pPars->nNodes = n;
         if ( !pPars->fUsePerm && fGenPerm ) {
             Vec_Str_t * vStr = Vec_StrAlloc( 100 );
@@ -905,7 +905,7 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Exa8_ManExactSynthesisPopcount( int nVars )
+Vec_Ptr_t * Exa8_ManExactSynthesisPopcount( int nVars, int fVerbose )
 {
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
@@ -914,6 +914,7 @@ Vec_Ptr_t * Exa8_ManExactSynthesisPopcount( int nVars )
     pPars->fMinNodes   = 1;
     pPars->fUsePerm    = 1;
     pPars->fGenTruths  = 1;
+    pPars->fSilent     = !fVerbose;
     pPars->nLutSize    = 6;
     int v, o, nOuts = Abc_Base2Log(nVars+1);
     Vec_Ptr_t * vRes = Vec_PtrAlloc( nOuts );
