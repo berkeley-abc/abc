@@ -174,7 +174,8 @@ static int Abc_CommandTwoExact               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandLutExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAndExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAllExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
-static int Abc_CommandTopoExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandTopoExact              ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandNetExact               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandTestExact              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMajGen                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandOrchestrate            ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1007,6 +1008,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "andexact",   Abc_CommandAndExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "allexact",   Abc_CommandAllExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "topoexact",  Abc_CommandTopoExact,        0 );
+    Cmd_CommandAdd( pAbc, "Exact synthesis", "netexact",   Abc_CommandNetExact,         0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "testexact",  Abc_CommandTestExact,        0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "majgen",     Abc_CommandMajGen,           0 );
 
@@ -11506,6 +11508,158 @@ usage:
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<file>   : BLIF file name with the topology\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandNetExact( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int Tn_ReadHexTruth( char * pInput, word * pTruth );
+    extern void Tn_SolveProblem( int nIns, int nOuts, word * pOuts, char * pTypes, int nEdgeLimit, int nLevelLimit, int nSolsMax, int Seed, int TimeOut, int fVerbose );
+    int c, nIns = 0, nOuts = 0, nEdgeLimit = 0, nLevelLimit = 0, nSolsMax = 1, Seed = 0, TimeOut = 0, fVerbose = 0;
+    char * pTypes = NULL;  
+    word Truths[16] = {0};    
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CELNSTVvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            pTypes = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'S':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-S\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            Seed = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Seed < 0 )
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nEdgeLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nEdgeLimit < 0 )
+                goto usage;
+            break;
+        case 'L':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-L\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLevelLimit = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLevelLimit < 0 )
+                goto usage;
+            break;
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSolsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSolsMax < 0 )
+                goto usage;
+            break;
+        case 'T':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            TimeOut = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( TimeOut < 0 )
+                goto usage;
+            break;
+        case 'V':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-V\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            fVerbose = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( fVerbose < 0 )
+                goto usage;
+            break;
+       case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    for ( c = globalUtilOptind; c < argc; c++ ) {
+        if ( Abc_TtIsHexDigit(argv[c][0]) == -1 ) {
+            Abc_Print( -1, "Cannot read truth table \"%s\".\n", argv[c] );
+            goto usage;
+        }
+        int nVarsOut = Tn_ReadHexTruth( argv[c], Truths + nOuts++ );
+        if ( nIns == 0 )
+            nIns = nVarsOut;
+        else if ( nIns != nVarsOut ) {
+            Abc_Print( -1, "The support size of output functions is not the same.\n" ); 
+            goto usage;
+        }
+    }
+
+    printf( "Finished reading %d output%s\n\n", nOuts, nOuts == 1 ? "" : "s" );
+    Tn_SolveProblem( nIns, nOuts, Truths, pTypes, nEdgeLimit, nLevelLimit, nSolsMax, Seed, TimeOut, fVerbose );    
+    return 0;
+
+usage:
+
+    Abc_Print( -2, "usage: netexact -C <str> [-ELNSTV <num>] <truth[0]> ... <truth[m-1]>\n" );
+    Abc_Print( -2, "                   this program synthesizes networks for multi-output functions\n" );
+    Abc_Print( -2, "\n" );     
+    Abc_Print( -2, "      -C <str>  :  the configuration string (no default)\n" );
+    Abc_Print( -2, "      -E <num>  :  the max number of edges (default = no limit)\n" );
+    Abc_Print( -2, "      -L <num>  :  the max number of levels (default = no limit)\n" );        
+    Abc_Print( -2, "      -N <num>  :  the max number of solutions (default = 1)\n" );        
+    Abc_Print( -2, "      -S <num>  :  the random seed (default = 0)\n" );        
+    Abc_Print( -2, "      -T <num>  :  the timeout in seconds (default = no timeout)\n" );                
+    Abc_Print( -2, "      -V <num>  :  the verbosiness levels (default = %d)\n", fVerbose );             
+    Abc_Print( -2, "    <truth[0]>  :  the truth table of the first output in the hexadecimal notation\n" );
+    Abc_Print( -2, "  <truth[m-1]>  :  the truth table of the last output in the hexadecimal notation\n" );
+    Abc_Print( -2, "                   the truth tables are assumed to depend on the same variables\n" );
+    Abc_Print( -2, "                   the strings should contain 2^(<num_inputs>-2) hexadecimal digits\n" );
+    Abc_Print( -2, "\n" );        
+    Abc_Print( -2, "                   Example 1: Synthesizing 3-node 2-edge 2-input and-gate:\n" );
+    Abc_Print( -2, "                     %s -C *11** -E 2  8\n", argv[0] );
+    Abc_Print( -2, "                   Example 2: Synthesizing 4-node 5-edge 3-input majority gate:\n" );
+    Abc_Print( -2, "                     %s -C *111*** -E 5  E8\n", argv[0] );        
+    Abc_Print( -2, "                   Example 3: Synthesizing 10-edge 3-input 2-output full-adder:\n" );
+    Abc_Print( -2, "                     %s -C *222****** -E 10  E8 96\n", argv[0] );
     return 1;
 }
 
