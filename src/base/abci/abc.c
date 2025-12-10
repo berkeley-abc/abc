@@ -229,6 +229,7 @@ static int Abc_CommandEspresso               ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandGen                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandGenTF                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandGenAT                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandGenPop                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandGenFsm                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandCover                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandDouble                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1060,6 +1061,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various",      "gen",           Abc_CommandGen,              0 );
     Cmd_CommandAdd( pAbc, "Various",      "gentf",         Abc_CommandGenTF,            0 );
     Cmd_CommandAdd( pAbc, "Various",      "genat",         Abc_CommandGenAT,            0 );
+    Cmd_CommandAdd( pAbc, "Various",      "genpop",        Abc_CommandGenPop,           0 );
     Cmd_CommandAdd( pAbc, "Various",      "genfsm",        Abc_CommandGenFsm,           0 );
     Cmd_CommandAdd( pAbc, "Various",      "cover",         Abc_CommandCover,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "double",        Abc_CommandDouble,           1 );
@@ -16028,6 +16030,81 @@ usage:
     Abc_Print( -2, "\t-v     : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<nums> : input counts by rank\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandGenPop( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Abc_Ntk_t * Abc_NtkLutCascadeFromPopcountLuts( int nVars, int nLutSize, int fVerbose, char * pFileName );
+    char * pFileName = NULL;
+    Abc_Ntk_t * pNtk = NULL;
+    int c, nVars = 10, nLutSize = 6, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "NKvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'N':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-N\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nVars = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nVars < 0 )
+                goto usage;
+            break;
+        case 'K':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-K\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nLutSize = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nLutSize < 0 )
+                goto usage;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
+    pNtk = Abc_NtkLutCascadeFromPopcountLuts( nVars, nLutSize, fVerbose, pFileName );
+    if ( pNtk == NULL )
+    {
+        fprintf( pAbc->Err, "Deriving the network has failed.\n" );
+        return 1;
+    }
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: genpop [-NK num] [-vh] <file.v>\n" );
+    Abc_Print( -2, "\t            generates the adder tree\n" );
+    Abc_Print( -2, "\t-N <num>  : the number of support variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-K <num>  : the number of LUT inputs [default = %d]\n", nLutSize );
+    Abc_Print( -2, "\t-v        : prints verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h        : print the command usage\n");
+    Abc_Print( -2, "\t-<file.v> : (optional) Verilog file name\n");
     return 1;
 }
 

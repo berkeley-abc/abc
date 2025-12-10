@@ -905,26 +905,30 @@ int Exa8_ManExactSynthesisIter( Bmc_EsPar_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Ptr_t * Exa8_ManExactSynthesisPopcount( int nVars, int fVerbose )
+Vec_Ptr_t * Exa8_ManExactSynthesisPopcount( int nVars, int nLutSize, int fVerbose )
 {
+    assert( nVars > nLutSize );
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
+    pPars->nVars       = nVars;
+    pPars->nLutSize    = nLutSize;
     pPars->fKissat     = 1;
     pPars->fLutCascade = 1;
-    pPars->fMinNodes   = 1;
     pPars->fUsePerm    = 1;
     pPars->fGenTruths  = 1;
     pPars->fSilent     = !fVerbose;
-    pPars->nLutSize    = 6;
     int v, o, nOuts = Abc_Base2Log(nVars+1);
     Vec_Ptr_t * vRes = Vec_PtrAlloc( nOuts );
     for ( o = 0; o < nOuts; o++ ) {
+        pPars->nNodes  = 10;
+        ABC_FREE( pPars->pPermStr );
+        pPars->pPermStr = NULL;
         char pBuffer[100];
         for ( v = 0; v <= nVars; v++ )
             pBuffer[v] = '0' + ((v >> o) & 1);
         pBuffer[nVars+1] = '\0';
         pPars->pSymStr = pBuffer;
-        int status = Exa8_ManExactSynthesis( pPars );
+        int status = Exa8_ManExactSynthesisIter( pPars );
         if ( status != 1 ) {
             printf( "Synthesis failed for output %d.\n", o );
             break;
@@ -932,6 +936,7 @@ Vec_Ptr_t * Exa8_ManExactSynthesisPopcount( int nVars, int fVerbose )
         Vec_PtrPush( vRes, pPars->vTruths );
         pPars->vTruths = NULL;
     }
+    ABC_FREE( pPars->pPermStr );
     return vRes;
 }
 

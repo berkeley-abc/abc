@@ -22,6 +22,7 @@
 #include "misc/vec/vecMem.h"
 #include "misc/vec/vecWec.h"
 #include "misc/util/utilTruth.h"
+#include "bool/lucky/lucky.h"
 #include "opt/dau/dau.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -809,10 +810,73 @@ Gia_Man_t * Gia_ManIsoNpnReduce( Gia_Man_t * p, Vec_Ptr_t ** pvPosEquivs, int fV
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManNodeFunctionProfile( Gia_Man_t * p, int nVars )
+{
+    int fCanonicize = 1;
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vLeaves = Vec_IntAlloc( 100 );
+    int nWords = Abc_Truth6WordNum( nVars );
+    Vec_Mem_t * pTtMem  = Vec_MemAlloc( nWords, 12 ); // supports up to nVars words
+    Vec_MemHashAlloc( pTtMem, 1000 );
+    Vec_Int_t * vCounts = Vec_IntAlloc( 100 );
+    permInfo * pi = setPermInfoPtr( nVars );
+    word pAuxWord[DAU_MAX_WORD], pAuxWord1[DAU_MAX_WORD], Truth[DAU_MAX_WORD], * pTruth; int i;
+    assert( nVars <= 7 );
+    Gia_ObjComputeTruthTableStart( p, nVars );
+    Gia_ManForEachAnd( p, pObj, i ) {
+        if ( Gia_ManSuppSize(p, &i, 1) != nVars )
+            continue;
+        Gia_ManCollectCis( p, &i, 1, vLeaves );
+        assert( Vec_IntSize(vLeaves) == nVars );
+        pTruth = Gia_ObjComputeTruthTableCut( p, pObj, vLeaves );
+        if ( fCanonicize ) {
+            memcpy( Truth, pTruth, sizeof(word) * nWords );
+            simpleMinimal( Truth, pAuxWord, pAuxWord1, pi, nVars ); // NPN canonical form
+        }
+        else {
+            memcpy( Truth, pTruth, sizeof(word) * nWords );
+        }
+        {
+            int nEntries = Vec_MemEntryNum( pTtMem );
+            int Value    = Vec_MemHashInsert( pTtMem, Truth );
+            if ( Vec_MemEntryNum( pTtMem ) == nEntries )
+                Vec_IntAddToEntry( vCounts, Value, 1 );
+            else
+            {
+                assert( Value == nEntries );
+                Vec_IntPush( vCounts, 1 );
+            }
+        }
+    }
+    for ( i = 0; i < Vec_MemEntryNum(pTtMem); i++ ) {
+        word * pCanon = Vec_MemReadEntry( pTtMem, i );
+        int Count     = Vec_IntEntry( vCounts, i );
+        Abc_TtPrintHexRev( stdout, pCanon, nVars );
+        printf( " %d\n", Count );
+    }
+    Gia_ObjComputeTruthTableStop( p );
+    Vec_IntFree( vLeaves );
+    Vec_IntFree( vCounts );
+    Vec_MemHashFree( pTtMem );
+    Vec_MemFree( pTtMem );
+    freePermInfoPtr( pi );
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
 
 ABC_NAMESPACE_IMPL_END
-
