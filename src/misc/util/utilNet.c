@@ -1103,7 +1103,11 @@ tn_vi * Tn_SolveSat( const char * pFileNameIn, const char * pFileNameOut, int Se
         sprintf( pCommand, "%s --seed=%d %s %s > %s", pKissat, Seed, fVerboseSolver ? "": "-q", pFileNameIn, pFileNameOut );
     //if ( fVerbose )
     //    printf( "Running command line: %s\n", pCommand );
+#if defined(__wasm)
+    if ( 1 )
+#else
     if ( system( pCommand ) == -1 )
+#endif
     {
         printf( "Command \"%s\" did not succeed.\n", pCommand );
         return 0;
