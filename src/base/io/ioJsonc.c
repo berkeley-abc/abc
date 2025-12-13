@@ -23,8 +23,10 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include "ioAbc.h"
+#include "map/mio/mio.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -605,9 +607,147 @@ int Jsonc_ReadTest( char * pFileName )
     return 0;
 }
 
+static int Jsonc_ParseNameBit( const char * pName, char * pBase, int nBase )
+{
+    const char * pOpen;
+    const char * pClose;
+    int nCopy;
+    if ( pBase && nBase > 0 )
+        pBase[0] = '\0';
+    if ( pName == NULL || pBase == NULL || nBase <= 1 )
+        return 0;
+    pOpen  = strrchr( pName, '[' );
+    pClose = pOpen ? strchr( pOpen, ']' ) : NULL;
+    if ( pOpen && pClose && pClose > pOpen + 1 )
+    {
+        nCopy = (int)(pOpen - pName);
+        if ( nCopy > nBase - 1 )
+            nCopy = nBase - 1;
+        memcpy( pBase, pName, nCopy );
+        pBase[nCopy] = '\0';
+        return atoi( pOpen + 1 );
+    }
+    strncpy( pBase, pName, nBase - 1 );
+    pBase[nBase - 1] = '\0';
+    return 0;
+}
+static const char * Jsonc_GetPortName( Abc_Obj_t * pObj )
+{
+    if ( Abc_ObjIsCi(pObj) && Abc_NtkIsNetlist(pObj->pNtk) && Abc_ObjFanoutNum(pObj) )
+        return Abc_ObjName( Abc_ObjFanout0(pObj) );
+    if ( Abc_ObjIsCo(pObj) && Abc_NtkIsNetlist(pObj->pNtk) && Abc_ObjFaninNum(pObj) )
+        return Abc_ObjName( Abc_ObjFanin0(pObj) );
+    return Abc_ObjName(pObj);
+}
+static const char * Jsonc_GetNodeOutName( Abc_Obj_t * pObj )
+{
+    static char Buffer[1024];
+    if ( Abc_ObjFanoutNum(pObj) )
+    {
+        Abc_Obj_t * pFan0 = Abc_ObjFanout0(pObj);
+        if ( Abc_ObjIsNet(pFan0) || Abc_ObjIsCo(pFan0) )
+            return Abc_ObjName(pFan0);
+    }
+    if ( Abc_ObjName(pObj) )
+        return Abc_ObjName(pObj);
+    snprintf( Buffer, sizeof(Buffer), "n%d", Abc_ObjId(pObj) );
+    return Buffer;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+  
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
+{
+    Vec_Ptr_t * vNodes;
+    Vec_Int_t * vObj2Num;
+    Abc_Obj_t * pObj;
+    FILE * pFile;
+    int i, Counter, Total;
+    assert( Abc_NtkHasMapping(p) );
+    vNodes   = Abc_NtkDfs2( p );
+    vObj2Num = Vec_IntStartFull( Abc_NtkObjNumMax(p) );
+    Total    = Abc_NtkPiNum(p) + Vec_PtrSize(vNodes) + Abc_NtkPoNum(p);
+    pFile    = fopen( pFileName, "wb" );
+    if ( pFile == NULL )
+    {
+        printf( "Jsonc_WriteTest(): Cannot open output file \"%s\" for writing.\n", pFileName );
+        Vec_IntFree( vObj2Num );
+        Vec_PtrFree( vNodes );
+        return;
+    }
+    fprintf( pFile, "{\n" );
+    fprintf( pFile, "  \"name\": \"%s\",\n", Abc_NtkName(p) ? Abc_NtkName(p) : "" );
+    fprintf( pFile, "  \"nodes\": [\n" );
+    Counter = 0;
+    Abc_NtkForEachPi( p, pObj, i )
+    {
+        char Name[1024];
+        int Bit = Jsonc_ParseNameBit( Jsonc_GetPortName(pObj), Name, sizeof(Name) );
+        Vec_IntWriteEntry( vObj2Num, Abc_ObjId(pObj), Counter );
+        fprintf( pFile, "    {\n" );
+        fprintf( pFile, "      \"type\": \"pi\",\n" );
+        fprintf( pFile, "      \"name\": \"%s\",\n", Name );
+        fprintf( pFile, "      \"bit\": %d\n", Bit );
+        fprintf( pFile, "    }%s\n", ++Counter == Total ? "" : "," );
+    }
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
+        Mio_Pin_t * pPin;
+        int k;
+        assert( pGate != NULL );
+        Vec_IntWriteEntry( vObj2Num, Abc_ObjId(pObj), Counter );
+        fprintf( pFile, "    {\n" );
+        fprintf( pFile, "      \"type\": \"%s\",\n", Mio_GateReadName(pGate) );
+        fprintf( pFile, "      \"name\": \"%s\",\n", Jsonc_GetNodeOutName(pObj) );
+        fprintf( pFile, "      \"fanins\": [\n" );
+        fprintf( pFile, "        {\n" );
+        for ( pPin = Mio_GateReadPins(pGate), k = 0; pPin; pPin = Mio_PinReadNext(pPin), k++ )
+        {
+            Abc_Obj_t * pFanin = Abc_ObjFanin0Ntk( Abc_ObjFanin(pObj, k) );
+            int FanId = Vec_IntEntry( vObj2Num, Abc_ObjId(pFanin) );
+            assert( FanId >= 0 );
+            fprintf( pFile, "          \"%s\": { \"node\": %d }%s\n", Mio_PinReadName(pPin), FanId, Mio_PinReadNext(pPin) ? "," : "" );
+        }
+        fprintf( pFile, "        }\n" );
+        fprintf( pFile, "      ]\n" );
+        fprintf( pFile, "    }%s\n", ++Counter == Total ? "" : "," );
+    }
+    Abc_NtkForEachPo( p, pObj, i )
+    {
+        Abc_Obj_t * pDriver = Abc_ObjFanin0Ntk( Abc_ObjFanin0(pObj) );
+        char Name[1024];
+        int Bit = Jsonc_ParseNameBit( Jsonc_GetPortName(pObj), Name, sizeof(Name) );
+        int FanId = Vec_IntEntry( vObj2Num, Abc_ObjId(pDriver) );
+        assert( FanId >= 0 );
+        fprintf( pFile, "    {\n" );
+        fprintf( pFile, "      \"type\": \"PO\",\n" );
+        fprintf( pFile, "      \"name\": \"%s\",\n", Name );
+        fprintf( pFile, "      \"bit\": %d,\n", Bit );
+        fprintf( pFile, "      \"fanin\": { \"node\": %d", FanId );
+        //if ( Abc_ObjIsNode(pDriver) && pDriver->pData != NULL )
+        //    fprintf( pFile, ", \"pin\": \"%s\"", Mio_GateReadOutName((Mio_Gate_t *)pDriver->pData) );
+        fprintf( pFile, " }\n" );
+        fprintf( pFile, "    }%s\n", ++Counter == Total ? "" : "," );
+    }
+    fprintf( pFile, "  ]\n" );
+    fprintf( pFile, "}\n" );
+    fclose( pFile );
+    Vec_IntFree( vObj2Num );
+    Vec_PtrFree( vNodes );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
 ABC_NAMESPACE_IMPL_END
-

@@ -93,6 +93,7 @@ static int IoCommandWriteTruths ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteStatus ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteSmv    ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteJson   ( Abc_Frame_t * pAbc, int argc, char **argv );
+static int IoCommandWriteJsonC  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteResub  ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteMM     ( Abc_Frame_t * pAbc, int argc, char **argv );
 static int IoCommandWriteMMGia  ( Abc_Frame_t * pAbc, int argc, char **argv );
@@ -176,6 +177,7 @@ void Io_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "I/O", "write_status",  IoCommandWriteStatus,  0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_smv",     IoCommandWriteSmv,     0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_json",    IoCommandWriteJson,    0 );
+    Cmd_CommandAdd( pAbc, "I/O", "write_jsonc",   IoCommandWriteJsonC,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "&write_resub",  IoCommandWriteResub,   0 );
     Cmd_CommandAdd( pAbc, "I/O", "write_mm",      IoCommandWriteMM,      0 );
     Cmd_CommandAdd( pAbc, "I/O", "&write_mm",     IoCommandWriteMMGia,   0 );
@@ -4392,6 +4394,54 @@ usage:
     fprintf( pAbc->Err, "\t-c     : output extracted version\n" );
     fprintf( pAbc->Err, "\t-h     : print the help message\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .json)\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int IoCommandWriteJsonC( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    extern void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName );
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    char * pFileName;
+    int c;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+    if ( pNtk == NULL || !Abc_NtkHasMapping(pNtk) )
+    {
+        fprintf( pAbc->Out, "No curent network or network is not mapped.\n" );
+        return 0;
+    }
+    if ( argc != globalUtilOptind + 1 )
+        goto usage;
+    pFileName = argv[globalUtilOptind];
+    Jsonc_WriteTest( pNtk, pFileName );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: write_jsonc [-ch] <file>\n" );
+    fprintf( pAbc->Err, "\t         write the network in JSONC format\n" );
+    fprintf( pAbc->Err, "\t-h     : print the help message\n" );
+    fprintf( pAbc->Err, "\tfile   : the name of the file to write (extension .jsonc)\n" );
     return 1;
 }
 
