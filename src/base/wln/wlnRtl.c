@@ -178,7 +178,7 @@ Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * 
     char * pFileTemp = "_temp_.aig";
     int fRtlil = strstr(pFileName, ".rtl") != NULL;
     int fSVlog = strstr(pFileName, ".sv")  != NULL;
-    sprintf( Command, "%s -qp \"%s %s%s %s%s; hierarchy %s%s; flatten; proc; memory -nomap; memory_map; %saigmap; write_aiger %s\"",
+    sprintf( Command, "%s -qp \"%s %s%s %s%s; hierarchy %s%s; flatten; proc; memory -nomap; memory_map; %saigmap; write_aiger -symbols %s\"",
         Wln_GetYosysName(), 
         fRtlil ? "read_rtlil"   : "read_verilog",
         pDefines  ? "-D"        : "",
