@@ -11406,15 +11406,15 @@ usage:
 ***********************************************************************/
 int Abc_CommandTopoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut, int nSeed, int fVerbose );
+    extern Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut, int nSeed, int fAndGates, int fVerbose );
     Abc_Ntk_t * pNtkRes = NULL;
     Abc_Ntk_t * pTopo = NULL;
     int nTimeOut = 0;    
     int nSeed = 0;
     char * pFileName = NULL;
-    int c, fVerbose = 0;
+    int c, fAndGates = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TSvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TSavh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -11439,6 +11439,9 @@ int Abc_CommandTopoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nSeed < 0 )
                 goto usage;
+            break;
+       case 'a':
+            fAndGates ^= 1;
             break;
        case 'v':
             fVerbose ^= 1;
@@ -11492,7 +11495,7 @@ int Abc_CommandTopoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     pTopo = Abc_NtkDupDfs( pNtkRes = pTopo );
     Abc_NtkDelete( pNtkRes );
-    pNtkRes = Abc_NtkTopoExact( pAbc->pNtkCur, pTopo, nTimeOut, nSeed, fVerbose );
+    pNtkRes = Abc_NtkTopoExact( pAbc->pNtkCur, pTopo, nTimeOut, nSeed, fAndGates, fVerbose );
     Abc_NtkDelete( pTopo );
     if ( pNtkRes == NULL )
     {
@@ -11503,10 +11506,11 @@ int Abc_CommandTopoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: topoexact [-TS num] <file>\n" );
+    Abc_Print( -2, "usage: topoexact [-TS num] [-avh] <file>\n" );
     Abc_Print( -2, "\t           exact synthesis solution for the fixed topology\n" );
     Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", nTimeOut );
     Abc_Print( -2, "\t-S <num> : the random seed to randomize the SAT solver [default = %d]\n", nSeed );
+    Abc_Print( -2, "\t-a       : toggle using only and-gates (not xor-gates) [default = %s]\n", fAndGates ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<file>   : BLIF file name with the topology\n" );

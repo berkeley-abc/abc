@@ -65,17 +65,18 @@ Abc_Ntk_t * Abc_NtkTopoDup( Abc_Ntk_t * pTopo, Vec_Wrd_t * vTruths )
     }
     return pNew;
 }
-Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut, int nSeed, int fVerbose )
+Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut, int nSeed, int fAndGates, int fVerbose )
 {
     Abc_Ntk_t * pRes = NULL;
     abctime clkTotal = Abc_Clock();
     assert( Abc_NtkIsSopLogic(pTopo) );
     // count how many variables we need to encode minterms of each node
-    Abc_Obj_t * pObj; int i, nMints = 0, nNodeClausesPerMint = 0;
+    Abc_Obj_t * pObj; int i, nMints = 0, nNodeClausesPerMint = 0, nTwoFaninNodes = 0;
     Abc_NtkForEachNode( pTopo, pObj, i ) {
         assert( Abc_ObjFaninNum(pObj) <= 6 );
         nMints += 1 << Abc_ObjFaninNum(pObj);
         nNodeClausesPerMint += 2 * (1 << Abc_ObjFaninNum(pObj)); // two clauses per minterm
+        nTwoFaninNodes += (Abc_ObjFaninNum(pObj) == 2);
     }
     // derive input/output mapping of the original function, which will be synthesized
     Gia_Man_t * pGia    = Abc_NtkClpGia( pFunc );
@@ -107,7 +108,38 @@ Abc_Ntk_t * Abc_NtkTopoExact( Abc_Ntk_t * pFunc, Abc_Ntk_t * pTopo, int nTimeOut
     // and add constraints that tell us that the value of the node's output agrees with the values of its fanins
     // while the value of the primary outputs is realized correctly by those internal nodes that drive the outputs
     int m, n, k, f, nTopoMints = 1 << Abc_NtkCiNum(pTopo);
-    int nClauses = nTopoMints * (Abc_NtkCiNum(pTopo) + Abc_NtkPoNum(pTopo) + nNodeClausesPerMint);
+    int nClauses = nTopoMints * (Abc_NtkCiNum(pTopo) + Abc_NtkPoNum(pTopo) + nNodeClausesPerMint) +
+        (fAndGates ? 2 * nTwoFaninNodes : 0);
+    if ( fAndGates && nTwoFaninNodes )
+    {
+        // block XOR/XNOR truth tables for two-input nodes
+        int iMint = 0;
+        Abc_NtkForEachNode( pTopo, pObj, i )
+        {
+            int nFanins = Abc_ObjFaninNum(pObj);
+            if ( nFanins == 2 )
+            {
+                int pLits[4], j;
+                // forbid 0110
+                pLits[0] = Abc_Var2Lit( iMint + 0, 0 );
+                pLits[1] = Abc_Var2Lit( iMint + 1, 1 );
+                pLits[2] = Abc_Var2Lit( iMint + 2, 1 );
+                pLits[3] = Abc_Var2Lit( iMint + 3, 0 );
+                for ( j = 0; j < 4; j++ )
+                    kissat_add( pSat, Abc_LitIsCompl(pLits[j]) ? -(Abc_Lit2Var(pLits[j]) + 1) : (Abc_Lit2Var(pLits[j]) + 1) );
+                kissat_add( pSat, 0 );
+                // forbid 1001
+                pLits[0] = Abc_Var2Lit( iMint + 0, 1 );
+                pLits[1] = Abc_Var2Lit( iMint + 1, 0 );
+                pLits[2] = Abc_Var2Lit( iMint + 2, 0 );
+                pLits[3] = Abc_Var2Lit( iMint + 3, 1 );
+                for ( j = 0; j < 4; j++ )
+                    kissat_add( pSat, Abc_LitIsCompl(pLits[j]) ? -(Abc_Lit2Var(pLits[j]) + 1) : (Abc_Lit2Var(pLits[j]) + 1) );
+                kissat_add( pSat, 0 );
+            }
+            iMint += 1 << nFanins;
+        }
+    }
     for ( m = 0; m < nTopoMints; m++ ) {
         int iVarBase = nMints + m * (Abc_NtkCiNum(pTopo) + Abc_NtkNodeNum(pTopo));
         // set PI values for this minterm
