@@ -707,8 +707,8 @@ void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
         assert( pGate != NULL );
         Vec_IntWriteEntry( vObj2Num, Abc_ObjId(pObj), Counter );
         fprintf( pFile, "    {\n" );
-        fprintf( pFile, "      \"type\": \"%s\",\n", Mio_GateReadName(pGate) );
-        fprintf( pFile, "      \"name\": \"%s\",\n", Jsonc_GetNodeOutName(pObj) );
+        fprintf( pFile, "      \"type\": \"%s\",\n", "instance" );
+        fprintf( pFile, "      \"name\": \"%s\",\n", Mio_GateReadName(pGate) );
         fprintf( pFile, "      \"fanins\": [\n" );
         fprintf( pFile, "        {\n" );
         for ( pPin = Mio_GateReadPins(pGate), k = 0; pPin; pPin = Mio_PinReadNext(pPin), k++ )
@@ -716,7 +716,10 @@ void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
             Abc_Obj_t * pFanin = Abc_ObjFanin0Ntk( Abc_ObjFanin(pObj, k) );
             int FanId = Vec_IntEntry( vObj2Num, Abc_ObjId(pFanin) );
             assert( FanId >= 0 );
-            fprintf( pFile, "          \"%s\": { \"node\": %d }%s\n", Mio_PinReadName(pPin), FanId, Mio_PinReadNext(pPin) ? "," : "" );
+            fprintf( pFile, "          \"%s\": { \"node\": %d", Mio_PinReadName(pPin), FanId );
+            if ( Abc_ObjIsNode(pFanin) && pFanin->pData != NULL )
+                fprintf( pFile, ", \"pin\": \"%s\"", Mio_GateReadOutName((Mio_Gate_t *)pFanin->pData) );
+            fprintf( pFile, " }%s\n", Mio_PinReadNext(pPin) ? "," : "" );
         }
         fprintf( pFile, "        }\n" );
         fprintf( pFile, "      ]\n" );
@@ -734,8 +737,8 @@ void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
         fprintf( pFile, "      \"name\": \"%s\",\n", Name );
         fprintf( pFile, "      \"bit\": %d,\n", Bit );
         fprintf( pFile, "      \"fanin\": { \"node\": %d", FanId );
-        //if ( Abc_ObjIsNode(pDriver) && pDriver->pData != NULL )
-        //    fprintf( pFile, ", \"pin\": \"%s\"", Mio_GateReadOutName((Mio_Gate_t *)pDriver->pData) );
+        if ( Abc_ObjIsNode(pDriver) && pDriver->pData != NULL )
+            fprintf( pFile, ", \"pin\": \"%s\"", Mio_GateReadOutName((Mio_Gate_t *)pDriver->pData) );
         fprintf( pFile, " }\n" );
         fprintf( pFile, "    }%s\n", ++Counter == Total ? "" : "," );
     }
