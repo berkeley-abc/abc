@@ -709,7 +709,7 @@ void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
         fprintf( pFile, "    {\n" );
         fprintf( pFile, "      \"type\": \"%s\",\n", "instance" );
         fprintf( pFile, "      \"name\": \"%s\",\n", Mio_GateReadName(pGate) );
-        fprintf( pFile, "      \"fanins\": [\n" );
+        fprintf( pFile, "      \"fanins\":\n" );
         fprintf( pFile, "        {\n" );
         for ( pPin = Mio_GateReadPins(pGate), k = 0; pPin; pPin = Mio_PinReadNext(pPin), k++ )
         {
@@ -722,7 +722,7 @@ void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
             fprintf( pFile, " }%s\n", Mio_PinReadNext(pPin) ? "," : "" );
         }
         fprintf( pFile, "        }\n" );
-        fprintf( pFile, "      ]\n" );
+        //fprintf( pFile, "      ]\n" );
         fprintf( pFile, "    }%s\n", ++Counter == Total ? "" : "," );
     }
     Abc_NtkForEachPo( p, pObj, i )
