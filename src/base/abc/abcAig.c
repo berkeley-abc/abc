@@ -90,10 +90,10 @@ struct Abc_Aig_t_
 static unsigned Abc_HashKey2( Abc_Obj_t * p0, Abc_Obj_t * p1, int TableSize ) 
 {
     unsigned Key = 0;
-    Key ^= Abc_ObjRegular(p0)->Id * 7937;
-    Key ^= Abc_ObjRegular(p1)->Id * 2971;
-    Key ^= Abc_ObjIsComplement(p0) * 911;
-    Key ^= Abc_ObjIsComplement(p1) * 353;
+    Key ^= (unsigned)Abc_ObjRegular(p0)->Id * 7937;
+    Key ^= (unsigned)Abc_ObjRegular(p1)->Id * 2971;
+    Key ^= (unsigned)Abc_ObjIsComplement(p0) * 911;
+    Key ^= (unsigned)Abc_ObjIsComplement(p1) * 353;
     return Key % TableSize;
 }
 
