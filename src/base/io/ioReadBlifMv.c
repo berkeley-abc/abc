@@ -746,7 +746,7 @@ static void Io_MvReadPreparse( Io_MvMan_t * p )
 {
     char * pCur, * pPrev;
     int i, fComment = 0;
-    Io_MvReplaceBuffersByShorts( p->pBuffer );
+    //Io_MvReplaceBuffersByShorts( p->pBuffer );
 
     // parse the buffer into lines and remove comments
     Vec_PtrPush( p->vLines, p->pBuffer );
