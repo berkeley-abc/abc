@@ -66,6 +66,7 @@ static int CmdCommandMvsis         ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandStarter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandAutoTuner     ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandSolver        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -121,6 +122,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various", "capo",        CmdCommandCapo,            0 );
     Cmd_CommandAdd( pAbc, "Various", "starter",     CmdCommandStarter,         0 );
     Cmd_CommandAdd( pAbc, "Various", "autotuner",   CmdCommandAutoTuner,       0 );
+    Cmd_CommandAdd( pAbc, "Various", "&solver",     CmdCommandSolver,          0 );
 
     Cmd_CommandAdd( pAbc, "Various", "load_plugin", Cmd_CommandAbcLoadPlugIn,  0 );
 }
@@ -2803,6 +2805,125 @@ usage:
     Abc_Print( -2, "\t-F cmd : list of AIGER files to be used for autotuning\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function********************************************************************
+
+  Synopsis    [Calls Capo internally.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int CmdCommandSolver( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    extern void Gia_AigerWrite( Gia_Man_t * p, char * pFileName, int fWriteSymbols, int fCompact, int fWriteNewLine );
+    FILE * pFile;
+    char Command[1000];
+    char TempFileName[100];
+    unsigned int RandomNum;
+    int i;
+
+    // Check for help flags
+    if ( argc > 1 )
+    {
+        if ( strcmp( argv[1], "-h" ) == 0 )
+            goto usage;
+        if ( strcmp( argv[1], "-?" ) == 0 )
+            goto usage;
+    }
+
+    // Check if AIG is available
+    if ( pAbc->pGia == NULL )
+    {
+        fprintf( pAbc->Err, "The current AIG is not available.\n" );
+        goto usage;
+    }
+
+    // Check if solver binary exists in current directory or PATH
+    char * pSolverName;
+    if ( (pFile = fopen( "./solver", "r" )) != NULL )
+    {
+        pSolverName = "./solver";
+        fclose( pFile );
+    }
+    else
+    {
+        // Check if solver exists in PATH
+        char CheckCommand[100];
+        sprintf( CheckCommand, "which solver > /dev/null 2>&1" );
+        if ( system( CheckCommand ) == 0 )
+        {
+            pSolverName = "solver";
+        }
+        else
+        {
+            fprintf( pAbc->Err, "Cannot find \"solver\" binary in the current directory or in PATH.\n" );
+            goto usage;
+        }
+    }
+
+    // Generate random 8-hex-character temporary filename
+    RandomNum = (unsigned int)(ABC_PTRUINT_T)pAbc ^
+                (unsigned int)(ABC_PTRUINT_T)pAbc->pGia ^
+                (unsigned int)time(NULL) ^
+                (unsigned int)getpid();
+    sprintf( TempFileName, "%08X.aig", RandomNum );
+
+    // Write the current AIG to the temporary file
+    Gia_AigerWrite( pAbc->pGia, TempFileName, 0, 0, 1 );
+
+    // Verify the file was created successfully
+    if ( (pFile = fopen( TempFileName, "r" )) == NULL )
+    {
+        fprintf( pAbc->Err, "Failed to create temporary AIG file \"%s\".\n", TempFileName );
+        return 1;
+    }
+    fclose( pFile );
+
+    // Build the command string
+    sprintf( Command, "%s", pSolverName );
+
+    // Add all user arguments
+    for ( i = 1; i < argc; i++ )
+    {
+        strcat( Command, " " );
+        strcat( Command, argv[i] );
+    }
+
+    // Add the AIG filename at the end
+    strcat( Command, " " );
+    strcat( Command, TempFileName );
+
+    // Debug: Show what command is being executed
+    fprintf( pAbc->Out, "Executing command: %s\n", Command );
+
+    // Execute the solver command
+    if ( system( Command ) == -1 )
+    {
+        fprintf( pAbc->Err, "The following command has failed:\n" );
+        fprintf( pAbc->Err, "\"%s\"\n", Command );
+        unlink( TempFileName );
+        return 1;
+    }
+
+    // Clean up the temporary file
+    unlink( TempFileName );
+
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "\tusage: &solver <args>\n");
+    fprintf( pAbc->Err, "\t           run the external solver binary on the current AIG\n" );
+    fprintf( pAbc->Err, "\t-h      :  print the command usage\n" );
+    fprintf( pAbc->Err, "\t<args>  :  arguments to pass to the solver\n" );
+    fprintf( pAbc->Err, "\t           The current AIG will be written to a temporary file\n" );
+    fprintf( pAbc->Err, "\t           and passed as the last argument to the solver.\n" );
+    fprintf( pAbc->Err, "\t           Example: solver -h\n" );
     return 1;
 }
 
