@@ -960,6 +960,8 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
     Gia_Man_t * pTemp;
     int nFramesMax, f, i=0, Lit = 1, status, RetValue = -2;
     abctime clk = Abc_Clock();
+    if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, 0 ) )
+        return -1;
     p = Bmc_MnaAlloc();
     sat_solver_set_runtime_limit( p->pSat, pPars->nTimeOut ? pPars->nTimeOut * CLOCKS_PER_SEC + Abc_Clock(): 0 );
     p->pFrames = Gia_ManBmcUnroll( pGia, pPars->nFramesMax, pPars->nFramesAdd, pPars->fVeryVerbose, &p->vPiMap );
@@ -993,6 +995,11 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 //    sat_solver_addclause( p->pSat, &Lit, &Lit + 1 );
     for ( f = 0; f < nFramesMax; f++ )
     {
+        if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, (unsigned)f ) )
+        {
+            RetValue = -1;
+            break;
+        }
         if ( !Gia_ManBmcCheckOutputs( p->pFrames, f * Gia_ManPoNum(pGia), (f+1) * Gia_ManPoNum(pGia) ) )
         {
             // create another slice
@@ -1000,6 +1007,11 @@ int Gia_ManBmcPerformInt( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
             // try solving the outputs
             for ( i = f * Gia_ManPoNum(pGia); i < (f+1) * Gia_ManPoNum(pGia); i++ )
             {
+                if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, (unsigned)i ) )
+                {
+                    RetValue = -1;
+                    break;
+                }
                 Gia_Obj_t * pObj = Gia_ManPo(p->pFrames, i);
                 if ( Gia_ObjChild0(pObj) == Gia_ManConst0(p->pFrames) )
                     continue;
@@ -1097,4 +1109,3 @@ int Gia_ManBmcPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

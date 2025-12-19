@@ -81,6 +81,8 @@ void Pdr_ManSetDefaultParams( Pdr_Par_t * pPars )
     pPars->timeLastSolved =       0;  // last one solved
     pPars->pInvFileName   =    NULL;  // invariant file name
     pPars->fBlocking      =       0;  // clause pushing with blocking
+    pPars->pFuncProgress  =    NULL;  // progress/termination callback
+    pPars->pProgress      =    NULL;  // progress callback data
 }
 
 /**Function*************************************************************
@@ -1812,6 +1814,8 @@ int Pdr_ManSolve( Aig_Man_t * pAig, Pdr_Par_t * pPars )
         for ( k = 0; k < Saig_ManPoNum(pAig); k++ )
             if ( Vec_IntEntry(pPars->vOutMap, k) == -2 ) // unknown
                 Vec_IntWriteEntry( pPars->vOutMap, k, -1 ); // undec
+    if ( pPars->pFuncProgress && (RetValue == 0 || RetValue == 1) )
+        pPars->pFuncProgress( pPars->pProgress, 1, (unsigned)RetValue );
     if ( pPars->fUseBridge )
         Gia_ManToBridgeAbort( stdout, 7, (unsigned char *)"timeout" );
     return RetValue;

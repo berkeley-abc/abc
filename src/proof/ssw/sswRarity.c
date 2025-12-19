@@ -115,6 +115,8 @@ void Ssw_RarSetDefaultParams( Ssw_RarPars_t * p )
     p->fSetLastState =   0;
     p->fVerbose      =   0;
     p->fNotVerbose   =   0;
+    p->pFuncProgress =   NULL;
+    p->pProgress     =   NULL;
 }
 
 /**Function*************************************************************
@@ -1007,6 +1009,8 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
     timeLastSolved = Abc_Clock();
     for ( r = 0; !pPars->nRounds || (nNumRestart * pPars->nRestart + r < pPars->nRounds); r++ )
     {
+        if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, (unsigned)r ) )
+            goto finish;
         clk = Abc_Clock();
         if ( fTryBmc )
         {
@@ -1019,6 +1023,8 @@ int Ssw_RarSimulate( Aig_Man_t * pAig, Ssw_RarPars_t * pPars )
         // simulate
         for ( f = 0; f < pPars->nFrames; f++ )
         {
+            if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, (unsigned)(r * pPars->nFrames + f) ) )
+                goto finish;
             Ssw_RarManSimulate( p, f ? NULL : p->vInits, 0, 0 );
             if ( fMiter )
             {

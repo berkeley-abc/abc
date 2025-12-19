@@ -115,6 +115,8 @@ struct Ssw_RarPars_t_
     int              nSolved;
     Abc_Cex_t *      pCex;
     int(*pFuncOnFail)(int,Abc_Cex_t*); // called for a failed output in MO mode
+    int(*pFuncProgress)(void *, int, unsigned); // progress/termination callback
+    void *           pProgress;        // progress callback data
 };
 
 typedef struct Ssw_Sml_t_ Ssw_Sml_t; // sequential simulation manager

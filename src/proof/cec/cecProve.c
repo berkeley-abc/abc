@@ -49,11 +49,51 @@ ABC_NAMESPACE_IMPL_START
 extern int Ssw_RarSimulateGia( Gia_Man_t * p, Ssw_RarPars_t * pPars );
 extern int Bmcg_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars );
 
+typedef struct Par_Share_t_ Par_Share_t;
+typedef struct Par_ThData_t_ Par_ThData_t;
+static int Cec_SProveCallback( void * pUser, int fSolved, unsigned Result );
+
 #ifndef ABC_USE_PTHREADS
 
 int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, int nTimeOut3, int fVerbose, int fVeryVerbose, int fSilent ) { return -1; }
 
 #else // pthreads are used
+
+#define PAR_THR_MAX 8
+struct Par_Share_t_
+{
+    volatile int       fSolved;
+    volatile unsigned  Result;
+    volatile int       iEngine;
+};
+typedef struct Par_ThData_t_
+{
+    Gia_Man_t * p;
+    int         iEngine;
+    int         fWorking;
+    int         nTimeOut;
+    int         Result;
+    int         fVerbose;
+    Par_Share_t * pShare;
+} Par_ThData_t;
+static int Cec_SProveCallback( void * pUser, int fSolved, unsigned Result )
+{
+    Par_ThData_t * pThData = (Par_ThData_t *)pUser;
+    Par_Share_t * pShare = pThData ? pThData->pShare : NULL;
+    if ( pShare == NULL )
+        return 0;
+    if ( fSolved )
+    {
+        if ( pShare->fSolved == 0 )
+        {
+            pShare->fSolved = 1;
+            pShare->Result  = Result;
+            pShare->iEngine = pThData->iEngine;
+        }
+        return 0;
+    }
+    return pShare->fSolved != 0;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -70,7 +110,7 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose )
+int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par_ThData_t * pThData )
 {
     abctime clk = Abc_Clock();   
     int RetValue = -1;
@@ -84,6 +124,11 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose )
         Ssw_RarSetDefaultParams( pPars );
         pPars->TimeOut = nTimeOut;
         pPars->fSilent = 1;
+        if ( pThData && pThData->pShare )
+        {
+            pPars->pFuncProgress = Cec_SProveCallback;
+            pPars->pProgress     = (void *)pThData;
+        }
         RetValue = Ssw_RarSimulateGia( p, pPars );
     }
     else if ( iEngine == 1 )
@@ -92,6 +137,11 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose )
         Saig_ParBmcSetDefaultParams( pPars );
         pPars->nTimeOut = nTimeOut;
         pPars->fSilent  = 1;
+        if ( pThData && pThData->pShare )
+        {
+            pPars->pFuncProgress = Cec_SProveCallback;
+            pPars->pProgress     = (void *)pThData;
+        }
         Aig_Man_t * pAig = Gia_ManToAigSimple( p );
         RetValue = Saig_ManBmcScalable( pAig, pPars );
         p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
@@ -103,6 +153,11 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose )
         Pdr_ManSetDefaultParams( pPars );
         pPars->nTimeOut = nTimeOut;
         pPars->fSilent  = 1;
+        if ( pThData && pThData->pShare )
+        {
+            pPars->pFuncProgress = Cec_SProveCallback;
+            pPars->pProgress     = (void *)pThData;
+        }
         Aig_Man_t * pAig = Gia_ManToAigSimple( p );
         RetValue = Pdr_ManSolve( pAig, pPars );
         p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
@@ -115,6 +170,11 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose )
         pPars->fUseGlucose = 1;
         pPars->nTimeOut    = nTimeOut;
         pPars->fSilent     = 1;
+        if ( pThData && pThData->pShare )
+        {
+            pPars->pFuncProgress = Cec_SProveCallback;
+            pPars->pProgress     = (void *)pThData;
+        }
         Aig_Man_t * pAig = Gia_ManToAigSimple( p );
         RetValue = Saig_ManBmcScalable( pAig, pPars );
         p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
@@ -127,6 +187,11 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose )
         pPars->fUseAbs  = 1;
         pPars->nTimeOut = nTimeOut;
         pPars->fSilent  = 1;
+        if ( pThData && pThData->pShare )
+        {
+            pPars->pFuncProgress = Cec_SProveCallback;
+            pPars->pProgress     = (void *)pThData;
+        }
         Aig_Man_t * pAig = Gia_ManToAigSimple( p );
         RetValue = Pdr_ManSolve( pAig, pPars );
         p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
@@ -140,10 +205,17 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose )
         pPars->nFramesAdd    =        1;  // the number of additional frames
         pPars->fNotVerbose   =        1;  // silent
         pPars->nTimeOut      = nTimeOut;  // timeout in seconds
+        if ( pThData && pThData->pShare )
+        {
+            pPars->pFuncProgress = Cec_SProveCallback;
+            pPars->pProgress     = (void *)pThData;
+        }
         RetValue = Bmcg_ManPerform( p, pPars );
     }
     else assert( 0 );
     //while ( Abc_Clock() < clkStop );
+    if ( pThData && pThData->pShare && RetValue != -1 )
+        Cec_SProveCallback( (void *)pThData, 1, (unsigned)RetValue );
     if ( fVerbose ) {
         printf( "Engine %d finished and %ssolved the problem.   ", iEngine, RetValue != -1 ? "    " : "not " );
         Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
@@ -183,16 +255,6 @@ Gia_Man_t * Cec_GiaScorrNew( Gia_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-#define PAR_THR_MAX 8
-typedef struct Par_ThData_t_
-{
-    Gia_Man_t * p;
-    int         iEngine;
-    int         fWorking;
-    int         nTimeOut;
-    int         Result;
-    int         fVerbose;
-} Par_ThData_t;
 void * Cec_GiaProveWorkerThread( void * pArg )
 {
     Par_ThData_t * pThData = (Par_ThData_t *)pArg;
@@ -207,13 +269,13 @@ void * Cec_GiaProveWorkerThread( void * pArg )
             assert( 0 );
             return NULL;
         }
-        pThData->Result = Cec_GiaProveOne( pThData->p, pThData->iEngine, pThData->nTimeOut, pThData->fVerbose );
+        pThData->Result = Cec_GiaProveOne( pThData->p, pThData->iEngine, pThData->nTimeOut, pThData->fVerbose, pThData );
         pThData->fWorking = 0;
     }
     assert( 0 );
     return NULL;
 }
-void Cec_GiaInitThreads( Par_ThData_t * ThData, int nProcs, Gia_Man_t * p, int nTimeOut, int fVerbose, pthread_t * WorkerThread )
+void Cec_GiaInitThreads( Par_ThData_t * ThData, int nProcs, Gia_Man_t * p, int nTimeOut, int fVerbose, pthread_t * WorkerThread, Par_Share_t * pShare )
 {
     int i, status;
     assert( nProcs <= PAR_THR_MAX );
@@ -225,6 +287,7 @@ void Cec_GiaInitThreads( Par_ThData_t * ThData, int nProcs, Gia_Man_t * p, int n
         ThData[i].fWorking = 0;
         ThData[i].Result   = -1;
         ThData[i].fVerbose = fVerbose;
+        ThData[i].pShare   = pShare;
         if ( !WorkerThread )
             continue;
         status = pthread_create( WorkerThread + i, NULL,Cec_GiaProveWorkerThread, (void *)(ThData + i) );  assert( status == 0 );
@@ -254,7 +317,9 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
     abctime clkScorr = 0, clkTotal = Abc_Clock();
     Par_ThData_t ThData[PAR_THR_MAX];
     pthread_t WorkerThread[PAR_THR_MAX];
+    Par_Share_t Share;
     int i, RetValue = -1, RetEngine = -2;
+    memset( &Share, 0, sizeof(Par_Share_t) );
     Abc_CexFreeP( &p->pCexComb );
     Abc_CexFreeP( &p->pCexSeq );        
     if ( !fSilent && fVerbose )
@@ -264,7 +329,7 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
     fflush( stdout );
 
     assert( nProcs == 3 || nProcs == 5 );
-    Cec_GiaInitThreads( ThData, nProcs, p, nTimeOut, fVerbose, WorkerThread );
+    Cec_GiaInitThreads( ThData, nProcs, p, nTimeOut, fVerbose, WorkerThread, &Share );
 
     // meanwhile, perform scorr
     Gia_Man_t * pScorr = Cec_GiaScorrNew( p );
@@ -280,7 +345,7 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
             printf( "Reduced the miter from %d to %d nodes. ", Gia_ManAndNum(p), Gia_ManAndNum(pScorr) );
             Abc_PrintTime( 1, "Time", clkScorr );
         }
-        Cec_GiaInitThreads( ThData, nProcs, pScorr, nTimeOut2, fVerbose, NULL );
+        Cec_GiaInitThreads( ThData, nProcs, pScorr, nTimeOut2, fVerbose, NULL, &Share );
 
         // meanwhile, perform scorr
         if ( Gia_ManAndNum(pScorr) < 100000 )
@@ -297,7 +362,7 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
                     printf( "Reduced the miter from %d to %d nodes. ", Gia_ManAndNum(pScorr), Gia_ManAndNum(pScorr2) );
                     Abc_PrintTime( 1, "Time", clkScorr2 );
                 }
-                Cec_GiaInitThreads( ThData, nProcs, pScorr2, nTimeOut3, fVerbose, NULL );
+                Cec_GiaInitThreads( ThData, nProcs, pScorr2, nTimeOut3, fVerbose, NULL, &Share );
 
                 RetValue = Cec_GiaWaitThreads( ThData, nProcs, p, RetValue, &RetEngine );
                 // do something else      
@@ -338,4 +403,3 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
 
 
 ABC_NAMESPACE_IMPL_END
-

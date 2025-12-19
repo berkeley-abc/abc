@@ -445,6 +445,8 @@ int Bmcg_ManPerformOne( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 int Bmcg_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars ) 
 { 
     pPars->nProcs = 1;
+    if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, 0 ) )
+        return -1;
     return Bmcg_ManPerformOne( pGia, pPars );
 }
 
@@ -454,4 +456,3 @@ int Bmcg_ManPerform( Gia_Man_t * pGia, Bmc_AndPar_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
-

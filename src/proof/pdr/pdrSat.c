@@ -306,6 +306,8 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
         sat_solver_set_runtime_limit( pSat, Limit );
         if ( RetValue == l_Undef )
             return -1;
+        if ( p->pPars->pFuncProgress && p->pPars->pFuncProgress( p->pPars->pProgress, 0, (unsigned)k ) )
+            return -1;
     }
     else // check relative containment in terms of next states
     {
@@ -342,6 +344,8 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
             else
                 return -1;
         }
+        if ( p->pPars->pFuncProgress && p->pPars->pFuncProgress( p->pPars->pProgress, 0, (unsigned)k ) )
+            return -1;
     }
     clk = Abc_Clock() - clk;
     p->tSat += clk;
@@ -392,4 +396,3 @@ int Pdr_ManCheckCube( Pdr_Man_t * p, int k, Pdr_Set_t * pCube, Pdr_Set_t ** ppPr
 
 
 ABC_NAMESPACE_IMPL_END
-

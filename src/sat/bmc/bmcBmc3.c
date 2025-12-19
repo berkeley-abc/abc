@@ -1353,6 +1353,8 @@ void Saig_ParBmcSetDefaultParams( Saig_ParBmc_t * p )
     p->nFailOuts      =     0;    // the number of failed outputs
     p->nDropOuts      =     0;    // the number of timed out outputs
     p->timeLastSolved =     0;    // time when the last one was solved
+    p->pFuncProgress  =  NULL;    // progress/termination callback
+    p->pProgress      =  NULL;    // progress callback data
 }
 
 /**Function*************************************************************
@@ -1528,6 +1530,8 @@ int Saig_ManBmcScalable( Aig_Man_t * pAig, Saig_ParBmc_t * pPars )
     pPars->timeLastSolved = Abc_Clock();
     for ( f = 0; f < pPars->nFramesMax; f++ )
     {
+        if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, (unsigned)f ) )
+            goto finish;
         // stop BMC after exploring all reachable states
         if ( !pPars->nFramesJump && Aig_ManRegNum(pAig) < 30 && f == (1 << Aig_ManRegNum(pAig)) )
         {
@@ -1632,6 +1636,8 @@ clkOther += Abc_Clock() - clk2;
                     Abc_Print( 1, "Bmc3 got callbacks.\n" );
                 goto finish;
             }
+            if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, (unsigned)((f<<16) | i) ) )
+                goto finish;
             // skip solved outputs
             if ( p->vCexes && Vec_PtrEntry(p->vCexes, i) )
                 continue;
@@ -1663,6 +1669,8 @@ clkSatRun = Abc_Clock() - clk2;
                 fprintf( pLogFile, "Frame %5d  Output %5d  Time(ms) %8d %8d\n", f, i, 
                     Lit < 2 ? 0 : (int)(clkSatRun * 1000 / CLOCKS_PER_SEC),
                     Lit < 2 ? 0 : Abc_MaxInt(0, Abc_MinInt(pPars->nTimeOutOne, pPars->nTimeOutOne - (int)((p->pTime4Outs[i] - clkSatRun) * 1000 / CLOCKS_PER_SEC))) );
+            if ( pPars->pFuncProgress && pPars->pFuncProgress( pPars->pProgress, 0, (unsigned)((f<<16) | i) ) )
+                goto finish;
             if ( p->pTime4Outs )
             {
                 abctime timeSince = Abc_Clock() - clkOne;
@@ -1894,4 +1902,3 @@ finish:
 
 
 ABC_NAMESPACE_IMPL_END
-
