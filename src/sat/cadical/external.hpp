@@ -6,6 +6,7 @@
 /*------------------------------------------------------------------------*/
 
 #include "range.hpp"
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 
@@ -321,7 +322,32 @@ struct External {
   // We call it 'ival' as abbreviation for 'val' with 'int' return type to
   // avoid bugs due to using 'signed char tmp = val (lit)', which might turn
   // a negative value into a positive one (happened in 'extend').
+
+  // This is due to the IPASIR semantics which returns 'elit' if it is
+  // 'true' and '-elit' if it is 'false'.  This is a bit confusing but has
+  // been standardized in IPASIR:
   //
+  // Consiert 'eidx = 13' and 'vals[13] == false' then '13' is 'false' in
+  // this terminology of the IPASIR interface.  Accordingly we get
+  //
+  //   ival (13) = -13
+  //
+  // However and this is the confusing thing, as '-13' is true the 'ival'
+  // function should also return '-13':
+  //
+  //   ival (-13) = -13
+  //
+  // Now with '13' assumed 'true' so 'vals[13] = true' we similarly have
+  //
+  //   ival (13) = 13         as '13' is true'
+  //
+  //   ival (-13) = 13        as '-13' is false
+  //
+  // To summarize we can think of the IPASIR 'ipasir_val' function, which
+  // 'CaDiCaL' follows as returning the phase of the literal which is true
+  // under the current assignment no matter whether you give the positive
+  // literal or its negation and thus 'ival (lit) == ival (-lit))"
+
   inline int ival (int elit) const {
     CADICAL_assert (elit != INT_MIN);
     int eidx = abs (elit);

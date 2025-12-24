@@ -11,7 +11,7 @@ namespace CaDiCaL {
 // adds an assumption literal onto the assumption stack.
 
 void Internal::assume (int lit) {
-  if (level && !opts.ilbassumptions)
+  if (level && !opts.ilb)
     backtrack ();
   else if (val (lit) < 0)
     backtrack (max (0, var (lit).level - 1));
@@ -552,9 +552,16 @@ struct sort_assumptions_smaller {
 // to the first place where the assumptions and the current trail differ.
 
 void Internal::sort_and_reuse_assumptions () {
-  CADICAL_assert (opts.ilbassumptions);
-  if (assumptions.empty ())
-    return;
+  CADICAL_assert (opts.ilb >= 1);
+  if (assumptions.empty ()) {
+    if (opts.ilb == 1) {
+      LOG ("no assumptions, reusing nothing (ilb == 1)");
+      backtrack (0);
+    } else { // reuse full trail
+      LOG ("no assumptions, reusing everything (ilb == 2)");
+      return;
+    }
+  }
   MSORT (opts.radixsortlim, assumptions.begin (), assumptions.end (),
          sort_assumptions_positive_rank (this),
          sort_assumptions_smaller (this));
@@ -599,10 +606,12 @@ void Internal::sort_and_reuse_assumptions () {
          lit, alit);
     break;
   }
+  if (opts.ilb == 1 &&
+      (size_t) target > assumptions.size ()) // reusing only assumptions
+    target = assumptions.size ();
   if (target < level)
-    backtrack (target);
+    backtrack_without_updating_phases (target);
   LOG ("assumptions allow for reuse of trail up to level %d", level);
-  //  COVER (target > 1);
   if ((size_t) level > assumptions.size ())
     stats.assumptionsreused += assumptions.size ();
   else

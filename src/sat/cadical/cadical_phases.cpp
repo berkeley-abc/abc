@@ -8,8 +8,20 @@ namespace CaDiCaL {
 
 void Internal::copy_phases (vector<signed char> &dst) {
   START (copy);
-  for (auto i : vars)
-    dst[i] = phases.saved[i];
+  for (auto i : vars) {
+    const signed char tmp = phases.saved[i];
+    if (tmp)
+      dst[i] = tmp;
+  }
+  STOP (copy);
+}
+
+void Internal::save_assigned_phases (vector<signed char> &dst) {
+  START (copy);
+  for (auto i : vars) {
+    if (vals[i])
+      dst[i] = vals[i];
+  }
   STOP (copy);
 }
 

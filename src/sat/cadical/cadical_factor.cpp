@@ -540,7 +540,7 @@ void Internal::add_self_subsuming_factor (Quotient *q, Quotient *p) {
       CADICAL_assert (lrat_chain.size () == 2);
     }
     if (clause.size () > 1) {
-      new_factor_clause ();
+      new_factor_clause (0);
     } else {
       const int unit = clause[0];
       const signed char tmp = val (unit);
@@ -599,9 +599,9 @@ bool Internal::self_subsuming_factor (Quotient *q) {
 void Internal::add_factored_divider (Quotient *q, int fresh) {
   const int factor = q->factor;
   LOG ("factored %d divider %d", factor, fresh);
-  clause.push_back (factor);
   clause.push_back (fresh);
-  new_factor_clause ();
+  clause.push_back (factor);
+  new_factor_clause (fresh);
   clause.clear ();
   if (lrat)
     mini_chain.push_back (-clause_id);
@@ -616,11 +616,12 @@ void Internal::blocked_clause (Quotient *q, int not_fresh) {
   int64_t new_id = ++clause_id;
   q->bid = new_id;
   CADICAL_assert (clause.empty ());
+  clause.push_back (not_fresh);
   for (Quotient *p = q; p; p = p->prev)
     clause.push_back (-p->factor);
-  clause.push_back (not_fresh);
   CADICAL_assert (!lrat || mini_chain.size ());
-  proof->add_derived_clause (new_id, true, clause, mini_chain);
+  proof->add_derived_rat_clause (new_id, true, externalize (not_fresh),
+                                 clause, mini_chain);
   mini_chain.clear ();
   clause.clear ();
 }
@@ -654,15 +655,15 @@ void Internal::add_factored_quotient (Quotient *q, int not_fresh) {
       lrat_chain.push_back (q->bid);
     }
     clause.push_back (not_fresh);
-    new_factor_clause ();
+    new_factor_clause (0);
     clause.clear ();
     lrat_chain.clear ();
   }
   if (proof) {
+    clause.push_back (not_fresh);
     for (Quotient *p = q; p; p = p->prev) {
       clause.push_back (-p->factor);
     }
-    clause.push_back (not_fresh);
     proof->delete_clause (q->bid, true, clause);
     clause.clear ();
   }
@@ -769,6 +770,79 @@ void Internal::schedule_factorization (Factoring &factoring) {
 #endif
 }
 
+void Internal::adjust_scores_and_phases_of_fresh_variables (
+    Factoring &factoring) {
+  if (!opts.factorunbump) {
+    factoring.fresh.clear ();
+    return;
+  }
+  if (factoring.fresh.empty ())
+    return;
+
+#if 0 // the scores are very low anyway
+  for (auto lit : factoring.fresh) {
+    CADICAL_assert (lit > 0 && internal->max_var);
+    const double old_score = internal->stab[lit];
+    // make the scores a little different from each other with the newest having the highest score
+    const double new_score = 1.0 / (double)(internal->max_var - lit);
+    if (old_score == new_score)
+      continue;
+    if (!scores.contains (lit))
+      continue;
+    LOG ("unbumping %s", LOGLIT(lit));
+    internal->stab[lit] = new_score;
+    scores.update (lit);
+  }
+#endif
+
+  for (auto lit : factoring.fresh) {
+    LOG ("dequeuing %s", LOGLIT (lit));
+    queue.dequeue (links, lit);
+  }
+
+  for (auto lit : factoring.fresh) {
+    LOG ("dequeuing %s", LOGLIT (lit));
+    queue.bury (links, lit);
+  }
+
+  // fix the scores with negative numbers
+  int lit = queue.first;
+  queue.bumped = 0;
+  while (lit) {
+    btab[lit] = ++queue.bumped;
+    lit = links[lit].next;
+  }
+  stats.bumped = queue.bumped;
+  update_queue_unassigned (queue.last);
+
+#ifndef CADICAL_NDEBUG
+  for (auto v : vars)
+    CADICAL_assert (val (v) || scores.contains (v));
+  lit = queue.first;
+  int next_lit = links[lit].next;
+  while (next_lit) {
+    CADICAL_assert (btab[lit] < btab[next_lit]);
+    const int tmp = links[next_lit].next;
+    CADICAL_assert (!tmp || links[tmp].prev == next_lit);
+    lit = next_lit;
+    next_lit = tmp;
+  }
+
+  lit = queue.last;
+  next_lit = links[lit].prev;
+  while (next_lit) {
+    CADICAL_assert (btab[lit] > btab[next_lit]);
+    const int tmp = links[next_lit].prev;
+    CADICAL_assert (!tmp || links[tmp].next == next_lit);
+    lit = next_lit;
+    next_lit = tmp;
+  }
+  CADICAL_assert (queue.first);
+  CADICAL_assert (queue.last);
+#endif
+  factoring.fresh.clear ();
+}
+
 bool Internal::run_factorization (int64_t limit) {
   Factoring factoring = Factoring (this, limit);
   schedule_factorization (factoring);
@@ -834,8 +908,7 @@ bool Internal::run_factorization (int64_t limit) {
     const unsigned idx = factoring.schedule.front ();
     completed = occs (u2i (idx)).empty ();
   }
-  // kissat initializes scores for new variables at this point, however
-  // this is actually done already during resize of internal
+  adjust_scores_and_phases_of_fresh_variables (factoring);
 #ifndef CADICAL_QUIET
   report ('f', !factored);
 #endif
@@ -863,6 +936,19 @@ bool Internal::factor () {
     return false;
   if (!opts.factor)
     return false;
+
+  int v_active = active ();
+  size_t log_active = log10 (v_active);
+  size_t eliminations = stats.elimrounds;
+  size_t delay = opts.factordelay;
+  size_t delay_limit = eliminations + delay;
+  if (log_active > delay_limit) {
+    VERBOSE (3,
+             "factorization delayed as %zu = log10 (%u)"
+             "> eliminations + delay = %zu + %zu = %zu",
+             log_active, v_active, eliminations, delay, delay_limit);
+    return false;
+  }
   // The following CADICAL_assertion fails if there are *only* user propagator
   // clauses (which are redundant).
   // CADICAL_assert (stats.mark.factor || clauses.empty ());
@@ -878,6 +964,8 @@ bool Internal::factor () {
   SET_EFFORT_LIMIT (limit, factor, stats.factor);
   if (!stats.factor)
     limit += opts.factoriniticks * 1e6;
+
+  mark_duplicated_binary_clauses_as_garbage ();
 
   START_SIMPLIFIER (factor, FACTOR);
   stats.factor++;

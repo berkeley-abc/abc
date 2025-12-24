@@ -27,8 +27,9 @@ Internal::Internal ()
       tainted_literal (0), notified (0), probe_reason (0), propagated (0),
       propagated2 (0), propergated (0), best_assigned (0),
       target_assigned (0), no_conflict_until (0), unsat_constraint (false),
-      marked_failed (true), sweep_incomplete (false), citten (0),
-      num_assigned (0), proof (0), opts (this),
+      marked_failed (true), sweep_incomplete (false),
+      randomized_deciding (false), citten (0), num_assigned (0), proof (0),
+      opts (this),
 #ifndef CADICAL_QUIET
       profiles (this), force_phase_messages (false),
 #endif
@@ -38,8 +39,10 @@ Internal::Internal ()
   control.push_back (Level (0, 0));
 
   // The 'dummy_binary' is used in 'try_to_subsume_clause' to fake a real
-  // clause, which then can be used to subsume or strengthen the given
-  // clause in one routine for both binary and non binary clauses.  This
+  // clause (which then can be used to subsume or strengthen the given
+  // clause in one routine for both binary and non binary clauses) and
+  // in walk (which is only used as a placeholder in the watch lists
+  // when logging is off, since the clause is not accessed).  This
   // fake binary clause is always kept non-redundant (and not-moved etc.)
   // due to the following 'memset'.  Only literals will be changed.
 
@@ -51,6 +54,8 @@ Internal::Internal ()
   dummy_binary = (Clause *) new char[bytes];
   memset (dummy_binary, 0, bytes);
   dummy_binary->size = 2;
+
+  /*with C++17: static_*/ CADICAL_assert (max_used == (1 << USED_SIZE) - 1);
 }
 
 Internal::~Internal () {
@@ -147,7 +152,6 @@ void Internal::enlarge (int new_max_var) {
   enlarge_zero (phases.target, new_vsize);
   enlarge_zero (phases.best, new_vsize);
   enlarge_zero (phases.prev, new_vsize);
-  enlarge_zero (phases.min, new_vsize);
   enlarge_zero (marks, new_vsize);
 }
 
@@ -348,8 +352,8 @@ int Internal::propagate_assumptions () {
   if (proof)
     proof->solve_query ();
   if (opts.ilb) {
-    if (opts.ilbassumptions)
-      sort_and_reuse_assumptions ();
+    sort_and_reuse_assumptions ();
+    CADICAL_assert (opts.ilb == 2 || (size_t) level <= assumptions.size ());
     stats.ilbtriggers++;
     stats.ilbsuccess += (level > 0);
     stats.levelsreused += level;
@@ -419,9 +423,9 @@ void Internal::implied (std::vector<int> &entrailed) {
   int last_assumption_level = assumptions.size ();
   if (constraint.size ())
     last_assumption_level++;
-  
-  size_t trail_limit = trail.size();
-  if (level > last_assumption_level) 
+
+  size_t trail_limit = trail.size ();
+  if (level > last_assumption_level)
     trail_limit = control[last_assumption_level + 1].trail;
 
   for (size_t i = 0; i < trail_limit; i++)
@@ -559,6 +563,7 @@ void Internal::init_search_limits () {
 
   lim.rephase = stats.conflicts + opts.rephaseint;
   lim.rephased[0] = lim.rephased[1] = 0;
+  last.stabilize.rephased = 0;
   LOG ("new rephase limit %" PRId64 " after %" PRId64 " conflicts",
        lim.rephase, lim.rephase - stats.conflicts);
 
@@ -589,17 +594,18 @@ void Internal::init_search_limits () {
   } else
     LOG ("keeping non-stable phase");
 
-  if (!incremental) {
-    inc.stabilize = 0;
-    lim.stabilize = stats.conflicts + opts.stabilizeinit;
-    LOG ("initial stabilize limit %" PRId64 " after %d conflicts",
-         lim.stabilize, (int) opts.stabilizeinit);
-  }
+  inc.stabilize = 0;
+  last.stabilize.conflicts = stats.conflicts;
+  lim.stabilize = stats.conflicts + opts.stabilizeinit;
+  last.stabilize.ticks = stats.ticks.search[0];
+  stats.stabphases = 0;
+  LOG ("new ticks-based stabilize limit %" PRId64 " after %d conflicts",
+       lim.stabilize, (int) opts.stabilizeinit);
 
-  if (opts.stabilize && opts.reluctant) {
+  if (opts.stabilize && opts.reluctant && opts.reluctantint) {
     LOG ("new restart reluctant doubling sequence period %d",
          opts.reluctant);
-    reluctant.enable (opts.reluctant, opts.reluctantmax);
+    reluctant.enable (opts.reluctantint, opts.reluctantmax);
   } else
     reluctant.disable ();
 
@@ -622,9 +628,18 @@ void Internal::init_search_limits () {
     LOG ("no limit on decisions");
   } else {
     lim.decisions = stats.decisions + inc.decisions;
-    LOG ("conflict limit after %" PRId64 " decisions at %" PRId64
+    LOG ("decision limit after %" PRId64 " decisions at %" PRId64
          " decisions",
          inc.decisions, lim.decisions);
+  }
+
+  if (inc.ticks < 0) {
+    lim.ticks = -1;
+    LOG ("no limit on ticks");
+  } else {
+    lim.ticks = stats.ticks.search[0] + stats.ticks.search[1] + inc.ticks;
+    LOG ("ticks limit after %" PRId64 " ticks at %" PRId64 " ticks",
+         inc.ticks, lim.ticks);
   }
 
   /*----------------------------------------------------------------------*/
@@ -638,6 +653,41 @@ void Internal::init_search_limits () {
     lim.localsearch = inc.localsearch;
     LOG ("limiting to %" PRId64 " local search rounds", lim.localsearch);
   }
+
+  /*----------------------------------------------------------------------*/
+  // tier 1 and tier 2 limits
+  if (incremental && opts.recomputetier) {
+    for (auto m : {true, false})
+      for (auto &u : stats.used[m])
+        u = 0;
+    stats.bump_used = {0, 0};
+    for (auto u : {true, false}) {
+      tier1[u] = max (tier1[u], opts.tier1minglue ? opts.tier1minglue : 2);
+      tier2[u] = max (tier2[u], opts.tier2minglue ? opts.tier2minglue : 6);
+    }
+    stats.tierecomputed = 0;
+  }
+
+  /*----------------------------------------------------------------------*/
+  // clause decaying
+  if (incremental)
+    last.incremental_decay.last_id = 0;
+  else {
+    lim.incremental_decay = opts.incdecayint;
+  }
+
+  /*----------------------------------------------------------------------*/
+
+  if (incremental)
+    mode = "keeping";
+  else {
+    lim.random_decision = stats.conflicts + opts.randecinit;
+    mode = "initial";
+  }
+  (void) mode;
+  LOG ("%s randomize decision limit %" PRId64 " after %" PRId64
+       " conflicts",
+       mode, lim.random_decision, lim.random_decision - stats.conflicts);
 
   /*----------------------------------------------------------------------*/
 
@@ -693,28 +743,34 @@ bool Internal::preprocess_round (int round) {
 }
 
 // for now counts as one of the preprocessing rounds TODO: change this?
-void Internal::preprocess_quickly () {
+void Internal::preprocess_quickly (bool always) {
   if (unsat)
     return;
   if (!max_var)
     return;
   if (!opts.preprocesslight)
     return;
+  if (!always && stats.searches > 1)
+    return;
   START (preprocess);
+#ifndef CADICAL_QUIET
   struct {
     int64_t vars, clauses;
   } before, after;
   before.vars = active ();
   before.clauses = stats.current.irredundant;
+#endif
   // stats.preprocessings++;
   CADICAL_assert (!preprocessing);
   preprocessing = true;
+  report ('(');
   PHASE ("preprocessing", stats.preprocessings,
          "starting with %" PRId64 " variables and %" PRId64 " clauses",
          before.vars, before.clauses);
 
-  if (extract_gates ())
+  if (extract_gates (true))
     decompose ();
+  binary_clauses_backbone ();
 
   if (sweep ())
     decompose ();
@@ -724,10 +780,12 @@ void Internal::preprocess_quickly () {
 
   if (opts.fastelim)
     elimfast ();
-  // if (opts.condition)
-  // condition (false);
+    // if (opts.condition)
+    // condition (false);
+#ifndef CADICAL_QUIET
   after.vars = active ();
   after.clauses = stats.current.irredundant;
+#endif
   CADICAL_assert (preprocessing);
   preprocessing = false;
   PHASE ("preprocessing", stats.preprocessings,
@@ -737,11 +795,17 @@ void Internal::preprocess_quickly () {
   report ('P');
 }
 
-int Internal::preprocess () {
-  preprocess_quickly ();
+int Internal::preprocess (bool always) {
+  int res = 0;
+  if (!level && !unsat && opts.luckyearly)
+    res = lucky_phases ();
+  if (res)
+    return res;
+  preprocess_quickly (always);
   for (int i = 0; i < lim.preprocessing; i++)
     if (!preprocess_round (i))
       break;
+  report (')');
   if (unsat)
     return 20;
   return 0;
@@ -836,7 +900,11 @@ int Internal::local_search_round (int round) {
   else
     limit = LONG_MAX;
 
-  int res = walk_round (limit, true);
+  int res;
+  if (opts.walkfullocc)
+    res = walk_full_occs_round (limit, true);
+  else
+    res = walk_round (limit, true);
 
   CADICAL_assert (localsearching);
   localsearching = false;
@@ -883,12 +951,13 @@ int Internal::local_search () {
 //
 int Internal::solve (bool preprocess_only) {
   CADICAL_assert (clause.empty ());
+  stats.searches++;
   START (solve);
   if (proof)
     proof->solve_query ();
   if (opts.ilb) {
-    if (opts.ilbassumptions)
-      sort_and_reuse_assumptions ();
+    sort_and_reuse_assumptions ();
+    CADICAL_assert (opts.ilb || (size_t) level <= assumptions.size ());
     stats.ilbtriggers++;
     stats.ilbsuccess += (level > 0);
     stats.levelsreused += level;
@@ -919,12 +988,14 @@ int Internal::solve (bool preprocess_only) {
       res = local_search ();
   }
   if (!res && !level)
-    res = preprocess ();
+    res = preprocess (preprocess_only);
   if (!preprocess_only) {
+    if (!res && !level && opts.luckylate)
+      res = lucky_phases ();
     if (!res && !level)
       res = local_search ();
-    if (!res && !level)
-      res = lucky_phases ();
+    if (!res)
+      decay_clauses_upon_incremental_clauses ();
     if (!res || (res == 10 && external_prop)) {
       if (res == 10 && external_prop && level)
         backtrack ();

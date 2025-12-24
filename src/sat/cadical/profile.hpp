@@ -51,6 +51,7 @@ struct Internal;
   PROFILE (analyze, 3) \
   MROFILE (analyzestable, 4) \
   MROFILE (analyzeunstable, 4) \
+  PROFILE (backbone, 2) \
   PROFILE (backward, 3) \
   PROFILE (block, 2) \
   PROFILE (bump, 4) \
@@ -107,7 +108,13 @@ struct Internal;
   PROFILE (transred, 3) \
   PROFILE (unstable, 2) \
   PROFILE (vivify, 2) \
-  PROFILE (walk, 2)
+  PROFILE (walk, 2) \
+  PROFILE (walkpick, 3) \
+  PROFILE (walkbreak, 4) \
+  PROFILE (walkflip, 3) \
+  PROFILE (walkflipbroken, 4) \
+  PROFILE (walkflipWL, 4) \
+  PROFILE (warmup, 3)
 
 /*------------------------------------------------------------------------*/
 
@@ -173,11 +180,11 @@ struct Profiles {
   do { \
     NON_CADICAL_QUIET_PROFILE_CODE (const double N = time (); \
                             const int L = internal->opts.profile;) \
-    if (!preprocessing && !lookingahead) { \
+    if (!internal->preprocessing && !internal->lookingahead) { \
       NON_CADICAL_QUIET_PROFILE_CODE ( \
-          if (stable && internal->profiles.stable.level <= L) \
+          if (internal->stable && internal->profiles.stable.level <= L) \
               internal->stop_profiling (internal->profiles.stable, N); \
-          if (!stable && internal->profiles.unstable.level <= L) \
+          if (!internal->stable && internal->profiles.unstable.level <= L) \
               internal->stop_profiling (internal->profiles.unstable, N); \
           if (internal->profiles.search.level <= L) \
               internal->stop_profiling (internal->profiles.search, N);) \
@@ -197,20 +204,21 @@ struct Profiles {
 #define STOP_SIMPLIFIER(S, M) \
   do { \
     NON_CADICAL_QUIET_PROFILE_CODE ( \
-        const double N = time (); const int L = internal->opts.profile; \
+        const double N = internal->time (); \
+        const int L = internal->opts.profile; \
         if (internal->profiles.S.level <= L) \
             internal->stop_profiling (internal->profiles.S, N); \
         if (internal->profiles.simplify.level <= L) \
             internal->stop_profiling (internal->profiles.simplify, N);) \
     reset_mode (M); \
     reset_mode (SIMPLIFY); \
-    if (!preprocessing && !lookingahead) { \
+    if (!internal->preprocessing && !internal->lookingahead) { \
       NON_CADICAL_QUIET_PROFILE_CODE ( \
           if (internal->profiles.search.level <= L) \
               internal->start_profiling (internal->profiles.search, N); \
-          if (stable && internal->profiles.stable.level <= L) \
+          if (internal->stable && internal->profiles.stable.level <= L) \
               internal->start_profiling (internal->profiles.stable, N); \
-          if (!stable && internal->profiles.unstable.level <= L) \
+          if (!internal->stable && internal->profiles.unstable.level <= L) \
               internal->start_profiling (internal->profiles.unstable, N);) \
       set_mode (SEARCH); \
     } \
@@ -221,17 +229,18 @@ struct Profiles {
 
 #define START_INNER_WALK() \
   do { \
-    require_mode (SEARCH); \
-    CADICAL_assert (!preprocessing); \
+    require_mode (Mode::SEARCH); \
+    CADICAL_assert (!internal->preprocessing); \
     NON_CADICAL_QUIET_PROFILE_CODE ( \
-        const double N = time (); const int L = internal->opts.profile; \
-        if (stable && internal->profiles.stable.level <= L) \
+        const double N = internal->time (); \
+        const int L = internal->opts.profile; \
+        if (internal->stable && internal->profiles.stable.level <= L) \
             internal->stop_profiling (internal->profiles.stable, N); \
-        if (!stable && internal->profiles.unstable.level <= L) \
+        if (!internal->stable && internal->profiles.unstable.level <= L) \
             internal->stop_profiling (internal->profiles.unstable, N); \
         if (internal->profiles.walk.level <= L) \
             internal->start_profiling (internal->profiles.walk, N);) \
-    set_mode (WALK); \
+    set_mode (Mode::WALK); \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -239,16 +248,16 @@ struct Profiles {
 
 #define STOP_INNER_WALK() \
   do { \
-    require_mode (SEARCH); \
-    CADICAL_assert (!preprocessing); \
+    require_mode (Mode::SEARCH); \
+    CADICAL_assert (!internal->preprocessing); \
     reset_mode (WALK); \
     NON_CADICAL_QUIET_PROFILE_CODE ( \
         const double N = time (); const int L = internal->opts.profile; \
         if (internal->profiles.walk.level <= L) \
             internal->stop_profiling (internal->profiles.walk, N); \
-        if (stable && internal->profiles.stable.level <= L) \
+        if (internal->stable && internal->profiles.stable.level <= L) \
             internal->start_profiling (internal->profiles.stable, N); \
-        if (!stable && internal->profiles.unstable.level <= L) \
+        if (!internal->stable && internal->profiles.unstable.level <= L) \
             internal->start_profiling (internal->profiles.unstable, N); \
         internal->profiles.walk.started = (N);) \
   } while (0)
@@ -258,10 +267,10 @@ struct Profiles {
 
 #define START_OUTER_WALK() \
   do { \
-    require_mode (SEARCH); \
-    CADICAL_assert (!preprocessing); \
+    require_mode (Mode::SEARCH); \
+    CADICAL_assert (!internal->preprocessing); \
     NON_CADICAL_QUIET_PROFILE_CODE (START (walk);) \
-    set_mode (WALK); \
+    set_mode (Mode::WALK); \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -269,8 +278,8 @@ struct Profiles {
 
 #define STOP_OUTER_WALK() \
   do { \
-    require_mode (SEARCH); \
-    CADICAL_assert (!preprocessing); \
+    require_mode (Mode::SEARCH); \
+    CADICAL_assert (!internal->preprocessing); \
     reset_mode (WALK); \
     NON_CADICAL_QUIET_PROFILE_CODE (STOP (walk);) \
   } while (0)

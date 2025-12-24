@@ -426,8 +426,8 @@ bool Internal::probe_propagate () {
       const int lit = -trail[propagated++];
       LOG ("probe propagating %d over large clauses", -lit);
       Watches &ws = watches (lit);
-      ticks += 1 + cache_lines (ws.size (),
-                                sizeof (sizeof (const_watch_iterator *)));
+      ticks +=
+          1 + cache_lines (ws.size (), sizeof (const_watch_iterator *));
       size_t i = 0, j = 0;
       while (i != ws.size ()) {
         const Watch w = ws[j++] = ws[i++];
@@ -838,7 +838,7 @@ bool Internal::probe () {
     LOG ("probing %d", probe);
     probe_assign_decision (probe);
     if (probe_propagate ())
-      backtrack ();
+      backtrack_without_updating_phases ();
     else
       failed_literal (probe);
     clean_probehbr_lrat ();
@@ -944,13 +944,16 @@ void CaDiCaL::Internal::inprobe (bool update_limits) {
     if (probe ())
       decompose ();
 
-    if (extract_gates ())
+    if (extract_gates (preprocessing))
       decompose ();
+    binary_clauses_backbone ();
+    mark_duplicated_binary_clauses_as_garbage ();
     if (sweep ())     // full occurrence list
       decompose ();   // ... and (ELS) afterwards.
     (void) vivify (); // resets watches
     transred ();      // builds big.
-    factor ();   // resets watches, partial occurrence list
+    binary_clauses_backbone ();
+    factor (); // resets watches, partial occurrence list
   }
 
   if (external_prop) {

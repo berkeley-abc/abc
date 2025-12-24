@@ -48,9 +48,9 @@ void Internal::mark_clauses_to_be_flushed () {
     const unsigned used = c->used;
     if (used)
       c->used--;
-    if (c->glue < tier1limit && used)
+    if (c->glue <= tier1limit && used)
       continue;
-    if (c->glue < tier2limit && used >= max_used - 1)
+    if (c->glue <= tier2limit && used >= max_used - 1)
       continue;
     mark_garbage (c); // flush unused clauses
     if (c->hyper)

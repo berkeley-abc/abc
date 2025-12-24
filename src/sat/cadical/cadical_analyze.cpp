@@ -211,6 +211,7 @@ int Internal::recompute_glue (Clause *c) {
   int res = 0;
   const int64_t stamp = ++stats.recomputed;
   for (const auto &lit : *c) {
+    CADICAL_assert (val (lit));
     int level = var (lit).level;
     CADICAL_assert (gtab[level] <= stamp);
     if (gtab[level] == stamp)
@@ -535,7 +536,7 @@ Clause *Internal::new_driving_clause (const int glue, int &jump) {
 
     jump = var (clause[1]).level;
     res = new_learned_redundant_clause (glue);
-    res->used = 1 + (glue <= opts.reducetier2glue);
+    res->used = max_used;
   }
 
   LOG ("jump level %d", jump);
@@ -912,7 +913,7 @@ void Internal::otfs_strengthen_clause (Clause *c, int lit, int new_size,
     mark_removed (lit);
   }
   mini_chain.clear ();
-  c->used = true;
+  c->used = max_used;
   LOG (c, "strengthened");
   external->check_shrunken_clause (c);
 }
@@ -1145,6 +1146,26 @@ void Internal::analyze () {
 
     uip = 0;
     while (!uip) {
+      if (!i) {
+        lazy_external_propagator_out_of_order_clause (uip);
+        if (unsat)
+          return;
+        else if (uip) {
+          open = 1;
+          break;
+        } else {
+          LOG (reason, "restarting the analysis on the new conflict");
+          ++stats.conflicts;
+          reason = conflict;
+          resolvent_size = 0;
+          antecedent_size = 1;
+          resolved = 0;
+          open = 0;
+          analyze_reason (0, reason, open, resolvent_size, antecedent_size);
+          conflict_size = antecedent_size - 1;
+          CADICAL_assert (open > 1);
+        }
+      }
       CADICAL_assert (i > 0);
       const int lit = (*t)[--i];
       if (!flags (lit).seen)
@@ -1268,6 +1289,64 @@ void Internal::analyze () {
 
   if (lim.recompute_tier <= stats.conflicts)
     recompute_tier ();
+}
+
+// In the special case where the external propagator is lazy, the same
+// invariants as OTFS break (but even more complicated). There are three
+// possible cases:
+//   - the clause becomes empty (unsat must be answered)
+//   - the clause is a unit (backtrack and set the clause)
+//   - the clause is a new conflict on lower level and we restart the
+//   analysis
+//
+// TODO: we do not really need to keep the clause longer than the conflict
+// analysis.
+void Internal::lazy_external_propagator_out_of_order_clause (int &uip) {
+  CADICAL_assert (!opts.exteagerreasons);
+  CADICAL_assert (external_prop);
+  LOG (clause, "out-of-order conflict");
+  if (clause.empty ()) {
+    LOG (lrat_chain, "lrat_chain:");
+    LOG (clause, "clause:");
+    LOG (unit_chain, "units:");
+    if (lrat) {
+      LOG (unit_chain, "unit chain: ");
+      for (auto id : unit_chain)
+        lrat_chain.push_back (id);
+      unit_chain.clear ();
+      reverse (lrat_chain.begin (), lrat_chain.end ());
+    }
+    LOG (lrat_chain, "lrat_chain:");
+    learn_empty_clause ();
+    if (external->learner)
+      external->export_learned_empty_clause ();
+    conflict = 0;
+  } else if (clause.size () == 1) {
+    LOG ("found out-of-order unit");
+    uip = -clause[0];
+    CADICAL_assert (uip);
+    backtrack (var (uip).level);
+    CADICAL_assert (val (uip) > 0);
+    clause.clear ();
+  } else {
+    int jump;
+    const int glue = clause.size () - 1;
+    conflict = new_driving_clause (glue, jump);
+    UPDATE_AVERAGE (averages.current.level, jump);
+    backtrack (jump);
+    LOG (conflict, "new conflict");
+  }
+  // Clean up.
+  //
+  clear_analyzed_literals ();
+  clear_unit_analyzed_literals ();
+  clear_analyzed_levels ();
+  clause.clear ();
+
+  if (unsat) {
+    lrat_chain.clear ();
+    STOP (analyze);
+  }
 }
 
 // We wait reporting a learned unit until propagation of that unit is

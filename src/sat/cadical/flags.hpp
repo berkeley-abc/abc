@@ -36,13 +36,14 @@ struct Flags { // Variable flags.
   //
   unsigned char block : 2; // removed since last 'block' round (*)
   unsigned char skip : 2;  // skip this literal as blocking literal
-
+  bool backbone1, backbone0;
   // Bits for handling assumptions.
   //
   unsigned char assumed : 2;
   unsigned char failed : 2; // 0 if not part of failure
                             // 1 if positive lit is in failure
-                            // 2 if negated lit is in failure
+  // 2 if negated lit is in failure
+  bool factored_but_on_reconstruction_stack : 1;
 
   enum {
     UNUSED = 0,
@@ -58,7 +59,8 @@ struct Flags { // Variable flags.
   // Initialized explicitly in 'Internal::init' through this function.
   //
   Flags () {
-    seen = keep = poison = removable = shrinkable = added = sweep = false;
+    seen = keep = poison = removable = shrinkable = added = sweep =
+        backbone1 = backbone0 = false;
     subsume = elim = ternary = true;
     block = 3u;
     skip = assumed = failed = marked_signed = factor = 0;
@@ -81,6 +83,12 @@ struct Flags { // Variable flags.
     dst.subsume = subsume;
     dst.ternary = ternary;
     dst.block = block;
+    dst.sweep = sweep;
+    dst.backbone0 = backbone0;
+    dst.backbone1 = backbone1;
+    dst.added = added;
+    dst.factor = factor;
+    // seen, keep, poison, removable, shrinkable are unused
   }
 };
 

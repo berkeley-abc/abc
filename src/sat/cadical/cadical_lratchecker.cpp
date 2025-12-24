@@ -478,16 +478,20 @@ void LratChecker::add_original_clause (int64_t id, bool,
   STOP (checking);
 }
 
-void LratChecker::add_derived_clause (int64_t id, bool,
+void LratChecker::add_derived_clause (int64_t id, bool, int w,
                                       const vector<int> &c,
                                       const vector<int64_t> &proof_chain) {
   START (checking);
-  LOG (c, "LRAT CHECKER addition of derived clause[%" PRId64 "]", id);
+  LOG (c, "LRAT CHECKER addition of derived %d clause[%" PRId64 "]", w, id);
+  CADICAL_assert (!w || c[0] == w);
+  if (w)
+    stats.rat++;
   stats.added++;
   stats.derived++;
   import_clause (c);
   last_id = id;
   CADICAL_assert (id == current_id + 1);
+  CADICAL_assert (!w || w == c[0]);
   current_id = id;
   if (size_clauses) {
     LratCheckerClause **p = find (id), *d = *p;
@@ -541,7 +545,7 @@ void LratChecker::add_assumption_clause (int64_t id, const vector<int> &c,
            stderr);
     fatal_message_end ();
   }
-  add_derived_clause (id, true, c, chain);
+  add_derived_clause (id, true, 0, c, chain);
   delete_clause (id, true, c);
   assumption_clauses.push_back (id);
 }

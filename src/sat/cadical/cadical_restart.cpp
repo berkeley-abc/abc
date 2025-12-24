@@ -35,12 +35,19 @@ bool Internal::stabilizing () {
     STOP (stable);
   else
     STOP (unstable);
-  //const int64_t delta_conflicts =
-  //    stats.conflicts - last.stabilize.conflicts;
+
+  CADICAL_assert (last.stabilize.ticks >= 0);
+  CADICAL_assert (last.stabilize.conflicts >= 0 &&
+          last.stabilize.conflicts <= stats.conflicts);
+  CADICAL_assert (last.stabilize.ticks <= stats.ticks.search[stable]);
   const int64_t delta_ticks =
       stats.ticks.search[stable] - last.stabilize.ticks;
-  //const char *current_mode = stable ? "stable" : "unstable";
-  //const char *next_mode = stable ? "unstable" : "stable";
+#ifndef CADICAL_QUIET
+  const int64_t delta_conflicts =
+      stats.conflicts - last.stabilize.conflicts;
+  const char *current_mode = stable ? "stable" : "unstable";
+  const char *next_mode = stable ? "unstable" : "stable";
+#endif
   PHASE ("stabilizing", stats.stabphases,
          "reached %s stabilization limit %" PRId64 " after %" PRId64
          " conflicts and %" PRId64 " ticks at %" PRId64
@@ -53,24 +60,26 @@ bool Internal::stabilizing () {
                       // ticks
     inc.stabilize = 1;
 
-  stable = !stable; // Switch!!!!!
-
   int64_t next_delta_ticks = inc.stabilize;
   int64_t stabphases = stats.stabphases + 1;
   next_delta_ticks *= stabphases * stabphases;
 
-  lim.stabilize = stats.ticks.search[stable] + next_delta_ticks;
-  if (lim.stabilize <= stats.ticks.search[stable])
-    lim.stabilize = stats.ticks.search[stable] + 1;
+  const bool next_stable = !stable;
+  lim.stabilize = stats.ticks.search[next_stable] + next_delta_ticks;
+  last.stabilize.ticks = stats.ticks.search[next_stable];
+  if (lim.stabilize <= stats.ticks.search[next_stable])
+    lim.stabilize = stats.ticks.search[next_stable] + 1;
+  PHASE ("stabilizing", stats.stabphases,
+         "next %s stabilization limit %" PRId64
+         " at ticks interval %" PRId64,
+         next_mode, lim.stabilize, next_delta_ticks);
+
+  stable = !stable; // Switch!!!!!
 
   if (stable)
     stats.stabphases++;
 
   swap_averages ();
-  PHASE ("stabilizing", stats.stabphases,
-         "next %s stabilization limit %" PRId64
-         " at ticks interval %" PRId64,
-         next_mode, lim.stabilize, next_delta_ticks);
   report (stable ? '[' : '{');
   if (stable)
     START (stable);
@@ -91,14 +100,24 @@ bool Internal::restarting () {
     return false;
   if ((size_t) level < assumptions.size () + 2)
     return false;
-  if (stabilizing ())
+  if (stabilizing () && opts.reluctant)
     return reluctant;
   if (stats.conflicts <= lim.restart)
     return false;
   double f = averages.current.glue.fast;
-  double margin = (100.0 + opts.restartmargin) / 100.0;
-  double s = averages.current.glue.slow, l = margin * s;
-  LOG ("EMA glue slow %.2f fast %.2f limit %.2f", s, f, l);
+  int p = stable ? opts.restartmarginstable : opts.restartmarginfocused;
+  double m = (100.0 + p) / 100.0;
+  double s = averages.current.glue.slow;
+  double l = m * s;
+
+#ifndef CADICAL_QUIET
+  char c = l > f ? '>' : l < f ? '<' : '=';
+  VERBOSE (3,
+           "restart glue limit "
+           "%g = %.2f * %g (slow glue) %c %g (fast glue)",
+           l, m, s, c, f);
+#endif
+
   return l <= f;
 }
 

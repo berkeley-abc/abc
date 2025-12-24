@@ -31,7 +31,7 @@ void Internal::mark_fixed (int lit) {
     // to know about it.
     // But at that point it is not guaranteed to be already on the trail, so
     // notification will happen only later.
-    CADICAL_assert (!level);
+    CADICAL_assert (!level || in_mode (BACKBONE));
   }
 }
 

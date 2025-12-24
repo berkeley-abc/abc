@@ -24,9 +24,8 @@ namespace CaDiCaL {
 
 inline double Internal::compute_elim_score (unsigned lit) {
   CADICAL_assert (1 <= lit), CADICAL_assert (lit <= (unsigned) max_var);
-  const unsigned uidx = 2 * lit;
-  const double pos = internal->ntab[uidx];
-  const double neg = internal->ntab[uidx + 1];
+  const double pos = noccs (lit);
+  const double neg = noccs (-lit);
   if (!pos)
     return -neg;
   if (!neg)
@@ -1043,7 +1042,7 @@ void Internal::elim (bool update_limits) {
 #endif
 
   // Make sure there was a complete subsumption phase since last
-  // elimination including vivification etc.
+  // elimination
   //
   if (last.elim.subsumephases == stats.subsumephases)
     subsume ();

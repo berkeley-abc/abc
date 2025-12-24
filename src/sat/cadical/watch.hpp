@@ -6,6 +6,8 @@
 #include <cassert>
 #include <vector>
 
+#include "clause.hpp"
+
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
@@ -37,6 +39,9 @@ struct Watch {
   int size;
 
   Watch (int b, Clause *c) : clause (c), blit (b), size (c->size) {}
+  Watch (bool, int b, Clause *c) : clause (c), blit (b), size (2) {
+    CADICAL_assert (c->size == 2);
+  }
   Watch () {}
 
   bool binary () const { return size == 2; }

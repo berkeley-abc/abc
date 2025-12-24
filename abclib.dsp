@@ -2911,6 +2911,10 @@ SOURCE=.\src\sat\cadical\cadical_averages.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\sat\cadical\cadical_backbone.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\sat\cadical\cadical_backtrack.cpp
 # End Source File
 # Begin Source File
@@ -3240,6 +3244,14 @@ SOURCE=.\src\sat\cadical\cadical_vivify.cpp
 # Begin Source File
 
 SOURCE=.\src\sat\cadical\cadical_walk.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_walk_full_occs.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\cadical\cadical_warmup.cpp
 # End Source File
 # Begin Source File
 
