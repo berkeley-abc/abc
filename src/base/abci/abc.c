@@ -10956,7 +10956,7 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Function with %d variales cannot be implemented with %d %d-input LUTs.\n", pPars->nVars, pPars->nNodes, pPars->nLutSize );
         return 1;
     }
-    if ( pPars->fKissat )
+    if ( pPars->fKissat || pPars->fCadical )
     {
         if ( pPars->nVars > 14 )
         {

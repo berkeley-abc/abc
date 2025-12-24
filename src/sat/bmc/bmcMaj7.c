@@ -54,7 +54,8 @@ static inline void Exa7_CadicalSetRuntimeLimit( cadical_solver * pSat, int nSeco
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-#define MAJ_NOBJS  64 // Const0 + Const1 + nVars + nNodes
+#define MAJ_NOBJS    64 // Const0 + Const1 + nVars + nNodes
+#define MAJ_MAX_LUT   8
 
 typedef struct Exa7_Man_t_ Exa7_Man_t;
 struct Exa7_Man_t_ 
@@ -71,7 +72,7 @@ struct Exa7_Man_t_
     Vec_Wrd_t *       vInfo;     // nVars + nNodes + 1
     Vec_Bit_t *       vUsed2;    // bit masks
     Vec_Bit_t *       vUsed3;    // bit masks
-    int               VarMarks[MAJ_NOBJS][6][MAJ_NOBJS]; // variable marks
+    int               VarMarks[MAJ_NOBJS][MAJ_MAX_LUT][MAJ_NOBJS]; // variable marks
     int               VarVals[MAJ_NOBJS]; // values of the first nVars variables
     Vec_Wec_t *       vOutLits;  // output vars
     Vec_Wec_t *       vInVars;   // input vars
@@ -277,6 +278,7 @@ static Exa7_Man_t * Exa7_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     p->nVars      = pPars->nVars;
     p->nNodes     = pPars->nNodes;
     p->nLutSize   = pPars->nLutSize;
+    assert( p->nLutSize <= MAJ_MAX_LUT );
     p->LutMask    = (1 << pPars->nLutSize) - 1;
     p->nObjs      = pPars->nVars + pPars->nNodes;
     p->nWords     = Abc_TtWordNum(pPars->nVars);
@@ -334,7 +336,7 @@ static inline int Exa7_ManFindFanin( Exa7_Man_t * p, int i, int k )
 static inline int Exa7_ManEval( Exa7_Man_t * p )
 {
     static int Flag = 0;
-    int i, k, j, iMint; word * pFanins[6];
+    int i, k, j, iMint; word * pFanins[MAJ_MAX_LUT];
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
         int iVarStart = 1 + p->LutMask*(i - p->nVars);
@@ -419,7 +421,7 @@ static void Exa7_ManPrintSolution( Exa7_Man_t * p, int fCompl )
 static Vec_Wrd_t * Exa7_ManSaveTruthTables( Exa7_Man_t * p, int fCompl )
 {
     int i, k, nWordsNode, nMintsNode;
-    assert( p->nLutSize <= 8 );
+    assert( p->nLutSize <= MAJ_MAX_LUT );
     nMintsNode = 1 << p->nLutSize;
     nWordsNode = (p->nLutSize <= 6) ? 1 : (p->nLutSize == 7 ? 2 : 4);
     Vec_Wrd_t * vTruths = Vec_WrdStart( p->nObjs * nWordsNode );
@@ -782,7 +784,9 @@ int Exa7_ManExactSynthesis( Bmc_EsPar_t * pPars )
     int i, status, Res = 0, iMint = 1;
     abctime clkTotal = Abc_Clock();
     Exa7_Man_t * p; int fCompl = 0;
-    word pTruth[64]; 
+    int nTruthWords = Abc_TtWordNum( pPars->nVars );
+    word * pTruth = ABC_CALLOC( word, nTruthWords );
+    assert( pTruth );
     if ( pPars->pSymStr ) {
         word * pFun = Abc_TtSymFunGenerate( pPars->pSymStr, pPars->nVars );
         pPars->pTtStr = ABC_CALLOC( char, pPars->nVars > 2 ? (1 << (pPars->nVars-2)) + 1 : 2 );
@@ -793,8 +797,8 @@ int Exa7_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->pTtStr )
         Abc_TtReadHex( pTruth, pPars->pTtStr );
     else assert( 0 );
-    assert( pPars->nVars <= 12 );
-    assert( pPars->nLutSize <= 6 );
+    assert( pPars->nVars <= 14 );
+    assert( pPars->nLutSize <= 8 );
     p = Exa7_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
     status = Exa7_ManAddCnfStart( p, pPars->fOnlyAnd );
@@ -842,6 +846,7 @@ int Exa7_ManExactSynthesis( Bmc_EsPar_t * pPars )
     if ( pPars->pSymStr ) 
         ABC_FREE( pPars->pTtStr );
     Exa7_ManFree( p );
+    ABC_FREE( pTruth );
     return Res;
 }
 
