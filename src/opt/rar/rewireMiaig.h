@@ -441,7 +441,7 @@ inline void Miaig::release(void) {
             if (_data->pRequire) free(_data->pRequire);
             if (_data->pTable) free(_data->pTable);
             if (_data->pNtkMapped) Vi_Free(_data->pNtkMapped);
-            delete _data;
+            free(_data);
         }
     }
 
