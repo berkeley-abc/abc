@@ -36623,10 +36623,11 @@ usage:
 int Abc_CommandAbc9Cofs( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManDupCofs( Gia_Man_t * p, Vec_Int_t * vVarNums );
+    extern Gia_Man_t * Gia_ManDupUnCofs( Gia_Man_t * p, Vec_Int_t * vVarNums );
     Gia_Man_t * pTemp;  Vec_Int_t * vVars = NULL;
-    int c, iVar = 0, nVars = 0, fVerbose = 0;
+    int c, iVar = 0, nVars = 0, fLastVars = 0, fVerbose = 0, fUndo = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "VNvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "VNluvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36652,6 +36653,12 @@ int Abc_CommandAbc9Cofs( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( nVars < 0 )
                 goto usage;
             break;
+        case 'l':
+            fLastVars ^= 1;
+            break;
+        case 'u':
+            fUndo ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -36672,8 +36679,14 @@ int Abc_CommandAbc9Cofs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Vec_IntPush( vVars, iVar );
     }
     else if ( nVars ) {
-        Abc_Print( 0, "Cofactoring the first %d inputs.\n", nVars );
-        vVars = Vec_IntStartNatural( nVars );
+        Abc_Print( 0, "Cofactoring the %s %d inputs.\n", fLastVars ? "last":"first", nVars );
+        if ( fLastVars) {
+            vVars = Vec_IntAlloc(nVars);
+            for ( int v = 0; v < nVars; v++ )
+                Vec_IntPush( vVars, Gia_ManCiNum(pAbc->pGia)-nVars+v );
+        }
+        else
+            vVars = Vec_IntStartNatural( nVars );
     }
     else if ( globalUtilOptind < argc ) {
         vVars = Vec_IntAlloc( argc );
@@ -36684,16 +36697,18 @@ int Abc_CommandAbc9Cofs( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "One of the parameters, -V <num> or -L <num>, should be set on the command line.\n" );
         goto usage;
     }
-    pTemp = Gia_ManDupCofs( pAbc->pGia, vVars );
+    pTemp = fUndo ? Gia_ManDupUnCofs( pAbc->pGia, vVars ) : Gia_ManDupCofs( pAbc->pGia, vVars );
     Abc_FrameUpdateGia( pAbc, pTemp );
     Vec_IntFree( vVars );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &cofs [-VN num] [-vh]\n" );
-    Abc_Print( -2, "\t         derives cofactors w.r.t the set of variables\n" );
+    Abc_Print( -2, "usage: &cofs [-VN num] [-luvh]\n" );
+    Abc_Print( -2, "\t         derives cofactors or reconstructs them w.r.t the set of variables\n" );
     Abc_Print( -2, "\t-V num : the zero-based ID of one variable to cofactor [default = %d]\n", iVar );
     Abc_Print( -2, "\t-N num : cofactoring the given number of first input variables [default = %d]\n", nVars );
+    Abc_Print( -2, "\t-l     : toggle cofactoring last variables instead [default = %s]\n", fLastVars? "yes": "no" );
+    Abc_Print( -2, "\t-u     : undo cofactoring (recombine cofactors using muxes) [default = %s]\n", fUndo? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;

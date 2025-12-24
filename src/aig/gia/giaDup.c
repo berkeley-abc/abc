@@ -6163,6 +6163,62 @@ Gia_Man_t * Gia_ManDupCofs( Gia_Man_t * p, Vec_Int_t * vVarNums )
     Gia_ManStop( pTemp );  
     return pNew;    
 }
+Gia_Man_t * Gia_ManDupUnCofs( Gia_Man_t * p, Vec_Int_t * vVarNums )
+{
+    Gia_Man_t * pNew, * pTemp; Gia_Obj_t * pObj;
+    Vec_Int_t * vOutLits, * vVarLits, * vTemp;
+    int i, v, g, nVars = Vec_IntSize(vVarNums);
+    int nMints = 1 << nVars;
+    int nOrigCos;
+    assert( Gia_ManRegNum(p) == 0 );
+    assert( nMints > 0 );
+    assert( Gia_ManCoNum(p) % nMints == 0 );
+    nOrigCos = Gia_ManCoNum(p) / nMints;
+    vVarLits = Vec_IntStartFull( nVars );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) + Gia_ManCoNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+    {
+        pObj->Value = Gia_ManAppendCi( pNew );
+        if ( (v = Vec_IntFind( vVarNums, i )) >= 0 )
+            Vec_IntWriteEntry( vVarLits, v, pObj->Value );
+    }
+    Vec_IntForEachEntry( vVarLits, g, i )
+        assert( g >= 0 );
+    Gia_ManHashAlloc( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+        pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    vOutLits = Vec_IntAlloc( Gia_ManCoNum(p) );
+    Gia_ManForEachCo( p, pObj, i )
+        Vec_IntPush( vOutLits, Gia_ObjFanin0Copy(pObj) );
+    vTemp = Vec_IntAlloc( nMints );
+    for ( i = 0; i < nOrigCos; i++ )
+    {
+        Vec_IntFill( vTemp, nMints, 0 );
+        for ( g = 0; g < nMints; g++ )
+            Vec_IntWriteEntry( vTemp, g, Vec_IntEntry(vOutLits, g * nOrigCos + i) );
+        for ( v = 0; v < nVars; v++ )
+        {
+            int Stride = 1 << v;
+            for ( g = 0; g < nMints; g += 2 * Stride )
+            {
+                int iLit0 = Vec_IntEntry( vTemp, g );
+                int iLit1 = Vec_IntEntry( vTemp, g + Stride );
+                int iLitR = Gia_ManHashMux( pNew, Vec_IntEntry( vVarLits, v ), iLit1, iLit0 );
+                Vec_IntWriteEntry( vTemp, g, iLitR );
+            }
+        }
+        Gia_ManAppendCo( pNew, Vec_IntEntry( vTemp, 0 ) );
+    }
+    Vec_IntFree( vTemp );
+    Vec_IntFree( vOutLits );
+    Vec_IntFree( vVarLits );
+    pNew = Gia_ManCleanup( pTemp = pNew );
+    Gia_ManStop( pTemp );  
+    return pNew;    
+}
 
 /**Function*************************************************************
 
@@ -6673,4 +6729,3 @@ Gia_Man_t * Gia_ManDupExtractMffc( Gia_Man_t * p, Vec_Int_t * vLits, Vec_Int_t *
 
 
 ABC_NAMESPACE_IMPL_END
-
