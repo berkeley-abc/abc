@@ -66,7 +66,7 @@ inline void Internal::mark_added (int lit, int size, bool redundant) {
     mark_ternary (lit);
   if (!redundant)
     mark_block (lit);
-  if (!redundant || size == 2)
+  if ((!redundant || size == 2))
     mark_factor (lit);
 }
 
@@ -151,6 +151,7 @@ Clause *Internal::new_clause (bool red, int glue) {
 
 void Internal::promote_clause (Clause *c, int new_glue) {
   CADICAL_assert (c->redundant);
+  CADICAL_assert (new_glue);
   const int tier1limit = tier1[false];
   const int tier2limit = max (tier1limit, tier2[false]);
   if (!c->redundant)
@@ -160,10 +161,10 @@ void Internal::promote_clause (Clause *c, int new_glue) {
   int old_glue = c->glue;
   if (new_glue >= old_glue)
     return;
+  c->used = max_used;
   if (old_glue > tier1limit && new_glue <= tier1limit) {
     LOG (c, "promoting with new glue %d to tier1", new_glue);
     stats.promoted1++;
-    c->used = max_used;
   } else if (old_glue > tier2limit && new_glue <= tier2limit) {
     LOG (c, "promoting with new glue %d to tier2", new_glue);
     stats.promoted2++;
@@ -178,6 +179,7 @@ void Internal::promote_clause (Clause *c, int new_glue) {
 
 void Internal::promote_clause_glue_only (Clause *c, int new_glue) {
   CADICAL_assert (c->redundant);
+  CADICAL_assert (new_glue);
   if (c->hyper)
     return;
   int old_glue = c->glue;
@@ -188,7 +190,6 @@ void Internal::promote_clause_glue_only (Clause *c, int new_glue) {
   if (new_glue <= tier1limit) {
     LOG (c, "promoting with new glue %d to tier1", new_glue);
     stats.promoted1++;
-    c->used = max_used;
   } else if (old_glue > tier2limit && new_glue <= tier2limit) {
     LOG (c, "promoting with new glue %d to tier2", new_glue);
     stats.promoted2++;
@@ -582,13 +583,17 @@ Clause *Internal::new_hyper_ternary_resolved_clause (bool red) {
   return res;
 }
 
-Clause *Internal::new_factor_clause () {
+Clause *Internal::new_factor_clause (int witness) {
   external->check_learned_clause ();
   stats.factor_added++;
   stats.literals_factored += clause.size ();
   Clause *res = new_clause (false, 0);
   if (proof) {
-    proof->add_derived_clause (res, lrat_chain);
+    if (witness)
+      proof->add_derived_rat_clause (res, externalize (witness),
+                                     lrat_chain);
+    else
+      proof->add_derived_clause (res, lrat_chain);
   }
   CADICAL_assert (!watching ());
   CADICAL_assert (occurring ());
@@ -644,6 +649,48 @@ Clause *Internal::new_resolved_irredundant_clause () {
   return res;
 }
 
+void Internal::decay_clauses_upon_incremental_clauses () {
+  if (!opts.incdecay)
+    return;
+  if (!stats.searches)
+    return;
+  if (stats.conflicts < lim.incremental_decay)
+    return;
+
+  PHASE ("decay", stats.incremental_decay,
+         "decaying clauses with next decaying at conflict %" PRId64
+         "(after the next incremental call)",
+         lim.incremental_decay);
+
+  for (auto c : clauses) {
+    if (c->garbage)
+      continue;
+    if (!c->redundant)
+      continue;
+    if (c->id >= last.incremental_decay.last_id)
+      continue;
+    switch (opts.incdecay) {
+    case 1: // my intuition
+      ++c->glue;
+      break;
+    case 2: // Armin's idea
+      if (c->glue < tier1[false])
+        c->used = 1;
+      break;
+    case 3:
+      if (c->glue < tier1[false])
+        c->used = 1;
+      ++c->glue;
+      break;
+    default:
+      break;
+    }
+  }
+
+  lim.incremental_decay += stats.conflicts + opts.incdecayint;
+  ++stats.incremental_decay;
+  last.incremental_decay.last_id = clause_id;
+}
 } // namespace CaDiCaL
 
 ABC_NAMESPACE_IMPL_END

@@ -27,7 +27,7 @@ Last::Last () { memset (this, 0, sizeof *this); }
 
 Inc::Inc () {
   memset (this, 0, sizeof *this);
-  decisions = conflicts = -1; // unlimited
+  ticks = decisions = conflicts = -1; // unlimited
 }
 
 void Internal::limit_terminate (int l) {
@@ -66,6 +66,18 @@ void Internal::limit_decisions (int l) {
   }
 }
 
+void Internal::limit_ticks (int64_t l) {
+  if (l < 0 && inc.ticks < 0) {
+    LOG ("keeping unbounded ticks limit");
+  } else if (l < 0) {
+    LOG ("reset ticks limit to be unbounded");
+    inc.ticks = -1;
+  } else {
+    inc.ticks = l;
+    LOG ("new ticks limit of %" PRId64 " ticks", l);
+  }
+}
+
 void Internal::limit_preprocessing (int l) {
   if (l < 0) {
     LOG ("ignoring invalid preprocessing limit %d", l);
@@ -101,6 +113,8 @@ bool Internal::is_valid_limit (const char *name) {
     return true;
   if (!strcmp (name, "localsearch"))
     return true;
+  if (!strcmp (name, "ticks"))
+    return true;
   return false;
 }
 
@@ -116,6 +130,8 @@ bool Internal::limit (const char *name, int l) {
     limit_preprocessing (l);
   else if (!strcmp (name, "localsearch"))
     limit_local_search (l);
+  else if (!strcmp (name, "ticks"))
+    limit_ticks (l);
   else
     res = false;
   return res;
@@ -128,6 +144,7 @@ void Internal::reset_limits () {
   limit_decisions (-1);
   limit_preprocessing (0);
   limit_local_search (0);
+  limit_ticks (-1);
 }
 
 } // namespace CaDiCaL

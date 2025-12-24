@@ -61,6 +61,16 @@ struct Queue {
     last = idx;
     l.next = 0;
   }
+
+  inline void bury (Links &links, int idx) {
+    Link &l = links[idx];
+    if ((l.next = first))
+      links[first].prev = idx;
+    else
+      last = idx;
+    first = idx;
+    l.prev = 0;
+  }
 };
 
 } // namespace CaDiCaL

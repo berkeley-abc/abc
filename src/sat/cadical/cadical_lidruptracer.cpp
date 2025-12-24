@@ -462,7 +462,7 @@ void LidrupTracer::lidrup_solve_query () {
 
 /*------------------------------------------------------------------------*/
 
-void LidrupTracer::add_derived_clause (int64_t id, bool,
+void LidrupTracer::add_derived_clause (int64_t id, bool, int,
                                        const vector<int> &clause,
                                        const vector<int64_t> &chain) {
   if (file->closed ())

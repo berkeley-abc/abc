@@ -190,11 +190,41 @@ inline void VeripbTracer::put_binary_id (int64_t id, bool can_be_negative) {
 
 /*------------------------------------------------------------------------*/
 
+void VeripbTracer::veripb_add_derived_clause (int64_t id, bool redundant,
+                                              int witness,
+                                              const vector<int> &clause) {
+  CADICAL_assert (witness == clause[0]);
+  file->put ("red ");
+  for (const auto &external_lit : clause) {
+    file->put ("1 ");
+    if (external_lit < 0)
+      file->put ('~');
+    file->put ('x');
+    file->put (abs (external_lit));
+    file->put (' ');
+  }
+  file->put (">= 1 : ");
+  file->put ('x');
+  file->put (abs (witness));
+  file->put (" -> ");
+  if (witness < 0)
+    file->put ("0");
+  else
+    file->put ("1");
+  file->put (";\n");
+  if (!redundant && checked_deletions) {
+    file->put ("core id ");
+    file->put (id);
+    file->put (";\n");
+  }
+}
+
 void VeripbTracer::veripb_add_derived_clause (
     int64_t id, bool redundant, const vector<int> &clause,
     const vector<int64_t> &chain) {
   file->put ("pol ");
   bool first = true;
+  CADICAL_assert (!chain.empty ());
   for (auto p = chain.rbegin (); p != chain.rend (); p++) {
     auto cid = *p;
     if (first) {
@@ -206,7 +236,7 @@ void VeripbTracer::veripb_add_derived_clause (
       file->put (" + s");
     }
   }
-  file->put ("\n");
+  file->put (";\n");
   file->put ("e ");
   for (const auto &external_lit : clause) {
     file->put ("1 ");
@@ -216,13 +246,13 @@ void VeripbTracer::veripb_add_derived_clause (
     file->put (abs (external_lit));
     file->put (' ');
   }
-  file->put (">= 1 ; ");
+  file->put (">= 1 : ");
   file->put (id);
-  file->put (" ;\n");
+  file->put (";\n");
   if (!redundant && checked_deletions) {
     file->put ("core id ");
     file->put (id);
-    file->put ("\n");
+    file->put (";\n");
   }
 }
 
@@ -237,19 +267,19 @@ void VeripbTracer::veripb_add_derived_clause (int64_t id, bool redundant,
     file->put (abs (external_lit));
     file->put (' ');
   }
-  file->put (">= 1 ;\n");
+  file->put (">= 1;\n");
   if (!redundant && checked_deletions) {
     file->put ("core id ");
     file->put (id);
-    file->put ("\n");
+    file->put (";\n");
   }
 }
 
 void VeripbTracer::veripb_begin_proof (int64_t reserved_ids) {
-  file->put ("pseudo-Boolean proof version 2.0\n");
+  file->put ("pseudo-Boolean proof version 3.0\n");
   file->put ("f ");
   file->put (reserved_ids);
-  file->put ("\n");
+  file->put (";\n");
 }
 
 void VeripbTracer::veripb_delete_clause (int64_t id, bool redundant) {
@@ -261,18 +291,18 @@ void VeripbTracer::veripb_delete_clause (int64_t id, bool redundant) {
     file->put ("delc ");
   }
   file->put (id);
-  file->put ("\n");
+  file->put (";\n");
 }
 
 void VeripbTracer::veripb_report_status (bool unsat, int64_t conflict_id) {
-  file->put ("output NONE\n");
+  file->put ("output NONE;\n");
   if (unsat) {
     file->put ("conclusion UNSAT : ");
     file->put (conflict_id);
-    file->put (" \n");
+    file->put (";\n");
   } else
-    file->put ("conclusion NONE\n");
-  file->put ("end pseudo-Boolean proof\n");
+    file->put ("conclusion NONE;\n");
+  file->put ("end pseudo-Boolean proof;\n");
 }
 
 void VeripbTracer::veripb_strengthen (int64_t id) {
@@ -280,7 +310,7 @@ void VeripbTracer::veripb_strengthen (int64_t id) {
     return;
   file->put ("core id ");
   file->put (id);
-  file->put ("\n");
+  file->put (";\n");
 }
 
 /*------------------------------------------------------------------------*/
@@ -295,12 +325,15 @@ void VeripbTracer::begin_proof (int64_t id) {
 }
 
 void VeripbTracer::add_derived_clause (int64_t id, bool redundant,
+                                       int witness,
                                        const vector<int> &clause,
                                        const vector<int64_t> &chain) {
   if (file->closed ())
     return;
   LOG ("VERIPB TRACER tracing addition of derived clause[%" PRId64 "]", id);
-  if (with_antecedents)
+  if (witness)
+    veripb_add_derived_clause (id, redundant, witness, clause);
+  else if (with_antecedents)
     veripb_add_derived_clause (id, redundant, clause, chain);
   else
     veripb_add_derived_clause (id, redundant, clause);

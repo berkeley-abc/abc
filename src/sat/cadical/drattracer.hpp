@@ -3,6 +3,7 @@
 
 #include "global.h"
 
+#include "file.hpp"
 #include "tracer.hpp"
 
 ABC_NAMESPACE_CXX_HEADER_START
@@ -21,8 +22,8 @@ class DratTracer : public FileTracer {
   void put_binary_lit (int external_lit);
 
   // support DRAT
-  void drat_add_clause (const vector<int> &);
-  void drat_delete_clause (const vector<int> &);
+  void drat_add_clause (const std::vector<int> &);
+  void drat_delete_clause (const std::vector<int> &);
 
 public:
   // own and delete 'file'
@@ -32,15 +33,16 @@ public:
   void connect_internal (Internal *i) override;
   void begin_proof (int64_t) override {} // skip
 
-  void add_original_clause (int64_t, bool, const vector<int> &,
+  void add_original_clause (int64_t, bool, const std::vector<int> &,
                             bool = false) override {} // skip
 
-  void add_derived_clause (int64_t, bool, const vector<int> &,
-                           const vector<int64_t> &) override;
+  void add_derived_clause (int64_t, bool, int, const std::vector<int> &,
+                           const std::vector<int64_t> &) override;
 
-  void delete_clause (int64_t, bool, const vector<int> &) override;
+  void delete_clause (int64_t, bool, const std::vector<int> &) override;
 
-  void finalize_clause (int64_t, const vector<int> &) override {} // skip
+  void finalize_clause (int64_t, const std::vector<int> &) override {
+  } // skip
 
   void report_status (int, int64_t) override {} // skip
 

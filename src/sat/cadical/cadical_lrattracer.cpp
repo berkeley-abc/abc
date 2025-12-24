@@ -127,7 +127,7 @@ void LratTracer::lrat_delete_clause (int64_t id) {
 
 /*------------------------------------------------------------------------*/
 
-void LratTracer::add_derived_clause (int64_t id, bool,
+void LratTracer::add_derived_clause (int64_t id, bool, int,
                                      const vector<int> &clause,
                                      const vector<int64_t> &chain) {
   if (file->closed ())

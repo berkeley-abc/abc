@@ -52,6 +52,7 @@ struct Clause;
 
 class Range {
   static unsigned inc (unsigned u) { return u + 1u; }
+  static unsigned dec (unsigned u) { return u - 1u; }
   class iterator {
     int idx;
 
@@ -63,11 +64,36 @@ class Range {
       return a.idx != b.idx;
     }
   };
+
+  // Reverse iterator for iterating from max_var down to 1
+  class reverse_iterator {
+    int idx;
+
+  public:
+    reverse_iterator (int i) : idx (i) {}
+    void operator++ () { idx = dec (idx); }
+    const int &operator* () const { return idx; }
+    friend bool operator!= (const reverse_iterator &a,
+                            const reverse_iterator &b) {
+      return a.idx != b.idx;
+    }
+  };
+
   int &n;
 
 public:
+  // forward iterator
   iterator begin () const { return CADICAL_assert (n >= 0), iterator (inc (0)); }
   iterator end () const { return CADICAL_assert (n >= 0), iterator (inc (n)); }
+
+  // Reverse iteration methods
+  reverse_iterator rbegin () const {
+    return CADICAL_assert (n >= 0), reverse_iterator (n);
+  }
+  reverse_iterator rend () const {
+    return CADICAL_assert (n >= 0), reverse_iterator (0);
+  }
+
   Range (int &m) : n (m) { CADICAL_assert (m >= 0); }
 };
 

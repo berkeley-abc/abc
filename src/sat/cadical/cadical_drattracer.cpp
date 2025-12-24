@@ -87,7 +87,7 @@ void DratTracer::drat_delete_clause (const vector<int> &clause) {
 
 /*------------------------------------------------------------------------*/
 
-void DratTracer::add_derived_clause (int64_t, bool,
+void DratTracer::add_derived_clause (int64_t, bool, int,
                                      const vector<int> &clause,
                                      const vector<int64_t> &) {
   if (file->closed ())

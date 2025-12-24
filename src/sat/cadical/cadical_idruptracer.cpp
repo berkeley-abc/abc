@@ -391,7 +391,7 @@ void IdrupTracer::idrup_solve_query () {
 
 /*------------------------------------------------------------------------*/
 
-void IdrupTracer::add_derived_clause (int64_t, bool,
+void IdrupTracer::add_derived_clause (int64_t, bool, int,
                                       const vector<int> &clause,
                                       const vector<int64_t> &) {
   if (file->closed ())

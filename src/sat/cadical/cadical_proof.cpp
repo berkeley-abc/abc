@@ -199,7 +199,9 @@ void Internal::flush_trace (bool print) {
 
 /*------------------------------------------------------------------------*/
 
-Proof::Proof (Internal *s) : internal (s) { LOG ("PROOF new"); }
+Proof::Proof (Internal *s) : internal (s), witness (0) {
+  LOG ("PROOF new");
+}
 
 Proof::~Proof () { LOG ("PROOF delete"); }
 
@@ -292,6 +294,20 @@ void Proof::add_derived_clause (Clause *c, const vector<int64_t> &chain) {
   add_derived_clause ();
 }
 
+void Proof::add_derived_rat_clause (Clause *c, int w,
+                                    const vector<int64_t> &chain) {
+  LOG (c, "PROOF adding to proof derived witness %d", w);
+  CADICAL_assert (clause.empty ());
+  CADICAL_assert (proof_chain.empty ());
+  add_literals (c);
+  for (const auto &cid : chain)
+    proof_chain.push_back (cid);
+  clause_id = c->id;
+  redundant = c->redundant;
+  witness = w;
+  add_derived_clause ();
+}
+
 void Proof::add_derived_clause (int64_t id, bool r, const vector<int> &c,
                                 const vector<int64_t> &chain) {
   LOG (c, "PROOF adding derived clause");
@@ -303,6 +319,22 @@ void Proof::add_derived_clause (int64_t id, bool r, const vector<int> &c,
     proof_chain.push_back (cid);
   clause_id = id;
   redundant = r;
+  add_derived_clause ();
+}
+
+void Proof::add_derived_rat_clause (int64_t id, bool r, int l,
+                                    const vector<int> &c,
+                                    const vector<int64_t> &chain) {
+  LOG (c, "PROOF adding derived witness %d clause", l);
+  CADICAL_assert (clause.empty ());
+  CADICAL_assert (proof_chain.empty ());
+  for (const auto &lit : c)
+    add_literal (lit);
+  for (const auto &cid : chain)
+    proof_chain.push_back (cid);
+  clause_id = id;
+  redundant = r;
+  witness = l;
   add_derived_clause ();
 }
 
@@ -530,11 +562,13 @@ void Proof::add_derived_clause () {
        redundant);
   CADICAL_assert (clause_id);
   for (auto &tracer : tracers) {
-    tracer->add_derived_clause (clause_id, redundant, clause, proof_chain);
+    tracer->add_derived_clause (clause_id, redundant, witness, clause,
+                                proof_chain);
   }
   proof_chain.clear ();
   clause.clear ();
   clause_id = 0;
+  witness = 0;
 }
 
 void Proof::delete_clause () {

@@ -92,9 +92,8 @@ void Logger::log (Internal *internal, const Gate *g, const char *fmt, ...) {
   vprintf (fmt, ap);
   va_end (ap);
   if (g) {
-    printf ("%s%s%s gate[%" PRIu64 "] (arity: %ld) %s := %s",
-	    g->degenerated_and_pos ? " deg+" : "",
-	    g->degenerated_and_neg ? " deg-" : "",
+    printf ("%s%s gate[%" PRIu64 "] (arity: %zu) %s := %s",
+            special_gate_str (g->degenerated_gate).c_str (),
             g->garbage ? " garbage" : "", g->id, g->arity (),
             loglit (internal, g->lhs).c_str (),
             string_of_gate (g->tag).c_str ());

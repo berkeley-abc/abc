@@ -473,6 +473,11 @@ bool Internal::decompose_round () {
     }
     external->push_binary_clause_on_extension_stack (id2, idx, -other);
     decompose_ids[vlit (idx)] = id2;
+    for (auto &tracer : tracers) {
+      const int eidx = externalize (idx);
+      const int eother = externalize (other);
+      tracer->notify_equivalence (eidx, eother);
+    }
 
     clause.clear ();
     lrat_chain.clear ();

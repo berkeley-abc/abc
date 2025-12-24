@@ -73,7 +73,7 @@ struct Internal;
 #define LD_MAX_ARITY 26
 #define MAX_ARITY ((1 << LD_MAX_ARITY) - 1)
 
-enum class Gate_Type { And_Gate, XOr_Gate, ITE_Gate };
+enum class Gate_Type : int8_t { And_Gate, XOr_Gate, ITE_Gate };
 
 // Wrapper when we are looking for implication in if-then-else gates
 struct lit_implication {
@@ -94,7 +94,7 @@ struct lit_equivalence {
   int second;
   Clause *first_clause;
   Clause *second_clause;
-  void check_invariant () {
+  void check_invariant () const {
     CADICAL_assert (second_clause);
     CADICAL_assert (first_clause);
     CADICAL_assert (std::find (begin (*first_clause), end (*first_clause), first) !=
@@ -155,7 +155,7 @@ struct ClauseSize {
   size_t size;
   Clause *clause;
   ClauseSize (int s, Clause *c) : size (s), clause (c) {}
-  ClauseSize (Clause *c): size (c->size), clause (c) {}
+  ClauseSize (Clause *c) : size (c->size), clause (c) {}
   ClauseSize () {}
 };
 
@@ -168,22 +168,37 @@ struct smaller_clause_size_rank {
 // There are many special cases for ITE gates and we have to keep track of
 // them as it is a gate property (rewriting might not make it obvious
 // anymore).
-// a = (a ? t : e) results in no -t and no +e gate (a --> a = t  == (-a v -a v t) & (-a v a v -t))
-// a = (-a ? t : e) results in no +t and no -e gate
-// a = (c ? a : e) results in no t gate (none of them)
-// a = (c ? t : a) results in no e gate (none of them)
-
-enum Special_ITE_GATE {
+// a = (a ? t : e) results in no -t and no +e gate (a --> a = t  == (-a v -a
+// v t) & (-a v a v -t)) a = (-a ? t : e) results in no +t and no -e gate a
+// = (c ? a : e) results in no t gate (none of them) a = (c ? t : a) results
+// in no e gate (none of them)
+//
+// We also use it for AND gates:
+// a = (a & b)
+// false = (a & b)
+//
+// The latter version can only happen when converting ITE gates to AND
+// gates.
+//
+// They have a peculiarity: being special can fix itself. To avoid
+// one more special case, we rewrite the LHS in that case too to make sure
+// it remains special.
+//
+enum Special_Gate {
   NORMAL = 0,
   NO_PLUS_THEN = (1 << 0),
   NO_NEG_THEN = (1 << 1),
   NO_THEN = NO_PLUS_THEN + NO_NEG_THEN,
   NO_PLUS_ELSE = (1 << 2),
   NO_NEG_ELSE = (1 << 3),
+  DEGENERATED_AND = (1 << 4),           // a = (a & b)
+  DEGENERATED_AND_LHS_FALSE = (1 << 5), // false = (a & b)
   NO_ELSE = NO_PLUS_ELSE + NO_NEG_ELSE,
   COND_LHS = NO_NEG_THEN + NO_PLUS_ELSE,
   UCOND_LHS = NO_PLUS_THEN + NO_NEG_ELSE,
 };
+
+std::string special_gate_str (int8_t f);
 
 inline bool ite_flags_no_then_clauses (int8_t flag) {
   return (flag & NO_THEN) == NO_THEN;
@@ -200,6 +215,18 @@ inline bool ite_flags_neg_cond_lhs (int8_t flag) {
 inline bool ite_flags_cond_lhs (int8_t flag) {
   return (flag & COND_LHS) == COND_LHS;
 }
+
+// std::optional is C++17 sadly
+struct my_dummy_optional {
+  LitClausePair content;
+  my_dummy_optional () : content (0, 0) {}
+  bool operator() () const { return content.current_lit; }
+  my_dummy_optional operator= (LitClausePair p) {
+    content = p;
+    return *this;
+  }
+  void reset () { content = LitClausePair (0, 0); }
+};
 
 /*------------------------------------------------------------------------*/
 
@@ -245,19 +272,15 @@ struct Gate {
   bool indexed : 1;
   bool marked : 1;
   bool shrunken : 1;
-  size_t hash; // TODO remove this field (the C++ implementation is caching
-               // it anyway)
   vector<LitClausePair> pos_lhs_ids;
-  vector<LitClausePair> neg_lhs_ids;
-  bool degenerated_and_neg = false; // LRAT only relevant for AND Gates, neg lhs in RHS
-  bool degenerated_and_pos = false; // LRAT only relevant for AND Gates, pos lhs in RHS
-  int8_t degenerated_ite = Special_ITE_GATE::NORMAL;
+  my_dummy_optional neg_lhs_ids;
+  int8_t degenerated_gate = Special_Gate::NORMAL;
   vector<int> rhs;
 
   size_t arity () const { return rhs.size (); }
 
   bool operator== (Gate const &lhs) {
-    return tag == lhs.tag && hash == lhs.hash && rhs == lhs.rhs;
+    return tag == lhs.tag && rhs == lhs.rhs;
   }
 };
 
@@ -279,9 +302,9 @@ struct CompactBinary {
 };
 
 struct Hash {
-  Hash (std::array<int, 16> &ncs) : nonces (ncs) {}
-  std::array<int, 16> &nonces;
-  size_t operator() (const Gate *const g) const;
+  Hash (std::array<uint64_t, 16> &ncs) : nonces (ncs) {}
+  const std::array<uint64_t, 16> &nonces;
+  inline size_t operator() (const Gate *const g) const;
 };
 
 struct Rewrite {
@@ -297,13 +320,15 @@ struct Rewrite {
 struct Closure {
 
   Closure (Internal *i);
+  ~Closure () { delete dummy_search_gate; }
+  Gate *dummy_search_gate = nullptr;
 
   Internal *const internal;
-  vector<Clause*> extra_clauses;
+  vector<Clause *> extra_clauses;
   vector<CompactBinary> binaries;
   std::vector<std::pair<size_t, size_t>> offsetsize;
   bool full_watching = false;
-  std::array<int, 16> nonces;
+  std::array<uint64_t, 16> nonces;
   typedef unordered_set<Gate *, Hash, GateEqualTo> GatesTable;
 
   vector<bool> scheduled;
@@ -358,6 +383,11 @@ struct Closure {
   int find_lrat_representative_with_marks (int lit);
   // representative in the union-find structure in the lazy equivalences
   int find_representative (int lit);
+  // representative in the union-find structure in the lazy equivalences.
+  // only useful if you do not care about proofs like during forward
+  // subsumption.
+  int find_representative_and_compress_no_proofs (int lit);
+  int find_representative_already_compressed (int lit);
   // find the representative and produce the binary clause representing the
   // normalization from the literal to the result.
   int find_representative_and_compress (int, bool update_eager = true);
@@ -425,12 +455,17 @@ struct Closure {
   // chain.
   bool merge_literals_equivalence (int lit, int other, Clause *c1,
                                    Clause *c2);
-  bool merge_literals_lrat (Gate *g, Gate *h, int lit, int other,
-                            const std::vector<LRAT_ID> & = {},
-                            const std::vector<LRAT_ID> & = {});
-  bool merge_literals_lrat (int lit, int other,
-                            const std::vector<LRAT_ID> & = {},
-                            const std::vector<LRAT_ID> & = {});
+  bool merge_literals (Gate *g, Gate *h, int lit, int other,
+                       const std::vector<LRAT_ID> & = {},
+                       const std::vector<LRAT_ID> & = {});
+  bool merge_literals (int lit, int other,
+                       const std::vector<LRAT_ID> & = {},
+                       const std::vector<LRAT_ID> & = {});
+  // factoring out the merge w.r.t. both cases above
+  bool really_merge_literals (int lit, int other, int repr_lit,
+                              int repr_other,
+                              const std::vector<LRAT_ID> & = {},
+                              const std::vector<LRAT_ID> & = {});
 
   // proof production
   vector<LitClausePair> lrat_chain_and_gate;
@@ -458,11 +493,13 @@ struct Closure {
   // TODO: does nothing except pushing on the stack, remove!
   void push_id_on_chain (std::vector<LRAT_ID> &chain,
                          const std::vector<LitClausePair> &c);
+  void push_id_on_chain (std::vector<LRAT_ID> &chain,
+                         const my_dummy_optional &c);
   // TODO: does nothing except pushing on the stack, remove!
   void push_id_on_chain (std::vector<LRAT_ID> &chain, Rewrite rewrite, int);
   void update_and_gate_build_lrat_chain (
       Gate *g, Gate *h, std::vector<LRAT_ID> &extra_reasons_lit,
-					 std::vector<LRAT_ID> &extra_reasons_ulit, bool remove_units = true);
+      std::vector<LRAT_ID> &extra_reasons_ulit, bool remove_units = true);
   void update_and_gate_unit_build_lrat_chain (
       Gate *g, int src, LRAT_ID id1, LRAT_ID id2, int dst,
       std::vector<LRAT_ID> &extra_reasons_lit,
@@ -528,17 +565,18 @@ struct Closure {
   Gate *find_remaining_and_gate (Clause *base_clause, int lhs);
   void extract_and_gates ();
 
-  Gate *find_and_lits (const vector<int> &rhs, Gate *except = nullptr);
-  // rhs is sorted, so passing by copy
-  Gate *find_gate_lits (const vector<int> &rhs, Gate_Type typ,
-                        Gate *except = nullptr);
-  Gate *find_xor_lits (const vector<int> &rhs);
+  Gate *find_and_lits (vector<int> &rhs, Gate *except = nullptr);
+  Gate *
+  find_gate_lits (vector<int> &rhs,
+                  Gate_Type typ, // rhs unchanged but swapped back and forth
+                  Gate *except = nullptr);
+  Gate *find_xor_lits (vector<int> &rhs);
   // not const to normalize negations, also fixes the order of the LRAT
   Gate *find_ite_gate (Gate *, bool &);
   Gate *find_xor_gate (Gate *);
 
   void reset_xor_gate_extraction ();
-  void init_xor_gate_extraction (std::vector<Clause*> &candidates);
+  void init_xor_gate_extraction (std::vector<Clause *> &candidates);
   LRAT_ID check_and_add_to_proof_chain (vector<int> &clause);
   void add_xor_matching_proof_chain (Gate *g, int lhs1,
                                      const vector<LitClausePair> &,
@@ -557,7 +595,7 @@ struct Closure {
   void check_ite_implied (int lhs, int cond, int then_lit, int else_lit);
   void check_ite_gate_implied (Gate *g);
   void check_and_gate_implied (Gate *g);
-  void check_ite_lrat_reasons (Gate *g, bool = false);
+  void check_ite_lrat_reasons (Gate *g);
   void check_contained_module_rewriting (Clause *c, int lit, bool,
                                          int except);
   void delete_proof_chain ();
@@ -598,17 +636,16 @@ struct Closure {
   void check_binary_implied (int a, int b);
   void check_implied ();
 
-  // learn units. You can delay units if you want to learn several at once before
-  // propagation. Otherwise, propagate! If you need propagation even if nothing is set, use the
-  // second parameter.
+  // learn units. You can delay units if you want to learn several at once
+  // before propagation. Otherwise, propagate! If you need propagation even
+  // if nothing is set, use the second parameter.
   //
-  // The function can also learn the empty clause if the unit is already set. Do not add the unit in
-  // the chain!
+  // The function can also learn the empty clause if the unit is already
+  // set. Do not add the unit in the chain!
   bool learn_congruence_unit (int unit, bool = false, bool = false);
-  bool fully_propagate ();  
+  bool fully_propagate ();
   void learn_congruence_unit_falsifies_lrat_chain (Gate *g, int src,
-                                                   int dst, 
-                                                   int clashing,
+                                                   int dst, int clashing,
                                                    int falsified, int unit);
   void learn_congruence_unit_when_lhs_set (Gate *g, int src, LRAT_ID id1,
                                            LRAT_ID id2, int dst);
@@ -619,7 +656,11 @@ struct Closure {
   bool find_subsuming_clause (Clause *c);
   void produce_rewritten_clause_lrat_and_clean (vector<LitClausePair> &,
                                                 int execept_lhs = 0,
+                                                bool = true, bool = false);
+  void produce_rewritten_clause_lrat_and_clean (my_dummy_optional &,
+                                                int execept_lhs = 0,
                                                 bool = true);
+
   // rewrite the clause using eager rewriting and rew1 and rew2, except for
   // 2 literals Usage:
   //   - the except are used to ignore LHS of gates that have not and should
@@ -629,10 +670,10 @@ struct Closure {
   //   to be taken into account without being added to the eager rewriting
   //   (yet)
   Clause *produce_rewritten_clause_lrat (Clause *c, int execept_lhs = 0,
-                                         bool remove_units = true, bool = true);
+                                         bool remove_units = true,
+                                         bool = false);
   void produce_rewritten_clause_lrat (vector<LitClausePair> &,
-                                                int execept_lhs = 0,
-                                                bool = true);
+                                      int execept_lhs = 0, bool = true);
   void compute_rewritten_clause_lrat_simple (Clause *c, int except);
   // variant where we update the indices after removing the tautologies and
   // remove the tautological clauses
@@ -681,7 +722,8 @@ struct Closure {
                                bool flip = 0);
 
   bool rewrite_ite_gate_to_and (Gate *g, int dst, int src, size_t c,
-                                size_t d, int cond_lit_to_learn_if_degenerated);
+                                size_t d,
+                                int cond_lit_to_learn_if_degenerated);
   void produce_ite_merge_then_else_reasons (
       Gate *g, int dst, int src, std::vector<LRAT_ID> &reasons_implication,
       std::vector<LRAT_ID> &reasons_back);
@@ -699,10 +741,10 @@ struct Closure {
   // has length 3
   bool simplify_ite_gate_to_and (Gate *g, size_t idx1, size_t idx2,
                                  int removed);
-  void
-  merge_ite_gate_same_then_else_lrat (std::vector<LitClausePair> &clauses,
-                               std::vector<LRAT_ID> &reasons_implication,
-                               std::vector<LRAT_ID> &reasons_back);
+  void merge_ite_gate_same_then_else_lrat (
+      std::vector<LitClausePair> &clauses,
+      std::vector<LRAT_ID> &reasons_implication,
+      std::vector<LRAT_ID> &reasons_back);
   void simplify_ite_gate_then_else_set (
       Gate *g, std::vector<LRAT_ID> &reasons_implication,
       std::vector<LRAT_ID> &reasons_back, size_t idx1, size_t idx2);

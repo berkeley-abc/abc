@@ -30,9 +30,7 @@ struct vivify_ref {
 // be able to iterate over them, but we provide the reference to them to
 // make sure that you do need to remember the order.
 struct Vivifier {
-  std::array<std::vector<vivify_ref>, 4> refs_schedules;
-  std::vector<vivify_ref> &refs_schedule_tier1, &refs_schedule_tier2,
-      &refs_schedule_tier3, &refs_schedule_irred;
+  std::vector<vivify_ref> refs_schedule;
   std::array<std::vector<Clause *>, 4> schedules;
   std::vector<Clause *> &schedule_tier1, &schedule_tier2, &schedule_tier3,
       &schedule_irred;
@@ -44,21 +42,11 @@ struct Vivifier {
   int64_t ticks;
   std::vector<std::tuple<int, Clause *, bool>> lrat_stack;
   Vivifier (Vivify_Mode mode_tier)
-      : refs_schedule_tier1 (refs_schedules[0]),
-        refs_schedule_tier2 (refs_schedules[1]),
-        refs_schedule_tier3 (refs_schedules[2]),
-        refs_schedule_irred (refs_schedules[3]),
-        schedule_tier1 (schedules[0]), schedule_tier2 (schedules[1]),
+      : schedule_tier1 (schedules[0]), schedule_tier2 (schedules[1]),
         schedule_tier3 (schedules[2]), schedule_irred (schedules[3]),
         tier (mode_tier) {}
 
-  void erase () {
-    erase_vector (refs_schedule_tier1);
-    erase_vector (refs_schedule_tier2);
-    erase_vector (refs_schedule_tier3);
-    erase_vector (refs_schedule_irred);
-    erase_vector (sorted);
-  }
+  void erase () { erase_vector (sorted); }
 };
 
 } // namespace CaDiCaL

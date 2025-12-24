@@ -196,7 +196,7 @@ void FratTracer::add_original_clause (int64_t id, bool,
   frat_add_original_clause (id, clause);
 }
 
-void FratTracer::add_derived_clause (int64_t id, bool,
+void FratTracer::add_derived_clause (int64_t id, bool, int,
                                      const vector<int> &clause,
                                      const vector<int64_t> &chain) {
   if (file->closed ())

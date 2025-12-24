@@ -4,6 +4,7 @@ src/sat/cadical/cadical_analyze.cpp \
 src/sat/cadical/cadical_arena.cpp \
 src/sat/cadical/cadical_assume.cpp \
 src/sat/cadical/cadical_averages.cpp \
+src/sat/cadical/cadical_backbone.cpp \
 src/sat/cadical/cadical_backtrack.cpp \
 src/sat/cadical/cadical_backward.cpp \
 src/sat/cadical/cadical_bins.cpp \
@@ -87,5 +88,7 @@ src/sat/cadical/cadical_veripbtracer.cpp \
 src/sat/cadical/cadical_version.cpp \
 src/sat/cadical/cadical_vivify.cpp \
 src/sat/cadical/cadical_walk.cpp \
+src/sat/cadical/cadical_walk_full_occs.cpp \
+src/sat/cadical/cadical_warmup.cpp \
 src/sat/cadical/cadical_watch.cpp \
 src/sat/cadical/cadical_kitten.c

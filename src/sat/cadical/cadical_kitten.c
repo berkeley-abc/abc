@@ -497,11 +497,12 @@ static void clear_cadical_kitten (cadical_kitten *cadical_kitten) {
     void *OLD_PTR = (P); \
     CALLOC (T, (P), new_size / 2);                \
     const size_t BYTES = old_vars * sizeof *(P); \
-    memcpy ((P), OLD_PTR, BYTES); \
+    if ((P) && OLD_PTR) /* nullptr not allowed */ \
+      memcpy ((P), OLD_PTR, BYTES); \
     void *NEW_PTR = (P); \
     (P) = (T*)OLD_PTR;           \
     DEALLOC ((P), old_size / 2); \
-    (P) = (T*)NEW_PTR;            \
+    (P) = (T*)NEW_PTR;           \
   } while (0)
 
 #define RESIZE2(T, P)                            \
@@ -509,7 +510,8 @@ static void clear_cadical_kitten (cadical_kitten *cadical_kitten) {
     void *OLD_PTR = (P); \
     CALLOC (T, (P), new_size);                    \
     const size_t BYTES = old_lits * sizeof *(P); \
-    memcpy ((P), OLD_PTR, BYTES); \
+    if ((P) && OLD_PTR) /* nullptr not allowed */ \
+      memcpy ((P), OLD_PTR, BYTES); \
     void *NEW_PTR = (P); \
     (P) = (T*)OLD_PTR;       \
     DEALLOC ((P), old_size); \
@@ -839,7 +841,8 @@ static void enlarge_external (cadical_kitten *cadical_kitten, size_t eidx) {
     unsigned *old_import = cadical_kitten->import;
     CALLOC (unsigned, cadical_kitten->import, new_size);
     const size_t bytes = old_evars * sizeof *cadical_kitten->import;
-    memcpy (cadical_kitten->import, old_import, bytes);
+    if (cadical_kitten->import && old_import)
+      memcpy (cadical_kitten->import, old_import, bytes);
     DEALLOC (old_import, old_size);
     cadical_kitten->esize = new_size;
   }
@@ -927,10 +930,14 @@ void cadical_kitten_clear (cadical_kitten *cadical_kitten) {
     CADICAL_assert (!cadical_kitten->marks[i]);
 #endif
 
-  memset (cadical_kitten->phases, 0, vars);
-  memset (cadical_kitten->values, 0, lits);
-  memset (cadical_kitten->failed, 0, lits);
-  memset (cadical_kitten->vars, 0, vars);
+  if (cadical_kitten->phases)
+    memset (cadical_kitten->phases, 0, vars);
+  if (cadical_kitten->values)
+    memset (cadical_kitten->values, 0, lits);
+  if (cadical_kitten->failed)
+    memset (cadical_kitten->failed, 0, lits);
+  if (cadical_kitten->vars)
+    memset (cadical_kitten->vars, 0, vars);
 
   clear_cadical_kitten (cadical_kitten);
 }
@@ -2441,14 +2448,6 @@ int cadical_kitten_compute_prime_implicant (cadical_kitten *cadical_kitten, void
   return res;
 }
 
-static bool contains_blit (cadical_kitten *cadical_kitten, klause *c, const unsigned blit) {
-  for (all_literals_in_klause (lit, c)) {
-    if (lit == blit)
-      return true;
-  }
-  return false;
-}
-
 static bool prime_propagate_blit (cadical_kitten *cadical_kitten, const unsigned idx,
                                   const unsigned blit) {
   unsigned lit = 2 * idx;
@@ -2518,7 +2517,9 @@ static bool prime_propagate_blit (cadical_kitten *cadical_kitten, const unsigned
 
 static int compute_prime_implicant_for (cadical_kitten *cadical_kitten, unsigned blit) {
   value *values = cadical_kitten->values;
+#ifndef CADICAL_NDEBUG
   kar *vars = cadical_kitten->vars;
+#endif
   unsigneds unassigned;
   INIT_STACK (unassigned);
   bool limit_hit = false;
@@ -2532,7 +2533,7 @@ static int compute_prime_implicant_for (cadical_kitten *cadical_kitten, unsigned
       values[blit] = 0;
       values[blit ^ 1] = 0;
       PUSH_STACK (unassigned, tmp > 0 ? blit : blit ^ 1);
-      PUSH_STACK (cadical_kitten->prime[i], block); // will be negated!
+      PUSH_STACK (cadical_kitten->prime[ignoring], block); // will be negated!
     } else
       CADICAL_assert (false);
     for (all_stack (unsigned, lit, cadical_kitten->trail)) {
@@ -2546,7 +2547,6 @@ static int compute_prime_implicant_for (cadical_kitten *cadical_kitten, unsigned
         continue;
       CADICAL_assert (values[lit]); // not true when flipping is involved
       const unsigned idx = lit / 2;
-      const unsigned ref = vars[idx].reason;
       CADICAL_assert (vars[idx].level);
       LOG ("non-prime candidate var %d", idx);
       if (prime_propagate_blit (cadical_kitten, idx, block)) {

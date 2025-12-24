@@ -3,6 +3,11 @@
 
 #include "global.h"
 
+#include "file.hpp"
+#include "tracer.hpp"
+
+#include <vector>
+
 ABC_NAMESPACE_CXX_HEADER_START
 
 namespace CaDiCaL {
@@ -19,19 +24,19 @@ class FratTracer : public FileTracer {
   int64_t finalized, original;
 #endif
 
-  vector<int64_t> delete_ids;
+  std::vector<int64_t> delete_ids;
 
   void put_binary_zero ();
   void put_binary_lit (int external_lit);
   void put_binary_id (int64_t id, bool = false);
 
   // support FRAT
-  void frat_add_original_clause (int64_t, const vector<int> &);
-  void frat_add_derived_clause (int64_t, const vector<int> &);
-  void frat_add_derived_clause (int64_t, const vector<int> &,
-                                const vector<int64_t> &);
-  void frat_delete_clause (int64_t, const vector<int> &);
-  void frat_finalize_clause (int64_t, const vector<int> &);
+  void frat_add_original_clause (int64_t, const std::vector<int> &);
+  void frat_add_derived_clause (int64_t, const std::vector<int> &);
+  void frat_add_derived_clause (int64_t, const std::vector<int> &,
+                                const std::vector<int64_t> &);
+  void frat_delete_clause (int64_t, const std::vector<int> &);
+  void frat_finalize_clause (int64_t, const std::vector<int> &);
 
 public:
   // own and delete 'file'
@@ -41,15 +46,15 @@ public:
   void connect_internal (Internal *i) override;
   void begin_proof (int64_t) override {} // skip
 
-  void add_original_clause (int64_t, bool, const vector<int> &,
+  void add_original_clause (int64_t, bool, const std::vector<int> &,
                             bool = false) override;
 
-  void add_derived_clause (int64_t, bool, const vector<int> &,
-                           const vector<int64_t> &) override;
+  void add_derived_clause (int64_t, bool, int, const std::vector<int> &,
+                           const std::vector<int64_t> &) override;
 
-  void delete_clause (int64_t, bool, const vector<int> &) override;
+  void delete_clause (int64_t, bool, const std::vector<int> &) override;
 
-  void finalize_clause (int64_t, const vector<int> &) override;
+  void finalize_clause (int64_t, const std::vector<int> &) override;
 
   void report_status (int, int64_t) override {} // skip
 

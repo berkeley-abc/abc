@@ -308,7 +308,6 @@ inline int Internal::try_to_subsume_clause (Clause *c,
   return 0;
 }
 
-
 struct subsume_less_noccs {
   Internal *internal;
   subsume_less_noccs (Internal *i) : internal (i) {}

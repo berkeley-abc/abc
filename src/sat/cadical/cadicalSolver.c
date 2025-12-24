@@ -238,16 +238,17 @@ int cadical_solver_addvar(cadical_solver* s) {
   SeeAlso     []
 
 ***********************************************************************/
-void cadical_solver_setnvars(cadical_solver* s,int n) {
-  if ( n <= s->nVars )
-    return;
-  if ( s->nVars == 0 )
-    ccadical_reserve((CCaDiCaL*)s->p, n);
-  else {
-    assert( 0 );
-    ccadical_reserve_difference((CCaDiCaL*)s->p, n - s->nVars);
-  }
+void cadical_solver_setnvars(cadical_solver* s, int n) {
+  // make sure current number of variables are already fetched
+  // (also allow cases where addvar has been called)
+  assert(s->nVars >= ccadical_vars((CCaDiCaL*)s->p));
+  // invalid to set fewer variables than current
+  assert(s->nVars <= n);
+  // set and resize if appropriate
   s->nVars = n;
+  if(ccadical_vars((CCaDiCaL*)s->p) == 0) {
+    ccadical_resize((CCaDiCaL*)s->p, n);
+  }
 }
 
 /**Function*************************************************************

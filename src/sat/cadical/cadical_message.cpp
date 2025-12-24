@@ -25,6 +25,12 @@ void Internal::vmessage (const char *fmt, va_list &ap) {
 }
 
 void Internal::message (const char *fmt, ...) {
+#ifdef LOGGING
+  if (!opts.log)
+#endif
+    if (opts.quiet)
+      return;
+
   va_list ap;
   va_start (ap, fmt);
   vmessage (fmt, ap);
