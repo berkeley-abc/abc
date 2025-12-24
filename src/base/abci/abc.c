@@ -42284,6 +42284,7 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Cec_ManPrintCexSummary( Gia_Man_t * p, Abc_Cex_t * pCex, Cec_ParCec_t * pPars );
     Cec_ParCec_t ParsCec, * pPars = &ParsCec;
     FILE * pFile;
     Gia_Man_t * pGias[2] = {NULL, NULL}, * pMiter;
@@ -42553,12 +42554,32 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             extern int Gia_ManCheckSimEquiv( Gia_Man_t * p, int fVerbose );
             int Status = Gia_ManCheckSimEquiv( pMiter, pPars->fVerbose );
             if ( Status == 1 )
+            {
                 Abc_Print( 1, "Networks are equivalent.  " );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
             else if ( Status == 0 )
+            {
                 Abc_Print( 1, "Networks are NOT equivalent.  " );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+                {
+                    Cec_ParCec_t ParsTemp = *pPars;
+                    ParsTemp.fSilent = 1;
+                    Cec_ManVerify( pMiter, &ParsTemp );
+                    if ( pMiter->pCexComb )
+                    {
+                        Cec_ManPrintCexSummary( pMiter, pMiter->pCexComb, pPars );
+                        pGias[0]->pCexComb = pMiter->pCexComb; 
+                        pMiter->pCexComb = NULL;
+                        Abc_FrameReplaceCex( pAbc, &pGias[0]->pCexComb );
+                    }
+                }
+            }
             else
+            {
                 Abc_Print( 1, "Networks are UNDECIDED.  " );
-            Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+                Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
+            }
         }
         else if ( fUseNewX )
         {

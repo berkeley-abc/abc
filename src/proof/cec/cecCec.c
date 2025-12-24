@@ -75,7 +75,7 @@ static const char * Cec_ManGetName( const char * pName, const char * pPrefix, in
     }
 }
 
-static void Cec_ManPrintCexSummary( Gia_Man_t * p, Abc_Cex_t * pCex, Cec_ParCec_t * pPars )
+void Cec_ManPrintCexSummary( Gia_Man_t * p, Abc_Cex_t * pCex, Cec_ParCec_t * pPars )
 {
     Vec_Ptr_t * vToFree = NULL;
     const char ** ppInNames = NULL;
