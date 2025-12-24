@@ -42510,6 +42510,9 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
     }
+    pPars->pNameSpec = pGias[0] ? (pGias[0]->pSpec ? pGias[0]->pSpec : pGias[0]->pName) : NULL;
+    pPars->pNameImpl = pGias[1] ? (pGias[1]->pSpec ? pGias[1]->pSpec : pGias[1]->pName) : NULL;
+    pPars->vNamesIn  = pGias[0] ? pGias[0]->vNamesIn : NULL;
     // compute the miter
     if ( Gia_ManCiNum(pGias[0]) < 6 )
     {
@@ -54533,9 +54536,10 @@ usage:
 int Abc_CommandAbc9DeepSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManDeepSyn( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fChoices, int fVerbose );
-    Gia_Man_t * pTemp; int c, nIters = 1, nNoImpr = ABC_INFINITY, TimeOut = 0, nAnds = 0, Seed = 0, fUseTwo = 0, fChoices = 0, fVerbose = 0;
+    extern Gia_Man_t * Gia_ManDeepSyn2( Gia_Man_t * pGia, int nIters, int nNoImpr, int TimeOut, int nAnds, int Seed, int fUseTwo, int fChoices, int fVerbose );
+    Gia_Man_t * pTemp; int c, nIters = 1, nNoImpr = ABC_INFINITY, TimeOut = 0, nAnds = 0, Seed = 0, fUseTwo = 0, fChoices = 0, fOpt = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "IJTAStcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "IJTAStcovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -54600,6 +54604,9 @@ int Abc_CommandAbc9DeepSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'c':
             fChoices ^= 1;
             break;
+        case 'o':
+            fOpt ^= 1;
+            break;
         case 'v':
             fVerbose ^= 1;
             break;
@@ -54614,12 +54621,15 @@ int Abc_CommandAbc9DeepSyn( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9DeepSyn(): There is no AIG.\n" );
         return 0;
     }
-    pTemp = Gia_ManDeepSyn( pAbc->pGia, nIters, nNoImpr, TimeOut, nAnds, Seed, fUseTwo, fChoices, fVerbose );
+    if ( fOpt ) 
+        pTemp = Gia_ManDeepSyn2( pAbc->pGia, nIters, nNoImpr, TimeOut, nAnds, Seed, fUseTwo, fChoices, fVerbose );
+    else
+        pTemp = Gia_ManDeepSyn( pAbc->pGia, nIters, nNoImpr, TimeOut, nAnds, Seed, fUseTwo, fChoices, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &deepsyn [-IJTAS <num>] [-tcvh]\n" );
+    Abc_Print( -2, "usage: &deepsyn [-IJTAS <num>] [-tcovh]\n" );
     Abc_Print( -2, "\t           performs synthesis\n" );
     Abc_Print( -2, "\t-I <num> : the number of iterations [default = %d]\n",                   nIters  );
     Abc_Print( -2, "\t-J <num> : the number of steps without improvements [default = %d]\n",   nNoImpr  );
@@ -54628,6 +54638,7 @@ usage:
     Abc_Print( -2, "\t-S <num> : user-specified random seed (0 <= num <= 100) [default = %d]\n", Seed  );
     Abc_Print( -2, "\t-t       : toggle using two-input LUTs [default = %s]\n",                fUseTwo? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggle computing structural choices [default = %s]\n",        fChoices? "yes": "no" );
+    Abc_Print( -2, "\t-o       : toggle using optimization [default = %s]\n",                  fOpt? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n",       fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

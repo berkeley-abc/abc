@@ -140,6 +140,9 @@ struct Cec_ParCec_t_
     int              fVeryVerbose;  // verbose stats
     int              fVerbose;      // verbose stats
     int              iOutFail;      // the number of failed output
+    const char *     pNameSpec;     // name of the first (spec) network
+    const char *     pNameImpl;     // name of the second (impl) network
+    Vec_Ptr_t *      vNamesIn;      // input names of the first network
 };
 
 // sequential register correspodence parameters
@@ -273,4 +276,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

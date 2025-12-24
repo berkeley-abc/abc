@@ -24,6 +24,10 @@
 #include "misc/extra/extra.h"
 #include "sat/cnf/cnf.h"
 
+void Abc_NtkVerifyPrintCex( const int * pModel, const int * pValues1, const int * pValues2, 
+    const char * const * ppInputNames, int nInputs, const char * const * ppOutputNames, int nOutputs, 
+    const char * pNtkName1, const char * pNtkName2 );
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -34,6 +38,105 @@ ABC_NAMESPACE_IMPL_START
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
+
+static int * Cec_ManSimulateCombOutputs( Gia_Man_t * p, const int * pInputs )
+{
+    Gia_Obj_t * pObj;
+    int * pValues, * pOutputs, i;
+    pValues = ABC_ALLOC( int, Gia_ManObjNum(p) );
+    if ( pValues == NULL )
+        return NULL;
+    pValues[0] = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pValues[Gia_ObjId(p, pObj)] = pInputs[i];
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        int v0 = pValues[Gia_ObjFaninId0p(p, pObj)] ^ Gia_ObjFaninC0(pObj);
+        int v1 = pValues[Gia_ObjFaninId1p(p, pObj)] ^ Gia_ObjFaninC1(pObj);
+        pValues[Gia_ObjId(p, pObj)] = v0 & v1;
+    }
+    pOutputs = ABC_ALLOC( int, Gia_ManPoNum(p) );
+    Gia_ManForEachPo( p, pObj, i )
+        pOutputs[i] = pValues[Gia_ObjFaninId0p(p, pObj)] ^ Gia_ObjFaninC0(pObj);
+    ABC_FREE( pValues );
+    return pOutputs;
+}
+
+static const char * Cec_ManGetName( const char * pName, const char * pPrefix, int Idx, Vec_Ptr_t * vStore )
+{
+    if ( pName )
+        return pName;
+    {
+        char Buffer[64];
+        sprintf( Buffer, "%s[%d]", pPrefix, Idx );
+        pName = Abc_UtilStrsav( Buffer );
+        Vec_PtrPush( vStore, (void *)pName );
+        return pName;
+    }
+}
+
+static void Cec_ManPrintCexSummary( Gia_Man_t * p, Abc_Cex_t * pCex, Cec_ParCec_t * pPars )
+{
+    Vec_Ptr_t * vToFree = NULL;
+    const char ** ppInNames = NULL;
+    const char ** ppOutNames = NULL;
+    int * pInputs = NULL;
+    int * pOutputs = NULL;
+    int * pOut1 = NULL;
+    int * pOut2 = NULL;
+    int nPis, nPairs, i;
+    if ( (pPars && pPars->fSilent) || pCex == NULL )
+        return;
+    if ( pCex->nRegs || pCex->iFrame || Gia_ManRegNum(p) )
+        return;
+    if ( (Gia_ManPoNum(p) & 1) || Gia_ManPiNum(p) != pCex->nPis )
+        return;
+    nPis   = Gia_ManPiNum(p);
+    nPairs = Gia_ManPoNum(p) / 2;
+    pInputs = ABC_ALLOC( int, nPis );
+    for ( i = 0; i < nPis; i++ )
+        pInputs[i] = Abc_InfoHasBit( pCex->pData, pCex->nRegs + i );
+    pOutputs = Cec_ManSimulateCombOutputs( p, pInputs );
+    if ( pOutputs == NULL )
+        goto finish;
+    pOut1 = ABC_ALLOC( int, nPairs );
+    pOut2 = ABC_ALLOC( int, nPairs );
+    for ( i = 0; i < nPairs; i++ )
+    {
+        pOut1[i] = pOutputs[2 * i];
+        pOut2[i] = pOutputs[2 * i + 1];
+    }
+    vToFree = Vec_PtrAlloc( 16 );
+    ppInNames = ABC_ALLOC( const char *, nPis );
+    for ( i = 0; i < nPis; i++ )
+    {
+        const char * pName = Gia_ObjCiName(p, i);
+        if ( pName == NULL && pPars && pPars->vNamesIn && i < Vec_PtrSize(pPars->vNamesIn) )
+            pName = (const char *)Vec_PtrEntry( pPars->vNamesIn, i );
+        ppInNames[i] = Cec_ManGetName( pName, "a", i, vToFree );
+    }
+    ppOutNames = ABC_ALLOC( const char *, nPairs );
+    for ( i = 0; i < nPairs; i++ )
+        ppOutNames[i] = Cec_ManGetName( Gia_ObjCoName(p, 2 * i), "z", i, vToFree );
+    Abc_NtkVerifyPrintCex( pInputs, pOut1, pOut2, ppInNames, nPis, ppOutNames, nPairs, 
+        pPars && pPars->pNameSpec ? pPars->pNameSpec : Gia_ManName(p), 
+        pPars && pPars->pNameImpl ? pPars->pNameImpl : (p->pSpec ? p->pSpec : Gia_ManName(p)) );
+
+finish:
+    if ( vToFree )
+    {
+        char * pName;
+        Vec_PtrForEachEntry( char *, vToFree, pName, i )
+            ABC_FREE( pName );
+        Vec_PtrFree( vToFree );
+    }
+    ABC_FREE( ppInNames );
+    ABC_FREE( ppOutNames );
+    ABC_FREE( pOut1 );
+    ABC_FREE( pOut2 );
+    ABC_FREE( pOutputs );
+    ABC_FREE( pInputs );
+}
 
 /**Function*************************************************************
 
@@ -160,6 +263,7 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
             }
             pPars->iOutFail = i/2;
             Cec_ManTransformPattern( p, i/2, NULL );
+            Cec_ManPrintCexSummary( p, p->pCexComb, pPars );
             return 0;
         }
         // get the drivers
@@ -178,6 +282,7 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
             // if their compl attributes are the same - one should be complemented
             assert( Gia_ObjFaninC0(pObj1) == Gia_ObjFaninC0(pObj2) );
             Abc_InfoSetBit( p->pCexComb->pData, Gia_ObjCioId(pDri1) );
+            Cec_ManPrintCexSummary( p, p->pCexComb, pPars );
             return 0;
         }
         // one of the drivers is a PI; another is a constant 0
@@ -197,6 +302,7 @@ int Cec_ManHandleSpecialCases( Gia_Man_t * p, Cec_ParCec_t * pPars )
                 Abc_InfoSetBit( p->pCexComb->pData, Gia_ObjCioId(pDri1) );
             else
                 Abc_InfoSetBit( p->pCexComb->pData, Gia_ObjCioId(pDri2) );
+            Cec_ManPrintCexSummary( p, p->pCexComb, pPars );
             return 0;
         }
     }
@@ -383,6 +489,7 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
             Abc_Print( 1, "Networks are NOT EQUIVALENT.  " );
             Abc_PrintTime( 1, "Time", Abc_Clock() - clk );
             }
+            Cec_ManPrintCexSummary( p, p->pCexComb, pPars );
             return 0;
         }
         Vec_IntFreeP( &pInit->vIdsEquiv );
@@ -417,6 +524,8 @@ int Cec_ManVerify( Gia_Man_t * pInit, Cec_ParCec_t * pPars )
     p->pCexComb = pNew->pCexComb; pNew->pCexComb = NULL;
     if ( p->pCexComb && !Gia_ManVerifyCex( p, p->pCexComb, 1 ) )
         Abc_Print( 1, "Counter-example simulation has failed.\n" );
+    if ( RetValue == 0 )
+        Cec_ManPrintCexSummary( p, p->pCexComb, pPars );
     Gia_ManStop( pNew );
     return RetValue;
 }
@@ -601,4 +710,3 @@ Aig_Man_t * Cec_FraigCombinational( Aig_Man_t * pAig, int nConfs, int fVerbose )
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -731,6 +731,147 @@ int * Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk, int * pModel )
     return pValues;
 }
 
+typedef struct Abc_NtkCexWord_t_
+{
+    char *      pBase;
+    Vec_Int_t * vBits;
+} Abc_NtkCexWord_t;
+
+static Abc_NtkCexWord_t * Abc_NtkVerifyFindWord( Vec_Ptr_t * vWords, const char * pBase )
+{
+    Abc_NtkCexWord_t * pWord;
+    int i;
+    Vec_PtrForEachEntry( Abc_NtkCexWord_t *, vWords, pWord, i )
+        if ( !strcmp( pWord->pBase, pBase ) )
+            return pWord;
+    pWord = ABC_ALLOC( Abc_NtkCexWord_t, 1 );
+    pWord->pBase = ABC_ALLOC( char, strlen(pBase) + 1 );
+    strcpy( pWord->pBase, pBase );
+    pWord->vBits = Vec_IntAlloc( 0 );
+    Vec_PtrPush( vWords, pWord );
+    return pWord;
+}
+
+static void Abc_NtkVerifyFreeWords( Vec_Ptr_t * vWords )
+{
+    Abc_NtkCexWord_t * pWord;
+    int i;
+    Vec_PtrForEachEntry( Abc_NtkCexWord_t *, vWords, pWord, i )
+    {
+        ABC_FREE( pWord->pBase );
+        Vec_IntFree( pWord->vBits );
+        ABC_FREE( pWord );
+    }
+    Vec_PtrFree( vWords );
+}
+
+static int Abc_NtkVerifyParseBitName( const char * pName, char ** ppBase, int * pIndex )
+{
+    const char * pOpen;
+    const char * pClose;
+    char * pEnd;
+    long Index;
+    *ppBase = NULL;
+    pClose = strrchr( pName, ']' );
+    pOpen  = pClose ? strrchr( pName, '[' ) : NULL;
+    if ( pOpen == NULL || pClose == NULL || pClose < pOpen || pClose[1] != 0 )
+        return 0;
+    Index = strtol( pOpen + 1, &pEnd, 10 );
+    if ( pEnd != pClose || Index < 0 )
+        return 0;
+    *pIndex = (int)Index;
+    *ppBase = ABC_ALLOC( char, pOpen - pName + 1 );
+    strncpy( *ppBase, pName, pOpen - pName );
+    (*ppBase)[pOpen - pName] = 0;
+    return 1;
+}
+
+static int Abc_NtkVerifyCollectWords( Vec_Ptr_t * vWords, const char * const * ppNames, const int * pValues, int nEntries )
+{
+    int i, fHasVector = 0;
+    for ( i = 0; i < nEntries; i++ )
+    {
+        char * pBase = NULL;
+        int Index = 0;
+        int fVector = Abc_NtkVerifyParseBitName( ppNames[i], &pBase, &Index );
+        Abc_NtkCexWord_t * pWord = Abc_NtkVerifyFindWord( vWords, fVector ? pBase : ppNames[i] );
+        Vec_IntSetEntry( pWord->vBits, fVector ? Index : 0, pValues[i] );
+        fHasVector |= fVector;
+        if ( pBase )
+            ABC_FREE( pBase );
+    }
+    return fHasVector;
+}
+
+static void Abc_NtkVerifyPrintWords( Vec_Ptr_t * vWords )
+{
+    Abc_NtkCexWord_t * pWord;
+    int i, d, b, nBits, nHex, Digit;
+    Vec_PtrForEachEntry( Abc_NtkCexWord_t *, vWords, pWord, i )
+    {
+        nBits = Vec_IntSize( pWord->vBits );
+        nHex  = (nBits + 3) / 4;
+        nHex  = nHex ? nHex : 1;
+        {
+            char * pHex = ABC_ALLOC( char, nHex + 1 );
+            for ( d = 0; d < nHex; d++ )
+            {
+                Digit = 0;
+                for ( b = 0; b < 4; b++ )
+                {
+                    int iBit = d * 4 + b;
+                    if ( iBit < nBits && Vec_IntEntry( pWord->vBits, iBit ) )
+                        Digit |= 1 << b;
+                }
+                pHex[nHex - d - 1] = "0123456789ABCDEF"[Digit];
+            }
+            pHex[nHex] = 0;
+            printf( "%s = %d'h%s", pWord->pBase, nBits, pHex );
+            ABC_FREE( pHex );
+        }
+        if ( i + 1 < Vec_PtrSize(vWords) )
+            printf( ", " );
+    }
+}
+
+void Abc_NtkVerifyPrintCex( const int * pModel, const int * pValues1, const int * pValues2, 
+    const char * const * ppInputNames, int nInputs, const char * const * ppOutputNames, int nOutputs, 
+    const char * pNtkName1, const char * pNtkName2 )
+{
+    Vec_Ptr_t * vInputs   = Vec_PtrAlloc( 0 );
+    Vec_Ptr_t * vOutputs1 = Vec_PtrAlloc( 0 );
+    Vec_Ptr_t * vOutputs2 = Vec_PtrAlloc( 0 );
+    Abc_NtkVerifyCollectWords( vInputs, ppInputNames, pModel, nInputs );
+    Abc_NtkVerifyCollectWords( vOutputs1, ppOutputNames, pValues1, nOutputs );
+    if ( pValues2 )
+        Abc_NtkVerifyCollectWords( vOutputs2, ppOutputNames, pValues2, nOutputs );
+    if ( Vec_PtrSize(vInputs) || Vec_PtrSize(vOutputs1) || Vec_PtrSize(vOutputs2) )
+    {
+        printf( "INPUT: " );
+        Abc_NtkVerifyPrintWords( vInputs );
+        printf( ".  OUTPUT: " );
+        Abc_NtkVerifyPrintWords( vOutputs1 );
+        printf( " (%s)", pNtkName1 ? pNtkName1 : "network1" );
+        if ( pValues2 && Vec_PtrSize(vOutputs2) )
+        {
+            printf( ", " );
+            Abc_NtkVerifyPrintWords( vOutputs2 );
+            printf( " (%s)", pNtkName2 ? pNtkName2 : "network2" );
+        }
+        printf( ".\n" );
+    }
+    Abc_NtkVerifyFreeWords( vInputs );
+    Abc_NtkVerifyFreeWords( vOutputs1 );
+    Abc_NtkVerifyFreeWords( vOutputs2 );
+}
+
+static const char * Abc_NtkVerifyNetworkName( Abc_Ntk_t * pNtk )
+{
+    if ( pNtk == NULL )
+        return NULL;
+    return Abc_NtkSpec(pNtk) ? Abc_NtkSpec(pNtk) : Abc_NtkName(pNtk);
+}
+
 
 /**Function*************************************************************
 
@@ -747,6 +888,8 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
 {
     Vec_Ptr_t * vNodes;
     Abc_Obj_t * pNode;
+    const char ** ppCiNames = NULL;
+    const char ** ppCoNames = NULL;
     int * pValues1, * pValues2;
     int nErrors, nPrinted, i, iNode = -1;
 
@@ -755,6 +898,17 @@ void Abc_NtkVerifyReportError( Abc_Ntk_t * pNtk1, Abc_Ntk_t * pNtk2, int * pMode
     // get the CO values under this model
     pValues1 = Abc_NtkVerifySimulatePattern( pNtk1, pModel );
     pValues2 = Abc_NtkVerifySimulatePattern( pNtk2, pModel );
+    // print word-level counter-example, if available
+    ppCiNames = ABC_ALLOC( const char *, Abc_NtkCiNum(pNtk1) );
+    Abc_NtkForEachCi( pNtk1, pNode, i )
+        ppCiNames[i] = Abc_ObjName( pNode );
+    ppCoNames = ABC_ALLOC( const char *, Abc_NtkCoNum(pNtk1) );
+    Abc_NtkForEachCo( pNtk1, pNode, i )
+        ppCoNames[i] = Abc_ObjName( pNode );
+    Abc_NtkVerifyPrintCex( pModel, pValues1, pValues2, ppCiNames, Abc_NtkCiNum(pNtk1), 
+        ppCoNames, Abc_NtkCoNum(pNtk1), Abc_NtkVerifyNetworkName(pNtk1), Abc_NtkVerifyNetworkName(pNtk2) );
+    ABC_FREE( ppCiNames );
+    ABC_FREE( ppCoNames );
     // count the mismatches
     nErrors = 0;
     for ( i = 0; i < Abc_NtkCoNum(pNtk1); i++ )
@@ -1115,4 +1269,3 @@ int Abc_NtkIsValidCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex )
 
 
 ABC_NAMESPACE_IMPL_END
-

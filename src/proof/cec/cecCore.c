@@ -167,6 +167,9 @@ void Cec_ManCecSetDefaultParams( Cec_ParCec_t * p )
     p->fVeryVerbose   =       0;  // verbose stats
     p->fVerbose       =       0;  // verbose stats
     p->iOutFail       =      -1;  // the number of failed output
+    p->pNameSpec      =    NULL;  // name of the first (spec) network
+    p->pNameImpl      =    NULL;  // name of the second (impl) network
+    p->vNamesIn       =    NULL;  // input names of the first network
 }  
 
 /**Function*************************************************************
@@ -569,4 +572,3 @@ finalize:
 
 
 ABC_NAMESPACE_IMPL_END
-
