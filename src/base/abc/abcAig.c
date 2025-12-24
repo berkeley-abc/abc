@@ -905,7 +905,7 @@ void Abc_AigReplace_int( Abc_Aig_t * pMan, Abc_Obj_t * pOld, Abc_Obj_t * pNew, i
             {
                 Abc_ObjSetReverseLevel( pFanin1, Abc_ObjReverseLevel(pOld) );
                 assert( pFanin1->fMarkB == 0 );
-                if ( !Abc_ObjIsCi(pFanin1) )
+                if ( !Abc_ObjIsCi(pFanin1) && !Abc_AigNodeIsConst(pFanin1) )
                 {
                     pFanin1->fMarkB = 1;
                     Vec_VecPush( pMan->vLevelsR, Abc_ObjReverseLevel(pFanin1), pFanin1 );
@@ -1139,7 +1139,7 @@ void Abc_AigUpdateLevelR_int( Abc_Aig_t * pMan )
             // iterate through the fanins
             Abc_ObjForEachFanin( pNode, pFanin, v )
             {
-                if ( Abc_ObjIsCi(pFanin) )
+                if ( Abc_ObjIsCi(pFanin) || Abc_AigNodeIsConst(pFanin) )
                     continue;
                 // get the new reverse level of this fanin
                 LevelNew = 0;
