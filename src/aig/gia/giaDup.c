@@ -3587,6 +3587,8 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
     assert( (int)strlen(pInit) == Gia_ManRegNum(p) );
     pPiLits = ABC_FALLOC( int, Gia_ManRegNum(p) );
     for ( i = 0; i < Gia_ManRegNum(p); i++ )
+        pPiLits[i] = -1;
+    for ( i = 0; i < Gia_ManRegNum(p); i++ )
         if ( pInit[i] == 'x' || pInit[i] == 'X' )
             pPiLits[i] = CountPis++;
     // create new manager
@@ -3625,7 +3627,6 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
             assert( 0 );
     }
     Gia_ManCleanMark0( p );
-    ABC_FREE( pPiLits );
     // build internal nodes
     Gia_ManForEachAnd( p, pObj, i )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
@@ -3644,6 +3645,56 @@ Gia_Man_t * Gia_ManDupZeroUndc( Gia_Man_t * p, char * pInit, int nNewPis, int fG
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) + (int)(CountPis > Gia_ManPiNum(p)) );
     if ( fVerbose )
         printf( "Converted %d 1-valued FFs and %d DC-valued FFs.\n", Count1, CountPis-Gia_ManPiNum(p) );
+    // propagate CI names if present and extend with init-value drivers
+    if ( p->vNamesIn )
+    {
+        int nOldPis = Gia_ManPiNum(p);
+        int nNewInitPis = CountPis - nOldPis;
+        int hasResetCi = CountPis > nOldPis;
+        Vec_Ptr_t * vNamesIn = Vec_PtrAlloc( Gia_ManCiNum(pNew) );
+        // original PIs
+        for ( i = 0; i < nOldPis && i < Vec_PtrSize(p->vNamesIn); i++ )
+            Vec_PtrPush( vNamesIn, Abc_UtilStrsav( (char *)Vec_PtrEntry(p->vNamesIn, i) ) );
+        // new PIs for X-init flops
+        for ( i = 0; i < nNewInitPis; i++ )
+            Vec_PtrPush( vNamesIn, NULL );
+        // extra user-added PIs (nNewPis)
+        for ( i = 0; i < nNewPis; i++ )
+            Vec_PtrPush( vNamesIn, NULL );
+        // flop outputs (ROs)
+        for ( i = 0; i < Gia_ManRegNum(p); i++ )
+        {
+            int idxOld = nOldPis + i;
+            char * pNameRo = (idxOld < Vec_PtrSize(p->vNamesIn)) ? (char *)Vec_PtrEntry(p->vNamesIn, idxOld) : NULL;
+            Vec_PtrPush( vNamesIn, pNameRo ? Abc_UtilStrsav(pNameRo) : NULL );
+        }
+        // reset CI name, if any
+        if ( hasResetCi )
+            Vec_PtrPush( vNamesIn, Abc_UtilStrsav( "init_reset" ) );
+        // fill in names for new init PIs using corresponding flop names
+        for ( i = 0; i < Gia_ManRegNum(p); i++ )
+        {
+            if ( pPiLits[i] == -1 )
+                continue;
+            int idxOldRo = nOldPis + i;
+            char * pBase = (idxOldRo < Vec_PtrSize(p->vNamesIn)) ? (char *)Vec_PtrEntry(p->vNamesIn, idxOldRo) : NULL;
+            char Buffer[100];
+            if ( pBase && strlen(pBase) < sizeof(Buffer)-12 )
+                sprintf( Buffer, "%s_init_val", pBase );
+            else
+                sprintf( Buffer, "init_val_%d", i );
+            Vec_PtrWriteEntry( vNamesIn, pPiLits[i], Abc_UtilStrsav(Buffer) );
+        }
+        pNew->vNamesIn = vNamesIn;
+    }
+    if ( p->vNamesOut )
+    {
+        Vec_Ptr_t * vNamesOut = Vec_PtrAlloc( Vec_PtrSize(p->vNamesOut) );
+        for ( i = 0; i < Vec_PtrSize(p->vNamesOut); i++ )
+            Vec_PtrPush( vNamesOut, Abc_UtilStrsav( (char *)Vec_PtrEntry(p->vNamesOut, i) ) );
+        pNew->vNamesOut = vNamesOut;
+    }
+    ABC_FREE( pPiLits );
     return pNew;
 }
 
