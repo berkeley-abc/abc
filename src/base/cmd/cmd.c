@@ -2844,6 +2844,10 @@ int CmdCommandSolver( Abc_Frame_t * pAbc, int argc, char **argv )
         goto usage;
     }
 
+#if defined(__wasm)
+    fprintf( pAbc->Err, "Unsupported command.\n" );
+    return 1;
+#else
     // Check if solver binary exists in current directory or PATH
     char * pSolverName;
     if ( (pFile = fopen( "./solver", "r" )) != NULL )
@@ -2913,7 +2917,7 @@ int CmdCommandSolver( Abc_Frame_t * pAbc, int argc, char **argv )
 
     // Clean up the temporary file
     unlink( TempFileName );
-
+#endif
     return 0;
 
 usage:
