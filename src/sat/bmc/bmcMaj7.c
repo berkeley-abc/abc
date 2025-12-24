@@ -291,7 +291,8 @@ static Exa7_Man_t * Exa7_ManAlloc( Bmc_EsPar_t * pPars, word * pTruth )
     p->pSat       = cadical_solver_new();
     p->nVarAlloc  = Exa7_ManVarReserve( p );
     assert( p->nVarAlloc >= p->iVar );
-    cadical_solver_setnvars( p->pSat, p->nVarAlloc );
+    //cadical_solver_setnvars( p->pSat, p->nVarAlloc );
+    cadical_solver_setnvars( p->pSat, p->nVarAlloc+(p->nLutSize+1)*p->nNodes*(1 << p->nVars) );
     if ( pPars->RuntimeLim )
         Exa7_CadicalSetRuntimeLimit( p->pSat, pPars->RuntimeLim );
     return p;
@@ -585,7 +586,7 @@ static int Exa7_ManAddCnf( Exa7_Man_t * p, int iMint )
     for ( i = 0; i < p->nVars; i++ )
         p->VarVals[i] = (iMint >> i) & 1;
 //    sat_solver_setnvars( p->pSat, p->iVar + (p->nLutSize+1)*p->nNodes );
-    cadical_solver_setnvars( p->pSat, p->iVar + (p->nLutSize+1)*p->nNodes );
+    //cadical_solver_setnvars( p->pSat, p->iVar + (p->nLutSize+1)*p->nNodes );
     //printf( "Adding clauses for minterm %d with value %d.\n", iMint, Value );
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
