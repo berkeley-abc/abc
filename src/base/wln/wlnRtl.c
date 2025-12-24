@@ -171,14 +171,14 @@ Rtl_Lib_t * Wln_ReadSystemVerilog( char * pFileName, char * pTopModule, char * p
     unlink( pFileTemp );
     return pNtk;
 }
-Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fLibInDir, int fVerbose )
+Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * pDefines, int fSkipStrash, int fInvert, int fTechMap, int fLibInDir, int fSetUndef, int fVerbose )
 {
     Gia_Man_t * pGia = NULL;
     char Command[1000];
     char * pFileTemp = "_temp_.aig";
     int fRtlil = strstr(pFileName, ".rtl") != NULL;
     int fSVlog = strstr(pFileName, ".sv")  != NULL;
-    sprintf( Command, "%s -qp \"%s %s%s %s%s; hierarchy %s%s; flatten; proc; memory -nomap; memory_map; %saigmap; write_aiger -symbols %s\"",
+    sprintf( Command, "%s -qp \"%s %s%s %s%s; hierarchy %s%s; flatten; proc; opt; async2sync; opt; setundef -undriven -zero; %s%smemory -nomap; memory_map; dffunmap; opt_clean; opt_expr; aigmap; write_aiger -symbols %s\"",
         Wln_GetYosysName(), 
         fRtlil ? "read_rtlil"   : "read_verilog",
         pDefines  ? "-D"        : "",
@@ -187,7 +187,9 @@ Gia_Man_t * Wln_BlastSystemVerilog( char * pFileName, char * pTopModule, char * 
         pFileName,
         pTopModule ? "-top "    : "-auto-top",
         pTopModule ? pTopModule : "", 
-        fTechMap ? (fLibInDir ? "techmap -map techmap.v; setundef -zero; " : "techmap; setundef -zero; ") : "", pFileTemp );
+        fTechMap ? (fLibInDir ? "techmap -map techmap.v; " : "techmap; ") : "",
+        fSetUndef ? "setundef -init -zero; " : "",
+        pFileTemp );
     if ( fVerbose )
     printf( "%s\n", Command );
     if ( !Wln_ConvertToRtl(Command, pFileTemp) )
@@ -260,4 +262,3 @@ Abc_Ntk_t * Wln_ReadMappedSystemVerilog( char * pFileName, char * pTopModule, ch
 
 
 ABC_NAMESPACE_IMPL_END
-
