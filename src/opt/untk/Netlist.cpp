@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+ABC_NAMESPACE_IMPL_START
+
 using namespace std;
 
 namespace UFAR {
@@ -61,3 +63,5 @@ void WNetlist::Reset(Wlc_Ntk_t *pNtk) {
 }
 
 }
+
+ABC_NAMESPACE_IMPL_END

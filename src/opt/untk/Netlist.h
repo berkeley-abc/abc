@@ -7,7 +7,11 @@
 
 #include <type_traits>
 
+#include "misc/util/abc_namespaces.h"
+
 typedef struct Wlc_Ntk_t_ Wlc_Ntk_t;
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace UFAR {
 
@@ -29,5 +33,7 @@ private:
 
 
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif //ABC_WAR_NETLIST_H

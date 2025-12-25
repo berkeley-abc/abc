@@ -5,8 +5,12 @@
 #include "proof/pdr/pdr.h"
 #include "aig/gia/giaAig.h"
 
+#include "misc/util/abc_namespaces.h"
+
 #include <pthread.h>
 #include <unistd.h>
+
+ABC_NAMESPACE_IMPL_START
 
 extern "C" {
     Abc_Ntk_t *   Abc_NtkFromAigPhase( Aig_Man_t * pAig );
@@ -287,3 +291,5 @@ int RunConcurrentSolver( Wlc_Ntk_t * pNtk, const vector<string>& vSolvers, Abc_C
 
 
 }
+
+ABC_NAMESPACE_IMPL_END

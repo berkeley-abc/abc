@@ -17,6 +17,8 @@
 #include <base/wlc/wlc.h>
 #include "Netlist.h"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 typedef struct Wlc_Ntk_t_ Wlc_Ntk_t;
 typedef struct Abc_Cex_t_ Abc_Cex_t;
 typedef struct Vec_Int_t_ Vec_Int_t;
@@ -146,5 +148,7 @@ Wlc_Ntk_t * MakeUnderApprox2(Wlc_Ntk_t * pNtk, const std::set<unsigned>& types, 
 
 
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif /* SRC_EXT2_NTK_NTKNTK_H_ */

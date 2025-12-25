@@ -17,9 +17,13 @@
 #include <memory>
 #include <sys/time.h>
 
+#include "misc/util/abc_namespaces.h"
+
 typedef struct Wlc_Ntk_t_ Wlc_Ntk_t;
 typedef struct Abc_Cex_t_ Abc_Cex_t;
 typedef struct Gia_Man_t_ Gia_Man_t;
+
+ABC_NAMESPACE_CXX_HEADER_START
 
 namespace UFAR {
 
@@ -140,5 +144,7 @@ class UfarManager {
 };
 
 }
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif /* SRC_EXT2_UIF_UIFMGR_H_ */

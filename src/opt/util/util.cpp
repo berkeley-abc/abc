@@ -9,7 +9,10 @@
 #include <csignal>
 #include <unistd.h>
 
+#include "misc/util/abc_namespaces.h"
 #include "util.h"
+
+ABC_NAMESPACE_IMPL_START
 
 using namespace std;
 
@@ -117,3 +120,5 @@ void kill_on_parent_death(int sig)
 }
 
 #endif
+
+ABC_NAMESPACE_IMPL_END

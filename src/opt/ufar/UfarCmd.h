@@ -10,14 +10,10 @@
 
 #include "base/main/mainInt.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+ABC_NAMESPACE_HEADER_START
 
 void Ufar_Init(Abc_Frame_t *pAbc);
 
-#ifdef __cplusplus
-}
-#endif
+ABC_NAMESPACE_HEADER_END
 
 #endif /* SRC_EXT2_UIF_UIFCMD_H_ */

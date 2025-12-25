@@ -16,6 +16,8 @@
 #include <sat/cnf/cnf.h>
 #include <aig/gia/giaAig.h>
 
+ABC_NAMESPACE_IMPL_START
+
 extern "C" {
     Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     void Wlc_NtkSimulatePrint( Wlc_Ntk_t * p, Vec_Int_t * vNodes, Vec_Ptr_t * vRes, int nWords, int nFrames );
@@ -1661,3 +1663,5 @@ void UfarManager::_read_states(const std::string &file) {
 }
 
 }
+
+ABC_NAMESPACE_IMPL_END

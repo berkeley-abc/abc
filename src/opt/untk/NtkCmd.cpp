@@ -7,6 +7,10 @@
 
 #include "opt/untk/NtkCmd.h"
 
+ABC_NAMESPACE_IMPL_START
+
 void Ntk_Init (Abc_Frame_t *pAbc)
 {
 }
+
+ABC_NAMESPACE_IMPL_END

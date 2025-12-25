@@ -18,6 +18,8 @@
 
 #include <sys/time.h>
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 class LogT {
     public:
         LogT(unsigned _loglevel = 0) {
@@ -81,5 +83,7 @@ static inline unsigned elapsed_time_usec(const timeval& tBefore, const timeval& 
 void kill_on_parent_death(int sig);
 
 int call_python(const char* modulename, const char* funcname, const char* aig, std::vector<int>& cex);
+
+ABC_NAMESPACE_CXX_HEADER_END
 
 #endif /* SRC_EXT2_UTIL_UTIL_H_ */

@@ -16,6 +16,8 @@
 #include <climits>
 #include <regex>
 
+ABC_NAMESPACE_IMPL_START
+
 using namespace std;
 
 static UFAR::UfarManager ufar_manager;
@@ -333,4 +335,4 @@ static int Abc_CommandTest( Abc_Frame_t * pAbc, int argc, char ** argv )
 #endif
 }
 
-
+ABC_NAMESPACE_IMPL_END

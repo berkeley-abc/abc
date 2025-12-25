@@ -20,6 +20,8 @@
 #include <sys/wait.h>
 #include <fstream>
 
+ABC_NAMESPACE_IMPL_START
+
 extern "C" {
     Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
@@ -1485,3 +1487,5 @@ void TestInvariant(string& nameNtk, string& nameInv) {
 
 
 }
+
+ABC_NAMESPACE_IMPL_END
