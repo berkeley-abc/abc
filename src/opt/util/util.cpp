@@ -12,6 +12,17 @@
 #include "misc/util/abc_namespaces.h"
 #include "util.h"
 
+#ifdef __linux__
+#include <sys/prctl.h>
+#elif defined(__APPLE__)
+#include <thread>
+#include <cassert>
+#include <cerrno>
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 using namespace std;
@@ -50,13 +61,7 @@ void OptMgr::PrintUsage() {
     }
 }
 
-ABC_NAMESPACE_IMPL_END
-
 #ifdef __linux__
-
-#include <sys/prctl.h>
-
-ABC_NAMESPACE_IMPL_START
 
 void kill_on_parent_death(int sig)
 {
@@ -71,20 +76,7 @@ void kill_on_parent_death(int sig)
     }
 }
 
-ABC_NAMESPACE_IMPL_END
-
 #elif defined(__APPLE__)
-
-#include <thread>
-
-#include <cassert>
-#include <cerrno>
-
-#include <sys/types.h>
-#include <sys/event.h>
-#include <sys/time.h>
-
-ABC_NAMESPACE_IMPL_START
 
 template <typename Func>
 static auto retry_eintr(Func &&fn) -> decltype(fn())
@@ -115,7 +107,7 @@ void kill_on_parent_death(int sig)
     kevent(kq, &change, 1, &event, 1, &ts);
 
     // however, if ppid died before the call to kevent, ppid might not be the pid of the parent
-    // in that case, the process it would be adopted by init, whose pid is 1
+    // in that case, it would be adopted by init, whose pid is 1
     if( getppid() == 1 )
     {
       raise(sig);
@@ -132,16 +124,12 @@ void kill_on_parent_death(int sig)
   monitor_thread.detach();
 }
 
-ABC_NAMESPACE_IMPL_END
-
 #else // neither linux or OS X
-
-ABC_NAMESPACE_IMPL_START
 
 void kill_on_parent_death(int sig)
 {
 }
 
-ABC_NAMESPACE_IMPL_END
-
 #endif
+
+ABC_NAMESPACE_IMPL_END

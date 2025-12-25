@@ -20,9 +20,7 @@
 #include "NtkNtk.h"
 #include "Netlist.h"
 
-ABC_NAMESPACE_IMPL_START
-
-extern "C" {
+ABC_NAMESPACE_HEADER_START
     Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
     int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp );
@@ -36,7 +34,9 @@ extern "C" {
     int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars );
     Gia_Man_t * Wlc_NtkBitBlast2( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds );
     //void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars );
-}
+ABC_NAMESPACE_HEADER_END
+
+ABC_NAMESPACE_IMPL_START
 
 using namespace std;
 

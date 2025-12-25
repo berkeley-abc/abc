@@ -11,15 +11,15 @@
 #include "opt/untk/NtkNtk.h"
 #include "UfarPth.h"
 
-ABC_NAMESPACE_IMPL_START
-
-extern "C" {
+ABC_NAMESPACE_HEADER_START
     Abc_Ntk_t *   Abc_NtkFromAigPhase( Aig_Man_t * pAig );
     int           Abc_NtkDarBmc3( Abc_Ntk_t * pAbcNtk, Saig_ParBmc_t * pBmcPars, int fOrDecomp );
     Wla_Man_t * Wla_ManStart( Wlc_Ntk_t * pNtk, Wlc_Par_t * pPars );
     void Wla_ManStop( Wla_Man_t * pWla );
     int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars );
-}
+ABC_NAMESPACE_HEADER_END
+
+ABC_NAMESPACE_IMPL_START
 
 static volatile int  g_nRunIds = 0;             // the number of the last prover instance
 int Ufar_CallBackToStop( int RunId ) { assert( RunId <= g_nRunIds ); return RunId < g_nRunIds; }
