@@ -35066,14 +35066,16 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9WriteVer( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Gia_WriteVerilog( char * pFileName, Gia_Man_t * pGia, int fUseGates, int fVerbose );
     char * pFileSpec = NULL;
     Abc_Ntk_t * pNtkSpec = NULL;
     char * pFileName;
     char ** pArgvNew;
     int c, nArgcNew;
+    int fUseGates = 0;
     int fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Svh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Sgvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -35085,6 +35087,9 @@ int Abc_CommandAbc9WriteVer( Abc_Frame_t * pAbc, int argc, char ** argv )
             }
             pFileSpec = argv[globalUtilOptind];
             globalUtilOptind++;
+            break;
+        case 'g':
+            fUseGates ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -35103,31 +35108,39 @@ int Abc_CommandAbc9WriteVer( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     pFileName = argv[globalUtilOptind];
-    if ( pAbc->pNtkCur == NULL )
-    {
-        Abc_Print( -1, "There is no mapped file to write.\n" );
-        return 1;
-    }
     if ( pFileSpec == NULL )
     {
-        Abc_Print( -1, "The specification file is not given.\n" );
-        return 1;
+        if ( pAbc->pGia == NULL )
+        {
+            Abc_Print( -1, "There is no AIG to write.\n" );
+            return 1;
+        }
+        Gia_WriteVerilog( pFileName, pAbc->pGia, fUseGates, fVerbose );
     }
-    pNtkSpec = Io_ReadNetlist( pFileSpec, Io_ReadFileType(pFileSpec), 0 );
-    if ( pNtkSpec == NULL )
+    else
     {
-        Abc_Print( -1, "Reading hierarchical Verilog for the specification has failed.\n" );
-        return 1;
+        if ( pAbc->pNtkCur == NULL )
+        {
+            Abc_Print( -1, "There is no mapped file to write.\n" );
+            return 1;
+        }
+        pNtkSpec = Io_ReadNetlist( pFileSpec, Io_ReadFileType(pFileSpec), 0 );
+        if ( pNtkSpec == NULL )
+        {
+            Abc_Print( -1, "Reading hierarchical Verilog for the specification has failed.\n" );
+            return 1;
+        }
+        Abc_NtkInsertHierarchyGia( pNtkSpec, pAbc->pNtkCur, fVerbose );
+        Io_WriteVerilog( pNtkSpec, pFileName, 0, 0 );
+        Abc_NtkDelete( pNtkSpec );
     }
-    Abc_NtkInsertHierarchyGia( pNtkSpec, pAbc->pNtkCur, fVerbose );
-    Io_WriteVerilog( pNtkSpec, pFileName, 0, 0 );
-    Abc_NtkDelete( pNtkSpec );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &write_ver [-S <file>] [-vh] <file>\n" );
-    Abc_Print( -2, "\t          writes hierarchical Verilog after mapping\n" );
-    Abc_Print( -2, "\t-S file : file name for the original hierarchical design (required)\n" );
+    Abc_Print( -2, "usage: &write_ver [-S <file>] [-gvh] <file>\n" );
+    Abc_Print( -2, "\t          writes hierarchical Verilog\n" );
+    Abc_Print( -2, "\t-S file : file name for the original design (required when hierarchy is present)\n" );
+    Abc_Print( -2, "\t-g      : toggle output gates vs assign-statements [default = %s]\n", fUseGates? "gates": "assigns" );
     Abc_Print( -2, "\t-v      : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     Abc_Print( -2, "\t<file>  : the file name\n");
