@@ -1890,7 +1890,8 @@ usage:
 ***********************************************************************/
 int IoCommandReadJsonc( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern int Jsonc_ReadTest( char * pFileName );
+    extern Abc_Ntk_t * Jsonc_ReadNetwork( char * pFileName );
+    Abc_Ntk_t * pNtk;
     char * pFileName;
     FILE * pFile;
     int c;
@@ -1920,7 +1921,11 @@ int IoCommandReadJsonc( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     fclose( pFile );
 
-    Jsonc_ReadTest( pFileName );
+    pNtk = Jsonc_ReadNetwork( pFileName );
+    if ( pNtk == NULL )
+        return 1;
+    Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
+    Abc_FrameClearVerifStatus( pAbc );
     return 0;
 
 usage:
@@ -4607,4 +4612,3 @@ usage:
 
 
 ABC_NAMESPACE_IMPL_END
-
