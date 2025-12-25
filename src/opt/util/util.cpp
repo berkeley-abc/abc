@@ -50,9 +50,13 @@ void OptMgr::PrintUsage() {
     }
 }
 
+ABC_NAMESPACE_IMPL_END
+
 #ifdef __linux__
 
 #include <sys/prctl.h>
+
+ABC_NAMESPACE_IMPL_START
 
 void kill_on_parent_death(int sig)
 {
@@ -67,6 +71,8 @@ void kill_on_parent_death(int sig)
     }
 }
 
+ABC_NAMESPACE_IMPL_END
+
 #elif defined(__APPLE__)
 
 #include <thread>
@@ -77,6 +83,8 @@ void kill_on_parent_death(int sig)
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+
+ABC_NAMESPACE_IMPL_START
 
 template <typename Func>
 static auto retry_eintr(Func &&fn) -> decltype(fn())
@@ -124,12 +132,16 @@ void kill_on_parent_death(int sig)
   monitor_thread.detach();
 }
 
+ABC_NAMESPACE_IMPL_END
+
 #else // neither linux or OS X
+
+ABC_NAMESPACE_IMPL_START
 
 void kill_on_parent_death(int sig)
 {
 }
 
-#endif
-
 ABC_NAMESPACE_IMPL_END
+
+#endif
