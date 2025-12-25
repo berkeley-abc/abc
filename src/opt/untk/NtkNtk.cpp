@@ -26,16 +26,16 @@ extern "C" {
     Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan );
     int Abc_NtkDarPdr( Abc_Ntk_t * pNtk, Pdr_Par_t * pPars );
     int Abc_NtkDarBmc3( Abc_Ntk_t * pNtk, Saig_ParBmc_t * pPars, int fOrDecomp );
-    int Wlc_ObjDup( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins );
+    //int Wlc_ObjDup( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins );
     void Wlc_NtkDupDfs_rec( Wlc_Ntk_t * pNew, Wlc_Ntk_t * p, int iObj, Vec_Int_t * vFanins );
-    void Wlc_ObjSetCo( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int fFlopInput );
+    //void Wlc_ObjSetCo( Wlc_Ntk_t * p, Wlc_Obj_t * pObj, int fFlopInput );
     Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
     Gia_Man_t * Gia_ManDupInvMiter( Gia_Man_t * p, Gia_Man_t * pInv );
     Wla_Man_t * Wla_ManStart( Wlc_Ntk_t * pNtk, Wlc_Par_t * pPars );
     void Wla_ManStop( Wla_Man_t * pWla );
     int Wla_ManSolve( Wla_Man_t * pWla, Wlc_Par_t * pPars );
     Gia_Man_t * Wlc_NtkBitBlast2( Wlc_Ntk_t * p, Vec_Int_t * vBoxIds );
-    void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars );
+    //void Gia_ManPrintStats( Gia_Man_t * p, Gps_Par_t * pPars );
 }
 
 using namespace std;
