@@ -201,8 +201,12 @@ static int ParseMaskString(const char *maskStr, int nCis, uint64_t *varMasks, in
     if (!maskStr || !*maskStr) {
         for (int i = 0; i < nCis; ++i) varMasks[i] = 1ull << i;
         *pnVars = nCis;
-        if (verbose) PrintMaskSegmentsOneLine("default",
-            (int[]){0}, (int[]){nCis}, (int[]){0}, 1, *pnVars, nCis);
+        if (verbose) {
+             int segS[1] = {0};
+             int segW[1] = {nCis};
+             int segG[1] = {0};
+             PrintMaskSegmentsOneLine("default", segS, segW, segG, 1, *pnVars, nCis);
+        }
         return 1;
     }
 
