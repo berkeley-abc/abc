@@ -7,23 +7,21 @@
 
 #include <cstdio>
 #include <fstream>
-
-#include "UfarMgr.h"
-#include "opt/untk/NtkNtk.h"
-#include "opt/util/util.h"
-
-#include <base/wlc/wlc.h>
-#include <sat/cnf/cnf.h>
-#include <aig/gia/giaAig.h>
-
-#include <sys/wait.h>
-
 #include <iostream>
 #include <iomanip>
 #include <map>
 #include <algorithm>
 #include <array>
 #include <regex>
+
+#include <sys/wait.h>
+
+#include <base/wlc/wlc.h>
+#include <sat/cnf/cnf.h>
+#include <aig/gia/giaAig.h>
+#include "opt/untk/NtkNtk.h"
+#include "opt/util/util.h"
+#include "UfarMgr.h"
 
 ABC_NAMESPACE_IMPL_START
 

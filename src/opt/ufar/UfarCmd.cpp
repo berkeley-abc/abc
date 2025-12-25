@@ -5,16 +5,16 @@
  *      Author: Yen-Sheng Ho
  */
 
+#include <iostream>
+#include <iomanip>
+#include <climits>
+#include <regex>
+
 #include "base/wlc/wlc.h"
 #include "opt/ufar/UfarCmd.h"
 #include "opt/ufar/UfarMgr.h"
 #include "opt/untk/NtkNtk.h"
 #include "opt/util/util.h"
-
-#include <iostream>
-#include <iomanip>
-#include <climits>
-#include <regex>
 
 ABC_NAMESPACE_IMPL_START
 

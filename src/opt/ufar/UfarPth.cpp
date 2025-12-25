@@ -1,14 +1,15 @@
-#include "UfarPth.h"
-#include "opt/util/util.h"
-#include "opt/untk/NtkNtk.h"
-#include "sat/bmc/bmc.h"
-#include "proof/pdr/pdr.h"
-#include "aig/gia/giaAig.h"
 
 #include "misc/util/abc_namespaces.h"
 
 #include <pthread.h>
 #include <unistd.h>
+
+#include "sat/bmc/bmc.h"
+#include "proof/pdr/pdr.h"
+#include "aig/gia/giaAig.h"
+#include "opt/util/util.h"
+#include "opt/untk/NtkNtk.h"
+#include "UfarPth.h"
 
 ABC_NAMESPACE_IMPL_START
 

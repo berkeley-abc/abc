@@ -5,10 +5,9 @@
  *      Author: Yen-Sheng Ho
  */
 
-#include "NtkNtk.h"
-#include "Netlist.h"
-#include "opt/util/util.h"
-#include "opt/ufar/UfarPth.h"
+#include <unistd.h>
+#include <sys/wait.h>
+#include <fstream>
 
 #include <base/wlc/wlc.h>
 #include <sat/bmc/bmc.h>
@@ -16,9 +15,10 @@
 #include <proof/fraig/fraig.h>
 #include <aig/gia/giaAig.h>
 
-#include <unistd.h>
-#include <sys/wait.h>
-#include <fstream>
+#include "opt/util/util.h"
+#include "opt/ufar/UfarPth.h"
+#include "NtkNtk.h"
+#include "Netlist.h"
 
 ABC_NAMESPACE_IMPL_START
 

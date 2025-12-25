@@ -2,11 +2,10 @@
 // Created by Yen-Sheng Ho on 8/9/16.
 //
 
-#include "Netlist.h"
+#include <iostream>
 
 #include <base/wlc/wlc.h>
-
-#include <iostream>
+#include "Netlist.h"
 
 ABC_NAMESPACE_IMPL_START
 

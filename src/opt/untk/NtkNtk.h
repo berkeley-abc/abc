@@ -14,6 +14,7 @@
 #include <array>
 #include <sstream>
 #include <algorithm>
+
 #include <base/wlc/wlc.h>
 #include "Netlist.h"
 
