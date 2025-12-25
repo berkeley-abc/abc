@@ -24,16 +24,15 @@
 #include "misc/extra/extra.h"
 #include "sat/cnf/cnf.h"
 
-void Abc_NtkVerifyPrintCex( const int * pModel, const int * pValues1, const int * pValues2, 
-    const char * const * ppInputNames, int nInputs, const char * const * ppOutputNames, int nOutputs, 
-    const char * pNtkName1, const char * pNtkName2 );
-
 ABC_NAMESPACE_IMPL_START
-
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
+
+extern void Abc_NtkVerifyPrintCex( const int * pModel, const int * pValues1, const int * pValues2, 
+    const char * const * ppInputNames, int nInputs, const char * const * ppOutputNames, int nOutputs, 
+    const char * pNtkName1, const char * pNtkName2 );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
