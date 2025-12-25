@@ -9,9 +9,9 @@
 
 #include "misc/util/abc_namespaces.h"
 
-typedef struct Wlc_Ntk_t_ Wlc_Ntk_t;
-
 ABC_NAMESPACE_CXX_HEADER_START
+
+typedef struct Wlc_Ntk_t_ Wlc_Ntk_t;
 
 namespace UFAR {
 

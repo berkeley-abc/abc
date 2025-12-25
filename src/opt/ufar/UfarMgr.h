@@ -19,11 +19,11 @@
 
 #include "misc/util/abc_namespaces.h"
 
+ABC_NAMESPACE_CXX_HEADER_START
+
 typedef struct Wlc_Ntk_t_ Wlc_Ntk_t;
 typedef struct Abc_Cex_t_ Abc_Cex_t;
 typedef struct Gia_Man_t_ Gia_Man_t;
-
-ABC_NAMESPACE_CXX_HEADER_START
 
 namespace UFAR {
 
