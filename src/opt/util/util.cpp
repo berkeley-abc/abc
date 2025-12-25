@@ -72,10 +72,21 @@ void kill_on_parent_death(int sig)
 #include <thread>
 
 #include <cassert>
+#include <cerrno>
 
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+
+template <typename Func>
+static auto retry_eintr(Func &&fn) -> decltype(fn())
+{
+    decltype(fn()) rc;
+    do {
+        rc = fn();
+    } while (rc == -1 && errno == EINTR);
+    return rc;
+}
 
 void kill_on_parent_death(int sig)
 {
