@@ -525,6 +525,7 @@ Vec_Int_t * SimUifPairFinder::_collect_sim_nodes(Wlc_Ntk_t * pNtk) {
     int i;
     Wlc_Obj_t * pPo;
     int range = Wlc_ObjRange(Wlc_NtkPo(pNtk, 1));
+    (void)range;
     Wlc_NtkForEachPo(pNtk, pPo, i) {
        if ((i%3)==0) continue;
        assert(range == Wlc_ObjRange(pPo));
@@ -1419,7 +1420,7 @@ int UfarManager::PerformUIFProve(const timeval& timer) {
     auto print_stat = [&]() {
         gettimeofday(&curTime, NULL);
         elapsedTime = elapsed_time_usec(timer, curTime)/1000000.0;
-        sprintf(buffer, "Iteration[%2u][%3u]: %4lu White boxes\t%4lu UIF constraints (time = %.4f)", n_iter_wb, n_iter_uif, count(_vec_op_blackbox_marks.begin(), _vec_op_blackbox_marks.end(), false), _set_uif_pairs.size(), elapsedTime);
+        snprintf(buffer, sizeof(buffer), "Iteration[%2u][%3u]: %4lu White boxes\t%4lu UIF constraints (time = %.4f)", n_iter_wb, n_iter_uif, count(_vec_op_blackbox_marks.begin(), _vec_op_blackbox_marks.end(), false), _set_uif_pairs.size(), elapsedTime);
         LOG(1) << buffer << _get_profile_uf_wb();
         dump_grey_stat();
         if(!params.fileStatesOut.empty()) _dump_states(params.fileStatesOut);

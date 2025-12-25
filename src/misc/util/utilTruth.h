@@ -1595,6 +1595,7 @@ static inline int Abc_TtReadBin( word * pWords, int nWords, char * pString )
 {
     int i, Len = (int)strlen(pString), nWords2 = (Len+63)/64;
     assert( nWords2 <= nWords );
+    (void)nWords2;
     memset( pWords, 0, sizeof(word)*nWords );
     for ( i = 0; i < Len; i++ )
         if ( pString[i] == '1' )
@@ -1608,6 +1609,7 @@ static inline word Abc_TtReadBin64( char * pString )
     word Word = 0;
     int Len = (int)strlen(pString);
     assert( Len <= 64 );
+    (void)Len;
     int Res = Abc_TtReadBin( &Word, 1, pString );
     if ( Res == 0 ) {
         printf( "Reading binary string \"%s\" has failed.\n", pString );
@@ -1842,6 +1844,7 @@ static inline int Abc_TtCheckCondDep( word * pTruth, int nVars, int nSuppLim )
     word Cof0[128], Cof1[128]; // pow( 2, nVarsMax-6 )
     int v, d, nWords = Abc_TtWordNum(nVars);
     assert( nVars <= nVarsMax );
+    (void)nVarsMax;
     if ( nVars <= nSuppLim + 1 )
         return 0;
     for ( v = 0; v < nVars; v++ )

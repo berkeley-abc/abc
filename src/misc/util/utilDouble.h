@@ -183,6 +183,8 @@ static inline void Xdbl_Test()
     xdbl ten100_ = ABC_CONST(0x014c924d692ca61b);
 
     assert( ten100 == ten100_ );
+    (void)ten100;
+    (void)ten100_;
 
 //    float f1 = Xdbl_ToDouble(c1);
 //    Extra_PrintBinary( stdout, (int *)&c1, 32 ); printf( "\n" );

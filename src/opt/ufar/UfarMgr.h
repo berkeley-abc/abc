@@ -35,7 +35,7 @@ using IntPair = std::pair<int, int>;
 
 struct OperatorID;
 struct UifPair;
-struct Greyness;
+class Greyness;
 using  UIF_PAIR = UifPair;
 
 class SimUifPairFinder;
