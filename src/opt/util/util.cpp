@@ -9,8 +9,6 @@
 #include <csignal>
 #include <unistd.h>
 
-#include "util.h"
-
 #ifdef __linux__
 #include <sys/prctl.h>
 #elif defined(__APPLE__)
@@ -21,6 +19,8 @@
 #include <sys/event.h>
 #include <sys/time.h>
 #endif
+
+#include "util.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -75,8 +75,6 @@ void kill_on_parent_death(int sig)
     }
 }
 
-/*
-
 #elif defined(__APPLE__)
 
 template <typename Func>
@@ -124,8 +122,6 @@ void kill_on_parent_death(int sig)
 
   monitor_thread.detach();
 }
-
-*/
 
 #else // neither linux or OS X
 
