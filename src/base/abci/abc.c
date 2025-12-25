@@ -278,6 +278,7 @@ static int Abc_CommandSimSec                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandMatch                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 //static int Abc_CommandHaig                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandQbf                    ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAigSim                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 static int Abc_CommandFraig                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandFraigTrust             ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1107,6 +1108,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "New AIG",      "csweep",        Abc_CommandCSweep,           1 );
 //    Cmd_CommandAdd( pAbc, "New AIG",      "haig",          Abc_CommandHaig,             1 );
     Cmd_CommandAdd( pAbc, "New AIG",      "qbf",           Abc_CommandQbf,              0 );
+    Cmd_CommandAdd( pAbc, "New AIG",      "aigsim",        Abc_CommandAigSim,           0 );
 
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig",         Abc_CommandFraig,            1 );
     Cmd_CommandAdd( pAbc, "Fraiging",     "fraig_trust",   Abc_CommandFraigTrust,       1 );
@@ -19266,6 +19268,68 @@ usage:
     Abc_Print( -2, "\t         > Parameters: 0110  Statistics: 0=2 1=2\n" );
     Abc_Print( -2, "\t         > The problem is SAT after 2 iterations.  Time =     0.00 sec\n\n" );
     Abc_Print( -2, "\t         What we synthesized is the truth table of the XOR gate!\n" );
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAigSim( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern int SimulateAigTop( char *fname1, char *fname2, char * mask, int verbose );
+    char * pMask = NULL;
+    char ** pArgvNew = NULL;
+    int nArgcNew = 0;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mvh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a string.\n" );
+                goto usage;
+            }
+            pMask = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    pArgvNew = argv + globalUtilOptind;
+    nArgcNew = argc - globalUtilOptind;
+    if ( nArgcNew != 2 ) {
+        Abc_Print( -1, "Expecting two files names on the command line.\n" );
+        return 1;
+    }
+    SimulateAigTop( pArgvNew[0], pArgvNew[1], pMask, fVerbose );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: aigsim -M <str> [-vh] <file1> <file2>\n" );
+    Abc_Print( -2, "\t           combinational AIG simulation\n" );
+    Abc_Print( -2, "\t-M <str> : mask to select inputs for simulation [default = unused]\n" );
+    Abc_Print( -2, "\t-v       : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h       : print the command usage\n");
+    Abc_Print( -2, "\t<file1>  : the first file to simulate\n");
+    Abc_Print( -2, "\t<file2>  : the second file to simulate\n");
     return 1;
 }
 
