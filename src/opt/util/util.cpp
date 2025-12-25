@@ -76,6 +76,8 @@ void kill_on_parent_death(int sig)
     }
 }
 
+/*
+
 #elif defined(__APPLE__)
 
 template <typename Func>
@@ -123,6 +125,8 @@ void kill_on_parent_death(int sig)
 
   monitor_thread.detach();
 }
+  
+*/
 
 #else // neither linux or OS X
 
