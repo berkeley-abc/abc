@@ -9,7 +9,6 @@
 #include <csignal>
 #include <unistd.h>
 
-#include "misc/util/abc_namespaces.h"
 #include "util.h"
 
 #ifdef __linux__
@@ -125,7 +124,7 @@ void kill_on_parent_death(int sig)
 
   monitor_thread.detach();
 }
-  
+
 */
 
 #else // neither linux or OS X

@@ -18,6 +18,8 @@
 
 #include <sys/time.h>
 
+#include "misc/util/abc_namespaces.h"
+
 ABC_NAMESPACE_CXX_HEADER_START
 
 class LogT {
