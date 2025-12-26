@@ -907,6 +907,244 @@ pPars->timeSynth = Abc_Clock() - clk;
     return pMan;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Reproduces script "resyn2".]
+
+  Description [Equivalent to: b; rw; rf; b; rw; rwz; b; rfz; rwz; b.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManResyn3( Gia_Man_t * pGia, int fVerbose )
+{
+    Gia_Man_t * pGiaRes;
+    Aig_Man_t * pAig, * pTemp;
+    Dar_RwrPar_t ParsRwr, * pParsRwr = &ParsRwr;
+    Dar_RefPar_t ParsRef, * pParsRef = &ParsRef;
+    int fUpdateLevel = 1;
+
+    if ( pGia->pManTime && pGia->vLevels == NULL )
+        Gia_ManLevelWithBoxes( pGia );
+
+    Dar_ManDefaultRwrParams( pParsRwr );
+    Dar_ManDefaultRefParams( pParsRef );
+    pParsRwr->nCutsMax = 250;
+    pParsRef->nLeafMax = 10;
+    pParsRef->nMffcMin = 1;
+    pParsRwr->fUpdateLevel = fUpdateLevel;
+    pParsRef->fUpdateLevel = fUpdateLevel;
+    pParsRwr->fVerbose = 0;
+    pParsRef->fVerbose = 0;
+
+    pAig = Gia_ManToAig( pGia, 0 );
+    if ( fVerbose ) printf( "Starting:  " ), Aig_ManPrintStats( pAig );
+
+    // b
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+
+    // rw
+    Dar_ManRewrite( pAig, pParsRwr );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
+
+    // rf
+    Dar_ManRefactor( pAig, pParsRef );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Refactor:  " ), Aig_ManPrintStats( pAig );
+
+    // b
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+
+    // rw
+    Dar_ManRewrite( pAig, pParsRwr );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
+
+    // rwz
+    pParsRwr->fUseZeros = 1;
+    pParsRef->fUseZeros = 1;
+    Dar_ManRewrite( pAig, pParsRwr );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
+
+    // b
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+
+    // rfz
+    Dar_ManRefactor( pAig, pParsRef );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "RefactorZ: " ), Aig_ManPrintStats( pAig );
+
+    // rwz
+    Dar_ManRewrite( pAig, pParsRwr );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
+
+    // b
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+
+    pGiaRes = Gia_ManFromAig( pAig );
+    Aig_ManStop( pAig );
+    Gia_ManTransferTiming( pGiaRes, pGia );
+    return pGiaRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Reproduces script "compress2rs".]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManCompress3rs( Gia_Man_t * pGia, int fUpdateLevel, int fVerbose )
+{
+    Gia_Man_t * pGiaRes;
+    Aig_Man_t * pAig, * pTemp;
+    Dar_RwrPar_t ParsRwr, * pParsRwr = &ParsRwr;
+    Dar_RefPar_t ParsRef, * pParsRef = &ParsRef;
+    extern Aig_Man_t * Dar_ManResub( Aig_Man_t * pAig, int nCutsMax, int nNodesMax, int fUpdateLevel, int fUseZeros, int fVerbose );
+
+    if ( pGia->pManTime && pGia->vLevels == NULL )
+        Gia_ManLevelWithBoxes( pGia );
+
+    Dar_ManDefaultRwrParams( pParsRwr );
+    Dar_ManDefaultRefParams( pParsRef );
+    pParsRwr->nCutsMax = 250;
+    pParsRef->nLeafMax = 10;
+    pParsRef->nMffcMin = 1;
+    pParsRwr->fUpdateLevel = fUpdateLevel;
+    pParsRef->fUpdateLevel = fUpdateLevel;
+    pParsRwr->fVerbose = 0;
+    pParsRef->fVerbose = 0;
+
+    pAig = Gia_ManToAig( pGia, 0 );
+    if ( fVerbose ) printf( "Starting:  " ), Aig_ManPrintStats( pAig );
+
+    // b -l
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+
+    // rs -K 6 -l
+    pAig = Dar_ManResub( pTemp = pAig, 6, 1, fUpdateLevel, 0, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Resub6:    " ), Aig_ManPrintStats( pAig );
+
+    // rw -l
+    Dar_ManRewrite( pAig, pParsRwr );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
+
+    // rs -K 6 -N 2 -l
+    pAig = Dar_ManResub( pTemp = pAig, 6, 2, fUpdateLevel, 0, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Resub6x2:  " ), Aig_ManPrintStats( pAig );
+
+    // rf -l
+    Dar_ManRefactor( pAig, pParsRef );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Refactor:  " ), Aig_ManPrintStats( pAig );
+
+    // rs -K 8 -l
+    pAig = Dar_ManResub( pTemp = pAig, 8, 1, fUpdateLevel, 0, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Resub8:    " ), Aig_ManPrintStats( pAig );
+
+    // b -l
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+
+    // rs -K 8 -N 2 -l
+    pAig = Dar_ManResub( pTemp = pAig, 8, 2, fUpdateLevel, 0, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Resub8x2:  " ), Aig_ManPrintStats( pAig );
+
+    // rw -l
+    Dar_ManRewrite( pAig, pParsRwr );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Rewrite:   " ), Aig_ManPrintStats( pAig );
+
+    // rs -K 10 -l
+    pAig = Dar_ManResub( pTemp = pAig, 10, 1, fUpdateLevel, 0, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Resub10:   " ), Aig_ManPrintStats( pAig );
+
+    // rwz -l
+    pParsRwr->fUseZeros = 1;
+    pParsRef->fUseZeros = 1;
+    Dar_ManRewrite( pAig, pParsRwr );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
+
+    // rs -K 10 -N 2 -l
+    pAig = Dar_ManResub( pTemp = pAig, 10, 2, fUpdateLevel, 0, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Resub10x2: " ), Aig_ManPrintStats( pAig );
+
+    // b -l
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+
+    // rs -K 12 -l
+    pAig = Dar_ManResub( pTemp = pAig, 12, 1, fUpdateLevel, 0, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Resub12:   " ), Aig_ManPrintStats( pAig );
+
+    // rfz -l
+    Dar_ManRefactor( pAig, pParsRef );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "RefactorZ: " ), Aig_ManPrintStats( pAig );
+
+    // rs -K 12 -N 2 -l
+    pAig = Dar_ManResub( pTemp = pAig, 12, 2, fUpdateLevel, 0, 0 );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Resub12x2: " ), Aig_ManPrintStats( pAig );
+
+    // rwz -l
+    Dar_ManRewrite( pAig, pParsRwr );
+    pAig = Aig_ManDupDfs( pTemp = pAig );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "RewriteZ:  " ), Aig_ManPrintStats( pAig );
+
+    // b -l
+    pAig = Dar_ManBalance( pTemp = pAig, fUpdateLevel );
+    Aig_ManStop( pTemp );
+    if ( fVerbose ) printf( "Balance:   " ), Aig_ManPrintStats( pAig );
+
+    pGiaRes = Gia_ManFromAig( pAig );
+    Aig_ManStop( pAig );
+    Gia_ManTransferTiming( pGiaRes, pGia );
+    return pGiaRes;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
@@ -914,4 +1152,3 @@ pPars->timeSynth = Abc_Clock() - clk;
 
 
 ABC_NAMESPACE_IMPL_END
-

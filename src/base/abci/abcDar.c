@@ -673,6 +673,45 @@ Abc_Ntk_t * Abc_NtkFromAigPhase( Aig_Man_t * pMan )
   SeeAlso     []
 
 ***********************************************************************/
+Aig_Man_t * Dar_ManResub( Aig_Man_t * pMan, int nCutsMax, int nNodesMax, int fUpdateLevel, int fUseZeros, int fVerbose )
+{
+    extern int Abc_NtkResubstitute( Abc_Ntk_t * pNtk, int nCutMax, int nStepsMax, int nMinSaved, int nLevelsOdc, int fUpdateLevel, int fVerbose, int fVeryVerbose, int Log2Probs, int Log2Divs );
+    Abc_Ntk_t * pNtk = Abc_NtkFromAigPhase( pMan );
+    Aig_Man_t * pRes = NULL;
+    char * pName = NULL, * pSpec = NULL;
+    int nMinSaved = fUseZeros ? 0 : 1;
+    if ( pMan->pName )
+        pName = Abc_UtilStrsav( pMan->pName );
+    if ( pMan->pSpec )
+        pSpec = Abc_UtilStrsav( pMan->pSpec );
+    if ( pName )
+    {
+        ABC_FREE( pNtk->pName );
+        pNtk->pName = pName;
+    }
+    if ( pSpec )
+    {
+        ABC_FREE( pNtk->pSpec );
+        pNtk->pSpec = pSpec;
+    }
+    if ( !Abc_NtkResubstitute( pNtk, nCutsMax, nNodesMax, nMinSaved, 0, fUpdateLevel, fVerbose, 0, 0, 0 ) )
+        Abc_Print( 0, "Dar_ManResub(): Resubstitution has failed.\n" );
+    pRes = Abc_NtkToDar( pNtk, 0, 1 );
+    Abc_NtkDelete( pNtk );
+    return pRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 int Abc_NtkFromGiaCollapse( Gia_Man_t * pGia )
 {
     Aig_Man_t * pMan = Gia_ManToAig( pGia, 0 ); int Res;
@@ -5181,4 +5220,3 @@ Gia_Man_t * Abc_NtkDarTestFiles()
 
 #include "abcDarUnfold2.c"
 ABC_NAMESPACE_IMPL_END
-

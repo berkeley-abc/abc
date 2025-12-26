@@ -468,6 +468,9 @@ static int Abc_CommandAbc9Times              ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Frames             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Retime             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Enable             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Resyn3             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Resyn3rs           ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Compress3rs        ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dc2                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Dsd                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Bidec              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1299,6 +1302,9 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&frames",       Abc_CommandAbc9Frames,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&retime",       Abc_CommandAbc9Retime,       0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&enable",       Abc_CommandAbc9Enable,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&resyn3",       Abc_CommandAbc9Resyn3,       0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&resyn3rs",     Abc_CommandAbc9Resyn3rs,     0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&compress3rs",  Abc_CommandAbc9Compress3rs,  0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dc2",          Abc_CommandAbc9Dc2,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&dsd",          Abc_CommandAbc9Dsd,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&bidec",        Abc_CommandAbc9Bidec,        0 );
@@ -39192,6 +39198,147 @@ usage:
     Abc_Print( -2, "usage: &enable [-rvh]\n" );
     Abc_Print( -2, "\t         adds or removes flop enable signals\n" );
     Abc_Print( -2, "\t-r     : toggle adding vs. removing enables [default = %s]\n", fRemove? "remove": "add" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Resyn3( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManResyn3( Gia_Man_t * pGia, int fVerbose );
+    Gia_Man_t * pTemp;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Resyn3(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManResyn3( pAbc->pGia, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &resyn3 [-vh]\n" );
+    Abc_Print( -2, "\t         performs rewriting of the AIG while preserving logic level\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Resyn3rs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManCompress3rs( Gia_Man_t * pGia, int fUpdateLevel, int fVerbose );
+    Gia_Man_t * pTemp;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Resyn3rs(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManCompress3rs( pAbc->pGia, 1, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &resyn3rs [-vh]\n" );
+    Abc_Print( -2, "\t         performs rewriting of the AIG while preserving logic level\n" );
+    Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Compress3rs( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Gia_Man_t * Gia_ManCompress3rs( Gia_Man_t * pGia, int fUpdateLevel, int fVerbose );
+    Gia_Man_t * pTemp;
+    int c, fVerbose = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "vh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'v':
+            fVerbose ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pAbc->pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Compress3rs(): There is no AIG.\n" );
+        return 1;
+    }
+    pTemp = Gia_ManCompress3rs( pAbc->pGia, 0, fVerbose );
+    Abc_FrameUpdateGia( pAbc, pTemp );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &compress3rs [-vh]\n" );
+    Abc_Print( -2, "\t         performs rewriting of the AIG without preserving logic level\n" );
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
