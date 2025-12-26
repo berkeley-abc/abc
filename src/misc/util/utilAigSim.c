@@ -31,9 +31,9 @@
 
 #ifdef AIGSIM_LIBRARY_ONLY
 #include "misc/util/abc_namespaces.h"
+ABC_NAMESPACE_IMPL_START
 #endif
 
-ABC_NAMESPACE_IMPL_START
 
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
@@ -656,6 +656,8 @@ int main(int argc, char **argv) {
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
 
-
+#ifdef AIGSIM_LIBRARY_ONLY
 ABC_NAMESPACE_IMPL_END
+#endif
+
 
