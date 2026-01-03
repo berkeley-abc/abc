@@ -102,6 +102,7 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     char * pDefines  = NULL;
     char * pLibrary  = NULL;
     int fBlast       =    0;
+    int fDontBlast   =    0;
     int fInvert      =    0;
     int fTechMap     =    1;
     int fLibInDir    =    0;
@@ -110,7 +111,7 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fSetUndef    =    0;
     int c, fVerbose  =    0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "TDLbisumlcvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "TMDLbdisumlcvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -118,6 +119,15 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( globalUtilOptind >= argc )
             {
                 Abc_Print( -1, "Command line switch \"-T\" should be followed by a file name.\n" );
+                goto usage;
+            }
+            pTopModule = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by a file name.\n" );
                 goto usage;
             }
             pTopModule = argv[globalUtilOptind];
@@ -143,6 +153,9 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'b':
             fBlast ^= 1;
+            break;
+        case 'd':
+            fDontBlast ^= 1;
             break;
         case 'i':
             fInvert ^= 1;
@@ -203,7 +216,7 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
         Abc_FrameReplaceCurrentNetwork( pAbc, pNtk );
     }
-    else if ( fBlast )
+    else if ( !fDontBlast )
     {
         Gia_Man_t * pNew = NULL;
         if ( !strcmp( Extra_FileNameExtension(pFileName), "v" )  )
@@ -237,12 +250,14 @@ int Abc_CommandYosys( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     return 0;
 usage:
-    Abc_Print( -2, "usage: %%yosys [-T <module>] [-D <defines>] [-L <liberty_file>] [-bisumlcvh] <file_name>\n" );
+    Abc_Print( -2, "usage: %%yosys [-TM <module>] [-D <defines>] [-L <liberty_file>] [-bdisumlcvh] <file_name>\n" );
     Abc_Print( -2, "\t         reads Verilog or SystemVerilog using Yosys\n" );
     Abc_Print( -2, "\t-T     : specify the top module name (default uses \"-auto-top\")\n" );
+    Abc_Print( -2, "\t-M     : specify the top module name (default uses \"-auto-top\") (equivalent to \"-T\")\n" );
     Abc_Print( -2, "\t-D     : specify defines to be used by Yosys (default \"not used\")\n" );
     Abc_Print( -2, "\t-L     : specify the Liberty library to read a mapped design (default \"not used\")\n" );
-    Abc_Print( -2, "\t-b     : toggle bit-blasting the design into an AIG using Yosys [default = %s]\n", fBlast? "yes": "no" );
+    Abc_Print( -2, "\t-b     : toggle bit-blasting the design into an AIG using Yosys (this switch has no effect)\n" );
+    Abc_Print( -2, "\t-d     : toggle bit-blasting the design into an AIG using Yosys [default = %s]\n", !fDontBlast? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle inverting the outputs (useful for miters) [default = %s]\n", fInvert? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle no structural hashing during bit-blasting [default = %s]\n", fSkipStrash? "no strash": "strash" );
     Abc_Print( -2, "\t-m     : toggle using \"techmap\" to blast operators [default = %s]\n", fTechMap? "yes": "no" );
