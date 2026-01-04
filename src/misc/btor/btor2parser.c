@@ -68,7 +68,7 @@ btor2parser_strdup (const char *str)
 {
   assert (str);
 
-  char *res = btor2parser_malloc (strlen (str) + 1);
+  char *res = (char *)btor2parser_malloc (strlen (str) + 1);
   strcpy (res, str);
   return res;
 }
@@ -76,7 +76,7 @@ btor2parser_strdup (const char *str)
 Btor2Parser *
 btor2parser_new ()
 {
-  Btor2Parser *res = btor2parser_malloc (sizeof *res);
+  Btor2Parser *res = (Btor2Parser *)btor2parser_malloc (sizeof *res);
   memset (res, 0, sizeof *res);
   return res;
 }
@@ -158,7 +158,7 @@ perr_bfr (Btor2Parser *bfr, const char *fmt, ...)
   va_end (ap);
   buf[1023] = '\0';
 
-  bfr->error = btor2parser_malloc (strlen (buf) + 28);
+  bfr->error = (char *)btor2parser_malloc (strlen (buf) + 28);
   sprintf (bfr->error, "line %" PRId64 ": %s", bfr->lineno, buf);
   return 0;
 }
@@ -169,7 +169,7 @@ pushc_bfr (Btor2Parser *bfr, int32_t ch)
   if (bfr->nbuf >= bfr->szbuf)
   {
     bfr->szbuf = bfr->szbuf ? 2 * bfr->szbuf : 1;
-    bfr->buf   = btor2parser_realloc (bfr->buf, bfr->szbuf * sizeof *bfr->buf);
+    bfr->buf   = (char *)btor2parser_realloc (bfr->buf, bfr->szbuf * sizeof *bfr->buf);
   }
   bfr->buf[bfr->nbuf++] = ch;
 }
@@ -181,7 +181,7 @@ pusht_bfr (Btor2Parser *bfr, Btor2Line *l)
   {
     bfr->sztable = bfr->sztable ? 2 * bfr->sztable : 1;
     bfr->table =
-        btor2parser_realloc (bfr->table, bfr->sztable * sizeof *bfr->table);
+        (Btor2Line **)btor2parser_realloc (bfr->table, bfr->sztable * sizeof *bfr->table);
   }
   bfr->table[bfr->ntable++] = l;
 }
@@ -401,13 +401,13 @@ new_line_bfr (Btor2Parser *bfr,
   Btor2Line *res;
   assert (0 < id);
   assert (bfr->ntable <= id);
-  res = btor2parser_malloc (sizeof *res);
+  res = (Btor2Line *)btor2parser_malloc (sizeof *res);
   memset (res, 0, sizeof (*res));
   res->id     = id;
   res->lineno = lineno;
   res->tag    = tag;
   res->name   = name;
-  res->args   = btor2parser_malloc (sizeof (int64_t) * 3);
+  res->args   = (int64_t *)btor2parser_malloc (sizeof (int64_t) * 3);
   memset (res->args, 0, sizeof (int64_t) * 3);
   while (bfr->ntable < id) pusht_bfr (bfr, 0);
   assert (bfr->ntable == id);
@@ -617,7 +617,7 @@ check_sorts_bfr (Btor2Parser *bfr, Btor2Line *l)
       break;
 
     /* [u:l] -> u - l + 1 */
-    case BTOR2_TAG_slice:
+    case BTOR2_TAG_slice: {
       assert (l->nargs == 1);
       if (!check_sort_bitvec (bfr, l, args)) return 0;
       /* NOTE: this cast is safe since l->args[1] and l->args[2] contains
@@ -631,7 +631,7 @@ check_sorts_bfr (Btor2Parser *bfr, Btor2Line *l)
                          l->name,
                          upper - lower + 1);
       break;
-
+    }
     /* 1 x 1 -> 1 */
     case BTOR2_TAG_iff:
     case BTOR2_TAG_implies:
@@ -706,7 +706,7 @@ check_sorts_bfr (Btor2Parser *bfr, Btor2Line *l)
       break;
 
     case BTOR2_TAG_sext:
-    case BTOR2_TAG_uext:
+    case BTOR2_TAG_uext: {
       assert (l->nargs == 1);
       if (!check_sort_bitvec (bfr, l, args)) return 0;
       /* NOTE: this cast is safe since l->args[1] contains the extension
@@ -719,7 +719,7 @@ check_sorts_bfr (Btor2Parser *bfr, Btor2Line *l)
                          l->name,
                          ext);
       break;
-
+    }
     case BTOR2_TAG_read:
       assert (l->nargs == 2);
       if (args[0]->sort.tag != BTOR2_TAG_SORT_array)
@@ -1000,7 +1000,7 @@ mult_unbounded_bin_str (const char *a, const char *b)
   alen      = strlen (a);
   blen      = strlen (b);
   rlen      = alen + blen;
-  res       = btor2parser_malloc (rlen + 1);
+  res       = (char *)btor2parser_malloc (rlen + 1);
   res[rlen] = 0;
 
   for (r = res; r < res + blen; r++) *r = '0';
@@ -1058,7 +1058,7 @@ add_unbounded_bin_str (const char *a, const char *b)
   rlen = (alen < blen) ? blen : alen;
   rlen++;
 
-  res = btor2parser_malloc (rlen + 1);
+  res = (char *)btor2parser_malloc (rlen + 1);
 
   p = a + alen;
   q = b + blen;
@@ -1256,11 +1256,11 @@ check_state_init (Btor2Parser *bfr, int64_t state_id, int64_t init_id)
 
   // 'init_id' is the highest id we will see when traversing down
   size_t size = (labs (init_id) + 1) * sizeof (char);
-  cache       = btor2parser_malloc (size);
+  cache       = (char *)btor2parser_malloc (size);
   memset (cache, 0, size);
 
   BTOR2_INIT_STACK (stack);
-  BTOR2_PUSH_STACK (stack, init_id);
+  BTOR2_PUSH_STACK (int64_t, stack, init_id);
   do
   {
     id = BTOR2_POP_STACK (stack);
@@ -1282,7 +1282,7 @@ check_state_init (Btor2Parser *bfr, int64_t state_id, int64_t init_id)
                       id);
       break;
     }
-    for (i = 0; i < line->nargs; i++) BTOR2_PUSH_STACK (stack, line->args[i]);
+    for (i = 0; i < line->nargs; i++) BTOR2_PUSH_STACK (int64_t, stack, line->args[i]);
   } while (!BTOR2_EMPTY_STACK (stack));
 
   free (cache);
@@ -1342,7 +1342,7 @@ parse_justice_bfr (Btor2Parser *bfr, Btor2Line *l)
 {
   uint32_t nargs;
   if (!parse_pos_number_bfr (bfr, &nargs)) return 0;
-  l->args  = btor2parser_realloc (l->args, sizeof (int64_t) * nargs);
+  l->args  = (int64_t *)btor2parser_realloc (l->args, sizeof (int64_t) * nargs);
   l->nargs = nargs;
   if (!parse_args (bfr, l, nargs)) return 0;
   return 1;

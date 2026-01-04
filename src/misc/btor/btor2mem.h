@@ -25,20 +25,7 @@ ABC_NAMESPACE_HEADER_START
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR2_NEWN(ptr, nelems) \
-  ((ptr) = (typeof(ptr)) btorsim_malloc ((nelems) * sizeof *(ptr)))
-
-#define BTOR2_CNEWN(ptr, nelems) \
-  ((ptr) = (typeof(ptr)) btorsim_calloc ((nelems), sizeof *(ptr)))
-
 #define BTOR2_CLRN(ptr, nelems) (memset ((ptr), 0, (nelems) * sizeof *(ptr)))
-
-#define BTOR2_REALLOC(p, n) \
-  ((p) = (typeof(p)) btorsim_realloc ((p), ((n) * sizeof *(p))))
-
-#define BTOR2_NEW(ptr) BTOR2_NEWN ((ptr), 1)
-
-#define BTOR2_CNEW(ptr) BTOR2_CNEWN ((ptr), 1)
 
 #define BTOR2_CLR(ptr) BTOR2_CLRN ((ptr), 1)
 
@@ -90,7 +77,7 @@ btorsim_strdup (const char *str)
   char *res = 0;
   if (str)
   {
-    BTOR2_NEWN (res, strlen (str) + 1);
+    res = (char *) btorsim_malloc ((strlen (str) + 1) * sizeof (char));
     strcpy (res, str);
   }
   return res;
