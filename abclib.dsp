@@ -5302,6 +5302,30 @@ SOURCE=.\src\misc\parse\parseInt.h
 SOURCE=.\src\misc\parse\parseStack.c
 # End Source File
 # End Group
+# Begin Group "btor"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\misc\btor\btor2mem.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\btor\btor2parser.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\btor\btor2parser.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\btor\btor2stack.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\btor\catbtor.c
+# End Source File
+# End Group
 # End Group
 # Begin Group "ai"
 

@@ -663,6 +663,8 @@ static int Abc_CommandAbc9Test               ( Abc_Frame_t * pAbc, int argc, cha
 
 static int Abc_CommandAbc9eSLIM              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+static int Abc_CommandAbc9CatBtor            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+
 extern int Abc_CommandAbcLivenessToSafety    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern int Abc_CommandAbcLivenessToSafetySim ( Abc_Frame_t * pAbc, int argc, char ** argv );
 extern int Abc_CommandAbcLivenessToSafetyWithLTL( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1502,6 +1504,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&test",         Abc_CommandAbc9Test,                   0 );
 
     Cmd_CommandAdd( pAbc, "ABC9",         "&eslim",        Abc_CommandAbc9eSLIM,                  0 );
+    
+    Cmd_CommandAdd( pAbc, "ABC9",         "&catbtor",      Abc_CommandAbc9CatBtor,                0 );
     {
 //        extern Mf_ManTruthCount();
 //        Mf_ManTruthCount();
@@ -59459,6 +59463,42 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
     Abc_Print( -2, "\t-s       : toggle fill subcircuits\n");
     Abc_Print( -2, "\t\n" );
     Abc_Print( -2, "\t           This command was contributed by Franz-Xaver Reichl from University of Freiburg.\n" );
+    return 1;
+}
+
+int Abc_CommandAbc9CatBtor( Abc_Frame_t * pAbc, int argc, char ** argv ) {
+    extern void Abc_BtorCat( char * pFileName, int fVerbose );
+  
+    int c, fVerbose = 0;
+    char * pFileName;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "v" ) ) != EOF )
+    {
+        switch ( c ) {
+        case 'v' :
+            fVerbose ^= 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+    if ( argc == globalUtilOptind + 1 )
+        pFileName = argv[globalUtilOptind];
+    else
+    {
+        Abc_Print( -1, "File name is not given on the command line.\n" );
+        return 0;
+    }
+
+    Abc_BtorCat( pFileName, fVerbose );
+    
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &catbtor [-v] <file>\n" );
+    Abc_Print( -2, "\t          parse BTOR file and print to stdout.\n" );
+    Abc_Print( -2, "\t-v      : toggle printing verbose information\n");
+    Abc_Print( -2, "\t<file>  : input BTOR file\n");
     return 1;
 }
 
