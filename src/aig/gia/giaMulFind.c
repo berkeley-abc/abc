@@ -875,7 +875,11 @@ void Gia_ManMulFindPrintOne( Vec_Wec_t * vTerms, int m, int fBooth, int fInputLi
     Vec_Int_t * vIn0 = Vec_WecEntry(vTerms, 3*m+0);
     Vec_Int_t * vIn1 = Vec_WecEntry(vTerms, 3*m+1);
     Vec_Int_t * vOut = Vec_WecEntry(vTerms, 3*m+2);
-    printf( "%sooth %ssigned %d x %d: ", fBooth ? "B" : "Non-b", Vec_IntEntryLast(vOut) ? "" : "un", Vec_IntSize(vIn0), Vec_IntSize(vIn1) );
+    printf( "%sooth %s%ssigned %d x %d: ", 
+        fBooth==1 ? "B" : "Non-b", 
+        fBooth>=1 ? "radix-4 " : "", 
+        Vec_IntEntryLast(vOut) ? "" : "un", 
+        Vec_IntSize(vIn0), Vec_IntSize(vIn1) );
     Gia_ManMulFindPrintSet( vIn0, fInputLits, 0 );
     printf( " * " );
     Gia_ManMulFindPrintSet( vIn1, fInputLits, 0 );
