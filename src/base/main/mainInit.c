@@ -127,6 +127,7 @@ void Abc_FrameInit( Abc_Frame_t * pAbc )
     Ufar_Init( pAbc );
     Glucose_Init( pAbc );
     Glucose2_Init( pAbc );
+    Format_Init(pAbc );//format
     for( p = s_InitializerStart ; p ; p = p->next )
         if(p->init)
             p->init(pAbc);
@@ -157,6 +158,7 @@ void Abc_FrameEnd( Abc_Frame_t * pAbc )
     Map_End( pAbc );
     Mio_End( pAbc );
     Super_End( pAbc );
+    Format_End(pAbc );//format
     Libs_End( pAbc );
     Load_End( pAbc );
     Scl_End( pAbc );
