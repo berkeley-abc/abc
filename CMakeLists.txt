@@ -94,7 +94,7 @@ if(ABC_USE_NAMESPACE)
 endif()
 
 function(abc_properties target visibility)
-    target_include_directories(${target} ${visibility} ${CMAKE_CURRENT_SOURCE_DIR}/src )
+    target_include_directories(${target} ${visibility} $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> $<INSTALL_INTERFACE:include/abc> )
     target_compile_options_filtered(${target} ${visibility} ${ABC_CFLAGS} ${ABC_CXXFLAGS} -Wno-unused-but-set-variable )
     target_link_libraries(${target} ${visibility} ${ABC_LIBS})
 endfunction()
