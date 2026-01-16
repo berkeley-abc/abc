@@ -2796,7 +2796,8 @@ void Gia_ManTransferEquivs2( Gia_Man_t * p, Gia_Man_t * pOld )
         Gia_ObjSetRepr( pOld, i, GIA_VOID );
     // iterate over constant candidates
     Gia_ManForEachConst( p, i )
-        Gia_ObjSetRepr( pOld, Abc_Lit2Var(Gia_ManObj(p, i)->Value), 0 );
+        if ( ~Gia_ManObj(p, i)->Value )
+            Gia_ObjSetRepr( pOld, Abc_Lit2Var(Gia_ManObj(p, i)->Value), 0 );
     // iterate over class candidates
     vClass = Vec_IntAlloc( 100 );
     Gia_ManForEachClass( p, i )
