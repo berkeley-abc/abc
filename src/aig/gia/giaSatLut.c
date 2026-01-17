@@ -1033,7 +1033,7 @@ int Sbl_ManTestSat( Sbl_Man_t * p, int iPivot )
 
     StartSol = Vec_IntSize(p->vSolInit) + 1;
 //    StartSol = 30;
-    while ( fKeepTrying && StartSol-fKeepTrying > 0 )
+    while ( fKeepTrying && StartSol-fKeepTrying > 0 && StartSol-fKeepTrying < Vec_IntSize(p->vCardVars) )
     {
         int Count = 0, LitCount = 0;
         int nConfBef, nConfAft;
