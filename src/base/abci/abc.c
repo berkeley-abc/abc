@@ -36300,6 +36300,7 @@ usage:
 int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     extern Gia_Man_t * Gia_ManDupMuxRestructure( Gia_Man_t * p );
+    extern Gia_Man_t * Gia_ManDupUnhashMapping( Gia_Man_t * p );
     Gia_Man_t * pTemp;
     int c, Limit = 2;
     int Multi = 0;
@@ -36309,9 +36310,10 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fAddMuxes  = 0;
     int fStrMuxes  = 0;
     int fRehashMap = 0;
+    int fUnhashMap = 0;
     int fInvert    = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "LMbacmrsih" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "LMbacmrusih" ) ) != EOF )
     {
         switch ( c )
         {
@@ -36351,6 +36353,9 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'r':
             fRehashMap ^= 1;
+            break;
+        case 'u':
+            fUnhashMap ^= 1;
             break;
         case 's':
             fStrMuxes ^= 1;
@@ -36401,6 +36406,12 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( Gia_ManHasMapping(pAbc->pGia) && fRehashMap )
     {
         pTemp = Gia_ManDupHashMapping( pAbc->pGia );
+        Gia_ManTransferPacking( pTemp, pAbc->pGia );
+        Gia_ManTransferTiming( pTemp, pAbc->pGia );
+    }
+    else if ( Gia_ManHasMapping(pAbc->pGia) && fUnhashMap )
+    {
+        pTemp = Gia_ManDupUnhashMapping( pAbc->pGia );
         Gia_ManTransferPacking( pTemp, pAbc->pGia );
         Gia_ManTransferTiming( pTemp, pAbc->pGia );
     }
@@ -36460,7 +36471,7 @@ int Abc_CommandAbc9Strash( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &st [-LM num] [-bacmrsih]\n" );
+    Abc_Print( -2, "usage: &st [-LM num] [-bacmrusih]\n" );
     Abc_Print( -2, "\t         performs structural hashing\n" );
     Abc_Print( -2, "\t-b     : toggle adding buffers at the inputs and outputs [default = %s]\n", fAddBuffs? "yes": "no" );
     Abc_Print( -2, "\t-a     : toggle additional hashing [default = %s]\n", fAddStrash? "yes": "no" );
@@ -36470,6 +36481,7 @@ usage:
     Abc_Print( -2, "\t         (use L = 1 to create AIG with XORs but without MUXes)\n" );
     Abc_Print( -2, "\t-M num : create an AIG with additional primary inputs [default = %d]\n", Multi );
     Abc_Print( -2, "\t-r     : toggle rehashing AIG while preserving mapping [default = %s]\n", fRehashMap? "yes": "no" );
+    Abc_Print( -2, "\t-u     : toggle unhashing AIG while preserving mapping [default = %s]\n", fUnhashMap? "yes": "no" );
     Abc_Print( -2, "\t-s     : toggle using MUX restructuring [default = %s]\n", fStrMuxes? "yes": "no" );
     Abc_Print( -2, "\t-i     : toggle complementing the POs of the AIG [default = %s]\n", fInvert? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

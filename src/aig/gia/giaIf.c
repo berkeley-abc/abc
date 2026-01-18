@@ -3250,6 +3250,85 @@ Gia_Man_t * Gia_ManDupHashMapping( Gia_Man_t * p )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Uniqifies AIG nodes within each mapped cut.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     [] 
+
+***********************************************************************/
+void Gia_ManDupCollectedCutNodes_rec( Gia_Man_t * p, int iLut, Vec_Int_t * vNodes )
+{
+    if ( Gia_ObjUpdateTravIdCurrentId(p, iLut) )
+        return;
+    Gia_ManDupCollectedCutNodes_rec( p, Gia_ObjFaninId0p(p, Gia_ManObj(p, iLut)), vNodes );
+    Gia_ManDupCollectedCutNodes_rec( p, Gia_ObjFaninId1p(p, Gia_ManObj(p, iLut)), vNodes );
+    Vec_IntPush( vNodes, iLut );
+}
+void Gia_ManDupCollectedCutNodes( Gia_Man_t * p, int iLut, Vec_Int_t * vNodes )
+{
+    Gia_ManIncrementTravId(p);
+    Vec_IntClear( vNodes );
+    int k, iFan;
+    Gia_LutForEachFanin( p, iLut, iFan, k )
+        Gia_ObjSetTravIdCurrentId(p, iFan);
+    assert( !Gia_ObjIsTravIdCurrentId(p, iLut) );
+    Gia_ManDupCollectedCutNodes_rec( p, iLut, vNodes );
+    assert( Gia_ObjIsTravIdCurrentId(p, iLut) );
+}
+Gia_Man_t * Gia_ManDupUnhashMapping( Gia_Man_t * p )
+{
+    Gia_Man_t * pNew; 
+    Vec_Int_t * vMapping; 
+    Gia_Obj_t * pObj, * pFanin;
+    Vec_Int_t * vNodes = Vec_IntAlloc( 100 );
+    Vec_Int_t * vMap = Vec_IntStart( Gia_ManObjNum(p) );
+    int i, k, iTempLit;
+    assert( Gia_ManHasMapping(p) );
+    // copy the old manager with hashing
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManFillValue( p );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachLut( p, i )
+    {
+        Gia_ManDupCollectedCutNodes( p, i, vNodes );        
+        Gia_ManForEachObjVec( vNodes, p, pObj, k )
+            Vec_IntWriteEntry( vMap, Gia_ObjId(p, pObj), pObj->Value );
+        Gia_ManForEachObjVec( vNodes, p, pObj, k )
+            pObj->Value = Gia_ManAppendAnd2( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+        iTempLit = Gia_ManObj(p, i)->Value;
+        Gia_ManForEachObjVec( vNodes, p, pObj, k )
+            pObj->Value = Vec_IntEntry( vMap, Gia_ObjId(p, pObj) );
+        Gia_ManObj(p, i)->Value = iTempLit;
+    }
+    Gia_ManForEachCo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    // recreate mapping
+    vMapping = Vec_IntAlloc( Vec_IntSize(p->vMapping) );
+    Vec_IntFill( vMapping, Gia_ManObjNum(pNew), 0 );
+    Gia_ManForEachLut( p, i )
+    {
+        pObj = Gia_ManObj( p, i );
+        Vec_IntWriteEntry( vMapping, Abc_Lit2Var(pObj->Value), Vec_IntSize(vMapping) );
+        Vec_IntPush( vMapping, Gia_ObjLutSize(p, i) );
+        Gia_LutForEachFaninObj( p, i, pFanin, k )
+            Vec_IntPush( vMapping, Abc_Lit2Var(pFanin->Value)  );
+        Vec_IntPush( vMapping, Abc_Lit2Var(pObj->Value) );
+    }
+    Vec_IntFree( vMap );
+    pNew->vMapping = vMapping;
+    return pNew;
+}
+
 
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
