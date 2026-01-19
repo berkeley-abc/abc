@@ -14,7 +14,11 @@
 #include <array>
 #include <regex>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <sys/wait.h>
+#endif
 
 #include <base/wlc/wlc.h>
 #include <sat/cnf/cnf.h>

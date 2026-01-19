@@ -31,7 +31,9 @@
 
 #ifdef _WIN32
 #ifndef __MINGW32__
+#ifndef _MSC_VER
 #define inline __inline // compatible with MS VS 6.0
+#endif
 #pragma warning(disable : 4152) // warning C4152: nonstandard extension, function/data pointer conversion in expression
 #pragma warning(disable : 4200) // warning C4200: nonstandard extension used : zero-sized array in struct/union
 #pragma warning(disable : 4244) // warning C4244: '+=' : conversion from 'int ' to 'unsigned short ', possible loss of data

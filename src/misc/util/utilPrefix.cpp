@@ -37,6 +37,7 @@
 #include <random>
 #include <climits>
 #include <iomanip>
+#include <string>
 //#include <cstdlib>
 //#include <cstring>
 //#include <cstdio>

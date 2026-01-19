@@ -19,6 +19,10 @@
 ***********************************************************************/
 
 #include "gia.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "sat/cnf/cnf.h"
 #include "misc/util/utilTruth.h"
 #include "sat/cadical/cadicalSolver.h"
@@ -183,9 +187,13 @@ Gia_Man_t * Gia_ManGenLutCas( Gia_Man_t * p, char * pPermStr, int nVars, int nLu
     if ( Seed ) 
         srand(Seed); 
     else {
+#ifdef _WIN32
+        unsigned int seed = (unsigned int)GetTickCount();
+#else
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         unsigned int seed = (unsigned int)(ts.tv_sec ^ ts.tv_nsec);
+#endif
         srand(seed);
     }
     int fOwnPerm = (pPermStr == NULL);

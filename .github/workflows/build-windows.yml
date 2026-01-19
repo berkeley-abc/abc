@@ -17,14 +17,6 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Process project files to compile on Github Actions
-      run: |
-        sed -i 's#ABC_USE_PTHREADS\"#ABC_DONT_USE_PTHREADS\" /D \"_ALLOW_KEYWORD_MACROS=1\"#g' *.dsp
-        awk 'BEGIN { del=0; } /# Begin Group "uap"/ { del=1; } /# End Group/ { if( del > 0 ) {del=0; next;} } del==0 {print;} ' abclib.dsp > tmp.dsp
-        copy tmp.dsp abclib.dsp
-        del tmp.dsp
-        unix2dos *.dsp
-
     - name: Prepare MSVC
       uses: bus1/cabuild/action/msdevshell@v1
       with:
@@ -32,20 +24,43 @@ jobs:
 
     - name: Upgrade project files to latest Visual Studio, ignoring upgrade errors, and build
       run: |
-        devenv abcspace.dsw /upgrade  ; if (-not $? ) { cat UpgradeLog.htm }
-        msbuild abcspace.sln /m /nologo /p:Configuration=Release /p:PlatformTarget=x86
+        devenv abcspace.dsw /upgrade
+        # Fix the upgraded vcxproj files to use C++17
+        if (Test-Path abclib.vcxproj) {
+            $content = Get-Content abclib.vcxproj -Raw
+            if ($content -match '<LanguageStandard>') {
+                $content = $content -replace '<LanguageStandard>Default</LanguageStandard>', '<LanguageStandard>stdcpp17</LanguageStandard>'
+            } else {
+                # Add LanguageStandard if it doesn't exist
+                $content = $content -replace '(<ClCompile>)', '$1<LanguageStandard>stdcpp17</LanguageStandard>'
+            }
+            Set-Content abclib.vcxproj -NoNewline $content
+        }
+        if (Test-Path abcexe.vcxproj) {
+            $content = Get-Content abcexe.vcxproj -Raw
+            if ($content -match '<LanguageStandard>') {
+                $content = $content -replace '<LanguageStandard>Default</LanguageStandard>', '<LanguageStandard>stdcpp17</LanguageStandard>'
+            } else {
+                # Add LanguageStandard if it doesn't exist
+                $content = $content -replace '(<ClCompile>)', '$1<LanguageStandard>stdcpp17</LanguageStandard>'
+            }
+            Set-Content abcexe.vcxproj -NoNewline $content
+        }
+        msbuild abcspace.sln /m /nologo /v:m /p:Configuration=Release /p:UseMultiToolTask=true /p:PlatformToolset=v142 /p:PreprocessorDefinitions="_WINSOCKAPI_"
+        if ($LASTEXITCODE -ne 0) { throw "Build failed with exit code $LASTEXITCODE" }
 
     - name: Test Executable
       run: |
-        _TEST\abc.exe -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+        copy lib\x86\pthreadVC2.dll _TEST\
+        .\_TEST\abc.exe -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+        if ($LASTEXITCODE -ne 0) { throw "Test failed with exit code $LASTEXITCODE" }
 
     - name: Stage Executable
       run: |
-       mkdir staging
-       copy _TEST/abc.exe staging/
-       copy UpgradeLog.htm staging/
+        mkdir staging
+        copy _TEST\abc.exe staging\
 
-    - name: Upload pacakge artifact
+    - name: Upload package artifact
       uses: actions/upload-artifact@v4
       with:
         name: package-windows
