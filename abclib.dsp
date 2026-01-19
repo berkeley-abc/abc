@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "ReleaseLib"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "src" /D "WIN32" /D "WINDOWS" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_PTHREADS" /D "ABC_USE_CUDD" /FR /YX /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "src" /D "WIN32" /D "WINDOWS" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_PTHREADS" /D "ABC_USE_CUDD" /D "HAVE_STRUCT_TIMESPEC" /D "_WINSOCKAPI_" /FR /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "DebugLib"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "src" /D "WIN32" /D "WINDOWS" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_PTHREADS" /D "ABC_USE_CUDD" /FR /YX /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "src" /D "WIN32" /D "WINDOWS" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /D ABC_DLL=ABC_DLLEXPORT /D "_CRT_SECURE_NO_DEPRECATE" /D "ABC_USE_PTHREADS" /D "ABC_USE_CUDD" /D "HAVE_STRUCT_TIMESPEC" /D "_WINSOCKAPI_" /FR /YX /FD /GZ /c
 # ADD BASE RSC /l 0x409 /d "_DEBUG"
 # ADD RSC /l 0x409 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -513,6 +513,10 @@ SOURCE=.\src\base\abci\abcVerify.c
 
 SOURCE=.\src\base\abci\abcXsim.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\base\abci\abcTopo.c
+# End Source File
 # End Group
 # Begin Group "cmd"
 
@@ -708,6 +712,10 @@ SOURCE=.\src\base\io\ioWriteSmv.c
 # Begin Source File
 
 SOURCE=.\src\base\io\ioWriteVerilog.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\base\io\ioJsonc.c
 # End Source File
 # End Group
 # Begin Group "main"
@@ -2153,6 +2161,18 @@ SOURCE=.\src\sat\bmc\bmcMulti.c
 
 SOURCE=.\src\sat\bmc\bmcUnroll.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcMaj7.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcMaj8.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\sat\bmc\bmcMaj9.c
+# End Source File
 # End Group
 # Begin Group "bsat2"
 
@@ -3329,6 +3349,49 @@ SOURCE=.\src\opt\fxu\fxuSingle.c
 
 SOURCE=.\src\opt\fxu\fxuUpdate.c
 # End Source File
+# Begin Group "untk"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\untk\NtkCmd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\untk\Netlist.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\untk\NtkNtk.cpp
+# End Source File
+# End Group
+# Begin Group "ufar"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\ufar\UfarCmd.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ufar\UfarMgr.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ufar\UfarPth.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\opt\ufar\UfarPth.h
+# End Source File
+# End Group
+# Begin Group "util"
+
+# PROP Default_Filter ""
+# Begin Source File
+
+SOURCE=.\src\opt\util\util.cpp
+# End Source File
 # End Group
 # Begin Group "rar"
 
@@ -4445,6 +4508,10 @@ SOURCE=.\src\map\if\acd\ac_wrapper.cpp
 
 SOURCE=.\src\map\if\ifUtil.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\map\if\ifDecJ.c
+# End Source File
 # End Group
 # Begin Group "amap"
 
@@ -5020,6 +5087,30 @@ SOURCE=.\src\misc\util\utilSort.c
 # Begin Source File
 
 SOURCE=.\src\misc\util\utilTruth.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilBipart.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilLinear.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilMiniver.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilMulSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilAigSim.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\misc\util\utilNet.c
 # End Source File
 # End Group
 # Begin Group "nm"
@@ -6241,6 +6332,22 @@ SOURCE=.\src\aig\gia\giaUnate.c
 
 SOURCE=.\src\aig\gia\giaUtil.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaDecGraph.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaAgi.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaLutCas.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\src\aig\gia\giaMulFind3.c
+# End Source File
 # End Group
 # Begin Group "miniaig"
 
@@ -6474,7 +6581,6 @@ SOURCE=.\src\bool\rpo\rpo.c
 SOURCE=.\src\bool\rpo\rpo.h
 # End Source File
 # End Group
-# End Group
 # Begin Group "prove"
 
 # PROP Default_Filter ""
@@ -6569,6 +6675,7 @@ SOURCE=.\src\proof\cec\cecSweep.c
 
 SOURCE=.\src\proof\cec\cecSynth.c
 # End Source File
+# End Group
 # End Group
 # Begin Group "dch"
 
@@ -7213,12 +7320,14 @@ SOURCE=.\src\proof\acec\acecUtil.c
 
 SOURCE=.\src\proof\acec\acecXor.c
 # End Source File
-# End Group
+
 # End Group
 # End Group
 # Begin Group "Header Files"
 
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
+# End Group
+# End Group
 # End Group
 # End Target
 # End Project

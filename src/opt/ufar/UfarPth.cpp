@@ -1,8 +1,12 @@
 
 #include "misc/util/abc_namespaces.h"
 
+#ifdef _WIN32
+#include "../lib/pthread.h"
+#else
 #include <pthread.h>
 #include <unistd.h>
+#endif
 
 #include "sat/bmc/bmc.h"
 #include "proof/pdr/pdr.h"

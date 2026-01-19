@@ -5,6 +5,12 @@
  *      Author: Yen-Sheng Ho
  */
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
+
 #include <iostream>
 #include <iomanip>
 #include <climits>

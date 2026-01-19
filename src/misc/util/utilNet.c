@@ -22,7 +22,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#ifdef _WIN32
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 #include <time.h>
 
 #include "abc_global.h"
@@ -1083,7 +1087,11 @@ tn_vi * Tn_ParseSolution( const char * pFileName )
             assert( 0 );
     }
     fclose( pFile );
+#ifdef _WIN32
+    _unlink( pFileName );
+#else
     unlink( pFileName );
+#endif
     return vRes;
 }
 tn_vi * Tn_SolveSat( const char * pFileNameIn, const char * pFileNameOut, int Seed, int TimeOut, int fVerbose )

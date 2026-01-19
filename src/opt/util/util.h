@@ -16,7 +16,37 @@
 #include <map>
 #include <vector>
 
+#ifdef _WIN32
+// Define timeval before windows.h to prevent winsock.h forward declaration conflicts
+#ifndef _TIMEVAL_DEFINED
+#define _TIMEVAL_DEFINED
+struct timeval {
+    long tv_sec;
+    long tv_usec;
+};
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
+static inline int gettimeofday(struct timeval *tv, struct timezone *tz) {
+    if (tv) {
+        FILETIME ft;
+        GetSystemTimeAsFileTime(&ft);
+        ULARGE_INTEGER uli;
+        uli.LowPart = ft.dwLowDateTime;
+        uli.HighPart = ft.dwHighDateTime;
+        ULONGLONG time_in_us = (uli.QuadPart - 116444736000000000ULL) / 10ULL;
+        tv->tv_sec = (long)(time_in_us / 1000000ULL);
+        tv->tv_usec = (long)(time_in_us % 1000000ULL);
+    }
+    (void)tz;
+    return 0;
+}
+#else
 #include <sys/time.h>
+#endif
 
 #include "misc/util/abc_namespaces.h"
 

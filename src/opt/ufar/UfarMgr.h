@@ -15,7 +15,22 @@
 #include <sstream>
 #include <iostream>
 #include <memory>
+#ifdef _WIN32
+// Define timeval before windows.h to prevent winsock.h forward declaration conflicts
+#ifndef _TIMEVAL_DEFINED
+#define _TIMEVAL_DEFINED
+struct timeval {
+    long tv_sec;
+    long tv_usec;
+};
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#else
 #include <sys/time.h>
+#endif
 
 #include "misc/util/abc_namespaces.h"
 
