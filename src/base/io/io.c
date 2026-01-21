@@ -4207,7 +4207,7 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "IoCommandWriteTruths(): There is no AIG.\n" );
-        return 1;
+        return 0;
     } 
     if ( Gia_ManPiNum(pAbc->pGia) > 16 )
     {

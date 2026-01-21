@@ -35427,7 +35427,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pAbc->pGiaBest == NULL )
         {
             Abc_Print( -1, "Abc_CommandAbc9Ps(): There is no AIG.\n" );
-            return 1;
+            return 0;
         }
         Gia_ManPrintStats( pAbc->pGiaBest, pPars );
     }
@@ -35436,7 +35436,7 @@ int Abc_CommandAbc9Ps( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pAbc->pGia == NULL )
         {
             Abc_Print( -1, "Abc_CommandAbc9Ps(): There is no AIG.\n" );
-            return 1;
+            return 0;
         }
         Gia_ManPrintStats( pAbc->pGia, pPars );
     }
