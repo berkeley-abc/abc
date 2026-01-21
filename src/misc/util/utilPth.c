@@ -23,6 +23,22 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <time.h>
+// nanosleep implementation for Windows
+static inline int nanosleep(const struct timespec *req, struct timespec *rem) {
+    LARGE_INTEGER li;
+    li.QuadPart = -((LONGLONG)req->tv_sec * 10000000 + req->tv_nsec / 100);
+    HANDLE timer = CreateWaitableTimer(NULL, TRUE, NULL);
+    if (!timer) return -1;
+    SetWaitableTimer(timer, &li, 0, NULL, NULL, 0);
+    WaitForSingleObject(timer, INFINITE);
+    CloseHandle(timer);
+    return 0;
+}
+#endif
+
 #ifdef ABC_USE_PTHREADS
 
 #ifdef _WIN32
@@ -35,7 +51,23 @@
 #include <atomic>
 using namespace std;
 #else
+#ifndef _WIN32
 #include <stdatomic.h>
+#else
+// MSVC doesn't have stdatomic.h, use Interlocked functions instead
+#define atomic_bool volatile LONG
+#define atomic_int volatile LONG
+#define atomic_store(obj, val) InterlockedExchange((LONG*)obj, val)
+#define atomic_load(obj) (*(volatile LONG*)obj)
+#define atomic_compare_exchange_strong(obj, expected, desired) \
+    (InterlockedCompareExchange((LONG*)obj, desired, *expected) == *expected ? \
+     (*expected = desired, 1) : (*expected = *(volatile LONG*)obj, 0))
+#define atomic_store_explicit(obj, val, order) InterlockedExchange((LONG*)obj, val)
+#define atomic_load_explicit(obj, order) (*(volatile LONG*)obj)
+#define memory_order_acquire 0
+#define memory_order_release 0
+#define memory_order_seq_cst 0
+#endif
 #include <stdbool.h>
 #endif
 

@@ -5,8 +5,12 @@
  *      Author: Yen-Sheng Ho
  */
 
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <unistd.h>
 #include <sys/wait.h>
+#endif
 #include <fstream>
 
 #include <base/wlc/wlc.h>

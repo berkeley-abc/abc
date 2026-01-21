@@ -25,7 +25,44 @@
 #include <assert.h>
 #include <ctype.h>
 #include <time.h>
+#ifdef _WIN32
+#include <io.h>
+#define mkstemp(p) _mktemp_s(p, strlen(p)+1)
+#else
 #include <unistd.h>   // mkstemp(), close(), unlink()
+#endif
+
+#ifdef _WIN32
+// Windows doesn't have __builtin_ctzll, implement it using portable algorithm
+static inline int __builtin_ctzll(uint64_t x) {
+    if (x == 0) return 64;
+    unsigned int n = 0;
+    if ((x & 0xFFFFFFFFULL) == 0) {
+        n += 32;
+        x >>= 32;
+    }
+    if ((x & 0xFFFFULL) == 0) {
+        n += 16;
+        x >>= 16;
+    }
+    if ((x & 0xFFULL) == 0) {
+        n += 8;
+        x >>= 8;
+    }
+    if ((x & 0xFULL) == 0) {
+        n += 4;
+        x >>= 4;
+    }
+    if ((x & 0x3ULL) == 0) {
+        n += 2;
+        x >>= 2;
+    }
+    if ((x & 0x1ULL) == 0) {
+        n += 1;
+    }
+    return n;
+}
+#endif
 
 #define AIGSIM_LIBRARY_ONLY
 
@@ -147,6 +184,17 @@ static AigMan* Aig_ManLoadAigerBinary(const char *filename, int verbose) {
 static inline uint64_t u64_mask_n(int nBits) {
     return (nBits >= 64) ? ~0ull : ((nBits <= 0) ? 0ull : ((1ull << nBits) - 1ull));
 }
+
+#ifdef _WIN32
+// Windows doesn't support __int128, so we limit to 32 variables on Windows
+static void u128_to_dec(uint64_t x, char *buf, size_t cap) {
+    char tmp[64]; int n = 0;
+    if (!x) { snprintf(buf, cap, "0"); return; }
+    while (x && n < (int)sizeof(tmp)) { tmp[n++] = (char)('0' + (unsigned)(x % 10)); x /= 10; }
+    int k = 0; while (n && k + 1 < (int)cap) buf[k++] = tmp[--n];
+    buf[k] = 0;
+}
+#else
 static void u128_to_dec(unsigned __int128 x, char *buf, size_t cap) {
     char tmp[64]; int n = 0;
     if (!x) { snprintf(buf, cap, "0"); return; }
@@ -154,6 +202,7 @@ static void u128_to_dec(unsigned __int128 x, char *buf, size_t cap) {
     int k = 0; while (n && k + 1 < (int)cap) buf[k++] = tmp[--n];
     buf[k] = 0;
 }
+#endif
 
 enum { NW = 64, BATCH = NW * 64 }; // 4096 patterns/round
 
@@ -334,7 +383,16 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
 
     const uint64_t inMask  = u64_mask_n(p1->nCis);
     const uint64_t outMask = u64_mask_n(p1->nCos);
+#ifdef _WIN32
+    // Windows doesn't support __int128, limit to 32 variables
+    if (nVars > 32) {
+        fprintf(stderr, "Error: Windows build supports nVars<=32 (got nVars=%d)\n", nVars);
+        return 0;
+    }
+    const uint64_t combs = ((uint64_t)1) << (unsigned)nVars;
+#else
     const unsigned __int128 combs = ((unsigned __int128)1) << (unsigned)nVars;
+#endif
 
     uint32_t *co1 = ABC_ALLOC(uint32_t, p1->nCos);
     uint32_t *co2 = ABC_ALLOC(uint32_t, p2->nCos);
@@ -348,12 +406,21 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
 
     uint64_t inVec[BATCH], valid[NW];
     unsigned long long rounds = 0;
+#ifdef _WIN32
+    uint64_t patsDone = 0;
+#else
     unsigned __int128 patsDone = 0;
+#endif
 
     clock_t t0 = clock();
 
+#ifdef _WIN32
+    for (uint64_t base = 0; base < combs; base += BATCH) {
+        uint64_t remain = combs - base;
+#else
     for (unsigned __int128 base = 0; base < combs; base += BATCH) {
         unsigned __int128 remain = combs - base;
+#endif
         int nThis = (remain < BATCH) ? (int)remain : BATCH;
 
         int left = nThis;
@@ -454,7 +521,16 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
 
     const uint64_t inMask  = u64_mask_n(p1->nCis);
     const uint64_t outMask = u64_mask_n(p1->nCos);
+#ifdef _WIN32
+    // Windows doesn't support __int128, limit to 32 variables
+    if (nVars > 32) {
+        fprintf(stderr, "Error: Windows build supports nVars<=32 (got nVars=%d)\n", nVars);
+        return 0;
+    }
+    const uint64_t combs = ((uint64_t)1) << (unsigned)nVars;
+#else
     const unsigned __int128 combs = ((unsigned __int128)1) << (unsigned)nVars;
+#endif
 
     // Precompute AIG CO literals
     uint32_t *co1 = ABC_ALLOC(uint32_t, p1->nCos);
@@ -475,12 +551,21 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
 
     uint64_t inVec[BATCH], valid[NW];
     unsigned long long rounds = 0;
+#ifdef _WIN32
+    uint64_t patsDone = 0;
+#else
     unsigned __int128 patsDone = 0;
+#endif
 
     clock_t t0 = clock();
 
+#ifdef _WIN32
+    for (uint64_t base = 0; base < combs; base += BATCH) {
+        uint64_t remain = combs - base;
+#else
     for (unsigned __int128 base = 0; base < combs; base += BATCH) {
         unsigned __int128 remain = combs - base;
+#endif
         int nThis = (remain < BATCH) ? (int)remain : BATCH;
 
         int left = nThis;

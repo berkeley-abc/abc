@@ -27,6 +27,10 @@
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 ABC_NAMESPACE_IMPL_START
 
 
@@ -1084,9 +1088,13 @@ Vec_Wec_t * Exa3_ChooseInputVars( int nVars, int nLuts, int nLutSize, int Seed )
     if ( Seed ) 
         srand(Seed); 
     else {
+#ifdef _WIN32
+        unsigned int seed = (unsigned int)GetTickCount();
+#else
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         unsigned int seed = (unsigned int)(ts.tv_sec ^ ts.tv_nsec);
+#endif
         srand(seed);
     }
     for ( int i = 0; i < 1000; i++ ) {
