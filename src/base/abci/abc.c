@@ -34603,6 +34603,11 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkDelete( pNtkNoCh );
         Aig_ManStop( pMan );
     }
+    // transfer the spec name to the pNtk
+    if( pAbc->pGia->pSpec )
+    {
+        pNtk->pSpec = Extra_UtilStrsav( pAbc->pGia->pSpec );
+    }
     // transfer PI names to pNtk
     if ( pAbc->pGia->vNamesIn )
     {
