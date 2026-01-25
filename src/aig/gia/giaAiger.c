@@ -649,23 +649,35 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
             {
                 pCur++;
                 nInputs = Gia_AigerReadInt(pCur)/4;                        pCur += 4;
+                int nPiFf = Gia_ManPiNum(pNew) + Gia_ManRegNum(pNew);
+                if ( nInputs > nPiFf ) { 
+                    printf( "Warning: Timing info size (%d) exceeds PIs+FFs (%d). Using first %d values.\n", nInputs, nPiFf, nPiFf ); 
+                    nInputs = nPiFf; 
+                }
+                else if ( nInputs > Gia_ManPiNum(pNew) && nInputs < nPiFf ) { 
+                    printf( "Warning: Timing info size (%d) is between PIs (%d) and PIs+FFs (%d). Using first %d values.\n", nInputs, Gia_ManPiNum(pNew), nPiFf, Gia_ManPiNum(pNew) ); 
+                    nInputs = Gia_ManPiNum(pNew); 
+                }
                 pNew->vInArrs  = Vec_FltStart( nInputs );
                 memcpy( Vec_FltArray(pNew->vInArrs),  pCur, (size_t)4*nInputs );   pCur += 4*nInputs;
                 if ( fVerbose ) printf( "Finished reading extension \"i\".\n" );
-                //if ( Vec_FltSize(pNew->vInArrs) == Gia_ManPiNum(pNew) )
-                //    Vec_FltFillExtra(pNew->vInArrs, Gia_ManCiNum(pNew), 0);
-                //assert( Vec_FltSize(pNew->vInArrs) == Gia_ManCiNum(pNew) );
             }
             else if ( *pCur == 'o' )
             {
                 pCur++;
                 nOutputs = Gia_AigerReadInt(pCur)/4;                       pCur += 4;
+                int nPoFf = Gia_ManPoNum(pNew) + Gia_ManRegNum(pNew);
+                if ( nOutputs > nPoFf ) { 
+                    printf( "Warning: Required time size (%d) exceeds POs+FFs (%d). Using first %d values.\n", nOutputs, nPoFf, nPoFf ); 
+                    nOutputs = nPoFf; 
+                }
+                else if ( nOutputs > Gia_ManPoNum(pNew) && nOutputs < nPoFf ) { 
+                    printf( "Warning: Required time size (%d) is between POs (%d) and POs+FFs (%d). Using first %d values.\n", nOutputs, Gia_ManPoNum(pNew), nPoFf, Gia_ManPoNum(pNew) ); 
+                    nOutputs = Gia_ManPoNum(pNew); 
+                }
                 pNew->vOutReqs  = Vec_FltStart( nOutputs );
                 memcpy( Vec_FltArray(pNew->vOutReqs),  pCur, (size_t)4*nOutputs ); pCur += 4*nOutputs;
                 if ( fVerbose ) printf( "Finished reading extension \"o\".\n" );
-                //if ( Vec_FltSize(pNew->vOutReqs) == Gia_ManPoNum(pNew) )
-                //    Vec_FltFillExtra(pNew->vOutReqs, Gia_ManCoNum(pNew), 0);
-                //assert( Vec_FltSize(pNew->vOutReqs) == Gia_ManCoNum(pNew) );
             }
             // read equivalence classes
             else if ( *pCur == 'e' )
@@ -1429,23 +1441,27 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
     if ( p->pManTime )
     {
         float * pTimes;
-        pTimes = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime );
+        pTimes = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime, Gia_ManRegNum(p) );
         if ( pTimes )
         {
+            int nPis = Tim_ManPiNum((Tim_Man_t *)p->pManTime);
+            int nFlops = Gia_ManRegNum(p);
             fprintf( pFile, "i" );
-            Gia_FileWriteBufferSize( pFile, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime) );
-            fwrite( pTimes, 1, 4*Tim_ManPiNum((Tim_Man_t *)p->pManTime), pFile );
+            Gia_FileWriteBufferSize( pFile, 4*(nPis + nFlops) );
+            fwrite( pTimes, 1, 4*(nPis + nFlops), pFile );
             ABC_FREE( pTimes );
-            if ( fVerbose ) printf( "Finished writing extension \"i\".\n" );
+            if ( fVerbose ) printf( "Finished writing extension \"i\" (PIs+Flops).\n" );
         }
-        pTimes = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime );
+        pTimes = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime, Gia_ManRegNum(p) );
         if ( pTimes )
         {
+            int nPos = Tim_ManPoNum((Tim_Man_t *)p->pManTime);
+            int nFlops = Gia_ManRegNum(p);
             fprintf( pFile, "o" );
-            Gia_FileWriteBufferSize( pFile, 4*Tim_ManPoNum((Tim_Man_t *)p->pManTime) );
-            fwrite( pTimes, 1, 4*Tim_ManPoNum((Tim_Man_t *)p->pManTime), pFile );
+            Gia_FileWriteBufferSize( pFile, 4*(nPos + nFlops) );
+            fwrite( pTimes, 1, 4*(nPos + nFlops), pFile );
             ABC_FREE( pTimes );
-            if ( fVerbose ) printf( "Finished writing extension \"o\".\n" );
+            if ( fVerbose ) printf( "Finished writing extension \"o\" (POs+Flops).\n" );
         }
     }
     // write equivalences

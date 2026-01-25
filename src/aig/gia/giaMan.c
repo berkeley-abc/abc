@@ -1033,15 +1033,28 @@ Vec_Int_t * Gia_ManDfsArrivals( Gia_Man_t * p, Vec_Int_t * vObjs )
     Vec_Int_t * vTimes = Vec_IntStartFull( Gia_ManObjNum(p) );
     Gia_Obj_t * pObj; int j, Entry, k, iFan;
     Vec_IntWriteEntry( vTimes, 0, 0 );
-    if ( pManTime ) 
+    if ( pManTime )
     {
         Tim_ManIncrementTravId( pManTime );
         Gia_ManForEachCi( p, pObj, j )
+        {
+            float arrTime = 0;
             if ( j < Tim_ManPiNum(pManTime) )
             {
-                float arrTime = Tim_ManGetCiArrival( pManTime, j );
+                // PIs - direct index
+                arrTime = Tim_ManGetCiArrival( pManTime, j );
                 Vec_IntWriteEntry( vTimes, Gia_ObjId(p, pObj), (int)arrTime );
             }
+            else if ( j >= Tim_ManCiNum(pManTime) - Gia_ManRegNum(p) )
+            {
+                // Flops - need to remap index: stored at Tim_ManPiNum + flop_index
+                int flopIndex = j - (Tim_ManCiNum(pManTime) - Gia_ManRegNum(p));
+                int remappedIndex = Tim_ManPiNum(pManTime) + flopIndex;
+                arrTime = Tim_ManGetCiArrival( pManTime, remappedIndex );
+                Vec_IntWriteEntry( vTimes, Gia_ObjId(p, pObj), (int)arrTime );
+            }
+            // BoxOutputs in the middle are skipped (no timing set)
+        }
     }
     else
     {
@@ -1115,17 +1128,28 @@ Vec_Int_t * Gia_ManDfsRequireds( Gia_Man_t * p, Vec_Int_t * vObjs, int ReqTime )
     Gia_Obj_t * pObj; 
     int j, Entry, k, iFan, Req;
     Vec_IntWriteEntry( vTimes, 0, 0 );
-    if ( pManTime ) 
+    if ( pManTime )
     {
-        int nCoLimit = Gia_ManCoNum(p) - Tim_ManPoNum(pManTime);
         Tim_ManIncrementTravId( pManTime );
         //Tim_ManInitPoRequiredAll( pManTime, (float)ReqTime );
         Gia_ManForEachCo( p, pObj, j )
-            if ( j >= nCoLimit )
+        {
+            if ( j < Gia_ManPoNum(p) )
             {
+                // POs - direct index works since they come first
                 Tim_ManSetCoRequired( pManTime, j, ReqTime );
                 Gia_ManDfsUpdateRequired( vTimes, Gia_ObjFaninId0p(p, pObj), ReqTime );
             }
+            else if ( j >= Gia_ManCoNum(p) - Gia_ManRegNum(p) )
+            {
+                // Flop inputs - remap index: stored at Tim_ManPoNum + flop_index
+                int flopIndex = j - (Gia_ManCoNum(p) - Gia_ManRegNum(p));
+                int remappedIndex = Tim_ManPoNum(pManTime) + flopIndex;
+                Tim_ManSetCoRequired( pManTime, remappedIndex, ReqTime );
+                Gia_ManDfsUpdateRequired( vTimes, Gia_ObjFaninId0p(p, pObj), ReqTime );
+            }
+            // BoxInputs in the middle are skipped (no required time set)
+        }
     }
     else
     {

@@ -2306,8 +2306,8 @@ Gia_Man_t * Gia_ManPerformLfMapping( Gia_Man_t * p, Jf_Par_t * pPars, int fNorma
             Gia_ManTransferTiming( pNew, p );
             p = pNew;
             // set arrival and required times
-            pPars->pTimesArr = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime );
-            pPars->pTimesReq = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime );
+            pPars->pTimesArr = Tim_ManGetArrTimes( (Tim_Man_t *)p->pManTime, Gia_ManRegNum(p) );
+            pPars->pTimesReq = Tim_ManGetReqTimes( (Tim_Man_t *)p->pManTime, Gia_ManRegNum(p) );
         }
         else
             p = Gia_ManDup( p );

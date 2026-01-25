@@ -372,8 +372,14 @@ Vec_Int_t * Gia_ManOrderWithBoxes( Gia_Man_t * p )
 
   Synopsis    [Duplicates AIG according to the timing manager.]
 
-  Description []
-               
+  Description [Converts a normalized AIG to unnormalized form for box processing.
+               In normalized AIG: CIs are ordered as PIs + BoxOutputs + FlopOutputs
+               In unnormalized AIG: CIs are ordered as PIs + FlopOutputs only,
+               with BoxOutputs spread throughout the AIG in topological order.
+               This transformation allows proper timing-aware processing of boxes.
+               For sequential AIGs, flop count is preserved, with flop outputs
+               remaining as CIs and flop inputs as COs.]
+
   SideEffects []
 
   SeeAlso     []
