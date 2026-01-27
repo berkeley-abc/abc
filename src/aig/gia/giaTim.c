@@ -1128,6 +1128,16 @@ int Gia_ManVerifyWithBoxes( Gia_Man_t * pGia, int nBTLimit, int nTimeLim, int fS
     // compute the miter
     if ( fSeq )
     {
+        extern Gia_Man_t * Gia_ManDupAddFlop( Gia_Man_t * p );
+        if ( Gia_ManRegNum(pGia0) == 0 ) {
+            pGia0 = Gia_ManDupAddFlop( pMiter = pGia0 );
+            Gia_ManStop( pMiter );
+        }
+        if ( Gia_ManRegNum(pGia1) == 0 ) {
+            pGia1 = Gia_ManDupAddFlop( pMiter = pGia1 );
+            Gia_ManStop( pMiter );
+        }
+        
         pMiter = Gia_ManMiter( pGia0, pGia1, 0, 0, 1, 0, fVerbose );
         if ( pMiter )
         {

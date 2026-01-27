@@ -5816,10 +5816,12 @@ void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla 
 
 /**Function*************************************************************
 
-  Synopsis    []
+  Synopsis    [Adds a dummy flop to the design.]
 
-  Description []
-               
+  Description [Duplicates the AIG while adding one flop with constant 0 input
+               and no fanout. Handles designs with boxes by also duplicating
+               the timing manager with an additional CI/CO pair.]
+
   SideEffects []
 
   SeeAlso     []
@@ -5827,11 +5829,13 @@ void Gia_ManProdAdderGen( int nArgA, int nArgB, int Seed, int fSigned, int fCla 
 ***********************************************************************/
 Gia_Man_t * Gia_ManDupAddFlop( Gia_Man_t * p )
 {
+    extern Tim_Man_t * Tim_ManDupAddFlop( Tim_Man_t * p, int fUnitDelay );
     Gia_Man_t * pNew;
     Gia_Obj_t * pObj;
     int i;
     pNew = Gia_ManStart( Gia_ManObjNum(p) + 2 );
     pNew->pName = Abc_UtilStrsav(p->pName);
+    pNew->pSpec = Abc_UtilStrsav(p->pSpec);
     Gia_ManConst0(p)->Value = 0;
     Gia_ManForEachCi( p, pObj, i )
         pObj->Value = Gia_ManAppendCi( pNew );
@@ -5840,8 +5844,40 @@ Gia_Man_t * Gia_ManDupAddFlop( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
-    Gia_ManAppendCo( pNew, 0 );    
+    Gia_ManAppendCo( pNew, 0 );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p)+1 );
+    if ( p->pManTime )
+        pNew->pManTime = Tim_ManDupAddFlop( (Tim_Man_t *)p->pManTime, 0 );
+    if ( p->pAigExtra )
+        pNew->pAigExtra = Gia_ManDup( p->pAigExtra );
+    if ( p->vCiArrs )
+    {
+        pNew->vCiArrs = Vec_IntDup( p->vCiArrs );
+        Vec_IntPush( pNew->vCiArrs, 0.0 ); // default arrival for new flop output
+    }
+    if ( p->vCoReqs )
+    {
+        pNew->vCoReqs = Vec_IntDup( p->vCoReqs );
+        Vec_IntPush( pNew->vCoReqs, ABC_INFINITY ); // default required for new flop input
+    }
+    if ( p->vCoArrs )
+    {
+        pNew->vCoArrs = Vec_IntDup( p->vCoArrs );
+        Vec_IntPush( pNew->vCoArrs, 0.0 ); // default arrival for new flop input
+    }
+    if ( p->vCoAttrs )
+    {
+        pNew->vCoAttrs = Vec_IntDup( p->vCoAttrs );
+        Vec_IntPush( pNew->vCoAttrs, 0 ); // default attribute for new flop input
+    }
+    // copy other timing-related fields
+    pNew->And2Delay = p->And2Delay;
+    if ( p->vInArrs )
+        pNew->vInArrs = Vec_FltDup( p->vInArrs );
+    if ( p->vOutReqs )
+        pNew->vOutReqs = Vec_FltDup( p->vOutReqs );
+    pNew->DefInArrs = p->DefInArrs;
+    pNew->DefOutReqs = p->DefOutReqs;
     return pNew;
 }
 

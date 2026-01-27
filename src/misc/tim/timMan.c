@@ -154,6 +154,103 @@ Tim_Man_t * Tim_ManDup( Tim_Man_t * p, int fUnitDelay )
 
 /**Function*************************************************************
 
+  Synopsis    [Duplicates the timing manager while adding one flop.]
+
+  Description [Creates a new timing manager with one additional CI/CO pair
+               for a new flop. The new CI and CO are added at the end,
+               after all box inputs/outputs.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Tim_Man_t * Tim_ManDupAddFlop( Tim_Man_t * p, int fUnitDelay )
+{
+    Tim_Man_t * pNew;
+    Tim_Box_t * pBox;
+    Tim_Obj_t * pObj;
+    float * pDelayTable, * pDelayTableNew;
+    int i, k, nInputs, nOutputs;
+
+    // clear traversal IDs
+    Tim_ManForEachCi( p, pObj, i )
+        pObj->TravId = 0;
+    Tim_ManForEachCo( p, pObj, i )
+        pObj->TravId = 0;
+
+    // create new manager with one additional CI and CO
+    pNew = Tim_ManStart( p->nCis + 1, p->nCos + 1 );
+
+    // copy existing CI connectivity information
+    memcpy( pNew->pCis, p->pCis, sizeof(Tim_Obj_t) * p->nCis );
+
+    // Initialize the new CI (flop output)
+    pNew->pCis[p->nCis].Id = p->nCis;
+    pNew->pCis[p->nCis].iObj2Box = -1;
+    pNew->pCis[p->nCis].iObj2Num = -1;
+    pNew->pCis[p->nCis].timeArr = 0.0;
+    pNew->pCis[p->nCis].timeReq = TIM_ETERNITY;
+
+    // copy existing CO connectivity information
+    memcpy( pNew->pCos, p->pCos, sizeof(Tim_Obj_t) * p->nCos );
+
+    // Initialize the new CO (flop input)
+    pNew->pCos[p->nCos].Id = p->nCos;
+    pNew->pCos[p->nCos].iObj2Box = -1;
+    pNew->pCos[p->nCos].iObj2Num = -1;
+    pNew->pCos[p->nCos].timeArr = 0.0;
+    pNew->pCos[p->nCos].timeReq = TIM_ETERNITY;
+
+    if ( fUnitDelay )
+    {
+        // clear PI arrival and PO required
+        Tim_ManInitPiArrivalAll( pNew, 0.0 );
+        Tim_ManInitPoRequiredAll( pNew, (float)TIM_ETERNITY );
+    }
+
+    // duplicate delay tables
+    if ( Tim_ManDelayTableNum(p) > 0 )
+    {
+        pNew->vDelayTables = Vec_PtrStart( Vec_PtrSize(p->vDelayTables) );
+        Tim_ManForEachTable( p, pDelayTable, i )
+        {
+            if ( pDelayTable == NULL )
+                continue;
+            assert( i == (int)pDelayTable[0] );
+            nInputs   = (int)pDelayTable[1];
+            nOutputs  = (int)pDelayTable[2];
+            pDelayTableNew = ABC_ALLOC( float, 3 + nInputs * nOutputs );
+            pDelayTableNew[0] = (int)pDelayTable[0];
+            pDelayTableNew[1] = (int)pDelayTable[1];
+            pDelayTableNew[2] = (int)pDelayTable[2];
+            for ( k = 0; k < nInputs * nOutputs; k++ )
+                if ( pDelayTable[3+k] == -ABC_INFINITY )
+                    pDelayTableNew[3+k] = -ABC_INFINITY;
+                else
+                    pDelayTableNew[3+k] = fUnitDelay ? (float)fUnitDelay : pDelayTable[3+k];
+            assert( Vec_PtrEntry(pNew->vDelayTables, i) == NULL );
+            Vec_PtrWriteEntry( pNew->vDelayTables, i, pDelayTableNew );
+        }
+    }
+
+    // duplicate boxes
+    if ( Tim_ManBoxNum(p) > 0 )
+    {
+        pNew->vBoxes = Vec_PtrAlloc( Tim_ManBoxNum(p) );
+        Tim_ManForEachBox( p, pBox, i )
+        {
+           Tim_ManCreateBox( pNew, pBox->Inouts[0], pBox->nInputs,
+                pBox->Inouts[pBox->nInputs], pBox->nOutputs, pBox->iDelayTable, pBox->fBlack );
+           Tim_ManBoxSetCopy( pNew, i, pBox->iCopy );
+        }
+    }
+
+    return pNew;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Trims the timing manager.]
 
   Description []
