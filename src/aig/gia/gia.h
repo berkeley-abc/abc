@@ -397,14 +397,7 @@ struct Jf_Par_t_
 static inline unsigned     Gia_ObjCutSign( unsigned ObjId )       { return (1 << (ObjId & 31));                                 }
 static inline int          Gia_WordHasOneBit( unsigned uWord )    { return (uWord & (uWord-1)) == 0;                            }
 static inline int          Gia_WordHasOnePair( unsigned uWord )   { return Gia_WordHasOneBit(uWord & (uWord>>1) & 0x55555555);  }
-static inline int          Gia_WordCountOnes( unsigned uWord )
-{
-    uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
-    uWord = (uWord & 0x33333333) + ((uWord>>2) & 0x33333333);
-    uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
-    uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
-    return  (uWord & 0x0000FFFF) + (uWord>>16);
-}
+static inline int          Gia_WordCountOnes( unsigned uWord )    { return Abc_WordCountOnes( uWord );                          }
 static inline int Gia_WordFindFirstBit( unsigned uWord )
 {
     int i;

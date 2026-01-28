@@ -73,11 +73,7 @@ static unsigned s_Masks[6][2] = {
 
 static inline int        Ivy_TruthWordCountOnes( unsigned uWord )
 {
-    uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
-    uWord = (uWord & 0x33333333) + ((uWord>>2) & 0x33333333);
-    uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
-    uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
-    return  (uWord & 0x0000FFFF) + (uWord>>16);
+    return Abc_WordCountOnes( uWord );
 }
 
 static inline int        Ivy_TruthCofactorIsConst( unsigned uTruth, int Var, int Cof, int Const )
