@@ -188,6 +188,10 @@ class PDRWLA : public Solver {
         Wlc_Par_t   _Pars;
 };
 
+#if defined(__wasm)
+static void pthread_exit(void *retval) __attribute__((noreturn)) { }
+#endif
+
 void KillOthers() {
     pthread_cond_signal( &g_cond );
     ++g_nRunIds;
