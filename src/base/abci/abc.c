@@ -83,6 +83,7 @@ ABC_NAMESPACE_IMPL_START
 static int Abc_CommandPrintStats             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintExdc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintIo                ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandPrintFaults            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintLatch             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintFanio             ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandPrintMffc              ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -181,6 +182,15 @@ static int Abc_CommandMajGen                 ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandOrchestrate            ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAIGAugmentation       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
+// fault commands
+static int Abc_CommandFaultGen               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFaultSim               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandFaultConstraint        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandNtkCombine             ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAddTp                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandInsertTp               ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAddPo                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandRunPBO                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandLogic                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandComb                   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandMiter                  ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -914,6 +924,7 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Printing",     "print_stats",   Abc_CommandPrintStats,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_exdc",    Abc_CommandPrintExdc,        0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_io",      Abc_CommandPrintIo,          0 );
+    Cmd_CommandAdd( pAbc, "Printing",     "print_faults",   Abc_CommandPrintFaults,      0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_latch",   Abc_CommandPrintLatch,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "pfan",          Abc_CommandPrintFanio,       0 );
     Cmd_CommandAdd( pAbc, "Printing",     "print_fanio",   Abc_CommandPrintFanio,       0 );
@@ -1020,6 +1031,14 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Exact synthesis", "testexact",  Abc_CommandTestExact,        0 );
     Cmd_CommandAdd( pAbc, "Exact synthesis", "majgen",     Abc_CommandMajGen,           0 );
 
+    Cmd_CommandAdd( pAbc, "Fault",        "fault_gen",          Abc_CommandFaultGen,         0 );
+    Cmd_CommandAdd( pAbc, "Fault",        "fault_sim",          Abc_CommandFaultSim,         1 );
+    Cmd_CommandAdd( pAbc, "Fault",        "fault_constraint",   Abc_CommandFaultConstraint,  1 );
+    Cmd_CommandAdd( pAbc, "Fault",        "ntk_combine",        Abc_CommandNtkCombine,       1 );
+    Cmd_CommandAdd( pAbc, "Fault",        "add_tp",        Abc_CommandAddTp,            1 );
+    Cmd_CommandAdd( pAbc, "Fault",        "insert_tp",     Abc_CommandInsertTp,         1 );
+    Cmd_CommandAdd( pAbc, "Fault",        "add_po",        Abc_CommandAddPo,         1 );
+    Cmd_CommandAdd( pAbc, "Fault",        "pbo",           Abc_CommandRunPBO,           0 );
     Cmd_CommandAdd( pAbc, "Various",      "logic",         Abc_CommandLogic,            1 );
     Cmd_CommandAdd( pAbc, "Various",      "comb",          Abc_CommandComb,             1 );
     Cmd_CommandAdd( pAbc, "Various",      "miter",         Abc_CommandMiter,            1 );
@@ -1850,6 +1869,62 @@ usage:
     Abc_Print( -2, "\t-f    : toggles printing flops [default = %s]\n", fPrintFlops? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     Abc_Print( -2, "\tnode  : the node to print fanins/fanouts\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandPrintFaults( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c, fStats = 0;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "sh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 's':
+            fStats ^= 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    // Print fault list and statistics
+    if ( fStats )
+    {
+        Abc_NtkPrintFaultStats( pNtk );
+        printf( "Fault coverage: %.2f%%\n", 100.0 * Abc_NtkGetFaultCoverage(pNtk) );
+    }
+    else
+        Abc_NtkPrintFaultList( pNtk );
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: print_faults [-sh]\n" );
+    Abc_Print( -2, "\t         prints the list of faults in the current network\n" );
+    Abc_Print( -2, "\t-s     : print fault statistics [default = %s]\n", fStats? "yes": "no" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
     return 1;
 }
 
@@ -3942,17 +4017,24 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
     int fRecord;
     int fCleanup;
     int fComplOuts;
+    int fFaultConstraint;
     pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     fAllNodes = 0;
     fCleanup  = 1;
     fRecord   = 0;
     fComplOuts= 0;
+    fFaultConstraint = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "acrih" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "facrih" ) ) != EOF )
     {
         switch ( c )
         {
+        case'f':
+            fFaultConstraint ^= 1;
+            pNtk = pNtk->pFaultConstraintNtk;
+            printf("Strash Fault constraint network\n");
+            break;
         case 'a':
             fAllNodes ^= 1;
             break;
@@ -3986,10 +4068,13 @@ int Abc_CommandStrash( Abc_Frame_t * pAbc, int argc, char ** argv )
         return 1;
     }
     if ( fComplOuts )
-    Abc_NtkForEachPo( pNtkRes, pObj, c )
-        Abc_ObjXorFaninC( pObj, 0 );
+        Abc_NtkForEachPo( pNtkRes, pObj, c )
+            Abc_ObjXorFaninC( pObj, 0 );
     // replace the current network
+    if(fFaultConstraint) pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
+    pNtkRes->vGoodPis = pNtk->vGoodPis;
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+    
     return 0;
 
 usage:
@@ -3999,6 +4084,7 @@ usage:
     Abc_Print( -2, "\t-c    : toggles cleanup to remove the dangling AIG nodes [default = %s]\n", fCleanup? "all": "DFS" );
     Abc_Print( -2, "\t-r    : toggles using the record of AIG subgraphs [default = %s]\n", fRecord? "yes": "no" );
     Abc_Print( -2, "\t-i    : toggles complementing the POs of the AIG [default = %s]\n", fComplOuts? "yes": "no" );
+    Abc_Print( -2, "\t-f    : strash the fault constraint network [default = %s]\n", fFaultConstraint? "yes": "no" );
     Abc_Print( -2, "\t-h    : print the command usage\n");
     return 1;
 }
@@ -11848,6 +11934,707 @@ usage:
     return 1;
 }
 
+int Abc_CommandFaultGen( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    int fCheckpoint = 0;
+    int fCollapsing = 0;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "clsh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            fCheckpoint = 1;
+            break;
+        case 'l':
+            fCollapsing = 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+
+    if(fCheckpoint&&fCollapsing){
+        Abc_NtkGenerateCollapsedCheckpointFaultList( pNtk );
+    }
+    // Print fault list and statistics
+    if(fCheckpoint){
+        Abc_NtkGenerateCheckpointFaultList( pNtk );
+    }
+    else if(fCollapsing){
+        Abc_NtkGenerateCollapsingFaultList( pNtk );
+    }
+    else{
+        Abc_NtkGenerateFaultList( pNtk );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: fault_gen [-c] [-l] [-h]\n" );
+    Abc_Print( -2, "\t         Generate stuck-at faults for the current network\n" );
+    Abc_Print( -2, "\t-c     : use checkpoint fault generation method\n" );
+    Abc_Print( -2, "\t-l     : use collapsing fault generation method\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandFaultSim( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "ch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'c':
+            Abc_NtkInsertPBOGates( pNtk );
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+
+    // Print fault list and statistics
+    
+    Abc_NtkInsertFaultSimGates( pNtk );
+
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: fault_sim [-h]\n" );
+    Abc_Print( -2, "\t         Generate stuck-at faults for the current network\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandNtkCombine( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+
+    Abc_NtkCombineNetwork( pNtk );
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: ntk_combine [-h]\n" );
+    Abc_Print( -2, "\t         Combine the good network with the faulty network\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandFaultConstraint( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+
+    // Print fault list and statistics
+    Abc_NtkCreateFaultConstraintNetwork( pNtk );
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: fault_constraint [-h]\n" );
+    Abc_Print( -2, "\t         Generate stuck-at faults for the current network\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAddTp( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Vec_Int_t * vPattern;
+    char * pPattern;
+    int c, i;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Please provide a test pattern.\n" );
+        goto usage;
+    }
+
+    // Get the pattern string
+    pPattern = argv[globalUtilOptind];
+    
+    // Create vector to store the pattern
+    vPattern = Vec_IntAlloc(strlen(pPattern));
+
+    // Convert string to vector of integers
+    for (i = 0; i < strlen(pPattern); i++)
+    {
+        if (pPattern[i] == '0')
+            Vec_IntPush(vPattern, 0);
+        else if (pPattern[i] == '1')
+            Vec_IntPush(vPattern, 1);
+        else
+        {
+            Vec_IntFree(vPattern);
+            Abc_Print( -1, "Invalid test pattern. Use only 0s and 1s.\n" );
+            return 1;
+        }
+    }
+
+    // Add the pattern to the network
+    Abc_NtkAddTestPattern(pNtk, vPattern);
+    
+    // Free the temporary vector
+    Vec_IntFree(vPattern);
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: add_tp <pattern> [-h]\n" );
+    Abc_Print( -2, "\t         Add a test pattern to the network\n" );
+    Abc_Print( -2, "\t<pattern>: Binary string of 0s and 1s\n" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandInsertTp( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    int is_constraint = 0;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "hf" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        case 'f':
+            is_constraint = 1;
+            break;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( is_constraint && !pNtk->pFaultConstraintNtk )
+    {
+        Abc_Print( -1, "Fault constraint network not created. Use fault_constraint first.\n" );
+        return 1;
+    }
+
+    if ( !pNtk->vTestPatterns || Abc_NtkTestPatternNum(pNtk) == 0 )
+    {
+        Abc_Print( -1, "No test patterns available. Add test patterns first using add_tp.\n" );
+        return 1;
+    }
+
+    // Assign the latest test pattern to the constraint network
+    if ( is_constraint )
+        Abc_NtkAssignLatestPatternToConstraintNetwork(pNtk);
+    else
+        Abc_NtkAssignLatestPatternToCurrentNetwork(pNtk);
+    
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: insert_tp [-h] [-f]\n" );
+    Abc_Print( -2, "\t         Insert the latest test pattern into the fault constraint network\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    Abc_Print( -2, "\t-f     : insert the latest test pattern into the fault constraint network\n");
+    return 1;
+} 
+
+
+int Abc_CommandAddPo( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    Vec_Int_t * vPattern;
+    char * pPattern;
+    int c, i;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    if ( argc != globalUtilOptind + 1 )
+    {
+        Abc_Print( -1, "Please provide a test pattern.\n" );
+        goto usage;
+    }
+
+    // Get the pattern string
+    pPattern = argv[globalUtilOptind];
+    
+    // Create vector to store the pattern
+    vPattern = Vec_IntAlloc(strlen(pPattern));
+
+    // Convert string to vector of integers
+    for (i = 0; i < strlen(pPattern); i++)
+    {
+        if (pPattern[i] == '0')
+            Vec_IntPush(vPattern, 0);
+        else if (pPattern[i] == '1')
+            Vec_IntPush(vPattern, 1);
+        else
+        {
+            Vec_IntFree(vPattern);
+            Abc_Print( -1, "Invalid test pattern. Use only 0s and 1s.\n" );
+            return 1;
+        }
+    }
+    Abc_Print( 1, "Adding pattern: %s\n", pPattern );
+
+    // Add the pattern to the network
+    Abc_NtkAssignPOPatternToCurrentNetwork(pNtk, vPattern);
+    
+    // Free the temporary vector
+    Vec_IntFree(vPattern);
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: add_po <pattern> [-h]\n" );
+    Abc_Print( -2, "\t         Add a test pattern to the network\n" );
+    Abc_Print( -2, "\t<pattern>: Binary string of 0s and 1s\n" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandRunPBO( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    extern Aig_Man_t * Abc_NtkToDarChoices( Abc_Ntk_t * pNtk );
+    extern void Mf_ManDumpCnf( Gia_Man_t * p, char * pFileName, int nLutSize, int fCnfObjIds, int fAddOrCla, int fVerbose );
+
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    int c;
+    FILE * pFile;
+    char * pFileName;
+
+    Abc_Ntk_t * pNtkRes;
+    Abc_Ntk_t * dupNtk;
+    Aig_Man_t * pAig;
+    Gia_Man_t * pGia;
+
+    Fraig_Params_t Params, * pParams = &Params;
+    memset( pParams, 0, sizeof(Fraig_Params_t) );
+    pParams->nPatsRand  = 2048; // the number of words of random simulation info
+    pParams->nPatsDyna  = 2048; // the number of words of dynamic simulation info
+    pParams->nBTLimit   =  100; // the max number of backtracks to perform
+    pParams->fFuncRed   =    1; // performs only one level hashing
+    pParams->fFeedBack  =    1; // enables solver feedback
+    pParams->fDist1Pats =    1; // enables distance-1 patterns
+    pParams->fDoSparse  =    1; // performs equiv tests for sparse functions
+    pParams->fChoicing  =    0; // enables recording structural choices
+    pParams->fTryProve  =    0; // tries to solve the final miter
+    pParams->fVerbose   =    0; // the verbosiness flag
+    pParams->fVerboseP  =    0; // the verbosiness flag
+
+    Vec_Int_t * vPattern;
+
+    // set defaults
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+
+    if ( pNtk == NULL )
+    {
+        Abc_Print( -1, "Empty network.\n" );
+        return 1;
+    }
+
+    pFileName = "atpg.cnf";
+    pFile = fopen( pFileName, "rb" );
+    if ( pFile == NULL )
+    {
+        printf( "Cannot open file \"%s\" for reading.\n", pFileName );
+        return 0;
+    }
+    fclose( pFile );
+
+    int first_time = 1;
+    Vec_Ptr_t* vPatterns = Vec_PtrAlloc(1000);
+    char* undetected_str = (char*)malloc((pNtk->nFaults+1) * sizeof(char));
+    assert(undetected_str != NULL);
+    int undetected_size = pNtk->nFaults;
+    undetected_str[undetected_size] = '\0'; // null-terminate the string
+
+    pNtk = Abc_FrameReadNtk(pAbc);
+    pNtk->fUndetected = (int*)malloc(pNtk->nFaults * sizeof(int));
+    // initialize to 1
+    for(int i = 0; i < pNtk->nFaults; i++){
+        pNtk->fUndetected[i] = 1;
+        undetected_str[i] = '1';
+    }
+    pNtk->fDetected = (int*)malloc(pNtk->nFaults * sizeof(int));
+
+    while(1){
+        pNtk = Abc_FrameReadNtk(pAbc);
+        printf("undetected: %s\n", undetected_str);
+        vPattern = Abc_ExecPBO( pNtk, first_time, undetected_str );
+        if ( vPattern == NULL ){
+            Abc_NtkWriteTestPatterns(vPatterns, "atpg.txt");
+            return 0; // pbo unsat, done.
+        } 
+        Vec_PtrPush( vPatterns, vPattern );
+        
+        if (first_time) first_time = 0;
+
+        // clear and rewrite atpg.ptn 
+        int undetected_count = 0;
+        pFile = fopen( "atpg.ptn", "w" );
+        for(int i = 0; i < pNtk->nFaults; i++){
+            if(pNtk->fUndetected[i] == 1){
+                undetected_count++;
+                // write vPattern + fundetetedsize vector of 0 with only i = 1
+                for(int j = 0; j < Vec_IntSize(vPattern); j++)
+                    fprintf(pFile, "%d", Vec_IntEntry(vPattern, j));
+                for(int j = 0; j < pNtk->nFaults; j++)
+                    fprintf(pFile, "%d", j == i ? 1 : 0);
+                fprintf(pFile, "\n");
+            }
+        }
+        pNtk->nUndetectedFaults = undetected_count;
+        printf("[ATPG] undetected_count: %d\n", undetected_count);
+
+        fclose( pFile );
+
+        // write all the pattern so that it can end earlier
+        pFile = fopen( "atpg_tmp.ptn", "w" );
+        for (int i = 0; i < Vec_PtrSize(vPatterns); i++) {
+            Vec_Int_t * pPattern = (Vec_Int_t *)Vec_PtrEntry(vPatterns, i);
+            for (int j = 0; j < Vec_IntSize(pPattern); j++) {
+                fprintf(pFile, "%d", Vec_IntEntry(pPattern, j));
+            }
+            fprintf(pFile, "\n");
+        }
+        fclose( pFile );
+        
+        // restore
+        // printf("backup%d\n", pAbc->pNtkBackup==NULL);
+        dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
+        if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
+        if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
+        if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
+        if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
+        if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+        if(pNtk -> vTestPatterns != NULL) dupNtk -> vTestPatterns = pNtk -> vTestPatterns;    
+        if(pNtk -> fUndetected != NULL) dupNtk -> fUndetected = pNtk -> fUndetected;
+        if(pNtk -> fDetected != NULL) dupNtk -> fDetected = pNtk -> fDetected;
+        dupNtk -> nUndetectedFaults = pNtk -> nUndetectedFaults;
+        // printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
+        Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
+        pAbc->nFrames = -1;
+        pAbc->Status = -1;
+
+        // strash
+        pNtk = Abc_FrameReadNtk(pAbc);
+        pNtkRes = Abc_NtkStrash( pNtk->pFaultConstraintNtk, 0, 1, 0 );
+        pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
+        pNtkRes->vGoodPis = pNtk->vGoodPis;
+        pNtkRes->fUndetected = pNtk->fUndetected;
+        pNtkRes->fDetected = pNtk->fDetected;
+        pNtkRes->nFaults = pNtk->nFaults;
+        pNtkRes->nUndetectedFaults = pNtk->nUndetectedFaults;
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+
+        // fault simulation
+        pNtk = Abc_FrameReadNtk(pAbc);
+        extern Vec_Int_t * Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
+        ABC_FREE( pNtk->pSeqModel );
+        Vec_Int_t * pValues = Abc_NtkDarSeqSim( pNtk, 1, 8, 30, 0, 1, 0, "atpg.ptn" );
+        int * fUndetected = pNtk->fUndetected;
+        int * fDetected = (int*)malloc(pNtk->nFaults * sizeof(int));
+        for (int i = 0; i < pNtk->nFaults; i++) {
+            fDetected[i] = 0;
+        }
+        int counter = 0;
+        for (int i = 0; i < pNtk->nFaults; i++) {
+            if ( fUndetected[i] == 0 ) {
+                continue;
+            }
+            else if (Vec_IntEntry(pValues, counter) == 0 ) {
+                fDetected[i] = 1;
+            }
+            counter++;
+        }
+        printf("[ATPG] update fUndetected\n");
+        // update fUndetected
+        for (int i = 0; i < pNtk->nFaults; i++) {
+            if(fUndetected[i] > 0) fUndetected[i] -= fDetected[i];
+        }
+        pNtk->fUndetected = fUndetected;
+        pNtk->fDetected = fDetected;
+        printf("[ATPG] update fUndetected\n");
+        for(int i=0;i<undetected_size;i++){
+            if(fUndetected[i] == 1)
+                undetected_str[i] = '1';
+            else
+                undetected_str[i] = '0';
+        }
+
+        int detected = 0;
+        for(int i = 0; i < pNtk->nFaults; i++)
+            detected += pNtk->fDetected[i];
+        printf("[ATPG] The Pattern Detected: %d\n", detected);
+
+
+        // restore
+        // printf("backup%d\n", pAbc->pNtkBackup==NULL);
+        dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
+        if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
+        if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
+        if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
+        if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
+        if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+        if(pNtk -> vTestPatterns != NULL) dupNtk -> vTestPatterns = pNtk -> vTestPatterns;    
+        if(pNtk -> fUndetected != NULL) dupNtk -> fUndetected = pNtk -> fUndetected;
+        if(pNtk -> fDetected != NULL) dupNtk -> fDetected = pNtk -> fDetected;
+        dupNtk -> nUndetectedFaults = pNtk -> nUndetectedFaults;
+        // printf("dupNtk -> pFaultConstraintNtk = NULL?%d\n", dupNtk -> pFaultConstraintNtk == NULL);
+        Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
+        pAbc->nFrames = -1;
+        pAbc->Status = -1;
+
+        // add test pattern
+        pNtk = Abc_FrameReadNtk(pAbc);
+        Abc_NtkAddTestPattern(pNtk, vPattern);
+        
+        
+        Abc_NtkAssignLatestPatternToConstraintNetwork(pNtk);
+        
+        // strash & fraig
+        pNtkRes = Abc_NtkStrash( pNtk->pFaultConstraintNtk, 0, 1, 0 );
+        pNtkRes = Abc_NtkFraig( pNtkRes, &Params, 0, 0 );
+        // resyn
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 1 );
+        int RetValue = Abc_NtkRewrite( pNtkRes, 1, 0, 0, 0, 0 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 1, 1, 0, 0, 0 );
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 1 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 1, 1, 0, 0, 0 );
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 1 );
+        // compress
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 0 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 0, 0, 0, 0, 0 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 0, 1, 0, 0, 0 );
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 0 );
+        RetValue = Abc_NtkRewrite( pNtkRes, 0, 1, 0, 0, 0 );
+        pNtkRes = Abc_NtkBalance( pNtkRes, 0, 0, 0 );
+
+        pNtkRes = Abc_NtkStrash( pNtkRes, 0, 1, 0 );
+        pNtkRes->pFaultConstraintNtk = Abc_FrameReadNtk(pAbc);
+        pNtkRes->vGoodPis = pNtk->vGoodPis;
+        pNtkRes->fUndetected = pNtk->fUndetected;
+        pNtkRes->fDetected = pNtk->fDetected;
+        pNtkRes->nFaults = pNtk->nFaults;
+        pNtkRes->nUndetectedFaults = pNtk->nUndetectedFaults;
+        Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
+
+        // &get
+        // if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
+        //     pAig = Abc_NtkToDarChoices( pAbc->pNtkCur );
+        // else
+        //     pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
+        if ( Abc_NtkGetChoiceNum(pNtkRes) )
+            pAig = Abc_NtkToDarChoices( pNtkRes );
+        else
+            pAig = Abc_NtkToDar( pNtkRes, 0, 1 );
+        pGia = Gia_ManFromAig( pAig );
+        Aig_ManStop( pAig );
+        Abc_FrameUpdateGia( pAbc, pGia );
+
+        // &write_cnf
+        Mf_ManDumpCnf( pAbc->pGia, pFileName, 8, 0, 1, 0 );
+        // break;
+    }
+
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: pbo [-h]\n" );
+    Abc_Print( -2, "\t         Create child process to run PBO on generated cnf file\n" );
+    Abc_Print( -2, "\t-h     : print the command usage\n");
+    return 1;
+}
+
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -19569,10 +20356,13 @@ int Abc_CommandBackup( Abc_Frame_t * pAbc, int argc, char ** argv )
     int c;
     // set defaults
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "fh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'f':
+            if(pNtk -> pFaultConstraintNtk != NULL) pAbc->pNtkBackup -> pFaultConstraintNtk = pNtk -> pFaultConstraintNtk;
+            break;
         case 'h':
             goto usage;
         default:
@@ -19588,6 +20378,12 @@ int Abc_CommandBackup( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pAbc->pNtkBackup )
         Abc_NtkDelete( pAbc->pNtkBackup );
     pAbc->pNtkBackup = Abc_NtkDup( pNtk );
+    if(pNtk -> pFaultList != NULL) pAbc->pNtkBackup -> pFaultList = pNtk -> pFaultList;
+    if(pNtk -> nFaults != 0) pAbc->pNtkBackup -> nFaults = pNtk -> nFaults;
+    if(pNtk -> pGoodNtk != NULL) pAbc->pNtkBackup -> pGoodNtk = pNtk -> pGoodNtk;
+    if(pNtk -> vGoodPis != NULL) pAbc->pNtkBackup -> vGoodPis = pNtk -> vGoodPis;
+    if(pNtk -> pFaultConstraintNtk != NULL) pAbc->pNtkBackup -> pFaultConstraintNtk = pNtk -> pFaultConstraintNtk;
+
     return 0;
 
 usage:
@@ -19599,8 +20395,17 @@ usage:
 int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     int c;
+    Abc_Ntk_t * dupNtk;
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     // set defaults
     Extra_UtilGetoptReset();
+
+    if ( pAbc->pNtkBackup == NULL )
+    {
+        Abc_Print( -1, "There is no backup network.\n" );
+        return 1;
+    }
+
     while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
     {
         switch ( c )
@@ -19612,12 +20417,15 @@ int Abc_CommandRestore( Abc_Frame_t * pAbc, int argc, char ** argv )
         }
     }
 
-    if ( pAbc->pNtkBackup == NULL )
-    {
-        Abc_Print( -1, "There is no backup network.\n" );
-        return 1;
-    }
-    Abc_FrameReplaceCurrentNetwork( pAbc, Abc_NtkDup(pAbc->pNtkBackup) );
+
+    dupNtk = Abc_NtkDup(pAbc->pNtkBackup);
+    if(pAbc->pNtkBackup -> pFaultList != NULL) dupNtk -> pFaultList = pAbc->pNtkBackup -> pFaultList;
+    if(pAbc->pNtkBackup -> nFaults != 0) dupNtk -> nFaults = pAbc->pNtkBackup -> nFaults;
+    if(pAbc->pNtkBackup -> pGoodNtk != NULL) dupNtk -> pGoodNtk = pAbc->pNtkBackup -> pGoodNtk;
+    if(pAbc->pNtkBackup -> vGoodPis != NULL) dupNtk -> vGoodPis = pAbc->pNtkBackup -> vGoodPis;
+    if(pAbc->pNtkBackup -> pFaultConstraintNtk != NULL) dupNtk -> pFaultConstraintNtk = Abc_NtkDup(pAbc->pNtkBackup -> pFaultConstraintNtk);
+    if(pNtk -> vTestPatterns != NULL) dupNtk -> vTestPatterns = pNtk -> vTestPatterns;
+    Abc_FrameReplaceCurrentNetwork( pAbc, dupNtk );
     pAbc->nFrames = -1;
     pAbc->Status = -1;
     return 0;
@@ -26218,135 +27026,249 @@ usage:
 ***********************************************************************/
 int Abc_CommandSim( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
-    int c;
-    int fNew;
-    int fComb;
-    int nFrames;
-    int nWords;
-    int TimeOut;
-    int fMiter;
-    int fVerbose;
-    char * pFileSim;
-    char * pLogFileName = NULL;
-    extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
-    // set defaults
-    fNew       =  0;
-    fComb      =  0;
-    nFrames    = 32;
-    nWords     =  8;
-    TimeOut    = 30;
-    fMiter     =  1;
-    fVerbose   =  0;
-    pFileSim   = NULL;
-    Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "FWTALnmvh" ) ) != EOF )
-    {
-        switch ( c )
-        {
-        case 'F':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nFrames = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nFrames < 0 )
-                goto usage;
-            break;
-        case 'W':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            nWords = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( nWords < 0 )
-                goto usage;
-            break;
-        case 'T':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
-                goto usage;
-            }
-            TimeOut = atoi(argv[globalUtilOptind]);
-            globalUtilOptind++;
-            if ( TimeOut < 0 )
-                goto usage;
-            break;
-        case 'A':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
-                goto usage;
-            }
-            pFileSim = argv[globalUtilOptind];
-            globalUtilOptind++;
-            break;
-        case 'L':
-            if ( globalUtilOptind >= argc )
-            {
-                Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
-                goto usage;
-            }
-            pLogFileName = argv[globalUtilOptind];
-            globalUtilOptind++;
-            break;
-        case 'n':
-            fNew ^= 1;
-            break;
-        case 'm':
-            fMiter ^= 1;
-            break;
-        case 'v':
-            fVerbose ^= 1;
-            break;
-        case 'h':
-            goto usage;
-        default:
-            goto usage;
-        }
-    }
-    if ( pNtk == NULL )
-    {
-        Abc_Print( -1, "Empty network.\n" );
-        return 1;
-    }
-    if ( !Abc_NtkIsStrash(pNtk) )
-    {
-        Abc_Print( -1, "Only works for strashed networks.\n" );
-        return 1;
-    }
-    if ( pFileSim != NULL && Abc_NtkLatchNum(pNtk) )
-    {
-        Abc_Print( -1, "Currently simulation with user-specified patterns works only for comb miters.\n" );
-        return 1;
-    }
-    ABC_FREE( pNtk->pSeqModel );
-    pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fMiter, fVerbose, pFileSim );
-    Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
-    if ( pLogFileName )
-        Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "sim" );
-    return 0;
+//     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//     int c;
+//     int fNew;
+//     int fComb;
+//     int nFrames;
+//     int nWords;
+//     int TimeOut;
+//     int fMiter;
+//     int fVerbose;
+//     char * pFileSim;
+//     char * pLogFileName = NULL;
+//     extern Vec Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
+//     // set defaults
+//     fNew       =  0;
+//     fComb      =  0;
+//     nFrames    = 32;
+//     nWords     =  8;
+//     TimeOut    = 30;
+//     fMiter     =  1;
+//     fVerbose   =  0;
+//     pFileSim   = NULL;
+//     Extra_UtilGetoptReset();
+//     while ( ( c = Extra_UtilGetopt( argc, argv, "FWTALnmvh" ) ) != EOF )
+//     {
+//         switch ( c )
+//         {
+//         case 'F':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-F\" should be followed by an integer.\n" );
+//                 goto usage;
+//             }
+//             nFrames = atoi(argv[globalUtilOptind]);
+//             globalUtilOptind++;
+//             if ( nFrames < 0 )
+//                 goto usage;
+//             break;
+//         case 'W':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-W\" should be followed by an integer.\n" );
+//                 goto usage;
+//             }
+//             nWords = atoi(argv[globalUtilOptind]);
+//             globalUtilOptind++;
+//             if ( nWords < 0 )
+//                 goto usage;
+//             break;
+//         case 'T':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-T\" should be followed by an integer.\n" );
+//                 goto usage;
+//             }
+//             TimeOut = atoi(argv[globalUtilOptind]);
+//             globalUtilOptind++;
+//             if ( TimeOut < 0 )
+//                 goto usage;
+//             break;
+//         case 'A':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+//                 goto usage;
+//             }
+//             pFileSim = argv[globalUtilOptind];
+//             globalUtilOptind++;
+//             break;
+//         case 'L':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-L\" should be followed by a file name.\n" );
+//                 goto usage;
+//             }
+//             pLogFileName = argv[globalUtilOptind];
+//             globalUtilOptind++;
+//             break;
+//         case 'n':
+//             fNew ^= 1;
+//             break;
+//         case 'm':
+//             fMiter ^= 1;
+//             break;
+//         case 'v':
+//             fVerbose ^= 1;
+//             break;
+//         case 'h':
+//             goto usage;
+//         default:
+//             goto usage;
+//         }
+//     }
+//     if ( pNtk == NULL )
+//     {
+//         Abc_Print( -1, "Empty network.\n" );
+//         return 1;
+//     }
+//     if ( !Abc_NtkIsStrash(pNtk) )
+//     {
+//         Abc_Print( -1, "Only works for strashed networks.\n" );
+//         return 1;
+//     }
+//     if ( pFileSim != NULL && Abc_NtkLatchNum(pNtk) )
+//     {
+//         Abc_Print( -1, "Currently simulation with user-specified patterns works only for comb miters.\n" );
+//         return 1;
+//     }
+//     ABC_FREE( pNtk->pSeqModel );
+//     pAbc->Status = Abc_NtkDarSeqSim( pNtk, nFrames, nWords, TimeOut, fNew, fMiter, fVerbose, pFileSim );
+//     Abc_FrameReplaceCex( pAbc, &pNtk->pSeqModel );
+//     if ( pLogFileName )
+//         Abc_NtkWriteLogFile( pLogFileName, pAbc->pCex, pAbc->Status, pAbc->nFrames, "sim" );
+//     return 0;
 
-usage:
-    Abc_Print( -2, "usage: sim [-FWT num] [-AL file] [-nmvh]\n" );
-    Abc_Print( -2, "\t          performs random simulation of the sequential miter\n" );
-    Abc_Print( -2, "\t-F num  : the number of frames to simulate [default = %d]\n", nFrames );
-    Abc_Print( -2, "\t-W num  : the number of words to simulate [default = %d]\n", nWords );
-    Abc_Print( -2, "\t-T num  : approximate runtime limit in seconds [default = %d]\n", TimeOut );
-    Abc_Print( -2, "\t-A file : text file name with user's patterns [default = random simulation]\n" );
-    Abc_Print( -2, "\t          (patterns are listed, one per line, as sequences of 0s and 1s)\n" );
-    Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
-    Abc_Print( -2, "\t-n      : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
-    Abc_Print( -2, "\t-m      : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
-    Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
-    Abc_Print( -2, "\t-h      : print the command usage\n");
+// usage:
+//     Abc_Print( -2, "usage: sim [-FWT num] [-AL file] [-nmvh]\n" );
+//     Abc_Print( -2, "\t          performs random simulation of the sequential miter\n" );
+//     Abc_Print( -2, "\t-F num  : the number of frames to simulate [default = %d]\n", nFrames );
+//     Abc_Print( -2, "\t-W num  : the number of words to simulate [default = %d]\n", nWords );
+//     Abc_Print( -2, "\t-T num  : approximate runtime limit in seconds [default = %d]\n", TimeOut );
+//     Abc_Print( -2, "\t-A file : text file name with user's patterns [default = random simulation]\n" );
+//     Abc_Print( -2, "\t          (patterns are listed, one per line, as sequences of 0s and 1s)\n" );
+//     Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
+//     Abc_Print( -2, "\t-n      : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
+//     Abc_Print( -2, "\t-m      : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
+//     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+//     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+// int Abc_CommandFSim( Abc_Frame_t * pAbc, int argc, char ** argv )
+// {
+//     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+//     int c;
+//     int fNew;
+//     int fComb;
+//     int nFrames;
+//     int nWords;
+//     int TimeOut;
+//     int fMiter;
+//     int fVerbose;
+//     char * pFileSim;
+//     char * pLogFileName = NULL;
+//     extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
+//     // set defaults
+//     fNew       =  0;
+//     fComb      =  0;
+//     nFrames    = 1;
+//     nWords     =  8;
+//     TimeOut    = 30;
+//     fMiter     =  1;
+//     fVerbose   =  1;
+//     pFileSim   = "atpg.ptn";
+//     Extra_UtilGetoptReset();
+//     while ( ( c = Extra_UtilGetopt( argc, argv, "FWTALnmvh" ) ) != EOF )
+//     {
+//         switch ( c )
+//         {
+//         case 'A':
+//             if ( globalUtilOptind >= argc )
+//             {
+//                 Abc_Print( -1, "Command line switch \"-A\" should be followed by a file name.\n" );
+//                 goto usage;
+//             }
+//             pFileSim = argv[globalUtilOptind];
+//             globalUtilOptind++;
+//             break;
+//         case 'v':
+//             fVerbose ^= 1;
+//             break;
+//         case 'h':
+//             goto usage;
+//         default:
+//             goto usage;
+//         }
+//     }
+//     if ( pNtk == NULL )
+//     {
+//         Abc_Print( -1, "Empty network.\n" );
+//         return 1;
+//     }
+//     if ( !Abc_NtkIsStrash(pNtk) )
+//     {
+//         Abc_Print( -1, "Only works for strashed networks.\n" );
+//         return 1;
+//     }
+//     if ( pFileSim != NULL && Abc_NtkLatchNum(pNtk) )
+//     {
+//         Abc_Print( -1, "Currently simulation with user-specified patterns works only for comb miters.\n" );
+//         return 1;
+//     }
+//     extern int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim );
+//     ABC_FREE( pNtk->pSeqModel );
+//     Vec_Int_t * pValues = Abc_NtkDarSeqSim( pNtk, 1, 8, 30, 0, 1, 1, "atpg.ptn" );
+//     Vec_Int_t * fUndetected = pNtk->fUndetected;
+//     Vec_Int_t * fDetected = Vec_IntAlloc( Vec_IntSize(fUndetected) );
+//     for (int i = 0; i < Vec_IntSize(fUndetected); i++) {
+//         Vec_IntEntry(fDetected, i) = 0;
+//     }
+//     int counter = 0;
+//     for (int i = 0; i < Vec_IntSize(fUndetected); i++) {
+//         if ( Vec_IntEntry(fUndetected, i) == 0 ) {
+//             continue;
+//         }
+//         else if ( Vec_IntEntry(pValues, i) == 1 ) {
+//             fDetected[i] = 1;
+//         }
+//         counter++;
+//     }
+//     // update fUndetected
+//     for (int i = 0; i < Vec_IntSize(fUndetected); i++) {
+//         Vec_IntEntry(fUndetected, i) -= Vec_IntEntry(fDetected, i);
+//     }
+//     pNtk->fUndetected = fUndetected;
+//     pNtk->fDetected = fDetected;
+//     return 0;
+
+// usage:
+//     Abc_Print( -2, "usage: sim [-FWT num] [-AL file] [-nmvh]\n" );
+//     Abc_Print( -2, "\t          performs random simulation of the sequential miter\n" );
+//     Abc_Print( -2, "\t-F num  : the number of frames to simulate [default = %d]\n", nFrames );
+//     Abc_Print( -2, "\t-W num  : the number of words to simulate [default = %d]\n", nWords );
+//     Abc_Print( -2, "\t-T num  : approximate runtime limit in seconds [default = %d]\n", TimeOut );
+//     Abc_Print( -2, "\t-A file : text file name with user's patterns [default = random simulation]\n" );
+//     Abc_Print( -2, "\t          (patterns are listed, one per line, as sequences of 0s and 1s)\n" );
+//     Abc_Print( -2, "\t-L file : the log file name [default = %s]\n",  pLogFileName ? pLogFileName : "no logging" );
+//     Abc_Print( -2, "\t-n      : toggle new vs. old implementation [default = %s]\n", fNew? "new": "old" );
+//     Abc_Print( -2, "\t-m      : toggle miter vs. any circuit [default = %s]\n", fMiter? "miter": "circuit" );
+//     Abc_Print( -2, "\t-v      : toggle printing verbose information [default = %s]\n", fVerbose? "yes": "no" );
+//     Abc_Print( -2, "\t-h      : print the command usage\n");
+//     return 1;
+// }
 
 
 /**Function*************************************************************

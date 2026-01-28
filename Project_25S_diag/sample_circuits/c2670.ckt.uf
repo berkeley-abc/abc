@@ -1,0 +1,4455 @@
+gate: g375 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 427
+
+gate: g374 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 428
+
+gate: g101 ;input wire name: 868(198)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 435
+
+gate: g201 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 583
+
+gate: g119 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 588
+
+gate: g203 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 607
+
+gate: g119 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 612
+
+gate: g427 ;input wire name: 2103(247)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 629
+
+gate: g188 ;input wire name: 875(290)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 771
+
+gate: g176 ;input wire name: 1261(296)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 830
+
+gate: g119 ;output wire name: 1460(335)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1086
+
+gate: g203 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1096
+
+gate: g202 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1097
+
+gate: g202 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1120
+
+gate: g201 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1121
+
+gate: g271 ;input wire name: 1296(374)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1265
+
+gate: g202 ;output wire name: 1457(425)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1431
+
+gate: g201 ;output wire name: 1459(424)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1433
+
+gate: g203 ;output wire name: 1458(426)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1435
+
+gate: g425 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1719
+
+gate: g357 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1720
+
+gate: g320 ;output wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1721
+
+gate: g357 ;output wire name: 2665(582)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1899
+
+gate: g1345 ;output wire name: 1473(545)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1902
+
+gate: g426 ;output wire name: 2671(658)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2123
+
+gate: g1364 ;output wire name: 2665(582)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2125
+
+gate: g435 ;output wire name: 466(667)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2156
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2198
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2199
+
+gate: g1415 ;output wire name: 2671(658)*
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2321
+
+gate: g427 ;output wire name: 1232(659)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2330
+
+gate: g532 ;output wire name: 2354(773)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2414
+
+gate: g534 ;output wire name: 2266(775)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2422
+
+gate: g632 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2480
+
+gate: g630 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2481
+
+gate: g640 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2484
+
+gate: g616 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2485
+
+gate: g612 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2486
+
+gate: g609 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2487
+
+gate: g558 ;output wire name: 1006(799)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2488
+
+gate: g639 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2490
+
+gate: g615 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2491
+
+gate: g611 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2492
+
+gate: g608 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2493
+
+gate: g559 ;output wire name: 743(800)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2494
+
+gate: g631 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2496
+
+gate: g629 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2497
+
+gate: g656 ;input wire name: 1235(733)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2590
+
+gate: g658 ;input wire name: 1228(735)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2595
+
+gate: g528 ;output wire name: 2673(769)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2686
+
+gate: g1639 ;output wire name: 2354(773)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2699
+
+gate: g1641 ;output wire name: 2266(775)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2703
+
+gate: g621 ;output wire name: 2346(868)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2712
+
+gate: g623 ;output wire name: 2258(870)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2720
+
+gate: g625 ;output wire name: 2426(872)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2728
+
+gate: g626 ;output wire name: 2338(873)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2732
+
+gate: g689 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2798
+
+gate: g686 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2799
+
+gate: g688 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2804
+
+gate: g685 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2805
+
+gate: g707 ;input wire name: 475(897)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2809
+
+gate: g710 ;input wire name: 1337(898)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2814
+
+gate: g1428 ;output wire name: 2673(769)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2981
+
+gate: g1643 ;output wire name: 2346(868)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2993
+
+gate: g1645 ;output wire name: 2258(870)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2997
+
+gate: g1647 ;output wire name: 2426(872)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 3001
+
+gate: g1649 ;output wire name: 2338(873)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 3003
+
+gate: g733 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3076
+
+gate: g730 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3077
+
+gate: g726 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3078
+
+gate: g723 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3079
+
+gate: g707 ;output wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3080
+
+gate: g734 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3094
+
+gate: g731 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3095
+
+gate: g727 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3096
+
+gate: g724 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3097
+
+gate: g710 ;output wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3098
+
+gate: g656 ;output wire name: 1094(903)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 3119
+
+gate: g658 ;output wire name: 1096(905)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 3121
+
+gate: g939 ;output wire name: 2282(1191)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3822
+
+gate: g940 ;output wire name: 2370(1192)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3826
+
+gate: g941 ;output wire name: 2274(1193)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3830
+
+gate: g942 ;output wire name: 2362(1194)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3834
+
+gate: g943 ;output wire name: 2290(1195)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3840
+
+gate: g944 ;output wire name: 2378(1196)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3844
+
+gate: g956 ;output wire name: 2298(1208)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3894
+
+gate: g957 ;output wire name: 2386(1209)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3898
+
+gate: g960 ;output wire name: 2281(1212)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3906
+
+gate: g961 ;output wire name: 2289(1213)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3910
+
+gate: g962 ;output wire name: 2297(1214)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3914
+
+gate: g963 ;output wire name: 2273(1215)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3918
+
+gate: g964 ;output wire name: 2369(1216)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3922
+
+gate: g965 ;output wire name: 2377(1217)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3926
+
+gate: g966 ;output wire name: 2385(1218)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3930
+
+gate: g967 ;output wire name: 2361(1219)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3934
+
+gate: g980 ;output wire name: 2314(1232)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3940
+
+gate: g981 ;output wire name: 2306(1233)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3944
+
+gate: g984 ;output wire name: 2402(1236)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3952
+
+gate: g985 ;output wire name: 2394(1237)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3956
+
+gate: g970 ;output wire name: 2305(1222)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3964
+
+gate: g971 ;output wire name: 2313(1223)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3968
+
+gate: g974 ;output wire name: 2393(1226)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3980
+
+gate: g975 ;output wire name: 2401(1227)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3984
+
+gate: g987 ;output wire name: 2337(1239)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4014
+
+gate: g988 ;output wire name: 2425(1240)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4018
+
+gate: g989 ;output wire name: 2257(1241)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4022
+
+gate: g990 ;output wire name: 2345(1242)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4026
+
+gate: g991 ;output wire name: 2353(1243)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4030
+
+gate: g992 ;output wire name: 2265(1244)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4034
+
+gate: g1655 ;output wire name: 2282(1191)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4049
+
+gate: g1663 ;output wire name: 2370(1192)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4051
+
+gate: g1661 ;output wire name: 2274(1193)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4053
+
+gate: g1669 ;output wire name: 2362(1194)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4055
+
+gate: g1657 ;output wire name: 2290(1195)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4059
+
+gate: g1665 ;output wire name: 2378(1196)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4061
+
+gate: g1659 ;output wire name: 2298(1208)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4083
+
+gate: g1667 ;output wire name: 2386(1209)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4085
+
+gate: g1621 ;output wire name: 2281(1212)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4087
+
+gate: g1629 ;output wire name: 2289(1213)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4089
+
+gate: g1651 ;output wire name: 2297(1214)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4091
+
+gate: g1625 ;output wire name: 2273(1215)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4093
+
+gate: g1623 ;output wire name: 2369(1216)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4095
+
+gate: g1631 ;output wire name: 2377(1217)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4097
+
+gate: g1653 ;output wire name: 2385(1218)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4099
+
+gate: g1627 ;output wire name: 2361(1219)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4101
+
+gate: g1673 ;output wire name: 2314(1232)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4103
+
+gate: g1671 ;output wire name: 2306(1233)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4105
+
+gate: g1032 ;output wire name: 2330(1287)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4108
+
+gate: g1035 ;output wire name: 2322(1290)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4114
+
+gate: g1677 ;output wire name: 2402(1236)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4119
+
+gate: g1675 ;output wire name: 2394(1237)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4121
+
+gate: g1038 ;output wire name: 2418(1293)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4124
+
+gate: g1041 ;output wire name: 2410(1296)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4130
+
+gate: g1681 ;output wire name: 2305(1222)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4135
+
+gate: g1679 ;output wire name: 2313(1223)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4137
+
+gate: g1685 ;output wire name: 2393(1226)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4143
+
+gate: g1683 ;output wire name: 2401(1227)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4145
+
+gate: g1717 ;output wire name: 2337(1239)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4165
+
+gate: g1715 ;output wire name: 2425(1240)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4167
+
+gate: g1713 ;output wire name: 2257(1241)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4169
+
+gate: g1711 ;output wire name: 2345(1242)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4171
+
+gate: g1707 ;output wire name: 2353(1243)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4173
+
+gate: g1709 ;output wire name: 2265(1244)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4175
+
+gate: g1729 ;output wire name: 2330(1287)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4259
+
+gate: g1727 ;output wire name: 2322(1290)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4261
+
+gate: g1737 ;output wire name: 2418(1293)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4267
+
+gate: g1735 ;output wire name: 2410(1296)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4269
+
+gate: g1065 ;output wire name: 2321(1320)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4276
+
+gate: g1067 ;output wire name: 2329(1322)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4280
+
+gate: g1071 ;output wire name: 2409(1326)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4288
+
+gate: g1073 ;output wire name: 2417(1328)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4292
+
+gate: g1759 ;output wire name: 2321(1320)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4409
+
+gate: g1757 ;output wire name: 2329(1322)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4411
+
+gate: g1763 ;output wire name: 2409(1326)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4417
+
+gate: g1761 ;output wire name: 2417(1328)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4419
+
+gate: g1145 ;output wire name: 987(1404)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4768
+
+gate: g1146 ;output wire name: 1204(1405)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4770
+
+gate: g1785 ;output wire name: 991(1411)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4807
+
+gate: g1784 ;output wire name: 329(1414)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4809
+
+gate: g1153 ;output wire name: 1221(1413)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4821
+
+gate: g1154 ;output wire name: 1239(1415)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4827
+
+gate: g1155 ;output wire name: 1238(1416)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4829
+
+gate: g1158 ;input wire name: 1240(1417)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4830
+
+gate: g1156 ;output wire name: 1240(1417)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4832
+
+gate: g1158 ;input wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4834
+
+gate: g1157 ;output wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4835
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4837
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4838
+
+gate: g1160 ;input wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4839
+
+gate: g1159 ;output wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4840
+
+gate: g31 ;output wire name: 231(1422)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4845
+
+gate: g375 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 427
+
+gate: g374 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 428
+
+gate: g101 ;input wire name: 868(198)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 435
+
+gate: g201 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 583
+
+gate: g119 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 588
+
+gate: g203 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 607
+
+gate: g119 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 612
+
+gate: g427 ;input wire name: 2103(247)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 629
+
+gate: g188 ;input wire name: 875(290)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 771
+
+gate: g176 ;input wire name: 1261(296)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 830
+
+gate: g119 ;output wire name: 1460(335)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1086
+
+gate: g203 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1096
+
+gate: g202 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1097
+
+gate: g202 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1120
+
+gate: g201 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1121
+
+gate: g271 ;input wire name: 1296(374)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1265
+
+gate: g202 ;output wire name: 1457(425)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1431
+
+gate: g201 ;output wire name: 1459(424)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1433
+
+gate: g203 ;output wire name: 1458(426)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1435
+
+gate: g425 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1719
+
+gate: g357 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1720
+
+gate: g320 ;output wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1721
+
+gate: g357 ;output wire name: 2665(582)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1899
+
+gate: g1345 ;output wire name: 1473(545)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1902
+
+gate: g426 ;output wire name: 2671(658)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2123
+
+gate: g1364 ;output wire name: 2665(582)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2125
+
+gate: g435 ;output wire name: 466(667)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2156
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2198
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2199
+
+gate: g1415 ;output wire name: 2671(658)*
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2321
+
+gate: g427 ;output wire name: 1232(659)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2330
+
+gate: g532 ;output wire name: 2354(773)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2414
+
+gate: g534 ;output wire name: 2266(775)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2422
+
+gate: g632 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2480
+
+gate: g630 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2481
+
+gate: g640 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2484
+
+gate: g616 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2485
+
+gate: g612 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2486
+
+gate: g609 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2487
+
+gate: g558 ;output wire name: 1006(799)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2488
+
+gate: g639 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2490
+
+gate: g615 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2491
+
+gate: g611 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2492
+
+gate: g608 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2493
+
+gate: g559 ;output wire name: 743(800)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2494
+
+gate: g631 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2496
+
+gate: g629 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2497
+
+gate: g656 ;input wire name: 1235(733)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2590
+
+gate: g658 ;input wire name: 1228(735)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2595
+
+gate: g528 ;output wire name: 2673(769)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2686
+
+gate: g1639 ;output wire name: 2354(773)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2699
+
+gate: g1641 ;output wire name: 2266(775)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2703
+
+gate: g621 ;output wire name: 2346(868)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2712
+
+gate: g623 ;output wire name: 2258(870)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2720
+
+gate: g625 ;output wire name: 2426(872)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2728
+
+gate: g626 ;output wire name: 2338(873)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2732
+
+gate: g689 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2798
+
+gate: g686 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2799
+
+gate: g688 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2804
+
+gate: g685 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2805
+
+gate: g707 ;input wire name: 475(897)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2809
+
+gate: g710 ;input wire name: 1337(898)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2814
+
+gate: g1428 ;output wire name: 2673(769)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2981
+
+gate: g1643 ;output wire name: 2346(868)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2993
+
+gate: g1645 ;output wire name: 2258(870)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2997
+
+gate: g1647 ;output wire name: 2426(872)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 3001
+
+gate: g1649 ;output wire name: 2338(873)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 3003
+
+gate: g733 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3076
+
+gate: g730 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3077
+
+gate: g726 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3078
+
+gate: g723 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3079
+
+gate: g707 ;output wire name: 1850(956)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3080
+
+gate: g734 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3094
+
+gate: g731 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3095
+
+gate: g727 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3096
+
+gate: g724 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3097
+
+gate: g710 ;output wire name: 1912(959)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3098
+
+gate: g656 ;output wire name: 1094(903)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 3119
+
+gate: g658 ;output wire name: 1096(905)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 3121
+
+gate: g939 ;output wire name: 2282(1191)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3822
+
+gate: g940 ;output wire name: 2370(1192)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3826
+
+gate: g941 ;output wire name: 2274(1193)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3830
+
+gate: g942 ;output wire name: 2362(1194)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3834
+
+gate: g943 ;output wire name: 2290(1195)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3840
+
+gate: g944 ;output wire name: 2378(1196)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3844
+
+gate: g956 ;output wire name: 2298(1208)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3894
+
+gate: g957 ;output wire name: 2386(1209)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3898
+
+gate: g960 ;output wire name: 2281(1212)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3906
+
+gate: g961 ;output wire name: 2289(1213)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3910
+
+gate: g962 ;output wire name: 2297(1214)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3914
+
+gate: g963 ;output wire name: 2273(1215)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3918
+
+gate: g964 ;output wire name: 2369(1216)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3922
+
+gate: g965 ;output wire name: 2377(1217)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3926
+
+gate: g966 ;output wire name: 2385(1218)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3930
+
+gate: g967 ;output wire name: 2361(1219)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 3934
+
+gate: g980 ;output wire name: 2314(1232)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3940
+
+gate: g981 ;output wire name: 2306(1233)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3944
+
+gate: g984 ;output wire name: 2402(1236)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3952
+
+gate: g985 ;output wire name: 2394(1237)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3956
+
+gate: g970 ;output wire name: 2305(1222)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3964
+
+gate: g971 ;output wire name: 2313(1223)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3968
+
+gate: g974 ;output wire name: 2393(1226)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3980
+
+gate: g975 ;output wire name: 2401(1227)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3984
+
+gate: g987 ;output wire name: 2337(1239)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4014
+
+gate: g988 ;output wire name: 2425(1240)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4018
+
+gate: g989 ;output wire name: 2257(1241)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4022
+
+gate: g990 ;output wire name: 2345(1242)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4026
+
+gate: g991 ;output wire name: 2353(1243)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4030
+
+gate: g992 ;output wire name: 2265(1244)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4034
+
+gate: g1655 ;output wire name: 2282(1191)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4049
+
+gate: g1663 ;output wire name: 2370(1192)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4051
+
+gate: g1661 ;output wire name: 2274(1193)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4053
+
+gate: g1669 ;output wire name: 2362(1194)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4055
+
+gate: g1657 ;output wire name: 2290(1195)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4059
+
+gate: g1665 ;output wire name: 2378(1196)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4061
+
+gate: g1659 ;output wire name: 2298(1208)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4083
+
+gate: g1667 ;output wire name: 2386(1209)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4085
+
+gate: g1621 ;output wire name: 2281(1212)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4087
+
+gate: g1629 ;output wire name: 2289(1213)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4089
+
+gate: g1651 ;output wire name: 2297(1214)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4091
+
+gate: g1625 ;output wire name: 2273(1215)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 4093
+
+gate: g1623 ;output wire name: 2369(1216)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4095
+
+gate: g1631 ;output wire name: 2377(1217)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4097
+
+gate: g1653 ;output wire name: 2385(1218)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4099
+
+gate: g1627 ;output wire name: 2361(1219)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 4101
+
+gate: g1673 ;output wire name: 2314(1232)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4103
+
+gate: g1671 ;output wire name: 2306(1233)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4105
+
+gate: g1032 ;output wire name: 2330(1287)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4108
+
+gate: g1035 ;output wire name: 2322(1290)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4114
+
+gate: g1677 ;output wire name: 2402(1236)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4119
+
+gate: g1675 ;output wire name: 2394(1237)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4121
+
+gate: g1038 ;output wire name: 2418(1293)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4124
+
+gate: g1041 ;output wire name: 2410(1296)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4130
+
+gate: g1681 ;output wire name: 2305(1222)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4135
+
+gate: g1679 ;output wire name: 2313(1223)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4137
+
+gate: g1685 ;output wire name: 2393(1226)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4143
+
+gate: g1683 ;output wire name: 2401(1227)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4145
+
+gate: g1717 ;output wire name: 2337(1239)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4165
+
+gate: g1715 ;output wire name: 2425(1240)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4167
+
+gate: g1713 ;output wire name: 2257(1241)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4169
+
+gate: g1711 ;output wire name: 2345(1242)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4171
+
+gate: g1707 ;output wire name: 2353(1243)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4173
+
+gate: g1709 ;output wire name: 2265(1244)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4175
+
+gate: g1729 ;output wire name: 2330(1287)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4259
+
+gate: g1727 ;output wire name: 2322(1290)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4261
+
+gate: g1737 ;output wire name: 2418(1293)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4267
+
+gate: g1735 ;output wire name: 2410(1296)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4269
+
+gate: g1065 ;output wire name: 2321(1320)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4276
+
+gate: g1067 ;output wire name: 2329(1322)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4280
+
+gate: g1071 ;output wire name: 2409(1326)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4288
+
+gate: g1073 ;output wire name: 2417(1328)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4292
+
+gate: g1759 ;output wire name: 2321(1320)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4409
+
+gate: g1757 ;output wire name: 2329(1322)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4411
+
+gate: g1763 ;output wire name: 2409(1326)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4417
+
+gate: g1761 ;output wire name: 2417(1328)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4419
+
+gate: g1092 ;input wire name: 910(1301)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4438
+
+gate: g1078 ;input wire name: 910(1301)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4440
+
+gate: g1093 ;input wire name: 1128(1302)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4443
+
+gate: g1080 ;input wire name: 1128(1302)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4445
+
+gate: g1078 ;input wire name: 901(1303)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4450
+
+gate: g1080 ;input wire name: 1119(1304)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4456
+
+gate: g1078 ;input wire name: 918(1305)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4461
+
+gate: g1080 ;input wire name: 1136(1306)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4465
+
+gate: g1126 ;input wire name: 940(1318)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4493
+
+gate: g1121 ;input wire name: 940(1318)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4494
+
+gate: g1097 ;input wire name: 940(1318)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4495
+
+gate: g1128 ;input wire name: 930(1317)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4498
+
+gate: g1126 ;input wire name: 930(1317)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4499
+
+gate: g1121 ;input wire name: 930(1317)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4500
+
+gate: g1127 ;input wire name: 1158(1324)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4514
+
+gate: g1122 ;input wire name: 1158(1324)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4515
+
+gate: g1100 ;input wire name: 1158(1324)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4516
+
+gate: g1129 ;input wire name: 1148(1323)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4519
+
+gate: g1127 ;input wire name: 1148(1323)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4520
+
+gate: g1122 ;input wire name: 1148(1323)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4521
+
+gate: g1121 ;input wire name: 957(1370)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4657
+
+gate: g1126 ;input wire name: 949(1369)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4661
+
+gate: g1122 ;input wire name: 1175(1372)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4666
+
+gate: g1127 ;input wire name: 1167(1371)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4670
+
+gate: g1145 ;output wire name: 987(1404)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4768
+
+gate: g1146 ;output wire name: 1204(1405)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4770
+
+gate: g1785 ;output wire name: 991(1411)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4807
+
+gate: g1784 ;output wire name: 329(1414)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4809
+
+gate: g1153 ;output wire name: 1221(1413)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4821
+
+gate: g1154 ;output wire name: 1239(1415)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4827
+
+gate: g1155 ;output wire name: 1238(1416)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4829
+
+gate: g1158 ;input wire name: 1240(1417)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4830
+
+gate: g1156 ;output wire name: 1240(1417)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4832
+
+gate: g1158 ;input wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4834
+
+gate: g1157 ;output wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4835
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4837
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4838
+
+gate: g1160 ;input wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4839
+
+gate: g1159 ;output wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4840
+
+gate: g31 ;output wire name: 231(1422)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4845
+
+gate: g375 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 427
+
+gate: g374 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 428
+
+gate: g101 ;input wire name: 868(198)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 435
+
+gate: g201 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 583
+
+gate: g119 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 588
+
+gate: g203 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 607
+
+gate: g119 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 612
+
+gate: g427 ;input wire name: 2103(247)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 629
+
+gate: g188 ;input wire name: 875(290)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 771
+
+gate: g176 ;input wire name: 1261(296)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 830
+
+gate: g119 ;output wire name: 1460(335)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1086
+
+gate: g203 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1096
+
+gate: g202 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1097
+
+gate: g202 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1120
+
+gate: g201 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1121
+
+gate: g271 ;input wire name: 1296(374)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1265
+
+gate: g202 ;output wire name: 1457(425)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1431
+
+gate: g201 ;output wire name: 1459(424)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1433
+
+gate: g203 ;output wire name: 1458(426)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1435
+
+gate: g425 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1719
+
+gate: g357 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1720
+
+gate: g320 ;output wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1721
+
+gate: g357 ;output wire name: 2665(582)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1899
+
+gate: g1345 ;output wire name: 1473(545)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1902
+
+gate: g426 ;output wire name: 2671(658)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2123
+
+gate: g1364 ;output wire name: 2665(582)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2125
+
+gate: g435 ;output wire name: 466(667)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2156
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2198
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2199
+
+gate: g1415 ;output wire name: 2671(658)*
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2321
+
+gate: g427 ;output wire name: 1232(659)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2330
+
+gate: g532 ;output wire name: 2354(773)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2414
+
+gate: g534 ;output wire name: 2266(775)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2422
+
+gate: g632 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2480
+
+gate: g630 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2481
+
+gate: g640 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2484
+
+gate: g616 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2485
+
+gate: g612 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2486
+
+gate: g609 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2487
+
+gate: g558 ;output wire name: 1006(799)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2488
+
+gate: g639 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2490
+
+gate: g615 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2491
+
+gate: g611 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2492
+
+gate: g608 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2493
+
+gate: g559 ;output wire name: 743(800)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2494
+
+gate: g631 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2496
+
+gate: g629 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2497
+
+gate: g656 ;input wire name: 1235(733)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2590
+
+gate: g658 ;input wire name: 1228(735)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2595
+
+gate: g528 ;output wire name: 2673(769)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 2686
+
+gate: g1639 ;output wire name: 2354(773)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2699
+
+gate: g1641 ;output wire name: 2266(775)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2703
+
+gate: g621 ;output wire name: 2346(868)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2712
+
+gate: g623 ;output wire name: 2258(870)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2720
+
+gate: g625 ;output wire name: 2426(872)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2728
+
+gate: g626 ;output wire name: 2338(873)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2732
+
+gate: g689 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2798
+
+gate: g686 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2799
+
+gate: g688 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2804
+
+gate: g685 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2805
+
+gate: g707 ;input wire name: 475(897)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2809
+
+gate: g710 ;input wire name: 1337(898)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2814
+
+gate: g1428 ;output wire name: 2673(769)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2981
+
+gate: g1643 ;output wire name: 2346(868)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2993
+
+gate: g1645 ;output wire name: 2258(870)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2997
+
+gate: g1647 ;output wire name: 2426(872)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 3001
+
+gate: g1649 ;output wire name: 2338(873)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 3003
+
+gate: g733 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3076
+
+gate: g730 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3077
+
+gate: g726 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3078
+
+gate: g723 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3079
+
+gate: g707 ;output wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3080
+
+gate: g734 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3094
+
+gate: g731 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3095
+
+gate: g727 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3096
+
+gate: g724 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3097
+
+gate: g710 ;output wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3098
+
+gate: g656 ;output wire name: 1094(903)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 3119
+
+gate: g658 ;output wire name: 1096(905)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 3121
+
+gate: g939 ;output wire name: 2282(1191)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3822
+
+gate: g940 ;output wire name: 2370(1192)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3826
+
+gate: g941 ;output wire name: 2274(1193)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3830
+
+gate: g942 ;output wire name: 2362(1194)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3834
+
+gate: g943 ;output wire name: 2290(1195)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3840
+
+gate: g944 ;output wire name: 2378(1196)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3844
+
+gate: g956 ;output wire name: 2298(1208)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3894
+
+gate: g957 ;output wire name: 2386(1209)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3898
+
+gate: g960 ;output wire name: 2281(1212)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3906
+
+gate: g961 ;output wire name: 2289(1213)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3910
+
+gate: g962 ;output wire name: 2297(1214)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3914
+
+gate: g963 ;output wire name: 2273(1215)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3918
+
+gate: g964 ;output wire name: 2369(1216)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3922
+
+gate: g965 ;output wire name: 2377(1217)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3926
+
+gate: g966 ;output wire name: 2385(1218)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3930
+
+gate: g967 ;output wire name: 2361(1219)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3934
+
+gate: g980 ;output wire name: 2314(1232)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3940
+
+gate: g981 ;output wire name: 2306(1233)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3944
+
+gate: g984 ;output wire name: 2402(1236)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3952
+
+gate: g985 ;output wire name: 2394(1237)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3956
+
+gate: g970 ;output wire name: 2305(1222)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3964
+
+gate: g971 ;output wire name: 2313(1223)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3968
+
+gate: g974 ;output wire name: 2393(1226)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3980
+
+gate: g975 ;output wire name: 2401(1227)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 3984
+
+gate: g987 ;output wire name: 2337(1239)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4014
+
+gate: g988 ;output wire name: 2425(1240)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4018
+
+gate: g989 ;output wire name: 2257(1241)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4022
+
+gate: g990 ;output wire name: 2345(1242)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4026
+
+gate: g991 ;output wire name: 2353(1243)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4030
+
+gate: g992 ;output wire name: 2265(1244)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4034
+
+gate: g1655 ;output wire name: 2282(1191)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4049
+
+gate: g1663 ;output wire name: 2370(1192)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4051
+
+gate: g1661 ;output wire name: 2274(1193)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4053
+
+gate: g1669 ;output wire name: 2362(1194)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4055
+
+gate: g1657 ;output wire name: 2290(1195)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4059
+
+gate: g1665 ;output wire name: 2378(1196)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4061
+
+gate: g1659 ;output wire name: 2298(1208)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4083
+
+gate: g1667 ;output wire name: 2386(1209)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4085
+
+gate: g1621 ;output wire name: 2281(1212)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4087
+
+gate: g1629 ;output wire name: 2289(1213)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4089
+
+gate: g1651 ;output wire name: 2297(1214)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4091
+
+gate: g1625 ;output wire name: 2273(1215)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4093
+
+gate: g1623 ;output wire name: 2369(1216)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4095
+
+gate: g1631 ;output wire name: 2377(1217)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4097
+
+gate: g1653 ;output wire name: 2385(1218)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4099
+
+gate: g1627 ;output wire name: 2361(1219)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4101
+
+gate: g1673 ;output wire name: 2314(1232)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4103
+
+gate: g1671 ;output wire name: 2306(1233)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4105
+
+gate: g1032 ;output wire name: 2330(1287)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4108
+
+gate: g1035 ;output wire name: 2322(1290)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4114
+
+gate: g1677 ;output wire name: 2402(1236)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4119
+
+gate: g1675 ;output wire name: 2394(1237)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4121
+
+gate: g1038 ;output wire name: 2418(1293)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4124
+
+gate: g1041 ;output wire name: 2410(1296)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4130
+
+gate: g1681 ;output wire name: 2305(1222)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4135
+
+gate: g1679 ;output wire name: 2313(1223)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4137
+
+gate: g1685 ;output wire name: 2393(1226)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4143
+
+gate: g1683 ;output wire name: 2401(1227)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4145
+
+gate: g1717 ;output wire name: 2337(1239)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4165
+
+gate: g1715 ;output wire name: 2425(1240)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4167
+
+gate: g1713 ;output wire name: 2257(1241)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4169
+
+gate: g1711 ;output wire name: 2345(1242)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4171
+
+gate: g1707 ;output wire name: 2353(1243)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4173
+
+gate: g1709 ;output wire name: 2265(1244)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4175
+
+gate: g1729 ;output wire name: 2330(1287)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4259
+
+gate: g1727 ;output wire name: 2322(1290)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4261
+
+gate: g1737 ;output wire name: 2418(1293)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4267
+
+gate: g1735 ;output wire name: 2410(1296)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4269
+
+gate: g1065 ;output wire name: 2321(1320)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4276
+
+gate: g1067 ;output wire name: 2329(1322)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4280
+
+gate: g1071 ;output wire name: 2409(1326)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4288
+
+gate: g1073 ;output wire name: 2417(1328)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4292
+
+gate: g1759 ;output wire name: 2321(1320)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4409
+
+gate: g1757 ;output wire name: 2329(1322)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4411
+
+gate: g1763 ;output wire name: 2409(1326)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4417
+
+gate: g1761 ;output wire name: 2417(1328)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4419
+
+gate: g1145 ;output wire name: 987(1404)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4768
+
+gate: g1146 ;output wire name: 1204(1405)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4770
+
+gate: g1785 ;output wire name: 991(1411)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4807
+
+gate: g1784 ;output wire name: 329(1414)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4809
+
+gate: g1153 ;output wire name: 1221(1413)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4821
+
+gate: g1154 ;output wire name: 1239(1415)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4827
+
+gate: g1155 ;output wire name: 1238(1416)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4829
+
+gate: g1158 ;input wire name: 1240(1417)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4830
+
+gate: g1156 ;output wire name: 1240(1417)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4832
+
+gate: g1158 ;input wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4834
+
+gate: g1157 ;output wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4835
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4837
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4838
+
+gate: g1160 ;input wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4839
+
+gate: g1159 ;output wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 4840
+
+gate: g31 ;output wire name: 231(1422)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 4845
+
+gate: g374 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 249
+
+gate: g375 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 250
+
+gate: g101 ;input wire name: 868(198)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 254
+
+gate: g119 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 370
+
+gate: g201 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 375
+
+gate: g119 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 394
+
+gate: g203 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 399
+
+gate: g427 ;input wire name: 2103(247)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 420
+
+gate: g188 ;input wire name: 875(290)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 555
+
+gate: g176 ;input wire name: 1261(296)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 610
+
+gate: g202 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 853
+
+gate: g203 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 854
+
+gate: g201 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 877
+
+gate: g202 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 878
+
+gate: g271 ;input wire name: 1296(374)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 969
+
+gate: g320 ;output wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1219
+
+gate: g357 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1220
+
+gate: g425 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1221
+
+gate: g357 ;output wire name: 2665(582)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1348
+
+gate: g1345 ;output wire name: 1473(545)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1349
+
+gate: g1364 ;output wire name: 2665(582)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1523
+
+gate: g435 ;output wire name: 466(667)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1554
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1569
+
+gate: g427 ;output wire name: 1232(659)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1677
+
+gate: g630 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1774
+
+gate: g632 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1775
+
+gate: g558 ;output wire name: 1006(799)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1777
+
+gate: g609 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1778
+
+gate: g612 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1779
+
+gate: g616 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1780
+
+gate: g640 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1781
+
+gate: g559 ;output wire name: 743(800)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1783
+
+gate: g608 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1784
+
+gate: g611 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1785
+
+gate: g615 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1786
+
+gate: g639 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1787
+
+gate: g629 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1790
+
+gate: g631 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1791
+
+gate: g656 ;input wire name: 1235(733)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1818
+
+gate: g658 ;input wire name: 1228(735)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1822
+
+gate: g1639 ;output wire name: 2354(773)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1856
+
+gate: g1641 ;output wire name: 2266(775)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1858
+
+gate: g686 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1895
+
+gate: g689 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1896
+
+gate: g685 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1901
+
+gate: g688 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1902
+
+gate: g707 ;input wire name: 475(897)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1908
+
+gate: g710 ;input wire name: 1337(898)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1913
+
+gate: g1428 ;output wire name: 2673(769)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1981
+
+gate: g1643 ;output wire name: 2346(868)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1983
+
+gate: g1645 ;output wire name: 2258(870)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1985
+
+gate: g1647 ;output wire name: 2426(872)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1987
+
+gate: g1649 ;output wire name: 2338(873)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1988
+
+gate: g707 ;output wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2037
+
+gate: g723 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2038
+
+gate: g726 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2039
+
+gate: g730 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2040
+
+gate: g733 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2041
+
+gate: g710 ;output wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2055
+
+gate: g724 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2056
+
+gate: g727 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2057
+
+gate: g731 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2058
+
+gate: g734 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2059
+
+gate: g656 ;output wire name: 1094(903)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2071
+
+gate: g658 ;output wire name: 1096(905)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2072
+
+gate: g1655 ;output wire name: 2282(1191)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2603
+
+gate: g1663 ;output wire name: 2370(1192)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2604
+
+gate: g1661 ;output wire name: 2274(1193)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2605
+
+gate: g1669 ;output wire name: 2362(1194)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2606
+
+gate: g1657 ;output wire name: 2290(1195)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2608
+
+gate: g1665 ;output wire name: 2378(1196)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2609
+
+gate: g1659 ;output wire name: 2298(1208)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2618
+
+gate: g1667 ;output wire name: 2386(1209)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2619
+
+gate: g1621 ;output wire name: 2281(1212)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2620
+
+gate: g1629 ;output wire name: 2289(1213)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2621
+
+gate: g1651 ;output wire name: 2297(1214)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2622
+
+gate: g1625 ;output wire name: 2273(1215)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2623
+
+gate: g1623 ;output wire name: 2369(1216)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2624
+
+gate: g1631 ;output wire name: 2377(1217)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2625
+
+gate: g1653 ;output wire name: 2385(1218)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2626
+
+gate: g1627 ;output wire name: 2361(1219)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2627
+
+gate: g1673 ;output wire name: 2314(1232)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2628
+
+gate: g1671 ;output wire name: 2306(1233)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2629
+
+gate: g1677 ;output wire name: 2402(1236)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2634
+
+gate: g1675 ;output wire name: 2394(1237)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2635
+
+gate: g1681 ;output wire name: 2305(1222)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2640
+
+gate: g1679 ;output wire name: 2313(1223)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2641
+
+gate: g1685 ;output wire name: 2393(1226)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2646
+
+gate: g1683 ;output wire name: 2401(1227)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2647
+
+gate: g1717 ;output wire name: 2337(1239)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2657
+
+gate: g1715 ;output wire name: 2425(1240)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2658
+
+gate: g1713 ;output wire name: 2257(1241)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2659
+
+gate: g1711 ;output wire name: 2345(1242)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2660
+
+gate: g1707 ;output wire name: 2353(1243)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2661
+
+gate: g1709 ;output wire name: 2265(1244)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2662
+
+gate: g1729 ;output wire name: 2330(1287)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2672
+
+gate: g1727 ;output wire name: 2322(1290)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2673
+
+gate: g1737 ;output wire name: 2418(1293)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2674
+
+gate: g1735 ;output wire name: 2410(1296)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2675
+
+gate: g1759 ;output wire name: 2321(1320)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2726
+
+gate: g1757 ;output wire name: 2329(1322)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2727
+
+gate: g1763 ;output wire name: 2409(1326)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2730
+
+gate: g1761 ;output wire name: 2417(1328)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2731
+
+gate: g1145 ;output wire name: 987(1404)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2936
+
+gate: g1146 ;output wire name: 1204(1405)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2937
+
+gate: g1785 ;output wire name: 991(1411)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2962
+
+gate: g1784 ;output wire name: 329(1414)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2963
+
+gate: g1153 ;output wire name: 1221(1413)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2972
+
+gate: g1154 ;output wire name: 1239(1415)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2978
+
+gate: g1155 ;output wire name: 1238(1416)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2979
+
+gate: g1156 ;output wire name: 1240(1417)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2980
+
+gate: g1158 ;input wire name: 1240(1417)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2982
+
+gate: g1157 ;output wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2984
+
+gate: g1158 ;input wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2985
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2987
+
+gate: g1159 ;output wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2989
+
+gate: g1160 ;input wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2990
+
+gate: g31 ;output wire name: 231(1422)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2992
+
+gate: g374 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 249
+
+gate: g375 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 250
+
+gate: g101 ;input wire name: 868(198)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 254
+
+gate: g119 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 370
+
+gate: g201 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 375
+
+gate: g119 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 394
+
+gate: g203 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 399
+
+gate: g427 ;input wire name: 2103(247)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 420
+
+gate: g188 ;input wire name: 875(290)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 555
+
+gate: g176 ;input wire name: 1261(296)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 610
+
+gate: g202 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 853
+
+gate: g203 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 854
+
+gate: g201 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 877
+
+gate: g202 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 878
+
+gate: g271 ;input wire name: 1296(374)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 969
+
+gate: g320 ;output wire name: 1473(545)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1219
+
+gate: g357 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1220
+
+gate: g425 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1221
+
+gate: g357 ;output wire name: 2665(582)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1348
+
+gate: g1345 ;output wire name: 1473(545)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1349
+
+gate: g1364 ;output wire name: 2665(582)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1523
+
+gate: g435 ;output wire name: 466(667)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1554
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1569
+
+gate: g427 ;output wire name: 1232(659)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1677
+
+gate: g630 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1774
+
+gate: g632 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1775
+
+gate: g558 ;output wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1777
+
+gate: g609 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1778
+
+gate: g612 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1779
+
+gate: g616 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1780
+
+gate: g640 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1781
+
+gate: g559 ;output wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1783
+
+gate: g608 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1784
+
+gate: g611 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1785
+
+gate: g615 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1786
+
+gate: g639 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1787
+
+gate: g629 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1790
+
+gate: g631 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1791
+
+gate: g656 ;input wire name: 1235(733)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1818
+
+gate: g658 ;input wire name: 1228(735)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1822
+
+gate: g1639 ;output wire name: 2354(773)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1856
+
+gate: g1641 ;output wire name: 2266(775)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1858
+
+gate: g686 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1895
+
+gate: g689 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1896
+
+gate: g685 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1901
+
+gate: g688 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1902
+
+gate: g707 ;input wire name: 475(897)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1908
+
+gate: g710 ;input wire name: 1337(898)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1913
+
+gate: g1428 ;output wire name: 2673(769)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1981
+
+gate: g1643 ;output wire name: 2346(868)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1983
+
+gate: g1645 ;output wire name: 2258(870)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1985
+
+gate: g1647 ;output wire name: 2426(872)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1987
+
+gate: g1649 ;output wire name: 2338(873)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1988
+
+gate: g707 ;output wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2037
+
+gate: g723 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2038
+
+gate: g726 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2039
+
+gate: g730 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2040
+
+gate: g733 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2041
+
+gate: g710 ;output wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2055
+
+gate: g724 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2056
+
+gate: g727 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2057
+
+gate: g731 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2058
+
+gate: g734 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2059
+
+gate: g656 ;output wire name: 1094(903)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2071
+
+gate: g658 ;output wire name: 1096(905)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2072
+
+gate: g1655 ;output wire name: 2282(1191)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2603
+
+gate: g1663 ;output wire name: 2370(1192)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2604
+
+gate: g1661 ;output wire name: 2274(1193)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2605
+
+gate: g1669 ;output wire name: 2362(1194)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2606
+
+gate: g1657 ;output wire name: 2290(1195)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2608
+
+gate: g1665 ;output wire name: 2378(1196)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2609
+
+gate: g1659 ;output wire name: 2298(1208)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2618
+
+gate: g1667 ;output wire name: 2386(1209)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2619
+
+gate: g1621 ;output wire name: 2281(1212)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2620
+
+gate: g1629 ;output wire name: 2289(1213)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2621
+
+gate: g1651 ;output wire name: 2297(1214)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2622
+
+gate: g1625 ;output wire name: 2273(1215)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2623
+
+gate: g1623 ;output wire name: 2369(1216)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2624
+
+gate: g1631 ;output wire name: 2377(1217)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2625
+
+gate: g1653 ;output wire name: 2385(1218)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2626
+
+gate: g1627 ;output wire name: 2361(1219)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2627
+
+gate: g1673 ;output wire name: 2314(1232)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2628
+
+gate: g1671 ;output wire name: 2306(1233)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2629
+
+gate: g1677 ;output wire name: 2402(1236)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2634
+
+gate: g1675 ;output wire name: 2394(1237)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2635
+
+gate: g1681 ;output wire name: 2305(1222)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2640
+
+gate: g1679 ;output wire name: 2313(1223)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2641
+
+gate: g1685 ;output wire name: 2393(1226)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2646
+
+gate: g1683 ;output wire name: 2401(1227)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2647
+
+gate: g1717 ;output wire name: 2337(1239)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2657
+
+gate: g1715 ;output wire name: 2425(1240)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2658
+
+gate: g1713 ;output wire name: 2257(1241)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2659
+
+gate: g1711 ;output wire name: 2345(1242)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2660
+
+gate: g1707 ;output wire name: 2353(1243)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2661
+
+gate: g1709 ;output wire name: 2265(1244)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2662
+
+gate: g1729 ;output wire name: 2330(1287)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2672
+
+gate: g1727 ;output wire name: 2322(1290)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2673
+
+gate: g1737 ;output wire name: 2418(1293)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2674
+
+gate: g1735 ;output wire name: 2410(1296)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2675
+
+gate: g1759 ;output wire name: 2321(1320)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2726
+
+gate: g1757 ;output wire name: 2329(1322)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2727
+
+gate: g1763 ;output wire name: 2409(1326)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2730
+
+gate: g1761 ;output wire name: 2417(1328)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2731
+
+gate: g1145 ;output wire name: 987(1404)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2936
+
+gate: g1146 ;output wire name: 1204(1405)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2937
+
+gate: g1785 ;output wire name: 991(1411)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2962
+
+gate: g1784 ;output wire name: 329(1414)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2963
+
+gate: g1153 ;output wire name: 1221(1413)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2972
+
+gate: g1154 ;output wire name: 1239(1415)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2978
+
+gate: g1155 ;output wire name: 1238(1416)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2979
+
+gate: g1156 ;output wire name: 1240(1417)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2980
+
+gate: g1158 ;input wire name: 1240(1417)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2982
+
+gate: g1157 ;output wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2984
+
+gate: g1158 ;input wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2985
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2987
+
+gate: g1159 ;output wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2989
+
+gate: g1160 ;input wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2990
+
+gate: g31 ;output wire name: 231(1422)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2992
+
+gate: g374 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 249
+
+gate: g375 ;input wire name: 860(197)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 250
+
+gate: g101 ;input wire name: 868(198)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 254
+
+gate: g119 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 370
+
+gate: g201 ;input wire name: 1418(244)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 375
+
+gate: g119 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 394
+
+gate: g203 ;input wire name: 1394(246)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 399
+
+gate: g427 ;input wire name: 2103(247)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 420
+
+gate: g188 ;input wire name: 875(290)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 555
+
+gate: g176 ;input wire name: 1261(296)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 610
+
+gate: g202 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 853
+
+gate: g203 ;input wire name: 1430(336)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 854
+
+gate: g201 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 877
+
+gate: g202 ;input wire name: 1406(338)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 878
+
+gate: g271 ;input wire name: 1296(374)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 969
+
+gate: g320 ;output wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1219
+
+gate: g357 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1220
+
+gate: g425 ;input wire name: 1473(545)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1221
+
+gate: g357 ;output wire name: 2665(582)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1348
+
+gate: g1345 ;output wire name: 1473(545)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1349
+
+gate: g1364 ;output wire name: 2665(582)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1523
+
+gate: g435 ;output wire name: 466(667)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1554
+
+gate: g1414 ;output wire name: 2668(614)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1569
+
+gate: g427 ;output wire name: 1232(659)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1677
+
+gate: g630 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1774
+
+gate: g632 ;input wire name: 995(798)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1775
+
+gate: g558 ;output wire name: 1006(799)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1777
+
+gate: g609 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1778
+
+gate: g612 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1779
+
+gate: g616 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1780
+
+gate: g640 ;input wire name: 1006(799)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1781
+
+gate: g559 ;output wire name: 743(800)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1783
+
+gate: g608 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1784
+
+gate: g611 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1785
+
+gate: g615 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1786
+
+gate: g639 ;input wire name: 743(800)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1787
+
+gate: g629 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1790
+
+gate: g631 ;input wire name: 749(801)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1791
+
+gate: g656 ;input wire name: 1235(733)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1818
+
+gate: g658 ;input wire name: 1228(735)
+fault_type = s-a-1
+detection flag = redundant
+fault no. = 1822
+
+gate: g1639 ;output wire name: 2354(773)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1856
+
+gate: g1641 ;output wire name: 2266(775)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1858
+
+gate: g686 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1895
+
+gate: g689 ;input wire name: 999(895)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1896
+
+gate: g685 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1901
+
+gate: g688 ;input wire name: 753(896)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1902
+
+gate: g707 ;input wire name: 475(897)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1908
+
+gate: g710 ;input wire name: 1337(898)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 1913
+
+gate: g1428 ;output wire name: 2673(769)*
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 1981
+
+gate: g1643 ;output wire name: 2346(868)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1983
+
+gate: g1645 ;output wire name: 2258(870)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1985
+
+gate: g1647 ;output wire name: 2426(872)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1987
+
+gate: g1649 ;output wire name: 2338(873)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 1988
+
+gate: g707 ;output wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2037
+
+gate: g723 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2038
+
+gate: g726 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2039
+
+gate: g730 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2040
+
+gate: g733 ;input wire name: 1850(956)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2041
+
+gate: g710 ;output wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2055
+
+gate: g724 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2056
+
+gate: g727 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2057
+
+gate: g731 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2058
+
+gate: g734 ;input wire name: 1912(959)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2059
+
+gate: g656 ;output wire name: 1094(903)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2071
+
+gate: g658 ;output wire name: 1096(905)
+fault_type = s-a-0
+detection flag = redundant
+fault no. = 2072
+
+gate: g1655 ;output wire name: 2282(1191)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2603
+
+gate: g1663 ;output wire name: 2370(1192)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2604
+
+gate: g1661 ;output wire name: 2274(1193)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2605
+
+gate: g1669 ;output wire name: 2362(1194)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2606
+
+gate: g1657 ;output wire name: 2290(1195)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2608
+
+gate: g1665 ;output wire name: 2378(1196)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2609
+
+gate: g1659 ;output wire name: 2298(1208)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2618
+
+gate: g1667 ;output wire name: 2386(1209)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2619
+
+gate: g1621 ;output wire name: 2281(1212)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2620
+
+gate: g1629 ;output wire name: 2289(1213)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2621
+
+gate: g1651 ;output wire name: 2297(1214)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2622
+
+gate: g1625 ;output wire name: 2273(1215)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2623
+
+gate: g1623 ;output wire name: 2369(1216)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2624
+
+gate: g1631 ;output wire name: 2377(1217)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2625
+
+gate: g1653 ;output wire name: 2385(1218)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2626
+
+gate: g1627 ;output wire name: 2361(1219)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2627
+
+gate: g1673 ;output wire name: 2314(1232)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2628
+
+gate: g1671 ;output wire name: 2306(1233)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2629
+
+gate: g1677 ;output wire name: 2402(1236)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2634
+
+gate: g1675 ;output wire name: 2394(1237)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2635
+
+gate: g1681 ;output wire name: 2305(1222)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2640
+
+gate: g1679 ;output wire name: 2313(1223)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2641
+
+gate: g1685 ;output wire name: 2393(1226)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2646
+
+gate: g1683 ;output wire name: 2401(1227)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2647
+
+gate: g1717 ;output wire name: 2337(1239)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2657
+
+gate: g1715 ;output wire name: 2425(1240)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2658
+
+gate: g1713 ;output wire name: 2257(1241)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2659
+
+gate: g1711 ;output wire name: 2345(1242)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2660
+
+gate: g1707 ;output wire name: 2353(1243)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2661
+
+gate: g1709 ;output wire name: 2265(1244)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2662
+
+gate: g1729 ;output wire name: 2330(1287)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2672
+
+gate: g1727 ;output wire name: 2322(1290)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2673
+
+gate: g1737 ;output wire name: 2418(1293)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2674
+
+gate: g1735 ;output wire name: 2410(1296)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2675
+
+gate: g1759 ;output wire name: 2321(1320)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2726
+
+gate: g1757 ;output wire name: 2329(1322)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2727
+
+gate: g1763 ;output wire name: 2409(1326)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2730
+
+gate: g1761 ;output wire name: 2417(1328)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2731
+
+gate: g1145 ;output wire name: 987(1404)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2936
+
+gate: g1146 ;output wire name: 1204(1405)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2937
+
+gate: g1785 ;output wire name: 991(1411)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2962
+
+gate: g1784 ;output wire name: 329(1414)*
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2963
+
+gate: g1153 ;output wire name: 1221(1413)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2972
+
+gate: g1154 ;output wire name: 1239(1415)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2978
+
+gate: g1155 ;output wire name: 1238(1416)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2979
+
+gate: g1156 ;output wire name: 1240(1417)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2980
+
+gate: g1158 ;input wire name: 1240(1417)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2982
+
+gate: g1157 ;output wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2984
+
+gate: g1158 ;input wire name: 1247(1418)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2985
+
+gate: g1158 ;output wire name: 471(1419)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2987
+
+gate: g1159 ;output wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2989
+
+gate: g1160 ;input wire name: 473(1420)
+fault_type = s-a-1
+detection flag = aborted
+fault no. = 2990
+
+gate: g31 ;output wire name: 231(1422)
+fault_type = s-a-0
+detection flag = aborted
+fault no. = 2992
+

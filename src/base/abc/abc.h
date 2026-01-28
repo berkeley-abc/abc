@@ -107,6 +107,19 @@ typedef enum {
     ABC_INIT_OTHER      // 4:  unused
 } Abc_InitType_t;
 
+// Fault types
+typedef enum {
+    ABC_FAULT_NONE = 0,    // unknown fault type
+    ABC_FAULT_SA0,         // stuck-at-0 fault
+    ABC_FAULT_SA1,         // stuck-at-1 fault
+    ABC_FAULT_NUMBER       // number of fault types
+} Abc_FaultType_t;
+
+typedef enum {
+    ABC_FAULT_GI = 0,      // gate input fault
+    ABC_FAULT_GO = 1       // gate output fault
+} Abc_FaultIo_t;
+
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -118,6 +131,7 @@ typedef struct Abc_Aig_t_       Abc_Aig_t;
 typedef struct Abc_ManTime_t_   Abc_ManTime_t;
 typedef struct Abc_ManCut_t_    Abc_ManCut_t;
 typedef struct Abc_Time_t_      Abc_Time_t;
+typedef struct Abc_Fault_t_     Abc_Fault_t;
 
 struct Abc_Time_t_
 {
@@ -167,6 +181,19 @@ struct Abc_Ntk_t_
     Vec_Ptr_t *       vPios;         // the array of PIOs
     Vec_Ptr_t *       vBoxes;        // the array of boxes
     Vec_Ptr_t *       vLtlProperties;
+    // test pattern list information
+    Vec_Ptr_t *       vTestPatterns; // the array of test patterns (each pattern is Vec_Int_t*)
+    // fault list information
+    Abc_Fault_t *     pFaultList;    // the list of faults
+    int               nFaults;       // total number of faults
+    int               nDetectedFaults; // number of detected faults
+    int               nUndetectedFaults; // number of undetected faults
+    int               nActivatedFaults;   // number of activated faults
+    int               nTestTriedFaults;   // number of faults that have been tried
+    Abc_Ntk_t *       pGoodNtk;  // the good network
+    Vec_Ptr_t *       vGoodPis;  // the good network PIs
+    int *             fUndetected; // the number of undetected faults
+    int *             fDetected; // the number of detected faults
     // the number of living objects
     int nObjCounts[ABC_OBJ_NUMBER];  // the number of objects by type
     int               nObjs;         // the number of live objs
@@ -215,6 +242,7 @@ struct Abc_Ntk_t_
     Vec_Int_t *       vNameIds;      // name IDs
     Vec_Int_t *       vFins;         // obj/type info
     Vec_Int_t *       vOrigNodeIds;  // original node IDs
+    Abc_Ntk_t *       pFaultConstraintNtk;  // the fault constraint network
 };
 
 struct Abc_Des_t_ 
@@ -226,6 +254,23 @@ struct Abc_Des_t_
     st__table *        tModules;      // the table hashing module names into their networks
     Abc_Des_t *       pLibrary;      // the library used to map this design
     void *            pGenlib;       // the genlib library used to map this design
+};
+
+
+struct Abc_Fault_t_ 
+{
+    Abc_Obj_t *     pNode;          // the node where the fault is located
+    Abc_FaultType_t Type;           // the fault type (SA0 or SA1)
+    Abc_FaultIo_t   Io;             // input/output fault
+    int             Index;          // index of the input/output where fault is located
+    int             FaultId;        // unique fault ID
+    int             iSortIndex;     // index used for sorting
+    int             nEqvFaults;     // number of equivalent faults
+    int             nDetectedTimes; // number of times detected
+    int             fDetected;      // marks detected faults
+    int             fActivated;     // marks activated faults
+    int             fTestTried;     // marks faults that have been tried
+    Abc_Fault_t *   pNext;          // next fault in the list
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -850,6 +895,9 @@ extern ABC_DLL void               Abc_NodePrintLevel( FILE * pFile, Abc_Obj_t * 
 extern ABC_DLL void               Abc_NtkPrintSkews( FILE * pFile, Abc_Ntk_t * pNtk, int fPrintAll );
 extern ABC_DLL void               Abc_ObjPrint( FILE * pFile, Abc_Obj_t * pObj );
 extern ABC_DLL void               Abc_NtkShow6VarFunc( char * pF0, char * pF1 );
+extern ABC_DLL void               Abc_NtkPrintFaultList( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkPrintFaultStats( Abc_Ntk_t * pNtk );
+extern ABC_DLL float              Abc_NtkGetFaultCoverage( Abc_Ntk_t * pNtk );
 /*=== abcProve.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkMiterProve( Abc_Ntk_t ** ppNtk, void * pParams );
 extern ABC_DLL int                Abc_NtkIvyProve( Abc_Ntk_t ** ppNtk, void * pPars );
@@ -1063,7 +1111,34 @@ extern ABC_DLL int *              Abc_NtkVerifySimulatePattern( Abc_Ntk_t * pNtk
 extern ABC_DLL int                Abc_NtkIsTrueCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex );
 extern ABC_DLL int                Abc_NtkIsValidCex( Abc_Ntk_t * pNtk, Abc_Cex_t * pCex );
 
+// Fault list management functions
+extern ABC_DLL Abc_Fault_t *      Abc_FaultAlloc( Abc_Obj_t * pNode, Abc_FaultType_t Type, Abc_FaultIo_t Io, int Index );
+extern ABC_DLL void               Abc_FaultFree( Abc_Fault_t * pFault );
+extern ABC_DLL void               Abc_NtkAddFault( Abc_Ntk_t * pNtk, Abc_Fault_t * pFault );
+extern ABC_DLL void               Abc_NtkRemoveFault( Abc_Ntk_t * pNtk, Abc_Fault_t * pFault );
+extern ABC_DLL void               Abc_NtkClearFaults( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkGenerateFaultList( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkGenerateCheckpointFaultList( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkGenerateCollapsingFaultList( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkGenerateTDFaultList( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkInsertFaultSimGates(Abc_Ntk_t * pNtk);
+extern ABC_DLL void               Abc_NtkInsertPBOGates(Abc_Ntk_t * pNtk);
+extern ABC_DLL void               Abc_NtkGenerateCollapsedCheckpointFaultList( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkCreateFaultConstraintNetwork(Abc_Ntk_t * pNtk);
+extern ABC_DLL void               Abc_NtkCombineNetwork(Abc_Ntk_t * pNtk);
 
+// Test pattern management functions
+extern ABC_DLL void               Abc_NtkInitTestPatterns( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkAddTestPattern( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern );
+extern ABC_DLL void               Abc_NtkFreeTestPatterns( Abc_Ntk_t * pNtk );
+extern ABC_DLL int                Abc_NtkTestPatternNum( Abc_Ntk_t * pNtk );
+extern ABC_DLL Vec_Int_t *        Abc_NtkGetTestPattern( Abc_Ntk_t * pNtk, int i );
+extern ABC_DLL void               Abc_NtkAssignLatestPatternToConstraintNetwork( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkAssignLatestPatternToCurrentNetwork( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkWriteTestPatterns( Vec_Ptr_t * vPatterns, const char * pFileName );
+extern ABC_DLL void               Abc_NtkAssignPOPatternToCurrentNetwork( Abc_Ntk_t * pNtk, Vec_Int_t * vPattern );
+// Pseudo Boolean Optimization Related
+extern ABC_DLL Vec_Int_t *        Abc_ExecPBO( Abc_Ntk_t * pNtk, int first_run, char* undetected );
 
 ABC_NAMESPACE_HEADER_END
 
