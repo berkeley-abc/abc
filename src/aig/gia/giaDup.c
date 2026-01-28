@@ -656,6 +656,40 @@ Gia_Man_t * Gia_ManDupFlip( Gia_Man_t * p, int * pInitState )
     return pNew;
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Complements some flops without duplicating AIG.]
+
+  Description [The array of integers containing the initial state
+  of each flop in the AIG.]
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManFlipInit1( Gia_Man_t * p, Vec_Int_t * vInit )
+{
+    Gia_Obj_t * pObj; int c;
+    assert( Gia_ManRegNum(p) == Vec_IntSize(vInit) );
+    Gia_ManForEachRo( p, pObj, c )
+        pObj->fMark0 = (int)(Vec_IntEntry(vInit, c) == 1);
+    Gia_ManForEachAnd( p, pObj, c ) {
+        if ( Gia_ObjFanin0(pObj)->fMark0 )
+            pObj->fCompl0 ^= 1;
+        if ( Gia_ObjFanin1(pObj)->fMark0 )
+            pObj->fCompl1 ^= 1;
+    }
+    Gia_ManForEachCo( p, pObj, c )
+        if ( Gia_ObjFanin0(pObj)->fMark0 )
+            pObj->fCompl0 ^= 1;
+    Gia_ManForEachRo( p, pObj, c )
+        pObj->fMark0 = 0;
+    Gia_ManForEachRi( p, pObj, c )
+        if ( Vec_IntEntry(vInit, c) == 1 )
+            pObj->fCompl0 ^= 1;
+}
+
 
 /**Function*************************************************************
 
