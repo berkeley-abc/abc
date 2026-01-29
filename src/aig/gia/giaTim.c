@@ -77,7 +77,8 @@ int Gia_ManClockDomainNum( Gia_Man_t * p )
     if ( p->vRegClasses == NULL )
         return 0;
     nDoms = Vec_IntFindMax(p->vRegClasses);
-    assert( Vec_IntCountEntry(p->vRegClasses, 0) == 0 );
+    // Class 0 is now allowed - means unmergeable flops not in any clock domain
+    // assert( Vec_IntCountEntry(p->vRegClasses, 0) == 0 );
     for ( i = 1; i <= nDoms; i++ )
         if ( Vec_IntCountEntry(p->vRegClasses, i) > 0 )
             Count++;
