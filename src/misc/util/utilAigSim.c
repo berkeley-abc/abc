@@ -30,6 +30,8 @@
 #define mkstemp(p) _mktemp_s(p, strlen(p)+1)
 #else
 #include <unistd.h>   // mkstemp(), close(), unlink()
+#include <fcntl.h>
+#include <sys/stat.h>
 #endif
 
 #ifdef _WIN32
@@ -333,8 +335,14 @@ static int ends_with(const char *s, const char *suf) {
 
 static int make_tmp_file(char *path, size_t cap, const char *prefix) {
     // Creates an existing temp file (for input)
+#if defined(__wasm)
+    static int seq = 0; // no risk of collision since we're in a sandbox
+    snprintf(path, cap, "%s%08d", prefix, seq++);
+    int fd = open(path, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
+#else
     snprintf(path, cap, "/tmp/%sXXXXXX", prefix);
     int fd = mkstemp(path);
+#endif
     if (fd < 0) return 0;
     close(fd);
     return 1;
@@ -342,8 +350,14 @@ static int make_tmp_file(char *path, size_t cap, const char *prefix) {
 
 static int make_tmp_path_noexist(char *path, size_t cap, const char *prefix) {
     // Creates a unique temp path that does not exist (for output)
+#if defined(__wasm)
+    static int seq = 0; // no risk of collision since we're in a sandbox
+    snprintf(path, cap, "%s%08d", prefix, seq++);
+    int fd = open(path, O_CREAT | O_EXCL | O_RDWR, S_IREAD | S_IWRITE);
+#else
     snprintf(path, cap, "/tmp/%sXXXXXX", prefix);
     int fd = mkstemp(path);
+#endif
     if (fd < 0) return 0;
     close(fd);
     unlink(path);
@@ -612,7 +626,11 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
         // Run external binary: "<bin> <inFile> <outFile>"
         remove(outFile);
         snprintf(cmd, sizeof(cmd), "%s %s %s", bin, inFile, outFile);
+#if defined(__wasm)
+        int rc = -1;
+#else
         int rc = system(cmd);
+#endif
         if (rc != 0) {
             fprintf(stderr, "Error: system() failed (rc=%d): %s\n", rc, cmd);
             goto fail;

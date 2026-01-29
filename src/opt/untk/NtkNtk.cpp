@@ -9,7 +9,6 @@
 #include <windows.h>
 #else
 #include <unistd.h>
-#include <sys/wait.h>
 #endif
 #include <fstream>
 

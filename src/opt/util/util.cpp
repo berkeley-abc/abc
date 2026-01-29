@@ -6,7 +6,9 @@
  */
 
 #include <iomanip>
+#if !defined(__wasm)
 #include <csignal>
+#endif
 #ifdef _WIN32
 #include <windows.h>
 #else
