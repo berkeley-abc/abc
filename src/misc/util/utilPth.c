@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include <windows.h>
 #include <time.h>
 // nanosleep implementation for Windows
@@ -41,7 +41,7 @@ static inline int nanosleep(const struct timespec *req, struct timespec *rem) {
 
 #ifdef ABC_USE_PTHREADS
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include "../lib/pthread.h"
 #else
 #include <pthread.h>
