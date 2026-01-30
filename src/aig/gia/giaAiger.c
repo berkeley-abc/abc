@@ -982,6 +982,106 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
         pNew->pAigExtra    = pAigExtra;
     }
 
+    // Apply init state transformation for register boxes with init=1
+    if ( pNew->vRegInits && Vec_IntCountEntry(pNew->vRegInits, 1) > 0 )
+    {
+        extern void Gia_ManFlipInit1( Gia_Man_t * p, Vec_Int_t * vInit );
+        Tim_Man_t * pTimMan = (Tim_Man_t *)pNew->pManTime;
+
+        if ( pTimMan && Gia_ManRegBoxNum(pNew) > 0 )
+        {
+            // Handle register boxes: apply transformation to box inputs/outputs
+            Gia_Obj_t * pObj;
+            int i, curCo, curCi, nBoxIns, nBoxOuts;
+            int iRegBox = 0;
+
+            assert( Vec_IntSize(pNew->vRegInits) == Gia_ManRegBoxNum(pNew) );
+
+            // Step 1: Mark register box outputs with init state 1
+            curCi = Tim_ManPiNum(pTimMan);
+            for ( i = 0; i < Gia_ManBoxNum(pNew); i++ )
+            {
+                nBoxIns = Tim_ManBoxInputNum(pTimMan, i);
+                nBoxOuts = Tim_ManBoxOutputNum(pTimMan, i);
+                // Check if this is a register box (1-input, 1-output)
+                if ( nBoxIns == 1 && nBoxOuts == 1 )
+                {
+                    if ( Vec_IntEntry(pNew->vRegInits, iRegBox) == 1 )
+                    {
+                        pObj = Gia_ManCi(pNew, curCi);
+                        pObj->fMark0 = 1;
+                    }
+                    iRegBox++;
+                }
+                curCi += nBoxOuts;
+            }
+
+            // Step 2: Propagate complementation through AND gates
+            Gia_ManForEachAnd( pNew, pObj, i )
+            {
+                if ( Gia_ObjFanin0(pObj)->fMark0 )
+                    pObj->fCompl0 ^= 1;
+                if ( Gia_ObjFanin1(pObj)->fMark0 )
+                    pObj->fCompl1 ^= 1;
+            }
+
+            // Step 3: Complement CO fanins if needed
+            Gia_ManForEachCo( pNew, pObj, i )
+            {
+                if ( Gia_ObjFanin0(pObj)->fMark0 )
+                    pObj->fCompl0 ^= 1;
+            }
+
+            // Step 4: Clear marks
+            curCi = Tim_ManPiNum(pTimMan);
+            iRegBox = 0;
+            for ( i = 0; i < Gia_ManBoxNum(pNew); i++ )
+            {
+                nBoxIns = Tim_ManBoxInputNum(pTimMan, i);
+                nBoxOuts = Tim_ManBoxOutputNum(pTimMan, i);
+                if ( nBoxIns == 1 && nBoxOuts == 1 )
+                {
+                    if ( Vec_IntEntry(pNew->vRegInits, iRegBox) == 1 )
+                    {
+                        pObj = Gia_ManCi(pNew, curCi);
+                        pObj->fMark0 = 0;
+                    }
+                    iRegBox++;
+                }
+                curCi += nBoxOuts;
+            }
+
+            // Step 5: Complement register box inputs with init state 1
+            curCo = Tim_ManPoNum(pTimMan);
+            iRegBox = 0;
+            for ( i = 0; i < Gia_ManBoxNum(pNew); i++ )
+            {
+                nBoxIns = Tim_ManBoxInputNum(pTimMan, i);
+                nBoxOuts = Tim_ManBoxOutputNum(pTimMan, i);
+                if ( nBoxIns == 1 && nBoxOuts == 1 )
+                {
+                    if ( Vec_IntEntry(pNew->vRegInits, iRegBox) == 1 )
+                    {
+                        pObj = Gia_ManCo(pNew, curCo);
+                        pObj->fCompl0 ^= 1;
+                    }
+                    iRegBox++;
+                }
+                curCo += nBoxIns;
+            }
+
+            // Clear all init states to 0 (transformation is now structural)
+            Vec_IntFill( pNew->vRegInits, Vec_IntSize(pNew->vRegInits), 0 );
+        }
+        else if ( Gia_ManRegNum(pNew) > 0 )
+        {
+            // Handle regular flops (no boxes)
+            Gia_ManFlipInit1( pNew, pNew->vRegInits );
+            // Clear all init states to 0 (transformation is now structural)
+            Vec_IntFill( pNew->vRegInits, Vec_IntSize(pNew->vRegInits), 0 );
+        }
+    }
+
     if ( fHieOnly )
     {
 //        Tim_ManPrint( (Tim_Man_t *)pNew->pManTime );
