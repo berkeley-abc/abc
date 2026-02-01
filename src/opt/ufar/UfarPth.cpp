@@ -1,7 +1,7 @@
 
 #include "misc/util/abc_namespaces.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include "../lib/pthread.h"
 #else
 #include <pthread.h>
@@ -187,6 +187,10 @@ class PDRWLA : public Solver {
         Wla_Man_t * _pWla;
         Wlc_Par_t   _Pars;
 };
+
+#if defined(__wasm)
+static void pthread_exit(void *retval) __attribute__((noreturn)) { }
+#endif
 
 void KillOthers() {
     pthread_cond_signal( &g_cond );
