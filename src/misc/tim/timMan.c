@@ -562,33 +562,56 @@ void Tim_ManCreate( Tim_Man_t * p, void * pLib, Vec_Flt_t * vInArrs, Vec_Flt_t *
 */
     if ( vInArrs )
     {
-        assert( Vec_FltSize(vInArrs) >= Tim_ManPiNum(p) );
-        if ( Vec_FltSize(vInArrs) == Tim_ManPiNum(p) ) {
+        // Handle special case when timing is only for PIs (without boxes/flops)
+        // This happens when old files provide timing for actual design PIs only
+        if ( Vec_FltSize(vInArrs) < Tim_ManPiNum(p) )
+        {
+            // Special case: timing for actual PIs only (less than Tim_ManPiNum when boxes exist)
+            for ( i = 0; i < Vec_FltSize(vInArrs); i++ )
+                p->pCis[i].timeArr = Vec_FltEntry(vInArrs, i);
+        }
+        else if ( Vec_FltSize(vInArrs) == Tim_ManPiNum(p) )
+        {
+            // Original case: timing for PIs (up to first box)
             Tim_ManForEachPi( p, pObj, i )
                 pObj->timeArr = Vec_FltEntry(vInArrs, i);
         }
-        else  {
+        else
+        {
+            // General case: timing for all or partial CIs
             float Num;
             Vec_FltForEachEntry( vInArrs, Num, i )
-                p->pCis[i].timeArr = Num;
+                if ( i < p->nCis )
+                    p->pCis[i].timeArr = Num;
         }
     }
 
     // create required times
-    // Handles: POs only, POs+Flops (partial COs), or all COs
     if ( vOutReqs )
     {
-        assert( Vec_FltSize(vOutReqs) >= Tim_ManPoNum(p) );
-        if ( Vec_FltSize(vOutReqs) == Tim_ManPoNum(p) ) {
+        // Handle special case when timing is only for POs (without boxes/flops)
+        // This happens when old files provide timing for actual design POs only
+        if ( Vec_FltSize(vOutReqs) < Tim_ManPoNum(p) )
+        {
+            // Special case: timing for actual POs only (less than Tim_ManPoNum when boxes exist)
+            for ( i = 0; i < Vec_FltSize(vOutReqs); i++ )
+                p->pCos[i].timeReq = Vec_FltEntry(vOutReqs, i);
+        }
+        else if ( Vec_FltSize(vOutReqs) == Tim_ManPoNum(p) )
+        {
+            // Original case: timing for POs
             k = 0;
             Tim_ManForEachPo( p, pObj, i )
                 pObj->timeReq = Vec_FltEntry(vOutReqs, k++);
             assert( k == Tim_ManPoNum(p) );
         }
-        else {
+        else
+        {
+            // General case: timing for all or partial COs
             float Num;
             Vec_FltForEachEntry( vOutReqs, Num, i )
-                p->pCos[i].timeReq = Num;
+                if ( i < p->nCos )
+                    p->pCos[i].timeReq = Num;
         }
     }
 }
