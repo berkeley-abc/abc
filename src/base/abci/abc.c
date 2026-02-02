@@ -10940,15 +10940,35 @@ int Abc_CommandLutExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( 0, "If LUT mapping is not enabled (switch \"-r\"), permutation has not effect.\n" );
     if ( argc == globalUtilOptind + 1 )
         pPars->pTtStr = argv[globalUtilOptind];
-    else if ( argc == globalUtilOptind && Abc_FrameReadNtk(pAbc) ) 
+    else if ( argc == globalUtilOptind && Abc_FrameReadNtk(pAbc) )
     {
-        pPars->pTtStr = Abc_NtkReadTruth( Abc_FrameReadNtk(pAbc) );
-        if ( pPars->pTtStr )  
-            pPars->nVars = Abc_NtkCiNum(Abc_FrameReadNtk(pAbc));
+        Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+        if ( Abc_NtkCiNum(pNtk) > 30 )
+        {
+            Abc_Print( -1, "Cannot derive truth table from network: too many inputs (%d > 30).\n", Abc_NtkCiNum(pNtk) );
+            Abc_Print( -1, "Please provide truth table on the command line or use a smaller network.\n" );
+            return 1;
+        }
+        if ( Abc_NtkCoNum(pNtk) != 1 )
+        {
+            Abc_Print( -1, "Cannot derive truth table from network: network must have exactly one output (has %d).\n", Abc_NtkCoNum(pNtk) );
+            return 1;
+        }
+        pPars->pTtStr = Abc_NtkReadTruth( pNtk );
+        if ( pPars->pTtStr )
+        {
+            pPars->nVars = Abc_NtkCiNum(pNtk);
+            Abc_Print( 0, "Derived %d-input truth table from current network.\n", pPars->nVars );
+        }
+        else
+        {
+            Abc_Print( -1, "Failed to derive truth table from current network.\n" );
+            return 1;
+        }
     }
     if ( pPars->pTtStr == NULL && pPars->pSymStr == NULL && pPars->nRandFuncs == 0 )
     {
-        Abc_Print( -1, "Truth table should be given on the command line.\n" );
+        Abc_Print( -1, "Truth table should be given on the command line, or derived from current single-output network.\n" );
         return 1;
     }
     if ( pPars->nVars == 0 && pPars->pTtStr )
