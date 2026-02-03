@@ -1857,10 +1857,20 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
             int Beg = Wlc_ObjRangeBeg(pObj);
             if ( End >= Beg )
             {
-                assert( nRange == End - Beg + 1 );
-                assert( pFanin->Beg <= Beg && End <= pFanin->End );
-                for ( k = Beg; k <= End; k++ )
-                    Vec_IntPush( vRes, pFans0[k - pFanin->Beg] );
+                if ( pFanin->End >= pFanin->Beg ) 
+                {
+                    assert( nRange == End - Beg + 1 );
+                    assert( pFanin->Beg <= Beg && End <= pFanin->End );
+                    for ( k = Beg; k <= End; k++ )
+                        Vec_IntPush( vRes, pFans0[k - pFanin->Beg] );
+                }
+                else
+                {
+                    assert( nRange == End - Beg + 1 );
+                    assert( pFanin->End <= Beg && End <= pFanin->Beg );
+                    for ( k = Beg; k <= End; k++ )
+                        Vec_IntPush( vRes, pFans0[k - pFanin->End] );
+                }
             }
             else
             {
