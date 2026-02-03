@@ -870,6 +870,52 @@ Vec_Mem_t * Dau_CollectNpnFunctions( word * p, int nVars, int fVerbose )
   SeeAlso     []
 
 ***********************************************************************/
+Vec_Mem_t * Dau_CollectBoothFunctions( int nLog2Radix )
+{
+    assert( nLog2Radix >=2 && nLog2Radix <= 10 );
+    int nVars  = nLog2Radix + 1;
+    int nWords = Abc_Truth6WordNum( nVars );
+    int nFuncs = 1 << (nLog2Radix - 1);
+    int nMints = 1 << nVars;
+    Vec_Mem_t * vTtMem = Vec_MemAllocForTTSimple( nVars );
+    word * pFuncs = ABC_CALLOC( word, nWords * nFuncs );
+    int m, k, i;
+    for ( m = 0; m < nMints; m++ )
+    {
+        int d = (m & 1);
+        for ( k = 1; k < nLog2Radix; k++ )
+            if ( m & (1 << k) )
+                d += 1 << (k-1);
+        if ( m & (1 << nLog2Radix) )
+            d -= 1 << (nLog2Radix-1);
+        if ( d == 0 )
+            continue;
+        if ( d < 0 )
+            d = -d;
+        assert( d >= 1 && d <= nFuncs );
+        Abc_TtSetBit( pFuncs + (d-1)*nWords, m );
+    }
+    for ( i = 0; i < nFuncs; i++ ) {
+        if ( nVars < 6 )
+            pFuncs[i] = Abc_Tt6Stretch( pFuncs[i], nVars );
+        Vec_MemHashInsert( vTtMem, pFuncs + i*nWords );
+    }
+    ABC_FREE( pFuncs );
+    //Vec_MemDump( stdout, vTtMem );
+    return vTtMem;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Function enumeration.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
 void Dau_PrintNpnFunction( Vec_Mem_t * vTtMem, int nFuncs, word * pCopy, int nVars, int uPhase, int * pPerm, int fVerbose )
 {
     int nWords = Abc_Truth6WordNum(nVars);
@@ -1065,4 +1111,3 @@ void Dau_CanonicizeArray( Vec_Wrd_t * vFuncs, int nVars, int fVerbose )
 ////////////////////////////////////////////////////////////////////////
 
 ABC_NAMESPACE_IMPL_END
-

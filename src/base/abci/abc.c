@@ -58764,10 +58764,11 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Gia_ManMatchCuts( Vec_Mem_t * vTtMem, Gia_Man_t * pGia, int nCutSize, int nCutNum, int fVerbose );
     extern Vec_Mem_t * Abc_TruthDecRead( char * pFileName, int nVarNum );
     extern void Abc_TtStoreDump( char * pFileName, Vec_Mem_t * vTtMem, int nBytes );
-    int c, nVars, nVars2, nCutNum = 8, nCutSize = 0, nNumFuncs = 5, nNumCones = 3, fOutputs = 0, fVerbose = 0; word * pTruth = NULL;
+    extern Vec_Mem_t * Dau_CollectBoothFunctions( int nLog2Radix );
+    int c, nVars, nVars2, nCutNum = 32, nCutSize = 0, nBooth = 0, nNumFuncs = 5, nNumCones = 3, fOutputs = 0, fVerbose = 0; word * pTruth = NULL;
     char * pStr = NULL, * pFuncFileName = "_npn_member_funcs_.data"; Vec_Mem_t * vTtMem = NULL; Gia_Man_t * pTemp;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "CKNMFovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "CKBNMFovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -58792,6 +58793,24 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
             globalUtilOptind++;
             if ( nCutSize < 0 )
                 goto usage;
+            break;            
+        case 'B':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-B\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nBooth = atoi(argv[globalUtilOptind]);
+            if ( nBooth < 4 || nBooth > 1024 ) {
+                Abc_Print( -1, "Currently support radix value from 4 to 1024.\n" );
+                goto usage;                  
+            }
+            nBooth = Abc_Base2Log(nBooth);
+            if ( (1 << nBooth) != atoi(argv[globalUtilOptind]) ) {
+                Abc_Print( -1, "The Booth radix value %s is not a degree of 2.\n", argv[globalUtilOptind] );
+                goto usage;                
+            }
+            globalUtilOptind++;
             break;            
         case 'N':
             if ( globalUtilOptind >= argc )
@@ -58843,21 +58862,28 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( argc == globalUtilOptind )
     {
-        abctime clkStart = Abc_Clock();
-        int nFileSize = Gia_FileSize( pFuncFileName );
-        if ( nFileSize == 0 )
-        {
-            Abc_Print( -1, "Abc_CommandAbc9FunTrace(): Truth table in hex notation (or file name with the functions) should be given on the command line.\n" );
-            return 0;
+        if ( nBooth ) {
+            vTtMem = Dau_CollectBoothFunctions( nBooth );
+            printf( "Generated %d %d-input booth radix-%d encoder functions.\n", 1<<(nBooth-1), nBooth+1, 1<<nBooth );
+            nCutSize = nBooth+1;
         }
-        if ( nCutSize == 0 )
-        {
-            Abc_Print( -1, "Abc_CommandAbc9FunTrace(): The cut size needs to be specified on the command line (-K <num>) when precomputed functions are used.\n" );
-            return 0;            
+        else {
+            abctime clkStart = Abc_Clock();
+            int nFileSize = Gia_FileSize( pFuncFileName );
+            if ( nFileSize == 0 )
+            {
+                Abc_Print( -1, "Abc_CommandAbc9FunTrace(): Truth table in hex notation (or file name with the functions) should be given on the command line.\n" );
+                return 0;
+            }
+            if ( nCutSize == 0 )
+            {
+                Abc_Print( -1, "Abc_CommandAbc9FunTrace(): The cut size needs to be specified on the command line (-K <num>) when precomputed functions are used.\n" );
+                return 0;            
+            }
+            vTtMem = Abc_TruthDecRead( pFuncFileName, nCutSize );
+            printf( "Finished reading %d %d-input function from file \"%s\".  ", nFileSize / 8 / Abc_Truth6WordNum(nCutSize), nCutSize, pFuncFileName );
+            Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
         }
-        vTtMem = Abc_TruthDecRead( pFuncFileName, nCutSize );
-        printf( "Finished reading %d %d-input function from file \"%s\".  ", nFileSize / 8 / Abc_Truth6WordNum(nCutSize), nCutSize, pFuncFileName );
-        Abc_PrintTime( 1, "Time", Abc_Clock() - clkStart );
         Gia_ManMatchCuts( vTtMem, pAbc->pGia, nCutSize, nCutNum, fVerbose );
         Vec_MemHashFree( vTtMem );
         Vec_MemFree( vTtMem );
@@ -58919,10 +58945,11 @@ int Abc_CommandAbc9FunTrace( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &funtrace [-CKNM num] [-F file] [-ovh] {<truth> or <file.aig>}\n" );
+    Abc_Print( -2, "usage: &funtrace [-CKBNM num] [-F file] [-ovh] {<truth> or <file.aig>}\n" );
     Abc_Print( -2, "\t          traces the presence of the function in the current AIG\n" );
     Abc_Print( -2, "\t-C num  : the number of cuts to compute at each node [default = %d]\n", nCutNum );
     Abc_Print( -2, "\t-K num  : the LUT size to use when <file.aig> is given [default = %d]\n", nCutSize );
+    Abc_Print( -2, "\t-B num  : the radix of booth partial products to detect [default = %d]\n", nBooth );
     Abc_Print( -2, "\t-N num  : the number of functions to use when <file.aig> or -F <file> are used [default = %d]\n", nNumFuncs );
     Abc_Print( -2, "\t-M num  : the number of logic cones to use when <file.aig> is given [default = %d]\n", nNumCones );
     Abc_Print( -2, "\t-F file : the file name to store the NPN member functions [default = %s]\n", pFuncFileName );
