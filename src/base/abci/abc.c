@@ -39775,7 +39775,7 @@ usage:
     Abc_Print( -2, "usage: &extract [-K <num>] [-vh]\n");
     Abc_Print( -2, "\t           extract shared logic for XOR-rich circuits\n");
     Abc_Print( -2, "\t-K <num> : the minimum gate size to consider for extraction [default = %d]\n", nMultiSize );
-    Abc_Print( -2, "\t-a       : toogle extracting ANDs instead of XORs [default = %s]\n", fAnds? "yes": "no" );
+    Abc_Print( -2, "\t-a       : toggle extracting ANDs instead of XORs [default = %s]\n", fAnds? "yes": "no" );
     Abc_Print( -2, "\t-v       : print verbose information [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;
@@ -56906,7 +56906,7 @@ usage:
     Abc_Print( -2, "usage: &cfs [-LNURPrcdvh]\n" );
     Abc_Print( -2, "\t          performs simulation\n" );
     Abc_Print( -2, "\t-L num  : the limit on the number of occurrences [default = %d]\n",  Limit );
-    Abc_Print( -2, "\t-N num  : the number of repetions of each pattern [default = %d]\n", Reps );
+    Abc_Print( -2, "\t-N num  : the number of repetitions of each pattern [default = %d]\n", Reps );
     Abc_Print( -2, "\t-U num  : what to do with unseen patterns [default = %d]\n",         UnseenUse );
     Abc_Print( -2, "\t-R num  : what to do with rare patterns [default = %d]\n",           RareUse );
     Abc_Print( -2, "\t-P num  : base2-log of ramdom flip probability [default = %f]\n",    FlipProb );
