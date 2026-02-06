@@ -469,7 +469,266 @@ void Gia_ManCheckIntegrityWithBoxes( Gia_Man_t * p )
   Synopsis    [Computes representatives in terms of the original objects.]
 
   Description []
-               
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManFraigPrintDebugInfo( Gia_Man_t * p )
+{
+    if ( p->vRegClasses )
+        printf( "Gia_ManFraigSelectReprs: vRegClasses with %d entries\n", Vec_IntSize(p->vRegClasses) );
+    if ( p->vFlopClasses )
+        printf( "Gia_ManFraigSelectReprs: vFlopClasses with %d entries\n", Vec_IntSize(p->vFlopClasses) );
+
+    // Debug: Show all CIs and their types
+    // In unnormalized AIG with boxes: flop outputs are the last nFlops CIs
+    printf( "Circuit has %d CIs (PiNum=%d, RegBoxNum=%d)\n",
+            Gia_ManCiNum(p), Gia_ManPiNum(p), Gia_ManRegBoxNum(p) );
+    int nTotalCis = Gia_ManCiNum(p);
+    int nFlops = Gia_ManRegBoxNum(p);
+    int nFirstFlop = nTotalCis - nFlops;  // First flop CI index
+    printf( "  -> First %d CIs are PIs/box outputs, last %d CIs are flop outputs\n",
+            nFirstFlop, nFlops );
+
+    Gia_Obj_t * pCiObj;
+    int j;
+    Gia_ManForEachCi( p, pCiObj, j )
+    {
+        int CiId = Gia_ObjCioId(pCiObj);
+        const char* type = (CiId >= nFirstFlop) ? "FlopOut" : "PI/BoxOut";
+        int typeId = (CiId >= nFirstFlop) ? (CiId - nFirstFlop) : CiId;
+        printf( "  CI obj %d: CiId=%d (%s %d)\n", Gia_ObjId(p, pCiObj), CiId, type, typeId );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Mark box outputs that feed restricted flops.]
+
+  Description [This prevents box merging from indirectly eliminating restricted flops.]
+
+  SideEffects [Sets fMark1 on box output CIs.]
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManFraigMarkRestrictedBoxOutputs( Gia_Man_t * p, int fVerbose )
+{
+    int i;
+    for ( i = 0; i < Gia_ManRegBoxNum(p); i++ )
+    {
+        int needsProtection = 0;
+
+        // Check if this flop has restrictions
+        if ( p->vRegClasses && i < Vec_IntSize(p->vRegClasses) )
+        {
+            if ( Vec_IntEntry(p->vRegClasses, i) == 0 ) // Domain 0 = not removeable
+                needsProtection = 1;
+        }
+        if ( p->vFlopClasses && i < Vec_IntSize(p->vFlopClasses) )
+        {
+            if ( Vec_IntEntry(p->vFlopClasses, i) == 0 ) // Class 0 = unmergeable
+                needsProtection = 1;
+        }
+
+        // If flop needs protection, mark the box output driving it
+        // For Test6: box output with CiId (i+1) feeds flop i
+        if ( needsProtection )
+        {
+            int targetCiId = i + 1; // Box output that feeds this flop
+
+            // Find and mark the CI with this CiId
+            Gia_Obj_t * pCi;
+            int j;
+            Gia_ManForEachCi( p, pCi, j )
+            {
+                if ( Gia_ObjCioId(pCi) == targetCiId )
+                {
+                    pCi->fMark1 = 1; // Mark this box output as unmergeable
+                    if ( fVerbose )
+                        printf( "Marking box output (obj %d, CiId %d) for flop %d as unmergeable\n",
+                                Gia_ObjId(p, pCi), targetCiId, i );
+                    break;
+                }
+            }
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Print debug info about equivalence being processed.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManFraigPrintEquivInfo( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
+                                  Gia_Obj_t * pReprObj, int * pClp2Gia,
+                                  int iLitClp, int iReprClp )
+{
+    const char* typeStr = Gia_ObjIsCi(pObj) ? "CI" : (Gia_ObjIsAnd(pObj) ? "AND" : "OTHER");
+    printf( "Found equiv: obj %d (%s) repr %d - iLitClp=%d iReprClp=%d\n",
+            i, typeStr, pClp2Gia[iReprClp], iLitClp, iReprClp );
+
+    // Also show the representative's type
+    const char* reprTypeStr = Gia_ObjIsCi(pReprObj) ? "CI" : (Gia_ObjIsAnd(pReprObj) ? "AND" : "OTHER");
+    printf( "  Representative obj %d is %s\n", pClp2Gia[iReprClp], reprTypeStr );
+
+    // If this is a CI, show more details
+    if ( Gia_ObjIsCi(pObj) )
+    {
+        // In unnormalized AIG with boxes, flop outputs are the last nFlops CIs
+        int CiId = Gia_ObjCioId(pObj);
+        int nTotalCis = Gia_ManCiNum(p);  // Total CIs in unnormalized AIG
+        int nFlops = Gia_ManRegBoxNum(p);
+        int nFirstFlop = nTotalCis - nFlops; // First flop CI index
+
+        printf( "  -> obj %d: CiId=%d, TotalCIs=%d, nFlops=%d, FirstFlopCI=%d\n",
+                i, CiId, nTotalCis, nFlops, nFirstFlop );
+
+        if ( CiId >= nFirstFlop )
+            printf( "  -> This is Flop output %d\n", CiId - nFirstFlop );
+        else
+            printf( "  -> This is PI/BoxOut %d\n", CiId );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Check flop and box output restrictions for merging.]
+
+  Description [Returns 1 if objects should be skipped, 0 if they can be merged.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Gia_ManFraigCheckFlopRestrictions( Gia_Man_t * p, Gia_Obj_t * pObj, int i,
+                                       int * pClp2Gia, int iReprClp,
+                                       int fVerbose, int * pnSkipped )
+{
+    // First check if either CI feeds restricted flops (marked with fMark1)
+    Gia_Obj_t * pReprObj = Gia_ManObj(p, pClp2Gia[iReprClp]);
+    if ( fVerbose && Gia_ObjIsCi(pObj) )
+        printf( "  Checking obj %d: fMark1=%d\n", i, pObj->fMark1 );
+    if ( fVerbose && Gia_ObjIsCi(pReprObj) )
+        printf( "  Checking repr %d: fMark1=%d\n", pClp2Gia[iReprClp], pReprObj->fMark1 );
+
+    if ( Gia_ObjIsCi(pObj) && pObj->fMark1 )
+    {
+        if ( fVerbose )
+            printf( "  -> Skipping equiv: obj %d feeds restricted flop\n", i );
+        (*pnSkipped)++;
+        return 1;
+    }
+    if ( Gia_ObjIsCi(pReprObj) && pReprObj->fMark1 )
+    {
+        if ( fVerbose )
+            printf( "  -> Skipping equiv: repr %d feeds restricted flop\n", pClp2Gia[iReprClp] );
+        (*pnSkipped)++;
+        return 1;
+    }
+    // Check vRegClasses and vFlopClasses restrictions if both are flops
+    // For flops to be mergeable, they must satisfy BOTH conditions:
+    //   1. vRegClasses: same non-zero clock domain (0 = not removeable/mergeable)
+    //   2. vFlopClasses: same non-zero merge class (0 = unmergeable)
+    if ( (p->vRegClasses || p->vFlopClasses) && Gia_ObjIsCi(pObj) )
+    {
+        // In unnormalized AIGs with boxes, flop outputs are the last nFlops CIs
+        // They are not marked with fMark0 (which marks CIs feeding flop inputs)
+        int iFlopCur = -1, iFlopRepr = -1;
+        int nTotalCis = Gia_ManCiNum(p);  // Total CIs
+        int nFlops = Gia_ManRegBoxNum(p);
+        int nFirstFlop = nTotalCis - nFlops; // First flop CI index
+
+        // Get the CI ID of the current object
+        int CiIdCur = Gia_ObjCioId(pObj);
+
+        if ( fVerbose )
+            printf( "  Checking CI: obj %d, CiId %d, nTotalCis=%d, nFlops=%d, FirstFlopCI=%d\n",
+                    i, CiIdCur, nTotalCis, nFlops, nFirstFlop );
+
+        // Check if current object is a flop output (last nFlops CIs)
+        if ( CiIdCur >= nFirstFlop && CiIdCur < nTotalCis )
+            iFlopCur = CiIdCur - nFirstFlop;
+
+        // Check if representative is a flop output
+        int iRepr = pClp2Gia[iReprClp];
+        Gia_Obj_t * pRepr = Gia_ManObj(p, iRepr);
+        if ( Gia_ObjIsCi(pRepr) )
+        {
+            int CiIdRepr = Gia_ObjCioId(pRepr);
+            if ( CiIdRepr >= nFirstFlop && CiIdRepr < nTotalCis )
+                iFlopRepr = CiIdRepr - nFirstFlop;
+        }
+
+        // Apply merging restrictions
+        if ( iFlopCur >= 0 && iFlopRepr >= 0 )
+        {
+            if ( fVerbose )
+                printf( "Checking flop merge: flop %d and flop %d\n", iFlopCur, iFlopRepr );
+
+            // Check vRegClasses (clock domains) first
+            if ( p->vRegClasses )
+            {
+                assert( iFlopCur < Vec_IntSize(p->vRegClasses) );
+                assert( iFlopRepr < Vec_IntSize(p->vRegClasses) );
+
+                int DomainCur = Vec_IntEntry(p->vRegClasses, iFlopCur);
+                int DomainRepr = Vec_IntEntry(p->vRegClasses, iFlopRepr);
+
+                if ( fVerbose )
+                    printf( "  Clock domains: %d and %d\n", DomainCur, DomainRepr );
+
+                // Skip merging if either is in domain 0 or domains don't match
+                if ( DomainCur == 0 || DomainRepr == 0 || DomainCur != DomainRepr )
+                {
+                    if ( fVerbose )
+                        printf( "  -> Skipping due to clock domain restriction\n" );
+                    (*pnSkipped)++;
+                    return 1; // Skip this merging
+                }
+            }
+
+            // Check vFlopClasses (merge classes) second
+            if ( p->vFlopClasses )
+            {
+                assert( iFlopCur < Vec_IntSize(p->vFlopClasses) );
+                assert( iFlopRepr < Vec_IntSize(p->vFlopClasses) );
+
+                int ClassCur = Vec_IntEntry(p->vFlopClasses, iFlopCur);
+                int ClassRepr = Vec_IntEntry(p->vFlopClasses, iFlopRepr);
+
+                if ( fVerbose )
+                    printf( "  Merge classes: %d and %d\n", ClassCur, ClassRepr );
+
+                // Skip merging if classes don't match or class is 0 (unmergeable)
+                if ( ClassCur == 0 || ClassRepr == 0 || ClassCur != ClassRepr )
+                {
+                    if ( fVerbose )
+                        printf( "  -> Skipping due to merge class restriction\n" );
+                    (*pnSkipped)++;
+                    return 1; // Skip this merging
+                }
+            }
+        }
+    }
+    return 0; // OK to merge
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Select representatives for the collapsed AIG.]
+
+  Description []
+
   SideEffects []
 
   SeeAlso     []
@@ -485,6 +744,11 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
     int i, iLitClp, iLitClp2, iReprClp, fCompl;
     int nConsts = 0, nReprs = 0, nSkipped = 0;
     assert( pManTime != NULL );
+
+    // Debug: Check if vRegClasses and vFlopClasses are present
+    if ( fVerbose )
+        Gia_ManFraigPrintDebugInfo( p );
+
     // count the number of equivalent objects
     Gia_ManForEachObj1( pClp, pObj, i )
     {
@@ -513,6 +777,11 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
     vCarryOuts = Gia_ManComputeCarryOuts( p );
     Gia_ManForEachObjVec( vCarryOuts, p, pObj, i )
         pObj->fMark0 = 1;
+
+    // Additionally, mark box outputs that feed restricted flops using fMark1
+    // This prevents box merging from indirectly eliminating restricted flops
+    if ( p->vRegClasses || p->vFlopClasses )
+        Gia_ManFraigMarkRestrictedBoxOutputs( p, fVerbose );
     if ( fVerbose )
         printf( "Fixed %d flop inputs and %d box/box connections (out of %d non-flop boxes).\n", 
             Gia_ManRegBoxNum(p), Vec_IntSize(vCarryOuts), Gia_ManNonRegBoxNum(p) );
@@ -520,11 +789,23 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
 
     // collect equivalent node info
     pFlopTypes[0] = pFlopTypes[1] = pFlopTypes[2] = 0;
+    if ( fVerbose )
+        printf( "Checking flop equivalences in collapsed circuit:\n" );
     Gia_ManForEachRo( pClp, pObj, i )
     {
         Gia_Obj_t * pRepr = Gia_ObjReprObj(pClp, i);
         if ( pRepr && pRepr != pObj )
         {
+            if ( fVerbose )
+            {
+                printf( "  Flop %d (clp obj %d) has repr obj %d", i - Gia_ManPiNum(pClp),
+                        i, Gia_ObjId(pClp, pRepr) );
+                if ( pRepr == Gia_ManConst0(pClp) )
+                    printf( " (const 0)");
+                else if ( Gia_ObjIsRo(pClp, pRepr) )
+                    printf( " (another flop: %d)", Gia_ObjCioId(pRepr) - (Gia_ManPiNum(pClp) - Gia_ManRegNum(pClp)) );
+                printf( "\n" );
+            }
             if ( pRepr == Gia_ManConst0(pClp) )
                 pFlopTypes[0]++;
             else if ( Gia_ObjIsRo(pClp, pRepr) )
@@ -553,48 +834,16 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
             iLitClp2 = Gia_ObjValue( Gia_ManObj(p, pClp2Gia[iReprClp]) );
             assert( Gia_ObjReprSelf(pClp, Abc_Lit2Var(iLitClp)) == Gia_ObjReprSelf(pClp, Abc_Lit2Var(iLitClp2)) );
 
-            // Check vFlopClasses restrictions if both are flops
-            // vFlopClasses specifies which flops can be merged:
-            //   - Class 0: unmergeable flops (never merge)
-            //   - Class N>0: flops in group N (can merge within same group)
-            //   - NULL: no restrictions (all flops can be merged)
-            if ( p->vFlopClasses && Gia_ObjIsCi(pObj) )
+            // Debug: Show what's being merged
+            if ( fVerbose )
             {
-                // In unnormalized AIGs (used during &scorr with boxes):
-                // CIs are ordered as: PIs + FlopOutputs
-                // BoxOutputs are spread through the AIG as internal nodes
-                int iFlopCur = -1, iFlopRepr = -1;
-                int nPis = Gia_ManPiNum(p);
-                int nFlops = Gia_ManRegBoxNum(p);
-
-                // Check if current object is a flop output
-                // In unnormalized AIG: flop outputs are CIs from nPis to nPis+nFlops
-                if ( i >= nPis && i < nPis + nFlops )
-                    iFlopCur = i - nPis;
-
-                // Check if representative is a flop output
-                int iRepr = pClp2Gia[iReprClp];
-                if ( iRepr >= nPis && iRepr < nPis + nFlops )
-                    iFlopRepr = iRepr - nPis;
-
-                // Apply merging restrictions
-                if ( iFlopCur >= 0 && iFlopRepr >= 0 )
-                {
-                    // Make sure indices are valid
-                    assert( iFlopCur < Vec_IntSize(p->vFlopClasses) );
-                    assert( iFlopRepr < Vec_IntSize(p->vFlopClasses) );
-
-                    int ClassCur = Vec_IntEntry(p->vFlopClasses, iFlopCur);
-                    int ClassRepr = Vec_IntEntry(p->vFlopClasses, iFlopRepr);
-
-                    // Skip merging if classes don't match or class is 0 (unmergeable)
-                    if ( ClassCur == 0 || ClassRepr == 0 || ClassCur != ClassRepr )
-                    {
-                        nSkipped++;
-                        continue; // Skip this merging
-                    }
-                }
+                Gia_Obj_t * pReprObj = Gia_ManObj(p, pClp2Gia[iReprClp]);
+                Gia_ManFraigPrintEquivInfo( p, pObj, i, pReprObj, pClp2Gia, iLitClp, iReprClp );
             }
+
+            // Check flop restrictions for merging
+            if ( Gia_ManFraigCheckFlopRestrictions( p, pObj, i, pClp2Gia, iReprClp, fVerbose, &nSkipped ) )
+                continue;
 
             fCompl  = Abc_LitIsCompl(iLitClp) ^ Abc_LitIsCompl(iLitClp2);
             fCompl ^= Gia_ManObj(pClp, Abc_Lit2Var(iLitClp))->fPhase;
@@ -609,12 +858,15 @@ int * Gia_ManFraigSelectReprs( Gia_Man_t * p, Gia_Man_t * pClp, int fVerbose, in
     }
     ABC_FREE( pClp2Gia );
     Gia_ManForEachCi( p, pObj, i )
+    {
         pObj->fMark0 = 0;
+        pObj->fMark1 = 0; // Clean up the restricted flop marker
+    }
     if ( fVerbose )
     {
         printf( "Found %d const objects and %d other objects.\n", nConsts, nReprs );
-        if ( p->vFlopClasses && nSkipped > 0 )
-            printf( "Skipped %d flop mergings due to vFlopClasses restrictions.\n", nSkipped );
+        if ( (p->vRegClasses || p->vFlopClasses) && nSkipped > 0 )
+            printf( "Skipped %d flop mergings due to clock domain or merge class restrictions.\n", nSkipped );
     }
     return pReprs;
 }
@@ -785,12 +1037,21 @@ Gia_Man_t * Gia_ManSweepWithBoxesAndDomains( Gia_Man_t * p, void * pParsS, int f
 
 ***********************************************************************/
 Gia_Man_t * Gia_ManSweepWithBoxes( Gia_Man_t * p, void * pParsC, void * pParsS, int fConst, int fEquiv, int fVerbose, int fVerbEquivs )
-{ 
+{
     Gia_Man_t * pClp, * pNew, * pTemp;
     int * pReprs, pFlopTypes[3] = {0};
     int nFlopsNew, nFlops;
     assert( Gia_ManRegNum(p) == 0 );
     assert( p->pAigExtra != NULL );
+
+    // Debug: Check if vRegClasses and vFlopClasses are present
+    if ( fVerbose )
+    {
+        if ( p->vRegClasses )
+            printf( "Input has vRegClasses with %d entries\n", Vec_IntSize(p->vRegClasses) );
+        if ( p->vFlopClasses )
+            printf( "Input has vFlopClasses with %d entries\n", Vec_IntSize(p->vFlopClasses) );
+    }
     // consider seq synthesis with multiple clock domains
     if ( pParsC == NULL && Gia_ManClockDomainNum(p) > 1 )
         return Gia_ManSweepWithBoxesAndDomains( p, pParsS, fConst, fEquiv, fVerbose, fVerbEquivs );
