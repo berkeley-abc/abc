@@ -243,10 +243,29 @@ static inline int          Aig_WordFindFirstBit( unsigned uWord )
     return -1;
 }
 
+ifdef __cplusplus
+static inline Aig_Obj_t* Aig_Regular(Aig_Obj_t* p)
+{
+  return reinterpret_cast<Aig_Obj_t*>(reinterpret_cast<intptr_t>(p) & ~01);
+}
+static inline Aig_Obj_t* Aig_Not(Aig_Obj_t* p)
+{
+  return reinterpret_cast<Aig_Obj_t*>(reinterpret_cast<ABC_PTRUINT_T>(p) ^ 01);
+}
+static inline Aig_Obj_t* Aig_NotCond(Aig_Obj_t* p, int c)
+{
+  return reinterpret_cast<Aig_Obj_t*>(reinterpret_cast<ABC_PTRUINT_T>(p) ^ (c));
+}
+static inline int Aig_IsComplement(Aig_Obj_t* p)
+{
+  return static_cast<int>(reinterpret_cast<ABC_PTRUINT_T>(p) & 01);
+}
+#else
 static inline Aig_Obj_t *  Aig_Regular( Aig_Obj_t * p )           { return (Aig_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);  }
 static inline Aig_Obj_t *  Aig_Not( Aig_Obj_t * p )               { return (Aig_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);  }
 static inline Aig_Obj_t *  Aig_NotCond( Aig_Obj_t * p, int c )    { return (Aig_Obj_t *)((ABC_PTRUINT_T)(p) ^ (c));  }
 static inline int          Aig_IsComplement( Aig_Obj_t * p )      { return (int)((ABC_PTRUINT_T)(p) & 01);           }
+#endif
 
 static inline int          Aig_ManCiNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_CI];                     }
 static inline int          Aig_ManCoNum( Aig_Man_t * p )          { return p->nObjs[AIG_OBJ_CO];                     }
