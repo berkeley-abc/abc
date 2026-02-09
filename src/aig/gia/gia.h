@@ -195,6 +195,7 @@ struct Gia_Man_t_
     Vec_Flt_t *    vTiming;       // arrival/required/slack
     void *         pManTime;      // the timing manager
     void *         pLutLib;       // LUT library
+    void *         pCellLib;      // cell library
     word           nHashHit;      // hash table hit
     word           nHashMiss;     // hash table miss
     void *         pData;         // various user data

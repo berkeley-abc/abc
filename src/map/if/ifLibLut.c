@@ -568,6 +568,28 @@ void If_LibCellFree( If_LibCell_t * pCellLib )
 
 /**Function*************************************************************
 
+  Synopsis    [Returns the maximum number of inputs in the cell library.]
+
+  Description [Used for auto-detecting K value for &if command.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int If_LibCellGetMaxInputs( If_LibCell_t * pCellLib )
+{
+    int i, nMaxInputs = 0;
+    if ( pCellLib == NULL )
+        return 0;
+    for ( i = 0; i < pCellLib->nCellNum; i++ )
+        if ( pCellLib->nCellInputs[i] > nMaxInputs )
+            nMaxInputs = pCellLib->nCellInputs[i];
+    return nMaxInputs;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Prints the cell library.]
 
   Description []

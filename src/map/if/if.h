@@ -641,6 +641,7 @@ extern float           If_LibLutSlowestPinDelay( If_LibLut_t * p );
 extern If_LibCell_t *  If_LibCellRead( char * FileName );
 extern If_LibCell_t *  If_LibCellDup( If_LibCell_t * p );
 extern void            If_LibCellFree( If_LibCell_t * pCellLib );
+extern int             If_LibCellGetMaxInputs( If_LibCell_t * pCellLib );
 extern void            If_LibCellPrint( If_LibCell_t * pCellLib );
 /*=== ifLibBox.c =============================================================*/
 extern If_LibBox_t *   If_LibBoxStart();

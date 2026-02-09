@@ -44258,7 +44258,25 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
-    
+
+    // Auto-detect K from cell library when -j is used
+    if ( pPars->fEnableCheck07 && pPars->nLutSize == -1 )
+    {
+        If_LibCell_t * pCellLib = (If_LibCell_t *)Abc_FrameReadLibCell();
+        if ( pCellLib )
+        {
+            int nMaxInputs = If_LibCellGetMaxInputs( pCellLib );
+            if ( nMaxInputs > 0 )
+            {
+                pPars->nLutSize = nMaxInputs;
+                if ( pPars->fVerbose )
+                    Abc_Print( 1, "Auto-detected K=%d from cell library (max inputs).\n", nMaxInputs );
+                // Disable LUT library since we're using K from cell library
+                pPars->pLutLib = NULL;
+            }
+        }
+    }
+
     if ( pAbc->pGia == NULL )
     {
         if ( !Abc_FrameReadFlag("silentmode") )
@@ -48440,19 +48458,29 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
+    extern void Gia_ManDelayTraceDump( Gia_Man_t * p, char * pFileName );
     int c;
     int fUseLutLib;
+    int fUseCellLib;
     int fVerbose;
+    const char * pFileName = NULL;
     // set defaults
     fUseLutLib = 0;
+    fUseCellLib = 0;
     fVerbose   = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "lvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "F:lcvh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'F':
+            pFileName = globalUtilOptarg;
+            break;
         case 'l':
             fUseLutLib ^= 1;
+            break;
+        case 'c':
+            fUseCellLib ^= 1;
             break;
         case 'v':
             fVerbose ^= 1;
@@ -48465,22 +48493,40 @@ int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pAbc->pGia == NULL )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Speedup(): There is no AIG to map.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Trace(): There is no AIG to map.\n" );
         return 1;
     }
     if ( !Gia_ManHasMapping(pAbc->pGia) )
     {
-        Abc_Print( -1, "Abc_CommandAbc9Speedup(): Mapping of the AIG is not defined.\n" );
+        Abc_Print( -1, "Abc_CommandAbc9Trace(): Mapping of the AIG is not defined.\n" );
+        return 1;
+    }
+    if ( fUseLutLib && fUseCellLib )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Trace(): Cannot use both LUT library (-l) and cell library (-c) simultaneously.\n" );
         return 1;
     }
     pAbc->pGia->pLutLib = fUseLutLib ? Abc_FrameReadLibLut() : NULL;
-    Gia_ManDelayTraceLutPrint( pAbc->pGia, fVerbose );
+    pAbc->pGia->pCellLib = fUseCellLib ? Abc_FrameReadLibCell() : NULL;
+
+    if ( pFileName )
+    {
+        // Dump the delay trace to file
+        Gia_ManDelayTraceDump( pAbc->pGia, (char *)pFileName );
+    }
+    else
+    {
+        // Print the delay trace to console
+        Gia_ManDelayTraceLutPrint( pAbc->pGia, fVerbose );
+    }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &trace [-lvh]\n" );
+    Abc_Print( -2, "usage: &trace [-F file] [-lcvh]\n" );
     Abc_Print( -2, "\t           performs delay trace of LUT-mapped network\n" );
-    Abc_Print( -2, "\t-l       : toggle using unit- or LUT-library-delay model [default = %s]\n", fUseLutLib? "lib": "unit" );
+    Abc_Print( -2, "\t-F file  : dump the critical path to a file [default = console output]\n" );
+    Abc_Print( -2, "\t-l       : toggle using LUT-library-delay model [default = %s]\n", fUseLutLib? "yes": "no" );
+    Abc_Print( -2, "\t-c       : toggle using cell-library-delay model [default = %s]\n", fUseCellLib? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n");
     return 1;

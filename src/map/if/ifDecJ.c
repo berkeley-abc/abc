@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "aig/gia/gia.h"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -39,6 +40,9 @@ word If_CutPerformDeriveJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeav
     return 0;
 }
 void If_PermUnpack( unsigned Value, int Pla2Var[9] )
+{
+}
+void Gia_ManDelayTraceDump( Gia_Man_t * p, char * pFileName )
 {
 }
 
