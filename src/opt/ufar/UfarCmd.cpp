@@ -48,6 +48,44 @@ void Ufar_Init(Abc_Frame_t *pAbc)
     //Cmd_CommandAdd( pAbc, "Word level Prove", "%%miter",          Abc_CommandCreateMiter,     0 );
 }
 
+int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*pFuncStop)(int), int RunId )
+{
+    UFAR::UfarManager manager;
+    timeval t1;
+    set<unsigned> set_op_types;
+    Wlc_Ntk_t * pUse = pNtk;
+    int RetValue = -1;
+    if ( pNtk == NULL )
+        return -1;
+    if ( Wlc_NtkPoNum(pUse) == 2 )
+    {
+        pUse = UFAR::CreateMiter( pUse, 0 );
+        if ( pUse == NULL )
+            return -1;
+    }
+    else if ( Wlc_NtkPoNum(pUse) != 1 )
+        return -1;
+    set_op_types.insert( WLC_OBJ_ARI_MULTI );
+    if ( !UFAR::HasOperator( pUse, set_op_types ) )
+    {
+        if ( pUse != pNtk )
+            Wlc_NtkFree( pUse );
+        return -1;
+    }
+    manager.params = UFAR::UfarManager::Params();
+    manager.params.RunId = RunId;
+    manager.params.pFuncStop = pFuncStop;
+    if ( nTimeOut > 0 )
+        manager.params.nTimeout = nTimeOut;
+    manager.params.iVerbosity = fVerbose ? 1 : 0;
+    gettimeofday( &t1, NULL );
+    manager.Initialize( pUse, set_op_types );
+    RetValue = manager.PerformUIFProve( t1 );
+    if ( pUse != pNtk )
+        Wlc_NtkFree( pUse );
+    return RetValue;
+}
+
 static int Abc_CommandCreateMiter( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Wlc_Ntk_t * pNew = UFAR::CreateMiter(Wlc_AbcGetNtk(pAbc), 0);

@@ -60,6 +60,8 @@ class UfarManager {
     public:
         struct Params {
             Params();
+            int      RunId;
+            int      (*pFuncStop)(int);
             bool     fCexMin;
             bool     fPbaUif;
             bool     fLazySim;

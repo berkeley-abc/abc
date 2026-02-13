@@ -136,8 +136,8 @@ void        PrintWordCEX(Wlc_Ntk_t * pNtk, Abc_Cex_t * pCex, const std::vector<s
 
 unsigned    compute_bit_level_pi_num(Wlc_Ntk_t * pNtk);
 
-int         verify_model(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const std::string* pFileName = NULL, const std::string* pParSetting = NULL, bool fSyn = false, struct timespec * timeout = NULL);
-int         bit_level_solve(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const std::string* pFileName = NULL, const std::string* pParSetting = NULL, bool fSyn = false);
+int         verify_model(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const std::string* pFileName = NULL, const std::string* pParSetting = NULL, bool fSyn = false, struct timespec * timeout = NULL, int (*pFuncStop)(int) = NULL, int RunId = -1);
+int         bit_level_solve(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const std::string* pFileName = NULL, const std::string* pParSetting = NULL, bool fSyn = false, int (*pFuncStop)(int) = NULL, int RunId = -1);
 
 Gia_Man_t * BitBlast(Wlc_Ntk_t * pNtk);
 
