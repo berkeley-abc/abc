@@ -981,6 +981,10 @@ void UfarManager::Initialize(Wlc_Ntk_t * pNtk, const set<unsigned>& types) {
     profile = Profile();
 
     _pOrigNtk = Wlc_NtkDupDfsSimple(pNtk);
+    if ( _pOrigNtk->pName == NULL )
+        _pOrigNtk->pName = Abc_UtilStrsav( pNtk->pName ? pNtk->pName : pNtk->pSpec );
+    if ( _pOrigNtk->pSpec == NULL )
+        _pOrigNtk->pSpec = Abc_UtilStrsav( pNtk->pName ? pNtk->pName : pNtk->pSpec );
 
     Wlc_Obj_t * pObj;
     int i;
@@ -1082,6 +1086,16 @@ Wlc_Ntk_t * UfarManager::BuildCurrentAbstraction() {
 
     pNew = RemoveAuxPOs(pTemp = pNew, Wlc_NtkPoNum(_pOrigNtk));
     Wlc_NtkFree(pTemp);
+
+    // Preserve benchmark identity through abstraction refinements so
+    // downstream bit-level engines report a meaningful miter name.
+    if ( _pOrigNtk )
+    {
+        ABC_FREE( pNew->pName );
+        ABC_FREE( pNew->pSpec );
+        pNew->pName = Abc_UtilStrsav( _pOrigNtk->pName ? _pOrigNtk->pName : _pOrigNtk->pSpec );
+        pNew->pSpec = Abc_UtilStrsav( _pOrigNtk->pName ? _pOrigNtk->pName : _pOrigNtk->pSpec );
+    }
 
     // Wlc_WriteVer(pNew, "Abs.v", 0, 0);
 

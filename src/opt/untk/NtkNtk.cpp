@@ -52,11 +52,14 @@ static inline int create_buffer(Wlc_Ntk_t * p, Wlc_Obj_t * pObj, Vec_Int_t * vFa
 Gia_Man_t * BitBlast(Wlc_Ntk_t * pNtk) {
     Wlc_BstPar_t Par, * pPar = &Par;
     Wlc_BstParDefault( pPar );
-    return Wlc_NtkBitBlast(pNtk, pPar);
-    //Gia_Man_t * pGia = Wlc_NtkBitBlast2(pNtk, NULL);
-    //printf( "Usingn old bit-blaster: " );
-    //Gia_ManPrintStats( pGia, NULL );
-    //return pGia;
+    Gia_Man_t * pGia = Wlc_NtkBitBlast(pNtk, pPar);
+    if ( pGia == NULL )
+        return NULL;
+    if ( pGia->pName == NULL )
+        pGia->pName = Abc_UtilStrsav( pNtk->pName ? pNtk->pName : pNtk->pSpec );
+    if ( pGia->pSpec == NULL )
+        pGia->pSpec = Abc_UtilStrsav( pNtk->pName ? pNtk->pName : pNtk->pSpec );
+    return pGia;
 }
 
 template<typename Functor>
@@ -1292,7 +1295,15 @@ int bit_level_solve(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileNam
     }
 
     Aig_Man_t * pAig = Gia_ManToAig(pGia, 0);
+    if ( pAig->pName == NULL )
+        pAig->pName = Abc_UtilStrsav( pGia->pName ? pGia->pName : pGia->pSpec );
+    if ( pAig->pSpec == NULL )
+        pAig->pSpec = Abc_UtilStrsav( pGia->pName ? pGia->pName : pGia->pSpec );
     Abc_Ntk_t * pAbcNtk = Abc_NtkFromAigPhase(pAig);
+    if ( pAbcNtk->pName == NULL )
+        pAbcNtk->pName = Abc_UtilStrsav( pAig->pName ? pAig->pName : pAig->pSpec );
+    if ( pAbcNtk->pSpec == NULL )
+        pAbcNtk->pSpec = Abc_UtilStrsav( pAig->pName ? pAig->pName : pAig->pSpec );
 
     if (pFileName && !pFileName->empty())
         Gia_AigerWriteSimple(pGia, &((*pFileName + ".aig")[0u]));

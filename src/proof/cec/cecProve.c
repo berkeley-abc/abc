@@ -83,6 +83,26 @@ typedef struct Par_ThData_t_
     Par_Share_t * pShare;
 } Par_ThData_t;
 static volatile Par_Share_t * g_pUfarShare = NULL;
+static inline void Cec_CopyGiaName( Gia_Man_t * pSrc, Gia_Man_t * pDst )
+{
+    char * pName = pSrc->pName ? pSrc->pName : pSrc->pSpec;
+    if ( pName == NULL )
+        return;
+    if ( pDst->pName == NULL )
+        pDst->pName = Abc_UtilStrsav( pName );
+    if ( pDst->pSpec == NULL )
+        pDst->pSpec = Abc_UtilStrsav( pName );
+}
+static inline void Cec_CopyGiaNameToAig( Gia_Man_t * pGia, Aig_Man_t * pAig )
+{
+    char * pName = pGia->pName ? pGia->pName : pGia->pSpec;
+    if ( pName == NULL )
+        return;
+    if ( pAig->pName == NULL )
+        pAig->pName = Abc_UtilStrsav( pName );
+    if ( pAig->pSpec == NULL )
+        pAig->pSpec = Abc_UtilStrsav( pName );
+}
 static int Cec_SProveStopUfar( int RunId )
 {
     (void)RunId;
@@ -161,6 +181,7 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
             pPars->pProgress     = (void *)pThData;
         }
         Aig_Man_t * pAig = Gia_ManToAigSimple( p );
+        Cec_CopyGiaNameToAig( p, pAig );
         RetValue = Saig_ManBmcScalable( pAig, pPars );
         p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
         Aig_ManStop( pAig );                 
@@ -177,6 +198,7 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
             pPars->pProgress     = (void *)pThData;
         }
         Aig_Man_t * pAig = Gia_ManToAigSimple( p );
+        Cec_CopyGiaNameToAig( p, pAig );
         RetValue = Pdr_ManSolve( pAig, pPars );
         p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
         Aig_ManStop( pAig );                
@@ -194,6 +216,7 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
             pPars->pProgress     = (void *)pThData;
         }
         Aig_Man_t * pAig = Gia_ManToAigSimple( p );
+        Cec_CopyGiaNameToAig( p, pAig );
         RetValue = Saig_ManBmcScalable( pAig, pPars );
         p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
         Aig_ManStop( pAig );                
@@ -211,6 +234,7 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
             pPars->pProgress     = (void *)pThData;
         }
         Aig_Man_t * pAig = Gia_ManToAigSimple( p );
+        Cec_CopyGiaNameToAig( p, pAig );
         RetValue = Pdr_ManSolve( pAig, pPars );
         p->pCexSeq = pAig->pSeqModel; pAig->pSeqModel = NULL;
         Aig_ManStop( pAig );                
@@ -313,6 +337,7 @@ void Cec_GiaInitThreads( Par_ThData_t * ThData, int nWorkers, Gia_Man_t * p, int
     for ( i = 0; i < nWorkers; i++ )
     {
         ThData[i].p        = Gia_ManDup(p);
+        Cec_CopyGiaName( p, ThData[i].p );
         ThData[i].iEngine  = (fUseUif && i == nWorkers - 1) ? PAR_ENGINE_UFAR : i;
         ThData[i].nTimeOut = nTimeOut;
         ThData[i].fWorking = 0;
@@ -414,7 +439,8 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
     }
     if ( !fSilent )
     {
-        printf( "Problem \"%s\" is ", p->pSpec );
+        char * pProbName = p->pSpec ? p->pSpec : Gia_ManName(p);
+        printf( "Problem \"%s\" is ", pProbName ? pProbName : "(none)" );
         if ( RetValue == 0 )
             printf( "SATISFIABLE (solved by %d).", RetEngine );
         else if ( RetValue == 1 )

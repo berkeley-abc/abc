@@ -1434,6 +1434,7 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
     // create AIG manager
     pNew = Gia_ManStart( 5 * Wlc_NtkObjNum(p) + 1000 );
     pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
     pNew->fGiaSimple = pPar->fGiaSimple;
     if ( !pPar->fGiaSimple )
         Gia_ManHashAlloc( pNew );
@@ -2730,7 +2731,6 @@ Gia_Man_t * Wlc_NtkBitBlast( Wlc_Ntk_t * p, Wlc_BstPar_t * pParIn )
         Abc_FrameSetLibBox( pBoxLib );
     }
 
-    //pNew->pSpec = Abc_UtilStrsav( p->pSpec ? p->pSpec : p->pName );
     // dump the miter parts
     if ( 0 )
     {

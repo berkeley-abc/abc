@@ -33,6 +33,28 @@ using namespace std;
 
 namespace UFAR {
 
+static inline void Ufar_CopyGiaNameToAig( Gia_Man_t * pGia, Aig_Man_t * pAig )
+{
+    char * pName = pGia->pName ? pGia->pName : pGia->pSpec;
+    if ( pName == NULL )
+        return;
+    if ( pAig->pName == NULL )
+        pAig->pName = Abc_UtilStrsav( pName );
+    if ( pAig->pSpec == NULL )
+        pAig->pSpec = Abc_UtilStrsav( pName );
+}
+
+static inline void Ufar_CopyAigNameToNtk( Aig_Man_t * pAig, Abc_Ntk_t * pNtk )
+{
+    char * pName = pAig->pName ? pAig->pName : pAig->pSpec;
+    if ( pName == NULL )
+        return;
+    if ( pNtk->pName == NULL )
+        pNtk->pName = Abc_UtilStrsav( pName );
+    if ( pNtk->pSpec == NULL )
+        pNtk->pSpec = Abc_UtilStrsav( pName );
+}
+
 // mutext to control access to shared variables
 pthread_mutex_t g_mutex;
 // cv to control timer
@@ -63,6 +85,7 @@ class PDR : public Solver {
         Pth_Data_t * pData = (Pth_Data_t *)pArg;
 
         _pAig = Gia_ManToAigSimple( pData->pGia );
+        Ufar_CopyGiaNameToAig( pData->pGia, _pAig );
 
         Pdr_Par_t * pPdrPars = &_PdrPars;
         Pdr_ManSetDefaultParams(pPdrPars);
@@ -93,6 +116,7 @@ class PDRA : public Solver {
         Pth_Data_t * pData = (Pth_Data_t *)pArg;
 
         _pAig = Gia_ManToAigSimple( pData->pGia );
+        Ufar_CopyGiaNameToAig( pData->pGia, _pAig );
 
         Pdr_Par_t * pPdrPars = &_PdrPars;
         Pdr_ManSetDefaultParams(pPdrPars);
@@ -126,7 +150,9 @@ class BMC3 : public Solver {
         BMC3 ( void * pArg ) {
             Pth_Data_t * pData = (Pth_Data_t *)pArg;
             Aig_Man_t * pAig = Gia_ManToAigSimple( pData->pGia );
+            Ufar_CopyGiaNameToAig( pData->pGia, pAig );
             _pNtk = Abc_NtkFromAigPhase( pAig );
+            Ufar_CopyAigNameToNtk( pAig, _pNtk );
             Aig_ManStop( pAig );
 
             Saig_ParBmc_t * pBmcPars = &_Pars;
