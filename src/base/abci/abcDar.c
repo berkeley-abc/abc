@@ -3594,7 +3594,7 @@ Abc_Ntk_t * Abc_NtkDarHaigRecord( Abc_Ntk_t * pNtk, int nIters, int nSteps, int 
   SeeAlso     []
 
 ***********************************************************************/
-int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim )
+ Vec_Int_t * Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, int fNew, int fMiter, int fVerbose, char * pFileSim )
 {
     Aig_Man_t * pMan;
     Abc_Cex_t * pCex;
@@ -3642,10 +3642,31 @@ int Abc_NtkDarSeqSim( Abc_Ntk_t * pNtk, int nFrames, int nWords, int TimeOut, in
     else // comb/seq simulator
     {
         Fra_Sml_t * pSml;
+        Vec_Int_t * pValues;
+        unsigned * pSims;
+        int i, k;
+        Aig_Obj_t * pObj;
+        
         if ( pFileSim != NULL )
         {
             assert( Abc_NtkLatchNum(pNtk) == 0 );
             pSml = Fra_SmlSimulateCombGiven( pMan, pFileSim, fMiter, fVerbose );
+            printf("[ATPG] Done Simulation\n");
+            pValues = Vec_IntAlloc(pNtk->nUndetectedFaults);
+            for(k = 0; k < pNtk->nUndetectedFaults; k++){
+                Aig_ManForEachCo( pSml->pAig, pObj, i )
+                {
+                    // printf("[ATPG] For each co\n");
+                    pSims = Fra_ObjSim( pSml, pObj->Id );
+                    Vec_IntPush( pValues, Abc_InfoHasBit( pSims, k ) );
+                    // printf( "%d", Abc_InfoHasBit( pSims, 0 ) );
+                }
+            }
+            // printf("[ATPG] pValues: ");
+            // for(int i = 0; i < Vec_IntSize(pValues); i++)
+            //     printf("%d ", Vec_IntEntry(pValues, i));
+            // printf("\n");
+            return pValues;
         }
         else if ( Abc_NtkLatchNum(pNtk) == 0 )
             pSml = Fra_SmlSimulateComb( pMan, nWords, fMiter );
