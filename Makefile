@@ -148,11 +148,26 @@ endif
 # LIBS := -ldl -lrt
 LIBS += -lm
 ifneq ($(OS), $(filter $(OS), FreeBSD OpenBSD NetBSD))
-  LIBS += -ldl
+  ifeq ($(findstring MINGW,$(OS)),)
+    ifeq ($(findstring MSYS,$(OS)),)
+      LIBS += -ldl
+    endif
+  endif
 endif
 
 ifneq ($(OS), $(filter $(OS), FreeBSD OpenBSD NetBSD Darwin))
-   LIBS += -lrt
+  ifeq ($(findstring MINGW,$(OS)),)
+    ifeq ($(findstring MSYS,$(OS)),)
+      LIBS += -lrt
+    endif
+  endif
+endif
+
+ifneq ($(findstring MINGW,$(OS)),)
+  LIBS += -lshlwapi
+endif
+ifneq ($(findstring MSYS,$(OS)),)
+  LIBS += -lshlwapi
 endif
 
 ifdef ABC_USE_LIBSTDCXX
