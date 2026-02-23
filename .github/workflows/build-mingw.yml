@@ -1,0 +1,50 @@
+name: Build MinGW
+
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  build-mingw:
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: false
+        install: >-
+          mingw-w64-x86_64-gcc
+          make
+
+    - name: Git Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Build
+      run: |
+        ABC_USE_STDINT_H=1 make -j$(nproc) CFLAGS="-DWIN32 -DWIN32_NO_DLL" abc
+
+    - name: Test Executable
+      run: |
+        ./abc.exe -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"
+
+    - name: Stage Executable
+      run: |
+        mkdir -p staging
+        cp abc.exe staging/
+
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: package-mingw
+        path: staging/
