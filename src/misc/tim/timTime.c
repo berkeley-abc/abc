@@ -99,9 +99,10 @@ void Tim_ManInitPoRequiredAll( Tim_Man_t * p, float Delay )
     Tim_Obj_t * pObj;
     int i;
     // If any PO or flop-input CO is constrained, leave all unchanged
-    Tim_ManForEachPo( p, pObj, i )
-        if ( pObj->timeReq < TIM_ETERNITY )
-            return;
+    // This led to an assertion failure in &if, so it is commented out below
+    //Tim_ManForEachPo( p, pObj, i )
+    //    if ( pObj->timeReq < TIM_ETERNITY )
+    //        return;
     // All unconstrained — set to max arrival time
     Tim_ManForEachPo( p, pObj, i )
         Tim_ManSetCoRequired( p, i, Delay );
@@ -269,4 +270,3 @@ float Tim_ManGetCoRequired( Tim_Man_t * p, int iCo )
 
 
 ABC_NAMESPACE_IMPL_END
-
