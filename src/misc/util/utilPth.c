@@ -51,7 +51,7 @@ static inline int nanosleep(const struct timespec *req, struct timespec *rem) {
 #include <atomic>
 using namespace std;
 #else
-#ifndef _WIN32
+#if !defined(_WIN32) || defined(__MINGW32__)
 #include <stdatomic.h>
 #else
 // MSVC doesn't have stdatomic.h, use Interlocked functions instead
