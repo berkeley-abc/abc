@@ -186,6 +186,7 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p, int fHashMapping )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = p->nConstrs;
     assert( Gia_ManIsNormalized(pNew) );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManDupRemapEquiv( pNew, p );
     return pNew;
 }
@@ -420,6 +421,7 @@ Gia_Man_t * Gia_ManDupUnnormalize( Gia_Man_t * p )
             pObj->Value = 0;
         else assert( 0 );
     }
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Vec_IntFree( vNodes );
     return pNew;
