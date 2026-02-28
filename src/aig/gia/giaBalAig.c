@@ -420,6 +420,7 @@ Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p, int fStrict )
     }
     assert( !fStrict || Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
     Gia_ManHashStop( pNew );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
@@ -819,6 +820,7 @@ Gia_Man_t * Dam_ManMultiAig( Dam_Man_t * pMan )
     }
 //    assert( Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
     Gia_ManHashStop( pNew );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );

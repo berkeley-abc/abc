@@ -744,6 +744,7 @@ Gia_Man_t * Gia_ManEquivReduce( Gia_Man_t * p, int fUseAll, int fDualOut, int fS
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
 }

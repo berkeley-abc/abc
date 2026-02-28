@@ -3015,6 +3015,24 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         pNew = Gia_ManFromIfAig( pIfMan );
     else
         pNew = Gia_ManFromIfLogic( pIfMan );
+    // propagate origin mapping from input GIA through IF mapper to output GIA
+    // IF objects 0..Gia_ManObjNum(p)-1 correspond 1:1 to input GIA objects;
+    // iCopy gives the literal in the output GIA (set by Gia_ManFromIfLogic/Aig)
+    if ( p->vOrigins )
+    {
+        If_Obj_t * pIfObj = NULL;
+        pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+        If_ManForEachObj( pIfMan, pIfObj, i )
+        {
+            if ( i < Gia_ManObjNum(p) && pIfObj->iCopy >= 0 )
+            {
+                int iNewObj = Abc_Lit2Var( pIfObj->iCopy );
+                if ( iNewObj < Gia_ManObjNum(pNew) )
+                    Vec_IntWriteEntry( pNew->vOrigins, iNewObj,
+                        Vec_IntEntry(p->vOrigins, i) );
+            }
+        }
+    }
     if ( p->vCiArrs || p->vCoReqs )
     {
         If_Obj_t * pIfObj = NULL;

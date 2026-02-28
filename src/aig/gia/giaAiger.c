@@ -947,7 +947,21 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                     else if ( fVerbose ) printf( "Finished reading extension \"y\".\n" );
                 }
                 else {
-                    if ( fVerbose ) printf( "Cannot read extension \"y\" because AIG is rehashed. Use \"&r -s <file.aig>\".\n" );
+                    if ( fVerbose ) printf( "Skipped extension \"y\" for vEquLitIds (AIG is rehashed).\n" );
+                }
+                // populate vOrigins using vNodes to map AIG→GIA object indices
+                if ( nInts == Vec_IntSize(vNodes) ) {
+                    int k;
+                    int * pData = (int *)pCur;
+                    pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+                    for ( k = 0; k < nInts; k++ )
+                    {
+                        int giaLit = Vec_IntEntry( vNodes, k );
+                        int giaObj = Abc_Lit2Var( giaLit );
+                        int rawLit = pData[k];
+                        if ( rawLit >= 0 && giaObj < Gia_ManObjNum(pNew) )
+                            Vec_IntWriteEntry( pNew->vOrigins, giaObj, Abc_Lit2Var(rawLit) );
+                    }
                 }
                 pCur += 4*nInts;
             }
@@ -1836,8 +1850,24 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
         assert( Vec_IntSize(p->vObjClasses) == Gia_ManObjNum(p) );
         fwrite( Vec_IntArray(p->vObjClasses), 1, 4*Gia_ManObjNum(p), pFile );
     }
-    // write object classes
-    if ( p->vEquLitIds )
+    // write object origins (vOrigins takes priority over vEquLitIds)
+    if ( p->vOrigins )
+    {
+        int k, nObjs = Gia_ManObjNum(p);
+        Vec_Int_t * vLits = Vec_IntStart( nObjs );
+        assert( Vec_IntSize(p->vOrigins) == nObjs );
+        for ( k = 0; k < nObjs; k++ )
+        {
+            int orig = Vec_IntEntry(p->vOrigins, k);
+            Vec_IntWriteEntry( vLits, k, orig >= 0 ? 2 * orig : -1 );
+        }
+        fprintf( pFile, "y" );
+        Gia_FileWriteBufferSize( pFile, 4*nObjs );
+        fwrite( Vec_IntArray(vLits), 1, (size_t)4*nObjs, pFile );
+        Vec_IntFree( vLits );
+        if ( fVerbose ) printf( "Finished writing extension \"y\" (from origins).\n" );
+    }
+    else if ( p->vEquLitIds )
     {
         fprintf( pFile, "y" );
         Gia_FileWriteBufferSize( pFile, 4*Gia_ManObjNum(p) );
