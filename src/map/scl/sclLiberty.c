@@ -559,14 +559,17 @@ static char * Io_LibLoadFileGz( char * pFileName, long * pnFileSize )
     const int READ_BLOCK_SIZE = 100000;
     gzFile pFile;
     char * pContents;
-    long amtRead, readBlock, nFileSize = READ_BLOCK_SIZE;
+    long amtRead, readBlock, nFileSize = READ_BLOCK_SIZE, nCapacity = READ_BLOCK_SIZE;
     pFile = gzopen( pFileName, "rb" ); // if pFileName doesn't end in ".gz" then this acts as a passthrough to fopen
-    pContents = ABC_ALLOC( char, nFileSize );
+    pContents = ABC_ALLOC( char, nCapacity );
     readBlock = 0;
     while ((amtRead = gzread(pFile, pContents + readBlock * READ_BLOCK_SIZE, READ_BLOCK_SIZE)) == READ_BLOCK_SIZE) {
         //Abc_Print( 1,"%d: read %d bytes\n", readBlock, amtRead);
         nFileSize += READ_BLOCK_SIZE;
-        pContents = ABC_REALLOC(char, pContents, nFileSize);
+        if ( nFileSize > nCapacity ) {
+            nCapacity *= 2;
+            pContents = ABC_REALLOC(char, pContents, nCapacity);
+        }
         ++readBlock;
     }
     //Abc_Print( 1,"%d: read %d bytes\n", readBlock, amtRead);
