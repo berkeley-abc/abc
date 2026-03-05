@@ -463,8 +463,8 @@ static inline int          Gia_ManIsConst0Lit( int iLit )      { return (iLit ==
 static inline int          Gia_ManIsConst1Lit( int iLit )      { return (iLit == 1); }
 static inline int          Gia_ManIsConstLit( int iLit )       { return (iLit <= 1); }
 
-static inline int          Gia_ObjOrigin( Gia_Man_t * p, int iObj )                { return p->vOrigins ? Vec_IntEntry(p->vOrigins, iObj) : -1;  }
-static inline void         Gia_ObjSetOrigin( Gia_Man_t * p, int iObj, int iOrig )  { if (p->vOrigins) Vec_IntWriteEntry(p->vOrigins, iObj, iOrig); }
+static inline int          Gia_ObjOrigin( Gia_Man_t * p, int iObj )                { return (p->vOrigins && iObj < Vec_IntSize(p->vOrigins)) ? Vec_IntEntry(p->vOrigins, iObj) : -1;  }
+static inline void         Gia_ObjSetOrigin( Gia_Man_t * p, int iObj, int iOrig )  { if (p->vOrigins && iObj < Vec_IntSize(p->vOrigins)) Vec_IntWriteEntry(p->vOrigins, iObj, iOrig); }
 
 static inline Gia_Obj_t *  Gia_Regular( Gia_Obj_t * p )        { return (Gia_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);                           }
 static inline Gia_Obj_t *  Gia_Not( Gia_Obj_t * p )            { return (Gia_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);                           }
@@ -1353,6 +1353,7 @@ extern Gia_Man_t *         Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, 
 extern Gia_Man_t *         Gia_ManDupOutputVec( Gia_Man_t * p, Vec_Int_t * vOutPres );
 extern Gia_Man_t *         Gia_ManDupSelectedOutputs( Gia_Man_t * p, Vec_Int_t * vOutsLeft );
 extern void                Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld );
+extern void                Gia_ManOriginsDupVec( Gia_Man_t * pNew, Gia_Man_t * pOld, Vec_Int_t * vCopies );
 extern void                Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld );
 extern Gia_Man_t *         Gia_ManDupOrderAiger( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupLastPis( Gia_Man_t * p, int nLastPis );

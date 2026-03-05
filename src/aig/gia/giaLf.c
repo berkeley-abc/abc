@@ -1771,6 +1771,7 @@ Gia_Man_t * Lf_ManDeriveMappingCoarse( Lf_Man_t * p )
         Vec_IntPush( pNew->vMapping, pCut->fMux7 ? -Abc_Lit2Var(pObj->Value) : Abc_Lit2Var(pObj->Value) );
     }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(pGia) );
+    Gia_ManOriginsDup( pNew, pGia );
     assert( Vec_IntCap(pNew->vMapping) == 16 || Vec_IntSize(pNew->vMapping) == Vec_IntCap(pNew->vMapping) );
     return pNew;
 }
@@ -1903,10 +1904,11 @@ Gia_Man_t * Lf_ManDeriveMappingGia( Lf_Man_t * p )
         iLit = Lf_ManDerivePart( p, pNew, vMapping, vMapping2, vCopies, pCut, vLeaves, vCover, pObj );
         Vec_IntWriteEntry( vCopies, i, Abc_LitNotCond(iLit, Abc_LitIsCompl(pCut->iFunc)) );
     }
+    Gia_ManOriginsDupVec( pNew, p->pGia, vCopies );
     Vec_IntFree( vCopies );
     Vec_IntFree( vCover );
     Vec_IntFree( vLeaves );
-    // finish mapping 
+    // finish mapping
     if ( Vec_IntSize(vMapping) > Gia_ManObjNum(pNew) )
         Vec_IntShrink( vMapping, Gia_ManObjNum(pNew) );
     else

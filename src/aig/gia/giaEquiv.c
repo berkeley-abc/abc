@@ -2072,6 +2072,7 @@ Gia_Man_t * Gia_ManEquivToChoices( Gia_Man_t * p, int nSnapshots )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Gia_ManRemoveBadChoices( pNew );
 //Gia_ManEquivPrintClasses( pNew, 0, 0 );
+    Gia_ManOriginsDup( pNew, p );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
 //Gia_ManEquivPrintClasses( pNew, 0, 0 );
