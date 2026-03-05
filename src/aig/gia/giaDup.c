@@ -213,6 +213,8 @@ void Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld )
     pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
     Gia_ManForEachObj( pOld, pObj, i )
     {
+        if ( i >= Vec_IntSize(pOld->vOrigins) )
+            break;
         if ( (int)Gia_ObjValue(pObj) != -1 )
         {
             int iNew = Abc_Lit2Var( Gia_ObjValue(pObj) );
@@ -239,6 +241,24 @@ void Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManOriginsDupVec( Gia_Man_t * pNew, Gia_Man_t * pOld, Vec_Int_t * vCopies )
+{
+    int i, iLit;
+    if ( !pOld->vOrigins )
+        return;
+    pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+    Vec_IntForEachEntry( vCopies, iLit, i )
+    {
+        if ( iLit != -1 )
+        {
+            int iNew = Abc_Lit2Var( iLit );
+            if ( iNew < Gia_ManObjNum(pNew) && i < Vec_IntSize(pOld->vOrigins) )
+                Vec_IntWriteEntry( pNew->vOrigins, iNew,
+                    Vec_IntEntry(pOld->vOrigins, i) );
+        }
+    }
+}
+
 void Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld )
 {
     Gia_Obj_t * pObj;
@@ -256,8 +276,9 @@ void Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld )
     {
         int iNewObj = Gia_ObjId( pNew, pObj );
         int iOldCi  = Gia_ObjId( pOld, Gia_ManCi(pOld, i) );
-        Vec_IntWriteEntry( pNew->vOrigins, iNewObj,
-            Vec_IntEntry(pOld->vOrigins, iOldCi) );
+        if ( iOldCi < Vec_IntSize(pOld->vOrigins) )
+            Vec_IntWriteEntry( pNew->vOrigins, iNewObj,
+                Vec_IntEntry(pOld->vOrigins, iOldCi) );
     }
     // CO drivers map 1:1 (output correspondence preserved through optimization)
     Gia_ManForEachCo( pNew, pObj, i )
@@ -265,7 +286,8 @@ void Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld )
         int iNewDriver = Gia_ObjFaninId0p( pNew, pObj );
         Gia_Obj_t * pOldCo = Gia_ManCo( pOld, i );
         int iOldDriver = Gia_ObjFaninId0p( pOld, pOldCo );
-        if ( iNewDriver > 0 && Vec_IntEntry(pNew->vOrigins, iNewDriver) == -1 )
+        if ( iNewDriver > 0 && iOldDriver < Vec_IntSize(pOld->vOrigins) &&
+             Vec_IntEntry(pNew->vOrigins, iNewDriver) == -1 )
             Vec_IntWriteEntry( pNew->vOrigins, iNewDriver,
                 Vec_IntEntry(pOld->vOrigins, iOldDriver) );
     }
@@ -928,11 +950,14 @@ Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
         pNew->vConfigs2 = Vec_StrDup( p->vConfigs2 );
     if ( p->pCellStr )
         pNew->pCellStr = Abc_UtilStrsav( p->pCellStr );
+    // copy origins if present
+    if ( p->vOrigins )
+        pNew->vOrigins = Vec_IntDup( p->vOrigins );
     // copy names if present
     if ( p->vNamesIn )
         pNew->vNamesIn = Vec_PtrDupStr( p->vNamesIn );
     if ( p->vNamesOut )
-        pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );        
+        pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );
     return pNew;
 }
 Gia_Man_t * Gia_ManDupRemovePis( Gia_Man_t * p, int nRemPis )
@@ -4035,6 +4060,7 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
     Gia_ManForEachRi( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
 //    Gia_ManDupRemapEquiv( pNew, p );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = nConstr;
     assert( Gia_ManIsNormalized(pNew) );
