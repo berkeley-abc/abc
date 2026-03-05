@@ -239,6 +239,24 @@ void Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld )
   SeeAlso     []
 
 ***********************************************************************/
+void Gia_ManOriginsDupVec( Gia_Man_t * pNew, Gia_Man_t * pOld, Vec_Int_t * vCopies )
+{
+    int i, iLit;
+    if ( !pOld->vOrigins )
+        return;
+    pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+    Vec_IntForEachEntry( vCopies, iLit, i )
+    {
+        if ( iLit != -1 )
+        {
+            int iNew = Abc_Lit2Var( iLit );
+            if ( iNew < Gia_ManObjNum(pNew) && i < Vec_IntSize(pOld->vOrigins) )
+                Vec_IntWriteEntry( pNew->vOrigins, iNew,
+                    Vec_IntEntry(pOld->vOrigins, i) );
+        }
+    }
+}
+
 void Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld )
 {
     Gia_Obj_t * pObj;

@@ -3128,6 +3128,23 @@ Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
     pIfMan = Gia_ManToIf( p, pPars );
     If_ManPerformMapping( pIfMan );
     pNew = Gia_ManFromIfAig( pIfMan );
+    // propagate origins via IF mapper iCopy correspondence
+    if ( p->vOrigins )
+    {
+        If_Obj_t * pIfObj = NULL;
+        int j;
+        pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+        If_ManForEachObj( pIfMan, pIfObj, j )
+        {
+            if ( j < Gia_ManObjNum(p) && pIfObj->iCopy >= 0 )
+            {
+                int iNewObj = Abc_Lit2Var( pIfObj->iCopy );
+                if ( iNewObj < Gia_ManObjNum(pNew) )
+                    Vec_IntWriteEntry( pNew->vOrigins, iNewObj,
+                        Vec_IntEntry(p->vOrigins, j) );
+            }
+        }
+    }
     If_ManStop( pIfMan );
     Gia_ManTransferTiming( pNew, p );
     // transfer name
@@ -3161,6 +3178,23 @@ Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, 
         If_DsdManAllocIsops( pIfMan->pIfDsdMan, pPars->nLutSize );
     If_ManPerformMapping( pIfMan );
     pNew = Gia_ManFromIfAig( pIfMan );
+    // propagate origins via IF mapper iCopy correspondence
+    if ( p->vOrigins )
+    {
+        If_Obj_t * pIfObj = NULL;
+        int j;
+        pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+        If_ManForEachObj( pIfMan, pIfObj, j )
+        {
+            if ( j < Gia_ManObjNum(p) && pIfObj->iCopy >= 0 )
+            {
+                int iNewObj = Abc_Lit2Var( pIfObj->iCopy );
+                if ( iNewObj < Gia_ManObjNum(pNew) )
+                    Vec_IntWriteEntry( pNew->vOrigins, iNewObj,
+                        Vec_IntEntry(p->vOrigins, j) );
+            }
+        }
+    }
     If_ManStop( pIfMan );
     Gia_ManTransferTiming( pNew, p );
     // transfer name
