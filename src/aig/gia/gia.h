@@ -463,7 +463,7 @@ static inline int          Gia_ManIsConst0Lit( int iLit )      { return (iLit ==
 static inline int          Gia_ManIsConst1Lit( int iLit )      { return (iLit == 1); }
 static inline int          Gia_ManIsConstLit( int iLit )       { return (iLit <= 1); }
 
-static inline int          Gia_ObjOrigin( Gia_Man_t * p, int iObj )                { return p->vOrigins ? Vec_IntEntry(p->vOrigins, iObj) : -1;  }
+static inline int          Gia_ObjOrigin( Gia_Man_t * p, int iObj )                { return (p->vOrigins && iObj < Vec_IntSize(p->vOrigins)) ? Vec_IntEntry(p->vOrigins, iObj) : -1;  }
 static inline void         Gia_ObjSetOrigin( Gia_Man_t * p, int iObj, int iOrig )  { if (p->vOrigins) Vec_IntWriteEntry(p->vOrigins, iObj, iOrig); }
 
 static inline Gia_Obj_t *  Gia_Regular( Gia_Obj_t * p )        { return (Gia_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);                           }

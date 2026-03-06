@@ -3024,7 +3024,7 @@ Gia_Man_t * Gia_ManPerformMappingInt( Gia_Man_t * p, If_Par_t * pPars )
         pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
         If_ManForEachObj( pIfMan, pIfObj, i )
         {
-            if ( i < Gia_ManObjNum(p) && pIfObj->iCopy >= 0 )
+            if ( i < Vec_IntSize(p->vOrigins) && pIfObj->iCopy >= 0 )
             {
                 int iNewObj = Abc_Lit2Var( pIfObj->iCopy );
                 if ( iNewObj < Gia_ManObjNum(pNew) )
@@ -3136,7 +3136,7 @@ Gia_Man_t * Gia_ManPerformSopBalance( Gia_Man_t * p, int nCutNum, int nRelaxRati
         pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
         If_ManForEachObj( pIfMan, pIfObj, j )
         {
-            if ( j < Gia_ManObjNum(p) && pIfObj->iCopy >= 0 )
+            if ( j < Vec_IntSize(p->vOrigins) && pIfObj->iCopy >= 0 )
             {
                 int iNewObj = Abc_Lit2Var( pIfObj->iCopy );
                 if ( iNewObj < Gia_ManObjNum(pNew) )
@@ -3186,7 +3186,7 @@ Gia_Man_t * Gia_ManPerformDsdBalance( Gia_Man_t * p, int nLutSize, int nCutNum, 
         pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
         If_ManForEachObj( pIfMan, pIfObj, j )
         {
-            if ( j < Gia_ManObjNum(p) && pIfObj->iCopy >= 0 )
+            if ( j < Vec_IntSize(p->vOrigins) && pIfObj->iCopy >= 0 )
             {
                 int iNewObj = Abc_Lit2Var( pIfObj->iCopy );
                 if ( iNewObj < Gia_ManObjNum(pNew) )
