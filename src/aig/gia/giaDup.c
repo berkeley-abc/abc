@@ -950,11 +950,14 @@ Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
         pNew->vConfigs2 = Vec_StrDup( p->vConfigs2 );
     if ( p->pCellStr )
         pNew->pCellStr = Abc_UtilStrsav( p->pCellStr );
+    // copy origins if present
+    if ( p->vOrigins )
+        pNew->vOrigins = Vec_IntDup( p->vOrigins );
     // copy names if present
     if ( p->vNamesIn )
         pNew->vNamesIn = Vec_PtrDupStr( p->vNamesIn );
     if ( p->vNamesOut )
-        pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );        
+        pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );
     return pNew;
 }
 Gia_Man_t * Gia_ManDupRemovePis( Gia_Man_t * p, int nRemPis )
