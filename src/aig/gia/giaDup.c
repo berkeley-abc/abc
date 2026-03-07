@@ -195,10 +195,128 @@ int Gia_ManDupOrderDfs_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Propagates origin mapping from old to new manager.]
+
+  Description [Uses Value field of old objects to find corresponding new objects.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( !pOld->vOrigins )
+        return;
+    pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+    Gia_ManForEachObj( pOld, pObj, i )
+    {
+        if ( i >= Vec_IntSize(pOld->vOrigins) )
+            break;
+        if ( (int)Gia_ObjValue(pObj) != -1 )
+        {
+            int iNew = Abc_Lit2Var( Gia_ObjValue(pObj) );
+            if ( iNew < Gia_ManObjNum(pNew) )
+                Vec_IntWriteEntry( pNew->vOrigins, iNew,
+                    Vec_IntEntry(pOld->vOrigins, i) );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Restores origins after GIA->AIG->GIA round-trip.]
+
+  Description [CIs map 1:1 in order. CO drivers map 1:1 (output
+  correspondence preserved through optimization). Remaining AND nodes
+  get origins via top-down propagation from CO drivers through fanin
+  cones. Note: shared nodes between multiple CO cones get the origin
+  of whichever CO driver is visited first (non-deterministic but
+  acceptable for best-effort source attribution).]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsDupVec( Gia_Man_t * pNew, Gia_Man_t * pOld, Vec_Int_t * vCopies )
+{
+    int i, iLit;
+    if ( !pOld->vOrigins )
+        return;
+    pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+    Vec_IntForEachEntry( vCopies, iLit, i )
+    {
+        if ( iLit != -1 )
+        {
+            int iNew = Abc_Lit2Var( iLit );
+            if ( iNew < Gia_ManObjNum(pNew) && i < Vec_IntSize(pOld->vOrigins) )
+                Vec_IntWriteEntry( pNew->vOrigins, iNew,
+                    Vec_IntEntry(pOld->vOrigins, i) );
+        }
+    }
+}
+
+void Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( !pOld->vOrigins )
+        return;
+    assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(pOld) );
+    assert( Gia_ManCoNum(pNew) == Gia_ManCoNum(pOld) );
+    pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+    // const0
+    if ( Vec_IntSize(pOld->vOrigins) > 0 )
+        Vec_IntWriteEntry( pNew->vOrigins, 0, Vec_IntEntry(pOld->vOrigins, 0) );
+    // CIs map 1:1 in order
+    Gia_ManForEachCi( pNew, pObj, i )
+    {
+        int iNewObj = Gia_ObjId( pNew, pObj );
+        int iOldCi  = Gia_ObjId( pOld, Gia_ManCi(pOld, i) );
+        if ( iOldCi < Vec_IntSize(pOld->vOrigins) )
+            Vec_IntWriteEntry( pNew->vOrigins, iNewObj,
+                Vec_IntEntry(pOld->vOrigins, iOldCi) );
+    }
+    // CO drivers map 1:1 (output correspondence preserved through optimization)
+    Gia_ManForEachCo( pNew, pObj, i )
+    {
+        int iNewDriver = Gia_ObjFaninId0p( pNew, pObj );
+        Gia_Obj_t * pOldCo = Gia_ManCo( pOld, i );
+        int iOldDriver = Gia_ObjFaninId0p( pOld, pOldCo );
+        if ( iNewDriver > 0 && iOldDriver < Vec_IntSize(pOld->vOrigins) &&
+             Vec_IntEntry(pNew->vOrigins, iNewDriver) == -1 )
+            Vec_IntWriteEntry( pNew->vOrigins, iNewDriver,
+                Vec_IntEntry(pOld->vOrigins, iOldDriver) );
+    }
+    // Top-down propagation: spread CO driver origins backward through fanin cones
+    // Walk AND nodes in reverse topological order (high to low ID)
+    for ( i = Gia_ManObjNum(pNew) - 1; i > 0; i-- )
+    {
+        int f0, f1, orig;
+        pObj = Gia_ManObj( pNew, i );
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        orig = Vec_IntEntry( pNew->vOrigins, i );
+        if ( orig < 0 )
+            continue;
+        f0 = Gia_ObjFaninId0(pObj, i);
+        f1 = Gia_ObjFaninId1(pObj, i);
+        if ( f0 > 0 && Vec_IntEntry(pNew->vOrigins, f0) == -1 )
+            Vec_IntWriteEntry( pNew->vOrigins, f0, orig );
+        if ( f1 > 0 && Vec_IntEntry(pNew->vOrigins, f1) == -1 )
+            Vec_IntWriteEntry( pNew->vOrigins, f1, orig );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG while putting objects in the DFS order.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -221,6 +339,7 @@ Gia_Man_t * Gia_ManDupOrderDfs( Gia_Man_t * p )
             pObj->Value = Gia_ManAppendCi(pNew);
     assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(p) );
     Gia_ManDupRemapCis( pNew, p );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManDupRemapEquiv( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
@@ -545,6 +664,7 @@ Gia_Man_t * Gia_ManDupOrderAiger( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManDupRemapEquiv( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     assert( Gia_ManIsNormalized(pNew) );
@@ -778,6 +898,7 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     if ( p->pCexSeq )
         pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
@@ -829,11 +950,14 @@ Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
         pNew->vConfigs2 = Vec_StrDup( p->vConfigs2 );
     if ( p->pCellStr )
         pNew->pCellStr = Abc_UtilStrsav( p->pCellStr );
+    // copy origins if present
+    if ( p->vOrigins )
+        pNew->vOrigins = Vec_IntDup( p->vOrigins );
     // copy names if present
     if ( p->vNamesIn )
         pNew->vNamesIn = Vec_PtrDupStr( p->vNamesIn );
     if ( p->vNamesOut )
-        pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );        
+        pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );
     return pNew;
 }
 Gia_Man_t * Gia_ManDupRemovePis( Gia_Man_t * p, int nRemPis )
@@ -1575,6 +1699,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
             pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(pSibl->Value);
         }
     }
+    Gia_ManOriginsDup( pNew, p );
     return pNew;
 }
 
@@ -1806,6 +1931,7 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
         Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = p->nConstrs;
     if ( p->pCexSeq )
@@ -1874,6 +2000,7 @@ Gia_Man_t * Gia_ManDupDfsRehash( Gia_Man_t * p )
         Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManOriginsDup( pNew, p );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
@@ -3890,6 +4017,8 @@ Gia_Man_t * Gia_ManChoiceMiter( Vec_Ptr_t * vGias )
             Gia_ManChoiceMiter_rec( pNew, pGia, Gia_ManCo( pGia, k ) );
     }
     Gia_ManHashStop( pNew );
+    // propagate origins from the first (primary) AIG
+    Gia_ManOriginsDup( pNew, pGia0 );
     // check the presence of dangling nodes
     nNodes = Gia_ManHasDangling( pNew );
     //assert( nNodes == 0 );

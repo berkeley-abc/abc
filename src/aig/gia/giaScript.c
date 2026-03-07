@@ -396,6 +396,8 @@ Gia_Man_t * Gia_ManAigSynch2Choices( Gia_Man_t * pGia1, Gia_Man_t * pGia2, Gia_M
     // convert to GIA
     pGia = Gia_ManFromAigChoices( pMan );
     Aig_ManStop( pMan );
+    // recover origins from base variant (pGia1) via CI/CO correspondence
+    Gia_ManOriginsAfterRoundTrip( pGia, pGia1 );
     return pGia;
 }
 Gia_Man_t * Gia_ManAigSynch2( Gia_Man_t * pInit, void * pPars0, int nLutSize, int nRelaxRatio )
