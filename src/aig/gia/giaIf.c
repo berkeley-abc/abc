@@ -831,6 +831,10 @@ int Gia_ManChoiceLevel( Gia_Man_t * p )
             LevelMax = Gia_ObjLevel(p, pObj);
 //        Abc_Print( 1, "%d ", Gia_ObjLevel(p, pObj) );
     }
+    // compute levels for dangling nodes (can happen after choice-creating flows)
+    Gia_ManForEachAnd( p, pObj, i )
+        if ( !Gia_ObjIsTravIdCurrent( p, pObj ) )
+            Gia_ManChoiceLevel_rec( p, pObj );
 //    Abc_Print( 1, "\n" );
     Gia_ManForEachAnd( p, pObj, i )
         assert( Gia_ObjLevel(p, pObj) > 0 );
@@ -3337,4 +3341,3 @@ Gia_Man_t * Gia_ManDupUnhashMapping( Gia_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-
