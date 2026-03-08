@@ -26,6 +26,7 @@
 #include "proof/pdr/pdr.h"
 #include "proof/cec/cec.h"
 #include "proof/ssw/ssw.h"
+#include "proof/abs/abs.h"
 
 
 #ifdef ABC_USE_PTHREADS
@@ -66,6 +67,7 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
 #define PAR_ENGINE_UFAR 6
 #define PAR_ENGINE_SCORR1 7
 #define PAR_ENGINE_SCORR2 8
+#define PAR_ENGINE_GLA 9
 struct Par_Share_t_
 {
     volatile int       fSolved;
@@ -90,6 +92,7 @@ typedef struct Cec_ScorrStop_t_
     abctime TimeToStop;
 } Cec_ScorrStop_t;
 static volatile Par_Share_t * g_pUfarShare = NULL;
+static volatile Par_Share_t * g_pGlaShare = NULL;
 static inline const char * Cec_SolveEngineName( int iEngine )
 {
     if ( iEngine == 0 ) return "rar";
@@ -101,6 +104,7 @@ static inline const char * Cec_SolveEngineName( int iEngine )
     if ( iEngine == PAR_ENGINE_UFAR ) return "ufar";
     if ( iEngine == PAR_ENGINE_SCORR1 ) return "scorr-new";
     if ( iEngine == PAR_ENGINE_SCORR2 ) return "scorr-old";
+    if ( iEngine == PAR_ENGINE_GLA ) return "gla-q";
     return "unknown";
 }
 static inline void Cec_CopyGiaName( Gia_Man_t * pSrc, Gia_Man_t * pDst )
@@ -127,6 +131,11 @@ static int Cec_SProveStopUfar( int RunId )
 {
     (void)RunId;
     return g_pUfarShare && g_pUfarShare->fSolved != 0;
+}
+static int Cec_SProveStopGla( int RunId )
+{
+    (void)RunId;
+    return g_pGlaShare && g_pGlaShare->fSolved != 0;
 }
 static int Cec_ScorrStop( void * pUser )
 {
@@ -177,7 +186,7 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
 {
     abctime clk = Abc_Clock();   
     int RetValue = -1;
-    if ( iEngine != PAR_ENGINE_UFAR && Gia_ManRegNum(p) == 0 )
+    if ( iEngine != PAR_ENGINE_UFAR && iEngine != PAR_ENGINE_GLA && Gia_ManRegNum(p) == 0 )
     {
         if ( fVerbose )
             printf( "Engine %d skipped because the current miter is combinational.\n", iEngine );
@@ -294,6 +303,22 @@ int Cec_GiaProveOne( Gia_Man_t * p, int iEngine, int nTimeOut, int fVerbose, Par
             g_pUfarShare = NULL;
         }
     }
+    else if ( iEngine == PAR_ENGINE_GLA )
+    {
+        if ( Gia_ManPoNum(p) != 1 )
+            return -1;
+        Abs_Par_t Pars, * pPars = &Pars;
+        Abs_ParSetDefaults( pPars );
+        pPars->nTimeOut = nTimeOut;
+        pPars->fCallProver = 1; // emulate "&gla -q"
+        pPars->fVerbose = 0;
+        pPars->fVeryVerbose = 0;
+        pPars->RunId = 0;
+        pPars->pFuncStop = Cec_SProveStopGla;
+        g_pGlaShare = pThData ? pThData->pShare : NULL;
+        RetValue = Gia_ManPerformGla( p, pPars );
+        g_pGlaShare = NULL;
+    }
     else assert( 0 );
     //while ( Abc_Clock() < clkStop );
     if ( pThData && pThData->pShare && RetValue != -1 )
@@ -379,7 +404,12 @@ void Cec_GiaInitThreads( Par_ThData_t * ThData, int nWorkers, Gia_Man_t * p, int
     {
         ThData[i].p        = Gia_ManDup(p);
         Cec_CopyGiaName( p, ThData[i].p );
-        ThData[i].iEngine  = (fUseUif && i == nWorkers - 1) ? PAR_ENGINE_UFAR : i;
+        if ( fUseUif && i == nWorkers - 1 )
+            ThData[i].iEngine = PAR_ENGINE_UFAR;
+        else if ( !fUseUif && nWorkers == 6 && i == 5 )
+            ThData[i].iEngine = PAR_ENGINE_GLA;
+        else
+            ThData[i].iEngine = i;
         ThData[i].nTimeOut = nTimeOut;
         ThData[i].fWorking = 0;
         ThData[i].Result   = -1;
@@ -427,7 +457,7 @@ int Cec_GiaProveTest( Gia_Man_t * p, int nProcs, int nTimeOut, int nTimeOut2, in
         printf( "Processes = %d   TimeOut = %d sec   Verbose = %d.\n", nProcs, nTimeOut, fVerbose );
     fflush( stdout );
 
-    assert( nProcs == 3 || nProcs == 5 );
+    assert( nProcs == 3 || nProcs == 5 || nProcs == 6 );
     assert( nWorkers <= PAR_THR_MAX );
     Cec_GiaInitThreads( ThData, nWorkers, p, nTimeOut, nTimeOut3, pWlc, fUseUif, fVerbose, WorkerThread, &Share );
 

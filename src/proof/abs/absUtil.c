@@ -59,6 +59,8 @@ void Abs_ParSetDefaults( Abs_Par_t * p )
     p->fUseRollback       =      0;   // use rollback to the starting number of frames
     p->fPropFanout        =      1;   // propagate fanouts during refinement
     p->fVerbose           =      0;   // verbose flag
+    p->RunId              =     -1;   // id in this run
+    p->pFuncStop          =   NULL;   // callback to terminate
     p->iFrame             =     -1;   // the number of frames covered 
     p->iFrameProved       =     -1;   // the number of frames proved
     p->nFramesNoChangeLim =      2;   // the number of frames without change to dump abstraction
@@ -254,4 +256,3 @@ int Gia_GlaCountNodes( Gia_Man_t * p, Vec_Int_t * vGla )
 
 
 ABC_NAMESPACE_IMPL_END
-

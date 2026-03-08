@@ -74,6 +74,8 @@ struct Abs_Par_t_
     char *         pFileVabs;          // dumps the abstracted model into this file
     int            fVerbose;           // verbose flag
     int            fVeryVerbose;       // print additional information
+    int            RunId;              // id in this run
+    int            (*pFuncStop)(int);  // callback to terminate
     int            iFrame;             // the number of frames covered
     int            iFrameProved;       // the number of frames proved
     int            nFramesNoChange;    // the number of last frames without changes
@@ -174,4 +176,3 @@ ABC_NAMESPACE_HEADER_END
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
-

@@ -1576,6 +1576,8 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
     for ( i = f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; i++ )
     {
         int nAbsOld;
+        if ( pPars->pFuncStop && pPars->pFuncStop(pPars->RunId) )
+            goto finish;
         // remember the timeframe
         p->pPars->iFrame = -1;
         // create new SAT solver
@@ -1585,6 +1587,8 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
         // unroll the circuit
         for ( f = 0; !pPars->nFramesMax || f < pPars->nFramesMax; f++ )
         {
+            if ( pPars->pFuncStop && pPars->pFuncStop(pPars->RunId) )
+                goto finish;
             // remember current limits
             int nConflsBeg = sat_solver2_nconflicts(p->pSat);
             int nAbs       = Vec_IntSize(p->vAbs);
@@ -1618,6 +1622,11 @@ int Gia_ManPerformGla( Gia_Man_t * pAig, Abs_Par_t * pPars )
             nVarsOld = p->nSatVars;
             for ( c = 0; ; c++ )
             {
+                if ( pPars->pFuncStop && pPars->pFuncStop(pPars->RunId) )
+                {
+                    Status = l_Undef;
+                    goto finish;
+                }
                 // consider the special case when the target literal is implied false
                 // by implications which happened as a result of previous refinements
                 // note that incremental UNSAT core cannot be computed because there is no learned clauses
@@ -1898,4 +1907,3 @@ finish:
 
 
 ABC_NAMESPACE_IMPL_END
-
