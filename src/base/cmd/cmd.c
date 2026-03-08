@@ -67,6 +67,7 @@ static int CmdCommandCapo          ( Abc_Frame_t * pAbc, int argc, char ** argv 
 static int CmdCommandStarter       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandAutoTuner     ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int CmdCommandSolver        ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int CmdCommandSolver2       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 
 extern int Cmd_CommandAbcLoadPlugIn( Abc_Frame_t * pAbc, int argc, char ** argv );
 
@@ -123,6 +124,7 @@ void Cmd_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "Various", "starter",     CmdCommandStarter,         0 );
     Cmd_CommandAdd( pAbc, "Various", "autotuner",   CmdCommandAutoTuner,       0 );
     Cmd_CommandAdd( pAbc, "Various", "&solver",     CmdCommandSolver,          0 );
+    Cmd_CommandAdd( pAbc, "Various", "&solver2",    CmdCommandSolver2,         0 );
 
     Cmd_CommandAdd( pAbc, "Various", "load_plugin", Cmd_CommandAbcLoadPlugIn,  0 );
 }
@@ -2968,6 +2970,79 @@ usage:
     fprintf( pAbc->Err, "\t           The current AIG will be written to a temporary file\n" );
     fprintf( pAbc->Err, "\t           and passed as the last argument to the solver.\n" );
     fprintf( pAbc->Err, "\t           Example: solver -h\n" );
+    return 1;
+}
+
+
+/**Function********************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+******************************************************************************/
+int CmdCommandSolver2( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    FILE * pFile;
+    char Command[2000];
+    int i;
+
+    if ( argc > 1 )
+    {
+        if ( strcmp( argv[1], "-h" ) == 0 )
+            goto usage;
+        if ( strcmp( argv[1], "-?" ) == 0 )
+            goto usage;
+    }
+
+#if defined(__wasm)
+    fprintf( pAbc->Err, "Unsupported command.\n" );
+    return 1;
+#else
+    // Check if solver binary exists in current directory or PATH
+    if ( (pFile = fopen( "./solver", "r" )) != NULL )
+    {
+        sprintf( Command, "%s", "./solver" );
+        fclose( pFile );
+    }
+    else
+    {
+        char CheckCommand[100];
+        sprintf( CheckCommand, "which solver > /dev/null 2>&1" );
+        if ( system( CheckCommand ) != 0 )
+        {
+            fprintf( pAbc->Err, "Cannot find \"solver\" binary in the current directory or in PATH.\n" );
+            goto usage;
+        }
+        sprintf( Command, "%s", "solver" );
+    }
+
+    // Append user-provided arguments as-is: solver <args>
+    for ( i = 1; i < argc; i++ )
+    {
+        strcat( Command, " " );
+        strcat( Command, argv[i] );
+    }
+
+    fprintf( pAbc->Out, "Executing command: %s\n", Command );
+    if ( system( Command ) == -1 )
+    {
+        fprintf( pAbc->Err, "The following command has failed:\n" );
+        fprintf( pAbc->Err, "\"%s\"\n", Command );
+        return 1;
+    }
+#endif
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "\tusage: &solver2 <args>\n");
+    fprintf( pAbc->Err, "\t           run the external solver as \"solver <args>\"\n" );
+    fprintf( pAbc->Err, "\t-h      :  print the command usage\n" );
+    fprintf( pAbc->Err, "\t<args>  :  all arguments passed directly to solver\n" );
     return 1;
 }
 
