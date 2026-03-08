@@ -42,6 +42,9 @@ typedef struct Gia_Man_t_ Gia_Man_t;
 
 namespace UFAR {
 
+void Ufar_ResetOrigCexStats();
+void Ufar_GetOrigCexStats(unsigned * pChecks, unsigned * pBitBlasts, unsigned long long * pBitBlastUsec, unsigned long long * pCexCheckUsec);
+
 using VecVecInt = std::vector<std::vector<int> >;
 using VecVecStr = std::vector<std::vector<std::string> >;
 using VecChar = std::vector<char>;
@@ -72,6 +75,8 @@ class UfarManager {
             bool     fGrey;
             float    nGrey;
             bool     fNorm;
+            bool     fAllWb;
+            bool     fCrossOnly;
             bool     fSuper_prove;
             bool     fSimple;
             bool     fSyn;
@@ -79,23 +84,43 @@ class UfarManager {
             int      iOneWb;
             int      iExp;
             unsigned nConstraintLimit;
+            unsigned nInitAllPairsLimit;
+            unsigned nInitNearMults;
             unsigned iVerbosity;
             unsigned nSeqLookBack;
             unsigned nTimeout;
             std::string simSetting;
             std::string parSetting;
+            std::string solverSetting;
             std::string fileName;
             std::string fileAbs;
             std::string fileStatesOut;
             std::string fileStatesIn;
         };
         struct Profile {
-            Profile() : tBLSolver(0), tUifRefine(0), tWbRefine(0), tUifSim(0), tGbRefine(0) {}
+            Profile() : tBLSolver(0), tUifRefine(0), tWbRefine(0), tUifSim(0), tGbRefine(0), tCexCheckOrig(0),
+                        nVerifyCalls(0), nSatCalls(0), nUnsatCalls(0), nUnknownCalls(0),
+                        nRealCex(0), nSpuriousCex(0), nIterUif(0), nIterWb(0),
+                        nUifPairsAdded(0), nUifMulMulPairsAdded(0), nWbAdded(0), nMaxUifPairs(0), nMaxWhiteBoxes(0) {}
             unsigned tBLSolver;
             unsigned tUifRefine;
             unsigned tWbRefine;
             unsigned tUifSim;
             unsigned tGbRefine;
+            unsigned tCexCheckOrig;
+            unsigned nVerifyCalls;
+            unsigned nSatCalls;
+            unsigned nUnsatCalls;
+            unsigned nUnknownCalls;
+            unsigned nRealCex;
+            unsigned nSpuriousCex;
+            unsigned nIterUif;
+            unsigned nIterWb;
+            unsigned nUifPairsAdded;
+            unsigned nUifMulMulPairsAdded;
+            unsigned nWbAdded;
+            unsigned nMaxUifPairs;
+            unsigned nMaxWhiteBoxes;
         };
 
         UfarManager();
@@ -132,6 +157,8 @@ class UfarManager {
         void        _perform_proof_based_grey_boxing(Abc_Cex_t * pCex);
         void        _perform_cex_based_white_boxing();
         std::string _get_profile_uf_wb();
+        bool        _is_mul_mul_pair(const UIF_PAIR& x) const;
+        bool        _allow_uif_pair(const UIF_PAIR& x) const;
         void        _massage_state_b();
         void        _dump_states(const std::string& file);
         void        _read_states(const std::string& file);
@@ -143,6 +170,7 @@ class UfarManager {
 
         std::vector<int>                _vec_op_ids;
         std::vector<bool>               _vec_op_blackbox_marks;
+        std::vector<char>               _vec_op_side; // 0=unknown, 1=L-only, 2=R-only, 3=both
         std::vector<std::vector<int> >  _vec_vec_op_ffs;
         std::vector<Greyness>           _vec_op_greyness;
 
@@ -156,6 +184,7 @@ class UfarManager {
         std::unique_ptr<CexUifPairFinder>  _p_cex_mgr;
 
         std::ostringstream       _oss;
+        bool                     _fCrossReady;
 
         struct timespec          _timeout;
 };

@@ -15,8 +15,11 @@
 #include <iomanip>
 #include <climits>
 #include <regex>
+#include <cstdlib>
+#include <cstdio>
 
 #include "base/wlc/wlc.h"
+#include "aig/gia/giaAig.h"
 #include "opt/ufar/UfarCmd.h"
 #include "opt/ufar/UfarMgr.h"
 #include "opt/untk/NtkNtk.h"
@@ -120,6 +123,8 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
         cout << "There is no current design.\n";
         return 0;
     }
+    // Make each %ufar invocation stateless: always start from factory defaults.
+    ufar_manager.params = UFAR::UfarManager::Params();
 
     OptMgr opt_mgr(argv[0]);
     opt_mgr.AddOpt("--norm", ufar_manager.params.fNorm ? "yes" : "no", "", "toggle using data type normalization");
@@ -137,9 +142,14 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
     opt_mgr.AddOpt("--cbawb", ufar_manager.params.fCbaWb ? "yes" : "no", "", "toggle using cex-based refinement for white boxing");
     opt_mgr.AddOpt("--grey", ufar_manager.params.fGrey ? "yes" : "no", "", "toggle using grey-box constraints");
     opt_mgr.AddOpt("--grey2", to_string(ufar_manager.params.nGrey), "float", "specify the greyness threshold");
+    opt_mgr.AddOpt("--allwb", ufar_manager.params.fAllWb ? "yes" : "no", "", "start with all operators white-boxed (no initial abstraction)");
+    opt_mgr.AddOpt("--crossonly", ufar_manager.params.fCrossOnly ? "yes" : "no", "", "allow UIF pairs only across LHS/RHS cones of the miter");
+    opt_mgr.AddOpt("--crossstats", "no", "", "print multiplier counts in LHS/RHS/shared cones and exit");
     opt_mgr.AddOpt("--dump", "none", "str", "specify file name");
+    opt_mgr.AddOpt("--dump-first-aig", "none", "str", "dump first internal bit-blasted AIG and exit");
     opt_mgr.AddOpt("--dump-abs", "none", "str", "specify file name");
     opt_mgr.AddOpt("--par", "none", "str", "use parallel solvers");
+    opt_mgr.AddOpt("--solver", "none", "str", "external solver command line");
     opt_mgr.AddOpt("--dump_states", "none", "str", "specify the name for the states file");
     opt_mgr.AddOpt("--read_states", "none", "str", "specify the name for the states file");
     opt_mgr.AddOpt("--sp", ufar_manager.params.fSuper_prove ? "yes" : "no", "", "toggle using super_prove");
@@ -147,6 +157,8 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
     opt_mgr.AddOpt("--syn", ufar_manager.params.fSyn ? "yes" : "no", "", "toggle using simple synthesis");
     opt_mgr.AddOpt("--pth", ufar_manager.params.fPthread ? "yes" : "no", "", "toggle using pthreads");
     opt_mgr.AddOpt("--onewb", to_string(ufar_manager.params.iOneWb), "int", "specify the mode for one-white-boxing");
+    opt_mgr.AddOpt("--initallpairs", to_string(ufar_manager.params.nInitAllPairsLimit), "num", "pre-seed all compatible UIF pairs when #ops <= this limit (0=off)");
+    opt_mgr.AddOpt("--initnear", to_string(ufar_manager.params.nInitNearMults), "num", "pre-seed UIF pairs among up to this many multipliers closest to output");
     opt_mgr.AddOpt("--timeout", to_string(ufar_manager.params.nTimeout), "num", "specify the timeout (sec)");
     opt_mgr.AddOpt("--exp", to_string(ufar_manager.params.iExp), "int", "specify the exp mode");
     opt_mgr.AddOpt("--miter", "yes", "", "toggle mitering the problem");
@@ -174,6 +186,10 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
         ufar_manager.params.fCbaWb ^= 1;
     if(opt_mgr["--grey"])
         ufar_manager.params.fGrey ^= 1;
+    if(opt_mgr["--allwb"])
+        ufar_manager.params.fAllWb ^= 1;
+    if(opt_mgr["--crossonly"])
+        ufar_manager.params.fCrossOnly ^= 1;
     if(opt_mgr["--grey2"])
         ufar_manager.params.nGrey = stof(opt_mgr.GetOptVal("--grey2"));
     if(opt_mgr["--sp"])
@@ -186,10 +202,16 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
         ufar_manager.params.fPthread ^= 1;
     if(opt_mgr["--onewb"])
         ufar_manager.params.iOneWb = stoi(opt_mgr.GetOptVal("--onewb"));
+    if(opt_mgr["--initallpairs"])
+        ufar_manager.params.nInitAllPairsLimit = stoi(opt_mgr.GetOptVal("--initallpairs"));
+    if(opt_mgr["--initnear"])
+        ufar_manager.params.nInitNearMults = stoi(opt_mgr.GetOptVal("--initnear"));
     if(opt_mgr["--exp"])
         ufar_manager.params.iExp = stoi(opt_mgr.GetOptVal("--exp"));
     if(opt_mgr["--par"])
         ufar_manager.params.parSetting = opt_mgr.GetOptVal("--par");
+    if(opt_mgr["--solver"])
+        ufar_manager.params.solverSetting = opt_mgr.GetOptVal("--solver");
     if(opt_mgr["--sim"])
         ufar_manager.params.simSetting = opt_mgr.GetOptVal("--sim");
     if(opt_mgr["--dump_states"]) {
@@ -216,7 +238,7 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
         if(regex_search(option, sub_match, regex(R"(/?(\w+)\.v$)")))
             ufar_manager.params.fileAbs = sub_match[1].str();
         else
-            ufar_manager.params.fileAbs = opt_mgr.GetOptVal("--dump");
+            ufar_manager.params.fileAbs = opt_mgr.GetOptVal("--dump-abs");
     }
     if(opt_mgr["--dump"]) {
         smatch sub_match;
@@ -226,6 +248,9 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
         else
             ufar_manager.params.fileName = opt_mgr.GetOptVal("--dump");
     }
+    string firstAigDumpFile = "";
+    if ( opt_mgr["--dump-first-aig"] )
+        firstAigDumpFile = opt_mgr.GetOptVal("--dump-first-aig");
 
     // ufar_manager.DumpParams();
     LogT::prefix = "UIF_PROVE";
@@ -257,6 +282,68 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
         Wlc_AbcUpdateNtk(pAbc, pNew);
     }
 
+    if ( opt_mgr["--crossstats"] )
+    {
+        Wlc_Ntk_t * pCur = Wlc_AbcGetNtk(pAbc);
+        if ( Wlc_NtkPoNum(pCur) != 2 )
+        {
+            cout << "CrossStats requires dual outputs before mitering.\n";
+            return 0;
+        }
+        int nObjs = Wlc_NtkObjNumMax(pCur);
+        vector<char> vConeL(nObjs, 0), vConeR(nObjs, 0);
+        auto mark_cone = [&]( int iStart, vector<char>& vMark )
+        {
+            if ( iStart < 0 || iStart >= nObjs )
+                return;
+            vector<int> stack(1, iStart);
+            while ( !stack.empty() )
+            {
+                int iObj = stack.back();
+                stack.pop_back();
+                if ( iObj < 0 || iObj >= nObjs || vMark[iObj] )
+                    continue;
+                vMark[iObj] = 1;
+                Wlc_Obj_t * pObjT = Wlc_NtkObj(pCur, iObj);
+                // Sequential traversal: from flop output (FO) continue to corresponding flop input (FI).
+                if ( pObjT->Type == WLC_OBJ_FO )
+                {
+                    Wlc_Obj_t * pFi = Wlc_ObjFo2Fi(pCur, pObjT);
+                    stack.push_back( Wlc_ObjId(pCur, pFi) );
+                }
+                int iFanin, k;
+                Wlc_ObjForEachFanin( pObjT, iFanin, k )
+                    stack.push_back(iFanin);
+            }
+        };
+        int iRootL = Wlc_ObjFaninId0( Wlc_NtkPo(pCur, 0) );
+        int iRootR = Wlc_ObjFaninId0( Wlc_NtkPo(pCur, 1) );
+        mark_cone(iRootL, vConeL);
+        mark_cone(iRootR, vConeR);
+
+        int nL = 0, nR = 0, nB = 0, nN = 0;
+        Wlc_Obj_t * pObjT; int iObj;
+        Wlc_NtkForEachObj( pCur, pObjT, iObj )
+        {
+            if ( pObjT->Type != WLC_OBJ_ARI_MULTI )
+                continue;
+            bool fL = vConeL[iObj] != 0;
+            bool fR = vConeR[iObj] != 0;
+            if ( fL && fR ) nB++;
+            else if ( fL )  nL++;
+            else if ( fR )  nR++;
+            else            nN++;
+        }
+        cout << "UIF_PROVE : CrossStats: L=" << nL
+             << " R=" << nR
+             << " BOTH=" << nB
+             << " NONE=" << nN
+             << " TOTAL=" << (nL + nR + nB + nN) << endl;
+        //fflush(stdout);
+        //exit(1);
+        return 0;
+    }
+
     if (opt_mgr["--under"]) {
         pNew = UFAR::MakeUnderApprox(Wlc_AbcGetNtk(pAbc), stoi(opt_mgr.GetOptVal("--under")));
         Wlc_AbcUpdateNtk(pAbc, pNew);
@@ -267,6 +354,12 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
 
     Gia_Man_t * pGia = UFAR::BitBlast(Wlc_AbcGetNtk(pAbc));
     Gia_ManPrintStats( pGia, NULL );
+    if ( !firstAigDumpFile.empty() && firstAigDumpFile != "none" )
+    {
+        Gia_AigerWriteSimple( pGia, (char *)firstAigDumpFile.c_str() );
+        Gia_ManStop( pGia );
+        return 0;
+    }
     Gia_ManStop( pGia );
 
     ufar_manager.Initialize(Wlc_AbcGetNtk(pAbc), set_op_types);
@@ -283,14 +376,61 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
     gettimeofday(&t2, NULL);
     unsigned tTotal = elapsed_time_usec(t1, t2);
     if(opt_mgr["--profile"]) {
+        unsigned nCexChecks = 0, nBitBlasts = 0;
+        unsigned long long tBitBlastUsec = 0, tCexCheckUsec = 0;
+        UFAR::Ufar_GetOrigCexStats(&nCexChecks, &nBitBlasts, &tBitBlastUsec, &tCexCheckUsec);
+        LOG(0) << "OrigCexStats: checks = " << nCexChecks
+               << ", bitblasts = " << nBitBlasts
+               << ", blast_time = " << fixed << setprecision(4) << ((double)tBitBlastUsec / 1000000.0)
+               << " sec [" << (tTotal ? (100.0 * (double)tBitBlastUsec / (double)tTotal) : 0.0) << "%]"
+               << ", cex_check_time = " << ((double)tCexCheckUsec / 1000000.0)
+               << " sec [" << (tTotal ? (100.0 * (double)tCexCheckUsec / (double)tTotal) : 0.0) << "%]";
         auto log_profile = [&](const string& str, abctime t) {
-          LOG(1) << str << " time = " << fixed << setprecision(4) << setw(8) << (double)t/1000000 << " sec [" << setw(7) << (double)t/tTotal*100 << "%]";
+          LOG(0) << str << " time = " << fixed << setprecision(4) << setw(8) << (double)t/1000000 << " sec [" << setw(7) << (double)t/tTotal*100 << "%]";
+        };
+        auto pct = [&](unsigned n, unsigned d) {
+            return d ? 100.0 * (double)n / (double)d : 0.0;
         };
         log_profile("BLSolver  ", ufar_manager.profile.tBLSolver);
         log_profile("UifRefine ", ufar_manager.profile.tUifRefine);
         log_profile("WbRefine  ", ufar_manager.profile.tWbRefine);
         log_profile("UifSim    ", ufar_manager.profile.tUifSim);
         log_profile("GbRefine  ", ufar_manager.profile.tGbRefine);
+        log_profile("CexCheck  ", ufar_manager.profile.tCexCheckOrig);
+        {
+            unsigned long long tKnown = (unsigned long long)ufar_manager.profile.tBLSolver
+                                      + (unsigned long long)ufar_manager.profile.tUifRefine
+                                      + (unsigned long long)ufar_manager.profile.tWbRefine
+                                      + (unsigned long long)ufar_manager.profile.tUifSim
+                                      + (unsigned long long)ufar_manager.profile.tGbRefine
+                                      + (unsigned long long)ufar_manager.profile.tCexCheckOrig;
+            unsigned long long tUnaccounted = (tTotal > tKnown) ? (tTotal - tKnown) : 0;
+            LOG(0) << "Unaccounted time = " << fixed << setprecision(4) << setw(8)
+                   << ((double)tUnaccounted / 1000000.0) << " sec [" << setw(7)
+                   << (tTotal ? (double)tUnaccounted * 100.0 / (double)tTotal : 0.0) << "%]";
+        }
+        LOG(0) << "UFAR calls: verify = " << ufar_manager.profile.nVerifyCalls
+               << " (sat = " << ufar_manager.profile.nSatCalls
+               << ", unsat = " << ufar_manager.profile.nUnsatCalls
+               << ", undec = " << ufar_manager.profile.nUnknownCalls << ")";
+        LOG(0) << "UFAR cex  : real = " << ufar_manager.profile.nRealCex
+               << ", spurious = " << ufar_manager.profile.nSpuriousCex
+               << " [" << fixed << setprecision(1)
+               << pct(ufar_manager.profile.nSpuriousCex, ufar_manager.profile.nSatCalls)
+               << "% spurious among SAT-abstraction]";
+        LOG(0) << "UFAR ref  : iters_uif = " << ufar_manager.profile.nIterUif
+               << ", iters_wb = " << ufar_manager.profile.nIterWb
+               << ", pairs_added = " << ufar_manager.profile.nUifPairsAdded
+               << ", mul_mul_pairs_added = " << ufar_manager.profile.nUifMulMulPairsAdded
+               << ", wb_added = " << ufar_manager.profile.nWbAdded;
+        LOG(0) << "UFAR size : max_pairs = " << ufar_manager.profile.nMaxUifPairs
+               << ", max_white_boxes = " << ufar_manager.profile.nMaxWhiteBoxes;
+        if ( ufar_manager.profile.nVerifyCalls ) {
+            LOG(0) << "UFAR avg  : blsolve_call = "
+                   << fixed << setprecision(4)
+                   << (double)ufar_manager.profile.tBLSolver / 1000000.0 / (double)ufar_manager.profile.nVerifyCalls
+                   << " sec/call";
+        }
     }
 
     LOG(0) << "Time = " << setprecision(5) << ((double) (tTotal) / 1000000) << " sec";

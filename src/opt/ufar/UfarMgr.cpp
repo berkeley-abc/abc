@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <regex>
+#include <queue>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -33,6 +34,27 @@ namespace UFAR {
 
 static inline unsigned log_level() {
     return LogT::loglevel;
+}
+
+static unsigned           s_nOrigCexChecks    = 0;
+static unsigned           s_nOrigBitBlasts    = 0;
+static unsigned long long s_tOrigBitBlastUsec = 0;
+static unsigned long long s_tOrigCexCheckUsec = 0;
+
+void Ufar_ResetOrigCexStats()
+{
+    s_nOrigCexChecks    = 0;
+    s_nOrigBitBlasts    = 0;
+    s_tOrigBitBlastUsec = 0;
+    s_tOrigCexCheckUsec = 0;
+}
+
+void Ufar_GetOrigCexStats( unsigned * pChecks, unsigned * pBitBlasts, unsigned long long * pBitBlastUsec, unsigned long long * pCexCheckUsec )
+{
+    if ( pChecks )       *pChecks       = s_nOrigCexChecks;
+    if ( pBitBlasts )    *pBitBlasts    = s_nOrigBitBlasts;
+    if ( pBitBlastUsec ) *pBitBlastUsec = s_tOrigBitBlastUsec;
+    if ( pCexCheckUsec ) *pCexCheckUsec = s_tOrigCexCheckUsec;
 }
 
 static void split(const string &s, char delim, vector<string>& elems) {
@@ -132,7 +154,14 @@ static bool verify_cex_direct(Wlc_Ntk_t * pNtk, Abc_Cex_t * pCex) {
 }
 
 static bool verify_cex_on_original(Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex) {
+    timeval t1, t2, tCheck1, tCheck2;
+    gettimeofday(&tCheck1, NULL);
+    gettimeofday(&t1, NULL);
     Gia_Man_t * pGiaOrig = BitBlast(pOrig);
+    gettimeofday(&t2, NULL);
+    s_nOrigCexChecks++;
+    s_nOrigBitBlasts++;
+    s_tOrigBitBlastUsec += elapsed_time_usec(t1, t2);
 
     unsigned nbits_orig_pis = compute_bit_level_pi_num(pOrig);
     int nbits_ppis = pCex->nPis - Gia_ManPiNum(pGiaOrig);
@@ -161,6 +190,9 @@ static bool verify_cex_on_original(Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex) {
         Gia_ManForEachPo( pGiaOrig, pObj, i ) {
             if (pObj->Value==1) {
                 LOG(3) << "CEX is real.";
+                Gia_ManStop(pGiaOrig);
+                gettimeofday(&tCheck2, NULL);
+                s_tOrigCexCheckUsec += elapsed_time_usec(tCheck1, tCheck2);
                 return true;
             }
         }
@@ -168,6 +200,8 @@ static bool verify_cex_on_original(Wlc_Ntk_t * pOrig, Abc_Cex_t * pCex) {
 
     Gia_ManStop(pGiaOrig);
     LOG(3) << "CEX is spurious.";
+    gettimeofday(&tCheck2, NULL);
+    s_tOrigCexCheckUsec += elapsed_time_usec(tCheck1, tCheck2);
     return false;
 }
 
@@ -949,6 +983,8 @@ UfarManager::Params::Params() :
                 fGrey(false),
                 nGrey(0),
                 fNorm(true),
+                fAllWb(false),
+                fCrossOnly(false),
                 fSuper_prove(false),
                 fSimple(false),
                 fSyn(false),
@@ -956,21 +992,26 @@ UfarManager::Params::Params() :
                 iOneWb(-1),
                 iExp(-1),
                 nConstraintLimit(65536),
+                nInitAllPairsLimit(0),
+                nInitNearMults(0),
                 iVerbosity(0),
                 nSeqLookBack(0),
                 nTimeout(65536)
             {}
-UfarManager::UfarManager() : _pOrigNtk(NULL), _pAbsWithAuxPos(NULL) {}
+UfarManager::UfarManager() : _pOrigNtk(NULL), _pAbsWithAuxPos(NULL), _fCrossReady(false) {}
 
 UfarManager::~UfarManager() {
     if (_pOrigNtk) Wlc_NtkFree(_pOrigNtk);
 }
 
 void UfarManager::Initialize(Wlc_Ntk_t * pNtk, const set<unsigned>& types) {
+    Ufar_ResetOrigCexStats();
+    LogT::loglevel = params.iVerbosity;
     if (_pOrigNtk) Wlc_NtkFree(_pOrigNtk);
     _vec_orig_names.clear();
     _vec_op_ids.clear();
     _vec_op_blackbox_marks.clear();
+    _vec_op_side.clear();
     _vec_op_greyness.clear();
     _set_uif_pairs.clear();
     _set_uif_sim_pairs.clear();
@@ -1001,11 +1042,210 @@ void UfarManager::Initialize(Wlc_Ntk_t * pNtk, const set<unsigned>& types) {
     }
 
     _vec_op_blackbox_marks.resize(_vec_op_ids.size(), true);
+    _vec_op_side.resize(_vec_op_ids.size(), 0);
+    _fCrossReady = false;
+    if ( params.fAllWb )
+        std::fill( _vec_op_blackbox_marks.begin(), _vec_op_blackbox_marks.end(), false );
+
+    if ( params.fCrossOnly )
+    {
+        int nObjs = Wlc_NtkObjNumMax(_pOrigNtk);
+        vector<char> vConeL(nObjs, 0), vConeR(nObjs, 0);
+        auto mark_cone = [&]( int iStart, vector<char>& vMark )
+        {
+            if ( iStart < 0 || iStart >= nObjs )
+                return;
+            vector<int> stack(1, iStart);
+            while ( !stack.empty() )
+            {
+                int iObj = stack.back();
+                stack.pop_back();
+                if ( iObj < 0 || iObj >= nObjs || vMark[iObj] )
+                    continue;
+                vMark[iObj] = 1;
+                Wlc_Obj_t * pObjT = Wlc_NtkObj(_pOrigNtk, iObj);
+                // Sequential traversal: from flop output (FO) continue to corresponding flop input (FI).
+                if ( pObjT->Type == WLC_OBJ_FO )
+                {
+                    Wlc_Obj_t * pFi = Wlc_ObjFo2Fi(_pOrigNtk, pObjT);
+                    stack.push_back( Wlc_ObjId(_pOrigNtk, pFi) );
+                }
+                int iFanin, k;
+                Wlc_ObjForEachFanin( pObjT, iFanin, k )
+                    stack.push_back(iFanin);
+            }
+        };
+
+        if ( Wlc_NtkPoNum(_pOrigNtk) == 1 )
+        {
+            Wlc_Obj_t * pPo = Wlc_NtkPo(_pOrigNtk, 0);
+            int iMiter = Wlc_ObjFaninId0(pPo);
+            if ( iMiter >= 0 && iMiter < nObjs )
+            {
+                Wlc_Obj_t * pMit = Wlc_NtkObj(_pOrigNtk, iMiter);
+                if ( Wlc_ObjFaninNum(pMit) >= 2 )
+                {
+                    int iL = Wlc_ObjFaninId0(pMit);
+                    int iR = Wlc_ObjFaninId1(pMit);
+                    mark_cone(iL, vConeL);
+                    mark_cone(iR, vConeR);
+                    _fCrossReady = true;
+                }
+            }
+        }
+        if ( _fCrossReady )
+        {
+            int nL = 0, nR = 0, nB = 0, nN = 0;
+            for ( size_t iOp = 0; iOp < _vec_op_ids.size(); ++iOp )
+            {
+                int iObj = _vec_op_ids[iOp];
+                bool fL = vConeL[iObj] != 0;
+                bool fR = vConeR[iObj] != 0;
+                char Side = fL ? (fR ? 3 : 1) : (fR ? 2 : 0);
+                _vec_op_side[iOp] = Side;
+                if ( Side == 1 ) nL++;
+                else if ( Side == 2 ) nR++;
+                else if ( Side == 3 ) nB++;
+                else nN++;
+            }
+            LOG(1) << "CrossOnly: classified operators L=" << nL << " R=" << nR << " BOTH=" << nB << " NONE=" << nN;
+        }
+        else
+            LOG(1) << "CrossOnly: unable to derive LHS/RHS cones from miter; disabling cross filter.";
+    }
+
+    auto seed_pairs_for_indices = [&]( const vector<int>& vOpIdxs )
+    {
+        auto sig = [&]( int iObj, int iFanin )
+        {
+            int iFin = (iFanin == 0) ? Wlc_ObjFaninId0(Wlc_NtkObj(_pOrigNtk, iObj)) : Wlc_ObjFaninId1(Wlc_NtkObj(_pOrigNtk, iObj));
+            Wlc_Obj_t * pFin = Wlc_NtkObj(_pOrigNtk, iFin);
+            return std::make_pair( Wlc_ObjRange(pFin), Wlc_ObjIsSigned(pFin) );
+        };
+        auto sigOut = [&]( int iObj )
+        {
+            Wlc_Obj_t * pObj = Wlc_NtkObj(_pOrigNtk, iObj);
+            return std::make_pair( Wlc_ObjRange(pObj), Wlc_ObjIsSigned(pObj) );
+        };
+        for ( size_t i = 0; i < vOpIdxs.size(); ++i )
+        for ( size_t j = i + 1; j < vOpIdxs.size(); ++j )
+        {
+            int idx1  = vOpIdxs[i];
+            int idx2  = vOpIdxs[j];
+            int iObj1 = _vec_op_ids[idx1];
+            int iObj2 = _vec_op_ids[idx2];
+            Wlc_Obj_t * pObj1 = Wlc_NtkObj(_pOrigNtk, iObj1);
+            Wlc_Obj_t * pObj2 = Wlc_NtkObj(_pOrigNtk, iObj2);
+            if ( pObj1->Type != pObj2->Type )
+                continue;
+            if ( sigOut(iObj1) != sigOut(iObj2) )
+                continue;
+
+            bool fDirect = (sig(iObj1, 0) == sig(iObj2, 0)) && (sig(iObj1, 1) == sig(iObj2, 1));
+            bool fSwap   = (sig(iObj1, 0) == sig(iObj2, 1)) && (sig(iObj1, 1) == sig(iObj2, 0));
+            if ( fDirect ) {
+                UIF_PAIR Pair(OperatorID(idx1), OperatorID(idx2), 0);
+                if ( _allow_uif_pair(Pair) )
+                    _set_uif_pairs.insert( Pair );
+            }
+            if ( fSwap ) {
+                UIF_PAIR Pair(OperatorID(idx1), OperatorID(idx2), 1);
+                if ( _allow_uif_pair(Pair) )
+                    _set_uif_pairs.insert( Pair );
+            }
+        }
+    };
+
+    if ( params.nInitNearMults > 0 )
+    {
+        vector<pair<int, int> > vScoreIdx; // (seq distance from outputs, op-index in _vec_op_ids)
+        int nObjs = Wlc_NtkObjNumMax(_pOrigNtk);
+        vector<int> vDist(nObjs, -1);
+        queue<int> q;
+        Wlc_Obj_t * pPoT; int iPo;
+        Wlc_NtkForEachPo( _pOrigNtk, pPoT, iPo )
+        {
+            int iRoot = Wlc_ObjFaninId0(pPoT);
+            if ( iRoot > 0 && iRoot < nObjs && vDist[iRoot] == -1 )
+            {
+                vDist[iRoot] = 0;
+                q.push(iRoot);
+            }
+        }
+        while ( !q.empty() )
+        {
+            int iObj = q.front();
+            q.pop();
+            Wlc_Obj_t * pObjT = Wlc_NtkObj(_pOrigNtk, iObj);
+            int dNext = vDist[iObj] + 1;
+            if ( pObjT->Type == WLC_OBJ_FO )
+            {
+                Wlc_Obj_t * pFi = Wlc_ObjFo2Fi(_pOrigNtk, pObjT);
+                int iFi = Wlc_ObjId(_pOrigNtk, pFi);
+                if ( iFi > 0 && iFi < nObjs && (vDist[iFi] == -1 || dNext < vDist[iFi]) )
+                {
+                    vDist[iFi] = dNext;
+                    q.push(iFi);
+                }
+            }
+            int iFanin, k;
+            Wlc_ObjForEachFanin( pObjT, iFanin, k )
+            {
+                if ( iFanin <= 0 || iFanin >= nObjs )
+                    continue;
+                if ( vDist[iFanin] == -1 || dNext < vDist[iFanin] )
+                {
+                    vDist[iFanin] = dNext;
+                    q.push(iFanin);
+                }
+            }
+        }
+
+        for ( size_t i = 0; i < _vec_op_ids.size(); ++i )
+        {
+            int iObj = _vec_op_ids[i];
+            if ( Wlc_NtkObj(_pOrigNtk, iObj)->Type != WLC_OBJ_ARI_MULTI )
+                continue;
+            if ( iObj <= 0 || iObj >= nObjs )
+                continue;
+            if ( vDist[iObj] < 0 )
+                continue;
+            vScoreIdx.push_back( { vDist[iObj], (int)i } );
+        }
+        sort( vScoreIdx.begin(), vScoreIdx.end(),
+              []( const pair<int,int>& a, const pair<int,int>& b )
+              { return a.first != b.first ? a.first < b.first : a.second < b.second; } );
+        vector<int> vSeedOps;
+        size_t nTake = Abc_MinInt( (int)vScoreIdx.size(), (int)params.nInitNearMults );
+        vSeedOps.reserve( nTake );
+        for ( size_t i = 0; i < nTake; ++i )
+            vSeedOps.push_back( vScoreIdx[i].second );
+        sort( vSeedOps.begin(), vSeedOps.end() );
+
+        size_t nBefore = _set_uif_pairs.size();
+        seed_pairs_for_indices( vSeedOps );
+        if ( _set_uif_pairs.size() > nBefore ) {
+            LOG(1) << "InitNear: pre-seeded " << (_set_uif_pairs.size() - nBefore)
+                   << " UIF pairs among " << vSeedOps.size() << " closest multipliers (limit = " << params.nInitNearMults << ")";
+        }
+    }
+
+    if ( params.nInitAllPairsLimit > 0 && _vec_op_ids.size() <= params.nInitAllPairsLimit )
+    {
+        vector<int> vAllOps;
+        vAllOps.reserve( _vec_op_ids.size() );
+        for ( size_t i = 0; i < _vec_op_ids.size(); ++i )
+            vAllOps.push_back( (int)i );
+        size_t nBefore = _set_uif_pairs.size();
+        seed_pairs_for_indices( vAllOps );
+        if ( _set_uif_pairs.size() > nBefore ) {
+            LOG(1) << "InitAllPairs: pre-seeded " << (_set_uif_pairs.size() - nBefore)
+                   << " UIF pairs (ops = " << _vec_op_ids.size() << ", limit = " << params.nInitAllPairsLimit << ")";
+        }
+    }
 
     _p_sim_mgr.reset(new SimUifPairFinder(_pOrigNtk, &_vec_op_ids));
     _p_cex_mgr.reset(new CexUifPairFinder(_pOrigNtk, &_vec_op_ids));
-
-    LogT::loglevel = params.iVerbosity;
 
     struct timeval now;
     gettimeofday(&now, NULL);
@@ -1122,6 +1362,8 @@ void UfarManager::FindUifPairsUsingSim() {
 
     set<UIF_PAIR> set_new_pairs;
     for(auto& x:_set_uif_sim_pairs) {
+        if ( !_allow_uif_pair(x) )
+            continue;
         auto res = _set_uif_pairs.insert(x);
         if(res.second)
             set_new_pairs.insert(x);
@@ -1149,6 +1391,14 @@ void UfarManager::FindUifPairsUsingCex(Abc_Cex_t * pCex, Abc_Cex_t ** ppCex) {
     } else {
         _p_cex_mgr->FindUifPairsBasic(cex_po_values, params.nSeqLookBack, set_found_pairs);
     }
+    if ( params.fCrossOnly && _fCrossReady )
+    {
+        for ( auto it = set_found_pairs.begin(); it != set_found_pairs.end(); )
+            if ( !_allow_uif_pair(*it) )
+                it = set_found_pairs.erase(it);
+            else
+                ++it;
+    }
     if(log_level() >= 3) print_pairs(set_found_pairs);
 
     if(params.fPbaUif && !set_found_pairs.empty()) {
@@ -1171,6 +1421,14 @@ void UfarManager::FindUifPairsUsingCex(Abc_Cex_t * pCex, Abc_Cex_t ** ppCex) {
         }
     }
 
+    if ( params.fCrossOnly && _fCrossReady )
+    {
+        for ( auto it = set_found_pairs.begin(); it != set_found_pairs.end(); )
+            if ( !_allow_uif_pair(*it) )
+                it = set_found_pairs.erase(it);
+            else
+                ++it;
+    }
     for(auto& x : set_found_pairs) _set_uif_pairs.insert(x);
 
     gettimeofday(&t2, NULL);
@@ -1403,7 +1661,7 @@ int UfarManager::VerifyCurrentAbstraction(Abc_Cex_t ** ppCex) {
         }
     }
     */
-    ret = verify_model(pCurrent, ppCex, &params.fileName, &params.parSetting, params.fSyn, &_timeout, params.pFuncStop, params.RunId);
+    ret = verify_model(pCurrent, ppCex, &params.fileName, &params.parSetting, params.fSyn, &_timeout, params.pFuncStop, params.RunId, &params.solverSetting, (int)params.nTimeout);
     Wlc_NtkFree(pCurrent);
 
     gettimeofday(&t2, NULL);
@@ -1447,9 +1705,14 @@ int UfarManager::PerformUIFProve(const timeval& timer) {
         LOG(1) << "Grey: [Total] = " << setprecision(4) << stat << " (" << _vec_op_greyness.size() << ")";
     };
     auto print_stat = [&]() {
+        unsigned nWhiteBoxes = count(_vec_op_blackbox_marks.begin(), _vec_op_blackbox_marks.end(), false);
+        if (profile.nMaxUifPairs < _set_uif_pairs.size())
+            profile.nMaxUifPairs = _set_uif_pairs.size();
+        if (profile.nMaxWhiteBoxes < nWhiteBoxes)
+            profile.nMaxWhiteBoxes = nWhiteBoxes;
         gettimeofday(&curTime, NULL);
         elapsedTime = elapsed_time_usec(timer, curTime)/1000000.0;
-        snprintf(buffer, sizeof(buffer), "Iteration[%2u][%3u]: %4lu White boxes\t%4lu UIF constraints (time = %.4f)", n_iter_wb, n_iter_uif, count(_vec_op_blackbox_marks.begin(), _vec_op_blackbox_marks.end(), false), _set_uif_pairs.size(), elapsedTime);
+        snprintf(buffer, sizeof(buffer), "Iteration[%2u][%3u]: %4u White boxes\t%4lu UIF constraints (time = %.4f)", n_iter_wb, n_iter_uif, nWhiteBoxes, _set_uif_pairs.size(), elapsedTime);
         LOG(1) << buffer << _get_profile_uf_wb();
         dump_grey_stat();
         if(!params.fileStatesOut.empty()) _dump_states(params.fileStatesOut);
@@ -1491,18 +1754,28 @@ int UfarManager::PerformUIFProve(const timeval& timer) {
                 Wlc_NtkFree(pCurrent);
                 ret = 0;
             } else {
+                profile.nVerifyCalls++;
                 ret = VerifyCurrentAbstraction(&mem.pCex);
             }
 
             if (ret ==  0) { // SAT
+                profile.nSatCalls++;
                 if ( Ufar_ShouldStop(params) )
                     return -1;
                 // GetOperatorsInCex(mem.pCex);
-                if (verify_cex_on_original(_pOrigNtk, mem.pCex)) {
+                timeval tCheck1, tCheck2;
+                gettimeofday(&tCheck1, NULL);
+                bool fRealCex = verify_cex_on_original(_pOrigNtk, mem.pCex);
+                gettimeofday(&tCheck2, NULL);
+                profile.tCexCheckOrig += elapsed_time_usec(tCheck1, tCheck2);
+                if (fRealCex) {
+                    profile.nRealCex++;
                     PrintWordCEX(_pOrigNtk, mem.pCex, &_vec_orig_names);
                     return 0;
                 }
+                profile.nSpuriousCex++;
                 unsigned n_before = _set_uif_pairs.size();
+                set<UIF_PAIR> set_before = _set_uif_pairs;
 
                 FindUifPairsUsingCex(mem.pCex, &mem.pCex2);
                 if ( Ufar_ShouldStop(params) )
@@ -1534,17 +1807,28 @@ int UfarManager::PerformUIFProve(const timeval& timer) {
                     }
                 }
 
+                if (_set_uif_pairs.size() > n_before)
+                    profile.nUifPairsAdded += (_set_uif_pairs.size() - n_before);
+                if (_set_uif_pairs.size() > n_before) {
+                    for (const auto& x : _set_uif_pairs) {
+                        if (set_before.find(x) == set_before.end() && _is_mul_mul_pair(x))
+                            profile.nUifMulMulPairsAdded++;
+                    }
+                }
                 ++n_iter_uif;
+                profile.nIterUif++;
                 print_stat();
 
                 if(_set_uif_pairs.size() > params.nConstraintLimit)
                     return -1;
             } else if (ret == 1) { // UNSAT
+                profile.nUnsatCalls++;
                 //_shrink_final_abstraction();
                 //print_stat();
                 return 1;
 
             } else {
+                profile.nUnknownCalls++;
                 return -1;
 
             }
@@ -1552,9 +1836,14 @@ int UfarManager::PerformUIFProve(const timeval& timer) {
 
         if ( Ufar_ShouldStop(params) )
             return -1;
+        unsigned nWhiteBoxesBefore = count(_vec_op_blackbox_marks.begin(), _vec_op_blackbox_marks.end(), false);
         DetermineWhiteBoxes(mem.pCex);
+        unsigned nWhiteBoxesAfter  = count(_vec_op_blackbox_marks.begin(), _vec_op_blackbox_marks.end(), false);
+        if (nWhiteBoxesAfter > nWhiteBoxesBefore)
+            profile.nWbAdded += (nWhiteBoxesAfter - nWhiteBoxesBefore);
 
         ++n_iter_wb;
+        profile.nIterWb++;
         print_stat();
     }
     return -1;
@@ -1570,6 +1859,31 @@ void UfarManager::_massage_state_b() {
             LOG(2) << "Blackbox (" << to_black_idx << ") for UF (" << x.first.idx << ", " << x.second.idx << ")";
         }
     }
+}
+
+
+bool UfarManager::_is_mul_mul_pair(const UIF_PAIR& x) const {
+    if (!_pOrigNtk)
+        return false;
+    if (x.first.idx >= _vec_op_ids.size() || x.second.idx >= _vec_op_ids.size())
+        return false;
+    int obj1 = _vec_op_ids[x.first.idx];
+    int obj2 = _vec_op_ids[x.second.idx];
+    Wlc_Obj_t * pObj1 = Wlc_NtkObj(_pOrigNtk, obj1);
+    Wlc_Obj_t * pObj2 = Wlc_NtkObj(_pOrigNtk, obj2);
+    return pObj1 && pObj2 && pObj1->Type == WLC_OBJ_ARI_MULTI && pObj2->Type == WLC_OBJ_ARI_MULTI;
+}
+
+bool UfarManager::_allow_uif_pair(const UIF_PAIR& x) const {
+    if ( !params.fCrossOnly || !_fCrossReady )
+        return true;
+    if ( x.first.idx < 0 || x.second.idx < 0 )
+        return false;
+    if ( x.first.idx >= (int)_vec_op_side.size() || x.second.idx >= (int)_vec_op_side.size() )
+        return false;
+    char s1 = _vec_op_side[x.first.idx];
+    char s2 = _vec_op_side[x.second.idx];
+    return (s1 == 1 && s2 == 2) || (s1 == 2 && s2 == 1);
 }
 
 
@@ -1625,6 +1939,9 @@ void UfarManager::DumpParams() const {
     unsigned n_setw = 15;
     cout << "Parameters : " << endl;
     cout << "     " << setw(n_setw) << left << "cexmin" << " : " << (params.fCexMin ? "yes" : "no") << endl;
+    cout << "     " << setw(n_setw) << left << "allwb" << " : " << (params.fAllWb ? "yes" : "no") << endl;
+    cout << "     " << setw(n_setw) << left << "crossonly" << " : " << (params.fCrossOnly ? "yes" : "no") << endl;
+    cout << "     " << setw(n_setw) << left << "initnear" << " : " << params.nInitNearMults << endl;
     cout << "     " << setw(n_setw) << left << "iLogLevel" << " : " << params.iVerbosity << endl;
 }
 

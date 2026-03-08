@@ -48,7 +48,32 @@ bool OptMgr::Parse(int argc, char * argv[]) {
         if(!opt.isBool()) {
             if (i + 1 == argc)
                 return false;
-            opt._val = argv[++i];
+            string val = argv[++i];
+            if ( !val.empty() && (val[0] == '"' || val[0] == '\'') )
+            {
+                char q = val[0];
+                bool fClosed = val.size() >= 2 && val.back() == q;
+                if ( fClosed )
+                    val = val.substr(1, val.size() - 2);
+                else
+                {
+                    val.erase(0, 1);
+                    while ( i + 1 < argc )
+                    {
+                        string next = argv[++i];
+                        if ( !next.empty() && next.back() == q )
+                        {
+                            val += " " + next.substr(0, next.size() - 1);
+                            fClosed = true;
+                            break;
+                        }
+                        val += " " + next;
+                    }
+                    if ( !fClosed )
+                        return false;
+                }
+            }
+            opt._val = val;
         }
     }
 

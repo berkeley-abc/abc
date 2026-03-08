@@ -11,12 +11,18 @@
 #include <unistd.h>
 #endif
 #include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <algorithm>
+#include <cctype>
 
 #include <base/wlc/wlc.h>
 #include <sat/bmc/bmc.h>
 #include <proof/pdr/pdr.h>
 #include <proof/fraig/fraig.h>
 #include <aig/gia/giaAig.h>
+#include <base/io/ioAbc.h>
 
 #include "opt/util/util.h"
 #include "opt/ufar/UfarPth.h"
@@ -1250,11 +1256,77 @@ static void readCexFromFile(int& ret, FILE * file, Abc_Cex_t ** ppCex, int nOrig
     }
 }
 
-int verify_model(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileName, const string* pParSetting, bool fSyn, struct timespec * timeout, int (*pFuncStop)(int), int RunId) {
+static inline bool is_solver_cmd_defined(const string* pSolverSetting) {
+    return pSolverSetting && !pSolverSetting->empty() && *pSolverSetting != "none";
+}
+
+static inline int run_external_solver_on_aig( Abc_Ntk_t * pAbcNtk, const string& solverCmd, int nRuntimeLimitSec )
+{
+    const char * pAigFile = "file.aig";
+    Io_Write( pAbcNtk, (char *)pAigFile, IO_FILE_AIGER );
+    std::remove( "status.txt" );
+    std::remove( "log.txt" );
+    string command = solverCmd;
+    if ( command.find(pAigFile) == string::npos )
+        command += string(" ") + pAigFile;
+    if ( nRuntimeLimitSec > 0 )
+        command += " " + to_string(nRuntimeLimitSec);
+    command += " > log.txt 2>&1";
+    LOG(1) << "UFAR external solver: launching command instead of PDR: " << command;
+    int res = system( command.c_str() );
+    std::remove( pAigFile );
+    return res;
+}
+
+static inline int read_external_status_unsat_first_line()
+{
+    ifstream ifs("status.txt", std::ifstream::in);
+    if ( !ifs )
+        return -1;
+    int firstLine = -1;
+    ifs >> firstLine;
+    if ( ifs && firstLine == 0 )
+        return 1;
+    return -1;
+}
+
+static inline int read_external_result_from_log_last_line()
+{
+    ifstream ifs("log.txt", std::ifstream::in);
+    if ( !ifs )
+        return -1;
+    string line, last;
+    auto trim = []( string & s )
+    {
+        while ( !s.empty() && isspace((unsigned char)s.front()) )
+            s.erase( s.begin() );
+        while ( !s.empty() && isspace((unsigned char)s.back()) )
+            s.pop_back();
+    };
+    while ( getline(ifs, line) )
+    {
+        trim(line);
+        if ( !line.empty() )
+            last = line;
+    }
+    if ( last.empty() )
+        return -1;
+    transform( last.begin(), last.end(), last.begin(),
+               []( unsigned char c ){ return (char)toupper(c); } );
+    if ( last.find("UNSAT") != string::npos )
+        return 1;
+    if ( last.find("SAT") != string::npos )
+        return 0;
+    if ( last.find("UNKNOWN") != string::npos || last.find("UNDECIDED") != string::npos )
+        return -1;
+    return -1;
+}
+
+int verify_model(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileName, const string* pParSetting, bool fSyn, struct timespec * timeout, int (*pFuncStop)(int), int RunId, const string* pSolverSetting, int nUfarTimeoutSec) {
     if ( pFuncStop && pFuncStop(RunId) )
         return -1;
     if ( !pParSetting || pParSetting->empty() || Wlc_NtkFfNum(pNtk) == 0 )
-        return bit_level_solve( pNtk, ppCex, pFileName, pParSetting, fSyn, pFuncStop, RunId );
+        return bit_level_solve( pNtk, ppCex, pFileName, pParSetting, fSyn, pFuncStop, RunId, pSolverSetting, nUfarTimeoutSec );
     
     if(*ppCex) {
         Abc_CexFree(*ppCex);
@@ -1275,7 +1347,7 @@ int verify_model(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileName, 
 }
 
 
-int bit_level_solve(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileName, const string* pParSetting, bool fSyn, int (*pFuncStop)(int), int RunId) {
+int bit_level_solve(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileName, const string* pParSetting, bool fSyn, int (*pFuncStop)(int), int RunId, const string* pSolverSetting, int nRuntimeLimitSec) {
     if ( pFuncStop && pFuncStop(RunId) )
         return -1;
     if(*ppCex) {
@@ -1319,6 +1391,27 @@ int bit_level_solve(Wlc_Ntk_t * pNtk, Abc_Cex_t ** ppCex, const string* pFileNam
         }
     } else {
         auto runPDR = [&](FILE * file){
+            if ( is_solver_cmd_defined(pSolverSetting) )
+            {
+                run_external_solver_on_aig( pAbcNtk, *pSolverSetting, nRuntimeLimitSec );
+                int extStatus = read_external_result_from_log_last_line();
+                if ( extStatus == -1 )
+                    extStatus = read_external_status_unsat_first_line();
+                if ( extStatus == 1 )
+                    LOG(1) << "UFAR external solver result (UNSAT) available. Skipping PDR.";
+                else
+                    LOG(1) << "UFAR external solver result not usable (log/status not UNSAT). Calling PDR.";
+                if ( extStatus == 1 )
+                {
+                    writeCexToFile(1, file, NULL);
+                    return 1;
+                }
+                if ( pFuncStop && pFuncStop(RunId) )
+                {
+                    writeCexToFile(-1, file, NULL);
+                    return -1;
+                }
+            }
             Pdr_Par_t PdrPars, *pPdrPars = &PdrPars;
             Pdr_ManSetDefaultParams(pPdrPars);
             pPdrPars->nConfLimit = 0;
