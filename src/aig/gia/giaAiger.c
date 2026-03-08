@@ -1297,7 +1297,7 @@ Vec_Str_t * Gia_AigerWriteIntoMemoryStr( Gia_Man_t * p )
         Gia_AigerWriteUnsigned( vBuffer, uLit  - uLit1 );
         Gia_AigerWriteUnsigned( vBuffer, uLit1 - uLit0 );
     }
-    Vec_StrPrintStr( vBuffer, "c" );
+    Vec_StrPrintStr( vBuffer, "c\n" );
     return vBuffer;
 }
 
