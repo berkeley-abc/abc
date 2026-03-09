@@ -18,6 +18,7 @@
 
 ***********************************************************************/
 
+#include <inttypes.h>
 #include "base/abc/abc.h"
 #include "base/main/main.h"
 #include "base/main/mainInt.h"
@@ -59854,7 +59855,7 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
 }
 
 int Abc_CommandAbc9CatBtor( Abc_Frame_t * pAbc, int argc, char ** argv ) {
-    extern void Abc_BtorCat( char * pFileName, int fVerbose );
+    extern int32_t Abc_BtorCat( char * pFileName, int fVerbose );
   
     int c, fVerbose = 0;
     char * pFileName;
@@ -59877,9 +59878,7 @@ int Abc_CommandAbc9CatBtor( Abc_Frame_t * pAbc, int argc, char ** argv ) {
         return 0;
     }
 
-    Abc_BtorCat( pFileName, fVerbose );
-    
-    return 0;
+    return Abc_BtorCat( pFileName, fVerbose );
 
 usage:
     Abc_Print( -2, "usage: &catbtor [-v] <file>\n" );

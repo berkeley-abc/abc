@@ -1273,7 +1273,11 @@ static inline int run_external_solver_on_aig( Abc_Ntk_t * pAbcNtk, const string&
         command += " " + to_string(nRuntimeLimitSec);
     command += " > log.txt 2>&1";
     LOG(1) << "UFAR external solver: launching command instead of PDR: " << command;
+#ifdef __wasm
+    int res = -1;
+#else
     int res = system( command.c_str() );
+#endif 
     std::remove( pAigFile );
     return res;
 }
