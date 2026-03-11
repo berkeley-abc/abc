@@ -719,6 +719,7 @@ void If_ManSetupCutTriv( If_Man_t * p, If_Cut_t * pCut, int ObjId )
     pCut->uSign      = If_ObjCutSign( pCut->pLeaves[0] );
     pCut->iCutFunc   = p->pPars->fUseTtPerm ? 3 : (p->pPars->fTruth ? 2: -1);
     pCut->uMaskFunc  = 0;
+    pCut->Config     = 0;
     assert( pCut->pLeaves[0] < p->vObjs->nSize );
 }
 

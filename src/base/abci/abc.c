@@ -22285,7 +22285,7 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
     If_ManSetDefaultPars( pPars );
     pPars->pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRNTXYUZDEWSJqalepmrsdbgxyzuojiktncfvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRNTXYZUDEWSJqalepmrsdbgxyzuoiktncfvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -22535,9 +22535,9 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'o':
             pPars->fUseBuffs ^= 1;
             break;
-        case 'j':
-            pPars->fEnableCheck07 ^= 1;
-            break;
+        //case 'j':
+        //    pPars->fEnableCheck07 ^= 1;
+        //    break;
         case 'i':
             pPars->fUseCofVars ^= 1;
             break;
@@ -22867,7 +22867,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: if [-KCFAGRNTXYUZ num] [-DEW float] [-SJ str] [-qarlepmsdbgxyuojiktnczfvh]\n" );
+    Abc_Print( -2, "usage: if [-KCFAGRNTXYZMU num] [-DEW float] [-SJ str] [-qarlepmsdbgxyuoiktnczfvh]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -22901,7 +22901,7 @@ usage:
     Abc_Print( -2, "\t-y       : toggles delay optimization with recorded library [default = %s]\n", pPars->fUserRecLib? "yes": "no" );
     Abc_Print( -2, "\t-u       : toggles delay optimization with SAT-based library [default = %s]\n", pPars->fUserSesLib? "yes": "no" );
     Abc_Print( -2, "\t-o       : toggles using buffers to decouple combinational outputs [default = %s]\n", pPars->fUseBuffs? "yes": "no" );
-    Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
+    //Abc_Print( -2, "\t-j       : toggles enabling additional check [default = %s]\n", pPars->fEnableCheck07? "yes": "no" );
     Abc_Print( -2, "\t-i       : toggles using cofactoring variables [default = %s]\n", pPars->fUseCofVars? "yes": "no" );
     Abc_Print( -2, "\t-k       : toggles matching based on precomputed DSD manager [default = %s]\n", pPars->fUseDsdTune? "yes": "no" );
     Abc_Print( -2, "\t-t       : toggles optimizing average rather than maximum level [default = %s]\n", pPars->fDoAverage? "yes": "no" );
@@ -44067,8 +44067,9 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_FrameSetLibLut( If_LibLutSetSimple( 6 ) );
     }
     pPars->pLutLib = (If_LibLut_t *)Abc_FrameReadLibLut();
+    pPars->pCellLib = (If_LibCell_t *)Abc_FrameReadLibCell();
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSJTXYZqalepmrsdbgxyofuijkztncvwh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "KCFAGRDEWSJTXYZMqalepmrsdbgxyofuijkztncvwh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -44084,6 +44085,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
                 goto usage;
             // if the LUT size is specified, disable library
             pPars->pLutLib = NULL;
+            pPars->pCellLib = NULL;
             break;
         case 'C':
             if ( globalUtilOptind >= argc )
@@ -44173,6 +44175,21 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
             if ( pPars->nAndDelay < 0 )
                 goto usage;
             break;
+        case 'M':
+        {
+            int Value;
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by 0 or 1.\n" );
+                goto usage;
+            }
+            Value = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( Value < 0 || Value > 1 )
+                goto usage;
+            pPars->fDelayOptCell = Value;
+            break;
+        }
         case 'D':
             if ( globalUtilOptind >= argc )
             {
@@ -44349,6 +44366,7 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
                     Abc_Print( 1, "Auto-detected K=%d from cell library (max inputs).\n", nMaxInputs );
                 // Disable LUT library since we're using K from cell library
                 pPars->pLutLib = NULL;
+                pPars->pCellLib = pCellLib;
             }
         }
     }
@@ -44537,6 +44555,11 @@ int Abc_CommandAbc9If( Abc_Frame_t * pAbc, int argc, char ** argv )
         pPars->nLutSize  = 4;
     }
 
+    if ( pPars->fEnableCheck07 )
+        pPars->nCutsMax = Abc_MaxInt( pPars->nCutsMax, 16 );
+    else
+        pPars->pCellLib = NULL;
+
     // enable truth table computation if cut minimization is selected
     if ( pPars->fCutMin || pPars->fDeriveLuts )
     {
@@ -44672,7 +44695,7 @@ usage:
         sprintf(LutSize, "library" );
     else
         sprintf(LutSize, "%d", pPars->nLutSize );
-    Abc_Print( -2, "usage: &if [-KCFAGRTXY num] [-DEW float] [-SJ str] [-qarlepmsdbgxyofuijkztnchvw]\n" );
+    Abc_Print( -2, "usage: &if [-KCFAGRTXYZM num] [-DEW float] [-SJ str] [-qarlepmsdbgxyofuijkztnchvw]\n" );
     Abc_Print( -2, "\t           performs FPGA technology mapping of the network\n" );
     Abc_Print( -2, "\t-K num   : the number of LUT inputs (2 < num < %d) [default = %s]\n", IF_MAX_LUTSIZE+1, LutSize );
     Abc_Print( -2, "\t-C num   : the max number of priority cuts (0 < num < 2^12) [default = %d]\n", pPars->nCutsMax );
@@ -44683,6 +44706,7 @@ usage:
     Abc_Print( -2, "\t-T num   : the type of LUT structures [default = any]\n", pPars->nStructType );
     Abc_Print( -2, "\t-X num   : delay of AND-gate in LUT library units [default = %d]\n", pPars->nAndDelay );
     Abc_Print( -2, "\t-Y num   : area of AND-gate in LUT library units [default = %d]\n", pPars->nAndArea );
+    Abc_Print( -2, "\t-M num   : enables delay-driven decomposition [default = %d]\n", pPars->fDelayOptCell );
     Abc_Print( -2, "\t-D float : sets the delay constraint for the mapping [default = %s]\n", Buffer );
     Abc_Print( -2, "\t-E float : sets epsilon used for tie-breaking [default = %f]\n", pPars->Epsilon );
     Abc_Print( -2, "\t-W float : sets wire delay between adjects LUTs [default = %f]\n", pPars->WireDelay );
@@ -48585,22 +48609,13 @@ int Abc_CommandAbc9Trace( Abc_Frame_t * pAbc, int argc, char ** argv )
     pAbc->pGia->pLutLib = fUseLutLib ? Abc_FrameReadLibLut() : NULL;
     pAbc->pGia->pCellLib = fUseCellLib ? Abc_FrameReadLibCell() : NULL;
 
-    if ( pFileName )
-    {
-        // Dump the delay trace to file
-        Gia_ManDelayTraceDump( pAbc->pGia, (char *)pFileName );
-    }
-    else
-    {
-        // Print the delay trace to console
-        Gia_ManDelayTraceLutPrint( pAbc->pGia, fVerbose );
-    }
+    Gia_ManDelayTraceDump( pAbc->pGia, (char *)pFileName );
     return 0;
 
 usage:
     Abc_Print( -2, "usage: &trace [-F file] [-lcvh]\n" );
     Abc_Print( -2, "\t           performs delay trace of LUT-mapped network\n" );
-    Abc_Print( -2, "\t-F file  : dump the critical path to a file [default = console output]\n" );
+    Abc_Print( -2, "\t-F file  : dump the critical path to a file [default = stdout]\n" );
     Abc_Print( -2, "\t-l       : toggle using LUT-library-delay model [default = %s]\n", fUseLutLib? "yes": "no" );
     Abc_Print( -2, "\t-c       : toggle using cell-library-delay model [default = %s]\n", fUseCellLib? "yes": "no" );
     Abc_Print( -2, "\t-v       : toggle printing optimization summary [default = %s]\n", fVerbose? "yes": "no" );

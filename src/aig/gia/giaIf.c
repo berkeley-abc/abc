@@ -1190,7 +1190,7 @@ int Gia_ManFromIfLogicCreateLutSpecialJ( Gia_Man_t * pNew, word * pRes, Vec_Int_
 {
     word Truth;
     int i, iObjLit1, iObjLit2, iObjLit3;
-    word z = If_CutPerformDeriveJ( NULL, (unsigned *)pRes, Vec_IntSize(vLeaves), Vec_IntSize(vLeaves), NULL, 1 );
+    word z = If_CutPerformDeriveJ( NULL, (unsigned *)pRes, Vec_IntSize(vLeaves), Vec_IntSize(vLeaves), NULL, 1, 0 );
     assert( z != 0 );
     if ( ((z >> 63) & 1) == 0 )
     {   
@@ -2135,7 +2135,7 @@ void Gia_ManConfigPrint2( unsigned char * pConfigData, int nLeaves )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, word * pTruth, int nLeaves )
+void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, word * pTruth, int nLeaves, int fDelay )
 {
     int i, CellId;
     int startPos = Vec_StrSize(vConfigs2);
@@ -2143,13 +2143,18 @@ void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, word * p
     // Determine cell type based on the number of leaves and configuration
     if ( nLeaves <= 4 ) // 7 bytes = 1 byte CellId + 4 bytes mapping + 2 bytes truth table
     {
+        word z = If_CutPerformDeriveJ( pIfMan, (unsigned *)pTruth, nLeaves, nLeaves, NULL, 1, fDelay );
+        int fHavePerm = (z != 0) && ((z & ABC_CONST(0x4000000000000000)) != 0);
         // Cell type 0: Simple LUT4
         CellId = 0;
         // Write CellId
         Vec_StrPush( vConfigs2, (char)CellId );
         // Write mapping
         for ( i = 0; i < nLeaves; i++ )
-            Vec_StrPush( vConfigs2, 2+i );
+        {
+            int v = fHavePerm ? (int)((z >> (2 * i)) & 3) : i;
+            Vec_StrPush( vConfigs2, 2 + v );
+        }
         for ( ; i < 4; i++ )
             Vec_StrPush( vConfigs2, 0 );
         // Write truth table (16 bits for LUT4)
@@ -2161,7 +2166,7 @@ void Gia_ManFromIfGetConfig2( Vec_Str_t * vConfigs2, If_Man_t * pIfMan, word * p
     }
     else // 12 bytes = 1 byte CellId + 7 bytes mapping + 4 bytes truth tables
     {
-        word z = If_CutPerformDeriveJ( pIfMan, (unsigned *)pTruth, nLeaves, nLeaves, NULL, 1 );
+        word z = If_CutPerformDeriveJ( pIfMan, (unsigned *)pTruth, nLeaves, nLeaves, NULL, 1, fDelay );
         //Gia_ManConfigPrint( 0, z, nLeaves );
         if ( ((z >> 63) & 1) == 0 )
         {
@@ -2551,7 +2556,16 @@ Gia_Man_t * Gia_ManFromIfLogic( If_Man_t * pIfMan )
                             Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLeaves), k );
                     if ( Abc_LitIsCompl(pIfObj->iCopy) ^ pCutBest->fCompl )
                         Abc_TtNot( pTruth, Abc_TtWordNum(pCutBest->nLeaves) );
-                    Gia_ManFromIfGetConfig2( vConfigs2, pIfMan, pTruth, pCutBest->nLeaves );
+                    if ( pIfMan->pPars->fDelayOptCell )
+                    {
+                        pIfMan->nCutLeavesCur = pCutBest->nLeaves;
+                        If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, k )
+                        {
+                            pIfMan->pCutLeavesCur[k] = pIfLeaf->Id;
+                            pIfMan->pCutLeafArrCur[k] = If_ObjCutBest(pIfLeaf)->Delay;
+                        }
+                    }
+                    Gia_ManFromIfGetConfig2( vConfigs2, pIfMan, pTruth, pCutBest->nLeaves, pIfMan->pPars->fDelayOptCell );
                 }
             }
             else
@@ -3337,4 +3351,3 @@ Gia_Man_t * Gia_ManDupUnhashMapping( Gia_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -33,6 +33,54 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+static int Gia_ManConfig2GetBytePos( Gia_Man_t * p, int iObj )
+{
+    int iLut, bytePos = 0;
+    if ( p == NULL || p->vConfigs2 == NULL )
+        return -1;
+    Gia_ManForEachLut( p, iLut )
+    {
+        unsigned char CellId;
+        if ( bytePos >= Vec_StrSize(p->vConfigs2) )
+            return -1;
+        if ( iLut == iObj )
+            return bytePos;
+        CellId = (unsigned char)Vec_StrEntry( p->vConfigs2, bytePos );
+        if ( CellId == 0 )
+            bytePos += 7;
+        else if ( CellId == 1 )
+            bytePos += 12;
+        else if ( CellId == 2 )
+            bytePos += 14;
+        else
+            return -1;
+    }
+    return -1;
+}
+static int Gia_ManConfig2DerivePinDelays( Gia_Man_t * p, int iObj, If_LibCell_t * pCellLib, int * pPinDelay, int nLutSize )
+{
+    int bytePos, i, nPins;
+    unsigned char CellId;
+    if ( pCellLib == NULL || pPinDelay == NULL || nLutSize < 1 || nLutSize > 32 )
+        return 0;
+    for ( i = 0; i < nLutSize; i++ )
+        pPinDelay[i] = 1;
+    bytePos = Gia_ManConfig2GetBytePos( p, iObj );
+    if ( bytePos < 0 || bytePos >= Vec_StrSize(p->vConfigs2) )
+        return 0;
+    CellId = (unsigned char)Vec_StrEntry( p->vConfigs2, bytePos );
+    if ( CellId >= pCellLib->nCellNum )
+        return 0;
+    nPins = Abc_MinInt( pCellLib->nCellInputs[CellId], 9 );
+    for ( i = 0; i < nPins; i++ )
+    {
+        int v = (unsigned char)Vec_StrEntry( p->vConfigs2, bytePos + 1 + i );
+        if ( v >= 2 && v < 2 + nLutSize )
+            pPinDelay[v - 2] = pCellLib->pCellPinDelays[CellId][i];
+    }
+    return 1;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Sorts the pins in the decreasing order of delays.]
@@ -113,7 +161,7 @@ float Gia_ObjComputeArrival( Gia_Man_t * p, int iObj, int fUseSorting )
     If_LibLut_t * pLutLib = (If_LibLut_t *)p->pLutLib;
     If_LibCell_t * pCellLib = (If_LibCell_t *)p->pCellLib;
     Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
-    int k, iFanin, pPinPerm[32];
+    int k, iFanin, pPinPerm[32], pPinDelay[32];
     float pPinDelays[32];
     float tArrival, * pDelays;
     if ( Gia_ObjIsCi(pObj) )
@@ -132,21 +180,32 @@ float Gia_ObjComputeArrival( Gia_Man_t * p, int iObj, int fUseSorting )
     {
         // Handle cell library delays (use integer delays directly)
         int nLutSize = Gia_ObjLutSize(p, iObj);
+        int fHaveCfg2 = Gia_ManConfig2DerivePinDelays( p, iObj, pCellLib, pPinDelay, nLutSize );
         // Find matching cell (simple approach: use first cell with enough inputs)
         int cellId = -1;
         int i;
-        for ( i = 0; i < pCellLib->nCellNum; i++ )
-            if ( pCellLib->nCellInputs[i] >= nLutSize )
-            {
-                cellId = i;
-                break;
-            }
+        if ( !fHaveCfg2 )
+            for ( i = 0; i < pCellLib->nCellNum; i++ )
+                if ( pCellLib->nCellInputs[i] >= nLutSize )
+                {
+                    cellId = i;
+                    break;
+                }
         if ( cellId >= 0 )
         {
             // Use cell delays as integers from the library
             Gia_LutForEachFanin( p, iObj, iFanin, k )
             {
                 float delay = (float)(pCellLib->pCellPinDelays[cellId][k]); // Integer delay from library
+                if ( tArrival < Gia_ObjTimeArrival(p, iFanin) + delay )
+                    tArrival = Gia_ObjTimeArrival(p, iFanin) + delay;
+            }
+        }
+        else if ( fHaveCfg2 )
+        {
+            Gia_LutForEachFanin( p, iObj, iFanin, k )
+            {
+                float delay = (float)pPinDelay[k];
                 if ( tArrival < Gia_ObjTimeArrival(p, iFanin) + delay )
                     tArrival = Gia_ObjTimeArrival(p, iFanin) + delay;
             }
@@ -204,7 +263,7 @@ float Gia_ObjPropagateRequired( Gia_Man_t * p, int iObj, int fUseSorting )
 {
     If_LibLut_t * pLutLib = (If_LibLut_t *)p->pLutLib;
     If_LibCell_t * pCellLib = (If_LibCell_t *)p->pCellLib;
-    int k, iFanin, pPinPerm[32];
+    int k, iFanin, pPinPerm[32], pPinDelay[32];
     float pPinDelays[32];
     float tRequired = 0.0; // Suppress "might be used uninitialized"
     float * pDelays;
@@ -223,15 +282,17 @@ float Gia_ObjPropagateRequired( Gia_Man_t * p, int iObj, int fUseSorting )
     {
         // Handle cell library delays (use integer delays directly)
         int nLutSize = Gia_ObjLutSize(p, iObj);
+        int fHaveCfg2 = Gia_ManConfig2DerivePinDelays( p, iObj, pCellLib, pPinDelay, nLutSize );
         // Find matching cell (simple approach: use first cell with enough inputs)
         int cellId = -1;
         int i;
-        for ( i = 0; i < pCellLib->nCellNum; i++ )
-            if ( pCellLib->nCellInputs[i] >= nLutSize )
-            {
-                cellId = i;
-                break;
-            }
+        if ( !fHaveCfg2 )
+            for ( i = 0; i < pCellLib->nCellNum; i++ )
+                if ( pCellLib->nCellInputs[i] >= nLutSize )
+                {
+                    cellId = i;
+                    break;
+                }
         if ( cellId >= 0 )
         {
             // Use cell delays as integers from the library
@@ -239,6 +300,15 @@ float Gia_ObjPropagateRequired( Gia_Man_t * p, int iObj, int fUseSorting )
             {
                 float delay = (float)(pCellLib->pCellPinDelays[cellId][k]); // Integer delay from library
                 tRequired = Gia_ObjTimeRequired( p, iObj) - delay;
+                if ( Gia_ObjTimeRequired(p, iFanin) > tRequired )
+                    Gia_ObjSetTimeRequired( p, iFanin, tRequired );
+            }
+        }
+        else if ( fHaveCfg2 )
+        {
+            Gia_LutForEachFanin( p, iObj, iFanin, k )
+            {
+                tRequired = Gia_ObjTimeRequired( p, iObj ) - (float)pPinDelay[k];
                 if ( Gia_ObjTimeRequired(p, iFanin) > tRequired )
                     Gia_ObjSetTimeRequired( p, iFanin, tRequired );
             }
@@ -977,4 +1047,3 @@ Gia_Man_t * Gia_ManSpeedup( Gia_Man_t * p, int Percentage, int Degree, int fVerb
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -35,9 +35,12 @@ int If_CutPerformCheckJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves
 {
     return 1;
 }
-word If_CutPerformDeriveJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr, int fDerive )
+word If_CutPerformDeriveJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr, int fDerive, int fDelay )
 {
     return 0;
+}
+void If_CutComputeIntrinsicJ( If_Man_t * p, word Config, int nLeaves, int * pIntrinsicDelays )
+{
 }
 void If_PermUnpack( unsigned Value, int Pla2Var[9] )
 {
@@ -52,4 +55,3 @@ void Gia_ManDelayTraceDump( Gia_Man_t * p, char * pFileName )
 
 
 ABC_NAMESPACE_IMPL_END
-

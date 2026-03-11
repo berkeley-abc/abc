@@ -126,6 +126,7 @@ struct If_Par_t_
     int                fCutMin;       // performs cut minimization by removing functionally reducdant variables
     int                fDelayOpt;     // special delay optimization
     int                fDelayOptLut;  // delay optimization for LUTs
+    int                fDelayOptCell; // delay optimization for cells
     int                fDsdBalance;   // special delay optimization
     int                fUserRecLib;   // use recorded library
     int                fUserSesLib;   // use SAT-based synthesis
@@ -175,6 +176,7 @@ struct If_Par_t_
     float              FinalDelay;    // final delay after mapping
     float              FinalArea;     // final area after mapping
     If_LibLut_t *      pLutLib;       // the LUT library
+    If_LibCell_t *     pCellLib;      // the cell library
     float *            pTimesArr;     // arrival times
     float *            pTimesReq;     // required times
     int (* pFuncCost)  (If_Man_t *, If_Cut_t *);  // procedure to compute the user's cost of a cut
@@ -299,6 +301,14 @@ struct If_Man_t_
     Vec_Int_t *        vVisited2;
     Vec_Int_t *        vCuts;
     Vec_Int_t *        vCutCosts;
+    // current cut context for user callbacks
+    If_Obj_t *         pCutObjCur;    // current object whose cut is being checked
+    If_Cut_t *         pCutCur;       // current cut being checked
+    int                nCutLeavesCur; // number of leaves in current cut
+    int                pCutLeavesCur[IF_MAX_LUTSIZE]; // current cut leaves (IDs)
+    float              pCutLeafArrCur[IF_MAX_LUTSIZE]; // current cut leaf arrivals
+    float              CutDelayCur;   // current cut delay returned by user callback
+    int                fCutDelayCurValid; // indicates CutDelayCur is valid
 
     // timing manager
     Tim_Man_t *        pManTim;
@@ -319,6 +329,7 @@ struct If_Cut_t_
     float              Edge;          // the edge flow
     float              Power;         // the power flow
     float              Delay;         // delay of the cut
+    word               Config;        // configuration string
     int                iCutFunc;      // TT ID of the cut
     int                uMaskFunc;     // polarity bitmask
     unsigned           uSign;         // cut signature
@@ -564,7 +575,8 @@ extern float           If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj
 extern float           If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot );
 /*=== ifDec.c =============================================================*/
 extern word            If_CutPerformDerive07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
-extern word            If_CutPerformDeriveJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr, int fDerive );
+extern word            If_CutPerformDeriveJ( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr, int fDerive, int fDelay );
+extern void            If_CutComputeIntrinsicJ( If_Man_t * p, word Config, int nLeaves, int * pIntrinsicDelays );
 extern int             If_CutPerformCheck07( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck08( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );
 extern int             If_CutPerformCheck10( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr );

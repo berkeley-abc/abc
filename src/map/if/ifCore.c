@@ -207,4 +207,3 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
 
 ABC_NAMESPACE_IMPL_END
-
