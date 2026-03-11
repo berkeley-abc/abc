@@ -714,6 +714,7 @@ Gia_Man_t * Gia_ManCorrReduce( Gia_Man_t * p )
         Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     Gia_ManHashStop( pNew );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManOriginsDup( pNew, p );
     return pNew;
 }
 

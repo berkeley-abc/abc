@@ -503,6 +503,17 @@ int Gia_ManHashXorReal( Gia_Man_t * p, int iLit0, int iLit1 )
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
         }
+        // propagate origin from parent with lower valid origin ID
+        if ( p->vOrigins )
+        {
+            int iNew = *pPlace;
+            int o0 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit0));
+            int o1 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit1));
+            int orig = (o0 >= 0 && (o1 < 0 || o0 <= o1)) ? o0 : o1;
+            while ( Vec_IntSize(p->vOrigins) <= iNew )
+                Vec_IntPush( p->vOrigins, -1 );
+            Vec_IntWriteEntry( p->vOrigins, iNew, orig );
+        }
         return Abc_Var2Lit( *pPlace, fCompl );
     }
 }
@@ -557,6 +568,19 @@ int Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )
             pPlace = Gia_ManHashFind( p, iLit0, iLit1, iLitC );
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
+        }
+        // propagate origin from parent with lower valid origin ID
+        if ( p->vOrigins )
+        {
+            int iNew = *pPlace;
+            int o0 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit0));
+            int o1 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit1));
+            int oC = Gia_ObjOrigin(p, Abc_Lit2Var(iLitC));
+            int orig = (o0 >= 0 && (o1 < 0 || o0 <= o1)) ? o0 : o1;
+            if ( oC >= 0 && (orig < 0 || oC <= orig) ) orig = oC;
+            while ( Vec_IntSize(p->vOrigins) <= iNew )
+                Vec_IntPush( p->vOrigins, -1 );
+            Vec_IntWriteEntry( p->vOrigins, iNew, orig );
         }
         return Abc_Var2Lit( *pPlace, fCompl );
     }
@@ -614,6 +638,18 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
             pPlace = Gia_ManHashFind( p, iLit0, iLit1, -1 );
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
+        }
+        // propagate origin from parent with lower valid origin ID
+        if ( p->vOrigins )
+        {
+            int iNew = *pPlace;
+            int o0 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit0));
+            int o1 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit1));
+            int orig = (o0 >= 0 && (o1 < 0 || o0 <= o1)) ? o0 : o1;
+            // grow vOrigins if needed
+            while ( Vec_IntSize(p->vOrigins) <= iNew )
+                Vec_IntPush( p->vOrigins, -1 );
+            Vec_IntWriteEntry( p->vOrigins, iNew, orig );
         }
         return Abc_Var2Lit( *pPlace, 0 );
     }
@@ -761,6 +797,7 @@ Gia_Man_t * Gia_ManRehash( Gia_Man_t * p, int fAddStrash )
     }
     Gia_ManHashStop( pNew );
     pNew->fAddStrash = 0;
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
 //    printf( "Top gate is %s\n", Gia_ObjFaninC0(Gia_ManCo(pNew, 0))? "OR" : "AND" );
     pNew = Gia_ManCleanup( pTemp = pNew );
