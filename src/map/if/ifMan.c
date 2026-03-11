@@ -226,7 +226,7 @@ void If_ManSimpleSort( int * pArray, int nSize )
 void If_ManDumpCut( If_Cut_t * pCut, int nLutSize, Vec_Int_t * vCuts )
 {
     int i;
-    for ( i = 0; i < pCut->nLeaves; i++ )
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
         Vec_IntPush( vCuts, pCut->pLeaves[i] );
     for ( ; i < nLutSize; i++ )
         Vec_IntPush( vCuts, -1 );

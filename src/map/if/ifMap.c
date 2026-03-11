@@ -216,8 +216,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pCut->fUseless = (Delay > IF_FLOAT_LARGE/2);
             pCut->Delay = Delay;
 IfMapBestCutDone:
-//            if ( pCut->nLeaves == 9 && !pCut->fUseless )
-//                Abc_Print( 1, "Delay-debug(Map9-best): obj=%d delay=%.2f\n", pObj->Id, pCut->Delay );
+            ;
         }
         else if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj ); 
@@ -294,7 +293,7 @@ IfMapBestCutDone:
             if ( !If_CutMergeOrdered( p, pCut0, pCut1, pCut ) )
                 continue;
         }
-        if ( p->pPars->fUserLutDec && !fFirst && pCut->nLeaves > p->pPars->nLutDecSize )
+        if ( p->pPars->fUserLutDec && !fFirst && (int)pCut->nLeaves > p->pPars->nLutDecSize )
             continue;
         if ( pObj->fSpec && pCut->nLeaves == (unsigned)p->pPars->nLutSize )
             continue;
@@ -492,8 +491,7 @@ IfMapBestCutDone:
             assert( pCut->fUseless || pCut->Config != 0 );
             pCut->Delay = pCut->fUseless ? IF_FLOAT_LARGE : p->CutDelayCur;
 IfMapCutEvalDone:
-//            if ( pCut->nLeaves == 9 && !pCut->fUseless )
-//                Abc_Print( 1, "Delay-debug(Map9): obj=%d delay=%.2f\n", pObj->Id, pCut->Delay );
+            ;
         }
         else if ( p->pPars->fUserRecLib )
             pCut->Delay = If_CutDelayRecCost3( p, pCut, pObj );
