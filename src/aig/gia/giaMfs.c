@@ -535,7 +535,7 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     if ( p->vOrigins )
     {
         int iOldObj;
-        pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+        pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
         Vec_IntForEachEntry( vMfs2Old, iOldObj, i )
         {
             if ( iOldObj >= 0 )
@@ -544,9 +544,8 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
                 if ( iNewLit >= 0 )
                 {
                     int iNewObj = Abc_Lit2Var( iNewLit );
-                    if ( iNewObj < Gia_ManObjNum(pNew) && iOldObj < Vec_IntSize(p->vOrigins) )
-                        Vec_IntWriteEntry( pNew->vOrigins, iNewObj,
-                            Vec_IntEntry(p->vOrigins, iOldObj) );
+                    if ( iNewObj < Gia_ManObjNum(pNew) && iOldObj * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) )
+                        Gia_ObjUnionOrigins( pNew, iNewObj, p, iOldObj );
                 }
             }
         }

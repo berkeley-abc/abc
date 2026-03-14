@@ -947,17 +947,40 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                     if ( fVerbose ) printf( "Skipped extension \"y\" for vEquLitIds (AIG is rehashed).\n" );
                 }
                 // populate vOrigins using vNodes to map AIG→GIA object indices
-                if ( nInts == Vec_IntSize(vNodes) ) {
+                // sentinel -2 at pData[0] distinguishes new format from old
+                if ( vNodes && nInts >= 1 && ((int *)pCur)[0] == -2 ) {
+                    // new multi-origin format: sentinel, then [count, lit0, lit1, ...] per AIG object
+                    int k, nAigObjs = Vec_IntSize(vNodes);
+                    int * pData = (int *)pCur;
+                    int pos = 1; // skip sentinel
+                    pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
+                    for ( k = 0; k < nAigObjs && pos < nInts; k++ )
+                    {
+                        int giaLit = Vec_IntEntry( vNodes, k );
+                        int giaObj = Abc_Lit2Var( giaLit );
+                        int nOrig = pData[pos++];
+                        int j;
+                        for ( j = 0; j < nOrig && pos < nInts; j++, pos++ )
+                        {
+                            int rawLit = pData[pos];
+                            if ( rawLit >= 0 && giaObj < Gia_ManObjNum(pNew) )
+                                Gia_ObjAddOrigin( pNew, giaObj, Abc_Lit2Var(rawLit) );
+                        }
+                    }
+                    if ( fVerbose ) printf( "Finished reading extension \"y\" (multi-origin).\n" );
+                }
+                else if ( vNodes && nInts == Vec_IntSize(vNodes) ) {
+                    // old single-origin format: one literal per AIG object
                     int k;
                     int * pData = (int *)pCur;
-                    pNew->vOrigins = Vec_IntStartFull( Gia_ManObjNum(pNew) );
+                    pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
                     for ( k = 0; k < nInts; k++ )
                     {
                         int giaLit = Vec_IntEntry( vNodes, k );
                         int giaObj = Abc_Lit2Var( giaLit );
                         int rawLit = pData[k];
                         if ( rawLit >= 0 && giaObj < Gia_ManObjNum(pNew) )
-                            Vec_IntWriteEntry( pNew->vOrigins, giaObj, Abc_Lit2Var(rawLit) );
+                            Gia_ObjSetOrigin( pNew, giaObj, Abc_Lit2Var(rawLit) );
                     }
                 }
                 pCur += 4*nInts;
@@ -1848,21 +1871,27 @@ void Gia_AigerWriteS( Gia_Man_t * pInit, char * pFileName, int fWriteSymbols, in
         fwrite( Vec_IntArray(p->vObjClasses), 1, 4*Gia_ManObjNum(p), pFile );
     }
     // write object origins (vOrigins takes priority over vEquLitIds)
+    // New variable-length format: sentinel -2, then for each object [count, lit0, lit1, ...]
     if ( p->vOrigins )
     {
         int k, nObjs = Gia_ManObjNum(p);
-        Vec_Int_t * vLits = Vec_IntStart( nObjs );
-        assert( Vec_IntSize(p->vOrigins) == nObjs );
+        Vec_Int_t * vData = Vec_IntAlloc( 1 + nObjs * 2 );
+        assert( Vec_IntSize(p->vOrigins) >= nObjs * GIA_ORIGINS_STRIDE );
+        Vec_IntPush( vData, -2 ); // sentinel distinguishes new format from old
         for ( k = 0; k < nObjs; k++ )
         {
-            int orig = Vec_IntEntry(p->vOrigins, k);
-            Vec_IntWriteEntry( vLits, k, orig >= 0 ? 2 * orig : -1 );
+            int nOrig = Gia_ObjOriginsNum( p, k );
+            int idx, orig, _nOrig;
+            Vec_IntPush( vData, nOrig );
+            Gia_ObjForEachOrigin( p, k, orig, idx )
+                Vec_IntPush( vData, orig >= 0 ? 2 * orig : -1 );
         }
         fprintf( pFile, "y" );
-        Gia_FileWriteBufferSize( pFile, 4*nObjs );
-        fwrite( Vec_IntArray(vLits), 1, (size_t)4*nObjs, pFile );
-        Vec_IntFree( vLits );
-        if ( fVerbose ) printf( "Finished writing extension \"y\" (from origins).\n" );
+        Gia_FileWriteBufferSize( pFile, 4*Vec_IntSize(vData) );
+        fwrite( Vec_IntArray(vData), 1, (size_t)4*Vec_IntSize(vData), pFile );
+        if ( fVerbose ) printf( "Finished writing extension \"y\" (multi-origin, %d ints for %d objs).\n",
+            Vec_IntSize(vData), nObjs );
+        Vec_IntFree( vData );
     }
     else if ( p->vEquLitIds )
     {

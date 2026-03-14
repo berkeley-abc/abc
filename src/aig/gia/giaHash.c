@@ -491,6 +491,12 @@ int Gia_ManHashXorReal( Gia_Man_t * p, int iLit0, int iLit1 )
         if ( *pPlace )
         {
             p->nHashHit++;
+            // on hash hit, union input origins into existing node
+            if ( p->vOrigins && *pPlace * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) )
+            {
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit0) );
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit1) );
+            }
             return Abc_Var2Lit( *pPlace, fCompl );
         }
         p->nHashMiss++;
@@ -503,16 +509,13 @@ int Gia_ManHashXorReal( Gia_Man_t * p, int iLit0, int iLit1 )
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
         }
-        // propagate origin from parent with lower valid origin ID
+        // propagate origins from both inputs into new node
         if ( p->vOrigins )
         {
             int iNew = *pPlace;
-            int o0 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit0));
-            int o1 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit1));
-            int orig = (o0 >= 0 && (o1 < 0 || o0 <= o1)) ? o0 : o1;
-            while ( Vec_IntSize(p->vOrigins) <= iNew )
-                Vec_IntPush( p->vOrigins, -1 );
-            Vec_IntWriteEntry( p->vOrigins, iNew, orig );
+            Gia_ManOriginsGrow( p, iNew );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit0) );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit1) );
         }
         return Abc_Var2Lit( *pPlace, fCompl );
     }
@@ -557,6 +560,13 @@ int Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )
         if ( *pPlace )
         {
             p->nHashHit++;
+            // on hash hit, union input origins into existing node
+            if ( p->vOrigins && *pPlace * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) )
+            {
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit0) );
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit1) );
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLitC) );
+            }
             return Abc_Var2Lit( *pPlace, fCompl );
         }
         p->nHashMiss++;
@@ -569,18 +579,14 @@ int Gia_ManHashMuxReal( Gia_Man_t * p, int iLitC, int iLit1, int iLit0 )
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
         }
-        // propagate origin from parent with lower valid origin ID
+        // propagate origins from all three inputs into new node
         if ( p->vOrigins )
         {
             int iNew = *pPlace;
-            int o0 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit0));
-            int o1 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit1));
-            int oC = Gia_ObjOrigin(p, Abc_Lit2Var(iLitC));
-            int orig = (o0 >= 0 && (o1 < 0 || o0 <= o1)) ? o0 : o1;
-            if ( oC >= 0 && (orig < 0 || oC <= orig) ) orig = oC;
-            while ( Vec_IntSize(p->vOrigins) <= iNew )
-                Vec_IntPush( p->vOrigins, -1 );
-            Vec_IntWriteEntry( p->vOrigins, iNew, orig );
+            Gia_ManOriginsGrow( p, iNew );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit0) );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit1) );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLitC) );
         }
         return Abc_Var2Lit( *pPlace, fCompl );
     }
@@ -627,6 +633,12 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
         if ( *pPlace )
         {
             p->nHashHit++;
+            // on hash hit, union input origins into existing node
+            if ( p->vOrigins && *pPlace * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) )
+            {
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit0) );
+                Gia_ObjUnionOrigins( p, *pPlace, p, Abc_Lit2Var(iLit1) );
+            }
             return Abc_Var2Lit( *pPlace, 0 );
         }
         p->nHashMiss++;
@@ -639,17 +651,13 @@ int Gia_ManHashAnd( Gia_Man_t * p, int iLit0, int iLit1 )
             assert( *pPlace == 0 );
             *pPlace = Abc_Lit2Var( iNode );
         }
-        // propagate origin from parent with lower valid origin ID
+        // propagate origins from both inputs into new node
         if ( p->vOrigins )
         {
             int iNew = *pPlace;
-            int o0 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit0));
-            int o1 = Gia_ObjOrigin(p, Abc_Lit2Var(iLit1));
-            int orig = (o0 >= 0 && (o1 < 0 || o0 <= o1)) ? o0 : o1;
-            // grow vOrigins if needed
-            while ( Vec_IntSize(p->vOrigins) <= iNew )
-                Vec_IntPush( p->vOrigins, -1 );
-            Vec_IntWriteEntry( p->vOrigins, iNew, orig );
+            Gia_ManOriginsGrow( p, iNew );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit0) );
+            Gia_ObjUnionOrigins( p, iNew, p, Abc_Lit2Var(iLit1) );
         }
         return Abc_Var2Lit( *pPlace, 0 );
     }
