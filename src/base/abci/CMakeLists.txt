@@ -59,6 +59,7 @@ abc_libabc_add_sources(
         abcSymm.c
         abcMulti.c
         abcQuant.c
+        abcTopo.c
         abcLog.c
         abcStrash.c
         abcMerge.c

@@ -14,6 +14,7 @@ on:
 
 jobs:
   ci_build:
+
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     defaults:
@@ -23,32 +24,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.11']
+        python-version: ['3.10']
 
         name: [
-          windows-2019-cl,
-          ubuntu-22.04-gcc-10,
-          ubuntu-24.04-gcc-13,
+          windows-2022-cl,
+          ubuntu-22.04-gcc-12,
+          ubuntu-24.04-gcc-14,
           ubuntu-22.04-clang-15,
-          macOS-13-gcc,
-          macOS-13-clang,
+          macOS-15-gcc,
+          macOS-15-clang,
         ]
 
         include:
-          - name: windows-2019-cl
-            os: windows-2019
+          - name: windows-2022-cl
+            os: windows-2022
             compiler: cl
 
-          - name: ubuntu-22.04-gcc-10
+          - name: ubuntu-22.04-gcc-12
             os: ubuntu-22.04
             compiler: gcc
-            version: "10"
+            version: "12"
             toxcmd: soname,tests
 
-          - name: ubuntu-24.04-gcc-13
+          - name: ubuntu-24.04-gcc-14
             os: ubuntu-24.04
             compiler: gcc
-            version: "13"
+            version: "14"
             toxcmd: libs
 
           - name: ubuntu-22.04-clang-15
@@ -57,24 +58,24 @@ jobs:
             version: "15"
             toxcmd: clang
 
-          - name: macOS-13-gcc
-            os: macOS-13
+          - name: macOS-15-gcc
+            os: macOS-15
             compiler: gcc
-            version: "12"
+            version: "13"
             toxcmd: abc,tests
 
-          - name: macOS-13-clang
-            os: macOS-13
+          - name: macOS-15-clang
+            os: macOS-15
             compiler: xcode
-            version: "15.1"
+            version: "16.4"
             toxcmd: "ctestwin -- Xcode"
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
-    - uses: actions/setup-python@v5
+    - uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -116,7 +117,7 @@ jobs:
       run: |
         tox -e ${{ matrix.toxcmd }}
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       if: matrix.name == 'ubuntu-22.04-clang-15'
       with:
         name: src_coverage_data

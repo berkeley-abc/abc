@@ -42,9 +42,11 @@ abc_libabc_add_sources(
         giaBalMap.c
         giaResub.c
         giaSif.c
+        giaDecGraph.cpp
         giaBalAig.c
         giaFanout.c
         giaMfs.c
+        giaLutCas.c
         giaUtil.c
         giaTranStoch.c
         giaGlitch.c
@@ -54,6 +56,7 @@ abc_libabc_add_sources(
         giaMan.c
         giaCSat2.c
         giaTransduction.cpp
+        giaBsFind.c
         giaScript.c
         giaQbf.c
         giaShow.c
@@ -91,6 +94,7 @@ abc_libabc_add_sources(
         giaCTas.c
         giaMinLut.c
         giaMuxes.c
+        giaMulFind3.c
         giaMf.c
         giaEquiv.c
         giaSplit.c

@@ -25,11 +25,14 @@ abc_libabc_add_sources(
         bmcCexMin1.c
         bmcFx.c
         bmcExpand.c
+        bmcMaj7.c
         bmcMaj2.c
         bmcCexCare.c
         bmcClp.c
         bmcEco.c
         bmcMaj.c
+        bmcMaj8.c
+        bmcMaj9.c
         bmcLoad.c
         bmcMesh2.c
         bmcInse.c

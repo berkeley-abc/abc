@@ -10,14 +10,14 @@ on:
 
 jobs:
   conda_build:
-    name: abc ${{ matrix.python-version }} ${{ matrix.os }}
+    name: abc py-${{ matrix.python-version }} ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ['ubuntu-24.04', 'ubuntu-22.04', 'macOS-14', 'windows-2019']
+        os: ['ubuntu-24.04', 'ubuntu-22.04', 'macOS-15', 'windows-2022']
         use_namespace: [false, true]
-        python-version: ['3.9']
+        python-version: ['3.10']
         include:
           - os: 'ubuntu-22.04'
             generator: 'Ninja'
@@ -27,11 +27,11 @@ jobs:
             generator: 'Ninja'
             build_type: 'RelWithDebInfo'
             extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON'
-          - os: 'macOS-14'
+          - os: 'macOS-15'
             generator: 'Ninja'
             build_type: 'Debug'
             extra_args: '-DBUILD_SHARED_LIBS=ON -DABC_USE_SONAME=ON'
-          - os: 'windows-2019'
+          - os: 'windows-2022'
             generator: 'Ninja'
             build_type: 'Debug'
             extra_args: '-DBUILD_SHARED_LIBS=OFF -DABC_USE_NO_PTHREADS=ON -DABC_USE_NO_READLINE=ON -DVENDOR_GTEST=ON'
@@ -57,10 +57,10 @@ jobs:
           #CXX: ${{ steps.install_cc.outputs.cxx }}
       #run: |
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup base python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 

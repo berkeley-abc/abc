@@ -12,6 +12,7 @@ abc_libabc_add_sources(
         ifSat.c
         ifSeq.c
         ifTest.c
+        ifDecJ.c
         ifUtil.c
         ifDelay.c
         ifData2.c

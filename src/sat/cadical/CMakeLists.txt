@@ -14,6 +14,7 @@ abc_libabc_add_sources(
         cadical_transred.cpp
         cadical_internal.cpp
         cadical_lrattracer.cpp
+        cadical_warmup.cpp
         cadical_vivify.cpp
         cadical_minimize.cpp
         cadical_compact.cpp
@@ -36,6 +37,7 @@ abc_libabc_add_sources(
         cadical_instantiate.cpp
         cadical_lidruptracer.cpp
         cadical_probe.cpp
+        cadical_backbone.cpp
         cadical_clause.cpp
         cadical_checker.cpp
         cadical_score.cpp
@@ -83,6 +85,7 @@ abc_libabc_add_sources(
         cadical_decompose.cpp
         cadical_report.cpp
         cadical_proof.cpp
+        cadical_walk_full_occs.cpp
         cadical_idruptracer.cpp
         cadical_solution.cpp
         cadical_cover.cpp

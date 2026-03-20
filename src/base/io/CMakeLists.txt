@@ -19,6 +19,7 @@ abc_libabc_add_sources(
         ioWriteEqn.c
         ioWriteBook.c
         ioWriteEdgelist.c
+        ioJsonc.c
         ioReadVerilog.c
         ioWriteSmv.c
         ioJson.c
