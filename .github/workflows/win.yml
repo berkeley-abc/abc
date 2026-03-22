@@ -23,7 +23,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Setup MinGW native environment
       uses: msys2/setup-msys2@v2
@@ -58,7 +58,7 @@ jobs:
     - name: Test
       run: ctest --test-dir build --output-on-failure --parallel -V
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       if: failure()
       with:
         name: WindowsCMakeTestlog

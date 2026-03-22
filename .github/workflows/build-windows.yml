@@ -15,7 +15,7 @@ jobs:
     steps:
 
     - name: Git Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: recursive
 
@@ -35,9 +35,9 @@ jobs:
         # Parse source files from abclib.dsp
         $dspContent = Get-Content "abclib.dsp" -Raw
         $sourceFiles = [regex]::Matches($dspContent, 'SOURCE=\.\\([^\r\n]+)') | ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
-        
+
         Write-Host "Found $($sourceFiles.Count) source files"
-        
+
         # Build source file items
         $sourceItems = ""
         foreach ($src in $sourceFiles) {
@@ -49,12 +49,12 @@ jobs:
                 $sourceItems += "    <ClInclude Include=`"$src`" />`r`n"
             }
         }
-        
+
         # Read template and replace placeholder
         $template = Get-Content ".github\scripts\abclib.vcxproj.template" -Raw
         $vcxproj = $template -replace '\{\{SOURCE_FILES\}\}', $sourceItems
         Set-Content "abclib.vcxproj" $vcxproj -NoNewline
-        
+
         Write-Host "abclib.vcxproj generated successfully"
 
     - name: Build
@@ -71,10 +71,12 @@ jobs:
     - name: Stage Executable
       run: |
         mkdir staging
+        copy abcspace.sln staging\
+        copy abclib.vcxproj staging\
         copy _TEST\abc.exe staging\
 
     - name: Upload package artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: package-windows
         path: staging/
