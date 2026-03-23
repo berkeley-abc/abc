@@ -9,7 +9,7 @@
   Synopsis    [Implementation of transduction method.]
 
   Author      [Yukio Miyasaka]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - May 2023.]
@@ -139,7 +139,7 @@ void Gia_ManTranStochUnlock( Gia_ManTranStochParam * p ) {
     pthread_mutex_unlock( p->mutex );
 #endif
 }
-  
+
 Gia_Man_t * Gia_ManTranStochOpt1( Gia_ManTranStochParam * p, Gia_Man_t * pOld ) {
   Gia_Man_t * pGia, * pNew;
   int i = 0, n;
@@ -298,7 +298,7 @@ Gia_Man_t * Gia_ManTranStoch( Gia_Man_t * pGia, int nRestarts, int nHops, int nS
       pNew = Gia_ManTtopt( pGia, Gia_ManCiNum( pGia ), Gia_ManCoNum( pGia ), 100 );
       Vec_PtrPush( vpStarts, pNew );
     }
-    { // &put; collapse; sop; fx; 
+    { // &put; collapse; sop; fx;
       pNtk = Gia_ManTranStochPut( pGia );
       pNtkRes = Abc_NtkCollapse( pNtk, ABC_INFINITY, 0, 1, 0, 0, 0 );
       Abc_NtkDelete( pNtk );

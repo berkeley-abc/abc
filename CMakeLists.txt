@@ -1,5 +1,5 @@
 # pre-test discovery mode for gtest_discover_tests was added in 3.18
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.22)
 
 # Add cmake modules of this project to the module path
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -54,12 +54,9 @@ include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 include(GNUInstallDirs)
 
-# Generate compilation database compile_commands.json
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Default c++ standard used unless otherwise specified in target_compile_features.
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "the C++ standard to use for this project")
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if (PROJECT_IS_TOP_LEVEL)
+    include(CTest)
+endif ()
 
 # LTO requires cmake min version 3.9 and clang LTO requires lld
 if(ABC_ENABLE_LTO AND CMAKE_BUILD_TYPE MATCHES "Release")
@@ -90,10 +87,6 @@ option(BUILD_TESTING "Build and run tests" ON)
 option(COVERAGE_BUILD "Enable source-based LLVM code coverage" OFF)
 option(ABC_SKIP_EXE "Skip building executable (build libs only)" OFF)
 option(VENDOR_GTEST "download googletest" OFF)
-
-#if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    #add_definitions(-DABC_DLL=__attribute__\(\(visibility\(\"default\"\)\)\))
-#endif()
 
 add_library(abc_interface INTERFACE)
 
@@ -190,8 +183,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_definitions(abc_interface
         INTERFACE
+            "_LIB"
             "WINDOWS"
-            "_CONSOLE"
             "_CRT_SECURE_NO_DEPRECATE"
             "_CRT_NONSTDC_NO_WARNINGS"
             "_WINSOCKAPI_"
@@ -209,7 +202,7 @@ if(WIN32)
     endif()
     target_compile_definitions(abc_interface
         INTERFACE
-            $<$<BOOL:${ABC_USE_NO_PTHREADS}>:HAVE_STRUCT_TIMESPEC>
+            $<$<NOT:$<BOOL:${ABC_USE_NO_PTHREADS}>>:HAVE_STRUCT_TIMESPEC>
             $<$<BOOL:${BUILD_SHARED_LIBS}>:ABC_DLL=ABC_DLLEXPORT>
             $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:WIN32_NO_DLL>
             $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:ABC_NO_DYNAMIC_LINKING>
@@ -310,33 +303,41 @@ if(NOT ABC_USE_NO_PTHREADS)
             )
             set(ABC_PTHREAD_INCLUDES "${ABC_EXTERNAL_PTHREAD_INCLUDES}")
             set(ABC_PTHREAD_LIBRARIES "${ABC_EXTERNAL_PTHREAD_LIBRARIES}")
-        else()
+        elseif(ABC_USE_VENDORED_PTHREAD)
             if(SIZEOF_VOID_P EQUAL 8)
                 set(PTHREAD_ARCH "x64")
             else()
                 set(PTHREAD_ARCH "x86")
             endif()
-            set(ABC_PTHREAD_INCLUDES "${abc_SOURCE_DIR}/lib")
+            set(ABC_PTHREAD_INCLUDES "${abc_SOURCE_DIR}/src")
             set(ABC_PTHREAD_LIBRARIES "${abc_SOURCE_DIR}/lib/${PTHREAD_ARCH}/pthreadVC2.lib")
             install(FILES "${abc_SOURCE_DIR}/lib/${PTHREAD_ARCH}/pthreadVC2.dll"
                 DESTINATION "${CMAKE_INSTALL_BINDIR}"
             )
+        else()
+            find_package(Threads REQUIRED)
+            if(Threads_FOUND)
+                set(ABC_PTHREAD_LIBRARIES Threads::Threads)
+                list(REMOVE_ITEM target_compile_definitions "abc_interface" "HAVE_STRUCT_TIMESPEC")
+                list(REMOVE_ITEM target_include_directories "${abc_SOURCE_DIR}/lib" "lib")
+            endif()
         endif()
-        if(NOT ABC_PTHREAD_INCLUDES OR NOT ABC_PTHREAD_LIBRARIES)
-            message(FATAL_ERROR "Could not find pthread")
+        message(STATUS "abc pthread includes: ${ABC_PTHREAD_INCLUDES}")
+        message(STATUS "abc pthread libraries: ${ABC_PTHREAD_LIBRARIES}")
+        if(ABC_PTHREAD_INCLUDES)
+            target_include_directories(abc_interface INTERFACE
+                $<BUILD_INTERFACE:${ABC_PTHREAD_INCLUDES}>
+            )
         endif()
-        target_include_directories(
-            abc_interface
-            INTERFACE $<BUILD_INTERFACE:${ABC_PTHREAD_INCLUDES}>
-        )
-        target_link_libraries(abc_interface INTERFACE ${ABC_PTHREAD_LIBRARIES})
+        if(ABC_PTHREAD_LIBRARIES)
+            target_link_libraries(abc_interface INTERFACE ${ABC_PTHREAD_LIBRARIES})
+        endif()
     else()
         set(CMAKE_THREAD_PREFER_PTHREAD ON)
         set(THREADS_PREFER_PTHREAD_FLAG ON)
         find_package(Threads REQUIRED)
-        target_link_libraries(abc_interface
-            INTERFACE ${CMAKE_THREAD_LIBS_INIT}
-        )
+        set(ABC_PTHREAD_LIBRARIES Threads::Threads)
+        target_link_libraries(abc_interface INTERFACE ${ABC_PTHREAD_LIBRARIES})
     endif()
 endif()
 
@@ -388,7 +389,7 @@ function(abc_add_executable)
         set_source_files_properties(${AAE_SOURCES} PROPERTIES LANGUAGE CXX)
     endif()
     add_executable("${AAE_NAME}" ${AAE_SOURCES})
-    target_link_libraries("${AAE_NAME}" PUBLIC libabc)
+    target_link_libraries("${AAE_NAME}" PUBLIC libabc ${ABC_PTHREAD_LIBRARIES})
     set_property(GLOBAL APPEND PROPERTY ABC_SOURCES ${RELSOURCES})
 endfunction()
 
@@ -409,18 +410,11 @@ set_target_properties(libabc
     PROPERTIES OUTPUT_NAME "abc"
 )
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set_target_properties(libabc
-        PROPERTIES OUTPUT_NAME "abc$<$<CONFIG:Debug>:d>$<$<NOT:$<CONFIG:Debug>>:r>"
-    )
-endif()
-
 if(BUILD_SHARED_LIBS)
     if(ABC_USE_SONAME)
         set_target_properties(
             libabc PROPERTIES VERSION ${LIBRARY_VERSION}
                               SOVERSION ${LIBRARY_SOVERSION}
-                              WINDOWS_EXPORT_ALL_SYMBOLS TRUE
         )
     endif()
 endif()
@@ -468,7 +462,7 @@ if(VENDOR_GTEST)
     set(gtest_force_shared_crt ON CACHE BOOL "Always use msvcrt.dll" FORCE)
     FetchContent_MakeAvailable(googletest)
     include_directories(${gtest_SOURCE_DIR}/include)
-    set(GTEST_LINK_LIBRARIES GTest::gtest GTest::gtest_main)
+    set(GTEST_LINK_LIBRARIES GTest::gtest GTest::gtest_main GTest::gmock_main)
 endif()
 
 if(BUILD_TESTING)
@@ -487,9 +481,10 @@ if(BUILD_TESTING)
         set_source_files_properties(${test_SRCS} PROPERTIES LANGUAGE CXX)
     endif()
     add_executable(base_test ${test_SRCS})
+    target_compile_definitions(base_test PRIVATE "_CONSOLE")
     target_compile_options(base_test PUBLIC ${GTEST_CFLAGS})
     target_link_libraries(
-        base_test PUBLIC libabc ${GTEST_LINK_LIBRARIES}
+        base_test PUBLIC libabc ${GTEST_LINK_LIBRARIES} ${ABC_PTHREAD_LIBRARIES}
     )
 
     enable_testing()

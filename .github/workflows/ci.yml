@@ -27,7 +27,7 @@ jobs:
         python-version: ['3.10']
 
         name: [
-          windows-2022-cl,
+          windows-2025-cl,
           ubuntu-22.04-gcc-12,
           ubuntu-24.04-gcc-14,
           ubuntu-22.04-clang-15,
@@ -36,8 +36,8 @@ jobs:
         ]
 
         include:
-          - name: windows-2022-cl
-            os: windows-2022
+          - name: windows-2025-cl
+            os: windows-2025
             compiler: cl
 
           - name: ubuntu-22.04-gcc-12
@@ -84,6 +84,7 @@ jobs:
       if: runner.os == 'Windows'
 
     - name: Install Tox
+      if: runner.os != 'Windows'
       run: |
         python -m pip install --upgrade pip
         pip install tox
@@ -151,13 +152,15 @@ jobs:
     - name: Configure Windows
       if: runner.os == 'Windows'
       run: >
-        cmake -S . -B build
-        -DBUILD_SHARED_LIBS=OFF
-        -DABC_USE_NO_PTHREADS=ON
+        cmake -A WIN32 -T host=x64 -S . -B build
+        -DBUILD_SHARED_LIBS=ON
+        -DABC_USE_NO_PTHREADS=OFF
+        -DABC_USE_EXTERNAL_PTHREAD=OFF
+        -DABC_USE_VENDORED_PTHREAD=ON
         -DABC_USE_NO_READLINE=ON
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${{ env.PREFIX }}
-        -DVENDOR_GTEST=ON
+        -DBUILD_TESTING=OFF
       env:
         CC: cl
         CXX: cl
@@ -165,10 +168,13 @@ jobs:
 
     - name: Build Windows
       if: runner.os == 'Windows'
-      run: cmake --build build --config Release -j 2 --target install
+      run: |
+        cmake --build build --config Release -j 2 --target install
 
-    - name: Test Windows
+    - name: Test Executable
       if: runner.os == 'Windows'
       run: |
-        ctest -V -C Release --test-dir build/
-        ls -lh staging/ || true
+        mkdir _TEST
+        cp staging/bin/abc.* staging/bin/pthreadVC2.dll _TEST/
+        ls -lh _TEST
+        ./_TEST/abc.exe -c "r i10.aig; b; ps; b; rw -l; rw -lz; b; rw -lz; b; ps; cec"

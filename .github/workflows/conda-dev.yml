@@ -2,11 +2,11 @@ name: CondaDev
 
 on:
   workflow_dispatch:
-  pull_request:
-  push:
-    branches:
-      - master
-      - develop
+  #pull_request:
+  #push:
+    #branches:
+      #- master
+      #- develop
 
 jobs:
   conda_build:

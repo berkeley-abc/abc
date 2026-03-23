@@ -15,7 +15,7 @@ if(BUILD_MAIN_EXE)
         SOURCES
             main.c
     )
-
+    target_compile_definitions(abc PRIVATE "_CONSOLE")
     install(TARGETS abc
         RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
     )

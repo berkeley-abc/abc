@@ -8,6 +8,7 @@ target_compile_options(gia_test PUBLIC ${GTEST_CFLAGS})
 target_link_libraries(gia_test PUBLIC
     libabc
     ${GTEST_LINK_LIBRARIES}
+    ${ABC_PTHREAD_LIBRARIES}
 )
 
 gtest_discover_tests(gia_test
