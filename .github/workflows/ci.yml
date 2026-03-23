@@ -27,7 +27,7 @@ jobs:
         python-version: ['3.10']
 
         name: [
-          windows-2022-cl,
+          windows-2025-cl,
           ubuntu-22.04-gcc-12,
           ubuntu-24.04-gcc-14,
           ubuntu-22.04-clang-15,
@@ -36,8 +36,8 @@ jobs:
         ]
 
         include:
-          - name: windows-2022-cl
-            os: windows-2022
+          - name: windows-2025-cl
+            os: windows-2025
             compiler: cl
 
           - name: ubuntu-22.04-gcc-12
@@ -153,7 +153,9 @@ jobs:
       run: >
         cmake -S . -B build
         -DBUILD_SHARED_LIBS=OFF
-        -DABC_USE_NO_PTHREADS=ON
+        -DABC_USE_NO_PTHREADS=OFF
+        -DABC_USE_EXTERNAL_PTHREAD=OFF
+        -DABC_USE_VENDORED_PTHREAD=OFF
         -DABC_USE_NO_READLINE=ON
         -DCMAKE_BUILD_TYPE=Release
         -DCMAKE_INSTALL_PREFIX=${{ env.PREFIX }}

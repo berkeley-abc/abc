@@ -310,7 +310,7 @@ if(NOT ABC_USE_NO_PTHREADS)
             )
             set(ABC_PTHREAD_INCLUDES "${ABC_EXTERNAL_PTHREAD_INCLUDES}")
             set(ABC_PTHREAD_LIBRARIES "${ABC_EXTERNAL_PTHREAD_LIBRARIES}")
-        else()
+        elseif(ABC_USE_VENDORED_PTHREAD)
             if(SIZEOF_VOID_P EQUAL 8)
                 set(PTHREAD_ARCH "x64")
             else()
@@ -321,14 +321,19 @@ if(NOT ABC_USE_NO_PTHREADS)
             install(FILES "${abc_SOURCE_DIR}/lib/${PTHREAD_ARCH}/pthreadVC2.dll"
                 DESTINATION "${CMAKE_INSTALL_BINDIR}"
             )
+        else()
+            find_package(Threads REQUIRED)
+            if(Threads_FOUND)
+                set(ABC_PTHREAD_LIBRARIES Threads::Threads)
+                list(REMOVE_ITEM target_include_directories "${abc_SOURCE_DIR}/lib" "lib")
+            endif()
         endif()
-        if(NOT ABC_PTHREAD_INCLUDES OR NOT ABC_PTHREAD_LIBRARIES)
-            message(FATAL_ERROR "Could not find pthread")
+        if(ABC_PTHREAD_INCLUDES)
+            target_include_directories(
+                abc_interface
+                INTERFACE $<BUILD_INTERFACE:${ABC_PTHREAD_INCLUDES}>
+            )
         endif()
-        target_include_directories(
-            abc_interface
-            INTERFACE $<BUILD_INTERFACE:${ABC_PTHREAD_INCLUDES}>
-        )
         target_link_libraries(abc_interface INTERFACE ${ABC_PTHREAD_LIBRARIES})
     else()
         set(CMAKE_THREAD_PREFER_PTHREAD ON)
