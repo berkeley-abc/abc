@@ -214,6 +214,9 @@ void Gia_ObjAddOrigin( Gia_Man_t * p, int iObj, int iOrig )
     e = Gia_ObjOriginsEntry( p, iObj );
     if ( Gia_ObjOriginsIsOverflow(e) )
     {
+        // cap check: skip if at user-specified limit
+        if ( p->nOriginsMax > 0 && e->ovf.count >= p->nOriginsMax )
+            return;
         // overflow mode: check for duplicate
         for ( k = 0; k < e->ovf.count; k++ )
             if ( e->ovf.overflow[k] == iOrig ) return;
@@ -332,6 +335,7 @@ void Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld )
     if ( !pOld->vOrigins )
         return;
     Gia_ManOriginsReset( pNew );
+    pNew->nOriginsMax = pOld->nOriginsMax;
     pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
     Gia_ManForEachObj( pOld, pObj, i )
     {
@@ -365,6 +369,7 @@ void Gia_ManOriginsDupVec( Gia_Man_t * pNew, Gia_Man_t * pOld, Vec_Int_t * vCopi
     if ( !pOld->vOrigins )
         return;
     Gia_ManOriginsReset( pNew );
+    pNew->nOriginsMax = pOld->nOriginsMax;
     pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
     Vec_IntForEachEntry( vCopies, iLit, i )
     {
@@ -400,6 +405,7 @@ void Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld )
     assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(pOld) );
     assert( Gia_ManCoNum(pNew) == Gia_ManCoNum(pOld) );
     Gia_ManOriginsReset( pNew );
+    pNew->nOriginsMax = pOld->nOriginsMax;
     pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
     // const0
     Gia_ObjUnionOrigins( pNew, 0, pOld, 0 );
@@ -457,6 +463,7 @@ void Gia_ManOriginsDupIf( Gia_Man_t * pNew, Gia_Man_t * p, void * pIfManVoid )
     if ( !p->vOrigins )
         return;
     Gia_ManOriginsReset( pNew );
+    pNew->nOriginsMax = p->nOriginsMax;
     pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
     If_ManForEachObj( pIfMan, pIfObj, i )
     {
@@ -1109,6 +1116,7 @@ Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
     if ( p->pCellStr )
         pNew->pCellStr = Abc_UtilStrsav( p->pCellStr );
     // copy origins if present (deep-copy overflow arrays)
+    pNew->nOriginsMax = p->nOriginsMax;
     if ( p->vOrigins )
     {
         int iObj, nObjs;

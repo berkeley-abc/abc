@@ -36221,12 +36221,27 @@ usage:
 int Abc_CommandAbc9Origins( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pGia = pAbc->pGia;
-    int c;
+    int c, fSetCap = 0, nOriginsMax = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOriginsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOriginsMax < 0 )
+            {
+                Abc_Print( -1, "The max origins value should be non-negative.\n" );
+                goto usage;
+            }
+            fSetCap = 1;
+            break;
         case 'h':
             goto usage;
         default:
@@ -36236,6 +36251,12 @@ int Abc_CommandAbc9Origins( Abc_Frame_t * pAbc, int argc, char ** argv )
     if ( pGia == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9Origins(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( fSetCap )
+    {
+        pGia->nOriginsMax = nOriginsMax;
+        Abc_Print( 1, "Origins cap set to %d%s.\n", nOriginsMax, nOriginsMax ? "" : " (unlimited)" );
         return 0;
     }
     if ( pGia->vOrigins == NULL )
@@ -36279,8 +36300,9 @@ int Abc_CommandAbc9Origins( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &origins [-h]\n" );
+    Abc_Print( -2, "usage: &origins [-M num] [-h]\n" );
     Abc_Print( -2, "\t          prints multi-origin tracking statistics\n" );
+    Abc_Print( -2, "\t-M num  : set max origins per object (0 = unlimited) [default = %d]\n", pGia ? pGia->nOriginsMax : 0 );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
@@ -36302,12 +36324,26 @@ usage:
 int Abc_CommandAbc9OriginsId( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pGia = pAbc->pGia;
-    int c;
+    int c, nOriginsMax = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "h" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mh" ) ) != EOF )
     {
         switch ( c )
         {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOriginsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOriginsMax < 0 )
+            {
+                Abc_Print( -1, "The max origins value should be non-negative.\n" );
+                goto usage;
+            }
+            break;
         case 'h':
             goto usage;
         default:
@@ -36328,17 +36364,22 @@ int Abc_CommandAbc9OriginsId( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         int i, nObjs = Gia_ManObjNum(pGia);
         Gia_Obj_t * pObj;
+        pGia->nOriginsMax = nOriginsMax;
         pGia->vOrigins = Gia_ManOriginsAlloc( nObjs );
         Gia_ManForEachAnd( pGia, pObj, i )
             Gia_ObjSetOrigin( pGia, i, i );
-        Abc_Print( 1, "Initialized identity origins for %d AND nodes.\n", Gia_ManAndNum(pGia) );
+        Abc_Print( 1, "Initialized identity origins for %d AND nodes", Gia_ManAndNum(pGia) );
+        if ( nOriginsMax > 0 )
+            Abc_Print( 1, " (max %d per node)", nOriginsMax );
+        Abc_Print( 1, ".\n" );
     }
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &origins_id [-h]\n" );
+    Abc_Print( -2, "usage: &origins_id [-M num] [-h]\n" );
     Abc_Print( -2, "\t          sets identity origins for testing (each AND node -> itself)\n" );
     Abc_Print( -2, "\t          in normal abc9 flow, origins come from XAIGER \"y\" extension\n" );
+    Abc_Print( -2, "\t-M num  : max origins per object, 0 = unlimited [default = %d]\n", nOriginsMax );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }

@@ -221,6 +221,7 @@ struct Gia_Man_t_
     Vec_Int_t *    vIdsEquiv;     // original object IDs proved equivalent
     Vec_Int_t *    vEquLitIds;    // original object IDs proved equivalent
     Vec_Int_t *    vOrigins;      // per-object origin mapping (from "y" extension)
+    int            nOriginsMax;   // max origins per object (0 = unlimited)
     Vec_Int_t *    vCofVars;      // cofactoring variables
     Vec_Vec_t *    vClockDoms;    // clock domains
     Vec_Flt_t *    vTiming;       // arrival/required/slack
