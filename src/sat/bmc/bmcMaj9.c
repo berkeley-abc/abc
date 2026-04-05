@@ -27,12 +27,7 @@
 #include "base/main/main.h"
 #include "base/cmd/cmd.h"
 
-#ifdef _WIN32
-#include <windows.h>
-typedef __int64 int64_t;
-#else
-#include <unistd.h>
-#endif
+#include <stdint.h>
 #include <limits.h>
 
 #define KISSAT_UNSAT 20
