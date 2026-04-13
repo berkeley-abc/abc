@@ -1,0 +1,21 @@
+abc_libabc_add_sources(
+    NAME misc_util
+    SOURCES
+        utilBipart.c
+        utilSort.c
+        utilAigSim.c
+        utilBSet.c
+        utilNam.c
+        utilBridge.c
+        utilMiniver.c
+        utilColor.c
+        utilCex.c
+        utilPrefix.cpp
+        utilFile.c
+        utilLinear.c
+        utilIsop.c
+        utilNet.c
+        utilMulSim.c
+        utilPth.c
+        utilSignal.c
+)

@@ -5,14 +5,19 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+
 #include <sys/types.h>
+#include <sys/stat.h>
 
 #ifdef WIN32
+#include <io.h>
 #define unlink _unlink
 #define access _access
 #define R_OK 4
 #define W_OK 2
+#ifndef S_ISDIR
+#  define S_ISDIR(mode)  (((mode) & _S_IFMT) == _S_IFDIR)
+#endif
 #else
 #include <unistd.h>
 #endif

@@ -36,7 +36,7 @@ void kissat_remove_binary_watch (kissat *solver, watches *watches,
   KISSAT_assert (begin + 1 <= end);
   watches->end -= 1;
 #endif
-  const watch empty = {.raw = INVALID_VECTOR_ELEMENT};
+  const watch empty = {/*.raw = */INVALID_VECTOR_ELEMENT};  // c++20 only
   end[-1] = empty;
   KISSAT_assert (solver->vectors.usable < MAX_SECTOR - 1);
   solver->vectors.usable += 1;
@@ -73,7 +73,7 @@ void kissat_remove_blocking_watch (kissat *solver, watches *watches,
   KISSAT_assert (begin + 2 <= end);
   watches->end -= 2;
 #endif
-  const watch empty = {.raw = INVALID_VECTOR_ELEMENT};
+  const watch empty = {/*.raw = */INVALID_VECTOR_ELEMENT};  // c++20 only
   end[-2] = end[-1] = empty;
   KISSAT_assert (solver->vectors.usable < MAX_SECTOR - 2);
   solver->vectors.usable += 2;

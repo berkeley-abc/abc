@@ -1,3 +1,6 @@
+default.profraw
+result.blif
+
 DebugLib/
 DebugExe/
 DebugExt/
@@ -60,6 +63,9 @@ tags
 
 /arch_flags
 
-/cmake
 /cscope
 abc.history
+
+.tox/
+staging/
+environment.yml

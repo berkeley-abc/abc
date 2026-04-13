@@ -15,7 +15,7 @@
 #include <sstream>
 #include <iostream>
 #include <memory>
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 // Define timeval before windows.h to prevent winsock.h forward declaration conflicts
 #ifndef _TIMEVAL_DEFINED
 #define _TIMEVAL_DEFINED

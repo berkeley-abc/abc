@@ -28,7 +28,7 @@ struct tagged {
 
 static inline tagged make_tagged (bool binary, unsigned ref) {
   KISSAT_assert (ref <= MAX_WALK_REF);
-  tagged res = {.ref = ref, .binary = binary};
+  tagged res = {/*.ref = */ref, /*.binary = */binary};  // c++20 only
   return res;
 }
 

@@ -15,7 +15,7 @@
 #include <regex>
 #include <queue>
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include <windows.h>
 #endif
 
@@ -530,7 +530,7 @@ void SimUifPairFinder::AddPair(const UIF_PAIR& x) {
 
     if(x.fMark)
         _mat_pairwise_matches[x.second.idx][x.first.idx] += nThreshold;
-    else 
+    else
         _mat_pairwise_matches[x.first.idx][x.second.idx] += nThreshold;
 }
 int  SimUifPairFinder::GetCount(const UIF_PAIR& x) const {

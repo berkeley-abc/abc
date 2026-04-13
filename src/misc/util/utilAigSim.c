@@ -9,7 +9,7 @@
   Synopsis    [AIG simulation.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - Feburary 13, 2011.]
@@ -34,7 +34,7 @@
 #include <sys/stat.h>
 #endif
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 // Windows doesn't have __builtin_ctzll, implement it using portable algorithm
 static inline int __builtin_ctzll(uint64_t x) {
     if (x == 0) return 64;

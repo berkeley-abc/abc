@@ -5,7 +5,7 @@
  *      Author: Yen-Sheng Ho
  */
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 #include <windows.h>
 #else
 #include <sys/time.h>
@@ -200,7 +200,7 @@ static int Abc_CommandProveUsingUif( Abc_Frame_t * pAbc, int argc, char ** argv 
     if(!opt_mgr.Parse(argc, argv)) {
         opt_mgr.PrintUsage();
         cout << "\n       This command was developed by Yen-Sheng Ho at UC Berkeley in 2015.\n";
-        cout << "       https://people.eecs.berkeley.edu/~alanmi/publications/2016/fmcad16_uif.pdf \n"; 
+        cout << "       https://people.eecs.berkeley.edu/~alanmi/publications/2016/fmcad16_uif.pdf \n";
         return 0;
     }
 

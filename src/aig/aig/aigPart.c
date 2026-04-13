@@ -309,7 +309,7 @@ Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
         {
             pPart0 = (Part_One_t *)Aig_ObjFanin0(pObj)->pData;
             vSupp = Part_ManTransferEntry(pPart0);
-            Vec_IntPush( vSupp, (int)(long)pObj->pNext );
+            Vec_IntPush( vSupp, (int)(ABC_PTRINT_T)pObj->pNext );
             Vec_PtrPush( vSupports, vSupp );
             assert( pPart0->nRefs > 0 );
             if ( --pPart0->nRefs == 0 )
@@ -321,7 +321,7 @@ Vec_Ptr_t * Aig_ManSupports( Aig_Man_t * pMan )
             if ( pObj->nRefs )
             {
                 pPart0 = Part_ManFetchEntry( p, 1, pObj->nRefs );
-                pPart0->pOuts[ pPart0->nOuts++ ] = (int)(long)pObj->pNext;
+                pPart0->pOuts[ pPart0->nOuts++ ] = (int)(ABC_PTRINT_T)pObj->pNext;
                 pObj->pData = pPart0;
             }
             continue;
@@ -972,7 +972,7 @@ Aig_Obj_t * Aig_ManDupPart_rec( Aig_Man_t * pNew, Aig_Man_t * pOld, Aig_Obj_t * 
     if ( Aig_ObjIsCi(pObj) )
     {
         assert( Vec_IntSize(vSuppMap) == Aig_ManCiNum(pNew) );
-        Vec_IntPush( vSuppMap, (int)(long)pObj->pNext );
+        Vec_IntPush( vSuppMap, (int)(ABC_PTRINT_T)pObj->pNext );
         return (Aig_Obj_t *)(pObj->pData = Aig_ObjCreateCi(pNew));
     }
     assert( Aig_ObjIsNode(pObj) );

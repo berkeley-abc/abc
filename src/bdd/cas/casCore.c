@@ -832,12 +832,12 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
      */
 
     /* Find the bits that are different. */
-    refAddr = ( long )Cudd_Regular(Func);
+    refAddr = ( ABC_PTRINT_T )Cudd_Regular(Func);
     diff = 0;
     gen = st__init_gen( visited );
     while ( st__gen( gen, ( const char ** ) &Node, NULL ) )
     {
-        diff |= refAddr ^ ( long ) Node;
+        diff |= refAddr ^ ( ABC_PTRINT_T ) Node;
     }
     st__free_gen( gen );
     gen = NULL;
@@ -852,7 +852,7 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
 
 
     // write the buffer for the output
-    fprintf( pFile, ".names %s%lx %s\n", Prefix, ( mask & (long)Cudd_Regular(Func) ) / sizeof(DdNode), OutputName ); 
+    fprintf( pFile, ".names %s%lx %s\n", Prefix, ( mask & (ABC_PTRINT_T)Cudd_Regular(Func) ) / sizeof(DdNode), OutputName );
     fprintf( pFile, "%s 1\n", (Cudd_IsComplement(Func))? "0": "1" );
 
 
@@ -862,7 +862,7 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
         if ( Node->index == CUDD_MAXINDEX )
         {
             // write the terminal node
-            fprintf( pFile, ".names %s%lx\n", Prefix, ( mask & (long)Node ) / sizeof(DdNode) );
+            fprintf( pFile, ".names %s%lx\n", Prefix, ( mask & (ABC_PTRINT_T)Node ) / sizeof(DdNode) );
             fprintf( pFile, " %s\n", (cuddV(Node) == 0.0)? "0": "1" );
             continue;
         }
@@ -875,9 +875,9 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
         if ( Else == ElseR )
         { // no inverter
             fprintf( pFile, ".names %s %s%lx %s%lx %s%lx\n", InputNames[Node->index],                           
-                              Prefix, ( mask & (long)ElseR ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)Then  ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)Node  ) / sizeof(DdNode)   );
+                              Prefix, ( mask & (ABC_PTRINT_T)ElseR ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)Then  ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)Node  ) / sizeof(DdNode)   );
             fprintf( pFile, "01- 1\n" );
             fprintf( pFile, "1-1 1\n" );
         }
@@ -885,9 +885,9 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
         { // inverter
             int * pSlot;
             fprintf( pFile, ".names %s %s%lx_i %s%lx %s%lx\n", InputNames[Node->index],                         
-                              Prefix, ( mask & (long)ElseR ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)Then  ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)Node  ) / sizeof(DdNode)   );
+                              Prefix, ( mask & (ABC_PTRINT_T)ElseR ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)Then  ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)Node  ) / sizeof(DdNode)   );
             fprintf( pFile, "01- 1\n" );
             fprintf( pFile, "1-1 1\n" );
 
@@ -899,8 +899,8 @@ void WriteDDintoBLIFfile( FILE * pFile, DdNode * Func, char * OutputName, char *
             *pSlot = 1;
 
             fprintf( pFile, ".names %s%lx %s%lx_i\n",  
-                              Prefix, ( mask & (long)ElseR  ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)ElseR  ) / sizeof(DdNode)   );
+                              Prefix, ( mask & (ABC_PTRINT_T)ElseR  ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)ElseR  ) / sizeof(DdNode)   );
             fprintf( pFile, "0 1\n" );
         }
     }
@@ -977,12 +977,12 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
      */
 
     /* Find the bits that are different. */
-    refAddr = ( long )Cudd_Regular(bFmin);
+    refAddr = ( ABC_PTRINT_T )Cudd_Regular(bFmin);
     diff = 0;
     gen = st__init_gen( visited );
     while ( st__gen( gen, ( const char ** ) &Node, NULL ) )
     {
-        diff |= refAddr ^ ( long ) Node;
+        diff |= refAddr ^ ( ABC_PTRINT_T ) Node;
     }
     st__free_gen( gen );
     gen = NULL;
@@ -997,7 +997,7 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
 
 
     // write the buffer for the output
-    fprintf( pFile, ".names %s%lx %s\n", Prefix, ( mask & (long)Cudd_Regular(bFmin) ) / sizeof(DdNode), OutputName ); 
+    fprintf( pFile, ".names %s%lx %s\n", Prefix, ( mask & (ABC_PTRINT_T)Cudd_Regular(bFmin) ) / sizeof(DdNode), OutputName );
     fprintf( pFile, "%s 1\n", (Cudd_IsComplement(bFmin))? "0": "1" );
 
 
@@ -1007,7 +1007,7 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
         if ( Node->index == CUDD_MAXINDEX )
         {
             // write the terminal node
-            fprintf( pFile, ".names %s%lx\n", Prefix, ( mask & (long)Node ) / sizeof(DdNode) );
+            fprintf( pFile, ".names %s%lx\n", Prefix, ( mask & (ABC_PTRINT_T)Node ) / sizeof(DdNode) );
             fprintf( pFile, " %s\n", (cuddV(Node) == 0.0)? "0": "1" );
             continue;
         }
@@ -1020,24 +1020,24 @@ void WriteDDintoBLIFfileReorder( DdManager * dd, FILE * pFile, DdNode * Func, ch
         if ( Else == ElseR )
         { // no inverter
             fprintf( pFile, ".names %s %s%lx %s%lx %s%lx\n", InputNames[Node->index],                           
-                              Prefix, ( mask & (long)ElseR ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)Then  ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)Node  ) / sizeof(DdNode)   );
+                              Prefix, ( mask & (ABC_PTRINT_T)ElseR ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)Then  ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)Node  ) / sizeof(DdNode)   );
             fprintf( pFile, "01- 1\n" );
             fprintf( pFile, "1-1 1\n" );
         }
         else
         { // inverter
             fprintf( pFile, ".names %s %s%lx_i %s%lx %s%lx\n", InputNames[Node->index],                         
-                              Prefix, ( mask & (long)ElseR ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)Then  ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)Node  ) / sizeof(DdNode)   );
+                              Prefix, ( mask & (ABC_PTRINT_T)ElseR ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)Then  ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)Node  ) / sizeof(DdNode)   );
             fprintf( pFile, "01- 1\n" );
             fprintf( pFile, "1-1 1\n" );
 
             fprintf( pFile, ".names %s%lx %s%lx_i\n",  
-                              Prefix, ( mask & (long)ElseR  ) / sizeof(DdNode),
-                              Prefix, ( mask & (long)ElseR  ) / sizeof(DdNode)   );
+                              Prefix, ( mask & (ABC_PTRINT_T)ElseR  ) / sizeof(DdNode),
+                              Prefix, ( mask & (ABC_PTRINT_T)ElseR  ) / sizeof(DdNode)   );
             fprintf( pFile, "0 1\n" );
         }
     }
