@@ -41,7 +41,7 @@ extern "C" {
 
 #endif
 
-#if defined(__APPLE__) || defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__)
 
 extern "C" {
 #include <libproc.h>
@@ -293,7 +293,7 @@ FILE *File::read_pipe (Internal *internal, const char *fmt, const int *sig,
 
 #if !defined(_WIN32) && !defined(__wasm)
 
-#if defined(__APPLE__) || defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__)
 static std::mutex compressed_file_writing_mutex;
 #endif
 
@@ -312,7 +312,7 @@ FILE *File::write_pipe (Internal *internal, const char *command,
   char *absolute_command_path = find_program (argv[0]);
   int pipe_fds[2], out;
   FILE *res = 0;
-#if defined(__APPLE__) || defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__)
   compressed_file_writing_mutex.lock ();
 #endif
   if (!absolute_command_path)
@@ -369,7 +369,7 @@ FILE *File::write_pipe (Internal *internal, const char *command,
 #ifdef CADICAL_QUIET
   (void) internal;
 #endif
-#if defined(__APPLE__) || defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__)
   if (!res)
     compressed_file_writing_mutex.unlock ();
 #endif
@@ -475,7 +475,7 @@ void File::close (bool print) {
       MSG ("closing output pipe to write '%s'", name ());
     fclose (file);
     waitpid (child_pid, 0, 0);
-#if defined(__APPLE__) || defined(__MACH__)
+#if defined(__APPLE__) && defined(__MACH__)
     compressed_file_writing_mutex.unlock ();
 #endif
   }
