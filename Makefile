@@ -185,32 +185,32 @@ DEP := $(OBJ:.o=.d)
 %.o: %.c
 	@mkdir -p $(dir $@)
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(CC) -c $(OPTFLAGS) $(INCLUDES) $(CFLAGS) $< -o $@
+	$(VERBOSE)$(CC) -c $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) $< -o $@
 
 %.o: %.cc
 	@mkdir -p $(dir $@)
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(CXX) -c $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $< -o $@
+	$(VERBOSE)$(CXX) -c $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 %.o: %.cpp
 	@mkdir -p $(dir $@)
 	@echo "$(MSG_PREFIX)\`\` Compiling:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(CXX) -c $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $< -o $@
+	$(VERBOSE)$(CXX) -c $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $< -o $@
 
 %.d: %.c
 	@mkdir -p $(dir $@)
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(ABCSRC)/depends.sh "$(CC)" `dirname $*.c` $(OPTFLAGS) $(INCLUDES) $(CFLAGS) $< > $@
+	$(VERBOSE)$(ABCSRC)/depends.sh "$(CC)" `dirname $*.c` $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CFLAGS) $< > $@
 
 %.d: %.cc
 	@mkdir -p $(dir $@)
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(ABCSRC)/depends.sh "$(CXX)" `dirname $*.cc` $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $< > $@
+	$(VERBOSE)$(ABCSRC)/depends.sh "$(CXX)" `dirname $*.cc` $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $< > $@
 
 %.d: %.cpp
 	@mkdir -p $(dir $@)
 	@echo "$(MSG_PREFIX)\`\` Generating dependency:" $(LOCAL_PATH)/$<
-	$(VERBOSE)$(ABCSRC)/depends.sh "$(CXX)" `dirname $*.cpp` $(OPTFLAGS) $(INCLUDES) $(CXXFLAGS) $< > $@
+	$(VERBOSE)$(ABCSRC)/depends.sh "$(CXX)" `dirname $*.cpp` $(OPTFLAGS) $(INCLUDES) $(CPPFLAGS) $(CXXFLAGS) $< > $@
 
 ifndef ABC_MAKE_NO_DEPS
 -include $(DEP)
