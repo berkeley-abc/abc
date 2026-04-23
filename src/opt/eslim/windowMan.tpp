@@ -126,7 +126,7 @@ namespace eSLIM {
       std::cout << "PThreads not available, minimize random window.\n";
       std::uniform_int_distribution<> udist(0, windows.size() - 1);
       int wid = udist(rng);
-      eSLIM_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM(windows[wid], cfg, wlogs[wid])
+      eSLIM_Man<SynthesisEngine, SelectionStrategy>::applyeSLIM(windows[wid], cfg, wlogs[wid]);
     #endif
   }
 
