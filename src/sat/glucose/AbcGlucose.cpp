@@ -878,6 +878,9 @@ Vec_Int_t * Glucose_SolverFromAig( Gia_Man_t * p, SimpSolver& s )
     abctime clk = Abc_Clock();
     vec<Lit> * lits = &s.user_lits;
     Cnf_Dat_t * pCnf = (Cnf_Dat_t *)Mf_ManGenerateCnf( p, 8 /*nLutSize*/, 0 /*fCnfObjIds*/, 1/*fAddOrCla*/, 0, 0/*verbose*/ );
+    // CNF variable IDs are 1-based and may include unused variables.
+    // Create the full range so model[] can be indexed by pVarNums directly.
+    s.addVar( pCnf->nVars - 1 );
     for ( int i = 0; i < pCnf->nClauses; i++ )
     {
         lits->clear();
