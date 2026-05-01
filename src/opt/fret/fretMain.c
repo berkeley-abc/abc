@@ -202,8 +202,9 @@ Abc_FlowRetime_MinReg( Abc_Ntk_t * pNtk, int fVerbose,
     pNtk = Abc_FlowRetime_NtkSilentRestrash( pNtk, 1 );
   }
   
+  i = Abc_NtkLevel(pNtk);
   vprintf("\tfinal reg count = %d\n", Abc_NtkLatchNum(pNtk));
-  vprintf("\tfinal levels = %d\n", Abc_NtkLevel(pNtk));
+  vprintf("\tfinal levels = %d\n", i);
 
 #if defined(DEBUG_CHECK)
   Abc_NtkDoCheck( pNtk );
@@ -1380,4 +1381,3 @@ void Abc_ObjPrintNeighborhood( Abc_Obj_t *pObj, int depth ) {
   Vec_PtrFree(vNodes);
 }
 ABC_NAMESPACE_IMPL_END
-
