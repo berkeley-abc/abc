@@ -141,7 +141,7 @@ unsigned * Lpk_CutTruth_rec( Hop_Man_t * pMan, Hop_Obj_t * pObj, int nVars, Vec_
     assert( !Hop_IsComplement(pObj) );
     if ( pObj->pData )
     {
-        assert( ((unsigned)(ABC_PTRUINT_T)pObj->pData) & 0xffff0000 );
+        assert( ((ABC_PTRUINT_T)pObj->pData) > 0xffff ); // catch small int values
         return (unsigned *)pObj->pData;
     }
     // get the plan for a new truth table
