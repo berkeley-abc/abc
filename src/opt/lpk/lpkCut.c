@@ -197,7 +197,7 @@ unsigned * Lpk_CutTruth( Lpk_Man_t * p, Lpk_Cut_t * pCut, int fInv )
         // set the initial truth tables at the fanins
         Abc_ObjForEachFanin( pObj, pFanin, k )
         {
-            assert( ((unsigned)(ABC_PTRUINT_T)pFanin->pCopy) & 0xffff0000 );
+            assert( ((ABC_PTRUINT_T)pFanin->pCopy) > 0xffff ); // catch small int values or NULL
             Hop_ManPi( pManHop, k )->pData = pFanin->pCopy;
         }
         // compute the truth table of internal nodes
