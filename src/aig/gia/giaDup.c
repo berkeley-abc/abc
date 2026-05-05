@@ -6964,6 +6964,591 @@ void Gia_ManDupSplit( Gia_Man_t * p, int nParts, int nCutLevel )
     Vec_PtrFreeFree( vCutNames );
 }
 
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static inline int Gia_ManDupPipelineMapPos( int nStages, int iObj, int iStage )
+{
+    return iObj * nStages + iStage;
+}
+
+static int Gia_ManDupPipelineDelayLit( Gia_Man_t * pNew, Vec_Int_t * vLitMap, Vec_Int_t * vStages, Vec_Int_t * vRegDrivers, Vec_Int_t * vRegStages, int nStages, int iObj, int iStage )
+{
+    int iPos, iStageBase, iLitPrev, iLit;
+    if ( iObj == 0 )
+        return 0;
+    iPos = Gia_ManDupPipelineMapPos( nStages, iObj, iStage );
+    iLit = Vec_IntEntry( vLitMap, iPos );
+    if ( iLit >= 0 )
+        return iLit;
+    iStageBase = Vec_IntEntry( vStages, iObj );
+    assert( iStage >= iStageBase );
+    assert( iStage > 0 );
+    iLitPrev = Gia_ManDupPipelineDelayLit( pNew, vLitMap, vStages, vRegDrivers, vRegStages, nStages, iObj, iStage - 1 );
+    iLit = Gia_ManAppendCi( pNew );
+    Vec_IntWriteEntry( vLitMap, iPos, iLit );
+    Vec_IntPush( vRegDrivers, iLitPrev );
+    Vec_IntPush( vRegStages, iStage - 1 );
+    return iLit;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static char * Gia_ManDupPipelineNameCopy( Vec_Ptr_t * vNames, int iName, char * pPrefix, int i )
+{
+    char * pName = (vNames && iName < Vec_PtrSize(vNames)) ? (char *)Vec_PtrEntry(vNames, iName) : NULL;
+    return pName ? Abc_UtilStrsav( pName ) : Abc_UtilStrsavNum( pPrefix, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupPipeline( Gia_Man_t * p, int nLevels, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vStages, * vLitMap, * vRegDrivers, * vRegStages, * vStageCounts;
+    Vec_Ptr_t * vNamesIn, * vNamesOut;
+    char * pNameRo;
+    int nObjs, nStageMax, nStageCols, i, iStage, iLit0, iLit1, iLit, iFlop;
+
+    if ( nLevels <= 0 )
+        return NULL;
+    if ( Gia_ManRegNum(p) > 0 )
+        return NULL;
+
+    Gia_ManLevelNum( p );
+    nObjs      = Gia_ManObjNum( p );
+    nStageMax  = Gia_ManLevelNum( p ) / nLevels;
+    nStageCols = nStageMax + 1;
+
+    vStages     = Vec_IntStart( nObjs );
+    vLitMap     = Vec_IntStartFull( nObjs * nStageCols );
+    vRegDrivers = Vec_IntAlloc( 1000 );
+    vRegStages  = Vec_IntAlloc( 1000 );
+
+    Gia_ManForEachAnd( p, pObj, i )
+        Vec_IntWriteEntry( vStages, Gia_ObjId(p, pObj), Gia_ObjLevel(p, pObj) / nLevels );
+
+    pNew = Gia_ManStart( Gia_ManObjNum(p) + 2 * Gia_ManAndNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->nConstrs = p->nConstrs;
+    Gia_ManHashAlloc( pNew );
+
+    Gia_ManForEachPi( p, pObj, i )
+    {
+        iLit = Gia_ManAppendCi( pNew );
+        Vec_IntWriteEntry( vLitMap, Gia_ManDupPipelineMapPos(nStageCols, Gia_ObjId(p, pObj), 0), iLit );
+    }
+
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        iStage = Vec_IntEntry( vStages, Gia_ObjId(p, pObj) );
+        iLit0 = Gia_ManDupPipelineDelayLit( pNew, vLitMap, vStages, vRegDrivers, vRegStages, nStageCols, Gia_ObjFaninId0p(p, pObj), iStage );
+        iLit1 = Gia_ManDupPipelineDelayLit( pNew, vLitMap, vStages, vRegDrivers, vRegStages, nStageCols, Gia_ObjFaninId1p(p, pObj), iStage );
+        iLit = Gia_ManHashAnd( pNew, Abc_LitNotCond(iLit0, Gia_ObjFaninC0(pObj)), Abc_LitNotCond(iLit1, Gia_ObjFaninC1(pObj)) );
+        Vec_IntWriteEntry( vLitMap, Gia_ManDupPipelineMapPos(nStageCols, Gia_ObjId(p, pObj), iStage), iLit );
+    }
+
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        iStage = Vec_IntEntry( vStages, Gia_ObjFaninId0p(p, pObj) );
+        iLit = Gia_ManDupPipelineDelayLit( pNew, vLitMap, vStages, vRegDrivers, vRegStages, nStageCols, Gia_ObjFaninId0p(p, pObj), iStage );
+        Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, Gia_ObjFaninC0(pObj)) );
+    }
+
+    Vec_IntForEachEntry( vRegDrivers, iLit, i )
+        Gia_ManAppendCo( pNew, iLit );
+    Gia_ManSetRegNum( pNew, Vec_IntSize(vRegDrivers) );
+
+    vNamesIn = Vec_PtrAlloc( Gia_ManCiNum(pNew) );
+    vNamesOut = Vec_PtrAlloc( Gia_ManCoNum(pNew) );
+    vStageCounts = Vec_IntStart( nStageCols );
+    Gia_ManForEachPi( p, pObj, i )
+        Vec_PtrPush( vNamesIn, Gia_ManDupPipelineNameCopy(p->vNamesIn, i, (char *)"pi", i) );
+    Gia_ManForEachPo( p, pObj, i )
+        Vec_PtrPush( vNamesOut, Gia_ManDupPipelineNameCopy(p->vNamesOut, i, (char *)"po", i) );
+    Vec_IntForEachEntry( vRegStages, iStage, i )
+    {
+        char Buffer[64], BufferIn[64];
+        iFlop = Vec_IntEntry( vStageCounts, iStage );
+        Vec_IntWriteEntry( vStageCounts, iStage, iFlop + 1 );
+        snprintf( Buffer, sizeof(Buffer), "cut%d[%d]", iStage, iFlop );
+        snprintf( BufferIn, sizeof(BufferIn), "cut%d_in[%d]", iStage, iFlop );
+        pNameRo = Abc_UtilStrsav( Buffer );
+        Vec_PtrPush( vNamesIn, pNameRo );
+        Vec_PtrPush( vNamesOut, Abc_UtilStrsav( BufferIn ) );
+    }
+    pNew->vNamesIn = vNamesIn;
+    pNew->vNamesOut = vNamesOut;
+    Gia_ManHashStop( pNew );
+
+    if ( fVerbose )
+        Abc_Print( 1, "Inserted %d fixed-cut pipeline registers using D = %d.\n", Gia_ManRegNum(pNew), nLevels );
+
+    Vec_IntFree( vStages );
+    Vec_IntFree( vLitMap );
+    Vec_IntFree( vRegDrivers );
+    Vec_IntFree( vRegStages );
+    Vec_IntFree( vStageCounts );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Vec_Ptr_t * Gia_ManDupUnpipelineNames( Vec_Ptr_t * vNames, int nNames )
+{
+    Vec_Ptr_t * vRes;
+    char * pName;
+    int i;
+    if ( vNames == NULL )
+        return NULL;
+    vRes = Vec_PtrAlloc( nNames );
+    for ( i = 0; i < nNames; i++ )
+    {
+        pName = i < Vec_PtrSize(vNames) ? (char *)Vec_PtrEntry( vNames, i ) : NULL;
+        Vec_PtrPush( vRes, pName ? Abc_UtilStrsav(pName) : NULL );
+    }
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Duplicates selected names if present.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static Vec_Ptr_t * Gia_ManDupUnpipelineNamesUsed( Vec_Ptr_t * vNames, Vec_Bit_t * vUsed, int nNames )
+{
+    Vec_Ptr_t * vRes;
+    char * pName;
+    int i;
+    if ( vNames == NULL )
+        return NULL;
+    vRes = Vec_PtrAlloc( Vec_BitCount(vUsed) );
+    for ( i = 0; i < nNames; i++ )
+    {
+        if ( !Vec_BitEntry(vUsed, i) )
+            continue;
+        pName = i < Vec_PtrSize(vNames) ? (char *)Vec_PtrEntry( vNames, i ) : NULL;
+        Vec_PtrPush( vRes, pName ? Abc_UtilStrsav(pName) : NULL );
+    }
+    return vRes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Gia_ManDupUnpipeline_rec( Gia_Man_t * pNew, Gia_Man_t * p, Vec_Int_t * vCopies, int iObj, int * piCycle )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    int iLit, iLit0, iLit1;
+
+    iLit = Vec_IntEntry( vCopies, iObj );
+    if ( iLit >= 0 )
+        return iLit;
+    if ( iLit == -2 )
+    {
+        if ( piCycle )
+            *piCycle = iObj;
+        return -1;
+    }
+    Vec_IntWriteEntry( vCopies, iObj, -2 );
+
+    if ( !p->fGiaSimple && Gia_ObjIsBuf(pObj) )
+    {
+        iLit0 = Gia_ManDupUnpipeline_rec( pNew, p, vCopies, Gia_ObjFaninId0p(p, pObj), piCycle );
+        if ( iLit0 < 0 )
+            return -1;
+        iLit = Abc_LitNotCond( iLit0, Gia_ObjFaninC0(pObj) );
+    }
+    else if ( Gia_ObjIsAnd(pObj) )
+    {
+        iLit0 = Gia_ManDupUnpipeline_rec( pNew, p, vCopies, Gia_ObjFaninId0p(p, pObj), piCycle );
+        if ( iLit0 < 0 )
+            return -1;
+        iLit1 = Gia_ManDupUnpipeline_rec( pNew, p, vCopies, Gia_ObjFaninId1p(p, pObj), piCycle );
+        if ( iLit1 < 0 )
+            return -1;
+        iLit = Gia_ManHashAnd( pNew, Abc_LitNotCond(iLit0, Gia_ObjFaninC0(pObj)), Abc_LitNotCond(iLit1, Gia_ObjFaninC1(pObj)) );
+    }
+    else if ( Gia_ObjIsRo(p, pObj) )
+    {
+        Gia_Obj_t * pObjRi = Gia_ObjRoToRi( p, pObj );
+        iLit0 = Gia_ManDupUnpipeline_rec( pNew, p, vCopies, Gia_ObjFaninId0p(p, pObjRi), piCycle );
+        if ( iLit0 < 0 )
+            return -1;
+        iLit = Abc_LitNotCond( iLit0, Gia_ObjFaninC0(pObjRi) );
+    }
+    else
+    {
+        assert( 0 );
+        return -1;
+    }
+
+    Vec_IntWriteEntry( vCopies, iObj, iLit );
+    return iLit;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Marks objects reachable after bypassing flops.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Gia_ManDupUnpipelineMark_rec( Gia_Man_t * p, Vec_Str_t * vMarks, Vec_Bit_t * vPisUsed, int iObj, int * piCycle )
+{
+    Gia_Obj_t * pObj = Gia_ManObj( p, iObj );
+    int Mark = Vec_StrEntry( vMarks, iObj );
+    if ( Mark == 2 )
+        return 0;
+    if ( Mark == 1 )
+    {
+        if ( piCycle )
+            *piCycle = iObj;
+        return -1;
+    }
+    if ( Gia_ObjIsConst0(pObj) )
+    {
+        Vec_StrWriteEntry( vMarks, iObj, 2 );
+        return 0;
+    }
+    if ( Gia_ObjIsPi(p, pObj) )
+    {
+        Vec_BitWriteEntry( vPisUsed, Gia_ObjCioId(pObj), 1 );
+        Vec_StrWriteEntry( vMarks, iObj, 2 );
+        return 0;
+    }
+
+    Vec_StrWriteEntry( vMarks, iObj, 1 );
+    if ( !p->fGiaSimple && Gia_ObjIsBuf(pObj) )
+    {
+        if ( Gia_ManDupUnpipelineMark_rec( p, vMarks, vPisUsed, Gia_ObjFaninId0p(p, pObj), piCycle ) < 0 )
+            return -1;
+    }
+    else if ( Gia_ObjIsAnd(pObj) )
+    {
+        if ( Gia_ManDupUnpipelineMark_rec( p, vMarks, vPisUsed, Gia_ObjFaninId0p(p, pObj), piCycle ) < 0 )
+            return -1;
+        if ( Gia_ManDupUnpipelineMark_rec( p, vMarks, vPisUsed, Gia_ObjFaninId1p(p, pObj), piCycle ) < 0 )
+            return -1;
+    }
+    else if ( Gia_ObjIsRo(p, pObj) )
+    {
+        Gia_Obj_t * pObjRi = Gia_ObjRoToRi( p, pObj );
+        if ( Gia_ManDupUnpipelineMark_rec( p, vMarks, vPisUsed, Gia_ObjFaninId0p(p, pObjRi), piCycle ) < 0 )
+            return -1;
+    }
+    else
+    {
+        assert( 0 );
+        return -1;
+    }
+    Vec_StrWriteEntry( vMarks, iObj, 2 );
+    return 0;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupUnpipeline( Gia_Man_t * p, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    Vec_Bit_t * vPisUsed;
+    Vec_Int_t * vCopies;
+    Vec_Str_t * vMarks;
+    int i, iLit, iCycle = -1, nRegs, nPisUsed = 0;
+
+    if ( Gia_ManRegNum(p) == 0 )
+        return Gia_ManDup( p );
+
+    nRegs = Gia_ManRegNum( p );
+    vPisUsed = Vec_BitStart( Gia_ManPiNum(p) );
+    vMarks = Vec_StrStart( Gia_ManObjNum(p) );
+    Gia_ManForEachPo( p, pObj, i )
+        if ( Gia_ManDupUnpipelineMark_rec( p, vMarks, vPisUsed, Gia_ObjFaninId0p(p, pObj), &iCycle ) < 0 )
+            break;
+    Vec_StrFree( vMarks );
+    if ( iCycle >= 0 )
+    {
+        if ( fVerbose )
+            Abc_Print( 1, "Bypassing flops creates a combinational cycle at object %d.\n", iCycle );
+        Vec_BitFree( vPisUsed );
+        return NULL;
+    }
+
+    vCopies = Vec_IntStartFull( Gia_ManObjNum(p) );
+    Vec_IntWriteEntry( vCopies, 0, 0 );
+
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->nConstrs = p->nConstrs;
+    pNew->vNamesIn = Gia_ManDupUnpipelineNamesUsed( p->vNamesIn, vPisUsed, Gia_ManPiNum(p) );
+    pNew->vNamesOut = Gia_ManDupUnpipelineNames( p->vNamesOut, Gia_ManPoNum(p) );
+    Gia_ManHashAlloc( pNew );
+
+    Gia_ManForEachPi( p, pObj, i )
+        if ( Vec_BitEntry(vPisUsed, i) )
+        {
+            Vec_IntWriteEntry( vCopies, Gia_ObjId(p, pObj), Gia_ManAppendCi(pNew) );
+            nPisUsed++;
+        }
+
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        iLit = Gia_ManDupUnpipeline_rec( pNew, p, vCopies, Gia_ObjFaninId0p(p, pObj), &iCycle );
+        if ( iLit < 0 )
+            break;
+        Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, Gia_ObjFaninC0(pObj)) );
+    }
+    Gia_ManHashStop( pNew );
+    Vec_IntFree( vCopies );
+    Vec_BitFree( vPisUsed );
+
+    Gia_ManSetRegNum( pNew, 0 );
+    if ( fVerbose )
+        Abc_Print( 1, "Removed %d pipeline registers and kept %d primary inputs.\n", nRegs, nPisUsed );
+    return pNew;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static char * Gia_ManDupRegioNameCopy( Vec_Ptr_t * vNames, int iName )
+{
+    char * pName = (vNames && iName < Vec_PtrSize(vNames)) ? (char *)Vec_PtrEntry(vNames, iName) : NULL;
+    return pName ? Abc_UtilStrsav(pName) : NULL;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static char * Gia_ManDupRegioNameNew( Vec_Ptr_t * vNames, int iName, char * pSuffix, char * pPrefix, int i )
+{
+    char * pName = (vNames && iName < Vec_PtrSize(vNames)) ? (char *)Vec_PtrEntry(vNames, iName) : NULL;
+    return pName ? Abc_UtilStrsavTwo( pName, pSuffix ) : Abc_UtilStrsavNum( pPrefix, i );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+Gia_Man_t * Gia_ManDupRegio( Gia_Man_t * p, int fRegIns, int fRegOuts, int fVerbose )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vInRos = NULL, * vOutRos = NULL;
+    Vec_Ptr_t * vNamesIn = NULL, * vNamesOut = NULL;
+    int nPis = Gia_ManPiNum(p), nPos = Gia_ManPoNum(p), nRegs = Gia_ManRegNum(p);
+    int nRegIns = fRegIns ? nPis : 0;
+    int nRegOuts = fRegOuts ? nPos : 0;
+    int nRegsNew = nRegs + nRegIns + nRegOuts;
+    int i;
+
+    if ( !fRegIns && !fRegOuts )
+        return Gia_ManDup( p );
+
+    pNew = Gia_ManStart( Gia_ManObjNum(p) + 2 * (nRegIns + nRegOuts) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    pNew->nConstrs = p->nConstrs;
+
+    if ( p->vRegClasses )
+    {
+        pNew->vRegClasses = Vec_IntAlloc( nRegsNew );
+        for ( i = 0; i < nRegs; i++ )
+            Vec_IntPush( pNew->vRegClasses, Vec_IntEntry(p->vRegClasses, i) );
+        for ( ; i < nRegsNew; i++ )
+            Vec_IntPush( pNew->vRegClasses, 0 );
+    }
+    if ( p->vFlopClasses )
+    {
+        pNew->vFlopClasses = Vec_IntAlloc( nRegsNew );
+        for ( i = 0; i < nRegs; i++ )
+            Vec_IntPush( pNew->vFlopClasses, Vec_IntEntry(p->vFlopClasses, i) );
+        for ( ; i < nRegsNew; i++ )
+            Vec_IntPush( pNew->vFlopClasses, 0 );
+    }
+    if ( p->vRegInits )
+    {
+        pNew->vRegInits = Vec_IntAlloc( nRegsNew );
+        for ( i = 0; i < nRegs; i++ )
+            Vec_IntPush( pNew->vRegInits, Vec_IntEntry(p->vRegInits, i) );
+        for ( ; i < nRegsNew; i++ )
+            Vec_IntPush( pNew->vRegInits, 0 );
+    }
+
+    if ( p->vNamesIn )
+    {
+        vNamesIn = Vec_PtrAlloc( nPis + nRegsNew );
+        for ( i = 0; i < nPis; i++ )
+            Vec_PtrPush( vNamesIn, Gia_ManDupRegioNameCopy(p->vNamesIn, i) );
+        for ( i = 0; i < nRegs; i++ )
+            Vec_PtrPush( vNamesIn, Gia_ManDupRegioNameCopy(p->vNamesIn, nPis + i) );
+        if ( fRegIns )
+            for ( i = 0; i < nPis; i++ )
+                Vec_PtrPush( vNamesIn, Gia_ManDupRegioNameNew(p->vNamesIn, i, (char *)"_i_ro", (char *)"inro", i) );
+        if ( fRegOuts )
+            for ( i = 0; i < nPos; i++ )
+                Vec_PtrPush( vNamesIn, Gia_ManDupRegioNameNew(p->vNamesOut, i, (char *)"_o_ro", (char *)"outro", i) );
+        pNew->vNamesIn = vNamesIn;
+    }
+    if ( p->vNamesOut )
+    {
+        vNamesOut = Vec_PtrAlloc( nPos + nRegsNew );
+        for ( i = 0; i < nPos; i++ )
+            Vec_PtrPush( vNamesOut, Gia_ManDupRegioNameCopy(p->vNamesOut, i) );
+        for ( i = 0; i < nRegs; i++ )
+            Vec_PtrPush( vNamesOut, Gia_ManDupRegioNameCopy(p->vNamesOut, nPos + i) );
+        if ( fRegIns )
+            for ( i = 0; i < nPis; i++ )
+                Vec_PtrPush( vNamesOut, Gia_ManDupRegioNameNew(p->vNamesIn, i, (char *)"_i_ri", (char *)"inri", i) );
+        if ( fRegOuts )
+            for ( i = 0; i < nPos; i++ )
+                Vec_PtrPush( vNamesOut, Gia_ManDupRegioNameNew(p->vNamesOut, i, (char *)"_o_ri", (char *)"outri", i) );
+        pNew->vNamesOut = vNamesOut;
+    }
+
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachPi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachRo( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+
+    if ( fRegIns )
+    {
+        vInRos = Vec_IntAlloc( nPis );
+        Gia_ManForEachPi( p, pObj, i )
+            Vec_IntPush( vInRos, Gia_ManAppendCi( pNew ) );
+        Gia_ManForEachPi( p, pObj, i )
+            pObj->Value = Vec_IntEntry( vInRos, i );
+    }
+    if ( fRegOuts )
+    {
+        vOutRos = Vec_IntAlloc( nPos );
+        for ( i = 0; i < nPos; i++ )
+            Vec_IntPush( vOutRos, Gia_ManAppendCi( pNew ) );
+    }
+
+    Gia_ManForEachObj1( p, pObj, i )
+    {
+        if ( !p->fGiaSimple && Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else if ( Gia_ObjIsAnd(pObj) )
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+
+    Gia_ManForEachPo( p, pObj, i )
+    {
+        if ( fRegOuts )
+            Gia_ManAppendCo( pNew, Vec_IntEntry(vOutRos, i) );
+        else
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    }
+    Gia_ManForEachRi( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    if ( fRegIns )
+        for ( i = 0; i < nPis; i++ )
+            Gia_ManAppendCo( pNew, Gia_ManCiLit(pNew, i) );
+    if ( fRegOuts )
+        Gia_ManForEachPo( p, pObj, i )
+            Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+
+    Gia_ManSetRegNum( pNew, nRegsNew );
+    Vec_IntFreeP( &vInRos );
+    Vec_IntFreeP( &vOutRos );
+
+    if ( fVerbose )
+        Abc_Print( 1, "Added %d input flops and %d output flops (total regs = %d).\n", nRegIns, nRegOuts, nRegsNew );
+    return pNew;
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

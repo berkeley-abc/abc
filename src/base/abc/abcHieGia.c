@@ -1110,11 +1110,14 @@ static void GiaHie_DumpPortDeclsOneSome( Vec_Ptr_t * vNames, int nBits, FILE * p
         Vec_IntFree( vArray );
     }
 }
-static void GiaHie_DumpPortDeclsSeq( Gia_Man_t * p, FILE * pFile )
+static void GiaHie_DumpPortDeclsSeq( Gia_Man_t * p, FILE * pFile, int fUseCtrlPis )
 {
-    int fFirst = 0;
-    fprintf( pFile, "  input clk,\n" );
-    fprintf( pFile, "  input rst" );
+    int fFirst = fUseCtrlPis ? 1 : 0;
+    if ( !fUseCtrlPis )
+    {
+        fprintf( pFile, "  input clk,\n" );
+        fprintf( pFile, "  input rst" );
+    }
     GiaHie_DumpPortDeclsOneSome( p->vNamesIn, Gia_ManPiNum(p), pFile, 0, &fFirst );
     GiaHie_DumpPortDeclsOneSome( p->vNamesOut, Gia_ManPoNum(p), pFile, 1, &fFirst );
 }
@@ -1434,13 +1437,18 @@ static void GiaHie_DumpOutputAssignsSome( Gia_Man_t * p, FILE * pFile, int nDigi
         Vec_IntFree( vArray );
     }
 }
-static void GiaHie_DumpInterfaceAssignsSeq( Gia_Man_t * p, char * pFileName )
+static void GiaHie_DumpInterfaceAssignsSeq( Gia_Man_t * p, char * pFileName, int fUseCtrlPis )
 {
     Gia_Obj_t * pObj, * pObjRi, * pObjRo;
     int nDigits = Abc_Base10Log( Gia_ManObjNum(p) );
     int nPerLine = 4, nOnLine = 0;
     int i;
     FILE * pFile;
+    if ( fUseCtrlPis && Gia_ManPiNum(p) < 2 )
+    {
+        printf( "Sequential Verilog with \"-c\" expects at least 2 primary inputs.\n" );
+        return;
+    }
     pFile = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
@@ -1451,7 +1459,7 @@ static void GiaHie_DumpInterfaceAssignsSeq( Gia_Man_t * p, char * pFileName )
     fprintf( pFile, "module " );
     GiaHie_DumpModuleName( pFile, p->pName );
     fprintf( pFile, " (\n" );
-    GiaHie_DumpPortDeclsSeq( p, pFile );
+    GiaHie_DumpPortDeclsSeq( p, pFile, fUseCtrlPis );
     fprintf( pFile, "\n);\n\n" );
 
     if ( Gia_ManPiNum(p) )
@@ -1511,7 +1519,12 @@ static void GiaHie_DumpInterfaceAssignsSeq( Gia_Man_t * p, char * pFileName )
     GiaHie_DumpOutputAssignsSome( p, pFile, nDigits, Gia_ManPoNum(p) );
     fprintf( pFile, "\n" );
 
-    fprintf( pFile, "  always @(posedge clk) begin\n" );
+    fprintf( pFile, "  always @(posedge " );
+    if ( fUseCtrlPis )
+        GiaHie_PrintObjName( pFile, Gia_ManCiIdToId(p, 0), nDigits );
+    else
+        fprintf( pFile, "clk" );
+    fprintf( pFile, ") begin\n" );
     Gia_ManForEachRiRo( p, pObjRi, pObjRo, i )
         fprintf( pFile, "      n%0*d <= n%0*d;\n", nDigits, Gia_ObjId(p, pObjRo), nDigits, Gia_ObjId(p, pObjRi) );
     fprintf( pFile, "  end\n\n" );
@@ -1530,7 +1543,7 @@ static void GiaHie_DumpInterfaceAssignsSeq( Gia_Man_t * p, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-static void GiaHie_DumpInterfaceAssigns( Gia_Man_t * p, char * pFileName )
+static void GiaHie_DumpInterfaceAssigns( Gia_Man_t * p, char * pFileName, int fUseCtrlPis )
 {
     Gia_Obj_t * pObj;
     int nDigits = Abc_Base10Log( Gia_ManObjNum(p) );
@@ -1539,7 +1552,7 @@ static void GiaHie_DumpInterfaceAssigns( Gia_Man_t * p, char * pFileName )
     int i;
     if ( Gia_ManRegNum(p) > 0 )
     {
-        GiaHie_DumpInterfaceAssignsSeq( p, pFileName );
+        GiaHie_DumpInterfaceAssignsSeq( p, pFileName, fUseCtrlPis );
         return;
     }
     FILE * pFile = fopen( pFileName, "wb" );
@@ -1812,7 +1825,7 @@ static void GiaHie_DumpMappedLuts( Gia_Man_t * p, char * pFileName )
   SeeAlso     []
 
 ***********************************************************************/
-void Gia_WriteVerilog( char * pFileName, Gia_Man_t * pGia, int fUseGates, int fVerbose )
+void Gia_WriteVerilogInt( char * pFileName, Gia_Man_t * pGia, int fUseGates, int fVerbose, int fUseCtrlPis )
 {
     (void)fVerbose;
     if ( pFileName == NULL || pGia == NULL )
@@ -1820,7 +1833,12 @@ void Gia_WriteVerilog( char * pFileName, Gia_Man_t * pGia, int fUseGates, int fV
     if ( fUseGates )
         GiaHie_DumpInterfaceGates( pGia, pFileName );
     else
-        GiaHie_DumpInterfaceAssigns( pGia, pFileName );
+        GiaHie_DumpInterfaceAssigns( pGia, pFileName, fUseCtrlPis );
+}
+
+void Gia_WriteVerilog( char * pFileName, Gia_Man_t * pGia, int fUseGates, int fVerbose )
+{
+    Gia_WriteVerilogInt( pFileName, pGia, fUseGates, fVerbose, 0 );
 }
 
 /**Function*************************************************************

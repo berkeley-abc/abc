@@ -428,9 +428,6 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 }
                 else if ( *pType == 'l' )
                 {
-                    char Buffer[1000];
-                    assert( strlen(pName) < 995 );
-                    sprintf( Buffer, "%s_in", pName );
                     if ( vNamesRegIn == NULL )
                         vNamesRegIn = Vec_PtrStart( nLatches );
                     if ( vNamesRegOut == NULL )
@@ -440,7 +437,7 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                         fError = 1;
                         break;
                     }
-                    Vec_PtrWriteEntry( vNamesRegIn,  iTerm, Abc_UtilStrsav(Buffer) );
+                    Vec_PtrWriteEntry( vNamesRegIn,  iTerm, Abc_UtilStrsavTwo(pName, (char *)"_in") );
                     Vec_PtrWriteEntry( vNamesRegOut, iTerm, Abc_UtilStrsav(pName) );
                 }
                 else if ( *pType == 'n' )
