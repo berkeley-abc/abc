@@ -39,6 +39,8 @@ static void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk );
 static void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds );
 static int  Io_WriteVerilogWiresCount( Abc_Ntk_t * pNtk );
 static char * Io_WriteVerilogGetName( char * pName );
+static int Io_WriteVerilogNodesHaveSameFanins( Abc_Obj_t * pNode, Abc_Obj_t * pNode2 );
+static int Io_WriteVerilogIsPrevTwinNode( Abc_Obj_t * pNode );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -514,6 +516,54 @@ void Io_WriteVerilogLatches( FILE * pFile, Abc_Ntk_t * pNtk )
 
 /**Function*************************************************************
 
+  Synopsis    [Checks whether two mapped nodes have the same fanins.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Io_WriteVerilogNodesHaveSameFanins( Abc_Obj_t * pNode, Abc_Obj_t * pNode2 )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    if ( Abc_ObjFaninNum(pNode) != Abc_ObjFaninNum(pNode2) )
+        return 0;
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        if ( pFanin != Abc_ObjFanin(pNode2, i) )
+            return 0;
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Checks whether this mapped node is the second output of a twin.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Io_WriteVerilogIsPrevTwinNode( Abc_Obj_t * pNode )
+{
+    Abc_Obj_t * pPrev;
+    Mio_Gate_t * pGate = (Mio_Gate_t *)pNode->pData;
+    if ( pGate == NULL || Mio_GateReadTwin(pGate) == NULL || Abc_ObjId(pNode) == 0 )
+        return 0;
+    pPrev = Abc_NtkObj( pNode->pNtk, Abc_ObjId(pNode) - 1 );
+    if ( pPrev == NULL || !Abc_ObjIsNode(pPrev) )
+        return 0;
+    if ( Mio_GateReadTwin(pGate) != (Mio_Gate_t *)pPrev->pData )
+        return 0;
+    return Io_WriteVerilogNodesHaveSameFanins( pPrev, pNode );
+}
+
+/**Function*************************************************************
+
   Synopsis    [Writes the nodes and boxes.]
 
   Description []
@@ -563,12 +613,18 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds )
         Abc_NtkForEachNode( pNtk, pObj, k )
         {
             Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
+            Abc_Obj_t * pNode2 = NULL;
             Mio_Pin_t * pGatePin;
+            if ( Io_WriteVerilogIsPrevTwinNode( pObj ) )
+                continue;
             if ( Abc_ObjFaninNum(pObj) == 0 && (!strcmp(Mio_GateReadName(pGate), "_const0_") || !strcmp(Mio_GateReadName(pGate), "_const1_")) )
             {
                 fprintf( pFile, "  %-*s %s = 1\'b%d;\n", Length, "assign", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanout0(pObj) )), !strcmp(Mio_GateReadName(pGate), "_const1_") );
                 continue;
             }
+            pNode2 = Abc_NtkFetchTwinNode( pObj );
+            if ( pNode2 && !Io_WriteVerilogNodesHaveSameFanins( pObj, pNode2 ) )
+                pNode2 = NULL;
             // write the node
             if ( fUseSimpleGateNames )
             {
@@ -591,6 +647,12 @@ void Io_WriteVerilogObjects( FILE * pFile, Abc_Ntk_t * pNtk, int fOnlyAnds )
                 assert ( i == Abc_ObjFaninNum(pObj) );
                 fprintf( pFile, ".%s", Io_WriteVerilogGetName(Mio_GateReadOutName(pGate)) );
                 fprintf( pFile, "(%s)", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanout0(pObj) )) );
+                if ( pNode2 )
+                {
+                    fprintf( pFile, ", " );
+                    fprintf( pFile, ".%s", Io_WriteVerilogGetName(Mio_GateReadOutName((Mio_Gate_t *)pNode2->pData)) );
+                    fprintf( pFile, "(%s)", Io_WriteVerilogGetName(Abc_ObjName( Abc_ObjFanout0(pNode2) )) );
+                }
                 fprintf( pFile, ");\n" );
             }
         }
@@ -972,4 +1034,3 @@ void Io_WriteVerilogLut( Abc_Ntk_t * pNtk, char * pFileName, int nLutSize, int f
 
 
 ABC_NAMESPACE_IMPL_END
-

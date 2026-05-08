@@ -656,18 +656,23 @@ static inline void Scl_LibPinRequiredI( SC_Timing * pTime, SC_PairI * pReqIn, SC
   SeeAlso     []
 
 ***********************************************************************/
-static inline SC_Timing * Scl_CellPinTime( SC_Cell * pCell, int iPin )
+static inline SC_Timing * Scl_CellPinOutTime( SC_Cell * pCell, int iOut, int iPin )
 {
     SC_Pin * pPin;
     SC_Timings * pRTime;
+    assert( iOut >= 0 && iOut < pCell->n_outputs );
     assert( iPin >= 0 && iPin < pCell->n_inputs );
-    pPin = SC_CellPin( pCell, pCell->n_inputs );
+    pPin = SC_CellPin( pCell, pCell->n_inputs + iOut );
     assert( Vec_PtrSize(&pPin->vRTimings) == pCell->n_inputs );
     pRTime = (SC_Timings *)Vec_PtrEntry( &pPin->vRTimings, iPin );
     if ( Vec_PtrSize(&pRTime->vTimings) == 0 )
         return NULL;
     assert( Vec_PtrSize(&pRTime->vTimings) == 1 );
     return (SC_Timing *)Vec_PtrEntry( &pRTime->vTimings, 0 );
+}
+static inline SC_Timing * Scl_CellPinTime( SC_Cell * pCell, int iPin )
+{
+    return Scl_CellPinOutTime( pCell, 0, iPin );
 }
 static inline float Scl_LibPinArrivalEstimate( SC_Cell * pCell, int iPin, float Slew, float Load )
 {

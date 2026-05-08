@@ -573,6 +573,17 @@ void Io_NtkWriteSubcktFanins( FILE * pFile, Abc_Obj_t * pNode )
   SeeAlso     []
 
 ***********************************************************************/
+static int Io_NtkNodesHaveSameFanins( Abc_Obj_t * pNode, Abc_Obj_t * pNode2 )
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    if ( Abc_ObjFaninNum(pNode) != Abc_ObjFaninNum(pNode2) )
+        return 0;
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+        if ( pFanin != Abc_ObjFanin(pNode2, i) )
+            return 0;
+    return 1;
+}
 int Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length )
 {
     static int fReport = 0;
@@ -594,6 +605,8 @@ int Io_NtkWriteNodeGate( FILE * pFile, Abc_Obj_t * pNode, int Length )
             fReport = 1, printf( "Warning: Missing second output of gate(s) \"%s\".\n", Mio_GateReadName(pGate) );
         return 0;
     }
+    if ( !Io_NtkNodesHaveSameFanins( pNode, pNode2 ) )
+        return 0;
     fprintf( pFile, " %s=%s", Mio_GateReadOutName((Mio_Gate_t *)pNode2->pData), Abc_ObjName( Abc_ObjFanout0(pNode2) ) );
     return 1;
 }
@@ -1407,4 +1420,3 @@ void Io_WriteBlifSpecial( Abc_Ntk_t * pNtk, char * FileName, char * pLutStruct, 
 
 
 ABC_NAMESPACE_IMPL_END
-

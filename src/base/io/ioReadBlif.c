@@ -622,46 +622,65 @@ int Io_ReadBlifReorderFormalNames( Vec_Ptr_t * vTokens, Mio_Gate_t * pGate, Mio_
     }
     else
     {
-        if ( i != Mio_GateReadPinNum(pGate) ) // expect the correct order of input pins in the network with twin gates
+        int nInputs = Mio_GateReadPinNum(pGate);
+        int nOutputs = nSize - 2 - nInputs;
+        int nMatched = 0;
+        if ( nOutputs != 1 && nOutputs != 2 )
             return 0;
-        // check the last two entries
-        if ( nSize - 3 == Mio_GateReadPinNum(pGate) ) // only one output is available
+        // reorder the input pins to be in the same order as in the gate
+        for ( pGatePin = Mio_GateReadPins(pGate), i = 0; pGatePin; pGatePin = Mio_PinReadNext(pGatePin), i++ )
         {
-            pNamePin = Mio_GateReadOutName(pGate);
+            pNamePin = Mio_PinReadName(pGatePin);
             Length = strlen(pNamePin);
-            pName = (char *)Vec_PtrEntry(vTokens, nSize - 1);
-            if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' ) // the last entry is pGate
+            for ( k = 2; k < nSize; k++ )
             {
-                Vec_PtrPush( vTokens, NULL );
-                return 1;
+                pName = (char *)Vec_PtrEntry(vTokens, k);
+                if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' )
+                {
+                    Vec_PtrPush( vTokens, pName );
+                    nMatched++;
+                    break;
+                }
             }
-            pNamePin = Mio_GateReadOutName(pTwin);
-            Length = strlen(pNamePin);
-            pName = (char *)Vec_PtrEntry(vTokens, nSize - 1);
-            if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' ) // the last entry is pTwin
+            if ( k == nSize )
+                return 0;
+        }
+        // add the outputs in the base/twin order, with NULL for a missing output
+        pNamePin = Mio_GateReadOutName(pGate);
+        Length = strlen(pNamePin);
+        for ( k = 2; k < nSize; k++ )
+        {
+            pName = (char *)Vec_PtrEntry(vTokens, k);
+            if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' )
             {
-                pName = (char *)Vec_PtrPop( vTokens );
-                Vec_PtrPush( vTokens, NULL );
                 Vec_PtrPush( vTokens, pName );
-                return 1;
+                nMatched++;
+                break;
             }
-            return 0;
         }
-        if ( nSize - 4 == Mio_GateReadPinNum(pGate) ) // two outputs are available
+        if ( k == nSize )
+            Vec_PtrPush( vTokens, NULL );
+        pNamePin = Mio_GateReadOutName(pTwin);
+        Length = strlen(pNamePin);
+        for ( k = 2; k < nSize; k++ )
         {
-            pNamePin = Mio_GateReadOutName(pGate);
-            Length = strlen(pNamePin);
-            pName = (char *)Vec_PtrEntry(vTokens, nSize - 2);
-            if ( !(!strncmp( pNamePin, pName, Length ) && pName[Length] == '=') )
-                return 0;
-            pNamePin = Mio_GateReadOutName(pTwin);
-            Length = strlen(pNamePin);
-            pName = (char *)Vec_PtrEntry(vTokens, nSize - 1);
-            if ( !(!strncmp( pNamePin, pName, Length ) && pName[Length] == '=') )
-                return 0;
-            return 1;
+            pName = (char *)Vec_PtrEntry(vTokens, k);
+            if ( !strncmp( pNamePin, pName, Length ) && pName[Length] == '=' )
+            {
+                Vec_PtrPush( vTokens, pName );
+                nMatched++;
+                break;
+            }
         }
-        assert( 0 );
+        if ( k == nSize )
+            Vec_PtrPush( vTokens, NULL );
+        if ( Vec_PtrEntry(vTokens, nSize + nInputs) == NULL && Vec_PtrEntry(vTokens, nSize + nInputs + 1) == NULL )
+            return 0;
+        if ( nMatched != nSize - 2 )
+            return 0;
+        Vec_PtrForEachEntryStart( char *, vTokens, pName, k, nSize )
+            Vec_PtrWriteEntry( vTokens, k - nSize + 2, pName );
+        Vec_PtrShrink( vTokens, 2 + nInputs + 2 );
     }
     return 1;
 }
@@ -1713,4 +1732,3 @@ int Io_ReadBlifNetworkConnectBoxes( Io_ReadBlif_t * p, Abc_Ntk_t * pNtkMaster )
 
 
 ABC_NAMESPACE_IMPL_END
-

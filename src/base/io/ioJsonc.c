@@ -108,6 +108,8 @@ void json_print_string(json_t *json, json_value_t val, FILE *fp);
 void json_debug_value(json_t *json, json_value_t val, int indent);
 
 extern Abc_Ntk_t * Abc_NtkFromMiniMapping( int * pArray );
+static json_value_t * Jsonc_ObjectLookup( json_t * pJson, json_value_t object, const char * pKey );
+static char * Jsonc_StringDup( json_t * pJson, json_value_t value );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -671,6 +673,68 @@ static const char * Jsonc_GetNodeOutName( Abc_Obj_t * pObj )
     snprintf( Buffer, sizeof(Buffer), "n%d", Abc_ObjId(pObj) );
     return Buffer;
 }
+static char * Jsonc_GetInstanceOutName( json_t * pJson, json_value_t Node )
+{
+    json_value_t * pOutName = Jsonc_ObjectLookup( pJson, Node, "pin" );
+    if ( pOutName == NULL )
+        pOutName = Jsonc_ObjectLookup( pJson, Node, "output" );
+    return pOutName && pOutName->type == JSON_STRING ? Jsonc_StringDup( pJson, *pOutName ) : NULL;
+}
+static int Jsonc_IsPrevTwinNode( Abc_Obj_t * pObj, Abc_Obj_t ** ppPrev )
+{
+    Abc_Obj_t * pPrev;
+    Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
+    if ( ppPrev )
+        *ppPrev = NULL;
+    if ( pGate == NULL || Mio_GateReadTwin(pGate) == NULL || Abc_ObjId(pObj) == 0 )
+        return 0;
+    pPrev = Abc_NtkObj( pObj->pNtk, Abc_ObjId(pObj) - 1 );
+    if ( pPrev == NULL || !Abc_ObjIsNode(pPrev) || Abc_ObjFaninNum(pPrev) != Abc_ObjFaninNum(pObj) )
+        return 0;
+    if ( Mio_GateReadTwin(pGate) != (Mio_Gate_t *)pPrev->pData )
+        return 0;
+    if ( ppPrev )
+        *ppPrev = pPrev;
+    return 1;
+}
+static Vec_Ptr_t * Jsonc_OrderTwinNodes( Abc_Ntk_t * p, Vec_Ptr_t * vNodes )
+{
+    Vec_Int_t * vInDfs = Vec_IntStart( Abc_NtkObjNumMax(p) );
+    Vec_Int_t * vSeen = Vec_IntStart( Abc_NtkObjNumMax(p) );
+    Vec_Ptr_t * vRes = Vec_PtrAlloc( Vec_PtrSize(vNodes) );
+    Abc_Obj_t * pObj, * pTwin;
+    int i;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        Vec_IntWriteEntry( vInDfs, Abc_ObjId(pObj), 1 );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        if ( Vec_IntEntry(vSeen, Abc_ObjId(pObj)) )
+            continue;
+        if ( Jsonc_IsPrevTwinNode( pObj, &pTwin ) && Vec_IntEntry(vInDfs, Abc_ObjId(pTwin)) )
+        {
+            if ( !Vec_IntEntry(vSeen, Abc_ObjId(pTwin)) )
+            {
+                Vec_PtrPush( vRes, pTwin );
+                Vec_IntWriteEntry( vSeen, Abc_ObjId(pTwin), 1 );
+            }
+            Vec_PtrPush( vRes, pObj );
+            Vec_IntWriteEntry( vSeen, Abc_ObjId(pObj), 1 );
+            continue;
+        }
+        Vec_PtrPush( vRes, pObj );
+        Vec_IntWriteEntry( vSeen, Abc_ObjId(pObj), 1 );
+        pTwin = Abc_NtkFetchTwinNode( pObj );
+        if ( pTwin && Vec_IntEntry(vInDfs, Abc_ObjId(pTwin)) && !Vec_IntEntry(vSeen, Abc_ObjId(pTwin)) )
+        {
+            Vec_PtrPush( vRes, pTwin );
+            Vec_IntWriteEntry( vSeen, Abc_ObjId(pTwin), 1 );
+        }
+    }
+    assert( Vec_PtrSize(vRes) == Vec_PtrSize(vNodes) );
+    Vec_IntFree( vInDfs );
+    Vec_IntFree( vSeen );
+    return vRes;
+}
 
 /**Function*************************************************************
 
@@ -692,8 +756,18 @@ void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
     int i, Counter, Total;
     assert( Abc_NtkHasMapping(p) );
     vNodes   = Abc_NtkDfs2( p );
+    {
+        Vec_Ptr_t * vTemp = Jsonc_OrderTwinNodes( p, vNodes );
+        Vec_PtrFree( vNodes );
+        vNodes = vTemp;
+    }
     vObj2Num = Vec_IntStartFull( Abc_NtkObjNumMax(p) );
     Total    = Abc_NtkPiNum(p) + Vec_PtrSize(vNodes) + Abc_NtkPoNum(p);
+    Counter  = 0;
+    Abc_NtkForEachPi( p, pObj, i )
+        Vec_IntWriteEntry( vObj2Num, Abc_ObjId(pObj), Counter++ );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+        Vec_IntWriteEntry( vObj2Num, Abc_ObjId(pObj), Counter++ );
     pFile    = fopen( pFileName, "wb" );
     if ( pFile == NULL )
     {
@@ -727,6 +801,8 @@ void Jsonc_WriteTest( Abc_Ntk_t * p, char * pFileName )
         fprintf( pFile, "    {\n" );
         fprintf( pFile, "      \"type\": \"%s\",\n", "instance" );
         fprintf( pFile, "      \"name\": \"%s\",\n", Mio_GateReadName(pGate) );
+        if ( Mio_GateReadTwin(pGate) != NULL )
+            fprintf( pFile, "      \"pin\": \"%s\",\n", Mio_GateReadOutName(pGate) );
         fprintf( pFile, "      \"fanins\":\n" );
         fprintf( pFile, "        {\n" );
         for ( pPin = Mio_GateReadPins(pGate), k = 0; pPin; pPin = Mio_PinReadNext(pPin), k++ )
@@ -897,9 +973,10 @@ static void Jsonc_AppendPortNames( Vec_Str_t * vNames, Vec_Ptr_t * vBases, Vec_I
     Vec_IntFree( vCounts );
     Vec_IntFree( vBaseIds );
 }
-static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * pLib, char ** ppDesignName )
+static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * pLib, char ** ppDesignName, Vec_Ptr_t ** pvNodeOutNames )
 {
     Vec_Ptr_t * vPiBases = NULL, * vPoBases = NULL;
+    Vec_Ptr_t * vNodeOutNames = NULL;
     Vec_Int_t * vPiBits = NULL, * vPoBits = NULL;
     Vec_Int_t * vNodeMap = NULL, * vGateIdx = NULL, * vPoIdx = NULL;
     Vec_Int_t * vMapping = NULL, * vPoDrivers = NULL;
@@ -911,6 +988,8 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
     int fSuccess = 0;
     if ( ppDesignName )
         *ppDesignName = NULL;
+    if ( pvNodeOutNames )
+        *pvNodeOutNames = NULL;
     if ( pLib == NULL )
     {
         printf( "Genlib library is not available.\n" );
@@ -943,6 +1022,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
     vPiBits    = Vec_IntAlloc( pNodes->count );
     vPoBases   = Vec_PtrAlloc( pNodes->count );
     vPoBits    = Vec_IntAlloc( pNodes->count );
+    vNodeOutNames = Vec_PtrAlloc( pNodes->count );
     // first pass: collect object types and names
     for ( i = 0; i < (int)pNodes->count; i++ )
     {
@@ -1020,7 +1100,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
             json_container_t * pFanObj;
             Mio_Gate_t * pGate;
             Mio_Pin_t * pPin;
-            char * pGateStr;
+            char * pGateStr, * pOutStr;
             if ( pGateName == NULL || pGateName->type != JSON_STRING )
             {
                 printf( "Gate node %d is missing a name.\n", i );
@@ -1032,16 +1112,19 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
                 printf( "Gate node %d has an invalid name.\n", i );
                 goto cleanup;
             }
-            pGate = Mio_LibraryReadGateByName( pLib, pGateStr, NULL );
+            pOutStr = Jsonc_GetInstanceOutName( pJson, Node );
+            pGate = Mio_LibraryReadGateByName( pLib, pGateStr, pOutStr );
             if ( pGate == NULL )
             {
-                printf( "Gate \"%s\" is not found in the current library.\n", pGateStr );
+                printf( "Gate \"%s\"%s%s%s is not found in the current library.\n", pGateStr, pOutStr ? " with output pin \"" : "", pOutStr ? pOutStr : "", pOutStr ? "\"" : "" );
+                ABC_FREE( pOutStr );
                 ABC_FREE( pGateStr );
                 goto cleanup;
             }
             if ( pFanins == NULL || pFanins->type != JSON_OBJECT )
             {
                 printf( "Gate \"%s\" is missing \"fanins\" description.\n", pGateStr );
+                ABC_FREE( pOutStr );
                 ABC_FREE( pGateStr );
                 goto cleanup;
             }
@@ -1049,6 +1132,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
             if ( pFanObj == NULL )
             {
                 printf( "Gate \"%s\" has incomplete fanin information.\n", pGateStr );
+                ABC_FREE( pOutStr );
                 ABC_FREE( pGateStr );
                 goto cleanup;
             }
@@ -1061,6 +1145,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
                 if ( pPinInfo == NULL || pPinInfo->type != JSON_OBJECT )
                 {
                     printf( "Gate \"%s\" is missing connection for pin \"%s\".\n", pGateStr, Mio_PinReadName(pPin) );
+                    ABC_FREE( pOutStr );
                     ABC_FREE( pGateStr );
                     goto cleanup;
                 }
@@ -1068,12 +1153,14 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
                 if ( pNodeLit == NULL || !Jsonc_ParseInt( pJson, *pNodeLit, &NodeId ) )
                 {
                     printf( "Gate \"%s\" has invalid node reference on pin \"%s\".\n", pGateStr, Mio_PinReadName(pPin) );
+                    ABC_FREE( pOutStr );
                     ABC_FREE( pGateStr );
                     goto cleanup;
                 }
                 if ( NodeId < 0 || NodeId >= Vec_IntSize(vNodeMap) )
                 {
                     printf( "Gate \"%s\" references out-of-range node %d.\n", pGateStr, NodeId );
+                    ABC_FREE( pOutStr );
                     ABC_FREE( pGateStr );
                     goto cleanup;
                 }
@@ -1081,6 +1168,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
                 if ( MapId < 0 )
                 {
                     printf( "Gate \"%s\" refers to unsupported node %d.\n", pGateStr, NodeId );
+                    ABC_FREE( pOutStr );
                     ABC_FREE( pGateStr );
                     goto cleanup;
                 }
@@ -1088,6 +1176,7 @@ static Vec_Int_t * Jsonc_ConvertToMiniMapping( json_t * pJson, Mio_Library_t * p
             }
             Vec_StrPrintStr( vNames, pGateStr );
             Vec_StrPush( vNames, '\0' );
+            Vec_PtrPush( vNodeOutNames, pOutStr );
             ABC_FREE( pGateStr );
         }
         else if ( Jsonc_StringEqual( pJson, *pType, "PO" ) || Jsonc_StringEqual( pJson, *pType, "po" ) )
@@ -1148,6 +1237,18 @@ cleanup:
     Vec_IntFreeP( &vPoBits );
     if ( vNames )
         Vec_StrFree( vNames );
+    if ( vNodeOutNames )
+    {
+        if ( fSuccess && pvNodeOutNames )
+            *pvNodeOutNames = vNodeOutNames;
+        else
+        {
+            char * pOutName;
+            Vec_PtrForEachEntry( char *, vNodeOutNames, pOutName, i )
+                ABC_FREE( pOutName );
+            Vec_PtrFree( vNodeOutNames );
+        }
+    }
     if ( vPiBases )
     {
         Vec_PtrForEachEntry( char *, vPiBases, pBase, i )
@@ -1171,8 +1272,12 @@ Abc_Ntk_t * Jsonc_ReadNetwork( char * pFileName )
 {
     Mio_Library_t * pLib = (Mio_Library_t *)Abc_FrameReadLibGen();
     Vec_Int_t * vMapping;
+    Vec_Ptr_t * vNodeOutNames = NULL;
     Abc_Ntk_t * pNtk;
+    Abc_Obj_t * pObj;
     char * pDesignName = NULL;
+    char * pOutName;
+    int i;
     json_t * pJson = json_create();
     if ( pJson == NULL )
     {
@@ -1185,7 +1290,7 @@ Abc_Ntk_t * Jsonc_ReadNetwork( char * pFileName )
         json_destroy( pJson );
         return NULL;
     }
-    vMapping = Jsonc_ConvertToMiniMapping( pJson, pLib, &pDesignName );
+    vMapping = Jsonc_ConvertToMiniMapping( pJson, pLib, &pDesignName, &vNodeOutNames );
     json_destroy( pJson );
     if ( vMapping == NULL )
         return NULL;
@@ -1193,8 +1298,34 @@ Abc_Ntk_t * Jsonc_ReadNetwork( char * pFileName )
     Vec_IntFree( vMapping );
     if ( pNtk == NULL )
     {
+        if ( vNodeOutNames )
+        {
+            Vec_PtrForEachEntry( char *, vNodeOutNames, pOutName, i )
+                ABC_FREE( pOutName );
+            Vec_PtrFree( vNodeOutNames );
+        }
         ABC_FREE( pDesignName );
         return NULL;
+    }
+    if ( vNodeOutNames )
+    {
+        Vec_PtrForEachEntry( char *, vNodeOutNames, pOutName, i )
+        {
+            Mio_Gate_t * pGate;
+            pObj = Abc_NtkObj( pNtk, Abc_NtkCiNum(pNtk) + i + 1 );
+            if ( pObj == NULL )
+                continue;
+            pGate = (Mio_Gate_t *)pObj->pData;
+            if ( pOutName && pGate )
+            {
+                Mio_Gate_t * pGateOut = Mio_LibraryReadGateByName( pLib, Mio_GateReadName(pGate), pOutName );
+                if ( pGateOut )
+                    pObj->pData = pGateOut;
+            }
+        }
+        Vec_PtrForEachEntry( char *, vNodeOutNames, pOutName, i )
+            ABC_FREE( pOutName );
+        Vec_PtrFree( vNodeOutNames );
     }
     ABC_FREE( pNtk->pName );
     pNtk->pName = pDesignName ? pDesignName : Extra_FileNameGeneric( pFileName );
