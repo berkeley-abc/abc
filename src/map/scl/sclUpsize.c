@@ -489,7 +489,7 @@ int Abc_SclFindBypasses( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notc
         // update cell
         pCellOld = Abc_SclObjCell( pFanin );
         pCellNew = SC_LibCell( p->pLib, Vec_IntEntry(p->vNode2Gate, iNode) );
-        p->SumArea += pCellNew->area - pCellOld->area;
+        p->SumArea += Abc_SclObjAreaDelta( pFanin, pCellOld, pCellNew );
         Abc_SclObjSetCell( pFanin, pCellNew );
         Abc_SclUpdateLoad( p, pFanin, pCellOld, pCellNew );
         // record the update
@@ -646,7 +646,7 @@ int Abc_SclFindUpsizes( SC_Man * p, Vec_Int_t * vPathNodes, int Ratio, int Notch
         //printf( "gain is %f\n", Vec_FltEntry(p->vNode2Gain, Abc_ObjId(pObj)) );
         // update gate
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
-        p->SumArea += pCellNew->area - pCellOld->area;
+        p->SumArea += Abc_SclObjAreaDelta( pObj, pCellOld, pCellNew );
         Abc_SclObjSetCell( pObj, pCellNew );
         // record the update
         Vec_IntPush( p->vUpdates, Abc_ObjId(pObj) );
@@ -686,7 +686,7 @@ return Limit;
 //        if ( pCellOld->Order > 0 )
 //            printf( "%.2f  %d -> %d(%d)   ", Vec_FltEntry(p->vNode2Gain, iNode), pCellOld->Order, pCellNew->Order, pCellNew->nGates );
         // update gate
-        p->SumArea += pCellNew->area - pCellOld->area;
+        p->SumArea += Abc_SclObjAreaDelta( pObj, pCellOld, pCellNew );
         Abc_SclObjSetCell( pObj, pCellNew );
         Abc_SclUpdateLoad( p, pObj, pCellOld, pCellNew );
         // record the update
@@ -1043,4 +1043,3 @@ void Abc_SclUpsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars,
 
 
 ABC_NAMESPACE_IMPL_END
-

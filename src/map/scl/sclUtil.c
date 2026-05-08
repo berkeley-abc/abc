@@ -75,9 +75,11 @@ void Abc_SclSclGates2MioGates( SC_Lib * pLib, Abc_Ntk_t * p )
     assert( p->vGates != NULL );
     Abc_NtkForEachNodeNotBarBuf1( p, pObj, i )
     {
+        Mio_Gate_t * pGateOld = (Mio_Gate_t *)pObj->pData;
+        char * pOutName = Abc_SclObjIsMogOutput(pObj) ? Mio_GateReadOutName(pGateOld) : NULL;
         pCell = Abc_SclObjCell(pObj);
         assert( pCell->n_inputs == Abc_ObjFaninNum(pObj) );
-        pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, NULL );
+        pObj->pData = Mio_LibraryReadGateByName( (Mio_Library_t *)p->pManFunc, pCell->pName, pOutName );
         Counter += (pObj->pData == NULL);
         assert( pObj->fMarkA == 0 && pObj->fMarkB == 0 );
         CounterAll++;
@@ -317,4 +319,3 @@ void Abc_SclInsertBarBufs( Abc_Ntk_t * pNtk, Vec_Int_t * vBufs )
 
 
 ABC_NAMESPACE_IMPL_END
-

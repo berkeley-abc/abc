@@ -149,7 +149,7 @@ p->timeSize += Abc_Clock() - clk;
     {
         pCellNew = SC_LibCell( p->pLib, gateBest );
         Abc_SclObjSetCell( pObj, pCellNew );
-        p->SumArea += pCellNew->area - pCellOld->area;
+        p->SumArea += Abc_SclObjAreaDelta( pObj, pCellOld, pCellNew );
 //        printf( "%f   %f -> %f\n", pCellNew->area - pCellOld->area, p->SumArea - (pCellNew->area - pCellOld->area), p->SumArea );
 //        printf( "%6d  %20s -> %20s  %f -> %f\n", Abc_ObjId(pObj), pCellOld->pName, pCellNew->pName, pCellOld->area, pCellNew->area );
         // mark used nodes with the current trav ID
@@ -376,4 +376,3 @@ void Abc_SclDnsizePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, SC_SizePars * pPars,
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -39,6 +39,86 @@ ABC_NAMESPACE_IMPL_START
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
+static int Abc_NtkDupDfsSameFanins( Abc_Obj_t * pObj0, Abc_Obj_t * pObj1 )
+{
+    Abc_Obj_t * pFanin0, * pFanin1;
+    int i;
+    if ( pObj0 == NULL || pObj1 == NULL || Abc_ObjFaninNum(pObj0) != Abc_ObjFaninNum(pObj1) )
+        return 0;
+    Abc_ObjForEachFanin( pObj0, pFanin0, i )
+    {
+        pFanin1 = Abc_ObjFanin( pObj1, i );
+        if ( pFanin0 != pFanin1 )
+            return 0;
+    }
+    return 1;
+}
+static Abc_Obj_t * Abc_NtkDupDfsFindTwin( Vec_Ptr_t * vNodes, Vec_Int_t * vSeen, Abc_Obj_t * pObj )
+{
+    Mio_Gate_t * pGate = (Mio_Gate_t *)pObj->pData;
+    Abc_Obj_t * pObj2;
+    int i;
+    if ( pGate == NULL || Mio_GateReadTwin(pGate) == NULL )
+        return NULL;
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj2, i )
+    {
+        if ( pObj2 == pObj || Vec_IntEntry(vSeen, Abc_ObjId(pObj2)) )
+            continue;
+        if ( (Mio_Gate_t *)pObj2->pData != Mio_GateReadTwin(pGate) )
+            continue;
+        if ( Abc_NtkDupDfsSameFanins(pObj, pObj2) )
+            return pObj2;
+    }
+    return NULL;
+}
+static Vec_Ptr_t * Abc_NtkDupDfsOrderTwinNodes( Abc_Ntk_t * pNtk, Vec_Ptr_t * vNodes )
+{
+    Vec_Int_t * vSeen;
+    Vec_Ptr_t * vRes;
+    Abc_Obj_t * pObj, * pTwin;
+    Mio_Gate_t * pGate, * pGateBase;
+    int i;
+    if ( !Abc_NtkHasMapping(pNtk) || pNtk->pManFunc == NULL )
+        return vNodes;
+    vSeen = Vec_IntStart( Abc_NtkObjNumMax(pNtk) );
+    vRes = Vec_PtrAlloc( Vec_PtrSize(vNodes) );
+    Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
+    {
+        if ( Vec_IntEntry(vSeen, Abc_ObjId(pObj)) )
+            continue;
+        pGate = (Mio_Gate_t *)pObj->pData;
+        if ( pGate == NULL || Mio_GateReadTwin(pGate) == NULL )
+        {
+            Vec_PtrPush( vRes, pObj );
+            Vec_IntWriteEntry( vSeen, Abc_ObjId(pObj), 1 );
+            continue;
+        }
+        pTwin = Abc_NtkDupDfsFindTwin( vNodes, vSeen, pObj );
+        if ( pTwin == NULL )
+        {
+            Vec_PtrPush( vRes, pObj );
+            Vec_IntWriteEntry( vSeen, Abc_ObjId(pObj), 1 );
+            continue;
+        }
+        pGateBase = Mio_LibraryReadGateByName( (Mio_Library_t *)pNtk->pManFunc, Mio_GateReadName(pGate), NULL );
+        if ( pGateBase == (Mio_Gate_t *)pTwin->pData )
+        {
+            Vec_PtrPush( vRes, pTwin );
+            Vec_PtrPush( vRes, pObj );
+        }
+        else
+        {
+            Vec_PtrPush( vRes, pObj );
+            Vec_PtrPush( vRes, pTwin );
+        }
+        Vec_IntWriteEntry( vSeen, Abc_ObjId(pObj), 1 );
+        Vec_IntWriteEntry( vSeen, Abc_ObjId(pTwin), 1 );
+    }
+    Vec_IntFree( vSeen );
+    Vec_PtrFree( vNodes );
+    return vRes;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Creates a new Ntk.]
@@ -548,6 +628,7 @@ Abc_Ntk_t * Abc_NtkDupDfs( Abc_Ntk_t * pNtk )
     pNtkNew = Abc_NtkStartFrom( pNtk, pNtk->ntkType, pNtk->ntkFunc );
     // copy the internal nodes
     vNodes = Abc_NtkDfs( pNtk, 0 );
+    vNodes = Abc_NtkDupDfsOrderTwinNodes( pNtk, vNodes );
     Vec_PtrForEachEntry( Abc_Obj_t *, vNodes, pObj, i )
         Abc_NtkDupObj( pNtkNew, pObj, 0 );
     Vec_PtrFree( vNodes );
@@ -2621,4 +2702,3 @@ Abc_Ntk_t * Abc_NtkCreateFromGias( char * pName, Vec_Ptr_t * vGias, Gia_Man_t * 
 
 
 ABC_NAMESPACE_IMPL_END
-

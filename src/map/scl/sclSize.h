@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "base/abc/abc.h"
+#include "map/mio/mio.h"
 #include "misc/vec/vecQue.h"
 #include "misc/vec/vecWec.h"
 #include "sclLib.h"
@@ -129,6 +130,64 @@ static inline void      Abc_SclObjDupFanin( SC_Man * p, Abc_Obj_t * pObj )      
 static inline float     Abc_SclObjInDrive( SC_Man * p, Abc_Obj_t * pObj )           { return Vec_FltEntry( p->vInDrive, pObj->iData );                                    }
 static inline void      Abc_SclObjSetInDrive( SC_Man * p, Abc_Obj_t * pObj, float c){ Vec_FltWriteEntry( p->vInDrive, pObj->iData, c );                                   }
 static inline void      Abc_SclManSetFaninCallBack( SC_Man * p, void * pCallBack )  { p->pFuncFanin = (float (*)(void *, Abc_Obj_t *, Abc_Obj_t *, int, int))pCallBack;   } 
+
+static inline int       Abc_SclObjsHaveSameFanins( Abc_Obj_t * pObj0, Abc_Obj_t * pObj1 )
+{
+    Abc_Obj_t * pFanin0, * pFanin1;
+    int i;
+    if ( pObj0 == NULL || pObj1 == NULL || Abc_ObjFaninNum(pObj0) != Abc_ObjFaninNum(pObj1) )
+        return 0;
+    Abc_ObjForEachFanin( pObj0, pFanin0, i )
+    {
+        pFanin1 = Abc_ObjFanin( pObj1, i );
+        if ( pFanin0 != pFanin1 )
+            return 0;
+    }
+    return 1;
+}
+static inline int       Abc_SclObjIsMogOutput( Abc_Obj_t * pObj )
+{
+    Mio_Gate_t * pGate;
+    if ( pObj == NULL || !Abc_ObjIsNode(pObj) )
+        return 0;
+    pGate = (Mio_Gate_t *)pObj->pData;
+    return pGate != NULL && Mio_GateReadTwin(pGate) != NULL;
+}
+static inline int       Abc_SclObjIsSecondTwin( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pPrev;
+    Mio_Gate_t * pGate;
+    if ( !Abc_SclObjIsMogOutput(pObj) || Abc_ObjId(pObj) == 0 )
+        return 0;
+    pPrev = Abc_NtkObj( pObj->pNtk, Abc_ObjId(pObj) - 1 );
+    if ( pPrev == NULL || !Abc_ObjIsNode(pPrev) )
+        return 0;
+    pGate = (Mio_Gate_t *)pObj->pData;
+    if ( Mio_GateReadTwin(pGate) != (Mio_Gate_t *)pPrev->pData )
+        return 0;
+    return Abc_SclObjsHaveSameFanins( pObj, pPrev );
+}
+static inline Abc_Obj_t * Abc_SclObjTwin( Abc_Obj_t * pObj )
+{
+    if ( Abc_SclObjIsSecondTwin(pObj) )
+        return Abc_NtkObj( pObj->pNtk, Abc_ObjId(pObj) - 1 );
+    return Abc_NtkFetchTwinNode( pObj );
+}
+static inline int       Abc_SclObjTwinFaninsMatch( Abc_Obj_t * pObj )
+{
+    Abc_Obj_t * pTwin = Abc_SclObjTwin( pObj );
+    return pTwin != NULL && Abc_SclObjsHaveSameFanins( pObj, pTwin );
+}
+static inline int       Abc_SclObjIsCanonicalMog( Abc_Obj_t * pObj )
+{
+    return Abc_SclObjIsMogOutput(pObj) && !Abc_SclObjIsSecondTwin(pObj);
+}
+static inline float     Abc_SclObjAreaDelta( Abc_Obj_t * pObj, SC_Cell * pCellOld, SC_Cell * pCellNew )
+{
+    if ( Abc_SclObjIsSecondTwin(pObj) )
+        return 0.0;
+    return pCellNew->area - pCellOld->area;
+}
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -450,7 +509,11 @@ static inline float Abc_SclGetTotalArea( Abc_Ntk_t * pNtk )
     Abc_Obj_t * pObj;
     int i;
     Abc_NtkForEachNodeNotBarBuf1( pNtk, pObj, i )
+    {
+        if ( Abc_SclObjIsSecondTwin(pObj) )
+            continue;
         Area += Abc_SclObjCell(pObj)->area;
+    }
     return Area;
 }
 static inline float Abc_SclGetMaxDelay( SC_Man * p )
