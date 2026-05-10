@@ -7035,7 +7035,7 @@ Gia_Man_t * Gia_ManDupPipeline( Gia_Man_t * p, int nLevels, int fVerbose )
     Vec_Int_t * vStages, * vLitMap, * vRegDrivers, * vRegStages, * vStageCounts;
     Vec_Ptr_t * vNamesIn, * vNamesOut;
     char * pNameRo;
-    int nObjs, nStageMax, nStageCols, i, iStage, iLit0, iLit1, iLit, iFlop;
+    int nObjs, nLevelMax, nStageMax, nStageCols, i, iStage, iLit0, iLit1, iLit, iFlop;
 
     if ( nLevels <= 0 )
         return NULL;
@@ -7044,7 +7044,8 @@ Gia_Man_t * Gia_ManDupPipeline( Gia_Man_t * p, int nLevels, int fVerbose )
 
     Gia_ManLevelNum( p );
     nObjs      = Gia_ManObjNum( p );
-    nStageMax  = Gia_ManLevelNum( p ) / nLevels;
+    nLevelMax  = Gia_ManLevelNum( p );
+    nStageMax  = nLevelMax ? (nLevelMax - 1) / nLevels : 0;
     nStageCols = nStageMax + 1;
 
     vStages     = Vec_IntStart( nObjs );
@@ -7053,7 +7054,7 @@ Gia_Man_t * Gia_ManDupPipeline( Gia_Man_t * p, int nLevels, int fVerbose )
     vRegStages  = Vec_IntAlloc( 1000 );
 
     Gia_ManForEachAnd( p, pObj, i )
-        Vec_IntWriteEntry( vStages, Gia_ObjId(p, pObj), Gia_ObjLevel(p, pObj) / nLevels );
+        Vec_IntWriteEntry( vStages, Gia_ObjId(p, pObj), (Gia_ObjLevel(p, pObj) - 1) / nLevels );
 
     pNew = Gia_ManStart( Gia_ManObjNum(p) + 2 * Gia_ManAndNum(p) );
     pNew->pName = Abc_UtilStrsav( p->pName );
@@ -7078,8 +7079,7 @@ Gia_Man_t * Gia_ManDupPipeline( Gia_Man_t * p, int nLevels, int fVerbose )
 
     Gia_ManForEachPo( p, pObj, i )
     {
-        iStage = Vec_IntEntry( vStages, Gia_ObjFaninId0p(p, pObj) );
-        iLit = Gia_ManDupPipelineDelayLit( pNew, vLitMap, vStages, vRegDrivers, vRegStages, nStageCols, Gia_ObjFaninId0p(p, pObj), iStage );
+        iLit = Gia_ManDupPipelineDelayLit( pNew, vLitMap, vStages, vRegDrivers, vRegStages, nStageCols, Gia_ObjFaninId0p(p, pObj), nStageMax );
         Gia_ManAppendCo( pNew, Abc_LitNotCond(iLit, Gia_ObjFaninC0(pObj)) );
     }
 
