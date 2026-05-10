@@ -149,7 +149,7 @@ struct Cec_ManFra_t_
 {
     // parameters
     Gia_Man_t *      pAig;           // the AIG to be used for simulation
-    Cec_ParFra_t *   pPars;          // SAT sweeping parameters 
+    Cec_ParFra_t *   pPars;          // SAT sweeping parameters
     // simulation patterns
     Vec_Int_t *      vXorNodes;      // nodes used in speculative reduction
     int              nAllProved;     // total number of proved nodes
@@ -165,6 +165,23 @@ struct Cec_ManFra_t_
     abctime          timeTotal;      // total runtime
 };
 
+// incremental active-list manager for &scorr -i
+typedef struct Cec_IncrMgr_t_ Cec_IncrMgr_t;
+struct Cec_IncrMgr_t_
+{
+    Gia_Man_t *  pAig;            // host AIG (immutable across iterations)
+    int          nFrames;         // unrolling depth used by the SRM builder
+    int          nObjs;           // cached Gia_ManObjNum(pAig)
+    Vec_Int_t *  vReprPrev;       // snapshot of pReprs from previous round
+    Vec_Int_t *  vNextPrev;       // snapshot of pNexts from previous round
+    Vec_Int_t *  vSeeds;          // nodes whose pReprs changed since snapshot
+    Vec_Int_t *  vTfoNodes;       // ids currently in TFO (for fast clearing)
+    int *        pTfoMark;        // dense mark array, size = nObjs
+    Vec_Int_t *  vBfsCur;         // BFS frontier for current frame
+    Vec_Int_t *  vBfsNext;        // BFS frontier carried to next frame
+    int          fOwnsFanout;     // 1 if we built static fanout (must free)
+};
+
 ////////////////////////////////////////////////////////////////////////
 ///                      MACRO DEFINITIONS                           ///
 ////////////////////////////////////////////////////////////////////////
@@ -175,6 +192,20 @@ struct Cec_ManFra_t_
 
 /*=== cecCorr.c ============================================================*/
 extern void                 Cec_ManRefinedClassPrintStats( Gia_Man_t * p, Vec_Str_t * vStatus, int iIter, abctime Time );
+extern int                  Gia_ManCorrSpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
+extern void                 Gia_ManCorrSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
+/*=== cecCorrIncr.c ============================================================*/
+extern Cec_IncrMgr_t *      Cec_IncrMgrAlloc( Gia_Man_t * pAig, int nFrames );
+extern void                 Cec_IncrMgrFree( Cec_IncrMgr_t * p );
+extern void                 Cec_IncrMgrSnapshotClasses( Cec_IncrMgr_t * p );
+extern int                  Cec_IncrMgrComputeSeeds( Cec_IncrMgr_t * p );
+extern int                  Cec_IncrMgrCountNextChanges( Cec_IncrMgr_t * p );
+extern int                  Cec_IncrMgrRingEdgeChanged( Cec_IncrMgr_t * p, int iPrev, int iObj );
+extern void                 Cec_IncrMgrCountActivePairs( Cec_IncrMgr_t * p, int fRings, int * pTfoMark, int * pnTotal, int * pnActive );
+extern void                 Cec_IncrMgrComputeTfo( Cec_IncrMgr_t * p );
+extern Gia_Man_t *          Gia_ManCorrSpecReduce_Active( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings, int * pTfoMark, Cec_IncrMgr_t * pIncr );
+extern Gia_Man_t *          Gia_ManCorrSpecReduceInit_Active( Gia_Man_t * p, int nFrames, int nPrefix, int fScorr, Vec_Int_t ** pvOutputs, int * pTfoMark );
+extern int *                Cec_IncrMgrDecideMask( Cec_IncrMgr_t * p, int fUseRings, int * pfConverged, int * pnReprSeeds, int * pnNextChanges, int * pnTotalPairs, int * pnActivePairs );
 /*=== cecClass.c ============================================================*/
 extern int                  Cec_ManSimClassRemoveOne( Cec_ManSim_t * p, int i );
 extern int                  Cec_ManSimClassesPrepare( Cec_ManSim_t * p, int LevelMax );
