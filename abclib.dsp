@@ -6681,6 +6681,10 @@ SOURCE=.\src\proof\cec\cecCorr.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\proof\cec\cecCorrIncr.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\proof\cec\cecInt.h
 # End Source File
 # Begin Source File
