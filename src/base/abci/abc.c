@@ -51574,7 +51574,7 @@ int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
     Gia_Man_t * pGiaUse = pAbc->pGia, * pGiaTemp = NULL;
     Wlc_Ntk_t * pWlc = (Wlc_Ntk_t *)pAbc->pAbcWlc;
-    char * pReplayFile = NULL, * pUfarArgs = NULL;
+    char * pReplayFile = NULL, * pUfarArgs = NULL, * pUfarArgsAlloc = NULL;
     int c, nProcs = 6, nProcsNew = 0, nTimeOut = 3, nTimeOut2 = 10, nTimeOut3 = 100, fUseUif = 0, fVerbose = 0, fVeryVerbose = 0, fSilent = 0;
     Extra_UtilGetoptReset();
     while ( ( c = Extra_UtilGetopt( argc, argv, "PTUCWRusvwh" ) ) != EOF )
@@ -51621,8 +51621,22 @@ int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
                 Abc_Print( -1, "Command line switch \"-C\" should be followed by a string.\n" );
                 goto usage;
             }
-            pUfarArgs = argv[globalUtilOptind];
-            globalUtilOptind++;
+            {
+                int iArg, nChars = 0;
+                ABC_FREE( pUfarArgsAlloc );
+                for ( iArg = globalUtilOptind; iArg < argc; iArg++ )
+                    nChars += (int)strlen(argv[iArg]) + 1;
+                pUfarArgsAlloc = ABC_ALLOC( char, nChars + 1 );
+                pUfarArgsAlloc[0] = 0;
+                for ( iArg = globalUtilOptind; iArg < argc; iArg++ )
+                {
+                    if ( iArg > globalUtilOptind )
+                        strcat( pUfarArgsAlloc, " " );
+                    strcat( pUfarArgsAlloc, argv[iArg] );
+                }
+                pUfarArgs = pUfarArgsAlloc;
+                globalUtilOptind = argc;
+            }
             break;
         case 'W':
             if ( globalUtilOptind >= argc )
@@ -51668,18 +51682,21 @@ int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         if ( pWlc == NULL )
         {
             Abc_Print( -1, "Abc_CommandAbc9SProve(): There is no word-level design for option \"-u\".\n" );
+            ABC_FREE( pUfarArgsAlloc );
             return 1;
         }
         pGiaTemp = Wlc_NtkBitBlast( pWlc, NULL );
         if ( pGiaTemp == NULL )
         {
             Abc_Print( -1, "Abc_CommandAbc9SProve(): Word-level bit-blasting has failed.\n" );
+            ABC_FREE( pUfarArgsAlloc );
             return 1;
         }
         if ( (Gia_ManPoNum(pGiaTemp) & 1) == 1 )
         {
             Abc_Print( -1, "Abc_CommandAbc9SProve(): Internal \"&miter -x\" requires even number of bit-level outputs.\n" );
             Gia_ManStop( pGiaTemp );
+            ABC_FREE( pUfarArgsAlloc );
             return 1;
         }
         pGiaUse = Gia_ManTransformMiter2( pGiaTemp );
@@ -51689,11 +51706,13 @@ int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( pUfarArgs != NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9SProve(): Option \"-C\" requires \"-u\".\n" );
+        ABC_FREE( pUfarArgsAlloc );
         return 1;
     }
     if ( pGiaUse == NULL )
     {
         Abc_Print( -1, "Abc_CommandAbc9SProve(): There is no AIG.\n" );
+        ABC_FREE( pUfarArgsAlloc );
         return 1;
     }
     if ( Gia_ManRegNum(pGiaUse) == 0 )
@@ -51701,12 +51720,14 @@ int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9SProve(): The problem is combinational.\n" );
         if ( fUseUif )
             Gia_ManStop( pGiaUse );
+        ABC_FREE( pUfarArgsAlloc );
         return 1;
     }
     pAbc->Status = Cec_GiaProveTest( pGiaUse, nProcs, nTimeOut, nTimeOut2, nTimeOut3, fUseUif, pWlc, fVerbose, fVeryVerbose, fSilent, pReplayFile, pUfarArgs );
     Abc_FrameReplaceCex( pAbc, &pGiaUse->pCexSeq ); 
     if ( fUseUif )
         Gia_ManStop( pGiaUse );
+    ABC_FREE( pUfarArgsAlloc );
     return 0;
 
 usage:
@@ -51723,6 +51744,7 @@ usage:
     Abc_Print( -2, "\t-v     : toggle printing verbose information [default = %s]\n",         fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-w     : toggle printing more verbose information [default = %s]\n",    fVeryVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
+    ABC_FREE( pUfarArgsAlloc );
     return 1;
 }
 

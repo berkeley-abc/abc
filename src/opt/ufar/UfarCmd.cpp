@@ -311,6 +311,104 @@ static bool Ufar_TokenizeArgs( const char * pArgs, vector<string> & Tokens )
     return true;
 }
 
+static inline void Ufar_TrimString( string & s )
+{
+    while ( !s.empty() && isspace((unsigned char)s.front()) )
+        s.erase( s.begin() );
+    while ( !s.empty() && isspace((unsigned char)s.back()) )
+        s.pop_back();
+}
+
+static bool Ufar_ExtractSolverArg( const char * pArgs, string & ArgsWithoutSolver, string & SolverArg )
+{
+    string Args = pArgs ? pArgs : "";
+    size_t i = 0, n = Args.size();
+    ArgsWithoutSolver = Args;
+    SolverArg.clear();
+    while ( i < n )
+    {
+        while ( i < n && isspace((unsigned char)Args[i]) )
+            i++;
+        if ( i == n )
+            break;
+        size_t TokenStart = i;
+        char Quote = 0;
+        string Token;
+        while ( i < n )
+        {
+            unsigned char c = (unsigned char)Args[i];
+            if ( Quote )
+            {
+                if ( c == (unsigned char)Quote )
+                    Quote = 0;
+                else if ( c == '\\' && i + 1 < n )
+                    Token += Args[++i];
+                else
+                    Token += (char)c;
+                i++;
+                continue;
+            }
+            if ( c == '"' || c == '\'' )
+            {
+                Quote = (char)c;
+                i++;
+                continue;
+            }
+            if ( isspace(c) )
+                break;
+            if ( c == '\\' && i + 1 < n )
+            {
+                Token += Args[++i];
+                i++;
+                continue;
+            }
+            Token += (char)c;
+            i++;
+        }
+        if ( Token == "--solver" )
+        {
+            size_t ValueStart = i;
+            while ( ValueStart < n && isspace((unsigned char)Args[ValueStart]) )
+                ValueStart++;
+            if ( ValueStart == n )
+                return false;
+            string Prefix = Args.substr( 0, TokenStart );
+            string Suffix;
+            if ( Args[ValueStart] == '"' || Args[ValueStart] == '\'' )
+            {
+                char ValueQuote = Args[ValueStart++];
+                size_t k = ValueStart;
+                while ( k < n )
+                {
+                    unsigned char c = (unsigned char)Args[k];
+                    if ( c == (unsigned char)ValueQuote )
+                    {
+                        k++;
+                        break;
+                    }
+                    if ( c == '\\' && k + 1 < n )
+                        SolverArg += Args[++k];
+                    else
+                        SolverArg += (char)c;
+                    k++;
+                }
+                Suffix = Args.substr( k );
+            }
+            else
+            {
+                SolverArg = Args.substr( ValueStart );
+            }
+            Ufar_TrimString( SolverArg );
+            ArgsWithoutSolver = Prefix + Suffix;
+            Ufar_TrimString( ArgsWithoutSolver );
+            return !SolverArg.empty();
+        }
+        while ( i < n && isspace((unsigned char)Args[i]) )
+            i++;
+    }
+    return false;
+}
+
 
 void Ufar_Init(Abc_Frame_t *pAbc)
 {
@@ -328,6 +426,7 @@ int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*p
     vector<string> Tokens;
     vector<char *> Argv;
     set<unsigned> set_op_types;
+    string ArgsWithoutSolver, SolverArg;
     string firstAigDumpFile, dumpLogFile;
     string statusName;
     int fNeedMiter = 1, fCrossStats = 0, UnderSize = -1;
@@ -338,9 +437,12 @@ int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*p
     Ufar_SetDefaultParams( manager.params, nTimeOut, fVerbose, pFuncStop, RunId );
     if ( pArgs && pArgs[0] )
     {
+        const char * pParseArgs = pArgs;
+        if ( Ufar_ExtractSolverArg(pArgs, ArgsWithoutSolver, SolverArg) )
+            pParseArgs = ArgsWithoutSolver.c_str();
         OptMgr opt_mgr("%ufar");
         Ufar_AddOptions( opt_mgr, manager.params );
-        if ( !Ufar_TokenizeArgs(pArgs, Tokens) )
+        if ( !Ufar_TokenizeArgs(pParseArgs, Tokens) )
         {
             cout << "Cannot parse internal %ufar option string." << endl;
             return -1;
@@ -355,6 +457,8 @@ int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*p
             return -1;
         }
         Ufar_ApplyOptions( opt_mgr, manager.params, set_op_types, firstAigDumpFile, dumpLogFile, fNeedMiter, fCrossStats, UnderSize );
+        if ( !SolverArg.empty() )
+            manager.params.solverSetting = SolverArg;
     }
     else
         set_op_types.insert( WLC_OBJ_ARI_MULTI );
