@@ -1058,6 +1058,7 @@ public:
   // Extra APIs
   int clauses ();
   int conflicts ();
+  int learned ();
 
 private:
   //==== start of state ====================================================

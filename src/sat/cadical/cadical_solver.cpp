@@ -1853,6 +1853,10 @@ int Solver::conflicts () {
     return internal->stats.conflicts;
 }
 
+int Solver::learned () {
+    return internal->stats.learned.clauses;
+}
+
 } // namespace CaDiCaL
 
 ABC_NAMESPACE_IMPL_END

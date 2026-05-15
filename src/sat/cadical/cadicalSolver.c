@@ -297,6 +297,21 @@ int cadical_solver_nconflicts(cadical_solver* s) {
   return ccadical_conflicts((CCaDiCaL*)s->p);
 }
 
+/**Function*************************************************************
+
+  Synopsis    [get number of learned clauses]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int cadical_solver_nlearned(cadical_solver* s) {
+  return ccadical_learned((CCaDiCaL*)s->p);
+}
+
 
 /**Function*************************************************************
 

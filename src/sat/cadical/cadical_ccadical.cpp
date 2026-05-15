@@ -228,4 +228,8 @@ int ccadical_conflicts(CCaDiCaL *ptr) {
   return ((Wrapper *) ptr)->solver->conflicts ();
 }
 
+int ccadical_learned(CCaDiCaL *ptr) {
+  return ((Wrapper *) ptr)->solver->learned ();
+}
+
 ABC_NAMESPACE_IMPL_END

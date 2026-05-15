@@ -63,6 +63,7 @@ void ccadical_resize(CCaDiCaL *, int min_max_var);
 int ccadical_is_inconsistent(CCaDiCaL *);
 int ccadical_clauses(CCaDiCaL *);
 int ccadical_conflicts(CCaDiCaL *);
+int ccadical_learned(CCaDiCaL *);
 
 /*------------------------------------------------------------------------*/
 
