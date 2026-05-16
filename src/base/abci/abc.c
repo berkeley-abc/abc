@@ -51736,12 +51736,12 @@ int Abc_CommandAbc9SProve( Abc_Frame_t * pAbc, int argc, char ** argv )
 
 usage:
     Abc_Print( -2, "usage: &sprove [-PTUW num] [-C str] [-R file] [-usvwh]\n" );
-    Abc_Print( -2, "\t         proves CEC problem by case-splitting\n" );
+    Abc_Print( -2, "\t         concurrent sequential model checker\n" );
     Abc_Print( -2, "\t-P num : the number of concurrent processes (1 <= num <= 6) [default = %d]\n", nProcs );
-    Abc_Print( -2, "\t-T num : runtime limit in seconds per subproblem [default = %d]\n",     nTimeOut );
-    Abc_Print( -2, "\t-U num : second-stage timeout in seconds [default = %d]\n", nTimeOut2 );
+    Abc_Print( -2, "\t-T num : first-stage timeout for proving original and scnew reduction [default = %d]\n", nTimeOut );
+    Abc_Print( -2, "\t-U num : second-stage proving timeout on optimized miter [default = %d]\n", nTimeOut2 );
+    Abc_Print( -2, "\t-W num : late-stage timeout for optimization and final proving [default = %d]\n", nTimeOut3 );
     Abc_Print( -2, "\t-C str : with -u, pass this option string to internal %%ufar\n" );
-    Abc_Print( -2, "\t-W num : runtime limit in seconds per subproblem [default = %d]\n",     nTimeOut3 );
     Abc_Print( -2, "\t-R str : dump replay/trace file for later execution by &sprove2\n" );
     Abc_Print( -2, "\t-u     : enable concurrent UFAR on word-level design (uses internal %%blast + &miter -x)\n" );
     Abc_Print( -2, "\t-s     : enable silent computation (no reporting) [default = %s]\n",    fSilent? "yes": "no" );

@@ -27,8 +27,8 @@ ABC_NAMESPACE_IMPL_START
 namespace eSLIM {
 
   RelationSynthesiser::RelationSynthesiser(const Relation& relation, const Subcircuit& subcir, unsigned int max_size, const eSLIMConfig& cfg, eSLIMLog& log)
-                                          : relation(relation), subcir(subcir), 
-                                            max_size(max_size), config(cfg), log(log) {
+                                          : subcir(subcir), max_size(max_size),
+                                            relation(relation), config(cfg), log(log) {
     setupEncoding();
   }
 
