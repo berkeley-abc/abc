@@ -58734,11 +58734,11 @@ usage:
 ***********************************************************************/
 int Abc_CommandAbc9GenAdder( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern Gia_Man_t * Gia_ManGenAdder( int nVars, int fSK, int fBK, int fHC, int fCarries, int fVerbose );
+    extern Gia_Man_t * Gia_ManGenAdder( int nVars, int fSK, int fBK, int fHC, int fMM, int fCarries, int fVerbose );
     Gia_Man_t * pTemp = NULL;
-    int c, nBits = 0, fSK = 0, fBK = 0, fHC = 0, fCarries = 0, fVerbose = 0;
+    int c, nBits = 0, fSK = 0, fBK = 0, fHC = 0, fMM = 0, fCarries = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "Nsbhcv" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Nsbhmcv" ) ) != EOF )
     {
         switch ( c )
         {
@@ -58762,6 +58762,9 @@ int Abc_CommandAbc9GenAdder( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'h':
             fHC ^= 1;
             break;
+        case 'm':
+            fMM ^= 1;
+            break;
         case 'c':
             fCarries ^= 1;
             break;
@@ -58777,17 +58780,18 @@ int Abc_CommandAbc9GenAdder( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Abc_CommandAbc9GenAdder(): The number of inputs should be defined on the command line \"-N num\".\n" );
         return 0;            
     }
-    pTemp = Gia_ManGenAdder( nBits, fSK, fBK, fHC, fCarries, fVerbose );
+    pTemp = Gia_ManGenAdder( nBits, fSK, fBK, fHC, fMM, fCarries, fVerbose );
     Abc_FrameUpdateGia( pAbc, pTemp );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &genadder [-N <num>] [-sbhcv]\n" );
+    Abc_Print( -2, "usage: &genadder [-N <num>] [-sbhmcv]\n" );
     Abc_Print( -2, "\t         generates a prefix adder (by default, the ripple carry adder)\n" );
     Abc_Print( -2, "\t-N num : the bit-width of the adder [default = undefined]\n" );
     Abc_Print( -2, "\t-s     : toggles using Sklansky adder [default = %s]\n", fSK ? "yes": "no" );
     Abc_Print( -2, "\t-b     : toggles using Brent-Kung adder [default = %s]\n", fBK ? "yes": "no" );
     Abc_Print( -2, "\t-h     : toggles using Huan-Carlsson adder [default = %s]\n", fHC ? "yes": "no" );
+    Abc_Print( -2, "\t-m     : toggles using majority-based M/M adder [default = %s]\n", fMM ? "yes": "no" );
     Abc_Print( -2, "\t-c     : toggles using carry-in and carry-out [default = %s]\n", fCarries ? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles printing verbose information [default = %s]\n", fVerbose ? "yes": "no" );
     return 1;
