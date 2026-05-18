@@ -82,6 +82,8 @@ struct Bmc_EsPar_t_
     char *     pSymStr;
     char *     pPermStr;
     char *     pGuide;
+    int *      pPermFans;
+    int *      pSolFans;
     Vec_Wrd_t* vTruths;
 };
 

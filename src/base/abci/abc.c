@@ -10602,19 +10602,356 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+static int Abc_TwoExactPermAddFanin( int * pFans, int iNode, int iFanin )
+{
+    int * pNode = pFans + 2 * iNode;
+    if ( pNode[0] == iFanin || pNode[1] == iFanin )
+        return 0;
+    if ( pNode[0] == -1 && pNode[1] == -1 )
+        pNode[Abc_Random(0) & 1] = iFanin;
+    else if ( pNode[0] == -1 )
+        pNode[0] = iFanin;
+    else if ( pNode[1] == -1 )
+        pNode[1] = iFanin;
+    else
+        return 0;
+    return 1;
+}
+static int Abc_TwoExactPermAddRequired( int * pFans, int nVars, int nNodes, int iFanin )
+{
+    int iNodeStart = (iFanin + 1 > nVars) ? iFanin + 1 - nVars : 0;
+    int i, nChoices = 0, iChoice = -1;
+    for ( i = iNodeStart; i < nNodes; i++ )
+    {
+        int * pNode = pFans + 2 * i;
+        if ( pNode[0] == iFanin || pNode[1] == iFanin )
+            continue;
+        if ( pNode[0] != -1 && pNode[1] != -1 )
+            continue;
+        if ( Abc_Random(0) % ++nChoices == 0 )
+            iChoice = i;
+    }
+    return iChoice >= 0 && Abc_TwoExactPermAddFanin( pFans, iChoice, iFanin );
+}
+static int Abc_TwoExactPermCountDistinct( int * pFans, int nVars, int iNode )
+{
+    int iPrevObj = nVars + iNode - 1;
+    int pVals[4], nVals = 0, i, k;
+    assert( iNode > 0 );
+    for ( i = iNode - 1; i <= iNode; i++ )
+    for ( k = 0; k < 2; k++ )
+    {
+        int v = pFans[2 * i + k];
+        int j, fSeen = 0;
+        if ( v == iPrevObj )
+            continue;
+        for ( j = 0; j < nVals; j++ )
+            fSeen |= pVals[j] == v;
+        if ( !fSeen )
+            pVals[nVals++] = v;
+    }
+    return nVals;
+}
+static int Abc_TwoExactPermCheck( int * pFans, int nVars, int nNodes, int fStrict )
+{
+    int nObjs = nVars + nNodes;
+    int * pUsed = ABC_CALLOC( int, nObjs );
+    int i, RetValue = 1;
+    for ( i = 0; i < nNodes; i++ )
+    {
+        if ( pFans[2*i] < 0 || pFans[2*i+1] < 0 || pFans[2*i] >= nVars + i || pFans[2*i+1] >= nVars + i || pFans[2*i] == pFans[2*i+1] )
+            RetValue = 0;
+        if ( fStrict && i > 0 && Abc_TwoExactPermCountDistinct(pFans, nVars, i) < 3 )
+            RetValue = 0;
+        if ( !RetValue )
+            break;
+        pUsed[pFans[2*i]]++;
+        pUsed[pFans[2*i+1]]++;
+    }
+    if ( RetValue )
+        for ( i = 0; i < nObjs - 1; i++ )
+            if ( pUsed[i] == 0 )
+            {
+                RetValue = 0;
+                break;
+            }
+    ABC_FREE( pUsed );
+    return RetValue;
+}
+static char * Abc_TwoExactPermEncode( int * pFans, int nVars, int nNodes )
+{
+    char * pPerm = ABC_ALLOC( char, 3 * nNodes );
+    int i, k, Pos = 0;
+    for ( i = 0; i < nNodes; i++ )
+    {
+        if ( i )
+            pPerm[Pos++] = '_';
+        for ( k = 0; k < 2; k++ )
+            pPerm[Pos++] = pFans[2*i+k] >= 0 && pFans[2*i+k] < nVars ? 'a' + pFans[2*i+k] : '*';
+    }
+    pPerm[Pos] = 0;
+    return pPerm;
+}
+static char * Abc_TwoExactObjName( int iObj, int nVars, char * pBuffer )
+{
+    if ( iObj < 0 )
+        sprintf( pBuffer, "*" );
+    else if ( iObj < nVars )
+        sprintf( pBuffer, "%c", 'a' + iObj );
+    else if ( iObj - nVars < 26 )
+        sprintf( pBuffer, "%c", 'A' + iObj - nVars );
+    else
+        sprintf( pBuffer, "N%d", iObj - nVars );
+    return pBuffer;
+}
+static char * Abc_TwoExactPermEncodeFull( int * pFans, int nVars, int nNodes )
+{
+    int nSize = 8 * (nNodes + 1);
+    char * pPerm = ABC_ALLOC( char, nSize );
+    int i, k, Pos = 0;
+    char Name[16];
+    for ( i = 0; i < nNodes; i++ )
+    {
+        if ( i )
+            pPerm[Pos++] = '_';
+        for ( k = 0; k < 2; k++ )
+            Pos += sprintf( pPerm + Pos, "%s", Abc_TwoExactObjName(pFans[2*i+k], nVars, Name) );
+    }
+    pPerm[Pos] = 0;
+    return pPerm;
+}
+static int Abc_TwoExactPermAddDcs( int * pFans, int nVars, int nNodes, int nDcs, int nSkip, int fAll )
+{
+    int i, k, nLetters = 0;
+    if ( nDcs == 0 )
+        return 1;
+    for ( i = nSkip; i < 2 * nNodes; i++ )
+        nLetters += pFans[i] >= 0 && (fAll || pFans[i] < nVars);
+    if ( nDcs > nLetters )
+        return 0;
+    for ( k = 0; k < nDcs; k++ )
+    {
+        int iChoice = -1, nChoices = 0;
+        for ( i = nSkip; i < 2 * nNodes; i++ )
+            if ( pFans[i] >= 0 && (fAll || pFans[i] < nVars) && Abc_Random(0) % ++nChoices == 0 )
+                iChoice = i;
+        assert( iChoice >= 0 );
+        pFans[iChoice] = -1;
+    }
+    return 1;
+}
+static int * Abc_TwoExactPermRandom( int nVars, int nNodes, int nDcs )
+{
+    int nObjs = nVars + nNodes;
+    int Attempt, i, k;
+    for ( Attempt = 0; Attempt < 200; Attempt++ )
+    {
+        int * pFans = ABC_ALLOC( int, 2 * nNodes );
+        int fOk = 1;
+        for ( i = 0; i < 2 * nNodes; i++ )
+            pFans[i] = -1;
+        for ( i = nObjs - 2; i >= nVars && fOk; i-- )
+            fOk = Abc_TwoExactPermAddRequired( pFans, nVars, nNodes, i );
+        for ( i = 0; i < nVars && fOk; i++ )
+            fOk = Abc_TwoExactPermAddRequired( pFans, nVars, nNodes, i );
+        for ( i = 0; i < nNodes && fOk; i++ )
+        {
+            int Limit = nVars + i;
+            for ( k = 0; k < 2; k++ )
+            {
+                int Try;
+                if ( pFans[2*i+k] != -1 )
+                    continue;
+                for ( Try = 0; Try < 100; Try++ )
+                    if ( Abc_TwoExactPermAddFanin( pFans, i, Abc_Random(0) % Limit ) )
+                        break;
+                if ( Try == 100 )
+                    fOk = 0;
+            }
+            if ( pFans[2*i] > pFans[2*i+1] )
+                ABC_SWAP( int, pFans[2*i], pFans[2*i+1] );
+        }
+        if ( fOk && Abc_TwoExactPermCheck(pFans, nVars, nNodes, 1) && Abc_TwoExactPermAddDcs(pFans, nVars, nNodes, nDcs, 0, 0) )
+            return pFans;
+        ABC_FREE( pFans );
+    }
+    return NULL;
+}
+static int * Abc_TwoExactPermRandomSeeded( int nVars, int nNodes, int nDcs, Vec_Int_t * vSeedPairs, int nSeeds )
+{
+    int nObjs = nVars + nNodes;
+    int Attempt, i, k;
+    nSeeds = Abc_MinInt( nSeeds, Vec_IntSize(vSeedPairs) );
+    for ( Attempt = 0; Attempt < 200; Attempt++ )
+    {
+        int * pFans = ABC_ALLOC( int, 2 * nNodes );
+        int * pUsed = ABC_CALLOC( int, Vec_IntSize(vSeedPairs) );
+        int fOk = 1;
+        for ( i = 0; i < 2 * nNodes; i++ )
+            pFans[i] = -1;
+        for ( i = 0; i < nSeeds; i++ )
+        {
+            int s, iSeed = -1, nChoices = 0;
+            for ( s = 0; s < Vec_IntSize(vSeedPairs); s++ )
+                if ( !pUsed[s] && Abc_Random(0) % ++nChoices == 0 )
+                    iSeed = s;
+            assert( iSeed >= 0 );
+            pUsed[iSeed] = 1;
+            int Pair = Vec_IntEntry( vSeedPairs, iSeed );
+            pFans[2*i]   = Pair / nVars;
+            pFans[2*i+1] = Pair % nVars;
+        }
+        for ( i = nObjs - 2; i >= nVars && fOk; i-- )
+            fOk = Abc_TwoExactPermAddRequired( pFans, nVars, nNodes, i );
+        for ( i = 0; i < nVars && fOk; i++ )
+            fOk = Abc_TwoExactPermAddRequired( pFans, nVars, nNodes, i );
+        for ( i = 0; i < nNodes && fOk; i++ )
+        {
+            int Limit = nVars + i;
+            for ( k = 0; k < 2; k++ )
+            {
+                int Try;
+                if ( pFans[2*i+k] != -1 )
+                    continue;
+                for ( Try = 0; Try < 100; Try++ )
+                    if ( Abc_TwoExactPermAddFanin( pFans, i, Abc_Random(0) % Limit ) )
+                        break;
+                if ( Try == 100 )
+                    fOk = 0;
+            }
+            if ( pFans[2*i] > pFans[2*i+1] )
+                ABC_SWAP( int, pFans[2*i], pFans[2*i+1] );
+        }
+        if ( fOk && Abc_TwoExactPermCheck(pFans, nVars, nNodes, 0) && Abc_TwoExactPermAddDcs(pFans, nVars, nNodes, nDcs, 2*nSeeds, 1) )
+        {
+            ABC_FREE( pUsed );
+            return pFans;
+        }
+        ABC_FREE( pUsed );
+        ABC_FREE( pFans );
+    }
+    return NULL;
+}
+static char * Abc_TwoExactCofactorHex( char * pHex, int nVars, int iVar, int Value )
+{
+    word pTruth[64], pCof[64];
+    int nCofVars = nVars - 1;
+    int nMints = 1 << nCofVars;
+    char * pRes = ABC_ALLOC( char, (nCofVars >= 2 ? (1 << (nCofVars-2)) : 1) + 10 );
+    int m;
+    memset( pTruth, 0, sizeof(word) * 64 );
+    memset( pCof,   0, sizeof(word) * 64 );
+    Abc_TtReadHex( pTruth, pHex );
+    for ( m = 0; m < nMints; m++ )
+    {
+        int Low = m & ((1 << iVar) - 1);
+        int High = m >> iVar;
+        int Mint = Low | (Value << iVar) | (High << (iVar + 1));
+        if ( Abc_TtGetBit(pTruth, Mint) )
+            Abc_TtSetBit( pCof, m );
+    }
+    Extra_PrintHexadecimalString( pRes, (unsigned *)pCof, nCofVars );
+    return pRes;
+}
+static int Abc_TwoExactRun( Bmc_EsPar_t * pPars )
+{
+    extern int  Exa_ManExactSynthesis( Bmc_EsPar_t * pPars );
+    extern int  Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars );
+    return pPars->fGlucose ? Exa_ManExactSynthesis( pPars ) : Exa_ManExactSynthesis2( pPars );
+}
+static int Abc_TwoExactRunMin( Bmc_EsPar_t * pPars, int nNodeMax )
+{
+    int n, nNodeBeg = pPars->nVars + 1;
+    int fFound = 0;
+    for ( n = nNodeBeg; n <= nNodeMax; n++ )
+    {
+        if ( !pPars->fSilent )
+            printf( "\nTrying N = %d:\n", n );
+        pPars->nNodes = n;
+        ABC_FREE( pPars->pSolFans );
+        fFound = Abc_TwoExactRun( pPars );
+        if ( fFound )
+            return n;
+    }
+    return 0;
+}
+static Vec_Int_t * Abc_TwoExactCofactorSeeds( Bmc_EsPar_t * pPars, int nNodeMax )
+{
+    int Counts[16][16];
+    int v, c, i, k, nPairs = 0;
+    Vec_Int_t * vPairs = Vec_IntAlloc( 16 );
+    memset( Counts, 0, sizeof(Counts) );
+    if ( pPars->nVars > 16 )
+        return vPairs;
+    for ( v = 0; v < pPars->nVars; v++ )
+    for ( c = 0; c < 2; c++ )
+    {
+        Bmc_EsPar_t CofPars, * pCof = &CofPars;
+        char * pCofHex = Abc_TwoExactCofactorHex( pPars->pTtStr, pPars->nVars, v, c );
+        int nFound;
+        Bmc_EsParSetDefault( pCof );
+        pCof->nVars      = pPars->nVars - 1;
+        pCof->nNodes     = nNodeMax;
+        pCof->pTtStr     = pCofHex;
+        pCof->fOnlyAnd   = pPars->fOnlyAnd;
+        pCof->fGlucose   = pPars->fGlucose;
+        pCof->RuntimeLim = pPars->RuntimeLim ? pPars->RuntimeLim : 1;
+        pCof->fSilent    = 1;
+        nFound = Abc_TwoExactRunMin( pCof, nNodeMax );
+        if ( nFound )
+        {
+            printf( "Cofactor %c=%d: minimum N = %d, truth = %s\n", 'a' + v, c, nFound, pCofHex );
+            for ( i = 0; i < nFound; i++ )
+            {
+                int Fan0 = pCof->pSolFans[2*i];
+                int Fan1 = pCof->pSolFans[2*i+1];
+                if ( Fan0 >= pCof->nVars || Fan1 >= pCof->nVars )
+                    continue;
+                Fan0 += Fan0 >= v;
+                Fan1 += Fan1 >= v;
+                if ( Fan0 > Fan1 )
+                    ABC_SWAP( int, Fan0, Fan1 );
+                Counts[Fan0][Fan1]++;
+            }
+        }
+        else
+            printf( "Cofactor %c=%d: no solution up to N = %d, truth = %s\n", 'a' + v, c, nNodeMax, pCofHex );
+        ABC_FREE( pCof->pSolFans );
+        ABC_FREE( pCofHex );
+    }
+    for ( k = pPars->nVars * pPars->nVars; k > 0; k-- )
+    {
+        int BestI = -1, BestJ = -1, Best = 0;
+        for ( i = 0; i < pPars->nVars; i++ )
+        for ( v = i + 1; v < pPars->nVars; v++ )
+            if ( Counts[i][v] > Best )
+            {
+                Best = Counts[i][v];
+                BestI = i;
+                BestJ = v;
+            }
+        if ( Best == 0 )
+            break;
+        printf( "Frequent seed %d: %c%c appears %d time%s.\n", ++nPairs, 'a' + BestI, 'a' + BestJ, Best, Best == 1 ? "" : "s" );
+        for ( v = 0; v < Best; v++ )
+            Vec_IntPush( vPairs, BestI * pPars->nVars + BestJ );
+        Counts[BestI][BestJ] = 0;
+    }
+    return vPairs;
+}
 int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
 {
-    extern void Exa_ManExactSynthesis( Bmc_EsPar_t * pPars );
-    extern void Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars );
+    extern int  Exa_ManExactSynthesis( Bmc_EsPar_t * pPars );
+    extern int  Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars );
     extern void Exa_ManExactSynthesis4( Bmc_EsPar_t * pPars );
     extern void Exa_ManExactSynthesis5( Bmc_EsPar_t * pPars );
     extern void Exa_ManExactSynthesis6( Bmc_EsPar_t * pPars, char * pFileName );
     extern void Exa_ManExactSynthesis7( Bmc_EsPar_t * pPars, int GateSize );
-    int c, fKissat = 0, fKissat2 = 0, fUseNands = 0, GateSize = 0;
+    int c, fKissat = 0, fKissat2 = 0, fUseNands = 0, GateSize = 0, nCandPerms = 0, nPermDcs = 0, fTryMin = 0, fSmartGen = 0, nSeedNodes = 0;
     Bmc_EsPar_t Pars, * pPars = &Pars;
     Bmc_EsParSetDefault( pPars );
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "INTGSabdconugklmvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "INTGSPCDEabdconugklmtxvh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -10671,6 +11008,48 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
             pPars->pGuide = argv[globalUtilOptind];
             globalUtilOptind++;
             break;
+        case 'P':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-P\" should be followed by a variable permutation.\n" );
+                goto usage;
+            }
+            pPars->pPermStr = argv[globalUtilOptind];
+            globalUtilOptind++;
+            break;
+        case 'C':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-C\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nCandPerms = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nCandPerms < 0 )
+                goto usage;
+            break;
+        case 'D':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-D\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nPermDcs = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nPermDcs < 0 )
+                goto usage;
+            break;
+        case 'E':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-E\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nSeedNodes = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nSeedNodes < 0 )
+                goto usage;
+            break;
         case 'a':
             pPars->fOnlyAnd ^= 1;
             break;
@@ -10704,6 +11083,12 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         case 'm':
             pPars->fCard ^= 1;
             break;
+        case 't':
+            fTryMin ^= 1;
+            break;
+        case 'x':
+            fSmartGen ^= 1;
+            break;
         case 'v':
             pPars->fVerbose ^= 1;
             break;
@@ -10717,6 +11102,11 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     {
         if ( strstr(argv[globalUtilOptind], ".") )
         {
+            if ( pPars->pPermStr || nCandPerms )
+            {
+                Abc_Print( -1, "Permutation options -P and -C are not supported when reading the function from a file.\n" );
+                return 1;
+            }
             Exa_ManExactSynthesis6( pPars, argv[globalUtilOptind] );
             return 0;
         }
@@ -10742,6 +11132,143 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_Print( -1, "Function should not have more than 10 inputs.\n" );
         return 1;
     }
+    if ( nPermDcs && nCandPerms == 0 )
+    {
+        Abc_Print( -1, "Command line switch \"-D\" can only be used together with \"-C\".\n" );
+        return 1;
+    }
+    if ( fSmartGen && nCandPerms == 0 )
+    {
+        Abc_Print( -1, "Command line switch \"-x\" can only be used together with \"-C\".\n" );
+        return 1;
+    }
+    if ( nSeedNodes && !fSmartGen )
+    {
+        Abc_Print( -1, "Command line switch \"-E\" can only be used together with \"-x\".\n" );
+        return 1;
+    }
+    if ( nCandPerms && pPars->pPermStr )
+    {
+        Abc_Print( -1, "Command line switch \"-C\" cannot be used together with \"-P\".\n" );
+        return 1;
+    }
+    if ( fTryMin && nCandPerms )
+    {
+        Abc_Print( -1, "Command line switch \"-t\" cannot be used together with \"-C\".\n" );
+        return 1;
+    }
+    if ( nPermDcs > 2 * pPars->nNodes )
+    {
+        Abc_Print( -1, "The number of don't-care positions should not exceed %d.\n", 2 * pPars->nNodes );
+        return 1;
+    }
+    if ( pPars->pPermStr )
+    {
+        int i, nEntries = 0;
+        for ( i = 0; pPars->pPermStr[i]; i++ )
+        {
+            char Sym = pPars->pPermStr[i];
+            if ( Sym == '_' )
+                continue;
+            if ( Sym != '*' && (Sym < 'a' || Sym >= 'a' + pPars->nVars) )
+            {
+                Abc_Print( -1, "Permutation symbol \"%c\" is not one of '*', '_' or input variables 'a' through '%c'.\n", Sym, 'a' + pPars->nVars - 1 );
+                return 1;
+            }
+            nEntries++;
+        }
+        if ( nEntries != 2 * pPars->nNodes )
+        {
+            Abc_Print( -1, "Permutation should contain %d non-separator symbols (instead of %d).\n", 2 * pPars->nNodes, nEntries );
+            return 1;
+        }
+        if ( fUseNands || fKissat || fKissat2 || pPars->fCard )
+        {
+            Abc_Print( -1, "Permutation option -P is currently supported by the default and Glucose (-g) twoexact engines.\n" );
+            return 1;
+        }
+    }
+    if ( nCandPerms )
+    {
+        int i, fFound = 0, nGenerated = 0, nFailed = 0, fSilentSave = pPars->fSilent;
+        Vec_Int_t * vSeedPairs = NULL;
+        abctime clk = Abc_Clock();
+        if ( fUseNands || fKissat || fKissat2 || pPars->fCard )
+        {
+            Abc_Print( -1, "Candidate generation with -C is currently supported by the default and Glucose (-g) twoexact engines.\n" );
+            return 1;
+        }
+        Abc_Random( 1 );
+        if ( fSmartGen )
+        {
+            printf( "Deriving frequent seed nodes from cofactors.\n" );
+            vSeedPairs = Abc_TwoExactCofactorSeeds( pPars, pPars->nNodes );
+            nSeedNodes = Abc_MinInt( nSeedNodes, Vec_IntSize(vSeedPairs) );
+            printf( "Trying %d smart candidate input assignments with %d frozen seed node%s and %d randomized don't-care position%s.\n", nCandPerms, nSeedNodes, nSeedNodes == 1 ? "" : "s", nPermDcs, nPermDcs == 1 ? "" : "s" );
+        }
+        else
+            printf( "Trying %d random candidate input assignments with %d randomized don't-care position%s.\n", nCandPerms, nPermDcs, nPermDcs == 1 ? "" : "s" );
+        pPars->fSilent = 1;
+        for ( i = 0; i < nCandPerms; i++ )
+        {
+            int * pFans = fSmartGen ? Abc_TwoExactPermRandomSeeded( pPars->nVars, pPars->nNodes, nPermDcs, vSeedPairs, nSeedNodes ) : Abc_TwoExactPermRandom( pPars->nVars, pPars->nNodes, nPermDcs );
+            char * pPerm, * pStruct;
+            if ( pFans == NULL )
+            {
+                nFailed++;
+                continue;
+            }
+            pPerm = Abc_TwoExactPermEncode( pFans, pPars->nVars, pPars->nNodes );
+            pStruct = Abc_TwoExactPermEncodeFull( pFans, pPars->nVars, pPars->nNodes );
+            nGenerated++;
+            pPars->pPermFans = pFans;
+            pPars->pPermStr = pPerm;
+            if ( nGenerated == 1 || nGenerated % 10000 == 0 )
+                printf( "Trying candidate %d/%d: %s\n", nGenerated, nCandPerms, pStruct );
+            fFound = pPars->fGlucose ? Exa_ManExactSynthesis( pPars ) : Exa_ManExactSynthesis2( pPars );
+            if ( fFound )
+            {
+                pPars->fSilent = fSilentSave;
+                Abc_TwoExactRun( pPars );
+                printf( "Found solution using candidate %d: %s\n", nGenerated, pStruct );
+                ABC_FREE( pStruct );
+                ABC_FREE( pPerm );
+                ABC_FREE( pFans );
+                break;
+            }
+            ABC_FREE( pStruct );
+            ABC_FREE( pPerm );
+            ABC_FREE( pFans );
+            pPars->pPermStr = NULL;
+            pPars->pPermFans = NULL;
+        }
+        pPars->pPermStr = NULL;
+        pPars->pPermFans = NULL;
+        pPars->fSilent = fSilentSave;
+        Vec_IntFreeP( &vSeedPairs );
+        ABC_FREE( pPars->pSolFans );
+        if ( !fFound )
+            printf( "No solution found after trying %d generated candidate%s (%d generation failure%s).\n", nGenerated, nGenerated == 1 ? "" : "s", nFailed, nFailed == 1 ? "" : "s" );
+        Abc_PrintTime( 1, "Total candidate-search runtime", Abc_Clock() - clk );
+        return 0;
+    }
+    if ( fTryMin )
+    {
+        if ( fUseNands || fKissat || fKissat2 || pPars->fCard )
+        {
+            Abc_Print( -1, "Minimum-node enumeration with -t is currently supported by the default and Glucose (-g) twoexact engines.\n" );
+            return 1;
+        }
+        if ( pPars->nNodes < pPars->nVars + 1 )
+        {
+            Abc_Print( -1, "Command line switch \"-t\" expects \"-N <num>\" to be at least %d.\n", pPars->nVars + 1 );
+            return 1;
+        }
+        if ( !Abc_TwoExactRunMin(pPars, pPars->nNodes) )
+            printf( "No solution found from N = %d through N = %d.\n", pPars->nVars + 1, pPars->nNodes );
+        ABC_FREE( pPars->pSolFans );
+        return 0;
+    }
     if ( fUseNands )
         Exa_ManExactSynthesis7( pPars, GateSize );
     else if ( fKissat || pPars->fCard )
@@ -10752,16 +11279,21 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
         Exa_ManExactSynthesis( pPars );
     else
         Exa_ManExactSynthesis2( pPars );
+    ABC_FREE( pPars->pSolFans );
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: twoexact [-INTG <num>] [-S str] [-abdconugklmvh] <hex>\n" );
+    Abc_Print( -2, "usage: twoexact [-INTGCDE <num>] [-S str] [-P str] [-abdconugklmtxvh] <hex>\n" );
     Abc_Print( -2, "\t           exact synthesis of multi-input function using two-input gates\n" );
     Abc_Print( -2, "\t-I <num> : the number of input variables [default = %d]\n", pPars->nVars );
     Abc_Print( -2, "\t-N <num> : the number of two-input nodes [default = %d]\n", pPars->nNodes );
     Abc_Print( -2, "\t-T <num> : the runtime limit in seconds [default = %d]\n", pPars->RuntimeLim );
     Abc_Print( -2, "\t-G <num> : the largest allowed gate size (NANDs only) [default = %d]\n", GateSize );
     Abc_Print( -2, "\t-S <str> : structural guidance from the user [default = %s]\n", pPars->pGuide ? pPars->pGuide : "unknown" );    
+    Abc_Print( -2, "\t-P <str> : fixed input permutation; '_' separates gates, '*' leaves fanin free [default = %s]\n", pPars->pPermStr ? pPars->pPermStr : "none" );
+    Abc_Print( -2, "\t-C <num> : number of random candidate permutations to try [default = %d]\n", nCandPerms );
+    Abc_Print( -2, "\t-D <num> : number of fixed variable positions randomized to '*' in each candidate [default = %d]\n", nPermDcs );
+    Abc_Print( -2, "\t-E <num> : number of frequent cofactor seed nodes used with -x [default = %d]\n", nSeedNodes );
     Abc_Print( -2, "\t-a       : toggle using only AND-gates (without XOR-gates) [default = %s]\n", pPars->fOnlyAnd ? "yes" : "no" );
     Abc_Print( -2, "\t-b       : toggle using only NAND-gates [default = %s]\n", fUseNands ? "yes" : "no" );
     Abc_Print( -2, "\t-d       : toggle using dynamic constraint addition [default = %s]\n", pPars->fDynConstr ? "yes" : "no" );
@@ -10773,6 +11305,8 @@ usage:
     Abc_Print( -2, "\t-k       : toggle using Kissat by Armin Biere [default = %s]\n", fKissat ? "yes" : "no" );
     Abc_Print( -2, "\t-l       : toggle using Kissat by Armin Biere [default = %s]\n", fKissat2 ? "yes" : "no" );
     Abc_Print( -2, "\t-m       : toggle using CaDiCaL by Armin Biere [default = %s]\n", pPars->fCard ? "yes" : "no" );
+    Abc_Print( -2, "\t-t       : toggle trying increasing node counts up to \"-N <num>\" [default = %s]\n", fTryMin ? "yes" : "no" );
+    Abc_Print( -2, "\t-x       : toggle smart candidate generation using cofactor seed nodes [default = %s]\n", fSmartGen ? "yes" : "no" );
     Abc_Print( -2, "\t-v       : toggle verbose printout [default = %s]\n", pPars->fVerbose ? "yes" : "no" );
     Abc_Print( -2, "\t-h       : print the command usage\n" );
     Abc_Print( -2, "\t<hex>    : truth table in hex notation\n" );

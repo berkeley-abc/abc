@@ -577,7 +577,8 @@ static int Exa_ManMarkup( Exa_Man_t * p )
             }
         }
     }
-    printf( "The number of parameter variables = %d.\n", p->iVar );
+    if ( !p->pPars->fSilent )
+        printf( "The number of parameter variables = %d.\n", p->iVar );
     return p->iVar;
     // printout
     for ( i = p->nVars; i < p->nObjs; i++ )
@@ -640,6 +641,18 @@ static inline int Exa_ManFindFanin( Exa_Man_t * p, int i, int k )
     assert( Count == 1 );
     return iVar;
 }
+static inline char * Exa_ManObjName( Exa_Man_t * p, int iObj, char * pBuffer )
+{
+    if ( iObj < 0 )
+        sprintf( pBuffer, "*" );
+    else if ( iObj < p->nVars )
+        sprintf( pBuffer, "%c", 'a' + iObj );
+    else if ( iObj - p->nVars < 26 )
+        sprintf( pBuffer, "%c", 'A' + iObj - p->nVars );
+    else
+        sprintf( pBuffer, "N%d", iObj - p->nVars );
+    return pBuffer;
+}
 static inline int Exa_ManEval( Exa_Man_t * p )
 {
     static int Flag = 0;
@@ -681,6 +694,7 @@ static inline int Exa_ManEval( Exa_Man_t * p )
 static void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
 {
     int i, k, iVar;
+    char Name[16];
     printf( "Realization of given %d-input function using %d two-input gates:\n", p->nVars, p->nNodes );
 //    for ( i = p->nVars + 2; i < p->nObjs; i++ )
     for ( i = p->nObjs - 1; i >= p->nVars; i-- )
@@ -690,19 +704,112 @@ static void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
         int Val2 = sat_solver_var_value(p->pSat, iVarStart+1);
         int Val3 = sat_solver_var_value(p->pSat, iVarStart+2);
         if ( i == p->nObjs - 1 && fCompl )
-            printf( "%02d = 4\'b%d%d%d1(", i, !Val3, !Val2, !Val1 );
+            printf( "%s = 4\'b%d%d%d1(", Exa_ManObjName(p, i, Name), !Val3, !Val2, !Val1 );
         else
-            printf( "%02d = 4\'b%d%d%d0(", i, Val3, Val2, Val1 );
+            printf( "%s = 4\'b%d%d%d0(", Exa_ManObjName(p, i, Name), Val3, Val2, Val1 );
         for ( k = 1; k >= 0; k-- )
         {
             iVar = Exa_ManFindFanin( p, i, k );
-            if ( iVar >= 0 && iVar < p->nVars )
-                printf( " %c", 'a'+iVar );
-            else
-                printf( " %02d", iVar );
+            printf( " %s", Exa_ManObjName(p, iVar, Name) );
         }
         printf( " )\n" );
     }
+}
+static inline int Exa_ManPermFanin( Exa_Man_t * p, int i, int k )
+{
+    char * pPermStr = p->pPars->pPermStr;
+    int iTarget = 2 * (i - p->nVars) + (k ? 0 : 1);
+    int nSeen = 0, s;
+    if ( p->pPars->pPermFans )
+        return p->pPars->pPermFans[iTarget];
+    assert( pPermStr != NULL );
+    for ( s = 0; pPermStr[s]; s++ )
+    {
+        if ( pPermStr[s] == '_' )
+            continue;
+        if ( nSeen++ == iTarget )
+            return pPermStr[s] == '*' ? -1 : pPermStr[s] - 'a';
+    }
+    assert( 0 );
+    return -1;
+}
+static void Exa_ManPrintPermFanin( Exa_Man_t * p, int iFanin )
+{
+    char Name[16];
+    printf( "%s ", Exa_ManObjName(p, iFanin, Name) );
+}
+static void Exa_ManPrintFixedPerm( Exa_Man_t * p )
+{
+    int i, k;
+    char Name[16];
+    if ( (p->pPars->pPermStr == NULL && p->pPars->pPermFans == NULL) || p->pPars->fSilent )
+        return;
+    printf( "Using fixed input assignment provided by the user %s:\n", p->pPars->pPermStr ? p->pPars->pPermStr : "" );
+    for ( i = p->nObjs - 1; i >= p->nVars; i-- )
+    {
+        printf( "%s : ", Exa_ManObjName(p, i, Name) );
+        for ( k = 1; k >= 0; k-- )
+            Exa_ManPrintPermFanin( p, Exa_ManPermFanin(p, i, k) );
+        printf( "\n" );
+    }
+}
+static void Exa_ManPrintPerm( Exa_Man_t * p )
+{
+    int i, k, iVar;
+    printf( "The variable permutation is \"" );
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+        if ( i > p->nVars )
+            printf( "_" );
+        for ( k = 1; k >= 0; k-- )
+        {
+            iVar = Exa_ManFindFanin( p, i, k );
+            printf( "%c", iVar < p->nVars ? 'a' + iVar : '*' );
+        }
+    }
+    printf( "\".\n" );
+}
+static void Exa_ManSaveSolution( Exa_Man_t * p )
+{
+    int i, k, Pos = 0;
+    ABC_FREE( p->pPars->pSolFans );
+    p->pPars->pSolFans = ABC_ALLOC( int, 2 * p->nNodes );
+    for ( i = p->nVars; i < p->nObjs; i++ )
+        for ( k = 1; k >= 0; k-- )
+            p->pPars->pSolFans[Pos++] = Exa_ManFindFanin( p, i, k );
+}
+static int Exa_ManAddPermConstr( Exa_Man_t * p )
+{
+    int i, k, iVar, Lit;
+    char Name0[16], Name1[16];
+    if ( p->pPars->pPermStr == NULL && p->pPars->pPermFans == NULL )
+        return 1;
+    Exa_ManPrintFixedPerm( p );
+    for ( i = p->nVars; i < p->nObjs; i++ )
+    {
+        for ( k = 0; k < 2; k++ )
+        {
+            iVar = Exa_ManPermFanin( p, i, k );
+            if ( iVar == -1 )
+                continue;
+            if ( iVar < 0 || iVar >= p->nVars || p->VarMarks[i][k][iVar] == 0 )
+            {
+                if ( iVar >= p->nVars && iVar < i && p->VarMarks[i][k][iVar] )
+                {
+                    Lit = Abc_Var2Lit( p->VarMarks[i][k][iVar], 0 );
+                    if ( !sat_solver_addclause( p->pSat, &Lit, &Lit + 1 ) )
+                        return 0;
+                    continue;
+                }
+                printf( "Cannot force node %s fanin %d to object %s because this connection is not available.\n", Exa_ManObjName(p, i, Name0), k, Exa_ManObjName(p, iVar, Name1) );
+                return 0;
+            }
+            Lit = Abc_Var2Lit( p->VarMarks[i][k][iVar], 0 );
+            if ( !sat_solver_addclause( p->pSat, &Lit, &Lit + 1 ) )
+                return 0;
+        }
+    }
+    return 1;
 }
 
 
@@ -720,6 +827,8 @@ static void Exa_ManPrintSolution( Exa_Man_t * p, int fCompl )
 static int Exa_ManAddCnfStart( Exa_Man_t * p, int fOnlyAnd )
 {
     int pLits[MAJ_NOBJS], pLits2[2], i, j, k, n, m;
+    if ( !Exa_ManAddPermConstr(p) )
+        return 0;
     // input constraints
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
@@ -849,9 +958,10 @@ static int Exa_ManAddCnf( Exa_Man_t * p, int iMint )
     p->iVar += 3*p->nNodes;
     return 1;
 }
-void Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars )
+int Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars )
 {
     int i, status, iMint = 1;
+    int fFound = 0;
     abctime clkTotal = Abc_Clock();
     Exa_Man_t * p; int fCompl = 0;
     word pTruth[64]; Abc_TtReadHex( pTruth, pPars->pTtStr );
@@ -859,8 +969,13 @@ void Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars )
     p = Exa_ManAlloc( pPars, pTruth );
     if ( pTruth[0] & 1 ) { fCompl = 1; Abc_TtNot( pTruth, p->nWords ); }
     status = Exa_ManAddCnfStart( p, pPars->fOnlyAnd );
-    assert( status );
-    printf( "Running exact synthesis for %d-input function with %d two-input gates...\n", p->nVars, p->nNodes );
+    if ( !status )
+    {
+        Exa_ManFree( p );
+        return 0;
+    }
+    if ( !pPars->fSilent )
+        printf( "Running exact synthesis for %d-input function with %d two-input gates...\n", p->nVars, p->nNodes );
     for ( i = 0; iMint != -1; i++ )
     {
         abctime clk = Abc_Clock();
@@ -878,15 +993,26 @@ void Exa_ManExactSynthesis2( Bmc_EsPar_t * pPars )
         }
         if ( status == l_False )
         {
-            printf( "The problem has no solution.\n" );
+            if ( !pPars->fSilent )
+                printf( "The problem has no solution.\n" );
             break;
         }
         iMint = Exa_ManEval( p );
     }
     if ( iMint == -1 )
-        Exa_ManPrintSolution( p, fCompl );
+    {
+        Exa_ManSaveSolution( p );
+        if ( !pPars->fSilent )
+        {
+            Exa_ManPrintSolution( p, fCompl );
+            Exa_ManPrintPerm( p );
+        }
+        fFound = 1;
+    }
     Exa_ManFree( p );
-    Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+    if ( !pPars->fSilent )
+        Abc_PrintTime( 1, "Total runtime", Abc_Clock() - clkTotal );
+    return fFound;
 }
 
 
