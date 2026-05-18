@@ -10720,6 +10720,41 @@ static char * Abc_TwoExactPermEncodeFull( int * pFans, int nVars, int nNodes )
     pPerm[Pos] = 0;
     return pPerm;
 }
+static int Abc_TwoExactPermParseObj( char ** ppToken, int nVars, int nNodes, int * pObj )
+{
+    char * pToken = *ppToken;
+    if ( *pToken == '*' )
+    {
+        *pObj = -1;
+        *ppToken = pToken + 1;
+        return 1;
+    }
+    if ( *pToken >= 'a' && *pToken < 'a' + nVars )
+    {
+        *pObj = *pToken - 'a';
+        *ppToken = pToken + 1;
+        return 1;
+    }
+    if ( *pToken >= 'A' && *pToken <= 'Z' )
+    {
+        *pObj = nVars + *pToken - 'A';
+        *ppToken = pToken + 1;
+        return *pObj < nVars + nNodes;
+    }
+    if ( *pToken == 'N' )
+    {
+        char * pNext = pToken + 1;
+        int Num = 0;
+        if ( *pNext < '0' || *pNext > '9' )
+            return 0;
+        while ( *pNext >= '0' && *pNext <= '9' )
+            Num = 10 * Num + *pNext++ - '0';
+        *pObj = nVars + Num;
+        *ppToken = pNext;
+        return *pObj < nVars + nNodes;
+    }
+    return 0;
+}
 static int Abc_TwoExactPermAddDcs( int * pFans, int nVars, int nNodes, int nDcs, int nSkip, int fAll )
 {
     int i, k, nLetters = 0;
@@ -11164,15 +11199,19 @@ int Abc_CommandTwoExact( Abc_Frame_t * pAbc, int argc, char ** argv )
     }
     if ( pPars->pPermStr )
     {
-        int i, nEntries = 0;
-        for ( i = 0; pPars->pPermStr[i]; i++ )
+        char * pToken = pPars->pPermStr;
+        int nEntries = 0;
+        while ( *pToken )
         {
-            char Sym = pPars->pPermStr[i];
-            if ( Sym == '_' )
-                continue;
-            if ( Sym != '*' && (Sym < 'a' || Sym >= 'a' + pPars->nVars) )
+            int iObj = -1;
+            if ( *pToken == '_' )
             {
-                Abc_Print( -1, "Permutation symbol \"%c\" is not one of '*', '_' or input variables 'a' through '%c'.\n", Sym, 'a' + pPars->nVars - 1 );
+                pToken++;
+                continue;
+            }
+            if ( !Abc_TwoExactPermParseObj(&pToken, pPars->nVars, pPars->nNodes, &iObj) )
+            {
+                Abc_Print( -1, "Permutation should use '*', '_', input variables 'a' through '%c', or internal nodes 'A' through '%c'.\n", 'a' + pPars->nVars - 1, 'A' + Abc_MinInt(pPars->nNodes, 26) - 1 );
                 return 1;
             }
             nEntries++;

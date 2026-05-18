@@ -719,16 +719,42 @@ static inline int Exa_ManPermFanin( Exa_Man_t * p, int i, int k )
 {
     char * pPermStr = p->pPars->pPermStr;
     int iTarget = 2 * (i - p->nVars) + (k ? 0 : 1);
-    int nSeen = 0, s;
+    int nSeen = 0;
+    char * pToken;
     if ( p->pPars->pPermFans )
         return p->pPars->pPermFans[iTarget];
     assert( pPermStr != NULL );
-    for ( s = 0; pPermStr[s]; s++ )
+    for ( pToken = pPermStr; *pToken; )
     {
-        if ( pPermStr[s] == '_' )
+        int iObj = -2;
+        if ( *pToken == '_' )
+        {
+            pToken++;
             continue;
+        }
+        if ( *pToken == '*' )
+        {
+            iObj = -1;
+            pToken++;
+        }
+        else if ( *pToken >= 'a' && *pToken < 'a' + p->nVars )
+            iObj = *pToken++ - 'a';
+        else if ( *pToken >= 'A' && *pToken <= 'Z' )
+            iObj = p->nVars + (*pToken++ - 'A');
+        else if ( *pToken == 'N' )
+        {
+            char * pNext = pToken + 1;
+            int Num = 0;
+            assert( *pNext >= '0' && *pNext <= '9' );
+            while ( *pNext >= '0' && *pNext <= '9' )
+                Num = 10 * Num + *pNext++ - '0';
+            iObj = p->nVars + Num;
+            pToken = pNext;
+        }
+        else
+            assert( 0 );
         if ( nSeen++ == iTarget )
-            return pPermStr[s] == '*' ? -1 : pPermStr[s] - 'a';
+            return iObj;
     }
     assert( 0 );
     return -1;
@@ -756,6 +782,7 @@ static void Exa_ManPrintFixedPerm( Exa_Man_t * p )
 static void Exa_ManPrintPerm( Exa_Man_t * p )
 {
     int i, k, iVar;
+    char Name[16];
     printf( "The variable permutation is \"" );
     for ( i = p->nVars; i < p->nObjs; i++ )
     {
@@ -764,7 +791,7 @@ static void Exa_ManPrintPerm( Exa_Man_t * p )
         for ( k = 1; k >= 0; k-- )
         {
             iVar = Exa_ManFindFanin( p, i, k );
-            printf( "%c", iVar < p->nVars ? 'a' + iVar : '*' );
+            printf( "%s", Exa_ManObjName(p, iVar, Name) );
         }
     }
     printf( "\".\n" );
