@@ -61036,7 +61036,7 @@ int Abc_CommandAbc9elSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
   seteSLIMParams(&params);
   Extra_UtilGetoptReset();
   params.subcircuit_max_size = 4;
-  while ( ( c = Extra_UtilGetopt( argc, argv, "CDGIPRSTVWXZfhist" ) ) != EOF ) {
+  while ( ( c = Extra_UtilGetopt( argc, argv, "CDGIPRSTVWXZcfhist" ) ) != EOF ) {
       switch ( c ) {
         case 'C':
           if ( globalUtilOptind >= argc )

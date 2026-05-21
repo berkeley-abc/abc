@@ -79,6 +79,7 @@ namespace eSLIM {
   }
 
   eSLIMCirMan::eSLIMCirMan(Gia_Man_t * pGia) : eSLIMCirMan(Gia_ManObjNum(pGia)) {
+    assert (!Gia_ManHasDangling(pGia));
     Gia_ManConst0(pGia)->Value = 0;
     Gia_Obj_t * pObj;
     int i;
