@@ -212,10 +212,15 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
 {
     Gia_Man_t * pGia = NULL;
     char * pFileNames, * pCommand;
-    char * pFileTemp = "_temp_.aig";
+    char * pFileTemp, * pFileBase;
     int fRtlil = nFileNames == 1 && strstr(ppFileNames[0], ".rtl") != NULL;
     int fSVlog = Wln_FileNamesHasSv(ppFileNames, nFileNames);
     int nCommand;
+    pFileBase = pTopModule ? Abc_UtilStrsav(pTopModule) :
+        Extra_FileNameGeneric( Extra_FileNameWithoutPath(ppFileNames[0]) );
+    pFileTemp = ABC_ALLOC( char, strlen(pFileBase) + 5 );
+    sprintf( pFileTemp, "%s.aig", pFileBase );
+    ABC_FREE( pFileBase );
     pFileNames = Wln_FileNamesJoin( ppFileNames, nFileNames );
     nCommand = strlen(Wln_GetYosysName()) + strlen(pFileNames) + (pDefines ? strlen(pDefines) : 0) + (pTopModule ? strlen(pTopModule) : 0) + strlen(pFileTemp) + 500;
     pCommand = ABC_ALLOC( char, nCommand );
@@ -238,6 +243,7 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
     {
         ABC_FREE( pCommand );
         ABC_FREE( pFileNames );
+        ABC_FREE( pFileTemp );
         return NULL;
     }
     ABC_FREE( pCommand );
@@ -250,6 +256,7 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
         if ( pNtk == NULL )
         {
             printf( "Reading AIGER from file \"%s\" has failed.\n", pFileTemp );
+            ABC_FREE( pFileTemp );
             return NULL;
         }
         pAig = Abc_NtkToDar( pNtk, 0, 1 );
@@ -257,6 +264,7 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
         if ( pAig == NULL )
         {
             printf( "Converting the AIGER network into an internal AIG has failed.\n" );
+            ABC_FREE( pFileTemp );
             return NULL;
         }
         pGia = fSkipStrash ? Gia_ManFromAigSimple(pAig) : Gia_ManFromAig(pAig);
@@ -267,12 +275,14 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
     if ( pGia == NULL )
     {
         printf( "Converting to AIG has failed.\n" );
+        ABC_FREE( pFileTemp );
         return NULL;
     }
     ABC_FREE( pGia->pName );
     pGia->pName = pTopModule ? Abc_UtilStrsav(pTopModule) :
         Extra_FileNameGeneric( Extra_FileNameWithoutPath(ppFileNames[0]) );
     unlink( pFileTemp );
+    ABC_FREE( pFileTemp );
     // complement the outputs
     if ( fInvert )
     {

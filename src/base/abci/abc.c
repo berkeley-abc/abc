@@ -43284,6 +43284,7 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
     Gia_Man_t * pGia;
     char * pTemp;
     char * pOrigFileName = NULL;
+    char * pFileTemp = NULL;
     int fVerilog, fSystemVerilog;
 
     *pAbc_ReadAigerOrVerilogFileStatus = 0;
@@ -43312,17 +43313,24 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = NULL;
         char pCommand[2000];
+        char * pFileBase;
         int RetValue;
         int fSystemVerilog2 = pFileName2 && Extra_FileIsType( pFileName2, ".sv", NULL, NULL );
         // Save the original filename before changing it
         pOrigFileName = pFileName;
+        pFileBase = pTopModule ? Abc_UtilStrsav(pTopModule) :
+            Extra_FileNameGeneric( Extra_FileNameWithoutPath(pFileName) );
+        pFileTemp = ABC_ALLOC( char, strlen(pFileBase) + 5 );
+        sprintf( pFileTemp, "%s.aig", pFileBase );
+        ABC_FREE( pFileBase );
         snprintf( pCommand, sizeof(pCommand),
-            "yosys -qp \"read_verilog %s%s %s%s%s%s; hierarchy %s%s; flatten; proc; opt; async2sync; opt; setundef -undriven -zero; techmap; memory -nomap; memory_map; dffunmap; opt_clean; opt_expr; %saigmap; write_aiger -symbols _temp_.aig\"",
+            "yosys -qp \"read_verilog %s%s %s%s%s%s; hierarchy %s%s; flatten; proc; opt; async2sync; opt; setundef -undriven -zero; techmap; memory -nomap; memory_map; dffunmap; opt_clean; opt_expr; %saigmap; write_aiger -symbols %s\"",
             pDefines ? "-D" : "", pDefines ? pDefines : "",
             (fSystemVerilog || fSystemVerilog2) ? "-sv " : "", pFileName,
             pFileName2 ? " " : "", pFileName2 ? pFileName2 : "",
             pTopModule ? "-top "    : "-auto-top", pTopModule ? pTopModule : "",
-            pFileName2 ? "delete t:\\$scopeinfo; " : "" );
+            pFileName2 ? "delete t:\\$scopeinfo; " : "",
+            pFileTemp );
 #if defined(__wasm)
         RetValue = 1;
 #else
@@ -43331,14 +43339,16 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
         if ( RetValue != 0 )
         {
             Abc_Print( -1, "Yosys command failed: \"%s\".\n", pCommand );
+            ABC_FREE( pFileTemp );
             return NULL;
         }
         if ( pFileName2 )
         {
-            Abc_Ntk_t * pNtk = Io_Read( "_temp_.aig", IO_FILE_AIGER, 1, 0 );
+            Abc_Ntk_t * pNtk = Io_Read( pFileTemp, IO_FILE_AIGER, 1, 0 );
             if ( pNtk == NULL )
             {
-                Abc_Print( -1, "Reading AIGER from file \"%s\" has failed.\n", "_temp_.aig" );
+                Abc_Print( -1, "Reading AIGER from file \"%s\" has failed.\n", pFileTemp );
+                ABC_FREE( pFileTemp );
                 return NULL;
             }
             pAig = Abc_NtkToDar( pNtk, 0, 1 );
@@ -43346,6 +43356,7 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
             if ( pAig == NULL )
             {
                 Abc_Print( -1, "Converting the AIGER network into an internal AIG has failed.\n" );
+                ABC_FREE( pFileTemp );
                 return NULL;
             }
             pGia = Gia_ManFromAig( pAig );
@@ -43353,7 +43364,7 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
         }
         else
         {
-            pFileName = "_temp_.aig";
+            pFileName = pFileTemp;
             pGia = Gia_AigerRead( pFileName, 0, 0, 0 );
         }
     }
@@ -43362,6 +43373,7 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
     if ( pGia == NULL )
     {
         Abc_Print( -1, "Reading AIGER from file \"%s\" has failed.\n", pFileName );
+        ABC_FREE( pFileTemp );
         return NULL;
     }
 
@@ -43372,6 +43384,7 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
         pGia->pSpec = Abc_UtilStrsav( pOrigFileName );
     }
 
+    ABC_FREE( pFileTemp );
     return pGia;
 }
 
