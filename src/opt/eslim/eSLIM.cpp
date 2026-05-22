@@ -603,18 +603,16 @@ Circuitrepresentation* runeSLIM(Circuitrepresentation * cir, const eSLIM_ParamSt
 
 
 Gia_Man_t* applyeSLIM(Gia_Man_t * pGia, const eSLIM_ParamStruct* params) {
+  if (Gia_ManHasDangling(pGia)) {
+    std::cout << "Warning: Circuit must not contain dangling nodes.\n";
+    return pGia;
+  }
   return runeSLIM(pGia, params);
 }
 
 Abc_Ntk_t* applyelSLIM(Abc_Ntk_t * ntk, const eSLIM_ParamStruct* params) {
   return runeSLIM(ntk, params);
 }
-
-Abc_Ntk_t* applyetSLIM(Abc_Ntk_t * ntk, const eSLIM_ParamStruct* params) {
-  return runeSLIM(ntk, params);
-}
-
-
 
 
 
