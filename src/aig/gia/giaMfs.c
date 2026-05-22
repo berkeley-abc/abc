@@ -531,6 +531,25 @@ Gia_Man_t * Gia_ManInsertMfs( Gia_Man_t * p, Sfm_Ntk_t * pNtk, int fAllBoxes )
     if ( p->vRegInits )
         pNew->vRegInits = Vec_IntDup( p->vRegInits );
     pNew->nAnd2Delay = p->nAnd2Delay;
+    // propagate origins via MFS ID correspondence
+    if ( p->vOrigins )
+    {
+        int iOldObj;
+        pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
+        Vec_IntForEachEntry( vMfs2Old, iOldObj, i )
+        {
+            if ( iOldObj >= 0 )
+            {
+                int iNewLit = Vec_IntEntry( vMfs2Gia, i );
+                if ( iNewLit >= 0 )
+                {
+                    int iNewObj = Abc_Lit2Var( iNewLit );
+                    if ( iNewObj < Gia_ManObjNum(pNew) && iOldObj * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) )
+                        Gia_ObjUnionOrigins( pNew, iNewObj, p, iOldObj );
+                }
+            }
+        }
+    }
 
     // cleanup
     Vec_WecFree( vGroups );
