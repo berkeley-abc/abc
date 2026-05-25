@@ -1069,28 +1069,28 @@ static inline int Vec_IntFind( Vec_Int_t * p, int Entry )
 ***********************************************************************/
 static inline int Vec_IntRemove( Vec_Int_t * p, int Entry )
 {
-    int i;
-    for ( i = 0; i < p->nSize; i++ )
+    int i, Size = p->nSize;
+    for ( i = 0; i < Size; i++ )
         if ( p->pArray[i] == Entry )
             break;
-    if ( i == p->nSize )
+    if ( i == Size )
         return 0;
-    assert( i < p->nSize );
-    for ( i++; i < p->nSize; i++ )
+    assert( i < Size );
+    for ( i++; i < Size; i++ )
         p->pArray[i-1] = p->pArray[i];
     p->nSize--;
     return 1;
 }
 static inline int Vec_IntRemove1( Vec_Int_t * p, int Entry )
 {
-    int i;
-    for ( i = 1; i < p->nSize; i++ )
+    int i, Size = p->nSize;
+    for ( i = 1; i < Size; i++ )
         if ( p->pArray[i] == Entry )
             break;
-    if ( i >= p->nSize )
+    if ( i >= Size )
         return 0;
-    assert( i < p->nSize );
-    for ( i++; i < p->nSize; i++ )
+    assert( i < Size );
+    for ( i++; i < Size; i++ )
         p->pArray[i-1] = p->pArray[i];
     p->nSize--;
     return 1;
