@@ -2,6 +2,9 @@ name: Build Posix CMake
 
 on:
   push:
+    branches:
+      - master
+      - main
   pull_request:
 
 jobs:
@@ -22,7 +25,7 @@ jobs:
     steps:
 
     - name: Git Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
 
@@ -64,7 +67,7 @@ jobs:
        cp build/abc build/libabc.a staging/
 
     - name: Upload pacakge artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: package-cmake-${{ matrix.os }}-${{ matrix.use_namespace }}
         path: staging/
