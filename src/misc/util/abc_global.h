@@ -287,7 +287,7 @@ static inline int      Abc_Float2Int( float Val )             { union { int x; f
 static inline float    Abc_Int2Float( int Num )               { union { int x; float y; } v; v.x = Num; return v.y;         }
 static inline word     Abc_Dbl2Word( double Dbl )             { union { word x; double y; } v; v.y = Dbl; return v.x;       }
 static inline double   Abc_Word2Dbl( word Num )               { union { word x; double y; } v; v.x = Num; return v.y;       }
-static inline int      Abc_Base2Log( unsigned n )             { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n >>= 1, r++ ) {}; return r; }
+static inline int      Abc_Base2Log( unsigned n )             { if ( n < 2 ) return (int)n; return 31 - __builtin_clz(n); }
 static inline int      Abc_Base10Log( unsigned n )            { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 10, r++ ) {}; return r; }
 static inline int      Abc_Base16Log( unsigned n )            { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n /= 16, r++ ) {}; return r; }
 static inline int      Abc_Base2LogW( word n )                { int r; if ( n < 2 ) return (int)n; for ( r = 0, n--; n; n >>= 1, r++ ) {}; return r; }
