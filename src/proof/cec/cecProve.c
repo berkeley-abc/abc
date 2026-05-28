@@ -61,8 +61,10 @@ struct Cec_SproveTrace_t_;
 static int Cec_SProveCallback( void * pUser, int fSolved, unsigned Result );
 static Gia_Man_t * Cec_GiaScorrOld( Gia_Man_t * p, int nTimeOut, Par_Share_t * pShare, struct Cec_ScorrStop_t_ * pStopOut );
 static Gia_Man_t * Cec_GiaScorrNew( Gia_Man_t * p, int nTimeOut, Par_Share_t * pShare, struct Cec_ScorrStop_t_ * pStopOut );
+#ifdef ABC_USE_PTHREADS
 static void Cec_GiaInitThreads( Par_ThData_t * ThData, int nWorkers, Gia_Man_t * p, int nTimeOut, int nTimeOutU, Wlc_Ntk_t * pWlc, const char * pUfarArgs, int fVerbose, pthread_t * WorkerThread, Par_Share_t * pShare, int * pEngines, int StageId, int NetId, struct Cec_SproveTrace_t_ * pTrace );
 static void Cec_GiaStopThreads( Par_ThData_t * ThData, pthread_t * WorkerThread, int nWorkers );
+#endif
 static int Cec_GiaWaitThreads( Par_ThData_t * ThData, int nWorkers, Gia_Man_t * p, int RetValue, int * pRetEngine );
 
 extern int Ufar_ProveWithTimeout( Wlc_Ntk_t * pNtk, int nTimeOut, int fVerbose, int (*pFuncStop)(int), int RunId, const char * pArgs );
