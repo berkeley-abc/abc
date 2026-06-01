@@ -443,6 +443,10 @@ SOURCE=.\src\base\abci\abcResub.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\src\base\abci\abcRmInverters.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\src\base\abci\abcRewrite.c
 # End Source File
 # Begin Source File

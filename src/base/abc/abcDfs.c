@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "abc.h"
+#include "misc/vec/vecPtr.h"
 #include "proof/cec/cec.h"
 
 ABC_NAMESPACE_IMPL_START
@@ -135,6 +136,101 @@ Vec_Ptr_t * Abc_NtkDfs2( Abc_Ntk_t * pNtk )
         Abc_NtkDfs_rec( Abc_ObjFanin0Ntk(Abc_ObjFanin0(pObj)), vNodes );
     }
     return vNodes;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Collect support nodes bounded internal nodes.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfsSup_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Vec_Ptr_t * vSup, int iVerbose)
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    assert( !Abc_ObjIsNet(pNode) );
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pNode );
+    if ( Abc_ObjIsCi(pNode) || Abc_ObjIsCo(pNode) || (Abc_NtkIsStrash(pNode->pNtk) && Abc_AigNodeIsConst(pNode))  )
+        return;
+    if( Vec_PtrFind(vSup, pNode) >= 0 )
+    {
+        if(iVerbose)
+        {
+            printf("Encountered vSup Node: %s\n", Abc_ObjName(pNode));
+            printf("Whose fanins are:\n");
+            printf("    Fanin0: %s", Abc_ObjName(Abc_ObjFanin0(pNode)));
+            printf(" %d on comp\n", pNode->fCompl0);
+            printf("    Fanin1: %s", Abc_ObjName(Abc_ObjFanin1(pNode)));
+            printf(" %d on comp\n", pNode->fCompl1);
+        }
+        return;
+    }
+    assert( Abc_ObjIsNode( pNode ) );
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        if(iVerbose)
+        {
+            printf("  Node %s Fanin %d: ", Abc_ObjName(pNode), i);
+            printf("%s", Abc_ObjName(pFanin));
+            printf(" %d on comp\n", i == 0 ? pNode->fCompl0 : pNode->fCompl1);
+        }
+        Abc_NtkDfsSup_rec( Abc_ObjFanin0Ntk(pFanin), vNodes, vSup, iVerbose);
+    }
+    Vec_PtrPush( vNodes, pNode );
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkDfsInvSup_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vSup, int * countFlip)
+{
+    Abc_Obj_t * pFanin;
+    int i;
+    assert( !Abc_ObjIsNet(pNode) );
+    if ( Abc_NodeIsTravIdCurrent( pNode ) )
+        return;
+    Abc_NodeSetTravIdCurrent( pNode );
+    if ( Abc_ObjIsCi(pNode) || Abc_ObjIsCo(pNode) || (Abc_NtkIsStrash(pNode->pNtk) && Abc_AigNodeIsConst(pNode))  )
+        return;
+    if( Vec_PtrFind(vSup, pNode) >= 0 )
+    {
+        return;
+    }
+    assert( Abc_ObjIsNode( pNode ) || Abc_ObjIsBox( pNode ) );
+
+    Abc_ObjForEachFanin( pNode, pFanin, i )
+    {
+        if(Vec_PtrFind(vSup, pFanin) >= 0)
+        {
+            if(i == 0)
+            {
+                printf("Flipping edge on Node %s %d (Phase = %d)\n", Abc_ObjName(pNode), i, pFanin->fPhase );
+                pNode->fCompl0 ^= 1;
+            }
+            else if(i == 1)
+            {
+                printf("Flipping edge on Node %s %d (Phase = %d)\n", Abc_ObjName(pNode),i , pFanin->fPhase);
+                pNode->fCompl1 ^= 1;
+            }
+            *countFlip = *countFlip + 1;
+        }
+        Abc_NtkDfsInvSup_rec( Abc_ObjFanin0Ntk(pFanin), vSup, countFlip );
+    }
 }
 
 /**Function*************************************************************
