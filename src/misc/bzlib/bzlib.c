@@ -8,8 +8,8 @@
    This file is part of bzip2/libbzip2, a program and library for
    lossless, block-sorting data compression.
 
-   bzip2/libbzip2 version 1.0.5 of 10 December 2007
-   Copyright (C) 1996-2007 Julian Seward <jseward@bzip.org>
+   bzip2/libbzip2 version 1.0.8 of 13 July 2019
+   Copyright (C) 1996-2019 Julian Seward <jseward@acm.org>
 
    Please read the WARNING, DISCLAIMER and PATENTS sections in the 
    README file.
@@ -54,12 +54,12 @@ void BZ2_bz__AssertH__fail ( int errcode )
    fprintf(stderr, 
       "\n\nbzip2/libbzip2: internal error number %d.\n"
       "This is a bug in bzip2/libbzip2, %s.\n"
-      "Please report it to me at: jseward@bzip.org.  If this happened\n"
+      "Please report it to: bzip2-devel@sourceware.org.  If this happened\n"
       "when you were using some program which uses libbzip2 as a\n"
       "component, you should also report this bug to the author(s)\n"
       "of that program.  Please make an effort to report this bug;\n"
       "timely and accurate bug reports eventually lead to higher\n"
-      "quality software.  Thanks.  Julian Seward, 10 December 2007.\n\n",
+      "quality software.  Thanks.\n\n",
       errcode,
       BZ2_bzlibVersion()
    );
@@ -436,7 +436,7 @@ int BZ_API(BZ2_bzCompress) ( bz_stream *strm, int action )
             return progress ? BZ_RUN_OK : BZ_PARAM_ERROR;
          } 
          else
-     if (action == BZ_FLUSH) {
+	 if (action == BZ_FLUSH) {
             s->avail_in_expect = strm->avail_in;
             s->mode = BZ_M_FLUSHING;
             goto preswitch;
