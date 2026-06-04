@@ -43267,6 +43267,105 @@ static Gia_Man_t * Abc_GiaReorderInputsByName( Gia_Man_t * pFirst, Gia_Man_t * p
     return pNew;
 }
 
+static Gia_Man_t * Abc_GiaDupPermOutputs( Gia_Man_t * p, Vec_Int_t * vPoPerm )
+{
+    Gia_Man_t * pNew;
+    Gia_Obj_t * pObj;
+    int i;
+    assert( Vec_IntSize(vPoPerm) == Gia_ManPoNum(p) );
+    pNew = Gia_ManStart( Gia_ManObjNum(p) );
+    pNew->pName = Abc_UtilStrsav( p->pName );
+    pNew->pSpec = Abc_UtilStrsav( p->pSpec );
+    Gia_ManConst0(p)->Value = 0;
+    Gia_ManForEachCi( p, pObj, i )
+        pObj->Value = Gia_ManAppendCi( pNew );
+    Gia_ManForEachAnd( p, pObj, i )
+    {
+        if ( Gia_ObjIsBuf(pObj) )
+            pObj->Value = Gia_ManAppendBuf( pNew, Gia_ObjFanin0Copy(pObj) );
+        else
+            pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
+    }
+    Gia_ManForEachPo( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(Gia_ManPo(p, Vec_IntEntry(vPoPerm, i))) );
+    Gia_ManForEachRi( p, pObj, i )
+        Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    return pNew;
+}
+
+static Gia_Man_t * Abc_GiaReorderOutputsByName( Gia_Man_t * pFirst, Gia_Man_t * pSecond )
+{
+    Vec_Int_t * vPoPerm;
+    Gia_Man_t * pNew;
+    char * pName1, * pName2;
+    int * pUsed;
+    int i, k, nPos, fDiff = 0;
+    if ( pFirst == NULL || pSecond == NULL || pFirst->vNamesOut == NULL || pSecond->vNamesOut == NULL )
+        return NULL;
+    nPos = Gia_ManPoNum( pFirst );
+    if ( nPos != Gia_ManPoNum(pSecond) )
+        return NULL;
+    if ( Vec_PtrSize(pFirst->vNamesOut) < nPos || Vec_PtrSize(pSecond->vNamesOut) < nPos )
+        return NULL;
+    vPoPerm = Vec_IntAlloc( nPos );
+    pUsed = ABC_CALLOC( int, nPos );
+    for ( i = 0; i < nPos; i++ )
+    {
+        pName1 = (char *)Vec_PtrEntry( pFirst->vNamesOut, i );
+        if ( pName1 == NULL )
+            break;
+        for ( k = 0; k < nPos; k++ )
+        {
+            pName2 = (char *)Vec_PtrEntry( pSecond->vNamesOut, k );
+            if ( pName2 && !pUsed[k] && !strcmp(pName1, pName2) )
+                break;
+        }
+        if ( k == nPos )
+            break;
+        pUsed[k] = 1;
+        Vec_IntPush( vPoPerm, k );
+        fDiff |= (k != i);
+    }
+    ABC_FREE( pUsed );
+    if ( i < nPos || !fDiff )
+    {
+        Vec_IntFree( vPoPerm );
+        return NULL;
+    }
+    pNew = Abc_GiaDupPermOutputs( pSecond, vPoPerm );
+    Vec_IntFree( vPoPerm );
+    pNew->vNamesIn = Abc_GiaDupNameVec( pSecond->vNamesIn );
+    pNew->vNamesOut = Vec_PtrAlloc( Vec_PtrSize(pSecond->vNamesOut) );
+    for ( i = 0; i < nPos; i++ )
+    {
+        pName1 = (char *)Vec_PtrEntry( pFirst->vNamesOut, i );
+        Vec_PtrPush( pNew->vNamesOut, pName1 ? Abc_UtilStrsav(pName1) : NULL );
+    }
+    for ( i = nPos; i < Vec_PtrSize(pSecond->vNamesOut); i++ )
+    {
+        pName2 = (char *)Vec_PtrEntry( pSecond->vNamesOut, i );
+        Vec_PtrPush( pNew->vNamesOut, pName2 ? Abc_UtilStrsav(pName2) : NULL );
+    }
+    return pNew;
+}
+
+static void Abc_GiaTransferNamesIfMatch( Gia_Man_t * pGia, Gia_Man_t * pGiaNames )
+{
+    if ( pGia == NULL || pGiaNames == NULL )
+        return;
+    if ( pGia->vNamesIn == NULL && pGiaNames->vNamesIn != NULL && Gia_ManCiNum(pGia) == Vec_PtrSize(pGiaNames->vNamesIn) )
+    {
+        pGia->vNamesIn = pGiaNames->vNamesIn;
+        pGiaNames->vNamesIn = NULL;
+    }
+    if ( pGia->vNamesOut == NULL && pGiaNames->vNamesOut != NULL && Gia_ManCoNum(pGia) == Vec_PtrSize(pGiaNames->vNamesOut) )
+    {
+        pGia->vNamesOut = pGiaNames->vNamesOut;
+        pGiaNames->vNamesOut = NULL;
+    }
+}
+
 /**Function*************************************************************
 
   Synopsis    []
@@ -43344,6 +43443,7 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
         }
         if ( pFileName2 )
         {
+            Gia_Man_t * pGiaNames = NULL;
             Abc_Ntk_t * pNtk = Io_Read( pFileTemp, IO_FILE_AIGER, 1, 0 );
             if ( pNtk == NULL )
             {
@@ -43361,6 +43461,10 @@ static Gia_Man_t * Abc_ReadAigerOrVerilogFile( char * pFileName, char * pFileNam
             }
             pGia = Gia_ManFromAig( pAig );
             Aig_ManStop( pAig );
+            pGiaNames = Gia_AigerRead( pFileTemp, 0, 1, 0 );
+            Abc_GiaTransferNamesIfMatch( pGia, pGiaNames );
+            if ( pGiaNames )
+                Gia_ManStop( pGiaNames );
         }
         else
         {
@@ -43640,6 +43744,15 @@ int Abc_CommandAbc9Cec( Abc_Frame_t * pAbc, int argc, char ** argv )
         {
             if ( pPars->fVerbose )
                 Abc_Print( 1, "Reordered primary inputs of the second network using input names.\n" );
+            if ( pGias[1] != pAbc->pGia && pGias[1] != pAbc->pGiaSaved )
+                Gia_ManStop( pGias[1] );
+            pGias[1] = pTemp;
+        }
+        pTemp = Abc_GiaReorderOutputsByName( pGias[0], pGias[1] );
+        if ( pTemp )
+        {
+            if ( pPars->fVerbose )
+                Abc_Print( 1, "Reordered primary outputs of the second network using output names.\n" );
             if ( pGias[1] != pAbc->pGia && pGias[1] != pAbc->pGiaSaved )
                 Gia_ManStop( pGias[1] );
             pGias[1] = pTemp;

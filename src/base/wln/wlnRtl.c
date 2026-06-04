@@ -146,6 +146,21 @@ static int Wln_FileNamesHasSv( char ** ppFileNames, int nFileNames )
             return 1;
     return 0;
 }
+static void Wln_GiaTransferNamesIfMatch( Gia_Man_t * pGia, Gia_Man_t * pGiaNames )
+{
+    if ( pGia == NULL || pGiaNames == NULL )
+        return;
+    if ( pGia->vNamesIn == NULL && pGiaNames->vNamesIn != NULL && Gia_ManCiNum(pGia) == Vec_PtrSize(pGiaNames->vNamesIn) )
+    {
+        pGia->vNamesIn = pGiaNames->vNamesIn;
+        pGiaNames->vNamesIn = NULL;
+    }
+    if ( pGia->vNamesOut == NULL && pGiaNames->vNamesOut != NULL && Gia_ManCoNum(pGia) == Vec_PtrSize(pGiaNames->vNamesOut) )
+    {
+        pGia->vNamesOut = pGiaNames->vNamesOut;
+        pGiaNames->vNamesOut = NULL;
+    }
+}
 int Wln_ConvertToRtl( char * pCommand, char * pFileTemp )
 {
 #if defined(__wasm)
@@ -252,6 +267,7 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
     {
         extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
         Aig_Man_t * pAig = NULL;
+        Gia_Man_t * pGiaNames = NULL;
         Abc_Ntk_t * pNtk = Io_Read( pFileTemp, IO_FILE_AIGER, 1, 0 );
         if ( pNtk == NULL )
         {
@@ -269,6 +285,10 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
         }
         pGia = fSkipStrash ? Gia_ManFromAigSimple(pAig) : Gia_ManFromAig(pAig);
         Aig_ManStop( pAig );
+        pGiaNames = Gia_AigerRead( pFileTemp, 0, 1, 0 );
+        Wln_GiaTransferNamesIfMatch( pGia, pGiaNames );
+        if ( pGiaNames )
+            Gia_ManStop( pGiaNames );
     }
     else
         pGia = Gia_AigerRead( pFileTemp, 0, fSkipStrash, 0 );
