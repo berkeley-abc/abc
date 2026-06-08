@@ -131,7 +131,7 @@ float If_CutDelay( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
     }
     else
     {
-        if ( p->pPars->fEnableCheck07 && p->pPars->fDelayOptCell && p->pPars->pCellLib )
+        if ( p->pPars->fEnableCheck07 && p->pPars->pCellLib )
         {
             int Intrinsic[IF_MAX_LUTSIZE];
             if ( pCut->nLeaves == 0 )
@@ -233,7 +233,7 @@ void If_CutPropagateRequired( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, fl
     }
     else
     {
-        if ( p->pPars->fEnableCheck07 && p->pPars->fDelayOptCell && p->pPars->pCellLib )
+        if ( p->pPars->fEnableCheck07 && p->pPars->pCellLib )
         {
             int Intrinsic[IF_MAX_LUTSIZE];
             if ( pCut->nLeaves == 0 )

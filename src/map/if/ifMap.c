@@ -194,7 +194,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             pCut->Delay = If_CutSopBalanceEval( p, pCut, NULL );
         else if ( p->pPars->fDsdBalance )
             pCut->Delay = If_CutDsdBalanceEval( p, pCut, NULL );
-        else if ( p->pPars->fEnableCheck07 && p->pPars->fDelayOptCell )
+        else if ( p->pPars->fEnableCheck07 && p->pPars->pCellLib )
         {
             int iLeaf, Intrinsic[IF_MAX_LUTSIZE];
             float Delay = -IF_FLOAT_LARGE;
@@ -364,7 +364,7 @@ IfMapBestCutDone:
                     for ( iLeaf = 0; iLeaf < p->nCutLeavesCur; iLeaf++ )
                     {
                         If_Obj_t * pLeaf = If_CutLeaf( p, pCut, iLeaf );
-                        if ( p->pPars->fEnableCheck07 && p->pPars->fDelayOptCell && pCut->nLeaves > 1 )
+                        if ( p->pPars->fEnableCheck07 && p->pPars->pCellLib && pCut->nLeaves > 1 )
                         {
                             If_Cut_t * pBestCut = If_ObjCutBest( pLeaf );
                             assert( pBestCut != NULL );
@@ -472,8 +472,10 @@ IfMapBestCutDone:
             pCut->Delay = If_CutSopBalanceEval( p, pCut, NULL );
         else if ( p->pPars->fDsdBalance )
             pCut->Delay = If_CutDsdBalanceEval( p, pCut, NULL );
-        else if ( p->pPars->fEnableCheck07 && p->pPars->fDelayOptCell )
+        else if ( p->pPars->fEnableCheck07 && p->pPars->pCellLib )
         {
+            int iLeaf, Intrinsic[IF_MAX_LUTSIZE];
+            float Delay = -IF_FLOAT_LARGE;
             if ( pCut->nLeaves == 0 )
             {
                 pCut->Delay = 0.0;
@@ -487,9 +489,16 @@ IfMapBestCutDone:
                 pCut->fUseless = 0;
                 goto IfMapCutEvalDone;
             }
-            assert( pCut->fUseless || p->fCutDelayCurValid );
             assert( pCut->fUseless || pCut->Config != 0 );
-            pCut->Delay = pCut->fUseless ? IF_FLOAT_LARGE : p->CutDelayCur;
+            if ( pCut->fUseless )
+                pCut->Delay = IF_FLOAT_LARGE;
+            else
+            {
+                If_CutComputeIntrinsicJ( p, pCut->Config, pCut->nLeaves, Intrinsic );
+                If_CutForEachLeaf( p, pCut, pLeaf, iLeaf )
+                    Delay = IF_MAX( Delay, If_ObjArrTime(pLeaf) + (float)Intrinsic[iLeaf] );
+                pCut->Delay = Delay;
+            }
 IfMapCutEvalDone:
             ;
         }
