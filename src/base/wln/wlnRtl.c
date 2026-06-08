@@ -146,21 +146,6 @@ static int Wln_FileNamesHasSv( char ** ppFileNames, int nFileNames )
             return 1;
     return 0;
 }
-static void Wln_GiaTransferNamesIfMatch( Gia_Man_t * pGia, Gia_Man_t * pGiaNames )
-{
-    if ( pGia == NULL || pGiaNames == NULL )
-        return;
-    if ( pGia->vNamesIn == NULL && pGiaNames->vNamesIn != NULL && Gia_ManCiNum(pGia) == Vec_PtrSize(pGiaNames->vNamesIn) )
-    {
-        pGia->vNamesIn = pGiaNames->vNamesIn;
-        pGiaNames->vNamesIn = NULL;
-    }
-    if ( pGia->vNamesOut == NULL && pGiaNames->vNamesOut != NULL && Gia_ManCoNum(pGia) == Vec_PtrSize(pGiaNames->vNamesOut) )
-    {
-        pGia->vNamesOut = pGiaNames->vNamesOut;
-        pGiaNames->vNamesOut = NULL;
-    }
-}
 int Wln_ConvertToRtl( char * pCommand, char * pFileTemp )
 {
 #if defined(__wasm)
@@ -263,35 +248,7 @@ Gia_Man_t * Wln_BlastSystemVerilog( char ** ppFileNames, int nFileNames, char * 
     }
     ABC_FREE( pCommand );
     ABC_FREE( pFileNames );
-    if ( nFileNames > 1 )
-    {
-        extern Aig_Man_t * Abc_NtkToDar( Abc_Ntk_t * pNtk, int fExors, int fRegisters );
-        Aig_Man_t * pAig = NULL;
-        Gia_Man_t * pGiaNames = NULL;
-        Abc_Ntk_t * pNtk = Io_Read( pFileTemp, IO_FILE_AIGER, 1, 0 );
-        if ( pNtk == NULL )
-        {
-            printf( "Reading AIGER from file \"%s\" has failed.\n", pFileTemp );
-            ABC_FREE( pFileTemp );
-            return NULL;
-        }
-        pAig = Abc_NtkToDar( pNtk, 0, 1 );
-        Abc_NtkDelete( pNtk );
-        if ( pAig == NULL )
-        {
-            printf( "Converting the AIGER network into an internal AIG has failed.\n" );
-            ABC_FREE( pFileTemp );
-            return NULL;
-        }
-        pGia = fSkipStrash ? Gia_ManFromAigSimple(pAig) : Gia_ManFromAig(pAig);
-        Aig_ManStop( pAig );
-        pGiaNames = Gia_AigerRead( pFileTemp, 0, 1, 0 );
-        Wln_GiaTransferNamesIfMatch( pGia, pGiaNames );
-        if ( pGiaNames )
-            Gia_ManStop( pGiaNames );
-    }
-    else
-        pGia = Gia_AigerRead( pFileTemp, 0, fSkipStrash, 0 );
+    pGia = Gia_AigerRead( pFileTemp, 0, fSkipStrash, 0 );
     if ( pGia == NULL )
     {
         printf( "Converting to AIG has failed.\n" );
