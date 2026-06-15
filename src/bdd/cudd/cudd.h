@@ -822,6 +822,15 @@ extern DdNode *        Cudd_RemapOverApprox( DdManager * dd, DdNode * f, int num
 extern DdNode *        Cudd_BiasedUnderApprox( DdManager * dd, DdNode * f, DdNode * b, int numVars, int threshold, double quality1, double quality0 );
 extern DdNode *        Cudd_BiasedOverApprox( DdManager * dd, DdNode * f, DdNode * b, int numVars, int threshold, double quality1, double quality0 );
 extern DdNode *        Cudd_bddExistAbstract( DdManager * manager, DdNode * f, DdNode * cube );
+
+//custom existential and universal quantification functions
+extern DdNode *        Cudd_bddExistAbstractBoundary( DdManager * manager, DdNode * f, int boundary_level);
+extern DdNode *        Cudd_bddUnivAbstractBoundary( DdManager * manager, DdNode * f, int boundary_level);
+// - TANMAY
+
+
+
+
 extern DdNode *        Cudd_bddXorExistAbstract( DdManager * manager, DdNode * f, DdNode * g, DdNode * cube );
 extern DdNode *        Cudd_bddUnivAbstract( DdManager * manager, DdNode * f, DdNode * cube );
 extern DdNode *        Cudd_bddBooleanDiff( DdManager * manager, DdNode * f, int x );

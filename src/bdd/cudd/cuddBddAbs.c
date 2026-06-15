@@ -116,6 +116,65 @@ static int bddCheckPositiveCube (DdManager *manager, DdNode *cube);
 
 /**Function********************************************************************
 
+  Synopsis [Existentially abstracts all the group3 variables from f]
+
+  Description [Existentially abstracts all the group3 variables from f.
+  Returns the abstracted BDD if successful; NULL otherwise.]
+
+  SideEffects [None]
+
+  SeeAlso     [Cudd_bddUnivAbstractBoundary]
+
+******************************************************************************/
+DdNode *
+Cudd_bddExistAbstractBoundary(
+  DdManager * manager,
+  DdNode * f,
+  int boundary_level)
+{
+    DdNode * res;
+    do {
+        manager->reordered = 0;
+        res = cuddBddExistAbstractBoundaryRecur(manager, f, boundary_level);
+    } while (manager->reordered == 1);
+
+    return(res);
+}
+
+/**Function********************************************************************
+
+  Synopsis [Universally abstracts all the group2 variables from f. MUST BE called only after existentially abstracting group3 variables]
+
+  Description [universally abstracts all the group2 variables from f.
+  Returns the abstracted BDD if successful; NULL otherwise.]
+
+  SideEffects [None]
+
+  SeeAlso     [Cudd_bddExistAbstractBoundary]
+
+******************************************************************************/
+DdNode *
+Cudd_bddUnivAbstractBoundary(
+  DdManager * manager,
+  DdNode * f,
+  int boundary_level)
+{
+    DdNode * res;
+    do {
+        manager->reordered = 0;
+        res = cuddBddExistAbstractBoundaryRecur(manager, Cudd_Not(f), boundary_level);
+    } while (manager->reordered == 1);
+
+    if(res != NULL){
+        res = Cudd_Not(res);
+    }
+
+    return(res);
+}
+
+
+/**Function********************************************************************
+
   Synopsis [Existentially abstracts all the variables in cube from f.]
 
   Description [Existentially abstracts all the variables in cube from f.
@@ -351,6 +410,93 @@ Cudd_bddVarIsDependent(
 /*---------------------------------------------------------------------------*/
 /* Definition of internal functions                                          */
 /*---------------------------------------------------------------------------*/
+
+/**Function********************************************************************
+
+  Synopsis    [Performs the recursive steps of Cudd_bddExistAbstractBoundary.]
+
+  Description [Performs the recursive steps of Cudd_bddExistAbstractBoundary.
+  Returns the BDD obtained by abstracting the variables
+  > boundary_level from f if successful; NULL otherwise. It is also used by
+  Cudd_bddUnivAbstractBoundary.]
+
+  SideEffects [None]
+
+  SeeAlso     [Cudd_bddExistAbstractBoundary Cudd_bddUnivAbstractBoundary]
+
+******************************************************************************/
+DdNode *
+cuddBddExistAbstractBoundaryRecur(
+  DdManager * manager,
+  DdNode * f,
+  int boundary_level)
+{
+    DdNode *F, *T, *E, *res, *res1, *res2, *one;
+
+    DdNode *boundary_node = (boundary_level < manager->size) ? manager->vars[boundary_level] : DD_ONE(manager);
+
+    statLine(manager);
+    one = DD_ONE(manager);
+    F = Cudd_Regular(f);
+
+    /* Base Case 1: Terminal nodes */
+    if (F == one) {
+        return(f);
+    }
+
+    /* if depth > boundary_level, we know that every variable below this has to be existentially abstracted.
+    Also since this variable occured in the BDD, we know at least one branch leads to constant 1.
+    Hence replacing this node with const 1 node is a safe existential quantificaion*/
+
+    if (manager->perm[F->index] >= boundary_level) {
+        return(one);
+    }
+
+    /*  Check the compute cache.
+        We cast boundary_level to a pointer to trick the cache into using it as a key */
+    if (F->ref != 1 && (res = cuddCacheLookup2(manager, (DD_CTFP)cuddBddExistAbstractBoundaryRecur, f, boundary_node)) != NULL) {
+        return(res);
+    }
+
+    /* Extract children */
+    T = cuddT(F); E = cuddE(F);
+    if (f !=F ) {
+        T = Cudd_Not(T); E = Cudd_Not(E);
+    }
+
+    /* Recurse on G1 and G2 variables */
+    res1 = cuddBddExistAbstractBoundaryRecur(manager, T, boundary_level);
+    if (res1 == NULL) return(NULL);
+    cuddRef(res1);
+
+    res2 = cuddBddExistAbstractBoundaryRecur(manager, E, boundary_level);
+    if (res2 == NULL) {
+        Cudd_IterDerefBdd(manager, res1);
+        return(NULL);
+    }
+    cuddRef(res2);
+
+    /* Rebuild the node */
+    res = cuddBddIteRecur(manager, manager->vars[F->index], res1, res2);
+    if (res == NULL) {
+        Cudd_IterDerefBdd(manager, res1);
+        Cudd_IterDerefBdd(manager, res2);
+        return(NULL);
+    }
+
+    cuddRef(res);
+    Cudd_IterDerefBdd(manager, res1);
+    Cudd_IterDerefBdd(manager, res2);
+    cuddDeref(res);
+
+    /* insert into cache */
+    if(F->ref != 1) {
+        cuddCacheInsert2(manager, (DD_CTFP)cuddBddExistAbstractBoundaryRecur, f, boundary_node, res);
+    }
+
+    return(res);
+}
+
 
 
 /**Function********************************************************************

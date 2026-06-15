@@ -1060,6 +1060,12 @@ extern DdNode *        cuddBiasedUnderApprox( DdManager * dd, DdNode * f, DdNode
 extern DdNode *        cuddBddAndAbstractRecur( DdManager * manager, DdNode * f, DdNode * g, DdNode * cube );
 extern int             cuddAnnealing( DdManager * table, int lower, int upper );
 extern DdNode *        cuddBddExistAbstractRecur( DdManager * manager, DdNode * f, DdNode * cube );
+
+//custom reccur function
+extern DdNode *        cuddBddExistAbstractBoundaryRecur( DdManager * manager, DdNode * f, int boundary_level );
+// - TANMAY
+
+
 extern DdNode *        cuddBddXorExistAbstractRecur( DdManager * manager, DdNode * f, DdNode * g, DdNode * cube );
 extern DdNode *        cuddBddBooleanDiffRecur( DdManager * manager, DdNode * f, DdNode * var );
 extern DdNode *        cuddBddIteRecur( DdManager * dd, DdNode * f, DdNode * g, DdNode * h );
