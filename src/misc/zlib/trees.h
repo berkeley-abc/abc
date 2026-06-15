@@ -1,7 +1,5 @@
 /* header created automatically with -DGEN_TREES_H */
 
-ABC_NAMESPACE_HEADER_START
-
 local const ct_data static_ltree[L_CODES+2] = {
 {{ 12},{  8}}, {{140},{  8}}, {{ 76},{  8}}, {{204},{  8}}, {{ 44},{  8}},
 {{172},{  8}}, {{108},{  8}}, {{236},{  8}}, {{ 28},{  8}}, {{156},{  8}},
@@ -127,6 +125,4 @@ local const int base_dist[D_CODES] = {
    32,    48,    64,    96,   128,   192,   256,   384,   512,   768,
  1024,  1536,  2048,  3072,  4096,  6144,  8192, 12288, 16384, 24576
 };
-
-ABC_NAMESPACE_HEADER_END
 
