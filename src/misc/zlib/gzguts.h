@@ -138,6 +138,10 @@
 #  endif
 #endif
 
+#include "misc/util/abc_global.h"
+
+ABC_NAMESPACE_HEADER_START
+
 /* provide prototypes for these when building zlib without LFS */
 #if !defined(_LARGEFILE64_SOURCE) || _LFS64_LARGEFILE-0 == 0
     ZEXTERN gzFile ZEXPORT gzopen64(const char *, const char *);
@@ -162,10 +166,6 @@
 #define GZ_READ 7247
 #define GZ_WRITE 31153
 #define GZ_APPEND 1     /* mode set to GZ_WRITE after the file is opened */
-
-#include "misc/util/abc_global.h"
-
-ABC_NAMESPACE_HEADER_START
 
 /* values for gz_state how */
 #define LOOK 0      /* look for a gzip header */
