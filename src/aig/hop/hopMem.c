@@ -88,14 +88,16 @@ void Hop_ManStopMemory( Hop_Man_t * p )
 ***********************************************************************/
 void Hop_ManAddMemory( Hop_Man_t * p )
 {
-    char * pMemory;
+    Hop_Obj_t * pMemory;
+    char *PMemAlign = 0;
     int i, nBytes;
     assert( sizeof(Hop_Obj_t) <= 64 );
     assert( p->pListFree == NULL );
 //    assert( (Hop_ManObjNum(p) & IVY_PAGE_MASK) == 0 );
     // allocate new memory page
     nBytes = sizeof(Hop_Obj_t) * (1<<IVY_PAGE_SIZE) + 64;
-    pMemory = ABC_ALLOC( char, nBytes );
+    PMemAlign = PMemAlign + 64 - (((int)(ABC_PTRUINT_T)PMemAlign) & 63);
+    pMemory = (Hop_Obj_t *)PMemAlign;
     Vec_PtrPush( p->vChunks, pMemory );
     // align memory at the 32-byte boundary
     pMemory = pMemory + 64 - (((int)(ABC_PTRUINT_T)pMemory) & 63);
@@ -105,10 +107,12 @@ void Hop_ManAddMemory( Hop_Man_t * p )
     p->pListFree = (Hop_Obj_t *)pMemory;
     for ( i = 1; i <= IVY_PAGE_MASK; i++ )
     {
-        *((char **)pMemory) = pMemory + sizeof(Hop_Obj_t);
-        pMemory += sizeof(Hop_Obj_t);
+        Hop_Obj_t *NextPtr = pMemory + 1;
+        memcpy(pMemory, &NextPtr, sizeof(Hop_Obj_t *));
+        pMemory += 1;
     }
-    *((char **)pMemory) = NULL;
+    Hop_Obj_t *NullPtr = NULL;
+    memcpy(pMemory, &NullPtr, sizeof(Hop_Obj_t *));
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -233,7 +233,7 @@ static inline Hop_Obj_t * Hop_ManFetchMemory( Hop_Man_t * p )
     if ( p->pListFree == NULL )
         Hop_ManAddMemory( p );
     pTemp = p->pListFree;
-    p->pListFree = *((Hop_Obj_t **)pTemp);
+    memcpy(&p->pListFree, pTemp, sizeof(Hop_Obj_t *));
     memset( pTemp, 0, sizeof(Hop_Obj_t) ); 
     if ( p->vObjs )
     {
@@ -245,8 +245,8 @@ static inline Hop_Obj_t * Hop_ManFetchMemory( Hop_Man_t * p )
 }
 static inline void Hop_ManRecycleMemory( Hop_Man_t * p, Hop_Obj_t * pEntry )
 {
-    pEntry->Type = AIG_NONE; // distinquishes dead node from live node
-    *((Hop_Obj_t **)pEntry) = p->pListFree;
+    pEntry->Type = AIG_NONE; // distinguishes dead node from live node
+    memcpy(pEntry, &p->pListFree, sizeof(Hop_Obj_t *));
     p->pListFree = pEntry;
 }
 
