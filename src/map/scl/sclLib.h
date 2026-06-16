@@ -40,7 +40,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_SCL_CUR_VERSION 8
+#define ABC_SCL_CUR_VERSION 9
 
 typedef enum  
 {
@@ -172,6 +172,8 @@ struct SC_Timing_
     SC_Surface     pCellFall;
     SC_Surface     pRiseTrans;     // -- Used to compute output slew
     SC_Surface     pFallTrans;
+    SC_Surface     pRisePower;     // -- Used to compute internal power
+    SC_Surface     pFallPower;
 };
 
 struct SC_Timings_ 
@@ -407,6 +409,8 @@ static inline void Abc_SclTimingFree( SC_Timing * p )
     Abc_SclSurfaceFree( &p->pCellFall );
     Abc_SclSurfaceFree( &p->pRiseTrans );
     Abc_SclSurfaceFree( &p->pFallTrans );
+    Abc_SclSurfaceFree( &p->pRisePower );
+    Abc_SclSurfaceFree( &p->pFallPower );
     ABC_FREE( p->related_pin );
     ABC_FREE( p->when_text );
     ABC_FREE( p );

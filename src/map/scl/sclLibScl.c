@@ -392,6 +392,8 @@ static int Abc_SclReadLibrary( Vec_Str_t * vOut, int * pPos, SC_Lib * p )
                     Abc_SclReadSurface( vOut, pPos, &pTime->pCellFall );
                     Abc_SclReadSurface( vOut, pPos, &pTime->pRiseTrans );
                     Abc_SclReadSurface( vOut, pPos, &pTime->pFallTrans );
+                    Abc_SclReadSurface( vOut, pPos, &pTime->pRisePower );
+                    Abc_SclReadSurface( vOut, pPos, &pTime->pFallPower );
                 }
                 else
                     assert( Vec_PtrSize(&pRTime->vTimings) == 0 );
@@ -554,6 +556,8 @@ static void Abc_SclWriteLibraryCellsOnly( Vec_Str_t * vOut, SC_Lib * p, int fAdd
                     Abc_SclWriteSurface( vOut, &pTime->pCellFall );
                     Abc_SclWriteSurface( vOut, &pTime->pRiseTrans );
                     Abc_SclWriteSurface( vOut, &pTime->pFallTrans );
+                    Abc_SclWriteSurface( vOut, &pTime->pRisePower );
+                    Abc_SclWriteSurface( vOut, &pTime->pFallPower );
                 }
                 else
                     assert( Vec_PtrSize(&pRTime->vTimings) == 0 );
@@ -831,6 +835,19 @@ static void Abc_SclWriteLibraryText( FILE * s, SC_Lib * p )
                     fprintf( s, "        fall_transition() {\n" );
                     Abc_SclWriteSurfaceText( s, &pTime->pFallTrans );
                     fprintf( s, "        }\n" );
+
+                    if ( Vec_FltSize(&pTime->pRisePower.vIndex0) )
+                    {
+                        fprintf( s, "        rise_power() {\n" );
+                        Abc_SclWriteSurfaceText( s, &pTime->pRisePower );
+                        fprintf( s, "        }\n" );
+                    }
+                    if ( Vec_FltSize(&pTime->pFallPower.vIndex0) )
+                    {
+                        fprintf( s, "        fall_power() {\n" );
+                        Abc_SclWriteSurfaceText( s, &pTime->pFallPower );
+                        fprintf( s, "        }\n" );
+                    }
                     fprintf( s, "      }\n" );
                 }
                 else
@@ -887,4 +904,3 @@ SC_Lib * Abc_SclMergeLibraries( SC_Lib * pLib1, SC_Lib * pLib2, int fUsePrefix )
 
 
 ABC_NAMESPACE_IMPL_END
-
