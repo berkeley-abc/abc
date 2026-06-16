@@ -142,6 +142,7 @@ struct Abc_Obj_t_     // 48/72 bytes (32-bits/64-bits)
     unsigned          Level   : 20;  // the level of the node
     Vec_Int_t         vFanins;       // the array of fanins
     Vec_Int_t         vFanouts;      // the array of fanouts
+    void *            pDataComp;
     union { void *    pData;         // the network specific data
       int             iData; };      // (SOP, BDD, gate, equiv class, etc)
     union { void *    pTemp;         // temporary store for user's data
@@ -620,6 +621,7 @@ extern ABC_DLL float              Abc_NtkDelayTraceLut( Abc_Ntk_t * pNtk, int fU
 /*=== abcDfs.c ==========================================================*/
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfs( Abc_Ntk_t * pNtk, int fCollectAll );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfs2( Abc_Ntk_t * pNtk );
+extern ABC_DLL void               Abc_NtkDfsSup_rec( Abc_Obj_t * pNode, Vec_Ptr_t * vNodes, Vec_Ptr_t * vSup, int iVerbose);
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsReverse( Abc_Ntk_t * pNtk );
 extern ABC_DLL Vec_Ptr_t *        Abc_NtkDfsReverseNodes( Abc_Ntk_t * pNtk, Abc_Obj_t ** ppNodes, int nNodes );
@@ -885,6 +887,8 @@ extern ABC_DLL int                Abc_NodeRef_rec( Abc_Obj_t * pNode );
 extern ABC_DLL int                Abc_NtkRefactor( Abc_Ntk_t * pNtk, int nNodeSizeMax, int nMinSaved, int nConeSizeMax, int  fUpdateLevel, int  fUseZeros, int  fUseDcs, int  fVerbose );
 /*=== abcRewrite.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkRewrite( Abc_Ntk_t * pNtk, int fUpdateLevel, int fUseZeros, int fVerbose, int fVeryVerbose, int fPlaceEnable );
+/*=== abcRmInverters.c ======================================================*/
+extern ABC_DLL void               Abc_NtkRmInverter(Abc_Ntk_t * pNtk, int iVerbose);
 /*=== abcSat.c ==========================================================*/
 extern ABC_DLL int                Abc_NtkMiterSat( Abc_Ntk_t * pNtk, ABC_INT64_T nConfLimit, ABC_INT64_T nInsLimit, int fVerbose, ABC_INT64_T * pNumConfs, ABC_INT64_T * pNumInspects );
 extern ABC_DLL void *             Abc_NtkMiterSatCreate( Abc_Ntk_t * pNtk, int fAllPrimes );
