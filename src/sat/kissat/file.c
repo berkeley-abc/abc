@@ -9,10 +9,12 @@
 #include <sys/types.h>
 
 #ifdef WIN32
+#include <io.h>
 #define unlink _unlink
 #define access _access
 #define R_OK 4
 #define W_OK 2
+#define	S_ISDIR(mode)  (((mode) & S_IFMT) == S_IFDIR)
 #else
 #include <unistd.h>
 #endif

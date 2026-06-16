@@ -1082,7 +1082,6 @@ Vec_Mem_t * Dau_CollectNpnFunctionsArray( Vec_Wrd_t * vFuncs, int nVars, Vec_Int
 void Dau_CanonicizeArray( Vec_Wrd_t * vFuncs, int nVars, int fVerbose )
 {
     abctime clkStart  = Abc_Clock();
-    extern unsigned Abc_TtCanonicizeCA(Abc_TtHieMan_t * p, word * pTruth, int nVars, char * pCanonPerm, int iThres);
     if ( fVerbose )   printf( "Functions: %d (original) ", Vec_WrdSize(vFuncs) );
     unsigned uCanonPhase; char pCanonPerm[16]; word Func; int i;
     Vec_WrdUniqify( vFuncs );

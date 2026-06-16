@@ -20,6 +20,7 @@
 
 #ifdef WIN32
 #include <process.h> 
+#include <io.h>
 #else
 #include <unistd.h>
 #endif
