@@ -40,7 +40,7 @@ ABC_NAMESPACE_HEADER_START
 ///                         PARAMETERS                               ///
 ////////////////////////////////////////////////////////////////////////
 
-#define ABC_SCL_CUR_VERSION 9
+#define ABC_SCL_CUR_VERSION 10
 
 typedef enum  
 {
@@ -232,6 +232,7 @@ struct SC_Lib_
     int            unit_time;      // -- Valid 9..12. Unit is '10^(-val)' seconds (e.g. 9=1ns, 10=100ps, 11=10ps, 12=1ps)
     float          unit_cap_fst;   // -- First part is a multiplier, second either 12 or 15 for 'pf' or 'ff'.
     int            unit_cap_snd;
+    float          nom_voltage;    // -- nominal voltage, used for external switching power
     Vec_Ptr_t      vWireLoads;     // NamedSet<SC_WireLoad>
     Vec_Ptr_t      vWireLoadSels;  // NamedSet<SC_WireLoadSel>
     Vec_Ptr_t      vTempls;        // NamedSet<SC_TableTempl>  
@@ -353,6 +354,7 @@ static inline SC_Lib * Abc_SclLibAlloc()
     p->unit_time      = 9;
     p->unit_cap_fst   = 1;
     p->unit_cap_snd   = 12;
+    p->nom_voltage    = 1;
     return p;
 }
 
@@ -496,11 +498,63 @@ static inline float Scl_LibLookup( SC_Surface * p, float slew, float load )
     // handle constant table
     if ( Vec_FltSize(&p->vIndex0) == 1 && Vec_FltSize(&p->vIndex1) == 1 )
     {
-        Vec_Flt_t * vTemp = (Vec_Flt_t *)Vec_PtrEntry(&p->vData, 0);
-        assert( Vec_PtrSize(&p->vData) == 1 );
+        Vec_Flt_t * vTemp;
+        if ( Vec_PtrSize(&p->vData) != 1 )
+            return 0;
+        vTemp = (Vec_Flt_t *)Vec_PtrEntry(&p->vData, 0);
         assert( Vec_FltSize(vTemp) == 1 );
+        if ( Vec_FltSize(vTemp) != 1 )
+            return 0;
         return Vec_FltEntry(vTemp, 0);
     }
+    if ( Vec_FltSize(&p->vIndex0) > 1 && Vec_FltSize(&p->vIndex1) == 1 )
+    {
+        pIndex0 = Vec_FltArray(&p->vIndex0);
+        for ( s = 1; s < Vec_FltSize(&p->vIndex0)-1; s++ )
+            if ( pIndex0[s] > slew )
+                break;
+        s--;
+        if ( pIndex0[s+1] == pIndex0[s] )
+            return 0;
+        sfrac = (slew - pIndex0[s]) / (pIndex0[s+1] - pIndex0[s]);
+        if ( Vec_PtrSize(&p->vData) == Vec_FltSize(&p->vIndex0) )
+        {
+            Vec_Flt_t * vDataS  = (Vec_Flt_t *)Vec_PtrEntry(&p->vData, s);
+            Vec_Flt_t * vDataS1 = (Vec_Flt_t *)Vec_PtrEntry(&p->vData, s+1);
+            if ( Vec_FltSize(vDataS) < 1 || Vec_FltSize(vDataS1) < 1 )
+                return 0;
+            pDataS  = Vec_FltArray( vDataS );
+            pDataS1 = Vec_FltArray( vDataS1 );
+            return pDataS[0] + sfrac * (pDataS1[0] - pDataS[0]);
+        }
+        if ( Vec_PtrSize(&p->vData) != 1 )
+            return 0;
+        if ( Vec_FltSize((Vec_Flt_t *)Vec_PtrEntry(&p->vData, 0)) != Vec_FltSize(&p->vIndex0) )
+            return 0;
+        pDataS = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(&p->vData, 0) );
+        return pDataS[s] + sfrac * (pDataS[s+1] - pDataS[s]);
+    }
+    if ( Vec_FltSize(&p->vIndex0) == 1 && Vec_FltSize(&p->vIndex1) > 1 )
+    {
+        pIndex1 = Vec_FltArray(&p->vIndex1);
+        for ( l = 1; l < Vec_FltSize(&p->vIndex1)-1; l++ )
+            if ( pIndex1[l] > load )
+                break;
+        l--;
+        if ( pIndex1[l+1] == pIndex1[l] )
+            return 0;
+        lfrac = (load - pIndex1[l]) / (pIndex1[l+1] - pIndex1[l]);
+        if ( Vec_PtrSize(&p->vData) != 1 )
+            return 0;
+        if ( Vec_FltSize((Vec_Flt_t *)Vec_PtrEntry(&p->vData, 0)) != Vec_FltSize(&p->vIndex1) )
+            return 0;
+        pDataS  = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(&p->vData, 0) );
+        return pDataS[l] + lfrac * (pDataS[l+1] - pDataS[l]);
+    }
+    if ( Vec_PtrSize(&p->vData) != Vec_FltSize(&p->vIndex0) )
+        return 0;
+    if ( Vec_FltSize(&p->vIndex0) < 2 || Vec_FltSize(&p->vIndex1) < 2 )
+        return 0;
 
     // Find closest sample points in surface:
     pIndex0 = Vec_FltArray(&p->vIndex0);
@@ -516,9 +570,14 @@ static inline float Scl_LibLookup( SC_Surface * p, float slew, float load )
     l--;
 
     // Interpolate (or extrapolate) function value from sample points:
+    if ( pIndex0[s+1] == pIndex0[s] || pIndex1[l+1] == pIndex1[l] )
+        return 0;
     sfrac = (slew - pIndex0[s]) / (pIndex0[s+1] - pIndex0[s]);
     lfrac = (load - pIndex1[l]) / (pIndex1[l+1] - pIndex1[l]);
 
+    if ( Vec_FltSize((Vec_Flt_t *)Vec_PtrEntry(&p->vData, s)) <= l+1 ||
+         Vec_FltSize((Vec_Flt_t *)Vec_PtrEntry(&p->vData, s+1)) <= l+1 )
+        return 0;
     pDataS  = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(&p->vData, s) );
     pDataS1 = Vec_FltArray( (Vec_Flt_t *)Vec_PtrEntry(&p->vData, s+1) );
 
@@ -666,8 +725,11 @@ static inline SC_Timing * Scl_CellPinOutTime( SC_Cell * pCell, int iOut, int iPi
     SC_Timings * pRTime;
     assert( iOut >= 0 && iOut < pCell->n_outputs );
     assert( iPin >= 0 && iPin < pCell->n_inputs );
+    if ( pCell->n_inputs + iOut >= Vec_PtrSize(&pCell->vPins) )
+        return NULL;
     pPin = SC_CellPin( pCell, pCell->n_inputs + iOut );
-    assert( Vec_PtrSize(&pPin->vRTimings) == pCell->n_inputs );
+    if ( iPin >= Vec_PtrSize(&pPin->vRTimings) )
+        return NULL;
     pRTime = (SC_Timings *)Vec_PtrEntry( &pPin->vRTimings, iPin );
     if ( Vec_PtrSize(&pRTime->vTimings) == 0 )
         return NULL;

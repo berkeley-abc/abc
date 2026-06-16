@@ -935,6 +935,19 @@ int Scl_LibertyReadTimeUnit( Scl_Tree_t * p )
     printf( "Liberty parser cannot read \"time_unit\".  Assuming   time_unit : \"1ns\".\n" );
     return 9;
 }
+float Scl_LibertyReadNomVoltage( Scl_Tree_t * p )
+{
+    Scl_Item_t * pItem;
+    Scl_ItemForEachChildName( p, Scl_LibertyRoot(p), pItem, "nom_voltage" )
+        return atof(Scl_LibertyReadString(p, pItem->Head));
+    Scl_ItemForEachChildName( p, Scl_LibertyRoot(p), pItem, "operating_conditions" )
+    {
+        Scl_Item_t * pChild;
+        Scl_ItemForEachChildName( p, pItem, pChild, "voltage" )
+            return atof(Scl_LibertyReadString(p, pChild->Head));
+    }
+    return 1.0;
+}
 void Scl_LibertyReadLoadUnit( Scl_Tree_t * p, Vec_Str_t * vOut )
 {
     Scl_Item_t * pItem;
@@ -1606,6 +1619,7 @@ Vec_Str_t * Scl_LibertyReadSclStr( Scl_Tree_t * p, int fVerbose, int fVeryVerbos
     Vec_StrPutF_( vOut, Scl_LibertyReadDefaultMaxTrans(p) );
     Vec_StrPutI_( vOut, Scl_LibertyReadTimeUnit(p) );
     Scl_LibertyReadLoadUnit( p, vOut );
+    Vec_StrPutF_( vOut, Scl_LibertyReadNomVoltage(p) );
     Vec_StrPut_( vOut );
     Vec_StrPut_( vOut );
 

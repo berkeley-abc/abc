@@ -42,6 +42,7 @@ static int Scl_CommandLeak2Area  ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandDumpGen    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandPrintGS    ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandStime      ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Scl_CommandPower      ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandTopo       ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandUnBuffer   ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Scl_CommandBuffer     ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -110,6 +111,7 @@ void Scl_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "SCL mapping",  "dump_genlib",   Scl_CommandDumpGen,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "print_gs",      Scl_CommandPrintGS,     0 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "stime",         Scl_CommandStime,       0 ); 
+    Cmd_CommandAdd( pAbc, "SCL mapping",  "power",         Scl_CommandPower,       0 );
     Cmd_CommandAdd( pAbc, "SCL mapping",  "topo",          Scl_CommandTopo,        1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "unbuffer",      Scl_CommandUnBuffer,    1 ); 
     Cmd_CommandAdd( pAbc, "SCL mapping",  "buffer",        Scl_CommandBuffer,      1 ); 
@@ -832,6 +834,108 @@ usage:
 
   Description []
                
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Scl_CommandPower( Abc_Frame_t * pAbc, int argc, char **argv )
+{
+    int c;
+    int fUseWireLoads = 0;
+    int nTreeCRatio   = 0;
+    int nFrames       = 48;
+    int nPref         = 16;
+
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "XFPch" ) ) != EOF )
+    {
+        switch ( c )
+        {
+            case 'X':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-X\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nTreeCRatio = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nTreeCRatio < 0 )
+                    goto usage;
+                break;
+            case 'F':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-F\" should be followed by a positive integer.\n" );
+                    goto usage;
+                }
+                nFrames = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nFrames <= 0 )
+                    goto usage;
+                break;
+            case 'P':
+                if ( globalUtilOptind >= argc )
+                {
+                    Abc_Print( -1, "Command line switch \"-P\" should be followed by a non-negative integer.\n" );
+                    goto usage;
+                }
+                nPref = atoi(argv[globalUtilOptind]);
+                globalUtilOptind++;
+                if ( nPref < 0 )
+                    goto usage;
+                break;
+            case 'c':
+                fUseWireLoads ^= 1;
+                break;
+            case 'h':
+                goto usage;
+            default:
+                goto usage;
+        }
+    }
+
+    if ( Abc_FrameReadNtk(pAbc) == NULL )
+    {
+        fprintf( pAbc->Err, "There is no current network.\n" );
+        return 1;
+    }
+    if ( !Abc_NtkHasMapping(Abc_FrameReadNtk(pAbc)) )
+    {
+        fprintf( pAbc->Err, "The current network is not mapped.\n" );
+        return 1;
+    }
+    if ( !Abc_SclCheckNtk(Abc_FrameReadNtk(pAbc), 0) )
+    {
+        fprintf( pAbc->Err, "The current network is not in a topo order (run \"topo\").\n" );
+        return 1;
+    }
+    if ( pAbc->pLibScl == NULL )
+    {
+        fprintf( pAbc->Err, "There is no Liberty library available.\n" );
+        return 1;
+    }
+
+    Abc_SclPowerPerform( (SC_Lib *)pAbc->pLibScl, Abc_FrameReadNtk(pAbc), nTreeCRatio, fUseWireLoads, nFrames, nPref );
+    return 0;
+
+usage:
+    fprintf( pAbc->Err, "usage: power [-X num] [-F num] [-P num] [-ch]\n" );
+    fprintf( pAbc->Err, "\t         computes power using Liberty library\n" );
+    fprintf( pAbc->Err, "\t-X     : min Cout/Cave ratio for tree estimations [default = %d]\n", nTreeCRatio );
+    fprintf( pAbc->Err, "\t-F     : number of frames to simulate for switching [default = %d]\n", nFrames );
+    fprintf( pAbc->Err, "\t-P     : number of prefix frames for switching [default = %d]\n", nPref );
+    fprintf( pAbc->Err, "\t-c     : toggle using wire-loads if specified [default = %s]\n", fUseWireLoads? "yes": "no" );
+    fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    []
+
+  Description []
+
   SideEffects []
 
   SeeAlso     []
@@ -2127,4 +2231,3 @@ usage:
 
 
 ABC_NAMESPACE_IMPL_END
-

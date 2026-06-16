@@ -634,6 +634,7 @@ extern int           Abc_SclTimeIncUpdate( SC_Man * p );
 extern void          Abc_SclTimeIncInsert( SC_Man * p, Abc_Obj_t * pObj );
 extern void          Abc_SclTimeIncUpdateLevel( Abc_Obj_t * pObj );
 extern void          Abc_SclTimePerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads, int fShowAll, int fPrintPath, int fDumpStats );
+extern void          Abc_SclPowerPerform( SC_Lib * pLib, Abc_Ntk_t * pNtk, int nTreeCRatio, int fUseWireLoads, int nFrames, int nPref );
 extern void          Abc_SclPrintBuffers( SC_Lib * pLib, Abc_Ntk_t * pNtk, int fVerbose );
 /*=== sclUpsize.c ===============================================================*/
 extern int           Abc_SclCountNearCriticalNodes( SC_Man * p );
