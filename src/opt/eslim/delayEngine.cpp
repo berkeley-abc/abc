@@ -83,11 +83,13 @@ namespace eSLIM {
     } 
     int replacement_size = synth.getSizeFromActivationVars(last_model);
     int replacement_delay = synth.getDelayFromDelayVariables(last_model);
-    assert (replacement_delay > 0);
-    std::vector<bool> model = synth.reduceDelay(replacement_size, replacement_delay - 1);
-    if (model.size() > 0) {
-      replacement_size = synth.getSizeFromActivationVars(model);
-      std::swap(last_model, model);
+    assert (replacement_delay > 0 || replacement_size == 0);
+    if (replacement_delay > 0) { // a constant circuit has already optimal depth
+      std::vector<bool> model = synth.reduceDelay(replacement_size, replacement_delay - 1);
+      if (model.size() > 0) {
+        replacement_size = synth.getSizeFromActivationVars(model);
+        std::swap(last_model, model);
+      }
     }
     return synth.getReplacement(last_model, replacement_size);
   }
