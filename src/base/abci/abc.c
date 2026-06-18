@@ -61033,7 +61033,7 @@ int Abc_CommandAbc9eSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
           }
           params.synthesis_approach = atoi(argv[globalUtilOptind]);
           globalUtilOptind++;
-          if ( params.synthesis_approach < 0 ||  params.synthesis_approach > 2)
+          if ( params.synthesis_approach < 0 ||  params.synthesis_approach > 3)
               goto usage;
           break;
         case 'I':
@@ -61249,7 +61249,7 @@ int Abc_CommandAbc9elSLIM( Abc_Frame_t * pAbc, int argc, char ** argv ) {
           }
           params.synthesis_approach = atoi(argv[globalUtilOptind]);
           globalUtilOptind++;
-          if ( params.synthesis_approach < 0 ||  params.synthesis_approach > 2)
+          if ( params.synthesis_approach < 0 ||  params.synthesis_approach > 3)
               goto usage;
           break;
         case 'I':
