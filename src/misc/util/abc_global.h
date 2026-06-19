@@ -371,6 +371,34 @@ static inline abctime Abc_ThreadClock()
 #endif
 }
 
+static inline int Abc_WordCountOnes( unsigned uWord )
+{
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_popcount( uWord );
+#elif defined(_MSC_VER)
+    #include <intrin.h>
+    return __popcnt( uWord );
+#else
+    uWord = (uWord & 0x55555555) + ((uWord>>1) & 0x55555555);
+    uWord = (uWord & 0x33333333) + ((uWord>>2) & 0x33333333);
+    uWord = (uWord & 0x0F0F0F0F) + ((uWord>>4) & 0x0F0F0F0F);
+    uWord = (uWord & 0x00FF00FF) + ((uWord>>8) & 0x00FF00FF);
+    return  (uWord & 0x0000FFFF) + (uWord>>16);
+#endif
+}
+
+static inline int Abc_Word6CountOnes( word t )
+{
+#if defined(__GNUC__) || defined(__clang__)
+    return __builtin_popcountl( t );
+#elif defined(_MSC_VER)
+    #include <intrin.h>
+    return __popcnt64( t );
+#else
+    return Abc_WordCountOnes( (unsigned)(t >> 32) ) + Abc_WordCountOnes( (unsigned)(t & 0xFFFFFFFF) );
+#endif
+}
+
 // misc printing procedures
 enum Abc_VerbLevel
 {
