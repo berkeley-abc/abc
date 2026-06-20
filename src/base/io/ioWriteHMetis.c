@@ -53,7 +53,15 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
     {
         Vec_Int_t *vHyperEdgeEach = Vec_IntAlloc( 20 );
         // push the node itself, which is a source node
-        Vec_IntPush( vHyperEdgeEach, Abc_ObjId( pObj ) );
+        // make const node has the id of the maxNodeNum, this is due to the design of 1-index based kahypar
+        if(Abc_AigNodeIsConst( pObj ))
+        {
+            Vec_IntPush( vHyperEdgeEach, Abc_NtkObjNum( pNtk ) );
+        } 
+        else 
+        {
+            Vec_IntPush( vHyperEdgeEach, Abc_ObjId( pObj ) );
+        }
         // iterate through all the fanouts(sink) of the node
         if ( !Abc_ObjIsCo( pObj ) )
         {
@@ -61,7 +69,8 @@ void Io_WriteHMetis( Abc_Ntk_t *pNtk, char *pFileName, int fSkipPo, int fWeightE
             {
                 Vec_IntPush( vHyperEdgeEach, Abc_ObjId( pFanout ) );
             }
-        } else
+        }
+        else
         {
             if ( fSkipPo )
             {
