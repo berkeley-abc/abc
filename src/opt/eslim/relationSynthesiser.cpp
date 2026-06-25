@@ -532,7 +532,12 @@ namespace eSLIM {
       std::vector<int> clause (gate_output_variables[i].begin(), gate_output_variables[i].end());
       clause.reserve(max_size - i + 1);
       for (int j = i + 1; j < max_size; j++) {
-        clause.push_back(selection_variables[j][subcir.inputs.size() + i]);
+        // clause.push_back(selection_variables[j][subcir.inputs.size() + i]);
+        int isused = getNewVariable();
+        // The gate is used by another (active) gate.
+        solver.addClause({-isused, selection_variables[j][subcir.inputs.size() + i]});
+        solver.addClause({-isused, gate_activation_variables[j]});
+        clause.push_back(isused);
       }
       clause.push_back(-gate_activation_variables[i]);
       solver.addClause(clause);
