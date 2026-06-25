@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "misc/vec/vec.h"
 #include "misc/vec/vecWec.h"
@@ -44,6 +45,35 @@ ABC_NAMESPACE_HEADER_START
 
 #define GIA_NONE 0x1FFFFFFF
 #define GIA_VOID 0x0FFFFFFF
+
+// Multi-origin tracking: small-buffer optimization with overflow
+#ifndef GIA_ORIGINS_INLINE
+#define GIA_ORIGINS_INLINE 4   // number of inline origin slots (configurable at compile time)
+#endif
+
+typedef union {
+    struct {
+        int origins[GIA_ORIGINS_INLINE];  // -1 = unused slot
+    } inl;
+    struct {
+        int sentinel;    // INT_MIN marks overflow mode
+        int count;       // number of origins in overflow array
+        int * overflow;  // heap-allocated origin array
+    } ovf;
+} Gia_OriginsEntry_t;
+
+#define GIA_ORIGINS_STRIDE   ((int)(sizeof(Gia_OriginsEntry_t) / sizeof(int)))
+#define GIA_ORIGINS_SENTINEL INT_MIN
+
+// Compile-time checks: inline slots must cover the overflow header
+// (sentinel + count + pointer; minimum 4 ints on 64-bit), and must
+// not exceed the hardcoded initial overflow capacity of 8.
+#if GIA_ORIGINS_INLINE < 4
+#  error "GIA_ORIGINS_INLINE must be >= 4 (overflow header needs sentinel+count+ptr, min 4 ints on 64-bit)"
+#endif
+#if GIA_ORIGINS_INLINE > 7
+#  error "GIA_ORIGINS_INLINE must be <= 7 (initial overflow capacity is 8)"
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 ///                         BASIC TYPES                              ///
@@ -190,6 +220,8 @@ struct Gia_Man_t_
     Vec_Int_t *    vIdsOrig;      // original object IDs
     Vec_Int_t *    vIdsEquiv;     // original object IDs proved equivalent
     Vec_Int_t *    vEquLitIds;    // original object IDs proved equivalent
+    Vec_Int_t *    vOrigins;      // per-object origin mapping (from "y" extension)
+    int            nOriginsMax;   // max origins per object (0 = unlimited)
     Vec_Int_t *    vCofVars;      // cofactoring variables
     Vec_Vec_t *    vClockDoms;    // clock domains
     Vec_Flt_t *    vTiming;       // arrival/required/slack
@@ -461,6 +493,78 @@ static inline int          Gia_ManConst1Lit()                  { return 1; }
 static inline int          Gia_ManIsConst0Lit( int iLit )      { return (iLit == 0); }
 static inline int          Gia_ManIsConst1Lit( int iLit )      { return (iLit == 1); }
 static inline int          Gia_ManIsConstLit( int iLit )       { return (iLit <= 1); }
+
+// Multi-origin accessors
+static inline Gia_OriginsEntry_t * Gia_ObjOriginsEntry( Gia_Man_t * p, int iObj )
+{
+    return (Gia_OriginsEntry_t *)(Vec_IntArray(p->vOrigins) + iObj * GIA_ORIGINS_STRIDE);
+}
+static inline int Gia_ObjOriginsIsOverflow( Gia_OriginsEntry_t * e )
+{
+    return e->inl.origins[0] == GIA_ORIGINS_SENTINEL;
+}
+static inline int Gia_ObjOriginsNum( Gia_Man_t * p, int iObj )
+{
+    Gia_OriginsEntry_t * e;
+    int k;
+    if ( !p->vOrigins || iObj * GIA_ORIGINS_STRIDE >= Vec_IntSize(p->vOrigins) )
+        return 0;
+    e = Gia_ObjOriginsEntry( p, iObj );
+    if ( Gia_ObjOriginsIsOverflow(e) )
+        return e->ovf.count;
+    for ( k = 0; k < GIA_ORIGINS_INLINE; k++ )
+        if ( e->inl.origins[k] == -1 ) break;
+    return k;
+}
+static inline int Gia_ObjOriginsGet( Gia_Man_t * p, int iObj, int idx )
+{
+    Gia_OriginsEntry_t * e;
+    if ( !p->vOrigins || iObj * GIA_ORIGINS_STRIDE >= Vec_IntSize(p->vOrigins) )
+        return -1;
+    e = Gia_ObjOriginsEntry( p, iObj );
+    if ( Gia_ObjOriginsIsOverflow(e) )
+        return (idx < e->ovf.count) ? e->ovf.overflow[idx] : -1;
+    return (idx < GIA_ORIGINS_INLINE) ? e->inl.origins[idx] : -1;
+}
+// Backward compatible: get first/primary origin
+static inline int Gia_ObjOrigin( Gia_Man_t * p, int iObj )
+{
+    Gia_OriginsEntry_t * e;
+    if ( !p->vOrigins || iObj * GIA_ORIGINS_STRIDE >= Vec_IntSize(p->vOrigins) )
+        return -1;
+    e = Gia_ObjOriginsEntry( p, iObj );
+    if ( Gia_ObjOriginsIsOverflow(e) )
+        return e->ovf.count > 0 ? e->ovf.overflow[0] : -1;
+    return e->inl.origins[0];
+}
+// Set single origin (clears any existing, for initialization)
+static inline void Gia_ObjSetOrigin( Gia_Man_t * p, int iObj, int iOrig )
+{
+    Gia_OriginsEntry_t * e;
+    int k;
+    if ( !p->vOrigins || iObj * GIA_ORIGINS_STRIDE >= Vec_IntSize(p->vOrigins) )
+        return;
+    e = Gia_ObjOriginsEntry( p, iObj );
+    if ( Gia_ObjOriginsIsOverflow(e) && e->ovf.overflow )
+        ABC_FREE( e->ovf.overflow );
+    e->inl.origins[0] = iOrig;
+    for ( k = 1; k < GIA_ORIGINS_INLINE; k++ )
+        e->inl.origins[k] = -1;
+}
+// Grow vOrigins to accommodate object iObj
+static inline void Gia_ManOriginsGrow( Gia_Man_t * p, int iObj )
+{
+    Vec_IntFillExtra( p->vOrigins, (iObj + 1) * GIA_ORIGINS_STRIDE, -1 );
+}
+// Allocate vOrigins for nObjs objects (all entries initialized to -1)
+static inline Vec_Int_t * Gia_ManOriginsAlloc( int nObjs )
+{
+    return Vec_IntStartFull( nObjs * GIA_ORIGINS_STRIDE );
+}
+// Iteration macro (caller must declare int _nOrig before use, or use nOrig variant)
+#define Gia_ObjForEachOrigin( p, iObj, orig, idx ) \
+    for ( idx = 0, _nOrig = Gia_ObjOriginsNum(p, iObj); \
+          (idx < _nOrig) && ((orig = Gia_ObjOriginsGet(p, iObj, idx)), 1); idx++ )
 
 static inline Gia_Obj_t *  Gia_Regular( Gia_Obj_t * p )        { return (Gia_Obj_t *)((ABC_PTRUINT_T)(p) & ~01);                           }
 static inline Gia_Obj_t *  Gia_Not( Gia_Obj_t * p )            { return (Gia_Obj_t *)((ABC_PTRUINT_T)(p) ^  01);                           }
@@ -1348,6 +1452,14 @@ extern Gia_Man_t *         Gia_ManDupOrderDfsReverse( Gia_Man_t * p, int fRevFan
 extern Gia_Man_t *         Gia_ManDupOutputGroup( Gia_Man_t * p, int iOutStart, int iOutStop );
 extern Gia_Man_t *         Gia_ManDupOutputVec( Gia_Man_t * p, Vec_Int_t * vOutPres );
 extern Gia_Man_t *         Gia_ManDupSelectedOutputs( Gia_Man_t * p, Vec_Int_t * vOutsLeft );
+extern void                Gia_ObjAddOrigin( Gia_Man_t * p, int iObj, int iOrig );
+extern void                Gia_ObjUnionOrigins( Gia_Man_t * p, int iDst, Gia_Man_t * pSrc, int iSrc );
+extern void                Gia_ManOriginsFreeOverflows( Gia_Man_t * p );
+extern void                Gia_ManOriginsReset( Gia_Man_t * p );
+extern void                Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld );
+extern void                Gia_ManOriginsDupVec( Gia_Man_t * pNew, Gia_Man_t * pOld, Vec_Int_t * vCopies );
+extern void                Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld );
+extern void                Gia_ManOriginsDupIf( Gia_Man_t * pNew, Gia_Man_t * p, void * pIfMan );
 extern Gia_Man_t *         Gia_ManDupOrderAiger( Gia_Man_t * p );
 extern Gia_Man_t *         Gia_ManDupLastPis( Gia_Man_t * p, int nLastPis );
 extern Gia_Man_t *         Gia_ManDupFlip( Gia_Man_t * p, int * pInitState );

@@ -1511,10 +1511,11 @@ Gia_Man_t * Jf_ManDeriveMappingGia( Jf_Man_t * p )
         if ( p->pPars->fGenCnf )
             Jf_ManGenCnf( ABC_CONST(0xAAAAAAAAAAAAAAAA), iLit, vLeaves, vLits, vClas, vCover );
     }
+    Gia_ManOriginsDupVec( pNew, p->pGia, vCopies );
     Vec_IntFree( vCopies );
     Vec_IntFree( vCover );
     Vec_IntFree( vLeaves );
-    // finish mapping 
+    // finish mapping
     if ( Vec_IntSize(vMapping) > Gia_ManObjNum(pNew) )
         Vec_IntShrink( vMapping, Gia_ManObjNum(pNew) );
     else
@@ -1653,6 +1654,7 @@ Gia_Man_t * Jf_ManDeriveGia( Jf_Man_t * p )
     }
     if ( !p->pPars->fCutMin )
         Gia_ObjComputeTruthTableStop( p->pGia );
+    Gia_ManOriginsDupVec( pNew, p->pGia, vCopies );
     Vec_IntFree( vCopies );
     Vec_IntFree( vLeaves );
     Vec_IntFree( vCover );

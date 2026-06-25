@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "gia.h"
+#include "map/if/if.h"
 #include "misc/tim/tim.h"
 #include "misc/vec/vecWec.h"
 #include "proof/cec/cec.h"
@@ -195,10 +196,292 @@ int Gia_ManDupOrderDfs_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj )
 
 /**Function*************************************************************
 
+  Synopsis    [Adds an origin to an object with deduplication.]
+
+  Description [May promote inline storage to heap-allocated overflow.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ObjAddOrigin( Gia_Man_t * p, int iObj, int iOrig )
+{
+    Gia_OriginsEntry_t * e;
+    int k;
+    if ( iOrig < 0 || !p->vOrigins || iObj * GIA_ORIGINS_STRIDE >= Vec_IntSize(p->vOrigins) )
+        return;
+    e = Gia_ObjOriginsEntry( p, iObj );
+    if ( Gia_ObjOriginsIsOverflow(e) )
+    {
+        // cap check: skip if at user-specified limit
+        if ( p->nOriginsMax > 0 && e->ovf.count >= p->nOriginsMax )
+            return;
+        // overflow mode: check for duplicate
+        for ( k = 0; k < e->ovf.count; k++ )
+            if ( e->ovf.overflow[k] == iOrig ) return;
+        // geometric growth: double capacity when count is a power of 2
+        if ( e->ovf.count >= 8 && (e->ovf.count & (e->ovf.count - 1)) == 0 )
+            e->ovf.overflow = ABC_REALLOC( int, e->ovf.overflow, e->ovf.count * 2 );
+        e->ovf.overflow[e->ovf.count++] = iOrig;
+    }
+    else
+    {
+        // inline mode: check for duplicate and find empty slot
+        for ( k = 0; k < GIA_ORIGINS_INLINE; k++ )
+        {
+            if ( e->inl.origins[k] == iOrig ) return;
+            if ( e->inl.origins[k] == -1 )
+            {
+                e->inl.origins[k] = iOrig;
+                return;
+            }
+        }
+        // inline buffer full: promote to overflow with 8-slot initial capacity
+        {
+            int * pOverflow = ABC_ALLOC( int, 8 );
+            for ( k = 0; k < GIA_ORIGINS_INLINE; k++ )
+                pOverflow[k] = e->inl.origins[k];
+            pOverflow[GIA_ORIGINS_INLINE] = iOrig;
+            e->ovf.sentinel = GIA_ORIGINS_SENTINEL;
+            e->ovf.count = GIA_ORIGINS_INLINE + 1;
+            e->ovf.overflow = pOverflow;
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Unions all origins from src object into dst object.]
+
+  Description [Iterates over all origins of iSrc in pSrc and adds each
+  to iDst in p, with deduplication. pSrc and p may be the same manager.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ObjUnionOrigins( Gia_Man_t * p, int iDst, Gia_Man_t * pSrc, int iSrc )
+{
+    int idx, orig, _nOrig;
+    Gia_ObjForEachOrigin( pSrc, iSrc, orig, idx )
+        Gia_ObjAddOrigin( p, iDst, orig );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees all overflow arrays in vOrigins.]
+
+  Description [Walks every object's origins entry and frees the heap
+  array for entries in overflow mode. Must be called before freeing
+  the vOrigins Vec_Int_t itself.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsFreeOverflows( Gia_Man_t * p )
+{
+    int i, nObjs;
+    Gia_OriginsEntry_t * e;
+    if ( !p->vOrigins )
+        return;
+    nObjs = Vec_IntSize(p->vOrigins) / GIA_ORIGINS_STRIDE;
+    for ( i = 0; i < nObjs; i++ )
+    {
+        e = Gia_ObjOriginsEntry( p, i );
+        if ( Gia_ObjOriginsIsOverflow(e) && e->ovf.overflow )
+            ABC_FREE( e->ovf.overflow );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Frees existing vOrigins (overflows + vec).]
+
+  Description [Used before reallocation to prevent leaks.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsReset( Gia_Man_t * p )
+{
+    if ( !p->vOrigins )
+        return;
+    Gia_ManOriginsFreeOverflows( p );
+    Vec_IntFreeP( &p->vOrigins );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Propagates origin mapping from old to new manager.]
+
+  Description [Uses Value field of old objects to find corresponding
+  new objects. Copies full multi-origin entries.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( !pOld->vOrigins )
+        return;
+    Gia_ManOriginsReset( pNew );
+    pNew->nOriginsMax = pOld->nOriginsMax;
+    pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
+    Gia_ManForEachObj( pOld, pObj, i )
+    {
+        if ( i * GIA_ORIGINS_STRIDE >= Vec_IntSize(pOld->vOrigins) )
+            break;
+        if ( (int)Gia_ObjValue(pObj) != -1 )
+        {
+            int iNew = Abc_Lit2Var( Gia_ObjValue(pObj) );
+            if ( iNew < Gia_ManObjNum(pNew) )
+                Gia_ObjUnionOrigins( pNew, iNew, pOld, i );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Propagates origins using a copies vector.]
+
+  Description [Like Gia_ManOriginsDup but uses an explicit vCopies
+  vector instead of the Value field. Entry i of vCopies is the literal
+  in pNew corresponding to old object i.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsDupVec( Gia_Man_t * pNew, Gia_Man_t * pOld, Vec_Int_t * vCopies )
+{
+    int i, iLit;
+    if ( !pOld->vOrigins )
+        return;
+    Gia_ManOriginsReset( pNew );
+    pNew->nOriginsMax = pOld->nOriginsMax;
+    pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
+    Vec_IntForEachEntry( vCopies, iLit, i )
+    {
+        if ( iLit != -1 )
+        {
+            int iNew = Abc_Lit2Var( iLit );
+            if ( iNew < Gia_ManObjNum(pNew) && i * GIA_ORIGINS_STRIDE < Vec_IntSize(pOld->vOrigins) )
+                Gia_ObjUnionOrigins( pNew, iNew, pOld, i );
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Restores origins after GIA->AIG->GIA round-trip.]
+
+  Description [CIs map 1:1 in order. CO drivers map 1:1 (output
+  correspondence preserved through optimization). Remaining AND nodes
+  get origins via top-down propagation from CO drivers through fanin
+  cones.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    if ( !pOld->vOrigins )
+        return;
+    assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(pOld) );
+    assert( Gia_ManCoNum(pNew) == Gia_ManCoNum(pOld) );
+    Gia_ManOriginsReset( pNew );
+    pNew->nOriginsMax = pOld->nOriginsMax;
+    pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
+    // const0
+    Gia_ObjUnionOrigins( pNew, 0, pOld, 0 );
+    // CIs map 1:1 in order
+    Gia_ManForEachCi( pNew, pObj, i )
+    {
+        int iNewObj = Gia_ObjId( pNew, pObj );
+        int iOldCi  = Gia_ObjId( pOld, Gia_ManCi(pOld, i) );
+        Gia_ObjUnionOrigins( pNew, iNewObj, pOld, iOldCi );
+    }
+    // CO drivers map 1:1 (output correspondence preserved through optimization)
+    Gia_ManForEachCo( pNew, pObj, i )
+    {
+        int iNewDriver = Gia_ObjFaninId0p( pNew, pObj );
+        Gia_Obj_t * pOldCo = Gia_ManCo( pOld, i );
+        int iOldDriver = Gia_ObjFaninId0p( pOld, pOldCo );
+        if ( iNewDriver > 0 )
+            Gia_ObjUnionOrigins( pNew, iNewDriver, pOld, iOldDriver );
+    }
+    // Top-down propagation: spread CO driver origins backward through fanin cones
+    for ( i = Gia_ManObjNum(pNew) - 1; i > 0; i-- )
+    {
+        int f0, f1;
+        pObj = Gia_ManObj( pNew, i );
+        if ( !Gia_ObjIsAnd(pObj) )
+            continue;
+        if ( Gia_ObjOriginsNum(pNew, i) == 0 )
+            continue;
+        f0 = Gia_ObjFaninId0(pObj, i);
+        f1 = Gia_ObjFaninId1(pObj, i);
+        if ( f0 > 0 )
+            Gia_ObjUnionOrigins( pNew, f0, pNew, i );
+        if ( f1 > 0 )
+            Gia_ObjUnionOrigins( pNew, f1, pNew, i );
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Propagates origins through IF mapper correspondence.]
+
+  Description [IF objects 0..Gia_ManObjNum(p)-1 correspond 1:1 to
+  input GIA objects; iCopy gives the literal in the output GIA.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsDupIf( Gia_Man_t * pNew, Gia_Man_t * p, void * pIfManVoid )
+{
+    If_Man_t * pIfMan = (If_Man_t *)pIfManVoid;
+    If_Obj_t * pIfObj = NULL;
+    int i;
+    if ( !p->vOrigins )
+        return;
+    Gia_ManOriginsReset( pNew );
+    pNew->nOriginsMax = p->nOriginsMax;
+    pNew->vOrigins = Gia_ManOriginsAlloc( Gia_ManObjNum(pNew) );
+    If_ManForEachObj( pIfMan, pIfObj, i )
+    {
+        if ( i * GIA_ORIGINS_STRIDE < Vec_IntSize(p->vOrigins) && pIfObj->iCopy >= 0 )
+        {
+            int iNewObj = Abc_Lit2Var( pIfObj->iCopy );
+            if ( iNewObj < Gia_ManObjNum(pNew) )
+                Gia_ObjUnionOrigins( pNew, iNewObj, p, i );
+        }
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Duplicates AIG while putting objects in the DFS order.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -221,6 +504,7 @@ Gia_Man_t * Gia_ManDupOrderDfs( Gia_Man_t * p )
             pObj->Value = Gia_ManAppendCi(pNew);
     assert( Gia_ManCiNum(pNew) == Gia_ManCiNum(p) );
     Gia_ManDupRemapCis( pNew, p );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManDupRemapEquiv( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     return pNew;
@@ -545,6 +829,7 @@ Gia_Man_t * Gia_ManDupOrderAiger( Gia_Man_t * p )
         pObj->Value = Gia_ManAppendAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManDupRemapEquiv( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     assert( Gia_ManIsNormalized(pNew) );
@@ -778,6 +1063,7 @@ Gia_Man_t * Gia_ManDup( Gia_Man_t * p )
         else if ( Gia_ObjIsCo(pObj) )
             pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
     }
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     if ( p->pCexSeq )
         pNew->pCexSeq = Abc_CexDup( p->pCexSeq, Gia_ManRegNum(p) );
@@ -829,11 +1115,31 @@ Gia_Man_t * Gia_ManDupWithAttributes( Gia_Man_t * p )
         pNew->vConfigs2 = Vec_StrDup( p->vConfigs2 );
     if ( p->pCellStr )
         pNew->pCellStr = Abc_UtilStrsav( p->pCellStr );
+    // copy origins if present (deep-copy overflow arrays)
+    pNew->nOriginsMax = p->nOriginsMax;
+    if ( p->vOrigins )
+    {
+        int iObj, nObjs;
+        Gia_OriginsEntry_t * eSrc, * eDst;
+        Gia_ManOriginsReset( pNew );
+        pNew->vOrigins = Vec_IntDup( p->vOrigins );
+        nObjs = Vec_IntSize(p->vOrigins) / GIA_ORIGINS_STRIDE;
+        for ( iObj = 0; iObj < nObjs; iObj++ )
+        {
+            eSrc = Gia_ObjOriginsEntry( p, iObj );
+            if ( Gia_ObjOriginsIsOverflow(eSrc) && eSrc->ovf.overflow )
+            {
+                eDst = Gia_ObjOriginsEntry( pNew, iObj );
+                eDst->ovf.overflow = ABC_ALLOC( int, eSrc->ovf.count );
+                memcpy( eDst->ovf.overflow, eSrc->ovf.overflow, sizeof(int) * eSrc->ovf.count );
+            }
+        }
+    }
     // copy names if present
     if ( p->vNamesIn )
         pNew->vNamesIn = Vec_PtrDupStr( p->vNamesIn );
     if ( p->vNamesOut )
-        pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );        
+        pNew->vNamesOut = Vec_PtrDupStr( p->vNamesOut );
     return pNew;
 }
 Gia_Man_t * Gia_ManDupRemovePis( Gia_Man_t * p, int nRemPis )
@@ -1575,6 +1881,7 @@ Gia_Man_t * Gia_ManDupMarked( Gia_Man_t * p )
             pNew->pSibls[Abc_Lit2Var(pObj->Value)] = Abc_Lit2Var(pSibl->Value);
         }
     }
+    Gia_ManOriginsDup( pNew, p );
     return pNew;
 }
 
@@ -1806,6 +2113,7 @@ Gia_Man_t * Gia_ManDupDfs( Gia_Man_t * p )
         Gia_ManDupDfs_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = p->nConstrs;
     if ( p->pCexSeq )
@@ -1874,6 +2182,7 @@ Gia_Man_t * Gia_ManDupDfsRehash( Gia_Man_t * p )
         Gia_ManDupDfsRehash_rec( pNew, p, Gia_ObjFanin0(pObj) );
     Gia_ManForEachCo( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
+    Gia_ManOriginsDup( pNew, p );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManStop( pTemp );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
@@ -3890,6 +4199,8 @@ Gia_Man_t * Gia_ManChoiceMiter( Vec_Ptr_t * vGias )
             Gia_ManChoiceMiter_rec( pNew, pGia, Gia_ManCo( pGia, k ) );
     }
     Gia_ManHashStop( pNew );
+    // propagate origins from the first (primary) AIG
+    Gia_ManOriginsDup( pNew, pGia0 );
     // check the presence of dangling nodes
     nNodes = Gia_ManHasDangling( pNew );
     //assert( nNodes == 0 );
@@ -3931,6 +4242,7 @@ Gia_Man_t * Gia_ManDupWithConstraints( Gia_Man_t * p, Vec_Int_t * vPoTypes )
     Gia_ManForEachRi( p, pObj, i )
         pObj->Value = Gia_ManAppendCo( pNew, Gia_ObjFanin0Copy(pObj) );
 //    Gia_ManDupRemapEquiv( pNew, p );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = nConstr;
     assert( Gia_ManIsNormalized(pNew) );

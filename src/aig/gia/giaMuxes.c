@@ -140,6 +140,7 @@ Gia_Man_t * Gia_ManDupMuxes( Gia_Man_t * p, int Limit )
             pNew->pSibls[Gia_ObjId(pNew, pObjNew)] = Gia_ObjId(pNew, pSiblNew);
     }
     Gia_ManHashStop( pNew );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
@@ -253,6 +254,7 @@ Gia_Man_t * Gia_ManDupNoMuxes( Gia_Man_t * p, int fSkipBufs )
             pObj->Value = Gia_ManHashAnd( pNew, Gia_ObjFanin0Copy(pObj), Gia_ObjFanin1Copy(pObj) );
     }
     Gia_ManHashStop( pNew );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );

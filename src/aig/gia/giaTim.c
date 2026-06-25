@@ -186,6 +186,7 @@ Gia_Man_t * Gia_ManDupNormalize( Gia_Man_t * p, int fHashMapping )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = p->nConstrs;
     assert( Gia_ManIsNormalized(pNew) );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManDupRemapEquiv( pNew, p );
     return pNew;
 }
@@ -240,6 +241,7 @@ Gia_Man_t * Gia_ManDupUnshuffleInputs( Gia_Man_t * p )
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     pNew->nConstrs = p->nConstrs;
     assert( Gia_ManIsNormalized(pNew) );
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManDupRemapEquiv( pNew, p );
     return pNew;
 }
@@ -420,6 +422,7 @@ Gia_Man_t * Gia_ManDupUnnormalize( Gia_Man_t * p )
             pObj->Value = 0;
         else assert( 0 );
     }
+    Gia_ManOriginsDup( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     Vec_IntFree( vNodes );
     return pNew;
@@ -777,6 +780,7 @@ Gia_Man_t * Gia_ManDupMoveLast( Gia_Man_t * p, int iInsert, int nItems )
         else assert( 0 );
     }
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
+    Gia_ManOriginsDup( pNew, p );
     return pNew;
 }
 
@@ -903,6 +907,7 @@ Gia_Man_t * Gia_ManDupCollapse( Gia_Man_t * p, Gia_Man_t * pBoxes, Vec_Int_t * v
     assert( curCo == Gia_ManCoNum(p) );
     Gia_ManSetRegNum( pNew, (fSeq && p->vRegClasses) ? Vec_IntSize(p->vRegClasses) : Gia_ManRegNum(p) );
     Gia_ManHashStop( pNew );
+    Gia_ManOriginsDup( pNew, p );
     pNew = Gia_ManCleanup( pTemp = pNew );
     Gia_ManCleanupRemap( p, pTemp );
     Gia_ManStop( pTemp );
