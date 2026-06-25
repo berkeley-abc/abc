@@ -506,6 +506,22 @@ namespace eSLIM {
     fan1negated = (fan1negated != is_node_negated[(pe->fanins[0])->node_id]);
     fan2negated = (fan2negated != is_node_negated[(pe->fanins[1])->node_id]);
 
+    // We need to remove gates with duplicate fanins.
+    // We do not use simplifyDuplicateFanins as it does not propagate duplicate fanins.
+    if (fan1 == fan2) {
+      if ((fan1negated != fan2negated ) || is_xor) {
+        assert (!negate_and);
+        node_ids[node_id] = const_false_id;
+        is_node_negated[node_id] = negate_and;
+        return const_false_id;
+      } else {
+        node_ids[node_id] = fan1;
+        // Gates are assumed to be normal -> x = !a && !a (x = !a || !a) is not possible.
+        is_node_negated[node_id] = is_node_negated[(pe->fanins[1])->node_id];
+        return fan1;
+      }
+    }
+
     int id;
     if (is_xor) {
       id = Gia_ManAppendXor(pGia, Abc_LitNotCond(fan1, fan1negated), Abc_LitNotCond(fan2, fan2negated));
@@ -523,7 +539,7 @@ namespace eSLIM {
 
 
   Gia_Man_t* eSLIMCirMan::eSLIMCirManToGia() {
-    simplifyDuplicateFanins();
+    // simplifyDuplicateFanins();
     Gia_Man_t * pNew = Gia_ManStart( getNofObjs() );
 
     std::vector<int> node_ids(nodes.size(), 0);
@@ -536,15 +552,6 @@ namespace eSLIM {
     }
 
     for (int i = nof_pis + 1; i < nodes.size() - nof_pos; i++) {
-      // It is possible (but rather unlikley) that a gate has only a single fanin
-      // For instance it is possible that internally a gate has duplicate fanins.
-      // simplifyDuplicateFanins removes duplicate fanins
-      if (nodes[i]->getNFanins() == 1) {
-        eSLIMCirObj* pe = getpObj(i);
-        node_ids[i] = node_ids[(pe->fanins[0])->node_id];
-        is_node_negated[i] = pe->tt == 1;
-        continue;
-      }
       assert(nodes[i]->getNFanins() == 2);
       addGiaGate( pNew, i, node_ids, is_node_negated );
     }
