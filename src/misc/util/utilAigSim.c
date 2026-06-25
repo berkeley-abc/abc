@@ -34,6 +34,11 @@
 #include <sys/stat.h>
 #endif
 
+// defined by gcc and clang when __int128 is available
+#if defined(__SIZEOF_INT128__)
+#  define HAVE_INT_128
+#endif
+
 #ifdef _WIN32
 // Windows doesn't have __builtin_ctzll, implement it using portable algorithm
 static inline int __builtin_ctzll(uint64_t x) {
@@ -187,8 +192,9 @@ static inline uint64_t u64_mask_n(int nBits) {
     return (nBits >= 64) ? ~0ull : ((nBits <= 0) ? 0ull : ((1ull << nBits) - 1ull));
 }
 
-#ifdef _WIN32
-// Windows doesn't support __int128, so we limit to 32 variables on Windows
+#ifndef HAVE_INT_128
+// Most 32 bit platforms and Windows doesn't support __int128, so we
+// limit to 32 variables on those.
 static void u128_to_dec(uint64_t x, char *buf, size_t cap) {
     char tmp[64]; int n = 0;
     if (!x) { snprintf(buf, cap, "0"); return; }
@@ -397,10 +403,10 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
 
     const uint64_t inMask  = u64_mask_n(p1->nCis);
     const uint64_t outMask = u64_mask_n(p1->nCos);
-#ifdef _WIN32
-    // Windows doesn't support __int128, limit to 32 variables
+#ifndef HAVE_INT_128
+    // No support for __int128, limit to 32 variables
     if (nVars > 32) {
-        fprintf(stderr, "Error: Windows build supports nVars<=32 (got nVars=%d)\n", nVars);
+        fprintf(stderr, "Error: This architecture build supports nVars<=32 (got nVars=%d)\n", nVars);
         return 0;
     }
     const uint64_t combs = ((uint64_t)1) << (unsigned)nVars;
@@ -420,7 +426,7 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
 
     uint64_t inVec[BATCH], valid[NW];
     unsigned long long rounds = 0;
-#ifdef _WIN32
+#ifndef HAVE_INT_128
     uint64_t patsDone = 0;
 #else
     unsigned __int128 patsDone = 0;
@@ -428,7 +434,7 @@ static int SimulateCompareAigAig(const AigMan *p1, const AigMan *p2,
 
     clock_t t0 = clock();
 
-#ifdef _WIN32
+#ifndef HAVE_INT_128
     for (uint64_t base = 0; base < combs; base += BATCH) {
         uint64_t remain = combs - base;
 #else
@@ -535,10 +541,10 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
 
     const uint64_t inMask  = u64_mask_n(p1->nCis);
     const uint64_t outMask = u64_mask_n(p1->nCos);
-#ifdef _WIN32
-    // Windows doesn't support __int128, limit to 32 variables
+#ifndef HAVE_INT_128
+    // No support for __int128, limit to 32 variables
     if (nVars > 32) {
-        fprintf(stderr, "Error: Windows build supports nVars<=32 (got nVars=%d)\n", nVars);
+        fprintf(stderr, "Error: This architecture build supports nVars<=32 (got nVars=%d)\n", nVars);
         return 0;
     }
     const uint64_t combs = ((uint64_t)1) << (unsigned)nVars;
@@ -565,7 +571,7 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
 
     uint64_t inVec[BATCH], valid[NW];
     unsigned long long rounds = 0;
-#ifdef _WIN32
+#ifndef HAVE_INT_128
     uint64_t patsDone = 0;
 #else
     unsigned __int128 patsDone = 0;
@@ -573,7 +579,7 @@ static int SimulateCompareAigBin(const AigMan *p1, const char *bin,
 
     clock_t t0 = clock();
 
-#ifdef _WIN32
+#ifndef HAVE_INT_128
     for (uint64_t base = 0; base < combs; base += BATCH) {
         uint64_t remain = combs - base;
 #else
