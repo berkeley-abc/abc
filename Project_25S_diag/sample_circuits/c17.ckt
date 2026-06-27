@@ -1,0 +1,16 @@
+name C17.iscas
+i 1GAT(0)
+i 2GAT(1)
+i 3GAT(2)
+i 6GAT(3)
+i 7GAT(4)
+
+o 22GAT(10)
+o 23GAT(9)
+
+g1 nand 6GAT(3) 3GAT(2) ; 11GAT(5)
+g2 nand 3GAT(2) 1GAT(0) ; 10GAT(6)
+g3 nand 7GAT(4) 11GAT(5) ; 19GAT(7)
+g4 nand 11GAT(5) 2GAT(1) ; 16GAT(8)
+g5 nand 19GAT(7) 16GAT(8) ; 23GAT(9)
+g6 nand 16GAT(8) 10GAT(6) ; 22GAT(10)

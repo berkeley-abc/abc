@@ -2123,6 +2123,97 @@ void Abc_NtkShow6VarFunc( char * pF0, char * pF1 )
 }
 
 
+
+////////////////////////////////////////////////////////////////////////
+///                        DECLARATIONS                              ///
+////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////
+///                     FUNCTION DEFINITIONS                         ///
+////////////////////////////////////////////////////////////////////////
+
+/**Function*************************************************************
+
+  Synopsis    [Prints the fault list.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintFaultList( Abc_Ntk_t * pNtk )
+{
+    Abc_Fault_t * pFault;
+    int faultCount = 0;
+    
+    if ( pNtk->nFaults == 0 )
+    {
+        printf( "No faults in network %s.\n", pNtk->pName ? pNtk->pName : "unknown" );
+        return;
+    }
+    
+    printf( "Fault list for network %s:\n", pNtk->pName ? pNtk->pName : "unknown" );
+    printf( "FaultID | Node | Type | I/O | Index | Status\n" );
+    printf( "--------|------|------|-----|-------|--------\n" );
+    
+    for ( pFault = pNtk->pFaultList; pFault; pFault = pFault->pNext )
+    {
+        faultCount++;
+        printf( "%6d  | %4d | %s  | %s  | %4d  | %s%s%s\n", 
+            pFault->FaultId,
+            Abc_ObjId(pFault->pNode),
+            pFault->Type == ABC_FAULT_SA0 ? "SA0" : "SA1",
+            pFault->Io == ABC_FAULT_GO ? "GO" : "GI",
+            pFault->Index,
+            pFault->fDetected ? "D" : "-",
+            pFault->fActivated ? "A" : "-", 
+            pFault->fTestTried ? "T" : "-" );
+    }
+    printf( "Total: %d faults listed\n", faultCount );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints fault statistics.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Abc_NtkPrintFaultStats( Abc_Ntk_t * pNtk )
+{
+    printf( "Fault statistics for network %s:\n", pNtk->pName ? pNtk->pName : "unknown" );
+    printf( "Total faults: %d\n", pNtk->nFaults );
+    printf( "Detected faults: %d\n", pNtk->nDetectedFaults );
+    printf( "Undetected faults: %d\n", pNtk->nUndetectedFaults );
+    printf( "Activated faults: %d\n", pNtk->nActivatedFaults );
+    printf( "Test-tried faults: %d\n", pNtk->nTestTriedFaults );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Computes fault coverage.]
+
+  Description []
+               
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+float Abc_NtkGetFaultCoverage( Abc_Ntk_t * pNtk )
+{
+    if ( pNtk->nFaults == 0 )
+        return 0.0;
+    return (float)pNtk->nDetectedFaults / (float)pNtk->nFaults;
+}
+
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
