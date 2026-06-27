@@ -2,6 +2,9 @@ name: Build Windows
 
 on:
   push:
+    branches:
+      - master
+      - main
   pull_request:
 
 jobs:
@@ -13,12 +16,12 @@ jobs:
     steps:
 
     - name: Git Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         submodules: recursive
 
     - name: Setup MSVC
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: TheMrMilchmann/setup-msvc-dev@v4
       with:
         arch: x86
 
@@ -72,7 +75,7 @@ jobs:
         copy _TEST\abc.exe staging\
 
     - name: Upload package artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: package-windows
         path: staging/
