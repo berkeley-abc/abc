@@ -316,10 +316,29 @@ static inline int      Abc_LitRegular( int Lit )              { assert(Lit >= 0)
 static inline int      Abc_Lit2LitV( int * pMap, int Lit )    { assert(Lit >= 0); return Abc_Var2Lit( pMap[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) );      }
 static inline int      Abc_Lit2LitL( int * pMap, int Lit )    { assert(Lit >= 0); return Abc_LitNotCond( pMap[Abc_Lit2Var(Lit)], Abc_LitIsCompl(Lit) );   }
 
+#ifdef __cplusplus
+static inline int Abc_Ptr2Int(void* p)
+{
+    return static_cast<int>(reinterpret_cast<ABC_PTRINT_T>(p));
+}
+static inline void* Abc_Int2Ptr(int i)
+{
+    return reinterpret_cast<void*>(static_cast<ABC_PTRINT_T>(i));
+}
+static inline word Abc_Ptr2Wrd(void* p)
+{
+    return static_cast<word>(reinterpret_cast<ABC_PTRUINT_T>(p));
+}
+static inline void* Abc_Wrd2Ptr(word i)
+{
+    return reinterpret_cast<void*>(static_cast<ABC_PTRUINT_T>(i));
+}
+#else
 static inline int      Abc_Ptr2Int( void * p )                { return (int)(ABC_PTRINT_T)p;      }
 static inline void *   Abc_Int2Ptr( int i )                   { return (void *)(ABC_PTRINT_T)i;   }
 static inline word     Abc_Ptr2Wrd( void * p )                { return (word)(ABC_PTRUINT_T)p;    }
 static inline void *   Abc_Wrd2Ptr( word i )                  { return (void *)(ABC_PTRUINT_T)i;  }
+#endif
 
 static inline int      Abc_Var2Lit2( int Var, int Att )       { assert(!(Att >> 2)); return (Var << 2) + Att; }
 static inline int      Abc_Lit2Var2( int Lit )                { assert(Lit >= 0);    return Lit >> 2;         }
