@@ -219,4 +219,35 @@ TEST(OriginsTest, NfMappingPreservesOrigins) {
   Abc_Stop();
 }
 
+// Regression: writing a cell-mapped GIA emits an "M" (cell-mapping) section
+// followed by the "y" origin section. The AIGER reader must SKIP the unknown
+// "M" section rather than bail out of the extension loop, otherwise the "y"
+// origins (written after "M") are silently lost on read-back.
+TEST(OriginsTest, MappedAigerRoundTripPreservesOrigins) {
+  Gia_Man_t* p = BuildOrOfAnds();
+  SeedIdentityOrigins(p);
+  const char* in = "test_origins_mapped_in.aig";
+  Gia_AigerWrite(p, (char*)in, 0, 0, 0);
+  Gia_ManStop(p);
+
+  Abc_Start();
+  Abc_Frame_t* pAbc = Abc_FrameGetGlobalFrame();
+  ASSERT_EQ(Cmd_CommandExecute(pAbc, "read_genlib test_origins.genlib"), 0);
+  char cmd[256];
+  snprintf(cmd, sizeof(cmd), "&read %s", in);
+  ASSERT_EQ(Cmd_CommandExecute(pAbc, cmd), 0);
+  ASSERT_EQ(Cmd_CommandExecute(pAbc, "&nf"), 0);                                   // creates cell mapping
+  ASSERT_EQ(Cmd_CommandExecute(pAbc, "&write test_origins_mapped_out.aig"), 0);   // emits "M" then "y"
+  ASSERT_EQ(Cmd_CommandExecute(pAbc, "&read test_origins_mapped_out.aig"), 0);    // must skip "M" to reach "y"
+
+  Gia_Man_t* after = Abc_FrameReadGia(pAbc);
+  ASSERT_TRUE(after != nullptr);
+  ASSERT_TRUE(after->vOrigins != nullptr);   // would be NULL without the "M"-skip fix
+  EXPECT_GT(CountTotalOrigins(after), 0);
+
+  remove(in);
+  remove("test_origins_mapped_out.aig");
+  Abc_Stop();
+}
+
 ABC_NAMESPACE_IMPL_END

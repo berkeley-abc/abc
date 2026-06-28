@@ -988,6 +988,19 @@ Gia_Man_t * Gia_AigerReadFromMemory( char * pContents, int nFileSize, int fGiaSi
                 }
                 pCur += 4*nInts;
             }
+            // skip the "M" cell-mapping doc (consumed by external readers such
+            // as Yosys's read_xaiger2). Without this, an unrecognized "M"
+            // section would fall through to "else break" below and abandon all
+            // subsequent extensions -- notably the "y" origin mapping, which is
+            // written after "M".
+            else if ( *pCur == 'M' )
+            {
+                int nSize;
+                pCur++;
+                nSize = Gia_AigerReadInt(pCur);  pCur += 4;
+                pCur += nSize;
+                if ( fVerbose ) printf( "Skipped extension \"M\".\n" );
+            }
             else break;
         }
     }
