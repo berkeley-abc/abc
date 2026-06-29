@@ -35606,13 +35606,16 @@ int Abc_CommandAbc9SaveAig( Abc_Frame_t * pAbc, int argc, char ** argv )
             goto usage;
         }
     }
+    if ( fClear )
+    {
+        Gia_ManStopP( &pAbc->pGiaSaved );
+        return 0;
+    }
     if ( pAbc->pGia == NULL )
     {
         Abc_Print( -1, "Empty network.\n" );
         return 1;
     }
-    if ( fClear && pAbc->pGiaSaved != NULL )
-        Gia_ManStopP( &pAbc->pGiaSaved );
     if ( fArea && pAbc->pGiaSaved != NULL && Gia_ManAndNum(pAbc->pGiaSaved) <= Gia_ManAndNum(pAbc->pGia) )
         return 0;
     if ( !fArea && pAbc->pGiaSaved != NULL && !(Gia_ManLevelNum(pAbc->pGiaSaved) > Gia_ManLevelNum(pAbc->pGia) || (Gia_ManLevelNum(pAbc->pGiaSaved) == Gia_ManLevelNum(pAbc->pGia) && Gia_ManAndNum(pAbc->pGiaSaved) > Gia_ManAndNum(pAbc->pGia))) )

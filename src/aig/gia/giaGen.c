@@ -1557,7 +1557,7 @@ Gia_Man_t * Gia_ManGenAdder( int nVars, int fSK, int fBK, int fHC, int fMM, int 
     int * pLits = ABC_CALLOC( int, 2*nVars+10 );
     memcpy( pLits, pLitsI, sizeof(int)*2*nVars );
     for ( i = 1; i < nVars; i++ )
-    for ( k = 1; k < nVars; k++ )
+    for ( k = nVars - 1; k >= 1; k-- )
         if ( pStore[i][k] >= 0 )
             Gia_ManGenPrefix( p, &pLits[2*k], &pLits[2*k+1], pLits[2*pStore[i][k]], pLits[2*pStore[i][k]+1] );
     if ( fCarries )
