@@ -420,7 +420,11 @@ Gia_Man_t * Gia_ManBalanceInt( Gia_Man_t * p, int fStrict )
     }
     assert( !fStrict || Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
     Gia_ManHashStop( pNew );
-    Gia_ManOriginsDup( pNew, p );
+    // Balancing rebuilds the AIG: the new balanced nodes have no 1:1 origin
+    // correspondence, so fill them bottom-up from their fanins (a plain
+    // Gia_ManOriginsDup would leave them, and the cells later mapped from them,
+    // without \src).
+    Gia_ManOriginsDupFill( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );
@@ -820,7 +824,9 @@ Gia_Man_t * Dam_ManMultiAig( Dam_Man_t * pMan )
     }
 //    assert( Gia_ManObjNum(pNew) <= Gia_ManObjNum(p) );
     Gia_ManHashStop( pNew );
-    Gia_ManOriginsDup( pNew, p );
+    // Area balancing rebuilds the AIG via the divisor manager: fill the new
+    // nodes' origins bottom-up (see Gia_ManBalanceInt for the rationale).
+    Gia_ManOriginsDupFill( pNew, p );
     Gia_ManSetRegNum( pNew, Gia_ManRegNum(p) );
     // perform cleanup
     pNew = Gia_ManCleanup( pTemp = pNew );

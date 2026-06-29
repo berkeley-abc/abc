@@ -352,6 +352,48 @@ void Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld )
 
 /**Function*************************************************************
 
+  Synopsis    [Like Gia_ManOriginsDup, then fills AND nodes left without origins.]
+
+  Description [Use after a rebuild (e.g. balancing) that creates fresh AND nodes
+  with no 1:1 correspondence to pOld: Gia_ManOriginsDup seeds the survivors
+  (precise per-node origins), then a single bottom-up pass gives each remaining
+  AND node the union of its fanins' origins. Because GIA is topologically
+  ordered, one forward pass suffices: a node's fanins (lower ids) already carry
+  their origins. New nodes thus inherit the union of the surviving boundary
+  nodes in their cone — the most precise attribution available once the original
+  internal nodes are gone.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+void Gia_ManOriginsDupFill( Gia_Man_t * pNew, Gia_Man_t * pOld )
+{
+    Gia_Obj_t * pObj;
+    int i;
+    Gia_ManOriginsDup( pNew, pOld );
+    if ( !pNew->vOrigins )
+        return;
+    Gia_ManForEachAnd( pNew, pObj, i )
+    {
+        int f0, f1, f2;
+        if ( Gia_ObjOriginsNum( pNew, i ) > 0 )
+            continue;
+        f0 = Gia_ObjFaninId0( pObj, i );
+        f1 = Gia_ObjFaninId1( pObj, i );
+        f2 = Gia_ObjFaninId2( pNew, i ); // 3rd fanin of MUX nodes, else -1
+        if ( f0 > 0 )
+            Gia_ObjUnionOrigins( pNew, i, pNew, f0 );
+        if ( f1 > 0 )
+            Gia_ObjUnionOrigins( pNew, i, pNew, f1 );
+        if ( f2 > 0 )
+            Gia_ObjUnionOrigins( pNew, i, pNew, f2 );
+    }
+}
+
+/**Function*************************************************************
+
   Synopsis    [Propagates origins using a copies vector.]
 
   Description [Like Gia_ManOriginsDup but uses an explicit vCopies
