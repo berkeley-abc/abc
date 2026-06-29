@@ -250,4 +250,34 @@ TEST(OriginsTest, MappedAigerRoundTripPreservesOrigins) {
   Abc_Stop();
 }
 
+// Balancing rebuilds the AIG, creating new internal nodes with no 1:1 origin
+// correspondence. Gia_ManOriginsDupFill must cover them bottom-up so no node
+// (and thus no cell later mapped from it) loses provenance. A left-deep AND
+// chain is restructured into a shallow tree, forcing fresh nodes.
+TEST(OriginsTest, AreaBalancePreservesOriginCoverage) {
+  Gia_Man_t* p = Gia_ManStart(100);
+  int ci[8], i;
+  for (i = 0; i < 8; i++) ci[i] = Gia_ManAppendCi(p);
+  int lit = ci[0];
+  for (i = 1; i < 8; i++) lit = Gia_ManAppendAnd(p, lit, ci[i]);
+  Gia_ManAppendCo(p, lit);
+  // Seed identity origins on every object (CIs included) as the XAIGER "y"
+  // extension does — the fill propagates CI origins up into new leaf nodes.
+  Gia_Obj_t* pSeed;
+  p->vOrigins = Gia_ManOriginsAlloc(Gia_ManObjNum(p));
+  Gia_ManForEachObj(p, pSeed, i)
+    if (i > 0) Gia_ObjSetOrigin(p, i, i);
+
+  Gia_Man_t* pNew = Gia_ManAreaBalance(p, 1, 1000, 0, 0);
+  ASSERT_TRUE(pNew->vOrigins != nullptr);
+  Gia_Obj_t* pObj;
+  int uncovered = 0;
+  Gia_ManForEachAnd(pNew, pObj, i)
+    if (Gia_ObjOriginsNum(pNew, i) == 0) uncovered++;
+  EXPECT_EQ(uncovered, 0) << "balanced AIG has AND nodes with no origin";
+
+  Gia_ManStop(p);
+  Gia_ManStop(pNew);
+}
+
 ABC_NAMESPACE_IMPL_END

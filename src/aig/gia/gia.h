@@ -1457,6 +1457,7 @@ extern void                Gia_ObjUnionOrigins( Gia_Man_t * p, int iDst, Gia_Man
 extern void                Gia_ManOriginsFreeOverflows( Gia_Man_t * p );
 extern void                Gia_ManOriginsReset( Gia_Man_t * p );
 extern void                Gia_ManOriginsDup( Gia_Man_t * pNew, Gia_Man_t * pOld );
+extern void                Gia_ManOriginsDupFill( Gia_Man_t * pNew, Gia_Man_t * pOld );
 extern void                Gia_ManOriginsDupVec( Gia_Man_t * pNew, Gia_Man_t * pOld, Vec_Int_t * vCopies );
 extern void                Gia_ManOriginsAfterRoundTrip( Gia_Man_t * pNew, Gia_Man_t * pOld );
 extern void                Gia_ManOriginsDupIf( Gia_Man_t * pNew, Gia_Man_t * p, void * pIfMan );
