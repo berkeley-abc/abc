@@ -1127,9 +1127,10 @@ int If_MatchCheck1( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, cha
 }
 int If_MatchCheck2( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, char * pStr )
 {
-    if ( nLeaves < nVars )
+    if ( nLeaves < p->pPars->nLutSize )
         return 1;
-    assert( nLeaves == nVars );
+    assert( nLeaves == p->pPars->nLutSize );
+    assert( nLeaves <= nVars );
     if ( Abc_Tt6Check2( ((word *)pTruth)[0], nLeaves ) )
         return 1;
     return 0;
@@ -1141,4 +1142,3 @@ int If_MatchCheck2( If_Man_t * p, unsigned * pTruth, int nVars, int nLeaves, cha
 
 
 ABC_NAMESPACE_IMPL_END
-

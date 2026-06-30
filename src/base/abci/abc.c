@@ -35234,16 +35234,18 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern void Abc_NtkRedirectCiCo( Abc_Ntk_t * pNtk );
     extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p, int fUseBuffs );
     extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
+    extern Abc_Ntk_t * Abc_NtkFromMappedGiaAnd5( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
 
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
     int fStatusClear = 1;
     int fFindEnables = 0;
     int fUseBuffs    = 0;
+    int fCheckAnd5   = 0;
     int c, fVerbose  = 0;
 
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "seovh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "seiovh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -35252,6 +35254,9 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'e':
             fFindEnables ^= 1;
+            break;
+        case 'i':
+            fCheckAnd5 ^= 1;
             break;
         case 'o':
             fUseBuffs ^= 1;
@@ -35275,7 +35280,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( Gia_ManHasCellMapping(pAbc->pGia) )
         pNtk = Abc_NtkFromCellMappedGia( pAbc->pGia, fUseBuffs );
     else if ( Gia_ManHasMapping(pAbc->pGia) || pAbc->pGia->pMuxes )
-        pNtk = Abc_NtkFromMappedGia( pAbc->pGia, 0, fUseBuffs );
+        pNtk = fCheckAnd5 ? Abc_NtkFromMappedGiaAnd5( pAbc->pGia, 0, fUseBuffs ) : Abc_NtkFromMappedGia( pAbc->pGia, 0, fUseBuffs );
     else if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
     {
         pMan = Gia_ManToAig( pAbc->pGia, 0 );
@@ -35298,6 +35303,8 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
         Abc_NtkDelete( pNtkNoCh );
         Aig_ManStop( pMan );
     }
+    if ( pNtk == NULL )
+        return 1;
     // transfer the spec name to the pNtk
     if( pAbc->pGia->pSpec )
     {
@@ -35364,10 +35371,11 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &put [-seovh]\n" );
+    Abc_Print( -2, "usage: &put [-seiovh]\n" );
     Abc_Print( -2, "\t         transfer the current network into the old ABC\n" );
     Abc_Print( -2, "\t-s     : toggle clearning verification status [default = %s]\n", fStatusClear? "yes": "no" );
     Abc_Print( -2, "\t-e     : toggle extracting MUXes for flop enables [default = %s]\n", fFindEnables? "yes": "no" );
+    Abc_Print( -2, "\t-i     : toggle AND-decomposable polarity for 5-input LUTs [default = %s]\n", fCheckAnd5? "yes": "no" );
     Abc_Print( -2, "\t-o     : toggles using buffers to decouple combinational outputs [default = %s]\n", fUseBuffs? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggle verbose output [default = %s]\n", fVerbose? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");

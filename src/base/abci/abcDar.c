@@ -38,6 +38,7 @@
 #include "opt/csw/csw.h"
 #include "proof/pdr/pdr.h"
 #include "sat/bmc/bmc.h"
+#include "misc/util/utilTruth.h"
 #include "map/mio/mio.h"
 #include "misc/vec/vecMem.h"
 
@@ -757,7 +758,7 @@ Hop_Obj_t * Abc_ObjHopFromGia_rec( Hop_Man_t * pHopMan, Gia_Man_t * p, int Id, V
     Vec_PtrWriteEntry( vCopies, Id, gFunc );
     return gFunc;
 }
-Hop_Obj_t * Abc_ObjHopFromGia( Hop_Man_t * pHopMan, Gia_Man_t * p, int GiaId, Vec_Ptr_t * vCopies )
+static Hop_Obj_t * Abc_ObjHopFromGia2( Hop_Man_t * pHopMan, Gia_Man_t * p, int GiaId, Vec_Ptr_t * vCopies, Vec_Bit_t * vCompls )
 {
     int k, iFan;
     assert( Gia_ObjIsLut(p, GiaId) );
@@ -766,9 +767,30 @@ Hop_Obj_t * Abc_ObjHopFromGia( Hop_Man_t * pHopMan, Gia_Man_t * p, int GiaId, Ve
     Gia_LutForEachFanin( p, GiaId, iFan, k )
     {
         Gia_ObjSetTravIdCurrentId(p, iFan);
-        Vec_PtrWriteEntry( vCopies, iFan, Hop_IthVar(pHopMan, k) );
+        Vec_PtrWriteEntry( vCopies, iFan, Hop_NotCond(Hop_IthVar(pHopMan, k), vCompls && Vec_BitEntry(vCompls, iFan)) );
     }
     return Abc_ObjHopFromGia_rec( pHopMan, p, GiaId, vCopies );
+}
+Hop_Obj_t * Abc_ObjHopFromGia( Hop_Man_t * pHopMan, Gia_Man_t * p, int GiaId, Vec_Ptr_t * vCopies )
+{
+    return Abc_ObjHopFromGia2( pHopMan, p, GiaId, vCopies, NULL );
+}
+
+static int Abc_Tt5HasAndDec( word Truth )
+{
+    int v;
+    for ( v = 0; v < 5; v++ )
+        if ( Abc_Tt6Cofactor0(Truth, v) == 0 || Abc_Tt6Cofactor1(Truth, v) == 0 )
+            return 1;
+    return 0;
+}
+static int Abc_Tt5AndDecPolarity( word Truth )
+{
+    if ( Abc_Tt5HasAndDec(Truth) )
+        return 0;
+    if ( Abc_Tt5HasAndDec(~Truth) )
+        return 1;
+    return -1;
 }
 
 /**Function*************************************************************
@@ -804,7 +826,7 @@ Abc_Obj_t * Abc_NtkFromMappedGia_rec( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, int iO
         pObjNew = Abc_NtkCreateNodeInv(pNtkNew, pObjNew);
     return pObjNew;
 }
-Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs )
+Abc_Ntk_t * Abc_NtkFromMappedGiaInt( Gia_Man_t * p, int fFindEnables, int fUseBuffs, int fCheckAnd5 )
 {
     int fVerbose = 0;
     int fDuplicate = 0;
@@ -812,6 +834,7 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs
     Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo, * pConst0 = NULL;
     Gia_Obj_t * pObj, * pObjLi, * pObjLo;
     Vec_Ptr_t * vReflect;
+    Vec_Bit_t * vCompls = NULL;
     int i, k, iFan, nDupGates, nCountMux = 0; 
     assert( Gia_ManHasMapping(p) || p->pMuxes || fFindEnables );
     assert( !fFindEnables || !p->pMuxes );
@@ -820,6 +843,8 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs
     pNtkNew->pName = Extra_UtilStrsav(p->pName);
     pNtkNew->pSpec = Extra_UtilStrsav(p->pSpec);
     Gia_ManFillValue( p );
+    if ( fCheckAnd5 )
+        vCompls = Vec_BitStart( Gia_ManObjNum(p) );
     // create constant
     pConst0 = Abc_NtkCreateNodeConst0( pNtkNew );
     Gia_ManConst0(p)->Value = Abc_ObjId(pConst0);
@@ -917,6 +942,7 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs
         vReflect = Vec_PtrStart( Gia_ManObjNum(p) );
         Gia_ManForEachLut( p, i )
         {
+            Hop_Obj_t * pFunc;
             pObj = Gia_ManObj(p, i);
             assert( pObj->Value == ~0 );
             if ( Gia_ObjLutSize(p, i) == 0 )
@@ -924,10 +950,36 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs
                 pObj->Value = Abc_ObjId(pConst0);
                 continue;
             }
+            pFunc = Abc_ObjHopFromGia2( (Hop_Man_t *)pNtkNew->pManFunc, p, i, vReflect, vCompls );
+            if ( fCheckAnd5 && Gia_ObjLutSize(p, i) == 5 )
+            {
+                word Truth = Hop_ManComputeTruth6( (Hop_Man_t *)pNtkNew->pManFunc, pFunc, 5 );
+                int fCompl = Abc_Tt5AndDecPolarity( Truth );
+                if ( fCompl < 0 )
+                {
+                    Abc_Print( -1, "Abc_NtkFromMappedGia(): 5-input node %d does not have AND-decomposition in either polarity.\n", i );
+                    Vec_PtrFree( vReflect );
+                    Vec_BitFreeP( &vCompls );
+                    Abc_NtkDelete( pNtkNew );
+                    return NULL;
+                }
+                pFunc = Hop_NotCond( pFunc, fCompl );
+                Truth = fCompl ? ~Truth : Truth;
+                assert( Abc_Tt5HasAndDec(Truth) );
+                if ( !Abc_Tt5HasAndDec(Truth) )
+                {
+                    Abc_Print( -1, "Abc_NtkFromMappedGia(): Internal error: 5-input node %d failed AND-decomposition check.\n", i );
+                    Vec_PtrFree( vReflect );
+                    Vec_BitFreeP( &vCompls );
+                    Abc_NtkDelete( pNtkNew );
+                    return NULL;
+                }
+                Vec_BitWriteEntry( vCompls, i, fCompl );
+            }
             pObjNew = Abc_NtkCreateNode( pNtkNew );
             Gia_LutForEachFanin( p, i, iFan, k )
                 Abc_ObjAddFanin( pObjNew, Abc_NtkObj(pNtkNew, Gia_ObjValue(Gia_ManObj(p, iFan))) );
-            pObjNew->pData = Abc_ObjHopFromGia( (Hop_Man_t *)pNtkNew->pManFunc, p, i, vReflect );
+            pObjNew->pData = pFunc;
             pObjNew->fPersist = Gia_ObjLutIsMux(p, i) && Gia_ObjLutSize(p, i) == 3;
             pObj->Value = Abc_ObjId( pObjNew );
         }
@@ -939,8 +991,12 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs
     if ( !fFindEnables )
     Gia_ManForEachCo( p, pObj, i )
     {
+        int iFanin = Gia_ObjFaninId0p(p, pObj);
+        int fCompl = Gia_ObjFaninC0(pObj) ^ (vCompls && Vec_BitEntry(vCompls, iFanin));
         pObjNew = Abc_NtkObj( pNtkNew, Gia_ObjValue(Gia_ObjFanin0(pObj)) );
-        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), Abc_ObjNotCond( pObjNew, Gia_ObjFaninC0(pObj) ) );
+        if ( fCheckAnd5 && fCompl && Gia_ObjIsLut(p, iFanin) && Gia_ObjLutSize(p, iFanin) == 5 )
+            pObjNew = Abc_NtkCreateNodeInv( pNtkNew, pObjNew ), fCompl = 0;
+        Abc_ObjAddFanin( Abc_NtkCo(pNtkNew, i), Abc_ObjNotCond( pObjNew, fCompl ) );
     }
     // create names
     Abc_NtkAddDummyPiNames( pNtkNew );
@@ -967,7 +1023,16 @@ Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs
     // check the resulting AIG
     if ( !Abc_NtkCheck( pNtkNew ) )
         Abc_Print( 1, "Abc_NtkFromMappedGia(): Network check has failed.\n" );
+    Vec_BitFreeP( &vCompls );
     return pNtkNew;
+}
+Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs )
+{
+    return Abc_NtkFromMappedGiaInt( p, fFindEnables, fUseBuffs, 0 );
+}
+Abc_Ntk_t * Abc_NtkFromMappedGiaAnd5( Gia_Man_t * p, int fFindEnables, int fUseBuffs )
+{
+    return Abc_NtkFromMappedGiaInt( p, fFindEnables, fUseBuffs, 1 );
 }
 
 /**Function*************************************************************
