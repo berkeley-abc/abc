@@ -1331,7 +1331,6 @@ void Cec_SeedSimEnsurePersistent( Cec_SeedSim_t * p, Cec_ManSim_t * pSim )
 {
     int nInputs = p->nRegs + p->nPis * p->nFrames;
     size_t nInputWords = (size_t)nInputs * p->nWords;
-    size_t nKeys = (size_t)p->nFrames * p->nObjs;
     int i, w;
     if ( p->vSimInfo == NULL )
     {

@@ -1181,3 +1181,4 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
 
 
 ABC_NAMESPACE_IMPL_END
+

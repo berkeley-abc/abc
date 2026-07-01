@@ -112,12 +112,12 @@ void Gia_ManCorrSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
   SeeAlso     []
 
 ***********************************************************************/
-Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings, Vec_Int_t ** pvOutLits )
+Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_Int_t ** pvOutputs, int fRings )
 {
     Gia_Man_t * pNew, * pTemp;
     Gia_Obj_t * pObj, * pRepr;
     Vec_Int_t * vXorLits;
-    int f, i, iPrev, iObj, iPrevNew, iObjNew, iPrevRaw, iObjRaw;
+    int f, i, iPrev, iObj, iPrevNew, iObjNew;
     assert( nFrames > 0 );
     assert( Gia_ManRegNum(p) > 0 );
     assert( p->pReprs != NULL );
@@ -140,8 +140,6 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
             Gia_ObjSetCopyF( p, f, pObj, Gia_ManAppendCi(pNew) );
     }
     *pvOutputs = Vec_IntAlloc( 1000 );
-    if ( pvOutLits )
-        *pvOutLits = Vec_IntAlloc( 1000 );
     vXorLits = Vec_IntAlloc( 1000 );
     if ( fRings )
     {
@@ -149,17 +147,12 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
         {
             if ( Gia_ObjIsConst( p, i ) )
             {
-                iObjRaw = Gia_ManCorrSpecReal( pNew, p, pObj, nFrames, 0 );
-                iObjNew = Abc_LitNotCond( iObjRaw, Gia_ObjPhase(pObj) );
+                iObjNew = Gia_ManCorrSpecReal( pNew, p, pObj, nFrames, 0 );
+                iObjNew = Abc_LitNotCond( iObjNew, Gia_ObjPhase(pObj) );
                 if ( iObjNew != 0 )
                 {
                     Vec_IntPush( *pvOutputs, 0 );
                     Vec_IntPush( *pvOutputs, i );
-                    if ( pvOutLits )
-                    {
-                        Vec_IntPush( *pvOutLits, 0 );
-                        Vec_IntPush( *pvOutLits, iObjRaw );
-                    }
                     Vec_IntPush( vXorLits, iObjNew );
                 }
             }
@@ -168,37 +161,27 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
                 iPrev = i;
                 Gia_ClassForEachObj1( p, i, iObj )
                 {
-                    iPrevRaw = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iPrev), nFrames, 0 );
-                    iObjRaw  = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iObj), nFrames, 0 );
-                    iPrevNew = Abc_LitNotCond( iPrevRaw, Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iPrev)) );
-                    iObjNew  = Abc_LitNotCond( iObjRaw,  Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iObj)) );
+                    iPrevNew = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iPrev), nFrames, 0 );
+                    iObjNew  = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iObj), nFrames, 0 );
+                    iPrevNew = Abc_LitNotCond( iPrevNew, Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iPrev)) );
+                    iObjNew  = Abc_LitNotCond( iObjNew,  Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iObj)) );
                     if ( iPrevNew != iObjNew && iPrevNew != 0 && iObjNew != 1 )
                     {
                         Vec_IntPush( *pvOutputs, iPrev );
                         Vec_IntPush( *pvOutputs, iObj );
-                        if ( pvOutLits )
-                        {
-                            Vec_IntPush( *pvOutLits, iPrevRaw );
-                            Vec_IntPush( *pvOutLits, iObjRaw );
-                        }
                         Vec_IntPush( vXorLits, Gia_ManHashAnd(pNew, iPrevNew, Abc_LitNot(iObjNew)) );
                     }
                     iPrev = iObj;
                 }
                 iObj = i;
-                iPrevRaw = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iPrev), nFrames, 0 );
-                iObjRaw  = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iObj), nFrames, 0 );
-                iPrevNew = Abc_LitNotCond( iPrevRaw, Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iPrev)) );
-                iObjNew  = Abc_LitNotCond( iObjRaw,  Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iObj)) );
+                iPrevNew = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iPrev), nFrames, 0 );
+                iObjNew  = Gia_ManCorrSpecReal( pNew, p, Gia_ManObj(p, iObj), nFrames, 0 );
+                iPrevNew = Abc_LitNotCond( iPrevNew, Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iPrev)) );
+                iObjNew  = Abc_LitNotCond( iObjNew,  Gia_ObjPhase(pObj) ^ Gia_ObjPhase(Gia_ManObj(p, iObj)) );
                 if ( iPrevNew != iObjNew && iPrevNew != 0 && iObjNew != 1 )
                 {
                     Vec_IntPush( *pvOutputs, iPrev );
                     Vec_IntPush( *pvOutputs, iObj );
-                    if ( pvOutLits )
-                    {
-                        Vec_IntPush( *pvOutLits, iPrevRaw );
-                        Vec_IntPush( *pvOutLits, iObjRaw );
-                    }
                     Vec_IntPush( vXorLits, Gia_ManHashAnd(pNew, iPrevNew, Abc_LitNot(iObjNew)) );
                 }
             }
@@ -211,19 +194,13 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
             pRepr = Gia_ObjReprObj( p, Gia_ObjId(p,pObj) );
             if ( pRepr == NULL )
                 continue;
-            iPrevRaw = Gia_ObjIsConst(p, i)? 0 : Gia_ManCorrSpecReal( pNew, p, pRepr, nFrames, 0 );
-            iObjRaw  = Gia_ManCorrSpecReal( pNew, p, pObj, nFrames, 0 );
-            iPrevNew = iPrevRaw;
-            iObjNew  = Abc_LitNotCond( iObjRaw, Gia_ObjPhase(pRepr) ^ Gia_ObjPhase(pObj) );
+            iPrevNew = Gia_ObjIsConst(p, i)? 0 : Gia_ManCorrSpecReal( pNew, p, pRepr, nFrames, 0 );
+            iObjNew  = Gia_ManCorrSpecReal( pNew, p, pObj, nFrames, 0 );
+            iObjNew  = Abc_LitNotCond( iObjNew, Gia_ObjPhase(pRepr) ^ Gia_ObjPhase(pObj) );
             if ( iPrevNew != iObjNew )
             {
                 Vec_IntPush( *pvOutputs, Gia_ObjId(p, pRepr) );
                 Vec_IntPush( *pvOutputs, Gia_ObjId(p, pObj) );
-                if ( pvOutLits )
-                {
-                    Vec_IntPush( *pvOutLits, iPrevRaw );
-                    Vec_IntPush( *pvOutLits, iObjRaw );
-                }
                 Vec_IntPush( vXorLits, Gia_ManHashXor(pNew, iPrevNew, iObjNew) );
             }
         }
@@ -235,8 +212,6 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
     Vec_IntErase( &p->vCopies );
 //Abc_Print( 1, "Before sweeping = %d\n", Gia_ManAndNum(pNew) );
     pNew = Gia_ManCleanup( pTemp = pNew );
-    if ( pvOutLits )
-        Gia_ManDupRemapLiterals( *pvOutLits, pTemp );
 //Abc_Print( 1, "After sweeping = %d\n", Gia_ManAndNum(pNew) );
     Gia_ManStop( pTemp );
     return pNew;
@@ -670,7 +645,7 @@ static int Cec_ManCexStoreClassify( Vec_Int_t * vCexStore, int * pnReal, int * p
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames, Cec_SeedSim_t * pSeed, Vec_Int_t * vOutputs )
+static int Cec_ManResimulateCounterExamplesSeed( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames, Cec_SeedSim_t * pSeed, Vec_Int_t * vOutputs )
 {
     Vec_Int_t * vPairs = NULL;
     Vec_Int_t * vOutBits = NULL;
@@ -761,6 +736,11 @@ int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore
         Vec_PtrFree( vSimInfo );
     Vec_IntFreeP( &vPairs );
     return RetValue;
+}
+
+int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames )
+{
+    return Cec_ManResimulateCounterExamplesSeed( pSim, vCexStore, nFrames, NULL, NULL );
 }
 
 /**Function*************************************************************
@@ -928,7 +908,7 @@ int Gia_ManCheckRefinements( Gia_Man_t * p, Vec_Str_t * vStatus, Vec_Int_t * vOu
     }
 //    if ( Counter )
 //    Abc_Print( 1, "Gia_ManCheckRefinements(): Could not refine %d nodes.\n", Counter );
-    return Counter;
+    return 1;
 }
 
 
@@ -1191,7 +1171,7 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
                 // persistent simulation background over-refines classes and can
                 // significantly hurt gate QoR.  The main correspondence loop
                 // below still uses event resim for ordinary refinement batches.
-                Cec_ManResimulateCounterExamples( pSim, vCexStore, nBmcResimFrames, NULL, vOutputs );
+                Cec_ManResimulateCounterExamples( pSim, vCexStore, nBmcResimFrames );
             }
             if ( nCexTriv > 0 )
                 Cec_ManTrivialSatSplit( pAig, pSim, vCexStore, vStatus, vOutputs, pPars->fUseRings );
@@ -1468,7 +1448,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             else if ( pTfoMask )
                 pSrm = Gia_ManCorrSpecReduce_Emit( pAig, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings, pTfoMask, pMgr, CEC_EMIT_ACTIVE, NULL );
             else
-                pSrm = Gia_ManCorrSpecReduce( pAig, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings, NULL );
+                pSrm = Gia_ManCorrSpecReduce( pAig, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
             if ( pTfoMask && pPars->fVeryVerbose )
                 Abc_Print( 1, "  [incr r=%d repr=%d next=%d tfo=%d active=%d/%d POs=%d]\n",
                            r, nReprSeeds, nNextChanges,
@@ -1517,7 +1497,7 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             Cec_ManCexStoreClassify( vCexStore, &nCexReal, &nCexTriv, NULL );
             if ( nCexReal > 0 || !pPars->fSkipFailResim )
             {
-                Cec_ManResimulateCounterExamples( pSim,
+                Cec_ManResimulateCounterExamplesSeed( pSim,
                     vCexStore, pPars->nFrames + 1 + nAddFrames,
                     pSeedSim, vOutputs );
             }

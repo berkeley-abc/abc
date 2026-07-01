@@ -493,3 +493,4 @@ int Cec_ManSeqSemiformal( Gia_Man_t * pAig, Cec_ParSmf_t * pPars )
 
 
 ABC_NAMESPACE_IMPL_END
+
