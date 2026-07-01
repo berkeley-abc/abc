@@ -427,6 +427,8 @@ static int Abc_CommandAbc9WriteVer           ( Abc_Frame_t * pAbc, int argc, cha
 static int Abc_CommandAbc9Write              ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9WriteLut           ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Ps                 ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9Origins            ( Abc_Frame_t * pAbc, int argc, char ** argv );
+static int Abc_CommandAbc9OriginsId          ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PFan               ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9Pms                ( Abc_Frame_t * pAbc, int argc, char ** argv );
 static int Abc_CommandAbc9PSig               ( Abc_Frame_t * pAbc, int argc, char ** argv );
@@ -1278,6 +1280,8 @@ void Abc_Init( Abc_Frame_t * pAbc )
     Cmd_CommandAdd( pAbc, "ABC9",         "&write",        Abc_CommandAbc9Write,        0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&wlut",         Abc_CommandAbc9WriteLut,     0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&ps",           Abc_CommandAbc9Ps,           0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&origins",      Abc_CommandAbc9Origins,      0 );
+    Cmd_CommandAdd( pAbc, "ABC9",         "&origins_id",   Abc_CommandAbc9OriginsId,    0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pfan",         Abc_CommandAbc9PFan,         0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&pms",          Abc_CommandAbc9Pms,          0 );
     Cmd_CommandAdd( pAbc, "ABC9",         "&psig",         Abc_CommandAbc9PSig,         0 );
@@ -36195,6 +36199,186 @@ usage:
     Abc_Print( -2, "\t-x      : toggle using no color in the printout [default = %s]\n",    pPars->fNoColor? "yes": "no" );
     Abc_Print( -2, "\t-b      : toggle printing saved AIG statistics [default = %s]\n",     fBest? "yes": "no" );
     Abc_Print( -2, "\t-D file : file name to dump statistics [default = none]\n" );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Prints multi-origin statistics.]
+
+  Description [Shows how many objects have origins, total origin count,
+  average/max per node, overflow count, and a histogram. Origins are
+  populated either by reading an XAIGER file with a "y" extension
+  (normal abc9 flow) or by the &origins_id command (testing).]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9Origins( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pGia = pAbc->pGia;
+    int c, fSetCap = 0, nOriginsMax = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOriginsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOriginsMax < 0 )
+            {
+                Abc_Print( -1, "The max origins value should be non-negative.\n" );
+                goto usage;
+            }
+            fSetCap = 1;
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9Origins(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( fSetCap )
+    {
+        pGia->nOriginsMax = nOriginsMax;
+        Abc_Print( 1, "Origins cap set to %d%s.\n", nOriginsMax, nOriginsMax ? "" : " (unlimited)" );
+        return 0;
+    }
+    if ( pGia->vOrigins == NULL )
+    {
+        Abc_Print( 1, "No origin tracking data.\n" );
+        return 0;
+    }
+    {
+        int i, nObjs = Gia_ManObjNum(pGia);
+        int nEntries = 0, nOrigins = 0, nMaxOrigins = 0;
+        int nOverflow = 0;
+        int histogram[16];
+        memset( histogram, 0, sizeof(histogram) );
+        for ( i = 0; i < nObjs; i++ )
+        {
+            int nOrig = Gia_ObjOriginsNum( pGia, i );
+            if ( nOrig > 0 )
+            {
+                nEntries++;
+                nOrigins += nOrig;
+                if ( nOrig > nMaxOrigins )
+                    nMaxOrigins = nOrig;
+                if ( nOrig < 16 )
+                    histogram[nOrig]++;
+                else
+                    histogram[15]++;
+                if ( nOrig > GIA_ORIGINS_INLINE )
+                    nOverflow++;
+            }
+        }
+        Abc_Print( 1, "Origins: %d entries, %d total origins (%.2fx avg), max %d, overflow %d\n",
+            nEntries, nOrigins,
+            nEntries > 0 ? (double)nOrigins / nEntries : 0.0,
+            nMaxOrigins, nOverflow );
+        Abc_Print( 1, "  Histogram: " );
+        for ( i = 1; i < 16; i++ )
+            if ( histogram[i] > 0 )
+                Abc_Print( 1, "%s%d=%d", i > 1 ? " " : "", i, histogram[i] );
+        Abc_Print( 1, "\n" );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &origins [-M num] [-h]\n" );
+    Abc_Print( -2, "\t          prints multi-origin tracking statistics\n" );
+    Abc_Print( -2, "\t-M num  : set max origins per object (0 = unlimited) [default = %d]\n", pGia ? pGia->nOriginsMax : 0 );
+    Abc_Print( -2, "\t-h      : print the command usage\n");
+    return 1;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Initialize identity origins for testing/debugging.]
+
+  Description [Sets each AND node's origin to itself. This is a testing
+  convenience for exercising origin propagation in standalone ABC sessions.
+  In the normal abc9 flow, origins are supplied by Yosys via the XAIGER
+  "y" extension and this command is not needed.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Abc_CommandAbc9OriginsId( Abc_Frame_t * pAbc, int argc, char ** argv )
+{
+    Gia_Man_t * pGia = pAbc->pGia;
+    int c, nOriginsMax = 0;
+    Extra_UtilGetoptReset();
+    while ( ( c = Extra_UtilGetopt( argc, argv, "Mh" ) ) != EOF )
+    {
+        switch ( c )
+        {
+        case 'M':
+            if ( globalUtilOptind >= argc )
+            {
+                Abc_Print( -1, "Command line switch \"-M\" should be followed by an integer.\n" );
+                goto usage;
+            }
+            nOriginsMax = atoi(argv[globalUtilOptind]);
+            globalUtilOptind++;
+            if ( nOriginsMax < 0 )
+            {
+                Abc_Print( -1, "The max origins value should be non-negative.\n" );
+                goto usage;
+            }
+            break;
+        case 'h':
+            goto usage;
+        default:
+            goto usage;
+        }
+    }
+    if ( pGia == NULL )
+    {
+        Abc_Print( -1, "Abc_CommandAbc9OriginsId(): There is no AIG.\n" );
+        return 0;
+    }
+    if ( pGia->vOrigins != NULL )
+    {
+        Abc_Print( 1, "Origins already present (%d entries). Use without existing origins.\n",
+            Vec_IntSize(pGia->vOrigins) / GIA_ORIGINS_STRIDE );
+        return 0;
+    }
+    {
+        int i, nObjs = Gia_ManObjNum(pGia);
+        Gia_Obj_t * pObj;
+        pGia->nOriginsMax = nOriginsMax;
+        pGia->vOrigins = Gia_ManOriginsAlloc( nObjs );
+        Gia_ManForEachAnd( pGia, pObj, i )
+            Gia_ObjSetOrigin( pGia, i, i );
+        Abc_Print( 1, "Initialized identity origins for %d AND nodes", Gia_ManAndNum(pGia) );
+        if ( nOriginsMax > 0 )
+            Abc_Print( 1, " (max %d per node)", nOriginsMax );
+        Abc_Print( 1, ".\n" );
+    }
+    return 0;
+
+usage:
+    Abc_Print( -2, "usage: &origins_id [-M num] [-h]\n" );
+    Abc_Print( -2, "\t          sets identity origins for testing (each AND node -> itself)\n" );
+    Abc_Print( -2, "\t          in normal abc9 flow, origins come from XAIGER \"y\" extension\n" );
+    Abc_Print( -2, "\t-M num  : max origins per object, 0 = unlimited [default = %d]\n", nOriginsMax );
     Abc_Print( -2, "\t-h      : print the command usage\n");
     return 1;
 }
