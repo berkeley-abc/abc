@@ -792,6 +792,82 @@ static int Abc_Tt5AndDecPolarity( word Truth )
         return 1;
     return -1;
 }
+static word Abc_Tt5CofactorTo4( word Truth, int iVar, int fCompl )
+{
+    word Result = 0;
+    int a, k;
+    for ( a = 0; a < 16; a++ )
+    {
+        int iMint = fCompl ? 0 : (1 << iVar);
+        for ( k = 0; k < 4; k++ )
+            if ( (a >> k) & 1 )
+                iMint |= 1 << (k < iVar ? k : k + 1);
+        if ( (Truth >> iMint) & 1 )
+            Result |= ((word)1) << a;
+    }
+    return Result;
+}
+static int Abc_Tt5FindAndDec( word Truth, int * piVar, int * pfCompl, word * pTruth4 )
+{
+    int v;
+    for ( v = 0; v < 5; v++ )
+    {
+        if ( Abc_Tt6Cofactor0(Truth, v) == 0 )
+        {
+            *piVar = v;
+            *pfCompl = 0;
+            *pTruth4 = Abc_Tt5CofactorTo4( Truth, v, 0 );
+            return 1;
+        }
+        if ( Abc_Tt6Cofactor1(Truth, v) == 0 )
+        {
+            *piVar = v;
+            *pfCompl = 1;
+            *pTruth4 = Abc_Tt5CofactorTo4( Truth, v, 1 );
+            return 1;
+        }
+    }
+    return 0;
+}
+static void Abc_NtkFromMappedGiaPrint5Decs( Abc_Ntk_t * pNtk )
+{
+    Hop_Man_t * pHopMan;
+    Abc_Obj_t * pObj;
+    Vec_Int_t * vTruth;
+    int i, nNodes5 = 0, nNodesOver5 = 0;
+    assert( Abc_NtkIsLogic(pNtk) && Abc_NtkHasAig(pNtk) );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        nNodes5 += Abc_ObjFaninNum(pObj) == 5;
+        nNodesOver5 += Abc_ObjFaninNum(pObj) > 5;
+    }
+    if ( nNodes5 == 0 || nNodesOver5 > 0 )
+        return;
+    pHopMan = (Hop_Man_t *)pNtk->pManFunc;
+    vTruth = Vec_IntAlloc( 64 );
+    Abc_Print( 1, "Top-level AND decompositions of 5-input nodes:\n" );
+    Abc_NtkForEachNode( pNtk, pObj, i )
+    {
+        word Truth, Truth4;
+        int iVar, fCompl;
+        if ( Abc_ObjFaninNum(pObj) != 5 )
+            continue;
+        Truth = (word)*Hop_ManConvertAigToTruth( pHopMan, (Hop_Obj_t *)pObj->pData, 5, vTruth, 0 );
+        if ( !Abc_Tt5FindAndDec( Truth, &iVar, &fCompl, &Truth4 ) )
+        {
+            Abc_Print( 1, "%05d : ", Abc_ObjId(pObj) );
+            Abc_TtPrintHexRev( stdout, &Truth, 5 );
+            Abc_Print( 1, " = <none>\n" );
+            continue;
+        }
+        Abc_Print( 1, "%05d : ", Abc_ObjId(pObj) );
+        Abc_TtPrintHexRev( stdout, &Truth, 5 );
+        Abc_Print( 1, " = %cx%d & ", fCompl ? '~' : ' ', iVar );
+        Abc_TtPrintHexRev( stdout, &Truth4, 4 );
+        Abc_Print( 1, "\n" );
+    }
+    Vec_IntFree( vTruth );
+}
 
 /**Function*************************************************************
 
@@ -826,9 +902,8 @@ Abc_Obj_t * Abc_NtkFromMappedGia_rec( Abc_Ntk_t * pNtkNew, Gia_Man_t * p, int iO
         pObjNew = Abc_NtkCreateNodeInv(pNtkNew, pObjNew);
     return pObjNew;
 }
-Abc_Ntk_t * Abc_NtkFromMappedGiaInt( Gia_Man_t * p, int fFindEnables, int fUseBuffs, int fCheckAnd5 )
+Abc_Ntk_t * Abc_NtkFromMappedGiaInt( Gia_Man_t * p, int fFindEnables, int fUseBuffs, int fCheckAnd5, int fVerbose )
 {
-    int fVerbose = 0;
     int fDuplicate = 0;
     Abc_Ntk_t * pNtkNew;
     Abc_Obj_t * pObjNew, * pObjNewLi, * pObjNewLo, * pConst0 = NULL;
@@ -1023,16 +1098,22 @@ Abc_Ntk_t * Abc_NtkFromMappedGiaInt( Gia_Man_t * p, int fFindEnables, int fUseBu
     // check the resulting AIG
     if ( !Abc_NtkCheck( pNtkNew ) )
         Abc_Print( 1, "Abc_NtkFromMappedGia(): Network check has failed.\n" );
+    if ( fVerbose && Gia_ManHasMapping(p) )
+        Abc_NtkFromMappedGiaPrint5Decs( pNtkNew );
     Vec_BitFreeP( &vCompls );
     return pNtkNew;
 }
+Abc_Ntk_t * Abc_NtkFromMappedGia2( Gia_Man_t * p, int fFindEnables, int fUseBuffs, int fCheckAnd5, int fVerbose )
+{
+    return Abc_NtkFromMappedGiaInt( p, fFindEnables, fUseBuffs, fCheckAnd5, fVerbose );
+}
 Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs )
 {
-    return Abc_NtkFromMappedGiaInt( p, fFindEnables, fUseBuffs, 0 );
+    return Abc_NtkFromMappedGiaInt( p, fFindEnables, fUseBuffs, 0, 0 );
 }
 Abc_Ntk_t * Abc_NtkFromMappedGiaAnd5( Gia_Man_t * p, int fFindEnables, int fUseBuffs )
 {
-    return Abc_NtkFromMappedGiaInt( p, fFindEnables, fUseBuffs, 1 );
+    return Abc_NtkFromMappedGiaInt( p, fFindEnables, fUseBuffs, 1, 0 );
 }
 
 /**Function*************************************************************

@@ -35235,6 +35235,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     extern Abc_Ntk_t * Abc_NtkFromCellMappedGia( Gia_Man_t * p, int fUseBuffs );
     extern Abc_Ntk_t * Abc_NtkFromMappedGia( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
     extern Abc_Ntk_t * Abc_NtkFromMappedGiaAnd5( Gia_Man_t * p, int fFindEnables, int fUseBuffs );
+    extern Abc_Ntk_t * Abc_NtkFromMappedGia2( Gia_Man_t * p, int fFindEnables, int fUseBuffs, int fCheckAnd5, int fVerbose );
 
     Aig_Man_t * pMan;
     Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
@@ -35280,7 +35281,7 @@ int Abc_CommandAbc9Put( Abc_Frame_t * pAbc, int argc, char ** argv )
     else if ( Gia_ManHasCellMapping(pAbc->pGia) )
         pNtk = Abc_NtkFromCellMappedGia( pAbc->pGia, fUseBuffs );
     else if ( Gia_ManHasMapping(pAbc->pGia) || pAbc->pGia->pMuxes )
-        pNtk = fCheckAnd5 ? Abc_NtkFromMappedGiaAnd5( pAbc->pGia, 0, fUseBuffs ) : Abc_NtkFromMappedGia( pAbc->pGia, 0, fUseBuffs );
+        pNtk = Abc_NtkFromMappedGia2( pAbc->pGia, 0, fUseBuffs, fCheckAnd5, fVerbose );
     else if ( Gia_ManHasDangling(pAbc->pGia) == 0 )
     {
         pMan = Gia_ManToAig( pAbc->pGia, 0 );
