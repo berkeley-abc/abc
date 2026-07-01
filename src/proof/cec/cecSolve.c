@@ -1055,6 +1055,32 @@ void Cec_ManSavePattern( Cec_ManSat_t * p, Gia_Obj_t * pObj1, Gia_Obj_t * pObj2 
     Cec_ManSatSolveMiter_rec( p, p->pAig, Gia_Regular(pObj2) );
 }
 
+static int Cec_ManSatLitValue( Cec_ManSat_t * p, int iLit )
+{
+    Gia_Obj_t * pObj;
+    if ( iLit < 0 )
+        return -1;
+    if ( Abc_Lit2Var(iLit) == 0 )
+        return Abc_LitIsCompl(iLit);
+    pObj = Gia_ManObj( p->pAig, Abc_Lit2Var(iLit) );
+    if ( Cec_ObjSatNum(p, pObj) == 0 )
+        return -1;
+    return Cec_ObjSatVarValue( p, pObj ) ^ Abc_LitIsCompl(iLit);
+}
+
+static void Cec_ManSatSaveOutVals( Cec_ManSat_t * p, Vec_Int_t * vOutLits, Vec_Int_t * vOutVals, int Out )
+{
+    int Val0, Val1;
+    if ( vOutLits == NULL || vOutVals == NULL )
+        return;
+    if ( 2*Out + 1 >= Vec_IntSize(vOutLits) )
+        return;
+    Val0 = Cec_ManSatLitValue( p, Vec_IntEntry(vOutLits, 2*Out) );
+    Val1 = Cec_ManSatLitValue( p, Vec_IntEntry(vOutLits, 2*Out + 1) );
+    Vec_IntWriteEntry( vOutVals, 2*Out, Val0 );
+    Vec_IntWriteEntry( vOutVals, 2*Out + 1, Val1 );
+}
+
 /**Function*************************************************************
 
   Synopsis    [Performs one round of solving for the POs of the AIG.]
@@ -1067,10 +1093,11 @@ void Cec_ManSavePattern( Cec_ManSat_t * p, Gia_Obj_t * pObj1, Gia_Obj_t * pObj2 
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Str_t ** pvStatus )
+Vec_Int_t * Cec_ManSatSolveMiterOutVals( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Str_t ** pvStatus, Vec_Int_t * vOutLits, Vec_Int_t ** pvOutVals )
 {
     Bar_Progress_t * pProgress = NULL;
     Vec_Int_t * vCexStore;
+    Vec_Int_t * vOutVals = NULL;
     Vec_Str_t * vStatus;
     Cec_ManSat_t * p;
     Gia_Obj_t * pObj;
@@ -1083,6 +1110,12 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
     // create resulting data-structures
     vStatus = Vec_StrAlloc( Gia_ManPoNum(pAig) );
     vCexStore = Vec_IntAlloc( 10000 );
+    if ( pvOutVals )
+    {
+        *pvOutVals = NULL;
+        if ( vOutLits )
+            vOutVals = Vec_IntStartFull( 2 * Gia_ManPoNum(pAig) );
+    }
     // perform solving
     p = Cec_ManSatCreate( pAig, pPars );
     pProgress = Bar_ProgressStart( stdout, Gia_ManPoNum(pAig) );
@@ -1115,6 +1148,7 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
         if ( status == 1 )
             continue;
         assert( status == 0 );
+        Cec_ManSatSaveOutVals( p, vOutLits, vOutVals, i );
         // save the pattern
 //        Gia_ManIncrementTravId( pAig );
 //        Cec_ManSatSolveMiter_rec( p, pAig, Gia_ObjFanin0(pObj) );
@@ -1128,7 +1162,16 @@ Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_St
 //        Cec_ManSatPrintStats( p );
     Cec_ManSatStop( p );
     *pvStatus = vStatus;
+    if ( pvOutVals )
+        *pvOutVals = vOutVals;
+    else
+        Vec_IntFreeP( &vOutVals );
     return vCexStore;
+}
+
+Vec_Int_t * Cec_ManSatSolveMiter( Gia_Man_t * pAig, Cec_ParSat_t * pPars, Vec_Str_t ** pvStatus )
+{
+    return Cec_ManSatSolveMiterOutVals( pAig, pPars, pvStatus, NULL, NULL );
 }
 
 

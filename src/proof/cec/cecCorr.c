@@ -34,7 +34,9 @@ static inline int Cec_ParCorShouldStop( Cec_ParCor_t * pPars )
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
 
-static void Gia_ManCorrSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
+// Shared with cecCorrIncr.c (declared in cecInt.h).
+extern void Gia_ManCorrSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
+extern int  Gia_ManCorrSpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix );
 
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
@@ -45,13 +47,13 @@ static void Gia_ManCorrSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_
   Synopsis    [Computes the real value of the literal w/o spec reduction.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
-static inline int Gia_ManCorrSpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix )
+int Gia_ManCorrSpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pObj, int f, int nPrefix )
 {
     if ( Gia_ObjIsAnd(pObj) )
     {
@@ -75,7 +77,7 @@ static inline int Gia_ManCorrSpecReal( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_
   Synopsis    [Recursively performs speculative reduction for the object.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -104,7 +106,7 @@ void Gia_ManCorrSpecReduce_rec( Gia_Man_t * pNew, Gia_Man_t * p, Gia_Obj_t * pOb
   Synopsis    [Derives SRM for signal correspondence.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -221,7 +223,7 @@ Gia_Man_t * Gia_ManCorrSpecReduce( Gia_Man_t * p, int nFrames, int fScorr, Vec_I
   Synopsis    [Derives SRM for signal correspondence.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -290,7 +292,7 @@ Gia_Man_t * Gia_ManCorrSpecReduceInit( Gia_Man_t * p, int nFrames, int nPrefix, 
   Synopsis    [Initializes simulation info for lcorr/scorr counter-examples.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -499,6 +501,53 @@ int Cec_ManLoadCounterExamples( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int iS
 
 /**Function*************************************************************
 
+  Synopsis    [Performs bitpacking of counter-examples and records bit lanes.]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+int Cec_ManLoadCounterExamplesMapped( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int iStart, Vec_Int_t * vOutBits )
+{
+    Vec_Int_t * vPat;
+    Vec_Ptr_t * vPres;
+    int nWords = Vec_PtrReadWordsSimInfo(vInfo);
+    int nBits = 32 * nWords;
+    int k, nSize, Out;
+    Vec_IntClear( vOutBits );
+    vPat  = Vec_IntAlloc( 100 );
+    vPres = Vec_PtrAllocSimInfo( Vec_PtrSize(vInfo), nWords );
+    Vec_PtrCleanSimInfo( vPres, 0, nWords );
+    while ( iStart < Vec_IntSize(vCexStore) )
+    {
+        Out = Vec_IntEntry( vCexStore, iStart++ );
+        nSize = Vec_IntEntry( vCexStore, iStart++ );
+        if ( nSize <= 0 )
+            continue;
+        Vec_IntClear( vPat );
+        for ( k = 0; k < nSize; k++ )
+            Vec_IntPush( vPat, Vec_IntEntry( vCexStore, iStart++ ) );
+        for ( k = 1; k < nBits; k++ )
+            if ( Cec_ManLoadCounterExamplesTry( vInfo, vPres, k, (int *)Vec_IntArray(vPat), Vec_IntSize(vPat) ) )
+                break;
+        if ( k < nBits )
+        {
+            Vec_IntPush( vOutBits, Out );
+            Vec_IntPush( vOutBits, k );
+        }
+        if ( k == nBits-1 )
+            break;
+    }
+    Vec_PtrFree( vPres );
+    Vec_IntFree( vPat );
+    return iStart;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Performs bitpacking of counter-examples.]
 
   Description []
@@ -540,6 +589,53 @@ int Cec_ManLoadCounterExamples2( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int i
 
 /**Function*************************************************************
 
+  Synopsis    [Classifies vCexStore entries by SAT outcome.]
+
+  Description [Each entry is (Out, nLits[, lit0, ..., lit{nLits-1}]).
+                 nLits  > 0  -> real SAT CEX with usable literals;
+                 nLits == 0  -> trivial SAT (e.g. SRM PO became const 1);
+                 nLits == -1 -> timeout/fail, no CEX.
+               Counts are written via the out-pointers (any may be NULL).
+               Returns 1 iff there is at least one entry usable for resim
+               (real or trivial), preserving the prior skip-failed-resim
+               semantics where only timeout-only stores get skipped.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Cec_ManCexStoreClassify( Vec_Int_t * vCexStore, int * pnReal, int * pnTriv, int * pnFail )
+{
+    int iStart = 0, nSize, nReal = 0, nTriv = 0, nFail = 0;
+    while ( iStart < Vec_IntSize(vCexStore) )
+    {
+        iStart++; // output number
+        assert( iStart < Vec_IntSize(vCexStore) );
+        nSize = Vec_IntEntry( vCexStore, iStart++ );
+        if ( nSize > 0 )
+        {
+            nReal++;
+            iStart += nSize;
+        }
+        else if ( nSize == 0 )
+        {
+            nTriv++;
+        }
+        else
+        {
+            assert( nSize == -1 );
+            nFail++;
+        }
+    }
+    if ( pnReal ) *pnReal = nReal;
+    if ( pnTriv ) *pnTriv = nTriv;
+    if ( pnFail ) *pnFail = nFail;
+    return (nReal + nTriv) > 0;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Resimulates counter-examples derived by the SAT solver.]
 
   Description []
@@ -549,31 +645,102 @@ int Cec_ManLoadCounterExamples2( Vec_Ptr_t * vInfo, Vec_Int_t * vCexStore, int i
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames )
-{ 
-    Vec_Int_t * vPairs;
-    Vec_Ptr_t * vSimInfo; 
-    int RetValue = 0, iStart = 0;
-    vPairs = Gia_ManCorrCreateRemapping( pSim->pAig );
-    Gia_ManCreateValueRefs( pSim->pAig );
+static int Cec_ManResimulateCounterExamplesSeed( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames, Cec_SeedSim_t * pSeed, Vec_Int_t * vOutputs )
+{
+    Vec_Int_t * vPairs = NULL;
+    Vec_Int_t * vOutBits = NULL;
+    Vec_Ptr_t * vSimInfo = NULL;
+    int RetValue = 0, iStart = 0, fValueRefs = 0;
+    if ( pSeed )
+        Cec_SeedSimBeginCall( pSeed );  // reset per-call local/full/maxdirty counters
 //    pSim->pPars->nWords  = 63;
     pSim->pPars->nFrames = nFrames;
-    vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pSim->pAig) + Gia_ManPiNum(pSim->pAig) * nFrames, pSim->pPars->nWords );
+    if ( pSeed )
+    {
+        Cec_SeedSimEnsurePersistent( pSeed, pSim );
+        // Defer the (possibly full-unroll-sized) class cone: it is built lazily
+        // inside Cec_SeedSimTryBatch() only once a batch passes the density gate,
+        // so rounds that fall back to full resim never pay for it.
+        pSeed->fUseCone = 0;
+        vSimInfo = pSeed->vSimInfo;
+        vOutBits = Vec_IntAlloc( 1000 );
+    }
+    else
+    {
+        Gia_ManCreateValueRefs( pSim->pAig );
+        fValueRefs = 1;
+        vSimInfo = Vec_PtrAllocSimInfo( Gia_ManRegNum(pSim->pAig) + Gia_ManPiNum(pSim->pAig) * nFrames, pSim->pPars->nWords );
+    }
+    vPairs = Gia_ManCorrCreateRemapping( pSim->pAig );
     while ( iStart < Vec_IntSize(vCexStore) )
     {
-        Cec_ManStartSimInfo( vSimInfo, Gia_ManRegNum(pSim->pAig) );
-        iStart = Cec_ManLoadCounterExamples( vSimInfo, vCexStore, iStart );
-//        iStart = Cec_ManLoadCounterExamples2( vSimInfo, vCexStore, iStart );
-//        Gia_ManCorrRemapSimInfo( pSim->pAig, vSimInfo );
-        Gia_ManCorrPerformRemapping( vPairs, vSimInfo );
-        RetValue |= Cec_ManSeqResimulate( pSim, vSimInfo );
+        if ( pSeed )
+        {
+            int LocalStatus;
+            iStart = Cec_SeedSimLoadPersistentBatch(
+                pSeed, vCexStore, iStart, vPairs, vOutBits );
+            if ( pSeed->nFallbackCooldown > 0 )
+            {
+                Cec_SeedSimBypassBatch( pSeed, Vec_IntSize(vOutBits) / 2 );
+                pSeed->nFallbackCooldown--;
+            }
+            else if ( (LocalStatus = Cec_SeedSimTryBatch(
+                           pSeed, pSim, vSimInfo, vOutputs, vOutBits, nFrames )) ==
+                      CEC_SEEDSIM_RESULT_LOCAL )
+            {
+                pSeed->nFallbackStreak = 0;
+                pSeed->nFallbackCooldown = 0;
+                continue;
+            }
+            else if ( LocalStatus == CEC_SEEDSIM_RESULT_FULL_WIDE )
+            {
+                int Shift;
+                pSeed->nFallbackStreak++;
+                Shift = Abc_MinInt( pSeed->nFallbackStreak - 1, 3 );
+                pSeed->nFallbackCooldown =
+                    Abc_MinInt( (1 << Shift) - 1,
+                        CEC_SEEDSIM_MAX_FALLBACK_BACKOFF );
+            }
+            else
+            {
+                pSeed->nFallbackStreak = 0;
+                pSeed->nFallbackCooldown = 0;
+            }
+        }
+        else
+        {
+            Cec_ManStartSimInfo( vSimInfo, Gia_ManRegNum(pSim->pAig) );
+            iStart = Cec_ManLoadCounterExamples( vSimInfo, vCexStore, iStart );
+            Gia_ManCorrPerformRemapping( vPairs, vSimInfo );
+        }
+        // The local path returned above.  Reaching here means standard full
+        // resimulation, either outside incremental mode or as a fallback.
+        if ( pSeed )
+        {
+            if ( !fValueRefs )
+            {
+                Gia_ManCreateValueRefs( pSim->pAig );
+                fValueRefs = 1;
+            }
+            RetValue |= Cec_ManSeqResimulateSeed( pSim, vSimInfo, pSeed );
+            Cec_SeedSimRestorePersistentInputs( pSeed );
+        }
+        else
+            RetValue |= Cec_ManSeqResimulate( pSim, vSimInfo );
 //        Cec_ManSeqResimulateInfo( pSim->pAig, vSimInfo, NULL );
     }
 //Gia_ManEquivPrintOne( pSim->pAig, 85, 0 );
     assert( iStart == Vec_IntSize(vCexStore) );
-    Vec_PtrFree( vSimInfo );
-    Vec_IntFree( vPairs );
+    Vec_IntFreeP( &vOutBits );
+    if ( !pSeed )
+        Vec_PtrFree( vSimInfo );
+    Vec_IntFreeP( &vPairs );
     return RetValue;
+}
+
+int Cec_ManResimulateCounterExamples( Cec_ManSim_t * pSim, Vec_Int_t * vCexStore, int nFrames )
+{
+    return Cec_ManResimulateCounterExamplesSeed( pSim, vCexStore, nFrames, NULL, NULL );
 }
 
 /**Function*************************************************************
@@ -607,10 +774,100 @@ int Cec_ManResimulateCounterExamplesComb( Cec_ManSim_t * pSim, Vec_Int_t * vCexS
 
 /**Function*************************************************************
 
+  Synopsis    [Checks whether two endpoints are still in the same class.]
+
+  Description [Ring mode needs special handling for the closing edge
+               tail -> head because Gia_ObjHasSameRepr() compares raw
+               representatives and the head stores GIA_VOID.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Cec_ManObjsStillMerged( Gia_Man_t * p, int iRepr, int iObj, int fRings )
+{
+    int iReprRoot, iObjRoot;
+    if ( !fRings )
+        return Gia_ObjHasSameRepr( p, iRepr, iObj );
+    if ( iRepr == 0 )
+        return Gia_ObjIsConst( p, iObj );
+    if ( iObj == 0 )
+        return Gia_ObjIsConst( p, iRepr );
+    if ( !Gia_ObjIsClass( p, iRepr ) || !Gia_ObjIsClass( p, iObj ) )
+        return 0;
+    iReprRoot = Gia_ObjIsHead( p, iRepr ) ? iRepr : Gia_ObjRepr( p, iRepr );
+    iObjRoot  = Gia_ObjIsHead( p, iObj  ) ? iObj  : Gia_ObjRepr( p, iObj  );
+    return iReprRoot == iObjRoot && iReprRoot != GIA_VOID;
+}
+
+static int Cec_ManObjToSplit( Gia_Man_t * p, int iRepr, int iObj, int fRings )
+{
+    // For the ring closing edge (tail, head), split the tail. Splitting the
+    // head is also correct, but it changes the representative of the whole
+    // remaining class and creates a much larger incremental seed set.
+    if ( fRings && iObj > 0 && Gia_ObjIsHead( p, iObj ) && Gia_ObjIsClass( p, iRepr ) )
+        return iRepr;
+    return iObj;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Directly splits pairs whose SAT result was trivial (nLits==0).]
+
+  Description [A trivial SAT (e.g. SRM PO became const 1) is a real
+  disproval but carries no CEX literals, so Cec_ManResimulateCounterExamples
+  cannot break the pair -- only random filler can, and usually does not.
+  Splitting these pairs directly is sound (SAT proved disequivalence) and
+  recovers work that the standard resim path leaves on the table.
+
+  Only nLits==0 entries are touched; nLits>0 entries are left for resim to
+  refine, matching the established behaviour in Gia_ManCheckRefinements
+  that avoids force-splitting CEX-bearing SAT pairs (token_ring regression).
+
+  Returns the number of pairs actually split this call.]
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+static int Cec_ManTrivialSatSplit( Gia_Man_t * pAig, Cec_ManSim_t * pSim,
+    Vec_Int_t * vCexStore, Vec_Str_t * vStatus, Vec_Int_t * vOutputs, int fRings )
+{
+    int iStart = 0, Out, nSize, iRepr, iObj, iSplit, Count = 0;
+    while ( iStart < Vec_IntSize(vCexStore) )
+    {
+        Out = Vec_IntEntry( vCexStore, iStart++ );
+        assert( iStart < Vec_IntSize(vCexStore) );
+        nSize = Vec_IntEntry( vCexStore, iStart++ );
+        if ( nSize > 0 )
+        {
+            iStart += nSize;
+            continue;
+        }
+        if ( nSize < 0 )
+            continue;
+        // nSize == 0 -> trivial SAT, no CEX literals.
+        assert( Out < Vec_StrSize(vStatus) );
+        assert( Vec_StrEntry(vStatus, Out) == 0 );
+        iRepr = Vec_IntEntry( vOutputs, 2*Out );
+        iObj  = Vec_IntEntry( vOutputs, 2*Out + 1 );
+        if ( !Cec_ManObjsStillMerged( pAig, iRepr, iObj, fRings ) )
+            continue;
+        iSplit = Cec_ManObjToSplit( pAig, iRepr, iObj, fRings );
+        if ( Cec_ManSimClassRemoveOne( pSim, iSplit ) )
+            Count++;
+    }
+    return Count;
+}
+
+/**Function*************************************************************
+
   Synopsis    [Updates equivalence classes by marking those that timed out.]
 
-  Description [Returns 1 if all ndoes are proved.]
-               
+  Description [Returns 1 if all nodes are proved.]
+
   SideEffects []
 
   SeeAlso     []
@@ -792,7 +1049,7 @@ int Cec_ManCountLits( Gia_Man_t * p )
 
 ***********************************************************************/
 void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPrefs )
-{  
+{
     Cec_ParSim_t ParsSim, * pParsSim = &ParsSim;
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
     Vec_Str_t * vStatus;
@@ -800,7 +1057,16 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
     Vec_Int_t * vCexStore;
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
-    int fChanges, RetValue, i;
+    int fChanges, i;
+    int nBmcResimFrames = pPars->nFrames + 1 + nPrefs;
+    int fBmcPersist = 0;
+    // BMC SRM is keyed only on pReprs (Gia_ManCorrSpecReduceInit ignores
+    // its fRings flag).  So the incremental filter only needs pReprs-based
+    // seeds; pNexts changes cannot affect this SRM and there are no ring
+    // closing edges to reprove -- BMC is structurally simpler than the
+    // main inductive loop.
+    Cec_IncrMgr_t * pBmcMgr = NULL;
+    Cec_DynSrm_t * pBmcDynSrm = NULL;
     // prepare simulation manager
     Cec_ManSimSetDefaultParams( pParsSim );
     pParsSim->nWords     = pPars->nWords;
@@ -813,29 +1079,102 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
     Cec_ManSatSetDefaultParams( pParsSat );
     pParsSat->nBTLimit = pPars->nBTLimit;
     pParsSat->fVerbose = pPars->fVerbose;
+    if ( pPars->fIncremental )
+    {
+        pBmcMgr = Cec_IncrMgrAlloc( pAig, pPars->nFrames + nPrefs );
+        Cec_IncrMgrSnapshotClasses( pBmcMgr );
+    }
+    if ( pPars->fDynSrm && pBmcMgr )
+        pBmcDynSrm = Cec_DynSrmAlloc( pAig, pBmcMgr );
+    fBmcPersist = ( pBmcDynSrm != NULL && pPars->fUseCSat );
     fChanges = 1;
     for ( i = 0; fChanges && (!pPars->nLimitMax || i < pPars->nLimitMax); i++ )
     {
+        int * pTfoMask = NULL;
+        int nReprSeeds = 0, nTotalPairs = 0, nActivePairs = 0;
+        int nBmcPos = 0;
         if ( Cec_ParCorShouldStop( pPars ) )
             break;
         abctime clkBmc = Abc_Clock();
         fChanges = 0;
-        pSrm = Gia_ManCorrSpecReduceInit( pAig, pPars->nFrames, nPrefs, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
-        if ( Gia_ManPoNum(pSrm) == 0 )
+        // BMC SRM is non-ring (Gia_ManCorrSpecReduceInit ignores fRings);
+        // the incremental mask filters on pReprs-derived endpoints only.
+        if ( pBmcMgr && i > 0 )
         {
-            Gia_ManStop( pSrm );
+            nReprSeeds = Cec_IncrMgrComputeSeeds( pBmcMgr );
+            if ( nReprSeeds == 0 )
+            {
+                // No pReprs change.  BMC SRM topology is unchanged.
+                break;
+            }
+            Cec_IncrMgrComputeTfo( pBmcMgr );
+            // BMC SRM is non-ring; pass fRings=0 so we count (head, member)
+            // pairs only and skip any ring-edge bookkeeping.
+            if ( pBmcDynSrm )
+                Cec_DynSrmCountActivePairs( pBmcDynSrm, 0, pBmcMgr->pTfoMark, &nTotalPairs, &nActivePairs );
+            else
+                Cec_IncrMgrCountActivePairs( pBmcMgr, 0, pBmcMgr->pTfoMark, &nTotalPairs, &nActivePairs );
+            if ( nActivePairs == 0 )
+                break;
+            // Same fallback heuristic as the main loop: above ~70% active,
+            // the mask plus emission filter costs more than just rebuilding
+            // the full SRM.
+            if ( !( nTotalPairs > 0 && (ABC_INT64_T)10 * nActivePairs > (ABC_INT64_T)7 * nTotalPairs ) )
+                pTfoMask = pBmcMgr->pTfoMark;
+        }
+        pSrm = NULL;
+        if ( fBmcPersist )
+            Cec_DynSrmBuildCoreInit( pBmcDynSrm, pPars->nFrames, nPrefs, !pPars->fLatchCorr, &vOutputs, pTfoMask, pTfoMask ? CEC_EMIT_ACTIVE : CEC_EMIT_ALL );
+        else if ( pBmcDynSrm )
+            pSrm = Cec_DynSrmBuildInit( pBmcDynSrm, pPars->nFrames, nPrefs, !pPars->fLatchCorr, &vOutputs, pTfoMask, pTfoMask ? CEC_EMIT_ACTIVE : CEC_EMIT_ALL );
+        else if ( pTfoMask )
+            pSrm = Gia_ManCorrSpecReduceInit_Active( pAig, pPars->nFrames, nPrefs, !pPars->fLatchCorr, &vOutputs, pTfoMask );
+        else
+            pSrm = Gia_ManCorrSpecReduceInit( pAig, pPars->nFrames, nPrefs, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
+        nBmcPos = fBmcPersist ? Vec_IntSize(Cec_DynSrmOutLits(pBmcDynSrm)) : Gia_ManCoNum(pSrm);
+        if ( pTfoMask && pPars->fVeryVerbose )
+            Abc_Print( 1, "  [bmc-incr i=%d repr=%d active=%d/%d POs=%d]\n",
+                       i, nReprSeeds, nActivePairs, nTotalPairs, nBmcPos );
+        // Snapshot after SRM construction, before SAT/refine: this is the
+        // class state whose pairs were just emitted.  The next iteration's
+        // diff vs this snapshot tells us which pairs are stale.
+        if ( pBmcMgr )
+            Cec_IncrMgrSnapshotClasses( pBmcMgr );
+        if ( nBmcPos == 0 )
+        {
+            if ( pSrm )
+                Gia_ManStop( pSrm );
             Vec_IntFree( vOutputs );
             break;
-        } 
+        }
         pParsSat->nBTLimit *= 10;
-        if ( pPars->fUseCSat )
+        if ( fBmcPersist )
+            vCexStore = Cec_DynSrmSolve( pBmcDynSrm, pPars->nBTLimit, &vStatus );
+        else if ( pPars->fUseCSat )
             vCexStore = Tas_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0 );
         else
             vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
         // refine classes with these counter-examples
         if ( Vec_IntSize(vCexStore) )
         {
-            RetValue = Cec_ManResimulateCounterExamples( pSim, vCexStore, pPars->nFrames + 1 + nPrefs );
+            int nCexReal = 0, nCexTriv = 0;
+            // classify CEX entries: real (nLits>0) / trivial (==0) / fail (==-1)
+            Cec_ManCexStoreClassify( vCexStore, &nCexReal, &nCexTriv, NULL );
+            // only invoke resim when there is a real CEX (nLits>0).  Trivial
+            // (nLits==0) and fail (==-1) entries carry no literals; trivial
+            // pairs are handled by direct split below, fail pairs by chk.
+            if ( nCexReal > 0 || !pPars->fSkipFailResim )
+            {
+                // Keep BMC/init CEX resimulation on the canonical full path even
+                // in incremental mode.  BMC counterexamples are partial models
+                // of frame/prefix-specific SAT obligations; retaining them as a
+                // persistent simulation background over-refines classes and can
+                // significantly hurt gate QoR.  The main correspondence loop
+                // below still uses event resim for ordinary refinement batches.
+                Cec_ManResimulateCounterExamples( pSim, vCexStore, nBmcResimFrames );
+            }
+            if ( nCexTriv > 0 )
+                Cec_ManTrivialSatSplit( pAig, pSim, vCexStore, vStatus, vOutputs, pPars->fUseRings );
             Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
             fChanges = 1;
         }
@@ -844,11 +1183,14 @@ void Cec_ManLSCorrespondenceBmc( Gia_Man_t * pAig, Cec_ParCor_t * pPars, int nPr
         // recycle
         Vec_IntFree( vCexStore );
         Vec_StrFree( vStatus );
-        Gia_ManStop( pSrm );
+        if ( pSrm )
+            Gia_ManStop( pSrm );
         Vec_IntFree( vOutputs );
         if ( Cec_ParCorShouldStop( pPars ) )
             break;
     }
+    Cec_DynSrmFree( pBmcDynSrm );
+    Cec_IncrMgrFree( pBmcMgr );
     Cec_ManSimStop( pSim );
 }
 
@@ -945,10 +1287,19 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
     Cec_ParSat_t ParsSat, * pParsSat = &ParsSat;
     Cec_ManSim_t * pSim;
     Gia_Man_t * pSrm;
-    int r, RetValue, nPrev[4] = {0};
+    int r, nPrev[4] = {0};
     abctime clkTotal = Abc_Clock();
     abctime clkSat = 0, clkSim = 0, clkSrm = 0;
     abctime clk2, clk = Abc_Clock();
+    // Incremental active-list manager (NULL if -i not set)
+    Cec_IncrMgr_t * pMgr = NULL;
+    // Persistent dynamic SRM construction manager (NULL outside incremental mode).
+    Cec_DynSrm_t * pDynSrm = NULL;
+    int fPersist = 0;          // incremental + circuit-SAT: solve persistent pCore directly
+    // Unified CEX event-resimulation manager (NULL outside incremental mode).
+    Cec_SeedSim_t * pSeedSim = NULL;
+    abctime clkIncr = 0;
+    int nIncrSkipped = 0, nIncrFallback = 0;
     if ( Gia_ManRegNum(pAig) == 0 )
     {
         Abc_Print( 1, "Cec_ManLatchCorrespondence(): Not a sequential AIG.\n" );
@@ -979,9 +1330,9 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         pParsSat->nBTLimit = Abc_MinInt( pParsSat->nBTLimit, 1000 );
     if ( pPars->fVerbose )
     {
-        Abc_Print( 1, "Obj = %7d. And = %7d. Conf = %5d. Fr = %d. Lcorr = %d. Ring = %d. CSat = %d.\n",
+        Abc_Print( 1, "Obj = %7d. And = %7d. Conf = %5d. Fr = %d. Lcorr = %d. Ring = %d. CSat = %d. Incr = %d. Dyn = %d.\n",
             Gia_ManObjNum(pAig), Gia_ManAndNum(pAig), 
-            pPars->nBTLimit, pPars->nFrames, pPars->fLatchCorr, pPars->fUseRings, pPars->fUseCSat );
+            pPars->nBTLimit, pPars->nFrames, pPars->fLatchCorr, pPars->fUseRings, pPars->fUseCSat, pPars->fIncremental, pPars->fDynSrm );
         Cec_ManRefinedClassPrintStats( pAig, NULL, 0, Abc_Clock() - clk );
     }
     // check the base case
@@ -999,41 +1350,136 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         Cec_ManSimStop( pSim );
         return 1;
     }
+    if ( pPars->fIncremental )
+    {
+        pMgr = Cec_IncrMgrAlloc( pAig, pPars->nFrames );
+        Cec_IncrMgrSnapshotClasses( pMgr );
+    }
+    if ( pPars->fDynSrm && pMgr )
+        pDynSrm = Cec_DynSrmAlloc( pAig, pMgr );
+    // Incremental persistence path: solve the persistent COless pCore directly (circuit
+    // SAT only), skipping the per-round throwaway view that BuildView copies.
+    fPersist = ( pDynSrm != NULL && pPars->fUseCSat );
+    // Resident local-sim manager sized for the main-loop resim depth.
+    if ( pPars->fIncrSim )
+        pSeedSim = Cec_SeedSimAlloc( pAig, pPars->nFrames + 1 + nAddFrames, pPars->nFrames, pParsSim->nWords );
     // perform refinement of equivalence classes
     for ( r = 0; r < nIterMax; r++ )
-    { 
+    {
         if ( Cec_ParCorShouldStop( pPars ) )
         {
             Cec_ManSimStop( pSim );
+            Cec_DynSrmFree( pDynSrm );
+            Cec_IncrMgrFree( pMgr );
+            Cec_SeedSimFree( pSeedSim );
             return 1;
         }
         if ( pPars->nStepsMax == r )
         {
             Cec_ManSimStop( pSim );
+            Cec_DynSrmFree( pDynSrm );
+            Cec_IncrMgrFree( pMgr );
+            Cec_SeedSimFree( pSeedSim );
             Abc_Print( 1, "Stopped signal correspondence after %d refiment iterations.\n", r );
             fflush( stdout );
             return 1;
         }
         clk = Abc_Clock();
-        // perform speculative reduction
+        // perform speculative reduction (with optional active-list filter)
         clk2 = Abc_Clock();
-        pSrm = Gia_ManCorrSpecReduce( pAig, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
-        assert( Gia_ManRegNum(pSrm) == 0 && Gia_ManPiNum(pSrm) == Gia_ManRegNum(pAig)+(pPars->nFrames+!pPars->fLatchCorr)*Gia_ManPiNum(pAig) );
+        {
+            int * pTfoMask = NULL;
+            int nReprSeeds = 0, nNextChanges = 0;
+            int nTotalPairs = 0, nActivePairs = 0;
+            // Decide whether to apply incremental TFO mask this iteration.
+            // Skip on r==0 because the first full SRM establishes the cache.
+            if ( pMgr && r > 0 )
+            {
+                abctime clkI = Abc_Clock();
+                nReprSeeds = Cec_IncrMgrComputeSeeds( pMgr );
+                nNextChanges = pPars->fUseRings ? Cec_IncrMgrCountNextChanges( pMgr ) : 0;
+                if ( nReprSeeds == 0 && nNextChanges == 0 )
+                {
+                    // No class-state change since the full/active SRM just
+                    // proved these pairs; this is true convergence.
+                    clkIncr += Abc_Clock() - clkI;
+                    clkSrm  += Abc_Clock() - clk2;
+                    break;
+                }
+                else
+                {
+                    Cec_IncrMgrComputeTfo( pMgr );
+                    if ( pDynSrm )
+                        Cec_DynSrmCountActivePairs( pDynSrm, pPars->fUseRings, pMgr->pTfoMark, &nTotalPairs, &nActivePairs );
+                    else
+                        Cec_IncrMgrCountActivePairs( pMgr, pPars->fUseRings, pMgr->pTfoMark, &nTotalPairs, &nActivePairs );
+                    if ( nActivePairs == 0 )
+                    {
+                        // Classes changed, but no remaining candidate pair
+                        // depends on the changes and no new ring edge exists.
+                        clkIncr += Abc_Clock() - clkI;
+                        clkSrm  += Abc_Clock() - clk2;
+                        break;
+                    }
+                    // Fallback is based on emitted candidate pairs, not seed count.
+                    // Above ~70% active pairs, full SRM is usually cheaper.
+                    else if ( nTotalPairs > 0 && (ABC_INT64_T)10 * nActivePairs > (ABC_INT64_T)7 * nTotalPairs )
+                    {
+                        nIncrFallback++;
+                    }
+                    else
+                    {
+                        pTfoMask = pMgr->pTfoMark;
+                        nIncrSkipped += nTotalPairs - nActivePairs;
+                    }
+                }
+                clkIncr += Abc_Clock() - clkI;
+            }
+
+            // Incremental persistence under circuit-SAT: build the COless pCore and solve
+            // its root literals directly below; skip the per-round throwaway view.
+            if ( fPersist )
+            {
+                Cec_DynSrmBuildCore( pDynSrm, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings, pTfoMask, pTfoMask ? CEC_EMIT_ACTIVE : CEC_EMIT_ALL );
+                pSrm = NULL;
+            }
+            else if ( pDynSrm )
+                pSrm = Cec_DynSrmBuild( pDynSrm, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings, pTfoMask, pTfoMask ? CEC_EMIT_ACTIVE : CEC_EMIT_ALL );
+            else if ( pTfoMask )
+                pSrm = Gia_ManCorrSpecReduce_Emit( pAig, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings, pTfoMask, pMgr, CEC_EMIT_ACTIVE, NULL );
+            else
+                pSrm = Gia_ManCorrSpecReduce( pAig, pPars->nFrames, !pPars->fLatchCorr, &vOutputs, pPars->fUseRings );
+            if ( pTfoMask && pPars->fVeryVerbose )
+                Abc_Print( 1, "  [incr r=%d repr=%d next=%d tfo=%d active=%d/%d POs=%d]\n",
+                           r, nReprSeeds, nNextChanges,
+                           Vec_IntSize(pMgr->vTfoNodes), nActivePairs, nTotalPairs,
+                           fPersist ? Vec_IntSize(Cec_DynSrmOutLits(pDynSrm)) : Gia_ManCoNum(pSrm) );
+            // Snapshot after SRM construction: the active builder still needs
+            // the old pNexts snapshot to recognize newly-created ring edges.
+            // SAT/sim refinement below is what creates the next iteration's diff.
+            if ( pMgr )
+                Cec_IncrMgrSnapshotClasses( pMgr );
+        }
+        assert( fPersist || (Gia_ManRegNum(pSrm) == 0 && Gia_ManPiNum(pSrm) == Gia_ManRegNum(pAig)+(pPars->nFrames+!pPars->fLatchCorr)*Gia_ManPiNum(pAig)) );
         clkSrm += Abc_Clock() - clk2;
-        if ( Gia_ManCoNum(pSrm) == 0 )
+        if ( (fPersist ? Vec_IntSize(Cec_DynSrmOutLits(pDynSrm)) : Gia_ManCoNum(pSrm)) == 0 )
         {
             Vec_IntFree( vOutputs );
-            Gia_ManStop( pSrm );            
+            if ( pSrm )
+                Gia_ManStop( pSrm );
             break;
         }
 //Gia_DumpAiger( pSrm, "corrsrm", r, 2 );
         // found counter-examples to speculation
         clk2 = Abc_Clock();
-        if ( pPars->fUseCSat )
+        if ( fPersist )
+            vCexStore = Cec_DynSrmSolve( pDynSrm, pPars->nBTLimit, &vStatus );
+        else if ( pPars->fUseCSat )
             vCexStore = Cbs_ManSolveMiterNc( pSrm, pPars->nBTLimit, &vStatus, 0, 0 );
         else
             vCexStore = Cec_ManSatSolveMiter( pSrm, pParsSat, &vStatus );
-        Gia_ManStop( pSrm );
+        if ( pSrm )
+            Gia_ManStop( pSrm );
         clkSat += Abc_Clock() - clk2;
         if ( Vec_IntSize(vCexStore) == 0 )
         {
@@ -1046,10 +1492,21 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
 
         // refine classes with these counter-examples
         clk2 = Abc_Clock();
-        RetValue = Cec_ManResimulateCounterExamples( pSim, vCexStore, pPars->nFrames + 1 + nAddFrames );
-        Vec_IntFree( vCexStore );
-        clkSim += Abc_Clock() - clk2;
-        Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
+        {
+            int nCexReal = 0, nCexTriv = 0;
+            Cec_ManCexStoreClassify( vCexStore, &nCexReal, &nCexTriv, NULL );
+            if ( nCexReal > 0 || !pPars->fSkipFailResim )
+            {
+                Cec_ManResimulateCounterExamplesSeed( pSim,
+                    vCexStore, pPars->nFrames + 1 + nAddFrames,
+                    pSeedSim, vOutputs );
+            }
+            if ( nCexTriv > 0 )
+                Cec_ManTrivialSatSplit( pAig, pSim, vCexStore, vStatus, vOutputs, pPars->fUseRings );
+            Vec_IntFree( vCexStore );
+            clkSim += Abc_Clock() - clk2;
+            Gia_ManCheckRefinements( pAig, vStatus, vOutputs, pSim, pPars->fUseRings );
+        }
         if ( pPars->fVerbose )
             Cec_ManRefinedClassPrintStats( pAig, vStatus, r+1, Abc_Clock() - clk );
         Vec_StrFree( vStatus );
@@ -1058,6 +1515,9 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         if ( Cec_ParCorShouldStop( pPars ) )
         {
             Cec_ManSimStop( pSim );
+            Cec_DynSrmFree( pDynSrm );
+            Cec_IncrMgrFree( pMgr );
+            Cec_SeedSimFree( pSeedSim );
             return 1;
         }
         // quit if const is no longer there
@@ -1067,6 +1527,9 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
             printf( "because the property output is no longer a candidate constant.\n" );
             fflush( stdout );
             Cec_ManSimStop( pSim );
+            Cec_DynSrmFree( pDynSrm );
+            Cec_IncrMgrFree( pMgr );
+            Cec_SeedSimFree( pSeedSim );
             return 0;
         }
         if ( pPars->nLimitMax )
@@ -1078,6 +1541,9 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
                 printf( "because refinement does not proceed quickly.\n" );
                 fflush( stdout );
                 Cec_ManSimStop( pSim );
+                Cec_DynSrmFree( pDynSrm );
+                Cec_IncrMgrFree( pMgr );
+                Cec_SeedSimFree( pSeedSim );
                 ABC_FREE( pAig->pReprs );
                 ABC_FREE( pAig->pNexts );
                 return 0;
@@ -1105,11 +1571,21 @@ int Cec_ManLSCorrespondenceClasses( Gia_Man_t * pAig, Cec_ParCor_t * pPars )
         ABC_PRTP( "Sat  ", clkSat,                        clkTotal );
         ABC_PRTP( "Sim  ", clkSim,                        clkTotal );
         ABC_PRTP( "Other", clkTotal-clkSat-clkSrm-clkSim, clkTotal );
+        if ( pMgr )
+        {
+            ABC_PRTP( "Incr ", clkIncr, clkTotal );
+            Abc_Print( 1, "Incr: fallback rounds = %d, skipped candidate pairs = %d\n", nIncrFallback, nIncrSkipped );
+        }
+        if ( pDynSrm )
+            Cec_DynSrmPrintStats( pDynSrm );
         Abc_PrintTime( 1, "TOTAL",  clkTotal );
         fflush( stdout );
     }
+    Cec_IncrMgrFree( pMgr );
+    Cec_DynSrmFree( pDynSrm );
+    Cec_SeedSimFree( pSeedSim );
     return 1;
-}    
+}
 
 /**Function*************************************************************
 

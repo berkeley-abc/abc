@@ -170,6 +170,53 @@ int Cec_ManSeqResimulate( Cec_ManSim_t * p, Vec_Ptr_t * vInfo )
     return 0;
 }
 
+int Cec_ManSeqResimulateSeed( Cec_ManSim_t * p, Vec_Ptr_t * vInfo, Cec_SeedSim_t * pSeed )
+{
+    unsigned * pInfo0, * pInfo1;
+    int f, i, k, w, RetValue;
+    assert( pSeed != NULL );
+    assert( pSeed->pAig == p->pAig );
+    assert( pSeed->nFrames == p->pPars->nFrames );
+    assert( pSeed->nWords == p->nWords );
+    assert( Vec_PtrSize(vInfo) == Gia_ManRegNum(p->pAig) + Gia_ManPiNum(p->pAig) * p->pPars->nFrames );
+    for ( k = 0; k < Gia_ManRegNum(p->pAig); k++ )
+    {
+        pInfo0 = (unsigned *)Vec_PtrEntry( vInfo, k );
+        pInfo1 = (unsigned *)Vec_PtrEntry( p->vCoSimInfo, Gia_ManPoNum(p->pAig) + k );
+        for ( w = 0; w < p->nWords; w++ )
+            pInfo1[w] = pInfo0[w];
+    }
+    for ( f = 0; f < p->pPars->nFrames; f++ )
+    {
+        unsigned * pSave = pSeed->pPhase + (size_t)f * pSeed->nPhaseWords;
+        for ( i = 0; i < Gia_ManPiNum(p->pAig); i++ )
+        {
+            pInfo0 = (unsigned *)Vec_PtrEntry( vInfo, k++ );
+            pInfo1 = (unsigned *)Vec_PtrEntry( p->vCiSimInfo, i );
+            for ( w = 0; w < p->nWords; w++ )
+                pInfo1[w] = pInfo0[w];
+        }
+        for ( i = 0; i < Gia_ManRegNum(p->pAig); i++ )
+        {
+            pInfo0 = (unsigned *)Vec_PtrEntry( p->vCoSimInfo, Gia_ManPoNum(p->pAig) + i );
+            pInfo1 = (unsigned *)Vec_PtrEntry( p->vCiSimInfo, Gia_ManPiNum(p->pAig) + i );
+            for ( w = 0; w < p->nWords; w++ )
+                pInfo1[w] = pInfo0[w];
+        }
+        Cec_SeedSimSaveFrameInputs( pSeed, p->vCiSimInfo, f );
+        RetValue = Cec_ManSimSimulateRoundSavePhase( p, p->vCiSimInfo, p->vCoSimInfo, pSave );
+        Cec_SeedSimSaveFrameOutputs( pSeed, p->vCoSimInfo, f );
+        if ( RetValue )
+        {
+            pSeed->fInitialized = 0;
+            return 1;
+        }
+    }
+    assert( k == Vec_PtrSize(vInfo) );
+    Cec_SeedSimFinishFull( pSeed );
+    return 0;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Resimulates information to refine equivalence classes.]

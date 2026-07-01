@@ -32,6 +32,11 @@ static inline void       Cec_ObjSetSim( Cec_ManSim_t * p, int Id, int n )  { p->
 
 static inline float      Cec_MemUsage( Cec_ManSim_t * p )                  { return 1.0*p->nMemsMax*(p->pPars->nWords+1)/(1<<20);   }
 
+void Cec_ManSimMemRelink( Cec_ManSim_t * p );
+unsigned * Cec_ManSimSimRef( Cec_ManSim_t * p, int i );
+unsigned * Cec_ManSimSimDeref( Cec_ManSim_t * p, int i );
+void Cec_ManSimProcessRefined( Cec_ManSim_t * p, Vec_Int_t * vRefined );
+
 ////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
@@ -308,6 +313,106 @@ int Cec_ManSimClassRefineOne_( Cec_ManSim_t * p, int i )
 int Cec_ManSimClassRefineOne( Cec_ManSim_t * p, int i )
 {
     return Cec_ManSimClassRefineOne_rec( p, i );
+}
+
+static void Cec_ManSimLoadMappedValue( Cec_ManSim_t * p, int ObjId,
+    unsigned * pValues, int Lit, int nWords )
+{
+    unsigned * pSim = Cec_ManSimSimRef( p, ObjId );
+    unsigned * pValue = pValues + (size_t)Abc_Lit2Var(Lit) * nWords;
+    int w;
+    // External values are consumed only by class refinement, not by the
+    // reference-counted AIG simulation below.  One matching dereference should
+    // therefore release this entry regardless of the host node's fanout count.
+    pSim[0] = 1;
+    if ( Abc_LitIsCompl(Lit) )
+        for ( w = 0; w < nWords; w++ )
+            pSim[w+1] = ~pValue[w];
+    else
+        for ( w = 0; w < nWords; w++ )
+            pSim[w+1] = pValue[w];
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Refines classes using externally simulated host-object values.]
+
+  Description [vLits maps host object IDs to literals in pValues.  This entry
+               point lets an unrolled SRM-side simulator reuse the established
+               class partitioning code without simulating the host AIG again.]
+
+  SideEffects [May split equivalence classes in p->pAig.]
+
+  SeeAlso     [Cec_ManSimSimulateRound]
+
+***********************************************************************/
+int Cec_ManSimRefineMappedFrame( Cec_ManSim_t * p, unsigned * pValues,
+    Vec_Int_t * vLits, int iBase, int nWords )
+{
+    Gia_Obj_t * pObj;
+    Vec_Int_t * vHeads = Vec_IntAlloc( 64 );
+    int i, k, Ent, Lit, nChanges = 0;
+    assert( Vec_IntSize(vLits) >= iBase + Gia_ManObjNum(p->pAig) );
+    p->nWords = nWords;
+    if ( p->nWordsOld != p->nWords )
+        Cec_ManSimMemRelink( p );
+    Vec_IntClear( p->vRefinedC );
+
+    // Snapshot the current heads before any class is split.
+    Gia_ManForEachObj1( p->pAig, pObj, i )
+        if ( Gia_ObjIsHead(p->pAig, i) )
+            Vec_IntPush( vHeads, i );
+
+    // Candidate constants are partitioned by their true simulated values.
+    Gia_ManForEachObj1( p->pAig, pObj, i )
+    {
+        if ( !Gia_ObjIsConst(p->pAig, i) )
+            continue;
+        Lit = Vec_IntEntry( vLits, iBase + i );
+        assert( Lit >= 0 );
+        Cec_ManSimLoadMappedValue( p, i, pValues, Lit, nWords );
+        if ( !Cec_ManSimCompareConst(Cec_ObjSim(p, i), nWords) )
+            Vec_IntPush( p->vRefinedC, i );
+        else
+            Cec_ManSimSimDeref( p, i );
+    }
+
+    // Load one class at a time so the simulation manager's recyclable storage
+    // remains proportional to the largest class rather than to the whole AIG.
+    Vec_IntForEachEntry( vHeads, i, k )
+    {
+        if ( !Gia_ObjIsHead(p->pAig, i) )
+            continue;
+        Vec_IntClear( p->vClassTemp );
+        Gia_ClassForEachObj( p->pAig, i, Ent )
+        {
+            Lit = Vec_IntEntry( vLits, iBase + Ent );
+            assert( Lit >= 0 );
+            Cec_ManSimLoadMappedValue( p, Ent, pValues, Lit, nWords );
+            Vec_IntPush( p->vClassTemp, Ent );
+        }
+        nChanges += Cec_ManSimClassRefineOne( p, i );
+        Vec_IntForEachEntry( p->vClassTemp, Ent, Lit )
+            Cec_ManSimSimDeref( p, Ent );
+    }
+    if ( p->pPars->fConstCorr )
+    {
+        Vec_IntForEachEntry( p->vRefinedC, i, k )
+        {
+            Gia_ObjSetRepr( p->pAig, i, GIA_VOID );
+            Cec_ManSimSimDeref( p, i );
+        }
+        nChanges += Vec_IntSize( p->vRefinedC );
+        Vec_IntClear( p->vRefinedC );
+    }
+    if ( Vec_IntSize(p->vRefinedC) > 0 )
+    {
+        nChanges += Vec_IntSize( p->vRefinedC );
+        Cec_ManSimProcessRefined( p, p->vRefinedC );
+    }
+    assert( p->nMems == 1 );
+    Vec_IntFree( vHeads );
+    return nChanges;
 }
 
 /**Function*************************************************************
@@ -665,7 +770,7 @@ int Cec_ManSimAnalyzeOutputs( Cec_ManSim_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * vInfoCos )
+static int Cec_ManSimSimulateRoundInt( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * vInfoCos, unsigned * pSave )
 {
     Gia_Obj_t * pObj;
     unsigned * pRes0, * pRes1, * pRes;
@@ -751,6 +856,12 @@ int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t *
                 for ( w = 1; w <= p->nWords; w++ )
                     pRes[w] = pRes0[w] & pRes1[w];
         }
+        if ( pSave )
+        {
+            unsigned * pWord = pSave + (i >> 5);
+            unsigned Bit = 1u << (i & 31);
+            *pWord = (*pWord & ~Bit) | ((pRes[1] & 1) ? Bit : 0);
+        }
 
 references:
         // if this node is candidate constant, collect it
@@ -806,6 +917,17 @@ references:
     }
 */
     return Cec_ManSimAnalyzeOutputs( p );
+}
+
+int Cec_ManSimSimulateRound( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * vInfoCos )
+{
+    return Cec_ManSimSimulateRoundInt( p, vInfoCis, vInfoCos, NULL );
+}
+
+int Cec_ManSimSimulateRoundSavePhase( Cec_ManSim_t * p, Vec_Ptr_t * vInfoCis, Vec_Ptr_t * vInfoCos, unsigned * pSave )
+{
+    assert( pSave != NULL );
+    return Cec_ManSimSimulateRoundInt( p, vInfoCis, vInfoCos, pSave );
 }
 
 

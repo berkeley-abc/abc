@@ -64,6 +64,7 @@ struct Cbs_Man_t_
 {
     Cbs_Par_t     Pars;         // parameters
     Gia_Man_t *   pAig;         // AIG manager
+    int           nSyncedObjs;  // pAig objects already prepped (Value/marks/refs) for resident reuse
     Cbs_Que_t     pProp;        // propagation queue
     Cbs_Que_t     pJust;        // justification queue
     Cbs_Que_t     pClauses;     // clause queue
@@ -71,6 +72,9 @@ struct Cbs_Man_t_
     Vec_Int_t *   vLevReas;     // levels and decisions
     Vec_Int_t *   vModel;       // satisfying assignment
     Vec_Ptr_t *   vTemp;        // temporary storage
+    Vec_Int_t *   vOutLits;     // optional endpoint literals to sample before cancel
+    Vec_Int_t *   vOutVals;     // optional endpoint values by output
+    int           iOutVal;      // current output whose endpoints are sampled
     // SAT calls statistics
     int           nSatUnsat;    // the number of proofs
     int           nSatSat;      // the number of failure
@@ -255,6 +259,29 @@ static inline void Cbs_ManSaveModelAll( Cbs_Man_t * p, Vec_Int_t * vCex )
     Cbs_QueForEachEntry( p->pProp, pVar, i )
         Vec_IntPush( vCex, Abc_Var2Lit(Gia_ObjId(p->pAig,pVar), !Cbs_VarValue(pVar)) );
 } 
+
+static inline int Cbs_ManLitValue( Cbs_Man_t * p, int iLit )
+{
+    Gia_Obj_t * pObj;
+    if ( iLit < 0 )
+        return -1;
+    if ( Abc_Lit2Var(iLit) == 0 )
+        return Abc_LitIsCompl(iLit);
+    pObj = Gia_ManObj( p->pAig, Abc_Lit2Var(iLit) );
+    if ( !Cbs_VarIsAssigned(pObj) )
+        return -1;
+    return Cbs_VarValue(pObj) ^ Abc_LitIsCompl(iLit);
+}
+
+static inline void Cbs_ManSaveOutVals( Cbs_Man_t * p, Vec_Int_t * vOutLits, Vec_Int_t * vOutVals, int Out )
+{
+    if ( vOutLits == NULL || vOutVals == NULL )
+        return;
+    if ( 2*Out + 1 >= Vec_IntSize(vOutLits) )
+        return;
+    Vec_IntWriteEntry( vOutVals, 2*Out,     Cbs_ManLitValue( p, Vec_IntEntry(vOutLits, 2*Out) ) );
+    Vec_IntWriteEntry( vOutVals, 2*Out + 1, Cbs_ManLitValue( p, Vec_IntEntry(vOutLits, 2*Out + 1) ) );
+}
 
 /**Function*************************************************************
 
@@ -954,7 +981,10 @@ int Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj )
     p->Pars.nBTThis = p->Pars.nJustThis = p->Pars.nBTThisNc = 0;
     Cbs_ManAssign( p, pObj, 0, NULL, NULL );
     if ( !Cbs_ManSolve_rec(p, 0) && !Cbs_ManCheckLimits(p) )
+    {
         Cbs_ManSaveModel( p, p->vModel );
+        Cbs_ManSaveOutVals( p, p->vOutLits, p->vOutVals, p->iOutVal );
+    }
     else
         RetValue = 1;
     Cbs_ManCancelUntil( p, 0 );
@@ -1034,14 +1064,14 @@ void Cbs_ManSatPrintStats( Cbs_Man_t * p )
   SeeAlso     []
 
 ***********************************************************************/
-Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStatus, int f0Proved, int fVerbose )
+Vec_Int_t * Cbs_ManSolveMiterNcOutVals( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStatus, int f0Proved, int fVerbose, Vec_Int_t * vOutLits, Vec_Int_t ** pvOutVals )
 {
     extern void Gia_ManCollectTest( Gia_Man_t * pAig );
     extern void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out );
-    Cbs_Man_t * p; 
-    Vec_Int_t * vCex, * vVisit, * vCexStore;
+    Cbs_Man_t * p;
+    Vec_Int_t * vCex, * vVisit, * vCexStore, * vOutVals = NULL;
     Vec_Str_t * vStatus;
-    Gia_Obj_t * pRoot; 
+    Gia_Obj_t * pRoot;
     int i, status;
     abctime clk, clkTotal = Abc_Clock();
     assert( Gia_ManRegNum(pAig) == 0 );
@@ -1058,6 +1088,12 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
     // create resulting data-structures
     vStatus   = Vec_StrAlloc( Gia_ManPoNum(pAig) );
     vCexStore = Vec_IntAlloc( 10000 );
+    if ( pvOutVals )
+    {
+        *pvOutVals = NULL;
+        if ( vOutLits )
+            vOutVals = Vec_IntStartFull( 2 * Gia_ManPoNum(pAig) );
+    }
     vVisit    = Vec_IntAlloc( 100 );
     vCex      = Cbs_ReadModel( p );
     // solve for each output
@@ -1084,7 +1120,13 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
         clk = Abc_Clock();
         p->Pars.fUseHighest = 1;
         p->Pars.fUseLowest  = 0;
+        p->vOutLits = vOutLits;
+        p->vOutVals = vOutVals;
+        p->iOutVal  = i;
         status = Cbs_ManSolve( p, Gia_ObjChild0(pRoot) );
+        p->vOutLits = NULL;
+        p->vOutVals = NULL;
+        p->iOutVal  = -1;
 //        printf( "\n" );
 /*
         if ( status == -1 )
@@ -1126,10 +1168,140 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
 //    printf( "RecCalls = %8d.  RecClause = %8d.  RecNonChro = %8d.\n", p->nRecCall, p->nRecClause, p->nRecNonChro );
     Cbs_ManStop( p );
     *pvStatus = vStatus;
+    if ( pvOutVals )
+        *pvOutVals = vOutVals;
+    else
+        Vec_IntFreeP( &vOutVals );
 
 //    printf( "Total number of cex literals = %d. (Ave = %d)\n", 
 //         Vec_IntSize(vCexStore)-2*p->nSatUndec-2*p->nSatSat, 
 //        (Vec_IntSize(vCexStore)-2*p->nSatUndec-2*p->nSatSat)/p->nSatSat );
+    return vCexStore;
+}
+
+Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvStatus, int f0Proved, int fVerbose )
+{
+    return Cbs_ManSolveMiterNcOutVals( pAig, nConfs, pvStatus, f0Proved, fVerbose, NULL, NULL );
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Incrementally prepares newly appended objects of a persistent AIG.]
+
+  Description [The pAig of a resident manager is append-only across solve calls.
+  Cbs needs every unassigned object to carry Value=~0 and clean marks, and reads
+  Gia_ObjRefNum during branching.  After a clean solve Cbs restores Value/marks
+  of the nodes it touched, and freshly appended nodes are zero-initialized, so we
+  only have to prep the suffix [nSyncedObjs, ObjNum): set Value=~0, clear marks,
+  grow pRefs and bump each new AND's fanin refs (= the global fanout counts that
+  Gia_ManCreateRefs would produce, computed incrementally).  This replaces the
+  per-round O(|pAig|) refs/marks/value rebuild with O(newly appended).]
+
+  SideEffects [Allocates/grows pAig->pRefs (freed by Gia_ManStop).]
+
+  SeeAlso     []
+
+***********************************************************************/
+void Cbs_ManSyncCore( Cbs_Man_t * p )
+{
+    Gia_Man_t * pAig = p->pAig;
+    Gia_Obj_t * pObj;
+    int i, nObjs = Gia_ManObjNum( pAig );
+    assert( p->nSyncedObjs <= nObjs );
+    if ( p->nSyncedObjs == nObjs )
+        return;
+    pAig->pRefs = ABC_REALLOC( int, pAig->pRefs, nObjs );
+    memset( pAig->pRefs + p->nSyncedObjs, 0, sizeof(int) * (nObjs - p->nSyncedObjs) );
+    for ( i = p->nSyncedObjs; i < nObjs; i++ )
+    {
+        pObj = Gia_ManObj( pAig, i );
+        pObj->fMark0 = pObj->fMark1 = 0;
+        pObj->Value  = ~0;
+        if ( Gia_ObjIsAnd(pObj) )
+        {
+            pAig->pRefs[Gia_ObjFaninId0(pObj, i)]++;
+            pAig->pRefs[Gia_ObjFaninId1(pObj, i)]++;
+        }
+    }
+    p->nSyncedObjs = nObjs;
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Solves a set of root literals directly on a persistent AIG.]
+
+  Description [Same prover as Cbs_ManSolveMiterNc, but each problem is a root
+  literal of p->pAig (no CO needed) instead of a CO of a freshly built view, and
+  the manager is resident: it is allocated once on the persistent COless pCore
+  and reused across rounds, only Cbs_ManSyncCore-ing the objects appended since
+  the last call - so neither the throwaway view (alloc + copy-all-CIs + cone
+  copy) nor the per-round whole-AIG prep is paid.  Output index i corresponds to
+  vRootLits[i]; vCexStore / vStatus format matches Cbs_ManSolveMiterNc.  CEX is
+  saved by CioId, which on pCore equals the view's CI numbering.]
+
+  SideEffects [Prepares newly appended objects via Cbs_ManSyncCore.]
+
+  SeeAlso     []
+
+***********************************************************************/
+Vec_Int_t * Cbs_ManSolveRoots( Cbs_Man_t * p, Vec_Int_t * vRootLits, Vec_Str_t ** pvStatus, int fVerbose )
+{
+    extern void Cec_ManSatAddToStore( Vec_Int_t * vCexStore, Vec_Int_t * vCex, int Out );
+    Gia_Man_t * pAig = p->pAig;
+    Vec_Int_t * vCex, * vCexStore;
+    Vec_Str_t * vStatus;
+    int i, iLit, status;
+    abctime clk, clkTotal = Abc_Clock();
+    assert( Gia_ManRegNum(pAig) == 0 );
+    Cbs_ManSyncCore( p ); // prep only objects appended since the last solve
+    vStatus   = Vec_StrAlloc( Vec_IntSize(vRootLits) );
+    vCexStore = Vec_IntAlloc( 10000 );
+    vCex      = Cbs_ReadModel( p );
+    Vec_IntForEachEntry( vRootLits, iLit, i )
+    {
+        Vec_IntClear( vCex );
+        if ( Abc_Lit2Var(iLit) == 0 ) // structural constant root
+        {
+            if ( Abc_LitIsCompl(iLit) ) // const 1: trivial counter-example
+            {
+                Cec_ManSatAddToStore( vCexStore, vCex, i );
+                Vec_StrPush( vStatus, 0 );
+            }
+            else                        // const 0: proved
+                Vec_StrPush( vStatus, 1 );
+            continue;
+        }
+        clk = Abc_Clock();
+        p->Pars.fUseHighest = 1;
+        p->Pars.fUseLowest  = 0;
+        status = Cbs_ManSolve( p, Gia_ObjFromLit(pAig, iLit) );
+        Vec_StrPush( vStatus, (char)status );
+        if ( status == -1 )
+        {
+            p->nSatUndec++;
+            p->nConfUndec += p->Pars.nBTThis;
+            Cec_ManSatAddToStore( vCexStore, NULL, i ); // timeout
+            p->timeSatUndec += Abc_Clock() - clk;
+            continue;
+        }
+        if ( status == 1 )
+        {
+            p->nSatUnsat++;
+            p->nConfUnsat += p->Pars.nBTThis;
+            p->timeSatUnsat += Abc_Clock() - clk;
+            continue;
+        }
+        p->nSatSat++;
+        p->nConfSat += p->Pars.nBTThis;
+        Cec_ManSatAddToStore( vCexStore, vCex, i );
+        p->timeSatSat += Abc_Clock() - clk;
+    }
+    p->nSatTotal = Vec_IntSize( vRootLits );
+    p->timeTotal = Abc_Clock() - clkTotal;
+    if ( fVerbose )
+        Cbs_ManSatPrintStats( p );
+    // manager is resident: caller (Cec_DynSrm) owns its lifetime
+    *pvStatus = vStatus;
     return vCexStore;
 }
 
@@ -1140,4 +1312,3 @@ Vec_Int_t * Cbs_ManSolveMiterNc( Gia_Man_t * pAig, int nConfs, Vec_Str_t ** pvSt
 
 
 ABC_NAMESPACE_IMPL_END
-

@@ -1312,10 +1312,14 @@ extern void                Cbs_ManStop( Cbs_Man_t * p );
 extern int                 Cbs_ManSolve( Cbs_Man_t * p, Gia_Obj_t * pObj );
 extern int                 Cbs_ManSolve2( Cbs_Man_t * p, Gia_Obj_t * pObj, Gia_Obj_t * pObj2 );
 extern Vec_Int_t *         Cbs_ManSolveMiterNc( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int f0Proved, int fVerbose );
+extern Vec_Int_t *         Cbs_ManSolveMiterNcOutVals( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int f0Proved, int fVerbose, Vec_Int_t * vOutLits, Vec_Int_t ** pvOutVals );
+extern void                Cbs_ManSyncCore( Cbs_Man_t * p );
+extern Vec_Int_t *         Cbs_ManSolveRoots( Cbs_Man_t * p, Vec_Int_t * vRootLits, Vec_Str_t ** pvStatus, int fVerbose );
 extern void                Cbs_ManSetConflictNum( Cbs_Man_t * p, int Num );
 extern Vec_Int_t *         Cbs_ReadModel( Cbs_Man_t * p );
 /*=== giaCTas.c ============================================================*/
 extern Vec_Int_t *         Tas_ManSolveMiterNc( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose );
+extern Vec_Int_t *         Tas_ManSolveMiterNcOutVals( Gia_Man_t * pGia, int nConfs, Vec_Str_t ** pvStatus, int fVerbose, Vec_Int_t * vOutLits, Vec_Int_t ** pvOutVals );
 /*=== giaCof.c =============================================================*/
 extern void                Gia_ManPrintFanio( Gia_Man_t * pGia, int nNodes );
 extern Gia_Man_t *         Gia_ManDupCof( Gia_Man_t * p, int iVar );
