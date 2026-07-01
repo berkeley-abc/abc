@@ -690,7 +690,7 @@ Vec_Wec_t * Gia_ManSelectCuts( Vec_Wec_t * vCuts, int nCuts, int nCutSizeMin )
     Vec_Wec_t * vCutsSel = Vec_WecStart( nCuts );
     int i; srand( time(NULL) );
     for ( i = 0; i < nCuts; i++ )
-        while ( !Gia_StoSelectOneCut(vCuts, (rand() | (rand() << 15)) % Vec_WecSize(vCuts), Vec_WecEntry(vCutsSel, i), nCutSizeMin) );
+        while ( !Gia_StoSelectOneCut(vCuts, (int)(((unsigned)rand() | ((unsigned)rand() << 15)) % Vec_WecSize(vCuts)), Vec_WecEntry(vCutsSel, i), nCutSizeMin) );
     return vCutsSel;
 }
 Vec_Wec_t * Gia_ManExtractCuts( Gia_Man_t * pGia, int nCutSize0, int nCuts0, int fVerbose0 )
