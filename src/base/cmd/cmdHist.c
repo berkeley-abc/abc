@@ -27,12 +27,6 @@ ABC_NAMESPACE_IMPL_START
 
 
 ////////////////////////////////////////////////////////////////////////
-///                        DECLARATIONS                              ///
-////////////////////////////////////////////////////////////////////////
-
-#define ABC_USE_HISTORY 1
-
-////////////////////////////////////////////////////////////////////////
 ///                     FUNCTION DEFINITIONS                         ///
 ////////////////////////////////////////////////////////////////////////
 
@@ -102,7 +96,7 @@ void Cmd_HistoryAddCommand(    Abc_Frame_t * p, const char * command )
 ***********************************************************************/
 void Cmd_HistoryRead( Abc_Frame_t * p )
 {
-#if defined(ABC_USE_HISTORY)
+#if !defined(ABC_NO_HISTORY)
     char Buffer[ABC_MAX_STR];
     FILE * pFile;
     assert( Vec_PtrSize(p->aHistory) == 0 );
@@ -134,7 +128,7 @@ void Cmd_HistoryRead( Abc_Frame_t * p )
 ***********************************************************************/
 void Cmd_HistoryWrite( Abc_Frame_t * p, int Limit )
 {
-#if defined(ABC_USE_HISTORY)
+#if !defined(ABC_NO_HISTORY)
     FILE * pFile;
     char * pStr; 
     int i;
@@ -186,7 +180,7 @@ void Cmd_HistoryWrite( Abc_Frame_t * p, int Limit )
 ***********************************************************************/
 void Cmd_HistoryPrint( Abc_Frame_t * p, int Limit )
 {
-#if defined(ABC_USE_HISTORY) 
+#if !defined(ABC_NO_HISTORY) 
     char * pStr; 
     int i;
     Limit = Abc_MaxInt( 0, Vec_PtrSize(p->aHistory)-Limit );
