@@ -35100,9 +35100,9 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     Aig_Man_t * pAig;
     Gia_Man_t * pGia, * pTemp;
     char * pInits;
-    int c, fGiaSimple = 0, fMapped = 0, fNames = 0, fReuseNames = 0, fVerbose = 0;
+    int c, fGiaSimple = 0, fMapped = 0, fNames = 0, fReuseNames = 0, fSibls = 0, fVerbose = 0;
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "cmnrvh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "cmnrvsh" ) ) != EOF )
     {
         switch ( c )
         {
@@ -35120,6 +35120,9 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
             break;
         case 'v':
             fVerbose ^= 1;
+            break;
+        case 's':
+            fSibls ^= 1;
             break;
         default:
             goto usage;
@@ -35156,10 +35159,15 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     else
     {
         if ( Abc_NtkGetChoiceNum(pAbc->pNtkCur) )
+        {
             pAig = Abc_NtkToDarChoices( pAbc->pNtkCur );
+            pGia = fSibls ? Gia_ManFromAigChoices( pAig ) : Gia_ManFromAig( pAig );
+        }
         else
+        {
             pAig = Abc_NtkToDar( pAbc->pNtkCur, 0, 1 );
-        pGia = Gia_ManFromAig( pAig );
+            pGia = Gia_ManFromAig( pAig );
+        }
         Aig_ManStop( pAig );
     }
     // copy names
@@ -35204,7 +35212,7 @@ int Abc_CommandAbc9Get( Abc_Frame_t * pAbc, int argc, char ** argv )
     return 0;
 
 usage:
-    Abc_Print( -2, "usage: &get [-cmnrvh] <file>\n" );
+    Abc_Print( -2, "usage: &get [-cmnrvsh] <file>\n" );
     Abc_Print( -2, "\t         converts the current network into GIA and moves it to the &-space\n" );
     Abc_Print( -2, "\t         (if the network is a sequential logic network, normalizes the flops\n" );
     Abc_Print( -2, "\t         to have const-0 initial values, equivalent to \"undc; st; zero\")\n" );
@@ -35213,6 +35221,7 @@ usage:
     Abc_Print( -2, "\t-n     : toggles saving CI/CO names of the AIG [default = %s]\n", fNames? "yes": "no" );
     Abc_Print( -2, "\t-r     : toggles reusing CI/CO names of the current AIG [default = %s]\n", fReuseNames? "yes": "no" );
     Abc_Print( -2, "\t-v     : toggles additional verbose output [default = %s]\n", fVerbose? "yes": "no" );
+    Abc_Print( -2, "\t-s     : toggles exporting choice nodes as GIA siblings (pSibls) for &if-based mapping [default = %s]\n", fSibls? "yes": "no" );
     Abc_Print( -2, "\t-h     : print the command usage\n");
     Abc_Print( -2, "\t<file> : the file name\n");
     return 1;
