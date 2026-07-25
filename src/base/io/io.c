@@ -4172,20 +4172,44 @@ usage:
   SeeAlso     []
 
 ***********************************************************************/
+static int IoCommandWriteTruthsPlaDigits( int nObjs )
+{
+    int nDigits = 2;
+    for ( nObjs--; nObjs >= 100; nObjs /= 10 )
+        nDigits++;
+    return nDigits;
+}
+static void IoCommandWriteTruthsPlaNames( FILE * pFile, Gia_Man_t * pGia, int fOuts )
+{
+    int i, nObjs = fOuts ? Gia_ManCoNum(pGia) : Gia_ManPiNum(pGia);
+    int nDigits = IoCommandWriteTruthsPlaDigits( nObjs );
+    fprintf( pFile, "%s", fOuts ? ".ob" : ".ilb" );
+    for ( i = 0; i < nObjs; i++ )
+    {
+        char * pName = fOuts ? Gia_ObjCoName(pGia, i) : Gia_ObjCiName(pGia, i);
+        if ( pName )
+            fprintf( pFile, " %s", pName );
+        else
+            fprintf( pFile, " %s%0*d", fOuts ? "po" : "pi", nDigits, i );
+    }
+    fprintf( pFile, "\n" );
+}
 int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     Gia_Obj_t * pObj;
     char * pFileName;
     FILE * pFile;
     word * pTruth;
+    Vec_Wrd_t * vTruths = NULL;
     int nBytes;
     int fReverse = 0;
     int fHex = 1;
     int fBinaryFile = 0;
-    int c, i;
+    int fPla = 0;
+    int c, i, k, m, Mint;
  
     Extra_UtilGetoptReset();
-    while ( ( c = Extra_UtilGetopt( argc, argv, "rxbh" ) ) != EOF )
+    while ( ( c = Extra_UtilGetopt( argc, argv, "rxbph" ) ) != EOF )
     {
         switch ( c )
         {
@@ -4197,6 +4221,9 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
                 break;
             case 'b':
                 fBinaryFile ^= 1;
+                break;
+            case 'p':
+                fPla ^= 1;
                 break;
             case 'h':
                 goto usage;
@@ -4221,6 +4248,11 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     }
     if ( argc != globalUtilOptind + 1 )
         goto usage;
+    if ( fPla && fBinaryFile )
+    {
+        Abc_Print( -1, "IoCommandWriteTruths(): Options \"-p\" and \"-b\" cannot be used together.\n" );
+        return 0;
+    }
     // get the input file name
     pFileName = argv[globalUtilOptind];
     // convert to logic
@@ -4231,7 +4263,38 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
         return 0;
     }
     nBytes = 8 * Abc_Truth6WordNum( Gia_ManPiNum(pAbc->pGia) );
-    Gia_ManForEachCo( pAbc->pGia, pObj, i )
+    if ( fPla )
+    {
+        vTruths = Vec_WrdAlloc( Gia_ManCoNum(pAbc->pGia) * Abc_Truth6WordNum(Gia_ManPiNum(pAbc->pGia)) );
+        Gia_ManForEachCo( pAbc->pGia, pObj, i )
+        {
+            pTruth = Gia_ObjComputeTruthTable( pAbc->pGia, pObj );
+            Vec_WrdPushArray( vTruths, pTruth, Abc_Truth6WordNum(Gia_ManPiNum(pAbc->pGia)) );
+        }
+        fprintf( pFile, ".i %d\n", Gia_ManPiNum(pAbc->pGia) );
+        fprintf( pFile, ".o %d\n", Gia_ManCoNum(pAbc->pGia) );
+        fprintf( pFile, ".type fr\n" );
+        IoCommandWriteTruthsPlaNames( pFile, pAbc->pGia, 0 );
+        IoCommandWriteTruthsPlaNames( pFile, pAbc->pGia, 1 );
+        fprintf( pFile, ".p %d\n", 1 << Gia_ManPiNum(pAbc->pGia) );
+        for ( m = 0; m < (1 << Gia_ManPiNum(pAbc->pGia)); m++ )
+        {
+            Mint = 0;
+            for ( k = Gia_ManPiNum(pAbc->pGia) - 1; k >= 0; k-- )
+            {
+                fprintf( pFile, "%d", (m >> k) & 1 );
+                if ( (m >> k) & 1 )
+                    Mint |= 1 << (Gia_ManPiNum(pAbc->pGia) - 1 - k);
+            }
+            fprintf( pFile, " " );
+            for ( i = 0; i < Gia_ManCoNum(pAbc->pGia); i++ )
+                fprintf( pFile, "%d", Abc_TtGetBit(Vec_WrdEntryP(vTruths, i * Abc_Truth6WordNum(Gia_ManPiNum(pAbc->pGia))), Mint) );
+            fprintf( pFile, "\n" );
+        }
+        fprintf( pFile, ".e\n" );
+        Vec_WrdFree( vTruths );
+    }
+    else Gia_ManForEachCo( pAbc->pGia, pObj, i )
     {
         pTruth = Gia_ObjComputeTruthTable( pAbc->pGia, pObj );
         if ( fBinaryFile )
@@ -4245,11 +4308,12 @@ int IoCommandWriteTruths( Abc_Frame_t * pAbc, int argc, char **argv )
     return 0;
 
 usage:
-    fprintf( pAbc->Err, "usage: &write_truth [-rxbh] <file>\n" );
-    fprintf( pAbc->Err, "\t         writes truth tables of each PO of GIA manager into a file\n" );
+    fprintf( pAbc->Err, "usage: &write_truth [-rxbph] <file>\n" );
+    fprintf( pAbc->Err, "\t         writes truth tables of GIA manager into a file\n" );
     fprintf( pAbc->Err, "\t-r     : toggle reversing bits in the truth table [default = %s]\n", fReverse? "yes":"no" );
     fprintf( pAbc->Err, "\t-x     : toggle writing in the hex notation [default = %s]\n", fHex? "yes":"no" );
     fprintf( pAbc->Err, "\t-b     : toggle using binary file format [default = %s]\n", fBinaryFile? "yes":"no" );
+    fprintf( pAbc->Err, "\t-p     : toggle writing PLA format with .type fr [default = %s]\n", fPla? "yes":"no" );
     fprintf( pAbc->Err, "\t-h     : print the help massage\n" );
     fprintf( pAbc->Err, "\tfile   : the name of the file to write\n" );
     return 1;
